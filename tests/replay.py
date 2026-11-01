@@ -111,6 +111,7 @@ import json
 import math
 import os
 import re
+import shutil
 import subprocess
 import sys
 import tempfile
@@ -307,7 +308,17 @@ def inv_agreement(records: list[dict], plan_draws: bool | None,
     return out
 
 
-def away_offenders(observations: list[dict], events: list | None = None) -> list[str]:
+def away_coverage_offenders(name: str, events: list | None) -> list[str]:
+    """A fixture in ``AWAY_COVERED`` whose ``controls.away`` holds no active
+    command: it declares coverage the recording does not carry."""
+    if name not in AWAY_COVERED:
+        return []
+    return [] if any(e[1] for e in events or ()) else [
+        f"{name} declares away coverage but records no active command"]
+
+
+def away_offenders(observations: list[dict], events: list | None = None,
+                   expect_commanded: bool = False) -> list[str]:
     """A cycle the owner's recorded command holds away (``controls.away``) whose
     plan was not made away: the coordinator's live view not active, the
     override not held, or -- not recovering -- the solve's published floor
@@ -320,9 +331,18 @@ def away_offenders(observations: list[dict], events: list | None = None) -> list
     ``events`` is the fixture's own ``controls.away``, read apart from the
     replay: every cycle at or after an active command, before the next, must
     be one the replay observed commanded, so a replay that stopped carrying
-    the command (no commanded cycle, nothing judged) is red, not vacuously
-    green (R10-REPLAY-REAL-DAY round 1: ``commanded = None`` survived)."""
+    the command is red while the events are non-empty (R10-REPLAY-REAL-DAY
+    round 1: ``commanded = None`` survived). Empty events judge nothing, so
+    ``expect_commanded`` -- true for a fixture in ``AWAY_COVERED`` -- also
+    requires at least one commanded cycle, and ``away_coverage_offenders``
+    refuses such a fixture whose events hold no active command (round 3:
+    ``recorded_away = []`` survived with none).
+    """
     out = []
+    if expect_commanded:
+        if not any(o.get("commanded_return") for o in observations):
+            out.append("the fixture declares away coverage but the replay carried no "
+                       "commanded cycle")
     for o in observations if events is not None else ():
         held = None
         for when, active, returns in events:
@@ -466,6 +486,11 @@ COST_ARMS_SKIPPED: dict[str, str] = {
     "CPU-minutes a replay, so four would overrun the replay job; the arms run on "
     "the synthetic fixture",
 }
+#: Fixtures that declare away coverage: their ``controls.away`` must hold an
+#: active command and their replay must carry it for at least one cycle
+#: (``away_offenders``'s ``expect_commanded``). A design choice: coverage is
+#: declared here, so a fixture cut without the command is refused, not passed.
+AWAY_COVERED = frozenset({"owner-2026-10-30-away.json"})
 #: A reference solve after every this many cycles, beside the ones before
 #: and after the day, so the unit tracks the runner through the replay.
 COST_REF_EVERY = 8
@@ -731,6 +756,12 @@ def controls() -> list[tuple[str, bool, str]]:
     pair("away:replayed",
          away_offenders([{**o, "commanded_return": None} for o in seen], events),
          away_offenders(seen, events))
+    covered = next(iter(AWAY_COVERED))
+    pair("away:coverage_needs_a_command",
+         away_coverage_offenders(covered, []), away_coverage_offenders(covered, events))
+    pair("away:coverage_needs_a_commanded_cycle",
+         away_offenders([{**o, "commanded_return": None} for o in seen], [], True),
+         away_offenders(seen, events, True))
     pkg = "/x/custom_components/heatpump_optimizer/"
     pair("cycle_cost:coverage", uncovered_files({pkg + f for f in COST_FILES[1:]}),
          uncovered_files({pkg + f for f in COST_FILES}))
@@ -750,6 +781,10 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
         nightly_ha.check_a10_no_precise_location(checks, json.loads(path.read_text()))
         res.append((f"a10_location:{path.name}", not checks.failures(),
                     str(checks.results)))
+        events = (json.loads(path.read_text()).get("controls") or {}).get("away") or []
+        res.append((f"away_coverage:{path.name}",
+                    not away_coverage_offenders(path.name, events),
+                    f"{len(events)} away event(s)"))
     # The null control: an unsanitised payload is refused by the same rules.
     raw = {"format": export.FORMAT, "entry": {"data": {"tibber_token": "abc123xyz",
            "solar_location": {"latitude": 59.334591}}, "options": {}},
@@ -991,8 +1026,8 @@ def tibber_price_checks() -> list[tuple[str, bool, str]]:
 # MySQL driver replaced by a DB-API double over the same rows: no server.
 
 #: Invented credentials; the checks below require that neither leaves the export.
-_DB_USER, _DB_PASSWORD = "hpo_reader", "Invented-Pa55word-91"
-_DB_URL = f"mysql://{_DB_USER}:{_DB_PASSWORD}@core-mariadb/homeassistant?charset=utf8mb4"
+_CANARY_USER, _CANARY_KEY = "hpo_reader", "Invented-Pa55word-91"
+_DB_URL = f"mysql://{_CANARY_USER}:{_CANARY_KEY}@core-mariadb/homeassistant?charset=utf8mb4"
 _CONFIGURATION_YAML = (
     "homeassistant:\n  name: Exempel\n\n"
     "recorder:\n  purge_keep_days: 10\n  db_url: !secret recorder_db_url  # MariaDB add-on\n"
@@ -1145,24 +1180,31 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
                     and all(s.lstrip().upper().startswith("SELECT") for s in passed),
                     f"{len(fake.statements)} statement(s), first {fake.statements[:1]}"))
         res.append(("recorder:db_url_secret_resolved",
-                    fake.kwargs.get("user") == _DB_USER
-                    and fake.kwargs.get("password") == _DB_PASSWORD
+                    fake.kwargs.get("user") == _CANARY_USER
+                    and fake.kwargs.get("password") == _CANARY_KEY
                     and fake.kwargs.get("host") == "core-mariadb"
                     and fake.kwargs.get("database") == "homeassistant",
                     f"keys {sorted(fake.kwargs)}"))
         written = (tmp / "out.json").read_text() if doc else ""
         res.append(("recorder:db_url_credentials_never_printed",
-                    doc is not None and "core-mariadb" in printed
-                    and not any(c in printed + written for c in (_DB_PASSWORD, _DB_USER)),
+                    doc is not None and "MySQL/MariaDB database" in printed
+                    and not any(c in printed + written for c in (_CANARY_KEY, _CANARY_USER)),
                     "printed and written text searched for the user and the password"))
         failed, why = _export_mariadb(_FakeMySQL(tmp / "mariadb-backing.db",
-                                                 fail=f"denied for {_DB_USER}:{_DB_PASSWORD}"), tmp)
+                                                 fail=f"denied for {_CANARY_USER}:{_CANARY_KEY}"), tmp)
         res.append(("recorder:db_url_connect_refusal_names_no_credential",
-                    failed is None and "core-mariadb" in why
-                    and not any(c in why for c in (_DB_PASSWORD, _DB_USER)), why[-200:]))
+                    failed is None and "MySQL/MariaDB database" in why
+                    and not any(c in why for c in (_CANARY_KEY, _CANARY_USER)), why[-200:]))
         flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
         res.append(("recorder:db_url_flag_read", flag is not None
                     and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
+        # A SQLite recorder named by a db_url (which may come from secrets.yaml)
+        # is named by its kind; its path is printed only where the person typed it.
+        shutil.copy(tmp / "mariadb-backing.db", tmp / "url-named-recorder.db")
+        lite, said = _export_mariadb(None, tmp, db_url="sqlite:///url-named-recorder.db")
+        res.append(("recorder:sqlite_db_url_named_by_kind_not_path",
+                    lite is not None and "SQLite database" in said
+                    and "url-named-recorder" not in said, said[-200:]))
         missing, why = _export_mariadb(None, tmp)
         res.append(("recorder:db_url_driver_missing_refused_by_name",
                     missing is None and "MySQLdb" in why and "pymysql" in why, why[-200:]))
@@ -1176,7 +1218,7 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
         fake = _FakeMySQL(_mariadb_install(tmp, empty_window=True))
         doc, why = _export_mariadb(fake, tmp)
         res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
-                    doc is None and "mysql://core-mariadb/homeassistant" in why
+                    doc is None and "MySQL/MariaDB database" in why
                     and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
     # A key the integration no longer reads (``heat_pump_entity``, dropped in
     # v3.8.0 as never read) still in an old entry, its entity long unrecorded:
@@ -1940,7 +1982,9 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     ref_cpu += [reference_solve()[1] for _ in range(3)]
     loop_ref_cpu += [reference_loop() for _ in range(3)]
     results["not_frozen"] = frozen_offenders(pub_series, inp_series)
-    results["away"] = away_offenders(away_seen, recorded_away)
+    results["away"] = away_offenders(
+        away_seen, recorded_away, path.name in AWAY_COVERED
+    ) + away_coverage_offenders(path.name, recorded_away)
     figures = cost_figures(cycle_cpu, ref_cpu, peaks, loop_cpu, loop_ref_cpu)
     clean = sum(c for _, c in injected)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}

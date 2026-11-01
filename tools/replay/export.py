@@ -255,11 +255,13 @@ def recorder_url(config_dir: Path) -> str | None:
     return None
 
 
-def redacted(url: str) -> str:
-    """``scheme://host[:port]/database``: the URL with no user, password or query."""
-    parts = urlsplit(url)
-    port = f":{parts.port}" if parts.port else ""
-    return f"{parts.scheme}://{parts.hostname or ''}{port}{parts.path}"
+#: What a message calls a MySQL/MariaDB recorder. No text of the URL is in it:
+#: its host and database are the owner's, and a message only names the kind.
+MYSQL_LABEL = "MySQL/MariaDB database"
+#: A SQLite recorder named by a ``db_url`` is named by its kind alone, for the
+#: same reason: the URL may come from ``secrets.yaml``, and a message names a
+#: location only when the person typed it (``--db``, or the config directory).
+SQLITE_URL_LABEL = "SQLite database"
 
 
 class Recorder:
@@ -295,7 +297,7 @@ MYSQL_DRIVERS = ("MySQLdb", "pymysql")
 
 
 def _mysql(url: str) -> Recorder:
-    parts, label = urlsplit(url), redacted(url)
+    parts, label = urlsplit(url), MYSQL_LABEL
     wanted = ("pymysql",) if parts.scheme.endswith("+pymysql") else MYSQL_DRIVERS
     module = None
     for name in wanted:
@@ -333,14 +335,17 @@ def open_recorder(config_dir: Path, db: Path | None, db_url: str | None) -> Reco
     url = db_url or (None if db else recorder_url(config_dir))
     if url and not url.startswith("sqlite"):
         if not url.split(":", 1)[0].split("+", 1)[0] in ("mysql", "mariadb"):
-            raise SystemExit(f"the recorder {redacted(url)} is neither SQLite nor "
+            raise SystemExit("the recorder URL is neither SQLite nor "
                              "MySQL/MariaDB, the two this export reads")
         return _mysql(url)
+    label = None
     if url:
         db = Path(urlsplit(url).path[1:] if url.startswith("sqlite:////") else
                   config_dir / urlsplit(url).path.lstrip("/"))
+        label = SQLITE_URL_LABEL
     db = db or config_dir / "home-assistant_v2.db"
-    return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True), f"SQLite {db}", qmark=True)
+    return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True),
+                    label or f"SQLite {db}", qmark=True)
 
 
 def _schema_version(rec: Recorder) -> int:
