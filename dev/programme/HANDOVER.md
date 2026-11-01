@@ -250,8 +250,18 @@ per-pull-request owner review is the rule again.
   `gate` on `origin/main`. The approve steps and `approve_held_runs.sh` stay
   until M-3 decides (design `archive/probe/design-ci-rev4`, review
   `archive/probe/design-ci-review5`).
+- **Model routing is Claude seats, per roster group** (`fixerModel`,
+  `reviewerModel`, the `model` object). The owner's 2026-09-09 ruling: Opus for
+  orchestration, architectural fixes and review, survey, judge and production
+  fixes; Sonnet for tests, tooling, docs, records and read-only reporting;
+  **Fable only for a very large multi-layer refactor where Opus is judged too
+  risky.** A model trailer on a merge or a stamp is the session's model, not a
+  routing event. Effort and the mechanical-turn models are under the seats
+  section above.
 - **Merges land as merge commits** (0010); the merge body defaults to the pull
-  request's title, so a closing keyword in a title reaches `main`.
+  request's title, so a closing keyword in a title reaches `main`. A closing
+  keyword in a branch's commit message links an issue just as a pull-request
+  body does (#503 acquired a false link to #457 that way).
 - **Never re-gate an unchanged head.** A terminal CI result at that head is the
   gate evidence. Local runs exist for what CI cannot produce: the mutation
   proof, the failing test at the merge base, the finder's harness at both ends.
@@ -332,8 +342,8 @@ per-pull-request owner review is the rule again.
 
 ## Traps that cost a session
 
-A trap that has acquired a mechanical detector is a one-line pointer to it.
-The detector must fire when the trap would bite, in that trap's mode, and each
+A trap that has acquired a mechanical detector is a one-line pointer to it:
+promotion, not cutting. The detector must fire when the trap would bite, in that trap's mode, and each
 graduation owes a mutation proof in its own pull request.
 
 - **A killed agent never writes its own `state at stop:` comment**, and a
@@ -481,6 +491,28 @@ graduation owes a mutation proof in its own pull request.
 - **A record's own fields are checked by almost nothing** (#687): a dead path
   in a roster `resume.note` is invisible to `brief_lint.mjs` while the same path
   in `brief` is an error.
+- **Six of this project's own instruments reported rather than measured**
+  (#341, #347, #354, #350, #357, #510), each found by someone chasing something
+  else: the pattern is the finding, not the individual bugs.
+
+Graduated, one line each:
+
+- **One CI runner is not the fleet** (#387): `tools/policy/policy_lint_envmatrix.mjs`.
+- **The machinery a handover depends on is code nobody ran** (`.claude/` is
+  `INERT`): `tools/policy/check-wave-script.mjs` and `policy_lint --hooks`.
+- **A shallow checkout fails a driver on the clone, not the tree** (#901):
+  `tests/entities.py` refuses a history-reading driver at depth 1.
+- **A shallow clone turns "commits ahead" into fiction**:
+  `.claude/hooks/session-start.sh`.
+- **A one-sided cap and a growing document collide across branches** (#608,
+  #607): `policy-docs`'s `[budgets]`.
+- **A citation repointed to a commit that resolves but lacks the file is worse
+  than a dead one**: `policy_lint`'s `citations` for the corpus and rosters;
+  elsewhere `git cat-file -e <sha>:<path>`, not per directory.
+- **A blank line ends a markdown table**: `policy_lint --record`'s `table` check
+  over both disposition documents.
+- **A sectioned config-flow field's label**: the schema-derived, no-fallback
+  assertion in `tests/entities.py`, which walks the built schema.
 
 ## Owed
 
