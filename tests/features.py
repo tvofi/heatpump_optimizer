@@ -13364,28 +13364,41 @@ R.check(
     str({k: sorted(f for f in set(v) | set(_fr_l_want[k]) if v.get(f) != _fr_l_want[k].get(f))
          for k, v in _fr_l_got.items() if v != _fr_l_want[k]}),
 )
-# The void list, entry by entry: each key it names is on disk before the
-# reset (the control) and gone from the document the reset writes, read at
-# the moment the entry is set up again; each store it names whole is removed.
-_FR_VOID_ALL = sorted((n, k) for n, keys in _FR_VOID for k in (keys or (None,)))
+# The void list, key by key, against a list this test owns rather than
+# ``_FACTORY_VOID`` itself (an enumeration read from the list it checks pins
+# nothing): every key a learned store holds is a learner the reset drops, or
+# one of these facts it keeps. The heat-loss pair stays, voided by its own
+# path; the rest is the anchors, the meter's last COP, snow memory, the
+# frequency watchdog's latch, the billed peaks, the mode and the save stamp.
+_FR_FACTS = {
+    "thermal_learning": {
+        "house_heat_loss_scale", "house_heat_loss_samples", "lower_floor_loss_ratio",
+        "lower_floor_loss_samples", "house_heat_loss_anchor", "house_heat_loss_basis",
+        "lower_floor_loss_anchor", "heat_loss_zone_entities", "measured_cop", "snow_accum_cm",
+        "snow_accum_last", "last_heavy_snow", "freq_fallback", "updated_at",
+    },
+    "accuracy": {"peaks", "mode"},
+    "dhw_profile": set(), "dhw_draws": set(), "price_model": set(),
+}
 _fr_l_setup = _fr_l_before["at_setup"]
-
-
-def _fr_on(disk, name, key):
-    return name in disk if key is None else key in (disk.get(name) or {})
-
-
-_fr_void_absent = [nk for nk in _FR_VOID_ALL if not _fr_on(_fr_l_before["disk"], *nk)]
+_fr_learned_keys = sorted((n, k) for n, facts in _FR_FACTS.items()
+                          for k in (_fr_l_before["disk"].get(n) or {}) if k not in facts)
 R.check(
-    "before a learners reset every key and store the void list names is on disk, entry by entry (the control)",
-    not _fr_void_absent and len(_FR_VOID_ALL) >= 20,
-    f"absent {_fr_void_absent}, {len(_FR_VOID_ALL)} entries",
+    "before a learners reset every learned store is on disk and holds learned keys beyond its facts (the control)",
+    all(_fr_l_before["disk"].get(n) for n in _FR_FACTS)
+    and {n for n, _ in _fr_learned_keys} == set(_FR_FACTS) and len(_fr_learned_keys) >= 25,
+    f"stores absent {sorted(n for n in _FR_FACTS if not _fr_l_before['disk'].get(n))}, "
+    f"{len(_fr_learned_keys)} learned key(s)",
 )
-_fr_void_left = [nk for nk in _FR_VOID_ALL if _fr_on(_fr_l_setup, *nk)]
+_fr_left = [(n, k) for n, k in _fr_learned_keys if k in (_fr_l_setup.get(n) or {})]
+_fr_facts_lost = sorted((n, k) for n, facts in _FR_FACTS.items() for k in facts
+                        if k in (_fr_l_before["disk"].get(n) or {}) and k not in (_fr_l_setup.get(n) or {}))
 R.check(
-    "a learners reset removes every key and store the void list names, entry by entry, before the entry is set up again",
-    not _fr_void_left,
-    f"left {_fr_void_left}",
+    "a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again",
+    not _fr_left and not _fr_facts_lost
+    and not any(n in _fr_l_setup for n, facts in _FR_FACTS.items() if not facts),
+    f"learned left {_fr_left}, facts lost {_fr_facts_lost}, "
+    f"whole stores left {sorted(n for n, f in _FR_FACTS.items() if not f and n in _fr_l_setup)}",
 )
 _fr_l_disk = _fr_disk("fr_learners")
 R.check(
