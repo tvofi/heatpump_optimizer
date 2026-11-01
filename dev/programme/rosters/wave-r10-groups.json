@@ -7950,7 +7950,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r10-train-overlap-grade",
-    "commit": "89ccf73266a8dcfc0e8d4f45ad6583b0cb622db6",
+    "commit": "c21ebf4cad02e581b0d75179995966f9cb63162e",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "Plan amendment registered by the orchestrator (s4) under mandate 6329234399 at 2026-10-22T04:00Z; roster seat applied after the freeze lifted.",
