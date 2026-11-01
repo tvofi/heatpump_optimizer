@@ -92,6 +92,10 @@ def _self_test() -> int:
               _expect_error(lambda: run(path, "second block"), NameError))
         check("--prelude supplies that import and the block passes", run(path, "second block", prelude=("import math",)) == 0)
         check("--through runs the prefix and the state it builds, no block", run(path, None, upto="second block") == 0)
+        check("_main: a block with --prelude passes", _main(["--prelude", "import math", "second block"], path) == 0)
+        check("_main: --through takes the marker and no block", _main(["--through", "second block"], path) == 0)
+        check("_main: --through with a block, or no argument, is a usage error, rc 2",
+              _main(["--through", "second block", "first block"], path) == 2 and _main([], path) == 2)
         bad = fake.replace("seed = 5", "seed = 6")
         open(path, "w").write(bad)
         check("--through reports the prefix's own failure (null control)", run(path, None, upto="second block") == 1)
@@ -110,7 +114,7 @@ def _expect_error(fn, exc) -> bool:
     return False
 
 
-def _main(argv: list[str]) -> int:
+def _main(argv: list[str], path: str = "tests/features.py") -> int:
     prelude, upto, pos = [], None, []
     it = iter(argv)
     for a in it:
@@ -123,7 +127,7 @@ def _main(argv: list[str]) -> int:
     if upto is not None and pos or upto is None and not pos:
         print(__doc__)
         return 2
-    return run("tests/features.py", pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
+    return run(path, pos[0] if pos else None, *pos[1:2], prelude=tuple(prelude), upto=upto)
 
 
 if __name__ == "__main__":
