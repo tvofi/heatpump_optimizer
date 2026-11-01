@@ -103,6 +103,7 @@ import io
 import json
 import math
 import os
+import re
 import subprocess
 import sys
 import tempfile
@@ -606,7 +607,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     res.append(("control:sanitise_clears",
                 not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
-    return res + leak_probes() + tibber_price_checks()
+    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks() + leak_copy_checks() + cut_day_checks()
 
 
 #: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
@@ -640,6 +641,10 @@ LEAK_PROBES = {
     "n11_host_path_unit": {"unit_of_measurement": "home.local/api/x"},
     "entry_n13_text_in_entity_key": {"weather_entity": "Storgatan 12 Stockholm"},
     "n14_mac_no_colons": {"options": ["aabbccddeeff"]},
+    # The owner's street address (R10-REPLAY-REAL-DAY): a street and its house
+    # number as a text state, and free text in an entry key the allowlist keeps.
+    "state_street_number": {"state": "Exempelgatan 12B"},
+    "entry_free_text": {"ecl110_state_topic": "Anna Exempel"},
 }
 PROBE_ENTITY = "sensor.heat_pump_power"
 
@@ -744,11 +749,13 @@ def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = No
 
     def patched(series=series):
         out = series()
-        for row in rows:
+        # Each sensor's prices sit a whole krona apart, so the masked document's
+        # ``sensor.price`` rows name the sensor they were read from.
+        for i, row in enumerate(rows):
             if row[0] not in unrecorded:
                 out[row[0]] = [(synthesize.DAY + timedelta(hours=h),
                                 "unavailable" if row[0] in unavailable
-                                else f"{0.8 + h / 100:.3f}",
+                                else f"{i + 1 + h / 100:.3f}",
                                 {"unit_of_measurement": "SEK/kWh",
                                  "state_class": "measurement"}) for h in range(-1, 24)]
         return out
@@ -770,7 +777,10 @@ def _tibber_export(rows: list[tuple], entry: dict, price_entity: str | None = No
                     Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
                     None, [], price_entity)
         chosen = payload["price_series_entity"]
-        return f"{chosen} rows={len(payload['states'].get(chosen) or [])}"
+        series_rows = payload["states"].get(chosen) or [] if chosen else []
+        prices = [float(r[1]) for r in series_rows if _num(r[1]) is not None]
+        source = rows[int(prices[-1]) - 1][0] if prices else chosen
+        return f"{source} rows={len(series_rows)}"
     except SystemExit as err:
         return f"refused: {err}"
     finally:
@@ -813,6 +823,517 @@ def tibber_price_checks() -> list[tuple[str, bool, str]]:
             lambda o: o.startswith("None rows=")),
     }
     return [(f"tibber_price:{name}", ok(out), out) for name, (out, ok) in cases.items()]
+
+
+# --- the recorder a ``recorder: db_url`` names, and the masked document --------
+#
+# R10-REPLAY-REAL-DAY: the owner's recorder is MariaDB, named by
+# configuration.yaml's ``recorder: db_url``, beside a stale SQLite file; the
+# export read the SQLite file and wrote a near-empty day its own check passed.
+# These drive ``export.build_export`` over the synthetic install with the
+# MySQL driver replaced by a DB-API double over the same rows: no server.
+
+#: Invented credentials; the checks below require that neither leaves the export.
+_DB_USER, _DB_PASSWORD = "hpo_reader", "Invented-Pa55word-91"
+_DB_URL = f"mysql://{_DB_USER}:{_DB_PASSWORD}@core-mariadb/homeassistant?charset=utf8mb4"
+_CONFIGURATION_YAML = (
+    "homeassistant:\n  name: Exempel\n\n"
+    "recorder:\n  purge_keep_days: 10\n  db_url: !secret recorder_db_url  # MariaDB add-on\n"
+    "\nhistory:\n"
+)
+
+
+class _FakeMySQL:
+    """A DB-API module standing in for ``MySQLdb``: each connection runs its
+    ``%s`` statements on a SQLite copy of the recorder, opened read-only, and
+    records them; anything but a SELECT or the read-only session is an error."""
+
+    def __init__(self, backing: Path, fail: str | None = None) -> None:
+        self.backing, self.fail = backing, fail
+        self.statements: list[str] = []
+        self.kwargs: dict = {}
+
+    def connect(self, **kwargs):
+        self.kwargs = kwargs
+        if self.fail:
+            raise RuntimeError(self.fail)
+        return _FakeConnection(self, _sqlite_ro(self.backing))
+
+
+def _sqlite_ro(path: Path):
+    import sqlite3
+
+    return sqlite3.connect(f"file:{path}?mode=ro", uri=True)
+
+
+class _FakeConnection:
+    def __init__(self, module: _FakeMySQL, conn) -> None:
+        self.module, self.conn = module, conn
+
+    def cursor(self):
+        return _FakeCursor(self)
+
+    def close(self) -> None:
+        self.conn.close()
+
+
+class _FakeCursor:
+    READ_ONLY = ("SET SESSION TRANSACTION READ ONLY", "START TRANSACTION READ ONLY")
+
+    def __init__(self, conn: _FakeConnection) -> None:
+        self.conn, self.description, self._rows = conn, None, []
+
+    def execute(self, sql: str, params=()) -> None:
+        self.conn.module.statements.append(sql)
+        if sql in self.READ_ONLY:
+            return
+        if not sql.lstrip().upper().startswith("SELECT") or "?" in sql:
+            raise RuntimeError("the double runs SELECTs in the %s paramstyle only")
+        cur = self.conn.conn.execute(sql.replace("%s", "?"), tuple(params))
+        self.description, self._rows = cur.description, cur.fetchall()
+
+    def fetchall(self):
+        return list(self._rows)
+
+    def close(self) -> None:
+        pass
+
+
+def _mariadb_install(tmp: Path, *, url_line: str | None = "!secret recorder_db_url",
+                     empty_window: bool = False) -> Path:
+    """The owner's layout, invented: a synthetic recorder moved to where the
+    MariaDB double reads it, a stale SQLite file of two early-2025 rows left at
+    ``home-assistant_v2.db``, and configuration.yaml naming the database."""
+    import shutil
+    import sqlite3
+    import synthesize
+
+    db = synthesize.write_install(tmp)
+    backing = tmp / "mariadb-backing.db"
+    shutil.copy(db, backing)
+    stale = sqlite3.connect(db)
+    stale.execute("DELETE FROM states WHERE state_id NOT IN "
+                  "(SELECT MIN(state_id) FROM states GROUP BY metadata_id LIMIT 2)")
+    stale.execute("UPDATE states SET last_updated_ts = 1736500000.0, last_reported_ts = NULL")
+    stale.commit()
+    stale.close()
+    if empty_window:
+        conn = sqlite3.connect(backing)
+        start = synthesize.DAY.timestamp()
+        conn.execute("DELETE FROM states WHERE last_updated_ts >= ?", (start,))
+        conn.execute("UPDATE states SET last_reported_ts = NULL")
+        conn.commit()
+        conn.close()
+    if url_line is not None:
+        (tmp / "configuration.yaml").write_text(
+            _CONFIGURATION_YAML.replace("!secret recorder_db_url", url_line))
+        (tmp / "secrets.yaml").write_text(f'recorder_db_url: "{_DB_URL}"\nother: x\n')
+    return backing
+
+
+def _export_mariadb(fake: _FakeMySQL | None, tmp: Path, db: Path | None = None,
+                    db_url: str | None = None) -> tuple[dict | None, str]:
+    """``export.main`` over ``tmp`` with ``MySQLdb`` (and ``pymysql``) replaced
+    by ``fake``, None for neither installed: the document and every line it
+    printed, or None and the refusal."""
+    import export
+    import synthesize
+
+    saved = {m: sys.modules.get(m) for m in ("MySQLdb", "pymysql")}
+    sys.modules["MySQLdb"] = fake  # type: ignore[assignment]
+    sys.modules["pymysql"] = None  # type: ignore[assignment]
+    out = tmp / "out.json"
+    argv = ["--config-dir", str(tmp), "--days", "1",
+            "--end", (synthesize.DAY + timedelta(days=1)).date().isoformat(), "--out", str(out)]
+    argv += ["--db", str(db)] if db else []
+    argv += ["--db-url", db_url] if db_url else []
+    printed = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(printed), contextlib.redirect_stderr(printed):
+            export.main(argv)
+        return json.loads(out.read_text()), printed.getvalue()
+    except SystemExit as err:
+        return None, printed.getvalue() + f"refused: {err}"
+    finally:
+        for name, module in saved.items():
+            if module is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
+
+
+def _in_window(doc: dict) -> dict[str, int]:
+    """Rows of each input stamped inside the window, updated or reported."""
+    start = _ts(doc["window"]["start"])
+    return {eid: sum(1 for r in doc["states"].get(eid, [])
+                     if _ts(r[0]) >= start or (r[3] and _ts(r[3]) >= start))
+            for eid in doc["inputs"]}
+
+
+def recorder_checks() -> list[tuple[str, bool, str]]:
+    import export
+
+    res = []
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        fake = _FakeMySQL(_mariadb_install(tmp))
+        doc, printed = _export_mariadb(fake, tmp)
+        counts = _in_window(doc) if doc else {}
+        res.append(("recorder:db_url_whole_day_read",
+                    bool(counts) and all(counts.values()) and sum(counts.values()) > 500,
+                    printed[-300:] if doc is None else f"in-window rows {sorted(counts.items())}"))
+        passed = [s for s in fake.statements if s not in _FakeCursor.READ_ONLY]
+        res.append(("recorder:db_url_read_only_session_selects_only",
+                    fake.statements[:1] == [_FakeCursor.READ_ONLY[0]] and bool(passed)
+                    and all(s.lstrip().upper().startswith("SELECT") for s in passed),
+                    f"{len(fake.statements)} statement(s), first {fake.statements[:1]}"))
+        res.append(("recorder:db_url_secret_resolved",
+                    fake.kwargs.get("user") == _DB_USER
+                    and fake.kwargs.get("password") == _DB_PASSWORD
+                    and fake.kwargs.get("host") == "core-mariadb"
+                    and fake.kwargs.get("database") == "homeassistant",
+                    f"keys {sorted(fake.kwargs)}"))
+        written = (tmp / "out.json").read_text() if doc else ""
+        res.append(("recorder:db_url_credentials_never_printed",
+                    doc is not None and "core-mariadb" in printed
+                    and not any(c in printed + written for c in (_DB_PASSWORD, _DB_USER)),
+                    "printed and written text searched for the user and the password"))
+        failed, why = _export_mariadb(_FakeMySQL(tmp / "mariadb-backing.db",
+                                                 fail=f"denied for {_DB_USER}:{_DB_PASSWORD}"), tmp)
+        res.append(("recorder:db_url_connect_refusal_names_no_credential",
+                    failed is None and "core-mariadb" in why
+                    and not any(c in why for c in (_DB_PASSWORD, _DB_USER)), why[-200:]))
+        flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
+        res.append(("recorder:db_url_flag_read", flag is not None
+                    and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
+        missing, why = _export_mariadb(None, tmp)
+        res.append(("recorder:db_url_driver_missing_refused_by_name",
+                    missing is None and "MySQLdb" in why and "pymysql" in why, why[-200:]))
+        # The owner's layout read the old way: the stale SQLite file alone.
+        stale, why = _export_mariadb(fake, tmp, db=tmp / "home-assistant_v2.db")
+        res.append(("recorder:stale_sqlite_near_empty_day_refused",
+                    stale is None and "home-assistant_v2.db" in why
+                    and "sensor.outdoor_temp" in why, why[-300:]))
+    with tempfile.TemporaryDirectory() as tmp:
+        tmp = Path(tmp)
+        fake = _FakeMySQL(_mariadb_install(tmp, empty_window=True))
+        doc, why = _export_mariadb(fake, tmp)
+        res.append(("recorder:db_url_emptied_window_refused_naming_inputs_and_recorder",
+                    doc is None and "mysql://core-mariadb/homeassistant" in why
+                    and "sensor.outdoor_temp" in why and "sensor.price" in why, why[-300:]))
+    # A key the integration no longer reads (``heat_pump_entity``, dropped in
+    # v3.8.0 as never read) still in an old entry, its entity long unrecorded:
+    # not an input, so neither exported nor refused -- while an unrecorded
+    # entity under a key it does read is refused (the null control).
+    import synthesize
+
+    for name, key, refused in (("retired_key_left_out", "heat_pump_entity", False),
+                               ("read_key_unrecorded_refused", "heat_pump_switch_entity", True)):
+        data = synthesize.ENTRY_DATA
+        synthesize.ENTRY_DATA = {**data, key: "climate.retired_pump"}
+        try:
+            with tempfile.TemporaryDirectory() as tmp:
+                tmp = Path(tmp)
+                _mariadb_install(tmp, url_line=None)
+                doc, why = _export_mariadb(None, tmp, db=tmp / "mariadb-backing.db")
+        finally:
+            synthesize.ENTRY_DATA = data
+        blob = json.dumps(doc) if doc else ""
+        ok = (doc is None and "1 of" in why) if refused else (
+            doc is not None and "retired_pump" not in blob and "climate." not in blob
+            .replace('"climate.e_', "") and key in why)
+        res.append((f"recorder:{name}", ok, why[-300:]))
+    # configuration.yaml's spellings of the URL, and an install without one.
+    cases = {
+        "inline_quoted": ("recorder:\n  db_url: 'mysql://u:p@h/db'\n", None, "mysql://u:p@h/db"),
+        "inline_plain": ("recorder:\n    auto_purge: true\n    db_url: mysql://u:p@h/db # x\n",
+                         None, "mysql://u:p@h/db"),
+        "secret": ("recorder:\n  db_url: !secret rec\n", "rec: mysql://u:p@h/db\n",
+                   "mysql://u:p@h/db"),
+        "include": ("recorder: !include recorder.yaml\n", None, "mysql://u:p@h/inc"),
+        "nested_key_ignored": ("other:\n  recorder:\n    db_url: mysql://u:p@h/no\n", None, None),
+        "no_db_url": ("recorder:\n  purge_keep_days: 3\nlogger:\n  db_url: x\n", None, None),
+        "no_file": (None, None, None),
+    }
+    for name, (config, secrets, want) in cases.items():
+        with tempfile.TemporaryDirectory() as tmp:
+            tmp = Path(tmp)
+            if config is not None:
+                (tmp / "configuration.yaml").write_text(config)
+            if secrets is not None:
+                (tmp / "secrets.yaml").write_text(secrets)
+            (tmp / "recorder.yaml").write_text("db_url: \"mysql://u:p@h/inc\"\n")
+            got = export.recorder_url(tmp) if hasattr(export, "recorder_url") else "absent"
+            res.append((f"recorder:url_from_configuration:{name}", got == want,
+                        "matched" if got == want else "differs"))
+    return res
+
+
+#: An invented street address, in every place the owner's real one can hide.
+_STREET = "exempelgatan_12"
+
+
+def mask_checks() -> list[tuple[str, bool, str]]:
+    import export
+    import synthesize
+
+    res = []
+    fixture = json.loads((FIXTURES / "synthetic-dhw-only.json").read_text())
+    ids = set(fixture["states"]) | set(fixture["inputs"]) | set(fixture["published"])
+    entry_ids = {k: v for k, v in fixture["entry"]["data"].items() if k.endswith("_entity")}
+    res.append(("mask:entry_entities_renamed_to_their_role",
+                entry_ids.get("price_entity") == "sensor.price"
+                and entry_ids.get("outdoor_temp_entity") == "sensor.outdoor_temp"
+                and entry_ids.get("heat_pump_mode_entity") == "select.heat_pump_mode"
+                and set(entry_ids.values()) <= ids, str(sorted(entry_ids.values()))))
+    res.append(("mask:published_ids_hashed",
+                all(re.match(r"^[a-z_]+\.e_[0-9a-f]{10}$", p) for p in fixture["published"])
+                and len(fixture["published"]) == 2, str(fixture["published"])))
+
+    # An install whose ids carry the street: the price sensor and a published entity.
+    series, data, published = synthesize._series, synthesize.ENTRY_DATA, synthesize.PUBLISHED
+    price_id, pub_id = f"sensor.nordpool_{_STREET}", f"sensor.{_STREET}_heat_pump_action"
+
+    def patched(series=series):
+        out = series()
+        out[price_id] = out.pop("sensor.nordpool_kwh_se3_sek")
+        out[pub_id] = out.pop("sensor.heat_pump_optimizer_heat_pump_action")
+        for eid, rows in out.items():
+            out[eid] = [(t, st, {**a, "friendly_name": "Exempelgatan 12 " + eid[:6]})
+                        for t, st, a in rows]
+        return out
+
+    synthesize._series = patched
+    synthesize.ENTRY_DATA = {**data, "price_entity": price_id}
+    synthesize.PUBLISHED = (pub_id, published[1])
+    try:
+        with tempfile.TemporaryDirectory() as tmp:
+            db = synthesize.write_install(Path(tmp))
+            payload = export.build_export(
+                Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
+                None, [], None)
+        blob = json.dumps(payload).lower()
+        outcome = "written"
+    except SystemExit as err:
+        payload, blob, outcome = None, "", f"refused: {err}"
+    finally:
+        synthesize._series, synthesize.ENTRY_DATA, synthesize.PUBLISHED = series, data, published
+    res.append(("mask:street_in_entity_ids_and_names_absent_from_export",
+                payload is not None and "exempelgatan" not in blob
+                and payload["entry"]["data"]["price_entity"] == "sensor.price"
+                and "sensor.price" in payload["states"], outcome))
+
+    # Put back by hand: the check refuses, naming the class and never the token.
+    planted = json.loads(json.dumps(fixture))
+    planted["states"][f"sensor.{_STREET}_power"] = planted["states"].pop("sensor.heat_pump_power")
+    planted["entry"]["data"]["heat_pump_power_entity"] = f"sensor.{_STREET}_power"
+    # A broken rule inside that state, so a message's path carries the id itself.
+    planted["states"][f"sensor.{_STREET}_power"][0][2] = {"colour": "red"}
+    found = export.check_file(_written(planted), export.entry_keys(*export.default_const_paths()))
+    joined = "; ".join(found)
+    res.append(("mask:check_refuses_unmapped_id_naming_class_not_token",
+                "not masked" in joined and "address-like" in joined
+                and "exempelgatan" not in joined.lower(), joined[:300]))
+    texted = json.loads(json.dumps(fixture))
+    texted["states"][sorted(texted["states"])[0]][0][1] = "Exempelgatan 12"
+    found = export.check_file(_written(texted), export.entry_keys(*export.default_const_paths()))
+    joined = "; ".join(found)
+    res.append(("mask:check_refuses_address_text_naming_class_not_token",
+                "address-like" in joined and "exempelgatan" not in joined.lower(), joined[:300]))
+    # seal() on a document that skipped the mask.
+    unmasked = json.loads(json.dumps(planted))
+    try:
+        export._doc.seal(unmasked, export.entry_keys(*export.default_const_paths()))
+        why = "sealed"
+    except export._doc.Refused as err:
+        why = str(err)
+    res.append(("mask:seal_refuses_unmapped_id_naming_class_not_token",
+                why != "sealed" and "not masked" in why and "exempelgatan" not in why.lower(),
+                why[:300]))
+    # A document whose times a writer nulled (the 2026-10-31 export) is refused.
+    nulled = json.loads(json.dumps(fixture))
+    nulled["window"]["start"] = None
+    for rows in nulled["states"].values():
+        for r in rows:
+            r[0] = None
+    found = export.check_file(_written(nulled))
+    res.append(("mask:check_refuses_a_document_with_its_times_nulled",
+                "window.start: not an ISO time" in found
+                and any(f.startswith("states: ") and "no ISO update time" in f for f in found),
+                "; ".join(found[-2:])))
+    res.append(("mask:null_committed_fixture_passes_the_check",
+                not export.check_file(FIXTURES / "synthetic-dhw-only.json"), "check_file"))
+    return res
+
+
+#: An invented Tibber token: letters first, no run of four digits, short enough
+#: to pass as a unit -- so a copy of it in a kept attribute is not dropped by its
+#: shape, only by the leak check.
+_TOKEN = "Tk9xQzR2bXcK"
+
+
+def _sealed(states: dict, entry_data: dict) -> tuple[dict | None, str]:
+    """``replay_doc.document`` then ``seal``, as both writers call them."""
+    import export
+
+    raw = export._doc.document(
+        time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
+        recorder_schema=48, entry={"entry_id": "01JX", "data": entry_data, "options": {}},
+        inputs=[k for k in states if k != "sensor.hpo_out"], published=["sensor.hpo_out"],
+        price_series_entity=None, states=states)
+    try:
+        return export._doc.seal(raw, export.entry_keys(*export.default_const_paths())), ""
+    except export._doc.Refused as err:
+        return None, str(err)
+
+
+def leak_copy_checks() -> list[tuple[str, bool, str]]:
+    """A value dropped as a credential, with a copy elsewhere: a copy in a kept
+    string is dropped too; one that cannot be dropped (a number) is refused,
+    naming where it sits and never the value; and a dropped word Home
+    Assistant uses as a state is not a credential to search for."""
+    t = "2026-01-15T01:00:00+00:00"
+    row = lambda state, attrs: [t, state, attrs, None]  # noqa: E731
+    base = {"indoor_temp_entity": "sensor.indoor", "outdoor_temp_entity": "sensor.outdoor"}
+    res = []
+    # The token in the entry and, by an integration that copies it, in a unit.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"unit_of_measurement": _TOKEN})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "tibber_token": _TOKEN})
+    res.append(("leak_copy:string_copy_in_attribute_dropped",
+                doc is not None and _TOKEN not in json.dumps(doc)
+                and doc["states"]["sensor.indoor_temp"][0][2] == {"unit_of_measurement": None},
+                why or "sealed"))
+    # A numeric PIN, its number also a recorded attribute: refused with the place.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"temperature": 4829137})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "door_pin": 4829137})
+    res.append(("leak_copy:number_copy_refused_naming_its_place_not_its_value",
+                doc is None and "states[sensor.indoor_temp].attributes.temperature" in why
+                and "4829137" not in why, why))
+    # The null control: the number inside a longer one is no copy of it.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"temperature": 14829137.5})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []},
+                       {**base, "door_pin": 4829137})
+    res.append(("leak_copy:null_number_inside_a_longer_one_sealed", doc is not None, why))
+    # A text state dropped for its shape ("2026-01", a firmware date) is no
+    # credential: its copy inside every ISO time must neither refuse nor null them.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", None)],
+                        "sensor.outdoor": [row("2026-01", None), row("-3.0", None)],
+                        "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:dropped_text_inside_timestamps_keeps_them",
+                doc is not None and doc["window"]["start"] is not None
+                and all(r[0] == t for rows in doc["states"].values() for r in rows)
+                and doc["states"]["sensor.outdoor_temp"][0][1] is None, why or "sealed"))
+    # The same text under a credential key: its copy in a time is chance, not a leak.
+    doc, why = _sealed({"sensor.indoor": [row("21.5", {"serial": "2026-01"})],
+                        "sensor.outdoor": [row("-3.0", None)], "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:credential_text_inside_timestamps_keeps_them",
+                doc is not None and doc["window"]["start"] is not None
+                and all(r[0] == t for rows in doc["states"].values() for r in rows),
+                why or "sealed"))
+    # A device's serial attribute reading "unavailable", and states that do.
+    doc, why = _sealed({"sensor.indoor": [row("unavailable", {"serial_number": "unavailable"})],
+                        "sensor.outdoor": [row("unknown", {"serial": "unknown"})],
+                        "sensor.hpo_out": []}, base)
+    res.append(("leak_copy:state_words_under_a_credential_key_not_searched",
+                doc is not None and doc["states"]["sensor.indoor_temp"][0][1] == "unavailable",
+                why or "sealed"))
+    return res
+
+
+def _week_doc() -> dict:
+    """Two invented days of a sealed export: a thermometer every five minutes
+    with its unit on the first row only, the away switch and its return time
+    set together on day two (a restart's ``unavailable`` between), and a
+    second switch the owner toggled on its own."""
+    tz = "Europe/Stockholm"
+    t0 = datetime(2026, 10, 29, tzinfo=timezone(timedelta(hours=1)))
+
+    def at(minutes: float) -> str:
+        return (t0 + timedelta(minutes=minutes)).isoformat()
+
+    thermo = [[at(m), f"{20 + (m % 60) / 100:.2f}", {"unit_of_measurement": "°C"} if m == 0
+               else None, None] for m in range(-30, 48 * 60, 5)]
+    away_on, other_on = 24 * 60 + 16 * 60 + 42.9, 20 * 60 + 59
+    return {"format": "hpo-replay/1", "time_zone": tz, "recorder_schema": 53,
+            "window": {"start": t0.isoformat(), "end": (t0 + timedelta(days=2)).isoformat()},
+            "entry": {"data": {"indoor_temp_entity": "sensor.indoor_temp"}, "options": {}},
+            "inputs": ["sensor.indoor_temp"], "price_series_entity": None,
+            "published": ["datetime.e_00000000aa", "switch.e_00000000bb", "switch.e_00000000cc"],
+            "states": {
+                "sensor.indoor_temp": thermo,
+                "datetime.e_00000000aa": [[at(-30), "unknown", None, None],
+                                          [at(away_on), "2026-10-31T19:00:00+00:00", None, None],
+                                          [at(away_on + 60), "unavailable", None, None],
+                                          [at(away_on + 61), "2026-10-31T19:00:00+00:00", None, None],
+                                          [at(away_on + 177), "unknown", None, None]],
+                "switch.e_00000000bb": [[at(-30), "off", None, None], [at(away_on), "on", None, None],
+                                        [at(away_on + 60), "unavailable", None, None],
+                                        [at(away_on + 61), "on", None, None],
+                                        [at(away_on + 177), "off", None, None]],
+                "switch.e_00000000cc": [[at(-30), "off", None, None], [at(other_on), "on", None, None],
+                                        [at(other_on + 123), "off", None, None],
+                                        [at(away_on + 60), "unavailable", None, None],
+                                        [at(away_on + 61), "off", None, None]]}}
+
+
+def cut_day_checks() -> list[tuple[str, bool, str]]:
+    """``tools/replay/cut_day.py``: the cut answers every cycle instant as the
+    whole export does, keeps no published entity, and replays the owner's away
+    command from the one switch that turned on with the return time."""
+    import cut_day
+
+    doc, res = _week_doc(), []
+    day = cut_day.cut(doc, "2026-10-30")
+    whole, cut = Recording(doc["states"]), Recording(day["states"])
+    instants = cut_day.grid(_ts(day["window"]["start"]), _ts(day["window"]["end"]))
+    same = [whole.at("sensor.indoor_temp", t) == cut.at("sensor.indoor_temp", t)
+            for t in instants]
+    rows = len(day["states"]["sensor.indoor_temp"])
+    res.append(("cut_day:every_cycle_instant_reads_as_the_whole_export",
+                len(instants) == 96 and all(same) and rows <= 97
+                and day["states"]["sensor.indoor_temp"][0][2] == {"unit_of_measurement": "°C"},
+                f"{sum(same)}/{len(instants)} instants equal, {rows} rows kept of "
+                f"{len(doc['states']['sensor.indoor_temp'])}"))
+    res.append(("cut_day:no_published_entity_kept",
+                day["published"] == [] and set(day["states"]) == {"sensor.indoor_temp"},
+                str(sorted(day["states"]))))
+    events = day["controls"]["away"]
+    res.append(("cut_day:away_command_from_the_paired_switch_restart_skipped",
+                [e[1:] for e in events] == [[True, "2026-10-31T19:00:00+00:00"], [False, None]]
+                and events[0][0].startswith("2026-10-30T16:42"), str(events)))
+    res.append(("cut_day:reload_is_every_published_entity_gone_and_no_input",
+                day["controls"]["reloads"] == [(t0_day2 := _ts(events[0][0]).replace(
+                    second=0, microsecond=0) + timedelta(minutes=60)).isoformat()],
+                str(day["controls"]["reloads"])))
+    restart = json.loads(json.dumps(doc))
+    restart["states"]["sensor.indoor_temp"].append(
+        [t0_day2.isoformat(), "unavailable", None, None])
+    restart["states"]["sensor.indoor_temp"].sort(key=lambda r: r[0])
+    res.append(("cut_day:null_restart_with_inputs_gone_is_no_reload",
+                cut_day.cut(restart, "2026-10-30")["controls"]["reloads"] == [],
+                str(cut_day.cut(restart, "2026-10-30")["controls"]["reloads"])))
+    res.append(("cut_day:null_day_without_a_command_has_none",
+                cut_day.cut(doc, "2026-10-29")["controls"] == {"away": [], "reloads": []},
+                str(cut_day.cut(doc, "2026-10-29")["controls"])))
+    twin = json.loads(json.dumps(doc))
+    twin["states"]["switch.e_00000000cc"] = doc["states"]["switch.e_00000000bb"]
+    try:
+        cut_day.cut(twin, "2026-10-30")
+        why = "cut"
+    except SystemExit as err:
+        why = str(err)
+    res.append(("cut_day:two_paired_switches_refused", "expected exactly one" in why, why))
+    return res
+
+
+def _written(doc: dict) -> Path:
+    """``doc`` in a file of its own, for ``export.check_file``."""
+    handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
+    with handle:
+        json.dump(doc, handle)
+    return Path(handle.name)
 
 
 def synthetic_reproduces() -> tuple[str, bool, str]:
@@ -978,7 +1499,21 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     cm._ensure_worker = lambda: worker
     inject_cost(cm, inject)
 
-    hass = FakeHass()
+    class RestoringHass(FakeHass):
+        """``FakeHass`` that keeps the session restore a coordinator spawns -- the
+        stored away override and boosts a reload's new entry reads back -- for
+        ``set_up`` to run once the constructor has returned, as Home Assistant's
+        loop runs the task after it; every other spawn is closed as before."""
+
+        restores: list = []
+
+        def async_create_task(self, coro, name=None, eager_start=None):
+            if getattr(coro, "__name__", "") != "restore_session":
+                return super().async_create_task(coro)
+            self.restores.append(coro)
+            return None
+
+    hass = RestoringHass()
     # Executor jobs run inline on this thread in the double, so the loop
     # thread's own work is the cycle's thread CPU less theirs.
     _EXEC_CPU[0] = 0.0
@@ -1018,36 +1553,51 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
         hass.services.async_register("weather", "get_forecasts", forecasts)
 
     entry = FakeEntry(data=entry_data, options=entry_options)
-    coord = cm.HeatPumpOptimizerCoordinator(hass, entry)
-    entry.runtime_data = coord
-
     price_series = fixture.get("price_series_entity")
-    if not cm._entity_price_source(config):
-        async def recorded_prices() -> None:
-            now = dt_util.now()
-            day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
-            span = 2 if now.hour >= 13 else 1
-            rows = []
-            # The day's quarters walked in UTC: a wall-clock walk invents the
-            # spring gap's four quarters and folds the autumn hour onto one.
-            t = dt_util.as_utc(day0)
-            while t < day0 + timedelta(days=span):
-                row = rec.at(price_series, t) if price_series else None
-                value = _num(row[1]) if row else None
-                if value is not None:
-                    rows.append({"total": value, "starts_at": dt_util.as_local(t).isoformat(),
-                                 "level": "NORMAL"})
-                t += timedelta(minutes=15)
-            if not rows:
-                raise UpdateFailed("the fixture records no price series")
-            coord._prices = rows
 
-        coord._fetch_tibber_prices = recorded_prices
+    def set_up(**kwargs):
+        """The coordinator and its entities, as ``async_setup_entry`` builds them;
+        a reload passes ``skip_first_solve`` and the last publish as the handover."""
+        coord = cm.HeatPumpOptimizerCoordinator(hass, entry, **kwargs)
+        entry.runtime_data = coord
+        while hass.restores:
+            asyncio.run(hass.restores.pop(0))
 
-    entities: list = []
-    for platform in integration.PLATFORM_LIST:
-        module = importlib.import_module(f"heatpump_optimizer.{str(platform)}")
-        asyncio.run(module.async_setup_entry(hass, entry, entities.extend))
+        async def no_solar_fetch() -> None:
+            # A fixture records no irradiance, and the lane opens no socket: an
+            # install on the Open-Meteo source replays with no solar forecast.
+            coord._open_meteo = None
+
+        coord._fetch_solar_forecast = no_solar_fetch
+        if not cm._entity_price_source(config):
+            async def recorded_prices() -> None:
+                now = dt_util.now()
+                day0 = now.replace(hour=0, minute=0, second=0, microsecond=0)
+                span = 2 if now.hour >= 13 else 1
+                rows = []
+                # The day's quarters walked in UTC: a wall-clock walk invents the
+                # spring gap's four quarters and folds the autumn hour onto one.
+                t = dt_util.as_utc(day0)
+                while t < day0 + timedelta(days=span):
+                    row = rec.at(price_series, t) if price_series else None
+                    value = _num(row[1]) if row else None
+                    if value is not None:
+                        rows.append({"total": value, "starts_at": dt_util.as_local(t).isoformat(),
+                                     "level": "NORMAL"})
+                    t += timedelta(minutes=15)
+                if not rows:
+                    raise UpdateFailed("the fixture records no price series")
+                coord._prices = rows
+
+            coord._fetch_tibber_prices = recorded_prices
+
+        entities: list = []
+        for platform in integration.PLATFORM_LIST:
+            module = importlib.import_module(f"heatpump_optimizer.{str(platform)}")
+            asyncio.run(module.async_setup_entry(hass, entry, entities.extend))
+        return coord, entities
+
+    coord, entities = set_up()
 
     table = units_table()
     defaults = thermal_defaults()
@@ -1070,8 +1620,26 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     injected: list[tuple[float, float]] = []
     peaks: list[int] = []
     traced: set[str] = set()
+    away_events = list((fixture.get("controls") or {}).get("away") or [])
+    reloads = list((fixture.get("controls") or {}).get("reloads") or [])
+    away_seen: list[dict] = []
+    commanded: str | None = None  # the return time while the owner's command holds away
     while t < end:
         dt_util.freeze(t)
+        while away_events and _ts(away_events[0][0]) <= t:
+            # The owner's command, as the away switch and return-time entity give it.
+            _when, active, returns = away_events.pop(0)
+            commanded = returns if active else None
+            asyncio.run(coord.async_set_away(active=active, return_time=returns, refresh=False)
+                        if active else coord.async_set_away(active=False, refresh=False))
+        while reloads and _ts(reloads[0]) <= t:
+            # The integration reloaded in process (an options save): the unload
+            # hands the last publish to the new entry, which publishes it first.
+            reloads.pop(0)
+            coord, entities = set_up(skip_first_solve=True, reload_handover=coord.data)
+            # Setup's first refresh publishes without solving; the cycle's own
+            # update below is the background solve setup schedules after it.
+            coord.data = asyncio.run(coord._async_update_data())
         readings: list[float] = []
         for entity_id in fixture["inputs"]:
             row = rec.at(entity_id, t)
@@ -1109,6 +1677,7 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             coord.last_update_success = False
             data = coord.data or {}
 
+        away_seen.append({**away_observation(data, t), "commanded_return": commanded})
         action = data.get("current_action") or {}
         records = sweep(entities, action, results["cycle"], t)
         own_loop = (time.thread_time() - began_thread) - (_EXEC_CPU[0] - exec_before)
@@ -1165,7 +1734,25 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             "seconds": round(time.monotonic() - started, 1),
             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
                         for k, v in results.items()},
-            "counts": {k: len(v) for k, v in results.items()}}
+            "counts": {k: len(v) for k, v in results.items()},
+            "away": away_seen}
+
+
+def away_observation(data: dict, t: datetime) -> dict:
+    """One cycle's away view and the space heating its plan buys."""
+    schedule = data.get("schedule") or []
+    step_h = 0.25
+    if len(schedule) > 1:
+        step_h = (_ts(schedule[1]["time"]) - _ts(schedule[0]["time"])).total_seconds() / 3600
+    return {"t": t.isoformat(), "active": bool(data.get("away_active")),
+            "recovery": bool(data.get("away_recovery_active")),
+            "target": data.get("away_target_temperature"),
+            "floor": data.get("min_temperature"),
+            "override": bool(data.get("away_override_active")),
+            "space_kwh": round(sum(float(r.get("power") or 0.0) for r in schedule) * step_h, 2),
+            "space_slots": sum(1 for r in schedule if float(r.get("power") or 0.0) > 0.1),
+            "room_min": min((r["room_temp"] for r in schedule), default=None),
+            "horizon_h": round(len(schedule) * step_h, 2)}
 
 
 def _plan_step(data: dict, t: datetime) -> tuple[float, float] | None:
