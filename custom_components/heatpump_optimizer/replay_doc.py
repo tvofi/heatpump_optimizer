@@ -14,7 +14,7 @@ WHAT IT KEEPS is an allowlist, because the file goes into a public
 repository; ``tools/replay/export.py``'s docstring states it, with what it
 cannot remove.
 
-EVERY ENTITY ID IS MASKED (``mask``), because an id can embed the home's name
+EVERY ENTITY ID IS MASKED (``mask_ids``), because an id can embed the home's name
 or street address -- the Tibber price sensor's is derived from the home's
 address. ``document`` renames each id through one mapping: an id the entry
 holds under a key becomes ``<domain>.<role>``, the key less its ``_entity``
@@ -96,7 +96,7 @@ ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
 #: ("Storgatan 12", "exempelgatan_12b"). An entry string holding whitespace is
 #: free text (a name), dropped whatever it says.
 ADDRESS = re.compile(r"(?<![^\W\d_])[^\W\d_]{3,}[ _-]\d{1,4}(?:[ _]?[^\W\d_])?(?![^\W_])")
-#: An entity id ``mask`` hashed: no role names it.
+#: An entity id ``mask_ids`` hashed: no role names it.
 HASHED_ID = re.compile(r"^[a-z_]+\.e_[0-9a-f]{10}$")
 
 # THE TIBBER PRICE SENSOR. With the Tibber source the integration fetches
@@ -550,7 +550,7 @@ def hashed_id(entity_id: str, key: str) -> str:
     return f"{entity_id.split('.', 1)[0]}.e_{digest[:10]}"
 
 
-def mask(doc: Json, key: str) -> Json:
+def mask_ids(doc: Json, key: str) -> Json:
     """``doc`` with every entity id, at any depth and as a ``states`` key,
     renamed through ``entity_roles`` else ``hashed_id``: one mapping."""
     roles = entity_roles(doc.get("entry") or {}, doc.get("price_series_entity"))
@@ -584,7 +584,7 @@ def _entity_ids(node: object, into: set[str], keyed: bool = False) -> set[str]:
 
 
 def _unmasked(payload: object) -> list[str]:
-    """The ids in ``payload`` ``mask`` did not produce: neither hashed nor the role
+    """The ids in ``payload`` ``mask_ids`` did not produce: neither hashed nor the role
     the document's own entry gives them; longest first."""
     if not isinstance(payload, dict):
         return []
@@ -623,8 +623,8 @@ def document(
     price_series_entity: str | None, states: dict[str, list[list[Any]]],
 ) -> Json:
     """The unsanitised ``hpo-replay/1`` document, every entity id masked
-    (``mask``, keyed by the entry's id); ``seal`` makes it writable."""
-    return mask({
+    (``mask_ids``, keyed by the entry's id); ``seal`` makes it writable."""
+    return mask_ids({
         "format": FORMAT,
         "time_zone": time_zone,
         "window": {"start": window[0], "end": window[1]},
