@@ -7491,12 +7491,7 @@
    "fixture": false,
    "owner_gate": "mandated approval under 6175172275",
    "rca": [],
-   "after": [
-    "R10-ORCH-PLANPAGE",
-    "R10-FLOW-TOOLKIT-MEASURE",
-    "R10-FLY-CANCEL-SWEEP",
-    "R10-CI-PRIORITY-PAUSE"
-   ],
+   "after": [],
    "carry": [
     "Three input corrections in `tools/plan/replan.py`, keeping the model offline and deterministic. (1) Liveness from refs: a `--live-refs FILE` input, a saved `git ls-remote` listing. A group in a `LIVE_STAGES` stage (line 94, read at 322) with no fixer, handoff or dispatch ref for its topic and no open PR is scheduled as pending, not as live. (2) Sizes measured in tree: a `--measure-sizes` mode writes `tools/plan/durations.json`'s `sizes_hours` by the plan-opt method (first PR commit to last merge, per size, over the done groups in a window). Its null control re-derives the current values (S 13.1, M 11.4, L 20.1) from the window they were taken over. (3) Inflow: a measured `inflow_groups_per_hour` field (plan-opt measured 0.40 per h over 48 h) adds expected arrivals to the schedule. Controls: a fixture group in-progress with no ref is pending (null: with a handoff ref it is live); the sizes null control; an inflow of 0 reproduces today's plan byte for byte; one mutant per input. (triage: dev/programme/triage/s6-batch26.md#P131)",
     "From #2896 (R10-RCA-FRICTION-RESIDUE record, section 3, findings A1 and A2), re-routed from #2733 whose groups are done or absorbed. A1: rosterIssues() in tools/policy/brief_lint.mjs, called with no argument, reads roster_lib.ROSTERS_DIR as well as the carries directory, so the live-group refusal fires in CI; measured at 6eb552157: it indexes 1 issue (457), and 76 when dev/programme/rosters is passed, so a carry file at covered issue 2492 is accepted rc=0 (control 999999 accepted under both). Acceptance: the no-argument call indexes the roster's issues and a carry at 2492 is refused. A2: the orchestrator writes each Carry: <GROUP> body item's id into the destination group's brief before merging, with a post-fold id assertion, so a seat that cannot write the roster does not strand the carry (#2612's row). Both touch the roster tooling this group owns (roster_lib.py, roster_edit.py) and its brief_lint shadow overlay.",
