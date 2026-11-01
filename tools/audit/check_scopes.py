@@ -8,7 +8,8 @@ matches one entry of scopes.json's `_coverage_excluded` (glob -> reason), never 
 entry matches some path; a path in neither is refused by name, so no path goes unmeasured.
 Null control: --self-test duplicates one seat's block and empties another's, drops D10's
 universe, strips the tests/ and blueprints/ globs, and excludes a covered path; it exits 0 only
-when the checker refuses each perturbed file by the path it names.
+when the checker refuses each perturbed file by the path it names. It also runs the default
+invocation as a subprocess, on the live scopes (rc 0) and without D4's and D6's blueprints globs (rc 1).
 Harness citations: a harness under dev/audit/harnesses/ whose header names a dimension brief
 (`D<k>.md`) implements that brief's rule, so the brief must cite the harness's path; each one
 that does not is refused by name.
@@ -17,7 +18,7 @@ steps, axis values, file. `rest` is resolved here, so a finder is handed files, 
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
 """
-import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys
+import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys, tempfile
 from pathlib import Path
 
 def expand_braces(p):
@@ -259,9 +260,9 @@ def main():
             (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
         cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
-        # The default run's verdict, driven whole: the live scopes pass it, and
-        # dropping D10's universe or leaving a brief-named harness uncited fails
-        # it, so neither coverage nor citations can fall out of the exit code.
+        # The default run's verdict, driven as a function: the live scopes pass
+        # it, and dropping D10's universe or leaving a brief-named harness
+        # uncited fails it. That pins verdict(), not the exit code main() returns.
         hs, bs = read_harnesses(a.repo, a.ref, tree)
         live = verdict(scopes, tree, loc, hs, bs, quiet=True)
         no_d10_refused = not verdict(no_d10, tree, loc, hs, bs, quiet=True)
@@ -270,6 +271,26 @@ def main():
                     "and refuses them without D10's universe": no_d10_refused,
                     "and refuses an uncited brief-named harness": uncited_refused})
         print(f"   default verdict: live {live}, no D10 refused {no_d10_refused}, uncited refused {uncited_refused}")
+        # The default invocation, run whole as a subprocess of this file with
+        # --repo/--ref: the live scopes exit 0, and the scopes with D4's and D6's
+        # blueprints/** globs dropped exit 1 naming a blueprint, both printing
+        # verdict()'s citation line. So coverage cannot fall out of main()'s exit
+        # code, and that exit is verdict()'s, whose citation arm is pinned above.
+        no_bp = copy.deepcopy(scopes)
+        for k in ("D4", "D6"):
+            no_bp[k]["universe"] = [g for g in no_bp[k]["universe"] if not g.startswith("blueprints/")]
+        def default_run(sc):
+            with tempfile.NamedTemporaryFile("w", suffix=".json") as fh:
+                json.dump(sc, fh)
+                fh.flush()
+                return subprocess.run([sys.executable, str(Path(__file__).resolve()), "--repo", a.repo,
+                                       "--ref", a.ref, "--scopes", fh.name], capture_output=True, text=True)
+        run_live, run_bp = default_run(scopes), default_run(no_bp)
+        cited = " harness citations: "
+        cov["the default invocation exits 0 on the live scopes"] = run_live.returncode == 0 and cited in run_live.stdout
+        cov["and exits 1 without D4's and D6's blueprints globs"] = (run_bp.returncode == 1 and cited in run_bp.stdout
+            and "in no universe and not excluded: blueprints/" in run_bp.stdout)
+        print(f"   default invocation: live rc={run_live.returncode}, blueprints dropped rc={run_bp.returncode}")
         good = not any(res) and all(cov.values())
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
