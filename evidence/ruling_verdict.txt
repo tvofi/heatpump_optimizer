@@ -1,0 +1,12 @@
+^Verdict:\s*(ACCEPT|REJECT|DEFER)\b
+P345 ACCEPT
+P346 unreadable
+P347 REJECT
+P348 ACCEPT
+P349 REJECT
+triage_refusal P345 None
+triage_refusal P348 None
+refusal P346 dev/programme/triage/s6-batch95.md#P346 is not an ACCEPT ruling (unreadable)
+refusal P347 dev/programme/triage/s6-batch95.md#P347 is not an ACCEPT ruling (REJECT)
+refusal P349 dev/programme/triage/s6-batch95.md#P349 is not an ACCEPT ruling (REJECT)
+null flip dev/programme/triage/s6-batch95.md#P345 is not an ACCEPT ruling (REJECT)
