@@ -15500,9 +15500,9 @@
     "From: main red 2026-11-01 (CI logs), diagnosed by the orchestrator; main 6421fe135 job 124813746788 red, 92588d581 job 124783717352 green.\nMeasured: governance / instrument-self-tests prints `pr_args self-test: 158 checks, 2 failed` (three steps) on ubuntu-26.04 only; /bin/sleep there is uutils and aborts with `Security violation: Requested utility `unrelated-sleep` does not match executable name`. Failing arms: `open_pr: the null control -- an unrelated sleeper survives`, `null control: a normal successful update_pr leaves nothing behind...`. Green on 24.04.\nFix: tools/audit/seat/pr_args.sh lines 625-626: replace `ln -s /bin/sleep .../unrelated-sleep` with a wrapper script running `exec sleep \"$1\"` so $UNREL is the sleeper's pid. Class grep (ln -s / cp /bin/*, exec -a) over the tree finds no other site; pr_args.sh:1041 keeps basenames, safe. Do not pin ubuntu-24.04.\nFailing test first: a fake sleep earlier on PATH that exits nonzero when argv[0] basename != \"sleep\" (emulates uutils); the self-test arm is red on it before the fix.\nMutation proof: revert the wrapper to the symlink; the arm goes red under the fake sleep.\nNull control: the fixed fixture still kills nothing it did not start (bystander survives a pusher stop, and its pid is the sleeper's)."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "commit": null,
+    "commit": "1a8051350406387d5ee1ed966d8a2ba8a770cc31",
     "last_step": null,
     "next_step": "fixer dispatch (cloud)",
     "note": "main red 2026-11-01, ubuntu-26.04 uutils sleep",
