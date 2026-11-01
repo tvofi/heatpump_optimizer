@@ -1,0 +1,89 @@
+MUTANT T1-undone-guard-off: KILLED rc=1 fails=0 ["TypeError: 'NoneType' object is not subscriptable"]
+MUTANT T2-undone-or-to-and: KILLED rc=1 fails=0 ["TypeError: 'NoneType' object is not subscriptable"]
+MUTANT T3-side_pair-narrowing-dropped: KILLED rc=1 fails=0 ["TypeError: 'NoneType' object is not subscriptable"]
+MUTANT T3b-side_pair-guard-off: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_scale', 'lower_floor_loss_ancho
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+     FAIL an undo record missing either half, or holding a malformed one, undoes no settings  [{'no pins': True, 'no settings': True, 'one side': True, 'not dicts': True}]
+MUTANT T4-side_pair-len-off: KILLED rc=1 fails=0 ['IndexError: list index out of range']
+MUTANT T5-side_pair-dict-off: KILLED rc=1 fails=0 ["AttributeError: 'list' object has no attribute 'items'"]
+MUTANT T5b-side_pair-list-off: KILLED rc=1 fails=0 ["TypeError: object of type 'NoneType' has no len()"]
+MUTANT T6-side_pair-return-dropped: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_scale', 'lower_floor_loss_ancho
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+     FAIL an undo record missing either half, or holding a malformed one, undoes no settings  [{'no pins': True, 'no settings': True, 'one side': True, 'not dicts': True}]
+MUTANT C1-undo-return-dropped: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED', 'Error fetching heatpump_optimizer data: Price entity is empty']
+     FAIL the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it  [refreshes asked 1]
+     FAIL a refused unload refuses the undo too, and the undo point stays the undo point  [undo True]
+MUTANT C2-humidity-low-bound: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT C3-humidity-high-bound: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT C4-dhw-probe-guard-off: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT C5-dhw-probe-frozen-dropped: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT P1-pins-not-restored: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{} config moved ['dhw_enabled', 'two_zone_mode', 'wood_furnace_enabled']]
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+MUTANT P2-pins-not-recorded: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+MUTANT P3-pins-wrong-side: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+MUTANT P4-unpin-skipped: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{} config moved ['dhw_enabled', 'two_zone_mode', 'wood_furnace_enabled']]
+     FAIL an undo puts each pinned key back where and as it was stored, over the pins the reset wrote  [reset ({'name': 'x', 'two_zone_mode': 'auto', 'indoor_temp_entity': 'sensor.in'}, {'dhw_enabled': True, 'two_zone_mode': 
+MUTANT R1-refusal-ignored: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before  [done True, said ['Learned house_heat_loss_scale reset to the configuration: reset on request', 'Learned l
+     FAIL a refused unload refuses the undo too, and the undo point stays the undo point  [undo True]
+     FAIL a refused unload is said as not applied, by the options step and by the service, never as done  [{'type': 'abort', 'reason': 'factory_reset_done'}, raised None]
+MUTANT R2-reset-says-done-on-refusal: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED']
+     FAIL a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before  [done True, said ['Factory reset (both) applied; restore_learned_snapshot undoes it'], set up [], heat los
+     FAIL a refused unload is said as not applied, by the options step and by the service, never as done  [{'type': 'abort', 'reason': 'factory_reset_done'}, raised None]
+MUTANT R3-log-says-applied: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before  [done False, said ['Factory reset (both) applied; restore_learned_snapshot undoes it'], set up [], heat lo
+MUTANT R4-options-step-says-done: KILLED rc=1 fails=1 ["  FAIL a refused unload is said as not applied, by the options step and by the service, never as done  [{'type': 'abort', 'reason': 'factory_reset_done'}, raised HomeAssistantError('The factory reset of fr_flow_refused was not applied: Home Assistant refused to unload the entry; nothing was changed')]", '1 of 28 FR CHECKS FAILED']
+     FAIL a refused unload is said as not applied, by the options step and by the service, never as done  [{'type': 'abort', 'reason': 'factory_reset_done'}, raised HomeAssistantError('The factory reset of fr_flow_refused was
+MUTANT R5-service-raises-nothing: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a refused unload is said as not applied, by the options step and by the service, never as done  [{'type': 'abort', 'reason': 'factory_reset_not_applied'}, raised None]
+MUTANT R6-undo-spends-point-before-unload: KILLED rc=1 fails=0 ["KeyError: 'before_reset'"]
+MUTANT R7-heat-loss-void-before-unload: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before  [done False, said ['Learned house_heat_loss_scale reset to the configuration: reset on request', 'Learned 
+MUTANT L0-learners-dispatch-off: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL after a learners reset every learner reads what one that never learned reads  [{'thermal_learning': ['buffer_cooling_rate', 'buffer_cooling_samples', 'cop_samples', 'cop_scale', 'curve_learner', 'house_heat_loss_anc
+     FAIL a learners reset drops every learned key, key by key, and keeps every fact, before the entry is set up again  [learned left [('accuracy', 'accuracy'), ('accuracy', 'comfort'), ('accuracy', 'defrost'), ('accuracy', '
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'name', 'outdoor_temp_
+MUTANT S0-settings-dispatch-off: KILLED rc=1 fails=5 ['5 of 28 FR CHECKS FAILED']
+     FAIL after a settings reset every tunable option reads its default  [not default ['comfort_weight', 'dhw_tank_volume', 'min_temperature', 'price_weight', 'target_temperature'], stored beyond the wiring ['buffer_tank_volu
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['buffer_tank_volume', 'comfort_weight', 'dhw_daily_consumption', 'dhw_min_temperature', 'dhw_setpoint', 'dhw_tank_volume', 'dh
+     FAIL the house is auto-mode before the reset and pinned two-zone by it (the undo's control)  [before None, reset None]
+MUTANT U1-no-undo-point: KILLED rc=1 fails=7 ['7 of 28 FR CHECKS FAILED', 'Error fetching heatpump_optimizer data: Price entity is empty']
+     FAIL the drift rollback never takes the reset's undo point; the restore does, while it is newest  [undo ['accuracy', 'alarmed_at_capture', 'healthy', 'learners', 'taken_at', 'unhealthy_input']]
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['buffer_cooling_samples', 'cop_samples', 'house_heat_loss_anchor', 'house_
+     FAIL the undo asks the coordinator it unloaded for nothing more: no refresh, no learner applied after it  [refreshes asked 1]
+MUTANT U2-undo_target-never: KILLED rc=1 fails=4 ['4 of 28 FR CHECKS FAILED']
+     FAIL the drift rollback never takes the reset's undo point; the restore does, while it is newest  [undo ['accuracy', 'alarmed_at_capture', 'before_reset', 'healthy', 'learners', 'taken_at', 'unhealthy_input']]
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['buffer_cooling_rate', 'buffer_cooling_samples', 'cop_samples', 'cop_scale
+     FAIL the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one
+MUTANT U3-best_restore-takes-undo: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL the drift rollback never takes the reset's undo point; the restore does, while it is newest  [undo ['accuracy', 'alarmed_at_capture', 'before_reset', 'healthy', 'learners', 'taken_at', 'unhealthy_input']]
+MUTANT U4-undo-settings-not-restored: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_scale', 'lower_floor_loss_ancho
+MUTANT U5-void-before-undo-point: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings exactly as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_samples', 'house_heat_loss_scal
+     FAIL restore_learned_snapshot undoes a learners reset: every learner back, the settings untouched  [record ['scope', 'stores'], restored True]
+     FAIL a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before  [done False, said ['Learned house_heat_loss_scale reset to the configuration: reset on request', 'Learned 
+MUTANT U6-no-flush-before-documents: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT U7-undo-ignores-age: SURVIVED rc=0 fails=0 ['ALL 28 FR CHECKS PASSED']
+MUTANT N1-confirm-ignored: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL the options step shows the scope and the confirmation; unconfirmed, nothing changes (null control)  [{'type': 'abort', 'reason': 'factory_reset_done'}, changed (True, True)]
+MUTANT N2-not-loaded-guard-off: KILLED rc=1 fails=0 ["AttributeError: 'NoneType' object has no attribute '_thermal_learning_store'"]
+MUTANT S1-settings-keeps-price_weight: KILLED rc=1 fails=3 ['3 of 28 FR CHECKS FAILED']
+     FAIL after a settings reset every tunable option reads its default  [not default ['price_weight'], stored beyond the wiring ['price_weight']]
+     FAIL a reset of both leaves the wiring alone and every learner at its initial state  [stored ['dhw_enabled', 'dhw_temp_entity', 'indoor_temp_entity', 'lower_floor_temp_entity', 'main_fuse_amperes', 'name', 'outdoor_temp_
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['scope'], ['entry_id', 'scope'], ['entry_id']], answer {'reset': 'fr_svc', 'scope': 'settings'}]
+MUTANT S2-two_zone-pin-off: KILLED rc=1 fails=2 ['2 of 28 FR CHECKS FAILED']
+     FAIL after a settings reset every kept key is unchanged, and the topology it implied with it  [moved [], two-zone False]
+     FAIL the house is auto-mode before the reset and pinned two-zone by it (the undo's control)  [before None, reset 'off']
+MUTANT S4-main-fuse-not-kept: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL the kept keys are the listed wiring and every entity assignment, each an option key  [kept-not-listed [], listed-not-kept ['main_fuse_amperes']]
+MUTANT SV1-entry_id-optional: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['entry_id', 'scope'], ['entry_id']], answer {'reset': 'fr_svc', 'scope': 'settings'}]
+MUTANT SV2-scope-optional: KILLED rc=1 fails=1 ['1 of 28 FR CHECKS FAILED']
+     FAIL the service needs an entry and a known scope, and resets that entry  [refused [['scope'], ['entry_id', 'scope']], answer {'reset': 'fr_svc', 'scope': 'settings'}]

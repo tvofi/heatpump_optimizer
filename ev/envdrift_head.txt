@@ -1,0 +1,10 @@
+DRIFT BASELINE CACHE MISS (no entry for this key) -- capturing fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8 from scratch
+  CLAIMED config_flow: 4 leaves moved (r10-wood-notify: the wood_lighting_lead_minutes option joins the seeded wood group; one key added, no value moved; R10-FACTORY-RESET: the factory_reset options page joins the advanced menu (16 entries, was 15), its two transient fields (scope, confirm) and its seeded copy; keys added, no value moved)
+NO UNCLAIMED DRIFT: 56 scenario(s) checked against fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8
+NO STALE FIXTURE: 56 committed fixture(s) still match what this tree computes
+rc=0
+untouched-check done
+7.1.0
+11:#   1. The `claims-for:` line below is machine-read and MUST equal the
+35:# `claims-for:` stamp below.
+57:# claims-for: 7.1.0
