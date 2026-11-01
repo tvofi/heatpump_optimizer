@@ -10313,7 +10313,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": null,
-    "commit": "bb8addd89b024beefab970573a6cac0ccbe88de6",
+    "commit": "07207ce3084854ea3b1a47d919301769fa00f75c",
     "last_step": null,
     "next_step": "dispatch a fixer (designer first if sized L)",
     "note": "#2843 merged bb8addd8; next PR = P196 per-scenario claimnotes arm (carry held for triage batch 34)",
