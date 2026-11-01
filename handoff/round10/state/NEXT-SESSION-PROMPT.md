@@ -25,6 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-ROW-HEAD-CARRY (stage in-progress, branch `handoff/r10-fly-row-head-carry`): `git fetch origin handoff/r10-fly-row-head-carry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-CARRY-DOC-CONTEXT (stage in-progress, branch `handoff/r10-fly-carry-doc-context`): `git fetch origin handoff/r10-fly-carry-doc-context && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-MANDATE-REVOKE-GUARD (stage in-progress, branch `handoff/r10-fly-mandate-revoke-guard`): `git fetch origin handoff/r10-fly-mandate-revoke-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-OVERLAP-GRADE (stage carries-open, branch `handoff/r10-train-overlap-grade`): `git fetch origin handoff/r10-train-overlap-grade && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-LEDGER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ORCH-PLANPAGE (stage carries-open): no branch pushed yet, so nothing to fetch
