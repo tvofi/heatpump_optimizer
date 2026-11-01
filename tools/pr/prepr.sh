@@ -3623,7 +3623,7 @@ if [ -z "${HEAVY_PLAN_FILE:-}" ]; then
 fi
 HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
-  say skip "mutants" "$HV"
+  say skip "diff mutants" "$HV"
 else
 if test -f .claude/workflows/policy_lint_mutants.mjs; then heavy_run /tmp/prepr-mutants.$$ node .claude/workflows/policy_lint_mutants.mjs; else heavy_run /tmp/prepr-mutants.$$ node tools/policy/policy_lint_mutants.mjs; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
@@ -3845,18 +3845,18 @@ fi
 # the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
 # seat's.
 if [ -z "${MUTANT_CMD:-}" ]; then
-  say skip "mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
+  say skip "diff mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
 elif [ ! -f tools/audit/seat/mutant_run.py ]; then
-  say skip "mutants" "tools/audit/seat/mutant_run.py is not in this tree"
+  say skip "diff mutants" "tools/audit/seat/mutant_run.py is not in this tree"
 else
   MUT_OUT=$(python3 -I tools/audit/seat/mutant_run.py --diff "$BASE...HEAD" --cmd "$MUTANT_CMD" \
     --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1)
   MUT_N=$(printf '%s\n' "$MUT_OUT" | grep -c '^SURVIVED ')
   if [ "$MUT_N" -gt 0 ]; then
     printf '%s\n' "$MUT_OUT" | grep '^SURVIVED ' | sed 's/^/           /' >&2
-    say WARN "mutants" "$MUT_N survivor(s) on the diff's added lines -- the body answers each (report only)"
+    say WARN "diff mutants" "$MUT_N survivor(s) on the diff's added lines -- the body answers each (report only)"
   else
-    say ok "mutants" "no survivor: $(printf '%s\n' "$MUT_OUT" | tail -1 | cut -c1-120)"
+    say ok "diff mutants" "no survivor: $(printf '%s\n' "$MUT_OUT" | tail -1 | cut -c1-120)"
   fi
 fi
 
