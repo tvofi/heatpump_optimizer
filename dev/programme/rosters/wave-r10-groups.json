@@ -15517,6 +15517,54 @@
     "pr": 3086
    },
    "brief": "HOTFIX, critical path: main is red (governance / instrument-self-tests, 'pr_args self-test: 158 checks, 2 failed', main 6421fe135, job 124813746788; green at 92588d581). Cause: runs-on ubuntu-latest now sometimes resolves to ubuntu-26.04, where /bin/sleep is the uutils multicall binary and refuses to run under a renamed symlink ('Security violation: Requested utility `unrelated-sleep` does not match executable name'). tools/audit/seat/pr_args.sh lines 625-626 start the bystander with `ln -s /bin/sleep \"$REAP_DIR/unrelated-sleep\"; \"$REAP_DIR/unrelated-sleep\" N & UNREL=$!`, so it dies at once and two null controls fail (`open_pr: the null control -- an unrelated sleeper survives`, `null control: a normal successful update_pr leaves nothing behind...`). Fix: make the bystander a wrapper script that runs `exec sleep \"$1\"` so $UNREL stays the sleeper's pid. Tree grep for the class (ln -s / cp of a /bin binary under another name, exec -a) found only this site; pr_args.sh:1041 symlinks keep the basename and is safe; the python3 symlinks in train.sh/tests/entities.py are not multicall. Do not pin the workflow to ubuntu-24.04. Failing test first: the pr_args self-test red under a fake uutils sleep on PATH that refuses an argv[0] mismatch; mutation proof: the reverted fixture goes red. Null control: the fixed fixture still kills nothing it did not start. Body '## Red checks' names governance / instrument-self-tests; root-cause answer is the runner-image change, cheaper detector none (macOS cannot run uutils). Run tools/pr/prepr.sh. Minimal diff."
+  },
+  {
+   "group": "R10-PLAN-REAL-DURATIONS",
+   "lane": "IN",
+   "kind": "improvement",
+   "class": "instrument",
+   "severity": "major",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-PLAN-ARTIFACT",
+    "R10-ORCH-PLANPAGE"
+   ],
+   "files": [
+    "tools/plan/size_durations.py",
+    "tools/plan/replan.py",
+    "tools/plan/durations.json",
+    "tools/audit/seat/plan_page.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-plan-real-durations",
+    "commit": "dcc49953a3a0169012a3c26948c1aa37b3293bd6",
+    "last_step": "fixer handoff with body",
+    "next_step": "open PR, then fix review",
+    "note": "orchestrator s9 under mandate 6329234399: both owning groups (R10-PLAN-ARTIFACT, R10-ORCH-PLANPAGE) are done; existing-groups-first finds no live owner",
+    "pr": null
+   },
+   "brief": "Measured duration model for the round plan: tools/plan/size_durations.py (at handoff dcc49953a3a0) re-derives replan.py's duration model (tools/plan/durations.json) from the merged PRs of every done round-10 group (p75 of round-adjusted active hours per size and class, review rounds at a Theil-Sen cost, per-carry slope, held group priced by open carries). replan.py starts a started group at the replan instant past the slot cap, records why each group starts when it does, orders ready work by the owner's 2026-10-30 tiers, and draws at the owner's 16 slots / 16 seats by default. plan_page.py lists every open issue but the tracking issue, unplanned ones with the groups they were wired to. Pinned by a mutant harness (dev/audit/harnesses/r10_plan_durations_mutants.py (at handoff dcc49953a3a0)), self-test arms, a CI step and a closures classification. The plan's replan moves onto this model once it merges."
   }
  ]
 }
