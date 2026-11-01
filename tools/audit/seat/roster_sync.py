@@ -494,10 +494,15 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
     return appends, refusals
 
 
-def apply_plan(roster: dict, changes: list[Change], appends: list[tuple]) -> None:
-    """The derived ops, through roster_edit's own op functions."""
+def apply_plan(roster: dict, changes: list[Change], appends: list[tuple],
+               legacy: dict | None = None) -> None:
+    """The derived ops, through roster_edit's own op functions. `legacy` is
+    the cut-over set derive() judged with: op_set_stage re-applies the closing
+    rule, so without it a `done` derived over a legacy-only group would be
+    written `carries-open` (#2733; review X1)."""
     for c in changes:
-        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)
+        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit,
+                                 legacy=legacy)
         if c.stage == "in-progress":
             # The open pull request's number is the one the ask records; a
             # done group's record is its merge commit.
@@ -581,7 +586,7 @@ def sync(a) -> int:
         # destination this pass makes done refuses the carry, and the stage
         # writes are applied in memory first on a copy.
         projected = copy.deepcopy(roster)
-        apply_plan(projected, changes, [])
+        apply_plan(projected, changes, [], legacy)
         appends, refusals = carry_plan(projected, transitions, a.repo,
                                        a.pr_state)
         for c in changes:
@@ -626,13 +631,13 @@ def sync(a) -> int:
             # the file it lands in, never an older read.
             changes, _, transitions = derive(roster, prs, legacy)
             projected = copy.deepcopy(roster)
-            apply_plan(projected, changes, [])
+            apply_plan(projected, changes, [], legacy)
             appends, _ = carry_plan(projected, transitions, a.repo, a.pr_state)
             if not changes and not appends:
                 print(f"roster_sync: {branch} already carries these; "
                       "nothing written")
                 return False
-            apply_plan(roster, changes, appends)
+            apply_plan(roster, changes, appends, legacy)
             return True
 
         try:
@@ -823,8 +828,11 @@ def self_test() -> int:
 
 
 
-    def build(tmp: Path, lint_src: str) -> tuple[Path, Path, Path]:
-        """(bare origin, driver clone, fixture roster path at the driver)."""
+    def build(tmp: Path, lint_src: str, history=None
+              ) -> tuple[Path, Path, Path]:
+        """(bare origin, driver clone, fixture roster path at the driver).
+        `history` is the rosters main commits in order, one commit each
+        (default: ROSTER_FIXTURE alone); main's tip holds the last."""
         tmp.mkdir(parents=True, exist_ok=True)
         seed = tmp / "seed"
         seed.mkdir()
@@ -832,11 +840,12 @@ def self_test() -> int:
         (seed / roster_edit.BRIEF_LINT_NEW).write_text(lint_src,
                                                       encoding="utf-8")
         (seed / ROSTER).parent.mkdir(parents=True, exist_ok=True)
-        (seed / ROSTER).write_text(roster_edit.dump(ROSTER_FIXTURE),
-                                   encoding="utf-8")
         throwaway_git_init(seed, "-q", "-b", "main")
-        git("-C", str(seed), "add", "-A")
-        git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
+        for each in history or [ROSTER_FIXTURE]:
+            (seed / ROSTER).write_text(roster_edit.dump(each),
+                                       encoding="utf-8")
+            git("-C", str(seed), "add", "-A")
+            git("-C", str(seed), "commit", "-q", "-m", "fixture roster")
         bare = tmp / "origin.git"
         throwaway_git_clone(seed, bare, "-q", "--bare")
         drv = tmp / "drv"
@@ -1146,6 +1155,69 @@ def self_test() -> int:
                              str(drv / ROSTER))
         check("--roster-file with --apply is refused (no branch to write)",
               rc == 2 and "read-only" in err, (rc, err))
+
+        # THE CUT-OVER, END TO END through sync() (#2733; review X1, X2). A
+        # carry the group held while closed at roster_lib.CARRY_CUTOVER is
+        # legacy: the merge of a group whose only carry is legacy is written
+        # done -- by the write path's own re-derive, not only the dry run's
+        # print. A cut-over the clone cannot read refuses and writes nothing:
+        # read as "no legacy", every legacy carry would be pending and the
+        # merge would write carries-open.
+        def leg_group(stage):
+            return {"group": "R9-LEG", "lane": "L1", "issues": [], "fixes": [],
+                    "after": [], "brief": "legacy", "carry": ["legacy one"],
+                    "resume": {"stage": stage, "branch": "handoff/r9-leg"}}
+        leg_at_cut = {"repo": "fixture/roster", "session": "r9-sync",
+                      "groups": [leg_group("done")]}
+        leg_tip = {"repo": "fixture/roster", "session": "r9-sync",
+                   "groups": [leg_group("in-progress")]}
+        leg_prs = root / "prs-leg.json"
+        leg_prs.write_text(json.dumps([
+            {"number": 61, "state": "MERGED", "headRefName": "handoff/r9-leg",
+             "mergeCommit": {"oid": "6" * 40},
+             "body": "## Friction\n\n- none\n"}]), encoding="utf-8")
+        saved_cut = dict(roster_lib.CARRY_CUTOVER)
+        try:
+            for name, cut_of, want in (
+                    ("readable", lambda d: git("-C", str(d), "rev-parse",
+                                                "origin/main~1"), "done"),
+                    ("absent", lambda d: None, "carries-open")):
+                bare_l, drv_l, _ = build(root / f"leg-{name}", LINT_OK,
+                                         [leg_at_cut, leg_tip])
+                roster_lib.CARRY_CUTOVER.clear()
+                cut = cut_of(drv_l)
+                if cut:
+                    roster_lib.CARRY_CUTOVER[ROSTER] = cut
+                rc, out, err = calls(drv_l, leg_prs, "--apply",
+                                     "--worktree", str(root / f"wt-leg-{name}"))
+                got = (roster_lib.groups_of(roster_at(bare_l, branch))
+                       ["R9-LEG"]["resume"].get("stage")
+                       if branch in branches(bare_l) else None)
+                if name == "readable":
+                    check("sync --apply writes done over a group whose only "
+                          "carry is legacy (the write path reads the cut-over)",
+                          rc == 0 and got == "done"
+                          and "R9-LEG: stage in-progress -> done" in out,
+                          (rc, got, out[-300:], err[-300:]))
+                else:
+                    check("with no cut-over the same carry is pending and sync "
+                          "--apply writes carries-open (null control)",
+                          rc == 0 and got == "carries-open",
+                          (rc, got, out[-300:], err[-300:]))
+            bare_u, drv_u, _ = build(root / "leg-unreadable", LINT_OK,
+                                     [leg_at_cut, leg_tip])
+            roster_lib.CARRY_CUTOVER.clear()
+            roster_lib.CARRY_CUTOVER[ROSTER] = "f" * 40
+            rc, out, err = calls(drv_u, leg_prs, "--apply",
+                                 "--worktree", str(root / "wt-leg-unreadable"))
+            check("an unreadable cut-over refuses sync --apply rc 2, naming it",
+                  rc == 2 and "the carry cut-over is unreadable" in err,
+                  (rc, out[-300:], err[-300:]))
+            check("and the unreadable cut-over wrote nothing",
+                  branch not in branches(bare_u), branches(bare_u))
+        finally:
+            roster_lib.CARRY_CUTOVER.clear()
+            roster_lib.CARRY_CUTOVER.update(saved_cut)
 
         # THE LINT GATE is in the path: a refused roster is never pushed.
         bare2, drv2, _ = build(root / "two", LINT_BAD)

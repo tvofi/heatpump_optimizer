@@ -32,12 +32,17 @@ Plants, one per refusal of the two ops and per round-trip property:
          marked, K2 an unknown mark, K3 implemented without a sha, K4 the
          whole moved arm, K5 a move to itself, K6 dismissed with no reason),
          set-stage bypassing the shared closing rule (K7), the cut-over not
-         read (K8), and set-resume --field stage bypassing it (K9).
+         read (K8), and set-resume --field stage bypassing it (K9); a move
+         to a closed group (K10), a value holding `]` (K11), and an
+         unreadable cut-over read as no legacy by set-stage (K12).
   L1-L6  roster_lib's predicate, under roster_lib.py --self-test: marks
          ignored (L1), legacy ignored (L2), every group's carries legacy at
          the cut-over (L3), absorbed not closed (L4), closing never
          downgrades (L5), a mark read anywhere in the text (L6).
-  Y1     roster_sync's merge bypassing the shared rule.
+  Y1-Y4  roster_sync: the merge bypassing the shared rule (Y1), an
+         unreadable cut-over read as no legacy (Y2), the write path's
+         re-derive without the legacy set (Y3), and apply_plan writing the
+         stage without it (Y4).
   R1-R5  carry_audit's roster arm: closed-only issues unreported (R1),
          unlisted issues unreported (R2), #201 reported (R3), absorbed_into
          unnamed (R4), pull requests read as issues (R5).
@@ -140,6 +145,12 @@ PLANTS = {
            "                    legacy = {}  # K8\n"),
     "K9": ('        value = _closing(g, value, legacy, "set-resume")\n',
            "        pass  # K9\n"),
+    "K10": ("        if stage in roster_lib.CARRY_CLOSED:\n",
+            "        if False:  # K10\n"),
+    "K11": ('    if "]" in arg:\n', "    if False:  # K11\n"),
+    "K12": ('raise Refuse(f"the carry cut-over is unreadable, so no "\n'
+            '                                 f"stage is written: {e}")',
+            "legacy = {}  # K12"),
     "L1": (LIB, "            if carry_mark(c) is None and c not in held]\n",
            "            if c not in held]  # L1\n"),
     "L2": (LIB, "            if carry_mark(c) is None and c not in held]\n",
@@ -155,6 +166,14 @@ PLANTS = {
     "L6": (LIB, _MARK_LINE, _MARK_LINE.replace('\\Z")', '")') + "  # L6"),
     "Y1": (SYNC, '        closed, _ = roster_lib.closing_stage(g, "done", legacy or {})\n',
            '        closed = "done"  # Y1\n'),
+    "Y2": (SYNC, '            raise Refuse(f"the carry cut-over is unreadable: {e}")\n',
+           "            legacy = {}  # Y2\n"),
+    "Y3": (SYNC, "            changes, _, transitions = derive(roster, prs, legacy)\n",
+           "            changes, _, transitions = derive(roster, prs)  # Y3\n"),
+    "Y4": (SYNC, "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit,\n"
+                 "                                 legacy=legacy)\n",
+           "        roster_edit.op_set_stage(roster, c.group, c.stage, c.merge_commit)"
+           "  # Y4\n"),
     "R1": (AUDIT, "        elif not any(live for _, live in by):\n",
            "        elif False:  # R1\n"),
     "R2": (AUDIT, "        if not by:\n", "        if False:  # R2\n"),
