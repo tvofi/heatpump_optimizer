@@ -1,9 +1,0 @@
-$ git merge-tree --write-tree origin/main(407eb0cb) 9cddcb4f673ee4bed26a316c4a22128433414eb8
-e58eadb7b511cae6dacae67a63891bdd6cfad5b7
-rc=0
-$ git merge-tree --write-tree 2df0b81e 407eb0cb (the head's own merge, re-done)
-e58eadb7b511cae6dacae67a63891bdd6cfad5b7
-$ git merge-tree --write-tree 9cddcb4f673ee4bed26a316c4a22128433414eb8 3f9f152e (handoff tip)
-e58eadb7b511cae6dacae67a63891bdd6cfad5b7
-rc=0
-head tree: e58eadb7b511cae6dacae67a63891bdd6cfad5b7
