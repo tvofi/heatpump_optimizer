@@ -10798,7 +10798,9 @@
    "issues": [
     2257
    ],
-   "fixes": [],
+   "fixes": [
+    2257
+   ],
    "findings": [],
    "wave": 6,
    "hot_files": [],
