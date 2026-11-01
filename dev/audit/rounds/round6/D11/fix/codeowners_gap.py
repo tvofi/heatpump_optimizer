@@ -365,10 +365,10 @@ def pr_reachable(wf_text: str, job_text: str, called: bool = False) -> bool:
 # `env:`, or a `PINNED` other than the PINNED_OK forms. Other assignments
 # (`BODY=$(...)`, arrays) are admitted: `pr-contract` uses them.
 ALLOWED_USES = {
-    "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09",
-    "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
-    "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
-    "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+    "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+    "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
 }
 # `diff` and `commit` because pinned jobs on `main` use them; `show` and `log`
 # were dropped in round 4 (`git show --output=` writes a file).
@@ -825,9 +825,9 @@ def run(arm: str) -> int:
 SELF_TEST_JOB = """  probe-job:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 %s
@@ -944,7 +944,7 @@ NULLS = [
     ("set, test, mkdir, cmp", _run('set -eo pipefail\ntest -f README.md\nmkdir -p "$RUNNER_TEMP/x"\n'
                                    'cmp README.md README.md')),
     ("download-artifact at its pin", "\n      - uses: actions/download-artifact@"
-     "37930b1c2abaa49bbe596cd826c3c89aef350131 # v7\n        with:\n          name: x\n"),
+     "9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2\n        with:\n          name: x\n"),
     ("a scratch write", _run('echo x > "$RUNNER_TEMP/x.txt"')),
     # The merge queue's base (round-9 process review item 2): a `merge_group`
     # run has no pull request, so the base it restores from is the queue's.

@@ -29409,13 +29409,13 @@ timeout-minutes: 10
 env:
   HPO_JOB_GRADES: nothing
 steps:
-  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       fetch-depth: 0
       # policy_lint.mjs's citation resolvers ask git about cited tags.
       fetch-tags: true
 
-  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+  - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
     with:
       python-version: "3.13"
 
@@ -29463,7 +29463,7 @@ steps:
   # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
   # fresh coverage.json to grade and the recorded green already passed the
   # ratchet on the identical inputs. The canon matches the workflow's arm.
-  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+  - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
     if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
@@ -29516,7 +29516,7 @@ steps:
       fi
       exit 0
 
-  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+  - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     with:
       node-version: "22"
