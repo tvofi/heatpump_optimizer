@@ -132,6 +132,17 @@ FAST = [
     ("away command not compared with the recording", LANE,
      'if bool(held) != bool(o.get("commanded_return")):', "if False:",
      "control:away:replayed"),
+    ("away coverage not asked of a command-less fixture", LANE,
+     "    return [] if any(e[1] for e in events or ()) else [", "    return [] if True else [",
+     "control:away:coverage_needs_a_command"),
+    ("owner fixture's controls.away emptied (the fixture-side twin)", OWNER,
+     '"away": [\n   [\n    "2026-10-30T15:42:54.058467+00:00",\n    true,\n'
+     '    "2026-10-31T19:00:00+00:00"\n   ],\n   [\n    "2026-10-30T18:39:25.778625+00:00",\n'
+     '    false,\n    null\n   ]\n  ],',
+     '"away": [],', "away_coverage:owner-2026-10-30-away.json"),
+    ("no commanded cycle required", LANE,
+     "        if not any(o.get(\"commanded_return\") for o in observations):\n",
+     "        if False:\n", "control:away:coverage_needs_a_commanded_cycle"),
     ("no_default setpoint exemption removed", LANE,
      "for k in supplied):", "for k in ()):",
      "control:no_default:setpoint_value_on_a_reading"),
@@ -154,6 +165,9 @@ FAST = [
 REPLAY = [
     ("the recorded away command not replayed (round 1's survivor)", LANE,
      "commanded = returns if active else None", "commanded = None", "away"),
+    ("the recorded away events dropped (round 3's survivor)", LANE,
+     'recorded_away = list((fixture.get("controls") or {}).get("away") or [])',
+     "recorded_away = []", "away"),
     ("no_default setpoint exemption not handed the config", LANE,
      "inv_no_default(records, defaults, readings, config)",
      "inv_no_default(records, defaults, readings)", "no_default"),
