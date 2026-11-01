@@ -353,13 +353,20 @@ def undo_point(scope: str, data: Mapping[str, Any], options: Mapping[str, Any]) 
     return {"scope": scope, "settings": list(settings_of(data, options)), "pinned": pinned}
 
 
+def _side_pair(raw: Any) -> tuple[dict[str, Any], dict[str, Any]] | None:
+    """A stored (data, options) pair, as the snapshot store writes one, or None."""
+    if isinstance(raw, list) and len(raw) == 2 and all(isinstance(side, dict) for side in raw):
+        return raw[0], raw[1]
+    return None
+
+
 def undone_settings(
     data: Mapping[str, Any], options: Mapping[str, Any], undo: Mapping[str, Any],
 ) -> tuple[dict[str, Any], dict[str, Any]] | None:
     """The (data, options) undoing a reset's ``undo_point`` over the wiring in force,
     or None where the reset kept the settings (or the record is malformed)."""
-    settings, pinned = undo.get("settings"), undo.get("pinned")
-    if not all(isinstance(x, list) and len(x) == 2 and all(isinstance(s, dict) for s in x) for x in (settings, pinned)):
+    settings, pinned = _side_pair(undo.get("settings")), _side_pair(undo.get("pinned"))
+    if settings is None or pinned is None:
         return None
     unpinned = [{k: v for k, v in side.items() if k not in FACTORY_PINNED} for side in (data, options)]
     wiring = ({**unpinned[0], **pinned[0]}, {**unpinned[1], **pinned[1]})
