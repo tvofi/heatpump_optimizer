@@ -15838,6 +15838,50 @@
     "pr": null
    },
    "brief": "Instrument and machinery ratchets, modelled on the production ratchets (tests/structure.py with tests/structure_budgets.json; dev/governance/config/policy_budgets.json under ratchet-budgets.md), owner ruling tvofi 2026-11-01: production work was 2 of 37 merges in the 24 h to 2026-11-01T19:40Z and 59 of 581 in 14 days; the machinery feeds itself (proposals become tooling groups, tooling PRs forward carries, every merge owes records). Build one-sided caps in a new *_budgets.json file beside policy_budgets.json under dev/governance/config/ (so budget-raise-gate 0013 already governs any raise), measured by a new instrument under tools/audit/ over origin/main history and the round roster, run in governance.yml on every PR and push. The designer chooses and justifies the metric set; candidates: (1) machinery share of merges in a rolling window (cap, only falls), with production share the complement; (2) record merges per production merge (cap); (3) open machinery groups on the round roster (cap, only falls); (4) carries forwarded per merged machinery PR (cap); (5) accepted proposals per round (cap); (6) CI minutes and seat tokens per merged production PR where a measured source exists (cap). Each metric names its source, its counting rule and a null control, and states why it cannot be gamed by moving or splitting (the always_loaded_tokens lesson in ratchet-budgets.md). Improve the existing ratchets where the same class applies. Wire the exemption the owner set for the freeze and the proposal bar: a change proving more than 10% improvement in CI time, programme completion time, right-first-time or token usage is recorded, never silently allowed. Lands before the round-10 closeout stamp (R10-FLY-CLOSURE-MAJOR waits on it); nothing moves to round 11."
+  },
+  {
+   "group": "R10-FLY-GANTT-DRIFT",
+   "lane": "F",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/gantt_drift.py",
+    "tools/audit/seat/instruments/gantt_drift.py.md",
+    "tools/audit/seat/INSTRUMENTS.md",
+    ".github/workflows/governance.yml"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-fly-gantt-drift",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer (S); the orchestrator hands it the session-local stand-in at dispatch",
+    "note": "2026-11-01 (triage: dev/programme/triage/s6-batch104.md#P361)"
+   },
+   "brief": "From triage P361 (orchestrator s10, 2026-11-01; tvofi: \"Each time the plan html is updated, compare the real state against the gantt, mechanically if possible, and have slips surfaced to you to act on, defer or accept\"). The orchestrator's sweep runs a session-local Gantt-drift stand-in after each replan and plan_page render, and orchestrator.md section 13 makes a session-local instrument a defect. Build it as a tracked, self-tested instrument in tools/audit/seat/, keeping the stand-in's name, from that stand-in, which the orchestrator hands over at dispatch. It reads the plan JSON tools/plan/replan.py writes, an accepted baseline, an acks file, the round roster, the open pull requests, the handoff refs and the dispatch ledger's FIRED lines, each as an argument and never a host path. It prints one GANTT-SLIP line per unacknowledged slip: IDLE, a not-done group the plan starts by now plus a grace that no open pull request, handoff ref or FIRED line names (a critical-path group tagged CP and listed first); LATE, a group whose planned finish moved past the baseline's by more than a threshold; CLOSURE, the plan's closure moved past the baseline's by more than a threshold. An ack is act or defer, silencing its key until a time, or accept, silencing it and re-baselining that key. The self-test counts checks through a check() helper, not assert, which python -O strips. It covers each slip kind and its null (a FIRED line or a handoff ref silences IDLE; a finish inside the threshold is not LATE), each ack kind, and accept's re-baseline, and each arm has a mutant. Wire --self-test into a governance.yml run line so selftest_wiring.py --check passes, add the entry file and its INSTRUMENTS.md index line, and classify every new file for tests/entities.py. Out of scope: replan.py's duration model (R10-PLAN-REAL-DURATIONS) and plan_page rendering. triage: dev/programme/triage/s6-batch104.md#P361"
   }
  ]
 }
