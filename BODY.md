@@ -45,7 +45,7 @@ The null row shows the check does not refuse the real merge history of this pull
 
 ## Head
 
-`25c2038d04a437e35324e328a721c2f4cc260293` (round 2). These are the round-2 commits on the round-1 head d843403626ee923fe1fbde4428f3a0b2eb734b06: f1815f5b2 (the end-state check), de970b76c (main's drivers read in a clone without them), 247a8590b (the rule's text in app_approve's header, `review_carry.py` and its page), and 25c2038d0 (the bot exemption keyed on `bot_paths`). The merge base is 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f. main was not merged: `git merge-tree --write-tree origin/main HEAD` exits 0, and the branch moves past the handoff only on a conflict (fixer.md step 6).
+`25c2038d04a437e35324e328a721c2f4cc260293` (round 2). These are the round-2 commits on the round-1 head d843403626ee923fe1fbde4428f3a0b2eb734b06: f1815f5b2 (the end-state check), de970b76c (main's drivers read in a clone without them), 247a8590b (the rule's text in app_approve's header, `review_carry.py` and its page), and 25c2038d0 (the bot exemption keyed on `bot_paths`). The merge base is 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f. main was not merged: `git merge-tree --write-tree origin/main HEAD` exits 0 against origin/main 92588d581fde4ce287af3db5e8bb61461dc28015 at 2026-11-01T08:52Z, and the branch moves past the handoff only on a conflict (fixer.md step 6).
 
 ## Mutation proof
 
