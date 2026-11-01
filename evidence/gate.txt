@@ -1,0 +1,21 @@
+merge-base 6421fe135d9f5a9e65433a4433f000d2419486bf
+claim files: byte-identical (three-dot empty)
+claim files: identical to origin/main
+dev/governance/roles/fix-review.md
+dev/governance/roles/orchestrator.md
+dev/governance/roles/standing-dispatch.md
+dev/programme/delivery/3077.md
+tools/audit/seat/bus.sh
+tools/audit/seat/instruments/review_carry.py.md
+tools/audit/seat/merge_train.py
+tools/audit/seat/ref_privacy.py
+tools/audit/seat/review_carry.py
+tools/pr/app_approve.sh
+tools/pr/app_comment.sh
+tools/pr/app_push.sh
+VERSION/manifest/notes untouched
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+merge-tree vs origin/main e4c9e2016a455d787d3a7604ef88c803c3ba5c70:
+70238f9e52525213516620c0f8386234ff0f039a
+rc=0
