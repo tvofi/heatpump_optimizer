@@ -373,10 +373,16 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     at the planned finish of the LAST open group carrying it. An issue closed on
     GitHub (absent from `open_now`) is dropped; one with any carrier that has no
     planned finish stays flat (`unplanned`); every other open issue is counted
-    in `other` (e.g. the tracking issue). Pure: `open_now` is an argument."""
+    in `other` (e.g. the tracking issue). `orphans` is `other` without the
+    tracking issue: each open issue no open group carries, with every group it
+    is wired to (done ones), which the page lists as unplanned rather than
+    dropping. Pure: `open_now` is an argument."""
     close_at: dict = {}
     unplanned: set = set()
+    wired: dict = {}
     for gid, entry in roster_lib.groups_of(roster).items():
+        for n in entry.get("issues") or []:
+            wired.setdefault(n, []).append(gid)
         pg = plan["groups"].get(gid)
         if not pg or not roster_lib.is_open(entry):
             continue
@@ -390,8 +396,11 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
                 close_at[n] = max(close_at.get(n, t), t)
     for n in unplanned:
         close_at.pop(n, None)  # one unplanned carrier: no finish is knowable
-    return {"close_at": close_at, "unplanned": unplanned,
+    out = {"close_at": close_at, "unplanned": unplanned,
             "other": open_now - set(close_at) - unplanned}
+    out["orphans"] = {n: sorted(wired.get(n, [])) for n in sorted(out["other"])
+                      if n != TRACKING_ISSUE}
+    return out
 
 
 def issues_section(roster: dict, plan: dict, snap: dict) -> str:
@@ -449,10 +458,18 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
     note = (f"Open issues carried by not-done roster groups, as GitHub had them at the plan's "
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
-            f"flat; {len(proj['other'])} other open issues (on no open group, e.g. "
-            f"#{TRACKING_ISSUE}) are excluded.")
+            f"flat; {len(proj['other'])} other open issues are on no open group: "
+            f"#{TRACKING_ISSUE} (the tracking issue) and the "
+            f"{len(proj['orphans'])} listed below as unplanned.")
+    title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
+    orphans = "".join(
+        f'<li class="unplanned">#{n} {html.escape(title.get(n, ""))}: unplanned: no open '
+        f'group (wired to {html.escape(", ".join(gs)) if gs else "no group"})</li>'
+        for n, gs in proj["orphans"].items())
+    flag = (f'  <p class="note flag">Unplanned: no open group ({len(proj["orphans"])})</p>\n'
+            f'  <ul class="orphans">{orphans}</ul>\n' if orphans else "")
     return (f'<section>\n  <h2>Projected open issues</h2>\n  <div class="scroll">{svg}</div>\n'
-            f'  <p class="note">{html.escape(note)}</p>\n</section>\n')
+            f'  <p class="note">{html.escape(note)}</p>\n{flag}</section>\n')
 
 
 # --------------------------------------------------------------------- page
@@ -695,6 +712,22 @@ def _self_test() -> int:
           5 not in pr_["close_at"], pr_["close_at"])
     check("an open issue on a done group or none is excluded and counted",
           pr_["other"] == {6, 99} and set(pr_["close_at"]) == {1, 2, 4}, pr_)
+    check("an open issue wired only to a done group, or to none, is an unplanned orphan "
+          "naming the groups it was wired to",
+          pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
+    check("the tracking issue is never an orphan",
+          TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+    osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
+                                   summary={"closure": "2026-01-07T00:00:00Z"}),
+                          {"issues": [{"number": n, "title": f"t{n}", "state": "OPEN"}
+                                      for n in (1, 6, 99, TRACKING_ISSUE)]})
+    check("the page lists each orphan as unplanned and flags it",
+          'class="note flag">Unplanned: no open group (2)' in osec
+          and "#6 t6: unplanned: no open group (wired to R9-GONE)" in osec
+          and "#99 t99: unplanned: no open group (wired to no group)" in osec
+          and f"#{TRACKING_ISSUE} t{TRACKING_ISSUE}:" not in osec, osec[-600:])
+    check("null control: an issue on a not-done group closes at its finish, not unplanned",
+          pr_["close_at"].get(4) == _t("2026-01-05T20:00:00Z") and 4 not in pr_["orphans"])
 
     # A crash mid-arm is a failure of its own, reported with the checks that
     # failed before it (a mutant that breaks the renderer reads as killed).
@@ -850,7 +883,8 @@ def _self_test() -> int:
             sec = issues_section(roster, plan, snap)
             check("the issues chart is the first section, drawn from the open set",
                   0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
-                  and "2 open now" in page and "1 other open issues" in page
+                  and "2 open now" in page and "1 other open issues are on no open group" in page
+                  and "Unplanned: no open group" not in page
                   and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
             no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
             check("no GitHub state: the chart is omitted with a note",
