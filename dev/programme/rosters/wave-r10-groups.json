@@ -13417,7 +13417,9 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [],
+   "after": [
+    "R10-MACHINERY-RATCHETS"
+   ],
    "files": [
     "dev/governance/roles/standing-tick.md",
     "dev/governance/roles/standing-merge.md",
