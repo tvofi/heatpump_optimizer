@@ -1219,9 +1219,14 @@ def option_resubmit(step: str, current: dict) -> dict:
     The form schema is sectioned (``group`` → ``section()``); stored options
     are flat. Home Assistant validates the shown schema before the handler
     runs, so a flat resubmit is ``InvalidData`` on every grouped page.
-    ``setup_overview`` saves nothing.
+    Two pages save nothing and show no after-save choice, so each posts
+    ``{}``: ``setup_overview``, and ``factory_reset``, whose untouched submit
+    (unconfirmed) returns the advanced menu -- the after-save key alone is
+    ``InvalidData`` there (#3047). ``tests/config_flow_steps.py`` applies
+    every page's shown schema to this payload, so a third such page fails
+    there, not only here.
     """
-    if step == "setup_overview":
+    if step in ("setup_overview", "factory_reset"):
         return {}
     cf = _prod_mod("config_flow")
     const = _prod_mod("const")

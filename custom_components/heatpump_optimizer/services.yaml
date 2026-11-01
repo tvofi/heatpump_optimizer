@@ -547,6 +547,23 @@ reset_heat_loss_learners:
           options:
           - house_heat_loss_scale
           - lower_floor_loss_ratio
+factory_reset:
+  fields:
+    entry_id:
+      required: true
+      example: 01JABCDEFGHJKMNPQRSTVWXYZ0
+      selector:
+        text: null
+    scope:
+      required: true
+      example: settings
+      selector:
+        select:
+          translation_key: factory_reset_scope
+          options:
+          - settings
+          - learners
+          - both
 diagnose_interval:
   fields:
     entry_id:

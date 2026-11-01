@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/snapshots.py:SnapshotRing.best_restore GUARD_OFF 6541f9a5",
+  "killed_by": "tests/features.py",
+  "old": "            if not snap.get(\"healthy\") or \"before_reset\" in snap:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

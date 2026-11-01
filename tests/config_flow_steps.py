@@ -1573,6 +1573,7 @@ async def options_menus():
             "grid_connection",
             "grid_fees",
             "heat_curve",
+            "factory_reset",
         ],
         str(list(advanced.get("menu_options", {}))),
     )
@@ -4087,6 +4088,10 @@ async def registry_drives_every_page():
     # one source the fresh form's defaults and derive's fallbacks also read,
     # so the allowance cannot drift from the fields the page renders).
     transient["quick_setup"] = set(quick_setup.SHIPPED_ANSWERS)
+    # R10-FACTORY-RESET: the reset's scope and its confirmation are read once
+    # and never stored -- the page aborts the flow after the reset, so nothing
+    # reaches the entry's options. Keyed on the production schema.
+    transient["factory_reset"] = {str(key) for key in config_flow._FACTORY_RESET_SCHEMA.schema}
     # The rest of that page's fields are not its own declarations but the
     # building pages': the questionnaire's one field list serves two flows by
     # design (``_questionnaire_fields``), and the two wood probes are the
@@ -5760,6 +5765,53 @@ async def untouched_option_pages_do_not_reload():
         "null control: one changed value on one page reloads exactly that page",
         changed == ["tuning"],
         f"reloaded {changed}",
+    )
+
+
+def _a5_refusals(shown_pages, current):
+    """(pages read, refusals): each shown form's schema applied to
+    ``option_resubmit``'s payload, the a5 walk's own."""
+    read, refused = 0, []
+    for step, shown in shown_pages:
+        if shown.get("type") != "form":
+            continue
+        read += 1
+        try:
+            shown["data_schema"](_nightly.option_resubmit(step, current))
+        except vol.Invalid as err:
+            refused.append(f"{step}: {err}")
+    return read, refused
+
+
+async def nightly_a5_resubmits_fit_every_page():
+    """`tests/nightly_ha.py`'s a5 walk posts `option_resubmit`'s payload to
+    every options page, and real Home Assistant validates it against the
+    page's shown schema before the handler runs. The stub validates nothing,
+    so a page whose schema refuses that payload -- the factory-reset page and
+    its after-save key, #3047 -- reached only the nightly lane as
+    `a5:pages_ok`'s `InvalidData`. Here the shown schema is applied to the
+    same payload, through the same function, for every page in the table."""
+    R.section("options: the nightly a5 walk's resubmit fits every page's schema")
+    shown_pages = []
+    for page in config_flow._OPTION_PAGES:
+        flow, entry, _ = fresh_options()
+        shown_pages.append((page.step, await getattr(flow, f"async_step_{page.step}")(None)))
+    current = {**dict(entry.data), **dict(entry.options)}
+    read, refused = _a5_refusals(shown_pages, current)
+    forms = sum(shown.get("type") == "form" for _, shown in shown_pages)
+    R.check(
+        "every options page's shown schema accepts the a5 walk's untouched resubmit, every form page read",
+        not refused and read == forms and read >= 20,
+        f"refused {refused[:4]}; read {read} of {forms} form page(s)",
+    )
+    # Null control, through the same reader: a page whose schema refuses the
+    # payload (a planted required field) is reported, so the sweep can refuse.
+    planted = ("factory_reset", {"type": "form", "data_schema": vol.Schema({vol.Required("planted"): str})})
+    p_read, p_refused = _a5_refusals([*shown_pages, planted], current)
+    R.check(
+        "null control: a planted page whose schema refuses the payload is read and refused by the same sweep",
+        p_read == read + 1 and len(p_refused) == len(refused) + 1 and "planted" in p_refused[-1],
+        f"read {p_read}, refused {p_refused[-1:]}",
     )
 
 
@@ -7692,6 +7744,7 @@ async def main() -> int:
     await reconfigure_flow()
     await absent_fallbacks_are_proven()
     await untouched_option_pages_do_not_reload()
+    await nightly_a5_resubmits_fit_every_page()
     await options_modbus_prefill()
     await options_device_prefill()
     await config_flow_quick_setup()

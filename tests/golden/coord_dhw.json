@@ -558,6 +558,9 @@
   "stale_inputs": [],
   "system_identification": {
    "active": false,
+   "held": null,
+   "kind": "fit",
+   "last_attempt": null,
    "last_run": null,
    "phase": "idle",
    "result": {
@@ -2051,6 +2054,9 @@
     },
     "system_identification": {
      "active": false,
+     "held": null,
+     "kind": "fit",
+     "last_attempt": null,
      "last_run": null,
      "phase": "idle",
      "result": {
@@ -2064,6 +2070,13 @@
       "time_constant_hours": null
      },
      "samples": 0
+    },
+    "system_identification_outcome": {
+     "held": null,
+     "kind": "fit",
+     "last_attempt": null,
+     "phase": "idle",
+     "reason": ""
     },
     "tank_cooling": {
      "learned": false,

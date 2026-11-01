@@ -232,6 +232,8 @@ class FakeConfigEntries:
     def __init__(self) -> None:
         self.entries = []
         self.reloaded = []
+        self.unloaded = []
+        self.set_up = []
         # One name per async_update_entry call (#100): the options pages that
         # stay in the dialog persist through here, and tests assert both the
         # write and its count.
@@ -280,6 +282,15 @@ class FakeConfigEntries:
 
     async def async_reload(self, entry_id):
         self.reloaded.append(entry_id)
+        return True
+
+    async def async_unload(self, entry_id):
+        """Recorded, as ``async_reload`` is: the factory reset unloads, then sets up."""
+        self.unloaded.append(entry_id)
+        return True
+
+    async def async_setup(self, entry_id):
+        self.set_up.append(entry_id)
         return True
 
     async def async_forward_entry_setups(self, entry, platforms):

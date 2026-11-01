@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._async_load_thermal_learning GUARD_OFF b39a405a",
+  "killed_by": "tests/features.py",
+  "old": "        if (n := _stored_learner(stored, \"buffer_cooling_rate\", \"buffer_cooling_samples\", self._apply_buffer_cooling_rate)) is not None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}

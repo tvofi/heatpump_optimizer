@@ -1250,7 +1250,7 @@ def check_prose_tree_counts() -> None:
     # module counts are the false ones and this control's assertion is not
     # about them.
     stale = {
-        name: text.replace("the 23 options pages", "the 26 options pages", 1)
+        name: text.replace(f"the {facts['options_pages']} options pages", "the 99 options pages", 1)
         for name, text in CORPUS.items()
     }
     rows, _ = prose_count_census(stale, facts)

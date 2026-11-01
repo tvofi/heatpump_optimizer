@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature BOOLOP 25dfd051",
+  "killed_by": "tests/features.py",
+  "old": "        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if value is not None or self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
+}
