@@ -1,0 +1,12 @@
+merge-base e4c9e2016a455d787d3a7604ef88c803c3ba5c70
+seat_venv self-test: 21 checks, 0 failed
+ALL 2497 ENTITY CHECKS PASSED
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+-- untouched paths (three-dot):
+(empty above = untouched)
+-- merge-tree vs origin/main 1d28de9936efb7d784224f274232a50722952c02:
+LEDGER-MERGE: resolved tests/closures.json
+888699f7dbdb3d96794fc153776c43d5770b91b8
+merge-tree rc=0
+-- roles diff (base...main):

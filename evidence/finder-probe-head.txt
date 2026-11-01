@@ -1,0 +1,165 @@
+## census, 25 flags via sh -c 'gh api repos/o/r FLAG LEAKVAL'
+clean  | sh -c gh api repos/o/r -f LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1034 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -F LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1055 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -H LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1076 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -b LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1097 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -n LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1118 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -t LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1139 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -T LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1160 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -q LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1181 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r -d LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1202 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --body LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1223 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --body-file LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1244 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --notes LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1265 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --notes-file LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1286 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --title LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1307 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --subject LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1328 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --desc LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1349 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --description LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1370 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --field LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1391 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --raw-field LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1412 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --header LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1433 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --input LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1454 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --jq LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1475 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --template LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1496 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --env-file LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1517 sh -c api repos/o/r
+clean  | sh -c gh api repos/o/r --squash-merge-commit-message LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1538 sh -c api repos/o/r
+## round-2 out-of-census flags
+clean  | sh -c gh pr merge 1 -A LEAKVAL; :
+       -> 2026-11-01T15:53:57Z 1559 sh -c pr merge
+clean  | sh -c gh pr merge 1 --author-email LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1580 sh -c pr merge
+clean  | sh -c gh pr merge 1 -S LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1601 sh -c pr merge
+clean  | sh -c gh pr merge 1 --search LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1622 sh -c pr merge
+clean  | sh -c gh pr merge 1 -m LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1643 sh -c pr merge
+clean  | sh -c gh pr merge 1 --milestone LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1664 sh -c pr merge
+clean  | sh -c gh pr merge 1 -l LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1685 sh -c pr merge
+clean  | sh -c gh pr merge 1 --label LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1706 sh -c pr merge
+clean  | sh -c gh pr merge 1 -a LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1727 sh -c pr merge
+clean  | sh -c gh pr merge 1 --assignee LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1748 sh -c pr merge
+clean  | sh -c gh pr merge 1 -r LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1769 sh -c pr merge
+clean  | sh -c gh pr merge 1 --reviewer LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1790 sh -c pr merge
+clean  | sh -c gh pr merge 1 -B LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1811 sh -c pr merge
+clean  | sh -c gh pr merge 1 --base LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1832 sh -c pr merge
+clean  | sh -c gh pr merge 1 --match-head-commit LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1853 sh -c pr merge
+clean  | sh -c gh pr merge 1 -p LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1874 sh -c pr merge
+clean  | sh -c gh pr merge 1 --preview LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1895 sh -c pr merge
+clean  | sh -c gh pr merge 1 -e LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1916 sh -c pr merge
+clean  | sh -c gh pr merge 1 --env LEAKVAL; :
+       -> 2026-11-01T15:53:58Z 1937 sh -c pr merge
+## round-2 non-flag shapes
+clean  | sh -c GH_TOKEN=ghp_LEAKVAL gh api user; :
+       -> 2026-11-01T15:53:58Z 1958 sh -c api user
+clean  | sh -c echo ghp_LEAKVAL | gh secret set NAME; :
+       -> 2026-11-01T15:53:58Z 1979 sh -c secret set
+clean  | sh -c printf %s LEAKVAL | gh secret set NAME; :
+       -> 2026-11-01T15:53:58Z 2001 sh -c secret set
+clean  | python3 -c argv-list -f body=LEAKVAL
+       -> 2026-11-01T15:53:58Z 2023 python3 -c api repos/o/r
+clean  | python3 -c argv-list --body LEAKVAL
+       -> 2026-11-01T15:53:58Z 2044 python3 -c pr comment
+clean  | python3 -c shell=True
+       -> 2026-11-01T15:53:58Z 2066 sh -c api repos/o/r
+clean  | python3 -c (no spaces) -fx=LEAKVAL
+       -> 2026-11-01T15:53:59Z 2087 python3 -c api -
+clean  | timeout 10 gh api -f body=LEAKVAL
+       -> 2026-11-01T15:53:59Z 2108 timeout api repos/o/r
+clean  | bash -c x=1; gh issue comment --body LEAKVAL
+       -> 2026-11-01T15:53:59Z 2129 bash -c issue comment
+clean  | xargs -a /dev/null sh -c ... --body LEAKVAL
+       -> 2026-11-01T15:53:59Z 2151 sh -c api repos/o/r
+## null controls
+clean  | PY -I W/caller.py --body LEAKVAL (expect: python3 caller.py path)
+       -> 2026-11-01T15:53:59Z 2172 python3 /tmp/tmp.VWPMYhYObj/w/caller.py api repos/o/r
+clean  | cd W && PY -m caller_mod --body LEAKVAL (expect python3 -m caller_mod)
+       -> 2026-11-01T15:53:59Z 2193 python3 -m caller_mod api repos/o/r
+## reviewer-3 shapes
+clean  | python3 -cCODE glued (no spaces)
+       -> 2026-11-01T15:53:59Z 2214 python3 -c api -
+clean  | python3 -Bc CODE
+       -> 2026-11-01T15:53:59Z 2235 python3 -Bc api -
+clean  | python3 -uc CODE
+       -> 2026-11-01T15:53:59Z 2256 python3 -uc api -
+clean  | python3 -Ec CODE
+       -> 2026-11-01T15:53:59Z 2277 python3 -Ec api -
+clean  | perl -eCODE glued
+       -> 2026-11-01T15:53:59Z 2298 perl -e api -
+clean  | perl -e CODE
+       -> 2026-11-01T15:53:59Z 2319 perl -e api -
+clean  | perl -Mstrict -e CODE
+       -> 2026-11-01T15:53:59Z 2340 perl api -
+NOLINE | bash --command=? (bash rejects; shape only)
+       -> 
+LEAK   | sh ./GH_TOKEN=abcLEAKVAL/script
+       -> 2026-11-01T15:53:59Z 2363 sh ./GH_TOKEN?abcLEAKVAL/script api repos/o/r
+clean  | bash -x s.sh LEAKVAL
+       -> 2026-11-01T15:53:59Z 2384 bash s.sh api repos/o/r
+clean  | python3 -W error -m caller_mod LEAKVAL
+       -> 2026-11-01T15:53:59Z 2405 python3 api repos/o/r
+clean  | python3 -W LEAKVAL caller.py (option value)
+       -> 2026-11-01T15:53:59Z 2426 python3 api repos/o/r
+clean  | python3 -X LEAKVAL caller.py (option value)
+       -> 2026-11-01T15:53:59Z 2447 python3 api repos/o/r
+clean  | sh -s LEAKVAL < s.sh (stdin script)
+       -> 2026-11-01T15:53:59Z 2469 sh -s api repos/o/r
+clean  | sh -s -- LEAKVAL < s.sh
+       -> 2026-11-01T15:54:00Z 2491 sh -s api repos/o/r
+clean  | bash -s LEAKVAL < s.sh
+       -> 2026-11-01T15:54:00Z 2513 bash -s api repos/o/r
+clean  | echo gh api x | bash -s LEAKVAL
+       -> 2026-11-01T15:54:00Z 2536 bash -s api x
+clean  | bash -o LEAKVAL s.sh (option value; bash rejects)
+       -> 2026-11-01T15:54:00Z 2557 bash api repos/o/r
+clean  | bash -O LEAKVAL s.sh (option value)
+       -> 2026-11-01T15:54:00Z 2578 bash api repos/o/r
+clean  | xargs gh api x LEAKVAL
+       -> 2026-11-01T15:54:00Z 2601 xargs api x
+clean  | env GH_TOKEN=ghp_LEAKVAL gh api user
+       -> 2026-11-01T15:54:00Z 1023 bash /tmp/tmp.cpaByhHyIK/finder/finder-probe.sh api user
+clean  | sh -c 'env GH_TOKEN=ghp_LEAKVAL gh'
+       -> 2026-11-01T15:54:00Z 2642 sh -c api user
+clean  | argv0 with a space: './my prog' LEAKVAL
+       -> 2026-11-01T15:54:00Z 2665 sh ./my api x
+LEAK   | argv0 basename itself secret-like (bashLEAKVAL symlink)
+       -> 2026-11-01T15:54:00Z 2687 bashLEAKVAL api x

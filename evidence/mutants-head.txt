@@ -1,0 +1,25 @@
+MUTANT failing-first-old-shim: gh_calls self-test: 84 checks, 8 failed -> KILLED
+      FAIL exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -WLEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -X LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3`
+MUTANT old-skip: gh_calls self-test: 84 checks, 8 failed -> KILLED
+      FAIL exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -WLEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -X LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3`
+MUTANT vals-as-noflag: gh_calls self-test: 84 checks, 7 failed -> KILLED
+      FAIL exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -X LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3`
+      FAIL exact field of parent `python3 -X 'a LEAKVAL' caller.py` is `python3`
+MUTANT python-vals-empty: gh_calls self-test: 84 checks, 1 failed -> KILLED
+      FAIL mutant killed: a value-taking letter skips one word as its value, not ending the field
+MUTANT shell-vals-empty: gh_calls self-test: 84 checks, 0 failed -> SURVIVED
+MUTANT vals-line-deleted: gh_calls self-test: 84 checks, 1 failed -> KILLED
+      FAIL mutant killed: a value-taking letter skips one word as its value, not ending the field
+MUTANT vals-logs-word: gh_calls self-test: 84 checks, 8 failed -> KILLED
+      FAIL exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -WLEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -X LEAKVAL caller.py` is `python3`
+      FAIL exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3`

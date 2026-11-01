@@ -1,0 +1,4 @@
+finder-probe old: 2 LEAK 1 NOLINE | head: 2 LEAK 1 NOLINE
+finder-probe2 old: 0 LEAK 1 NOLINE | head: 0 LEAK 1 NOLINE
+probe3 old: 2 LEAK 4 NOLINE | head: 0 LEAK 4 NOLINE
+probe4 old: 3 LEAK; head: 0
