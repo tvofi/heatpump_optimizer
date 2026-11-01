@@ -1,0 +1,12 @@
+== /home/user/wtb 3045 9ef51b8215dd7216950f177386fb2f5a8f010a47
+  bus: REFUSE: dispatch: #3045's head 9ef51b8215dd7216950f177386fb2f5a8f010a47 carries no branch-authored commit since the reviewed head 9ef51b8215dd7216950f177386fb2f5a8f010a47 (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)
+carry: REFUSED rc=1 review_carry: CARRY
+== /home/user/wtb 2962 9ce0179f77aa68eab6440c3d85aa92e788936b22
+  bus: REFUSE: dispatch: #2962's head 9ce0179f77aa68eab6440c3d85aa92e788936b22 carries no branch-authored commit since the reviewed head 9ce0179f77aa68eab6440c3d85aa92e788936b22 (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)
+carry: REFUSED rc=1 review_carry: CARRY
+== /home/user/wtc 3045 9ef51b8215dd7216950f177386fb2f5a8f010a47
+  bus: review-carry: 9ef51b8215dd7216950f177386fb2f5a8f010a47 was blocked, so a fresh review is owed
+carry: MINTS rc=0
+== /home/user/wtc 2962 9ce0179f77aa68eab6440c3d85aa92e788936b22
+  bus: REFUSE: dispatch: #2962's head 9ce0179f77aa68eab6440c3d85aa92e788936b22 carries no branch-authored commit since the reviewed head 9ce0179f77aa68eab6440c3d85aa92e788936b22 (review_carry: CARRY) -- the prior review carries, so no second reviewer is dispatched (tvofi, 2026-10-27)
+carry: REFUSED rc=1 review_carry: CARRY
