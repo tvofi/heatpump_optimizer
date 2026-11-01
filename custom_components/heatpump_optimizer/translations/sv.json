@@ -442,6 +442,9 @@
     "run_optimization_no_prices": {
       "message": "Optimeringen kördes inte för {entry_ids}: det fanns färre än fyra elprissteg tillgängliga"
     },
+    "factory_reset_not_applied": {
+      "message": "Fabriksåterställningen av {entry_id} utfördes inte: Home Assistant vägrade avlasta posten; inget ändrades"
+    },
     "run_optimization_solve_failed": {
       "message": "Optimeringen kördes inte för {entry_ids}: lösaren misslyckades; felet finns i integrationens logg"
     },
@@ -529,7 +532,8 @@
           "learning_features": "Avancerade inlärningsfunktioner",
           "grid_connection": "Säkring och effekttak",
           "grid_fees": "Överföringsavgifter och avtal",
-          "heat_curve": "Värmekurvestyrning (ECL110)"
+          "heat_curve": "Värmekurvestyrning (ECL110)",
+          "factory_reset": "Återställ till fabriksinställningar"
         }
       },
       "setup_overview": {
@@ -1500,6 +1504,18 @@
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst.",
           "prefill_offer": "När det är på erbjuder en ny installation den här sidan om en värmepumpsenhet som lagts till i installationen kan fylla någon av de här inställningarna. Avstängt som standard: installationsguiden är oförändrad så länge det är av, och reglaget sparas, så det överlever en omstart."
         }
+      },
+      "factory_reset": {
+        "title": "Återställ till fabriksinställningar",
+        "description": "Återställ optimeraren till samma läge som en nyinstallation. Välj vad som ska återställas:\n\n- **Inställningar**: varje inställning på de här sidorna (komfort, varmvatten, priser och avgifter, den termiska modellen, lägen och funktioner) återgår till sitt standardvärde. Dina givare och andra tilldelade entiteter, zonerna och värmesystemen, uppställningen med varmvattentank, ventil och vedpanna, priskällan och huvudsäkringen behålls, så att optimeraren förblir ansluten till huset.\n- **Inlärda värden**: allt optimeraren har lärt sig om huset glöms (värmeförlusten, nedervåningens andel, komfortvikten, COP, varmvattnets avsvalning och förbrukning, avfrostning, värmekurvan och historiken för prognosträffsäkerhet), och inlärningen börjar om från inställningarna.\n- **Båda**.\n\nInnan något ändras tas en ögonblicksbild. Fram till nästa veckovisa ögonblicksbild, ungefär en vecka, ångrar åtgärden Återställ inlärd ögonblicksbild återställningen: inställningarna och de inlärda värdena kommer tillbaka som de var, med givarna som de är nu. Integrationen laddas sedan om och planerar på nytt direkt.",
+        "data": {
+          "scope": "Vad som ska återställas",
+          "confirm": "Ja, återställ"
+        },
+        "data_description": {
+          "scope": "Inställningar, inlärda värden eller båda.",
+          "confirm": "Ingenting ändras om inte detta är ikryssat: skickat utan kryss kommer menyn tillbaka."
+        }
       }
     },
     "error": {
@@ -1530,6 +1546,11 @@
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
       "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
       "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan."
+    },
+    "abort": {
+      "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
+      "factory_reset_not_loaded": "Integrationen körs inte, så det finns inget att återställa. Åtgärda det som stoppade den och försök igen.",
+      "factory_reset_not_applied": "Inte utförd: Home Assistant vägrade avlasta integrationen, så inget ändrades. Försök igen, eller starta om Home Assistant först."
     }
   },
   "selector": {
@@ -1658,6 +1679,13 @@
         "off": "Av",
         "observe": "Observera (bara logg)",
         "control": "Styrning (skriv läge och börvärden)"
+      }
+    },
+    "factory_reset_scope": {
+      "options": {
+        "settings": "Inställningar",
+        "learners": "Inlärda värden",
+        "both": "Inställningar och inlärda värden"
       }
     }
   },
@@ -2462,7 +2490,7 @@
     },
     "restore_learned_snapshot": {
       "name": "Återställ inlärd ögonblicksbild",
-      "description": "Rulla tillbaka varje inlärningsmodell till den senaste veckovisa ögonblicksbild som togs medan alla insignaler var friska och prognosträffsäkerheten låg inom sitt band. Använd detta om den inlärda modellen synbart har gått fel — till exempel efter att en givare matat skräp en tid. Driftvakten gör samma sak automatiskt när den kan bevisa att insignalerna var friska hela tiden; den här tjänsten är det manuella ingreppet för när du ser vad den inte kan se. Ingenting går förlorat permanent: inlärningen fortsätter helt enkelt från den återställda punkten. Anropet svarar med ett fel när ingen ögonblicksbild kvalificerar sig, i stället för att svara med en tom återställning. Med källan satt till värmeförlustens omanpassning godtar den i stället driftrådgivarens nyanpassade skala för husets värmeförlust, som erbjuds medan driftlarmet är aktivt och tre lugna dagar med underlag finns.",
+      "description": "Rulla tillbaka varje inlärningsmodell till den senaste veckovisa ögonblicksbild som togs medan alla insignaler var friska och prognosträffsäkerheten låg inom sitt band. Använd detta om den inlärda modellen synbart har gått fel — till exempel efter att en givare matat skräp en tid. Driftvakten gör samma sak automatiskt när den kan bevisa att insignalerna var friska hela tiden; den här tjänsten är det manuella ingreppet för när du ser vad den inte kan se. Ingenting går förlorat permanent: inlärningen fortsätter helt enkelt från den återställda punkten. Anropet svarar med ett fel när ingen ögonblicksbild kvalificerar sig, i stället för att svara med en tom återställning. Med källan satt till värmeförlustens omanpassning godtar den i stället driftrådgivarens nyanpassade skala för husets värmeförlust, som erbjuds medan driftlarmet är aktivt och tre lugna dagar med underlag finns. Fram till nästa veckovisa ögonblicksbild efter en fabriksåterställning ångrar den i stället den återställningen: inställningarna och de inlärda värdena kommer tillbaka som de var före den, med givarna och andra entiteter som de är nu.",
       "fields": {
         "entry_id": {
           "name": "Konfigurationspost",
@@ -2509,6 +2537,20 @@
         "entry_id": {
           "name": "Konfigurationspost",
           "description": "Begränsa åtgärden till en konfigurationspost. Lämna tomt för att agera på varje konfigurerad värmepump."
+        }
+      }
+    },
+    "factory_reset": {
+      "name": "Återställ till fabriksinställningar",
+      "description": "Återställ en värmepumps inställningar, dess inlärda värden eller båda till samma läge som en nyinstallation. Givare och andra tilldelade entiteter, uppställningen med zoner, värmesystem, tank, ventil och vedpanna, priskällan och huvudsäkringen behålls. En ögonblicksbild tas först, och Återställ inlärd ögonblicksbild ångrar återställningen fram till nästa veckovisa ögonblicksbild. Integrationen laddas om och planerar på nytt direkt.",
+      "fields": {
+        "entry_id": {
+          "name": "Konfigurationspost",
+          "description": "Konfigurationsposten som ska återställas."
+        },
+        "scope": {
+          "name": "Omfattning",
+          "description": "Inställningar, inlärda värden eller båda."
         }
       }
     }

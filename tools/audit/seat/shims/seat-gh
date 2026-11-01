@@ -1,0 +1,120 @@
+#!/bin/bash
+# hpo-gh-shim
+# The seat's gh (P284). Installed as `gh` beside the python shims by
+# `seat_venv.sh --install-shims <dir>`. It appends ONE line per call to
+# $HPO_STATE_DIR/gh-calls.log (default $HOME/.local/state/hpo):
+#
+#   <utc> <parent pid> <parent argv[0] [script], first 80 chars> <gh subcommand> <target>
+#
+# <target> is the api path (query string cut) for `gh api`, the verb for `pr`
+# and `run` and any other subcommand with one, else `-`. The value of every
+# flag is skipped, never logged: `-f`/`-F`/`--input` and the rest take their
+# argument out of the line, and a token outside [A-Za-z0-9_./:-] is logged `?`.
+# The caller is the point: the shared token's core bucket was spent twice
+# with no host log naming who (P284); tools/audit/seat/gh_calls.py reads this.
+# The parent command is argv[0]'s basename plus, for a shell or interpreter, at most one
+# more word: its script or `-m <module>` as given, or the flag name alone of a `-c`, `-e`,
+# `-s`, `--eval`, `--print` or `--command` option, any code attached to it cut off. An
+# option the rule does not know ends the field unlogged; the field is cleaned and cut to
+# 80 characters. argv[0] and the script path are logged by design: a secret placed in a
+# path is logged too, `=` turned `?` (P284 residual). The state directory
+# is created if missing (mkdir -p); a path that cannot be made is skipped, never fatal.
+# A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask,
+# and an existing log (or its rotated .1) is set 0600 on each write.
+#
+# Then it execs the real gh -- the first `gh` on PATH that is a regular
+# executable file and not a shim (line 2 above), past this file's own
+# directory. stdin, stdout, exit status and signals are the real gh's own.
+# A log it cannot write is skipped: no output, no status of its own.
+# The log is capped: past HPO_GH_LOG_MAX bytes (default 1048576) it is moved
+# to gh-calls.log.1, replacing the older one.
+is_shim() { local l1= l2=; { IFS= read -r l1; IFS= read -r l2; } < "$1" 2>/dev/null; [ "$l2" = '# hpo-gh-shim' ]; }
+usable() { [ -f "$1" ] && [ -x "$1" ] && ! is_shim "$1"; }
+real=
+ifs=$IFS; IFS=:
+for d in $PATH; do
+  [ -n "$d" ] || d=.
+  if usable "$d/gh"; then real=$d/gh; break; fi
+done
+IFS=$ifs
+[ -n "$real" ] || { echo "gh shim: no real gh on PATH" >&2; exit 127; }
+
+sub=; verb=; skip=0
+for a in "$@"; do
+  if [ $skip = 1 ]; then skip=0; continue; fi
+  case $a in
+    -X|-H|-f|-F|-q|-t|-p|-R|-B|-b|--method|--header|--field|--raw-field|--input|--jq|--template|--hostname|--cache|--preview|--repo) skip=1 ;;
+    -*) ;;
+    *) if [ -z "$sub" ]; then sub=$a; else verb=$a; break; fi ;;
+  esac
+done
+case $sub in
+  api) verb=${verb%%\?*} ;;
+  pr|run|workflow|issue|release|repo|search|label|cache|secret|variable) ;;
+  *) verb= ;;
+esac
+
+# A subshell: the umask that makes the state dir and log owner-only (the log names
+# callers) is its own, so the real gh below runs under the caller's.
+(
+  umask 077
+  state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
+  log=$state/gh-calls.log
+  max=${HPO_GH_LOG_MAX:-1048576}
+  # The parent field names the caller and nothing it was given: argv[0]'s basename and,
+  # for a shell or interpreter, one more word. Options are read one letter at a time:
+  # a known no-value letter is passed over; a known value-taking letter (python -W/-X,
+  # shell -o/-O) ends the field unlogged, its value never read, so a value of one argv
+  # word with a space in it is not split into a logged script; `c`, `e` or `s` (code on
+  # the line, or a script on stdin) logs the option up to that letter and ends the field;
+  # any other letter or long option ends it unlogged. The first word that is not an
+  # option is the script and ends it. So no option value, code, stdin-script argument or
+  # later word reaches the log, bar the argv[0]/script-path residual above (P284). ps
+  # joins argv with spaces, so the line is split on spaces and a script path containing
+  # a space is cut at it.
+  pargs=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
+  set -f; read -r -a pw <<< "$pargs"; set +f
+  pcmd=${pw[0]##*/}
+  case $pcmd in
+    python|python[0-9]*|Python|pypy*) flags='[bBdEhiIOqPRSuvVx]' vals='[WX]' ;;
+    sh|bash|zsh|dash|ksh) flags='[abfhiklmnprtuvxBCEHPT]' vals='[oO]' ;;
+    node|perl|ruby) flags=w vals= ;;
+    *) flags= ;;
+  esac
+  i=1 end=
+  [ -n "$flags" ] || end=1
+  while [ -z "$end" ] && [ "$i" -lt "${#pw[@]}" ]; do
+    a=${pw[$i]}
+    case $a in
+      -m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; end=1 ;;
+      --eval|--eval=*|--print|--print=*|--command|--command=*) pcmd="$pcmd ${a%%=*}"; end=1 ;;
+      --*) end=1 ;;
+      -?*)
+        j=1
+        while [ "$j" -lt "${#a}" ]; do
+          ch=${a:$j:1}
+          case $ch in
+            c|e|s) pcmd="$pcmd ${a:0:$((j + 1))}"; end=1; break ;;
+            $vals) end=1; break ;;
+            $flags) ;;
+            *) end=1; break ;;
+          esac
+          j=$((j + 1))
+        done ;;
+      *) pcmd="$pcmd $a"; end=1 ;;
+    esac
+    i=$((i + 1))
+  done
+  pcmd=$(printf '%s' "$pcmd" | tr -c 'A-Za-z0-9_./: -' '?' | cut -c1-80)
+  mkdir -p "$state"
+  clean() { printf '%s' "${1:--}" | tr -c 'A-Za-z0-9_./:-' '?'; }
+  if [ -f "$log" ]; then
+    size=$(wc -c < "$log" 2>/dev/null)
+    case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" && chmod 600 "$log.1" ;; esac
+  fi
+  printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$PPID" "${pcmd:--}" "$(clean "$sub")" "$(clean "$verb")" >> "$log"
+  # umask governs creation only: a log an earlier shim wrote 0644 is made owner-only here
+  chmod 600 "$log"
+) 2>/dev/null || true
+
+exec "$real" "$@"
