@@ -12353,7 +12353,7 @@
     "P328: a second level arm, git-only. In `verdict_levels`, a PR whose current head is in the bus dispatch record (`_dispatched`), with no approver verdict naming that head, prints `REVIEW STALLED: #N <head8> <minutes>m` (flagged) when its reviewer dispatch ref's tip (`dispatch/reviewer-rev-<N>`, `cloud_dispatch.py` `dispatch_ref`) is more than 90 minutes old. - Read the age with a local `git for-each-ref` and no API call. Never read a cloud run log (P280). - Add `REVIEW STALLED:` to `owed_unactioned.py`'s family. The action is to re-fire the reviewer with the same nonce at the same head. - Basis: #3027's reviewer died in setup at 02:05Z and was found by hand at 07:20Z. Over 231 dispatch refs, the latency to the first verdict is p50 17 min and p95 70 min, and 6 exceed 90 min. - Rows: - 100 min old, no verdict: prints the line. - Null: 30 min old prints nothing. - Null: a verdict at the head prints nothing. - Null: a dispatch at an older head prints nothing (REVIEW OWED's case). - One mutant drops the age test, and the 30-min row fires. - P327's APPROVAL-OWED arm goes first. This arm may follow in a second PR on this group. triage: dev/programme/triage/s6-batch90.md#P328"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-fly-tick-approval-owed",
     "commit": "12caba8cfe67b61b50852926564b79228e7304a0",
     "last_step": null,
