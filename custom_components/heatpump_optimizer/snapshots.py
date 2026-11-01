@@ -200,6 +200,9 @@ class SnapshotRing:
         depend on this never
         raising (#D1-05).
         """
+        # Declared, not inferred: mypy 2.4's reversed() overload reads Any
+        # out of a sequence whose element type holds Any.
+        snap: dict[str, Any]
         for snap in reversed(self.snapshots):
             if not snap.get("healthy") or "before_reset" in snap:
                 continue

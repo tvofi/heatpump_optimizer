@@ -75,6 +75,9 @@ def snapshot_rates(
     negative rate, which ``learner_progress`` treats as nothing counted.
     """
     rates: dict[str, float | None] = dict.fromkeys(counts)
+    # Declared, not inferred: mypy 2.4's reversed() overload reads Any out of
+    # a sequence whose element type holds Any.
+    snap: Mapping[str, Any]
     for snap in reversed(snapshots):
         taken = stored_instant(snap.get("taken_at"))
         if taken is None:
