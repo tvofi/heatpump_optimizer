@@ -14954,6 +14954,48 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-996-RUNNER-CLAIMS"
    },
    "brief": "The merge-main bot carries the claimnotes driver's own refusal text, left on R10-996-RUNNER-CLAIMS by its open #3066 because the bot was outside that group's files. Runs after R10-996-RUNNER-CLAIMS, whose driver change reshapes the message. Touch no claim file. Single-carry group: no live group owns tools/pr/merge_main_bot.py. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-MUTANT-RUN-DRIVER",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/features_block.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-mutant-run-driver",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MUTANT-RESTORE"
+   },
+   "brief": "One tracked mutant driver that restores under a kill, replacing the seat-local copies the s9 script census found, plus the two options seat-local block runners add to tools/audit/seat/features_block.py. Appended to R10-FLY-MUTANT-RESTORE after #3060 merged. Single-carry group: no live group owns this instrument. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
