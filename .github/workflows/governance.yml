@@ -786,6 +786,15 @@ jobs:
           python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
           grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
 
+      # The mandate guard's mutation sweep (R10-FLY-MANDATE-REVOKE-GUARD), for
+      # the same reason: CI pins its plants' preconditions, never the sweep.
+      - name: Show the mandate-guard mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_mandate_guard_mutants.py --self-test | tee "$RUNNER_TEMP/r10-mandate-guard-mutants-self-test.txt"
+          grep -Eq '^r10_mandate_guard_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-mandate-guard-mutants-self-test.txt"
+
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
