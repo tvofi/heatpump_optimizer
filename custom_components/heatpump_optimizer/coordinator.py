@@ -8052,7 +8052,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
                     "fuse_advisor": dict(self._fuse_advisor),
-                    "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
                         self._fuse_advisor_at.isoformat()
                         if self._fuse_advisor_at is not None
