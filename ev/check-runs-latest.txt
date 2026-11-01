@@ -1,0 +1,12 @@
+Read 2026-11-01T15:0xZ via the PR check-runs API (81 runs, one page of 100) at head 72ea40aa3a30dbd5b59fc16354f55f136367ece3.
+Red runs (conclusion failure):
+  124884844562 governance / instrument-self-tests  09:04:21Z-09:30:04Z  run 41291451430
+  124884845369 pr-contract / pr-contract            09:37:38Z-09:38:15Z  run 41291451430  (before the body edit)
+  124884848846 pr-contract / pr-contract            09:39:39Z-09:40:15Z  run 41291452783  (before the body edit; log: "check `governance / instrument-self-tests` is red and `## Red checks` does not name it")
+Newest pr-contract runs, after the body edit (PR updated_at 14:47:27Z):
+  124881603541 pr-contract / pr-contract success 14:47:03Z-14:47:45Z run 41317533457
+  124884358912 pr-contract / pr-contract success 14:58:17Z-14:59:00Z run 41317930654
+     log: "red checks the body must answer: ,governance / instrument-self-tests" ; "PR-BODY: 0 error(s)" ; "CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)"
+     check line (not a refusal): policy corpus -- dev/governance/roles/fix-review.md moved on origin/main since the merge base
+gate runs: 124884847945 success 15:00:32Z, 124884844758 success 15:00:32Z, 124884620562 success 14:59:45Z, 124881891326 success 14:59:33Z
+tests / fast (3.14) 124884845022 success. Everything else success or skipped.
