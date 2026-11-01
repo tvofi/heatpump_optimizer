@@ -1,0 +1,39 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       heavy slot             taken slot=0 label=prepr-5714 expires_at=2026-11-01T03:02:35.465942+00:00
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 258 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, namedDocsOverTree, citationPresenceOverTree, orphanCapsOverTree, requiredContextsOverTree, checkProvenance, rowFreezeOverPlan, ruleBindingOverTree]; record [record-known-bad, checkRecord, checkTableSplit, checkRender, enumSkipLine, badRefLine, checkCounts, CAP_RES, checkPrBody, frictionEntries, frictionKey, recordClassPaths, sunsetMarkerLine]
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  ok       register check         fold_ledger: 0 violation(s)
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 8fec54ee2afb
+  ok       ref privacy            ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 541 line(s) added since 8fec54ee2afb judged, 0 refused
+  ok       pinned graders         
+  ok       self-test              431 passed, 0 failed
+  ok       wave-script            224 passed, 0 failed
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f ok
+  skip     closures               the diff cannot be scoped, so CI re-records every closure; a full derive here is forbidden
+  ok       ci predict             CI PREDICT: no closures, fast, governance or instrument red predicted against 8fec54ee2afb (a data-file read is not seen unless a changed file's own self-test makes it)
+  skip     no-copies              the diff changes no .py under tests/ or custom_components/, so no test can newly share a production name
+  ok       layout guard           layout: GUARD: 0 refusal(s) against 8fec54ee2afb
+  ok       throwaway git          throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
+  skip     claims register        no change to README.md or docs/*.md
+  ok       preflight              
+  ok       pr-body                PR-BODY: 0 error(s) in /tmp/tmp.9ozztULgid/body.md -- no budget leaf raised over 8fec54ee2...a7e6a3e5d
+  ok       figures                FIGURES: 4 resolved, 0 not verified, 0 refused
+  ok       carry                  CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 888e38957
+  skip     unpinned sites         the diff adds no unpinned mutation site
+  skip     push order             HEAD is detached, so no branch of this repository is the pull request's head
+  skip     ancestry reds          HEAD is detached or the branch unnamed, so no remote branch of this repository is the pull request's head
+PRE-PR: a7e6a3e5dfa05028be5127fc7a60f512277d861c 0000000000000000000000000000 rc=0; full log: /tmp/prepr-log.5UeIzndY (PREPR_VERBOSE=1 prints it on stdout)
+prepr rc=0

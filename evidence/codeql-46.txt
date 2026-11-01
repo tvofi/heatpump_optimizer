@@ -1,1 +1,3 @@
 {"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/code-scanning/code-scanning#get-a-code-scanning-alert","status":"403"}gh: Resource not accessible by integration (HTTP 403)
+
+{"message":"Resource not accessible by integration","documentation_url":"https://docs.github.com/rest/code-scanning/code-scanning#list-code-scanning-alerts-for-a-repository","status":"403"}gh: Resource not accessible by integration (HTTP 403)
