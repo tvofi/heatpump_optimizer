@@ -1,0 +1,20 @@
+== main
+OPEN R10-MERGE-SUBJECT-CASEARM "\t[0-9]*)" f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM "\t[0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM one-line x) gh pr merge 9 -t s f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM expected-fail: held=49 of 49; null refused=0 of 49
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a Python argv f.py: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a JS argv f.mjs: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed a closer in a JS block comment f.mjs: XFAIL
+OPEN R10-MERGE-SUBJECT-CASEARM routed expected-fail: held=0 of 3; null refused=0 of 3
+== head
+OPEN R10-MERGE-SUBJECT-CASEARM "\t[0-9]*)" f.md: held
+OPEN R10-MERGE-SUBJECT-CASEARM one-line x) gh pr merge 9 -t s f.sh: held
+OPEN R10-MERGE-SUBJECT-CASEARM expected-fail: held=49 of 49; null refused=0 of 49
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a Python argv f.py: held
+OPEN R10-MERGE-SUBJECT-CASEARM routed a blank line in a JS argv f.mjs: held
+OPEN R10-MERGE-SUBJECT-CASEARM routed a closer in a JS block comment f.mjs: held
+OPEN R10-MERGE-SUBJECT-CASEARM routed expected-fail: held=3 of 3; null refused=0 of 3
+LEXER merge refused=60 of 60; null refused=0 of 60
+OPEN R10-MERGE-SUBJECT-CASEARM routed expected-fail: held=0 of 3; null refused=0 of 3
+LEXER merge refused=44 of 60; null refused=0 of 60
