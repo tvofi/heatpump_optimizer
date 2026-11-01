@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 6f303d5cf..e8e17eb15 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10836,7 +10836,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             return
+         why = sysid.hold_reason(
+             self._pump_signals,
+-            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
++            None,
+             getattr(ctx, "_config", None),
+             dt_util.now(),
+         )

@@ -1,0 +1,5 @@
+review_carry: deceb3de7 -> f5c4a8c75  main=origin/main
+  branch-only commits: 1
+  why: all 1 branch-only commit(s) are automatic merges, and app_approve.sh --carry carries the range
+  f5c4a8c75  Merge commit 'deceb3de7ee1f01a1e0f6ddd3d93acede6c68e41' into fix/r10-ceiling-probe
+review_carry: CARRY

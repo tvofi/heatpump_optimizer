@@ -1,0 +1,5 @@
+  ok   #1523 class check: every learner feeder in coordinator.py consults the freeze or carries a disposition, and no disposition is stale
+  ok   #1523 class check null control: dropping the experiment's consult re-opens exactly its seam
+  FAIL item 29: the accessor is the median, not an upper quantile -- nine intervals at 3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0
+1 of 4742 FEATURE CHECKS FAILED
+rc=1

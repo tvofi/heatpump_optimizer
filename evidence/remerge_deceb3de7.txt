@@ -1,0 +1,32 @@
+diff --git a/tests/features.py b/tests/features.py
+remerge CONFLICT (content): Merge conflict in tests/features.py
+index 67a9c2865..a30a26fe3 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -74984,7 +74984,6 @@ R.check(
+ )
+ 
+ 
+-<<<<<<< e81bf9dbf (R10-CEILING-PROBE: re-record max_class_loc 8054 and class_excess_loc 17647 at the honest layout)
+ # --- R10-CEILING-PROBE (#2498, #2808): the cheap-night ceiling probe ----------
+ # A set-point install's plan rarely writes the flow ceiling, so the metered
+ # draw window is censored at the top and the plugin cannot learn the pump's
+@@ -75888,7 +75887,9 @@ R.check(
+     and _cp_on_lines == [f"System identification armed ({_cp_on.kind}); it will start at the next mild, cheap night hour"]
+     and _cp_off_lines == [],
+     f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
+-=======
++)
++
++
+ # R10-HOTFIX-AWAY-PRESENCE (tvofi, 2026-10-30; probe r10-live-away-heating): an
+ # away flag from a presence entity reached the plan only at the next scheduled
+ # update (one optimization_interval) -- no listener followed the entity; nor the
+@@ -76034,7 +76035,6 @@ R.check(
+     "(the plan is still the pre-reload one)",
+     9.0 <= (_ap_first.get("plan_age_minutes") or 0) <= 11.0,
+     str(_ap_first.get("plan_age_minutes")),
+->>>>>>> d052f80f7 (Merge pull request #3096 from tvofi/fix/triage-s9-batch102)
+ )
+ 
+ 

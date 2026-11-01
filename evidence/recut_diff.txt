@@ -1,0 +1,83 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index ec9bece32..413874dd3 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10820,7 +10820,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         """Arm a step-response experiment for the next suitable moment."""
+         ctx = getattr(self, "_ctx", self)
+         sysid.arm_from_config(
+-            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params, self._house_heat_loss_samples, self._accuracy.draw)
++            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
++            self._house_heat_loss_samples, self._accuracy.draw,
++        )
+         await self.async_request_refresh()
+ 
+     async def _run_system_identification(self, prices: np.ndarray) -> None:
+@@ -10835,8 +10837,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         if not self._sysid.active:
+             return
+         why = sysid.hold_reason(
+-            self._pump_signals, self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+-            getattr(ctx, "_config", None), dt_util.now())
++            self._pump_signals,
++            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
++            getattr(ctx, "_config", None),
++            dt_util.now(),
++        )
+         if why is not None:
+             self._sysid.stand_down(why)
+             return
+diff --git a/tests/features.py b/tests/features.py
+index 103894b71..28705b9b4 100644
+--- a/tests/features.py
++++ b/tests/features.py
+@@ -60261,10 +60261,9 @@ R.check(
+ # with the experiment's freeze consult removed finds #1523's seam.
+ # The consult is hold_reason's frozen argument (sysid.hold_reason, this PR's
+ # move of the stand-down decision): the mutant passes None in its place.
+-_P5_CONSULT = ("self._pump_signals, "
+-               "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),")
++_P5_CONSULT = "self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)"
+ _p5_src_now = _p5_inspect.getsource(_p5_coord_mod)
+-_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "self._pump_signals, None,"))
++_p5_mut = _p5_ast.parse(_p5_src_now.replace(_P5_CONSULT, "None"))
+ R.check(
+     "#1523 class check null control: dropping the experiment's consult "
+     "re-opens exactly its seam",
+@@ -75172,6 +75171,11 @@ R.check(
+     and _cp_store([1.0] + [3.0] * 11).learned_max_kw(_CP_NOW) == 3.0
+     and _cp_store([3.0] * 11 + [9.0]).learned_max_kw(_CP_NOW) == 3.0,
+ )
++R.check(
++    "item 29: the accessor is the median, not an upper quantile -- nine intervals at "
++    "3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0",
++    _cp_store([3.0] * 9 + [4.0] * 3).learned_max_kw(_CP_NOW) == 3.0,
++)
+ R.check(
+     "the top lapses 45 days after the newest sample, and a sample stamped ahead of "
+     "the clock has no knowable age",
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 762a8c659..68b7c6e8b 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,5 +1,5 @@
+ {
+- "class_excess_loc": 17642,
++ "class_excess_loc": 17647,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 142,
+  "coordinator_multiassigned_attrs": 109,
+@@ -11,11 +11,11 @@
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+- "max_class_loc": 8049,
++ "max_class_loc": 8054,
+  "max_method_loc": 373,
+  "methods_over_150": 15,
+  "methods_over_200": 8,
+  "name_kept_members": 38,
+- "recorded_at": "2b6bef7453a8bdaf97d42f382a116ce226b35ccc",
++ "recorded_at": "1a8051350406387d5ee1ed966d8a2ba8a770cc31",
+  "seam_cut_total": 422
+ }
