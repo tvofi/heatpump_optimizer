@@ -47,7 +47,7 @@ sweep's standing-seat liveness step keep them alive.
 
 - [`features_block.py`](instruments/features_block.py.md) — runs one block of `tests/features.py`
 - [`body_push.sh`](instruments/body_push.sh.md) — publishes a handoff's BODY.md on the orphan ref `handoff-body/<topic>` (plus RESUME.md), parentless first commit, fast-forwards after
-- [`body_patch.sh`](instruments/body_patch.sh.md) — repairs an open pull request's BODY without moving its head
+- [`body_patch.sh`](instruments/body_patch.sh.md) — repairs an open pull request's BODY, or any pull request's TITLE (`--title`), without moving its head
 - [`autofix_statuses.sh`](instruments/autofix_statuses.sh.md) — re-derives what `mutation-autofix` and `closures-autofix` answered on recent pull-request runs
 - [`bus.sh`](instruments/bus.sh.md) — git refs as the programme's message bus
 - [`review_packet.py`](instruments/review_packet.py.md) — the fix reviewer's packet at the frozen head
