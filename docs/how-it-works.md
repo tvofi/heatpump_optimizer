@@ -110,9 +110,9 @@ locally optimal schedule that a different starting guess beats — that is what
 the two-zone model showed. So each space solve scores four candidate profiles
 cheaply (a warm start or the naive guess, two price-ranked profiles at
 different total energy, and a flat half-headroom guess), refines every one of
-them with L-BFGS-B, and keeps whichever refinement scores best. That is what
-removed most of the local-optimum gap in the two-zone model; a fifth candidate
-was not worth the extra full solve on the hardware Home Assistant runs on.
+them with L-BFGS-B, and keeps whichever refinement scores best. Four candidates
+close most of the local-optimum gap in the two-zone model; a fifth would not be
+worth the extra full solve on the hardware Home Assistant runs on.
 
 ---
 
@@ -208,11 +208,11 @@ Both panels are `marginal_cop` asked directly over the same outdoor range. With
 the gate off, the buffer and building-mass curves are not merely close — the
 generator measures their largest difference and prints it, and it is zero.
 
-Before this was shared, the simulation charged a throttled buffer at the
-derated COP while the settlement terms paid every stored kWh back at the plain
-curve. Marginal value below marginal cost is systematic under-charging: the
-solver only stored heat when the price spread also covered a COP gap the physics
-never charged. The buffer derate is gated on `cop_flow_carnot`, so installs with
+The sharing matters. A simulation charging a throttled buffer at the derated
+COP while the settlement terms paid every stored kWh back at the plain curve
+would put marginal value below marginal cost, which is systematic
+under-charging: the solver would store heat only when the price spread also
+covered a COP gap the physics never charged. The buffer derate is gated on `cop_flow_carnot`, so installs with
 no throttling valve return the plain curve bit for bit.
 
 **Settlement caps** stop the reverse error — being paid for heat nobody needs:
@@ -225,15 +225,15 @@ no throttling valve return the plain curve bit for bit.
   state — it has to run above the room to push heat into it. In two-zone mode
   that demand is sized **from the lower zone alone**, because the slab feeds
   only the lower zone (the upper zone is radiator-fed) and it uses the lower
-  zone's share of internal gains. Sizing it from the whole house inflated the
-  cap by the upper zone's demand and over-valued hot-slab end states by exactly
-  that much.
+  zone's share of internal gains. Sizing it from the whole house would inflate
+  the cap by the upper zone's demand and over-value hot-slab end states by
+  exactly that much.
 - **Buffer** gets a much higher cap, because that reasoning does not transfer
   to a tank: a tank only gets hot because the pump deliberately heated it, so
-  every degree in it will be used. Sharing the slab's cap made the tank
-  invisible — charging from 45 °C to 70 °C was credited with 0.0 kWh of the
-  21.8 kWh actually stored, so charging was pure cost and every plan collapsed
-  to no storage.
+  every degree in it will be used. The slab's cap would make the tank
+  invisible — charging from 45 °C to 70 °C would be credited with 0.0 kWh of the
+  21.8 kWh actually stored, so charging would be pure cost and every plan would
+  collapse to no storage.
 
   The buffer cap is **the ceiling the plan can actually charge to**, not the raw
   safety rating. Reaching the rating requires the pump to out-run the house's
@@ -241,13 +241,13 @@ no throttling valve return the plain curve bit for bit.
   flow-derated COP, which in cold weather a real pump cannot. The ceiling is
   found by bisection on the net charge rate (monotone decreasing in tank
   temperature) and lands on the rating in every mild-weather case. The learned
-  house-leakage scale rides along, because a learned-leaky house that omitted it
-  got an optimistic ceiling — the one direction this bound must not err.
+  house-leakage scale rides along, because without it a learned-leaky house
+  would get an optimistic ceiling — the one direction this bound must not err.
 
   The cap is then **floored at the tank temperature the solve started from**,
   clipped at the rating. Heat already in the tank above the charging ceiling is
   real: it was paid for, and draining it displaces bought electricity. Capping
-  at the ceiling alone let a plan drain a pre-charged tank — a mild evening's
+  at the ceiling alone would let a plan drain a pre-charged tank — a mild evening's
   60 °C ahead of a cold snap — with zero settlement, re-creating the
   tail-dumping this term exists to prevent in exactly the regime where storage
   matters most.
@@ -404,7 +404,7 @@ stored heat mostly gets used in the hours right after it was bought. Commanded,
 the plan can lower the valve's target between charging and the expensive hours —
 the house coasts on what the building itself holds, the tank keeps its heat —
 and raise it again for the peak. On the author's Swedish winter price curve that
-was worth roughly 1–2 SEK a day on top of what storage already saves; at flat
+is worth roughly 1–2 SEK a day on top of what storage already saves; at flat
 prices the optimizer does not do it at all, because there is nothing to gain.
 The house is never planned below your comfort floor to achieve it.
 
@@ -557,10 +557,10 @@ q_effective = q_nominal × min(1, (T_tank - T_inlet) / (40 °C - T_inlet))
 The tap draws *more* volume from a cooler tank to make the same mixed water, so
 the enthalpy removed stays exactly nominal all the way down to 40 °C, and only
 below that does the service itself degrade. Referencing the setpoint instead
-under-debited the 40 °C-to-setpoint band — the very band cost optimization rides
-— by up to a third, and booked the deleted demand as savings. Unscaled, a 30 °C
-tank was charged the full `(setpoint − inlet)` per litre and the inlet floor
-underneath silently refunded the fabricated deficit.
+would under-debit the 40 °C-to-setpoint band — the very band cost optimization
+rides — by up to a third, and book the deleted demand as savings. Unscaled, a
+30 °C tank would be charged the full `(setpoint − inlet)` per litre and the
+inlet floor underneath would silently refund the fabricated deficit.
 
 Demand-side quantities stay nominal on purpose: the planner's ready-energy
 targets and the always-hot baseline describe what you want *delivered*, and that
@@ -667,15 +667,14 @@ pump alternates within the step either way.
 ## Weather
 
 Solar gain is only as good as the irradiance behind it, and most weather
-integrations never publish an irradiance field, so the term silently evaluated
-to zero for many installs. There are three sources, tried in this order:
+integrations publish no irradiance field, so a forecast without one gives a
+solar gain of zero. There are three sources, tried in this order:
 
 1. **A local irradiance sensor**, if configured. A real measurement at the
    actual site beats a model, so this wins outright.
 2. **Open-Meteo**, if *Solar irradiance source* is set to it. Pick the location on
    the map in the configurator; no API key or account is needed.
-3. **The weather entity's forecast**, the previous behaviour and still the
-   default.
+3. **The weather entity's forecast**, the default.
 
 Open-Meteo is used through two endpoints because they do different jobs:
 
@@ -884,8 +883,9 @@ efficiency look worse — a single-tank model would charge the modelled COP
 for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the savings
-settlement and the thermal-battery view, up to 95 °C. Without the probe, or if
-it goes stale, everything falls back to the previous behaviour.
+settlement and the thermal-battery view, up to 95 °C. Without the probe, or
+while it is stale, the wood tank is not a store of its own: the model keeps the
+one buffer tank, and a burn is the bounded free heat described above.
 
 If your hot water tank refills **through a coil immersed in the wood tank**,
 enable that option on the heating-system page: refill water then enters
@@ -1159,7 +1159,7 @@ bias. Time constant must land in 0.1–200 h and the loss coefficient in
 0.01–5 kW/°C. Confidence comes from the fit's R², tempered by sample count and
 by the achieved temperature excursion, because R² cannot see that a flat fit
 explains flat data well. If the data cannot support three columns at all, the
-fit degrades to the historical two-column form and reports no gains figure.
+fit degrades to the two-column form and reports no gains figure.
 
 ### The rest of the learners
 

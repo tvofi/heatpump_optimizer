@@ -176,16 +176,17 @@ the narrative sensor's own, already in Home Assistant's language. Set
 
 Every part is optional, because every source sensor is. The score has no
 value until enough history exists, the savings sensors go blank between
-optimizer runs, and older integrations publish none of them. A row with nothing
+optimizer runs. A row with nothing
 to say draws no chrome at all rather than an empty strip.
 
 The card finds those sensors from the plan sensor it has already resolved: it
 takes that entity id's prefix and appends `_plan_predicted_savings`,
 `_plan_savings_percentage`, `_plan_optimization_score` and `_plan_narrative`. If you have
 renamed one individually, it falls back to scanning for any `sensor` whose id
-ends in the suffix it wants. An install that kept older registry ids for these
-sensors is covered too: the card tries each sensor's older suffix after the
-current one. The savings figure is labelled with the unit the
+ends in the suffix it wants. A savings or score sensor registered with the
+suffix that has no `_plan` in it (`_predicted_savings`, `_savings_percentage`,
+`_optimization_score`) is covered too: the card tries that form after the
+`_plan_` one. The savings figure is labelled with the unit the
 savings sensor itself declares — nothing here converts, so a `currency:` in the
 card config does not relabel it.
 
@@ -769,8 +770,8 @@ and the hot water tank says it is refilled through the coil.
 
 ![The two-tank layout with an additional immersed coil connecting the wood furnace tank to the hot water tank: the wood tank's corner disc is a spring and the coil's pipe is drawn in the accent colour](img/model/hydronic-coil.svg)
 
-Each card stretches with the sensor rows inside it, and every row is the
-same assignment slot it always was: click a row — or tab to it and press
+Each card stretches with the sensor rows inside it, and every row is an
+assignment slot: click a row — or tab to it and press
 Enter or Space — to pick the entity that feeds it. Each row is a
 `role="button"` target with a spoken label, and a picker opened from the
 keyboard takes focus, so the whole page is usable without a pointer. An
@@ -978,8 +979,8 @@ reloads. The key is the space and hot-water entity ids the config carries (the
 defaults, when you have not set them) plus the card's `title` and `hours` — its
 config identity, not just its data sources — so a 24-hour card on a wall panel
 and a 48-hour card of the same sensors elsewhere keep their own toggles instead
-of overwriting each other. A card whose toggles were saved under a key of the
-entity ids alone has that key read once as a fallback, so its toggles are kept.
+of overwriting each other. Toggles stored under a key of the entity ids alone
+are read once as a fallback, so they are kept.
 Writes always go to the full key.
 
 The `series` option only sets the *initial* visibility the first time the card

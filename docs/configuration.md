@@ -972,8 +972,8 @@ opt-in learners are on **Advanced learning features**.
 
 ### Transfer fees and contract
 
-Fee amounts are in the same currency as your electricity prices; some labels
-still read SEK, which is the historical default rather than a constraint.
+Fee amounts are in the same currency as your electricity prices; where a label
+reads SEK, that is a label, not a constraint.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -995,7 +995,7 @@ is set — an install without an ECL110 never touches these topics. See
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Offset command topic | *(empty)* | MQTT topic | Where the parallel heat-curve offset is published. |
-| Legacy JSON command topic | *(empty)* | MQTT topic | Only for older setups expecting a JSON payload. |
+| Legacy JSON command topic | *(empty)* | MQTT topic | Only for a setup expecting a JSON payload. |
 | Status topic | *(empty)* | MQTT topic | Where the controller reports its state. |
 | MQTT quality of service | 1 | 0–2 | 0 is fine for almost everyone. |
 | Retain MQTT messages | off | on/off | Keeps the last offset on the broker so the controller picks it up after a restart. |
