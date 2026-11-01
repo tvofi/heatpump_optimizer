@@ -1,3 +1,0 @@
-closures tests/entities.py added ['tools/audit/seat/bare_array.py'] removed []
-entities rec head: {'rc': 0, 'seconds': 867.9}
-  MODE: FULL -- every test script runs, nothing is scoped out.

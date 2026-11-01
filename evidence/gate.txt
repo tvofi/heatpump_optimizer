@@ -1,8 +1,8 @@
-Prepare all required actions
- * [new tag]             archive/handoff-body/r10-ci-ratchet-red -> archive/handoff-body/r10-ci-ratchet-red
- * [new tag]             archive/handoff-body/r10-instruments -> archive/handoff-body/r10-instruments
- * [new tag]             archive/handoff-body/r10-instruments-checker -> archive/handoff-body/r10-instruments-checker
- * [new tag]             archive/handoff-body/r10-policy-instruments -> archive/handoff-body/r10-policy-instruments
- * [new tag]             archive/handoff-body/r10-prepr-unpinned-red -> archive/handoff-body/r10-prepr-unpinned-red
- * [new tag]             archive/handoff-body/r9-blas-kernel-red -> archive/handoff-body/r9-blas-kernel-red
- * [new tag]             archive/handoff/r10-ci-ratchet-red -> archive/handoff/r10-ci-ratchet-red
+  MODE: FULL -- every test script runs, nothing is scoped out.
+
+STRUCTURE RATCHET PASSED
+selftest_wiring: 104 self-testing, 104 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+109:- [`bare_array.py`](instruments/bare_array.py.md) — refuses a bare `"${name[@]}"` in a tracked `tools/**/*.sh` script under `set -u`, which macOS bash 3.2 dies on when the array is empty (`--check`, `--self-test`)
+tools/audit/seat/instruments/bare_array.py.md
++   "tools/audit/seat/bare_array.py",

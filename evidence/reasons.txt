@@ -1,0 +1,40 @@
+1497:TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)
+1613:PIPE_GREP_Q_FILES=(tools/pr/prepr.sh .claude/hooks/session-start.sh .claude/hooks/stop-selfcheck.sh
+    # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
+    # One launch for both routes, so the self-test's stub runs the production launch line.
+    urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
+    # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
+    pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
+  while IFS= read -r p; do [ -z "$p" ] || x[${#x[@]}]=":(exclude,literal)$p"; done <<<"$(printf '%s' "$bots" | sort -u)"
+  mv=$(git merge-base "$main" "$v") && mh=$(git merge-base "$main" "$h") || { echo "no merge base with $main"; return 1;
+  local d=(git -c core.quotepath=off diff --binary --no-renames --no-color --no-ext-diff --no-textconv
+    --diff-algorithm=myers -U3)
+  norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/'; }  # never-empty: d is th
+    || { echo "body_patch: the check runs at $head could not be listed" >&2; rm -rf "$d"; return 1; }
+  local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
+              --paths-file "$d/files" --existing-file "$d/existing") name rc=0
+  while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
+  # never-empty: args starts with the literal --pr-body list
+  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+  command -v pgrep >/dev/null || printf '%s: STOPPED: no pgrep on PATH, so the tree this run started is not reaped; the branch lock stays held until its push ends\n' "${PR_NAME:-pr}" >&2  # mut:nopgrep
+  pr_descendants $$
+  [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
+  pr_lead_stop  # mut:lead
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done  # never-empty: the line above returns when PR_REAP_PIDS is empty
+  while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
+    alive=()
+    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done  # never-empty: the loop head returns unless PR_REAP_PIDS holds a pid
+    [ "${#alive[@]}" -gt 0 ] || return 0
+    PR_REAP_PIDS=("${alive[@]}")  # never-empty: the line above returns when alive is empty
+    sleep 0.1
+    n=$((n + 1))
+  done
+  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
+  return 0
+  out=$(run bash -c 'python3')
+  [ "$out" = system ]; expect "control: a non-login bash with no variables set gets the system python3 (the defect)" $?
+  mapfile -t vars < <(PATH="$base" variables "$P")
+  out=$(PATH="$P/venv-ci/bin:$base:$P/venv-ci/bin" variables "$P" | head -n 1)
+  [ "$out" = "${vars[0]}" ]; expect "the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice" $?
+  out=$(run "${vars[@]}" bash -c python3)  # never-empty: vars is the three-line output of variables, asserted above

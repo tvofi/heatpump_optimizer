@@ -1,8 +1,0 @@
-bare_array self-test: ok
-ok   no tracked tools/**/*.sh script under set -u expands a bare "${array[@]}"
-ok   bare_array: the base bus.sh call is refused
-ok   bare_array: the guarded form passes (control)
-ok   bare_array: an allow-marked never-empty site passes (null)
-ok   bare_array: a file without set -u is not judged (null)
-ok   bare_array: its own self-test passes
-ROWS-FAILED 0

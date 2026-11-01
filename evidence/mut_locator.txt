@@ -1,9 +1,17 @@
-== a7dd7f50d
-pr_args.sh lines matched by the mut:grace locator: 1
-body_patch.sh lines matched by the mut:contract locator: 1
 == 6a988a237f91a853d006f7908e41cfbd30bc9bc9
-pr_args.sh lines matched by the mut:grace locator: 0
-body_patch.sh lines matched by the mut:contract locator: 0
-== other # mut: markers followed by text at head, in files this PR touched:
-+  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract  # never-empty: args starts with the literal --pr-body list
-+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
+body_patch /# mut:contract$/: 0
+pr_args '# mut:grace$': 0
+pr_args mut markers not at line end: 1
+== 07280b77b5af76295abddfb4a0be7df739a27a54
+body_patch /# mut:contract$/: 1
+pr_args '# mut:grace$': 1
+pr_args mut markers not at line end: 0
+== head locator lines
+414:mutant lint   '/# mut:contract$/s/.*/:/'
+478:      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+1183:      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+1239:      if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"; else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+1263:      else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
+1352:    for g in remerge_main.sh pr_args.sh; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
+== body figure rule at head
+rc=1
