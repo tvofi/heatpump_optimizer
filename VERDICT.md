@@ -1,0 +1,22 @@
+Fix review: merge 584c317d55878263565623029461f21d2cab284d
+
+bus-nonce: 8cf7f9722cd1c97681ccd2bd5c88fb4f
+
+Round 1. Measured at head 584c317d55878263565623029461f21d2cab284d (the PR head ref still equals it; the head adds only the delivery row to code head f002cabb).
+
+## Findings
+
+- No seat writes the inputs the new arm judges. A grep of tools/, dev/governance and .claude at the head finds writers only of the per-role alive file (roster_queue.py `--alive` touch, tick_loop.sh) and none of `FILE.d/<id>` entries or of the launch ledger (the ledger lives on the orchestrator's machine). Wiring `seat_alives` into the live overlay now would print `FOREIGN <role>: unattributed beat` for every real seat with a fresh alive file (reproduced: fresh `merge.alive`, no `merge.alive.d`, prints `STOPPED FOREIGN merge: unattributed beat`), a false alarm. The PR is inert until a seat writer lands, because `seat_alives` is optional and absent from the current overlay. Whoever wires step (1b) must land the writer first (each standing brief touching `<role>.alive.d/<launch nonce>` per pass, and a ledger line per launch and stop). Carry: R10-ORCH-BEATD
+- A surviving mutant: in `read_alive`, replacing the id entry's `e.stat().st_mtime` with the directory's `d.stat().st_mtime` leaves `pulse.py --self-test` at 56 checks, 0 failed. The self-test's `read_alive` case asserts only the entry names and the role mtime, and the judge cases feed hand-built dicts. The code is correct at the CLI (an entry touched 5 h ago in a fresh directory reads FOREIGN, reproduced) but the mtime-per-entry property is unpinned, and it is the property the whole fix rests on. Carry: R10-ORCH-BEATD
+
+## Evidence
+
+- Finder's measurement, base 8fec54ee: pulse.py has no `--seat-alive` flag (`unrecognized arguments`), so the board has no alive arm and a fresh `merge.alive` with no id entry draws no liveness verdict at all. Head: the same files with `--seat-alive merge=...` print `PULSE seat-alive-merge STOPPED FOREIGN merge: unattributed beat`. With one fresh id `n1` and a ledger line `1 n1 merge x`, it prints `ok ... by n1`; adding a second fresh id `n2` prints `STOPPED DUPLICATE seat merge: n1 n2`. The base prints no `ok` line either, so the finder's false-`ok` was the orchestrator's own reading of the file age; the head is the first place the instrument judges it.
+- Self-tests at the head: pulse.py 56 checks, 0 failed; sweep_render.py 29 checks, 0 failed (both match the body).
+- Mutants, all run: per-role fallback restored (fresh-empty returns ok): killed, 2 fails. `if fresh[0] != newest` to `if False`: killed, 3 fails. `len(fresh) > 1` to `if False`: killed, 1 fail. `entries[:4]`-class cap (here `[:1]` on the list branch of flag_text): killed. Own mutants: age cutoff shifted by an hour: killed. Stale ids counted as fresh: killed, 2 fails. Missing-file guard removed: killed (self-test crashes with TypeError). Entry mtime replaced by directory mtime: SURVIVED (see Findings).
+- Null controls perturbed: dropping the fresh-id filter turns "one fresh and one stale is not DUPLICATE" red; the fallback mutant turns "stale id beside fresh file is FOREIGN" red. The stale-per-role-file-is-STOPPED, stop-line and missing-UNREADABLE controls are present and pass at the head.
+- Sweep render, synthetic overlay (no tracked overlay carries `seat_alives`): base and head both render rc 0 and the step (1b) command line is identical (`pulse.py --repo <repo> <seat_queues>`, no double space). The rendered text is not byte-identical to the base: the head changes the step (1b) prose naming the DUPLICATE and FOREIGN words. The body's byte-identical claim holds for the command and not for the surrounding sentence.
+- merge-tree: `git merge-tree --write-tree origin/main 584c317d55878263565623029461f21d2cab284d` exits 0, tree 48557c23, no conflict. Three-dot diff touches no claim file, golden, VERSION, manifest, notes heading, budget or closures file. Delivery row dev/programme/delivery/3070.md present.
+- tests/structure.py: STRUCTURE RATCHET PASSED. The scoped-gate MODE line was not re-derived here (tests/ needs homeassistant, absent from this seat); the PR's own gate check is success.
+- CI: merge_train.py classify 584c317d55878263565623029461f21d2cab284d prints GREEN, pending none, red none. Review packet: gate digest green, carry_audit 0 findings at render, figure_lint 4 resolved 0 unverified.
+- Contract diff dev/governance/roles/ between merge base and origin/main: empty.
