@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/body_push.sh b/tools/audit/seat/body_push.sh
+index f06a3c3c5..28d954b48 100644
+--- a/tools/audit/seat/body_push.sh
++++ b/tools/audit/seat/body_push.sh
+@@ -45,7 +45,7 @@ if [ -n "$HREF" ]; then
+   # The red-check arm reads the pull request's head ref over the network, so it
+   # is asked for only when origin holds fix/<topic> (a first handoff has none).
+   PRB=""
+-  [ -z "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ] || PRB="--pr-branch fix/$TOPIC"
++  [ -z "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ] || PRB=""
+   # shellcheck disable=SC2086 # PRB is empty or exactly two words
+   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
+     printf '%s\n' "$LINT" >&2
