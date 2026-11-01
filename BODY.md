@@ -57,13 +57,20 @@ The null row shows the check does not refuse when nothing moved, on the real mer
 
 ## Head
 
-The PR head is `aa6148d4ff35c457e83310337760e075cb823a14`. Another seat added it while this round was running: a merge of origin/main 6421fe135d9f5a9e65433a4433f000d2419486bf into 32d880b3dee4e525d16ec270af83d867f7006431. It is git's automatic merge: its tree 82d5af601 equals `git merge-tree --write-tree 32d880b3d 6421fe135`. `bash tools/pr/app_approve.sh --carry 32d880b3dee4e525d16ec270af83d867f7006431 aa6148d4ff35c457e83310337760e075cb823a14 origin/main` printed `CARRY: yes 32d880b3dee4e525d16ec270af83d867f7006431 -> aa6148d4ff35c457e83310337760e075cb823a14`. The figures below are not re-taken at it: it is a `--carry` head (fixer.md step 7).
+The head is `900364b18d16a8edba39397f76d42c44b14415fc`: a merge of origin/main `56630e7e6d229d960cf1b4db304d488ee20873e6` into the verdicted head `aa6148d4ff35c457e83310337760e075cb823a14` (verdict `Fix review: merge aa6148d4ff35c457e83310337760e075cb823a14`), plus one trim commit. Everything else in this body describes aa6148d4f; the reviewer reviews only this delta against that verdict. `git merge-tree --write-tree origin/main aa6148d4f` reported one conflict, `tools/audit/seat/bus.sh`.
 
-`32d880b3dee4e525d16ec270af83d867f7006431` is the head every figure below was measured at, and the round-2 review judged it. It merges the authored code head `25c2038d04a437e35324e328a721c2f4cc260293` and then origin/main `92588d581` into this PR's previous head. The orchestrator's script made that merge automatically; any resolution inside the code head is described above. This round adds no commit. `handoff/r10-fly-carry-doc-context` is fast-forwarded from 25c2038d0 to the PR head aa6148d4 so the body's handoff names the head the PR is at. That moves no code.
+**Resolution delta.**
+1. `tools/audit/seat/bus.sh`, one hunk in the `--self-test` review-carry block, resolved as a union. Merge base 6421fe135.
+   - This PR contributed: the `h2c` commit (one code line on `h2`, because `h2` alone is an empty commit and now carries under L6) and the final null control dispatching at `$h2c`.
+   - Main contributed: the P348 arms (`vc`, with its merge-verdict null control, the blocked, latest-verdict, no-verdict and unreadable-ref arms C3 to C6).
+   - Order in the merged file: main's arms, then this PR's `h2c` setup, then the dispatch at `$h2c`. The `h2` checkout comes after main's arms, which never move the work tree.
+   - The header comment and the `dispatch` code auto-merged: this PR's ordering sentence and main's "latest verdict is merge" sentence both stand.
+2. `dev/governance/roles/orchestrator.md`, commit 900364b18: the merge put the file at 17024 bytes, over its 4251-token cap (`policy_lint` `files_tokens`: 1 error; 0 at main and at aa6148d4f). Two sentences were shortened with no change of meaning: this PR's section-11 clause now reads "bar its delivery row, or keep its patch (L6); else a resolution delta for the same reviewer", and main's "a reviewed head whose verdict was merge" now reads "a merge-verdict reviewed head". This is a policy file. No cap was raised.
+3. `fix-review.md` and `standing-dispatch.md` auto-merged. I read the merged text against main's changes (a dropped judge-ruling sentence, `carry_audit.py check` before a verdict, "head-moved" wording). They do not touch the sentences this PR adds, and the two texts agree.
 
-`25c2038d04a437e35324e328a721c2f4cc260293` (round 2) holds the round-2 commits on the round-1 head d843403626ee923fe1fbde4428f3a0b2eb734b06: f1815f5b2 (the end-state check), de970b76c (main's drivers read in a clone without them), 247a8590b (the rule's text in app_approve's header, `review_carry.py` and its page), and 25c2038d0 (the bot exemption keyed on `bot_paths`).
+## Hunk proof
 
-This round merged nothing. At 32d880b3d, `git merge-tree --write-tree origin/main HEAD` exited 0 against origin/main 6421fe135d9f5a9e65433a4433f000d2419486bf at 2026-11-01T12:03Z. The three-dot merge base there is 92588d581fde4ce287af3db5e8bb61461dc28015, and the branch moves past the handoff only on a conflict (fixer.md step 6). aa6148d4 has since merged that same main tip. origin/main moved from 92588d581 to 6421fe135 after the last prepr run, so `tools/pr/prepr.sh` was re-run at this head with this body (Figures).
+For `bus.sh`, each parent's added lines against the merge base are all present in the merge, and the merge adds no line of its own: `B=6421fe135d9f5a9e65433a4433f000d2419486bf; for p in aa6148d4f origin/main; do git diff $B $p -- tools/audit/seat/bus.sh | grep '^+[^+]' | sort -u | comm -23 - <(git diff $B HEAD -- tools/audit/seat/bus.sh | grep '^+[^+]' | sort -u) | wc -l; done` printed 0 and 0, and the merge's lines in neither parent's added set number 0.
 
 ## Mutation proof
 
@@ -95,6 +102,26 @@ Round 1's ten mutants (Mutation proof at d84340362, the round-1 body) are of lin
 
 ## Figures
 
+Retaken at `900364b18d16a8edba39397f76d42c44b14415fc` on Linux under `env -u BASH_ENV`, origin/main 56630e7e6d22 (checked 2026-11-01), each from its summary line:
+- `bash tools/audit/seat/bus.sh --self-test`: `bus self-test: 115 checks, 0 failed` (110 at aa6148d4f, plus main's 5 P348 arms).
+- `bash tools/pr/app_approve.sh --self-test`: `app_approve self-test: 316 checks, 0 failed`.
+- `bash tools/pr/app_comment.sh --self-test`: `app_comment self-test: 67 checks, 0 failed`.
+- `bash tools/pr/app_push.sh --self-test`: `app_push self-test: 204 checks, 0 failed`.
+- `python3 -I tools/audit/seat/review_carry.py --self-test`: `review_carry self-test: 29 checks, 0 failed`.
+- `python3 tools/audit/seat/merge_train.py --self-test`: `merge_train self-test: 417 checks, 0 failed` (400 at aa6148d4f; main added arms).
+- `python3 -I tools/audit/seat/ref_privacy.py --self-test`: `ref_privacy self-test: 97 checks, 0 failed`.
+- `bash -n tools/audit/seat/bus.sh` printed no error.
+- `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)` at this head. Before the trim commit it printed 1 error (`files_tokens` for `orchestrator.md`, 4256 against 4251). The control: the same command at origin/main printed 0.
+- `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, naming `tests/doc_claims.py` and `tests/entities.py`. `PYTHONPATH=tests/hastub python3 tests/doc_claims.py` printed ALL 296 checks PASSED.
+- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main` printed no red predicted.
+- `tools/pr/prepr.sh <body>` at this head: printed `PRE-PR: 900364b18d16a8edba39397f76d42c44b14415fc 0000000000000000000000000000 rc=0` (origin/main 56630e7e6, unmoved since; the closures step left tests/harness_headers.py to CI). Claim files are byte-identical to origin/main (`git diff origin/main HEAD --quiet -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt`).
+
+The figures of the original body, taken at aa6148d4f's ancestors, are unchanged by this delta except where listed above.
+
+### Earlier figures (aa6148d4f's ancestors, kept as recorded)
+
+
 Self-tests at 32d880b3dee4e525d16ec270af83d867f7006431, on Linux under `env -u BASH_ENV`, each read from its SUMMARY line:
 - `bash tools/pr/app_approve.sh --self-test`: `app_approve self-test: 316 checks, 0 failed`. The earlier body said 314, read on a Mac. app_approve.sh is byte-identical between 25c2038d0 and this head and has no platform branch. I did not re-establish the Mac figure, so it is withdrawn, not explained.
 - `bash tools/pr/app_comment.sh --self-test`: `app_comment self-test: 67 checks, 0 failed`.
@@ -121,15 +148,7 @@ The changes are in `tools/` shell and Python only, which mutation-autofix does n
 
 ## Red checks
 
-Read from the check-runs at 32d880b3dee4e525d16ec270af83d867f7006431, every page (55 runs, all completed). Three checks concluded `failure`. CI at aa6148d4 had not been read when this body was written. Its tree still lacks #3086, so `instrument-self-tests` is expected to go red there for the same cause on any ubuntu-26.04 runner. That is a prediction, not a reading.
-
-- `governance / instrument-self-tests` (job 124821822711, run 41297624984, runner image ubuntu-26.04 20261025.179.1). Three steps fail on the same two rows: step 47 (`open_pr.sh --self-test`), step 50 (`pr_args.sh --self-test`) and step 73 (`update_pr.sh --self-test`). Each prints `pr_args self-test: 158 checks, 2 failed`, from "FAIL open_pr: the null control -- an unrelated sleeper survives" and "FAIL null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start".
-  - **Cause.** The reap fixture in `tools/audit/seat/pr_args.sh` starts its bystander through `ln -s /bin/sleep .../unrelated-sleep`. On the ubuntu-26.04 image that `ubuntu-latest` now sometimes resolves to, `/bin/sleep` is uutils' multicall coreutils, which refuses a renamed argv[0]: "Security violation: Requested utility `unrelated-sleep` does not match executable name: /usr/lib/cargo/bin/coreutils/sleep". The bystander dies at once, so both null controls that need it alive fail.
-  - **Not this diff's.** The three-dot diff (`git diff $(git merge-base origin/main HEAD)...HEAD --stat`) touches none of `pr_args.sh`, `open_pr.sh` or `update_pr.sh`. The same job, with the same three failing steps and the same two rows, is red on main's own push at 6421fe135 (run 41294924835, job 124813746788, ubuntu-26.04 20261025.179.1). It is also red on #3084 (run 41296915291, job 124819688980, ubuntu-26.04 20261025.179.1). It was green on main at 92588d581 (run 41284741462, ubuntu-24.04 20261025.353.1, `pr_args self-test: 158 checks, 0 failed` in all three steps). Only the runner image differs between main's green run and its red one.
-  - **No cheaper detector exists.** A seat's local run uses GNU coreutils: this container's `sleep` is GNU coreutils 9.4, and a Mac seat has BSD `sleep`. That run passes, so no check earlier than this one could have seen the failure. The check itself is the detector, and it caught the failure on its first run on the new image. Process state: a runner-image change outside the repository, caught by the existing check at its first exposure. No seat process failed.
-  - **Who fixes it.** #3086 (R10-HOTFIX-UUTILS-SLEEP, open) owns the fix and the reproducer, `dev/audit/harnesses/r10_uutils_sleep.sh`. This PR leaves those files alone. The check stays red at this head until #3086 merges and this head picks it up from main.
-- `pr-contract / pr-contract` (jobs 124829742522 and 124830246544). These read the previous body, whose `## Red checks` did not name the red check above ("check `governance / instrument-self-tests` is red and `## Red checks` does not name it"). This body answers that refusal. No detector was missing: pr-contract is itself the check that caught it.
-- `gate` (jobs 124829864775 and 124830394544): the aggregate of the two above. It has no cause of its own.
+none. The check-runs of the pull request, all 94 on one page, read at aa6148d4f, include no concluded `failure`: the earlier `governance / instrument-self-tests` red was #3086's runner-image defect and is green there (run 41308039685). The new head has no runs yet; the code-scanning alerts list is empty to my knowledge, not queried.
 
 ## Approval
 
