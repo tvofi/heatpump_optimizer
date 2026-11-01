@@ -260,8 +260,8 @@ def swimlanes(plan: dict, rows: list) -> tuple[str, int]:
     it draws (a link crossing more than one lane or two hours is left to the
     ◆ marks and the caption)."""
     now = _t(plan["generated"]["start"])
-    # The axis runs to the last planned stamp: the minor stamp lands after
-    # closure, and an axis ending at closure would not draw it.
+    # The axis runs to the last planned stamp: the round-close stamp lands
+    # after closure, and an axis ending at closure would not draw it.
     end = max([_t(plan["summary"]["closure"])] + [_t(s["at"]) for s in plan["stamps"]])
     slots = plan["generated"]["caps"]["slots"]
     span_h = max(1.0, (end - now).total_seconds() / 3600)
@@ -523,7 +523,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
             f"{inherited} inherited in-progress coordinator groups are recorded in "
             f"plan.json. The line above the lanes is how many groups are in flight at "
             f"each hour, riding the cap. Stamps: one patch per {every} production groups, "
-            f"the minor at closure. Hover any bar, however narrow, for its name, state, "
+            f"the round's major at closure. Hover any bar, however narrow, for its name, state, "
             f"start, ETA and wave. {drawn} of {max(0, len(chain) - 1)} critical-path links "
             f"are drawn; the ◆ and the caption carry the rest."),
         "sizes": e(sizes),
@@ -709,7 +709,8 @@ def _self_test() -> int:
             commit(roster)
             r_, ref_, blob_ = replan.load_roster(str(repo), "main")
             plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS), start,
-                                     "v1.0.0", ref_, blob_)
+                                     "v1.0.0", ref_, blob_,
+                                     round_n=roster_lib.roster_round(str(rpath)))
             planf, snapf = Path(td) / "plan.json", Path(td) / "snap.json"
             planf.write_text(json.dumps(plan), encoding="utf-8")
             snapf.write_text(json.dumps(snap), encoding="utf-8")
@@ -820,6 +821,10 @@ def _self_test() -> int:
                   and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
                   {g: rows[g]["tier"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
+            check("the closure stamp renders as the round's major, kind round-close",
+                  '<td class="mono">v9.0.0</td>' in page
+                  and f'<td class="mono">{replan.ROUND_CLOSE}</td></tr>' in page
+                  and "v1.1.0" not in page, plan["stamps"][-1])
             check("the filter and hide-merged controls ship",
                   'id="hide-done"' in page and 'data-f="blocked"' in page)
             check("no machine path in the page", not re.search(r"/(home|Users|tmp)/", page))
@@ -1087,7 +1092,7 @@ td.d{min-width:260px;max-width:440px}
     <thead><tr><th>Version</th><th>Projected (UTC)</th><th>Carries</th><th>Kind</th></tr></thead>
     <tbody>{{stamps}}</tbody>
   </table></div>
-  <p class="note">Cadence: one patch stamp per {{every}} production groups merged, once main's Tests are green and the release notes name every merged PR. The minor stamp closes the programme.</p>
+  <p class="note">Cadence: one patch stamp per {{every}} production groups merged, once main's Tests are green and the release notes name every merged PR. The round-close stamp closes the programme: round N's major, vN.0.0, the version <code>stamp.py --round-close N</code> assigns.</p>
 </section>
 
 <section>
