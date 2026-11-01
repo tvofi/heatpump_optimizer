@@ -123,11 +123,25 @@ def parse_numstat_z(out: str) -> list[tuple[int, int, list[str], str]]:
 def diff_stats(repo: str, p: str, m: str) -> dict:
     """The counting rule over P..M: product and nonproduct lines, the paths
     touched, and the kind."""
-    return {"product": 0, "nonproduct": 0, "paths": [], "kind": "machinery"}  # stub
+    rows = parse_numstat_z(_git(repo, "diff", "-M", "-w", "--numstat", "-z", p, m).stdout)
+    product = nonproduct = 0
+    paths: list[str] = []
+    for added, deleted, touched, charged in rows:
+        if is_product(charged):
+            product += added + deleted
+        else:
+            nonproduct += added + deleted
+        paths.extend(touched)
+    return {"product": product, "nonproduct": nonproduct, "paths": paths,
+            "kind": kind_of(product, paths)}
 
 
 def kind_of(product: int, paths: list[str]) -> str:
-    return "machinery"  # stub: the measuring code is not written yet
+    if product > 0:
+        return "production"
+    if all(is_record(p) for p in paths):
+        return "record"
+    return "machinery"
 
 
 # --- the exemption -----------------------------------------------------------
@@ -159,18 +173,47 @@ def _exact(v) -> Fraction | None:
 def improvement(entry: dict) -> Fraction | None:
     """The entry's improvement as an exact fraction, or None when it states
     no measurable one."""
-    return None  # stub
+    kind = MEASURES.get(entry.get("measure"))
+    before, after = _exact(entry.get("before")), _exact(entry.get("after"))
+    if kind is None or before is None or after is None or before <= 0:
+        return None
+    return (before - after) / before if kind == "cost" else (after - before) / before
 
 
 def entry_grants(repo: str, rev: str, entry: dict) -> tuple[bool, str]:
     """Whether one entry, read from the tree at `rev`, proves its >10%."""
-    return False, "stub"
+    missing = [k for k in ENTRY_KEYS if k not in entry]
+    if missing:
+        return False, f"entry for #{entry.get('pr')} lacks {missing}"
+    for k in ("before_command", "after_command", "evidence"):
+        if not isinstance(entry[k], str) or not entry[k].strip():
+            return False, f"entry for #{entry['pr']}: {k} is not a non-empty string"
+    gain = improvement(entry)
+    if gain is None:
+        return False, f"entry for #{entry['pr']}: no measurable improvement"
+    if not gain > THRESHOLD:
+        return False, f"entry for #{entry['pr']}: improvement {float(gain):.4f} is not above {float(THRESHOLD)}"
+    if _git(repo, "cat-file", "-e", f"{rev}:{entry['evidence']}", check=False).returncode != 0:
+        return False, f"entry for #{entry['pr']}: evidence {entry['evidence']} does not resolve at {rev[:12]}"
+    return True, f"#{entry['pr']} exempt: {entry['measure']} improved {float(gain):.4f}"
 
 
 def exemption(repo: str, p: str, m: str, pr: int | None, touched: list[str],
               budgets: str = BUDGETS) -> tuple[bool, str]:
     """Whether the change P..M is exempted by an entry it added itself."""
-    return False, ""  # stub
+    if pr is None or budgets not in touched:
+        return False, ""
+    at_m = _entries(_doc_at(repo, m, budgets), pr)
+    if not at_m:
+        return False, ""
+    if _entries(_doc_at(repo, p, budgets), pr):
+        return False, f"#{pr}: its entry was already present before its own merge"
+    why = ""
+    for e in at_m:
+        ok, why = entry_grants(repo, m, e)
+        if ok:
+            return True, why
+    return False, why
 
 
 # --- the window --------------------------------------------------------------
@@ -224,8 +267,21 @@ class Grader:
 
 
 def metrics(rows: list[dict]) -> dict:
-    return dict.fromkeys(("nonproduction_merges", "churn_per_kilo_product_lines", "production",
-                          "machinery", "record", "product_lines", "nonproduct_lines"), 0) | {"window": len(rows)}  # stub
+    product = sum(r["product"] for r in rows)
+    nonproduct = sum(r["nonproduct"] for r in rows)
+    if product == 0:
+        raise Refusal("the window holds no product line, so churn per product line is unbounded")
+    return {
+        "nonproduction_merges": sum(r["kind"] != "production" for r in rows),
+        # 1000*N/P rounded half up, in integers.
+        "churn_per_kilo_product_lines": (2000 * nonproduct + product) // (2 * product),
+        "window": len(rows),
+        "production": sum(r["kind"] == "production" for r in rows),
+        "machinery": sum(r["kind"] == "machinery" for r in rows),
+        "record": sum(r["kind"] == "record" for r in rows),
+        "product_lines": product,
+        "nonproduct_lines": nonproduct,
+    }
 
 
 def load_budgets(text: str) -> dict:
@@ -270,13 +326,26 @@ def measure(repo: str, head: str, budgets_doc: dict, base: str | None = None,
 
 def over(measured: dict, doc: dict) -> list[str]:
     """Each metric past its cap plus its band."""
-    return []  # stub
+    return [c for c in CAPS if measured[c] > doc[c] + doc[c + BAND_SUFFIX]]
 
 
 def bands(repo: str, head: str, w: int, positions: int) -> dict:
     """Each metric's largest rise above its running minimum, oldest to newest,
     over the windows ending at the newest `positions` merges."""
-    raise NotImplementedError("measuring code not written yet")
+    g = Grader(repo)
+    merges = first_parent_merges(repo, head)
+    series = []
+    for i in reversed(range(positions)):
+        rows, _ = g.window(merges[i:], w)
+        series.append(metrics(rows))
+    out = {}
+    for c in CAPS:
+        low, rise = math.inf, 0
+        for s in series:
+            low = min(low, s[c])
+            rise = max(rise, s[c] - low)
+        out[c] = {"band": rise, "min": min(s[c] for s in series), "max": max(s[c] for s in series)}
+    return out
 
 
 def _budgets_text(repo: str, rev: str, path: str) -> str:
