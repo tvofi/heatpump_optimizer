@@ -1,0 +1,2 @@
+  FAIL --check accepts a venv-ha at the typing lock's homeassistant pin (2026.10.4)
+seat_venv self-test: 25 checks, 1 failed

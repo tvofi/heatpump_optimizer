@@ -1,0 +1,2 @@
+ok   under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)
+cloud_setup self-test: 13 checks, 0 failed
