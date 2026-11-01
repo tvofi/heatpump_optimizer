@@ -1805,11 +1805,29 @@ def merge_claim_decision(
         _parse_claims(base)[0] == _parse_claims(ours)[0] == _parse_claims(theirs)[0]
     ):
         return None, []
+    decided, refused = _decide_per_key(
+        base_map, our_map, their_map, our_blocks, their_blocks)
+    return (None if refused else decided), refused
+
+
+def _decide_per_key(
+    was_map: dict, our_map: dict, their_map: dict,
+    our_blocks: dict[str, list[str]], their_blocks: dict[str, list[str]],
+) -> tuple[dict[str, list[str]], list[str]]:
+    """The three-way rule, one key at a time: the side that changed it decides.
+
+    A key whose value this branch left alone (``mine == was``), or changed
+    exactly as main did (``mine == main``), takes main's lines -- none when
+    main deleted it; one main left alone takes this branch's. A key both sides
+    changed differently is refused. Claims and ``may-drift`` lines share it,
+    because both are value-bearing and both are lost or reinstated alike.
+    Order is main's, then this branch's new keys, then keys both deleted.
+    """
     decided: dict[str, list[str]] = {}
     refused: list[str] = []
     for name in [*their_blocks, *[n for n in our_blocks if n not in their_blocks],
-                 *[n for n in base_map if n not in our_map and n not in their_map]]:
-        was, mine, main = base_map.get(name), our_map.get(name), their_map.get(name)
+                 *[n for n in was_map if n not in our_map and n not in their_map]]:
+        was, mine, main = was_map.get(name), our_map.get(name), their_map.get(name)
         if mine == main or mine == was:
             lines = their_blocks.get(name)
         elif main == was:
@@ -1819,7 +1837,37 @@ def merge_claim_decision(
             continue
         if lines:
             decided[name] = lines
-    return (None if refused else decided), refused
+    return decided, refused
+
+
+def _may_drift_blocks(text: str) -> dict[str, list[str]]:
+    """Fixture name -> its ``may-drift`` lines verbatim, file order.
+
+    ``parse_may_drift``'s reading: the name is the text between the marker and
+    ``--``. Continuation lines under an entry are notes and assert nothing.
+    """
+    blocks: dict[str, list[str]] = {}
+    for line in text.splitlines():
+        if _is_may_drift(line):
+            rest = line.partition("#")[2].strip()[len(MAY_DRIFT_MARKER):]
+            blocks.setdefault(rest.partition("--")[0].strip(), []).append(line)
+    return blocks
+
+
+def merge_may_drift_decision(
+    base: str, ours: str, theirs: str
+) -> tuple[dict[str, list[str]], list[str]]:
+    """The per-fixture three-way ``may-drift`` decision, and the fixtures it refuses.
+
+    A ``may-drift`` line exempts a fixture, so the note union may not decide
+    it: on an overlapping hunk ``git merge-file --union`` keeps both sides,
+    reinstating a line one side deleted beside a neighbour the other side
+    reworded. It merges by the claim rule instead (``_decide_per_key``) and
+    carries no ``claims-for:`` check: the entry is standing, not one
+    release's. Lines are compared verbatim, so a reworded reason is a change.
+    """
+    mine, main = _may_drift_blocks(ours), _may_drift_blocks(theirs)
+    return _decide_per_key(_may_drift_blocks(base), mine, main, mine, main)
 
 
 def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
@@ -1847,19 +1895,25 @@ def merge_claim_file(base: str, ours: str, theirs: str) -> str | None:
     is no rule that says which claim describes which diff, and this returns
     None so git keeps the markers and a human decides. It refuses as well
     when both sides changed claims under different ``claims-for:`` stamps.
+    ``may-drift`` lines merge by the same rule per fixture
+    (``merge_may_drift_decision``), and the union's copy of them is cut to
+    that decision, since an overlapping hunk's union keeps both sides.
     """
     if ours == theirs or base == theirs:
         return ours
     if base == ours:
         return theirs
     decided, _refused = merge_claim_decision(base, ours, theirs)
-    if decided is None:
+    may_drift, md_refused = merge_may_drift_decision(base, ours, theirs)
+    if decided is None or md_refused:
         return None
     comments = _union_comments(
         _comment_lines(base), _comment_lines(ours), _comment_lines(theirs)
     )
     if comments is None:
         return None
+    keep = {ln for lines in may_drift.values() for ln in lines}
+    comments = [ln for ln in comments if not _is_may_drift(ln) or ln in keep]
     merged = _reassemble(comments, [ln for lines in decided.values() for ln in lines])
     return None if merge_claim_defect(merged, decided, base, ours, theirs) else merged
 
@@ -1874,11 +1928,10 @@ def merge_claim_defect(
     keeps re-buying (#523: a job that reported success while repairing
     nothing). Every property here is one a hand resolution preserves.
     ``decided`` is ``merge_claim_decision``'s map; the result's claims must
-    be exactly it, and each scenario's lines exactly one side's own. A
-    ``may-drift`` line is owed three-way as well: one side deleting it (the
-    R8-P3 suspension that claims the fixture) while the other left it alone
-    deletes it, which only narrows what the gate exempts; any other line
-    either side carries must survive.
+    be exactly it, and each scenario's lines exactly one side's own. The
+    ``may-drift`` lines must be exactly ``merge_may_drift_decision``'s, in
+    both directions: one the decision keeps is lost, or one it dropped (the
+    R8-P3 suspension one side made) came back, and either refuses.
     """
     if not merged or not merged.endswith("\n"):
         return "the result is empty or does not end in a newline"
@@ -1897,18 +1950,25 @@ def merge_claim_defect(
             return f"the claims for '{name}' are neither side's own"
     if _parse_claims(merged)[0] is None:
         return f"the '{CLAIM_VERSION_MARKER}' stamp did not survive the merge"
-    kept = set(merged.splitlines())
-    was, mine, main = (set(x.splitlines()) for x in (base, ours, theirs))
-    for line in sorted((mine | main) - kept):
-        if _is_may_drift(line) and not (line in was and (line not in mine or line not in main)):
-            return f"a may-drift line was lost: {line.strip()}"
+    want_md, md_refused = merge_may_drift_decision(base, ours, theirs)
+    got_md = _may_drift_blocks(merged)
+    if md_refused:
+        return f"a may-drift line both sides changed was resolved: {md_refused}"
+    lost = sorted({ln for v in want_md.values() for ln in v}
+                  - {ln for v in got_md.values() for ln in v})
+    if lost:
+        return f"a may-drift line was lost: {lost[0].strip()}"
+    if got_md != want_md:
+        extra = sorted(n for n in got_md if got_md[n] != want_md.get(n))
+        return f"a may-drift line was reinstated or doubled: {extra}"
     return None
 
 
 def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
     """The message the driver prints when it will not resolve a merge."""
     decided, refused = merge_claim_decision(base, ours, theirs)
-    if refused:
+    _md, md_refused = merge_may_drift_decision(base, ours, theirs)
+    if refused or md_refused:
         our_claims = parse_claim_map(ours)
         their_claims = parse_claim_map(theirs)
         lines = "".join(
@@ -1916,14 +1976,22 @@ def merge_claim_refusal(base: str, ours: str, theirs: str) -> str:
             f" the merge brings in {their_claims.get(name) or '(deleted)'}\n"
             for name in refused
         )
+        our_md, their_md = _may_drift_blocks(ours), _may_drift_blocks(theirs)
+        md_lines = "".join(
+            f"  {name}: this branch {our_md.get(name) or '(deleted)'};"
+            f" the merge brings in {their_md.get(name) or '(deleted)'}\n"
+            for name in md_refused
+        )
         return (
-            "CONFLICTING CLAIMS: both sides rewrote the same scenario's claims\n"
-            + lines
+            ("CONFLICTING CLAIMS: both sides rewrote the same scenario's claims\n"
+             + lines if refused else "")
+            + ("CONFLICTING MAY-DRIFT: both sides rewrote the same fixture's\n"
+               "may-drift line\n" + md_lines if md_refused else "")
             + "A claim excuses one release's golden diff and is written for\n"
-            "that diff alone, so no rule says which of two lines describes\n"
-            "which diff. Every other scenario merges per side. Resolve these\n"
-            "by hand: keep the claims that describe THIS branch's diff and\n"
-            "delete the rest."
+            "that diff alone, and a may-drift line exempts its fixture, so no\n"
+            "rule says which of two lines is meant. Every other scenario and\n"
+            "fixture merges per side. Resolve these by hand: keep the lines\n"
+            "that describe THIS branch's diff and delete the rest."
         )
     if decided is None:
         return (

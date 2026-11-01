@@ -22723,8 +22723,9 @@ R.check(
 # Unioning two lists reinstates a claim this branch deleted, and
 # `inherited_claims_error` cannot see it, because the unioned list is no longer
 # exactly the baseline's -- `_CM_UNION_IS_SILENT` below measures that. So the
-# driver unions comments, merges the claim list three-way PER SCENARIO (a
-# deletion stays deleted), and REFUSES a scenario both sides rewrote.
+# driver unions comments, merges the claim list three-way PER SCENARIO and the
+# may-drift lines PER FIXTURE (a deletion stays deleted), and REFUSES a
+# scenario or fixture both sides rewrote.
 _CM_BASE = (
     "# Scenarios this branch deliberately moves, one name per line.\n"
     "#\n"
@@ -22852,6 +22853,41 @@ R.check(
     ) is None,
     "a deleted claim came back carrying the other side's reason",
 )
+# The same rule from main's side: main deletes the base's claim, this branch
+# leaves it alone and claims another scenario. The deletion is main's and
+# must win; a decision that reads this branch's untouched copy brings it back.
+_CM_OURS_HELD = _CM_OURS.replace(
+    "\n# may-drift:",
+    "everything_on # a claim the base carries\n"
+    "config_flow # this branch's drift\n\n# may-drift:",
+)
+_CM_THEIRS_DEL = _CM_THEIRS.replace(
+    "\n# may-drift:", "away_mode # main's new drift\n\n# may-drift:"
+)
+_CM_THEIRS_DELETED = _env_drift.merge_claim_file(
+    _CM_BASE_HELD, _CM_OURS_HELD, _CM_THEIRS_DEL
+)
+R.check(
+    "a claim main deleted and this branch left alone stays deleted",
+    _CM_THEIRS_DELETED is not None
+    and _env_drift.parse_claim_map(_CM_THEIRS_DELETED) == {
+        "away_mode": ["main's new drift"],
+        "config_flow": ["this branch's drift"],
+    },
+    f"merged={_CM_THEIRS_DELETED!r}",
+)
+# Both sides added the same claim, word for word, beside notes of their own:
+# one change made twice is not two changes, so it resolves, kept once.
+_CM_OURS_TWIN = _CM_OURS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_THEIRS_TWIN = _CM_THEIRS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_TWIN = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_TWIN, _CM_THEIRS_TWIN)
+R.check(
+    "a claim both sides added identically resolves, kept once",
+    _CM_TWIN is not None
+    and _CM_TWIN.count("away_mode #") == 1
+    and _env_drift.parse_claim_map(_CM_TWIN) == {"away_mode": ["the same drift"]},
+    f"merged={_CM_TWIN!r}",
+)
 # Null control: claims from different releases are not merged per scenario.
 R.check(
     "claims both sides changed under different claims-for stamps are refused",
@@ -22929,6 +22965,52 @@ R.check(
     == {"wood_coil", "everything_on", "valve_storage_small_tank"},
     f"merged={_CM_SUSPENDED!r}",
 )
+# A may-drift line is value-bearing like a claim -- it exempts a fixture -- so
+# it merges three-way per fixture by the claim rule, not by the note union. The
+# union keeps both sides of an overlapping hunk: one side suspends `wood_coil`
+# while the other rewords the ADJACENT `flat_prices` line, and a union alone
+# brings the suspended line back beside both wordings (#3066 review, D2).
+_CM_MD_BASE = _CM_BASE.replace(
+    "# may-drift: wood_coil -- machine-sensitive\n",
+    "# may-drift: flat_prices -- polish\n# may-drift: wood_coil -- machine-sensitive\n",
+)
+assert _CM_MD_BASE != _CM_BASE, "may-drift pair anchor missing"
+_CM_MD_SUSPEND = _CM_MD_BASE.replace("# may-drift: wood_coil -- machine-sensitive\n", "")
+_CM_MD_REWORD = _CM_MD_BASE.replace("-- polish\n", "-- polish (reworded)\n")
+_CM_MD_NOTE = "# #3066: a note so neither side is the base.\n"
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch", _CM_MD_SUSPEND + _CM_MD_NOTE, _CM_MD_REWORD),
+    ("main", _CM_MD_REWORD + _CM_MD_NOTE, _CM_MD_SUSPEND),
+):
+    _cm_md = _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a may-drift line {_cm_label} suspended beside a reworded neighbour "
+        "stays suspended",
+        _cm_md is not None
+        and "# may-drift: wood_coil" not in _cm_md
+        and _cm_md.count("# may-drift: flat_prices") == 1
+        and "# may-drift: flat_prices -- polish (reworded)\n" in _cm_md,
+        f"merged={_cm_md!r}",
+    )
+# A may-drift line one side deleted and the other rewrote is the claim rule's
+# delete-against-edit: no rule says which side describes the fixture, so it
+# refuses and the refusal names the fixture (#3066 review, D3). Both sides
+# rewording one line differently refuses alike.
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("deleted against rewritten",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("# may-drift: flat_prices -- polish\n", "")),
+    ("rewritten both ways",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("-- polish\n", "-- polish v2\n")),
+):
+    R.check(
+        f"a may-drift line {_cm_label} is refused and named",
+        _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs) is None
+        and "may-drift" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs)
+        and "  flat_prices:" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs),
+        _env_drift.merge_claim_refusal(_CM_MD_BASE, _cm_ours, _cm_theirs),
+    )
 
 # End to end: a real two-branch conflict, resolved by git calling the driver.
 # The unit checks above pin the resolution; this pins the wiring -- the
@@ -23059,6 +23141,20 @@ R.check(
         _CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM,
     ) or "").startswith("the claims for 'valve_storage_small_tank'"),
     "a verification that cannot fail is not a verification",
+)
+# The may-drift arm in the other direction: a line one side suspended, put
+# back into the file the merge produced, is refused -- the union's D2 output.
+_CM_MD_OURS = _CM_MD_SUSPEND + _CM_MD_NOTE
+_CM_MD_GOOD = _env_drift.merge_claim_file(_CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) or ""
+R.check(
+    "the merge verification catches a suspended may-drift line put back",
+    _env_drift.merge_claim_defect(
+        _CM_MD_GOOD, {}, _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) is None
+    and (_env_drift.merge_claim_defect(
+        _CM_MD_GOOD + "# may-drift: wood_coil -- machine-sensitive\n", {},
+        _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD,
+    ) or "").startswith("a may-drift line was reinstated"),
+    f"good={_CM_MD_GOOD!r}",
 )
 
 R.check(
