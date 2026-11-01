@@ -14921,9 +14921,7 @@
    },
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
-   "after": [
-    "R10-TRAIN-POSTMERGE"
-   ],
+   "after": [],
    "files": [
     "tools/audit/seat/merge_train.py"
    ],
