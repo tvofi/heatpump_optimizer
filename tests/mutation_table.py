@@ -2141,6 +2141,10 @@ def null_control(path: Path) -> dict | None:
     driver can notice it through behaviour, so a driver that "kills" it is
     reacting to the diff's shape -- env_drift.py's claim hygiene did, on every
     mutant -- and every verdict that driver gave in the same run is suspect.
+
+    Any width and any indent qualifies: no driver measures a line's width, so
+    a cap on it guards nothing and refused every pool whose comments ran
+    past it (#2997's button.py, under the 60-character cap #1521 set).
     """
     import io
     import tokenize
@@ -2153,8 +2157,7 @@ def null_control(path: Path) -> dict | None:
         return None
     for tok in toks:
         ln = tok.start[0]
-        if (tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string
-                and len(lines[ln - 1]) < 60):
+        if tok.type == tokenize.COMMENT and lines[ln - 1].strip() == tok.string:
             try:
                 rel = str(path.relative_to(ROOT))
             except ValueError:
