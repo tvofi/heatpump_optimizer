@@ -14191,7 +14191,9 @@
     "tools/audit/carry_audit.py",
     "tools/audit/seat/orchestrator_tick.py"
    ],
-   "carry": [],
+   "carry": [
+    "From #2554 (item b1ecb708, #2554): design 6.4 predicate 1, gate coverage, was assigned to R10-ROSTER-OPS (done at 929275e8) and not built there. owner_gate becomes structured {class, mandate, paths}, and readiness is class x in-force mandate scope, read from tools/policy/budget_raise_gate.py's own constants: code-owned <- code-owned|all, budget <- budget-raise|all, policy <- all only. It prints GATE-READY or GATE-OWNER <class>. Control: the run that prints the live roster's gate set at the mandate's scope returns every covered group ready and none blocked on the owner. Its consumer is the tick's owner-gated count (R10-ROSTER-OPS carry[0] and the design's PLAN section); it changes the roster's owner_gate schema, so #2554 did not build it in roster_sync.py."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-roster-lib-schema",
