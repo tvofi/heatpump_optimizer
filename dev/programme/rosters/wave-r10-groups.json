@@ -5522,7 +5522,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "tools/audit/seat/handover_prompt.py emits `git fetch origin None` for a group whose resume.branch is null (#201 comment 6310616463); emit no fetch line, or the group's branch-to-be, instead."
+    "tools/audit/seat/handover_prompt.py emits `git fetch origin None` for a group whose resume.branch is null (#201 comment 6310616463); emit no fetch line, or the group's branch-to-be, instead.",
+    "From the s9 leads and prose sweep (2026-11-01): dev/programme/HANDOVER.md still lists the pr_cap owed-handoff exemption as owed, but it is fixed in code on main at 92588d581. Under writing-for-agents.md and the one-living-handover rule, the durable handover must not carry a stale owed item. Fix: rewrite that entry in place to say what the code now does (or drop it), citing the line in pr_cap that exempts owed handoffs. Failing test first: none; this is a record change. Null control: a grep of HANDOVER.md \"Owed\" items against code at the same sha finds no other stale entry. Re-measure it at the PR's merge base."
    ],
    "architect_note": "",
    "resume": {
