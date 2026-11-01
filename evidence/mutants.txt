@@ -1,0 +1,9 @@
+CLEAN: selftest rc=0 SELF-TEST passed (every perturbed scope refused) | default invocation: live rc=0, blueprints dropped rc=1 | default live rc=0 | default no-blueprints rc=1
+CM4 main-exit-check-only: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=0 | default live rc=0 | default no-blueprints rc=0
+V1 verdict-result-discarded: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=0 | default live rc=0 | default no-blueprints rc=0
+V2 coverage-dropped-default-path-only: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=0 | default live rc=0 | default no-blueprints rc=0
+V3 exit-check-and-citations-no-coverage: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=0 | default live rc=0 | default no-blueprints rc=0
+CM2 both-not-refused: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=1 | default live rc=0 | default no-blueprints rc=1
+CM3 header-window-0: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=1 | default live rc=0 | default no-blueprints rc=1
+CM5 citation-never: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=1 | default live rc=0 | default no-blueprints rc=1
+CM6 verdict-drops-coverage: selftest rc=1 SELF-TEST FAILED (accepted: owned twice False, unowned False | default invocation: live rc=0, blueprints dropped rc=0 | default live rc=0 | default no-blueprints rc=0

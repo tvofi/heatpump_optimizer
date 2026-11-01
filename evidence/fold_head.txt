@@ -1,2 +1,7 @@
 fold_ledger: 47 classes, 749 instances, 121 in-tree judge survivors (rounds [8, 10]), 132 rca entries
 fold_ledger: 0 violation(s)
+rc=0
+ok   the lines outside the block are kept, and a second sync changes nothing (idempotent)
+ok   null control: a fold that mints nothing still writes the block from the unchanged enum
+ok   a workflow with no generated block is refused, never skipped
+rc=0

@@ -1,0 +1,3 @@
+   default invocation: live rc=0, blueprints dropped rc=0
+SELF-TEST FAILED (accepted: owned twice False, unowned False; coverage arms {"drop D10's universe": True, 'strip tests/ and blueprints/ globs': True, 'exclude a covered path': True, 'an exclusion naming nothing': True, 'an exclusion with no reason': True, 'null control: optimizer.py covered': True, 'a harness the brief does not cite is refused': True, 'null control: the brief citing it passes': True, 'the default verdict passes the live scopes': True, "and refuses them without D10's universe": True, 'and refuses an uncited brief-named harness': True, 'the default invocation exits 0 on the live scopes': False, "and exits 1 without D4's and D6's blueprints globs": False})
+selftest rc=1
