@@ -3623,7 +3623,7 @@ if [ -z "${HEAVY_PLAN_FILE:-}" ]; then
 fi
 HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
-  say skip "diff mutants" "$HV"
+  say skip "mutants" "$HV"
 else
 if test -f .claude/workflows/policy_lint_mutants.mjs; then heavy_run /tmp/prepr-mutants.$$ node .claude/workflows/policy_lint_mutants.mjs; else heavy_run /tmp/prepr-mutants.$$ node tools/policy/policy_lint_mutants.mjs; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
