@@ -2,7 +2,7 @@
 import subprocess, sys, pathlib, os, time
 WT = pathlib.Path(sys.argv[2]); PKG = WT / "custom_components/heatpump_optimizer"
 muts = []
-exec(open("/tmp/claude-0/h/list4.py").read())
+exec(open("/tmp/claude-0/w/list45.py").read())
 want = sys.argv[1].split(",")
 sel = [m for m in muts if m[0] in want]
 pass

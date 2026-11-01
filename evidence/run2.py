@@ -1,7 +1,7 @@
 # Finder's ev/run.py (probe/rev-3047-30905b88), extended to multi-site mutants: (name, [(file, old, new), ...]).
 import subprocess, sys, pathlib, os
-WT = pathlib.Path("/tmp/claude-0/wt"); PKG = WT / "custom_components/heatpump_optimizer"
-SEC = pathlib.Path(os.environ["HOME"]) / "rev/fr_section.py"
+WT = pathlib.Path("/home/user/rev"); PKG = WT / "custom_components/heatpump_optimizer"
+SEC = pathlib.Path("/root/rev/fr_section.py")
 def run_sec():
     p = subprocess.run([sys.executable, str(SEC)], cwd=WT, capture_output=True, text=True,
         env={**os.environ, "PYTHONPATH": "tests/hastub:tests:custom_components"}, timeout=600)

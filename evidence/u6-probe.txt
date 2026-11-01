@@ -1,8 +1,0 @@
-## head
-  ok   a learners reset keeps a fact changed since the last save (snow memory)
-  ok   the undo brings back a learner learned since the last save (COP scale 1.21)
-ALL 30 FR CHECKS PASSED
-## U6 (flush in _async_store_documents deleted)
-  ok   a learners reset keeps a fact changed since the last save (snow memory)
-  FAIL the undo brings back a learner learned since the last save (COP scale 1.21)  [cop 1.13]
-1 of 30 FR CHECKS FAILED
