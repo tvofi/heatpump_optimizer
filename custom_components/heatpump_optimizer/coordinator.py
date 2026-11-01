@@ -1412,7 +1412,7 @@ async def _async_rewrite_entry(
     for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord)):
         if name in documents:
             await (store.async_remove() if documents[name] is None else store.async_save(documents[name]))
-    if settings is not None:
+    if False:
         hass.config_entries.async_update_entry(entry, data=settings[0], options=settings[1])
     await hass.config_entries.async_setup(entry.entry_id)
 
