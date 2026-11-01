@@ -14154,7 +14154,8 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "after": [
-    "R10-FLY-RELAY-REVIEW-FF"
+    "R10-FLY-RELAY-REVIEW-FF",
+    "R10-MUTANT-RUN-DRIVER"
    ],
    "files": [
     "tools/audit/seat/body_patch.sh",
