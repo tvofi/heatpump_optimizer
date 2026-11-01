@@ -102,6 +102,7 @@ class SnapshotRing:
         learners: dict[str, dict[str, Any]],
         accuracy: Mapping[str, object],
         healthy: bool,
+        before_reset: Mapping[str, Any] | None = None,
     ) -> None:
         # Deep-copied via the same JSON round trip the real Store applies
         # on save: a snapshot holding references into live learner state
@@ -119,6 +120,10 @@ class SnapshotRing:
                 "alarmed_at_capture": self.alarmed,
                 "accuracy": json.loads(json.dumps(dict(accuracy or {}))),
                 "learners": json.loads(json.dumps(learners)),
+                # A factory reset's undo point (``undo_target``): the scope,
+                # and the settings it returns to defaults when it has any.
+                **({"before_reset": json.loads(json.dumps(dict(before_reset)))}
+                   if before_reset is not None else {}),
             }
         )
         del self.snapshots[:-RING_SIZE]
@@ -185,7 +190,8 @@ class SnapshotRing:
         snapshots taken BEFORE the out-of-band streak began qualify: a
         slow drift keeps its bias tag in band for days after the learners
         have already walked away, so in-band-at-capture alone is not
-        proof of innocence.
+        proof of innocence. A factory reset's undo point never qualifies:
+        ``undo_target`` hands it to the user alone.
 
         A malformed snapshot (e.g. a corrupt "accuracy" field from a
         partial write or a hand-edited store) is skipped with a warning
@@ -195,7 +201,7 @@ class SnapshotRing:
         raising (#D1-05).
         """
         for snap in reversed(self.snapshots):
-            if not snap.get("healthy"):
+            if not snap.get("healthy") or "before_reset" in snap:
                 continue
             if snap.get("alarmed_at_capture"):
                 continue
@@ -224,6 +230,18 @@ class SnapshotRing:
                     continue
             return snap
         return None
+
+    def undo_target(self) -> dict[str, Any] | None:
+        """What the restore service rolls back to: a reset's undo point while it
+        is the newest snapshot, else ``best_restore``.
+
+        The undo point is the user's own, so no health or bias tag gates it, and
+        the drift rollback never takes it (``best_restore`` skips it): only the
+        user undoes a reset the user asked for.
+        """
+        if self.snapshots and "before_reset" in self.snapshots[-1]:
+            return self.snapshots[-1]
+        return self.best_restore()
 
     # -- persistence ---------------------------------------------------------------
 
