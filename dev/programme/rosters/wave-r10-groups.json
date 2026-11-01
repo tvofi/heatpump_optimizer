@@ -13845,7 +13845,6 @@
     "tests/card_browser.mjs"
    ],
    "carry": [
-    "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building.",
     "From R10-CARD-VOICE (#2841): the P9 grid's states leak into one another. p9Grid mounts every state of a cell in one browser context, so hidden_series's localStorage choice holds for later states; with a reset after each page.goto, 30 base-owned tile pairs in wood_alert and wood_lane at 375 read red at the base and the head alike. The next card seat that runs the grid owns the reset and that collision.",
     "Owner's spec (tvofi, 2026-10-25): the heat-pump grade gets the same hover reason codes as the house grade, covering what raises or lowers it. While it has no grade yet, the codes say why: samples per outdoor band against the requirement, and samples refused by freezes.",
     "The hover also explains the metric in plain words: seasonal COP by outdoor band, the samples required, and what 'no grade yet' means (owner, 2026-10-25).",
