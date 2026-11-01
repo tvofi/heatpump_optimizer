@@ -13558,6 +13558,60 @@
     "pr": 3073
    },
    "brief": "From triage P345 (orchestrator s9, 2026-10-31). K15 (d) reads a budget-raise PR as not reviewable in the state every raise is in before its review: budget_raise_gate refuses until the owner's approval (or a mandated one) names the head, and that approval follows the verdict. merge_train.classify then reports `gate` and `budget-raise-gate / budget-raise-gate` red; orchestrator_tick.one_pr prints NOT REVIEWABLE (back to its fixer), and bus.sh dispatch (rc 1 from `merge_train.py classify`) refuses the reviewer. Instances: #3045 at 9ef51b82 (OWED-ACK ttl=3, 20:40:47Z, hand override) and #3006 at 979797ad (pre-approval budget-raise-gate reds 17:01, 18:32, 18:34Z). Build, in merge_train.py, the one owner of the state: a function `approval_owed(train, pr, head, red)` that returns the gate's reason when (a) every name in `red` is GATE or `budget-raise-gate / budget-raise-gate`, the latter present; (b) `Train.raise_hold(pr, head, files)` returns at least one raise and held False, with `files` read from git (`git diff --name-only <merge-base origin/main head> head`, the three-dot names), no API listing. It reuses raise_hold and so budget_raise_gate's own raises_between and approval; never restate either, and never match the job log text. A raise_hold Stop is not approval owed (fail closed: the head stays not reviewable). `classify` itself is unchanged: the merge state, the train and main stay as they are. The `classify` subcommand gains `--pr N`; with it, a RED whose red set passes `approval_owed` prints `APPROVAL-OWED <sha> <why>` and exits 4. bus.sh dispatch passes `--pr \"$pr\"` and dispatches on rc 4 as on 0 and 3, printing the line. orchestrator_tick.one_pr, before its NOT REVIEWABLE line, calls the same function and on a reason prints `#N: RAISE APPROVAL OWED at <head8>: review it, then approve under the owner or the mandate (0013) -- not its fixer (K15 (d))` unflagged-as-fixer instead. Rows (each with the null control): (1) the #3045 shape (red = gate + budget-raise-gate, one raise in the diff, owner approval on an older head) is reviewable: classify --pr rc 4, bus dispatch records, tick prints RAISE APPROVAL OWED and no NOT REVIEWABLE; (2) null: the same plus `tests / fast (3.14)` red stays NOT REVIEWABLE / rc 1; (3) null: budget-raise-gate red with no raise in the diff stays rc 1; (4) null: a raise_hold Stop stays rc 1; (5) without --pr, rc 1 is unchanged (old callers). One mutant drops test (b)'s raise count, and row 3 fails. Update both instrument pages. triage: dev/programme/triage/s6-batch95.md#P345"
+  },
+  {
+   "group": "R10-FRICTION-RECORDS",
+   "lane": "IN",
+   "kind": "rca",
+   "class": "rca",
+   "severity": "medium",
+   "size": "M",
+   "issues": [
+    2429,
+    2436,
+    2437,
+    2835,
+    2840,
+    2860,
+    2875,
+    2895,
+    2907,
+    2950
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "Policy: two records touch policy (ci-autofix.md, policy_lint.mjs families); tvofi approves at merge, or mandate 6329234399 applies",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": "opus",
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "dev/audit/rca/",
+    "tools/policy/policy_lint.mjs",
+    "dev/governance/rules/ci-autofix.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-friction-records",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-LEDGER-SAMPLE, R10-FRICTION-REGRESSION, R10-ORCH-LEDGER"
+   },
+   "brief": "Root-cause records for the recurring-friction keys R10-FRICTION-REGRESSION left owed (its PR #3000 landed the #2860 record only), plus two record items stranded on done groups. One root-cause seat, one pull request, one record per key under dev/audit/rca/, each with its named cause, process state, cost test with numbers, and a countermeasure or a recorded refusal (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md). Records already present for some keys (R10-RCA-MUTATION-SURVIVOR.md, R10-FRICTION-GATE-SCOPING.md, R10-RCA-FIXER-MD-KEY.md, R10-RCA-FRICTION-CLAIM-FALSE.md) are judged for sufficiency first, not rewritten. The body carries one Closes line per issue it answers, because a multi-issue Closes line closes only the first; the group's fixes list is empty until the orchestrator wires it. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
