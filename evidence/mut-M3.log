@@ -1,3 +1,6 @@
+M3: applied
+ tools/pr/app_approve.sh | 1 -
+ 1 file changed, 1 deletion(-)
 ok   the allowlist is exactly the approver App's login and id
 ok   a merge verdict at the live head of an open, unowned pull request is approved
 ok   with exactly one review POST
@@ -209,11 +212,13 @@ ok   CARRY: a ci: commit that changes nothing
 ok   NO CARRY: the same merge with one byte of a.txt changed in its resolution (null control)
 ok   refused as a hand-resolved merge
 ok   NO CARRY: a commit of the branch's own that changes a code line
-FAIL refused naming that commit (got '0', want '1')
+ok   refused naming that commit
 ok   CARRY: an empty commit of the branch's own (L6)
 ok   NO CARRY: a ci: commit that changes the branch's diff
 ok   refused as a ci: commit outside the driver files
-ok   CARRY: a ci: commit that rewrites only a merge-driver file
+ok   CARRY: a bot commit that rewrites only its own merge-driver file
+ok   NO CARRY: the same bot subject rewriting a merge-driver file outside its own paths (#3077)
+ok   refused naming the driver file
 ok   NO CARRY: the bot's confined additions, under a ci: subject no writer uses
 ok   refused by the generic ci: guard, not the bot one
 ok   NO CARRY: the bot's pin commit over a row the branch's own diff already carried
@@ -233,8 +238,8 @@ ok   NO CARRY: a merge of a handed-off head whose own main merge was hand-resolv
 ok   refused for the handed-off head's own merge, which the outer diffs cannot see
 ok   NO CARRY: a ci: commit that moves the branch's change to another function with the same context
 ok   refused by the ci: guard
-FAIL NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6) (got '0', want '1')
-FAIL refused by the re-merge tree check, which the header-free comparison cannot replace (got '0', want '1')
+ok   NO CARRY: a commit of the branch's own that moves its change to another function with the same context (L6)
+ok   refused by the re-merge tree check, which the header-free comparison cannot replace
 ok   CARRY: mutation-autofix's ledger commit, inside its own paths (R9-CI-2b)
 ok   NO CARRY: the same subject touching one more file outside its paths
 ok   NO CARRY: the ledger under another bot's subject, whose paths do not hold it
@@ -266,6 +271,14 @@ ok   NO CARRY: the driver's resolution with one hand-added claim line
 ok   refused as neither the union nor the driver's output
 ok   NO CARRY: main's side dropped by hand, which only the head's own driver would write
 ok   refused on main's driver, not the head's
+ok   NO CARRY: a commit of the branch's own that adds a claim line after main's driver resolved the merge
+ok   refused naming the claim file
+ok   CARRY: an empty commit of the branch's own after main's driver resolved the claim file (null control)
+FAIL CARRY: the same in a clone with no claim driver configured, read by main's own driver (got '1', want '0')
+ok   the fixture's ledger driver resolved the merge both sides changed
+FAIL CARRY: a ledger main's driver resolved, in a clone with no ledger driver configured (got '1', want '0')
+ok   NO CARRY: the same ledger with one value then changed by a commit of the branch's own
+ok   refused naming the ledger
 ok   CARRY: the verdict head plus its delivery-row add
 ok   CARRY: the verdict head itself, no commit after it (null control)
 ok   CARRY: a verdict head holding its row plus a row-edit commit
@@ -277,9 +290,19 @@ ok   refused naming that commit and its author
 ok   NO CARRY: a row commit for #7 writing another pull request's row
 ok   refused on the path its subject binds
 ok   NO CARRY: an ordinary commit changing one test line after the row
-FAIL refused naming that commit (got '0', want '1')
+ok   refused naming that commit
 ok   NO CARRY: an ordinary commit changing one budget value after the row
-FAIL refused naming that commit (got '0', want '1')
+ok   refused naming that commit
+ok   NO CARRY: a commit of the branch's own that edits a merge-driver file (a budget raise)
+ok   refused naming the driver file
+ok   NO CARRY: a ci: subject by a seat that edits a merge-driver file
+ok   refused naming the driver file
+ok   NO CARRY: a merge from main whose merge-driver file is resolved by hand
+ok   refused naming the driver file
+ok   NO CARRY: a commit of the branch's own that edits the driver file a carried bot commit wrote
+ok   refused naming the driver file
+ok   CARRY: an empty commit of the branch's own after a carried bot commit's driver-file write (null control)
+ok   CARRY: an empty commit of the branch's own after a merge from main (null control)
 ok   CARRY: a revert, an absorb of main and the re-apply (L6)
 ok   NO CARRY: the same with a re-apply one byte away
 ok   CARRY: main rewrote a context line beside the branch's lines in a .md file (P17)
@@ -294,4 +317,6 @@ ok   REFUSE: the verdict at V does not carry to a head one byte away (null contr
 ok   saying why
 ok   and nothing was minted or posted
 ok   REFUSE: a carried verdict whose evidence names neither head
-app_approve self-test: 296 checks, 5 failed
+app_approve self-test: 316 checks, 2 failed
+rc=1
+restored

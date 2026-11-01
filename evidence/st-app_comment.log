@@ -60,9 +60,9 @@ ok   with the carry as the body's last line
 ok   under the verdict file, byte for byte
 ok   printing the carry line
 ok   and the carried body reads back identical
-FAIL REFUSE: a merge verdict at a head moved by a commit of the branch's own changing code (got '0', want '1')
-FAIL refused 'head moved', with the carry's reason (got '0', want '1')
-FAIL and nothing was minted or posted (got '4', want '0')
+ok   REFUSE: a merge verdict at a head moved by a commit of the branch's own changing code
+ok   refused 'head moved', with the carry's reason
+ok   and nothing was minted or posted
 ok   an unmoved head posts with no carry line (null control)
 ok   and prints none
-app_comment self-test: 67 checks, 3 failed
+app_comment self-test: 67 checks, 0 failed

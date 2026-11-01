@@ -33,6 +33,9 @@
   ok   P289 serial: a critical-path #7 merges, then the record PR, then #8
   ok   P289 serial: null, nothing critical: the record PR merges FIRST, as today
   ok   P289 serial, a critical-path entry alone: the record PR still merges, after it (the run's end)
+  ok   P289 serial, a critical-path entry that stops at ci: the record PR still merges, the entry does not
+  ok   R8 _critical: the live read maps fix/a (critical group) True, fix/b and an unmapped branch False, the roster read once for three entries
+  ok   R8 _critical null: a roster read that raises is nothing critical for every entry, and is not retried per entry
   ok   --pre-flight: an entry the pre-flight refuses is PARKed and left out; the rest lands; rc 1
   ok   --pre-flight on a batch/ rehearsal reads nothing and parks nothing: its reads grade a merge into main, which a rehearsal never makes
   ok   ... without --pre-flight the same entry stops the train at its turn (null control)
@@ -93,6 +96,9 @@
   ok   carry 2 null (names branch-own): no carry, parked [BRANCH-POLICY] after one attempt with that reason
   ok   carry 2 null (no owner APPROVED review): no carry, parked [BRANCH-POLICY] after one attempt with that reason
   ok   carry 2 null (is not in force at the merge): no carry, parked [BRANCH-POLICY] after one attempt with that reason
+  ok   carry 2 null (CHANGES_REQUESTED): parked [BRANCH-POLICY] after one attempt, no approval carried
+  ok   carry 2 (BLOCKED, APPROVED, all green): the approval carry answers it and the next attempt merges
+  ok   carry 2 null (BLOCKED, APPROVED, all green, no --approval-carry): parked at once naming the review
   ok   P34: pr-contract failure at the head (stops at ci naming it, no merge attempt)
   ok   P34: pr-contract success at the head (null: merges)
   ok   approval-carry with the owner's approval on another commit does not carry
@@ -230,7 +236,7 @@
   ok   V142 --overlap null: at attempt 2 nothing is re-run and nothing INFRA is logged
   ok   V142 blocking: the re-run that clears main lets the wait pass (no stop), one re-run
   ok   V142 blocking null: a gate that does not qualify is not re-run and main stops red as today
-/tmp/tmp.IngVrfNHkx/wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+/tmp/claude-0/wt-head/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
   ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
   ok   batch null control: two clean pull requests are proved once and both merge, the base's tree equal to P_i after each
   ok   the proof is pushed to batch/<tag>-1 and every DISPATCH workflow runs on that branch
@@ -244,6 +250,8 @@
   ok   workflow, claim, budget and grader changes go serial, by merge_fastpath's classes
   ok   an entry that conflicts with one before it goes serial; the rest are proved and merge
   ok   D: a batch of one merges at its head with no proof and no dispatch
+  ok   P34 batch: a PR-only context red at the head refuses admission, naming it; nothing merges
+  ok   P34 batch null: the same world with pr-contract green at the heads admits both and merges them (the proof is judged on main's set, PR_ONLY dropped)
   ok   a real-base batch publishes the record-beat hold before it merges anything (the primary path is armed, not only the serial one)
   ok   batch fallback: a policy head with no owner approval at its head stops admission before any proof is spent (the no-mandate fallback, on the batch side)
   ok   batch mandate: the same head is admitted and merges, its approval and mandate RE-READ at the merge itself (admission reads, land reads again)
@@ -353,6 +361,17 @@
   ok   add, no train live with a leftover spooled: the new train's queue holds both, the spool is empty
   ok   add beside a train.sh still holding train.pid with no queue open waits it out, then starts nothing beside it (one-train, rc 2)
   ok   RACE: two concurrent adds with no train live start exactly ONE train (one launch, one train.pid) and spool exactly the other entry
+  ok   P112 --front: on a spool of three the named PR goes first, the others keep their order and bytes, and the order read back is printed
+  ok   P112 null: a plain add appends last
+  ok   P112 --front on a new entry: admitted, spooled first, the order read back printed
+  ok   P112 --front with no live train: the train it starts runs the entry FIRST, then what the stopped train left spooled, in order
+  ok   P112 --remove: drops only #12's line; every other line, an unreadable one included, byte-identical and in order; the order read back printed
+  ok   P112 --remove null: an absent PR exits nonzero and the spool is byte-identical
+  ok   P112: --front with --remove, or a plain add with no verdict, is refused (rc 2), nothing written
+  ok   P112 --front under the lock: a concurrent add waits and its line survives
+  ok   P112 --front null (no lock, the mutant): the concurrent add's line is lost
+  ok   P112 --remove under the lock: a concurrent add waits and its line survives
+  ok   P112 --remove null (no lock, the mutant): the concurrent add's line is lost
   ok   queue: the fixture builds exactly #11 (verdict at the head), #12 (carried) and #15 (a budget head), oldest first, each with its verdict comment's id
   ok   queue: a head the carry refuses is left, with the carry's own line (#13)
   ok   queue: a newest verdict that is blocked is left, though an older one was merge (#14)
@@ -382,5 +401,4 @@ REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>
   ok   sweep's CLI: one sweep under the mandate, its started train a bare hand launch of train.sh (--repo --state-dir --mandate, no flag: RECOMMENDED is train.sh's default)
   ok   RECOMMENDED is the owner's six, each a flag batch accepts
   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
-merge_train self-test: 381 checks, 0 failed
-exit 0
+merge_train self-test: 400 checks, 0 failed
