@@ -1,0 +1,47 @@
+      2 success refresh
+      2 success prelude
+      2 success pr-contract / pr-contract
+      2 success gate
+      2 success cancel-superseded
+      2 success budget-raise-gate / budget-raise-gate
+      2 success arch-score / arch-score
+      2 skipped kernel-points
+      1 success validate / validate-hacs
+      1 success tests / typing
+      1 success tests / nightly-status
+      1 success tests / mutation
+      1 success tests / lane-proofs
+      1 success tests / graders-head-copy
+      1 success tests / fast (3.14)
+      1 success tests / coverage-ratchet
+      1 success tests / coverage
+      1 success tests / closures
+      1 success tests / closure-scope
+      1 success tests / browser
+      1 success tests / briefs
+      1 success tests / arch-instrument
+      1 success hassfest / hassfest
+      1 success governance / wave-script
+      1 success governance / policy-docs
+      1 success governance / instrument-self-tests
+      1 success governance / env-matrix
+      1 success governance / delivery-status
+      1 success codeql / Analyze (python)
+      1 success codeql / Analyze (javascript-typescript)
+      1 success codeql / Analyze (actions)
+      1 success CodeQL
+      1 skipped validate
+      1 skipped tests / replay
+      1 skipped tests / nightly-ha
+      1 skipped tests / mutation-pins
+      1 skipped tests / mutation-autofix
+      1 skipped tests / closures-autofix
+      1 skipped tests / claims-autofix
+      1 skipped tests / ci-ratchet
+      1 skipped tests
+      1 skipped hassfest
+      1 skipped governance / record
+      1 skipped governance / delivery-status-publish
+      1 skipped governance
+      1 skipped codeql
+      1 skipped arm
