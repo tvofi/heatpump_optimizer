@@ -14859,7 +14859,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-TRAIN-DEFAULTS, R10-TRAIN-OVERLAP-GRADE"
+    "note": "closed by instrument audit s10 2026-11-01: carries moved to R10-TRAIN-MERGE-LOOP (0-3 duplicate open PR 3090, R10-FLY-TRAIN-DEFAULTS part 2)"
    },
    "brief": "Part 2 of R10-FLY-TRAIN-DEFAULTS (#3010 landed the recommended flag set only): the folded R10-FLOW-POSTMERGE after-merge bookkeeping in both merge paths, the spool drain order by priority, then critical path, then arrival, and the set-stage-owed line resolved from the roster. A failed step prints OWED and never undoes the merge. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
