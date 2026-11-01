@@ -1,0 +1,18 @@
+RESULT replay-2872-shape at=base lines=1 carries_decision=False
+  skip-driver-refused tests/golden/claimed_drift.txt
+RESULT replay-2872-shape at=head lines=9 carries_decision=True
+  skip-driver-refused tests/golden/claimed_drift.txt
+      MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+      CONFLICTING CLAIMS: both sides rewrote the same scenario's claims
+        scen_x: this branch ['ours: lower cost']; the merge brings in ['main: higher cost']
+      A claim excuses one release's golden diff and is written for
+      that diff alone, and a may-drift line exempts its fixture, so no
+      rule says which of two lines is meant. Every other scenario and
+      fixture merges per side. Resolve these by hand: keep the lines
+      that describe THIS branch's diff and delete the rest.
+RESULT null-control non-claim-refusal statuses byte-identical base==head: True (24 cases)
+RESULT empty stderr -> ''
+RESULT multi-line -> '\n    LEDGER-MERGE: resolved l.json\n    MERGE-CLAIM: refused c.txt\n      a\n    \n      b'
+RESULT very long stderr (100001 lines) relayed length chars: 1388917 (no cap)
+RESULT CRLF -> '\n    MERGE-CLAIM: refused c\n    z'
+RESULT non-UTF8 stderr decode: UnicodeDecodeError (raised in subprocess.run, before claim_refusal; identical at base: True )

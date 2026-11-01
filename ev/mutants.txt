@@ -1,0 +1,14 @@
+RESULT mutant=prefix-mismatch selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=indent-dropped selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=always-append selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 4 failed
+RESULT mutant=never-append selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=append-on-non-refusal selftest_rc=0 SURVIVED :: merge_main_bot self-test: 46 checks, 0 failed
+RESULT mutant=wrong-line-first-only selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=wrong-line-drop-first selftest_rc=0 SURVIVED :: merge_main_bot self-test: 46 checks, 0 failed
+RESULT mutant=decide-no-call selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=any-to-all selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 1 failed
+RESULT mutant=append-on-other-conflict selftest_rc=0 SURVIVED :: merge_main_bot self-test: 46 checks, 0 failed
+RESULT mutant=body-M3-refused-anywhere selftest_rc=1 KILLED :: merge_main_bot self-test: 46 checks, 3 failed
+RESTORED
+red-first d8e19bf4e:   FAIL a claim conflict the driver refuses relays the driver's own message under today's line, naming each scenario both sides rewrote with both sides' lines  [skip-driver-refused tests/golden/claimed
+red-first d8e19bf4e: merge_main_bot self-test: 46 checks, 1 failed
