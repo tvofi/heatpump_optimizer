@@ -1,0 +1,5 @@
+  live first line: 'the body that was sent'
+  live first line: 'a completely different comment body'
+  live first line: ''
+TOTAL: 0 failed
+SELF-TEST PASSED

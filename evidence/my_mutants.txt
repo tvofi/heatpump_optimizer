@@ -1,0 +1,8 @@
+RESULT mymutant=M1-round1 fails=1 KILLED
+    FAIL score: ... and the refusal names both figures: got False, want True
+RESULT mymutant=M2-rc-ignored fails=0 SURVIVED
+RESULT mymutant=M3-expired-guarded fails=1 KILLED
+    FAIL arm6_an_expired_grant_is_not_guarded
+RESULT mymutant=M4-last-line fails=0 SURVIVED
+RESULT mymutant=M5-no-owner fails=1 KILLED
+    FAIL arm6_a_grant_by_another_account_is_not_guarded

@@ -1,0 +1,3 @@
+  ok   e2e: --check-body: a diff that cannot be read exits 2
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 255 checks, 0 failed

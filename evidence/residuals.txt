@@ -1,0 +1,4 @@
+RESULT residual=hidden-true-line accepted= True
+RESULT expired-grant review-in-window, no later comment: in_force= True
+RESULT expired-grant review-in-window, later stem comment: in_force= False
+RESULT guard guards that grant at post time (revocable): False

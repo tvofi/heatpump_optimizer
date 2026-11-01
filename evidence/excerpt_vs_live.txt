@@ -1,0 +1,4 @@
+live body holds group name: False | live holds stem: False
+in-live '**Orchestrator s9: state since 6545892934 (2026-10-31, ~17:40Z)**'
+in-live '- #3016 (R10-WOOD-NOTIFY): verdict merge at `9d304c2d`, with code-owne'
+in-live '- #3045 (R10-HOTFIX-CI-CRITPATH-2, red-main hotfix, critical path): bl'
