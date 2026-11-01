@@ -1,0 +1,3 @@
+roster: dev/programme/rosters/wave-r10-groups.json on handoff/audit-r10-roster
+roster_edit: REFUSED: set-size: cite ref 'main' does not hold 9b00786c23cac3e9a482d7f92b2f93bf07e87143
+rc=2
