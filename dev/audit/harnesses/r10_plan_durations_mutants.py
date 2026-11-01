@@ -62,6 +62,8 @@ MUTANTS = [
     ("percentile-linear", "    return xs[lo] + (xs[hi] - xs[lo]) * (k - lo)", "    return xs[lo]"),
     ("theil-sen", "    return round(max(0.0, pctl(slopes, 50)), 2) if slopes else 0.0",
      "    return round(max(0.0, sum(slopes) / len(slopes)), 2) if slopes else 0.0"),
+    ("theil-sen-ordered-pairs", "              for k2, h2 in pts[i + 1:] if k2 != k1]",
+     "              for k2, h2 in pts[i + 1:] if k2 > k1]"),
     ("rounds-priced-out",
      "    adj = [dict(r, hours=max(0.0, r[\"hours\"] - slope * (r[\"rounds\"] - 1))) for r in rows]",
      "    adj = list(rows)"),

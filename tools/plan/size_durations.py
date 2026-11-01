@@ -639,6 +639,11 @@ def self_test() -> int:
     check("round_slope is the median pairwise slope, not the mean (5.5, not 9.25)",
           round_slope([{"rounds": k, "hours": h} for k, h in ((1, 0), (2, 1), (3, 2), (4, 30))])
           == 5.5)
+    ordered = ((1, 0), (2, 1), (3, 2), (4, 30))
+    check("round_slope does not depend on row order: ascending, reversed and shuffled rows agree (5.5)",
+          {round_slope([{"rounds": k, "hours": h} for k, h in rows])
+           for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))}
+          == {5.5})
     m2 = model([dict(r, rounds=1) for r in rs]
                + [{"size": "M", "class": "production", "hours": 5, "rounds": 1, "carries": 0}])
     check("model: a larger size planning shorter is lifted to the smaller's hours, and says so",
