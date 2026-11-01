@@ -10,4 +10,4 @@ Scoped re-check (round 3) at the unchanged head; round 2's four content checks s
 - (2) pr-contract at the current body: success (job 124882096578, 14:50Z); its log shows carry_audit `CARRY-AUDIT: 0 finding item(s)`; packet carry_audit also 0.
 - (3) `merge_train.py classify dafcc5759950c7ec3faab4bf993723a758a94710`: GREEN, pending none, red none (rc 0).
 - `git merge-tree --write-tree origin/main dafcc5759950c7ec3faab4bf993723a758a94710` exits 0.
-- The governance / instrument-self-tests job stays red at this head and is not a required context; it is not this diff's, and fix #3086 owns it. This does not block.
+- governance / instrument-self-tests is red at this head; it is not a required check and does not block.
