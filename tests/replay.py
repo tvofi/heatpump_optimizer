@@ -607,7 +607,7 @@ def sanitiser_checks(paths: list[Path]) -> list[tuple[str, bool, str]]:
     res.append(("control:sanitise_clears",
                 not export.violations(export.sanitise(raw, conf, dropped), conf),
                 f"dropped {len(dropped)} value(s)"))
-    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks() + leak_copy_checks()
+    return res + leak_probes() + tibber_price_checks() + recorder_checks() + mask_checks() + leak_copy_checks() + cut_day_checks()
 
 
 #: The review of #1508's leak probe (the first eleven): shapes of private data a recorder
@@ -1242,6 +1242,81 @@ def leak_copy_checks() -> list[tuple[str, bool, str]]:
     return res
 
 
+def _week_doc() -> dict:
+    """Two invented days of a sealed export: a thermometer every five minutes
+    with its unit on the first row only, the away switch and its return time
+    set together on day two (a restart's ``unavailable`` between), and a
+    second switch the owner toggled on its own."""
+    tz = "Europe/Stockholm"
+    t0 = datetime(2026, 10, 29, tzinfo=timezone(timedelta(hours=1)))
+
+    def at(minutes: float) -> str:
+        return (t0 + timedelta(minutes=minutes)).isoformat()
+
+    thermo = [[at(m), f"{20 + (m % 60) / 100:.2f}", {"unit_of_measurement": "°C"} if m == 0
+               else None, None] for m in range(-30, 48 * 60, 5)]
+    away_on, other_on = 24 * 60 + 16 * 60 + 42.9, 20 * 60 + 59
+    return {"format": "hpo-replay/1", "time_zone": tz, "recorder_schema": 53,
+            "window": {"start": t0.isoformat(), "end": (t0 + timedelta(days=2)).isoformat()},
+            "entry": {"data": {"indoor_temp_entity": "sensor.indoor_temp"}, "options": {}},
+            "inputs": ["sensor.indoor_temp"], "price_series_entity": None,
+            "published": ["datetime.e_00000000aa", "switch.e_00000000bb", "switch.e_00000000cc"],
+            "states": {
+                "sensor.indoor_temp": thermo,
+                "datetime.e_00000000aa": [[at(-30), "unknown", None, None],
+                                          [at(away_on), "2026-10-31T19:00:00+00:00", None, None],
+                                          [at(away_on + 60), "unavailable", None, None],
+                                          [at(away_on + 61), "2026-10-31T19:00:00+00:00", None, None],
+                                          [at(away_on + 177), "unknown", None, None]],
+                "switch.e_00000000bb": [[at(-30), "off", None, None], [at(away_on), "on", None, None],
+                                        [at(away_on + 60), "unavailable", None, None],
+                                        [at(away_on + 61), "on", None, None],
+                                        [at(away_on + 177), "off", None, None]],
+                "switch.e_00000000cc": [[at(-30), "off", None, None], [at(other_on), "on", None, None],
+                                        [at(other_on + 123), "off", None, None],
+                                        [at(away_on + 60), "unavailable", None, None],
+                                        [at(away_on + 61), "off", None, None]]}}
+
+
+def cut_day_checks() -> list[tuple[str, bool, str]]:
+    """``tools/replay/cut_day.py``: the cut answers every cycle instant as the
+    whole export does, keeps no published entity, and replays the owner's away
+    command from the one switch that turned on with the return time."""
+    import cut_day
+
+    doc, res = _week_doc(), []
+    day = cut_day.cut(doc, "2026-10-30")
+    whole, cut = Recording(doc["states"]), Recording(day["states"])
+    instants = cut_day.grid(_ts(day["window"]["start"]), _ts(day["window"]["end"]))
+    same = [whole.at("sensor.indoor_temp", t) == cut.at("sensor.indoor_temp", t)
+            for t in instants]
+    rows = len(day["states"]["sensor.indoor_temp"])
+    res.append(("cut_day:every_cycle_instant_reads_as_the_whole_export",
+                len(instants) == 96 and all(same) and rows <= 97
+                and day["states"]["sensor.indoor_temp"][0][2] == {"unit_of_measurement": "°C"},
+                f"{sum(same)}/{len(instants)} instants equal, {rows} rows kept of "
+                f"{len(doc['states']['sensor.indoor_temp'])}"))
+    res.append(("cut_day:no_published_entity_kept",
+                day["published"] == [] and set(day["states"]) == {"sensor.indoor_temp"},
+                str(sorted(day["states"]))))
+    events = day["controls"]["away"]
+    res.append(("cut_day:away_command_from_the_paired_switch_restart_skipped",
+                [e[1:] for e in events] == [[True, "2026-10-31T19:00:00+00:00"], [False, None]]
+                and events[0][0].startswith("2026-10-30T16:42"), str(events)))
+    res.append(("cut_day:null_day_without_a_command_has_none",
+                cut_day.cut(doc, "2026-10-29")["controls"]["away"] == [],
+                str(cut_day.cut(doc, "2026-10-29")["controls"])))
+    twin = json.loads(json.dumps(doc))
+    twin["states"]["switch.e_00000000cc"] = doc["states"]["switch.e_00000000bb"]
+    try:
+        cut_day.cut(twin, "2026-10-30")
+        why = "cut"
+    except SystemExit as err:
+        why = str(err)
+    res.append(("cut_day:two_paired_switches_refused", "expected exactly one" in why, why))
+    return res
+
+
 def _written(doc: dict) -> Path:
     """``doc`` in a file of its own, for ``export.check_file``."""
     handle = tempfile.NamedTemporaryFile("w", suffix=".json", delete=False)
@@ -1456,6 +1531,12 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     coord = cm.HeatPumpOptimizerCoordinator(hass, entry)
     entry.runtime_data = coord
 
+    async def no_solar_fetch() -> None:
+        # A fixture records no irradiance, and the lane opens no socket: an
+        # install on the Open-Meteo source replays with no solar forecast.
+        coord._open_meteo = None
+
+    coord._fetch_solar_forecast = no_solar_fetch
     price_series = fixture.get("price_series_entity")
     if not cm._entity_price_source(config):
         async def recorded_prices() -> None:
@@ -1505,8 +1586,17 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     injected: list[tuple[float, float]] = []
     peaks: list[int] = []
     traced: set[str] = set()
+    away_events = list((fixture.get("controls") or {}).get("away") or [])
+    away_seen: list[dict] = []
+    commanded: str | None = None  # the return time while the owner's command holds away
     while t < end:
         dt_util.freeze(t)
+        while away_events and _ts(away_events[0][0]) <= t:
+            # The owner's command, as the away switch and return-time entity give it.
+            _when, active, returns = away_events.pop(0)
+            commanded = returns if active else None
+            asyncio.run(coord.async_set_away(active=active, return_time=returns, refresh=False)
+                        if active else coord.async_set_away(active=False, refresh=False))
         readings: list[float] = []
         for entity_id in fixture["inputs"]:
             row = rec.at(entity_id, t)
@@ -1544,6 +1634,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             coord.last_update_success = False
             data = coord.data or {}
 
+        if commanded or data.get("away_active"):
+            away_seen.append({**away_observation(data, t), "commanded_return": commanded})
         action = data.get("current_action") or {}
         records = sweep(entities, action, results["cycle"], t)
         own_loop = (time.thread_time() - began_thread) - (_EXEC_CPU[0] - exec_before)
@@ -1600,7 +1692,23 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
             "seconds": round(time.monotonic() - started, 1),
             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
                         for k, v in results.items()},
-            "counts": {k: len(v) for k, v in results.items()}}
+            "counts": {k: len(v) for k, v in results.items()},
+            "away": away_seen}
+
+
+def away_observation(data: dict, t: datetime) -> dict:
+    """One cycle's away view and the space heating its plan buys."""
+    schedule = data.get("schedule") or []
+    step_h = 0.25
+    if len(schedule) > 1:
+        step_h = (_ts(schedule[1]["time"]) - _ts(schedule[0]["time"])).total_seconds() / 3600
+    return {"t": t.isoformat(), "active": bool(data.get("away_active")),
+            "recovery": bool(data.get("away_recovery_active")),
+            "target": data.get("away_target_temperature"),
+            "space_kwh": round(sum(float(r.get("power") or 0.0) for r in schedule) * step_h, 2),
+            "space_slots": sum(1 for r in schedule if float(r.get("power") or 0.0) > 0.1),
+            "room_min": min((r["room_temp"] for r in schedule), default=None),
+            "horizon_h": round(len(schedule) * step_h, 2)}
 
 
 def _plan_step(data: dict, t: datetime) -> tuple[float, float] | None:
