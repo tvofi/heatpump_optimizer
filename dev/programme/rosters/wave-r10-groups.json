@@ -14871,9 +14871,7 @@
     "tools/audit/seat/state_docs.py",
     "tools/pr/gh_comment.py"
    ],
-   "carry": [
-    "Record PRs ride the stamp (tvofi 2026-11-01, production-share ruling; operational since 2026-11-01T19:50Z by ruling to the merge seat). Record pull requests (triage batches, record/HANDOVER PRs, roster landings, delivery-row-only PRs) merge only in a stamp's batch, never singly. Make it the train's default: merge_train.py classifies a record PR (merge_fastpath file_class) and, outside a stamp batch, holds it in the queue with a HELD-FOR-STAMP line; stamp.py (or the stamp launcher) loads every held record into one batch before the tag. Bot record/autofix PRs under --bot-prs keep their existing guard. Self-test: a record PR added between stamps is held, null control a production PR is not; at the stamp all held records merge in one batch."
-   ],
+   "carry": [],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-train-postmerge",
