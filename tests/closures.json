@@ -3817,6 +3817,7 @@
    "tools/audit/seat/gh_calls.py",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
+   "tools/audit/seat/moved_paths.py",
    "tools/audit/seat/orchestrator_tick.py",
    "tools/audit/seat/owed_unactioned.py",
    "tools/audit/seat/plan_audit.py",
