@@ -1,28 +1,5 @@
-== tools/audit/seat/roster_lib.py
 roster_lib self-test: 60 checks, 0 failed
-rc=0
-== tools/audit/seat/roster_edit.py
-pushed edit-r9 at 18810cd934a83b71d92dfbb7fdca9fddbbe4293d
-roster_edit self-test: 145 checks, 0 failed
-rc=0
-== tools/audit/seat/roster_sync.py
-roster_sync self-test: 78 checks, 0 failed
-rc=0
-== tools/audit/carry_audit.py
+roster_edit self-test: 153 checks, 0 failed
+roster_sync self-test: 82 checks, 0 failed
+r10_roster_ops_mutants self-test: 180 checks, 0 failed
 carry_audit self-test: 214 checks, 0 failed
-rc=0
-== tools/audit/seat/r10_roster_ops_mutants.py
-  ok   an unknown plant is returned for refusal
-r10_roster_ops_mutants self-test: 162 checks, 0 failed
-rc=0
-== brief_lint
-TOTAL: 0 error(s) across 48 file(s)
-ISSUELESS ok: a live group with no issue warns; one with an issue, a done group and another schema do not
-== structure
-
-STRUCTURE RATCHET PASSED
-== ops mutants
-rc=1
-== sync mutants
-rc=0
-DONE
