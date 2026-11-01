@@ -12732,7 +12732,9 @@
    "class": "ux",
    "severity": "high",
    "size": "M",
-   "issues": [],
+   "issues": [
+    3108
+   ],
    "fixes": [],
    "findings": [],
    "wave": 1,
