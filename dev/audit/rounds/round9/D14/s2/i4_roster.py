@@ -17,7 +17,7 @@ Count key: the verdict each reader DELIVERS when executed on the case (the intak
   never a reader's source text.
 
 Command (repository root):
-  PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D14/s2/i4_roster.py [--seams | --dims <ref>...]
+  PYTHONPATH=tests/hastub python3 dev/audit/rounds/round9/D14/s2/i4_roster.py [--seams | --dims <ref>...]
   --dims HEAD 8d731d77^ : the dimension roster (positive control: R7-INSTR-01, DIMS stopped at D12)
 Expected (baseline 1936d5ca): ledger_ids_no_d14_seat=1 (P11), exact;
   check_scopes_D14_ok=True while it is unowned; intake_admits_schema_refuses=11 of
@@ -54,11 +54,23 @@ from pathlib import Path
 _P0, _T0 = time.process_time(), time.thread_time()
 NODE = os.environ.get("NODE", "/opt/node22/bin/node")
 FIND = Path(".claude/workflows/audit-find.js")
+sys.path.insert(0, "tests")
+from layout import locate as _locate  # noqa: E402  (tests/layout.json's move map)
+
+
+def moved(old):
+    """`old` while the worktree holds it, else its new path: old path first."""
+    return _locate(old)
+
+
+def renamed(old):
+    """`old`'s new path by the move map, whether or not either exists here."""
+    return _locate(old, exists=lambda q: q != old, is_file=lambda q: False)
 
 
 def load_check_scopes():
     """tools/audit/check_scopes.py calls main() at import; load its functions without running it."""
-    src = Path("tools/audit/check_scopes.py").read_text()
+    src = Path(moved("tools/audit/check_scopes.py")).read_text()
     src = re.sub(r"\nmain\(\)\s*$", "\n", src)
     mod = type(sys)("check_scopes")
     mod.__file__ = "tools/audit/check_scopes.py"
@@ -96,10 +108,14 @@ def run_intake(block, seat, findings):
 def dim_roster(ref):
     """The dimension roster at a ref: the briefs define it; every other reader is compared."""
     def show(path):
-        r = subprocess.run(["git", "show", f"{ref}:{path}"], capture_output=True, text=True)
-        return r.stdout if r.returncode == 0 else None
-    briefs = sorted(re.findall(r"^tools/audit/briefs/(D\d+)\.md$",
-                               subprocess.run(["git", "ls-tree", "-r", "--name-only", ref, "tools/audit/briefs/"],
+        for p in (path, renamed(path)):  # old path first, then the new one
+            r = subprocess.run(["git", "show", f"{ref}:{p}"], capture_output=True, text=True)
+            if r.returncode == 0:
+                return r.stdout
+        return None
+    briefs = sorted(re.findall(r"^(?:tools/audit/briefs|dev/governance/dimensions)/(D\d+)\.md$",
+                               subprocess.run(["git", "ls-tree", "-r", "--name-only", ref, "tools/audit/briefs/",
+                                               "dev/governance/dimensions/"],
                                               capture_output=True, text=True).stdout, re.M), key=lambda d: int(d[1:]))
     readers = {}
     find = show(".claude/workflows/audit-find.js")
@@ -131,13 +147,13 @@ def main():
         for ref in sys.argv[sys.argv.index("--dims") + 1:] or ["HEAD"]:
             dim_roster(ref)
         return
-    ledger = json.loads(Path("tools/audit/bugclasses.json").read_text())
+    ledger = json.loads(Path(moved("tools/audit/bugclasses.json")).read_text())
     L = sorted(k for k in ledger if not k.startswith("_"))
-    schema = json.loads(Path("tools/audit/finding.schema.json").read_text())
+    schema = json.loads(Path(moved("tools/audit/finding.schema.json")).read_text())
     fin = schema["definitions"]["finding"]["properties"]
     S = sorted(fin["class_guess"]["enum"])
     id_re = re.compile(fin["id"]["pattern"])
-    scopes = json.loads(Path("tools/audit/scopes.json").read_text())
+    scopes = json.loads(Path(moved("tools/audit/scopes.json")).read_text())
     A = scopes["D14"]["axis"]["class"]
     U = sorted({c for blocks in scopes["D14"]["seats"].values() for b in blocks for c in b.get("axis", A)})
 

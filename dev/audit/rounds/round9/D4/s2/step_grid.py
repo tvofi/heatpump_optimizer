@@ -17,7 +17,7 @@ Command (from the export root; Playwright from tests/pwlane's lock):
     npm ci --prefix "$TMPDIR/pw" (after copying tests/pwlane/package*.json there)
     NODE_PATH=$TMPDIR/pw/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers \
     OPENBLAS_NUM_THREADS=1 OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 PYTHONPATH=tests/hastub \
-      /home/claude/venv314/bin/python tools/audit/round9/D4/s2/step_grid.py [--perturb]
+      python3 dev/audit/rounds/round9/D4/s2/step_grid.py [--perturb]
     --perturb  one-line production edit, applied in memory to config_flow.py's source:
                in ``_number``, ``"step": step,`` -> ``"step": step if slider else "any",``
                (a box field takes any value) -> off_grid_fields goes to 0.
@@ -144,7 +144,7 @@ tmp = pathlib.Path(tempfile.mkdtemp(prefix="d4s2-step-"))
 env = {**os.environ}
 env.setdefault("PLAYWRIGHT_BROWSERS_PATH", "/opt/pw-browsers")
 subprocess.run(
-    ["node", "tools/audit/round9/D4/s2/step_grid.mjs", str(tmp / "in.json"), str(tmp / "out.json")],
+    ["node", os.path.join(os.path.dirname(os.path.abspath(__file__)), "step_grid.mjs"), str(tmp / "in.json"), str(tmp / "out.json")],
     check=True, env=env,
 )
 measured = json.loads((tmp / "out.json").read_text())
