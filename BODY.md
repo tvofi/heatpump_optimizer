@@ -54,16 +54,23 @@ Numbered as the roster lists them (`Carry N`, 1-based). The folded groups' own `
 - Carry 11 (P308), Carry 12 (P310), Carry 13 (P314), Carry 14 (P319), Carry 16 (P329) and Carry 18 (P332): built.
 - Carry 15 (RELAY-TOOLS-LEVEL folded): the levelled tools tree (P283) and its CARRY 0, the dispatch-record freeze (P288). Both built.
 - Carry 17 (P102): the `watch` lock, built.
+- Carry 19 (the case-insensitive evidence collision found on PR 3061): not built (below). It was appended to the roster at `110f2354d` on 2026-11-01, after this head was handed off.
 
 ## Not built here
 
 CARRY 1 of CARRY-DISPOSITION, the lost-ask fold count (a closing PR answering an issue's (a)-(e) fold list item by item), is not built. It needs a fold grammar no issue declares today and an issue read inside a required check, so a wrong reading would refuse merges. Its brief names no grammar to build against. The orchestrator re-homes it or rules on the grammar; the group stays `carries-open` for it.
+
+Carry 19 is not built in this round either. Round 2 is a body-only repair of the CI red, and its brief forbids a code change. The carry asks for a case-insensitive collision refusal in `cloud_relay.sh`'s `relay()` and `bus.sh` push-verdict, plus a reviewer-prompt line, with self-test rows and a mutant. That is new code that the reviewed head does not hold. The orchestrator dispatches it as a further round of this group or re-homes it; the group stays `carries-open` for it.
 
 ## Approval
 
 Owed, not yet given. `dev/governance/roles/standing-dispatch.md` changes what the dispatch/relay seat must do: its relay half retires to a beat job, once one cycle agrees and never inline. That is the owner's card 1 ruling (tvofi, 2026-10-24), carried into the contract as Carry 9 instructs. It merges only on the owner's approving review (the code-owner rule of `main-protect-checks`), or under the mandate the roster names for this group (6319294694) if that mandate covers policy.
 
 ## Head
+
+Round 2 is a body-only repair: the code head is unchanged at `1ac45d875522d5ab8040f8d89d1f05a7aeadda6d`, and only `## Head`, `## Figures` and `## Red checks` are re-taken. origin/main has moved since `b5df066e7` (to `1a8051350` at the last read, 2026-11-01T12:31Z). `git merge-tree --write-tree origin/main 1ac45d875` exits 0 there (the ledger driver merges `tests/closures.json`'s `inert_reads` as a set), so the branch is not merged again (fixer.md step 6).
+
+`1ac45d875522d5ab8040f8d89d1f05a7aeadda6d` merges the authored code head `1c7ae21fde1d9f2652f0093e328787c2d5216b61` and then merges origin/main `b5df066e7` (an automatic merge by the orchestrator's script; any resolution inside the code head is described below) into this PR's previous head.
 
 `1c7ae21fde1d9f2652f0093e328787c2d5216b61` merges origin/main `c89de2f62` (the merge of #3060, which shares `dev/audit/harnesses/r10_seat_selftests_mutants.py` with this diff) into `c5ded0de1f1c318651a1205d981311cb3a8a5b8a`. Git merged it without a conflict. At `1c7ae21fd`, the depth-seam scan returns rc=0, `r10_carry_field_figures.py HEAD` prints `field_flagged=0/17 v2645_flagged=1`, and `ci_predict.py --base origin/main` predicts no red.
 
@@ -97,6 +104,8 @@ Each arm has its unmutated twin as a self-test row:
 
 ## Figures
 
+Re-taken in round 2 at `1ac45d875`: the first eight self-test lines below (tick_loop through ledger) and `tests/structure.py` print the same values at this head. The remaining lines were taken at the heads they name.
+
 - `bash tools/audit/seat/tick_loop.sh --self-test`: 26 checks, 0 failed.
 - `bash tools/audit/seat/cloud_relay.sh --self-test`: 316 checks, 0 failed.
 - `bash tools/audit/seat/bus.sh --self-test`: 123 checks, 0 failed.
@@ -118,9 +127,11 @@ Each arm has its unmutated twin as a self-test row:
 
 ## Red checks
 
-- `tests / fast (3.14)` (run 41259735966, head `054e5a25f`): `tests/harness_headers.py` failed 1 of 112 checks, `every inlined walk matches the canonical helper and no depth root remains`, with `FAIL depth seams: dev/audit/harnesses/r10_carry_field_figures.py:25: ROOT = Path(__file__).resolve().parents[3]`. Cause: this PR's new field-figures harness counted its repository root by depth. Its path is correct, but RO-7 refuses that shape everywhere in the harness corpus. Repaired in `c5ded0de1` with the canonical `repo_root` copy from `tools/audit/repo_root.py`. Main does not carry the file, so the red is this diff's and not main's. Process state (c): the process was followed and did not catch it. `harness_headers.py` is `run_always`, but `gate_lock.py needs-lease` marks it lease-guarded because its CPU bounds measure the machine. So `prepr.sh` leaves it to CI, and `ci_predict.py` (which `body_push.sh` runs) has no depth-seam arm. The static half of the check went to CI along with the measuring half. Cheaper detector: `harness_headers.inline_scan()` on its own is a text scan that needs no lease and runs no harness. Measured here at 1.66 s wall (1.00 s user), against the 205 s `harness_headers.py` CI run and the roughly 12 minute `fast` job that found it. A `ci_predict.py` arm calling it would cost about 2 s on every handoff. That arm is not built in this red-check repair. It is the root-cause seat's to weigh under `defect-root-cause.md`'s cost test.
-- `pr-contract / pr-contract`: the body did not name `tests / fast (3.14)` under `## Red checks` (its `ERROR [pr-body]` line: the check is red and `## Red checks` does not name it). This was a body defect only, and the line above answers it. Process state (b): the predictor's no-red result was taken for the CI result. Cheaper detector: none. The check reads the live check-runs, so a body cannot answer a red before CI has run.
-- `gate`: red only because the two units above are red. No failure of its own.
+Concluded red at head `1ac45d875` (`commits/1ac45d875.../check-runs?filter=all`, every page, read 2026-11-01): `governance / instrument-self-tests`, `pr-contract / pr-contract` and `gate`. No other check is concluded red.
+
+- `governance / instrument-self-tests` (run 41287667687; job 124792258514 at attempt 1 and job 124811821686 at attempt 2, both on runner image `ubuntu-26.04` 20261025.179.1). Three steps fail, and all three are `pr_args.sh`'s self-test reached through a different driver. Step 47 is `open_pr.sh --self-test`, step 50 is `pr_args.sh --self-test` and step 73 is `update_pr.sh --self-test`. Each prints `pr_args self-test: 158 checks, 2 failed`. The failing rows are `open_pr: the null control -- an unrelated sleeper survives` and `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start`, and each run is preceded by `Security violation: Requested utility \`unrelated-sleep\` does not match executable name: /usr/lib/cargo/bin/coreutils/sleep`. Cause: the self-test (`pr_args.sh`, the `unrelated-sleep` null-control fixture) symlinks `/bin/sleep` as `unrelated-sleep`. On ubuntu-26.04, coreutils is uutils' multicall binary, which refuses a utility name that does not match its own, so the sleeper never starts and the two null rows fail. It is not this diff's red. `git diff $(git merge-base origin/main HEAD)...HEAD --name-only` touches none of `tools/audit/seat/pr_args.sh`, `open_pr.sh` or `update_pr.sh`. Main's own push run 41294924835 at `6421fe135` (job 124813746788, image `ubuntu-26.04`) is red on the same two rows in the same three steps. Main's push run 41284741462 at `92588d581` (job 124783717352, image `ubuntu-24.04`) is green with `158 checks, 0 failed`. Open PRs #3085 (run 41300368793, job 124829953054) and #3077 (run 41297624984, job 124821822711), both on image `ubuntu-26.04`, are red on the same two rows. Process state (d): the process was sound and its precondition changed underneath it. The runner image `ubuntu-latest` resolves to moved from 24.04 to 26.04, and nothing in the tree pins the image or notices the change. Cheaper detector: none exists. A seat's local run uses GNU coreutils (`sleep (GNU coreutils) 9.4` here), where the symlinked `unrelated-sleep 0` runs with rc 0 and the self-test passes. So no local or predictive step sees a uutils refusal, and this CI check on the new image is itself the detector. The fix is owned by the separate PR #3086 (R10-HOTFIX-UUTILS-SLEEP, open, which touches `tools/audit/seat/pr_args.sh`). This PR does not touch that file. The check is not green at this head, and it goes green once #3086 merges and this head re-runs.
+- `pr-contract / pr-contract` (run 41287667687, jobs 124798511179, 124798871788 and 124816517007): its `ERROR [pr-body]` line says `governance / instrument-self-tests` is red and `## Red checks` does not name it. That was a body defect only, and the line above answers it. Process state (c): the process was followed and did not produce the intended result. The round-1 body was handed off before this head's CI concluded, as the process allows, so it could not name a red that had not happened yet. Cheaper detector: none. The check reads the live check-runs, so a body cannot answer a red before CI has run. Its `red-history` record also lists `tests / fast (3.14)` across the branch's commits. That red was at the earlier head `054e5a25f` (run 41259735966): `tests/harness_headers.py` reported `FAIL depth seams: dev/audit/harnesses/r10_carry_field_figures.py:25: ROOT = Path(__file__).resolve().parents[3]`. This PR's new harness counted its root by depth, and `c5ded0de1` repaired it with the canonical `repo_root` copy. Process state (c): `harness_headers.py` is lease-guarded, so `prepr.sh` leaves it to CI, and `ci_predict.py` has no depth-seam arm. Cheaper detector: `harness_headers.inline_scan()` on its own, a lease-free text scan measured at 1.66 s wall, against the roughly 12 minute `fast` job that found it. The arm is not built here; weighing it is the root-cause seat's job under `defect-root-cause.md`'s cost test. `tests / fast (3.14)` is green at this head (job 124811823260).
+- `gate`: red only because the units above are red (jobs 124798667024, 124799022597 and 124811973148). Its latest attempts (jobs 124816683515 and 124816876665) concluded success as read. It has no failure of its own.
 
 ## Forward-carry
 
@@ -129,4 +140,5 @@ none
 ## Friction
 
 - fixer.md: cost: the seat mutant harness edits the committed file in place, and a commit made while it ran captured mutant bus-5; `git status` showed it and the commit was amended back to the unmutated bus.sh before any push. Carry: dismissed: the harness already refuses a dirty file, and a seat that commits during its run is the defect
+
 
