@@ -6,7 +6,12 @@
   fixes|issues]` (refuses an absent N), `append-group`, `edit-brief`,
   `append-carry`, `drop-carry <group> <index|--match TEXT>` (0-based index,
   or the one entry containing TEXT; the last drop leaves `"carry": []`, the
-  key kept),
+  key kept), `set-size <group> <size> [--cite <ref>@<sha>]` (size must be in
+  the durations model; old size and cite go to `resume.note`),
+  `set-files <group> [--add <path>...] [--set-files <p,p|->] [--set-hot <p,p|->]
+  [--cite <ref>@<sha>]` (a new path must be in the tree at origin/main or at the
+  cited sha; a hot token a basename of the group's files or a known hot token;
+  a value already held writes nothing),
   `set-after <group> <G1,G2,...|->` (replaces the after-edges whole, `-` for
   none), and `set-resume <group> --field
   <stage|commit|branch|last_step|next_step|note>` for the resume free-text
