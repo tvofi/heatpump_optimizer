@@ -13225,9 +13225,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-hotfix-away-presence",
-    "commit": null,
+    "commit": "1d28de9936efb7d784224f274232a50722952c02",
     "last_step": null,
     "next_step": "fixer dispatched",
     "note": "live user defect tvofi 2026-10-30; the carry was stranded on done R10-LIVESTATE, re-cut by s9 2026-10-31",
