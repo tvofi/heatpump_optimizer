@@ -410,14 +410,17 @@ def _collect_strings(node: object, into: list[str], secret: bool = False) -> Non
             _collect_strings(value, into, secret)
 
 
+def _no_credential(value: object) -> bool:
+    """Nothing a credential-named key can leak: empty, or a bool -- a flag such as
+    ``tibber_reauth_started``, which ``_collect_strings`` skips too (D15-s1-04)."""
+    return isinstance(value, bool) or value in (None, "", [], {})
+
+
 def _walk(node: object, path: str, found: list[str]) -> None:
     if isinstance(node, dict):
         for key, value in node.items():
             here = f"{path}.{key}" if path else str(key)
-            # A bool carries no credential (``_collect_strings`` skips it too):
-            # ``tibber_reauth_started`` is a flag, not a secret (D15-s1-04).
-            if SECRET_KEY.search(str(key)) and not isinstance(value, bool) \
-                    and value not in (None, "", [], {}):
+            if SECRET_KEY.search(str(key)) and not _no_credential(value):
                 found.append(f"{here}: a credential-named key carries a value")
             if _is_coordinate(key):
                 places = json_decimal_places(value)
