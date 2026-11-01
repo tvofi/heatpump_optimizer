@@ -14869,6 +14869,47 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET"
    },
    "brief": "The reviewer-dispatch residue of R10-ORCH-REVIEW-PACKET (its open #3061 stops on it for the orchestrator): dispatch the reviewer at the handoff ref with its policy text, hold a dispatch while an autofix bot job can still move the head, and refuse a dispatch whose packet shows a carry, figure or moved-head red, naming it. The owner's 2026-10-24 ruling stands: dispatch never waits for CI. Runs after R10-ORCH-REVIEW-PACKET. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-AGREEMENT-BOOTSTRAP",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "low",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/policy/agreement.mjs"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-agreement-bootstrap",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-MERGE-SUBJECT-CASEARM"
+   },
+   "brief": "The bootstrap deadlock of a shared grammar under a pinned grader in tools/policy/agreement.mjs, stranded on R10-MERGE-SUBJECT-CASEARM after #3076 merged. Single-carry group: no live group owns tools/policy/agreement.mjs. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
