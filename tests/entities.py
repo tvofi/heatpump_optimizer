@@ -18444,6 +18444,40 @@ def _hb_stdlib_reads(spin: bool) -> str:
         child.wait()
 
 
+def _hb_stdlib_sampling(reads=_hb_stdlib_reads, platform: str = sys.platform):
+    """``((spinning, idle), None)``, or ``(None, why)`` where macOS denies the read."""
+    return (reads(True), reads(False)), None
+
+
+def _hb_denied(spin: bool) -> str:
+    raise PermissionError("Cannot get task port for PID 1 (kern_return_t: 5)")
+
+
+def _hb_sampling_outcome(reads, platform: str):
+    try:
+        return _hb_stdlib_sampling(reads, platform)
+    except Exception as exc:  # noqa: BLE001 - the control reports what escaped
+        return type(exc).__name__
+
+
+_hb_mac, _hb_linux = _hb_sampling_outcome(_hb_denied, "darwin"), _hb_sampling_outcome(_hb_denied, "linux")
+R.check(
+    "a macOS host that denies the stdlib sampler its child's task port skips that one check, "
+    "named with the reason, and the script runs on",
+    _hb_mac[0] is None and "task port" in _hb_mac[1] and _hb_mac[1].startswith("darwin"),
+    f"{_hb_mac!r}",
+)
+R.check(
+    "null control: off macOS the same denial is no skip (the lane's Linux run is the authority)",
+    _hb_linux == "PermissionError",
+    f"{_hb_linux!r}",
+)
+R.check(
+    "null control: a sampler that reads is taken as before, and any other error is no skip",
+    _hb_sampling_outcome(lambda spin: f"s{spin}", "darwin") == (("sTrue", "sFalse"), None)
+    and _hb_sampling_outcome(lambda spin: 1 / 0, "darwin") == "ZeroDivisionError",
+    f"{_hb_sampling_outcome(lambda spin: f's{spin}', 'darwin')!r}",
+)
 if _nightly.importlib.util.find_spec("_remote_debugging") is not None:
     _hb_in, _hb_out = _hb_stdlib_reads(True), _hb_stdlib_reads(False)
     _hb_reads = (
