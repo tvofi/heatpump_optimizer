@@ -838,6 +838,25 @@ class Tick:
             self.line(S, "obligations ledger: closed this pass "
                       + " ".join(f"{k}={v}" for k, v in sorted(closed.items())))
 
+    def _approval_owed(self, n: int, head: str, runs: list, req: list) -> "str | None":
+        """merge_train.approval_owed over this head's check runs and required
+        list, its reads (the gate logs included, #3073) routed through this
+        tick's own gh and git (P345): the one owner
+        of K15 (d)'s raise exception, asked, never restated. A head that
+        cannot be fetched, or any failed read, is None: not reviewable."""
+        if self.git(["fetch", "-q", "origin", head])[0]:
+            return None
+
+        def run(argv, cwd=None, stdin=None):
+            if argv[:1] == ["gh"]:
+                return self.gh(argv[1:])
+            return self.git(argv[1:]) if argv[:1] == ["git"] else (1, "the tick runs gh and git only")
+        try:
+            t = mt.Train(self.repo, Path("."), None, "", (), 0, run=run, log=lambda _m: None)
+            return mt.approval_owed(t, n, head, runs, req)
+        except (mt.Stop, OSError, ValueError):  # fail closed: an unread raise is not reviewable
+            return None
+
     def one_pr(self, S: str, pr: dict, verdict: "str | None",
                required: "list[str] | None") -> None:
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -875,8 +894,14 @@ class Tick:
             for nm in run:
                 pend[(n, nm)] = (lat[nm].get("started_at"), head)
         if red and required is not None:
-            req_red = mt.classify(self.latest(runs or []), getattr(self, "_req_pr", None) or required)[2]
-            if req_red:
+            req = getattr(self, "_req_pr", None) or required
+            req_red = mt.classify(self.latest(runs or []), req)[2]
+            owed = self._approval_owed(n, head, runs or [], req) if req_red else None
+            if owed:
+                self.line(S, f"#{n}: RAISE APPROVAL OWED at {head[:8]}: review it, then approve "
+                             "under the owner or the mandate (0013) -- not its fixer (K15 (d)): "
+                             f"{owed}", flag=True)
+            elif req_red:
                 self.line(S, f"#{n}: NOT REVIEWABLE at {head[:8]}: required "
                              f"{', '.join(req_red)} concluded red -- back to its "
                              "fixer, never a reviewer (K15 (d))", flag=True)
@@ -3453,6 +3478,45 @@ def self_test() -> int:
                 ("with PR_ONLY empty, every live context is main-graded", req == ["pr-contract", "tests"]),
                 (f"NOT REVIEWABLE {'names pr-contract' if want else 'absent'}",
                  (len(nr) == 1 and "pr-contract" in nr[0]) if want else not nr)])
+            total, failed = total + a, failed + f
+        # PRS (d), P345: a budget raise is red at budget-raise-gate until the
+        # owner's approval names its head, which follows the review. #3045's
+        # shape (gate + budget-raise-gate red, one raise, the owner's approval
+        # on an older head) is RAISE APPROVAL OWED, not NOT REVIEWABLE; null
+        # controls: a second gate unit red, and the same reds with no raise.
+        # #3073: owed only when the gate's own log names the raise alone; a gate also red
+        # for a SKIPPED unit (absent from the red set) is NOT REVIEWABLE.
+        RAISE = "budget-raise-gate / budget-raise-gate"
+        bud = "tests/structure_budgets.json"
+        glog = lambda *r: "".join(f"2026-10-31T21:40:02.5Z {x}\n" for x in (
+            '##[group]Run python3 -I tools/ci/gate.py --pr "$PR"', "##[endgroup]",
+            *(("FAIL " if i == 0 else "") + x for i, x in enumerate(r)), "##[error]Process completed with exit code 1."))
+        own = f"{RAISE}: failure (this run)"
+        for label, extra_red, files, want, why in (
+                ("#3045 shape", (), f"{bud}\ntools/x.py\n", True, (own,)),
+                ("null: tests / fast (3.14) red too", ("tests / fast (3.14)",), f"{bud}\n", False, (own,)),
+                ("null: no raise in the diff", (), "tools/x.py\n", False, (own,)),
+                ("null (#3073): the gate also failed a SKIPPED unit", (), f"{bud}\ntools/x.py\n", False,
+                 (own, "tests / browser: SKIPPED (this run)"))):
+            runs = [run_obj("gate", conclusion="failure"), run_obj(RAISE, conclusion="failure"),
+                    *(run_obj(x, conclusion="failure") for x in extra_red)]
+            t = tick(prs=[pr_obj(75, H1)], required_names=("gate",), runs_at={H1: runs},
+                     gh_extra=[(f"actions/jobs/{runs[0]['id']}/logs", 0, glog(*why))],
+                     bodies={75: "## Red checks\n\ngate: x\n"},
+                     reviews={75: [[{"user": owner, "state": "APPROVED", "commit_id": H2,
+                                     "submitted_at": iso(NOW), "body": "ok"}]]})
+            t._git.h[:0] = [(("diff", "--no-renames", "--name-only", V, H1), 0, files),
+                            (("ls-tree", "-r", "--name-only"), 0, f"{bud}\n"),
+                            (("show", f"{V}:{bud}"), 0, '{\n "m": 3\n}\n'),
+                            (("show", f"{H1}:{bud}"), 0, '{\n "m": 4\n}\n')]
+            t.one_pr("PRS", pr_obj(75, H1), None, t.required("PRS"))
+            txt = [x["text"] for x in t.findings]
+            owed = [x for x in txt if x.startswith(f"#75: RAISE APPROVAL OWED at {H1[:8]}: review it")]
+            nr = [x for x in txt if x.startswith("#75: NOT REVIEWABLE")]
+            a, f = check(f"P345 PRS {label}", [
+                ("RAISE APPROVAL OWED " + ("present, naming the raise" if want else "absent"),
+                 (len(owed) == 1 and f"{bud}: m: 3 -> 4" in owed[0]) if want else not owed),
+                ("NOT REVIEWABLE " + ("absent" if want else "present"), bool(nr) != want)])
             total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
