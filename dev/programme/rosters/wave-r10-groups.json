@@ -15444,6 +15444,56 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-REPLAY-REAL-DAY"
    },
    "brief": "Record the real recorded day's cost budget in tests/replay.py from #3078's CI replay job (its record lines), the second runner class, once #3078 has merged; local readings spread too widely to record. Single-carry group. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-WHY-NOW-WIDGET",
+   "lane": "UI",
+   "kind": "feature",
+   "class": "ux",
+   "severity": "medium",
+   "size": "L",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/plan_slots.py",
+    "custom_components/heatpump_optimizer/payload.py",
+    "custom_components/heatpump_optimizer/coordinator.py",
+    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+    "custom_components/heatpump_optimizer/translations/en.json",
+    "custom_components/heatpump_optimizer/translations/sv.json",
+    "tests/optimality.py",
+    "tests/card.mjs",
+    "tests/card_browser.mjs"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-why-now-widget",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a designer (dev/governance/roles/designer.md) for design/R10-WHY-NOW-WIDGET, then its design reviewer; the fixer dispatches only on Design review: approve",
+    "note": "s9 rulings pass, 2026-11-01: created by tvofi ruling, rulings card 2 option (c) Both, part (b)"
+   },
+   "brief": "A live \"why now\" widget for the current slot (tvofi 2026-11-01, rulings card 2 option (c) Both, part (b)): it shows the reasons behind that slot's decision, price rank, comfort floor, mold guard, away and forecast, each with a direction and a weight, from a new per-slot reasons output on the solver path, with its own failing test. Size L, design first: the designer's note at design/R10-WHY-NOW-WIDGET is approved by a design reviewer before the fixer dispatches. It runs after R10-GRADE-DRIVERS, which builds the Driving score-row hover with signed drivers; the card file is hot and this group waits behind it in the serial chain. Plain-words metric text in every hover, en and sv; reviewer opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop. The full spec is the group's carry; nothing in it is scoped out. Re-measure every figure at this group's own merge base; carry no count."
   }
  ]
 }
