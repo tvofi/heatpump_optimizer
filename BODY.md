@@ -34,7 +34,7 @@ Alternatives considered for round 3:
 
 ## Head
 
-c8fdf14927638aa176300c8963e8d9a50f8fce37, six commits on the PR head ec36f34aa4af4d940c54aa82d40a847cc74dd0a8 (`git log --oneline ec36f34aa..c8fdf1492`). That PR head is the orchestrator's merge of origin/main 8fec54ee2 into round 2's head 75b873248402113a5472780b5f26ac620d4ac1dc (50d8b2710), plus this PR's row (ec36f34aa). The merge base with origin/main is 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f. At 2026-11-01T05:55:26Z origin/main's tip was b5df066e7a23e914ee81de83ef243097b3b397a3, and `git merge-tree --write-tree origin/main HEAD` reported no conflict (`tests/closures.json` was merged as a set by its ledger driver). So the head was not merged forward (fixer.md step 6). Round 3's figures (F9-F13) were taken at this head. Round 2's were taken at 75b873248, and round 2's bus.sh and review_carry code is unchanged since then (`git diff --stat 75b873248 HEAD -- tools/audit/seat/bus.sh tools/audit/seat/review_carry.py` is empty). F3 was re-taken at this head.
+03ef99f28f68f1b8ce9a207562e9134178723caf: the merge of origin/main c3b7c964f6de44eac8d7d6d2bf5afabdb56566ba (at 2026-11-01, `date -u` of the merge) into the PR head 27ae023c6a45d8fe96d670195bef85711c85bf97, by merge and not a re-cut. The only conflict was `tools/audit/seat/review_packet.py`'s `gather()` dict line, a semantic one: this PR adds `"approval_owed": owed`, main adds `"branch": branch, "unlanded": unlanded`. Both are kept (`git diff 27ae023c..HEAD -- tools/audit/seat/review_packet.py` shows main's change and nothing else). The merge brings #3086 (the uutils `sleep` fix). The merge base with origin/main is c3b7c964f6de, and `tools/pr/prepr.sh` was run on this committed tree against it: `PRE-PR: 03ef99f28f68f1b8ce9a207562e9134178723caf ... rc=0`, with step 7 (the body check) re-run by `body_push.sh` at the push. Code since round 3's c8fdf1492 is main's only. Round 3's figures F9-F13 were taken at c8fdf1492, and no code of this PR changed since; the delta is the merge, whose self-tests are in F14.
 
 ## Mutation proof
 
@@ -91,6 +91,10 @@ P345 (round 1, at c7ccdbf7e):
 
 ## Figures
 
+Round 4 (the merge), at 03ef99f28f68f1b8ce9a207562e9134178723caf:
+- F14: `python3 -I tools/audit/seat/review_packet.py --self-test` 65 checks, 0 failed (main's rows plus this PR's); `python3 tools/audit/seat/merge_train.py --self-test` 417, 0 failed; `python3 -I tools/audit/seat/orchestrator_tick.py --self-test` 243, 0 failed; `cloud_dispatch.py --self-test` 124, 0 failed; `review_carry.py --self-test` 26, 0 failed; `bash tools/audit/seat/bus.sh --self-test` 115, 0 failed (Linux bash). Null control: the same commands at 27ae023c (before the merge) read the review_packet self-test at 53, and merge_train at 398, so the merge adds checks and fails none.
+- F15: round-1 block (verdict/3073, ec36f34a): re-checked at this head by reading `approval_owed` (it calls `gate_raise_only`, which reads each red gate suite's log and owes only on `RAISE_REASON`), and by the self-test rows `#3073: a raise whose gate is also red for ...` (SKIPPED, ABSENT, PENDING, deferral, prelude) and `#3073 O2` (diff at rc 128), all in the 417 above and all RED rc 1. O1 and O2 are answered; no finding of that verdict is open.
+
 Round 3, at c8fdf1492 (F3 re-taken here):
 - F3: `merge_train.py --self-test` 398 checks, 0 failed; `orchestrator_tick.py --self-test` 243, 0 failed (the self-test was re-run after the docstring-only commit c8fdf1492, F13); `review_packet.py --self-test` 53, 0 failed; `cloud_dispatch.py --self-test` 124, 0 failed; `review_carry.py --self-test` 26, 0 failed; `bash tools/audit/seat/bus.sh --self-test` 115 checks, 14 failed on this seat's macOS bash 3.2. The 14 are the same `orphans` rows as before. The #3073 reviewer measured 115, 0 failed on Linux bash at ec36f34aa, and bus.sh has not changed since.
 - F9: `python3 dev/audit/harnesses/r10_fly_raise_reviewable_overfire.py <checkout>`, with <checkout> an ec36f34aa worktree and this head, then `diff` of the two outputs. Its only lines are the four hidden cases going rc=4 -> rc=1.
@@ -133,7 +137,12 @@ Round 1, at c7ccdbf7e (F3 and F4 superseded by round 2's re-take above):
 
 ## Red checks
 
-none
+The whole check-run set at 27ae023c (55 runs, one page of `get_check_runs`), concluded red:
+- `governance / instrument-self-tests` (run 41293614662). Cause: the `alert_list` self-test failed on this runner (`alert_list self-test: 25 checks, 12 failed`; every mutant row fed by the uutils `sleep`), the red main fixed in #3086. Process state: a detector existed and ran (the check itself), and the cause was main's; this branch's diff touches no `alert_list`. The head now contains #3086 (merge `03ef99f28f68f1b8ce9a207562e9134178723caf`); CI at this head is the proof, and `prepr.sh`'s `ci predict` step predicts no instrument red against c3b7c964f6de.
+- `gate` (two suites, runs 41293614176 and 41293614662). Cause: the aggregate of the red above and `pr-contract`. Process state: the gate working as designed, no unit of its own.
+- `pr-contract / pr-contract` (both suites). The log tail read shows the version-edit and carry steps ok (`CARRY-AUDIT: 0 finding item(s)`); the red step was not in the tail I could read, and `## Head` of the previous body named c8fdf1492, not the PR head 27ae023c, which is the likely cause (the head moved by merge after the body was written). Process state: a stale body head after a merge, which steps 6-7 of fixer.md already require retaking; this body names 03ef99f28f68f1b8ce9a207562e9134178723caf.
+
+Skipped runs are not red and are not listed. No countermeasure beyond fixer.md step 6 is proposed: the stale-head class is already refused by `pr-contract`.
 
 ## Forward-carry
 
