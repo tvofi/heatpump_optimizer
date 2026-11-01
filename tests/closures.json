@@ -3889,6 +3889,7 @@
    "dev/audit/harnesses/r10_anchor_vacuous.py",
    "dev/audit/harnesses/r10_arch_docs_first_mutants.py",
    "dev/audit/harnesses/r10_archscore_any_spellings.py",
+   "dev/audit/harnesses/r10_away_presence_listener.py",
    "dev/audit/harnesses/r10_band_census.py",
    "dev/audit/harnesses/r10_briefs_fold_placement.mjs",
    "dev/audit/harnesses/r10_buffer_store.py",
