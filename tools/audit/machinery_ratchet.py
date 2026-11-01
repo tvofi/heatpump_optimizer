@@ -358,7 +358,8 @@ def _budgets_text(repo: str, rev: str, path: str) -> str:
 def check(repo: str, head: str, base: str | None, pr: int | None, out=print) -> int:
     doc = load_budgets(_budgets_text(repo, head, BUDGETS))
     m, rows, skipped = measure(repo, head, doc, base, pr)
-    mode = f"PR mode, #{pr} as the candidate on {base}" if base else f"push mode at {head}"
+    who = f"#{pr}" if pr is not None else f"head {head[:12]}"
+    mode = f"PR mode, {who} as the candidate on {base}" if base else f"push mode at {head}"
     out(f"machinery_ratchet: {mode}; window {m['window']} merge(s): "
         f"{m['production']} production, {m['machinery']} machinery, {m['record']} record; "
         f"{m['product_lines']} product line(s), {m['nonproduct_lines']} nonproduct")
