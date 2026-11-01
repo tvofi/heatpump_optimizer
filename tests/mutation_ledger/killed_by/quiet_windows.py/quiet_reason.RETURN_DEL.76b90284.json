@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/quiet_windows.py:quiet_reason RETURN_DEL 76b90284",
+  "killed_by": "tests/features.py",
+  "old": "    return {ACTION_OFF: \"inside a quiet off window\", ACTION_SILENT: \"inside a quiet silent window\"}.get(code)",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
