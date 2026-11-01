@@ -15299,7 +15299,9 @@
    "files": [
     "tests/replay.py"
    ],
-   "carry": [],
+   "carry": [
+    "From R10-REPLAY-REAL-DAY's open #3078 (head 4c994241d), its COST_BUDGETS record, owed after the merge (orchestrator s9 scope addition, 2026-11-01). Verbatim from that body: **Cost budget.** Not recorded locally: `cpu_ratio` read 177, 243, 274 and 394 in four clean local runs of this install at load averages 30-200, a spread no 2x band holds. It is recorded from this pull request's CI `replay` job (the lane prints `record:` lines), the second runner class; until `COST_BUDGETS` carries `owner-2026-10-30-away.json`, `cycle_cost` reports `no recorded budget` for it. Record it in tests/replay.py from that job's record lines once #3078 has merged; the null control is the synthetic fixture's budget, unchanged."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-replay-cost-budget",
