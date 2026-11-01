@@ -14408,6 +14408,54 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER"
    },
    "brief": "The tick-drivers follow-on items of #2265 that never reached main, the two liveness alarms R10-FLOW-ANDON left (a handoff tip ahead of its PR head, an old seat self-test), and the train-liveness count that reads a reviewer's merge_train self-test as a merge race. Implement each or record it dismissed with its reason; close #2265 when none remain. Runs after R10-TICK-GROUP-LINES, which edits the same file. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-LEDGER-RESIDUE",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [
+    2721
+   ],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "ledger.py"
+   ],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/ledger.py",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/bus.sh",
+    "dev/audit/harnesses/r10_seat_selftests_mutants.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ledger-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER"
+   },
+   "brief": "Obligations-ledger residue of R10-ORCH-LEDGER (#2671 built the ledger): a record-owed kind for an approved record PR left open, the two review findings on #2671 (the relay mutant pattern and a migrated row no read-back can close), aging keyed on arrivals, a dispose home warning, the classify-by-change arm, and bus.sh orphans reading the PR listing for the #2721 residual. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
