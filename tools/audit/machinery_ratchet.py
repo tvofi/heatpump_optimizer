@@ -376,6 +376,19 @@ def check(repo: str, head: str, base: str | None, pr: int | None, out=print) -> 
     return 0
 
 
+EVENT_ENV = ("MACHINERY_BASE", "MACHINERY_HEAD", "MACHINERY_PR")
+
+
+def event_args(env) -> tuple[str, str | None, int | None]:
+    """(head, base, pr) for `--check-event` from the workflow step's
+    environment: PR mode when both a base and a pull-request number are set,
+    else push mode at the head (HEAD when none is set)."""
+    base, head, pr = (str(env.get(k) or "").strip() for k in EVENT_ENV)
+    if base and pr:
+        return head or "HEAD", base, int(pr)
+    return head or "HEAD", None, None
+
+
 # --- self-test ---------------------------------------------------------------
 
 def self_test() -> int:
@@ -658,6 +671,12 @@ def self_test() -> int:
                 got = "refused"
             ok(f"load_budgets refuses {label}", got, "refused")
 
+    ok("--check-event: a base and a PR number select PR mode",
+       event_args({"MACHINERY_BASE": "b", "MACHINERY_HEAD": "h", "MACHINERY_PR": "7"}), ("h", "b", 7))
+    ok("--check-event: a base with no PR number is push mode at the head",
+       event_args({"MACHINERY_BASE": "b", "MACHINERY_HEAD": "h", "MACHINERY_PR": ""}), ("h", None, None))
+    ok("--check-event: nothing set is push mode at HEAD", event_args({}), ("HEAD", None, None))
+
     print(f"machinery_ratchet self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
@@ -666,6 +685,8 @@ def main(argv: list[str]) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n", 1)[0])
     ap.add_argument("--self-test", action="store_true")
     ap.add_argument("--check", action="store_true", help="grade the window; exit 1 past a cap")
+    ap.add_argument("--check-event", action="store_true",
+                    help="--check with base, head and PR number from MACHINERY_BASE/_HEAD/_PR (governance.yml)")
     ap.add_argument("--measure", action="store_true", help="print the metrics and, with --bands, each band")
     ap.add_argument("--repo", default=".")
     ap.add_argument("--head", default="HEAD")
@@ -680,6 +701,8 @@ def main(argv: list[str]) -> int:
         return self_test()
     pr = int(a.pr) if a.pr.strip() else None
     try:
+        if a.check_event:
+            return check(a.repo, *event_args(os.environ))
         if a.check:
             return check(a.repo, a.head, a.base, pr)
         if a.measure:

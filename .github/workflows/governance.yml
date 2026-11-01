@@ -202,17 +202,10 @@ jobs:
       # checked-out commit. Offline: git history only.
       - name: Refuse a window of merges past the machinery caps
         env:
-          BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.sha }}
-          PR: ${{ github.event.pull_request.number || github.event.inputs.pr || '' }}
-        run: |
-          set -euo pipefail
-          if [ -n "$PR" ] && [ -n "$BASE" ]; then
-            git cat-file -e "$BASE^{commit}" 2>/dev/null || git fetch -q --no-tags origin "${BASE#origin/}"
-            python3 -I tools/audit/machinery_ratchet.py --check --base "$BASE" --head "$HEAD_SHA" --pr "$PR"
-          else
-            python3 -I tools/audit/machinery_ratchet.py --check --head "$HEAD_SHA"
-          fi
+          MACHINERY_BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+          MACHINERY_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          MACHINERY_PR: ${{ github.event.pull_request.number || github.event.inputs.pr || '' }}
+        run: python3 -I tools/audit/machinery_ratchet.py --check-event
 
       # Last: the base's checker drives the hooks' own self-tests, which are the
       # pull request's (owned) copies -- so nothing graded runs after them.
