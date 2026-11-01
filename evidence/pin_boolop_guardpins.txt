@@ -1,0 +1,5 @@
+  File "/root/m-zero/custom_components/heatpump_optimizer/pump_arbiter.py", line 1053, in _observe
+    row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
+                               ~~~~~^^^^^^^
+TypeError: float() argument must be a string or a real number, not 'NoneType'
+rc=1

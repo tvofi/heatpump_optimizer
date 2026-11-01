@@ -1,0 +1,55 @@
+gate	completed	success	124970595866
+pr-contract / pr-contract	completed	success	124970414885
+codeql	completed	skipped	124970104244
+hassfest	completed	skipped	124970104206
+kernel-points	completed	skipped	124970104072
+validate	completed	skipped	124970103931
+tests	completed	skipped	124970103823
+governance	completed	skipped	124970103705
+arch-score / arch-score	completed	success	124970102649
+budget-raise-gate / budget-raise-gate	completed	success	124970102483
+gate	completed	success	124969896845
+tests / mutation-autofix	completed	skipped	124969738616
+tests / mutation-pins	completed	skipped	124969738578
+pr-contract / pr-contract	completed	success	124969738178
+tests / ci-ratchet	completed	skipped	124966913027
+tests / graders-head-copy	completed	success	124966910493
+tests / coverage-ratchet	completed	success	124966910380
+tests / lane-proofs	completed	success	124966910366
+tests / closures-autofix	completed	skipped	124963435599
+tests / claims-autofix	completed	skipped	124962932898
+CodeQL	completed	success	124959144368
+tests / nightly-ha	completed	skipped	124959112651
+tests / replay	completed	skipped	124959112488
+tests / typing	completed	success	124959111206
+tests / fast (3.14)	completed	success	124959111119
+tests / browser	completed	success	124959111115
+tests / coverage	completed	success	124959111107
+tests / closures	completed	success	124959111097
+tests / arch-instrument	completed	success	124959111050
+kernel-points	completed	skipped	124958960804
+governance / record	completed	skipped	124958960540
+governance / delivery-status-publish	completed	skipped	124958960503
+tests / briefs	completed	success	124958959330
+governance / instrument-self-tests	completed	success	124958959223
+arch-score / arch-score	completed	success	124958959198
+tests / nightly-status	completed	success	124958959188
+codeql / Analyze (python)	completed	success	124958959178
+tests / mutation	completed	success	124958959174
+tests / closure-scope	completed	success	124958959170
+budget-raise-gate / budget-raise-gate	completed	success	124958959157
+validate / validate-hacs	completed	success	124958959077
+codeql / Analyze (javascript-typescript)	completed	success	124958959074
+governance / env-matrix	completed	success	124958959059
+governance / delivery-status	completed	success	124958959038
+governance / wave-script	completed	success	124958959021
+hassfest / hassfest	completed	success	124958959006
+governance / policy-docs	completed	success	124958959000
+codeql / Analyze (actions)	completed	success	124958958940
+prelude	completed	success	124958842794
+prelude	completed	success	124958842667
+refresh	completed	success	124958842646
+refresh	completed	success	124958842640
+cancel-superseded	completed	success	124958842515
+cancel-superseded	completed	success	124958842473
+arm	completed	skipped	124958837073
