@@ -1,0 +1,4 @@
+caller umask after the call: 0022
+r1 87abaed68871d3141b8221965d5a5860a075c43f under caller umask 022: log in existing dir mode 644; real gh saw umask 0022; missing state dir -> dir absent log absent
+caller umask after the call: 0022
+head a7e6a3e5dfa05028be5127fc7a60f512277d861c under caller umask 022: log in existing dir mode 600; real gh saw umask 0022; missing state dir -> dir 700 log 600
