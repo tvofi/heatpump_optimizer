@@ -10052,7 +10052,7 @@
    ],
    "architect_note": null,
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-merge-subject-casearm",
     "commit": "58952e9057b5e0abeb17e88f6007ca077f952c39",
     "last_step": null,
