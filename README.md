@@ -113,7 +113,7 @@ optional mould guard watches surface humidity. Safety — tank minimums, the
 legionella clock, the comfort floor — releases pinned slots it cannot honour and
 tells you which.
 
-**Fits your Home Assistant.** Since v5.0.0 entity names are translated (English
+**Fits your Home Assistant.** Entity names are translated (English
 and Swedish) and follow your Home Assistant language, without touching entity ids
 or history. Monetary units follow your instance currency.
 
@@ -306,8 +306,8 @@ installing rather than discover it after:
   refuses to arm the experiment on such a house and names the reason in the
   log, rather than running a night of excitation whose result the fit's
   guards would silently discard. A house whose floor coupling is fast enough
-  passes the same gate, and there a two-state estimator now exists behind
-  it (#942): a grey-box fit of the heat-loss coefficient and the slab mode's
+  passes the same gate, and there a two-state estimator sits behind
+  it: a grey-box fit of the heat-loss coefficient and the slab mode's
   own time constant — never the slab-mass/coupling split, which no window
   length can identify — carrying the ported intercept ridge and further
   gated on the window's own residual noise staying under ~0.02 °C, refusing
@@ -317,9 +317,9 @@ installing rather than discover it after:
 ## Installation
 
 > [!IMPORTANT]
-> **Home Assistant 2025.2.0 and Python 3.13 are the minimum, and that was a
-> breaking change.** An installation on an older Home Assistant stops being
-> offered updates through the Marketplace or HACS. Why the floor sits exactly there is in
+> **Home Assistant 2025.2.0 and Python 3.13 are the minimum.** An installation
+> on an older Home Assistant is not offered updates through the Marketplace or
+> HACS. Why the floor sits exactly there is in
 > [docs/architecture.md](./docs/architecture.md).
 
 [![Open your Home Assistant instance and open this repository.](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&repository=heatpump_optimizer&category=integration)
@@ -457,9 +457,7 @@ which end with a working entry. **Quick setup (recommended)** asks one page of
 questions about the house, reads the heat pump's entities automatically and
 returns to this menu; **Continue setup** walks the wizard screens below;
 **Finish setup now** goes straight to the review with shipped defaults you
-refine later in Options. Quick
-setup arrived in v6.6.5 — an install set up on an earlier version never saw
-the menu, and its entries are complete all the same.
+refine later in Options.
 
 **4 · Temperatures.** Your target (21 °C), the band you allow around it, and the
 comfort temperatures for day (21 °C) and night (19.5 °C) with the hours the day
@@ -535,11 +533,11 @@ its configuration or its first evidence, and saying which — so nothing appears
 and disappears under your dashboards. Twenty entities (nineteen sensors and
 the wood binary sensor) are disabled by default because the ordinary install
 cannot light them: optional probes and meters, the capacity tariff, PV, the
-wood furnace, niche hardware, and the one compatibility duplicate (#1669).
-They can be enabled from the entity registry,
+wood furnace, niche hardware, and the one compatibility duplicate (Upper Floor
+Temperature). They can be enabled from the entity registry,
 and an entity enabled later starts collecting from that moment.
 
-Since v5.0.0 the display names are translated (English and Swedish) and follow
+The display names are translated (English and Swedish) and follow
 your Home Assistant language; the tables below show the English names. Entity ids
 and history are unaffected by the language.
 
@@ -590,7 +588,7 @@ every sensor is created on every install regardless of which group it is in.
 | Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
 | Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Lifetime Space Heating Cost | CUR | Accumulating cost | |
-| DHW Cost (lifetime) | CUR | Accumulating cost | Renamed from Hot Water Cost by #174; existing installs keep their entity id |
+| DHW Cost (lifetime) | CUR | Accumulating cost | |
 | Lifetime Total Heating Cost | CUR | Accumulating cost | |
 
 #### The temperatures the optimizer works in
@@ -616,7 +614,7 @@ every sensor is created on every install regardless of which group it is in.
 | Learning Observed COP | — | Efficiency from measurement rather than the nameplate curve | Needs measured power |
 | Measured Power | kW | Real electrical draw, with the commanded power alongside | Disabled by default; unavailable until a power or energy entity is configured |
 | Lifetime Space Heating Energy | kWh | Accumulating, for the Energy dashboard | |
-| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | Renamed from Hot Water Energy by #174; existing installs keep their entity id |
+| DHW Energy (lifetime) | kWh | Accumulating, for the Energy dashboard | |
 | Lifetime Total Energy | kWh | Accumulating, for the Energy dashboard | |
 | Cost Monthly Peak Power | kW | The peak the capacity tariff is billed on, and the headroom left | Disabled by default; unavailable unless the capacity tariff is enabled |
 | Cost Power Headroom | kW | What the house can draw right now without new cost — a number an EV charger's dynamic limit can follow | Disabled by default; unavailable until a main fuse or capacity tariff bounds the house |
@@ -627,7 +625,7 @@ every sensor is created on every install regardless of which group it is in.
 
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
-| Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | Absorbed the former Solar Radiation sensor in v5.0.0 |
+| Solar Irradiance | W/m² | The irradiance the plan uses, with the forecast horizon in attributes | |
 | Solar Heat Gain | kW | Passive solar gain through the windows right now | |
 | Solar Surplus Forecast | kWh | Forecast PV surplus the heat pump could absorb | Disabled by default; unavailable unless PV is enabled |
 | Thermal Battery Charge | % | State of charge of house and tanks against the comfort band | Unavailable when no store is sensed at all; `components[].measured` and `modelled_components` say which stores are estimated |
@@ -638,7 +636,7 @@ every sensor is created on every install regardless of which group it is in.
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
 | DHW Setpoint Advisor | °C | The cheapest hot-water setpoint that still covers your heavy days | Diagnostic; unavailable until there is a recommendation |
-| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default unless the tank thermometer is configured at setup; unavailable without it; renamed from Mixed Hot Water by #174 |
+| DHW Mixed Water | L | Litres of 40 °C water the tank holds now, with shower minutes alongside | Disabled by default unless the tank thermometer is configured at setup; unavailable without it |
 | DHW Heavy Day Demand | kWh | The learned 90th-percentile draw per demand window | Diagnostic; disabled by default; needs weeks of data |
 
 #### How well it is doing, and what it has learned
@@ -662,10 +660,10 @@ Lower Floor Temperature, Measured Power, Slab Temperature (Estimated), Solar
 Surplus Forecast, Upper Floor Temperature, Valve Target Recommendation,
 Wood-Burn Night Advisor and Wood Cheaper Than Heat Pump.
 
-Since #1335 that list is every entity the ordinary install cannot light — the
+That list is every entity the ordinary install cannot light — the
 machinery advisories, the optional probes and meters, the capacity tariff, PV
-and the wood furnace — not only the six niche-hardware sensors it used to be.
-It also carries the one compatibility duplicate (#1669): Upper Floor
+and the wood furnace.
+It also carries the one compatibility duplicate: Upper Floor
 Temperature republishes Indoor Temperature, so it ships off even though the
 ordinary install can produce its number.
 That list assumes hot water itself is configured. Without a hot water tank
@@ -683,7 +681,7 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | External Heat Source | Something other than the heat pump is heating the tanks | Evidence in attributes |
 | Away Mode | The away setback is active | Return time and recovery state in attributes |
 | Mold Floor Breach | The measured room sits below the mold-safe floor the plan promises | Diagnostic; on when the measured room is below the mold floor by the configured margin (default 0.5 °C), typically because space heating is blocked. `floor_c`, `shortfall_c` and `space_blocked` in attributes |
-| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Price and cheaper-hour count in attributes |
+| Wood Cheaper Than Heat Pump | Burning wood costs less per kWh than running the heat pump | Disabled by default. Unavailable until the furnace is on, a wood-tank probe is set, external-heat detection or the DHW wood coil is on, type and packing are set, the billed price per m³ is greater than 0 (no silent default), and furnace efficiency is 10–95 %. A usable wood tank alone is not enough. Attributes: `sek_per_kwh` (wood's price per kWh), `cheaper_hour_count`, `cheaper_windows` (today's runs of planned heat-pump steps whose heat costs more than wood's, each a `start` and `end` in local time) and `lighting_start` / `lighting_end` (when to light the furnace: from the wood page's lead time before the first window, never before the plan's current step, to that window's start). On a day with no cheaper window, `cheaper_windows` is empty and both lighting times are empty |
 
 ### Buttons (6 total)
 
@@ -697,6 +695,17 @@ Heating Schedule, DHW Setpoint Advisor and Plan DHW Heating (next 24 h).
 | Prediction Accuracy Diagnose Last Interval | Explain the last interval's temperature error input by input, on the Prediction Accuracy sensor |
 
 ### Switches, climate and datetime entities
+
+| Entity | Platform | What it does |
+|---|---|---|
+| Optimizer Active | switch | Turns the optimizer on and off |
+| Away | switch | Turns the away setback on and off |
+| Away Expected Return | datetime | When you expect to be back; the recovery heat is bought before it |
+| DHW Boost | switch | Maximum hot water heat for two hours |
+| Boost Space Heating | switch | Maximum space heat for two hours |
+| Block DHW | switch | Holds hot water heating at zero for two hours |
+| Block Space Heating | switch | Holds space heating at zero for two hours |
+| Heat Pump Optimizer | climate | A virtual thermostat for your comfort target |
 
 **Optimizer Active** turns the optimizer on and off. Turning it on only acts from
 *off* — it never clobbers a comfort or economy mode you selected deliberately.
@@ -1027,11 +1036,43 @@ attribute says which entity and why (e.g. `sensor.tank: stale (last report 600
 min)`). Then press **Prediction Accuracy Diagnose Last Interval** and read the attribution on
 **Prediction Accuracy**.
 
+### Repair notices
+
+Some problems are raised as notices under **Settings → System → Repairs**.
+Each clears itself once the cause is gone.
+
+- **Heat pump efficiency has dropped** — the pump delivers noticeably less heat per kWh than it did under the same conditions, with the monthly cost. Check the filter, the refrigerant and defrost.
+- **Learned model is drifting** — predictions have been off for several days. Check that the sensors read sensibly; the `restore_learned_snapshot` service rolls the learners back to the last healthy weekly snapshot.
+- **Learned model was restored from a snapshot** — the drift above happened while every input looked healthy, so the learners were rolled back automatically. Nothing is required.
+- **Frequency control stood down** — the compressor frequency kept diverging from the commanded value, so frequency control fell back to observe. Check the entity, then switch the frequency mode to observe, save, and back to control.
+- **Optimization keeps failing; the plan is going stale** — several solves in a row failed. Once the plan is a few intervals old the pump is handed back to its own heating curve. Look for a lost price or weather connection, or a solver error in the log.
+- **Planning fell back to the slow in-process solver** — the separate solver process could not be used, so Home Assistant may feel briefly unresponsive on each solve. Attach the reported cause and the log to a bug report.
+- **Floor return temperature sensor is not reporting** — the slab temperature is carried forward from the plan's prediction until the sensor reads again. Check the entity, or clear the slot.
+- **Heat pump operating mode entity is not reporting** — the plan stops being held to the last mode it read. Check the entity, or clear the slot.
+- **The pump's disinfection switch may still be on** — a disinfection switch the optimizer turned on cannot be read any more. Check the pump and turn the switch off by hand.
+- **The pump's disinfection switch could not be set** — Home Assistant refused the write. It is retried on every update; check the entity, or set the switch mode back to observe.
+- **Hot water disinfection is overdue: the heat pump's mode blocks it** — the pump reports a mode that makes no hot water, so the cycle cannot be scheduled. Change the pump's mode.
+- **Hot water has not been disinfected for N days** — no cycle has been confirmed at temperature within the interval. An immersion heater for the last few degrees, or a disinfection temperature the system can hold, is the usual answer.
+- **Hot water is not reaching the disinfection temperature** — the cycle ran and the tank fell short. Same remedies as above; the cycle is retried about a day later.
+- **The disinfection cycle cannot be verified** — no tank temperature sensor confirms the cycle. Assign the *Hot water tank temperature sensor* to a real probe.
+- **Disinfection goes above your hot water charge limit** — the disinfection temperature is above the charge limit. That is allowed; the notice says so, so the one hot day per interval is no surprise.
+- **The price feed and Home Assistant name different currencies** — costs are published in the feed's currency. Set Home Assistant's currency to match, or choose a price sensor in it.
+- **A price entity reports a unit the optimizer cannot read** — the number is used as published. Choose a sensor that prices per kWh, MWh or Wh in a currency or its hundredth.
+- **A configured grid fee looks 100× too large** — almost always öre or cents entered where whole currency was meant. Correct it on **Transfer fees and contract**.
+- **A configured grid fee is negative** — almost always a sign slip. Correct it on **Transfer fees and contract**.
+- **The downstairs temperature is modelled, not measured** — two-zone planning without a lower-floor thermometer. Assign the *Lower floor temperature sensor* to remove it.
+- **Your comfort temperatures contradict each other** — the stored band cannot all be met at once, for example a target above the warmest acceptable temperature. Fix the band on **Comfort and temperatures**.
+- **The heat pump's hot water set-point is below the configured temperature** — the pump's own set-point stops it reaching the disinfection or minimum temperature. The notice's fix writes the needed value to the pump's entity.
+- **The space-heating set-point entity is not reporting** — the set-point entity is missing or unreadable. Check it, or clear the slot.
+- **The heat pump does not hold a setting the optimizer wrote** — the pump reads back something else after two writes. To change the pump by hand, turn **Optimizer Active** off first.
+- **Stored learning could not be read** — stored data from another version could not be read, so that part of what was learned starts again from defaults. The integration keeps running.
+- **Silent windows are not enforced** — the capacity-limited slot is not a switch the integration can hold. Assign the pump's own night-mode switch, or remove the silent windows.
+
 ## ECL110 heat-curve control
 
 The integration can drive a Danfoss ECL110-compatible controller over MQTT,
 publishing a heat-pump on/off decision and an integer parallel shift (*displace*)
-onto the controller's own heat curve. Since v4.1.0 the ECL110 settings live only
+onto the controller's own heat curve. The ECL110 settings live only
 on the **Heat curve control (ECL110)** options page, not in initial setup, and
 both ECL110 sensors are disabled by default. The MQTT topics ship empty;
 nothing is published or subscribed until you set a topic, so an install without

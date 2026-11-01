@@ -3,7 +3,8 @@
 
     python3 -I tools/audit/seat/pulse.py [--repo OWNER/REPO] [--remote R]
         [--checkout DIR] [--opener-h H] [--verdict-h H] [--state-min M]
-        [--seat-queue SEAT=FILE[:MIN]]... [--dump FILE]
+        [--seat-queue SEAT=FILE[:MIN]]... [--seat-alive SEAT=FILE[:MIN]]...
+        [--launch-ledger FILE] [--dump FILE]
     python3 -I tools/audit/seat/pulse.py --snapshot FILE [--now EPOCH] [bounds]
     python3 -I tools/audit/seat/pulse.py --self-test
 
@@ -59,6 +60,28 @@ STOPPED, else 2 when any is UNREADABLE, else 0. An input it could not read is
 UNREADABLE and never ok: a shut fetch or a refused API call is not a clean
 board. A stamp ahead of the reading clock is an unknowable age (fixer.md step
 16): never aged, and named `skew` in the detail.
+
+WHO BEAT (R10-ORCH-BEATD; P46, P97, P299). A seat whose liveness is an alive
+file is judged by `--seat-alive SEAT=FILE[:MIN]`, one arm `seat-alive-<seat>`.
+FILE is the per-role file; each seat process also touches its own entry
+`FILE.d/<id>` (a role's file `merge.alive` has its entries in `merge.alive.d/`;
+the id is the launch nonce). Round 10 found a process that is not the seat the
+board names keeping the per-role file fresh four times (a 41 h orphan loop kept
+merge.alive fresh with no merge seat and the board printed `ok` across a
+session handover), so the per-role file alone never makes a role live:
+  missing FILE                  UNREADABLE
+  FILE older than MIN (or the   STOPPED, `seat <name>: alive file ...`
+    seat's STANDING cadence)
+  two or more fresh ids         STOPPED, `DUPLICATE seat <role>: <id> <id>`
+  FILE fresh, no id fresh       STOPPED, `FOREIGN <role>: unattributed beat`
+  `--launch-ledger FILE` given  a fresh id that is not the newest launch line
+    (`<ts> <nonce> <role> ...` for the role without a stop line (`<ts> <nonce>
+    and `<ts> <nonce> stop`)    stop`) is STOPPED, `FOREIGN <role>: <id> (newest
+                                launch <nonce>)`; a role with no unstopped launch
+                                has no newest, and its fresh id is foreign too
+Everything else is ok, a fresh id under the newest unstopped launch included
+however many older launches have no stop line (they are the ledger's, not a
+beat). One stale id beside one fresh is ok: only fresh ids are counted.
 
 What it does not see, stated: a programme with nothing owed reads ok however
 long it has been stopped -- no cost accrues there but time; a consumer whose
@@ -197,6 +220,39 @@ def judge_queue(q: dict | None, now: float, seat: str) -> tuple[str, str]:
     return "ok", f"seat {seat}: {len(q['entries'])} queued, each under its {cadence / 60:g} min cadence{extra}"
 
 
+def newest_launch(ledger: dict, role: str) -> str | None:
+    """The nonce of the role's newest launch line that has no stop line."""
+    stops = set(ledger.get("stops") or [])
+    live = [(t, n) for t, n, r in ledger["launches"] if r == role and n not in stops]
+    return max(live, key=lambda x: x[0])[1] if live else None
+
+
+def judge_alive(a: dict | None, ledger: dict | None, now: float, seat: str) -> tuple[str, str]:
+    """One standing seat's alive file, attributed: the per-role file is fresh
+    only as the seat's own beat when a fresh id entry stands beside it (and,
+    given the launch ledger, that entry is the role's newest launch)."""
+    if not isinstance(a, dict) or a.get("role_t") is None or not isinstance(a.get("ids"), dict):
+        return "UNREADABLE", f"seat {seat}: its alive file could not be read"
+    if ledger is not None and ledger.get("launches") is None:
+        return "UNREADABLE", f"seat {seat}: the launch ledger could not be read"
+    cadence = float(a.get("cadence_min") or STANDING[seat]) * 60
+    age = _age(now, a["role_t"])
+    if age is None:
+        return "UNREADABLE", f"seat {seat}: its alive file is stamped ahead of the clock (skew)"
+    if age > cadence:
+        return "STOPPED", f"seat {seat}: alive file {age / 60:.0f} min old, past its {cadence / 60:g} min cadence"
+    fresh = sorted(i for i, t in a["ids"].items() if (g := _age(now, t)) is not None and g <= cadence)
+    if len(fresh) > 1:
+        return "STOPPED", f"DUPLICATE seat {seat}: {' '.join(fresh)}"
+    if not fresh:
+        return "STOPPED", f"FOREIGN {seat}: unattributed beat"
+    if ledger is not None:
+        newest = newest_launch(ledger, seat)
+        if fresh[0] != newest:
+            return "STOPPED", f"FOREIGN {seat}: {fresh[0]} (newest launch {newest or 'none'})"
+    return "ok", f"seat {seat}: beat {age / 60:.0f} min ago by {fresh[0]}"
+
+
 def seat_of(arm: str, snap: dict, now: float, bound: float) -> str:
     """The standing seat an origin arm's owed input waits on. The verdict arm's
     is the merge seat when its oldest owed verdict is a merge, else dispatch."""
@@ -220,6 +276,8 @@ def judge(snap: dict, bounds: dict) -> list[tuple[str, str, str]]:
         rows.append((arm, word, detail))
     for seat, q in (snap.get("seat_queues") or {}).items():
         rows.append((f"seat-{seat}", *judge_queue(q, now, seat)))
+    for seat, a in (snap.get("seat_alives") or {}).items():
+        rows.append((f"seat-alive-{seat}", *judge_alive(a, snap.get("launch_ledger"), now, seat)))
     return rows
 
 
@@ -331,16 +389,58 @@ def repo_of(cwd: str, remote: str) -> str | None:
     return m.group(1) if m else None
 
 
+def split_spec(spec: str) -> tuple[str, str, str]:
+    """`SEAT=FILE[:MIN]` -> (seat, file, min-or-empty)."""
+    seat, _, rest = spec.partition("=")
+    path, _, mins = rest.partition(":") if re.search(r":\d+(\.\d+)?$", rest) else (rest, "", "")
+    return seat, path, mins
+
+
 def read_queue(spec: str) -> tuple[str, dict | None]:
     """`SEAT=FILE[:MIN]` -> (seat, {"entries": [epoch...], "cadence_min": MIN}),
     the entries None when the file is missing or a line is not `<epoch> <text>`."""
-    seat, _, rest = spec.partition("=")
-    path, _, mins = rest.partition(":") if re.search(r":\d+(\.\d+)?$", rest) else (rest, "", "")
+    seat, path, mins = split_spec(spec)
     try:
         entries = [int(l.split()[0]) for l in Path(path).read_text().splitlines() if l.strip()]
     except (OSError, ValueError):
         entries = None
     return seat, {"entries": entries, "cadence_min": float(mins) if mins else None}
+
+
+def read_alive(spec: str) -> tuple[str, dict | None]:
+    """`SEAT=FILE[:MIN]` -> (seat, {"role_t", "ids": {id: mtime}, "cadence_min"}).
+    role_t is None when FILE is missing; the ids are `FILE.d/*` mtimes, none
+    when that directory is absent (a fresh FILE with no id is then foreign)."""
+    seat, path, mins = split_spec(spec)
+    try:
+        role_t = int(os.stat(path).st_mtime)
+    except OSError:
+        role_t = None
+    ids = {}
+    d = Path(path + ".d")
+    if d.is_dir():
+        for e in d.iterdir():
+            try:
+                ids[e.name] = int(e.stat().st_mtime)
+            except OSError:
+                pass
+    return seat, {"role_t": role_t, "ids": ids, "cadence_min": float(mins) if mins else None}
+
+
+def read_ledger(path: str) -> dict:
+    """The launch ledger: `<ts> <nonce> <role> ...` launches and `<ts> <nonce>
+    stop` stops; launches None when the file is missing or a line is malformed."""
+    launches, stops = [], []
+    try:
+        for line in Path(path).read_text().splitlines():
+            f = line.split()
+            if not f:
+                continue
+            ts, nonce, what = int(f[0]), f[1], f[2]
+            (stops.append(nonce) if what == "stop" else launches.append((ts, nonce, what)))
+    except (OSError, ValueError, IndexError):
+        return {"launches": None, "stops": []}
+    return {"launches": launches, "stops": stops}
 
 
 def snapshot_live(cwd: str, remote: str, repo: str | None) -> dict:
@@ -512,6 +612,71 @@ def self_test() -> int:
         bad = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(f), "--seat-queue", f"janitor={qf}"],
                              capture_output=True, text=True)
         check("--seat-queue refuses a seat no contract defines", bad.returncode == 2 and "janitor" in bad.stderr)
+    # WHO BEAT: the per-role alive file alone never makes a seat live.
+    def alive(role_min=1, ids=None, mins=None):
+        return {"seat_alives": {"merge": {"role_t": now - role_min * 60, "cadence_min": mins,
+                "ids": {i: now - m * 60 for i, m in (ids or {}).items()}}}}
+
+    def one(extra, led=None):
+        s = snap(**extra)
+        if led is not None:
+            s["launch_ledger"] = led
+        return {a: (w, d) for a, w, d in judge(s, B)}["seat-alive-merge"]
+
+    L = {"launches": [(now - 9 * H, "old", "merge"), (now - 3 * H, "new", "merge"), (now - 2 * H, "x", "tick")],
+         "stops": []}
+    check("a fresh per-role file with no id entry is FOREIGN, STOPPED-class (the P299 orphan loop)",
+          one(alive(1, {})) == ("STOPPED", "FOREIGN merge: unattributed beat"))
+    check("a stale per-role file is STOPPED, and a stale id entry beside it cannot save it",
+          one(alive(130, {"new": 1}))[0] == "STOPPED"
+          and one(alive(130, {"new": 1}))[1].startswith("seat merge: alive file 130 min old"))
+    check("a per-role file fresh beside only a stale id entry is FOREIGN, never ok",
+          one(alive(1, {"new": 130}))[1] == "FOREIGN merge: unattributed beat")
+    check("one fresh id entry beside a fresh per-role file is ok", one(alive(1, {"new": 1}))[0] == "ok")
+    check("null control: one fresh id and one stale id is not DUPLICATE",
+          one(alive(1, {"new": 1, "old": 300}))[0] == "ok")
+    check("two fresh ids of one role print DUPLICATE seat <role>: <id> <id>",
+          one(alive(1, {"b": 1, "a": 2})) == ("STOPPED", "DUPLICATE seat merge: a b"))
+    check("a missing alive file is UNREADABLE, never skipped",
+          one({"seat_alives": {"merge": {"role_t": None, "ids": {}, "cadence_min": None}}})[0] == "UNREADABLE")
+    check("a MIN override widens the cadence: a 90 min old file is ok at :120",
+          one(alive(90, {"new": 90}, mins=120))[0] == "ok")
+    check("with the ledger, a fresh id that is the newest unstopped launch is ok even when an older launch has no stop line (null)",
+          one(alive(1, {"new": 1}), L)[0] == "ok")
+    check("with the ledger, a fresh id under an older launch is FOREIGN naming the newest",
+          one(alive(1, {"old": 1}), L) == ("STOPPED", "FOREIGN merge: old (newest launch new)"))
+    stopped = {"launches": L["launches"], "stops": ["new"]}
+    check("a stop line retires a launch: the next-newest becomes the one a beat must come from",
+          one(alive(1, {"old": 1}), stopped)[0] == "ok" and one(alive(1, {"new": 1}), stopped)[0] == "STOPPED")
+    check("a role with every launch stopped has no newest: its fresh id is FOREIGN (newest launch none)",
+          one(alive(1, {"new": 1}), {"launches": L["launches"], "stops": ["old", "new"]})[1]
+          == "FOREIGN merge: new (newest launch none)")
+    check("an unreadable launch ledger is UNREADABLE", one(alive(1, {"new": 1}), {"launches": None, "stops": []})[0] == "UNREADABLE")
+    with tempfile.TemporaryDirectory() as td:
+        t = Path(td)
+        af, lf = t / "merge.alive", t / "ledger"
+        af.write_text("")
+        (t / "merge.alive.d").mkdir()
+        (t / "merge.alive.d" / "new").write_text("")
+        lf.write_text(f"{now - 9 * H} old merge x\n{now - 3 * H} new merge y\n\n{now - 2 * H} old stop\n")
+        seat, al = read_alive(f"merge={af}:30")
+        check("read_alive reads the per-role mtime, the FILE.d entries and the :MIN override",
+              seat == "merge" and al["role_t"] == int(af.stat().st_mtime) and list(al["ids"]) == ["new"]
+              and al["cadence_min"] == 30.0)
+        check("read_alive reads a missing file as role_t None", read_alive(f"merge={t / 'gone'}")[1]["role_t"] is None)
+        check("read_ledger pairs a stop with its nonce and a malformed line is unreadable",
+              read_ledger(str(lf)) == {"launches": [(now - 9 * H, "old", "merge"), (now - 3 * H, "new", "merge")],
+                                       "stops": ["old"]}
+              and read_ledger(str(t / "gone"))["launches"] is None)
+        (t / "bad").write_text("12 onlytwo\n")
+        check("a ledger line with fewer than three fields is unreadable", read_ledger(str(t / "bad"))["launches"] is None)
+        live = subprocess.run([sys.executable, "-I", __file__, "--seat-alive", f"merge={af}", "--launch-ledger", str(lf),
+                               "--repo", "x/y", "--checkout", td], capture_output=True, text=True)
+        check("the CLI accepts --seat-alive and --launch-ledger and prints a seat-alive-merge arm",
+              "PULSE seat-alive-merge" in live.stdout)
+        badseat = subprocess.run([sys.executable, "-I", __file__, "--snapshot", str(t / "none"), "--seat-alive", f"janitor={af}"],
+                                 capture_output=True, text=True)
+        check("--seat-alive refuses a seat no contract defines", badseat.returncode == 2 and "janitor" in badseat.stderr)
     # The CLI: --snapshot judges a dumped board, and the exit codes are 1 / 2 / 0.
     with tempfile.TemporaryDirectory() as td:
         codes = []
@@ -542,11 +707,16 @@ def main(argv: list[str]) -> int:
     ap.add_argument("--dump", type=Path, help="write the live snapshot judged here")
     ap.add_argument("--seat-queue", action="append", default=[], metavar="SEAT=FILE[:MIN]",
                     help="judge a standing seat on its local queue file (repeatable)")
+    ap.add_argument("--seat-alive", action="append", default=[], metavar="SEAT=FILE[:MIN]",
+                    help="judge a standing seat on its alive file and per-id entries FILE.d/ (repeatable)")
+    ap.add_argument("--launch-ledger", metavar="FILE",
+                    help="with --seat-alive: the launch ledger the fresh id must be the newest unstopped launch of")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args(argv)
-    bad = [s for s in a.seat_queue if s.partition("=")[0] not in STANDING or not s.partition("=")[2]]
-    if bad:
-        ap.error(f"--seat-queue takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)}: {bad}")
+    for flag, specs in (("--seat-queue", a.seat_queue), ("--seat-alive", a.seat_alive)):
+        bad = [s for s in specs if s.partition("=")[0] not in STANDING or not s.partition("=")[2]]
+        if bad:
+            ap.error(f"{flag} takes SEAT=FILE[:MIN], SEAT one of {', '.join(STANDING)}: {bad}")
     if a.self_test:
         return self_test()
     b = bounds_s(a.opener_h, a.verdict_h, a.state_min)
@@ -557,6 +727,9 @@ def main(argv: list[str]) -> int:
     else:
         snap = snapshot_live(a.checkout, a.remote, a.repo or repo_of(a.checkout, a.remote))
         snap["seat_queues"] = dict(map(read_queue, a.seat_queue))
+        snap["seat_alives"] = dict(map(read_alive, a.seat_alive))
+        if a.launch_ledger:
+            snap["launch_ledger"] = read_ledger(a.launch_ledger)
         if a.dump:
             a.dump.write_text(json.dumps(snap, indent=1) + "\n")
     return report(judge(snap, b), snap["now"])

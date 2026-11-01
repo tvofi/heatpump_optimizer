@@ -63,7 +63,7 @@ install with no entry yet has it off, so this never fires on first setup.)
 Every route ends on the same read-only review screen, and confirming there is
 what actually creates the entry.
 
-### 1 · Basics
+### 1 · Basics — Heat Pump Optimizer Setup
 
 Where the prices, the forecast and your own measurements come from. The token
 is checked against Tibber before the flow continues, and a network failure is
@@ -72,9 +72,9 @@ reported as a connection problem rather than as a bad token.
 | Setting | Default | What it means |
 |---|---|---|
 | Name for this integration | Heat Pump Optimizer | Shown in front of every entity this integration creates. |
-| Price source | Tibber | Where hourly electricity prices come from: Tibber (needs the token below) or a price sensor entity you already have. |
+| Electricity price source | Tibber | Where hourly electricity prices come from: Tibber (needs the token below) or a price sensor entity you already have. |
 | Tibber API token | — (**required with the Tibber source**) | Reads your hourly electricity prices. Create one at developer.tibber.com. The field still shows when the price source is a price entity — not needed then, so leave it empty. |
-| Price entity | — (**required with the price-entity source**) | A `sensor` publishing the current electricity price, read instead of Tibber. |
+| Price sensor (Nord Pool or similar) | — (**required with the price-entity source**) | A `sensor` publishing the current electricity price, read instead of Tibber. |
 | Weather forecast | — (**required**) | A `weather` entity supplying outdoor temperature, wind and rain for the next 24 hours. The optimizer plans ahead, so a forecast is not optional. |
 
 ### 2 · Optional sensors
@@ -93,23 +93,74 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Lower floor temperature sensor | none | Two-zone houses only. Without it the lower zone is modelled from the main room sensor and labelled as modelled on the plan chart; a repair notice says so. |
 | Hot water tank temperature sensor | none | Recommended. Lets a manual hot-water boost reset the anti-legionella timer, and unlocks the learned draw quantiles. Without one, a disinfection cycle the plan commands resets the countdown but is recorded as an *attempt* rather than a verified cycle, and a note in Repairs says the cycle cannot be verified. |
 | Buffer tank temperature sensor | none | When set, the tank's cooling rate is learned instead of assumed. |
-| Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything, exactly as before. |
+| Heat pump operating mode | none | The pump's own mode selector — cooling, heating, hot water, or a combination of two. Read only unless **Pump duty control** is set to Control. Left empty, the optimizer assumes the pump can do everything. |
 | Defrosting | none | On while the pump reverses to melt frost off the outdoor coil. A sample of defrost activity, not a stopwatch — many pumps are only polled every few minutes. |
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
 | Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
 
-The Danfoss ECL110 MQTT fields were asked here until v4.1.0. Eight questions
+The Danfoss ECL110 MQTT settings are not asked during setup. Eight questions
 only ECL110 owners can answer do not belong on everyone's first screen, so they
-now live on their own options page — where both MQTT topics ship empty and
-nothing is published or subscribed until a topic is set (see
-[ecl110.md](ecl110.md)); an install without an ECL110 never touches the
-topics.
+live on their own options page, where both MQTT topics ship empty and nothing
+is published or subscribed until a topic is set (see [ecl110.md](ecl110.md));
+an install without an ECL110 never touches the topics.
 
-### 3 · The finish menu
+### 3 · The finish menu — Finish setup now?
 
 After the optional sensors the flow asks **Finish setup now?** with three answers, drawn in the diagram above: **Quick setup (recommended)**, **Continue setup** and **Finish setup now**. Quick setup and its pre-fill return to this menu; Continue setup runs the screens numbered 4 to 7 below; Finish setup now goes to the review. Nothing else on this menu has fields of its own.
 
-### 4 · Temperatures
+### The Quick setup screen
+
+**Quick setup (recommended)** asks the whole house on one page: five yes/no
+questions, the two wood-tank probes, and the six building questions from
+[Describe your building](#describe-your-building). What each answer means is
+in [setup.md](setup.md#quick-setup-recommended).
+
+| Setting | Default | What it means |
+|---|---|---|
+| Two-zone house | off | Two separately heated floors, balanced against each other. |
+| Buffer tank | off | A tank between the pump and the heating circuits large enough to store heat (recorded as 500 L). |
+| Hot water tank | on | The pump keeps a domestic hot water tank. Off removes hot water from the plan. |
+| Wood furnace | off | A wood furnace heats the same water loop. |
+| Wood buffer tank | off | A second tank the wood furnace heats. |
+| Wood tank top sensor (optional) | none | With the bottom sensor, says how much a fire has left. |
+| Wood tank bottom sensor (optional) | none | See the top sensor. Both are needed for the remaining-energy estimate. |
+| What the house is built from | Timber frame on a concrete slab | As on [Describe your building](#describe-your-building). |
+| Roughly when it was built | 1980–2005 | As above. |
+| Foundation | Slab on ground | As above. |
+| Heated floor area | 140 m² | As above. |
+| Upper floor heating | Radiators | As above. |
+| Lower floor heating | Floor heating | As above. |
+
+### The Pre-fill from a heat pump device screen
+
+After Quick setup, and on the full path when the offer is switched on, this
+screen reads the heat pump's own entities. The first submit names the device;
+the second shows what its entities suggest, as ordinary fields you can edit or
+clear. Nothing is written until that second submit, and leaving the device
+empty skips the screen. Where each suggestion comes from is listed under
+[Pre-fill from a heat pump device](#pre-fill-from-a-heat-pump-device).
+
+| Setting | Default | What it means |
+|---|---|---|
+| Heat pump device | none | The pump's device. Leave it empty to skip. |
+| Highest tank temperature to charge to | read from the device | The pump's own hot water setpoint. |
+| Anti-legionella temperature | read from the device | The pump's anti-legionella setpoint. |
+| Hot water temperature you need | read from the device | The pump's economy hot water setpoint. |
+| When you need hot water | read from the device | The pump's hot water schedule. Keeping it turns hot water planning on. |
+| Anti-legionella interval | read from the device | The pump's anti-legionella schedule. |
+| Pump's own night-mode schedule | read from the device | When the pump limits itself to its quiet mode. |
+| Heat pump max power (kW) | read from the device | The unit's capacity divided by the nominal COP. |
+| What that set-point entity expects | read from the device | Flow temperature when the pump runs on water temperature control. |
+| What the control entity expects | read from the device | The same, for a mixing valve, only where the two-zone model is configured. |
+| Outdoor temperature sensor | read from the device | Suggested only while the slot is empty. |
+| Hot water tank temperature sensor | read from the device | Suggested only while the slot is empty. |
+| Supply (flow) water temperature | read from the device | Suggested only while the slot is empty. |
+| Return water temperature | read from the device | Suggested only while the slot is empty. |
+| Actual frequency sensor (recommended for control) | read from the device | Suggested only while the slot is empty. |
+| Capacity limited (night mode) | read from the device | Suggested only while the slot is empty. |
+| After saving | Menu | The options page's own navigation control, shown on this form too; setup continues to the finish menu whatever it says. |
+
+### 4 · Temperature Settings
 
 The gap between your target and your minimum is what makes savings possible:
 the wider it is, the further the house may coast through an expensive hour.
@@ -133,7 +184,9 @@ end). The same checks run on the options page later.
 
 ### 5 · Your building — two ways to answer
 
-**Describe my building (recommended).** Six questions with answers a homeowner
+#### Describe your building
+
+**Describe my building (recommended)** opens this screen. Six questions with answers a homeowner
 knows, from which the thermal masses, the heat-loss coefficient and the slab
 parameters are derived. These are starting values; the self-learning model
 corrects them from how the house actually behaves, so they need not be exact.
@@ -146,6 +199,8 @@ corrects them from how the house actually behaves, so they need not be exact.
 | Heated floor area | 140 m² | 20–1000, 5 steps | Everything is scaled by this, so it is the number worth getting closest to right. |
 | Upper floor heating | Radiators | Radiators · Floor heating | Radiators respond in minutes, floor heating in hours. This sets how far ahead heat can usefully be shifted. |
 | Lower floor heating | Floor heating | Radiators · Floor heating | A heated slab is a large store that gets actively charged, which makes pre-heating both more valuable and more necessary. |
+
+#### Your heat pump
 
 Then three numbers off the heat pump's nameplate:
 
@@ -161,8 +216,10 @@ on, and a fresh install should not be given a two-zone model it did not ask
 for. If your house does have two independently modelled floors, turn it on
 afterwards on **Advanced settings → Thermal model (expert)**.
 
-**Enter thermal values directly** is for someone holding a real energy
-declaration. It asks the model's own numbers:
+#### Thermal Model & Optimization
+
+**Enter thermal values directly** opens this screen. It is for someone holding a real energy
+declaration, and asks the model's own numbers:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -178,10 +235,13 @@ declaration. It asks the model's own numbers:
 | How hard to chase low prices | 1.0 | 0.1–10, 0.1 steps | Higher moves more heating into cheap hours, at the cost of more temperature swing. |
 | How strictly to hold the temperature | 5.0 | 0.1–20, 0.1 steps | The counterweight. Around 5 lets the house drift freely inside your allowed range; 10 keeps it noticeably closer to target; 20 or more behaves like an ordinary thermostat. |
 
-followed by the two-zone and solar page:
+#### Two-Zone & Solar Configuration
+
+The direct path continues on the two-zone and solar screen:
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
+| The house has two zones (two floors heated separately) | unticked | on/off | On: the two-zone model runs and the zone fields below apply. Off: the house is modelled as one zone whatever the fields say. An untouched screen answers no. |
 | Upper floor thermal mass | 3.0 kWh/°C | 0.25–60 | Heat stored in the upper zone. Usually much lower than a heated slab, so the zone reacts faster. |
 | Lower floor thermal mass | 8.0 kWh/°C | 0.25–60 | Heat stored in the lower zone. |
 | Upper floor heat loss | 0.08 kW/°C | 0.001–1.0 | The upper zone's own loss coefficient. |
@@ -194,11 +254,11 @@ followed by the two-zone and solar page:
 | Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. 1.0 suits mostly south-facing windows. |
 | How much sunlight the windows let through | 0.7 | 0.1–1.0 | The glazing's solar heat gain coefficient. About 0.6 for modern triple glazing. |
 
-Filling in any of the upper mass, lower mass, inter-zone transfer or radiator
-share is what turns the two-zone model on. That is why this page is skipped on
-the questionnaire path.
+The tick box at the top decides the two-zone model; the zone fields only apply
+while it is on. The questionnaire path skips this screen, so a fresh install
+is single-zone until you turn two-zone on.
 
-### 6 · Hot water
+### 6 · Hot water — Domestic Hot Water (DHW) Configuration
 
 Tell the optimizer when you actually need hot water. It then guarantees a
 usable tank temperature during those periods and heats in the cheapest hours
@@ -207,6 +267,7 @@ the saving comes from.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
+| The house has a hot water tank | unticked, or your Quick setup answer | on/off | On: hot water is planned and the tank charged. Leave it off unless the heat pump really heats a tank; the other fields only apply while it is on. |
 | Hot water tank size | 200 L | 50–1500, 10 steps | A larger tank stores more cheap electricity and can skip more expensive hours. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
 | Hot water temperature you need | 45 °C | 35–55 | Guaranteed inside the time frames below. Must be at least 5 °C below the charge limit, or the plan sits in permanent slight violation. |
@@ -215,7 +276,7 @@ the saving comes from.
 | Only guarantee hot water at set times | on | on/off | Off keeps the tank hot around the clock, which costs noticeably more. |
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes — one planning step; a shorter one can fall between two steps and never take effect. Leave empty to let the integration learn your habits from actual usage. |
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
-| Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
+| Run an anti-legionella cycle | on | on/off | Because the tank spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. This applies only while a cycle is running: if it is above the charge limit above, the tank goes above that limit for the cycle and at no other time. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
@@ -224,16 +285,31 @@ Per-weekday windows are an options-page feature (see
 single field takes the same grammar, including day selectors such as
 `weekdays 06:00-08:30, weekend 08:00-09:30`.
 
-### 7 · Weather sensitivity
+### 7 · Weather Sensitivity Parameters
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Wind sensitivity | 0.03 | 0.0–0.5, 0.01 steps | Extra heat loss per m/s of wind — 0.03 means 3 % more loss per m/s. Raise it if the house noticeably cools on windy days. |
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
-Saving this page moves to the read-only review screen — confirming there is
+Saving this page moves to the review screen.
+
+### The review screen — Your system, as configured
+
+Every route ends here: a read-only picture of what you described, the zones,
+the tanks and every sensor slot with what is assigned to it. Confirming it is
 what creates the entry. All 82 entities appear at once and the first plan is
 solved within one optimization interval.
+
+### Reauthenticate Tibber
+
+When Tibber refuses the stored token, Home Assistant asks you to
+re-authenticate the integration under **Settings → Devices & services**, which
+opens this screen. Enter a valid token and price updates resume.
+
+| Setting | Default | What it means |
+|---|---|---|
+| Tibber API token | none | A new token from developer.tibber.com. |
 
 ---
 
@@ -290,23 +366,30 @@ slots are shown as empty on purpose — the point is to reveal what is missing.
 
 ### Comfort and temperatures
 
-The seven weekday fields are exactly those from setup step 2 — the target,
-minimum and maximum, the two comfort temperatures and the two day hours —
-with the same defaults, ranges and cross-checks. The weekend and holiday
-schedules live here too, and each of their fields starts as a copy of the
-weekday value it mirrors; leave every one at that default and weekends and
-holidays simply follow the weekday plan.
+The seven weekday fields are those of the
+[Temperature Settings](#4--temperature-settings) screen, with the same
+defaults, ranges and cross-checks. The weekend and holiday schedules live here
+too, and each of their fields starts as a copy of the weekday value it mirrors;
+leave every one at that default and weekends and holidays simply follow the
+weekday plan.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
+| Target indoor temperature | 21.0 °C | 15–28, 0.5 steps | What you actually want. The optimizer aims here and only drifts to avoid expensive hours. |
+| Coldest acceptable temperature | 19.0 °C | 14–25 | The coldest the plan will take the house. Priced, not fenced, but firm at any real price. |
+| Warmest acceptable temperature | 23.0 °C | 18–28 | A limit on pre-heating during cheap hours, never a target. |
+| Daytime comfort temperature | 21.0 °C | 16–26 | Preferred temperature during waking hours. |
+| Night-time comfort temperature | 19.5 °C | 15–24 | Preferred temperature overnight. |
+| Day starts at | 07 | 00–23 | Hour the daytime temperature takes over. |
+| Day ends at | 22 | 01–24 | Hour the night temperature takes over. |
 | Weekend daytime comfort | weekday daytime value | 16–26, 0.5 steps | Preferred temperature during weekend waking hours. |
 | Weekend night-time comfort | weekday night-time value | 15–24, 0.5 steps | Preferred temperature overnight on Saturday and Sunday. |
-| Weekend day starts at | weekday start (07) | 00–23 | Hour the weekend daytime temperature takes over. |
-| Weekend day ends at | weekday end (22) | 01–24 | Hour the weekend night temperature takes over. 24 keeps the daytime temperature until midnight. |
+| Weekend day starts at | the weekday start | 00–23 | Hour the weekend daytime temperature takes over. |
+| Weekend day ends at | the weekday end | 01–24 | Hour the weekend night temperature takes over. 24 keeps the daytime temperature until midnight. |
 | Holiday daytime comfort | weekday daytime value | 16–26, 0.5 steps | Daytime comfort on days the holiday-profile calendar is on. Away setback still wins if away is active. |
 | Holiday night-time comfort | weekday night-time value | 15–24, 0.5 steps | Overnight comfort on holiday-calendar days. |
-| Holiday day starts at | weekday start (07) | 00–23 | Hour the holiday daytime temperature takes over. |
-| Holiday day ends at | weekday end (22) | 01–24 | Hour the holiday night temperature takes over. |
+| Holiday day starts at | the weekday start | 00–23 | Hour the holiday daytime temperature takes over. |
+| Holiday day ends at | the weekday end | 01–24 | Hour the holiday night temperature takes over. |
 
 Four mold-guard fields complete the page:
 
@@ -329,7 +412,13 @@ advanced pages.
 | When you need hot water | `06:00-08:30, 17:00-22:00` | 24-hour times, comma separated | The tank is heated in the cheapest hours before each period. Each period must be at least 15 minutes. Leave empty to let the integration learn your habits from actual usage. |
 | Holiday hot-water windows | empty | same grammar | Used on days the holiday calendar is on, instead of weekday/weekend. Leave empty to keep the ordinary schedule. |
 | Customize by weekday | off | on/off | Reveals seven fields, one per weekday, below the ordinary ones. |
-| Monday, Tuesday, Wednesday, Thursday, Friday, Saturday, Sunday | empty | 24-hour times, comma separated | Hot-water times for that weekday only. Leave empty to inherit. |
+| Monday | empty | 24-hour times, comma separated | Hot-water times for Mondays only. Leave empty to inherit. |
+| Tuesday | empty | 24-hour times, comma separated | Hot-water times for Tuesdays only. Leave empty to inherit. |
+| Wednesday | empty | 24-hour times, comma separated | Hot-water times for Wednesdays only. Leave empty to inherit. |
+| Thursday | empty | 24-hour times, comma separated | Hot-water times for Thursdays only. Leave empty to inherit. |
+| Friday | empty | 24-hour times, comma separated | Hot-water times for Fridays only. Leave empty to inherit. |
+| Saturday | empty | 24-hour times, comma separated | Hot-water times for Saturdays only. Leave empty to inherit. |
+| Sunday | empty | 24-hour times, comma separated | Hot-water times for Sundays only. Leave empty to inherit. |
 
 **Per-weekday windows, and how the layers stack.** One schedule rarely fits
 a week with early workdays, a late Saturday and a Sunday that starts at
@@ -338,7 +427,7 @@ noon. You can already type day selectors into the ordinary field
 the form version — switch it on, save, reopen the page, and seven fields
 appear, each holding one weekday's times in the same comma-separated
 format (`12:00-24:00` for "nothing until noon"). An empty field does not
-mean "no hot water that day"; it means *inherit*, exactly as before.
+mean "no hot water that day"; it means *inherit*.
 
 ![The Hot water options page with the Customize by weekday switch on: the ordinary windows field above, then seven weekday fields, Monday and Saturday filled, the rest empty to inherit](img/card/options-hot-water-by-day.png)
 
@@ -378,7 +467,7 @@ The temperatures the schedule holds the tank to:
 | Let the tank cool to | 20 °C | 10–55 | How cold the tank may get between periods. The default is roughly room temperature — nothing is spent at all. |
 | Highest tank temperature to charge to | 55 °C | 40–65 | An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays. |
 | Heat pump DHW set-point entity | none | `number` / `input_number` / `climate` | Optional. The pump's own DHW set-point, used to notice when it cannot be read and, with **Pump duty control** at Control, written with the hot water set-point above. |
-| Run an anti-legionella cycle | on | on/off | Because the tank now spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
+| Run an anti-legionella cycle | on | on/off | Because the tank spends long stretches cool, it is periodically heated hot enough to kill legionella. Strongly recommended. |
 | Anti-legionella temperature | 60 °C | 55–70 | The usual recommendation is 60 °C. Check what applies where you live. |
 | Anti-legionella interval | 7 days | 1–30 | Placed in the cheapest hour before each deadline. |
 
@@ -414,7 +503,7 @@ are on their own advanced pages.
 | My grid bill has a capacity charge | off | on/off | Adds the monthly power-peak fee to the objective, so flattening peaks is worth actual money. |
 | Capacity charge per kW per month | 45 | 0–500 | Take it from your grid invoice; it varies a lot between companies. |
 | Number of peak hours averaged | 3 | 1–10 | Most Swedish tariffs average the three highest hours of the month. |
-| Measurement window | 1 hour | 15 minutes / 1 hour | Swedish DSOs move to 15-minute settlement through 2026–27. Pick 15 when your bill averages the highest 15-minute windows; 60 keeps the older hourly clock. Hourly prices are smeared evenly across the four quarters — a 15-minute sauna spike is billed in full only when the window is 15. |
+| Measurement window | hourly | 15 minutes / 1 hour | Swedish DSOs move to 15-minute settlement through 2026–27. Pick 15 when your bill averages the highest 15-minute windows; 60 keeps the older hourly clock. Hourly prices are smeared evenly across the four quarters — a 15-minute sauna spike is billed in full only when the window is 15. |
 | Months the capacity tariff applies | empty | e.g. `Nov-Mar` | Empty means every month. Outside these months a peak contributes nothing, and the plan knows it. |
 | Peak hours | empty | e.g. `07:00-19:00` | Empty means every hour counts in full. Outside these hours a peak counts at the factor below. |
 | Weekends are off-peak | off | on/off | Many tariffs only bill weekday peaks. |
@@ -433,6 +522,15 @@ device page and on the card, not here.
 | Holiday-profile calendar | none | a `calendar` | When this calendar is on, holiday comfort and holiday hot-water windows replace the weekday/weekend pair for that day. Away setback still wins if away is active. |
 | Temperature while away | 16.0 °C | 5–21, 0.5 steps | Low enough to save, high enough to protect the house and its plumbing. |
 | Hot water minimum while away | 20.0 °C | 10–55 | The anti-legionella cycle still runs, timed to finish before you get back. |
+
+### Quick setup
+
+The one-page house questions of [the Quick setup screen](#the-quick-setup-screen),
+pre-filled with this entry's own recorded answers. Change an answer and submit,
+and the thermal model is re-derived from the questionnaire; submit without
+changing anything and nothing is written. The device pre-fill is not offered
+here: an existing entry's sensor slots are already answered, and that read
+stays on [Pre-fill from a heat pump device](#pre-fill-from-a-heat-pump-device).
 
 ### Pre-fill from a heat pump device
 
@@ -506,14 +604,18 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Electricity price source | Tibber | Tibber / Price entity | Tibber uses the API token. Entity reads a Home Assistant price sensor (Nord Pool, ENTSO-E, similar) with `raw_today` / `raw_tomorrow`. |
-| Tibber API token | from setup | required when source is Tibber | Re-validated against Tibber whenever you change it. Not required for an entity source. |
+| Tibber API token | — (the setup value) | required when source is Tibber | Re-validated against Tibber whenever you change it. Not required for an entity source. |
 | Price sensor | none | a price sensor | Required when the source is an entity. Typical attributes are `raw_today` and `raw_tomorrow`. |
 | VAT multiplier | 1.0 | 0–2, 0.01 steps | Applied to entity-sourced prices as value × VAT + surcharge. 1.0 leaves the values unchanged; Tibber prices are used as delivered. |
 | Surcharge per kWh | 0 | 0–2, 0.01 steps | Added on top after the multiplier, in the same currency as your prices. 0 leaves the values unchanged. |
-| Weather forecast | from setup | required | The forecast source. |
-| Indoor / outdoor temperature | from setup | temperature sensors | See setup step 1. |
-| Hot water tank, buffer tank, floor return, lower floor sensors | from setup | temperature sensors | See setup step 1. |
-| Heat pump on/off switch | from setup | a `switch` | See setup step 1. |
+| Weather forecast | — (the setup value) | required | The forecast source. |
+| Indoor temperature sensor | the setup value | a temperature sensor | As on [Optional sensors](#2--optional-sensors). Clearing it leaves the plan on its own model. |
+| Outdoor temperature sensor | the setup value | a temperature sensor | As on Optional sensors. |
+| Hot water tank temperature sensor | the setup value | a temperature sensor | As on Optional sensors. |
+| Buffer tank temperature sensor | the setup value | a temperature sensor | As on Optional sensors. |
+| Floor heating return temperature sensor | the setup value | a temperature sensor | As on Optional sensors. |
+| Lower floor temperature sensor | the setup value | a temperature sensor | As on Optional sensors. Two-zone houses only. |
+| Heat pump on/off switch | the setup value | a `switch` | As on Optional sensors. |
 | Space-heating set-point entity | none | `number` / `input_number` / `climate` | Optional. Used to notice when the entity cannot be read. Written only with **Pump duty control** at Control, and then with the plan's own number (see below), never a recommended optimum. |
 | What that set-point entity expects | Indoor temperature | Indoor temperature / Flow temperature | A declaration, not a write. Pointing an indoor target at a flow entity would command roughly 21 °C to something expecting 35–45 °C. |
 
@@ -521,8 +623,10 @@ are on **Power and solar sensors**; mode / defrost / online / fault are on
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
-| Solar radiation sensor, source, location | from setup | — | See setup step 1. |
-| Heat pump power meter | none | a `power` sensor | Actual electrical draw. With it, efficiency becomes measurable, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
+| Solar radiation sensor | the setup value | an irradiance sensor | As on [Optional sensors](#2--optional-sensors). |
+| Solar irradiance source | Weather entity | Weather entity / Open-Meteo | As on Optional sensors. |
+| Solar irradiance location | your Home Assistant home location | a coordinate | As on Optional sensors. Only used with Open-Meteo. |
+| Heat pump power meter | none | a `power` sensor | Actual electrical draw. A figure the pump estimates for itself is read the same way as a meter, so prefer a real one ([why](how-it-works.md#the-house-heat-loss-coefficient)). With it, efficiency becomes measurable, predicted cost gets a real counterpart, and a wood fire is detected reliably. Several sensors stay unavailable without it. |
 | Heat pump thermal power meter | none | a `power` sensor in W or kW | The heat the pump delivers, from a heat meter. Published as `measured_heat_output_kw` on the Recommended Power sensor. With the power meter, COP is measured (heat over electricity) rather than inferred from the commanded draw, and the efficiency scale is judged at the supply temperature the pump actually ran at when a supply sensor is mapped, so it stops absorbing weather-driven lift as wear. The house heat-loss and lower-floor learners replay the measured heat for a space-heating interval, and the capacity curve takes it at every load as a floor (it may raise a bucket; only near-nameplate intervals count towards capping). When set it replaces the water flow sensor's estimate, also in a cycle where its own reading is unusable, and an unusable reading pauses the learners that read it. |
 | Heat pump energy meter | none | an `energy` sensor | A cumulative kWh meter is more accurate than adding up power readings, which misses short runs. |
 | Heat pump heat energy meter | none | an `energy` sensor in Wh, kWh or MWh | A cumulative kWh meter of the heat the pump delivers. It is read over each span of about an hour, so short compressor runs count, and when set it is used instead of the thermal power meter and the water flow sensor. With the energy meter on the same read instants, efficiency is measured as heat over electricity for the span; the house heat-loss learner replays the heat that was delivered. A span whose counter went backwards (a meter reset), jumped past the pump's nameplate, or whose counter resolution is too coarse for the heat expected in it is not learned from. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent in each mode; without that entity, or in a combined mode, the split falls back to the plan's, and an hour that heated the tank is not read as space heating. |
@@ -650,8 +754,8 @@ writes, at every 15-minute plan step:
   is still there is written back like any other difference.
 - **Its own mode is not a pump limit.** A mode the optimizer wrote does not
   stop the next plan from heating the house or making hot water, even when the
-  pump has not shown it yet or after a restart; one set by anybody else still
-  does, as before.
+  pump has not shown it yet or after a restart; one set by anybody else
+  does.
 
 **Observe** writes nothing. In *Observe* and *Control* the optimizer keeps a
 ledger of the last 24 hours: per 15-minute step, the duty the plan wanted
@@ -734,15 +838,22 @@ turning the preset on.
 
 ### Thermal model (expert)
 
-The seven raw single-zone numbers, otherwise only asked at setup. **A field
+The raw single-zone numbers, otherwise only asked at setup. **A field
 left empty keeps its current value and is never saved.** Buffer tank size
 lives on *Heating system and heat storage*; window area and the glazing
 coefficient live on *Building type and emitters*; the two-zone switch and
 the per-floor numbers live on **Two-zone model**.
 
-The seven fields are those from the expert setup page above, with the same
-ranges: house thermal mass, heat-loss coefficient, slab mass, slab-to-room
-transfer, nominal COP, max power, min power.
+| Setting | Default | Range | What it means |
+|---|---|---|---|
+| House thermal mass | the setup value | 0.5–80 kWh/°C | Heat stored per degree by the room air, furnishings and light fabric. |
+| Heat loss coefficient | the setup value | 0.01–1.0 kW/°C | Heat lost per degree of indoor-outdoor difference. |
+| Slab floor thermal mass | the setup value | 0.1–60 kWh/°C | Heat stored per degree by the slab or the radiator circuit. |
+| Slab-to-room heat transfer | the setup value | 0.02–5.0 kW/°C | How fast that store gives its heat to the room. |
+| Heat pump nominal COP | the setup value | 1.5–6.0 | Units of heat per unit of electricity under normal conditions. |
+| Heat pump max power | the setup value | 1–20 kW | Electrical input at full output. |
+| Heat pump min power | the setup value | 0–10 kW | The lowest input the pump can hold without cycling. |
+| Heat pump COP loss at max power | the setup value | 0–0.5 | The share of efficiency lost at max power rather than min power. See [the setup screen](#thermal-model--optimization) for the limit the page enforces. |
 
 **Changing a derived value turns the derivation off.** These fields are what
 *Building type and emitters* works out from the questionnaire. If that switch
@@ -763,12 +874,14 @@ warning; every other field keeps its normal limits.
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Two-zone model | Automatic | Automatic · On · Off | *Automatic* means two-zone as soon as any zone value has ever been saved — which can only ever turn it on. **Off is the only way back to single-zone**, because values written during setup live where the options flow cannot erase them. *On* forces two-zone using the values below or their defaults. |
-| Upper / lower floor thermal mass | 3.0 / 8.0 kWh/°C | 0.25–60 | Heat stored in each zone. |
-| Upper / lower floor heat loss | 0.08 / 0.07 kW/°C | 0.001–1.0 | Each zone's own loss coefficient. |
+| Upper floor thermal mass | the setup value | 0.25–60 kWh/°C | Heat stored in the upper zone. |
+| Lower floor thermal mass | the setup value | 0.25–60 kWh/°C | Heat stored in the lower zone. |
+| Upper floor heat loss | the setup value | 0.001–1.0 kW/°C | The upper zone's own loss coefficient. |
+| Lower floor heat loss | the setup value | 0.001–1.0 kW/°C | The lower zone's own loss coefficient. |
 | Inter-zone heat transfer (kW/°C) | see setup | kW/°C | How fast heat moves between the two floors. |
 | Share of heat going to radiators | see setup | 0–1 | Share of heat delivered through radiators rather than the slab. |
-| Upper floor area ratio | see setup | 0.1–0.9 | Used to split solar gain. |
-| Solar orientation factor | 0.7 | 0.0–1.0 | How well the glazing faces the sun over a day. |
+| Upper floor area ratio | see setup | 0.1–0.9 | Splits the solar gain between the floors. |
+| Solar orientation factor | the setup value | 0.0–1.0 | How well the glazing faces the sun over a day. |
 
 ### Hot water tank and inlet
 
@@ -830,6 +943,7 @@ opt-in learners are on **Advanced learning features**.
 | Allow this much extra age | 1.0 | 0.5–10.0, 0.5 steps | Raise it if sensors that deliberately report rarely are being flagged. |
 | Learn my comfort preference from overrides | off | on/off | Every temperature override says the plan went too far one way. This adjusts the comfort weight from that, shows the result on its own sensor, and has a reset button. |
 | Allow a one-off measurement experiment | off | on/off | Lets the optimizer run a small deliberate heating step on a mild, cheap night to measure your house directly instead of inferring it over weeks. Kept too small to notice, and stopped if the temperature drifts. |
+| Collect a week of debug data | off | on/off | Records one small row per optimization cycle and one full snapshot a day for seven days, then stops by itself. Download diagnostics then carries the week for a bug report. The `debug_collect` service and the Learning Finalize Debug Collection button drive the same collection. |
 | Estimate prices past the published horizon | on | on/off | Tomorrow's prices arrive around 13:00. Until then this uses your learned daily price shape instead of a flat repeat, and the plan marks which hours are estimated. |
 
 ### Advanced learning features
@@ -860,8 +974,8 @@ opt-in learners are on **Advanced learning features**.
 
 ### Transfer fees and contract
 
-Fee amounts are in the same currency as your electricity prices; some labels
-still read SEK, which is the historical default rather than a constraint.
+Fee amounts are in the same currency as your electricity prices; where a label
+reads SEK, that is a label, not a constraint.
 
 | Setting | Default | Range | What it means |
 |---|---|---|---|
@@ -883,7 +997,7 @@ is set — an install without an ECL110 never touches these topics. See
 | Setting | Default | Range | What it means |
 |---|---|---|---|
 | Offset command topic | *(empty)* | MQTT topic | Where the parallel heat-curve offset is published. |
-| Legacy JSON command topic | *(empty)* | MQTT topic | Only for older setups expecting a JSON payload. |
+| Legacy JSON command topic | *(empty)* | MQTT topic | Only for a setup expecting a JSON payload. |
 | Status topic | *(empty)* | MQTT topic | Where the controller reports its state. |
 | MQTT quality of service | 1 | 0–2 | 0 is fine for almost everyone. |
 | Retain MQTT messages | off | on/off | Keeps the last offset on the broker so the controller picks it up after a restart. |
