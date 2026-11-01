@@ -12365,9 +12365,9 @@
     "Re-routed by orchestrator s9 under mandate 6329234399 (tvofi's request, 2026-10-31, slipped-proposal audit): R10-ORCH-BEATD is done (#2916) with the carry unbuilt, and `git grep` at origin/main finds the feature absent. (triage: dev/programme/triage/s6-batch32.md#P190) Sweep step (5) reads the whole tick board (V110). In `tools/audit/seat/sweep_template.md` step (5), replace 'Act on the newest actionable lines of {{tick_log}}' with: act on every `-> ` line of {{tick_log}}, the board `tick_loop.sh --out` writes. OWED lines are a level re-printed every pass, not a diff. Print `grep -c '^-> ' {{tick_log}}` and `grep -c 'OWED' {{tick_log}}` beside the actions taken, and read the file untruncated. A disposition that defers an OWED line to a seat names that seat's ledger id or PID, and the next sweep re-checks it; one naming no seat is not a disposition. Document `tick_log` in the template's placeholder table as that board, never the retired tick seat's `tick-owed.txt`. Observed 2026-10-25/26: the overlay's tick_log named `tick-owed.txt`, frozen since 15:33 local. `reviewer-fire 2836` was line 107 of 131 on `tick.txt` and went unrendered 1 h 53 min. mq-probe was disposed at 18:12Z as 'local seat covers' with no seat named, and sat 4.5 h. Controls: `sweep_render.py` over a fixture overlay renders step (5) naming the board path and both counts; a mutant restoring 'newest actionable lines' fails the render check; the rendered text names no `tick-owed` (null: other steps unchanged)."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": "handoff/r10-fly-seat-alive-id",
-    "commit": null,
+    "commit": "d8e7d235e1d3c7793b972d8bedbcbcf74f3861f3",
     "last_step": null,
     "next_step": "dispatch a fixer (fly-in; audit-class barrier for alive-file liveness, 4 instances in r10)",
     "note": "2026-10-30 (triage: dev/programme/triage/s6-batch68.md#P299); re-routes P46 and P97 from R10-ORCH-BEATD (done at #2916, both unbuilt)",
