@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-01T23:13:27+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-01T23:42:34+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 3 / 1.0 | 38 / 24.0 |
-| fly-ins closed | 2 | 20 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 1 / 2 | 16 / 6 / 1 / 20 |
-| first-pass fix-review yield | 3/4 (0.75) | 35/50 (0.70) |
-| blocked-class mix | mutation-survivor:1 | body-stale:1, carry-over-wide:1, ci-red:1, claim-stronger-than-check:1, class-open:6, merge-semantics:1, metric-gamed:2, mutation-survivor:2, mutation-vacuous:7, raise-unjustified:1, root-cause-detectable:2, root-cause-unanswered:2, root-cause-unrecorded:4, rule-lost:1, suite-red:1, unpinned-site:1 |
+| roster groups closed vs takt | 8 / 1.0 | 43 / 24.0 |
+| fly-ins closed | 0 | 20 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 16 / 5 / 1 / 20 |
+| first-pass fix-review yield | 3/4 (0.75) | 36/52 (0.69) |
+| blocked-class mix | root-cause-unanswered:1 | body-stale:1, carry-over-wide:1, ci-red:1, claim-stronger-than-check:1, class-open:6, merge-semantics:1, metric-gamed:2, mutation-survivor:2, mutation-vacuous:7, raise-unjustified:1, root-cause-detectable:2, root-cause-unanswered:3, root-cause-unrecorded:4, rule-lost:1, suite-red:1, unpinned-site:1 |
 | lead time per size (h, n/p50/max) | none | L n=1 p50=16.96 max=16.96; M n=2 p50=14.36 max=30.53; S n=13 p50=13.66 max=27.62 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 2 | 60 | 2 | 9 |
+| 2 | 57 | 2 | 7 |
 
 ## Rules
 
