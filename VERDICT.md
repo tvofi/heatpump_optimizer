@@ -1,21 +1,19 @@
-Fix review: blocked b8353012f530fe3d5f30606b60283d9b399c7712 root-cause-unanswered: governance / instrument-self-tests concluded red at this head and the body's ## Red checks does not answer this head's failure
+Fix review: merge 46c2ac3b4271c268014c13ac0334c56c33dde2d7
 
-bus-nonce: e8b87b408f786f7ae1bc342a922bf889
+bus-nonce: 71417863adc4ed3ef2fc8408f9d9ba0f
 
-## Block
-
-`governance / instrument-self-tests` (job 124797544268, run 41289450815) concluded `failure` at b8353012f530fe3d5f30606b60283d9b399c7712. The failing step is `prepr.sh --self-test`'s pr_args block: `pr_args self-test: 158 checks, 2 failed`, on `null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start` and `open_pr: the null control -- an unrelated sleeper survives`. The body's `## Red checks` entry for this check covers other heads (e24686de4679, 0c38d4ccd648) and a different cause (the unrecorded structure gain, failing `body_push.sh` arms). It does not name or answer this head's failure. This diff touches only tests/structure_budgets.json, so the failure reads like a process-hygiene flake on a loaded runner, but I cannot tell that from the log, so the class is unanswered, not detectable. A re-run or a body answer clears it. The remaining alert-list `BAD` lines in the log are mutant output; that step printed `ALERT-LIST MUTANTS: every mutant refused`.
-
-CI was not fully concluded when I wrote this: `tests / mutation` and `codeql / Analyze (python)` were still in_progress, and no `pr-contract` run existed at this head. `merge_train.py classify` printed `WAIT ... pending: gate red: none` (rc 3) at every poll over about 90 minutes. This verdict is on the evidence in hand, and the contract wants the root-cause class posted only after every workflow concluded, so the orchestrator should re-review the red and not treat this as final.
+Narrow resolution-delta re-check of the prior block (root-cause-unanswered, `governance / instrument-self-tests` at b8353012f530). Code findings of the earlier review stand; code was not re-reviewed.
 
 ## Findings
 
-- None beyond the Block; the delta checks below all pass. Carry: dismissed: no finding outside the Block.
+none
 
 ## Evidence
 
-- Delta: `git diff 0c38d4ccd648..b8353012f530fe3d5f30606b60283d9b399c7712 --stat` is tests/structure_budgets.json alone (2 insertions, 2 deletions). `git log --no-merges` over the range is one commit, "structure: record class_excess_loc 17653 -> 17651 after merging main". The diff moves class_excess_loc 17653 to 17651 and recorded_at to 61b0076f.
-- Structure, detached worktrees: at the head `RESULT class_excess_loc=17651`, `ok class_excess_loc 17651 <= 17651`, rc 0. At main 61b0076f48546fe29cae35dfdb5949ad6d0c6feb `RESULT class_excess_loc=17653`, rc 0, so the 17653 baseline reproduces. The move is down (ev/structure_head.txt, ev/structure_main.txt).
-- Merge: main 61b0076f is an ancestor of the head. `git merge-tree --write-tree origin/main b8353012f530fe3d5f30606b60283d9b399c7712` printed only a LEDGER-MERGE auto-resolve note for tests/closures.json (the inert_reads set merge), with no conflict. origin/main has since moved to 92588d58.
-- Red checks at the head (all pages of check-runs read): `governance / instrument-self-tests` failure (the Block). `tests / fast (3.14)` success, so the earlier "not yet recorded" red is gone. `tests / mutation`, `codeql / Analyze (python)` and one `prelude` were in_progress. No `pr-contract` run was listed. Every other check was success, skipped or neutral.
-- Earlier approved review of 0c38d4ccd648 still covers the code: the delta holds no production, test or fixture file. Not re-reviewed.
+- Item 1, answer present: the body's `## Red checks` answers `governance / instrument-self-tests` at each head it was red at. e24686de4679 and 0c38d4ccd648 (jobs 124673785214, 124673797179, 124744747052): cause is the unrecorded `class_excess_loc` gain, repaired at b8353012f530. b8353012f530 (job 124797544268): cause is the uutils `sleep` refusing the renamed symlink. Check-runs API (all pages) shows the failures at e24686de4679: gate, instrument-self-tests, pr-contract, tests / fast (3.14); at 0c38d4ccd648: the same four; at b8353012f530: gate and instrument-self-tests. Every one is named in the section (gate and pr-contract as downstream of the two others).
+- Cause verified in the failing job log (124797544268): `Image: ubuntu-26.04`, `Security violation: Requested utility \`unrelated-sleep\` does not match executable name`, `FAIL open_pr: the null control -- an unrelated sleeper survives`, `FAIL null control: a normal successful update_pr ...`, `pr_args self-test: 158 checks, 2 failed`.
+- 1a8051350 (#3086) is on origin/main and touches tools/audit/seat/pr_args.sh (4 lines). It is not an ancestor of the live head; the head still has pr_args.sh:625 `ln -s /bin/sleep`. The body does not name #3086, only the cause and a forward-carry to R10-FLOW-BODY-ONLY, which is now superseded by #3086; that is a wording lag, not an unanswered red.
+- Red at the live head: none. Live-head job 124844620343 ran on `Image: ubuntu-26.04` and ended `pr_args self-test: 158 checks, 0 failed`; `merge_train.py classify` exits GREEN (`pending: none red: none`), so no check concluded red at this head. (The fixture passes here with the symlink unchanged; I did not establish why the same image now passes, and the green does not depend on it.)
+- Item 2: `review_carry.py b8353012f..46c2ac3b4271c268014c13ac0334c56c33dde2d7` prints CARRY (3 branch-only commits, all automatic merges). `git log --no-merges` over branch-only commits in the range is empty (the unqualified range lists main's own commits arriving through the merges). `git merge-tree --write-tree origin/main` exits 0 (LEDGER-MERGE resolved tests/closures.json).
+- Item 3: the body's `## Head` names 46c2ac3b4271c268014c13ac0334c56c33dde2d7.
+- Head re-read: 46c2ac3b4271c268014c13ac0334c56c33dde2d7 is the PR head at posting.
