@@ -1,0 +1,92 @@
+clean  | python3 -IcCODE
+       -> 2026-11-01T15:56:13Z 25489 python3 -Ic api x
+clean  | python3 -Wd -c CODE
+       -> 2026-11-01T15:56:13Z 25510 python3 -c api x
+clean  | python3 -WLEAKVAL -c
+       -> 2026-11-01T15:56:13Z 25531 python3 -c api x
+clean  | python3 -X dev=LEAKVAL c.py
+       -> 2026-11-01T15:56:13Z 25552 python3 c.py api x
+clean  | python3 -Xdev=LEAKVAL c.py
+       -> 2026-11-01T15:56:14Z 25573 python3 c.py api x
+clean  | python3 -BWLEAKVAL c.py
+       -> 2026-11-01T15:56:14Z 25594 python3 c.py api x
+clean  | python3 -bX LEAKVAL c.py
+       -> 2026-11-01T15:56:14Z 25615 python3 c.py api x
+clean  | python3 -- c.py LEAKVAL
+       -> 2026-11-01T15:56:14Z 25636 python3 api x
+clean  | python3 - LEAKVAL <c.py
+       -> 2026-11-01T15:56:14Z 25658 python3 - api x
+clean  | python3 -m mod LEAKVAL
+       -> 2026-11-01T15:56:14Z 25681 python3 -m cm api x
+NOLINE | python3 -I -S -m cm LEAKVAL
+       -> 
+LEAK   | python3 -X 'a LEAKVAL' c.py (value with space)
+       -> 2026-11-01T15:56:14Z 25704 python3 LEAKVAL api x
+LEAK   | python3 -W 'x LEAKVAL' c.py (value with space)
+       -> 2026-11-01T15:56:14Z 25725 python3 LEAKVAL api x
+clean  | pypy3 -c CODE
+       -> 2026-11-01T15:56:14Z 25746 pypy3 -c api x
+clean  | zsh(link) -ce CODE
+       -> 2026-11-01T15:56:14Z 25767 zsh -c api x
+clean  | ksh(link) -c CODE
+       -> 2026-11-01T15:56:14Z 25788 ksh -c api x
+clean  | bash -O extglob -c CODE
+       -> 2026-11-01T15:56:14Z 25809 bash -c api x
+NOLINE | bash -Oextglob -c
+       -> 
+clean  | bash -o pipefail -e s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25832 bash -e api x
+clean  | bash -xo pipefail s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25853 bash s.sh api x
+clean  | bash +o pipefail s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25874 bash ?o api x
+clean  | bash --norc s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25895 bash api x
+clean  | bash --rcfile LEAKVAL -i? (long w/ value)
+       -> 2026-11-01T15:56:14Z 25916 bash api x
+clean  | bash -- s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25937 bash api x
+clean  | bash -ex s.sh LEAKVAL
+       -> 2026-11-01T15:56:14Z 25958 bash -e api x
+clean  | sh -s -- LEAKVAL from pipe
+       -> 2026-11-01T15:56:15Z 25981 sh -s api x
+clean  | dash -c CODE
+       -> 2026-11-01T15:56:15Z 26002 dash -c api x
+NOLINE | dash -ecCODE
+       -> 
+NOLINE | bash -o 'x LEAKVAL' s.sh (value with space)
+       -> 
+clean  | perl -w p.pl LEAKVAL
+       -> 2026-11-01T15:56:15Z 26027 perl p.pl api x
+clean  | perl -we CODE
+       -> 2026-11-01T15:56:15Z 26048 perl -we api x
+clean  | perl -I LEAKVAL p.pl
+       -> 2026-11-01T15:56:15Z 26069 perl api x
+clean  | perl p.pl LEAKVAL
+       -> 2026-11-01T15:56:15Z 26090 perl p.pl api x
+clean  | ruby -w r.rb LEAKVAL
+       -> 2026-11-01T15:56:15Z 26111 ruby r.rb api x
+clean  | ruby -I LEAKVAL r.rb
+       -> 2026-11-01T15:56:15Z 26133 ruby api x
+clean  | node --eval CODE (separate)
+       -> 2026-11-01T15:56:15Z 26155 node --eval api x
+clean  | node --inspect=LEAKVAL n.js
+       -> 2026-11-01T15:56:15Z 26182 node api x
+clean  | node -- n.js LEAKVAL
+       -> 2026-11-01T15:56:15Z 26209 node api x
+clean  | node n.js LEAKVAL
+       -> 2026-11-01T15:56:15Z 26236 node n.js api x
+clean  | node -pe CODE
+       -> 2026-11-01T15:56:15Z 26263 node api x
+clean  | env FOO=LEAKVAL python3 c.py
+       -> 2026-11-01T15:56:15Z 26290 python3 c.py api x
+clean  | env python3 c.py LEAKVAL
+       -> 2026-11-01T15:56:15Z 26311 python3 c.py api x
+clean  | xargs python3 c.py
+       -> 2026-11-01T15:56:16Z 26335 python3 c.py api x
+clean  | nice python3 c.py LEAKVAL
+       -> 2026-11-01T15:56:16Z 26356 python3 c.py api x
+clean  | timeout 5 bash -c CODE
+       -> 2026-11-01T15:56:16Z 26378 bash -c api x
+clean  | long path (120 A) LEAKVAL past 80
+       -> 2026-11-01T15:56:16Z 26403 bash ./AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA api x
