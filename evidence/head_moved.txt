@@ -1,0 +1,11 @@
+PR head moved during review: refs/pull/3047/head = ace2e21a6f22cc3e9af22b5b1eed6a92b55105d9 (read 2026-11-01T19:11:44Z)
+ace2e21a parents: 9cddcb4f673ee4bed26a316c4a22128433414eb8 3f9f152e2ac87cee1a1ab3ac0018d64bd023f13d
+tree ace2e21a: e58eadb7b511cae6dacae67a63891bdd6cfad5b7; tree 9cddcb4f: e58eadb7b511cae6dacae67a63891bdd6cfad5b7
+git diff 9cddcb4f ace2e21a: 0 lines
+review_carry: 9cddcb4f6 -> ace2e21a6  main=origin/main
+  branch-only commits: 3
+  why: all 3 branch-only commit(s) are automatic merges, and app_approve.sh --carry carries the range
+  895f03158  Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
+  3f9f152e2  Merge remote-tracking branch 'origin/fix/r10-factory-reset' into fix/r10-factory-reset
+  ace2e21a6  Merge commit '3f9f152e2ac87cee1a1ab3ac0018d64bd023f13d' into fix/r10-factory-reset
+review_carry: CARRY

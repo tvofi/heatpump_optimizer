@@ -1,19 +1,7 @@
-review_carry: 7f6d7e722 -> 2df0b81ed  main=origin/main
-  branch-only commits: 1
-  why: 1 of 1 branch-only commit(s) carry code
+review_carry: 7f6d7e722 -> 9cddcb4f6  main=origin/main
+  branch-only commits: 2
+  why: 1 of 2 branch-only commit(s) carry code
   2df0b81ed  ci: pin killed mutants
+  9cddcb4f6  Merge remote-tracking branch 'origin/main' into fix/r10-factory-reset
 review_carry: FRESH-REVIEW
- ...mpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json | 6 ++++++
- ...OptimizerCoordinator._dhw_probe_temperature.BOOLOP.25dfd051.json | 6 ++++++
- ...imizerCoordinator._dhw_probe_temperature.GUARD_OFF.25dfd051.json | 6 ++++++
- .../coordinator.py/_async_rewrite_entry.GUARD_OFF.fa08e1a8.json     | 6 ++++++
- .../_async_undo_factory_reset.RETURN_DEL.2db28578.json              | 6 ++++++
- .../async_factory_reset.voided.GUARD_OFF.a5312998.json              | 6 ++++++
- .../async_factory_reset.voided.RETURN_DEL.95fafb69.json             | 6 ++++++
- .../killed_by/entry_config.py/_side_pair.GUARD_OFF.f066afa9.json    | 6 ++++++
- .../killed_by/entry_config.py/undo_point.GUARD_OFF.fdb2fd77.json    | 6 ++++++
- .../killed_by/entry_config.py/undo_point.RETURN_DEL.9a65f8ca.json   | 6 ++++++
- .../entry_config.py/undone_settings.GUARD_OFF.f06636d0.json         | 6 ++++++
- .../entry_config.py/undone_settings.RETURN_DEL.a2e2bd26.json        | 6 ++++++
- .../services.py/handle_factory_reset.GUARD_OFF.3ac042d3.json        | 6 ++++++
- 13 files changed, 78 insertions(+)
+rc=1

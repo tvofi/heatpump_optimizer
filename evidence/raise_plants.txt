@@ -1,5 +1,0 @@
-At 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6, python3 tests/structure.py, coordinator.py async_factory_reset's wait line varied in a scratch worktree:
-  as shipped: (*_restored_stores(coord), coord._snapshot_store)          -> RESULT seam_cut_total=423, STRUCTURE RATCHET PASSED
-  snapshot-store wait removed: _restored_stores(coord)                   -> RESULT seam_cut_total=422
-  respelled: (*_restored_stores(coord), _ctx_of(coord)._snapshot_store)  -> RESULT seam_cut_total=423
-  refuse instead: if not coord._snapshots_loaded: return False           -> RESULT seam_cut_total=422 (the body's payment 3)
