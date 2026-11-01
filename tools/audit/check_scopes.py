@@ -17,7 +17,7 @@ steps, axis values, file. `rest` is resolved here, so a finder is handed files, 
 .claude/workflows/audit-find.js runs the check, coverage included, in its Prepare step and refuses the
 round on rc != 0.
 """
-import argparse, itertools, json, re, subprocess, sys, copy
+import argparse, contextlib, copy, io, itertools, json, re, subprocess, sys
 from pathlib import Path
 
 def expand_braces(p):
@@ -151,6 +151,20 @@ def read_harnesses(repo, ref, tree):
     return harnesses, briefs
 
 
+def verdict(scopes, tree, loc, harnesses, briefs, quiet=False):
+    """The default run's answer: every dimension disjoint and complete, the
+    tree covered, and every brief-named harness cited by its brief."""
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out if quiet else sys.stdout):
+        ok = check(scopes, tree, loc)
+        cov_ok, _ = coverage(scopes, tree)
+        bad = uncited_harnesses(harnesses, briefs)
+        print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
+        for h, b in bad:
+            print(f"   {h} names {b} in its header; {b} does not cite it")
+    return ok and cov_ok and not bad
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--repo", required=True)
@@ -228,8 +242,15 @@ def main():
             print(f"   coverage arm {name}: refused={not ok} names {must}={all(m in unc for m in must)}")
         ok_tc, _ = coverage(twice_cls, tree, quiet=True)
         cov["exclude a covered path"] = not ok_tc
+        dead = copy.deepcopy(scopes)
+        dead.setdefault("_coverage_excluded", {})["no/such/dir/**"] = "perturbation: names nothing"
+        unreasoned = copy.deepcopy(scopes)
+        unreasoned.setdefault("_coverage_excluded", {})[next(g for g in scopes.get("_coverage_excluded", {"x": 0}) if not g.startswith("_"))] = " "
+        cov["an exclusion naming nothing"] = not coverage(dead, tree, quiet=True)[0]
+        cov["an exclusion with no reason"] = not coverage(unreasoned, tree, quiet=True)[0]
         live_ok, live_unc = coverage(scopes, tree, quiet=True)
         cov["null control: optimizer.py covered"] = nulls in tree and nulls not in live_unc
+        print(f"   coverage arms dead/unreasoned exclusion: refused={cov['an exclusion naming nothing']}/{cov['an exclusion with no reason']}")
         print(f"   coverage arm exclude a covered path: refused={not ok_tc}; null control {nulls} covered={cov['null control: optimizer.py covered']}")
         # Harness citations: a harness naming D15.md in its header, against a
         # brief that cites it (null control) and one that does not.
@@ -238,16 +259,21 @@ def main():
             (HARNESS_DIR + "planted.py", BRIEF_DIR + "D15.md")]
         cov["null control: the brief citing it passes"] = uncited_harnesses(planted, {"D15": "run dev/audit/harnesses/planted.py"}) == []
         print(f"   harness-citation arms: {cov['a harness the brief does not cite is refused']}, null {cov['null control: the brief citing it passes']}")
+        # The default run's verdict, driven whole: the live scopes pass it, and
+        # dropping D10's universe or leaving a brief-named harness uncited fails
+        # it, so neither coverage nor citations can fall out of the exit code.
+        hs, bs = read_harnesses(a.repo, a.ref, tree)
+        live = verdict(scopes, tree, loc, hs, bs, quiet=True)
+        no_d10_refused = not verdict(no_d10, tree, loc, hs, bs, quiet=True)
+        uncited_refused = not verdict(scopes, tree, loc, {**hs, **planted}, {**bs, "D15": "no citation"}, quiet=True)
+        cov.update({"the default verdict passes the live scopes": live,
+                    "and refuses them without D10's universe": no_d10_refused,
+                    "and refuses an uncited brief-named harness": uncited_refused})
+        print(f"   default verdict: live {live}, no D10 refused {no_d10_refused}, uncited refused {uncited_refused}")
         good = not any(res) and all(cov.values())
         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
         sys.exit(0 if good else 1)
-    ok = check(scopes, tree, loc)
-    cov_ok, _ = coverage(scopes, tree)
-    bad = uncited_harnesses(*read_harnesses(a.repo, a.ref, tree))
-    print(f"{'ok' if not bad else 'FAIL'} harness citations: {len(bad)} harness(es) implementing a brief's rule the brief does not cite")
-    for h, b in bad:
-        print(f"   {h} names {b} in its header; {b} does not cite it")
-    sys.exit(0 if ok and cov_ok and not bad else 1)
+    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree)) else 1)
 
 main()

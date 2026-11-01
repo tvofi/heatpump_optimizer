@@ -85,18 +85,18 @@ moves.
 
 | Need | Reuse | Note |
 |---|---|---|
-| A realistic coordinator payload | `tests/golden.py:_capture_coordinator(config)` and `coordinator_scenarios()` | 5 topologies (`coord_minimal`, `coord_dhw`, `coord_two_zone`, `coord_grid_fee`, `coord_all_features`); freezes the clock at `START`; injects 48 h of prices and forecasts; `_build_data_dict()` gives ~156 keys |
-| A plan scenario | `tests/golden.py:make(...)` and `SCENARIOS` (49) | `capture(name, spec)` records everything; `assert_invariants` runs on record and check |
+| A realistic coordinator payload | `tests/golden.py:_capture_coordinator(config)` and `coordinator_scenarios()` | 5 topologies (`coord_minimal`, `coord_dhw`, `coord_two_zone`, `coord_grid_fee`, `coord_all_features`); freezes the clock at `START`; injects 48 h of prices and forecasts |
+| A plan scenario | `tests/golden.py:make(...)` and `SCENARIOS` | `capture(name, spec)` records everything; `assert_invariants` runs on record and check |
 | Every entity through the real setup | `tests/entities.py:collect(module, data, coordinator)` | drives `async_setup_entry`; `_honest_coordinator(extra_config, states, dhw)` builds a coordinator with one input cycle done |
 | A coordinator in feature tests | `tests/features.py:_t2_coord(states, **extra)`, `_zone_coord`, `_write_coord` | `features.py` cannot be imported — copy the two-liner `HeatPumpOptimizerCoordinator(FakeHass(states), FakeEntry(data=cfg))` |
 | The CPU-time ruler | `tests/stress.py:reference_solve()` and `Calibration` | fixed L-BFGS-B over a seeded vector; never "improve" it |
-| The 51-combination sweep (`sweep_combinations()`) | `tests/stress.py:build_case(...)`, `SEASONS`, `BUILDINGS` | thread pin (the `os.environ.setdefault` loop) must precede the `numpy` import; it does, a few lines above it |
+| The 51-combination sweep (`sweep_combinations()`) | `tests/stress.py:build_case(...)`, `SEASONS`, `BUILDINGS` | thread pin (the `os.environ.setdefault` loop) must precede the `numpy` import |
 | Closed-loop days | `tests/rolling.py:run_rolling(...)` | `learn=True` drives the real coordinator's learner; `SLOW=1` only |
 | Challengers and null control | `tests/optimality.py` (`setup`, `evaluate`, `mock.patch.object`), `tests/backtest.py:score`, `tests/profiles.py` | price profiles `winter_typical`, `winter_extreme`, `summer_typical`, `summer_negative`, `shoulder`, `winter_narrow`, `winter_moderate`, `flat`; weather `winter_cold`, `winter_mild`, `summer_warm`, `summer_cool`, `shoulder` |
 | The card in Node | `tests/card_rig.mjs:buildCard`, `planStates`, `makeCardContext`, `qaTopologies` | the DOM stub returns a constant 900×400 rectangle: no geometry |
 | The card's drift states | `tests/card_drift.mjs:STATES` — run it with `--list` rather than carrying a count | drive both a working-tree card and a `git show` card |
 | Real geometry | `tests/card_browser.mjs` | Playwright resolved from `NODE_PATH`; Chromium under `PLAYWRIGHT_BROWSERS_PATH` |
-| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number -- `features.py` grows every wave |
+| Mutation-proof idioms | `tests/features.py` (search `_fl_orig = _FlOpt`: class-attribute swap, `try/finally`), `tests/features.py` (search `rail: {name}`: input-mutation rail over a `_SAFE` baseline dict), `tests/optimality.py` (`mock.patch.object`) | the third is the only `unittest.mock` use in the suite; the first two are cited by search text, not line number |
 
 **Traps**
 
@@ -105,7 +105,7 @@ moves.
   measures nothing about the executor boundary; use a real loop and a
   `ThreadPoolExecutor`.
 - `golden.py`, `env_drift.py`, `closure.py`, `frontend.py`, `manual_plan.py`,
-  `stress.py` (`:1597`) and `structure.py` (`:1275`) have `__main__` guards.
+  `stress.py` and `structure.py` have `__main__` guards.
   `entities.py`, `features.py`, `rolling.py`, `backtest.py` and
   `optimality.py` run every check at import and `sys.exit`.
 - `tests/plan_view.py` writes a per-checkout plan payload under `/tmp` and
@@ -118,9 +118,8 @@ moves.
 - `tests/closure.py` globs `tests/*.py` and `tests/*.mjs` non-recursively;
   `tests/run.sh`'s wiring check does the same. A script in a subdirectory is
   invisible to both and to `no-copies`.
-- The `SLOW_GATED` assertion that `tests/closure.py:100-101` says lives in
-  `tests/entities.py` (checking every name in the `SLOW_GATED` set at
-  `:102` is in fact `SLOW`-gated in `run.sh`) does not exist.
+- The assertion `tests/closure.py`'s `SLOW_GATED` comment places in
+  `tests/entities.py` (each name `SLOW`-gated in `run.sh`) does not exist.
 - `HeatPumpOptimizerSensorBase.__init_subclass__` wraps every subclass's
   `native_value` and `extra_state_attributes` in a non-finite scrub; deleting
   a per-sensor guard will not reproduce a non-finite publish.
@@ -128,31 +127,16 @@ moves.
   consecutive L-BFGS-B starts (`_multi_start_minimize`), one at the seam
   between the DHW stage and the space stage. Neither sits inside an iteration.
 
-`check_scopes.py` proves `scopes.json`'s seats disjoint and complete, that
-every tracked path is in some dimension's universe or on `_coverage_excluded`
-with its reason, and that a brief cites each harness whose header names it.
+`check_scopes.py` proves `scopes.json`'s seats disjoint and complete, every
+tracked path in a universe or on `_coverage_excluded`, and a harness naming a
+brief cited by it.
 
 ## Harnesses that read moved paths are retired
 
-The reorganisation moved the round trees under `dev/audit/rounds/` and retired
-or moved several workflow and rule files; many harnesses under
-`dev/audit/harnesses/` and `dev/audit/rounds/round9/` still name the old paths.
-Enumerate them with the move map:
-
-    git ls-files 'dev/audit/harnesses/*' 'dev/audit/rounds/round9/*' \
-      | grep -E '\.(py|mjs|js|sh)$' | xargs python3 tools/audit/seat/moved_paths.py
-
-A harness it lists with a `[STALE?]` read is **retired**: kept as the record of
-what was measured, not re-run green at `main`. The exception is a harness still
-cited by a bug class's `detector` or `barrier`, or by the latest round's
-register (`dev/audit/rounds/round<N>/ISSUES.json`, `JUDGE.json`); that one is
-repaired, old path first through `tests/layout.py`'s `locate`. Repaired by
-R10-AUDIT-COVERAGE-ENDGAME: `dev/audit/rounds/round9/D11/s2/owner_review.py`,
-`dev/audit/rounds/round9/D4/s2/step_grid.py` and
-`dev/audit/rounds/round9/D14/s2/i4_roster.py` (its `--dims` mode; its default
-mode reads a `D14` `axis.class` that `scopes.json` no longer carries, so that
-mode is retired too). A seat re-running a retired harness repairs it first, in
-its own pull request.
+A harness `tools/audit/seat/moved_paths.py` lists with a `[STALE?]` read is a
+record, not re-run at `main`, unless a bug class's `detector` or `barrier`, or
+the latest round's `ISSUES.json` or `JUDGE.json`, cites it: then it is
+repaired, old path first. A seat re-running a retired one repairs it first.
 
 ## Running the gate on the audit box
 
@@ -218,9 +202,8 @@ commit and not against a current `main` tree.
 
 ## Rounds 1-3 are at a tag
 
-`tools/audit/round1/`, `round2/` and `round3/` held 212 files and 5.5 MB of
-write-once evidence for three closed rounds: reports, panel and judge verdicts,
-mutant patches, quiet-window logs, `.out` files. Nothing in the gate reads them
+`tools/audit/round1/`, `round2/` and `round3/` held three closed rounds'
+write-once evidence. Nothing in the gate reads them
 (`tools/audit/` is `INERT` in `tests/closure.py`), and every number they carry
 that anything still acts on is in `dev/programme/register/audit-2026-09.md`, which stays.
 
@@ -231,12 +214,10 @@ on `main`'s first-parent history:
     git show d5d8c4a:tools/audit/round2/JUDGE.md
     git checkout d5d8c4a -- tools/audit/round2/D5/REPORT.md
 
-Every citation names that SHA rather than a tag (this file
-carries why).
+Every citation names that SHA rather than a tag.
 
 Round 2's executable harnesses were archived earlier, at
-`audit-round2-evidence` (`757e164`); this file carries the rule
-for running one, and the root-resolution trap that has caught three reviewers.
+`audit-round2-evidence` (`757e164`).
 
 The done wave rosters — `wave-1b-groups.json`, `wave-2-groups.json`,
 `wave-3-groups.json` — were archived at that same commit, along with
