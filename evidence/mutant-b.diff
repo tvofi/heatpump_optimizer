@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 3d11a787c..2f5f22e7b 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -1624,7 +1624,7 @@ if [ "${1:-}" = "--body-check" ]; then
+   # `--pr-branch fix/<topic>` (body_push.sh passes it when origin holds that
+   # ref, P351): the one network read here, so a fixer meets an unanswered red at
+   # its handoff. Without it this check stays offline.
+-  if [ "${3:-}" = "--pr-branch" ] && [ -n "${4:-}" ]; then
++  if false; then
+     rline=$(reds_arm "$2" "$BASE" "origin/$4"); rr=$?
+     case "$rr" in
+       0) echo "ancestry reds ok: $rline" ;;

@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 3d11a787c..ecf81451d 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -3676,7 +3676,7 @@ esac
+ # rather than reading the check runs a second time.
+ EARLY_REDS_RC="" EARLY_REDS_LINE=""
+ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+-  EARLY_REDS_LINE=$(reds_arm "$1" "$BASE"); EARLY_REDS_RC=$?
++  EARLY_REDS_LINE=$(reds_arm "$1" "$BASE"); EARLY_REDS_RC=0
+   if [ "$EARLY_REDS_RC" -ne 0 ] && [ "$EARLY_REDS_RC" -ne 3 ]; then
+     step "ancestry reds" 1 "$EARLY_REDS_LINE -- refused before the heavy slot was taken (P351)"
+     summary_end "$(git rev-parse HEAD)"
