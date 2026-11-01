@@ -363,7 +363,7 @@ class _PayloadNumberMixin(_SensorMixinBase):
         node: Any = self._data()
         for key in self._payload_path[:-1]:
             node = _mapping(node.get(key))
-        return payload_number(node.get(self._payload_path[-1]), self._payload_types)
+        return payload_number(node.get(self._payload_path[-1]))
 
     @property
     def native_value(self) -> float | None:
