@@ -1,0 +1,18 @@
+RESULT replay-2872 exact at=bot_base lines=1
+  skip-driver-refused tests/golden/claimed_drift.txt
+RESULT replay-2872 exact at=bot_head lines=15
+  skip-driver-refused tests/golden/claimed_drift.txt
+      LEDGER-MERGE: resolved tests/structure_budgets.json
+        class_excess_loc: 18067 + both deltas = 18050
+        re-run the gate that owns this file before pushing
+      MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+      CONFLICTING CLAIMS: both sides rewrote the claim list -- this
+      branch claims ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone'] and the merge
+      brings in ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone', 'negative_prices', 'summer_dhw_only']. A claim excuses
+      one release's golden diff and is written for that diff alone, so
+      merging two lists would reinstate a claim one side deleted and
+      excuse a drift by accident. Resolve it by hand: keep the claims
+      that describe THIS branch's diff and delete the rest.
+      LEDGER-MERGE: resolved tests/closures.json
+        inert_reads.tests/harness_headers.py: merged as a set (897 entries)
+        re-run the gate that owns this file before pushing
