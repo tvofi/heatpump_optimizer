@@ -3878,6 +3878,7 @@
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
    "dev/audit/harnesses/learner_inputs_swap.py",
    "dev/audit/harnesses/merge_subject_guard_block.mjs",
+   "dev/audit/harnesses/mutant_guard.py",
    "dev/audit/harnesses/pulse_replay.py",
    "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
    "dev/audit/harnesses/r10_advisor_degree.py",
