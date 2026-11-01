@@ -1,0 +1,2 @@
+652929f336d6b8fe2bcaae9cf237a20e61bb8620
+classify GREEN 652929f336d6b8fe2bcaae9cf237a20e61bb8620 pending none red none; delivery_status.py rc=0; diff vs base c3b7c96: 8 files all dev/programme/delivery/*.md
