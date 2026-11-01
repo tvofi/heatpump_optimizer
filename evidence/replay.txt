@@ -1,4 +1,4 @@
-BASE driver (2b6bef745)
+== base
 RESULT #2841 rc=1 MERGE-CLAIM: refused base=7d2056970
 RESULT #2745a rc=1 MERGE-CLAIM: refused base=5261ba841
 RESULT #2745b rc=1 MERGE-CLAIM: refused base=510787b76
@@ -6,7 +6,7 @@ RESULT #2834 rc=1 MERGE-CLAIM: refused base=510787b76
 RESULT 3a07c2eaa rc=1 MERGE-CLAIM: refused base=81b7aa9ff
 RESULT e438816e3 rc=1 MERGE-CLAIM: refused base=92accb2cf
 RESULT 5bf232eac rc=1 MERGE-CLAIM: refused base=fa424fd91
-HEAD driver (b1a0be47)
+== r1
 RESULT #2841 rc=0 MERGE-CLAIM: resolved base=7d2056970
 RESULT #2745a rc=0 MERGE-CLAIM: resolved base=5261ba841
 RESULT #2745b rc=0 MERGE-CLAIM: resolved base=510787b76
@@ -14,3 +14,18 @@ RESULT #2834 rc=1 MERGE-CLAIM: refused base=510787b76
 RESULT 3a07c2eaa rc=0 MERGE-CLAIM: resolved base=81b7aa9ff
 RESULT e438816e3 rc=0 MERGE-CLAIM: resolved base=92accb2cf
 RESULT 5bf232eac rc=1 MERGE-CLAIM: refused base=fa424fd91
+== head
+RESULT #2841 rc=0 MERGE-CLAIM: resolved base=7d2056970
+RESULT #2745a rc=0 MERGE-CLAIM: resolved base=5261ba841
+RESULT #2745b rc=0 MERGE-CLAIM: resolved base=510787b76
+RESULT #2834 rc=1 MERGE-CLAIM: refused base=510787b76
+RESULT 3a07c2eaa rc=0 MERGE-CLAIM: resolved base=81b7aa9ff
+RESULT e438816e3 rc=0 MERGE-CLAIM: resolved base=92accb2cf
+RESULT 5bf232eac rc=1 MERGE-CLAIM: refused base=fa424fd91
+RESULT cmp r1-vs-head #2841 merged: SAME
+RESULT cmp r1-vs-head #2745a merged: SAME
+RESULT cmp r1-vs-head #2745b merged: SAME
+RESULT cmp r1-vs-head #2834 merged: SAME
+RESULT cmp r1-vs-head 3a07c2eaa merged: SAME
+RESULT cmp r1-vs-head e438816e3 merged: SAME
+RESULT cmp r1-vs-head 5bf232eac merged: SAME

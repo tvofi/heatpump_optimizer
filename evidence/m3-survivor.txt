@@ -1,4 +1,0 @@
-== head, unmutated
-RESULT theirs-deleted alpha: ['beta', 'gamma']
-== mutant M3 (first branch: our_blocks.get(name) or their_blocks.get(name))
-RESULT theirs-deleted alpha: ['alpha', 'beta', 'gamma']
