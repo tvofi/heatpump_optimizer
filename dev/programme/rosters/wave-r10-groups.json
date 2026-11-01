@@ -12825,7 +12825,7 @@
     "Re-scope (tvofi, 2026-10-31, \"split USER-DOCS-FINAL\"): this group is now the DRAFT stage and has no after-edges. Do brief items (1)-(6) against origin/main at your fork, not at the true merge base: the enumeration, the pages, the correctness pass, the removals, and both tests/doc_claims.py arms (coverage, with its reasoned exemption list, and stateless), each red on its fixture and green on its null control. The final check at the true merge base, after every round-10 feature group, is R10-USER-DOCS-VERIFY's (M), which runs this group's enumeration rule and doc_claims arms and documents whatever lands after this fork. Size L, so the designer pre-study (decision 0014) still comes first, now with no predecessor to wait on. It records the enumeration rule, the page map and the claim-check method, and R10-USER-DOCS-VERIFY reuses all three."
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-user-docs-final",
     "commit": "92588d581fde4ce287af3db5e8bb61461dc28015",
     "last_step": null,
