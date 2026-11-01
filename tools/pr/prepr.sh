@@ -3699,7 +3699,8 @@ rm -f /tmp/prepr-owners.$$
 # it on a pull request: this head as the candidate merge on origin/main, over
 # git history only (about 14 s). No PR number exists here, so an exemption the
 # head adds for itself is read by CI alone.
-if test -f tools/audit/machinery_ratchet.py; then heavy_run /tmp/prepr-mr.$$ python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD; else echo "no machinery ratchet in this tree" > /tmp/prepr-mr.$$; fi
+: > /tmp/prepr-mr.$$
+if test -f tools/audit/machinery_ratchet.py; then heavy_run /tmp/prepr-mr.$$ python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD; fi
 step "machinery ratchet" $? "$(grep -E '^  (ok  |FAIL) ' /tmp/prepr-mr.$$ | tr -s ' ' | tr '\n' ';')"
 rm -f /tmp/prepr-mr.$$
 
