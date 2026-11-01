@@ -1,0 +1,2 @@
+mutant: hl.learned ? (observable ? 1 : 0) : house ? house.share : 0
+ALL CARD CHECKS PASSED

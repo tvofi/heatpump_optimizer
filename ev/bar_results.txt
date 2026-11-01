@@ -1,0 +1,12 @@
+RESULT base nometer-converged: bar 100% | Not observable without a power meter.
+RESULT base metered-converged: bar 100% | Learned from 21 samples. The house loses heat 8 % faster than the settings estimated.
+RESULT base nometer-unconverged: bar 40% | Not observable without a power meter.
+RESULT base metered-unconverged: bar 40% | Learning: 40 % of the samples it needs.
+RESULT base nometer-zero-share: bar 0% | Not observable without a power meter.
+RESULT base metered-zero-share: bar 0% | Waiting for conditions it can learn in.
+RESULT head nometer-converged: bar 0% | Not observable without a power meter.
+RESULT head metered-converged: bar 100% | Learned from 21 samples. The house loses heat 8 % faster than the settings estimated.
+RESULT head nometer-unconverged: bar 0% | Not observable without a power meter.
+RESULT head metered-unconverged: bar 40% | Learning: 40 % of the samples it needs.
+RESULT head nometer-zero-share: bar 0% | Not observable without a power meter.
+RESULT head metered-zero-share: bar 0% | Waiting for conditions it can learn in.
