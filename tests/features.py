@@ -25704,6 +25704,7 @@ _SVC_KEYS = {
     "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
     "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
     "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
+    "factory_reset_not_applied": ({"entry_id"}, "hae"),
 }
 
 
@@ -25749,6 +25750,15 @@ def _svc_why(outcome, key):
 
 def _svc_check(name, outcome, key):
     R.check(name, not _svc_why(outcome, key), _svc_why(outcome, key) or "ok")
+
+
+# factory_reset's refusal, driven in the R10-FACTORY-RESET section through
+# the real service handler over an unload Home Assistant refuses.
+_svc_check(
+    "factory_reset over an unload Home Assistant refuses raises a translated operational failure",
+    ("raised", _fr_refused[1]) if _fr_refused[1] is not None else ("returned", None),
+    "factory_reset_not_applied",
+)
 
 
 # The driven state: one loaded entry, its coordinator holding no prices, no
@@ -38497,6 +38507,8 @@ _ET_KEYS = {
     # D10-s1-03: the refused token, through _raise_auth_failed.
     "tibber_auth_failed": {"error"},
     "debug_collect_inactive": {"entry_id"},
+    # R10-FACTORY-RESET: an unload Home Assistant refuses.
+    "factory_reset_not_applied": {"entry_id"},
 }
 
 
