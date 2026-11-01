@@ -32,11 +32,13 @@
   ok   exact field of parent `sh -s LEAKVAL` is `sh -s`
   ok   exact field of parent `sh -s -- LEAKVAL` is `sh -s`
   ok   exact field of parent `bash -s -- --token LEAKVAL` is `bash -s`
-  ok   exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3 caller.py`
-  ok   exact field of parent `python3 -WLEAKVAL caller.py` is `python3 caller.py`
-  ok   exact field of parent `python3 -X LEAKVAL caller.py` is `python3 caller.py`
-  ok   exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3 -m caller_mod`
-  ok   exact field of parent `bash -o LEAKVAL s.sh` is `bash s.sh`
+  ok   exact field of parent `python3 -W ignore::LEAKVAL caller.py` is `python3`
+  ok   exact field of parent `python3 -WLEAKVAL caller.py` is `python3`
+  ok   exact field of parent `python3 -X LEAKVAL caller.py` is `python3`
+  ok   exact field of parent `python3 -W error -m caller_mod LEAKVAL` is `python3`
+  ok   exact field of parent `python3 -X 'a LEAKVAL' caller.py` is `python3`
+  ok   exact field of parent `python3 -W "ignore LEAKVAL" caller.py` is `python3`
+  ok   exact field of parent `bash -o LEAKVAL s.sh` is `bash`
   ok   exact field of parent `node --require ./LEAKVAL.js n.js` is `node`
   ok   exact field of parent `node -p LEAKVAL` is `node`
   ok   exact field of parent `ruby -r LEAKVAL x.rb` is `ruby`
@@ -49,6 +51,7 @@
   ok   mutant killed: an unknown option letter passed over, not ending the field
   ok   mutant killed: an unknown long option passed over, not ending the field
   ok   mutant killed: a value-taking letter read as no-value, its value taken as the script
+  ok   mutant killed: a value-taking letter skips one word as its value, not ending the field
   ok   mutant killed: `=` allowed in the parent field
   ok   mutant killed: the 80-character cut removed
   ok   mutant killed: --eval/--print/--command passed over
@@ -80,4 +83,5 @@
   ok   a malformed --since is refused
   ok   coverage reads the shim marker, not the name
   ok   a real gh ahead of the shim reads as not logged
-gh_calls self-test: 81 checks, 0 failed
+gh_calls self-test: 84 checks, 0 failed
+rc=0

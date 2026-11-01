@@ -1,41 +1,56 @@
-Fix review: blocked 50694d12d3d488bf96b49b0cf44b3bb0eb6a6fce class-open: a python -W/-X option value containing a space still reaches the parent field, because ps args are split on spaces and the rule skips only the value's first word
+Fix review: merge 3602d1b64c88a947c7f5e815fff15b46a6c4c496
 
-bus-nonce: 0a363f45b51a3953e947422ae5140434
+bus-nonce: 6a3d761828097b6c3e0d4717eb8947e2
 
-Review round 4 (delta, FRESH-REVIEW of 16cb22f6..50694d12, re-cut) of PR #3049 (R10-FLY-GH-CALL-LOG, P284). I measured head `50694d12d3d488bf96b49b0cf44b3bb0eb6a6fce` (code head 8f39a456b) from a detached worktree with the finder's harness (origin/probe/rev-3049-4ca2508c ev/probe.sh, ev/probe2.sh) and my own driver ev/probe3.sh, which I built myself (fix-review.md step 9). I ran under env -u BASH_ENV on a root host with perl, ruby and node present. zsh, ksh and pypy are not installed, so I covered them with symlinks to bash and python3 named zsh, ksh and pypy3.
+## Round
 
-## Block
-
-The re-cut closes every round-3 shape. The finder's harness reads 9/5 LEAK at 16cb22f6 and 2/0 LEAK at this head, and the two left are the disclosed argv[0]/script-path residual. All nine of the body's field mutants and seven planted mutants of my own are killed. One seam of the same class is still open and is not dispositioned. The shim reads the caller's command line from `ps -o args=`, which joins argv with spaces. It then splits that line back into words on spaces (`read -r -a pw`). A value-taking option (python `-W`/`-X`) skips exactly one word as its value. So a value that is one argv word containing a space is only partly skipped, and the rest is logged as the script:
-
-- `python3 -X "importtime LEAKVAL" c.py` logs `python3 LEAKVAL` (ev/probe3-head.txt).
-- `python3 -W "ignore LEAKVAL" c.py` logs `python3 LEAKVAL` (ev/probe3-head.txt).
-
-The shim header claims "So no option value, code, stdin-script argument or later word reaches the log (P284)". The body says a value-taking letter "passes over its value, glued or the next word, unlogged". instruments/shims_seat-gh.md says the value of a known value-taking letter is passed over. All three are stronger than the code. The header's "Words split on spaces only" names the splitting but not this consequence. The body's class rule lists the field's case table as its seams and does not list the word-splitting seam. The shell value letters `-o`/`-O` take the same path, but bash rejects a spaced value before any gh call (NOLINE in ev/probe3-head.txt), so only python is reachable here. A direction, not a requirement: read `/proc/$PPID/cmdline` NUL-split where it exists, keeping `ps` as the fallback. Or end the field unlogged at a value-taking letter instead of skipping its value. Either way, pin it with an exact-field arm such as `python3 -X 'a LEAKVAL' caller.py`. Or disclose the residual in the header, the body and the instrument page.
+The re-cut round after the block of 50694d12d. verdict/3049 holds 4 blocked verdicts (87abaed68, a7e6a3e5d, 16cb22f64, 50694d12d), so by that ref this is round 5, which is also the body's count. My brief says "after the fifth block"; I could not find a fifth blocked verdict, and I report the gap rather than resolve it. Measured head: 3602d1b64c88a947c7f5e815fff15b46a6c4c496, the PR head when the check runs were read. It merges code head 2f97d5701 and then origin/main e4c9e2016. The roles diff from the merge base to main is empty, so this contract is current.
 
 ## Findings
 
-- class-open: spaced value of a python `-W`/`-X` option leaks its later words into the parent field (ps args re-split on spaces). Not in the diff, not dispositioned in the body, and the header and instruments/shims_seat-gh.md overstate it. Carry: #3049 (this PR's fixer owes it in the next re-cut)
-- body `## Red checks` reads "none at the PR head `e5da61c2d`", which is an earlier head, not 50694d12. Carry: dismissed: no check concluded red at 50694d12 (Evidence, CI), so no answer is owed at this head; the next pass restates the section at its own head anyway
+- The body's heading is `## Re-cut note`, not `## Re-cut`. `tools/audit/seat/bus.sh` three_rounds() greps `^## Re-cut[[:space:]]*$`, and that grep refuses this line (re-run here: NOMATCH). This dispatch went out with 4 blocked rounds, so it needed `--past-three` and the heading gated nothing this time. Even so, the re-cut form fixer.md asks for is not met to the letter. The fix is a body edit that leaves the head where it is: rename the heading to `## Re-cut` before the merge. Carry: R10-FLY-GH-CALL-LOG
 
 ## Evidence
-- RESULT round: 4 (a re-cut, per fixer.md). Range 16cb22f6..50694d12 was reviewed fresh. The branch-only three-dot diff is 9 files, +693/-1. The rest of the 2-dot range is origin/main's own merges.
-- RESULT finder-harness probe.sh / probe2.sh, run under env -u BASH_ENV on a root host with perl, ruby and node present:
-  - old head 16cb22f6: 9 / 5 LEAK. This reproduces the round-3 9/5.
-  - this head: 2 / 0 LEAK (ev/probe-*.txt, ev/probe2-*.txt). The 2 are exactly the disclosed residual: `sh ./GH_TOKEN=abcLEAKVAL/script` logs `sh ./GH_TOKEN?abcLEAKVAL/script`, and the `bashLEAKVAL` argv[0] symlink logs `bashLEAKVAL`.
-  - one NOLINE per file at both ends: `bash --command=` and `node --print=`. Neither shape calls gh. So the body's 2/0 and its NOLINE account re-derive.
-- RESULT reviewer shapes, ev/probe3.sh (my own driver, 48 shapes; it carries its own shapes and is not the finder's harness):
-  - old head: 9 LEAK. This head: 2 LEAK, the spaced -X/-W value under Block.
-  - Clean at the head: `-IcCODE`, `-Wd -c`, glued and spaced `-W`/`-X`/`-Xdev=V`/`-BWV`/`-bX V`, `python3 -- c.py V`, `python3 - V`, `-m mod V`, pypy3 -c, zsh -ce, ksh -c, `bash -O extglob -c`, `bash -o pipefail -e`, `-xo pipefail`, `+o pipefail` (logs `bash ?o`), `--norc`, `--rcfile`, `bash --`, `-ex`, `sh -s -- V` from a pipe, dash -c, `perl -w`/`-we`/`-I V`, `ruby -w`/`-I V`, `node --eval CODE`, `--inspect-port`, `node --`, `node -pe`, `env FOO=V python3`, `env python3 ... V`, `xargs python3`, `nice python3`, `timeout 5 bash -c`, and a 120-char path cut to 80.
-  - zsh, ksh and pypy are not installed; I tested them through renamed symlinks only.
-- RESULT null control, real ps: `PY -I W/caller.py --body LEAKVAL` logs `python3 <W>/caller.py`, and `PY -m caller_mod --body LEAKVAL` logs `python3 -m caller_mod`. The field is not cut to nothing.
-- RESULT self-test head, root, env -u BASH_ENV: `gh_calls self-test: 81 checks, 0 failed`, 19 `mutant killed` lines, one `skip unwritable-directory arm`. This agrees with the body's 81 root / 82 non-root. `seat_venv self-test: 21 checks, 0 failed` (ev/selftest-head.txt, ev/seatvenv-head.txt).
-- RESULT body's nine field mutants: all are in-tree `fmutant` arms and all read `ok mutant killed` at the head. My own plants on the shim text (ev/plants.py, ev/plants-head.txt) are 16 of 16 KILLED. They include the three round-3 survivors: `=` allowed (2 FAIL), the 80-char cut removed (3 FAIL), the --eval arm removed (5 FAIL). They also include the long code option logged whole, a code letter logging the whole word, s dropped, unknown letter or long option passed over, value letter dropped, value next word not skipped, -m module dropped, script word not ending, python flags emptied, shell vals emptied, chmod 600 removed, and umask 077 removed. The shim was restored after the plants.
-- RESULT hermetic PATH guard intact at the head: the arms `the hermetic guard`, `control: ... old-style PATH ... red`, `control: ... invisible to the hermetic PATH`, `mutation: a PATH that includes the fake gh`, `mutation: the old-style PATH` and `no real gh: one line, rc 127` all read ok. The umask arms read ok too: 022 caller gives dir 0700 and log 0600, the real gh runs under 022, and the mutants for no umask and umask leaking past the subshell are killed. The umask plant reproduces 2 FAIL.
-- RESULT alert 46: this seat cannot read code-scanning alerts either. It has no gh REST (gh is search-only here) and no MCP code-scanning tool, so the body's statement is honest. `codeql / Analyze (python)` concluded success and `CodeQL` success at this head; whether alert 46 is open, fixed or dismissed is not verified.
-- RESULT merge: `git merge-tree --write-tree origin/main(fb0a6d5a3) 50694d12` exits 0, with no conflict (ev/merge-tree.txt).
-- RESULT claims/version: the three-dot diff of both claim files, VERSION, RELEASE_NOTES.md and the manifest is 0 lines. dev/programme/delivery/3049.md is in the three-dot diff. gh_calls.py is in tests/closures.json, and the shim and docs are under INERT `tools/audit/`.
-- RESULT gates at the head: `STRUCTURE RATCHET PASSED`, `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`, and `ALL 2497 ENTITY CHECKS PASSED`. The body's 2493 was at an earlier main; this head merged main since, so I did not re-derive that count.
-- RESULT CI: `merge_train.py classify 50694d12d3d488bf96b49b0cf44b3bb0eb6a6fce` printed `GREEN ... pending: none red: none` and exited 0 at 14:14:33Z (ev/ci-classify.txt). I read the check-runs in full (53 runs, one page) and none concluded failure. pr-contract concluded success at 13:52:45Z. No `## Red checks` answer is owed at this head.
-- RESULT stated-residual text: the shim header, instruments/shims_seat-gh.md and the body state the argv[0]/script-path residual accurately. They overstate the option-value claim (Block). instruments/gh_calls.py.md makes no leak claim beyond naming its arms.
-- RESULT head check: refs/pull/3049/head is 50694d12d3d488bf96b49b0cf44b3bb0eb6a6fce when measured and when finalised.
+
+- Last block, re-run with the finder's harness, exported from origin/verdict/3049 (finder-probe.sh, finder-probe2.sh, probe3.sh) under `env -u BASH_ENV`. Count rule: lines starting LEAK.
+  - Shim from 50694d12d: probe 2, probe2 0, probe3 2.
+  - Shim at this head: probe 2, probe2 0, probe3 0.
+  - The two probe3 rows `python3 -X "importtime LEAKVAL" c.py` and `python3 -W "ignore LEAKVAL" c.py` now log `python3`.
+  - The 2 left in probe are the disclosed residuals: `sh ./GH_TOKEN=abcLEAKVAL/script` and the `bashLEAKVAL` argv[0] symlink.
+  - NOLINE counts are unchanged at both ends (1/1/4); those shapes never call gh.
+  - These match every figure in the body's Figures bullet (ev/harness-both-ends.txt).
+  Carry: dismissed: evidence, not a finding
+- My own hunt, ev/probe4.sh, 24 shapes. It is my instrument, not the finder's.
+  - Shapes: shebang-packed `-X`/`-W` values, `env -S python3 -W ...`, script paths containing a space, `-X'a LEAKVAL'` glued and spaced, a symlinked `python3.99` and an unlisted `pythonw`, `perl -mM`, `bash -m`, `python3 -E -s -c`, `sh -vs`, and gh-side `-H`/`--header=`/`-f`/`--body`/`?query` values.
+  - Old shim: 3 LEAK. This head: 0 LEAK. The 3 old leaks act as the null control for this harness.
+  - A script path containing a space is logged cut at the space (`python3 d`), as the header states. `-s` on python ends the field as a stdin-script letter, also as stated.
+  - I found no shape that reaches the parent field beyond the disclosed argv[0]/script-path residual.
+  Carry: dismissed: evidence, not a finding
+- Docs: the shim header, instruments/shims_seat-gh.md and the body each state the rule the code runs. A value-taking letter (python -W/-X, shell -o/-O) ends the field unlogged. `c`/`e`/`s` log the option up to the letter. `--eval`/`--print`/`--command` log the name only. Any other option ends the field. `-m <module>` and the first non-option word are logged. I found none of the three claiming more than the code does.
+- Self-test at this head: `gh_calls self-test: 84 checks, 0 failed`. I counted 84 ok/FAIL lines; one arm skips because the run is as root. This re-derives the body's figure.
+- Failing first: the head's gh_calls.py with the 50694d12d shim gives `84 checks, 8 failed`, as the body says.
+- My textual mutants, run through the self-test (ev/mutants-head.txt):
+  - Old skip restored: KILLED, 8 failed.
+  - Value letter read as a no-value letter: KILLED, 7.
+  - Value letter logs the next word: KILLED, 8.
+  - python vals emptied: KILLED, 1, by the textual mutant arm.
+  - `$vals` line deleted: KILLED, 1.
+  - Shell vals emptied: survives. That mutant is behaviour-equivalent: o/O are not in the shell flag set, so they fall to the end-unlogged arm either way.
+  - All 17 of the self-test's own mutant arms read killed.
+- Standing checks (ev/standing.txt):
+  - seat_venv self-test: 21 checks, 0 failed.
+  - `ALL 2497 ENTITY CHECKS PASSED`.
+  - `STRUCTURE RATCHET PASSED`.
+  - `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
+  - VERSION, RELEASE_NOTES.md, the manifest and both claim files are untouched in the three-dot diff, and the claim files are byte-identical.
+  - The delivery row dev/programme/delivery/3049.md is in the three-dot diff.
+- Merge with origin/main 1d28de993: `git merge-tree --write-tree` rc 0. `LEDGER-MERGE: resolved tests/closures.json` appears; no MERGE-CLAIM line, because the claim files did not conflict.
+- Re-cut form, apart from the heading finding above: the body carries every template heading (Head, Mutation proof, Null control, Figures, Red checks, Forward-carry, Friction). Its figures are re-taken in this pass, and the round history is cut down to the one block it answers.
+- Check runs at this head, all 53 on one page, read live:
+  - None concluded failure.
+  - `governance / instrument-self-tests` and `codeql / Analyze (python)` are success.
+  - `pr-contract` is success, started 16:26:56Z after every run concluded red on earlier heads.
+  - `governance / instrument-self-tests`, red on an earlier head, is named and answered under the body's Red checks.
+  - The body's CodeQL clause ("no check has run yet") was written before the push. At this head CodeQL is success; the clause names no red that is still owed.
+- CI wait: `merge_train.py classify 3602d1b64c88a947c7f5e815fff15b46a6c4c496` -> rc 0 `GREEN 3602d1b64c88a947c7f5e815fff15b46a6c4c496 pending: none red: none` at 16:37:10Z (ev/ci-classify.txt).
+- Forward-carry: the body says none. A shim and reader confined to the seat change no later stage, so none is owed.

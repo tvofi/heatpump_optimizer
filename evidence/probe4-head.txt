@@ -1,0 +1,48 @@
+clean  | shebang python3 -X val c
+       -> 2026-11-01T15:54:55Z 4086 python3 api x
+clean  | shebang python3 -W 'ignore LEAKVAL'
+       -> 2026-11-01T15:54:55Z 4107 python3 api x
+NOLINE | shebang bash -o 'pipefail LEAKVAL'
+       -> 
+clean  | env -S python3 -W val
+       -> 2026-11-01T15:54:55Z 4130 python3 api x
+clean  | python3 'd LEAKVAL/c.py' (spaced script path)
+       -> 2026-11-01T15:54:55Z 4151 python3 d api x
+clean  | bash 'd LEAKVAL/s.sh' (spaced script path)
+       -> 2026-11-01T15:54:55Z 4172 bash d api x
+clean  | python3 -u 'd LEAKVAL/c.py'
+       -> 2026-11-01T15:54:55Z 4193 python3 d api x
+clean  | perl -I. -m M p.pl LEAKVAL
+       -> 2026-11-01T15:54:55Z 4214 perl api x
+NOLINE | perl -m LEAKVAL-ish module (spaced)
+       -> 
+clean  | bash -m s.sh LEAKVAL
+       -> 2026-11-01T15:54:55Z 4237 bash -m s.sh api x
+clean  | python3 -E -s -c CODE
+       -> 2026-11-01T15:54:55Z 4258 python3 -s api x
+clean  | python3 -c with value word first
+       -> 2026-11-01T15:54:55Z 4279 python3 -c api x
+clean  | python3 -X'a LEAKVAL' glued spaced
+       -> 2026-11-01T15:54:55Z 4300 python3 api x
+clean  | python3 -bb -X LEAKVAL c.py
+       -> 2026-11-01T15:54:55Z 4321 python3 api x
+clean  | python3.11-like name via symlink -W
+       -> 2026-11-01T15:54:55Z 4344 python3.99 api x
+clean  | pythonw-like name (unlisted) -W
+       -> 2026-11-01T15:54:55Z 4367 pythonw api x
+clean  | bash -c CODE argv0 LEAKVAL
+       -> 2026-11-01T15:54:55Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
+clean  | bash -Hc CODE
+       -> 2026-11-01T15:54:55Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
+clean  | sh -n? -s LEAKVAL
+       -> 2026-11-01T15:54:55Z 4430 sh -vs api x
+clean  | gh api -H 'Authorization: LEAKVAL' x
+       -> 2026-11-01T15:54:56Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
+clean  | gh api --header=LEAKVAL x
+       -> 2026-11-01T15:54:56Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
+clean  | gh api x -f q=LEAKVAL
+       -> 2026-11-01T15:54:56Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
+clean  | gh secret set N --body LEAKVAL
+       -> 2026-11-01T15:54:56Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh secret set
+clean  | gh api 'x?tok=LEAKVAL'
+       -> 2026-11-01T15:54:56Z 4073 bash /tmp/tmp.cpaByhHyIK/ev/probe4.sh api x
