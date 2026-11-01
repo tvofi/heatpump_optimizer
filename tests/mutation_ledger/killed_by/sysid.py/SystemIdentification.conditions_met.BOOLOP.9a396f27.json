@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met BOOLOP 9a396f27",
+  "killed_by": "tests/features.py",
+  "old": "        if self.kind == KIND_FIT and learner_samples >= cfg.converged_samples:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if self.kind == KIND_FIT or learner_samples >= cfg.converged_samples:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=13."
+}
