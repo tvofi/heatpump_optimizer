@@ -3,28 +3,40 @@
 
 Run on the owner's own Home Assistant box. It reads, and only reads:
 
-* ``<config>/home-assistant_v2.db`` -- the recorder's SQLite database, opened
-  with ``mode=ro`` (the ``states``, ``states_meta``, ``state_attributes`` and
-  ``schema_changes`` tables of the current schema; ``states_meta`` arrived in
-  schema 41, so an older database is refused by name);
+* the recorder's database (the ``states``, ``states_meta``,
+  ``state_attributes`` and ``schema_changes`` tables of the current schema;
+  ``states_meta`` arrived in schema 41, so an older database is refused by
+  name), SELECTs only. Which database: ``--db-url``, else ``--db``, else the
+  ``db_url`` configuration.yaml's ``recorder:`` names (inline or by
+  ``!include``, a ``!secret`` resolved through secrets.yaml), else
+  ``<config>/home-assistant_v2.db``. SQLite is opened with ``mode=ro``;
+  MySQL/MariaDB through the driver the Home Assistant container ships
+  (``MySQLdb``, else ``pymysql``), found at run time, in a read-only session.
+  The URL's credentials are never printed, logged or written: the recorder is
+  named as ``scheme://host/database``;
 * ``<config>/.storage/core.config_entries`` -- this integration's entry;
 * ``<config>/.storage/core.entity_registry`` -- the entities it publishes;
 * ``<config>/.storage/core.config`` -- the instance's time zone.
 
-It opens no socket. The standard library is all it imports, so it runs under
-the interpreter inside the Home Assistant container as it is -- and the rules
+It opens no socket but the database's, for a ``db_url`` recorder. The
+standard library is all it imports on the SQLite path, so it runs under the
+interpreter inside the Home Assistant container as it is -- and the rules
 below, which it loads by path from the integration's own
 ``custom_components/heatpump_optimizer/replay_doc.py`` (the checkout's, else a
 copy beside this file, else the one installed under ``/config``), because
 Download diagnostics writes the same document through the same rules (#2271).
 
 WHAT IT EXPORTS, for the window ``[end - days, end)`` in the instance's zone:
-every entity id the config entry maps (any value in ``data`` or ``options``
-spelled like an entity id -- thermometers, the price and weather entities, the
+every entity id the config entry maps under a key the installed integration
+reads (any value in ``data`` or ``options`` spelled like an entity id, under a
+``CONF_*`` key; a key a release retired is named on stderr and left out --
+thermometers, the price and weather entities, the
 pump's mode, switch, power and valve entities), the entities this integration
 publishes (from the registry; carried for comparison, never fed back), and any
 ``--extra-entity``. For each, the last state before the window and every state
-inside it.
+inside it. It refuses a window in which a mapped input has no state, updated
+or reported -- naming the inputs by their masked role and the recorder it read
+-- because a near-empty day passes every other rule.
 
 WITH THE TIBBER PRICE SOURCE the integration fetches prices itself, so the
 replay builds the day's series from a recorded price sensor
@@ -61,14 +73,16 @@ not its meaning, so a person reads the file before it is committed:
 
 * any text state, and any entry value under a key not naming an entity, of
   up to 40 characters that starts with a letter and breaks none of the rules
-  above -- several words and short numbers included: a full name, a street
-  and house number ("Storgatan 12"), a bare hostname, a random-looking token;
+  above -- several words and short numbers included: a full name, a bare
+  hostname, a random-looking token;
 * the same for units (up to 16 characters) and for ``device_class``,
   ``state_class`` and ``hvac_action`` (any ``[a-z_]`` word up to 32
   characters, a snake-case name included) -- and a select's option labels
   (no digits, otherwise the same);
-* entity ids, which the user named and which may embed a name, a street or a
-  device's MAC (``sensor.anna_storgatan_power``);
+* nothing of the entity ids, which the user named and which may embed a
+  name, a street or a device's MAC: ``replay_doc.mask`` renames every one to
+  a role (``sensor.price``) or a keyed hash, and a street and house number in
+  any text is dropped (``replay_doc.ADDRESS``);
 * numbers: a state, a numeric attribute or a price or forecast value is kept
   whatever it is, so a coordinate published as a sensor's state or a long
   number survives -- only keys named as coordinates are rounded.
@@ -84,12 +98,15 @@ on any violation; ``tests/replay.py`` runs it on every committed fixture.
 from __future__ import annotations
 
 import argparse
+import importlib
 import importlib.util
 import json
+import re
 import sqlite3
 import sys
 from datetime import datetime, time, timedelta, timezone
 from pathlib import Path
+from urllib.parse import parse_qs, unquote, urlsplit
 from zoneinfo import ZoneInfo
 
 DOMAIN = "heatpump_optimizer"
@@ -154,10 +171,25 @@ def check_file(path: Path, conf: frozenset[str] | None = None) -> list[str]:
         payload = json.loads(path.read_text())
     except (OSError, ValueError) as err:
         return [f"{path}: unreadable ({err})"]
-    found = violations(payload, conf if conf is not None else entry_keys(*default_const_paths()))
+    found = _doc.refusals(
+        payload, conf if conf is not None else entry_keys(*default_const_paths()))
     if not isinstance(payload, dict) or payload.get("format") != FORMAT:
         found.insert(0, f"format is not {FORMAT!r}")
-    return found
+    return found + untimed(payload)
+
+
+def untimed(payload: object) -> list[str]:
+    """A window bound or a row's update time that is not an ISO time: a replay
+    cannot place it, and a writer that nulled it wrote no recorded day."""
+    if not isinstance(payload, dict):
+        return []
+    window = payload.get("window") or {}
+    found = [f"window.{k}: not an ISO time" for k in ("start", "end")
+             if not (isinstance(window.get(k), str) and _doc.ISO_TIME.match(window[k]))]
+    bad = sum(1 for rows in (payload.get("states") or {}).values() for row in rows or []
+              if not (isinstance(row, list) and isinstance(row[0], str)
+                      and _doc.ISO_TIME.match(row[0])))
+    return found + ([f"states: {bad} row(s) with no ISO update time"] if bad else [])
 
 
 # --- reading the install -----------------------------------------------------
@@ -167,13 +199,157 @@ def _storage(config_dir: Path, name: str) -> dict:
     return json.loads((config_dir / ".storage" / name).read_text())["data"]
 
 
-def _open_ro(db: Path) -> sqlite3.Connection:
-    return sqlite3.connect(f"file:{db}?mode=ro", uri=True)
+def _yaml_scalar(text: str) -> str:
+    """A one-line YAML scalar: quoted, or plain with its trailing comment cut."""
+    text = text.strip()
+    if text[:1] in "\"'" and len(text) > 1 and text[-1] == text[0]:
+        return text[1:-1]
+    return re.split(r"\s+#", text, maxsplit=1)[0].strip()
 
 
-def _schema_version(conn: sqlite3.Connection) -> int:
-    row = conn.execute("SELECT MAX(schema_version) FROM schema_changes").fetchone()
-    return int(row[0] or 0)
+def _top_key(text: str, key: str) -> tuple[str, list[str]] | None:
+    """A top-level ``key:``'s inline value and its indented block's lines."""
+    lines = text.splitlines()
+    for i, line in enumerate(lines):
+        found = re.match(rf"^{re.escape(key)}:(.*)$", line)
+        if found:
+            block = []
+            for nxt in lines[i + 1:]:
+                if nxt.strip() and not nxt[:1].isspace():
+                    break
+                block.append(nxt)
+            return found.group(1), block
+    return None
+
+
+def _secret(config_dir: Path, value: str) -> str:
+    tag = re.match(r"^!secret\s+(\S+)$", value)
+    if not tag:
+        return value
+    secrets = config_dir / "secrets.yaml"
+    hit = _top_key(secrets.read_text(), tag.group(1)) if secrets.is_file() else None
+    if hit is None:
+        raise SystemExit(f"configuration.yaml's recorder db_url names !secret "
+                         f"{tag.group(1)}, which {secrets} does not hold")
+    return _yaml_scalar(hit[0])
+
+
+def recorder_url(config_dir: Path) -> str | None:
+    """The ``db_url`` of configuration.yaml's top-level ``recorder:``, written
+    inline or in the file its ``!include`` names, a ``!secret`` resolved; None
+    without one, which is the default SQLite file."""
+    path = config_dir / "configuration.yaml"
+    hit = _top_key(path.read_text(), "recorder") if path.is_file() else None
+    if hit is None:
+        return None
+    inline, block = hit
+    include = re.match(r"^\s*!include\s+(\S+)", inline)
+    if include:
+        included = config_dir / include.group(1)
+        block = included.read_text().splitlines() if included.is_file() else []
+    depth = min((len(b) - len(b.lstrip()) for b in block if b.strip()), default=0)
+    for line in block:
+        found = re.match(rf"^ {{{depth}}}db_url:(.*)$", line)
+        if found:
+            return _secret(config_dir, _yaml_scalar(found.group(1)))
+    return None
+
+
+#: What a message calls a MySQL/MariaDB recorder. No text of the URL is in it:
+#: its host and database are the owner's, and a message only names the kind.
+MYSQL_LABEL = "MySQL/MariaDB database"
+#: A SQLite recorder named by a ``db_url`` is named by its kind alone, for the
+#: same reason: the URL may come from ``secrets.yaml``, and a message names a
+#: location only when the person typed it (``--db``, or the config directory).
+SQLITE_URL_LABEL = "SQLite database"
+
+
+class Recorder:
+    """The recorder database through DB-API, its SQL written once with ``?``
+    placeholders and rewritten to the driver's ``%s`` where it uses that."""
+
+    def __init__(self, conn, label: str, qmark: bool) -> None:
+        self.conn, self.label, self.qmark = conn, label, qmark
+
+    def rows(self, sql: str, params: tuple = ()) -> list[tuple]:
+        cur = self.conn.cursor()
+        try:
+            cur.execute(sql if self.qmark else sql.replace("?", "%s"), params)
+            return [tuple(r) for r in cur.fetchall()]
+        finally:
+            cur.close()
+
+    def columns(self, table: str) -> set[str]:
+        cur = self.conn.cursor()
+        try:
+            cur.execute(f"SELECT * FROM {table} WHERE 1 = 0")
+            return {d[0] for d in cur.description}
+        finally:
+            cur.close()
+
+    def close(self) -> None:
+        self.conn.close()
+
+
+#: The MySQL/MariaDB DB-API drivers, in the order tried: what SQLAlchemy's
+#: ``mysql://`` resolves to in the Home Assistant container, then the pure one.
+MYSQL_DRIVERS = ("MySQLdb", "pymysql")
+
+
+def _mysql(url: str) -> Recorder:
+    parts, label = urlsplit(url), MYSQL_LABEL
+    wanted = ("pymysql",) if parts.scheme.endswith("+pymysql") else MYSQL_DRIVERS
+    module = None
+    for name in wanted:
+        try:
+            module = importlib.import_module(name)
+            break
+        except ImportError:
+            continue
+    if module is None:
+        raise SystemExit(
+            f"the recorder {label} is MySQL/MariaDB, and reading it needs the "
+            f"{' or '.join(wanted)} module, which the Home Assistant container ships: "
+            "run this inside it (the SSH add-on's `docker exec -it homeassistant`)")
+    query = {k: v[-1] for k, v in parse_qs(parts.query).items()}
+    kwargs = {"host": parts.hostname or "localhost", "user": unquote(parts.username or ""),
+              "password": unquote(parts.password or ""), "database": parts.path.lstrip("/"),
+              "charset": query.get("charset", "utf8mb4")}
+    if parts.port:
+        kwargs["port"] = parts.port
+    if "unix_socket" in query:
+        kwargs["unix_socket"] = query["unix_socket"]
+    try:
+        conn = module.connect(**kwargs)
+        cur = conn.cursor()
+        cur.execute("SET SESSION TRANSACTION READ ONLY")
+        cur.close()
+    except Exception as err:  # noqa: BLE001 - its text can carry the user name
+        raise SystemExit(f"cannot open the recorder {label} read-only: "
+                         f"{type(err).__name__}") from None
+    return Recorder(conn, label, qmark=False)
+
+
+def open_recorder(config_dir: Path, db: Path | None, db_url: str | None) -> Recorder:
+    """The recorder ``--db-url``, ``--db``, configuration.yaml or the default names."""
+    url = db_url or (None if db else recorder_url(config_dir))
+    if url and not url.startswith("sqlite"):
+        if not url.split(":", 1)[0].split("+", 1)[0] in ("mysql", "mariadb"):
+            raise SystemExit("the recorder URL is neither SQLite nor "
+                             "MySQL/MariaDB, the two this export reads")
+        return _mysql(url)
+    label = None
+    if url:
+        db = Path(urlsplit(url).path[1:] if url.startswith("sqlite:////") else
+                  config_dir / urlsplit(url).path.lstrip("/"))
+        label = SQLITE_URL_LABEL
+    db = db or config_dir / "home-assistant_v2.db"
+    return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True),
+                    label or f"SQLite {db}", qmark=True)
+
+
+def _schema_version(rec: Recorder) -> int:
+    return int(rec.rows("SELECT MAX(schema_version) FROM schema_changes")[0][0] or 0)
 
 
 def _iso(ts: float | None) -> str | None:
@@ -182,12 +358,10 @@ def _iso(ts: float | None) -> str | None:
     return datetime.fromtimestamp(ts, timezone.utc).isoformat()
 
 
-def read_states(
-    conn: sqlite3.Connection, entity_id: str, start: float, end: float
-) -> list[list]:
+def read_states(rec: Recorder, entity_id: str, start: float, end: float) -> list[list]:
     """``replay_doc.state_rows`` of the entity's rows: the last before ``start``,
     then every one in ``[start, end)``."""
-    cols = {r[1] for r in conn.execute("PRAGMA table_info(states)")}
+    cols = rec.columns("states")
     reported = "s.last_reported_ts" if "last_reported_ts" in cols else "NULL"
     base = (
         f"SELECT s.last_updated_ts, {reported}, s.state, a.shared_attrs "
@@ -195,37 +369,50 @@ def read_states(
         "LEFT JOIN state_attributes a ON s.attributes_id = a.attributes_id "
         "WHERE m.entity_id = ? "
     )
-    before = conn.execute(
+    before = rec.rows(
         base + "AND s.last_updated_ts < ? ORDER BY s.last_updated_ts DESC LIMIT 1",
-        (entity_id, start),
-    ).fetchall()
-    inside = conn.execute(
+        (entity_id, start))
+    inside = rec.rows(
         base + "AND s.last_updated_ts >= ? AND s.last_updated_ts < ? "
         "ORDER BY s.last_updated_ts",
-        (entity_id, start, end),
-    ).fetchall()
+        (entity_id, start, end))
     return _doc.state_rows(
-        (_iso(updated), state, _attributes(shared), _iso(rep) if rep and rep > updated else None)
+        (_iso(updated), _text(state), _attributes(shared),
+         _iso(rep) if rep and rep > updated else None)
         for updated, rep, state, shared in before + inside
     )
 
 
-def _attributes(shared: str | None) -> dict:
+def _text(value: object) -> object:
+    """A MySQL driver can hand a text column back as bytes."""
+    return value.decode() if isinstance(value, (bytes, bytearray)) else value
+
+
+def _attributes(shared: object) -> dict:
     try:
-        return json.loads(shared) if shared else {}
+        return json.loads(_text(shared)) if shared else {}
     except ValueError:
         return {}
 
 
+def quiet_inputs(doc: dict) -> list[str]:
+    """The (masked) inputs with no state updated or reported inside the window."""
+    start = datetime.fromisoformat(doc["window"]["start"])
+    return [eid for eid in doc["inputs"] if not any(
+        any(t and datetime.fromisoformat(t) >= start for t in (row[0], row[3]))
+        for row in doc["states"].get(eid, []))]
+
+
 def build_export(
     config_dir: Path,
-    db: Path,
+    db: Path | None,
     days: int,
     end_date: str | None,
     entry_id: str | None,
     extra: list[str],
     price_entity: str | None,
     const: Path | None = None,
+    db_url: str | None = None,
 ) -> dict:
     entries = [
         e for e in _storage(config_dir, "core.config_entries")["entries"]
@@ -247,9 +434,18 @@ def build_export(
     end = datetime.combine(end_day, time(0), tz)
     start = datetime.combine(end_day - timedelta(days=days), time(0), tz)
 
-    inputs = mapped_entities(entry.get("data", {})) | mapped_entities(
-        entry.get("options", {})
-    )
+    # An input is an id under a key the installed integration reads: an old
+    # entry can keep a key a release retired (``heat_pump_entity``, v3.8.0),
+    # whose entity nothing reads and the recorder may long have stopped writing.
+    conf = entry_keys(*([const] if const else default_const_paths(config_dir)))
+    sections = [entry.get("data", {}), entry.get("options", {})]
+    retired = sorted({k for sec in sections for k, v in sec.items()
+                      if k not in conf and mapped_entities(v)})
+    if retired:
+        print(f"left out: entity id(s) under {len(retired)} entry key(s) this integration "
+              f"does not read ({', '.join(retired)})", file=sys.stderr)
+    inputs = set().union(*(mapped_entities({k: v for k, v in sec.items() if k in conf})
+                           for sec in sections))
     inputs |= set(extra)
     registry = _storage(config_dir, "core.entity_registry")["entities"]
     published = sorted(
@@ -259,9 +455,10 @@ def build_export(
         and e.get("config_entry_id") == entry.get("entry_id")
     )
     config = {**entry.get("data", {}), **entry.get("options", {})}
-    conn = _open_ro(db)
+    rec = open_recorder(config_dir, db, db_url)
+    print("reading the recorder", file=sys.stderr)
     try:
-        version = _schema_version(conn)
+        version = _schema_version(rec)
         if version < MIN_SCHEMA:
             raise SystemExit(
                 f"recorder schema {version} predates states_meta ({MIN_SCHEMA}); "
@@ -271,32 +468,49 @@ def build_export(
             price_entity = choose_price_entity(
                 config, registry,
                 lambda eid: any(_doc.numeric(row[1]) for row in read_states(
-                    conn, eid, start.timestamp(), end.timestamp())))
-            print(f"price series from the Tibber price sensor {price_entity} "
-                  "(--price-entity overrides)", file=sys.stderr)
+                    rec, eid, start.timestamp(), end.timestamp())))
+            print("price series from the one Tibber price sensor the registry and the "
+                  "recorder agree on, masked as sensor.price (--price-entity overrides)",
+                  file=sys.stderr)
         if price_entity:
             inputs.add(price_entity)
         states = {
-            eid: read_states(conn, eid, start.timestamp(), end.timestamp())
+            eid: read_states(rec, eid, start.timestamp(), end.timestamp())
             for eid in sorted(inputs | set(published))
         }
     finally:
-        conn.close()
+        rec.close()
 
     raw = _doc.document(
         time_zone=tz_name, window=(start.isoformat(), end.isoformat()),
         recorder_schema=version, entry=entry, inputs=inputs, published=published,
         price_series_entity=price_entity, states=states,
     )
+    quiet = quiet_inputs(raw)
+    if quiet:
+        raise SystemExit(
+            f"refusing to write: the recorder {rec.label} holds no state in "
+            f"[{start.isoformat()}, {end.isoformat()}) for {len(quiet)} of "
+            f"{len(raw['inputs'])} mapped input(s): {', '.join(quiet)} (masked ids; "
+            "is this the recorder Home Assistant writes?)")
     try:
-        return _doc.seal(raw, entry_keys(*([const] if const else default_const_paths(config_dir))))
+        sealed = _doc.seal(raw, conf)
     except _doc.Refused as err:
         raise SystemExit(str(err)) from None
+    if untimed(sealed):
+        raise SystemExit("refusing to write: sealing lost the document's times: "
+                         + "; ".join(untimed(sealed)))
+    return sealed
 
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--config-dir", type=Path, default=Path("/config"))
-    ap.add_argument("--db", type=Path, help="default <config-dir>/home-assistant_v2.db")
+    ap.add_argument("--db", type=Path, help="a SQLite recorder file; default: the db_url "
+                    "configuration.yaml's recorder names, else "
+                    "<config-dir>/home-assistant_v2.db")
+    ap.add_argument("--db-url", help="the recorder's URL, over --db and configuration.yaml; "
+                    "prefer configuration.yaml's, which keeps the password off the "
+                    "command line")
     ap.add_argument("--days", type=int, default=7)
     ap.add_argument("--end", help="local date the window ends on (exclusive), YYYY-MM-DD")
     ap.add_argument("--entry-id", help="needed only with more than one entry")
@@ -325,13 +539,14 @@ def main(argv: list[str] | None = None) -> int:
         ap.error("--out is required unless --check is given")
     payload = build_export(
         args.config_dir,
-        args.db or args.config_dir / "home-assistant_v2.db",
+        args.db,
         args.days,
         args.end,
         args.entry_id,
         args.extra_entity,
         args.price_entity,
         args.const,
+        args.db_url,
     )
     args.out.write_text(json.dumps(payload, sort_keys=True, indent=1) + "\n")
     rows = sum(len(v) for v in payload["states"].values())

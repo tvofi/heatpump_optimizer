@@ -13,9 +13,22 @@ library and nothing else -- no ``homeassistant``, no sibling module.
 WHAT IT KEEPS is an allowlist, because the file goes into a public
 repository; ``tools/replay/export.py``'s docstring states it, with what it
 cannot remove.
+
+EVERY ENTITY ID IS MASKED (``mask_ids``), because an id can embed the home's name
+or street address -- the Tibber price sensor's is derived from the home's
+address. ``document`` renames each id through one mapping: an id the entry
+holds under a key becomes ``<domain>.<role>``, the key less its ``_entity``
+suffix (``price_entity`` -> ``sensor.price``; the n-th of an ``_entities`` list
+``<domain>.<role>_n<n>``; the Tibber price series ``sensor.price``), and every
+other id a stable keyed hash, ``<domain>.e_<10 hex>``. ``refusals`` refuses a
+document still holding an id the mapping did not produce, and any text that
+looks like a street address (a word, then a house number); its messages name
+the class, never the id or the token.
 """
 from __future__ import annotations
 
+import hashlib
+import hmac
 import json
 import re
 from collections.abc import Callable, Iterable, Mapping
@@ -78,6 +91,13 @@ SERIES_TIME_KEYS = frozenset({"start", "end", "starts_at"})
 SERIES_VALUE_KEYS = frozenset({"value", "price", "total"})
 LABEL = re.compile(r"^[A-Za-z\u00b0][A-Za-z0-9 _+\-./()\u00b0%\u00b2\u00b3]{0,39}$")
 ISO_TIME = re.compile(r"^\d{4}-\d\d-\d\d([T ][\d:.]+([+-]\d\d:\d\d|Z)?)?$")
+#: A street address: a word of three letters or more, a space, underscore or
+#: hyphen, then a house number of up to four digits and an optional letter
+#: ("Storgatan 12", "exempelgatan_12b"). An entry string holding whitespace is
+#: free text (a name), dropped whatever it says.
+ADDRESS = re.compile(r"(?<![^\W\d_])[^\W\d_]{3,}[ _-]\d{1,4}(?:[ _]?[^\W\d_])?(?![^\W_])")
+#: An entity id ``mask_ids`` hashed: no role names it.
+HASHED_ID = re.compile(r"^[a-z_]+\.e_[0-9a-f]{10}$")
 
 # THE TIBBER PRICE SENSOR. With the Tibber source the integration fetches
 # prices itself, so the replay needs a recorded sensor whose state is the
@@ -99,6 +119,10 @@ PRICE_SOURCE_ENTITY = "entity"
 #: The shortest dropped value a leak check searches the rest of a payload for:
 #: a shorter one matches ordinary words and numbers by chance.
 LEAK_MIN_CHARS = 6
+#: Words Home Assistant writes as a state, which a device also writes under a
+#: credential-named attribute it cannot fill (``serial_number: unavailable``):
+#: no credential, and searching for one refuses every day an input went away.
+STATE_WORDS = frozenset({"unknown", "unavailable", "none", "null", "true", "false"})
 
 
 class Refused(ValueError):
@@ -193,7 +217,8 @@ def text_ok(value: str) -> bool:
         return "," not in value
     except ValueError:
         pass
-    return bool(LABEL.match(value)) and not re.search(r"\d{4}", value)
+    return (bool(LABEL.match(value)) and not re.search(r"\d{4}", value)
+            and not ADDRESS.search(value))
 
 
 def _is_coordinate(key: str) -> bool:
@@ -308,6 +333,8 @@ def _entry_shape(key: str, value: object) -> object:
         if isinstance(value, list):
             return [v for v in value if isinstance(v, str) and ENTITY_ID.match(v)]
         return _DROP
+    if isinstance(value, str) and re.search(r"\s", value):
+        return _DROP  # free text: a name, an address -- dropped, never masked
     return value
 
 
@@ -356,16 +383,24 @@ def sanitise(raw: Json, conf: frozenset[str], dropped: list[str]) -> Json:
     return cast(Json, clean_value(out, dropped))  # a dict cleans to a dict
 
 
+class Credential(str):
+    """A dropped value that sat under a credential-named key: its copy in a kept
+    string is dropped too, and a copy as a number refuses the document."""
+
+
 def _collect_strings(node: object, into: list[str], secret: bool = False) -> None:
-    """Collect what the leak check must not find again: every value under a
-    credential-named key, and every string that fails ``text_ok`` elsewhere.
+    """Collect what was dropped: every value under a credential-named key, as a
+    ``Credential`` the leak check must not find again, and every string that
+    fails ``text_ok`` elsewhere, counted only.
     A plain label dropped only for sitting under an unlisted key ("Hot water",
     a friendly name) may legitimately appear elsewhere, so it is not collected."""
     if isinstance(node, bool) or node is None:
         return
     if isinstance(node, (str, int, float)):
         text = str(node)
-        if text and (secret or (isinstance(node, str) and not text_ok(node))):
+        if text and secret:
+            into.append(Credential(text))
+        elif text and isinstance(node, str) and not text_ok(node):
             into.append(text)
     elif isinstance(node, dict):
         for key, value in node.items():
@@ -375,11 +410,17 @@ def _collect_strings(node: object, into: list[str], secret: bool = False) -> Non
             _collect_strings(value, into, secret)
 
 
+def _no_credential(value: object) -> bool:
+    """Nothing a credential-named key can leak: empty, or a bool -- a flag such as
+    ``tibber_reauth_started``, which ``_collect_strings`` skips too (D15-s1-04)."""
+    return isinstance(value, bool) or value in (None, "", [], {})
+
+
 def _walk(node: object, path: str, found: list[str]) -> None:
     if isinstance(node, dict):
         for key, value in node.items():
             here = f"{path}.{key}" if path else str(key)
-            if SECRET_KEY.search(str(key)) and value not in (None, "", [], {}):
+            if SECRET_KEY.search(str(key)) and not _no_credential(value):
                 found.append(f"{here}: a credential-named key carries a value")
             if _is_coordinate(key):
                 places = json_decimal_places(value)
@@ -390,11 +431,13 @@ def _walk(node: object, path: str, found: list[str]) -> None:
         for i, value in enumerate(node):
             _walk(value, f"{path}[{i}]", found)
     elif isinstance(node, str) and not text_ok(node):
-        found.append(f"{path}: text outside the allowlist")
+        found.append(f"{path}: " + ("an address-like token (a word, then a house number)"
+                                    if ADDRESS.search(node) else "text outside the allowlist"))
 
 
 def violations(payload: object, conf: frozenset[str] | None = None) -> list[str]:
-    """Every place ``payload`` breaks a rule. Empty means committable.
+    """Every place ``payload`` breaks a shape rule; ``refusals`` adds the mask's,
+    and empty there means committable.
 
     Without ``conf`` the entry's keys are judged by shape only; ``check_file``
     always passes the installed allowlist.
@@ -415,7 +458,9 @@ def _entry_violations(entry: Json, conf: frozenset[str] | None) -> list[str]:
             if (conf is not None and key not in conf) or not KEY.match(str(key)):
                 found.append(f"entry.{section}.{key}: not an entry key of this integration")
             elif _entry_shape(key, block[key]) != block[key]:
-                found.append(f"entry.{section}.{key}: must hold entity ids only")
+                found.append(f"entry.{section}.{key}: " + (
+                    "must hold entity ids only" if re.search(r"_entit(y|ies)$", key)
+                    else "free text"))
     return found
 
 
@@ -474,13 +519,117 @@ def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
     return rows
 
 
+# --- masking every entity id ---------------------------------------------------
+
+
+def entity_roles(entry: Json, price_series_entity: str | None) -> dict[str, str]:
+    """``{id: <domain>.<role>}`` for every id the entry holds under a key, options
+    before data, keys in order, then the price series as ``price``. An id keeps
+    its first role; a role a second id would take leaves that id to the hash."""
+    roles: dict[str, str] = {}
+
+    def claim(eid: object, role: str) -> None:
+        if isinstance(eid, str) and ENTITY_ID.match(eid) and eid not in roles:
+            rid = f"{eid.split('.', 1)[0]}.{role}"
+            if rid not in roles.values():
+                roles[eid] = rid
+
+    for section in ("options", "data"):
+        block = entry.get(section)
+        for key, value in sorted(block.items() if isinstance(block, dict) else ()):
+            role = re.sub(r"_entit(y|ies)$", "", str(key))
+            if isinstance(value, list):
+                for i, item in enumerate(value, start=1):
+                    claim(item, f"{role}_n{i}")
+            else:
+                claim(value, role)
+    for role in ("price", "price_series"):
+        claim(price_series_entity, role)
+    return roles
+
+
+def hashed_id(entity_id: str, key: str) -> str:
+    """``<domain>.e_<10 hex>``: an HMAC of the id keyed by the entry id, which the
+    document does not carry, so the same install masks an id the same way every
+    export and a guessed street cannot be hashed to match it."""
+    digest = hmac.new(key.encode(), entity_id.encode(), hashlib.sha256).hexdigest()
+    return f"{entity_id.split('.', 1)[0]}.e_{digest[:10]}"
+
+
+def mask_ids(doc: Json, key: str) -> Json:
+    """``doc`` with every entity id, at any depth and as any dict key,
+    renamed through ``entity_roles`` else ``hashed_id``: one mapping."""
+    roles = entity_roles(doc.get("entry") or {}, doc.get("price_series_entity"))
+
+    def rename(node: object) -> object:
+        if isinstance(node, str) and ENTITY_ID.match(node):
+            return roles.get(node) or hashed_id(node, key)
+        if isinstance(node, dict):
+            return {rename(k): rename(v) for k, v in node.items()}
+        if isinstance(node, list):
+            return [rename(v) for v in node]
+        return node
+
+    return cast(Json, rename(doc))
+
+
+def _entity_ids(node: object, into: set[str]) -> set[str]:
+    """Every string spelled like an entity id in ``node``, a dict's keys too --
+    ``states``' and any other: ``mask_ids`` renames every key it can."""
+    if isinstance(node, str) and ENTITY_ID.match(node):
+        into.add(node)
+    elif isinstance(node, dict):
+        for k, v in node.items():
+            _entity_ids(k, into)
+            _entity_ids(v, into)
+    elif isinstance(node, list):
+        for v in node:
+            _entity_ids(v, into)
+    return into
+
+
+def _unmasked(payload: object) -> list[str]:
+    """The ids in ``payload`` ``mask_ids`` did not produce: neither hashed nor the role
+    the document's own entry gives them; longest first."""
+    if not isinstance(payload, dict):
+        return []
+    roles = entity_roles(payload.get("entry") or {}, payload.get("price_series_entity"))
+    return sorted((i for i in _entity_ids(payload, set())
+                   if not HASHED_ID.match(i) and roles.get(i) != i), key=len, reverse=True)
+
+
+def mask_violations(payload: object) -> list[str]:
+    """The unmasked ids, counted and never named."""
+    left = _unmasked(payload)
+    if not left:
+        return []
+    street = sum(1 for i in left if ADDRESS.search(i.split(".", 1)[1]))
+    return [f"{len(left)} entity id(s) not masked to a role or a hashed id"
+            + (f", {street} holding an address-like token (a word, then a house number)"
+               if street else "")]
+
+
+def refusals(payload: object, conf: frozenset[str] | None = None) -> list[str]:
+    """``violations`` and ``mask_violations``, each message with every unmasked id
+    and address-like token in it replaced by its class: what ``seal`` refuses and
+    ``--check`` prints, so a refusal never repeats what it refuses."""
+    unsafe = _unmasked(payload)
+    out = []
+    for line in violations(payload, conf) + mask_violations(payload):
+        for eid in unsafe:
+            line = line.replace(eid, "<unmasked id>")
+        out.append(ADDRESS.sub("<address-like token>", line))
+    return out
+
+
 def document(
     *, time_zone: str, window: tuple[str, str], recorder_schema: int | None,
     entry: Json, inputs: Iterable[str], published: Iterable[str],
     price_series_entity: str | None, states: dict[str, list[list[Any]]],
 ) -> Json:
-    """The unsanitised ``hpo-replay/1`` document; ``seal`` makes it writable."""
-    return {
+    """The unsanitised ``hpo-replay/1`` document, every entity id masked
+    (``mask_ids``, keyed by the entry's id); ``seal`` makes it writable."""
+    return mask_ids({
         "format": FORMAT,
         "time_zone": time_zone,
         "window": {"start": window[0], "end": window[1]},
@@ -495,22 +644,74 @@ def document(
         "published": sorted(published),
         "price_series_entity": price_series_entity,
         "states": states,
-    }
+    }, str(entry.get("entry_id") or ""))
+
+
+def _copy(value: str) -> re.Pattern[str]:
+    """``value`` as a whole token: not a digit or letter run's middle, so a
+    dropped ``4829137`` is no copy inside ``14829137.5``."""
+    return re.compile(rf"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])")
+
+
+_ROW_FIELDS = ("updated", "state", "attributes", "reported")
+
+
+def _scan(node: object, path: str, found: dict[str, set[int]],
+          creds: list[re.Pattern[str]]) -> object:
+    """``node`` with each kept string holding a credential's copy nulled, and
+    ``found`` the place of every copy that cannot be dropped (a number, a key)
+    -- the place only. An ISO time is never a copy: a credential that reads
+    like a date fragment ("2026-10") sits inside every timestamp by chance.
+    Text dropped for its shape alone is not searched: a string holding it
+    breaks the same shape rule, so ``sanitise`` dropped that string too."""
+    if path == "states" and isinstance(node, dict):
+        return {eid: [[_scan(cell, f"states[{eid}].{field}", found, creds)
+                       for field, cell in zip(_ROW_FIELDS, row)]
+                      if isinstance(row, list) else row for row in (rows or [])]
+                for eid, rows in node.items()}
+    if isinstance(node, dict):
+        for key in node:
+            _hit(str(key), f"{path or '<top>'}: a key", found, creds)
+        return {k: _scan(v, f"{path}.{k}" if path else str(k), found, creds)
+                for k, v in node.items()}
+    if isinstance(node, list):
+        return [_scan(v, f"{path}[]", found, creds) for v in node]
+    return _scan_leaf(node, path, found, creds)
+
+
+def _scan_leaf(node: object, path: str, found: dict[str, set[int]],
+               creds: list[re.Pattern[str]]) -> object:
+    if isinstance(node, str) and not ISO_TIME.match(node) and any(c.search(node) for c in creds):
+        return None
+    if isinstance(node, (int, float)) and not isinstance(node, bool):
+        _hit(json.dumps(node), path, found, creds)
+    return node
+
+
+def _hit(text: str, place: str, found: dict[str, set[int]],
+         copies: list[re.Pattern[str]]) -> None:
+    for i, copy in enumerate(copies):
+        if copy.search(text):
+            found.setdefault(place, set()).add(i)
 
 
 def seal(raw: Json, conf: frozenset[str]) -> Json:
-    """``raw`` sanitised, or ``Refused`` when a dropped value survives elsewhere in
-    it or the result still breaks a rule."""
+    """``raw`` sanitised, every string holding a copy of a dropped value dropped
+    too; ``Refused`` when a copy survives where it cannot be dropped (a number,
+    a key) -- naming its place, never the value -- or the result still breaks a
+    rule of ``refusals``, an unmasked id or an address-like token among them."""
     dropped: list[str] = []
     clean = sanitise(raw, conf, dropped)
-    blob = json.dumps(clean, sort_keys=True)
-    leaked = sorted({s for s in dropped if len(s) >= LEAK_MIN_CHARS and s in blob})
-    if leaked:
+    creds = sorted({str(s) for s in dropped if isinstance(s, Credential)
+                    and len(s) >= LEAK_MIN_CHARS and s.lower() not in STATE_WORDS})
+    found: dict[str, set[int]] = {}
+    clean = cast(Json, _scan(clean, "", found, [_copy(v) for v in creds]))
+    if found:
         raise Refused(
-            f"refusing to write: {len(leaked)} dropped credential value(s) "
-            "survive elsewhere in the payload"
-        )
-    left = violations(clean, conf)
+            f"refusing to write: {len(set().union(*found.values()))} dropped "
+            "credential value(s) survive elsewhere in the payload, at "
+            + ", ".join(sorted(found)[:8]))
+    left = refusals(clean, conf)
     if left:
         raise Refused("refusing to write: " + "; ".join(left[:5]))
     return clean

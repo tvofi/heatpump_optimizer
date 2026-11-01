@@ -160,7 +160,8 @@ def gate_checks() -> list[tuple[str, bool, str]]:
     start = datetime.fromisoformat(replay["window"]["start"])
     trimmed = trim_replay(replay, start, start + timedelta(hours=2))
     seam = offender_window(replay)
-    np_id = "sensor.nordpool_kwh_se3_sek"
+    # The fixture's own price entity: the export masks every id to its role.
+    np_id = replay["entry"]["data"]["price_entity"]
     filled_np = sum(1 for r in seam["states"].get(np_id, [])
                     if r[2] and r[2].get("raw_today"))
     stub._DISK.clear()
