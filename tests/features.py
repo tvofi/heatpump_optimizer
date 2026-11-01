@@ -13516,12 +13516,22 @@ async def _fr_failed_unload(scope="both"):
         return False
 
     hass.config_entries.async_unload = _refuse
-    done = await _fr_reset(c, scope)
+    import logging as _fr_logging
+    from heatpump_optimizer import coordinator as _fr_coord_mod
+
+    said = []
+    handler = _fr_logging.Handler()
+    handler.emit = lambda record: said.append(record.getMessage())
+    _fr_coord_mod._LOGGER.addHandler(handler)
+    try:
+        done = await _fr_reset(c, scope)
+    finally:
+        _fr_coord_mod._LOGGER.removeHandler(handler)
     after = {k: v for k, v in _fr_disk("fr_no_unload").items() if k != "snapshots"}
-    return entry, hass.config_entries, (disk, after), c, done
+    return entry, hass.config_entries, (disk, after), c, (done, said)
 
 
-_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c, _fr_nu_done = _aio.run(_fr_failed_unload())
+_fr_nu_entry, _fr_nu_mgr, _fr_nu_disk, _fr_nu_c, (_fr_nu_done, _fr_nu_said) = _aio.run(_fr_failed_unload())
 R.check(
     "a refused unload changes nothing but the undo point: settings, every store and the heat-loss pair as before",
     _fr_nu_done is False
@@ -13529,8 +13539,9 @@ R.check(
     and _fr_nu_mgr.set_up == []
     and all(_fr_unstamped(_fr_nu_disk[1].get(k)) == _fr_unstamped(v) for k, v in _fr_nu_disk[0].items() if k != "snapshots")
     and _li_state_of(_fr_nu_c) == (1.4, 1.3, 60, 40)
-    and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1],
-    f"done {_fr_nu_done}, set up {_fr_nu_mgr.set_up}, heat loss {_li_state_of(_fr_nu_c)}, "
+    and "before_reset" in _fr_nu_c._snapshot_ring.snapshots[-1]
+    and any("not applied" in m for m in _fr_nu_said) and not any(" applied;" in m for m in _fr_nu_said),
+    f"done {_fr_nu_done}, said {_fr_nu_said}, set up {_fr_nu_mgr.set_up}, heat loss {_li_state_of(_fr_nu_c)}, "
     f"stores moved {sorted(k for k, v in _fr_nu_disk[0].items() if k != 'snapshots' and _fr_unstamped(_fr_nu_disk[1].get(k)) != _fr_unstamped(v))}",
 )
 _fr_nu_c.hass.config_entries.async_unload = _fr_nu_mgr.async_unload
