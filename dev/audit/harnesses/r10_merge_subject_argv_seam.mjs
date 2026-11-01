@@ -137,6 +137,7 @@ const open = {
   // Three spellings outside that class text, routed to the same group by #2697's
   // body (the guard's next owner), each one main's line guard passes too: a blank
   // line in a Python or JS argv, and a closer in a JS block comment after merge.
+  // XFAIL at #2697's head; held from R10-MERGE-SUBJECT-CASEARM's.
   'R10-MERGE-SUBJECT-CASEARM routed': [
     ['a blank line in a Python argv f.py', 'f.py', (v) => `run([
     "gh",
@@ -160,3 +161,40 @@ for (const [group, spellings] of Object.entries(open)) {
   }
   console.log(`OPEN ${group} expected-fail: held=${k} of ${spellings.length}; null refused=${z} of ${spellings.length}`)
 }
+const LEXER = {
+  py: [['a # comment', '# )'], ['a single-quoted string', "')'"], ['a double-quoted string', '")"'],
+    ["a ''' string", "''')'''"], ['a """ string over lines', '"""\n)"""'], ['an f-string slot', `f"{')'}"`], ['an f-string slot holding its own quote (3.12)', `f"{d[")"]}"`],
+    ['an f-string over lines', `f"""{x}\n)"""`], ['a blank line', '']],
+  mjs: [['a // comment', '// )'], ['a /* */ comment', '/* ) */'], ['a /* */ comment over lines', '/*\n)\n*/'],
+    ['a single-quoted string', "')'"], ['a double-quoted string', '")"'], ['a template literal', '`)`'],
+    ['a template literal over lines', '`\n)`'], ['a template slot holding a template', '`${f(`)`)}`'],
+    ['a template slot over lines', '`${\n  f(")")\n}`'], ['a regex literal', '/\\)/'], ['a regex literal holding a quote', "/'\\)/"],
+    ['a regex class holding a slash', '/[/)]/'], ['a blank line', '']],
+}
+const argv = (kind, v, before, after) => kind === 'py'
+  ? `run([\n    "gh",\n${before === null ? '' : `${before}\n`}    "pr", "${v}", n,${after}\n    "--subject", s])\n`
+  : `execFileSync('gh', [\n${before === null ? '' : `${before}\n`}  'pr', '${v}', n,${after}\n  '--subject', s])\n`
+// A construct is one argv element, with its comma, unless it is a line comment
+// (which ends at its line) or a blank line (an empty line at the seam; `before`
+// null plants no line there).
+const element = (c) => !c ? '' : /^(#|\/\/)/.test(c) ? ` ${c}` : ` ${c},`
+let lm = 0, lz = 0, ln = 0
+for (const [kind, rows] of Object.entries(LEXER)) for (const [what, c] of rows) {
+  for (const [seam, t] of [['before pr', (v) => argv(kind, v, c ? `   ${element(c)}` : '', '')], ['after merge', (v) => argv(kind, v, null, c ? element(c) : '\n')]]) {
+    const f = `f.${kind}`
+    const m = subjectWriters([f], () => t('merge')).bad.length === 1; const z = subjectWriters([f], () => t('view')).bad.length > 0
+    console.log(`LEXER ${kind} ${what} ${seam}: merge ${m ? 'refused' : 'PASSED'}; null ${z ? 'REFUSED' : 'passed'}`)
+    lm += m; lz += z; ln++
+  }
+}
+// A shell word holding a closer, on the call's line and on a continuation line.
+const SH = [['a double-quoted word', '")"'], ['a single-quoted word', "')'"], ['an escaped closer', '\\)'],
+  ['an ANSI-C quoted word', "$')'"], ['a parameter default in a double quote', '"${x:-)}"'],
+  ['a command substitution', '$(echo ")")'], ['a command substitution in a double quote, holding its quote', '"$(echo ")")"'],
+  ['a backtick substitution', '`echo )`']]
+for (const [what, c] of SH) for (const [seam, t] of [['on the line', (v) => `gh pr ${v} 9 ${c} --subject x\n`], ['on a continuation line', (v) => `gh pr ${v} 9 \\\n  ${c} \\\n  --subject x\n`]]) {
+  const m = subjectWriters(['f.sh'], () => t('merge')).bad.length === 1; const z = subjectWriters(['f.sh'], () => t('view')).bad.length > 0
+  console.log(`LEXER sh ${what} ${seam}: merge ${m ? 'refused' : 'PASSED'}; null ${z ? 'REFUSED' : 'passed'}`)
+  lm += m; lz += z; ln++
+}
+console.log(`LEXER merge refused=${lm} of ${ln}; null refused=${lz} of ${ln}`)

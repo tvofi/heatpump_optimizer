@@ -25,6 +25,7 @@ from r10_plan_page_mutants import fail_name, repo_root  # noqa: E402 -- the FAIL
 
 ROOT = repo_root(__file__)
 PAGE = "tools/audit/seat/plan_page.py"
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 MUTANTS = [
     ("M0", None, None),
@@ -44,9 +45,7 @@ MUTANTS = [
 
 def main(argv: list[str]) -> int:
     want = set(argv)
-    if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", PAGE]).returncode:
-        print(f"refused: {PAGE} has uncommitted edits")
-        return 2
+    mutant_guard.arm([PAGE])
     survived = 0
     path = ROOT / PAGE
     for name, old, new in MUTANTS:

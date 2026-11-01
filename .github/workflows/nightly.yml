@@ -25,7 +25,7 @@ on:
       - main
   workflow_dispatch:
   schedule:
-    - cron: "17 2 * * *"
+    - cron: "37 0 * * *"
 
 # Every job inherits this read-only floor; the ledger push and the record beat
 # write through App installation tokens from their own environments.
@@ -147,10 +147,23 @@ jobs:
   # holds no write grant; the job that pushes runs no driver (D11-s1-03).
   # Main only (#1848): a dispatch on any other ref would drive that ref's
   # tree and kill rule, and its kills would be pushed to main.
+  #
+  # SHARDED four ways (triage s6-batch16 P85): one runner drove 40 sites a
+  # night, about 24 kills, against ~3400 killable. `--shard K/4` deals the
+  # night's slice -- drawn at four times --max under the one date seed -- by
+  # whole anchor (`drain_pool`), so the shards are disjoint and together the
+  # slice one runner would not have had the hours for. Each shard uploads its
+  # own artifact; the one push merges them (`merge_pin_shards`).
   mutation-ledger:
     if: github.ref == 'refs/heads/main' && github.event_name != 'push'
     runs-on: ubuntu-latest
     timeout-minutes: 330
+    strategy:
+      # A shard that clips or fails must not cancel the others mid-drive: each
+      # uploads (`if: always()`) what it measured.
+      fail-fast: false
+      matrix:
+        shard: [1, 2, 3, 4]
     steps:
       - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
         with:
@@ -187,13 +200,14 @@ jobs:
           set -o pipefail
           out="$RUNNER_TEMP/mutation-ledger"
           python3 tests/mutation_table.py \
-            --scope full --drain "$out" --max 40 --jobs 3 \
-            --seed "$(date -u +%Y%m%d)" --budget-minutes 270 \
+            --scope full --drain "$out" --shard ${{ matrix.shard }}/4 \
+            --max 80 --jobs 4 \
+            --seed "$(date -u +%Y%m%d)" --budget-minutes 240 \
             --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-ledger.txt"
           test -s "$out/status"
           {
-            echo "### mutation-ledger: $(cat "$out/status")"
+            echo "### mutation-ledger shard ${{ matrix.shard }}/4: $(cat "$out/status")"
             echo
             echo "Sites left for a human verdict (killing check or survivor_triage):"
             echo '```'
@@ -212,9 +226,11 @@ jobs:
       # concluded, and needs no write grant and no secret. The file carries the
       # prior seed merged with this run's measurements, so a refusal night with
       # no new measurement still forwards the seed it read rather than clobbering
-      # it with an empty one.
+      # it with an empty one. One shard saves (the key is per run id, so a
+      # second saver would collide): shard 1's file is its own measurement
+      # merged over the prior seed, which every shard restored alike.
       - name: Save the pool measurement for the next nightly
-        if: always()
+        if: always() && matrix.shard == 1
         run: |
           mkdir -p "$RUNNER_TEMP/pool-seed"
           cp "$RUNNER_TEMP/mutation-ledger/pool_seconds.json" \
@@ -223,7 +239,7 @@ jobs:
             || echo "no pool_seconds.json measured this run; the prior seed stays"
 
       - uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
-        if: always()
+        if: always() && matrix.shard == 1
         # Fail-soft: a cache key is immutable, so a RE-RUN of this job (same
         # run_id) would collide on the key. The seed is a bound cover, not a
         # verdict -- a missed save only means the next nightly restores an older
@@ -237,7 +253,7 @@ jobs:
       - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         if: always()
         with:
-          name: mutation-ledger
+          name: mutation-ledger-${{ matrix.shard }}
           path: ${{ runner.temp }}/mutation-ledger
           if-no-files-found: ignore
 
@@ -274,12 +290,20 @@ jobs:
         with:
           python-version: "3.13"
 
-      - name: Download the slice mutation-ledger measured
+      # One artifact per shard (mutation-ledger-1..4), each in its own
+      # subdirectory; `merge_pin_shards` folds them into the one directory
+      # `apply_drained` reads: the pins, the status and the survivors' union.
+      - name: Download the slices the mutation-ledger shards measured
         uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
         continue-on-error: true
         with:
-          name: mutation-ledger
-          path: ${{ runner.temp }}/mutation-ledger
+          pattern: mutation-ledger-*
+          path: ${{ runner.temp }}/mutation-ledger-shards
+
+      - name: Merge the shards into one slice
+        run: |
+          python3 -I -c 'import sys; sys.path.append("tests"); import mutation_table as m; print("shards merged:", m.merge_pin_shards(sys.argv[1], sys.argv[2]))' \
+            "$RUNNER_TEMP/mutation-ledger-shards" "$RUNNER_TEMP/mutation-ledger"
 
       - name: Mint the ledger-writer App token
         id: mint
