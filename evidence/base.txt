@@ -1,0 +1,11 @@
+== review_packet-6 review_packet.py: KILLED rc=1 | review_packet self-test: 51 checks, 4 failed
+== review_packet-7 review_packet.py: KILLED rc=1 | review_packet self-test: 51 checks, 2 failed
+== review_packet-8 review_packet.py: KILLED rc=1 | review_packet self-test: 51 checks, 2 failed
+== review_packet-9 review_packet.py: KILLED rc=1 | review_packet self-test: 51 checks, 1 failed
+== review_packet-10 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== review_packet-11 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== review_packet-12 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== review_packet-13 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== review_packet-14 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+== review_packet-15 review_packet.py: NOT RUN rc=-1 | PATTERN FOUND 0 TIMES
+RESULT survivors=6

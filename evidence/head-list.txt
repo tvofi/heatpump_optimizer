@@ -1,0 +1,16 @@
+  ok   diff_paths -> red-unanswered: the row the diff adds owes main's delivery-status nothing
+  ok   UNAVAILABLE: a working directory outside a checkout exits 3, not 1, and writes nothing
+  ok   UNAVAILABLE: a failing `gh` is unavailable, never a refusal
+  ok   UNAVAILABLE: a git read that cannot resolve is unavailable, never a refusal
+review_packet self-test: 63 checks, 0 failed
+== review_packet-6 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 4 failed
+== review_packet-7 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 2 failed
+== review_packet-8 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 2 failed
+== review_packet-9 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+== review_packet-10 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+== review_packet-11 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+== review_packet-12 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+== review_packet-13 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 2 failed
+== review_packet-14 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+== review_packet-15 review_packet.py: KILLED rc=1 | review_packet self-test: 63 checks, 1 failed
+RESULT survivors=0
