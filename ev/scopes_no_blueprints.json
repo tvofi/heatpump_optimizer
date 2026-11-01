@@ -1,0 +1,963 @@
+{
+ "_rule": "Finder scopes: three seats per dimension from round 10 (tvofi 2026-10-14), each a theme of its dimension's brief. A seat is a list of blocks {files, steps, axis?}; files are globs over `git ls-tree -r --name-only <baseline>` (`*` stops at `/`, `**` crosses it) or the word \"rest\" (every universe file no seat of the dimension names explicitly for those steps). mode \"cells\": every (file, step, axis value) in universe x steps x axis is owned by exactly one seat. mode \"files\": every universe file by exactly one seat, every step by at least one. check_scopes.py enforces both and prints each seat's LOC; re-run it at the baseline, never carry its numbers.",
+ "_pkg": "custom_components/heatpump_optimizer",
+ "_coverage_excluded": {
+  "_rule": "Tracked paths no dimension measures, each with its reason; check_scopes.py refuses a path in no universe and not here, an entry here that also names a covered path, and an entry that names nothing.",
+  "dev/audit/rounds/**": "evidence records of past rounds (reports, verdicts, the harnesses findings ran): a finding re-measures one by its own harness, and a seat audits the mechanism, not the records it left (D11.md)",
+  "dev/archive/**": "retired records and carries kept for history; no seat acts on them",
+  "dev/programme/{delivery,register,round9,round10,triage}/**": "delivery rows, the register, round notes and triage records: records of decisions the mechanism already made",
+  "docs/design/**": "dated design records of shipped features; the user docs D5 and D6 measure are what describes them now",
+  "docs/site/fonts/**": "vendored font files and their SIL OFL licence texts; no behaviour and no claim",
+  "tests/golden/**": "value-bearing golden fixtures, claimed and never re-derived by a finder (CLAUDE.md rule 3); the scripts that read them are in D3's and D11's universes",
+  "tests/mutation_ledger/**": "recorded mutation outcomes and survivor triage; tests/mutation_table.py, which reads them, is measured",
+  "{LICENSE,NOTICE}": "licence and attribution text; no behaviour and no claim a dimension can test"
+ },
+ "D0": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/optimizer.py",
+   "custom_components/heatpump_optimizer/thermal_model.py",
+   "custom_components/heatpump_optimizer/coordinator.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "M7"
+  ],
+  "axis": {
+   "profile": [
+    "winter_typical",
+    "winter_extreme",
+    "winter_narrow",
+    "winter_moderate",
+    "summer_typical",
+    "summer_negative",
+    "shoulder",
+    "flat"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "axis": [
+      "winter_typical",
+      "winter_extreme",
+      "winter_narrow",
+      "winter_moderate"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5",
+      "M6"
+     ],
+     "axis": [
+      "summer_typical",
+      "summer_negative",
+      "shoulder",
+      "flat"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M7"
+     ]
+    }
+   ]
+  }
+ },
+ "D1": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M4"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6"
+     ]
+    }
+   ]
+  }
+ },
+ "D2": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D3": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js",
+   "tests/*.{py,mjs,sh}",
+   "tests/README.md",
+   "tests/fixtures/**",
+   "tests/replay/**",
+   "tests/pwlane/*.json"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/{coordinator,optimizer,thermal_model,sysid,defrost,flow_lift,process_worker,batchmath,price_model,tariff,grid_fee,dhw_planner}.py"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,entity,store,ledger,snapshots,payload,inputs,topology,entry_config,diagnostics,accuracy,services,const,__init__}.py"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": "rest",
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D4": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/www/**",
+   "custom_components/heatpump_optimizer/{config_flow,quick_setup,prefill_offer}.py",
+   "custom_components/heatpump_optimizer/{strings,icons}.json",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "custom_components/heatpump_optimizer/services.yaml"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ]
+  }
+ },
+ "D5": {
+  "mode": "cells",
+  "universe": [
+   "README.md",
+   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "README.md",
+      "docs/**"
+     ],
+     "steps": [
+      "M1"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "README.md",
+      "docs/**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "custom_components/heatpump_optimizer/*.py",
+      "custom_components/heatpump_optimizer/www/*.js"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    },
+    {
+     "files": [
+      "README.md",
+      "docs/**"
+     ],
+     "steps": [
+      "M4"
+     ]
+    }
+   ]
+  }
+ },
+ "D6": {
+  "mode": "files",
+  "universe": [
+   "README.md",
+   "DISCLAIMER.md",
+   "docs/index.html",
+   "docs/site/*.css",
+   "tools/site/build_docs.mjs",
+   "docs/{architecture,automations,configuration,dashboard-card,ecl110,how-it-works,setup}.md",
+   "custom_components/heatpump_optimizer/{services.yaml,strings.json,manifest.json}",
+   "custom_components/heatpump_optimizer/translations/*.json",
+   "hacs.json",
+   "docs/img/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "README.md",
+      "DISCLAIMER.md",
+      "docs/index.html",
+      "docs/site/*.css",
+      "tools/site/build_docs.mjs"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "docs/*.md"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": "rest",
+     "steps": [
+      "M1",
+      "M2",
+      "M3"
+     ]
+    }
+   ]
+  }
+ },
+ "D7": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "M7",
+   "M8"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M7"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6",
+      "M8"
+     ]
+    }
+   ]
+  }
+ },
+ "D8": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/{sensor,binary_sensor,climate,switch,button,entity}.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D9": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py",
+   "custom_components/heatpump_optimizer/www/*.js"
+  ],
+  "steps": [
+   "M1",
+   "M2"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ],
+     "axis": [
+      "sse_per_gradient",
+      "solves_per_cycle",
+      "gil_hold",
+      "loop_thread_work"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ],
+     "axis": [
+      "retained_bytes",
+      "payload_bytes"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2"
+     ]
+    }
+   ]
+  },
+  "axis": {
+   "metric": [
+    "sse_per_gradient",
+    "solves_per_cycle",
+    "gil_hold",
+    "loop_thread_work",
+    "retained_bytes",
+    "payload_bytes"
+   ]
+  }
+ },
+ "D10": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/**"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3"
+  ],
+  "axis": {
+   "tier": [
+    "bronze",
+    "silver",
+    "gold",
+    "platinum"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "bronze",
+      "silver"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "gold"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ],
+     "axis": [
+      "platinum"
+     ]
+    }
+   ]
+  }
+ },
+ "D11": {
+  "mode": "cells",
+  "universe": [
+   ".github/**",
+   ".claude/**",
+   ".cursor/**",
+   "tools/**",
+   "dev/audit/{README.md,config/**,harnesses/**,rca/**,waves/**}",
+   "CLAUDE.md",
+   "AGENTS.md",
+   "dev/governance/**",
+   "dev/README.md",
+   "dev/programme/{HANDOVER.md,plan-*.md,carries/**,rosters/**}",
+   "tests/{closure,entities,structure,env_drift,gate_lock,layout,ci_ratchet,coverage_ratchet,typing_ruler,mutation_table,harness_headers,delivery_status}.py",
+   "tests/{derive_closures,run}.sh",
+   "tests/*.json",
+   "tests/requirements-*.txt",
+   "tests/hastub/**",
+   ".gitattributes",
+   ".gitignore",
+   "SECURITY.md",
+   "VERSION",
+   "RELEASE_NOTES.md"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D12": {
+  "mode": "cells",
+  "universe": [
+   "custom_components/heatpump_optimizer/*.py"
+  ],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M6"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M4"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D13": {
+  "mode": "cells",
+  "universe": [],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M3",
+      "M6"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M4",
+      "M5"
+     ]
+    }
+   ]
+  }
+ },
+ "D14": {
+  "mode": "cells",
+  "universe": [],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5"
+  ],
+  "axis": {
+   "class_status": [
+    "open",
+    "prototype-only",
+    "detector",
+    "barriered",
+    "nightly-replay"
+   ]
+  },
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "axis": [
+      "open",
+      "prototype-only"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M5"
+     ],
+     "axis": [
+      "open",
+      "prototype-only",
+      "detector",
+      "barriered"
+     ]
+    },
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M2",
+      "M3",
+      "M4"
+     ],
+     "axis": [
+      "detector",
+      "barriered"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4",
+      "M5"
+     ],
+     "axis": [
+      "nightly-replay"
+     ]
+    }
+   ]
+  }
+ },
+ "D15": {
+  "mode": "cells",
+  "universe": [],
+  "steps": [
+   "M1",
+   "M2",
+   "M3",
+   "M4",
+   "M5",
+   "M6",
+   "M7",
+   "M8"
+  ],
+  "seats": {
+   "s1": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M1",
+      "M2",
+      "M3",
+      "M4"
+     ]
+    }
+   ],
+   "s2": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M5",
+      "M6"
+     ]
+    }
+   ],
+   "s3": [
+    {
+     "files": [
+      "**"
+     ],
+     "steps": [
+      "M7",
+      "M8"
+     ]
+    }
+   ]
+  }
+ }
+}

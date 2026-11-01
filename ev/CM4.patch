@@ -1,0 +1,12 @@
+diff --git a/tools/audit/check_scopes.py b/tools/audit/check_scopes.py
+index fb657b6fe..d38219882 100644
+--- a/tools/audit/check_scopes.py
++++ b/tools/audit/check_scopes.py
+@@ -274,6 +274,6 @@ def main():
+         print("SELF-TEST", "passed (every perturbed scope refused)" if good else
+               f"FAILED (accepted: owned twice {res[0]}, unowned {res[1]}; coverage arms {cov})")
+         sys.exit(0 if good else 1)
+-    sys.exit(0 if verdict(scopes, tree, loc, *read_harnesses(a.repo, a.ref, tree)) else 1)
++    sys.exit(0 if check(scopes, tree, loc) else 1)
+ 
+ main()

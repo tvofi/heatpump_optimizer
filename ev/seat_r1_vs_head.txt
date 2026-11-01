@@ -1,0 +1,1 @@
+seats=48 differing=0 (head script vs round-1 script, same scopes, ref HEAD)

@@ -1,0 +1,15 @@
+== ced02240fbac3e523d37efe111136b7fa094e71e
+ref=ced02240fbac3e523d37efe111136b7fa094e71e seats=48
+ok coverage tracked=8102 in_universe=1326 excluded=6776 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
+== 1abb0abab0dd1f3d9ec30f790fffd75c042dabe6
+ref=1abb0abab0dd1f3d9ec30f790fffd75c042dabe6 seats=48
+ok coverage tracked=8107 in_universe=1329 excluded=6778 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
+== HEAD
+ref=724335f1fe61b0ea61058bbd860e0a512788f069 seats=48
+ok coverage tracked=8159 in_universe=1331 excluded=6828 unclassified=0
+ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
+rc=0
