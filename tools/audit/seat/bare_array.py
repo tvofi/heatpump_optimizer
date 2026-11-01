@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Refuse a bare `"${name[@]}"` in a tracked tools/ shell script that runs under `set -u`.
+"""Refuse a bare `"${name[@]}"` in a tracked tools/ shell script.
 
     python3 -I tools/audit/seat/bare_array.py --check [--ref <commit>]
     python3 -I tools/audit/seat/bare_array.py --self-test
@@ -11,18 +11,19 @@ A run-time test on CI therefore passes on the defect, and the rule that
 `bus.sh orphans` (`"${arms[@]}"`, R10-FLY-ORPHANS-REWRITTEN) from dying on the
 operator's machine (triage P303). This is the static half.
 
-THE RULE, per file: a file with a `set` command carrying the `u` option is
-judged; a file without one is not. In a judged file, each non-comment line is
-refused for every `"${name[@]}"` that is not the guarded form
-`${name[@]+"${name[@]}"}`, unless `# never-empty: <reason>` with a reason,
-stating why the array cannot be empty there, sits on the line itself or on a
-comment-only line directly above it. A line that ends in a `# mut:<name>`
-marker takes the reason on the line above: its self-test finds the mutant line
-by that marker at the line's end (`pr_args.sh`'s header), so a reason appended
-after the marker unanchors the mutant: such a line is refused in every file,
-judged or not (`pr_args.sh` has no `set -u` and is sourced by scripts that do). `"${name[*]}"`, `${#name[@]}` and `"${name[@]:...}"` are not matched.
-The `set -u` test is textual and file-wide: a `set +u` window is not modelled,
-so a site inside one takes the marker too.
+THE RULE: every tracked tools/**/*.sh is judged, with or without a `set -u` of
+its own, because a sourced library (`pr_args.sh`, `delivery_row.sh`,
+`app_mint.sh`) runs under its caller's `-u`, and nounset has spellings a
+textual test misses (`set -o errexit -o nounset`, a `#!/bin/bash -u` shebang).
+Each non-comment line is refused for every `"${name[@]}"` that is not the
+guarded form `${name[@]+"${name[@]}"}`, unless `# never-empty: <reason>` with
+a reason, stating why the array cannot be empty there, sits on the line itself
+or on a comment-only line directly above it. A line that ends in a
+`# mut:<name>` marker takes the reason on the line above: its self-test finds
+the mutant line by that marker at the line's end (`pr_args.sh`'s header), so a
+reason appended after the marker unanchors the mutant, and any line carrying
+one is refused. `"${name[*]}"`, `${#name[@]}` and `"${name[@]:...}"` are not
+matched.
 """
 from __future__ import annotations
 
@@ -31,7 +32,6 @@ import subprocess
 import sys
 from pathlib import Path
 
-SET_U = re.compile(r"^\s*set\s+(?:-[A-Za-z]*u[A-Za-z]*|-o\s+nounset)\b", re.M)
 BARE = re.compile(r'"\$\{([A-Za-z_]\w*)\[@\]\}"')
 MARK = re.compile(r"#\s*never-empty:\s*\S")
 MUT = re.compile(r"#\s*mut:\S")
@@ -46,10 +46,8 @@ def marked(line: str) -> bool:
 def sites(text: str) -> list[tuple[int, str]]:
     """(line number, line) of each refused expansion in one script's text."""
     lines = text.splitlines()
-    tails = [(n, ln.strip()) for n, ln in enumerate(lines, 1) if MARK.search(ln) and not marked(ln)]
-    if not SET_U.search(text):
-        return tails
-    out = []
+    # A reason after a mut marker is refused on any line, bare expansion or not.
+    out = {n for n, ln in enumerate(lines, 1) if MARK.search(ln) and not marked(ln)}
     above = False  # the previous line is a comment-only never-empty reason
     for n, line in enumerate(lines, 1):
         comment = line.lstrip().startswith("#")
@@ -58,9 +56,9 @@ def sites(text: str) -> list[tuple[int, str]]:
             continue
         for m in BARE.finditer(line):
             if not line[: m.start()].endswith("${%s[@]+" % m.group(1)):
-                out.append((n, line.strip()))
+                out.add(n)
                 break
-    return out
+    return [(n, lines[n - 1].strip()) for n in sorted(out)]
 
 
 def scan(ref: str | None = None) -> list[str]:
@@ -96,8 +94,12 @@ def self_test() -> int:
     st(sites(head + 'f "${a[@]}" # never-empty: argv of this script, checked above\n'), [],
        "an allow-marked never-empty site passes (null)")
     st(len(sites(head + 'f "${a[@]}" # never-empty:\n')), 1, "a marker with no reason does not excuse")
-    st(sites('#!/bin/bash\nset -e\nf "${a[@]}"\n'), [], "a file without set -u is not judged (null)")
-    st(len(sites('set -euo pipefail\nf "${a[@]}"\n')), 1, "set -euo counts as set -u")
+    st(len(sites('#!/bin/bash\nset -e\nf "${a[@]}"\n')), 1,
+       "a file without set -u is judged too: a sourced library runs under its caller's -u")
+    st(sites('#!/bin/bash\nset -e\nf ${a[@]+"${a[@]}"}\n'), [],
+       "the guarded form passes in a file without set -u (null)")
+    st(len(sites('set -o errexit -o nounset\nf "${a[@]}"\n')), 1, "a long-form nounset file is judged")
+    st(len(sites('#!/bin/bash -u\nf "${a[@]}"\n')), 1, "a -u shebang file is judged")
     st(sites(head + '# f "${a[@]}"\n'), [], "a comment line is skipped")
     st(len(sites(head + 'f ${b[@]+"${b[@]}"} "${a[@]}"\n')), 1,
        "a guard on one array does not excuse another on the line")
@@ -113,6 +115,12 @@ def self_test() -> int:
        "a reason before the mut marker excuses (null)")
     st(len(sites('#!/bin/bash\nf x  # mut:x  # never-empty: argv\n')), 1,
        "a reason after a mut marker is refused in an unjudged file too")
+    st(len(sites(head + 'f x  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker is refused in a judged file on a line with no bare expansion")
+    st(len(sites(head + 'f ${a[@]+"${a[@]}"}  # mut:x  # never-empty: argv\n')), 1,
+       "a reason after a mut marker is refused in a judged file on a guarded line")
+    st(sites(head + 'f x  # never-empty: argv  # mut:x\n'), [],
+       "a judged file's non-bare line with the reason before the marker passes (null)")
     for f in fails:
         print("FAIL", f)
     print("bare_array self-test:", "FAILED" if fails else "ok")

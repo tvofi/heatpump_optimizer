@@ -237,10 +237,10 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   pr_descendants $$
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
   pr_lead_stop  # mut:lead
-  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done  # never-empty: the line above returns when PR_REAP_PIDS is empty
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done  # never-empty: the early return two lines up leaves when PR_REAP_PIDS is empty
   while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
     alive=()
-    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done  # never-empty: the loop head returns unless PR_REAP_PIDS holds a pid
+    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done  # never-empty: the early return above the loop, then the alive check each pass, keep PR_REAP_PIDS non-empty
     [ "${#alive[@]}" -gt 0 ] || return 0
     PR_REAP_PIDS=("${alive[@]}")  # never-empty: the line above returns when alive is empty
     sleep 0.1
