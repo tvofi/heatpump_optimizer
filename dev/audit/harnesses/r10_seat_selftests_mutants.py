@@ -51,6 +51,8 @@ def repo_root(start):
 ROOT = repo_root(__file__)
 WF = ROOT / ".github" / "workflows" / "governance.yml"
 SEAT = "tools/audit/seat"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
 _CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
@@ -109,6 +111,8 @@ MUTANTS = [
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
+    # r10-fly-daemonize-argv: `--self-test` selects the self-test only as argv[1].
+    ("daemonize-1", "daemonize.py", 'return argv[:1] == ["--self-test"]', 'return "--self-test" in argv'),
     ("S05", "delivery_row.sh", 'if [ -n "${4:-}" ]; then', 'if [ -z "${4:-}" ]; then'),
     ("S06", "failure_logs.sh", 'if [ -z "$jid" ]; then', 'if [ -n "$jid" ]; then'),
     ("S07", "features_block.py", 'i = source.rindex("\\n", 0, source.index(start)) + 1',
@@ -618,6 +622,8 @@ def mutate(path: Path, old: str, new: str, fn) -> tuple[int, str]:
 
 def main(want: list[str]) -> int:
     pick = lambda n: not want or n in want  # noqa: E731
+    mutant_guard.arm({rel(m[1]) for m in MUTANTS + WRAPPERS} | {str(WF.relative_to(ROOT))},
+                     scratch=[ROOT / SEAT / "zz_unwired_probe.py"])
     survivors = 0
     baseline: dict = {}
     if pick("M0"):
