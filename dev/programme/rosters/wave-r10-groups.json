@@ -14083,6 +14083,54 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
    },
    "brief": "Roster write-op residue of R10-ORCH-ROSTER-SCHEMA that its open #3054 leaves on the carry list: the triage gate's label grammar, the ops harness's fail-closed survivors, set-stage clearing a stale note, append-carry refusing a closing group, set-size, set-files and a pr resume field, append-group's overlap refusal and its file argument. Every op goes through tools/audit/seat/roster_edit.py's one write path and lint gate. Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-ROSTER-LIB-SCHEMA",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "roster_lib.py"
+   ],
+   "fixture": false,
+   "owner_gate": "Policy: tvofi approves at merge where DONE_STAGES or the roster schema change; mandate 6329234399 applies",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "files": [
+    "tools/audit/seat/roster_lib.py",
+    "tools/audit/seat/roster_sync.py",
+    "tools/audit/carry_audit.py",
+    "tools/audit/seat/orchestrator_tick.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-roster-lib-schema",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-ROSTER-SCHEMA"
+   },
+   "brief": "Roster-library predicates R10-ORCH-ROSTER-SCHEMA still owes after #3054: structured owner gates and the gate-kind classifier the tick and the planner call, absorbed as a terminal stage with its edge-closure rule and carry_audit's refusal, a carries-open group blocking dependents only through the files its carries reach, and the brief pinned at handoff. tools/plan/replan.py's side of the absorbed stage is R10-FLOW-TOOLKIT-MODEL's (its own carry); this group owns tools/audit/seat/roster_lib.py's. Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
