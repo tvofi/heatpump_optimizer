@@ -1,0 +1,28 @@
+  ok   --once: one pass, cloud_relay.sh pass --confirm first, then the tick with its args; one banner
+  ok   null control: no cloud_relay.sh in the tree (before #2419) skips the relay and still ticks
+  ok   a failing relay pass is reported and the tick still runs; the tick's status is reported
+  ok   a relay slower than the interval does not delay the board; the banner says relay=running
+  ok   a pass that finds the relay in flight starts none (no overlap) and still ticks
+  ok   the in-flight relay was left to finish after its loop exited, never killed
+  ok   null control: the late relay is reaped with its log next pass, and a fast relay reports ok
+  ok   a non-numeric --interval refuses
+  ok   each pass calls the heartbeat once, with the pass line (no --out path)
+  ok   a failing heartbeat is printed, never silent, and the loop still exits cleanly
+  ok   --sweep: one sweep after the tick, its last line after the banner, its whole output in <out>.sweep.log
+  ok   --sweep: the next pass inside the interval sweeps nothing (the slow backstop)
+  ok   null control: a pass once the interval has passed sweeps again
+  ok   null control: without --sweep no sweep runs (the default loop adds nothing and starts no train)
+  ok   a refused sweep is reported with its rc and the pass still completes
+  ok   a real pass moves heartbeat/orchestrator on the remote
+  ok   null control: a refused push is printed with its reason and the pass still completes
+  ok   freshness null control: behind 0 is silent (code=<sha7> behind=0 on the banner) and does not exec
+  ok   freshness: a commit outside the loop's code paths is not counted (the path filter)
+  ok   freshness: behind within the bound and no change to the loop's own files relays, restarts nothing; the heartbeat says behind=1
+  ok   freshness: a held relay lock does not restart, skips the relay and still writes the board under TICK-STALE
+  ok   freshness: a dirty tree prints the banner, skips the relay and is never moved
+  ok   freshness: a checked-out branch is never moved (restart needs a detached head)
+  ok   freshness: a pass already restarted does not exec again (at most once per pass)
+  ok   freshness: origin/main's tick_loop.sh failing bash -n is never checked out or exec'd
+  ok   freshness: a loop-file change with a free lock and a clean detached tree checks out origin/main and execs it with the same args
+tick_loop self-test: 26 checks, 0 failed
+rc=0

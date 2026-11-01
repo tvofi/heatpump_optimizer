@@ -1,0 +1,125 @@
+  ok   a verdict posts as a comment through app_comment.sh, never as an approving review
+  ok   push-verdict refuses a first line outside the grammar
+  ok   push-verdict refuses a verdict with no nonce line
+  ok   push-verdict refuses evidence that names no head
+  ok   push-verdict refuses a verdict with no evidence directory
+  ok   push-verdict refuses a non-numeric pull request
+  ok   no refused push left a review ref
+  ok   a first pass records a baseline and posts nothing
+  ok   watch --post posts neither a forged proposal nor a forged verdict ref
+  ok   confirm promotes no proposal that was never dispatched
+  ok   a verdict signed with a key that is not the approver's does not post
+  ok   dispatch records pr, head, reviewer, nonce, time and no model, and prints a fresh nonce
+  ok   dispatch closes reviewer-fire at its pr and head in the ledger; another head's stays open
+  ok   two dispatches mint two nonces
+  ok   dispatch --nonce re-records a minted nonce at its own head with the seat's model, minting none
+  ok   dispatch --nonce refuses a nonce minted for another pull request, and records nothing
+  ok   dispatch refuses a head with no delivery row (the ordering, #1990 class E)
+  ok   dispatch accepts the same pull request once its row is on the head (null control)
+  ok   null control: a dependabot-only head with its row nowhere is refused (P100)
+  ok   a dependabot-only head with its row on origin/main is dispatched (P100)
+  ok   a head with one non-bot commit and its row only on origin/main is refused (P100)
+  ok   dispatch refuses to mint a nonce over a clean range, naming the reviewed head, and records nothing
+  ok   null control: dispatch mints at a head that does carry code
+  ok   push-verdict refuses a nonce no dispatch minted
+  ok   push-verdict refuses another pull request's nonce
+  ok   no refused proposal left a review/7 ref
+  ok   push-verdict proposes a verdict its own dispatch minted the nonce for
+  ok   push-verdict proposes on review/<pr>, fast-forwarding it
+  ok   watch reports a new handoff ref
+  ok   watch reports a new review ref
+  ok   a dispatched proposal waits for the orchestrator's confirmation, naming the reviewer
+  ok   a confirmation for a commit that is not the tip posts nothing
+  ok   confirm refuses on a machine without the approver key
+  ok   confirm signs the proposal onto verdict/<pr> and posts it once
+  ok   a posted merge verdict is added to the train at its head, after the post (the event add)
+  ok   the signed verdict carries the reviewer's tree unchanged
+  ok   the signed verdict names the model its dispatch recorded (bus-model:)
+  ok   the posted body names the reviewer and the proposal
+  ok   the posted body keeps the reviewer's first line
+  ok   the posted body cites its evidence directory home-relative (~/), and it names the head (#2310)
+  ok   and the posted body carries no home path at all
+  ok   the poster is called with the repository and pull request
+  ok   watch passes over a verdict it already posted
+  ok   an unchanged pass reports and posts nothing
+  ok   post refuses a commit already posted
+  ok   a second confirm of a posted tree is refused and verdict/<pr> stays at the first commit
+  ok   a signed verdict moved to another pull request does not post
+  ok   a signature over another tree does not post
+  ok   round 1's nonce does not count at another head
+  ok   a later round fast-forwards the verdict ref and is posted
+  ok   null control: a verdict whose dispatch recorded no model names none (never a guess)
+  ok   a posted blocked verdict adds nothing to the train
+  ok   a confirmed verdict replayed after a later round does not post again
+  ok   a replay with its signature line re-encoded does not post again
+  ok   a replay with its signature line re-encoded does not post again
+  ok   a signature line that is not canonical base64 does not verify
+  ok   watch refuses a raw ref outside the grammar and posts nothing
+  ok   a refused verdict is not retried on the next pass
+  ok   watch refuses a raw proposal whose only naming file is VERDICT.md
+  ok   a poster refusal is reported and not recorded as posted
+  ok   a merge verdict the poster refused adds nothing to the train
+  ok   post retries a refused verdict by hand
+  ok   null control: with no HPO_BUS_TRAIN_STATE a posted merge verdict prints only its BUS posted line and adds nothing (the add is off by default)
+  ok   watch reports a deleted ref
+  ok   watch without --once exits on its first event
+  ok   watch without --once keeps waiting while nothing changes
+  ok   an intervening fetch of an unrelated ref does not reparent the appended commit
+  ok   an ordinary append with no intervening fetch is the same commit object as before
+  ok   a copy outside a checkout refuses before it pushes the verdict ref
+  ok   orphans reports an owed handoff with no pull request as repair=opener, exit 1
+  ok   null control: a ref inside the two-hour window is in flight, not an orphan
+  ok   null control: a handoff ref with no body ref is never owed
+  ok   a pull request whose head is behind its ref is repair=update
+  ok   an exact-name pull request behind its newer handoff is repair=update, not discharged
+  ok   null control: the exact-name pull request at the handoff tip is discharged by name
+  ok   a ref diverged from its pull request is repair=review, a human decision
+  ok   a ref whose file main already carries under a moved path is SUPERSEDED
+  ok   the content arm is load-bearing: --no-content reads the same ref as stranded
+  ok   a hunk main carries in a file that moved on is SUPERSEDED, not stranded (#2397's shape)
+  ok   a patch that applies to main reversed and not forward is SUPERSEDED
+  ok   null control: a patch main does not hold stays stranded
+  ok   a tip outside main and the fix heads only by a clean merge is discharged with the ancestry
+  ok   null control: a merge with its own resolution, or a non-merge commit absent everywhere, stays stranded
+  ok   green: with the pull requests pushed nothing is stranded and the run is 0
+  ok   a handoff ref rewritten non-fast-forward after a run is still read, at its new tip
+  ok   null control: a classifier that fails refuses orphans, never an all-ORPHAN list
+  ok   null control: an unreachable remote still refuses the orphans run
+  ok   the shared delivery-row writer passes its self-test, at the ROW_DIR dispatch reads
+  ok   delivery_row.sh is the one seat script that defines write_row or commits a row
+  ok   push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)
+  ok   and proposes the same verdict with a clean first line (the null control)
+  ok   push-verdict refuses an unrouted finding item, naming it, and review/7 does not move (P40, P207)
+  ok   push-verdict refuses a finding routed to no live group (BAD-DEST)
+  ok   and proposes the same verdict once its finding names a live group (the null control)
+  ok   push-verdict refuses a home path at line 7, naming the line, and review/7 does not move (P76)
+  ok   and proposes it with the path written ~/... (the null control)
+  ok   the verdict push runs with a 500 MB http.postBuffer (#2563's HTTP 400)
+  ok   null control: two blocked rounds dispatch, the re-cut rule reading no pull-request body
+  ok   a fourth round with no ## Re-cut note in the body is refused, and records nothing
+  ok   the same fourth round dispatches once the body carries ## Re-cut
+  ok   --past-three dispatches the fourth round and logs its reason
+  ok   a re-cut body blocked again is refused for the orchestrator's split-or-close
+  ok   --past-three without a reason is refused
+  ok   dispatch renders the packet at its head with the finder's harness and names its path
+  ok   a refused packet refuses the dispatch, names the signal, and records nothing
+  ok   a packet naming another head dispatches, names no packet, and says why
+  ok   a renderer this seat cannot run dispatches, names no packet, and says why
+  ok   a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded
+  ok   null control: the same dispatch at a GREEN-classified head mints and records
+  ok   a head still in flight (classify WAIT) is reviewable and dispatches
+  ok   an unreadable classification refuses the dispatch, never green
+  ok   dispatch takes one finder's harness, never two
+  ok   the packet renderer passes its self-test (each refusal signal, independence, byte identity)
+  ok   push-design lands the note as design.md on design/<topic>
+  ok   push-design refuses a topic outside the ref grammar
+  ok   push-design-verdict lands verdict.md on design-verdict/<topic>
+  ok   a verdict naming a sha other than the design tip is refused
+  ok   a verdict first line outside the grammar is refused
+  ok   a verdict for a topic with no design ref is refused
+  ok   dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)
+  ok   and dispatches once the group's carries name the pull request (P310, the null control)
+  ok   watch --once under a live watcher's lock refuses and names its pid (P102)
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 123 checks, 0 failed
+rc=0
