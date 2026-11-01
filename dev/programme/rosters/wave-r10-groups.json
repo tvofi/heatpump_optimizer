@@ -13664,7 +13664,9 @@
    "class": "production",
    "severity": "medium",
    "size": "M",
-   "issues": [],
+   "issues": [
+    3106
+   ],
    "fixes": [],
    "findings": [],
    "wave": 6,
