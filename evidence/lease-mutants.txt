@@ -1,6 +1,0 @@
-RESULT mutant=M0 failed=0 verdict=clean
-RESULT mutant=M-remark failed=1 verdict=killed
-RESULT mutant=M-nomap failed=2 verdict=killed
-RESULT mutant=M-word failed=1 verdict=killed
-RESULT mutants=3 survived=0
-rc=0

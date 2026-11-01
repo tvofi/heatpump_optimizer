@@ -1,6 +1,0 @@
-924:         release(label, lock_dir=lock_dir)
-925:         _mark_held(lock_dir, label)  # a bounded give-up below still held it once
-926:         take(label, lock_dir=lock_dir, wait_bound=wait_bound)
-933:             release(label, lock_dir=lock_dir)
-934:             _mark_held(lock_dir, label)
-936:         take(label, lock_dir=lock_dir, wait_bound=wait_bound)
