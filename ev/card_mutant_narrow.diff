@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index aaaea3d94..5cfc60418 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -9670,7 +9670,7 @@ function healthModelHtml(plan) {
+         : house ? house.text : L("health.model_estimate");
+     rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"), detail,
+       L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }),
+-      !observable ? 0 : hl.learned ? 1 : house ? house.share : 0));
++      hl.learned ? (observable ? 1 : 0) : house ? house.share : 0));
+   }
+   const sol = a.solar_aperture || {};
+   const solar = learnerPhase(lp.solar);
