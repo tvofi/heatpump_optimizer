@@ -53,6 +53,9 @@ Plants, one per refusal of the two ops and per round-trip property:
          size check (S4), the registry itself letting any word through (S5
          stage, S6 size), and apply_op dropping the threaded vocabulary, so a
          legal size is refused (S7 -- the barrier becoming a blanket one).
+  H1-H2  the done hold (R10-RCA-ROSTER-SYNC-ORPHANS): a closed stage written
+         though its group would orphan an open issue (H1), and the
+         set-resume --field stage door left unheld (H2).
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -188,6 +191,10 @@ PLANTS = {
            "        where = stage  # R4\n"),
     "R5": (AUDIT, '        elif isinstance(x, dict) and "pull_request" not in x and isinstance(x.get("number"), int):\n',
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
+    "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
+           "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
+    "H2": ('            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '            if a.op == "set-stage":  # H2\n'),
 }
 
 
