@@ -11,6 +11,7 @@
   ok   item 29: the accessor is raw -- eleven samples give None, twelve their median
   ok   item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None
   ok   item 29: the accessor is the median of the store, not its mean or its extreme -- one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one high outlier among eleven, both leave it at 3.0
+  FAIL item 29: the accessor is the median, not an upper quantile -- nine intervals at 3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0
   ok   the top lapses 45 days after the newest sample, and a sample stamped ahead of the clock has no knowable age
   ok   an experiment's ceiling interval writes the store, not the window; the same interval the plan commanded writes the window, not the store
   ok   a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same 1.4 kW with the ceiling written does
@@ -64,4 +65,5 @@
   ok   arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid config held before
   ok   arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not
 
-ALL 61 FEATURES BLOCK PASSED
+1 of 62 FEATURES BLOCK FAILED
+rc=1

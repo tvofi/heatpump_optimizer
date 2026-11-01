@@ -1,4 +1,0 @@
-RESULT class_excess_loc=17647 count
-RESULT max_class_loc=8054 count
-FAIL class_excess_loc 17647 > 17642 (+5)
-FAIL max_class_loc 8054 > 8049 (+5)

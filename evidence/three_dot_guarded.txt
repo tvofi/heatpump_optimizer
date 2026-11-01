@@ -1,3 +1,0 @@
- dev/programme/delivery/3050.md |  1 +
- tests/golden/claimed_drift.txt | 10 +++++-----
- 2 files changed, 6 insertions(+), 5 deletions(-)
