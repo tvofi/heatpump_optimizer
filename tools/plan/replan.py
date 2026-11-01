@@ -1348,6 +1348,29 @@ def selftest() -> int:
         bad = check_plan(wrong)
         expect(f"--check refuses a {kind} closure stamp {version} in round 2",
                any("round close" in b for b in bad), str(bad))
+    # The closure arms the wrong-closure rows above never reach: a correct
+    # round-close stamp that is not last, and a stray kind beside a correct one.
+    notlast = json.loads(json.dumps(p6))
+    notlast["stamps"].append(dict(notlast["stamps"][0], carries=[]))
+    notlast["summary"]["stamps"] = len(notlast["stamps"])
+    bad = check_plan(notlast)
+    expect("--check refuses a round-close stamp that is not the last stamp",
+           any("expected one, and last" in b for b in bad), str(bad))
+    stray = json.loads(json.dumps(p6))
+    stray["stamps"].insert(0, dict(stray["stamps"][0], kind="minor", carries=[],
+                                   version="v1.1.0"))
+    stray["summary"]["stamps"] = len(stray["stamps"])
+    bad = check_plan(stray)
+    expect("--check refuses a minor stamp beside a correct round close",
+           any("unknown stamp kind(s) ['minor']" in b for b in bad)
+           and not any("round close" in b for b in bad), str(bad))
+    # `round_n` has no default: a caller that omits it is a TypeError, never a
+    # round silently assumed (the stance next_version takes on no roster).
+    try:
+        build_plan(prod, durations, caps, start, "v1.0.0")
+        expect("build_plan without round_n refuses", False, "it planned a closure")
+    except TypeError as exc:
+        expect("build_plan without round_n refuses", "round_n" in str(exc), str(exc))
     unround = json.loads(json.dumps(p6))
     del unround["generated"]["round"]
     bad = check_plan(unround)
@@ -1437,6 +1460,17 @@ def selftest() -> int:
             ("round-close-check",
              _m("def check_plan(plan: dict", ") -> list:"),
              _m("elif closes[0][\"version\"] != ", "want:"), "elif False:"),
+            ("round-close-last",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m(" or plan[\"stamps\"][-1] is not ", "closes[0]:"), ":"),
+            ("round-close-stray-kind",
+             _m("def check_plan(plan: dict", ") -> list:"),
+             _m("if s[\"kind\"] not in (\"patch\", ", "ROUND_CLOSE)]"),
+             _m("if s[\"kind\"] not in (\"patch\", ", "\"minor\", ROUND_CLOSE)]")),
+            ("round-n-required",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("roster_path: str = \"\", *, ", "round_n: int) -> dict:"),
+             _m("roster_path: str = \"\", *, ", "round_n: int = 10) -> dict:")),
             ("round-from-roster",
              _m("def main(argv=", "None) -> int:"),
              _m("round_n = roster_lib.roster_round(", "src)"), "round_n = 99"),
