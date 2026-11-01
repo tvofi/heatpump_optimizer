@@ -221,7 +221,10 @@ def main(argv: list[str]) -> int:
             hit = want in red or any(r.startswith("raised") for r in red)
             killed += hit
             total += 1
-            print(f"{'KILLED' if hit else 'SURVIVED'} {rel}: {name}: red {red[:4]}")
+            first = [want] if want in red else []
+            shown = first + [r for r in red if r != want]
+            print(f"{'KILLED' if hit else 'SURVIVED'} {rel}: {name}: red {shown[:4]}"
+                  + (f" (+{len(shown) - 4})" if len(shown) > 4 else ""))
         null_replay = None
         if slow:
             null_replay = replay(tree)["counts"]

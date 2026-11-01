@@ -1353,8 +1353,12 @@ def mask_seam_checks() -> list[tuple[str, bool, str]]:
     res.append(("mask:entities_list_ids_take_their_numbered_role",
                 roles == {"sensor.a": "sensor.room_sensor_n1", "sensor.b": "sensor.room_sensor_n2"},
                 str(roles)))
-    res.append(("mask:a_payload_that_is_no_document_has_no_violation",
-                doc_mod.mask_violations([f"{street}_d"]) == [], "a list payload"))
+    try:
+        stray = doc_mod.mask_violations([f"{street}_d"])
+    except Exception as err:  # noqa: BLE001 - a raise is the observation
+        stray = [f"raised {type(err).__name__}"]
+    res.append(("mask:a_payload_that_is_no_document_has_no_violation", stray == [],
+                f"a list payload: {stray}"))
     found: dict[str, set[int]] = {}
     scanned = doc_mod._scan({"attrs": {"options": ["off", _TOKEN]}}, "", found,
                             [doc_mod._copy(_TOKEN)])
