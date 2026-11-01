@@ -14,7 +14,7 @@ git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.j
 
 Worktrees in flight (a crashed seat restarts from its branch and note, never from scratch):
 - R10-UX-HEALTH (stage carries-open, branch `handoff/r10-ux-health`): `git fetch origin handoff/r10-ux-health && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-PREPR-CAP (stage in-progress, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-PREPR-CAP (stage carries-open, branch `handoff/r10-prepr-cap`): `git fetch origin handoff/r10-prepr-cap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SAV-COMFORT (stage carries-open, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CEILING-PROBE (stage in-progress, branch `design/r10-ceiling-probe`): `git fetch origin design/r10-ceiling-probe && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-REVIEW-FF (stage carries-open, branch `handoff/r10-fly-relay-review-ff`): `git fetch origin handoff/r10-fly-relay-review-ff && git worktree add --detach $SEAT/wt FETCH_HEAD`
