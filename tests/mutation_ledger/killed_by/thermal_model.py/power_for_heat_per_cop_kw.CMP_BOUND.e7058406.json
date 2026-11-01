@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:power_for_heat_per_cop_kw CMP_BOUND e7058406",
+  "killed_by": "tests/features.py",
+  "old": "    power = np.where(h <= p_min, h, np.where(held >= p_max, held, on_band))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`power = np.where(h < p_min, h, np.where(held >= p_max, held, on_band))`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2. Each of the 2 sites under this anchor was killed."
+}
