@@ -15668,6 +15668,64 @@
     "pr": null
    },
    "brief": "Measured duration model for the round plan: tools/plan/size_durations.py (at handoff dcc49953a3a0) re-derives replan.py's duration model (tools/plan/durations.json) from the merged PRs of every done round-10 group (p75 of round-adjusted active hours per size and class, review rounds at a Theil-Sen cost, per-carry slope, held group priced by open carries). replan.py starts a started group at the replan instant past the slot cap, records why each group starts when it does, orders ready work by the owner's 2026-10-30 tiers, and draws at the owner's 16 slots / 16 seats by default. plan_page.py lists every open issue but the tracking issue, unplanned ones with the groups they were wired to. Pinned by a mutant harness (dev/audit/harnesses/r10_plan_durations_mutants.py (at handoff dcc49953a3a0)), self-test arms, a CI step and a closures classification. The plan's replan moves onto this model once it merges."
+  },
+  {
+   "group": "R10-DEPS-ACTIONS-BUMP",
+   "lane": "IN",
+   "kind": "chore",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 1,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/arch-score.yml",
+    ".github/workflows/budget-raise-gate.yml",
+    ".github/workflows/ci.yml",
+    ".github/workflows/codeql.yml",
+    ".github/workflows/dependabot-automerge.yml",
+    ".github/workflows/dependency-graph.yml",
+    ".github/workflows/gate-sweep.yml",
+    ".github/workflows/governance.yml",
+    ".github/workflows/hassfest.yml",
+    ".github/workflows/kernel-points.yml",
+    ".github/workflows/merge-main.yml",
+    ".github/workflows/nightly.yml",
+    ".github/workflows/pages.yml",
+    ".github/workflows/pr-contract.yml",
+    ".github/workflows/release.yml",
+    ".github/workflows/tests.yml",
+    ".github/workflows/validate.yml"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "commit": null,
+    "last_step": null,
+    "next_step": "cloud fixer dispatch (orch s10)",
+    "note": "replaces dependabot #3087 (tvofi 2026-11-01, orch s10)",
+    "pr": null
+   },
+   "brief": "Replace dependabot PR #3087 (the GitHub Actions group, 12 version bumps across the workflow files listed in files) with a fixer-authored PR, tvofi 2026-11-01: a dependabot branch can never be edited (one foreign commit disqualifies the reduced dependabot contract, and dependabot then refuses rebase and recreate), so the bumps are re-applied here on a fresh branch off main. Apply exactly the version changes #3087 makes, no others. At #3087's head 90ebe2615 four checks were red besides pr-contract. governance / policy-docs refused: 18 files a workflow executes carry no CODEOWNERS owner. governance / instrument-self-tests failed on code-scanning API calls answering HTTP 404 and 422, likely the restricted token of a dependabot-triggered run. tests / fast (3.14) failed on stored-default comparisons for the weekend comfort and DHW settings, on a base from about 12:00Z. Re-measure each at your own merge base: say which ones reproduce on this branch and fix those that are caused by the bumps; one that is main's own or environment-only is named and answered in the Red checks section with its evidence. Workflow files are code-owned, so the owner or a mandated approval reviews the merge. Run tools/pr/prepr.sh. Body names #3087 as superseded; it is closed by the orchestrator once this PR opens."
   }
  ]
 }
