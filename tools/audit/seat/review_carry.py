@@ -16,7 +16,9 @@ and this prints CARRY: each merge git's own automatic merge of its parents
 outside main's driver files, each claim file the pure union of both sides or
 main's claim-driver output on them, each bot or delivery-row commit confined
 to its subject's paths as its writer, each commit of the branch's own leaving
-the head's tree git's automatic merge of the reviewed head onto main, and the
+the head's tree git's automatic merge of the reviewed head onto main, each of
+main's driver files at the head that merge, main's driver output, the claim
+union or what the newest carried bot commit left (#3077), and the
 branch's own diff equal at both heads (Lever L6, tvofi 2026-10-30: the PR's
 patch at the new head equals the reviewed one's). A merge of the branch's own
 previous head, the shape update_pr.sh re-cuts one into, and a revert with
@@ -116,7 +118,8 @@ def app_approve_carry(repo, reviewed, new, main):
     """-> None when app_approve.sh --carry carries reviewed -> new, else its
     reason: each merge git's automatic one outside main's driver files, each
     claim file the pure union of both sides or main's claim-driver output on
-    them, the branch's own diff equal."""
+    them, each driver file at the head an automatic writer's, the branch's own
+    diff equal."""
     proc = subprocess.run(["bash", APP_APPROVE, "--carry", reviewed, new, main],
                           cwd=repo, capture_output=True, text=True)
     out = proc.stdout.strip()

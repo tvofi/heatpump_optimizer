@@ -8,7 +8,8 @@
   `tools/pr/app_approve.sh --carry` carrying it — each merge git's automatic
   one, claim files a pure union or main's driver output, each bot or
   delivery-row commit inside its subject's paths, each commit of the branch's
-  own leaving the head the reviewed one merged onto main, the branch's own
+  own leaving the head the reviewed one merged onto main, each of main's
+  driver files at the head an automatic writer's (#3077), the branch's own
   diff equal (Lever L6: the PR's patch is the one reviewed) — asked, never
   copied, so the two cannot answer one range oppositely; a merge of the
   branch's own previous head, update_pr.sh's re-cut, and a revert with its

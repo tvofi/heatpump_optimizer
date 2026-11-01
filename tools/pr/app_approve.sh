@@ -88,7 +88,13 @@
 # of prose beside the branch's lines carries while the hunk's context count
 # and its +/- lines still compare -- code keeps its context (P325). Anything
 # else -- a rewrite, one changed byte in a +/- line or a code hunk's context
-# -- keeps today's re-review. Condition (4) is the guard; (1), (2) and (3)
+# -- keeps today's re-review. (5) What (3) and (4) leave out, main's
+# merge-driver files, is read at the head on its own (#3077): each holds git's
+# automatic merge of V onto H's merge base with main, main's own driver output
+# on the two, for a claim file their union, or what the newest carried
+# author-checked bot commit left -- so neither a commit of the branch's own, a
+# bare `ci:` subject nor a merge's hand resolution carries a budget, closure
+# or claim line no review measured. Condition (4) is the guard; (1), (2) and (3)
 # name the moves it applies to, and a `ci:` subject buys nothing on its own.
 # CI still runs at every head, and a red one is never carried. The evidence
 # gate then reads V, the head the reviewer measured.
