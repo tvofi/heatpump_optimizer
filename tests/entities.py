@@ -29532,6 +29532,7 @@ steps:
           '.claude/workflows/*.py' \
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
+          'tools/audit/machinery_ratchet.py' \
           'tools/audit/record-predicate' \
           'tools/audit/round6/D11/fix/codeowners_gap.py' \
           'tools/policy/*.mjs' \
