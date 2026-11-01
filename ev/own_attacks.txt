@@ -1,0 +1,2 @@
+own spellings (head vs main): division/regex lines, filestart regex backtick, py blank-line+quote, line-start division hiding --subject: head refuses every row main refuses; plus 2 rows main passes (regex backtick at file start, py blank line + ')' string); null (pr view) refused=0 everywhere.
+perf 2000 bracketless merge calls in 130KB JS: main 1821 ms, head 4550 ms (both superlinear). live tree guard: head 10.8 s, main 10.3 s.
