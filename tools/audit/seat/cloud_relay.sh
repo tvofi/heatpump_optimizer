@@ -985,7 +985,7 @@ EOF
   # R10-FLOW-BODY-ONLY part (c): a head holding its handoff tip is re-bodied once per body move, with
   # code `-` (update_pr.sh's body-only mode), and never on the pass that seeds the bodied record.
   BF=$t/state/cloud-handoff-bodied; bsha() { git -C "$t/o.git" rev-parse refs/heads/handoff-body/topic-a; }
-  printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$HS2" > "$prs"; : > "$LOG"; rm -f "$BF"; handoff_arm >/dev/null 2>&1
+  printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$HS2" > "$prs"; : > "$LOG"; bodyc "$HS2"; rm -f "$BF"; handoff_arm >/dev/null 2>&1
   chk "a pass with no bodied record seeds it with the contained topic's body and runs nothing" 0 test ! -e "$t/hupdated" -a "$(cat "$BF")" = "topic-a $(bsha)"
   handoff_arm >/dev/null 2>&1
   chk "a body already applied runs nothing on the next pass (null control)" 0 test ! -e "$t/hupdated"

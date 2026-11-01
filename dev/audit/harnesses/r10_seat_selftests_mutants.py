@@ -382,7 +382,8 @@ MUTANTS = [
      'level_set'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
     # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
-    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
+    # (the freeze now sits between hold and ledger, so the mutant puts a silent ledger test first)
+    ("cloud_relay-8", "cloud_relay.sh", "    " + _HOLD, "    " + _FAILED + "    " + _HOLD),
     ("cloud_relay-9", "cloud_relay.sh", "    " + _CONTAINED, "    " + _HOLD + "    " + _CONTAINED),
     # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
     ("cloud_relay-10", "cloud_relay.sh",
