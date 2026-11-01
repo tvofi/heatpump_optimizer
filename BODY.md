@@ -2,36 +2,38 @@ Adds the roster's two missing field-writing ops, `set-size` and `set-files`, to 
 
 **One design per op, reconciling carries 5, 9, 10 and 11** (1-based, as the group row lists them):
 
-- `set-size <group> <size> [--cite <ref>@<sha>]` (carries 5 and 9). The size must be keyed by `tools/plan/durations.json`, by the same `_size_why` check `append-group` runs, so `XS` is legal exactly when the model keys it. `--cite` is optional: carry 9 gives the op no cite, carry 5 requires one; where given it must be `<ref>@<sha>` and the ref must hold the sha. The old size (or `unset`) and the cite go to `resume.note`.
-- `set-files <group> [--add <path>...] [--set-files <p,p|->] [--set-hot <p,p|->] [--cite <ref>@<sha>]` (carries 5, 10 and 11). `--add` appends; `--set-files` replaces `files` whole; `--set-hot` replaces `hot_files` whole (`-` for none, key kept). A path new to `files` must be in the tree at origin/main or at the cited sha. A hot token must be a basename of the group's resulting files or a token some group already holds. Old values and the cite go to `resume.note`. An unknown group refuses; every other field stays byte-identical; the lint gate, triage gate and push race are the shared `write_roster` path.
+- `set-size <group> <size> [--cite <ref>@<sha>]` (carries 5 and 9). The size must be keyed by `tools/plan/durations.json`, by the same `_size_why` check `append-group` runs. `--cite` is optional; where given it must be `<ref>@<sha>` and the ref must hold the sha. The old size (or `unset`) and the cite go to `resume.note`.
+- `set-files <group> [--add <path>...] [--set-files <p,p|->] [--set-hot <p,p|->] [--cite <ref>@<sha>]` (carries 5, 10 and 11). `--add` appends; `--set-files` replaces `files` whole; `--set-hot` replaces `hot_files` whole (`-` for none, key kept). A path new to `files` must be in the tree at origin/main or at the cited sha. A hot token must be a basename of the group's resulting files or a token some group already holds. An unknown group refuses; every other field stays byte-identical; the lint gate, triage gate and push race are the shared `write_roster` path.
 - A value already held writes nothing (no note, no commit), which is each op's null control.
+
+**Round 2 repair (one finding, the fix review's unpinned-site block).** `cite_why`'s `git merge-base --is-ancestor <sha> <ref>` clause survived deletion (reviewer mutant R11, `rc=0 fails=0`) because no arm cited a sha that exists but that the named ref does not hold. Added: one self-test arm per op citing `main@<sha of a commit only the `cited` branch holds>`, expecting rc 2, "does not hold" and the remote tip unchanged; and plant R11 in the new block of `r10_roster_ops_mutants.py`. Nothing else changed.
 
 ## Head
 
-1b4932489d81d72af4cdba9ed108bff1874a0917. origin/main unmoved since the last prepr.sh run (rc=0, ci predict clean), so no second run.
+b0976a20f27ce5abbc07a6c175113b54295a4b83 (code head; merges origin/main 56630e7e6d229d960cf1b4db304d488ee20873e6 into the round-1 PR head e323d75500c843ae2ffaa076a33ddabca7c68853, which carries the round-1 code head 1b4932489d81d72af4cdba9ed108bff1874a0917 and the repair commit). Measured 2026-11-01 after the merge; `git merge-tree --write-tree origin/main HEAD` rc 0.
 
 ## Mutation proof
 
-`python3 tools/audit/seat/r10_roster_ops_mutants.py Z1 Z2 Z3 Z4 Z5 Z6 Z7 Z8 Z9 Z10 Z11 Z12` prints `plants: 12, without a FAIL line: none`, each plant `rc=1` with at least one FAIL line: Z1 skips set-size's `_size_why` (fails=5), Z2 its cite check (4), Z3 drops the size write (4), Z4 lets the no-op write a note (1); Z5 skips set-files' path-in-tree refusal (7), Z6 drops the files write (10), Z7 the hot_files write (4), Z8 skips the hot-token refusal (1), Z9 the cite check (1), Z10 the unknown-group refusal (1), Z11 drops the cite in the dispatch (4), Z12 writes hot_files on a call that never named it (4). The plants are a separate block of `r10_roster_ops_mutants.py`, merged into `PLANTS` after the existing table.
+Reviewer's R11 (replace the ancestry clause with `True`) reproduced as plant R11: `python3 tools/audit/seat/r10_roster_ops_mutants.py R11` prints `RESULT mutant=R11 rc=1 fails=5` (was `rc=0 fails=0` at e323d7550). The full run `python3 tools/audit/seat/r10_roster_ops_mutants.py` after the repair: `RESULT mutant=null rc=0 fails=0` and every Z1-Z12 and R11 plant `rc=1` with FAIL lines (Z1 6, Z2 5, Z3 4, Z4 1, Z5 8, Z6 10, Z7 4, Z8 1, Z9 2, Z10 1, Z11 5, Z12 4, R11 5). The run prints `plants: 46, without a FAIL line: ['C6']`; C6 belongs to the pre-existing block, which this PR does not touch (it is a crash-kill, rc=1 with a traceback, not a survivor).
 
 ## Null control
 
-`python3 tools/audit/seat/r10_roster_ops_mutants.py --null` prints `RESULT mutant=null rc=0 fails=0`. In the self-test: `set-size` to the current size, `set-files --add` of a held path, `--set-hot` with the current value and `--set-hot -` on an empty field each leave the remote tip unchanged. Failing test first: with the arms in and the ops absent, `roster_edit.py --self-test` crashed in the new block; it now prints `167 checks, 0 failed`.
+`python3 tools/audit/seat/r10_roster_ops_mutants.py --null` prints `RESULT mutant=null rc=0 fails=0`. For the new arms, the control is the accepting path: `set-size ... --cite main@<main tip>` lands (existing arm) and `set-files --add NEW.md --cite cited@<sha>` lands, where `cited` does hold that sha. The earlier controls stand: set-size to the current size, `--add` of a held path, `--set-hot` with the current value and `--set-hot -` on an empty field each leave the tip unchanged.
 
 ## Figures
 
-- `python3 tools/audit/seat/roster_edit.py --self-test` : the self-test count and failure count above (instrument: roster_edit self-test; counts every `check(` call).
-- `python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test` : every anchor, including Z1-Z12, occurs once in the target.
-- `git merge-tree --write-tree origin/main refs/pull/3054/head` already reports conflicts in roster_edit.py, roster_sync.py and r10_roster_ops_mutants.py at the base ca6333333; this branch's merge-tree against the same head reports the same three files, with more hunks in roster_edit.py (the usage block, docstring, argparse choices and flags, validation and the dispatch beside #3054's own edits to those lines). I cannot say it is conflict-free: #3054 does not merge with main yet, so its resolution decides, and both sides are additive (new ops, new flags, a separate mutants block) and compose by union.
-- Measured at base ca6333333afc, origin/main unmoved at the time of the last `prepr.sh` run, 2026-11-01.
+- `python3 tools/audit/seat/roster_edit.py --self-test` prints `169 checks, 0 failed` (instrument: roster_edit self-test; counts every `check(` call; 167 plus the two new arms).
+- `python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test` prints `144 checks, 0 failed`.
+- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `git merge-tree --write-tree HEAD refs/pull/3054/head` still reports conflicts in roster_edit.py, roster_sync.py and r10_roster_ops_mutants.py; so does origin/main against #3054, which does not merge with main, and the additions here are separate-block and additive. This PR adds no file to that conflict set.
 
 ## Unpinned sites
 
-The diff adds only tools/ sites; each is pinned by the in-tree harness r10_roster_ops_mutants.py (plants Z1-Z12, all killed).
+The diff adds only tools/ sites, pinned by the in-tree harness `r10_roster_ops_mutants.py`. This round adds one site, cite_why's ancestry clause, pinned by plant R11 and the two new arms. Count of new-block plants: `grep -cE '^    "(Z[0-9]+|R11)": ' tools/audit/seat/r10_roster_ops_mutants.py` prints 13 (12 at e323d7550); every one is killed (see Mutation proof).
 
 ## Red checks
 
-none
+none. The whole check-run set at PR head e323d75500c843ae2ffaa076a33ddabca7c68853 was read (55 runs, one page of 100): no run concluded failure; the rest are success or skipped.
 
 ## Forward-carry
 
