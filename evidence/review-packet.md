@@ -1,57 +1,44 @@
 # Review packet #3074
-head: 6502ddfcfd985f97998bbc369fc8807ae81cd9ca
-base: 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f
+head: dafcc5759950c7ec3faab4bf993723a758a94710
+base: 92588d581fde4ce287af3db5e8bb61461dc28015
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=124731260034 success
-arch-score / arch-score id=124738044668 success
-arm id=124727959666 skipped
-budget-raise-gate / budget-raise-gate id=124738044729 success
-cancel-superseded id=124727959087 success
-codeql id=124738045328 skipped
-codeql / Analyze (actions) id=124730671898 success
-codeql / Analyze (javascript-typescript) id=124730671914 success
-codeql / Analyze (python) id=124730671880 success
-gate id=124738620333 success
-governance id=124738045815 skipped
-governance / delivery-status id=124730672020 success
-governance / delivery-status-publish id=124730672664 skipped
-governance / env-matrix id=124730672055 success
-governance / instrument-self-tests id=124730672035 success
-governance / policy-docs id=124730672122 success
-governance / record id=124730672947 skipped
-governance / wave-script id=124730672124 success
-hassfest id=124738045195 skipped
-hassfest / hassfest id=124730671863 success
-kernel-points id=124738045775 skipped
-pr-contract / pr-contract id=124738494171 success
-prelude id=124727959117 success
-refresh id=124727959172 success
-tests id=124738045452 skipped
-tests / arch-instrument id=124732366386 success
-tests / briefs id=124730672056 success
-tests / browser id=124732366399 success
-tests / ci-ratchet id=124737572169 skipped
-tests / claims-autofix id=124734288541 skipped
-tests / closure-scope id=124730672066 success
-tests / closures id=124732366462 success
-tests / closures-autofix id=124737571905 skipped
-tests / coverage id=124732366398 success
-tests / coverage-ratchet id=124737298113 success
-tests / fast (3.14) id=124732366350 success
-tests / graders-head-copy id=124737298102 success
-tests / lane-proofs id=124737298137 success
-tests / mutation id=124730672126 success
-tests / mutation-autofix id=124732391523 skipped
-tests / mutation-pins id=124732391579 skipped
-tests / nightly-ha id=124732367522 skipped
-tests / nightly-status id=124730672058 success
-tests / replay id=124732367304 skipped
-tests / typing id=124732366364 success
-validate id=124738045682 skipped
-validate / validate-hacs id=124730671868 success
+## Gate digest: pending
+CodeQL id=124810850405 success
+arch-score / arch-score id=124810815728 success
+arm id=124810732652 skipped
+budget-raise-gate / budget-raise-gate id=124810815619 success
+cancel-superseded id=124810737511 success
+codeql / Analyze (actions) id=124810815638 success
+codeql / Analyze (javascript-typescript) id=124810815564 success
+codeql / Analyze (python) id=124810815649 success
+governance / delivery-status id=124810815850 success
+governance / delivery-status-publish id=124810817238 skipped
+governance / env-matrix id=124810815669 in_progress
+governance / instrument-self-tests id=124810815658 in_progress
+governance / policy-docs id=124810815704 success
+governance / record id=124810817039 skipped
+governance / wave-script id=124810815798 success
+hassfest / hassfest id=124810815628 success
+kernel-points id=124810816700 skipped
+prelude id=124810737344 in_progress
+refresh id=124810737441 success
+tests / arch-instrument id=124810929808 success
+tests / briefs id=124810815666 success
+tests / browser id=124810929759 in_progress
+tests / closure-scope id=124810815677 success
+tests / closures id=124810929788 in_progress
+tests / coverage id=124810929891 in_progress
+tests / fast (3.14) id=124810929806 in_progress
+tests / mutation id=124810815630 success
+tests / mutation-autofix id=124810967589 skipped
+tests / mutation-pins id=124810967320 skipped
+tests / nightly-ha id=124810930664 skipped
+tests / nightly-status id=124810815789 success
+tests / replay id=124810930641 skipped
+tests / typing id=124810929811 success
+validate / validate-hacs id=124810815537 success
 
 ## Refusals
 none
@@ -60,20 +47,37 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: 6502ddfcfd985f97998bbc369fc8807ae81cd9ca lacks origin/main 61b0076f48546fe29cae35dfdb5949ad6d0c6feb; roster read at origin/main
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         tools/audit/seat/roster_lib.py
-             `tools/audit/seat/roster_lib.py` is in the tree at this head
+unverified git show 8fec54ee2:dev/programme/HANDOVER.md
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git ls-files --error-unmatch
+             `git ls-files` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         tools/policy/policy_lint_envmatrix.mjs
+             `tools/policy/policy_lint_envmatrix.mjs` is in the tree at this head
+  ok         tools/policy/check-wave-script.mjs
+             `tools/policy/check-wave-script.mjs` is in the tree at this head
+  ok         .claude/hooks/session-start.sh
+             `.claude/hooks/session-start.sh` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         tests/closure.py
+             `tests/closure.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
   ok         python3 -I tests/layout.py --guard --base $(git merge-base origin/main HEAD)
              `tests/layout.py` is in the tree at this head
   ok         node tools/policy/policy_lint.mjs
              `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         tools/pr/prepr.sh <body>
+             `tools/pr/prepr.sh` is in the tree at this head
+  ok         tools/audit/seat/roster_lib.py
+             `tools/audit/seat/roster_lib.py` is in the tree at this head
 
-FIGURES: 4 resolved, 0 not verified, 0 refused
+FIGURES: 11 resolved, 2 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -86,10 +90,10 @@ none
 
 ## Three-dot diff
 diff --git a/dev/programme/HANDOVER.md b/dev/programme/HANDOVER.md
-index b2fcf4797..c42bd4917 100644
+index b2fcf4797..d0863f494 100644
 --- a/dev/programme/HANDOVER.md
 +++ b/dev/programme/HANDOVER.md
-@@ -1,568 +1,527 @@
+@@ -1,568 +1,565 @@
  # Handover — the open-issues programme
  
 -updated-for: 0cc148b2f80fe224ffe2c504b29fd4f0908183df
@@ -375,14 +379,33 @@ index b2fcf4797..c42bd4917 100644
 -  remote-trigger dispatcher routine, never as interactive session cards**
 -  (tvofi, 2026-10-21). The payload shape, the return refs and the two driving
 -  traps are `tools/audit/seat/INSTRUMENTS.md`'s.
--- **Model routing is Claude seats, per roster group** (`fixerModel`,
--  `reviewerModel`, the `model` object). The owner's 2026-09-09 ruling: Opus for
--  orchestration, architectural fixes and review, survey, judge and production
--  fixes; Sonnet for tests, tooling, docs, records and read-only reporting;
--  **Fable only for a very large multi-layer refactor where Opus is judged too
--  risky.** A model trailer on a merge or a stamp is the session's model, not a
++- **`main` is guarded by three rulesets**, read from
++  `/repos/<owner>/<repo>/rulesets/<id>` and never from here: `main-protect`
++  (22628467), `main-protect-checks` (23698884; the required checks, one
++  approving review, the code owner's review per 0009 step 6) and
++  `release-tags-protect` (23937752). Rollback is one DELETE per ruleset.
++  **Before adding a required context** confirm it reports on a pull-request
++  head and not only on a push to `main`: one that never reports blocks every
++  merge, a matrix change is a required-set change, `skipped` and `neutral`
++  satisfy the rule, and a scheduled context made required blocks the merge that
++  would repair it. `GET /repos/.../rules/branches/<branch>` is not
++  bypass-aware: test a bypass on a probe branch with its own ruleset, both arms.
++- **CI is one umbrella with one required check.** `.github/workflows/ci.yml`
++  calls one file per unit, each check reading `<stem> / <job>`; `gate` is the
++  only required context (`tools/policy/fixtures/required-contexts.json`),
++  moved by `tools/ci/ruleset_cutover.py`. Autofix jobs dispatch `ci.yml -f pr
++  -f base` once; the stamp precondition is the latest `ci.yml` push run's
++  `gate` on `origin/main`. The approve steps and `approve_held_runs.sh` stay
++  until M-3 decides (design `archive/probe/design-ci-rev4`, review
++  `archive/probe/design-ci-review5`).
+ - **Model routing is Claude seats, per roster group** (`fixerModel`,
+   `reviewerModel`, the `model` object). The owner's 2026-09-09 ruling: Opus for
+   orchestration, architectural fixes and review, survey, judge and production
+   fixes; Sonnet for tests, tooling, docs, records and read-only reporting;
+   **Fable only for a very large multi-layer refactor where Opus is judged too
+   risky.** A model trailer on a merge or a stamp is the session's model, not a
 -  routing event.
- - **`main` is guarded by three rulesets**, read from
+-- **`main` is guarded by three rulesets**, read from
 -  `/repos/<owner>/<repo>/rulesets/<id>`, never from here: `main-protect`
 -  (22628467) holds deletion and non-fast-forward and, read 2026-10-21, no bypass
 -  actor; `main-protect-checks` (23698884) holds the required checks, one
@@ -410,29 +433,16 @@ index b2fcf4797..c42bd4917 100644
 -  A stamp over a red `main` takes `--allow-red` with the cause recorded in the
 -  release notes and on #201, and over a merge whose row is not yet written
 -  `--allow-rowless` likewise (v7.0.2, tvofi, 2026-10-20).
-+  `/repos/<owner>/<repo>/rulesets/<id>` and never from here: `main-protect`
-+  (22628467), `main-protect-checks` (23698884; the required checks, one
-+  approving review, the code owner's review per 0009 step 6) and
-+  `release-tags-protect` (23937752). Rollback is one DELETE per ruleset.
-+  **Before adding a required context** confirm it reports on a pull-request
-+  head and not only on a push to `main`: one that never reports blocks every
-+  merge, a matrix change is a required-set change, `skipped` and `neutral`
-+  satisfy the rule, and a scheduled context made required blocks the merge that
-+  would repair it. `GET /repos/.../rules/branches/<branch>` is not
-+  bypass-aware: test a bypass on a probe branch with its own ruleset, both arms.
-+- **CI is one umbrella with one required check.** `.github/workflows/ci.yml`
-+  calls one file per unit, each check reading `<stem> / <job>`; `gate` is the
-+  only required context (`tools/policy/fixtures/required-contexts.json`),
-+  moved by `tools/ci/ruleset_cutover.py`. Autofix jobs dispatch `ci.yml -f pr
-+  -f base` once; the stamp precondition is the latest `ci.yml` push run's
-+  `gate` on `origin/main`. The approve steps and `approve_held_runs.sh` stay
-+  until M-3 decides (design `archive/probe/design-ci-rev4`, review
-+  `archive/probe/design-ci-review5`).
++  routing event. Effort and the mechanical-turn models are under the seats
++  section above.
  - **Merges land as merge commits** (0010); the merge body defaults to the pull
-   request's title, so a closing keyword in a title reaches `main`.
+-  request's title, so a closing keyword in a title reaches `main`.
 -- **`_helper(self, ...)` is refused** as a decomposition: it erases moved
 -  references at zero cost, a measurement artefact; a supplied-literal check pins
 -  nothing.
++  request's title, so a closing keyword in a title reaches `main`. A closing
++  keyword in a branch's commit message links an issue just as a pull-request
++  body does (#503 acquired a false link to #457 that way).
  - **Never re-gate an unchanged head.** A terminal CI result at that head is the
 -  gate evidence. Local runs exist for what CI cannot produce: the mutation proof,
 -  the failing test at the merge base, the finder's harness at both ends.
@@ -900,8 +910,8 @@ index b2fcf4797..c42bd4917 100644
 -    PYTHONPATH=tests/hastub`. Through the agent proxy, `gh api --paginate`
 -    follows GitHub's numeric-id `Link` URL and gets 403 after page one: loop
 -    `?per_page=100&page=N` on the `repos/<owner>/<repo>` path instead.
-+A trap that has acquired a mechanical detector is a one-line pointer to it.
-+The detector must fire when the trap would bite, in that trap's mode, and each
++A trap that has acquired a mechanical detector is a one-line pointer to it:
++promotion, not cutting. The detector must fire when the trap would bite, in that trap's mode, and each
 +graduation owes a mutation proof in its own pull request.
 +
 +- **A killed agent never writes its own `state at stop:` comment**, and a
@@ -1049,6 +1059,34 @@ index b2fcf4797..c42bd4917 100644
 +- **A record's own fields are checked by almost nothing** (#687): a dead path
 +  in a roster `resume.note` is invisible to `brief_lint.mjs` while the same path
 +  in `brief` is an error.
++- **Re-pointing a branch chain by position after a rebase drops a commit.** Map
++  by commit subject and verify the tip's pin count: by index once shifted eight
++  branches by one, and only that count noticed.
++- **Six of this project's own instruments reported rather than measured**
++  (#341, #347, #354, #350, #357, #510), each found by someone chasing something
++  else: the pattern is the finding, not the individual bugs.
++
++Graduated, one line each:
++
++- **One CI runner is not the fleet** (#387): `tools/policy/policy_lint_envmatrix.mjs`.
++- **The machinery a handover depends on is code nobody ran** (`.claude/` is
++  `INERT`): `tools/policy/check-wave-script.mjs` and `policy_lint --hooks`.
++- **A shallow checkout fails a driver on the clone, not the tree** (#901):
++  `tests/entities.py` refuses a history-reading driver at depth 1.
++- **A shallow clone turns "commits ahead" into fiction**:
++  `.claude/hooks/session-start.sh`.
++- **A one-sided cap and a growing document collide across branches** (#608,
++  #607): `policy-docs`'s `[budgets]`.
++- **A citation repointed to a commit that resolves but lacks the file is worse
++  than a dead one**: `policy_lint`'s `citations` for the corpus and rosters;
++  elsewhere `git cat-file -e <sha>:<path>`, not per directory.
++- **A blank line ends a markdown table**: `policy_lint --record`'s `table` check
++  over both disposition documents.
++- **A sectioned config-flow field's label**: the schema-derived, no-fallback
++  assertion in `tests/entities.py`, which walks the built schema.
++- **A new option key derives into `config_flow._ABSENT_FALLBACKS`**, or every
++  options-page visit writes it (#1107): `tests/config_flow_steps.py`'s
++  "_ABSENT_FALLBACKS is exactly the proven set".
  
  ## Owed
  
