@@ -216,8 +216,7 @@ def check(root, ledger_path=None, judge_files=None):
     for cid, e in classes(led).items():
         home = [r for r in e.get("rca", []) if _intree(root, led.get("_rca", {}).get(r, {}).get("in_tree_home"))]
         if home and not _has(e.get("barrier")) and not _has(e.get("barrier_refusal")):
-            rx = re.compile(r"(?<![\w-])" + re.escape(cid) + r"(?![\w-])")
-            named = sorted(f for f, t in arms.items() if rx.search(t))
+            named = sorted(f for f, words in arms.items() if cid in words)
             if named:
                 bad.append(f"UNRECORDED-BARRIER: {cid} has an rca in {RCA_DIR} and no barrier or barrier_refusal, "
                            f"while {', '.join(named)} name it")
@@ -260,7 +259,8 @@ def _test_scripts(root):
     out = {}
     for f in sorted(glob.glob(os.path.join(root, "tests", "*"))):
         if f.endswith((".py", ".mjs", ".sh")) and os.path.isfile(f):
-            out[os.path.relpath(f, root)] = open(f, encoding="utf-8", errors="replace").read()
+            # its words, a class id being one: `N-log-flooding` is not `N-log-flood`
+            out[os.path.relpath(f, root)] = set(re.split(r"[^A-Za-z0-9-]+", open(f, encoding="utf-8", errors="replace").read()))
     return out
 
 
