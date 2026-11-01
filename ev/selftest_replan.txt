@@ -1,0 +1,155 @@
+ok   the 2026-10-18 model is refused: no rounds model, no held model, M under S
+ok   the measured fixture model is accepted (null control)
+ok   a production S plans first-round 10 + 2 extra rounds x 4 = 18 h
+ok   an instrument S plans its class cell: 8 + 1 x 4 = 12 h
+ok   three carries absorbed past the S baseline add 3 x 4 h (30 h)
+ok   a working fixer plans live_remaining_fraction of its hours (9 h)
+ok   a durations file without the measured fields falls back to sizes_hours
+ok   an unmeasured size is refused, naming the group and the size
+ok   a held L with one open carry plans one part (20 h), not its L size
+ok   six carries appended since measurement count open: 7 -> two parts (40 h)
+ok   a held group with zero open carries plans zero (null control)
+ok   the zero-open held group starts and finishes at the replan instant
+ok   every started group with no open dependency starts now, past a cap of 2
+ok   a started group says why it starts: its fixer is working
+ok   a planned group waits while started groups fill the cap, and names it
+ok   a started group waits only for its unmerged after-group, and names it
+ok   the plan with started groups past the cap passes --check
+ok   a PLANNED dispatch into a full cap is still refused
+ok   null control: two not-started ready groups are still ordered by priority
+ok   main work is tier 1
+ok   the critical path is tier 2
+ok   a user-reported bug (hotfix) is tier 2, off the critical path
+ok   production work is tier 3
+ok   an instrument saving 12 h is tier 3, one saving 11 h tier 4
+ok   an instrument with no recorded savings says so
+ok   dispatch follows the owner's order: critical path, hotfix, production, instruments by savings, unrecorded savings last
+ok   each group's sort_key is in the plan and orders it the same way
+ok   within tier 2 the critical path goes first, even its shorter tail
+ok   null control: two groups in one tier keep the height tie-break
+ok   a replan given no caps does not draw a 6-slot plan: the owner's 16, with provenance
+ok   null control: a cap given on the command line is used and named as given
+ok   the plan records whose caps it drew at
+model self-test: 0 failed
+ok   deterministic: two runs are byte-identical
+ok   the clean plan passes --check
+ok   the critical path runs A -> B -> D
+ok   cycle: build refuses
+ok   over-cap wave refuses
+ok   dependency inversion refuses
+ok   stamp cadence breach refuses
+ok   short patch stamp refuses
+ok   summary mismatch refuses
+ok   --check exits 1 on a planted over-cap wave
+ok   the command exits 2 on a dependency cycle
+ok   a roster naming no round refuses, never defaults (exit 2)
+ok   every started group starts at the replan instant, past the slot cap
+ok   a started group waits for its unmerged dependency: no inversion to inherit
+ok   the plan with a recorded inversion passes --check
+ok   an unrecorded inherited inversion refuses
+ok   the inherited coordinator set is recorded
+ok   a missing inherited-coordinator record refuses
+ok   a disagreeing inherited-coordinator record refuses
+ok   a plan pins the roster blob it was built from
+ok   a fresh plan is not stale
+ok   --check passes a fresh plan (null control)
+ok   a roster commit after the replan makes the plan stale
+ok   --check exits 1 on a stale plan
+ok   an explicit ref is read instead of generated.roster_ref
+ok   --check --roster-ref passes the plan at the ref it names
+ok   a plan pinning no roster blob is refused as unknowable
+ok   a rerun does not replace the first attempt (earliest started_at)
+ok   the coordinator cap limits planned groups in flight
+ok   dispatch takes the longest remaining path first, not the shortest job
+ok   the computed critical path is CP -> CP2
+ok   the critical path is dispatched before the shorter work
+ok   a short production group outranks a taller non-production one
+ok   the t==0 started admission keeps both, in the same priority key
+ok   tier 2 ranks by savings, and absent savings sorts last
+ok   height breaks ties within a tier, ahead of the name
+ok   an unmeasured size is refused, naming roster, group and size
+ok   a roster of only measured sizes plans
+ok   a non-numeric savings is refused
+ok   five production merges cut one patch stamp
+ok   CI minutes price every gate run (batches + stamps)
+ok   the closure stamp is the round-close major of the plan's round
+ok   an interim stamp stays a patch bump of the current version
+ok   the closure major follows the round, not a constant
+ok   a round not above the current major refuses
+ok   --check refuses a minor closure stamp v1.1.0 in round 2
+ok   --check refuses a round-close closure stamp v1.1.0 in round 2
+ok   --check refuses a round-close closure stamp v3.0.0 in round 2
+ok   --check refuses a round-close stamp that is not the last stamp
+ok   --check refuses a minor stamp beside a correct round close
+ok   build_plan without round_n refuses
+ok   --check refuses a plan recording no round
+ok   the gate price includes the cancelled-leg rerun
+  null control: unmutated copy rc=0
+ok   the unmutated copy's self-test exits 0 (null control)
+  mutation earliest-attempt: 'if prev is None or started < prev["started"]:' -> rc=1
+ok   self-test fails when earliest-attempt is deleted
+  mutation coordinator-cap: 'if coord[n] and n not in started and cc >= coord_cap:' -> rc=1
+ok   self-test fails when coordinator-cap is deleted
+  mutation tier-critical-path: '    if on_cp:' -> rc=1
+ok   self-test fails when tier-critical-path is deleted
+  mutation tier-production: 'return TIER_PRODUCTION_WORK, "production (work_class)"' -> rc=1
+ok   self-test fails when tier-production is deleted
+  mutation tier-hotfix: 'if k == "bug" or "HOTFIX" in g and cls == "production":' -> rc=1
+ok   self-test fails when tier-hotfix is deleted
+  mutation tier-main: 'if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:' -> rc=1
+ok   self-test fails when tier-main is deleted
+  mutation tier-saving-instrument: 'if savings is not None and savings >= SAVING_TIER_HOURS:' -> rc=1
+ok   self-test fails when tier-saving-instrument is deleted
+  mutation tier-savings: 'sav = (-savings[n] if n in savings else float("inf"))' -> rc=1
+ok   self-test fails when tier-savings is deleted
+  mutation cp-first-in-tier: '(t, 0 if n in crit else 1, sav,' -> rc=1
+ok   self-test fails when cp-first-in-tier is deleted
+  mutation height-tiebreak: 'sav, -height[n], -dur_min[n], n)' -> rc=1
+ok   self-test fails when height-tiebreak is deleted
+  mutation started-past-cap: 'for n in sorted((n for n in ready if n in started), key=priority):' -> rc=1
+ok   self-test fails when started-past-cap is deleted
+  mutation settled-held: 'settled = {n for n in open_ if n not in live and dur_h[n] == 0}' -> rc=1
+ok   self-test fails when settled-held is deleted
+  mutation start-reason-slot: 'return f"slot cap {slots}: waited behind higher-priority groups"' -> rc=1
+ok   self-test fails when start-reason-slot is deleted
+  mutation planned-dispatch-cap: '        if cur >= slots:' -> rc=1
+ok   self-test fails when planned-dispatch-cap is deleted
+  mutation held-carry-model: 'if stage == HELD_STAGE and durations.get("carries_per_part"):' -> rc=1
+ok   self-test fails when held-carry-model is deleted
+  mutation rounds-explicit: 'hours = work + (rounds - 1) * float(durations["round_hours"])' -> rc=1
+ok   self-test fails when rounds-explicit is deleted
+  mutation absorbed-carries: 'if extra > 0 and durations.get("carry_hours"):' -> rc=1
+ok   self-test fails when absorbed-carries is deleted
+  mutation class-cell: 'work = float(cell.get(cls, first[size]))' -> rc=1
+ok   self-test fails when class-cell is deleted
+  mutation appended-carries-open: 'added = max(0, carry - int(rec["carries"]))' -> rc=1
+ok   self-test fails when appended-carries-open is deleted
+  mutation caps-owner-default: '"slots": DEFAULT_CAPS["slots"] if args.slots is None else args.slots,' -> rc=1
+ok   self-test fails when caps-owner-default is deleted
+  mutation model-monotone: '        if hb < ha:' -> rc=1
+ok   self-test fails when model-monotone is deleted
+  mutation savings-validated: 'if isinstance(s, bool) or not isinstance(s, (int, float)):' -> rc=1
+ok   self-test fails when savings-validated is deleted
+  mutation size-refusal: 'if size not in sizes:' -> rc=1
+ok   self-test fails when size-refusal is deleted
+  mutation stamp-cadence: 'if len(carry) >= every:' -> rc=1
+ok   self-test fails when stamp-cadence is deleted
+  mutation round-close-version: 'stamps.append({"version": closing, "at": closure + closure_lead,' -> rc=1
+ok   self-test fails when round-close-version is deleted
+  mutation round-close-check: 'elif closes[0]["version"] != want:' -> rc=1
+ok   self-test fails when round-close-check is deleted
+  mutation round-close-last: ' or plan["stamps"][-1] is not closes[0]:' -> rc=1
+ok   self-test fails when round-close-last is deleted
+  mutation round-close-stray-kind: 'if s["kind"] not in ("patch", ROUND_CLOSE)]' -> rc=1
+ok   self-test fails when round-close-stray-kind is deleted
+  mutation round-n-required: 'roster_path: str = "", *, round_n: int) -> dict:' -> rc=1
+ok   self-test fails when round-n-required is deleted
+  mutation round-from-roster: 'round_n = roster_lib.roster_round(src)' -> rc=1
+ok   self-test fails when round-from-roster is deleted
+  mutation ci-formula: 'ci = round((len(batch_rows) + len(stamps)) * gate_report, 1)' -> rc=1
+ok   self-test fails when ci-formula is deleted
+  mutation freshness: 'if have != want:' -> rc=1
+ok   self-test fails when freshness is deleted
+  mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
+ok   self-test fails when gate-cancellation is deleted
+self-test: 0 failed

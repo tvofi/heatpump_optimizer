@@ -1,0 +1,21 @@
+RESULT reviewer-mutant=R0-null rc=0 fails=0 verdict=null
+RESULT reviewer-mutant=pctl-scale rc=1 fails=10 verdict=killed
+    FAIL pctl is linear: p75 of 1..4 is 3.25
+    FAIL model: the round cost is the Theil-Sen slope, median of 8..15 = 11.5 h
+    FAIL model: first_round_hours is the p75 of the round-adjusted hours (14.0)
+RESULT reviewer-mutant=theil-sen-p75 rc=1 fails=5 verdict=killed
+    FAIL model: the round cost is the Theil-Sen slope, median of 8..15 = 11.5 h
+    FAIL model: first_round_hours is the p75 of the round-adjusted hours (14.0)
+    FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
+RESULT reviewer-mutant=theil-sen-ordered-pairs rc=0 fails=0 verdict=SURVIVED
+RESULT reviewer-mutant=rounds-not-added-back rc=1 fails=1 verdict=killed
+    FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
+RESULT reviewer-mutant=carry-baseline-p75 rc=1 fails=1 verdict=killed
+    FAIL model: carry_baseline is the median carries per size
+RESULT reviewer-mutant=per-carry-unadjusted rc=1 fails=1 verdict=killed
+    FAIL model: carry_hours is the slope of round-adjusted hours on carries
+RESULT reviewer-mutant=active-gap-merged rc=1 fails=1 verdict=killed
+    FAIL R9-C's hours are its two parts' 6 h + 4 h, not the 12 h span with the gap
+RESULT reviewer-mutant=min-cell-6 rc=1 fails=1 verdict=killed
+    FAIL model: a cell of n>=5 is published per class, one under MIN_CELL is not
+RESULT reviewer-survived=1

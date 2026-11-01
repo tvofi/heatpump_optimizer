@@ -1,0 +1,2 @@
+RESULT spot group=R10-TARIFF pr=#2282 first_commit=2026-10-15T13:23:50Z merged=2026-10-16T01:31:46Z hours_by_hand=12.13 csv_hours=12.13
+RESULT spot group=R10-GATE-YIELD pr=#2275 first_commit=2026-10-15T13:24:26Z merged=2026-10-15T20:10:00Z hours_by_hand=6.76 csv_hours=6.76
