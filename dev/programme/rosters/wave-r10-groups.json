@@ -14224,6 +14224,49 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-CANCEL-SWEEP, R10-ORCH-LEDGER, R10-ORCH-ROSTER-SCHEMA"
    },
    "brief": "The CI-priority tier module and its config file, the merge train's pause and resume of the lowest-priority pull request's CI when the account's job limit binds, the per-group roster fields that mapping reads (source, hotfix and savings, read through tools/audit/seat/roster_lib.py), and the tick's owed-PR lines ordered by that rank. Owner-directed (tvofi 2026-10-28); R10-FLY-CANCEL-SWEEP's PR #3004 built the sweep only and left this as its part 2. R10-FLOW-TOOLKIT-MODEL consumes the tier rule and is after-edged here. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-CI-RUNNER-FIXES",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "high",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "code-owned: .github/workflows/ (tvofi approves, owner card 9 2026-11-01)",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    ".github/workflows/ci.yml",
+    "tools/ci/prelude.py",
+    "tests/run.sh"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-runner-fixes",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-CANCEL-SWEEP, R10-FLY-SUITE-ENV-FLAKES"
+   },
+   "brief": "Two gate-runner changes that each force a MODE: FULL gate, so they share one: an edit run that finds no finished code run exits without holding a runner, the code run's gate re-dispatching the body units when it finishes (owner plan-regain card 9, 2026-11-01, Build it now), and tests/run.sh naming a selected script that ended before its summary line distinctly from one that failed a check. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
