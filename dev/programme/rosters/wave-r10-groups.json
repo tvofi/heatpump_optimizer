@@ -14313,6 +14313,53 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-TICK-APPROVAL-OWED, R10-ORCH-LEDGER"
    },
    "brief": "The tick's pull-request levels: an approval-owed line for a merge-verdicted head waiting on the train's approval (priority, ahead of other instrument fly-ins), a review-stalled line from the local dispatch-ref age, no review owed for the record branch, the owed-PR buckets for an open PR that stalls with no line, and a train-parked PR kept in the train bucket. From R10-FLY-TICK-APPROVAL-OWED (its brief re-filed unbuilt after #3041) and R10-ORCH-LEDGER. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-TICK-GROUP-LINES",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [
+    "orchestrator_tick.py"
+   ],
+   "fixture": false,
+   "owner_gate": "mandated approval under 6175172275 (the folded R10-FLOW-WIP gate)",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "files": [
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/pr_cap.py",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-tick-group-lines",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer once its after-groups are done",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER, R10-ORCH-ROSTER-SCHEMA"
+   },
+   "brief": "The tick's roster-group lines left on R10-ORCH-LEDGER: a gate-race line instead of NOT REVIEWABLE, the critical-path mark and age on a ready group, an in-progress group with no live ref, an owed-dispatch line for a group that can start with no owner, the routing-invariant line in the default pass (#3054's forward-carry), and the CONWIP lane caps of the folded R10-FLOW-WIP brief in tools/audit/seat/pr_cap.py. Where a line reads the owner-gate count it calls R10-ORCH-ROSTER-SCHEMA's classifier (the ruling carried here). Runs after R10-ORCH-ROSTER-SCHEMA. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
