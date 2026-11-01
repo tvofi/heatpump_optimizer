@@ -1,0 +1,33 @@
+ok   branch maps R9-A to #11
+ok   a roster `merged in #N` pointer maps R9-B to #12
+ok   resume.commit as a merge commit maps R9-C to #13, its branch adds #14
+ok   a shared roster branch naming a group in its title maps nothing
+ok   start is the dispatch stamp when it is earliest (R9-B 20.0 h)
+ok   a repeated (verdict, head) counts once: R9-B rounds 2, blocked 1
+ok   a group with no merged PR is not a row
+ok   R9-C's hours are its two parts' 6 h + 4 h, not the 12 h span with the gap
+ok   cited_carries: ranges and lists, not the remainder, not forward-carry
+ok   cited_carries: a `Carry: R9-X` marker cites nothing
+ok   cited_carries: a forward-carry disposition saying Done counts, one not in this diff does not
+ok   cited_carries: `not done here` cites nothing
+ok   pctl is linear: p75 of 1..4 is 3.25
+ok   model: the round cost is the Theil-Sen slope, median of 8..15 = 11.5 h
+ok   model: first_round_hours is the p75 of the round-adjusted hours (14.0)
+ok   model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
+ok   model: a cell of n>=5 is published per class, one under MIN_CELL is not
+ok   round_slope is the median pairwise slope, not the mean (5.5, not 9.25)
+ok   model: a larger size planning shorter is lifted to the smaller's hours, and says so
+ok   model: carry_baseline is the median carries per size
+ok   model: carry_hours is the slope of round-adjusted hours on carries
+ok   model: an unmeasured size is absent, never imputed
+ok   part_rows: R9-C's part 2, 4.0 h, 4 carries
+ok   carry_model: hours per part and a part's carry capacity (p90)
+ok   carry_model: the capacity is the p90 of carries per part, not the median (16.0)
+ok   carry_model null: no part cites a carry -> no model
+ok   held_rows: carry 1 answered, five open
+ok   held_report a: a carry whose P-number landed in a future group's carry
+ok   held_report b: a carry a merged body forward-carried by number to a future group
+ok   held_report c: text only another HELD group carries is owned here, and a forward by number whose words do not match the carry is not a forward (null control)
+ok   held_report c: text three groups carry is boilerplate, not a landing
+ok   held_report c: a carry naming P200 and P201 has not landed where only P200 did
+size_durations self-test: 0 failed
