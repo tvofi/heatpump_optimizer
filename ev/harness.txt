@@ -1,0 +1,52 @@
+classes over every PR commit in the window: {"other": 1289, "row+other": 4, "row-only": 153}
+PRs with a row-only head: 153
+3071 gap_s=4 p_spent_s=2129 gain_s=1049 loss_s=1778 net_s=-729 r_carried_s=822 r_all_s=8336 p_code=cancelled r_code=success
+3053 gap_s=20 p_spent_s=198 gain_s=41 loss_s=2102 net_s=-2061 r_carried_s=2939 r_all_s=7286 p_code=cancelled r_code=success
+3058 gap_s=24 p_spent_s=230 gain_s=47 loss_s=2047 net_s=-2000 r_carried_s=7473 r_all_s=12390 p_code=cancelled r_code=success
+3056 gap_s=47 p_spent_s=655 gain_s=242 loss_s=1869 net_s=-1627 r_carried_s=5421 r_all_s=9513 p_code=cancelled r_code=success
+3057 gap_s=5 p_spent_s=52 gain_s=0 loss_s=2493 net_s=-2493 r_carried_s=772 r_all_s=7094 p_code=cancelled r_code=success
+3006 gap_s=17 p_spent_s=16693 gain_s=12957 loss_s=948 net_s=12009 r_carried_s=13440 r_all_s=19253 p_code=failure r_code=failure
+3016 gap_s=21 p_spent_s=201 gain_s=18 loss_s=2115 net_s=-2097 r_carried_s=10419 r_all_s=16030 p_code=cancelled r_code=failure
+3046 gap_s=17 p_spent_s=122 gain_s=0 loss_s=551 net_s=-551 r_carried_s=800 r_all_s=1609 p_code=cancelled r_code=cancelled
+3042 gap_s=16 p_spent_s=118 gain_s=0 loss_s=2218 net_s=-2218 r_carried_s=6723 r_all_s=11806 p_code=cancelled r_code=success
+3043 gap_s=27 p_spent_s=606 gain_s=399 loss_s=981 net_s=-582 r_carried_s=1505 r_all_s=3156 p_code=cancelled r_code=cancelled
+3044 gap_s=4 p_spent_s=52 gain_s=0 loss_s=2303 net_s=-2303 r_carried_s=818 r_all_s=6992 p_code=cancelled r_code=success
+3031 gap_s=13 p_spent_s=6164 gain_s=2670 loss_s=-839 net_s=3509 r_carried_s=1172 r_all_s=5485 p_code=cancelled r_code=success
+3030 gap_s=12 p_spent_s=192 gain_s=0 loss_s=2017 net_s=-2017 r_carried_s=1267 r_all_s=5468 p_code=cancelled r_code=success
+3041 gap_s=16 p_spent_s=208 gain_s=54 loss_s=2141 net_s=-2087 r_carried_s=3476 r_all_s=7390 p_code=cancelled r_code=success
+3039 gap_s=14 p_spent_s=126 gain_s=0 loss_s=2205 net_s=-2205 r_carried_s=1114 r_all_s=5310 p_code=cancelled r_code=success
+3037 gap_s=14 p_spent_s=141 gain_s=18 loss_s=2186 net_s=-2168 r_carried_s=6471 r_all_s=11194 p_code=cancelled r_code=success
+3038 gap_s=15 p_spent_s=216 gain_s=50 loss_s=2141 net_s=-2091 r_carried_s=10151 r_all_s=15945 p_code=cancelled r_code=success
+3022 gap_s=16 p_spent_s=167 gain_s=0 loss_s=2431 net_s=-2431 r_carried_s=17075 r_all_s=23284 p_code=cancelled r_code=failure
+3036 gap_s=13 p_spent_s=120 gain_s=0 loss_s=2244 net_s=-2244 r_carried_s=2860 r_all_s=7378 p_code=cancelled r_code=success
+3035 gap_s=13 p_spent_s=108 gain_s=0 loss_s=2245 net_s=-2245 r_carried_s=2940 r_all_s=7537 p_code=cancelled r_code=success
+3027 gap_s=24 p_spent_s=737 gain_s=191 loss_s=1743 net_s=-1552 r_carried_s=2755 r_all_s=7453 p_code=cancelled r_code=success
+3040 gap_s=3 p_spent_s=53 gain_s=0 loss_s=2042 net_s=-2042 r_carried_s=769 r_all_s=6110 p_code=cancelled r_code=success
+3034 gap_s=20 p_spent_s=191 gain_s=31 loss_s=2070 net_s=-2039 r_carried_s=2598 r_all_s=6759 p_code=cancelled r_code=success
+3033 gap_s=11 p_spent_s=2595 gain_s=1404 loss_s=1286 net_s=118 r_carried_s=1264 r_all_s=5148 p_code=cancelled r_code=success
+3029 gap_s=13 p_spent_s=2079 gain_s=572 loss_s=978 net_s=-406 r_carried_s=1118 r_all_s=5552 p_code=cancelled r_code=success
+3014 gap_s=25 p_spent_s=962 gain_s=380 loss_s=1961 net_s=-1581 r_carried_s=8393 r_all_s=13271 p_code=cancelled r_code=success
+3026 gap_s=17 p_spent_s=472 gain_s=179 loss_s=1848 net_s=-1669 r_carried_s=1277 r_all_s=4944 p_code=cancelled r_code=success
+3032 gap_s=5 p_spent_s=712 gain_s=363 loss_s=2206 net_s=-1843 r_carried_s=763 r_all_s=7165 p_code=cancelled r_code=success
+3004 gap_s=11 p_spent_s=202 gain_s=9 loss_s=2836 net_s=-2827 r_carried_s=6502 r_all_s=9631 p_code=cancelled r_code=failure
+3015 gap_s=28 p_spent_s=1047 gain_s=430 loss_s=2052 net_s=-1622 r_carried_s=8809 r_all_s=13792 p_code=cancelled r_code=success
+3019 gap_s=16 p_spent_s=1790 gain_s=924 loss_s=1581 net_s=-657 r_carried_s=3056 r_all_s=7693 p_code=cancelled r_code=success
+3009 gap_s=21 p_spent_s=719 gain_s=290 loss_s=1855 net_s=-1565 r_carried_s=11898 r_all_s=21741 p_code=cancelled r_code=failure
+3028 gap_s=4 p_spent_s=72 gain_s=0 loss_s=2382 net_s=-2382 r_carried_s=815 r_all_s=7079 p_code=cancelled r_code=success
+3005 gap_s=16 p_spent_s=195 gain_s=16 loss_s=2944 net_s=-2928 r_carried_s=12903 r_all_s=18078 p_code=cancelled r_code=cancelled
+3025 gap_s=14 p_spent_s=172 gain_s=0 loss_s=1897 net_s=-1897 r_carried_s=1288 r_all_s=4895 p_code=cancelled r_code=success
+3023 gap_s=18 p_spent_s=1307 gain_s=681 loss_s=1769 net_s=-1088 r_carried_s=2946 r_all_s=7507 p_code=cancelled r_code=success
+3020 gap_s=22 p_spent_s=534 gain_s=182 loss_s=1946 net_s=-1764 r_carried_s=2255 r_all_s=6229 p_code=cancelled r_code=success
+3018 gap_s=15 p_spent_s=890 gain_s=99 loss_s=2012 net_s=-1913 r_carried_s=3052 r_all_s=8049 p_code=cancelled r_code=success
+3017 gap_s=14 p_spent_s=2955 gain_s=1085 loss_s=486 net_s=599 r_carried_s=2170 r_all_s=5624 p_code=cancelled r_code=success
+3024 gap_s=13 p_spent_s=1934 gain_s=1133 loss_s=1580 net_s=-447 r_carried_s=5102 r_all_s=11332 p_code=cancelled r_code=success
+pairs=40 PRs #3024..#3071
+gap_s: median=16 sum=638 max=47
+p_spent_s: median=223 sum=48116 max=16693
+gain_s: median=52 sum=25514 max=12957
+loss_s: median=2030 sum=73650 max=2944
+net_s: median=-1905 sum=-48136 max=12009
+r_carried_s: median=2900 sum=177391 max=17075
+r_all_s: median=7422 sum=370508 max=23284
+p_code {"cancelled": 39, "failure": 1}
+r_code {"cancelled": 3, "failure": 5, "success": 32}
