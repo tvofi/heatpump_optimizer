@@ -1,47 +1,28 @@
-## What changed
-
-Two commits on origin/main `92588d581`:
-
-1. `git rm dev/programme/carries/carry-2674.json`. Its answer is the #2674 close comment 6555939169, posted after #2674's probe.
-2. `dev/programme/delivery/3048.md`: the #3048 waiver sentence added verbatim as its own line below the row. The note held only the one row line, so there was no richer structure to follow.
-
-## Sources
-
-- #2674 close comment 6555939169 (answers the carry file).
-- Orchestrator ruling under mandate for item 5017455b (the waiver sentence).
-
-## Deletion check
-
-- `tools/audit/carry_audit.py` reads `dev/programme/carries/` generically and does not name #2674.
-- `tests/closures.json` line 1561 still lists the file. I did not edit it, since the brief allows exactly two changes. The closure table is re-recorded by CI.
-- `dev/programme/triage/s6-batch1.md` line 49 mentions it in prose only, as history.
-
-## Results
-
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `tools/pr/prepr.sh`, rc=1: gate mode SCOPED. Every check was ok or skipped except one REFUSE, `closures`: "failed while being recorded: tests/entities.py (exit 1)". The `ci predict` check reports no red predicted.
-- `tests/entities.py` could not run in this container. venv-ci has no `homeassistant`. venv-ha has it but no `paho`, so `custom_components` fails to import (`ModuleNotFoundError: No module named 'paho'`). This is an environment gap and not a result about the diff. Main has the same gap. entities.py is therefore unverified here, and CI's run is the first real reading. The `closures.json` entry for the deleted file is the one thing it might flag.
-- main had not moved since the base, so no second prepr run was needed.
+Record PR in the R10-TRIAGE-S6 record lane (as #3094 and #3095): keeps #3048's pre-flight waiver note after its merged row, and drops the answered #2674 carry file. Title: "record: #3048 pre-flight waiver note; drop the answered #2674 carry file (R10-TRIAGE-S6)".
 
 ## Head
 
-05c2245948d6d1df43679e1b652d849d9912e517
+Merge commit 72c6eea33244b3fff2066758cd3989f567af6a1d (origin/main 407eb0cb38f3cd43e71f4ed7be1c23f80dc32cc1 merged into ba27089aebdebac42e72cd153363e08abecedde2; no rebase). Resolved dev/programme/delivery/3048.md: main contributed the merged row (first line, "merged 92588d5"), this branch the waiver sentence line verbatim. tests/closures.json auto-merged (carry-2674 entry pruned). dev/programme/delivery/3091.md retitled with the lane tag. Dropped as answered: nothing; both entries were checked and are still owed (see Figures).
 
 ## Mutation proof
 
-n/a: record-only change, no production code or check altered.
+n/a: record-only diff (delivery rows, a carry file deletion and its closures.json prune); no production line.
 
 ## Null control
 
-n/a: nothing quantified; two record edits.
+n/a: no behaviour changes. Control for the drop checks: the same grep at origin/main for a recorded waiver returns nothing outside this branch's own line.
 
 ## Figures
 
-none
+- Waiver not recorded elsewhere: `git grep -n 5017455b origin/main -- dev/` prints no line; `git grep -n 5017455b origin/handoff/audit-r10-roster -- dev` prints no line.
+- #2674 answered: issue #2674 state closed, completed (read via the GitHub issue API); `git grep -n carry-2674 origin/main -- tools tests dev/governance` names only tests/closures.json (pruned here); `git ls-tree origin/main --name-only dev/programme/carries/ | grep 2674` shows the file still on main; roster wave-r10-groups.json lists #2674 under a live group, so the carry file routes nothing.
+- Pruning: `python3 tests/closure.py prune` reports 0 phantom entries at this head. `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED.
+- `bash tools/pr/prepr.sh` at this head: rc=0, gate mode MODE: FULL (an unmeasured deleted file; CI re-records), CI PREDICT clean against 407eb0cb38f3, claim files byte-identical to origin/main. origin/main unmoved since that run.
+- Delivery row dev/programme/delivery/3091.md stays in `git diff $(git merge-base origin/main HEAD)...HEAD`.
 
 ## Red checks
 
-`closures` (prepr REFUSE): `tests/entities.py` exited 1 because this container lacks `homeassistant`/`paho`, so the recorder could not run. An environment gap, not caused by the diff; no cheaper detector applies. CI runs entities.py with its full environment.
+none: no check has run at the new head; the prepr.sh CI-predict step reports none predicted.
 
 ## Forward-carry
 
