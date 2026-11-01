@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-01T15:30:06+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-01T16:07:09+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 41 / 24.0 |
-| fly-ins closed | 3 | 15 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 3 | 14 / 4 / 0 / 15 |
-| first-pass fix-review yield | 1/1 (1.00) | 23/38 (0.61) |
-| blocked-class mix | class-open:1, metric-gamed:1 | body-stale:1, carry-missing:1, carry-over-wide:1, ci-pending:1, ci-red:1, claim-stronger-than-check:1, class-open:9, defect:1, figure-wrong:1, gate-red:1, metric-gamed:4, mutation-vacuous:7, raise-unjustified:1, regression:1, root-cause-detectable:3, root-cause-unanswered:2, root-cause-unrecorded:3, rule-lost:1, scope-incomplete:1, suite-red:1, swap-void-undone:1 |
-| lead time per size (h, n/p50/max) | none | L n=1 p50=16.96 max=16.96; M n=2 p50=14.36 max=23.44; S n=11 p50=11.25 max=15.92 |
+| roster groups closed vs takt | 0 / 1.0 | 38 / 24.0 |
+| fly-ins closed | 2 | 13 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 0 / 2 | 13 / 5 / 0 / 13 |
+| first-pass fix-review yield | 5/6 (0.83) | 26/42 (0.62) |
+| blocked-class mix | class-open:1, merge-semantics:1, metric-gamed:1, mutation-vacuous:1 | body-stale:1, carry-over-wide:1, ci-red:1, claim-stronger-than-check:1, class-open:8, defect:1, merge-semantics:1, metric-gamed:4, mutation-vacuous:5, raise-unjustified:1, regression:1, root-cause-detectable:3, root-cause-unanswered:2, root-cause-unrecorded:3, rule-lost:1, suite-red:1 |
+| lead time per size (h, n/p50/max) | none | L n=1 p50=16.96 max=16.96; M n=2 p50=14.36 max=23.44; S n=10 p50=11.25 max=15.92 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 2 | 61 | 2 | 8 |
+| 2 | 62 | 2 | 8 |
 
 ## Rules
 
