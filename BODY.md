@@ -37,7 +37,9 @@ The group's eleven roster carries (`origin/handoff/audit-r10-roster`, `dev/progr
 
 ## Head
 
-73ef649127591972b7744a4c2f253eb9bb2f5d6d
+d6a8661e87aee47d8be4a5ac7a71ddc807de6421
+
+Measured at 73ef649127591972b7744a4c2f253eb9bb2f5d6d (the scoped gate, the mutants, the replay arms), then re-run at this head after the two commits on top of it: the orchestrator's merge of origin/main with the delivery row (df35202ab; in this diff's files it adds two lines to `tests/closures.json` only), and `d6a8661e8`, which makes `tools/replay/debug_replay.py`'s trim check read the fixture's own price entity. At d6a8661e8: the replay checks 103/103, `debug_replay.gate_checks()` 5/5, `tests/debug_collect.py` 162/162, `tests/structure.py` passed.
 
 ## Mutation proof
 
@@ -90,7 +92,8 @@ The session restore in `RestoringHass`: the lane run before it existed is its mu
 
 - `tests/entities.py` exits on this macOS box at its py-spy sampler (`PermissionError: Cannot get task port`), before the replay checks it carries; the environment, not this diff. The checks it would run here are the 103 above, run directly. CI's Linux run decides it.
 - The nightly `replay` lane reports `cycle_cost: no recorded budget` for the new fixture until its budget is recorded from this pull request's CI `replay` job (see Cost budget).
-- `mutation` at 73ef64912759: red by construction on the 41 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `tests / mutation` at df35202ab (red; the same sites at this head): red by construction on the 41 new `custom_components/` sites under `## Unpinned sites`, which the diff adds with no ledger pin; `mutation-autofix` pins each killed site after the push (ci-autofix.md). Cause: new mutation sites, not a broken check. Cheaper detector: none further -- `prepr.sh` step 6d (the CI predict) already named every one of the 41 locally, in seconds, before the handoff, and the red is the documented price of a site whose pin only CI's mutation lane records; no countermeasure owed. `tests / mutation-autofix`: not red at this writing; if it goes red, the sites are its to pin, not this body's.
+- `tests / fast (3.14)` at df35202ab (red): `tests/entities.py` failed one check, `debug replay: trim_replay carries sparse export attributes forward [nordpool_rows_with_raw_today=0]`. Cause: `tools/replay/debug_replay.py` named the synthetic fixture's price entity by its raw id, which the masking now renames to `sensor.price`; fixed in d6a8661e8 by reading the id the fixture's entry holds (5/5 locally; red on df35202ab's tree, green on this head). Process state: the check existed and the local scoped gate ran the script that carries it, but `tests/entities.py` exits on macOS at its py-spy sampler (line 18448, `PermissionError: Cannot get task port`) before it reaches `_dbg_replay.gate_checks()` (line 39162), so no local run on this box reached it. Cheaper detector: the local scoped gate, minutes instead of a CI round, which on a macOS seat is blind past that line to every check after the sampler; the countermeasure (the sampler check skipping, not exiting, where the task port is denied) is a root-cause seat's, not this fix's.
 
 ## Unpinned sites
 
