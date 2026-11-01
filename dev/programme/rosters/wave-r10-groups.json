@@ -15689,9 +15689,9 @@
    ],
    "carry": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-plan-real-durations",
-    "commit": "dcc49953a3a0169012a3c26948c1aa37b3293bd6",
+    "commit": "56630e7e6d229d960cf1b4db304d488ee20873e6",
     "last_step": "fixer handoff with body",
     "next_step": "open PR, then fix review",
     "note": "orchestrator s9 under mandate 6329234399: both owning groups (R10-PLAN-ARTIFACT, R10-ORCH-PLANPAGE) are done; existing-groups-first finds no live owner",
