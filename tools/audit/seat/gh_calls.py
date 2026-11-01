@@ -167,7 +167,7 @@ def self_test():
         # a real gh (the CI runner does; a Mac does not).
         tools = w / "tools"
         tools.mkdir()
-        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3"):
+        for tool in ("ps", "tr", "cut", "wc", "mv", "date", "cat", "sh", "sed", "mkdir", "env", "python3", "chmod"):
             found = shutil.which(tool)
             if found:
                 (tools / tool).symlink_to(found)
@@ -227,34 +227,72 @@ def self_test():
         check("a token outside the allowed set is logged with ? for each such character",
               ln[-1].endswith(" api repos/o/r?x?y?z"))
 
-        # the parent's command line is redacted from the first value-bearing flag on
-        planted = {
-            "sh -c 'gh api repos/o/r -f body=PLANT1; :'": "PLANT1",
-            "sh -c 'gh issue comment 1 --body PLANT2; :'": "PLANT2",
-            "sh -c 'gh api repos/o/r --field=k=PLANT3; :'": "PLANT3",
-            "sh -c 'gh api repos/o/r -fbody=PLANT4; :'": "PLANT4",
-            "sh -c 'env gh pr create --title T --body PLANT5 x; :'": "PLANT5",
+        # The parent field is the caller's argv[0] and, for an interpreter, its script, `-m
+        # <module>` or the `-c` that ends it: never a later word, so no shape of wrapper
+        # command line (argv list, env assignment, pipe, any flag) puts a value in the log.
+        def field(via, sh=None):
+            run([], via=via, shim_text=sh)
+            m_ = LINE.fullmatch(log.read_text().splitlines()[-1])
+            return m_.group(3) if m_ else None
+        caller = w / "caller.py"
+        caller.write_text("import subprocess, sys\nsubprocess.run(['gh', 'pr', 'comment', '--body', sys.argv[-1]])\n")
+        py, pyn = sys.executable, Path(sys.executable).name  # the seat's python3 shim needs a real HOME
+        shapes = {  # wrapper command line -> the exact parent field it must log
+            f"{py} -c \"import subprocess as s;s.run(['gh','pr','comment','--body','LEAKVAL'])\"": f"{pyn} -c",
+            f"{py} -c \"import subprocess as s;s.run(['gh','api','-fx=LEAKVAL','repos/o/r'])\"": f"{pyn} -c",
+            "GH_TOKEN=ghp_LEAKVAL gh api user; :": "sh -c",
+            "echo ghp_LEAKVAL | gh secret set NAME; :": "sh -c",
+            "env GH_TOKEN=ghp_LEAKVAL gh api user; :": "sh -c",  # env execs gh: sh is the parent
+            "gh api repos/o/r -fbody=LEAKVAL; :": "sh -c",
+            "env gh pr create --title T --body LEAKVAL x; :": "sh -c",
+            f"{py} -I {caller} --body LEAKVAL": f"{pyn} {caller}"[:80],
+            f"cd {w} && {py} -m caller --body LEAKVAL": f"{pyn} -m caller",
         }
-        pl_lines = []
-        for cmdline, secret in planted.items():
-            run([], via=cmdline.split("'")[1])
-            pl_lines.append((secret, log.read_text().splitlines()[-1]))
-        check("planted -f/--body/--field/glued values never reach the parent field",
-              all(sec not in ln_ for sec, ln_ in pl_lines))
-        check("and the flag name stays with a <redacted> marker (the fixture is not vacuous)",
-              all("<redacted>" in ln_ for _, ln_ in pl_lines) and " -f <redacted>" in pl_lines[0][1]
-              and "gh api repos/o/r" in pl_lines[0][1])
+        got = {via: field(via) for via in shapes}
+        for via, want_f in shapes.items():
+            label = via.replace(str(w), "W").replace(py, "PY")  # no host path in a check name
+            check(f"parent field of `{label[:52]}` is exactly the caller, no value", got[via] == want_f)
         census = ["-f", "-F", "-H", "-b", "-n", "-t", "-T", "-q", "-d", "--body", "--body-file", "--notes",
                   "--notes-file", "--title", "--subject", "--desc", "--description", "--field", "--raw-field",
-                  "--header", "--input", "--jq", "--template", "--env-file", "--squash-merge-commit-message"]
-        leaked = []
-        for flag in census:
-            run([], via=f"gh api repos/o/r {flag} CENSUS_VAL; :")
-            if "CENSUS_VAL" in log.read_text().splitlines()[-1]:
-                leaked.append(flag)
-        check("census: no value-bearing gh flag leaks its value through the parent field", not leaked)
-        run([], via="python3 -m json.tool /dev/null >/dev/null 2>&1; gh api repos/o/r; :")
-        check("a non-gh parent keeps its -m argument", "-m json.tool" in log.read_text().splitlines()[-1])
+                  "--header", "--input", "--jq", "--template", "--env-file", "--squash-merge-commit-message",
+                  "-A", "--author-email", "-S", "--search", "-m", "--milestone", "-l", "--label", "-a",
+                  "--assignee", "-r", "--reviewer", "-B", "--base", "--match-head-commit", "-p", "--preview",
+                  "-e", "--env"]
+        leaked = [f for f in census if field(f"gh api repos/o/r {f} CENSUS_VAL; :") != "sh -c"]
+        check("census: every gh value flag through a sh -c parent logs exactly `sh -c`", not leaked)
+        # mutants of the field rule: each must trip a shape arm
+        def field_mutant(name, old, new_, via, want_f):
+            mut_ = good.replace(old, new_)
+            check(f"mutant killed: {name}", mut_ != good and field(via, mut_) != want_f)
+            install(good)
+        field_mutant("the whole parent argv logged", '"$pcmd" | tr -c', '"$pargs" | tr -c',
+                     "GH_TOKEN=ghp_LEAKVAL gh api user; :", "sh -c")
+        field_mutant("-c does not end the field", "-*[ce]*) pcmd=", "-*[ce]*) ;; xx) pcmd=",
+                     "echo ghp_LEAKVAL | gh secret set NAME; :", "sh -c")
+        field_mutant("-m does not take its module", '-m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; break ;;', "",
+                     f"cd {w} && {py} -m caller --body LEAKVAL", f"{pyn} -m caller")
+        field_mutant("python is not followed to its script", "|python|python[0-9]*|", "|",
+                     f"{py} -I {caller} --body LEAKVAL", f"{pyn} {caller}"[:80])
+
+        # a log written by an earlier shim (0644) is made owner-only on the next call; a
+        # rotated one too, since mv keeps the mode
+        old_log = w / "oldmode" / "gh-calls.log"
+        old_log.parent.mkdir()
+        old_log.write_text("x\n")
+        os.chmod(old_log, 0o600 | 0o044)
+        run(["api", "om"], state=old_log.parent)
+        check("an existing 0644 log is 0600 after the next call", stat.S_IMODE(old_log.stat().st_mode) == 0o600)
+        os.chmod(old_log, 0o600 | 0o044)
+        run(["api", "om"], state=old_log.parent, env_extra={"HPO_GH_LOG_MAX": "1"})
+        rot = Path(f"{old_log}.1")
+        check("a 0644 log rotated to .1 is 0600 there",
+              rot.exists() and stat.S_IMODE(rot.stat().st_mode) == 0o600 and stat.S_IMODE(old_log.stat().st_mode) == 0o600)
+        mut_c = good.replace('  chmod 600 "$log"\n', "")
+        os.chmod(old_log, 0o600 | 0o044)
+        run(["api", "om"], state=old_log.parent, shim_text=mut_c)
+        check("mutant killed: no chmod of an existing log",
+              mut_c != good and stat.S_IMODE(old_log.stat().st_mode) != 0o600)
+        install(good)
 
         # null control: an unwritable log leaves output and status unchanged
         (w / "afile").write_text("x")
@@ -322,10 +360,7 @@ def self_test():
             r_ = run(["api", "--input", "tokfile3", "repos/o/r/m"], shim_text=m, state=w / f"m_{name}")
             l_ = (w / f"m_{name}" / "gh-calls.log")
             t_ = l_.read_text() if l_.exists() else ""
-            run([], via="gh api repos/o/r -f body=MUT; :", shim_text=m, state=w / f"m_{name}")
-            t2 = l_.read_text() if l_.exists() else ""
-            tripped = {"input": "tokfile3" in t_, "clean": False, "mkdir": not l_.exists(),
-                       "redact": "MUT" in t2}[arm]
+            tripped = {"input": "tokfile3" in t_, "clean": False, "mkdir": not l_.exists()}[arm]
             if arm == "clean":
                 run(["api", "a$b"], shim_text=m, state=w / f"m_{name}")
                 tripped = l_.exists() and "a$b" in l_.read_text()
@@ -335,7 +370,6 @@ def self_test():
         killed("no --input skip", "--input|", "", "input")
         killed("clean() is cat", "tr -c 'A-Za-z0-9_./:-' '?'", "cat", "clean")
         killed("no mkdir of the state dir", '  mkdir -p "$state"\n', "", "mkdir")
-        killed("no parent redaction", ("($longf)", "[fFHbntTqd]"), ("(ZZZ)", "[Z]"), "redact")
 
         # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()
