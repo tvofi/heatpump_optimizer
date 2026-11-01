@@ -1,59 +1,13 @@
-CodeQL	completed	success	124865438441
-arch-score / arch-score	completed	success	124864905144
-arch-score / arch-score	completed	success	124890549370
-arm	completed	skipped	124864662695
-budget-raise-gate / budget-raise-gate	completed	failure	124864905210
-budget-raise-gate / budget-raise-gate	completed	failure	124890549473
-cancel-superseded	completed	success	124864662433
-cancel-superseded	completed	success	124864666521
-codeql	completed	skipped	124890550924
-codeql / Analyze (actions)	completed	success	124864905184
-codeql / Analyze (javascript-typescript)	completed	success	124864905179
-codeql / Analyze (python)	completed	success	124864905255
-gate	completed	failure	124890441304
-gate	completed	failure	124891119633
-governance	completed	skipped	124890551089
-governance / delivery-status	completed	success	124864905316
-governance / delivery-status-publish	completed	skipped	124864906224
-governance / env-matrix	completed	success	124864905823
-governance / instrument-self-tests	completed	success	124864905219
-governance / policy-docs	completed	success	124864905272
-governance / record	completed	skipped	124864906818
-governance / wave-script	completed	success	124864905238
-hassfest	completed	skipped	124890550545
-hassfest / hassfest	completed	success	124864905227
-kernel-points	completed	skipped	124864906126
-kernel-points	completed	skipped	124890550953
-pr-contract / pr-contract	completed	success	124890185141
-pr-contract / pr-contract	completed	success	124890923909
-prelude	completed	success	124864662243
-prelude	completed	success	124864666680
-refresh	completed	success	124864662406
-refresh	completed	success	124864666833
-tests	completed	skipped	124890551327
-tests / arch-instrument	completed	success	124865808481
-tests / briefs	completed	success	124864905282
-tests / browser	completed	success	124865808504
-tests / ci-ratchet	completed	skipped	124877386607
-tests / claims-autofix	completed	success	124876547021
-tests / closure-scope	completed	success	124864905304
-tests / closures	completed	success	124865808538
-tests / closures-autofix	completed	skipped	124877386836
-tests / coverage	completed	success	124865808484
-tests / coverage-ratchet	completed	success	124872762319
-tests / fast (3.14)	completed	failure	124865808454
-tests / graders-head-copy	completed	success	124872762235
-tests / lane-proofs	completed	success	124876547200
-tests / mutation	completed	failure	124864905260
-tests / mutation-autofix	completed	failure	124889991154
-tests / mutation-pins (1)	completed	success	124865908498
-tests / mutation-pins (2)	completed	success	124865908403
-tests / mutation-pins (3)	completed	success	124865908450
-tests / mutation-pins (4)	completed	success	124865908444
-tests / nightly-ha (2025.2.0)	completed	success	124865808518
-tests / nightly-ha (stable)	completed	success	124865808545
-tests / nightly-status	completed	success	124864905221
-tests / replay	completed	success	124865808471
-tests / typing	completed	success	124865808614
-validate	completed	skipped	124890551009
-validate / validate-hacs	completed	success	124864905198
+Check runs at 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6 (workflow run 41328860493), read 2026-11-01 ~18:00 UTC via the PR's check-runs (39 runs, one page of 100) and the run's failed-jobs log listing:
+failed jobs in run 41328860493: 2 of 30
+  tests / mutation (124914587936): MUTATION TABLE REFUSED -- 3551 unpinned site(s) against 3551 at the ratchet base d052f80f7f81d42db5c57a55ebaef7056c7ce01a, 14 of them added by this diff
+  budget-raise-gate / budget-raise-gate (124914587987): RAISE tests/structure_budgets.json: seam_cut_total: 422 -> 423; REFUSED: no decisive review by tvofi (id 70032254)
+success: tests / fast (3.14) 124914706520, tests / typing 124914706508, tests / nightly-ha (2025.2.0), tests / nightly-ha (stable), tests / replay, tests / browser, arch-score, governance / delivery-status, governance / policy-docs, governance / wave-script, governance / env-matrix, hassfest, validate-hacs, tests / briefs, tests / closure-scope, tests / nightly-status, codeql actions + js
+mutation-pins (1) 124914791662: PIN KILLED: 6 pinned, 0 left unpinned; measure: measured, 5 anchor(s)
+mutation-pins (2) 124914791411: measure: measured, 4 anchor(s)
+mutation-pins (3) 124914791436: measure: measured, 4 anchor(s)
+-> 13 anchors, = the 13 killed_by records the bot commit 2df0b81ed2fb9726a4b8d52de072fdb64520ded1 ("ci: pin killed mutants", github-actions[bot]) adds; ledger files only.
+gate and pr-contract: no run concluded at 7f6d7e72; merge_train.py classify printed "WAIT ... pending: gate red: none" (rc 3) every ~90 s from 17:01 to 17:59 UTC; new runs (41333776391, 41333770778) started 17:53 at 2df0b81e.
+2df0b81ed2fb9726a4b8d52de072fdb64520ded1 github-actions[bot] ci: pin killed mutants
+
+ ...mpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json | 6 ++++++

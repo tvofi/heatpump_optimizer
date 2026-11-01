@@ -1,47 +1,46 @@
 # Review packet #3047
-head: d1662cf7b100fe99cc9938c2a536dbced55823f3
-base: fb0a6d5a30aa2e3a0b1ce4dd926c057d34a32fa8
+head: 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6
+base: d052f80f7f81d42db5c57a55ebaef7056c7ce01a
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=124865438441 neutral
-arch-score / arch-score id=124864905144 success
-arm id=124864662695 skipped
-budget-raise-gate / budget-raise-gate id=124864905210 queued
-cancel-superseded id=124864666521 success
-codeql / Analyze (actions) id=124864905184 success
-codeql / Analyze (javascript-typescript) id=124864905179 in_progress
-codeql / Analyze (python) id=124864905255 in_progress
-governance / delivery-status id=124864905316 queued
-governance / delivery-status-publish id=124864906224 skipped
-governance / env-matrix id=124864905823 queued
-governance / instrument-self-tests id=124864905219 in_progress
-governance / policy-docs id=124864905272 queued
-governance / record id=124864906818 skipped
-governance / wave-script id=124864905238 success
-hassfest / hassfest id=124864905227 success
-kernel-points id=124864906126 skipped
-prelude id=124864666680 in_progress
-refresh id=124864666833 queued
-tests / arch-instrument id=124865808481 queued
-tests / briefs id=124864905282 success
-tests / browser id=124865808504 queued
-tests / closure-scope id=124864905304 success
-tests / closures id=124865808538 queued
-tests / coverage id=124865808484 queued
-tests / fast (3.14) id=124865808454 queued
-tests / mutation id=124864905260 failure
-tests / mutation-pins (1) id=124865908498 queued
-tests / mutation-pins (2) id=124865908403 queued
-tests / mutation-pins (3) id=124865908450 queued
-tests / mutation-pins (4) id=124865908444 queued
-tests / nightly-ha (2025.2.0) id=124865808518 queued
-tests / nightly-ha (stable) id=124865808545 queued
-tests / nightly-status id=124864905221 success
-tests / replay id=124865808471 queued
-tests / typing id=124865808614 queued
-validate / validate-hacs id=124864905198 success
+CodeQL id=124914767415 neutral
+arch-score / arch-score id=124914588065 success
+arm id=124914498129 skipped
+budget-raise-gate / budget-raise-gate id=124914587987 failure
+cancel-superseded id=124914499408 success
+codeql / Analyze (actions) id=124914587891 success
+codeql / Analyze (javascript-typescript) id=124914587910 success
+codeql / Analyze (python) id=124914587913 in_progress
+governance / delivery-status id=124914587962 success
+governance / delivery-status-publish id=124914590521 skipped
+governance / env-matrix id=124914587984 in_progress
+governance / instrument-self-tests id=124914588001 in_progress
+governance / policy-docs id=124914587940 success
+governance / record id=124914589753 skipped
+governance / wave-script id=124914587915 success
+hassfest / hassfest id=124914587942 success
+kernel-points id=124914588664 skipped
+prelude id=124914499651 in_progress
+refresh id=124914499505 success
+tests / arch-instrument id=124914706514 in_progress
+tests / briefs id=124914587922 success
+tests / browser id=124914706639 in_progress
+tests / closure-scope id=124914587879 success
+tests / closures id=124914706697 in_progress
+tests / coverage id=124914706559 in_progress
+tests / fast (3.14) id=124914706520 in_progress
+tests / mutation id=124914587936 failure
+tests / mutation-pins (1) id=124914791662 in_progress
+tests / mutation-pins (2) id=124914791411 in_progress
+tests / mutation-pins (3) id=124914791436 in_progress
+tests / nightly-ha (2025.2.0) id=124914706556 success
+tests / nightly-ha (stable) id=124914706653 success
+tests / nightly-status id=124914587894 success
+tests / replay id=124914706691 success
+tests / typing id=124914706508 success
+validate / validate-hacs id=124914587899 success
 
 ## Refusals
 none
@@ -321,6 +320,18 @@ index 000000000..cb047400b
 +  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
+new file mode 100644
+index 000000000..757cac8bc
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_undo_factory_reset.spent RETURN_DEL bf2fea10",
++  "killed_by": "tests/features.py",
++  "old": "        return undo.get(\"stores\") or {}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
 new file mode 100644
 index 000000000..4d6112daa
@@ -368,6 +379,18 @@ index 000000000..9afe1c2ec
 +  "killed_by": "tests/features.py",
 +  "old": "        return None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json
+new file mode 100644
+index 000000000..e74c2d769
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset RETURN_DEL de8fcadc",
++  "killed_by": "tests/features.py",
++  "old": "    return done",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
 +}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
 new file mode 100644
@@ -464,6 +487,30 @@ index 000000000..58029975a
 +  "killed_by": "tests/features.py",
 +  "old": "        return self.best_restore()",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
++}
+diff --git a/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json b/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json
+new file mode 100644
+index 000000000..f22f08a70
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature RETURN_DEL d7923b87",
++  "old": "        return None",
++  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _dhw_probe_temperature, after an `if` whose arm returns the value; every other exit returns None, so deleting it lets the method fall off its own end and return None -- the same value on the same path. Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L9957-RETURN_DEL mutant through the whole of tests/features.py: SURVIVED, while the GUARD_OFF of the `if` above it is killed there (\"a configured, healthy tank probe fills the hot-water accuracy record\").",
++  "verdict": "equivalent"
++}
+diff --git a/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json b/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json
+new file mode 100644
+index 000000000..54f71c86a
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_side_pair RETURN_DEL da9e8e97",
++  "old": "    return None",
++  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _side_pair, after an `if` whose arm returns the pair, so deleting it lets the function fall off its own end and return None -- the same value, on every input, to its one reader (`undone_settings`, which tests `is None`). Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L360-RETURN_DEL mutant: SURVIVED the extracted R10-FACTORY-RESET section of tests/features.py and the whole of tests/features.py, while the malformed-record check (\"an undo record missing either half, or holding a malformed one, undoes no settings\") kills the guard's GUARD_OFF on the line above.",
++  "verdict": "equivalent"
 +}
 
 
@@ -589,7 +636,7 @@ index 6d97645a1..eb20d0e0a 100644
  # DHW demand window defaults
  DEFAULT_DHW_SCHEDULE_ENABLED: Final = True
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index 9268c8f1b..acd596599 100644
+index 2809a56f7..fe8169c00 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
@@ -650,7 +697,7 @@ index 9268c8f1b..acd596599 100644
  def _storable_sample_count(raw: Any) -> int:
      """A stored sample count a fold could have written (D1-s2-03).
  
-@@ -1349,6 +1375,96 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
+@@ -1350,6 +1376,96 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
      await coord.async_request_refresh()
      return True
  
@@ -747,7 +794,7 @@ index 9268c8f1b..acd596599 100644
  #: Which configured entity backs each published temperature -- the table
  #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
  #: constructor defaults (55.0 tank, 40.0 buffer, 22.0 slab, 21.0 either
-@@ -4205,50 +4321,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4206,50 +4322,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              _LOGGER.debug("Could not load learned thermal parameters: %s", err)
              return
  
@@ -804,7 +851,7 @@ index 9268c8f1b..acd596599 100644
  
          # Re-anchored before anything solves; gated write: `updated_at` defeats the hash skip.
          _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
-@@ -4256,18 +4334,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4257,18 +4335,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          if _reanchored or not _had_anchor:
              await self._async_save_thermal_learning()
  
@@ -825,7 +872,7 @@ index 9268c8f1b..acd596599 100644
          self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
  
          # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
-@@ -4289,25 +4357,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -4290,25 +4358,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          raw_events = stored.get("immersion_events")
          if isinstance(raw_events, list):
              self._immersion_events = _aware_instant_iso(raw_events)
@@ -854,7 +901,7 @@ index 9268c8f1b..acd596599 100644
          # T7 #61: the watchdog's stand-down latch, parsed HERE and not in
          # the shared learner parser on purpose — a learner rollback must
          # not re-arm a controller that stood down over a hardware fault;
-@@ -9307,12 +9362,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9305,12 +9360,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                  (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
                  (self._apply_cop_scale, _COP_STORE_KEY),
              ):
@@ -869,7 +916,7 @@ index 9268c8f1b..acd596599 100644
              # T4b learners roll back through the same parser the store
              # loader uses, cleared first so a restore is a restore, not a
              # merge with the drifted state it replaces — ALL of them: a
-@@ -9470,13 +9521,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9468,13 +9519,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          # read still in flight lands on top of the restored learner.
          for store in _restored_stores(self):
              await store.async_wait_for_read()
@@ -886,7 +933,7 @@ index 9268c8f1b..acd596599 100644
          self._apply_learner_payloads(snap.get("learners") or {})
          _LOGGER.info(
              "Learned state restored from the snapshot taken %s",
-@@ -9673,13 +9726,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9671,13 +9724,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              )
              if best is None or distance < best[0]:
                  best = (distance, raw)
@@ -902,7 +949,7 @@ index 9268c8f1b..acd596599 100644
  
      def _settle_defrost(self, sample: AccuracySample, window: Any) -> None:
          """Teach the derate from the interval that has just been settled.
-@@ -9903,18 +9951,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -9901,18 +9949,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          """
          if not getattr(self, "_ctx", self)._config.dhw_temp_entity:
              return None
@@ -2049,7 +2096,7 @@ index d288b59a7..706e5caeb 100644
      }
      rows, _ = prose_count_census(stale, facts)
 diff --git a/tests/entities.py b/tests/entities.py
-index 526b84b2d..bcd4754e9 100644
+index 526b84b2d..5da95af09 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
 @@ -9087,8 +9087,10 @@ for _step in options._MENU_LABELS:
@@ -2065,7 +2112,7 @@ index 526b84b2d..bcd4754e9 100644
          if _sf._entry.options or _sf.hass.config_entries.updated:
              _unwritten_menus.append(_step)
          continue
-@@ -15421,6 +15423,27 @@ R.check(
+@@ -15421,6 +15423,28 @@ R.check(
  )
  
  _heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
@@ -2079,6 +2126,7 @@ index 526b84b2d..bcd4754e9 100644
 +
 +async def _svc_fr_record(coord, scope):
 +    _svc_fr_args.append((coord, scope))
++    return True  # applied: a refused reset raises (features.py drives that arm)
 +
 +
 +_svc_module.async_factory_reset = _svc_fr_record
@@ -2093,7 +2141,7 @@ index 526b84b2d..bcd4754e9 100644
  R.check(
      "reset_heat_loss_learners reaches the coordinator and reports what it reset",
      "reset_heat_loss" in _svc_log
-@@ -15466,6 +15489,7 @@ _svc_covered = {
+@@ -15466,6 +15490,7 @@ _svc_covered = {
      const.SERVICE_DIAGNOSE_INTERVAL,
      const.SERVICE_DEBUG_COLLECT,
      const.SERVICE_RESET_HEAT_LOSS,
@@ -2101,7 +2149,7 @@ index 526b84b2d..bcd4754e9 100644
  }
  R.check(
      "every registered service was invoked above",
-@@ -40488,6 +40512,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
+@@ -40488,6 +40513,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
          ("coordinator.py", "_async_load_thermal_learning"): 1,
          ("coordinator.py", "_async_setup_peak_guard"): 1,
          ("coordinator.py", "async_restore_learned_snapshot"): 1,
@@ -2112,10 +2160,10 @@ index 526b84b2d..bcd4754e9 100644
          ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
      },
 diff --git a/tests/features.py b/tests/features.py
-index 327ec8d41..7fd3d9c3f 100644
+index cd48252b6..1f75e9525 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -13164,6 +13164,570 @@ R.check(
+@@ -13164,6 +13164,615 @@ R.check(
  )
  
  
@@ -2223,14 +2271,17 @@ index 327ec8d41..7fd3d9c3f 100644
 +    return out
 +
 +
-+def _fr_case(scope, entry_id, *, learn=True):
-+    """Reset a learned entry under ``scope``; (before, after, entry, hass, old coordinator)."""
++def _fr_case(scope, entry_id, *, learn=True, then=None):
++    """Reset a learned entry under ``scope``; (before, after, entry, hass, old coordinator).
++    ``then(c)`` runs after the learning, just before the reset (and is not saved)."""
 +    hass = FakeHass({})
 +    entry = _fr_entry_cls(data=dict(_FR_DATA), options=dict(_FR_OPTS), entry_id=entry_id)
 +    hass.config_entries.entries.append(entry)
 +    c = _aio.run(_fr_boot(hass, entry))
 +    if learn:
 +        _fr_learn(c)
++    if then is not None:
++        then(c)
 +    before = {"learned": _fr_learned(c), "disk": _fr_disk(entry_id), "config": {**entry.data, **entry.options}}
 +
 +    async def _setup(eid):
@@ -2471,6 +2522,48 @@ index 327ec8d41..7fd3d9c3f 100644
 +    f"record {sorted(_fr_lu_record)}, restored {_fr_lu_ok}",
 +)
 +
++# The undo point holds what the learners know at the reset, not what their
++# stores last held: learning since the last save (a COP scale moved from the
++# saved 1.13 to 1.21) is flushed to the stores before their documents are read
++# (``_async_store_documents``), so the undo brings it back.
++_fr_us_before, _fr_us_entry, _, _ = _fr_case(
++    "learners", "fr_undo_unsaved", then=lambda c: c._apply_cop_scale(1.21))
++R.check(
++    "learning since the last save is in memory only before the reset: COP scale 1.21 held, 1.13 stored (the control)",
++    _fr_us_before["learned"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.21
++    and _fr_us_before["disk"]["thermal_learning"].get(_fr_const.CONF_COP_SCALE) == 1.13,
++    f"held {_fr_us_before['learned']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}, "
++    f"stored {_fr_us_before['disk']['thermal_learning'].get(_fr_const.CONF_COP_SCALE)}",
++)
++_fr_us_new = _fr_us_entry.runtime_data
++_fr_counting_refresh(_fr_us_new)
++_fr_us_ok = _aio.run(_fr_us_new.async_restore_learned_snapshot())
++R.check(
++    "the undo restores what the learners knew at the reset, learning since the last save included: COP scale 1.21",
++    _fr_us_ok is True and _fr_us_entry.runtime_data._cop_scale == 1.21
++    and _fr_learned(_fr_us_entry.runtime_data) == _fr_us_before["learned"],
++    f"restored {_fr_us_ok}, COP scale {_fr_us_entry.runtime_data._cop_scale}",
++)
++# "While it is the newest snapshot": once any snapshot follows the undo point,
++# the restore is ``best_restore``'s, health and alarm gates included. A newer
++# snapshot taken on unhealthy inputs is not one ``best_restore`` hands out, so
++# the restore takes neither it nor the undo point. (The healthy newer one is
++# "a weekly snapshot newer than the undo point takes the restore back from it".)
++_fr_ag_before, _fr_ag_entry, _, _ = _fr_case("learners", "fr_undo_aged")
++_fr_ag_new = _fr_ag_entry.runtime_data
++_fr_ag_ring = _fr_ag_new._snapshot_ring
++_fr_ag_ring.take(_fr_dt.now(), _fr_ag_new._learner_snapshot_payloads(), _fr_ag_new._accuracy.summary(), False)
++_fr_counting_refresh(_fr_ag_new)
++_fr_ag_target = _fr_ag_ring.undo_target()
++_fr_ag_ok = _aio.run(_fr_ag_new.async_restore_learned_snapshot())
++R.check(
++    "after an unhealthy snapshot newer than the undo point, the restore takes neither: nothing qualifies, the reset stays",
++    "before_reset" in _fr_ag_ring.snapshots[-2] and _fr_ag_ring.snapshots[-1]["healthy"] is False
++    and _fr_ag_target is None is _fr_ag_ring.best_restore() and _fr_ag_ok is False
++    and _fr_ag_entry.runtime_data is _fr_ag_new and _li_state_of(_fr_ag_new) == (1.0, 1.0, 0, 0),
++    f"target {None if _fr_ag_target is None else sorted(_fr_ag_target)}, restored {_fr_ag_ok}, "
++    f"heat loss {_li_state_of(_fr_ag_new)}",
++)
 +
 +async def _fr_failed_unload(scope="both"):
 +    """An unload Home Assistant refuses: the reset changes nothing but the undo point."""
@@ -2686,7 +2779,7 @@ index 327ec8d41..7fd3d9c3f 100644
  R.section("Runtime parameter updates")
  
  import asyncio
-@@ -25158,6 +25722,7 @@ _SVC_KEYS = {
+@@ -25158,6 +25767,7 @@ _SVC_KEYS = {
      "restore_learned_snapshot_no_snapshot": ({"entry_ids"}, "hae"),
      "restore_learned_snapshot_no_refit": ({"entry_ids"}, "hae"),
      "set_thermal_params_invalid_dhw_windows": ({"windows", "error"}, "sve"),
@@ -2694,7 +2787,7 @@ index 327ec8d41..7fd3d9c3f 100644
  }
  
  
-@@ -25205,6 +25770,15 @@ def _svc_check(name, outcome, key):
+@@ -25205,6 +25815,15 @@ def _svc_check(name, outcome, key):
      R.check(name, not _svc_why(outcome, key), _svc_why(outcome, key) or "ok")
  
  
@@ -2710,7 +2803,7 @@ index 327ec8d41..7fd3d9c3f 100644
  # The driven state: one loaded entry, its coordinator holding no prices, no
  # plan and no snapshot -- what a fresh install (or a dead price feed) looks
  # like from a service call.
-@@ -25669,6 +26243,7 @@ _HPO_MOVED = (
+@@ -25669,6 +26288,7 @@ _HPO_MOVED = (
      "handle_restore_snapshot",
      "handle_diagnose_interval",
      "handle_reset_heat_loss",
@@ -2718,7 +2811,7 @@ index 327ec8d41..7fd3d9c3f 100644
      "_manual_targets",
      "_loaded_entries",
      "_loaded_coordinators",
-@@ -25740,6 +26315,7 @@ _HPO_SERVICE_MAP = {
+@@ -25740,6 +26360,7 @@ _HPO_SERVICE_MAP = {
      "diagnose_interval": "handle_diagnose_interval",
      "debug_collect": "handle_debug_collect",
      "reset_heat_loss_learners": "handle_reset_heat_loss",
@@ -2726,7 +2819,7 @@ index 327ec8d41..7fd3d9c3f 100644
  }
  _hpo_hass = FakeHass()
  _asyncio.run(_ha_setup_component(_integ, _hpo_hass))
-@@ -37949,6 +38525,8 @@ _ET_KEYS = {
+@@ -37949,6 +38570,8 @@ _ET_KEYS = {
      # D10-s1-03: the refused token, through _raise_auth_failed.
      "tibber_auth_failed": {"error"},
      "debug_collect_inactive": {"entry_id"},
@@ -2735,7 +2828,7 @@ index 327ec8d41..7fd3d9c3f 100644
  }
  
  
-@@ -38022,7 +38600,8 @@ _et_check(
+@@ -38022,7 +38645,8 @@ _et_check(
  # schema accepts, in both refusing states. Its preconditions: it drives the
  # whole catalog, each action's payload reaches the handler without an
  # entry_id, and the only refusal it accepts from a schema is of entry_id
@@ -2745,7 +2838,7 @@ index 327ec8d41..7fd3d9c3f 100644
  import voluptuous as _ger_vol  # noqa: E402
  
  #: The fields an action's schema requires; any other's smallest payload is {}.
-@@ -38031,6 +38610,7 @@ _GER_REQUIRED = {
+@@ -38031,6 +38655,7 @@ _GER_REQUIRED = {
      "debug_collect": {"action": "status"},
      "assign_entity": {"key": "outdoor_temp_entity", "entity_id": ""},
      "apply_topology": {"layout": "no_valve"},
@@ -2753,7 +2846,7 @@ index 327ec8d41..7fd3d9c3f 100644
  }
  _ger_actions = sorted(_et_idle.services.async_services()[_DOMAIN])
  _ger_bad, _ger_unreached = [], []
-@@ -38043,7 +38623,9 @@ for _ger_name in _ger_actions:
+@@ -38043,7 +38668,9 @@ for _ger_name in _ger_actions:
          try:
              _ger_err = _et_call(_et_idle, _ger_name, _ger_payload)
          except _ger_vol.Invalid as _ger_inv:
@@ -2764,7 +2857,7 @@ index 327ec8d41..7fd3d9c3f 100644
                  tuple(_e.path) for _e in getattr(_ger_inv, "errors", [_ger_inv])
              } != {("entry_id",)}:
                  _ger_unreached.append(f"{_ger_name}: {_ger_inv}")
-@@ -49914,6 +50496,16 @@ R.check(
+@@ -49914,6 +50541,16 @@ R.check(
      "parse, and a 140 % humidity selects a defrost bucket that does not "
      "describe any weather",
  )
@@ -3117,6 +3210,18 @@ index 000000000..cb047400b
 +  "old": "    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
 +}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
+new file mode 100644
+index 000000000..757cac8bc
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_async_undo_factory_reset.spent.RETURN_DEL.bf2fea10.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_async_undo_factory_reset.spent RETURN_DEL bf2fea10",
++  "killed_by": "tests/features.py",
++  "old": "        return undo.get(\"stores\") or {}",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
++}
 diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json b/tests/mutation_ledger/killed_by/coordinator.py/_stored_isoformat.GUARD_OFF.e71653f6.json
 new file mode 100644
 index 000000000..4d6112daa
@@ -3164,6 +3269,18 @@ index 000000000..9afe1c2ec
 +  "killed_by": "tests/features.py",
 +  "old": "        return None",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json
+new file mode 100644
+index 000000000..e74c2d769
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/async_factory_reset.RETURN_DEL.de8fcadc.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:async_factory_reset RETURN_DEL de8fcadc",
++  "killed_by": "tests/features.py",
++  "old": "    return done",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
 +}
 diff --git a/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json b/tests/mutation_ledger/killed_by/entry_config.py/factory_settings.RETURN_DEL.9521dcc2.json
 new file mode 100644
@@ -3261,6 +3378,30 @@ index 000000000..58029975a
 +  "old": "        return self.best_restore()",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=7."
 +}
+diff --git a/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json b/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json
+new file mode 100644
+index 000000000..f22f08a70
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/coordinator.py/HeatPumpOptimizerCoordinator._dhw_probe_temperature.RETURN_DEL.d7923b87.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature RETURN_DEL d7923b87",
++  "old": "        return None",
++  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _dhw_probe_temperature, after an `if` whose arm returns the value; every other exit returns None, so deleting it lets the method fall off its own end and return None -- the same value on the same path. Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L9957-RETURN_DEL mutant through the whole of tests/features.py: SURVIVED, while the GUARD_OFF of the `if` above it is killed there (\"a configured, healthy tank probe fills the hot-water accuracy record\").",
++  "verdict": "equivalent"
++}
+diff --git a/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json b/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json
+new file mode 100644
+index 000000000..54f71c86a
+--- /dev/null
++++ b/tests/mutation_ledger/survivor_triage/entry_config.py/_side_pair.RETURN_DEL.da9e8e97.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/entry_config.py:_side_pair RETURN_DEL da9e8e97",
++  "old": "    return None",
++  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _side_pair, after an `if` whose arm returns the pair, so deleting it lets the function fall off its own end and return None -- the same value, on every input, to its one reader (`undone_settings`, which tests `is None`). Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L360-RETURN_DEL mutant: SURVIVED the extracted R10-FACTORY-RESET section of tests/features.py and the whole of tests/features.py, while the malformed-record check (\"an undo record missing either half, or holding a malformed one, undoes no settings\") kills the guard's GUARD_OFF on the line above.",
++  "verdict": "equivalent"
++}
 diff --git a/tests/nightly_ha.py b/tests/nightly_ha.py
 index e7e9f23de..fe77f07ec 100644
 --- a/tests/nightly_ha.py
@@ -3298,29 +3439,28 @@ index a678a9b69..17772e9b2 100644
    "coordinator._ctx_of": "core",
    "coordinator._publish_params": "core",
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index f85a64423..9de767669 100644
+index 199098668..67820f5c4 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17653,
-+ "class_excess_loc": 17648,
+- "class_excess_loc": 17651,
++ "class_excess_loc": 17646,
   "const_modules_over_50": 3,
-  "coordinator_attrs": 142,
-  "coordinator_multiassigned_attrs": 109,
+  "coordinator_attrs": 141,
+  "coordinator_multiassigned_attrs": 108,
 @@ -11,11 +11,11 @@
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 8059,
-+ "max_class_loc": 7983,
+- "max_class_loc": 8056,
++ "max_class_loc": 7980,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,
   "name_kept_members": 38,
-- "recorded_at": "460d7754f48630a9fa0d84c31be78bc78d71c02b",
+  "recorded_at": "61b0076f48546fe29cae35dfdb5949ad6d0c6feb",
 - "seam_cut_total": 422
-+ "recorded_at": "8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f",
 + "seam_cut_total": 423
  }
 
