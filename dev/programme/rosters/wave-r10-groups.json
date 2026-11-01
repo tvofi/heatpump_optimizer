@@ -14245,7 +14245,9 @@
     "tools/audit/seat/instruments/roster_queue.py.md",
     "dev/programme/rosters/wave-r10-groups.json"
    ],
-   "carry": [],
+   "carry": [
+    "From #2704 (R10-POLICY-FIXER-MD), Forward-carry: 64 group briefs in wave-r10-groups.json (18 not done or absorbed) say \"the seat pushes refs only, through tools/audit/seat/handoff_push.sh\"; fixer.md step 6 now says that script is the orchestrator's. Control: python3 -c over roster brief strings counting that phrase, plain or backticked: 64 now; 0 among live groups once repaired. Owed: one roster_edit.py edit-brief op per live group."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-roster-queue",
