@@ -13715,7 +13715,9 @@
     "tests/card.mjs",
     "tests/card_browser.mjs"
    ],
-   "carry": [],
+   "carry": [
+    "Owner's spec: the card's driving scale (what drives the optimizer's current decision) shows reason codes on hover, like the house and heat-pump grades: each factor pushing it, its direction and rough weight. Every hover box in the card (scores, scales) also explains its metric in plain words: what is measured, its unit, what a high or low value means, and what 'no data' means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. If the owner meant a different widget by 'driving scale', the fixer confirms with the orchestrator before building."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-grade-drivers",
