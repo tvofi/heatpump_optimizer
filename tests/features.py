@@ -75842,4 +75842,45 @@ R.check(
 )
 
 
+import logging as _cp_logging  # noqa: E402
+
+
+class _CpLogs(_cp_logging.Handler):
+    def __init__(self):
+        super().__init__(_cp_logging.INFO)
+        self.lines = []
+
+    def emit(self, record):
+        self.lines.append(record.getMessage())
+
+
+class _CpOnCfg(dict):
+    system_identification_enabled = True
+
+
+_cp_logs = _CpLogs()
+_cp_log = _cp_logging.getLogger(_cp_sid.__name__)
+_cp_log.addHandler(_cp_logs)
+_cp_prev_level = _cp_log.level
+_cp_log.setLevel(_cp_logging.INFO)
+try:
+    _cp_on = _cp_sid.SystemIdentification(_cp_cfg())
+    _cp_on_armed = _cp_sid.arm_from_config(_cp_on, _CP_T0, _CpOnCfg(_CP_PROBE_CFG), None, 482, _cp_dr.DrawRange())
+    _cp_on_lines = [m for m in _cp_logs.lines if "armed" in m]
+    _cp_logs.lines.clear()
+    _cp_off = _cp_sid.SystemIdentification(_cp_cfg())
+    _cp_sid.arm_from_config(_cp_off, _CP_T0, _CpOffCfg(), None, 482, _cp_dr.DrawRange())
+    _cp_off_lines = [m for m in _cp_logs.lines if "armed" in m]
+finally:
+    _cp_log.removeHandler(_cp_logs)
+    _cp_log.setLevel(_cp_prev_level)
+R.check(
+    "arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not",
+    _cp_on_armed is True and _cp_on.kind == _cp_sid.KIND_PROBE
+    and _cp_on_lines == [f"System identification armed ({_cp_on.kind}); it will start at the next mild, cheap night hour"]
+    and _cp_off_lines == [],
+    f"{_cp_on_armed} {_cp_on.kind} {_cp_on_lines} {_cp_off_lines}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
