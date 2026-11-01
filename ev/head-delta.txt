@@ -1,0 +1,18 @@
+commit aa6148d4ff35c457e83310337760e075cb823a14
+parents 32d880b3dee4e525d16ec270af83d867f7006431 6421fe135d9f5a9e65433a4433f000d2419486bf
+tree 82d5af601e8b9c1d09bbc63cf9ef6a4b3b2574d6
+author tvofi <70032254+tvofi@users.noreply.github.com>
+subject Merge remote-tracking branch 'origin/main' into fix/r10-fly-carry-doc-context
+merge-tree 32d880b3dee4e525d16ec270af83d867f7006431 6421fe135: 82d5af601e8b9c1d09bbc63cf9ef6a4b3b2574d6
+branch-only commits 32d880b3dee4e525d16ec270af83d867f7006431..aa6148d4ff35c457e83310337760e075cb823a14 not in origin/main:
+aa6148d4f Merge remote-tracking branch 'origin/main' into fix/r10-fly-carry-doc-context
+review_carry:
+review_carry: 32d880b3d -> aa6148d4f  main=origin/main
+  branch-only commits: 1
+  why: all 1 branch-only commit(s) are automatic merges, and app_approve.sh --carry carries the range
+  aa6148d4f  Merge remote-tracking branch 'origin/main' into fix/r10-fly-carry-doc-context
+review_carry: CARRY
+rc=0
+app_approve --carry:
+CARRY: yes 32d880b3dee4e525d16ec270af83d867f7006431 -> aa6148d4ff35c457e83310337760e075cb823a14: no branch-authored commit in the range, every merge the automatic one with its claim files a pure union of both sides or main's driver output on them, and the branch's own diff compares equal
+diff P..H on authored files:

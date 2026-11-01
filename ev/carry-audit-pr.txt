@@ -1,0 +1,8 @@
+NOTE #3077 body item f2f195f6: dismissed:a sizing note for the orchestrator, no later stage owns it
+NOTE #3077 body item b0106364: dismissed:#3055 is its fix
+NOTE #3077 review 6553172040 item c85660da: R10-FLY-CARRY-DOC-CONTEXT
+NOTE #3077 review 6553172040 item c85660da: #3077
+NOTE #3077 review 6553172040 item c85660da: O3: O3 UNVERIFIED (no --briefs-dir / $HPO_BRIEFS_DIR)
+NOTE #3077 review 6553172040 item c85660da: dismissed:the block it records is answered in this PR (item c85660da)
+NOTE #3077 review 6557173590 item 112afd02: dismissed:data file, one path, owner identity only
+CARRY-AUDIT #3077: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
