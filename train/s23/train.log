@@ -1,0 +1,32 @@
+train.sh: queue=train/queue20.json repo=tvofi/heatpump_optimizer state=train/s23 pid=54063 start=2026-10-24T21:58:36Z
+BATCH 20261024-215837 pid=54180 base=main queue=2 (#2739 #2759) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d612b563: the record beat waits
+BOT #2769 pending at 8a070e91: AUTOMERGE PENDING #2769: pending: gate; not merged
+OVERLAP: main at c176ee55de7c is still running (gate): a wait, not red; --overlap does not wait
+PARK #2759 head: #2759 is MERGED, not open
+PRE-FLIGHT: 1 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2739 serial: grader, workflow
+OVERLAP: recarrying #2739 up front, their pull_request runs fire together
+#2739 overlap: recarry start
+BOT #2769 pending at 8a070e91: AUTOMERGE PENDING #2769: pending: gate; not merged
+TRAIN HOLD refs/heads/train-hold 4e9b0c4d: the record beat waits
+#2739 recarry [HOLDER] freed: /Users/timmalmstrom/hpo-seats/r10s6/orch-wt/train/s22/wt/2739 held fix/r10-codeql-dependabot-pr, clean at origin/fix/r10-codeql-dependabot-pr; detached it (restore: git -C /Users/timmalmstrom/hpo-seats/r10s6/orch-wt/train/s22/wt/2739 switch fix/r10-codeql-dependabot-pr)
+#2739 recarry START (branch fix/r10-codeql-dependabot-pr)
+#2739 recarry: main merged, head c0277e11; app_push: RECARRY: prepr SKIPPED: HEAD c0277e11 is the clean merge of the live head 7f2475e6 and origin/main's c176ee55, and the body is the live one
+serial: #2739
+TRAIN HOLD refs/heads/train-hold 1c6c5a44: the record beat waits
+beat: waiting CI at c0277e11 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold e6bf3ac6: the record beat waits
+beat: waiting CI at c0277e11 (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 6ef2918b: the record beat waits
+beat: waiting CI at c0277e11 (poll 4, t+727s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2b2ac111: the record beat waits
+#2739 c0277e11 ci red=['gate']
+SKIP #2739 ci: #2739 red at the head: gate
+released train/s23/wt/2739
+SKIP REPORT: 2 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-24T22:16:04Z

@@ -1,0 +1,16 @@
+CHAIN START #2748 try 1 029d6ccc954a6b2cbf04aa92bb53fea23cb65a0a
+CHAIN rc=1 #2748 try 1: not clean
+CHAIN rerun-failed run 40113105697 for #2748
+CHAIN rerun-failed run 40113105204 for #2748
+CHAIN START #2748 try 2 029d6ccc954a6b2cbf04aa92bb53fea23cb65a0a
+CHAIN rc=1 #2748 try 2: not clean
+CHAIN rerun-failed run 40113105697 for #2748
+CHAIN rerun-failed run 40113105204 for #2748
+CHAIN START #2748 try 3 029d6ccc954a6b2cbf04aa92bb53fea23cb65a0a
+CHAIN rc=1 #2748 try 3: not clean
+CHAIN rerun-failed run 40119664221 for #2748
+CHAIN rerun-failed run 40119046224 for #2748
+CHAIN rerun-failed run 40113105697 for #2748
+CHAIN rerun-failed run 40113105204 for #2748
+CHAIN RESULT #2748 OPEN 
+CHAIN DONE

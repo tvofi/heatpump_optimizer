@@ -1,0 +1,5 @@
+READBACK id=6387667123 live_len=4620 want_len=4620 live_sha=b2c16232f0f26557 want_sha=b2c16232f0f26557 identical=True
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged 80006932b74050005353dd93f122b38d6b631bc3
+worktree_gc: summary -- eligible 2, removed 2, kept 81

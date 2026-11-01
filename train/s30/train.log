@@ -1,0 +1,19 @@
+train.sh: queue=train/queue26.json repo=tvofi/heatpump_optimizer state=train/s30 pid=82249 start=2026-10-25T05:50:55Z
+BATCH 20261025-055055 pid=82522 base=main queue=2 (#2787 #2788) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 872a01c1: the record beat waits
+BOT #2788 MERGED 973618e6f9410f7864993837cfc6153bb9b21fca
+OVERLAP: main at 973618e6f941 is still running (gate): a wait, not red; --overlap does not wait
+PARK #2788 head: #2788 is MERGED, not open
+PRE-FLIGHT: 1 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2787 approved at admission (app)
+#2787 admitted at 54f6f50e
+#2787 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2787 approved (already, at this head, by this train)
+#2787 review run(s) 40167035549 at 54f6f50e still running; the merge waits (1/24)
+#2787 review run(s) 40167035549 at 54f6f50e still running; the merge waits (2/24)
+#2787 review run(s) 40167035549 at 54f6f50e still running; the merge waits (3/24)
+#2787 review run(s) 40167035549 at 54f6f50e still running; the merge waits (4/24)
+TRAIN HOLD released
+TRAIN_RC=143 end=2026-10-25T05:51:52Z

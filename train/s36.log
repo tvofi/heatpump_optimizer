@@ -1,0 +1,7 @@
+   63b811ab5..f673505c7  fix/r10-roster-freeze-a -> origin/fix/r10-roster-freeze-a
+ + d9052212c...d347935fd train-hold              -> origin/train-hold  (forced update)
+HEAD is now at 21a1e04a7 Merge pull request #2791 from tvofi/record/autofix
+HEAD 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f origin/main 21a1e04a7e838545f43a6f9a8545f4bb2bc0548f
+#2792 PARK (recarry: fix/r10-roster-freeze-a is already checked out at /Users/timmalmstrom/hpo-seats/r10s6/orch-wt/train/s35/wt/2792; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktr
+#2793 PASS
+PRE-FLIGHT: 2 entries: 1 PASS, 1 PARK, 0 FAIL

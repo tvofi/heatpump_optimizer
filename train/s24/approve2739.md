@@ -1,0 +1,3 @@
+Agent approval for code-owned `.github/CODEOWNERS`, `.github/workflows/codeql.yml`, `.github/workflows/dependabot-automerge.yml`, `.github/workflows/governance.yml`, `.github/workflows/pr-contract.yml`, `.github/workflows/tests.yml`, `tests/closure.py`, `tools/pr/codeql_scope.py`, given by the orchestrator under 6329234399, at head c0277e11eb2dbc1ab2b9cd3251efacd3435d5742.
+
+Basis: `Fix review: merge c98b1144ddd0dc5482ab823f049043e56a06ce29` (comment 6388649611), carried to c0277e11eb2dbc1ab2b9cd3251efacd3435d5742 by `app_approve.sh --carry` (automatic main merges only). CI at c0277e11eb2dbc1ab2b9cd3251efacd3435d5742 is green apart from `tests / nightly-status`, which grade main.

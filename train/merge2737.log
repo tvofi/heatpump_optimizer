@@ -1,0 +1,6 @@
+✓ Pull request tvofi/heatpump_optimizer#2737 is marked as "ready for review"
+READBACK id=6387664352 live_len=5612 want_len=5612 live_sha=ff5ee5ad52d0f81f want_sha=ff5ee5ad52d0f81f identical=True
+state CLEAN
+  clean    no refusal (the 'check' lines above are yours to answer)
+merged deb7a4c1e14f4db66bcad425b1f7e270df1cf68b
+worktree_gc: summary -- eligible 1, removed 1, kept 84
