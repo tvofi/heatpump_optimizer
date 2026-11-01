@@ -302,11 +302,13 @@ def self_test():
             "sh -s LEAKVAL": "sh -s",
             "sh -s -- LEAKVAL": "sh -s",
             "bash -s -- --token LEAKVAL": "bash -s",
-            "python3 -W ignore::LEAKVAL caller.py": "python3 caller.py",
-            "python3 -WLEAKVAL caller.py": "python3 caller.py",
-            "python3 -X LEAKVAL caller.py": "python3 caller.py",
-            "python3 -W error -m caller_mod LEAKVAL": "python3 -m caller_mod",
-            "bash -o LEAKVAL s.sh": "bash s.sh",
+            "python3 -W ignore::LEAKVAL caller.py": "python3",
+            "python3 -WLEAKVAL caller.py": "python3",
+            "python3 -X LEAKVAL caller.py": "python3",
+            "python3 -W error -m caller_mod LEAKVAL": "python3",
+            "python3 -X 'a LEAKVAL' caller.py": "python3",  # a value of one argv word with a space
+            "python3 -W \"ignore LEAKVAL\" caller.py": "python3",
+            "bash -o LEAKVAL s.sh": "bash",
             "node --require ./LEAKVAL.js n.js": "node",
             "node -p LEAKVAL": "node",
             "ruby -r LEAKVAL x.rb": "ruby",
@@ -338,6 +340,9 @@ def self_test():
         fmutant("a value-taking letter read as no-value, its value taken as the script",
                 [("vals='[WX]'", "vals="), ("[bBdEhiIOqPRSuvVx]", "[bBdEhiIOqPRSuvVxWX]")],
                 "python3 -W ignore::LEAKVAL caller.py")
+        fmutant("a value-taking letter skips one word as its value, not ending the field",
+                [("$vals) end=1; break ;;", '$vals) [ "$((j + 1))" -eq "${#a}" ] && i=$((i + 1)); break ;;')],
+                "python3 -X 'a LEAKVAL' caller.py")
         fmutant("`=` allowed in the parent field",
                 [("tr -c 'A-Za-z0-9_./: -' '?' | cut", "tr -c 'A-Za-z0-9_./:= -' '?' | cut")], "sh ./a=b/s.sh LEAKVAL")
         fmutant("the 80-character cut removed", [(" | cut -c1-80)", ")")], f"sh {long_script} LEAKVAL")
