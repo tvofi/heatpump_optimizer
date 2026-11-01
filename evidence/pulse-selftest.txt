@@ -1,0 +1,57 @@
+  ok   null control: a healthy board is ok on all three arms
+  ok   the 10-21 shape: the blocked #2527 verdict 7.7 h at its head is STOPPED
+  ok   the 10-21 shape: a backlog older than the last opening is counted, not a stop
+  ok   the 10-21 shape: a beat that died with the train is not blamed while main is still
+  ok   a handoff 4 h old with no opening since it arrived: opener STOPPED, the rest ok
+  ok   the same handoff with an opening after it arrived is ok
+  ok   main moved 60 min ago, the state ref did not follow: state-beat STOPPED, the rest ok
+  ok   the state-beat age is the oldest main move the state ref has not followed
+  ok   inputs younger than their bounds are ok on every arm
+  ok   perturbation: a --verdict-h above the verdict's age reads it ok
+  ok   a verdict whose pull request merged or whose head moved is consumed
+  ok   an unread last opening is UNREADABLE, never ok
+  ok   unreadable inputs read UNREADABLE on every arm, never ok
+  ok   a state ref with main or its own commit unread is UNREADABLE
+  ok   bus.sh rc 0 with no summary line is UNREADABLE
+  ok   bus.sh rc 2 or more is UNREADABLE even beside a summary line
+  ok   a stamp ahead of the clock is never aged and is named skew
+  ok   the verdict subject parser reads a blocked verdict's PR, kind and head
+  ok   a design-review subject is not a verdict
+  ok   an orphan of unknown age is named, never aged
+  ok   a STOPPED blocked verdict names the dispatch seat
+  ok   a STOPPED merge verdict names the merge seat
+  ok   a STOPPED state beat names the merge seat, a starved opener the dispatch seat
+  ok   an ok arm names no seat
+  ok   every standing seat pulse judges is a tracked contract, and every contract a seat
+  ok   null control: idle standing seats with nothing queued are ok, and add one arm each
+  ok   a queued input older than the seat's cadence is STOPPED, naming the seat
+  ok   a queued input under the seat's cadence is ok
+  ok   perturbation: a 90 min override reads the 61 min input ok
+  ok   an unread queue is UNREADABLE, never ok
+  ok   a queued stamp ahead of the clock is never aged
+  ok   read_queue reads `<epoch> <text>` lines and skips blanks
+  ok   read_queue takes a :MIN override and reads a missing file as unreadable
+  ok   --snapshot judges the seat queues: exit 1, the STOPPED line names the seat, five arms
+  ok   --seat-queue refuses a seat no contract defines
+  ok   a fresh per-role file with no id entry is FOREIGN, STOPPED-class (the P299 orphan loop)
+  ok   a stale per-role file is STOPPED, and a stale id entry beside it cannot save it
+  ok   a per-role file fresh beside only a stale id entry is FOREIGN, never ok
+  ok   one fresh id entry beside a fresh per-role file is ok
+  ok   null control: one fresh id and one stale id is not DUPLICATE
+  ok   two fresh ids of one role print DUPLICATE seat <role>: <id> <id>
+  ok   a missing alive file is UNREADABLE, never skipped
+  ok   a MIN override widens the cadence: a 90 min old file is ok at :120
+  ok   with the ledger, a fresh id that is the newest unstopped launch is ok even when an older launch has no stop line (null)
+  ok   with the ledger, a fresh id under an older launch is FOREIGN naming the newest
+  ok   a stop line retires a launch: the next-newest becomes the one a beat must come from
+  ok   a role with every launch stopped has no newest: its fresh id is FOREIGN (newest launch none)
+  ok   an unreadable launch ledger is UNREADABLE
+  ok   read_alive reads the per-role mtime, the FILE.d entries and the :MIN override
+  ok   read_alive reads a missing file as role_t None
+  ok   read_ledger pairs a stop with its nonce and a malformed line is unreadable
+  ok   a ledger line with fewer than three fields is unreadable
+  ok   the CLI accepts --seat-alive and --launch-ledger and prints a seat-alive-merge arm
+  ok   --seat-alive refuses a seat no contract defines
+  ok   --snapshot exits 1 on a stop, 2 on unreadable, 0 on a healthy board
+  ok   the summary line counts the arms
+pulse self-test: 56 checks, 0 failed
