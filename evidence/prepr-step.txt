@@ -1,2 +1,0 @@
-SAY ok diff mutants no survivor: BASELINE FAILS: the command fails on the unedited tree; no mutant was run
-block-finished rc=0
