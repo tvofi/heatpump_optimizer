@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-01T07:38:47+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-01T08:22:14+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 3 / 1.0 | 25 / 24.0 |
-| fly-ins closed | 2 | 17 |
-| main moves: group-carrying / record / roster-edit / fly-in | 3 / 0 / 0 / 2 | 13 / 4 / 0 / 17 |
-| first-pass fix-review yield | 0/0 (-) | 25/42 (0.60) |
+| roster groups closed vs takt | 2 / 1.0 | 25 / 24.0 |
+| fly-ins closed | 2 | 18 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 1 / 0 / 2 | 13 / 5 / 0 / 18 |
+| first-pass fix-review yield | 0/0 (-) | 24/41 (0.59) |
 | blocked-class mix | none | body-stale:1, carry-missing:6, carry-over-wide:1, ci-pending:1, ci-red:2, claim-stronger-than-check:1, class-open:10, defect:1, figure-wrong:2, gate-red:2, head-moved:1, metric-gamed:3, mutation-survivor:1, mutation-unpinned:1, mutation-vacuous:10, raise-unjustified:1, regression:1, root-cause-detectable:2, root-cause-unrecorded:1, rule-lost:1, scope-incomplete:2, swap-void-undone:1 |
-| lead time per size (h, n/p50/max) | M n=1 p50=14.36 max=14.36; S n=2 p50=10.75 max=14.76 | M n=4 p50=14.36 max=23.44; S n=9 p50=10.75 max=14.76 |
+| lead time per size (h, n/p50/max) | S n=1 p50=15.92 max=15.92 | M n=3 p50=14.36 max=23.44; S n=10 p50=10.75 max=15.92 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 3 | 38 | 3 | 9 |
+| 3 | 37 | 3 | 9 |
 
 ## Rules
 
