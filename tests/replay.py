@@ -353,10 +353,14 @@ def frozen_offenders(
         for ikey, ivals in inputs.items():
             both = [(p, i) for p, i in zip(pvals, ivals) if p is not None and i is not None]
             matched = [i for p, i in both if abs(p - i) <= MIRROR_TOL]
-            # Two distinct matched values at least: a published 0.0 beside an
-            # input idling at 0.0 is a coincidence of zeros, not a mirror.
+            # Two distinct NON-ZERO matched values at least: a published 0.0
+            # beside an input idling at 0.0 is a coincidence of zeros, not a
+            # mirror, and so is one value met once beside those zeros (the
+            # owner's day: power_ratio 1.55 = mean(0/0.5, 1.55/0.5) on the cycle
+            # the pump read 1.55 kW). A mirror is seen at two values it tracked;
+            # a 0/x signal that mirrors only one non-zero value is not judged.
             if len(matched) < MIRROR_MIN_HITS or len(matched) * 2 < len(both) \
-                    or len({round(v, 3) for v in matched}) < 2:
+                    or len({round(v, 3) for v in matched if abs(v) > MIRROR_TOL}) < 2:
                 continue
             for k in range(1, len(pvals)):
                 p0, p1, i0, i1 = pvals[k - 1], pvals[k], ivals[k - 1], ivals[k]
@@ -644,6 +648,14 @@ def controls() -> list[tuple[str, bool, str]]:
          frozen_offenders({"sensor.out": [1.0, 3.0, 1.0, 3.0, 3.0]}, inp),
          frozen_offenders({"sensor.out": [1.0, 3.0, 1.0, 3.0, 2.0]}, inp)
          + frozen_offenders({"sensor.zero": [0.0] * 5}, {"sensor.idle": [0.0] * 4 + [2.0]}))
+    # One non-zero value met once beside idle zeros (owner-2026-10-30-away.json,
+    # prediction_accuracy.power_ratio against heat_pump_power) is no mirror; a
+    # value that tracked the input at two non-zero values and then stuck is.
+    pair("not_frozen:one_value_beside_zeros",
+         frozen_offenders({"sensor.out": [0.0, 1.0, 1.0, 3.0, 3.0, 3.0]},
+                          {"sensor.in": [0.0, 1.0, 1.0, 3.0, 2.0, 0.0]}),
+         frozen_offenders({"sensor.ratio": [0.0, 0.0, 1.55, 1.55, 1.55, 1.55]},
+                          {"sensor.power": [0.0, 0.0, 1.55, 2.89, 3.02, 0.0]}))
     ref, clean = [10.0, 11.0, 9.0], cost_figures([20.0, 22.0], [10.0, 11.0, 9.0], [4096])
     budget = {k: math.sqrt(COST_DETECTION) * v for k, v in clean.items()}
     pair("cycle_cost:cpu", cost_offenders(cost_figures([40.0, 44.0], ref, [4096]), budget),
