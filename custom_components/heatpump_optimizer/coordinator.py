@@ -10820,9 +10820,17 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Arm a step-response experiment for the next suitable moment."""
         ctx = getattr(self, "_ctx", self)
         self._sysid.config.enabled = ctx._config.system_identification_enabled
-        if self._sysid.arm(dt_util.now(), plant=ctx._thermal_params, learner_samples=self._house_heat_loss_samples,
-                           probe=self._accuracy.draw if ceiling_probe_install(ctx._config) else None):
-            _LOGGER.info("System identification armed (%s) for the next mild, cheap night hour", self._sysid.kind)
+        if self._sysid.arm(
+            dt_util.now(),
+            plant=ctx._thermal_params,
+            learner_samples=self._house_heat_loss_samples,
+            probe=self._accuracy.draw if ceiling_probe_install(ctx._config) else None,
+        ):
+            _LOGGER.info(
+                "System identification armed (%s); it will start at the next mild, "
+                "cheap night hour",
+                self._sysid.kind,
+            )
         await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10836,14 +10844,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        # #1523: a heat-loss learner, it stands down on the house learner's own freeze
-        # (external heat, a defrost, an open window, an unread room or outdoor), on a mode
-        # that cannot heat, and in a quiet window its override would not honour (R10-CEILING-PROBE).
+        # #1523: the experiment is a heat-loss learner, so it stands down on
+        # the house learner's own freeze (external heat, a defrost, an open
+        # window, an unusable or unconfigured room or outdoor reading) and on
+        # a mode that cannot heat. The room half is ``learner_room_unread``.
+        # R10-CEILING-PROBE: and in a quiet window, whose override it would not honour.
         why = (
             f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
             if self._pump_signals.space_blocked
             else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        ) or learner_room_unread(getattr(ctx, "_config", None)) or quiet_windows.quiet_reason(getattr(ctx, "_config", None) or {}, dt_util.now())
+        ) or learner_room_unread(getattr(ctx, "_config", None)) or quiet_windows.quiet_reason(
+            getattr(ctx, "_config", None) or {}, dt_util.now()
+        )
         if why is not None:
             self._sysid.stand_down(why)
             return

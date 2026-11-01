@@ -75162,6 +75162,14 @@ R.check(
     and _cp_store([4.5] * 11).learned_max_kw(_CP_NOW) is None,
 )
 R.check(
+    "item 29: the accessor is the median of the store, not its mean or its extreme -- "
+    "one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one "
+    "high outlier among eleven, both leave it at 3.0",
+    _cp_store([3.0] * 11 + [1.0]).learned_max_kw(_CP_NOW) == 3.0
+    and _cp_store([1.0] + [3.0] * 11).learned_max_kw(_CP_NOW) == 3.0
+    and _cp_store([3.0] * 11 + [9.0]).learned_max_kw(_CP_NOW) == 3.0,
+)
+R.check(
     "the top lapses 45 days after the newest sample, and a sample stamped ahead of "
     "the clock has no knowable age",
     _cp_store([3.0] * 12).learned_max_kw(_CP_NOW + 44 * _CP_DAY) == 3.0
