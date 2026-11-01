@@ -1,0 +1,8 @@
+RESULT mutant M1 at head: CM rc=1 FAIL-lines=11 first=  FAIL claims both sides added on different scenarios are both kept  [merged="# Scenarios this branch deliberately moves, one name per line.
+RESULT mutant M2 at head: CM rc=1 FAIL-lines=7 first=  FAIL a scenario both sides rewrote is refused, not unioned  [two branches' claims for one scenario were merged; a claim excuses a golden d
+RESULT mutant M3 at head: CM rc=1 FAIL-lines=5 first=  FAIL a claim main deleted and this branch left alone stays deleted  [merged="# Scenarios this branch deliberately moves, one name per line
+RESULT mutant M4 at head: CM rc=1 FAIL-lines=2 first=  FAIL claims both sides changed under different claims-for stamps are refused  [a claim stamped for another release excuses that release's 
+RESULT mutant M6 at head: CM rc=1 FAIL-lines=2 first=  FAIL the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers  [a verification that cann
+RESULT mutant R-keep-deleted at head: CM rc=1 FAIL-lines=0 first=
+RESULT mutant R-mine-eq-main-only at head: CM rc=1 FAIL-lines=2 first=  FAIL a claim both sides added identically resolves, kept once  [merged=None]
+RESULT mutant R-keep-deleted (re-spelled into merge_claim_decision for the round-2 split): CM rc=1 FAIL-lines=3

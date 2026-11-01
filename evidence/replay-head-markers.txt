@@ -1,0 +1,7 @@
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+MERGE-CLAIM: refused tests/golden/claimed_drift.txt
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
