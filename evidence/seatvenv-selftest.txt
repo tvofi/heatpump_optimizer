@@ -1,0 +1,3 @@
+  ok   cloud-setup.sh reads that version from the typing lock
+  ok   cloud-setup.sh is still the oracle for that pins call
+seat_venv self-test: 25 checks, 0 failed

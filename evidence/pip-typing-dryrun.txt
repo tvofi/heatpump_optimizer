@@ -1,0 +1,2 @@
+[notice] A new release of pip is available: 26.2.1 -> 26.2.2
+[notice] To update, run: /tmp/tmp.I3CVs2w4rn/v1/bin/python3.14 -m pip install --upgrade pip

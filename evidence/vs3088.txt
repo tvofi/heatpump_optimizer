@@ -1,0 +1,8 @@
+== build
+== ci
+== coverage
+== typing
+48c48
+< homeassistant-stubs==2026.10.0
+---
+> homeassistant-stubs==2026.9.3
