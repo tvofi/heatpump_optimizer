@@ -13475,6 +13475,24 @@ R.check(
     and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) == (_FR_PIN_DATA, _FR_PIN_OPTS),
     f"reset {_fr_pin_reset}, undone {_fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record)}",
 )
+# A record missing either half, or holding a half that is not a (data,
+# options) pair, undoes no settings: the reset that wrote it kept them, or the
+# record is not one an undo point writes.
+_fr_pin_malformed = {
+    name: _fr_ec.undone_settings(*_fr_pin_reset, record)
+    for name, record in (
+        ("no pins", {k: v for k, v in _fr_pin_record.items() if k != "pinned"}),
+        ("no settings", {k: v for k, v in _fr_pin_record.items() if k != "settings"}),
+        ("one side", {**_fr_pin_record, "pinned": [{}]}),
+        ("not dicts", {**_fr_pin_record, "settings": [[], []]}),
+    )
+}
+R.check(
+    "an undo record missing either half, or holding a malformed one, undoes no settings",
+    all(v is None for v in _fr_pin_malformed.values())
+    and _fr_ec.undone_settings(*_fr_pin_reset, _fr_pin_record) is not None,
+    str({k: v is None for k, v in _fr_pin_malformed.items()}),
+)
 R.check(
     "the spent undo point stays as an ordinary snapshot, so a second restore is the ordinary one",
     not any("before_reset" in snap for snap in _fr_undone._snapshot_ring.snapshots)
