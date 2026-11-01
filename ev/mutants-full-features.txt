@@ -1,0 +1,19 @@
+FULL C2-humidity-low-bound: KILLED rc=1 ['1 of 4713 FEATURE CHECKS FAILED'] 496s
+     FAIL the range's two ends are humidities: 0 % and 100 % are read, just past either is refused  [0 -> None, 100 -> 100.0 -- a saturated or bone-dry forecast is weather, so the bounds are inclusive]
+FULL C3-humidity-high-bound: KILLED rc=1 ['1 of 4713 FEATURE CHECKS FAILED'] 435s
+     FAIL the range's two ends are humidities: 0 % and 100 % are read, just past either is refused  [0 -> 0.0, 100 -> None -- a saturated or bone-dry forecast is weather, so the bounds are inclusive]
+FULL L360-RETURN_DEL: SURVIVED rc=0 ['ALL 4713 FEATURE CHECKS PASSED'] 425s
+FULL C4-dhw-probe-guard-off: KILLED rc=1 ['3 of 4713 FEATURE CHECKS FAILED'] 499s
+     FAIL a tank probe pinned at its last good value still reads back, and the record refuses it anyway  [pinned 55.0, probe answers 55.0]
+     FAIL so a probe that stops updating stops filling the record, while the same run on a live probe keeps filling it  [frozen {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14} vs live {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14}]
+     FAIL and it stays stopped: another 20 h against the dead probe scores nothing more and files nothing more  [{1.0: 100, 3.0: 96, 6.0: 90, 12.0: 78, 24.0: 54} after the extra cycles vs {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14} before th
+FULL C5-dhw-probe-frozen-dropped: KILLED rc=1 ['3 of 4713 FEATURE CHECKS FAILED'] 433s
+     FAIL a tank probe pinned at its last good value still reads back, and the record refuses it anyway  [pinned 55.0, probe answers 55.0]
+     FAIL so a probe that stops updating stops filling the record, while the same run on a live probe keeps filling it  [frozen {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14} vs live {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14}]
+     FAIL and it stays stopped: another 20 h against the dead probe scores nothing more and files nothing more  [{1.0: 100, 3.0: 96, 6.0: 90, 12.0: 78, 24.0: 54} after the extra cycles vs {1.0: 60, 3.0: 56, 6.0: 50, 12.0: 38, 24.0: 14} before th
+FULL L9955-GUARD_OFF: KILLED rc=1 [] 275s
+     FAIL a configured, healthy tank probe fills the hot-water accuracy record  [counts {}]
+     FAIL and it does so without touching the room's record's lead buckets  [room {1.0: 0.0, 3.0: 0.0, 6.0: 0.0, 12.0: 0.0, 24.0: 0.0}, tank {}]
+     FAIL so a probe that stops updating stops filling the record, while the same run on a live probe keeps filling it  [frozen {} vs live {}]
+     FAIL the band it had already earned survives the outage -- a dead probe stops the record, it does not erase it
+FULL L9957-RETURN_DEL: SURVIVED rc=0 ['ALL 4713 FEATURE CHECKS PASSED'] 454s

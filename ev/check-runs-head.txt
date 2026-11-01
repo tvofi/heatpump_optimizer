@@ -1,0 +1,13 @@
+Check runs at 7f6d7e72260ca64e98ec13c3b7c46c5e01af62a6 (workflow run 41328860493), read 2026-11-01 ~18:00 UTC via the PR's check-runs (39 runs, one page of 100) and the run's failed-jobs log listing:
+failed jobs in run 41328860493: 2 of 30
+  tests / mutation (124914587936): MUTATION TABLE REFUSED -- 3551 unpinned site(s) against 3551 at the ratchet base d052f80f7f81d42db5c57a55ebaef7056c7ce01a, 14 of them added by this diff
+  budget-raise-gate / budget-raise-gate (124914587987): RAISE tests/structure_budgets.json: seam_cut_total: 422 -> 423; REFUSED: no decisive review by tvofi (id 70032254)
+success: tests / fast (3.14) 124914706520, tests / typing 124914706508, tests / nightly-ha (2025.2.0), tests / nightly-ha (stable), tests / replay, tests / browser, arch-score, governance / delivery-status, governance / policy-docs, governance / wave-script, governance / env-matrix, hassfest, validate-hacs, tests / briefs, tests / closure-scope, tests / nightly-status, codeql actions + js
+mutation-pins (1) 124914791662: PIN KILLED: 6 pinned, 0 left unpinned; measure: measured, 5 anchor(s)
+mutation-pins (2) 124914791411: measure: measured, 4 anchor(s)
+mutation-pins (3) 124914791436: measure: measured, 4 anchor(s)
+-> 13 anchors, = the 13 killed_by records the bot commit 2df0b81ed2fb9726a4b8d52de072fdb64520ded1 ("ci: pin killed mutants", github-actions[bot]) adds; ledger files only.
+gate and pr-contract: no run concluded at 7f6d7e72; merge_train.py classify printed "WAIT ... pending: gate red: none" (rc 3) every ~90 s from 17:01 to 17:59 UTC; new runs (41333776391, 41333770778) started 17:53 at 2df0b81e.
+2df0b81ed2fb9726a4b8d52de072fdb64520ded1 github-actions[bot] ci: pin killed mutants
+
+ ...mpOptimizerCoordinator._current_humidity.CMP_BOUND.45eae803.json | 6 ++++++
