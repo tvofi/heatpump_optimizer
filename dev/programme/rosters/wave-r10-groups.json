@@ -10323,7 +10323,9 @@
    "group": "R10-ARCH-SHAPES-CLASSIFIER",
    "lane": "AR",
    "kind": "arch",
-   "issues": [],
+   "issues": [
+    3101
+   ],
    "fixes": [],
    "findings": [],
    "class": "P2",
