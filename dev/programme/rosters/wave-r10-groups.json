@@ -14646,6 +14646,49 @@
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-TRAIN-DEFAULTS, R10-TRAIN-OVERLAP-GRADE"
    },
    "brief": "Three merge-train loop residues: the review settle bounded by the review run rather than a fixed poll count, a train stats reading (the train log needs a UTC stamp per line first) with an automatic cap only past the stated loss, and one shared Actions job-log reader that passes gh's escape-sequence flag. Runs after R10-TRAIN-POSTMERGE, which edits the same file. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-SEAT-SINGLE-WRITER",
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [],
+   "files": [
+    "tools/audit/seat/handover_prompt.py",
+    "tools/audit/seat/sweep_template.md",
+    "tools/audit/seat/INSTRUMENTS.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-seat-single-writer",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-SEAT-ALIVE-ID"
+   },
+   "brief": "One writer per standing seat and per orchestrator session: a generation token a superseded seat's lingering job checks before it writes, and a session lock keyed on the session binary's own pid that a second resumed session refuses on. Measure first which tracked writers exist per standing seat; wire only those. Stranded on R10-ORCH-BEATD, re-routed through R10-FLY-SEAT-ALIVE-ID, which #3070 closed. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
