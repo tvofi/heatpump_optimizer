@@ -1,38 +1,37 @@
-Fix review: blocked 3fd85299d9c2314a3316c1956a97d37a9d95de77 mutation-survivor: theil-sen-ordered-pairs, round_slope's pair rule k2 != k1 is unpinned and moves the published round cost 4.63 to 3.58 h
+Fix review: merge b8ecad2dc4c5cd112a80eb3d4d5532f3e801d511
 
-bus-nonce: 8659d78b3923e1471fef0e8507091644
+bus-nonce: 86f85dc43e852117688e10611717cf94
 
-## Block
+## Summary
 
-Round 1. The brief requires a kill for reviewer-planted mutants on the model, the Theil-Sen slope named. One survives:
-`tools/plan/size_durations.py` `round_slope`, `for k2, h2 in pts[i + 1:] if k2 != k1]` replaced by `... if k2 > k1]`
-(keep only pairs whose later row has the larger x). `size_durations.py --self-test` stays `0 failed` (rc=0), because every
-Theil-Sen fixture in the self-test (`rs` with rounds 1,1,1,3,3; the `round_slope` fixture with rounds 1..4; carries 1..5)
-lists its rows in ascending x, so a filter that drops descending pairs drops nothing there. On real data rows are in roster
-order, and the mutant moves the published model: with the cache I rebuilt over REST (PRs merged by `sizes_measured_at`
-2026-11-01T07:38:26Z, roster at 534e120c8), `round_hours` 4.63 -> 3.58, `carry_hours` 0.33 -> 0.03, `first_round_hours` M
-14.9 -> 18.3, `sizes_hours` M 22.3 -> 24.0, XL 31.1 -> 32.5. The repair is a self-test arm whose rows are not sorted by x
-(for example the existing 5.5 h fixture listed in reverse) plus the mutant in `r10_plan_durations_mutants.py`; then steps 2-8
-of `fixer.md` re-run.
+Round 2 of the fix review for #3097 (R10-PLAN-REAL-DURATIONS). Round 1 blocked 3fd85299d on `mutation-survivor: theil-sen-ordered-pairs`. The repair is commit 4d6244659 (2 files, +7 lines): a row-order arm in `size_durations.py --self-test` (the 5.5 h fixture given ascending, reversed and shuffled) and the mutant `theil-sen-ordered-pairs` in `dev/audit/harnesses/r10_plan_durations_mutants.py`. Both later commits are clean merges. The round-1 survivor is now killed, every planted mutant is killed, and CI is GREEN at this head.
 
 ## Findings
 
-- Surviving mutant `theil-sen-ordered-pairs` on `round_slope` (above): the pair-orientation rule of the Theil-Sen slope, used for both `round_hours` and `carry_hours`, is pinned by no check; the fixer adds an unsorted-x arm and the mutant to the harness. Carry: R10-PLAN-REAL-DURATIONS
-- The body's `## Red checks` reasons from the wrong branch: it says no workflow run exists for `handoff/r10-plan-real-durations`, but the PR head branch is `fix/r10-plan-real-durations-pr` and 55 check runs exist at this head (ev/checkruns.txt). None concluded red, so the conclusion `none` holds at this head, but the stated reason must be re-taken from this head's own check runs. Carry: R10-PLAN-REAL-DURATIONS
-- The body's `## Mutation proof` says "twenty one-occurrence replacements"; the harness holds nineteen replacements plus the M0 null (20 entries), so the stated figure is wrong by one and must read nineteen. Carry: R10-PLAN-REAL-DURATIONS
-- The body's ownership paragraph says no roster group exists ("Proposal, nothing written to the roster"); at origin/handoff/audit-r10-roster 7a426457a the group `R10-PLAN-REAL-DURATIONS` now exists with the proposed size, models, after-list and files, so the body must name it as the owning group at that roster SHA. Carry: R10-PLAN-REAL-DURATIONS
+- The body's `## Red checks` gives the right answer, `none`, for the wrong head: it counts the 55 check runs at the previous head 3fd85299d and says this head's checks "have not run". They have now run. At b8ecad2dc there are 55 check runs, none red, and both `pr-contract` runs are green (ev/checkruns.txt). So the conclusion holds, but the paragraph should be re-taken from this head's own runs when the body is next edited. Carry: R10-PLAN-REAL-DURATIONS
 
 ## Evidence
 
-- Head reviewed: 3fd85299d9c2314a3316c1956a97d37a9d95de77, from a detached worktree at that SHA (ev/HEAD.txt). Base and merge base e4c9e2016a455d787d3a7604ef88c803c3ba5c70 = origin/main at review time; `git diff $(merge-base)...origin/main -- dev/governance/roles/` empty, so the contract is current.
-- Merge: `git merge-tree --write-tree origin/main 3fd85299d` exits 0 (tree e9a45cab8), no conflict, no claim-file driver invoked.
-- Fixer's harness, re-run as evidence: `r10_plan_durations_mutants.py` prints `RESULT mutant=M0 rc=0 fails=0 verdict=null`, all 19 named mutants `verdict=killed` rc=1, `RESULT survived=0` (ev/mutants.txt). The brief's "twenty mutants" is 19 plus the null.
-- Reviewer's own harness (mine, not the finder's; ev/reviewer_mutants.txt, script at mine/rev_mutants.py in the review directory, not landed): null rc=0; killed: pctl-scale (p/100 -> p/101, 10 FAIL), theil-sen-p75 (median -> p75 of slopes, 5 FAIL), rounds-not-added-back, carry-baseline-p75, per-carry-unadjusted, active-gap-merged, min-cell-6; SURVIVED: theil-sen-ordered-pairs. `RESULT reviewer-survived=1`.
-- Real-data effect of the survivor: ev/ordered_pairs_effect.txt, ev/rederive_mutant_ordered_pairs.json.
-- Self-tests at the head: `size_durations self-test: 0 failed`, `replan.py self-test: 0 failed`, `plan_page self-test: 66 checks, 0 failed`, each rc=0 (ev/selftest_*.txt).
-- Model figures re-derived: GraphQL is refused in this seat, so I rebuilt the PR cache over REST (my own fetcher: 800 closed, 766 merged since 2026-10-10; 758 merged by 07:38:26Z) and ran `size_durations.py --roster-ref 534e120c8` (roster tip at the measurement instant). Exact match with durations.json: `first_round_hours` {S 12.1, M 14.9, L 16.4, XL 22.6}, every `first_round_by_class_hours` cell (S instrument 11.7, S production 16.1, M instrument 13.6, M production 17.2, L production 16.0), `carry_baseline`, `carry_hours` 0.33, `carries_per_part` 11.0, n=189 (S 123, M 49, L 11, XL 6). Small differences I attribute to my REST rebuild (comments read now, not at 07:38Z), not verified either way: `round_hours` 4.63 vs 4.62, S `review_rounds` 2.31 vs 2.33, M `sizes_hours` 22.3 vs 22.2, `carry_part_hours` 19.9 vs 19.8 (ev/rederive_0738.json).
-- Independent recomputation outside the tool from the rows: S/instrument p75 of round-adjusted hours = 11.7 (n=83) and M/production = 17.2 (n=31) at slope 4.62 and 4.63 both. Hand check from PR timestamps: R10-TARIFF #2282 first commit 13:23:50Z to merge 01:31:46Z = 12.13 h, R10-GATE-YIELD #2275 = 6.76 h, both equal to the tool's row hours (ev/spot_rows.txt).
-- Roster: `carry_audit.py --roster-ref origin/handoff/audit-r10-roster pr 3097` prints `0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` rc=0; the body carries nothing, so no destination needed resolving (ev/carry_audit_pr.txt).
-- Privacy: no added line and nothing in durations.json matches a home path, an email address or a Home Assistant entity id (ev/privacy.txt, empty).
-- Gate: delivery row dev/programme/delivery/3097.md in the three-dot diff; claim files, VERSION, manifest, RELEASE_NOTES.md untouched (grep count 0, ev/files.txt); `tests/structure.py` prints `STRUCTURE RATCHET PASSED`, no budget file in the diff; `closure.py select --diff <merge-base>` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`; the new harness is added to tests/closures.json's list beside its siblings. `tests/entities.py` and `tests/harness_headers.py` could not run in this container (missing homeassistant/paho modules in both venvs; failures unrelated to this diff), so I cite CI's `tests / closures` for them.
-- CI at this head: `merge_train.py classify 3fd85299d...` exited 0 at 15:42:46Z, `GREEN ... pending: none red: none`; 55 check runs at the head, none concluded red (ev/checkruns.txt, ev/classify.txt). Head re-read before posting: still 3fd85299d9c2314a3316c1956a97d37a9d95de77.
+- Head reviewed: b8ecad2dc4c5cd112a80eb3d4d5532f3e801d511 (ev/HEAD.txt), from detached worktrees at this head and at the round-1 head 3fd85299d. The PR head ref and refs/pull/3097/head were re-read before writing and are still b8ecad2dc. The contract is current: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
+- Delta since round 1: `review_carry.py 3fd85299d b8ecad2dc` prints FRESH-REVIEW (one code commit), so this is a full re-review (ev/review_carry.txt). 271403e9d has the same tree as 4d6244659 (73844385c). b8ecad2dc's tree be4d2873e is identical to the automatic `merge-tree` of its parents, so the merge has no hand resolution. `r10_away_presence_listener.py` is in the two-dot range only because main brought it (it is identical at d052f80f7). The new commits touch nothing outside the repair (ev/delta.txt).
+- Merge with origin/main (ca6333333): `git merge-tree --write-tree origin/main b8ecad2dc` exits 0. Only the LEDGER-MERGE driver ran, on tests/closures.json (resolved). No claim-file driver ran (ev/merge_tree.txt).
+- Finder's harness (round-1 reviewer's own instrument, rebuilt here as mine/rev_mutants.py, disclosed as mine and not landed), at both ends (ev/reviewer_mutants_old.txt, ev/reviewer_mutants_new.txt):
+  - At the old head: `theil-sen-ordered-pairs` rc=0 verdict=SURVIVED. This reproduces the round-1 block.
+  - At the new head: R0-null rc=0 fails=0.
+  - Killed at the new head: pctl-scale, theil-sen-p75, theil-sen-ordered-pairs (rc=1, 1 FAIL, the row-order arm), theil-sen-descending-pairs (my addition, `k2 < k1`), rounds-not-added-back, carry-baseline-p75, per-carry-unadjusted, active-gap-merged and min-cell-6.
+  - My own plant on the new arm (the fixture's reversed and shuffled rows replaced by ascending ones), as controls: the fixture change alone passes rc=0, as it should, since it changes no production line. With the ordered-pairs production mutant added on top, it passes rc=0 too. The kill therefore comes from the unsorted rows and nothing else.
+  - Keeping only the reversed rows, or only the shuffled rows, each still kills the production mutant (rc=1).
+  - Production-line survivors at the new head: 0. The two passes the script counts as `reviewer-survived=2` are these fixture-only controls.
+- Fixer's harness, as evidence: `r10_plan_durations_mutants.py` at the old head prints M0 null and 19 killed. At the new head it prints `RESULT mutant=M0 rc=0 fails=0 verdict=null`, then 20 named mutants `verdict=killed` rc=1, including `theil-sen-ordered-pairs` (fails=1), then `RESULT survived=0`, rc=0 (ev/harness_old.txt, ev/harness_new.txt). I counted 20 `RESULT mutant=` lines less M0. That matches the body's "twenty one-occurrence replacements" and its list of names.
+- Body figure re-derived by hand: shuffled rows (3,2),(1,0),(4,30),(2,1) under `k2 > k1` keep the slopes 28, 10 and 1, median 10. Reversed rows keep no pair, so the slope is 0.0. Both match the body.
+- Self-tests at the head: `size_durations self-test: 0 failed`, `self-test: 0 failed` (replan.py) and `plan_page self-test: 66 checks, 0 failed`, each rc=0 (ev/selftest_*.txt).
+- Model figures: `tools/plan/durations.json` has a zero-line diff between 3fd85299d and b8ecad2dc. The fixer did not re-take them, so round 1's re-derivation stands.
+- Ownership: the body names group R10-PLAN-REAL-DURATIONS at origin/handoff/audit-r10-roster 5229384ba. That commit exists and is an ancestor of the current tip c4918c9ff, which has no diff to the group. The group there has size M, wave 1, fixer sonnet / reviewer opus, after R10-PLAN-ARTIFACT and R10-ORCH-PLANPAGE, the four named files and resume branch handoff/r10-plan-real-durations, all as the body states (ev/roster_group.txt).
+- Standing checks:
+  - Delivery row dev/programme/delivery/3097.md is in the three-dot diff (ev/files.txt).
+  - Claim files, VERSION, manifest and RELEASE_NOTES.md are untouched (grep count 0).
+  - `tests/structure.py` prints `STRUCTURE RATCHET PASSED` rc=0.
+  - `closure.py select --diff d052f80f7` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (ev/closure_select.txt).
+  - `carry_audit.py --roster-ref origin/handoff/audit-r10-roster pr 3097` prints 0 items, rc=0 (ev/carry_audit_pr.txt).
+  - No added line matches a host path (ev/privacy.txt, empty).
+- CI at this head: `merge_train.py classify b8ecad2dc...` exited 0 at 18:22:02Z: `GREEN ... pending: none red: none` (ev/classify.txt, ev/classify.log). There are 55 check runs, all success or skipped. The `pr-contract` runs finished 18:18:05Z and 18:21:05Z, both green (ev/checkruns.txt). I cited CI's heavy lanes and re-ran none.

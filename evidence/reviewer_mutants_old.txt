@@ -8,6 +8,10 @@ RESULT reviewer-mutant=theil-sen-p75 rc=1 fails=5 verdict=killed
     FAIL model: first_round_hours is the p75 of the round-adjusted hours (14.0)
     FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
 RESULT reviewer-mutant=theil-sen-ordered-pairs rc=0 fails=0 verdict=SURVIVED
+RESULT reviewer-mutant=theil-sen-descending-pairs rc=1 fails=5 verdict=killed
+    FAIL model: the round cost is the Theil-Sen slope, median of 8..15 = 11.5 h
+    FAIL model: first_round_hours is the p75 of the round-adjusted hours (14.0)
+    FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
 RESULT reviewer-mutant=rounds-not-added-back rc=1 fails=1 verdict=killed
     FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
 RESULT reviewer-mutant=carry-baseline-p75 rc=1 fails=1 verdict=killed
@@ -18,4 +22,8 @@ RESULT reviewer-mutant=active-gap-merged rc=1 fails=1 verdict=killed
     FAIL R9-C's hours are its two parts' 6 h + 4 h, not the 12 h span with the gap
 RESULT reviewer-mutant=min-cell-6 rc=1 fails=1 verdict=killed
     FAIL model: a cell of n>=5 is published per class, one under MIN_CELL is not
+RESULT reviewer-mutant=fixture-sorted-only (arm made ascending, no prod change) verdict=NOT-APPLIED (0 occurrences of 'for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))')
+RESULT reviewer-mutant=fixture-sorted + ordered-pairs (expect SURVIVED: arm is the kill) verdict=NOT-APPLIED (0 occurrences of 'for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))')
+RESULT reviewer-mutant=fixture-reversed-only + ordered-pairs verdict=NOT-APPLIED (0 occurrences of 'for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))')
+RESULT reviewer-mutant=fixture-shuffled-only + ordered-pairs verdict=NOT-APPLIED (0 occurrences of 'for rows in (ordered, ordered[::-1], (ordered[2], ordered[0], ordered[3], ordered[1]))')
 RESULT reviewer-survived=1

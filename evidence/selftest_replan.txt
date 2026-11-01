@@ -153,3 +153,4 @@ ok   self-test fails when freshness is deleted
   mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
 ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed
+rc=0

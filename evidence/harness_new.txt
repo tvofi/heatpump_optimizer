@@ -1,0 +1,61 @@
+RESULT mutant=M0 rc=0 fails=0 verdict=null
+RESULT mutant=shared-branch-maps rc=1 fails=2 verdict=killed
+    FAIL a shared roster branch naming a group in its title maps nothing
+    FAIL a group with no merged PR is not a row
+RESULT mutant=roster-pointer rc=1 fails=1 verdict=killed
+    FAIL a roster `merged in #N` pointer maps R9-B to #12
+RESULT mutant=merge-commit-pointer rc=1 fails=3 verdict=killed
+    FAIL resume.commit as a merge commit maps R9-C to #13, its branch adds #14
+    FAIL R9-C's hours are its two parts' 6 h + 4 h, not the 12 h span with the gap
+    FAIL part_rows: R9-C's part 2, 4.0 h, 4 carries
+RESULT mutant=verdict-dedupe rc=1 fails=1 verdict=killed
+    FAIL a repeated (verdict, head) counts once: R9-B rounds 2, blocked 1
+RESULT mutant=dispatch-stamp-start rc=1 fails=1 verdict=killed
+    FAIL start is the dispatch stamp when it is earliest (R9-B 20.0 h)
+RESULT mutant=active-not-span rc=1 fails=1 verdict=killed
+    FAIL R9-C's hours are its two parts' 6 h + 4 h, not the 12 h span with the gap
+RESULT mutant=not-answered rc=1 fails=4 verdict=killed
+    FAIL cited_carries: ranges and lists, not the remainder, not forward-carry
+    FAIL cited_carries: `not done here` cites nothing
+    FAIL part_rows: R9-C's part 2, 4.0 h, 4 carries
+    FAIL carry_model: hours per part and a part's carry capacity (p90)
+RESULT mutant=forward-needs-done rc=1 fails=3 verdict=killed
+    FAIL cited_carries: ranges and lists, not the remainder, not forward-carry
+    FAIL part_rows: R9-C's part 2, 4.0 h, 4 carries
+    FAIL carry_model: hours per part and a part's carry capacity (p90)
+RESULT mutant=percentile-linear rc=1 fails=7 verdict=killed
+    FAIL pctl is linear: p75 of 1..4 is 3.25
+    FAIL model: the round cost is the Theil-Sen slope, median of 8..15 = 11.5 h
+    FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
+    FAIL round_slope is the median pairwise slope, not the mean (5.5, not 9.25)
+    FAIL round_slope does not depend on row order: ascending, reversed and shuffled rows agree (5.5)
+    FAIL model: carry_hours is the slope of round-adjusted hours on carries
+    FAIL carry_model: the capacity is the p90 of carries per part, not the median (16.0)
+RESULT mutant=theil-sen rc=1 fails=2 verdict=killed
+    FAIL round_slope is the median pairwise slope, not the mean (5.5, not 9.25)
+    FAIL round_slope does not depend on row order: ascending, reversed and shuffled rows agree (5.5)
+RESULT mutant=theil-sen-ordered-pairs rc=1 fails=1 verdict=killed
+    FAIL round_slope does not depend on row order: ascending, reversed and shuffled rows agree (5.5)
+RESULT mutant=rounds-priced-out rc=1 fails=4 verdict=killed
+    FAIL model: first_round_hours is the p75 of the round-adjusted hours (14.0)
+    FAIL model: sizes_hours composes it with the mean rounds: 14 + 0.8 x 11.5 = 23.2
+    FAIL model: a cell of n>=5 is published per class, one under MIN_CELL is not
+    FAIL model: carry_hours is the slope of round-adjusted hours on carries
+RESULT mutant=min-cell rc=1 fails=1 verdict=killed
+    FAIL model: a cell of n>=5 is published per class, one under MIN_CELL is not
+RESULT mutant=monotone-lift rc=1 fails=1 verdict=killed
+    FAIL model: a larger size planning shorter is lifted to the smaller's hours, and says so
+RESULT mutant=part-capacity-p90 rc=1 fails=1 verdict=killed
+    FAIL carry_model: the capacity is the p90 of carries per part, not the median (16.0)
+RESULT mutant=held-open-index rc=1 fails=1 verdict=killed
+    FAIL held_rows: carry 1 answered, five open
+RESULT mutant=future-groups-only rc=1 fails=1 verdict=killed
+    FAIL held_report c: text only another HELD group carries is owned here, and a forward by number whose words do not match the carry is not a forward (null control)
+RESULT mutant=boilerplate rc=1 fails=1 verdict=killed
+    FAIL held_report c: text three groups carry is boilerplate, not a landing
+RESULT mutant=pnums-subset rc=1 fails=1 verdict=killed
+    FAIL held_report c: a carry naming P200 and P201 has not landed where only P200 did
+RESULT mutant=forward-overlap rc=1 fails=1 verdict=killed
+    FAIL held_report c: text only another HELD group carries is owned here, and a forward by number whose words do not match the carry is not a forward (null control)
+RESULT survived=0
+rc=0
