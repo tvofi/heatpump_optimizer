@@ -4,7 +4,7 @@
 # `seat_venv.sh --install-shims <dir>`. It appends ONE line per call to
 # $HPO_STATE_DIR/gh-calls.log (default $HOME/.local/state/hpo):
 #
-#   <utc> <parent pid> <parent command, first 80 chars> <gh subcommand> <target>
+#   <utc> <parent pid> <parent argv[0] [script], first 80 chars> <gh subcommand> <target>
 #
 # <target> is the api path (query string cut) for `gh api`, the verb for `pr`
 # and `run` and any other subcommand with one, else `-`. The value of every
@@ -12,10 +12,11 @@
 # argument out of the line, and a token outside [A-Za-z0-9_./:-] is logged `?`.
 # The caller is the point: the shared token's core bucket was spent twice
 # with no host log naming who (P284); tools/audit/seat/gh_calls.py reads this.
-# The parent command is redacted from its first value-bearing flag (-f, --body, ...) to the
-# end of the line, so a wrapper's own gh arguments never reach the log. The state directory
+# The parent command is cut to argv[0], plus an interpreter's script, `-m <module>` or
+# `-c`: no later word of the caller's command line is ever logged. The state directory
 # is created if missing (mkdir -p); a path that cannot be made is skipped, never fatal.
-# A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask.
+# A directory or log the shim creates is owner-only (umask 077), whatever the caller's umask,
+# and an existing log (or its rotated .1) is set 0600 on each write.
 #
 # Then it execs the real gh -- the first `gh` on PATH that is a regular
 # executable file and not a shim (line 2 above), past this file's own
@@ -56,22 +57,41 @@ esac
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}
   log=$state/gh-calls.log
   max=${HPO_GH_LOG_MAX:-1048576}
-  # The parent's command line can carry a wrapper's own gh arguments (`sh -c 'gh api -f
-  # body=...'`, `timeout 10 gh ...`), so from the first value-bearing flag to the end of
-  # the line it is replaced by `<redacted>` (the flag name stays) BEFORE the 80-char cut.
-  # Long flags always; the short ones only when a `gh` word is on the line, so
-  # `python3 -m mod` is left alone. The census is the two lists below (from `gh <cmd> --help`).
-  longf='body|body-file|notes|notes-file|title|subject|desc|description|field|raw-field|header|input|jq|template|env-file|squash-merge-commit-message'
-  pcmd=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ' |
-    sed -E -e "s/(^| )(--($longf))([ =].*)?\$/\1\2 <redacted>/" \
-           -e '/(^|[ \/])gh( |$)/ s/(^| )(-[fFHbntTqd])(.*)$/\1\2 <redacted>/' | cut -c1-80)
+  # The parent field names the caller and nothing it was given: argv[0]'s basename and,
+  # for an interpreter, the script it runs (its first word that is not an option), or
+  # `-m <module>`, or the `-c`/`-e` option that ends the field there. No later word is
+  # read, so no flag value, env assignment or piped secret on a wrapper's command line
+  # reaches the log, whatever the wrapper's shape (P284). A word split on spaces only
+  # ever shortens a field, never lengthens it.
+  pargs=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
+  set -f; read -r -a pw <<< "$pargs"; set +f
+  pcmd=${pw[0]##*/}
+  case $pcmd in
+    sh|bash|zsh|dash|ksh|python|python[0-9]*|Python|pypy*|node|perl|ruby)
+      i=1
+      while [ "$i" -lt "${#pw[@]}" ]; do
+        a=${pw[$i]}
+        case $a in
+          -m) pcmd="$pcmd -m ${pw[$((i + 1))]}"; break ;;
+          --eval*|--print*|--command*) pcmd="$pcmd $a"; break ;;
+          --*) ;;
+          -*[ce]*) pcmd="$pcmd $a"; break ;;
+          -*) ;;
+          *) pcmd="$pcmd $a"; break ;;
+        esac
+        i=$((i + 1))
+      done ;;
+  esac
+  pcmd=$(printf '%s' "$pcmd" | tr -c 'A-Za-z0-9_./: -' '?' | cut -c1-80)
   mkdir -p "$state"
   clean() { printf '%s' "${1:--}" | tr -c 'A-Za-z0-9_./:-' '?'; }
   if [ -f "$log" ]; then
     size=$(wc -c < "$log" 2>/dev/null)
-    case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" ;; esac
+    case $size in ''|*[!0-9' ']*) ;; *) [ "$((size + 0))" -gt "$max" ] && mv -f "$log" "$log.1" && chmod 600 "$log.1" ;; esac
   fi
   printf '%s %s %s %s %s\n' "$(date -u +%FT%TZ)" "$PPID" "${pcmd:--}" "$(clean "$sub")" "$(clean "$verb")" >> "$log"
+  # umask governs creation only: a log an earlier shim wrote 0644 is made owner-only here
+  chmod 600 "$log"
 ) 2>/dev/null || true
 
 exec "$real" "$@"
