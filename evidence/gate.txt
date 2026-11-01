@@ -1,0 +1,19 @@
+336 ACCEPT
+337 ACCEPT
+338 ACCEPT
+339 ACCEPT
+340 REJECT
+341 ACCEPT
+342 ACCEPT
+343 REJECT
+344 ACCEPT
+336 None
+337 None
+338 None
+339 None
+341 None
+342 None
+344 None
+340 dev/programme/triage/s6-batch94.md#P340 is not an ACCEPT ruling (REJECT)
+343 dev/programme/triage/s6-batch94.md#P343 is not an ACCEPT ruling (REJECT)
+null dev/programme/triage/s6-batch94.md#P336 is not an ACCEPT ruling (REJECT)
