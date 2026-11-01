@@ -1,4 +1,4 @@
-"""The domain's fourteen services: schemas, handlers and registration.
+"""The domain's fifteen services: schemas, handlers and registration.
 
 Moved verbatim from ``__init__.py`` (#222, the decomposition program's
 opener; the block used to be ``_async_register_services`` and the module
@@ -56,6 +56,7 @@ from .const import (
     DEFAULT_DHW_MIN_TEMP,
     DEFAULT_DHW_SETPOINT,
     DHW_MIN_TEMP_SETPOINT_MARGIN,
+    FACTORY_RESET_SCOPES,
     HEAT_LOSS_LEARNERS,
     CONF_TOPOLOGY_LAYOUT,
     CONF_TOPOLOGY_POSITIONS,
@@ -66,6 +67,7 @@ from .const import (
     SERVICE_CLEAR_MANUAL_PLAN,
     SERVICE_DEBUG_COLLECT,
     SERVICE_DIAGNOSE_INTERVAL,
+    SERVICE_FACTORY_RESET,
     SERVICE_RESET_HEAT_LOSS,
     SERVICE_RESTORE_SNAPSHOT,
     SERVICE_RUN_OPTIMIZATION,
@@ -84,6 +86,7 @@ from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
     async_adopt_heat_loss_refit,
+    async_factory_reset,
 )
 from .dhw_schedule import (
     DHWWindowError,
@@ -294,6 +297,14 @@ SERVICE_SCHEMA_RESET_HEAT_LOSS = vol.Schema(
         vol.Optional("entry_id"): cv.string,
         # Empty or absent: both learners.
         vol.Optional("learners", default=list): [vol.In(HEAT_LOSS_LEARNERS)],
+    }
+)
+
+# Required: a reset of every loaded entry at once is never what a call means.
+SERVICE_SCHEMA_FACTORY_RESET = vol.Schema(
+    {
+        vol.Required("entry_id"): cv.string,
+        vol.Required("scope"): vol.In(FACTORY_RESET_SCOPES),
     }
 )
 
@@ -1175,6 +1186,20 @@ async def handle_reset_heat_loss(hass: HomeAssistant, call: ServiceCall) -> dict
         reset.append(entry_id)
     return {"reset": reset, "learners": list(learners)}
 
+async def handle_factory_reset(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
+    """One entry's ``scope`` to its defaults, after an undo point; the entry is set up again."""
+    data = dict(call.data)
+    for _, coord in _manual_targets(hass, data["entry_id"]):
+        if not await async_factory_reset(coord, data["scope"]):
+            raise HomeAssistantError(
+                f"The factory reset of {data['entry_id']} was not applied: Home "
+                "Assistant refused to unload the entry; nothing was changed",
+                translation_domain=DOMAIN,
+                translation_key="factory_reset_not_applied",
+                translation_placeholders={"entry_id": data["entry_id"]},
+            )
+    return {"reset": data["entry_id"], "scope": data["scope"]}
+
 async def handle_restore_snapshot(hass: HomeAssistant, call: ServiceCall) -> dict[str, Any]:
     """Roll the learners back to the newest trustworthy snapshot (#42).
 
@@ -1331,6 +1356,13 @@ def async_register_services(hass: HomeAssistant) -> None:
         SERVICE_RESET_HEAT_LOSS,
         partial(handle_reset_heat_loss, hass),
         schema=SERVICE_SCHEMA_RESET_HEAT_LOSS,
+        supports_response=SupportsResponse.OPTIONAL,
+    )
+    hass.services.async_register(
+        DOMAIN,
+        SERVICE_FACTORY_RESET,
+        partial(handle_factory_reset, hass),
+        schema=SERVICE_SCHEMA_FACTORY_RESET,
         supports_response=SupportsResponse.OPTIONAL,
     )
     hass.services.async_register(
