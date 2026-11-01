@@ -10073,10 +10073,18 @@ for _lang, _texts in (("strings.json", strings), *(
 # held when this check was written (design choice: a phrase list, because
 # tense has no syntactic shape; "used to <verb>" as instrument -- "used to
 # read your prices" -- and runtime history in a repair -- "until now the plan
-# was held" -- are current behaviour and stay out of it).
+# was held" -- are current behaviour and stay out of it). The second round's
+# phrasings name the integration's own past without "as": "how it worked
+# before" (peak_tariff_offpeak_factor) and "keeps the old rule"
+# (two_zone_mode); "previously", "formerly" and sv "förut", "numera" held no
+# leaf of current behaviour when added, so they are refused outright.
 _HISTORY_MARKERS = {
-    "en": re.compile(r"\b(?:as before|used to be)\b", re.IGNORECASE),
-    "sv": re.compile(r"\b(?:som tidigare|som förut|dessförinnan var)\b", re.IGNORECASE),
+    "en": re.compile(
+        r"\b(?:as before|used to be|(?:worked|behaved|did) before|the old (?:rule|behaviou?r|way)"
+        r"|previously|formerly)\b", re.IGNORECASE),
+    "sv": re.compile(
+        r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
+        r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
 }
 
 
