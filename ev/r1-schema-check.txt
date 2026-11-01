@@ -1,0 +1,20 @@
+## head
+  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
+  ok   null control: the factory-reset page's schema refuses an after-save key
+ALL 2 A5 checks PASSED
+## option_resubmit as at 9039d178
+  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit  [refused ["factory_reset: extra keys not allowed @ data['after_save']"]]
+  ok   null control: the factory-reset page's schema refuses an after-save key
+1 of 2 A5 checks FAILED
+## 9039d178 + instrument mutant no-append
+  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
+  ok   null control: the factory-reset page's schema refuses an after-save key
+ALL 2 A5 checks PASSED
+## 9039d178 + instrument mutant skip-all
+  ok   every options page's shown schema accepts the a5 walk's untouched resubmit
+  ok   null control: the factory-reset page's schema refuses an after-save key
+ALL 2 A5 checks PASSED
+## head + planted required key without default on factory_reset
+  FAIL every options page's shown schema accepts the a5 walk's untouched resubmit  [refused ["factory_reset: required key not provided @ data['planted']"]]
+  ok   null control: the factory-reset page's schema refuses an after-save key
+1 of 2 A5 checks FAILED

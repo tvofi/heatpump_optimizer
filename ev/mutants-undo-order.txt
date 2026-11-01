@@ -1,0 +1,4 @@
+MUTANT U5-void-before-undo-point: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL restore_learned_snapshot undoes the reset: every learner, the accuracy history and the settings as before it  [{'thermal_learning': ['house_heat_loss_anchor', 'house_heat_loss_samples', 'house_he
+MUTANT U6-no-flush-before-documents: KILLED rc=1 fails=1 ['1 of 19 FR CHECKS FAILED']
+     FAIL a refused unload stops the reset at its undo point: settings kept, nothing set up  [set up [], stores ['snapshots', 'thermal_learning']]

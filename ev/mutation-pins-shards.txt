@@ -1,0 +1,85 @@
+== mutation-pins job 124725571231
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 5 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/config_flow.py:3308 GUARD_OFF -- killed by tests/config_flow_steps.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1411 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1438 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4328 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/snapshots.py:204 GUARD_OFF -- killed by tests/features.py
+PIN KILLED: 5 pinned, 0 left unpinned
+measure: measured, 5 anchor(s)
+== mutation-pins job 124725571241
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 5 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/config_flow.py:3306 GUARD_OFF -- killed by tests/config_flow_steps.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1414 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1444 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4319 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/snapshots.py:242 BOOLOP -- killed by tests/features.py
+PIN KILLED: 5 pinned, 0 left unpinned
+measure: measured, 5 anchor(s)
+== mutation-pins job 124725571217
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 5 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/config_flow.py:3310 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1416 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9722 BOOLOP -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/entry_config.py:371 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/snapshots.py:242 GUARD_OFF -- killed by tests/features.py
+PIN KILLED: 5 pinned, 0 left unpinned
+measure: measured, 5 anchor(s)
+== mutation-pins job 124725571267
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 6 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/config_flow.py:3315 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:1402 RETURN_DEL -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:9722 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:9722 CMP_BOUND -- lives
+  pinned   custom_components/heatpump_optimizer/entry_config.py:341 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/snapshots.py:244 RETURN_DEL -- killed by tests/features.py
+PIN KILLED: 4 pinned, 2 left unpinned (2 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+measure: measured, 4 anchor(s)
+== mutation-pins job 124725571260
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 4 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/coordinator.py:412 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9356 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9722 RETURN_DEL -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/entry_config.py:350 GUARD_OFF -- lives
+PIN KILLED: 3 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+measure: measured, 3 anchor(s)
+== mutation-pins job 124725571202
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 4 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/coordinator.py:423 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4351 CLAMP_DROP -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:9947 GUARD_OFF -- lives
+  pinned   custom_components/heatpump_optimizer/entry_config.py:352 RETURN_DEL -- killed by tests/features.py
+PIN KILLED: 3 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+measure: measured, 3 anchor(s)
+== mutation-pins job 124725571276
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 4 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/coordinator.py:432 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4317 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:9522 GUARD_OFF -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/entry_config.py:335 RETURN_DEL -- killed by tests/features.py
+PIN KILLED: 4 pinned, 0 left unpinned
+measure: measured, 4 anchor(s)
+== mutation-pins job 124725571255
+  3596 unpinned site(s) of 6641 candidate sites, 3572 at the ratchet base 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f; the ledger agrees with the deterministic inventory
+MUTATION TABLE -- scope changed: 6 production file(s) whose code this diff adds or modifies
+PIN KILLED -- 4 new unpinned site(s) against 8fec54ee2afb5e37687f34bc5fd3aa7280f64e1f to drive
+  pinned   custom_components/heatpump_optimizer/coordinator.py:430 RETURN_DEL -- killed by tests/features.py
+  pinned   custom_components/heatpump_optimizer/coordinator.py:4315 GUARD_OFF -- killed by tests/features.py
+  UNPINNED custom_components/heatpump_optimizer/coordinator.py:9524 RETURN_DEL -- lives
+  pinned   custom_components/heatpump_optimizer/services.py:1194 RETURN_DEL -- killed by tests/features.py
+PIN KILLED: 3 pinned, 1 left unpinned (1 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes
+measure: measured, 3 anchor(s)
