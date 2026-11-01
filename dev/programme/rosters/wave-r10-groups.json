@@ -14449,7 +14449,9 @@
     "tools/audit/seat/pr_cap.py",
     "tools/audit/seat/INSTRUMENTS.md"
    ],
-   "carry": [],
+   "carry": [
+    "(triage: dev/programme/triage/s6-batch13.md#P82) orchestrator_tick.py `one_pr`: when the red required context is `gate` or `pr-contract` and the head still has contexts in flight (`run` non-empty), print `#N: gate race at <head>: rerun the failed jobs once siblings settle` instead of the NOT REVIEWABLE back-to-fixer line (8 mis-routed lines on 2026-10-24: #2712 #2735 #2744 #2711 #2707 #2714 #2738 #2743; cause: gate.py defers to busy sibling runs and fails, the V9/P62 race). Controls: the same red `gate` with nothing in flight still prints NOT REVIEWABLE (null); a red `fast (3.14)` or `mutation` with a sibling in flight still prints NOT REVIEWABLE; two self-test rows, one mutant that drops the in-flight test. Remove the branch when R10-CI-LAYOUT-P2's codescan poll lands."
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-tick-group-lines",
