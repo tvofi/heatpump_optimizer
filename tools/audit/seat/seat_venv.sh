@@ -70,8 +70,10 @@ check() {
     "$("$VENV/bin/python3" -c 'import numpy; print(numpy.__version__)')" \
     "$("$VENV/bin/python3" -c 'import scipy; print(scipy.__version__)')"
   [ -x "$VENV_HA/bin/python" ] || die "no typing venv at $VENV_HA; run $0 to build it"
-  "$VENV_HA/bin/python" -c 'import homeassistant.const as c; assert c.__version__ == "2026.9.3", c.__version__' \
-    || die "$VENV_HA is missing a pinned homeassistant: rebuild"
+  ha_pin=$(sed -n 's/^homeassistant==\([^ ]*\) .*/\1/p' "$ROOT/tests/requirements-typing.txt")
+  [ -n "$ha_pin" ] || die "no homeassistant pin in tests/requirements-typing.txt"
+  "$VENV_HA/bin/python" -c 'import homeassistant.const as c, sys; assert c.__version__ == sys.argv[1], c.__version__' "$ha_pin" \
+    || die "$VENV_HA is missing homeassistant $ha_pin, the typing lock's pin: rebuild"
   printf 'seat_venv: %s homeassistant %s\n' "$VENV_HA" \
     "$("$VENV_HA/bin/python" -c 'import homeassistant.const as c; print(c.__version__)')"
 }
@@ -212,6 +214,30 @@ STUB
   rc=$?
   [ "$rc" != 0 ]
   expect "--check refuses a venv-ha whose homeassistant assertion fails" $?
+  # The assertion's version is the typing lock's homeassistant pin, so a lock
+  # bump needs no edit here (the pip group moved it 2026.9.3 -> 2026.10.4 and
+  # a literal refused every rebuilt venv). The stub venv-ha is a real
+  # interpreter over a fake homeassistant.const, so the assertion itself runs;
+  # the pin is read here with awk, the script reads it its own way.
+  lock_ha=$(awk -F'[= ]+' '$1 == "homeassistant" { print $2; exit }' \
+    "$ROOT/tests/requirements-typing.txt")
+  for v in "$lock_ha" 0.0.0; do
+    mkdir -p "$W/ha-$v/state/venv-ci/bin" "$W/ha-$v/state/venv-ha/bin" "$W/ha-$v/pkg/homeassistant"
+    cp "$ci_stub" "$W/ha-$v/state/venv-ci/bin/python3"
+    : > "$W/ha-$v/pkg/homeassistant/__init__.py"
+    printf '__version__ = "%s"\n' "$v" > "$W/ha-$v/pkg/homeassistant/const.py"
+    printf '#!/bin/sh\nPYTHONPATH=%s exec %s "$@"\n' "$W/ha-$v/pkg" "$real_py" \
+      > "$W/ha-$v/state/venv-ha/bin/python"
+    chmod 755 "$W/ha-$v/state/venv-ha/bin/python"
+  done
+  out=$(HPO_STATE_DIR=$W/ha-$lock_ha/state bash "$ROOT/tools/audit/seat/seat_venv.sh" --check 2>&1)
+  rc=$?
+  [ -n "$lock_ha" ] && [ "$rc" = 0 ] && echo "$out" | grep -qF "homeassistant $lock_ha"
+  expect "--check accepts a venv-ha at the typing lock's homeassistant pin ($lock_ha)" $?
+  out=$(HPO_STATE_DIR=$W/ha-0.0.0/state bash "$ROOT/tools/audit/seat/seat_venv.sh" --check 2>&1)
+  rc=$?
+  [ "$rc" != 0 ]
+  expect "--check refuses a venv-ha off the lock's pin (null control)" $?
   rm -rf "$W/missing/venv-ha"
   mkdir -p "$W/missing/venv-ci/bin"
   cp "$ci_stub" "$W/missing/venv-ci/bin/python3"
@@ -229,8 +255,13 @@ STUB
   expect "pins() still hash-pins (venv-ci control)" $?
   echo "$prod" | grep -qF 'pins "$VENV_HA" --no-deps -r "$ROOT/tests/requirements-typing.txt"'
   expect "the build calls pins() for venv-ha with --no-deps from the typing lock" $?
-  echo "$prod" | grep -qF 'import homeassistant.const as c; assert c.__version__ == "2026.9.3"'
+  assertion='import homeassistant.const as c, sys; assert c.__version__ == sys.argv[1], c.__version__'
+  echo "$prod" | grep -qF "$assertion"
   expect "check() carries cloud-setup.sh's homeassistant assertion" $?
+  grep -qF "$assertion" "$ROOT/tools/audit/seat/cloud-setup.sh"
+  expect "cloud-setup.sh asserts the same homeassistant version" $?
+  grep -qF "s/^homeassistant==" "$ROOT/tools/audit/seat/cloud-setup.sh"
+  expect "cloud-setup.sh reads that version from the typing lock" $?
   grep -qF 'pins venv-ha --no-deps -r "$REPO/tests/requirements-typing.txt"' \
     "$ROOT/tools/audit/seat/cloud-setup.sh"
   expect "cloud-setup.sh is still the oracle for that pins call" $?
