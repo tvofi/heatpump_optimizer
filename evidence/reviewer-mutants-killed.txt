@@ -1,4 +1,0 @@
-RESULT mutant=X3_roster_report_reports_201 rc=1 ['carry_audit self-test: 214 checks, 1 failed'] ['FAIL roster (null): an issue a live group lists, in issues or fixes, and #201 are not reported']
-RESULT mutant=X4_mark_not_anchored_at_end rc=1 ['roster_lib self-test: 60 checks, 1 failed'] ['FAIL a mark is read only at the end of the carry, in its own grammar (got: )']
-RESULT mutant=X5_legacy_reads_every_stage rc=1 ['roster_lib self-test: 60 checks, 1 failed'] ["FAIL legacy: a carry on a closed group at the cut-over is legacy; an open group's carry at the cut-over is not (got: {'G': frozenset({'old one'}), 'OPEN': frozenset({'new one'})})"]
-restored clean
