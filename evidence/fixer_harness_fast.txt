@@ -1,0 +1,32 @@
+null: red []
+KILLED tools/replay/export.py: no db_url from configuration.yaml: red ['recorder:db_url_whole_day_read', 'recorder:db_url_read_only_session_selects_only', 'recorder:db_url_secret_resolved', 'recorder:db_url_credentials_never_printed'] (+3)
+KILLED tools/replay/export.py: no read-only session: red ['recorder:db_url_read_only_session_selects_only']
+KILLED tools/replay/export.py: URL not redacted: red ['recorder:db_url_credentials_never_printed', 'recorder:db_url_connect_refusal_names_no_credential', 'recorder:db_url_emptied_window_refused_naming_inputs_and_recorder']
+KILLED tools/replay/export.py: connect refusal carries the driver's text: red ['recorder:db_url_connect_refusal_names_no_credential']
+KILLED tools/replay/export.py: no quiet-input refusal: red ['recorder:stale_sqlite_near_empty_day_refused', 'recorder:db_url_emptied_window_refused_naming_inputs_and_recorder', 'recorder:read_key_unrecorded_refused']
+KILLED tools/replay/export.py: no !secret resolution: red ['recorder:url_from_configuration:secret', 'recorder:db_url_whole_day_read', 'recorder:db_url_read_only_session_selects_only', 'recorder:db_url_secret_resolved'] (+4)
+KILLED tools/replay/export.py: no !include followed: red ['recorder:url_from_configuration:include']
+KILLED tools/replay/export.py: retired-key filter removed: red ['recorder:retired_key_left_out']
+KILLED tools/replay/export.py: untimed dropped from check_file: red ['mask:check_refuses_a_document_with_its_times_nulled']
+KILLED tools/replay/cut_day.py: no thinning: red ['cut_day:every_cycle_instant_reads_as_the_whole_export']
+KILLED tools/replay/cut_day.py: no read-ahead: red ['cut_day:price_series_kept_to_the_export_end']
+KILLED tools/replay/cut_day.py: a restart counted as a reload: red ['cut_day:null_restart_with_inputs_gone_is_no_reload']
+KILLED tools/replay/cut_day.py: published entities kept: red ['cut_day:no_published_entity_kept']
+KILLED tools/replay/cut_day.py: two paired switches not refused: red ['cut_day:two_paired_switches_refused']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: an _entities list not claimed (GUARD_OFF): red ['mask:entities_list_ids_take_their_numbered_role']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: ids in a list not collected (GUARD_OFF): red ['mask:id_only_as_a_list_item_refused']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: a payload that is no document read as one (GUARD_OFF): red ['mask:a_payload_that_is_no_document_has_no_violation']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: a list not scanned for credential copies (GUARD_OFF): red ['leak_copy:copy_inside_a_list_dropped']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: dict keys outside states not renamed: red ['mask:id_as_any_dict_key_renamed_and_refused_unrenamed', 'tibber_price:one_home_picked', 'tibber_price:flag_overrides_two', 'tibber_price:flag_overrides_one'] (+19)
+KILLED custom_components/heatpump_optimizer/replay_doc.py: dict keys not collected: red ['mask:id_only_as_a_states_key_refused', 'mask:id_as_any_dict_key_renamed_and_refused_unrenamed']
+KILLED custom_components/heatpump_optimizer/replay_doc.py: a bool under a credential key read as a credential (carry 12): red ['leak_copy:bool_under_a_credential_key_is_no_credential']
+KILLED tests/replay.py: away floor unchecked: red ['control:away:floor']
+KILLED tests/replay.py: away override unchecked: red ['control:away:override']
+KILLED tests/replay.py: away command not compared with the recording: red ['control:away:replayed']
+KILLED tests/replay.py: no_default setpoint exemption removed: red ['control:no_default:setpoint_value_on_a_reading', 'control:no_default:setpoint_at_an_unconfigured_default']
+KILLED tests/replay.py: no_default setpoint exemption on every entity: red ['control:no_default:setpoint_value_on_a_reading']
+KILLED tests/replay.py: no_default setpoint at any value: red ['control:no_default:setpoint_at_an_unconfigured_default']
+KILLED tests/replay.py: not_frozen counts a zero as a mirrored value: red ['control:not_frozen:one_value_beside_zeros']
+KILLED tests/replay.py: arms skipped everywhere allowed: red ['control:cycle_cost:arms_skipped_never_everywhere']
+RESULT killed=29 mutants=29 null_red=0
+rc=0

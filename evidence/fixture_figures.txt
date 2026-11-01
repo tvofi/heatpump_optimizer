@@ -1,4 +1,0 @@
-window {'end': '2026-10-30T20:00:00+01:00', 'start': '2026-10-30T16:00:00+01:00'}
-controls {'away': [['2026-10-30T15:42:54.058467+00:00', True, '2026-10-31T19:00:00+00:00'], ['2026-10-30T18:39:25.778625+00:00', False, None]], 'reloads': ['2026-10-30T15:44:00+00:00']}
-inputs 26 published 0
-{'comfort_temp_day_weekend': (None, None), 'comfort_temp_night_weekend': (None, None), 'holiday_comfort_day': (None, None), 'holiday_comfort_night': (None, None), 'away_presence_entity': (None, None), 'mold_guard_enabled': (True, None)}

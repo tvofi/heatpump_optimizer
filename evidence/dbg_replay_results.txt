@@ -1,7 +1,0 @@
-FAIL debug replay: trim_replay carries sparse export attributes forward nordpool_rows_with_raw_today=0
-RESULT tree=wt_df mode=plain passed=4/5
-RESULT tree=wt mode=plain passed=5/5
-RESULT tree=wt mode=unrenamed passed=5/5
-FAIL debug replay: trim_replay carries sparse export attributes forward nordpool_rows_with_raw_today=0
-RESULT tree=wt mode=none passed=4/5
-RESULT tree=wt mode=absent raised KeyError: 'price_entity'
