@@ -1,64 +1,62 @@
-Fix review: blocked eeb947e513fb1b43bd81946e3818f51195e33c48 defect: a bounded give-up in flock-wrap's renew-refused re-queue deletes the held- witness, so the seat's next leased script FAILS instead of the named-unrun SKIP
+Fix review: blocked 26f2a6df6a8bdce67371370c7a4bd0aa58172cfc root-cause-detectable: tests / fast (3.14) is red on harness_headers.py's depth-seam check over this PR's own new harness, and the body's Red checks says none; a 0.7 s inline_scan run showed it before the handoff
 
-bus-nonce: a15392239e81a14d0ef49efafb1845ab
+bus-nonce: 76da609555d4d7436a83f8eed6165848
 
 ## Round
 
-Round 1. Measured at head eeb947e513fb1b43bd81946e3818f51195e33c48 (code head 2327669181a6b5efdd25d8b8cfd5e00d949f4100, plus the delivery-row commit), merge base 7539d1675d7fc8b5020f90b395f4bb0c3485d5b3, from detached worktrees at both SHAs. `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract in force is the one I read.
+Round 2 (a delta on round 1's block at eeb947e513fb). I measured head 26f2a6df6a8bdce67371370c7a4bd0aa58172cfc from a detached worktree at that SHA. The head merges code head 9787f68e15 and origin/main 2b6bef745. Both merge commits are pure automatic merges: re-running `merge-tree` on each one's parents gives its exact tree (8cff0985, e4a22c34). `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty, so the contract in force is the one I read. At 01:40Z the head was re-read with `git ls-remote origin refs/heads/fix/r10-prepr-cap` and was still 26f2a6df.
 
 ## Block
 
-The PR's two lease carries (P206, the wait bound; P211, the lapsed own lease) combine into a new failure, against P211's own constraint (a lease artifact must not fail a command for a label that held the lease).
-
-- `tests/gate_lock.py` `flock_wrap`, the `except RenewRefused` arm: it calls `release(label)`, and `release` now also removes `held-<label>`. It then calls `take(..., wait_bound=wait_bound)`. If that bounded wait runs out, `WaitBoundExceeded` escapes and `_bounded` exits 76, but the witness is not re-marked. The lapse arm two lines below re-marks it (`release(...); _mark_held(...)`); this arm does not.
-- What happens: a seat holds the lease under `HPO_GATE_LOCK_LABEL`, another label's ticket waits, and that label then holds the lease past the awaited script's bound. `run.sh` gets `SKIP: tests/stress.py (waited past its bound ...)`, which is right. The next leased script, `tests/harness_headers.py`, then goes to `flock-wrap`. `renew` raises `lease held by w, not seat`, and with no witness the lapse arm re-raises. The result is `gate_lock: flock-wrap refused, seat holds no lease`, rc 1, and `>>> FAILED: ... tests/harness_headers.py`. The manifest has `main-002 1 ... harness_headers.py`: a red gate from a lease artifact, not the sanctioned named unrun. Evidence: `ev/runsh-requeue-edge.txt` (the real `leased`/`run_always`/`scope_script` taken from this head's `tests/run.sh`, a scratch lock dir, and both recordings set to 3 s in a scratch `closures.json` so the bound is short). The same at module level: `ev/requeue-bound-edge.txt`.
-- Control: the same scenario with one added line, `_mark_held(lock_dir, label)` after the `release` in the `RenewRefused` arm, gives `#skip tests/stress.py` and `#skip tests/harness_headers.py`, both named unrun (`ev/runsh-requeue-edge-control.txt`). The unbounded path (`wait_bound=None`, every caller before this PR) never reaches this state, because its `take` eventually succeeds and re-marks. So the defect is new with this diff.
-- A repair owes a `_wait_cases` row for this sequence (re-queue, bounded give-up, next `flock_wrap` for the same label goes back into the bounded queue, not rc 1), and a mutant that drops the re-mark. That row would also be the first pin on the cross-call witness contract.
+- The required check `tests / fast (3.14)` concluded `failure` on this head (job 124707602184, 01:26:24Z): `1 of 112 HARNESS HEADER CHECKS FAILED`, `>>> FAILED: python3 tests/harness_headers.py`. The failing row is `every inlined walk matches the canonical helper and no depth root remains`, with `FAIL depth seams: dev/audit/harnesses/r10_prepr_cap_lease_mutants.py:40: ROOT = Path(__file__).resolve().parents[3]` (`ev/ci-fast-3.14.log`, `ev/ci-fast-red-line.txt`). That file was added by this PR (c317fcd02, round 2). It locates the root by a fixed parent depth instead of the canonical `repo_root` walk (`tools/audit/repo_root.py`), and `tests/harness_headers.py` `depth_root_seams()` refuses that shape.
+- The body's `## Red checks` says `none`. pr-contract run 124716318356 started 01:36:19Z, after the red concluded, and refuses: `ERROR [pr-body] ... check 'tests / fast (3.14)' is red and '## Red checks' does not name it` (`merge_train.py classify` -> `RED ... red: gate`, rc 1, `ev/ci-classify.txt`).
+- A cheaper detector existed before the handoff. `PYTHONPATH=tests/hastub python3 -c "import sys; sys.path.insert(0,'tests'); import harness_headers; raise SystemExit(harness_headers.inline_scan())"` at this head prints the same `FAIL depth seams: ...:40` line, rc 1, in 0.74 s wall (`ev/inline_scan-head.txt`). Running `python3 tests/harness_headers.py` alone, about 207 s on CI, also shows it. The body's prepr run (rc 0) and `ci_predict.py` did not show it, because harness_headers.py is machine-measuring and left to CI.
+- Repair owed:
+  - Make the new harness find its root with the canonical walk, or by the route the other `dev/audit/harnesses/*` files use, so the depth-seam check passes.
+  - Re-run `tests/harness_headers.py`.
+  - Name `tests / fast (3.14)` in `## Red checks` with the cheaper detector and its standing cost (defect-root-cause.md's second trigger).
+- Everything else that round 2 owed is settled at this head (below). A repair that touches only the harness's root line and the body leaves that evidence standing, except `r10_prepr_cap_lease_mutants.py`'s own RESULT lines, which must be re-taken.
 
 ## Findings
 
-- `tests/run.sh` `leased()`/`run_always()`: no test pins the new P206 mapping. Deleting the whole `if [ -e "$one.waited" ]` block survives every committed check, and then the run records `main-001 76 ... stress.py` as a failure, not a skip (`ev/runsh-mutant-nomap.txt`). The behaviour at the head is correct (`ev/runsh-skip-demo.txt`: `SKIP: tests/stress.py (...left to CI, named unrun)`, manifest `#skip tests/stress.py`). But the carry's "never a silent pass" constraint is only pinned in `gate_lock.py`, not where the lane decides pass or skip. The repair round the Block opens should add a run.sh-level row, or an entities/self-test arm, that drives `leased` with the marker present and absent. Carry: dismissed: owed by this same pull request's repair round, which the Block above already forces; R10-PREPR-CAP's roster entry reads `resume.stage done`, so it is not a live destination for carry_audit
-- `tests/run.sh` lane mode (`JOBS>1`): a script that waited past its bound prints `[hh:mm:ss] ok <script> (5s)` on the console before `run_always` rewrites its log to the SKIP note (`ev/runsh-skip-demo-jobs2.txt`). The manifest is right (`#skip`), but the progress line reads as a pass. It is cosmetic, and the fix is to compute the status word after the marker test. Carry: dismissed: cosmetic, the manifest and accounting are correct; it belongs in the Block's repair round of this pull request, whose group's roster entry reads done
-- `held-<label>` witnesses are never cleared for a label that is abandoned without `release` (its lease is stolen as expired or orphaned by another label). A later reuse of the same label is then treated as "held once", and `flock-wrap` takes the lease and leaves it held after the run. Carry: dismissed: the lease it leaves still expires at LEASE_SECONDS and is orphan-stealable, labels are per-topic, and the files are zero-byte; recorded so the next seat touching the witness knows its lifetime is unbounded.
+- No prepr step and no `ci_predict` arm runs `harness_headers.inline_scan()` (0.74 s) when a diff adds a `.py` under `dev/audit/`. So a depth-root seam in a new harness first shows as a red `tests / fast` after the push. This is the detector the Block names. Whether to build it is the root-cause answer this PR's `## Red checks` owes. Carry: dismissed: owed by this same pull request's repair round as its `## Red checks` answer (the cheaper detector and its standing cost), which the Block above forces
 
 ## Evidence
 
-Requirement by requirement, at the head:
-
-- (1) Slot pool (already on main at the base, as the body says; `take_slot`, `HPO_HEAVY_SLOTS`, `holding_slot`, and the `export HPO_SLOT_LABEL` in prepr step 1b are all present at 7539d1675). I re-ran the measure-first evidence on a scratch lock dir (`ev/slot-measure-first.txt`):
-  - p1..p4 print `taken slot=0..3`;
-  - `p5 --no-wait` prints `BlockingIOError: all 4 heavy slots held`;
-  - a blocking p5 queues (`waiting for a heavy slot`), and after `slot-release --label p1` it prints `taken slot=0`;
-  - `HPO_HEAVY_SLOTS=9` gives `heavy_slots()` 4 (clamped);
-  - `HPO_SLOT_LABEL=prepr-1` gives `holding_slot() True`;
-  - `needs-lease` answers `lease` (stress.py), `none` (structure.py) and `slot` (features.py).
-- (2) P206: `PYTHONPATH=tests/hastub python3 tests/gate_lock.py --accept` prints `ALL 40 gate lock acceptance checks PASSED`, 7 of them new (`ev/gate_lock-accept.txt`).
-  - Mutants (`ev/mutants-own.txt`), all killed: bound test -> `if False` (the run fails rc 1; the body said it hangs, rc 143 under `timeout 60`, and here the 60 s holder lease expired first, which is still killed); marker touch removed; `return WAIT_BOUND_RC` -> `return 0`.
-  - The uncontended null holds: `ev/runsh-uncontended.txt` gives `STRESS RAN`, manifest rc 0, no lease left.
-  - The slot arm of `leased()` is untouched, and `LEASE_SECONDS` and `renew()` are not in the diff.
-  - Bound = max of the caller's scope scripts' recorded seconds (936.3 for stress.py), else `LEASE_SECONDS`, as carry 0 words it ("the awaited script's recorded duration when the caller names one").
-- (3) P234/V148: `bash tools/pr/prepr.sh --self-test` at the head prints `437 passed, 0 failed`, rc 0 (`ev/prepr-selftest.txt`). The mutant restoring bare `python3` in `copies_line` prints `434 passed, 3 failed`: the venv control, the "ran under that venv" row and the HPO_RECORDER_PYTHON null control (`ev/prepr-mutant-bare-python3.txt`), matching the body. The no-interpreter row (rc 1, line names `seat_venv.sh`) and the one-resolution cache row pass.
-- (4) P211, mutants (`ev/mutants-own.txt`), all killed:
-  - drop the lapse arm: `RuntimeError: no live gate lease to renew`, rc 1;
-  - drop the witness test: `a label that never held one is still refused` FAILS;
-  - drop the waiter test: `ran=True` plus the never-held row FAIL.
-- (5) P309 fold, carry_audit:
-  - `python3 -I tools/audit/carry_audit.py --self-test` prints `211 checks, 0 failed`.
-  - Mutants: drop the strip (`OWED_CARRY.search(text)`) fails the quote and code-span rows; drop the arm fails the owed-carry row and its routed null control; drop only the quote strip fails the quote row.
-  - `python3 dev/audit/harnesses/r10_carry_parser_mutants.py` prints `RESULT sites=167 unmapped=0 mutants=241 survived=0` (`ev/carry-mutants.txt`).
-  - Failing-test row on da4e6e9ea:BODY.md: the base prints `0 finding item(s)`, rc 0; the head prints `UNROUTED body item c78ecb78 [owed carry]`, `1 unrouted`, rc 1. With ` Carry: R10-FLY-TRAIN-DEFAULTS` appended to that paragraph it prints `1 routed, 0 unrouted`, rc 0 (`ev/3010-*.txt`).
-  - `node tools/policy/field_coverage.mjs` prints `FIELD COVERAGE ok`, with `carry_audit owed-carry` declared.
-  - The prepr.sh step 7e WHY now names fix-review step 10 and process state (c), and cites `dev/audit/rca/R10-RCA-JIDOKA-YIELD.md`.
-  - The RCA document is the report after its first paragraph. It has a title line added, the trailing RESULT line dropped, and one sentence updated from "Whoever builds M1 or M2 corrects it" to "M1's pull request (R10-PREPR-CAP) corrects it". `tests/entities.py` prints `ALL 2493 ENTITY CHECKS PASSED`, so no new classification is owed (`dev/audit/` INERT).
-- (5) Corpus null control, re-derived over the 263 `handoff-body/*` tips at review time (`ev/corpus-control*.txt`, `ev/corpus-items.txt`; this instrument is my own, `corpus2.py`/`corpus3.py`, counting unrouted `[owed carry]` items by importing the head's `items()`):
-  - With the strip: 10 bodies and 34 unrouted items flip. Without it: 11 bodies and 32 items. The probe's own report body (`r10-rca-jidoka-yield`) flips only unstripped (2 items), as required.
-  - Of the probe's 9, fly-train-defaults, fly-openpr-atomic, orch-planpage, sav-comfort, sav-comfort-r2, sav-comfort-r3 and train-overlap-grade still flip. Train-overlap-grade now has 1 item, not 9, because its tip moved on 2026-10-31. Ux-health-p2 is now routed, and cop-partload-p2's tip moved on 2026-10-31 and no longer flips.
-  - New flips are flow-body-only, flow-record-pitch and roster-schema (21 items, every one a `Carry N: ... not built` line); each item I read is a real owed carry.
-  - The strip is not purely a narrowing. It widens 4 items (roster-schema 1245e0ef, 81ea9a8c, bec62eae; fly-openpr-atomic ccdea0e7), because a removed code span holding a `.` no longer cuts the 80-character window. Each widened item is a real owed carry, so this is noted, not a defect.
-  - The body's `24 items in 11 bodies` I could not re-derive under any reading I tried (any-status owed-carry items with the strip: 36 in 12 bodies; unrouted: 34 in 10). It is not verified.
-- (6) The RCA (`handoff-body/r10-rca-jidoka-yield` c8f3acd99) names M1 for this group; the PR implements it, with the fixture, mutants and field_coverage registration the report says it owes when built. The body names M2 (P310, landed under R10-FLY-RELAY-REVIEW-FF) and shape B (P311) and states that the roster excludes both from this group, so the body does not silently omit either.
-- Policy files in the diff: `dev/governance/rules/gate-scoping.md` and `dev/governance/roles/nudge.md` need the owner's approving review (noted, not blocked on). `node tools/policy/rules_sync.mjs --check` prints `RULES-SYNC ok`. `node tools/policy/policy_lint.mjs --budgets` exits 0. The gate-scoping diff also drops five issue citations (#1091, #1099, #1095, #1054, #2373, #2375) to stay inside the token cap; that is the owner's call with the rest of the wording.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`, rc 0; no `*_budgets.json` is in the diff. VERSION, the manifest and RELEASE_NOTES.md are untouched. Both claim files are byte-identical to origin/main (`ev/untouched.txt`). The delivery row `dev/programme/delivery/3051.md` is in the three-dot diff.
-- `git merge-tree --write-tree origin/main eeb947e5` (origin/main c3a47e565, 19 commits past the base) gives tree f593f977e, rc 0, with no conflicts (`ev/merge-tree.txt`).
-- Body head: the body names eeb947e513fb... as the head, with code head 2327669181 as its parent; that matches what I measured.
-- CI: `python3 tools/audit/seat/merge_train.py classify eeb947e5` printed `GREEN eeb947e513fb1b43bd81946e3818f51195e33c48 pending: none red: none` (rc 0, 19:00:26Z; `ev/ci-classify.txt`). No gate check went red on this head, so fix-review step 11 owes no answer. The head re-read at 19:01Z is still eeb947e5 (`origin/fix/r10-prepr-cap`). The scoped-gate MODE line is CI's to print and is not re-run here (fix-review step 11: cite CI's heavy runs).
+- (1) The re-mark fix, with the finder's harness (round 1's `runsh_edge.sh`, sha1 d5ca4926aa3d2d130a90fca6aca9a42afec33a38, run on `git archive` copies of `tests/` with stress.py and harness_headers.py recorded at 3 s):
+  - At round 1's head eeb947e5: `gate_lock: flock-wrap refused, seat holds no lease: lease held by w, not seat`, `>>> FAILED ... tests/harness_headers.py`, manifest `main-002 1`. The defect reproduces (`ev/runsh_edge-r1.txt`).
+  - At this head: `seat's lease lapsed; taking it again` and then a bounded give-up. The manifest has `main-001 0 ... #skip tests/stress.py` and `main-002 0 ... #skip tests/harness_headers.py`, both named unrun (`ev/runsh_edge-head.txt`).
+  - Control: round 1's tree with only `_mark_held(lock_dir, label)` added after the `release` in the RenewRefused arm prints the same two `#skip` rows (`ev/runsh_edge-r1-control.txt`).
+  - The RenewRefused arm now does `release; _mark_held; take(bounded)`, the same as the lapse arm.
+  - Unbounded path: with `wait_bound=None`, `take` returns only on success, which re-marks anyway. The only difference is that the witness now survives an interrupt mid-queue, which is finding 3's class (dismissed in round 1, re-stated in the body). The round-1-to-head delta in `tests/gate_lock.py` is exactly that one line plus the new `_wait_cases` row.
+- (2) The new `_wait_cases` row and the drop-re-mark mutant:
+  - `PYTHONPATH=tests/hastub python3 tests/gate_lock.py --accept` at the head: `ALL 41 gate lock acceptance checks PASSED`, rc 0 (`ev/gate_lock-accept.txt`).
+  - My own mutant (a worktree at the head with the `_mark_held` line deleted): `FAIL a bounded give-up on re-queue keeps the witness; the next wrap queues again [first=76 witness_kept=False second=1 ran=False]`, `1 of 41 ... FAILED`, rc 1. Killed (`ev/mutant-remark-own-accept.txt`).
+- (3) The run.sh mapping pin:
+  - With round 1's nomap mutant (the whole `if [ -e "$one.waited" ]` block deleted), the full committed `tests/entities.py` prints `FAIL run.sh records a wait past its bound as #skip ...` (serial and lanes rows `76 ... tests/stress.py`) and `FAIL run.sh's lane console prints SKIP ... [lane console words=['FAILED']]`, `2 of 2495 ENTITY CHECKS FAILED`, rc 1. Killed (`ev/entities-mutant-nomap.txt`).
+  - Unmutated head: `ALL 2495 ENTITY CHECKS PASSED`, rc 0, with both new rows `ok` (`ev/entities-head.txt`).
+  - The finder's `runsh_harness.sh` (sha1 593da3b86d10cf1fb75d2fa8857e17b117d6aa95) on the nomap tree records `main-001 76 ... tests/stress.py` as `>>> FAILED` (`ev/runsh_harness-jobs1-nomap.txt`, `-jobs2-nomap.txt`).
+- (4) Lane word, `runsh_harness.sh` with `JOBS=2`:
+  - Round 1 prints `ok     ... tests/stress.py (6s)`.
+  - This head prints `SKIP   ... tests/stress.py (5s)`.
+  - The manifest is `#skip tests/stress.py` at both ends (`ev/runsh_harness-jobs2-*.txt`).
+  - In `run_always`, the word is computed after `leased` returns and after `WAIT_UNRUN` is set.
+- The fixer's `r10_prepr_cap_lease_mutants.py` at the head prints `M0 failed=0 clean`, `M-remark killed`, `M-nomap killed`, `M-word killed`, `mutants=3 survived=0` (`ev/lease-mutants-fixer-harness.txt`). That is the fixer's instrument. It is not the evidence above, which I took with my own mutants and the finder's harnesses.
+- (5) Round 1's finding 3 (held witness never cleared) is dismissed in the body with round 1's own reason. The corpus figure round 1 could not re-derive is withdrawn from the body. The body cites no roster SHA and makes no roster carry (`## Forward-carry: none`). There is no live roster carry to check.
+- (6) Round 1's carries still hold at this head:
+  - P206 (`wait_bound`, `WAIT_BOUND_RC`, `--script`/`--wait-marker`) and P211 (the lapse arm and the held witness) are present.
+  - The P309 fold is present: `dev/audit/rca/R10-RCA-JIDOKA-YIELD.md`, the `OWED_CARRY` arm in `tools/audit/carry_audit.py` (`--self-test`: 211 checks, 0 failed, `ev/carry_selftest.txt`), and the `field_coverage.mjs` registration (`FIELD COVERAGE ok`, `ev/field_coverage.txt`). The prepr.sh step 7e WHY now sits at lines 986-993 (it moved from 974-978 with the V148 lines above it) and names fix-review step 10 and process state (c).
+  - `r10_carry_parser_mutants.py` prints `RESULT sites=167 unmapped=0 mutants=241 survived=0` (`ev/carry-mutants.txt`).
+  - The body states M2 (P310) and shape B (P311) as out of scope.
+- Gate and structure:
+  - `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`, rc 0 (`ev/structure.txt`; this tree has no `summary` subcommand, so I ran it plain).
+  - `tests/closure.py select --diff 2b6bef745` prints `MODE: FULL -- every test script runs, nothing is scoped out.` (`ev/mode.txt`).
+  - `rules_sync.mjs --check` prints `RULES-SYNC ok`, and `policy_lint.mjs --budgets` exits 0.
+  - Both claim files, VERSION, RELEASE_NOTES.md and the manifest are byte-identical to origin/main and unchanged in the three-dot diff (`ev/untouched.txt`).
+  - The delivery row `dev/programme/delivery/3051.md` is in the three-dot diff (`ev/three-dot-files.txt`).
+- `git merge-tree --write-tree origin/main 26f2a6df`, with origin/main at 8fec54ee2, gives tree 76227165, rc 0, with `LEDGER-MERGE: resolved tests/closures.json` and no conflict (`ev/merge-tree.txt`).
+- Figures I could not re-derive: the body's "SECOND prepr PASSED rc=0 at 9787f68e15". I did not re-run prepr; fix-review step 11 says to cite CI's heavy runs. I did confirm that 9787f68e15 differs from c317fcd02 only by one `tests/closures.json` line. That prepr pass did not cover `tests/harness_headers.py`, which CI found red.
+- CI on this head, read from the whole check-run set (68 runs):
+  - Red: `tests / fast (3.14)` (harness_headers, above); `pr-contract / pr-contract`, three runs, which refuse the body's `## Red checks`; and `gate` (the aggregate).
+  - Green: closures, coverage, arch-instrument, instrument-self-tests, policy-docs, wave-script, delivery-status, mutation, typing, browser, env-matrix, arch-score and budget-raise-gate.
+- Policy in the diff: `dev/governance/rules/gate-scoping.md` (it drops six issue citations) and `dev/governance/roles/nudge.md` (it drops "Do not start a fifth."). Both need the owner's approving review, as the body's `## Approval` says. That is noted here and is not the block.

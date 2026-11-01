@@ -1,0 +1,5 @@
+  [01:00:51] start  python3 /tmp/tmp.oBSIEnlRrZ tests/stress.py
+  [01:00:57] ok     python3 /tmp/tmp.oBSIEnlRrZ tests/stress.py (6s)
+--- manifest:
+main-001	0	6	#skip tests/stress.py
+--- held: /tmp/tmp.GO8JjnNAEV/lock: live label=other-holder pid=1313 expires_at=2026-11-01T01:30:51.825947+00:00 flock_available=True queue=-
