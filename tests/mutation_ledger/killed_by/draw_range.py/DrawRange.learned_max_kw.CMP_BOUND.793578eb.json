@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange.learned_max_kw CMP_BOUND 793578eb",
+  "killed_by": "tests/features.py",
+  "old": "        if not 0.0 <= now_s - newest <= CEILING_LAPSE_DAYS * 86400.0:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`if not 0.0 < now_s - newest <= CEILING_LAPSE_DAYS * 86400.0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5. Each of the 2 sites under this anchor was killed."
+}
