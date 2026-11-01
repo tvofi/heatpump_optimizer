@@ -1,0 +1,70 @@
+
+=== Stress and economics ===
+
+-- Plant-axis coverage (round 9, D9-s2-71)
+  54 built plants read in 0.0 s
+  ok   every production plant axis value is sampled by the sweep
+  ok   plant-axis coverage: an axis nobody samples is named
+  ok   a timing miss fails a graded run and only prints under the closure recorder, where a pass still counts (#1987)
+  ok   with HPO_CLOSURE_RECORDING unset a timing miss fails, and only "1" exempts it -- the environment, not a default, decides (#2018)
+
+-- Single-scenario detection (#346, #387)
+  ok   production calls: an identical count is not over
+  ok   production calls: #985's per-row twin against its vectorised fix is over
+  ok   production calls: growth the evaluation count vouches for is not over
+  ok   production calls: a spec the baseline cannot build is new, and a capture that counted nothing is unmetered
+  ok   production calls: the population is one member of every sweep family
+  ok   coverage floors: an override lowers the production-call floor with the solver-work floor, and a malformed one is the literal for both
+  ok   coverage floors: an override naming both floors is held to both, and a malformed production-call floor is the share rule
+  ok   coverage floors: both coverage checks take their floor from coverage_floors, so an override cannot reach one and not the other
+  ok   the live ceiling covers the measured CI ruler-vs-real expansion
+  ok   and the wobble still leaves a 2x detection floor on the recorded worst
+  ok   an unchanged sweep fires the work check on no scenario, on any channel, and covers all of them
+  ok   a 2x regression confined to one scenario is seen
+  ok   ...and it is still under the per-scenario CPU factor, so this is the gap #346 records and not a different one
+  ok   a cost-only regression confined to one scenario is seen on the simulate channel, with the evaluation count flat (#1229)
+  ok   a per-call kernel slowdown confined to one scenario is seen on the kernel-cost channel, with both count channels flat (round-5 D9-07)
+  ok   ...and kernel seconds that grow only with the counts do not fire it: the vouching is what makes this a per-CALL channel
+  ok   a 2x whole-solve slowdown with every count flat fires the solve-CPU channel, and an unchanged sweep does not (R10 D9-s3-01)
+  ok   ...solve CPU that grows only with the counts does not fire it, and one scenario's reading does not move the median
+  ok   a kernel reading between the doubt floor and the factor is sent to the re-solve and fails nothing on its own (round-5 D9-07)
+  ok   a single kernel reading over the factor whose re-measured medians read clean on both trees fails nothing (round-9 #1947: the nightly's 2.13x null)
+  ok   ...and a reading over the factor whose re-measured medians sit over it still fails, so a genuinely slower kernel is caught through the same path (round-5 D9-07's intent)
+  ok   an over-budget budget-channel reading whose re-solves read within the budget on their median is reported, not failed (round-9 #1947: the nightly's 8.0x against a 7.9x budget)
+  ok   ...and a scenario that re-measures over its own budget still fails it, its over line naming the confirming median
+  ok   the budget re-measure takes a fresh reference sample before each re-solve and divides by the unit as it then stands, not one frozen at call time (round-9 #1954)
+  ok   the per-call-cost arm solves one batch outside the kernel doubt band and up to KERNEL_ARM_BATCHES inside it, on the medians of every round (round-5 D9-07, stubbed readings)
+  ok   a runner whose basins are in no table changes no verdict at all
+  ok   ...and it still sees the one-scenario 2x from there, which is what makes it a check rather than a machine that always says yes
+  ok   ...and every scenario moving at once is still not a coverage collapse, however far the objectives move
+  ok   a scenario this branch re-planned is exempted and named, not judged
+  ok   ...and 2.28x is still inside the loose per-scenario CPU factor, so the gate stays green on it rather than exempting it twice
+  ok   the basin tolerance sits between float drift and the smallest measured flip
+  ok   a missing or non-finite fingerprint is 'cannot tell', never 'agrees'
+  ok   a comparison with no baseline covers nothing, and says so
+  ok   a scenario on only one side is named, not judged against nothing
+  ok   a figure more than the stale factor cheaper is still caught
+  ok   ...and one less than the stale factor cheaper is still allowed
+  ok   a memory peak more than the stale factor cheaper is caught, on both axes (round-5 D9-08)
+  ok   ...and one less than the stale factor cheaper is still allowed on the memory axes
+  ok   ...and an attributable RSS at the instrument's floor reads nothing: a probe clamped to 0.00 MiB against the empty probe is the RSS arm's blindness, not a >3.5x cheaper tree, so it fires nothing against a positive record (round-5 D9-08)
+  ok   ...and a tick above that floor is the same blindness, not a third thing: the CI reading of 0.50 MiB against a 12.90 MiB record is the platform's import floor, because the probe did not fall below its own record's 82.3 MiB (round-5 D9-08, round-1 follow-up)
+  ok   ...and the same attributable with a fallen watermark DOES fire, which is what keeps this a check: a scenario whose own RSS fell lowers the probe watermark with it
+  ok   ...and a regression back to a stale record passes the over side, which is why the stale rule has to fire while the tree is cheap
+  ok   the solver-work counter sees a real solve, and doubles with it
+  ok   the simulate-work meter sees a real solve, and doubles on the cost-only arm the evaluation count is blind to (#1229)
+  ok   ...and the hook is restored, so nothing downstream is left wrapped
+  ok   the simulation surface is non-empty -- the source scan found the model's state-advancing methods to cut over
+  ok   every call-graph leaf of the simulation surface is metered, or reached only through metered seams (round-6 D9-02)
+  ok   ...and dropping a metered seam from the hook set moves its leaves to uncovered (green is not unconditional)
+  ok   ...and a leaf primitive added to the model is reported even with the DHW seam metered (it is a closure, not one seam)
+  ok   a real 2x on one scenario reaches the rule the sweep applies, and an unchanged one does not
+  ok   the cost-only arm reaches the rule the sweep applies, and an unchanged solve does not (#1229)
+  ok   the per-call-cost arm reaches the rule the sweep applies, with both count channels flat, and an unchanged solve does not (round-5 D9-07)
+  ok   a real per-call regression read once inside the kernel doubt band is re-solved on both trees and confirmed by the rule the sweep applies (round-5 D9-07)
+  ok   ...and one whose single reading is over the factor -- the nightly null's 2.13x (#1947) -- takes the same real re-solve and is confirmed on the medians, not waved through
+
+-- Combination sweep
+  solver-work baseline: solving 54 scenarios from origin/main in a pristine worktree, to compare computed against computed (#387); this is the sweep's cost again
+  solver-work baseline: 54 scenarios from origin/main (92588d581fde), captured in 80 s on this machine
+  solve-time guard: reference solve 33.7 ms of CPU on this machine, budget 268x that per scenario (= 9.1 s of CPU), sweep budget 52x, absolute wall ceiling 600000 ms

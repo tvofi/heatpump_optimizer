@@ -1,0 +1,5 @@
+base 1:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+wt 1:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+base 2:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+wt 2:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
+base 3:   ok   no scenario exceeds its own recorded cost by the budget factor | ALL 113 STRESS CHECKS PASSED
