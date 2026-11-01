@@ -1,0 +1,6 @@
+cycles 16 counts {'finite': 0, 'unit': 0, 'no_default': 0, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 0, 'cycle_cost': 0}
+away offenders []
+commanded 12 views [(True, True, False, 15.0, 15.0)]
+space_kwh 5.51 13.2
+cycle_cost []
+"cost": {"cpu_ratio": 315.5934, "peak_kib": 2765.8, "loop_cpu_ratio": 0.2303, "timed": 7, "traced": 8, "ref_ms": 25.41852500000008, "loop_ref_ms": 81.68858900000009}

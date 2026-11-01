@@ -1,5 +1,0 @@
-cycles 16 counts {'finite': 0, 'unit': 0, 'no_default': 14, 'agreement': 0, 'cycle': 0, 'not_frozen': 0, 'away': 0, 'cycle_cost': 3}
-away offenders []
-commanded 0 views []
-space_kwh None None
-cycle_cost ['no recorded budget: record cpu_ratio=351.7', 'no recorded budget: record peak_kib=3921', 'no recorded budget: record loop_cpu_ratio=0.2584']

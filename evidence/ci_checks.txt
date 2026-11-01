@@ -1,0 +1,8 @@
+Check runs at head 18bdd5c88acc1581fec86c99b3ccf967ad085ff6, read 14:31Z via pull_request_read get_check_runs (54 runs, one page of 100):
+CodeQL (id 124866740914): failure -- "2 new alerts including 2 high severity" (alerts 47/48, answered in ## Red checks as false positives, not dismissed)
+tests / replay (124866432795): success, 14:05:52-14:13:24Z; "replay lane wall time 434.0 s", "ALL 168 replay checks PASSED";
+  owner fixture: 16 cycles in 389.8 s, cost cpu_ratio 239.38 peak_kib 2711.6 loop_cpu_ratio 0.1841; all invariants ok; "doubled arms not run: ..." printed; synthetic arms all ok
+tests / mutation (124865156023): success 14:24:39Z
+pr-contract / pr-contract (124877210993): success 14:28:43-14:29:34Z; a second run (124877843665) in progress at 14:31Z
+gate (124877424653): in progress at 14:31Z
+all other concluded runs success or skipped
