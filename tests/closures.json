@@ -3812,6 +3812,7 @@
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
    "tools/audit/seat/cloud_dispatch.py",
+   "tools/audit/seat/daemonize.py",
    "tools/audit/seat/flow_metrics.py",
    "tools/audit/seat/ledger.py",
    "tools/audit/seat/merge_train.py",
