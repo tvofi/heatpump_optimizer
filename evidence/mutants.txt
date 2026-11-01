@@ -1,0 +1,6 @@
+S1 no shell backtick | SELF-TEST 210 of 212 probes held | FAIL lexer: a closer in a shell backtick substitution after "merge" does not end the call, its subject refused; FAIL null control: a shell backtick ends with its line, and an escaped line end still continues the call
+S2 a shell backtick holds its line ends | SELF-TEST 211 of 212 probes held | FAIL null control: a shell backtick ends with its line, and an escaped line end still continues the call
+S3 no shell escape outside a quote | SELF-TEST 211 of 212 probes held | FAIL lexer: a closer in an escaped shell closer after "merge" does not end the call, its subject refused
+S5 no shell $( slot | SELF-TEST 211 of 212 probes held | FAIL lexer: a closer in a shell command substitution in a double quote, holding its quote after "merge" does not end the call, its subject refused
+S6 a shell ${ is a slot | SELF-TEST 211 of 212 probes held | FAIL a shell parameter default is a word, not a slot: a closer in it, in a double quote, does not end the call
+C5 a shell # opens a comment anywhere | SELF-TEST 211 of 212 probes held | FAIL null control: a shell '#' inside a word opens no comment, so ${#a[@]} leaves no bracket open
