@@ -215,6 +215,10 @@ TANK_RISE_C = 0.5
 LOG_STEPS = 96
 _STORE_VERSION = 1
 _TICK = timedelta(minutes=1)
+#: How long into a step the meter still reads the last step (#2492 carry 8):
+#: the supply tick writes the switch in the step's first tick, and the
+#: arbiter's tick in that same minute reads the draw from before the write.
+RUN_SETTLE = _TICK
 
 
 @dataclass(frozen=True)
@@ -1028,7 +1032,9 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     ``planned`` is re-frozen whenever a new plan is adopted inside the step:
     the cycle's re-solve can move a slot onto the current step, and the
     switch is written from that plan, so the step is scored against the
-    plan that actuated it, not the one in force at its first tick.
+    plan that actuated it, not the one in force at its first tick. A meter
+    reading inside ``RUN_SETTLE`` of the step's start is the last step's tail
+    and folds into neither ``measured`` nor ``ran``.
     """
     held.last_duty = duty
     start = plan_step_start(now)
@@ -1042,7 +1048,7 @@ def _observe(held: ArbiterState, inp: ArbiterInputs, duty: str | None, now: date
     elif row["plan"] is not inp.plan:
         row["planned"], row["plan"] = duty, inp.plan
     power = inp.measured_power_kw
-    if power is not None:
+    if power is not None and now - start >= RUN_SETTLE:
         row["measured"] = True
         row["ran"] = row["ran"] or float(power) >= _ran_kw(inp)
     mode = pump_mode.resolve(getattr(_slot_state(inp, "mode"), "state", None))
