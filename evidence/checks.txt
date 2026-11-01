@@ -1,0 +1,8 @@
+head aae5e0190a7733813e94509c108e8103b82f71bf
+merge-tree origin/main(c89de2f62) vs head: rc=0 tree a80d99ca2 (no conflict)
+roster_edit.triage_refusal real: None; flipped to REJECT: "dev/programme/triage/s6-batch98.md#P353 is not an ACCEPT ruling (REJECT)"
+roster_lib.STAGES contains carries-open: True; _stage_why only checks STAGES membership (no done-> transition rule)
+tests/structure.py: STRUCTURE RATCHET PASSED
+claim files/VERSION three-dot diff: empty
+grep 'full log|push log kept' tools/audit/seat/pr_args.sh at head: no arm exists
+classify: GREEN aae5e0190a7733813e94509c108e8103b82f71bf pending none red none (rc 0)
