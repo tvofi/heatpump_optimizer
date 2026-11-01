@@ -365,13 +365,18 @@ def latest_runs(runs) -> dict:
     GATE: the latest run of each check suite is kept and the worst stands
     (pending before red before green), so an older suite's red is never
     hidden behind a newer green (A5)."""
-    runs = sorted(runs, key=lambda c: c.get("started_at") or "")
-    out = {c["name"]: c for c in runs}
-    suites = {(c.get("check_suite") or {}).get("id") or ("run", c.get("id")): c
-              for c in runs if c["name"] == GATE}
+    out = {c["name"]: c for c in sorted(runs, key=lambda c: c.get("started_at") or "")}
+    suites = gate_suites(runs)
     if suites:
-        out[GATE] = min(suites.values(), key=lambda c: ("pending", "red", "green").index(run_state(c)))
+        out[GATE] = min(suites, key=lambda c: ("pending", "red", "green").index(run_state(c)))
     return out
+
+
+def gate_suites(runs) -> "list[dict]":
+    """The latest GATE run of each check suite (A5: one CI run, one suite, one gate)."""
+    runs = sorted(runs, key=lambda c: c.get("started_at") or "")
+    return list({(c.get("check_suite") or {}).get("id") or ("run", c.get("id")): c
+                 for c in runs if c["name"] == GATE}.values())
 
 
 def run_state(cr: dict) -> str:
@@ -449,18 +454,23 @@ def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
 RAISE_GATE = "budget-raise-gate / budget-raise-gate"
 
 
-def approval_owed(train: "Train", pr: int, head: str, red) -> "str | None":
+def approval_owed(train: "Train", pr: int, head: str, runs, required) -> "str | None":
     """The ONE owner of K15 (d)'s raise exception (P345): the gate's reason
     when <head> is red only because a budget raise's approval is owed, else
-    None. `red` is the red set over `gating_names` (the ruleset's `gate`
-    alone never names the unit). Owed exactly when (a) every red name is GATE
-    or RAISE_GATE, RAISE_GATE among them, and (b) `Train.raise_hold` -- and
-    so budget_raise_gate's own raises_between and approval -- reads at least
-    one raise not held, over the three-dot names from git. A read that fails
-    or a raise_hold Stop is None: fail closed, the head stays not reviewable.
-    The merge state is untouched: `classify` and the train judge as before."""
-    red = set(red or ())
+    None. Owed exactly when (a) every red name over `gating_names(required)`
+    (the ruleset's `gate` alone never names the unit) is GATE or RAISE_GATE,
+    RAISE_GATE among them; (b) every reason each red gate suite printed is
+    RAISE_GATE's own failure (`gate_raise_only`: a SKIPPED, ABSENT or PENDING
+    unit, or a reason naming no unit, reddens `gate` while leaving the red set
+    alone -- #3073); and (c) `Train.raise_hold` -- and so budget_raise_gate's
+    own raises_between and approval -- reads at least one raise not held, over
+    the three-dot names from git. A read that fails or a raise_hold Stop is
+    None: fail closed, the head stays not reviewable. The merge state is
+    untouched: `classify` and the train judge as before."""
+    red = set(classify(latest_runs(runs), gating_names(required))[2])
     if RAISE_GATE not in red or red - {GATE, RAISE_GATE}:
+        return None
+    if not gate_raise_only(train, runs):
         return None
     code, base = train.run(["git", "merge-base", "origin/main", head])
     if code or not is_sha(base.strip()):
@@ -473,6 +483,30 @@ def approval_owed(train: "Train", pr: int, head: str, red) -> "str | None":
     except Stop:
         return None
     return why if raises and not held else None
+
+
+#: The one reason a gate red only through an owed raise prints (gate.py's judge,
+#: the unit read in this run or in an earlier one at the head).
+RAISE_REASON = re.compile(rf"^{re.escape(RAISE_GATE)}: failure \((?:this run|run \d+)\)$")
+
+
+def gate_raise_only(train: "Train", runs) -> bool:
+    """True when at least one gate suite is red, none is still running, and
+    every red one's log (`gate_outcome`, gate.py's own FAIL reasons) lists
+    RAISE_REASON alone. An unread log, a gate step that never ran or a
+    RATE-LIMITED gate is False. A check run's id is its Actions job's id; gh
+    refuses an Actions log unless told to pass its terminal escapes."""
+    suites = gate_suites(runs)
+    if not suites or any(run_state(c) == "pending" for c in suites):
+        return False
+    reds = [c for c in suites if run_state(c) == "red"]
+    for c in reds:
+        code, log = train.run(["gh", "api", "--allow-escape-sequences",
+                               f"repos/{train.repo}/actions/jobs/{c.get('id')}/logs"])
+        out = gate_outcome(log) if code == 0 else None
+        if not out or out[0] != "fail" or not out[1] or not all(RAISE_REASON.match(x) for x in out[1]):
+            return False
+    return bool(reds)
 
 
 def stale(cr: dict, run_status: str) -> bool:
@@ -5080,10 +5114,26 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     OLD, BASE = "d" * 40, "e" * 40
     now = datetime.datetime.now(datetime.timezone.utc)
 
+    def glog(*reasons, step=True) -> str:
+        """A gate job's log as the Actions logs API serves it: timestamped lines, gate.py's
+        step opened by its `##[group]Run` line, its stdout (`FAIL <reason>`, then one
+        reason a line) closed by the runner's `##[error]`."""
+        ts = "2026-10-31T21:39:58.5470993Z "
+        out = [ts + "##[group]Run set -euo pipefail", ts + "##[endgroup]"]
+        if step:
+            out += [ts + '##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"',
+                    ts + "env:", ts + "##[endgroup]"]
+        out += [ts + ("FAIL " if i == 0 else "") + r for i, r in enumerate(reasons)]
+        return "\n".join(out + [ts + "##[error]Process completed with exit code 1.", ts + "Post job cleanup."]) + "\n"
+    RAISE_LOG = glog(f"{RAISE_GATE}: failure (this run)")
+
     def owed_cli(runs, files, budgets=RAISE_FIXTURE, reviews=None, ls_fail=False, body="## Summary\n",
-                 *flags) -> "tuple[int, str]":
+                 *flags, logs=None, diff_fail=False) -> "tuple[int, str]":
         def fake_run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "/actions/jobs/" in a and a.endswith("/logs"):
+                text = (logs or {}).get(int(a.rsplit("/", 2)[-2]), RAISE_LOG)
+                return (0, text) if text is not None else (1, "HTTP 410: logs expired")
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
             if a.endswith("rulesets --jq " + argv[-1]):
@@ -5093,6 +5143,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             if argv[:2] == ["git", "merge-base"]:
                 return 0, BASE + "\n"
             if argv[:4] == ["git", "diff", "--no-renames", "--name-only"]:
+                if diff_fail:
+                    return 128, "fatal: bad object tests/structure_budgets.json\n"
                 return 0, "".join(f + "\n" for f in files)
             if ls_fail and argv[:2] == ["git", "ls-tree"]:
                 return 128, "fatal: not a tree object"
@@ -5147,6 +5199,55 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     rc, out = owed_cli([cr(GATE, conclusion="failure"), cr("tests / fast (3.14)", conclusion="failure")],
                        BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045")
     check("P345 (null): a red gate whose units do not include budget-raise-gate stays RED, rc 1",
+          rc == 1 and out.startswith("RED "))
+    # #3073 round 1 (class-open): the red SET never says why `gate` is red. gate.py fails a
+    # SKIPPED, ABSENT or PENDING unit, and for reasons naming no unit at all, none of which
+    # puts a unit into that set. Owed only when every reason in each red gate suite's own
+    # log names RAISE_GATE; every other answer, an unread log included, stays RED.
+    raise_r = f"{RAISE_GATE}: failure (this run)"
+    for label, extra, reasons in (
+            ("a SKIPPED unit", [cr("tests / browser", conclusion="skipped")],
+             (raise_r, "tests / browser: SKIPPED (this run)")),
+            ("an ABSENT unit (no check run)", [], (raise_r, "tests / arch-instrument: ABSENT (this run)")),
+            ("a PENDING unit under a concluded gate", [cr("tests / browser", "in_progress")],
+             (raise_r, "tests / browser: PENDING (run 9)")),
+            ("a reason naming no unit (the deferral bound)", [],
+             ("run(s) [99] at this head are still being judged past the bound",)),
+            ("a reason naming no unit (the prelude cross-check)", [],
+             ("prelude says kind=code pr='', the event says kind=code pr='3045'",)),
+            ("the raise unit itself SKIPPED or PENDING, not failed (no approval judged)", [],
+             (f"{RAISE_GATE}: SKIPPED (this run)", f"{RAISE_GATE}: PENDING (run 9)"))):
+        rc, out = owed_cli([*shape3045, *extra], BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n",
+                           "--pr", "3045", logs={1: glog(*reasons)})
+        check(f"#3073: a raise whose gate is also red for {label} stays RED, rc 1",
+              rc == 1 and out.startswith("RED "))
+    rc, out = owed_cli(shape3045, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
+                       logs={1: None})
+    rc2, out2 = owed_cli(shape3045, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
+                         logs={1: glog("base ref malformed", step=False)})
+    check("#3073: a gate log that cannot be read, or whose gate.py step never ran, stays RED, rc 1",
+          rc == 1 and out.startswith("RED ") and rc2 == 1 and out2.startswith("RED "))
+    suites = [{**cr(GATE, conclusion="failure", started="2", cid=11), "check_suite": {"id": 1}},
+              {**cr(GATE, conclusion="failure", started="3", cid=12), "check_suite": {"id": 2}}, *shape3045[1:]]
+    rc, out = owed_cli(suites, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
+                       logs={11: RAISE_LOG, 12: RAISE_LOG})
+    rc2, out2 = owed_cli(suites, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
+                         logs={11: RAISE_LOG, 12: glog("tests / fast (3.14): failure (run 5)")})
+    check("#3073: every red gate suite is read -- two raise-only suites (#3045 carried four) are owed, rc 4; "
+          "one suite red for another unit is RED, rc 1",
+          rc == 4 and out.startswith("APPROVAL-OWED ") and rc2 == 1 and out2.startswith("RED "))
+    running = [suites[0], {**cr(GATE, "in_progress", started="3", cid=12), "check_suite": {"id": 2}}, *shape3045[1:]]
+    # The CLI asks only once `classify` reads RED, so these two shapes (WAIT, GREEN there) are a
+    # direct caller's: gate_raise_only itself, over a train answering every log raise-only.
+    class lt:  # the two attributes gate_raise_only reads of a Train
+        repo, run = "o/r", staticmethod(lambda argv, **_k: (0, RAISE_LOG))
+    check("#3073: gate_raise_only is False for a gate suite still running beside a raise-only red one, and "
+          "for a green gate; True for the raise-only suites (the control)",
+          gate_raise_only(lt, running) is False and gate_raise_only(lt, [cr(GATE), *shape3045[1:]]) is False
+          and gate_raise_only(lt, suites) is True)
+    rc, out = owed_cli(shape3045, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
+                       diff_fail=True)
+    check("#3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1",
           rc == 1 and out.startswith("RED "))
     # (c) a DIRTY head, from git merge-tree against a throwaway repository:
     # once bare, once with the claimnotes driver installed as claim-files.md
@@ -6784,7 +6885,7 @@ def main(argv: list[str]) -> int:
                 raise Stop("ci", f"the check runs at {a.sha[:12]} could not be read")
             req = t.required(pr_head=not a.main)
             state, pending, red = classify(latest_runs(runs), req)
-            why = (approval_owed(t, a.pr, a.sha, classify(latest_runs(runs), gating_names(req))[2])
+            why = (approval_owed(t, a.pr, a.sha, runs, req)
                    if state == "red" and a.pr is not None else None)
         except Stop as s:
             print(f"REFUSE {s.step}: {s.why}")

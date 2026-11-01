@@ -94,13 +94,16 @@
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
-  enforces. `--pr N` asks `approval_owed(train, pr, head, red)`, the one
+  enforces. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
   owner of a budget raise's pre-approval red (P345): when the red set over
-  `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone
+  `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone,
+  every red gate suite's own log (`gate_raise_only`, through `gate_outcome`)
+  lists that unit's failure as its only reason (a SKIPPED, ABSENT or PENDING
+  unit, or a reason naming none, reddens `gate` outside the red set: #3073),
   and `Train.raise_hold`, over the three-dot names from git, reads a raise not
   held, it prints `APPROVAL-OWED <sha> <the gate's reason>` (rc 4): reviewable,
-  because the owner's approval follows the verdict. A raise_hold Stop or a
-  failed read stays RED; `classify` itself, the train and the merge state are
+  because the owner's approval follows the verdict. A raise_hold Stop, a gate suite still
+  running or a failed read (a log included) stays RED; `classify` itself, the train and the merge state are
   unchanged, and without `--pr` the answer is as before. A required context red at main's tip whose workflow run is at
   attempt 1 and failed on infrastructure alone (every failed job but `gate`
   logs an API rate-limit or unreachable string, and `gate` printed
