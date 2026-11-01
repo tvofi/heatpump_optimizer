@@ -1,0 +1,11 @@
+.claude/rules/claim-files.md
+.cursor/rules/claim-files.mdc
+.gitattributes
+dev/audit/harnesses/claim_merge_census.py
+dev/audit/harnesses/claim_merge_mutants.py
+dev/governance/rules/claim-files.md
+dev/programme/delivery/3066.md
+tests/closures.json
+tests/entities.py
+tests/env_drift.py
+tools/pr/app_approve.sh
