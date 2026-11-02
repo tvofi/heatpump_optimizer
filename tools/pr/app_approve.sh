@@ -477,8 +477,9 @@ carry() {
   # the hunk's shape -- its context count, its +/- lines -- still compares.
   # Code files keep their context: there the lines beside a change are
   # behaviour (P325).
+  # never-empty: d is the literal git diff command
   norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/' \
-    | awk '/^diff --git / { md = /\.md$/ } md && /^ / { print " "; next } { print }'; }  # never-empty: d is the literal git diff command
+    | awk '/^diff --git / { md = /\.md$/ } md && /^ / { print " "; next } { print }'; }
   cmp -s <(norm "$mv" "$v") <(norm "$mh" "$h") \
     || { echo "the branch's own diff differs: $mv..$v against $mh..$h"; return 1; }
   [ -z "$own" ] || own="the branch's own commits ${own% } leaving the head the reviewed one merged onto main, "
