@@ -72,7 +72,11 @@ def scan(files: list[str], moved: dict[str, str]) -> list[str]:
     out = []
     order = sorted(moved.items(), key=lambda kv: -len(kv[0]))
     for f in files:
-        for n, line in enumerate(Path(f).read_text(encoding="utf-8").splitlines(), 1):
+        try:
+            text = Path(f).read_text(encoding="utf-8")
+        except UnicodeDecodeError:
+            continue  # a binary file (a .gz record, an image) cites no path as text
+        for n, line in enumerate(text.splitlines(), 1):
             for old, new in order:
                 if old in line:
                     tag = "FALLBACK" if new != "(retired)" and new in line else "STALE?"
@@ -122,7 +126,10 @@ def _self_test() -> int:
         check("a directory argument walks its tracked files, recursively, and skips untracked ones",
               names == ["top.sh", "sub/a.sh", "sub/deep/b.sh"])
         check("a walked directory's files are scanned", len(scan(files, m)) == 1)
-    print(f"moved_paths self-test: 11 checks, {fails} failed")
+        (root / "sub" / "rec.gz").write_bytes(b"\x1f\x8b\x08a/old/")
+        check("a binary file in a walked directory is skipped, not a crash",
+              len(scan(files + [str(root / "sub" / "rec.gz")], m)) == 1)
+    print(f"moved_paths self-test: 12 checks, {fails} failed")
     return 1 if fails else 0
 
 

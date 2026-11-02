@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/climate.py:HeatPumpOptimizerClimate.async_set_hvac_mode GUARD_OFF 9c5ce93c",
+  "killed_by": "tests/entities.py",
+  "old": "        elif hvac_mode == HVACMode.AUTO:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+}

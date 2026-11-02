@@ -267,6 +267,7 @@ from .price_model import (
     extend_price_series,
     pull_prices,
 )
+from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
@@ -9798,7 +9799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # (#2262), within the window the accuracy pairing below trusts; a
         # prediction recording no split, or a dwell that saw hot water, is none.
         if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9894,6 +9895,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "power": self._commanded_power(),
             "split": self._commanded_split(),
             "flow_command": pump_arbiter.flow_command(self),
+            "mode": self._current_action.get("mode"),  # routes draw_range.fold
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             # T6: why the plan wanted this interval's draw, captured at
@@ -10854,14 +10856,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def async_arm_system_identification(self) -> None:
         """Arm a step-response experiment for the next suitable moment."""
-        self._sysid.config.enabled = getattr(self, "_ctx", self)._config.system_identification_enabled
-        if self._sysid.arm(
-            dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
-        ):
-            _LOGGER.info(
-                "System identification armed; it will start at the next mild, "
-                "cheap night hour"
-            )
+        ctx = getattr(self, "_ctx", self)
+        sysid.arm_from_config(
+            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
+            self._house_heat_loss_samples, self._accuracy.draw,
+        )
         await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10875,17 +10874,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        # #1523: the experiment is a heat-loss learner, so it stands down on
-        # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable or unconfigured room or outdoor reading) and on
-        # a mode that cannot heat. The room half is ``learner_room_unread``.
-        why = (
-            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
-            if self._pump_signals.space_blocked
-            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        ) or learner_room_unread(getattr(ctx, "_config", None))
+        why = sysid.hold_reason(
+            self._pump_signals,
+            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+            getattr(ctx, "_config", None),
+            dt_util.now(),
+        )
         if why is not None:
-            self._sysid.abort(why)
+            self._sysid.stand_down(why)
             return
         params = ctx._thermal_params
         state = ctx._current_state
