@@ -1,0 +1,31 @@
+ok   sd='state dir' topic='z$(touch${IFS}INJECTED)' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='r10-a;touch INJECTED' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='r10-`touch INJECTED`' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='r10-nl\ntouch INJECTED' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='-x' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='--help' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='r10-q\'uote"d' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='a/b' rc_file_0=True args_exact=True
+ok   sd='state dir' topic='r10-plain' rc_file_0=True args_exact=True
+ok   sd='state dir' INJECTED created: False
+ok   sd='state$HOME dir' topic='z$(touch${IFS}INJECTED)' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='r10-a;touch INJECTED' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='r10-`touch INJECTED`' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='r10-nl\ntouch INJECTED' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='-x' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='--help' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='r10-q\'uote"d' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='a/b' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' topic='r10-plain' rc_file_0=True args_exact=True
+ok   sd='state$HOME dir' INJECTED created: False
+ok   sd='st$(touch INJECTED)' topic='z$(touch${IFS}INJECTED)' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='r10-a;touch INJECTED' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='r10-`touch INJECTED`' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='r10-nl\ntouch INJECTED' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='-x' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='--help' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='r10-q\'uote"d' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='a/b' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' topic='r10-plain' rc_file_0=True args_exact=True
+ok   sd='st$(touch INJECTED)' INJECTED created: False
+RESULT launch_probe checks=30 failed=0

@@ -1,0 +1,13 @@
+158:        self.git("fetch", "-q", "origin", f"handoff-body/{topic}")
+177:        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+178:        return subprocess.Popen(argv, cwd=self.repo, start_new_session=True, stdin=subprocess.DEVNULL,
+263:            log(f"SKIP {topic} {sha[:8]} {why}")
+264:        if tips.get(f"refs/heads/handoff/{topic}") != sha:
+266:        elif f"refs/heads/handoff-body/{topic}" not in tips:
+268:        elif f"{topic} {sha}" in seen:
+272:        elif f"refs/heads/fix/{topic}" in tips or f"refs/heads/fix/{topic}-pr" in tips:
+276:        elif fails.get(f"{topic} {sha}", {}).get("next", 0) > now:
+282:                log(f"NEEDS-TITLE {topic} {sha[:8]}")
+292:            log(f"SKIP {topic} {sha[:8]} cap")
+298:        log(f"START {topic} {sha[:8]} {g} pid={pid}")
+302:            out(f"STARVED {topic} {sha[:8]} {(now - ct) / 3600:.1f}h")
