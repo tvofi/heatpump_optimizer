@@ -756,7 +756,7 @@ def controls() -> list[tuple[str, bool, str]]:
          arms_skip_offenders({"gone.json"}, {"a.json"}),
          arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
     pair("away:covered_names_are_committed",
-         away_covered_offenders({"owner-2026-10-30-away.json"},
+         away_covered_offenders({"owner-2026-10-30-awya.json"},
                                 {"owner-2026-10-30-away.json"}),
          away_covered_offenders({"owner-2026-10-30-away.json"},
                                 {"owner-2026-10-30-away.json"}))
