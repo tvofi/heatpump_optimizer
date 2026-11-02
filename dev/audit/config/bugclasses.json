@@ -154,7 +154,7 @@
     "max_per_round": 16,
     "detector": "PYTHONPATH=tests/hastub python3 tests/finite_boundary.py -- Arm 1 derives the boundary set from the tree; Arm 4 (round 9, F1.6) seeds every store through its real saver at an aware clock with a configured zone, substitutes every leaf, container and int-like dict key by kind (non-finite, wrong-type, magnitude, naive-twin), and scans everything the coordinator owns after the real loaders and consumers for a raise, a non-finite, a naive instant, an absurd magnitude or a number turned text",
     "detector_idea": "Enumerate every Store/async_load and every float field its from_dict reads; fuzz each with nan/inf/malformed strings across the whole store roster",
-    "barrier": "QuarantiningStore._sanitize quarantines a number, numeric string or numeric dict key of magnitude >= ABSURD (1e15) exactly as it does a non-finite one (the round-9 P1 RCA's countermeasure, prototype handoff/r9-rca-p1@0ade2456), so no loader decides finiteness or magnitude any more; instants load through drift.stored_instant (F3.1/F3.2) and the naive sub-shape is refused by the same Arm 4; the remaining store-read seams (the fuse advisor's stamp, the snapshot restore's learners payload, the accuracy samples' t, the immersion events) load through the same rules in F1.6. Measured: Arm 4 red on main 5395394d with 95 seams (91 magnitude leaves/keys, 3 naive, 1 wrong-type restore) over 4706 mutants, zero at the F1.6 head; the finder's detector p1_store.py reads p1_escaping_mutants 5 -> 0, p1_wedged_seams 2 -> 0. Not reached, the RCA's stated residue, per-seam in their instance PRs: out-of-domain but bounded values, and a loader discarding a whole valid grid for one bad cell -- a declared-domain barrier is card C1 (F9.3). P1-sw1/sw2 (comfort NaN leaves) are defence-in-depth, not instances: through the real store a NaN leaf is None before from_dict. The live-input plausibility boundary of the class's widened mechanism (the fetched weather forecast rows, the forecast fabricated from the entity's current attributes when a first fetch fails, the ECL110 state displace, the DHW tank sample) landed with F1.6 too. Its seams are enumerated by the S6 rule tools/audit/round9/D14/sweep/live-input-no-plausibility-bound/enumerate.sh, whose family C greps `float(state.state)` and so CANNOT see a path that reads `state.attributes` -- the fabricated forecast is that path, and the F1.6 fix review found it with a probe of its own rather than with the enumerator (measured: attributes temperature=1e308 and wind_speed=1e6 each gave the finder's poisoned_series=1 before the fix, 0 after). A later round re-using this enumerator must pair it with an attributes-read rule or name that blind spot, as F1.1's brief requires of the P7 static enumerator",
+    "barrier": "QuarantiningStore._sanitize quarantines a number, numeric string or numeric dict key of magnitude >= ABSURD (1e15) exactly as it does a non-finite one (the round-9 P1 RCA's countermeasure, prototype handoff/r9-rca-p1@0ade2456), so no loader decides finiteness or magnitude any more; instants load through drift.stored_instant (F3.1/F3.2) and the naive sub-shape is refused by the same Arm 4; the remaining store-read seams (the fuse advisor's stamp, the snapshot restore's learners payload, the accuracy samples' t, the immersion events) load through the same rules in F1.6. Measured: Arm 4 red on main 5395394d with 95 seams (91 magnitude leaves/keys, 3 naive, 1 wrong-type restore) over 4706 mutants, zero at the F1.6 head; the finder's detector p1_store.py reads p1_escaping_mutants 5 -> 0, p1_wedged_seams 2 -> 0. Not reached, the RCA's stated residue, per-seam in their instance PRs: out-of-domain but bounded values, and a loader discarding a whole valid grid for one bad cell -- a declared-domain barrier is card C1 (F9.3). P1-sw1/sw2 (comfort NaN leaves) are defence-in-depth, not instances: through the real store a NaN leaf is None before from_dict. The live-input plausibility boundary of the class's widened mechanism (the fetched weather forecast rows, the forecast fabricated from the entity's current attributes when a first fetch fails, the ECL110 state displace, the DHW tank sample) landed with F1.6 too. Its seams were enumerated by round 9's S6 rule (the D14 sweep's enumerate.sh for live-input-no-plausibility-bound, a seat-scratch script that never landed in the tree, so no live copy exists to cite), whose family C greps `float(state.state)` and so CANNOT see a path that reads `state.attributes` -- the fabricated forecast is that path, and the F1.6 fix review found it with a probe of its own rather than with the enumerator (measured: attributes temperature=1e308 and wind_speed=1e6 each gave the finder's poisoned_series=1 before the fix, 0 after). A later round re-using this enumerator must pair it with an attributes-read rule or name that blind spot, as F1.1's brief requires of the P7 static enumerator",
     "status": "barriered",
     "mechanism_note": "Widened 2026-09-29, tvofi's ruling on the v2 register: R1-7 already held live-input and output-boundary rows (R5 D1-06 'nan' sensor state, R5 D1-07 weather feed, R2 D8-02 numpy scalars to attributes) that cross no persisted store; R8 D1-s3-01 (Open-Meteo shape) and the R9 re-maps N-plausibility (finite-but-absurd live input), N-min-gap (one off-grid stamp voids a feed) and N-service-clamp (unbounded service input) add more, and R9 D1-s5-02/D1-s3-06 are finite-but-out-of-domain. The detector idea (fuzz the store roster) reaches none of the non-store members",
     "aliases": [
@@ -553,7 +553,7 @@
     "max_per_round": 6,
     "detector": "PYTHONPATH=tests/hastub python3 tests/features.py, R9-P5 block: every house_* keyword of SystemIdentification.step is fitted or names the sysid width the adoption interval prices it with, and every told-quantity night on the three presets, single- and two-zone, adopts within the bar of the plant's heat loss or is refused",
     "detector_idea": "Synthetic-bias sweep: the gate decision must be monotone in the true injected bias",
-    "barrier": "The adoption interval prices every told quantity (intercept prior, slab pair) by how far one declared width moves log UA, and the R9-P5 sweep in tests/features.py runs on the PR gate (F4.2, #1655), with the #1524 liveness checks refusing a gate that refuses everything. Not reached: free heat past the prior's own band, which one night cannot separate from heat loss; it needs the learned free-heat prior in coordinator.py (.claude/workflows/carry-1655.json)",
+    "barrier": "The adoption interval prices every told quantity (intercept prior, slab pair) by how far one declared width moves log UA, and the R9-P5 sweep in tests/features.py runs on the PR gate (F4.2, #1655), with the #1524 liveness checks refusing a gate that refuses everything. Not reached: free heat past the prior's own band, which one night cannot separate from heat loss; it needs the learned free-heat prior in coordinator.py (dev/archive/carries/carry-1655.json)",
     "status": "barriered",
     "mechanism_note": "Stretched to model-structure mismatch in the fit (already R1 D7-02, R4 D7-01); R9 N-fit-integrator (coarser integrator than the plant) re-mapped here, which puts it under the barriered class's obligation (F4.2 carried both).",
     "aliases": [
@@ -749,7 +749,8 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "barrier_refusal": "tests/entities.py's check 'every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)' (landed c59672bc8, #1559) enumerates unit READS; round 10 placed six instances in the class after it landed, two of them write-side seams (_command_valve_target's climate and number set arms) that a read rule cannot see, so it does not enumerate every seam and status stays open (_status)."
   },
   "P9": {
     "kind": "production",
@@ -819,7 +820,7 @@
     "max_per_round": 12,
     "detector": "node tests/card_browser.mjs (the browser job), its P9 grid: 31 card states in 9 cells (3 widths x en/sv light, 375 px dark, and HA's theme against the opposite OS scheme both ways, hass.themes.darkMode in lockstep), each asserting over every rendered node WCAG AA text contrast over what is underneath, zero shared glyph ink between text runs, pop-ups inside the viewport and their chart, listbox options distinct as shown, no unreachable clipped ink, and the 24 px target floor or WCAG 2.5.8's spacing exception; controls: every cell mounted and every driver step found its target, and every card rule that sets a colour rendered in some cell",
     "detector_idea": "The browser geometry sweep over every rendered node: hit-target floor, contrast, clip against its ancestor",
-    "barrier": "The P9 grid is a zero rule with no allow-list in the browser CI job (R9-F6.3, #1652), shown failing on each round-9 instance re-introduced and on a catalogue with the status states dropped. HPO_BROWSER_SCOPE=auto skips it on a diff that touches none of the card files, the grid scripts or tests/plan_view.py's measured closure in tests/closures.json (the solver, profiles and stubs that build the payload), and prints that it did; a push always runs it. No grid state crowds a lane enough to contest two slot-hit targets, so their non-overlap is a tests/card.mjs unit on slotHitExtents. Not reached: keyboard routes (the grid drives a pointer; F6.2's lane), and states the catalogue does not drive, which the reach control bounds only for colour rules. Setting the scope variable in tests.yml is F11.7's (.claude/workflows/carry-1757.json)",
+    "barrier": "The P9 grid is a zero rule with no allow-list in the browser CI job (R9-F6.3, #1652), shown failing on each round-9 instance re-introduced and on a catalogue with the status states dropped. HPO_BROWSER_SCOPE=auto skips it on a diff that touches none of the card files, the grid scripts or tests/plan_view.py's measured closure in tests/closures.json (the solver, profiles and stubs that build the payload), and prints that it did; a push always runs it. No grid state crowds a lane enough to contest two slot-hit targets, so their non-overlap is a tests/card.mjs unit on slotHitExtents. Not reached: keyboard routes (the grid drives a pointer; F6.2's lane), and states the catalogue does not drive, which the reach control bounds only for colour rules. Setting the scope variable in tests.yml is F11.7's (dev/archive/carries/carry-1757.json)",
     "status": "barriered",
     "mechanism_note": "Stretched to keyboard access: R8 D4-01 (Tab order) and R9 N-keyboard (pointer-only editing) are card accessibility rules that do not reach a control, the class's shape, but the mechanism text names only clipping/colour/hit target.",
     "aliases": [
@@ -901,7 +902,8 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "barrier_refusal": "tests/replay.py's P10 arm (#1658, landed 5dfa6684f, #1788) counts model kernels by route on one replayed day; round 10 placed two instances after it landed (D14-s1-01 and _replay_interval), so it does not enumerate every seam and status stays open (_status)."
   },
   "I1": {
     "kind": "instrument",
@@ -1184,7 +1186,7 @@
     },
     "total": 40,
     "max_per_round": 8,
-    "detector": "node .claude/workflows/field_coverage.mjs",
+    "detector": "node tools/policy/field_coverage.mjs",
     "detector_idea": "The ruleset-reading code against the live ruleset; every required-context job checks out the PR head",
     "barrier": "field_coverage.mjs in governance.yml policy-docs (F11.3, #1648): every leaf of a registered check's input (settings.json hooks, the live ruleset, each capped policy file's size row, the budget-raise gate's owner review) is perturbed and the real check run; a leaf it stays green on is BLIND unless ignored with a reason; the check set is derived from policy_lint.mjs CHECKS, codeowners_gap.py PINNED and stamp.py rule 4, and an unregistered check is refused. Runs when its inputs change, and on the schedule. Not read: D11-s1-02, D11-s1-03, D11-s1-04, D13-s1-03, and the write-grant workflow pin's inputs in tests/entities.py (carry-1648's second entry: that pin is not callable without running the whole script).",
     "status": "barriered",
@@ -1262,7 +1264,7 @@
     },
     "total": 28,
     "max_per_round": 8,
-    "detector": "node .claude/workflows/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
+    "detector": "node tools/policy/agreement.mjs (the wave-script job in governance.yml; --self-test in instrument-self-tests): the agreement lane, and grammar discovery",
     "detector_idea": "Per reader pair, generated boundary cases asserting both readers give the same verdict",
     "barrier": "agreement.mjs on the PR gate (round 9, F11.4; prototype handoff/r9-rca-i4@06bae072): every registered concept's real readers, imported or read from source and never copied (rule-frontmatter-paths, finding-class-id, merge-subject-pr, dead-member-liveness, governance-workflow-jobs, entity-names, budget-raise), answer one corpus (the Python readers run first under python3 -I, restored from the base, and hand agreement.mjs their answers as JSON) of live instances plus the findings' boundary cases, and any disagreement, a reader that throws, an empty corpus, or a live merge commit every reader answers null for is refused; a regex source in two or more governance code files must be registered with a disposition (pair:, module:, identical:, not-a-concept:) and a stale entry is DEAD. Declared and accepted: policy_lint.mjs's offline subject mode reads the squash shape only (enumSkipLine), a narrow declaration the lane refuses the moment it answers. The governance-workflow-jobs pair re-derives entities.py's _workflow_job_ids by regex in agreement_py.py (a disclosed copy of a three-line job-id scan, null-controlled by the 'briefs' job). budget-raise's train reader, merge_train.py's raise_hold, is not in the restore list: it is the pull request's copy, the graded artifact, against the gate restored from the base (R10-RCA-TRAIN-RAISE-HOLD). Not reached (tvofi's card C11, accepted): a second reader with a different grammar for a concept nobody registered; the A7/A8 policy text is F11.5's",
     "status": "barriered",
@@ -1781,7 +1783,8 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "barrier_refusal": "tests/entities.py's family check '#1760' (landed 3defa2d58, #1766) reads const.ENTITY_FAMILY_OVERRIDES; round 10 placed two instances after it landed (D7-s3-53, and a sweep seam inside that check), so it does not enumerate every seam and status stays open (_status)."
   },
   "N-shared-config": {
     "kind": "production",
@@ -2006,8 +2009,8 @@
     "max_per_round": 6,
     "detector": null,
     "detector_idea": "S6 staleness-limit-shorter-than-quiet-interval enumerate.sh: silence cells beyond each INPUT_MAX_AGE limit",
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/features.py, section 'R10 N-staleness: the age limit keyed on how a source reports (D14-s3-02)', check 'every age-limited key declares its on-change limit, no lower than its polling one, and each kept equal is named with its reason', driven over every INPUT_MAX_AGE_MINUTES key by the census below it (landed 9c988fc58 in d0ae3ca9f, #2683). The shipped form is const.INPUT_ON_CHANGE_MAX_AGE_MINUTES read by inputs.py's age gate, not the RCA's proposed INPUT_QUIET_MINUTES table.",
+    "status": "barriered",
     "nearest_existing": "P6",
     "mechanism_difference": "P6 misses staleness behind a silent fallback; this declares false staleness",
     "aliases": [
@@ -2020,7 +2023,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -2039,7 +2042,7 @@
     },
     "total": 2,
     "max_per_round": 2,
-    "detector": "node .claude/workflows/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
+    "detector": "node tools/policy/field_coverage.mjs --only census (policy-docs in governance.yml; its --self-test drives each verdict)",
     "detector_idea": "Register count-printing instruments (structure.py dead_*, stress sampling, policy_lint --stats) in field_coverage.mjs's perturb-to-red registry; merge_shape_guard for the merge-subject derivation",
     "barrier": "The census arm of field_coverage.mjs (round 9, F11.4; decided under the programme mandate, D8): each registered count-printing instrument runs on a temporary copy of the tree, as it is and with one planted member of what it counts, and its printed count must rise by exactly one; a count that does not move is BLIND and an unreadable count line is REFUSED, so a failure path that prints the same zero as success cannot pass. Registered: structure.py dead_methods and dead_top_level_symbols. The merge-subject derivation's silent zero is agreement.mjs's merge-shape guard (a live merge commit every reader answers null for is refused). Not registered, so not reached: policy_lint --stats (needs the live API), stress sampling, and any census nobody lists",
     "status": "barriered",
@@ -4290,13 +4293,11 @@
       "subject": "#2234 class: a staleness limit shorter than a report-on-change source's quiet interval declares a valid unchanged reading stale (7 instances: R9 1, R10 6)",
       "trigger": "class: per_round, cross_round",
       "date": "2026-10-15",
-      "status": "proposed",
-      "parts_missing": [
-        "barrier not built; owned by the class's fix PR"
-      ],
+      "status": "done",
+      "parts_missing": [],
       "process_state": "(c) the round-9 S6 sweep was run and filed power, mode, energy, supply and return 'not applicable' on const.py comments, not on a probe; F4.1 fixed only the slow stores",
       "countermeasure": "proposed barrier: a declared INPUT_QUIET_MINUTES table beside INPUT_MAX_AGE_MINUTES and a static tests/ arm refusing limit < quiet outside a reasoned guarded list (0.27 s; 5 s/release against 513 s/release expected)",
-      "landed": null,
+      "landed": "d0ae3ca9f (#2683)",
       "in_tree_home": "dev/audit/rca/R10-N-staleness.md",
       "doc": [
         "dev/audit/rca/R10-N-staleness.md"
@@ -4308,13 +4309,11 @@
       "subject": "#2229 class: a covering-entry lookup (bisect_right - 1) gives the last entry no end, so a last-known price, forecast or plan value is published and booked as current indefinitely (3 instances, R10)",
       "trigger": "class: per_round, cross_round",
       "date": "2026-10-15",
-      "status": "proposed",
-      "parts_missing": [
-        "barrier not built; owned by the class's fix PR"
-      ],
+      "status": "done",
+      "parts_missing": [],
       "process_state": "(c) D1 step 3's 'price list that stops updating' was driven in round 9 but read the plan horizon, never the published current price or the ledger booking; two of three seams were written by fixes bounding the other edge",
       "countermeasure": "proposed barrier: one covering-slot helper with an end bound, plus a static tests/ arm over the sweep's AST rule with a reasoned 3-entry allow-list (0.54 s; 10 s/release against 257 s/release); D1 step-3 read-point sentence proposed to tvofi",
-      "landed": null,
+      "landed": "d7b171229 (#2336)",
       "in_tree_home": "dev/audit/rca/R10-N-no-expiry.md",
       "doc": [
         "dev/audit/rca/R10-N-no-expiry.md"
@@ -4326,13 +4325,11 @@
       "subject": "#2226 class: a persisting condition is logged at WARNING on every cycle instead of once per transition (7 instances, R10)",
       "trigger": "class: per_round, cross_round",
       "date": "2026-10-15",
-      "status": "proposed",
-      "parts_missing": [
-        "barrier not built; owned by the class's fix PR"
-      ],
+      "status": "done",
+      "parts_missing": [],
       "process_state": "(c) D10's log-when-unavailable was graded done by a substring test for one latched site, and D1 steps 5-6 ask 'does it log once' only of except handlers and parsers",
       "countermeasure": "proposed barrier: a transition-latch helper extracted from the outage counters, plus a static tests/ arm refusing an unlatched per-cycle WARNING/ERROR outside the sweep's reasoned list (0.36 s; 7 s/release against 604 s/release); the 15.8 s runtime probe stays an audit instrument",
-      "landed": null,
+      "landed": "d7b171229 (#2336)",
       "in_tree_home": "dev/audit/rca/R10-N-log-flood.md",
       "doc": [
         "dev/audit/rca/R10-N-log-flood.md"
@@ -4344,13 +4341,11 @@
       "subject": "#2227 class: a move leaves an executable consumer importing or opening the old path (36 instances, R10; all under the historical dev/audit/rounds prefix, one of them a live-cited instrument)",
       "trigger": "class: per_round, cross_round",
       "date": "2026-10-15",
-      "status": "proposed",
-      "parts_missing": [
-        "barrier not built; owned by the class's fix PR"
-      ],
+      "status": "done",
+      "parts_missing": [],
       "process_state": "(c) the RO move checks (tests/layout.py, brief_lint) were followed and key on a cited path existing, not on the cited program running; D13 names a historical harness as a live instrument",
       "countermeasure": "proposed narrow barrier: a tests/ arm probing every live-cited executable under a historical prefix (2 today, 0.1 s); recorded refusal of a whole-tree barrier over evidence-only harnesses (dominated, and contrary to D2); the 35 evidence-only seams' disposition asked of tvofi",
-      "landed": null,
+      "landed": "7215e39df (#2289)",
       "in_tree_home": "dev/audit/rca/R10-N-move-stale-path.md",
       "doc": [
         "dev/audit/rca/R10-N-move-stale-path.md"
@@ -4364,7 +4359,7 @@
       "date": "2026-10-15",
       "status": "proposed",
       "parts_missing": [
-        "barrier not built; owned by the class's fix PR"
+        "registration arm not built: #2563 (88192f730) gated the four instances and pinned them by value"
       ],
       "process_state": "(c) D2 step 5 perturbs estimators with measurement noise and clamps only, never with a model error in another regressor; the #1936 fix carried the shape into heat_loss_refit",
       "countermeasure": "proposed barrier: the sweep's covariate-error probes as a tests/ script (within 5% of truth) plus a registration arm refusing an unprobed residual-fed fold (1.78 s; 33 s/release against 128 s/release); D2 step-5 clause proposed to tvofi",
@@ -4746,8 +4741,8 @@
     "total": 3,
     "max_per_round": 3,
     "detector": null,
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/entities.py, check 'R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count' (_r10_covering_lookups reads every package module by AST; landed d7b171229, #2336).",
+    "status": "barriered",
     "nearest_existing": "N-staleness",
     "mechanism_difference": "there is no staleness limit at all, rather than one shorter than the source quiet interval",
     "minted": "R10",
@@ -4759,7 +4754,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -4784,8 +4779,8 @@
     "total": 7,
     "max_per_round": 7,
     "detector": null,
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/entities.py, check 'R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held' (_r10_unlatched_logs reads every package module by AST; landed d7b171229, #2336). The RCA's countermeasure as built: log_latch.log_held is the latch, the arm refuses an unlatched per-cycle site off the reasoned list.",
+    "status": "barriered",
     "nearest_existing": "N-silent-zero",
     "mechanism_difference": "it over-reports a condition rather than hiding one",
     "minted": "R10",
@@ -4797,7 +4792,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -4881,8 +4876,8 @@
     "total": 36,
     "max_per_round": 36,
     "detector": null,
-    "barrier": null,
-    "status": "open",
+    "barrier": "tests/entities.py, check 'every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)' (the RCA's form (ii); landed 7215e39df, #2289). Not reached, the RCA's own scope: a harness under a historical prefix that no live text cites is a record, kept as written (tests/layout.json `historical`); python3 tools/audit/seat/moved_paths.py <dir> enumerates those references for a seat that re-runs one.",
+    "status": "barriered",
     "nearest_existing": "I5",
     "mechanism_difference": "the stale reference is executable and breaks a tool, not prose drifting from code",
     "minted": "R10",
@@ -4894,7 +4889,7 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
-      "barriered_any": false,
+      "barriered_any": true,
       "class_rca_on_record": true
     }
   },
@@ -4961,7 +4956,8 @@
       "cross_round": true,
       "barriered_any": false,
       "class_rca_on_record": true
-    }
+    },
+    "barrier_refusal": "No shipped check enumerates the class's seams: tests/features.py's '#2223' checks (landed 88192f730, #2563) pin the four instances by value (the dark gauge, each fold refusing a sunlit interval), and the RCA's registration arm, refusing a residual-fed fold with no covariate-error probe, was not built, so the next residual-fed learner is unchecked; status stays open (_status)."
   },
   "N-leaf-imports-solver": {
     "kind": "production",

@@ -4,16 +4,16 @@ One of the four standing seats (`orchestrator.md` section 5); haiku, low
 effort. **Input:** the orchestrator's queue lines, each a pull request, head
 and role to dispatch or a relay to run; critical-path items first.
 
-**Dispatch**, per line: check the delivery row is in the pull request's
+**Dispatch**, per line: check the delivery row is in the PR's
 three-dot diff, then `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
 dispatch`, `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
 head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
-`fire-owed <ref>`: a subagent cannot call RemoteTrigger, so the orchestrator
+`fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
 fires.
 
-**Relay:** run `tools/audit/seat/cloud_relay.sh pass --confirm`; report each
-`handoff-body/<topic>` return. A beat job takes it over once one cycle's log
-agrees with you; never inline.
+**Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
+carried to the live head; report each `handoff-body/<topic>`. A beat job takes
+over once a cycle's log agrees; never inline.
 
 ## Read the ref, not the record
 
