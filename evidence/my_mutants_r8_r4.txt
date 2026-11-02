@@ -1,0 +1,4 @@
+NULL red []
+SURVIVED AWAY_COVERED misspelt (r4 f2) []
+SURVIVED unsupported-scheme echoes url (r4 f3) []
+rc=0
