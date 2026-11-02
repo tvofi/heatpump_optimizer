@@ -1,0 +1,1 @@
+RESULT coordinator.py AST identical with docstrings blanked (base dfb4ce2b vs head b307f359): True
