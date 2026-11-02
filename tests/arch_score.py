@@ -56,6 +56,7 @@ from harness import Results  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
 
 from archscore import calibrate, gate, score, vector  # noqa: E402
+from archscore.metrics import card  # noqa: E402
 
 FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978"
 
@@ -276,6 +277,43 @@ def hub_spellings() -> None:
                 got == want and off == 0, f"got {got} (C15/C16 off: {off}), base {base}")
 
 
+CARD_RULE_BASE = """
+function isGone(st) {
+  return st.state === "unavailable" || st.state === "unknown";
+}
+function tile(h, cfg) {
+  if (!h) return 0;
+  return cfg.size;
+}
+"""
+
+
+def card_rule_spellings() -> None:
+    """Counter C24 on a synthetic card: a one-statement rule spelled inline at a second site is read by
+    ``card_rule_copies``, through another receiver and its whole member path, while the 20-token window reads
+    nothing; an unrelated one-statement line reads nothing (the null control)."""
+    def rules(js: str) -> int:
+        return sum(len(g) for g in card.rule_copies(card.tokenize(js, strings=True)))
+
+    def windows(js: str) -> int:
+        return sum(len(g) for g in card.clone_copies(card.tokenize(js)))
+
+    anchor = "  if (!h) return 0;\n"
+    plant = lambda line: CARD_RULE_BASE.replace(anchor, anchor + line)  # noqa: E731
+    respelled = plant('  if (h.attrs.live.state === "unavailable" || h.attrs.live.state === "unknown") return 0;\n')
+    base = rules(CARD_RULE_BASE)
+    R.check("card_rule_copies: the rule's owner alone is no copy", base == 0, f"read {base}")
+    R.check("card_rule_copies: the rule respelled inline at a second site reads both sites",
+            rules(respelled) == base + 2, f"{base} -> {rules(respelled)}")
+    R.check("card_clone_copies: the 20-token window cannot see that respelling (why C24 exists)",
+            windows(respelled) == windows(CARD_RULE_BASE), f"{windows(CARD_RULE_BASE)} -> {windows(respelled)}")
+    for what, line in (("a test of one value against other strings", '  if (h.mode === "heat" || h.mode === "cool") return 0;\n'),
+                       ("a chain over two values", '  if (h.state === "unavailable" || cfg.state === "unknown") return 0;\n'),
+                       ("a statement with no chain", "  const total = h.a + h.b * cfg.size;\n")):
+        R.check(f"card_rule_copies null: {what} reads nothing", rules(plant(line)) == base,
+                f"{base} -> {rules(plant(line))}")
+
+
 def smoke() -> None:
     """Every planted case's script applies to the pin: the anchors still hold and every file the full
     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
@@ -320,6 +358,7 @@ def main() -> int:
         R.check(f"arch-score gate: {name}", ok)
     base_runs_the_gate()
     hub_spellings()
+    card_rule_spellings()
 
     jobs = min(4, os.cpu_count() or 1)
     collected = calibrate.collect(stored, jobs)
