@@ -87,6 +87,11 @@ MUTANTS = {
         "    const seamNow = Math.floor(FROZEN / CH) * CH + 6 * HOUR;\n",
         "    const seamNow = FROZEN;\n",
     ),
+    "guard_idle_cooling": (
+        "tests/guard_pins.py",
+        "    now = datetime(2026, 1, 5, 12, 0, 0, tzinfo=timezone.utc)\n",
+        "    now = datetime(2026, 1, 5, 12, 0, 0)\n",
+    ),
     "nometer_month": (
         "tests/features.py",
         "    zone = _bo_dt.DEFAULT_TIME_ZONE\n",
