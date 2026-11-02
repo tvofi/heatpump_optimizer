@@ -1360,17 +1360,26 @@ def _instants(obj, path=()):
         yield path, when
 
 
-def _utc(when):
-    return when if when.tzinfo is not None else when.replace(tzinfo=_dt.timezone.utc)
+def _utc(when, zone=_dt.timezone.utc):
+    """``when`` as an aware UTC instant; a naive one is wall time in ``zone``."""
+    aware = when if when.tzinfo is not None else when.replace(tzinfo=zone)
+    return aware.astimezone(_dt.timezone.utc)
 
 
-def _with_instants(payload, when):
-    """The payload with every instant leaf, and two probes, set to ``when``."""
+def _with_instants(payload, when, zone):
+    """The payload with every instant leaf, and two probes, set to ``when``.
+
+    ``when`` is aware; each naive leaf is written as its wall time in
+    ``zone``, the zone the store's loader reads a naive instant in
+    (``QuarantiningStore``'s ``naive_zone``), so the leaf names the same
+    instant whatever zone the host or Home Assistant is configured in.
+    """
+    naive = when.astimezone(zone).replace(tzinfo=None).isoformat()
     out = json.loads(json.dumps(payload))
     for path, _w in list(_instants(out)):
-        _set_path(out, path, when.isoformat())
+        _set_path(out, path, naive)
     if isinstance(out, dict):
-        out["__instant_probe"] = when.isoformat()
+        out["__instant_probe"] = naive
         out["__instant_probe_aware"] = _utc(when).isoformat()
     return out
 
@@ -1407,23 +1416,40 @@ def _instant_arm(by_name) -> None:
     comes back byte-identical, and so does an instant one minute inside a
     store's lead, or a field's, so a lead cannot be dropped to zero unseen.
     """
-    t0 = _dt.datetime(2026, 6, 1, 12, 0, 0)
+    # An aware clock, so the instant the arm names is one instant under any
+    # host or configured zone; the stub hands it out in the configured zone.
+    t0 = _dt.datetime(2026, 6, 1, 12, 0, 0, tzinfo=_dt.timezone.utc)
     seen: list = []
+    planned: dict = {}
     original = QuarantiningStore.async_load
 
     async def _recording(self):
+        key = str(getattr(self, "key", None) or getattr(self, "_key", ""))
+        # ``None`` reads a naive leaf on the bound's own clock, UTC.
+        zone = getattr(self, "_naive_zone", _dt.timezone.utc) or _dt.timezone.utc
+        written = None
+        if key in planned:
+            healthy, when = planned[key]
+            written = _with_instants(healthy, when, zone)
+            _storage._DISK[key] = json.dumps(written)
         data = await original(self)
-        seen.append((str(getattr(self, "key", None) or getattr(self, "_key", "")),
-                     getattr(self, "_lead", _dt.timedelta(0)), data))
+        seen.append((key, getattr(self, "_lead", _dt.timedelta(0)), data, zone, written))
         return data
 
-    def _load(name, key, payload):
+    def _load(name, key, healthy=None, when=None, payload=None):
+        """Load ``key`` through ``name``'s loader: ``payload`` as given, or
+        ``healthy`` with its instants set to ``when`` in the store's zone."""
         seen.clear()
+        planned.clear()
         _storage._DISK.clear()
+        if payload is None:
+            planned[key] = (healthy, when)
+            payload = _with_instants(healthy, when, _dt.timezone.utc)
         _storage._DISK[key] = json.dumps(payload)
         asyncio.run(LOADERS[name](_build_coord()))
         _storage._DISK.clear()
-        return [r for r in seen if r[0] == key]
+        planned.clear()
+        return [r[:4] + ((r[4] if r[4] is not None else payload),) for r in seen if r[0] == key]
 
     escaped, opted_out, rewritten, lead_lost, driven, checked = [], [], [], [], 0, 0
     ahead_written: list = []
@@ -1434,25 +1460,24 @@ def _instant_arm(by_name) -> None:
             if name not in by_name:
                 continue
             key, healthy = by_name[name]
-            records = _load(name, key, _with_instants(healthy, t0 + _dt.timedelta(days=400)))
+            records = _load(name, key, healthy, t0 + _dt.timedelta(days=400))
             driven += bool(records)
-            for _key, lead, data in records:
+            for _key, lead, data, zone, _w in records:
                 if lead is None:
                     opted_out.append(name)
                     continue
-                bound = _utc(t0) + lead
+                bound = t0 + lead
                 ahead = _declared_ahead(key, data)
                 for path, when in _instants(data):
                     checked += 1
-                    if _utc(when) > bound + ahead.get(path, _dt.timedelta(0)):
+                    if _utc(when, zone) > bound + ahead.get(path, _dt.timedelta(0)):
                         escaped.append(f"{name}:{'/'.join(map(str, path))}")
-            honest = _with_instants(healthy, t0 - _dt.timedelta(hours=1))
-            for _key, lead, data in _load(name, key, honest):
+            for _key, lead, data, _z, honest in _load(name, key, healthy, t0 - _dt.timedelta(hours=1)):
                 if json.dumps(data, sort_keys=True) != json.dumps(honest, sort_keys=True):
                     rewritten.append(name)
                 if lead:
-                    inside = _with_instants(healthy, t0 + lead - _dt.timedelta(minutes=1))
-                    for _k, _l, kept in _load(name, key, inside):
+                    inside_at = t0 + lead - _dt.timedelta(minutes=1)
+                    for _k, _l, kept, _z2, inside in _load(name, key, healthy, inside_at):
                         if json.dumps(kept, sort_keys=True) != json.dumps(inside, sort_keys=True):
                             lead_lost.append(name)
         # What an honest clock wrote, the same clock reads back unchanged: the
@@ -1461,7 +1486,7 @@ def _instant_arm(by_name) -> None:
         _storage._DISK.clear()
         writer = _build_coord()
         from heatpump_optimizer import accuracy as _acc, boost as _boost
-        _boost.held_for(writer).set("dhw", True, t0)
+        _boost.held_for(writer).set("dhw", True, _dt_util.now())
         asyncio.run(_boost.persist(writer))
         _far = max(_acc.LEAD_BUCKETS)
         writer._accuracy.note_lead_prediction(t0 + _dt.timedelta(hours=_far), _far, 21.0)
@@ -1469,16 +1494,17 @@ def _instant_arm(by_name) -> None:
         # D1-s2-01: the snapshot ring embeds the accuracy learner, due and all,
         # through the real writer the heartbeat calls.
         writer._snapshot_ring.take(
-            t0, writer._learner_snapshot_payloads(), writer._accuracy.summary(), True)
+            _dt_util.now(), writer._learner_snapshot_payloads(), writer._accuracy.summary(), True)
         asyncio.run(writer._async_save_snapshots())
         written = {n: by_name[n][0] for n in ("boost", "accuracy", "snapshots")}
         wrote = {n: json.loads(_storage._DISK[k]) for n, k in written.items()}
-        ahead_written = sorted(
-            n for n, doc in wrote.items() if any(_utc(w) > _utc(t0) for _p, w in _instants(doc)))
         for name, key in written.items():
-            for _k, _l, kept in _load(name, key, wrote[name]):
+            for _k, _l, kept, zone, _w in _load(name, key, payload=wrote[name]):
                 if json.dumps(kept, sort_keys=True) != json.dumps(wrote[name], sort_keys=True):
                     lead_lost.append(f"{name} (writer round trip)")
+                if any(_utc(w, zone) > t0 for _p, w in _instants(wrote[name])):
+                    ahead_written.append(name)
+        ahead_written = sorted(set(ahead_written))
     finally:
         QuarantiningStore.async_load = original
         _dt_util.freeze(None)

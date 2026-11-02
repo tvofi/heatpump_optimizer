@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""host_zone_features.py -- run tests/features.py under several zones (R10-SUITE-HOST-DETERMINISM).
+"""host_zone_features.py -- run suite scripts under several zones (R10-SUITE-HOST-DETERMINISM).
 
 The stub's ``DEFAULT_TIME_ZONE`` is Home Assistant's configured zone, read
 from ``HASTUB_TZ``; the process zone is ``TZ``. A check that names an instant
@@ -11,11 +11,22 @@ prints one RESULT line per zone; it exits 1 when any zone is red.
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/host_zone_features.py
     python3 dev/audit/harnesses/host_zone_features.py --mutant all
 
+    python3 dev/audit/harnesses/host_zone_features.py --suite --jobs 3
+
+``--suite`` runs every script ``tests/run.sh`` invokes (its ``run`` and
+``run_always`` lines, the rule run.sh's own wiring check reads), each under
+every zone, and prints one ``RESULT <script>.<zone>`` line per pair and a
+``RESULT zone.<zone>=<passed>/<total>`` count per zone. The ``gate`` row is
+the gate's own environment (``TZ=UTC``, ``HASTUB_TZ`` unset), the null row.
+A script ``tests/gate_lock.py needs-lease`` names ``lease`` measures the
+machine, so it runs alone after the pool; no script runs beside itself.
+
 ``--mutant NAME`` (or ``all``) runs a detached worktree of ``HEAD``
 with one fixed site restored to its host-zone read, and reports each mutant
 KILLED when at least one zone is red, SURVIVED otherwise; the unmutated run is
-the null control. Each run is a full features.py pass per zone: minutes, not
-seconds, so it is not one of ``tests/harness_headers.py``'s executed headers.
+the null control. Each run is a full pass of the mutant's script per zone:
+minutes, not seconds, so it is not one of ``tests/harness_headers.py``'s
+executed headers.
 """
 from __future__ import annotations
 
@@ -24,7 +35,9 @@ import os
 import re
 import subprocess
 import sys
+import shlex
 import tempfile
+import threading
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
@@ -43,12 +56,26 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 ZONES = ("UTC", "America/New_York", "Asia/Tokyo", "Europe/Stockholm")
+# The suite sweep: the gate's own environment, four whole-hour zones, a
+# half-hour one, and Europe/London, a DST zone whose 2026 transitions fall on
+# the EU dates the suite's own instants read (2026-03-29, 2026-10-25), with a
+# winter offset of zero, so a leak shows only across the transition.
+SUITE_ZONES = ("gate", "UTC", "America/New_York", "Asia/Tokyo", "Europe/Stockholm",
+               "Asia/Kolkata", "Europe/London")
 SUMMARY = re.compile(r"(ALL (\d+)|(\d+) of (\d+)) FEATURE CHECKS (PASSED|FAILED)")
-FAIL = re.compile(r"^\s*FAIL\s+(.*)$")
+FAIL = re.compile(r"^\s*FAIL\b:?\s*(.*)$")
+INVOCATION = re.compile(r'^\s*run(?:_always)? ("\$PYTHON"|node) (tests/\S+)(.*)$')
 
 # Each fixed site, as (file, fixed text, the host-zone read it replaced).
 # A mutant is killed when a zone other than UTC reads it red.
 MUTANTS = {
+    # The instant arm's naive leaves, read as UTC whatever zone the store's
+    # loader reads them in: round 2's finite_boundary leak.
+    "finite_boundary_leaf_zone": (
+        "tests/finite_boundary.py",
+        '        zone = getattr(self, "_naive_zone", _dt.timezone.utc) or _dt.timezone.utc\n',
+        "        zone = _dt.timezone.utc\n",
+    ),
     "nometer_month": (
         "tests/features.py",
         "    zone = _bo_dt.DEFAULT_TIME_ZONE\n",
@@ -72,10 +99,29 @@ MUTANTS = {
 }
 
 
+#: ``both`` sets the host zone (``TZ``) and Home Assistant's configured zone
+#: (``HASTUB_TZ``) together; ``tz`` sets the host zone alone, leaving the
+#: configured zone at the stub's default, which isolates a host-time read
+#: from a check whose expectation is a function of the configured zone.
+AXIS = os.environ.get("HOST_ZONE_AXIS", "both")
+
+
+def zone_env(tree: Path, zone: str) -> dict:
+    env = {**os.environ, "PYTHONPATH": str(tree / "tests" / "hastub"),
+           "GOLDEN_MODE": os.environ.get("GOLDEN_MODE", "drift")}
+    if zone == "gate":
+        env.pop("HASTUB_TZ", None)
+        env["TZ"] = "UTC"
+    elif AXIS == "tz":
+        env.pop("HASTUB_TZ", None)
+        env["TZ"] = zone
+    else:
+        env.update(HASTUB_TZ=zone, TZ=zone)
+    return env
+
+
 def run_zone(tree: Path, script: str, zone: str) -> tuple[str, str, list[str]]:
-    env = {**os.environ, "HASTUB_TZ": zone, "TZ": zone,
-           "PYTHONPATH": str(tree / "tests" / "hastub")}
-    proc = subprocess.run([sys.executable, script], cwd=tree, env=env,
+    proc = subprocess.run([sys.executable, script], cwd=tree, env=zone_env(tree, zone),
                           capture_output=True, text=True, check=False)
     out = proc.stdout + proc.stderr
     found = SUMMARY.findall(out)
@@ -89,15 +135,105 @@ def run_zone(tree: Path, script: str, zone: str) -> tuple[str, str, list[str]]:
 
 
 def run_tree(tree: Path, script: str, zones: tuple[str, ...], label: str) -> bool:
-    with ThreadPoolExecutor(max_workers=len(zones)) as pool:
-        results = list(pool.map(lambda z: run_zone(tree, script, z), zones))
+    if script != "tests/features.py":
+        rows = {(script, z): v for (script, z), v in
+                sweep(tree, [suite_command(script)], zones, len(zones)).items()}
+        results = [(z, *rows[(script, z)]) for z in zones]
+    else:
+        with ThreadPoolExecutor(max_workers=len(zones)) as pool:
+            results = list(pool.map(lambda z: run_zone(tree, script, z), zones))
     red = False
     for zone, verdict, fails in results:
         print(f"RESULT {label}.{zone.replace('/', '_')}={verdict}", flush=True)
-        if not verdict.startswith("pass:"):
+        if not verdict.startswith("pass"):
             red = True
-            for name in fails:
+            for name in fails[:12]:
                 print(f"  FAIL {name}")
+    return red
+
+
+def suite_commands(tree: Path) -> list[list[str]]:
+    """Every script tests/run.sh invokes, with its arguments, once each."""
+    out, seen = [], set()
+    for line in (tree / "tests" / "run.sh").read_text().splitlines():
+        m = INVOCATION.match(line)
+        if not m:
+            continue
+        runner, script, rest = m.groups()
+        cmd = [sys.executable if runner == '"$PYTHON"' else "node", script,
+               *(a.replace("$GOLDEN_REF", os.environ.get("GOLDEN_REF", "origin/main"))
+                 for a in shlex.split(rest))]
+        if tuple(cmd) not in seen:
+            seen.add(tuple(cmd))
+            out.append(cmd)
+    return out
+
+
+def suite_command(script: str) -> list[str]:
+    return [sys.executable if script.endswith(".py") else "node", script]
+
+
+def _label(cmd: list[str]) -> str:
+    return " ".join(cmd[1:])
+
+
+def _run_cmd(tree: Path, cmd: list[str], zone: str) -> tuple[str, list[str]]:
+    proc = subprocess.run(cmd, cwd=tree, env=zone_env(tree, zone), capture_output=True,
+                          text=True, check=False, stdin=subprocess.DEVNULL)
+    out = proc.stdout + proc.stderr
+    lines = [ln.strip() for ln in out.splitlines() if re.search(r"PASSED|FAILED", ln)]
+    tail = lines[-1][:90] if lines else ""
+    fails = [m.group(1) for ln in out.splitlines() if (m := FAIL.match(ln))]
+    word = "pass" if proc.returncode == 0 else f"fail(rc={proc.returncode})"
+    return f"{word} :: {tail}", fails
+
+
+def _needs_lease(tree: Path, script: str) -> bool:
+    with tempfile.NamedTemporaryFile("w", suffix=".txt", delete=False) as fh:
+        fh.write(script + "\n")
+    try:
+        got = subprocess.run([sys.executable, "tests/gate_lock.py", "needs-lease", fh.name],
+                             cwd=tree, capture_output=True, text=True, check=False)
+    finally:
+        os.unlink(fh.name)
+    return got.stdout.strip() == "lease"
+
+
+def sweep(tree: Path, cmds: list[list[str]], zones: tuple[str, ...], jobs: int) -> dict:
+    """(script label, zone) -> (verdict, fails); prints each as it lands."""
+    locks = {_label(c): threading.Lock() for c in cmds}
+    alone = [c for c in cmds if _needs_lease(tree, c[1])]
+    pooled = [(c, z) for z in zones for c in cmds if c not in alone]
+    results: dict = {}
+    printing = threading.Lock()
+
+    def one(item):
+        cmd, zone = item
+        with locks[_label(cmd)]:
+            verdict, fails = _run_cmd(tree, cmd, zone)
+        results[(_label(cmd), zone)] = (verdict, fails)
+        with printing:
+            print(f"RESULT {_label(cmd)}.{zone.replace('/', '_')}={verdict}", flush=True)
+            if not verdict.startswith("pass"):
+                for name in fails[:12]:
+                    print(f"  FAIL {name}", flush=True)
+
+    with ThreadPoolExecutor(max_workers=jobs) as pool:
+        list(pool.map(one, pooled))
+    for zone in zones:
+        for cmd in alone:
+            one((cmd, zone))
+    return results
+
+
+def suite_main(tree: Path, zones: tuple[str, ...], jobs: int) -> bool:
+    cmds = suite_commands(tree)
+    results = sweep(tree, cmds, zones, jobs)
+    red = False
+    for zone in zones:
+        passed = sum(results[(_label(c), zone)][0].startswith("pass") for c in cmds)
+        red = red or passed != len(cmds)
+        print(f"RESULT zone.{zone.replace('/', '_')}={passed}/{len(cmds)}", flush=True)
     return red
 
 
@@ -122,8 +258,15 @@ def main() -> int:
     ap.add_argument("--script", default="tests/features.py")
     ap.add_argument("--zones", default=",".join(ZONES))
     ap.add_argument("--mutant", choices=[*MUTANTS, "all"])
+    ap.add_argument("--suite", action="store_true",
+                    help="every script tests/run.sh invokes, under the suite zones")
+    ap.add_argument("--jobs", type=int, default=3)
     args = ap.parse_args()
     zones = tuple(z for z in args.zones.split(",") if z)
+    if args.suite:
+        if args.zones == ",".join(ZONES):
+            zones = SUITE_ZONES
+        return 1 if suite_main(ROOT, zones, args.jobs) else 0
     if not args.mutant:
         return 1 if run_tree(ROOT, args.script, zones, "null") else 0
     names = list(MUTANTS) if args.mutant == "all" else [args.mutant]
@@ -132,7 +275,7 @@ def main() -> int:
         for name in names:
             tree = mutant_tree(name, Path(tmp))
             try:
-                red = run_tree(tree, args.script, zones, name)
+                red = run_tree(tree, MUTANTS[name][0], zones, name)
             finally:
                 subprocess.run(["git", "worktree", "remove", "--force", str(tree)],
                                cwd=ROOT, check=False)
