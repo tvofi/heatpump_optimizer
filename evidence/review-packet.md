@@ -1,57 +1,44 @@
 # Review packet #3065
-head: 1ac45d875522d5ab8040f8d89d1f05a7aeadda6d
-base: b5df066e7a23e914ee81de83ef243097b3b397a3
+head: 71a7f87e2593f3548281b8d4660f44b7b7f00196
+base: 8247a1ed10f66baaa173d30be1696907c6bbae32
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=124792395542 success
-arch-score / arch-score id=124885224358 success
-arm id=124792166729 skipped
-budget-raise-gate / budget-raise-gate id=124885227696 success
-cancel-superseded id=124885213239 success
-codeql id=124885189427 skipped
-codeql / Analyze (actions) id=124885182497 success
-codeql / Analyze (javascript-typescript) id=124885182676 success
-codeql / Analyze (python) id=124885214578 success
-gate id=124885190055 in_progress
-governance id=124885231434 skipped
-governance / delivery-status id=124885182822 success
-governance / delivery-status-publish id=124885182428 skipped
-governance / env-matrix id=124885183682 success
-governance / instrument-self-tests id=124885182327 failure
-governance / policy-docs id=124885222523 success
-governance / record id=124885182615 skipped
-governance / wave-script id=124885182776 success
-hassfest id=124885229985 skipped
-hassfest / hassfest id=124885182511 success
-kernel-points id=124885223145 skipped
-pr-contract / pr-contract id=124885190160 success
-prelude id=124885215943 success
-refresh id=124885216270 success
-tests id=124885225332 skipped
-tests / arch-instrument id=124885183649 success
-tests / briefs id=124885221834 success
-tests / browser id=124885183592 success
-tests / ci-ratchet id=124885183603 skipped
-tests / claims-autofix id=124885183772 skipped
-tests / closure-scope id=124885227025 success
-tests / closures id=124885183607 success
-tests / closures-autofix id=124885184345 skipped
-tests / coverage id=124885183550 success
-tests / coverage-ratchet id=124885184466 success
-tests / fast (3.14) id=124885183821 success
-tests / graders-head-copy id=124885183824 success
-tests / lane-proofs id=124885183861 success
-tests / mutation id=124885182443 success
-tests / mutation-autofix id=124885184075 skipped
-tests / mutation-pins id=124885183368 skipped
-tests / nightly-ha id=124885183643 skipped
-tests / nightly-status id=124885211738 success
-tests / replay id=124885183974 skipped
-tests / typing id=124885183587 success
-validate id=124885189470 skipped
-validate / validate-hacs id=124885225959 success
+## Gate digest: pending
+CodeQL id=125069970642 neutral
+arch-score / arch-score id=125069605742 success
+arm id=125069538443 skipped
+budget-raise-gate / budget-raise-gate id=125069605800 success
+cancel-superseded id=125069512155 success
+codeql / Analyze (actions) id=125069605613 success
+codeql / Analyze (javascript-typescript) id=125069605574 success
+codeql / Analyze (python) id=125069605606 in_progress
+governance / delivery-status id=125069605616 success
+governance / delivery-status-publish id=125069607733 skipped
+governance / env-matrix id=125069605647 in_progress
+governance / instrument-self-tests id=125069605539 in_progress
+governance / policy-docs id=125069605699 success
+governance / record id=125069607291 skipped
+governance / wave-script id=125069605726 success
+hassfest / hassfest id=125069605531 success
+kernel-points id=125069606837 skipped
+prelude id=125069512193 in_progress
+refresh id=125069511911 success
+tests / arch-instrument id=125069785677 queued
+tests / briefs id=125069605633 success
+tests / browser id=125069785621 in_progress
+tests / closure-scope id=125069605657 success
+tests / closures id=125069785635 queued
+tests / coverage id=125069785608 in_progress
+tests / fast (3.14) id=125069785705 queued
+tests / mutation id=125069605694 success
+tests / mutation-autofix id=125069881793 skipped
+tests / mutation-pins id=125069881278 skipped
+tests / nightly-ha id=125069787161 skipped
+tests / nightly-status id=125069605611 success
+tests / replay id=125069787247 skipped
+tests / typing id=125069785684 queued
+validate / validate-hacs id=125069605691 success
 
 ## Refusals
 none
@@ -60,9 +47,12 @@ none
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 
 ## carry_audit at the head
-NOTE body item 368c1fce: dismissed:evidence line recording verified behaviour (item f2b7b8d4)
+NOTE body item 7805afb9: R10-FLY-RELAY-REVIEW-FF
+NOTE body item 1e6f8c61: R10-FLY-RELAY-REVIEW-FF
+NOTE body item 1439dc6e: R10-FLY-RELAY-REVIEW-FF
+NOTE body item b03dddb3: R10-FLY-RELAY-REVIEW-FF
 NOTE body item 1b2f5911: dismissed:the harness already refuses a dirty file, and a seat that commits during its run is the defect
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
 ok         tests/structure.py
@@ -325,7 +315,7 @@ index 000000000..8357a8007
 + }
 +}
 diff --git a/dev/audit/harnesses/r10_carry_parser_mutants.py b/dev/audit/harnesses/r10_carry_parser_mutants.py
-index 562737e7b..2d1efe6e1 100644
+index 491a45d6c..170a3fff9 100644
 --- a/dev/audit/harnesses/r10_carry_parser_mutants.py
 +++ b/dev/audit/harnesses/r10_carry_parser_mutants.py
 @@ -60,11 +60,11 @@ REL = "tools/audit/carry_audit.py"
@@ -427,7 +417,7 @@ index 562737e7b..2d1efe6e1 100644
      ("I-why-block", '"" if block_sec\n', '"" if False\n'),
      ("I-why-note", '"section" if note_sec else "lead" if LEAD.match(first)\n                   else "under', '"section" if False else "lead" if LEAD.match(first)\n                   else "under'),
      ("I-why-vlead", 'else "lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        elif', 'else "lead" if False\n                   else "under lead" if inherited else "")\n        elif'),
-@@ -171,7 +198,7 @@ MUTANTS = [
+@@ -176,7 +203,7 @@ MUTANTS = [
      # carry_refs / carry_dests: the segment scope (M15), the destinations kept
      ("M15", "        for ref in ITEM_REF.findall(seg):", "        for ref in ITEM_REF.findall(text):"),
      ("R-found", "        found += ds\n", "        found += []\n"),
@@ -436,7 +426,7 @@ index 562737e7b..2d1efe6e1 100644
      ("R-seg", "        ds = seg_dests(seg)", "        ds = seg_dests(seg.split(\"(\", 1)[0])"),
      ("R-dests", "    return carry_refs(text)[0]", "    return carry_refs(text)[1]"),
      # seg_dests: the rest, dismissed, the split, each token predicate
-@@ -209,8 +236,8 @@ MUTANTS = [
+@@ -214,8 +241,8 @@ MUTANTS = [
      ("A-union-off", '        r["dests"] = r["dests"] + refs.get(r["id"], [])', "        pass"),
      ("A-bad", "            (notes if ok else bad).append(", "            notes.append("),
      ("A-note", '(f"{tok}: {note}" if note else tok)', "(tok)"),
@@ -447,19 +437,19 @@ index 562737e7b..2d1efe6e1 100644
      # ledger_unrouted: the key and the marker
      ("L-key", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if not carry_dests(ln)]"),
      ("L-carry", "            if LEDGER_FINDING.search(ln) and not carry_dests(ln)]", "            if LEDGER_FINDING.search(ln)]"),
-@@ -249,6 +276,10 @@ MUTANTS = [
+@@ -254,6 +281,10 @@ MUTANTS = [
      # ... and a shallow clone, whose rc 1 may be its graft, keeps it too
      ("B2-shallow", B2_SHALLOW, "        shallow = False"),
      ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
 +    # load_dests: P319, the round ref is read on the explicit-ref path too
 +    # load_dests: P43, a pull request's own carry files join at the pre-flight
-+    ("P43-extra", "for n in r.stdout.split() if n.endswith(\".json\")]  # mut:extra", "for n in []]  # mut:extra"),
++    ("P43-extra", "carry |= carry_issues(repo, extra_ref)  # mut:extra", "pass  # mut:extra"),
 +    ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
  ]
  
  
 diff --git a/dev/audit/harnesses/r10_seat_selftests_mutants.py b/dev/audit/harnesses/r10_seat_selftests_mutants.py
-index 266210393..244b8237b 100644
+index 2defad3e7..29bc51977 100644
 --- a/dev/audit/harnesses/r10_seat_selftests_mutants.py
 +++ b/dev/audit/harnesses/r10_seat_selftests_mutants.py
 @@ -216,6 +216,19 @@ MUTANTS = [
@@ -482,7 +472,7 @@ index 266210393..244b8237b 100644
      # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
      ("merge_train-12", "merge_train.py",
       '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
-@@ -302,6 +315,7 @@ MUTANTS = [
+@@ -314,6 +327,7 @@ MUTANTS = [
       '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
      # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
      ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
@@ -490,7 +480,7 @@ index 266210393..244b8237b 100644
      # #2853's review: the class the copy enumeration missed is a link to an
      # in-tree file it does not name. prepr-11 renames a LISTED entry (the
      # pathspec arm); prepr-13 stops the copy taking the generator's own link
-@@ -431,13 +445,39 @@ MUTANTS = [
+@@ -443,13 +457,39 @@ MUTANTS = [
       '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
      ("cloud_relay-31", "cloud_relay.sh", '  if now - start <= lim: continue\n', ''),
      ("cloud_relay-32", "cloud_relay.sh", '  if not held(f): continue\n', ''),
@@ -531,7 +521,7 @@ index 266210393..244b8237b 100644
      ("heartbeat-1", "heartbeat.sh", 'git -C "$HERE" push -q --no-verify -f "$remote"', 'git -C "$HERE" push -q --no-verify "$remote"'),
      ("heartbeat-2", "heartbeat.sh", '  if [ "$age" -gt "$max" ]; then', '  if [ "$age" -gt $((max * 100)) ]; then'),
      ("heartbeat-3", "heartbeat.sh", '|| { echo "HEARTBEAT NOT PUSHED: $(printf', '|| { echo "$(printf'),
-@@ -494,7 +534,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
+@@ -506,7 +546,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
  # A mutant planted in a file whose self-test is another instrument's step.
  STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
             "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
@@ -572,10 +562,10 @@ index 000000000..c5f0343f7
 @@ -0,0 +1 @@
 +- [#3065](https://github.com/tvofi/heatpump_optimizer/pull/3065) — **open**, relay, tick loop, bus and carry_audit carries after #2664 (R10-FLY-RELAY-REVIEW-FF) (R10-FLY-RELAY-REVIEW-FF)
 diff --git a/tests/closures.json b/tests/closures.json
-index e52d9f6cf..7ef9e183a 100644
+index 27b2a2cfa..9d3baa297 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3891,6 +3891,7 @@
+@@ -3899,6 +3899,7 @@
     "dev/audit/harnesses/r10_buffer_store.py",
     "dev/audit/harnesses/r10_card_harmony.mjs",
     "dev/audit/harnesses/r10_card_voice_states.mjs",
@@ -584,7 +574,7 @@ index e52d9f6cf..7ef9e183a 100644
     "dev/audit/harnesses/r10_carry_sweep_rows.py",
     "dev/audit/harnesses/r10_channel_line_reach.py",
 diff --git a/tools/audit/carry_audit.py b/tools/audit/carry_audit.py
-index d004c6b1f..ec891da45 100644
+index 9405804d0..59e4b615f 100644
 --- a/tools/audit/carry_audit.py
 +++ b/tools/audit/carry_audit.py
 @@ -24,15 +24,17 @@ starts an item without a bullet. A FINDING item:
@@ -614,7 +604,7 @@ index d004c6b1f..ec891da45 100644
    both     a paragraph that is finding-shaped and ends in `:` is a lead: its
             bullets are the items, it is not one. The bus trailer, `RESULT`
             lines and the attribution line never are.
-@@ -101,18 +103,28 @@ CARRY_SECTIONS = ("forward-carry", "friction")
+@@ -105,18 +107,28 @@ CARRY_SECTIONS = ("forward-carry", "friction")
  NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
  # Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
  TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
@@ -654,7 +644,7 @@ index d004c6b1f..ec891da45 100644
  # The words a seat uses for "this is not done here". LEAD keys an item's first
  # words (or, in a body, its section heading); NONBLOCK flags a verdict item
  # wherever it says so, and is what a blocking section still lets through.
-@@ -128,6 +140,8 @@ BLOCK_HEADING = re.compile(r"\bblock", re.I)
+@@ -141,6 +153,8 @@ QUOTED = re.compile(r'"[^"\n]*"|\u201c[^\u201d\n]*\u201d')
  
  CARRY = re.compile(r"(?<![\w-])Carry:")
  ITEM_REF = re.compile(r"\(item\s+([0-9a-f]{8})\)")
@@ -663,7 +653,7 @@ index d004c6b1f..ec891da45 100644
  # a code span as CommonMark closes one: a backtick run closes only on a run of
  # exactly its own length, on its line or a later one of the same item
  CODE_SPAN = re.compile(r"(?<!`)(`+)(?!`)[\s\S]*?(?<!`)\1(?!`)")
-@@ -137,6 +151,23 @@ BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
+@@ -150,6 +164,23 @@ BRIEF_TOK = re.compile(r"\AO(\d+)(?:-[a-z0-9][a-z0-9-]*)?\Z")
  
  
  # ------------------------------------------------------------------ parsing
@@ -687,7 +677,7 @@ index d004c6b1f..ec891da45 100644
  def items(text: str, verdict: bool) -> list[dict]:
      """The finding-shaped items of one markdown text, in order:
      {"id", "section", "text", "flagged"} (every item; `flagged` marks the
-@@ -190,29 +221,30 @@ def items(text: str, verdict: bool) -> list[dict]:
+@@ -203,29 +234,30 @@ def items(text: str, verdict: bool) -> list[dict]:
              cur.append(ln)
      flush()
  
@@ -729,7 +719,7 @@ index d004c6b1f..ec891da45 100644
                     else "section" if note_sec else "lead" if LEAD.match(first)
                     else "under lead" if inherited else "")
          elif sec.lower() in CARRY_SECTIONS:
-@@ -224,7 +256,7 @@ def items(text: str, verdict: bool) -> list[dict]:
+@@ -237,7 +269,7 @@ def items(text: str, verdict: bool) -> list[dict]:
          it["why"] = why
          it["lead"] = False
          if it["kind"] == "para" and t.endswith(":") and flagged:
@@ -738,7 +728,7 @@ index d004c6b1f..ec891da45 100644
              flagged = False
          it["flagged"] = flagged
          it["id"] = hashlib.sha1(re.sub(r"\s+", " ", t).encode()).hexdigest()[:8]
-@@ -246,17 +278,21 @@ def carry_segments(text: str) -> list[str]:
+@@ -265,17 +297,21 @@ def carry_segments(text: str) -> list[str]:
      return segs
  
  
@@ -766,36 +756,31 @@ index d004c6b1f..ec891da45 100644
  
  
  def carry_dests(text: str) -> list[str]:
-@@ -340,10 +376,11 @@ class Dests:
+@@ -406,12 +442,12 @@ def carry_issues(repo, ref: str | None = None) -> set[int]:
  
  
  def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
 -               issue_state=None) -> Dests:
 +               issue_state=None, extra_ref: str | None = None) -> Dests:
-     # A carry file's destination issue is its own `issue` field (brief_lint.mjs
-     # owns the file-name grammar and refuses a name that disagrees with it).
      round_roster = None
 +    git = roster_lib.git_in(str(repo))
      if ref:
          roster = roster_lib.show_roster(str(repo), ref)
-         r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", ref, CARRIES_DIR + "/"],
-@@ -351,7 +388,6 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
-         texts = [subprocess.run(["git", "-C", str(repo), "show", f"{ref}:{n}"], capture_output=True,
-                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]
      else:
 -        git = roster_lib.git_in(str(repo))
          # A checkout behind origin/main reads main's roster, not its own stale
          # one (P98: a detached checkout 387 commits behind refused groups open
          # on main). One containing it keeps its tree, so a pull request's own
-@@ -367,11 +403,21 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
+@@ -426,12 +462,20 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
+                   f"{git(['rev-parse', roster_lib.MAIN_REF])[1].strip()}; roster read at {roster_lib.MAIN_REF}")
          else:
              roster = roster_lib.load_roster_file(str(repo / roster_lib.roster_path(str(repo))))
-         texts = [p.read_text() for p in sorted((repo / CARRIES_DIR).glob("*.json"))]
 -        # The tree's roster lags the round's branch (finding-propagation.md);
 -        # a branch this clone lacks is skipped, which only narrows what passes.
 -        rref = roster_lib.round_ref(git)
 -        if rref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
 -            round_roster = (rref, roster_lib.show_roster(str(repo), rref))
+-    return Dests(roster, carry_issues(repo, ref), briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
 +    # The roster at main, or at an explicit ref, lags the round's branch
 +    # (finding-propagation.md counts a carry landed there), on either path
 +    # (P319: the pre-flight's explicit origin/main parked two carries the round
@@ -804,17 +789,16 @@ index d004c6b1f..ec891da45 100644
 +    rref = roster_lib.round_ref(git)
 +    if rref and rref != ref and not git(["rev-parse", "--verify", "--quiet", rref + "^{commit}"])[0]:
 +        round_roster = (rref, roster_lib.show_roster(str(repo), rref))
++    carry = carry_issues(repo, ref)
 +    # A pull request that adds its own carry file routes to it (P43): the issues of <extra_ref>'s
 +    # carry files join the set, read with one local ls-tree; an unreadable ref adds nothing.
 +    if extra_ref:
-+        r = subprocess.run(["git", "-C", str(repo), "ls-tree", "--name-only", extra_ref, CARRIES_DIR + "/"],
-+                           capture_output=True, text=True)
-+        texts += [subprocess.run(["git", "-C", str(repo), "show", f"{extra_ref}:{n}"], capture_output=True,
-+                                 text=True).stdout for n in r.stdout.split() if n.endswith(".json")]  # mut:extra
-     carry = set()
-     for t in texts:
-         try:
-@@ -392,32 +438,90 @@ def finding_rows(body: str, comments: list[dict]) -> "tuple[list[dict], dict]":
++        carry |= carry_issues(repo, extra_ref)  # mut:extra
++    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
+ 
+ 
+ # ---------------------------------------------------------------- the audit
+@@ -443,32 +487,90 @@ def finding_rows(body: str, comments: list[dict]) -> "tuple[list[dict], dict]":
          b = c.get("body") or ""
          if VERDICT.match(b.lstrip()):
              texts.append((f"review {c.get('id')}", b, True))
@@ -910,7 +894,7 @@ index d004c6b1f..ec891da45 100644
  def report(res: dict, label: str = "") -> int:
      rows = res["rows"]
      for r in rows:
-@@ -539,10 +643,16 @@ def main(argv: list[str]) -> int:
+@@ -613,10 +715,16 @@ def main(argv: list[str]) -> int:
      p.add_argument("--repo", default=REPO)
      p.add_argument("--briefs-dir")
      p.add_argument("--roster-ref", action="append", default=[])
@@ -927,7 +911,7 @@ index d004c6b1f..ec891da45 100644
      r = sub.add_parser("pr")
      r.add_argument("n", type=int)
      s = sub.add_parser("sweep")
-@@ -558,9 +668,29 @@ def main(argv: list[str]) -> int:
+@@ -632,9 +740,29 @@ def main(argv: list[str]) -> int:
      ref = a.roster_ref[0] if a.roster_ref else None
      try:
          if a.cmd == "check":
@@ -959,7 +943,7 @@ index d004c6b1f..ec891da45 100644
          if a.cmd == "pr":
              dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo))
              body, comments = read_pr(a.n, a.repo, None)
-@@ -711,6 +841,26 @@ def _self_test() -> int:
+@@ -806,6 +934,26 @@ def _self_test() -> int:
      r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
      check("load_dests reads the round ref: a group only there passes, the note naming it",
            r["b"] == 0 and any(rnd[0] in n for x in r["rows"] for n in x["notes"]))
@@ -983,10 +967,10 @@ index d004c6b1f..ec891da45 100644
 +    check("... a group on neither is still BAD-DEST at an explicit ref (null control)", r["b"] == 1)
 +    r = run(plant.rstrip() + " Carry: R10-BRDONE\n", d=load_dests(Path(gtmp.name), "origin/main"))
 +    check("... and a group done on the round ref is still refused at an explicit ref", r["b"] == 1)
-     git("update-ref", "-d", "refs/remotes/" + rnd[0])
-     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
-     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
-@@ -982,8 +1132,8 @@ def _self_test() -> int:
+     with contextlib.redirect_stderr(io.StringIO()):
+         sref = sweep_ref(Path(gtmp.name), None)
+     check("a sweep with no --roster-ref reads the round's live roster ref", sref == rnd[0])
+@@ -1102,8 +1250,8 @@ def _self_test() -> int:
                                 "Non-blocking:", "Not blocking:", "Caveat:", "Observation:", "Deferred:",
                                 "Advisory:", "Minor:", "A follow-up:", "An observation:", "One caveat:",
                                 "Two follow-ups:", "Three caveats:")]
@@ -997,7 +981,7 @@ index d004c6b1f..ec891da45 100644
                       for w in ("not blocking", "not a block", "neither blocks", "does not block", "not owed here",
                                 "owed to the record", "minor", "advisory", "a secondary note", "deferred")]
      item_grammar += [(f"NOTE_HEADING reads {w!r}", head, verdict_of("merge", f"## {w}\n\n- a re-booking.\n"),
-@@ -999,7 +1149,7 @@ def _self_test() -> int:
+@@ -1119,7 +1267,7 @@ def _self_test() -> int:
          ("under Friction a `word:` line without the kind's colon continues the item",
           head + "## Friction\n\n- a: unclear: x\nNote: this continues it. Carry: R10-LIVE\n", (), [("section", R_)]),
          ("a verdict naming a short SHA is read", head,
@@ -1006,7 +990,7 @@ index d004c6b1f..ec891da45 100644
      ]
      item_grammar += [("a numbered list item is a bullet",
                        head + "## Friction\n\n1. a: unclear: x.\n2. b: cost: y. Carry: R10-LIVE\n", (),
-@@ -1012,31 +1162,38 @@ def _self_test() -> int:
+@@ -1132,31 +1280,38 @@ def _self_test() -> int:
                            "and does not block the PR (tests.yml:2775).\n"), []),
          ("... `not required check` reads too", head,
           verdict_of("merge", "## Evidence\n\n- composed-proof is not required check and does not block.\n"), []),
@@ -1060,7 +1044,7 @@ index d004c6b1f..ec891da45 100644
          ("a LEAD opening under the Evidence heading is a finding", head,
           verdict_of("merge", "## Evidence\n\n- Residual: the census misses one.\n"), [("lead", U)]),
          ("a lead's bullets under the Evidence heading are findings", head,
-@@ -1048,20 +1205,20 @@ def _self_test() -> int:
+@@ -1168,20 +1323,20 @@ def _self_test() -> int:
          ("a time `later` under the Evidence heading is no deferral", head,
           verdict_of("merge", "## Evidence\n\n- a run 2.5 s later takes the lock.\n"), []),
      ]
@@ -1088,7 +1072,7 @@ index d004c6b1f..ec891da45 100644
          ("nit", "nightly-status is not a required check, and one nit is not blocking: the usage string."),
          ("minor defect", "composed-proof is not a required check and a minor defect stays, not blocking."),
          ("defect", "The guard misses a deleted ref, which is not a required check to fix, so not blocking."),
-@@ -1075,6 +1232,141 @@ def _self_test() -> int:
+@@ -1195,6 +1350,141 @@ def _self_test() -> int:
                        [])]
      item_grammar += [("a later-stage compound is no deferral", head,
                        verdict_of("merge", "## Evidence\n\n- I found no later-stage finding.\n"), [])]
@@ -1256,10 +1240,10 @@ index 75ba79029..3c308cec5 100644
    echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
  fi
 diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
-index 3338eaffb..91e25d21c 100755
+index 75fe9de6b..87eeae5ec 100755
 --- a/tools/audit/seat/bus.sh
 +++ b/tools/audit/seat/bus.sh
-@@ -73,6 +73,12 @@
+@@ -74,6 +74,12 @@
  # idle; `confirm` keeps the same check as the signed gate. VERDICT.md alone
  # does not count: it names the sha by construction, and `app_approve.sh`'s
  # evidence gate exists to make a forged verdict forge artifacts too.
@@ -1272,7 +1256,7 @@ index 3338eaffb..91e25d21c 100755
  #
  # NONCE VISIBILITY. The record lives in `$S` — `$HPO_BUS_STATE` else
  # `$HOME/.zcode/bus`, a per-machine path. `dispatch`, `push-verdict` and
-@@ -193,6 +199,12 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
+@@ -194,6 +200,12 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
    [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
    return 0
  }
@@ -1285,7 +1269,7 @@ index 3338eaffb..91e25d21c 100755
  numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
  approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
    local k=${HPO_IDENTITY_DIR:-$HOME/.zcode}/identity-approver.pem
-@@ -211,6 +223,45 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
+@@ -212,6 +224,45 @@ signed_by_approver() { # pr commit -> rc 0 when the commit's bus-signature is th
    rc=$?; rm -rf "$t"; return $rc
  }
  
@@ -1331,7 +1315,7 @@ index 3338eaffb..91e25d21c 100755
  push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
    local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
    numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
-@@ -229,6 +280,12 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
+@@ -230,6 +281,12 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
    # proposal confirm would refuse must be refused here, while the reviewer is
    # still working, not after its seat has gone idle.
    why=$(dispatch_binding "$v" "$pr" "$hsha") || die "push-verdict: $why"
@@ -1344,7 +1328,7 @@ index 3338eaffb..91e25d21c 100755
    t=$(mktemp -d) || die "push-verdict: no temporary directory"
    mkdir -p "$t/w/evidence" && cp "$v" "$t/w/VERDICT.md" && cp -R "$ev"/. "$t/w/evidence/" \
      || { rm -rf "$t"; die "push-verdict: could not stage the verdict and its evidence"; }
-@@ -277,7 +334,9 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
+@@ -278,7 +335,9 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
    c=$(git commit-tree "$tree" $parent -m "$msg") || { printf 'bus: REFUSE: commit-tree failed\n' >&2; return 1; }
    python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" guard --ref "$fam/$pr" --message "$msg" \
      || { printf 'bus: REFUSE: %s/%s would publish this host (#2310)\n' "$fam" "$pr" >&2; return 1; }
@@ -1355,7 +1339,7 @@ index 3338eaffb..91e25d21c 100755
    printf '%s/%s %s\n' "$fam" "$pr" "$c"
  }
  
-@@ -457,8 +516,21 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
+@@ -469,8 +528,21 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
    git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
    git cat-file -e "$h^{commit}" 2>/dev/null \
      || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
@@ -1379,7 +1363,7 @@ index 3338eaffb..91e25d21c 100755
    # THE REVIEWABLE HEAD (K15 (d); the #2577 carry, built by R10-FLOW-MAIN-GATE).
    # A head where a required context's latest run concluded failure is not
    # reviewable. merge_train.py's `classify`, the one owner of that state, answers
-@@ -602,6 +674,19 @@ watch() {
+@@ -626,6 +698,19 @@ watch() {
      esac
      shift
    done
@@ -1399,7 +1383,7 @@ index 3338eaffb..91e25d21c 100755
    while :; do
      watch_once "$post"; rc=$?
      [ $rc = 3 ] || return $rc
-@@ -910,6 +995,26 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+@@ -935,6 +1020,26 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
    out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
    [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
    expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
@@ -1426,7 +1410,7 @@ index 3338eaffb..91e25d21c 100755
    # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
    # head whose range against the named reviewed head is clean starts a second
    # reviewer for a proof that did not move. `hm` is a merge-only move (main
-@@ -1386,6 +1491,39 @@ B
+@@ -1438,6 +1543,39 @@ B
    [ $rc = 0 ] && [ "$(tip review/7)" != "$r7" ]
    expect "and proposes the same verdict with a clean first line (the null control)" $?
  
@@ -1466,7 +1450,7 @@ index 3338eaffb..91e25d21c 100755
    # THE THREE-ROUND RULE (fixer.md, "Past three rounds"): verdict/<pr>'s history keeps every
    # round, so the blocked commits on it are the rounds a dispatch would follow.
    blk() { git -C "$W/seat" commit-tree "$(git -C "$W/seat" rev-parse "$h1^{tree}")" ${2:+-p "$2"} \
-@@ -1394,8 +1532,9 @@ B
+@@ -1446,8 +1584,9 @@ B
    printf '## Summary\nround four, repaired\n' > "$W/body31"
    f1=$(blk 1); f2=$(blk 2 "$f1"); git -C "$W/seat" push -q origin "$f2:refs/heads/verdict/31"
    out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
@@ -1478,7 +1462,7 @@ index 3338eaffb..91e25d21c 100755
    f1=$(blk 3 "$f2"); git -C "$W/seat" push -q origin "$f1:refs/heads/verdict/31"; n=$(grep -c . "$W/state/dispatched")
    out=$(run dispatch 31 "$h1" cmsg_T); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "3 blocked round(s).*## Re-cut" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] \
-@@ -1483,6 +1622,40 @@ B
+@@ -1539,6 +1678,40 @@ B
    out=$(cd "$W/seat" && run push-design-verdict R10-G9 "$W/dverd.md"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
  
@@ -1520,10 +1504,10 @@ index 3338eaffb..91e25d21c 100755
    printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
    [ "$fail" = 0 ]
 diff --git a/tools/audit/seat/cloud_dispatch.py b/tools/audit/seat/cloud_dispatch.py
-index 5346afba2..2e28e22d2 100644
+index 944232896..656146abb 100644
 --- a/tools/audit/seat/cloud_dispatch.py
 +++ b/tools/audit/seat/cloud_dispatch.py
-@@ -217,12 +217,13 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
+@@ -218,12 +218,13 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
              f"mutant, a deferral, a follow-up, a task owed after the merge) is its own bullet under "
              f"`## Findings` ending in its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>` "
              f"(finding-propagation.md). Everything else (RESULT lines, re-runs, CI state, figures you "
@@ -1543,7 +1527,7 @@ index 5346afba2..2e28e22d2 100644
              f"`{head}` (e.g. `ev/HEAD.txt` holding the head you reviewed, beside your command output): "
              f"bus.sh refuses a verdict whose `ev/` names no head. Do NOT run "
              f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
-@@ -999,10 +1000,11 @@ def self_test() -> int:
+@@ -1000,10 +1001,11 @@ def self_test() -> int:
            "file under `ev/` contain the full 40-hex head `" + head + "`" in msg and "ev/HEAD.txt" in msg)
      check("the reviewer is told to separate findings, each with its own Carry:, from evidence",
            "`## Findings` ending in its own `Carry: " in msg and "goes under `## Evidence`" in msg
@@ -1935,10 +1919,10 @@ index 12dd735b8..0974eb172 100644
  }
  
 diff --git a/tools/audit/seat/instruments/bus.sh.md b/tools/audit/seat/instruments/bus.sh.md
-index 4bf8d046f..3b7f23e72 100644
+index 77451c279..ca3c2e33c 100644
 --- a/tools/audit/seat/instruments/bus.sh.md
 +++ b/tools/audit/seat/instruments/bus.sh.md
-@@ -35,3 +35,13 @@ The design steps (decision 0014) write the same append-only way:
+@@ -41,3 +41,13 @@ The design steps (decision 0014) write the same append-only way:
  line is `Design review: approve <sha>` or `Design review: revise <sha> <class>`,
  and `<sha>` must be the current tip of `design/<topic>`: a design that moved
  under the review is refused, and so is a topic with no design ref.
@@ -2370,10 +2354,10 @@ index dfb263c9e..454015779 100644
    sleep "$every"
  done
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index acca5adc0..b3910f927 100755
+index e4c10b70a..6cb5805a5 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
-@@ -2805,6 +2805,18 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
+@@ -2846,6 +2846,18 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
    grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
      && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
    st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
