@@ -334,6 +334,14 @@ def self_test() -> int:
              "skip-driver-refused led.json")):
         got = decide(**{**base, **change})
         check(f"decide: {name} is not pushed ({want})", got == want, got)
+    # A conflict on a file no driver owns is answered by that filename alone: the
+    # claim driver's refusal text is for driver-refused statuses (null control:
+    # the same row with an empty driver_err gives the same string).
+    claim_err = "MERGE-CLAIM: refused tests/golden/claimed_drift.txt\n  coord_a: x"
+    for label, err in (("a claim-refusal driver_err", claim_err), ("an empty driver_err", "")):
+        got = decide(**{**base, "text_conflicts": ["led.json", "a.py"], "driver_err": err})
+        check(f"decide: a conflict on a file no driver owns, with {label}, is exactly "
+              "skip-other-conflict a.py", got == "skip-other-conflict a.py", got)
 
     # THE PIN CHAIN (R10-TICK-TRAIN, 2026-10-15): this bot re-merged main into
     # #2282 twice while its mutation-pins shards ran (532eb85d3: shard 2 and
@@ -540,6 +548,7 @@ def self_test() -> int:
         check("a claim conflict the driver refuses relays the driver's own message under today's line, "
               "naming each scenario both sides rewrote with both sides' lines",
               first == f"skip-driver-refused {cf}" and want in relayed
+              and relayed.startswith(f"{CLAIM_REFUSED}{cf}")
               and all(f"{s}: this branch ['ours {s[-1]}']; the merge brings in ['main {s[-1]}']"
                       in relayed for s in ("coord_a", "coord_b")), status)
         # Null controls. The driver cannot be run: today's filename list, no guess.
