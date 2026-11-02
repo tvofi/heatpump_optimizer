@@ -35,7 +35,7 @@ import math
 import os
 import subprocess
 import sys
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import NamedTuple
 
@@ -940,7 +940,11 @@ def capture_coordinator(config: dict) -> dict:
     from homeassistant.util import dt as dt_util
     from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
-    dt_util.freeze(START)
+    # The instant START names, aware: the scenario's prices and weather are
+    # naive stamps production reads as UTC, and a naive freeze is handed out
+    # as wall time in the configured zone, which under Asia/Tokyo put the
+    # clock nine hours before the first price. Under UTC the two are one.
+    dt_util.freeze(START.replace(tzinfo=timezone.utc))
     try:
         payload = _capture_coordinator(config)
     finally:
