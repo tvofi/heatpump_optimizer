@@ -15699,6 +15699,27 @@
     "note": "2026-11-01 (triage: dev/programme/triage/s6-batch104.md#P361)"
    },
    "brief": "From triage P361 (orchestrator s10, 2026-11-01; tvofi: \"Each time the plan html is updated, compare the real state against the gantt, mechanically if possible, and have slips surfaced to you to act on, defer or accept\"). The orchestrator's sweep runs a session-local Gantt-drift stand-in after each replan and plan_page render, and orchestrator.md section 13 makes a session-local instrument a defect. Build it as a tracked, self-tested instrument in tools/audit/seat/, keeping the stand-in's name, from that stand-in, which the orchestrator hands over at dispatch. It reads the plan JSON tools/plan/replan.py writes, an accepted baseline, an acks file, the round roster, the open pull requests, the handoff refs and the dispatch ledger's FIRED lines, each as an argument and never a host path. It prints one GANTT-SLIP line per unacknowledged slip: IDLE, a not-done group the plan starts by now plus a grace that no open pull request, handoff ref or FIRED line names (a critical-path group tagged CP and listed first); LATE, a group whose planned finish moved past the baseline's by more than a threshold; CLOSURE, the plan's closure moved past the baseline's by more than a threshold. An ack is act or defer, silencing its key until a time, or accept, silencing it and re-baselining that key. The self-test counts checks through a check() helper, not assert, which python -O strips. It covers each slip kind and its null (a FIRED line or a handoff ref silences IDLE; a finish inside the threshold is not LATE), each ack kind, and accept's re-baseline, and each arm has a mutant. Wire --self-test into a governance.yml run line so selftest_wiring.py --check passes, add the entry file and its INSTRUMENTS.md index line, and classify every new file for tests/entities.py. Out of scope: replan.py's duration model (R10-PLAN-REAL-DURATIONS) and plan_page rendering. triage: dev/programme/triage/s6-batch104.md#P361"
+  },
+  {
+   "group": "R10-REPLAY-OPEN-LOG",
+   "size": "S",
+   "model": "sonnet",
+   "files": [
+    "tools/replay/export.py",
+    "tests/replay.py"
+   ],
+   "after": [],
+   "brief": "Split from R10-REPLAY-REAL-DAY (#3078) by orchestrator ruling after its r8 review (three-round rule: no round 9). Pin the recorder open line in tools/replay/export.py's recorder-open function (added by #3078, not yet on main) on EVERY branch: default SQLite, --db path, and URL. A behavioural test must name the recorder kind on each branch (and the --db path on that branch), with no URL-derived text. Mutants that must be killed: delete the line, make it constant, or mislabel the SQLite branch as MySQL/MariaDB. Null control: the clean head passes. Keep CodeQL py/clear-text-logging-sensitive-data (alert 47) closed.",
+   "carries": [
+    "#3078 r8 blocked finding (mutation-vacuous): the open line on the recorder-open function's default-SQLite branch is unpinned; deleting it, making it constant or mislabelling it leaves every FAST check green."
+   ],
+   "lane": "RP",
+   "issues": [],
+   "fixes": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
