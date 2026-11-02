@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_walk GUARD_OFF 5476d757",
-  "killed_by": "tests/entities.py",
-  "old": "            if SECRET_KEY.search(str(key)) and value not in (None, \"\", [], {}):",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 3fb386d5044e4ca10b5f30c1c6f380139d5ad3e8: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}

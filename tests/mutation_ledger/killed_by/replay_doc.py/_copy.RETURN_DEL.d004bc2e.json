@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_copy RETURN_DEL d004bc2e",
+  "killed_by": "tests/debug_collect.py",
+  "old": "    return re.compile(rf\"(?<![A-Za-z0-9]){re.escape(value)}(?![A-Za-z0-9])\")",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
+}
