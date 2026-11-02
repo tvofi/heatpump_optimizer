@@ -1,7 +1,0 @@
-default -> reading the recorder: SQLite database
---db -> reading the recorder: SQLite database /tmp/tmp.72R17Abfao/x.db
-sqlite url -> reading the recorder: SQLite database
-yaml sqlite -> reading the recorder: SQLite database
-mysql url -> reading the recorder: MySQL/MariaDB database
-exit the recorder MySQL/MariaDB database is MySQL/MariaDB, and reading it needs the MySQLdb or pymysql module, which the Home Assistant container ships: run this inside it (the SSH add-on's `docker exec -it homeassistant`)
-postgresql refusal -> the recorder URL is neither SQLite nor MySQL/MariaDB, the two this export reads

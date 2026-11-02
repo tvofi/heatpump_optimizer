@@ -1,6 +1,0 @@
-ef456f2b24b622c928603b26d8d1ce37b9b75014	refs/heads/fix/r10-replay-real-day
-review_carry: bbcbe2598 -> ef456f2b2  main=origin/main
-  branch-only commits: 1
-  why: all 1 branch-only commit(s) are automatic merges, and app_approve.sh --carry carries the range
-  ef456f2b2  Merge remote-tracking branch 'origin/main' into fix/r10-replay-real-day
-review_carry: CARRY
