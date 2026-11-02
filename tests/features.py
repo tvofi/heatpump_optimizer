@@ -37022,7 +37022,11 @@ async def _pt_degree_at_seam(room):
 # stands, so the two starts part it. The clock is fixed at a night and an
 # afternoon instant: what the check reads is the same at every hour it runs.
 _pt_seams = {}
-for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=UTC), datetime(2026, 1, 15, 15, 7, tzinfo=UTC)):
+# The instants are 03:07 and 15:07 in the configured zone, so the hour the
+# keys name is the local hour the plan's price and comfort windows read, under
+# any ``HASTUB_TZ`` (UTC unless set).
+for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=_fi_dt.DEFAULT_TIME_ZONE),
+               datetime(2026, 1, 15, 15, 7, tzinfo=_fi_dt.DEFAULT_TIME_ZONE)):
     _fi_dt.freeze(_pt_at)
     try:
         for _pt_room in (19.0, 23.0):
@@ -47292,11 +47296,16 @@ def _t3_peak(house, measured, commanded, *, enabled=True):
     dt_util.freeze(_T3_PEAK_NOW)
     try:
         got = _t3_call(c._track_realised_peak)
+        # Read the window at the clock the production fold stamped it with
+        # (``dt_util.now()``: the same instant in the configured zone). The
+        # window key carries the slot's UTC offset, so the UTC literal reads a
+        # different key under a non-UTC ``HASTUB_TZ`` and finds no window.
+        read_at = dt_util.now()
     finally:
         dt_util.freeze(None)
     if isinstance(got, Exception):
         return got
-    return c._peak_tracker.window_snapshot(_T3_PEAK_NOW, c._capacity_tariff())[1]
+    return c._peak_tracker.window_snapshot(read_at, c._capacity_tariff())[1]
 
 
 R.check(
@@ -50961,11 +50970,12 @@ R.check(
 _T6_TS_AWARE = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
 _T6_TS_NAIVE = datetime(2026, 2, 1, 12, 0, 0)
 R.check(
-    "a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock",
+    "a naive timestamp against an aware grid is taken as UTC, and the reverse reads the configured zone's wall clock",
     _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_AWARE)
     == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
     and _t6_comparable_ts("2026-02-01T10:00:00+00:00", _T6_TS_NAIVE)
-    == datetime(2026, 2, 1, 10, 0, 0),
+    == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    .astimezone(dt_util.DEFAULT_TIME_ZONE).replace(tzinfo=None),
     f"naive against aware -> "
     f"{_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_AWARE)!r}; aware "
     f"against naive -> "
@@ -61891,7 +61901,11 @@ from heatpump_optimizer import coordinator as _f11_cm  # noqa: E402
 
 
 async def _f11_midsolve(away: bool):
-    t0 = datetime(2026, 10, 2, 8, 0)
+    # Aware, so the price and forecast stamps and the frozen clock name one
+    # instant in any ``HASTUB_TZ``: a naive stamp is read as UTC against an
+    # aware clock, which under a non-UTC zone leaves no current price slot and
+    # the solve never reaches the write this check drives.
+    t0 = datetime(2026, 10, 2, 8, 0, tzinfo=timezone.utc)
     hass = FakeHass({"sensor.indoor": FakeState("21.4"),
                      "sensor.outdoor": FakeState("-3.0")})
     entry = _f11_Entry(data={"indoor_temp_entity": "sensor.indoor",
@@ -76455,7 +76469,9 @@ R.check(
     and _cp_qw.quiet_reason({"quiet_off_windows": "09:00-09:30"}, _CP_T0) is None
     and _cp_qw.quiet_reason({}, _CP_T0) is None,
 )
-_cp_dt.freeze(_CP_T0)
+# Quiet windows are wall-clock hours in the configured zone, so the instant is
+# the same 23:00 local under any ``HASTUB_TZ`` (``_CP_T0`` is 23:00 UTC).
+_cp_dt.freeze(_CP_T0.replace(tzinfo=_cp_dt.DEFAULT_TIME_ZONE))
 try:
     _CP_ROOM = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
     _cp_quiet = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="22:00-23:30")

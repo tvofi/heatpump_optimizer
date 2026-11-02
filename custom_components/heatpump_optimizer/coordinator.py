@@ -542,8 +542,8 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     """Parse an entry timestamp so it can be ordered against the step grid.
 
     A naive timestamp against an aware grid is taken as UTC, matching
-    ``_get_current_price``; an aware one against a naive grid keeps its own
-    wall clock.
+    ``_get_current_price``; an aware one against a naive grid is read as the
+    configured zone's wall clock (UTC unless the zone is set).
 
     Module level, not a coordinator method: it reads nothing off ``self``
     and never did, and the class it sat in is the one the decomposition

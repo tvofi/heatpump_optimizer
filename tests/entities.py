@@ -36815,13 +36815,17 @@ R.check(
 )
 
 
-def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
+def _coverage_revalidation(
+    floor_fails: bool, late: bool = False, wait_s: int = 300
+) -> tuple[dict, dict, str, dict, list, str]:
     """coverage_tree.sh's reuse plan and floor re-validation under a stub
     interpreter: the first script is reused, the rest measured, and the stub
     grader reports a floor FAIL when asked to. Returns (non-reused metric
     rows per script, executions per script, the stage's output, and per
     ledger -- out/scripts.tsv and out/per/provenance.tsv -- the rows each
-    script holds and how many of them say `reused`)."""
+    script holds and how many of them say `reused`), then the scripts the
+    stage recorded as `nodata` and the one script that, when ``late``, left a
+    descendant writing its coverage data two seconds after it returned."""
     with _tempfile.TemporaryDirectory() as td:
         d = Path(td)
         stub = d / "py"
@@ -36830,7 +36834,10 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
             'case "$1" in\n'
             "  -c) exit 0 ;;\n"
             "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
-            'prev="$a"; done; exit 0 ;;\n'
+            'case "$a" in --rcfile=*) rcf="${a#--rcfile=}";; esac; '
+            'prev="$a"; done\n'
+            '    [ "$3" = combine ] && : > "$(sed -n \'s/^data_file = //p\' "$rcf")"\n'
+            "    exit 0 ;;\n"
             "  tests/closure.py)\n"
             '    [ "$2" = coverage-split ] || exit 0\n'
             "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
@@ -36839,15 +36846,23 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
             "  tests/coverage_ratchet.py)\n"
             '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
             "\n    exit 0 ;;\n"
-            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
+            '  *) echo "$1" >> "$CTR_RAN"\n'
+            '    if [ -n "$CTR_LATE" ] && mkdir "$CTR_LATE/once" 2> /dev/null; then\n'
+            '      echo "$1" > "$CTR_LATE/who"\n'
+            '      df=$(sed -n \'s/^data_file = //p\' "$COVERAGE_PROCESS_START")\n'
+            '      ( sleep 2; echo late > "$df.late" ) < /dev/null > /dev/null 2>&1 &\n'
+            '    fi\n'
+            '    exit 0 ;;\n'
             "esac\n")
         stub.chmod(0o755)
         (d / "reuse").mkdir()
         (d / "work").mkdir()
+        (d / "late").mkdir()
         env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
                "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
                "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
-               "CTR_RAN": str(d / "ran"),
+               "CTR_RAN": str(d / "ran"), "W5P_DESCENDANT_WAIT": str(wait_s),
+               "CTR_LATE": str(d / "late") if late else "",
                "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
         res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
                               env=env, capture_output=True, text=True,
@@ -36863,6 +36878,9 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
                      if (d / "ran").is_file() else []):
             name = Path(line).stem
             ran[name] = ran.get(name, 0) + 1
+        nodata = sorted(p.name for p in (d / "work/out/per").glob("*.nodata"))
+        who = (Path((d / "late/who").read_text().strip()).stem
+               if (d / "late/who").is_file() else "")
         ledgers: dict = {}
         for rel in ("out/scripts.tsv", "out/per/provenance.tsv"):
             f = d / "work" / rel
@@ -36874,11 +36892,12 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
                 per[r[0]] = per.get(r[0], 0) + 1
             ledgers[Path(rel).name] = {
                 "rows": per, "reused": sum(1 for r in rows if r[1:2] == ["reused"])}
-    return runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers
+    return (runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers, nodata,
+            who)
 
 
-_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS = _coverage_revalidation(floor_fails=True)
-_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS = _coverage_revalidation(floor_fails=False)
+_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS, _, _ = _coverage_revalidation(floor_fails=True)
+_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS, _, _ = _coverage_revalidation(floor_fails=False)
 R.check(
     "the coverage floor re-validation re-measures only the scripts it reused",
     len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
@@ -36909,6 +36928,24 @@ R.check(
     f"floor FAIL: {_CRV_LEDGERS} (want each of {sorted(_CRV_RAN)} once, 0 "
     f"reused); floor met: {_CRV_NULL_LEDGERS} (want the same scripts once, 1 "
     "reused, the null control)",
+)
+
+# A measured script whose descendant writes its coverage data after the script
+# returned (#2632: features.py left 740 live workers). The stage waits for the
+# descendant, so the script is recorded as measured, not `nodata`. Null: with
+# no late writer no script reads `nodata` for that reason; planted defect: a
+# wait bound shorter than the late write must refuse, naming the script, never
+# record the missing data as `nodata` in silence.
+_CRV_LATE = _coverage_revalidation(floor_fails=False, late=True)
+_CRV_LATE_REFUSED = _coverage_revalidation(floor_fails=False, late=True, wait_s=0)
+R.check(
+    "a measured script's late-writing descendant is waited for, not recorded as nodata",
+    bool(_CRV_LATE[5]) and f"{_CRV_LATE[5]}.nodata" not in _CRV_LATE[4]
+    and "left descendants still running" not in _CRV_LATE[2]
+    and "left descendants still running" in _CRV_LATE_REFUSED[2]
+    and f"{_CRV_LATE_REFUSED[5]}.nodata" not in _CRV_LATE_REFUSED[4],
+    f"waiting: late script {_CRV_LATE[5]!r}, nodata {_CRV_LATE[4]}; bound 0: "
+    f"{_CRV_LATE_REFUSED[2]!r}",
 )
 
 # The recorded budget is the every-script-measured-once count: the closures
