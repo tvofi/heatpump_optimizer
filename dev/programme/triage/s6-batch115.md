@@ -90,3 +90,65 @@ Binding:
 - **Part (2) needs nothing built.** The roster branch already rolls.
 - **Part (4) is refused on its binding cost.** One more full CI run and 8 closures buy no saving,
   because the 8 open pull requests have already run their CI and merge on one stamp batch.
+
+## P374: a verdict ref takes a second commit with the same tree, and the pull request deadlocks
+
+Verdict: ACCEPT, as a defect in an instrument: option (a), narrowed to `append_commit` in
+`tools/audit/seat/bus.sh`. Option (b) is refused. The carry, b115-P374, goes to
+R10-FLY-RAISE-REVIEWABLE, whose files already hold `bus.sh` and `merge_train.py` and whose next
+step is a fixer.
+
+Source: the orchestrator s10's message of 2026-11-02, about 13:50Z, after a hand fix (seat
+ledger, 13:49:10Z `DEADLOCK-BY-HAND #3173`).
+
+Instances:
+- **#3173** (`fix/r10-agreement-bootstrap-p1`, R10-AGREEMENT-BOOTSTRAP p1). Read from
+  `git cat-file -p` on each commit:
+  - `verdict/3173` got `f9aafd42` at 14:44:06+01, confirmed from `review/3173` at `2eab795f`.
+  - It then got `dba76851` at 14:44:12+01, parented on `f9aafd42` and confirmed from
+    `review/3173` at `e6899918`.
+  - Both have tree `50c657668ec5`. The messages differ only in that `bus-confirmed` line and a
+    `bus-model: opus` line, so the two are not byte-identical.
+- **The double writer is the reviewer's push, not the relay.** `git log origin/review/3173`:
+  - `2eab795f` at 14:43:56+01, on `6bc25136`;
+  - `e6899918` at 14:44:03+01, on `2eab795f`, with an empty diff and the same message.
+  - `push-verdict` therefore ran twice on one verdict, and each review head was confirmed once.
+- **Why the second confirm passed its replay guard.** The guard in `confirm()` (`bus.sh` lines
+  567-571 at origin/main `3905069f3`) reads `posted-signed` before it pushes. The second confirm
+  started before the first had posted, passed, and appended `dba76851`. Only then did
+  `post_verdict` (lines 353-355) refuse it as a replay. That left the posted commit one behind
+  the tip.
+- **Why the train refused.** `merge_train.py` line 2472 refuses when "the newest posted verdict
+  (comment ...) is not verdict/<n>'s tip". That is a deliberate guard, pinned by its self-test
+  arm "a newest posted verdict that is not the bus tip waits (#18: confirmed, not posted)"
+  (line 4773).
+- **One instance** in the seat ledger. The defect has the same shape as P368: a verified
+  deadlock in an instrument, worked around by hand.
+
+Rule run on the instance:
+- With the carry's rule, the reviewer's second `push-verdict` reads `review/3173`'s tip
+  `2eab795f`. Its tree equals the tree being pushed, so it pushes nothing. `e6899918` never
+  exists and there is no second confirm.
+- If two confirms still race, the second reads `verdict/3173`'s tip `f9aafd42`, whose tree is
+  the same, and appends nothing. The posted commit stays the tip, which is the state the hand fix
+  restored.
+
+Cost:
+- One guard in one shell function, `append_commit`, which both `push-verdict` and `confirm`
+  call: about 6 lines.
+- Three self-test arms in `bus.sh`'s existing self-test and one mutant in
+  `dev/audit/harnesses/r10_seat_selftests_mutants.py`.
+- An S group that already holds `bus.sh`, so no new group and no new file.
+- Option (b) would loosen `merge_train.py`'s verdict-identity check, a merge gate, for every pull
+  request in order to cover a state that (a) stops from being written. That is the binding
+  cost of refusing (b).
+- No capped file is touched by this ruling.
+
+Binding:
+- **Why ACCEPT.** A verified defect in an instrument, not a proposal. It deadlocks any pull
+  request whose reviewer re-runs `push-verdict`, production pull requests included.
+- **The tree is the right key.** `post_verdict` already treats "<pr> <tree>" as what was signed,
+  and "each round's nonce makes its tree distinct" (lines 346-351). A same-tree append can only
+  repeat a verdict, never carry a new one.
+- **Delivery.** The carry lands when this batch is on main. If R10-FLY-RAISE-REVIEWABLE's fixer
+  is dispatched before then, the orchestrator hands the fixer this entry directly.
