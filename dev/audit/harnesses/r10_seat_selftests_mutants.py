@@ -257,6 +257,10 @@ MUTANTS = [
     ("merge_train-40", "merge_train.py", '            entry["front"] = True\n', "            pass\n"),
     ("merge_train-41", "merge_train.py", 'key=lambda e: (not (e.get("priority") or e.get("front")), not crit(e)))',
      'key=lambda e: (not crit(e), not (e.get("priority") or e.get("front"))))'),
+    # Round 3: train_add's start path orders a stopped train's spool plus the entry by drain_order.
+    ("merge_train-42", "merge_train.py",
+     "queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start",
+     "queue = [entry] + spooled if front else spooled + [entry]  # mut:start"),
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
