@@ -1,49 +1,83 @@
-Re-centres the replay cost budgets (owner `cpu_ratio`, synthetic `cpu_ratio`, synthetic `loop_cpu_ratio`) on the readings the CI `replay` job itself takes, and pins two sites the 3078 review mutated. Closes #3129. Measures only what ran.
+Keys the synthetic fixture's replay `cpu_ratio` budget by runner class. The class signal is the run's own BLAS ruler: the median reference-solve `ref_ms` that its `cost` line already prints, never a runner name. Each class's budget is centred on that class's own CI lane readings. A run whose ruler falls in no band is refused by name, and no default budget is assumed. It keeps the two pins and the re-centred owner `cpu_ratio` 337.8 from the earlier rounds. Closes #3129.
 
 ## Head
 
-541033f1c60362c16eb39501f8ba5f6cdeb17fd4, on origin/main 3905069f38a60559186fef916b0241e311cc81cd (unmoved since the base; `git merge-tree --write-tree origin/main HEAD` exits 0).
+bf2653335d31357918a4d8ba81947557652ee3a4: a99f68d54b94d7f46031b9a996420c0bf2bf5b51 (the fix, a fast-forward of 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627) with origin/main ea59e9a09de56447326ae71d8a45fec81c3cc275 merged into it (read 2026-11-02T16:14:39Z). Main moved after the first clean `prepr.sh` run, so this handoff follows the rule for a moved main and merges it. `git merge-tree` had reported no conflict. Main's delta since a9c149289922 touches no file under `custom_components/` and no replay file, so the cycle code the cited readings measured is unchanged. Merge base is now ea59e9a09de56447326ae71d8a45fec81c3cc275. Every figure below that runs locally was re-taken on this merged head.
 
 ## Re-cut note
 
-Repair round 2 of #3174, after `verdict/3174` (blocked a476a578: carry-missing, and the owner `cpu_ratio` 409.7 centred on a reading the lane never takes). Ruling (mandate): no roster carry; the synthetic `loop_cpu_ratio` defect is the class this group exists for, so it is fixed here. The earlier "Carry: R10-REPLAY-COST-BUDGET" lines are removed; the 385.3 reading (a `--step-minutes 60` single-cycle run on a reviewer box) is dropped.
+This is repair round 3 of #3174. It answers `verdict/3174` round 2: "Fix review: blocked 6ba3033f class-open: the nightly slow lane runs the same budgets on a third runner class, which reads synthetic cpu_ratio 1.451-1.493, and the new 3.614 cannot see a 2x cycle there". The ruling: one `cpu_ratio` budget cannot serve classes that read about 1.45 and about 2.3-2.8. It is either blind to a 2x on the fast class or red on the slow one. The fix keys the budget by class.
 
-What changed against a476a578: `COST_BUDGETS` only, owner `cpu_ratio` 409.7 to 337.8, synthetic `cpu_ratio` 3.353 to 3.614, synthetic `loop_cpu_ratio` 0.143 to 0.1278, and the comment above it. The two pins are unchanged. No `*_budgets.json` is touched; no budget in a `*_budgets.json` is raised.
+What changed against 6ba3033f is `tests/replay.py` only:
+- New `COST_RUNNER_CLASSES`: three `ref_ms` bands.
+- New `COST_CLASS_BUDGETS`: the synthetic `cpu_ratio` per class.
+- New `COST_CLASS_READINGS`: the cited lane readings each class's budget is centred on.
+- New `class_budget(name, ref_ms)`, which `run_fixture` now grades through.
+- Two new controls: `cycle_cost:class_budgets` and `cycle_cost:runner_class_unknown`.
+- The synthetic `cpu_ratio` 3.614 is removed from `COST_BUDGETS`.
+- The comment above `COST_BUDGETS` now quotes the loop spread that was measured.
+
+Unchanged: synthetic `loop_cpu_ratio` 0.1278 and `peak_kib` 2686, and every owner fixture budget (`cpu_ratio` 337.8, `peak_kib` 3740, `loop_cpu_ratio` 0.249). No `*_budgets.json` is touched and no budget is raised. The new class budgets are narrower than 3.614 on two classes. On ref30, 3.934 is wider than 3.614, but it is centred on that class's own readings and stays under that class's doubled arms (5.53, 5.70). The base's 2.173 was red on that class.
 
 ## Red checks
 
-- Head a476a578 (the head reviewed): the whole check-run set, all pages, has no failure, timed_out or cancelled conclusion (`merge_train.py classify` printed GREEN, per the review). Nothing to answer.
-- Inherited from #3167: replay job 125160076828 of run 41405222589, `synthetic-dhw-only.json: cycle_cost [1 offender(s): cpu_ratio 2.81 over its budget 2.173]`. Cause: a budget recorded on one runner class. Process state: recorded-on-one-class. Cheaper detector: the lane's own `record:` line, which already prints it; no new one is warranted. Countermeasure: this re-centring on both classes. The base budget 2.173 is over-run by all three CI readings (below); 3.614 passes all three.
-- Synthetic `loop_cpu_ratio` was named red at base by the review. Measured: it is red only on a box outside both CI classes (this container, 4 cores, `loop_ref_ms` 87: 0.1748 against the old 0.143; the reviewer's 0.152 to 0.191). All three CI readings, at base code, read 0.0901 to 0.0907 and were green against 0.143. See Figures for what re-centring does and does not do for that box.
+At 6ba3033f I read the whole check-run set through the PR's `get_check_runs`: 55 runs on one page (total_count 55). Every run concluded `success` or `skipped`. None concluded failure, timed_out or cancelled, so there is nothing new to answer.
+
+Inherited from #3167: replay job 125160076828 of run 41405222589 read `synthetic-dhw-only.json: cycle_cost [1 offender(s): cpu_ratio 2.81 over its budget 2.173]`.
+- Cause: a budget recorded for one runner class.
+- Process state: recorded-on-one-class.
+- Cheaper detector: none is needed. The lane's own `record:` line already prints the figure.
+- Countermeasure: this PR keys the budget by class. That run's class (ref30) reads WITHIN its own budget (Figures).
 
 ## Mutation proof
 
-Per budget, a mutant that adds measurable cycle cost, read through the lane's own metric:
-- synthetic `cpu_ratio`: the lane's `cpu doubled` arm (`--inject-cost cpu`) reads 5.5315, 5.701 and 4.6473 on the three CI jobs, over 3.614 (production `cost_offenders` on each logged dict: `cpu_ratio 5.532 over its budget 3.614`).
-- synthetic `loop_cpu_ratio`: the `loop doubled` arm reads 0.1833, 0.186 and 0.1792, over 0.1278 (`loop_cpu_ratio 0.1833 over its budget 0.1278`).
-- owner `cpu_ratio`: the lane runs no doubled arm on this fixture (`COST_ARMS_SKIPPED`), so I ran one: `PYTHONPATH=tests/hastub python3 tests/replay.py --one tests/replay/owner-2026-10-30-away.json --inject-cost cpu` at the lane's own 16 cycles reads `cpu_ratio 623.8 over its budget 337.8`.
-- The two pins, run `PYTHONPATH=tests/hastub python3 tests/replay.py --fixture tests/replay/synthetic-dhw-only.json`: `AWAY_COVERED` misspelt `owner-2026-10-30-awya.json` reads `FAIL AWAY_COVERED names committed fixtures [owner-2026-10-30-awya.json: declares away coverage but is not a committed fixture]`; `tools/replay/export.py` refusal as `f"the recorder URL {url} is neither SQLite nor "` reads `FAIL recorder:unsupported_scheme_refusal_prints_none_of_the_url` with the canary credential visible. Each restored with `git checkout` of its file.
+**Per class, the planted 2x.** The planted mutant is the lane's own `cpu doubled` arm (`--inject-cost cpu`), which CI ran on each class. Its readings go through the production `class_budget` + `cost_offenders` at this head. Each class's doubled arm reads over its own class's budget:
+- ref30: 5.701 and 5.5315 read `cpu_ratio 5.701 over its budget 3.934` and `cpu_ratio 5.532 over its budget 3.934`.
+- ref46: 4.6473 and 4.7775 read `over its budget 3.357`.
+- ref53: 2.8848, 2.841 and 2.9251 read `over its budget 2.081`. At 6ba3033f's single 3.614 the same three read nothing (NOT SEEN).
+
+**Code mutants.** Each edit was made to `tests/replay.py` with the `sed` shown. Each run was `PYTHONPATH=tests/hastub python3 -B -c "import sys; sys.path.insert(0,'tests'); import replay; [print(n, ok) for n, ok, _ in replay.controls() if 'class' in n]"` with `PYTHONDONTWRITEBYTECODE=1`, and the file was restored with `git checkout tests/replay.py` after each.
+- M1, one budget 3.614 for every class (6ba3033f's shape): `sed -i 's/"ref\(30\|46\|53\)": {"cpu_ratio": [0-9.]*}/"ref\1": {"cpu_ratio": 3.614}/'` gives `FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 3.614 cannot see a 2x cycle; re-record 2.06'], []), ...]`. **Killed.**
+- M2, ref53 graded by ref46's budget: `s/"ref53": {"cpu_ratio": 2.081}/"ref53": {"cpu_ratio": 3.357}/` gives `FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 3.357 cannot see a 2x cycle; ...'], [])...]`. **Killed.**
+- M5, ref46 graded by ref53's budget: `s/"ref46": {"cpu_ratio": 3.357}/"ref46": {"cpu_ratio": 2.081}/` gives `FAIL control:cycle_cost:class_budgets [(45.65, ['cpu_ratio 2.325 over its budget 2.081'], ...)]`. **Killed.**
+- M3, ref30 graded by ref46's budget: `s/"ref30": {"cpu_ratio": 3.934}/"ref30": {"cpu_ratio": 3.357}/` leaves `ok control:cycle_cost:class_budgets`. **Survives, as an equivalent mutant on these readings.** The two CI classes' readings sit 1.17x apart, so each class's band holds the other's clean and doubled readings. That is why 6ba3033f's single 3.614 served both CI classes. The key is load-bearing for ref53 against both CI classes, not for ref30 against ref46. Both bands are kept because the brief centres each class on its own readings, and because a merged ref30/ref46 band would be a fourth recording that no class reads.
+- M4, an unknown class falls back to a default: `s/if lo <= ref_ms <= hi and c in keyed), None)/if lo <= ref_ms <= hi and c in keyed), "ref46")/` gives `FAIL control:cycle_cost:runner_class_unknown bad=[] good=[]`. **Killed.**
+
+**The two pins** are unchanged from round 2 and still green at this head: `ok control:away:covered_names_are_committed` and `ok recorder:unsupported_scheme_refusal_prints_none_of_the_url` (33 of 33 controls and 23 of 23 recorder checks ok, in-process). Their killed mutants are round 2's: a misspelt `AWAY_COVERED`, and the URL interpolated into the refusal. Their code is untouched here.
 
 ## Null control
 
-- Budgets, base against base: the three readings are the unmodified cycle code on CI (neither #3167's nor #3078's diff touches cycle code; this PR's diff is `tests/replay.py` only): synthetic `loop_cpu_ratio` 0.0907, 0.0903, 0.0901, flat within 0.7 % across both classes, and all three within 0.1278; synthetic `cpu_ratio` 2.7543, 2.81, 2.3246 and owner 235.8, 240.7, 241.9, all within the new budgets (production `cost_offenders` on each logged dict at the head: `WITHIN`; at the base budgets the synthetic `cpu_ratio` reads all three over 2.173, the defect).
-- Owner fixture null on this container, clean, lane config (16 cycles, 7 timed): `cpu_ratio 283.585`, `cycle_cost []`. Same fixture with the mutant above: 623.8, red. This container is outside the CI classes (`ref_ms` 33.8, `loop_ref_ms` 88.4), so it is a supplement, not a centre.
-- Pins, clean tree: `ok control:away:covered_names_are_committed`, `ok recorder:unsupported_scheme_refusal_prints_none_of_the_url`, `ok AWAY_COVERED names committed fixtures`.
+- **Base against base, per class.** Every clean reading is the unmodified cycle code on CI: the cited jobs' code differs from this base only outside the coordinator cycle, as the review established. Through the production functions at this head, every clean reading reads WITHIN its class's budget:
+  - ref30: 2.81 and 2.7543 against 3.934;
+  - ref46: 2.3246 and 2.4235 against 3.357;
+  - ref53: 1.4563, 1.451 and 1.4926 against 2.081.
+
+  Each reading is 69-72 % of its budget, so it sits inside (budget / 2, budget]. With the class key removed (M1), the ref53 cleans read `cannot see a 2x cycle`. That is the finding.
+- **Unknown-class null.** `class_budget(syn, 30.32)` (the first ref30 reading) returns no refusal. `class_budget` at 37.84 (between the ref30 and ref46 bands) and at NaN returns `runner class unknown: ref_ms 37.84 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed`.
+- **End to end, the real run.** This container is outside every class. `PYTHONPATH=tests/hastub python3 tests/replay.py --one tests/replay/synthetic-dhw-only.json` ran twice: `ref_ms` 36.86 and 34.88, and `cycle_cost` was the named refusal both times. A doubled arm on such a box carries the refusal instead of `over its budget`, so the lane's `sees a doubled cycle cpu` check fails there too. It fails closed.
+- **Unaffected owner fixture.** It is not keyed (its readings are flat across the two CI classes), and `class_budget('owner-2026-10-30-away.json', 99.0)` returns the unchanged 337.8 / 3740 / 0.249.
 
 ## Figures
 
-- Readings are the `cost {...}` lines of the `tests / replay` job; rule for each budget: sqrt(2) x the geometric midpoint of the extremes of the three readings. Source jobs: 125240101580 (run 41434115932, #3174 at 5cc311bf, class A: `ref_ms` 30.7, `loop_ref_ms` 130.9), 125160076828 (run 41405222589, #3167, class A: 30.4, 128.7), 125097530406 (run 41389413359, #3078, class B: `ref_ms` 46.3, `loop_ref_ms` 155.9). Command to re-take: `gh api repos/tvofi/heatpump_optimizer/actions/jobs/<job id>/logs`, then the lines holding `cycles over` and `doubled:`.
-- Owner `cpu_ratio` 235.8185, 240.6876, 241.9249: 337.8; lowest reading 70 % of it. Synthetic `cpu_ratio` 2.7543, 2.81, 2.3246: 3.614; lowest 64 %; every `cpu doubled` arm over it. Synthetic `loop_cpu_ratio` 0.0907, 0.0903, 0.0901: 0.1278.
-- Only these three jobs were readable for the owner fixture and the synthetic after 2026-10-31; the earlier CI figures in the comment (249.0, and `loop_ref_ms` 79-84 at 0.1114) have no log reachable here, so the second faster-ruler CI class is not re-centred on a reading I took. They sit inside the new bands (0.1114 is between 0.0639 and 0.1278).
-- A box outside both classes: this container reads synthetic `loop_cpu_ratio` 0.1748 to 0.1892 (`loop_ref_ms` 87), over both 0.143 and 0.1278. Widening to it would put the budget (about 0.19) over the CI `loop doubled` arm (0.179 to 0.186), so the lane could no longer see the regression it exists for. The lane runs on CI only, so this is recorded, not paid.
-- `peak_kib` 3740 / 2686 and the owner `loop_cpu_ratio` 0.249 are unchanged: the jobs read 2649 to 2709 KiB and 0.128 to 0.142 inside both bands.
-- `python3 tests/structure.py` passes at this head. Scoped gate: `MODE: SCOPED -- 3 script(s) run` (`debug_collect`, `entities`, `features`).
+- **Source jobs.** Readings are the `cost {...}` lines of each job's log. Re-take one with `gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>/logs`, keeping the lines holding `cycles over` and `doubled:`. The `ref_ms` values come from the clean and every doubled run of each job, and the synthetic `cpu_ratio` is clean / cpu-doubled:
+  - ref30 class: `tests / replay` job 125160076828 (run 41405222589, #3167) read `ref_ms` 30.16-30.43 and 2.81 / 5.701. Job 125240101580 (run 41434115932, #3174 at 5cc311bf) read 30.20-31.12 and 2.7543 / 5.5315.
+  - ref46 class: job 125097530406 (run 41389413359, #3078) read 45.15-46.34 and 2.3246 / 4.6473. Job 125316010511 (run 41456836096, #3174 at 6ba3033f) read 46.36-47.15 and 2.4235 / 4.7775.
+  - ref53 class: nightly.yml `slow` job 124414072168 (run 41159630948) read 52.76-53.46 and 1.4563 / 2.8848. Job 124725704090 (run 41264951784) read 52.64-54.07 and 1.451 / 2.841. Job 125036077984 (run 41369286061) read 52.09-53.33 and 1.4926 / 2.9251.
+- **Band rule.** Each class's `ref_ms` extremes are widened 5 % each way, as min / 1.05 and max x 1.05, rounded outward to 0.01. That gives ref30 28.72-32.69, ref46 42.99-49.51 and ref53 49.60-56.78, and the bands are disjoint. Measured spreads, for scale: within one job 2.4-3.2 %; across a class's jobs 3.2 % (ref30), 4.4 % (ref46) and 3.8 % (ref53). Readings per class: 10 for ref30, 10 for ref46, 12 for ref53.
+- **Budget rule.** Each budget is sqrt(2) x the geometric midpoint of that class's clean extremes, the same rule as every other budget in the file. That gives ref30 3.934 (from 2.7543 and 2.81), ref46 3.357 (from 2.3246 and 2.4235) and ref53 2.081 (from 1.451 and 1.4926). No budget is widened past its readings.
+- **Owner fixture on ref53, unread.** It joined after the last nightly. If ref53 reads it the way it reads the synthetic fixture (about 0.53-0.6 of ref30), the first nightly to replay it may read under its 168.9 floor. That nightly's `record:` line is the reading to key it on; nothing is recorded here for a class that has not run it.
+- **Too few readings.** Each class has two or three jobs. The ref53 class has replayed only the synthetic fixture, because the owner fixture joined after the last nightly. Only what ran is recorded. The bands are therefore narrow, and a ruler outside them fails closed rather than borrow a neighbour's budget.
+- **Historic readings not used.** The older nightly comment above `COST_BUDGETS` describes a fast nightly class at `ref_ms` ~22-34. Any part of it outside 28.72-32.69 now fails closed until a reading there is recorded.
+- **`loop_cpu_ratio` is not affected.** The seven jobs read 0.0901-0.1026 clean (1.14x, the largest 80 % of 0.1278). Every `loop doubled` arm reads 0.1792-0.2015, over 0.1278. One budget serves every class, so it is not keyed. The comment's earlier "flat across both classes" is replaced by that spread.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
+- Scoped gate, `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 3 script(s) run, 30 scoped out` (`debug_collect`, `entities`, `features`). Every script it names, plus the run_always `env_drift.py --claims-only`, `closure.py selftest`, `layout.py` and `harness_headers.py`, exited 0 under `PYTHONPATH=tests/hastub GOLDEN_MODE=drift`.
+- `bash tools/pr/prepr.sh <body>` at bf265333 on the clean tree, closures step not skipped: `PRE-PR: bf2653335d31357918a4d8ba81947557652ee3a4 00000000000000000000000000 rc=0`; main unmoved since (ea59e9a0), so no second merge.
 
 ## Carries
 
-- Carry 1: the owner fixture's budget entry re-recorded on the CI job's own readings: `cpu_ratio` 337.8 (readings 235.8, 240.7, 241.9 under Figures), null control the three readings within it and the clean local run 283.6 green, mutant 623.8 red.
-- Carry 2: `AWAY_COVERED` names pinned against the committed fixtures, and the unsupported-scheme refusal pinned to print none of the URL; both with a null and a killed mutant under Mutation proof.
-- Carry 3: the cost budget re-centred on both CI runner classes: synthetic `cpu_ratio` 3.614 and `loop_cpu_ratio` 0.1278 (`peak_kib` and the owner `loop_cpu_ratio` kept, with the reason under Figures).
+- Carry 1: the owner fixture's budget entry is unchanged at 337.8, centred on its readings 235.8 and 240.7 (ref30) and 241.9 and 246.0 (ref46).
+- Carry 2: the `AWAY_COVERED` and unsupported-scheme pins are unchanged and green.
+- Carry 3: the synthetic `cpu_ratio` budget is keyed by runner class, with a named fail-closed refusal for an unknown class.
 
 ## Forward-carry
 
@@ -51,7 +85,7 @@ none
 
 ## Unpinned sites
 
-None added under `custom_components/`; the two checks are value checks in `tests/replay.py`, and the `tools/replay/export.py` refusal is pinned by the in-tree mutant above.
+None: `prepr.sh` step 6d reads `the diff adds no unpinned mutation site`. The new `class_budget` and its controls are value checks in `tests/replay.py`, pinned by the in-tree `sed` mutants M1, M2, M4 and M5 above (M3 is disclosed as equivalent).
 
 ## Friction
 
