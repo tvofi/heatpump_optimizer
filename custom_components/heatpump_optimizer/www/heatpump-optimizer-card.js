@@ -8640,6 +8640,14 @@ class Legend {
 // the breakdown is open, stays on the card (`_scoreOpen`) with the click
 // handlers that flip it. PR 4a of #136.
 
+/** One entity state as a re-render signature part: its state and when it was
+ * last written, or "-" with no state. A missing `last_updated` reads as an
+ * empty stamp. The headline, advisor and health signatures all build theirs
+ * from it. */
+function stateSignature(st) {
+  return st ? `${st.state}@${st.last_updated || ""}` : "-";
+}
+
 /** The headline sensors' contribution to the re-render signature.
  *
  * `indoor` is the indoor-temperature sensor's state (or null) and `now` the
@@ -8648,11 +8656,8 @@ class Legend {
  * would never redraw a card whose plan had not changed (R9-UI-3). */
 function headlineSignature(plan, cfg, indoor, now) {
   if (!cfg.show_stats) return "off";
-  return HEADLINE_SUFFIXES.map((sfx) => {
-    const st = plan.statEntity(sfx);
-    return st ? `${st.state}@${st.last_updated || ""}` : "-";
-  }).concat(
-    indoor ? `${indoor.state}@${indoor.last_updated || ""}` : "-",
+  return HEADLINE_SUFFIXES.map((sfx) => stateSignature(plan.statEntity(sfx))).concat(
+    stateSignature(indoor),
     String(priceNow(plan, now)),
   ).join("~");
 }
@@ -9084,10 +9089,7 @@ const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
 const DAYS_PER_MONTH = 30;
 
 function advisorSignature(plan) {
-  return Object.values(ADVISOR_SUFFIXES).map((sfx) => {
-    const st = plan.statEntity(sfx);
-    return st ? `${st.state}@${st.last_updated}` : "-";
-  }).join("|");
+  return Object.values(ADVISOR_SUFFIXES).map((sfx) => stateSignature(plan.statEntity(sfx))).join("|");
 }
 
 /** One advisor sensor as an inbox row, or null when it has nothing to say
@@ -9427,7 +9429,7 @@ function inputProblemState(plan) {
 }
 
 function healthSignature(plan, minute) {
-  const sig = (st) => (st ? `${st.state}@${st.last_updated}` : "-");
+  const sig = stateSignature;
   return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
     sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
     ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
