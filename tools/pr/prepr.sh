@@ -3536,9 +3536,61 @@ EOF
   st "$r" 0 "--body-check --pr-branch runs the same arm and refuses on its rc"
   case "$(cat tools/audit/seat/body_push.sh)" in *'refs/heads/fix/$TOPIC'*'--pr-branch fix/$TOPIC'*'--body-check "$ABS" $PRB'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "body_push passes --pr-branch when origin holds fix/<topic>"
+  # The wiring that ACTS on the arm's rc, driven rather than grepped (the round-1
+  # survivors: `EARLY_REDS_RC=0` in step 1a2, and `if false` for the --pr-branch
+  # guard). The arm is a stub returning a chosen rc; the blocks are the
+  # production text, extracted and evaluated.
+  blk1a2=$(sed -n '/^# --- 1a2\./,/^# --- 1b0\./p' "$PREPR_PATH" | sed '$d')
+  bcg=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^  P=\$(mktemp)/p' "$PREPR_PATH" | sed '$d'; echo fi)
+  # The body FILE lives under $WB (a mktemp dir inside ST_ROOT, which the EXIT trap removes),
+  # never in the tracked fixture directory: a stray file there dirties the
+  # worktree and app_push refuses. Only the file moves; the check runs from here.
+  WIRE_PORC=$(git status --porcelain)
+  WB=$(mktemp -d)   # under ST_ROOT; the EXIT trap removes it (RA is gone by here)
+  : >"$WB/wiring-body.md"
+  early() { # stub rc -> "<exit rc>:<output>"
+    local o r
+    o=$( STUBRC=$1; rc=0; BASE=x
+      reds_arm() { echo "stub-line"; return "$STUBRC"; }
+      step() { echo "STEP $1 $2 $3"; [ "$2" -eq 0 ] || rc=1; }
+      summary_end() { :; }
+      set -- "$WB/wiring-body.md"
+      eval "$blk1a2"; echo FELL-THROUGH ); r=$?
+    echo "$r:$o"
+  }
+  got=$(early 1)
+  st "${got%%:*}" 1 "step 1a2 exits nonzero when the arm concluded a red (rc 1) -- before the heavy slot"
+  case "$got" in *'STEP ancestry reds 1 '*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and prints the ancestry reds step line"
+  case "$got" in *FELL-THROUGH*) r=1 ;; *) r=0 ;; esac
+  st "$r" 0 "and does not fall through to the heavy steps"
+  for sr in 0 3; do
+    got=$(early $sr)
+    case "$got" in 0:*FELL-THROUGH*) r=0 ;; *) r=1 ;; esac
+    st "$r" 0 "step 1a2 does not refuse when the arm returns rc $sr (null control)"
+  done
+  bcchk() { # stub rc -> output ending REDSRC=<BODY_CHECK_REDS_RC>
+    ( STUBRC=$1; BASE=x
+      reds_arm() { echo "stub-line"; return "$STUBRC"; }
+      set -- --body-check "$WB/wiring-body.md" --pr-branch fix/topic
+      eval "$bcg"; echo "REDSRC=${BODY_CHECK_REDS_RC:-0}" )
+  }
+  got=$(bcchk 1)
+  case "$got" in *'REFUSE ancestry reds: stub-line'*'REDSRC=1') r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check --pr-branch refuses (line and flag) when the arm concluded a red"
+  got=$(bcchk 0)
+  case "$got" in *'ancestry reds ok: stub-line'*'REDSRC=0') r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check --pr-branch passes when the arm returns rc 0 (null control)"
   case "$bc" in
     *'pout=$(preflight_body "$2" dev/programme/rosters); pr=$?'*'[ "$r" -ne 0 ] || r=$pr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "and --body-check runs the same preflight and refuses on its rc"
+  # The red-check-arm rows leave the worktree as they found it (r2 left a file in
+  # the tracked fixture dir). Null control: a row that does write one is seen.
+  st "$(git status --porcelain)" "$WIRE_PORC" "the red-check-arm rows leave git status --porcelain unchanged"
+  : >"$DABS/wiring-null.md"
+  [ "$(git status --porcelain)" = "$WIRE_PORC" ] && r=1 || r=0
+  rm -f "$DABS/wiring-null.md"
+  st "$r" 0 "and a row that writes into the tracked fixture dir changes it (null control)"
   case "$bc" in *'fout=$(figures_check "$2" 2>&1); fr=$?'*'[ "$r" -ne 0 ] || r=$fr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
   case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
