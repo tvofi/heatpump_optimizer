@@ -249,3 +249,52 @@ Binding:
   `dev/governance/roles/root-cause.md`), not a third per-site carry. Dispatching it is the
   orchestrator's call. Its countermeasure decides whether one topic-family reader replaces the
   per-site rules, including R10-OPENER-REUSE carry 10.
+
+## P377: one topic grammar for the split-part class (the root-cause seat's barrier)
+
+Verdict: ACCEPT, as a root-cause countermeasure. It keeps that route and is not ruled as a
+proposal under the LOG class. The carry, b115-P377, goes to R10-TICK-PR-BUCKETS, with
+R10-OPENER-REUSE as the fallback. A set-files op adds the consumers it edits to the group's
+files. The root-cause document rides in this batch as `s6-batch115-rca-topic-family.md`, so
+that the fixer, which cannot read the host, lands it from the tree.
+
+Source:
+- The orchestrator s10's message of 2026-11-02, about 16:55Z. It relayed the root-cause seat's
+  verdict "build" for the class P376 sent to it.
+- The document is `s6-batch115-rca-topic-family.md` in this directory: the seat's text with its
+  host paths scrubbed (`ref_privacy.py scrub`: 0 of 2 files would change).
+
+Instances, checked against origin/main `ea59e9a09`:
+- **The class's three instances.** The opener (P363 and P370), `noreturn_arm` (P376), and the
+  stand-in `blind_spots.py`.
+  - The document re-attributes the stand-in's measured misses to P375's class.
+  - It keeps the stand-in as a site of this class, with no measured miss.
+- **Its six-site table checks out.**
+  - `open_driver.py` line 88 is `def resolve(topic, groups, body_head, titles)`.
+  - `roster_sync.py` line 259 is `def matches(roster, prs)`.
+  - `cloud_relay.sh` lines 533 and 540 strip `fix/` and `-pr` with sed and awk.
+  - `noreturn_arm` is lines 595-626.
+- **The recording targets exist.** `dev/audit/config/bugclasses.json` is a dict of 53 classes,
+  whose entries carry an `rca` key. `tools/audit/fold_ledger.py` is the checker that reads it.
+- **Its measured cost.** 6 false or missed lines, 46 min of measured holds, and one duplicate
+  opus seat avoided by a hand check. Splitting is a standing move: 13 of 235 dispatched topics
+  split in 3 days.
+
+Cost:
+- The document's figure for the standing cost is about 0.5 s per 120 s relay pass. Only an aged
+  dispatch whose exact refs did not move pays one extra `ls-remote`.
+- New code: one new module in `tools/audit/seat`. Two consumers move their existing rules into
+  it unchanged, and two call sites change.
+- Tests: three rows, two null controls and two mutants.
+- Hot files: `cloud_relay.sh` is hot in round 10, and it enters R10-TICK-PR-BUCKETS's files.
+  That widens an M group that is `not-started`. It does not widen a group in flight.
+- No capped file is touched by this ruling.
+
+Binding:
+- **Why ACCEPT.** The class has three instances, so it owes a barrier (`defect-root-cause.md`).
+  The cost test, roughly 0.5 s a pass against 16 min times 0.3 a day plus a duplicate-seat risk,
+  picks a shared reader over a fourth per-site rule.
+- **Why this group.** R10-TICK-PR-BUCKETS would otherwise build a seventh site: its carry 6, and
+  b115-P375's definition of "a seat is on it", which reads handoff-wip by family.
+- **The fallback.** If the orchestrator routes the carry to R10-OPENER-REUSE, the same text
+  applies, and the set-files op names that group instead.
