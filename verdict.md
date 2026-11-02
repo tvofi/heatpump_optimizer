@@ -1,0 +1,24 @@
+Fix review: merge d9c5ec202752cb4207a400812ebd606b418f4818
+
+bus-nonce: dc2fb72e7c7be7f239cd3a147cf8d5c1
+
+Round 1. Head reviewed: d9c5ec202752cb4207a400812ebd606b418f4818 (the PR head at the PR read and at the last CI poll). Record PR, so no mutation proof of production code applies.
+
+## Findings
+
+- The P373 CI-share figures (7.6%, 2.5%, 48.8%, 39.5%, 1000 runs back to 2026-11-01T17:17Z) are not re-derivable now: the runs-list API cap and its window have moved on. The ruling's conclusion does not turn on them (the DEFER rests on LOG class and a stated 10% threshold), so they stand as the seat's own measurement. Carry: dismissed: the ruling's DEFER is carried by the LOG rule and the owner's batching size, both checked, not by these figures
+- The P377 cost figures (6 lines, 46 min, 55/54/1 of 235 dispatch refs) come from session-local scripts (sim.py, sim2.py, blind_spots.py) that are not in the tree, and the live dispatch-ref count is now 233, so they cannot be re-run; the document says it is quoting those scripts. The fixer owes the in-tree null control the document itself lists. Carry: R10-TICK-PR-BUCKETS
+
+## Evidence
+
+- Three-dot diff changes exactly three files: dev/programme/delivery/3177.md, dev/programme/triage/s6-batch115.md and dev/programme/triage/s6-batch115-rca-topic-family.md. The brief's "two files" is the two triage files plus the delivery row, as the body says (515 insertions). No code, claim file, golden, VERSION, manifest or RELEASE_NOTES heading is touched (the diff over VERSION, RELEASE_NOTES.md, tests/golden and custom_components is empty). The delivery row is present and has the shape of the other rows.
+- `git merge-tree --write-tree origin/main <head>` exits 0 against origin/main 38dcb6c5d (ev/merge-tree.txt). No host path in the added lines (grep for /home, /root, /Users, /tmp, .local/state, hpo-orch is empty); `ref_privacy.py --check` prints 0 refused.
+- ## Head names d9c5ec20...; the body's authored-head line 1d35b423c and its merge commit are explained. ## Red checks says `none`: the 37 check runs at this head have no concluded red (all concluded runs success or skipped; the rest were in progress when read). `merge_train.py classify` at 18:45Z: `GREEN d9c5ec202752cb4207a400812ebd606b418f4818 pending: none red: none` (ev/classify.txt).
+- `roster_edit.ruling_verdict` at the head reads P373 DEFER, P374 ACCEPT, P375 ACCEPT, P376 DEFER, P377 ACCEPT, P378 None, as the body states.
+- P373 facts: batch-size rule and carry-less DEFER hold. The roster branch (e25d8dfda now) rolls as stated. The ruling gives a reason a later seat can test (a measured CI-time saving above 10% only a rolling design reaches, with baseline and null control).
+- P374: review/3173 commits 2eab795f (14:43:56+01) and e6899918 (14:44:03+01) have the same tree 50c657668ec5, as stated; verdict/3173's tip is f9aafd42 (14:44:06+01, tree 50c657668ec5, parent f284f22d). The commit dba76851 is not reachable any more (the hand fix removed it), so the 14:44:12 claim is unverifiable but consistent. merge_train.py:2472 (the "newest posted verdict ... is not verdict/<n>'s tip" refusal) and :4773 (the self-test arm) are right at 3905069f3; bus.sh lines 353-355 and 567-571 at 3905069f3 match the guard description. `dev/audit/harnesses/r10_seat_selftests_mutants.py` exists. R10-FLY-RAISE-REVIEWABLE is carries-open and its files include bus.sh and merge_train.py (roster 2c50a2cfc), so the destination is real and live.
+- P375: at roster 2c50a2cfc R10-TICK-PR-BUCKETS is stage not-started with 7 carries; its carry 6 specifies the three tick levels and the re-cut OWED line and does not define "dispatched". This matches the ruling's reading. The session-local ledger lines 94/112/147/212 and the sweep script are outside the tree and not checked.
+- P376: noreturn_arm in cloud_relay.sh at ea59e9a09 spans 595-626 and asks only the five exact-topic refs (612-614). Live: handoff/r10-agreement-bootstrap-p1 is at 11:36:34Z, as stated; the exact dispatch ref has since been deleted (the documented disposal), so its 08:08:44Z time is not re-checkable. open_driver.py resolve (line 88), roster_sync.py matches (259), cloud_relay.sh:533,540 and commit 20cfab74c all exist as the RCA table says. blind_spots.py is not in the tree, as the ruling says. bugclasses.json is a dict of 53 classes and fold_ledger.py exists, as P377 states.
+- P377 carry text matches the ruling: target R10-TICK-PR-BUCKETS with R10-OPENER-REUSE (carries-open, owns open_pr.sh and update_pr.sh, carry 10 is P363's) as fallback; no carry or group is on the roster yet, by design. The proposed countermeasure comes with a stated null control and states its one untested reason (bare -<N>) as a risk.
+- Claim files are untouched (the three-dot diff lists no file under tests/golden).
+- Roster branch moved since the cited SHAs (2c50a2cfc, f6df1ab5d, now e25d8dfda); the cited facts were read at the cited SHAs.
