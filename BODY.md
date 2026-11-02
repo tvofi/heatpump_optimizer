@@ -14,19 +14,24 @@ The fix is `claim_refusal(driver_err)` in `tools/pr/merge_main_bot.py`. When the
 
 ## Head
 
-`1e1d346b206bdad37f63e38c83ea268f6c48e9c3`, measured against merge base `7f849a24911e9d52336bd79ea9ce63c67416a6ae`, `origin/main`'s tip at 2026-11-01T21:25:36Z.
+Round 2, the repair of `Fix review: blocked 212415bd07b47976920f7d4a05594a16a471f4e8 mutation-survivor`. Handoff head `ebb90ba992cff355674d5cf24d844722eee93914`; the round-1 code head was `1e1d346b206bdad37f63e38c83ea268f6c48e9c3`, and this round adds one test-only commit on top of it, in `tools/pr/merge_main_bot.py`'s self-test alone (9 inserted lines; `claim_refusal` and `decide` are unchanged). `git diff --stat origin/main...HEAD`: `tools/pr/merge_main_bot.py | 91 +++++-` , 1 file changed, 89 insertions(+), 2 deletions(-). `git merge-base origin/main HEAD` is `7f849a24911e9d52336bd79ea9ce63c67416a6ae`. `origin/main` has moved since round 1 (to `0166aefd7`); `git merge-tree --write-tree origin/main HEAD` reports no conflict, so I merged nothing, as the brief permits a merge only on a conflict. The bot or the orchestrator can carry the head forward.
 
-This head merges `origin/main` into `30ce8f459` five times, as main moved during each `prepr.sh` run: `c88d552c7` (#3051, #3074), `ddf4bfd73` (#3073), `56630e7e6` (#3097), `f04b25a00` (#3047) and `7f849a249` (#3118, #3141, #3142). All five merges were clean, and none of main's new commits touches `tools/pr/merge_main_bot.py` or `tests/env_drift.py`. #3047 changed `tests/golden/claimed_drift.txt` on main. This branch never wrote that file, so its copy is main's, as the byte-identical check below shows. The authored commits are:
-- `d8e19bf4e`: the self-test arms, red with the unchanged bot.
-- `30ce8f459`: the fix.
+Round-1 history stands: the head merges `origin/main` five times into `30ce8f459`; the authored commits are `d8e19bf4e` (the self-test arms, red with the unchanged bot) and `30ce8f459` (the fix); no merge touched `tools/pr/merge_main_bot.py` or `tests/env_drift.py`.
 
-After that last `prepr.sh` run, main moved once more, to `25c46e76e` (#3148, an autofix record). I did not merge it: every one of the five cycles above was overtaken the same way during its `prepr.sh` run. Before the push, `git merge-tree --write-tree origin/main HEAD >/dev/null && echo "MERGE-TREE CLEAN"` printed `MERGE-TREE CLEAN`, and `git diff --name-only 7f849a249 25c46e76e` names none of `tools/pr/merge_main_bot.py`, `tests/env_drift.py` or either claim file. The orchestrator or the merge-main bot can carry the head forward without a resolution.
+## Round 2: the two surviving mutants
 
-I first measured at `30ce8f459` against `407eb0cb3`, where `prepr.sh` returned rc=0. After main moved, every figure below was re-taken at this head unless it names another: the self-test, the three mutants, the scoped gate, the architecture score, the structure ratchet, the claim and version checks, and `prepr.sh`.
+The verdict names two mutants the self-test did not kill. Two behavioural rows are added; no existing row is replaced.
+- **wrong-line-drop-first** (`claim_refusal` returns `lines[1:]`, losing the marker line). The claim-relay arm also asserts `relayed.startswith(f"{CLAIM_REFUSED}{cf}")`: the relayed text opens with `MERGE-CLAIM: refused tests/golden/claimed_drift.txt`. Null control: the unmutated head passes the arm.
+- **append-on-other-conflict** (`decide` appends `claim_refusal(driver_err)` to `skip-other-conflict`). A decide loop with `text_conflicts=["led.json","a.py"]` asserts exactly `skip-other-conflict a.py`, once with a claim-refusal `driver_err` and once with an empty one. Null control: the empty-`driver_err` row gives the same string and passes at the unmutated head.
+
+Both mutants were rebuilt from `evidence/mut.py` and `evidence/mut2.py` on `verdict/3153`, run against `python3 tools/pr/merge_main_bot.py --self-test`, and restored (`git diff --stat` shows only the 9 added lines):
+- wrong-line-drop-first: `48 checks, 1 failed` (killed).
+- append-on-other-conflict: `48 checks, 1 failed` (killed).
+- clean head: `48 checks, 0 failed` (round 1 was 46 checks, 0 failed).
 
 ## Mutation proof
 
-**Failing first.** At `d8e19bf4e` (arms added, bot unchanged), `python3 tools/pr/merge_main_bot.py --self-test` printed `merge_main_bot self-test: 46 checks, 1 failed`. The failing arm was `FAIL a claim conflict the driver refuses relays the driver's own message under today's line, naming each scenario both sides rewrote with both sides' lines  [skip-driver-refused tests/golden/claimed_drift.txt]`: the #2872 line, exactly. At the head: `46 checks, 0 failed`.
+**Failing first.** At `d8e19bf4e` (arms added, bot unchanged), `python3 tools/pr/merge_main_bot.py --self-test` printed `merge_main_bot self-test: 46 checks, 1 failed`. The failing arm was `FAIL a claim conflict the driver refuses relays the driver's own message under today's line, naming each scenario both sides rewrote with both sides' lines  [skip-driver-refused tests/golden/claimed_drift.txt]`: the #2872 line, exactly. At the head: `48 checks, 0 failed`. (Round 2 added two checks: 48.)
 
 One mutant per rule, each applied in the tree to the predicate and restored. `git diff --quiet && echo RESTORED` printed `RESTORED`, then the self-test printed `0 failed`.
 - **M1, drop the relay.** `decide` no longer appends `claim_refusal(driver_err)`. Result: `1 failed`, `a claim conflict the driver refuses relays the driver's own message ...`.
@@ -54,7 +59,7 @@ Binding control 3: `git diff --quiet 7f849a24911e9d52336bd79ea9ce63c67416a6ae HE
   - The arm asserts that the first line is today's `skip-driver-refused tests/golden/claimed_drift.txt`.
   - It asserts that the indented rest contains `env_drift.merge_claim_refusal(base, ours, theirs)`, the production function's own text, not a copy of its wording.
   - It asserts that the rest names `coord_a: this branch ['ours a']; the merge brings in ['main a']` and the same for `coord_b`.
-  - It runs inside `python3 tools/pr/merge_main_bot.py --self-test`, which reports `46 checks, 0 failed` at the head.
+  - It runs inside `python3 tools/pr/merge_main_bot.py --self-test`, which reports `48 checks, 0 failed` at the head.
 - **The finding's instance, replayed.** #2872's head `fe964895e628e0fc54762f9e80dc6098ff606e0b` was planned against main `34cd75bf1` (#2745's merge, which added `negative_prices` and `summer_dhw_only`). `plan_one(repo, head, main, mergeable=False, same_repo=True, pins=lambda: [])` was loaded from each end's copy of the bot. The repository was a worktree at `34cd75bf1`, so the driver and `.gitattributes` were main's at that time.
   - Base copy (`git show origin/main:tools/pr/merge_main_bot.py`): `skip-driver-refused tests/golden/claimed_drift.txt` and nothing else.
   - Head copy: the same first line, then the indented stderr. It includes `MERGE-CLAIM: refused tests/golden/claimed_drift.txt` and that driver's `CONFLICTING CLAIMS: both sides rewrote the claim list -- this branch claims ['config_flow', 'coord_all_features', 'coord_dhw', 'coord_grid_fee', 'coord_minimal', 'coord_two_zone'] and the merge brings in [... 'negative_prices', 'summer_dhw_only']`, together with the two `LEDGER-MERGE: resolved` blocks.
@@ -67,7 +72,7 @@ Binding control 3: `git diff --quiet 7f849a24911e9d52336bd79ea9ce63c67416a6ae HE
 
   `skip-driver-refused` is the bot's only status built from driver output, and no other status relays it.
 - **Scoped gate.** `D=$(mktemp -d); python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` with `scope.run` empty. The `run_always` lines run inside `prepr.sh` below.
-- **prepr.** `bash tools/pr/prepr.sh <this body>`, run with no closures skip. At `30ce8f459` it returned `PRE-PR: 30ce8f4592b887374c21ab58cdca455a9aad2b1d 0000000000000000000000000 rc=0`. Its `ci predict` step printed `CI PREDICT: no closures, fast, governance or instrument red predicted`, and its `unpinned sites` step printed `the diff adds no unpinned mutation site`. Its `closures` step printed `scoped recordings are covered; left to CI: tests/harness_headers.py`. I ran the same command at this head, on this final body, before the handoff push. It returned rc=0 with the same `ci predict` and `unpinned sites` lines, and its `PRE-PR:` line names `1e1d346b206bdad37f63e38c83ea268f6c48e9c3`.
+- **prepr.** `bash tools/pr/prepr.sh <this body>`, run with no closures skip. At `30ce8f459` it returned `PRE-PR: 30ce8f4592b887374c21ab58cdca455a9aad2b1d 0000000000000000000000000 rc=0`. Its `ci predict` step printed `CI PREDICT: no closures, fast, governance or instrument red predicted`, and its `unpinned sites` step printed `the diff adds no unpinned mutation site`. Its `closures` step printed `scoped recordings are covered; left to CI: tests/harness_headers.py`. Round 2: I ran `tools/pr/prepr.sh` at the new head, with no closures skip; it returned rc=0 (the `PRE-PR:` line names `ebb90ba992cff355674d5cf24d844722eee93914`), `ci predict` printed `no closures, fast, governance or instrument red predicted`, and `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED`. The scoped gate printed `MODE: SCOPED -- 0 script(s) run, 33 scoped out.` for this diff. The body check follows below.
 
 ## Architecture score
 
@@ -75,7 +80,7 @@ Binding control 3: `git diff --quiet 7f849a24911e9d52336bd79ea9ce63c67416a6ae HE
 
 ## Red checks
 
-none: no CI has run on this branch yet. Locally, `prepr.sh` and its CI-predict step predict no red (see `## Figures`).
+none at the reviewed PR head `212415bd07b47976920f7d4a05594a16a471f4e8`: the whole check-run set (all pages, check-runs and not `pr checks`, as listed in `evidence/check-runs.txt` on `verdict/3153`) has no concluded `failure`, `cancelled` or `timed_out` run; every concluded run is `success` or `skipped`. No CI has run yet at this round's new head. Locally, `prepr.sh` and its CI-predict step predict no red (see `## Figures`).
 
 ## Unpinned sites
 
