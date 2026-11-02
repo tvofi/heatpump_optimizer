@@ -1,77 +1,77 @@
-Fix review: blocked 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627 class-open: the nightly slow lane runs the same budgets on a third runner class, which reads synthetic cpu_ratio 1.451-1.493, and the new 3.614 cannot see a 2x cycle there
+Fix review: merge 8e47d727c1024728ab3ab23c4aefa01a866dcf78
 
-bus-nonce: 6a26343db7e7a370cb911b882a4c07b4
+bus-nonce: d18618e05ad19f8e7fa3dcb3d0e9b6c3
 
-This is round 2 of PR #3174 (R10-REPLAY-COST-BUDGET, issue 3129). It is a delta review at head `6ba3033f34810c8a4e311cb2eba8cbb3b78ab627`, judged through the three-dot diff against merge base a9c149289922, which is origin/main. The diff touches only `tests/replay.py` and `dev/programme/delivery/3174.md`. I worked from a detached worktree at the head, with a second one at the base. dev/governance/roles/ has not changed since the merge base. The harnesses are the finder's: the lane's own `cost` lines from the CI `replay` job, and the `--one` runs used by verdict/3174 and verdict/3078.
+This is round 3 of PR #3174 (R10-REPLAY-COST-BUDGET, issue 3129). It is a delta review at the live head `8e47d727c1024728ab3ab23c4aefa01a866dcf78`, judged through the three-dot diff against merge base ea59e9a09de5, which is origin/main. That diff touches only `tests/replay.py` and `dev/programme/delivery/3174.md`. dev/governance/roles/ has not changed since the merge base.
 
-## Block
-
-**class-open: nightly.yml `slow`, the scheduled full run of `python3 tests/replay.py`.** It applies these same `COST_BUDGETS` on a runner class that the body neither measured nor dispositioned.
-
-The body says "Only these three jobs were readable for the owner fixture and the synthetic after 2026-10-31". That is not so for the synthetic fixture. The scheduled nightly `slow` jobs for 2026-10-31, 11-01 and 11-02 are readable:
-- job 124414072168 of run 41159630948
-- job 124725704090 of run 41264951784
-- job 125036077984 of run 41369286061
-
-Their cycle code differs from this base only in learner_progress.py, replay_doc.py and snapshots.py, so the coordinator cycle is the same. Their readings (ev/nightly_slow_*.txt):
-- `ref_ms` is 52.4-53.3 and `loop_ref_ms` is 156-166.
-- Synthetic `cpu_ratio` reads 1.4563, 1.451 and 1.4926.
-- The lane's `cpu doubled` arm reads 2.8848, 2.841 and 2.9251.
-
-Production `cost_offenders` at the head budgets (ev/budget_check.txt):
-- Each clean nightly reading returns `cpu_ratio 1.45x: budget 3.614 cannot see a 2x cycle; re-record 2.05-2.11`.
-- Each doubled arm reads under 3.614, so the lane's `cycle_cost sees a doubled cycle cpu` check would also FAIL.
-- At the base budget 2.173, all three are WITHIN, and those nightlies passed with `ALL 93 replay checks PASSED`.
-
-So merging this head turns the next scheduled nightly red on the synthetic fixture. On that class the budget no longer catches a real 2x cpu regression, which fails ASK (2) there. These are the "timed slow lanes" that the head's own comment above `COST_BUDGETS` says the base's 2.173 was centred on (its 1.391 low edge, `tests/replay.py:457-458`). The re-centring dropped them without saying so.
-
-The class does not fit one 2x band as recorded:
-- sqrt(2) x the geometric midpoint of 1.451 and 2.81 is 2.856.
-- The nightly cpu-doubled arm at 2.841 then reads under it.
-- So a re-cut needs a decision, not a re-derivation: per-class budgets, a paired reference, or tvofi's call on which classes the lane grades.
+I worked from detached worktrees at the head and at the base. The harness is the finder's from round 2: the CI lanes' own `cost` lines, graded through the production `class_budget` and `cost_offenders`. Round 2 blocked because the nightly `slow` class (ref_ms ~53) could not see a 2x cycle under one budget. At this head, each of that class's doubled arms reads over its own class's budget, and every clean reading in every class reads WITHIN.
 
 ## Findings
 
-- The owner fixture has never been read on the nightly class. It joined after the 2026-11-02 00:50 nightly (its head 78dd34354 has no owner fixture). The re-cut owes that reading against the 337.8 budget's floor of 168.9 before the owner budget is re-recorded. Carry: R10-REPLAY-COST-BUDGET
-- The body says synthetic `loop_cpu_ratio` is "flat across both classes" at 0.0901-0.0907. Other CI readings say otherwise:
-  - this head's own replay job (class B, `loop_ref_ms` 155.3) reads 0.1023;
-  - the nightly class reads 0.093-0.1026.
-
-  Everything I read stays within 0.1278 (the largest, 0.1026, is 80 % of the cap), and every `loop doubled` arm is over it (0.1792-0.2015). The 0.7 % flatness figure does not hold, and the re-cut should quote the spread it measures. Carry: R10-REPLAY-COST-BUDGET
-- On a box outside every CI class, synthetic `loop_cpu_ratio` at unchanged code reads over the new 0.1278. This container read 0.1595-0.1779 at base and 0.1363-0.1405 at head, interleaved (ev/local_runs.txt). The body records this. The lane runs only in CI: `tests/run.sh:480` skips `replay.py`, and only tests.yml `replay` and nightly.yml `slow` invoke it. Carry: dismissed: a box outside every CI class is not one the lane grades; recorded in the body and in the comment above COST_BUDGETS, and the base-vs-base null the brief asks for is the CI readings, which are within
+- The owner fixture has still not been replayed on the ref53 (nightly `slow`) class. It is graded there by the single 337.8, which no class key covers. It joined main after the 2026-11-02 00:50 nightly: d06124693 is not an ancestor of 78dd34354.
+  - This cannot hide a 2x. `cost_offenders` turns a clean reading under 168.9 red as `cannot see a 2x cycle`, and any clean reading at or over 168.9 puts its 2x over 337.8.
+  - The risk is a loud red on the first nightly that reads under 168.9. The body says so under "Owner fixture on ref53, unread".
+  - A local hint, not a CI class: round 2's container read owner 307.9 at ref_ms 48.6 while reading synthetic 1.6-2.3. That suggests the solve-dominated owner ratio does not drop with the synthetic.
+  - The first nightly after merge owes that `record:` line. If it is red, key the owner `cpu_ratio` by class from it. Carry: R10-REPLAY-COST-BUDGET
+- A CI runner whose `ref_ms` falls outside all three bands makes the required `tests / replay` check red, with a named refusal.
+  - The bands are 28.72-32.69, 42.99-49.51 and 49.60-56.78. The comment above `COST_BUDGETS` records an older fast nightly class at ref_ms ~22-34, part of which now lies in no band.
+  - That is the fail-closed behaviour the round-3 ruling asks for: it is loud and never a silent pass. The re-record path is to append the job to `COST_CLASS_READINGS`. Carry: dismissed: fail-closed by the round-3 ruling; a band miss is a named red, never a borrowed budget
+- In the `runner_class_unknown` control, the locals are named the wrong way round. `lo30` holds ref30's upper edge and `hi46` holds ref46's lower edge. The midpoint they compute (37.84) is correct, and it sits in the gap, as intended. Carry: dismissed: cosmetic naming only, the probe value is right
 
 ## Evidence
 
-- Head re-read after CI concluded: refs/pull/3174/head and the PR API both read `6ba3033f34810c8a4e311cb2eba8cbb3b78ab627`. The body's `## Head` names it.
-- CI: `merge_train.py classify 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627 --pr 3174` exited 0 and printed `GREEN 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627 pending: none red: none` (ev/classify.txt). No check run on this head has a failure, timed_out or cancelled conclusion. `## Red checks` answers #3167's inherited red. Its trigger is answered; the answer itself is not re-judged here.
-- This head's replay job 125316010511 is class B (`ref_ms` 46.4) and reads `ALL 179 replay checks PASSED` (ev/head_replay_125316010511.txt):
-  - synthetic `cpu_ratio` 2.4235 and `loop_cpu_ratio` 0.1023;
-  - owner `cpu_ratio` 245.967;
-  - cpu-doubled 4.7775 and loop-doubled 0.2015, both over their caps.
-- ASK (1), the cited sources: I opened all three cited jobs myself (ev/ci_replay_*.txt), and every figure in the body and the comment matches the `cost` lines.
-  - 125240101580 (run 41434115932) ran the pull/3174 merge commit 5cc311bf of a476a578, as the body says. It read 235.8185 / 2.7543 / 0.0907 at `ref_ms` 30.7.
-  - 125160076828 (#3167) read 240.6876 / 2.81 / 0.0903 at `ref_ms` 30.4.
-  - 125097530406 (#3078) read 241.9249 / 2.3246 / 0.0901 at `ref_ms` 46.3.
-  - The doubled arms read 5.5315, 5.701 and 4.6473 (cpu) and 0.1833, 0.186 and 0.1792 (loop).
-  - All three heads carry custom_components identical to the base.
-  - The rule re-derives to 337.8, 3.614 and 0.1278.
-  - Each budget's floor is under its lowest PR-lane reading. On those two classes, the budgets sit where the readings put them.
-- ASK (2), my own mutants in production code at the head (ev/mutant_cpu.diff, ev/mutant_loop.diff), synthetic fixture, interleaved with base and head on this container (ev/local_runs.txt):
-  - A worker-side mutant that runs each process-worker job twice (`process_worker.py:84`) reads `cpu_ratio` 2.62, 3.70 and 3.05, against head 2.05, 2.27 and 1.64.
-  - A loop-side mutant that spins 12 ms of loop-thread CPU per cycle in `_async_update_data` reads `loop_cpu_ratio` 0.183, 0.216 and 0.219, against head 0.136, 0.141 and 0.140.
-  - Both move the metric they target, but rulers on this container swing between 43 and 76 ms. It is not a CI class, so these readings show direction only. Over/under against the budgets rests on the CI doubled arms above.
-  - Owner `cpu_ratio`: a clean head `--one` here reads 307.9 at `ref_ms` 48.6, inside 337.8. The worker-side mutant's owner run printed no result line: my JSON parse in ev/local_runs.txt shows an IndexError on empty output. So I have no owner mutant figure of my own. The owner over-budget claim rests on the body's 623.8, which I could not re-derive, and on its being 1.85x the CI owner readings.
-- ASK (3), the two pins (ev/pins.txt). Null at the head: `AWAY_COVERED` names a committed fixture (offenders []), and both `control:away:covered_names_are_committed` and `recorder:unsupported_scheme_refusal_prints_none_of_the_url` read ok. Mutants:
-  - M1, `AWAY_COVERED` misspelt `owner-2026-10-30-awya.json`: `away_covered_offenders` returns the offender, which main()'s `R.check(... not wrong ...)` turns red. Killed.
-  - M2, `away_covered_offenders` returning []: `FAIL control:away:covered_names_are_committed bad=[] good=[]`. Killed.
-  - M3, the export refusal as `f"the recorder URL {url} is ..."`: `FAIL recorder:unsupported_scheme_refusal_prints_none_of_the_url` with the canary credential visible. Killed.
-  - All three were restored, and the tree is clean.
-- ASK (4): the body has no `Carry: R10-REPLAY-COST-BUDGET` line for `loop_cpu_ratio`, and its sections are all present. #3167's red, 2.81 over 2.173, is cleared on the PR lane: 2.81 is within 3.614 and 2.81 x 2 = 5.62 is over it.
-- ASK (5), standing checks (ev/standing.txt):
-  - `git merge-tree --write-tree origin/main 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627` exits 0 with tree 0e9dff14f.
-  - The delivery row is in the three-dot diff.
-  - Both claim files are byte-identical to origin/main.
-  - VERSION, the manifest and RELEASE_NOTES are untouched.
-  - No `*_budgets.json` is touched.
+- **Head and CI.** The PR API reads head `8e47d727c1024728ab3ab23c4aefa01a866dcf78`, and the body's `## Head` names it. `merge_train.py classify 8e47d727c1024728ab3ab23c4aefa01a866dcf78 --pr 3174` exited 0 at 17:45:27Z and printed `GREEN 8e47d727c1024728ab3ab23c4aefa01a866dcf78 pending: none red: none` (ev/classify.txt and ev/classify.log).
+  - This head's `tests / replay` job 125418412297 (run 41486423541) concluded success with `ALL 181 replay checks PASSED`. That runner is ref46 (ref_ms 47.73).
+  - Synthetic clean 2.2746 is WITHIN 3.357, at 67.8 % of it. The cpu-doubled arm 4.6399 reads `over its budget 3.357`.
+  - Owner reads 248.84, within 337.8. AWAY_COVERED is ok. The excerpt is in ev/ci_head_replay_125418412297.txt.
+  - Check runs for this head, read on one page (total_count 43 once the late jobs had joined): none concluded failure, timed_out or cancelled. `## Red checks` names #3167's inherited red and answers it with a cause, a process state and a countermeasure.
+- **ASK (1), the finder's harness at both ends** (ev/finder_both_ends.txt).
+  - At the base (single 2.173), the ref30 and ref46 cleans read `over its budget`. That is #3167's red. The ref53 cleans read WITHIN.
+  - At the head, all seven cleans read WITHIN their class budget, and all seven cpu-doubled arms are seen:
+    - ref30: 5.701 and 5.532 over 3.934;
+    - ref46: 4.647 and 4.777 over 3.357;
+    - ref53: 2.885, 2.841 and 2.925 over 2.081.
+  - So a 2x cycle on the ~1.45 class now goes red, and the ~2.3-2.8 classes stay green.
+  - Synthetic `loop_cpu_ratio`, unchanged at 0.1278, holds the seven cleans (0.0901-0.1026) WITHIN and sees all seven loop-doubled arms (0.1792-0.2015) at both ends. The owner's four CI readings (235.8-246.0) are WITHIN 337.8, and their 2x is seen.
+- **The null control.** It is base-versus-base on CI: every cited job ran cycle code unchanged from this base, and every clean reading is WITHIN its own class budget.
+  - A local interleaved base/head null cannot be graded inside a class here. This container's ruler reads ref_ms 73-87, outside every band. Synthetic `cpu_ratio` read base 1.548 and 1.385 against head 1.645 and 1.501 (ev/local_one_interleaved.txt).
+  - At the head, the live `--one` run's `cycle_cost` is the named refusal `runner class unknown: ref_ms 73.25 lies in no band ...`. It fails closed, as the body claims.
+- **ASK (2), the cited sources.** I opened all seven cited jobs myself, and every tuple in `COST_CLASS_READINGS` matches the `cost` lines:
+  - 125160076828: (30.32, 2.81, 5.701)
+  - 125240101580: (30.93, 2.7543, 5.5315)
+  - 125097530406: (45.65, 2.3246, 4.6473)
+  - 125316010511: (46.36, 2.4235, 4.7775)
+  - 124414072168: (52.76, 1.4563, 2.8848)
+  - 124725704090: (53.27, 1.451, 2.841)
+  - 125036077984: (52.43, 1.4926, 2.9251)
+
+  The owner readings match too: 235.8185, 240.6876, 241.9249 and 245.967.
+  - The re-derived budgets (sqrt 2 x the geometric midpoint) are 3.9344, 3.3567 and 2.0812, against committed 3.934, 3.357 and 2.081. Every reading is 69.3-72.2 % of its budget. The owner budget re-derives to 337.76.
+  - The re-derived bands (min/1.05 and max x 1.05 over every arm's ref_ms, owner included) are 28.72-32.69, 42.99-49.51 and 49.60-56.78. They are identical to the committed bands. The counts are 10, 10 and 12 as the body says, with 8, 8 and 12 synthetic arms plus the owner's.
+  - No budget is wider than what ran. Each class has two or three jobs, and the body says so ("Too few readings").
+- **ASK (3), the class signal.** It is the run's median reference-solve `ref_ms`, which `run_fixture` already measured. A grep of the added lines finds no hostname, runner name, environment variable, platform or cpuinfo read. The only hits are the `COST_RUNNER_CLASSES` identifiers (ev/standing.txt).
+  - Band edges: the bands are disjoint, with a refusal gap at 49.51-49.60.
+  - I graded each class's clean and doubled readings under each other class's budget (ev/finder_both_ends.txt, `misclass` lines):
+    - A ref53 run read as ref30 or ref46 reads `cannot see a 2x cycle` on its clean: loud red, never a silent miss.
+    - A ref30 or ref46 run read as ref53 reads `over its budget`.
+    - ref30 and ref46 read under each other's budgets still see their doubled arm.
+  - No misclassification on these readings is a silent pass.
+- **ASK (4), my planted mutants** in `tests/replay.py` at the head (ev/mutants_r3.txt). Each was restored, and the tree is clean.
+  - Null: `ok` on `class_budgets` and on `runner_class_unknown`.
+  - Per budget and per class, each budget loosened past 2x its readings and each tightened under them is red on `control:cycle_cost:class_budgets`:
+    - R1 ref30 5.75 and R2 ref30 2.70;
+    - R3 ref46 4.80 and R4 ref46 2.30;
+    - R5 ref53 2.95 and R6 ref53 1.44.
+  - Bands: R7 widens ref46 over ref53, and R8 shifts ref53 off its readings. Both are red.
+  - Selection: R9 ignores the ruler and R10 inverts the band test. Both are red on both controls.
+  - R11, an unknown ruler falling back to the single budget, is red on `runner_class_unknown`.
+  - R12 drops the `refused or` in `run_fixture`. It is green on the controls, but equivalent: a `None` budget makes `cost_offenders` return `no recorded budget`, still red.
+  - The body's own M1-M5 are consistent with these. M3 (ref30 graded by ref46) is disclosed as equivalent. I confirm that in the misclass lines: ref30 under 3.357 is WITHIN, and its doubled arm is seen.
+- **ASK (5), standing checks** (ev/standing.txt).
+  - `git merge-tree --write-tree origin/main 8e47d727c1024728ab3ab23c4aefa01a866dcf78` exits 0 with tree f58150f77f78.
+  - Both claim files, VERSION, the manifest and RELEASE_NOTES.md are byte-identical to origin/main. No `*_budgets.json` is touched, and there is no budget raise.
+  - `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED.
+  - `tests/closure.py select --diff ea59e9a0` printed `MODE: SCOPED -- 3 script(s) run, 30 scoped out.`, as the body quotes.
+  - The delivery row `dev/programme/delivery/3174.md` is in the three-dot diff.
   - No host path appears in the added lines.
-- I did not re-run the gate or the mutation table. Both are CI's, cited above.
+- **Not re-run, and not mine.** I did not re-run the gate or the mutation table; both are CI's. I did not re-run the round-2 pins: their code is untouched in this round's delta, and this head's lane prints `ok AWAY_COVERED names committed fixtures`.
