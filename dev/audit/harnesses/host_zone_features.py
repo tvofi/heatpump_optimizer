@@ -64,6 +64,10 @@ SUITE_ZONES = ("gate", "UTC", "America/New_York", "Asia/Tokyo", "Europe/Stockhol
                "Asia/Kolkata", "Europe/London")
 SUMMARY = re.compile(r"(ALL (\d+)|(\d+) of (\d+)) FEATURE CHECKS (PASSED|FAILED)")
 FAIL = re.compile(r"^\s*FAIL\b:?\s*(.*)$")
+# The card scripts read the plan payload tests/plan_view.py writes, one file
+# per tree (run.sh runs plan_view first in their lane): each runs after
+# plan_view in its own zone, and the group shares one lock.
+PLAN_READERS = ("tests/card.mjs", "tests/setup_qa_render.mjs", "tests/card_drift.mjs")
 INVOCATION = re.compile(r'^\s*run(?:_always)? ("\$PYTHON"|node) (tests/\S+)(.*)$')
 
 # Each fixed site, as (file, fixed text, the host-zone read it replaced).
@@ -75,6 +79,13 @@ MUTANTS = {
         "tests/finite_boundary.py",
         '        zone = getattr(self, "_naive_zone", _dt.timezone.utc) or _dt.timezone.utc\n',
         "        zone = _dt.timezone.utc\n",
+    ),
+    # The seam check's clock, FROZEN itself again: a naive plan time read in
+    # the host zone, off the UTC grid the chunks run on.
+    "card_seam_clock": (
+        "tests/card.mjs",
+        "    const seamNow = Math.floor(FROZEN / CH) * CH + 6 * HOUR;\n",
+        "    const seamNow = FROZEN;\n",
     ),
     "nometer_month": (
         "tests/features.py",
@@ -178,6 +189,12 @@ def _label(cmd: list[str]) -> str:
 
 
 def _run_cmd(tree: Path, cmd: list[str], zone: str) -> tuple[str, list[str]]:
+    if cmd[1] in PLAN_READERS:
+        pre = subprocess.run([sys.executable, "tests/plan_view.py"], cwd=tree,
+                             env=zone_env(tree, zone), capture_output=True, text=True,
+                             check=False, stdin=subprocess.DEVNULL)
+        if pre.returncode:
+            return f"fail(plan_view rc={pre.returncode}) :: ", []
     proc = subprocess.run(cmd, cwd=tree, env=zone_env(tree, zone), capture_output=True,
                           text=True, check=False, stdin=subprocess.DEVNULL)
     out = proc.stdout + proc.stderr
@@ -201,7 +218,9 @@ def _needs_lease(tree: Path, script: str) -> bool:
 
 def sweep(tree: Path, cmds: list[list[str]], zones: tuple[str, ...], jobs: int) -> dict:
     """(script label, zone) -> (verdict, fails); prints each as it lands."""
-    locks = {_label(c): threading.Lock() for c in cmds}
+    group = threading.Lock()
+    locks = {_label(c): group if c[1] in PLAN_READERS or c[1] == "tests/plan_view.py"
+             else threading.Lock() for c in cmds}
     alone = [c for c in cmds if _needs_lease(tree, c[1])]
     pooled = [(c, z) for z in zones for c in cmds if c not in alone]
     results: dict = {}
