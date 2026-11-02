@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-AUDIT-COVERAGE-ENDGAME (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CLOSURE-MAJOR (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-RAISE-REVIEWABLE (stage carries-open, branch `handoff/r10-fly-raise-reviewable`): `git fetch origin handoff/r10-fly-raise-reviewable && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-BASH-KILL-HOOK (stage in-progress, branch `handoff/r10-bash-kill-hook`): `git fetch origin handoff/r10-bash-kill-hook && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BASH-KILL-HOOK (stage carries-open, branch `handoff/r10-bash-kill-hook`): `git fetch origin handoff/r10-bash-kill-hook && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OPENER-REUSE (stage carries-open, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage carries-open, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
