@@ -1,2 +1,4 @@
-GREEN 41790e2b8944e4529a921b27be4b61398e86bef2 pending: none red: none
-rc=0
+usage: merge_train.py [-h]
+                      {run,batch,queue,add,sweep,wait-ci,unstale,classify} ...
+merge_train.py: error: unrecognized arguments: --pr 3090
+rc=2 Mon Nov  2 15:05:59 UTC 2026
