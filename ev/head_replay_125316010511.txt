@@ -1,0 +1,26 @@
+HEAD is now at 598711f Merge 6ba3033f34810c8a4e311cb2eba8cbb3b78ab627 into a9c149289922e92bae57cad87afc4abd3ef6c235
+  ok   control:cycle_cost:cpu
+  ok   control:cycle_cost:memory
+  ok   control:cycle_cost:loose_budget
+  ok   control:cycle_cost:unrecorded
+  ok   control:cycle_cost:loop_thread
+  ok   control:cycle_cost:loop_normaliser
+  ok   control:cycle_cost:cpu_normaliser
+  ok   control:cycle_cost:arms_skipped_never_everywhere
+  ok   control:cycle_cost:arms_skipped_committed_only
+  ok   control:cycle_cost:short_doubling
+  ok   control:cycle_cost:unmetered_doubling
+  ok   control:cycle_cost:coverage
+  16 cycles over 82 entities in 854.8 s; cost {'cpu_ratio': 245.967, 'peak_kib': 2655.0, 'loop_cpu_ratio': 0.1433, 'timed': 7, 'traced': 8, 'ref_ms': 46.723868999947626, 'loop_ref_ms': 156.89185399999994}
+  record: owner-2026-10-30-away.json cpu_ratio=347.8 peak_kib=3755 loop_cpu_ratio=0.2027
+  ok   owner-2026-10-30-away.json: cycle_cost
+  48 cycles over 82 entities in 18.1 s; cost {'cpu_ratio': 2.4235, 'peak_kib': 1929.0, 'loop_cpu_ratio': 0.1023, 'timed': 23, 'traced': 24, 'ref_ms': 46.359037000000214, 'loop_ref_ms': 155.31953800000008}
+  record: synthetic-dhw-only.json cpu_ratio=3.427 peak_kib=2728 loop_cpu_ratio=0.1447
+  ok   synthetic-dhw-only.json: cycle_cost
+  cpu doubled: cost {'cpu_ratio': 4.7775, 'peak_kib': 1932.2, 'loop_cpu_ratio': 0.7935, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 47.14481499999934, 'loop_ref_ms': 162.16794000000002}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+  memory doubled: cost {'cpu_ratio': 2.3733, 'peak_kib': 3864.3, 'loop_cpu_ratio': 0.0963, 'timed': 23, 'traced': 24, 'ref_ms': 47.096033999999065, 'loop_ref_ms': 163.7911919999999}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+  loop doubled: cost {'cpu_ratio': 2.7792, 'peak_kib': 1928.7, 'loop_cpu_ratio': 0.2015, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 46.443765000001136, 'loop_ref_ms': 160.41760100000002}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+ALL 179 replay checks PASSED
