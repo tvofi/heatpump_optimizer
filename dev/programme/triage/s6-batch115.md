@@ -152,3 +152,100 @@ Binding:
   repeat a verdict, never carry a new one.
 - **Delivery.** The carry lands when this batch is on main. If R10-FLY-RAISE-REVIEWABLE's fixer
   is dispatched before then, the orchestrator hands the fixer this entry directly.
+
+## P375: RED-UNOWNED reads a fired seat as no seat, missing payload-named fires and handoff-wip
+
+Verdict: ACCEPT, narrowed to propagating the finding into the brief that builds the tracked
+level: carry b115-P375 on R10-TICK-PR-BUCKETS. That group's carry 6 specifies RED-UNOWNED as
+"no seat dispatched" and leaves the meaning of "dispatched" open. No new group and no new check.
+The session-local stand-in is the orchestrator's own script and outside the roster.
+
+Source: the orchestrator s10's message of 2026-11-02, about 16:30Z, a slip from that day's
+sweeps.
+
+Instances:
+- **#3085, four lines from 15:37Z to 16:09Z** (orchestrator's report).
+  - The dispatch seat's `ledger-standin.txt` line 212 reads
+    `2026-11-02T15:03:29Z FIRED payload-fix-3085-r5.json`.
+  - The stand-in `blind_spots.py` (sweep runner, line 61) calls
+    `fired_after(["#3085 ", "#3085)", topic], now - 3 h)`. Line 212 names neither `#3085` nor
+    `r10-closeout-cleanup`, only the payload file, so the fire is invisible.
+  - Earlier FIRED lines for #3085 (ledger-standin lines 94, 112 and 147) wrote `#3085 r<k>`; the
+    line format changed and the predicate did not.
+  - The script never reads `handoff-wip/<topic>`, which moved at 15:08Z (orchestrator's report).
+- **#3174, the same class, by hand.** Seat ledger at 16:16:43Z: "ordered #3174 retake on
+  BLOCKED-SILENT without checking handoff-wip (moved 16:13Z); dispatch caught it".
+- **The tracked form is not built yet.**
+  - On roster `2c50a2cfc`, R10-TICK-PR-BUCKETS is at stage `not-started` with 7 carries.
+  - Carry 6 asks for "three tick levels with these predicates", each with a null control and a
+    planted positive.
+  - `blind_spots.py`'s docstring names it as that carry's stand-in.
+
+Rule run on the instances:
+- With the carry's definition, line 212 is a fire for #3085, because it names a payload file for
+  pull request 3085. So is `handoff-wip/r10-closeout-cleanup` moving at 15:08Z. RED-UNOWNED
+  prints nothing for #3085 until 18:03Z.
+- #3174's handoff-wip motion at 16:13Z likewise holds it.
+
+Cost:
+- Carry text only. It fixes the meaning of one word in a predicate the group already owes:
+  about 5 lines in the level it writes, and one planted arm.
+- Without it, the tracked level copies the stand-in's blind spot. It would fire on every pull
+  request whose fix is in progress, and a false RED-UNOWNED invites a duplicate fixer, which is
+  how #3174's retake was ordered.
+- No capped file is touched by this ruling.
+
+Binding:
+- **Why ACCEPT.** A finding that changes how a later stage must work goes into that stage's own
+  brief before it is built (`finding-propagation.md`). This is not a proposal for new
+  machinery, so the LOG class does not apply.
+- **What stays with the orchestrator.** The two-line patch to its own stand-in: add payload-file
+  keys to `fired_after`, and treat a handoff-wip move in the window as a fire.
+
+## P376: seat-no-return fires for a dispatch that returned on a split-part topic
+
+Verdict: DEFER (LOG, by the owner's 2026-11-01 ~19:50Z rule), with the class sent to a root-cause
+seat. On its own, the false line costs one OWED-ACK, or deleting the dispatch ref, which is the
+level's documented disposal. It holds no merge. What changes the answer is the root-cause
+seat's countermeasure for split-part topics, below, which may route this site with the others.
+
+Source: the orchestrator s10's message of 2026-11-02, about 16:30Z.
+
+Instances:
+- **r10-agreement-bootstrap.** `git log -1 --format=%cI` on each ref:
+  - `dispatch/fixer-r10-agreement-bootstrap` (`b3f577cb`) is at 08:08:44Z.
+  - The exact-topic return refs all predate it: `handoff/` and `handoff-wip/` at 05:41Z,
+    `handoff-body/` at 06:37Z, `fix/r10-agreement-bootstrap` at 07:14Z.
+  - The seat returned on the split-part topic: `handoff/r10-agreement-bootstrap-p1` at 11:36Z
+    and `handoff-body/r10-agreement-bootstrap-p1` at 12:34Z. #3173 then merged.
+  - The orchestrator acknowledged it in the seat ledger at 16:26:08Z (OWED-ACK, "false
+    positive").
+- **The mechanism is the topic name, not the session.** `noreturn_arm` in
+  `tools/audit/seat/cloud_relay.sh` (lines 595-626 at origin/main `ea59e9a09`) asks only for
+  `handoff/`, `handoff-wip/`, `handoff-body/<topic>`, `fix/<topic>-pr` and `fix/<topic>` with
+  the dispatch's exact topic. A return on `<topic>-p<N>` is never asked for.
+  - The report's reading, "keys on the session ending", does not match the code. The predicate
+    reads no session state: the dispatch tip's age and those five refs are its only inputs.
+- **The same blindness, elsewhere.**
+  - The opener: P363 (`s6-batch106.md`) and P370 (`s6-batch112.md`), with 4 part topics missed
+    by 03:24Z.
+  - The stand-in `blind_spots.py` line 46, whose candidates strip only `-pr` and `-2`, not
+    `-p<N>`.
+  - That makes three instruments with one cause: each keys on an exact topic, and none knows a
+    topic's part family.
+
+Cost:
+- A fix inside `noreturn_arm` alone means another per-instrument rule. It needs about 10 lines
+  and a self-test arm in `cloud_relay.sh`, which is hot in round 10, to suppress one false
+  OWED line per split.
+- The class already has a third site, so per-site fixes keep re-paying the same cost.
+- No capped file is touched by this ruling.
+
+Binding:
+- **Why LOG.** The friction holds no pull request that touches `custom_components/`, and no
+  measured gain is offered.
+- **The class is the root-cause seat's.** At the third instrument, a recurring defect is owed a
+  root-cause seat (`CLAUDE.md`, "A recurring error is not a third issue";
+  `dev/governance/roles/root-cause.md`), not a third per-site carry. Dispatching it is the
+  orchestrator's call. Its countermeasure decides whether one topic-family reader replaces the
+  per-site rules, including R10-OPENER-REUSE carry 10.
