@@ -1,0 +1,30 @@
+== syn_base_1.txt
+cpu=1.9438 peak=1928.8 loop=0.1686 ref=38.58649300000017 lref=94.65142500000034
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1686 over its budget 0.143]
+1 of 163 replay checks FAILED
+'cpu_ratio': 4.7727
+== syn_base_2.txt
+cpu=2.3119 peak=1930.3 loop=0.1871 ref=30.984353999999993 lref=85.37604399999998
+  FAIL synthetic-dhw-only.json: cycle_cost  [2 offender(s): cpu_ratio 2.312 over its budget 2.173 | loop_cpu_ratio 0.1871 over its budget 0.143]
+1 of 163 replay checks FAILED
+'cpu_ratio': 4.2507
+== syn_base_3.txt
+cpu=1.7035 peak=1933.2 loop=0.1516 ref=40.73862899999992 lref=98.56238600000023
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1516 over its budget 0.143]
+1 of 163 replay checks FAILED
+'cpu_ratio': 4.3614
+== syn_head_1.txt
+cpu=2.0738 peak=1928.8 loop=0.1838 ref=35.95769300000029 lref=88.69981299999985
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1838 over its budget 0.143]
+1 of 166 replay checks FAILED
+'cpu_ratio': 4.258
+== syn_head_2.txt
+cpu=2.1686 peak=1937.0 loop=0.191 ref=35.012950000000046 lref=86.96422200000065
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.191 over its budget 0.143]
+1 of 166 replay checks FAILED
+'cpu_ratio': 4.1784
+== syn_head_3.txt
+cpu=2.0679 peak=1932.3 loop=0.178 ref=34.72310700000003 lref=88.64419200000006
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.178 over its budget 0.143]
+1 of 166 replay checks FAILED
+'cpu_ratio': 3.9622
