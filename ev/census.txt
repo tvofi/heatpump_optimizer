@@ -1,0 +1,4 @@
+== base a9c149289922e92bae57cad87afc4abd3ef6c235
+{'metric': 'card', 'card_dead_definitions': 0, 'card_clone_copies': 105, 'runtime_s': 0.349}
+== head 8d3708cde00393bd9f3ce2dc51dee828fede975d
+{'metric': 'card', 'card_dead_definitions': 0, 'card_clone_copies': 103, 'card_rule_copies': 72, 'runtime_s': 0.407}

@@ -1,0 +1,2 @@
+head {'card_dead_definitions': 0, 'card_clone_copies': 103, 'card_rule_copies': 72}
+rt {'card_dead_definitions': 0, 'card_clone_copies': 103, 'card_rule_copies': 73}
