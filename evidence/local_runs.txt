@@ -1,0 +1,20 @@
+14:01:28 base synthetic-dhw-only.json {"cpu_ratio": 1.78, "peak_kib": 1923.1, "loop_cpu_ratio": 0.1653, "ref_ms": 64.46731499999991, "loop_ref_ms": 128.85392100000104}
+14:01:59 rev synthetic-dhw-only.json {"cpu_ratio": 2.0538, "peak_kib": 1923.4, "loop_cpu_ratio": 0.1363, "ref_ms": 59.84030599999812, "loop_ref_ms": 168.18312799999902}
+14:02:20 mcpu synthetic-dhw-only.json {"cpu_ratio": 2.6205, "peak_kib": 2067.2, "loop_cpu_ratio": 0.1614, "ref_ms": 76.22740999999778, "loop_ref_ms": 128.35551400000256}
+14:02:55 mloop synthetic-dhw-only.json {"cpu_ratio": 2.6544, "peak_kib": 1924.1, "loop_cpu_ratio": 0.1826, "ref_ms": 45.771661999999935, "loop_ref_ms": 182.00702100000044}
+14:03:16 base synthetic-dhw-only.json {"cpu_ratio": 1.9303, "peak_kib": 1926.9, "loop_cpu_ratio": 0.1595, "ref_ms": 63.24226799999977, "loop_ref_ms": 144.98023700000218}
+14:03:36 rev synthetic-dhw-only.json {"cpu_ratio": 2.2727, "peak_kib": 1927.2, "loop_cpu_ratio": 0.1405, "ref_ms": 46.08560400000017, "loop_ref_ms": 144.941886}
+14:03:55 mcpu synthetic-dhw-only.json {"cpu_ratio": 3.701, "peak_kib": 2070.2, "loop_cpu_ratio": 0.1029, "ref_ms": 52.111170999999956, "loop_ref_ms": 196.26511799999946}
+14:04:24 mloop synthetic-dhw-only.json {"cpu_ratio": 2.5235, "peak_kib": 1926.9, "loop_cpu_ratio": 0.2164, "ref_ms": 47.39311300000004, "loop_ref_ms": 157.2599910000001}
+14:04:44 base synthetic-dhw-only.json {"cpu_ratio": 2.379, "peak_kib": 1927.2, "loop_cpu_ratio": 0.1779, "ref_ms": 43.370175999999816, "loop_ref_ms": 117.10068699999887}
+14:05:02 rev synthetic-dhw-only.json {"cpu_ratio": 1.6387, "peak_kib": 1927.2, "loop_cpu_ratio": 0.1399, "ref_ms": 68.02674399999998, "loop_ref_ms": 152.92580900000274}
+14:05:21 mcpu synthetic-dhw-only.json {"cpu_ratio": 3.0489, "peak_kib": 2072.1, "loop_cpu_ratio": 0.1206, "ref_ms": 64.91655600000001, "loop_ref_ms": 176.41161899999958}
+14:05:52 mloop synthetic-dhw-only.json {"cpu_ratio": 2.1854, "peak_kib": 1927.0, "loop_cpu_ratio": 0.2191, "ref_ms": 53.5491669999999, "loop_ref_ms": 149.30016100000108}
+SYNDONE
+14:06:11 rev owner-2026-10-30-away.json {"cpu_ratio": 307.9215, "peak_kib": 2681.7, "loop_cpu_ratio": 0.1646, "ref_ms": 48.55640899995706, "loop_ref_ms": 185.03207800017663}
+14:28:38 mcpu owner-2026-10-30-away.json Traceback (most recent call last):
+14:28:38 mcpu owner-2026-10-30-away.json   File "<string>", line 1, in <module>
+14:28:38 mcpu owner-2026-10-30-away.json     import sys,json; d=json.loads(sys.stdin.read().split("\n")[-2] if 0 else sys.stdin.read().strip().splitlines()[-1]); c=d.get("cost",d); print(json.dumps({k:c.get(k) for k in ("cpu_ratio","peak_kib","loop_cpu_ratio","ref_ms","loop_ref_ms")}))
+14:28:38 mcpu owner-2026-10-30-away.json                                                                              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^
+14:28:38 mcpu owner-2026-10-30-away.json IndexError: list index out of range
+ALLDONE

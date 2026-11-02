@@ -1,6 +1,0 @@
-base s60 rc=0 153s
-head s60 rc=0 152s
-base full rc=0 637s
-DONE
-head full rc=0
-DONE2

@@ -1,0 +1,20 @@
+2026-11-01T02:40:08.3614913Z   ok   control:cycle_cost:cpu
+2026-11-01T02:40:08.3615570Z   ok   control:cycle_cost:memory
+2026-11-01T02:40:08.3615829Z   ok   control:cycle_cost:loose_budget
+2026-11-01T02:40:08.3616118Z   ok   control:cycle_cost:unrecorded
+2026-11-01T02:40:08.3616404Z   ok   control:cycle_cost:loop_thread
+2026-11-01T02:40:08.3616702Z   ok   control:cycle_cost:loop_normaliser
+2026-11-01T02:40:08.3617002Z   ok   control:cycle_cost:cpu_normaliser
+2026-11-01T02:40:08.3617296Z   ok   control:cycle_cost:short_doubling
+2026-11-01T02:40:08.3617619Z   ok   control:cycle_cost:unmetered_doubling
+2026-11-01T02:40:08.3617930Z   ok   control:cycle_cost:coverage
+2026-11-01T02:40:08.3638220Z   48 cycles over 82 entities in 14.7 s; cost {'cpu_ratio': 1.451, 'peak_kib': 1927.4, 'loop_cpu_ratio': 0.0934, 'timed': 23, 'traced': 24, 'ref_ms': 53.268235, 'loop_ref_ms': 164.52329999999992}
+2026-11-01T02:40:08.3639042Z   record: synthetic-dhw-only.json cpu_ratio=2.052 peak_kib=2726 loop_cpu_ratio=0.1321
+2026-11-01T02:40:08.3641835Z   ok   synthetic-dhw-only.json: cycle_cost
+2026-11-01T02:40:08.3643146Z   cpu doubled: cost {'cpu_ratio': 2.841, 'peak_kib': 1930.9, 'loop_cpu_ratio': 0.5458, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 54.072997000000015, 'loop_ref_ms': 169.04737299999994}
+2026-11-01T02:40:08.3643926Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+2026-11-01T02:40:08.3645619Z   memory doubled: cost {'cpu_ratio': 1.4352, 'peak_kib': 3865.3, 'loop_cpu_ratio': 0.0899, 'timed': 23, 'traced': 24, 'ref_ms': 52.73937800000006, 'loop_ref_ms': 165.339935}
+2026-11-01T02:40:08.3646346Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+2026-11-01T02:40:08.3647632Z   loop doubled: cost {'cpu_ratio': 1.7476, 'peak_kib': 1930.5, 'loop_cpu_ratio': 0.1855, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 52.63880000000043, 'loop_ref_ms': 164.98396999999977}
+2026-11-01T02:40:08.3648416Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+2026-11-01T02:40:08.3649824Z ALL 93 replay checks PASSED

@@ -1,4 +1,0 @@
-awaytypo rc=1
-urlfstring rc=1
-offempty rc=1
-DONE

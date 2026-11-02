@@ -1,7 +1,0 @@
-base 1 rc=1 76s
-head 1 rc=1 65s
-base 2 rc=1 65s
-head 2 rc=1 64s
-base 3 rc=1 63s
-head 3 rc=1 64s
-DONE
