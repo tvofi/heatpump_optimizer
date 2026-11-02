@@ -891,7 +891,7 @@ body_check() { # body file, head sha, title, paths file, red names...
   # refused here (policy_lint's raise arm reads the diff with the gate's own
   # raises_between), and at body_push.sh's --body-check, not first at the train.
   [ -n "${BASE:-}" ] && args+=(--base "$BASE")
-  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi
+  if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs "${args[@]}"; else node tools/policy/policy_lint.mjs "${args[@]}"; fi  # never-empty: args starts with the literal --pr-body list
   rc=$?
   rm -f "$ex"
   return "$rc"
@@ -1373,7 +1373,7 @@ reds_line() { # body file, head sha, title, paths file, remote head ref
   fi
   while IFS= read -r n; do [ -n "$n" ] && reds+=("$n"); done <<<"$names"
   out=$(mktemp)
-  body_check "$1" "$2" "$3" "$4" "${reds[@]}" >"$out" 2>&1; r=$?
+  body_check "$1" "$2" "$3" "$4" ${reds[@]+"${reds[@]}"} >"$out" 2>&1; r=$?
   if [ "$r" -eq 0 ]; then
     printf '%sthe body answers every red this branch pushed (%s)' "$unread" "$(echo $names)"
   else
@@ -1552,7 +1552,7 @@ TRANSPORT_ROOTS=(tools/audit/handoff/ handoff/)
 transport_in_ancestry() { # merge base, head -> 0 clean, 1 found (prints `<sha> <path>`), 2 unreadable
   local out
   out=$(git log --full-history -c --diff-filter=ACMRT --name-only \
-        --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2
+        --format='@%h' "$1..$2" -- "${TRANSPORT_ROOTS[@]}" 2>/dev/null) || return 2  # never-empty: TRANSPORT_ROOTS is a literal two-path list
   out=$(printf '%s\n' "$out" | awk '/^@/{c=substr($0,2);next} NF{print c" "$0}')
   [ -z "$out" ] && return 0
   printf '%s\n' "$out"
@@ -1779,12 +1779,12 @@ if [ "${1:-}" = "--self-test" ]; then
   # `empty` and `broken` matter most: a settings file with no hooks, and one
   # that does not parse, both read exactly like a working one to anybody who
   # only looks at whether the file is there.
-  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type; do
+  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type bash-under-edit-matcher; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 1 "a settings file whose hook is $f is refused"
   done
   if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks 2>&1); fi
-  r=$?; st "$r" 0 "this repository's own three wired hooks pass (null control)"
+  r=$?; st "$r" 0 "this repository's own wired hooks pass (null control)"
   [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
@@ -1796,7 +1796,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # The output is kept, and printed when a row fails: this row failed once
   # in five serial runs on a loaded box (R9-RCA-prepr-tmp) and did not
   # reproduce in 18 more, and a discarded output left nothing to read.
-  for f in star-matcher no-matcher empty-matcher; do
+  for f in star-matcher no-matcher empty-matcher bash-matcher; do
     if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); fi
     r=$?; st "$r" 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
     [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
@@ -2922,6 +2922,18 @@ https://claude.ai/code/session_011aqzm4YL9jLhU4jLvbkLYE'; got=$(lpush)
   grep -q 'were not run (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
     && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
   st $? 0 "and pushes, saying so, when the handoff refusals cannot be run (rc 3 is never a refusal)"
+  # CARRY 11: body_push runs carry_audit.py landed after the packet; rc 1 pushes nothing, rc 3 pushes.
+  printf '#!/bin/bash\necho "CARRY-MISSING R10-X body item 0123abcd: not in its brief or carries"; exit %s\n' 1 > "$PDX/ld1"
+  printf '#!/bin/bash\necho "carry_audit: UNREAD the roster"; exit %s\n' 3 > "$PDX/ld3"
+  was=$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)
+  got=$(HPO_HANDOFF_LANDED="bash $PDX/ld1" lpush)
+  grep -q '^CARRY-MISSING R10-X body item 0123abcd' <<<"$got" && grep -q '^rc=1$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" = "$was" ]
+  st $? 0 "and refuses a body whose carry its group does not hold, naming it and pushing nothing (CARRY 11)"
+  got=$(HPO_HANDOFF_LANDED="bash $PDX/ld3" lpush)
+  grep -q 'carry landing was not checked (rc 3' <<<"$got" && grep -q '^rc=0$' <<<"$got" \
+    && [ "$(git --git-dir="$PDX/bodies.git" rev-parse refs/heads/handoff-body/zz-lint)" != "$was" ]
+  st $? 0 "and pushes, saying so, when the roster cannot be read (rc 3 is never a refusal)"
   (cd "$PDX/r" && git push -q -f origin pinert:refs/heads/handoff/zz-lint); got=$(lpush)
   grep -q 'push the code, then the body' <<<"$got" && grep -q '^rc=1$' <<<"$got"
   st $? 0 "and refuses a body pushed from a checkout that is not the head at handoff/<topic>"
@@ -3363,7 +3375,7 @@ STUB
   tmp_floor_check /no/such/dir 1 >/dev/null; st $? 0 "an unmeasurable temp dir runs anyway, never refuses"
   # (4) The class, over every script whose sites were drained (above
   # `pipe_grep_q_sites`), and a planted site the search must find.
-  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?
+  out=$(pipe_grep_q_sites "${PIPE_GREP_Q_FILES[@]}"); r=$?  # never-empty: PIPE_GREP_Q_FILES is a literal list
   st "$r" 0 "no early-exit grep reads a pipe under pipefail in the drained scripts"
   [ "$r" -eq 0 ] || printf '%s\n' "$out" | sed 's/^/       | /' | head -8
   printf '#!/bin/bash\nset -uo pipefail\nprintf x | grep %s y\n' "-q" > "$ST_ROOT/planted.sh"

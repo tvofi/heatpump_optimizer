@@ -441,6 +441,14 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # macOS bash 3.2 dies on an empty array's bare "${a[@]}" under `set -u`,
+      # which CI's bash 5 expands cleanly (triage P303): the static rule.
+      - name: Refuse a bare array expansion in a set -u script
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/bare_array.py --self-test
+          python3 -I tools/audit/seat/bare_array.py --check
+
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
       # slug, the guard and wt_sync.sh end to end on a planted identity; the
