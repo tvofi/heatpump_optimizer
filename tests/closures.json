@@ -3831,6 +3831,7 @@
    "tools/audit/seat/prune_refs.py",
    "tools/audit/seat/pulse.py",
    "tools/audit/seat/queue_pre_flight.py",
+   "tools/audit/seat/r10_bash_kill_hook_drive.py",
    "tools/audit/seat/r10_deeplink_mutants.py",
    "tools/audit/seat/r10_ledger_mutants.py",
    "tools/audit/seat/r10_mandate_guard_mutants.py",
