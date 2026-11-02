@@ -311,6 +311,11 @@ const POLICY_DIR_EXCLUDE = [
   /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
   // Generated from dev/governance/rules/ (D1). The source is the measured copy.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
+  // A grader's data (budgets, ledgers, exclusions), read by the checks that
+  // own it and never prose. The four moved here escaped only because the move
+  // map spells them by their old `.claude/workflows/` names; a new one did not
+  // (R10-MACHINERY-RATCHETS), and R9-RO-9 would have flagged all five.
+  /^dev\/governance\/config\/[a-z0-9_]+\.json$/,
 ]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
@@ -5935,6 +5940,20 @@ function assertAcceptance(derived) {
   }
   if (covSource.length) {
     console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported the rules source ${sourceRule}: ${JSON.stringify(covSource[0].message)}`)
+    return 1
+  }
+  // The config arm: a grader's JSON data is not prose, and a document put
+  // beside it still is.
+  const configData = 'dev/governance/config/machinery_budgets.json'
+  const configDoc = 'dev/governance/config/notes.md'
+  pins += 2
+  if (drive([configData]).length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported the grader data ${configData}`)
+    return 1
+  }
+  const covConfigDoc = drive([configDoc])
+  if (covConfigDoc.length !== 1 || covConfigDoc[0].where !== configDoc) {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${configDoc}; the config exclusion must cover JSON data only`)
     return 1
   }
 
