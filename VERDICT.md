@@ -1,0 +1,19 @@
+Fix review: merge e088994a83cb40aff41ae2cd2ec8b05d955af771
+
+bus-nonce: 7b39284085b7327f52c95a19d482ec36
+
+Round 1, full review. Head measured: e088994a83cb40aff41ae2cd2ec8b05d955af771 (CI head, still the head at post time). Merge-tree against origin/main: rc 0, no conflict.
+
+## Evidence
+- Three-dot diff (merge base 8f286293b): exactly dev/programme/delivery/3168.md, tools/policy/field_coverage.mjs, tools/policy/policy_lint.mjs. No hook script, no settings.json, no closures.json, no VERSION/RELEASE_NOTES/golden/claim-file change (0 diff lines).
+- Under MAIN's copies (origin/main graders copied over the head tree): policy_lint.mjs --hooks rc 0 "HOOKS ok: 3 wired hook(s)"; field_coverage.mjs rc 0 "RESULT read=53 ignored=28 declared_none=36 blind=0 dead=0 refused=0 runs=143" / FIELD COVERAGE ok.
+- Branch copies: policy_lint.mjs --hooks rc 0 (HOOKS ok: 3 wired hooks); policy_lint.mjs --self-test rc 0 (TOTAL 0 errors, KNOWN-BAD 7 of 7, FIXTURE ok 93 errors/258 pins); field_coverage.mjs rc 0 (same RESULT line, ok); field_coverage.mjs --self-test rc 0.
+- Hooks matrix (ev/hooks-matrix.txt), branch vs main copy: pre-bash.sh under "Bash": branch no MATCHER BLIND (MISSING only, script is part 2), main BLIND. pre-bash.sh under "Edit|Write": branch BLIND "cannot fire on Bash", main silent. pre-edit.sh under "Bash": branch BLIND naming the script, main BLIND. pre-edit.sh under "Edit|Write": ok in both. Real .claude/settings.json: identical verdict both copies (HOOKS ok: 3 wired hooks): no steady-state regression. The repo wires 3 hooks, not 5.
+- Mutants planted by me (ev/mutants.txt, on a scratch worktree): null = bash 0 BLIND, bash_edit 1 BLIND. Drop tool-set keying (HOOK_TOOLS={}): bash 1 BLIND, bash_edit 0: red. Drop the wrong-matcher refusal (if (false)): both 0: red on bash_edit. Restored: back to null. The self-test requirement is existing code this diff does not touch; not mutated.
+- field_coverage: 8 removed lines are the 4-line comment block and the "pending: { 'attribution': ... }," 3-line map plus its closing; the key list and the verdict() function are untouched. The pending map was a tolerance (printed, not DEAD, if unmatched) for an entry that already also sat in ignore, so it cleared nothing and no live check was lost. Premise re-verified at origin/main: 'attribution' appears in both ignore (line 114) and pending (line 122). Unmatched entry: with attribution removed from settings.json, the branch prints "DEAD hooks: IGNORE attribution matches no field" (dead=1, rc 1). Mutant restoring pending (main's copy) is also dead=1: because ignore still holds the entry, so this removal changes no behaviour; it is a redundant-code removal and the mutant cannot go red-versus-green on it. The body's claim that the key is "DEAD again" was already true at main.
+- python3 tests/structure.py: STRUCTURE RATCHET PASSED, no budget touched.
+- Body: ## Head names the head (code head df9bfd301, row commit e088994a83cb40aff41ae2cd2ec8b05d955af771); ## Red checks "none", and the whole check-run set (39 runs, all pages) at the head has no red; carry_audit 3 items routed. ## Forward-carry routes part 2 (kill hook script, registration, fixtures) to R10-BASH-KILL-HOOK / handoff/r10-bash-kill-hook, and the body says "Not closing #2732". Delivery row present. No host path in added lines.
+- CI: merge_train classify rc 0, "GREEN e088994a83cb40aff41ae2cd2ec8b05d955af771 pending: none red: none" (ev/classify.txt). Scoped gate and mutation lanes cited from CI, not re-run.
+
+## Findings
+- Part 2 is still owed after the merge: the pre-bash.sh hook (pkill, killall and pgrep-fed kill at command position refused; unquoted kill by a literal PID allowed), its settings registration and the bash-matcher fixtures, which the mutation proof says pin the HOOK_TOOLS line only from part 2. Until then HOOK_TOOLS keying has no fixture in the tree. Carry: R10-BASH-KILL-HOOK
