@@ -1,0 +1,10 @@
+CASE ok want=2 got=2 pkill at command position
+CASE ok want=2 got=2 killall at command position
+CASE ok want=2 got=2 kill fed by pgrep
+CASE ok want=2 got=2 pgrep piped to xargs kill
+CASE ok want=0 got=0 NULL kill of an owned pid
+CASE ok want=0 got=0 NULL a non-kill command
+CASE ok want=0 got=0 NULL pkill inside quoted text
+MUTANT M-pkill killed=yes
+MUTANT M-killall killed=yes
+MUTANT M-pgrepkill killed=yes
