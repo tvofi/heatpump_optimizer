@@ -432,14 +432,14 @@ MUTANTS = [
     ("cloud_relay-20", "cloud_relay.sh", 'level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo', 'echo'),
     ("cloud_relay-21", "cloud_relay.sh", '"confirm failed: $(last_line "$out")"', '"confirm failed"'),
     # R10-FLOW-ROSTER-FREEZE (a): the freeze dropped, each of its reads, the release, its level
-    ("cloud_relay-22", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze',
-     '    if false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
+    ("cloud_relay-22", "cloud_relay.sh", '    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze',
+     '    if [ -z "$bonly" ] && false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
     ("cloud_relay-23", "cloud_relay.sh", '    case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac\n', ''),
     ("cloud_relay-24", "cloud_relay.sh", '"blocked $2") return 1;; esac', 'esac'),
     ("cloud_relay-25", "cloud_relay.sh", "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { f = 1 }",
      "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p { f = 1 }"),
     ("cloud_relay-26", "cloud_relay.sh", '$1 == "detached" && at { f = 1 }', '$1 == "detached" { f = 1 }'),
-    ("cloud_relay-27", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why', '    if why'),
+    ("cloud_relay-27", "cloud_relay.sh", '    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why', '    if [ -z "$bonly" ] && why'),
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
@@ -451,18 +451,18 @@ MUTANTS = [
      'level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf'),
     ("cloud_relay-37", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1); [ -n "$why" ] ||', 'why=; [ -n "$why" ] ||'),
     ("cloud_relay-38", "cloud_relay.sh", 'END { print w }\' "$f.why" 2>/dev/null)', 'END { print w }\' /dev/null)'),
-    # R10-FLOW-BODY-ONLY part (c): a contained head's new body is applied body-only, once per body
+    # R10-FLOW-BODY-ONLY part (c), ids 50-57 (39-49 are #3065's): a contained head's new body is applied body-only, once per body
     # move, never on the seeding pass; a failed one is keyed on the body sha; #3037's review
     # survivors M2 (the first REFUSE line read as the last) and M5 (no replay of the update's output).
-    ("cloud_relay-39", "cloud_relay.sh", '      grep -qxF "$topic $bs" "$bf" && continue\n', '      false && continue\n'),
-    ("cloud_relay-40", "cloud_relay.sh", '[ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }', ':'),
-    ("cloud_relay-41", "cloud_relay.sh", '"$([ -n "$bonly" ] && echo - || echo "$hs")"', '"$hs"'),
-    ("cloud_relay-42", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1);', 'why=$(grep REFUSE "$bd/update.out" | head -n 1);'),
-    ("cloud_relay-43", "cloud_relay.sh", '    cat "$bd/update.out" >&2\n', ''),
-    ("cloud_relay-44", "cloud_relay.sh", '[ -z "$bonly" ] || key="$key $bs"', ':'),
-    ("cloud_relay-45", "cloud_relay.sh", 'rm -rf "$bd"; echo "$topic $bs" >> "$bf"  #', 'rm -rf "$bd"  #'),
+    ("cloud_relay-50", "cloud_relay.sh", '      grep -qxF "$topic $bs" "$bf" && continue\n', '      false && continue\n'),
+    ("cloud_relay-51", "cloud_relay.sh", '[ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }', ':'),
+    ("cloud_relay-52", "cloud_relay.sh", '"$([ -n "$bonly" ] && echo - || echo "$hs")"', '"$hs"'),
+    ("cloud_relay-53", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1);', 'why=$(grep REFUSE "$bd/update.out" | head -n 1);'),
+    ("cloud_relay-54", "cloud_relay.sh", '    cat "$bd/update.out" >&2\n', ''),
+    ("cloud_relay-55", "cloud_relay.sh", '[ -z "$bonly" ] || key="$key $bs"', ':'),
+    ("cloud_relay-56", "cloud_relay.sh", 'rm -rf "$bd"; echo "$topic $bs" >> "$bf"  #', 'rm -rf "$bd"  #'),
     # #3089 review mutant B: a body-only move is not held by the review freeze
-    ("cloud_relay-46", "cloud_relay.sh", 'if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=', 'if true && ! grep -qxF "$pr" <<< "$released" && why='),
+    ("cloud_relay-57", "cloud_relay.sh", 'if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=', 'if true && ! grep -qxF "$pr" <<< "$released" && why='),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
     ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
