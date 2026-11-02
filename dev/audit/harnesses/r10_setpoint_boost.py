@@ -61,7 +61,7 @@ def write(kw: float, tank: float, entity_min: float | None = 20, duty: str = "sp
                  floor_return_temperature=None),
         thermal=NS(params=None, curve_flow_temp=lambda _o: None),
         params=NS(min_electrical_power=CFG_MIN, max_electrical_power=CFG_MAX),
-        plan=NS(timestamps=[T0], power_schedule=[kw]),
+        plan=NS(timestamps=[T0], power_schedule=[kw]), action=None,
     ), duty, T0)
 
 
