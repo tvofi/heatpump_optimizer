@@ -1,0 +1,8 @@
+fixer's mutant (non-bootstrap DEAD -> false): FAIL 2, SELF-TEST 218 of 220
+reason check dropped: FAIL 2, 218 of 220
+stale refusal dropped: SELF-TEST 220 of 220 (SURVIVES: the unknown-kind refusal still counts 1; probes check refused.length only)
+no-reader DEAD dropped: FAIL 1, 219 of 220
+marker branch dropped: FAIL 3, 217 of 220
+#N widened to #\d{9}: FAIL 3, 217 of 220
+failing-first (production hunks reverted, new probes kept): FAIL 3, 217 of 220 (matches body)
+base self-test: 212 of 212; head: 220 of 220
