@@ -186,11 +186,13 @@ def run():
     check("null: no STARVED at 1 h 50 min", not any(o.startswith("STARVED") for o in out))
 
     # the git layer, in a throwaway origin
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
     with tempfile.TemporaryDirectory() as tmp:
         def g(*a, cwd=tmp + "/c"):
             return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
-        g("init", "-q", "--bare", "-b", "main", tmp + "/o", cwd=tmp)
-        g("clone", "-q", tmp + "/o", tmp + "/c", cwd=tmp)
+        throwaway_git_init(tmp + "/o", "-q", "--bare", "-b", "main")
+        throwaway_git_clone(tmp + "/o", tmp + "/c", "-q")
         Path(tmp, "c/f").write_text("1")
         g("add", "f"); g("commit", "-qm", "one"); g("fetch", "-q", tmp + "/c", "HEAD:refs/heads/main", cwd=tmp + "/o")
         on_main = g("rev-parse", "HEAD")

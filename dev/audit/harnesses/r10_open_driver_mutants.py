@@ -68,6 +68,8 @@ def main() -> int:
         for name in ["M0", *PLANTS]:
             tree = Path(tmp) / name
             shutil.copytree(ROOT / SEAT, tree / SEAT)
+            (tree / "tests").mkdir()
+            shutil.copy(ROOT / "tests/throwaway_git.py", tree / "tests/throwaway_git.py")
             if name != "M0":
                 old, new = PLANTS[name]
                 p = tree / SEAT / TARGET
