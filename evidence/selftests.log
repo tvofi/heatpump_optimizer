@@ -1,0 +1,5 @@
+carry_audit self-test: 313 checks, 0 failed
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 128 checks, 0 failed
+tick_loop self-test: 26 checks, 0 failed
+cloud_relay self-test: 316 checks, 0 failed
