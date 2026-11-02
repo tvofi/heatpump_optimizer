@@ -1,0 +1,6 @@
+RESULT one_winner wt=wt planted=True red 10 of 30 wall=340s
+   queued=True overlaps=1 order=['b', 'a']
+   queued=True overlaps=1 order=['a', 'b']
+   queued=True overlaps=1 order=['b', 'a']
+   queued=True overlaps=1 order=['b', 'a']
+   queued=True overlaps=1 order=['a', 'b']

@@ -1,0 +1,11 @@
+  FAIL with no meter, a month of DHW-only mornings bills what the stated rule bills on the commanded kW, every catalog row  [['ellevio_villa_effekt_2026: got (4.375091915697072, 4.375091915697072), bill (9.442223505355438, 9.368735435545684)', 'goteborg_energi_effekt_2026: got (4.375091915697072, 4.375091915697072), bill (9.482462657705458, 9.466136126916124)']]
+ALL 134 DST / QUARTER-GRID CHECKS PASSED
+  FAIL #943: the honest sizer leaves a power-limited heavy house at the full nameplate step, inside the allowance  [sized None kW el of max 6.0; peak 0.000 C — an over-conservative 'fix' that shrinks the step on the slow slab this house really has would starve its excitation]
+  FAIL the house meter is preferred, then the pump meter, then the commanded power  [house -> None, pump only -> None, neither -> None -- each source under-states the whole-house peak more than the one before it, so the order is the accuracy order]
+  FAIL the humidity entry nearest NOW wins, not the first in the list  [three entries at +6 h, now and -3 h -> 30.0 -- the nearest is neither first nor last here, so a positional read cannot pass by accident]
+  FAIL a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock  [naive against aware -> datetime.datetime(2026, 2, 1, 10, 0, tzinfo=datetime.timezone.utc); aware against naive -> datetime.datetime(2026, 2, 1, 19, 0) -- both directions are needed because subtracting a naive datetime from an aware one raises, and this helper is what every horizon alignment compares through]
+  FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [], after 21.0]
+  FAIL R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired  [published mid-solve [], after 21.0]
+  FAIL inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing  [('armed', None) step None '']
+8 of 4770 FEATURE CHECKS FAILED
+rc=1 wall=620s
