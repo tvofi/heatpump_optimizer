@@ -78,7 +78,11 @@ REST write per tag and per delete (2N for N refs) against the shared token
 budget. The push arm refuses before the first delete when a ref it would
 delete has no tag at its own sha, apart from the names the plan itself lists
 as deleted untagged (a `ci-probe/*` ref, or a tip already in main under
-`--archive-scope orphans`).
+`--archive-scope orphans`). Every delete is leased at the sha the plan read
+and each delete chunk is atomic, so a ref that moved after the plan read it
+(a seat still pushing mid-round) refuses its chunk and aborts the rest, and
+survives at its new tip; `--via api` re-reads each ref before its DELETE and
+stops on a moved one, and stops on its first refused write.
 
 `--topic T` restricts the same classifier and the archive-first step to the
 refs of one topic (`handoff/T`, `handoff-body/T`, their `-rN` variants and
@@ -383,7 +387,15 @@ def plan(refs: dict, prs: dict, main_reachable: set, *, archive_scope: str,
 
 
 def apply_plan(repo: str, actions: list, dry_run: bool) -> list:
-    """Create the archive tags, then delete the branches, over the GitHub API."""
+    """Create the archive tags, then delete the branches, over the GitHub API.
+
+    The first refused write aborts the rest (the failure is the last entry), so
+    a tag that failed is never followed by its delete. The REST DELETE carries
+    no precondition, so each delete is preceded by a read of the ref: one that
+    no longer sits at the sha the plan read is not deleted (`delete-FAILED
+    ... moved`) and the run stops. That narrows the race to one request
+    round-trip; `--via push` (the default) closes it with a lease.
+    """
     done = []
     for verb, arg, sha in actions:
         if verb == "tag":
@@ -400,12 +412,21 @@ def apply_plan(repo: str, actions: list, dry_run: bool) -> list:
             if dry_run:
                 done.append(("would-delete", f"{arg}@{sha}"))
                 continue
+            now = subprocess.run(
+                ["gh", "api", f"repos/{repo}/git/ref/heads/{arg}", "--jq", ".object.sha"],
+                capture_output=True, text=True)
+            if now.returncode != 0 or now.stdout.strip() != sha:
+                done.append(("delete-FAILED", f"{arg}: moved since the plan read it "
+                             f"(planned {sha[:12]}, now {now.stdout.strip()[:12] or 'unreadable'})"))
+                return done
             r = subprocess.run(
                 ["gh", "api", "-X", "DELETE",
                  f"repos/{repo}/git/refs/heads/{arg}"],
                 capture_output=True, text=True)
             done.append(("delete", arg) if r.returncode == 0
                         else ("delete-FAILED", f"{arg}: {r.stderr.strip()[:120]}"))
+        if done[-1][0].endswith("FAILED"):
+            return done
     return done
 
 class ApplyRefused(RuntimeError):
@@ -441,7 +462,12 @@ def apply_plan_push(remote: str, actions: list, dry_run: bool,
     chunks. The first refused push aborts the rest (the failure is the last
     entry). A delete whose ref has no tag at its own sha on the remote -- and
     is not in `untagged`, the names the plan itself deletes untagged -- raises
-    ApplyRefused before ANY delete is written. Zero GitHub API calls.
+    ApplyRefused before ANY delete is written. Each delete is leased
+    (`--force-with-lease=refs/heads/<name>:<planned sha>`) and each delete
+    chunk is `--atomic`: a ref that moved after the plan read it is not
+    deleted, its whole chunk is refused (`delete-FAILED`) and the rest
+    aborts, so no ref is ever deleted at a tip other than the one archived.
+    Zero GitHub API calls.
     """
     tags = [(a, s) for v, a, s in actions if v == "tag"]
     deletes = [(a, s) for v, a, s in actions if v == "delete"]
@@ -469,7 +495,8 @@ def apply_plan_push(remote: str, actions: list, dry_run: bool,
         raise ApplyRefused(f"{len(missing)} ref(s) to delete lack their archive tag at "
                            f"the same sha on the remote, first {missing[0]}; nothing deleted")
     for part in _chunks(deletes, chunk):
-        err = push(["--delete", *[f"refs/heads/{n}" for n, _ in part]])
+        err = push(["--atomic", *[f"--force-with-lease=refs/heads/{n}:{s}" for n, s in part],
+                    "--delete", *[f"refs/heads/{n}" for n, _ in part]])
         if err:
             done.append(("delete-FAILED", f"chunk of {len(part)} from {part[0][0]}: {err}"))
             return done
@@ -649,7 +676,10 @@ def _self_test_git(results: list) -> None:
                 for ln in g("ls-remote", "--heads", origin).splitlines()}
 
     ghstub = os.path.join(bindir, "gh")
-    _write_stub(ghstub, f'#!/bin/sh\necho "$@" >> {ghlog}\nexit ${{GH_STUB_RC:-1}}\n', STUB_MODE)
+    # a ref read (`git/ref/heads/...`) answers GH_STUB_SHA; every call exits GH_STUB_RC
+    _write_stub(ghstub, f'#!/bin/sh\necho "$@" >> {ghlog}\n'
+                'case "$*" in *git/ref/heads/*) echo "${GH_STUB_SHA:-}";; esac\n'
+                'exit ${GH_STUB_RC:-1}\n', STUB_MODE)
     _check("the gh stub has no group/other permission bits",
            not _wide_bits(os.stat(ghstub).st_mode), results)
     _check("null: the same check reads a 0o755 mode as wide (and 0o700 as private)",
@@ -659,6 +689,11 @@ def _self_test_git(results: list) -> None:
 
     def gh_calls():
         return len(open(ghlog).read().splitlines()) if os.path.exists(ghlog) else 0
+
+    def gh_writes(start):
+        """The tag creations and ref deletions logged after the first `start` calls."""
+        lines = open(ghlog).read().splitlines()[start:] if os.path.exists(ghlog) else []
+        return sum(1 for ln in lines if "-X DELETE" in ln or "ref=refs/tags/" in ln)
 
     try:
         # --topic: a topic fully on main is archived, then deleted
@@ -728,16 +763,55 @@ def _self_test_git(results: list) -> None:
                                                 git=runner), "never delete main", ApplyRefused),
                results)
 
+        # a ref that moves after the plan read it: the lease refuses its delete
+        # (#3085 verdict). fix/n3 and fix/n4 share one delete chunk; fix/n3 is
+        # advanced past the planned sha after its tag is on the remote.
+        refs = heads()
+        lease = [("tag", "archive/fix/n3", refs["fix/n3"]), ("tag", "archive/fix/n4", refs["fix/n4"]),
+                 ("delete", "fix/n3", refs["fix/n3"]), ("delete", "fix/n4", refs["fix/n4"])]
+        g("checkout", "-q", "-b", "moved", base)
+        moved_tip = commit("moved", "m\n", "pushed after the plan was read")
+        g("checkout", "-q", "main")
+        g("push", "-q", "origin", f"{moved_tip}:refs/heads/fix/n3")
+        out = apply_plan_push("origin", lease, False, git=runner)
+        _check("a ref moved after the plan read is not deleted: delete-FAILED, its new tip stays",
+               out[-1][0] == "delete-FAILED" and heads().get("fix/n3") == moved_tip, results)
+        _check("the moved ref's chunk is refused whole (atomic): its unmoved partner stays too",
+               heads().get("fix/n4") == refs["fix/n4"]
+               and not any(v == "delete" for v, _d in out), results)
+        _check("null: the unmoved ref, planned alone at its live tip, archives and deletes",
+               apply_plan_push("origin", lease[1:2] + lease[3:], False, git=runner)
+               == [("tag", f"archive/fix/n4@{refs['fix/n4']}"), ("delete", "fix/n4")]
+               and "fix/n4" not in heads()
+               and remote_tags(origin).get("archive/fix/n4") == refs["fix/n4"], results)
+
+        # the gh-api arm: a read-back of the ref at delete time, and abort on a refusal
+        os.environ["GH_STUB_RC"] = "0"
+        os.environ["GH_STUB_SHA"] = "f" * 40
+        start = gh_calls()
+        out = apply_plan("o/r", [("tag", "archive/q", base), ("delete", "q", base)], False)
+        _check("gh-api arm: a ref read at another sha than planned is not deleted",
+               out[-1][0] == "delete-FAILED" and "moved" in out[-1][1]
+               and gh_writes(start) == 1, results)
+        os.environ["GH_STUB_RC"] = "1"
+        start = gh_calls()
+        out = apply_plan("o/r", [("tag", "archive/q", base), ("delete", "q", base)], False)
+        _check("gh-api arm: a refused tag aborts before any read or delete",
+               out == [out[0]] and out[0][0] == "tag-FAILED" and gh_calls() - start == 1, results)
+
         # null control: the api arm on the same-size plan makes 2N gh writes
         os.environ["GH_STUB_RC"] = "0"
+        os.environ["GH_STUB_SHA"] = base
         n = 4
         plan_n = [("tag", f"archive/q{i}", base) for i in range(n)] + \
                  [("delete", f"q{i}", base) for i in range(n)]
         start = gh_calls()
-        apply_plan("o/r", plan_n, False)
-        _check("null control: the gh-api arm makes 2N writes for N refs",
-               gh_calls() - start == 2 * n, results)
+        out = apply_plan("o/r", plan_n, False)
+        _check("null control: the gh-api arm makes 2N writes (and N reads) for N unmoved refs",
+               gh_writes(start) == 2 * n and gh_calls() - start == 3 * n
+               and [v for v, _d in out] == ["tag"] * n + ["delete"] * n, results)
         os.environ.pop("GH_STUB_RC")
+        os.environ.pop("GH_STUB_SHA")
     finally:
         os.environ["PATH"] = saved_path
         import shutil

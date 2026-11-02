@@ -38,12 +38,15 @@ THE STEPS, each gated by the one before (STEPS below is the order):
   2 refs       prune_refs' plan over every remote branch, written by
                batched pushes: every archive tag first, read back, then the
                deletes; a ref to delete without its tag at its own sha refuses
-               the whole step before any delete.
+               the whole step before any delete, and each delete is leased at
+               the sha the plan read: a ref that moved since (a seat still
+               pushing) is not deleted, and the step stops with it.
   3 local      seat worktrees under the seat roots removed (one holding an
                unpushed commit, or uncommitted work, is reported and KEPT);
                scratch under the orchestrator root cleared except the ledger
                and state; `git worktree prune`; local branches reduced to what
-               a kept worktree holds or what no remote or tag has; a final
+               a kept worktree holds or what no remote or tag has, each
+               deleted only at the sha that was proved pushed; a final
                worktree_gc.
   4 issues     every open issue but the coordination issue's successor
                (`--successor`) is dispositioned. This step REFUSES to pass,
@@ -251,6 +254,18 @@ def _unpushed(c: Ctx, wt: Path) -> str:
     return "unpushed" if int(n.stdout) else ""
 
 
+def delete_local_branch(c: Ctx, b: str, sha: str) -> bool:
+    """Delete local branch `b` only while it still sits at `sha`, the tip proved pushed.
+
+    `update-ref -d <ref> <old>` is the local lease: a branch another process
+    moved after the read is refused and kept, never deleted unpushed.
+    """
+    if c.git("update-ref", "-d", f"refs/heads/{b}", sha).returncode:
+        return False
+    c.git("config", "--remove-section", f"branch.{b}")
+    return True
+
+
 def step_local(c: Ctx, apply: bool) -> dict:
     """Returns {"kept": [(path, why)], "removed": [...], "problems": [...]}."""
     kept, removed = [], []
@@ -289,17 +304,20 @@ def step_local(c: Ctx, apply: bool) -> dict:
             c.git("worktree", "list", "--porcelain").stdout.splitlines()
             if "refs/heads/" in ln and ln.startswith("branch ")}
     cur = c.git("symbolic-ref", "--short", "-q", "HEAD").stdout.strip()
-    for b in c.git("for-each-ref", "--format=%(refname:short)", "refs/heads").stdout.split():
+    for line in c.git("for-each-ref", "--format=%(objectname) %(refname:short)",
+                      "refs/heads").stdout.splitlines():
+        sha, _, b = line.partition(" ")
         if b in ("main", cur) or b in held:
             continue
-        lost = c.git("rev-list", "--count", f"refs/heads/{b}", "--not", "--remotes", "--tags")
+        lost = c.git("rev-list", "--count", sha, "--not", "--remotes", "--tags")
         if not lost.stdout.strip().isdigit() or int(lost.stdout):
             kept.append((f"branch {b}", "unpushed"))
-        elif apply:
-            c.git("branch", "-D", b)
+        elif not apply:
+            removed.append(f"branch {b}")
+        elif delete_local_branch(c, b, sha):
             removed.append(f"branch {b}")
         else:
-            removed.append(f"branch {b}")
+            kept.append((f"branch {b}", "moved"))
     gc = ("not run (dry)", [""])
     if apply:
         gc = c.worktree_gc()
@@ -634,6 +652,28 @@ def self_test() -> int:
             refused = True
         check("a ref to be deleted that lacks its archive tag refuses",
               refused and "refs/heads/fix/late" in remote_state() and refs)
+
+        # step 2 against a ref that moves after the plan read it (#3085 verdict):
+        # the leased delete refuses, the step reports it, the new tip survives
+        g("push", "-q", "origin", f"{base}:refs/heads/probe/late")
+        c2 = mk(all_done)
+        p2 = plan_refs(c2)
+        planned = ("delete", "probe/late", base) in p2["actions"]
+        g("push", "-q", "-f", "origin", f"{side}:refs/heads/probe/late")
+        problems = step_refs(c2, p2, True)
+        check("step 2: a ref moved after the plan read is not deleted; the step reports it",
+              planned and any(x.startswith("delete-FAILED") for x in problems)
+              and f"refs/heads/probe/late {side}" in remote_state())
+
+        # step 3's local delete is leased at the sha proved pushed
+        g("branch", "-f", "lb", base)
+        g("update-ref", "refs/heads/lb", side)
+        check("step 3: a local branch moved after the read is not deleted",
+              not delete_local_branch(c2, "lb", base)
+              and c2.git("rev-parse", "refs/heads/lb").stdout.strip() == side)
+        check("null: the same branch at the sha read is deleted",
+              delete_local_branch(c2, "lb", side)
+              and c2.git("rev-parse", "-q", "--verify", "refs/heads/lb").returncode != 0)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 
