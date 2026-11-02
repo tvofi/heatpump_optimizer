@@ -1,0 +1,5 @@
+dev/governance/config/machinery_budgets.json true
+dev/governance/config/notes.md false
+dev/governance/config/sub/x.json false
+dev/governance/other/x.json false
+dev/governance/config/X-y.json false
