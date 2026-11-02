@@ -1,0 +1,27 @@
+946:def spool_read(state: Path) -> "tuple[list[dict], list[str]]":
+989:    return " ".join("#%d" % int(e["pr"]) for e in spool_read(state)[0]) or "(empty)"
+1109:        spooled, _bad = spool_read(t.state)
+1143:        queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start
+3094:    def drain_order(self, added: "list[dict]") -> "list[dict]":
+3115:            added, bad = spool_read(self.state)
+3120:            for e in self.drain_order(added):
+3150:            left, _bad = spool_read(self.state)
+4985:              and [e["pr"] for e in spool_read(st)[0]] == [12]
+4990:              rc == 0 and len(starts) == 1 and len(spool_read(st)[0]) == 1)
+4998:              and [e["pr"] for e in spool_read(st)[0]] == [11, 12])
+5029:            return [e["pr"] for e in t.drain_order(entries)]
+6972:              rc == 0 and len(got) == 1 and [e["pr"] for e in spool_read(st)[0]] == [8]
+6979:              and len(spool_read(st)[0]) == 1 and len(got) == 1)
+6982:              rc == 1 and lines[-1].startswith("ADD REFUSED #9 carry: the verdict") and len(spool_read(st)[0]) == 1)
+7035:              and [(e["pr"], e["verdict"]) for e in spool_read(st)[0]][-1:] == [(10, cv)])
+7042:              and [e["pr"] for e in spool_read(st)[0]] == [8, 10])
+7051:              and [e["pr"] for e in spool_read(st)[0]] == [5] and not (st / QUEUE_OPEN).exists())
+7057:              and not spool_read(st)[0])
+7086:              and len(spool_read(st)[0]) == 1
+7087:              and {spool_read(st)[0][0]["pr"], json.loads(Path(got[0][-1]).read_text())[0]["pr"]} == {7, 8})
+7129:              rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [13, 11, 12, 14])
+7134:              rc == 0 and [e["pr"] for e in spool_read(st)[0]] == [15, 13, 11, 12, 14]
+7174:            return [e["pr"] for e in dt.drain_order(spool_read(st)[0])]
+7190:              [e["pr"] for e in spool_read(st)[0]] == [12, 11, 13] and drained(st) == [12, 13, 11])
+7195:        entries = {e["pr"]: e for e in spool_read(st)[0]}
+7259:                prs = [e["pr"] for e in spool_read(st)[0]]

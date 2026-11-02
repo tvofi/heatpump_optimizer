@@ -1,0 +1,8 @@
+RESULT several leftovers, plain add: rc=0 start=[3, 6, 1, 2, 4] drain_of_same=[3, 6, 1, 2, 4] spool_after=[]
+RESULT several leftovers, --priority add: rc=0 start=[4, 3, 6, 1, 2] drain_of_same=[4, 3, 6, 1, 2] spool_after=[]
+RESULT leftover HOTFIX + --priority add (arrival within tier): rc=0 start=[5, 4, 3, 1] drain_of_same=[5, 4, 3, 1] spool_after=[]
+RESULT leftover fronted + --priority add: rc=0 start=[1, 4, 3, 2] drain_of_same=[1, 4, 3, 2] spool_after=[]
+RESULT --front --priority over leftover HOTFIX: rc=0 start=[4, 5, 3, 1] drain_of_same=[4, 5, 3, 1] spool_after=[]
+RESULT --front over leftover fronted: rc=0 start=[4, 1, 3] drain_of_same=[4, 1, 3] spool_after=[]
+RESULT --front of a leftover entry (no live train): rc=0 start=[] drain_of_same=[] spool_after=[2, 1, 3]
+RESULT empty spool, --priority: rc=0 start=[4] drain_of_same=[4] spool_after=[]

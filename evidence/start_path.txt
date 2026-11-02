@@ -1,3 +1,10 @@
+== old 3e6bf423086464ee6207f98adab18861e81871d4
 RESULT priority: rc=0 start_queue=[3, 1, 4] drain_order_of_same=[4, 3, 1]
 RESULT front: rc=0 start_queue=[4, 3, 1] drain_order_of_same=[4, 3, 1]
 RESULT none: rc=0 start_queue=[3, 1, 4] drain_order_of_same=[3, 1, 4]
+python3: can't open file '/tmp/tmp.R0y9xvBJFr/fh/evidence/front_vs_drain.py': [Errno 2] No such file or directory
+== head 7b45419f4f6f827026ac6ce7a950428a1f32b5ad
+RESULT priority: rc=0 start_queue=[4, 3, 1] drain_order_of_same=[4, 3, 1]
+RESULT front: rc=0 start_queue=[4, 3, 1] drain_order_of_same=[4, 3, 1]
+RESULT none: rc=0 start_queue=[3, 1, 4] drain_order_of_same=[3, 1, 4]
+python3: can't open file '/tmp/tmp.R0y9xvBJFr/fh/evidence/front_vs_drain.py': [Errno 2] No such file or directory

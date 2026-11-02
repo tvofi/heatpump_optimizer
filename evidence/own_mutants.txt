@@ -1,10 +1,56 @@
-== R1 priority key dropped from item: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
-== R2 front not passed to train_add: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
-== R3 --remove arm made front: KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
-== R4 spool entry drops priority key: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
-== B1 drain key 0: KILLED rc=1 | merge_train self-test: 418 checks, 5 failed
-== R5 critical before priority/front: KILLED rc=1 | merge_train self-test: 418 checks, 3 failed
-== R6 --priority flag ignored: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
-== F1 drain ignores front (round-1 key): KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
-== F2 spool_edit front marking dropped: KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
-== F3 train_add new-entry front marking dropped: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
+== UNMUTATED rc=0 | merge_train self-test: 438 checks, 0 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R1 priority key dropped from item: KILLED rc=1 | merge_train self-test: 438 checks, 1 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R2 front not passed to train_add: KILLED rc=1 | merge_train self-test: 438 checks, 1 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R3 --remove arm made front: KILLED rc=1 | merge_train self-test: 438 checks, 2 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R4 spool entry drops priority key: KILLED rc=1 | merge_train self-test: 438 checks, 2 failed
+      FAIL P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== B1 drain key 0: KILLED rc=1 | merge_train self-test: 438 checks, 7 failed
+      FAIL P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R5 critical before priority/front: KILLED rc=1 | merge_train self-test: 438 checks, 5 failed
+      FAIL P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== R6 --priority flag ignored: KILLED rc=1 | merge_train self-test: 438 checks, 1 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== F1 drain ignores front (round-1 key): KILLED rc=1 | merge_train self-test: 438 checks, 3 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== F2 spool_edit front marking dropped: KILLED rc=1 | merge_train self-test: 438 checks, 2 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== F3 train_add new-entry front marking dropped: KILLED rc=1 | merge_train self-test: 438 checks, 2 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== S1 start path back to spooled+[entry] (round-2 code): KILLED rc=1 | merge_train self-test: 438 checks, 2 failed
+      FAIL P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== S2 start path ignores front: KILLED rc=1 | merge_train self-test: 438 checks, 1 failed
+      ok   P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      FAIL P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
+== S3 start path drain_order on spool only: KILLED rc=1 | merge_train self-test: 438 checks, 1 failed
+      FAIL P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` starts the train with the HOTFIX first, then the critical #13, then #11
+      ok   P312 start path null: a plain add over the same spool starts in drain_order, the critical #13 first, the new #14 last by arrival
+      ok   P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, then the HOTFIX #11 (the same tier), then the critical #13
