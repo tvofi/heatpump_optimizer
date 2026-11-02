@@ -1,0 +1,7 @@
+RESULT mutant=M26_apply_unheld rc=1 fails=1
+RESULT mutant=M25_hold_dropped rc=1 fails=5
+RESULT mutant=M29_hold_without_legacy rc=1 fails=1
+restored
+RESULT mutant=NULL_no_plant rc=0 fails=0
+FAIL the hold is written: carries-open at the merge commit (got: {'stage': 'done', 'branch': 'handoff/r9-hold', 'commit': '4444444444444444444444444444444444444444'})
+roster_sync self-test: 95 checks, 1 failed

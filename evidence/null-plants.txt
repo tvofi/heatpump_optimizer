@@ -1,0 +1,6 @@
+roster_edit self-test: 191 checks, 0 failed
+N-setfiles-choice (set-files removed from choices): FAIL ...takes a comma list, refusing a path not in the tree
+N-setsize-choice (set-size removed from choices): FAIL set-size from a recorded size names the old one
+N-markcarry-choice (mark-carry removed from choices): FAIL mark-carry with a plain value lands (null control)
+N-dispatch-files (set-files dropped from apply_files_op dispatch): AttributeError crash
+N-markcarry-dispatch (mark-carry arm renamed): AttributeError crash
