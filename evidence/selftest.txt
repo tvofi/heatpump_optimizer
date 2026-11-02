@@ -1,0 +1,3 @@
+  ok   END TO END: a tool_input that is not an object fails OPEN
+
+26 passed, 0 failed
