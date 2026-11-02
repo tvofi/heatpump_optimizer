@@ -15737,6 +15737,51 @@
     "stage": "in-progress",
     "branch": null
    }
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "N-structure-blind",
+   "severity": "low",
+   "size": "S",
+   "issues": [
+    2259
+   ],
+   "fixes": [
+    2259
+   ],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": "code-owned: archscore weights.json and calibration/expected.json",
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-ARCHSCORE-SPELLINGS-P2",
+   "after": [
+    "R10-ARCHSCORE-SPELLINGS"
+   ],
+   "files": [
+    "tools/audit/archscore/metrics/card.py",
+    "tools/audit/archscore/metrics/literal_clones.py"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-archscore-spellings-p2",
+    "note": "split p2 of R10-ARCHSCORE-SPELLINGS (p1 merged PR-3169 871a20da); fixer fired 19:18Z"
+   },
+   "brief": "Part 2 of R10-ARCHSCORE-SPELLINGS, split after #3169 r3: a generic template census of duplicated card-rule spellings, paid by deduplicating its real copies (card_rule_copies not above 72 net, a generic exclusion criterion for non-rule-copy shapes, archscore dS not worse, no budget raise). Closes #2259."
   }
  ]
 }
