@@ -22,7 +22,11 @@
 //     Each such grammar must be named in SHARED_GRAMMARS with a disposition --
 //     a PAIR above that drives it, the one module that now holds it, or why it
 //     is not a concept -- and an entry whose grammar no longer spans two files
-//     is DEAD. A second reader written tomorrow with a copied grammar is found
+//     is DEAD -- unless it is declared `bootstrap:<reason>`, the one way out of
+//     the deadlock a pinned grader sets (the entry cannot wait for a reader that
+//     the base's grader refuses UNREGISTERED without it): the reason must carry
+//     a pull request or issue number (#N) or an ISO date, and the entry stops
+//     being bootstrap the day a second file reads the grammar. A second reader written tomorrow with a copied grammar is found
 //     without anyone listing it; one with a DIFFERENT grammar is not, which is
 //     why the pairs arm exists and why a fix that finds a sibling registers it.
 //
@@ -552,6 +556,9 @@ const PAIRS = [
 // `not-a-concept:<why>`. Seeded by the root-cause seat with the round-9
 // instances only; the barrier pull request classifies every entry the
 // discovery arm prints.
+// A fifth disposition, `bootstrap:<reason>`, lets an entry span ONE file while
+// its second reader is still to land (see discovery()). Steady-state entries
+// span two files and use one of the four above.
 const SHARED_GRAMMARS = {
   "(if|elif|while|until)\\b|^!|\\|\\||&&|": "identical:countermeasure A's errexit safe-producer grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
   "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
@@ -599,6 +606,7 @@ const JS_RE = /(?:^|[(,=:[!&|?{};>]|\breturn)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]
 const PY_RE = /re\.(?:compile|match|search|fullmatch|findall|finditer|sub)\(\s*r?(["'])((?:\\.|(?!\1).)+)\1/g
 const norm = (r) => r.replace(/^\^/, '').replace(/\$$/, '').replaceAll('\\s*', '').replaceAll('[ \\t]*', '')
 
+const BOOTSTRAP_REASON = /^bootstrap:.*(?:#\d+|\b\d{4}-\d{2}-\d{2}\b)/
 function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept)) {
   const occ = new Map()
   for (const f of files) {
@@ -613,10 +621,14 @@ function discovery(report, files = governanceCode(), read = rd, registry = SHARE
   for (const [k, fs_] of shared) {
     const d = registry[k]
     if (!d) { report.unregistered.push(`${JSON.stringify(k)} in ${[...fs_].sort().join(', ')}`); continue }
-    if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
+    if (d.startsWith('bootstrap:')) report.refused.push(`discovery ${JSON.stringify(k)}: declared bootstrap but ${[...fs_].sort().join(', ')} already read it: re-disposition it as pair:, module: or identical:`)
+    else if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
     if (d.startsWith('pair:') && !pairs.has(d.slice(5))) report.refused.push(`discovery ${JSON.stringify(k)}: names pair ${d.slice(5)}, which is not registered`)
   }
-  for (const k of Object.keys(registry)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
+  for (const k of Object.keys(registry)) if (registry[k].startsWith('bootstrap:')) {
+    if (!BOOTSTRAP_REASON.test(registry[k])) report.refused.push(`discovery ${JSON.stringify(k)}: a bootstrap entry names its reason with a #N reference or an ISO date`)
+    else if (!occ.has(k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} is declared bootstrap but no file reads it`)
+  } else if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
   report.note.push(`discovery: ${files.length} governance code files, ${occ.size} distinct grammars, ${shared.length} shared by two or more files`)
 }
 
@@ -1027,6 +1039,17 @@ async function selfTest() {
   probes.push(['a grammar in one file is not shared', !disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, {}).unregistered.length])
   probes.push(['an entry that no longer spans two files is DEAD', disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).dead.length === 1])
   probes.push(['a disposition of no known kind is refused', disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'whatever' }).refused.length === 1])
+  const bk = 'some-shared-grammar-(\\d+)-x'
+  const single = { 'a.mjs': g, 'b.mjs': 'const B = 1\n' }
+  const bsr = disc(single, { [bk]: 'bootstrap:second reader lands in #3100' })
+  probes.push(['a one-file entry declared bootstrap with a reason is accepted', !bsr.dead.length && !bsr.refused.length && !bsr.unregistered.length])
+  probes.push(['a bootstrap reason may be an ISO date', !disc(single, { [bk]: 'bootstrap:reader due 2026-11-30' }).refused.length])
+  probes.push(['an undeclared one-file entry still reads DEAD', disc(single, { [bk]: 'identical:synthetic' }).dead.length === 1])
+  probes.push(['a bootstrap marker with no reason is refused', disc(single, { [bk]: 'bootstrap:' }).refused.length === 1])
+  probes.push(['a bootstrap marker with a reason naming no #N or date is refused', disc(single, { [bk]: 'bootstrap:soon' }).refused.length === 1])
+  probes.push(['a bootstrap entry no file reads is DEAD', disc({ 'b.mjs': 'const B = /an-unrelated-grammar-(\\d+)-y/\n' }, { [bk]: 'bootstrap:reader in #3100' }).dead.length === 1])
+  probes.push(['a bootstrap entry whose second reader landed is refused as stale', disc({ 'a.mjs': g, 'b.mjs': g }, { [bk]: 'bootstrap:reader in #3100' }).refused.length === 1])
+  probes.push(['a two-file entry with a real disposition is unaffected', disc({ 'a.mjs': g, 'b.mjs': g }, { [bk]: 'identical:synthetic' }).refused.length === 0])
   let bad = 0
   for (const [name, ok] of probes) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad++ }
   console.log(`SELF-TEST ${probes.length - bad} of ${probes.length} probes held`)
