@@ -1,59 +1,18 @@
-Fix review: merge 9070029ac258bc819e486d57b00b84a89e559936
+Fix review: merge a2fe43502a3aed5f0eb482ba8fe2849e425b55e4
 
-bus-nonce: f744c2a0a14038e64389e8e3e59811e1
+bus-nonce: ef609f6e3ef5c9674df9e0293493de04
 
-Round: 3. This is a delta repair over round 2's 361be3cd6, not a re-cut.
-
-Measured head: 9070029ac258bc819e486d57b00b84a89e559936. Branch-only code since round 2 is 75d19ea93 alone: test code in roster_sync.py's self-test, plus plants Y5 and Y6 in r10_roster_ops_mutants.py. The two later commits are merges. 0fa7be8f8 merges 75d19ea93. 9070029ac merges origin/main b5df066e7. `git diff 75d19ea93 9070029ac` touches only files that came from main.
-
-Contract: dev/governance/roles/fix-review.md at origin/main. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty. I judged the head from detached worktrees at that SHA.
-
-Head re-read before return: refs/heads/fix/r10-roster-schema-pr = 9070029ac258bc819e486d57b00b84a89e559936 (ev/head-reread.txt).
+Round: 4 of this PR's reviews (rounds 1-3 ended at 9070029ac). This is a delta re-check of a merge-conflict repair, with no new fix content. `review_carry.py 9070029ac a2fe43502a3aed5f0eb482ba8fe2849e425b55e4` prints `FRESH-REVIEW` (why: 1 of 14 branch-only commits carries code: 30500df34, the M26 re-anchor; the other 13 are main merges, two of which, d6c5789a7 and 014b49230, carry resolutions). So the resolution delta is judged here, alone. Contract: dev/governance/roles/fix-review.md at origin/main; `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty. Judged from a detached worktree at a2fe43502a3aed5f0eb482ba8fe2849e425b55e4. Head re-read before return: refs/heads/fix/r10-roster-schema-pr = a2fe43502a3aed5f0eb482ba8fe2849e425b55e4 (ev/head-reread.txt).
 
 ## Findings
 
-- PR body: the `## Round-2 findings, all answered` section is spliced into the middle of the intro bullet on `roster_sync.py`'s merge transition. The splice point is after "(round 2: before it, `--apply` wrote `carries-open` where the dry run printed `done`; `". The intro bullet therefore ends in a stray heading. A second, truncated `## Round-1 findings, all answered` heading opens inside a code span before the real one. The content is all present; the body's structure is broken. This is a body edit and does not block. Carry: R10-ORCH-ROSTER-SCHEMA
-- `r10_roster_sync_mutants.py` M9_carry_dedupe_dropped still survives at this head (rc=0 fails=0, ev/sync-mutants-head.txt). It predates the diff, and the body already forwards it. Carry: #2505
-- The body's figure is not at this head. `## Figures` gives prepr at 75d19ea93, the authored handoff, with the closures step skipped (non-Linux). The live head adds a main merge. My own run at this head settles it (Evidence), so the figure only needs restating. Carry: R10-ORCH-ROSTER-SCHEMA
+- `r10_roster_sync_mutants.py` M9_carry_dedupe_dropped still survives at this head (the body forwards it; ev/m26.txt covers only M25/M26/M29, the body's 28 of 29 is unchanged by the resolution). It predates this diff. Carry: #2505
 
 ## Evidence
 
-- **A4 and A5, the round-2 survivors.** I used the round-2 reviewer's ev/mut2.py, unchanged except for the head argument and the worktree paths (ev/mut3.py). Each plant ran in its own detached worktree under `env -u BASH_ENV python3 -I <file> --self-test` and was restored clean (ev/mutants-r3-head.txt).
-  - A4 (dry-run projection without legacy): rc=1 KILLED. roster_sync reported 86 checks, 1 failed: `the dry run's projection reads the cut-over: a same-pass Carry: to a legacy-only group it closes is refused, not planned`.
-  - A5 (write-path projection without legacy): rc=1 KILLED, 86/1: `the write path's projection reads the cut-over: the group is written done, the carry not appended, nothing stranded`. The plant's write was `('done', ['legacy one', 'the oth finding ...'])`, the stranded write from round 2's probe.
-- **The same plants at the round-2 head 361be3cd6** (ev/mutants-r3-r2head.txt): A4 and A5 rc=0 SURVIVED, 82/0. The null there (no plant) is also 82/0. The kill is earned by 75d19ea93's tests.
-- **Every other finder plant at this head:** X1, X2, X6, X7, X8, A1, A2, A3 and A6 are all rc=1 KILLED with named FAILs. The no-plant null N0 is rc=0, 86/0.
-- **Y5 and Y6, the in-tree plants of the same replacement.** Y5 is A4's replacement and Y6 is A5's; neither existed in the round-2 driver. Reproduced at round 2: the identical replacements survive at 361be3cd6 (above). Closed at this head: `r10_roster_ops_mutants.py Y5 Y6` printed Y5 `rc=1 fails=1`, Y6 `rc=1 fails=1` and `plants: 2, without a FAIL line: none`. `--null` printed rc=0 fails=0 for all four targets (ev/self-tests.txt). The omission planted by hand (A4/A5 above) is killed too.
-- **Null control, the guards still accept legitimate input.** The unplanted self-tests at this head are roster_lib 60/0, roster_edit 153/0, roster_sync 86/0, carry_audit 214/0, r10_roster_ops_mutants 186/0 and brief_lint `TOTAL: 0 error(s) across 48 file(s)`, `ISSUELESS ok`. They hold these nulls green:
-  - an open-group move lands and a plain value lands;
-  - a readable cut-over proceeds, with a legacy carry leaving set-stage `done` as `done`;
-  - `sync --apply writes done over a group whose only carry is legacy`;
-  - with no cut-over the same carry writes carries-open;
-  - the new post-cut-over null: the dry run plans `carry R9-LEG +=` and the write appends and writes carries-open.
-- **The nulls bite.** These are my own plants, not the finder's (ev/nullplants.py, ev/nullplants.txt).
-  - N3 forces the dry-run projection to `done`: rc=1, FAIL `a destination holding a post-cut-over carry projects carries-open: the dry run plans the append (null control)`.
-  - N4 forces the write-path projection to `done`: rc=1, FAIL `and the write appends it and writes carries-open (null control)`.
-  - N1 and N2 widen only the projection's legacy set to every carry. They survive as equivalent mutants: `closing_stage` only rewrites `done`, never downgrades `carries-open` (L5), and derive() has already judged with the real set.
-- **Replay at this head.** The round-2 reviewer's ev/replay2.py ran unchanged, with its worktree at 9070029ac (ev/replay3.py, ev/replay-r3.txt).
-  - `legacy at cut-over: 498 carries over 206 groups`.
-  - `done-flips today: 21; would now be carries-open: 6`.
-  - The RESULT lines are identical to round 2's replay-r2.txt (`diff` empty). The 15 zero-pending flips stay done and the 6 pending-carry flips stay carries-open.
-  - On all 10 derive-replayed sync flips, derived equals written: AGREE=True 10, AGREE=False 0.
-  - The two round-1 slips are R10-WOOD-NOTIFY (a3553d6d5) and R10-ORCH-ROSTER-SCHEMA (52aea59b1). Both are among the 6 and write carries-open, not done. As in round 2, I read the brief's "must not write carries-open" as "must not write done", because the same brief requires the 6 to stay carries-open.
-- **Round-2 findings, re-checked.**
-  - A4/A5 pins: fixed, as verified above.
-  - The prepr figure: the body now names the full prepr at the authored handoff 75d19ea93, not this head (Findings).
-  - The round-1 findings are still routed and none is claimed fixed. The body says "Unchanged", which is true.
-- **prepr at this head.** I ran `bash tools/pr/prepr.sh` on Linux in the head worktree, with no body passed and the closures step included (ev/prepr-head.txt). It printed `PRE-PR: 9070029ac258bc819e486d57b00b84a89e559936 ... rc=0`, including:
-  - `self-test 431 passed, 0 failed`;
-  - `CI PREDICT: no closures, fast, governance or instrument red predicted against b5df066e7a23`;
-  - `closures: scoped recordings are covered; left to CI: tests/harness_headers.py`;
-  - `claim files: byte-identical to origin/main`.
-
-  Its body step was skipped because I passed no body. CI's pr-contract covers the body, and the review packet reads `CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted` and `FIGURES: 10 resolved`.
-- **Mutation driver at this head.** `r10_roster_sync_mutants.py`: 23 of 24 rc=1, M9 rc=0, `restored`, the tree clean afterwards. This matches the body.
-- **Merge, claim files and version.** `git merge-tree --write-tree origin/main 9070029ac`, with origin/main at 92588d581, exits 0 with tree a21a1f071 and no MERGE-CLAIM line (ev/merge-tree.txt). tests/golden/claimed_drift.txt and card_claimed_drift.txt are byte-identical to origin/main. VERSION, the manifest and RELEASE_NOTES.md are untouched.
-- **Delivery row.** dev/programme/delivery/3054.md is in the three-dot diff (`**open**`).
-- **Structure, scope and score** (ev/structure-scope.txt). `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`; no budget file is touched. `tests/closure.py select --diff b5df066e7` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, RUN tests/entities.py. `archscore score.py --diff b5df066e7 HEAD` prints `Architecture score: dS +0.0000 NULL`.
-- **CI on this head.** `merge_train.py classify 9070029ac...` was polled from 07:52Z at least 75 s apart (ev/ci-classify.txt). It exited 0 with `GREEN 9070029ac258bc819e486d57b00b84a89e559936 pending: none red: none`. No check on the head concluded red, so step 11 owes no answer, and `## Red checks: none` stands.
-- **Review packet** rendered here (ev/review-packet.md). It reports no refusals and no advisories. Its finder's-harness section says "none named". The finder's harness I used is the round-1 reviewer's mut.py/replay.py as reworked by the round-2 reviewer (mut2.py, replay2.py), named in the brief. nullplants.py is my own.
+- **(1) The union is correct.** `roster_edit.py` at a2fe43502a3aed5f0eb482ba8fe2849e425b55e4 has 12 ops: the branch's 10 plus #3143's set-size and set-files, once each (argparse choices tuple, usage lines 4-16, the docstring op list, `apply_op` for the ten, `apply_files_op` for the two). `origin/main` has 11 (no mark-carry), 9070029ac had 10 (no set-size/set-files). No `def` is duplicated. `--help` lists all twelve. `--self-test`: 191 checks, 0 failed (ev/roster_edit-selftest.txt). Driving each op by name through the CLI on a scratch clone was not possible: the tool re-checks out the handoff branch (old tooling), so the self-test, which drives every op on throwaway repos, is the driver. Null controls (ev/null-plants.txt, each plant restored, tree clean): removing set-files from the choices fails the self-test (FAIL `...takes a comma list, refusing a path not in the tree`); removing set-size fails (`set-size from a recorded size names the old one`); removing mark-carry from the choices fails (`mark-carry with a plain value lands (null control)`, argparse invalid choice); renaming the mark-carry dispatch arm or dropping set-files from the `apply_files_op` dispatch crashes the self-test (AttributeError, non-green). The unplanted run is green.
+- **(2) M26 is killed at its new anchor.** The anchor `changes = hold_open(roster, changes, dests_for((made,)), legacy)` occurs exactly once in roster_sync.py (line 704). The branch's harness: `r10_roster_sync_mutants.py M26_apply_unheld M25_hold_dropped M29_hold_without_legacy` gives rc=1 fails=1, rc=1 fails=5, rc=1 fails=1, then `restored`; `--null` gives rc=0 fails=0 (ev/m26.txt). M26 planted by hand (deleting that line): roster_sync self-test 95 checks, 1 failed, `the hold is written: carries-open at the merge commit` (got stage done); the unplanted self-test is 95/0. File restored. The ops harness was run to completion at the head: `plants: 75, without a FAIL line: ['C6']`, all 75 rc=1 (ev/ops-mutants-full.txt); C6 dies on the disclosed `KeyError: 'carry'` crash, as the body says. `--null`: rc=0 fails=0 for carry_audit, roster_edit, roster_lib and roster_sync. `r10_roster_ops_mutants --self-test` 231/0.
+- **(3) Nothing of the branch's own beyond the resolution.** The three-dot file list `origin/main...a2fe43502a3aed5f0eb482ba8fe2849e425b55e4` equals the one for 9070029ac (8 files, same names; ev/threedot-H.txt, threedot-V.txt). The only content differences against 9070029ac's own diff (ev/delta-of-diffs.txt) are the resolution: the `legacy` argument threaded through `hold_open` and its two callers, the H-LEG self-test, plant M29 and the anchors of M26/M27, the union of the op choices and help text, and the print guard `carries-open and owed` (a held group owes nothing, so no `(0 pending carries)`). 30500df34 is a two-file docstring reflow plus the M26 anchor.
+- **Standing checks.** Delivery row dev/programme/delivery/3054.md is in the three-dot diff. Claim files, VERSION, RELEASE_NOTES.md and the manifest: `git diff --quiet origin/main a2fe43502a3aed5f0eb482ba8fe2849e425b55e4 -- ...` exits 0 (ev/claims.txt). `git merge-tree --write-tree origin/main a2fe43502a3aed5f0eb482ba8fe2849e425b55e4` exits 0 (origin/main = 8247a1ed1; ev/merge-tree.txt). `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget file touched. `closure.py select`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, RUN tests/entities.py. archscore: `Architecture score: dS +0.0000 NULL`. The body's `## Head` section names a2fe43502a3aed5f0eb482ba8fe2849e425b55e4. The review packet (ev/review-packet.md) reports no refusals, no advisories and CARRY-AUDIT 10 items, 10 routed.
+- **CI on this head.** `merge_train.py classify a2fe43502a3aed5f0eb482ba8fe2849e425b55e4 --pr 3054`, polled at least 75 s apart from 03:31Z (ev/ci-classify.txt), exited 0 at 03:56:46Z: `GREEN a2fe43502a3aed5f0eb482ba8fe2849e425b55e4 pending: none red: none`. No check on the head went red, so `## Red checks` owes nothing for it.
+- **Figures not re-derived.** The body's prepr figure (`PRE-PR ... rc=0`, 437 self-tests) was taken at 495ebdd37, not this head; I did not re-run prepr (CI is GREEN and cites it). The body's union-proof table (`n`/`comm`) I did not re-run; I verified the union by the op-by-op check above instead.

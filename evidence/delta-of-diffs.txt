@@ -1,0 +1,134 @@
+== tools/audit/seat/r10_roster_sync_mutants.py
+0a1,2
+> +                              owns its own issue, and is never held.
+> +                              so a legacy-only group projects carries-open,
+1a4,5
+> +              "    apply_plan(projected, changes, [])  # M29\n    dests = dests_for(projected)")],
+> +        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)), legacy)\n",
+2a7,10
+> +        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
+> +        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
+> +    "M29_hold_without_legacy": [
+> +  M29_hold_without_legacy     the hold's projection drops the cut-over set,
+3a12
+> -        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)))\n",
+4a14
+> -        (SRC, "    apply_plan(projected, changes, [])\n    dests = dests_for(projected)",
+== tools/audit/seat/roster_edit.py
+13c13,14
+< +                                  "set-after", "drop-carry", "mark-carry"))
+---
+> +                                  "set-after", "drop-carry", "mark-carry",
+> +                                  "set-size", "set-files"))
+35a37,39
+> +               `carries-open` instead and printed HELD (carry_audit's
+> +               `gh`, or `--issue-state FILE`);
+> +               `orphaned`, the `sweep --issues` test; issue states from
+36a41
+> +               an open issue nothing else would own is written
+40a46
+> +               here or through set-resume --field stage -- whose group owns
+45c51
+< +               stage reads it too);
+---
+> +               stage reads it too); a closed stage (`done`, `rca-done`) --
+58,59c64
+< +             at_sha=None, field=None, value_opt=None, match=None, wt="wt",
+< +             rest=()):
+---
+> +             rest=(), issues="closed"):
+239c244,245
+< -                                  "set-after", "drop-carry"))
+---
+> -                                  "set-after", "drop-carry", "set-size",
+> -                                  "set-files"))
+243c249,254
+< -             at_sha=None, field=None, value_opt=None, match=None, wt="wt"):
+---
+> -               closed stage (`done`, `rca-done`) -- here or through
+> -               nothing else would own is written `carries-open` instead and
+> -               printed HELD (carry_audit's `orphaned`, the `sweep --issues`
+> -               set-resume --field stage -- whose group owns an open issue
+> -               test; issue states from `gh`, or `--issue-state FILE`);
+> -             issues="closed"):
+266c277
+< -  set-stage    sets resume.stage (and resume.commit with --at-sha);
+---
+> -  set-stage    sets resume.stage (and resume.commit with --at-sha); a
+== tools/audit/seat/roster_sync.py
+16a17
+> +                            legacy)
+44c45
+< +                         if c.stage == "carries-open" else "")
+---
+> +                         if c.stage == "carries-open" and owed else "")
+47a49
+> +                      "resume": {"stage": "in-progress", "branch": "handoff/h-leg"}}]}
+99a102
+> +              legacy: dict | None = None) -> list[Change]:
+114a118
+> +            changes = hold_open(roster, changes, dests_for((made,)), legacy)
+135a140,141
+> +           HELD: a group that still owns an open issue nothing else would
+> +           `--issues` test, asked at the transition rather than by a later
+138a145,148
+> +           own is written `carries-open` instead (`hold_open`: carry_audit's
+> +           sweep), so the merge never orphans its issue; a person disposes
+> +           the issue and sets `done`.
+> +          "reading the cut-over",
+139a150
+> +          and lby["H-LEG"].held == (75,), lby)
+141a153
+> +          lby.get("H-LEG") is not None and lby["H-LEG"].stage == "carries-open"
+157a170
+> +        changes = hold_open(roster, changes, dests_for((a.checkout, base)),
+168a182
+> +        lz, lch, lambda r: carry_audit.Dests(r, set(), None, {75: "open"}.get), lleg)}
+176a191
+> +    # The two closing rules together (the #3054 merge): a group whose only
+177a193,194
+> +    # carry is legacy derives `done`, and the hold's projection reads the
+> +    # group would project carries-open, live, and own its own issue.
+179a197
+> +    # same cut-over set, so its open issue is still held; read without it the
+180a199
+> +    (R10-RCA-ROSTER-SYNC-ORPHANS)."""
+184a204,205
+> +    `carries-open`, live, and own its own issue. Eight round-10 issues lost
+> +    apply_plan(projected, changes, [], legacy)
+185a207
+> +    check("a legacy-only group owning an orphan open issue is held, the hold "
+189a212,213
+> +    derive() judged with, or a legacy-only group would project
+> +    each other's owner; the projection reads `legacy`, the cut-over set
+190a215,218
+> +    lby = {c.group: c for c in hold_open(
+> +    lch, _, _ = derive(lz, [PR(61, MERGED, "handoff/h-leg", "6" * 40, "")], lleg)
+> +    lleg = {"H-LEG": frozenset({"legacy one"})}
+> +    lz = {"groups": [{"group": "H-LEG", "issues": [75], "carry": ["legacy one"],
+195a224,225
+> +    their owner at this transition and were found only by a later sweep,
+> +    which read main's stale roster and missed three
+198a229
+> +def hold_open(roster: dict, changes: list[Change], dests_for,
+201a233
+> -            changes = hold_open(roster, changes, dests_for((made,)))
+203c235,239
+< -           destination group's `carry` array.
+---
+> -           an open issue nothing else would own is written `carries-open`
+> -           destination group's `carry` array. HELD: a group that still owns
+> -           instead (`hold_open`: carry_audit's `--issues` test, asked at the
+> -           orphans its issue; a person disposes the issue and sets `done`.
+> -           transition rather than by a later sweep), so the merge never
+206a243
+> -        changes = hold_open(roster, changes, dests_for((a.checkout, base)))
+212a250
+> -    apply_plan(projected, changes, [])
+213a252
+> -    each other's owner. Eight round-10 issues lost their owner at this
+214a254,255
+> -    roster and missed three (R10-RCA-ROSTER-SYNC-ORPHANS)."""
+> -    transition and were found only by a later sweep, which read main's stale
+216a258
+> -def hold_open(roster: dict, changes: list[Change], dests_for) -> list[Change]:

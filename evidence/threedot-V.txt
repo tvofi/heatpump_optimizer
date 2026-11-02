@@ -1,0 +1,9 @@
+ dev/programme/delivery/3054.md              |   1 +
+ tools/audit/carry_audit.py                  | 110 +++++++++++-
+ tools/audit/seat/r10_roster_ops_mutants.py  | 149 +++++++++++++---
+ tools/audit/seat/r10_roster_sync_mutants.py |   4 +-
+ tools/audit/seat/roster_edit.py             | 268 ++++++++++++++++++++++++----
+ tools/audit/seat/roster_lib.py              | 115 ++++++++++++
+ tools/audit/seat/roster_sync.py             | 216 ++++++++++++++++++++--
+ tools/policy/brief_lint.mjs                 |  34 ++++
+ 8 files changed, 817 insertions(+), 80 deletions(-)

@@ -1,44 +1,44 @@
 # Review packet #3054
-head: 9070029ac258bc819e486d57b00b84a89e559936
-base: b5df066e7a23e914ee81de83ef243097b3b397a3
+head: a2fe43502a3aed5f0eb482ba8fe2849e425b55e4
+base: 8247a1ed10f66baaa173d30be1696907c6bbae32
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: pending
-CodeQL id=124788112949 neutral
-arch-score / arch-score id=124787971258 success
-arm id=124787892235 skipped
-budget-raise-gate / budget-raise-gate id=124787971245 success
-cancel-superseded id=124787895046 success
-codeql / Analyze (actions) id=124787971311 success
-codeql / Analyze (javascript-typescript) id=124787971294 success
-codeql / Analyze (python) id=124787971290 in_progress
-governance / delivery-status id=124787971364 success
-governance / delivery-status-publish id=124787972573 skipped
-governance / env-matrix id=124787971298 in_progress
-governance / instrument-self-tests id=124787971259 in_progress
-governance / policy-docs id=124787971263 in_progress
-governance / record id=124787972176 skipped
-governance / wave-script id=124787971264 success
-hassfest / hassfest id=124787971271 success
-kernel-points id=124787972088 skipped
-prelude id=124787894926 in_progress
-refresh id=124787894717 success
-tests / arch-instrument id=124788076870 success
-tests / briefs id=124787971325 success
-tests / browser id=124788076992 in_progress
-tests / closure-scope id=124787971320 success
-tests / closures id=124788076927 in_progress
-tests / coverage id=124788076919 in_progress
-tests / fast (3.14) id=124788076929 in_progress
-tests / mutation id=124787971300 success
-tests / mutation-autofix id=124788078248 skipped
-tests / mutation-pins id=124788078136 skipped
-tests / nightly-ha id=124788077878 skipped
-tests / nightly-status id=124787971400 success
-tests / replay id=124788078234 skipped
-tests / typing id=124788076921 success
-validate / validate-hacs id=124787971228 success
+CodeQL id=125076400942 neutral
+arch-score / arch-score id=125076197403 success
+arm id=125076061969 skipped
+budget-raise-gate / budget-raise-gate id=125076197089 success
+cancel-superseded id=125076064342 success
+codeql / Analyze (actions) id=125076197352 success
+codeql / Analyze (javascript-typescript) id=125076197388 success
+codeql / Analyze (python) id=125076197339 in_progress
+governance / delivery-status id=125076197302 success
+governance / delivery-status-publish id=125076198644 skipped
+governance / env-matrix id=125076197333 in_progress
+governance / instrument-self-tests id=125076197314 in_progress
+governance / policy-docs id=125076197382 in_progress
+governance / record id=125076198589 skipped
+governance / wave-script id=125076197327 success
+hassfest / hassfest id=125076197267 success
+kernel-points id=125076198695 skipped
+prelude id=125076064306 in_progress
+refresh id=125076064220 success
+tests / arch-instrument id=125076370293 success
+tests / briefs id=125076197447 success
+tests / browser id=125076370341 in_progress
+tests / closure-scope id=125076197373 success
+tests / closures id=125076370238 in_progress
+tests / coverage id=125076370246 in_progress
+tests / fast (3.14) id=125076370300 in_progress
+tests / mutation id=125076197247 success
+tests / mutation-autofix id=125076430221 skipped
+tests / mutation-pins id=125076429415 skipped
+tests / nightly-ha id=125076371849 skipped
+tests / nightly-status id=125076197494 success
+tests / replay id=125076371947 skipped
+tests / typing id=125076370256 in_progress
+validate / validate-hacs id=125076197125 success
 
 ## Refusals
 none
@@ -47,37 +47,35 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item 14f2b3f6: #2505
-NOTE body item 675e3fea: #2505
-NOTE body item 2dc1b88f: R10-ORCH-LEDGER
-NOTE body item ab6a9661: #2505
-NOTE body item ba9e34f2: R10-ORCH-LEDGER
-NOTE body item cdba48a9: #2505
-CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 115f92b0: #2505
+NOTE body item 0d062dd6: #2505
+NOTE body item 4ac44e21: R10-ORCH-ROSTER-SCHEMA
+NOTE body item 4f638911: #2505
+NOTE body item 7f52aa2a: R10-ORCH-ROSTER-SCHEMA
+NOTE body item 1cbb6842: R10-ORCH-ROSTER-SCHEMA
+NOTE body item cb567342: R10-ORCH-ROSTER-SCHEMA
+NOTE body item a21ddaa8: #2505
+NOTE body item 075335d3: #2505
+NOTE body item ffffe95f: #2505
+CARRY-AUDIT: 10 finding item(s): 10 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         node tools/policy/brief_lint.mjs
-             `tools/policy/brief_lint.mjs` is in the tree at this head
-  ok         node tools/policy/brief_lint.mjs <roster>
-             `tools/policy/brief_lint.mjs` is in the tree at this head
-  ok         GATE_SCOPE=auto bash tests/run.sh
-             `tests/run.sh` is in the tree at this head
-  ok         tests/closure.py select
+ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff a7dd7f50d
-             `tests/closure.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         python3 -I tools/audit/archscore/score.py --diff 8fec54ee2 HEAD
+  ok         python3 -I tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD
              `tools/audit/archscore/score.py` is in the tree at this head
-  ok         bash tools/pr/prepr.sh <body>
+  unverified git diff --quiet origin/main HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         bash tools/pr/prepr.sh <this body>
              `tools/pr/prepr.sh` is in the tree at this head
 
-FIGURES: 10 resolved, 0 not verified, 0 refused
+FIGURES: 6 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -97,7 +95,7 @@ index 000000000..edfb4aa6e
 @@ -0,0 +1 @@
 +- [#3054](https://github.com/tvofi/heatpump_optimizer/pull/3054) — **open**, R10-ORCH-ROSTER-SCHEMA (part 2): roster schema carries (R10-ORCH-ROSTER-SCHEMA)
 diff --git a/tools/audit/carry_audit.py b/tools/audit/carry_audit.py
-index d004c6b1f..e1d3a7765 100644
+index 9405804d0..0f644cfc7 100644
 --- a/tools/audit/carry_audit.py
 +++ b/tools/audit/carry_audit.py
 @@ -6,6 +6,7 @@
@@ -108,7 +106,7 @@ index d004c6b1f..e1d3a7765 100644
      python3 -I tools/audit/carry_audit.py --self-test
    (before the subcommand: --repo O/R, --briefs-dir DIR, --roster-ref REF, repeatable)
  
-@@ -62,7 +63,13 @@ two `--roster-ref`, every carry or brief text the first holds and the second
+@@ -66,7 +67,13 @@ two `--roster-ref`, every carry or brief text the first holds and the second
  lacks (a roster PR cut from the second reverts it without a conflict); and
  `--ledger`, every orchestrator-ledger line saying `FINDING:` or `LESSON:`
  with no `Carry:` (the ledger's work-queue OWED lines are tasks, not read).
@@ -123,7 +121,7 @@ index d004c6b1f..e1d3a7765 100644
  is routed to a valid destination; `CARRY-AUDIT:` is the summary line;
  `--self-test` prints `carry_audit self-test: N checks, 0 failed`. Reads only:
  `gh api` GETs, `git show`/`ls-tree`; nothing is written.
-@@ -507,6 +514,53 @@ def ledger_unrouted(text: str) -> list[str]:
+@@ -581,6 +588,53 @@ def ledger_unrouted(text: str) -> list[str]:
              if LEDGER_FINDING.search(ln) and not carry_dests(ln)]
  
  
@@ -177,7 +175,7 @@ index d004c6b1f..e1d3a7765 100644
  # ---------------------------------------------------------------- the owners
  def owner_corpus(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
                   ledger: str | None = None) -> list[tuple[str, str]]:
-@@ -554,6 +608,9 @@ def main(argv: list[str]) -> int:
+@@ -628,6 +682,9 @@ def main(argv: list[str]) -> int:
      o = sub.add_parser("owners")
      o.add_argument("pattern", nargs="+")
      o.add_argument("--ledger")
@@ -187,7 +185,7 @@ index d004c6b1f..e1d3a7765 100644
      a = p.parse_args(argv)
      ref = a.roster_ref[0] if a.roster_ref else None
      try:
-@@ -565,6 +622,25 @@ def main(argv: list[str]) -> int:
+@@ -639,6 +696,25 @@ def main(argv: list[str]) -> int:
              dests = load_dests(ROOT, ref, a.briefs_dir, gh_issue_state(a.repo))
              body, comments = read_pr(a.n, a.repo, None)
              return report(audit(body, comments, dests), f"#{a.n} ")
@@ -213,7 +211,7 @@ index d004c6b1f..e1d3a7765 100644
          if a.cmd == "owners":
              corpus = owner_corpus(ROOT, ref, a.briefs_dir, a.ledger)
              for pat in a.pattern:
-@@ -1094,6 +1170,38 @@ def _self_test() -> int:
+@@ -1214,6 +1290,38 @@ def _self_test() -> int:
      check("carry_dests stops at prose", carry_dests("Carry: R10-LIVE because it owns x") == ["R10-LIVE"])
      check("carry_dests reads dismissed whole", carry_dests("Carry: dismissed: host load")
            == ["dismissed:host load"])
@@ -253,7 +251,7 @@ index d004c6b1f..e1d3a7765 100644
      tmp.cleanup()
      return 1 if failed else 0
 diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
-index eaae79b9b..79e4c4590 100644
+index 0c5e08318..bb277a710 100644
 --- a/tools/audit/seat/r10_roster_ops_mutants.py
 +++ b/tools/audit/seat/r10_roster_ops_mutants.py
 @@ -3,9 +3,10 @@
@@ -296,7 +294,7 @@ index eaae79b9b..79e4c4590 100644
    S1-S7  the vocabulary barrier (R10-ORCH-ROSTER-SCHEMA): each of the three
           stage-writing ops losing its classification check (S1 set-stage, S2
           set-resume --field stage, S3 append-group), append-group losing the
-@@ -53,6 +73,11 @@ from pathlib import Path
+@@ -56,6 +76,11 @@ from pathlib import Path
  
  ROOT = Path(__file__).resolve().parents[3]
  TARGET = "tools/audit/seat/roster_edit.py"
@@ -308,7 +306,7 @@ index eaae79b9b..79e4c4590 100644
  DETACHED = ('g = next((x for x in roster.get("groups", []) '
              'if x.get("group") == group), {})')
  
-@@ -67,21 +92,20 @@ PLANTS = {
+@@ -70,21 +95,20 @@ PLANTS = {
             f'    {DETACHED}\n    after = [] if spec'),
      "A7": ('    g["after"] = after\n',
             '    g.pop("after", None)\n    g["after"] = after\n'),
@@ -341,7 +339,7 @@ index eaae79b9b..79e4c4590 100644
      "P3": ('p.error("--match is a drop-carry flag")', "pass"),
      "D1": ("return json.dumps(roster, indent=1)",
             "return json.dumps(roster, indent=2)"),
-@@ -109,11 +133,74 @@ PLANTS = {
+@@ -112,6 +136,61 @@ PLANTS = {
             "    if True:  # S6\n        return None\n"),
      "S7": ("        op_append_group(roster, value, rel, sizes)\n",
             "        op_append_group(roster, value)  # S7\n"),
@@ -400,7 +398,11 @@ index eaae79b9b..79e4c4590 100644
 +           "        where = stage  # R4\n"),
 +    "R5": (AUDIT, '        elif isinstance(x, dict) and "pull_request" not in x and isinstance(x.get("number"), int):\n',
 +           '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
- }
+     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
+            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
+     "H2": ('            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+@@ -164,8 +243,16 @@ PLANTS.update({
+ })
  
  
 -def target_self_test():
@@ -418,7 +420,7 @@ index eaae79b9b..79e4c4590 100644
                         capture_output=True, text=True)
      fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
      return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
-@@ -141,12 +228,13 @@ def self_test():
+@@ -193,12 +280,13 @@ def self_test():
          passed, failed = passed + ok, failed + (not ok)
          print(f"  {'ok  ' if ok else 'FAIL'} {name}")
  
@@ -436,7 +438,7 @@ index eaae79b9b..79e4c4590 100644
              ok = True
          except SyntaxError:
              ok = False
-@@ -178,38 +266,41 @@ def self_test():
+@@ -230,38 +318,41 @@ def self_test():
  
  
  def main(argv):
@@ -487,10 +489,20 @@ index eaae79b9b..79e4c4590 100644
      return 1 if survivors else 0
  
 diff --git a/tools/audit/seat/r10_roster_sync_mutants.py b/tools/audit/seat/r10_roster_sync_mutants.py
-index b38af7906..5f91fea8e 100644
+index f45d98b36..f3a8f5a3d 100644
 --- a/tools/audit/seat/r10_roster_sync_mutants.py
 +++ b/tools/audit/seat/r10_roster_sync_mutants.py
-@@ -76,9 +76,9 @@ PLANTS = {
+@@ -68,6 +68,9 @@ Plants:
+                               issue and nothing is ever held.
+   M28_issue_state_ignored     carry_audit's `orphaned` ignores the issue
+                               state, so a closed issue holds its group open.
++  M29_hold_without_legacy     the hold's projection drops the cut-over set,
++                              so a legacy-only group projects carries-open,
++                              owns its own issue, and is never held.
+ """
+ import subprocess
+ import sys
+@@ -86,9 +89,9 @@ PLANTS = {
          (SRC, "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
                "            if False:  # M2")],
      "M3_merged_without_commit": [
@@ -502,8 +514,25 @@ index b38af7906..5f91fea8e 100644
                "                              stage, pr.state))  # M3")],
      "M4_carry_to_done_appended": [
          (SRC, "                elif not roster_lib.is_open(g):",
+@@ -160,11 +163,14 @@ PLANTS = {
+         (SRC, "        out.append(c._replace(stage=HOLD_STAGE, held=tuple(held)) if held else c)",
+               "        out.append(c)  # M25")],
+     "M26_apply_unheld": [
+-        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)))\n",
++        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)), legacy)\n",
+               "")],
+     "M27_owners_before_close": [
+-        (SRC, "    apply_plan(projected, changes, [])\n    dests = dests_for(projected)",
++        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
+               "    dests = dests_for(projected)  # M27")],
++    "M29_hold_without_legacy": [
++        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
++              "    apply_plan(projected, changes, [])  # M29\n    dests = dests_for(projected)")],
+     "M28_issue_state_ignored": [
+         (CA, "            and (dests.issue_state(n) if dests.issue_state else None) in (None, \"open\")]",
+              "            ]  # M28")],
 diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
-index f1d132ceb..27be37c9b 100644
+index 8c7bf8422..babb86301 100644
 --- a/tools/audit/seat/roster_edit.py
 +++ b/tools/audit/seat/roster_edit.py
 @@ -10,6 +10,8 @@
@@ -512,24 +541,34 @@ index f1d132ceb..27be37c9b 100644
      python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
 +    python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
 +        implemented <sha> | moved <GROUP> | dismissed <reason>
-         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
-         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
-         [--message MSG]
-@@ -64,7 +66,12 @@ whose brief text the linter refuses is refused at the same gate, before
+     python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+     python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
+         [--set-hot <p,p | ->] [--cite <ref>@<sha>]
+@@ -67,12 +69,17 @@ whose brief text the linter refuses is refused at the same gate, before
  anything reaches GitHub.
  
  Ops (all group ids must exist, except append-group which must not):
--  set-stage    sets resume.stage (and resume.commit with --at-sha);
+-  set-stage    sets resume.stage (and resume.commit with --at-sha); a
+-               closed stage (`done`, `rca-done`) -- here or through
+-               set-resume --field stage -- whose group owns an open issue
+-               nothing else would own is written `carries-open` instead and
+-               printed HELD (carry_audit's `orphaned`, the `sweep --issues`
+-               test; issue states from `gh`, or `--issue-state FILE`);
 +  set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
 +               over a pending carry is written `carries-open` and printed
 +               `set-stage <G>: done -> carries-open (<n> pending carries)`,
 +               rc 0 -- never a refusal (#2733): roster_lib.closing_stage,
 +               the predicate roster_sync's merge shares (set-resume --field
-+               stage reads it too);
++               stage reads it too); a closed stage (`done`, `rca-done`) --
++               here or through set-resume --field stage -- whose group owns
++               an open issue nothing else would own is written
++               `carries-open` instead and printed HELD (carry_audit's
++               `orphaned`, the `sweep --issues` test; issue states from
++               `gh`, or `--issue-state FILE`);
    wire-issue   appends an integer issue (to `fixes` with --field fixes),
                 refusing a duplicate;
    unwire-issue removes an integer from `issues` (default) or, with
-@@ -98,6 +105,13 @@ resolve is refused whether or not the text names a proposal.
+@@ -106,6 +113,13 @@ resolve is refused whether or not the text names a proposal.
                 last entry leaves the `carry` list empty, never removing the
                 key (27 of the 91 live groups carry `"carry": []`, and none
                 omits it, so the key's presence is the file's own shape).
@@ -540,10 +579,10 @@ index f1d132ceb..27be37c9b 100644
 +               on main; it is not a verification. A carry that sat on a
 +               closed group at roster_lib.CARRY_CUTOVER is legacy and needs
 +               no mark.
- """
- 
- from __future__ import annotations
-@@ -151,7 +165,7 @@ def run(cmd, cwd=None):
+   set-size     writes the group's own `size`, refusing a size the duration
+                model (tools/plan/durations.json) does not key -- the
+                `_size_why` check append-group runs -- and, with --cite, a
+@@ -174,7 +188,7 @@ def run(cmd, cwd=None):
  
  
  # ----------------------------------------------------------------- ops
@@ -552,7 +591,7 @@ index f1d132ceb..27be37c9b 100644
      g = _need(roster, group)
      if not isinstance(stage, str) or not stage.strip():
          raise Refuse("stage must be a non-empty string")
-@@ -160,7 +174,7 @@ def op_set_stage(roster, group, stage, at_sha, rel=""):
+@@ -183,7 +197,7 @@ def op_set_stage(roster, group, stage, at_sha, rel=""):
          raise Refuse(why)
      if at_sha and not SHA_RE.match(at_sha):
          raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
@@ -561,7 +600,7 @@ index f1d132ceb..27be37c9b 100644
      if at_sha:
          g["resume"]["commit"] = at_sha
  
-@@ -175,7 +189,7 @@ NON_NULL_RESUME_FIELDS = ("stage", "branch")
+@@ -198,7 +212,7 @@ NON_NULL_RESUME_FIELDS = ("stage", "branch")
  TEXT_RESUME_FIELDS = ("last_step", "next_step", "note")
  
  
@@ -570,7 +609,7 @@ index f1d132ceb..27be37c9b 100644
      g = _need(roster, group)
      if field not in RESUME_FIELDS:
          # argparse's --field choices refuse it first; this guards direct callers
-@@ -193,10 +207,25 @@ def op_set_resume(roster, group, field, value, rel=""):
+@@ -216,10 +230,25 @@ def op_set_resume(roster, group, field, value, rel=""):
              raise Refuse(why)
      if field == "commit" and not SHA_RE.match(value):
          raise Refuse(f"--field commit needs a sha: {value!r}")
@@ -596,7 +635,7 @@ index f1d132ceb..27be37c9b 100644
  WIRE_FIELDS = ("issues", "fixes")
  
  
-@@ -340,37 +369,76 @@ def op_drop_carry(roster, group, index=None, match=None):
+@@ -363,37 +392,76 @@ def op_drop_carry(roster, group, index=None, match=None):
      group that already carries a list (all 91 live ones do) is therefore
      byte-restored by append-then-drop of the appended entry."""
      g = _need(roster, group)
@@ -690,7 +729,7 @@ index f1d132ceb..27be37c9b 100644
      elif op == "wire-issue":
          op_wire_issue(roster, group, value, field or "issues")
      elif op == "unwire-issue":
-@@ -380,11 +448,14 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
+@@ -403,11 +471,14 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
      elif op == "edit-brief":
          op_edit_brief(roster, group, value)
      elif op == "set-resume":
@@ -706,12 +745,14 @@ index f1d132ceb..27be37c9b 100644
      else:
          op_append_carry(roster, group, value)
  
-@@ -742,9 +813,12 @@ def main(argv=None) -> int:
+@@ -919,10 +990,13 @@ def main(argv=None) -> int:
      p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
      p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                    "edit-brief", "append-carry", "set-resume",
--                                  "set-after", "drop-carry"))
-+                                  "set-after", "drop-carry", "mark-carry"))
+-                                  "set-after", "drop-carry", "set-size",
+-                                  "set-files"))
++                                  "set-after", "drop-carry", "mark-carry",
++                                  "set-size", "set-files"))
      p.add_argument("group")
      p.add_argument("value", nargs="?")
 +    p.add_argument("rest", nargs="*",
@@ -720,20 +761,20 @@ index f1d132ceb..27be37c9b 100644
      p.add_argument("--at-sha")
      p.add_argument("--field", choices=RESUME_FIELDS + WIRE_FIELDS,
                     help="set-resume: which resume field to write; "
-@@ -752,7 +826,8 @@ def main(argv=None) -> int:
+@@ -930,7 +1004,8 @@ def main(argv=None) -> int:
      p.add_argument("--value", dest="value_opt",
                     help="the value, for when a positional value does not fit")
      p.add_argument("--match",
 -                   help="drop-carry: drop the one carry entry containing it")
 +                   help="drop-carry, mark-carry: the one carry entry "
 +                        "containing it")
-     p.add_argument("--checkout", default=".")
-     p.add_argument("--roster-ref", default=None,
-                    help="the base ref (default main)")
-@@ -766,16 +841,25 @@ def main(argv=None) -> int:
-     p.add_argument("--lint-cwd")
-     p.add_argument("--push", action="store_true")
-     p.add_argument("--message")
+     p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
+                    "that must hold the sha; recorded in resume.note")
+     p.add_argument("--add", nargs="+", help="set-files: paths appended to files")
+@@ -954,16 +1029,25 @@ def main(argv=None) -> int:
+     p.add_argument("--issue-state",
+                    help="JSON object issue -> open|closed: the states the done "
+                         "hold reads instead of gh (no network)")
 -    a = p.parse_args(argv)
 +    a = p.parse_intermixed_args(argv)
 +    rest = list(a.rest)
@@ -757,13 +798,13 @@ index f1d132ceb..27be37c9b 100644
 -        p.error("drop-carry needs an index or --match")
 +    if a.op in ("drop-carry", "mark-carry") and value is None and a.match is None:
 +        p.error(f"{a.op} needs an index or --match")
-     if a.match is None and (value is None
-                             or (value == "" and a.op != "set-resume")):
-         p.error(f"{a.op} needs a value argument")
-@@ -807,8 +891,15 @@ def main(argv=None) -> int:
-                         roster_lib.read_durations(a.worktree))
-                 except roster_lib.SchemaError as e:
-                     raise Refuse(str(e))
+     if a.op == "set-files" and value is not None:
+         p.error("set-files takes --add, --set-files or --set-hot, no value")
+     if a.op not in ("set-size", "set-files") and a.cite:
+@@ -1006,8 +1090,15 @@ def main(argv=None) -> int:
+             if a.op in ("set-size", "set-files"):
+                 apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
+                 return True
 +            legacy = None
 +            if a.op in ("set-stage", "set-resume"):
 +                try:
@@ -774,24 +815,23 @@ index f1d132ceb..27be37c9b 100644
              apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
 -                     rel, sizes)
 +                     rel, sizes, legacy, rest)
-             return True
-         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
-                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
-@@ -942,10 +1033,12 @@ def _self_test() -> int:
-     throwaway_git_clone(origin, drv, "-q")
+             if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+                 try:
+                     held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
+@@ -1160,10 +1251,11 @@ def _self_test() -> int:
  
      def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
--             at_sha=None, field=None, value_opt=None, match=None, wt="wt"):
-+             at_sha=None, field=None, value_opt=None, match=None, wt="wt",
-+             rest=()):
-         args = [op, group]
+              at_sha=None, field=None, value_opt=None, match=None, wt="wt",
+-             issues="closed"):
++             rest=(), issues="closed"):
+         args = [op, group, "--issue-state", str(ISSUES[issues])]
          if value is not None:
              args += [value]
 +        args += list(rest)
          if field:
              args += ["--field", field]
          if match is not None:
-@@ -1304,6 +1397,121 @@ def _self_test() -> int:
+@@ -1719,6 +1811,121 @@ def _self_test() -> int:
      check("append-carry then drop-carry is byte-identical",
            bytes_at() == before_carry)
  
@@ -1047,22 +1087,61 @@ index ee978de00..e520976b2 100644
            newest_roster(["README.md", "wave-r9-groups.json.bak"]) is None)
      with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
 diff --git a/tools/audit/seat/roster_sync.py b/tools/audit/seat/roster_sync.py
-index 1b01f24e0..8b2183fdd 100644
+index c4e3f06fc..733901b7b 100644
 --- a/tools/audit/seat/roster_sync.py
 +++ b/tools/audit/seat/roster_sync.py
-@@ -15,7 +15,9 @@ stale stages. This step is that comparison, run every pass by
+@@ -15,11 +15,14 @@ stale stages. This step is that comparison, run every pass by
    MERGED   a group whose branch answers for a merged pull request is `done` at
             that merge commit (`resume.commit`); a merge first observed in this
             pass also has its body's `Carry: <GROUP>` items appended to the
--           destination group's `carry` array.
+-           destination group's `carry` array. HELD: a group that still owns
+-           an open issue nothing else would own is written `carries-open`
+-           instead (`hold_open`: carry_audit's `--issues` test, asked at the
+-           transition rather than by a later sweep), so the merge never
+-           orphans its issue; a person disposes the issue and sets `done`.
 +           destination group's `carry` array. A group that still owes a
 +           carry (`roster_lib.pending_carries`) is written `carries-open`
 +           instead, the rule `roster_edit.py set-stage` shares (#2733).
++           HELD: a group that still owns an open issue nothing else would
++           own is written `carries-open` instead (`hold_open`: carry_audit's
++           `--issues` test, asked at the transition rather than by a later
++           sweep), so the merge never orphans its issue; a person disposes
++           the issue and sets `done`.
    OPEN     a group whose branch answers for an open pull request is
             `in-progress`, with the number in `resume.pr`.
    no PR    a branch with no open or merged pull request makes no change:
-@@ -285,7 +287,8 @@ class Change(NamedTuple):
-     state: str
+@@ -299,20 +302,24 @@ class Change(NamedTuple):
+ HOLD_STAGE = "carries-open"
+ 
+ 
+-def hold_open(roster: dict, changes: list[Change], dests_for) -> list[Change]:
++def hold_open(roster: dict, changes: list[Change], dests_for,
++              legacy: dict | None = None) -> list[Change]:
+     """`changes` with each `done` whose group would orphan an issue written
+     `HOLD_STAGE` instead, the issues it keeps in `held`.
+ 
+     The test is carry_audit's own (`orphaned`, the `sweep --issues` test),
+     never a second copy, asked of the roster this pass leaves: `dests_for`
+     builds the owners from it, so groups closing together do not count as
+-    each other's owner. Eight round-10 issues lost their owner at this
+-    transition and were found only by a later sweep, which read main's stale
+-    roster and missed three (R10-RCA-ROSTER-SYNC-ORPHANS)."""
++    each other's owner; the projection reads `legacy`, the cut-over set
++    derive() judged with, or a legacy-only group would project
++    `carries-open`, live, and own its own issue. Eight round-10 issues lost
++    their owner at this transition and were found only by a later sweep,
++    which read main's stale roster and missed three
++    (R10-RCA-ROSTER-SYNC-ORPHANS)."""
+     if not any(c.stage == "done" for c in changes):
+         return changes
+     projected = copy.deepcopy(roster)
+-    apply_plan(projected, changes, [])
++    apply_plan(projected, changes, [], legacy)
+     dests = dests_for(projected)
+     groups = roster_lib.groups_of(roster)
+     out = []
+@@ -339,7 +346,8 @@ def issue_reader(repo: str, issue_state: str | None):
+     return state
  
  
 -def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list[PR]]:
@@ -1071,7 +1150,7 @@ index 1b01f24e0..8b2183fdd 100644
      """(changes, skips, transitions): the stage writes a read supports, the
      groups a human disposition protected, and the merged pull requests whose
      group moves to done in this pass -- the only bodies read for `Carry:`.
-@@ -295,7 +298,10 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
+@@ -349,7 +357,10 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
      claim (`review`, `in-review`) is left alone while its pull request is open
      and closed to `done` on the merge -- the transition that keeps a merged
      group from being stranded open. Every other derivable stage follows the
@@ -1083,7 +1162,7 @@ index 1b01f24e0..8b2183fdd 100644
      """
      by_group = matches(roster, prs)
      changes: list[Change] = []
-@@ -329,7 +335,8 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
+@@ -383,7 +394,8 @@ def derive(roster: dict, prs: list[PR]) -> tuple[list[Change], list[tuple], list
          # A transition only: a group already done is a settled record, and its
          # commit is not re-recorded (the tick checks a done commit is in main;
          # a pull request's head is, once merged).
@@ -1093,7 +1172,7 @@ index 1b01f24e0..8b2183fdd 100644
                                stage, pr.state))
          transitions.append(pr)
      return changes, skips, transitions
-@@ -487,10 +494,15 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
+@@ -541,10 +553,15 @@ def carry_plan(roster: dict, transitions: list[PR], repo: str,
      return appends, refusals
  
  
@@ -1112,16 +1191,25 @@ index 1b01f24e0..8b2183fdd 100644
          if c.stage == "in-progress":
              # The open pull request's number is the one the ask records; a
              # done group's record is its merge commit.
-@@ -563,14 +575,18 @@ def sync(a) -> int:
+@@ -617,21 +634,26 @@ def sync(a) -> int:
          rel = roster_lib.roster_path(a.checkout, base, a.roster_path)
          roster = json.loads(run(["git", "-C", a.checkout, "show",
                                   f"{base}:{rel}"]))
--        changes, skips, transitions = derive(roster, prs)
 +        try:
 +            legacy = roster_lib.read_legacy(a.checkout, rel)
 +        except roster_lib.RosterNotFound as e:
 +            raise Refuse(f"the carry cut-over is unreadable: {e}")
+         state = issue_reader(a.repo, a.issue_state)
+         briefs = os.environ.get("HPO_BRIEFS_DIR")
+ 
+         def dests_for(where: str):
+             carries = carry_audit.carry_issues(*where)
+             return lambda r: carry_audit.Dests(r, carries, briefs, state)
+-        changes, skips, transitions = derive(roster, prs)
+-        changes = hold_open(roster, changes, dests_for((a.checkout, base)))
 +        changes, skips, transitions = derive(roster, prs, legacy)
++        changes = hold_open(roster, changes, dests_for((a.checkout, base)),
++                            legacy)
          for gid, why in invalid_commits(a.checkout, roster):
              print(f"roster_sync: RECORD-INVALID {gid} {why}")
          # The carries are judged against the roster this pass will write: a
@@ -1133,7 +1221,7 @@ index 1b01f24e0..8b2183fdd 100644
          appends, refusals = carry_plan(projected, transitions, a.repo,
                                         a.pr_state)
          for c in changes:
-@@ -578,8 +594,12 @@ def sync(a) -> int:
+@@ -639,8 +661,12 @@ def sync(a) -> int:
                  print(f"roster_sync: {c.group}: record PR #{c.pr} for stage "
                        f"{c.stage}")
              else:
@@ -1142,16 +1230,18 @@ index 1b01f24e0..8b2183fdd 100644
                  print(f"roster_sync: {c.group}: stage {c.was} -> {c.stage}"
                        + (f" at {c.merge_commit[:12]}" if c.merge_commit else "")
 +                      + (f" ({len(owed)} pending carries)"
-+                         if c.stage == "carries-open" else "")
-                       + f" (PR #{c.pr} {c.state})")
-         for s in skips:
-             why = s[3] if len(s) > 3 else "a human disposition"
-@@ -609,15 +629,15 @@ def sync(a) -> int:
++                         if c.stage == "carries-open" and owed else "")
+                       + f" (PR #{c.pr} {c.state})"
+                       + (" HELD: owns open "
+                          + ", ".join(f"#{n}" for n in c.held)
+@@ -674,16 +700,16 @@ def sync(a) -> int:
              # Re-derive on the bytes this write path is about to replace --
              # on every attempt of a push race -- so the edit is computed from
              # the file it lands in, never an older read.
 -            changes, _, transitions = derive(roster, prs)
+-            changes = hold_open(roster, changes, dests_for((made,)))
 +            changes, _, transitions = derive(roster, prs, legacy)
++            changes = hold_open(roster, changes, dests_for((made,)), legacy)
              projected = copy.deepcopy(roster)
 -            apply_plan(projected, changes, [])
 +            apply_plan(projected, changes, [], legacy)
@@ -1165,7 +1255,28 @@ index 1b01f24e0..8b2183fdd 100644
              return True
  
          try:
-@@ -782,10 +802,37 @@ def self_test() -> int:
+@@ -845,6 +871,20 @@ def self_test() -> int:
+     check("two groups closing together are not each other's owner: both are held",
+           [hby.get(g) and hby[g].stage for g in ("H-TWIN-A", "H-TWIN-B")]
+           == ["carries-open", "carries-open"], hby)
++    # The two closing rules together (the #3054 merge): a group whose only
++    # carry is legacy derives `done`, and the hold's projection reads the
++    # same cut-over set, so its open issue is still held; read without it the
++    # group would project carries-open, live, and own its own issue.
++    lz = {"groups": [{"group": "H-LEG", "issues": [75], "carry": ["legacy one"],
++                      "resume": {"stage": "in-progress", "branch": "handoff/h-leg"}}]}
++    lleg = {"H-LEG": frozenset({"legacy one"})}
++    lch, _, _ = derive(lz, [PR(61, MERGED, "handoff/h-leg", "6" * 40, "")], lleg)
++    lby = {c.group: c for c in hold_open(
++        lz, lch, lambda r: carry_audit.Dests(r, set(), None, {75: "open"}.get), lleg)}
++    check("a legacy-only group owning an orphan open issue is held, the hold "
++          "reading the cut-over",
++          lby.get("H-LEG") is not None and lby["H-LEG"].stage == "carries-open"
++          and lby["H-LEG"].held == (75,), lby)
+ 
+     # The design steps' words (decision 0014) are derivable: the merge of the
+     # group's pull request closes them to done, an open one makes them in-progress.
+@@ -880,10 +920,37 @@ def self_test() -> int:
            by.get("L-OK") is not None and by["L-OK"].stage == "in-progress",
            by)
  
@@ -1205,7 +1316,7 @@ index 1b01f24e0..8b2183fdd 100644
          tmp.mkdir(parents=True, exist_ok=True)
          seed = tmp / "seed"
          seed.mkdir()
-@@ -793,11 +840,12 @@ def self_test() -> int:
+@@ -891,11 +958,12 @@ def self_test() -> int:
          (seed / roster_edit.BRIEF_LINT_NEW).write_text(lint_src,
                                                        encoding="utf-8")
          (seed / ROSTER).parent.mkdir(parents=True, exist_ok=True)
@@ -1222,7 +1333,7 @@ index 1b01f24e0..8b2183fdd 100644
          bare = tmp / "origin.git"
          throwaway_git_clone(seed, bare, "-q", "--bare")
          drv = tmp / "drv"
-@@ -1108,6 +1156,138 @@ def self_test() -> int:
+@@ -1236,6 +1304,138 @@ def self_test() -> int:
          check("--roster-file with --apply is refused (no branch to write)",
                rc == 2 and "read-only" in err, (rc, err))
  
@@ -1421,3 +1532,6 @@ index 8083d3461..7f4a43df6 100644
      acceptanceRc += assertCarryFixtures()
    }
 
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.
