@@ -1,0 +1,23 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=M-exact failed=10 verdict=killed
+RESULT mutant=M-body failed=3 verdict=killed
+RESULT mutant=M-landed failed=1 verdict=killed
+RESULT mutant=M-omitlast failed=1 verdict=killed
+RESULT mutant=M-crit failed=2 verdict=killed
+RESULT mutant=M-seen failed=4 verdict=killed
+RESULT mutant=M-starved failed=1 verdict=killed
+RESULT mutant=M-backoff failed=3 verdict=killed
+RESULT mutant=M-live failed=2 verdict=killed
+RESULT mutant=M-launch failed=2 verdict=killed
+RESULT mutant=M-bo-base failed=1 verdict=killed
+RESULT mutant=M-bo-max failed=1 verdict=killed
+RESULT mutant=M-head4 failed=1 verdict=killed
+RESULT mutant=M-headall failed=1 verdict=killed
+RESULT mutant=M-first failed=1 verdict=killed
+RESULT mutant=M-triageB failed=1 verdict=killed
+RESULT mutant=M-open-stem failed=3 verdict=killed
+RESULT mutant=M-reap-stem failed=2 verdict=killed
+RESULT mutant=M-reap-log failed=1 verdict=killed
+RESULT mutants=19
+RESULT survived=0
+rc=0

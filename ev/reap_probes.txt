@@ -1,0 +1,21 @@
+== head a9541f2f83649630ffbe20405d4334db693bcbef
+ok   a/b RESULT a/b 44444444 rc=0 opened | SKIP a/b 44444444 seen | SKIP a/b 44444444 seen
+ok   r10-x RESULT r10-x 44444444 rc=0 opened | SKIP r10-x 44444444 seen | SKIP r10-x 44444444 seen
+RESULT reap_probe failed=0
+ok   a/b RESULT a/b 44444444 rc=3 REFUSE no-row | OWED 1970-01-01T00:16:50Z open-refused a/b 44444444 rc=3 REFUSE no-row | SKIP a/b 44444444 backoff
+ok   r10-x RESULT r10-x 44444444 rc=3 REFUSE no-row | OWED 1970-01-01T00:16:50Z open-refused r10-x 44444444 rc=3 REFUSE no-row | SKIP r10-x 44444444 backoff
+RESULT reap_fail_probe failed=0
+== R-reap-nostem
+FAIL a/b SKIP a/b 44444444 live | SKIP a/b 44444444 live
+ok   r10-x RESULT r10-x 44444444 rc=0 opened | SKIP r10-x 44444444 seen | SKIP r10-x 44444444 seen
+RESULT reap_probe failed=1
+FAIL a/b SKIP a/b 44444444 live
+ok   r10-x RESULT r10-x 44444444 rc=3 REFUSE no-row | OWED 1970-01-01T00:16:50Z open-refused r10-x 44444444 rc=3 REFUSE no-row | SKIP r10-x 44444444 backoff
+RESULT reap_fail_probe failed=1
+== R-fail-log-nostem
+ok   a/b RESULT a/b 44444444 rc=0 opened | SKIP a/b 44444444 seen | SKIP a/b 44444444 seen
+ok   r10-x RESULT r10-x 44444444 rc=0 opened | SKIP r10-x 44444444 seen | SKIP r10-x 44444444 seen
+RESULT reap_probe failed=0
+FAIL a/b RESULT a/b 44444444 rc=3 REFUSE no-row | OWED 1970-01-01T00:16:50Z open-refused a/b 44444444 rc=3 no log | SKIP a/b 44444444 backoff
+ok   r10-x RESULT r10-x 44444444 rc=3 REFUSE no-row | OWED 1970-01-01T00:16:50Z open-refused r10-x 44444444 rc=3 REFUSE no-row | SKIP r10-x 44444444 backoff
+RESULT reap_fail_probe failed=1
