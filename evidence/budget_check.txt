@@ -1,0 +1,9 @@
+head budgets {'synthetic-dhw-only.json': {'cpu_ratio': 3.614, 'peak_kib': 2686.0, 'loop_cpu_ratio': 0.1278}, 'owner-2026-10-30-away.json': {'cpu_ratio': 337.8, 'peak_kib': 3740.0, 'loop_cpu_ratio': 0.249}}
+PR-lane 125240101580 #3174 a476a578 classA syn WITHIN | owner WITHIN | cpu-doubled 5.5315 over | loop-doubled 0.1833 over
+PR-lane 125160076828 #3167 classA syn WITHIN | owner WITHIN | cpu-doubled 5.701 over | loop-doubled 0.186 over
+PR-lane 125097530406 #3078 classB syn WITHIN | owner WITHIN | cpu-doubled 4.6473 over | loop-doubled 0.1792 over
+NIGHTLY slow 124414072168 run 41159630948 2026-10-31 clean@head: ['cpu_ratio 1.456: budget 3.614 cannot see a 2x cycle; re-record 2.06'] | clean@base: WITHIN | cpu-doubled 2.8848 UNDER head cap 3.614 (lane check 'sees a doubled cycle cpu' would FAIL)
+NIGHTLY slow 124725704090 run 41264951784 2026-11-01 clean@head: ['cpu_ratio 1.451: budget 3.614 cannot see a 2x cycle; re-record 2.052'] | clean@base: WITHIN | cpu-doubled 2.841 UNDER head cap 3.614 (lane check 'sees a doubled cycle cpu' would FAIL)
+NIGHTLY slow 125036077984 run 41369286061 2026-11-02 clean@head: ['cpu_ratio 1.493: budget 3.614 cannot see a 2x cycle; re-record 2.111'] | clean@base: WITHIN | cpu-doubled 2.9251 UNDER head cap 3.614 (lane check 'sees a doubled cycle cpu' would FAIL)
+rule re-derived: owner 337.8 syn cpu 3.614 syn loop 0.1278
+rule over all CI-lane synthetic cpu readings incl. nightly (1.451..2.81): 2.856 -> nightly cpu-doubled min 2.841 vs it: False

@@ -1,7 +1,18 @@
-3905069f38a60559186fef916b0241e311cc81cd
-722ada5b412e4263f50d8e1e4f1078f85104dfcc
-merge-tree rc=0
---- claim files vs origin/main
---- 3dot VERSION/manifest/notes/budgets
---- host paths in added lines
-none-or-above
+merge-tree:
+0e9dff14fa8ed8408587ce3852907ef33572f72d
+rc=0
+origin/main a9c149289922e92bae57cad87afc4abd3ef6c235
+roles diff since merge base (empty = current):
+0
+claim files vs origin/main diff lines:
+0
+VERSION/manifest/RELEASE_NOTES/*_budgets.json in three-dot:
+dev/programme/delivery/3174.md
+tests/replay.py
+nightly cycle-code diff 78dd34354 vs base:
+ .../heatpump_optimizer/learner_progress.py         |   3 +
+ custom_components/heatpump_optimizer/replay_doc.py | 241 +++++++++++++++++++--
+ custom_components/heatpump_optimizer/snapshots.py  |   3 +
+ 3 files changed, 227 insertions(+), 20 deletions(-)
+replay.py excluded from run.sh gate:
+480:    replay.py) continue ;;
