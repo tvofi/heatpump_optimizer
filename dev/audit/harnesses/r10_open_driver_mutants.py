@@ -23,10 +23,15 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-headall  body_head reads the whole body.
   M-first    parse_board lets a later line for a topic win.
   M-triageB  the R10-TRIAGE-B<M> fallback is dropped.
+  M-open-stem   World.launch names the .rc by the raw topic: a slash topic's
+                result file is never written (the open side).
+  M-reap-stem   run_pass reads the raw topic's .rc: a slash topic's result is
+                never reaped (the reap side).
+  M-reap-log    run_pass reads the raw topic's log: the RESULT reason is lost.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=16
+EXPECTED RESULT mutants=19
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -76,6 +81,9 @@ PLANTS = {
     "M-headall": ('"\\n".join(r.stdout.splitlines()[:3])', "r.stdout"),
     "M-first": ("        if m and m.group(1) not in seen:\n", "        if m:\n"),
     "M-triageB": ('for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):', 'for g in (f"R10-TRIAGE-S{m.group(1)}",):'),
+    "M-open-stem": ('        rc = d / f"{stem(topic)}.rc"\n', '        rc = d / f"{topic}.rc"\n'),
+    "M-reap-stem": ('        rcf = d / f"{stem(t)}.rc"\n', '        rcf = d / f"{t}.rc"\n'),
+    "M-reap-log": ("reason(d / (stem(t) + '.log'))", "reason(d / (t + '.log'))"),
 }
 
 
