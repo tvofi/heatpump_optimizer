@@ -1,0 +1,4 @@
+RESULT mutant=null tools/audit/carry_audit.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_edit.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_lib.py rc=0 fails=0
+RESULT mutant=null tools/audit/seat/roster_sync.py rc=0 fails=0
