@@ -113,14 +113,6 @@ const HOOKS = {
     'permissions': 'tool permissions are not a hook; --hooks judges hooks and nothing else reads this key',
     'attribution': "the harness's commit and PR attribution text, not a hook (R10-FLY-NO-FOOTERS); --hooks judges hooks. What it hides is refused downstream whatever this key holds: ref_privacy.py's push guard and policy_lint.mjs's body contract",
   },
-  // PENDING: an IGNORE for a key a later pull request adds. Unmatched it is
-  // printed, not DEAD; matched it clears the field like an IGNORE. Decision 0013's
-  // tolerant form: this lands first so the pinned grader never reads the key BLIND.
-  // The follow-up (R10-FLY-NO-FOOTERS, #2636 or a one-line change after it merges)
-  // moves the entry into `ignore`, where an absent key is DEAD again.
-  pending: {
-    'attribution': "the harness's commit and PR attribution text, not a hook (R10-FLY-NO-FOOTERS); --hooks judges hooks. What it hides is refused downstream whatever this key holds: ref_privacy.py's push guard and policy_lint.mjs's body contract",
-  },
   async verdict(obj) {
     const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'fc-hooks-'))
     const f = path.join(tmp, 'settings.json')
