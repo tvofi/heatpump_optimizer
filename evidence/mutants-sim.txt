@@ -1,0 +1,26 @@
+== reviewer sim, mutant Ma
+PR A graded by main1: rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+main2 push (entry, one reader): rc=1 RESULT divergent=0 unregistered=0 dead=1 refused=0
+      DEAD          SHARED_GRAMMARS "zzrev-grammar-(\\d+)-k" no longer spans two files
+--
+      discovery "zzrev-grammar-(\\d+)-k": a second file reads it, so its (awaits tools/policy/zzrev_2.mjs) clause is spent: drop it
+PR D graded by main3 (reader leaves): rc=1 RESULT divergent=0 unregistered=0 dead=1 refused=0
+      DEAD          SHARED_GRAMMARS "zzrev-grammar-(\\d+)-k" no longer spans two files
+== reviewer sim, mutant Mb
+      discovery "zzrev-grammar-(\\d+)-k": one file reads it, awaiting tools/policy/zzrev_2.mjs
+PR B graded by main2 (pinned restore): rc=1 RESULT divergent=0 unregistered=0 dead=0 refused=1
+      REFUSED       discovery "zzrev-grammar-(\\d+)-k": a second file reads it, so its (awaits tools/policy/zzrev_2.mjs) clause is spent: drop it
+main3 push (two readers): rc=1 RESULT divergent=0 unregistered=0 dead=0 refused=1
+      REFUSED       discovery "zzrev-grammar-(\\d+)-k": a second file reads it, so its (awaits tools/policy/zzrev_2.mjs) clause is spent: drop it
+PR D graded by main3 (reader leaves): rc=1 RESULT divergent=0 unregistered=0 dead=1 refused=0
+      DEAD          SHARED_GRAMMARS "zzrev-grammar-(\\d+)-k" awaits tools/policy/zzrev_2.mjs, which existed at 718fde815: a reader that left is not awaited
+== reviewer sim, mutant Mc
+      discovery "zzrev-grammar-(\\d+)-k": a second file reads it, so its (awaits tools/policy/zzrev_2.mjs) clause is spent: drop it
+PR D graded by main3 (reader leaves): rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+== fixer harness, mutant Mh
+held   PR C by mainU: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR HELD
+== fixer harness, head grader
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR HELD

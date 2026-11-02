@@ -1,0 +1,11 @@
+B0 control: entry 8 days old, main push: rc=1 RESULT divergent=0 unregistered=0 dead=1 refused=0
+      DEAD          SHARED_GRAMMARS "zzrev-grammar-(\\d+)-k" awaits tools/policy/zzrev_2.mjs, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry
+B1 PR graded by base: rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+      discovery "zzrev-grammar-(\\d+)-k": awaits tools/policy/zzrev_2.mjs; graded by a registry this tree edits, so main's push run decides its age
+B1 main push after a second entry awaiting the same path: rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+      discovery "yyrev-grammar-(\\d+)-k": one file reads it, awaiting tools/policy/zzrev_2.mjs
+      discovery "zzrev-grammar-(\\d+)-k": one file reads it, awaiting tools/policy/zzrev_2.mjs
+B1c main push after a comment holding '(awaits tools/policy/zzrev_2.mjs)': rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+      discovery "zzrev-grammar-(\\d+)-k": one file reads it, awaiting tools/policy/zzrev_2.mjs
+B1r main push after renaming the awaited path: rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0
+      discovery "zzrev-grammar-(\\d+)-k": one file reads it, awaiting tools/policy/zzrev_3.mjs

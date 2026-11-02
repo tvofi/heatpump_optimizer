@@ -1,0 +1,19 @@
+three-dot names:
+dev/audit/harnesses/agreement_two_pr.mjs
+dev/programme/delivery/3173.md
+tests/closures.json
+tools/policy/agreement.mjs
+claim files vs origin/main:
+  identical tests/golden/claimed_drift.txt
+  identical tests/golden/card_claimed_drift.txt
+VERSION/manifest/notes in diff:
+  none
+budget files in diff:
+  none
+host paths in added lines:
+  none
+roles diff merge-base..main:
+0
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+STRUCTURE RATCHET PASSED
