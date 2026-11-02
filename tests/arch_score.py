@@ -318,6 +318,40 @@ def card_rule_spellings() -> None:
                 f"{base} -> {rules(plant(line))}")
 
 
+
+CARD_TEMPLATE_BASE = """
+const edgeKey = (e) => `${e[0]}>${e[1]}`;
+function dot(p) {
+  return `<circle cx="${p.x}" cy="${p.y}" r="2"/>`;
+}
+function tile(h, cfg) {
+  if (!h) return 0;
+  return cfg.size;
+}
+"""
+
+
+def card_template_spellings() -> None:
+    """Counter C24 on a template literal: a one-template rule (two or more ``${..}`` reading one value, joined by
+    text) spelled inline at a second site is read by ``card_rule_copies`` through another root name; an unrelated
+    template, one over two values, and markup drawn twice read nothing (markup is ``card_clone_copies``'s)."""
+    def rules(js: str) -> int:
+        return sum(len(g) for g in card.rule_copies(card.tokenize(js, strings=True)))
+
+    anchor = "  if (!h) return 0;\n"
+    plant = lambda line: CARD_TEMPLATE_BASE.replace(anchor, anchor + line)  # noqa: E731
+    base = rules(CARD_TEMPLATE_BASE)
+    R.check("card_rule_copies: a template rule's owner alone is no copy", base == 0, f"read {base}")
+    respelled = plant("  if (cfg.key === `${h[0]}>${h[1]}`) return 0;\n")
+    R.check("card_rule_copies: a template rule respelled inline at a second site reads both sites",
+            rules(respelled) == base + 2, f"{base} -> {rules(respelled)}")
+    for what, line in (("an unrelated template of one value", "  if (cfg.key === `${h.a}/${h.b}`) return 0;\n"),
+                       ("the same template over two values", "  if (cfg.key === `${h[0]}>${cfg[1]}`) return 0;\n"),
+                       ("markup drawn again", "  if (cfg.dot) return `<circle cx=\"${h.x}\" cy=\"${h.y}\" r=\"2\"/>`;\n")):
+        R.check(f"card_rule_copies null: {what} reads nothing", rules(plant(line)) == base,
+                f"{base} -> {rules(plant(line))}")
+
+
 def smoke() -> None:
     """Every planted case's script applies to the pin: the anchors still hold and every file the full
     run reads is read, at the cost of the scripts alone. The helpers the scripts import are read and
@@ -363,6 +397,7 @@ def main() -> int:
     base_runs_the_gate()
     hub_spellings()
     card_rule_spellings()
+    card_template_spellings()
 
     jobs = min(4, os.cpu_count() or 1)
     collected = calibrate.collect(stored, jobs)
