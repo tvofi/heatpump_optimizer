@@ -15,10 +15,18 @@ nothing mutated, must print failed=0. A pattern not found exactly once aborts.
   M-seen     mark seen on any rc, not only rc=0 (the stranded-handoff shape).
   M-starved  STARVED prints at any age.
   M-backoff  a failed open is retried every pass.
+  M-live     a topic whose run is still alive launches again.
+  M-launch   World.launch pastes the topic and state directory into bash -c text.
+  M-bo-base  the backoff base 300 s -> 600 s.
+  M-bo-max   the backoff cap 7200 s -> 14400 s.
+  M-head4    body_head reads four lines, not three.
+  M-headall  body_head reads the whole body.
+  M-first    parse_board lets a later line for a topic win.
+  M-triageB  the R10-TRIAGE-B<M> fallback is dropped.
 
     python3 dev/audit/harnesses/r10_open_driver_mutants.py
 
-EXPECTED RESULT mutants=8
+EXPECTED RESULT mutants=16
 EXPECTED RESULT survived=0
 """
 from __future__ import annotations
@@ -54,6 +62,20 @@ PLANTS = {
     "M-seen": ("        if rc == 0:\n            seen.add(key)", "        if True:\n            seen.add(key)"),
     "M-starved": ("ct and now - ct > STARVE_S", "ct"),
     "M-backoff": ('fails.get(f"{topic} {sha}", {}).get("next", 0) > now', "False"),
+    "M-live": ("        elif topic in runs:\n", "        elif False:\n"),
+    "M-launch": (
+        """        cmd = 'o=$0; l=$1; r=$2; shift 2; bash "$o" "$@" > "$l" 2>&1; echo $? > "$r"'
+        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+""",
+        """        cmd = f'bash {self.opener} "$@" > {d}/{topic}.log 2>&1; echo $? > {d}/{topic}.rc'
+        argv = ["bash", "-c", cmd, "_", topic, sha, title, group]
+"""),
+    "M-bo-base": ("BACKOFF_S, BACKOFF_MAX_S = 300, 7200", "BACKOFF_S, BACKOFF_MAX_S = 600, 7200"),
+    "M-bo-max": ("BACKOFF_S, BACKOFF_MAX_S = 300, 7200", "BACKOFF_S, BACKOFF_MAX_S = 300, 14400"),
+    "M-head4": ("splitlines()[:3]", "splitlines()[:4]"),
+    "M-headall": ('"\\n".join(r.stdout.splitlines()[:3])', "r.stdout"),
+    "M-first": ("        if m and m.group(1) not in seen:\n", "        if m:\n"),
+    "M-triageB": ('for g in (f"R10-TRIAGE-S{m.group(1)}", f"R10-TRIAGE-B{m.group(2)}"):', 'for g in (f"R10-TRIAGE-S{m.group(1)}",):'),
 }
 
 

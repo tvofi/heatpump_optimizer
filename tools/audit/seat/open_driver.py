@@ -131,6 +131,11 @@ def order(items, priority: list, critical) -> list:
     return sorted(items, key=lambda x: (cls[x[0]] != 0, pos(x[0]), cls[x[0]], x[2] or 0, x[0]))
 
 
+def stem(topic: str) -> str:
+    """The topic as one file name: a ref may hold a slash, a file name may not."""
+    return topic.replace("/", "%2F")
+
+
 def backoff(n: int) -> int:
     return min(BACKOFF_S * 2 ** max(n - 1, 0), BACKOFF_MAX_S)
 
@@ -140,6 +145,7 @@ class World:
 
     def __init__(self, repo: str, sd: Path):
         self.repo, self.sd = repo, sd
+        self.opener = HERE / "open_pr.sh"
 
     def git(self, *a):
         return subprocess.run(["git", "-C", self.repo, *a], capture_output=True, text=True)
@@ -164,11 +170,13 @@ class World:
 
     def launch(self, topic, sha, title, group) -> int:
         d = self.sd / "open-driver"
-        rc = d / f"{topic}.rc"
+        rc = d / f"{stem(topic)}.rc"
         rc.unlink(missing_ok=True)
-        cmd = f'bash {HERE}/open_pr.sh "$@" > {d}/{topic}.log 2>&1; echo $? > {rc}'
-        return subprocess.Popen(["bash", "-c", cmd, "_", topic, sha, title, group], cwd=self.repo, start_new_session=True,
-                                stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).pid
+        # Paths and the topic travel as arguments, never as shell text: a ref name may hold `$(...)`.
+        cmd = 'o=$0; l=$1; r=$2; shift 2; bash "$o" "$@" > "$l" 2>&1; echo $? > "$r"'
+        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+        return subprocess.Popen(argv, cwd=self.repo, start_new_session=True, stdin=subprocess.DEVNULL,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).pid
 
     def alive(self, pid: int) -> bool:
         try:
@@ -216,12 +224,12 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             fh.write(f"{stamp} {msg}\n")
 
     for t, r in list(runs.items()):  # reap: a result file settles a run; a vanished PID without one is a kill
-        rcf = d / f"{t}.rc"
+        rcf = d / f"{stem(t)}.rc"
         rc = int(rcf.read_text().strip() or -1) if rcf.exists() else (None if world.alive(r["pid"]) else -1)
         if rc is None:
             continue
         key = f"{t} {r['sha']}"
-        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / (t + '.log'))}")
+        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / (stem(t) + '.log'))}")
         if rc == 0:
             seen.add(key)
             fails.pop(key, None)
@@ -229,7 +237,7 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
                 fh.write(key + "\n")
         else:
             n = fails.get(key, {}).get("n", 0) + 1
-            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / (t + ".log"))}
+            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / (stem(t) + ".log"))}
         del runs[t]
     (d / "fails.json").write_text(json.dumps(fails))
 
