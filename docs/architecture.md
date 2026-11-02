@@ -105,13 +105,13 @@ Read the diagram as four regions.
 
 ```text
 custom_components/heatpump_optimizer/
-├── __init__.py           # Setup and unload, the 14 services, entry migrations
+├── __init__.py           # Setup and unload, the 15 services, entry migrations
 ├── const.py              # Every config key, default and tuning constant
 ├── entry_config.py       # The entry's configuration, parsed once: one default
 │                         #   and one coercion per key
 ├── store.py              # The store-load boundary: a Store whose loads refuse
 │                         #   non-finite numeric leaves
-├── config_flow.py        # Setup flow plus 23 option pages behind two menus
+├── config_flow.py        # Setup flow plus 24 option pages behind two menus
 ├── coordinator.py        # The update loop: read, fetch, solve, actuate, learn, publish
 ├── payload.py            # The typed contract of the payload the coordinator publishes
 ├── notifier.py           # The documented events, fired from the payload on each update
@@ -229,7 +229,7 @@ custom_components/heatpump_optimizer/
 │                         #   Boost Space Heating, DHW Boost, Optimizer Active
 ├── datetime.py           # The away-override return instant, as one datetime entity
 ├── frontend.py           # Serves and registers the Lovelace card
-├── services.py           # The domain's 14 services: schemas, handlers and registration
+├── services.py           # The domain's 15 services: schemas, handlers and registration
 ├── debugger.py           # A week of cycle rows for one entry, kept across a
 │                         #   reload and carried by Download diagnostics
 ├── replay_doc.py         # The replay document's allowlist and sanitiser, one
@@ -240,7 +240,7 @@ custom_components/heatpump_optimizer/
 ├── www/                  # The dashboard card, one self-contained file
 ├── brand/                # Icon and logo
 ├── icon.png              # Integration icon
-├── services.yaml         # The 14 service definitions
+├── services.yaml         # The 15 service definitions
 ├── strings.json          # UI strings
 ├── translations/
 │   ├── en.json           # English

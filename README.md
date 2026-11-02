@@ -773,7 +773,7 @@ that deliver them.
 
 ## Services
 
-14 services are registered under the `heatpump_optimizer` domain. Field-level
+15 services are registered under the `heatpump_optimizer` domain. Field-level
 detail for each — including all 31 fields of `set_thermal_parameters` — is in
 [docs/configuration.md](./docs/configuration.md). Worked automation examples — an
 EV charger following the Cost Power Headroom sensor, mode switching on price — are in
@@ -791,6 +791,7 @@ EV charger following the Cost Power Headroom sensor, mode switching on price —
 | `clear_manual_plan` | Drop the manual plan and return to fully automatic planning | Optional |
 | `restore_learned_snapshot` | Roll every learner back to the last weekly snapshot taken with healthy inputs | Optional |
 | `reset_heat_loss_learners` | Return the learned house heat loss scale, the lower floor loss ratio, or both to 1.0 and re-plan; the other learners are left alone | Optional |
+| `factory_reset` | Return one entry's settings, learned values or both to a fresh installation, keeping the sensors and the house's wiring; `restore_learned_snapshot` undoes it | Optional |
 | `diagnose_interval` | Attribute the last interval's temperature error input by input | Optional |
 | `debug_collect` | Start, stop or read the week of debug data that Download diagnostics carries | Optional |
 | `assign_entity` | Assign or clear one optional sensor slot | Optional |
@@ -916,7 +917,7 @@ Full theory, with every mechanism and its defaults:
 ## Changing settings after setup
 
 Open the integration and choose **Configure**. Instead of one long form you get a
-menu of 23 pages — 22 you can edit plus a read-only overview — and each can be
+menu of 24 pages — 23 you can edit plus a read-only overview — and each can be
 edited independently. The pages you revisit sit at the top; everything you
 typically set once lives one click further, under **Advanced settings**.
 
@@ -948,6 +949,7 @@ typically set once lives one click further, under **Advanced settings**.
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
 | Heat curve control (ECL110) | MQTT topics, displace limits and the controller time constant |
+| Reset to factory defaults | The settings, the learned values or both back to a fresh installation, the sensors and wiring kept; `restore_learned_snapshot` undoes it |
 
 Every sensor you picked during setup can be re-pointed here, and clearing a field
 genuinely clears it. On the **Thermal model (expert)** page a field left empty
