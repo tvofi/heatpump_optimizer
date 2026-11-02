@@ -1,0 +1,18 @@
+GREEN 3e6bf423086464ee6207f98adab18861e81871d4 pending: none red: none
+classify rc=0 (run from origin/main a568a2e12 checkout; the head's copy refuses --pr)
+## merge-tree origin/main=a568a2e128f8df25eb6a960838737c0bda277fac
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/entities.py: merged as a set (54 entries)
+  re-run the gate that owns this file before pushing
+469e8d28f273922d6400991f15445c0f38179b05
+merge-tree rc=0
+## three-dot vs merge-base 1d28de9936efb7d784224f274232a50722952c02, protected paths:
+(empty = untouched)
+/dev/fd/63 /dev/fd/62 differ: char 3322, line 57
+/dev/fd/63 /dev/fd/62 differ: char 1201, line 22
+dev/programme/delivery/3090.md
+byte-identical to merge base 1d28de993 (branch claims nothing; differs from origin/main only by main's own later commits): tests/golden/claimed_drift.txt
+byte-identical to merge base 1d28de993 (branch claims nothing; differs from origin/main only by main's own later commits): tests/golden/card_claimed_drift.txt
+78dd34354 v7.1.1: stamp factory reset, ceiling probe, SAV comfort, away-mode and learner fixes
+6d3958b70 Merge remote-tracking branch 'origin/main' into fix/r10-ceiling-probe
+94d0669db Merge remote-tracking branch 'origin/main' into repair-3050

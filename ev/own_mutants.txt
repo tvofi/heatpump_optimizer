@@ -1,0 +1,10 @@
+== R1 priority key dropped from item: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
+== R2 front not passed to train_add: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
+== R3 --remove arm made front: KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
+== R4 spool entry drops priority key: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
+== B1 drain key 0: KILLED rc=1 | merge_train self-test: 418 checks, 5 failed
+== R5 critical before priority/front: KILLED rc=1 | merge_train self-test: 418 checks, 3 failed
+== R6 --priority flag ignored: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
+== F1 drain ignores front (round-1 key): KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
+== F2 spool_edit front marking dropped: KILLED rc=1 | merge_train self-test: 418 checks, 2 failed
+== F3 train_add new-entry front marking dropped: KILLED rc=1 | merge_train self-test: 418 checks, 1 failed
