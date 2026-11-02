@@ -1,0 +1,3 @@
+tools/audit/seat/tick_loop.sh:112: HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" "${ARGV[@]}"  # mut:exec
+tools/audit/seat/tick_loop.sh:96: behind=$(behind_count "$top" "${CODE_PATHS[@]}") || { behind=unknown; return 0; }  # mut:paths
+tools/pr/app_approve.sh:480: norm() { "${d[@]}" "$1" "$2" -- . ${x[@]+"${x[@]}"} | sed -e '/^index /d' -e 's/^@@ .*/@@/' \
