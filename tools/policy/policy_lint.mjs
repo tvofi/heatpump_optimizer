@@ -7162,6 +7162,7 @@ function cmdHooks(settingsPath) {
   const REQUIRED = [
     ['SessionStart', '.claude/hooks/session-start.sh'],
     ['PreToolUse', '.claude/hooks/pre-edit.sh'],
+    ['PreToolUse', '.claude/hooks/pre-bash.sh'],
     ['Stop', '.claude/hooks/stop-selfcheck.sh'],
   ]
   const absent = REQUIRED.filter(([e, sc]) => !rows.some((r) => r.event === e && r.script === sc))
