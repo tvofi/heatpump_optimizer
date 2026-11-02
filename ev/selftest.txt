@@ -1,0 +1,2 @@
+  ok   null: the reader PR without the entry on its base is UNREGISTERED
+SELF-TEST 233 of 233 probes held

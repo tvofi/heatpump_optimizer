@@ -1,0 +1,36 @@
+commit 2e9e217a5d90b42c12c1ef1536b490d3c2943b14
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Mon Nov 2 11:36:34 2026 +0000
+
+    Find the agreement two-PR harness root with the repository helper
+    
+    tests/harness_headers.py refuses a depth-counted ROOT in dev/audit/harnesses;
+    the harness now uses the same repoRoot walk as its siblings.
+
+diff --git a/dev/audit/harnesses/agreement_two_pr.mjs b/dev/audit/harnesses/agreement_two_pr.mjs
+index 8e4712cfe..ad5b87968 100644
+--- a/dev/audit/harnesses/agreement_two_pr.mjs
++++ b/dev/audit/harnesses/agreement_two_pr.mjs
+@@ -31,7 +31,21 @@ import path from 'node:path'
+ import { execFileSync } from 'node:child_process'
+ import { fileURLToPath } from 'node:url'
+ 
+-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
++async function repoRoot(start) {
++  const fs = await import("node:fs");
++  const path = await import("node:path");
++  let dir = path.resolve(start);
++  if (fs.existsSync(dir) && fs.statSync(dir).isFile()) dir = path.dirname(dir);
++  for (;;) {
++    if (fs.existsSync(path.join(dir, "custom_components", "heatpump_optimizer", "manifest.json"))) return dir;
++    const parent = path.dirname(dir);
++    if (parent === dir) throw new Error("no repository root above " + start);
++    dir = parent;
++  }
++}
++
++
++const ROOT = await repoRoot(path.dirname(fileURLToPath(import.meta.url)))
+ const [graderArg, disposition] = process.argv.slice(2)
+ if (!graderArg || !disposition) { console.error("usage: agreement_two_pr.mjs <grader.mjs> '<disposition>'"); process.exit(2) }
+ const grader = fs.readFileSync(path.resolve(graderArg), 'utf8')

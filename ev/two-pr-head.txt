@@ -1,0 +1,72 @@
+== head harness, cwd=repo root, head grader
+held   main1 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR A by main1: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main2 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR B by main2: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main3 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR D by main3: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, which existed at 2f712ac8c: a reader that left is not awaited
+held   mainU push: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry
+held   PR C by mainU: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR HELD
+rc=0
+== head harness, cwd=/ (other cwd), head grader
+held   main1 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR A by main1: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main2 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR B by main2: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main3 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR D by main3: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, which existed at a2f6e8bc3: a reader that left is not awaited
+held   mainU push: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry
+held   PR C by mainU: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR HELD
+rc=0
+== head harness, cwd=harness dir
+held   main1 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR A by main1: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main2 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR B by main2: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main3 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR D by main3: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, which existed at edf6c9c31: a reader that left is not awaited
+held   mainU push: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" awaits tools/policy/zz_two_pr_2.mjs, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry
+held   PR C by mainU: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR HELD
+rc=0
+== null: r1 grader e96ff8d2
+held   main1 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR A by main1: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main2 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+BROKEN PR B by main2: RESULT divergent=0 unregistered=0 dead=0 refused=1
+         REFUSED discovery "zz-two-pr-grammar-(\\d+)-q": declared bootstrap but tools/policy/zz_two_pr_1.mjs, tools/policy/zz_two_pr_2.mjs already read it: re-disposition it as pair:, module: or identical:
+BROKEN main3 push: RESULT divergent=0 unregistered=0 dead=0 refused=1
+         REFUSED discovery "zz-two-pr-grammar-(\\d+)-q": declared bootstrap but tools/policy/zz_two_pr_1.mjs, tools/policy/zz_two_pr_2.mjs already read it: re-disposition it as pair:, module: or identical:
+BROKEN PR D by main3: RESULT divergent=0 unregistered=0 dead=0 refused=0
+BROKEN mainU push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR C by mainU: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR BROKEN at PR B by main2, main3 push, PR D by main3, mainU push
+rc=1
+== null: origin/main grader
+held   main1 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR A by main1: RESULT divergent=0 unregistered=0 dead=0 refused=0
+BROKEN main2 push: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" no longer spans two files
+held   PR B by main2: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   main3 push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+held   PR D by main3: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" no longer spans two files
+held   mainU push: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" no longer spans two files
+BROKEN PR C by mainU: RESULT divergent=0 unregistered=0 dead=1 refused=0
+         DEAD SHARED_GRAMMARS "zz-two-pr-grammar-(\\d+)-q" no longer spans two files
+held   mainC push: RESULT divergent=0 unregistered=0 dead=0 refused=0
+TWO-PR BROKEN at main2 push, PR C by mainU
+rc=1

@@ -1,0 +1,11 @@
+== head as is
+rc=0
+== M1: old depth-counted ROOT line restored
+FAIL depth seams: dev/audit/harnesses/agreement_two_pr.mjs:34: const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+rc=0
+== M2: repoRoot marker altered
+FAIL javascript copies=24 differ=['dev/audit/harnesses/agreement_two_pr.mjs']
+rc=0
+== M3: ROOT via join depth
+FAIL depth seams: dev/audit/harnesses/agreement_two_pr.mjs:48: const ROOT = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
+rc=0

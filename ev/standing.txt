@@ -1,0 +1,40 @@
+merge-base 3905069f38a60559186fef916b0241e311cc81cd
+== three-dot names
+dev/audit/harnesses/agreement_two_pr.mjs
+dev/programme/delivery/3173.md
+tests/closures.json
+tools/policy/agreement.mjs
+== allowlist/harness_headers in three-dot
+133:   "tests/harness_headers.py": [
+== claim files vs origin/main
+identical tests/golden/claimed_drift.txt
+identical tests/golden/card_claimed_drift.txt
+== VERSION/manifest/notes/budgets
+none
+== host paths in added lines
+none
+== merge-tree
+798a1c11b828409485a7e828e382d17dd992b966
+mt=0
+== 2e9e217a5 stat
+2e9e217a5d90b42c12c1ef1536b490d3c2943b14
+
+ dev/audit/harnesses/agreement_two_pr.mjs | 16 +++++++++++++++-
+ 1 file changed, 15 insertions(+), 1 deletion(-)
+== 5676e10c8 / 21c0190 merge parents
+21c0190de403763dd4228c960b2b5c98ffedb9ca 5676e10c873e0a423fcb47b799df9d59225776ca 3905069f38a60559186fef916b0241e311cc81cd Merge remote-tracking branch 'origin/main' into fix/r10-agreement-bootstrap-p1
+5676e10c873e0a423fcb47b799df9d59225776ca 37fa2bbb9e54aedf43d9feb24634710509837150 2e9e217a5d90b42c12c1ef1536b490d3c2943b14 Merge commit '2e9e217a5d90b42c12c1ef1536b490d3c2943b14' into fix/r10-agreement-bootstrap-p1
+2e9e217a5d90b42c12c1ef1536b490d3c2943b14 37fa2bbb9e54aedf43d9feb24634710509837150 Find the agreement two-PR harness root with the repository helper
+== closures entry
+diff --git a/tests/closures.json b/tests/closures.json
+index 8478fd0a7..5e0ab88b3 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3860,6 +3860,7 @@
+   ],
+   "tests/harness_headers.py": [
+    "LICENSE",
++   "dev/audit/harnesses/agreement_two_pr.mjs",
+    "dev/audit/harnesses/archscore_layering_seam_census.py",
+    "dev/audit/harnesses/archscore_shape_family_coverage.py",
+    "dev/audit/harnesses/boost_replay_fork_parity.py",
