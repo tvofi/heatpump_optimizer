@@ -1,0 +1,4 @@
+done [('tag', 'archive/fix/x@ceeec14e7280e37789905da018bc0dffea35a633'), ('delete-FAILED', 'chunk of 1 from fix/x: fatal: --negotiate-only needs one or more --negotiation-tip=*\nwarning: push negotiation failed; proceeding anyway with push\nTo /tmp/tmp5940tf_h/r.git\n ! [reject')]
+heads: 3b38054d477f02a7b6d6f1ee0b747851bfe1cd31	refs/heads/fix/x
+tags: ceeec14e7280e37789905da018bc0dffea35a633	refs/tags/archive/fix/x
+RESULT moved-tip-deleted-untagged=0

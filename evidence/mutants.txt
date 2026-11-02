@@ -1,0 +1,13 @@
+== closeout-1 closeout.py: KILLED rc=1 | closeout self-test: 23 checks, 6 failed
+== closeout-2 closeout.py: KILLED rc=1 | closeout self-test: 23 checks, 5 failed
+== prune_refs-1 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (68 checks)
+== prune_refs-2 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (67 checks)
+== prune_refs-3 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (67 checks)
+== prune_refs-4 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (68 checks)
+== prune_refs-5 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (67 checks)
+== prune_refs-6 prune_refs.py: KILLED rc=1 | SELF-TEST FAIL (65 checks)
+== worktree_gc-1 tools/audit/worktree_gc.sh: KILLED rc=1 | worktree_gc self-test: 91 checks, 5 failed
+== worktree_gc-2 tools/audit/worktree_gc.sh: KILLED rc=1 | worktree_gc self-test: 91 checks, 2 failed
+== worktree_gc-3 tools/audit/worktree_gc.sh: KILLED rc=1 | worktree_gc self-test: 91 checks, 2 failed
+RESULT survivors=0
+rc=0
