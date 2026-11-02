@@ -1,0 +1,4 @@
+2 command -v killall
+0 command -v pgrep && kill 12
+0 time -p kill 1
+0 env -i kill 12
