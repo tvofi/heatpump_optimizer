@@ -337,12 +337,21 @@ def open_recorder(config_dir: Path, db: Path | None, db_url: str | None) -> Reco
         if not url.split(":", 1)[0].split("+", 1)[0] in ("mysql", "mariadb"):
             raise SystemExit("the recorder URL is neither SQLite nor "
                              "MySQL/MariaDB, the two this export reads")
+        print(f"reading the recorder: {MYSQL_LABEL}", file=sys.stderr)
         return _mysql(url)
     label = None
+    # The open line names the kind by a constant per branch and the path only
+    # where the person typed it (``--db``): never a URL or a recorder label
+    # (code-scanning alert 47).
     if url:
         db = Path(urlsplit(url).path[1:] if url.startswith("sqlite:////") else
                   config_dir / urlsplit(url).path.lstrip("/"))
         label = SQLITE_URL_LABEL
+        print(f"reading the recorder: {SQLITE_URL_LABEL}", file=sys.stderr)
+    elif db:
+        print(f"reading the recorder: SQLite database {db}", file=sys.stderr)
+    else:
+        print(f"reading the recorder: {SQLITE_URL_LABEL}", file=sys.stderr)
     db = db or config_dir / "home-assistant_v2.db"
     return Recorder(sqlite3.connect(f"file:{db}?mode=ro", uri=True),
                     label or f"SQLite {db}", qmark=True)
@@ -456,7 +465,6 @@ def build_export(
     )
     config = {**entry.get("data", {}), **entry.get("options", {})}
     rec = open_recorder(config_dir, db, db_url)
-    print("reading the recorder", file=sys.stderr)
     try:
         version = _schema_version(rec)
         if version < MIN_SCHEMA:
