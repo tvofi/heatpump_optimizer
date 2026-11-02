@@ -3884,6 +3884,7 @@
    "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
+   "dev/audit/harnesses/host_zone_features.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
