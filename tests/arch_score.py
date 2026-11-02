@@ -278,6 +278,7 @@ def hub_spellings() -> None:
 
 
 CARD_RULE_BASE = """
+const finite = (n) => typeof n === "number" && Number.isFinite(n);
 function isGone(st) {
   return st.state === "unavailable" || st.state === "unknown";
 }
@@ -305,6 +306,9 @@ def card_rule_spellings() -> None:
     R.check("card_rule_copies: the rule's owner alone is no copy", base == 0, f"read {base}")
     R.check("card_rule_copies: the rule respelled inline at a second site reads both sites",
             rules(respelled) == base + 2, f"{base} -> {rules(respelled)}")
+    arrow = plant('  if (typeof h.size === "number" && Number.isFinite(h.size)) return h.size;\n')
+    R.check("card_rule_copies: a rule whose owner is a top-level expression-bodied arrow reads both sites",
+            rules(arrow) == base + 2, f"{base} -> {rules(arrow)}")
     R.check("card_clone_copies: the 20-token window cannot see that respelling (why C24 exists)",
             windows(respelled) == windows(CARD_RULE_BASE), f"{windows(CARD_RULE_BASE)} -> {windows(respelled)}")
     for what, line in (("a test of one value against other strings", '  if (h.mode === "heat" || h.mode === "cool") return 0;\n'),

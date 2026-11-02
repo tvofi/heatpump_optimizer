@@ -35,7 +35,7 @@ GATE ONLY (weight 0), counter C24, as ``shape_copies`` is for Python:
                     x === undefined || x === ""`` in one function and the same over ``opts.v`` in
                     another are one rule, and a test of two different strings is not. A site is one chain;
                     it counts once when any of its runs is spelled at another site, in any function
-                    or the same one. The 20-token window cannot see such a rule: the #2401 review
+                    or the same one, or in the module's own top-level code (an expression-bodied arrow). The 20-token window cannot see such a rule: the #2401 review
                     spelled three of ARCH2-s5's card_shapes rules once more and card_clone_copies read
                     108 -> 108. Not weighted, by the reason ``shapes.py`` gives: one operand
                     re-spelled leaves the class while the rule is still written again, so a fall
@@ -473,12 +473,24 @@ def rule_copies(toks: list[str]) -> list[list[str]]:
     strings=True)``); each member is ``function@index:chain``."""
     fns = functions(toks)
     owners: dict[tuple, set] = defaultdict(set)
+    units: list[tuple[str, list[str]]] = []
     for k, fn in enumerate(fns):
         _n, start, _b0, end = fn
         nested = [(s0, e0) for (_m, s0, _c, e0) in fns if start < s0 and e0 <= end and (s0, e0) != (start, end)]
         outer = [(a, b) for a, b in nested if not any(a2 < a and b <= b2 for a2, b2 in nested if (a2, b2) != (a, b))]
-        for c, operands in enumerate(_chains(_own_tokens(toks, fn, outer))):
-            site = f"{fn[0]}@{k}:{c}"
+        units.append((f"{fn[0]}@{k}", _own_tokens(toks, fn, outer)))
+    # The module's own tokens, every outermost function one ``F``: a rule's owner written as an expression-bodied
+    # arrow at top level (``const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);``) is no
+    # function to ``functions`` and would be no site.
+    top, j = [], 0
+    for _n, start, _b0, end in sorted(fns, key=lambda f: f[1]):
+        if start >= j:
+            top += toks[j:start] + ["F"]
+            j = end + 1
+    units.append(("<module>", top + toks[j:]))
+    for unit, body in units:
+        for c, operands in enumerate(_chains(body)):
+            site = f"{unit}:{c}"
             for a in range(len(operands)):
                 for b in range(a + 2, len(operands) + 1):
                     key = _rule_key(operands[a:b])
