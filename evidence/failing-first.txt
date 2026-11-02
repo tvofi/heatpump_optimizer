@@ -1,0 +1,4 @@
+  FAIL a one-file entry declared bootstrap with a reason is accepted
+  FAIL a bootstrap marker with no reason is refused
+  FAIL a bootstrap marker with a reason naming no #N or date is refused
+SELF-TEST 217 of 220 probes held

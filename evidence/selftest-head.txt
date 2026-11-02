@@ -1,0 +1,15 @@
+  ok   with no origin/main ref the walk falls back to HEAD and refuses a hand subject there
+  ok   a grammar in two files and unregistered is found
+  ok   a registered grammar passes
+  ok   a grammar in one file is not shared
+  ok   an entry that no longer spans two files is DEAD
+  ok   a disposition of no known kind is refused
+  ok   a one-file entry declared bootstrap with a reason is accepted
+  ok   a bootstrap reason may be an ISO date
+  ok   an undeclared one-file entry still reads DEAD
+  ok   a bootstrap marker with no reason is refused
+  ok   a bootstrap marker with a reason naming no #N or date is refused
+  ok   a bootstrap entry no file reads is DEAD
+  ok   a bootstrap entry whose second reader landed is refused as stale
+  ok   a two-file entry with a real disposition is unaffected
+SELF-TEST 220 of 220 probes held

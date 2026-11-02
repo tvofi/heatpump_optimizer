@@ -1,0 +1,8 @@
+Head e96ff8d23690b2371229d9bcf2188eda8b1af0a5, local detached worktree, synthetic grammar zz-boot-grammar-(\d+)-q in tools/policy/zz1.mjs.
+main1 (one reader, no entry):                RESULT divergent=0 unregistered=0 dead=0 refused=0
+main2 (+ entry "bootstrap:second reader lands in #9999", own grader): RESULT ... dead=0 refused=0
+PR B (+ tools/policy/zz2.mjs, same grammar), graded by main2's agreement.mjs as governance.yml restores it from PINNED:
+  REFUSED discovery "zz-boot-grammar-(\\d+)-q": declared bootstrap but tools/policy/zz1.mjs, tools/policy/zz2.mjs already read it: re-disposition it as pair:, module: or identical:
+  RESULT divergent=0 unregistered=0 dead=0 refused=1 ; rc=1
+PR B with its own re-dispositioned copy (identical:): refused=0 -- but CI never runs PR B's copy (governance.yml ~L1098 restores tools/policy/agreement.mjs from PINNED; the agreement step runs it with set -euo pipefail).
+Vacuous reasons accepted on a one-reader grammar: "bootstrap:#1", "bootstrap:due 1999-01-01", "bootstrap:copied #3100" -> each RESULT dead=0 refused=0.
