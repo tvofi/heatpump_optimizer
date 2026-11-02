@@ -9543,7 +9543,8 @@
    "carry": [],
    "resume": {
     "stage": "in-progress",
-    "branch": "handoff/r10-archscore-spellings"
+    "branch": "handoff/r10-archscore-spellings",
+    "note": "p1 merged PR-3169 871a20da; p2 to dispatch"
    },
    "brief": "The last open row of #2259, from #2401's own table (R10-ARCHSCORE-COVERAGE p5, merged 07a0940): item 2, card coverage, duplicated spellings of a one-statement rule, not delivered. The 20-token census joins a copy only where a window matches, so a one-statement spelling sits below it: the #2401 review spelled three of ARCH2-s5's card_shapes rules once more inline and the finder's total read 22 -> 25 while card_clone_copies stayed 108 -> 108 and card_dead_definitions 0 -> 0. Make the card census read a one-statement respelling (planted fixture under tools/audit/archscore/planted/redteam beside 42_literal_respelled.py), with the null control that an unrelated one-statement line reads nothing. Closes #2259."
   },
