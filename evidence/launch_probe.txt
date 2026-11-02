@@ -1,5 +1,0 @@
-'z$(touch${IFS}INJECTED)' rc-file: False
-'a/b' rc-file: False
-INJECTED created: True
-valid refname
-valid refname a/b

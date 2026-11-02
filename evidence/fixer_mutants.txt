@@ -7,5 +7,14 @@ RESULT mutant=M-crit failed=2 verdict=killed
 RESULT mutant=M-seen failed=4 verdict=killed
 RESULT mutant=M-starved failed=1 verdict=killed
 RESULT mutant=M-backoff failed=3 verdict=killed
-RESULT mutants=8
+RESULT mutant=M-live failed=2 verdict=killed
+RESULT mutant=M-launch failed=2 verdict=killed
+RESULT mutant=M-bo-base failed=1 verdict=killed
+RESULT mutant=M-bo-max failed=1 verdict=killed
+RESULT mutant=M-head4 failed=1 verdict=killed
+RESULT mutant=M-headall failed=1 verdict=killed
+RESULT mutant=M-first failed=1 verdict=killed
+RESULT mutant=M-triageB failed=1 verdict=killed
+RESULT mutants=16
 RESULT survived=0
+rc=0

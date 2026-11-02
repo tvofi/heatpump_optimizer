@@ -1,1 +1,1 @@
-open_driver self-test: 45 checks, 0 failed
+open_driver self-test: 66 checks, 0 failed

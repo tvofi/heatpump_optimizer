@@ -1,0 +1,3 @@
+2026-11-02T07:55:58.4859862Z   GOLDEN_MODE: drift
+2026-11-02T07:55:59.0772788Z   MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+2026-11-02T08:08:24.9892626Z layout: MODE: REPORT (exit 0 on findings until R9-RO-9)
