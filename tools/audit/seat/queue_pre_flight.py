@@ -98,7 +98,7 @@ class PreFlight:
                  checkout: Path = ROOT, bot_cured: bool = False,
                  free_holders: bool = False, dests: "ca.Dests | None" = None) -> None:
         self.repo = repo
-        self.dests = dests  # carry_audit's destinations; read from origin/main on first use
+        self.dests = dests  # carry_audit's destinations as given (a fixture's); else read per pull request
         self.checkout = checkout
         # The train's own pre-flight (`merge_train.py --pre-flight`) passes
         # what it now cures itself: a bot tip (batch routes it serial, whose
@@ -170,11 +170,11 @@ class PreFlight:
             return "PARK", s.step, s.why
         if not held:
             return "PARK", "approve", why
-        if why := self.findings_gate(pr):
+        if why := self.findings_gate(pr, h):
             return "PARK", "findings", why
         return "PASS", "", ""
 
-    def findings_gate(self, pr: int) -> str:
+    def findings_gate(self, pr: int, head: str = "") -> str:
         """'' when every finding item of the body and its `Fix review:`
         verdicts is routed to a valid destination (carry_audit.audit), else
         the refusal naming the count and the first item. Fail-closed: a body,
@@ -193,11 +193,13 @@ class PreFlight:
         if not ca.finding_rows(body, comments)[0]:
             return ""  # nothing to route: the roster is not read
         try:
-            if self.dests is None:
-                self.dests = ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state)
+            # Read per pull request, never one set for the train: a head's own new carry file routes
+            # its `#N` (P43, #2675); an injected set (the self-test's) is used as given.
+            dests = self.dests or ca.load_dests(self.checkout, "origin/main", issue_state=self.issue_state,
+                                                extra_ref=head or None)
         except (ca.roster_lib.RosterNotFound, ValueError) as e:
             return f"the roster could not be read: {str(e)[:160]}"
-        bad = [r for r in ca.audit(body, comments, self.dests)["rows"] if r["status"] != "routed"]
+        bad = [r for r in ca.audit(body, comments, dests)["rows"] if r["status"] != "routed"]
         if not bad:
             return ""
         r = bad[0]
@@ -496,6 +498,17 @@ def _self_test() -> int:
           go({"comments": NOTE})[:2] == ("PARK", "findings") and "review 9" in go({"comments": NOTE})[2])
     check("comments that cannot be read PARK, fail-closed",
           go({"comments_fail": True})[:2] == ("PARK", "findings"))
+    # P43: with no injected set, each pull request's destinations are read with its head as the
+    # extra ref (its own new carry file), never one set cached for the train.
+    seen, real = [], ca.load_dests
+    ca.load_dests = lambda *a, **k: seen.append(k.get("extra_ref")) or ca.Dests(
+        {"groups": [{"group": "R10-LIVE", "issues": [], "fixes": [], "resume": {"stage": "planned"}}]}, set())
+    try:
+        go({"body": FR + " Carry: R10-LIVE"}, dests=None)
+        go({"body": FR + " Carry: R10-LIVE", "pr_head": H1}, dests=None)
+    finally:
+        ca.load_dests = real
+    check("P43: the destinations are read per pull request, with its head as the extra ref", seen == [H0, H1])
     check("a merge base that cannot be read PARKS, named as the failure",
           go({"no_base": True})[:2] == ("PARK", "files"))
     check("a diff that cannot be read PARKS, named as the failure",
