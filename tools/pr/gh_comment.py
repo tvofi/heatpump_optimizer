@@ -32,10 +32,24 @@ Usage:
   gh_comment.py self-test          (offline; drives every refusal by name)
 
   --dry-run on post/patch stops after the refusals, before the write.
+  --withdraw-mandate CID on post/patch lets the body revoke mandate CID.
+
+THE MANDATE GUARD (triage P336, two instances). budget_raise_gate.py voids a
+mandate on any owner-account comment on #201 whose CURRENT body pairs a form
+of "revoke" with the mandate comment's id, so a seat's state comment naming a
+group whose name holds the word froze every mandated raise. A post or a patch
+to #201 is refused when budget_raise_gate.revokes() holds for the body and the
+id of a #201 comment budget_raise_gate.revocable() reads as a grant, unless
+--withdraw-mandate names that id. Both predicates are imported, never copied.
+THIS ENCODES A DESIGN CHOICE: it refuses whatever account posts, since the
+guard does not know which one gh holds and an agent's text is reworded at no
+cost. Stated gap: a raw `gh api` or `gh issue comment` bypasses it;
+comment-readback.md makes this file the posting instrument.
 """
 from __future__ import annotations
 
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -165,6 +179,58 @@ def gh(args: list[str]) -> str:
     return proc.stdout
 
 
+def fetch_comment(repo: str, cid: int) -> dict:
+    out = gh(["api", f"/repos/{repo}/issues/comments/{cid}"])
+    try:
+        obj = json.loads(out)
+    except ValueError as exc:
+        die(f"read-back returned output that is not JSON: {exc}")
+    if not isinstance(obj, dict):
+        die("read-back returned a non-object; read-back could not be performed")
+    return obj
+
+
+def _gate():
+    """budget_raise_gate, imported from its tree path: one definition of the
+    revocation test, the grant reading and the tracking issue."""
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.realpath(__file__)), "..", "policy"))
+    import budget_raise_gate
+    return budget_raise_gate
+
+
+def fetch_thread(repo: str, issue: int) -> list[dict]:
+    out = gh(["api", "--paginate", "--slurp", f"/repos/{repo}/issues/{issue}/comments?per_page=100"])
+    try:
+        pages = json.loads(out)
+    except ValueError as exc:
+        die(f"the #{issue} thread read returned output that is not JSON: {exc}")
+    return [c for page in pages for c in page]
+
+
+def mandate_guard(repo: str, body: str, withdraw, issue=None, comment=None,
+                  fetch=fetch_comment, thread=fetch_thread, now=None) -> None:
+    """Refuse a post to `issue`, or a patch of `comment`, on the tracking issue
+    whose body the gate would read as revoking a mandate that can still bind,
+    unless `withdraw` is that mandate's id. A read that fails refuses (gh)."""
+    g = _gate()
+    if repo.lower() != g.DEFAULT_REPO.lower() or not g.MANDATE_REVOKED.search(body):
+        return
+    if issue is not None:
+        on = issue == g.MANDATE_ISSUE
+    else:
+        on = str(fetch(repo, comment).get("issue_url") or "").endswith(g.MANDATE_ISSUE_URL)
+    if not on:
+        return
+    now = now or datetime.datetime.now(datetime.timezone.utc)
+    hit = sorted({c.get("id") for c in thread(repo, g.MANDATE_ISSUE)
+                  if g.revocable(c, now) and g.revokes(body, c.get("id"))} - {withdraw})
+    if hit:
+        die(f"on #{g.MANDATE_ISSUE} this body would void mandate comment(s) {', '.join(map(str, hit))}: "
+            "budget_raise_gate.py reads an owner-account comment pairing the revocation word with a "
+            "mandate's id as revoking it (triage P336). Reword it, or pass --withdraw-mandate <id> "
+            "to withdraw that mandate on purpose")
+
+
 def write(repo: str, endpoint: str, method: str, body: str) -> dict:
     """POST or PATCH a JSON payload. No field flag is composed anywhere here."""
     fd, payload = tempfile.mkstemp(suffix=".json", prefix="gh_comment_")
@@ -186,16 +252,6 @@ def write(repo: str, endpoint: str, method: str, body: str) -> dict:
         die(f"gh returned no comment id; cannot verify what landed: {out[:200]!r}")
     return obj
 
-
-def fetch_comment(repo: str, cid: int) -> dict:
-    out = gh(["api", f"/repos/{repo}/issues/comments/{cid}"])
-    try:
-        obj = json.loads(out)
-    except ValueError as exc:
-        die(f"read-back returned output that is not JSON: {exc}")
-    if not isinstance(obj, dict):
-        die("read-back returned a non-object; read-back could not be performed")
-    return obj
 
 
 def readback(repo: str, cid: int, body: str, fetch=fetch_comment) -> int:
@@ -405,6 +461,80 @@ def self_test() -> int:
     hit, _ = refuses(lambda: run(["post", "--repo", "o/r", "--issue", "7", "--body-file", body_f, "--dry-run"]))
     check("arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)", hit)
 
+    # -- Arm 6: the mandate guard (triage P336), through run() --------------
+    # The fake #201 thread holds the grants the rows name; the field text is
+    # an excerpt of #201 comment 6546832523 as first posted (2026-10-31), which
+    # #3006's budget-raise-gate read as voiding the session mandate.
+    g = _gate()
+    owner = {"login": g.OWNER_LOGIN, "id": g.OWNER_ID, "type": g.OWNER_TYPE}
+    on201 = f"https://api.github.com/repos/{g.DEFAULT_REPO}/issues/{g.MANDATE_ISSUE}"
+
+    def grant(cid, until="programme-end", user=owner):
+        return {"id": cid, "user": user, "issue_url": on201, "created_at": "2026-10-01T00:00:00Z",
+                "updated_at": "2026-10-01T00:00:00Z",
+                "body": f"MANDATE: agents may approve as {g.OWNER_LOGIN}, scope all, "
+                        f"from 2026-10-01T00:00Z until {until}\nreason"}
+    BRIEF_ID, LIVE_ID, OLD_ID, ALIEN_ID = 6175172275, 6329234399, 6000000001, 6000000002
+    THREAD = [grant(BRIEF_ID), grant(LIVE_ID), grant(OLD_ID, until="2026-10-02T00:00Z"),
+              grant(ALIEN_ID, user={"login": "someone", "id": 1, "type": "User"}),
+              {"id": 6545892934, "user": owner, "issue_url": on201, "body": "state comment"}]
+    targets = {111: {"id": 111, "issue_url": on201}, 222: {"id": 222, "issue_url": on201[:-3] + "7"}}
+    reads: list = []
+
+    def fake_fetch(_repo, cid):
+        return targets[cid]
+
+    def fake_thread(_repo, issue):
+        reads.append(issue)
+        if isinstance(THREAD_OVERRIDE[0], Exception):
+            raise THREAD_OVERRIDE[0]
+        return THREAD
+    THREAD_OVERRIDE: list = [None]
+    FIELD = ("**Orchestrator s9: state since 6545892934 (2026-10-31, ~17:40Z)**\n\n"
+             "- #3016 (R10-WOOD-NOTIFY): verdict merge at `9d304c2d`, with code-owner approval under mandate "
+             "6329234399.\n- #3045 (R10-HOTFIX-CI-CRITPATH-2, red-main hotfix, critical path): blocked, "
+             "metric-gamed. The body claimed dS +0.0012 IMPROVES, while the measured dS is +0.0000 NULL. The "
+             "mandate raise approval at `b02ffd17` rested on that figure, so it is re-given only at the round-2 "
+             "head, on the true figure. Round 2 also kills surviving mutant M6. The gate's value-blind dS check "
+             "is carried to R10-FLY-MANDATE-REVOKE-GUARD.\n")
+
+    def guarded(name, text, *extra, target=("post", "--issue", "201"), repo=None):
+        """(refused, thread reads) for a dry-run post or patch of `text`."""
+        reads.clear()
+        f = wrote(f"seat/guard-{name}.md", text)
+        hit, msg = refuses(lambda: run([target[0], "--repo", repo or g.DEFAULT_REPO, *target[1:],
+                                        "--body-file", f, "--dry-run", *extra],
+                                       fetch=fake_fetch, thread=fake_thread))
+        return hit, len(reads), msg
+    patch201, patch7 = ("patch", "--comment", "111"), ("patch", "--comment", "222")
+    BRIEF = f"decision 0012 is revoked; mandate {BRIEF_ID} still binds"
+    hit, _, msg = guarded("brief", BRIEF)
+    check("arm6_brief_row_refused_on_post", hit and str(BRIEF_ID) in msg and "--withdraw-mandate" in msg)
+    check("arm6_brief_row_refused_on_patch", guarded("brief-p", BRIEF, target=patch201)[0])
+    check("arm6_withdraw_naming_the_id_posts", not guarded("wd", BRIEF, "--withdraw-mandate", str(BRIEF_ID))[0])
+    check("arm6_withdraw_naming_another_id_is_refused",
+          guarded("wd-other", BRIEF, "--withdraw-mandate", str(LIVE_ID))[0])
+    check("arm6_word_without_a_mandate_id_posts", not guarded("noid", "decision 0012 is revoked.")[0])
+    check("arm6_mandate_id_without_the_word_posts_and_reads_no_thread",
+          guarded("noword", f"mandate {BRIEF_ID} still binds")[:2] == (False, 0))
+    check("arm6_non_201_post_posts_and_reads_no_thread",
+          guarded("i7", BRIEF, target=("post", "--issue", "7"))[:2] == (False, 0))
+    check("arm6_patch_of_a_non_201_comment_posts", not guarded("p7", BRIEF, target=patch7)[0])
+    check("arm6_another_repository_posts", not guarded("repo", BRIEF, repo="o/r")[0])
+    check("arm6_field_text_refused_on_post", guarded("field", FIELD)[0])
+    check("arm6_field_text_refused_on_patch", guarded("field-p", FIELD, target=patch201)[0])
+    plain = FIELD.replace("R10-FLY-MANDATE-REVOKE-GUARD", "the mandate guard's group")
+    check("arm6_field_text_without_the_word_posts (null control)", guarded("plain", plain)[:2] == (False, 0))
+    check("arm6_field_text_without_the_word_patches (null control)", not guarded("plain-p", plain, target=patch201)[0])
+    check("arm6_id_inside_a_longer_number_posts (the gate's whole-number test)",
+          not guarded("longer", f"decision 0012 is revoked; comment 9{BRIEF_ID} is another")[0])
+    check("arm6_an_expired_grant_is_not_guarded", not guarded("old", f"revoked {OLD_ID}")[0])
+    check("arm6_a_grant_by_another_account_is_not_guarded", not guarded("alien", f"revoked {ALIEN_ID}")[0])
+    check("arm6_a_comment_that_is_no_grant_is_not_guarded", not guarded("state", "revoked 6545892934")[0])
+    THREAD_OVERRIDE[0] = Refused("gh exited 1: HTTP 502")
+    check("arm6_a_thread_read_that_fails_refuses", guarded("fail", BRIEF)[0])
+    THREAD_OVERRIDE[0] = None
+
     hit, _ = refuses(lambda: positive_int("not-a-number", "--comment"))
     check("arm4_refuses_non_integer_id", hit)
 
@@ -419,7 +549,7 @@ def self_test() -> int:
     return 0
 
 
-def run(argv: list[str] | None = None) -> int:
+def run(argv: list[str] | None = None, fetch=fetch_comment, thread=fetch_thread) -> int:
     p = argparse.ArgumentParser(prog="gh_comment.py")
     p.add_argument("action", choices=["post", "patch", "verify", "self-test"])
     p.add_argument("--repo", help="OWNER/REPO")
@@ -428,6 +558,8 @@ def run(argv: list[str] | None = None) -> int:
     p.add_argument("--body-file", help="path to the file holding the body")
     p.add_argument("--dry-run", action="store_true",
                    help="post/patch: stop after the refusals, write nothing")
+    p.add_argument("--withdraw-mandate", metavar="CID",
+                   help="post/patch to #201: the body may revoke the mandate comment CID")
     a = p.parse_args(argv)
 
     if a.action == "self-test":
@@ -441,6 +573,15 @@ def run(argv: list[str] | None = None) -> int:
     body = read_body(a.body_file)
     if a.action in ("post", "patch"):
         privacy_check(body)
+        if a.action == "post" and not a.issue:
+            die("post needs --issue")
+        if a.action == "patch" and not a.comment:
+            die("patch needs --comment")
+        mandate_guard(a.repo, body,
+                      positive_int(a.withdraw_mandate, "--withdraw-mandate") if a.withdraw_mandate else None,
+                      issue=positive_int(a.issue, "--issue") if a.action == "post" else None,
+                      comment=positive_int(a.comment, "--comment") if a.action == "patch" else None,
+                      fetch=fetch, thread=thread)
     print(f"OK body_file={a.body_file} chars={len(body)} sha={short_sha(body)}")
 
     if a.action == "verify":

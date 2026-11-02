@@ -25,8 +25,14 @@
   and says why in `review-packet: unavailable -- <reason>`. A head is
   dispatched only when `merge_train.py classify` reads it reviewable: RED (a
   required context's latest run concluded failure) or an unreadable answer
-  refuses and records nothing; GREEN and WAIT dispatch (`$HPO_BUS_CLASSIFY`
-  replaces the command in self-tests).
+  refuses and records nothing; GREEN and WAIT dispatch, and so does
+  APPROVAL-OWED (`classify --pr`, rc 4: the red is only a budget raise's
+  approval, which follows the review; its line is printed) (`$HPO_BUS_CLASSIFY`
+  replaces the command in self-tests). With `--reviewed-head <rh>`, a range
+  `review_carry.py` answers CARRY refuses only when the latest verdict naming
+  `rh` on `verdict/<pr>` is merge; a blocked one, or none, dispatches and prints
+  `review-carry: <rh> was blocked|has no verdict, so a fresh review is owed`,
+  and an unreadable `verdict/<pr>` refuses (P348).
 
 The design steps (decision 0014) write the same append-only way:
 `bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;

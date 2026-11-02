@@ -142,7 +142,15 @@ MANDATE_COVERS_CODE_OWNED = ("code-owned", "all")
 JUSTIFICATION_HEADING = "## Raise justification"
 JUSTIFICATION_PAID = re.compile(r"^[ \t]*(?:[-*][ \t]+)?Payments tried:[ \t]*\S", re.M)
 JUSTIFICATION_SCORE = re.compile(
-    r"^[ \t]*(?:[-*][ \t]+)?Architecture score: dS [+-]?\d+(?:\.\d+)? (?:IMPROVES|NULL|WORSENS)\b", re.M)
+    r"^[ \t]*(?:[-*][ \t]+)?Architecture score: dS ([+-]?\d+(?:\.\d+)?) (IMPROVES|NULL|WORSENS)\b", re.M)
+# The figure is also checked, not only its shape (the #3045 fix review,
+# 2026-10-31): a body claiming "dS +0.0012 IMPROVES" on a diff that scores
+# +0.0000 NULL reached a mandated approval. On the mandated arm the gate runs
+# the BASE's scorer three-dot, as arch-score.yml does (measured_score), and one
+# score line of the section must name that figure: the dS at score.py's four
+# decimals and the verdict word. The other lines report payments tried, trees
+# the gate cannot rebuild, so they are shape-checked only.
+ARCH_SCORER = "tools/audit/archscore/score.py"
 SUFFIX = "_budgets.json"
 
 FREE, MAX, MAX0, MIN, OVERRIDE, CAPFILE, SUPERSET, FROZEN = (
@@ -204,6 +212,7 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("script_runs_per_push",), MAX),
         (("script_runs_full_case_pr",), MAX),
         (("critical_path_minutes",), MAX),
+        (("critical_path_minutes_band",), MAX0),
     ],
     "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
@@ -351,6 +360,36 @@ def _when(text):
     return t if t.tzinfo is not None else None
 
 
+def revokes(body, cid) -> bool:
+    """Whether the comment text `body` revokes the mandate comment `cid`, read
+    as an owner-account comment on the tracking issue: any form of "revoke"
+    (MANDATE_REVOKED, its first conjunct, which gh_comment.py's guard reads
+    alone to skip its thread read) and the id as a whole number, so a longer
+    number that contains it names another comment. THE one revocation test:
+    mandate_state judges the thread with it, and gh_comment.py refuses a post
+    or patch to #201 it holds for (triage P336), by importing it."""
+    body = body or ""
+    return bool(MANDATE_REVOKED.search(body)) and re.search(rf"(?<!\d){cid}(?!\d)", body) is not None
+
+
+def mandate_grant(comment):
+    """The MANDATE_GRAMMAR match of `comment`'s first line, or None."""
+    return MANDATE_GRAMMAR.fullmatch(((comment.get("body") or "").strip().splitlines() or [""])[0].strip())
+
+
+def revocable(comment, now) -> bool:
+    """Whether a revocation naming `comment`'s id would void a grant that can
+    still bind at `now`: the owner's comment on the tracking issue, its first
+    line the grammar, its window not closed (an end that does not parse counts
+    as open: guarding too much fails safe). gh_comment.py's guard reads it."""
+    m = mandate_grant(comment)
+    if not (m and _is_owner(comment.get("user"))
+            and str(comment.get("issue_url") or "").endswith(MANDATE_ISSUE_URL)):
+        return False
+    end = _when(m.group(3))
+    return end is None or end > now
+
+
 def mandate_state(cid, comment, thread, at, at_repr, when="review",
                   covers=MANDATE_COVERS_RAISE, what="budget raises"):
     """(in force, why) for the mandate comment `cid`, judged at the instant
@@ -377,7 +416,7 @@ def mandate_state(cid, comment, thread, at, at_repr, when="review",
     if not _is_owner(comment.get("user")):
         return False, (f"{name} was not written by {OWNER_LOGIN} (id {OWNER_ID}), "
                        "and only the owner grants a mandate")
-    m = MANDATE_GRAMMAR.fullmatch(((comment.get("body") or "").strip().splitlines() or [""])[0].strip())
+    m = mandate_grant(comment)
     if not m:
         return False, f"{name}'s first line is not the mandate grammar"
     scope, start, until = m.group(1), _when(m.group(2)), m.group(3)
@@ -396,9 +435,7 @@ def mandate_state(cid, comment, thread, at, at_repr, when="review",
     if updated != created:
         return False, f"{name} was edited, so the text tvofi gave it under is unknown"
     for c in thread:
-        body = c.get("body") or ""
-        if (_is_owner(c.get("user")) and MANDATE_REVOKED.search(body)
-                and re.search(rf"(?<!\d){cid}(?!\d)", body)):
+        if _is_owner(c.get("user")) and revokes(c.get("body"), cid):
             return False, f"{name} was revoked by {OWNER_LOGIN}'s comment {c.get('id')}"
     return True, f"{name} (scope {scope}, from {m.group(2)} until {until})"
 
@@ -417,25 +454,58 @@ def _heading_at(lines: list[str]) -> list[int]:
     return [i for i, ln in enumerate(lines) if ln.strip() == JUSTIFICATION_HEADING]
 
 
-def justification(body) -> tuple[bool, str]:
-    """(present, why): the body's JUSTIFICATION_HEADING section, up to the next
-    heading of level one or two, holds both a payment line and a score line."""
+def _section(body) -> str | None:
+    """The body's JUSTIFICATION_HEADING section, up to the next heading of
+    level one or two; None when it has none."""
     lines = str(body or "").splitlines()
     starts = _heading_at(lines)
     if not starts:
-        return False, f"the body has no `{JUSTIFICATION_HEADING}` section, which a mandated raise owes"
+        return None
     section = []
     for ln in lines[starts[0] + 1:]:
         if re.match(r"#{1,2} ", ln):
             break
         section.append(ln)
-    text = "\n".join(section)
+    return "\n".join(section)
+
+
+def justification(body) -> tuple[bool, str]:
+    """(present, why): the body's JUSTIFICATION_HEADING section, up to the next
+    heading of level one or two, holds both a payment line and a score line."""
+    text = _section(body)
+    if text is None:
+        return False, f"the body has no `{JUSTIFICATION_HEADING}` section, which a mandated raise owes"
     missing = [what for what, rx in (("a `Payments tried:` line", JUSTIFICATION_PAID),
                                       ("an `Architecture score: dS` line from score.py", JUSTIFICATION_SCORE))
                if not rx.search(text)]
     if missing:
         return False, f"`{JUSTIFICATION_HEADING}` lacks {' and '.join(missing)}"
     return True, f"the body's `{JUSTIFICATION_HEADING}` names the payments tried and the arch_score figures"
+
+
+def score_check(body, measured) -> tuple[bool, str]:
+    """(agrees, why): a score line of the body's section names the figure in
+    `measured`, score.py's report line for this head (measured_score)."""
+    m = JUSTIFICATION_SCORE.search(str(measured or ""))
+    if not m:
+        return False, (f"the measured architecture score could not be read ({str(measured)[:120]!r}), "
+                       "and an unread figure supports no claim")
+    want = (round(float(m.group(1)), 4), m.group(2))
+    got = [(round(float(a), 4), v) for a, v in JUSTIFICATION_SCORE.findall(_section(body) or "")]
+    if want in got:
+        return True, f"the body's arch_score figure is the measured one, dS {m.group(1)} {m.group(2)}"
+    return False, (f"`{JUSTIFICATION_HEADING}` claims {', '.join(f'dS {a:+.4f} {v}' for a, v in got) or 'no figure'}, "
+                   f"but {ARCH_SCORER} measures dS {m.group(1)} {m.group(2)} for this head three-dot: "
+                   "a mandated raise rests on the true figure")
+
+
+def justified(body, score_fn=None) -> tuple[bool, str]:
+    """justification(), then, when `score_fn() -> report line` is given and the
+    section is well formed, score_check() against the figure it measures."""
+    ok, why = justification(body)
+    if ok and score_fn is not None:
+        return score_check(body, score_fn())
+    return ok, why
 
 
 def check_body(body, raises: list[str] | None = None) -> tuple[bool, str]:
@@ -513,7 +583,8 @@ def approval(reviews: list[dict], head: str, mandate_fn=None, mandate_validator=
     return True, f"{OWNER_LOGIN} approved this head {head[:12]}"
 
 
-def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None, body_fn=None) -> tuple[int, list[str]]:
+def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None, body_fn=None,
+           score_fn=None) -> tuple[int, list[str]]:
     lines = [f"RAISE {r}" for r in raises]
     lines.append(f"RESULT budget_raises={len(raises)} count")
     if not raises:
@@ -533,9 +604,9 @@ def decide(raises: list[str], reviews_fn, head: str, mandate_fn=None, body_fn=No
         return read[cid]
     try:
         ok, why = approval(reviews, head, mandate if mandate_fn else None,
-                           justify=lambda: justification(body_fn() if body_fn else None))
-    except Exception as e:  # fail closed: an unread mandate or body grants nothing
-        lines.append(f"REFUSED: a cited mandate or the body could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
+                           justify=lambda: justified(body_fn() if body_fn else None, score_fn))
+    except Exception as e:  # fail closed: an unread mandate, body or score grants nothing
+        lines.append(f"REFUSED: a cited mandate, the body or its score could not be read ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}); "
                      "a raise needs the owner's approval, and an unread mandate grants none")
         return 1, lines
     lines.append(("PASS: " if ok else "REFUSED: ") + why)
@@ -591,6 +662,26 @@ def _body(repo: str, pr: str) -> str:
     return json.loads(out.stdout).get("body") or ""
 
 
+def measured_score(base: str, head: str) -> str:
+    """score.py's report line for the merge base of `base` and `head` against
+    `head` (three-dot), run from `base`'s own scorer in a scratch worktree, as
+    arch-score.yml runs it, so a pull request cannot edit the figure that
+    grades it. A scorer that fails raises, and decide() refuses."""
+    mb = _git("merge-base", base, head).strip()
+    tmp = tempfile.mkdtemp(prefix="brg-score-")
+    wt = os.path.join(tmp, "base")
+    try:
+        _git("worktree", "add", "-q", "--detach", wt, base)
+        r = subprocess.run([sys.executable, "-I", os.path.join(wt, ARCH_SCORER), "--diff", mb, head],
+                           cwd=wt, capture_output=True, text=True)
+    finally:
+        subprocess.run(["git", "worktree", "remove", "--force", wt], capture_output=True)
+        shutil.rmtree(tmp, ignore_errors=True)
+    if r.returncode != 0:
+        raise RuntimeError(f"{ARCH_SCORER} exited {r.returncode}: {r.stderr.strip()[-160:]}")
+    return (r.stdout.splitlines() or [""])[0]
+
+
 def raises_between(mb: str, head: str, ls, show) -> tuple[list[str], list[str]]:
     """(budget paths, raises) from the merge base `mb` to `head`: THE reading
     of which budget leaves went the wrong way, shared by `gate` and
@@ -614,7 +705,7 @@ def gate(base: str, head: str, pr: str, repo: str) -> int:
     paths, raises = raises_between(mb, head, lambda sha: _git("ls-tree", "-r", "--name-only", sha).splitlines(), _show)
     print(f"# merge base {mb[:12]}, head {head[:12]}: {len(paths)} budget file(s): {', '.join(paths)}")
     rc, lines = decide(raises, lambda: _reviews(repo, pr), head, lambda cid: _mandate(repo, cid),
-                       lambda: _body(repo, pr))
+                       lambda: _body(repo, pr), lambda: measured_score(base, head))
     print("\n".join(lines))
     return rc
 
@@ -758,6 +849,15 @@ def self_test() -> int:
           raised(I, i0, {**i0, "archscore.duplication_copies": 69}), True)
     check("ci: an archscore cap removed is a raise",
           raised(I, i0, {k: v for k, v in i0.items() if k != "archscore.family_splits"}), True)
+    # The timing band: absent is zero tolerance, so adding one is a raise.
+    check("ci: a critical-path band added is a raise (absent is a band of zero)",
+          raised(I, i0, {**i0, "critical_path_minutes_band": 1.3}), True)
+    check("ci: a critical-path band widened is a raise",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3},
+                 {**i0, "critical_path_minutes_band": 1.4}), True)
+    check("ci: a critical-path band narrowed is routine",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3},
+                 {**i0, "critical_path_minutes_band": 0.9}), False)
     check("ci: a key the ratchet does not know is frozen (the consumer refuses it too)",
           raised(I, i0, {**i0, "jobs_per_day": 3}), True)
 
@@ -889,11 +989,12 @@ def self_test() -> int:
             "Payments tried: moved the helper into its caller; reverted, arch_score worsened.\n"
             "Architecture score: dS -0.1234 WORSENS\n  hub_writes 70 -> 71  -0.0310\n\n## Tests\n\nx\n")
 
-    def rcm(reviews, comment=None, thread=(), raises=R, body=JUST):
+    def rcm(reviews, comment=None, thread=(), raises=R, body=JUST, score=None):
         if comment is None:
             comment = mandate()
         calls.clear()
         reads.clear()
+        scored.clear()
 
         def fetch(cid):
             calls.append(cid)
@@ -906,12 +1007,18 @@ def self_test() -> int:
             if isinstance(body, Exception):
                 raise body
             return body
+        def measure():
+            scored.append(1)
+            if isinstance(score, Exception):
+                raise score
+            return score
         try:
-            return decide(raises, lambda: reviews, H, fetch, text)
+            return decide(raises, lambda: reviews, H, fetch, text, None if score is None else measure)
         except Exception as e:  # an escape is a verdict too, and never 0 or 1
             return f"raised {type(e).__name__}", []
     calls: list = []
     reads: list = []
+    scored: list = []
 
     ok_ = rcm([agent()])
     check("mandate: an agent's approval at the head under a budget-raise mandate passes", ok_[0], 0)
@@ -997,6 +1104,8 @@ def self_test() -> int:
               rcm([agent()], thread=[{**revoke(), "body": form}])[0], 1)
     check("mandate: a revocation naming a longer id that contains this one revokes nothing (null control)",
           rcm([agent()], thread=[{**revoke(), "body": f"MANDATE REVOKED {MID}9"}])[0], 0)
+    check("mandate: a revocation naming a longer id that ends in this one revokes nothing (null control)",
+          rcm([agent()], thread=[{**revoke(), "body": f"MANDATE REVOKED 9{MID}"}])[0], 0)
     check("mandate: tvofi's comment naming the id with no revocation word revokes nothing (null control)",
           rcm([agent()], thread=[{**revoke(), "body": f"Agents are working under mandate {MID}."}])[0], 0)
     # A mandate comment edited at any time grants nothing: anyone with write
@@ -1049,6 +1158,35 @@ def self_test() -> int:
     check("justification: a body read that fails, fails closed", rcm([agent()], body=RuntimeError("HTTP 502"))[0], 1)
     check("justification: a score line with no verdict word is refused",
           justification(JUST.replace(" WORSENS\n", "\n"))[0], False)
+
+    # The figure itself (the #3045 fix review): on the mandated arm, one score
+    # line of the section must be the figure score.py measures for the head.
+    TRUE = "Architecture score: dS +0.0000 NULL"
+    PLANT = JUST.replace("dS -0.1234 WORSENS", "dS +0.0012 IMPROVES")
+    TRUE_BODY = JUST.replace("dS -0.1234 WORSENS", "dS +0.0000 NULL")
+    got = rcm([agent()], body=PLANT, score=TRUE)
+    check("score: a planted false IMPROVES under a mandate is refused", got[0], 1)
+    check("score: ... and the refusal names both figures",
+          any("+0.0012 IMPROVES" in ln and "+0.0000 NULL" in ln for ln in got[1]), True)
+    check("score: the true figure passes (null control)", (rcm([agent()], body=TRUE_BODY, score=TRUE)[0], len(scored)), (0, 1))
+    check("score: the same dS with another verdict word is refused",
+          rcm([agent()], body=TRUE_BODY.replace(" NULL", " IMPROVES"), score=TRUE)[0], 1)
+    check("score: a figure at fewer decimals that equals the measured one passes",
+          rcm([agent()], body=TRUE_BODY.replace("+0.0000", "+0.0"), score=TRUE)[0], 0)
+    check("score: -0.0000 is the same figure as +0.0000",
+          rcm([agent()], body=TRUE_BODY.replace("+0.0000", "-0.0000"), score=TRUE)[0], 0)
+    check("score: the true figure beside a payment's own line passes (other lines are shape-only)",
+          rcm([agent()], body=TRUE_BODY.replace(TRUE, TRUE + "\nArchitecture score: dS -0.0310 WORSENS"),
+              score=TRUE)[0], 0)
+    check("score: the true figure under another heading does not count",
+          rcm([agent()], body=PLANT.replace("## Tests\n", f"## Figures\n\n{TRUE}\n\n## Tests\n"), score=TRUE)[0], 1)
+    check("score: score.py's inadmissible suffix still reads",
+          rcm([agent()], body=JUST, score="Architecture score: dS -0.1234 WORSENS (inadmissible: hub_writes 70->71)")[0], 0)
+    check("score: a scorer that fails is a refusal", rcm([agent()], body=TRUE_BODY, score=RuntimeError("exit 2"))[0], 1)
+    check("score: a scorer line that does not read is a refusal", rcm([agent()], body=TRUE_BODY, score="Traceback")[0], 1)
+    check("score: the owner's own approval measures nothing", (rcm([rv(own, "APPROVED")], score=TRUE)[0], len(scored)), (0, 0))
+    check("score: a malformed section is refused before any measurement",
+          (rcm([agent()], body=no_sec, score=TRUE)[0], len(scored)), (1, 0))
 
     # --check-body (Triage P-F): the same justification(), on a body file, as
     # the process policy_lint.mjs --pr-body runs. The three shapes the gate
@@ -1197,8 +1335,12 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         s0 = {"coordinator_loc": 9062, "cut_views": 110, "recorded_at": "a"}
         p0 = {"always_loaded_tokens": 3349, "files": {"A.md": 10, "gone.md": 5}}
         throwaway_git_init(repo, "-q", "-b", "main")
+        # The scorer measured_score runs is the base's copy, so the fork holds a
+        # stub that prints one fixed figure and logs what it was asked.
+        scorer = ("import os, sys\nopen(os.path.join(os.environ['BRG_STUB'], 'score_argv'), 'w')"
+                  ".write(' '.join(sys.argv[1:]))\nprint('Architecture score: dS +0.0000 NULL')\n")
         fork = commit({S: s0, P: p0, "A.md": "a\n", "gone.md": "g\n",
-                       "tests/zz_budgets.json": {"x": 1}}, "fork")
+                       "tests/zz_budgets.json": {"x": 1}, ARCH_SCORER: scorer}, "fork")
         # main moves on after the fork and TIGHTENS a cap: the head, which never
         # touched it, is above the base tip but not above the fork point.
         base = commit({S: {**s0, "coordinator_loc": 9000}}, "main tightens")
@@ -1212,6 +1354,9 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         routine = branch("routine", {S: {**s0, "cut_views": 100, "recorded_at": "b"},
                                      P: {**p0, "files": {"A.md": 10}}, "gone.md": None})
         raise_ = branch("raise", {S: {**s0, "cut_views": 111}})
+        # A head that edits the scorer to print the figure its body claims.
+        rigged = branch("rigged", {S: {**s0, "cut_views": 111},
+                                   ARCH_SCORER: scorer.replace("+0.0000 NULL", "+0.0012 IMPROVES")})
         nan = branch("nan", {S: '{"coordinator_loc": 9062, "cut_views": NaN, "recorded_at": "a"}'})
         added = branch("added", {"tests/new_budgets.json": {"y": 1}})
         deleted = branch("deleted", {"tests/zz_budgets.json": None})
@@ -1285,6 +1430,19 @@ def _end_to_end() -> list[tuple[str, object, object]]:
                     [f"repos/tvofi/heatpump_optimizer/issues/comments/{cid}",
                      f"repos/tvofi/heatpump_optimizer/{thread_key}?per_page=100&since=2026-10-02T05:30:00Z",
                      pr_key[1:]]))
+        out.append(("e2e: ... after running the base's scorer three-dot, fork to head",
+                    (open(argv_f).read() if os.path.exists(argv_f := os.path.join(stub, "score_argv")) else None),
+                    f"--diff {fork} {raise_}"))
+        out.append(("e2e: ... and leaving no scratch worktree behind",
+                    len(git("worktree", "list", "--porcelain").split("worktree ")) - 1, 1))
+        planted = {"body": just["body"].replace("+0.0000 NULL", "+0.0012 IMPROVES")}
+        for label, head_ in (("a planted false IMPROVES", raise_), ("... and on a head whose own scorer prints it", rigged)):
+            agent_h = {**agent_rv, "commit_id": head_}
+            rc_, text, _ = run(head_, pages=[[agent_h]],
+                               routes={f"issues/comments/{cid}": {"out": mand},
+                                       thread_key: {"out": [[]]}, pr_key: {"out": planted}})
+            out.append((f"e2e: {label} under a mandate exits 1, naming the measured figure",
+                        (rc_, "measures dS +0.0000 NULL" in text), (1, True)))
         rc_, text, _ = run(raise_, pages=[[agent_rv]],
                            routes={f"issues/comments/{cid}": {"out": mand}, thread_key: {"out": [[]]},
                                    pr_key: {"out": {"body": "## Summary\n\nx\n"}}})

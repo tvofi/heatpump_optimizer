@@ -176,8 +176,13 @@ MUTANTS = [
     ("I-carry-lower", "        elif sec.lower() in CARRY_SECTIONS:", "        elif sec in CARRY_SECTIONS:"),
     ("I-none", '            why = "" if NONE_ITEM.match(t) else "section"', '            why = "section"'),
     ("I-bsec", '            why = ("section" if LEAD.search(sec) else', '            why = ("section" if False else'),
-    ("I-blead", '"lead" if LEAD.match(first)\n                   else "under lead" if inherited else "")\n        flagged', '"lead" if False\n                   else "under lead" if inherited else "")\n        flagged'),
-    ("I-binh", 'else "under lead" if inherited else "")\n        flagged', 'else "under lead" if False else "")\n        flagged'),
+    ("I-blead", '"lead" if LEAD.match(first)\n                   else "under lead" if inherited else "owed carry" if owed_carry(t) else "")\n        flagged', '"lead" if False\n                   else "under lead" if inherited else "owed carry" if owed_carry(t) else "")\n        flagged'),
+    ("I-binh", 'else "under lead" if inherited else "owed carry"', 'else "under lead" if False else "owed carry"'),
+    # M1 (R10-RCA-JIDOKA-YIELD): the owed-carry arm, and each half of its strip
+    ("I-owed-arm", ' else "owed carry" if owed_carry(t) else "")', ' else "")'),
+    ("I-owed-strip", 'OWED_CARRY.search(QUOTED.sub(" ", bare))', 'OWED_CARRY.search(text)'),
+    ("I-owed-code", 'OWED_CARRY.search(QUOTED.sub(" ", bare))', 'OWED_CARRY.search(QUOTED.sub(" ", text))'),
+    ("I-owed-quote", 'OWED_CARRY.search(QUOTED.sub(" ", bare))', 'OWED_CARRY.search(bare)'),
     ("I-lead-para", '        if it["kind"] == "para" and t.endswith', '        if t.endswith'),
     ("I-lead-colon", ' and t.endswith(":") and flagged:', ' and flagged:'),
     ("I-lead-flag", ' and t.endswith(":") and flagged:', ' and t.endswith(":"):'),
@@ -278,7 +283,7 @@ MUTANTS = [
     ("B2-shallow-always", B2_SHALLOW, "        shallow = True"),
     # load_dests: P319, the round ref is read on the explicit-ref path too
     # load_dests: P43, a pull request's own carry files join at the pre-flight
-    ("P43-extra", "for n in r.stdout.split() if n.endswith(\".json\")]  # mut:extra", "for n in []]  # mut:extra"),
+    ("P43-extra", "carry |= carry_issues(repo, extra_ref)  # mut:extra", "pass  # mut:extra"),
     ("P319-ref-path", "    if rref and rref != ref and not git(", "    if rref and not ref and not git("),
 ]
 

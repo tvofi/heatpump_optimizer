@@ -14,3 +14,12 @@
   three tries refuses, never reports OK. The offline contract runs the
   caller's checkout, so it can differ from pr-contract's (the script header
   says how). One `--once` unit: its last line is `body_patch: OK|REFUSE ...`.
+- `body_patch.sh --title` — the same steps on the TITLE alone:
+  `body_patch.sh [--dry-run] [--repo O/R] --title <pr> <expected-head-sha>
+  <title>`. PATCHes `{"title"}` and nothing else, and reads the title back
+  exactly, on an open or a closed pull request. When: a title the row
+  generator (`record_row.py`) derives a row from is wrong, so the row is
+  regenerated from the corrected title (R10-FLY-ROW-HEAD-CARRY carry 4).
+  Refusal: an empty, padded or multi-line title, before any read; an open
+  pull request whose live body the contract refuses under the new title;
+  the same head, read-back and retry refusals as the body path.

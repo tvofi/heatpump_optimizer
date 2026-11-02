@@ -85,6 +85,23 @@ IDLE_MARGIN = 1.25
 CEILING_TOLERANCE_K = 0.5
 #: A set-point within this of the gate commanded no heat.
 GATE_TOLERANCE_K = 0.25
+#: The ceiling store (R10-CEILING-PROBE): the draws of intervals the
+#: system-identification experiment commanded at the ceiling set-point. The
+#: window cannot learn the pump's top from them -- a set-point install's plan
+#: rarely writes the ceiling, and a run of them would trip the latch -- so
+#: they are kept apart, and their median is the learned top, published raw.
+#: Whether it agrees with the configured maximum is R10-COP-GATE's to judge.
+CEILING_WINDOW = 48
+#: The learned top waits for this many store samples (three default probe
+#: runs of four step intervals each) ...
+CEILING_MIN_SAMPLES = 12
+#: ... and lapses this many days after the newest, so a mild-night top is
+#: re-measured rather than kept into a cold season.
+CEILING_LAPSE_DAYS = 45.0
+#: An ordinary interval written at the ceiling that draws more than
+#: AGREE_TOLERANCE above the learned top is an overdraw; this many since the
+#: store's newest sample drop the store: the pump has shown it draws more.
+CEILING_OVERDRAWS = 2
 
 
 @dataclass
@@ -117,10 +134,75 @@ class DrawRange:
     commands_known: bool = True
     #: Metered draw while the held set-point was the gate, oldest first.
     idle: Deque[float] = field(default_factory=lambda: deque(maxlen=IDLE_WINDOW))
+    #: ``(drawn_kw, epoch_s)`` per ceiling-store sample, oldest first: one
+    #: interval the experiment commanded at the ceiling. The timestamps are
+    #: the run delimiter and the probe's persisted clock. Not keyed to
+    #: ``config``: the store meters the pump at the ceiling set-point, which
+    #: the configured power range does not set, so a reconfiguration keeps it.
+    ceiling: Deque[tuple[float, float]] = field(
+        default_factory=lambda: deque(maxlen=CEILING_WINDOW)
+    )
+    #: Overdraws of the learned top since the store's newest sample.
+    overdraws: int = 0
 
     def idle_kw(self) -> float | None:
         """The learned idle draw, or ``None`` while too few readings."""
         return float(np.median(self.idle)) if len(self.idle) >= MIN_IDLE else None
+
+    def above_idle_kw(self) -> float:
+        """A draw at or below this is the idle draw: no evidence."""
+        idle = self.idle_kw()
+        return 0.0 if idle is None else IDLE_MARGIN * idle
+
+    def ceiling_since(self) -> float | None:
+        """The newest ceiling-store sample's epoch seconds, or ``None``."""
+        return self.ceiling[-1][1] if self.ceiling else None
+
+    def learned_max_kw(self, now_s: float) -> float | None:
+        """The ceiling store's median draw, kW: the learned top, raw.
+
+        ``None`` below ``CEILING_MIN_SAMPLES`` samples, past
+        ``CEILING_LAPSE_DAYS`` after the newest, or with the newest ahead of
+        ``now_s``. No comparison with the configured maximum: that ruling is
+        R10-COP-GATE's, so its reason can tell a top that agrees from a store
+        still waiting for samples. Every sample counts once, whichever run
+        took it.
+        """
+        newest = self.ceiling_since()
+        if len(self.ceiling) < CEILING_MIN_SAMPLES or newest is None:
+            return None
+        if not 0.0 <= now_s - newest <= CEILING_LAPSE_DAYS * 86400.0:
+            return None  # lapsed, or stamped ahead of the clock: age unknowable
+        return self._ceiling_median()
+
+    def _ceiling_median(self) -> float:
+        return float(np.median([d for d, _ in self.ceiling]))
+
+    def takes_ceiling(self, drawn_kw: float, command: Any) -> bool:
+        """An experiment's interval is store evidence: the ceiling written
+        (``command``, a ``pump_arbiter.FlowCommand``), and the compressor
+        running above the idle draw."""
+        return (
+            command is not None
+            and command.written_c >= command.ceiling_c - CEILING_TOLERANCE_K
+            and drawn_kw > self.above_idle_kw()
+        )
+
+    def observe_ceiling(self, drawn_kw: float, when_s: float) -> None:
+        """Fold one ceiling-commanded experiment interval into the store."""
+        self.ceiling.append((float(drawn_kw), float(when_s)))
+        self.overdraws = 0
+
+    def _overdrawn(self, drawn_kw: float, command: tuple[float, float] | None) -> None:
+        """Count an ordinary ceiling-written draw above the learned top."""
+        at_ceiling = command is not None and command[0] >= command[1] - CEILING_TOLERANCE_K
+        if not at_ceiling or len(self.ceiling) < CEILING_MIN_SAMPLES:
+            return
+        if drawn_kw > (1.0 + AGREE_TOLERANCE) * self._ceiling_median():
+            self.overdraws += 1
+        if self.overdraws >= CEILING_OVERDRAWS:
+            self.ceiling.clear()
+            self.overdraws = 0
 
     def _evidence(self) -> list[tuple[float, float, bool]]:
         """``(drawn, asked, full)`` per sample that is the compressor running.
@@ -132,8 +214,7 @@ class DrawRange:
         BOOST), so a draw under one says nothing about the pump's maximum: the
         window would otherwise learn the set-points it was written.
         """
-        idle = self.idle_kw()
-        above = 0.0 if idle is None else IDLE_MARGIN * idle
+        above = self.above_idle_kw()
         return [
             (d, a, cmd is None or cmd[0] >= cmd[1] - CEILING_TOLERANCE_K)
             for (d, a), cmd in zip(self.samples, self._aligned())
@@ -207,6 +288,7 @@ class DrawRange:
         self.commands_known = True
         self.samples.append((float(drawn_kw), float(asked_kw)))
         self.commands.append(command)
+        self._overdrawn(float(drawn_kw), command)
         if self._disagrees(cfg_min):
             self.engaged = True
 
@@ -234,6 +316,7 @@ class DrawRange:
             "observed_max_kw": None if seen is None or seen[1] is None else round(seen[1], 3),
             "idle_kw": None if (idle := self.idle_kw()) is None else round(idle, 3),
             "engaged": self.engaged,
+            "ceiling_samples": len(self.ceiling),
         }
 
     def as_dict(self) -> dict[str, Any]:
@@ -244,20 +327,26 @@ class DrawRange:
         return {
             "samples": rows if self.commands_known else [r[:2] for r in rows],
             "engaged": self.engaged,
-            "config": None if self.config is None else list(self.config),
+            # Absent, not null, on a store-only record: nothing keyed it yet.
+            **({} if self.config is None else {"config": list(self.config)}),
             "idle": [round(v, 3) for v in self.idle],
+            "ceiling": [[round(d, 3), t] for d, t in self.ceiling],
+            "overdraws": self.overdraws,
         }
 
     @classmethod
     def from_dict(cls, data: Any) -> "DrawRange":
         """A stored range; an unreadable sample is dropped, not the record.
 
-        The configuration is the record's key: samples and latch are judged
-        against it, so without a readable one the record is dropped whole and
-        the evidence starts afresh -- never samples with nothing to judge them
-        against, which a reader of ``samples`` alone would misjudge.
+        The configuration is the window's key: samples and latch are judged
+        against it, so without a readable one they are dropped and the
+        evidence starts afresh -- never samples with nothing to judge them
+        against, which a reader of ``samples`` alone would misjudge. The
+        ceiling store is not keyed to it, and is kept.
         """
         out = cls()
+        out.ceiling.extend(_stored_ceiling(data))
+        out.overdraws = _stored_overdraws(data)
         try:
             lo, hi = (float(v) for v in data["config"])
         except (TypeError, ValueError, OverflowError, KeyError, IndexError):
@@ -333,6 +422,26 @@ def _stored_idle(raw: Any) -> list[float]:
         if isinstance(v, (int, float)) and not isinstance(v, bool)
         and np.isfinite(v) and v >= 0.0
     ]
+
+
+def _stored_ceiling(data: Any) -> list[tuple[float, float]]:
+    """The readable ceiling-store rows of a stored record; a bad one is dropped."""
+    raw = data.get("ceiling") if isinstance(data, dict) else None
+    rows = []
+    for entry in raw if isinstance(raw, list) else ():
+        try:
+            drawn, when = float(entry[0]), float(entry[1])
+        except (TypeError, ValueError, OverflowError, IndexError, KeyError):
+            continue
+        if np.isfinite(drawn) and np.isfinite(when) and drawn > RUNNING_FLOOR_KW:
+            rows.append((drawn, when))
+    return rows
+
+
+def _stored_overdraws(data: Any) -> int:
+    """A stored record's overdraw count; anything but a count reads 0."""
+    raw = data.get("overdraws") if isinstance(data, dict) else None
+    return max(raw, 0) if type(raw) is int else 0
 
 
 def _command_cells(entry: Any) -> tuple[float, float] | None:
@@ -413,6 +522,7 @@ def fold(
     distorted: bool,
     defrost: bool,
     command: Any = None,
+    experiment_s: float | None = None,
 ) -> None:
     """Fold one interval into ``draw`` when it is a running sample.
 
@@ -422,13 +532,25 @@ def fold(
     (``pump_arbiter.flow_command``: ``written_c``, ``gate_c``,
     ``ceiling_c``), or ``None`` where nothing commands the draw. An interval
     held at the gate with no hot water asked is an idle reading.
+
+    ``experiment_s`` is the interval's start, epoch seconds, where the
+    system-identification experiment commanded it -- the mode the interval's
+    own action carried, captured beside its split and command, never the
+    action adopted since -- else ``None``. Such an interval that
+    ``takes_ceiling`` goes to the ceiling store and NOT to the window, so no
+    experiment's draw can trip the window's latch; every other interval
+    folds into the window as before.
     """
     space, dhw = split
     if drawn_kw is not None and not (frozen or distorted or defrost) and command is not None and command.written_c <= command.gate_c + GATE_TOLERANCE_K and not planned_draw_runs(dhw, modulation_floor=0.0):
         draw.observe_idle(drawn_kw)
-    if drawn_kw is not None and is_running_space(
+    if drawn_kw is None or not is_running_space(
         drawn_kw, space, dhw, frozen=frozen, distorted=distorted, defrost=defrost
     ):
+        return
+    if experiment_s is not None and draw.takes_ceiling(drawn_kw, command):
+        draw.observe_ceiling(drawn_kw, experiment_s)
+    else:
         draw.observe(
             drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
             None if command is None else (command.written_c, command.ceiling_c),
@@ -462,11 +584,14 @@ def planned_range(
 
 
 def diagnostics_view(
-    draw: DrawRange, params: Any, cap: InstallCapability
+    draw: DrawRange, params: Any, cap: InstallCapability, now_s: float
 ) -> dict[str, Any]:
-    """The learned values and the range they would clamp the plan to."""
+    """The learned values, the range they would clamp the plan to, and the
+    ceiling store's learned top beside it (outside the latch)."""
     view = draw.summary()
     effective = planned_range(draw, params, cap)
+    learned = draw.learned_max_kw(now_s)
     view["effective_min_kw"] = None if effective is None else round(effective[0], 3)
     view["effective_max_kw"] = None if effective is None else round(effective[1], 3)
+    view["learned_max_kw"] = None if learned is None else round(learned, 3)
     return view

@@ -1043,6 +1043,28 @@ def new_unpinned(unpinned: list[dict], base: list[dict]) -> list[dict]:
 UNPINNED_REFUSAL = re.compile(
     r"^MUTATION TABLE REFUSED -- \d+ unpinned site\(s\) against", re.M)
 PIN_SUMMARY = re.compile(r"^PIN KILLED: (\d+) pinned, \d+ left unpinned", re.M)
+# A driven site no driver killed: `pin_results`'s `UNPINNED <key> -- lives`.
+# A budget cut, a cut tail or a timeout is a later run's, not a survivor.
+SURVIVOR_LINE = re.compile(r"^  UNPINNED (\S+:\d+ \S+) -- lives$", re.M)
+
+
+def survivor_sites(run: str | None) -> list[str]:
+    """The sites a `--pin-killed` run left alive, as `triage_key` names them.
+
+    `mutation-autofix` goes red on these (`closure.autofix_survivors_owed`):
+    its pins are kills only, so a site that lives is the one outcome the
+    pushed commit does not answer (#2840).
+    """
+    return sorted(set(SURVIVOR_LINE.findall(run or "")))
+
+
+def read_survivors(pins_dir: str) -> list[str]:
+    """The survivor list `merge_pin_shards` left beside the merged pins."""
+    try:
+        text = (Path(pins_dir) / "survivors.txt").read_text()
+    except OSError:
+        return []
+    return sorted({x for x in text.splitlines() if x})
 
 
 ADDED_UNPINNED = re.compile(r"(\d+) of them added by this diff")
@@ -1072,6 +1094,16 @@ def pin_shard_count(table: str) -> int:
     m = ADDED_UNPINNED.search(table)
     sites = int(m.group(1)) if m else 0
     return max(1, min(MAX_SHARDS, -(-sites // SITES_PER_SHARD)))
+
+
+def parse_shard(spec: str | None) -> tuple[int, int] | None:
+    """`--shard K/N` as (K, N), None when absent; ValueError on a bad one."""
+    if not spec:
+        return None
+    k, _, n = spec.partition("/")
+    if not (k.isdigit() and n.isdigit() and 1 <= int(k) <= int(n)):
+        raise ValueError("expected K/N with 1 <= K <= N")
+    return int(k), int(n)
 
 
 def pin_shard(pool: list[dict], k: int, n: int) -> list[dict]:
@@ -1107,6 +1139,13 @@ def merge_pin_shards(root: str, out: str) -> str:
     a push raced them, which `apply_pins`'s head check then refuses. Returns
     the merged status; `out` is left empty when no shard wrote one.
 
+    A `--drain` shard also writes `survivors.txt` (`write_drain`): the merge
+    writes the sorted union of every shard's, so the human's list is the
+    night's, not one shard's. Only when a shard wrote one, so a pin merge
+    leaves none behind. A `measured` shard whose list is unreadable is
+    `skip-measure-failed`, as an unreadable `pins.json` is: a union missing
+    a shard's survivors would read as survivors that were never there.
+
     One shard is one matching artifact, and download-artifact extracts a lone
     match into `root` itself rather than a subdirectory, so a `root` holding
     a status is that one shard (R9-CI-2: #2025's four pins read as no
@@ -1115,6 +1154,7 @@ def merge_pin_shards(root: str, out: str) -> str:
     statuses: list[str] = []
     pins: dict = {}
     heads: set[str] = set()
+    survivors: set[str] | None = None
     r = Path(root)
     shards = [r] if (r / "status").is_file() else sorted(r.iterdir()) if r.is_dir() else []
     for d in shards:
@@ -1132,6 +1172,13 @@ def merge_pin_shards(root: str, out: str) -> str:
                 pins.update(json.loads((d / "pins.json").read_text()))
             except (OSError, ValueError):
                 statuses[-1] = "skip-measure-failed"
+        if (d / "survivors.txt").exists():
+            try:
+                lines = (d / "survivors.txt").read_text().splitlines()
+            except OSError:
+                statuses[-1] = "skip-measure-failed"
+            else:
+                survivors = (survivors or set()) | {x for x in lines if x}
     if not statuses:
         return "skip-no-measurement"
     rank = {s: i for i, s in enumerate(_SHARD_PRECEDENCE)}
@@ -1141,6 +1188,9 @@ def merge_pin_shards(root: str, out: str) -> str:
     (o / "status").write_text(status + "\n")
     (o / "pins.json").write_text(json.dumps(pins, indent=2))
     (o / "head").write_text((heads.pop() if len(heads) == 1 else "") + "\n")
+    if survivors is not None:
+        (o / "survivors.txt").write_text(
+            "".join(f"{x}\n" for x in sorted(survivors)))
     return status
 
 
@@ -1402,7 +1452,8 @@ DRAIN_QUIET = ("changed", "skip-unchanged", "skip-nothing-killed",
 
 
 def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
-               seed: int, cap: int) -> list[dict]:
+               seed: int, cap: int,
+               shard: tuple[int, int] | None = None) -> list[dict]:
     """The slice of the unpinned stock one `--drain` run drives.
 
     Whole anchors only: a disposition covers every site under its anchor, so
@@ -1412,12 +1463,19 @@ def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
     one seed and the nightly's date seed walks the stock rather than retrying
     the same survivors every night; an anchor no recorded closure reaches is
     left out, and anchors are taken while their sites fit under `cap`.
+
+    `shard=(k, n)` is one night's slice cut n ways (P85): the slice for the
+    seed is drawn at a cap of n times `cap`, then `pin_shard` deals its whole
+    anchors round-robin, so the n shards are disjoint and their union is the
+    unsharded slice at that cap -- one seed's walk of the stock, in n runners.
     """
     by_anchor: dict[str, list[dict]] = {}
     for s in unpinned:
         by_anchor.setdefault(s["anchor"], []).append(s)
     order = sorted(by_anchor, key=lambda a: hashlib.sha1(
         f"{seed}:{a}".encode()).hexdigest())
+    if shard is not None:
+        cap *= shard[1]
     pool: list[dict] = []
     for anchor in order:
         group = by_anchor[anchor]
@@ -1425,7 +1483,7 @@ def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
         if not drivers or len(pool) + len(group) > cap:
             continue
         pool.extend(dict(s, drivers=drivers) for s in group)
-    return pool
+    return pool if shard is None else pin_shard(pool, *shard)
 
 
 def write_drain(out: Path, entries: dict, head: str,
@@ -3628,7 +3686,10 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("--shard", metavar="K/N",
                     help="with --pin-killed: drive only shard K of N (1-based) "
                          "of the new unpinned sites, split by anchor "
-                         "(pin_shard), so N runners pin one diff in parallel")
+                         "(pin_shard), so N runners pin one diff in parallel. "
+                         "With --drain: shard K of N of the night's slice for "
+                         "--seed drawn at N times --max (drain_pool), so N "
+                         "runners drive disjoint whole anchors of one slice")
     ap.add_argument("--drain", metavar="OUT_DIR",
                     help="with --scope full: drive a --max slice of the "
                          "unpinned stock, chosen by --seed (drain_pool), and "
@@ -3688,6 +3749,14 @@ def main(argv: list[str] | None = None) -> int:
     if args.drain and (args.scope != "full" or args.pin_killed):
         print("--drain drives the whole package's stock: use it with --scope "
               "full and without --pin-killed")
+        return 2
+    if args.shard and not (args.drain or args.pin_killed):
+        print("--shard splits a pool: use it with --drain or --pin-killed")
+        return 2
+    try:
+        parse_shard(args.shard)
+    except ValueError as exc:
+        print(f"--shard {args.shard}: {exc}")
         return 2
     if args.record and args.budget_minutes is not None:
         print("--record sets a cap from a whole pool: not with --budget-minutes")
@@ -3842,7 +3911,7 @@ def main(argv: list[str] | None = None) -> int:
         # shards, 43 of 49 sites).
         whole = list(pool)
         if args.shard:
-            k, n = (int(x) for x in args.shard.split("/"))
+            k, n = parse_shard(args.shard)
             total = len(pool)
             pool = pin_shard(pool, k, n)
             print(f"PIN SHARD {k}/{n} -- {len(pool)} of {total} site(s), "
@@ -3864,10 +3933,16 @@ def main(argv: list[str] | None = None) -> int:
         files = [ROOT / pool[0]["file"]]
         print(f"ANCHOR -- {len(pool)} site(s) of {args.anchor}")
     elif args.drain:
-        pool = drain_pool(unpinned, closures, allow, args.seed, args.max)
-        whole = pool
-        print(f"DRAIN -- {len(pool)} of {len(unpinned)} unpinned site(s), "
-              f"whole anchors under --seed {args.seed}, to drive")
+        shard = parse_shard(args.shard)
+        # The null control is the night's, drawn from the whole slice as in
+        # --pin-killed: a shard whose files hold no whole-line comment is not
+        # refused for a run-level artifact.
+        whole = drain_pool(unpinned, closures, allow, args.seed,
+                           args.max * (shard[1] if shard else 1))
+        pool = drain_pool(unpinned, closures, allow, args.seed, args.max, shard)
+        print(f"DRAIN{f' SHARD {args.shard}' if shard else ''} -- {len(pool)} "
+              f"of {len(unpinned)} unpinned site(s), whole anchors under "
+              f"--seed {args.seed}, to drive")
         if not pool:
             (Path(args.drain)).mkdir(parents=True, exist_ok=True)
             (Path(args.drain) / "status").write_text("skip-nothing-drivable\n")
