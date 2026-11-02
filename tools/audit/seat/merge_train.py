@@ -1032,7 +1032,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     entry in its spool, which it drains as its NEXT batch (`ADDED`); with none,
     `<train_argv> --queue <file>` starts one over the entry (and anything a
     stopped train left spooled), the lock held until train.sh owns train.pid,
-    so a concurrent add finds it live (`STARTED`). A train.sh still closing is
+    so a concurrent add finds it live (`STARTED`), in `Train.drain_order` (P312,
+    the live drain's order). A train.sh still closing is
     waited out, never raced: one train per state dir. rc 2: no train could start.
     <front> (`add --front`, P112): the entry goes FIRST in the next batch -- a
     spooled one is moved there (`spool_edit`), a new one is spooled or queued
@@ -1073,7 +1074,9 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             t.log(f"ADD REFUSED #{pr} one-train: train.sh pid {closing} holds train.pid with no queue open; "
                   "nothing started beside it")
             return 2
-        queue = [entry] + spooled if front else spooled + [entry]
+        # P312 here too: the first batch is the leftovers plus the entry in drain_order,
+        # the order queue_take drains a live spool in; a fronted entry leads its tier.
+        queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start
         qf = t.state / f"add-queue-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{pr}.json"
         qf.write_text(json.dumps(queue, indent=2) + "\n")
         (t.state / QUEUE_SPOOL).unlink(missing_ok=True)
@@ -6991,6 +6994,35 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
               and not {"priority", "front"} & set(entries[23]) and not {"priority", "front"} & set(entries[11])
               and out2[-1].endswith("spool read back: #22 #11 #12 #13 #23 #21")
               and drained(st) == [22, 21, 13, 23, 11, 12])
+
+        # P312 on train_add's START path: no live train, a stopped train left
+        # [#13 critical, #11] spooled (#11 carrying `spooled`'s keys), and the add
+        # starts the next train. Its first batch is drain_order's, as a live spool's is.
+        def started(spooled: "list[dict]", item: dict, front: bool = False) -> "list[int]":
+            st = Path(tempfile.mkdtemp(dir=tmp.name))
+            spool_rewrite(st, [json.dumps(e) for e in spooled])
+            def run(argv, cwd=ROOT, stdin=None):
+                return 0, ("cp" if argv[3] == "13" else "plain") + "\n"
+            t = Train("o/r", st, None, "", (), 1, run=run, log=lambda m: None,
+                      critical=lambda it: it["branch"] == "cp")
+            t.admit_add = lambda it: None
+            got: list = []
+            def launch(argv, state):
+                got.append(json.loads(Path(argv[argv.index("--queue") + 1]).read_text()))
+                return 4242, ""
+            rc = train_add(t, item, ["train.sh"], launch=launch, settle=0, front=front)
+            return [e["pr"] for e in got[0]] if rc == 0 and got else []
+        left = [{"pr": 13, "verdict": "3" * 40}, {"pr": 11, "verdict": "1" * 40}]
+        new = {"pr": 14, "verdict": "4" * 40}
+        check("P312 start path: a stopped train's spool [#13 critical, #11] plus `add #14 --priority` "
+              "starts the train with the HOTFIX first, then the critical #13, then #11",
+              started(left, {**new, "priority": True}) == [14, 13, 11])
+        check("P312 start path null: a plain add over the same spool starts in drain_order, "
+              "the critical #13 first, the new #14 last by arrival",
+              started(left, new) == [13, 11, 14])
+        check("P112 start path: `add #14 --front` over a spool whose #11 is a HOTFIX keeps first place, "
+              "then the HOTFIX #11 (the same tier), then the critical #13",
+              started([left[0], {**left[1], "priority": True}], new, front=True) == [14, 11, 13])
 
         # The lock: a concurrent add arrives between the edit's read and its
         # rewrite. Under QUEUE_LOCK it waits and its line survives; the same

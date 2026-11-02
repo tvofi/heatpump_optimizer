@@ -64,7 +64,9 @@
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
-  batch in proof, and a batch that stops ends the train (`NOT RUN` lines).
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
+  an `add` that starts a train orders its first batch, the entry and what a
+  stopped train left spooled, by the same `Train.drain_order`.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
