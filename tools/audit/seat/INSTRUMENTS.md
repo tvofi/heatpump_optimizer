@@ -45,7 +45,8 @@ have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
 `dev/governance/roles/standing-roster.md` (roster ops). `pulse.py` and the
 sweep's standing-seat liveness step keep them alive.
 
-- [`features_block.py`](instruments/features_block.py.md) — runs one block of `tests/features.py`
+- [`features_block.py`](instruments/features_block.py.md) — runs one block of `tests/features.py`, or the script through a marker
+- [`mutant_run.py`](instruments/mutant_run.py.md) — applies spec mutants or the diff's added lines one at a time to a git-archive copy and prints KILLED or SURVIVED
 - [`body_push.sh`](instruments/body_push.sh.md) — publishes a handoff's BODY.md on the orphan ref `handoff-body/<topic>` (plus RESUME.md), parentless first commit, fast-forwards after
 - [`body_patch.sh`](instruments/body_patch.sh.md) — repairs an open pull request's BODY, or any pull request's TITLE (`--title`), without moving its head
 - [`autofix_statuses.sh`](instruments/autofix_statuses.sh.md) — re-derives what `mutation-autofix` and `closures-autofix` answered on recent pull-request runs
