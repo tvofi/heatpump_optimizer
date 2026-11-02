@@ -3727,7 +3727,7 @@
     "commit": "34cd75bf1fe506334611ba6c074c223317370e67",
     "last_step": null,
     "next_step": "critical-path head: part-2 fixer dispatched by orch s10 2026-11-01 for its 8 open carries",
-    "note": null,
+    "note": "part 2 merged PR-3145 eb0cf1893 (critical path); its 8 carries landed",
     "pr": 2745
    },
    "brief": "Owns two limits R10-SAV-BASELINE (#2255, PR #2411) left open in the savings figures. (1) The month row's comfort-matched null: the flat-price null must separate comfort, COP timing and stored heat, not be driven to 0. (2) The summer_dhw_only start-bound limit: the start-of-horizon settlement is capped by the thermostat's space-heat cost, which leaves summer_dhw_only negative. Seams: optimizer.py and ledger.py. The acceptance is the carried comfort text from R10-SAV-BASELINE, which you re-measure at your merge base. Part of #201."
