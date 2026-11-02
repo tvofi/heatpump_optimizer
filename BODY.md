@@ -2,7 +2,7 @@ Record PR for the v7.1.1 stamp batch: adds the #3048 pre-flight waiver note to i
 
 ## Head
 
-d6c8c69b1a2119e9e41feaa63cfd4a9f0018d7f9
+cc46fbb8becea68ef86efdc235a9d96aa7983c77
 
 ## Mutation proof
 
@@ -18,14 +18,8 @@ none
 
 ## Red checks
 
-Four failing check runs stand on b889290f (run 41311309577), the earlier head of this branch cut from base fb0a6d5a3; ba27089a has no CI beyond the skipped `arm` check. Each is answered the same way: the red was the branch lacking main's later commits (it deleted `dev/programme/carries/carry-2674.json` while the closure recordings and the policy fixtures it was cut beside predate main's 44aaa080a), and this head merges origin/main f04b25a00 (conflict only in `dev/programme/delivery/3048.md`, resolved to main's merged row plus the waiver note). The cheaper detector already exists in each case and costs nothing new: `tools/pr/prepr.sh` step 6d (`ci predict`) and `python3 tests/closure.py selftest`.
-
-- `governance / instrument-self-tests`: PIN lines "FIXTURE VACUOUS" from the policy lint; at this head `node tools/policy/policy_lint.mjs --fixture` prints "FIXTURE ok: 93 error(s) hold 258 pins" and `prepr.sh` step `policy_lint` is ok.
-- `tests / fast (3.14)`: `tests/closure.py selftest` and `tests/entities.py` failed; at this head `python3 tests/entities.py` prints ALL 2518 ENTITY CHECKS PASSED and `python3 tests/closure.py selftest` prints ALL 117 closure shrink pins PASSED.
-- `tests / closures`: PHANTOM `tests/entities.py: dev/programme/carries/carry-2674.json`. The deletion is intended (this record PR drops the answered #2674 carry; only `dev/audit/rca/R10-RCA-ROSTER-SYNC-ORPHANS.md` and `dev/programme/triage/s6-batch1.md` still mention it as prose, and `tests/entities.py` does not name the file), so the closures entry is pruned with it; CI re-records every closure on this FULL diff.
-- `tests / closures-autofix`: the autofix of the same PHANTOM; no standing cost beyond the above, and the prune leaves it nothing to repair.
-
-main's own run at f04b25a00 was still in progress when this body was taken, so no red of main's is claimed or excused here.
+Concluded red at PR head 645643590632a8895affebdb1d81fc9d0f42fe66 (runs 41352537181 and 41352537802): `gate` (two runs) and `pr-contract / pr-contract`. Answer: `gate` fails only because it re-runs `pr-contract`; `pr-contract` refused because the body's `## Head` named an older head (d6c8c69b) than the pull request's tip, the push-order window `prepr.sh` documents. The cheaper detector is `tools/pr/prepr.sh` step 7 (`--body-check`), run here against the new head and standing at no new cost. The earlier reds on b889290f (`governance / instrument-self-tests`, `tests / fast (3.14)`, `tests / closures`, `tests / closures-autofix`) were the branch lacking main's later commits and the pruned PHANTOM `carry-2674.json` closure entry; both are repaired by merging main and the prune, with `python3 tests/entities.py` and `python3 tests/closure.py selftest` as their detectors.
+- `governance / delivery-status`: red because `python3 -I -S tests/delivery_status.py --check` reports #3065 OVERDUE (12 commits since) with a longer pending list of merges on main still owed a row; it grades main, not this diff, and the check is not a required context. This diff touches `dev/programme/delivery/3048.md` only to add the waiver note beneath main's merged line and adds #3091's own row, neither of which can clear another PR's overdue row. The cheaper detector is that same command, run locally at no standing cost; the rows are the orchestrator's to write at each merge (`delivery-status-tracking.md`), so none are written here.
 
 ## Forward-carry
 
