@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST db57fbad",
+  "killed_by": "tests/features.py",
+  "old": "CEILING_MIN_SAMPLES = 12",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`CEILING_MIN_SAMPLES = 24`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
+}

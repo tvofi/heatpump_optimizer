@@ -83,6 +83,7 @@ from .dhw_schedule import (
 from .inputs import state_power_kw
 from .modbus_prefill import night_mode_write_ids, package_prefix
 from .drift import utc_step_starts
+from .plan_step import PLAN_STEP_HOURS, plan_step_start
 
 #: The per-step action codes, as one int8 array element per step.
 ACTION_NONE: Final = 0
@@ -149,6 +150,21 @@ def step_actions(
         ):
             out[i] = ACTION_SILENT
     return out if bool(np.any(out)) else None
+
+
+def quiet_reason(config: Mapping[str, Any], now: datetime) -> str | None:
+    """Why the step covering ``now`` is inside a configured quiet window, or ``None``.
+
+    The solve honours the windows (``off_steps``, the silent cap); an action
+    that replaces the solve's -- the system-identification experiment's step
+    -- would not, so the experiment stands down inside one (R10-CEILING-PROBE).
+    """
+    actions = step_actions(
+        plan_step_start(now), 1, PLAN_STEP_HOURS,
+        config.get(CONF_QUIET_SILENT_WINDOWS), config.get(CONF_QUIET_OFF_WINDOWS),
+    )
+    code = ACTION_NONE if actions is None else int(actions[0])
+    return {ACTION_OFF: "inside a quiet off window", ACTION_SILENT: "inside a quiet silent window"}.get(code)
 
 
 def silent_control_usable(entity_id: Any) -> bool:

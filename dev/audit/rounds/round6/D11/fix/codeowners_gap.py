@@ -369,6 +369,12 @@ ALLOWED_USES = {
     "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1",
     "actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444",
     "actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131",
+    # The bumped revisions (R10-DEPS-ACTIONS-BUMP): both generations are
+    # admitted while the workflows move from the first to the second.
+    "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1",
+    "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0",
+    "actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1",
+    "actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333",
 }
 # `diff` and `commit` because pinned jobs on `main` use them; `show` and `log`
 # were dropped in round 4 (`git show --output=` writes a file).
@@ -874,6 +880,17 @@ PROBES = [
     ("a listed restore whose list names another file",
      _LISTED(between="printf 'README.md\\0' > \"$RUNNER_TEMP/pinned.list\"")),
     ("a listed restore whose list is truncated by cat", _LISTED(between='cat /dev/null > "$RUNNER_TEMP/pinned.list"')),
+    # A revision on neither list: each bumped SHA one character off.
+    ("checkout one character off its bumped pin", lambda jt: jt.replace(
+        "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5",
+        "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b2 # v7.0.1")),
+    ("setup-python one character off its bumped pin", lambda jt: jt.replace(
+        "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6",
+        "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e1 # v7.1.0")),
+    ("setup-node one character off its bumped pin", "\n      - uses: actions/setup-node@"
+     "949feb2413d6458794dcd2491c4babbbce0c15c2 # v7.1.0\n        with:\n          node-version: \"22\"\n"),
+    ("download-artifact one character off its bumped pin", "\n      - uses: actions/download-artifact@"
+     "9000827ccba6bdab643e8b6fd33ac0654aef8333x # v8.0.2\n        with:\n          name: x\n"),
     ("pip install", _run("pip install -r tests/requirements-ci.txt")),
     ("npm ci", _run("npm ci")),
     ("bare tracked path", _run(T + " fast || true")),
@@ -945,6 +962,17 @@ NULLS = [
                                    'cmp README.md README.md')),
     ("download-artifact at its pin", "\n      - uses: actions/download-artifact@"
      "37930b1c2abaa49bbe596cd826c3c89aef350131 # v7\n        with:\n          name: x\n"),
+    ("download-artifact at its bumped pin", "\n      - uses: actions/download-artifact@"
+     "9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2\n        with:\n          name: x\n"),
+    ("checkout and setup-python at their bumped pins", lambda jt: jt.replace(
+        "actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5",
+        "actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1").replace(
+        "actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6",
+        "actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0")),
+    ("setup-node at its current pin", "\n      - uses: actions/setup-node@"
+     "a0853c24544627f65ddf259abe73b1d18a591444 # v5\n        with:\n          node-version: \"22\"\n"),
+    ("setup-node at its bumped pin", "\n      - uses: actions/setup-node@"
+     "949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0\n        with:\n          node-version: \"22\"\n"),
     ("a scratch write", _run('echo x > "$RUNNER_TEMP/x.txt"')),
     # The merge queue's base (round-9 process review item 2): a `merge_group`
     # run has no pull request, so the base it restores from is the queue's.

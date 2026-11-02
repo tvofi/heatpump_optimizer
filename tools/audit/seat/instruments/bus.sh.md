@@ -25,8 +25,14 @@
   and says why in `review-packet: unavailable -- <reason>`. A head is
   dispatched only when `merge_train.py classify` reads it reviewable: RED (a
   required context's latest run concluded failure) or an unreadable answer
-  refuses and records nothing; GREEN and WAIT dispatch (`$HPO_BUS_CLASSIFY`
-  replaces the command in self-tests).
+  refuses and records nothing; GREEN and WAIT dispatch, and so does
+  APPROVAL-OWED (`classify --pr`, rc 4: the red is only a budget raise's
+  approval, which follows the review; its line is printed) (`$HPO_BUS_CLASSIFY`
+  replaces the command in self-tests). With `--reviewed-head <rh>`, a range
+  `review_carry.py` answers CARRY refuses only when the latest verdict naming
+  `rh` on `verdict/<pr>` is merge; a blocked one, or none, dispatches and prints
+  `review-carry: <rh> was blocked|has no verdict, so a fresh review is owed`,
+  and an unreadable `verdict/<pr>` refuses (P348).
 
 The design steps (decision 0014) write the same append-only way:
 `bus.sh push-design <topic> <design.md>` adds `design.md` to `design/<topic>`;
@@ -35,3 +41,13 @@ The design steps (decision 0014) write the same append-only way:
 line is `Design review: approve <sha>` or `Design review: revise <sha> <class>`,
 and `<sha>` must be the current tip of `design/<topic>`: a design that moved
 under the review is refused, and so is a topic with no design ref.
+  `push-verdict` refuses, before `review/<pr>` moves, a verdict with a line
+  its post would refuse (`ref_privacy.py body-lines`, naming the line) and
+  one whose finding items name no valid `Carry:` (`carry_audit.py check` at
+  origin/main and the round's roster branch, as the train's pre-flight reads
+  them); its push carries a 500 MB `http.postBuffer` (#2563's HTTP 400).
+  `dispatch` reads a head's own delivery row, except a head whose every
+  commit over origin/main is `dependabot[bot]`'s: its row is read on
+  origin/main (a row commit on the bot's head reddens `pr-contract`).
+  `watch` holds `<state>/watch.lock` (a directory naming its pid): a second
+  watcher refuses naming the holder; a dead pid's lock is taken over.

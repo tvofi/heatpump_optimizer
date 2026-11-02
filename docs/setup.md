@@ -258,7 +258,7 @@ defaults once you confirm one last overview of what will be created:
 on purpose — it is a sensor this setup could use and does not have.*
 
 Everything the overview shows can be changed afterwards: open the integration
-and choose **Configure**, which presents the 23 options pages described in
+and choose **Configure**, which presents the 24 options pages described in
 [configuration.md](configuration.md#changing-settings-later) — with **Quick
 setup** among the everyday pages, for an install that wants to answer the
 house questions now — and the
