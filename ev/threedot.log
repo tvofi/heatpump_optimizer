@@ -1,0 +1,28 @@
+merge-base=8247a1ed10f66baaa173d30be1696907c6bbae32 origin/main=8247a1ed10f66baaa173d30be1696907c6bbae32
+A	dev/audit/harnesses/r10_carry_field_figures.py
+A	dev/audit/harnesses/r10_carry_field_verdicts.json
+M	dev/audit/harnesses/r10_carry_parser_mutants.py
+M	dev/audit/harnesses/r10_seat_selftests_mutants.py
+M	dev/governance/roles/standing-dispatch.md
+A	dev/programme/delivery/3065.md
+M	tests/closures.json
+M	tools/audit/carry_audit.py
+M	tools/audit/seat/body_push.sh
+M	tools/audit/seat/bus.sh
+M	tools/audit/seat/cloud_dispatch.py
+M	tools/audit/seat/cloud_relay.sh
+M	tools/audit/seat/instruments/bus.sh.md
+M	tools/audit/seat/instruments/cloud_relay.sh.md
+M	tools/audit/seat/instruments/tick_loop.sh.md
+M	tools/audit/seat/ledger.py
+M	tools/audit/seat/queue_pre_flight.py
+M	tools/audit/seat/ref_privacy.py
+M	tools/audit/seat/tick_loop.sh
+M	tools/pr/prepr.sh
+-- two-dot origin/main..head (files differing from main):
+20
+-- files in head tree that main lacks:
+dev/audit/harnesses/r10_carry_field_figures.py
+dev/audit/harnesses/r10_carry_field_verdicts.json
+dev/programme/delivery/3065.md
+-- files main has that head lacks:

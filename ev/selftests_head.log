@@ -1,0 +1,6 @@
+$ python3 tools/audit/seat/ref_privacy.py --self-test: ref_privacy self-test: 100 checks, 0 failed
+$ python3 tools/audit/seat/queue_pre_flight.py --self-test: queue_pre_flight self-test: 45 checks, 0 failed
+$ python3 tools/audit/seat/cloud_dispatch.py --self-test: cloud_dispatch self-test: 125 checks, 0 failed
+$ python3 tools/audit/seat/ledger.py --self-test: ledger self-test: 77 checks, 0 failed
+at 072a11952: carry_audit self-test: 305 checks, 0 failed
+at 072a11952: bus self-test: 128 checks, 0 failed

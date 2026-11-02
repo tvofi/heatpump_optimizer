@@ -1,0 +1,9 @@
+X=6776f9d841a6dcf2bf1869af82e753a76209afb5
+RESULT extra_ref=X  #999991: ([], None)
+RESULT no extra_ref #999991 (null): ([], None)
+RESULT extra_ref=X  #999992 (null): ([], None)
+RESULT extra_ref=bogus #999991: ([], None)
+RESULT extra_ref=X  #999991: ([('routed', [])], True)
+RESULT no extra_ref #999991 (null): ([('bad', ['#999991: #999991 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-999991.json'])], False)
+RESULT extra_ref=X  #999992 (null): ([('bad', ['#999992: #999992 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-999992.json'])], True)
+RESULT extra_ref=bogus #999991: ([('bad', ['#999991: #999991 has no owner: no live roster group lists it and there is no dev/programme/carries/carry-999991.json'])], False)
