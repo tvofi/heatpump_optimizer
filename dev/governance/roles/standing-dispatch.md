@@ -11,10 +11,9 @@ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
 fires.
 
-**Relay:** run `tools/audit/seat/cloud_relay.sh pass --confirm`; on a merge
-verdict carried to the live head, `bus.sh confirm`. Report each
-`handoff-body/<topic>` return. A beat job takes it over once one cycle's log
-agrees with you; never inline.
+**Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
+carried to the live head; report each `handoff-body/<topic>`. A beat job takes
+over once a cycle's log agrees; never inline.
 
 ## Read the ref, not the record
 
