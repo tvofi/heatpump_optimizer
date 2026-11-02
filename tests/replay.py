@@ -498,7 +498,10 @@ COST_BUDGETS: dict[str, dict[str, float]] = {
 #: 2.3-3.2 %; the bands are disjoint. A run in no band is refused by name
 #: (``class_budget``), never graded against a neighbour's budget: a new
 #: runner class turns the lane red once, and its own ``cost`` lines are the
-#: readings that admit it here.
+#: readings that admit it here. Two rulers have read once each and are
+#: refused: 28.0 (job 125000687320, #3078: 1.89) and 34.4 (nightly job
+#: 123225871060: 1.87). The first lies 2.5 % under ref30 and reads 0.67-0.72x
+#: its ratios; a ref30 widened over it would not see its doubled arm (3.89).
 COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
     "ref24": (22.64, 25.53),
     "ref30": (28.72, 32.69),
