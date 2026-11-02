@@ -1,0 +1,10 @@
+null helper="-" headline:same adv/health:same
+undefined helper="-" headline:same adv/health:same
+{"state":"on","last_updated":"2026-11-02T10:00:00+00:00"} helper="on@2026-11-02T10:00:00+00:00" headline:same adv/health:same
+{"state":"","last_updated":""} helper="@" headline:same adv/health:same
+{"state":null,"last_updated":"t"} helper="null@t" headline:same adv/health:same
+{"state":"Ünïcødé ☃ 温度","last_updated":"t"} helper="Ünïcødé ☃ 温度@t" headline:same adv/health:same
+{"state":"x"} helper="x@" headline:same adv/health:DIFF x@undefined
+{"state":"x","last_updated":null} helper="x@" headline:same adv/health:DIFF x@null
+{"state":"x","last_updated":0} helper="x@" headline:same adv/health:DIFF x@0
+{"state":"a@b","last_updated":"c"} helper="a@b@c" headline:same adv/health:same
