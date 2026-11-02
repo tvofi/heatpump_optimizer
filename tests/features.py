@@ -17113,10 +17113,15 @@ def _bo_nometer_month(ct_product):
     ct = coord._capacity_tariff()
     rng = np.random.default_rng(1499)
     trace, space_only = [], []
-    start = datetime(2026, 1, 1, tzinfo=_BO_TZ).astimezone(timezone.utc)
+    # The month runs in the configured zone: the production fold stamps each
+    # sample with ``dt_util.now()``, so the tariff's hour and day masks read
+    # that zone's wall clock, and the oracle must read the same one under any
+    # ``HASTUB_TZ`` (UTC unless set).
+    zone = _bo_dt.DEFAULT_TIME_ZONE
+    start = datetime(2026, 1, 1, tzinfo=zone).astimezone(timezone.utc)
     try:
         for hour in range(31 * 24):
-            when = (start + timedelta(hours=hour)).astimezone(_BO_TZ)
+            when = (start + timedelta(hours=hour)).astimezone(zone)
             if 5 <= when.hour <= 7:          # a DHW-only morning charge
                 action = {"power": 0.0, "dhw_power": rng.uniform(6.0, 9.5), "heat_pump_on": True}
             else:
@@ -35339,7 +35344,10 @@ def _943_drive(host, hours=6.0):
     settling — actually delivers. Returns the peak |T - 21| reached and
     the electrical step the sizer chose.
     """
-    t0 = datetime(2026, 1, 5, 2, 0, tzinfo=UTC)
+    # 02:00 in the configured zone: the experiment's night window is local
+    # hours (``SystemIdentification`` reads ``now.hour``), so a UTC literal
+    # falls outside it under a zone far enough from UTC.
+    t0 = datetime(2026, 1, 5, 2, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
     p = host._thermal_params
     cop = host._thermal_model.compute_cop(3.0)
     q_hold = p.heat_loss_coefficient * (21.0 - 3.0) - p.internal_gains
@@ -47477,8 +47485,11 @@ def _t3_outage(last_tick_iso, *, enabled=True):
     return c
 
 
+# The naive tick is the same instant's wall clock in the configured zone,
+# the zone the production read adopts for it (UTC unless ``HASTUB_TZ`` is set).
 _t3_out_naive = _t3_outage(
-    (_T3_OUTAGE_NOW - timedelta(hours=5)).replace(tzinfo=None).isoformat()
+    (_T3_OUTAGE_NOW - timedelta(hours=5))
+    .astimezone(dt_util.DEFAULT_TIME_ZONE).replace(tzinfo=None).isoformat()
 )
 _t3_out_aware = _t3_outage((_T3_OUTAGE_NOW - timedelta(hours=5)).isoformat())
 R.check(
@@ -50509,7 +50520,9 @@ R.check(
 # wrong-by-a-day one, so the entry nearest the current time wins and a
 # forecast with no timestamps falls back to the old first-entry behaviour
 # rather than reading nothing.
-_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0)
+# Aware, so the frozen clock and the entry stamps name one instant under any
+# ``HASTUB_TZ``: a naive entry stamp is read as UTC against the aware clock.
+_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 
 def _t6_humidity(entries):
