@@ -345,17 +345,19 @@ def _own_tokens(toks: list[str], fn: tuple[str, int, int, int], nested: list[tup
     return out
 
 
-def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
-    """Clone classes of functions sharing a normalized window of ``window`` tokens of their own."""
-    fns = functions(toks)
-    windows: dict[tuple, set] = defaultdict(set)
+def _units(toks: list[str], fns: list[tuple[str, int, int, int]]) -> list[tuple[str, list[str]]]:
+    """``(function@index, its own tokens)`` for each function, each outermost nested function one ``F``."""
+    out = []
     for k, fn in enumerate(fns):
         _n, start, _b0, end = fn
         nested = [(s0, e0) for (_m, s0, _c, e0) in fns if start < s0 and e0 <= end and (s0, e0) != (start, end)]
         outer = [(a, b) for a, b in nested if not any(a2 < a and b <= b2 for a2, b2 in nested if (a2, b2) != (a, b))]
-        norm = _own_tokens(toks, fn, outer)
-        for j in range(len(norm) - window + 1):
-            windows[tuple(norm[j:j + window])].add(f"{fn[0]}@{k}")
+        out.append((f"{fn[0]}@{k}", _own_tokens(toks, fn, outer)))
+    return out
+
+
+def _classes(members_by_key: dict) -> list[list[str]]:
+    """Members joined when they share a key, transitively: each class of two or more, sorted."""
     parent: dict = {}
 
     def find(x):
@@ -364,15 +366,24 @@ def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
             x = parent[x]
         return x
 
-    for owners in windows.values():
-        if len(owners) > 1:
-            first, *rest = sorted(owners)
+    for members in members_by_key.values():
+        if len(members) > 1:
+            first, *rest = sorted(members)
             for o in rest:
                 parent[find(o)] = find(first)
     groups: dict = defaultdict(list)
     for m in parent:
         groups[find(m)].append(m)
     return sorted(sorted(g) for g in groups.values() if len(g) > 1)
+
+
+def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
+    """Clone classes of functions sharing a normalized window of ``window`` tokens of their own."""
+    windows: dict[tuple, set] = defaultdict(set)
+    for unit, norm in _units(toks, functions(toks)):
+        for j in range(len(norm) - window + 1):
+            windows[tuple(norm[j:j + window])].add(unit)
+    return _classes(windows)
 
 
 def _chains(body: list[str]) -> list[list[list[str]]]:
@@ -473,12 +484,7 @@ def rule_copies(toks: list[str]) -> list[list[str]]:
     strings=True)``); each member is ``function@index:chain``."""
     fns = functions(toks)
     owners: dict[tuple, set] = defaultdict(set)
-    units: list[tuple[str, list[str]]] = []
-    for k, fn in enumerate(fns):
-        _n, start, _b0, end = fn
-        nested = [(s0, e0) for (_m, s0, _c, e0) in fns if start < s0 and e0 <= end and (s0, e0) != (start, end)]
-        outer = [(a, b) for a, b in nested if not any(a2 < a and b <= b2 for a2, b2 in nested if (a2, b2) != (a, b))]
-        units.append((f"{fn[0]}@{k}", _own_tokens(toks, fn, outer)))
+    units = _units(toks, fns)
     # The module's own tokens, every outermost function one ``F``: a rule's owner written as an expression-bodied
     # arrow at top level (``const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);``) is no
     # function to ``functions`` and would be no site.
@@ -496,23 +502,7 @@ def rule_copies(toks: list[str]) -> list[list[str]]:
                     key = _rule_key(operands[a:b])
                     if key is not None:
                         owners[key].add(site)
-    parent: dict = {}
-
-    def find(x):
-        while parent.setdefault(x, x) != x:
-            parent[x] = parent[parent[x]]
-            x = parent[x]
-        return x
-
-    for sites in owners.values():
-        if len(sites) > 1:
-            first, *rest = sorted(sites)
-            for o in rest:
-                parent[find(o)] = find(first)
-    groups: dict = defaultdict(list)
-    for m in parent:
-        groups[find(m)].append(m)
-    return sorted(sorted(g) for g in groups.values() if len(g) > 1)
+    return _classes(owners)
 
 
 def card_tokens(root: Path, strings: bool = False) -> list[str]:
