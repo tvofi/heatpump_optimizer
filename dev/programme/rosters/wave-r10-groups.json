@@ -13179,7 +13179,7 @@
     "From #201 comment 6246024687 (orchestrator, 2026-10-18, after #2374 R10-D15-GRADER merged): \"Owed: name d15_restart_gaps.py in INSTRUMENTS\", never routed; re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: dev/audit/harnesses/d15_restart_gaps.py exists, and is named by no index a D15 seat reads: tools/audit/seat/INSTRUMENTS.md has 0 matches for it (and lists no dev/audit/harnesses entry at all), and dev/governance/dimensions/D15.md step 1 states the restart-gap rule the harness implements without naming it. INSTRUMENTS.md is the seat-instrument inventory, so the sounder home is the D15 brief (policy: owner approval before merge) or the harness index this group's coverage work maintains. Fix: name the harness, with its invocation (`PYTHONPATH=tests/hastub:custom_components python3 dev/audit/harnesses/d15_restart_gaps.py --bundle B`), where a D15 finder's intake step reads it. Failing test first: the group's coverage check (or a brief_lint citation) reports a dimension rule implemented by a harness the brief does not cite, red for D15 today. Null control: a dimension whose harness the brief already names passes."
    ],
    "resume": {
-    "stage": "queued",
+    "stage": "carries-open",
     "branch": null,
     "commit": null,
     "next_step": "dispatch the fixer when R10-FLY-MUTANT-RESTORE and R10-996-RUNNER-CLAIMS are done; design approved at design-verdict/r10-audit-coverage 5b77e98dd"
