@@ -1,2 +1,9 @@
-RESULT claim files byte-identical to origin/main
-RESULT VERSION/manifest/notes three-dot diff empty: yes
+ dev/programme/delivery/3153.md |  1 +
+ tools/pr/merge_main_bot.py     | 91 +++++++++++++++++++++++++++++++++++++++++-
+ 2 files changed, 90 insertions(+), 2 deletions(-)
+identical-to-main tests/golden/claimed_drift.txt
+identical-to-main tests/golden/card_claimed_drift.txt
+identical-to-main VERSION
+identical-to-main custom_components/heatpump_optimizer/manifest.json
+identical-to-main RELEASE_NOTES.md
+heatpump_optimizer
