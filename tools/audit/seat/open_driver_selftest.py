@@ -1,0 +1,292 @@
+"""Self-test of open_driver.py: topic resolution, order, skips, runs, the git layer.
+
+    open_driver.py's own test switch runs this module
+"""
+from __future__ import annotations
+
+import os
+import subprocess
+import sys
+import tempfile
+import time
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import open_driver as od  # noqa: E402
+
+A = "a" * 40
+NOW = 1_800_000_000.0
+
+
+def sha(c):
+    return c * 40
+
+
+def roster(*names, after=None):
+    after = after or {}
+    return {"groups": [{"group": n, "resume": {"stage": "not-started"}, "after": after.get(n, [])} for n in names]}
+
+
+class Fake:
+    """A world with no git: tips, bodies, a landed set, launches recorded."""
+
+    def __init__(self, ros, heads=(), landed=(), bodies=None, extra=()):
+        self.ros, self.launched, self.landed_set, self.bodies = ros, [], set(landed), bodies or {}
+        self.t = {"refs/heads/main": sha("9")}
+        for i, (topic, s) in enumerate(heads):
+            self.t[f"refs/heads/handoff/{topic}"] = s
+            self.t[f"refs/heads/handoff-body/{topic}"] = sha("b")
+        for r in extra:
+            self.t[r] = sha("c")
+        self.dead, self.pid = set(), 100
+
+    def tips(self):
+        return self.t
+
+    def body_head(self, topic):
+        return self.bodies.get(topic, "")
+
+    def landed(self, main, s):
+        return s in self.landed_set
+
+    def roster(self):
+        return self.ros
+
+    def launch(self, topic, s, title, group):
+        self.launched.append((topic, title, group))
+        self.pid += 1
+        return self.pid
+
+    def alive(self, pid):
+        return pid not in self.dead
+
+
+def line(topic, s, ct=None):
+    return f"OWED 2026-11-02T00:00:00Z handoff-no-pr refs/heads/handoff/{topic} {s}" + (f" ct={int(ct)}" if ct else "")
+
+
+def run():
+    n = bad = 0
+
+    def check(name, ok):
+        nonlocal n, bad
+        n += 1
+        if not ok:
+            bad += 1
+            print(f"FAIL {name}")
+
+    G = {"R10-SAV-COMFORT", "R10-ROSTER-OPS", "R10-ROSTER-OPS-2", "R10-PREPR-CAP", "R10-CI-LAYOUT-P1", "R10-CI-LAYOUT-P2",
+         "R10-ROSTER-OPS-3", "R10-FLY-TRAIN-DEFAULTS", "R10-UX-HEALTH"}
+    r = lambda t, body="": od.resolve(t, G - {"R10-ROSTER-OPS-3"} if t == "r10-roster-ops-3" else G, body)
+    check("sav-comfort-p2", r("r10-sav-comfort-p2", "R10-SAV-COMFORT part 2") == ("R10-SAV-COMFORT", "R10-SAV-COMFORT (part 2): r10 sav comfort p2"))
+    check("roster-ops-2-p1", r("r10-roster-ops-2-p1", "x\nR10-ROSTER-OPS-2 part 1")[0] == "R10-ROSTER-OPS-2")
+    check("prepr-cap-2 by -N", r("r10-prepr-cap-2", "R10-PREPR-CAP")[0] == "R10-PREPR-CAP")
+    check("fly-train-defaults-p2", r("r10-fly-train-defaults-p2", "R10-FLY-TRAIN-DEFAULTS")[0] == "R10-FLY-TRAIN-DEFAULTS")
+    check("ux-health-p3", r("r10-ux-health-p3", "R10-UX-HEALTH")[1].startswith("R10-UX-HEALTH (part 3): "))
+    check("exact wins: roster-ops-2", r("r10-roster-ops-2", "R10-ROSTER-OPS")[0] == "R10-ROSTER-OPS-2")
+    check("exact wins: ci-layout-p1", r("r10-ci-layout-p1", "R10-CI-LAYOUT-P2")[0] == "R10-CI-LAYOUT-P1")
+    check("exact needs no body", r("r10-ci-layout-p2", "")[0] == "R10-CI-LAYOUT-P2")
+    check("null: record topic", r("r10-record-s9-owed", "R10-RECORD")[0] is None)
+    check("null: foo-2 body silent", od.resolve("r10-foo-2", G | {"R10-FOO"}, "R10-OTHER")[0] is None)
+    check("null: roster-ops-3 names only itself",
+          od.resolve("r10-roster-ops-3", G - {"R10-ROSTER-OPS-3"}, "R10-ROSTER-OPS-3 part")[0] is None)
+    check("null: absent group, namesake prefix", od.resolve("r10-bar-p2", {"R10-BAR-P"}, "R10-BAR")[0] is None)
+    check("null: body names a longer name only", od.resolve("r10-sav-comfort-p2", G, "R10-SAV-COMFORT-EXTRA")[0] is None)
+    check("triage by rule", od.resolve("triage-s6-batch105", {"R10-TRIAGE-S6"}, "")[0] == "R10-TRIAGE-S6")
+    check("triage falls back to R10-TRIAGE-B<M>", od.resolve("triage-s6-batch105", {"R10-TRIAGE-B105"}, "") == ("R10-TRIAGE-B105", "R10-TRIAGE-B105: triage s6 batch105"))
+    check("null: triage with neither group", od.resolve("triage-s6-batch105", {"R10-TRIAGE-S7"}, "")[0] is None)
+    pb = od.parse_board(line("r10-a", sha("1")) + "\n" + line("r10-a", sha("2")) + "\n" + line("r10-b", sha("3")))
+    check("parse_board: one per topic, the first line wins", pb == [("r10-a", sha("1"), None), ("r10-b", sha("3"), None)])
+    check("override wins", od.resolve("r10-x", G, "", {"r10-x": {"group": "R10-UX-HEALTH", "title": "T"}}) == ("R10-UX-HEALTH", "T"))
+
+    # order: critical > hotfix > record > rest by default; the file orders what it lists
+    items = [("r10-inst", "R10-INST", 1), ("r10-cp", "R10-CP", 2), ("triage-s6-batch1", "R10-TRIAGE-S6", 3),
+             ("r10-hotfix-x", "R10-HOTFIX-X", 4)]
+    names = lambda pr: [t for t, _, _ in od.order(items, pr, {"r10-cp"})]
+    check("default order", names([]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
+    check("omitted critical before listed instrument", names(["r10-inst"]).index("r10-cp") < names(["r10-inst"]).index("r10-inst"))
+    check("null: omitted non-critical after listed higher class",
+          names(["r10-hotfix-x", "r10-cp"]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
+    check("omitted higher classes slot before a listed instrument", names(["r10-inst"]) == ["r10-cp", "r10-hotfix-x", "triage-s6-batch1", "r10-inst"])
+    check("file order among listed", names(["r10-inst", "r10-hotfix-x"]).index("r10-inst") < names(["r10-inst", "r10-hotfix-x"]).index("r10-hotfix-x"))
+    check("omitted record sorts after listed hotfix", names(["r10-hotfix-x"]).index("triage-s6-batch1") > names(["r10-hotfix-x"]).index("r10-hotfix-x"))
+    check("critical listed last still first", names(["r10-inst", "r10-hotfix-x", "r10-cp"])[0] == "r10-cp")
+
+    def world(lines, ros=None, **kw):
+        sd = Path(tempfile.mkdtemp())
+        ros = ros or roster("R10-CP", "R10-INST", "R10-OLD", "R10-ONMAIN", "R10-SAV-COMFORT", "R10-X", after={"R10-INST": ["R10-CP"]})
+        return sd, Fake(ros, **kw)
+
+    out = []
+    def go(sd, w, board, now=NOW):
+        out.clear()
+        return od.run_pass(board, w, sd, now, out.append)
+
+    heads = [("r10-inst", sha("1")), ("r10-cp", sha("2")), ("r10-onmain", sha("3")), ("r10-x", sha("4")), ("r10-old", sha("5"))]
+    board = "\n".join(line(t, s) for t, s in heads)
+    sd, w = world(board, heads=heads, landed={sha("3")})
+    res = go(sd, w, board)
+    check("cp before instrument, cap 2 holds", [t for t, _, _ in w.launched] == ["r10-cp", "r10-inst"])
+    check("on-main skipped", res["skipped"].get("r10-onmain") == "landed" and all(t != "r10-onmain" for t, _, _ in w.launched))
+    check("cap skip logged", res["skipped"].get("r10-x") == "cap" or res["skipped"].get("r10-old") == "cap")
+    (sd / "open-cap.txt").write_text("3\n")
+    go(sd, w, board)
+    check("cap re-read each pass (live runs counted from PIDs)", len(w.launched) == 3)
+    sd, w = world("", heads=heads)
+    go(sd, w, "")
+    check("null: empty board starts nothing", w.launched == [])
+    upd = f"OWED 2026-11-02T00:00:00Z handoff-update refs/heads/handoff/r10-cp {sha('2')}\nOWED x handoff-no-pr refs/heads/handoff-body/r10-cp {sha('2')}"
+    sd, w = world(upd, heads=heads)
+    go(sd, w, upd)
+    check("null: handoff-update / body line ignored", w.launched == [])
+    sd, w = world("", heads=[("r10-cp", sha("2"))])
+    go(sd, w, line("r10-cp", sha("7")))
+    check("moved handoff skipped", w.launched == [])
+    sd, w = world("", heads=[("r10-cp", sha("2"))], extra=["refs/heads/fix/r10-cp-pr"])
+    go(sd, w, line("r10-cp", sha("2")))
+    check("existing fix branch skipped", w.launched == [])
+    sd, w = world("", heads=[("r10-cp", sha("2"))])
+    w.t.pop("refs/heads/handoff-body/r10-cp")
+    go(sd, w, line("r10-cp", sha("2")))
+    check("missing body skipped", w.launched == [])
+    sd, w = world("", heads=[("r10-zzz", sha("2"))])
+    go(sd, w, line("r10-zzz", sha("2")))
+    check("NEEDS-TITLE opens nothing", w.launched == [] and any(o.startswith("NEEDS-TITLE r10-zzz") for o in out))
+
+    # seen only on rc=0; a failure retries with backoff and prints OWED
+    d = lambda sd: sd / "open-driver"
+    h1 = [("r10-cp", sha("2"))]
+    sd, w = world("", heads=h1)
+    b = line("r10-cp", sha("2"))
+    go(sd, w, b)
+    (d(sd) / "r10-cp.rc").write_text("1\n")
+    (d(sd) / "r10-cp.log").write_text("open_pr: REFUSE: the body lints red\n")
+    go(sd, w, b, NOW + 10)
+    check("failed open not marked seen", not (d(sd) / "seen.txt").exists() and len(w.launched) == 1)
+    check("failed open prints OWED with reason", any(o.startswith("OWED") and "open-refused r10-cp" in o and "REFUSE" in o for o in out))
+    check("backoff holds the retry", len(w.launched) == 1)
+    go(sd, w, b, NOW + 10 + od.BACKOFF_S + 1)
+    check("retry after backoff", len(w.launched) == 2)
+    (d(sd) / "r10-cp.rc").write_text("1\n")
+    go(sd, w, b, NOW + 5000)
+    check("backoff schedule: 5 min, doubling, 2 h cap", [od.backoff(1), od.backoff(2), od.backoff(6), od.backoff(7)] == [300, 600, 7200, 7200])
+    check("backoff doubles", od.backoff(2) == 2 * od.backoff(1) and od.backoff(99) == od.BACKOFF_MAX_S)
+    go(sd, w, b, NOW + 5000 + 3 * 3600)
+    (d(sd) / "r10-cp.rc").write_text("0\n")
+    go(sd, w, b, NOW + 5000 + 4 * 3600)
+    check("rc=0 marks seen", f"r10-cp {sha('2')}" in (d(sd) / "seen.txt").read_text())
+    k = len(w.launched)
+    go(sd, w, b, NOW + 5000 + 5 * 3600)
+    check("seen is not reopened", len(w.launched) == k and not any(o.startswith("OWED") for o in out))
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    w.dead.add(w.pid)
+    (d(sd) / "r10-cp.rc").unlink(missing_ok=True)
+    go(sd, w, b, NOW + 1)
+    check("a killed run (no result, no PID) is a failure", any("open-refused r10-cp" in o and "rc=-1" in o for o in out))
+
+    # a second pass with the first run still alive must not launch again
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    go(sd, w, b, NOW + 10)
+    check("live run: one launch over two passes", len(w.launched) == 1)
+    check("live run: SKIP ... live logged", any(o == f"SKIP r10-cp {sha('2')[:8]} live" for o in out))
+
+    # STARVED
+    sd, w = world("", heads=[("r10-zzz", sha("2"))])
+    go(sd, w, line("r10-zzz", sha("2"), NOW - 2 * 3600 - 600))
+    check("STARVED at 2 h 10 min", any(o.startswith("STARVED r10-zzz 22222222 2.2h") for o in out))
+    go(sd, w, line("r10-zzz", sha("2"), NOW - 2 * 3600 + 600))
+    check("null: no STARVED at 1 h 50 min", not any(o.startswith("STARVED") for o in out))
+
+    # the git layer, in a throwaway origin
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+    from throwaway_git import throwaway_git_clone, throwaway_git_init
+    with tempfile.TemporaryDirectory() as tmp:
+        def g(*a, cwd=tmp + "/c"):
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+        throwaway_git_init(tmp + "/o", "-q", "--bare", "-b", "main")
+        throwaway_git_clone(tmp + "/o", tmp + "/c", "-q")
+        Path(tmp, "c/f").write_text("1")
+        g("add", "f"); g("commit", "-qm", "one"); g("fetch", "-q", tmp + "/c", "HEAD:refs/heads/main", cwd=tmp + "/o")
+        on_main = g("rev-parse", "HEAD")
+        g("checkout", "-q", "-b", "side")
+        Path(tmp, "c/f").write_text("2")
+        g("commit", "-qam", "two"); side = g("rev-parse", "HEAD")
+        g("fetch", "-q", tmp + "/c", "side:refs/heads/handoff/side", "side:refs/heads/handoff-body/side", cwd=tmp + "/o")
+        wd = od.World(tmp + "/c", Path(tmp))
+        t = wd.tips()
+        check("git layer: tips read handoff and main", t.get("refs/heads/handoff/side") == side and t.get("refs/heads/main") == on_main)
+        check("git layer: ledger landed true for a main tip", wd.landed(on_main, on_main))
+        check("git layer: ledger landed false for an unlanded tip", not wd.landed(on_main, side))
+    # World.launch with hostile topics and a state directory holding a space
+    with tempfile.TemporaryDirectory() as tmp:
+        sd = Path(tmp) / "state dir"
+        (sd / "open-driver").mkdir(parents=True)
+        scratch = Path(tmp) / "scratch"
+        scratch.mkdir()
+        opener = Path(tmp) / "open_pr.sh"
+        opener.write_text('printf "%s|" "$@" > "$HPO_ARGS_OUT"; echo ran\n')
+        wl = od.World(str(scratch), sd)
+        wl.opener = opener
+        marker = scratch / "INJECTED"
+        for topic in ("r10-a;touch INJECTED", "z$(touch${IFS}INJECTED)", "a/b", "r10-plain"):
+            argsf = Path(tmp) / "args.txt"
+            argsf.unlink(missing_ok=True)
+            os.environ["HPO_ARGS_OUT"] = str(argsf)
+            wl.launch(topic, sha("1"), "T x", "G")
+            rcf = sd / "open-driver" / f"{od.stem(topic)}.rc"
+            for _ in range(100):
+                if rcf.exists() and rcf.read_text().strip():
+                    break
+                time.sleep(0.1)
+            check(f"launch {topic!r}: rc file written with 0", rcf.exists() and rcf.read_text().strip() == "0")
+            check(f"launch {topic!r}: topic arrives as one argument", argsf.exists() and argsf.read_text() == f"{topic}|{sha('1')}|T x|G|")
+            check(f"launch {topic!r}: log written", (sd / "open-driver" / f"{od.stem(topic)}.log").read_text() == "ran\n")
+        check("launch: no topic executed as shell code", not marker.exists() and not list(Path(tmp).rglob("INJECTED")))
+
+    # a slash topic end to end: run_pass launches it through the real World.launch, a later pass reaps its result
+    class Slash(Fake):
+        def __init__(self, real, *a, **kw):
+            super().__init__(*a, **kw)
+            self.real = real
+
+        def launch(self, topic, s, title, group):
+            super().launch(topic, s, title, group)
+            return self.real.launch(topic, s, title, group)
+
+        def alive(self, pid):
+            return self.real.alive(pid)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sd = Path(tmp) / "state dir"
+        wr = od.World(tmp, sd)
+        wr.opener = Path(tmp) / "open_pr.sh"
+        wr.opener.write_text("echo opened\n")
+        ws = Slash(wr, roster("A/B"), heads=[("a/b", sha("4"))])
+        b = line("a/b", sha("4"))
+        go(sd, ws, b)
+        rcf = sd / "open-driver" / f"{od.stem('a/b')}.rc"
+        for _ in range(100):
+            if rcf.exists() and rcf.read_text().strip():
+                break
+            time.sleep(0.1)
+        go(sd, ws, b, NOW + 10)
+        check("slash topic reaped: RESULT a/b rc=0 with its log's reason", f"RESULT a/b {sha('4')[:8]} rc=0 opened" in out)
+        go(sd, ws, b, NOW + 20)
+        check("slash topic reaped: seen, not reopened", out == [f"SKIP a/b {sha('4')[:8]} seen"] and len(ws.launched) == 1)
+
+    # World.body_head against a throwaway origin: the first three lines only
+    with tempfile.TemporaryDirectory() as tmp:
+        def g(*a, cwd=tmp + "/c"):
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+        throwaway_git_init(tmp + "/o", "-q", "--bare", "-b", "main")
+        throwaway_git_clone(tmp + "/o", tmp + "/c", "-q")
+        Path(tmp, "c/BODY.md").write_text("L1\nL2\nL3\nL4\nL5\n")
+        g("add", "BODY.md"); g("commit", "-qm", "body")
+        g("fetch", "-q", tmp + "/c", "HEAD:refs/heads/handoff-body/bod", cwd=tmp + "/o")
+        wb = od.World(tmp + "/c", Path(tmp))
+        check("body_head: first three lines of BODY.md", wb.body_head("bod") == "L1\nL2\nL3")
+        check("null: body_head of a missing body is empty", wb.body_head("nope") == "")
+    print(f"open_driver self-test: {n} checks, {bad} failed")
+    return 1 if bad else 0

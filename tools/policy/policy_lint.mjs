@@ -311,6 +311,11 @@ const POLICY_DIR_EXCLUDE = [
   /^\.cursor\/rules\/[a-z0-9-]+\.mdc$/,
   // Generated from dev/governance/rules/ (D1). The source is the measured copy.
   /^\.claude\/rules\/[a-z0-9-]+\.md$/,
+  // A grader's data (budgets, ledgers, exclusions), read by the checks that
+  // own it and never prose. The four moved here escaped only because the move
+  // map spells them by their old `.claude/workflows/` names; a new one did not
+  // (R10-MACHINERY-RATCHETS), and R9-RO-9 would have flagged all five.
+  /^dev\/governance\/config\/[a-z0-9_]+\.json$/,
 ]
 
 // `files` is injectable for ONE reason: the acceptance. This check runs over
@@ -5937,6 +5942,20 @@ function assertAcceptance(derived) {
     console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported the rules source ${sourceRule}: ${JSON.stringify(covSource[0].message)}`)
     return 1
   }
+  // The config arm: a grader's JSON data is not prose, and a document put
+  // beside it still is.
+  const configData = 'dev/governance/config/machinery_budgets.json'
+  const configDoc = 'dev/governance/config/notes.md'
+  pins += 2
+  if (drive([configData]).length) {
+    console.log(`\nFIXTURE OVER-FIRES: checkCoverage reported the grader data ${configData}`)
+    return 1
+  }
+  const covConfigDoc = drive([configDoc])
+  if (covConfigDoc.length !== 1 || covConfigDoc[0].where !== configDoc) {
+    console.log(`\nFIXTURE VACUOUS: checkCoverage did not report ${configDoc}; the config exclusion must cover JSON data only`)
+    return 1
+  }
 
   for (const [cls, spec] of Object.entries(REQUIRED_ROT)) {
     const n = got[cls] || 0
@@ -7086,24 +7105,17 @@ function cmdHooks(settingsPath) {
   // the three events. Both are checked against the actual tool contract, not
   // against this file's own fixture, so a wrong value in either field is
   // caught the same way a missing script is.
+  // The tools a PreToolUse hook script exists to judge, keyed on the SCRIPT: a
+  // matcher is blind when it cannot fire on any tool its own script reads. One
+  // list for every script made `pre-bash.sh` under a `Bash` matcher read as
+  // blind, and passed it wired to the edit tools -- where it never sees a
+  // command. A PreToolUse script not named here is tested against the edit
+  // tools, the contract this check was written for.
   const EDIT_TOOLS = ['Edit', 'Write', 'MultiEdit', 'NotebookEdit']
+  const HOOK_TOOLS = { '.claude/hooks/pre-bash.sh': ['Bash'] }
   const rows = []
   for (const [event, groups] of Object.entries(parsed.hooks || {})) {
     for (const g of groups || []) {
-      if (event === 'PreToolUse') {
-        // A missing matcher, `""` and `"*"` are Claude Code's own "match every
-        // tool" spellings (docs/settings reference), not a pattern to compile
-        // -- feeding `"*"` to `RegExp` throws (an unquantified `*` at the
-        // start), which this used to read as MATCHER BLIND on a group that in
-        // fact fires on every edit. Claude Code itself tests a matcher
-        // unanchored, so this does too rather than requiring a whole-string
-        // match a real config was never written to satisfy.
-        let fires = g.matcher == null || g.matcher === '' || g.matcher === '*'
-        if (!fires) {
-          try { fires = EDIT_TOOLS.some((t) => new RegExp(g.matcher).test(t)) } catch { fires = false }
-        }
-        if (!fires) rows.push({ event, script: '(matcher)', verdict: 'MATCHER BLIND', why: `matcher ${JSON.stringify(g.matcher)} cannot fire on Edit, Write, MultiEdit or NotebookEdit, so no hook in this group ever sees an edit` })
-      }
       for (const h of g.hooks || []) {
         if (h.type !== 'command') { rows.push({ event, script: h.command || '(none)', verdict: 'BAD TYPE', why: `type ${JSON.stringify(h.type ?? null)} is not "command", so this entry never runs` }); continue }
         // The command is a shell line with $CLAUDE_PROJECT_DIR and quoting in
@@ -7112,6 +7124,21 @@ function cmdHooks(settingsPath) {
         const m = String(h.command || '').match(/[.\w/-]*\.claude\/hooks\/[\w.-]+\.sh/)
         if (!m) { rows.push({ event, script: h.command || '(none)', verdict: 'UNREADABLE', why: 'no .claude/hooks/*.sh path in the command line' }); continue }
         const script = `.claude/hooks/${m[0].split('/').pop()}`
+        if (event === 'PreToolUse') {
+          // A missing matcher, `""` and `"*"` are Claude Code's own "match every
+          // tool" spellings (docs/settings reference), not a pattern to compile
+          // -- feeding `"*"` to `RegExp` throws (an unquantified `*` at the
+          // start), which this used to read as MATCHER BLIND on a group that in
+          // fact fires on every tool. Claude Code itself tests a matcher
+          // unanchored, so this does too rather than requiring a whole-string
+          // match a real config was never written to satisfy.
+          const tools = HOOK_TOOLS[script] || EDIT_TOOLS
+          let fires = g.matcher == null || g.matcher === '' || g.matcher === '*'
+          if (!fires) {
+            try { fires = tools.some((t) => new RegExp(g.matcher).test(t)) } catch { fires = false }
+          }
+          if (!fires) rows.push({ event, script, verdict: 'MATCHER BLIND', why: `matcher ${JSON.stringify(g.matcher)} cannot fire on ${tools.join(', ')}, the tools ${script} judges, so it never sees one` })
+        }
         if (!fs.existsSync(path.join(ROOT, script))) { rows.push({ event, script, verdict: 'MISSING', why: 'the command names a file that is not in the tree' }); continue }
         let out = ''
         let code = 0
