@@ -433,7 +433,16 @@
   ok   and reads the check runs once: step 7c reuses the early answer
   ok   --body-check --pr-branch runs the same arm and refuses on its rc
   ok   body_push passes --pr-branch when origin holds fix/<topic>
+  FAIL step 1a2 exits nonzero when the arm concluded a red (rc 1) -- before the heavy slot (got 0, wanted 1)
+  FAIL and prints the ancestry reds step line (got 1, wanted 0)
+  FAIL and does not fall through to the heavy steps (got 1, wanted 0)
+  ok   step 1a2 does not refuse when the arm returns rc 0 (null control)
+  ok   step 1a2 does not refuse when the arm returns rc 3 (null control)
+  ok   --body-check --pr-branch refuses (line and flag) when the arm concluded a red
+  ok   --body-check --pr-branch passes when the arm returns rc 0 (null control)
   ok   and --body-check runs the same preflight and refuses on its rc
+  ok   the red-check-arm rows leave git status --porcelain unchanged
+  ok   and a row that writes into the tracked fixture dir changes it (null control)
   ok   --body-check runs step 7a's figure lint and refuses on its rc (carry 8)
   ok   --body-check runs privacy_line and refuses on its rc (P78)
   ok   step 3f7 runs privacy_line and refuses on its rc
@@ -453,5 +462,5 @@
   ok   PREPR_VERBOSE=1 prints the full output on stdout
   ok   the main flow starts the summary after step 1 and ends on its result line
 
-451 passed, 0 failed
-rc=0
+457 passed, 3 failed
+rc=2
