@@ -465,20 +465,29 @@ COST_DETECTION = 2.0
 #: 217.8-290.5, each edge 18-22 % inside; a loaded M1 (177-394, load average
 #: 30-200) spans more than a 2x band holds and is left out. ``peak_kib`` and
 #: ``loop_cpu_ratio`` over all four environments, the M1 included: 2514-2783
-#: and 0.137-0.227, the loop's edges 9-10 % inside. Re-centred on the
-#: second CI class (R10-REPLAY-COST-BUDGET): a fresh container read ``cpu_ratio``
-#: 385.3 here, over 355.7, so the extremes are 217.8-385.3 (the M1 excluded as
-#: before); sqrt(2) x their geometric midpoint is 409.7, the lowest reading 53 %
-#: of it. The same rule for ``synthetic-dhw-only.json``'s ``cpu_ratio``: 2.0 and
-#: 2.14 (a 4-core box, ``ref_ms`` about 32) and 2.615 and 2.81 (the replay job of
-#: #3167, ``ref_ms`` 30, ``loop_ref_ms`` 132) give 3.353; the lowest reading
-#: doubled, 4.0, stays over it. ``peak_kib`` and the owner fixture's
-#: ``loop_cpu_ratio`` stay: its new readings (2687-2709 KiB; 0.134-0.196) sit
-#: inside both bands. Only what ran is recorded.
+#: and 0.137-0.227, the loop's edges 9-10 % inside.
+#: Re-centred (R10-REPLAY-COST-BUDGET) on the readings the CI ``replay`` job
+#: itself takes, from its own ``cost`` lines, and on nothing a reviewer's or
+#: author's box read. Two runner classes, by the job's own rulers: ``ref_ms`` 30
+#: / ``loop_ref_ms`` 129-132 (job 125240101580 of run 41434115932, #3174; job
+#: 125160076828 of run 41405222589, #3167) and ``ref_ms`` 46 / ``loop_ref_ms``
+#: 156 (job 125097530406 of run 41389413359, #3078). Owner fixture
+#: ``cpu_ratio`` 235.8, 240.7, 241.9: sqrt(2) x the geometric midpoint is 337.8,
+#: the lowest reading 70 % of it. Synthetic ``cpu_ratio`` 2.754, 2.81, 2.325:
+#: 3.614, the lowest 64 % of it, and every ``cpu doubled`` arm of those jobs
+#: (5.53, 5.70, 4.65) is over it. Synthetic ``loop_cpu_ratio`` 0.0907, 0.0903,
+#: 0.0901, flat across both classes: 0.1278, and the ``loop doubled`` arms
+#: (0.183, 0.186, 0.179) are over it. A box outside both classes reads the
+#: loop figure higher at the same code (4 cores, ``loop_ref_ms`` 87: 0.175; the
+#: reviewer's, 85-99: 0.152-0.191), because the ruler does not track the
+#: loop's work there; the lane never runs on one, and widening to it would put
+#: the budget over the doubled arm. ``peak_kib`` and the owner fixture's
+#: ``loop_cpu_ratio`` stay: the same jobs read 2709 KiB and 0.128-0.142 inside
+#: both bands. Only what ran is recorded.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 3.353, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.143},
-    "owner-2026-10-30-away.json": {"cpu_ratio": 409.7, "peak_kib": 3740.0,
+    "synthetic-dhw-only.json": {"cpu_ratio": 3.614, "peak_kib": 2686.0,
+                                "loop_cpu_ratio": 0.1278},
+    "owner-2026-10-30-away.json": {"cpu_ratio": 337.8, "peak_kib": 3740.0,
                                    "loop_cpu_ratio": 0.249},
 }
 #: Fixtures the lane replays once, clean, without the three doubled-cost
