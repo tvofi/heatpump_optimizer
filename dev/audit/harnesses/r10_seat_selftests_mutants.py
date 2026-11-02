@@ -436,9 +436,10 @@ MUTANTS = [
      '    if [ -z "$bonly" ] && false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
     ("cloud_relay-23", "cloud_relay.sh", '    case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac\n', ''),
     ("cloud_relay-24", "cloud_relay.sh", '"blocked $2") return 1;; esac', 'esac'),
-    ("cloud_relay-25", "cloud_relay.sh", "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { f = 1 }",
-     "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p { f = 1 }"),
-    ("cloud_relay-26", "cloud_relay.sh", '$1 == "detached" && at { f = 1 }', '$1 == "detached" { f = 1 }'),
+    # P288 (#3065) left the dispatch record the freeze's only read: 25 drops its head test; the
+    # worktree arm 26 mutated is gone, and #3065's cloud_relay-39 pins its absence.
+    ("cloud_relay-25", "cloud_relay.sh", "  v=$(awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { n = $4;",
+     "  v=$(awk -v p=\"$1\" -v h=\"$2\" '$1 == p { n = $4;"),
     ("cloud_relay-27", "cloud_relay.sh", '    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why', '    if [ -z "$bonly" ] && why'),
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
