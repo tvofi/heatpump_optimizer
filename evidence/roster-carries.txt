@@ -1,0 +1,15 @@
+<class 'list'> 7
+IDX 0 delete probe refs for #2654 #2656 #2657 (moved from R10-CI-LAYOUT-P2, appended after done; re-measured on origin 2026-10-25: refs/heads/fix/r10-ci-layout-p2-probe-B1, -B2, -Btwin and wip-sync/ext-upd-fix-r10-ci-layout-p2-probe-{A,B1,B2}-* still exist. Delete them with tools/audit/seat/prune_refs.py 
+
+IDX 1 The instrument PR and the run are separate steps. Open the PR once R10-FLY-PRUNE-REFS and R10-FLY-WORKTREE-GC have merged; it lands the closeout instrument and its fixtures, and its merge sets the group carries-open, not done. The `--apply` run stays the round's final act, and the instrument enforce
+
+IDX 2 Folded from R10-FLY-PRUNE-REFS (same files, one owner; issues [2727]) into R10-CLOSEOUT-CLEANUP; its brief and carries are carried whole. BRIEF: Fly-in from the s4 branch-pruning seat (owner request, tvofi 2026-10-22): two defects in tools/audit/seat/prune_refs.py, which no roster group owned. Fix b
+
+IDX 3 Folded from R10-FLY-WORKTREE-GC (same files, one owner; issues [2505]) into R10-CLOSEOUT-CLEANUP; its brief and carries are carried whole. BRIEF: Fly-in carved out of R10-ORCH-MACHINERY's re-cut (orchestrator decision under mandate 6329234399, 2026-10-23; note on design/R10-ORCH-MACHINERY at 2fc665c
+
+IDX 4 From the s9 script census: retiring a stranded handoff whose content is already on main is done by hand per topic: archive-tag, then delete every handoff/<t>, handoff-body/<t>, the -r2 variants and dispatch/*<t> ref. tools/audit/seat/prune_refs.py does exactly that but only for the whole repository 
+
+IDX 5 From the plan-regain study, 2026-11-01 (card 2). Build R10-CLOSEOUT-CLEANUP's tooling now. Its apply run (prune_refs and archive over the round's refs) stays the last step: it runs after R10-ARCH-DOCS and R10-ROUND-PLAYBOOK have merged, just before the closure stamp, as its brief requires. R10-ROUND
+
+IDX 6 From the s9 local cleanup (2026-11-01; ~/hpo-orch/cleanup-20261101.log). The disk was at 7.8 GiB free, under the sweep's 15 GiB floor, so the sweep ran tools/audit/worktree_gc.sh, which reported "eligible 0, kept 131". A hand cleanup that proved each item dead then freed 10.2 GiB: 30 worktrees, plus
+
