@@ -92,6 +92,11 @@ MUTANTS = {
         "    now = datetime(2026, 1, 5, 12, 0, 0, tzinfo=timezone.utc)\n",
         "    now = datetime(2026, 1, 5, 12, 0, 0)\n",
     ),
+    "golden_clock": (
+        "tests/golden.py",
+        "    dt_util.freeze(START.replace(tzinfo=timezone.utc))\n",
+        "    dt_util.freeze(START)\n",
+    ),
     "nometer_month": (
         "tests/features.py",
         "    zone = _bo_dt.DEFAULT_TIME_ZONE\n",
