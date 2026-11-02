@@ -1,8 +1,0 @@
-== head
-ok   a/b RESULT a/b 44444444 rc=0 opened | SKIP a/b 44444444 seen | SKIP a/b 44444444 seen
-ok   r10-x RESULT r10-x 44444444 rc=0 opened | SKIP r10-x 44444444 seen | SKIP r10-x 44444444 seen
-RESULT reap_probe failed=0
-== R-reap-nostem (rcf = d / f"{t}.rc")
-FAIL a/b SKIP a/b 44444444 live | SKIP a/b 44444444 live
-ok   r10-x RESULT r10-x 44444444 rc=0 opened | SKIP r10-x 44444444 seen | SKIP r10-x 44444444 seen
-RESULT reap_probe failed=1

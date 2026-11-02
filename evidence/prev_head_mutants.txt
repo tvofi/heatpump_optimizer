@@ -1,0 +1,4 @@
+RESULT prev-head mutant=M0 rc=0 ['open_driver self-test: 66 checks, 0 failed'] []
+RESULT prev-head mutant=M-open-stem rc=1 ['open_driver self-test: 66 checks, 1 failed'] ["FAIL launch 'a/b': rc file written with 0"]
+RESULT prev-head mutant=M-reap-stem rc=0 ['open_driver self-test: 66 checks, 0 failed'] []
+RESULT prev-head mutant=M-reap-log rc=0 ['open_driver self-test: 66 checks, 0 failed'] []
