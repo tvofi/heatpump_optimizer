@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.arm BOOLOP 7aaadeee",
+  "killed_by": "tests/features.py",
+  "old": "        if plant is not None and kind == KIND_PROBE:",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if plant is not None or kind == KIND_PROBE:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=36."
+}
