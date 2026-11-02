@@ -6,7 +6,7 @@
   landed` finds on main, one with a `fix/<topic>[-pr]` branch and a (topic, sha)
   already opened, orders the rest and launches `open_pr.sh` detached, at most
   `open-cap.txt` at once (default 2). Topic to group: `open-titles.json`, then
-  `triage-s<N>-batch<M>` to `R10-TRIAGE-S<N>`, then the uppercased topic, the
+  `triage-s<N>-batch<M>` to `R10-TRIAGE-S<N>` (else `R10-TRIAGE-B<M>`), then the uppercased topic, the
   topic less one `-p<N>`, the topic less one `-<N>`, each checked against the
   roster; the exact match wins, and a stripped one opens only when the first
   three lines of the handoff body name the group as a whole name, else

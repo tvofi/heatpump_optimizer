@@ -4,9 +4,11 @@
 """
 from __future__ import annotations
 
+import os
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -91,6 +93,10 @@ def run():
     check("null: absent group, namesake prefix", od.resolve("r10-bar-p2", {"R10-BAR-P"}, "R10-BAR")[0] is None)
     check("null: body names a longer name only", od.resolve("r10-sav-comfort-p2", G, "R10-SAV-COMFORT-EXTRA")[0] is None)
     check("triage by rule", od.resolve("triage-s6-batch105", {"R10-TRIAGE-S6"}, "")[0] == "R10-TRIAGE-S6")
+    check("triage falls back to R10-TRIAGE-B<M>", od.resolve("triage-s6-batch105", {"R10-TRIAGE-B105"}, "") == ("R10-TRIAGE-B105", "R10-TRIAGE-B105: triage s6 batch105"))
+    check("null: triage with neither group", od.resolve("triage-s6-batch105", {"R10-TRIAGE-S7"}, "")[0] is None)
+    pb = od.parse_board(line("r10-a", sha("1")) + "\n" + line("r10-a", sha("2")) + "\n" + line("r10-b", sha("3")))
+    check("parse_board: one per topic, the first line wins", pb == [("r10-a", sha("1"), None), ("r10-b", sha("3"), None)])
     check("override wins", od.resolve("r10-x", G, "", {"r10-x": {"group": "R10-UX-HEALTH", "title": "T"}}) == ("R10-UX-HEALTH", "T"))
 
     # order: critical > hotfix > record > rest by default; the file orders what it lists
@@ -163,6 +169,7 @@ def run():
     check("retry after backoff", len(w.launched) == 2)
     (d(sd) / "r10-cp.rc").write_text("1\n")
     go(sd, w, b, NOW + 5000)
+    check("backoff schedule: 5 min, doubling, 2 h cap", [od.backoff(1), od.backoff(2), od.backoff(6), od.backoff(7)] == [300, 600, 7200, 7200])
     check("backoff doubles", od.backoff(2) == 2 * od.backoff(1) and od.backoff(99) == od.BACKOFF_MAX_S)
     go(sd, w, b, NOW + 5000 + 3 * 3600)
     (d(sd) / "r10-cp.rc").write_text("0\n")
@@ -177,6 +184,13 @@ def run():
     (d(sd) / "r10-cp.rc").unlink(missing_ok=True)
     go(sd, w, b, NOW + 1)
     check("a killed run (no result, no PID) is a failure", any("open-refused r10-cp" in o and "rc=-1" in o for o in out))
+
+    # a second pass with the first run still alive must not launch again
+    sd, w = world("", heads=h1)
+    go(sd, w, b)
+    go(sd, w, b, NOW + 10)
+    check("live run: one launch over two passes", len(w.launched) == 1)
+    check("live run: SKIP ... live logged", any(o == f"SKIP r10-cp {sha('2')[:8]} live" for o in out))
 
     # STARVED
     sd, w = world("", heads=[("r10-zzz", sha("2"))])
@@ -205,5 +219,43 @@ def run():
         check("git layer: tips read handoff and main", t.get("refs/heads/handoff/side") == side and t.get("refs/heads/main") == on_main)
         check("git layer: ledger landed true for a main tip", wd.landed(on_main, on_main))
         check("git layer: ledger landed false for an unlanded tip", not wd.landed(on_main, side))
+    # World.launch with hostile topics and a state directory holding a space
+    with tempfile.TemporaryDirectory() as tmp:
+        sd = Path(tmp) / "state dir"
+        (sd / "open-driver").mkdir(parents=True)
+        scratch = Path(tmp) / "scratch"
+        scratch.mkdir()
+        opener = Path(tmp) / "open_pr.sh"
+        opener.write_text('printf "%s|" "$@" > "$HPO_ARGS_OUT"; echo ran\n')
+        wl = od.World(str(scratch), sd)
+        wl.opener = opener
+        marker = scratch / "INJECTED"
+        for topic in ("r10-a;touch INJECTED", "z$(touch${IFS}INJECTED)", "a/b", "r10-plain"):
+            argsf = Path(tmp) / "args.txt"
+            argsf.unlink(missing_ok=True)
+            os.environ["HPO_ARGS_OUT"] = str(argsf)
+            wl.launch(topic, sha("1"), "T x", "G")
+            rcf = sd / "open-driver" / f"{od.stem(topic)}.rc"
+            for _ in range(100):
+                if rcf.exists() and rcf.read_text().strip():
+                    break
+                time.sleep(0.1)
+            check(f"launch {topic!r}: rc file written with 0", rcf.exists() and rcf.read_text().strip() == "0")
+            check(f"launch {topic!r}: topic arrives as one argument", argsf.exists() and argsf.read_text() == f"{topic}|{sha('1')}|T x|G|")
+            check(f"launch {topic!r}: log written", (sd / "open-driver" / f"{od.stem(topic)}.log").read_text() == "ran\n")
+        check("launch: no topic executed as shell code", not marker.exists() and not list(Path(tmp).rglob("INJECTED")))
+
+    # World.body_head against a throwaway origin: the first three lines only
+    with tempfile.TemporaryDirectory() as tmp:
+        def g(*a, cwd=tmp + "/c"):
+            return subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, capture_output=True, text=True, check=True).stdout.strip()
+        throwaway_git_init(tmp + "/o", "-q", "--bare", "-b", "main")
+        throwaway_git_clone(tmp + "/o", tmp + "/c", "-q")
+        Path(tmp, "c/BODY.md").write_text("L1\nL2\nL3\nL4\nL5\n")
+        g("add", "BODY.md"); g("commit", "-qm", "body")
+        g("fetch", "-q", tmp + "/c", "HEAD:refs/heads/handoff-body/bod", cwd=tmp + "/o")
+        wb = od.World(tmp + "/c", Path(tmp))
+        check("body_head: first three lines of BODY.md", wb.body_head("bod") == "L1\nL2\nL3")
+        check("null: body_head of a missing body is empty", wb.body_head("nope") == "")
     print(f"open_driver self-test: {n} checks, {bad} failed")
     return 1 if bad else 0
