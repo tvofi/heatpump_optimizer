@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.0";
+const CARD_VERSION = "7.1.1";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -9662,12 +9662,15 @@ function healthModelHtml(plan) {
   const house = learnerPhase(lp.house);
   if (Number.isFinite(num(a.heat_loss_w_per_k)) && house !== null) {
     // Without a power meter the house's scale cannot be told from what the
-    // pump delivers (R10-DEMAND-OVERBOOK), so it is not called learned.
-    const detail = !inputAssigned(plan, "heat_pump_power_entity") ? L("health.model_unobservable")
+    // pump delivers (R10-DEMAND-OVERBOOK, #2499), so it is neither called
+    // learned nor drawn with a learned bar.
+    const observable = inputAssigned(plan, "heat_pump_power_entity");
+    const detail = !observable ? L("health.model_unobservable")
       : hl.learned ? `${L("health.model_from", { n: hl.samples })} ${healthVersusSettings(L("health.model_house"), hl.scale)}`
         : house ? house.text : L("health.model_estimate");
     rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"), detail,
-      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }), hl.learned ? 1 : house ? house.share : 0));
+      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }),
+      !observable ? 0 : hl.learned ? 1 : house ? house.share : 0));
   }
   const sol = a.solar_aperture || {};
   const solar = learnerPhase(lp.solar);

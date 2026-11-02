@@ -29,7 +29,7 @@ from dataclasses import dataclass, field, replace
 from operator import attrgetter
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
-from collections.abc import Callable, Mapping, Sequence
+from collections.abc import Awaitable, Callable, Mapping, Sequence
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, NoReturn, cast
 
 import aiohttp
@@ -88,7 +88,7 @@ from .payload import (
     ThermalView,
 )
 from .store import QuarantiningStore, admitted, load_mapping
-from .entry_config import EntryConfig
+from .entry_config import EntryConfig, factory_settings, undo_point, undone_settings
 from homeassistant.util import dt as dt_util
 
 from .const import (
@@ -119,6 +119,7 @@ from .const import (
     HOUSE_HEAT_LOSS_SCALE_MAX,
     HOUSE_HEAT_LOSS_SCALE_MIN,
     DEFAULT_LOWER_FLOOR_LOSS_RATIO,
+    FACTORY_RESET_SCOPES,
     HEAT_LOSS_LEARNERS,
     LOWER_FLOOR_LOSS_RATIO_MAX,
     LOWER_FLOOR_LOSS_RATIO_MIN,
@@ -266,6 +267,7 @@ from .price_model import (
     extend_price_series,
     pull_prices,
 )
+from . import sysid
 from .sysid import HousePlant, SysIdConfig, SystemIdentification, adoption_decision, step_detached
 from .plan_slots import plan_slots
 from .plan_step import PLAN_STEP_MINUTES, plan_step_start
@@ -404,6 +406,31 @@ def _plain_types(value: Any) -> Any:
     if isinstance(value, np.generic):
         return value.item()
     return value
+
+
+def _stored_isoformat(raw: Any, kept: datetime | None) -> datetime | None:
+    """A stored ISO instant: ``kept`` where none is stored, None where it does not parse."""
+    if not isinstance(raw, str):
+        return kept
+    try:
+        return datetime.fromisoformat(raw)
+    except ValueError:
+        return None
+
+
+def _stored_learner(stored: Mapping[str, Any], key: str, samples: str, apply: Callable[[float], None]) -> int | None:
+    """Apply a scalar learner's stored ``key`` (the thermal store's four); its
+    ``samples`` count, or None where the key is absent or does not parse."""
+    if (value := stored.get(key)) is None:
+        return None
+    try:
+        apply(float(value))
+        count = _storable_sample_count(stored.get(samples, 0))
+    except (TypeError, ValueError, OverflowError) as err:
+        _LOGGER.debug("Could not load %s: %s", key, err)
+        return None
+    _LOGGER.info("Loaded learned %s %.3f (%d samples)", key, float(value), count)
+    return count
 
 
 def _storable_sample_count(raw: Any) -> int:
@@ -764,13 +791,14 @@ WORKER_FALLBACK_CAP = 3
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
-    """Overwrite frozen plan_age_minutes / plan_stale on a reload handover."""
+    """Overwrite frozen plan_age_minutes / plan_stale / next_optimization on a reload handover."""
     last = handover.get("last_optimization")
     if isinstance(last, datetime):
         coord._last_optimization = last
     age = coord._plan_age_minutes()
     handover["plan_age_minutes"] = round(age, 1) if age is not None else None
     handover["plan_stale"] = coord._plan_is_stale()
+    handover["next_optimization"] = dt_util.now()  # the background solve setup requested
     return handover
 
 
@@ -1348,6 +1376,96 @@ async def async_adopt_heat_loss_refit(coord: Any) -> bool:
     # inbox and the house grade read (``_insight_view``, once a cycle).
     await coord.async_request_refresh()
     return True
+
+
+#: Each learned store by name, in ``_restored_stores``' order, with what a
+#: factory reset drops of it (R10-FACTORY-RESET): the keys that then load absent,
+#: their initial state, or None for a store learned throughout. The heat-loss
+#: pair is the void path's (``_void_heat_loss_learners``); the rest is fact --
+#: the anchors, the meter's last COP, snow memory, the frequency watchdog's
+#: latch, the billed peaks and the operation mode.
+_FACTORY_VOID: Final[tuple[tuple[str, tuple[str, ...] | None], ...]] = (
+    ("thermal_learning", (
+        "buffer_cooling_rate", "buffer_cooling_samples", _COP_STORE_KEY, "cop_samples",
+        "vent_cusum", "cop_baseline", "cop_health_cusum", "immersion_events",
+        "capacity_envelope", "solar_aperture", "internal_gains_profile",
+        "curve_learner", "freq_map", "flow_bias",
+    )),
+    ("dhw_profile", None),
+    ("dhw_draws", None),
+    ("price_model", None),
+    ("accuracy", ("accuracy", "dhw_accuracy", "defrost", "comfort")),
+)
+
+
+async def _async_store_documents(coord: Any) -> dict[str, Any]:
+    """Each learned store's document by name, the learners flushed to them first."""
+    await _async_save_restored(coord)
+    return {name: await store.async_load() for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord))}
+
+
+def voided_documents(stored: Mapping[str, Any]) -> dict[str, Any]:
+    """Each learned store's document with ``_FACTORY_VOID``'s keys dropped; None
+    for a store voided whole."""
+    return {name: None if keys is None else {k: v for k, v in (stored[name] or {}).items() if k not in keys}
+            for name, keys in _FACTORY_VOID}
+
+
+async def _async_rewrite_entry(coord: Any, documents: Callable[[], Awaitable[Mapping[str, Any]]],
+                               settings: tuple[dict[str, Any], dict[str, Any]] | None) -> bool:
+    """Unload; write ``documents()`` (None removes a store) and ``settings``; set up again. False if refused."""
+    entry, hass = coord.entry, coord.hass
+    if not await hass.config_entries.async_unload(entry.entry_id):
+        return False
+    written = await documents()
+    for (name, _), store in zip(_FACTORY_VOID, _restored_stores(coord)):
+        if name in written:
+            await (store.async_remove() if written[name] is None else store.async_save(written[name]))
+    if settings is not None:
+        hass.config_entries.async_update_entry(entry, data=settings[0], options=settings[1])
+    await hass.config_entries.async_setup(entry.entry_id)
+    return True
+
+
+async def async_factory_reset(coord: Any, scope: str) -> bool:
+    """``scope``'s settings, learners or both to their defaults (R10-FACTORY-RESET): the undo
+    point; then, unloaded so no save in flight writes the old state back, the heat-loss pair's
+    void path, the rest written, the entry set up again. False, only the undo point, if refused."""
+    for store in (*_restored_stores(coord), coord._snapshot_store):
+        await store.async_wait_for_read()
+    entry, documents = coord.entry, await _async_store_documents(coord)
+    coord._snapshot_ring.take(dt_util.now(), coord._learner_snapshot_payloads(), coord._accuracy.summary(),
+                              coord._inputs_unhealthy() is None,
+                              {**undo_point(scope, entry.data, entry.options), "stores": documents})
+    await coord._async_save_snapshots()
+
+    async def voided() -> dict[str, Any]:
+        if scope == FACTORY_RESET_SCOPES[0]:
+            return {}
+        await coord.async_reset_heat_loss_learners()
+        return voided_documents(await _async_store_documents(coord))
+
+    ctx = _ctx_of(coord)
+    settings = None if scope == FACTORY_RESET_SCOPES[1] else factory_settings(
+        entry.data, entry.options, two_zone=ctx._thermal_params.two_zone_enabled,
+        dhw=ctx._thermal_params.dhw_enabled, wood=wood_furnace_on(ctx._config))
+    done = await _async_rewrite_entry(coord, voided, settings)
+    _LOGGER.warning("Factory reset (%s) %s", scope, "applied; restore_learned_snapshot undoes it" if done
+                    else "not applied: Home Assistant refused to unload the entry")
+    return done
+
+
+async def _async_undo_factory_reset(coord: Any, snap: dict[str, Any]) -> bool:
+    """A reset's undo point back: its stores' documents and the settings it dropped,
+    over the wiring in force; spent, an ordinary snapshot. False where the unload is refused."""
+    undo = snap["before_reset"]
+
+    async def spent() -> Mapping[str, Any]:
+        del snap["before_reset"]
+        await coord._async_save_snapshots()
+        return undo.get("stores") or {}
+
+    return await _async_rewrite_entry(coord, spent, undone_settings(coord.entry.data, coord.entry.options, undo))
 
 #: Which configured entity backs each published temperature -- the table
 #: `_thermal_view` builds its ``reading_ok`` map from. ``ThermalState`` has
@@ -3208,6 +3326,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         boost.spawn_restore_session(
             self, self._spawn, self._adopt_away_override, config, self._entity_state
         )
+        away_mode.watch_away_inputs(hass, entry, config, self.async_request_refresh)
 
     @callback
     def _release_registrations(self) -> None:
@@ -3346,7 +3465,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._weather_stale_since: datetime | None = None
         self._weather_outage_cycles: int = 0
         self._current_action: CurrentAction = {}
-        self._unsub_timer: Any = None
         # Fire-and-forget tasks (store saves, listener registrations), held
         # so shutdown can let them finish instead of orphaning them against
         # a torn-down entry; and the Tibber outage latch (D10-09).
@@ -4205,50 +4323,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not load learned thermal parameters: %s", err)
             return
 
-        rate = stored.get("buffer_cooling_rate")
-        if rate is not None:
-            try:
-                self._apply_buffer_cooling_rate(float(rate))
-                self._buffer_cooling_samples = _storable_sample_count(
-                    stored.get("buffer_cooling_samples", 0)
-                )
-                _LOGGER.info(
-                    "Loaded learned buffer tank cooling rate %.2f °C/h (%d samples)",
-                    self._buffer_cooling_rate,
-                    self._buffer_cooling_samples,
-                )
-            except (TypeError, ValueError, OverflowError) as err:
-                _LOGGER.debug("Could not load buffer cooling rate: %s", err)
-
-        scale = stored.get("house_heat_loss_scale")
-        if scale is not None:
-            try:
-                self._apply_house_heat_loss_scale(float(scale))
-                self._house_heat_loss_samples = _storable_sample_count(
-                    stored.get("house_heat_loss_samples", 0)
-                )
-                _LOGGER.info(
-                    "Loaded learned house heat loss scale %.3f (%d samples)",
-                    self._house_heat_loss_scale,
-                    self._house_heat_loss_samples,
-                )
-            except (TypeError, ValueError, OverflowError) as err:
-                _LOGGER.debug("Could not load house heat loss scale: %s", err)
-
-        ratio = stored.get("lower_floor_loss_ratio")
-        if ratio is not None:
-            try:
-                self._apply_lower_floor_loss_ratio(float(ratio))
-                self._lower_floor_loss_samples = _storable_sample_count(
-                    stored.get("lower_floor_loss_samples", 0)
-                )
-                _LOGGER.info(
-                    "Loaded learned lower floor loss ratio %.3f (%d samples)",
-                    self._lower_floor_loss_ratio,
-                    self._lower_floor_loss_samples,
-                )
-            except (TypeError, ValueError, OverflowError) as err:
-                _LOGGER.debug("Could not load lower floor loss ratio: %s", err)
+        if (n := _stored_learner(stored, "buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate)) is not None:
+            self._buffer_cooling_samples = n
+        if (n := _stored_learner(stored, "house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale)) is not None:
+            self._house_heat_loss_samples = n
+        if (n := _stored_learner(stored, "lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio)) is not None:
+            self._lower_floor_loss_samples = n
 
         # Re-anchored before anything solves; gated write: `updated_at` defeats the hash skip.
         _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
@@ -4256,18 +4336,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if _reanchored or not _had_anchor:
             await self._async_save_thermal_learning()
 
-        cop_scale = stored.get(_COP_STORE_KEY)
-        if cop_scale is not None:
-            try:
-                self._apply_cop_scale(float(cop_scale))
-                self._cop_samples = _storable_sample_count(stored.get("cop_samples", 0))
-                _LOGGER.info(
-                    "Loaded learned COP scale %.3f (%d samples)",
-                    self._cop_scale,
-                    self._cop_samples,
-                )
-            except (TypeError, ValueError, OverflowError) as err:
-                _LOGGER.debug("Could not load COP scale: %s", err)
+        if (n := _stored_learner(stored, _COP_STORE_KEY, "cop_samples", self._apply_cop_scale)) is not None:
+            self._cop_samples = n
         self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
@@ -4289,25 +4359,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         raw_events = stored.get("immersion_events")
         if isinstance(raw_events, list):
             self._immersion_events = _aware_instant_iso(raw_events)
-        try:
-            self._snow_accum_cm = max(0.0, float(stored.get("snow_accum_cm", 0.0)))
-        except (TypeError, ValueError, OverflowError):
-            self._snow_accum_cm = 0.0
-        raw_snow = stored.get("last_heavy_snow")
-        if isinstance(raw_snow, str):
-            try:
-                self._last_heavy_snow = datetime.fromisoformat(raw_snow)
-            except ValueError:
-                self._last_heavy_snow = None
+        self._snow_accum_cm = max(0.0, finite_float(stored.get("snow_accum_cm"), 0.0))
+        self._last_heavy_snow = _stored_isoformat(stored.get("last_heavy_snow"), self._last_heavy_snow)
         # The accumulator's clock persists too: without it a restart after
         # a multi-day outage skipped the decay and stale accumulation
         # could re-trip the roof-snow damping.
-        raw_snow_last = stored.get("snow_accum_last")
-        if isinstance(raw_snow_last, str):
-            try:
-                self._snow_accum_last = datetime.fromisoformat(raw_snow_last)
-            except ValueError:
-                self._snow_accum_last = None
+        self._snow_accum_last = _stored_isoformat(stored.get("snow_accum_last"), self._snow_accum_last)
         # T7 #61: the watchdog's stand-down latch, parsed HERE and not in
         # the shared learner parser on purpose — a learner rollback must
         # not re-arm a controller that stood down over a hardware fault;
@@ -6297,9 +6354,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if refresh is not None and refresh is not asyncio.current_task():
             refresh.cancel()
         await super().async_shutdown()
-        if self._unsub_timer:
-            self._unsub_timer()
-            self._unsub_timer = None
         self._release_registrations()
         await self._legionella.async_release_switch()
         await pump_arbiter.release(self)
@@ -9307,12 +9361,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
                 (self._apply_cop_scale, _COP_STORE_KEY),
             ):
-                value = thermal.get(key)
-                if value is not None:
-                    try:
-                        setter(float(value))
-                    except (TypeError, ValueError):
-                        continue
+                if (value := finite_float(thermal.get(key))) is not None:
+                    setter(value)
             # T4b learners roll back through the same parser the store
             # loader uses, cleared first so a restore is a restore, not a
             # merge with the drifted state it replaces — ALL of them: a
@@ -9470,13 +9520,15 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # read still in flight lands on top of the restored learner.
         for store in _restored_stores(self):
             await store.async_wait_for_read()
-        snap = self._snapshot_ring.best_restore()
+        snap = self._snapshot_ring.undo_target()
         if snap is None:
             _LOGGER.warning(
                 "No snapshot qualifies for restore (healthy inputs and "
                 "in-band accuracy at capture time are required)"
             )
             return False
+        if "before_reset" in snap:  # a factory reset's undo point: stores and settings back
+            return await _async_undo_factory_reset(self, snap)
         self._apply_learner_payloads(snap.get("learners") or {})
         _LOGGER.info(
             "Learned state restored from the snapshot taken %s",
@@ -9673,13 +9725,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             )
             if best is None or distance < best[0]:
                 best = (distance, raw)
-        if best is None:
-            return None
-        try:
-            value = float(best[1])
-        except (TypeError, ValueError):
-            return None
-        return value if 0.0 <= value <= 100.0 else None
+        value = finite_float(best[1]) if best is not None else None
+        return value if value is not None and 0.0 <= value <= 100.0 else None
 
     def _settle_defrost(self, sample: AccuracySample, window: Any) -> None:
         """Teach the derate from the interval that has just been settled.
@@ -9752,7 +9799,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # (#2262), within the window the accuracy pairing below trusts; a
         # prediction recording no split, or a dwell that saw hot water, is none.
         if pending is not None and pending.get("split") is not None and pairs_interval(_utc_age_seconds(now, pending["when"]) / 3600.0) and not heat_energy.ran_hot_water(heat_energy.meter_of(self).attribution(pending["split"])):
-            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"))
+            draw_range.fold(self._accuracy.draw, self._measured_power, pending["split"], ctx._thermal_params, frozen=power_frozen is not None, distorted=_cop_fold_blocked(self), defrost=defrost_window.any_defrost, command=pending.get("flow_command"), experiment_s=pending["when"].timestamp() if pending.get("mode") == "system_identification" else None)
 
         # T5 #16: settle every matured lead-time promise against the same
         # measured temperature the one-step sample below uses. The window
@@ -9848,6 +9895,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "power": self._commanded_power(),
             "split": self._commanded_split(),
             "flow_command": pump_arbiter.flow_command(self),
+            "mode": self._current_action.get("mode"),  # routes draw_range.fold
             "space_power": float(self._current_action.get("power", 0.0)),
             "dhw_power": float(self._current_action.get("dhw_power", 0.0)),
             # T6: why the plan wanted this interval's draw, captured at
@@ -9903,18 +9951,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         if not getattr(self, "_ctx", self)._config.dhw_temp_entity:
             return None
-        raw = self._dhw_temperature
-        if raw is None:
-            return None
-        try:
-            value = float(raw)
-        except (TypeError, ValueError):
-            return None
-        if not np.isfinite(value):
-            return None
-        if self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is not None:
-            return None
-        return value
+        value = finite_float(self._dhw_temperature)
+        if value is not None and self._learning_frozen(CONF_DHW_TEMP_ENTITY, room_air=False) is None:
+            return value
+        return None
 
     def _file_dhw_lead_predictions(
         self, result: OptimizationResult, solve_time: datetime, dt_h: float
@@ -10816,14 +10856,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     async def async_arm_system_identification(self) -> None:
         """Arm a step-response experiment for the next suitable moment."""
-        self._sysid.config.enabled = getattr(self, "_ctx", self)._config.system_identification_enabled
-        if self._sysid.arm(
-            dt_util.now(), plant=getattr(self, "_ctx", self)._thermal_params
-        ):
-            _LOGGER.info(
-                "System identification armed; it will start at the next mild, "
-                "cheap night hour"
-            )
+        ctx = getattr(self, "_ctx", self)
+        sysid.arm_from_config(
+            self._sysid, dt_util.now(), ctx._config, ctx._thermal_params,
+            self._house_heat_loss_samples, self._accuracy.draw,
+        )
         await self.async_request_refresh()
 
     async def _run_system_identification(self, prices: np.ndarray) -> None:
@@ -10837,17 +10874,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         ctx = getattr(self, "_ctx", self)
         if not self._sysid.active:
             return
-        # #1523: the experiment is a heat-loss learner, so it stands down on
-        # the house learner's own freeze (external heat, a defrost, an open
-        # window, an unusable or unconfigured room or outdoor reading) and on
-        # a mode that cannot heat. The room half is ``learner_room_unread``.
-        why = (
-            f"heat pump mode {self._pump_signals.mode.label} cannot heat the house"
-            if self._pump_signals.space_blocked
-            else self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY)
-        ) or learner_room_unread(getattr(ctx, "_config", None))
+        why = sysid.hold_reason(
+            self._pump_signals,
+            self._learning_frozen(CONF_INDOOR_TEMP_ENTITY, CONF_OUTDOOR_TEMP_ENTITY),
+            getattr(ctx, "_config", None),
+            dt_util.now(),
+        )
         if why is not None:
-            self._sysid.abort(why)
+            self._sysid.stand_down(why)
             return
         params = ctx._thermal_params
         state = ctx._current_state

@@ -12236,6 +12236,25 @@ check("without an indoor reading the corner now label is absent",
       /Not observable without a power meter/.test(nometer) && !/Learned from/.test(nometer), nometer);
     check("UX-HEALTH D: a metered install's learned heat loss still says learned (null control)",
       /Learned from 21 samples/.test(rowOf(modelOf(metered()), "heat_loss")));
+    // #2499's residual: the bar is the row's "how far learned", so a full bar
+    // beside "not observable" still reads as a trusted learned scale.
+    const barOf = (row) => (/class="model-bar"[^>]*><span style="width:(\d+)%"/.exec(row) || [])[1];
+    check("UX-HEALTH D: with no power meter the learned heat loss draws no learned bar (#2499)",
+      barOf(nometer) === "0", `bar ${barOf(nometer)}%`);
+    check("UX-HEALTH D: a metered install's learned heat loss still draws a full bar (null control)",
+      barOf(rowOf(modelOf(metered()), "heat_loss")) === "100", `bar ${barOf(rowOf(modelOf(metered()), "heat_loss"))}%`);
+    // The same rule before convergence: a learner still settling reads its own
+    // progress as the bar on a metered install, and none without a meter, whose
+    // scale it cannot observe at any phase.
+    const settlingAt40 = () => modelStates(lp({ phase: "settling", progress: 0.4, eta_days: 12, samples: 40 }));
+    const unmeteredSettling = settlingAt40();
+    unmeteredSettling[DEFAULT_SPACE].attributes.setup_topology.slots[2].entity = null;
+    const unconverged = rowOf(modelOf(unmeteredSettling), "heat_loss");
+    check("UX-HEALTH D: with no power meter a still-learning heat loss draws no learned bar either (#2499)",
+      barOf(unconverged) === "0" && /Not observable without a power meter/.test(unconverged), `bar ${barOf(unconverged)}%`);
+    const meteredSettling = rowOf(modelOf(settlingAt40()), "heat_loss");
+    check("UX-HEALTH D: a metered still-learning heat loss draws its progress as the bar (null control)",
+      barOf(meteredSettling) === "40", `bar ${barOf(meteredSettling)}%`);
     const sc = healthStates();
     sc[`${PFX}_plan_optimization_score`].attributes.reasons.overall = "heat_loss_learning";
     const scoreRow = pageOf(mkHealth(sc).html());
