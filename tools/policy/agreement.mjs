@@ -22,7 +22,8 @@
 //     Each such grammar must be named in SHARED_GRAMMARS with a disposition --
 //     a PAIR above that drives it, the one module that now holds it, or why it
 //     is not a concept -- and an entry whose grammar no longer spans two files
-//     is DEAD. A second reader written tomorrow with a copied grammar is found
+//     is DEAD -- unless it names the second reader it awaits (AN ENTRY BEFORE
+//     ITS SECOND READER, below discovery). A second reader written tomorrow with a copied grammar is found
 //     without anyone listing it; one with a DIFFERENT grammar is not, which is
 //     why the pairs arm exists and why a fix that finds a sibling registers it.
 //
@@ -551,7 +552,8 @@ const PAIRS = [
 // `module:<path>` (one module holds it; the other files import it), or
 // `not-a-concept:<why>`. Seeded by the root-cause seat with the round-9
 // instances only; the barrier pull request classifies every entry the
-// discovery arm prints.
+// discovery arm prints. Any of them may end ` (awaits <path>)` while its
+// grammar's second reader is still to land (AN ENTRY BEFORE ITS SECOND READER).
 const SHARED_GRAMMARS = {
   "(if|elif|while|until)\\b|^!|\\|\\||&&|": "identical:countermeasure A's errexit safe-producer grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
   "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
@@ -587,10 +589,11 @@ const SHARED_GRAMMARS = {
   "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
 }
 
+const isGovernanceCode = (f) => /\.(py|mjs|js|cjs)$/.test(f)
+  && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
+  && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f)
 function governanceCode() {
-  return canonList(git(['ls-files']).split('\n')).filter((f) => /\.(py|mjs|js|cjs)$/.test(f)
-    && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
-    && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f))
+  return canonList(git(['ls-files']).split('\n')).filter(isGovernanceCode)
 }
 // A regex literal can start only where an operand can: after one of these
 // punctuators or `return`. Anything else between two slashes is division or
@@ -599,7 +602,7 @@ const JS_RE = /(?:^|[(,=:[!&|?{};>]|\breturn)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]
 const PY_RE = /re\.(?:compile|match|search|fullmatch|findall|finditer|sub)\(\s*r?(["'])((?:\\.|(?!\1).)+)\1/g
 const norm = (r) => r.replace(/^\^/, '').replace(/\$$/, '').replaceAll('\\s*', '').replaceAll('[ \\t]*', '')
 
-function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept)) {
+function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept), hist = null) {
   const occ = new Map()
   for (const f of files) {
     const s = read(f)
@@ -616,8 +619,62 @@ function discovery(report, files = governanceCode(), read = rd, registry = SHARE
     if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
     if (d.startsWith('pair:') && !pairs.has(d.slice(5))) report.refused.push(`discovery ${JSON.stringify(k)}: names pair ${d.slice(5)}, which is not registered`)
   }
-  for (const k of Object.keys(registry)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
+  for (const k of Object.keys(registry)) {
+    const w = AWAITS.exec(registry[k])
+    if (shared.some(([s]) => s === k)) { if (w) report.note.push(`discovery ${JSON.stringify(k)}: a second file reads it, so its (awaits ${w[1]}) clause is spent: drop it`); continue }
+    if (!w) { report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`); continue }
+    awaiting(report, k, registry[k].slice(0, w.index), w[1], occ.get(k)?.size ?? 0, files, pairs, hist ??= headHistory())
+  }
   report.note.push(`discovery: ${files.length} governance code files, ${occ.size} distinct grammars, ${shared.length} shared by two or more files`)
+}
+
+// AN ENTRY BEFORE ITS SECOND READER (#3100). CI grades a pull request with the
+// base's copy of this file, SHARED_GRAMMARS with it (governance.yml's restore),
+// so the pull request that adds a grammar's second reader is graded by a
+// registry that must already hold the entry; and an entry that lands first
+// spans one file, which main's own push run reads DEAD. So an ordinary
+// disposition may end ` (awaits <path>)`, and the entry is not DEAD at one file
+// while every one of these holds: exactly one file reads the grammar; <path> is
+// governance code, is not in the tree, and was never on HEAD's history (a
+// reader that left is not awaited, so a reader removed later reads DEAD as
+// before); and the clause landed at most AWAIT_DAYS before HEAD, by committer
+// date on HEAD's first-parent line. Each refusal is DEAD, with its reason.
+// Once a second file reads the grammar the entry is an ordinary two-file entry
+// the base copy accepts unchanged, so the reader's pull request needs no edit
+// to this pinned file; the spent clause is then a note, never a refusal,
+// because only an edit to this file could cure it and the base copy never sees
+// that edit. For the same reason the age bound is fatal only where the
+// registry graded is the one HEAD commits (main's push run, a local run): a
+// pull request that drops an expired entry is graded by the base's copy,
+// which still holds it, and reads a note. dev/audit/harnesses/agreement_two_pr.mjs
+// runs the sequence through real commits.
+const AWAITS = / \(awaits ([^()\s]+)\)$/
+const AWAIT_DAYS = 7
+const SELF = path.relative(ROOT, fileURLToPath(import.meta.url))
+function headHistory(g = git, self = SELF, read = () => fs.readFileSync(at(self), 'utf8')) {
+  const one = (args) => { try { return g(args).trim() } catch { return '' } }
+  const ct = (args) => Number(one(['log', '-1', '--format=%ct', ...args]))
+  return {
+    shallow: () => one(['rev-parse', '--is-shallow-repository']) !== 'false',
+    existed: (p) => one(['log', '-1', '--format=%h', 'HEAD', '--', p]) || null,
+    days: (needle) => { const t = ct(['--first-parent', `-S${needle}`, 'HEAD', '--', self]); return t ? (ct(['HEAD']) - t) / 86400 : 0 },
+    own: () => one(['show', `HEAD:${self}`]) === read().trim(),
+  }
+}
+function awaiting(report, k, d, p, readers, files, pairs, h) {
+  const dead = (why) => report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} awaits ${p}, ${why}`)
+  if (!/^(pair|module|identical|not-a-concept):\S/.test(d) || (d.startsWith('pair:') && !pairs.has(d.slice(5)))) return dead('but its disposition is no registered pair:, module:, identical: or not-a-concept:')
+  if (readers !== 1) return dead('but no file reads its grammar')
+  if (!isGovernanceCode(p)) return dead('which is not a governance code path discovery reads')
+  if (files.includes(p)) return dead('which is in the tree and does not read its grammar')
+  if (h.shallow()) return dead(`but HEAD's history is shallow, so whether ${p} ever existed is unknowable`)
+  const was = h.existed(p)
+  if (was) return dead(`which existed at ${was}: a reader that left is not awaited`)
+  const n = h.days(`(awaits ${p})`)
+  if (!(n >= 0)) return dead("but HEAD's committer date precedes the clause's, so its age is unknowable")
+  if (n <= AWAIT_DAYS) return report.note.push(`discovery ${JSON.stringify(k)}: one file reads it, awaiting ${p}`)
+  if (h.own()) return dead(`a clause ${n.toFixed(1)} days old, past the ${AWAIT_DAYS}-day bound: land the reader or drop the entry`)
+  report.note.push(`discovery ${JSON.stringify(k)}: awaits ${p} past the ${AWAIT_DAYS}-day bound; graded by a registry this tree edits, so the push run of main decides`)
 }
 
 async function pairsArm(report, pairs = PAIRS) {
@@ -1015,6 +1072,21 @@ async function selfTest() {
     // first-parent merge there, so a hand subject on HEAD's line is refused.
     rg(['update-ref', '-d', 'refs/remotes/origin/main'])
     probes.push(['with no origin/main ref the walk falls back to HEAD and refuses a hand subject there', only(walk(), m2)])
+    // headHistory() over real commits (AN ENTRY BEFORE ITS SECOND READER):
+    // zz2.mjs is held, then leaves as the clause lands, and HEAD is 8 days on.
+    const blob = (text) => execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: repo, input: text, encoding: 'utf8', env }).trim()
+    const tree = (p, b) => execFileSync('git', ['mktree'], { cwd: repo, input: `100644 blob ${b}\t${p}\n`, encoding: 'utf8', env }).trim()
+    const dated = (t, tr, ...ps) => execFileSync('git', ['commit-tree', tr, ...ps.flatMap((x) => ['-p', x]), '-m', 'h'], { cwd: repo, encoding: 'utf8', env: { ...env, GIT_COMMITTER_DATE: `@${t} +0000` } }).trim()
+    const regText = 'x (awaits zz2.mjs)\n'; const reg = tree('reg.mjs', blob(regText)); const t0 = 1700000000
+    const h1 = dated(t0, tree('zz2.mjs', blob('const ZZ = 1\n'))); const h2 = dated(t0 + 86400, reg, h1); const h3 = dated(t0 + 9 * 86400, reg, h2)
+    at_(h3, h3)
+    const hh = headHistory(rg, 'reg.mjs', () => regText)
+    probes.push(['headHistory over real commits: a path HEAD once held names the commit that last touched it; one never held is null',
+      hh.existed('zz2.mjs') === rg(['rev-parse', '--short', h2]).trim() && hh.existed('never.mjs') === null && hh.shallow() === false])
+    probes.push(["headHistory over real commits: a clause's age is HEAD's committer date less the date it landed on, in days", hh.days('(awaits zz2.mjs)') === 8])
+    probes.push(['headHistory over real commits: the registry is own only while it is byte-equal to HEAD\'s', hh.own() && !headHistory(rg, 'reg.mjs', () => 'y\n').own()])
+    fs.writeFileSync(path.join(repo, '.git', 'shallow'), `${h2}\n`)
+    probes.push(['headHistory over real commits: a shallow history reads shallow', hh.shallow() === true])
   } finally { fs.rmSync(repo, { recursive: true, force: true }) }
   const disc = (files, registry) => {
     const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
@@ -1027,6 +1099,62 @@ async function selfTest() {
   probes.push(['a grammar in one file is not shared', !disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, {}).unregistered.length])
   probes.push(['an entry that no longer spans two files is DEAD', disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).dead.length === 1])
   probes.push(['a disposition of no known kind is refused', disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'whatever' }).refused.length === 1])
+  // AN ENTRY BEFORE ITS SECOND READER. Each verdict is keyed on its message,
+  // never a count alone. `h` is HEAD's history as headHistory() reads it.
+  const discH = (files, registry, h) => {
+    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
+    discovery(r, Object.keys(files), (f) => files[f], registry, ['a-pair'], h)
+    return r
+  }
+  const K = 'some-shared-grammar-(\\d+)-x'; const SOLE = 'tools/zz1.mjs'; const P = 'tools/zz2.mjs'
+  const T1 = { [SOLE]: g, 'tools/other.mjs': 'const B = 1\n' }; const T2 = { ...T1, [P]: g }
+  const HIST = { shallow: () => false, existed: () => null, days: () => 0, own: () => true }
+  const AW = `identical:synthetic (awaits ${P})`
+  const verdict = (r) => [...r.unregistered.map((x) => `UNREGISTERED ${x}`), ...r.dead.map((x) => `DEAD ${x}`), ...r.refused.map((x) => `REFUSED ${x}`)]
+  const deadOnly = (r, msg) => !r.refused.length && !r.unregistered.length && r.dead.length === 1 && r.dead[0] === `SHARED_GRAMMARS ${JSON.stringify(K)} ${msg}`
+  const ok = discH(T1, { [K]: AW }, HIST)
+  probes.push(['a one-file entry awaiting a reader that never existed, inside the bound, is accepted', !verdict(ok).length && ok.note.includes(`discovery ${JSON.stringify(K)}: one file reads it, awaiting ${P}`)])
+  probes.push(['a one-file entry with no clause still reads DEAD, message unchanged', deadOnly(discH(T1, { [K]: 'identical:synthetic' }, HIST), 'no longer spans two files')])
+  probes.push(['a reader that left is not awaited: a clause naming a path HEAD once held reads DEAD',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, existed: (p) => (p === P ? 'abc1234' : null) }), `awaits ${P}, which existed at abc1234: a reader that left is not awaited`)])
+  probes.push(['a clause naming a path in the tree that does not read the grammar reads DEAD',
+    deadOnly(discH({ ...T1, [P]: 'const C = 2\n' }, { [K]: AW }, HIST), `awaits ${P}, which is in the tree and does not read its grammar`)])
+  probes.push(['a clause naming a path discovery never reads reads DEAD',
+    deadOnly(discH(T1, { [K]: 'identical:synthetic (awaits docs/x.md)' }, HIST), 'awaits docs/x.md, which is not a governance code path discovery reads')])
+  probes.push(['a clause whose grammar no file reads reads DEAD',
+    deadOnly(discH({ 'tools/other.mjs': 'const B = /an-unrelated-grammar-(\\d+)-y/\n' }, { [K]: AW }, HIST), `awaits ${P}, but no file reads its grammar`)])
+  probes.push(['a clause on a disposition of no known kind reads DEAD',
+    deadOnly(discH(T1, { [K]: `whatever (awaits ${P})` }, HIST), `awaits ${P}, but its disposition is no registered pair:, module:, identical: or not-a-concept:`)])
+  probes.push(['a clause on a pair: that is not registered reads DEAD',
+    deadOnly(discH(T1, { [K]: `pair:no-such-pair (awaits ${P})` }, HIST), `awaits ${P}, but its disposition is no registered pair:, module:, identical: or not-a-concept:`)])
+  probes.push(['on a shallow history the clause reads DEAD, never accepted',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, shallow: () => true }), `awaits ${P}, but HEAD's history is shallow, so whether ${P} ever existed is unknowable`)])
+  probes.push(['a clause dated after HEAD reads DEAD: its age is unknowable, never 0',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => -1 }), `awaits ${P}, but HEAD's committer date precedes the clause's, so its age is unknowable`)])
+  probes.push(['a clause past the bound reads DEAD on a registry HEAD commits',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => 8 }), `awaits ${P}, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry`)])
+  const cure = discH(T1, { [K]: AW }, { ...HIST, days: () => 8, own: () => false })
+  probes.push(['a clause past the bound is a note on a pull request that edits the registry, so dropping the entry is green', !verdict(cure).length && cure.note.some((x) => x.includes('past the 7-day bound; graded by a registry this tree edits'))])
+  const spent = discH(T2, { [K]: AW }, { ...HIST, existed: () => 'abc1234', days: () => 99 })
+  probes.push(['a spent clause at two files is a note, never a refusal', !verdict(spent).length && spent.note.includes(`discovery ${JSON.stringify(K)}: a second file reads it, so its (awaits ${P}) clause is spent: drop it`)])
+  // THE TWO-PULL-REQUEST SEQUENCE (#3166's review): every step graded the way
+  // CI grades it -- a pull request by its BASE's registry, main's push run by
+  // its own. PR A lands the entry, PR B the second reader, PR D later removes
+  // it. Returns each step whose verdict differs from the one it must read.
+  const twoPr = (entry) => {
+    const R2 = { [K]: entry }; const gone = { ...HIST, existed: (p) => (p === P ? 'abc1234' : null) }
+    return [
+      ['main1 push', T1, {}, HIST, []],
+      ['PR A graded by main1', T1, {}, HIST, []],
+      ['main2 push', T1, R2, HIST, []],
+      ['PR B graded by main2', T2, R2, HIST, []],
+      ['main3 push', T2, R2, gone, []],
+      ['PR D graded by main3', T1, R2, gone, [`DEAD SHARED_GRAMMARS ${JSON.stringify(K)} ${entry.endsWith(`(awaits ${P})`) ? `awaits ${P}, which existed at abc1234: a reader that left is not awaited` : 'no longer spans two files'}`]],
+    ].filter(([, t, r, h, want]) => JSON.stringify(verdict(discH(t, r, h))) !== JSON.stringify(want)).map(([n]) => n)
+  }
+  probes.push(['two pull requests: an awaiting entry lands before its reader, and every step reads what it must', !twoPr(AW).length])
+  probes.push(['null: the same sequence with an entry naming no awaited reader is red at main2 push, and only there', JSON.stringify(twoPr('identical:synthetic')) === '["main2 push"]'])
+  probes.push(['null: the reader PR without the entry on its base is UNREGISTERED', JSON.stringify(verdict(discH(T2, {}, HIST))) === JSON.stringify([`UNREGISTERED ${JSON.stringify(K)} in ${SOLE}, ${P}`])])
   let bad = 0
   for (const [name, ok] of probes) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad++ }
   console.log(`SELF-TEST ${probes.length - bad} of ${probes.length} probes held`)
