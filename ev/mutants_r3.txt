@@ -1,0 +1,51 @@
+## null (head unmodified)
+  ok   control:cycle_cost:class_budgets 
+  ok   control:cycle_cost:runner_class_unknown 
+## R1 ref30 budget loosened to 2x reading max (5.7)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(30.32, ['cpu_ratio 2.81: budget 5.75 cannot see a 2x cycle; re-record 3.974'], []), (30.93, ['cpu_ratio 2.754: budget 5.75 cannot see a 2x cycle; re-record 3.
+  ok   control:cycle_cost:runner_class_unknown 
+## R2 ref30 budget tightened below its readings (2.7)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(30.32, ['cpu_ratio 2.81 over its budget 2.7'], ['cpu_ratio 5.701 over its budget 2.7']), (30.93, ['cpu_ratio 2.754 over its budget 2.7'], ['cpu_ratio 5.532 ov
+  ok   control:cycle_cost:runner_class_unknown 
+## R3 ref46 budget loosened (4.8)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(45.65, ['cpu_ratio 2.325: budget 4.8 cannot see a 2x cycle; re-record 3.287'], []), (46.36, [], [])]
+  ok   control:cycle_cost:runner_class_unknown 
+## R4 ref46 budget tightened (2.3)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(45.65, ['cpu_ratio 2.325 over its budget 2.3'], ['cpu_ratio 4.647 over its budget 2.3']), (46.36, ['cpu_ratio 2.424 over its budget 2.3'], ['cpu_ratio 4.777 o
+  ok   control:cycle_cost:runner_class_unknown 
+## R5 ref53 budget loosened (2.95)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 2.95 cannot see a 2x cycle; re-record 2.06'], []), (53.27, ['cpu_ratio 1.451: budget 2.95 cannot see a 2x cycle; re-record 2.
+  ok   control:cycle_cost:runner_class_unknown 
+## R6 ref53 budget tightened (1.44)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456 over its budget 1.44'], ['cpu_ratio 2.885 over its budget 1.44']), (53.27, ['cpu_ratio 1.451 over its budget 1.44'], ['cpu_ratio 2.84
+  ok   control:cycle_cost:runner_class_unknown 
+## R7 ref46 band widened over ref53 (hi 56.78) -> ref53 runs graded as ref46
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 3.357 cannot see a 2x cycle; re-record 2.06'], []), (53.27, ['cpu_ratio 1.451: budget 3.357 cannot see a 2x cycle; re-record 
+  ok   control:cycle_cost:runner_class_unknown 
+## R8 ref53 band shifted off its readings (lo 54.5)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['no recorded budget: record cpu_ratio=2.06'], ['no recorded budget: record cpu_ratio=4.08']), (53.27, ['no recorded budget: record cpu_ratio=2.052'], 
+  ok   control:cycle_cost:runner_class_unknown 
+## R9 class_budget ignores the ruler (first class always)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 3.934 cannot see a 2x cycle; re-record 2.06'], []), (53.27, ['cpu_ratio 1.451: budget 3.934 cannot see a 2x cycle; re-record 
+  FAIL control:cycle_cost:runner_class_unknown bad=[] good=[]
+## R10 class_budget band test inverted (outside instead of inside)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 3.934 cannot see a 2x cycle; re-record 2.06'], []), (53.27, ['cpu_ratio 1.451: budget 3.934 cannot see a 2x cycle; re-record 
+  FAIL control:cycle_cost:runner_class_unknown bad=[] good=[]
+## R11 unknown ruler falls back to the base single budget
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   control:cycle_cost:class_budgets 
+  FAIL control:cycle_cost:runner_class_unknown bad=[] good=[]
+## R12 run_fixture ignores the refusal (grades budget None)
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  ok   control:cycle_cost:class_budgets 
+  ok   control:cycle_cost:runner_class_unknown 

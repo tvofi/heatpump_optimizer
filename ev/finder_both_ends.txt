@@ -1,0 +1,80 @@
+=== base
+RESULT 125160076828 ref30 clean 2.81 -> ['cpu_ratio 2.81 over its budget 2.173'] | cpu-doubled 5.701 seen=True ['cpu_ratio 5.701 over its budget 2.173']
+RESULT 125240101580 ref30 clean 2.7543 -> ['cpu_ratio 2.754 over its budget 2.173'] | cpu-doubled 5.5315 seen=True ['cpu_ratio 5.532 over its budget 2.173']
+RESULT 125097530406 ref46 clean 2.3246 -> ['cpu_ratio 2.325 over its budget 2.173'] | cpu-doubled 4.6473 seen=True ['cpu_ratio 4.647 over its budget 2.173']
+RESULT 125316010511 ref46 clean 2.4235 -> ['cpu_ratio 2.424 over its budget 2.173'] | cpu-doubled 4.7775 seen=True ['cpu_ratio 4.777 over its budget 2.173']
+RESULT 124414072168 ref53 clean 1.4563 -> WITHIN | cpu-doubled 2.8848 seen=True ['cpu_ratio 2.885 over its budget 2.173']
+RESULT 124725704090 ref53 clean 1.451 -> WITHIN | cpu-doubled 2.841 seen=True ['cpu_ratio 2.841 over its budget 2.173']
+RESULT 125036077984 ref53 clean 1.4926 -> WITHIN | cpu-doubled 2.9251 seen=True ['cpu_ratio 2.925 over its budget 2.173']
+RESULT owner 125240101580 ref30 235.8185 -> WITHIN 2x seen=True
+RESULT owner 125160076828 ref30 240.6876 -> WITHIN 2x seen=True
+RESULT owner 125097530406 ref46 241.9249 -> WITHIN 2x seen=True
+RESULT owner 125316010511 ref46 245.967 -> WITHIN 2x seen=True
+RESULT loop clean 0.0903 -> WITHIN
+RESULT loop clean 0.0907 -> WITHIN
+RESULT loop clean 0.0901 -> WITHIN
+RESULT loop clean 0.1023 -> WITHIN
+RESULT loop clean 0.093 -> WITHIN
+RESULT loop clean 0.0934 -> WITHIN
+RESULT loop clean 0.1026 -> WITHIN
+RESULT loop doubled 0.186 seen=True
+RESULT loop doubled 0.1833 seen=True
+RESULT loop doubled 0.1792 seen=True
+RESULT loop doubled 0.2015 seen=True
+RESULT loop doubled 0.1869 seen=True
+RESULT loop doubled 0.1855 seen=True
+RESULT loop doubled 0.2011 seen=True
+=== head
+RESULT 125160076828 ref30 clean 2.81 -> WITHIN | cpu-doubled 5.701 seen=True ['cpu_ratio 5.701 over its budget 3.934']
+RESULT 125240101580 ref30 clean 2.7543 -> WITHIN | cpu-doubled 5.5315 seen=True ['cpu_ratio 5.532 over its budget 3.934']
+RESULT 125097530406 ref46 clean 2.3246 -> WITHIN | cpu-doubled 4.6473 seen=True ['cpu_ratio 4.647 over its budget 3.357']
+RESULT 125316010511 ref46 clean 2.4235 -> WITHIN | cpu-doubled 4.7775 seen=True ['cpu_ratio 4.777 over its budget 3.357']
+RESULT 124414072168 ref53 clean 1.4563 -> WITHIN | cpu-doubled 2.8848 seen=True ['cpu_ratio 2.885 over its budget 2.081']
+RESULT 124725704090 ref53 clean 1.451 -> WITHIN | cpu-doubled 2.841 seen=True ['cpu_ratio 2.841 over its budget 2.081']
+RESULT 125036077984 ref53 clean 1.4926 -> WITHIN | cpu-doubled 2.9251 seen=True ['cpu_ratio 2.925 over its budget 2.081']
+RESULT owner 125240101580 ref30 235.8185 -> WITHIN 2x seen=True
+RESULT owner 125160076828 ref30 240.6876 -> WITHIN 2x seen=True
+RESULT owner 125097530406 ref46 241.9249 -> WITHIN 2x seen=True
+RESULT owner 125316010511 ref46 245.967 -> WITHIN 2x seen=True
+RESULT loop clean 0.0903 -> WITHIN
+RESULT loop clean 0.0907 -> WITHIN
+RESULT loop clean 0.0901 -> WITHIN
+RESULT loop clean 0.1023 -> WITHIN
+RESULT loop clean 0.093 -> WITHIN
+RESULT loop clean 0.0934 -> WITHIN
+RESULT loop clean 0.1026 -> WITHIN
+RESULT loop doubled 0.186 seen=True
+RESULT loop doubled 0.1833 seen=True
+RESULT loop doubled 0.1792 seen=True
+RESULT loop doubled 0.2015 seen=True
+RESULT loop doubled 0.1869 seen=True
+RESULT loop doubled 0.1855 seen=True
+RESULT loop doubled 0.2011 seen=True
+bands {'ref30': (28.72, 32.69), 'ref46': (42.99, 49.51), 'ref53': (49.6, 56.78)}
+RESULT band ref30 derived (28.72, 32.69) committed (28.72, 32.69) n=8
+RESULT band ref46 derived (42.99, 49.51) committed (42.99, 49.51) n=8
+RESULT band ref53 derived (49.6, 56.78) committed (49.6, 56.78) n=12
+RESULT budget ref30 derived 3.9344 committed 3.934 pct [71.4, 70.0]
+RESULT budget ref46 derived 3.3567 committed 3.357 pct [69.3, 72.2]
+RESULT budget ref53 derived 2.0812 committed 2.081 pct [70.0, 69.7, 71.7]
+RESULT misclass 125160076828 ref30 graded as ref30: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125160076828 ref30 graded as ref46: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125160076828 ref30 graded as ref53: clean RED doubled seen silent_miss=False
+RESULT misclass 125240101580 ref30 graded as ref30: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125240101580 ref30 graded as ref46: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125240101580 ref30 graded as ref53: clean RED doubled seen silent_miss=False
+RESULT misclass 125097530406 ref46 graded as ref30: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125097530406 ref46 graded as ref46: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125097530406 ref46 graded as ref53: clean RED doubled seen silent_miss=False
+RESULT misclass 125316010511 ref46 graded as ref30: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125316010511 ref46 graded as ref46: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125316010511 ref46 graded as ref53: clean RED doubled seen silent_miss=False
+RESULT misclass 124414072168 ref53 graded as ref30: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 124414072168 ref53 graded as ref46: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 124414072168 ref53 graded as ref53: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 124725704090 ref53 graded as ref30: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 124725704090 ref53 graded as ref46: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 124725704090 ref53 graded as ref53: clean WITHIN doubled seen silent_miss=False
+RESULT misclass 125036077984 ref53 graded as ref30: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 125036077984 ref53 graded as ref46: clean RED doubled NOT SEEN silent_miss=False
+RESULT misclass 125036077984 ref53 graded as ref53: clean WITHIN doubled seen silent_miss=False

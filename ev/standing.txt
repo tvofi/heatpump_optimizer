@@ -1,0 +1,26 @@
+merge-base ea59e9a09de56447326ae71d8a45fec81c3cc275 origin/main ea59e9a09de56447326ae71d8a45fec81c3cc275
+--- merge-tree
+f58150f77f78638b50c6320cbc6715cd7c171144
+rc=0
+--- claim files / version vs origin/main
+(empty = byte-identical)
+(empty = no budget file touched)
+--- three-dot files
+A	dev/programme/delivery/3174.md
+M	tests/replay.py
+--- runner/host names in added lines
+27:+COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
+61:+    runner = next((c for c, (lo, hi) in COST_RUNNER_CLASSES.items()
+65:+                      f"COST_RUNNER_CLASSES {sorted(COST_RUNNER_CLASSES.values())}; "
+89:+    lo30, hi46 = COST_RUNNER_CLASSES["ref30"][1], COST_RUNNER_CLASSES["ref46"][0]
+91:+    pair("cycle_cost:runner_class_unknown",
+--- host paths in added lines
+none
+--- structure
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+--- closure select
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
