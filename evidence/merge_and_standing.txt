@@ -1,0 +1,26 @@
+136f392cfad0abddac3e78bb99c14204143a635e
+merge-tree rc=0
+untouched-check done
+claimdiff-vs-main-done
+- [#3164](https://github.com/tvofi/heatpump_optimizer/pull/3164) — **open**, R10-OPENER-REUSE: opener reuse (R10-OPENER-REUSE)
+diff --git a/tests/closures.json b/tests/closures.json
+index 75e38436c..8478fd0a7 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -3823,6 +3823,8 @@
+    "tools/audit/seat/merge_train.py",
+    "tools/audit/seat/moved_paths.py",
+    "tools/audit/seat/mutant_run.py",
++   "tools/audit/seat/open_driver.py",
++   "tools/audit/seat/open_driver_selftest.py",
+    "tools/audit/seat/orchestrator_tick.py",
+    "tools/audit/seat/owed_unactioned.py",
+    "tools/audit/seat/plan_audit.py",
+@@ -3992,6 +3994,7 @@
+    "dev/audit/harnesses/r10_night_folds_learners.py",
+    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
+    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
++   "dev/audit/harnesses/r10_open_driver_mutants.py",
+    "dev/audit/harnesses/r10_plan_durations_mutants.py",
+    "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
+    "dev/audit/harnesses/r10_plan_page_mutants.py",

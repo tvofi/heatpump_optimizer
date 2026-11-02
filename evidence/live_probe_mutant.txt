@@ -1,0 +1,4 @@
+launches 2
+START r10-x 44444444 R10-X pid=101
+START r10-x 44444444 R10-X pid=102
+backoff [300, 600, 1200, 2400, 4800, 7200, 7200]
