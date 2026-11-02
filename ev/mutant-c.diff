@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 18346cd8e..a6724ed0e 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -3546,7 +3546,7 @@ EOF
+   # never in the tracked fixture directory: a stray file there dirties the
+   # worktree and app_push refuses. Only the file moves; the check runs from here.
+   WIRE_PORC=$(git status --porcelain)
+-  WB=$(mktemp -d)   # under ST_ROOT; the EXIT trap removes it (RA is gone by here)
++  WB=$DABS
+   : >"$WB/wiring-body.md"
+   early() { # stub rc -> "<exit rc>:<output>"
+     local o r
