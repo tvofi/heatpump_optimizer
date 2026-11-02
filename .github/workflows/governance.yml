@@ -708,6 +708,13 @@ jobs:
           python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
           grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
 
+      - name: Show the open driver refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/open_driver.py --self-test | tee "$RUNNER_TEMP/open-driver-self-test.txt"
+          grep -Eq '^open_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-driver-self-test.txt"
+
       - name: Show the proof watcher refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
