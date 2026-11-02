@@ -1,0 +1,10 @@
+RESULT mutant=M0 selftest_rc=0 selftest_failed=0 probe:[RESULT launch_probe checks=30 failed=0] 
+RESULT mutant=old-launch selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=30] FAIL launch 'r10-a;touch INJECTED': rc file written with 0;FAIL launch 'r10-a;touch INJECTED': topic arrives as one argument;
+RESULT mutant=live-false selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=0] FAIL live run: one launch over two passes;FAIL live run: SKIP ... live logged;
+RESULT mutant=R-stem-noop selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=3] FAIL launch 'a/b': rc file written with 0;FAIL launch 'a/b': topic arrives as one argument;
+RESULT mutant=R-reap-nostem selftest_rc=0 selftest_failed=0 probe:[RESULT launch_probe checks=30 failed=0] 
+RESULT mutant=R-unquoted-log selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=27] FAIL launch 'r10-a;touch INJECTED': rc file written with 0;FAIL launch 'r10-a;touch INJECTED': topic arrives as one argument;
+RESULT mutant=R-backoff-n selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=0] FAIL retry after backoff;FAIL backoff schedule: 5 min, doubling, 2 h cap;
+RESULT mutant=R-seen-on-fail-pop selftest_rc=1 selftest_failed=1 probe:[RESULT launch_probe checks=30 failed=0] FAIL seen is not reopened;
+RESULT mutant=R-cap-ge selftest_rc=1 selftest_failed=2 probe:[RESULT launch_probe checks=30 failed=0] FAIL cp before instrument, cap 2 holds;FAIL cap re-read each pass (live runs counted from PIDs);
+RESULT mutant=R-shift1 selftest_rc=1 selftest_failed=4 probe:[RESULT launch_probe checks=30 failed=27] FAIL launch 'r10-a;touch INJECTED': topic arrives as one argument;FAIL launch 'z$(touch${IFS}INJECTED)': topic arrives as one argument;FAIL launch 'a/b': topic arrives as one argument;
