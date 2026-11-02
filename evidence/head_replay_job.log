@@ -1,0 +1,479 @@
+﻿2026-11-02T11:07:42.8300522Z Current runner version: '2.338.2'
+2026-11-02T11:07:42.8320757Z ##[group]Runner Image Provisioner
+2026-11-02T11:07:42.8321439Z Hosted Compute Agent
+2026-11-02T11:07:42.8322160Z Version: 20261021.618
+2026-11-02T11:07:42.8322678Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-02T11:07:42.8323295Z Build Date: 2026-10-21T00:45:21Z
+2026-11-02T11:07:42.8323897Z Worker ID: {41202559-98c3-4ec6-be32-0efc2dbb0672}
+2026-11-02T11:07:42.8324551Z Region: westus3
+2026-11-02T11:07:42.8325090Z Cloud: Azure
+2026-11-02T11:07:42.8325533Z ##[endgroup]
+2026-11-02T11:07:42.8326691Z ##[group]Operating System
+2026-11-02T11:07:42.8327210Z Ubuntu
+2026-11-02T11:07:42.8327645Z 26.04.1
+2026-11-02T11:07:42.8328134Z LTS
+2026-11-02T11:07:42.8328560Z ##[endgroup]
+2026-11-02T11:07:42.8329002Z ##[group]Runner Image
+2026-11-02T11:07:42.8329572Z Image: ubuntu-26.04
+2026-11-02T11:07:42.8330040Z Version: 20261025.179.1
+2026-11-02T11:07:42.8331136Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261025.179/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-02T11:07:42.8332628Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261025.179
+2026-11-02T11:07:42.8333516Z ##[endgroup]
+2026-11-02T11:07:42.8334410Z ##[group]GITHUB_TOKEN Permissions
+2026-11-02T11:07:42.8336101Z Contents: read
+2026-11-02T11:07:42.8336585Z Metadata: read
+2026-11-02T11:07:42.8337134Z ##[endgroup]
+2026-11-02T11:07:42.8338838Z Secret source: Actions
+2026-11-02T11:07:42.8339718Z Cache mode: write
+2026-11-02T11:07:42.8340271Z Prepare workflow directory
+2026-11-02T11:07:42.8648849Z Prepare all required actions
+2026-11-02T11:07:42.8688579Z Getting action download info
+2026-11-02T11:07:43.1353544Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-02T11:07:43.2380587Z Download action repository 'actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0' (SHA:6d4fd22b20465ccc0f7354476588e8df7c9ca0e0)
+2026-11-02T11:07:43.9622929Z Uses: tvofi/heatpump_optimizer/.github/workflows/tests.yml@refs/pull/3174/merge (5cc311bf04a24f461259eafafc728e2bfbf88784)
+2026-11-02T11:07:43.9626624Z ##[group] Inputs
+2026-11-02T11:07:43.9627087Z   gate_scope: auto
+2026-11-02T11:07:43.9627482Z   pr: 3174
+2026-11-02T11:07:43.9627842Z   base: main
+2026-11-02T11:07:43.9628267Z   head: a476a578ab2c3ee55d3dc3c22c7edb2a0bdaa737
+2026-11-02T11:07:43.9628798Z   recheck: 
+2026-11-02T11:07:43.9629162Z   no-skip: 
+2026-11-02T11:07:43.9629519Z ##[endgroup]
+2026-11-02T11:07:43.9629915Z Complete job name: tests / replay
+2026-11-02T11:07:44.0332376Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-02T11:07:44.0333322Z with:
+2026-11-02T11:07:44.0333738Z   repository: tvofi/heatpump_optimizer
+2026-11-02T11:07:44.0337140Z   token: ***
+2026-11-02T11:07:44.0337537Z   ssh-strict: true
+2026-11-02T11:07:44.0337943Z   ssh-user: git
+2026-11-02T11:07:44.0338340Z   persist-credentials: true
+2026-11-02T11:07:44.0338778Z   clean: true
+2026-11-02T11:07:44.0339176Z   sparse-checkout-cone-mode: true
+2026-11-02T11:07:44.0339661Z   fetch-depth: 1
+2026-11-02T11:07:44.0340053Z   fetch-tags: false
+2026-11-02T11:07:44.0340447Z   show-progress: true
+2026-11-02T11:07:44.0340847Z   lfs: false
+2026-11-02T11:07:44.0341211Z   submodules: false
+2026-11-02T11:07:44.0341619Z   set-safe-directory: true
+2026-11-02T11:07:44.0342209Z   allow-unsafe-pr-checkout: false
+2026-11-02T11:07:44.0342851Z env:
+2026-11-02T11:07:44.0343222Z   HPO_JOB_GRADES: nothing
+2026-11-02T11:07:44.0343640Z ##[endgroup]
+2026-11-02T11:07:44.2304070Z Syncing repository: tvofi/heatpump_optimizer
+2026-11-02T11:07:44.2306015Z ##[group]Getting Git version info
+2026-11-02T11:07:44.2306759Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-02T11:07:44.2307721Z [command]/usr/bin/git version
+2026-11-02T11:07:44.2308171Z git version 2.56.0
+2026-11-02T11:07:44.2315217Z ##[endgroup]
+2026-11-02T11:07:44.2323261Z Temporarily overriding HOME='/home/runner/work/_temp/cfc17428-2495-4945-8739-3085228e39b8' before making global git config changes
+2026-11-02T11:07:44.2325075Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-02T11:07:44.2326874Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-02T11:07:44.2370501Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-02T11:07:44.2372608Z ##[group]Determining repository object format
+2026-11-02T11:07:44.2373878Z ##[endgroup]
+2026-11-02T11:07:44.2374537Z ##[group]Initializing the repository
+2026-11-02T11:07:44.2376912Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-02T11:07:44.2445576Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-02T11:07:44.2446472Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-02T11:07:44.2447267Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-02T11:07:44.2447916Z hint: call:
+2026-11-02T11:07:44.2448272Z hint:
+2026-11-02T11:07:44.2448725Z hint: 	git config --global init.defaultBranch <name>
+2026-11-02T11:07:44.2449268Z hint:
+2026-11-02T11:07:44.2449769Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-02T11:07:44.2450641Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-02T11:07:44.2451489Z hint:
+2026-11-02T11:07:44.2451981Z hint: 	git branch -m <name>
+2026-11-02T11:07:44.2453105Z hint:
+2026-11-02T11:07:44.2453926Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-02T11:07:44.2456018Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-11-02T11:07:44.2462223Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-11-02T11:07:44.2501714Z ##[endgroup]
+2026-11-02T11:07:44.2503460Z ##[group]Disabling automatic garbage collection
+2026-11-02T11:07:44.2504344Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-02T11:07:44.2533259Z ##[endgroup]
+2026-11-02T11:07:44.2535244Z ##[group]Setting up auth
+2026-11-02T11:07:44.2536474Z Removing SSH command configuration
+2026-11-02T11:07:44.2538083Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-02T11:07:44.2565780Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-02T11:07:44.2879906Z Removing HTTP extra header
+2026-11-02T11:07:44.2884455Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-02T11:07:44.2911872Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-02T11:07:44.3151064Z Removing includeIf entries pointing to credentials config files
+2026-11-02T11:07:44.3155975Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-02T11:07:44.3184598Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-02T11:07:44.3410254Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-02T11:07:44.3441016Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:07:44.3467090Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:07:44.3497039Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:07:44.3522491Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:07:44.3547040Z ##[endgroup]
+2026-11-02T11:07:44.3550851Z ##[group]Fetching the repository
+2026-11-02T11:07:44.3552508Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +5cc311bf04a24f461259eafafc728e2bfbf88784:refs/remotes/pull/3174/merge
+2026-11-02T11:07:46.6582892Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-02T11:07:46.6584060Z  * [new ref]         5cc311bf04a24f461259eafafc728e2bfbf88784 -> pull/3174/merge
+2026-11-02T11:07:46.6587079Z ##[endgroup]
+2026-11-02T11:07:46.6587872Z ##[group]Determining the checkout info
+2026-11-02T11:07:46.6588830Z ##[endgroup]
+2026-11-02T11:07:46.6592419Z [command]/usr/bin/git sparse-checkout disable
+2026-11-02T11:07:46.6635189Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-02T11:07:46.6661209Z ##[group]Checking out the ref
+2026-11-02T11:07:46.6663839Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/3174/merge
+2026-11-02T11:07:47.2493129Z Note: switching to 'refs/remotes/pull/3174/merge'.
+2026-11-02T11:07:47.2493687Z 
+2026-11-02T11:07:47.2494160Z You are in 'detached HEAD' state. You can look around, make experimental
+2026-11-02T11:07:47.2495020Z changes and commit them, and you can discard any commits you make in this
+2026-11-02T11:07:47.2495863Z state without impacting any branches by switching back to a branch.
+2026-11-02T11:07:47.2496363Z 
+2026-11-02T11:07:47.2496704Z If you want to create a new branch to retain commits you create, you may
+2026-11-02T11:07:47.2497524Z do so (now or later) by using -c with the switch command. Example:
+2026-11-02T11:07:47.2497944Z 
+2026-11-02T11:07:47.2498186Z   git switch -c <new-branch-name>
+2026-11-02T11:07:47.2498471Z 
+2026-11-02T11:07:47.2498760Z Or undo this operation with:
+2026-11-02T11:07:47.2499085Z 
+2026-11-02T11:07:47.2499269Z   git switch -
+2026-11-02T11:07:47.2499607Z 
+2026-11-02T11:07:47.2499994Z Turn off this advice by setting config variable advice.detachedHead to false
+2026-11-02T11:07:47.2500484Z 
+2026-11-02T11:07:47.2500883Z HEAD is now at 5cc311b Merge a476a578ab2c3ee55d3dc3c22c7edb2a0bdaa737 into 3905069f38a60559186fef916b0241e311cc81cd
+2026-11-02T11:07:47.2505640Z ##[endgroup]
+2026-11-02T11:07:47.2548207Z [command]/usr/bin/git log -1 --format=%H
+2026-11-02T11:07:47.2571461Z 5cc311bf04a24f461259eafafc728e2bfbf88784
+2026-11-02T11:07:47.2908623Z ##[group]Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+2026-11-02T11:07:47.2909003Z with:
+2026-11-02T11:07:47.2909234Z   python-version: 3.13
+2026-11-02T11:07:47.2909474Z   check-latest: false
+2026-11-02T11:07:47.2911488Z   token: ***
+2026-11-02T11:07:47.2911842Z   mirror: https://raw.githubusercontent.com/actions/python-versions/main
+2026-11-02T11:07:47.2912455Z   update-environment: true
+2026-11-02T11:07:47.2912728Z   allow-prereleases: false
+2026-11-02T11:07:47.2912966Z   freethreaded: false
+2026-11-02T11:07:47.2913191Z env:
+2026-11-02T11:07:47.2913407Z   HPO_JOB_GRADES: nothing
+2026-11-02T11:07:47.2913638Z ##[endgroup]
+2026-11-02T11:07:47.3823860Z ##[group]Installed versions
+2026-11-02T11:07:47.3908588Z Successfully set up CPython (3.13.17)
+2026-11-02T11:07:47.3909290Z ##[endgroup]
+2026-11-02T11:07:47.4021206Z ##[group]Run pip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt
+2026-11-02T11:07:47.4022229Z [36;1mpip install --require-hashes --build-constraint tests/requirements-build.txt -r tests/requirements-ci.txt[0m
+2026-11-02T11:07:47.4064439Z shell: /usr/bin/bash -e {0}
+2026-11-02T11:07:47.4064714Z env:
+2026-11-02T11:07:47.4064937Z   HPO_JOB_GRADES: nothing
+2026-11-02T11:07:47.4065226Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:47.4065817Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-02T11:07:47.4066196Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:47.4066548Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:47.4066885Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:47.4067227Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-02T11:07:47.4067552Z ##[endgroup]
+2026-11-02T11:07:48.0827015Z Collecting aiohappyeyeballs==2.7.1 (from -r tests/requirements-ci.txt (line 28))
+2026-11-02T11:07:48.1303431Z   Downloading aiohappyeyeballs-2.7.1-py3-none-any.whl (15 kB)
+2026-11-02T11:07:48.4986643Z Collecting aiohttp==3.14.5 (from -r tests/requirements-ci.txt (line 31))
+2026-11-02T11:07:48.5085758Z   Downloading aiohttp-3.14.5-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (1.9 MB)
+2026-11-02T11:07:48.5662951Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 1.9/1.9 MB 52.0 MB/s  0:00:00
+2026-11-02T11:07:48.5855456Z Collecting aiosignal==1.4.0 (from -r tests/requirements-ci.txt (line 193))
+2026-11-02T11:07:48.5963558Z   Downloading aiosignal-1.4.0-py3-none-any.whl (7.5 kB)
+2026-11-02T11:07:48.6306684Z Collecting attrs==26.1.0 (from -r tests/requirements-ci.txt (line 196))
+2026-11-02T11:07:48.6404781Z   Downloading attrs-26.1.0-py3-none-any.whl (67 kB)
+2026-11-02T11:07:48.6875137Z Collecting frozenlist==1.8.0 (from -r tests/requirements-ci.txt (line 199))
+2026-11-02T11:07:48.6971426Z   Downloading frozenlist-1.8.0-cp313-cp313-manylinux1_x86_64.manylinux_2_28_x86_64.manylinux_2_5_x86_64.whl (234 kB)
+2026-11-02T11:07:48.7145998Z Collecting idna==3.20 (from -r tests/requirements-ci.txt (line 330))
+2026-11-02T11:07:48.7240838Z   Downloading idna-3.20-py3-none-any.whl (69 kB)
+2026-11-02T11:07:48.9062193Z Collecting multidict==7.2.1 (from -r tests/requirements-ci.txt (line 333))
+2026-11-02T11:07:48.9164833Z   Downloading multidict-7.2.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (516 kB)
+2026-11-02T11:07:49.0539417Z Collecting numpy==2.5.4 (from -r tests/requirements-ci.txt (line 485))
+2026-11-02T11:07:49.0637106Z   Downloading numpy-2.5.4-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (16.7 MB)
+2026-11-02T11:07:49.1826447Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 16.7/16.7 MB 140.7 MB/s  0:00:00
+2026-11-02T11:07:49.2467185Z Collecting propcache==0.5.4 (from -r tests/requirements-ci.txt (line 552))
+2026-11-02T11:07:49.2564326Z   Downloading propcache-0.5.4-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (234 kB)
+2026-11-02T11:07:49.2875882Z Collecting pyyaml==6.0.3 (from -r tests/requirements-ci.txt (line 691))
+2026-11-02T11:07:49.2970762Z   Downloading pyyaml-6.0.3-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (801 kB)
+2026-11-02T11:07:49.3038413Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 801.6/801.6 kB 107.1 MB/s  0:00:00
+2026-11-02T11:07:49.3909707Z Collecting scipy==1.18.1 (from -r tests/requirements-ci.txt (line 765))
+2026-11-02T11:07:49.4007193Z   Downloading scipy-1.18.1-cp313-cp313-manylinux_2_27_x86_64.manylinux_2_28_x86_64.whl (35.3 MB)
+2026-11-02T11:07:49.6870368Z      ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 35.3/35.3 MB 123.3 MB/s  0:00:00
+2026-11-02T11:07:49.7355434Z Collecting threadpoolctl==3.7.0 (from -r tests/requirements-ci.txt (line 827))
+2026-11-02T11:07:49.7450359Z   Downloading threadpoolctl-3.7.0-py3-none-any.whl (26 kB)
+2026-11-02T11:07:49.7620763Z Collecting voluptuous==0.16.0 (from -r tests/requirements-ci.txt (line 830))
+2026-11-02T11:07:49.7715873Z   Downloading voluptuous-0.16.0-py3-none-any.whl (31 kB)
+2026-11-02T11:07:49.9590860Z Collecting yarl==1.25.1 (from -r tests/requirements-ci.txt (line 833))
+2026-11-02T11:07:49.9688558Z   Downloading yarl-1.25.1-cp313-cp313-manylinux2014_x86_64.manylinux_2_17_x86_64.manylinux_2_28_x86_64.whl (117 kB)
+2026-11-02T11:07:50.0384783Z Installing collected packages: voluptuous, threadpoolctl, pyyaml, propcache, numpy, multidict, idna, frozenlist, attrs, aiohappyeyeballs, yarl, scipy, aiosignal, aiohttp
+2026-11-02T11:07:55.4684121Z 
+2026-11-02T11:07:55.4702229Z Successfully installed aiohappyeyeballs-2.7.1 aiohttp-3.14.5 aiosignal-1.4.0 attrs-26.1.0 frozenlist-1.8.0 idna-3.20 multidict-7.2.1 numpy-2.5.4 propcache-0.5.4 pyyaml-6.0.3 scipy-1.18.1 threadpoolctl-3.7.0 voluptuous-0.16.0 yarl-1.25.1
+2026-11-02T11:07:55.5485919Z ##[group]Run python3 tests/replay.py
+2026-11-02T11:07:55.5486206Z [36;1mpython3 tests/replay.py[0m
+2026-11-02T11:07:55.5512669Z shell: /usr/bin/bash -e {0}
+2026-11-02T11:07:55.5512878Z env:
+2026-11-02T11:07:55.5513046Z   HPO_JOB_GRADES: nothing
+2026-11-02T11:07:55.5513291Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:55.5513638Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-02T11:07:55.5513970Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:55.5514288Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:55.5514578Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-02T11:07:55.5514873Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-02T11:07:55.5515143Z   PYTHONPATH: tests/hastub
+2026-11-02T11:07:55.5515328Z ##[endgroup]
+2026-11-02T11:07:55.9125276Z reading the recorder: SQLite database /tmp/tmpeavaxg21/home-assistant_v2.db
+2026-11-02T11:07:55.9883661Z reading the recorder: SQLite database /tmp/tmpr4vq_pxy/home-assistant_v2.db
+2026-11-02T11:07:56.0456321Z reading the recorder: SQLite database /tmp/tmpg3df97vw/home-assistant_v2.db
+2026-11-02T11:07:56.1043445Z reading the recorder: SQLite database /tmp/tmph2hz6440/home-assistant_v2.db
+2026-11-02T11:07:56.1819477Z reading the recorder: SQLite database /tmp/tmpkixvu626/home-assistant_v2.db
+2026-11-02T11:07:56.2399986Z reading the recorder: SQLite database /tmp/tmpiqblt5oe/home-assistant_v2.db
+2026-11-02T11:07:56.2975369Z reading the recorder: SQLite database /tmp/tmp7eb_izju/home-assistant_v2.db
+2026-11-02T11:07:56.3720142Z reading the recorder: SQLite database /tmp/tmp4wi6hcii/home-assistant_v2.db
+2026-11-02T11:07:56.4353165Z reading the recorder: SQLite database /tmp/tmptzmy0mu3/home-assistant_v2.db
+2026-11-02T11:07:56.4951527Z reading the recorder: SQLite database /tmp/tmpkp7egc_p/home-assistant_v2.db
+2026-11-02T11:07:56.5644655Z reading the recorder: SQLite database /tmp/tmpq61xxlo9/home-assistant_v2.db
+2026-11-02T11:07:56.6232202Z reading the recorder: SQLite database /tmp/tmp9nb9ia2o/home-assistant_v2.db
+2026-11-02T11:07:56.6816953Z reading the recorder: SQLite database /tmp/tmphhxkb8io/home-assistant_v2.db
+2026-11-02T11:07:56.7584547Z reading the recorder: SQLite database /tmp/tmpn1hz3dag/home-assistant_v2.db
+2026-11-02T11:07:56.8175479Z reading the recorder: SQLite database /tmp/tmp61tq5euh/home-assistant_v2.db
+2026-11-02T11:07:56.8768405Z reading the recorder: SQLite database /tmp/tmpbwb0ruqd/home-assistant_v2.db
+2026-11-02T11:07:56.9487344Z reading the recorder: SQLite database /tmp/tmpkkbu454o/home-assistant_v2.db
+2026-11-02T11:07:57.0068071Z reading the recorder: SQLite database /tmp/tmpdvzlk0zc/home-assistant_v2.db
+2026-11-02T11:07:57.0631958Z reading the recorder: SQLite database /tmp/tmpr4po52xo/home-assistant_v2.db
+2026-11-02T11:07:57.1397965Z reading the recorder: SQLite database /tmp/tmp7bwyeo0q/home-assistant_v2.db
+2026-11-02T11:07:57.1935093Z reading the recorder: SQLite database /tmp/tmp4qt4fz3l/home-assistant_v2.db
+2026-11-02T11:07:57.2512558Z reading the recorder: SQLite database /tmp/tmpu_5be5cj/home-assistant_v2.db
+2026-11-02T11:07:57.3092117Z reading the recorder: SQLite database /tmp/tmp_xd04x0v/home-assistant_v2.db
+2026-11-02T11:07:58.1468095Z reading the recorder: SQLite database /tmp/tmpxalhfgwi/home-assistant_v2.db
+2026-11-02T11:07:58.3331633Z reading the recorder: SQLite database /tmp/tmpd5_gxpal/home-assistant_v2.db
+2026-11-02T11:17:53.6852302Z 
+2026-11-02T11:17:53.6852929Z === Replay: recorded days through the real coordinator ===
+2026-11-02T11:17:53.6853974Z   ok   at least one fixture
+2026-11-02T11:17:53.6854164Z 
+2026-11-02T11:17:53.6854363Z -- controls: each invariant fires on bad data and not on good
+2026-11-02T11:17:53.6854793Z   ok   control:finite
+2026-11-02T11:17:53.6854975Z   ok   control:unit
+2026-11-02T11:17:53.6855198Z   ok   control:no_default
+2026-11-02T11:17:53.6855523Z   ok   control:no_default:setpoint_value_on_a_reading
+2026-11-02T11:17:53.6856290Z   ok   control:no_default:setpoint_at_an_unconfigured_default
+2026-11-02T11:17:53.6856711Z   ok   control:no_default:setpoint_keys_are_published_config
+2026-11-02T11:17:53.6857072Z   ok   control:agreement:attribute
+2026-11-02T11:17:53.6857373Z   ok   control:agreement:plan
+2026-11-02T11:17:53.6857648Z   ok   control:agreement:power
+2026-11-02T11:17:53.6857922Z   ok   control:agreement:climate
+2026-11-02T11:17:53.6858194Z   ok   control:not_frozen
+2026-11-02T11:17:53.6858478Z   ok   control:not_frozen:one_value_beside_zeros
+2026-11-02T11:17:53.6858805Z   ok   control:cycle_cost:cpu
+2026-11-02T11:17:53.6859068Z   ok   control:cycle_cost:memory
+2026-11-02T11:17:53.6859338Z   ok   control:cycle_cost:loose_budget
+2026-11-02T11:17:53.6859631Z   ok   control:cycle_cost:unrecorded
+2026-11-02T11:17:53.6859952Z   ok   control:cycle_cost:loop_thread
+2026-11-02T11:17:53.6860286Z   ok   control:cycle_cost:loop_normaliser
+2026-11-02T11:17:53.6860628Z   ok   control:cycle_cost:cpu_normaliser
+2026-11-02T11:17:53.6860894Z   ok   control:cycle_cost:arms_skipped_never_everywhere
+2026-11-02T11:17:53.6861174Z   ok   control:cycle_cost:arms_skipped_committed_only
+2026-11-02T11:17:53.6861432Z   ok   control:away:covered_names_are_committed
+2026-11-02T11:17:53.6861670Z   ok   control:cycle_cost:short_doubling
+2026-11-02T11:17:53.6861895Z   ok   control:cycle_cost:unmetered_doubling
+2026-11-02T11:17:53.6862337Z   ok   control:away:view
+2026-11-02T11:17:53.6862552Z   ok   control:away:override
+2026-11-02T11:17:53.6862784Z   ok   control:away:floor
+2026-11-02T11:17:53.6863082Z   ok   control:away:replayed
+2026-11-02T11:17:53.6863393Z   ok   control:away:coverage_needs_a_command
+2026-11-02T11:17:53.6863783Z   ok   control:away:coverage_needs_a_commanded_cycle
+2026-11-02T11:17:53.6864108Z   ok   control:cycle_cost:coverage
+2026-11-02T11:17:53.6864235Z 
+2026-11-02T11:17:53.6864370Z -- sanitising: the export's rules and nightly_ha's A10 rule
+2026-11-02T11:17:53.6864679Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+2026-11-02T11:17:53.6864969Z   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+2026-11-02T11:17:53.6865228Z   ok   sanitised:owner-2026-10-30-away.json
+2026-11-02T11:17:53.6865477Z   ok   a10_location:owner-2026-10-30-away.json
+2026-11-02T11:17:53.6865718Z   ok   away_coverage:owner-2026-10-30-away.json
+2026-11-02T11:17:53.6865961Z   ok   sanitised:synthetic-dhw-only.json
+2026-11-02T11:17:53.6866203Z   ok   a10_location:synthetic-dhw-only.json
+2026-11-02T11:17:53.6866438Z   ok   away_coverage:synthetic-dhw-only.json
+2026-11-02T11:17:53.6866670Z   ok   control:sanitiser_refuses
+2026-11-02T11:17:53.6866878Z   ok   control:sanitise_clears
+2026-11-02T11:17:53.6867103Z   ok   leak_probe:capital_Latitude:export_drops
+2026-11-02T11:17:53.6867354Z   ok   leak_probe:capital_Latitude:check_refuses
+2026-11-02T11:17:53.6867602Z   ok   leak_probe:lat_lon_short:export_drops
+2026-11-02T11:17:53.6867835Z   ok   leak_probe:lat_lon_short:check_refuses
+2026-11-02T11:17:53.6868068Z   ok   leak_probe:coord_list:export_drops
+2026-11-02T11:17:53.6868299Z   ok   leak_probe:coord_list:check_refuses
+2026-11-02T11:17:53.6868539Z   ok   leak_probe:coord_string:export_drops
+2026-11-02T11:17:53.6868767Z   ok   leak_probe:coord_string:check_refuses
+2026-11-02T11:17:53.6868993Z   ok   leak_probe:basic_auth_url:export_drops
+2026-11-02T11:17:53.6869235Z   ok   leak_probe:basic_auth_url:check_refuses
+2026-11-02T11:17:53.6869469Z   ok   leak_probe:apikey_query:export_drops
+2026-11-02T11:17:53.6869696Z   ok   leak_probe:apikey_query:check_refuses
+2026-11-02T11:17:53.6869919Z   ok   leak_probe:pin_code:export_drops
+2026-11-02T11:17:53.6870315Z   ok   leak_probe:pin_code:check_refuses
+2026-11-02T11:17:53.6870547Z   ok   leak_probe:psk:export_drops
+2026-11-02T11:17:53.6870777Z   ok   leak_probe:psk:check_refuses
+2026-11-02T11:17:53.6870993Z   ok   leak_probe:email:export_drops
+2026-11-02T11:17:53.6871206Z   ok   leak_probe:email:check_refuses
+2026-11-02T11:17:53.6871426Z   ok   leak_probe:serial_mac:export_drops
+2026-11-02T11:17:53.6871840Z   ok   leak_probe:serial_mac:check_refuses
+2026-11-02T11:17:53.6872376Z   ok   leak_probe:entry_address:export_drops
+2026-11-02T11:17:53.6872828Z   ok   leak_probe:entry_address:check_refuses
+2026-11-02T11:17:53.6873237Z   ok   leak_probe:entry_url_in_allowed_key:export_drops
+2026-11-02T11:17:53.6873664Z   ok   leak_probe:entry_url_in_allowed_key:check_refuses
+2026-11-02T11:17:53.6874056Z   ok   leak_probe:state_address:export_drops
+2026-11-02T11:17:53.6874417Z   ok   leak_probe:state_address:check_refuses
+2026-11-02T11:17:53.6874789Z   ok   leak_probe:n1_options_dict:export_drops
+2026-11-02T11:17:53.6875182Z   ok   leak_probe:n1_options_dict:check_refuses
+2026-11-02T11:17:53.6875554Z   ok   leak_probe:n2_currency_name:export_drops
+2026-11-02T11:17:53.6875901Z   ok   leak_probe:n2_currency_name:check_refuses
+2026-11-02T11:17:53.6876155Z   ok   leak_probe:n3_options_address:export_drops
+2026-11-02T11:17:53.6876417Z   ok   leak_probe:n3_options_address:check_refuses
+2026-11-02T11:17:53.6876669Z   ok   leak_probe:n4_token_in_series:export_drops
+2026-11-02T11:17:53.6876909Z   ok   leak_probe:n4_token_in_series:check_refuses
+2026-11-02T11:17:53.6877148Z   ok   leak_probe:state_n10_host_path:export_drops
+2026-11-02T11:17:53.6877662Z   ok   leak_probe:state_n10_host_path:check_refuses
+2026-11-02T11:17:53.6878072Z   ok   leak_probe:n11_host_path_unit:export_drops
+2026-11-02T11:17:53.6878480Z   ok   leak_probe:n11_host_path_unit:check_refuses
+2026-11-02T11:17:53.6878914Z   ok   leak_probe:entry_n13_text_in_entity_key:export_drops
+2026-11-02T11:17:53.6879281Z   ok   leak_probe:entry_n13_text_in_entity_key:check_refuses
+2026-11-02T11:17:53.6879572Z   ok   leak_probe:n14_mac_no_colons:export_drops
+2026-11-02T11:17:53.6879819Z   ok   leak_probe:n14_mac_no_colons:check_refuses
+2026-11-02T11:17:53.6880063Z   ok   leak_probe:state_street_number:export_drops
+2026-11-02T11:17:53.6880312Z   ok   leak_probe:state_street_number:check_refuses
+2026-11-02T11:17:53.6880564Z   ok   leak_probe:entry_free_text:export_drops
+2026-11-02T11:17:53.6880809Z   ok   leak_probe:entry_free_text:check_refuses
+2026-11-02T11:17:53.6881058Z   ok   tibber_price:one_home_picked
+2026-11-02T11:17:53.6881280Z   ok   tibber_price:none_refused
+2026-11-02T11:17:53.6881487Z   ok   tibber_price:two_homes_refused
+2026-11-02T11:17:53.6881707Z   ok   tibber_price:flag_overrides_two
+2026-11-02T11:17:53.6881927Z   ok   tibber_price:flag_overrides_one
+2026-11-02T11:17:53.6882402Z   ok   tibber_price:entry_names_one
+2026-11-02T11:17:53.6882614Z   ok   tibber_price:disabled_skipped
+2026-11-02T11:17:53.6882826Z   ok   tibber_price:unrecorded_skipped
+2026-11-02T11:17:53.6883046Z   ok   tibber_price:unavailable_skipped
+2026-11-02T11:17:53.6883269Z   ok   tibber_price:entity_source_untouched
+2026-11-02T11:17:53.6883491Z   ok   recorder:db_url_whole_day_read
+2026-11-02T11:17:53.6883726Z   ok   recorder:db_url_read_only_session_selects_only
+2026-11-02T11:17:53.6883969Z   ok   recorder:db_url_secret_resolved
+2026-11-02T11:17:53.6884195Z   ok   recorder:db_url_credentials_never_printed
+2026-11-02T11:17:53.6884468Z   ok   recorder:db_url_connect_refusal_names_no_credential
+2026-11-02T11:17:53.6884731Z   ok   recorder:open_line_names_kind_and_db_path
+2026-11-02T11:17:53.6884988Z   ok   recorder:open_line_url_branch_carries_no_url_value
+2026-11-02T11:17:53.6885286Z   ok   recorder:unsupported_scheme_refusal_prints_none_of_the_url
+2026-11-02T11:17:53.6885559Z   ok   recorder:db_url_flag_read
+2026-11-02T11:17:53.6885785Z   ok   recorder:sqlite_db_url_named_by_kind_not_path
+2026-11-02T11:17:53.6886046Z   ok   recorder:db_url_driver_missing_refused_by_name
+2026-11-02T11:17:53.6905003Z   ok   recorder:stale_sqlite_near_empty_day_refused
+2026-11-02T11:17:53.6905446Z   ok   recorder:db_url_emptied_window_refused_naming_inputs_and_recorder
+2026-11-02T11:17:53.6905795Z   ok   recorder:sqlite_db_url_refusal_names_kind_not_path
+2026-11-02T11:17:53.6906061Z   ok   recorder:retired_key_left_out
+2026-11-02T11:17:53.6906296Z   ok   recorder:read_key_unrecorded_refused
+2026-11-02T11:17:53.6906715Z   ok   recorder:url_from_configuration:inline_quoted
+2026-11-02T11:17:53.6906988Z   ok   recorder:url_from_configuration:inline_plain
+2026-11-02T11:17:53.6907252Z   ok   recorder:url_from_configuration:secret
+2026-11-02T11:17:53.6907491Z   ok   recorder:url_from_configuration:include
+2026-11-02T11:17:53.6907758Z   ok   recorder:url_from_configuration:nested_key_ignored
+2026-11-02T11:17:53.6908028Z   ok   recorder:url_from_configuration:no_db_url
+2026-11-02T11:17:53.6908268Z   ok   recorder:url_from_configuration:no_file
+2026-11-02T11:17:53.6908500Z   ok   mask:entry_entities_renamed_to_their_role
+2026-11-02T11:17:53.6908735Z   ok   mask:published_ids_hashed
+2026-11-02T11:17:53.6908980Z   ok   mask:street_in_entity_ids_and_names_absent_from_export
+2026-11-02T11:17:53.6909280Z   ok   mask:check_refuses_unmapped_id_naming_class_not_token
+2026-11-02T11:17:53.6909567Z   ok   mask:check_refuses_address_text_naming_class_not_token
+2026-11-02T11:17:53.6909846Z   ok   mask:seal_refuses_unmapped_id_naming_class_not_token
+2026-11-02T11:17:53.6910131Z   ok   mask:check_refuses_a_document_with_its_times_nulled
+2026-11-02T11:17:53.6910403Z   ok   mask:null_committed_fixture_passes_the_check
+2026-11-02T11:17:53.6910673Z   ok   mask:id_as_any_dict_key_renamed_and_refused_unrenamed
+2026-11-02T11:17:53.6910925Z   ok   mask:id_only_as_a_list_item_refused
+2026-11-02T11:17:53.6911149Z   ok   mask:id_only_as_a_states_key_refused
+2026-11-02T11:17:53.6911395Z   ok   mask:entities_list_ids_take_their_numbered_role
+2026-11-02T11:17:53.6911663Z   ok   mask:a_payload_that_is_no_document_has_no_violation
+2026-11-02T11:17:53.6911944Z   ok   leak_copy:bool_under_a_credential_key_is_no_credential
+2026-11-02T11:17:53.6912356Z   ok   leak_copy:copy_inside_a_list_dropped
+2026-11-02T11:17:53.6912600Z   ok   leak_copy:string_copy_in_attribute_dropped
+2026-11-02T11:17:53.6912895Z   ok   leak_copy:number_copy_refused_naming_its_place_not_its_value
+2026-11-02T11:17:53.6913192Z   ok   leak_copy:null_number_inside_a_longer_one_sealed
+2026-11-02T11:17:53.6913469Z   ok   leak_copy:dropped_text_inside_timestamps_keeps_them
+2026-11-02T11:17:53.6913756Z   ok   leak_copy:credential_text_inside_timestamps_keeps_them
+2026-11-02T11:17:53.6914049Z   ok   leak_copy:state_words_under_a_credential_key_not_searched
+2026-11-02T11:17:53.6914345Z   ok   cut_day:every_cycle_instant_reads_as_the_whole_export
+2026-11-02T11:17:53.6914613Z   ok   cut_day:price_series_kept_to_the_export_end
+2026-11-02T11:17:53.6914853Z   ok   cut_day:no_published_entity_kept
+2026-11-02T11:17:53.6915115Z   ok   cut_day:away_command_from_the_paired_switch_restart_skipped
+2026-11-02T11:17:53.6915440Z   ok   cut_day:reload_is_every_published_entity_gone_and_no_input
+2026-11-02T11:17:53.6915729Z   ok   cut_day:null_restart_with_inputs_gone_is_no_reload
+2026-11-02T11:17:53.6915984Z   ok   cut_day:null_day_without_a_command_has_none
+2026-11-02T11:17:53.6916223Z   ok   cut_day:two_paired_switches_refused
+2026-11-02T11:17:53.6916499Z   ok   the synthetic fixture is what synthesize.py + export.py write
+2026-11-02T11:17:53.6916707Z 
+2026-11-02T11:17:53.6916796Z -- replay owner-2026-10-30-away.json
+2026-11-02T11:17:53.6917047Z   ok   owner-2026-10-30-away.json: the replay ran to the end
+2026-11-02T11:17:53.6917635Z   16 cycles over 82 entities in 594.3 s; cost {'cpu_ratio': 235.8185, 'peak_kib': 2709.4, 'loop_cpu_ratio': 0.128, 'timed': 7, 'traced': 8, 'ref_ms': 30.737181000000003, 'loop_ref_ms': 130.9480769999709}
+2026-11-02T11:17:53.6918281Z   record: owner-2026-10-30-away.json cpu_ratio=333.5 peak_kib=3832 loop_cpu_ratio=0.181
+2026-11-02T11:17:53.6918674Z   ok   owner-2026-10-30-away.json: at least one cycle and one entity
+2026-11-02T11:17:53.6919090Z   ok   owner-2026-10-30-away.json: finite
+2026-11-02T11:17:53.6919318Z   ok   owner-2026-10-30-away.json: unit
+2026-11-02T11:17:53.6919540Z   ok   owner-2026-10-30-away.json: no_default
+2026-11-02T11:17:53.6919767Z   ok   owner-2026-10-30-away.json: agreement
+2026-11-02T11:17:53.6919985Z   ok   owner-2026-10-30-away.json: cycle
+2026-11-02T11:17:53.6920303Z   ok   owner-2026-10-30-away.json: not_frozen
+2026-11-02T11:17:53.6920537Z   ok   owner-2026-10-30-away.json: away
+2026-11-02T11:17:53.6920761Z   ok   owner-2026-10-30-away.json: cycle_cost
+2026-11-02T11:19:03.6154651Z   doubled arms not run: a real install's solve: 16 cycles, about 12 CPU-minutes a replay, so four would overrun the replay job; the arms run on the synthetic fixture
+2026-11-02T11:19:03.6155362Z 
+2026-11-02T11:19:03.6155476Z -- replay synthetic-dhw-only.json
+2026-11-02T11:19:03.6155893Z   ok   synthetic-dhw-only.json: the replay ran to the end
+2026-11-02T11:19:03.6156741Z   48 cycles over 82 entities in 13.8 s; cost {'cpu_ratio': 2.7543, 'peak_kib': 1933.0, 'loop_cpu_ratio': 0.0907, 'timed': 23, 'traced': 24, 'ref_ms': 30.93154000000098, 'loop_ref_ms': 131.43378800000073}
+2026-11-02T11:19:03.6157705Z   record: synthetic-dhw-only.json cpu_ratio=3.895 peak_kib=2734 loop_cpu_ratio=0.1283
+2026-11-02T11:19:03.6158262Z   ok   synthetic-dhw-only.json: at least one cycle and one entity
+2026-11-02T11:19:03.6158684Z   ok   synthetic-dhw-only.json: finite
+2026-11-02T11:19:03.6158988Z   ok   synthetic-dhw-only.json: unit
+2026-11-02T11:19:03.6159304Z   ok   synthetic-dhw-only.json: no_default
+2026-11-02T11:19:03.6159630Z   ok   synthetic-dhw-only.json: agreement
+2026-11-02T11:19:03.6159950Z   ok   synthetic-dhw-only.json: cycle
+2026-11-02T11:19:03.6160250Z   ok   synthetic-dhw-only.json: not_frozen
+2026-11-02T11:19:03.6160562Z   ok   synthetic-dhw-only.json: away
+2026-11-02T11:19:03.6160909Z   ok   synthetic-dhw-only.json: cycle_cost
+2026-11-02T11:19:03.6161371Z   ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+2026-11-02T11:19:03.6162235Z   cpu doubled: cost {'cpu_ratio': 5.5315, 'peak_kib': 1932.8, 'loop_cpu_ratio': 0.7314, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 31.124425999998095, 'loop_ref_ms': 134.37457299999878}
+2026-11-02T11:19:03.6162819Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+2026-11-02T11:19:03.6163205Z   ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
+2026-11-02T11:19:03.6163588Z   ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+2026-11-02T11:19:03.6164145Z   memory doubled: cost {'cpu_ratio': 2.7967, 'peak_kib': 3861.0, 'loop_cpu_ratio': 0.0886, 'timed': 23, 'traced': 24, 'ref_ms': 30.454201000000403, 'loop_ref_ms': 133.5628479999986}
+2026-11-02T11:19:03.6164673Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
+2026-11-02T11:19:03.6165023Z   ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+2026-11-02T11:19:03.6165616Z   loop doubled: cost {'cpu_ratio': 3.2108, 'peak_kib': 1930.7, 'loop_cpu_ratio': 0.1833, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 30.197499999999877, 'loop_ref_ms': 131.12515999999997}
+2026-11-02T11:19:03.6166190Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+2026-11-02T11:19:03.6166576Z   ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
+2026-11-02T11:19:03.6166923Z   ok   AWAY_COVERED names committed fixtures
+2026-11-02T11:19:03.6167241Z   ok   the doubled-cost arms are skipped on committed fixtures only, never all
+2026-11-02T11:19:03.6167473Z 
+2026-11-02T11:19:03.6167555Z replay lane wall time 667.9 s
+2026-11-02T11:19:03.6167687Z 
+2026-11-02T11:19:03.6167775Z ALL 179 replay checks PASSED
+2026-11-02T11:19:03.6481913Z Post job cleanup.
+2026-11-02T11:19:03.7552687Z Post job cleanup.
+2026-11-02T11:19:03.8224450Z [command]/usr/bin/git version
+2026-11-02T11:19:03.8258035Z git version 2.56.0
+2026-11-02T11:19:03.8284680Z Temporarily overriding HOME='/home/runner/work/_temp/d48d39c3-eee2-4279-a93d-68a4467e6be5' before making global git config changes
+2026-11-02T11:19:03.8285707Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-02T11:19:03.8289280Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-02T11:19:03.8316429Z Removing SSH command configuration
+2026-11-02T11:19:03.8320964Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-02T11:19:03.8351131Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-02T11:19:03.8599175Z Removing HTTP extra header
+2026-11-02T11:19:03.8603724Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-02T11:19:03.8633428Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-02T11:19:03.8874972Z Removing includeIf entries pointing to credentials config files
+2026-11-02T11:19:03.8880114Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-02T11:19:03.8903034Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-02T11:19:03.8903787Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-02T11:19:03.8904266Z includeif.gitdir:/github/workspace/.git.path
+2026-11-02T11:19:03.8904586Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-02T11:19:03.8909210Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-02T11:19:03.8928887Z /home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:19:03.8936309Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-0fdab6cf\-bf77\-4a2c\-ac71\-bda6fe2adc11\.config
+2026-11-02T11:19:03.8967557Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-02T11:19:03.8988259Z /home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:19:03.8993492Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-0fdab6cf\-bf77\-4a2c\-ac71\-bda6fe2adc11\.config
+2026-11-02T11:19:03.9020843Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-02T11:19:03.9039873Z /github/runner_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:19:03.9076988Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-0fdab6cf\-bf77\-4a2c\-ac71\-bda6fe2adc11\.config
+2026-11-02T11:19:03.9104704Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-02T11:19:03.9123547Z /github/runner_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config
+2026-11-02T11:19:03.9129467Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-0fdab6cf\-bf77\-4a2c\-ac71\-bda6fe2adc11\.config
+2026-11-02T11:19:03.9157685Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-02T11:19:03.9394012Z Removing credentials config '/home/runner/work/_temp/git-credentials-0fdab6cf-bf77-4a2c-ac71-bda6fe2adc11.config'
+2026-11-02T11:19:03.9539472Z Cleaning up orphan processes

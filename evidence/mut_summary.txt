@@ -1,0 +1,12 @@
+== awaytypo
+192:  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.156 over its budget 0.143]
+204:  FAIL AWAY_COVERED names committed fixtures  [owner-2026-10-30-awya.json: declares away coverage but is not a committed fixture]
+209:2 of 166 replay checks FAILED
+== urlfstring
+132:  FAIL recorder:unsupported_scheme_refusal_prints_none_of_the_url  [refused: the recorder URL ftp://hpo_reader:Invented-Pa55word-91@core-mariadb/x is neither SQLite nor MySQL/MariaDB, the two this export reads]
+192:  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.179 over its budget 0.143]
+209:2 of 166 replay checks FAILED
+== offempty
+27:  FAIL control:away:covered_names_are_committed  [bad=[] good=[]]
+192:  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.185 over its budget 0.143]
+209:2 of 166 replay checks FAILED
