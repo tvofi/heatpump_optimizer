@@ -1,0 +1,11 @@
+RESULT mutant=M0 failed=0 verdict=null-ok
+RESULT mutant=M-exact failed=10 verdict=killed
+RESULT mutant=M-body failed=3 verdict=killed
+RESULT mutant=M-landed failed=1 verdict=killed
+RESULT mutant=M-omitlast failed=1 verdict=killed
+RESULT mutant=M-crit failed=2 verdict=killed
+RESULT mutant=M-seen failed=4 verdict=killed
+RESULT mutant=M-starved failed=1 verdict=killed
+RESULT mutant=M-backoff failed=3 verdict=killed
+RESULT mutants=8
+RESULT survived=0
