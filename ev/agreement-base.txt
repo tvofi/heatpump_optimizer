@@ -1,0 +1,5 @@
+  REFUSED       budget-raise: no --py-json FILE: run `python3 -I tools/policy/agreement_py.py --run`
+  REFUSED       attribution: no --py-json FILE: run `python3 -I tools/policy/agreement_py.py --run`
+  REFUSED       raise-justification: no --py-json FILE: run `python3 -I tools/policy/agreement_py.py --run`
+RESULT divergent=0 unregistered=0 dead=0 refused=6 seconds=0.2
+AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
