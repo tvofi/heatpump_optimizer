@@ -25,6 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ORCH-REVIEW-PACKET (stage carries-open, branch `handoff/r10-orch-review-packet`): `git fetch origin handoff/r10-orch-review-packet && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage in-progress, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-REAL-DAY (stage in-progress, branch `handoff/r10-replay-real-day`): `git fetch origin handoff/r10-replay-real-day && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ARCHSCORE-SPELLINGS (stage in-progress, branch `handoff/r10-archscore-spellings`): `git fetch origin handoff/r10-archscore-spellings && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-996-RUNNER-CLAIMS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ARCH-SHAPES-CLASSIFIER (stage queued): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -32,11 +33,17 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-BUS-BASH32 (stage in-progress, branch `handoff/r10-fly-bus-bash32`): `git fetch origin handoff/r10-fly-bus-bash32 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FACTORY-RESET (stage carries-open, branch `handoff/r10-factory-reset`): `git fetch origin handoff/r10-factory-reset && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-AUDIT-COVERAGE-ENDGAME (stage queued): no branch pushed yet, so nothing to fetch
+- R10-AUDIT-COVERAGE-ENDGAME (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CLOSURE-MAJOR (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-RAISE-REVIEWABLE (stage carries-open, branch `handoff/r10-fly-raise-reviewable`): `git fetch origin handoff/r10-fly-raise-reviewable && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BASH-KILL-HOOK (stage in-progress, branch `handoff/r10-bash-kill-hook`): `git fetch origin handoff/r10-bash-kill-hook && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-OPENER-REUSE (stage in-progress, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage carries-open, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-AGREEMENT-BOOTSTRAP (stage in-progress, branch `handoff/r10-agreement-bootstrap`): `git fetch origin handoff/r10-agreement-bootstrap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PLAN-REAL-DURATIONS (stage carries-open, branch `handoff/r10-plan-real-durations`): `git fetch origin handoff/r10-plan-real-durations && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-MACHINERY-RATCHETS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-REPLAY-OPEN-LOG (stage in-progress): no branch pushed yet, so nothing to fetch
 
 Ready next (after-edges satisfied; nothing open constrains them): R10-996-RUNNER-CLAIMS, R10-AGREEMENT-BOOTSTRAP, R10-ARCHSCORE-SPELLINGS, R10-BASH-KILL-HOOK, R10-BRIEFS-FOLD-D0, R10-CEILING-PROBE, R10-CI-RUNNER-FIXES, R10-DEPS-ACTIONS-BUMP, R10-DEPS-PIP-BUMP, R10-FACTORY-RESET, R10-FLOW-TOOLKIT-MODEL, R10-FLY-BUS-BASH32, R10-FLY-CIPREDICT-RESTORING, R10-FLY-GANTT-DRIFT, R10-FLY-GH-CALL-LOG, R10-FLY-GH-READ-RETRY, R10-FLY-RAISE-REVIEWABLE, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-RELAY-REVIEW-FF, R10-FRICTION-RECORDS, R10-GRADE-DRIVERS, R10-LEDGER-RESIDUE, R10-MACHINERY-RATCHETS, R10-MUTANT-RUN-DRIVER, R10-OPENER-REUSE, R10-ORCH-REVIEW-PACKET, R10-ORCH-ROSTER-SCHEMA, R10-PARTLOAD-PRICING, R10-PLAN-REAL-DURATIONS, R10-PLANTED-DEFECT-AUDIT, R10-POLICY-ROLE-PACK, R10-PREPR-CAP, R10-PROD-RESIDUE-PINS, R10-REPLAY-OPEN-LOG, R10-REPLAY-REAL-DAY, R10-SAV-COMFORT, R10-SEAT-SINGLE-WRITER, R10-SUITE-HOST-DETERMINISM, R10-TRAIN-MERGE-LOOP, R10-TRAIN-OVERLAP-GRADE
 
