@@ -1,0 +1,10 @@
+head 7637d6634bb6effa013c81169fad2c18e644730f, detached worktree, recorder_checks() driven directly
+null control: RESULT bad=0
+default delete/const/mysql-label: RED recorder:open_recorder_line:default
+db delete/const/mysql-label: RED recorder:open_recorder_line:db_path
+sqlite-url delete/const/mysql-label: RED recorder:open_recorder_line:sqlite_url
+mysql-url delete/const/sqlite-label: RED recorder:open_recorder_line:mysql_url
+mysql-url prints URL: RED ..._lines_carry_no_url_value + mysql_url
+sqlite-url prints URL: RED recorder:open_recorder_line:sqlite_url
+default<->db label swap: RED recorder:open_recorder_line:default
+restored: diff against original export.py empty
