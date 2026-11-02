@@ -551,6 +551,17 @@ MUTANTS = [
      'return any(line.startswith("@@") for line'),
     ("prune_refs-6", "prune_refs.py", "    return fam == \"dispatch\" and bool(rn.search(tail))",
      "    return False"),
+    # #3085 verdict: every delete leased at the planned sha, atomic per chunk;
+    # the api arm's read-back and abort; step 3's local old-value delete.
+    ("prune_refs-7", "prune_refs.py",
+     '*[f"--force-with-lease=refs/heads/{n}:{s}" for n, s in part],', ""),
+    ("prune_refs-8", "prune_refs.py", 'err = push(["--atomic", ', "err = push(["),
+    ("prune_refs-9", "prune_refs.py", "            if now.returncode != 0 or now.stdout.strip() != sha:",
+     "            if now.returncode != 0:"),
+    ("prune_refs-10", "prune_refs.py", '        if done[-1][0].endswith("FAILED"):\n            return done',
+     '        if False:\n            return done'),
+    ("closeout-3", "closeout.py", '"update-ref", "-d", f"refs/heads/{b}", sha)',
+     '"update-ref", "-d", f"refs/heads/{b}")'),
     ("worktree_gc-1", "tools/audit/worktree_gc.sh", '    if [ "$up" != 0 ]; then', "    if false; then"),
     ("worktree_gc-2", "tools/audit/worktree_gc.sh", "      1) printf 'keep  %s  cwd-inside", "      9) printf 'keep  %s  cwd-inside"),
     ("worktree_gc-3", "tools/audit/worktree_gc.sh", '  [ "$FETCH_OK" -eq 1 ] || return 1', "  true"),
