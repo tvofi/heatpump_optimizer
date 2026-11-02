@@ -12,8 +12,9 @@
 #   venv-ci  tests/requirements-ci.txt, hash-pinned: numpy, scipy and the rest
 #            of what `fast` installs; first on PATH, so `python3` is this one
 #   venv-ha  tests/requirements-typing.txt, hash-pinned, --no-deps exactly as
-#            the `typing` job installs it: mypy, homeassistant 2026.9.3 and
-#            homeassistant-stubs 2026.9.3; exported as HPO_TYPING_PYTHON
+#            the `typing` job installs it: mypy, homeassistant and
+#            homeassistant-stubs; exported as HPO_TYPING_PYTHON, and asserted
+#            to import the lock's homeassistant pin, read from the lock
 #
 # The pins are read from the checkout, never restated here, so this script
 # cannot drift from the lock files; a lock edit reaches the next session.
@@ -177,7 +178,8 @@ pins venv-ci -r "$REPO/tests/requirements-ci.txt"
 pins venv-ha --no-deps -r "$REPO/tests/requirements-typing.txt"
 
 "$PREFIX/venv-ci/bin/python" -c 'import numpy, scipy, voluptuous'
-"$PREFIX/venv-ha/bin/python" -c 'import homeassistant.const as c; assert c.__version__ == "2026.9.3", c.__version__'
+HA_PIN=$(sed -n 's/^homeassistant==\([^ ]*\) .*/\1/p' "$REPO/tests/requirements-typing.txt")
+"$PREFIX/venv-ha/bin/python" -c 'import homeassistant.const as c, sys; assert c.__version__ == sys.argv[1], c.__version__' "$HA_PIN"
 
 write_profile "$PROFILE" "$PREFIX"
 

@@ -934,13 +934,14 @@ R.check(
 )
 R.check(
     "the replay half carries the entry's inputs and what it publishes, read through the "
-    "recorder's history API: the state in force at the window's start, then the window",
-    set(replay["states"]) == {"sensor.indoor", "sensor.outdoor", "sensor.nordpool",
-                              "sensor.hpo_plan"}
-    and replay["published"] == ["sensor.hpo_plan"]
+    "recorder's history API: the state in force at the window's start, then the window; "
+    "every id masked to its role, and what it publishes to the entry-keyed hash",
+    set(replay["states"]) == {"sensor.indoor_temp", "sensor.outdoor_temp", "sensor.price",
+                              replay_doc.hashed_id("sensor.hpo_plan", "rp")}
+    and replay["published"] == [replay_doc.hashed_id("sensor.hpo_plan", "rp")]
     and replay["price_series_entity"] is None
-    and [row[1] for row in replay["states"]["sensor.outdoor"]] == ["-3.5"]
-    and len(replay["states"]["sensor.indoor"]) == 24
+    and [row[1] for row in replay["states"]["sensor.outdoor_temp"]] == ["-3.5"]
+    and len(replay["states"]["sensor.indoor_temp"]) == 24
     and replay["recorder_schema"] == ha_recorder.Recorder.schema_version
     and replay["time_zone"] == "Europe/Stockholm",
     str({k: replay.get(k) for k in ("published", "price_series_entity", "window")}),
@@ -969,7 +970,7 @@ R.check(
     not a10.failures(), str(a10.results),
 )
 planted = json.loads(json.dumps(replay))
-planted["states"]["sensor.indoor"][0][2] = {"access_token": TOKEN}
+planted["states"]["sensor.indoor_temp"][0][2] = {"access_token": TOKEN}
 planted_found = export.violations(planted, CONF)
 R.check(
     "the null control: a credential planted back into the generated replay half is "
@@ -1018,10 +1019,29 @@ tibber = asyncio.run(_replay_download(
     price_source="tibber", tibber=[("sensor.electricity_price_home", "96a14971")]))
 R.check(
     "with the Tibber source the replay half takes the price series from the Tibber "
-    "price sensor, the export's own choice",
-    tibber["debug"]["replay"]["price_series_entity"] == "sensor.electricity_price_home"
-    and "sensor.electricity_price_home" in tibber["debug"]["replay"]["states"],
+    "price sensor, the export's own choice, masked as the price series (the entry's "
+    "own price_entity holds sensor.price)",
+    tibber["debug"]["replay"]["price_series_entity"] == "sensor.price_series"
+    and "sensor.price_series" in tibber["debug"]["replay"]["states"]
+    and "electricity_price_home" not in json.dumps(tibber["debug"]["replay"]),
     str(tibber["debug"]["manifest"].get("replay")),
+)
+# R10-REPLAY-REAL-DAY: the home's name or street address rides in entity ids (the
+# Tibber price sensor's id is derived from the home's address), in friendly names
+# and in text. Invented here; the sealed replay half must carry none of it.
+street = asyncio.run(_replay_download(
+    price_source="tibber", tibber=[("sensor.electricity_price_exempelgatan_12", "96a14971")],
+    plant={"friendly_name": "Exempelgatan 12 vardagsrum"}, plant_state="Exempelgatan 12B"))
+street_replay = street["debug"]["replay"]
+R.check(
+    "Download diagnostics seals a recorder holding an address-like home name masked: no "
+    "id, name or text of it survives in the replay half, the Tibber series is the price "
+    "series role, and the half passes the export's check mode",
+    street_replay is not None
+    and "exempelgatan" not in json.dumps(street_replay).lower()
+    and street_replay["price_series_entity"] == "sensor.price_series"
+    and _check_download(street_replay) == [],
+    str(street["debug"]["manifest"].get("replay")),
 )
 no_price = asyncio.run(_replay_download(price_source="tibber"))
 R.check(
@@ -1040,7 +1060,7 @@ R.check(
     "newest shorter window that fits, and the bundle stays inline",
     "inline" not in short["debug"] and short["debug"]["replay"] is not None
     and short["debug"]["replay"]["window"]["start"] == (T0 + timedelta(hours=18)).isoformat()
-    and len(short["debug"]["replay"]["states"]["sensor.indoor"]) == 7
+    and len(short["debug"]["replay"]["states"]["sensor.indoor_temp"]) == 7
     and debugger.download_bytes(short["debug"]) + debugger.DOWNLOAD_HEADROOM_BYTES
     <= whole_size - 1,
     str(short["debug"].get("manifest", {}).get("replay")),
@@ -1263,21 +1283,26 @@ def _raw_doc(token="secretvalue123", **states):
         price_series_entity=None, states=states)
 
 
-_leaked = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+# A copy in a string is dropped with it; a number cannot be, so its copy refuses.
+_copied = _sealed(_raw_doc(**{"sensor.a": [["t", "secretvalue123", None, None]]}))
+_leaked = _sealed(_raw_doc(123456789, **{"sensor.a": [["t", 123456789, None, None]]}))
 # Six characters is the shortest dropped value the leak check looks for again.
-_leaked_six = _sealed(_raw_doc("abc123", **{"sensor.a": [["t", "abc123", None, None]]}))
-_short = _sealed(_raw_doc("abc12", **{"sensor.a": [["t", "abc12", None, None]]}))
+_leaked_six = _sealed(_raw_doc(123456, **{"sensor.a": [["t", 123456, None, None]]}))
+_short = _sealed(_raw_doc(12345, **{"sensor.a": [["t", 12345, None, None]]}))
 _unfit = _sealed(_raw_doc(plainkey=[["t", "1", None, None]]))
 _ok = _sealed(_raw_doc(**{"sensor.a": [["t", "1", None, None]]}))
 R.check(
-    "replay_doc.seal refuses a document where a dropped credential survives elsewhere, "
-    "and one whose sanitised form still breaks a rule, and writes a clean one",
-    isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    "replay_doc.seal drops a string copy of a dropped credential, refuses a document "
+    "where a copy survives as a number (naming its place, not its value), and one whose "
+    "sanitised form still breaks a rule, and writes a clean one",
+    isinstance(_copied, dict) and "secretvalue123" not in json.dumps(_copied)
+    and isinstance(_leaked, replay_doc.Refused) and "1 dropped credential value(s)" in str(_leaked)
+    and ".state" in str(_leaked) and "123456789" not in str(_leaked)
     and isinstance(_leaked_six, replay_doc.Refused) and isinstance(_short, dict)
     and isinstance(_unfit, replay_doc.Refused)
     and "states.plainkey: not an entity id" in str(_unfit)
     and isinstance(_ok, dict) and _ok["entry"]["data"] == {}
-    and _ok["states"] == {"sensor.a": [["t", "1", None, None]]},
+    and _ok["states"] == {replay_doc.hashed_id("sensor.a", ""): [["t", "1", None, None]]},
     f"{_leaked if isinstance(_leaked, replay_doc.Refused) else type(_leaked).__name__} "
     f"{_unfit!r}",
 )
