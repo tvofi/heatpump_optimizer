@@ -1,0 +1,7 @@
+ebb90ba992cff355674d5cf24d844722eee93914 1e1d346b206bdad37f63e38c83ea268f6c48e9c3 merge_main_bot self-test: kill the two surviving mutants (relayed marker line, other-conflict status)
+ tools/pr/merge_main_bot.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
+36143360cea1d1076d917daa23898e0590a73872 ec9017f55a89f57ae5e28abc25151ea12e439c30 78dd34354e8300bdff2f660db9cc778ab4a9e4d7 Merge remote-tracking branch 'origin/main' into fix/r10-996-runner-claims-3
+ec9017f55a89f57ae5e28abc25151ea12e439c30 212415bd07b47976920f7d4a05594a16a471f4e8 ebb90ba992cff355674d5cf24d844722eee93914 Merge commit 'ebb90ba992cff355674d5cf24d844722eee93914' into fix/r10-996-runner-claims-3
+ tools/pr/merge_main_bot.py | 9 +++++++++
+ 1 file changed, 9 insertions(+)
