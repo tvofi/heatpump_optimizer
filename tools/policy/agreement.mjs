@@ -646,7 +646,8 @@ function discovery(report, files = governanceCode(), read = rd, registry = SHARE
 // that edit. For the same reason the age bound is fatal only where the
 // registry graded is the one HEAD commits (main's push run, a local run): a
 // pull request that drops an expired entry is graded by the base's copy,
-// which still holds it, and reads a note. dev/audit/harnesses/agreement_two_pr.mjs
+// which still holds it, and reads a note, as does any run whose registry
+// differs from HEAD's: HEAD's history does not date the registry it grades. dev/audit/harnesses/agreement_two_pr.mjs
 // runs the sequence through real commits.
 const AWAITS = / \(awaits ([^()\s]+)\)$/
 const AWAIT_DAYS = 7
@@ -657,7 +658,7 @@ function headHistory(g = git, self = SELF, read = () => fs.readFileSync(at(self)
   return {
     shallow: () => one(['rev-parse', '--is-shallow-repository']) !== 'false',
     existed: (p) => one(['log', '-1', '--format=%h', 'HEAD', '--', p]) || null,
-    days: (needle) => { const t = ct(['--first-parent', `-S${needle}`, 'HEAD', '--', self]); return t ? (ct(['HEAD']) - t) / 86400 : 0 },
+    days: (needle) => { if (!one(['show', `HEAD:${self}`]).includes(needle)) return NaN; const t = ct(['--first-parent', `-S${needle}`, 'HEAD', '--', self]); return t ? (ct(['HEAD']) - t) / 86400 : NaN },
     own: () => one(['show', `HEAD:${self}`]) === read().trim(),
   }
 }
@@ -670,11 +671,11 @@ function awaiting(report, k, d, p, readers, files, pairs, h) {
   if (h.shallow()) return dead(`but HEAD's history is shallow, so whether ${p} ever existed is unknowable`)
   const was = h.existed(p)
   if (was) return dead(`which existed at ${was}: a reader that left is not awaited`)
+  if (!h.own()) return report.note.push(`discovery ${JSON.stringify(k)}: awaits ${p}; graded by a registry this tree edits, so main's push run decides its age`)
   const n = h.days(`(awaits ${p})`)
-  if (!(n >= 0)) return dead("but HEAD's committer date precedes the clause's, so its age is unknowable")
-  if (n <= AWAIT_DAYS) return report.note.push(`discovery ${JSON.stringify(k)}: one file reads it, awaiting ${p}`)
-  if (h.own()) return dead(`a clause ${n.toFixed(1)} days old, past the ${AWAIT_DAYS}-day bound: land the reader or drop the entry`)
-  report.note.push(`discovery ${JSON.stringify(k)}: awaits ${p} past the ${AWAIT_DAYS}-day bound; graded by a registry this tree edits, so the push run of main decides`)
+  if (!(n >= 0)) return dead("but its age is unknowable: HEAD's first-parent line does not date the clause, or dates it after HEAD")
+  if (n > AWAIT_DAYS) return dead(`a clause ${n.toFixed(1)} days old, past the ${AWAIT_DAYS}-day bound: land the reader or drop the entry`)
+  report.note.push(`discovery ${JSON.stringify(k)}: one file reads it, awaiting ${p}`)
 }
 
 async function pairsArm(report, pairs = PAIRS) {
@@ -1083,8 +1084,10 @@ async function selfTest() {
     const hh = headHistory(rg, 'reg.mjs', () => regText)
     probes.push(['headHistory over real commits: a path HEAD once held names the commit that last touched it; one never held is null',
       hh.existed('zz2.mjs') === rg(['rev-parse', '--short', h2]).trim() && hh.existed('never.mjs') === null && hh.shallow() === false])
-    probes.push(["headHistory over real commits: a clause's age is HEAD's committer date less the date it landed on, in days", hh.days('(awaits zz2.mjs)') === 8])
+    probes.push(["headHistory over real commits: a clause's age is HEAD's committer date less the date it landed on, in days; one HEAD does not hold has none", hh.days('(awaits zz2.mjs)') === 8 && Number.isNaN(hh.days('(awaits other.mjs)'))])
     probes.push(['headHistory over real commits: the registry is own only while it is byte-equal to HEAD\'s', hh.own() && !headHistory(rg, 'reg.mjs', () => 'y\n').own()])
+    at_(dated(t0 + 10 * 86400, tree('reg.mjs', blob('x\n')), h3), h3)
+    probes.push(['headHistory over real commits: a clause HEAD dropped is not dated by the commit that dropped it', Number.isNaN(hh.days('(awaits zz2.mjs)'))])
     fs.writeFileSync(path.join(repo, '.git', 'shallow'), `${h2}\n`)
     probes.push(['headHistory over real commits: a shallow history reads shallow', hh.shallow() === true])
   } finally { fs.rmSync(repo, { recursive: true, force: true }) }
@@ -1130,11 +1133,11 @@ async function selfTest() {
   probes.push(['on a shallow history the clause reads DEAD, never accepted',
     deadOnly(discH(T1, { [K]: AW }, { ...HIST, shallow: () => true }), `awaits ${P}, but HEAD's history is shallow, so whether ${P} ever existed is unknowable`)])
   probes.push(['a clause dated after HEAD reads DEAD: its age is unknowable, never 0',
-    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => -1 }), `awaits ${P}, but HEAD's committer date precedes the clause's, so its age is unknowable`)])
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => -1 }), `awaits ${P}, but its age is unknowable: HEAD's first-parent line does not date the clause, or dates it after HEAD`)])
   probes.push(['a clause past the bound reads DEAD on a registry HEAD commits',
     deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => 8 }), `awaits ${P}, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry`)])
   const cure = discH(T1, { [K]: AW }, { ...HIST, days: () => 8, own: () => false })
-  probes.push(['a clause past the bound is a note on a pull request that edits the registry, so dropping the entry is green', !verdict(cure).length && cure.note.some((x) => x.includes('past the 7-day bound; graded by a registry this tree edits'))])
+  probes.push(['a clause past the bound is a note on a pull request that edits the registry, so dropping the entry is green', !verdict(cure).length && cure.note.includes(`discovery ${JSON.stringify(K)}: awaits ${P}; graded by a registry this tree edits, so main's push run decides its age`)])
   const spent = discH(T2, { [K]: AW }, { ...HIST, existed: () => 'abc1234', days: () => 99 })
   probes.push(['a spent clause at two files is a note, never a refusal', !verdict(spent).length && spent.note.includes(`discovery ${JSON.stringify(K)}: a second file reads it, so its (awaits ${P}) clause is spent: drop it`)])
   // THE TWO-PULL-REQUEST SEQUENCE (#3166's review): every step graded the way
