@@ -1,0 +1,7 @@
+DELIVERY STATUS OK — 7 rowed, 3 pending, 0 overdue (overdue at 12 commits)
+  pending  #3160 c7aa121 0 commit(s) since — R10-DEPS-ACTIONS-BUMP: deps actions bump p1 (allowlist a
+  pending  #3054 5e9c392 1 commit(s) since — R10-ORCH-ROSTER-SCHEMA (part 2): roster schema carries
+  pending  #3150 907d29f 2 commit(s) since — R10-PREPR-CAP (part 2): prepr cap carries
+
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+rc=0
