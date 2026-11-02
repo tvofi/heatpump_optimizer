@@ -1,0 +1,3 @@
+check runs at 7f95f9084b42aa5bd651a9aa98cc5b4292adcaaa (get_check_runs, 41 runs, one page of 100), read 16:56Z:
+no run concluded failure/cancelled/timed_out; CodeQL success (neutral at first read); codeql / Analyze (python) success;
+governance / instrument-self-tests success; tests / closures in_progress at read, then merge_train classify GREEN at 17:03:47Z.

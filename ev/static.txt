@@ -1,0 +1,19 @@
+== merge-tree
+eb8aee3f06efa4b3248ebd73ff003b3a07a3a75e
+rc=0
+== claim files vs origin/main
+identical tests/golden/claimed_drift.txt
+identical tests/golden/card_claimed_drift.txt
+== VERSION/manifest/notes
+(empty = untouched)
+== budgets
+(empty = no raise)
+== structure.py
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+rc=0
+== entities
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
