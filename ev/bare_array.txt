@@ -1,0 +1,4 @@
+
+rc=0
+bare_array self-test: ok
+rc=0
