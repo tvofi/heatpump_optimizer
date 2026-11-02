@@ -502,12 +502,14 @@ COST_BUDGETS: dict[str, dict[str, float]] = {
 #: refused: 28.0 (job 125000687320, #3078: 1.89) and 34.4 (nightly job
 #: 123225871060: 1.87). The first lies 2.5 % under ref30 and reads 0.67-0.72x
 #: its ratios; a ref30 widened over it would not see its doubled arm (3.89).
+#: ``COST_RULERS_REFUSED`` holds them, so a band widened over either is red.
 COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
     "ref24": (22.64, 25.53),
     "ref30": (28.72, 32.69),
     "ref46": (42.99, 49.51),
     "ref53": (49.60, 56.78),
 }
+COST_RULERS_REFUSED: tuple[float, ...] = (28.01, 34.35)
 #: Per fixture and runner class, the budgets that differ by class: sqrt(2) x
 #: the geometric midpoint of that class's clean readings in
 #: ``COST_CLASS_READINGS``, every reading 69-72 % of its class's budget.
@@ -827,10 +829,12 @@ def controls() -> list[tuple[str, bool, str]]:
     res.append(("control:cycle_cost:class_budgets",
                 all(not c and any("over its budget" in o for o in d) for _, c, d in off),
                 str([(r, c[:1], d[:1]) for r, c, d in off if c or not d])))
-    # One probe in every gap between bands, one under the lowest, and NaN.
+    # One probe in every gap between bands, one under the lowest, the rulers
+    # CI read and no band admits, and NaN.
     bands = sorted(COST_RUNNER_CLASSES.values())
     gaps = [(hi + lo) / 2 for (_, hi), (lo, _) in zip(bands, bands[1:])]
-    unknown = [class_budget(syn, x) for x in (*gaps, bands[0][0] / 2, float("nan"))]
+    unknown = [class_budget(syn, x) for x in (*gaps, bands[0][0] / 2,
+                                              *COST_RULERS_REFUSED, float("nan"))]
     pair("cycle_cost:runner_class_unknown",
          [m for b, r in unknown if b is None for m in r if m.startswith("runner class unknown")]
          if all(r for _, r in unknown) else [],
