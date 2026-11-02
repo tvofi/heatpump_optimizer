@@ -1,0 +1,17 @@
+== MAIN policy_lint.mjs --hooks
+  ok                SessionStart  .claude/hooks/session-start.sh  16 passed, 0 failed
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+  ok                Stop          .claude/hooks/stop-selfcheck.sh  29 passed, 0 failed
+
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0
+== MAIN field_coverage.mjs
+  none     pinned .claude/workflows/rules_sync.mjs: byte-compares generated rules, no field to skip
+  none     pinned .claude/workflows/vendor/markdown-it.min.js: a vendored parser, not a check
+  none     pinned tools/audit/preflight.sh: runs other checks; no input of its own
+  none     pinned tools/audit/prepr.sh: runs other checks over a body; no input of its own
+  none     stamp rule 4: reads commit parents and subjects; residual (D11-s1-02), no arm here
+  none     carry_audit owed-carry: reads the prose of a body item (a carry index beside a not-done phrase), not a structured input; graded by carry_audit --self-test, whose rows fail under the arm's two mutants
+RESULT read=53 ignored=28 declared_none=36 blind=0 dead=0 refused=0 runs=143 seconds=234.2
+FIELD COVERAGE ok
+rc=0

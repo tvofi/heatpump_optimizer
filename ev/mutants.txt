@@ -1,0 +1,2 @@
+-- restored bash: 0 BLIND rows
+-- restored bash_edit: 1 BLIND rows
