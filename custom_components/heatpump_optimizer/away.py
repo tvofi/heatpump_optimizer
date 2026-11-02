@@ -26,6 +26,8 @@ from dataclasses import dataclass, replace
 from datetime import date, datetime, timedelta
 from typing import Any, Protocol
 
+from homeassistant.core import callback
+from homeassistant.helpers.event import async_track_state_change_event
 from homeassistant.util import dt as dt_util
 
 from .accuracy import utc_elapsed_seconds
@@ -218,6 +220,49 @@ def interpret_presence(
     if value == "home":
         return False
     return None
+
+
+def _away_of(entity_id: str, state: Any) -> bool:
+    """Whether ``state`` reads as away, as :func:`resolve` would read it (None: home)."""
+    attrs = dict(getattr(state, "attributes", None) or {})
+    return interpret_presence(getattr(state, "state", None), entity_id, attrs) is True
+
+
+def watch_away_inputs(
+    hass: Any, entry: Any, config: EntryConfig, refresh: Callable[[], Awaitable[None]]
+) -> None:
+    """Replan as soon as the presence entity or the holiday calendar changes what it means.
+
+    Without it either reached the plan only at the next scheduled update, one
+    ``optimization_interval`` later. A change that leaves its reading where it
+    was (a zone renamed, an attribute rewritten) asks for nothing. ``refresh``
+    is the coordinator's debounced ``async_request_refresh``, the one the away
+    switch calls. An unconfigured slot registers nothing; the entry's unload
+    drops each listener.
+    """
+    on_unload = getattr(entry, "async_on_unload", None)
+    if on_unload is None:
+        return
+    reads: dict[str | None, Callable[[str, Any], object]] = {
+        config.away_presence_entity: _away_of,
+        config.holiday_calendar_entity: lambda _eid, st: _holiday_days(st, dt_util.now()),
+    }
+    for entity_id, read in reads.items():
+        if entity_id:
+            on_unload(_watch(hass, entity_id, read, refresh))
+
+
+def _watch(
+    hass: Any, entity_id: str, read: Callable[[str, Any], object],
+    refresh: Callable[[], Awaitable[None]],
+) -> Callable[[], None]:
+    @callback
+    def _changed(event: Any) -> None:
+        data = getattr(event, "data", {})
+        if read(entity_id, data.get("old_state")) != read(entity_id, data.get("new_state")):
+            hass.async_create_task(refresh())
+
+    return async_track_state_change_event(hass, [entity_id], _changed)
 
 
 def estimate_recovery_hours(
@@ -548,9 +593,11 @@ def holiday_dates(
     states = getattr(hass, "states", None)
     if states is None:
         return frozenset()
-    state = states.get(entity_id)
-    if state is None:
-        return frozenset()
+    return _holiday_days(states.get(entity_id), now)
+
+
+def _holiday_days(state: Any, now: datetime) -> frozenset[date]:
+    """The dates one calendar state covers: none unless it is on (None: off)."""
     if str(getattr(state, "state", "")).strip().lower() != "on":
         return frozenset()
     first, last = _holiday_span(getattr(state, "attributes", None) or {}, now)

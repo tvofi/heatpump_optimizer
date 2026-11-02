@@ -25,7 +25,7 @@ head_ref, merge_commit_sha, merged_at}]}).
 
 REFUSALS (exit 1): a plan `replan.stale_reason` calls stale -- its roster
 blob is not the roster's blob at the ref now --, a plan `replan.check_plan`
-refuses, a plan recording no duration model, and an `origin/` roster ref that
+refuses (a plan recording no duration model among them), and an `origin/` roster ref that
 cannot be fetched. The freshness rule is replan.py's, so `--check` and this
 page cannot disagree about which plans are current. A refusal writes the
 UNAVAILABLE page to `--html`: a heading naming what could not be read, every
@@ -239,9 +239,15 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
         fixes = set(entry.get("fixes") or [])
         rows.append({
             "g": g, "lane": pg["lane"], "st": st, "label": label, "pr": pr,
-            # The tier is the plan's computed dispatch priority (0 critical
-            # path, 1 production, 2 savings-ranked); a done group has none.
+            # The tier is the plan's computed dispatch priority (replan.py's
+            # dispatch_tier: 1 main, 2 critical path and hotfixes, 3 production
+            # and instruments saving 12 h or more, 4 other instruments); a done
+            # group has none. Why it is that tier and why it starts when it
+            # does are the plan's own words (`tier_reason`, `start_reason`).
             "tier": pg.get("tier"),
+            "why": "; ".join(x for x in (
+                pg.get("tier_reason"), pg.get("start_reason"), pg.get("duration_basis"),
+                f"sort key {pg['sort_key']}" if pg.get("sort_key") else None) if x),
             "issues": [(n, n in fixes, (state.get(n) or {}).get("state") != "CLOSED",
                         (state.get(n) or {}).get("title", ""))
                        for n in entry.get("issues") or []],
@@ -367,10 +373,16 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     at the planned finish of the LAST open group carrying it. An issue closed on
     GitHub (absent from `open_now`) is dropped; one with any carrier that has no
     planned finish stays flat (`unplanned`); every other open issue is counted
-    in `other` (e.g. the tracking issue). Pure: `open_now` is an argument."""
+    in `other` (e.g. the tracking issue). `orphans` is `other` without the
+    tracking issue: each open issue no open group carries, with every group it
+    is wired to (done ones), which the page lists as unplanned rather than
+    dropping. Pure: `open_now` is an argument."""
     close_at: dict = {}
     unplanned: set = set()
+    wired: dict = {}
     for gid, entry in roster_lib.groups_of(roster).items():
+        for n in entry.get("issues") or []:
+            wired.setdefault(n, []).append(gid)
         pg = plan["groups"].get(gid)
         if not pg or not roster_lib.is_open(entry):
             continue
@@ -384,8 +396,11 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
                 close_at[n] = max(close_at.get(n, t), t)
     for n in unplanned:
         close_at.pop(n, None)  # one unplanned carrier: no finish is knowable
-    return {"close_at": close_at, "unplanned": unplanned,
+    out = {"close_at": close_at, "unplanned": unplanned,
             "other": open_now - set(close_at) - unplanned}
+    out["orphans"] = {n: sorted(wired.get(n, [])) for n in sorted(out["other"])
+                      if n != TRACKING_ISSUE}
+    return out
 
 
 def issues_section(roster: dict, plan: dict, snap: dict) -> str:
@@ -443,10 +458,18 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
     note = (f"Open issues carried by not-done roster groups, as GitHub had them at the plan's "
             f"start; each is projected to close at the planned finish of the last group "
             f"carrying it. {len(unplanned)} sit on groups with no planned finish and stay "
-            f"flat; {len(proj['other'])} other open issues (on no open group, e.g. "
-            f"#{TRACKING_ISSUE}) are excluded.")
+            f"flat; {len(proj['other'])} other open issues are on no open group: "
+            f"#{TRACKING_ISSUE} (the tracking issue) and the "
+            f"{len(proj['orphans'])} listed below as unplanned.")
+    title = {i["number"]: i.get("title") or "" for i in snap["issues"]}
+    orphans = "".join(
+        f'<li class="unplanned">#{n} {html.escape(title.get(n, ""))}: unplanned: no open '
+        f'group (wired to {html.escape(", ".join(gs)) if gs else "no group"})</li>'
+        for n, gs in proj["orphans"].items())
+    flag = (f'  <p class="note flag">Unplanned: no open group ({len(proj["orphans"])})</p>\n'
+            f'  <ul class="orphans">{orphans}</ul>\n' if orphans else "")
     return (f'<section>\n  <h2>Projected open issues</h2>\n  <div class="scroll">{svg}</div>\n'
-            f'  <p class="note">{html.escape(note)}</p>\n</section>\n')
+            f'  <p class="note">{html.escape(note)}</p>\n{flag}</section>\n')
 
 
 # --------------------------------------------------------------------- page
@@ -488,7 +511,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
         f'<td class="blk">{e(", ".join(map(short, r["blk"]))) or "—"}</td>'
-        f'<td class="mono">{r["finish"] or "—"}</td>'
+        f'<td class="mono" title="{e(r["why"])}">{r["finish"] or "—"}</td>'
         f'<td class="mono">{r["wave"] or "—"}</td></tr>' for r in rows)
     stamps = "".join(
         f'<tr><td class="mono">{e(s["version"])}</td><td class="mono">{_when(s["at"])}</td>'
@@ -594,9 +617,6 @@ def main(argv=None, fetch=fetch_github) -> int:
         bad.append(f"freshness: {stale}")
     if bad:
         return _refuse(a.html, f"{len(bad)} plan violation(s): {bad[0]}", bad)
-    if "model" not in plan["generated"]:
-        return _refuse(a.html, "plan.json records no duration model "
-                       "(generated.model); re-run tools/plan/replan.py", [])
     path = roster_lib.roster_path(a.repo, ref, a.roster_path)
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
@@ -692,6 +712,22 @@ def _self_test() -> int:
           5 not in pr_["close_at"], pr_["close_at"])
     check("an open issue on a done group or none is excluded and counted",
           pr_["other"] == {6, 99} and set(pr_["close_at"]) == {1, 2, 4}, pr_)
+    check("an open issue wired only to a done group, or to none, is an unplanned orphan "
+          "naming the groups it was wired to",
+          pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
+    check("the tracking issue is never an orphan",
+          TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
+    osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
+                                   summary={"closure": "2026-01-07T00:00:00Z"}),
+                          {"issues": [{"number": n, "title": f"t{n}", "state": "OPEN"}
+                                      for n in (1, 6, 99, TRACKING_ISSUE)]})
+    check("the page lists each orphan as unplanned and flags it",
+          'class="note flag">Unplanned: no open group (2)' in osec
+          and "#6 t6: unplanned: no open group (wired to R9-GONE)" in osec
+          and "#99 t99: unplanned: no open group (wired to no group)" in osec
+          and f"#{TRACKING_ISSUE} t{TRACKING_ISSUE}:" not in osec, osec[-600:])
+    check("null control: an issue on a not-done group closes at its finish, not unplanned",
+          pr_["close_at"].get(4) == _t("2026-01-05T20:00:00Z") and 4 not in pr_["orphans"])
 
     # A crash mid-arm is a failure of its own, reported with the checks that
     # failed before it (a mutant that breaks the renderer reads as killed).
@@ -816,10 +852,15 @@ def _self_test() -> int:
                   and '<td class="tier">—</td>' in page
                   and '<th title="dispatch tier' in page,
                   {g: rows[g]["tier"] for g in rows})
-            check("the critical path is tier 0 and production tier 1",
-                  all(rows[g]["tier"] == 0 for g in plan["critical_path"])
-                  and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
+            check("the critical path is tier 2 and production tier 3 (the owner's order)",
+                  all(rows[g]["tier"] == replan.TIER_URGENT for g in plan["critical_path"])
+                  and any(rows[g]["tier"] == replan.TIER_PRODUCTION_WORK
+                          for g in rows if rows[g]["st"] != "done"),
                   {g: rows[g]["tier"] for g in rows})
+            check("each open group's ETA cell names why it starts when it does",
+                  all(f'title="{html.escape(rows[g]["why"])}"' in page and plan["groups"][g]["start_reason"]
+                      in rows[g]["why"] for g in rows if rows[g]["st"] != "done"),
+                  {g: rows[g]["why"] for g in rows})
             check("a planned stamp is drawn", 'class="stampline"' in page)
             check("the closure stamp renders as the round's major, kind round-close",
                   '<td class="mono">v9.0.0</td>' in page
@@ -847,7 +888,8 @@ def _self_test() -> int:
             sec = issues_section(roster, plan, snap)
             check("the issues chart is the first section, drawn from the open set",
                   0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
-                  and "2 open now" in page and "1 other open issues" in page
+                  and "2 open now" in page and "1 other open issues are on no open group" in page
+                  and "Unplanned: no open group" not in page
                   and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
             no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
             check("no GitHub state: the chart is omitted with a note",
@@ -1071,7 +1113,7 @@ td.d{min-width:260px;max-width:440px}
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>
   <div class="scroll"><table>
-    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 0 critical path, 1 production, 2 savings-ranked">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
+    <thead><tr><th>Group</th><th>Description</th><th>Status</th><th title="dispatch tier: 1 main, 2 critical path and hotfixes, 3 production and instruments saving 12 h or more, 4 other instruments by savings">Tier</th><th>PR</th><th>Issues</th><th>Blocked by</th><th>ETA (UTC)</th><th>Wave</th></tr></thead>
     <tbody id="rows">{{trs}}</tbody>
   </table></div>
   <p class="note">Issue chips: bold border = this group closes it; struck through = the issue is closed. ◆ marks the critical path. Tier is the plan's dispatch priority: 0 the computed critical path, 1 production, 2 non-production ranked by its <code>savings</code> (— for a merged group). Blocked-by lists the roster's <code>after</code> groups not yet done. <b>Part merged</b> means a merged pull request titled with the group delivered part of it and its brief names the residual, so the group stays open and is not counted as merged.</p>
@@ -1097,7 +1139,7 @@ td.d{min-width:260px;max-width:440px}
 
 <section>
   <h2>How the ETAs are computed</h2>
-  <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, as the plan recorded it from <code>tools/plan/durations.json</code>: {{sizes}}. {{sizes_provenance}} A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate. Those are measured lead times, not effort: review rounds and queueing are inside them, so the slot schedule is an upper bound on closure. The batching window is {{window}} minutes; its measured trade is in <code>durations.json</code>.</p>
+  <p class="note">Every figure on this page is <code>plan.json</code>'s, written by <code>tools/plan/replan.py</code>; this renderer draws it and computes no schedule of its own. A wave is the set of groups dispatched at one moment, and the next opens as soon as one of {{slots}} pull-request slots frees, so a wave never waits for the previous one to drain; the cap limits concurrency, not the wave boundary. Duration is dispatch to merge by roster size, as the plan recorded it from <code>tools/plan/durations.json</code>: {{sizes}}. {{sizes_provenance}} A group whose fixer is already working gets {{live_pct}}% of its size duration as the remaining estimate, and starts now, past the slot cap, unless an unmerged dependency holds it; a held (carries-open) group is priced by its open carries, not its size. Hover an ETA for the group's tier, why it starts when it does, its duration basis and its sort key, all the plan's own fields. Those are measured lead times, not effort: review rounds and queueing are inside them. The batching window is {{window}} minutes; its measured trade is in <code>durations.json</code>.</p>
 </section>
 </main>
 <div id="tip" class="tip" hidden></div>

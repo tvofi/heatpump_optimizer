@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._dhw_probe_temperature RETURN_DEL d7923b87",
+  "old": "        return None",
+  "reason": "Equivalent (RETURN_DEL, `return None` -> `pass`): the statement is the last one in _dhw_probe_temperature, after an `if` whose arm returns the value; every other exit returns None, so deleting it lets the method fall off its own end and return None -- the same value on the same path. Measured by the R10-FACTORY-RESET round-3 fixer's drive of the fix review's own L9957-RETURN_DEL mutant through the whole of tests/features.py: SURVIVED, while the GUARD_OFF of the `if` above it is killed there (\"a configured, healthy tank probe fills the hot-water accuracy record\").",
+  "verdict": "equivalent"
+}
