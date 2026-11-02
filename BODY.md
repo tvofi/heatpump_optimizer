@@ -23,7 +23,7 @@ No budget is raised. `archscore.card_rule_copies` stays capped at 72, and the tr
 
 `79420455c0717f1fb4f8161787e1603a60304f60`: the fix commits plus a merge of origin/main.
 
-Merge base `b8e823699981866383f1afa54ce708ded3419316`. origin/main was at `b8e82369` on 2026-11-02 at 19:53 UTC. It had moved from the dispatch base 871a20da, by `dev/programme` records only, before any `tools/pr/prepr.sh` run. So it was merged once, by the brief's rule, and every figure below is taken at this head.
+Merge base `b8e823699981866383f1afa54ce708ded3419316`. origin/main was at `b8e82369` on 2026-11-02 at 19:53 UTC. It had moved from the dispatch base 871a20da, by `dev/programme` records only, before any `tools/pr/prepr.sh` run. So it was merged once, by the brief's rule, and every figure below is taken at this head. `tools/pr/prepr.sh` with this body ended `rc=0` at this head. origin/main was still `b8e82369` afterwards, so no second run was owed.
 
 ## Mutation proof
 
