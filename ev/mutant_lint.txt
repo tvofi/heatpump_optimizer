@@ -1,0 +1,7 @@
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 0 error(s) across 50 policy file(s)
+
+FIXTURE OVER-FIRES: checkCoverage reported the grader data dev/governance/config/machinery_budgets.json
+rc=1

@@ -1,0 +1,5 @@
+  read     census structure.py dead_methods: 0 -> 1 with one planted member, refused on dead_methods
+  read     census structure.py dead_top_level_symbols: 1 -> 2 with one planted member, refused on dead_top_level_symbols
+  read     census archscore card_dead_definitions: 0 -> 1 with one planted member, refused on archscore.card_dead_definitions
+  read     census archscore dead_members: 1 -> 2 with one planted member, refused on archscore.dead_members
+  DEAD     registry: DECLARED `pinned tools/audit/machinery_ratchet.py` is no longer in the derived set
