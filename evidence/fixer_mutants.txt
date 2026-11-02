@@ -15,6 +15,9 @@ RESULT mutant=M-head4 failed=1 verdict=killed
 RESULT mutant=M-headall failed=1 verdict=killed
 RESULT mutant=M-first failed=1 verdict=killed
 RESULT mutant=M-triageB failed=1 verdict=killed
-RESULT mutants=16
+RESULT mutant=M-open-stem failed=3 verdict=killed
+RESULT mutant=M-reap-stem failed=2 verdict=killed
+RESULT mutant=M-reap-log failed=1 verdict=killed
+RESULT mutants=19
 RESULT survived=0
 rc=0
