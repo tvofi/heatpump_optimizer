@@ -1,5 +1,0 @@
-pr-body ok: PR-BODY: 0 error(s) in /tmp/tmp.rjHwdeAw7g/body.md -- no budget leaf raised over 8247a1ed1...71a7f87e2
-carry ok: CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s), at origin/handoff/audit-r10-roster 5dc16bbe1
-preflight ok
-figures ok: FIGURES: 22 resolved, 0 not verified, 0 refused
-ref_privacy ok: ref_privacy --check at HEAD: 28 file(s) with a push site, 12 guarded, 1212 line(s) added since 8247a1ed10f6 judged, 0 refused

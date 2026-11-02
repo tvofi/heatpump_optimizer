@@ -1,0 +1,7 @@
+fires.
+
+**Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
+carried to the live head; report each `handoff-body/<topic>`. A beat job takes
+over once a cycle's log agrees; never inline.
+
+## Read the ref, not the record
