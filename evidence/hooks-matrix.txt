@@ -1,0 +1,28 @@
+### branch bash
+  MISSING           PreToolUse    .claude/hooks/pre-bash.sh  the command names a file that is not in the tree
+HOOKS REFUSED: 4 of 4 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### main bash
+  MATCHER BLIND     PreToolUse    (matcher)  matcher "Bash" cannot fire on Edit, Write, MultiEdit or NotebookEdit, so no hook in this group ever sees an edit
+  MISSING           PreToolUse    .claude/hooks/pre-bash.sh  the command names a file that is not in the tree
+HOOKS REFUSED: 5 of 5 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### branch bash_edit
+  MATCHER BLIND     PreToolUse    .claude/hooks/pre-bash.sh  matcher "Edit|Write" cannot fire on Bash, the tools .claude/hooks/pre-bash.sh judges, so it never sees one
+  MISSING           PreToolUse    .claude/hooks/pre-bash.sh  the command names a file that is not in the tree
+HOOKS REFUSED: 5 of 5 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### main bash_edit
+  MISSING           PreToolUse    .claude/hooks/pre-bash.sh  the command names a file that is not in the tree
+HOOKS REFUSED: 4 of 4 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### branch edit_under_bash
+  MATCHER BLIND     PreToolUse    .claude/hooks/pre-edit.sh  matcher "Bash" cannot fire on Edit, Write, MultiEdit, NotebookEdit, the tools .claude/hooks/pre-edit.sh judges, so it never sees one
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+HOOKS REFUSED: 3 of 4 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### main edit_under_bash
+  MATCHER BLIND     PreToolUse    (matcher)  matcher "Bash" cannot fire on Edit, Write, MultiEdit or NotebookEdit, so no hook in this group ever sees an edit
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+HOOKS REFUSED: 3 of 4 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### branch edit_ok
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+HOOKS REFUSED: 2 of 3 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test
+### main edit_ok
+  ok                PreToolUse    .claude/hooks/pre-edit.sh  22 passed, 0 failed
+HOOKS REFUSED: 2 of 3 hook(s) checked is not wired, missing, unreadable, or fails its own --self-test

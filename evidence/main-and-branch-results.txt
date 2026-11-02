@@ -1,0 +1,21 @@
+== MAIN policy_lint.mjs --hooks
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+rc=0
+== MAIN field_coverage.mjs
+RESULT read=53 ignored=28 declared_none=36 blind=0 dead=0 refused=0 runs=143 seconds=234.2
+FIELD COVERAGE ok
+rc=0
+== BRANCH policy_lint.mjs --hooks
+rc=0
+HOOKS ok: 3 wired hook(s) exist and pass their own --self-test
+== BRANCH policy_lint.mjs
+rc=0
+== BRANCH policy_lint.mjs --self-test
+rc=0
+== BRANCH field_coverage.mjs
+rc=0
+RESULT read=53 ignored=28 declared_none=36 blind=0 dead=0 refused=0 runs=143 seconds=219.5
+FIELD COVERAGE ok
+== BRANCH field_coverage.mjs --self-test
+rc=0
+FIELD COVERAGE SELF-TEST ok
