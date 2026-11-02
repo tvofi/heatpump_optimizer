@@ -75330,8 +75330,13 @@ def _sa_plan():
     )
 
 
-async def _sa_install(phase, room_cut_at=None):
-    """Verdicts and switch writes of one synthetic install at cycle ``phase``."""
+async def _sa_install(phase, room_cut_at=None, tail=True):
+    """Verdicts and switch writes of one synthetic install at cycle ``phase``.
+
+    ``tail``: the meter follows the switch one minute late, so a step's first
+    tick reads the last step's draw; without it the meter reads each step's
+    own command from its first tick.
+    """
     ticks = []
     armed = _sa_pa.async_track_time_interval
     _sa_pa.async_track_time_interval = lambda _h, fn, _i: (ticks.append(fn), (lambda: None))[1]
@@ -75350,6 +75355,9 @@ async def _sa_install(phase, room_cut_at=None):
         for m in range(15 * len(_SA_DUTIES) + 1):
             now = _SA_T0 + timedelta(minutes=m)
             _sa_dt.freeze(now)
+            if not tail and m % 15 == 0:
+                own = _SA_DUTIES[min(m // 15, len(_SA_DUTIES) - 1)] == "s"
+                hass.states.set("sensor.hp_power", FakeState("1.5" if own else "0.0", unit="kW", last_updated=now))
             if m % 30 == phase:
                 coord._last_optimization = now
                 coord._measured_power = float(hass.states.get("sensor.hp_power").state)
@@ -75384,6 +75392,23 @@ R.check(
     "a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)",
     len(_sa_v0) == len(_SA_DUTIES) and _sa_v0[1:] == _sa_v14[1:],
     f"phase 0: {_sa_v0}; phase 14: {_sa_v14}",
+)
+# #2968's residue (R10-SAV-COMFORT carry 8): the switch is written off at the
+# step boundary, but the meter read in that same minute still shows the ON
+# step's draw, and the run fold booked it as a run of the OFF step. Each
+# planned-idle step after a planned-on one read ``space-instead``. The null
+# control is the same install with the meter tail removed: it books the same
+# verdicts before and after the settle window.
+_sa_vt, _sa_wt = _asyncio.run(_sa_install(0, tail=False))
+R.check(
+    "a planned-idle step books no run from the previous step's tail power (#2492 carry 8)",
+    _sa_v0 == _sa_vt and set(_sa_v0) == {"delivered"},
+    f"tail: {_sa_v0}; no tail: {_sa_vt}",
+)
+R.check(
+    "null control: without the meter tail every step is delivered",
+    set(_sa_vt) == {"delivered"} and _sa_wt == _sa_w0,
+    f"{_sa_vt}",
 )
 _sa_boundaries = [m for m, _s in _sa_w14 if m % 15 == 0]
 R.check(
