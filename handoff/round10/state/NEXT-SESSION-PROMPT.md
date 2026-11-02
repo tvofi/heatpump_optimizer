@@ -40,7 +40,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-OPENER-REUSE (stage carries-open, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage carries-open, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-AGREEMENT-BOOTSTRAP (stage in-progress, branch `handoff/r10-agreement-bootstrap`): `git fetch origin handoff/r10-agreement-bootstrap && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-AGREEMENT-BOOTSTRAP (stage carries-open, branch `handoff/r10-agreement-bootstrap`): `git fetch origin handoff/r10-agreement-bootstrap && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PLAN-REAL-DURATIONS (stage carries-open, branch `handoff/r10-plan-real-durations`): `git fetch origin handoff/r10-plan-real-durations && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-MACHINERY-RATCHETS (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-REPLAY-OPEN-LOG (stage in-progress): no branch pushed yet, so nothing to fetch
