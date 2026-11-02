@@ -1,0 +1,3 @@
+usage: gate_lock.py [-h] [--lock-dir LOCK_DIR]
+                    {take,renew,release,status,flock-wrap,needs-lease,auto-lease,slot-take,slot-release,slot-status,slot-unleased,slot-leased,slot-auto-lease} ...
+gate_lock.py: error: the following arguments are required: cmd

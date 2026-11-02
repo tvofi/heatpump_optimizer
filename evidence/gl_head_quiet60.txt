@@ -1,0 +1,1 @@
+RESULT one_winner wt=wt planted=False red 0 of 60 wall=246s
