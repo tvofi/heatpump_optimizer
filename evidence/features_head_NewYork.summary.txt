@@ -1,6 +1,0 @@
-  FAIL with no meter, a month of DHW-only mornings bills what the stated rule bills on the commanded kW, every catalog row  [['ellevio_villa_effekt_2026: got (4.741231328852729, 4.733068063458062), bill (9.442223505355438, 9.368735435545684)']]
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL a naive stored tick adopts the clock's zone and detects the same gap  [naive -> None, aware -> datetime.datetime(2026, 2, 1, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) -- subtracting a naive datetime from an aware one raises, so without the adoption a store written by an older version takes the update loop down on every restart]
-  FAIL the humidity entry nearest NOW wins, not the first in the list  [three entries at +6 h, now and -3 h -> 10.0 -- the nearest is neither first nor last here, so a positional read cannot pass by accident]
-3 of 4770 FEATURE CHECKS FAILED
-rc=1 wall=717s

@@ -1,6 +1,0 @@
-RESULT one_winner wt=wtb planted=True red 8 of 30 wall=262s
-   queued=True overlaps=1 order=['a', 'b']
-   queued=True overlaps=1 order=['a', 'b']
-   queued=True overlaps=1 order=['b', 'a']
-   queued=True overlaps=1 order=['a', 'b']
-   queued=True overlaps=1 order=['a', 'b']

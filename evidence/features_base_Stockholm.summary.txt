@@ -1,9 +1,0 @@
-ALL 134 DST / QUARTER-GRID CHECKS PASSED
-  FAIL #2257: the cap tile reads the settled figure, which the house's start moves less than the plan's  [(settled, plan) by (hour, room): {(3, 19.0): (24.74, -1.3), (3, 23.0): (13.85, -21.3), (15, 19.0): (40.2, -31.26), (15, 23.0): (16.8, -45.32)}]
-  FAIL the house meter is preferred, then the pump meter, then the commanded power  [house -> None, pump only -> None, neither -> None -- each source under-states the whole-house peak more than the one before it, so the order is the accuracy order]
-  FAIL a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock  [naive against aware -> datetime.datetime(2026, 2, 1, 10, 0, tzinfo=datetime.timezone.utc); aware against naive -> datetime.datetime(2026, 2, 1, 11, 0) -- both directions are needed because subtracting a naive datetime from an aware one raises, and this helper is what every horizon alignment compares through]
-  FAIL R9-F1.1 N-shared-config: mid-solve under an away setback the thermostat publishes the configured 21.0, not the 16.0 setback  [published mid-solve [], after 21.0]
-  FAIL R9-F1.1 N-shared-config (null arm): with away off the same write publishes 21.0 and the listener fired  [published mid-solve [], after 21.0]
-  FAIL inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing  [('armed', None) step None '']
-6 of 4770 FEATURE CHECKS FAILED
-rc=1 wall=767s

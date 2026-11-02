@@ -1,3 +1,0 @@
-RESULT one_winner widened-TOCTOU wt=wt red 2 of 10
-   queued=True overlaps=1 order=['b', 'a']
-   queued=True overlaps=1 order=['b', 'a']

@@ -1,1 +1,3 @@
-RESULT coordinator.py AST identical with docstrings blanked (base dfb4ce2b vs head b307f359): True
+base 3905069f38a60559186fef916b0241e311cc81cd c538b2c037b2c30c1ddf761a20732fa66dcbe24b3733a66a32a1b03d5147b626
+head 0a459e607bd7de54e7a80233ee8f15e550256d77 c538b2c037b2c30c1ddf761a20732fa66dcbe24b3733a66a32a1b03d5147b626
+RESULT coordinator_ast_equal_without_docstrings= True
