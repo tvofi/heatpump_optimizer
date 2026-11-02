@@ -467,28 +467,58 @@ COST_DETECTION = 2.0
 #: ``loop_cpu_ratio`` over all four environments, the M1 included: 2514-2783
 #: and 0.137-0.227, the loop's edges 9-10 % inside.
 #: Re-centred (R10-REPLAY-COST-BUDGET) on the readings the CI ``replay`` job
-#: itself takes, from its own ``cost`` lines, and on nothing a reviewer's or
-#: author's box read. Two runner classes, by the job's own rulers: ``ref_ms`` 30
-#: / ``loop_ref_ms`` 129-132 (job 125240101580 of run 41434115932, #3174; job
-#: 125160076828 of run 41405222589, #3167) and ``ref_ms`` 46 / ``loop_ref_ms``
-#: 156 (job 125097530406 of run 41389413359, #3078). Owner fixture
-#: ``cpu_ratio`` 235.8, 240.7, 241.9: sqrt(2) x the geometric midpoint is 337.8,
-#: the lowest reading 70 % of it. Synthetic ``cpu_ratio`` 2.754, 2.81, 2.325:
-#: 3.614, the lowest 64 % of it, and every ``cpu doubled`` arm of those jobs
-#: (5.53, 5.70, 4.65) is over it. Synthetic ``loop_cpu_ratio`` 0.0907, 0.0903,
-#: 0.0901, flat across both classes: 0.1278, and the ``loop doubled`` arms
-#: (0.183, 0.186, 0.179) are over it. A box outside both classes reads the
-#: loop figure higher at the same code (4 cores, ``loop_ref_ms`` 87: 0.175; the
-#: reviewer's, 85-99: 0.152-0.191), because the ruler does not track the
-#: loop's work there; the lane never runs on one, and widening to it would put
-#: the budget over the doubled arm. ``peak_kib`` and the owner fixture's
-#: ``loop_cpu_ratio`` stay: the same jobs read 2709 KiB and 0.128-0.142 inside
-#: both bands. Only what ran is recorded.
+#: and nightly.yml ``slow`` take, from their own ``cost`` lines, and on
+#: nothing a reviewer's or author's box read. Owner fixture ``cpu_ratio``
+#: 235.8, 240.7 (ref_ms 30: job 125240101580 of run 41434115932, #3174; job
+#: 125160076828 of run 41405222589, #3167), 241.9, 246.0 (ref_ms 46: job
+#: 125097530406 of run 41389413359, #3078; job 125316010511, #3174): sqrt(2)
+#: x the geometric midpoint of 235.8 and 241.9 is 337.8, every reading 70-73 %
+#: of it; the ref_ms 53 class has not replayed it. Synthetic ``loop_cpu_ratio``
+#: 0.0901-0.1026 over all seven jobs below, every class: 0.1278, each
+#: ``loop doubled`` arm (0.179-0.2015) over it. A box outside every class
+#: reads the loop figure higher at the same code (4 cores, ``loop_ref_ms``
+#: 87: 0.175; the reviewer's, 85-99: 0.152-0.191); the lane never runs on one.
+#: ``peak_kib`` and the owner fixture's ``loop_cpu_ratio`` stay. Synthetic
+#: ``cpu_ratio`` is keyed by runner class, ``COST_CLASS_BUDGETS``.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"cpu_ratio": 3.614, "peak_kib": 2686.0,
-                                "loop_cpu_ratio": 0.1278},
+    "synthetic-dhw-only.json": {"peak_kib": 2686.0, "loop_cpu_ratio": 0.1278},
     "owner-2026-10-30-away.json": {"cpu_ratio": 337.8, "peak_kib": 3740.0,
                                    "loop_cpu_ratio": 0.249},
+}
+#: Runner classes, by the run's own BLAS ruler: its median reference-solve
+#: ms, the ``ref_ms`` its ``cost`` line prints -- never a runner's name. One
+#: synthetic ``cpu_ratio`` cannot serve them: the classes read 1.45-2.81 at
+#: the same code, more than the 2x one band holds. Each band is its ``ref_ms``
+#: readings (every clean and doubled run of the jobs cited in
+#: ``COST_CLASS_READINGS``) widened 5 % each way, the within-job spread being
+#: 2.4-3.2 %; the bands are disjoint. A run in no band is refused by name
+#: (``class_budget``), never graded against a neighbour's budget.
+COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
+    "ref30": (28.72, 32.69),
+    "ref46": (42.99, 49.51),
+    "ref53": (49.60, 56.78),
+}
+#: Per fixture and runner class, the budgets that differ by class: sqrt(2) x
+#: the geometric midpoint of that class's clean readings in
+#: ``COST_CLASS_READINGS``, every reading 69-72 % of its class's budget.
+COST_CLASS_BUDGETS: dict[str, dict[str, dict[str, float]]] = {
+    "synthetic-dhw-only.json": {"ref30": {"cpu_ratio": 3.934},
+                                "ref46": {"cpu_ratio": 3.357},
+                                "ref53": {"cpu_ratio": 2.081}},
+}
+#: The lane readings each class budget is centred on: per cited job, its
+#: ``ref_ms``, clean ``cpu_ratio`` and ``cpu doubled`` arm, from its ``cost``
+#: lines. ref30: jobs 125160076828 (#3167), 125240101580 (#3174); ref46: jobs
+#: 125097530406 (#3078), 125316010511 (#3174); ref53: nightly.yml ``slow``
+#: jobs 124414072168 (run 41159630948), 124725704090 (run 41264951784),
+#: 125036077984 (run 41369286061). A re-record appends its job here; the
+#: ``cycle_cost:class_budgets`` control holds every clean reading inside its
+#: class's band and every doubled arm over it.
+COST_CLASS_READINGS: dict[str, list[tuple[float, float, float]]] = {
+    "synthetic-dhw-only.json": [
+        (30.32, 2.81, 5.701), (30.93, 2.7543, 5.5315),
+        (45.65, 2.3246, 4.6473), (46.36, 2.4235, 4.7775),
+        (52.76, 1.4563, 2.8848), (53.27, 1.451, 2.841), (52.43, 1.4926, 2.9251)],
 }
 #: Fixtures the lane replays once, clean, without the three doubled-cost
 #: arms: each arm is a whole replay, and a fixture whose replay costs a large
@@ -602,6 +632,22 @@ def cost_offenders(figures: dict[str, float], budget: dict[str, float] | None,
             out.append(f"{key} {value:.4g}: budget {cap:.4g} cannot see a "
                        f"{detection:g}x cycle; re-record {math.sqrt(detection) * value:.4g}")
     return out
+
+
+def class_budget(name: str, ref_ms: float) -> tuple[dict[str, float] | None, list[str]]:
+    """``name``'s budget on the runner class ``ref_ms`` falls in, and the
+    refusal when a fixture keyed by class ran in no class's band: no default
+    and no neighbour's budget is assumed."""
+    keyed = COST_CLASS_BUDGETS.get(name)
+    if keyed is None:
+        return COST_BUDGETS.get(name), []
+    runner = next((c for c, (lo, hi) in COST_RUNNER_CLASSES.items()
+                   if lo <= ref_ms <= hi and c in keyed), None)
+    if runner is None:
+        return None, [f"runner class unknown: ref_ms {ref_ms:.4g} lies in no band of "
+                      f"COST_RUNNER_CLASSES {sorted(COST_RUNNER_CLASSES.values())}; "
+                      "no budget is assumed"]
+    return {**COST_BUDGETS.get(name, {}), **keyed[runner]}, []
 
 
 def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
@@ -758,6 +804,22 @@ def controls() -> list[tuple[str, bool, str]]:
         [20.0, 22.0], [r * 3 for r in ref], [4096])["cpu_ratio"]
     res.append(("control:cycle_cost:cpu_normaliser", cpu_solve_moved,
                 f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
+    # Runner classes (R10-REPLAY-COST-BUDGET): each class's budget holds its
+    # own lane readings in band and sees its own doubled arm; one budget for
+    # every class could not. A ruler in no band is refused, by name.
+    syn = "synthetic-dhw-only.json"
+    off = [(ref_ms, cost_offenders({"cpu_ratio": c}, class_budget(syn, ref_ms)[0]),
+            cost_offenders({"cpu_ratio": d}, class_budget(syn, ref_ms)[0]))
+           for ref_ms, c, d in COST_CLASS_READINGS[syn]]
+    res.append(("control:cycle_cost:class_budgets",
+                all(not c and any("over its budget" in o for o in d) for _, c, d in off),
+                str([(r, c[:1], d[:1]) for r, c, d in off if c or not d])))
+    lo30, hi46 = COST_RUNNER_CLASSES["ref30"][1], COST_RUNNER_CLASSES["ref46"][0]
+    unknown = [class_budget(syn, x) for x in ((lo30 + hi46) / 2, float("nan"))]
+    pair("cycle_cost:runner_class_unknown",
+         [m for b, r in unknown if b is None for m in r if m.startswith("runner class unknown")]
+         if all(r for _, r in unknown) else [],
+         class_budget(syn, COST_CLASS_READINGS[syn][0][0])[1])
     pair("cycle_cost:arms_skipped_never_everywhere",
          arms_skip_offenders({"a.json", "b.json"}, {"a.json", "b.json"}),
          arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
@@ -2052,11 +2114,13 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     clean = sum(c for _, c in injected)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
              if inject in ("cpu", "loop") and clean > 0 else {})
-    results["cycle_cost"] = uncovered_files(traced) + cost_offenders(
-        figures, COST_BUDGETS.get(path.name))
+    ref_ms = sorted(ref_cpu)[len(ref_cpu) // 2]
+    budget, refused = class_budget(path.name, ref_ms)
+    results["cycle_cost"] = uncovered_files(traced) + (
+        refused or cost_offenders(figures, budget))
     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
             "cost": {**figures, **share, "timed": len(cycle_cpu), "traced": len(peaks),
-                     "ref_ms": sorted(ref_cpu)[len(ref_cpu) // 2],
+                     "ref_ms": ref_ms,
                      "loop_ref_ms": sorted(loop_ref_cpu)[len(loop_ref_cpu) // 2]},
             "seconds": round(time.monotonic() - started, 1),
             "results": {k: v[:12] + ([f"... {len(v) - 12} more"] if len(v) > 12 else [])
