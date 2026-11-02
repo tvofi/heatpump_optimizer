@@ -1,2 +1,0 @@
-RESULT one_winner wt=wt planted=False red 1 of 30 wall=110s
-   queued=True overlaps=1 order=['b', 'a']

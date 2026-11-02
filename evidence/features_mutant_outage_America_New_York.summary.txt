@@ -1,0 +1,4 @@
+tree=0a459e607bd7de54e7a80233ee8f15e550256d77 dirty=1 HASTUB_TZ=America/New_York TZ=unset
+  FAIL a naive stored tick adopts the clock's zone and detects the same gap  [naive -> None, aware -> datetime.datetime(2026, 2, 1, 9, 0, tzinfo=zoneinfo.ZoneInfo(key='America/New_York')) -- subtracting a naive datetime from an aware one raises, so without the adoption a store written by an older version takes the update loop down on every restart]
+1 of 4770 FEATURE CHECKS FAILED
+rc=1 wall=1056s

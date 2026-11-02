@@ -1,0 +1,4 @@
+tree=0a459e607bd7de54e7a80233ee8f15e550256d77 dirty=1 HASTUB_TZ=Asia/Tokyo TZ=unset
+  FAIL the humidity entry nearest NOW wins, not the first in the list  [three entries at +6 h, now and -3 h -> 30.0 -- the nearest is neither first nor last here, so a positional read cannot pass by accident]
+1 of 4770 FEATURE CHECKS FAILED
+rc=1 wall=1022s

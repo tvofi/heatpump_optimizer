@@ -1,1 +1,0 @@
-RESULT one_winner wt=wtb planted=False red 0 of 60 wall=254s
