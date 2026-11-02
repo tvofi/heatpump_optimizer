@@ -4,7 +4,7 @@ Not closing #2732: this branch is predicted red on `governance / policy-docs` (s
 
 ## Head
 
-HEAD is the merge of `origin/main` into the work branch; the code SHA is the `handoff/r10-bash-kill-hook` ref. Base c7aa121650058ec9f1540b5bf60ffd69eea75298; `origin/main` had moved to 8f286293be2d03817a2de23a3a0c884ec2e94fab, merged without conflict. `prepr.sh` ran on the pre-merge head 408644f7 (rc=1, only the CI PREDICT arm); it was not rerun after the merge, which touches none of the ten files.
+efada17e901b70d0442d408f3bd987dbc3a71e1e, the merge of `origin/main` into the work branch (the `handoff/r10-bash-kill-hook` ref). Base c7aa121650058ec9f1540b5bf60ffd69eea75298; `origin/main` had moved to 8f286293be2d03817a2de23a3a0c884ec2e94fab, merged without conflict. `prepr.sh` ran on the pre-merge head 408644f7 (rc=1, only the CI PREDICT arm); it was not rerun after the merge, which touches none of the ten files.
 
 ## Mutation proof
 
@@ -36,11 +36,11 @@ Allowed, and green in the self-test: `kill 1234`, `kill $!`, `kill $(cat run.pid
 
 ## Forward-carry
 
-- Carry 0 (`attribution` out of hooks `pending`): built. The entry was in both `ignore` and `pending` at the base; `pending` is now gone from the hooks registration, so an unmatched entry is DEAD again (`field_coverage.mjs`: dead=0 with the key present).
-- Carry 1 (folded R10-FLY-BASH-KILL-GUARD): built for items 1 to 5, with the hook script `pre-bash.sh`, settings entry, `policy_lint` keyed on script, `REQUIRED` entry, self-test rows and mutants as listed. Item 6 (ownership and effect) is the orchestrator's: `.claude/hooks/` and `.claude/settings.json` are code-owned, and a local seat loads the hook only once its checkout advances. Carry: orchestrator, with the merge-path decision above.
-- Departure from the dispatch text: it says the hook "fails closed"; the roster brief says fails open, exits 2 only on a positive match, and models `pre-edit.sh`. I followed the roster. Known gaps are in the script header: a name held in a variable, a wrapper option taking a value (`sudo -u root pkill x`), and a pid list built in an earlier statement.
-- `prepr.sh`'s hooks loop gained `bash-under-edit-matcher` (refused) and `bash-matcher` (passes); outside the listed files, required by the test-first rows.
+- Carry 1 (`attribution` out of hooks `pending`): built.  The entry was in both `ignore` and `pending` at the base; `pending` is now gone from the hooks registration, so an unmatched entry is DEAD again (`field_coverage.mjs`: dead=0 with the key present). Carry: dismissed: built in this diff, nothing left.
+- Carry 2 (folded R10-FLY-BASH-KILL-GUARD): built for items 1 to 5, with the hook script `pre-bash.sh`, settings entry, `policy_lint` keyed on script, `REQUIRED` entry, self-test rows and mutants as listed. Item 6 (ownership and effect) is the orchestrator's: `.claude/hooks/` and `.claude/settings.json` are code-owned, and a local seat loads the hook only once its checkout advances. Carry: #2732
+- Departure from the dispatch text: it says the hook "fails closed"; the roster brief says fails open, exits 2 only on a positive match, and models `pre-edit.sh`. I followed the roster. Known gaps are in the script header: a name held in a variable, a wrapper option taking a value (`sudo -u root pkill x`), and a pid list built in an earlier statement. Carry: dismissed: recorded here, roster words govern.
+- `prepr.sh`'s hooks loop gained `bash-under-edit-matcher` (refused) and `bash-matcher` (passes); outside the listed files, required by the test-first rows. Carry: dismissed: built in this diff, nothing left.
 
 ## Friction
 
-`ci-autofix: contradiction: a PR that adds a hook registration and the grader change that accepts it is predicted red by the base's pinned grader, with no one-PR path; the group's file list puts both in one PR. Carry: orchestrator.`
+ci-autofix: contradiction: a PR that adds a hook registration and the grader change that accepts it is predicted red by the base's pinned grader, with no one-PR path; the group's file list puts both in one PR. Carry: #2732
