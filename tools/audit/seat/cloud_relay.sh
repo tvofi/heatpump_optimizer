@@ -87,7 +87,9 @@
 #     `fix/` and a trailing `-pr`. If handoff-body/<topic> and handoff/<topic>
 #     exist and handoff/<topic> is NOT an ancestor of the PR head, it runs
 #     update_pr.sh <branch> <code-sha> <body> <issues> (issues = the body's
-#     closing keywords), then approve_held_runs.sh on the branch, then
+#     closing keywords) from its own tools tree levelled to origin/main, never
+#     from this checkout (tools_level below; dirty or busy is refused by name and
+#     retried next pass), then approve_held_runs.sh on the branch, then
 #     `bus.sh dispatch <pr> <new head> cloud`, and opens `reviewer-fire <pr>
 #     <head40> nonce=<nonce>` in the ledger (a failed approve or dispatch opens
 #     `approve-held-runs` or `dispatch` instead): firing the cloud reviewer stays
@@ -118,15 +120,17 @@
 #     FREEZE. A PR whose live head is under review is not updated either: a
 #     merge verdict at that head on verdict/<pr> (HELD-VERDICT), or a review of
 #     that head in flight with no verdict at it yet (HELD-REVIEW: bus.sh's
-#     dispatch record, or a detached review worktree at the head). A blocked
-#     verdict, or one naming an older head, freezes nothing. Each prints
-#       cloud_relay: HELD-<why> #<pr> <handoff tip> (...)
+#     dispatch record of the PR at that head, the worker registry, and only it;
+#     its nonce prefix and time are the evidence). A blocked verdict, or one
+#     naming an older head, freezes nothing. Each prints
+#       cloud_relay: HELD-<why> #<pr> <handoff tip>[ dispatch=<nonce8> at=<utc>] (...)
 #     once per pass and is `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in
 #     <log>.level; `<state>/cloud-handoff-release` (the hold grammar, the
 #     orchestrator's) releases a listed PR from the freeze, never from the
 #     hold. review_freeze below says why each case is what it is.
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
+#   stuck and no-return arms: level lines only (THE STUCK ANDON, THE NO-RETURN LINE below).
 #   confirm arm (--confirm): the ledger is written before confirm runs, so a
 #     confirm that failed, a relay by a script without the confirm, or one by a
 #     call without --confirm was never confirmed later ('already relayed';
@@ -140,7 +144,10 @@
 #     record shows it posted or `dispose` takes it. A tip with no dispatch for its
 #     PR, head and nonce is owed `undispatched` and never confirmed. A tip the
 #     relay did not push waits for the orchestrator's own read (bus.sh). Settled
-#     tips are noted in `<ledger>.confirm-done`, so a pass fetches only new ones.
+#     tips are noted in `<ledger>.confirm-done`, so a pass fetches only new ones. A tip whose PR
+#     is not open (this pass's open-PR listing; a verdict posts only on an open PR) prints
+#     `cloud_relay: confirm skip #<pr>: not open` once and is settled, owed nothing (P332); a failed
+#     listing skips nothing.
 #     It makes no gh call; bus.sh confirm posts.
 # `--loop` repeats a pass every --interval seconds (default 120); without it a
 # pass runs once. HPO_RELAY_PRS, HPO_RELAY_UPDATE, HPO_RELAY_APPROVE and
@@ -306,11 +313,23 @@ confirm_arm() { # one pass over review/* tips the relay delivered: confirm each 
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}; lv=$(relay_log).level
   git ls-remote origin 'refs/heads/review/*' > "$state/cloud-reviews.$$" || { echo "cloud_relay: ls-remote of review/* failed; will retry" >&2; rm -f "$state/cloud-reviews.$$"; return 0; }
   : > "$state/cloud-level-confirm.$$"
+  # P332: a verdict posts only on an open PR (app_comment.sh), so one on a closed or merged PR is
+  # skipped, not owed. The open PRs are this pass's handoff-arm listing, else one listing here; a
+  # failed listing skips nothing (every tip stays owed as before).
+  local open=""
+  if [ -f "$state/cloud-prs-open.$$" ]; then open=$(cut -f1 "$state/cloud-prs-open.$$"); open=${open:-none}
+  else open=$( { if [ -n "${HPO_RELAY_PRS:-}" ]; then "$HPO_RELAY_PRS"
+    else gh pr list -R "${HPO_RELAY_REPO:-tvofi/heatpump_optimizer}" --state open --limit 100 --json number,headRefName,headRefOid \
+      -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } | cut -f1) && open=${open:-none} || open=""; fi
+  rm -f "$state/cloud-prs-open.$$"
   while read -r sha ref; do
     pr=${ref#refs/heads/review/}; case $pr in ''|*[!0-9]*) continue;; esac
     # only what this relay delivered: a reviewer of the orchestrator's own waits for its thread read
     grep -q "^refs/heads/probe/rev-$pr-" "$led" 2>/dev/null || continue
     grep -qxF "$pr $sha" "$led.confirm-done" 2>/dev/null && continue
+    if [ -n "$open" ] && ! grep -qxF "$pr" <<< "$open"; then  # mut:closedskip
+      echo "cloud_relay: confirm skip #$pr: not open"; echo "$pr $sha" >> "$led.confirm-done"; continue
+    fi
     git cat-file -e "$sha^{commit}" 2>/dev/null || git fetch -q origin "+$ref:refs/hpo-relay/review/$pr" 2>/dev/null
     if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then  # unknown is not "nothing owed": keep its line
       [ -f "$lv" ] && awk -v r="$ref" -v s="$sha" '$3 == "confirm-owed" && $4 == r && $5 == s' "$lv" >> "$state/cloud-level-confirm.$$"; continue
@@ -382,11 +401,36 @@ review_freeze() { # <pr> <head> <verdict refs file>: prints VERDICT, REVIEW or U
     v=$(git log -1 --format=%s "$vs" | sed -nE "s/^verdict: #$1 Fix review: (merge|blocked) ([0-9a-f]{40})( .*)?\$/\1 \2/p")
     case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac
   fi
-  if awk -v p="$1" -v h="$2" '$1 == p && $2 == h { f = 1 } END { exit !f }' "$bus/dispatched" 2>/dev/null \
-     || git worktree list --porcelain | awk -v h="$2" '$1 == "HEAD" { at = ($2 == h) } $1 == "detached" && at { f = 1 } END { exit !f }'; then
-    echo REVIEW; return 0
+  # Only the worker registry holds a review (P288): a detached worktree at the head is the
+  # opener's or updater's own as often as a reviewer's (#2953 held 44 passes on one).
+  v=$(awk -v p="$1" -v h="$2" '$1 == p && $2 == h { n = $4; at = $5 } END { if (n != "") print substr(n, 1, 8), (at == "" ? "-" : at) }' \
+    "$bus/dispatched" 2>/dev/null)
+  [ -n "$v" ] || return 1
+  echo "REVIEW dispatch=${v% *} at=${v#* }"
+}
+# THE TOOLS TREE (P283). update_pr.sh refuses a checkout behind origin/main under the tools
+# (pr_args.sh's pr_tools_fresh), and the relay's own checkout is stale whenever main moves them;
+# the relay never moves that checkout, because bash reads a running script from its file as it
+# goes. So it runs update_pr.sh from a worktree it owns, <state>/relay-tools, added once detached
+# and checked out at origin/main before each update when clean. One that is dirty, or held by
+# another relay (the mkdir lock <state>/relay-tools.lock naming a live pid; a dead pid's is taken
+# over), is refused by name and left untouched; the update waits for the next pass.
+tools_level() { # <state>: prints the levelled tree's seat directory, or why not: rc 75 busy, 2 refused
+  local tw=$1/relay-tools o
+  if ! mkdir "$tw.lock" 2>/dev/null; then
+    o=$(cat "$tw.lock/pid" 2>/dev/null)
+    if [ -n "$o" ] && kill -0 "$o" 2>/dev/null; then echo "the relay's tools tree $tw is busy (pid $o)"; return 75; fi  # mut:toolsbusy
   fi
-  return 1
+  echo "$$" > "$tw.lock/pid"
+  git fetch -q origin main 2>/dev/null || { rm -rf "$tw.lock"; echo "origin/main could not be fetched for the relay's tools tree"; return 2; }
+  [ -e "$tw/.git" ] || git worktree add -q --detach "$tw" origin/main 2>/dev/null \
+    || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not be added"; return 2; }
+  if [ -n "$(git -C "$tw" status --porcelain --untracked-files=no 2>/dev/null)" ]; then  # mut:toolsdirty
+    rm -rf "$tw.lock"; echo "the relay's tools tree $tw is dirty; it is left as it is"; return 2
+  fi
+  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \
+    || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not check out origin/main"; return 2; }  # mut:toolslevel
+  echo "$tw/tools/audit/seat"
 }
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
@@ -399,6 +443,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     else gh pr list -R "$repo" --state open --limit 100 --json number,headRefName,headRefOid \
       -q '.[] | [.number, .headRefName, .headRefOid] | @tsv'; fi; } > "$state/cloud-prs.$$" \
     || { echo "cloud_relay: could not list open PRs; will retry" >&2; rm -f "$state/cloud-prs.$$"; return 0; }
+  [ -z "${CONFIRM:-}" ] || cp -f "$state/cloud-prs.$$" "$state/cloud-prs-open.$$"  # this pass's open PRs, for confirm_arm (P332)
   git ls-remote origin 'refs/heads/handoff/*' 'refs/heads/handoff-body/*' > "$state/cloud-hrefs.$$" \
     || { echo "cloud_relay: could not list handoff refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$"; return 0; }
   # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
@@ -416,7 +461,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     git merge-base --is-ancestor "$hs" "$head" && continue
     if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
     if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
-      echo "cloud_relay: HELD-$why #$pr $hs (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
+      echo "cloud_relay: HELD-${why%% *} #$pr $hs${why#"${why%% *}"} (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
       level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue
     fi
     if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then
@@ -445,11 +490,22 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     # It runs in a process group of its own (pr_own_group), so a signal to the loop's whole group
     # (`timeout`, a daemonizer ending the pgid, a closed terminal's HUP) reaches it only through
     # that reap, and a KILL to the group leaves it to finish under its own lock (#2549).
-    # One launch for both routes, so the self-test's stub runs the production launch line.
-    urc=0; upd=(bash "$HERE/update_pr.sh"); [ -z "${HPO_RELAY_UPDATE:-}" ] || upd=("$HPO_RELAY_UPDATE")
+    # One launch for both routes, so the self-test's stub runs the production launch line. The
+    # script is the levelled tools tree's (tools_level), never this checkout's; a stub skips the tree.
+    urc=0; upd=("${HPO_RELAY_UPDATE:-}")
+    if [ -z "${HPO_RELAY_UPDATE:-}" ]; then
+      why=$(tools_level "$state"); urc=$?
+      if [ "$urc" != 0 ]; then
+        echo "cloud_relay: REFUSED the update of #$pr: $why; the next pass retries" >&2
+        [ "$urc" = 75 ] || level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"
+        rm -rf "$bd"; continue
+      fi
+      upd=(bash "$why/update_pr.sh")  # mut:toolsseat
+    fi
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
     pr_own_group "${upd[@]}" "$br" "$hs" "$body" $iss > "$bd/update.out" 2>&1 &
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
+    [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
     # 75 is update_pr.sh's BUSY: another run (the orchestrator's) holds this branch's worktree. Not
     # a failure, so it is not recorded and the next pass retries once that run has ended.
@@ -525,13 +581,57 @@ stuck_arm() { # one pass over the branch locks: each held past HPO_PUSH_STUCK_SE
   rm -f "$state/cloud-stuck.$$"; level_set push-stuck "$state/cloud-level-stuck.$$"
 }
 
+# THE NO-RETURN LINE (triage P-E, narrowed to git). A cloud fixer dispatched on
+# dispatch/fixer-<topic> returns on handoff-wip/, handoff/ or handoff-body/<topic>, or moves its
+# pull request's fix/<topic>-pr or fix/<topic> head. One whose dispatch tip is older than
+# HPO_RELAY_NORETURN_SECS (default 7200) with none of those moved since is
+#   OWED <utc> seat-no-return refs/heads/dispatch/fixer-<topic> <sha> SEAT ENDED NO RETURN <topic> <age>h
+# on the level (the #2620 seat sat 6 h silent). The record is the dispatch ref itself: no
+# cloud-sessions file is written anywhere in the tree, so the session id is not named; the
+# dispatch tip and its age are. Past HPO_RELAY_NORETURN_WINDOW_SECS (default 172800) a dispatch
+# falls off: its refs may be gone with a merged branch. Deleting the dispatch ref disposes it.
+# A listing or fetch that fails leaves the level as it was. Reviewer and designer seats are out
+# of scope: a reviewer's missing verdict is reviewer-fire's, in the ledger.
+noreturn_arm() {
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} lim=${HPO_RELAY_NORETURN_SECS:-7200} win=${HPO_RELAY_NORETURN_WINDOW_SECS:-172800}
+  local now sha ref topic t age r rs moved
+  case $lim$win in *[!0-9]*) echo "cloud_relay: HPO_RELAY_NORETURN_SECS/WINDOW must be seconds; the level stays" >&2; return 0;; esac
+  mkdir -p "$state" || return 0
+  # Only the dispatch refs are listed by glob; each candidate's return refs are asked by name, so no
+  # glob here lists a handoff-wip step ref (cloud_dispatch.py pins that no handoff arm sees one).
+  git ls-remote origin 'refs/heads/dispatch/fixer-*' > "$state/cloud-nr.$$" \
+    && git fetch -q origin '+refs/heads/dispatch/fixer-*:refs/hpo-relay/dispatch/fixer-*' 2>/dev/null \
+    || { echo "cloud_relay: the dispatch refs could not be read; the no-return level stays" >&2; rm -f "$state/cloud-nr.$$"; return 0; }
+  now=$(date +%s); : > "$state/cloud-level-nr.$$"
+  while read -r sha ref; do
+    case $ref in refs/heads/dispatch/fixer-?*) topic=${ref#refs/heads/dispatch/fixer-} ;; *) continue ;; esac
+    t=$(git log -1 --format=%ct "$sha" 2>/dev/null) || continue
+    age=$((now - t))
+    [ "$age" -gt "$lim" ] && [ "$age" -le "$win" ] || continue  # mut:noreturnage
+    moved=
+    git ls-remote origin "refs/heads/handoff/$topic" "refs/heads/handoff-wip/$topic" "refs/heads/handoff-body/$topic" \
+      "refs/heads/fix/$topic-pr" "refs/heads/fix/$topic" > "$state/cloud-nrr.$$" || { moved=unread; }
+    for r in handoff/$topic handoff-wip/$topic handoff-body/$topic fix/$topic-pr fix/$topic; do
+      rs=$(awk -v r="refs/heads/$r" '$2 == r { print $1; exit }' "$state/cloud-nrr.$$")
+      [ -n "$rs" ] || continue
+      git cat-file -e "$rs^{commit}" 2>/dev/null || git fetch -q origin "refs/heads/$r" 2>/dev/null
+      [ "$(git log -1 --format=%ct "$rs" 2>/dev/null || echo 0)" -gt "$t" ] && { moved=1; break; }  # mut:noreturnmoved
+    done
+    [ -n "$moved" ] && continue
+    echo "cloud_relay: SEAT ENDED NO RETURN $topic (dispatch ${sha:0:12}, $((age / 3600))h, no return ref or PR head moved since)"
+    level_line seat-no-return "$ref" "$sha" "SEAT ENDED NO RETURN $topic $((age / 3600))h" >> "$state/cloud-level-nr.$$"
+  done < "$state/cloud-nr.$$"
+  level_set seat-no-return "$state/cloud-level-nr.$$"
+  rm -f "$state/cloud-nr.$$" "$state/cloud-nrr.$$"
+}
+
 pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
   local every=120 loop=""
   while [ $# -gt 0 ]; do case $1 in
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -888,10 +988,12 @@ EOF
   chk "the same ref listed at its own sha, a verdict at an older head, freezes nothing (null control)" 1 review_freeze 41 "$PRH" "$t/vl"
   git -C "$t/o.git" update-ref -d refs/heads/verdict/41
   # a review in flight: a dispatch of #41 at its head, until a verdict at that head posts
-  printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  printf '41 %s cloud %s 2026-10-29T17:07:00Z -\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
   chk "a dispatch at the head with no verdict holds the handoff: no update_pr call" 0 test ! -e "$t/hupdated"
-  chk "and prints HELD-REVIEW" 0 grep -q "^cloud_relay: HELD-REVIEW #41 $HS2 " <<< "$ho"
-  chk "and owes handoff-held REVIEW in the level" 0 grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 REVIEW\$" "$LOG.level"
+  chk "and prints HELD-REVIEW naming the dispatch's nonce prefix and time (P288)" 0 \
+    grep -q "^cloud_relay: HELD-REVIEW #41 $HS2 dispatch=${n:0:8} at=2026-10-29T17:07:00Z (" <<< "$ho"
+  chk "and owes handoff-held REVIEW with that evidence in the level" 0 \
+    grep -q "^OWED .* handoff-held refs/heads/handoff/topic-a $HS2 #41 REVIEW dispatch=${n:0:8} at=2026-10-29T17:07:00Z\$" "$LOG.level"
   mkv "verdict: #41 Fix review: merge $h"; frz
   chk "a verdict at an older head does not dispose the review: still HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
   mkv "verdict: #41 Fix review: blocked $PRH carry-missing: x"; frz
@@ -905,12 +1007,15 @@ EOF
   printf '42 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
   chk "a dispatch of another PR at the same head holds nothing (null control)" 0 test -e "$t/hupdated"
   cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
-  # the review worktree heuristic: a detached worktree of this checkout at the head
+  # P288: a detached worktree at the head is no review (the opener's and updater's sit there);
+  # only the dispatch record holds. The #2953 shape: handoff ahead, no verdict, no dispatch record.
   git worktree add -q --detach "$t/rw" "$PRH" 2>/dev/null; frz
-  chk "a detached review worktree at the head holds the handoff" 0 test ! -e "$t/hupdated"
-  chk "and prints HELD-REVIEW" 0 grep -q "HELD-REVIEW #41 " <<< "$ho"
-  git -C "$t/rw" checkout -q --detach "$HS2"; frz
-  chk "a detached worktree at another commit holds nothing (null control)" 0 test -e "$t/hupdated"
+  chk "a detached worktree at the head with no dispatch record updates (the #2953 shape)" 0 test -e "$t/hupdated"
+  chk "and prints no HELD-REVIEW" 1 grep -q "HELD-REVIEW #41 " <<< "$ho"
+  printf '41 %s cloud %s\n' "$PRH" "$n" >> "$t/bus/dispatched"; frz
+  chk "the same with a dispatch record at the head holds (a record without a time says at=-)" 0 \
+    grep -q "HELD-REVIEW #41 $HS2 dispatch=${n:0:8} at=- (" <<< "$ho"
+  cp "$t/bus/dispatched.keep" "$t/bus/dispatched"
   git worktree remove --force "$t/rw"
   # the release: the orchestrator passes the freeze over a listed PR; the hold file outranks it
   mkv "verdict: #41 Fix review: merge $PRH"; printf '41\n' > "$rf"; frz
@@ -925,6 +1030,41 @@ EOF
   chk "and updates nothing" 0 test ! -e "$t/hupdated"
   chk "and owes handoff-hold-malformed naming the release file" 0 grep -q "^OWED .* handoff-hold-malformed $rf -\$" "$LOG.level"
   rm -f "$rf"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41; rm -f "$t/hupdated" "$t/bus/dispatched.keep"; HPO_RELAY_UPDATE=$ustub; : > "$LOG"
+  # P283: the update runs from the relay's own tools tree, levelled to origin/main, never from
+  # this checkout. The scratch main carries a stand-in update_pr.sh holding pr_tools_fresh's test.
+  rm -rf "$t/tm"; throwaway_git_init "$t/tm" -q; mkdir -p "$t/tm/tools/audit/seat"
+  printf '#!/bin/bash\nd=$(cd "$(dirname "$0")" && pwd)\nn=$(git -C "$d" rev-list --count HEAD..origin/main -- :/tools)\n[ "$n" = 0 ] || { echo "REFUSE STALE CHECKOUT behind by $n"; exit 1; }\necho "$(git -C "$d" rev-parse HEAD) $1 $2" >> "%s/tupdated"\n' "$t" > "$t/tm/tools/audit/seat/update_pr.sh"
+  tmc() { git -C "$t/tm" add -A && git -C "$t/tm" -c user.name=t -c user.email=t@t commit -qm "$1"; }
+  tmc tools-a; TA=$(git -C "$t/tm" rev-parse HEAD); echo b > "$t/tm/tools/audit/seat/x"; tmc tools-b; TB=$(git -C "$t/tm" rev-parse HEAD)
+  git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"; git fetch -q origin main
+  TW=$t/state/relay-tools; git worktree add -q --detach "$TW" "$TA"
+  # The relay's own checkout, stale: a copy of the seat whose update_pr.sh refuses as the guard would.
+  rm -rf "$t/seat"; cp -R "$HERE" "$t/seat"; printf '#!/bin/bash\necho "REFUSE STALE CHECKOUT (the relay checkout)"; exit 1\n' > "$t/seat/update_pr.sh"
+  keep_here=$HERE; HERE=$t/seat; rm -f "$t/tupdated"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a relayed update runs from the levelled tools tree, at origin/main, and passes the guard (P283)" 0 \
+    test "$(cat "$t/tupdated" 2>/dev/null)" = "$TB fix/topic-a-pr $HS2"
+  chk "the tools tree was moved from the commit behind to origin/main" 0 test "$(git -C "$TW" rev-parse HEAD)" = "$TB"
+  chk "and its lock is released after the update" 0 test ! -e "$TW.lock"
+  chk "the relay's own checkout is never moved or run" 1 grep -q "the relay checkout" <<< "$ho"
+  git -C "$TW" checkout -q --detach "$TA"; echo dirty >> "$TW/tools/audit/seat/update_pr.sh"; rm -f "$t/tupdated" "$t/state/cloud-handoff-failed"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "null control: a dirty tools tree is refused by name, no update runs" 0 \
+    grep -q "REFUSED the update of #41: the relay's tools tree $TW is dirty" <<< "$ho"
+  chk "and the tree is left untouched (its commit and its edit)" 0 \
+    test "$(git -C "$TW" rev-parse HEAD) $(tail -n 1 "$TW/tools/audit/seat/update_pr.sh")" = "$TA dirty"
+  chk "and the refusal is owed on the level, unrecorded, so the next pass retries" 0 \
+    test "$(grep -c "handoff-update refs/heads/handoff/topic-a $HS2 the relay's tools tree .* is dirty" "$LOG.level")" = 1 -a ! -e "$t/tupdated"
+  chk "and not noted as a failed update" 0 test -z "$(grep -s "topic-a $HS2" "$t/state/cloud-handoff-failed")"
+  git -C "$TW" checkout -q -- .; sleep 30 & lp=$!; mkdir "$TW.lock"; echo "$lp" > "$TW.lock/pid"
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a tools tree held by a live relay is busy: no update, no level line" 0 \
+    test -n "$(grep "is busy (pid $lp)" <<< "$ho")" -a ! -e "$t/tupdated"
+  kill "$lp"; wait "$lp" 2>/dev/null
+  ho=$(HPO_RELAY_UPDATE= handoff_arm 2>&1)
+  chk "a lock whose pid is dead is taken over and the update runs" 0 test "$(cat "$t/tupdated" 2>/dev/null)" = "$TB fix/topic-a-pr $HS2"
+  HERE=$keep_here; git worktree remove --force "$TW"; rm -rf "$TW.lock" "$t/tupdated" "$t/seat"
+  git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null; : > "$LOG"; rm -f "$LOG.level" "$t/state/cloud-handoff-failed"
   # a failing update is noted once and not retried
   rm -f "$t/updated"; git -C "$t/pr" reset -q --hard "$PRH"; mkref fix/topic-a-pr
   printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"; : > "$LOG"
@@ -1013,7 +1153,10 @@ EOF
   # the confirm arm (P-O): the ledger is written before confirm runs, so a failed confirm was never
   # retried ('already relayed'). pass --confirm confirms each review/<pr> tip the relay pushed and
   # bus.sh has not posted; posting is what the confirm stub records, as bus.sh does in posted-signed.
-  printf '#!/bin/sh\n' > "$t/none.sh"; chmod +x "$t/none.sh"; HPO_RELAY_PRS=$t/none.sh; HPO_RELAY_PUSH=$stub
+  printf '#!/bin/sh\n' > "$t/none.sh"; chmod +x "$t/none.sh"; HPO_RELAY_PUSH=$stub
+  # P332: these PRs are open (their branches carry no handoff, so the handoff arm passes them by)
+  printf '#!/bin/sh\nfor p in 61 62 63 64 66; do printf "%%s\\tfix/cf-%%s\\t%s\\n" $p $p; done\n' "$N40" > "$t/open.sh"
+  chmod +x "$t/open.sh"; HPO_RELAY_PRS=$t/open.sh
   git -C "$t/o.git" for-each-ref --format='%(refname)' refs/heads/review/ | while read -r r; do git -C "$t/o.git" update-ref -d "$r"; done
   cat > "$t/cf.sh" <<'EOF'
 #!/bin/sh
@@ -1055,6 +1198,17 @@ EOF
   chk "then stays owed once on the level with its last reason" 0 test "$(grep -c "^OWED .* confirm-owed refs/heads/review/63 $(rtip 63) tries=3/3, not retried; .*: bus: REFUSE: the push of verdict/63 was refused: HTTP 502$" "$LV")" = 1
   echo "63 $(git rev-parse "$(rtip 63)^{tree}")" >> "$t/bus/posted-signed"; pass --confirm --log "$LOG" >/dev/null 2>&1
   chk "a review posted by hand after that leaves the level" 1 grep -q "review/63 " "$LV"
+  # P332: a relayed review whose PR is not open is skipped once, owed nothing; a failed listing skips nothing.
+  CF_FAILS=99; export HPO_RELAY_CONFIRM=$t/cf.sh; mk 67 $h $h $n; printf '67 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  cfo=$(pass --confirm --log "$LOG" 2>&1); cfo2=$(pass --confirm --log "$LOG" 2>&1)
+  # one call is the relay's own, at the relay; the confirm arm adds none over two passes
+  chk "a relayed review on a closed PR is skipped by the confirm arm with one line, confirmed no further (P332)" 0 \
+    test "$(grep -c '^cloud_relay: confirm skip #67: not open$' <<< "$cfo
+$cfo2") $(calls 67)" = "1 1"
+  chk "and owes no confirm-owed" 1 grep -q "review/67 " "$LV"
+  mk 68 $h $h $n; printf '68 %s cloud %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  HPO_RELAY_PRS=$failprs pass --confirm --log "$LOG" >/dev/null 2>&1
+  chk "null control: with the open-PR listing failed, the same shape on #68 stays owed" 0 grep -q "confirm-owed refs/heads/review/68 " "$LV"
   CONFIRM=; CF_FAILS=0; unset HPO_RELAY_CONFIRM; HPO_RELAY_PRS=$t/lister.sh; LOG=$t/pass.log
   # R10-PUSHER-REAP: a relay TERMed mid-update ends the update's whole tree. The
   # update stub records itself and a two-level sleep tree by pid, then blocks.
@@ -1081,10 +1235,14 @@ EOF
   HPO_RELAY_UPDATE=$t/lead.sh stoprelay "$HERE/cloud_relay.sh" 2
   chk "a relay TERMed mid-update TERMs the update alone first, so it ends its own child before anything else does" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
-  # The production route, no HPO_RELAY_UPDATE: a copy of the relay and the real pr_args.sh beside
-  # an update_pr.sh that is the lead stub, so the relay's own `bash "$HERE/update_pr.sh"` runs it.
+  # The production route, no HPO_RELAY_UPDATE: the scratch main's update_pr.sh is the lead stub,
+  # so the relay's own launch runs it from its levelled tools tree (tools_level, P283). The relay
+  # is a copy, so no route (a mutant's included) reaches the real update_pr.sh.
+  cp "$t/lead.sh" "$t/tm/tools/audit/seat/update_pr.sh"; tmc lead; git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"
   mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
   HPO_RELAY_UPDATE= stoprelay "$t/seat/cloud_relay.sh" 2
+  git worktree remove --force "$t/state/relay-tools"; rm -rf "$t/state/relay-tools.lock"
+  git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"; git fetch -q origin main 2>/dev/null
   chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
     0 test "$tn $live $(tr '\n' ' ' < "$t/marks")" = "2 0 G "
   # #2549: a signal to the loop's whole process group reaches the update only through the loop's
@@ -1143,7 +1301,33 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
   chk "a released lock aged 5000 s is not reported, whatever its text" 1 grep -qF 'fix-gone' <<< "$out"
   chk "once every lock is released nothing is reported, and the level holds no push-stuck line" \
     0 test "$(printf '%s' "$stuck_free")$(grep -c push-stuck "$LOG.level")" = 0
-  rm -rf "$t"
+  # P-E: SEAT ENDED NO RETURN, keyed on the dispatch ref's own age (git only).
+  LOG=$t/nr.log; : > "$LOG"; rm -f "$LOG.level"
+  rm -rf "$t/nr" "$t/nrw" "$t/nro.git"; throwaway_git_init "$t/nr" -q; throwaway_git_init "$t/nrw" -q
+  throwaway_git_init "$t/nro.git" -q --bare; cd "$t/nrw" && git remote add origin "$t/nro.git"
+  nrc() { # <ref> <age seconds>: one commit on the scratch origin's <ref>, committed <age> ago
+    GIT_COMMITTER_DATE="@$(( $(date +%s) - $2 )) +0000" git -C "$t/nr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"
+    git -C "$t/nro.git" fetch -qf "$t/nr" "HEAD:refs/heads/$1"; }
+  nrc dispatch/fixer-nr-a 10800; nrc dispatch/fixer-nr-b 10800; nrc handoff-wip/nr-b 3600
+  nrc dispatch/fixer-nr-c 10800; nrc fix/nr-c-pr 1800; nrc dispatch/fixer-nr-young 1800
+  nrc dispatch/fixer-nr-old 300000; nrc handoff/nr-e 14400; nrc dispatch/fixer-nr-e 10800
+  nro=$(noreturn_arm 2>&1)
+  chk "a fixer dispatched 3 h ago with no return ref is SEAT ENDED NO RETURN (P-E)" 0 \
+    grep -q "^cloud_relay: SEAT ENDED NO RETURN nr-a (dispatch [0-9a-f]\{12\}, 3h" <<< "$nro"
+  chk "and owed seat-no-return on the level" 0 \
+    grep -qE "^OWED [^ ]+ seat-no-return refs/heads/dispatch/fixer-nr-a [0-9a-f]{40} SEAT ENDED NO RETURN nr-a 3h$" "$LOG.level"
+  chk "a seat whose handoff-wip moved after its dispatch is not reported (null control: it returned)" 1 grep -q " nr-b " <<< "$nro"
+  chk "a seat whose pull request's head moved after its dispatch is not reported" 1 grep -q " nr-c " <<< "$nro"
+  chk "a dispatch younger than the bound is not reported" 1 grep -q " nr-young " <<< "$nro"
+  chk "a dispatch past the window is not reported (its refs may be gone with a merged branch)" 1 grep -q " nr-old " <<< "$nro"
+  chk "a return ref older than the dispatch (an earlier round's) does not count as a return" 0 grep -q " nr-e " <<< "$nro"
+  git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-a; git -C "$t/nro.git" update-ref -d refs/heads/dispatch/fixer-nr-e
+  noreturn_arm >/dev/null 2>&1
+  chk "deleting the dispatch ref takes its line off the level (the disposal)" 1 grep -q "fixer-nr-a\|fixer-nr-e" "$LOG.level"
+  LOG=$t/nr2.log; : > "$LOG"; nrc dispatch/fixer-nr-p 10800
+  nro=$(handoff_arm() { :; }; probe_arm() { :; }; CONFIRM= pass 2>&1)
+  chk "a pass runs the no-return arm" 0 grep -q "SEAT ENDED NO RETURN nr-p " <<< "$nro"
+  cd / && rm -rf "$t"
   echo "cloud_relay self-test: $((ok+bad)) checks, $bad failed"; [ "$bad" = 0 ]
 }
 
