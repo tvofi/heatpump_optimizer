@@ -1,0 +1,41 @@
+run 41374173601 at head bbcbe25986772676a8981246eacfd75c41eb2dc4
+125050738391 prelude completed success
+125050738487 refresh completed success
+125050739044 cancel-superseded completed success
+125050864240 codeql / Analyze (python) completed success
+125050864313 codeql / Analyze (actions) completed success
+125050864325 validate / validate-hacs completed success
+125050864332 governance / policy-docs completed success
+125050864338 codeql / Analyze (javascript-typescript) completed success
+125050864354 governance / env-matrix completed success
+125050864365 tests / briefs completed success
+125050864377 arch-score / arch-score completed success
+125050864415 governance / wave-script completed success
+125050864427 tests / mutation completed success
+125050864430 governance / delivery-status completed success
+125050864439 governance / instrument-self-tests completed success
+125050864445 hassfest / hassfest completed success
+125050864447 tests / closure-scope completed success
+125050864464 budget-raise-gate / budget-raise-gate completed success
+125050864500 tests / nightly-status completed success
+125050865353 governance / record completed skipped
+125050865402 kernel-points completed skipped
+125050865531 governance / delivery-status-publish completed skipped
+125051003529 tests / browser completed success
+125051003577 tests / fast (3.14) completed success
+125051003592 tests / replay completed success
+125051003612 tests / coverage completed success
+125051003623 tests / closures completed success
+125051003630 tests / typing completed success
+125051003633 tests / arch-instrument completed success
+125051004655 tests / nightly-ha completed skipped
+125056423623 tests / closures-autofix completed skipped
+125056843863 tests / claims-autofix completed skipped
+125058742114 tests / coverage-ratchet completed cancelled
+125058742205 tests / lane-proofs completed cancelled
+125058742228 tests / graders-head-copy completed cancelled
+125058742959 tests / ci-ratchet completed skipped
+125059273300 tests / mutation-pins completed skipped
+125059273779 tests / mutation-autofix completed skipped
+125059648634 pr-contract completed skipped
+125059649052 gate completed cancelled
