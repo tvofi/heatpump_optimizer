@@ -68,6 +68,9 @@ Plants:
                               issue and nothing is ever held.
   M28_issue_state_ignored     carry_audit's `orphaned` ignores the issue
                               state, so a closed issue holds its group open.
+  M29_hold_without_legacy     the hold's projection drops the cut-over set,
+                              so a legacy-only group projects carries-open,
+                              owns its own issue, and is never held.
 """
 import subprocess
 import sys
@@ -86,9 +89,9 @@ PLANTS = {
         (SRC, "            if stage != \"in-progress\" or resume.get(\"pr\") != pr.number:",
               "            if False:  # M2")],
     "M3_merged_without_commit": [
-        (SRC, "        changes.append(Change(gid, \"done\", pr.number, pr.merge_commit,\n"
+        (SRC, "        changes.append(Change(gid, closed, pr.number, pr.merge_commit,\n"
               "                              stage, pr.state))",
-              "        changes.append(Change(gid, \"done\", pr.number, None,\n"
+              "        changes.append(Change(gid, closed, pr.number, None,\n"
               "                              stage, pr.state))  # M3")],
     "M4_carry_to_done_appended": [
         (SRC, "                elif not roster_lib.is_open(g):",
@@ -160,11 +163,14 @@ PLANTS = {
         (SRC, "        out.append(c._replace(stage=HOLD_STAGE, held=tuple(held)) if held else c)",
               "        out.append(c)  # M25")],
     "M26_apply_unheld": [
-        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)))\n",
+        (SRC, "            changes = hold_open(roster, changes, dests_for((made,)), legacy)\n",
               "")],
     "M27_owners_before_close": [
-        (SRC, "    apply_plan(projected, changes, [])\n    dests = dests_for(projected)",
+        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
               "    dests = dests_for(projected)  # M27")],
+    "M29_hold_without_legacy": [
+        (SRC, "    apply_plan(projected, changes, [], legacy)\n    dests = dests_for(projected)",
+              "    apply_plan(projected, changes, [])  # M29\n    dests = dests_for(projected)")],
     "M28_issue_state_ignored": [
         (CA, "            and (dests.issue_state(n) if dests.issue_state else None) in (None, \"open\")]",
              "            ]  # M28")],
