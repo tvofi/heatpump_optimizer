@@ -1,8 +1,0 @@
-Tree: head 37fa2bbb9e54aedf43d9feb24634710509837150
-main grader on head tree rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0 AGREEMENT ok 
-head grader on head tree rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0 AGREEMENT ok 
-Files /tmp/tmp.LK1k6Q7Jp2/ev/lane-main-on-head.txt and /tmp/tmp.LK1k6Q7Jp2/ev/lane-head-on-head.txt differ
-Tree: origin/main 279cb497fa764f89a961d94c87e57f16176c2fcc
-main grader on main tree rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0 AGREEMENT ok 
-head grader on main tree rc=0 RESULT divergent=0 unregistered=0 dead=0 refused=0 AGREEMENT ok 
-Files /tmp/tmp.LK1k6Q7Jp2/ev/lane-main-on-main.txt and /tmp/tmp.LK1k6Q7Jp2/ev/lane-head-on-main.txt differ

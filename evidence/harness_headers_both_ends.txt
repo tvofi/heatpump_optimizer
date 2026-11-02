@@ -1,0 +1,16 @@
+== wt-h
+  ok   an unrecorded run past half its bound still fails the headroom (null control)
+  ok   and an unrecorded run within it passes
+  ok   the executed harnesses leave their committed output byte-identical
+
+ALL 112 HARNESS HEADER CHECKS PASSED
+rc=0
+== wt-o
+  ok   an unrecorded run past half its bound still fails the headroom (null control)
+  ok   and an unrecorded run within it passes
+  ok   the executed harnesses leave their committed output byte-identical
+
+1 of 112 HARNESS HEADER CHECKS FAILED
+rc=0
+dev/audit/harnesses/r9_fr3_family_consumer.mjs
+f284f22d060b8efe53881fde7153927f758b159b	refs/heads/verdict/3173
