@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/sysid.py:SystemIdentification.conditions_met CMP_BOUND e36b992b",
+  "killed_by": "tests/features.py",
+  "old": "            price_horizon is None or not len(price_horizon) or np.ptp(price_horizon) <= 0.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`price_horizon is None or not len(price_horizon) or np.ptp(price_horizon) < 0.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}

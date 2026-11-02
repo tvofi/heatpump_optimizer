@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:DrawRange._overdrawn BOOLOP c78c910d",
+  "killed_by": "tests/features.py",
+  "old": "        at_ceiling = command is not None and command[0] >= command[1] - CEILING_TOLERANCE_K",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`at_ceiling = command is not None or command[0] >= command[1] - CEILING_TOLERANCE_K`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

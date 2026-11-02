@@ -30,12 +30,18 @@ import logging
 import math
 from dataclasses import dataclass, replace
 from datetime import datetime
-from typing import Any, Callable
+from typing import Any, Callable, cast
 
 import numpy as np
 
 from .accuracy import utc_elapsed_seconds
-from .const import DEFAULT_SLAB_HEAT_TRANSFER, DEFAULT_SLAB_THERMAL_MASS
+from .const import (
+    DEFAULT_OPTIMIZATION_INTERVAL,
+    DEFAULT_SLAB_HEAT_TRANSFER,
+    DEFAULT_SLAB_THERMAL_MASS,
+)
+from .draw_range import DrawRange
+from . import quiet_windows
 from .mixing_valve import is_throttling
 from .payload import SysIdResultView, SysIdView
 from .thermal_model import (
@@ -43,6 +49,8 @@ from .thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    ceiling_probe_install,
+    learner_room_unread,
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -83,6 +91,19 @@ TWO_ZONE_SIZING_HEADROOM_C = 0.05
 #: 0.05 degC noise the fit is built to tolerate; the abort bound itself is
 #: the comfort promise and does not move.
 SIZING_NOISE_HEADROOM_C = 0.15
+
+#: The two experiments an arm can run (R10-CEILING-PROBE, #2808). The fit
+#: steps a sized heat into the house and identifies it; the ceiling probe
+#: commands the configured maximum, so a flow set-point install writes its
+#: ceiling and the meter reads the pump's real top into
+#: ``draw_range.DrawRange.ceiling``. The probe fits and adopts nothing.
+KIND_FIT = "fit"
+KIND_PROBE = "ceiling_probe"
+#: Days between probes while the store has no learned top, and once it has.
+PROBE_DAYS_UNLEARNED = 7.0
+PROBE_DAYS_LEARNED = 30.0
+#: A probe step shorter than this many cycles meters too few intervals.
+PROBE_MIN_CYCLES = 2
 
 
 def _predict_step_excursion(
@@ -400,6 +421,11 @@ class SysIdSample:
     identified parameters by the COP, and the error would look entirely
     plausible because the ratio between them — the time constant — stays
     correct.
+
+    A step sample books the heat COMMANDED for the interval that begins at
+    ``when`` -- the override the same ``step`` call returns governs it -- not
+    a metered draw: the meter's reading of that interval closes it a cycle
+    later, and reaches ``draw_range.fold`` (R10-CEILING-PROBE item 10).
     """
 
     when: datetime
@@ -1266,6 +1292,72 @@ def night_gains_prior_kw(plant: ThermalParameters, config: SysIdConfig) -> float
     ]))
 
 
+def armable(
+    cfg: SysIdConfig,
+    now: datetime,
+    last_run: datetime | None,
+    learner_samples: int,
+    probe: DrawRange | None,
+    probe_run: datetime | None,
+) -> tuple[str | None, str]:
+    """The kind one arm runs now, or ``None`` and why none can (#2808).
+
+    The fit while the house learner is unconverged and its own clock allows;
+    otherwise the ceiling probe, where the install can run one (``probe`` is
+    its draw store) and the probe's clock allows. The probe's clock is the
+    store's newest sample, which persists, or the probe step's start this
+    process saw (``probe_run``), whichever is newer.
+    """
+    if learner_samples < cfg.converged_samples:
+        days = None if last_run is None else utc_elapsed_seconds(now, last_run) / 86400.0
+        if days is None or days >= cfg.min_days_between_runs:
+            return KIND_FIT, ""
+        why = f"ran {days:.1f} days ago; waiting for the {cfg.min_days_between_runs:.0f} day minimum"
+    else:
+        why = "house already converged"
+    if probe is None:
+        return None, f"{why}, and no metered flow set-point to probe the ceiling on"
+    wait = PROBE_DAYS_LEARNED if probe.learned_max_kw(now.timestamp()) is not None else PROBE_DAYS_UNLEARNED
+    since = max(
+        (t for t in (probe.ceiling_since(), probe_run and probe_run.timestamp()) if t),
+        default=None,
+    )
+    if since is not None and (now.timestamp() - since) / 86400.0 < wait:
+        days = (now.timestamp() - since) / 86400.0
+        return None, f"{why}; the ceiling probe ran {days:.1f} days ago, waiting for the {wait:.0f} day minimum"
+    return KIND_PROBE, ""
+
+
+def probe_step_hours(
+    house: HousePlant,
+    two_zone: ThermalParameters | None,
+    baseline: float,
+    outdoor: float,
+    q_kw: float,
+    cfg: SysIdConfig,
+) -> float | None:
+    """The longest probe step, in whole cycles up to ``cfg.step_hours``,
+    whose predicted peak stays inside the comfort bound; ``None`` below
+    ``PROBE_MIN_CYCLES`` cycles.
+
+    ``q_kw`` is the thermal heat at the configured maximum. The bound is the
+    fit's less only the two-zone headroom: the probe fits nothing, so the
+    sensor-noise headroom the fit subtracts (``SIZING_NOISE_HEADROOM_C``) has
+    no noise to absorb. The peak includes the relax phase's overshoot; the
+    relax's final cooling is the plan's, which resumes after a probe.
+    """
+    cycle = DEFAULT_OPTIMIZATION_INTERVAL / 60.0
+    bound = cfg.max_excursion_c - (0.0 if two_zone is None else TWO_ZONE_SIZING_HEADROOM_C)
+    model = None if two_zone is None else ThermalModel(two_zone)
+    for n in range(int(cfg.step_hours / cycle + 1e-9), PROBE_MIN_CYCLES - 1, -1):
+        peak, _ = _predict_step_excursion_plant(
+            house, baseline, outdoor, q_kw, n * cycle, cfg.relax_hours, model=model,
+        )
+        if peak <= bound:
+            return n * cycle
+    return None
+
+
 def step_detached(
     experiment: "SystemIdentification", kwargs: dict[str, Any]
 ) -> tuple[dict[str, Any], float | None]:
@@ -1280,6 +1372,21 @@ def step_detached(
     return vars(experiment), override
 
 
+def hold_reason(signals: Any, frozen: str | None, config: Any, now: datetime) -> str | None:
+    """Why a started or armed experiment stands down this cycle, or ``None``.
+
+    #1523: the experiment is a heat-loss learner, so it stands down on the
+    house learner's own freeze (``frozen``: external heat, a defrost, an open
+    window, an unusable or unconfigured room or outdoor reading) and on a mode
+    that cannot heat. The room half is ``learner_room_unread``. R10-CEILING-PROBE:
+    and in a quiet window, whose override the experiment would not honour.
+    ``config`` is ``None`` for a host that cannot show its entry.
+    """
+    if signals.space_blocked:
+        return f"heat pump mode {signals.mode.label} cannot heat the house"
+    return frozen or learner_room_unread(config) or quiet_windows.quiet_reason(config or {}, now)
+
+
 class SystemIdentification:
     """State machine driving a step-response experiment."""
 
@@ -1292,6 +1399,13 @@ class SystemIdentification:
         self.result: SysIdResult = SysIdResult()
         self._baseline_temp: float | None = None
         self._step_power: float = 0.0
+        #: The armed kind; its step length (a probe's is searched); the probe
+        #: step's last start; the last arm press; a freeze's hold (#2808).
+        self.kind: str = KIND_FIT
+        self._step_hours: float = self.config.step_hours
+        self.probe_run: datetime | None = None
+        self.last_attempt: datetime | None = None
+        self.held: str | None = None
         #: Slab pair (C_s, k_s) and initial-guess room pair (UA, C_r) from
         #: the plant declared at arm time, recorded ONLY when the #991
         #: identifiability gate passed on it. ``_finish`` routes the
@@ -1313,8 +1427,15 @@ class SystemIdentification:
     def active(self) -> bool:
         return self.phase in (PHASE_ARMED, PHASE_SETTLING, PHASE_STEP, PHASE_RELAX)
 
-    def arm(self, now: datetime, plant: ThermalParameters | None = None) -> bool:
+    def arm(
+        self, now: datetime, plant: ThermalParameters | None = None,
+        learner_samples: int = 0, probe: DrawRange | None = None,
+    ) -> bool:
         """Arm an experiment, to start when conditions allow.
+
+        :func:`armable` picks the kind; a refusal is published in ``result``.
+        ``probe`` is the install's draw store where it can run the ceiling
+        probe (``thermal_model.ceiling_probe_install``), else ``None``.
 
         ``plant`` is the house the experiment would run on, when the caller
         knows it. #942's identifiability gate then refuses to arm on a plant
@@ -1329,11 +1450,20 @@ class SystemIdentification:
             return False
         if self.active:
             return False
+        self.last_attempt, self.held = now, None
+        kind, why = armable(self.config, now, self.last_run, learner_samples, probe, self.probe_run)
+        if kind is None:
+            _LOGGER.info("System identification not armed: %s", why)
+            self.result = SysIdResult(completed=False, reason=why)
+            return False
+        self.kind, self._step_hours = kind, self.config.step_hours
         self._slab_pair = None
         self._slab_prior = None
         self._slab_fit_used = False
         self._two_zone_plant = None
-        if plant is not None:
+        if plant is not None and kind == KIND_PROBE:
+            self._two_zone_plant = replace(plant) if plant.two_zone_enabled else None
+        elif plant is not None:
             identifiable, why = slab_mode_identifiability(plant, self.config)
             if not identifiable:
                 _LOGGER.info("System identification not armed: %s", why)
@@ -1362,16 +1492,6 @@ class SystemIdentification:
                     _zone_heat_loss(plant) * float(plant.house_heat_loss_scale),
                     float(plant.upper_floor_thermal_mass + plant.lower_floor_thermal_mass),
                 )
-        if self.last_run is not None:
-            days = utc_elapsed_seconds(now, self.last_run) / 86400.0
-            if days < self.config.min_days_between_runs:
-                _LOGGER.info(
-                    "System identification ran %.1f days ago; waiting for the "
-                    "%.0f day minimum",
-                    days,
-                    self.config.min_days_between_runs,
-                )
-                return False
         self.phase = PHASE_ARMED
         self.phase_started = now
         self.samples = []
@@ -1383,6 +1503,14 @@ class SystemIdentification:
         _LOGGER.info("Aborting system identification: %s", reason)
         self.phase = PHASE_ABORTED
         self.result = SysIdResult(completed=False, reason=reason)
+
+    def stand_down(self, reason: str) -> None:
+        """The learners' freeze: a started experiment aborts, since its
+        interval's heat cannot be attributed; an armed one waits, held."""
+        if self.phase == PHASE_ARMED:
+            self.held = reason
+        else:
+            self.abort(reason)
 
     # -- gating -------------------------------------------------------------
 
@@ -1398,7 +1526,7 @@ class SystemIdentification:
         cfg = self.config
         if price is None:  # no published price covers now (#2229)
             return False, "no current electricity price"
-        if learner_samples >= cfg.converged_samples:
+        if self.kind == KIND_FIT and learner_samples >= cfg.converged_samples:
             return False, "house already converged"
         if not (cfg.min_outdoor_temp <= outdoor_temp <= cfg.max_outdoor_temp):
             return False, "outdoor temperature outside the safe band"
@@ -1412,6 +1540,10 @@ class SystemIdentification:
         if not in_window:
             return False, "outside the night window"
 
+        if self.kind == KIND_PROBE and (
+            price_horizon is None or not len(price_horizon) or np.ptp(price_horizon) <= 0.0
+        ):
+            return False, "a flat price has no cheap hour to probe in"
         if price_horizon is not None and len(price_horizon):
             cutoff = float(np.percentile(price_horizon, cfg.max_price_percentile))
             if price > cutoff:
@@ -1421,37 +1553,26 @@ class SystemIdentification:
     # -- execution ----------------------------------------------------------
 
     def _size_step_power(
-        self,
-        max_power_kw: float,
-        cop: float,
-        baseline: float,
-        outdoor_temp: float,
-        ua: float,
-        capacity: float,
-        gains: float,
-        slab_thermal_mass: float | None = None,
-        slab_heat_transfer: float | None = None,
+        self, max_power_kw: float, cop: float, baseline: float, outdoor_temp: float, house: HousePlant,
     ) -> float | None:
-        """Largest electrical step whose predicted excursion fits the bound."""
+        """Largest electrical step whose predicted excursion fits the bound.
+
+        ``house`` carries ``ua``, ``capacity`` and ``gains`` concretely.
+        """
         cfg = self.config
         cop = max(cop, 0.1)
         q_max = max_power_kw * cop
         # 0.01 kW thermal: the C=8 UA=0.35 kW/K needle is ~0.05 kW wide.
         # Binary search: each trial is a two-state rollout, not a closed form.
         best: float | None = None
+        ua, capacity, gains = cast("tuple[float, float, float]", (house.ua, house.capacity, house.gains))
         plant = (
-            _sizing_model(ua, capacity, gains, slab_thermal_mass, slab_heat_transfer)
+            _sizing_model(ua, capacity, gains, house.slab_mass, house.slab_transfer)
             if self._two_zone_plant is None
             else ThermalModel(self._two_zone_plant)
         )
-
         full = cfg.max_excursion_c - (
             0.0 if self._two_zone_plant is None else TWO_ZONE_SIZING_HEADROOM_C
-        )
-
-        house = HousePlant(
-            ua=ua, capacity=capacity, gains=gains,
-            slab_mass=slab_thermal_mass, slab_transfer=slab_heat_transfer,
         )
 
         def fits(q: float, bound: float) -> bool:
@@ -1494,20 +1615,11 @@ class SystemIdentification:
                 break
         if best is not None:
             one_peak, _ = _predict_step_excursion(
-                baseline,
-                outdoor_temp,
-                ua,
-                capacity,
-                gains,
-                best * cop,
-                cfg.step_hours,
-                cfg.relax_hours,
+                baseline, outdoor_temp, ua, capacity, gains, best * cop, cfg.step_hours, cfg.relax_hours,
             )
             _LOGGER.debug(
                 "System identification sizer: two-state step %.2f kW; "
-                "one-state exponential predicted %.2f K",
-                best,
-                one_peak,
+                "one-state exponential predicted %.2f K", best, one_peak,
             )
         return best
 
@@ -1519,60 +1631,53 @@ class SystemIdentification:
         )
 
     def _begin_step_phase(
-        self,
-        now: datetime,
-        outdoor_temp: float,
-        max_power_kw: float,
-        cop: float,
-        house_ua: float | None,
-        house_capacity: float | None,
-        house_gains: float | None,
-        house_slab_mass: float | None = None,
-        house_slab_transfer: float | None = None,
-    ) -> bool:
-        """Enter PHASE_STEP with a comfort-bounded injection. False if none fits."""
+        self, now: datetime, outdoor_temp: float, max_power_kw: float, cop: float, house: HousePlant,
+    ) -> None:
+        """Enter PHASE_STEP with a comfort-bounded injection; abort if none fits.
+
+        A probe steps the configured maximum for the longest whole-cycle
+        duration that fits (:func:`probe_step_hours`); the fit sizes its power.
+        """
         self.phase = PHASE_STEP
         self.phase_started = now
+        if self.kind == KIND_PROBE:
+            hours = None if self._baseline_temp is None else probe_step_hours(
+                house, self._two_zone_plant, self._baseline_temp, outdoor_temp,
+                max_power_kw * max(cop, 0.1), self.config,
+            )
+            if hours is None:
+                self.abort("no probe step of two cycles fits within the comfort bound")
+                return
+            self._step_power, self._step_hours, self.probe_run = max_power_kw, hours, now
+            return
         if (
-            house_ua is not None
-            and house_capacity is not None
-            and house_gains is not None
-            and house_ua > 1e-6
-            and house_capacity > 1e-6
+            house.ua is not None
+            and house.capacity is not None
+            and house.gains is not None
+            and house.ua > 1e-6
+            and house.capacity > 1e-6
             and self._baseline_temp is not None
         ):
             why = _valve_regulates(
                 self._two_zone_plant, self._baseline_temp, outdoor_temp
             )
             sized = None if why else self._size_step_power(
-                max_power_kw,
-                cop,
-                self._baseline_temp,
-                outdoor_temp,
-                house_ua,
-                house_capacity,
-                house_gains,
-                house_slab_mass,
-                house_slab_transfer,
+                max_power_kw, cop, self._baseline_temp, outdoor_temp, house,
             )
             if sized is None:
                 self.abort(
                     VALVE_REGULATES_REASON if why
                     else "no step fits within the comfort bound"
                 )
-                return False
+                return
             self._step_power = sized
             unadoptable = self._unadoptable(sized * max(cop, 0.1), outdoor_temp)
             if unadoptable:
                 self.abort(unadoptable)
-                return False
+                return
         else:
             self._step_power = max_power_kw * 0.3
-        _LOGGER.debug(
-            "System identification step: injecting %.2f kW",
-            self._step_power,
-        )
-        return True
+        _LOGGER.debug("System identification step: injecting %.2f kW", self._step_power)
 
     def _unadoptable(self, step_kw: float, outdoor: float) -> str | None:
         """Why tonight's own noise-free fit could not be adopted, or ``None``.
@@ -1633,11 +1738,6 @@ class SystemIdentification:
         ``ThermalParameters`` defaults instead of on the house it heats
         (#943).
         """
-        house_ua = house.ua
-        house_capacity = house.capacity
-        house_gains = house.gains
-        house_slab_mass = house.slab_mass
-        house_slab_transfer = house.slab_transfer
         cfg = self.config
         if not self.active:
             return None
@@ -1651,7 +1751,8 @@ class SystemIdentification:
                     self.phase = PHASE_IDLE
                     self.result = SysIdResult(completed=False, reason=reason)
                 return None
-            _LOGGER.info("Starting system identification: %s", reason)
+            _LOGGER.info("Starting system identification (%s): %s", self.kind, reason)
+            self.held = None
             self.phase = PHASE_SETTLING
             self.phase_started = now
             self._baseline_temp = room_temp
@@ -1672,18 +1773,8 @@ class SystemIdentification:
             if self._over_excursion(room_temp):
                 self.abort("room temperature drifted beyond the allowed excursion")
                 return None
-            if elapsed >= cfg.settle_hours and not self._begin_step_phase(
-                now,
-                outdoor_temp,
-                max_power_kw,
-                cop,
-                house_ua,
-                house_capacity,
-                house_gains,
-                house_slab_mass,
-                house_slab_transfer,
-            ):
-                return None
+            if elapsed >= cfg.settle_hours:
+                self._begin_step_phase(now, outdoor_temp, max_power_kw, cop, house)
             return None
 
         if self._over_excursion(room_temp):
@@ -1692,9 +1783,8 @@ class SystemIdentification:
 
         if self.phase == PHASE_STEP:
             self.samples[-1].power_kw = self._step_power * thermal_cop
-            if elapsed >= cfg.step_hours:
-                self.phase = PHASE_RELAX
-                self.phase_started = now
+            if elapsed >= self._step_hours:
+                self._end_step(now)
             return self._step_power
 
         if self.phase == PHASE_RELAX:
@@ -1704,8 +1794,21 @@ class SystemIdentification:
 
         return None
 
+    def _end_step(self, now: datetime) -> None:
+        """A fit relaxes; a probe ends, and the plan resumes after this interval."""
+        if self.kind == KIND_PROBE:
+            self._finish(now)
+        else:
+            self.phase, self.phase_started = PHASE_RELAX, now
+
     def _finish(self, now: datetime) -> None:
         self.phase = PHASE_DONE
+        if self.kind == KIND_PROBE:
+            # Nothing is fitted: the meter's draws went to the ceiling store.
+            self.result = SysIdResult(completed=False, reason=(
+                f"ceiling probe ran {self._step_hours:.1f} h at {self._step_power:.2f} kW"
+            ))
+            return
         self.last_run = now
         # #942's wave: an experiment the arm-time gate admitted on a declared
         # plant is fitted in the two-state form (with the ported intercept
@@ -2343,5 +2446,28 @@ class SystemIdentification:
             "active": self.active,
             "samples": len(self.samples),
             "last_run": self.last_run.isoformat() if self.last_run else None,
+            "kind": self.kind,
+            "held": self.held,
+            "last_attempt": self.last_attempt.isoformat() if self.last_attempt else None,
             "result": self.result.as_dict(),
         }
+
+
+def arm_from_config(
+    ident: SystemIdentification, now: datetime, config: Any, plant: ThermalParameters,
+    learner_samples: int, draw: DrawRange,
+) -> bool:
+    """Arm ``ident`` from the entry's configuration (the coordinator's one call).
+
+    The switch is the configuration's; the draw store is the probe's only
+    where the install can run it (``thermal_model.ceiling_probe_install``).
+    """
+    ident.config.enabled = config.system_identification_enabled
+    probe = draw if ceiling_probe_install(config) else None
+    armed = ident.arm(now, plant=plant, learner_samples=learner_samples, probe=probe)
+    if armed:
+        _LOGGER.info(
+            "System identification armed (%s); it will start at the next mild, cheap night hour",
+            ident.kind,
+        )
+    return armed
