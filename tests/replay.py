@@ -1162,6 +1162,49 @@ def _in_window(doc: dict) -> dict[str, int]:
             for eid in doc["inputs"]}
 
 
+def _open_line_branches(tmp: Path, fake: "_FakeMySQL", marked: Path) -> list[tuple[str, bool, str]]:
+    """``export.open_recorder`` on each of its three branches, the stderr line
+    each prints: the kind by a constant, the path only on ``--db``, never a
+    value from the URL (code-scanning alert 47). The default branch has no
+    other pin: its line deleted, made constant or called MySQL stays green."""
+    import export
+
+    saved = {m: sys.modules.get(m) for m in ("MySQLdb", "pymysql")}
+    sys.modules["MySQLdb"] = fake  # type: ignore[assignment]
+    sys.modules["pymysql"] = None  # type: ignore[assignment]
+    canaries = (_CANARY_KEY, _CANARY_USER, "core-mariadb", "hadb")
+    got: dict[str, list[str]] = {}
+    try:
+        install = tmp / "default-install"
+        install.mkdir()
+        shutil.copy(tmp / "mariadb-backing.db", install / "home-assistant_v2.db")
+        for name, cfg, db, url in (
+                ("default", install, None, None),
+                ("db_path", install, marked, None),
+                ("mysql_url", install, None, _DB_URL),
+                ("sqlite_url", install, None, "sqlite:///home-assistant_v2.db")):
+            err = io.StringIO()
+            with contextlib.redirect_stderr(err):
+                export.open_recorder(cfg, db, url).close()
+            got[name] = err.getvalue().splitlines()
+    finally:
+        for name, module in saved.items():
+            if module is None:
+                sys.modules.pop(name, None)
+            else:
+                sys.modules[name] = module
+    want = {"default": ["reading the recorder: SQLite database"],
+            "db_path": [f"reading the recorder: SQLite database {marked}"],
+            "mysql_url": ["reading the recorder: MySQL/MariaDB database"],
+            "sqlite_url": ["reading the recorder: SQLite database"]}
+    res = [(f"recorder:open_recorder_line:{name}", got.get(name) == line, str(got.get(name)))
+           for name, line in want.items()]
+    leaked = [c for c in canaries if any(c in l for ls in got.values() for l in ls)]
+    res.append(("recorder:open_recorder_lines_carry_no_url_value",
+                not leaked and len(_CANARY_KEY) > 3, f"leaked {leaked}"))
+    return res
+
+
 def recorder_checks() -> list[tuple[str, bool, str]]:
     import export
 
@@ -1212,6 +1255,7 @@ def recorder_checks() -> list[tuple[str, bool, str]]:
                     and "core-mariadb" not in said_url and marked.name not in said_url
                     and len(_CANARY_KEY) > 3 and len(_CANARY_USER) > 3,
                     "the URL branch's stderr searched for the user, password and host"))
+        res.extend(_open_line_branches(tmp, fake, marked))
         flag, _ = _export_mariadb(fake, tmp, db_url=_DB_URL.replace("homeassistant", "hadb"))
         res.append(("recorder:db_url_flag_read", flag is not None
                     and fake.kwargs.get("database") == "hadb", str(fake.kwargs.get("database"))))
