@@ -1779,12 +1779,12 @@ if [ "${1:-}" = "--self-test" ]; then
   # `empty` and `broken` matter most: a settings file with no hooks, and one
   # that does not parse, both read exactly like a working one to anybody who
   # only looks at whether the file is there.
-  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type; do
+  for f in missing empty unreadable broken self-test-fails bad-matcher bad-type bash-under-edit-matcher; do
     if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; else node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" >/dev/null 2>&1; fi
     st $? 1 "a settings file whose hook is $f is refused"
   done
   if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks 2>&1); fi
-  r=$?; st "$r" 0 "this repository's own three wired hooks pass (null control)"
+  r=$?; st "$r" 0 "this repository's own wired hooks pass (null control)"
   [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
 
   # A missing matcher, `""` and `"*"` are Claude Code's own "match every tool"
@@ -1796,7 +1796,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # The output is kept, and printed when a row fails: this row failed once
   # in five serial runs on a loaded box (R9-RCA-prepr-tmp) and did not
   # reproduce in 18 more, and a discarded output left nothing to read.
-  for f in star-matcher no-matcher empty-matcher; do
+  for f in star-matcher no-matcher empty-matcher bash-matcher; do
     if test -f .claude/workflows/policy_lint.mjs; then hk=$(node .claude/workflows/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); else hk=$(node tools/policy/policy_lint.mjs --hooks "$D/../hooks/$f.json" 2>&1); fi
     r=$?; st "$r" 0 "a settings file whose PreToolUse matcher is $f passes (null control)"
     [ "$r" -eq 0 ] || printf '%s\n' "$hk" | grep -v '^  ok' | sed 's/^/       | /' | tail -12
