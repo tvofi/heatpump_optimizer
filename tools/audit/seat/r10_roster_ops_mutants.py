@@ -53,6 +53,9 @@ Plants, one per refusal of the two ops and per round-trip property:
          size check (S4), the registry itself letting any word through (S5
          stage, S6 size), and apply_op dropping the threaded vocabulary, so a
          legal size is refused (S7 -- the barrier becoming a blanket one).
+  H1-H2  the done hold (R10-RCA-ROSTER-SYNC-ORPHANS): a closed stage written
+         though its group would orphan an open issue (H1), and the
+         set-resume --field stage door left unheld (H2).
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -188,7 +191,56 @@ PLANTS = {
            "        where = stage  # R4\n"),
     "R5": (AUDIT, '        elif isinstance(x, dict) and "pull_request" not in x and isinstance(x.get("number"), int):\n',
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
+    "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
+           "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
+    "H2": ('            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '            if a.op == "set-stage":  # H2\n'),
 }
+
+
+# --- R10-ROSTER-OPS-2 part 1: set-size and set-files. A SEPARATE block, merged
+# into PLANTS here so it neither edits the table above nor the docstring.
+#   Z1-Z4   set-size: the _size_why check skipped, the cite check skipped, the
+#           size write dropped, and the no-op case writing a note (null control).
+#   Z5-Z9   set-files: the path-in-tree refusal skipped, the files write
+#           dropped, the hot_files write dropped, the hot-token refusal
+#           skipped, the cite check skipped.
+#   Z10     set-files' unknown group (a silent write to a detached dict).
+#   Z11     the dispatch dropping the cite, so set-size never checks it.
+#   Z12     set-files writing hot_files on a call that never named it.
+#   R11     cite_why's merge-base --is-ancestor clause dropped, so a ref holds
+#           any commit that exists (the fix review's survivor of #3143).
+CITE_GUARD = ("    if cite is not None and cite_check:\n"
+              "        why = cite_check(cite)\n        if why:\n"
+              "            raise Refuse(f\"{op}: {why}\")\n")
+PLANTS.update({
+    "Z1": ('    why = _size_why(size, sizes, rel, group)\n    if why:\n'
+           '        raise Refuse(f"set-size: {why}")\n',
+           '    why = None  # Z1\n    if why:\n'
+           '        raise Refuse(f"set-size: {why}")\n'),
+    "Z2": (CITE_GUARD.replace("{op}", "set-size"),
+           CITE_GUARD.replace("{op}", "set-size").replace(
+               "if cite is not None and cite_check:", "if False:  # Z2")),
+    "Z3": ('    g["size"] = size\n', ""),
+    "Z4": ("    if old == size:\n        return\n", ""),
+    "Z5": ("        if p not in old_files and in_tree and not in_tree(p, cite):\n",
+           "        if False:  # Z5\n"),
+    "Z6": ('        g["files"] = files\n', ""),
+    "Z7": ('        g["hot_files"] = hot\n', ""),
+    "Z8": ("        if bad:\n            raise Refuse(f\"set-files: hot_files token",
+           "        if False:  # Z8\n            raise Refuse(f\"set-files: hot_files token"),
+    "Z9": (CITE_GUARD.replace("{op}", "set-files"),
+           CITE_GUARD.replace("{op}", "set-files").replace(
+               "if cite is not None and cite_check:", "if False:  # Z9")),
+    "Z10": ("    g = _need(roster, group)\n    if not add and set_files",
+            f"    {DETACHED}\n    if not add and set_files"),
+    "Z11": ("op_set_size(roster, a.group, value, sizes, rel, a.cite, cite_check)",
+            "op_set_size(roster, a.group, value, sizes, rel, None, cite_check)"),
+    "Z12": ("    if hot != old_hot:\n", "    if True:  # Z12\n"),
+    "R11": ('                    and _git_ok(checkout, "merge-base", "--is-ancestor",\n'
+            '                                sha, cand):\n',
+            '                    and True:  # R11\n'),
+})
 
 
 def parts(name):

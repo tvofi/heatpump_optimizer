@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:<module> CONST c9d292c3",
+  "killed_by": "tests/features.py",
+  "old": "CEILING_LAPSE_DAYS = 45.0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CONST (`CEILING_LAPSE_DAYS = 90.0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}

@@ -12,6 +12,9 @@
     python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
     python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
         implemented <sha> | moved <GROUP> | dismissed <reason>
+    python3 tools/audit/seat/roster_edit.py set-size    <group> <size> [--cite <ref>@<sha>]
+    python3 tools/audit/seat/roster_edit.py set-files   <group> [--add <path>...] [--set-files <p,p | ->]
+        [--set-hot <p,p | ->] [--cite <ref>@<sha>]
         [--at-sha SHA] [--checkout DIR] [--roster-ref BR] [--branch OUT]
         [--roster-path PATH] [--worktree DIR] [--lint-cwd DIR] [--push]
         [--message MSG]
@@ -71,7 +74,12 @@ Ops (all group ids must exist, except append-group which must not):
                `set-stage <G>: done -> carries-open (<n> pending carries)`,
                rc 0 -- never a refusal (#2733): roster_lib.closing_stage,
                the predicate roster_sync's merge shares (set-resume --field
-               stage reads it too);
+               stage reads it too); a closed stage (`done`, `rca-done`) --
+               here or through set-resume --field stage -- whose group owns
+               an open issue nothing else would own is written
+               `carries-open` instead and printed HELD (carry_audit's
+               `orphaned`, the `sweep --issues` test; issue states from
+               `gh`, or `--issue-state FILE`);
   wire-issue   appends an integer issue (to `fixes` with --field fixes),
                refusing a duplicate;
   unwire-issue removes an integer from `issues` (default) or, with
@@ -112,6 +120,19 @@ resolve is refused whether or not the text names a proposal.
                on main; it is not a verification. A carry that sat on a
                closed group at roster_lib.CARRY_CUTOVER is legacy and needs
                no mark.
+  set-size     writes the group's own `size`, refusing a size the duration
+               model (tools/plan/durations.json) does not key -- the
+               `_size_why` check append-group runs -- and, with --cite, a
+               cite whose ref does not hold the sha. The old size and the
+               cite go to resume.note; the current size writes nothing.
+  set-files    writes `files` (--add appends, --set-files replaces whole, `-`
+               for none) and `hot_files` (--set-hot, `-` for none) for one
+               existing group. A path new to `files` must be in the tree at
+               origin/main or at the cited sha; a hot token must be a
+               basename of the resulting files or one some group already
+               holds. Old values and the cite go to resume.note; a value
+               already held writes nothing, and every other field stays
+               byte-identical.
 """
 
 from __future__ import annotations
@@ -131,6 +152,8 @@ from pathlib import Path
 
 SELF = "tools/audit/seat/roster_edit.py"
 sys.path.insert(0, str(Path(__file__).resolve().parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
@@ -460,6 +483,27 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
         op_append_carry(roster, group, value)
 
 
+#: What a closed stage is written as while its group would orphan an issue.
+HOLD_STAGE = "carries-open"
+
+
+def hold_done(roster, group, worktree, read_state) -> list[int]:
+    """After a write of a closed stage: when `group` owns an open issue no
+    other live owner holds, its stage becomes HOLD_STAGE and the issues are
+    returned. The test is carry_audit's (`orphaned`) on the edited roster, so
+    the closing group owns nothing there; the carry files are the worktree's
+    and the O-briefs $HPO_BRIEFS_DIR's, as carry_audit itself reads them."""
+    g = _need(roster, group)
+    if (g.get("resume") or {}).get("stage") not in roster_lib.DONE_STAGES:
+        return []
+    dests = carry_audit.Dests(roster, carry_audit.carry_issues(worktree),
+                              os.environ.get("HPO_BRIEFS_DIR"), read_state)
+    held = carry_audit.orphaned(dests, g)
+    if held:
+        g["resume"]["stage"] = HOLD_STAGE
+    return held
+
+
 def _stage_why(stage, rel, group):
     """Why `stage` may not be written for `group`, or None.
 
@@ -504,6 +548,139 @@ def _text(arg):
         except OSError as e:
             raise Refuse(f"unreadable text file: {e}")
     return arg
+
+
+# --------------------------------------------- set-size / set-files
+# R10-ROSTER-OPS-2 part 1. One op pair for the fields a group owns outright --
+# `size` and `files`/`hot_files` -- each in its own functions so the write path
+# above is untouched. A change records what it replaced, and the cite it
+# rests on, in resume.note; a change to the value already held writes nothing.
+CITE_RE = re.compile(r"\A([A-Za-z0-9._/-]+)@([0-9a-f]{7,40})\Z")
+
+
+def _git_ok(checkout, *args) -> bool:
+    return subprocess.run(["git", "-C", str(checkout), *args],
+                          capture_output=True).returncode == 0
+
+
+def cite_why(cite, checkout):
+    """Why `cite` (`<ref>@<sha>`) is not a ref that holds that sha, or None."""
+    m = CITE_RE.match(cite)
+    if not m:
+        return f"cite {cite!r} is not <ref>@<sha>"
+    ref, sha = m.groups()
+    if _git_ok(checkout, "cat-file", "-e", f"{sha}^{{commit}}"):
+        for cand in (f"origin/{ref}", ref):
+            if _git_ok(checkout, "rev-parse", "--verify", "--quiet",
+                       f"{cand}^{{commit}}") \
+                    and _git_ok(checkout, "merge-base", "--is-ancestor",
+                                sha, cand):
+                return None
+    return f"cite ref {ref!r} does not hold {sha}"
+
+
+def path_in_tree(checkout, path, cite=None) -> bool:
+    """Whether `path` is in the tree at origin/main or at the cited sha."""
+    revs = ["origin/main"] + ([CITE_RE.match(cite).group(2)] if cite else [])
+    return any(_git_ok(checkout, "cat-file", "-e", f"{r}:{path}")
+               for r in revs)
+
+
+def _note_append(g, text):
+    resume = g.setdefault("resume", {})
+    resume["note"] = f"{resume['note']} | {text}" if resume.get("note") else text
+
+
+def _cited(text, cite):
+    return f"{text} (cite {cite})" if cite else text
+
+
+def op_set_size(roster, group, size, sizes, rel="", cite=None, cite_check=None):
+    """Write a group's own `size`, vocabulary-checked against the duration
+    model by `_size_why`; the old size and the cite go to resume.note."""
+    g = _need(roster, group)
+    if not size:
+        raise Refuse(f"set-size: {group} needs a size")
+    why = _size_why(size, sizes, rel, group)
+    if why:
+        raise Refuse(f"set-size: {why}")
+    if cite is not None and cite_check:
+        why = cite_check(cite)
+        if why:
+            raise Refuse(f"set-size: {why}")
+    old = g.get("size")
+    if old == size:
+        return
+    g["size"] = size
+    _note_append(g, _cited(f"set-size {old or 'unset'} -> {size}", cite))
+
+
+def _paths(spec, what):
+    if spec == "-":
+        return []
+    out = [p.strip() for p in spec.split(",") if p.strip()]
+    repeated = sorted({p for p in out if out.count(p) > 1})
+    if repeated:
+        raise Refuse(f"set-files: duplicate {what}: {repeated}")
+    return out
+
+
+def op_set_files(roster, group, add=(), set_files=None, set_hot=None,
+                 cite=None, cite_check=None, in_tree=None):
+    """Write a group's `files` (`--add` appends, `--set-files` replaces whole,
+    `-` for none) and `hot_files` (`--set-hot`, `-` for none). A path new to
+    `files` must be in the tree (`in_tree`); a hot token must be a basename of
+    the group's resulting files or one some group already holds."""
+    g = _need(roster, group)
+    if not add and set_files is None and set_hot is None:
+        raise Refuse("set-files needs --add, --set-files or --set-hot")
+    if cite is not None and cite_check:
+        why = cite_check(cite)
+        if why:
+            raise Refuse(f"set-files: {why}")
+    old_files, old_hot = list(g.get("files") or []), list(g.get("hot_files") or [])
+    files = list(old_files)
+    if set_files is not None:
+        files = _paths(set_files, "path")
+    files += [p for p in dict.fromkeys(add) if p not in files]
+    for p in files:
+        if p not in old_files and in_tree and not in_tree(p, cite):
+            raise Refuse(f"set-files: {p!r} is not in the tree at origin/main"
+                         + (f" or at {cite}" if cite else ""))
+    hot = old_hot
+    if set_hot is not None:
+        hot = _paths(set_hot, "hot token")
+        known = {t for x in roster.get("groups", [])
+                 for t in x.get("hot_files") or []}
+        base = {f.rstrip("/").rsplit("/", 1)[-1] for f in files} | set(files)
+        bad = [t for t in hot if t not in base and t not in known]
+        if bad:
+            raise Refuse(f"set-files: hot_files token {bad} is neither a files "
+                         f"basename of {group} nor a known hot-file token")
+    notes = []
+    if files != old_files:
+        g["files"] = files
+        notes.append(f"files {old_files} -> {files}")
+    if hot != old_hot:
+        g["hot_files"] = hot
+        notes.append(f"hot_files {old_hot} -> {hot}")
+    if notes:
+        _note_append(g, _cited("set-files " + "; ".join(notes), cite))
+
+
+def apply_files_op(roster, a, value, rel, checkout, worktree):
+    """The set-size / set-files dispatch `main` calls beside `apply_op`."""
+    cite_check = lambda c: cite_why(c, checkout)
+    if a.op == "set-size":
+        try:
+            sizes = roster_lib.sizes(roster_lib.read_durations(worktree))
+        except roster_lib.SchemaError as e:
+            raise Refuse(str(e))
+        op_set_size(roster, a.group, value, sizes, rel, a.cite, cite_check)
+    else:
+        op_set_files(roster, a.group, a.add or (), a.set_files, a.set_hot,
+                     a.cite, cite_check,
+                     lambda p, c: path_in_tree(checkout, p, c))
 
 
 def added_texts(before, after):
@@ -813,7 +990,8 @@ def main(argv=None) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
-                                  "set-after", "drop-carry", "mark-carry"))
+                                  "set-after", "drop-carry", "mark-carry",
+                                  "set-size", "set-files"))
     p.add_argument("group")
     p.add_argument("value", nargs="?")
     p.add_argument("rest", nargs="*",
@@ -828,6 +1006,13 @@ def main(argv=None) -> int:
     p.add_argument("--match",
                    help="drop-carry, mark-carry: the one carry entry "
                         "containing it")
+    p.add_argument("--cite", help="set-size / set-files: <ref>@<sha>, a ref "
+                   "that must hold the sha; recorded in resume.note")
+    p.add_argument("--add", nargs="+", help="set-files: paths appended to files")
+    p.add_argument("--set-files", help="set-files: replace files whole "
+                   "(comma list, - for none)")
+    p.add_argument("--set-hot", help="set-files: replace hot_files whole "
+                   "(comma list, - for none)")
     p.add_argument("--checkout", default=".")
     p.add_argument("--roster-ref", default=None,
                    help="the base ref (default main)")
@@ -841,6 +1026,9 @@ def main(argv=None) -> int:
     p.add_argument("--lint-cwd")
     p.add_argument("--push", action="store_true")
     p.add_argument("--message")
+    p.add_argument("--issue-state",
+                   help="JSON object issue -> open|closed: the states the done "
+                        "hold reads instead of gh (no network)")
     a = p.parse_intermixed_args(argv)
     rest = list(a.rest)
     if a.op == "mark-carry" and a.match is not None and a.value is not None:
@@ -860,8 +1048,16 @@ def main(argv=None) -> int:
         p.error("drop-carry takes an index or --match, not both")
     if a.op in ("drop-carry", "mark-carry") and value is None and a.match is None:
         p.error(f"{a.op} needs an index or --match")
-    if a.match is None and (value is None
-                            or (value == "" and a.op != "set-resume")):
+    if a.op == "set-files" and value is not None:
+        p.error("set-files takes --add, --set-files or --set-hot, no value")
+    if a.op not in ("set-size", "set-files") and a.cite:
+        p.error("--cite is a set-size / set-files flag")
+    if a.op != "set-files" and (a.add or a.set_files is not None
+                                or a.set_hot is not None):
+        p.error("--add, --set-files and --set-hot are set-files flags")
+    if a.op != "set-files" and a.match is None and (
+            value is None or (value == "" and a.op not in ("set-resume",
+                                                           "set-size"))):
         p.error(f"{a.op} needs a value argument")
     if a.op == "set-resume" and not a.field:
         p.error("set-resume needs --field")
@@ -891,6 +1087,9 @@ def main(argv=None) -> int:
                         roster_lib.read_durations(a.worktree))
                 except roster_lib.SchemaError as e:
                     raise Refuse(str(e))
+            if a.op in ("set-size", "set-files"):
+                apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
+                return True
             legacy = None
             if a.op in ("set-stage", "set-resume"):
                 try:
@@ -900,6 +1099,17 @@ def main(argv=None) -> int:
                                  f"stage is written: {e}")
             apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
                      rel, sizes, legacy, rest)
+            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+                try:
+                    held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
+                        roster.get("repo") or carry_audit.REPO, a.issue_state))
+                except (ValueError, SystemExit) as e:  # carry_audit's refusals
+                    raise Refuse(f"the done hold cannot read issue state: {e}")
+                if held:
+                    print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
+                          f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
+                          "live owner; wire each to its next owner or close it, then "
+                          "set the stage again", file=sys.stderr)
             return True
         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
@@ -1032,10 +1242,17 @@ def _self_test() -> int:
     drv = Path(tmp, "drv")
     throwaway_git_clone(origin, drv, "-q")
 
+    # The issue states the done hold reads: #10 (R9-A's) closed unless a
+    # check says otherwise, so every other arm's `done` lands as written.
+    ISSUES = {}
+    for word in ("open", "closed"):
+        ISSUES[word] = Path(tmp, f"issues-{word}.json")
+        ISSUES[word].write_text(json.dumps({"10": word}), encoding="utf-8")
+
     def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
              at_sha=None, field=None, value_opt=None, match=None, wt="wt",
-             rest=()):
-        args = [op, group]
+             rest=(), issues="closed"):
+        args = [op, group, "--issue-state", str(ISSUES[issues])]
         if value is not None:
             args += [value]
         args += list(rest)
@@ -1115,6 +1332,29 @@ def _self_test() -> int:
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)
+    # THE DONE HOLD (R10-RCA-ROSTER-SYNC-ORPHANS): a closed stage whose group
+    # owns an open issue nothing else owns is written carries-open, HELD.
+    def a_stage():
+        return branch_roster()["groups"][0]["resume"]["stage"]
+    edit("set-stage", "R9-A", "in-progress")
+    rc, said = refusal("set-stage", "R9-A", "done", issues="open")
+    check("set-stage done holds a group owning an open issue nothing else owns",
+          rc == 0 and a_stage() == "carries-open" and "HELD R9-A" in said
+          and "#10" in said, (rc, a_stage(), said[-200:]))
+    edit("set-stage", "R9-A", "in-progress")
+    rc, said = refusal("set-resume", "R9-A", "rca-done", field="stage", issues="open")
+    check("... and so does set-resume --field stage, with any closed stage",
+          rc == 0 and a_stage() == "carries-open" and "HELD R9-A" in said,
+          (rc, a_stage(), said[-200:]))
+    edit("set-stage", "R9-A", "in-progress")
+    edit("wire-issue", "R9-B", "10")
+    rc, said = refusal("set-stage", "R9-A", "done", issues="open")
+    check("... a group whose open issue a live group also lists is done (null control)",
+          rc == 0 and a_stage() == "done" and "HELD" not in said, (rc, a_stage()))
+    edit("unwire-issue", "R9-B", "10")
+    check("... and a closed issue holds nothing (null control)",
+          edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
+          and a_stage() == "done")
     check("wire-issue rc", edit("wire-issue", "R9-B", "1946") == 0)
     check("wire-issue round-trip",
           branch_roster()["groups"][1]["issues"] == [1946])
@@ -1339,6 +1579,180 @@ def _self_test() -> int:
     check("set-after names no op flag",
           refuses("--match is a drop-carry flag", "set-after", "R9-B",
                   "R9-A", match="x"))
+
+    # set-size / set-files (R10-ROSTER-OPS-2 part 1): one op pair for the
+    # carries that asked for set-size (with and without a cite), set-files
+    # --add, --set-hot and a whole-field replace. Every refusal leaves the
+    # remote branch where it was; every null control is byte-identical.
+    sf_main = run(["git", "-C", str(drv), "rev-parse", "origin/main"]).strip()
+    run(["git", "-C", str(drv), "checkout", "-q", "-b", "cited", "origin/main"])
+    (drv / "NEW.md").write_text("added by the cited ref\n", encoding="utf-8")
+    (drv / "__bad__.md").write_text("lint plant\n", encoding="utf-8")
+    run(["git", "-C", str(drv), "add", "-A"])
+    run(["git", "-C", str(drv), "commit", "-q", "-m", "cited ref adds files"])
+    sf_cited = run(["git", "-C", str(drv), "rev-parse", "HEAD"]).strip()
+    run(["git", "-C", str(drv), "push", "-q", "origin", "cited"])
+    run(["git", "-C", str(drv), "checkout", "-q", "--detach", "origin/main"])
+
+    def more(op, group, *extra, value=None, wt="wt"):
+        args = [op, group] + ([value] if value is not None else []) + list(extra)
+        try:
+            return main(args + ["--checkout", str(drv), "--roster-ref", "main",
+                                "--branch", "edit-1", "--worktree",
+                                str(Path(tmp, wt)), "--lint-cwd", str(seed),
+                                "--issue-state", str(ISSUES["closed"]),
+                                "--push"])
+        except SystemExit as e:
+            return e.code
+
+    def more_refusal(*args, **kw):
+        err = io.StringIO()
+        with contextlib.redirect_stderr(err):
+            rc = sysrc(lambda: more(*args, **kw))
+        return rc, err.getvalue()
+
+    def grp(group):
+        return next(g for g in branch_roster()["groups"] if g["group"] == group)
+
+    def sans(g, *keys):
+        """A group minus some top-level keys and resume.note: what an op that
+        owns those must leave of everything else."""
+        out = json.loads(json.dumps(g))
+        for k in keys:
+            out.pop(k, None)
+        out.get("resume", {}).pop("note", None)
+        return out
+
+    t_sf = tip()
+    rc, said = more_refusal("set-size", "R9-A", "--cite", f"main@{sf_main}",
+                            value="XL")
+    check("set-size refuses a size the durations model lacks, naming it",
+          rc == 2 and "not in the durations model" in said and "'XL'" in said
+          and tip() == t_sf, (rc, said[-200:]))
+    check("set-size refuses an empty size",
+          more_refusal("set-size", "R9-A", value="")[0] == 2 and tip() == t_sf)
+    check("set-size refuses an unknown group",
+          more_refusal("set-size", "R9-ZZ", value="L")[0] == 2
+          and "no roster group" in more_refusal("set-size", "R9-ZZ", value="L")[1])
+    rc, said = more_refusal("set-size", "R9-A", "--cite", f"main@{'f' * 40}",
+                            value="L")
+    check("set-size refuses a cite whose ref lacks the sha",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-size", "R9-A", "--cite", f"main@{sf_cited}",
+                            value="L")
+    check("set-size refuses a cite whose sha exists but main does not hold it",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-size", "R9-A", "--cite", "no-such-ref@" + sf_main,
+                            value="L")
+    check("set-size refuses a cite whose ref does not exist",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-size", "R9-A", "--cite", "mainish", value="L")
+    check("set-size refuses a cite that is not <ref>@<sha>",
+          rc == 2 and "<ref>@<sha>" in said and tip() == t_sf, (rc, said[-200:]))
+    before_a = grp("R9-A")
+    check("set-size with a valid cite lands",
+          more("set-size", "R9-A", "--cite", f"main@{sf_main}", value="L") == 0
+          and grp("R9-A").get("size") == "L")
+    note = (grp("R9-A").get("resume") or {}).get("note") or ""
+    check("... recording the old size and the cite in resume.note",
+          "set-size" in note and "unset" in note and "L" in note
+          and f"main@{sf_main}" in note, note)
+    check("... and touching no other field",
+          sans(grp("R9-A"), "size") == sans(before_a, "size"))
+    t_sf = tip()
+    check("set-size to the current size is byte-identical (null control)",
+          more("set-size", "R9-A", "--cite", f"main@{sf_main}", value="L") == 0
+          and tip() == t_sf)
+    check("set-size without a cite lands (the cite is optional)",
+          more("set-size", "R9-B", value="M") == 0
+          and grp("R9-B").get("size") == "M")
+    check("set-size from a recorded size names the old one",
+          more("set-size", "R9-B", value="S") == 0
+          and "M -> S" in grp("R9-B")["resume"]["note"])
+
+    t_sf = tip()
+    rc, said = more_refusal("set-files", "R9-A", "--add", "no/such/path.py")
+    check("set-files --add refuses a path not in the tree at origin/main",
+          rc == 2 and "not in the tree" in said and "no/such/path.py" in said
+          and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-files", "R9-A", "--add", "NEW.md")
+    check("... even one a branch outside origin/main adds, when uncited",
+          rc == 2 and "not in the tree" in said and tip() == t_sf)
+    check("set-files unknown group refused",
+          more_refusal("set-files", "R9-ZZ", "--add", "README.md")[0] == 2
+          and "no roster group" in more_refusal("set-files", "R9-ZZ",
+                                                "--add", "README.md")[1])
+    rc, said = more_refusal("set-files", "R9-A")
+    check("set-files with nothing to write refused",
+          rc == 2 and "needs --add" in said and tip() == t_sf, (rc, said[-200:]))
+    rc, said = more_refusal("set-files", "R9-A", "--add", "README.md",
+                            "--cite", f"main@{'f' * 40}")
+    check("set-files refuses a cite whose ref lacks the sha",
+          rc == 2 and "does not hold" in said and tip() == t_sf)
+    rc, said = more_refusal("set-files", "R9-A", "--add", "README.md",
+                            "--cite", f"main@{sf_cited}")
+    check("set-files refuses a cite whose sha exists but main does not hold it",
+          rc == 2 and "does not hold" in said and tip() == t_sf, (rc, said[-200:]))
+    before_a = grp("R9-A")
+    check("set-files --add lands a path in the tree",
+          more("set-files", "R9-A", "--add", "README.md") == 0
+          and grp("R9-A").get("files") == ["README.md"])
+    check("... and touches no other field",
+          sans(grp("R9-A"), "files") == sans(before_a, "files"))
+    t_sf = tip()
+    check("set-files --add of a path already held is byte-identical (null control)",
+          more("set-files", "R9-A", "--add", "README.md") == 0 and tip() == t_sf)
+    check("set-files --add accepts a path the cited ref adds",
+          more("set-files", "R9-A", "--add", "NEW.md",
+               "--cite", f"cited@{sf_cited}") == 0
+          and grp("R9-A").get("files") == ["README.md", "NEW.md"]
+          and f"cited@{sf_cited}" in grp("R9-A")["resume"]["note"])
+    t_sf = tip()
+    rc, said = more_refusal("set-files", "R9-B", "--add", "__bad__.md",
+                            "--cite", f"cited@{sf_cited}", wt="wt-sflint")
+    check("set-files lints like every other op (the planted text is refused rc 3)",
+          rc == 3 and tip() == t_sf, (rc, said[-200:]))
+
+    rc, said = more_refusal("set-files", "R9-A", "--set-hot", "nowhere.py")
+    check("set-files --set-hot refuses a path that is neither a files basename "
+          "nor a known token",
+          rc == 2 and "nowhere.py" in said and "hot" in said and tip() == t_sf,
+          (rc, said[-200:]))
+    before_a = grp("R9-A")
+    check("set-files --set-hot lands a files basename",
+          more("set-files", "R9-A", "--set-hot", "NEW.md,README.md",
+               "--cite", f"cited@{sf_cited}") == 0
+          and grp("R9-A").get("hot_files") == ["NEW.md", "README.md"])
+    check("... recording the old value in resume.note, other fields untouched",
+          "hot_files" in grp("R9-A")["resume"]["note"]
+          and sans(grp("R9-A"), "hot_files") == sans(before_a, "hot_files"))
+    t_sf = tip()
+    check("set-files --set-hot with the current value is byte-identical (null control)",
+          more("set-files", "R9-A", "--set-hot", "NEW.md,README.md") == 0
+          and tip() == t_sf)
+    check("set-files --set-hot accepts a token another group already holds",
+          more("set-files", "R9-B", "--set-hot", "README.md") == 0
+          and grp("R9-B").get("hot_files") == ["README.md"])
+    check("set-files --set-hot - clears the field, keeping the key",
+          more("set-files", "R9-A", "--set-hot", "-") == 0
+          and grp("R9-A").get("hot_files") == []
+          and "[]" in grp("R9-A")["resume"]["note"])
+    t_sf = tip()
+    check("set-files --set-hot - on an already-empty field is byte-identical (null control)",
+          more("set-files", "R9-A", "--set-hot", "-") == 0 and tip() == t_sf)
+    before_a = grp("R9-A")
+    check("set-files --set-files replaces files whole, `-` for none",
+          more("set-files", "R9-A", "--set-files", "-") == 0
+          and grp("R9-A").get("files") == []
+          and sans(grp("R9-A"), "files") == sans(before_a, "files"))
+    check("... and takes a comma list, refusing a path not in the tree",
+          more("set-files", "R9-A", "--set-files", "README.md") == 0
+          and grp("R9-A").get("files") == ["README.md"]
+          and more_refusal("set-files", "R9-A", "--set-files",
+                           "README.md,no/such.py")[0] == 2)
+    check("set-files names no op flag on another op",
+          more_refusal("set-after", "R9-B", "--add", "README.md",
+                       value="R9-A")[0] == 2)
 
     # drop-carry: the inverse of append-carry, by index or by a unique match.
     # R9-B carries `"carry": []`, the live roster's empty shape (27 of 91

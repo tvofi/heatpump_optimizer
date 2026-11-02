@@ -284,6 +284,7 @@ in_scope() {
 failed=0
 LANE="${LANE:-main}"
 step=0
+WAIT_UNRUN=""
 suite_start=$(date +%s)
 
 # Why a given script was scoped out, in the words tests/closure.py used.
@@ -343,12 +344,23 @@ leased() {
         "$PYTHON" tests/gate_lock.py slot-auto-lease --label "run.sh-$$" --owner-pid $$ -- "$@"
       fi ;;
     *)
+      # A wait that ran past its bound (P206) leaves a marker; run_always then
+      # records the script as a named unrun, never as a pass.
+      rm -f "$one.waited"
       if [ -n "${HPO_GATE_LOCK_LABEL:-}" ]; then
-        "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" -- "$@"
+        "$PYTHON" tests/gate_lock.py flock-wrap --label "$HPO_GATE_LOCK_LABEL" \
+          --script "$one" --wait-marker "$one.waited" -- "$@"
       else
         echo "  LEASE: $s runs under the gate lease as run.sh-$$"
-        "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" -- "$@"
-      fi ;;
+        "$PYTHON" tests/gate_lock.py auto-lease --label "run.sh-$$" \
+          --script "$one" --wait-marker "$one.waited" -- "$@"
+      fi
+      local rc=$?
+      if [ -e "$one.waited" ]; then
+        WAIT_UNRUN="$s"
+        return 0
+      fi
+      return $rc ;;
   esac
 }
 
@@ -364,16 +376,30 @@ run_always() {
   if [ "$JOBS" -le 1 ]; then
     echo
     echo "########## $* ##########"
+    WAIT_UNRUN=""
     leased "$@" || rc=$?
   else
     printf '  [%s] start  %s\n' "$(date +%H:%M:%S)" "$*"
+    WAIT_UNRUN=""
     leased "$@" > "$WORKDIR/$id.log" 2>&1 || rc=$?
     finished=$(date +%s)
+    # The word follows the marker test: a wait past its bound is no pass.
+    local word=ok
+    [ "$rc" -eq 0 ] || word=FAILED
+    [ -z "$WAIT_UNRUN" ] || word=SKIP
     printf '  [%s] %-6s %s (%ss)\n' \
-      "$(date +%H:%M:%S)" "$([ "$rc" -eq 0 ] && echo ok || echo FAILED)" \
-      "$*" "$((finished - started))"
+      "$(date +%H:%M:%S)" "$word" "$*" "$((finished - started))"
   fi
   finished=$(date +%s)
+  if [ -n "$WAIT_UNRUN" ]; then
+    # The sanctioned exit (gate-scoping.md): a named unrun left to CI, never a pass.
+    local note="SKIP: $WAIT_UNRUN (waited past its bound for the gate lease; left to CI, named unrun)"
+    printf '%s\n' "$note" > "$WORKDIR/$id.log"
+    [ "$JOBS" -le 1 ] && { echo; echo "$note"; }
+    printf '%s\t0\t%s\t#skip %s\n' "$id" "$((finished - started))" "$WAIT_UNRUN" \
+      >> "$WORKDIR/$LANE.manifest"
+    return 0
+  fi
   printf '%s\t%s\t%s\t%s\n' "$id" "$rc" "$((finished - started))" "$*" \
     >> "$WORKDIR/$LANE.manifest"
   if [ "$rc" -ne 0 ] && [ "$JOBS" -le 1 ]; then

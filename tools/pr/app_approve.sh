@@ -301,12 +301,12 @@ carry() {
       # it carries the branch's note and main's. A line dropped, added or
       # rewritten is content no review measured, so it is a change.
       # Git's own resolution is the other one that changes nothing, and the
-      # driver does not union: it takes the claim list from the side that
-      # changed it, so a claim main cleared stays cleared (P290). So the file
+      # driver does not union: it takes each scenario's claims from the side
+      # that changed them, so a claim main cleared stays cleared (P290). So the file
       # also passes byte-equal to what main's driver writes on the parents'
       # merge base and the two parents. Main's driver, as main's
       # `.gitattributes` above: a branch's own driver would grade itself.
-      # A driver refusal (both sides rewrote the claim list) writes nothing
+      # A driver refusal (both sides rewrote one scenario) writes nothing
       # that can match, which leaves the union deciding.
       while IFS= read -r p; do
         [ -z "$p" ] && continue
