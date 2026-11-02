@@ -1,0 +1,4 @@
+RESULT covered_by_an_owner=61 count
+RESULT pinned_by_base_restore=113 count
+RESULT of_which_no_pr_job_runs=95 count
+RESULT uncovered_files=0 count
