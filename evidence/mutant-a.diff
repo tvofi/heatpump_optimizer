@@ -1,8 +1,8 @@
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 3d11a787c..ecf81451d 100755
+index 18346cd8e..a7f4765c4 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
-@@ -3676,7 +3676,7 @@ esac
+@@ -3728,7 +3728,7 @@ esac
  # rather than reading the check runs a second time.
  EARLY_REDS_RC="" EARLY_REDS_LINE=""
  if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
