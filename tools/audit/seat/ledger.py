@@ -103,6 +103,7 @@ KINDS = {
     "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived",
     "design-build": "derived", "review-owed": "derived",
     "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
+    "seat-no-return": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
