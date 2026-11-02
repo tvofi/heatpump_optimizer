@@ -25,10 +25,15 @@
 #     exactly `Fix review: merge <40-hex>`, or `Fix review: blocked <40-hex>
 #     <class>: <why>`. This is a verdict poster, not a general App voice;
 #   - the pull request is open, and for a `merge` verdict its live head is
-#     exactly the verdict's SHA -- read before the mint and again just before
-#     the POST (`fix-review.md` step 12). A `blocked` verdict may name a head
-#     that moved (`head-moved: measured <sha>, head is <other>`), so it is
-#     not held to the live head.
+#     the verdict's SHA or a head the verdict carries to -- read before the
+#     mint and again just before the POST (`fix-review.md` step 12). A carry is
+#     `app_approve.sh --carry <verdict sha> <live head>` answering `CARRY: yes`
+#     against `origin`'s main and the pull request's head fetched into this
+#     checkout, the one carry rule `app_approve.sh` and `merge_train.py` read
+#     (P264); the posted body then gains one last line, `carry: <verdict sha>
+#     -> <live head>, app_approve.sh --carry: yes`, printed here too. A
+#     `blocked` verdict may name a head that moved (`head-moved: measured
+#     <sha>, head is <other>`), so it is not held to the live head.
 #
 # AFTER THE POST it refuses (exit non-zero) unless the created comment's user
 # is `hpo-approver[bot]` of type `Bot`, and unless `gh_comment.py verify`
@@ -57,16 +62,25 @@ else
 fi
 die() { printf 'app_comment: REFUSE: %s\n' "$*" >&2; exit 1; }
 
-check_pr() { # repo pr [sha] -> refuses unless open (and, given a sha, at exactly it)
-  local js info state head
+check_pr() { # repo pr [sha] -> refuses unless open (and, given a sha, at it or a head it carries to); sets CARRIED
+  local js info state head why
+  CARRIED=""
   js=$(gh api "repos/$1/pulls/$2") || die "could not read pull request #$2 on $1"
   info=$(printf '%s' "$js" | python3 -c 'import sys,json
 d=json.load(sys.stdin); print(d["state"], d["head"]["sha"])') \
     || die "pull request #$2's JSON has no state or head"
   read -r state head <<<"$info"
   [ "$state" = "open" ] || die "pull request #$2 is $state; a verdict posts only on an open one"
-  [ -z "${3:-}" ] || [ "$head" = "$3" ] \
-    || die "head moved: the merge verdict names $3, the live head of #$2 is $head"
+  [ -z "${3:-}" ] || [ "$head" = "$3" ] && return 0
+  [[ $head =~ ^[0-9a-f]{40}$ ]] || die "head moved: the merge verdict names $3, and the live head of #$2 reads as '$head'"
+  git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-comment-carry/main" "+refs/pull/$2/head:refs/hpo-comment-carry/head" 2>/dev/null \
+    || die "head moved: the merge verdict names $3, the live head of #$2 is $head, and fetching main and the head to test a carry failed"
+  [ "$(git rev-parse refs/hpo-comment-carry/head)" = "$head" ] \
+    || die "head moved: the merge verdict names $3, the live head of #$2 is $head, and the fetched head is not it"
+  why=$(bash "$_root/tools/pr/app_approve.sh" --carry "$3" "$head" refs/hpo-comment-carry/main 2>&1) \
+    && [[ $why == "CARRY: yes "* ]] \
+    || die "head moved: the merge verdict names $3, the live head of #$2 is $head, and it does not carry: ${why#CARRY: no }"
+  CARRIED=$head
 }
 
 cleanup() {
@@ -131,6 +145,13 @@ open(sys.argv[1], "w").write("Authorization: Bearer %s\n" % t)' "$PRIV/token.h" 
   chmod 600 "$PRIV/token.h"
 
   check_pr "$repo" "$pr" "$want"
+  if [ -n "$CARRIED" ]; then
+    { cat -- "$body"; [ -z "$(tail -c 1 -- "$body")" ] || echo
+      printf 'carry: %s -> %s, app_approve.sh --carry: yes\n' "$sha" "$CARRIED"; } > "$PRIV/body.md" \
+      || die "could not write the carried body"
+    body=$PRIV/body.md
+    printf 'app_comment: CARRY %s -> %s: carry: %s -> %s, app_approve.sh --carry: yes\n' "$sha" "$CARRIED" "$sha" "$CARRIED"
+  fi
   python3 -c 'import sys,json
 json.dump({"body": open(sys.argv[1], encoding="utf-8").read()}, open(sys.argv[2], "w"))' "$body" "$PRIV/comment.json" \
     || die "could not write the comment payload"
@@ -212,6 +233,17 @@ case "$url" in
 esac
 STUB
 chmod +x "$W/bin/gh" "$W/bin/openssl" "$W/bin/curl"
+# Every run is from a throwaway repository whose `origin` is a local bare one,
+# so a moved head's carry test (P264: app_approve.sh --carry, real) fetches
+# and reads git for real and no case reaches the network.
+. "$(dirname -- "$SELF")/../../tests/throwaway_git.sh" && throwaway_git_env
+R="$W/repo"; throwaway_git_init "$W/origin.git" -q --bare && throwaway_git_init "$R" -q -b main
+gr() { git -C "$R" "$@"; }
+gr remote add origin "$W/origin.git"; seq 1 9 > "$R/a.txt"; gr add a.txt; gr commit -qm m0; gr push -q origin main
+gr checkout -qb fix; sed -i.bak 's/^5$/five/' "$R/a.txt"; rm "$R/a.txt.bak"; gr commit -qam "fix: own"; CV=$(gr rev-parse HEAD)
+mkdir -p "$R/tests/mutation_ledger/killed_by"; echo '{}' > "$R/tests/mutation_ledger/killed_by/a.json"; gr add -A
+GIT_AUTHOR_EMAIL="41898282+github-actions[bot]@users.noreply.github.com" gr commit -qm "ci: pin killed mutants"; CPIN=$(gr rev-parse HEAD)
+gr checkout -q --detach "$CV"; echo 10 >> "$R/a.txt"; gr commit -qam "fix: one more code line"; CCODE=$(gr rev-parse HEAD)
 
 MERGE="Fix review: merge $SHA"
 BLOCKED="Fix review: blocked $SHA head-moved: measured $SHA, head is $OTHER"
@@ -223,6 +255,7 @@ mkcase() { # name head first-line
 run() { # name args... ; the last arg defaults to the case's own verdict file
   local d="$W/$1"; shift
   ( export STUB="$d" PATH="$W/bin:$PATH" TMPDIR="$d/tmp" HPO_IDENTITY_DIR="${IDDIR:-$W/id}"
+    cd "$R" || exit 2
     if [ "${BASHX:-}" = 1 ]; then bash -x "$SELF" "$@"; else bash "$SELF" "$@"; fi > "$d/out" 2> "$d/err" )
 }
 calls() { grep -c "^$2" "$W/$1/log"; }
@@ -299,6 +332,21 @@ st "$(calls dry curl)" 0 "and makes no curl call: nothing minted, nothing posted
 st "$(calls dry openssl)" 0 "and signs nothing"
 mkcase drymoved "$OTHER" "$MERGE"
 run drymoved --dry-run o/r 7 "$W/drymoved/seat/verdict.md"; st $? 1 "--dry-run still refuses what a real run would"
+
+crun() { # name live-head -> app_comment run from the repository, the PR's head ref at live-head
+  gr push -q -f origin "$2:refs/pull/7/head"; mkcase "$1" "$2" "Fix review: merge $CV"
+  run "$1" o/r 7 "$W/$1/seat/verdict.md"; }
+# A pin-only head the verdict carries to (P264).
+crun pin "$CPIN"; st $? 0 "a merge verdict posts at a pin-only head it carries to (P264)"
+st "$(tail -n 1 "$W/pin/posted.body")" "carry: $CV -> $CPIN, app_approve.sh --carry: yes" "with the carry as the body's last line"
+st "$(head -n 3 "$W/pin/posted.body" | cmp -s - "$W/pin/seat/verdict.md" && echo same)" same "under the verdict file, byte for byte"
+st "$(grep -c "^app_comment: CARRY $CV -> $CPIN: carry: $CV -> $CPIN, app_approve.sh --carry: yes$" "$W/pin/out")" 1 "printing the carry line"
+st "$(grep -c '^READBACK id=55 .* identical=True' "$W/pin/out")" 1 "and the carried body reads back identical"
+crun code "$CCODE"; st $? 1 "REFUSE: a merge verdict at a head moved by a commit of the branch's own changing code"
+st "$(grep -c "head moved: .*does not carry: .*${CCODE:0:9} change its content" "$W/code/err")" 1 "refused 'head moved', with the carry's reason"
+st "$(calls code curl)" 0 "and nothing was minted or posted"
+st "$(grep -c '^carry:' "$W/ok/posted.body")" 0 "an unmoved head posts with no carry line (null control)"
+st "$(grep -c 'CARRY' "$W/ok/out")" 0 "and prints none"
 
 echo "app_comment self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
