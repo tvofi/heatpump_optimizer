@@ -245,6 +245,37 @@ def run():
             check(f"launch {topic!r}: log written", (sd / "open-driver" / f"{od.stem(topic)}.log").read_text() == "ran\n")
         check("launch: no topic executed as shell code", not marker.exists() and not list(Path(tmp).rglob("INJECTED")))
 
+    # a slash topic end to end: run_pass launches it through the real World.launch, a later pass reaps its result
+    class Slash(Fake):
+        def __init__(self, real, *a, **kw):
+            super().__init__(*a, **kw)
+            self.real = real
+
+        def launch(self, topic, s, title, group):
+            super().launch(topic, s, title, group)
+            return self.real.launch(topic, s, title, group)
+
+        def alive(self, pid):
+            return self.real.alive(pid)
+
+    with tempfile.TemporaryDirectory() as tmp:
+        sd = Path(tmp) / "state dir"
+        wr = od.World(tmp, sd)
+        wr.opener = Path(tmp) / "open_pr.sh"
+        wr.opener.write_text("echo opened\n")
+        ws = Slash(wr, roster("A/B"), heads=[("a/b", sha("4"))])
+        b = line("a/b", sha("4"))
+        go(sd, ws, b)
+        rcf = sd / "open-driver" / f"{od.stem('a/b')}.rc"
+        for _ in range(100):
+            if rcf.exists() and rcf.read_text().strip():
+                break
+            time.sleep(0.1)
+        go(sd, ws, b, NOW + 10)
+        check("slash topic reaped: RESULT a/b rc=0 with its log's reason", f"RESULT a/b {sha('4')[:8]} rc=0 opened" in out)
+        go(sd, ws, b, NOW + 20)
+        check("slash topic reaped: seen, not reopened", out == [f"SKIP a/b {sha('4')[:8]} seen"] and len(ws.launched) == 1)
+
     # World.body_head against a throwaway origin: the first three lines only
     with tempfile.TemporaryDirectory() as tmp:
         def g(*a, cwd=tmp + "/c"):
