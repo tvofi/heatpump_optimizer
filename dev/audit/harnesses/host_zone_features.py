@@ -11,7 +11,7 @@ prints one RESULT line per zone; it exits 1 when any zone is red.
     PYTHONPATH=tests/hastub python3 dev/audit/harnesses/host_zone_features.py
     python3 dev/audit/harnesses/host_zone_features.py --mutant all
 
-``--mutant NAME`` (or ``all``) runs a copy of the tree (``git archive HEAD``)
+``--mutant NAME`` (or ``all``) runs a detached worktree of ``HEAD``
 with one fixed site restored to its host-zone read, and reports each mutant
 KILLED when at least one zone is red, SURVIVED otherwise; the unmutated run is
 the null control. Each run is a full features.py pass per zone: minutes, not
@@ -80,7 +80,7 @@ def run_tree(tree: Path, script: str, zones: tuple[str, ...], label: str) -> boo
         results = list(pool.map(lambda z: run_zone(tree, script, z), zones))
     red = False
     for zone, verdict, fails in results:
-        print(f"RESULT {label}.{zone.replace('/', '_')}={verdict}")
+        print(f"RESULT {label}.{zone.replace('/', '_')}={verdict}", flush=True)
         if not verdict.startswith("pass:"):
             red = True
             for name in fails:
@@ -90,11 +90,12 @@ def run_tree(tree: Path, script: str, zones: tuple[str, ...], label: str) -> boo
 
 def mutant_tree(name: str, workdir: Path) -> Path:
     path, fixed, host_read = MUTANTS[name]
+    # A detached worktree, not a ``git archive`` copy: features.py's #363
+    # check reads ``recorded_at`` from git, and an archive reads it red on
+    # every mutant, the null included.
     tree = workdir / name
-    tree.mkdir()
-    archive = subprocess.run(["git", "archive", "HEAD"], cwd=ROOT,
-                             capture_output=True, check=True).stdout
-    subprocess.run(["tar", "-x", "-C", str(tree)], input=archive, check=True)
+    subprocess.run(["git", "worktree", "add", "-q", "--detach", str(tree), "HEAD"],
+                   cwd=ROOT, check=True)
     target = tree / path
     text = target.read_text()
     if text.count(fixed) != 1:
@@ -116,8 +117,13 @@ def main() -> int:
     survived = []
     with tempfile.TemporaryDirectory() as tmp:
         for name in names:
-            red = run_tree(mutant_tree(name, Path(tmp)), args.script, zones, name)
-            print(f"RESULT mutant.{name}={'KILLED' if red else 'SURVIVED'}")
+            tree = mutant_tree(name, Path(tmp))
+            try:
+                red = run_tree(tree, args.script, zones, name)
+            finally:
+                subprocess.run(["git", "worktree", "remove", "--force", str(tree)],
+                               cwd=ROOT, check=False)
+            print(f"RESULT mutant.{name}={'KILLED' if red else 'SURVIVED'}", flush=True)
             if not red:
                 survived.append(name)
     return 1 if survived else 0
