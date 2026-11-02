@@ -1,0 +1,3 @@
+RESULT priority: rc=0 start_queue=[3, 1, 4] drain_order_of_same=[4, 3, 1]
+RESULT front: rc=0 start_queue=[4, 3, 1] drain_order_of_same=[4, 3, 1]
+RESULT none: rc=0 start_queue=[3, 1, 4] drain_order_of_same=[3, 1, 4]
