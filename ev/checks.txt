@@ -1,0 +1,29 @@
+## merge-tree
+de66772107fc41ddcf2397d90d97c14fe90cb2a8
+rc=0
+main=ea59e9a09de56447326ae71d8a45fec81c3cc275 mb=ea59e9a09de56447326ae71d8a45fec81c3cc275
+## claim files three-dot
+## version
+## budgets
+## three-dot stat
+ .github/workflows/governance.yml                  |  16 ++
+ dev/audit/harnesses/r10_seat_selftests_mutants.py |  22 ++
+ dev/governance/roles/nudge.md                     |   2 +-
+ dev/governance/roles/standing-merge.md            |  14 +-
+ dev/programme/delivery/3090.md                    |   1 +
+ tests/closures.json                               |   2 +
+ tools/audit/seat/INSTRUMENTS.md                   |   2 +
+ tools/audit/seat/instruments/merge_train.py.md    |   7 +-
+ tools/audit/seat/instruments/postmerge.py.md      |  11 +
+ tools/audit/seat/instruments/record_beat.py.md    |   9 +
+ tools/audit/seat/merge_pr.sh                      |  56 +++-
+ tools/audit/seat/merge_train.py                   | 296 ++++++++++++++++++++--
+ tools/audit/seat/postmerge.py                     | 191 ++++++++++++++
+ tools/audit/seat/record_beat.py                   | 245 ++++++++++++++++++
+ tools/audit/seat/train.sh                         |   9 +-
+ 15 files changed, 846 insertions(+), 37 deletions(-)
+## structure
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+## roles diff vs main

@@ -1,0 +1,8 @@
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+role policy    ~10011 tokens, cap 9958 +band 500 = 10458
+
+The working band applies to the five aggregate caps only; every per-file cap above is compared exactly. Re-record an aggregate down when it falls more than 500 below its cap, and on any reclassification.
+policy_lint rc=0
+claims hygiene: origin/main ok
