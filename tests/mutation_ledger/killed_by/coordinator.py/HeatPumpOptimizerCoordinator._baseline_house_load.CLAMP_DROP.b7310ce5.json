@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._baseline_house_load CLAMP_DROP b7310ce5",
+  "killed_by": "tests/features.py",
+  "old": "        baseline = max(0.0, house - (heat_pump or 0.0))",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`baseline = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
