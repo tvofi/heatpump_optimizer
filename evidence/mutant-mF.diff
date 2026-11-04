@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 2209f523f..ce606018c 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -217,7 +217,7 @@ _STORE_VERSION = 1
+ 
+ def log_steps() -> int:
+     """One day of plan steps, the decision log's length (width owned by plan_step)."""
+-    return 24 * 60 // PLAN_STEP_MINUTES
++    pass
+ 
+ 
+ _TICK = timedelta(minutes=1)

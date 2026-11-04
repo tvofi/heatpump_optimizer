@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 2209f523f..fdf22d096 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -1162,7 +1162,7 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
+     dhw_min = PLAN_STEP_MINUTES * dhw / (space + dhw)
+     if dhw_min < SPLIT_MIN_MINUTES:
+         return "space"
+-    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
++    if PLAN_STEP_MINUTES - dhw_min <= SPLIT_MIN_MINUTES:
+         return "dhw"
+     return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+ 
