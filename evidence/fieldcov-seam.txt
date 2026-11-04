@@ -1,7 +1,0 @@
-plan rc=0
-case scoped scripts 0
-mutants -> rc=0 the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 1 changed file(s), so no read is reached
-field coverage -> rc=1 field coverage reads .github/workflows/arch-score.yml
-register check -> rc=0 the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 1 changed file(s), so no read is reached
-field_coverage idle rc=0 wall=233.767440443s
-selftest_owed rc=1 (0 = owed)

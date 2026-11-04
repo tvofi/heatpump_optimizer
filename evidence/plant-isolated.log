@@ -1,0 +1,23 @@
+  ok       merge-base             cf2ed7303beaea740760c0afe8c58411169b9522
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 260 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  skip     mutants                the diff changes no file mutants reads -- no hit in its declared path list; the closure table maps all 1 changed file(s), so no read is reached
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match every copy across 4 script(s)
+  ok       hooks                  HOOKS ok: 4 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  skip     brief_lint             no pinned path changed, so CI's briefs job reads this head's copy
+  ok       heavy slot             taken slot=0 label=prepr-18075 expires_at=2026-11-04T15:59:41.253547+00:00
+  ok       field coverage         FIELD COVERAGE ok
+  REFUSE   agreement lane         AGREEMENT REFUSED: one concept, readers that disagree or a grammar written twice and unregistered
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 1 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since cf2ed7303bea
+  ok       ref privacy            ref_privacy --check at HEAD: 29 file(s) with a push site, 12 guarded, 1 line(s) added since cf2ed7303bea judged, 0 refused
+  ok       pinned graders         
+  skip     self-test              no change to prepr.sh, a program it names or its fixtures
+  skip     wave-script            no change to the script, the checker, the rosters, the briefs or a pinned path
+  ok       no version edit        
+  ok       claim files            byte-identical to origin/main
+  ok       claims hygiene         claims hygiene: cf2ed7303beaea740760c0afe8c58411169b9522 ok
