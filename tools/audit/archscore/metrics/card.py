@@ -6,9 +6,9 @@ card change read delta-S 0 whatever it did. Stdlib only: a JavaScript TOKENIZER 
 each rule is stated on tokens.
 
 Tokens. Comments are dropped. A string is one ``S`` token; a template literal is ``S`` tokens for its
-text and the tokens of each ``${..}`` expression, recursively; a number is its value; a regular
-expression literal is one ``R`` token; identifiers and punctuators are themselves. ``/`` starts a
-regular expression where an operand is expected.
+text and the tokens of each ``${..}`` expression, recursively (the rule census reads that text instead:
+``tokenize``); a number is its value; a regular expression literal is one ``R`` token; identifiers and
+punctuators are themselves. ``/`` starts a regular expression where an operand is expected.
 
   card_dead_definitions   top-level ``function``/``class`` declarations, top-level ``const``/``let``
                     bindings, and class members (``name(..) {``, getters and setters), whose name
@@ -21,6 +21,34 @@ regular expression where an operand is expected.
                     ``duplication_copies`` counts Python's. A window crosses statement boundaries,
                     so a rule spelled inline in several functions (the live-state guard, the
                     finite-number test) joins its spellers.
+
+GATE ONLY (weight 0), counter C24, as ``shape_copies`` is for Python:
+
+  card_rule_copies        sites spelling a one-statement rule another site spells too: a RULE is a run of
+                    two or more operands of one ``&&``/``||`` chain (at one bracket depth, cut at
+                    ``;`` ``,`` ``?`` ``:`` ``=`` ``=>`` a block and a statement keyword) in which some
+                    value is read by two operands -- a test of one value, ``s.state === "unavailable"
+                    || s.state === "unknown"`` -- and which carries RULE_TOKENS tokens or more and
+                    some content (a string, a number, a member name). Its values (a name with its
+                    member path, ``opts.probe``; not a keyword or a ``KEEP`` global) are numbered by
+                    first use within the run and its strings keep their text, so ``x === null ||
+                    x === undefined || x === ""`` in one function and the same over ``opts.v`` in
+                    another are one rule, and a test of two different strings is not. A site is one chain;
+                    it counts once when any of its runs is spelled at another site, in any function
+                    or the same one, or in the module's own top-level code (an expression-bodied arrow). The 20-token window cannot see such a rule: the #2401 review
+                    spelled three of ARCH2-s5's card_shapes rules once more and card_clone_copies read
+                    108 -> 108.
+                    A TEMPLATE literal is a rule the same way: a run of two or more of its ``${..}``
+                    with the text between them, in which some value is read by two -- a key or label
+                    formatting one value, ``${e[0]}>${e[1]}`` -- carrying RULE_TOKENS tokens or more
+                    and some content (text counts). There a value is its root name and its members
+                    stay as spelled, so ``${st.state}@${st.last_updated}`` reads ``st`` twice. A site
+                    is one template. A MARKUP template, whose own text opens or closes a tag, is no
+                    rule: its ``${..}`` fill different slots of what it draws, and markup is left to
+                    card_clone_copies, whose window reads an element drawn twice once it is long
+                    enough (``_templates``). Not weighted, by the reason ``shapes.py`` gives: one operand
+                    re-spelled leaves the class while the rule is still written again, so a fall
+                    credits nothing; a rise is a new spelling of a rule, and refuses.
 """
 from __future__ import annotations
 
@@ -34,6 +62,17 @@ from . import common as C
 #: Tokens per window. 20, calibrated on ARCH2-s5's four card patches (round 10): at 16 the finite-number
 #: owner (C4), a dedupe, read one copy more; at 20 no patch rises and their union reads 108 -> 101.
 WINDOW = 20
+#: Counter C24: the one-statement rule census (``card_rule_copies``). ``vector.py`` switches it off.
+RULES = True
+#: Normalized tokens a rule's run needs, its values one token each and its operands joined by one: the
+#: live-state guard ``v0 === "unavailable" || v0 === "unknown"`` carries 7, the smallest of ARCH2-s5's rules.
+RULE_TOKENS = 7
+#: Globals and keywords a rule's run keeps as spelled (every other name not after ``.`` is numbered).
+KEEP = frozenset("typeof instanceof in void new delete null undefined true false this super NaN Infinity "
+                 "Number Math Array Object String Boolean Date JSON isFinite isNaN parseFloat parseInt".split())
+#: Tokens that end a rule's run at its own depth (a block's braces and its own brackets end it too).
+_RULE_CUT = frozenset(";  , ? : = => += -= *= /= %= **= <<= >>= >>>= &= |= ^= &&= ||= ??= return throw case "
+                      "default if else for while do switch try catch finally const let var yield await".split())
 #: Counter C22: a function's own names are numbered and its no-op statements dropped, so renaming its names or
 #: interleaving ``void 1;`` hides no copy. ``vector.py`` switches it off.
 OWN_NAMES = True
@@ -51,6 +90,8 @@ HOOKS = frozenset({
     "getConfigElement", "getLayoutOptions", "getGridOptions", "hass", "config",
 })
 _IDENT = re.compile(r"[A-Za-z_$][\w$]*")
+#: Counter C24's template arm: text that opens or closes a tag (``<rect``, ``</span``, ``<!--``) is markup.
+_MARKUP = re.compile(r"<[A-Za-z/!]")
 _NUM = re.compile(r"(?:0[xX][0-9a-fA-F_]+|0[bB][01_]+|0[oO][0-7_]+|(?:\d[\d_]*\.?[\d_]*|\.\d[\d_]*)(?:[eE][+-]?\d+)?)n?")
 _PUNCT = sorted(""">>>= ... === !== **= <<= >>= >>> &&= ||= ??= => == != <= >= && || ?? ?. ++ -- += -= *= /= %=
 &= |= ^= ** << >> { } ( ) [ ] ; , < > + - * / % & | ^ ! ~ ? : = . @ #""".split(), key=len, reverse=True)
@@ -62,21 +103,29 @@ _OPERAND_EXPECTED = set("( , = : [ ! & | ? { } ; + - * % < > ~ ^".split()) | {
 }
 
 
-def tokenize(src: str) -> list[str]:
-    """``src`` as tokens (the module docstring's rules)."""
+def tokenize(src: str, strings: bool = False) -> list[str]:
+    """``src`` as tokens (the module docstring's rules). ``strings``: a quoted string is its text, double-quoted,
+    rather than ``S``, and a template literal's text segment is a backtick, its place (``W`` the whole literal,
+    ``H`` its head, ``M`` between two ``${..}``, ``T`` its tail) and its text -- one token either way, so the two
+    streams index alike (the rule census reads it)."""
     out: list[str] = []
     i, n = 0, len(src)
 
     def template(i: int) -> int:
         """Tokens of a template literal starting after its opening backtick; returns the index after it."""
+        seg, kind, seg_start = len(out), "H", i
         out.append("S")
         while i < n:
             ch = src[i]
             if ch == "\\":
                 i += 2
             elif ch == "`":
+                if strings:
+                    out[seg] = "`" + ("W" if kind == "H" else "T") + src[seg_start:i]
                 return i + 1
             elif ch == "$" and src.startswith("${", i):
+                if strings:
+                    out[seg] = "`" + kind + src[seg_start:i]
                 depth, j = 1, i + 2
                 inner_start = j
                 while j < n and depth:  # the expression's extent: braces, comments and nested literals respected
@@ -98,7 +147,8 @@ def tokenize(src: str) -> list[str]:
                     depth += c == "{"
                     depth -= c == "}"
                     j += 1
-                out.extend(tokenize(src[inner_start:j - 1]))
+                out.extend(tokenize(src[inner_start:j - 1], strings))
+                seg, kind, seg_start = len(out), "M", j
                 out.append("S")
                 i = j
             else:
@@ -116,8 +166,9 @@ def tokenize(src: str) -> list[str]:
             j = src.find("*/", i + 2)
             i = n if j < 0 else j + 2
         elif ch in "\"'":
-            i = _skip_string(src, i)
-            out.append("S")
+            j = _skip_string(src, i)
+            out.append('"' + src[i + 1:j - 1] + '"' if strings else "S")
+            i = j
         elif ch == "`":
             i = template(i + 1)
         elif ch == "/" and (not out or out[-1] in _OPERAND_EXPECTED):
@@ -313,17 +364,19 @@ def _own_tokens(toks: list[str], fn: tuple[str, int, int, int], nested: list[tup
     return out
 
 
-def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
-    """Clone classes of functions sharing a normalized window of ``window`` tokens of their own."""
-    fns = functions(toks)
-    windows: dict[tuple, set] = defaultdict(set)
+def _units(toks: list[str], fns: list[tuple[str, int, int, int]]) -> list[tuple[str, list[str]]]:
+    """``(function@index, its own tokens)`` for each function, each outermost nested function one ``F``."""
+    out = []
     for k, fn in enumerate(fns):
         _n, start, _b0, end = fn
         nested = [(s0, e0) for (_m, s0, _c, e0) in fns if start < s0 and e0 <= end and (s0, e0) != (start, end)]
         outer = [(a, b) for a, b in nested if not any(a2 < a and b <= b2 for a2, b2 in nested if (a2, b2) != (a, b))]
-        norm = _own_tokens(toks, fn, outer)
-        for j in range(len(norm) - window + 1):
-            windows[tuple(norm[j:j + window])].add(f"{fn[0]}@{k}")
+        out.append((f"{fn[0]}@{k}", _own_tokens(toks, fn, outer)))
+    return out
+
+
+def _classes(members_by_key: dict) -> list[list[str]]:
+    """Members joined when they share a key, transitively: each class of two or more, sorted."""
     parent: dict = {}
 
     def find(x):
@@ -332,9 +385,9 @@ def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
             x = parent[x]
         return x
 
-    for owners in windows.values():
-        if len(owners) > 1:
-            first, *rest = sorted(owners)
+    for members in members_by_key.values():
+        if len(members) > 1:
+            first, *rest = sorted(members)
             for o in rest:
                 parent[find(o)] = find(first)
     groups: dict = defaultdict(list)
@@ -343,23 +396,195 @@ def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
     return sorted(sorted(g) for g in groups.values() if len(g) > 1)
 
 
-def card_tokens(root: Path) -> list[str]:
+def clone_copies(toks: list[str], window: int = WINDOW) -> list[list[str]]:
+    """Clone classes of functions sharing a normalized window of ``window`` tokens of their own."""
+    windows: dict[tuple, set] = defaultdict(set)
+    for unit, norm in _units(toks, functions(toks)):
+        for j in range(len(norm) - window + 1):
+            windows[tuple(norm[j:j + window])].add(unit)
+    return _classes(windows)
+
+
+def _chains(body: list[str]) -> list[list[list[str]]]:
+    """Every ``&&``/``||`` chain of two or more operands in ``body``, as its operands, at each bracket depth
+    (the module docstring's cuts)."""
+    out: list[list[list[str]]] = []
+
+    def level(seq: list[str]) -> None:
+        pieces, cur, i = [], [], 0
+        while i < len(seq):
+            t = seq[i]
+            if t in ("(", "[", "{"):
+                j, depth = i, 0
+                while j < len(seq):
+                    depth += seq[j] in ("(", "[", "{")
+                    depth -= seq[j] in (")", "]", "}")
+                    if depth == 0:
+                        break
+                    j += 1
+                level(seq[i + 1:j])
+                if t == "{":
+                    pieces.append(cur)
+                    cur = []
+                else:
+                    cur += seq[i:j + 1]
+                i = j + 1
+                continue
+            if t in _RULE_CUT or t in (")", "]", "}"):
+                pieces.append(cur)
+                cur = []
+            else:
+                cur.append(t)
+            i += 1
+        pieces.append(cur)
+        for piece in pieces:
+            operands, part, depth = [], [], 0
+            for t in piece:
+                depth += t in ("(", "[", "{")
+                depth -= t in (")", "]", "}")
+                if depth == 0 and t in ("&&", "||"):
+                    operands.append(part)
+                    part = []
+                else:
+                    part.append(t)
+            operands.append(part)
+            if len(operands) >= 2 and all(operands):
+                out.append(operands)
+
+    level(body)
+    return out
+
+
+def _rule_key(operands: list[list[str]], joints: list[str] | None = None, roots: bool = False) -> tuple | None:
+    """A run of operands as a rule: each value it reads numbered by first use, or None when no value is read by
+    two of its operands, it carries fewer than RULE_TOKENS tokens, or it carries no CONTENT -- a string, a
+    number, a ``KEEP`` word or a member or callee name -- so ``a === b || a === c`` is a shape, not a rule. A value is a name with its member path
+    (``probe``, ``opts.probe``, ``this._hass.states[id].state`` are each one value); a call keeps its callee's
+    members as spelled (``v0.trim()``), and a path rooted at a ``KEEP`` global stays as spelled
+    (``Number.isFinite``). ``joints``: the token between operand ``k - 1`` and ``k`` (``&|`` by default, a
+    chain's). ``roots``: a value is its root name alone and its members stay as spelled, so ``st.state`` and
+    ``st.last_updated`` read one value ``v0`` (a template formatting one value's members)."""
+    num: dict[str, str] = {}
+    readers: dict[str, set] = defaultdict(set)
+    key: list[str] = []
+    content = False
+    for k, part in enumerate(operands):
+        if k:
+            joint = joints[k - 1] if joints else "&|"
+            content = content or len(joint) > 2
+            key.append(joint)
+        m, n = 0, len(part)
+        while m < n:
+            t = part[m]
+            if not (_IDENT.fullmatch(t) and (t == "this" or t not in KEEP) and t not in _HEADS
+                    and t not in ("S", "R", "F") and (m == 0 or part[m - 1] not in (".", "?."))):
+                content = content or t[:1] == '"' or bool(_NUM.fullmatch(t)) \
+                    or (_IDENT.fullmatch(t) is not None and t not in ("S", "R", "F", "this"))
+                key.append(t)
+                m += 1
+                continue
+            e = m + 1  # the path's extent: ``.name``, ``?.name`` and ``[..]`` steps
+            while e < n and not roots:
+                if part[e] in (".", "?.") and e + 1 < n and _IDENT.fullmatch(part[e + 1]):
+                    e += 2
+                elif part[e] == "[":
+                    e = m + _matching(part[m:], e - m) + 1
+                else:
+                    break
+            if e < n and part[e] == "(":  # a call: the root is the value, its members stay
+                e = m + 1
+            v = num.setdefault(" ".join(part[m:e]), f"v{len(num)}")
+            readers[v].add(k)
+            key.append(v)
+            m = e
+    if len(key) < RULE_TOKENS or not content or not any(len(r) >= 2 for r in readers.values()):
+        return None
+    return tuple(key)
+
+
+def rule_copies(toks: list[str]) -> list[list[str]]:
+    """Classes of sites spelling one rule (``card_rule_copies``): ``toks`` keeps string text (``tokenize(..,
+    strings=True)``); each member is ``function@index:chain``."""
+    fns = functions(toks)
+    owners: dict[tuple, set] = defaultdict(set)
+    units = _units(toks, fns)
+    # The module's own tokens, every outermost function one ``F``: a rule's owner written as an expression-bodied
+    # arrow at top level (``const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);``) is no
+    # function to ``functions`` and would be no site.
+    top, j = [], 0
+    for _n, start, _b0, end in sorted(fns, key=lambda f: f[1]):
+        if start >= j:
+            top += toks[j:start] + ["F"]
+            j = end + 1
+    units.append(("<module>", top + toks[j:]))
+    for unit, body in units:
+        # A chain reads a template's text as ``S``, as it did before templates kept theirs.
+        for c, operands in enumerate(_chains(["S" if t[:1] == "`" else t for t in body])):
+            site = f"{unit}:{c}"
+            for a in range(len(operands)):
+                for b in range(a + 2, len(operands) + 1):
+                    key = _rule_key(operands[a:b])
+                    if key is not None:
+                        owners[key].add(site)
+        for c, (texts, exprs) in enumerate(_templates(body)):
+            site = f"{unit}:`{c}"
+            for a in range(len(exprs)):
+                for b in range(a + 2, len(exprs) + 1):
+                    key = _rule_key(exprs[a:b], texts[a + 1:b], roots=True)
+                    if key is not None:
+                        owners[("`",) + key].add(site)
+    return _classes(owners)
+
+
+def _templates(body: list[str]) -> list[tuple[list[str], list[list[str]]]]:
+    """Every template literal in ``body`` with a ``${..}``, nested ones included, as ``(texts, expressions)``:
+    its text segments (each its ``tokenize(.., strings=True)`` token) and the tokens of each expression between
+    them, a nested template's tokens inside its expression. A MARKUP template -- one whose own text opens or
+    closes a tag (``_MARKUP``) -- is left out: its ``${..}`` fill an element's attribute and content slots,
+    each a different property of what it draws, and two elements drawn alike are ``card_clone_copies``'s."""
+    out = []
+    for i, t in enumerate(body):
+        if not t.startswith("`H"):
+            continue
+        texts, exprs, cur, nest = [t], [], [], 0
+        for u in body[i + 1:]:
+            if u.startswith("`H"):
+                nest += 1
+            elif u.startswith(("`M", "`T")) and not nest:
+                texts.append(u)
+                exprs.append(cur)
+                cur = []
+                if u.startswith("`T"):
+                    if not any(_MARKUP.search(x, 2) for x in texts):
+                        out.append((texts, exprs))
+                    break
+                continue
+            elif u.startswith("`T"):
+                nest -= 1
+            cur.append(u)
+    return out
+
+
+def card_tokens(root: Path, strings: bool = False) -> list[str]:
     toks: list[str] = []
     for p in sorted((Path(root) / C.PKG_REL / "www").glob("*.js")):
-        toks += tokenize(p.read_text())
+        toks += tokenize(p.read_text(), strings)
     return toks
 
 
 def measure(root: Path) -> dict:
     t0 = time.perf_counter()
-    toks = card_tokens(root)
+    texts = card_tokens(root, strings=True)
+    toks = ["S" if t[:1] in ("\"", "`") else t for t in texts]
     dead = dead_definitions(toks)
     clones = clone_copies(toks)
+    rules = rule_copies(texts) if RULES else []
     return {
         "metric": "card",
         "card_dead_definitions": len(dead),
         "card_clone_copies": sum(len(g) for g in clones),
+        "card_rule_copies": sum(len(g) for g in rules),
         "details": {"tokens": len(toks), "functions": len(functions(toks)), "dead": dead,
-                    "clone_classes": [g[:6] for g in clones]},
+                    "clone_classes": [g[:6] for g in clones], "rule_classes": [g[:6] for g in rules]},
         "runtime_s": round(time.perf_counter() - t0, 3),
     }
