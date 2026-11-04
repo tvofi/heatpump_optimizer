@@ -347,7 +347,7 @@ const DECLARED = {
   'pinned tools/audit/preflight.sh': { none: 'runs other checks; no input of its own' },
   'pinned tools/audit/prepr.sh': { none: 'runs other checks over a body; no input of its own' },
   'pinned tools/audit/prepare_baseline.sh': { none: 'check-wave-script reads its ISOLATED_DIMS line as text; it grades no input here' },
-  'pinned tools/audit/machinery_ratchet.py': { none: 'reads machinery_budgets.json through load_budgets(), which refuses a key it does not read and requires each it does (its --self-test pins both), and merge history; no arm here' },
+  'pinned tools/audit/machinery_ratchet.py': { none: 'reads machinery_budgets.json through load_budgets(), which refuses a key it does not read and requires each it does (its --self-test pins both), and merge history; no arm here', pending: 'R10-MACHINERY-RATCHETS part 2 pins it in governance.yml; that part drops this key, so the entry is strict (DEAD if absent) from then on' },
   'pinned tools/audit/round6/D11/fix/codeowners_gap.py': { none: 'reads CODEOWNERS and workflows; residual (D11-s1-03), no arm here' },
   'stamp rule 4': { none: 'reads commit parents and subjects; residual (D11-s1-02), no arm here' },
   'carry_audit owed-carry': { none: 'reads the prose of a body item (a carry index beside a not-done phrase), not a structured input; graded by carry_audit --self-test, whose rows fail under the arm\'s two mutants' },
@@ -378,7 +378,15 @@ function registryRun(report) {
     else if (typeof d.none === 'string' && d.none.trim()) report.none.push(`${k}: ${d.none}`)
     else report.refused.push(`registry: \`${k}\` declares neither an arm nor a reason`)
   }
-  for (const k of Object.keys(DECLARED)) if (!set.includes(k)) report.dead.push(`registry: DECLARED \`${k}\` is no longer in the derived set`)
+  // A `pending` entry registers a check before the change that adds it to the
+  // set lands, because CI grades a head with its base's copy of this program:
+  // absent, it is printed and not DEAD; present, it is graded like any other.
+  // Its follow-up drops the key, making the entry strict again.
+  for (const k of Object.keys(DECLARED)) {
+    if (set.includes(k)) continue
+    if (typeof DECLARED[k].pending === 'string' && DECLARED[k].pending.trim()) (report.pending ||= []).push(`registry: DECLARED \`${k}\` awaits its check in the derived set (${DECLARED[k].pending})`)
+    else report.dead.push(`registry: DECLARED \`${k}\` is no longer in the derived set`)
+  }
 }
 
 
@@ -641,10 +649,17 @@ async function selfTest() {
     delete DECLARED['check budgets']
     DECLARED['check no-such-check'] = { none: 'probe' }
     DECLARED['stamp rule 4'] = { arm: 'no-such-arm' }
+    DECLARED['check pending-probe'] = { none: 'probe', pending: 'its follow-up' }
+    DECLARED['check citations'] = { none: 'probe', pending: 'its follow-up' }
     r = fresh(); registryRun(r)
     t('a derived check DECLARED lacks is REFUSED as unregistered', r.refused.some((x) => /`check budgets` is unregistered/.test(x)))
     t('a DECLARED key the set does not yield is DEAD', r.dead.some((x) => /no-such-check/.test(x)))
     t('a DECLARED arm that does not exist is REFUSED', r.refused.some((x) => /no-such-arm/.test(x)))
+    t('a pending DECLARED key the set does not yield is printed, not DEAD', !r.dead.some((x) => /pending-probe/.test(x)) && (r.pending || []).some((x) => /pending-probe/.test(x)))
+    t('a pending DECLARED key the set yields is graded like any other, not printed pending', r.none.some((x) => /^check citations: probe$/.test(x)) && !(r.pending || []).some((x) => /`check citations`/.test(x)))
+    DECLARED['check pending-probe'] = { none: 'probe', pending: ' ' }
+    r = fresh(); registryRun(r)
+    t('a pending with an empty reason is no tolerance: DEAD', r.dead.some((x) => /pending-probe/.test(x)))
   } finally {
     for (const k of Object.keys(DECLARED)) delete DECLARED[k]
     Object.assign(DECLARED, saved)
