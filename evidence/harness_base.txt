@@ -1,0 +1,7 @@
+RESULT two_zone_max_dkw=0.000000
+RESULT two_zone_max_dcost=0.000000
+RESULT single_zone_max_dkw=4.921374
+RESULT two_zone_sysid_steps=None,None,None
+RESULT two_zone_heavy_sysid_steps=2.603,2.603,2.603
+RESULT two_zone_plant=[(0.1, 10.0), (0.4, 10.0), (1.0, 10.0)]
+RESULT single_zone_sysid_steps=1.738,3.386,None

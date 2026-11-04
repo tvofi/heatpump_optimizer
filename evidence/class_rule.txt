@@ -1,0 +1,29 @@
+custom_components/heatpump_optimizer/sysid.py:167:            heat_loss_coefficient=ua,
+custom_components/heatpump_optimizer/sysid.py:200:        ua = p.heat_loss_coefficient * p.house_heat_loss_scale
+custom_components/heatpump_optimizer/sysid.py:715:            heat_loss_coefficient=ua,
+custom_components/heatpump_optimizer/sysid.py:1278:        base_u = params.heat_loss_coefficient
+custom_components/heatpump_optimizer/sysid.py:1495:                float(plant.heat_loss_coefficient)
+custom_components/heatpump_optimizer/battery.py:278:                loss_kw_per_c=params.heat_loss_coefficient * loss_scale,
+custom_components/heatpump_optimizer/coordinator.py:1250:    return params.heat_loss_coefficient, params.room_thermal_mass
+custom_components/heatpump_optimizer/coordinator.py:4932:            u = float(params.heat_loss_coefficient)
+custom_components/heatpump_optimizer/coordinator.py:5257:        return float(p.heat_loss_coefficient)
+custom_components/heatpump_optimizer/optimizer.py:363:            p.heat_loss_coefficient, wind_speed, precipitation
+custom_components/heatpump_optimizer/optimizer.py:2128:        base = params.heat_loss_coefficient
+custom_components/heatpump_optimizer/optimizer.py:2267:        u_eff = params.heat_loss_coefficient * params.house_heat_loss_scale
+custom_components/heatpump_optimizer/optimizer.py:3238:        # single-zone `heat_loss_coefficient` on its own.
+custom_components/heatpump_optimizer/optimizer.py:3442:        base_loss = max(self.model.params.heat_loss_coefficient, 0.001)
+custom_components/heatpump_optimizer/optimizer.py:3445:                self.model.params.heat_loss_coefficient,
+custom_components/heatpump_optimizer/optimizer.py:5321:                    heat_loss_coefficient=u_up + u_lo,
+custom_components/heatpump_optimizer/mixing_valve.py:81:    heat_loss_coefficient: float,
+custom_components/heatpump_optimizer/mixing_valve.py:108:    q_hold = heat_loss_coefficient * max(0.0, target_temp - outdoor_temp)
+custom_components/heatpump_optimizer/thermal_model.py:199:    heat_loss_coefficient: float = DEFAULT_HOUSE_HEAT_LOSS_COEFFICIENT
+custom_components/heatpump_optimizer/thermal_model.py:573:        return self.heat_loss_coefficient
+custom_components/heatpump_optimizer/thermal_model.py:924:            "heat_loss_coefficient": "HOUSE_HEAT_LOSS_COEFFICIENT",
+custom_components/heatpump_optimizer/thermal_model.py:1792:    heat_loss_coefficient: float, emitter_ua: float,
+custom_components/heatpump_optimizer/thermal_model.py:1804:        heat_loss_coefficient=heat_loss_coefficient,
+custom_components/heatpump_optimizer/thermal_model.py:1869:            p.heat_loss_coefficient, wind_speed, precipitation)
+custom_components/heatpump_optimizer/thermal_model.py:1969:        heat_loss_coefficient=u_eff,
+custom_components/heatpump_optimizer/thermal_model.py:2949:            heat_loss_coefficient=heat_loss,
+custom_components/heatpump_optimizer/thermal_model.py:3324:                p.heat_loss_coefficient, wind_speed, precipitation
+custom_components/heatpump_optimizer/thermal_model.py:3791:                p.heat_loss_coefficient, wind_speed, precipitation
+custom_components/heatpump_optimizer/thermal_model.py:4158:                            heat_loss_coefficient=u_upper + u_lower,
