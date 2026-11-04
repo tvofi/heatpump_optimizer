@@ -16199,7 +16199,10 @@
     "tools/audit/seat/open_pr.sh",
     "tools/audit/seat/pr_args.sh",
     "tools/audit/seat/open_driver.py",
-    "tests/structure.py"
+    "tests/structure.py",
+    "tools/pr/app_push.sh",
+    "tools/pr/prepr.sh",
+    "tools/audit/seat/body_push.sh"
    ],
    "hot_files": [],
    "fixerModel": "sonnet",
@@ -16239,7 +16242,7 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s11 replan fold"
+    "note": "s11 replan fold | set-files files ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/open_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/open_driver.py', 'tests/structure.py'] -> ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/open_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/open_driver.py', 'tests/structure.py', 'tools/pr/app_push.sh', 'tools/pr/prepr.sh', 'tools/audit/seat/body_push.sh'] (cite origin/main@af941ad4a296ffec76562e3161972bce3ad2dec4)"
    },
    "brief": "The opener's and updater's handoff path, one owning seam: tools/audit/seat/update_pr.sh, open_pr.sh and pr_args.sh with open_driver.py (fold of R10-OPENER-REUSE part 2, the update_pr.sh arm of R10-RELAY-HANDOFF-ARM, and open pull request #3089; s11 replan). Merge main only when the pull request is DIRTY or merge-tree reports a conflict, reuse a passed prepr on a clean head, one checkout per pull request, exit 75 for a busy branch. Part of #201."
   },
