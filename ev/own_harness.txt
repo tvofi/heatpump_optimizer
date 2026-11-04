@@ -1,0 +1,10 @@
+RESULT A unprobed windows=45 nonzero_diff=0 newest main=29.067 head=29.067
+fleet all-success runs [41862133797]
+RESULT B run=41862133797 probed=24.344 fleet1.9x=25.065 (d=0.721) half-slow=24.288 (d=-0.056) one-probe-2x=24.344 | main-grader 31.45 -> 1.9x 59.783
+   +300s closures in  1/16: probed d=0.0 main d=0.0
+   +300s closures in  4/16: probed d=0.0 main d=0.0
+   +300s closures in  8/16: probed d=2.513 main d=0.0
+   +300s closures in  9/16: probed d=5.027 main d=0.0
+   +300s closures in 12/16: probed d=5.027 main d=0.0
+   +300s closures in 16/16: probed d=5.027 main d=5.0
+   +300s ref-work closures in 9/16 runs, those runs also on 1.9x hosts: probed d=4.891

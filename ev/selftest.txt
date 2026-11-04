@@ -1,0 +1,4 @@
+  ok   --record carries the band over unchanged and re-records every derived metric
+ci-ratchet self-test: 65 checks, 0 failed
+  ok   the one-machine bridge's 17.50 / 18.92 is refused by the same comparison
+probe_bridge self-test: 8 checks, 0 failed
