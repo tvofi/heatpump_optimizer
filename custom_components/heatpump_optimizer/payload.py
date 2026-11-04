@@ -164,6 +164,12 @@ class CurrentAction(TypedDict, total=False):
     valve_target: float
     solar_gain_kw: float
     baseline_kw: float
+    # The step's stored-heat change (kW_th), comfort shortfall (kW_e) and
+    # steady COP, for the month row's settlement
+    # (``OptimizationResult.stored_heat_schedule``).
+    stored_kw_th: float
+    comfort_kw: float
+    steady_cop: float
     dhw_power: float
     dhw_heating_active: bool
     dhw_temperature: float
@@ -255,6 +261,12 @@ class SavingsMonth(TypedDict, total=False):
     # Metered over modelled kWh on the row's intervals: the factor the
     # thermostat's cost is scaled by; None where it was left at modelled.
     meter_calibration: float | None
+    # The plan's stored-heat change over the row, priced at the row's
+    # metered kWh price: already inside ``baseline_sek`` (R10-SAV-COMFORT).
+    stored_heat_sek: float
+    # What the plan saved by delivering less comfort than the schedule:
+    # published beside ``savings_sek``, not netted out of it.
+    comfort_sek: float
 
 
 class NarrativeItem(TypedDict):

@@ -42578,15 +42578,16 @@ R.check(
 
 # R10-SAV-COMFORT part 3 (owner ruling, 2026-11-04): the month row settles the
 # house's stored heat, and publishes the comfort shortfall beside the saving.
-# Each interval books the plan's stored-heat change (kW_e over the interval) and the steady
-# thermostat's kW at the target less at the delivered room; the row prices the
-# stored heat once, at the row's own metered kWh price, so a store charged in a
-# cheap hour and drawn in a dear one keeps its timing saving.
+# Each interval books the plan's stored-heat change (kW_th), its steady COP and
+# the steady thermostat's kW_e at the target less at the delivered room; the
+# row converts the stored heat once, at the month's mean COP, and prices it
+# once, at its own metered kWh price, so a store charged in a warm or cheap hour
+# and drawn in a cold or dear one keeps its timing saving.
 _st = _SavLedger()
 for _hh, _sp in enumerate((1.0, 2.0, 3.0, 4.0)):
     _st.add_savings_settlement(
         _SavDT(2026, 1, 3, _hh), baseline_kw=2.0, actual_kwh=1.5, spot=_sp, dt=1.0,
-        stored_kw=-0.5, comfort_kw=0.25,
+        stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
     )
 _st_row = _st.savings_months(_SavDT(2026, 2, 10))[0]
 R.check(
@@ -42605,11 +42606,11 @@ _st_t = _SavLedger()
 for _hh, (_sp, _dk) in enumerate(((1.0, 1.0), (4.0, -1.0))):
     _st_t.add_savings_settlement(
         _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=1.0 + _dk, spot=_sp, dt=1.0,
-        stored_kw=_dk,
+        stored_kw_th=4.0 * _dk, steady_cop=4.0 if _dk > 0 else 2.0,
     )
 _st_t_row = _st_t.savings_months(_SavDT(2026, 2, 10))[0]
 R.check(
-    "R10-SAV-COMFORT: a store charged cheap and drawn dear settles 0, so its timing saving stays",
+    "R10-SAV-COMFORT: a store charged cheap at COP 4 and drawn dear at COP 2 settles at one COP and one price, so its timing saving stays",
     _st_t_row.get("stored_heat_sek") == 0.0 and _st_t_row["savings_sek"] == 3.0,
     repr(_st_t_row),
 )
@@ -42624,8 +42625,8 @@ R.check(
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
 # The plan carries both per step, and the current action hands the step's to
-# the settlement: the stored change telescopes to the capped store's change
-# over the horizon, at each step's steady COP.
+# the settlement: the stored change telescopes to the store's change over the
+# horizon, uncapped, and each step carries its steady COP.
 from profiles import DT as _st_DT, house as _st_house, prices as _st_prices
 from profiles import solve_inputs as _st_inputs, weather as _st_weather
 from heatpump_optimizer.optimizer import (
@@ -42654,30 +42655,28 @@ _st_plan = _st_opt.optimize(inputs=_st_inputs(
     precipitation=_st_rain, solar_radiation=_st_sol, start_time=_st_t0,
 ))
 _st_n = len(_st_plan.power_schedule)
-_st_stored = getattr(_st_plan, "stored_heat_schedule", [])
-_st_comfort = getattr(_st_plan, "comfort_shortfall_schedule", [])
-_st_th = sum(
-    v * _st_DT * _st_model.compute_cop(float(o)) for v, o in zip(_st_stored, _st_plan.outdoor_temps)
-)
-_st_caps = _st_opt._settlement_caps(np.asarray(_st_plan.outdoor_temps))
-_st_cap = lambda t, k: min(t, _st_caps[k]) if k in _st_caps else t
+_st_sched = getattr(_st_plan, "settlement_schedule", [])
+_st_stored = [step["stored_kw_th"] for step in _st_sched]
+_st_comfort = [step["comfort_kw"] for step in _st_sched]
+_st_th = sum(v * _st_DT for v in _st_stored)
 _st_want = _st_par.room_thermal_mass * (
-    _st_cap(_st_plan.room_temp_trajectory[-1], "room") - _st_cap(_st_plan.room_temp_trajectory[0], "room")
+    _st_plan.room_temp_trajectory[-1] - _st_plan.room_temp_trajectory[0]
 ) + _st_par.slab_thermal_mass * (
-    _st_cap(_st_plan.slab_temp_trajectory[-1], "slab") - _st_cap(_st_plan.slab_temp_trajectory[0], "slab")
+    _st_plan.slab_temp_trajectory[-1] - _st_plan.slab_temp_trajectory[0]
 )
 _st_act = _st_opt.get_current_action(_st_plan, _st_t0) if _st_n else {}
 R.check(
-    "R10-SAV-COMFORT: the plan's per-step stored-heat change telescopes to the capped store's",
+    "R10-SAV-COMFORT: the plan's per-step stored-heat change telescopes to the store's, uncapped",
     len(_st_stored) == _st_n == len(_st_comfort) and abs(_st_th - _st_want) < 1e-6,
     f"{len(_st_stored)} {len(_st_comfort)} {_st_n} {_st_th} {_st_want}",
 )
 R.check(
     "R10-SAV-COMFORT: a house started 2 K under target books a comfort shortfall, and the action carries both",
     len(_st_comfort) == _st_n and _st_comfort[0] > 0.0
-    and _st_act.get("stored_kw") == _st_stored[0]
-    and _st_act.get("comfort_kw") == _st_comfort[0],
-    f"{_st_comfort[:2]} {_st_act.get('stored_kw')} {_st_act.get('comfort_kw')}",
+    and _st_act.get("stored_kw_th") == _st_stored[0]
+    and _st_act.get("comfort_kw") == _st_comfort[0]
+    and _st_act.get("steady_cop") == _st_model.compute_cop(float(_st_plan.outdoor_temps[0])),
+    f"{_st_comfort[:2]} {_st_act}",
 )
 
 # Item 1: the settlement books the plan's thermostat baseline at the step
@@ -43211,9 +43210,14 @@ _sv._current_action = {"power": 1.0, "dhw_power": 0.5, "baseline_kw": 3.25}
 _pend_src = _SavPath(
     "custom_components/heatpump_optimizer/coordinator.py"
 ).read_text()
+from heatpump_optimizer.ledger import SETTLEMENT_KEYS as _SAV_KEYS
+# R10-SAV-COMFORT: the copy is the spread of the ledger's SETTLEMENT_KEYS,
+# which names baseline_kw beside the step's stored-heat and comfort readings.
 R.check(
-    "interval-start pending copies baseline_kw from the current action",
-    '"baseline_kw": self._current_action.get("baseline_kw")' in _pend_src,
+    "interval-start pending copies baseline_kw and every settlement key from the current action",
+    "**{k: self._current_action.get(k) for k in SETTLEMENT_KEYS}" in _pend_src
+    and set(_SAV_KEYS) == {"baseline_kw", "stored_kw_th", "comfort_kw", "steady_cop"},
+    repr(_SAV_KEYS),
 )
 
 R.section("3L-G8 — wood fuel math")
