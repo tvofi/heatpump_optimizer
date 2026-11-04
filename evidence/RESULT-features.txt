@@ -1,0 +1,11 @@
+head: ALL 4782 FEATURE CHECKS PASSED
+mA: 1 of 4782 FEATURE CHECKS FAILED
+mB: 1 of 4782 FEATURE CHECKS FAILED
+mC: 1 of 4782 FEATURE CHECKS FAILED
+mD: 1 of 4782 FEATURE CHECKS FAILED
+mE: 1 of 4782 FEATURE CHECKS FAILED
+mA:   FAIL R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a 30-minute step (6 of a 15-minute one) and the log holds a day of steps  [('space', 'space', 96)]
+mB:   FAIL R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch (WARNING twice across a shutdown)  [[30, 10]]
+mC:   FAIL R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still a heating share (the guard is a strict <)  [('dhw', 'dhw')]
+mD:   FAIL R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a 30-minute step (6 of a 15-minute one) and the log holds a day of steps  [('space', 'space', 48)]
+mE:   FAIL R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a 30-minute step (6 of a 15-minute one) and the log holds a day of steps  [('dhw', 'space', 96)]
