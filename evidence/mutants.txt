@@ -1,14 +1,28 @@
-== M1-no-unwrap
-FAILING: ['debug ingest: a download wrapped as HA writes it ingests like the bare bundle']
-== M2-no-dedup
-FAILING: ['debug ingest: schema, stores, accuracy, bias, planted leak', 'debug ingest: a download wrapped as HA writes it ingests like the bare bundle', 'debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
-== M3-held-all
-CRASH KeyError datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc)
-== M4-last-wins
-FAILING: ['debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived']
-== M5-no-schema-guard
-FAILING: []
-== M6-store-all-samples
-FAILING: ['debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
-== M7-row-t-fallback
-FAILING: ['debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
+== unmutated: 8/8 ok; FAILING: []
+   intake S: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=0 count 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=6 count 
+== R1 read_download unwraps:  1 file changed, 1 insertion(+), 1 deletion(-)
+   gate: 7/8 ok; FAILING: ['debug ingest: read_download keeps the wrapper the harnesses measure']
+   intake S: RESULT bundle_unwrapped=0 bool RESULT ingest_fails_wrapped=0 count 
+   intake S unwrap: RESULT bundle_unwrapped=0 bool RESULT ingest_fails_wrapped=0 count 
+== R2 load_bundle no unwrap:  1 file changed, 1 insertion(+), 1 deletion(-)
+   gate: 7/8 ok; FAILING: ['debug ingest: a download wrapped as HA writes it ingests like the bare bundle']
+   intake S: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=6 count 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=0 count 
+== R3 unwrap_download identity:  1 file changed, 1 insertion(+), 2 deletions(-)
+   gate: 7/8 ok; FAILING: ['debug ingest: a download wrapped as HA writes it ingests like the bare bundle']
+   intake S: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=6 count 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=0 count 
+== R4 schema guard dropped (M5):  1 file changed, 1 insertion(+), 1 deletion(-)
+   gate: 8/8 ok; FAILING: []
+   intake S: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=0 count 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=6 count 
+== R5 shared over all row samples:  1 file changed, 1 insertion(+), 1 deletion(-)
+   gate: KeyError: datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc)
+   intake S: RESULT bundle_unwrapped=1 bool 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool 
+== R6 last-wins dedupe:  1 file changed, 1 insertion(+), 1 deletion(-)
+   gate: 7/8 ok; FAILING: ['debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived']
+   intake S: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=0 count 
+   intake S unwrap: RESULT bundle_unwrapped=1 bool RESULT ingest_fails_wrapped=6 count 
+git status after: 0 changed
