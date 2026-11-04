@@ -3835,6 +3835,7 @@
    "tools/audit/seat/plan_audit.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
    "tools/audit/seat/pulse.py",
