@@ -1,0 +1,58 @@
+SEAM F1_run_threshold accuracy:delivered_ratio:635  sample.predicted_power_kw <= 0.05
+SEAM F1_run_threshold accuracy:delivered_ratio:635  sample.actual_power_kw <= 0.05
+SEAM F1_run_threshold climate:hvac_action:182  power_norm > 0.1
+SEAM F1_run_threshold coordinator:_async_learn_buffer_cooling:5353  float(self._current_action.get('power', 0.0)) > 0.05
+SEAM F1_run_threshold coordinator:_capacity_caps:9128  p_max <= 0.1
+SEAM F1_run_threshold coordinator:_detect_immersion:8877  self._commanded_power() > 0.1
+SEAM F1_run_threshold coordinator:_fold_capacity_envelope:9100  p_max <= 0.1
+SEAM F1_run_threshold coordinator:_observe_frequency:10621  self._commanded_power() > 0.05
+SEAM F1_run_threshold dhw_learning:async_learn_usage:520  draw_intensity <= 0.05
+SEAM F1_run_threshold freq_control:observe:153  kw <= 0.05
+SEAM F1_run_threshold freq_control:recommend:196  target_kw <= 0.05
+SEAM F1_run_threshold freq_control:evidence_exhausted:223  target_kw <= 0.05
+SEAM F1_run_threshold optimizer:get_current_action:5718  dhw_power > 0.1
+SEAM F2_learner_gate coordinator:_update_current_state:6559  self._defrost_window.observe
+SEAM F2_learner_gate coordinator:_async_learn_price_shape:8389  self._price_learner.fold
+SEAM F2_learner_gate coordinator:_track_realised_peak:8446  self._peak_tracker.observe
+SEAM F2_learner_gate coordinator:_on_defrost_event:8495  self._defrost_window.observe
+SEAM F2_learner_gate coordinator:_observe_compressor_start:10287  self._start_counter.observe
+SEAM F2_learner_gate coordinator:_observe_frequency:10654  self._freq_map.observe
+SEAM F2_learner_gate coordinator:_on_power_event:8559  self._peak_tracker.observe
+SEAM F2_learner_gate coordinator:_settle_defrost:9771  self._defrost.observe
+SEAM F3_cop_law_fork thermal_model:compute_cop:2705  not self.params.cop_flow_carnot
+SEAM F3_cop_law_fork thermal_model:_batch_cop:3927  flow_carnot_eligible and p.cop_flow_carnot
+SEAM F5_clone binary_sensor:available:321  [3] binary_sensor:available:321 | climate:available:123 | sensor:available:2438
+SEAM F5_clone optimizer:_optimize_space_only:4482  [3] optimizer:_optimize_space_only:4482 | optimizer:_optimize_with_dhw:4743 | optimizer:_solve_space:3944
+SEAM F5_clone tariff:_smooth_topk_sum:716  [3] tariff:_smooth_topk_sum:716 | tariff:_smooth_topk_sum_batch:760 | tariff:peak_cost_batch:1124
+SEAM F5_clone thermal_model:_simulate_step_single:3271  [3] thermal_model:_simulate_step_single:3271 | thermal_model:_simulate_step_two_zone:3383 | thermal_model:simulate_trajectory_batch:3998
+SEAM F5_clone coordinator:_accumulate_energy:10068  [2] coordinator:_accumulate_energy:10068 | coordinator:_maybe_run_fuse_advisor:8727
+SEAM F5_clone coordinator:_async_learn_house_heat_loss:5466  [2] coordinator:_async_learn_house_heat_loss:5466 | coordinator:_async_learn_lower_floor_loss:5627
+SEAM F5_clone coordinator:_file_lead_predictions:9984  [2] coordinator:_file_lead_predictions:9984 | coordinator:_predicted_next_room_temp:10027
+SEAM F5_clone coordinator:_update_current_state:6375  [2] coordinator:_update_current_state:6375 | coordinator:_update_external_heat_detection:4934
+SEAM F5_clone drift:_note:286  [2] drift:_note:286 | power_guard:_note:157
+SEAM F5_clone inputs:read:948  [2] inputs:read:948 | inputs:read_state:989
+SEAM F5_clone ledger:_prune:179  [2] ledger:_prune:179 | wear:observe:44
+SEAM F5_clone ledger:add:186  [2] ledger:add:186 | ledger:observe_meta_mean:195
+SEAM F5_clone legionella:check_mode_block:675  [2] legionella:check_mode_block:675 | legionella:check_overdue:644
+SEAM F5_clone optimizer:_grid_report:4681  [2] optimizer:_grid_report:4681 | tariff:_peak_excess:843
+SEAM F5_clone optimizer:_peak_day_kwargs:3160  [2] optimizer:_peak_day_kwargs:3160 | optimizer:_peak_window_factors:3130
+SEAM F5_clone optimizer:objective:4384  [2] optimizer:objective:4384 | optimizer:objective_batch:4437
+SEAM F5_clone price_model:observe_day:191  [2] price_model:observe_day:191 | price_model:observe_day_quarters:237
+SEAM F5_clone pump_arbiter:_planned_room:448  [2] pump_arbiter:_planned_room:448 | pump_arbiter:_step_index:373
+SEAM F5_clone sensor:extra_state_attributes:1913  [2] sensor:extra_state_attributes:1913 | sensor:extra_state_attributes:2394
+SEAM F5_clone sysid:_lm_solve:780  [2] sysid:_lm_solve:780 | sysid:_slab_ua_profile_halfwidth:994
+SEAM F5_clone tariff:_close_window:312  [2] tariff:_close_window:312 | tariff:from_dict:407
+SEAM F5_clone tariff:_window_means_batch:1058  [2] tariff:_window_means_batch:1058 | tariff:metering_windows:534
+SEAM F5_clone tariff:plan_window_days:660  [2] tariff:plan_window_days:660 | tariff:window_factors:587
+SEAM F5_clone thermal_model:simulate_trajectory:3820  [2] thermal_model:simulate_trajectory:3820 | thermal_model:simulate_trajectory_with_dhw:4327
+SEAM F6_hour_clock dhw_schedule:format_clock:451  round(h*60) % (24*60)
+SEAM F6_hour_clock quiet_windows:wall_clock:294  round(h*60) % (24*60)
+SEAM F7_scrub_mixin sensor:_PayloadNumberMixin:343  native_value (mixin)
+RESULT F1_run_threshold=13 count
+RESULT F2_learner_gate=8 count
+RESULT F3_cop_law_fork=2 count
+RESULT F4_entry_resolve=0 count
+RESULT F5_clone=24 count
+RESULT F6_hour_clock=2 count
+RESULT F7_scrub_mixin=1 count
+RESULT seams_total=50 count

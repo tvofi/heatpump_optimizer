@@ -1,0 +1,6 @@
+  ok   R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve is due now, not the pre-reload cycle's time
+  ok   R10-HOTFIX-AWAY-PRESENCE null control: the handover keeps its own plan age (the plan is still the pre-reload one)
+
+1 of 4786 FEATURE CHECKS FAILED
+rc=1
+  FAIL evidence below a target the plan calls off is not exhaustion (D8-s1-01)  [the map's only bucket reaches 0.06 kW, under both targets: 0.07 kW is an off step, so the owner's gate answers False; 0.11 kW, a step the plan runs, is beyond that bucket's reach and reads True (the null)]

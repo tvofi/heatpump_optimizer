@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/freq_control.py b/custom_components/heatpump_optimizer/freq_control.py
+index e42b2c424..3ee5f930a 100644
+--- a/custom_components/heatpump_optimizer/freq_control.py
++++ b/custom_components/heatpump_optimizer/freq_control.py
+@@ -225,7 +225,7 @@ class FrequencyMap:
+         deserves to know when the map is extrapolating rather than
+         answering from evidence.
+         """
+-        if not np.isfinite(target_kw) or not planned_draw_runs(target_kw):
++        if False:
+             return False
+         candidates = self._evidenced(hz_min, hz_max)
+         return bool(candidates) and all(
