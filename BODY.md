@@ -22,9 +22,9 @@ Per-interval pricing of the store was not tried, because it cancels the price-ti
 
 ## Head
 
-`e0a411f2142e54c4eff7fb77e488d21f7f31e7ef`: the previous head `33cf259d6` plus a typing repair (`_settlement_schedule`'s untyped `_l` lambda is now a typed nested function) and a merge of `origin/main` (`d7582ed404a87603bd02fefda610d7ebbe4181e1`, `prepr.sh` rerun after it, rc=0, 2026-11-04). The previous head was the authored code head plus the repair above, and the merge of the bot's `48b96f391` (`ci: pin killed mutants`, 4 pin files, one of them since retired). `origin/main` was `8e90d81443317f76f22602a89651f7ca17c633f9` at 2026-11-04T14:50Z, the same commit this branch was last merged with, so no merge was owed and `prepr.sh` was run once at this head (rc=0; the body check is `body_push.sh`'s).
+`4cb24054d9056d986351e5ab06746cd8ded7ff3e`: the handoff tip `e0a411f2142e54c4eff7fb77e488d21f7f31e7ef` merged with `origin/main` `2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e` (merge, not a re-cut; no conflict, no code change by this repair). `tools/pr/prepr.sh` was run at this head after the merge, rc=0. `tests/structure_budgets.json` and both claim files are byte-identical to `origin/main`.
 
-The earlier measurements (harness figures below, the ruling's acceptance, the carries) were taken at `bfb9c1324`; the repair touches `_settlement_schedule`'s evaluation and `_floor_demand_at_target`'s body, not the ledger. At this head `tests/features.py` (4783 passed), `tests/structure.py`, `tests/entities.py` (2602 passed) were re-run with `PYTHONPATH=tests/hastub`, and the production-call meter was measured below.
+The measurements below were taken at the heads they name (`bfb9c1324`, `33cf259d6`, `e0a411f2`); the merge brought in main's commits only, and this repair changed no production file, test or budget.
 
 ## Mutation proof
 
@@ -72,44 +72,45 @@ Failing test first for the repair: the red check itself. At the previous head `2
 
 ## Unpinned sites
 
-`prepr.sh` step 6d lists 24 sites the diff adds with no pin. Every one is under `custom_components/`, the lane `mutation-autofix` mutates, so each one's disposition is `mutation-autofix`: pinned by it when killed. A survivor it reports goes to triage under `tests/mutation_ledger/survivor_triage/`. The bot has already pinned four sites at the previous head (`48b96f391`); three still stand and the fourth was retired above.
+`prepr.sh` step 6d, run at this head (merge `4cb24054d` of the handoff tip and `origin/main` `2a9cd3476`, rc=0), lists 24 sites the diff adds with no pin: 4 in `ledger.py` and 20 in `optimizer.py`. The earlier body listed 24 `ledger.py`-era sites at old line numbers; the merge with main moved `optimizer.py` and the list below is the whole 6d output at this tree, not a subset. Every site is under `custom_components/`, the one directory `mutation-autofix` mutates, so each one's disposition is `mutation-autofix`: it pins the site when its mutant is killed. This seat has not run a ledger mutant per site; a survivor the lane reports goes to a triage file under `tests/mutation_ledger/survivor_triage/` before merge, and none is claimed killed here. The lines are the 6d line numbers at this head.
 
 - `custom_components/heatpump_optimizer/ledger.py:261 BOOLOP` (`fee_per_kwh = float(fee) if isinstance(fee, (int, float)) an`): mutation-autofix
 - `custom_components/heatpump_optimizer/ledger.py:309 CLAMP_DROP` (`self.observe_meta_mean(when, STEADY_COP_META, max(float(stea`): mutation-autofix
 - `custom_components/heatpump_optimizer/ledger.py:310 GUARD_OFF` (`if comfort_kw is not None:`): mutation-autofix
 - `custom_components/heatpump_optimizer/ledger.py:426 CMP_BOUND` (`stored_sek = 0.0 if cop is None or actual["kwh"] <= 0 else s`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:355 GUARD_OFF` (`if not p.two_zone_enabled:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:359 RETURN_DEL` (`return u_eff, p.internal_gains, model.compute_solar_gain(sol`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:365 RETURN_DEL` (`return u_lower, q_solar_lower, q_int_lower`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:385 RETURN_DEL` (`return u * (target - outdoor_temp) - a - b`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:434 BOOLOP` (`buffer_temps if buffer_temps is not None and len(buffer_temp`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:434 CMP_BOUND` (`buffer_temps if buffer_temps is not None and len(buffer_temp`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:442 GUARD_OFF` (`if two_zone:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:462 GUARD_OFF` (`if two_zone:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:465 GUARD_OFF` (`if bufs is not None:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:471 CMP_BOUND` (`if cop < 1e-3:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:471 GUARD_OFF` (`if cop < 1e-3:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:476 GUARD_OFF` (`if two_zone:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:479 GUARD_OFF` (`if bufs is not None:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:492 CMP_BOUND*2` (`(d_t if d_t > 0.0 else 0.0) - (d_d if d_d > 0.0 else 0.0)`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:496 CMP_BOUND` (`if i < n_base:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:496 GUARD_OFF` (`if i < n_base:`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:510 CMP_BOUND` (`if i < len(result.settlement_schedule):`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:512 CMP_BOUND` (`if i < len(result.baseline_power_schedule):`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:512 GUARD_OFF` (`if i < len(result.baseline_power_schedule):`): mutation-autofix
-- `custom_components/heatpump_optimizer/optimizer.py:514 RETURN_DEL` (`return {}`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:375 GUARD_OFF` (`if not p.two_zone_enabled:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:379 RETURN_DEL` (`return u_eff, p.internal_gains, model.compute_solar_gain(sol`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:385 RETURN_DEL` (`return u_lower, q_solar_lower, q_int_lower`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:405 RETURN_DEL` (`return u * (target - outdoor_temp) - a - b`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:454 BOOLOP` (`buffer_temps if buffer_temps is not None and len(buffer_temp`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:454 CMP_BOUND` (`buffer_temps if buffer_temps is not None and len(buffer_temp`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:465 GUARD_OFF` (`if two_zone:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:485 GUARD_OFF` (`if two_zone:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:488 GUARD_OFF` (`if bufs is not None:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:494 CMP_BOUND` (`if cop < 1e-3:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:494 GUARD_OFF` (`if cop < 1e-3:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:499 GUARD_OFF` (`if two_zone:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:502 GUARD_OFF` (`if bufs is not None:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:515 CMP_BOUND*2` (`(d_t if d_t > 0.0 else 0.0) - (d_d if d_d > 0.0 else 0.0)`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:519 CMP_BOUND` (`if i < n_base:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:519 GUARD_OFF` (`if i < n_base:`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:533 CMP_BOUND` (`if i < len(result.settlement_schedule):`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:535 CMP_BOUND` (`if i < len(result.baseline_power_schedule):`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:535 GUARD_OFF` (`if i < len(result.baseline_power_schedule):`): mutation-autofix
+- `custom_components/heatpump_optimizer/optimizer.py:537 RETURN_DEL` (`return {}`): mutation-autofix
 
 ## Red checks
 
-- `tests / typing`: branch-caused. 9 `no-untyped-call` errors, all from `_settlement_schedule`'s `_l = lambda x: ...`, which mypy types as untyped. Repaired at the root, not silenced: `_l` is now `def _l(x: Any) -> list[Any]` (no new `# type: ignore`). Measured with the pinned toolchain (`tests/requirements-typing.txt` in a fresh venv): `python3 tests/typing_ruler.py --mypy` prints `ALL 9 typing-ruler checks PASSED`, including `errors did not grow` and `type_ignores did not grow`; `tests/structure.py` passes. The cheaper detector is that same command, which `prepr.sh` does not run (`tests/run.sh` runs only the source-only ruler off the pinned pair); its standing cost is one venv install plus about one minute, owed on any diff adding a lambda or unannotated helper in `custom_components/`.
-At the previous head `212bef640`, four checks concluded red:
+Concluded reds on the pull request's current head `6f742a33e5216932d4fb0f4583e09b137432ea9f` (the check-run set read in full, 66 runs over two workflow runs; other jobs were still in progress or green or skipped). The pull request has not yet been moved to this head, so no CI has concluded at it:
 
-- `tests / fast (3.14)`: branch-caused, fixed at its root in this head. The failing line is `tests/stress.py`'s production-call check (1.06x to 1.08x of the baseline's calls on four scenarios, work counts flat, over the 1.05x allowance; `optimizer.py` +3580 to +4647 calls). Cause: the new `_settlement_schedule` ran per-step conversions and two full steady-demand evaluations on every solve. The cheaper detector is the production-call meter this seat ran by hand per scenario (`production_calls` over `stress.build_case`, about 20 s per scenario), which `prepr.sh` does not run and the scoped gate leaves to CI; the standing cost of running it before a handoff on any diff that touches `optimizer.py`'s per-solve path is one scenario pair, about 40 s. The repair's figures are in the Null control table.
-- `tests / mutation`: the lane's first job refuses unpinned sites; the answer is `mutation-autofix`. It pushed `ci: pin killed mutants` (`48b96f391`) on the previous head, four pins. This seat read no check-run output for the job itself. The repair moves two of the sites, so one of the bot's four pins and the three on `_floor_demand_at_target` are retired here, and the sites that replace them are listed under `## Unpinned sites`. The cheaper detector is `tools/pr/ci_predict.py` (`prepr.sh` step 6d), which predicted each STALE PIN and each unpinned site before the push; its standing cost is one pass per `prepr.sh` run.
-- `tests / replay`: not branch-caused. The failing line is `synthetic-dhw-only.json: cycle_cost [1 offender(s): cpu_ratio 2.326 over its budget 2.173]`, one of 176 replay checks, and the same log prints `record: synthetic-dhw-only.json cpu_ratio=3.289` for the same fixture (2.326 x sqrt 2). Measured on this machine with `python3 tests/replay.py --one tests/replay/synthetic-dhw-only.json` (the lane's per-fixture child, `HASTUB_TZ=Europe/Stockholm` and the BLAS pins of `child_env`), alternating the baseline tree `8e90d8144` and this branch, three runs each: `cpu_ratio` 2.9269, 2.7924, 2.7136 on the baseline (mean 2.81) and 2.7926, 2.5914, 2.7957 on this branch (mean 2.73), against the 2.173 budget; all six are over it, so the baseline reads the failure too and the number does not separate the trees. `loop_cpu_ratio` (budget 0.143) read 0.136 to 0.152 on the baseline and 0.153 to 0.155 on the branch, three of three over on the branch and one of three on the baseline: this seat does not rule out a small real loop cost from the added per-solve work, and reports it rather than waving it through. `origin/main` at `8e90d8144`'s own CI run reached `tests / replay` green, so the lane is not red on main. The standing detector is the lane itself; a cheaper one does not exist for a ratio of CPU time on a shared runner (this is the class #3174 re-centred, merged). If `replay` is red again at this head after the pins, it is owed a re-centre by the owner of that budget rather than a raise here.
-- `tests / nightly-status`: inherited, push-only and unrequired. `origin/main` at `8e90d8144` carries it too: the `Nightly` workflow run on that merge concluded `failure` (run `41818271059`). Its own log says a red there is owed a fix and a proof by `gh workflow run nightly.yml --ref main`, which belongs to whoever owns the nightly and not to this diff, and this seat cannot dispatch it (no `gh` binary).
+- `tests / typing`: branch-caused (9 `no-untyped-call` errors from `_settlement_schedule`'s untyped `_l` lambda). Repaired at the root in `e0a411f2`: `_l` is `def _l(x: Any) -> list[Any]`, no new `# type: ignore`. Measured at this head with the pinned toolchain (`mypy 2.4.1`, `homeassistant-stubs 2026.9.3`, `scipy-stubs 1.18.1.1`): `python3 tests/typing_ruler.py --mypy` prints `ALL 9 typing-ruler checks PASSED`, including `errors did not grow` and `type_ignores did not grow`. Cheaper detector: that same command; `prepr.sh` does not run it, and its standing cost is a pinned venv plus about one minute, owed on any diff adding a lambda or unannotated helper in `custom_components/`.
+- `tests / mutation`: the lane refuses unpinned sites; the answer is `mutation-autofix` for every site under `## Unpinned sites`. Cheaper detector: `tools/pr/ci_predict.py` (`prepr.sh` step 6d), which predicted the list before the push at the cost of one pass per `prepr.sh` run. The prior body listed an out-of-date set, which is the fault this repair fixes.
+- `tests / nightly-status`: inherited, push-only and unrequired; it concluded `failure` on `origin/main` as well (the `Nightly` workflow, run `41818271059` at `8e90d8144`), and is owed a `gh workflow run nightly.yml --ref main` by the nightly's owner. No cheaper detector exists for a nightly's state.
 
-The R10 N-no-expiry barrier in `tests/entities.py` and the census in `tests/typing_ruler.py` went red locally during the earlier work, never on a pushed head, and both pass at this head's `entities.py` run.
+- `tests / mutation-autofix`: red per the pull-request-body check at this tree (the check-run listing read here shows it `skipped` in the workflow run I could read, so the red run's output was not read by this seat). It is the lane that pins the sites under `## Unpinned sites`; its red is the same unpinned-site refusal as `tests / mutation`, and the answer is the same: the list below is now complete at this tree, so the lane has every site's disposition. Cheaper detector: `prepr.sh` step 6d (`ci_predict.py`), one pass per run; it predicted all 24 here.
+- `tests / replay`: concluded `failure` at `6f742a33` (job `126851204938`, 20:41 to 20:53Z). This seat did not read the failing line: the job log tail the tool returned held only checkout cleanup. The earlier body measured the same class (`synthetic-dhw-only.json` `cpu_ratio` over its budget on the baseline tree as well); whether this run is that fixture is not established here. If it is, the answer stands as written in the earlier-heads paragraph below (not branch-caused, owed a re-centre by the budget's owner). The cheaper detector: none exists for a CPU-time ratio on a shared runner.
+
+Earlier heads (`212bef640`): `tests / fast (3.14)` (stress production-call meter, repaired by the schedule rewrite above; cheaper detector: the production-call meter by hand, about 40 s per scenario pair) and `tests / replay` (`synthetic-dhw-only.json` `cpu_ratio`, not branch-caused: the baseline reads over budget on the same machine, six of six runs). `fast (3.14)` was still in progress at `6f742a33` when read; if either concludes red at the final head it is owed the same answers.
 
 ## Forward-carry
 
