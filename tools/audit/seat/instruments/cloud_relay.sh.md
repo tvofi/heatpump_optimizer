@@ -100,22 +100,47 @@
   pass (rc 2, `OWED handoff-hold-malformed` in `<log>.level`), never hold-all or hold-none.
   `cloud_relay.sh held <pr>` answers from the same file (rc 0 held, 1 not, 2
   malformed) for a driver that updates PRs itself.
+  Tools tree (P283): the update runs `update_pr.sh` from `<state>/relay-tools`,
+  a worktree the relay adds once detached and checks out at origin/main before
+  each update when clean, so `pr_tools_fresh` passes however stale the relay's
+  own checkout is (never moved: bash reads a running script as it goes). A
+  dirty tree is refused by name, left untouched and owed as `handoff-update`;
+  one held by a live relay (`relay-tools.lock`, a dead pid's taken over) is
+  busy and retried next pass.
   Freeze (R10-FLOW-ROSTER-FREEZE): a PR whose live head is under review is not
   updated either, so roster edits accumulate on the handoff ref and land between
   reviews: a `Fix review: merge <head>` tip on `verdict/<pr>` at that head
   (`HELD-VERDICT`), or a review of that head in flight with no verdict at it
-  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, or a
-  detached worktree at it). A verdict ref the listing names but the fetch
+  (`HELD-REVIEW`: a `bus.sh dispatch` record of the PR at the head, the worker
+  registry and only it, P288; its nonce prefix and time are printed as
+  `dispatch=<nonce8> at=<utc>`). A verdict ref the listing names but the fetch
   cannot read freezes too (`HELD-UNREAD`): it may be a merge at the head. A
   blocked verdict, or one at an older head, freezes nothing. Each prints
-  `HELD-<why> #<pr> <handoff tip>` once per pass and is
+  `HELD-<why> #<pr> <handoff tip>[ dispatch=<nonce8> at=<utc>]` once per pass and is
   `OWED <utc> handoff-held <ref> <tip> #<pr> <why>` in `<log>.level`;
   `cloud-handoff-release` (the hold file's grammar) releases a listed PR from the
   freeze, never from the hold, for new work that voids a merge verdict.
-  A handoff already inside its PR, or with no body ref, does nothing; a failed
-  update is noted in `cloud-handoff-failed` by `<topic> <code-sha>`, owed as
-  `OWED <utc> handoff-update <ref> <sha>` in `<log>.level` while that entry
-  matches the handoff's tip, and retried only when the handoff moves. An update that
+  A handoff with no body ref does nothing. A body names the code head it was
+  pushed for in its commit's `Code: <sha>` trailer (`body_push.sh`, V147): one
+  naming another head than the handoff tip runs no update, is owed as
+  `OWED <utc> handoff-body-stale <ref> <tip> body names <sha12>`, records no
+  failure and is retried next pass; a body with no `Code:` line updates as
+  before. A handoff already inside its PR is body-only (R10-FLOW-BODY-ONLY):
+  its body, when this relay has not yet applied it and its `Code:` names the
+  tip, goes to `HPO_UPDATE_BODY_ONLY=1 update_pr.sh <branch> - <body>`, which
+  PATCHes the body and pushes nothing, once per body move; an update that
+  would move the head refuses, pushes nothing and is owed `handoff-update`. `cloud-handoff-bodied` holds
+  `<topic> <body-sha>` for every body applied, by an update or body-only; a pass
+  that finds no such file records every contained topic's body and runs
+  nothing (the seed), and a contained body with no `Code:` line is recorded
+  and left alone. A failed update is noted in `cloud-handoff-failed` by
+  `<topic> <code-sha>` (a body-only one by `<topic> <code-sha> <body-sha>`, so
+  a new body re-triggers it), its reason, the update's last `REFUSE` line else
+  its last line, kept beside it in `cloud-handoff-failed.why` (tab-separated),
+  owed as `OWED <utc> handoff-update <ref> <sha> <why>` in `<log>.level` while
+  that entry matches, and retried only when the handoff (or body) moves. The
+  update's output is held in a file until it ends, then replayed to the
+  relay's stderr. An update that
   exits 75 is BUSY (another `open_pr.sh` or `update_pr.sh` run holds the branch's
   `upd-<branch>.lock`, typically the orchestrator's own update of that PR, or an `open_pr.sh` between its two pushes): it is
   not recorded, and the next pass retries it. The update runs in a process
@@ -133,3 +158,13 @@
   each passed push-verdict, `reviewer-fire`, `approve-held-runs`, `dispatch`)
   is opened in the ledger, never appended to the log, which keeps only the
   `POSTED` journal.
+  No-return line (triage P-E): each pass, a `dispatch/fixer-<topic>` tip older
+  than `HPO_RELAY_NORETURN_SECS` (default 7200) and younger than
+  `HPO_RELAY_NORETURN_WINDOW_SECS` (default 172800), with no `handoff-wip/`,
+  `handoff/`, `handoff-body/<topic>`, `fix/<topic>-pr` or `fix/<topic>`
+  commit newer than it, prints `SEAT ENDED NO RETURN <topic>` and is
+  `OWED <utc> seat-no-return <ref> <sha> SEAT ENDED NO RETURN <topic> <age>h`
+  in `<log>.level`. Git only; deleting the dispatch ref disposes it.
+  Confirm arm (P332): a relayed `review/<pr>` whose PR is not in the pass's
+  open-PR listing prints `confirm skip #<pr>: not open` once and is settled,
+  owed nothing; a failed listing skips nothing.
