@@ -12,3 +12,9 @@
   non-fast-forward — a rewrite is never forced through; the body commit it
   wrote is read back through `ref_privacy.py guard --commits`, message and
   identity, before the push.
+  A PR body's commit (a `handoff/<topic>` exists) ends its message in a
+  trailer line `Code: <handoff/<topic> tip>`, the sha the script has proved
+  equal to the checkout's HEAD; a result body writes none. `cloud_relay.sh`'s
+  handoff arm reads it: a body naming another head is held as
+  `handoff-body-stale`, and a body naming a tip the PR head already holds is
+  applied body-only (`update_pr.sh` with code `-`).
