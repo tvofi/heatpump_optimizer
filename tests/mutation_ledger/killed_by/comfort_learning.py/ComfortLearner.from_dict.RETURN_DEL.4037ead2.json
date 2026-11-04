@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/comfort_learning.py:ComfortLearner.from_dict RETURN_DEL 4037ead2",
+  "killed_by": "tests/features.py",
+  "old": "        return learner",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}
