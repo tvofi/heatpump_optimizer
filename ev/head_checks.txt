@@ -1,0 +1,8 @@
+head d7e67e0d786c73315e769345cb6fbefba1c5434d
+orchestrator_tick self-test: 261 checks, 0 failed
+ci_predict self-test: 0 failed
+STRUCTURE RATCHET PASSED
+TOTAL: 0 error(s) across 50 policy file(s)
+dev/governance/roles/standing-dispatch.md         38   39      505   509 
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+version-files diff: empty above means untouched

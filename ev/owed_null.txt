@@ -1,0 +1,11 @@
+RESULT ok   null train (DIRTY+red, queued at head) prints no OWED [] ['buckets: train 1']
+RESULT ok   null verdict-pending (DIRTY+red, dispatched at head) prints no OWED [] ['buckets: verdict-pending 1']
+RESULT ok   null waiting-on file overlap (higher PR DIRTY+red) prints no OWED [] ['buckets: review-owed 1, waiting-on 1']
+RESULT ok   null waiting-on after-edge prints no OWED for #95 [] ['buckets: review-owed 1, waiting-on 1']
+RESULT ok   positive: DIRTY alone owes ['OWED dirty #96 000000000000 DIRTY, no repair under way']
+RESULT ok   positive: red with no seat owes red-unowned ['OWED red-unowned #97 000000000000 red gate, no verdict at head, no seat on it']
+RESULT ok   mixed board: 7 non-record PRs, counts sum to 7, OWED only #96 #97 ['buckets: owed 2, review-owed 1, train 1, verdict-pending 1, verdicted 1, waiting-on 1'] ['OWED dirty #96 000000000000 DIRTY, no repair under way', 'OWED red-unowned #97 000000000000 red gate, no verdict at head, no seat on it']
+RESULT ok   no GitHub call made by owed_levels on the mixed board []
+RESULT ok   record branch PR in no bucket and no OWED 
+RESULT summary 9/9 ok
+rc=0
