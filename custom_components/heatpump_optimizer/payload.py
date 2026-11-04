@@ -249,8 +249,10 @@ class SavingsMonth(TypedDict, total=False):
     month: str
     baseline_sek: float
     actual_sek: float
-    savings_sek: float
+    savings_sek: float | None
     savings_pct: float | None
+    # Booked against a retired reference: the two columns stand, no saving does.
+    old_basis: bool
     estimated: bool
     # Metered over modelled kWh on the row's intervals: the factor the
     # thermostat's cost is scaled by; None where it was left at modelled.

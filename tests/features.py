@@ -13762,7 +13762,7 @@ _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
     for _fr_n in _fr_ast.walk(_fr_ast.parse(_fr_p.read_text())):
         if (isinstance(_fr_n, _fr_ast.Call) and isinstance(_fr_n.func, _fr_ast.Name)
-                and _fr_n.func.id == "QuarantiningStore"):
+                and _fr_n.func.id in ("QuarantiningStore", "LedgerStore")):
             for _fr_arg in _fr_n.args:
                 if isinstance(_fr_arg, _fr_ast.JoinedStr):
                     _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
@@ -14533,12 +14533,8 @@ R.check(
 )
 
 
-# The savings reference backs its electric demand off by the same wood share,
-# and only where the layout models the wood tank: a single-tank state that
-# carries a wood reading is the thermostat it would be without one. The HP
-# tank starts at 25 C, below the curve: behind a valve the reference coasts
-# on a tank above the curve before it buys anything (R10-BUFFER-STORE), so
-# the 45 C tank of the states above would leave both arms at zero.
+# The savings reference has no wood (owner ruling, 2026-11-04): a wood reading
+# moves it on no layout, hot or cold, and the actual keeps wood's heat.
 def _w2t_reference(params, wood, n=16):
     _z = np.zeros(n)
     return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
@@ -14550,9 +14546,8 @@ _w2t_ref_cold = _w2t_reference(_w2t_params_two, 20.0)
 _w2t_ref_off = _w2t_reference(_w2t_params_off, 80.0)
 _w2t_ref_off_none = _w2t_reference(_w2t_params_off, None)
 R.check(
-    "the savings reference backs off by the wood share on the two-tank layout, "
-    "and a wood reading on any other layout moves it not at all",
-    float(np.sum(_w2t_ref_hot)) < float(np.sum(_w2t_ref_cold)) - 1.0
+    "the savings reference has no wood: a wood reading moves it on no layout",
+    np.array_equal(_w2t_ref_hot, _w2t_ref_cold)
     and np.array_equal(_w2t_ref_off, _w2t_ref_off_none),
     f"two-tank hot {np.sum(_w2t_ref_hot):.2f} vs cold {np.sum(_w2t_ref_cold):.2f} kW-steps; "
     f"single-tank with a reading {np.sum(_w2t_ref_off):.2f} vs without "
@@ -42365,10 +42360,11 @@ R.check(
     repr(_sav_factor(_jan31)),
 )
 R.check(
-    "pct is baseline-relative and clipped",
+    "pct is baseline-relative and unclipped: the row's percent is its own two amounts' ratio",
     abs(_sav_pct(100.0, 60.0) - 60.0) < 1e-12
-    and abs(_sav_pct(100.0, 200.0) - 100.0) < 1e-12
-    and abs(_sav_pct(100.0, -200.0) - (-100.0)) < 1e-12,
+    and abs(_sav_pct(100.0, 200.0) - 200.0) < 1e-12
+    and abs(_sav_pct(151.85, -909.91) - (-909.91 / 151.85 * 100.0)) < 1e-9,
+    repr(_sav_pct(151.85, -909.91)),
 )
 R.check(
     "pct is omitted when baseline_sek <= 0.01, not published as 0.0",
@@ -42565,6 +42561,181 @@ R.check(
     abs(_neg_row["savings_sek"] - (-0.25 * 24) * 672.0 / 24.0) < 1e-9
     and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
     repr(_neg_row),
+)
+# R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
+# so a month booked against a retired reference keeps its columns and states no
+# saving; a fresh month is stamped at its first booking.
+import asyncio as _sb_asyncio
+import copy as _sb_copy
+
+from heatpump_optimizer.const import LEDGER_STORE_VERSION as _SB_VERSION
+from heatpump_optimizer.ledger import (
+    OLD_REFERENCE_BASIS as _SB_OLD,
+    REFERENCE_BASIS as _SB_NOW,
+    REFERENCE_BASIS_META as _SB_META,
+)
+from heatpump_optimizer.store import LedgerStore as _SbStore
+from homeassistant.helpers import storage as _sb_storage
+
+_sb_led = _SavLedger()
+_sb_t = _SavDT(2026, 2, 9, 3, 0)
+_sb_led.observe_spot_and_settle_savings(_sb_t, 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_led.observe_spot_and_settle_savings(_sb_t, 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_row = _sb_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+_sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
+R.check(
+    "a month's first savings booking stamps the reference in force, once",
+    _sb_meta == {"sum": float(_SB_NOW), "count": 1} and _sb_row["old_basis"] is False
+    and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
+    repr((_sb_meta, _sb_row)),
+)
+_sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
+del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
+_sb_lines = _sb_copy.deepcopy(_sb_v1["ledger"]["months"]["2026-02"]["lines"])
+_sb_run = _sb_asyncio.run
+_sb_run(_sb_storage.Store(None, 1, "sb_ledger").async_save(_sb_v1))
+_sb_loaded = _sb_run(_SbStore(None, _SB_VERSION, "sb_ledger").async_load())
+_sb_run(_SbStore(None, _SB_VERSION, "sb_ledger").async_remove())
+_sb_old = _SavLedger.from_dict(_sb_loaded["ledger"])
+_sb_old_row = _sb_old.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+R.check(
+    "a v1 ledger migrates to v2: every month on the old basis, every line as stored",
+    _SB_VERSION == 2 and _sb_loaded["starts"] == {"kept": 1}
+    and _sb_loaded["ledger"]["months"]["2026-02"]["lines"] == _sb_lines
+    and _sb_loaded["ledger"]["months"]["2026-02"]["meta"][_SB_META]
+    == {"sum": float(_SB_OLD), "count": 1},
+    repr(_sb_loaded),
+)
+R.check(
+    "an old-basis row keeps both columns and states no saving and no percent",
+    _sb_old_row["old_basis"] is True and _sb_old_row["savings_sek"] is None
+    and _sb_old_row["savings_pct"] is None
+    and _sb_old_row["baseline_sek"] == _sb_row["baseline_sek"]
+    and _sb_old_row["actual_sek"] == _sb_row["actual_sek"],
+    repr(_sb_old_row),
+)
+_sb_old.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 5, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+R.check(
+    "an old-basis month stays old when it books on: its total is mixed",
+    _sb_old.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True
+    and _sb_old.months["2026-02"]["meta"][_SB_META]["sum"] == float(_SB_OLD),
+    repr(_sb_old.months["2026-02"]["meta"]),
+)
+_sb_bare = _SavLedger()
+_sb_bare.add(_sb_t, "savings_baseline", kwh=1.0, sek=1.0)
+R.check(
+    "a month with savings lines and no stamp reads as the old basis",
+    _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
+    repr(_sb_bare.months),
+)
+# R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
+# interval, so behind a valve the first step must not be the stores' transient.
+# At one outdoor the steady demand is flat, so a sound step 0 IS the horizon mean;
+# spread across starts is no acceptance (all-zero first steps have spread 0).
+def _sb_first_steps(two_zone, wood_probe, valve="manual"):
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _O, OptimizationConfig as _C
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    cfg = {"mixing_valve_mode": valve, "mixing_valve_target": 21.0, "buffer_tank_volume": 750.0,
+           "heat_pump_max_power": 4.0, "buffer_max_temperature": 56.0,
+           "two_zone_mode": "on" if two_zone else "off"}
+    if wood_probe:
+        cfg.update(wood_furnace_enabled=True, wood_tank_volume=750.0, wood_tank_top_entity="sensor.w")
+    model = _M(_P.from_config(_h(two_zone=two_zone, dhw=False, **cfg)))
+    opt = _O(model, _C(horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    out, zero = _np.full(96, -5.0), _np.zeros(96)
+    weather = _W(outdoor_temps=out, wind_speeds=zero, precipitation=zero, solar_radiation=zero)
+    return {
+        (buf, wood): opt._compute_baseline_power(weather, _S(
+            room_temperature=20.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=20.0, lower_floor_temperature=20.0,
+            buffer_tank_temperature=buf, wood_tank_temperature=wood,
+        ), 0.25)[0]
+        for buf in (20.0, 27.3, 40.0) for wood in ((5.0, 28.0) if wood_probe else (None,))
+    }
+
+
+for _sb_name, _sb_args in (
+    ("a wood tank, cold or warm", (True, True)),
+    ("two zones and no wood tank", (True, False)),
+    ("one zone and no wood tank", (False, False)),
+):
+    _sb_arms = _sb_first_steps(*_sb_args)
+    _sb_ratios = {k: float(v[0] / v.mean()) if v.mean() > 0 else 0.0 for k, v in _sb_arms.items()}
+    R.check(
+        f"behind a valve with {_sb_name}, the thermostat's first step is its horizon mean, not 0 or an overshoot",
+        all(abs(r - 1.0) < 1e-9 for r in _sb_ratios.values()),
+        repr(_sb_ratios),
+    )
+    R.check(
+        f"behind a valve with {_sb_name}, a positive reference with no zero step",
+        all(v.min() > 0.0 for v in _sb_arms.values()),
+        repr({k: float(v.min()) for k, v in _sb_arms.items()}),
+    )
+    R.check(
+        f"behind a valve with {_sb_name}, the thermostat's horizon does not inherit the measured buffer",
+        max(abs(_sb_arms[(20.0, k[1])].mean() - v.mean()) for k, v in _sb_arms.items()) < 1e-9,
+        repr({k: float(v.mean()) for k, v in _sb_arms.items()}),
+    )
+# The owner's no-wood ruling against the 10-24 calibration: a meter under the
+# plan on a wood house is heat wood delivered, so it must count (triage P387).
+def _sb_meter_row(meter_over_plan, wood):
+    led = _SavLedger()
+    for hour in range(24):
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": 2.0, "power": 1.0}, meter_over_plan, 1.0
+        )
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0), wood_configured=wood)[0]
+
+
+_sb_wood_pct = {f: _sb_meter_row(f, True)["savings_pct"] for f in (1.0, 0.5, 0.25)}
+_sb_plain_pct = {f: _sb_meter_row(f, False)["savings_pct"] for f in (1.0, 0.5, 0.25)}
+R.check(
+    "with wood configured a meter under the plan earns its saving: the calibration does not cancel it",
+    _sb_wood_pct == {1.0: 50.0, 0.5: 75.0, 0.25: 87.5},
+    repr(_sb_wood_pct),
+)
+R.check(
+    "with no wood the calibration stands as specified: the meter cancels at every ratio",
+    _sb_plain_pct == {1.0: 50.0, 0.5: 50.0, 0.25: 50.0},
+    repr(_sb_plain_pct),
+)
+_sb_up = _sb_meter_row(1.5, True)
+R.check(
+    "with wood configured a model that under-reads the meter is still corrected, and the row publishes what it applied",
+    _sb_up["meter_calibration"] == 1.5 and _sb_up["baseline_sek"] == 72.0
+    and _sb_meter_row(0.5, True)["meter_calibration"] == 1.0,
+    repr(_sb_up),
+)
+from heatpump_optimizer.notifier import _monthly_receipt as _sb_receipt
+
+
+def _sb_event(row, wood_on):
+    data = {"insight": {"monthly_report": {"month": "2026-09", "total_sek": 1.0}},
+            "savings_months": [row], "wood_fuel": {"show_whatif": wood_on}, "currency": "SEK"}
+    return _sb_receipt(data)["receipt"].data
+
+
+_sb_ev_old = _sb_event({"month": "2026-09", "savings_sek": None, "savings_pct": None, "old_basis": True}, True)
+_sb_ev_new = _sb_event({"month": "2026-09", "savings_sek": -600.0, "savings_pct": -300.0, "old_basis": False}, False)
+R.check(
+    "the receipt event carries what the card states: no saving on the old basis, the percent unclipped, wood stated",
+    _sb_ev_old["saving_sek"] is None and _sb_ev_old["saving_pct"] is None
+    and _sb_ev_old["saving_old_basis"] is True and _sb_ev_old["saving_includes_wood"] is True
+    and _sb_ev_new["saving_pct"] == -300.0 and _sb_ev_new["saving_old_basis"] is False
+    and _sb_ev_new["saving_includes_wood"] is False,
+    repr((_sb_ev_old, _sb_ev_new)),
+)
+_sb_plain = _sb_first_steps(True, False)[(20.0, None)]
+_sb_wood = _sb_first_steps(True, True)
+_sb_gap = max(abs(v - _sb_plain).max() for v in _sb_wood.values())
+R.check(
+    "the reference has no wood: a wood tank, cold or warm, reads the plain valved house's kW",
+    _sb_gap < 1e-9,
+    repr(_sb_gap),
 )
 # An interval of no length settled no hours, so the stored coverage (the
 # payload the ledger store saves) takes no sample from it, as it takes none
