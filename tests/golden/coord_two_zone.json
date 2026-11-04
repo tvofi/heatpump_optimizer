@@ -268,7 +268,14 @@
     "envelope": null,
     "envelope_drivers": [],
     "machine": null,
+    "machine_drivers": [],
+    "machine_evidence": {
+     "bands": [],
+     "refused_frozen": 0,
+     "required": 20
+    },
     "operation": null,
+    "operation_drivers": [],
     "overall": null,
     "reasons": {
      "envelope": "heat_loss_learning",
@@ -2009,7 +2016,14 @@
     "envelope": null,
     "envelope_drivers": [],
     "machine": null,
+    "machine_drivers": [],
+    "machine_evidence": {
+     "bands": [],
+     "refused_frozen": 0,
+     "required": 20
+    },
     "operation": null,
+    "operation_drivers": [],
     "overall": null,
     "price_tiles": {},
     "reasons": {

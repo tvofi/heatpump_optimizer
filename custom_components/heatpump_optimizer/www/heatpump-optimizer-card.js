@@ -7867,6 +7867,11 @@ function valueGrid(axis, plotL, plotR, scaleY, axisName) {
   return out.join("");
 }
 
+// The vertical room a value label's digits need, in em: the chart's sans
+// face sets digits about 0.72 em tall, so 0.8 em clears them by a hair
+// and keeps every label that never touched its neighbour (`valueAxis`).
+const VALUE_LABEL_CLEAR_EM = 0.8;
+
 function valueAxis(
   axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
   font, titleAnchor
@@ -7877,14 +7882,14 @@ function valueAxis(
   const anchor = side === "left" ? "end" : "start";
   const tx = side === "left" ? x - 5 : x + 5;
   // Labelled as often as the panel's height allows, like `timeAxis`: a
-  // label within one line of the last one drawn is dropped and its tick
-  // mark kept. The tick count is fixed before the panels are sized, so a
-  // short panel -- one squeezed by the wood lane at 375 px -- would
+  // label whose digits would reach the last one drawn is dropped and its
+  // tick mark kept. The tick count is fixed before the panels are sized, so
+  // a short panel -- one squeezed by the wood lane at 375 px -- would
   // otherwise stack its labels into one another (#2841).
   let lastLabelY = null;
   for (const tick of axis.ticks) {
     const y = scaleY(tick, axisName);
-    if (lastLabelY === null || Math.abs(y - lastLabelY) >= size) {
+    if (lastLabelY === null || Math.abs(y - lastLabelY) >= size * VALUE_LABEL_CLEAR_EM) {
       lastLabelY = y;
       out.push(
         `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(

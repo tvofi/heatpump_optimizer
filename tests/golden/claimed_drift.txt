@@ -733,3 +733,8 @@
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+coord_all_features  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
+coord_dhw  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
+coord_grid_fee  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
+coord_minimal  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
+coord_two_zone  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
