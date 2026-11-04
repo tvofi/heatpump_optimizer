@@ -93,9 +93,10 @@ fresh_check() { # <out>: sets code, behind and stale (the acting arms are skippe
   top=$(git -C "${HPO_TICK_CODE_DIR:-$HERE}" rev-parse --show-toplevel 2>/dev/null) || return 0
   code=$(git -C "$top" rev-parse --short=7 HEAD 2>/dev/null) || code=none
   git -C "$top" fetch -q origin main 2>/dev/null || return 0
+  # never-empty: CODE_PATHS is the literal three-path list above
   behind=$(behind_count "$top" "${CODE_PATHS[@]}") || { behind=unknown; return 0; }  # mut:paths
   [ "$behind" -gt 0 ] || return 0
-  self=$(behind_count "$top" "${SELF_PATHS[@]}") || self=1
+  self=$(behind_count "$top" "${SELF_PATHS[@]}") || self=1  # never-empty: SELF_PATHS is the literal two-path list above
   [ "$behind" -gt "$bound" ] || [ "$self" -gt 0 ] || return 0  # mut:bound
   stale=1
   if [ -n "${HPO_TICK_RESTARTED:-}" ]; then why="restarted once this pass"
@@ -108,7 +109,7 @@ fresh_check() { # <out>: sets code, behind and stale (the acting arms are skippe
   else
     printf 'TICK-RESTART %s code=%s behind=%s -> %s\n' "$(date -u +%FT%TZ)" "$code" "$behind" \
       "$(git -C "$top" rev-parse --short=7 HEAD)"
-    HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" "${ARGV[@]}"  # mut:exec
+    HPO_TICK_RESTARTED=1 exec bash "$top/tools/audit/seat/tick_loop.sh" ${ARGV[@]+"${ARGV[@]}"}  # mut:exec
   fi
   printf 'TICK-STALE %s code=%s behind=%s: %s; the relay and sweep arms are skipped\n' \
     "$(date -u +%FT%TZ)" "$code" "$behind" "$why"
