@@ -32,23 +32,26 @@ THE METRICS, each an answer to a named cost:
   critical_path_minutes   WORK minutes of the newest PUSH_WINDOW (16)
                   completed push runs of the tests workflow (the GitHub API
                   run list with each run's jobs, fetched by --gather-runs),
-                  read off host speed (window_work_minutes): every job
-                  priced at its fastest run in the window, summed along each
-                  run's own critical chain to its last `tests / *` job (a
-                  pre-umbrella Tests run: its every job) with each runner
-                  queue removed -- see run_minutes -- the longest chain
-                  kept. Never the wall: the wall reads the account's runner
-                  contention (59.7 wall on 32.1 work, CI job 121295715608).
-                  Never one run's work either: hosted runners differ ~1.9x
-                  on the same work, so the median of runs read which hosts
-                  the three ~18-minute lanes drew and went red on a diff of
-                  delivery rows (8f286293b, R10-HOTFIX-CI-CRITPATH-3).
-                  A slow or hung run never prices a job (the other-work
-                  floor is keyed on the median), but growth reads only once
-                  it fills most of the window (window_work_minutes).
-                  Recorded at the largest value any PUSH_WINDOW consecutive
-                  runs of a wider window read (`--gather-runs FILE --window
-                  40`), the statistic's own window-to-window spread.
+                  priced off host speed (window_work_minutes): each heavy
+                  `tests / *` job runs tests/host_probe.py, fixed work, as a
+                  step of its own, and is priced at the median of its work
+                  over its own runner's probe, in reference-host seconds
+                  (job_price; R10-HOTFIX-CI-CRITPATH-4); a job without a
+                  probe step at its fastest run in the window. The prices
+                  are summed along the longest path through every need the
+                  window observed, each runner queue removed -- see
+                  run_minutes. Never the wall: the wall reads the account's
+                  runner contention (59.7 wall on 32.1 work, CI job
+                  121295715608). Never one run's work, and never a job's
+                  fastest draw once it is probed: hosted runners differ
+                  ~1.9x on the same work and the fleet's mix moves, so the
+                  median of runs read which hosts the lanes drew
+                  (8f286293b, R10-HOTFIX-CI-CRITPATH-3) and the fastest
+                  draw read whether the window still held a fast host
+                  (8e90d8144, R10-HOTFIX-CI-CRITPATH-4). Recorded at the
+                  largest value any PUSH_WINDOW consecutive runs of a wider
+                  window read (`--gather-runs FILE --window 40`), the
+                  statistic's own window-to-window spread.
   critical_path_minutes_band   not a metric: the minutes past its budget
                   that critical_path_minutes may read before it is GREW.
                   Sized at 1.3 for the retired median (05c0d6d5d read 34.467
@@ -693,52 +696,64 @@ OTHER_WORK_FRACTION = 1 / 3
 
 
 def window_work_minutes(runs: list[dict]) -> float:
-    """The window's tests WORK, read off host speed: every job priced at its
-    fastest `success` run in the window (the run on the fastest host it
-    drew), summed along each run's own critical chain (run_chain), the
-    longest chain kept. A job that grows grows on every host, so its minimum
-    moves; a slow or hung run does not, however slow (OTHER_WORK_FRACTION's
-    floor is keyed on the median). The median of run_minutes read the host
-    draw instead: each of the three ~18-minute lanes drew a host ~1.9x slower
-    in ~2 runs of 3, so the window's median sat on a slow draw and went red
-    over a diff of delivery rows (8f286293b).
+    """The window's tests WORK, read off host speed: every job priced over
+    the window by job_price -- a probed job at the median of its work in
+    reference-host seconds, an unprobed one at its fastest `success` run --
+    and the prices summed along the longest path through the needs the
+    window observed (each job's need that ended last, in any of its runs),
+    whichever job ended its run.
 
-    What the minimum costs. The hosts are not two-speed (`tests / closures`
-    read 1117..2401 s over 40 runs with mid values between), so the price is
-    the fastest host the window drew: losing the fastest draws reprices the
-    job on a mid host, and fifteen of sixteen runs drawing slow moves it as
-    growth would. And real growth moves it only once every pre-growth fast
-    run has aged out of the window: +300 s on `tests / closures` reads
-    nothing until 12 of the 16 newest runs carry it, all of it at 15
-    (dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py), against 8 of 8 under
-    the retired median-of-8.
+    Why a path through the window's needs, not each run's own chain: which
+    job ends last is itself a draw (a lane queued behind a slow sibling
+    hides a longer one), so a run's chain read the draw a second way.
+    A need observed in one run is a dependency in every run.
+
+    What the unprobed minimum costs (every job before the probe, and the
+    light ones after it). The hosts are not two-speed (`tests / closures`
+    read 1117..2401 s over 40 runs with mid values between), so the price
+    is the fastest host the window drew: losing the fastest draws reprices
+    the job on a mid host -- main red at 8e90d8144, one fast draw of
+    `tests / fast (3.14)` in 26 runs aged out -- and real growth reads only
+    once every pre-growth fast run has aged out of the window. A probed job
+    reads growth once it is in half the window, all of it by 12 of 16 runs
+    (dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py).
 
     Only a `success` job prices: a skipped one did no work, a cancelled or
     failed one stopped short. A job that never succeeded in the window costs
     nothing. What that costs: a chain job that fails stops pricing, so a
     broken lane under-reads the grade, and a record taken across such a
-    stretch is recorded low. `tests / ci-ratchet` ends every chain and failed
-    in all sixteen newest runs of the record's runs.json, so it prices 0
-    there: the window reads 20.75 against 21.7 with it priced, and it prices
-    again once it succeeds (review of #3180 at 3f7777a59). None when no run
-    in the window is measurable."""
-    chains, work, probed = [], {}, {}
+    stretch is recorded low (review of #3180 at 3f7777a59). None when no
+    run in the window is measurable."""
+    needs, counted, work, probed = {}, set(), {}, {}
     for r in runs:
         walked = _walk(r)
         if walked is None:
             continue
-        chains.append(run_chain(r))
         for j in walked:
+            needs.setdefault(j["name"], set())
+            if j["pred"] is not None:
+                needs[j["name"]].add(walked[j["pred"]]["name"])
+            if j["counted"]:
+                counted.add(j["name"])
             if j["priced"]:
                 work.setdefault(j["name"], []).append(j["work"])
                 if j["reference_work"] is not None:
                     probed.setdefault(j["name"], []).append(j["reference_work"])
-    if not chains:
+    if not counted:
         return None
-    price = {}
-    for name, seen in work.items():
-        price[name] = job_price(seen, probed.get(name))
-    return round(max(sum(price.get(n, 0.0) for n in ch) for ch in chains) / 60, 3)
+    price = {name: job_price(seen, probed.get(name)) for name, seen in work.items()}
+    end: dict[str, float] = {}
+
+    def path_end(name, seen=()):
+        # A need observed in one run and its inverse in another is no
+        # dependency (two jobs that merely ended in turn): the edge that
+        # would close the loop is dropped, never followed.
+        if name not in end:
+            end[name] = price.get(name, 0.0) + max(
+                (path_end(n, (*seen, name)) for n in needs[name] if n not in (*seen, name)),
+                default=0.0)
+        return end[name]
+    return round(max(path_end(n) for n in counted) / 60, 3)
 
 
 def job_price(walls: list[float], reference: "list[float] | None") -> float:
@@ -1391,6 +1406,27 @@ def self_test() -> int:
                                   "completed_at": "2026-11-01T00:00:10Z"}]}, 100.0)
        == 100.0 * PROBE_REFERENCE_S["3.13"] / 10
        and PROBE_REFERENCE_S["3.13"] != PROBE_REFERENCE_S["3.14"])
+
+    # Which job ends last is itself a draw: a lane that queued behind a
+    # sibling's slow host ends last and hides the longer one. The window is
+    # priced over every need it observed, so a path counts whether or not
+    # its job ended its run: arch-instrument's 30 minutes of work, which
+    # ended before fast (3.14) and ci-ratchet in every run (fast queued 14.5
+    # minutes), set the critical path (30.5, not the last job's 21.5).
+    def dag_run(i, arch_work):
+        return {**ci_run(i, f"2026-10-{30 - i:02d}T00:00:00Z", None), "jobs": [
+            j("prelude", 0.0, 0.0, 0.5),
+            j("tests / arch-instrument", 0.5, 0.5, 0.5 + arch_work),
+            j("tests / fast (3.14)", 0.5, 15.0, 35.0),
+            j("tests / ci-ratchet", 35.0, 35.0, 36.0)]}
+    g_dag, msg = grade([dag_run(i, 30.0) for i in range(1, 17)])
+    g_dag0, msg2 = grade([dag_run(i, 10.0) for i in range(1, 17)])
+    ck("a longer path that never ended its run still sets the grade (30.5, "
+       "not 21.5); shortened to 10 minutes, the last job's path is the "
+       "grade again (21.5, the null control)",
+       g_dag is not None and abs(g_dag - 30.5) < 0.01
+       and g_dag0 is not None and abs(g_dag0 - 21.5) < 0.01,
+       msg or msg2 or f"{g_dag}, {g_dag0}")
 
     # The timing band (R10-HOTFIX-CI-CRITPATH-2): critical_path_minutes is
     # graded against its budget plus critical_path_minutes_band, and nothing
