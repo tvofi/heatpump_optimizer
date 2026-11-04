@@ -127,8 +127,9 @@
   failure and is retried next pass; a body with no `Code:` line updates as
   before. A handoff already inside its PR is body-only (R10-FLOW-BODY-ONLY):
   its body, when this relay has not yet applied it and its `Code:` names the
-  tip, goes to `update_pr.sh <branch> - <body>`, which PATCHes the body and
-  pushes nothing, once per body move. `cloud-handoff-bodied` holds
+  tip, goes to `HPO_UPDATE_BODY_ONLY=1 update_pr.sh <branch> - <body>`, which
+  PATCHes the body and pushes nothing, once per body move; an update that
+  would move the head refuses, pushes nothing and is owed `handoff-update`. `cloud-handoff-bodied` holds
   `<topic> <body-sha>` for every body applied, by an update or body-only; a pass
   that finds no such file records every contained topic's body and runs
   nothing (the seed), and a contained body with no `Code:` line is recorded

@@ -14,7 +14,9 @@
   `update_pr: BODY-ONLY: #<n> at <sha>` says so; body_patch's refusal (a head
   that moved) is the run's. With `-`, a `handoff/<topic>` tip the head lacks
   refuses (pass it as the code sha). `cloud_relay.sh` calls this mode once per
-  body move of a PR whose head holds its handoff.
+  body move of a PR whose head holds its handoff, with `HPO_UPDATE_BODY_ONLY=1`:
+  a run that would then move the head (a DIRTY PR's clean main merge, an added
+  row) refuses and pushes nothing, since that move skipped the review freeze.
   When: updating a PR after review prep or a main merge, or re-bodying it.
   Refusal: as `remerge_main.sh` — a conflict stops, it is never resolved
   silently; no open PR at the branch stops before any push. Up front, each an
