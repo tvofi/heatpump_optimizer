@@ -16358,6 +16358,49 @@
     "note": "s11 verify"
    },
    "brief": "Root cause seat beside R10-HOTFIX-RELEASE-TAG, defect-root-cause.md trigger 1 (reached a release). Establish who or what pushed unstamped tag v7.1.2 on 2026-11-02 around 21:08Z while stamp.py was refusing on a red main, the process state a-d, the cost test, and whether the tag ruleset (owner setting) lets a non-stamp tag through. Record at dev/audit/rca/."
+  },
+  {
+   "group": "R10-HOTFIX-RECORD-ATTRIB",
+   "lane": "CP",
+   "kind": "hotfix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "api-attribution",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/record_row.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Measured 2026-11-04: GET commits/616868bdc5ca/pulls returns [] though #3179 is MERGED at that commit (its subject reads Merge pull request #3179); the sibling 8e90d814 returns [3182]. record_row.py enumerate_merges (line 946) then refuses the window, so Nightly record-autofix is red on every main push until the anchor moves, and stamp rule 5 reads the same window. Fix: when the commit-to-PR endpoint is empty, resolve the merge from its first-line subject and confirm that PR's mergeCommit equals the sha; refuse only if that also fails. Failing test first; controls: normal API path unchanged (null); empty API with a subject naming a PR whose mergeCommit differs still refuses."
+   ],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-carry-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s11 verify"
+   },
+   "brief": "Measured 2026-11-04: GET commits/616868bdc5ca/pulls returns [] though #3179 is MERGED at that commit (its subject reads Merge pull request #3179); the sibling 8e90d814 returns [3182]. record_row.py enumerate_merges (line 946) then refuses the window, so Nightly record-autofix is red on every main push until the anchor moves, and stamp rule 5 reads the same window. Fix: when the commit-to-PR endpoint is empty, resolve the merge from its first-line subject and confirm that PR's mergeCommit equals the sha; refuse only if that also fails. Failing test first; controls: normal API path unchanged (null); empty API with a subject naming a PR whose mergeCommit differs still refuses."
   }
  ]
 }
