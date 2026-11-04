@@ -1105,6 +1105,8 @@ def mask_checks() -> list[tuple[str, bool, str]]:
     planted = json.loads(json.dumps(fixture))
     planted["states"][f"sensor.{_STREET}_power"] = planted["states"].pop("sensor.heat_pump_power")
     planted["entry"]["data"]["heat_pump_power_entity"] = f"sensor.{_STREET}_power"
+    # A broken rule inside that state, so a message's path carries the id itself.
+    planted["states"][f"sensor.{_STREET}_power"][0][2] = {"colour": "red"}
     found = export.check_file(_written(planted), export.entry_keys(*export.default_const_paths()))
     joined = "; ".join(found)
     res.append(("mask:check_refuses_unmapped_id_naming_class_not_token",
