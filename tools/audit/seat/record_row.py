@@ -909,21 +909,54 @@ def _api(repo: str, path: str, token: str) -> object:
 _read_sleep = time.sleep
 
 
+def attribute_merge(repo: str, sha: str, subject: str, token: str) -> dict:
+    """The pull request a first-parent merge commit landed, from the REST API.
+
+    The ONE reader of `/commits/<sha>/pulls` in this module. The endpoint
+    answers `merged: null` on this surface, so the merge that landed on main
+    is matched by its OWN merge_commit_sha -- the commit-to-pull-request map's
+    authoritative join, true for both the merge-commit and the squash shape.
+
+    The map is eventually consistent and answers `[]` for a real merge
+    (#3179 at 616868bd). Then the number is read from the commit's own first
+    line and CONFIRMED against `/pulls/<n>`: that pull request's
+    merge_commit_sha must equal `sha`. A subject naming a pull request whose
+    merge commit differs, or naming none, is REFUSED, not skipped: a
+    collection that cannot read the window must fail this run, never report
+    an empty one.
+    """
+    pulls = _api(repo, f"/commits/{sha}/pulls", token) or []
+    matched = [p for p in pulls if (p.get("merge_commit_sha") or "") == sha]
+    if matched:
+        return matched[0]
+    number = delivery_status.subject_number(subject)
+    if number is not None:
+        pull = _api(repo, f"/pulls/{number}", token)
+        if isinstance(pull, dict) and (pull.get("merge_commit_sha") or "") == sha:
+            return pull
+    raise Refuse(
+        f"merge commit {sha[:7]} attributes to no pull request via "
+        "the REST API, nor via its subject confirmed against the pull "
+        "request's merge commit; the window is UNCHECKED this run, not "
+        "confirmed empty")
+
+
 def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
     """The window's merged pull requests, from the REST API, oldest first.
 
     The window is `<since>..HEAD` over the FIRST-PARENT log -- the same window
     `record` reads -- and each first-parent merge commit is attributed through
-    `/commits/<sha>/pulls`, the commit-to-pull-request map, whose matched
-    entry already carries the title, state and head branch the rows carry: one
+    `attribute_merge` (the `/commits/<sha>/pulls` commit-to-pull-request map),
+    whose matched entry already carries the title, state and head branch the rows carry: one
     read per merge, on the GITHUB_TOKEN bucket every required check shares
-    (dev/audit/rca/ratelimit-recur.md). A commit the map cannot attribute is
+    (dev/audit/rca/ratelimit-recur.md); an empty map answer falls back to the
+    subject, confirmed. A commit neither attributes is
     REFUSED, not skipped: a collection that cannot read the window must fail
     this run, never report an empty one.
     """
     span = f"{since}..HEAD" if since else "HEAD"
     log = subprocess.run(
-        ["git", "log", "--first-parent", "--format=%H%x1f%P", span],
+        ["git", "log", "--first-parent", "--format=%H%x1f%P%x1f%s", span],
         check=True, capture_output=True, text=True).stdout.splitlines()
     # A single-parent first-parent commit is a direct push and owes no row.
     # `merge_parents` is `collect`'s predicate: a two-parent commit is a
@@ -932,22 +965,11 @@ def enumerate_merges(repo: str, since: str, token: str) -> list[dict]:
     # The beat's own row is `self_row`, written once its number exists.
     merges = []
     for line in log:
-        sha, _, parents = line.partition("\x1f")
+        sha, _, rest = line.partition("\x1f")
+        parents, _, subject = rest.partition("\x1f")
         if not delivery_status.merge_parents(len(parents.split())):
             continue
-        pulls = _api(repo, f"/commits/{sha}/pulls", token) or []
-        # The endpoint answers `merged: null` on this surface, so the merge
-        # that landed on main is matched by its OWN merge_commit_sha -- the
-        # commit-to-pull-request map's authoritative join, true for both the
-        # merge-commit and the squash shape.
-        matched = [p for p in pulls
-                   if (p.get("merge_commit_sha") or "") == sha]
-        if not matched:
-            raise Refuse(
-                f"merge commit {sha[:7]} attributes to no pull request via "
-                "the REST API; the window is UNCHECKED this run, not "
-                "confirmed empty")
-        pr = matched[0]
+        pr = attribute_merge(repo, sha, subject, token)
         merges.append({
             "number": int(pr["number"]),
             "title": pr.get("title") or "",
@@ -1755,6 +1777,43 @@ def self_test() -> int:
            for n, s in ((2101, "a" * 40), (2102, "c" * 40))])
     ok("a window of direct pushes reads nothing (null control)",
        _enum_got[1] == ([], []))
+
+    # R10-HOTFIX-RECORD-ATTRIB: the map answered [] for a real merge (#3179).
+    # Subject names the PR and its merge_commit_sha equals the sha -> recovered
+    # (2 reads); the normal path stays one read; a different merge_commit_sha,
+    # or a subject naming no PR, still refuses.
+    def _attrib(sha, subject, pulls_ans, pull_ans):
+        calls = []
+
+        def api(repo, path, token):
+            calls.append(path)
+            return pulls_ans if path.endswith("/pulls") and "/commits/" in path \
+                else pull_ans
+        real = globals()["_api"]
+        globals()["_api"] = api
+        try:
+            try:
+                return attribute_merge("o/r", sha, subject, "t"), calls
+            except Refuse as e:
+                return e, calls
+        finally:
+            globals()["_api"] = real
+    _s = "d" * 40
+    _sub = "Merge pull request #3179 from tvofi/x"
+    _p = {"number": 3179, "merge_commit_sha": _s}
+    _r = _attrib(_s, _sub, [], _p)
+    ok("attribute_merge: empty map, subject names a PR whose merge commit "
+       "is the sha -> recovered by one confirming read",
+       _r[0] == _p and _r[1] == [f"/commits/{_s}/pulls", "/pulls/3179"])
+    _r = _attrib(_s, _sub, [{"number": 7, "merge_commit_sha": _s}], _p)
+    ok("attribute_merge: map answers -> unchanged, no second read (null)",
+       _r[0]["number"] == 7 and _r[1] == [f"/commits/{_s}/pulls"])
+    _r = _attrib(_s, _sub, [], {"number": 3179, "merge_commit_sha": "e" * 40})
+    ok("attribute_merge: empty map, subject's PR merged elsewhere -> refuses",
+       isinstance(_r[0], Refuse))
+    _r = _attrib(_s, "Bump the stamp", [], _p)
+    ok("attribute_merge: empty map, subject names no PR -> refuses",
+       isinstance(_r[0], Refuse) and _r[1] == [f"/commits/{_s}/pulls"])
 
     # ------------------------------------- R10-FLOW-RECORD-PITCH ----------
     # The record chain: a record-class merge owes no row, so the plan right

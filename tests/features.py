@@ -25133,6 +25133,26 @@ R.check(
     "an inverter runs most efficiently slow",
 )
 R.check(
+    "a target the plan calls off asks the map for nothing (D8-s1-01)",
+    _fm.recommend(0.07, 20.0, 120.0) is None
+    and not _fm.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm.recommend(0.11, 20.0, 120.0) is not None,
+    "0.07 kW is under MIN_RUNNING_DRAW_KW: the plan runs no pump on that step, "
+    "so no frequency is recommended and no exhaustion is reported; 0.11 kW, "
+    "a step it runs, still gets an answer (the null)",
+)
+_fm_low = FrequencyMap()
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _fm_low.observe(25.0, 0.06, 20.0, 120.0)  # the one bucket predicts 0.06 kW
+R.check(
+    "evidence below a target the plan calls off is not exhaustion (D8-s1-01)",
+    not _fm_low.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm_low.evidence_exhausted(0.11, 20.0, 120.0),
+    "the map's only bucket reaches 0.06 kW, under both targets: 0.07 kW is "
+    "an off step, so the owner's gate answers False; 0.11 kW, a step the plan "
+    "runs, is beyond that bucket's reach and reads True (the null)",
+)
+R.check(
     "above every bucket's reach the answer is TRUE flat out, and says so",
     _fm.recommend(50.0, 20.0, 120.0) == 120.0
     and _fm.evidence_exhausted(50.0, 20.0, 120.0)
@@ -30281,6 +30301,71 @@ R.check(
     "a real high-heat-loss step still says weather pre-heating",
     _reasons_hl[5] == _R_PREHEAT,
     f"{_reasons_hl}",
+)
+
+# Live defect (tvofi, 2026-10-30): the heat-loss factor the classifier reads
+# carried the learned `house_heat_loss_scale`, so a house that learned a scale
+# above 1.1 had nearly every heating step called weather pre-heating under a
+# flat forecast. Driven through `optimize`, which builds the factor: the label
+# must follow the forecast's wind and rain, never the learned level. The factor
+# reads wind and rain only (outdoor temperature enters the solve as the loss's
+# temperature difference), so the forecast's spell is a windy one.
+_pw_n = 48
+_pw_storm = np.zeros(_pw_n)
+_pw_storm[12:30] = 12.0  # 12 m/s: factor 1 + 0.03 * 12 = 1.36 on steps 12-29
+
+
+def _pw_reasons(scale, wind):
+    _p = _dc_replace(ThermalParameters(), house_heat_loss_scale=scale)
+    return _PvOpt(ThermalModel(_p), _PvOptCfg()).optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=20.5, outdoor_temperature=2.0),
+        prices=np.full(_pw_n, 1.5), outdoor_temps=np.full(_pw_n, 2.0), wind_speeds=wind,
+        start_time=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )).space_reasons
+
+
+_pw_flat = {s: _pw_reasons(s, np.zeros(_pw_n)) for s in (1.0, 1.24)}
+_pw_windy = {s: _pw_reasons(s, _pw_storm) for s in (1.0, 1.24)}
+R.check(
+    "a learned heat-loss scale of 1.24 under a flat forecast labels no step "
+    "weather pre-heating, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.24] and len(_pw_flat[1.24]) == _pw_n
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.24]),
+    f"{_pw_flat[1.24]}",
+)
+R.check(
+    "a forecast wind spell still labels weather pre-heating, at scale 1.0 and "
+    "1.24, and only on the spell's steps",
+    all(
+        _R_PREHEAT in _pw_windy[s]
+        and all(12 <= i < 30 for i, r in enumerate(_pw_windy[s]) if r == _R_PREHEAT)
+        for s in (1.0, 1.24)
+    ),
+    f"{_pw_windy}",
+)
+R.check(
+    "null control: scale 1.0 under a flat forecast labels no step weather "
+    "pre-heating either, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.0]
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.0]),
+    f"{_pw_flat[1.0]}",
+)
+
+# The builder's two floors: a zero nameplate still yields the weather's share
+# (not a flat 0 that hides every spell), and a zero scale divides by no zero.
+from heatpump_optimizer.optimizer import _weather_loss_factors as _pw_factors  # noqa: E402
+
+_pw_w = np.array([0.0, 10.0])
+_pw_zero_u, _pw_zero_s = (
+    _pw_factors(ThermalModel(_dc_replace(ThermalParameters(), **kw)), _pw_w, np.zeros(2), 2)
+    for kw in ({"heat_loss_coefficient": 0.0}, {"house_heat_loss_scale": 0.0})
+)
+R.check(
+    "the weather loss factor reads the wind at a zero nameplate, and a zero "
+    "learned scale yields finite factors",
+    np.allclose(_pw_zero_u, [1.0, 1.0 + 10.0 * ThermalParameters().wind_sensitivity])
+    and np.all(np.isfinite(_pw_zero_s)),
+    f"zero nameplate {_pw_zero_u}, zero scale {_pw_zero_s}",
 )
 
 # Ranking is unchanged: the specific reasons still outrank the fall-through.
@@ -36582,12 +36667,14 @@ R.check(
     _ah_got == _ah_rows,
     f"got {_ah_got}",
 )
+from heatpump_optimizer import optimizer as _ah_opt  # noqa: E402
 from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
 import inspect as _ah_inspect  # noqa: E402
-# The slot merge and the DHW schedule sensor read the same running rule
-# (D8-s1-01's secondary arm): each step of ``_ah_steps`` the plan calls off
-# must sit in no slot, and the schedule sensor counts no period from a raw
-# draw. Null control: the steps the plan runs keep their slot.
+# The slot merge, the reason classifiers and the DHW schedule sensor read the
+# same running rule (D8-s1-01's secondary arm): each step of ``_ah_steps`` the
+# plan calls off must sit in no slot and carry an idle reason, and the
+# schedule sensor counts no period from a raw draw. Null control: the steps
+# the plan runs keep their slot and their reason.
 _ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
 _ah_sp = [s for s, _ in _ah_steps]
 _ah_dw = [d for _, d in _ah_steps]
@@ -36607,6 +36694,22 @@ R.check(
         [False, False, False, True, True, False],
     ],
     f"got {_ah_in_slot}",
+)
+_ah_space_why = _ah_opt.classify_space_steps(
+    np.array(_ah_sp), np.array([1.0] * 6), np.full(7, 21.0), np.full(6, 19.0),
+    np.ones(6), None, 6, other=np.array(_ah_dw),
+)
+_ah_dhw_why = _ah_opt.classify_dhw_steps(
+    np.array(_ah_dw), np.zeros(6, dtype=bool), np.zeros(6), None, 6,
+    idle=_ah_opt.IdleContext(other=np.array(_ah_sp)),
+)
+_ah_idle = {_ah_opt.REASON_IDLE, _ah_opt.REASON_IDLE_COASTING, _ah_opt.REASON_IDLE_DEARER,
+            _ah_opt.REASON_IDLE_SOLAR, _ah_opt.REASON_IDLE_FUSE, _ah_opt.REASON_IDLE_OTHER}
+R.check(
+    "a step the plan runs no pump at is idle to the reason classifiers (D8-s1-01)",
+    [c not in _ah_idle for c in _ah_space_why] == [True, False, False, True, False, False]
+    and [c not in _ah_idle for c in _ah_dhw_why] == [False, False, False, True, True, False],
+    f"space {_ah_space_why} dhw {_ah_dhw_why}",
 )
 _ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
 _ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()
@@ -45608,6 +45711,26 @@ R.check(
     f"{_t2_buf_valve._buffer_cooling_rate:.4f} -- a pump-off interval is the "
     "house drawing on the tank, and reading that as standby loss prices "
     "storage off the table",
+)
+
+# -- a step the plan calls off heats no tank (D8-s1-01, #2238 sweep P2) --
+def _t2_buf_heating_after(power_kw):
+    c = _t2_coord()
+    c._current_action = {"power": power_kw}
+    dt_util.freeze(_T2_BASE)
+    try:
+        _asyncio.run(c._async_learn_buffer_cooling(48.0))
+    finally:
+        dt_util.freeze(None)
+    return c._buffer_heating_since_sample
+
+
+R.check(
+    "the buffer learner reads heating from the plan's running rule",
+    _t2_buf_heating_after(0.07) is False and _t2_buf_heating_after(0.5) is True,
+    f"0.07 kW -> {_t2_buf_heating_after(0.07)}, 0.5 kW -> "
+    f"{_t2_buf_heating_after(0.5)}: a 0.07 kW action is a step the plan runs "
+    "no pump at, so the interval is a quiet one",
 )
 
 # -- the six sample-quality guards ---------------------------------------
@@ -57241,17 +57364,28 @@ R.check(
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
 )
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW  # noqa: E402
+
 # The two bounds are exclusive at the floor and inclusive at the minimum on
-# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
-# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
-# exactly at the entity's minimum is in the compressor's running range. A
-# flipped bound is visible only at those two inputs, and no other driver feeds
-# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
-# drives (`pin-killed` measured it), and this check is their killer.
+# purpose: the floor is the plan's own running rule (`planned_draw_runs`, a
+# step runs above `MIN_RUNNING_DRAW_KW`, the same rule `FrequencyMap.recommend`
+# reads), and a reading exactly at the entity's minimum is in the compressor's
+# running range. A flipped bound is visible only at those two inputs, and no
+# other driver feeds one: D7-s2-01's `CMP_BOUND` site on the minimum survives
+# every driver the mutation table drives (`pin-killed` measured it), and this
+# check is its killer.
 R.check(
     "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
-    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
-    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
+    _p8s_watch(MIN_RUNNING_DRAW_KW, 45.0) == [False]
+    and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(MIN_RUNNING_DRAW_KW, 45.0)}, "
+    f"minimum -> {_p8s_watch(2.0, 20.0)}",
+)
+R.check(
+    "a step the plan calls off is not watched (D8-s1-01, #2238 sweep P2)",
+    _p8s_watch(0.07, 45.0) == [False],
+    f"0.07 kW commanded -> {_p8s_watch(0.07, 45.0)}: the plan runs no pump "
+    "there, so a 0 Hz reading is a pump at rest, not a write path ignored",
 )
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
