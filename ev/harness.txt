@@ -1,0 +1,21 @@
+== cloud_relay-8 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 4 failed
+== cloud_relay-9 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 1 failed
+== cloud_relay-22 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 14 failed
+== cloud_relay-25 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 1 failed
+== cloud_relay-27 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 1 failed
+== cloud_relay-50 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 5 failed
+== cloud_relay-51 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 4 failed
+== cloud_relay-52 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 4 failed
+== cloud_relay-53 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 2 failed
+== cloud_relay-54 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 1 failed
+== cloud_relay-55 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 2 failed
+== cloud_relay-56 cloud_relay.sh: KILLED rc=1 | cloud_relay self-test: 332 checks, 3 failed
+== cloud_relay-57 cloud_relay.sh: KILLED rc=1 | cat: /tmp/cloud_relay_st.FxRmg4/hupdated: No such file or directory
+== update_pr-1 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
+== update_pr-2 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+== update_pr-3 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+== update_pr-4 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+== update_pr-5 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+== update_pr-6 update_pr.sh: KILLED rc=1 | tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+RESULT survivors=0
+rc=0
