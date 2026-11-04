@@ -1,13 +1,8 @@
-MUT s/price\[name\] = min(w for w in seen if w >= floor)/price[name] = max(w for w in seen if w >= floor)/
-  FAIL an all-umbrella window, titled `CI code ...` by run-name, is measured by workflow path (its fastest run's 31) -- got 38.0
-  FAIL a window of slow host draws grades the work, not the draw (32.1, its median 63.9) -- got 63.9
-  FAIL the grade reads the newest PUSH_WINDOW runs, a record the largest of its every PUSH_WINDOW-run window (32.1, 63.9) -- grade 63.9 record 63.9
-  FAIL derive grades the newest window and a --record derive writes the largest window -- grade {'script_runs_per_push': 0, 'critical_path_minutes': 63.9} record {'script_runs_per_push': 0, 'critical_path_minutes': 63.9}
-ci-ratchet self-test: 48 checks, 4 failed
-MUT s/floor = max(seen) \* OTHER_WORK_FRACTION/floor = 0/
-  FAIL a run under a third of the job's window maximum did other work and never prices it (63.9, not 5.3) -- got 31.2
-ci-ratchet self-test: 48 checks, 1 failed
-MUT s/^PUSH_WINDOW = 16/PUSH_WINDOW = 8/
-  FAIL --gather-runs keeps the newest PUSH_WINDOW (16) push runs of ci.yml and tests.yml together, jobs on every run -- n=8
-  FAIL a window of slow host draws grades the work, not the draw (32.1, its median 63.9) -- got 63.9
-ci-ratchet self-test: 48 checks, 2 failed
+MUTANT median-to-max: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: does NOT hold
+MUTANT median-to-min: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT floor-removed: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT priced-not-skipped: self-test FAIL lines=2 | ci-ratchet self-test: 52 checks, 2 failed | replay: RESULT: does NOT hold
+MUTANT priced-all: self-test FAIL lines=2 | ci-ratchet self-test: 52 checks, 2 failed | replay: RESULT: does NOT hold
+MUTANT no-conclusion-guard: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT price-max: self-test FAIL lines=5 | ci-ratchet self-test: 52 checks, 5 failed | replay: RESULT: does NOT hold
+MUTANT fraction-half: self-test FAIL lines=0 | ci-ratchet self-test: 52 checks, 0 failed | replay: RESULT: does NOT hold

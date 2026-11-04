@@ -1,0 +1,3 @@
+codeql/python success work newest16: [1705, 1733, 1874, 1909, 1982, 2121, 2127, 2190, 2309, 2337, 2391, 2404, 2411, 2440, 2471, 2590]
+chains over 40: Counter({('tests / closures',): 17, ('tests / fast (3.14)',): 8, ('tests / ci-ratchet',): 8, ('tests / arch-instrument',): 3, ('tests / coverage',): 2, (): 2})
+newest run fast drawn quick (1100 s, success): chain ['cancel-superseded', 'prelude', 'codeql / Analyze (python)', 'tests / ci-ratchet'] grade delta 8.033 retired delta 8.033

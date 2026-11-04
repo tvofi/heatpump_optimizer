@@ -1,0 +1,10 @@
+replay.py (head 3f7777a59) run against 563c8e6db's tests/ci_ratchet.py and tests/ci_budgets.json, restored after:
+1. record: 40 runs, 25 windows of 16; grade 21.717; windows 20.817..22.0 (retired 20.817..22.0); record 22.0, budget 22.0; band need 0.55, band 1.3
+2. outlier: the newest run's lane at 3.2x the window's fastest (new / retired)
+   tests / closures: +0.183 / +0.183
+   tests / fast (3.14): +6.95 / +6.95
+   tests / arch-instrument: +0.0 / +0.0
+RESULT: does NOT hold
+rc=1
+runs.json sha1 5ac806dd6f5e4a80ea8af04ea0b4431a32f153b7; same 40 run ids and identical (name, started, completed, conclusion) job tuples as round-1 ev/runs40.json (0 runs differ).
+Newest ci.yml push run on main at review: 41577822624 (c3a279e32) = runs.json's newest; ci-ratchet log there: GREW critical_path_minutes: 40.817 (budget 34.267, band 1.3), the only GREW.

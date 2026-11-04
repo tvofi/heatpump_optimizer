@@ -1,0 +1,25 @@
+6957:  FAIL hb:positive_control  [a 600 ms spin read as 599.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+6958:  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: False; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+6959:  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+6960:  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+6961:  FAIL hb:positive_control  [a 600 ms spin read as 500.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+6962:  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 2 of 2 (at most 3)]
+7143:  FAIL hb:positive_control  [a 600 ms spin read as 735.4 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+7180:  FAIL hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+7183:  FAIL a6:list  [raised=True applied=False]
+7184:  FAIL a6:list  [raised=False applied=True]
+7185:  FAIL a6:loaded  [entry down after corrupt stores]
+7186:  FAIL a11:invalid  [service no-op]
+7187:  FAIL a12:migrates  [after=1 expected=7]
+7188:  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+7330:SKIP: tests/boost_drift_replay.py (scoped out: no changed file is in its measured closure of 93 file(s))
+7348:########## python3 tests/harness_headers.py ##########
+7349:  LEASE: tests/harness_headers.py runs under the gate lease as run.sh-2507
+7352:  FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py:40: ROOT = HERE.parents[3]
+7364:1 of 112 HARNESS HEADER CHECKS FAILED
+7365:>>> FAILED: python3 tests/harness_headers.py
+7372:     212s  python3 tests/harness_headers.py
+7380:  tests/boost_drift_replay.py did NOT run -- no changed file is in its measured closure (closure: 93 files)
+7406:  tests/harness_headers.py ran anyway -- run_always, so no scope skips it
+7416:1 TEST SCRIPT(S) FAILED
+7417:##[error]Process completed with exit code 1.

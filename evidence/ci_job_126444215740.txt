@@ -1,0 +1,9 @@
+6640:tests/harness_headers.py
+6646:tests/harness_headers.py
+6650:  lane 2 (241.1s recorded): tests/harness_headers.py
+6652:  [07:16:37] record tests/harness_headers.py 
+6653:  [07:20:39] done   tests/harness_headers.py (exit 1)
+6663:[36;1m# base's closure.py, and reddens where this one printed UNDER-SCOPED[0m
+6683:INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+6687:    tests/harness_headers.py: dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py
+6688:##[error]Process completed with exit code 1.
