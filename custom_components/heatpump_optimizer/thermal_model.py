@@ -3788,10 +3788,7 @@ class ThermalModel:
                 ua_floor = (
                     (1.0 - p.radiator_power_fraction) * design_power / design_dt
                 )
-                c_buf = p.buffer_tank_thermal_mass
-                if c_buf < 1e-6:
-                    c_buf = 0.04  # the step's own fallback
-                buf_row = design_power / design_dt / c_buf
+                buf_row = design_power / design_dt / _buffer_capacity(p)
             worst = max(
                 (u_upper + p.inter_zone_transfer + ua_rad)
                 / p.upper_floor_thermal_mass,
