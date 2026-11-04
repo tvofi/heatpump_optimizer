@@ -6231,7 +6231,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
             _record_manual_release(result, pinned_override)
 
-            self._optimization_result = replace(result, solve_band=record.band.as_dict())
+            self._optimization_result = replace(result, solve_band=record.band.as_dict() if record.band else {})
             self._last_optimization = dt_util.now()
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
