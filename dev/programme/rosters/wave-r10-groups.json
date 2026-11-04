@@ -16750,6 +16750,42 @@
     "stage": "not-started"
    },
    "brief": "Owner ruling tvofi 2026-11-04: \"Turn it off in the cloud\", the frugal plugin inline-search guard. Add an env block to .claude/settings.json that sets the override variable the guard names in its own refusal message, spelled FRUGAL then ALLOW then INLINE joined by underscores, to the string 1. Local sessions already set it in user settings, so only cloud sessions change. A shell export in a seat does not reach the hook, and the trigger API drops per-trigger environment fields, so project settings are the route. Control: a cloud session on the branch makes 8 separate Bash calls with no hook block, against the same probe on main as the null control. This file is code-owned: the mandate covers the approval. Change nothing else."
+  },
+  {
+   "group": "R10-HOTFIX-CI-CRITPATH-5",
+   "lane": "CP",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tests/closures.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Main tests / ci-ratchet is red on the critical path metric after PR 3201 merged at a45cf7f5. Re-measure there first and stop if green. Pay by a closures or job-graph change that really shortens the path, with the architecture score run before and after. If no sound payment exists, re-record only the measured value with a Raise justification section under the mandate in force. Control: the ratchet still refuses a planted growth."
   }
  ]
 }
