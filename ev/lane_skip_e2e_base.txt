@@ -1,0 +1,3 @@
+RESULT hosts ['tests/entities.py']
+RESULT has --self-test text: False
+RESULT self_test_reads reached the recorder for: [] preds: [] notes: []

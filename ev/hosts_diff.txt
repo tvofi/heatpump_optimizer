@@ -1,0 +1,13 @@
+RESULT candidates=40 old_pairs=12 new_pairs=8 lost=4 gained=0
+LOST   tests/throwaway_git.py <- tests/entities.py
+LOST   tools/audit/archscore/gate.py <- tests/entities.py
+LOST   tools/audit/seat/ledger.py <- tests/entities.py
+LOST   tools/ci/gate.py <- tests/entities.py
+KEPT   tests/ci_ratchet.py <- tests/entities.py
+KEPT   tools/audit/archscore/gate.py <- tests/arch_score.py
+KEPT   tools/audit/seat/bare_array.py <- tests/entities.py
+KEPT   tools/audit/seat/record_row.py <- tests/entities.py
+KEPT   tools/audit/seat/roster_lib.py <- tests/entities.py
+KEPT   tools/audit/seat/state_docs.py <- tests/entities.py
+KEPT   tools/merge/ledger_merge.py <- tests/entities.py
+KEPT   tools/release/stamp.py <- tests/entities.py
