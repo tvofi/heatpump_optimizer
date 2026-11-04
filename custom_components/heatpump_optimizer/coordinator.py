@@ -5351,7 +5351,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         tank look leakier than it is.
         """
         now = dt_util.now()
-        heating = float(self._current_action.get("power", 0.0)) > 0.05
+        heating = planned_draw_runs(float(self._current_action.get("power", 0.0)))
 
         previous_temp = self._last_buffer_temp_sample
         previous_time = self._last_buffer_sample_time
@@ -10619,7 +10619,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # path that stopped listening — three cycles of routine MPC
             # idle must not stand control down.
             watch_active = (
-                self._commanded_power() > 0.05 and reported >= hz_min
+                planned_draw_runs(self._commanded_power()) and reported >= hz_min
                 and not defrost_interval(self._pump_signals.defrosting)
             )
             if self._freq_watchdog.note_report(reported, active=watch_active):
