@@ -76423,6 +76423,51 @@ R.check(
     and _cpd_params_11.min_electrical_power == _cpd_hub.min_electrical_power,
     f"{_cpd_band_c} copy {_cpd_params_c.max_electrical_power} hub {_cpd_hub.max_electrical_power}",
 )
+# Invariant 3 through the live cycle: the plan is stamped with the band it
+# was solved on, and the arbiter and the payload read the stamp until the next
+# solve, whatever the store does in between.
+_r9f13_dt.freeze(_R9F13_NOW)  # the rig's price series is anchored here
+_, _, _cpd_live = _r9f13_make("cpd_stamp", dict(_CP_PROBE_CFG))
+_cpd_live_hub = _cp_cmod._ctx_of(_cpd_live)._thermal_params
+_cpd_live_top = 0.5 * float(_cpd_live_hub.max_electrical_power)
+_cpd_now_s = _cp_cmod.dt_util.now().timestamp()
+_cpd_live._accuracy.draw = _cp_store([_cpd_live_top] * 11, _cpd_now_s - 3600.0)
+
+
+def _cpd_solve(coord):
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _r9f13_inline):
+        return _r9f13_aio.run(coord.async_run_optimization())
+
+
+_cpd_r1 = _cpd_solve(_cpd_live)
+_cpd_stamp1 = dict(_cpd_live._optimization_result.solve_band)
+_cpd_live._accuracy.draw.observe_ceiling(_cpd_live_top, _cpd_now_s - 60.0)  # the twelfth
+_cpd_band_after_fold = _cp_pa._band_kw(_cpd_live.arbiter_inputs())
+_cpd_view_after_fold = _cpd_live._learning_view()["pump_max_power"]
+_cpd_r2 = _cpd_solve(_cpd_live)
+_cpd_stamp2 = dict(_cpd_live._optimization_result.solve_band)
+_cpd_plan_max = max(_cpd_live._optimization_result.power_schedule)
+_cpd_live._accuracy.draw.ceiling.clear()  # the store lapses or drops, no solve
+_cpd_band_after_drop = _cp_pa._band_kw(_cpd_live.arbiter_inputs())
+_r9f13_dt.freeze(None)
+R.check(
+    "invariant 3 (i, ii, v): solved on eleven samples the plan is stamped configured; the "
+    "twelfth folded without a solve leaves the arbiter's band and the published reason on "
+    "that stamp; the next solve books the learned top and stamps it; a store dropped "
+    "without a solve keeps the stamped learned band",
+    _cpd_r1 is None and _cpd_r2 is None
+    and (_cpd_stamp1["source"], _cpd_stamp1["reason"]) == ("configured", "awaiting_probe")
+    and _cpd_band_after_fold == (_cpd_stamp1["planned_min_kw"], _cpd_stamp1["planned_max_kw"])
+    and _cpd_view_after_fold["source"] == "configured"
+    and _cpd_stamp2["source"] == "ceiling_probe"
+    and abs(_cpd_stamp2["planned_max_kw"] - _cpd_live_top) < 1e-3
+    and _cpd_plan_max <= _cpd_live_top + 1e-6
+    and _cpd_band_after_drop == (_cpd_stamp2["planned_min_kw"], _cpd_stamp2["planned_max_kw"])
+    and float(_cpd_live_hub.max_electrical_power) == 2.0 * _cpd_live_top,
+    f"r {_cpd_r1} {_cpd_r2} stamp1 {_cpd_stamp1.get('reason')} fold-band {_cpd_band_after_fold} "
+    f"stamp2 {_cpd_stamp2.get('source')} {_cpd_stamp2.get('planned_max_kw')} plan-max {_cpd_plan_max} "
+    f"drop-band {_cpd_band_after_drop}",
+)
 _cpd_c._optimization_result = None
 _cpd_none_view = _cpd_c._learning_view().get("pump_max_power", "absent")
 _cpd_c._optimization_result = _CpNS(solve_band=_cpd_band_c.as_dict())
