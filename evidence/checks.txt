@@ -1,0 +1,6 @@
+reviewed head b2499f12d1cb100b36a1820717fbf623566ebd24
+roster 9bc39aede: R10-TICK-PR-BUCKETS stage=absorbed; R10-TICK-LEVELS stage=in-progress pr=3200 (note 's11 replan fold', aa6b12a8e 2026-11-04T06:59+01:00)
+ruling cites efd37113a (2026-11-02T21:15+01:00), 895 commits behind roster head
+merge-tree origin/main d7582ed40 vs head: rc 0
+classify: WAIT pending (rc 3) at review time
+diff: 2 files, no VERSION/manifest/notes/claim/budget touched
