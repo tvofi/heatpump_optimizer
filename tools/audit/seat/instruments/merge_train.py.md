@@ -64,7 +64,9 @@
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
-  batch in proof, and a batch that stops ends the train (`NOT RUN` lines).
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines);
+  an `add` that starts a train orders its first batch, the entry and what a
+  stopped train left spooled, by the same `Train.drain_order`.
   `add` and that drain apply one admission rule (`already_held`, over the
   live train's `queue.seen.json`): a pull request still to run, spooled,
   merged or run by this train is `ALREADY` on both sides; one it skipped is
@@ -75,7 +77,8 @@
   (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
   one mutant per arm of that rule. The spool is edited only through the
   instrument: `add --front <pr>` puts an entry first in the next batch (a
-  spooled one is moved there) and `add --remove <pr>` drops a spooled one
+  spooled one is moved there, and the drain keeps it in the `--priority` tier
+  ahead of critical-path entries) and `add --remove <pr>` drops a spooled one
   (rc 1, nothing written, when it is absent), both under the queue's flock
   and each printing the spool order read back. A batch's admission waits
   each head on the required set a pull request's head carries
@@ -102,7 +105,17 @@
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
   unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
-  enforces. A required context red at main's tip whose workflow run is at
+  enforces. `--pr N` asks `approval_owed(train, pr, head, runs, required)`, the one
+  owner of a budget raise's pre-approval red (P345): when the red set over
+  `gating_names` is `gate` and `budget-raise-gate / budget-raise-gate` alone,
+  every red gate suite's own log (`gate_raise_only`, through `gate_outcome`)
+  lists that unit's failure as its only reason (a SKIPPED, ABSENT or PENDING
+  unit, or a reason naming none, reddens `gate` outside the red set: #3073),
+  and `Train.raise_hold`, over the three-dot names from git, reads a raise not
+  held, it prints `APPROVAL-OWED <sha> <the gate's reason>` (rc 4): reviewable,
+  because the owner's approval follows the verdict. A raise_hold Stop, a gate suite still
+  running or a failed read (a log included) stays RED; `classify` itself, the train and the merge state are
+  unchanged, and without `--pr` the answer is as before. A required context red at main's tip whose workflow run is at
   attempt 1 and failed on infrastructure alone (every failed job but `gate`
   logs an API rate-limit or unreachable string, and `gate` printed
   RATE-LIMITED or only `<job>: failure (this run)` reasons naming those jobs)

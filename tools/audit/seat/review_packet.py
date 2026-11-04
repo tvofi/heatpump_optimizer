@@ -34,7 +34,10 @@ REFUSALS (rc 1, each named by its signal), all mechanical:
   structure        `tests/structure.py` refuses the head merged with main;
   red-unanswered   a CONCLUDED red check the body's `## Red checks` does not name
                    (`policy_lint.mjs --pr-body --red`);
-  required-red     a required context's latest run concluded failure;
+  required-red     a required context's latest run concluded failure -- unless
+                   `merge_train.py classify --pr` answers APPROVAL-OWED (P345: the
+                   red is only a budget raise's approval, which follows the
+                   review), printed as the `approval-owed` advisory instead;
   host-path        the body or an added line names this host (`ref_privacy.py`);
   hot-file         the diff shares a HOT_FILES path with an open pull request
                    whose merge verdict is at its head and not on the train;
@@ -179,6 +182,23 @@ def gate_digest(runs: list[dict]) -> tuple[str, list[str], list[str]]:
         lines.append(f"{name} id={r['id']} {c}")
     state = "red" if reds else "pending" if pending else "green" if latest else "none"
     return state, lines, reds
+
+
+def approval_owed_line(pr: int, head: str) -> str | None:
+    """The reason `merge_train.py classify --pr` prints after `APPROVAL-OWED <head>`
+    (rc 4), else None: the one owner of K15 (d)'s raise exception asked, never
+    restated (P345). Any other answer, or a classifier that cannot run, is None,
+    and the required red refuses as before. HPO_PACKET_CLASSIFY replaces the
+    command (the self-test's stub)."""
+    cmd = shlex.split(os.environ.get("HPO_PACKET_CLASSIFY", "")) or [
+        sys.executable, str(ROOT / "tools/audit/seat/merge_train.py")]
+    try:
+        r = subprocess.run([*cmd, "classify", head, "--repo", REPO, "--pr", str(pr)],
+                           capture_output=True, text=True)
+    except OSError:
+        return None
+    m = re.search(rf"^APPROVAL-OWED {re.escape(head)} (.+)$", r.stdout, re.M)
+    return m.group(1) if r.returncode == 4 and m else None
 
 
 def head_note_ok(body: str, head: str) -> bool:
@@ -459,14 +479,20 @@ def build(facts: dict) -> tuple[list[str], list[str], str]:
     refusals += handoff_refusals(facts["structure"], facts["hot"], [])
     for n in facts["red_unanswered"]:
         refusals.append(f"red-unanswered: concluded red check `{n}` is not named in ## Red checks")
+    owed, owed_adv = facts.get("approval_owed"), []
     for n in sorted(set(reds) & set(REQUIRED)):
-        refusals.append(f"required-red: required context `{n}` concluded failure at {head}")
+        if owed:
+            owed_adv.append(
+                f"approval-owed: required context `{n}` concluded failure at {head} only on a budget "
+                f"raise's owed approval (merge_train.approval_owed): {owed}")
+        else:
+            refusals.append(f"required-red: required context `{n}` concluded failure at {head}")
     for w in facts["host"]:
         refusals.append(f"host-path: {w}")
     refusals += facts.get("unlanded", [])
     if facts.get("handoff"):
         refusals.append(f"handoff-not-applied: {facts['handoff']}")
-    advisories = [a for a in facts.get("advisories", [])]
+    advisories = [a for a in facts.get("advisories", [])] + owed_adv
     parts = [
         f"# Review packet #{facts['pr']}",
         f"head: {head}", f"base: {facts['base']}", "",
@@ -505,6 +531,7 @@ def gather(a) -> dict:
         unlanded = unlanded_carries(cites, carries_at, on_roster)
     runs = gh(f"repos/{REPO}/commits/{head}/check-runs?per_page=100").get("check_runs", [])
     gate = gate_digest(runs)
+    owed = approval_owed_line(a.pr, head) if set(gate[2]) & set(REQUIRED) else None
     crc, cout = tool([sys.executable, "-I", "tools/audit/carry_audit.py", "check", "--body", "{BODY}"], body)
     _, fout = tool(["node", "tools/policy/figure_lint.mjs", "--pr-body", "{BODY}", "--at", head], body)
     red_unanswered = unanswered_reds(body, head, base, gate[2], touched, existing)
@@ -513,7 +540,8 @@ def gather(a) -> dict:
     host += ref_privacy.content_refusals(ref_privacy.added_lines(base, head, repo()), ident)
     open_prs, boarded = hot_prs(touched)
     return {
-        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "branch": branch, "unlanded": unlanded,
+        "pr": a.pr, "head": head, "base": base, "body": body, "gate": gate, "approval_owed": owed,
+        "branch": branch, "unlanded": unlanded,
         "carry_rc": crc, "carry_out": cout, "figure_out": fout,
         "structure": None if a.no_structure else structure_at_merge(main, head),
         "red_unanswered": red_unanswered, "host": host, "handoff": handoff,
@@ -635,6 +663,36 @@ def _self_test() -> int:
                {"id": 2, "name": "gate", "status": "completed", "conclusion": "failure"}]
     check("required-red: the required context's latest run concluded failure refuses",
           refused("required-red", gate=gate_digest(redgate)))
+    r_o, adv_o, t_o = build({**clean, "gate": gate_digest(redgate), "approval_owed": "1 budget raise(s), planted"})
+    check("P345: a required red that is only a raise's owed approval renders: no refusal, an "
+          "`approval-owed` advisory naming the reason, in the packet",
+          r_o == [] and len(adv_o) == 1 and adv_o[0].startswith("approval-owed: required context `gate`")
+          and "1 budget raise(s), planted" in t_o)
+    with tempfile.TemporaryDirectory() as d:
+        stub = Path(d) / "classify.sh"
+        stub.write_text('echo "$*" > "$(dirname "$0")/argv"; echo "${PK_OUT:-}"; exit "${PK_RC:-1}"\n')
+        saved = os.environ.get("HPO_PACKET_CLASSIFY")
+        os.environ["HPO_PACKET_CLASSIFY"] = f"bash {stub}"
+        try:
+            os.environ.update(PK_OUT=f"APPROVAL-OWED {H} 1 budget raise(s): why", PK_RC="4")
+            got = approval_owed_line(7, H)
+            argv = (Path(d) / "argv").read_text().split()
+            os.environ.update(PK_OUT=f"RED {H} pending: none red: gate", PK_RC="1")
+            red_line = approval_owed_line(7, H)
+            os.environ.update(PK_OUT=f"APPROVAL-OWED {B} 1 budget raise(s): why", PK_RC="4")
+            other = approval_owed_line(7, H)
+            os.environ.update(PK_OUT=f"APPROVAL-OWED {H} 1 budget raise(s): why", PK_RC="1")
+            wrong_rc = approval_owed_line(7, H)
+        finally:
+            os.environ.pop("PK_OUT", None), os.environ.pop("PK_RC", None)
+            if saved is None:
+                os.environ.pop("HPO_PACKET_CLASSIFY", None)
+            else:
+                os.environ["HPO_PACKET_CLASSIFY"] = saved
+    check("P345: the reason is classify --pr's own APPROVAL-OWED line at rc 4, asked with the pull "
+          "request; RED (rc 1), a line naming another head, and the line at any rc but 4 are None (null controls)",
+          got == "1 budget raise(s): why" and argv[:2] == ["classify", H] and argv[-2:] == ["--pr", "7"]
+          and red_line is None and other is None and wrong_rc is None)
     check("required-red null: the same head with that run green renders",
           build({**clean, "gate": gate_digest(list(reversed([dict(r, id=3 - r["id"]) for r in redgate])))})[0] == [])
     running = [{"id": 1, "name": "gate", "status": "in_progress", "conclusion": None},

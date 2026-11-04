@@ -204,9 +204,10 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             "Verify each claim adversarially: mutate the fix and check the tests fail, and check "
             "every figure in the body at this head. Check that it merges with origin/main "
             "(`git merge-tree --write-tree`). Wait for CI on this head only by re-running "
-            f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s "
-            "between runs, until it exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict); "
-            "3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
+            f"`python3 tools/audit/seat/merge_train.py classify {head} --pr {pr}` in the background, at least "
+            "60 s between runs, until it exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict) "
+            "or 4 (APPROVAL-OWED: the only red is the budget raise's approval, which follows your verdict; "
+            "judge the head as GREEN and quote the line); 3 is WAIT, so run it again. Never wait with `pgrep` or `pkill`, whose `-f` pattern matches "
             "the waiter's own command line, nor on a context the ruleset does not require, such as "
             "`prelude`.\n"
             f"Output: in a fresh directory of your own (`W=$(mktemp -d)`), write verdict.md, whose first line is "
@@ -217,12 +218,13 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"mutant, a deferral, a follow-up, a task owed after the merge) is its own bullet under "
             f"`## Findings` ending in its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>` "
             f"(finding-propagation.md). Everything else (RESULT lines, re-runs, CI state, figures you "
-            f"could not re-derive) goes under `## Evidence`: tools/audit/carry_audit.py reads no item there "
-            f"as a finding unless it hands something on (deferred, for a later, follow-up, minor, advisory, "
-            f"residual, still has to, not blocking ...; a check that does not block is evidence only in "
-            f"the clause saying it is not a required check and does not block, never in the rest of its "
-            f"sentence: a nit or defect beside it is a finding), and the merge train parks a verdict holding a "
-            f"finding with no `Carry:`. Put the evidence files in `ev/` beside it, and make at least one file under `ev/` contain the full 40-hex head "
+            f"could not re-derive) goes under `## Evidence`: tools/audit/carry_audit.py reads an item there, "
+            f"and under any heading of a merge verdict but `## Findings`, `## Friction`, a block heading and a "
+            f"note heading (Residuals, Follow-ups, Notes ...), by its shape alone: a finding only when it opens "
+            f"with a lead word (Residual:, Follow-up:, Out of scope: ...) or carries a `Carry:`, so a defect "
+            f"you hand on goes under `## Findings`, and bus.sh refuses a verdict holding a finding with no "
+            f"valid `Carry:`. Put the evidence files in `ev/` beside it, under 25 MB in all (cite a large log "
+            f"by path and keep its tail: a ~30 MB ev/ once failed its push), and make at least one file under `ev/` contain the full 40-hex head "
             f"`{head}` (e.g. `ev/HEAD.txt` holding the head you reviewed, beside your command output): "
             f"bus.sh refuses a verdict whose `ev/` names no head. Do NOT run "
             f"bus.sh: its dispatch record lives on the orchestrator's machine, which publishes the verdict "
@@ -999,10 +1001,11 @@ def self_test() -> int:
           "file under `ev/` contain the full 40-hex head `" + head + "`" in msg and "ev/HEAD.txt" in msg)
     check("the reviewer is told to separate findings, each with its own Carry:, from evidence",
           "`## Findings` ending in its own `Carry: " in msg and "goes under `## Evidence`" in msg
-          and "`## Block`" in msg and "not a required check" in msg)
-    check("the reviewer is told the not-required carve-out is the check's clause, never its sentence",
-          "the clause saying it is not a required check and does not block, never in the rest of its sentence"
-          in msg)
+          and "`## Block`" in msg)
+    check("the reviewer is told carry_audit reads Evidence and a merge verdict's other sections by shape (P308, P314)",
+          "by its shape alone: a finding only when it opens with a lead word" in msg
+          and "a defect you hand on goes under `## Findings`" in msg)
+    check("the reviewer is told to keep ev/ under 25 MB in all (#2563's HTTP 400)", "under 25 MB in all" in msg)
     check("the reviewer is given the unbracketed first-line grammar",
           "blocked " + head + " <class>: <reason>" in msg and "[class: reason]" not in msg)
     check("the prompt builds no repository (throwaway_git.py --check refuses a raw init)",
@@ -1029,9 +1032,11 @@ def self_test() -> int:
     check("every role's setup line runs the toolchain check and stops on its REFUSE (#2709)",
           all(f"`{SETUP_CHECK}`, and on REFUSE stop" in t.splitlines()[1] for t in prompts.values()))
     rv = prompts["reviewer"]
-    check("the reviewer waits for CI only by re-running merge_train.py classify, 60 s apart, until 0, 1 or 2",
-          f"`python3 tools/audit/seat/merge_train.py classify {head}` in the background, at least 60 s" in rv
-          and "exits 0 (GREEN), 1 (RED) or 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
+    check("the reviewer waits for CI only by re-running merge_train.py classify --pr, 60 s apart, until 0, 1, 2 "
+          "or 4 (APPROVAL-OWED, P345)",
+          f"`python3 tools/audit/seat/merge_train.py classify {head} --pr 7` in the background, at least" in rv
+          and "or 4 (APPROVAL-OWED: " in rv
+          and "exits 0 (GREEN), 1 (RED), 2 (unreadable: say so in the verdict)" in rv and "3 is WAIT" in rv)
     check("the reviewer is forbidden a pgrep or pkill waiter and a context the ruleset does not require",
           "Never wait with `pgrep` or `pkill`" in rv and "such as\n`prelude`" not in rv and "such as `prelude`" in rv)
     check("no other role is told to wait on merge_train.py classify (null control)",

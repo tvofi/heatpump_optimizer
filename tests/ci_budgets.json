@@ -2,6 +2,7 @@
  "archscore._inlined_bases": 0,
  "archscore.card_clone_copies": 108,
  "archscore.card_dead_definitions": 0,
+ "archscore.card_rule_copies": 72,
  "archscore.computed_attr_access": 32,
  "archscore.coord_footprint": 2592,
  "archscore.coordinator_multiassigned_attrs": 120,

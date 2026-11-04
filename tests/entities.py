@@ -9087,8 +9087,10 @@ for _step in options._MENU_LABELS:
     if not _sresult.get("menu_options"):
         _odd_outcomes.append(f"{_step}: menu without menu_options")
         continue
-    if _step == "setup_overview":
-        # The one read-only page: back to the menu with nothing written.
+    if _step in ("setup_overview", "factory_reset"):
+        # The one read-only page: back to the menu with nothing written. And
+        # the factory reset (R10-FACTORY-RESET): untouched, it is unconfirmed,
+        # which is the menu back with nothing written -- its null control.
         if _sf._entry.options or _sf.hass.config_entries.updated:
             _unwritten_menus.append(_step)
         continue
@@ -10064,6 +10066,45 @@ for _lang, _texts in (("strings.json", strings), *(
         f"{_lang}: no translation leaf carries a double-escaped \\u sequence",
         not _escaped,
         ", ".join(_escaped[:6]),
+    )
+
+# udf-strings-history (R10-UX-HEALTH part 3): text a user reads states what a
+# setting does now, never how the integration used to behave -- "as before"
+# or "used to be a flat repeat" means nothing to someone who never ran the
+# old version. The markers are the change-history phrasings each catalogue
+# held when this check was written (design choice: a phrase list, because
+# tense has no syntactic shape; "used to <verb>" as instrument -- "used to
+# read your prices" -- and runtime history in a repair -- "until now the plan
+# was held" -- are current behaviour and stay out of it). The second round's
+# phrasings name the integration's own past without "as": "how it worked
+# before" (peak_tariff_offpeak_factor) and "keeps the old rule"
+# (two_zone_mode); "previously", "formerly" and sv "förut", "numera" held no
+# leaf of current behaviour when added, so they are refused outright.
+_HISTORY_MARKERS = {
+    "en": re.compile(
+        r"\b(?:as before|used to be|(?:worked|behaved|did) before|the old (?:rule|behaviou?r|way)"
+        r"|previously|formerly)\b", re.IGNORECASE),
+    "sv": re.compile(
+        r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
+        r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+}
+
+
+def _history_leaves(data, marker, prefix=""):
+    if isinstance(data, dict):
+        return [hit for key, value in data.items()
+                for hit in _history_leaves(value, marker, f"{prefix}.{key}" if prefix else key)]
+    return [prefix] if isinstance(data, str) and marker.search(data) else []
+
+
+for _lang, _code, _texts in (("strings.json", "en", strings), *(
+    (f"{name}.json", name, data) for name, data in files.items()
+)):
+    _history = _history_leaves(_texts, _HISTORY_MARKERS[_code])
+    R.check(
+        f"{_lang}: no UI text describes how the integration used to behave",
+        not _history,
+        f"{len(_history)}: " + ", ".join(_history[:6]),
     )
 
 # #828: the key-identity check only compares the three files to each
@@ -12444,7 +12485,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
-        "system_identification", "tank_cooling"
+        "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
@@ -15421,6 +15462,28 @@ R.check(
 )
 
 _heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+# The factory reset's handler (R10-FACTORY-RESET) hands the entry's coordinator
+# and the scope to ``coordinator.async_factory_reset``; the reset itself is
+# features.py's, over real stores.
+from heatpump_optimizer import services as _svc_module  # noqa: E402
+
+_svc_fr_real, _svc_fr_args = _svc_module.async_factory_reset, []
+
+
+async def _svc_fr_record(coord, scope):
+    _svc_fr_args.append((coord, scope))
+    return True  # applied: a refused reset raises (features.py drives that arm)
+
+
+_svc_module.async_factory_reset = _svc_fr_record
+_svc_fr = _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+_svc_module.async_factory_reset = _svc_fr_real
+R.check(
+    "factory_reset hands that entry's coordinator its scope and reports both",
+    _svc_fr_args == [(_svc_coord, "learners")]
+    and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
+    str(_svc_fr),
+)
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",
     "reset_heat_loss" in _svc_log
@@ -15466,6 +15529,7 @@ _svc_covered = {
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
     const.SERVICE_RESET_HEAT_LOSS,
+    const.SERVICE_FACTORY_RESET,
 }
 R.check(
     "every registered service was invoked above",
@@ -16091,6 +16155,72 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
+    """P206 at run.sh level (#3051 review): run.sh's own leased/run_always,
+    sourced and driven against a stub tree recording stress.py at 1 s. With
+    the `.waited` marker absent the run is recorded with its rc; present (the
+    lease held elsewhere past the bound) it is `#skip`, named unrun, and the
+    lane console word is SKIP, not ok."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|run_always|leased)\(\) \{.*?^\}\n", text))
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        (td / "tests/closures.json").write_text('{"recorded": {"tests/stress.py": {"seconds": 1}}}')
+        lock = Path(tds) / "lock"
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; LANE=x; step=0; WAIT_UNRUN=\n%s\nrun_always \"$PYTHON\" tests/stress.py\n"
+                          % (sys.executable, fns))
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith(("HPO_GATE", "HPO_SLOT"))}
+        env["HPO_GATE_LOCK_DIR"] = str(lock)
+
+        def drive(name: str, jobs: str) -> _subprocess.Popen:
+            work = Path(tds) / name
+            work.mkdir()
+            return _subprocess.Popen(["bash", str(script)], cwd=td, text=True,
+                                     env={**env, "JOBS": jobs, "WORKDIR": str(work)},
+                                     stdout=_subprocess.PIPE, stderr=_subprocess.DEVNULL)
+
+        def row(name: str) -> list[str]:
+            lines = (Path(tds) / name / "x.manifest").read_text().splitlines()
+            return lines[0].split("\t") if len(lines) == 1 else lines
+
+        free = drive("free", "1")
+        free_out = free.communicate(timeout=60)[0]
+        free_row, free_ran = row("free"), (td / "stress.ran").exists()
+        (td / "stress.ran").unlink(missing_ok=True)
+        _gate_lock.take("other", lock_dir=lock, lease_seconds=120, wait=False)
+        try:
+            serial, lanes = drive("serial", "1"), drive("lanes", "3")
+            serial_out = serial.communicate(timeout=90)[0]
+            lanes_out = lanes.communicate(timeout=90)[0]
+        finally:
+            _gate_lock.release("other", lock_dir=lock)
+        serial_row, lanes_row = row("serial"), row("lanes")
+        held_ran = (td / "stress.ran").exists()
+    skip = ["0", "#skip tests/stress.py"]
+    mapped = (free_ran and free_row[1] == "0" and free_row[3].endswith(" tests/stress.py")
+              and "SKIP:" not in free_out and not held_ran
+              and serial_row[1::2] == skip and lanes_row[1::2] == skip
+              and "SKIP: tests/stress.py (waited past its bound" in serial_out)
+    word = _re.findall(r"\] (\S+) +\S+ tests/stress\.py \(", lanes_out)
+    return {
+        "map": (mapped, f"absent: ran={free_ran} row={free_row}; present: ran={held_ran} "
+                        f"serial={serial_row} lanes={lanes_row}"),
+        "word": (word == ["SKIP"], f"lane console words={word}"),
+    }
+
+
+try:
+    _gl_wu = _gl_run_sh_wait_unrun()
+except Exception as _gl_exc:  # a crash is these checks' red, not the script's
+    _gl_wu = {k: (False, f"raised {_gl_exc!r}") for k in ("map", "word")}
+R.check("run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)",
+        *_gl_wu["map"])
+R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
+        *_gl_wu["word"])
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
@@ -28338,6 +28468,56 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- bare array expansion under set -u (R10-FLY-BUS-BASH32, triage P303) -------
+#
+# macOS /bin/bash 3.2 rejects an EMPTY array's `"${a[@]}"` under `set -u`; CI's
+# bash 5 expands it cleanly, so no run-time row here can see the defect -- this
+# is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
+# tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and every file is judged, `set -u` or not,
+# because a sourced library runs under its caller's -u; a reason placed after a
+# `# mut:<name>` marker is refused on any line, since the self-tests find their
+# mutant line by that marker at the line's end.
+import importlib.util as _ba_util  # noqa: E402
+
+try:
+    _ba_spec = _ba_util.spec_from_file_location(
+        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+    _ba = _ba_util.module_from_spec(_ba_spec)
+    _ba_spec.loader.exec_module(_ba)
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    _ba_rows = (
+        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+         "an allow-marked never-empty site passes (null)"),
+        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
+        (_ba.self_test.__call__() == 0, "its own self-test passes"),
+    )
+except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+R.check(
+    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    not _ba_hits,
+    "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
+)
+for _ba_ok, _ba_name in _ba_rows:
+    R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
+
 # --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
 #
 # `record` reddens on main after every rowless merge, and the beat that clears
@@ -29409,13 +29589,13 @@ timeout-minutes: 10
 env:
   HPO_JOB_GRADES: nothing
 steps:
-  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       fetch-depth: 0
       # policy_lint.mjs's citation resolvers ask git about cited tags.
       fetch-tags: true
 
-  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+  - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
     with:
       python-version: "3.13"
 
@@ -29463,7 +29643,7 @@ steps:
   # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
   # fresh coverage.json to grade and the recorded green already passed the
   # ratchet on the identical inputs. The canon matches the workflow's arm.
-  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+  - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
     if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
@@ -29516,7 +29696,7 @@ steps:
       fi
       exit 0
 
-  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+  - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     with:
       node-version: "22"
@@ -40757,6 +40937,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_async_load_thermal_learning"): 1,
         ("coordinator.py", "_async_setup_peak_guard"): 1,
         ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        # R10-FACTORY-RESET: one line per reset the user asked for, applied
+        # or refused by Home Assistant's unload.
+        ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
     },
