@@ -12,8 +12,13 @@ Reads only the tree and the files beside it. No network.
   fast_scripts.json  per run, the seconds of every script `tests / fast
                      (3.14)` ran: its job log's tests/run.sh `ok ... (Ns)`
                      lines, a 40-hex SHA in a command replaced by `SHA`.
+  fleet.json         #3201's probed CI runs (41854976917, 41862133797,
+                     41862145105), cut to the same fields plus the fast
+                     lane's script seconds off its log's wall-clock table:
+                     what PROBE_REFERENCE_S is derived from (section 5) and
+                     the post-merge grade is predicted from (section 6).
   bridge.json        the probe and the same scripts timed on one machine:
-                     what PROBE_REFERENCE_S is derived from (section 5).
+                     the refuted off-fleet bridge (section 5's control).
 
   1. diagnose  the shipped grade (fastest draw) over the newest windows, and
                the run whose ageing out moved it.
@@ -32,7 +37,17 @@ Reads only the tree and the files beside it. No network.
                300 s more work in the newest k runs must move it by most of
                it at k = 9 and all of it from k = 12 (the null control of
                the first two), beside the grade at main.
-  5. bridge    PROBE_REFERENCE_S from bridge.json, and its spread.
+  5. bridge    PROBE_REFERENCE_S re-derived from fleet.json by
+               tools/audit/seat/probe_bridge.py's rule, equal to the tree's;
+               the one-machine bridge.json beside it, 21 % under the fleet.
+  6. forward   the first push after the merge, graded with each fleet run
+               whose four heavy jobs succeeded as its merge run (each
+               probed) over the newest 15 push
+               runs, under the tree's PROBE_REFERENCE_S and, as the
+               control the constant is load-bearing, under the one-machine
+               17.50 / 18.92; every probed job 1.9x slower (wall and
+               probe) must not move it past the probe's rounding, and 300 s
+               more `tests / closures` work must.
 
 UNIT is the reference host's factor: the median factor of the fleet's fast
 class (factors under FAST_CLASS_BELOW, a gap separating 0.61 from 0.74), the
@@ -161,6 +176,69 @@ def shipped_at_main(runs):
     return round(max(sum(price.get(n, 0.0) for n in ch) for ch in chains) / 60, 3)
 
 
+HEAVY = ("tests / fast (3.14)", "tests / arch-instrument", "tests / coverage", "tests / closures")
+
+
+def as_merge(r):
+    """A fleet run as a push run's stand-in: its cancelled `tests / *` jobs
+    (a superseded or failed PR head's) dropped, as _walk refuses a run with
+    one."""
+    r = copy.deepcopy(r)
+    r["jobs"] = [j for j in r["jobs"]
+                 if not (j["name"].startswith(cr.TESTS_JOB_PREFIX) and j.get("conclusion") == "cancelled")]
+    return r
+
+
+def slowed(r, k):
+    """Every probed job of r on a host k times slower: its wall and its probe
+    times k, everything created once it had ended shifted (grown's rule)."""
+    for name in HEAVY:
+        j = next((x for x in r["jobs"] if x["name"] == name and x.get("completed_at")), None)
+        if j is None:
+            continue
+        r = grown(r, (k - 1) * wall_s(j), job=name)
+        j = next(x for x in r["jobs"] if x["name"] == name and x.get("completed_at"))
+        for s in j.get("steps") or []:
+            t0 = cr._at(s["started_at"]).timestamp()
+            s["completed_at"] = iso(t0 + k * (cr._at(s["completed_at"]).timestamp() - t0))
+    return r
+
+
+def forward(runs, fleet, budget) -> bool:
+    """Section 6: the first post-merge push's grade from the fleet's runs."""
+    limit = budget["critical_path_minutes"] + budget["critical_path_minutes_band"]
+    tree, local = dict(cr.PROBE_REFERENCE_S), {"3.13": 18.92, "3.14": 17.50}
+
+    def grade(refs, win):
+        cr.PROBE_REFERENCE_S.update(refs)
+        try:
+            return cr.window_work_minutes(win)
+        finally:
+            cr.PROBE_REFERENCE_S.update(tree)
+    ok = True
+    print(f"6. forward: the merge push grades the newest {W} push runs, none probed: "
+          f"{cr.window_work_minutes(runs[:W])} against {limit:.3f}")
+    for r in map(as_merge, fleet):
+        failed = [j["name"] for j in r["jobs"] if j["name"] in HEAVY and j.get("conclusion") != "success"]
+        if failed:
+            # A merge run lands green: a run whose heavy job failed prices
+            # none of that job's work and stands in for no merge run.
+            print(f"   fleet run {r['id']}: not a stand-in, {failed} did not succeed")
+            continue
+        win = [r] + runs[:W - 1]
+        g, g_local = grade(tree, win), grade(local, win)
+        slow = grade(tree, [slowed(r, 1.9)] + runs[:W - 1])
+        more = grade(tree, [grown(r, 300, job="tests / closures")] + runs[:W - 1])
+        probes = {j["name"]: wall_s({"started_at": s["started_at"], "completed_at": s["completed_at"]})
+                  for j in r["jobs"] for s in j.get("steps") or []}
+        tol = g / min(probes.values())
+        print(f"   merge run {r['id']}: first push after {g} ({'GREW' if g > limit else 'within'}); "
+              f"under 17.50 / 18.92 {g_local}; probed jobs 1.9x slower {slow - g:+.3f} "
+              f"(rounding {tol:.3f}); +300 s closures {more - g:+.3f}")
+        ok &= abs(slow - g) <= tol and more - g > 0
+    return ok
+
+
 def main() -> int:
     runs, scripts = load()
     holds = True
@@ -257,20 +335,22 @@ def main() -> int:
     print(f"   +300 s on {LANE} in the newest k runs (probed / at main; all of it "
           f"probed is >= {want:.2f}): " + "  ".join(line))
 
+    sys.path.insert(0, str(ROOT / "tools/audit/seat"))
+    import probe_bridge as pb
+    got = pb.from_record(HERE / "fleet.json")
+    bad = pb.disagreement(got, cr.PROBE_REFERENCE_S)
+    print(f"5. bridge: fleet.json, {got['runs']} probed fast (3.14) jobs imply 3.14 {got['implied']} "
+          f"-> {got['3.14']}; heavy-job probes {got['probes']}; 3.13/3.14 rank ratio {got['ratio']} "
+          f"-> 3.13 {got['3.13']}; in the tree {cr.PROBE_REFERENCE_S}: {'; '.join(bad) or 'agree'}")
+    holds &= not bad
     b = json.loads((HERE / "bridge.json").read_text())
     rat = {k: b["scripts_s"][k] / ref[k] for k in heavy if k in b["scripts_s"]}
     f_local = statistics.median(rat.values())
     r14 = b["probe_s"]["3.14"] / f_local * unit
-    r13 = r14 * b["probe_s"]["3.13"] / b["probe_s"]["3.14"]
-    print(f"5. bridge: {len(rat)} scripts run alone, local factor {f_local:.3f} "
-          f"(per script {min(rat.values()):.2f}..{max(rat.values()):.2f}); probe "
-          f"3.14 {b['probe_s']['3.14']:.2f} s, 3.13 {b['probe_s']['3.13']:.2f} s locally")
-    par = [b["parallel_scripts_s"][k] / ref[k] for k in heavy if k in b["parallel_scripts_s"]]
-    print(f"   the parallel arm, not used: {len(par)} scripts run three-wide here, "
-          f"{min(par):.2f}..{max(par):.2f}, median {statistics.median(par):.3f}")
-    print(f"   PROBE_REFERENCE_S derived 3.14 {r14:.2f}, 3.13 {r13:.2f}; in the tree {cr.PROBE_REFERENCE_S}")
-    holds &= (abs(r14 - cr.PROBE_REFERENCE_S["3.14"]) < 0.006
-              and abs(r13 - cr.PROBE_REFERENCE_S["3.13"]) < 0.006)
+    print(f"   the one-machine bridge, not used: local factor {f_local:.3f}, probe "
+          f"{b['probe_s']['3.14']:.2f} s -> 3.14 {r14:.2f}, {(1 - r14 / got['3.14']) * 100:.0f} % under the fleet")
+
+    holds &= forward(runs, json.loads((HERE / "fleet.json").read_text())["workflow_runs"], budget)
     print(f"RESULT holds={int(holds)}")
     return 0 if holds else 1
 

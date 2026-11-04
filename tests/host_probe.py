@@ -8,16 +8,18 @@ Hosted runners differ ~2x on the same work (`tests / fast (3.14)` read
 1008..2094 s over 60 push runs on one tree), so a job's wall reads which host
 it drew. This script does the same pure-Python work on every host and checks
 its own checksum, so its duration is the host's speed and nothing else. CI
-runs it as a step named PROBE_STEP in each heavy `tests / *` job, under the
-runner image's own `/usr/bin/python3` (never setup-python's, which differs
-per job), and tests/ci_ratchet.py reads that step's duration off the jobs
-API to price the job's work in reference-host seconds (normalised_work).
+runs it as a step named PROBE_STEP in each heavy `tests / *` job, after
+actions/setup-python, so under the job's own matrix interpreter -- the
+`(python X.Y)` the step's name carries, which selects PROBE_REFERENCE_S's
+per-interpreter value -- and tests/ci_ratchet.py reads that step's duration
+off the jobs API to price the job's work in reference-host seconds
+(reference_work).
 
 The work never changes: a change to ROUNDS or to work() changes the unit
 every recorded critical_path_minutes is in, so CHECKSUM refuses it on
 every CI run and tests/entities.py pins one round of it; a deliberate change
-re-derives PROBE_REFERENCE_S and re-records the budget in the same pull
-request.
+re-derives PROBE_REFERENCE_S on the fleet (tools/audit/seat/probe_bridge.py,
+a new fleet.json) and re-records the budget in the same pull request.
 """
 from __future__ import annotations
 
