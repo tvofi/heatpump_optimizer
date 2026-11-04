@@ -1,0 +1,14 @@
+## PR mode vs origin/main
+machinery_ratchet: PR mode, #3208 as the candidate on origin/main; window 580 merge(s): 62 production, 223 machinery, 295 record; 13730 product line(s), 202169 nonproduct
+  ok   nonproduction_merges 518 <= 521 + band 5
+  ok   churn_per_kilo_product_lines 14725 <= 14797 + band 3636
+
+real	0m16.349s
+user	0m10.334s
+sys	0m5.953s
+rc=0
+## push mode at head
+machinery_ratchet: push mode at HEAD; window 580 merge(s): 63 production, 212 machinery, 305 record; 14922 product line(s), 216086 nonproduct
+  ok   nonproduction_merges 517 <= 521 + band 5
+  ok   churn_per_kilo_product_lines 14481 <= 14797 + band 3636
+rc=0
