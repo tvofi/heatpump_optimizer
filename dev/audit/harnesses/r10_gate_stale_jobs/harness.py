@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
 """Finder's harness for the stale jobs listing: gate.judge over a world whose listing
-catches up at a set time. python3 harness.py <tree with tools/ci> ; prints one line per shape.
+catches up at a set time. python3 -I harness.py [tree with tools/ci, default this checkout]
+prints one line per shape, then the mismatch count; rc 1 on any mismatch.
 Shapes carry the measured lower-bound lags of the runs they name."""
 import sys
-sys.path.insert(0, sys.argv[1] + "/tools/ci")
+from pathlib import Path
+TREE = sys.argv[1] if len(sys.argv) > 1 else str(Path(__file__).resolve().parents[4])
+sys.path.insert(0, TREE + "/tools/ci")
 import gate as G
 ENV = {"GITHUB_SHA": "M", "GITHUB_REPOSITORY": "o/r", "GITHUB_RUN_ID": "100", "GITHUB_RUN_ATTEMPT": "1"}
 EV = {"action": "synchronize", "pull_request": {"number": 7, "base": {"ref": "main"}, "head": {"sha": "H"}}}
@@ -60,3 +63,4 @@ for name, kw, want in SHAPES:
     bad += not ok
     print(f"{'ok  ' if ok else 'BAD '} want {want:4} got {out[:58]:58} waited {int(sum(naps)):4} s  {name}")
 print(f"mismatches {bad} of {len(SHAPES)}")
+sys.exit(1 if bad else 0)
