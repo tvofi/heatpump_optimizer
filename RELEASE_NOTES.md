@@ -1,3 +1,19 @@
+## v7.1.2
+
+**Patch stamp: 30 merges since v7.1.1.** Stamped mechanically by the round-10 orchestrator's stamp daemon.
+
+User-visible changes:
+
+- R10-REPLAY-REAL-DAY: a recorded owner day replays through the away path as a regression guard (#3078).
+- R10-DEPS-PIP-BUMP: deps pip bump (#3147).
+- R10-ARCHSCORE-SPELLINGS: archscore spellings (#3169).
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (15): #3055, #3065, #3077, #3090, #3149, #3150, #3151, #3153, #3160, #3163, #3164, #3165, #3168, #3173, #3175.
+- Triage rulings (8): #3154, #3157, #3158, #3159, #3161, #3171, #3172, #3177.
+- Record and bot merges (4): #3054, #3155, #3162, #3176.
+
 ## v7.1.1
 
 **Patch stamp: 107 merges since v7.1.0.** Users were waiting on a set of fixes: a factory reset, the ceiling probe, and a run of away-mode and learner corrections. The rest of the window is the round-10 engineering and audit machinery.
