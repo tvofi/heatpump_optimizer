@@ -1,0 +1,7 @@
+NOTE body item ea502bdc: dismissed:statement of scope, not a finding
+NOTE body item ea502bdc: dismissed:numbering note, not a finding
+NOTE body item f02f1c55: dismissed:carry 0 stays in the owner's plan-regain card 9 brief for r10-ci-runner-fixes, unchanged
+NOTE review 0 item 4b1aef1d: R10-CI-RUNNER-FIXES
+NOTE review 0 item 4eb48992: R10-CI-RUNNER-FIXES
+NOTE review 0 item b7dae1a7: dismissed:evidence, not a finding
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
