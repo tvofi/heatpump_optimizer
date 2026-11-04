@@ -170,7 +170,7 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
   local d n h o why
   d=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
-    && n=$(git -C "$d" rev-list --count HEAD..origin/main -- "${PR_FRESH_PATHS[@]}" 2>/dev/null) \
+    && n=$(git -C "$d" rev-list --count HEAD..origin/main -- ${PR_FRESH_PATHS[@]+"${PR_FRESH_PATHS[@]}"} 2>/dev/null) \
     || pr_refuse "could not count what origin/main adds over the checkout holding $d"
   [ "$n" != 0 ] || return 0
   why="STALE CHECKOUT $h behind origin/main $o by $n commit(s) touching tools/audit/seat tools/pr"
@@ -237,15 +237,16 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   pr_descendants $$
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
   pr_lead_stop  # mut:lead
-  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done  # never-empty: the early return two lines up leaves when PR_REAP_PIDS is empty
   while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
     alive=()
-    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done
+    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done  # never-empty: the early return above the loop, then the alive check each pass, keep PR_REAP_PIDS non-empty
     [ "${#alive[@]}" -gt 0 ] || return 0
-    PR_REAP_PIDS=("${alive[@]}")
+    PR_REAP_PIDS=("${alive[@]}")  # never-empty: the line above returns when alive is empty
     sleep 0.1
     n=$((n + 1))
   done
+  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
   for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
   return 0
 }
