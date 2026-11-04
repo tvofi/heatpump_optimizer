@@ -43,12 +43,18 @@ def load_export():
     return module
 
 
-def load_bundle(path: Path) -> dict:
+def read_download(path: Path) -> dict:
+    """The file as handed, gunzipped and parsed, with any wrapper intact: the
+    reader for a harness that measures the wrapper itself."""
     raw = path.read_bytes()
     if path.suffix == ".gz" or raw[:2] == b"\x1f\x8b":
         import gzip
         raw = gzip.decompress(raw)
-    return unwrap_download(json.loads(raw))
+    return json.loads(raw)
+
+
+def load_bundle(path: Path) -> dict:
+    return unwrap_download(read_download(path))
 
 
 def unwrap_download(doc: dict) -> dict:
@@ -235,12 +241,12 @@ def _quiet_ingest(bundle: dict, **kw) -> Results:
         return ingest(bundle, **kw)
 
 
-def _via_file(doc: dict) -> dict:
+def _via_file(doc: dict, reader=None) -> dict:
     import tempfile
     with tempfile.TemporaryDirectory() as tmp:
         path = Path(tmp) / "download.json"
         path.write_text(json.dumps(doc))
-        return load_bundle(path)
+        return (reader or load_bundle)(path)
 
 
 def gate_checks() -> list[tuple[str, bool, str]]:
@@ -253,7 +259,9 @@ def gate_checks() -> list[tuple[str, bool, str]]:
         clean = ingest(bundle)
         poisoned = ingest(copy.deepcopy(bundle), corrupt="accuracy")
     leaked = "planted-leak-caught" not in clean.fails
-    wrapped = _quiet_ingest(_via_file(_download(bundle)))
+    download = _download(bundle)
+    as_handed = _via_file(download, read_download)
+    wrapped = _quiet_ingest(_via_file(download))
     repeat = _quiet_ingest(_tail_repeat_bundle())
     tampered = _quiet_ingest(_tail_repeat_bundle(tamper=True))
     disjoint = _quiet_ingest(_tail_repeat_bundle(disjoint=True))
@@ -268,6 +276,8 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          leaked, buf.getvalue()[-200:]),
         ("debug ingest: a download wrapped as HA writes it ingests like the bare bundle",
          not wrapped.fails, ",".join(wrapped.fails)),
+        ("debug ingest: read_download keeps the wrapper the harnesses measure",
+         as_handed == download, ",".join(sorted(as_handed))),
         ("debug ingest: rows repeating the newest sample and covering half the store re-derive the bias",
          not repeat.fails, ",".join(repeat.fails)),
         ("debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived",

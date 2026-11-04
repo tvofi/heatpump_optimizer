@@ -6,8 +6,8 @@ Metrics (one line each):
      restart gap (>1 h) preceding them; bundle_unwrapped=1 when data.debug found.
   M2 bundle_violations: export.violations over the debug bundle (whole, and with
      a planted-credential arm, which must be > 0).
-  M3 ingest_fails_wrapped / ingest_fails_unwrapped: debug_ingest.ingest fails on the
-     download as handed vs on data.debug; bias_delta_tail vs bias_delta_by_t: the
+  M3 ingest_fails_wrapped / ingest_fails_unwrapped: debug_ingest.ingest fails on what
+     load_bundle hands it from the download vs on data.debug; bias_delta_tail vs bias_delta_by_t: the
      stage-4 re-derivation as written (last N rows, rows repeat the latest sample)
      vs rows deduplicated by sample t and matched to the store window.
      Count key: the |store bias - rows bias| the stage-4 check gates on (< 0.05).
@@ -15,7 +15,8 @@ Metrics (one line each):
 Command (export root):
   PYTHONPATH=tests/hastub ~/.local/state/hpo/venv-ci/bin/python3 \
     dev/audit/rounds/round10/D15/s1/intake.py --bundle <diag.json> [--perturb dedupe]
-Perturbations: dedupe (M3 stage 4), unwrap (M3 wrapper), nonempty (M3 stage 2),
+Perturbations: dedupe (M3 stage 4), unwrap (M3 wrapper: flips load_bundle's unwrap,
+  so the wrapped arm moves 6 -> 1 before the unwrap fix and 0 -> 6 after), nonempty (M3 stage 2),
   boolkey (M2 credential rule), declare (M4 DOMAINS); each named finding's number moves.
 Expected (baseline fe01b938f71b, live bundle 2026-10-14): ingest_fails_wrapped=6,
   ingest_fails_unwrapped=1, bias_delta_tail=0.115 +-0.001, bias_delta_by_t=0.000
@@ -133,7 +134,7 @@ def _get(root, dotted):
     return node
 
 
-def m3(download, dbg, perturb):
+def m3(download, dbg, perturb, handed):
     def run(b):
         buf = io.StringIO()
         with redirect_stdout(buf):
@@ -154,8 +155,8 @@ def m3(download, dbg, perturb):
         d2["stores"][acc]["accuracy"]["samples"] = [
             s for s in d2["stores"][acc]["accuracy"]["samples"] if _st(s) in keep]
         dbg = d2
-    if perturb == "unwrap":  # ingest unwraps the download's data.debug itself
-        download = (download.get("data") or {}).get("debug") or download
+    if perturb == "unwrap":  # flip the tool's unwrap: bare if it hands the wrapper, else the wrapper
+        handed = dbg if handed == download else download
     if perturb == "nonempty":  # stage 2 refuses an absent replay half
         orig = di.load_export
         def strict():
@@ -163,7 +164,7 @@ def m3(download, dbg, perturb):
             e.violations = lambda p, conf=None: (["replay: absent"] if not p else v(p, conf))
             return e
         di.load_export = strict
-    rw, _ = run(download)
+    rw, _ = run(handed)
     ru, out = run(dbg)
     print(f"RESULT replay_clean_passed_on_absent_replay={int('replay-clean' not in ru.fails and not dbg.get('replay'))} bool")
     print(f"RESULT ingest_fails_wrapped={len(rw.fails)} count")
@@ -193,7 +194,7 @@ def m4(dbg, perturb=""):
         D["pump_duty"]["written/silent/1"] = D["pump_duty"]["written/mode/1"]
         D["snapshots"]["snapshots/#/learners/peak_tracker"] = "accuracy/peaks"
     for key, doc in dbg["stores"].items():
-        name = store_mod._store_name(key)
+        name = store_mod.store_name(key)
         if store_mod._sanitize(doc) != doc:
             dirty += 1; print("  dirty:", key)
         bad = [(p, v) for p, k, d, v in store_mod.stored_fields(name, doc)
@@ -205,7 +206,7 @@ def m4(dbg, perturb=""):
             print(f"  off-domain {name}: {'/'.join(map(str, p))} ({type(v).__name__})")
     sv = dbg["manifest"].get("store_versions") or {}
     for key, ver in sv.items():
-        name = store_mod._store_name(key)
+        name = store_mod.store_name(key)
         if not isinstance(ver, int) or ver < 1:
             refused += 1
     print(f"RESULT store_docs={len(dbg['stores'])} count")
@@ -220,12 +221,14 @@ def main():
     ap.add_argument("--perturb", choices=["", "dedupe", "declare", "boolkey", "unwrap", "nonempty"], default="")
     a = ap.parse_args()
     t0p, t0t = time.process_time(), time.thread_time()
-    download = di.load_bundle(a.bundle)
+    # the file as handed; a tree before read_download has load_bundle as that reader
+    download = getattr(di, "read_download", di.load_bundle)(a.bundle)
     dbg = (download.get("data") or {}).get("debug") or download
     print(f"RESULT bundle_unwrapped={int(dbg is not download)} bool")
     global PERTURB
     PERTURB = a.perturb
-    m1(dbg); m2(dbg); m3(download, dbg, a.perturb); m4(dbg, a.perturb)
+    # the wrapped arm is the tool's own path: what load_bundle hands ingest
+    m1(dbg); m2(dbg); m3(download, dbg, a.perturb, di.load_bundle(a.bundle)); m4(dbg, a.perturb)
     tf = (time.process_time() - t0p) / max(time.thread_time() - t0t, 1e-9)
     print(f"RESULT thread_factor={tf:.3f}")
     print(f"RESULT load1={os.getloadavg()[0]:.2f}")
