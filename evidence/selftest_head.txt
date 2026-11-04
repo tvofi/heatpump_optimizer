@@ -52,6 +52,7 @@ push runs: 3 (3 CI)
   ok   one run of a job past three times its fastest does not move the grade (32.1, not 102.1)
   ok   a failed job never prices (32.1, not 15.3)
   ok   a cancelled job never prices (32.1, not 31.95)
+  ok   the other-work floor sits at a third of the window median (12.3: a half would read 30.3, a quarter 9.3)
   ok   the grade reads the newest PUSH_WINDOW runs, a record the largest of its every PUSH_WINDOW-run window (32.1, 63.9)
   ok   derive grades the newest window and a --record derive writes the largest window
   ok   the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band
@@ -61,4 +62,4 @@ push runs: 3 (3 CI)
   ok   no band row is zero tolerance (34.467 on 34.267 is growth)
   ok   a band row is a known, non-negative bound and not a graded metric
   ok   --record carries the band over unchanged and re-records every derived metric
-ci-ratchet self-test: 52 checks, 0 failed
+ci-ratchet self-test: 53 checks, 0 failed

@@ -1,2 +1,1 @@
-WAIT 3f7777a59bc0f95fc47885e68e3f6d4e39e60d55 pending: gate red: none
-exit 3
+GREEN e5ea0a66004f01242d27d0c49b0bfecf1bde724a pending: none red: none
