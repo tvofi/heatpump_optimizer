@@ -1,0 +1,18 @@
+== m5
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb26be357..5f88f1e62 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -10618,7 +10618,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             # path that stopped listening — three cycles of routine MPC
+             # idle must not stand control down.
+             watch_active = (
+-                planned_draw_runs(self._commanded_power()) and reported >= hz_min
++                self._commanded_power() > 0.05 and reported >= hz_min
+                 and not defrost_interval(self._pump_signals.defrosting)
+             )
+             if self._freq_watchdog.note_report(reported, active=watch_active):
+  FAIL the watchdog's two bounds: the floor is exclusive, the minimum inclusive  [floor -> [True], minimum -> [True]]
+  FAIL a step the plan calls off is not watched (D8-s1-01, #2238 sweep P2)  [0.07 kW commanded -> [True]: the plan runs no pump there, so a 0 Hz reading is a pump at rest, not a write path ignored]
+2 of 4785 FEATURE CHECKS FAILED
+rc=1

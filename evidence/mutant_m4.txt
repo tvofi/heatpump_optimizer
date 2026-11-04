@@ -1,0 +1,17 @@
+== m4
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index eb26be357..42dedd80d 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -5350,7 +5350,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+         tank look leakier than it is.
+         """
+         now = dt_util.now()
+-        heating = planned_draw_runs(float(self._current_action.get("power", 0.0)))
++        heating = float(self._current_action.get("power", 0.0)) > 0.05
+ 
+         previous_temp = self._last_buffer_temp_sample
+         previous_time = self._last_buffer_sample_time
+  FAIL the buffer learner reads heating from the plan's running rule  [0.07 kW -> True, 0.5 kW -> True: a 0.07 kW action is a step the plan runs no pump at, so the interval is a quiet one]
+1 of 4785 FEATURE CHECKS FAILED
+rc=1
