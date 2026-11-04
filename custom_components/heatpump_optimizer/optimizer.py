@@ -41,7 +41,6 @@ itself.
 from __future__ import annotations
 
 import importlib
-from bisect import bisect_right
 import logging
 import math
 import time as _time_mod
@@ -378,10 +377,11 @@ def _settlement_schedule(
     h: "_Horizon",
     trajectories: tuple[Any, ...],
     buffer_temps: np.ndarray | None,
-) -> list[dict[str, float]]:
-    """Per step, the savings settlement's readings beside ``baseline_kw``:
-    the store's heat change ``stored_kw_th``, the comfort shortfall
-    ``comfort_kw`` (kW_e) and the ``steady_cop``.
+    baseline_power: np.ndarray | None,
+) -> list[CurrentAction]:
+    """Per step, the savings settlement's readings: the thermostat's
+    ``baseline_kw``, the store's heat change ``stored_kw_th``, the comfort
+    shortfall ``comfort_kw`` (kW_e) and the ``steady_cop``.
 
     The month row settles the house's stored heat (owner ruling,
     2026-11-04): heat the plan drew from the house is heat it did not
@@ -423,19 +423,20 @@ def _settlement_schedule(
     )
 
     def stored_kwh_th(j: int) -> float:
-        zones = {
-            "upper_floor_temperature": float(upper_temps[j]),
-            "lower_floor_temperature": float(lower_temps[j]),
-        } if two_zone else {}
-        if buffer is not None:
-            zones["buffer_tank_temperature"] = float(buffer[j])
-        return opt._stored_thermal_energy(replace(
+        state = replace(
             h.initial_state, room_temperature=float(room_temps[j]),
-            slab_temperature=float(slab_temps[j]), **zones,
-        ))
+            slab_temperature=float(slab_temps[j]),
+        )
+        if two_zone:
+            state.upper_floor_temperature = float(upper_temps[j])
+            state.lower_floor_temperature = float(lower_temps[j])
+        if buffer is not None:
+            state.buffer_tank_temperature = float(buffer[j])
+        return opt._stored_thermal_energy(state)
 
     zone = lower_temps if two_zone else room_temps
-    schedule: list[dict[str, float]] = []
+    baseline = _baseline_power_list(baseline_power)
+    schedule: list[CurrentAction] = []
     before = stored_kwh_th(0)
     for i in range(h.n_steps):
         cop = max(model.compute_cop(float(h.outdoor_temps[i]), humidity=hums[i]), 1e-3)
@@ -445,7 +446,7 @@ def _settlement_schedule(
             float(h.precipitation[i]), float(h.solar_radiation[i]),
         )
         delivered = 0.5 * (float(zone[i]) + float(zone[i + 1]))
-        step = {
+        step: CurrentAction = {
             "stored_kw_th": (after - before) / h.dt,
             "comfort_kw": (
                 max(0.0, _floor_demand_at_target(model, targets[i], *weather))
@@ -453,9 +454,24 @@ def _settlement_schedule(
             ) / cop,
             "steady_cop": cop,
         }
+        if i < len(baseline):
+            step["baseline_kw"] = baseline[i]
         schedule.append(step)
         before = after
     return schedule
+
+
+def _settlement_at(result: "OptimizationResult", i: int) -> CurrentAction:
+    """Step ``i``'s savings settlement readings, for the current action.
+
+    A result built without the schedule (by hand, or restored from before it
+    existed) still carries its thermostat baseline.
+    """
+    if i < len(result.settlement_schedule):
+        return result.settlement_schedule[i]
+    if i < len(result.baseline_power_schedule):
+        return {"baseline_kw": float(result.baseline_power_schedule[i])}
+    return {}
 
 
 def _thermostat_held_state(
@@ -1783,10 +1799,10 @@ class OptimizationResult:
     # Thermostat-baseline electrical kW per step (space + DHW). Settlement
     # reads the current step; must be a pickle-safe list for the process route.
     baseline_power_schedule: list[float] = field(default_factory=list)
-    # Per step, the savings settlement's readings beside the baseline, keyed
-    # as the ledger's ``SETTLEMENT_KEYS``; the current action carries the
-    # step's (R10-SAV-COMFORT; ``_settlement_schedule``).
-    settlement_schedule: list[dict[str, float]] = field(default_factory=list)
+    # Per step, the savings settlement's readings, keyed as the ledger's
+    # ``SETTLEMENT_KEYS``; the current action carries the step's
+    # (R10-SAV-COMFORT; ``_settlement_schedule``, ``_settlement_at``).
+    settlement_schedule: list[CurrentAction] = field(default_factory=list)
     dhw_temp_trajectory: list[float] = field(default_factory=list)
     dhw_heating_cost: float = 0.0
 
@@ -2973,7 +2989,7 @@ class HeatPumpOptimizer:
                 dhw_power.tolist() if dhw_power is not None else []
             ),
             baseline_power_schedule=_baseline_power_list(baseline_power),
-            settlement_schedule=_settlement_schedule(self, h, trajectories, buffer_temps),
+            settlement_schedule=_settlement_schedule(self, h, trajectories, buffer_temps, baseline_power),
             dhw_temp_trajectory=(
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),
@@ -5716,8 +5732,14 @@ class HeatPumpOptimizer:
                 return self._idle_action()
             i = 0
         else:
-            # The last step starting at or before now; past the horizon, the last.
-            i = bisect_right(starts, now_s) - 1
+            # Find the current time step
+            for i, start_s in enumerate(starts):
+                if i + 1 < len(starts):
+                    if start_s <= now_s < starts[i + 1]:
+                        break
+                else:
+                    i = len(result.timestamps) - 1
+                    break
 
         power = result.power_schedule[i]
         setpoint = result.optimal_setpoints[i]
@@ -5801,10 +5823,7 @@ class HeatPumpOptimizer:
             dhw_power = result.dhw_power_schedule[i]
             action["dhw_power"] = round(dhw_power, 2)
             action["dhw_heating_active"] = dhw_power > 0.1
-        if result.baseline_power_schedule and i < len(result.baseline_power_schedule):
-            action["baseline_kw"] = float(result.baseline_power_schedule[i])
-        if i < len(result.settlement_schedule):
-            action.update(result.settlement_schedule[i])
+        action.update(_settlement_at(result, i))
         if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):
             action["dhw_temperature"] = round(result.dhw_temp_trajectory[i], 1)
         if result.predictive_info.get("dhw_target_temperature") is not None:
