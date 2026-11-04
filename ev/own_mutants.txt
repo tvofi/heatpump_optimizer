@@ -1,0 +1,19 @@
+SURVIVED tick: provenance check -> any text
+KILLED   tick: transient memory not saved  <- tick-digest: a transient RED gives nothing; on a second board it appears
+SURVIVED owed: --tick arg points at state
+KILLED   owed: rc0 falls through  <- owed-check null: rc 0 writes nothing
+SURVIVED roster: no-op-attempted marked done
+KILLED   roster: stale bound doubled  <- roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases
+SURVIVED plan: rc2 called UNAVAILABLE
+SURVIVED plan: replan args dropped
+SURVIVED pulse: unreadable rc ignored
+SURVIVED pulse: seat_alives dropped
+SURVIVED cancel: rc!=0 ignored
+KILLED   disk: floor compare >  <- disk: a collection that frees enough writes nothing
+SURVIVED opener: rc!=0 ignored
+KILLED   opener: --board dropped  <- opener: an open-refused line lands in jobs/opener, a STUCK line in events.txt to
+KILLED   head: heads.tsv never rewritten  <- head-watch: a head move writes one line to events.txt and events.tsv stays absen
+KILLED   head: rc check dropped  <- head-watch: an unreadable API is UNREADABLE
+KILLED   fold: gone.txt never written  <- fold: a gone line is gone.txt and no new stamp
+KILLED   event: dedupe removed  <- opener: a STUCK line re-printed is not a second event
+KILLED   norm: stamps not normalised  <- the fixture board's digest is exactly its recorded actionable set
