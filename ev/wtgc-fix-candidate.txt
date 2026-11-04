@@ -1,0 +1,25 @@
+658c658
+<       git branch -D "$branch" 2>/dev/null \
+---
+>       git update-ref -d "refs/heads/$branch" "$head" 2>/dev/null \
+gc rc=0
+  gc| keep  /tmp/tmp.1TJL9NC1JL/repo  main
+  gc| remove  /tmp/tmp.1TJL9NC1JL/seats/seat-a/wt
+  gc| removed  /tmp/tmp.1TJL9NC1JL/seats/seat-a/wt
+  gc| worktree_gc: FAILED to delete branch fix/merged
+  gc| remove  /tmp/tmp.1TJL9NC1JL/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.1TJL9NC1JL/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+planned/read tip=bcb69639fed15596d0aa96d6fe2ccb546705027a moved tip=8ed96ed371015a78c0757c8335c38c2b8b53b137
+local branch now: 8ed96ed371015a78c0757c8335c38c2b8b53b137
+RESULT race=1 moved-tip-deleted-unpushed=0
+gc rc=0
+  gc| keep  /tmp/tmp.DdEO6tdrbE/repo  main
+  gc| remove  /tmp/tmp.DdEO6tdrbE/seats/seat-a/wt
+  gc| removed  /tmp/tmp.DdEO6tdrbE/seats/seat-a/wt
+  gc| remove  /tmp/tmp.DdEO6tdrbE/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.DdEO6tdrbE/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+planned/read tip=e29dfc44e87fac6be85d472d2f90db669b8532da moved tip=none
+local branch now: deleted
+RESULT race=0 moved-tip-deleted-unpushed=0
