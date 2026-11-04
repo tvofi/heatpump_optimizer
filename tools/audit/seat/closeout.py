@@ -42,7 +42,9 @@ THE STEPS, each gated by the one before (STEPS below is the order):
                the sha the plan read: a ref that moved since (a seat still
                pushing) is not deleted, and the step stops with it.
   3 local      seat worktrees under the seat roots removed (one holding an
-               unpushed commit, or uncommitted work, is reported and KEPT);
+               unpushed commit, or uncommitted work, is reported and KEPT;
+               each removal is leased at the HEAD the listing read, so one
+               whose HEAD moved since is KEPT too);
                scratch under the orchestrator root cleared except the ledger
                and state; `git worktree prune`; local branches reduced to what
                a kept worktree holds or what no remote or tag has, each
@@ -266,6 +268,22 @@ def delete_local_branch(c: Ctx, b: str, sha: str) -> bool:
     return True
 
 
+def remove_worktree_leased(c: Ctx, path: str, head: str) -> bool:
+    """Remove worktree `path` only while its HEAD still sits at `head`, the sha read.
+
+    `update-ref --no-deref -d HEAD <old>` is the lease, as in worktree_gc.sh's
+    remove_worktree: a seat that committed after the read moved HEAD, which for
+    a detached worktree is the only ref holding that commit, so the worktree is
+    refused and kept. Once HEAD is gone no commit can land there; the tree is
+    deleted and its admin entry left to the step's `git worktree prune`
+    (`git worktree remove` refuses a worktree with no HEAD).
+    """
+    if not head or c.git("-C", path, "update-ref", "--no-deref", "-d", "HEAD", head).returncode:
+        return False
+    shutil.rmtree(path, ignore_errors=True)
+    return not os.path.lexists(path)
+
+
 def step_local(c: Ctx, apply: bool) -> dict:
     """Returns {"kept": [(path, why)], "removed": [...], "problems": [...]}."""
     kept, removed = [], []
@@ -274,6 +292,7 @@ def step_local(c: Ctx, apply: bool) -> dict:
     main_wt = os.path.realpath(c.checkout)
     for block in listing:
         path = next((ln[9:] for ln in block.splitlines() if ln.startswith("worktree ")), "")
+        head = next((ln[5:] for ln in block.splitlines() if ln.startswith("HEAD ")), "")
         if not path or os.path.realpath(path) == main_wt:
             continue
         real = Path(os.path.realpath(path))
@@ -283,9 +302,10 @@ def step_local(c: Ctx, apply: bool) -> dict:
         if why:
             kept.append((str(path), why))
         elif apply:
-            r = c.git("worktree", "remove", "--force", str(path))
-            (removed if r.returncode == 0 else kept).append(
-                str(path) if r.returncode == 0 else (str(path), "remove-failed"))
+            if remove_worktree_leased(c, str(path), head):
+                removed.append(str(path))
+            else:
+                kept.append((str(path), "moved-or-remove-failed"))
         else:
             removed.append(str(path))
     if apply:
@@ -674,6 +694,19 @@ def self_test() -> int:
         check("null: the same branch at the sha read is deleted",
               delete_local_branch(c2, "lb", side)
               and c2.git("rev-parse", "-q", "--verify", "refs/heads/lb").returncode != 0)
+
+        # step 3's worktree removal is leased at the HEAD the porcelain read
+        # (#3085 round 3): a detached worktree's HEAD is the only ref holding
+        # a commit made there after the read
+        dwt = str(tmp / "hpo-seats/dmoved")
+        g("worktree", "add", "-q", "--detach", dwt, base)
+        g("-C", dwt, "commit", "-q", "--allow-empty", "-m", "after the read")
+        moved = g("-C", dwt, "rev-parse", "HEAD")
+        check("step 3: a detached worktree whose HEAD moved after the read is kept",
+              not remove_worktree_leased(c2, dwt, base) and os.path.isdir(dwt)
+              and g("-C", dwt, "rev-parse", "HEAD") == moved)
+        check("null: the same worktree at the HEAD read is removed",
+              remove_worktree_leased(c2, dwt, moved) and not os.path.exists(dwt))
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
 

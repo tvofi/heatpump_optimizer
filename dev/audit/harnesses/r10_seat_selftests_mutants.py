@@ -589,6 +589,11 @@ MUTANTS = [
     ("worktree_gc-3", "tools/audit/worktree_gc.sh", '  [ "$FETCH_OK" -eq 1 ] || return 1', "  true"),
     ("worktree_gc-4", "tools/audit/worktree_gc.sh", 'git update-ref -d "refs/heads/$branch" "$head" 2>',
      'git update-ref -d "refs/heads/$branch" 2>'),
+    # #3085 round 3: the worktree removal is leased at the HEAD the read gave, in both tools.
+    ("worktree_gc-5", "tools/audit/worktree_gc.sh", 'update-ref --no-deref -d HEAD "$2" 2>',
+     'update-ref --no-deref -d HEAD 2>'),
+    ("closeout-4", "closeout.py", '"update-ref", "--no-deref", "-d", "HEAD", head)',
+     '"update-ref", "--no-deref", "-d", "HEAD")'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
