@@ -175,10 +175,39 @@ def run(name, dp=False):
     }
     if dp:
         row["dp_learned"] = _dp_reference(opt, state, window, res, t)
+        row["dp_learned"]["prod_cost"] = _production_cost(opt, state, window, t, res.power_schedule)
         true_opt = HeatPumpOptimizer(house, opt.config)
         row["dp_true"] = _dp_reference(
             true_opt, replace(state, slab_temperature=held["house"].slab_temperature), window, res, t)
     return row
+
+
+def _production_cost(opt, state, window, t, schedule):
+    """The optimizer's own full objective on ``schedule``, for the same inputs.
+
+    The DP's objective is a reconstruction; this is the cross-check that it
+    prices what the solve prices: ``plan_cost`` must equal ``prod_cost`` up to
+    the grid's rounding, or the reference measures a different problem (#2499:
+    a flat comfort band read the night setback as a breach and a 26 % gap).
+    """
+    from profiles import solve_inputs
+
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer
+
+    got = {}
+    solve = HeatPumpOptimizer._solve_objectives
+
+    def capture(self, h):
+        built = solve(self, h)
+        got["objective"] = built[1]
+        return built
+    opt._solve_objectives = capture.__get__(opt)
+    try:
+        opt.optimize(inputs=solve_inputs(
+            initial_state=state, prices=window[0], outdoor_temps=window[1], start_time=t))
+    finally:
+        del opt._solve_objectives
+    return round(float(got["objective"](np.asarray(schedule, dtype=float))), 3)
 
 
 def _dp_reference(opt, state, window, res, t):
@@ -186,7 +215,8 @@ def _dp_reference(opt, state, window, res, t):
 
     The objective is the optimizer's own, on ``opt.model``, less the terms
     that couple steps: energy cost, the comfort-floor and ceiling penalties
-    and the pull to target per step (its constants), and its terminal cost
+    and the pull to target per step (its constants, on the solve's own
+    day/night comfort schedule), and its terminal cost
     (``opt._terminal_cost``) on the end state. Cycling and capacity are left
     out, so the DP is the optimum of a relaxation and ``gap`` >= 0 up to the
     grid's interpolation error.
@@ -209,14 +239,19 @@ def _dp_reference(opt, state, window, res, t):
         return s.room_temperature, s.slab_temperature
 
     cfg = opt.config
-    band = max(cfg.target_temp - cfg.min_temp, 1.0)
+    # The solve's own per-step comfort schedule (day/night target and band),
+    # from the one site that builds it, never the flat config target: a flat
+    # 21/20 band priced the night setback the solve is allowed as a breach.
+    targets, floors, ceilings = opt._build_comfort_bounds(
+        np.array(hours), n, None, None, [t + timedelta(minutes=DT_MIN * i) for i in range(n)])
+    bands = np.maximum(targets - floors, 1.0)
 
     def stage(room, p, i):
-        under = np.maximum(0.0, cfg.min_temp - room)
-        over = np.maximum(0.0, room - cfg.max_temp)
+        under = np.maximum(0.0, floors[i] - room)
+        over = np.maximum(0.0, room - ceilings[i])
         return (prices[i] * p * dt_h * cfg.price_weight
                 + cfg.comfort_weight * (10.0 * under ** 2 + 5.0 * over ** 2 + O._COMFORT_FLOOR_L1 * under)
-                + O._COMFORT_PULL_SINGLE_ZONE * cfg.comfort_weight * ((room - cfg.target_temp) / band) ** 2)
+                + O._COMFORT_PULL_SINGLE_ZONE * cfg.comfort_weight * ((room - targets[i]) / bands[i]) ** 2)
 
     grid = [(room, slab) for room in rooms for slab in slabs]
     to_go = [None] * (n + 1)

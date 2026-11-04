@@ -32,23 +32,26 @@ THE METRICS, each an answer to a named cost:
   critical_path_minutes   WORK minutes of the newest PUSH_WINDOW (16)
                   completed push runs of the tests workflow (the GitHub API
                   run list with each run's jobs, fetched by --gather-runs),
-                  read off host speed (window_work_minutes): every job
-                  priced at its fastest run in the window, summed along each
-                  run's own critical chain to its last `tests / *` job (a
-                  pre-umbrella Tests run: its every job) with each runner
-                  queue removed -- see run_minutes -- the longest chain
-                  kept. Never the wall: the wall reads the account's runner
-                  contention (59.7 wall on 32.1 work, CI job 121295715608).
-                  Never one run's work either: hosted runners differ ~1.9x
-                  on the same work, so the median of runs read which hosts
-                  the three ~18-minute lanes drew and went red on a diff of
-                  delivery rows (8f286293b, R10-HOTFIX-CI-CRITPATH-3).
-                  A slow or hung run never prices a job (the other-work
-                  floor is keyed on the median), but growth reads only once
-                  it fills most of the window (window_work_minutes).
-                  Recorded at the largest value any PUSH_WINDOW consecutive
-                  runs of a wider window read (`--gather-runs FILE --window
-                  40`), the statistic's own window-to-window spread.
+                  priced off host speed (window_work_minutes): each heavy
+                  `tests / *` job runs tests/host_probe.py, fixed work, as a
+                  step of its own, and is priced at the median of its work
+                  over its own runner's probe, in reference-host seconds
+                  (job_price; R10-HOTFIX-CI-CRITPATH-4); a job without a
+                  probe step at its fastest run in the window. The prices
+                  are summed along the longest path through every need the
+                  window observed, each runner queue removed -- see
+                  run_minutes. Never the wall: the wall reads the account's
+                  runner contention (59.7 wall on 32.1 work, CI job
+                  121295715608). Never one run's work, and never a job's
+                  fastest draw once it is probed: hosted runners differ
+                  ~1.9x on the same work and the fleet's mix moves, so the
+                  median of runs read which hosts the lanes drew
+                  (8f286293b, R10-HOTFIX-CI-CRITPATH-3) and the fastest
+                  draw read whether the window still held a fast host
+                  (8e90d8144, R10-HOTFIX-CI-CRITPATH-4). Recorded at the
+                  largest value any PUSH_WINDOW consecutive runs of a wider
+                  window read (`--gather-runs FILE --window 40`), the
+                  statistic's own window-to-window spread.
   critical_path_minutes_band   not a metric: the minutes past its budget
                   that critical_path_minutes may read before it is GREW.
                   Sized at 1.3 for the retired median (05c0d6d5d read 34.467
@@ -580,11 +583,62 @@ def _walk(r: dict) -> "list[dict] | None":
         walked.append({"name": name, "work": work, "end": base + work,
                        "completed": _at(j["completed_at"]).timestamp(),
                        "counted": counted(name), "pred": pred,
-                       "priced": j.get("conclusion") == "success"})
+                       "priced": j.get("conclusion") == "success",
+                       "reference_work": reference_work(j, work)})
     if not any(w["counted"] for w in walked):
         raise _refusal(f"{kind} push run {r.get('id')} has no completed "
                        f"{'`' + TESTS_JOB_PREFIX + '*` ' if kind == 'CI' else ''}job (fail closed)")
     return walked
+
+
+# --- the host-speed probe (R10-HOTFIX-CI-CRITPATH-4) --------------------------
+#
+# A job's wall on a hosted runner is its work times the host's slowness, and
+# the fleet's mix is not stationary: `tests / fast (3.14)` drew a fast host
+# (its 13 heaviest scripts at 0.50-0.61 of their 60-run medians) in 10 of
+# the 60 push runs 41331759691..41818271680 and in 1 of the newest 26.
+# Pricing each job at its fastest draw read that mix: the one fast draw aged
+# out of the window at 8e90d8144 and the grade moved 22.117 -> 29.067, while
+# the lane's work over its own scripts' speed stayed flat over all 60 runs
+# (dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py).
+#
+# So each heavy `tests / *` job runs tests/host_probe.py -- fixed
+# pure-Python work -- as a step of its own, named PROBE_STEP and its
+# interpreter, `Probe the runner's speed (python 3.14)`, before its suite.
+# The step's duration is that host's slowness, measured in the same runner;
+# the job's work in REFERENCE-HOST seconds is its work times
+# PROBE_REFERENCE_S[python] over the probe's seconds. A job with no probe
+# step (every run before this one, the light jobs) is priced as before.
+PROBE_STEP = "Probe the runner's speed"
+# The probe's seconds on the reference host, per interpreter (the same work
+# runs at different speeds under 3.13 and 3.14). The reference host is the
+# fleet's fast class (UNIT, the median factor of `tests / fast (3.14)`'s
+# fast-class draws), the host the pre-probe grade priced that lane on.
+# Measured on the fleet, never off it (a local machine's probe-to-script
+# ratio is its own: one implied 17.50, the fleet 22.4): derived by
+# tools/audit/seat/probe_bridge.py's rule from the probed runs in
+# dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json, whose
+# --self-test refuses a value the record does not re-derive.
+PROBE_REFERENCE_S = {"3.13": 22.12, "3.14": 22.40}
+
+
+def reference_work(job: dict, work: float) -> "float | None":
+    """The job's work in reference-host seconds, read off its own probe step:
+    work * PROBE_REFERENCE_S[python] / the probe's seconds. None when the job
+    ran no successful probe step, its step names no known interpreter, or
+    the step's duration is not positive (1 s timestamps): the job is then
+    priced on its wall, as before the probe."""
+    for step in job.get("steps") or []:
+        name = str(step.get("name") or "")
+        if not name.startswith(PROBE_STEP) or step.get("conclusion") != "success":
+            continue
+        python = name[len(PROBE_STEP):].strip().removeprefix("(python ").removesuffix(")")
+        ref = PROBE_REFERENCE_S.get(python)
+        if not ref or not (step.get("started_at") and step.get("completed_at")):
+            return None
+        probe = (_at(step["completed_at"]) - _at(step["started_at"])).total_seconds()
+        return work * ref / probe if probe > 0 else None
+    return None
 
 
 def run_chain(r: dict) -> "list[str] | None":
@@ -646,51 +700,77 @@ OTHER_WORK_FRACTION = 1 / 3
 
 
 def window_work_minutes(runs: list[dict]) -> float:
-    """The window's tests WORK, read off host speed: every job priced at its
-    fastest `success` run in the window (the run on the fastest host it
-    drew), summed along each run's own critical chain (run_chain), the
-    longest chain kept. A job that grows grows on every host, so its minimum
-    moves; a slow or hung run does not, however slow (OTHER_WORK_FRACTION's
-    floor is keyed on the median). The median of run_minutes read the host
-    draw instead: each of the three ~18-minute lanes drew a host ~1.9x slower
-    in ~2 runs of 3, so the window's median sat on a slow draw and went red
-    over a diff of delivery rows (8f286293b).
+    """The window's tests WORK, read off host speed: every job priced over
+    the window by job_price -- a probed job at the median of its work in
+    reference-host seconds, an unprobed one at its fastest `success` run --
+    and the prices summed along the longest path through the needs the
+    window observed (each job's need that ended last, in any of its runs),
+    whichever job ended its run.
 
-    What the minimum costs. The hosts are not two-speed (`tests / closures`
-    read 1117..2401 s over 40 runs with mid values between), so the price is
-    the fastest host the window drew: losing the fastest draws reprices the
-    job on a mid host, and fifteen of sixteen runs drawing slow moves it as
-    growth would. And real growth moves it only once every pre-growth fast
-    run has aged out of the window: +300 s on `tests / closures` reads
-    nothing until 12 of the 16 newest runs carry it, all of it at 15
-    (dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py), against 8 of 8 under
-    the retired median-of-8.
+    Why a path through the window's needs, not each run's own chain: which
+    job ends last is itself a draw (a lane queued behind a slow sibling
+    hides a longer one), so a run's chain read the draw a second way.
+    A need observed in one run is a dependency in every run.
+
+    What the unprobed minimum costs (every job before the probe, and the
+    light ones after it). The hosts are not two-speed (`tests / closures`
+    read 1117..2401 s over 40 runs with mid values between), so the price
+    is the fastest host the window drew: losing the fastest draws reprices
+    the job on a mid host -- main red at 8e90d8144, one fast draw of
+    `tests / fast (3.14)` in 26 runs aged out -- and real growth reads only
+    once every pre-growth fast run has aged out of the window. A probed job
+    reads growth once it is in half the window, all of it by 12 of 16 runs
+    (dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py).
 
     Only a `success` job prices: a skipped one did no work, a cancelled or
     failed one stopped short. A job that never succeeded in the window costs
     nothing. What that costs: a chain job that fails stops pricing, so a
     broken lane under-reads the grade, and a record taken across such a
-    stretch is recorded low. `tests / ci-ratchet` ends every chain and failed
-    in all sixteen newest runs of the record's runs.json, so it prices 0
-    there: the window reads 20.75 against 21.7 with it priced, and it prices
-    again once it succeeds (review of #3180 at 3f7777a59). None when no run
-    in the window is measurable."""
-    chains, work = [], {}
+    stretch is recorded low (review of #3180 at 3f7777a59). None when no
+    run in the window is measurable."""
+    needs, counted, work, probed = {}, set(), {}, {}
     for r in runs:
         walked = _walk(r)
         if walked is None:
             continue
-        chains.append(run_chain(r))
         for j in walked:
+            needs.setdefault(j["name"], set())
+            if j["pred"] is not None:
+                needs[j["name"]].add(walked[j["pred"]]["name"])
+            if j["counted"]:
+                counted.add(j["name"])
             if j["priced"]:
                 work.setdefault(j["name"], []).append(j["work"])
-    if not chains:
+                if j["reference_work"] is not None:
+                    probed.setdefault(j["name"], []).append(j["reference_work"])
+    if not counted:
         return None
-    price = {}
-    for name, seen in work.items():
-        floor = statistics.median(seen) * OTHER_WORK_FRACTION
-        price[name] = min(w for w in seen if w >= floor)
-    return round(max(sum(price.get(n, 0.0) for n in ch) for ch in chains) / 60, 3)
+    price = {name: job_price(seen, probed.get(name)) for name, seen in work.items()}
+    end: dict[str, float] = {}
+
+    def path_end(name, seen=()):
+        # A need observed in one run and its inverse in another is no
+        # dependency (two jobs that merely ended in turn): the edge that
+        # would close the loop is dropped, never followed.
+        if name not in end:
+            end[name] = price.get(name, 0.0) + max(
+                (path_end(n, (*seen, name)) for n in needs[name] if n not in (*seen, name)),
+                default=0.0)
+        return end[name]
+    return round(max(path_end(n) for n in counted) / 60, 3)
+
+
+def job_price(walls: list[float], reference: "list[float] | None") -> float:
+    """One job's price over the window. Probed (R10-HOTFIX-CI-CRITPATH-4):
+    the MEDIAN of its reference-host work, every host's speed already taken
+    out by its own probe, so neither a slow fleet nor a lost fast draw moves
+    it, one hung run does not, and growth reads once it is in half the
+    window. Unprobed: the fastest wall (window_work_minutes' rule). Either
+    way a run under OTHER_WORK_FRACTION of the median did other work."""
+    seen = reference or walls
+    floor = statistics.median(seen) * OTHER_WORK_FRACTION
+    kept = [w for w in seen if w >= floor]
+    return statistics.median(kept) if reference else min(kept)
 
 
 def critical_path_minutes(runs_json: Path, stat: str = "grade") -> float:
@@ -1238,6 +1318,119 @@ def self_test() -> int:
            and abs(dg["critical_path_minutes"] - 32.1) < 0.05
            and abs((dr or {}).get("critical_path_minutes", 0) - 63.9) < 0.05,
            msg or msg2 or f"grade {dg} record {dr}")
+
+    # --- the host-speed probe (R10-HOTFIX-CI-CRITPATH-4) --------------------
+    # main red at 8e90d8144: `tests / fast (3.14)`'s one fast draw in the
+    # window aged out and the fastest-draw price moved 1223 -> 1640 s on the
+    # same work. A probed job is priced on its work over its own runner's
+    # probe; each fixture is a run of prelude (18 s) and one heavy lane whose
+    # wall and probe step are given in seconds.
+    ref = PROBE_REFERENCE_S["3.14"]
+    P = 20  # the probe step's seconds on the fixtures' usual host (1 s timestamps)
+
+    def probed(i, wall, probe, *, python="3.14", conclusion="success"):
+        t0 = datetime(2026, 11, 1, tzinfo=timezone.utc).timestamp() + i * 7200
+        iso = lambda s: datetime.fromtimestamp(t0 + s, timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+        lane = {"name": "tests / fast (3.14)", "created_at": iso(18), "started_at": iso(18),
+                "completed_at": iso(18 + wall), "conclusion": "success"}
+        if probe is not None:
+            lane["steps"] = [
+                {"name": "Run actions/checkout", "started_at": iso(18), "completed_at": iso(40),
+                 "conclusion": "success"},
+                {"name": f"{PROBE_STEP} (python {python})", "started_at": iso(40),
+                 "completed_at": iso(40 + probe), "conclusion": conclusion}]
+        return {**ci_run(i, iso(0), None),
+                "jobs": [{"name": "prelude", "created_at": iso(0), "started_at": iso(0),
+                          "completed_at": iso(18), "conclusion": "success"}, lane]}
+
+    def grade(runs):
+        return safe(lambda: window_work_minutes(runs))
+
+    # The level: 1911 s of wall on a host whose probe took P seconds reads
+    # 1911 * ref / P reference-host seconds; the grade adds prelude's 18.
+    one = [probed(1, 1911, P)]
+    g1, msg = grade(one)
+    ck("a probed job prices its wall times PROBE_REFERENCE_S over its probe "
+       "((18 + 1911 * ref / P) / 60)",
+       ref > 0 and g1 is not None and abs(g1 - round((18 + 1911 * ref / P) / 60, 3)) < 0.002,
+       msg or f"got {g1}")
+    # The window this red read: fifteen slow draws (factor 1.0) and one fast
+    # one (0.6) of the same work. Its fast draw ageing out moved the
+    # fastest-draw price 40 %; the probed price moves nothing.
+    slow = [probed(i, 1911, P) for i in range(1, 16)]
+    fast = probed(16, round(1911 * 0.6), round(P * 0.6))
+    g_with, msg = grade(slow + [fast])
+    g_lost, msg2 = grade(slow + [probed(16, 1911, P)])
+    ck("losing the window's one fast draw moves a probed grade by under 1 % "
+       "(the red at 8e90d8144 moved the fastest-draw grade 31 %)",
+       g_with is not None and g_lost is not None and abs(g_lost - g_with) / g_with < 0.01,
+       msg or msg2 or f"{g_with} -> {g_lost}")
+    u_with, msg = grade([probed(i, 1911, None) for i in range(1, 16)]
+                        + [probed(16, round(1911 * 0.6), None)])
+    u_lost, msg2 = grade([probed(i, 1911, None) for i in range(1, 17)])
+    ck("the same windows unprobed reproduce the red: the fastest-draw grade "
+       "moves over 30 % (the fixture's own null control)",
+       u_with is not None and u_lost is not None and (u_lost - u_with) / u_with > 0.3,
+       msg or msg2 or f"{u_with} -> {u_lost}")
+    # The planted slow fleet: every run's host 1.9x slower, wall and probe.
+    g_fleet, msg = grade([probed(i, round(1911 * 1.9), round(P * 1.9)) for i in range(1, 17)])
+    g_base, msg2 = grade([probed(i, 1911, P) for i in range(1, 17)])
+    ck("a fleet 1.9x slower on the same work does not move the grade",
+       g_fleet is not None and g_base is not None and abs(g_fleet - g_base) / g_base < 0.01,
+       msg or msg2 or f"{g_base} -> {g_fleet}")
+    # The planted growth (the null control of the two above): 300 more
+    # seconds of work on the same hosts, in the newest 9 of 16 runs -- the
+    # median's lag -- reads all of it: 300 * ref / P / 60.
+    grown = ([probed(i, 1911 + 300, P) for i in range(1, 10)]
+             + [probed(i, 1911, P) for i in range(10, 17)])
+    g_grown, msg = grade(grown)
+    ck("300 s more work in 9 of 16 runs grows the grade by all of it (300 * ref / P / 60)",
+       g_grown is not None and g_base is not None
+       and abs(g_grown - g_base - 300 * ref / P / 60) < 0.01,
+       msg or f"{g_base} -> {g_grown}")
+    # One hung run, its wall 3.2x and its probe unremarkable, moves nothing.
+    g_hung, msg = grade([probed(1, round(1911 * 3.2), P)]
+                        + [probed(i, 1911, P) for i in range(2, 17)])
+    ck("one hung run of a probed job does not move the grade",
+       g_hung is not None and g_base is not None and abs(g_hung - g_base) < 0.01,
+       msg or f"{g_base} -> {g_hung}")
+    # The fall-backs, each priced on the wall as before the probe: no probe
+    # step, a failed one, an interpreter with no reference, a 0 s step.
+    for label, run in (("no probe step", probed(1, 1911, None)),
+                       ("a failed probe step", probed(1, 1911, P, conclusion="failure")),
+                       ("a probe under an unreferenced python", probed(1, 1911, P, python="3.99")),
+                       ("a probe step of 0 s", probed(1, 1911, 0))):
+        g_fb, msg = grade([run])
+        ck(f"{label} prices the job on its wall (32.15, as before the probe)",
+           g_fb is not None and abs(g_fb - round((18 + 1911) / 60, 3)) < 0.002,
+           msg or f"got {g_fb}")
+    ck("a probe step's interpreter selects its reference (3.13 and 3.14 differ)",
+       reference_work({"steps": [{"name": f"{PROBE_STEP} (python 3.13)", "conclusion": "success",
+                                  "started_at": "2026-11-01T00:00:00Z",
+                                  "completed_at": "2026-11-01T00:00:10Z"}]}, 100.0)
+       == 100.0 * PROBE_REFERENCE_S["3.13"] / 10
+       and PROBE_REFERENCE_S["3.13"] != PROBE_REFERENCE_S["3.14"])
+
+    # Which job ends last is itself a draw: a lane that queued behind a
+    # sibling's slow host ends last and hides the longer one. The window is
+    # priced over every need it observed, so a path counts whether or not
+    # its job ended its run: arch-instrument's 30 minutes of work, which
+    # ended before fast (3.14) and ci-ratchet in every run (fast queued 14.5
+    # minutes), set the critical path (30.5, not the last job's 21.5).
+    def dag_run(i, arch_work):
+        return {**ci_run(i, f"2026-10-{30 - i:02d}T00:00:00Z", None), "jobs": [
+            j("prelude", 0.0, 0.0, 0.5),
+            j("tests / arch-instrument", 0.5, 0.5, 0.5 + arch_work),
+            j("tests / fast (3.14)", 0.5, 15.0, 35.0),
+            j("tests / ci-ratchet", 35.0, 35.0, 36.0)]}
+    g_dag, msg = grade([dag_run(i, 30.0) for i in range(1, 17)])
+    g_dag0, msg2 = grade([dag_run(i, 10.0) for i in range(1, 17)])
+    ck("a longer path that never ended its run still sets the grade (30.5, "
+       "not 21.5); shortened to 10 minutes, the last job's path is the "
+       "grade again (21.5, the null control)",
+       g_dag is not None and abs(g_dag - 30.5) < 0.01
+       and g_dag0 is not None and abs(g_dag0 - 21.5) < 0.01,
+       msg or msg2 or f"{g_dag}, {g_dag0}")
 
     # The timing band (R10-HOTFIX-CI-CRITPATH-2): critical_path_minutes is
     # graded against its budget plus critical_path_minutes_band, and nothing
