@@ -110,9 +110,9 @@ def published(drivers: Mapping[str, float], grade: float | None) -> list[dict[st
     """
     if grade is None:
         return []
-    shown = [{"code": code, "points": finite_float(drivers.get(code), 0.0)} for code in CODES]
-    rest = grade - REFERENCE - sum(d["points"] for d in shown)
-    return [*shown, {"code": "earlier_days", "points": rest}]
+    points = {code: finite_float(drivers.get(code), 0.0) for code in CODES}
+    points["earlier_days"] = grade - REFERENCE - sum(points.values())
+    return [{"code": code, "points": value} for code, value in points.items()]
 
 
 def restore(drivers: dict[str, float], stored: Any, admitted: Callable[[Any], bool]) -> None:
