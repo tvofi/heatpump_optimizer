@@ -1,9 +1,6 @@
-  PASS  main is never deletable by the push arm
-  PASS  null control: the gh-api arm makes 2N writes for N refs
-SELF-TEST PASS (69 checks)
-  PASS  a ref to be deleted that lacks its archive tag refuses
-closeout self-test: 23 checks, 0 failed
-ok   refused before any git or gh call
+SELF-TEST PASS (74 checks)
+closeout self-test: 26 checks, 0 failed
 worktree_gc self-test: 91 checks, 0 failed
-selftest_wiring: 109 self-testing, 109 wired, 0 unwired
 selftest_wiring: 0 index gap(s)
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.

@@ -1,5 +1,0 @@
-planned dff3fe2e moved-to 6eff9e29
-done [('tag', 'archive/fix/x@6eff9e2955b136d90f75808d4c2f84e2aeccd80c'), ('delete', 'fix/x')]
-heads: (none)
-tags: 6eff9e2955b136d90f75808d4c2f84e2aeccd80c	refs/tags/archive/fix/x
-RESULT null-plan-at-live-tip moved-tip-deleted-untagged=0

@@ -1,0 +1,26 @@
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+gc rc=0
+  gc| keep  /tmp/tmp.vQW7N3BWN3/repo  main
+  gc| remove  /tmp/tmp.vQW7N3BWN3/seats/seat-a/wt
+  gc| removed  /tmp/tmp.vQW7N3BWN3/seats/seat-a/wt
+  gc| Deleted branch fix/merged (was f73fb24).
+  gc| remove  /tmp/tmp.vQW7N3BWN3/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.vQW7N3BWN3/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+planned/read tip=b5ef055d104a335686fffaff96df2756e00c786b moved tip=f73fb24d6c2fcd616f7c900bac7eb53e35d78bd2
+local branch now: deleted
+RESULT race=1 moved-tip-deleted-unpushed=1
+fatal: expected 'acknowledgments', received 'packfile'
+warning: push negotiation failed; proceeding anyway with push
+gc rc=0
+  gc| keep  /tmp/tmp.Jc2DzP7U3H/repo  main
+  gc| remove  /tmp/tmp.Jc2DzP7U3H/seats/seat-a/wt
+  gc| removed  /tmp/tmp.Jc2DzP7U3H/seats/seat-a/wt
+  gc| Deleted branch fix/merged (was fb95186).
+  gc| remove  /tmp/tmp.Jc2DzP7U3H/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.Jc2DzP7U3H/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+planned/read tip=fb951867d2238e5f88d289b51776b7d02de02ee9 moved tip=none
+local branch now: deleted
+RESULT race=0 moved-tip-deleted-unpushed=0

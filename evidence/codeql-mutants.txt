@@ -1,4 +1,0 @@
-own mutants on the alert-49 fix at 7f95f9084b42aa5bd651a9aa98cc5b4292adcaaa (umask 022):
-STUB_MODE 0o700->0o755            -> FAIL the gh stub has no group/other permission bits; SELF-TEST FAIL (68 checks)
-_wide_bits -> return 0            -> FAIL null control (0o755 read as wide); SELF-TEST FAIL (68 checks)
-os.open mode -> literal 0o755     -> FAIL the gh stub has no group/other permission bits; SELF-TEST FAIL (68 checks)
