@@ -37,56 +37,62 @@ The red lands 12–16 merges after the cause. The retired median-of-8 moved at k
 
 The budget is re-recorded at **21.983**, a lowering from main's 34.267 (round 1 had 22.0). `critical_path_minutes_band` stays 1.3: its need under a max-recorded budget is how far a window reads past the record of every earlier window, which is 0.55 over the 25 windows.
 
+**Repair round 3** (review of 3f7777a59, `blocked`, ci-red). The statistic and the recorded value are unchanged. The round-2 head added `dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py`, which turned two required lanes red:
+- `tests / fast (3.14)`: `tests/harness_headers.py`'s depth-seam check refused `ROOT = HERE.parents[3]`. The harness now inlines the canonical `repo_root` (byte-identical to `tools/audit/repo_root.py`'s) and roots itself with `repo_root(__file__)`.
+- `tests / closures`: `INERT READS UNDER-APPROXIMATED`, because `harness_headers.py`'s child scan reads every harness and the committed `inert_reads` did not list the new one. `tests/closures.json` now lists it under `tests/harness_headers.py`. `tools/pr/ci_predict.py --apply-inert` predicted nothing here (the read is a child's, seen only under `strace -f`), so the entry was written by hand and checked against a Linux `strace` recording (below).
+- The review's three carried findings on `tests/ci_ratchet.py`:
+  - The two docstring citations named `dev/audit/harnesses/r10_hotfix_ci_critpath_3.py`, which does not exist; both now name `.../r10_hotfix_ci_critpath_3/replay.py`.
+  - `OTHER_WORK_FRACTION`'s level had no self-test check (the 1/3 -> 1/2 mutant passed 52/52). A new check prices a job at 30.0 in fourteen runs, 12.0 in one and 9.0 in one: a third reads 12.3, a half would read 30.3, a quarter 9.3, so the level is pinned from both sides.
+  - `window_work_minutes`' docstring now discloses that success-only pricing lets a failing chain job under-read, and a record taken across such a stretch is recorded low. On this PR's runs.json, `tests / ci-ratchet` concluded `failure` in all 16 newest runs, so it prices 0: the newest window reads 20.75, and 21.7 with those 16 failures read as successes. After merge, ci-ratchet's first success starts pricing again; the reviewer measured the second post-merge push at 22.35, under 21.983 + 1.3 = 23.283 (not re-derived here).
+
 ## Head
 
-e1637032a0f3040b8dadc34647c6b47b7b5c730e, at merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f (origin/main, re-read unmoved at 2026-11-04T07:06:55Z). This was a single prepr.sh run with no merge, because main did not move.
+543fa4f7ac4cb52d879297f4d2c7eb81a9e45d2e, one commit on the PR head 3f7777a59bc0f95fc47885e68e3f6d4e39e60d55, at merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f. origin/main re-read unmoved at c3a279e32 (2026-11-04T08:12:18Z); `git merge-tree --write-tree origin/main HEAD` is clean, so no merge and a single prepr.sh run.
 
 ## Mutation proof
 
-`python3 tests/ci_ratchet.py --self-test`: 52 checks, 0 failed at head. Each mutant was applied alone and restored by copy (`cmp` identical):
-- floor `statistics.median(seen)` → `max(seen)`: 1 FAIL, "one run of a job past three times its fastest does not move the grade (32.1, not 102.1)".
-- `"priced": conclusion == "success"` → `!= "skipped"`: 2 FAIL, "a failed job never prices (32.1, not 15.3)" and "a cancelled job never prices (32.1, not 31.95)".
-- the no-conclusion refusal → `if False:`: 1 FAIL, "a ran job with no conclusion refuses (whether it prices is unknown)".
-- floor dropped (`min(seen)`): 1 FAIL, "a run under a third of the job's window median did other work and never prices it (63.9, not 5.3)".
-
-Round 1's mutants (min→max, record window, `PUSH_WINDOW = 8`, `pred = None`) touch unchanged lines and checks.
+`python3 tests/ci_ratchet.py --self-test`: 53 checks, 0 failed at head. Each mutant applied alone and restored by copy:
+- `OTHER_WORK_FRACTION = 1 / 3` -> `1 / 2`: 1 FAIL, "the other-work floor sits at a third of the window median (12.3: a half would read 30.3, a quarter 9.3) -- got 30.3".
+- `OTHER_WORK_FRACTION = 1 / 3` -> `1 / 4`: 1 FAIL, the same check, "-- got 9.3".
+- Round 2's four mutants (floor median -> max, priced `!= "skipped"`, no-conclusion refusal off, floor dropped) touch unchanged lines and checks; the reviewer re-ran them at 3f7777a59, each killed.
+- The harness repair's mutant is the round-2 head itself: `tests/harness_headers.py` at 3f7777a59 prints `1 of 112 HARNESS HEADER CHECKS FAILED` on the depth seam `replay.py:40: ROOT = HERE.parents[3]`; at head, `ALL 112 HARNESS HEADER CHECKS PASSED`.
 
 ## Null control
 
-- **Harness, at both ends:** `python3 dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py`, with runs.json sha1 5ac806dd6f5e4a80ea8af04ea0b4431a32f153b7.
-  - At head it prints `RESULT: holds`, exit 0. The three lanes' 3.2x outlier reads +0.0/+0.0/+0.0.
-  - Run against 563c8e6db's `tests/ci_ratchet.py` and `ci_budgets.json`, it prints `RESULT: does NOT hold`, exit 1. The outliers read +0.183 (closures) and +6.95 (fast), the reviewer's figure.
-  - At 563c8e6db, the harness's `retired` arm reads identically to production on every line. That check is the arm's own null: it reproduces the statistic it names.
-- **Outlier against growth:** an outlier must read +0.0, and +300 s on every run must read ≥ +3.0. Both are asserted. The second is the first's perturbation; a statistic that ignored everything would pass the first and fail the second.
-- **Self-test, on synthetic runs:**
-  - "a window of slow host draws grades the work, not the draw" is the null.
-  - "a job grown by 5 minutes on every host grows the grade by 5 (37.1)" is the perturbation.
-  - "one run ... past three times its fastest does not move the grade" is the new null.
-- `dev/audit/harnesses/r10_u9a_ratchet_nulls.py`'s critical-path arm still refuses on "carries no jobs list" at both ends. Its fixtures predate the jobs requirement, and this PR leaves it alone. The new replay is the committed harness for the statistic on real runs.
+- **Harness headers, both ends:** `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`, exit 1 at 3f7777a59 (the CI red, reproduced locally), exit 0 at head.
+- **INERT read, both ends:** `python3 tests/closure.py record --out-dir R tests/harness_headers.py` under `strace` (Linux, `/usr/bin/strace` present), then `python3 tests/closure.py check --in-dir R --partial`:
+  - with this head's `tests/closures.json`: rc 0, "committed closures cover every file this run touched";
+  - the same recording against the closures.json without the new entry: rc 1, `INERT READS UNDER-APPROXIMATED ... tests/harness_headers.py: dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py`, the CI red.
+  - This is one script's recording, not a full re-derivation; CI's Linux recording is authoritative.
+- **Fraction check:** the new check reads 12.3 at a third and fails at a half (30.3) and a quarter (9.3), above.
+- **Replay:** `python3 dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py` at head, runs.json sha1 5ac806dd6f5e4a80ea8af04ea0b4431a32f153b7: `RESULT: holds`, exit 0, every line identical to round 2's (the repair moved its root lookup, not a figure). Against 563c8e6db's ratchet it read `RESULT: does NOT hold` (round 2, re-run by the reviewer).
+- **Success-only disclosure:** 20.75 at head; 21.7 with the newest 16 runs' `tests / ci-ratchet` failures read as `success`, a scratch call of `window_work_minutes` on a copy of runs.json.
 
 ## Figures
 
-- Self-test 52/0 and the four mutants: `python3 tests/ci_ratchet.py --self-test`.
-- Grade 20.75 and record 21.983: `critical_path_minutes(Path("dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json"))` and the same call with `"record"`, from `tests/ci_ratchet.py`.
-- The 25-window range 19.967–21.983, the band need 0.55 (rule: the maximum over windows i of window_i minus the max of windows before i, chronological), the outlier, lag and slow-fleet tables: `replay.py` above.
-- runs.json holds the 40 completed ci.yml push runs on main, 41363452534..41577822624. They are the union of the reviewer's ev/runs40.json and the RCA seat's runs.json (its 31 runs are a subset; 0 job-count mismatches on the overlap), cut to the fields `_walk` reads.
-- Candidates C, D and M in the table: a scratch variant of the same replay with the price rank swapped, not committed.
-- Per-script ratio 1.85 and solve 45.0/18.8 ms: run.sh's wall-clock table and the solve-time guard lines in `fast` jobs 125725515225 (c3a279e32) and 125112098863 (c7aa12165), carried from round 1 and not re-read.
-- `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED.
+- Self-test 53/0 and the two fraction mutants: `python3 tests/ci_ratchet.py --self-test`.
+- Grade 20.75, windows 19.967..21.983, record 21.983, band need 0.55 (rule: the maximum over windows i of window_i minus the max of windows before i, chronological), the outlier, lag and slow-fleet tables: `replay.py` above.
+- runs.json: the 40 completed ci.yml push runs on main 41363452534..41577822624, unchanged from round 2 (sha1 above).
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: ALL 112 HARNESS HEADER CHECKS PASSED; 138 s wall at 3f7777a59 in this container (the standing cost of the cheaper detector below).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: ALL 2602 ENTITY CHECKS PASSED.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - Architecture score: `python3 tools/audit/archscore/score.py --diff c3a279e3252a8b57bb00b5a677318cd4fe20387f` printed dS +0.0000 NULL.
-- Gate scope: `python3 tests/closure.py select --diff c3a279e32...` printed `MODE: SCOPED -- 1 script(s) run`: `tests/entities.py`, which passed. `tools/pr/ci_predict.py` predicted no closures, fast, governance or instrument red.
+- Gate scope: `python3 tests/closure.py select --diff c3a279e32...` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`: `tests/entities.py`, which passed. `tests/harness_headers.py` is not in `scope.run`; it was run by hand above, because a scoped run of one script is what hid the round-2 red.
+- `python3 tools/pr/ci_predict.py --base origin/main --apply-inert`: "no closures, fast, governance or instrument red predicted", both before and after the repair; it did not predict the round-2 INERT read.
+- Carried from round 1, not re-read: per-script ratio 1.85 and solve 45.0/18.8 ms (`fast` jobs 125725515225 and 125112098863).
 
 ## Raise justification
 
-No row rises. `critical_path_minutes` is lowered 34.267 → 21.983 under the new statistic, and `critical_path_minutes_band` stays 1.3, so the commit message carries the re-record reason.
+No row rises. `critical_path_minutes` stays at 21.983 (lowered from main's 34.267 in round 2) and `critical_path_minutes_band` at 1.3; this round changes no budget.
 - Payments tried: (1) cutting a grown job's work, refused because no job grew; (2) fixing the statistic, taken; (3) raising to 40.817, refused because it would grade the host fleet.
 - Architecture score: dS +0.0000 NULL
 
 ## Red checks
 
-- **`tests / ci-ratchet`**, and with it `gate`, has been red on main from 8f286293b. This is the ratchet's third host-draw red; root cause is the RCA seat's (r10-rca-ci-critpath-3).
-  - **Cheaper detector:** the self-test's host-invariance fixtures, about 1 s locally. This round adds the high-outlier fixture the round-1 body prescribed but lacked.
-  - **The fleet shift itself** has no cheaper detector than push runs on hosted runners.
+- **`tests / fast (3.14)`**, **`tests / closures`** and **`tests / closures-autofix`** were red at 3f7777a59 (CI run 41790799421), all from the new `replay.py`: its depth root failed `tests/harness_headers.py`, and harness_headers' child read of it was missing from `inert_reads`; closures-autofix failed and repaired nothing. Cause: the scoped local gate ran only `tests/entities.py` (`MODE: SCOPED -- 1 script(s) run`), and `ci_predict.py` cannot see a child's read, so neither instrument named the script that reddens.
+  - **Cheaper detector:** `python3 tests/harness_headers.py`, run locally on any diff adding a file under `dev/audit/harnesses/`; 138 s wall here, against a CI round trip. It already exists and needs no build: `tests/run.sh` runs it as a `run_always` line on every gate, scoped or not, and `fixer.md` step 5 already requires a seat to run the `run_always` lines beside `scope.run`. The round-2 head ran `scope.run` alone. Process state: detector existed, not run. No countermeasure is built here, so nothing is carried.
+- **`tests / ci-ratchet`**, and with it `gate`, has been red on main from 8f286293b on host draw; this PR is its fix. Root cause is the RCA seat's (r10-rca-ci-critpath-3).
+  - **Cheaper detector:** the self-test's host-invariance fixtures, about 1 s locally.
 - **`tests / nightly-status`** grades main, not this branch. The diff touches nothing it reads.
 
 ## Forward-carry
