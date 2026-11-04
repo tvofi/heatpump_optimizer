@@ -160,6 +160,10 @@
 # request's copy to decide whether the heavy lanes run, so no pin can hold.
 /tests/lane_skip.py                       @tvofi
 /tests/harness.py                         @tvofi
+# The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4): every heavy tests job
+# executes the pull request's copy, and its duration is the unit the CI
+# ratchet prices critical_path_minutes in.
+/tests/host_probe.py                      @tvofi
 /tests/mutation_table.py                  @tvofi
 /tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi
