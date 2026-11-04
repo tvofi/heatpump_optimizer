@@ -16486,7 +16486,8 @@
    "after": [],
    "carry": [
     "From this pull request, body item e67341cc: Handoff `a6305aa29` re-reads own PENDING only; `FAIL prelude: None` (10 false reds) and own ABSENT (1) still go red with no re-read. Carry: R10-HOTFIX-GATE-STALE-JOBS (items e67341cc)",
-    "From this pull request, body item e350d851: `tools/ci/codescan_wait.py`'s own-run path has no poll, so a leg whose step row lags may read as stood down and go unread. Read from the code, not measured. Carry: R10-HOTFIX-GATE-STALE-JOBS (items e350d851)"
+    "From this pull request, body item e350d851: `tools/ci/codescan_wait.py`'s own-run path has no poll, so a leg whose step row lags may read as stood down and go unread. Read from the code, not measured. Carry: R10-HOTFIX-GATE-STALE-JOBS (items e350d851)",
+    "From this pull request, body item d0916ca4: `.github/workflows/pr-contract.yml`'s red list keeps only completed failures, so a lagging red may be left off what the body must answer. Read from the code, not measured. Carry: R10-HOTFIX-GATE-STALE-JOBS (items d0916ca4)"
    ],
    "architect_note": "",
    "resume": {
