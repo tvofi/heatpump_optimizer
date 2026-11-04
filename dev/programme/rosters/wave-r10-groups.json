@@ -16452,6 +16452,44 @@
     "note": "s11 verify"
    },
    "brief": "Main red on critical_path_minutes after #3180; measure work against runner speed, then fix what the grade measures."
+  },
+  {
+   "group": "R10-HOTFIX-GATE-STALE-JOBS",
+   "lane": "CP",
+   "kind": "hotfix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "N-structure-blind",
+   "severity": "critical",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/ci/gate.py"
+   ],
+   "hot_files": [
+    "tools/ci/gate.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress"
+   },
+   "brief": "Critical path. gate.py judges this run's own needed units from the Actions jobs API, which under load returned in_progress for jobs already complete: proof run 41870314676 read tests / mutation and tests / closures PENDING at 17:37:43Z after they completed at 17:35:07Z and 17:36:51Z; main run 41870522291 read four units PENDING at 17:44:55Z. A false red discards a train proof. Owner tools/ci/gate.py."
   }
  ]
 }
