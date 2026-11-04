@@ -81,7 +81,7 @@ Cost:
   (`cloud_dispatch.py` lines 262 to 286, whose self-test pins that tail), to a `ref_privacy.py` push
   disposition, to `prune_refs.py`'s families, and to a new watcher arm. It would also add a poll or a
   session end, because it carries no answer back. All that buys nothing `BLOCKED.md` lacks.
-- **Carry.** About 15 lines in `orchestrator_tick.py`, 4352 lines at #3200's head and a hot file, plus
+- **Carry.** About 15 lines in `orchestrator_tick.py`, 4352 lines on main and 4707 at #3200's `d7e67e0d7`, a hot file, plus
   one `git fetch` of `refs/heads/handoff-wip/*` per pass: no API call. Three fixture arms, one
   sentence in `cloud_dispatch.py`, plus one `set-files` op, since the group's list omits that file.
 - `orchestrator_tick.py` and `cloud_dispatch.py` are not policy files, so neither has a
