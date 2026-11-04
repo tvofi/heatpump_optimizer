@@ -7,7 +7,7 @@ No product behaviour changes: the diff is one markdown file under `dev/programme
 
 ## Head
 
-`8ef6236a2c224f71a202e43c35909f49aa897531`; the one file is the whole diff against `2a9cd3476`.
+`03ed7434fb34145ab43649b91a2354fbc21f040e`; the one file is the whole diff against `2a9cd3476`.
 
 ## Mutation proof
 
@@ -23,7 +23,7 @@ This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py
 
 ## Figures
 
-- `git diff --stat 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e...8ef6236a2c224f71a202e43c35909f49aa897531`: 1 file, 149 insertions.
+- `git diff --stat 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e...03ed7434fb34145ab43649b91a2354fbc21f040e`: 1 file, 149 insertions.
 - The rulings' figures are cited beside their sources in their `Instances:`.
 - No capped file is touched; the diff is one markdown file.
 
