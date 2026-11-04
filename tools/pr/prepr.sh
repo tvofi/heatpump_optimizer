@@ -3463,11 +3463,49 @@ STUB
   # LAZY (carries 25 and 26): the take is a function the heavy steps call, never
   # an unconditional line before the light ones. Every call precedes the heavy
   # command it guards, and the idempotence and the join are DRIVEN below.
-  st "$(grep -cE '^ *take_slot( |$)|&& take_slot$' <<<"$flow")" 4 "the main flow calls take_slot at the mutants, self-test, closures and diff-mutants steps (and defines it once)"
+  st "$(grep -cE '^ *take_slot( |$)|&& take_slot$' <<<"$flow")" 5 "the main flow calls take_slot at the mutants, field coverage, self-test, closures and diff-mutants steps (and defines it once; 3f5 is light and stays unleased)"
   slot_order=$(awk '/^take_slot\(\)/{d=1} /step "policy_lint"/{seen=1} /^ *take_slot$/{ if(d && seen){print "ok"} exit }' <<<"$flow")
   st "$slot_order" ok "and the first call sits after the light policy_lint step: a run that skips every heavy step never takes one"
   st "$(awk '/^take_slot$/{c=1} /policy_lint_mutants.mjs; then heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the mutants drive runs inside the slot (take_slot precedes its heavy_run)"
   st "$(awk '/^  take_slot$/{c=1} /prepr.sh --self-test; else heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the self-test runs inside the slot"
+  # Step 3f3 (field coverage, ~234 s idle) is heavy_skip-gated like 3a but is not
+  # the mutants drive's read-set: a workflow-only diff skips the mutants and runs
+  # field coverage. DRIVEN: the production 3a and 3f3 blocks, with heavy_skip
+  # answering "mutants skip, field coverage runs" (the plant is a one-line change
+  # to .github/workflows/arch-score.yml); the log must read skip, take, run.
+  blk3=$(sed -n '/^HV=\$(heavy_skip "mutants"/,/^# --- 3b\./p' "$PREPR_PATH" | sed '$d'; sed -n '/^HV=\$(heavy_skip "field coverage"/,/^# --- 3f4\./p' "$PREPR_PATH" | sed '$d')
+  slot_log() { # mutants verdict, field-coverage verdict (0 skip, 1 run) -> event log
+    ( L=$(mktemp); MS=$1; FS=$2
+      heavy_skip() { case "$1" in mutants) return "$MS" ;; *) return "$FS" ;; esac; }
+      say() { echo "skip $2" >> "$L"; }; take_slot() { echo take >> "$L"; }
+      heavy_run() { echo "run ${*: -1}" >> "$L"; }; step() { :; }
+      HEAVY_PLAN_FILE=x; eval "$blk3" >/dev/null 2>&1
+      tr '\n' ' ' < "$L"; rm -f "$L" )
+  }
+  got=$(slot_log 0 1)
+  case "$got" in "skip mutants take run "*"field_coverage.mjs ") r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "a plan where the mutants skip and field coverage runs takes the slot before 3f3's recorder ($got)"
+  got=$(slot_log 0 0)
+  case "$got" in "skip mutants skip field coverage ") r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a plan skipping both takes no slot (null control)"
+  # `closures_owes_slot` alone decides whether the scoped recorder runs inside a
+  # slot. DRIVEN like the 6b rows drive `closures_line`: a throwaway repository
+  # whose tests/closure.py stub writes the `affected` case and scripts it is told.
+  OWQ=$(mktemp -d)
+  ( cd "$OWQ" && git init -q . && git config user.email t@t && git config user.name t \
+    && mkdir tests && printf 'import os, sys\nw = sys.argv[sys.argv.index("--workdir") + 1]\nos.makedirs(w, exist_ok=True)\nopen(w + "/affected.case", "w").write(os.environ["OWE_CASE"])\nopen(w + "/affected.scripts", "w").write(os.environ.get("OWE_SCRIPTS", ""))\n' > tests/closure.py \
+    && echo a > f && git add . && git commit -qm base && git branch -q base && echo b >> f && git commit -qam change )
+  owes() { # case, scripts, records_here rc -> rc of closures_owes_slot
+    ( cd "$OWQ"; export OWE_CASE=$1 OWE_SCRIPTS=$2; RH=$3
+      closures_records_here() { return "$RH"; }
+      closures_owes_slot base >/dev/null 2>&1 ); echo $?
+  }
+  st "$(owes scoped 'a.py' 0)" 0 "closures_owes_slot: a scoped diff with scripts, on a machine that records, owes the slot"
+  st "$(owes skip 'a.py' 0)" 1 "and a skip diff owes none"
+  st "$(owes full 'a.py' 0)" 1 "and a full diff owes none (CI re-records every closure)"
+  st "$(owes scoped 'a.py' 1)" 1 "and a machine that leaves recording to CI owes none"
+  st "$(owes scoped '' 0)" 1 "and a scoped diff whose affected.scripts is empty owes none (null control)"
+  rm -rf "$OWQ"
   TSL=$(mktemp -d); : > "$TSL/log"
   ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
     say() { :; }; exit_on_signals() { :; }
@@ -3475,6 +3513,14 @@ STUB
     eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
     take_slot; take_slot )
   st "$(grep -c slot-take "$TSL/log")" 1 "take_slot called twice takes exactly one slot (idempotent)"
+  : > "$TSL/log"
+  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
+    say() { :; }; exit_on_signals() { :; }
+    python3() { echo "$*" >> "$TSL/log"; case "$*" in *slot-take*) return 1 ;; esac; return 0; }
+    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
+    take_slot; take_slot )
+  st "$(grep -c slot-take "$TSL/log")" 1 "a failing slot-take is attempted once across two take_slot calls (no re-queue on the WARN path)"
+  st "$(grep -c slot-unleased "$TSL/log")" 1 "and the unleased marker is written once"
   : > "$TSL/log"
   ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; export HPO_SLOT_LABEL=outer
     say() { :; }; exit_on_signals() { :; }
@@ -4020,6 +4066,7 @@ HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "field coverage" "$HV"
 else
+take_slot
 if test -f .claude/workflows/field_coverage.mjs; then heavy_run /tmp/prepr-fc.$$ node .claude/workflows/field_coverage.mjs; else heavy_run /tmp/prepr-fc.$$ node tools/policy/field_coverage.mjs; fi
 # the refusal cause lines sit above the summary this prints, and the file is
 # removed below, so they are carried beside it or not at all (#2118, #2134).
@@ -4047,7 +4094,9 @@ rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 # Skipped on the closure derivation's proof (`heavy_skip` above): the step's
 # read-set is the dev/audit/ config, rounds and rca trees, and a diff reaching
 # none of them prints the skip and its disjointness. The plan is removed here,
-# with the last heavy step that reads it.
+# with the last heavy step that reads it. UNLEASED ON PURPOSE (no `take_slot`):
+# the step is light (about 0.5 s), so queueing for a slot would cost more than
+# the work; 3f3 above (234 s idle) is the heavy one and takes the slot.
 HV=$(heavy_skip "register check" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "register check" "$HV"
