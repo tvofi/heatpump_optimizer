@@ -1,0 +1,2 @@
+FAIL depth seams: dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py:40: ROOT = HERE.parents[3]
+rc=1

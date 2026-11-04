@@ -1,0 +1,4 @@
+fraction=1 / 2: ci-ratchet self-test: 53 checks, 1 failed ; other-work check FAIL lines=1
+fraction=1 / 4: ci-ratchet self-test: 53 checks, 1 failed ; other-work check FAIL lines=1
+fraction=0.34: ci-ratchet self-test: 53 checks, 0 failed ; other-work check FAIL lines=0
+fraction=0.32: ci-ratchet self-test: 53 checks, 0 failed ; other-work check FAIL lines=0
