@@ -1,0 +1,10 @@
+MUTANT lag_bound returns 0 | gate self-test: 48 checks, 8 failed | finder: mismatches 4 of 9
+MUTANT all->any | gate self-test: 48 checks, 1 failed | finder: mismatches 0 of 9
+MUTANT ABSENT bound = WAIT bound | gate self-test: 48 checks, 0 failed | finder: mismatches 0 of 9
+MUTANT prelude listed_unfinished False | gate self-test: 48 checks, 2 failed | finder: mismatches 2 of 9
+MUTANT prelude None also waits | gate self-test: 48 checks, 1 failed | finder: mismatches 0 of 9
+MUTANT own ABSENT tagged as foreign | gate self-test: 48 checks, 0 failed | finder: mismatches 0 of 9
+MUTANT own PENDING tagged as foreign | gate self-test: 48 checks, 0 failed | finder: mismatches 0 of 9
+MUTANT deferral loses its bound | gate self-test: 48 checks, 6 failed | finder: mismatches 0 of 9
+MUTANT lagged note dropped | gate self-test: 48 checks, 1 failed | finder: mismatches 0 of 9
+MUTANT status dropped from read_api | gate self-test: 48 checks, 2 failed | finder: mismatches 2 of 9
