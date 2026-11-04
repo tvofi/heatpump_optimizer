@@ -16496,6 +16496,46 @@
     "pr": 3205
    },
    "brief": "Critical path. gate.py judges this run's own needed units from the Actions jobs API, which under load returned in_progress for jobs already complete: proof run 41870314676 read tests / mutation and tests / closures PENDING at 17:37:43Z after they completed at 17:35:07Z and 17:36:51Z; main run 41870522291 read four units PENDING at 17:44:55Z. A false red discards a train proof. Owner tools/ci/gate.py."
+  },
+  {
+   "group": "R10-HOTFIX-SAV-ESTIMATE",
+   "lane": "CP",
+   "kind": "hotfix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "savings-reference",
+   "severity": "critical",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/external_heat.py",
+    "custom_components/heatpump_optimizer/ledger.py",
+    "custom_components/heatpump_optimizer/optimizer.py"
+   ],
+   "hot_files": [
+    "custom_components/heatpump_optimizer/ledger.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress"
+   },
+   "brief": "Owner-reported 2026-11-04 (tvofi): the month table reads nonsense (November baseline far below actual, percent clipped at -100). Each re-plan books only the reference's first step, which reads zero when a valve's buffer is above the curve. Part 1: hold the buffer and spread the horizon energy by steady demand, remove the percent clip, add a per-month basis marker through the store's versioned migration, and show a dash for savings on old-basis rows and on two-tank houses until R10-SAV-WOOD-MEASURED lands. Local fixer seat; root-cause seat beside it."
   }
  ]
 }
