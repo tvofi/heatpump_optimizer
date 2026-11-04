@@ -30,7 +30,12 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .const import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE, finite_float
+# The two stages live in const (entry_config parses them, and this module now
+# reads thermal_model, which reads entry_config); re-exported here, explicitly,
+# for the modules that import them from the frequency map's own module.
+from .const import FREQ_MODE_CONTROL as FREQ_MODE_CONTROL
+from .const import FREQ_MODE_OBSERVE as FREQ_MODE_OBSERVE
+from .const import finite_float
 from .payload import FreqMapBucket
 from .thermal_model import planned_draw_runs
 
