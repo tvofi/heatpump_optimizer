@@ -504,7 +504,17 @@ def _experiment_kw(inp: ArbiterInputs) -> float | None:
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
-    """``(p_min, p_max)`` from the model when the params snapshot lacks them."""
+    """``(p_min, p_max)`` the step's power maps on.
+
+    A plan's step maps on the band the plan was solved on, its stamped
+    ``solve_band`` (R10-COP-GATE part D): a plan booked on a learned top
+    below the nameplate commands the ceiling at that top. An experiment's
+    step maps on the hub's band, which sysid sized it on; so does a plan with
+    no stamp. The hub's band from the model when the params snapshot lacks it.
+    """
+    band = getattr(inp.plan, "solve_band", None) or {}
+    if band and _experiment_kw(inp) is None:
+        return band["planned_min_kw"], band["planned_max_kw"]
     params = inp.params
     thermal_params = getattr(inp.thermal, "params", None)
     p_min = getattr(params, "min_electrical_power", None)

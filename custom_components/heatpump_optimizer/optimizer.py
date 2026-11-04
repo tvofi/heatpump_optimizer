@@ -1754,6 +1754,10 @@ class OptimizationResult:
     #: Absent (None) keeps ``step_duty``'s duty-cycle reading. Not a
     #: caller argument: the plan carries the floor it was solved under.
     duty_floor_kw: float | None = None
+    #: ``draw_range.SolveBand.as_dict()`` of the band this plan was solved
+    #: on, stamped by the coordinator; empty means the hub's configured band.
+    #: The arbiter maps the plan's steps by it (R10-COP-GATE part D).
+    solve_band: dict[str, Any] = field(default_factory=dict)
 
 
 @dataclass
@@ -3691,12 +3695,15 @@ class HeatPumpOptimizer:
         A different step count means the caller is planning a different
         horizon (the coordinator's own horizon is fixed, but a service call or
         a test need not match it), and a plan of the wrong width is dropped
-        rather than clipped or padded into a plausible-looking guess.
+        rather than clipped or padded into a plausible-looking guess. Its
+        levels are clipped to this solve's top: a band narrowed since the
+        previous plan (R10-COP-GATE part D, item D6) would otherwise score the
+        candidate at levels this solve cannot book.
         """
         prev = getattr(self, "_prev_shipped_plan", None)
         if prev is None or len(prev) != n_steps:
             return None
-        return (np.asarray(prev, dtype=float),)
+        return (np.clip(np.asarray(prev, dtype=float), 0.0, self.model.params.max_electrical_power),)
 
     def _stash_price_horizon(
         self,
