@@ -25,7 +25,8 @@
 # (the code sha already in it, or `-`; main clean; the row present), nothing is pushed:
 # body_patch.sh runs the body contract at that head from this run's worktree and PATCHes the body,
 # and `update_pr: BODY-ONLY:` says so. With `-`, a handoff/<topic> tip the head lacks refuses
-# (pass it as the code sha). pr-contract re-runs on the `edited` event. HPO_BODY_PATCH replaces
+# (pass it as the code sha); HPO_UPDATE_BODY_ONLY=1 (the relay's) refuses any run that would move the
+# head, pushing nothing. pr-contract re-runs on the `edited` event. HPO_BODY_PATCH replaces
 # body_patch.sh (the self-test's stub).
 # --self-test runs delivery_row.sh's self-test, then pr_args.sh's, under pr_args.sh's self-test bound.
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
@@ -89,6 +90,10 @@ TTL=$(gh pr view "$N" -R $R --json title -q .title)
 _added=$(ensure_row . "$N" "$(row_line "$N" $R "$TTL")")
 ROW=""; [ -z "$_added" ] || ROW="adds one commit containing only this PR's own row, \`$_added\`"
 M=$(git rev-parse --short origin/main); H=$(git rev-parse HEAD)
+# HPO_UPDATE_BODY_ONLY (cloud_relay.sh's handoff_arm, on a body-only move it does not review-freeze):
+# the head must stay the live head, so a DIRTY merge of main or an added row refuses, pushing nothing
+# (#3089 review round 2): only the orchestrator, past the freeze, moves a head under review.
+[ -z "${HPO_UPDATE_BODY_ONLY:-}" ] || [ "$H" = "$LIVE" ] || pr_refuse "body-only update would move the head $LIVE to $H (main merged or row added): run update_pr.sh without HPO_UPDATE_BODY_ONLY, past the review freeze"  # mut:bodyonly
 # BODY-ONLY (R10-FLOW-BODY-ONLY part (b)): nothing to commit -- the code sha, if any, is already in the
 # head, main needs no merge and the row exists -- so the head stays where it is and the body goes to
 # body_patch.sh, which runs the body contract at that head and PATCHes the body with no push. Run from
