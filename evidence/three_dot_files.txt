@@ -1,9 +1,0 @@
-.github/workflows/budget-raise-gate.yml
-.github/workflows/governance.yml
-.github/workflows/pr-contract.yml
-.github/workflows/tests.yml
-dev/programme/delivery/3181.md
-tests/closure.py
-tests/entities.py
-tests/run.sh
-tools/audit/seat/merge_train.py
