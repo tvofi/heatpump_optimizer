@@ -16298,7 +16298,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-carry-residue",
     "commit": null,
     "last_step": null,
