@@ -608,12 +608,6 @@ INERT_EXCEPT = (
     # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
     # stays INERT, this file joins the recorded closure.
     "tools/audit/seat/plan_page.py",
-    # R10-TICK-LEVELS: ledger.py's self-test (which tests/entities.py runs) reads
-    # these three scripts for the orchestrator tick's PR levels. The tools/audit/seat/
-    # and tools/pr/ prefixes stay INERT; the files join the recorded closure.
-    "tools/audit/seat/open_pr.sh",
-    "tools/pr/app_approve.sh",
-    "tools/audit/seat/cloud_relay.sh",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
