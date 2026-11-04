@@ -253,6 +253,14 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
+      # critical_path_minutes prices this job's work on a reference host:
+      # its wall over this step's seconds (tests/host_probe.py: fixed work,
+      # so its duration is this runner's speed). tests/ci_ratchet.py reads
+      # the step by its name, interpreter included -- keep the two in step.
+      - name: Probe the runner's speed (python ${{ matrix.python-version }})
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: python3 tests/host_probe.py
+
       - name: Resolve the golden comparison ref
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: |
@@ -458,6 +466,14 @@ jobs:
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
+
+      # critical_path_minutes prices this job's work on a reference host:
+      # its wall over this step's seconds (tests/host_probe.py: fixed work,
+      # so its duration is this runner's speed). tests/ci_ratchet.py reads
+      # the step by its name, interpreter included -- keep the two in step.
+      - name: Probe the runner's speed (python 3.14)
+        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        run: python3 tests/host_probe.py
 
       # The scope `fast` takes: the prelude's, diffed from the merge base with
       # the PR's base (origin/main on a dispatch naming none); full on push.
@@ -825,6 +841,13 @@ jobs:
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
+
+      # critical_path_minutes prices this job's work on a reference host:
+      # its wall over this step's seconds (tests/host_probe.py: fixed work,
+      # so its duration is this runner's speed). tests/ci_ratchet.py reads
+      # the step by its name, interpreter included -- keep the two in step.
+      - name: Probe the runner's speed (python 3.13)
+        run: python3 tests/host_probe.py
 
       # Deliberately NOT added to tests/requirements-ci.txt. env_drift's cache
       # key fingerprints the installed distribution set, so a package added
@@ -2021,6 +2044,14 @@ jobs:
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
+
+      # critical_path_minutes prices this job's work on a reference host:
+      # its wall over this step's seconds (tests/host_probe.py: fixed work,
+      # so its duration is this runner's speed). tests/ci_ratchet.py reads
+      # the step by its name, interpreter included -- keep the two in step.
+      - name: Probe the runner's speed (python 3.13)
+        if: env.DOCS_ONLY_FAST != 'true'
+        run: python3 tests/host_probe.py
 
       - name: Install strace
         # node has no audit hook, so tests/card.mjs is recorded by tracing
