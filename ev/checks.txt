@@ -1,0 +1,11 @@
+pulse self-test: 58 checks, 0 failed
+sweep_render self-test: 34 checks, 0 failed
+selftest_wiring: 112 self-testing, 112 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+STRUCTURE RATCHET PASSED
+merge-tree:
+LEDGER-MERGE: resolved tests/closures.json
+d39659ce1c7f318c4bfb163350c9884ef36b3c13
+rc=0
+62f94f3fbceb6acfbd3a79b42f300f091406c10c

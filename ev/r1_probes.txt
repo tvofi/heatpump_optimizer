@@ -1,0 +1,4 @@
+P1 partial-line ops run: ['append-carry G2 note text that is long']
+P2 after truncate+requeue, runs: ['set-stage G1 done']
+P3 events: ['2027-01-15T08:02:00Z HEAD-MOVED #12 aaaaaaaaaaaa bbbbbbbbbbbb', '2027-01-15T08:04:00Z HEAD-MOVED #12 bbbbbbbbbbbb aaaaaaaaaaaa', '2027-01-15T08:06:00Z HEAD-MOVED #12 aaaaaaaaaaaa bbbbbbbbbbbb']
+P4 empty board -> 'tick-digest: UNREADABLE board tick.txt absent\n' | same board back -> 'MERGE-READY: #9 9a8b7c6d\n'
