@@ -1,0 +1,2 @@
+RESULT classes base 30 sites 93 template-classes 7 template-sites 21 [5, 3, 4, 3, 2, 2, 2]
+RESULT classes v/wt 22 sites 70 template-classes 0 template-sites 0 []
