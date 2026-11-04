@@ -1,0 +1,18 @@
+ee19e1f5b5d5d206906c8c9b502aac594c132916
+== main's field_coverage on p2 tree
+  REFUSED  registry: `pinned tools/audit/machinery_ratchet.py` is unregistered: DECLARED names neither an arm for its input nor none
+RESULT read=3 ignored=0 declared_none=36 blind=0 dead=0 refused=1 runs=0 seconds=6.0
+FIELD COVERAGE REFUSED: a BLIND field, a DEAD entry or a REFUSED run above
+== head's field_coverage on p2 tree
+  none     pinned tools/audit/machinery_ratchet.py: reads machinery_budgets.json through load_budgets(), which refuses a key it does not read and requires each it does (its --self-test pins both), and merge history; no arm here
+RESULT read=3 ignored=0 declared_none=37 blind=0 dead=0 refused=0 runs=0 seconds=5.8
+FIELD COVERAGE ok
+== merge-tree
+ed3b2997170404dd0554627610e35296f266bac3
+rc=0
+8e90d81443317f76f22602a89651f7ca17c633f9
+== version/notes touched?
+(empty=untouched)
+== structure
+STRUCTURE RATCHET PASSED
+RULES-SYNC ok: every generated rule is the generated form of its source

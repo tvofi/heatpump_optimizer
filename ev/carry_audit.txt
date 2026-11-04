@@ -1,0 +1,3 @@
+NOTE review 0 item 8e0230d9: dismissed:no live destination, the roster marks R10-MACHINERY-RATCHETS done while parts 1b and 2 are open; the orchestrator reopens the group and lands this as part 2's precondition (see Friction)
+NOTE review 0 item 02dfa7b1: dismissed:no live destination, R10-MACHINERY-RATCHETS is marked done on the roster; the orchestrator routes it with the group's reopening (see Friction)
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
