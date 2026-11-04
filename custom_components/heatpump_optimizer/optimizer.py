@@ -97,6 +97,7 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    channel_heating_draw,
     channel_heating_steps,
     levels_clamped,
     plan_step_runs,
@@ -324,6 +325,25 @@ def _baseline_power_list(baseline_power: np.ndarray | None) -> list[float]:
     if baseline_power is None:
         return []
     return [float(v) for v in np.asarray(baseline_power, dtype=float)]
+
+
+def _weather_loss_factors(
+    model: ThermalModel, wind_speeds: np.ndarray, precipitation: np.ndarray, n_steps: int
+) -> np.ndarray:
+    """Each step's heat loss over the same house's calm, dry loss: the weather's share alone.
+
+    Dividing by the unscaled nameplate instead let the learned
+    `house_heat_loss_scale` through, so a house that learned a scale above 1.1
+    read as "weather turning" under a flat forecast, and every heating step
+    said preheat_weather (live defect, tvofi 2026-10-30).
+    """
+    base_loss = max(model.params.heat_loss_coefficient, 0.001)
+    calm_loss = max(model.effective_heat_loss_coefficient(base_loss), 1e-9)
+    return np.array([
+        model.effective_heat_loss_coefficient(base_loss, wind_speeds[i], precipitation[i])
+        / calm_loss
+        for i in range(n_steps)
+    ])
 
 
 def _baseline_target(comfort_targets: np.ndarray | None, i: int, default: float) -> float:
@@ -1394,6 +1414,15 @@ def idle_codes(
     return list(codes.tolist())
 
 
+def _heating_draws(
+    power: np.ndarray, other: np.ndarray | None
+) -> tuple[np.ndarray, np.ndarray | None]:
+    """Both channels' draws as the classifiers read them: each on its own heating steps."""
+    if other is None:
+        return channel_heating_draw(power), None
+    return channel_heating_draw(power, other), channel_heating_draw(other, power)
+
+
 def classify_space_steps(
     power: np.ndarray,
     prices: np.ndarray,
@@ -1425,6 +1454,7 @@ def classify_space_steps(
     reasons: list[str] = []
     if n_steps == 0:
         return reasons
+    power, other = _heating_draws(power, other)
     cheap_cut = float(np.percentile(prices, 35)) if len(prices) else 0.0
     idle = idle_codes(
         n_steps, power, prices, room_temps, temp_min_bounds, surplus, other, caps, threshold,
@@ -1487,9 +1517,10 @@ def classify_dhw_steps(
     """
     ctx = idle or IdleContext()
     reasons: list[str] = []
+    power, other = _heating_draws(power, ctx.other)
     codes = idle_codes(
         n_steps, power, ctx.prices, ctx.level, ctx.floor, ctx.surplus,
-        ctx.other, ctx.caps, threshold,
+        other, ctx.caps, threshold,
     )
     for i in range(n_steps):
         if power[i] <= threshold:
@@ -3443,16 +3474,9 @@ class HeatPumpOptimizer:
         solar_gains_per_step = np.array([
             self.model.compute_solar_gain(sr) for sr in solar_radiation
         ])
-        base_loss = max(self.model.params.heat_loss_coefficient, 0.001)
-        forecast_heat_loss_factors = np.array([
-            self.model.effective_heat_loss_coefficient(
-                self.model.params.heat_loss_coefficient,
-                wind_speeds[i],
-                precipitation[i],
-            )
-            / base_loss
-            for i in range(n_steps)
-        ])
+        forecast_heat_loss_factors = _weather_loss_factors(
+            self.model, wind_speeds, precipitation, n_steps
+        )
 
         # --- Manual plan pins ------------------------------------------
         # Normalise both channels to writable float arrays of horizon length so
