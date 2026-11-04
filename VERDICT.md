@@ -1,31 +1,32 @@
-Fix review: blocked a615a76f16aa76f49a436ae16b65b3ba63214aba root-cause-detectable: tests / closures
+Fix review: merge 9f6d90798e73c858619bf01d78bc2f1a626b92a3
 
-bus-nonce: 8ba45417cba8b44ad106112fe4ea9aab
+bus-nonce: a975e22c14d7a5537786f3ec2bc4e3cb
 
-Round 1. Reviewed head a615a76f16aa76f49a436ae16b65b3ba63214aba (doc and harness under dev/audit only). The PR head is now 79ac5afb80a921f3b4b13be6800dadf77ec7bec9, a bot "ci: re-record closures" commit on top; `review_carry.py` prints CARRY for it (ev/review_carry.txt), so this verdict stands for the PR as it is now.
+## Round
 
-## Block
-
-The body's `## Red checks` says "none". At this head's run `tests / closures` went red (UNDER-SCOPED): the five new .py files under `dev/audit/harnesses/r10_gate_stale_jobs/` were in no measured closure, and the ci-autofix commit 79ac5af added them to `tests/closures.json` (ev/closures-autofix.diff). The body also states that `tests/closure.py`'s INERT list covers them, and that is wrong: `dev/audit/` is on INERT (tests/closure.py:321), but these files are measured, as the bot's re-record shows.
-
-`pr-contract` is red at 79ac5af for exactly this: `ERROR [pr-body] check `tests / closures` is red and `## Red checks` does not name it` (job 126817495961); `gate` is red on that one reason, `FAIL pr-contract / pr-contract: failure (this run)` (job 126817908140). Both are the push-time and later runs of the head's workflows, concluded. `ci-autofix.md` makes `UNDER-SCOPED` answerable by naming it, which the body does not do.
-
-A cheaper detector existed: `tests/closure.py` / `prepr.sh` predict the red before the handoff, and a repair before the handoff was owed. Fix: add `tests / closures` under `## Red checks` naming UNDER-SCOPED and the 79ac5af repair, and correct the INERT sentence. No code change needed.
-
-## Findings
-
-- The body's INERT sentence and its "Scope: 0 script(s) run" line misdescribe the new files, which are measured closure members; correct them with the Red checks answer. Carry: dismissed: owned by this PR's own body edit above, not a later stage
-- Residual: the doc's "about 47 min" (section 4) re-derives as 45 min under my reading (13 attempt-1 attempts that only the lag reasons explain, each at its largest lag rounded up to 60 s); 39.7 min unrounded. Same order, same verdict (build); say which rounding. Carry: dismissed: the cost-test verdict does not move
-- Follow-up: the doc's handoff-column results (3 of 9, section 5) and the body's `a6305aa29` figures were not re-run: that SHA is not fetchable from origin by abbreviation, so only the main column was verified. Carry: R10-HOTFIX-GATE-STALE-JOBS
-- Follow-up: the doc's two fail-open readers (`codescan_wait.py` own-run path, `pr-contract.yml` red list at line 306) are unmeasured and carried; the body's carry routes resolve on origin/handoff/audit-r10-roster (CARRY-AUDIT: 3 routed, 0 unrouted). Carry: R10-HOTFIX-GATE-STALE-JOBS
+Round 2 (delta) of #3206 (R10-RCA-GATE-STALE / R10-HOTFIX-GATE-STALE-JOBS), measured at head 9f6d90798e73c858619bf01d78bc2f1a626b92a3; the head was still the PR head when this verdict was written. Round 1 blocked a615a76f (root-cause-detectable: tests / closures) on the body alone, with no fault in the code.
 
 ## Evidence
 
-- Re-derived from `reasons.jsonl` with `tally.py` (ev/tally.txt, ev/rederive.txt): 1000 scanned runs, 383 red gate attempts; only-PENDING 6 (3 false, 3 hid a real failure), only-prelude-None 12 (10 false, 2 true), ABSENT 1 (false), PENDING-plus-other 2; class 21, false reds 14. Matches the doc. 37 unread runs (jobs-read errors) and 0 log-read errors match; the tally's own "read errors 175" counts 175 error records over 138 runs, 101 of which a later pass scanned.
-- By incident (symmetric 66 min window, read_at): 11 inside, 8 within, 2 outside (41289450679 at 20 s, 41061779792 at 23 s): 19 of 21 as stated. Lags: 28 lines, 22 on attempt 1, 2 over 660 s: as stated.
-- Harness at the head tree and at origin/main d7582ed40 (ev/harness-head.txt, ev/harness-main.txt): `mismatches 4 of 9`, rc 1, identical rows to the doc's main column; both nulls PASS/FAIL with 0 s waited.
-- The 170 min 4 s recovery and the 224 min figure: the nine listed durations sum to 170:04, plus 54:05 is 224:09; `recover.py` needs gh auth, which this seat lacks, so the per-run times themselves are not re-derived.
-- merge-tree of origin/main with the head: clean (ev/merge-tree.txt). VERSION, manifest version and notes heading untouched (pr-contract's own line). No production code changes, so no mutation proof beyond the body's two harness mutants, which I did not re-run.
-- Not verifiable here: `tests/entities.py` needs homeassistant, absent in this seat. `tests / nightly-status` is red on the run but this diff reaches nothing it reads.
-- CI at the reviewed head: classify RED (gate) (ev/classify.txt); at 79ac5af RED (gate) (ev/classify-79ac.txt), reason as above.
-- Head reviewed: a615a76f16aa76f49a436ae16b65b3ba63214aba (ev/HEAD.txt).
+- Delta (ev/delta.txt): the commits from a615a76f to the head that are not on main are 79ac5afb (github-actions[bot], "ci: re-record closures", tests/closures.json +5 lines only), cf0a4a8a (hpo-fixer, merges origin/main d4e584ec6) and 9f6d907 (merges cf0a4a8a). Both merge trees equal `git merge-tree --write-tree` of their parents (2d5af384), so the branch adds no change of its own beyond the bot re-record. No production or harness file changed after round 1.
+- VERSION, the manifest, RELEASE_NOTES.md and tests/golden/ are untouched over the three-dot range.
+- Merge (ev/merge-tree.txt): `git merge-tree --write-tree` against origin/main 2a9cd347 gave rc 0, and against ce7a6bac (re-fetched before writing) also rc 0. On the second run the ledger driver printed `LEDGER-MERGE: resolved tests/closures.json`. Neither run touched a claim file.
+- Finder's harness, unchanged (ev/harness-head.txt, ev/harness-main.txt): `python3 -I dev/audit/harnesses/r10_gate_stale_jobs/harness.py` printed `mismatches 4 of 9` (rc 1) at the head. Given an origin/main 2a9cd347 worktree as its argument it printed the same, byte-identical. This is as expected: the PR is the RCA harness, not the fix.
+- Body checks: the body now names `tests / closures` (UNDER-SCOPED, answered by ci-autofix 79ac5afb) and `pr-contract / pr-contract` and `gate` with their answers. It corrects the INERT sentence (the five .py files are measured closure members) and retracts the "0 script(s) run" line. It also states the rounding for "about 47 min": attempt-1 lags rounded up to the 60 s poll, with the reviewer's 45 min and 39.7 min unrounded quoted.
+- Scope re-derived: `python3 tests/closure.py select --diff origin/main` at the head printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`, matching the body.
+- Class count re-derived: tally.py printed `scanned runs 1000 red gate attempts 383` with only-prelude-None 12, only-PENDING-this-run 6, ABSENT-this-run 1 and PENDING-plus-other 2, matching the body. An offline count over reasons.jsonl, under recover.py's own predicate, gives 19 attempts and 14 false reds, matching the body.
+- Not re-derived: "170 min 4 s over 10". recover.py reads the live jobs API, and here it crashed on HTTP 502s and on the proxy's refusal of numeric-ID paginated paths. That is an environment limit, not a script defect, and the delta does not touch this figure.
+- CI (ev/classify.txt): `GREEN 9f6d90798e73c858619bf01d78bc2f1a626b92a3 pending: none red: none` (merge_train classify, rc 0).
+- Red checks at this head (ev/check-runs.tsv, 55 runs, every page): the only concluded red is `tests / nightly-status` failure. The body names it as inherited from main, and the diff reaches nothing it reads. `tests / closures`, `pr-contract / pr-contract` (twice, completing 20:54:48 and 20:57:17, both after the red's 20:21:36) and `gate` (twice) are success, so that pr-contract run is the evidence that the body check passed.
+- Mutation: the diff writes no production line, so no step-1 mutant applies. The harness's own mutants were checked in round 1 and are not touched by the delta.
+
+## Findings
+
+- Residual: the body's `## Red checks` header scopes its list to 79ac5afb, not this head. At this head the only concluded red is `tests / nightly-status`, which the body names, so the list is complete for this head. Carry: dismissed: wording only, the set of reds at this head is fully named
+- Residual: "about 47 min" re-derives as 45 min under the rounding the body now states. The body discloses this, and the cost-test verdict (build) does not move. Carry: dismissed: the cost-test verdict does not move
+- Follow-up: the handoff-column results (3 of 9) and the `a6305aa29` figures were not re-run in either round, so only the main column is verified. Carry: R10-HOTFIX-GATE-STALE-JOBS
+- Follow-up: the two fail-open readers named in the doc, `codescan_wait.py`'s own-run path and `pr-contract.yml`'s red list, are unmeasured and carried; the body's carries resolve on origin/handoff/audit-r10-roster (CARRY-AUDIT: 3 routed). Carry: R10-HOTFIX-GATE-STALE-JOBS
+
+## Friction
+
+- recover.py's live `gh api --paginate` calls fail behind the cloud proxy, on HTTP 502s and numeric-ID pagination, so the recovery-minutes figure cannot be re-derived from a cloud seat.
