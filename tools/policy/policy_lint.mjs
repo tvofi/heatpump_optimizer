@@ -2103,6 +2103,15 @@ function enumerateMerges(commits, pullsBySha) {
   return { mode, prs }
 }
 
+// A recovered number is only a claim until the pull request's own
+// merge_commit_sha equals the commit it was read from (record_row.py
+// `attribute_merge`). `get` is a parameter so the acceptance drives it offline.
+function confirmGapMerge(sha, pr, get = ghGet) {
+  const slug = repoSlug()
+  const res = get(`/repos/${slug}/pulls/${pr}`)
+  return Boolean(res.ok && res.data && res.data.merge_commit_sha === sha)
+}
+
 function fetchPullsBySha(commits) {
   const slug = repoSlug()
   if (!slug) return { ok: false, why: 'no github remote on origin' }
@@ -2114,6 +2123,9 @@ function fetchPullsBySha(commits) {
     const rows = Array.isArray(res.data) ? res.data : []
     const resolved = resolvePrFromCommit(subject, rows)
     if (!resolved) continue
+    if (resolved.source === 'subject-gap' && !confirmGapMerge(sha, resolved.pr)) {
+      return { ok: false, why: `merge commit ${sha.slice(0, 7)} names #${resolved.pr} in its subject, but that pull request's merge commit differs` }
+    }
     map.set(sha, resolved.pr)
     if (resolved.source === 'subject-gap') gapShas.push(sha)
   }
@@ -4926,6 +4938,15 @@ function assertAcceptance(derived) {
   for (const none of ['Merge pull request from a fork', 'Merge pull request #12x from a/b', 'Record #424 W1-G14 merge in delivery-status', "Merge branch 'main' into fix/x"]) {
     if (resolvePrFromCommit(none, []) != null) gapFail.push(`a subject naming no pull request (${JSON.stringify(none)}) read as one`)
   }
+  // The subject-gap number is CONFIRMED against the pull request's own merge
+  // commit (record_row.py attribute_merge's rule): a subject naming a pull
+  // request whose merge commit differs is refused, not trusted.
+  pins += 3
+  const gapSha = 'a'.repeat(40)
+  const gapGet = (merge) => () => ({ ok: true, data: { merge_commit_sha: merge } })
+  if (confirmGapMerge(gapSha, '900', gapGet(gapSha)) !== true) gapFail.push('a subject-gap number whose pull request merge_commit_sha equals the sha was not confirmed')
+  if (confirmGapMerge(gapSha, '900', gapGet('b'.repeat(40))) !== false) gapFail.push('a subject-gap number whose pull request merged at a different commit was confirmed')
+  if (confirmGapMerge(gapSha, '900', () => ({ ok: false, why: 'HTTP 404' })) !== false) gapFail.push('a subject-gap number whose pull request could not be read was confirmed')
   if (gapFail.length) {
     console.log(`\nFIXTURE VACUOUS: resolvePrFromCommit ${JSON.stringify(gapFail)}. Measured D13-s1-01: 52 of 253 window merges answered [] and were dropped rather than recovered.`)
     return 1
