@@ -1639,7 +1639,12 @@ merged_run() { # merged sha, command... -> the command's rc, run at that sha's t
   return "$r"
 }
 # The steps keyed to the merge: tests/structure.py on the merged tree, always,
-# and under PREPR_SKIP_CODE the ci predict step 6d runs on HEAD otherwise, there.
+# and under PREPR_SKIP_CODE the ci predict step 6d runs on HEAD otherwise, there,
+# static: without step 6d's `--record-self-tests`, which re-runs each changed
+# file's own self-test (minutes on a tools diff, measured on this group's) to
+# record its reads against the closures -- a closures question, which
+# PREPR_SKIP_CLOSURES already leaves to closures-autofix, and heavy work this
+# mode takes no slot for.
 merged_steps() { # body, unpinned-site key file -> step lines
   local m out r b=""
   [ -z "$1" ] || [ ! -f "$1" ] || b=$(cd "$(dirname -- "$1")" && pwd)/$(basename -- "$1")
@@ -1650,7 +1655,7 @@ merged_steps() { # body, unpinned-site key file -> step lines
   out=$(merged_run "$m" python3 tests/structure.py 2>&1); r=$?
   step "merged structure" "$r" "$(printf '%s\n' "$out" | tail -1 | cut -c1-160) (tests/structure.py at ${m:0:12}, HEAD merged with origin/main)"
   [ -n "${PREPR_SKIP_CODE:-}" ] || return 0
-  out=$(merged_run "$m" predict_line origin/main "$2" "$b" "" record); r=$?
+  out=$(merged_run "$m" predict_line origin/main "$2" "$b"); r=$?
   case $r in
     3) say skip "ci predict" "$out" ;;
     0) step "ci predict" 0 "$out (at ${m:0:12}, HEAD merged with origin/main)" ;;
