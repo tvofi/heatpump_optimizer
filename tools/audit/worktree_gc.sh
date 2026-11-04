@@ -19,9 +19,10 @@
 # WHAT IT DELETES, and only after the proof names it:
 #   A. a BRANCH worktree whose branch's pull request is MERGED, read from the
 #      API (`gh pr list --state all --head <branch>`), never from the local
-#      branch's existence. Merged work is on main, so `git worktree remove
-#      --force` is safe however dirty the worktree is; its uncommitted diff is
-#      PRINTED first (the orchestrator's stop-a-seat check). Then the local
+#      branch's existence. Merged work is on main, so removing the worktree is
+#      safe however dirty it is; its uncommitted diff is PRINTED first (the
+#      orchestrator's stop-a-seat check). The removal is leased at the head the
+#      porcelain read, as in B (remove_worktree). Then the local
 #      branch, leased at the head the porcelain read (`git update-ref -d
 #      refs/heads/<branch> <head>`: a branch that moved since is kept and the
 #      refusal reported), then the seat scratch directory.
@@ -31,6 +32,10 @@
 #      and only when clean including untracked: uncommitted work in a detached
 #      worktree is on no branch and no remote, so no merge state can vouch
 #      for it, and #716's round-4 evidence survived exactly that predicate.
+#      Its HEAD is the only ref holding a commit made there, so the removal is
+#      leased at the head the porcelain read (`git -C <wt> update-ref
+#      --no-deref -d HEAD <head>`, then the tree and its admin entry): a HEAD
+#      that moved since is kept and the refusal reported.
 #   C. an ORPHANED seat directory under the seats root whose wt/ is no longer
 #      a registered worktree, with nothing under it modified within 2 hours
 #      (the guard that protects a running seat), no unmerged branch readable
@@ -121,7 +126,15 @@ case "$*" in
       if grep -qx "$4" "$STUB/onremote" 2>/dev/null; then echo "refs/remotes/origin/some-branch"; fi; exit 0 ;;
   "-C "*" rev-list --count HEAD --not --remotes")
       f="$STUB/unpushed/$(enc "$2")"; [ -f "$f" ] && cat "$f" || echo 0; exit 0 ;;
-  "worktree remove --force "*) rm -rf "$4" ;;
+  "-C "*" update-ref --no-deref -d HEAD "*)
+      # The worktree lease: refuse when its HEAD's live value (a live/ file
+      # keyed by the worktree path, else unmoved) is not the old value given.
+      f="$STUB/live/$(enc "$2")"
+      if [ -n "${7:-}" ] && [ -f "$f" ] && [ "$(cat "$f")" != "$7" ]; then
+        echo "fatal: cannot lock ref 'HEAD': is at $(cat "$f") but expected $7" >&2; exit 1
+      fi
+      exit 0 ;;
+  "worktree prune") exit 0 ;;
   "update-ref -d "*)
       # The local lease: refuse when the ref's live value (a live/ file, else
       # unmoved) is not the old value given; no old value deletes regardless.
@@ -261,15 +274,16 @@ PY
   st "$RC" 0 "the sweep over every class exits 0 (fail-soft)"
   D="$W/sweep"
   gone "$D/orch/seat-merged/wt"; st $? 0 "merged+clean: worktree removed"
-  st "$(grep -c "^git worktree remove --force $D/orch/seat-merged/wt$" "$D/log")" 1 "with git worktree remove --force"
+  st "$(grep -c "^git -C $D/orch/seat-merged/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "the removal leased at the head the porcelain read (class A)"
   st "$(grep -c "^git update-ref -d refs/heads/fix/merged 2222222222222222222222222222222222222222$" "$D/log")" 1 "and the local branch deleted, leased at the head the porcelain read"
   gone "$D/orch/seat-merged"; st $? 0 "and the seat scratch directory removed"
   [ -d "$D/orch/seat-open/wt" ] && [ -d "$D/orch/seat-open" ]; st $? 0 "open PR: worktree and seat kept"
   st "$(gots sweep "keep  $D/orch/seat-open/wt  open-pr")" 1 "kept naming open-pr"
-  st "$(grep -c "remove --force $D/orch/seat-open" "$D/log")" 0 "and no remove call for it (null control)"
+  st "$(grep -c "$D/orch/seat-open/wt update-ref --no-deref" "$D/log")" 0 "and no remove call for it (null control)"
   [ -d "$D/orch/seat-nopr/wt" ]; st $? 0 "no pull request at all: kept (ambiguous, not proved merged)"
   st "$(gots sweep "keep  $D/orch/seat-nopr/wt  no-merged-pr")" 1 "kept naming no-merged-pr"
   gone "$D/orch/seat-detached/wt"; st $? 0 "detached at a merged sha: worktree removed"
+  st "$(grep -c "^git -C $D/orch/seat-detached/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222223$" "$D/log")" 1 "the removal leased at the head the porcelain read (class B)"
   [ -f "$D/ev/seat-detached/evidence-run12/ev.txt" ]; st $? 0 "its cited evidence moved into the keep-dir"
   gone "$D/orch/seat-detached/evidence-run12"; st $? 0 "out of the seat directory"
   gone "$D/orch/seat-detached"; st $? 0 "and the seat directory removed"
@@ -277,11 +291,11 @@ PY
   [ -d "$D/orch/seat-unmerged/wt" ]; st $? 0 "detached at an unmerged sha: kept"
   st "$(gots sweep "keep  $D/orch/seat-unmerged/wt  unmerged-head")" 1 "kept naming unmerged-head"
   gone "$D/orch/seat-dirtymerged/wt"; st $? 0 "dirty merged: removed (force; merged work is on main)"
-  st "$(grep -c "^git worktree remove --force $D/orch/seat-dirtymerged/wt$" "$D/log")" 1 "with force"
+  st "$(grep -c "^git -C $D/orch/seat-dirtymerged/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "dirty or not (merged work is on main)"
   st "$(gots sweep "uncommitted  $D/orch/seat-dirtymerged/wt")" 1 "its uncommitted state printed"
   st "$(gots sweep "+changed")" 1 "diff text included"
   l1=$(grep -n "^git -C $D/orch/seat-dirtymerged/wt diff$" "$D/log" | head -1 | cut -d: -f1)
-  l2=$(grep -n "^git worktree remove --force $D/orch/seat-dirtymerged/wt$" "$D/log" | head -1 | cut -d: -f1)
+  l2=$(grep -n "^git -C $D/orch/seat-dirtymerged/wt update-ref --no-deref -d HEAD " "$D/log" | head -1 | cut -d: -f1)
   if [ -n "$l1" ] && [ -n "$l2" ] && [ "$l1" -lt "$l2" ]; then ORD=ordered; else ORD="diff=$l1 remove=$l2"; fi
   st "$ORD" ordered "the diff is printed BEFORE the removal (stop-a-seat check)"
   [ -d "$D/orch/seat-locked/wt" ]; st $? 0 "locked: kept (a seat's claim, trap 34)"
@@ -299,7 +313,7 @@ PY
   [ -d "$D/root" ]; st $? 0 "the main checkout is never touched"
   st "$(gots sweep "/tmp/hpo-orch")" 0 "the fixture redirect holds: the real seats root is never walked (null control)"
   st "$(grep -c "^gh pr list" "$D/log")" 7 "one PR read per branch worktree (the unpushed one included) plus the two orphan branches"
-  st "$(grep -c "remove --force $D/orch/seat-nopr" "$D/log")" 0 "a no-PR branch is never removed"
+  st "$(grep -c "$D/orch/seat-nopr/wt update-ref --no-deref" "$D/log")" 0 "a no-PR branch is never removed"
 
   # on-remote (V137): a clean, old, detached head only a remote ref holds goes.
   gone "$D/orch/seat-onremote/wt"; st $? 0 "on-remote: a clean detached worktree at a head a remote ref holds is removed"
@@ -320,7 +334,7 @@ PY
   [ -d "$D/orch/seat-unpushed/wt" ]; st $? 0 "a branch worktree with an unpushed commit is kept though its PR merged"
   st "$(gots sweep "keep  $D/orch/seat-unpushed/wt  unpushed")" 1 "naming unpushed"
   st "$(grep -c "update-ref -d refs/heads/fix/unpushed" "$D/log")" 0 "and its branch is not deleted"
-  st "$(grep -c "remove --force $D/orch/seat-unpushed" "$D/log")" 0 "and no remove call for it (apply path)"
+  st "$(grep -c "$D/orch/seat-unpushed/wt update-ref --no-deref" "$D/log")" 0 "and no remove call for it (apply path)"
   st "$(gots sweep "summary -- eligible")" 1 "one summary line"
 
   # The same planted case under --dry-run: classify keeps it too, and says so.
@@ -342,6 +356,20 @@ PY
   st "$(grep -cx "refs/heads/fix/moved" "$D/deleted")" 0 "the moved branch is not deleted"
   st "$(grep -c "FAILED to delete branch fix/moved" "$D/err")" 1 "and the refused delete is reported"
   st "$(grep -cx "refs/heads/fix/merged" "$D/deleted")" 1 "null control: the unmoved merged branch in the same run deletes"
+
+  # A DETACHED worktree whose HEAD moves after the read (a seat commits on it:
+  # its HEAD is the only ref holding that commit) is kept: the removal is
+  # leased at the head the porcelain read (#3085 round 3).
+  mkcase dmoved; build dmoved
+  printf 'worktree %s/orch/seat-dmoved/wt\nHEAD 2222222222222222222222222222222222222223\ndetached\n\n' "$W/dmoved" >> "$W/dmoved/porcelain"
+  mkdir -p "$W/dmoved/orch/seat-dmoved/wt" "$W/dmoved/live"
+  printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' > "$W/dmoved/live/$(encpath "$W/dmoved/orch/seat-dmoved/wt")"
+  age_old "$H3" "$W/dmoved/orch/seat-dmoved"
+  run dmoved --keep-dir "$W/dmoved/ev" o/r; st $? 0 "a detached HEAD moved after the read: rc 0 (fail-soft)"
+  D="$W/dmoved"
+  [ -d "$D/orch/seat-dmoved/wt" ]; st $? 0 "the detached worktree whose HEAD moved is kept"
+  st "$(grep -c "FAILED to remove worktree $D/orch/seat-dmoved/wt" "$D/err")" 1 "and the refused removal is reported"
+  gone "$D/orch/seat-detached/wt"; st $? 0 "null control: the unmoved detached worktree in the same run is removed"
 
   # A failed fetch closes the on-remote class; an unreadable lsof keeps what it would remove.
   mkcase nofetch; build nofetch; : > "$W/nofetch/fetchfail"
@@ -395,7 +423,7 @@ PY
   mkcase dry; build dry
   run dry --dry-run --keep-dir "$W/dry/ev" o/r; st $? 0 "--dry-run exits 0"
   D="$W/dry"
-  st "$(grep -c "^git worktree remove" "$D/log")" 0 "removes no worktree"
+  st "$(grep -c "update-ref --no-deref -d HEAD" "$D/log")" 0 "removes no worktree"
   st "$(grep -c "^git update-ref -d" "$D/log")" 0 "deletes no branch"
   [ -d "$D/orch/seat-merged/wt" ] && [ -d "$D/orch/seat-merged" ]; st $? 0 "leaves the merged seat on disk"
   [ -d "$D/orch/seat-detached/evidence-run12" ]; st $? 0 "moves no evidence"
@@ -406,7 +434,7 @@ PY
   mkcase noauth; build noauth; : > "$W/noauth/noauth"
   run noauth --keep-dir "$W/noauth/ev" o/r; st $? 0 "unauthenticated gh: rc 0 (fail-soft)"
   st "$(grep -c "gh missing or unauthenticated" "$W/noauth/out")" 1 "a notice, not a refusal"
-  st "$(grep -c "^git worktree remove" "$W/noauth/log")" 0 "and nothing removed"
+  st "$(grep -c "update-ref --no-deref -d HEAD" "$W/noauth/log")" 0 "and nothing removed"
   [ -d "$W/noauth/orch/seat-merged/wt" ]; st $? 0 "the merged worktree survives"
 
   # --strict: rc 1 only when nothing eligible was found at all.
@@ -628,15 +656,29 @@ print_uncommitted() { # wt-path: the orchestrator's stop-a-seat check
   git -C "$1" diff 2>/dev/null
 }
 
-remove_worktree() { # wt-path [reason]
-  if [ -n "${2:-}" ]; then printf 'remove  %s  %s\n' "$1" "$2"; else printf 'remove  %s\n' "$1"; fi
+remove_worktree() { # wt-path head [reason]
+  # Leased at the head the porcelain read, for both classes: the worktree's
+  # own HEAD is deleted with that old value (`update-ref --no-deref -d HEAD
+  # <head>`, atomic in git's ref transaction). A seat that committed after the
+  # read moved HEAD, the lease refuses, and the worktree stays with its
+  # commit; for a detached worktree that HEAD is the only ref holding it. Once
+  # HEAD is gone no commit can land there, so the tree is deleted and its
+  # admin entry pruned (`git worktree remove` refuses a worktree with no HEAD).
+  # Returns 1, the worktree kept, on a refused lease.
+  if [ -n "${3:-}" ]; then printf 'remove  %s  %s\n' "$1" "$3"; else printf 'remove  %s\n' "$1"; fi
+  if [ "$DRY" -eq 1 ]; then
+    printf '%s\n' "$(realpath_of "$1" 2>/dev/null || printf '%s' "$1")" >>"$REMOVED_FILE"
+    return 0
+  fi
+  if [ -z "${2:-}" ] || ! git -C "$1" update-ref --no-deref -d HEAD "$2" 2>/dev/null; then
+    printf 'worktree_gc: FAILED to remove worktree %s: its HEAD is no longer %s, kept\n' "$1" "${2:-<unread>}" >&2
+    KEPT_N=$((KEPT_N+1)); return 1
+  fi
   printf '%s\n' "$(realpath_of "$1" 2>/dev/null || printf '%s' "$1")" >>"$REMOVED_FILE"
-  if [ "$DRY" -eq 0 ]; then
-    if git worktree remove --force "$1"; then
-      printf 'removed  %s\n' "$1"; REMOVED_N=$((REMOVED_N+1))
-    else
-      printf 'worktree_gc: FAILED to remove worktree %s\n' "$1" >&2
-    fi
+  if rm -rf "$1" && git worktree prune; then
+    printf 'removed  %s\n' "$1"; REMOVED_N=$((REMOVED_N+1))
+  else
+    printf 'worktree_gc: FAILED to remove worktree %s\n' "$1" >&2
   fi
 }
 
@@ -677,7 +719,7 @@ classify() {
     ELIGIBLE=$((ELIGIBLE+1))
     st_out=$(git -C "$wt" status --porcelain 2>/dev/null); st_rc=$?
     if [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; then print_uncommitted "$wt"; fi
-    remove_worktree "$wt"
+    remove_worktree "$wt" "$head" || return 0
     if [ "$DRY" -eq 0 ]; then
       # Leased at the head the porcelain read: a seat that commits after the
       # unpushed read moves the branch, the lease refuses, and the commit stays
@@ -714,7 +756,8 @@ classify() {
     esac
   fi
   ELIGIBLE=$((ELIGIBLE+1))
-  if [ "$onremote" -eq 1 ]; then remove_worktree "$wt" on-remote; else remove_worktree "$wt"; fi
+  if [ "$onremote" -eq 1 ]; then remove_worktree "$wt" "$head" on-remote || return 0
+  else remove_worktree "$wt" "$head" || return 0; fi
   seat=$(seat_dir_of "$real")
   if [ -n "$seat" ]; then HANDLED_SEATS="$HANDLED_SEATS$seat\n"; dispose_seat_dir "$seat"; fi
 }
