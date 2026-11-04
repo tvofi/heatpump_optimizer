@@ -520,7 +520,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       upd=(bash "$why/update_pr.sh")  # mut:toolsseat
     fi
     # Its output is kept until it ends, so a failure records its reason: the last REFUSE line, else the last line.
-    pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
+    # A body-only move skipped the review freeze, so update_pr.sh refuses one that would move the head.
+    HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
     PR_REAP_LEAD=$!; wait "$PR_REAP_LEAD" || urc=$?
     [ -n "${HPO_RELAY_UPDATE:-}" ] || rm -rf "$state/relay-tools.lock"
     cat "$bd/update.out" >&2
@@ -911,7 +912,7 @@ EOF
   handoff_arm >/dev/null 2>&1
   chk "a handoff already merged into its PR does nothing (null control)" 0 test ! -e "$t/updated"
   # the hold file: a listed PR is skipped with one HELD line per pass; a malformed file refuses the pass
-  hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$hu"; HPO_RELAY_UPDATE=$hu
+  hf=$t/state/cloud-handoff-hold; hu=$t/hu.sh; printf '#!/bin/sh\necho "$1 $2${HPO_UPDATE_BODY_ONLY:+ body-only}" >> "%s/hupdated"\n' "$t" > "$hu"; chmod +x "$hu"; HPO_RELAY_UPDATE=$hu
   printf '41\n' > "$hf"; ho=$(handoff_arm 2>&1)
   chk "a held PR whose handoff is already in its head prints no HELD (nothing to hold)" 1 grep -q HELD <<< "$ho"
   rm -f "$t/updated" "$t/hupdated" "$t/state/cloud-handoff-failed" "$t/events.tsv"; : > "$LOG"
@@ -1130,18 +1131,18 @@ EOF
   handoff_arm >/dev/null 2>&1
   chk "a body already applied runs nothing on the next pass (null control)" 0 test ! -e "$t/hupdated"
   bodyc "$HS2"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
-  chk "a new body for a head holding its handoff runs update_pr once, body-only (code -)" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr -"
+  chk "a new body for a head holding its handoff runs update_pr once, body-only (code -)" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr - body-only"
   bodyc "$HS2"; handoff_arm >/dev/null 2>&1
-  chk "the next body move runs it once more" 0 test "$(grep -cx "fix/topic-a-pr -" "$t/hupdated")" = 2
+  chk "the next body move runs it once more" 0 test "$(grep -cx "fix/topic-a-pr - body-only" "$t/hupdated")" = 2
   # the review freeze does not hold a body-only move (#3089 review, mutant B): a merge verdict, or a
   # dispatch, at a head holding its handoff tip still lets a new body through, once, with no held line
   rm -f "$t/hupdated"; cp "$t/bus/dispatched" "$t/bus/dispatched.bo"; mkv "verdict: #41 Fix review: merge $HS2"
   bodyc "$HS2"; ho=$(handoff_arm 2>&1); handoff_arm >/dev/null 2>&1
-  chk "a new body at a contained head holding a merge verdict runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr -"
+  chk "a new body at a contained head holding a merge verdict runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr - body-only"
   chk "and is neither printed HELD nor owed handoff-held" 0 test "$(grep -c HELD <<< "$ho")-$(grep -c handoff-held "$LOG.level")" = 0-0
   git -C "$t/o.git" update-ref -d refs/heads/verdict/41; printf '41 %s cloud %s\n' "$HS2" "$n" >> "$t/bus/dispatched"
   rm -f "$t/hupdated"; bodyc "$HS2"; ho=$(handoff_arm 2>&1)
-  chk "a new body at a contained head with a reviewer dispatched runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")-$(grep -c HELD <<< "$ho")" = "fix/topic-a-pr --0"
+  chk "a new body at a contained head with a reviewer dispatched runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")-$(grep -c HELD <<< "$ho")" = "fix/topic-a-pr - body-only-0"
   # null control: the same head and verdict, with a handoff tip the head does not hold, is still HELD
   mkv "verdict: #41 Fix review: merge $HS2"; git -C "$t/pr" reset -q --hard "$HS2"; hc moved-past-review; mkref handoff/topic-a
   HS3=$(git -C "$t/pr" rev-parse HEAD); rm -f "$t/hupdated"; bodyc "$HS3"; ho=$(handoff_arm 2>&1)

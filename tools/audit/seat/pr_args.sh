@@ -1170,6 +1170,19 @@ STUB
   }
   pushes() { cat "$wsd/argv" 2>/dev/null | wc -l | tr -d ' '; }
   bpcalls() { cat "$wsd/bp" 2>/dev/null | wc -l | tr -d ' '; }
+  # HPO_UPDATE_BODY_ONLY (cloud_relay.sh's body-only move under a merge verdict or a dispatched review,
+  # #3089 review round 2): a run that would move the head refuses and pushes nothing. bonly() is one such
+  # run; the guard's mutant moves the head, and fix/v and the push record are put back after it.
+  bonly() { HPO_UPDATE_BODY_ONLY=1 upd "$1" -; }
+  unmove() { git -C "$o" update-ref refs/heads/fix/v "$(cat "$t/vbefore")"; [ -z "$1" ] || head -n "$1" "$wsd/argv" > "$wsd/argv.k"; rm -f "$wsd/argv"; [ -z "$1" ] || mv "$wsd/argv.k" "$wsd/argv"; }
+  bonly -
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "update_pr: REFUSE: body-only update would move the head $(cat "$t/vbefore")" "$t/out" \
+    && [ "$(pushes)" = 0 ] && [ "$(bpcalls)" = 0 ] && [ "$(cat "$t/vbefore")" = "$(cat "$t/vafter")" ]
+  ck "update_pr: a relay body-only run on a head lacking its row refuses, the head unmoved and nothing pushed" $?
+  bonly bodyonly
+  [ "$(pushes)" = 1 ] && [ "$(cat "$t/vbefore")" != "$(cat "$t/vafter")" ]
+  ck "  mutant mut:bodyonly (its line deleted): the relay's body-only run pushes the row, moving the head" $?
+  unmove ""
   upd - -
   [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 1 ] && [ "$(cut -d' ' -f1 "$wsd/argv")" = --row-only ] && [ "$(bpcalls)" = 0 ] \
     && git -C "$o" cat-file -e fix/v:dev/programme/delivery/5.md
@@ -1202,10 +1215,18 @@ STUB
   [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 2 ] && [ "$(sed -n 2p "$wsd/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] \
     && git -C "$o" merge-base --is-ancestor "$codeV2" fix/v && ! git -C "$o" merge-base --is-ancestor main fix/v
   ck "null control: a new code sha is merged and pushed through the full prepr, main still unmerged" $?
-  touch "$wsd/dirty"; upd - -
+  touch "$wsd/dirty"; bonly -
+  [ "$(cat "$t/rc")" = 1 ] && grep -qF "update_pr: REFUSE: body-only update would move the head $(cat "$t/vbefore")" "$t/out" \
+    && [ "$(pushes)" = 2 ] && [ "$(bpcalls)" = 4 ] && [ "$(cat "$t/vbefore")" = "$(cat "$t/vafter")" ]
+  ck "update_pr: a relay body-only run on a DIRTY head whose merge of main is clean refuses, the head unmoved and nothing pushed" $?
+  bonly bodyonly
+  [ "$(pushes)" = 3 ] && git -C "$o" merge-base --is-ancestor main fix/v
+  ck "  mutant mut:bodyonly (its line deleted): the relay's body-only run merges main into the DIRTY head and pushes it" $?
+  unmove 2
+  upd - -
   [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 3 ] && git -C "$o" merge-base --is-ancestor main fix/v \
     && [ "$(sed -n 3p "$wsd/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] && grep -qF "merges origin/main" "$t/bv.md"
-  ck "update_pr: a DIRTY pull request still absorbs main, through the full prepr" $?
+  ck "null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, through the full prepr" $?
   # merge-tree is the local proof when GitHub does not say DIRTY (#3089 review, mutant A): main
   # conflicting with fix/v is merged, so the run stops on the conflict, patching and pushing nothing
   rm -f "$wsd/dirty"; printf 'main side\n' > "$o/v" && git -C "$o" add v && git -C "$o" commit -q -m "main: v conflicts"
