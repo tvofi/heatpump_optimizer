@@ -1,0 +1,10 @@
+E fast(3.14) probed by its own host factor, newest window: 20.35
+E slow fleet 1.9x: 20.35
+E +300 s work on fast (3.14) in newest 1: 0.0 (all of it 2.823)
+E +300 s work on fast (3.14) in newest 4: 0.0 (all of it 2.823)
+E +300 s work on fast (3.14) in newest 8: 1.575 (all of it 2.823)
+E +300 s work on fast (3.14) in newest 9: 1.964 (all of it 2.823)
+E +300 s work on fast (3.14) in newest 12: 2.251 (all of it 2.823)
+E +300 s work on fast (3.14) in newest 16: 2.438 (all of it 2.823)
+E window starting 41812846310: unprobed 22.117, probed 20.35
+E window starting 41818271680: unprobed 29.067, probed 20.35
