@@ -9,4 +9,6 @@
   remote ref or tag holds (after one `git fetch --prune origin`) is removed as
   `on-remote` unless a process has its cwd inside (`cwd-inside`; an unreadable
   lsof is `cwd-unread`) or the head is the origin/main tip; a failed fetch keeps
-  them all as `unmerged-head`.
+  them all as `unmerged-head`. Every worktree removal is leased at the HEAD
+  the listing read (`update-ref --no-deref -d HEAD <head>`): one whose HEAD
+  moved since is kept and the refusal reported.

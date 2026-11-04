@@ -9,7 +9,8 @@
   and the four state docs in main, no policy path citing a doomed ref bare,
   brief_lint green; (2) archive tags then deletes by batched `git push`;
   (3) seat worktrees removed (one with an unpushed commit or uncommitted work is
-  kept and reported), orchestrator scratch cleared, local branches reduced,
+  kept and reported, and each removal is leased at the HEAD the listing read),
+  orchestrator scratch cleared, local branches reduced,
   a final worktree_gc; (4) open issues beyond `--successor` block (it closes
   none); (5) the report with counts before and after under `--report-dir`.
   Archiving merged cloud sessions stays the orchestrator's. `--self-test` runs
