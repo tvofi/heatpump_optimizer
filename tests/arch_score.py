@@ -450,6 +450,7 @@ def main() -> int:
         ("a, b = x.p, x.q", "a = x.p\nb = x.q"),
         ("a = b = x.p", "a = x.p\nb = x.p"),
         ("f(x), g(y)", "f(x)\ng(y)"),
+        ("f(x + 1), g(y + 1)", "f(x + 1)\ng(y + 1)"),
         ("with p() as a, q() as b:\n    pass", "with p() as a:\n    with q() as b:\n        pass"),
         ("import os, sys", "import os\nimport sys"),
         ("del a, b", "del a\ndel b"),
@@ -458,8 +459,8 @@ def main() -> int:
             all(_n(pk) == _n(pl) for pk, pl in packed_plain),
             f"{[(pk, _n(pk), _n(pl)) for pk, pl in packed_plain if _n(pk) != _n(pl)]}")
     R.check("coord_footprint control: an unpacked body and a single destructuring read one statement each",
-            _n("a = f(x)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0,
-            f"{_n('a = f(x)')} {_n('a, b = pair')} {_n('a = x.p')}")
+            _n("a = f(x + 1)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0,
+            f"{_n('a = f(x + 1)')} {_n('a, b = pair')} {_n('a = x.p')}")
 
     # The check can fail: a moved case must not read as it did.
     good = next(c for c in collected if c["id"] == "d979110c")

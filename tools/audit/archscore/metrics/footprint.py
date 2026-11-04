@@ -89,7 +89,7 @@ def _units(s: ast.AST) -> int:
         rhs = len(s.value.elts) if isinstance(s.value, (ast.Tuple, ast.List)) else 1
         return max(1, sum(_arity(t) for t in s.targets), rhs)
     if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Tuple, ast.List)):
-        return max(1, len(s.value.elts))
+        return sum(1 for e in s.value.elts if not _plumbing(ast.Expr(value=e)))
     if isinstance(s, (ast.With, ast.AsyncWith)):
         return len(s.items)
     if isinstance(s, (ast.Import, ast.ImportFrom)):
