@@ -1,0 +1,3 @@
+['dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py:64: ROOT = HERE.parents[3]']
+  FAIL every inlined walk matches the canonical helper and no depth root remains  [FAIL depth seams: dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py:64: ROOT = HERE.parents[3]
+1 of 112 HARNESS HEADER CHECKS FAILED

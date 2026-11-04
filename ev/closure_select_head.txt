@@ -1,0 +1,18 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  changed files (7), measured against the recorded closures in tests/closures.json:
+      dev/audit/harnesses/r10_rca_ci_critpath_3/ci_logs.json
+      dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py
+      dev/audit/harnesses/r10_rca_ci_critpath_3/runs.json
+      dev/audit/harnesses/r10_rca_ci_critpath_3/runs_red4.json
+      dev/audit/rca/r10-ci-critpath-3.md
+      dev/programme/delivery/3189.md
+      tests/closures.json
+
+      RUN   tests/entities.py
+
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
