@@ -23695,6 +23695,7 @@ R.check(
 # the house grade's shape (#2816): signed points summing to the grade minus
 # the part's reference, empty with no grade.
 from heatpump_optimizer.coordinator import SCORE_REFERENCE as _gd_ref  # noqa: E402
+from heatpump_optimizer import driving_grade as _gd_mod  # noqa: E402
 R.check(
     "R10-GRADE-DRIVERS: an ungraded heat pump says what it waits on -- samples "
     "per outdoor band against the requirement, and freeze refusals -- and no "
@@ -23818,7 +23819,7 @@ R.check(
     "R10-GRADE-DRIVERS: the Driving drivers ride the store across a restart, and "
     "a grade stored before they were kept reads as earlier days, never as a "
     "driver it did not measure",
-    _gd_r._operation_drivers == _gd_o._operation_drivers
+    _gd_mod.as_stored(_gd_r, 1.0) == _gd_mod.as_stored(_gd_o, 1.0) != {}
     and _gd_r._scores_view(_rs_advice(_gd_r))["operation_drivers"] == _gd_s6["operation_drivers"]
     and _gd_up_s["operation_drivers"] == [
         {"code": "cheap_hours", "points": 0.0}, {"code": "dear_hours", "points": 0.0},

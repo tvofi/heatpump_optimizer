@@ -7876,13 +7876,22 @@ function valueAxis(
   const x = side === "left" ? xBase - inset : xBase + inset;
   const anchor = side === "left" ? "end" : "start";
   const tx = side === "left" ? x - 5 : x + 5;
+  // Labelled as often as the panel's height allows, like `timeAxis`: a
+  // label within one line of the last one drawn is dropped and its tick
+  // mark kept. The tick count is fixed before the panels are sized, so a
+  // short panel -- one squeezed by the wood lane at 375 px -- would
+  // otherwise stack its labels into one another (#2841).
+  let lastLabelY = null;
   for (const tick of axis.ticks) {
     const y = scaleY(tick, axisName);
-    out.push(
-      `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-          fmtTick(tick)
-        )}</text>`
-    );
+    if (lastLabelY === null || Math.abs(y - lastLabelY) >= size) {
+      lastLabelY = y;
+      out.push(
+        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+            fmtTick(tick)
+          )}</text>`
+      );
+    }
     const t1 = side === "left" ? x - 3 : x + 3;
     out.push(
       `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
