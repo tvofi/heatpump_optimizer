@@ -30,7 +30,7 @@ Instances:
   variable to get past it.
 - **`train.sh` is the one arm with no fallback.** `train.sh` lines 403 to 406 and 446 to 451 read only
   `${HPO_STATE_DIR:-$HOME/.local/state/hpo}`. The `seat-python` shims try `$STATE` and then the default
-  (`shims/seat-python3` line 28). The comment at line 442 rules out an ambient fallback, and the default
+  (`shims/seat-python3` line 28). The comment at lines 443 and 444 rules out an ambient fallback, and the default
   dir is not ambient, so a code fix would be sound. It is the cost that loses.
 - **Who could carry it.** No open group owns the file. Every roster group whose `files` name `train.sh`
   is done (R10-FLOW-AUTOTRAIN, R10-TRAIN-UPGRADE, R10-FLY-TRAIN-DEFAULTS). A fix is a new fly-in, and its
