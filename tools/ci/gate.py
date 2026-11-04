@@ -547,6 +547,8 @@ def self_test() -> int:
     import re
     ci = (HERE.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
     m = re.search(r"\n  gate:\n(?:    .*\n)*?    timeout-minutes: (\d+)\n", ci)
+    check("the ABSENT bound is shorter than the pending bound, and pinned to two polls",
+          (GATE_ABSENT_MAX_S < GATE_WAIT_MAX_S, GATE_ABSENT_MAX_S), (True, 120))
     check("the wait bound, one poll and two minutes fit the gate job's timeout-minutes",
           bool(m) and GATE_WAIT_MAX_S + POLL_S + 120 <= int(m.group(1)) * 60, True)
 
