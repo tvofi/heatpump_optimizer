@@ -16580,6 +16580,42 @@
     "stage": "absorbed"
    },
    "brief": "Owner-reported 2026-11-04 (tvofi): the monthly savings row on a house with a wood tank. Book wood's delivered heat from measurement, so the thermostat reference no longer relies on the wood law. No fire: release is the tank's measured fall times its mass, less standing loss. Fire: the existing free_heat_kw in custom_components/heatpump_optimizer/external_heat.py. The reference drops the wood law and the settlement subtracts that heat over COP. Crosses external_heat.py, the coordinator's pending snapshot, the ledger and the reference, so a design note comes first (designer.md). Why: no reference-only rule passes both a matched plant and the owner's export, where tank temperature alone cannot separate coasting and delivering from sitting above the model's curve; a horizon share books wood as a saving. Acceptance: the wood arms of the wood-reference harness the hotfix group lands under dev/audit/harnesses/ (fire covers demand, evening fire, hot tank coasting, no wood, tank just above curve), re-measured at this group's merge base with the flat-price null control, plus the owner's export (derived ratios only). Until this lands two-tank houses show no saving on the card (the hotfix's basis marker); this group lifts that for new months only."
+  },
+  {
+   "group": "R10-FLY-REPLAY-MASK",
+   "lane": "CP",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "diagnostics-replay",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/replay_doc.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py refuses to write the whole replay when one entity id is not masked to a role or a hashed id. That removes the evidence a savings or planning report needs. Name which entity id class escapes the mask on that export (derived shape only, never the id), fix the masking at its owner so that id gets a role or hash, and keep the refusal for an id that truly cannot be masked. Enumerate every entity-id source the replay writes. Control: the refusal still fires on a planted unmasked id, and a clean export writes a non-empty replay."
   }
  ]
 }
