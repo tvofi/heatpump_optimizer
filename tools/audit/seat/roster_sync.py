@@ -548,7 +548,10 @@ def sync(a) -> int:
                          "branch to push; give --roster-ref to write")
         prs, note = load_prs(a.repo, a.pr_state, a.limit)
         print(f"roster_sync: {note}")
-        roster_edit.fetch_origin(a.checkout)
+        try:
+            roster_edit.fetch_origin(a.checkout)
+        except roster_edit.Refuse as e:  # not this module's class: it would
+            raise Refuse(str(e))         # escape and kill a beat's loop
         ref, branch = target(a.checkout, a.roster_ref, a.branch, a.roster_path)
         msg = a.message or (f"roster_sync: derive stages from pull requests "
                             f"({SELF})")
@@ -744,6 +747,17 @@ def self_test() -> int:
           and by["L-MERGED"].merge_commit == "3" * 40, by)
     check("a done group stays settled under a matching open pull request",
           "L-GONE" not in by, by)
+
+    # The design steps' words (decision 0014) are derivable: the merge of the
+    # group's pull request closes them to done, an open one makes them in-progress.
+    dz = {"groups": [{"group": "D-ONE", "resume": {"stage": "design", "branch": "handoff/d-one"}},
+                     {"group": "D-TWO", "resume": {"stage": "design-review", "branch": "handoff/d-two"}}]}
+    dch, dsk, _ = derive(dz, [PR(41, MERGED, "handoff/d-one", "4" * 40, "## Friction\n\n- none\n"),
+                              PR(42, OPEN, "handoff/d-two", None, "")])
+    dby = {c.group: c for c in dch}
+    check("a merge closes a design stage to done; an open pull request makes design-review in-progress",
+          dby.get("D-ONE") is not None and dby["D-ONE"].stage == "done"
+          and dby.get("D-TWO") is not None and dby["D-TWO"].stage == "in-progress" and not dsk, (dby, dsk))
 
     # The reader half of the vocabulary barrier: a word the registry does not
     # classify is skipped with that reason and never derived, while a

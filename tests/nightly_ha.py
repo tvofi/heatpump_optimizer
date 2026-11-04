@@ -128,6 +128,7 @@ import ast
 import asyncio
 import dataclasses
 import importlib
+import importlib.util
 import json
 import math
 import os
@@ -280,19 +281,30 @@ HB_MAX_DUMPS = 3  # per scenario, so a slow runner cannot flood the log
 HB_FREEZE_S = 1.0
 HB_HANG_S = 60.0  # no tick at all this long: report by name, then exit
 HB_CONTROL_S = 0.6  # the positive control's CPU spin, over HB_DUMP_S
-# One ``py-spy dump --nonblocking`` races the process it reads: against CPython
-# 3.14.6 about 7% of stable runs had the one sample run past a 30 s timeout and
-# fail hb:positive_control (dev/audit/rca/nightly-ha-pyspy-timeout.md, #2479).
-# A healthy sample returned in at most 0.15 s on all 710 in-image samples the
-# RCA took, so 5 s is over 30x that, and a hung one costs 5 s instead of 30.
-PY_SPY_TIMEOUT_S = 5.0
+# The out-of-process sample a stall dump takes. On an interpreter that ships
+# CPython's own remote unwinder (3.14+) it is that unwinder, run in a child;
+# elsewhere (the 3.13 floor) the staged ``py-spy dump --nonblocking``. py-spy
+# 0.4.2 cannot walk some CPython 3.14.9 HA processes at all: past "Found
+# interpreter" it spins in its stack walk, blocking or not, for the life of the
+# process, so every try of the control hung (nightly run 40806276912;
+# R10-FLY-NIGHTLY-HB measured it locally). The stdlib unwinder answered on every
+# probe of the processes py-spy hung on.
+_STDLIB_SAMPLE = (
+    "import sys, _remote_debugging as rd\n"
+    "for t in rd.RemoteUnwinder(int(sys.argv[1]), all_threads=True).get_stack_trace():\n"
+    "    print(f'Thread {t.thread_id}')\n"
+    "    for f in t.frame_info:\n"
+    "        print(f'    {f.funcname} ({f.filename}:{f.lineno})')\n"
+)
+# A healthy sample returned in at most 0.15 s on all 710 in-image py-spy samples
+# the #2479 RCA took (dev/audit/rca/nightly-ha-pyspy-timeout.md), so 5 s is over
+# 30x that, and a hung one costs 5 s instead of the 30 it once did.
+SAMPLE_TIMEOUT_S = 5.0
 # The control tries a fresh spin, sampled once, up to this many times. On real
-# HA this was measured NOT to rescue a hang: in every hung run the hang held for
-# the life of the HA process, across retries inside one held spin and across
-# fresh spins 1 s apart (R10-NIGHTLY-PYSPY-RETRY, F6 and F7); a container
-# respawn is R10-NIGHTLY-HB-RESPAWN's. The retry is kept because it bounds what
-# a red costs, and because a try whose sample came back late, missed the spin
-# or answered rc!=0 is retried rather than failed.
+# HA a retry was measured NOT to rescue a py-spy hang, which holds for the life
+# of the process (R10-NIGHTLY-PYSPY-RETRY, F6 and F7). The retry is kept because
+# it bounds what a red costs, and because a try whose sample came back late,
+# missed the spin or answered rc!=0 is retried rather than failed.
 HB_CONTROL_TRIES = 3
 HB_CONTROL_REST_S = 1.0  # loop time between tries, so each spin starts afresh
 # Each spin outlasts HB_CONTROL_S until its sample has returned, so a slow but
@@ -300,7 +312,7 @@ HB_CONTROL_REST_S = 1.0  # loop time between tries, so each spin starts afresh
 # HB_HANG_S. Worst case for the whole control, every try hung:
 # HB_CONTROL_TRIES * (HB_CONTROL_HOLD_S + HB_CONTROL_REST_S) = 21.75 s, which
 # tests/entities.py pins under 22 s.
-HB_CONTROL_HOLD_S = HB_DUMP_S + PY_SPY_TIMEOUT_S + 1.0
+HB_CONTROL_HOLD_S = HB_DUMP_S + SAMPLE_TIMEOUT_S + 1.0
 HB_SETTLE_S = 120.0  # wait for the last reload's first solve to finish
 # Every scenario stays measured this long after its last action, before any
 # settling: work an abort or a save defers (a listener, a scheduled refresh)
@@ -1876,7 +1888,7 @@ async def _async_check_a9(checks: Checks, hass, entry):
 # probe is not: the largest gap between two of its ticks is how long the loop
 # went without running anything. A thread watches the last tick, so a stall
 # is dumped while it is still open -- the loop thread's Python stack first
-# (instant), then ``py-spy dump`` when the host staged one. LIMIT: the
+# (instant), then the out-of-process sample (``sample_command``). LIMIT: the
 # watcher needs the GIL, so a stall inside C code that holds it is measured
 # but dumped only once it lets go.
 
@@ -1902,10 +1914,11 @@ class LoopHeartbeat:
     """A ``call_later`` probe on a running loop and a thread watching it."""
 
     def __init__(self, loop, *, tick=HB_TICK_S, dump_after=HB_DUMP_S,
-                 hang_after=HB_HANG_S, on_hang=None, py_spy=None,
-                 spy_timeout=PY_SPY_TIMEOUT_S, dumped: threading.Event | None = None) -> None:
-        self.loop, self.tick, self.py_spy, self.spy_timeout = loop, tick, py_spy, spy_timeout
-        # Set each time a stall's dump has returned, py-spy's sample included.
+                 hang_after=HB_HANG_S, on_hang=None, sampler: list[str] | None = None,
+                 sample_timeout=SAMPLE_TIMEOUT_S, dumped: threading.Event | None = None) -> None:
+        self.loop, self.tick, self.sampler = loop, tick, sampler
+        self.sample_timeout = sample_timeout
+        # Set each time a stall's dump has returned, the sample included.
         self.dumped = dumped if dumped is not None else threading.Event()
         self.dump_after, self.hang_after, self.on_hang = dump_after, hang_after, on_hang
         self.max_gap, self.ticks, self.dumps = 0.0, 0, []
@@ -1960,17 +1973,15 @@ class LoopHeartbeat:
             frame = frame.f_back
         stack = "".join(reversed(lines)) or "<no loop frame>\n"
         text = f"stall >= {stalled * 1000:.0f} ms; loop thread:\n{stack}"
-        if self.py_spy:
+        if self.sampler:
             try:
-                # --nonblocking: a default dump ptrace-stops the process, loop
-                # included, and that pause would be added to the gap it reports.
                 spy = subprocess.run(
-                    [self.py_spy, "dump", "--nonblocking", "--pid", str(os.getpid())],
-                    capture_output=True, text=True, timeout=self.spy_timeout,
+                    [*self.sampler, str(os.getpid())],
+                    capture_output=True, text=True, timeout=self.sample_timeout,
                 )
-                text += f"py-spy rc={spy.returncode}:\n{spy.stdout}{spy.stderr[-400:]}"
+                text += f"sampler rc={spy.returncode}:\n{spy.stdout}{spy.stderr[-400:]}"
             except (OSError, subprocess.SubprocessError) as err:
-                text += f"py-spy did not run: {type(err).__name__}: {err}\n"
+                text += f"sampler did not run: {type(err).__name__}: {err}\n"
         return text
 
 
@@ -2006,11 +2017,11 @@ def check_hb_scenario(checks: Checks, name: str, summary: dict, *,
 
 
 def hb_control_reading(summary: dict) -> tuple[bool, bool, bool]:
-    """One try of the control: (gap seen, dump names the spin, py-spy rc=0 names it)."""
+    """One try of the control: (gap seen, dump names the spin, sampler rc=0 names it)."""
     named = any("_hb_spin" in d for d in summary["dumps"])
     spied = any(
-        "_hb_spin" in d.split("py-spy rc=0:", 1)[1]
-        for d in summary["dumps"] if "py-spy rc=0:" in d
+        "_hb_spin" in d.split("sampler rc=0:", 1)[1]
+        for d in summary["dumps"] if "sampler rc=0:" in d
     )
     return summary["max_gap"] >= HB_CONTROL_S, named, spied
 
@@ -2018,9 +2029,10 @@ def hb_control_reading(summary: dict) -> tuple[bool, bool, bool]:
 def check_hb_positive_control(checks: Checks, summaries: list[dict]) -> None:
     """In one try, the gap is seen and BOTH dumpers name the spin.
 
-    Requiring py-spy's own section (rc=0, naming ``_hb_spin``) is what pins
-    the wiring: a heartbeat container without SYS_PTRACE, or without the
-    staged binary, still dumps the Python stack and would pass on it alone.
+    Requiring the sampler's own section (rc=0, naming ``_hb_spin``) is what
+    pins the out-of-process read: a heartbeat without a sampler, or one that
+    cannot read the process, still dumps the Python stack and would pass on it
+    alone.
     A try whose sample hung or missed is counted, not failed.
     """
     readings = [hb_control_reading(s) for s in summaries]
@@ -2031,7 +2043,7 @@ def check_hb_positive_control(checks: Checks, summaries: list[dict]) -> None:
         "hb:positive_control",
         any(all(r) for r in readings),
         f"a {HB_CONTROL_S * 1000:.0f} ms spin read as {gap * 1000:.1f} ms; "
-        f"dump names the spin: {named}; py-spy rc=0 names it: {spied}; "
+        f"dump names the spin: {named}; sampler rc=0 names it: {spied}; "
         f"try {shown + 1} of {len(summaries)} (at most {HB_CONTROL_TRIES})",
     )
 
@@ -2057,16 +2069,21 @@ def _hb_on_hang(checks: Checks, name: str):
     return on_hang
 
 
-def _py_spy_path() -> str | None:
+def sample_command() -> list[str] | None:
+    """The stall sampler's argv, the pid appended: the interpreter's own unwinder, else py-spy."""
+    if importlib.util.find_spec("_remote_debugging") is not None:
+        return [sys.executable, "-c", _STDLIB_SAMPLE]
     path = f"{IN_DRIVER_DIR}/py-spy"
-    return path if os.access(path, os.X_OK) else None
+    # --nonblocking: a default dump ptrace-stops the process, loop included,
+    # and that pause would be added to the gap it reports.
+    return [path, "dump", "--nonblocking", "--pid"] if os.access(path, os.X_OK) else None
 
 
 async def _async_hb_measure(checks: Checks, name: str, drive,
                             **sampling) -> tuple[dict, str | None]:
     hb = LoopHeartbeat(
         asyncio.get_running_loop(), on_hang=_hb_on_hang(checks, name),
-        **{"py_spy": _py_spy_path(), **sampling},
+        **{"sampler": sample_command(), **sampling},
     )
     hb.start()
     raised = None

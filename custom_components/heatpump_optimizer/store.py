@@ -326,11 +326,16 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "house_heat_loss_basis": Domain("choice", choices=c.HEAT_LOSS_BASES, unread=(
             "earned at the first measured-heat fold, else re-derived from the configured "
             "meters on save; the load reads it to void evidence on an earlier basis")),
+        # R10-HOTFIX-LEARNER-INPUTS: the zone sensors each heat-loss learner was fitted on.
+        "heat_loss_zone_entities/~": Domain("choice", choices=(c.CONF_INDOOR_TEMP_ENTITY, c.CONF_LOWER_FLOOR_TEMP_ENTITY)),
+        "heat_loss_zone_entities/*": Domain("text", null=True, unread=(
+            "re-derived from the configured zone sensors on save; the load reads it to void "
+            "a learner whose sensor changed")),
         c.CONF_COP_SCALE: Domain("real", c.COP_SCALE_MIN, c.COP_SCALE_MAX),
         **{f"{k}_samples": _COUNT for k in ("buffer_cooling", "house_heat_loss", "lower_floor_loss", "cop")},
         # MeasuredCop.from_dict: the learner refuses a COP at or under 0.1 before rounding.
         "measured_cop/cop": Domain("real", 0.1, null=True),
-        "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N,
+        "measured_cop/curve_dhw": _FLAG, "measured_cop/dhw_temp": _N, "measured_cop/at": _AT0,
         # The cap, as Cusum.as_dict rounds it (1.2 * 1.5 is 1.7999999999999998).
         "vent_cusum/stat": Domain("real", 0.0, round(c.VENT_CUSUM_THRESHOLD_C * STAT_CAP_FACTOR, 4)),
         "cop_health_cusum/stat": Domain("real", 0.0, round(c.COP_HEALTH_THRESHOLD * STAT_CAP_FACTOR, 4)),
@@ -463,7 +468,15 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
-        **{f"written/{k}/1": _AT for k in ("mode", "dhw_setpoint", "space_setpoint")},
+        # The silent switch (#1911) and the GCHV night-mode registers (#1913)
+        # are held slots on the same record (``pump_arbiter._writable``).
+        "written/silent/0": _FLAG,
+        **{f"written/night_{e}_hour/0": Domain("int", 0, 23) for e in ("start", "end")},
+        **{f"written/night_{e}_minute/0": Domain("int", 0, 59) for e in ("start", "end")},
+        **{f"written/{k}/1": _AT for k in (
+            "mode", "dhw_setpoint", "space_setpoint", "silent",
+            "night_start_hour", "night_start_minute", "night_end_hour", "night_end_minute",
+        )},
     },
     "manual_plan": {
         **{f"{k}_slots": _ABSENT for k in ("space", "dhw")},

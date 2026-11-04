@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._weather_series GUARD_OFF 2d392832",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "            if irradiance == 0.0:",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=3."
+}

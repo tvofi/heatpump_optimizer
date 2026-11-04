@@ -13,7 +13,7 @@
  "archscore.hub_solve_writes": 16,
  "archscore.import_cycle_modules": 0,
  "archscore.layer_violations": 22,
- "archscore.literal_clone_copies": 186,
+ "archscore.literal_clone_copies": 123,
  "archscore.params_over_10": 12,
  "archscore.private_cross_module": 17,
  "archscore.public_unused": 1,
@@ -22,10 +22,10 @@
  "archscore.shared_inplace_writes": 3,
  "archscore.unread_private_globals": 0,
  "archscore.untyped_payload_keys": 0,
- "archscore.unused_boundary_imports": 1,
+ "archscore.unused_boundary_imports": 0,
  "critical_path_minutes": 34.267,
- "reason": "Re-record critical_path_minutes 54.825 -> 34.267 (main red, CI job 121295715608): the metric is now each push run's tests critical path with runner queue removed, not its wall, graded at the 8-run median and recorded at the p90 of `--gather-runs --window 40` taken at main f3ffb1c63 (40 CI push runs, work 20.1..34.65 min, median 32.55). The old 54.825 was a 2026-10-12 median of walls; queue for runners, not work, took the median to 59.6 under an overlapping train. Every other row stands as recorded at recorded_at (R10-LIVESTATE, #2232).",
- "recorded_at": "fd7e289d0a09862b57f0509bf1071c54b9054799",
+ "reason": "Two rows lowered (R10-CONFIGFLOW-PAGES arm D, the group's carried tripwires), each at the value vector.measure derives at 4b9ee5377: archscore.unused_boundary_imports 1 -> 0 (config_flow.py's unread `device_registry as dr` import is dropped), archscore.literal_clone_copies 186 -> 123 (recorded 186; measured 123 at merge base 66974d473 and at this head: arms C and C2, #2915, took the setup-flow widgets from _OPTION_FIELDS; drop 63). No other row moves; every other row stands as recorded at fd7e289d0 (previous reason: critical_path_minutes 54.825 -> 34.267, R10-LIVESTATE, #2232).",
+ "recorded_at": "4b9ee53778fa8fd15ad8ffdf1f1309e3f06aa282",
  "script_runs_full_case_pr": 68,
  "script_runs_per_push": 54
 }

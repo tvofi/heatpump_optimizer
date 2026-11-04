@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._plan_slots.close BOOLOP 7b589d80",
-  "killed_by": "tests/features.py",
-  "old": "                    other_powers[i] for i in span if i < len(other_heating) and other_heating[i]",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`other_powers[i] for i in span if i < len(other_heating) or other_heating[i]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

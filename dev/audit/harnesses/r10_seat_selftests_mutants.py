@@ -65,6 +65,47 @@ MUTANTS = [
     ("ci-watch-2", "ci-watch.sh", '($2 == "completed" && $3 != "success")', '($3 == "failure")'),
     ("S02", "cloud_dispatch.py", "return len(head) == 40 and set(head) <= LOWER_HEX",
      "return len(head) != 40 and set(head) <= LOWER_HEX"),
+    # r10-flow-design-stages-p2 A: the stub pins PROMPT.md's commit, keeps the footer ban,
+    # re-dispatches without moving, and refuses a stub with no pin.
+    ("cloud_dispatch-1", "cloud_dispatch.py", "pin=_snapshot(repo_dir, ref, prompt))",
+     'pin=_tip(repo_dir, ref) or "0" * 40)'),
+    ("cloud_dispatch-2", "cloud_dispatch.py", 'nonce) + " " + FOOTER_BAN + "\\n"\n            f"Your full brief',
+     'nonce) + "\\n"\n            f"Your full brief'),
+    ("cloud_dispatch-3", "cloud_dispatch.py", "            return parent[0]\n", "            pass\n"),
+    ("cloud_dispatch-4", "cloud_dispatch.py", "if publish_ref and not is_head(pin):", "if False:"),
+    # r10-flow-design-stages-p2 B: a group's carries reach its PROMPT.md.
+    ("cloud_dispatch-5", "cloud_dispatch.py",
+     '    parts += [f"Carry {i}: {c}" for i, c in enumerate(group.get("carry") or [])]\n', ""),
+    # r10-flow-design-stages-p2 C: the fixer's step ref, its delete, the pre-handoff merge, the identity pin.
+    ("cloud_dispatch-6", "cloud_dispatch.py", 'fast-forward only, to refs/heads/{WIP_NS}/{topic} before',
+     'fast-forward only, to refs/heads/handoff/{topic} before'),
+    ("cloud_dispatch-7", "cloud_dispatch.py", 'delete the step ref: `git push origin :refs/heads/{WIP_NS}/{topic}`. ', ""),
+    ("cloud_dispatch-8", "cloud_dispatch.py", "run, `git merge origin/main`, rerun", "run, rerun"),
+    ("cloud_dispatch-9", "cloud_dispatch.py", 'if role in COMMITTING_ROLES else ""', 'if False else ""'),
+    # r10-flow-design-stages-p2 D: the reviewer's one CI waiter that ends.
+    ("cloud_dispatch-10", "cloud_dispatch.py",
+     "Wait for CI on this head only by re-running \"\n            f\"`python3 tools/audit/seat/merge_train.py classify {head}`",
+     "Wait for CI on this head \"\n            f\"somehow"),
+    # r10-flow-design-stages-p2 E: the setup line's toolchain check.
+    ("cloud_dispatch-11", "cloud_dispatch.py",
+     'f"`{SETUP_CHECK}`, and on REFUSE stop: report its line as your result and start no work. "', '""'),
+    # r10-flow-design-stages-p2 F: the roster's model ruling, enforced at the dispatch.
+    ("cloud_dispatch-12", "cloud_dispatch.py", "if not ruled or _family(model) == _family(ruled):", "if True:"),
+    ("cloud_dispatch-13", "cloud_dispatch.py", "if not ruled or _family(model) == _family(ruled):", "if not ruled:"),
+    # r10-flow-design-stages-p2 I: the design arms #2994 merged (decision 0014), one predicate each.
+    ("cloud_dispatch-14", "cloud_dispatch.py",
+     'if role == "fixer" and roster_lib.needs_design(group) and not design_exempt.strip():',
+     'if role == "fixer" and roster_lib.needs_design(group):'),
+    ("cloud_dispatch-15", "cloud_dispatch.py", "if not design_approved(repo_dir, group_id):", "if False:"),
+    ("cloud_dispatch-16", "cloud_dispatch.py", 'return first == f"Design review: approve {tip}"',
+     'return first.startswith("Design review: approve ")'),
+    ("cloud_dispatch-17", "cloud_dispatch.py", "if role in DESIGN_ROLES and not roster_lib.needs_design(group):",
+     "if False:"),
+    ("cloud_dispatch-18", "cloud_dispatch.py", "        if not design:\n", "        if False:\n"),
+    ("cloud_dispatch-19", "cloud_dispatch.py", 'if role == "design-reviewer" and not is_head(design or ""):',
+     "if False:"),
+    ("cloud_dispatch-20", "cloud_dispatch.py", "topic = group_id if role in DESIGN_ROLES else _topic_of(group)",
+     "topic = _topic_of(group)"),
     ("S03", "cloud_relay.sh", 'if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then',
      'if [ -f "$led" ] && ! grep -qxF "$ref $sha" "$led"; then'),
     ("S04", "daemonize.py", '"-u" not in run_argv[1:2]:', '"-u" in run_argv[1:2]:'),
@@ -158,6 +199,19 @@ MUTANTS = [
      "if files and any(f in claim_files for f in files):"),
     ("merge_train-10", "merge_train.py", "    return lines[1:]\n", "    return lines\n"),
     ("merge_train-11", "merge_train.py", "t.required(pr_head=not a.main)", "t.required()"),
+    # R10-FLOW-MAIN-GATE carries: V142's infra re-run, and #2577's reviewable-head dispatch refusal.
+    ("merge_train-25", "merge_train.py", "                self.infra_rerun(latest_runs(runs), red)\n", ""),
+    ("merge_train-26", "merge_train.py", "        if red and self.infra_rerun(", "        if False and self.infra_rerun("),
+    ("merge_train-27", "merge_train.py", "        if not hit:\n", "        if not hit and not matched:\n"),
+    ("merge_train-28", "merge_train.py", '[lines[i][len("FAIL "):], *lines[i + 1:end]]', '[lines[i][len("FAIL "):]]'),
+    ("merge_train-29", "merge_train.py", "    if attempt != 1 or not failed:", "    if not failed:"),
+    ("merge_train-30", "merge_train.py", 'if code or att.strip() != "1":', "if code:"),
+    ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
+    ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
+    ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
+    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
+    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
+    ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
     # Round 2: GitHub's merge under a local driver, and the reviewer's R1-R4.
     ("merge_train-12", "merge_train.py",
      '    drivers = text_merge(run)\n    if drivers is None:\n        return None\n',
@@ -223,6 +277,27 @@ MUTANTS = [
     ("prepr-12", "tools/pr/ci_predict.py",
      '"under-scoped", "inert-siblings", "left-inert", "mutation")',
      '"under-scoped", "inert-siblings", "left-inert")'),
+    # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
+    # handoff refusals and body_push's call of them; body_push-1/2 are graded by
+    # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-1", "review_packet.py",
+     "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
+    ("review_packet-2", "review_packet.py",
+     "        refusals.append(f\"handoff-not-applied: {facts['handoff']}\")\n", "        pass\n"),
+    ("review_packet-3", "review_packet.py",
+     "if not re.search(rf\"\\bcarry", "if False and re.search(rf\"\\bcarry"),
+    ("review_packet-4", "review_packet.py",
+     '[t, t[:-len("-pr")]] if t.endswith("-pr") else [t]', "[t]"),
+    ("review_packet-5", "review_packet.py",
+     '    out += [f"hot-file: {w}" for w in hot]\n', ""),
+    ("body_push-1", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if false; then\n    echo "body_push: the review packet refuses'),
+    ("body_push-2", "tools/audit/seat/body_push.sh",
+     '  if [ "$prc" = 1 ]; then\n    echo "body_push: the review packet refuses',
+     '  if [ "$prc" != 0 ]; then\n    echo "body_push: the review packet refuses'),
+    # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
+    ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -338,6 +413,13 @@ MUTANTS = [
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
     ("cloud_relay-34", "cloud_relay.sh", '|| { echo UNREAD; return 0; }', '|| { return 1; }'),
+    # R10-FLOW-BODY-ONLY carry 13 (V147): the stale-body refusal, and a failed update's reason
+    ("cloud_relay-35", "cloud_relay.sh", 'if [ -n "$code" ] && [ "$code" != "$hs" ]; then', 'if false; then'),
+    ("cloud_relay-36", "cloud_relay.sh",
+     'level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; rm -rf',
+     'level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf'),
+    ("cloud_relay-37", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1); [ -n "$why" ] ||', 'why=; [ -n "$why" ] ||'),
+    ("cloud_relay-38", "cloud_relay.sh", 'END { print w }\' "$f.why" 2>/dev/null)', 'END { print w }\' /dev/null)'),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
     ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
@@ -368,6 +450,19 @@ MUTANTS = [
     ("ghapi-2", "tools/ci/ghapi.py", "        if not nxt:\n            return out\n", "        return out\n"),
     # P2a glue: the extra request headers alert_list's SARIF read is bound through.
     ("ghapi-3", "tools/ci/ghapi.py", "        req.add_header(k, v)\n", "        pass\n"),
+    # R10-FLY-GH-READ-RETRY carry 7 (#2859): a GET retries a transport failure like a 5xx;
+    # one mutant per TRANSPORT member, the arm, the budget's raise and the retry itself.
+    ("ghapi-4", "tools/ci/ghapi.py", "        except TRANSPORT:\n", "        except ():\n"),
+    ("ghapi-5", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(http.client.HTTPException, ConnectionError, TimeoutError)"),
+    ("ghapi-6", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, ConnectionError, TimeoutError)"),
+    ("ghapi-7", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, http.client.HTTPException, TimeoutError)"),
+    ("ghapi-8", "tools/ci/ghapi.py", "(urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)",
+     "(urllib.error.URLError, http.client.HTTPException, ConnectionError)"),
+    ("ghapi-9", "tools/ci/ghapi.py", "            if nap is None:\n                raise\n", "            if False:\n                raise\n"),
+    ("ghapi-10", "tools/ci/ghapi.py", "    for nap in RETRY_5XX + (None,):\n", "    for nap in (None,):\n"),
     ("prelude-1", "tools/ci/prelude.py", 'return (KP if ctx.get("label") == KP else "label")', 'return "code"'),
     ("prelude-2", "tools/ci/prelude.py", 'if r["id"] < ctx["run_id"] and r["status"] in UNFINISHED)',
      'if r["status"] in UNFINISHED)'),
@@ -394,7 +489,8 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 
 # A mutant planted in a file whose self-test is another instrument's step.
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
-           "prepr-12": "tools/pr/prepr.sh"}
+           "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
+           "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
 # S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):

@@ -2,10 +2,10 @@
 # The merge-train launcher: one invocation shape for `merge_train.py batch`.
 #
 #   tools/audit/seat/train.sh --queue Q.json --repo OWNER/REPO --state-dir DIR \
-#                             [--checkout DIR] [--min-runs N] [--mandate ID] \
-#                             [--ignore-red CONTEXT]... [--skip-bad] [--overlap] \
-#                             [--approval-carry] [--bot-prs] [--pre-flight] \
-#                             [--free-holders] [--main-moved-tries N] [--self-test]
+#                             [--checkout DIR] [--min-runs N] [--mandate ID | --no-mandate] \
+#                             [--ignore-red CONTEXT]... [--no-overlap] [--no-approval-carry] \
+#                             [--no-skip-bad] [--no-free-holders] [--no-bot-prs] \
+#                             [--no-pre-flight] [--main-moved-tries N] [--self-test]
 #   tools/audit/seat/train.sh add <pr> <verdict> --repo OWNER/REPO --state-dir DIR \
 #                             [--verdict-comment ID] [any flag above but --queue]
 #
@@ -26,11 +26,15 @@
 #     (two concurrent trains on one state dir have corrupted a queue mid-run);
 #   * the log and the exit code under the state dir (train.log, rc), so a
 #     detached caller and the next session read the same places.
-# `--skip-bad` and `--overlap` pass straight through to `merge_train.py batch`:
-# a bad entry is skipped and reported instead of stopping the train, and the
-# serial entries are re-carried up front with main's CI waited on log-only.
-# So do `--approval-carry`, `--bot-prs`, `--pre-flight`, `--free-holders` and
-# `--main-moved-tries N` (merge_train.py's own help states each). Without
+# A launch runs the recommended set, `RECOMMENDED` in merge_train.py (the merge
+# seat's contract names it by reference): --overlap, --approval-carry,
+# --skip-bad, --free-holders, --bot-prs, --pre-flight (merge_train.py's own
+# help states each). Each has an off switch, --no-<flag>; the old --<flag>
+# spelling is still accepted and changes nothing. `--main-moved-tries N` is
+# no flag of the set and passes through. The effective set and the mandate are
+# printed on the launch line. The mandate is --mandate ID, else the one line of
+# $STATE_DIR/mandate (a comment id) when that file exists; --no-mandate turns
+# both off. The gate still reads the id at every merge. Without
 # --checkout the child runs from the repository root this script sits in.
 # Foreground by design: the caller detaches (`nohup ... &`) and owns the
 # schedule; this script owns only the invocation shape.
@@ -40,6 +44,12 @@ set -u
 die() { echo "train.sh: REFUSE: $*" >&2; exit 2; }
 
 usage() { sed -n '2,24p' "$0" >&2; exit 2; }
+
+# The recommended set, read from the one definition (RECOMMENDED in
+# merge_train.py); a source read, not an import, so no interpreter is needed.
+recommended() {
+  grep '^RECOMMENDED = (' "$(dirname -- "$0")/merge_train.py" | grep -o '"--[a-z-]*"' | tr -d '"'
+}
 
 selftest=0
 add_pr="" add_verdict="" add_comment="" add_flags=()
@@ -58,8 +68,8 @@ if [ "${1:-}" = add ]; then
     fi
   done
 fi
-queue="" repo="" checkout="" state="" minruns=1 mandate=""
-skipbad="" overlap="" opts=()
+queue="" repo="" checkout="" state="" minruns=1 mandate="" nomandate=""
+off=" " opts=()
 ignores=()
 while [ $# -gt 0 ]; do
   case $1 in
@@ -71,9 +81,10 @@ while [ $# -gt 0 ]; do
     --mandate) [ $# -ge 2 ] || die "--mandate needs a value"; mandate=$2; shift 2 ;;
     --ignore-red) [ $# -ge 2 ] || die "--ignore-red needs a value"
       ignores+=("--ignore-red" "$2"); shift 2 ;;
-    --skip-bad) skipbad=1; shift ;;
-    --overlap) overlap=1; shift ;;
-    --approval-carry|--bot-prs|--pre-flight|--free-holders) opts+=("$1"); shift ;;
+    --no-mandate) nomandate=1; shift ;;
+    --no-overlap|--no-approval-carry|--no-skip-bad|--no-free-holders|--no-bot-prs|--no-pre-flight)
+      off="$off--${1#--no-} "; shift ;;
+    --overlap|--approval-carry|--skip-bad|--free-holders|--bot-prs|--pre-flight) shift ;;  # on already
     --main-moved-tries) [ $# -ge 2 ] || die "--main-moved-tries needs a value"
       opts+=("$1" "$2"); shift 2 ;;
     --self-test) selftest=1; shift ;;
@@ -81,6 +92,28 @@ while [ $# -gt 0 ]; do
     *) die "unknown argument '$1'" ;;
   esac
 done
+
+# The effective set: RECOMMENDED less what a --no-<flag> switched off.
+set_flags=()
+for f in $(recommended); do
+  case $off in *" $f "*) : ;; *) set_flags+=("$f") ;; esac
+done
+[ ${#set_flags[@]} -gt 0 ] || [ "$off" != " " ] || die "RECOMMENDED could not be read from merge_train.py"
+
+# The mandate: --mandate ID, else the state dir's one-line `mandate` file.
+mandate_note="none (owner reviews only)"
+if [ -n "$nomandate" ]; then
+  mandate=""
+elif [ -n "$mandate" ]; then
+  mandate_note="$mandate (--mandate)"
+elif [ -n "$state" ] && [ -f "$state/mandate" ]; then
+  mandate=$(head -n 1 "$state/mandate" | tr -d '[:space:]')
+  case $mandate in
+    ''|*[!0-9]*) die "$state/mandate must hold one comment id (digits), got '$mandate'" ;;
+  esac
+  mandate_note="$mandate (from $state/mandate)"
+fi
+effective="${set_flags[*]:-none}"
 
 if [ "$selftest" = 1 ]; then
   # 1. missing required arguments refuse.
@@ -150,9 +183,10 @@ if [ "$selftest" = 1 ]; then
     *seat_venv.sh*) : ;;
     *) die "self-test: an absent venv refused without naming seat_venv.sh: $out" ;;
   esac
-  # 6. --skip-bad and --overlap pass through to merge_train.py, and the child
-  #    python runs unbuffered (-u): a detached caller's log shows a SKIP
-  #    report or an OVERLAP recarry in real time, not after a buffer fills.
+  # 6. the child python runs unbuffered (-u): a detached caller's log shows a
+  #    SKIP report or an OVERLAP recarry in real time, not after a buffer
+  #    fills. The old --<flag> spellings are no-ops: an explicit launch of
+  #    all six has the argv of a bare one (the null control of arm 8).
   #    Same stub-argv technique as arm 4.
   st=$(mktemp -d)
   mkdir -p "$st/venv-ci/bin" "$st/state"
@@ -172,8 +206,8 @@ if [ "$selftest" = 1 ]; then
     *) rm -rf "$st"; die "self-test: the child is not run unbuffered (-u first): $flags" ;;
   esac
   case $flags in
-    *"|--skip-bad|--overlap|"*) : ;;
-    *) rm -rf "$st"; die "self-test: --skip-bad/--overlap did not reach the child argv: $flags" ;;
+    *"|--overlap|--approval-carry|--skip-bad|--free-holders|--bot-prs|--pre-flight|") : ;;
+    *) rm -rf "$st"; die "self-test: an explicit --skip-bad/--overlap launch is not the recommended set: $flags" ;;
   esac
   rm -rf "$st"
   # 7. launched WITHOUT --checkout, the child runs from the REPOSITORY ROOT,
@@ -197,27 +231,71 @@ if [ "$selftest" = 1 ]; then
     || { rm -rf "$st"; die "self-test: launched without --checkout the child ran in '$ran', not the repository root $top"; }
   flags=$(tr '\n' '|' < "$st/argv")
   case $flags in
-    *"|--approval-carry|--bot-prs|--pre-flight|--free-holders|--main-moved-tries|2|"*) : ;;
+    *"|--bot-prs|--pre-flight|--main-moved-tries|2|") : ;;
     *) rm -rf "$st"; die "self-test: the train options did not reach the child argv: $flags" ;;
   esac
   rm -rf "$st"
-  # 8. a flag NOT given never reaches the child: `${skipbad:+--skip-bad}`
-  #    over a default of 0 (non-empty) passed --skip-bad and --overlap on
-  #    EVERY launch (measured at origin/main 613b10c51). The bare launch's
-  #    argv must end at --min-runs 1.
+  # 8. a bare launch runs the recommended set, every flag RECOMMENDED names and
+  #    no other: its argv ends at the six, in RECOMMENDED's order, with no
+  #    --mandate (no mandate file). The stub's python3 records the argv; the
+  #    expected set is read from merge_train.py, so a flag dropped there
+  #    (the mutant) leaves the launch without it and this arm refuses.
   st=$(mktemp -d)
   mkdir -p "$st/venv-ci/bin" "$st/state"
   printf '#!/bin/bash\nfor a in "$@"; do printf "%%s\\n" "$a" >> "%s/argv"; done\nexit 0\n' "$st" \
     > "$st/venv-ci/bin/python3"
   chmod +x "$st/venv-ci/bin/python3"
   : > "$st/queue.json"
-  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" >/dev/null 2>&1
+  bare=$(HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" 2>&1)
   flags=$(tr '\n' '|' < "$st/argv" 2>/dev/null)
-  rm -rf "$st"
+  want="--overlap|--approval-carry|--skip-bad|--free-holders|--bot-prs|--pre-flight"
   case $flags in
-    *"|--min-runs|1|") : ;;
-    *) die "self-test: a bare launch passed flags it was not given: $flags" ;;
+    *"|--min-runs|1|$want|") : ;;
+    *) rm -rf "$st"; die "self-test: a bare launch is not the six-flag recommended set: $flags" ;;
   esac
+  case $bare in
+    *"set: $(echo "$want" | tr '|' ' ')"*"mandate: none (owner reviews only)"*) : ;;
+    *) rm -rf "$st"; die "self-test: the bare launch line does not print the effective set and the mandate: $bare" ;;
+  esac
+  # 8a. --no-skip-bad removes exactly that one; the old spelling beside it is a no-op.
+  : > "$st/argv"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" \
+    --no-skip-bad --overlap >/dev/null 2>&1
+  flags=$(tr '\n' '|' < "$st/argv" 2>/dev/null)
+  case $flags in
+    *"|--min-runs|1|--overlap|--approval-carry|--free-holders|--bot-prs|--pre-flight|") : ;;
+    *) rm -rf "$st"; die "self-test: --no-skip-bad did not remove exactly --skip-bad: $flags" ;;
+  esac
+  # 8c. the mandate: a state dir's one-line file passes --mandate <id> and prints its source;
+  #     --no-mandate turns it off; an explicit --mandate beats the file; a bad file refuses.
+  echo 4242 > "$st/state/mandate"
+  : > "$st/argv"
+  out=$(HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" 2>&1)
+  flags=$(tr '\n' '|' < "$st/argv" 2>/dev/null)
+  case $flags in
+    *"|--pre-flight|--mandate|4242|") : ;;
+    *) rm -rf "$st"; die "self-test: the state dir's mandate file did not reach the child: $flags" ;;
+  esac
+  case $out in
+    *"mandate: 4242 (from $st/state/mandate)"*) : ;;
+    *) rm -rf "$st"; die "self-test: the mandate source was not printed: $out" ;;
+  esac
+  : > "$st/argv"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --no-mandate >/dev/null 2>&1
+  case $(tr '\n' '|' < "$st/argv") in
+    *"--mandate"*) rm -rf "$st"; die "self-test: --no-mandate still passed a mandate" ;;
+  esac
+  : > "$st/argv"
+  HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" --mandate 7 >/dev/null 2>&1
+  case $(tr '\n' '|' < "$st/argv") in
+    *"|--mandate|7|") : ;;
+    *) rm -rf "$st"; die "self-test: an explicit --mandate did not win over the file" ;;
+  esac
+  echo "not a number" > "$st/state/mandate"
+  if HPO_STATE_DIR="$st" "$0" --queue "$st/queue.json" --repo x/r --state-dir "$st/state" >/dev/null 2>&1; then
+    rm -rf "$st"; die "self-test: a malformed mandate file did not refuse"
+  fi
+  rm -rf "$st"
   # 8b. the child's exit status is the train's: it reaches TRAIN_RC, $state/rc and
   #     train.sh's own exit through the asynchronous launch's `wait` (a `|| :`
   #     there passed every other arm, #2524's round-4 review).
@@ -309,7 +387,8 @@ if [ "$selftest" = 1 ]; then
     "-u|tools/audit/seat/merge_train.py|add|7|$sha|--repo|x/r|--state-dir|"*"|--verdict-comment|42|--|--repo|x/r|--state-dir|"*"|--overlap|") : ;;
     *) die "self-test: add's argv shape wrong: $flags" ;;
   esac
-  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, no unasked flag, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)"
+  echo "train.sh self-test: effective set of a bare launch: $want"
+  echo "train.sh self-test: ok (5 refusals shown, root and options reach the child, a bare launch runs the six-flag recommended set, --no-<flag> and the mandate file switch it, the child's exit is the train's, a stop reaps the tree, merge_train.py first, add takes no pidfile)"
   exit 0
 fi
 
@@ -323,6 +402,7 @@ if [ -n "$add_pr" ]; then
   [ -n "$checkout" ] || checkout=$(git -C "$(dirname "$0")" rev-parse --show-toplevel) || die "no repository around $0; pass --checkout"
   cd "$checkout" || die "checkout directory not found: $checkout"
   mkdir -p "$state" || die "cannot create state dir $state"
+  echo "mandate: $mandate_note"
   # No pidfile: `add` is no train. Its own lines go to the caller and to the train's log.
   python3 -u tools/audit/seat/merge_train.py add "$add_pr" "$add_verdict" --repo "$repo" --state-dir "$state" \
     ${mandate:+--mandate "$mandate"} ${add_comment:+--verdict-comment "$add_comment"} \
@@ -376,6 +456,8 @@ fi
 
 log=$state/train.log
 echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT%TZ)" >> "$log"
+echo "train.sh: set: $effective" | tee -a "$log"
+echo "mandate: $mandate_note" | tee -a "$log"
 (
   cd "$checkout" || exit 2
   # shellcheck disable=SC2086 # minruns is a plain integer
@@ -384,8 +466,7 @@ echo "train.sh: queue=$queue repo=$repo state=$state pid=$$ start=$(date -u +%FT
     --state-dir "$state" \
     --min-runs "$minruns" \
     ${ignores[@]+"${ignores[@]}"} \
-    ${skipbad:+--skip-bad} \
-    ${overlap:+--overlap} \
+    ${set_flags[@]+"${set_flags[@]}"} \
     ${mandate:+--mandate "$mandate"} \
     ${opts[@]+"${opts[@]}"}
 ) >> "$log" 2>&1 &

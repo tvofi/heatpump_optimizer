@@ -13,7 +13,8 @@
   (`gc.autoDetach`, `maintenance.autoDetach` off), so a `git gc --auto` a
   push's fetch starts is part of that push rather than a PID-1 orphan holding
   its lock. With `detach` the holder leaves the run's worktree detached once
-  the push has ended, a SIGKILLed run's too. Only the lock exits 75; a step
+  the push has ended, a SIGKILLed run's too, aborting first a merge the run
+  left stopped on a conflict. Only the lock exits 75; a step
   that does is reported as a stop and exits 1. `pr_bounded` runs a self-test
   (its own, `update_pr.sh`'s, `cloud_relay.sh`'s) as a session of its own under
   `PR_SELFTEST_SECONDS` (default 1200), and ends that whole session on exit,

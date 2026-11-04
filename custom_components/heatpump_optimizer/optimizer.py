@@ -88,6 +88,7 @@ from .payload import (
     REASON_PUMP_MODE,
 )
 from .thermal_model import (
+    CHANNEL_ACTIVE_KW,
     TANK_ROOM_AMBIENT_TEMP,
     MIN_RUNNING_DRAW_KW,
     ThermalModel,
@@ -96,9 +97,12 @@ from .thermal_model import (
     WeatherSeries,
     _mean_humidity,
     _step_humidity,
+    channel_heating_steps,
     levels_clamped,
+    plan_step_runs,
     planned_draw_runs,
     planned_draws_run,
+    delivered_heat_kw,
     project_planned_levels,
     valve_charge_demand,
     weather_or_calm,
@@ -1386,33 +1390,6 @@ def idle_codes(
     codes[_padded(caps, n) <= threshold] = REASON_IDLE_FUSE
     codes[_padded(other, n) > threshold] = REASON_IDLE_OTHER
     return list(codes.tolist())
-
-
-#: A channel's own draw above which a plan step counts that channel as heating,
-#: in kW: the idle line ``classify_space_steps`` and ``classify_dhw_steps`` code
-#: their idle reasons against, and the line a plan view merges slots on. It sits
-#: under ``MIN_RUNNING_DRAW_KW`` because the pump's running rule is the step's
-#: WHOLE ask, space plus DHW; a channel can carry a share of a running step.
-CHANNEL_ACTIVE_KW = 0.05
-
-
-def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
-    """Which plan steps a channel heats at, in the plan's own terms (D8-s1-01).
-
-    Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
-    pump at all (``planned_draws_run`` over both channels): a channel is never
-    "heating now" on a step the plan's on schedule calls off. The plan views'
-    ``active_now`` and slot merge read this, so neither can count a step the
-    on schedule calls off. An ``other`` series shorter than ``channel`` draws
-    nothing past its end.
-    """
-    channel = np.asarray(channel_kw, dtype=float)
-    other = np.zeros_like(channel)
-    if other_kw is not None:
-        given = np.asarray(other_kw, dtype=float)[: len(channel)]
-        other[: len(given)] = given
-    runs = planned_draws_run(channel, other)
-    return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
 
 
 def classify_space_steps(
@@ -5138,13 +5115,13 @@ class HeatPumpOptimizer:
         # as the settlement caps themselves.
         q_house = max(0.0, u_house * (target - out_mean) - p.internal_gains)
         ua_tank = p.buffer_tank_heat_loss_coefficient
-        p_max = p.max_electrical_power
 
         def net(temp: float) -> float:
             cop = self.model.marginal_cop(
                 out_mean, "buffer", store_temp=temp, humidity=humidity
             )
-            return p_max * cop - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
+            heat: float = delivered_heat_kw(p, cop, p.max_electrical_power)
+            return heat - q_house - ua_tank * max(0.0, temp - TANK_ROOM_AMBIENT_TEMP)
 
         if net(hi) > 0.0:
             return hi
@@ -5662,21 +5639,10 @@ class HeatPumpOptimizer:
             if result.displace_schedule and i < len(result.displace_schedule)
             else 0.0
         )
-        # The schedule is the authority; the fallback is the same owner on the
-        # same two circuits, for a result built without the field. Both read
-        # the plan's own running rule, never the meter's threshold, so a step
+        # The plan's own running rule, never the meter's threshold, so a step
         # this action declares off is a step the plan booked no heat for
-        # (R9 D12-s2-01).
-        dhw_power_at_i = (
-            result.dhw_power_schedule[i]
-            if result.dhw_power_schedule and i < len(result.dhw_power_schedule)
-            else 0.0
-        )
-        heat_pump_on = (
-            result.heat_pump_on_schedule[i]
-            if result.heat_pump_on_schedule and i < len(result.heat_pump_on_schedule)
-            else planned_draw_runs(power, dhw_power_at_i)
-        )
+        # (R9 D12-s2-01); one owner for every reader of the plan's switch.
+        heat_pump_on = plan_step_runs(result, i)
 
         p_norm = _power_fraction(power, self.model.params)
 

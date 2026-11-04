@@ -7,10 +7,13 @@
   unbuffered (`-u`, so a detached caller's log shows stops and SKIP/OVERLAP
   lines in real time), a pidfile refusing a second live train on the same
   state dir, log and exit code under the state dir (`train.log`, `rc`), and
-  `--skip-bad`/`--overlap`/`--approval-carry`/`--bot-prs`/`--pre-flight`/
-  `--free-holders`/`--main-moved-tries N` passed straight through, each only
-  when given (a `0` default once passed `--skip-bad --overlap` on every
-  launch), and the child run from the repository root when `--checkout` is
+  the recommended set (`RECOMMENDED` in `merge_train.py`: `--overlap`,
+  `--approval-carry`, `--skip-bad`, `--free-holders`, `--bot-prs`,
+  `--pre-flight`) on by default, each off with `--no-<flag>` (the old
+  `--<flag>` spelling is a no-op), `--main-moved-tries N` passed through, the
+  mandate from `--mandate`, else the state dir's one-line `mandate` file
+  (`--no-mandate` turns it off), the effective set and mandate printed on the
+  launch line, and the child run from the repository root when `--checkout` is
   absent (it once resolved to `tools/`). Foreground: the caller
   detaches and owns the schedule. When: every merge queue — the per-session
   scratch drivers this replaces duplicated the invocation, and one session's

@@ -37,6 +37,7 @@ from homeassistant.util import dt as dt_util
 from profiles import DT, house, prices, weather
 from heatpump_optimizer.dhw_schedule import hour_in_windows, parse_windows
 from heatpump_optimizer import accuracy as accuracy_mod
+from heatpump_optimizer.const import CONF_INDOOR_TEMP_ENTITY
 from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
 from heatpump_optimizer.thermal_model import (
@@ -111,9 +112,15 @@ def run_rolling(
     # When learning, the *real* coordinator's estimator is driven rather than a
     # copy of its arithmetic. A test that reimplements the learner would only
     # prove the reimplementation works.
+    # The harness hands the learner the plant's real room temperature, so it
+    # declares the indoor sensor that reading stands for: with none configured
+    # the learner freezes by design (#2508), and these checks would measure
+    # the freeze instead of the correction.
     learner = None
     if learn:
-        learner = HeatPumpOptimizerCoordinator(FakeHass(), FakeEntry(data=cfg))
+        learner = HeatPumpOptimizerCoordinator(
+            FakeHass(), FakeEntry(data={**cfg, CONF_INDOOR_TEMP_ENTITY: "sensor.indoor"})
+        )
         learner._thermal_params = params
         learner._thermal_model = model
         learner._opt_config = opt_cfg
@@ -477,7 +484,10 @@ samples = learned["history"]["heat_loss_samples"]
 R.check(
     "the learner takes samples",
     int(samples[-1]) > 10,
-    f"{int(samples[-1])} samples over three days",
+    # The freeze reason names a harness that stopped driving the learner
+    # (#2508's not_configured freeze read as "0 samples" alone).
+    f"{int(samples[-1])} samples over three days, freeze "
+    f"{getattr(learned['learner'], '_learner_freeze_reason', None)!r}",
 )
 R.check(
     "the learned correction moves towards the real error",

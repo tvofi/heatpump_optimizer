@@ -173,6 +173,7 @@ declaration. It asks the model's own numbers:
 | Heat pump nominal COP | 3.5 | 1.5–6.0 | As above. |
 | Heat pump max power | 5.0 kW | 1–20 | As above. |
 | Heat pump min power | 1.0 kW | 0–10 | As above. |
+| Heat pump COP loss at max power | 0 | 0–0.5, 0.01 steps | The share of efficiency lost running at max power rather than at min power, as a fraction (0.1 = 10 %). Larger heat flows need larger temperature differences across the heat exchangers, so the compressor's COP falls with its power; the model prices that as a linear fall across the modulation band, on the space-heating and the hot-water schedules alike. 0 leaves power out of the COP entirely, which is the default because no install without a heat meter can measure the slope; typical air-to-water units lose 0.05 to 0.15. The value must stay below band / (band + max power), band being max minus min power (0.44 for a 1–5 kW pump, 0.17 for a 4–5 kW one): at or above it more power would deliver less heat at the top of the band, so the options page refuses it and a stored one is read as 0. |
 | Recalculate every | 30 min | 10–120, 5 steps | How often the plan is re-solved against fresh prices and weather. |
 | How hard to chase low prices | 1.0 | 0.1–10, 0.1 steps | Higher moves more heating into cheap hours, at the cost of more temperature swing. |
 | How strictly to hold the temperature | 5.0 | 0.1–20, 0.1 steps | The counterweight. Around 5 lets the house drift freely inside your allowed range; 10 keeps it noticeably closer to target; 20 or more behaves like an ordinary thermostat. |
@@ -231,7 +232,7 @@ single field takes the same grammar, including day selectors such as
 | Rain sensitivity | 1.15 | 1.0–1.5, 0.01 steps | Loss multiplier while it is raining. 1.0 means rain makes no difference. |
 
 Saving this page moves to the read-only review screen — confirming there is
-what creates the entry. All 81 entities appear at once and the first plan is
+what creates the entry. All 82 entities appear at once and the first plan is
 solved within one optimization interval.
 
 ---
@@ -945,13 +946,13 @@ feeding the buffer tank — its heat is folded in rather than stored separately.
 
 ## Services
 
-13 services are registered under the `heatpump_optimizer` domain. The eight
+14 services are registered under the `heatpump_optimizer` domain. The nine
 that act on a specific config entry also accept an optional `entry_id`; omitting
 it applies the call to every loaded entry, which is what a single-heat-pump
-install wants. Of those eight, `assign_entity`, `apply_topology`,
+install wants. Of those nine, `assign_entity`, `apply_topology`,
 `apply_schedule` and `debug_collect` write configuration back into the entry —
 `debug_collect`'s start turns the collection option on, which reloads the
-entry — and the other four act on the running coordinator. `run_optimization`,
+entry — and the other five act on the running coordinator. `run_optimization`,
 `set_away`, `set_mode`, `set_thermal_parameters` and `simulate_plan` always act
 on every loaded entry.
 
@@ -973,6 +974,7 @@ or is not loaded — fails with a validation error rather than doing nothing.
 | `apply_manual_plan` | `space_slots`, `dhw_slots`, `expires_at`, `entry_id` | optional |
 | `clear_manual_plan` | `entry_id` | optional |
 | `restore_learned_snapshot` | `entry_id` | optional |
+| `reset_heat_loss_learners` | `learners`, `entry_id` | optional |
 | `diagnose_interval` | `entry_id` | optional |
 | `debug_collect` | `action` (required), `entry_id` | optional |
 
@@ -1088,6 +1090,15 @@ weekly snapshot — the manual counterpart of the drift watchdog. When no
 snapshot qualifies (healthy inputs and in-band accuracy at capture time are
 required) the call fails with an error instead of answering with an empty
 restore.
+**`reset_heat_loss_learners`** returns the learned house heat loss scale and the
+learned lower floor loss ratio to 1.0, so the plan uses the heat loss values in
+the settings as they stand, and the learners start collecting evidence again
+from there; the plan is recalculated straight away. `learners` names which:
+`house_heat_loss_scale`, `lower_floor_loss_ratio`, or both when left empty. The
+comfort weight and the hot-water, COP and defrost learners are left alone. The
+**Learning Reset Heat Loss** button resets both. Changing the indoor or the
+lower-floor temperature sensor resets the learner fitted on it the same way,
+because evidence fitted against one sensor says nothing about another.
 **`diagnose_interval`** attributes the last interval's temperature error
 input by input and publishes the result on the Prediction Accuracy sensor.
 **`debug_collect`** takes `action`: `start`, `stop` or `status`. Collect a week of debug data is the learning page's option that turns the collection on. `start` turns

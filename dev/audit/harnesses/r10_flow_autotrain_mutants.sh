@@ -91,7 +91,7 @@ mut C1 $F '    with queue_lock(t.state):
 mut C2 $F '            if v != h:
                 o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]' '            if False:
                 o = self.run(["bash", tool("app_approve"), "--carry", v, h])[1]'
-# The sweep (sweep, AUTO_TRAIN_FLAGS) and train_add's one-train rule under it.
+# The sweep (sweep, RECOMMENDED) and train_add's one-train rule under it.
 mut S1 $F '        if seen.get(str(pr)) == head:' '        if False:'
 mut S2 $F '        if rc == 2:
             t.log(f"SWEEP REFUSED start' '        if False:
@@ -102,7 +102,7 @@ mut S3 $F '        if rc:
 mut S4 $F '    if stops:
         _, subj, sha, when, _ = stops[0]' '    if False:
         _, subj, sha, when, _ = stops[0]'
-mut S5 $F 'AUTO_TRAIN_FLAGS = ("--bot-prs", "--approval-carry", "--pre-flight")' 'AUTO_TRAIN_FLAGS = ("--bot-prs", "--approval-carry")'
+mut S5 $F 'RECOMMENDED = ("--overlap", "--approval-carry", "--skip-bad", "--free-holders", "--bot-prs", "--pre-flight")' 'RECOMMENDED = ("--overlap", "--approval-carry", "--skip-bad", "--free-holders", "--bot-prs")'
 mut S6 $F '        seen[str(pr)] = head' '        seen[str(pr)] = None'
 mut S7 $F '        if live:
             spool_append(t.state, entry)' '        if False:

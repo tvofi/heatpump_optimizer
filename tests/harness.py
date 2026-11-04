@@ -454,6 +454,9 @@ class FakeCoordinator:
     async def async_reset_comfort_weight(self):
         self.pressed.append("reset_comfort_weight")
 
+    async def async_reset_heat_loss_learners(self):
+        self.pressed.append("reset_heat_loss")
+
 
 class FakeEntry:
     def __init__(

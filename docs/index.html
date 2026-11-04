@@ -211,11 +211,11 @@ footer .brand { font-size: 1rem }
 
 <main id="main">
 <div class="hero" id="top"><div class="wrap">
-  <span class="eyebrow">Home Assistant integration · installs with HACS</span>
+  <span class="eyebrow">Home Assistant integration · installs from the Marketplace or HACS</span>
   <h1 data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">As warm as you asked, <em>bought in better hours</em>.</h1>
   <p class="lede" data-src="README.md#heat-pump-cost-optimizer-for-home-assistant">Model-predictive heating control for Home Assistant. It plans your heat pump and your hot water 24 hours ahead against hourly electricity prices, the weather forecast, and a thermal model of your own house that it keeps correcting from your own sensors.</p>
   <div class="cta">
-    <a class="btn primary" href="#install">Install with HACS</a>
+    <a class="btn primary" href="#install">Install from the Marketplace</a>
     <a class="btn ghost" href="#docs">Read the documentation</a>
   </div>
   <figure>
@@ -306,7 +306,7 @@ footer .brand { font-size: 1rem }
     <figure role="tabpanel" id="p-adv" aria-labelledby="t-adv" hidden style="margin:0">
       <div class="stage"><picture>
         <source media="(prefers-color-scheme: dark)" srcset="img/card/advisor-dark.png" data-theme-src="dark" data-repo="docs/img/card/advisor-dark.png">
-        <img src="img/card/advisor-light.png" data-repo="docs/img/card/advisor-light.png" width="1056" height="616" loading="lazy" alt="The card's Advisor tab: a Worth doing section of ranked rows, each with one button, a More advice section of advisors that are off by default, then the ranking of sensors that would tighten the model">
+        <img src="img/card/advisor-light.png" data-repo="docs/img/card/advisor-light.png" width="1056" height="708" loading="lazy" alt="The card's Advisor tab: a Worth doing section of ranked rows, each with one button, a More advice section of advisors that are off by default, then the ranking of sensors that would tighten the model">
       </picture></div>
       <figcaption data-src="docs/dashboard-card.md#the-advisor-page">The Advisor tab is an inbox: what the integration would change to make your plan cheaper, ranked by what each change is worth per month.</figcaption>
     </figure>
@@ -342,15 +342,17 @@ footer .brand { font-size: 1rem }
 </section>
 
 <section class="band" id="install" aria-labelledby="in-h">
-  <div class="sec-head"><span class="eyebrow">Get started</span><h2 id="in-h">From HACS to a first plan</h2></div>
+  <div class="sec-head"><span class="eyebrow">Get started</span><h2 id="in-h">From the Marketplace to a first plan</h2></div>
   <div class="start">
-    <div class="panel" data-src="README.md#hacs-recommended"><h3 data-copy>HACS (recommended)</h3>
+    <div class="panel" data-src="README.md#home-assistant-marketplace-202611-and-later"><h3 data-copy>Home Assistant Marketplace (2026.11 and later)</h3>
       <ol class="hacs">
-        <li><span>Add this repository to HACS as a custom repository.</span></li>
+        <li><span>Add this repository to the Marketplace as a custom repository.</span></li>
         <li><span>Install Heat Pump Cost Optimizer.</span></li>
         <li><span>Restart Home Assistant.</span></li>
         <li><span>Go to Settings → Devices &amp; services → Add integration → Heat Pump Cost Optimizer.</span></li>
-      </ol></div>
+      </ol>
+      <p class="muted" style="margin-top:12px" data-src="README.md#hacs-before-202611">Before 2026.11 the same four steps run in HACS.</p>
+      <p style="margin-top:12px"><a href="https://my.home-assistant.io/redirect/hacs_repository/?owner=tvofi&amp;repository=heatpump_optimizer&amp;category=integration">Open this repository in your own Home Assistant</a></p></div>
     <div style="display:grid;gap:16px;align-content:start">
       <div class="panel" data-src="README.md#requirements"><h3 data-copy>Requirements</h3>
         <ul class="req"><li><b>Home Assistant 2025.2.0 or newer</b></li><li>Python 3.13 or newer</li><li>numpy, scipy and threadpoolctl, installed automatically from the integration manifest</li></ul></div>

@@ -14,7 +14,8 @@ there that imports urllib (contract item 2), stdlib only.
     post(path, body=None)  -> Resp
     paginate(path, params) -> list       every item of every page, Link-followed
 
-A GET retries a 5xx twice (RETRY_5XX backoffs) before answering. A non-2xx
+A GET retries a 5xx or a TRANSPORT failure twice (RETRY_5XX backoffs) before
+answering, or raising the last transport failure. A non-2xx
 answer is returned, never raised, so the caller names it -- except a
 RATE LIMIT (A1 item 4): a 403 or 429 whose body says the rate limit was
 exceeded raises `RateLimited`, carrying `reset_epoch` from `X-RateLimit-Reset`
@@ -26,6 +27,7 @@ is GITHUB_TOKEN, else GH_TOKEN.
 """
 from __future__ import annotations
 
+import http.client
 import json
 import os
 import re
@@ -36,7 +38,12 @@ import urllib.parse
 import urllib.request
 
 API = os.environ.get("GITHUB_API_URL", "https://api.github.com").rstrip("/")
-RETRY_5XX = (2, 6)      # GET only: the backoffs, in seconds, before each retry of a 5xx answer
+RETRY_5XX = (2, 6)      # GET only: the backoffs, in seconds, before each retry of a 5xx or TRANSPORT failure
+#: A failure with no answer that a later read can ride out: a connection that failed
+#: (URLError; HTTPError, its subclass, is an answer and _request catches it first), a
+#: response cut short in r.read() (IncompleteRead, an HTTPException), a reset, a timeout.
+#: gh_read.urllib_wait's transport set, which tools/ci may not import (contract item 2).
+TRANSPORT = (urllib.error.URLError, http.client.HTTPException, ConnectionError, TimeoutError)
 MAX_PAGES = 50          # 5000 items at per_page=100: far past any head's runs; a Link loop ends here
 _NEXT = re.compile(r'<([^>]+)>;\s*rel="next"')
 
@@ -102,16 +109,20 @@ def _sleep(seconds: float) -> None:
 
 
 def get(path: str, params=None, headers=None):
-    """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), so a GET retries it
-    after each backoff in RETRY_5XX and then returns what it got; any other status, a rate limit
-    included, answers at once. A POST is never retried."""
-    resp = _request("GET", path, params, headers=headers)
-    for nap in RETRY_5XX:
-        if resp[0] < 500:
-            break
+    """A 5xx is GitHub's transient (M-5b: a gate FAILed on one HTTP 502), and so is a TRANSPORT
+    failure (#2859: prelude red on one IncompleteRead), so a GET retries either after each
+    backoff in RETRY_5XX and then returns what it got, or raises the last transport failure; any
+    other status, a rate limit included, answers at once. A POST is never retried."""
+    for nap in RETRY_5XX + (None,):
+        try:
+            resp = _request("GET", path, params, headers=headers)
+        except TRANSPORT:
+            if nap is None:
+                raise
+        else:
+            if resp[0] < 500 or nap is None:
+                return resp
         _sleep(nap)
-        resp = _request("GET", path, params, headers=headers)
-    return resp
 
 
 def post(path: str, body=None):
@@ -250,6 +261,57 @@ def self_test() -> int:
             calls.clear()
             _open = lambda req: (calls.append(req), serve(502, b"")(req))[1]  # noqa: E731
             check("a POST is never retried (a re-run request is not repeated)", (post("x")[0], len(calls)), (502, 1))
+
+            # A transport failure is a 5xx's transient (#2859's prelude: IncompleteRead out of
+            # r.read(), green twice at the next head): a GET retries it alike, and after the
+            # budget raises the last failure, never a guessed answer.
+            class CutShort(Fake):
+                def read(self):
+                    raise self._body
+
+            def broken(*answers):
+                seq = iter(answers)
+
+                def fake(req):
+                    calls.append(req)
+                    a = next(seq)
+                    if isinstance(a, BaseException):
+                        raise a
+                    return a
+                return fake
+            for name, failure, raised in (
+                    ("a truncated read", CutShort(200, http.client.IncompleteRead(b"", 48262)), http.client.IncompleteRead),
+                    ("a reset mid-read", CutShort(200, ConnectionResetError(104, "reset")), ConnectionResetError),
+                    ("a timeout mid-read", CutShort(200, TimeoutError("timed out")), TimeoutError),
+                    ("a connection reset", urllib.error.URLError(ConnectionResetError(104, "reset")), urllib.error.URLError)):
+                calls.clear()
+                _open = broken(failure, Fake(200, b'{"ok": true}'))
+                try:
+                    got = get("x")
+                except Exception as e:  # noqa: BLE001 -- an unretried failure is this check's FAIL
+                    got = repr(e)
+                check(f"{name} then a 200 on a GET answers the 200", (got, len(calls)), ((200, {}, {"ok": True}), 2))
+                calls.clear()
+                _open = broken(failure, failure, failure, failure)
+                try:
+                    get("x")
+                    check(f"{name} that persists raises", "returned", "raised")
+                except raised:
+                    check(f"{name} that persists raises the last failure after two retries", len(calls), 3)
+                calls.clear()
+                _open = broken(failure, Fake(200, b"{}"))
+                try:
+                    post("x")
+                    check(f"{name} on a POST raises", "returned", "raised")
+                except raised:
+                    check(f"{name} on a POST raises at once, never retried", len(calls), 1)
+            calls.clear()
+            _open = broken(ValueError("not transport"), Fake(200, b"{}"))
+            try:
+                get("x")
+                check("a non-transport exception raises", "returned", "raised")
+            except ValueError:
+                check("a non-transport exception raises at once (null control)", len(calls), 1)
         finally:
             _sleep = saved_sleep
         _open = serve(200, b"{}")

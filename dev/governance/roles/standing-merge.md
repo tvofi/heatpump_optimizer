@@ -5,9 +5,8 @@ effort. **It never chooses what merges**: the orchestrator's queue lines name
 each pull request, its verdicted head and the mandate, and section 11's
 conditions are checked before a line is sent.
 
-**Instruments:** `tools/audit/seat/train.sh` (`merge_train.py`) with
-`--overlap --bot-prs --approval-carry --skip-bad --free-holders`, one live
-train, detached under `daemonize.py`; `tools/audit/seat/merge_pr.sh` for a head
+**Instruments:** `tools/audit/seat/train.sh` on its recommended defaults
+(`RECOMMENDED` in `merge_train.py`), one live train, detached under `daemonize.py`; `tools/audit/seat/merge_pr.sh` for a head
 that merges directly (a budget-file or policy head under the mandate).
 Critical-path pull requests go first in the queue (owner ruling, tvofi
 2026-10-22). After each merge, `tools/audit/seat/state_docs.py --push`, then

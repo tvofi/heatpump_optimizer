@@ -155,7 +155,8 @@ def base_runs_the_gate() -> None:
             subprocess.run([*g, "add", "-A"], check=True, env=env)
             subprocess.run([*g, "commit", "-qm", "head"], check=True, env=env)
             head = subprocess.run([*g, "rev-parse", "HEAD"], capture_output=True, text=True, check=True).stdout.strip()
-            r = subprocess.run(["bash", "-c", script], cwd=repo, capture_output=True, text=True,
+            # The step under its own shell, GitHub's default `bash -e {0}`.
+            r = subprocess.run(["bash", "-e", "-c", script], cwd=repo, capture_output=True, text=True,
                                env={**env, "PR_BASE": base, "PR_HEAD": head})
             return r.stdout + r.stderr
 

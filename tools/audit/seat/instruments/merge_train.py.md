@@ -15,10 +15,13 @@
   on the new main. An owner approval GitHub already holds at the live head is
   the owner's, with nothing re-posted (GitHub re-anchors one across a clean
   base merge: #2209). `--bot-prs` merges the open record/autofix pull request
-  in the train's own sequence behind record_row.py's identical guard;
-  `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
-  `--free-holders` detaches a clean, pushed holder worktree. Every refused
-  merge attempt is logged in GitHub's words; the recarry worktrees a run made
+  in the train's own sequence behind record_row.py's identical guard, after a
+  critical-path entry rather than before it, and once more after a refused
+  merge attempt; `--pre-flight` runs `queue_pre_flight.py` first and PARKs a
+  failing entry; `--free-holders` detaches a clean holder worktree with no
+  commit origin lacks. Every refused merge attempt is logged in GitHub's
+  words, and a base-branch policy refusal parks the entry with the reason
+  read from the merge state; the recarry worktrees a run made
   are removed before its closing line. Every `gh api` GET and `gh pr view`
   it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
   settle logged.
@@ -61,7 +64,16 @@
   `batch` also takes several batches in one queue (a list of lists), run in
   order on one train, each with its own admission, proof and merges; between
   two it drains what `train.sh add` spooled into one more batch, never into a
-  batch in proof, and a batch that stops ends the train (`NOT RUN` lines). A
+  batch in proof, and a batch that stops ends the train (`NOT RUN` lines).
+  `add` and that drain apply one admission rule (`already_held`, over the
+  live train's `queue.seen.json`): a pull request still to run, spooled,
+  merged or run by this train is `ALREADY` on both sides; one it skipped is
+  admitted again at a new verdict head, and at the same one when the skip was
+  the environment's (`[HOLDER]`, or `[BRANCH-POLICY]`: every merge attempt
+  refused by GitHub's base-branch policy). `skipped.json`'s rows name the
+  verdict; an entry skipped and then merged by the same train is cured
+  (`CURED #<pr>`), out of `skipped.json`, `SKIP REPORT` and the exit code. `dev/audit/harnesses/r10_train_overlap_grade_p2_mutants.py` holds
+  one mutant per arm of that rule. A
   policy head batches like any other: under a `--mandate` naming the mandate's
   comment id, in force for policy merging, the train posts the citing approval
   step 5 requires (`policy_approve`); a budget raise still goes serial.
@@ -81,4 +93,12 @@
   to a root-cause seat), and re-read. `unstale <sha>` runs that step alone;
   `classify <sha>` prints GREEN (rc 0), RED (rc 1) or WAIT (rc 3) over a pull
   request's required contexts (`--main`: less the PR-only ones), rc 2 when
-  unreadable — a head is reviewable unless RED.
+  unreadable — a head is reviewable unless RED, which `bus.sh dispatch`
+  enforces. A required context red at main's tip whose workflow run is at
+  attempt 1 and failed on infrastructure alone (every failed job but `gate`
+  logs an API rate-limit or unreachable string, and `gate` printed
+  RATE-LIMITED or only `<job>: failure (this run)` reasons naming those jobs)
+  is re-run once, failed jobs only, in both main-gate arms: logged
+  `INFRA-RERUN <context> run <id> attempt 1`, never before the printed
+  `reset_epoch` (else an hour after the last such job), and until then
+  `INFRA-RED ... re-run due at <time>` with the red standing (V142).

@@ -67,7 +67,7 @@ HOST = re.compile(HOME_DIR)
 #: the self-test pins; the template is still the one owner of the wording.
 DEFAULTS = {
     "record beat: the replan": "tools/plan/replan.py --out",
-    "record beat: the plan page": "tools/audit/seat/plan_page.py --plan",
+    "record beat: the plan page": "state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}",
     "tick board read unfiltered": "REVIEW OWED",
     "tick board: owner flags": "OWNER FLAG:",
     "tick board: design builds": "DESIGN-BUILD:",

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/price_model.py:<module> CONST 5a1a44c1",
+  "killed_by": "tests/guard_pins.py",
+  "old": "HOURS_PER_DAY = 24",
+  "reason": "Recorded by `mutation_table.py --drain`: CONST (`HOURS_PER_DAY = 48`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
+}

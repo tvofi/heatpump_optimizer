@@ -23,10 +23,15 @@ JSON file of the same shape: {"issues": [{number, title, state}],
 "open_prs": [{number, head_ref, title}], "merged_prs": [{number, title,
 head_ref, merge_commit_sha, merged_at}]}).
 
-REFUSALS (exit 1, nothing written): a plan `replan.stale_reason` calls stale
--- its roster blob is not the roster's blob at the ref now -- and a plan
-`replan.check_plan` refuses. The freshness rule is replan.py's, so `--check`
-and this page cannot disagree about which plans are current.
+REFUSALS (exit 1): a plan `replan.stale_reason` calls stale -- its roster
+blob is not the roster's blob at the ref now --, a plan `replan.check_plan`
+refuses, a plan recording no duration model, and an `origin/` roster ref that
+cannot be fetched. The freshness rule is replan.py's, so `--check` and this
+page cannot disagree about which plans are current. A refusal writes the
+UNAVAILABLE page to `--html`: a heading naming what could not be read, every
+figure a dash, no table -- never a page of zeros, and never a stale page left
+in place as if current. `state_docs.py --plan` publishes this page beside the
+plan table, keeping the last good page at the state ref when one exists.
 
 Status classes, one per group:
   done     resume.stage in roster_lib.DONE_STAGES; labelled with the PR it
@@ -36,6 +41,10 @@ Status classes, one per group:
            plan starts it later than the replan instant);
   partial  a merged `R<N>-GROUP:` titled PR delivered part of an open group;
   blocked  an `after` target is not done, and nothing of it merged;
+  held     resume.stage is a human disposition (roster_lib.DISPOSITION:
+           absorbed, carries-open, deferred, ...), labelled with that word and,
+           for an absorbed group, the group it went to (`absorbed_into`); it is
+           neither merged nor ready to dispatch;
   ready    everything else.
 A branch answers for a group by `roster_lib.group_for_branch`, then by its
 last segment against the tails of the roster's `resume.branch` values (with a
@@ -211,6 +220,10 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                 label, pr = f"merged at {commit[:8]}", "merged"
             else:
                 label, pr = "folded into another group (no merge of its own)", "merged"
+        elif _stage(entry) in roster_lib.DISPOSITION:
+            st = "held"
+            into = entry.get("absorbed_into")
+            label = _stage(entry) + (f" into {short(into)}" if into else "") + sfx
         elif _stage(entry) in replan.LIVE_STAGES:
             st = "live"
             queued = not pg.get("inherited") and pg["start"] > start0
@@ -452,7 +465,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
     chain = plan["critical_path"]
     waves_of = {g: w["wave"] for w in plan["waves"] for g in w["groups"]}
     counts = {k: sum(1 for r in rows if r["st"] == k)
-              for k in ("done", "live", "ready", "partial", "blocked")}
+              for k in _STRIP}
     open_iss = ("—" if snap.get("offline") else str(sum(
         1 for i in snap["issues"]
         if i["state"] == "OPEN" and i["number"] != TRACKING_ISSUE)))
@@ -523,6 +536,28 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
     return page
 
 
+def unavailable_page(what: str) -> str:
+    """The refusal page: what could not be read, every figure a dash, no
+    table. A reader sees that the plan is unknown, not that it is empty."""
+    e = html.escape
+    stats = "".join(f'<div class="stat"><b>—</b><span>{e(v)}</span></div>'
+                    for v in (*_STRIP.values(), "open issues", "projected programme close"))
+    return ("<!doctype html>\n<meta charset=\"utf-8\">\n<title>PLAN UNAVAILABLE</title>\n"
+            f"<main>\n<h1>PLAN UNAVAILABLE — {e(what)}</h1>\n"
+            f'<div class="strip">{stats}</div>\n'
+            "<p>No figure on this page is a measurement. Re-run "
+            "<code>tools/plan/replan.py</code> and this page's generator.</p>\n</main>\n")
+
+
+def _refuse(html_out: str, what: str, detail: list) -> int:
+    """Exit 1 with the UNAVAILABLE page written where the page would be."""
+    print(f"plan_page: refused, wrote the UNAVAILABLE page: {what}", file=sys.stderr)
+    for d in detail:
+        print(f"  {d}", file=sys.stderr)
+    Path(html_out).write_text(unavailable_page(what), encoding="utf-8")
+    return 1
+
+
 # ---------------------------------------------------------------------- cli
 
 def main(argv=None, fetch=fetch_github) -> int:
@@ -551,24 +586,17 @@ def main(argv=None, fetch=fetch_github) -> int:
                             f"+refs/heads/{ref[7:]}:refs/remotes/{ref}"],
                            capture_output=True, text=True)
         if r.returncode:
-            print(f"plan_page: refused: cannot fetch {ref} to test freshness: "
-                  f"{r.stderr.strip()[:200]} (--no-fetch reads it as it is)",
-                  file=sys.stderr)
-            return 1
+            return _refuse(a.html, f"cannot fetch {ref} to test freshness",
+                           [r.stderr.strip()[:200], "--no-fetch reads it as it is"])
     bad = replan.check_plan(plan)
     stale = replan.stale_reason(plan, a.repo, ref, a.roster_path)
     if stale:
         bad.append(f"freshness: {stale}")
     if bad:
-        print(f"plan_page: refused, nothing written: {len(bad)} violation(s)",
-              file=sys.stderr)
-        for b in bad:
-            print(f"  {b}", file=sys.stderr)
-        return 1
+        return _refuse(a.html, f"{len(bad)} plan violation(s): {bad[0]}", bad)
     if "model" not in plan["generated"]:
-        print("plan_page: refused, nothing written: plan.json records no duration "
-              "model (generated.model); re-run tools/plan/replan.py", file=sys.stderr)
-        return 1
+        return _refuse(a.html, "plan.json records no duration model "
+                       "(generated.model); re-run tools/plan/replan.py", [])
     path = roster_lib.roster_path(a.repo, ref, a.roster_path)
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
@@ -615,6 +643,7 @@ def _self_test() -> int:
         grp("R9-PART", "UX"),
         grp("R9-BLOCK", "UX", after=("R9-LIVE",)),
         grp("R9-READY", "IN", after=("R9-DONE-SHA",), issues=(13,), fixes=(13,)),
+        dict(grp("R9-HELD", "IN", stage="absorbed"), absorbed_into="R9-DONE-SHA"),
     ]}
     snap = {
         "issues": [{"number": 11, "title": "eleven", "state": "CLOSED"},
@@ -664,173 +693,232 @@ def _self_test() -> int:
     check("an open issue on a done group or none is excluded and counted",
           pr_["other"] == {6, 99} and set(pr_["close_at"]) == {1, 2, 4}, pr_)
 
-    with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
-        repo = Path(td) / "repo"
-        rpath = repo / roster_lib.ROSTERS_DIR / "wave-r9-groups.json"
-        rpath.parent.mkdir(parents=True)
-        throwaway_git_init(repo, "-q", "-b", "main")
+    # A crash mid-arm is a failure of its own, reported with the checks that
+    # failed before it (a mutant that breaks the renderer reads as killed).
+    try:
+        with throwaway_git_environ(), tempfile.TemporaryDirectory() as td:
+            repo = Path(td) / "repo"
+            rpath = repo / roster_lib.ROSTERS_DIR / "wave-r9-groups.json"
+            rpath.parent.mkdir(parents=True)
+            throwaway_git_init(repo, "-q", "-b", "main")
 
-        def commit(r: dict) -> None:
-            rpath.write_text(json.dumps(r), encoding="utf-8")
-            subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
-            subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "r"], check=True)
-        commit(roster)
-        r_, ref_, blob_ = replan.load_roster(str(repo), "main")
-        plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS), start,
-                                 "v1.0.0", ref_, blob_)
-        planf, snapf = Path(td) / "plan.json", Path(td) / "snap.json"
-        planf.write_text(json.dumps(plan), encoding="utf-8")
-        snapf.write_text(json.dumps(snap), encoding="utf-8")
+            def commit(r: dict) -> None:
+                rpath.write_text(json.dumps(r), encoding="utf-8")
+                subprocess.run(["git", "-C", str(repo), "add", "-A"], check=True)
+                subprocess.run(["git", "-C", str(repo), "commit", "-q", "-m", "r"], check=True)
+            commit(roster)
+            r_, ref_, blob_ = replan.load_roster(str(repo), "main")
+            plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS), start,
+                                     "v1.0.0", ref_, blob_)
+            planf, snapf = Path(td) / "plan.json", Path(td) / "snap.json"
+            planf.write_text(json.dumps(plan), encoding="utf-8")
+            snapf.write_text(json.dumps(snap), encoding="utf-8")
 
-        rows = {r["g"]: r for r in build_rows(roster, plan, snap)}
-        st = {g: (r["st"], r["label"], r["pr"]) for g, r in rows.items()}
-        check("done: the PR is found by merge commit",
-              st["R9-DONE-SHA"] == ("done", "merged PR #21", "#21"), st["R9-DONE-SHA"])
-        check("done: the PR is found by branch when no merge commit matches",
-              st["R9-DONE-BR"] == ("done", "merged PR #22", "#22"), st["R9-DONE-BR"])
-        check("done: no PR found falls back to the commit's sha8",
-              st["R9-DONE-NONE"] == ("done", "merged at cccccccc", "merged"),
-              st["R9-DONE-NONE"])
-        check("live", st["R9-LIVE"][0] == "live" and st["R9-LIVE"][1] == "in-progress",
-              st["R9-LIVE"])
-        check("the open PR maps by the branch-tail fallback",
-              st["R9-LIVE"][2] == "#31", st["R9-LIVE"])
-        check("the fallback is needed: roster_lib alone does not map it",
-              roster_lib.group_for_branch(roster, "handoff/r9-live-g-pr") is None)
-        check("an open PR whose branch names no group maps by its title",
-              st["R9-READY"][2] == "#32", st["R9-READY"])
-        check("a title naming two groups maps to neither",
-              "#33" not in st["R9-PART"][2] + st["R9-READY"][2], st["R9-PART"])
-        check("partial: a merged R9-PART: title on an open group",
-              st["R9-PART"][:2] == ("partial", "part merged #23, residual open"),
-              st["R9-PART"])
-        check("blocked: an after target not done",
-              st["R9-BLOCK"][:2] == ("blocked", "waiting on LIVE"), st["R9-BLOCK"])
-        check("ready: its only after target is done", st["R9-READY"][0] == "ready",
-              st["R9-READY"])
-        check("blocked-by is the roster's after less the done groups",
-              rows["R9-BLOCK"]["blk"] == ["R9-LIVE"] and rows["R9-READY"]["blk"] == [],
-              (rows["R9-BLOCK"]["blk"], rows["R9-READY"]["blk"]))
+            rows = {r["g"]: r for r in build_rows(roster, plan, snap)}
+            st = {g: (r["st"], r["label"], r["pr"]) for g, r in rows.items()}
+            check("done: the PR is found by merge commit",
+                  st["R9-DONE-SHA"] == ("done", "merged PR #21", "#21"), st["R9-DONE-SHA"])
+            check("done: the PR is found by branch when no merge commit matches",
+                  st["R9-DONE-BR"] == ("done", "merged PR #22", "#22"), st["R9-DONE-BR"])
+            check("done: no PR found falls back to the commit's sha8",
+                  st["R9-DONE-NONE"] == ("done", "merged at cccccccc", "merged"),
+                  st["R9-DONE-NONE"])
+            check("live", st["R9-LIVE"][0] == "live" and st["R9-LIVE"][1] == "in-progress",
+                  st["R9-LIVE"])
+            check("the open PR maps by the branch-tail fallback",
+                  st["R9-LIVE"][2] == "#31", st["R9-LIVE"])
+            check("the fallback is needed: roster_lib alone does not map it",
+                  roster_lib.group_for_branch(roster, "handoff/r9-live-g-pr") is None)
+            check("an open PR whose branch names no group maps by its title",
+                  st["R9-READY"][2] == "#32", st["R9-READY"])
+            check("a title naming two groups maps to neither",
+                  "#33" not in st["R9-PART"][2] + st["R9-READY"][2], st["R9-PART"])
+            check("partial: a merged R9-PART: title on an open group",
+                  st["R9-PART"][:2] == ("partial", "part merged #23, residual open"),
+                  st["R9-PART"])
+            check("blocked: an after target not done",
+                  st["R9-BLOCK"][:2] == ("blocked", "waiting on LIVE"), st["R9-BLOCK"])
+            check("ready: its only after target is done", st["R9-READY"][0] == "ready",
+                  st["R9-READY"])
+            check("held: a disposition stage is its own class, naming the group it went to",
+                  st["R9-HELD"][:2] == ("held", "absorbed into DONE-SHA"), st["R9-HELD"])
 
-        page = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
-                      plan, snap)
-        check("a closed issue's chip is struck",
-              '<span class="chip closer closed" title="eleven">#11</span>' in page)
-        check("an open issue's chip is not",
-              '<span class="chip" title="twelve">#12</span>' in page
-              and '<span class="chip closer" title="thirteen">#13</span>' in page)
-        for cls, want in (("done", 3), ("live", 1), ("ready", 1), ("partial", 1),
-                          ("blocked", 1)):
-            check(f"rows carry the {cls} class", page.count(f'<tr class="{cls}"') == want,
-                  page.count(f'<tr class="{cls}"'))
-            check(f"the summary strip counts {cls}",
-                  f"<b>{want}</b><span>{_STRIP[cls]}</span>" in page)
-        check("the open-issue count leaves out the tracking issue",
-              "<b>2</b><span>open issues" in page)
-        check("every template field is filled", "{{" not in page,
-              re.findall(r"\{\{\w+\}\}", page))
-        check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
-        model = plan["generated"]["model"]
-        check("the methodology states the plan's sizes and live fraction",
-              f"S {model['sizes_hours']['S']:g} h" in page
-              and f"{model['live_remaining_fraction'] * 100:g}%" in page)
-        check("every open group has a bar; no done group does",
-              all(f'data-name="{short(g)}"' in page for g in rows if rows[g]["st"] != "done")
-              and 'data-name="DONE-SHA"' not in page)
-        check("critical-path groups carry the mark",
-              all(rows[g]["crit"] for g in plan["critical_path"])
-              and page.count('class="critmark"') == len(plan["critical_path"]))
-        check("every open group's tier is shown, and a merged group's is not",
-              all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
-                  for g in rows if rows[g]["tier"] is not None)
-              and all(rows[g]["tier"] is None for g in rows if rows[g]["st"] == "done")
-              and '<td class="tier">—</td>' in page
-              and '<th title="dispatch tier' in page,
-              {g: rows[g]["tier"] for g in rows})
-        check("the critical path is tier 0 and production tier 1",
-              all(rows[g]["tier"] == 0 for g in plan["critical_path"])
-              and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
-              {g: rows[g]["tier"] for g in rows})
-        check("a planned stamp is drawn", 'class="stampline"' in page)
-        check("the filter and hide-merged controls ship",
-              'id="hide-done"' in page and 'data-f="blocked"' in page)
-        check("no machine path in the page", not re.search(r"/(home|Users|tmp)/", page))
-        # The caption's figure is the links the chart draws, not the ones it
-        # leaves to the marks: two fixtures where those differ, one each way.
-        links = max(0, len(plan["critical_path"]) - 1)
-        check("the caption counts the links drawn (none drawn, one left)",
-              page.count('class="critline"') == 0 and links == 1
-              and f"0 of {links} critical-path links are drawn" in page,
-              re.findall(r"\d+ of \d+ critical-path links", page))
-        apart = json.loads(json.dumps(plan))
-        apart["groups"]["R9-BLOCK"]["lane"] = "Product UX"  # adjacent lane: drawn
-        page2 = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
-                       apart, snap)
-        check("the caption counts the links drawn (one drawn, none left)",
-              page2.count('class="critline"') == 1
-              and f"1 of {links} critical-path links are drawn" in page2,
-              re.findall(r"\d+ of \d+ critical-path links", page2))
+            # The scratch generator's five defects (orch-machinery DESIGN.md S8 and
+            # 6.7), each as a fixture carrying its pre-fix shape; a mutant renderer
+            # line restoring the shape fails the arm (r10_plan_page_mutants.py).
+            # 1: `groups["R10-ARCH-DOCS"] = {... "stage": "not-started"}` overrode a
+            # group the roster calls done. The status is the roster's, every group.
+            check("defect 1: every row's status is the roster's own stage",
+                  all((rows[g]["st"] == "done") == (_stage(e) in roster_lib.DONE_STAGES)
+                      for g, e in roster_lib.groups_of(roster).items()),
+                  {g: rows[g]["st"] for g in rows})
+            # 2: `EDGES = json.load(REPLAN-EDGES.json)`, a scratch graph differing
+            # from the roster's `after`. The fixture graph says R9-READY waits on
+            # R9-LIVE; the roster says it waits on a done group.
+            scratch_edges = {"R9-READY": ["R9-LIVE"]}
+            check("defect 2: the blockers are the roster's after, never a scratch graph",
+                  all(rows[g]["blk"] == [a for a in e.get("after") or []
+                                         if roster_lib.is_open(roster_lib.groups_of(roster)[a])]
+                      for g, e in roster_lib.groups_of(roster).items())
+                  and rows["R9-READY"]["blk"] != scratch_edges["R9-READY"],
+                  {g: rows[g]["blk"] for g in rows})
+            # 3 is the open-issue count, checked on the page below (the issue list
+            # holds a closed issue and the tracking issue: `len(ISS) - 1` reads 3).
+            # 4: `pr=f"#{MERGED[g]}"` printed a commit prefix as a PR number.
+            check("defect 4: a done group with no merged PR names its sha8, never #sha8",
+                  st["R9-DONE-NONE"][2] == "merged" and "#cccccccc" not in st["R9-DONE-NONE"][2]
+                  and not any(r["pr"].startswith("#c") for r in rows.values()), st["R9-DONE-NONE"])
+            # 5: the status text said folded while the pill class stayed `done`. An
+            # absorbed group is held, in text and class, and is not counted merged.
+            check("defect 5: an absorbed group is not rendered done or delivered",
+                  rows["R9-HELD"]["st"] == "held" and "merged" not in rows["R9-HELD"]["label"]
+                  and "deliver" not in rows["R9-HELD"]["label"], rows["R9-HELD"])
+            check("blocked-by is the roster's after less the done groups",
+                  rows["R9-BLOCK"]["blk"] == ["R9-LIVE"] and rows["R9-READY"]["blk"] == [],
+                  (rows["R9-BLOCK"]["blk"], rows["R9-READY"]["blk"]))
 
-        sec = issues_section(roster, plan, snap)
-        check("the issues chart is the first section, drawn from the open set",
-              0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
-              and "2 open now" in page and "1 other open issues" in page
-              and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
-        no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
-        check("no GitHub state: the chart is omitted with a note",
-              "Omitted" in issues_section(roster, plan, no_gh)
-              and "<polyline" not in issues_section(roster, plan, no_gh))
+            page = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                          plan, snap)
+            check("a closed issue's chip is struck",
+                  '<span class="chip closer closed" title="eleven">#11</span>' in page)
+            check("an open issue's chip is not",
+                  '<span class="chip" title="twelve">#12</span>' in page
+                  and '<span class="chip closer" title="thirteen">#13</span>' in page)
+            for cls, want in (("done", 3), ("live", 1), ("ready", 1), ("partial", 1),
+                              ("blocked", 1), ("held", 1)):
+                check(f"rows carry the {cls} class", page.count(f'<tr class="{cls}"') == want,
+                      page.count(f'<tr class="{cls}"'))
+                check(f"the summary strip counts {cls}",
+                      f"<b>{want}</b><span>{_STRIP[cls]}</span>" in page)
+            check("defect 3: the open-issue count is the open set less the tracking issue",
+                  "<b>2</b><span>open issues" in page
+                  and len(snap["issues"]) - 1 != 2, re.findall(r"<b>\d+</b><span>open issues", page))
+            check("a page that drew is not the UNAVAILABLE page (null control)",
+                  "UNAVAILABLE" not in page and "<table" in page)
+            check("every template field is filled", "{{" not in page,
+                  re.findall(r"\{\{\w+\}\}", page))
+            check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
+            model = plan["generated"]["model"]
+            check("the methodology states the plan's sizes and live fraction",
+                  f"S {model['sizes_hours']['S']:g} h" in page
+                  and f"{model['live_remaining_fraction'] * 100:g}%" in page)
+            check("every open group has a bar; no done group does",
+                  all(f'data-name="{short(g)}"' in page for g in rows if rows[g]["st"] != "done")
+                  and 'data-name="DONE-SHA"' not in page)
+            check("critical-path groups carry the mark",
+                  all(rows[g]["crit"] for g in plan["critical_path"])
+                  and page.count('class="critmark"') == len(plan["critical_path"]))
+            check("every open group's tier is shown, and a merged group's is not",
+                  all(f'<td class="tier">{rows[g]["tier"]}</td>' in page
+                      for g in rows if rows[g]["tier"] is not None)
+                  and all(rows[g]["tier"] is None for g in rows if rows[g]["st"] == "done")
+                  and '<td class="tier">—</td>' in page
+                  and '<th title="dispatch tier' in page,
+                  {g: rows[g]["tier"] for g in rows})
+            check("the critical path is tier 0 and production tier 1",
+                  all(rows[g]["tier"] == 0 for g in plan["critical_path"])
+                  and any(rows[g]["tier"] == 1 for g in rows if rows[g]["st"] != "done"),
+                  {g: rows[g]["tier"] for g in rows})
+            check("a planned stamp is drawn", 'class="stampline"' in page)
+            check("the filter and hide-merged controls ship",
+                  'id="hide-done"' in page and 'data-f="blocked"' in page)
+            check("no machine path in the page", not re.search(r"/(home|Users|tmp)/", page))
+            # The caption's figure is the links the chart draws, not the ones it
+            # leaves to the marks: two fixtures where those differ, one each way.
+            links = max(0, len(plan["critical_path"]) - 1)
+            check("the caption counts the links drawn (none drawn, one left)",
+                  page.count('class="critline"') == 0 and links == 1
+                  and f"0 of {links} critical-path links are drawn" in page,
+                  re.findall(r"\d+ of \d+ critical-path links", page))
+            apart = json.loads(json.dumps(plan))
+            apart["groups"]["R9-BLOCK"]["lane"] = "Product UX"  # adjacent lane: drawn
+            page2 = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json",
+                           apart, snap)
+            check("the caption counts the links drawn (one drawn, none left)",
+                  page2.count('class="critline"') == 1
+                  and f"1 of {links} critical-path links are drawn" in page2,
+                  re.findall(r"\d+ of \d+ critical-path links", page2))
 
-        out = Path(td) / "page.html"
-        argv = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
-                "--github-snapshot", str(snapf)]
-        check("a fresh plan renders (null control)",
-              main(argv, fetch=fetch_refused) == 0 and out.is_file())
-        out.unlink()
+            sec = issues_section(roster, plan, snap)
+            check("the issues chart is the first section, drawn from the open set",
+                  0 <= page.find("Projected open issues") < page.find("<h2>Swimlanes")
+                  and "2 open now" in page and "1 other open issues" in page
+                  and sec.count("<polyline") == 1, re.findall(r"\d+ open now", page))
+            no_gh = {"issues": [], "open_prs": [], "merged_prs": [], "offline": True}
+            check("no GitHub state: the chart is omitted with a note",
+                  "Omitted" in issues_section(roster, plan, no_gh)
+                  and "<polyline" not in issues_section(roster, plan, no_gh))
 
-        def no_gh_binary(_repo):
-            raise FileNotFoundError("gh")
-        try:
-            with contextlib.redirect_stderr(io.StringIO()):
-                rc = main(argv[:-2], fetch=no_gh_binary)
-        except Exception as exc:  # a crash is the failure this check names
-            rc = f"raised {type(exc).__name__}"
-        check("no gh binary: the page is still written, chart omitted, no crash",
-              rc == 0 and out.is_file() and "Omitted" in out.read_text(encoding="utf-8"), rc)
-        out.unlink(missing_ok=True)
+            out = Path(td) / "page.html"
+            argv = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
+                    "--github-snapshot", str(snapf)]
+            check("a fresh plan renders (null control)",
+                  main(argv, fetch=fetch_refused) == 0 and out.is_file())
+            out.unlink()
 
-        def refused(variant: dict, why: str) -> tuple:
-            """main on a fresh variant of the plan: rc, a file, the refusal."""
-            vf = Path(td) / "variant.json"
-            vf.write_text(json.dumps(variant), encoding="utf-8")
-            err = io.StringIO()
+            def no_gh_binary(_repo):
+                raise FileNotFoundError("gh")
             try:
-                with contextlib.redirect_stderr(err):
-                    rc = main(["--plan", str(vf)] + argv[2:], fetch=fetch_refused)
-            except Exception as exc:  # a refusal that crashes is not one
+                with contextlib.redirect_stderr(io.StringIO()):
+                    rc = main(argv[:-2], fetch=no_gh_binary)
+            except Exception as exc:  # a crash is the failure this check names
                 rc = f"raised {type(exc).__name__}"
-            return rc, out.exists(), why in err.getvalue()
-        modelless = json.loads(json.dumps(plan))
-        del modelless["generated"]["model"]
-        check("a fresh plan recording no duration model is refused, nothing written",
-              refused(modelless, "generated.model") == (1, False, True),
-              refused(modelless, "generated.model"))
-        violating = json.loads(json.dumps(plan))
-        violating["summary"]["stamps"] += 1
-        check("the violating variant is fresh: only check_plan can refuse it",
-              replan.stale_reason(violating, str(repo)) is None
-              and replan.check_plan(violating))
-        check("a fresh plan that check_plan refuses is refused, nothing written",
-              refused(violating, "summary: stamp count") == (1, False, True),
-              refused(violating, "summary: stamp count"))
-        moved = json.loads(json.dumps(roster))
-        moved["groups"][3]["resume"]["stage"] = "done"
-        commit(moved)
-        rc = main(argv, fetch=fetch_refused)
-        check("a stale plan is refused, nothing written",
-              rc == 1 and not out.exists(), (rc, out.exists()))
-        check("and replan --check refuses the same plan",
-              bool(replan.stale_reason(plan, str(repo))))
+            check("no gh binary: the page is still written, chart omitted, no crash",
+                  rc == 0 and out.is_file() and "Omitted" in out.read_text(encoding="utf-8"), rc)
+            out.unlink(missing_ok=True)
+
+            def refused(variant: dict, why: str) -> tuple:
+                """main on a fresh variant of the plan: rc, a file, the refusal."""
+                vf = Path(td) / "variant.json"
+                vf.write_text(json.dumps(variant), encoding="utf-8")
+                err = io.StringIO()
+                try:
+                    with contextlib.redirect_stderr(err):
+                        rc = main(["--plan", str(vf)] + argv[2:], fetch=fetch_refused)
+                except Exception as exc:  # a refusal that crashes is not one
+                    rc = f"raised {type(exc).__name__}"
+                text = out.read_text(encoding="utf-8") if out.exists() else ""
+                out.unlink(missing_ok=True)
+                return rc, unavailable(text), why in err.getvalue()
+            def unavailable(text: str) -> bool:
+                """The refusal page: the heading, no table, no figure but a dash."""
+                return (text.startswith("<!doctype html>") and "<h1>PLAN UNAVAILABLE — " in text
+                        and "<table" not in text and not re.search(r"<b>\d", text))
+            modelless = json.loads(json.dumps(plan))
+            del modelless["generated"]["model"]
+            check("a fresh plan recording no duration model is refused: the UNAVAILABLE page",
+                  refused(modelless, "generated.model") == (1, True, True),
+                  refused(modelless, "generated.model"))
+            violating = json.loads(json.dumps(plan))
+            violating["summary"]["stamps"] += 1
+            check("the violating variant is fresh: only check_plan can refuse it",
+                  replan.stale_reason(violating, str(repo)) is None
+                  and replan.check_plan(violating))
+            check("a fresh plan that check_plan refuses is refused: the UNAVAILABLE page",
+                  refused(violating, "summary: stamp count") == (1, True, True),
+                  refused(violating, "summary: stamp count"))
+            moved = json.loads(json.dumps(roster))
+            moved["groups"][3]["resume"]["stage"] = "done"
+            commit(moved)
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = main(argv, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8") if out.exists() else ""
+            check("a stale plan is refused: the UNAVAILABLE page names the freshness rule",
+                  rc == 1 and unavailable(text) and "freshness" in text, (rc, text[:300]))
+            out.unlink(missing_ok=True)
+            unfetchable = ["--plan", str(planf), "--html", str(out), "--repo", str(repo),
+                           "--roster-ref", "origin/no-such-roster", "--github-snapshot", str(snapf)]
+            with contextlib.redirect_stderr(io.StringIO()):
+                rc = main(unfetchable, fetch=fetch_refused)
+            text = out.read_text(encoding="utf-8") if out.exists() else ""
+            check("an unfetchable roster ref is refused: the UNAVAILABLE page names it",
+                  rc == 1 and unavailable(text) and "origin/no-such-roster" in text,
+                  (rc, text[:300]))
+            out.unlink(missing_ok=True)
+            check("and replan --check refuses the same plan",
+                  bool(replan.stale_reason(plan, str(repo))))
+    except Exception as exc:  # noqa: BLE001 -- reported, never swallowed
+        check("the fixture arms ran to the end", False, f"{type(exc).__name__}: {exc}")
     print(f"plan_page self-test: {n[0]} checks, {len(fails)} failed")
     for f in fails:
         print("FAIL", f)
@@ -838,7 +926,8 @@ def _self_test() -> int:
 
 
 _STRIP = {"done": "groups merged", "live": "fixers working", "ready": "ready, not started",
-          "blocked": "waiting on a group", "partial": "part merged, residual open"}
+          "blocked": "waiting on a group", "partial": "part merged, residual open",
+          "held": "held by a disposition"}
 
 # The page. `{{name}}` is filled by `render`; every value is escaped there.
 _TEMPLATE = """<!doctype html>
@@ -883,6 +972,7 @@ svg{display:block;font-family:var(--mono)}
 .bar.ready{fill:var(--ready-bg);stroke:var(--ready)}
 .bar.blocked{fill:var(--blocked-bg);stroke:var(--blocked)}
 .bar.partial{fill:var(--partial-bg);stroke:var(--partial);stroke-dasharray:3 2}
+.bar.held{fill:var(--blocked-bg);stroke:var(--blocked);stroke-dasharray:1 2}
 .bar.crit{stroke:var(--accent);stroke-width:2.2}
 .barlab{fill:var(--fg);font-size:10.5px;paint-order:stroke;stroke:var(--panel);stroke-width:3;stroke-linejoin:round}
 .critline{fill:none;stroke:var(--accent);stroke-width:1.6;stroke-dasharray:4 3;opacity:.85}
@@ -915,6 +1005,7 @@ td.d{min-width:260px;max-width:440px}
 .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
 .pill.blocked{background:var(--blocked-bg);color:var(--blocked);border-color:var(--blocked)}
 .pill.partial{background:var(--partial-bg);color:var(--partial);border-color:var(--partial);border-style:dashed}
+.pill.held{background:var(--blocked-bg);color:var(--blocked);border-color:var(--blocked);border-style:dotted}
 .chip{display:inline-block;font:.76rem var(--mono);border:1px solid var(--line);border-radius:4px;padding:0 5px;margin:0 3px 3px 0}
 .chip.closer{border-color:var(--fg);font-weight:600}
 .chip.closed{text-decoration:line-through;color:var(--muted)}
@@ -939,6 +1030,7 @@ td.d{min-width:260px;max-width:440px}
   <div class="stat"><b>{{n_ready}}</b><span>ready, not started</span></div>
   <div class="stat"><b>{{n_blocked}}</b><span>waiting on a group</span></div>
   <div class="stat"><b>{{n_partial}}</b><span>part merged, residual open</span></div>
+  <div class="stat"><b>{{n_held}}</b><span>held by a disposition</span></div>
   <div class="stat"><b>{{open_iss}}</b><span>open issues (excl. #{{tracking}})</span></div>
   <div class="stat end"><b>{{end}}</b><span>projected programme close</span></div>
 </div>
@@ -952,6 +1044,7 @@ td.d{min-width:260px;max-width:440px}
     <span><i style="background:var(--ready-bg);border-color:var(--ready)"></i>ready</span>
     <span><i style="background:var(--blocked-bg);border-color:var(--blocked)"></i>waiting</span>
     <span><i style="background:var(--partial-bg);border-color:var(--partial);border-style:dashed"></i>part merged</span>
+    <span><i style="background:var(--blocked-bg);border-color:var(--blocked);border-style:dotted"></i>held</span>
     <span><i style="background:transparent;border-color:var(--accent);border-width:2px"></i>critical path (◆ marks each link)</span>
     <span><i style="background:transparent;border-color:var(--done);border-style:dashed"></i>planned stamp</span>
     <span><i style="background:transparent;border:0;border-top:2px solid var(--accent)"></i>groups in flight above the {{slots}}-slot cap line</span>
@@ -968,6 +1061,7 @@ td.d{min-width:260px;max-width:440px}
     <button type="button" data-f="ready" aria-pressed="false">Ready</button>
     <button type="button" data-f="blocked" aria-pressed="false">Waiting</button>
     <button type="button" data-f="partial" aria-pressed="false">Part merged</button>
+    <button type="button" data-f="held" aria-pressed="false">Held</button>
     <button type="button" data-f="done" aria-pressed="false">Merged</button>
     <label class="chk"><input type="checkbox" id="hide-done"> Hide merged</label>
   </div>

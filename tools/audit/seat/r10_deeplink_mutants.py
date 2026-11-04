@@ -121,7 +121,9 @@ import sys
 CARD = "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
 TEST = "tests/card.mjs"
 P = "/config/integrations/integration/heatpump_optimizer"
-NAV = '        navigateTo(SETTINGS_PATH);\n        return;\n      } else if (act === "apply_valve")'
+# A navigation in a pressed act branch: the Health page's Show, which R10-UX-HEALTH
+# converted from the bare `navigateTo(SETTINGS_PATH)` this anchor first named.
+NAV = '        openHaLink(host, "entities", null);\n        return;\n      } else if (act === "diagnostics")'
 DIAG = '<button type="button" class="adv-act" data-act="diagnostics">'
 LOOP = '  for (const btn of root.querySelectorAll(".adv-act")) {\n    btn.addEventListener("click", async (ev) => {'
 DISMISS = "        dismissFeedback();\n        host._render();\n        return;"
@@ -131,7 +133,7 @@ RUNTIME_MORE_INFO = '["hass", "more", "info"].join("-")'
 
 
 def after_nav(stmt):
-    return [(CARD, NAV, NAV.replace("navigateTo(SETTINGS_PATH);", "navigateTo(SETTINGS_PATH); " + stmt))]
+    return [(CARD, NAV, NAV.replace('openHaLink(host, "entities", null);', 'openHaLink(host, "entities", null); ' + stmt))]
 
 
 def attach(sel, stmt):
@@ -355,11 +357,11 @@ PLANTS = {
     "M5_openPicker_no_focus": card("    this.pickerFocus = !!viaKeyboard;", "    this.pickerFocus = false;"),
     "M6_convert_advisor_settings": card("        navigateTo(SETTINGS_PATH);", '        await openHaLink(host, "options");'),
     # Rounds 1-3 (review) and the fixer's variants.
-    "R4_entry_ignored": card("    entryId = (reg && reg.config_entry_id) || null;", "    entryId = null;"),
+    "R4_entry_ignored": card("    return (reg && reg.config_entry_id) || null;", "    return null;"),
     "R5_anchor_href": card(DIAG, f'<a href="{P}">open</a>' + DIAG),
-    "R6_more_info_instead_of_nav": card("        navigateTo(SETTINGS_PATH);", "        " + EVENT % '"hass-more-info"'),
-    "R6b_pending_nav_plus_event": card("        navigateTo(SETTINGS_PATH);",
-                                       "        navigateTo(SETTINGS_PATH); " + EVENT % RUNTIME_MORE_INFO),
+    "R6_more_info_instead_of_nav": card('        openHaLink(host, "entities", null);', "        " + EVENT % '"hass-more-info"'),
+    "R6b_pending_nav_plus_event": card('        openHaLink(host, "entities", null);',
+                                       '        openHaLink(host, "entities", null); ' + EVENT % RUNTIME_MORE_INFO),
     "R6c_assign_fires_event": card("        openSetupSlot(host, btn.dataset.key, ev);", "        " + EVENT % RUNTIME_MORE_INFO),
     "R7b_setAttribute_unresolved": attach("a.zz", f'a.setAttribute("href", "{P}");'),
     "R7c_setAttribute_runtime_name": attach(".zz", f'a.setAttribute(["hr", "ef"].join(""), "{P}");'),

@@ -570,6 +570,20 @@ jobs:
         with:
           python-version: "3.13"
 
+      # THE ENUMERATE'S SPEND, READ (dev/audit/rca/ratelimit-recur.md, the
+      # second M0 pair). The step below reads one call a merge of the window
+      # on GITHUB_TOKEN, the bucket every required check shares, and the
+      # governance record job's two readings could only infer its share by
+      # splitting their interval by step time. These two print it: the
+      # bucket before the enumeration and after it, as the record job's
+      # `RATE_LIMIT before:`/`after:` lines do. `rate_limit` is not counted
+      # against the limit; a log line, never a gate (`|| true`).
+      - name: GITHUB_TOKEN rate limit before the enumeration
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT enumerate before: \(.resources.core)"' || true
+
       - name: Enumerate the window's merges
         id: enumerate
         env:
@@ -585,6 +599,15 @@ jobs:
           python3 -I tools/audit/seat/record_row.py \
             --enumerate --repo "$REPO" --since "$SINCE" \
             > "$RUNNER_TEMP/merges.json"
+
+      # The after reading prints when the enumeration fails closed too: a
+      # window that could not be read spent calls all the same.
+      - name: GITHUB_TOKEN rate limit after the enumeration
+        if: always()
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"' || true
 
       # Two installation tokens from one minting routine. The author App's
       # writes the rows, the pull request and the #201 comment, and merges

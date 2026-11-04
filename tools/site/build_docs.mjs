@@ -41,7 +41,8 @@ const stats = { pages: 0, pageLinks: 0, anchors: 0, githubLinks: 0, images: 0, b
 // ---- which documents: the README Documentation table, both ways ----
 const readme = fs.readFileSync(path.join(ROOT, 'README.md'), 'utf8')
 const docSec = readme.split(/^## Documentation\s*$/m)[1]?.split(/^## /m)[0] || ''
-const allRows = [...docSec.matchAll(/^\|\s*\[[^\]]+\]\(([^)#]+)\)\s*\|\s*(.+?)\s*\|\s*$/gm)].map((m) => ({ src: m[1], blurb: m[2] }))
+const allRows = [...docSec.matchAll(/^\|\s*\[[^\]]+\]\(([^)#]+)\)\s*\|\s*(.+?)\s*\|\s*$/gm)].map((m) => ({ src: path.posix.normalize(m[1]), blurb: m[2] }))
+// Row targets carry a ./ prefix (the Home Assistant Marketplace's sanitizer blanks a bare-relative one); normalize it away.
 // A row naming an .html file is the product page itself (docs/index.html): the site's front, not rendered from markdown.
 const rows = allRows.filter((r) => /\.md$/i.test(r.src))
 if (rows.length) for (const x of Object.keys(EXCLUDE)) if (!rows.some((r) => r.src === x)) errors.push(`EXCLUDE names ${x}, which the README Documentation table no longer lists`)
@@ -145,8 +146,24 @@ const RAW_EXTERNAL = /<(?:img|script|iframe|source|embed|object|link)\b[^>]*\b(?
 for (const rule of ['html_block', 'html_inline']) {
   md.renderer.rules[rule] = (tokens, idx) => {
     if (RAW_EXTERNAL.test(tokens[idx].content)) errors.push(`${CUR}: raw HTML requests a third-party resource: ${tokens[idx].content.trim().slice(0, 80)}`)
-    return tokens[idx].content
+    return rawImages(tokens[idx].content)
   }
+}
+// A raw <picture>/<img> in a document (the README's mermaid figures) names its images as the document does; the page sits in
+// docs/, so resolve each relative src and srcset candidate the way the image rule does, or refuse it.
+function rawImages(html) {
+  const one = (v) => {
+    if (/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(v)) return v
+    const target = path.posix.normalize(path.posix.join(path.posix.dirname(CUR), v))
+    if (!TREE.has(target) || !target.startsWith('docs/')) { errors.push(`${CUR}: raw HTML image ${v} does not resolve under docs/`); return v }
+    stats.images++
+    return target.slice(5)
+  }
+  return html.replace(/(<(?:img|source)\b[^>]*?\s)(src|srcset)=("[^"]*")/gi, (_, head, attr, q) => {
+    const v = q.slice(1, -1)
+    const out = attr.toLowerCase() === 'srcset' ? v.split(',').map((c) => c.trim().replace(/^\S+/, one)).join(', ') : one(v)
+    return `${head}${attr}="${out}"`
+  })
 }
 
 // ---- render ----

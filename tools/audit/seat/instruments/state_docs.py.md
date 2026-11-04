@@ -16,6 +16,10 @@
   files, and an already-current tip, which is reported and left alone. The
   commit is plumbing over a temp index, so the calling checkout's index is
   never touched.
+  `--plan PLAN_JSON` adds `PLAN.html`, `plan_page.py`'s page over that plan,
+  to the same commit; a refused page keeps the last good one at the ref (or
+  publishes the UNAVAILABLE page where there is none) and the call exits 1
+  after pushing the other docs. The beat runs no replan, so passes no `--plan`.
   `state_docs.py beat` is the same instrument on a loop, and it lives here
   rather than in a session's scratch for decision 0013's reason — an
   instrument the programme runs belongs where a later session can test it. A

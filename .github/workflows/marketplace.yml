@@ -1,0 +1,33 @@
+name: Marketplace
+
+# The Marketplace's two validators on a clock (#2965 C5). `hassfest` and
+# `validate` are ci.yml's units, run only when the prelude's workset names
+# them, so main could go weeks without a current run for the catalog PR to
+# link. This file calls the same two unit files the way ci.yml does -- caller
+# id == stem, `contents: read`, no inputs, no secrets -- so their job bodies,
+# pinned action SHAs and hassfest's image-pull retry are the ones CI runs,
+# never a copy. A schedule runs main's tree. A red is a failed run: nothing
+# here continues on error. tools/ci/gate.py reads ci.yml's runs alone, so no
+# run of this file is ever a source for `gate`. tests/entities.py pins it.
+
+on:
+  schedule:
+    - cron: "41 3 * * 1"
+  workflow_dispatch:
+
+permissions: {}
+
+# By run id, never cancelled, as ci.yml's.
+concurrency:
+  group: Marketplace-${{ github.run_id }}
+  cancel-in-progress: false
+
+jobs:
+  hassfest:
+    uses: ./.github/workflows/hassfest.yml
+    permissions:
+      contents: read
+  validate:
+    uses: ./.github/workflows/validate.yml
+    permissions:
+      contents: read

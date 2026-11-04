@@ -9,7 +9,8 @@
 # API. Set REMERGE_WHY to add the occasion to the note in one clause (for
 # example "GitHub reported a claim-file conflict it cannot resolve without the
 # claimnotes driver"); the default states none. merge_train.py calls this.
-# The worktree may be detached: it is reset to origin/<branch> before the merge.
+# The worktree may be detached: it is reset to origin/<branch> before the merge, and left clean there
+# when the merge fails (MERGE CONFLICT).
 set -uo pipefail
 # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
 # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
@@ -18,7 +19,14 @@ PR=$1; W=$2; BR=$3; B=$4; shift 4
 PL=$B.push.log; pr_exit_trap 'rm -f "$PL"'
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
-( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ) || { echo "MERGE CONFLICT $PR"; exit 1; }
+# A failed merge is aborted before the stop (P276: #2935, #2936): left conflicted, the worktree kept
+# the branch, merge_train.py's unforced release_worktrees could not remove it, and the next recarry's
+# `worktree add -B` found the branch checked out. The merge started at origin/$BR and merged only
+# origin/main, so the abort, or the reset when no merge is in progress, loses nothing.
+if ! ( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
+  git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "origin/$BR" 2>/dev/null || :  # mut:remergeabort
+  echo "MERGE CONFLICT $PR"; exit 1
+fi
 ( cd "$W" && python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge" )
 ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | sort -u | tr '\n' ' ')
 # shellcheck disable=SC2086 # $ISS is a word list of issue numbers

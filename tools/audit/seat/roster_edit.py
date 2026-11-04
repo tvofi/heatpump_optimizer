@@ -112,6 +112,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 SELF = "tools/audit/seat/roster_edit.py"
@@ -529,9 +530,48 @@ def prepare_worktree(checkout, ref, branch, wt, discard=None) -> str:
     return base_sha
 
 
+#: Four attempts, sleeping between them. A ref-lock race lasts the
+#: milliseconds between another process's read and write of one
+#: remote-tracking ref, so the first sleep is already longer than the window;
+#: the measured rate (about 1 pass in 100, the beat log) puts four
+#: independent attempts near 1e-8. Past the bound the refusal stands.
+FETCH_ATTEMPTS = 4
+FETCH_BACKOFF = (0.25, 0.5, 1.0)
+#: One line git prints when another process moved a ref between the fetch's
+#: read and its write.
+LOCK_RACE_RE = re.compile(
+    r"\Aerror: cannot lock ref '[^']+': is at [0-9a-f]+ but expected [0-9a-f]+\Z")
+
+
+def _fetch_once(checkout):
+    r = subprocess.run(["git", "-C", str(checkout), "fetch", "-q", "origin",
+                        "+refs/heads/*:refs/remotes/origin/*"],
+                       capture_output=True, text=True)
+    return r.returncode, r.stdout, r.stderr
+
+
+def _is_lock_race(rc, out, err) -> bool:
+    """True only when git failed and every line it printed is the lock race:
+    any other line is a real failure and is never retried."""
+    lines = [x.strip() for x in (err + out).splitlines() if x.strip()]
+    return rc != 0 and bool(lines) and all(LOCK_RACE_RE.match(x) for x in lines)
+
+
 def fetch_origin(checkout) -> None:
-    run(["git", "-C", str(checkout), "fetch", "-q", "origin",
-         "+refs/heads/*:refs/remotes/origin/*"])
+    """Fetch every origin head. A ref-lock race (another process sharing the
+    repository moved a remote-tracking ref mid-fetch) is transient: retried
+    with a short backoff, `FETCH_ATTEMPTS` at most. Any other failure, and a
+    race outlasting the bound, refuses as before."""
+    for attempt in range(FETCH_ATTEMPTS):
+        rc, out, err = _fetch_once(checkout)
+        if rc == 0:
+            return
+        if attempt + 1 == FETCH_ATTEMPTS or not _is_lock_race(rc, out, err):
+            break
+        time.sleep(FETCH_BACKOFF[attempt])
+    raise Refuse(f"git -C {checkout} fetch -q origin "
+                 f"+refs/heads/*:refs/remotes/origin/* (in .) failed: "
+                 f"{(err or out).strip()[:400]}")
 
 
 def roster_target(checkout, roster_ref, branch, roster_path):
@@ -974,6 +1014,11 @@ def _self_test() -> int:
     check("set-stage accepts a classified live-claim stage (null control)",
           edit("set-stage", "R9-B", "review") == 0
           and branch_roster()["groups"][1]["resume"]["stage"] == "review")
+    check("set-stage accepts the design steps' stages (decision 0014)",
+          edit("set-stage", "R9-B", "design") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "design"
+          and edit("set-stage", "R9-B", "design-review") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "design-review")
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)
@@ -1545,6 +1590,53 @@ def _self_test() -> int:
     check("no roster: the default branch refuses before any worktree",
           edit3("R10-A", "2303", wt="wt7") == 2
           and not Path(tmp, "wt7").exists())
+
+    # fetch_origin: a ref-lock race is retried; nothing else is.
+    lock = ("error: cannot lock ref 'refs/remotes/origin/train-hold': is at "
+            + "a" * 40 + " but expected " + "b" * 40 + "\n")
+    real_once, real_sleep = _fetch_once, time.sleep
+    napped = []
+
+    def fetch_with(script):
+        """fetch_origin against scripted (rc, out, err) results; returns
+        (outcome, attempts, sleeps)."""
+        global _fetch_once
+        seq, napped[:] = list(script), []
+        calls = []
+
+        def once(checkout):
+            calls.append(1)
+            return seq[min(len(calls), len(seq)) - 1]
+        _fetch_once, time.sleep = once, napped.append
+        try:
+            fetch_origin("x")
+            return "ok", len(calls), list(napped)
+        except Refuse as e:
+            return str(e), len(calls), list(napped)
+        finally:
+            _fetch_once, time.sleep = real_once, real_sleep
+
+    got = fetch_with([(1, "", lock), (0, "", "")])
+    check("fetch_origin: one lock race is retried and succeeds",
+          got[0] == "ok" and got[1] == 2 and len(got[2]) == 1, got)
+    got = fetch_with([(0, "", "")])
+    check("fetch_origin: a clean fetch is one attempt, no sleep (null control)",
+          got == ("ok", 1, []), got)
+    got = fetch_with([(1, "", "fatal: could not read from remote\n")])
+    check("fetch_origin: a non-race failure refuses at once, unretried",
+          got[0].startswith("git -C x fetch") and "could not read" in got[0]
+          and got[1] == 1 and got[2] == [], got)
+    got = fetch_with([(1, "", lock + "fatal: also broken\n")])
+    check("fetch_origin: a race line beside another failure is not a race",
+          got[1] == 1 and "also broken" in got[0], got)
+    got = fetch_with([(1, "", lock)])
+    check("fetch_origin: a race past the bound still refuses, bounded",
+          "cannot lock ref" in got[0] and got[1] == FETCH_ATTEMPTS
+          and len(got[2]) == FETCH_ATTEMPTS - 1, got)
+    got = fetch_with([(1, "", lock + lock.replace("train-hold", "other")),
+                      (0, "", "")])
+    check("fetch_origin: several raced refs in one fetch are one race",
+          got[0] == "ok" and got[1] == 2, got)
 
     shutil.rmtree(tmp, ignore_errors=True)
     print(f"roster_edit self-test: {passed} checks, "

@@ -61,10 +61,11 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
 
    Key on the **mode line**, never the count (`CLAUDE.md` rule 1). Run what
    `scope.run` and `tests/run.sh`'s `run_always` lines name, with
-   `PYTHONPATH=tests/hastub`, leaving the rest to CI; `tests/README.md`
-   ("The scoped gate") says why. So `MODE: FULL` reports a diff the gate cannot scope — often a gate file or a
-   doc — not an instruction to reproduce CI. An untracked scratch file is one:
-   keep the body outside the worktree.
+   `PYTHONPATH=tests/hastub`, leaving the rest to CI (`tests/README.md`, "The
+   scoped gate"): `MODE: FULL` is a diff the gate cannot scope (a gate file,
+   a doc, a scratch file: keep the body out), not CI to reproduce.
+   **No scope selects `card_browser.mjs`**, which CI runs past the handoff:
+   run it on a `GRID_SURFACE` diff (recipe: `web-fragments.md`; #2841).
 
    **Running locally does not discharge CI.** What `scope.run` names is green,
    every red `prepr.sh` step 6d predicts is repaired before the handoff
@@ -85,9 +86,9 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
    the evidence describes one tree, and either makes a new one — **the body included**, because a figure that is a function
    of `origin/main`'s tip is false the moment `main` moves. Stamp such a figure
    with that tip and `date -u`. The code head goes to `handoff/<topic>`, the
-   body to the orphan `handoff-body/<topic>` (`seat/body_push.sh`),
-   off the code head (`prepr.sh` step 1a); that push is the handoff; the
-   orchestrator's `handoff_push.sh` opens the PR and writes the row.
+   body to the orphan `handoff-body/<topic>` by `seat/body_push.sh`, which
+   runs `review_packet.py handoff`'s offline refusals; answer each before the
+   push. That push is the handoff; `handoff_push.sh` opens the PR and writes the row.
 
    **The handoff freezes the branch.** Until then, merge `origin/main` (never
    rebase) only when `git merge-tree --write-tree origin/main HEAD` reports a
@@ -159,9 +160,8 @@ fix, handoff) through refs, never mid-task, by ~150 k tokens (S, M), ~300 k (L, 
     seam each candidate method carries in the map.
 
 13. **`tests/hastub` is not Home Assistant, and a green test may pin the stub.**
-    `tests/ha_contract.py` records what each stub symbol is — faithful,
-    divergent, simplified, unverified, or a holder — and runs its contracts
-    against both the stub and, nightly, the real package. **Before asserting
+    `tests/ha_contract.py` records each stub symbol's fidelity and runs its
+    contracts against both the stub and, nightly, the real package. **Before asserting
     that a test proves a production property, check whether the stub is what
     satisfied it.**
 

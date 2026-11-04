@@ -48,6 +48,19 @@ if [ -n "$HREF" ]; then
     exit 1
   fi
   printf '%s\n' "$LINT" | tail -1
+  # The review packet's refusals that need no CI run (P256): structure merged
+  # with main, hot-file and brief-carries, answered here rather than after the
+  # open. rc 3 is a seat that cannot read their inputs: said, never a refusal.
+  # HPO_HANDOFF_PACKER replaces the checker (prepr's self-test stub).
+  prc=0
+  PK=$(cd "$ROOT" && ${HPO_HANDOFF_PACKER:-python3 -I "$HERE/review_packet.py"} handoff --topic "$TOPIC" --body "$ABS" 2>&1) || prc=$?
+  printf '%s\n' "$PK"
+  if [ "$prc" = 1 ]; then
+    echo "body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body" >&2
+    exit 1
+  elif [ "$prc" != 0 ]; then
+    echo "body_push: the review packet's handoff refusals were not run (rc $prc, above); dispatch still runs structure and hot-file" >&2
+  fi
 else
   echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"
 fi
@@ -69,8 +82,13 @@ fi
 } > "${TMPDIR:-/tmp}/body_push.$$"
 TREE=$(git mktree < "${TMPDIR:-/tmp}/body_push.$$")
 rm -f "${TMPDIR:-/tmp}/body_push.$$"
+# A PR body names the code head it describes in a `Code:` trailer, the handoff/<topic> tip
+# proved equal to this checkout's HEAD above; cloud_relay.sh updates a PR only with the body
+# naming the handoff it applies (V147). A result body names none.
+MSG="body: $TOPIC"
+[ -z "$HREF" ] || MSG=$(printf 'body: %s\n\nCode: %s' "$TOPIC" "$HREF")
 # shellcheck disable=SC2086 # $P is empty or exactly "-p <sha>"
-C=$(git commit-tree "$TREE" $P -m "body: $TOPIC")
+C=$(git commit-tree "$TREE" $P -m "$MSG")
 # The topic names the ref and the message: refuse one that names this host
 # (#2310). The commit is judged as written, not as composed: its message and
 # identity, and any parent origin does not hold (R10-FLY-NO-FOOTERS-PUSH-PATHS).

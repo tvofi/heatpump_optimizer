@@ -7,7 +7,10 @@ interval. This module listens to the room thermometer, as the peak guard
 listens to the meter. When the room passes the active comfort target plus
 :data:`MARGIN_K` on a step the plan gave to space heating, it switches the
 pump off once. The next cycle writes the plan's own action again, so the
-pump resumes then (decision recorded on #201, comment 6067353918).
+pump resumes then (decision recorded on #201, comment 6067353918). The step
+tick between cycles (``pump_arbiter.supply_tick``) writes only a step whose
+command differs from the last, so a cut holds across a step the plan keeps
+on, and a step the plan turns on passes :func:`allow_on` like the cycle's.
 
 **The threshold** is the higher of the active comfort target and the room
 temperature the plan predicts for the end of the current step, plus the margin. A plan that pre-heats

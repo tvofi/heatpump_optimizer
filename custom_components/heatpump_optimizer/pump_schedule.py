@@ -93,7 +93,7 @@ def plan_commands_heat(
 ) -> tuple[bool, bool]:
     """(heat now, heat next step) read from the plan's space-heating steps.
 
-    ``space_heating`` is ``optimizer.channel_heating_steps`` over the plan's
+    ``space_heating`` is ``thermal_model.channel_heating_steps`` over the plan's
     space and hot-water schedules, which the coordinator passes in: a space
     share on a step the plan runs no pump at commands no heat (D8-s1-01).
     """

@@ -598,6 +598,16 @@ INERT_EXCEPT = (
     "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
     "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
     "tools/pr/codeql_scope.py",
+    # R10-ORCH-PLANPAGE: state_docs.py's self-test (which tests/entities.py runs)
+    # builds the plan page from the real roster, so it imports the plan model and
+    # opens its measured durations. CI predict (self-test-reads) found both INERT
+    # and read. Same route as codeql_scope.py above: the tools/plan/ prefix stays
+    # INERT, the two files move to the recorded closure.
+    "tools/plan/replan.py",
+    "tools/plan/durations.json",
+    # Also read by that self-test (the page renderer replan feeds): tools/audit/seat/
+    # stays INERT, this file joins the recorded closure.
+    "tools/audit/seat/plan_page.py",
     # R9-RO-6: the device-fixture scripts moved under tools/devices/, which is
     # INERT. tests/entities.py and tests/features.py import them, so an edit
     # selects those scripts. Left inside the prefix they would be declared
@@ -676,7 +686,40 @@ INERT_EXCEPT = (
     # docs/ and dev/programme/ prefixes stay INERT, the two files move to
     # doc_claims.py's recorded closure.
     "docs/img/brand/coffee.svg",
+    # R10-README-GRAPHICS: the Marketplace arm of tests/doc_claims.py opens the manifest and hashes each mermaid
+    # figure it names, light and dark, to refuse a block or a PNG that moved without the other. Same route as coffee.svg above:
+    # the docs/ prefix stays INERT, and the eight files move to doc_claims.py's recorded closure.
+    "docs/img/readme/mermaid_figures.json",
+    "docs/img/readme/mermaid-how-the-pieces-fit.png",
+    "docs/img/readme/mermaid-setup-flow.png",
+    "docs/img/readme/mermaid-one-interval.png",
+    "docs/img/readme/mermaid-how-the-pieces-fit-dark.png",
+    "docs/img/readme/mermaid-setup-flow-dark.png",
+    "docs/img/readme/mermaid-one-interval-dark.png",
+    "docs/img/readme/how-it-works-dark.png",
     "dev/programme/rosters/wave-r10-groups.json",
+    # R10-ARCH-DOCS-WIRING: the card-figure arm opens the page-figure record and
+    # every page PNG it lists, to read the IHDR against it (the two light PNGs
+    # the image-size arm already opens are above), and the doc-wiring arm opens
+    # each script the two pages pass an argument to, to find that argument as a
+    # word of it. Same route: the prefixes stay INERT, the files move to
+    # doc_claims.py's recorded closure.
+    "docs/img/card/pages.json",
+    "docs/img/card/advisor-dark.png",
+    "docs/img/card/health-dark.png",
+    "docs/img/card/health-light.png",
+    "docs/img/card/plan-dark.png",
+    "docs/img/card/plan-light.png",
+    "docs/img/card/plan-why-dark.png",
+    "docs/img/card/savings-dark.png",
+    "docs/img/card/savings-light.png",
+    "docs/img/card/setup-dark.png",
+    "docs/img/card/setup-light.png",
+    "docs/img/card/tile-dark.png",
+    "docs/img/card/tile-light.png",
+    "tools/audit/seat/bus.sh",
+    "tools/audit/seat/cloud_relay.sh",
+    "tools/audit/seat/heartbeat.sh",
     "DISCLAIMER.md",
     "blueprints/automation/charge_ev_from_grid_headroom.yaml",
     "blueprints/automation/economy_mode_on_price_peak.yaml",
@@ -908,6 +951,13 @@ INERT_EXCEPT = (
     # UNDER-APPROXIMATED -- so it leaves the prefix the way record_row.py did,
     # and an edit to the train selects tests/entities.py.
     "tools/audit/seat/merge_train.py",
+    # R10-RECORD-API-O1: tests/entities.py runs the burst replay to pin that
+    # it counts demand as record + enumerate + rest. The dev/audit/harnesses/
+    # prefix kept it INERT while entities.py opens it, and closures-autofix
+    # refused the merge, skip-merge-failed on this pair (job 123595508827).
+    # It leaves the prefix the way the U5 harnesses did; enumerate_api_calls.py
+    # stays INERT, read only by the replay's child under inert_reads.
+    "dev/audit/harnesses/record_burst_replay.py",
 )
 
 

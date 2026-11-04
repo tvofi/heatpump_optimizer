@@ -163,17 +163,16 @@ one reason to absorb `main` into a head (`nudge.md` 9).
 ## 7. You hold the freeze
 
 `fixer.md`'s handoff freezes a branch and **only the orchestrator moves the
-head**, so you break it. A reviewer works in a fresh *detached*
-worktree at the head SHA, so the branch has no worktree and no marker: a liveness
-check looking for either will not see it. Check whether a review is in flight on
-the pull request before moving anything. A head that moves under a review costs
-that review; a move that re-issues the verdict needs
-a fresh `bus.sh dispatch` at the new head before the reviewer publishes, since
-`push-verdict` refuses a nonce whose dispatch head is not the head the verdict
-names. **A conflict with main after the
-handoff is resolved by merge, never a re-cut**: merge
-`origin/main` into the head, or hand a semantic one to the fixer, and send the
-resolution delta to the same reviewer.
+head**, so you break it. A reviewer works in a fresh *detached* worktree at the
+head SHA, invisible to a liveness check for its worktree or marker. A
+head moving under an in-flight review costs it; a code-carrying move re-issuing
+the verdict needs a fresh `bus.sh dispatch` before the reviewer publishes, since
+`push-verdict` refuses a nonce minted at another head.
+Dispatching a second reviewer over a range clean against the reviewed head
+(`--reviewed-head`) is the error, not diligence (tvofi, 2026-10-27);
+`review_carry.py`'s `CARRY` refuses it. **A conflict after the handoff is
+resolved by merge, never a re-cut**: merge `origin/main` in, or hand a
+semantic one to the fixer; the resolution delta goes to that reviewer.
 
 **Stopping a seat is not neutral.** A seat killed between applying a mutation and
 restoring it leaves a production file broken in its worktree. Check
@@ -229,8 +228,8 @@ Through the roster seat, on `standing-roster.md`'s terms.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
-  <head>` names miss the branch's own diff, and the claim files equal
-  `origin/main`'s. Anything else is a resolution delta for the same reviewer.
+  <head>` names miss the branch's own diff. Anything else is a resolution delta
+  for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
   a proved batch merges while `main`'s tree equals its proof's; one entry merges

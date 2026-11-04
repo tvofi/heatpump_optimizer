@@ -6,7 +6,8 @@
 #     bash dev/audit/harnesses/record_api_calls.sh v7.0.1     # a wider window
 #
 # Runs the three policy_lint.mjs modes the job runs (--record, --stats,
-# --sunset) over SINCE..origin/main with a stub `curl` first on PATH that logs
+# --sunset; the last two not on an ordinary push, decision O-1, so TOTAL
+# counts a push and REPORT the schedule, dispatch and stamp arm) over SINCE..origin/main with a stub `curl` first on PATH that logs
 # each URL and answers a well-formed empty 200, so no request leaves the host
 # and no token is spent. Prints one line per mode and the total. The stub
 # answers `/commits/<sha>/pulls` with [], so the merges are recovered from their
@@ -42,7 +43,7 @@ chmod +x "$WORK/bin/curl"
 COMMITS=$(git -C "$ROOT" rev-list --first-parent --count "$SINCE..origin/main")
 # The record job's text, continuation lines joined, so one line per invocation.
 JOB=$(awk '/^  record:/{on=1;next} on&&/^  [a-z][a-z-]*:/{exit} on' "$ROOT/.github/workflows/governance.yml" | sed -e ':a' -e '/\\$/N; s/\\\n//; ta')
-total=0
+total=0 report=0
 for mode in record stats sunset; do
   : > "$WORK/$mode.log"
   cache=()
@@ -58,11 +59,19 @@ for mode in record stats sunset; do
     grep -E 'curl failed|merge-enumeration|could not fetch pull-request|no friction data' "$WORK/$mode.out" | head -3 >&2
     exit 1
   fi
-  echo "--$mode $n call(s) over $SINCE..origin/main${cache[*]:+ (--window-cache, as the job passes it)}"
-  total=$((total + n))
+  # A mode whose step waits on the window step's `report` output reads on the
+  # schedule, a dispatch and the stamp, never on an ordinary push (decision O-1).
+  if awk -v m="--$mode " 'BEGIN { RS = "\n      - " } index($0, m) && index($0, "outputs.report == '\''true'\''") { f = 1 } END { exit !f }' <<<"$JOB"; then
+    echo "--$mode $n call(s) over $SINCE..origin/main${cache[*]:+ (--window-cache, as the job passes it)}; not on a push"
+    report=$((report + n))
+  else
+    echo "--$mode $n call(s) over $SINCE..origin/main${cache[*]:+ (--window-cache, as the job passes it)}"
+    total=$((total + n))
+  fi
   if [ "$mode" = record ] && [ "$n" -eq 0 ] && [ "$COMMITS" -gt 0 ]; then
     echo "record_api_calls: --record read 0 over $COMMITS first-parent commit(s); the window was not walked" >&2
     exit 1
   fi
 done
 echo "TOTAL $total call(s) per push to main, before policy-docs, env-matrix and the other jobs"
+echo "REPORT $report call(s) more on the schedule, a dispatch and the stamp"

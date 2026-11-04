@@ -814,7 +814,8 @@ when the browser reports `prefers-reduced-motion: reduce`.
 
 ### Automatic (recommended)
 
-When you install the integration through HACS and add a config entry, the card is
+When you install the integration through the Home Assistant Marketplace (HACS
+before 2026.11) and add a config entry, the card is
 served and registered automatically:
 
 1. The integration exposes the JS at `/heatpump_optimizer_static/heatpump-optimizer-card.js`.

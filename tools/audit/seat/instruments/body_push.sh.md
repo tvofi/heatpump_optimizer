@@ -6,7 +6,8 @@
   the code head's ancestry (`prepr.sh` step 1a refuses that). Refusal: a
   head `tools/pr/ci_predict.py` predicts a closures or `fast` red on, or a
   checkout with no predictor (R10-HANDOFF-PREPR-BOUNCE M2), is refused
-  before anything is pushed, with each arm's repair printed; a fetch that
+  before anything is pushed, with each arm's repair printed; so is a PR body
+  `review_packet.py handoff` refuses (P256); a fetch that
   half-failed leaves a parentless commit the push refuses as a
   non-fast-forward — a rewrite is never forced through; the body commit it
   wrote is read back through `ref_privacy.py guard --commits`, message and
