@@ -23,11 +23,11 @@ Alternatives not taken:
 
 ## Re-cut
 
-Round 7 of R10-FLOW-BODY-ONLY, a minimal re-cut answering `verdict/3089` round 2 (blocked at `2fd46f26`, class-open): `handoff_arm` skipped the review freeze on a body-only move, but `update_pr.sh <branch> - <body>` still moved the head when (a) the PR was `DIRTY` and the local merge of main was clean, or (b) a contained head lacked its delivery row (`ensure_row`, `--row-only` push), so a head holding a merge verdict or a dispatched review could move with no `cloud-handoff-release` entry and no `HELD-*` line. Closed at one seam, `update_pr.sh`'s head check, driven by the relay's `HPO_UPDATE_BODY_ONLY=$bonly` (commit `62673524`); `9da59904` documents the refusal in both instrument guides. The verdict's second finding: `## Red checks` below is retaken from the whole check-run set and names `tests / nightly-status` as main's inherited red. Every figure below was taken in this pass, at the head named under `## Head` or, for the self-tests and harness, at `9da59904`, as that section states.
+Round 7 of R10-FLOW-BODY-ONLY, a minimal re-cut answering `verdict/3089` round 2 (blocked at `2fd46f26`, class-open): `handoff_arm` skipped the review freeze on a body-only move, but `update_pr.sh <branch> - <body>` still moved the head when (a) the PR was `DIRTY` and the local merge of main was clean, or (b) a contained head lacked its delivery row (`ensure_row`, `--row-only` push), so a head holding a merge verdict or a dispatched review could move with no `cloud-handoff-release` entry and no `HELD-*` line. Closed at one seam, `update_pr.sh`'s head check, driven by the relay's `HPO_UPDATE_BODY_ONLY=$bonly` (commit `62673524`); `9da59904` documents the refusal in both instrument guides. The verdict's second finding: `## Red checks` below is retaken from the whole check-run set and names `tests / nightly-status` as main's inherited red. Every figure below was re-taken in this body-only retake by running its command, at the handoff tip that holds `9da59904`.
 
 ## Head
 
-`39e9abd5009448270215222943aa0fd0ac76b1e1`: the PR head `2fd46f26` with origin/main merged four times, clean (`a9c2f90f`, `fad43b04`, `616868bd`, then `8e90d814` as main moved during the pass), the fix commit `62673524` and the instrument-guide commit `9da59904`. main's moves since (`fad43b04..8e90d814`) touch the card, archscore, `thermal_model.py`, budgets and their tests, none of the seat files, so the self-test and harness figures taken at `9da59904` describe this head's seat tools; structure, scope, doc_claims, the architecture score and `prepr.sh` were re-run at this head against origin/main `8e90d814`.
+Code head `9da59904cc9a3ea2d7a941ea3e24dab5f6d52017` (the r7 repair: a fast-forward over the PR head `2fd46f26`, merging origin/main `fad43b04`, adding fix commit `62673524` and the instrument-guide commit `9da59904`). The PR head stays `2fd46f26` until the relay's update runs. The handoff ref's tip, `39e9abd5009448270215222943aa0fd0ac76b1e1`, is `9da59904` plus two clean merges of origin/main (`616868bd`, `8e90d814`); those moves touch the card, archscore, `thermal_model.py`, budgets and their tests, none of the seat files, so every figure below was re-taken in this pass by running its command, in a worktree at that tip, and describes `9da59904`'s seat tools. No code is pushed by this body retake and no file of the handoff changed.
 
 ## Mutation proof
 
@@ -48,9 +48,10 @@ The guard this round adds, killed at both seams:
 
 - `bash tools/audit/seat/cloud_relay.sh --self-test`: its last line reports 0 failed.
 - `bash tools/audit/seat/update_pr.sh --self-test`: delivery_row's and pr_args's tallies each report 0 failed.
-- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py update_pr-1 update_pr-2 update_pr-3 update_pr-4 update_pr-5 update_pr-6 update_pr-7 cloud_relay-29 cloud_relay-57 cloud_relay-58`: each line KILLED after its unmutated step passed, `RESULT survivors=0` (run as two invocations, the first stopped by the session's background bound after its eighth id; the last two re-run alone, rc=0). `cloud_relay-29` is re-anchored to the launch line this round edits.
+- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py update_pr-1 update_pr-2 update_pr-3 update_pr-4 update_pr-5 update_pr-6 update_pr-7 cloud_relay-29 cloud_relay-57 cloud_relay-58`: one invocation, all ten ids KILLED (`cloud_relay-57`, `-58` with 4 failed, `-29` with 2 failed, `update_pr-1` to `-7`), `RESULT survivors=0`. `cloud_relay-29` is re-anchored to the launch line this round edits.
 - Class enumeration: `grep -n 'update_pr' tools/audit/seat/cloud_relay.sh` returns one production launch (`handoff_arm`'s `pr_own_group "${upd[@]}"` line), the only route passing `-` from the relay; it carries the flag. `update_pr.sh`'s head-moving paths after `H` is taken are the two the verdict names (main merge, `ensure_row`), both before the guard line; the code-sha merge is not reachable with `-`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"`: `MODE: SCOPED`; `scope.run` names `tests/doc_claims.py`, which passes under `PYTHONPATH=tests/hastub`.
+- `python3 tools/audit/carry_audit.py --roster-ref origin/handoff/audit-r10-roster check --body <this body>`: `CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/throwaway_git.py --check`: 0 sites refused, 0 stale allow entries.
 - `tools/pr/prepr.sh <this body>` at the head: `rc=0`.
@@ -61,8 +62,8 @@ The guard this round adds, killed at both seams:
 
 ## Red checks
 
-- `tests / nightly-status` (check run 126439441851), at the PR's live head `2fd46f26`: concluded failure. It is main's inherited red: its log reads `NIGHTLY FAILED: slow failed 1 night ago` for the scheduled run at main (`verdict/3089:evidence/nightly-status-log.txt`), and this diff touches only seat tools, their instrument guides, a harness and the row, none of which the slow lane reads. No cheaper detector is owed: the check reports main's nightly, not this branch.
-- The whole check-run set at `2fd46f26`, 55 runs on one page (MCP `get_check_runs`), has no other concluded failure. The head named under `## Head` has no runs until it is pushed to the PR.
+- `tests / nightly-status` (check run 126439441851), at the PR's live head `2fd46f26`: concluded failure. It is main's inherited red: the check reports the scheduled slow lane at main (`NIGHTLY FAILED: slow failed 1 night ago`), and this diff touches only seat tools, their instrument guides, a harness and the row, none of which the slow lane reads. No cheaper detector is owed: the check reports main's nightly, not this branch.
+- The whole check-run set at `2fd46f26` (check-runs, not `pr checks`; 55 runs, `total_count` 55, one page of 100) has no other concluded failure; the rest are success or skipped. The code head `9da59904` has no runs until it is pushed to the PR.
 
 ## Forward-carry
 
