@@ -612,10 +612,14 @@ def _walk(r: dict) -> "list[dict] | None":
 PROBE_STEP = "Probe the runner's speed"
 # The probe's seconds on the reference host, per interpreter (the same work
 # runs at different speeds under 3.13 and 3.14). The reference host is the
-# fleet's fast class, the host the pre-probe grade priced each heavy job on
-# (its fastest draw), so the recorded critical_path_minutes keeps its unit:
-# the bridge in dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py.
-PROBE_REFERENCE_S = {"3.13": 18.92, "3.14": 17.50}
+# fleet's fast class (UNIT, the median factor of `tests / fast (3.14)`'s
+# fast-class draws), the host the pre-probe grade priced that lane on.
+# Measured on the fleet, never off it (a local machine's probe-to-script
+# ratio is its own: one implied 17.50, the fleet 22.4): derived by
+# tools/audit/seat/probe_bridge.py's rule from the probed runs in
+# dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json, whose
+# --self-test refuses a value the record does not re-derive.
+PROBE_REFERENCE_S = {"3.13": 22.12, "3.14": 22.40}
 
 
 def reference_work(job: dict, work: float) -> "float | None":
