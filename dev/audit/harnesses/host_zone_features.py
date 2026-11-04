@@ -21,6 +21,13 @@ the gate's own environment (``TZ=UTC``, ``HASTUB_TZ`` unset), the null row.
 A script ``tests/gate_lock.py needs-lease`` names ``lease`` measures the
 machine, so it runs alone after the pool; no script runs beside itself.
 
+``--golden-zones`` captures every golden payload (``env_drift.py --all``'s
+set) under each zone and compares it with the gate row's capture, printing
+one ``RESULT null.golden_zones.<zone>`` line per zone: golden.py's own drift
+check compares against a baseline captured in the same zone, so it cannot
+see a payload that moves with the zone. A ``tests/golden.py`` mutant is read
+this way.
+
 ``--mutant NAME`` (or ``all``) runs a detached worktree of ``HEAD``
 with one fixed site restored to its host-zone read, and reports each mutant
 KILLED when at least one zone is red, SURVIVED otherwise; the unmutated run is
@@ -31,6 +38,7 @@ executed headers.
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import re
 import subprocess
@@ -92,10 +100,20 @@ MUTANTS = {
         "    now = datetime(2026, 1, 5, 12, 0, 0, tzinfo=timezone.utc)\n",
         "    now = datetime(2026, 1, 5, 12, 0, 0)\n",
     ),
-    "golden_clock": (
+    # The coordinator scenarios' configured zone, inherited from HASTUB_TZ
+    # again: read by --golden-zones, since golden.py's own drift check
+    # compares against a baseline captured in the same zone.
+    "golden_scenario_zone": (
         "tests/golden.py",
-        "    dt_util.freeze(START.replace(tzinfo=timezone.utc))\n",
-        "    dt_util.freeze(START)\n",
+        "    dt_util.DEFAULT_TIME_ZONE = SCENARIO_ZONE\n",
+        "    dt_util.DEFAULT_TIME_ZONE = saved_zone\n",
+    ),
+    # The default-case contract reading the environment for its precondition
+    # again, as it did before round 4.
+    "ha_contract_default_zone": (
+        "tests/ha_contract.py",
+        "    assert _unconfigured_zone() is not None\n",
+        '    assert __import__("os").environ.get("HASTUB_TZ") is None\n',
     ),
     "nometer_month": (
         "tests/features.py",
@@ -156,6 +174,8 @@ def run_zone(tree: Path, script: str, zone: str) -> tuple[str, str, list[str]]:
 
 
 def run_tree(tree: Path, script: str, zones: tuple[str, ...], label: str) -> bool:
+    if script == "tests/golden.py":
+        return golden_zones(tree, zones, label)
     if script != "tests/features.py":
         rows = {(script, z): v for (script, z), v in
                 sweep(tree, [suite_command(script)], zones, len(zones)).items()}
@@ -170,6 +190,54 @@ def run_tree(tree: Path, script: str, zones: tuple[str, ...], label: str) -> boo
             red = True
             for name in fails[:12]:
                 print(f"  FAIL {name}")
+    return red
+
+
+# Every golden payload env_drift.py --all captures, as JSON on stdout.
+GOLDEN_CAPTURE = (
+    "import json, sys\n"
+    "sys.path[:0] = ['tests', 'custom_components']\n"
+    "import golden\n"
+    "p = {n: golden.capture(n, s) for n, s in golden.SCENARIOS.items()}\n"
+    "p.update((n, golden.capture_coordinator(c))"
+    " for n, c in golden.coordinator_scenarios().items())\n"
+    "p['config_flow'] = golden.capture_config_flow()\n"
+    "print(json.dumps(p, sort_keys=True, default=str))\n"
+)
+
+
+def golden_zones(tree: Path, zones: tuple[str, ...], label: str) -> bool:
+    """Whether any zone's golden payloads differ from the gate row's.
+
+    golden.py's own drift check compares a capture with a baseline captured
+    in the same zone, so a payload that moves with the zone on both sides
+    reads equal there; this compares each zone with the gate's environment.
+    Prints one RESULT per zone naming the payloads that moved.
+    """
+    def capture(zone):
+        proc = subprocess.run([sys.executable, "-c", GOLDEN_CAPTURE], cwd=tree,
+                              env=zone_env(tree, zone), capture_output=True,
+                              text=True, check=False, stdin=subprocess.DEVNULL)
+        if proc.returncode:
+            return None
+        return json.loads(proc.stdout.strip().splitlines()[-1])
+
+    rows = ("gate", *[z for z in zones if z != "gate"])
+    with ThreadPoolExecutor(max_workers=len(rows)) as pool:
+        got = dict(zip(rows, pool.map(capture, rows)))
+    if got["gate"] is None:
+        raise SystemExit("golden capture failed in the gate environment")
+    red = False
+    for zone in rows[1:]:
+        if got[zone] is None:
+            verdict = "fail(capture)"
+        else:
+            moved = sorted(k for k in set(got["gate"]) | set(got[zone])
+                           if got["gate"].get(k) != got[zone].get(k))
+            verdict = (f"pass:{len(got['gate'])} payloads equal to gate" if not moved
+                       else f"fail:{len(moved)}/{len(got['gate'])} {','.join(moved)}")
+        red = red or not verdict.startswith("pass")
+        print(f"RESULT {label}.golden_zones.{zone.replace('/', '_')}={verdict}", flush=True)
     return red
 
 
@@ -289,6 +357,8 @@ def main() -> int:
     ap.add_argument("--mutant", choices=[*MUTANTS, "all"])
     ap.add_argument("--suite", action="store_true",
                     help="every script tests/run.sh invokes, under the suite zones")
+    ap.add_argument("--golden-zones", action="store_true",
+                    help="every golden payload per zone, against the gate row")
     ap.add_argument("--jobs", type=int, default=3)
     args = ap.parse_args()
     zones = tuple(z for z in args.zones.split(",") if z)
@@ -296,6 +366,8 @@ def main() -> int:
         if args.zones == ",".join(ZONES):
             zones = SUITE_ZONES
         return 1 if suite_main(ROOT, zones, args.jobs) else 0
+    if args.golden_zones and not args.mutant:
+        return 1 if golden_zones(ROOT, zones, "null") else 0
     if not args.mutant:
         return 1 if run_tree(ROOT, args.script, zones, "null") else 0
     names = list(MUTANTS) if args.mutant == "all" else [args.mutant]

@@ -928,6 +928,11 @@ def coordinator_scenarios() -> dict[str, dict]:
     }
 
 
+#: Home Assistant's configured zone for every coordinator scenario: the zone
+#: the committed coord_* fixtures were recorded in.
+SCENARIO_ZONE = timezone.utc
+
+
 def capture_coordinator(config: dict) -> dict:
     """Everything the coordinator assembles and publishes, for one config.
 
@@ -940,15 +945,23 @@ def capture_coordinator(config: dict) -> dict:
     from homeassistant.util import dt as dt_util
     from heatpump_optimizer.coordinator import HeatPumpOptimizerCoordinator
 
-    # The instant START names, aware: the scenario's prices and weather are
-    # naive stamps production reads as UTC, and a naive freeze is handed out
-    # as wall time in the configured zone, which under Asia/Tokyo put the
-    # clock nine hours before the first price. Under UTC the two are one.
-    dt_util.freeze(START.replace(tzinfo=timezone.utc))
+    # Home Assistant's configured zone is an input of the installation the
+    # scenario describes, as its tariff is: a grid fee's peak hours and the
+    # energy totals' day are local, so the payload rightly moves with the
+    # zone. The fixtures were recorded for an installation configured in
+    # UTC, so the capture names that zone at this boundary instead of
+    # inheriting HASTUB_TZ: under America/New_York coord_grid_fee's forecast
+    # prices took the peak fee five hours early, and under Asia/Tokyo the
+    # naive START, read as Tokyo wall time, put the clock nine hours before
+    # the first price. In the scenario's zone START is the instant it names.
+    saved_zone = dt_util.DEFAULT_TIME_ZONE
+    dt_util.DEFAULT_TIME_ZONE = SCENARIO_ZONE
+    dt_util.freeze(START)
     try:
         payload = _capture_coordinator(config)
     finally:
         dt_util.freeze(None)
+        dt_util.DEFAULT_TIME_ZONE = saved_zone
     # Coordinator payloads mix strings, nulls and numbers, so the only
     # invariant cheap enough to hold everywhere is "no NaN". Infinity is
     # deliberately allowed: `peak_threshold_kw` publishes +inf as "no
