@@ -7,6 +7,8 @@
 #   bus.sh watch [--once] [--post] [--every <seconds>]          (orchestrator)
 #   bus.sh dispatch <pr> <head> <reviewer> [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>]
 #                   [--harness <path> | --harness-file <file>]
+#   bus.sh push-design <topic> <design.md>                      (designer)
+#   bus.sh push-design-verdict <topic> <verdict.md>             (design reviewer)
 #   bus.sh confirm <pr> <review commit>                         (orchestrator)
 #   bus.sh post <pr>                                            (orchestrator)
 #   bus.sh orphans [--min-age-h N] [--no-body] [--no-ancestry] [--no-content]
@@ -20,7 +22,10 @@
 # parent the previous tip -- the sha `git ls-remote` answered for the ref, never
 # FETCH_HEAD, which is per-worktree state any other fetch in the checkout may
 # overwrite between the fetch here and the read (see append_commit) -- so a
-# later round never needs a force-push. A
+# later round never needs a force-push. The two design steps (decision 0014)
+# write the same way: `design/<topic>` is the designer's note (design.md) and
+# `design-verdict/<topic>` the design reviewer's verdict (verdict.md), topic the
+# roster group's id; the verdict names the design tip it judged. A
 # crossed-out verdict stays in the ref's history; only the tip is posted.
 #
 # THE ORDERING. `dispatch` refuses a head that carries no
@@ -1454,13 +1459,74 @@ B
     && echo "$out" | grep -q '^review_packet self-test: [1-9][0-9]* checks, 0 failed$'
   expect "the packet renderer passes its self-test (each refusal signal, independence, byte identity)" $?
 
+  # The design steps (decision 0014): the same append-only writers, a verdict
+  # that must name the design tip it judged.
+  git -C "$W/seat" fetch -q origin 2>/dev/null
+  printf '# note\n' > "$W/dnote.md"
+  out=$(cd "$W/seat" && run push-design R10-G1 "$W/dnote.md"); rc=$?
+  d1=$(git -C "$W/origin.git" rev-parse refs/heads/design/R10-G1 2>/dev/null)
+  [ $rc = 0 ] && [ -n "$d1" ] && [ "$(git -C "$W/origin.git" show "$d1:design.md")" = "# note" ]
+  expect "push-design lands the note as design.md on design/<topic>" $?
+  out=$(cd "$W/seat" && run push-design 'bad topic' "$W/dnote.md"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "is not letters, digits"; expect "push-design refuses a topic outside the ref grammar" $?
+  printf 'Design review: approve %s\n- ok\n' "$d1" > "$W/dverd.md"
+  out=$(cd "$W/seat" && run push-design-verdict R10-G1 "$W/dverd.md"); rc=$?
+  v1=$(git -C "$W/origin.git" rev-parse refs/heads/design-verdict/R10-G1 2>/dev/null)
+  [ $rc = 0 ] && [ -n "$v1" ] && git -C "$W/origin.git" show "$v1:verdict.md" | head -n 1 | grep -qx "Design review: approve $d1"
+  expect "push-design-verdict lands verdict.md on design-verdict/<topic>" $?
+  printf 'Design review: approve %s\n' "$(printf 'b%.0s' $(seq 40))" > "$W/dverd2.md"
+  out=$(cd "$W/seat" && run push-design-verdict R10-G1 "$W/dverd2.md"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "moved under the review"; expect "a verdict naming a sha other than the design tip is refused" $?
+  printf 'Design review: maybe %s\n' "$d1" > "$W/dverd3.md"
+  out=$(cd "$W/seat" && run push-design-verdict R10-G1 "$W/dverd3.md"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "outside design-review.md's grammar"; expect "a verdict first line outside the grammar is refused" $?
+  out=$(cd "$W/seat" && run push-design-verdict R10-G9 "$W/dverd.md"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "no design/R10-G9"; expect "a verdict for a topic with no design ref is refused" $?
+
   [ -n "${BUS_KEEP:-}" ] && echo "kept $W" || rm -rf "$W"
   printf 'bus self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
 }
 
+topic_ok() { [[ ${1:-} =~ ^[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; }
+design_tip() { # topic -> the 40-hex tip of design/<topic> on the remote, or nothing
+  git ls-remote "$REMOTE" "refs/heads/design/$1" 2>/dev/null | awk 'NF { print $1; exit }'
+}
+one_file_tree() { # file name -> the tree of a commit holding the file as <name>, printed
+  local t gd tree
+  t=$(mktemp -d) || return 1
+  mkdir -p "$t/w" && cp "$1" "$t/w/$2" || { rm -rf "$t"; return 1; }
+  gd=$(git rev-parse --absolute-git-dir) || { rm -rf "$t"; return 1; }
+  tree=$(cd "$t/w" && export GIT_DIR="$gd" GIT_INDEX_FILE="$t/index" GIT_WORK_TREE="$t/w" \
+         && git add -A -f . && git write-tree) || { rm -rf "$t"; return 1; }
+  rm -rf "$t"; printf '%s\n' "$tree"
+}
+push_design() { # topic design.md -> the designer's note on design/<topic>
+  local topic=${1:-} f=${2:-} tree
+  topic_ok "$topic" || die "push-design: the topic '$topic' is not letters, digits, . _ -"
+  [ -s "$f" ] || die "push-design: no design note at '$f'"
+  tree=$(one_file_tree "$f" design.md) || die "push-design: could not build the note's tree"
+  append_commit design "$topic" "$tree" "design: $topic" || exit 1
+}
+push_design_verdict() { # topic verdict.md -> the reviewer's verdict on design-verdict/<topic>
+  local topic=${1:-} v=${2:-} first sha tip tree
+  topic_ok "$topic" || die "push-design-verdict: the topic '$topic' is not letters, digits, . _ -"
+  [ -f "$v" ] || die "push-design-verdict: no verdict file at '$v'"
+  first=$(head -n 1 "$v")
+  if [[ $first =~ ^Design\ review:\ approve\ ([0-9a-f]{40})$ ]] \
+     || [[ $first =~ ^Design\ review:\ revise\ ([0-9a-f]{40})\ [a-z-]+$ ]]; then sha=${BASH_REMATCH[1]}
+  else die "push-design-verdict: the first line is outside design-review.md's grammar: '$first'"; fi
+  tip=$(design_tip "$topic")
+  [ -n "$tip" ] || die "push-design-verdict: no design/$topic on $REMOTE to judge"
+  [ "$tip" = "$sha" ] || die "push-design-verdict: the verdict names $sha but design/$topic is at $tip; a design that moved under the review is a blocked verdict"
+  tree=$(one_file_tree "$v" verdict.md) || die "push-design-verdict: could not build the verdict's tree"
+  append_commit design-verdict "$topic" "$tree" "design verdict: $topic $first" || exit 1
+}
+
 case ${1:-} in
   push-verdict) shift; push_verdict "$@" ;;
+  push-design) shift; push_design "$@" ;;
+  push-design-verdict) shift; push_design_verdict "$@" ;;
   watch) shift; watch "$@" ;;
   dispatch) shift; dispatch "$@" ;;
   confirm) shift; confirm "$@" ;;

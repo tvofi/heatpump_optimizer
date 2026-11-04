@@ -54,7 +54,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`ci-watch.sh`](instruments/ci-watch.sh.md) — watches open PRs' check states and alerts only on NEW states (per-PR signature file)
 - [`ci_critpath.py`](instruments/ci_critpath.py.md) — one workflow run's critical path from its job and step timestamps (each job's queue, duration and longest step), its `needs:` read from the run's own head
 - [`cloud-setup.sh`](instruments/cloud-setup.sh.md) — the cloud seat environment's setup script (interpreter, CI-run pinning)
-- [`cloud_dispatch.py`](instruments/cloud_dispatch.py.md) — renders the whole cloud-runner trigger payload
+- [`cloud_dispatch.py`](instruments/cloud_dispatch.py.md) — renders the whole cloud-runner trigger payload (reviewer, fixer, probe, designer, design-reviewer)
 - [`cloud_relay.sh`](instruments/cloud_relay.sh.md) — the orchestrator's half of a cloud reviewer's return
 - [`codeql-triage-poll.sh`](instruments/codeql-triage-poll.sh.md) — polls until GitHub attaches the #1769 evidence-alerts, dismisses them, re-runs CodeQL
 - [`daemonize.py`](instruments/daemonize.py.md) — detaches one long-running instrument from the session that started it

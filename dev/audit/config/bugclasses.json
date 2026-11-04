@@ -1196,7 +1196,8 @@
       "RCA-1567-unpinned-installs",
       "RCA-1589-policy-docs-red",
       "RCA-R8-I3-1516",
-      "R10-RCA-2671-WAVE-SCRIPT"
+      "R10-RCA-2671-WAVE-SCRIPT",
+      "R10-RCA-PREPR-HEAD-GRADERS"
     ],
     "rca_planned": [],
     "trigger": {
@@ -4599,6 +4600,22 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md",
       "doc": [
         "dev/audit/rca/R10-RCA-CLOSURE-ARGV.md"
+      ]
+    },
+    "R10-RCA-PREPR-HEAD-GRADERS": {
+      "class": "I3",
+      "level": "instance-or-process",
+      "subject": "#2916 red trigger: policy-docs and env-matrix graded f008c2b75's CORPUS_EXCLUDED edit with the base's policy_lint.mjs (named-docs beatd_shims/git) while prepr.sh and ci_predict.py were green; 8 round-10 PRs (#2207 #2366 #2529 #2609 #2636 #2671 #2739 #2916) red on a pinned grader the branch edited, base copy red and head copy green on CI's tree",
+      "trigger": "2 (red check): CI code run 40732339443, governance / policy-docs and governance / env-matrix",
+      "date": "2026-10-28",
+      "status": "proposed",
+      "parts_missing": [],
+      "process_state": "(c) prepr.sh steps 3-4 and 3f3 grade the head's copy (push-to-main's direction); ci_predict.py's agreement arm (#2707) graded the base's copy keyed on lane_files(), the agreement lane's loads, and no arm ran policy_lint.mjs, check-wave-script.mjs or field_coverage.mjs that way; the named-docs refusal directed the fixer to the pinned Set",
+      "countermeasure": "built: ci_predict.py graders arm, keyed on each governance.yml job that restores its check source (restore_jobs) by the diff's paths that job's restore pathspecs cover and the base tip holds (restored_hit), running every program the job runs (pinned_runs, less the agreement arm's two and policy_lint.mjs --report) on CI's merge tree, jobs side by side; the agreement arm re-keyed the same way and lane_files() deleted; no load grammar (review round 4's re-cut); opt-in under --record-self-tests (prepr.sh step 6d), so body_push.sh stays seconds: 57 s per prepr run weighted over 584 round-10 merges against 85 s expected defect cost per PR with the fixer round; the named-docs message now names corpus_excluded.json",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md"
       ]
     },
     "R10-RCA-FRICTION-RESIDUE": {

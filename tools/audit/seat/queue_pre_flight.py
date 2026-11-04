@@ -46,7 +46,8 @@ train's order:
              which would refuse the train's `git worktree add -B` (recarry);
              the holder's path is reported so the queue entry can be re-pointed;
              passed under the train's `--free-holders` when `Train.freeable`
-             clears the holder (clean, at origin/<branch>), which it detaches;
+             clears the holder (clean, at origin/<branch> or an ancestor of it),
+             which it detaches;
   policy     `Train.policy_gate`, the train's step-5 / batch-admission early
              refusal, verbatim;
   budget     `Train.raise_hold`, the train's approve-step reading, verbatim: a
@@ -323,6 +324,8 @@ def _self_test() -> int:
                 return 0, world.get("carry", "CARRY: yes only automatic merges")
             if argv[:2] == ["git", "fetch"]:
                 return 0, ""
+            if "--is-ancestor" in argv:  # Train.freeable's P184 read: is the holder's HEAD inside origin/<br>
+                return (0 if world.get("behind") else 1), ""
             if "merge-base" in argv:
                 if world.get("no_base"):
                     return 1, "fatal: no merge base"
@@ -428,6 +431,11 @@ def _self_test() -> int:
           go({**HELD, "holder_status": "?? note.md\n"}, free_holders=True)[:2] == ("PARK", "recarry"))
     check("... and one whose HEAD is not origin/<branch> still PARKs (unpushed work)",
           go({**HELD, "origin_tip": "2" * 40}, free_holders=True)[:2] == ("PARK", "recarry"))
+    # P184 (s41 refused 45d08312, an ancestor of origin's 8a133f39): a clean
+    # holder BEHIND origin/<branch> loses nothing, so it passes; the arm above
+    # (HEAD 1.., origin 2.., not an ancestor) is its parking twin.
+    check("... and one whose HEAD is an ancestor of origin/<branch> passes (P184: nothing origin lacks)",
+          go({**HELD, "origin_tip": "2" * 40, "behind": True}, free_holders=True) == ("PASS", "", ""))
     check("a worktree list that cannot be read PARKS, named as unreadable",
           go({"wt_fail": True})[:2] == ("PARK", "recarry"))
     POL = {"files": ["custom_components/x.py", ROW, "dev/governance/roles/fixer.md"]}

@@ -974,6 +974,11 @@ def _self_test() -> int:
     check("set-stage accepts a classified live-claim stage (null control)",
           edit("set-stage", "R9-B", "review") == 0
           and branch_roster()["groups"][1]["resume"]["stage"] == "review")
+    check("set-stage accepts the design steps' stages (decision 0014)",
+          edit("set-stage", "R9-B", "design") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "design"
+          and edit("set-stage", "R9-B", "design-review") == 0
+          and branch_roster()["groups"][1]["resume"]["stage"] == "design-review")
     check("set-stage --at-sha",
           edit("set-stage", "R9-A", "done", at_sha="a" * 40) == 0
           and branch_roster()["groups"][0]["resume"]["commit"] == "a" * 40)

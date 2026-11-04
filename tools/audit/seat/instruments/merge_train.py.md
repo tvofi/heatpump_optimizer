@@ -15,10 +15,13 @@
   on the new main. An owner approval GitHub already holds at the live head is
   the owner's, with nothing re-posted (GitHub re-anchors one across a clean
   base merge: #2209). `--bot-prs` merges the open record/autofix pull request
-  in the train's own sequence behind record_row.py's identical guard;
-  `--pre-flight` runs `queue_pre_flight.py` first and PARKs a failing entry;
-  `--free-holders` detaches a clean, pushed holder worktree. Every refused
-  merge attempt is logged in GitHub's words; the recarry worktrees a run made
+  in the train's own sequence behind record_row.py's identical guard, after a
+  critical-path entry rather than before it, and once more after a refused
+  merge attempt; `--pre-flight` runs `queue_pre_flight.py` first and PARKs a
+  failing entry; `--free-holders` detaches a clean holder worktree with no
+  commit origin lacks. Every refused merge attempt is logged in GitHub's
+  words, and a base-branch policy refusal parks the entry with the reason
+  read from the merge state; the recarry worktrees a run made
   are removed before its closing line. Every `gh api` GET and `gh pr view`
   it or `queue_pre_flight.py` makes is under `gh_read.py`'s read rule, each
   settle logged.
