@@ -214,6 +214,9 @@ def roster_lane(group: dict) -> str:
     k = group.get("kind")
     if g in ("R10-ARCH-DOCS", "R10-I5-DOCS"):
         return "Docs"
+    import os as _os
+    if _os.environ.get("SLIP_DOCS") and group.get("class") == "docs":
+        return "Docs"
     if k in ("instrument", "policy") or g.startswith(
             ("R10-TICK", "R10-TRAIN", "R10-REF", "R10-D15", "R10-PREPR", "R10-GATE",
              "R10-STALE", "R10-PRE-EDIT", "R10-POLICY", "R10-I1", "R10-ARCHSCORE",
@@ -409,7 +412,8 @@ def held_open(group: dict, durations: dict) -> tuple[int, str]:
     if rec is None:
         return carry, f"{carry} carries, none measured as answered"
     added = max(0, carry - int(rec["carries"]))
-    return int(rec["open"]) + added, (f"{rec['open']} open carries at measurement"
+    # seat-slip correction: a carry dropped since measurement cannot still be open
+    return min(int(rec["open"]), carry) + added, (f"{rec['open']} open carries at measurement"
                                       + (f" + {added} appended since" if added else ""))
 
 
