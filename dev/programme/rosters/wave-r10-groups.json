@@ -16654,6 +16654,42 @@
     "stage": "in-progress"
    },
    "brief": "Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. Handoff is on handoff/r10-rca-sav-estimate; open its pull request only after the hotfix merges, with the census re-run at that head."
+  },
+  {
+   "group": "R10-FLY-ARCHSCORE-STMT-PACKING",
+   "lane": "F",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument-blind-spot",
+   "severity": "low",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/archscore/score.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one statement, so on that diff 6 of the 7 statements behind its score movement were packing and the plain spelling read about a seventh of it. A seat can lower the metric by packing statements with nothing improved. Make the count independent of that spelling under tools/audit/archscore/, enumerate the sibling packing shapes, and re-measure the calibration. Control: packed and plain spellings of one change read the same, and an untouched tree does not move."
   }
  ]
 }
