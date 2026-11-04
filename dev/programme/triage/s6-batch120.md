@@ -81,7 +81,7 @@ Instances:
   `cloud-handoff-failed`, and a failed body-only run's key takes the body sha. The relay's log holds no
   repeat: 6 parsed refusals, 0 of them the same topic, sha and class (Python over `is ahead of` lines
   followed by a `REFUSE` line).
-- **R10-HANDOFF-PATH carry 8 owns the rest of that key:** `(topic, handoff sha, body sha)`, so a body
+- **R10-HANDOFF-PATH carry 9 owns the rest of that key:** `(topic, handoff sha, body sha)`, so a body
   repair re-triggers it, and the reason kept. It is not built.
 - **The tracked opener has no update arm.** `open_driver.py` line 11: "The OPEN arm only:
   cloud_relay.sh's handoff arm owns update_pr.sh." So this retry exists only in the session-local
@@ -99,7 +99,7 @@ Instances:
   handoff sha**.
   The filed key's handoff half blocks all 22. Its body half would release only those whose body moved:
   not read, since the body refs' history for these topics was not traced and most `.why` reasons were
-  never kept (15 rows of 94, carry 8's "unrecoverable").
+  never kept (15 rows of 94, carry 9's "unrecoverable").
 - **The same-sha retries inside the driver.** From `driver4.log`, a retry after a refusal at the same
   sha, by class of the earlier refusal, with its minutes:
 
@@ -120,7 +120,7 @@ Instances:
     `r10-replay-real-day` retries that got through still get through (the null control).
 
 Cost:
-- About 10 lines in `handoff_arm` of `tools/audit/seat/cloud_relay.sh`, beside carry 8's edit to the same
+- About 10 lines in `handoff_arm` of `tools/audit/seat/cloud_relay.sh`, beside carry 9's edit to the same
   key, and three fixture arms. No new file, check or API call, in a group not yet started
   (`R10-HANDOFF-PATH`, stage `not-started`, no `after`).
 - `cloud_relay.sh` is not a policy file, so it has no `policy_lint.mjs --budgets` row.
@@ -130,7 +130,7 @@ Cost:
 Binding:
 - **Why ACCEPT.** This is the finding that changes a later stage: the design for the beat folds the
   driver's retry semantics into `open_driver.py` (design note `21210036`, §7 item 20), which has no update
-  arm, and R10-HANDOFF-PATH carry 5 names the driver, so the relay's half is on nobody's list
+  arm, and R10-HANDOFF-PATH carry 6 names the driver, so the relay's half is on nobody's list
   (`finding-propagation.md`). The measured benefit is the
   22.
 - **Why not the filed form.** The benefit it names is about 36 min in 5 days, and the key it names blocks
@@ -140,8 +140,10 @@ Binding:
   without a ref moving. Today a key in `cloud-handoff-failed` never reruns (`cloud_relay.sh` line 480), and
   `open_driver.py` is "the OPEN arm only", so once the session-local driver retires nothing retries a
   refused update. That driver's update arm got 22 of its 45 runs through at the same handoff sha after the
-  relay had refused it. In `handoff_arm`, with carry 8's reason kept: a refusal whose step is `unpinned
-  sites`, `carry` or another body-content step stays recorded until the body ref moves (carry 8's key). Any
+  relay had refused it. In `handoff_arm`, with carry 9's reason kept: a refusal whose step is `unpinned
+  sites`, `carry` or another body-content step stays recorded until the body ref moves (carry 9's key). This narrows carry 9's
+  sentence "Only content refusals (prepr REFUSE) stay recorded failed" by splitting body-content refusals
+  from retryable steps; it adds no second rule. Any
   other refusal, such as `ancestry reds` or `ci predict`, reruns on a backoff of at least 30 min, at most
   three tries, then stays as today's OWED `handoff-update` line with its reason. Fixture arms: (a)
   `ancestry reds`, then clean, updates on the retry; (b) `unpinned sites` with the same body does not rerun
