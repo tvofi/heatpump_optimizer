@@ -101,6 +101,18 @@ def deferral(ids: list) -> str:
     return f"run(s) {ids} at this head are still being judged; their gate decides"
 
 
+OWN_PENDING = ": PENDING (this run)"
+
+
+def lagging(why: list[str]) -> bool:
+    """Every reason is one of this run's own required jobs read as unfinished.
+    `gate` needs every unit of its own run (through pr-contract), so such a job
+    has finished and the jobs listing lags it (run 41870314676: closures done
+    17:36:51Z, read pending at 17:37:43Z). judge() re-reads it, bounded; it
+    never reads as success, so the bound exhausted is still a FAIL."""
+    return bool(why) and all(w.endswith(OWN_PENDING) for w in why)
+
+
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     """The 4.1 predicate over what gate.py read (gate_model.gate's `api` shape):
     prelude, jobs (this run's, latest), runs_at_head (every OTHER run here,
@@ -165,7 +177,7 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
             if st is None:
                 bad.append(f"{unit} / {n}: ABSENT ({where})")
             elif st[0] != "completed":
-                bad.append(f"{unit} / {n}: PENDING ({where})")
+                bad.append(f"{unit} / {n}: PENDING ({where})" if src is not me else f"{unit} / {n}{OWN_PENDING}")
             elif st[1] != "success":
                 bad.append(f"{unit} / {n}: {st[1].upper() if st[1] == 'skipped' else st[1]} ({where})")
     return not bad, sorted(set(bad), key=bad.index)
@@ -208,7 +220,8 @@ def reaches_custom_components(base: str, head: str) -> bool:
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
           now=time.monotonic) -> tuple[str, list[str], list[str]]:
     """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
-    that only defers is never published while the bound allows a re-read."""
+    that only defers, or only waits on this run's own lagging jobs, is never
+    published while the bound allows a re-read."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
     t0 = now()
@@ -216,7 +229,7 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         api = read_api(ctx, claim, cc, get)
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
-        if ok or why != [deferral(waiting)] or now() - t0 + POLL_S > GATE_WAIT_MAX_S:
+        if ok or (why != [deferral(waiting)] and not lagging(why)) or now() - t0 + POLL_S > GATE_WAIT_MAX_S:
             break
         sleep(POLL_S)
     owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
@@ -454,6 +467,36 @@ def self_test() -> int:
           busy({**ctx, "run_id": 99}, [{**r, "title": r["display_title"],
                                         "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in r["jobs"]}}
                                        for r in reds + [rerun]]), [])
+    # R10-HOTFIX-GATE-STALE-JOBS: this run's own jobs read stale, then fresh.
+    def own(*frames):
+        naps = []
+
+        def get(path, params=None):
+            if sum(naps) > 2 * GATE_WAIT_MAX_S:
+                raise TimeoutError("waited past twice the bound")
+            if path.endswith("/runs/100/jobs"):
+                return 200, {}, {"jobs": frames[min(len(naps), len(frames) - 1)]}
+            return fake()(path, params)
+        return get, naps, naps.append, lambda: sum(naps)
+
+    def jset(**over):
+        return [dict(j, **over[j["name"]]) if j["name"] in over else j for j in green]
+    lag = {"status": "in_progress", "conclusion": None}
+    stale = jset(**{"tests / mutation": lag, "tests / closures": lag})
+    get, naps, nap, now = own(stale, green)
+    check("run 41870314676 shape: own jobs read in_progress, then completed -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(**{"tests / mutation": lag, "tests / closures": {"conclusion": "failure"}}), green)
+    out, why, _ = judge(ctx, claim, get, cc, nap, now)
+    check("null: a unit really failed beside a lagging one stays red, no wait",
+          (out.startswith("FAIL"), "tests / closures: failure (this run)" in why, naps), (True, True, []))
+    get, naps, nap, now = own(stale)
+    out = verdict(ctx, get, nap, now)
+    check("null: own jobs still pending past the bound stay red, the wait inside the bound",
+          (out, bool(naps), sum(naps) <= GATE_WAIT_MAX_S), ("FAIL tests / mutation: PENDING (this run)", True, True))
+    get, naps, nap, now = own(jset(**{"tests / browser": {"conclusion": "skipped"}}), green)
+    check("null: a skipped own unit is unchanged, no wait",
+          (verdict(ctx, get, nap, now), naps), ("FAIL tests / browser: SKIPPED (this run)", []))
     import re
     ci = (HERE.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
     m = re.search(r"\n  gate:\n(?:    .*\n)*?    timeout-minutes: (\d+)\n", ci)
