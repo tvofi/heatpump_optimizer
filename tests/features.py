@@ -77060,4 +77060,78 @@ R.check(
 )
 
 
+# R10-GRADE-DRIVERS: value checks on the boundaries of the driver arithmetic.
+from heatpump_optimizer.const import SCORE_ALPHA as _DG_ALPHA  # noqa: E402
+
+_dg_nan = float("nan")
+_dg_zero_h = _gd_mod.tally({}, 1.0, 5.0, 1.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: a zero-hour interval books no spot time",
+    "spot_sum" not in _dg_zero_h and "spot_h" not in _dg_zero_h,
+    f"{_dg_zero_h}",
+)
+_dg_nan_spot = _gd_mod.tally({}, 1.0, 5.0, _dg_nan, 1.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: a non-finite spot books no spot time",
+    "spot_sum" not in _dg_nan_spot and "spot_h" not in _dg_nan_spot,
+    f"{_dg_nan_spot}",
+)
+_dg_first = _gd_mod.tally({}, 1.0, 5.0, 2.0, 1.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: the first interval is at the running mean, not below it",
+    "kwh_lo" not in _dg_first and _dg_first["spot_h"] == 1.0,
+    f"{_dg_first}",
+)
+_dg_empty = _gd_mod.day_drivers({}, 2.0, 50.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: an empty book splits a positive sample into zeros",
+    _dg_empty == {"cheap_hours": 0.0, "dear_hours": 0.0},
+    f"{_dg_empty}",
+)
+_dg_book = {"kwh": 2.0, "sek": 2.0, "kwh_lo": 1.0, "sek_lo": 0.5}
+_dg_neg = _gd_mod.day_drivers(_dg_book, 1.0, -10.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a negative sample leaves both drivers at 0",
+    _dg_neg == {"cheap_hours": 0.0, "dear_hours": 0.0},
+    f"{_dg_neg}",
+)
+_dg_zero = _gd_mod.day_drivers(_dg_book, 1.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a zero sample leaves both drivers at 0",
+    all(v == 0.0 for v in _dg_zero.values()),
+    f"{_dg_zero}",
+)
+_dg_neg_total = _gd_mod.day_drivers({"kwh": 1.0, "sek": 2.0}, 1.0, 50.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a day that saved nothing scales to 0",
+    all(v == 0.0 for v in _dg_neg_total.values()),
+    f"{_dg_neg_total}",
+)
+_dg_d: dict[str, float] = {}
+_dg_seed = _gd_mod.fold(_dg_d, None, _dg_book, 1.0)
+_dg_d2 = dict(_dg_d)
+_dg_next = _gd_mod.fold(_dg_d2, 40.0, _dg_book, 1.0)
+_dg_blend = (1 - _DG_ALPHA) * 40.0 + _DG_ALPHA * _dg_seed
+R.check(
+    "R10-GRADE-DRIVERS fold: None seeds the grade, a held grade blends by SCORE_ALPHA",
+    abs(_dg_next - _dg_blend) < 1e-9
+    and abs(_dg_seed - sum(_dg_d.values())) < 1e-9
+    and abs(sum(_dg_d2.values()) - _DG_ALPHA * _dg_seed) < 1e-9,
+    f"{_dg_seed} {_dg_next} {_dg_d} {_dg_d2}",
+)
+_dg_held: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held, 5, lambda _s: True)
+_dg_held_b: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held_b, {"cheap_hours": 9.0}, lambda _s: False)
+_dg_held_c: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held_c, {"cheap_hours": 9.0}, lambda _s: True)
+R.check(
+    "R10-GRADE-DRIVERS restore: adopts only a mapping the store admitted",
+    _dg_held == {"cheap_hours": 1.0}
+    and _dg_held_b == {"cheap_hours": 1.0}
+    and _dg_held_c == {"cheap_hours": 9.0},
+    f"{_dg_held} {_dg_held_b} {_dg_held_c}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
