@@ -24997,6 +24997,15 @@ R.check(
     "an inverter runs most efficiently slow",
 )
 R.check(
+    "a target the plan calls off asks the map for nothing (D8-s1-01)",
+    _fm.recommend(0.07, 20.0, 120.0) is None
+    and not _fm.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm.recommend(0.11, 20.0, 120.0) is not None,
+    "0.07 kW is under MIN_RUNNING_DRAW_KW: the plan runs no pump on that step, "
+    "so no frequency is recommended and no exhaustion is reported; 0.11 kW, "
+    "a step it runs, still gets an answer (the null)",
+)
+R.check(
     "above every bucket's reach the answer is TRUE flat out, and says so",
     _fm.recommend(50.0, 20.0, 120.0) == 120.0
     and _fm.evidence_exhausted(50.0, 20.0, 120.0)
@@ -45557,6 +45566,26 @@ R.check(
     "storage off the table",
 )
 
+# -- a step the plan calls off heats no tank (D8-s1-01, #2238 sweep P2) --
+def _t2_buf_heating_after(power_kw):
+    c = _t2_coord()
+    c._current_action = {"power": power_kw}
+    dt_util.freeze(_T2_BASE)
+    try:
+        _asyncio.run(c._async_learn_buffer_cooling(48.0))
+    finally:
+        dt_util.freeze(None)
+    return c._buffer_heating_since_sample
+
+
+R.check(
+    "the buffer learner reads heating from the plan's running rule",
+    _t2_buf_heating_after(0.07) is False and _t2_buf_heating_after(0.5) is True,
+    f"0.07 kW -> {_t2_buf_heating_after(0.07)}, 0.5 kW -> "
+    f"{_t2_buf_heating_after(0.5)}: a 0.07 kW action is a step the plan runs "
+    "no pump at, so the interval is a quiet one",
+)
+
 # -- the six sample-quality guards ---------------------------------------
 _t2_buf_first = _t2_coord()
 dt_util.freeze(_T2_BASE)
@@ -57188,17 +57217,28 @@ R.check(
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
 )
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW  # noqa: E402
+
 # The two bounds are exclusive at the floor and inclusive at the minimum on
-# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
-# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
-# exactly at the entity's minimum is in the compressor's running range. A
-# flipped bound is visible only at those two inputs, and no other driver feeds
-# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
-# drives (`pin-killed` measured it), and this check is their killer.
+# purpose: the floor is the plan's own running rule (`planned_draw_runs`, a
+# step runs above `MIN_RUNNING_DRAW_KW`, the same rule `FrequencyMap.recommend`
+# reads), and a reading exactly at the entity's minimum is in the compressor's
+# running range. A flipped bound is visible only at those two inputs, and no
+# other driver feeds one: D7-s2-01's `CMP_BOUND` site on the minimum survives
+# every driver the mutation table drives (`pin-killed` measured it), and this
+# check is its killer.
 R.check(
     "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
-    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
-    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
+    _p8s_watch(MIN_RUNNING_DRAW_KW, 45.0) == [False]
+    and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(MIN_RUNNING_DRAW_KW, 45.0)}, "
+    f"minimum -> {_p8s_watch(2.0, 20.0)}",
+)
+R.check(
+    "a step the plan calls off is not watched (D8-s1-01, #2238 sweep P2)",
+    _p8s_watch(0.07, 45.0) == [False],
+    f"0.07 kW commanded -> {_p8s_watch(0.07, 45.0)}: the plan runs no pump "
+    "there, so a 0 Hz reading is a pump at rest, not a write path ignored",
 )
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
