@@ -299,6 +299,18 @@ scope_reason() {
   fi
 }
 
+# A script that exits non-zero without ever printing one of the summary lines
+# the suite's scripts end on (`ALL n X PASSED`, `n of m X FAILED`, `ALL n
+# GOLDEN SCENARIOS UNCHANGED`, `ALL EDGE CASES PASS`, `n FAILURES`, a ratchet's
+# `REFUSE`, ...) crashed rather than failed a check: a host-dependent crash
+# (entities.py at its stdlib sampler on macOS hid 41% of its checks for 19
+# PRs) must not read as a failed check. Reported in the lane report, where the
+# log is in hand; a serial GATE_JOBS=1 run streams and keeps no log.
+SUMMARY_LINE='(PASSED|FAILED|UNCHANGED|ALL EDGE CASES PASS|[0-9]+ FAILURES|REFUSE|closure: committed closures)'
+ended_before_summary() {
+  ! grep -Eq "$SUMMARY_LINE" "$1"
+}
+
 # One test script. In lane mode its output goes to a file and is replayed
 # later, in one piece; serially it streams, exactly as it always did. Either
 # way the exit status and the wall-clock time land in the lane's manifest,
@@ -794,7 +806,13 @@ if [ "$JOBS" -gt 1 ]; then
       esac
       echo "########## $label ##########"
       cat "$WORKDIR/$id.log"
-      [ "$rc" -ne 0 ] && echo ">>> FAILED: $label"
+      if [ "$rc" -ne 0 ]; then
+        if ended_before_summary "$WORKDIR/$id.log"; then
+          echo ">>> ENDED BEFORE ITS SUMMARY: $label (exit $rc; last line reached: $(grep -v '^[[:space:]]*$' "$WORKDIR/$id.log" | tail -n 1 | cut -c1-200))"
+        else
+          echo ">>> FAILED: $label"
+        fi
+      fi
     done < "$WORKDIR/$lane.manifest"
   done
 fi
