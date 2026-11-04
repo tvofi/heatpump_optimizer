@@ -1,0 +1,19 @@
+Fix review: blocked e5381d941c448e63fd3a6215378e0d3adb53e3bb ci-red: gate concluded cancelled at the head, classify exits 1 (RED)
+
+bus-nonce: d6077f0b9c45b100e27312b6913f98c3
+
+## Block
+`merge_train.py classify e5381d941c448e63fd3a6215378e0d3adb53e3bb --pr 3204` printed `RED ... pending: none red: gate` on four polls over about 12 min. The `gate` check run 126754778155 (run 41878084037, "CI edit") concluded `cancelled` at 17:53:38Z with no output. Sibling run 41878084088 ("CI code") was still in_progress at my last poll and showed no gate job. `pr-contract` is skipped. I read a cancelled gate as unmeasured rather than as a defect in the diff, but the gate is a required context and RED is not mergeable. A re-run of the cancelled gate on this head, green, clears the block; the content below needs no rework. This reads as an infrastructure cancellation, so the body owes no root-cause answer for it.
+
+## Evidence
+- Head measured: e5381d941c448e63fd3a6215378e0d3adb53e3bb (ev/HEAD.txt). Diff vs merge base is two files: dev/programme/triage/s6-batch118.md (108 lines) and dev/programme/delivery/3204.md (1 line). No production code, so no mutation proof applies; VERSION, manifest and notes untouched.
+- `git merge-tree --write-tree origin/main HEAD`: clean, tree a2ab69d7 (ev/merge-tree.txt). Role contracts on main unchanged since the merge base.
+- Triage grammar: one `## P382` entry with Verdict (ACCEPT), Source, Instances, Cost, Binding. ACCEPT destination R10-TICK-LEVELS exists on origin/handoff/audit-r10-roster (wave-r10-groups.json); `roster_edit.py set-files` exists. Carry text cites `triage: dev/programme/triage/s6-batch118.md#P382`.
+- Re-derived: `git ls-remote origin 'refs/heads/handoff-wip/*'` = 76 (ev/wip-count.txt). `BLOCKED.md` is held by exactly two tips: r10-rca-ci-critpath-3 (tip 17:10:11Z, dispatch 17:29:42+01:00 = 16:29:42Z, so owed: matches) and r10-closeout-cleanup (tip 13:18:46Z, dispatch 15:25:52Z, clear: matches). `git grep 'BLOCKED\.md' origin/main -- tools dev/governance .claude` is empty. `grep -c BOOTSTRAP` on tools/pr/ci_predict.py at main reads 0. orchestrator_tick.py is 4352 lines on main, 4707 at d7e67e0d7; `_seat_on` is at 827 there. cloud_relay.sh lines 610-618 hold the handoff-wip move counted as a return. tick_loop.sh line 54 states the 300 s default.
+- Arithmetic: the five priced lags sum to 8 h 12 m, minus 5 x 5 m = 7 h 47 m, as stated. The seven sum to 20 h 54 m using 12 h 42 m for DEPS and MACHINERY; the body says 12 h 45 m, quoted from the root-cause record.
+- Not re-derived: ledger line numbers and stop/answer timestamps (seat-ledger.md), the 776 fires in cloud-sessions.tsv, and the root-cause record's line 128 are out of tree and unreachable from this seat.
+- CI (cheap checks green): tests/closures, closure-scope, briefs, fast (3.14), mutation, arch-instrument, arch-score, budget-raise-gate, delivery-status, policy-docs, env-matrix, hassfest, CodeQL success. nightly-status failure grades main, and the diff reaches none of what it reads.
+
+## Findings
+- Residual: the ruling cites `blind_spots.py` ("has no such arm", and the orchestrator's stand-in arm) and no such file exists in the tree on main or the roster ref; `git ls-tree -r --name-only origin/main | grep blind_spots` is empty. A reader cannot resolve the claim, and the carry's last paragraph points the orchestrator at a file that is not there. Name the real instrument or say it is out of tree. Carry: R10-TICK-LEVELS
+- Residual: the ruling's ledger-derived instance table (seven lags, 20 h 54 m) has no in-tree enumerator, so it rests on the orchestrator's out-of-tree ledger; writing-for-agents requires the enumerator beside a figure whose corpus is not in the tree. Carry: dismissed: the ruling names the ledger by file and line, and the table's arithmetic re-derives; an enumerator cannot exist for an out-of-tree corpus
