@@ -1,6 +1,0 @@
-== c1
-24.327 [('refresh', 0.0, ''), ('prelude', 0.43, ''), ('tests / closure-scope', 0.45, ''), ('tests / closures', 23.44, 'P')]
-== c2
-24.193 [('prelude', 0.43, ''), ('validate / validate-hacs', 0.53, ''), ('tests / closures', 23.23, 'P'), ('tests / closures-autofix', 0.0, '')]
-== mix
-26.102 [('refresh', 0.53, ''), ('prelude', 0.37, ''), ('validate / validate-hacs', 0.5, ''), ('tests / closures', 23.33, 'P'), ('tests / ci-ratchet', 1.37, '')]
