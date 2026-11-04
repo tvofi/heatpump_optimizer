@@ -52,9 +52,14 @@ the work. Section 2b covers it.
   added. Summed script time was 1824 s against 3137 s, ×1.72. Every one of the 14 scripts
   of at least 10 s was slower, by a ratio of 1.26..3.09 (replay step 5). For example,
   `features.py` took 359 s against 673 s, and `stress.py` 187 s against 367 s. Neither log
-  prints a CPU model, so the host class has no name here. The runner image does not separate
-  the classes. The fast (3.14) jobs of runs 3770..4116 all ran image 20261025.179.1, at
-  17.7..34.9 min.
+  prints a CPU model, so the host class has no name here. This per-script comparison
+  crosses an image change: run 4009 ran image 20261025.179.1 and run 4128, the only
+  fast (3.14) job on image 20261101.186.1, ran that one, so the ×1.72 exhibit is confounded
+  with the image and by itself does not separate host from image. The claim that the image
+  does not separate the classes rests on the wider set: the fast (3.14) jobs of runs
+  3770..4116 all ran image 20261025.179.1, at 17.7..34.9 min, and run 4035 of that image
+  took 27.3 min against run 4009's 20.4 min. No per-script log was kept for run 4035, so
+  the same-image slow comparison is by job minutes only.
 - **The lanes are bimodal, and the 8-run median flips with the mixture.** In the 29 graded
   runs of `runs.json`, `tests / closures` took either 18.6–29.3 min or 33.7–40.0 min.
   `tests / fast (3.14)` was split the same way, at about 18–25 and 30–35 min. Replay step 2
