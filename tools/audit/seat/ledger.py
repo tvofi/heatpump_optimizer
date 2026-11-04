@@ -104,6 +104,8 @@ KINDS = {
     "design-build": "derived", "review-owed": "derived",
     "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived",
+    "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
+    "red-unowned": "derived", "body-ahead": "derived", "fire-owed": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }

@@ -124,6 +124,10 @@ SEAT = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
 STUCK_FACTOR = 2  # a lane pending past this many critical-path medians is stuck (ETA and WAITING share it)
+RECUT_BLOCKED = 3          # the owner's three-round rule: the third blocked verdict owes a re-cut
+SEAT_WINDOW_MIN = 120      # "a seat is on it": a fire or a handoff ref move inside this window
+FIRE_GRACE_MIN = 15        # a rendered payload this old with no FIRED line is FIRE-OWED
+FIRED_STAMP = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d(?::\d\d)?Z?)")
 GATE_CONTEXTS = {"gate", "pr-contract"}  # the contexts an early-gate race reddens
 STALL_MINUTES = 90  # P328: p95 dispatch-to-verdict is 70 min; 90 fires on ~2.6% of reviews
 #: Per merge_train.py (its self-test pins the two equal): under the umbrella
@@ -245,6 +249,12 @@ def _module(name: str, *candidates: str):
 mt = _module("merge_train_tick", "tools/audit/seat/merge_train.py")
 
 
+def verdict_kind(line: str, head: str) -> "str | None":
+    """'merge' or 'blocked' when the approver verdict line names exactly `head`."""
+    m = re.match(r"^Fix review: (merge|blocked) ([0-9a-f]{40})(?: |$)", line)
+    return m.group(1) if m and m.group(2) == head else None
+
+
 class Tick:
     """One heartbeat. Every read goes through the injected runners, so the
     self-test drives every arm offline against stubbed gh/git/pgrep."""
@@ -262,7 +272,9 @@ class Tick:
                  bus_state: str | None = None,
                  now: datetime.datetime | None = None,
                  gh=None, git=None, proc=None, bus=None, carry=None,
-                 carry_last: int = CARRY_LAST) -> None:
+                 carry_last: int = CARRY_LAST, fired_log: "str | None" = None,
+                 payload_dir: "str | None" = None) -> None:
+        self.fired_log, self.payload_dir = fired_log, payload_dir
         self.repo, self.checkout = repo, checkout
         self.queues = ([queue] if isinstance(queue, str) else list(queue or []))
         self.policy_state = policy_state
@@ -555,7 +567,7 @@ class Tick:
         S = "PRS"
         code, o = self.gh(["pr", "list", "--repo", self.repo, "--limit", "200",
                            "--json", "number,headRefOid,headRefName,isDraft,"
-                           "mergeStateStatus,reviewDecision,title,createdAt,updatedAt,author"])
+                           "mergeStateStatus,reviewDecision,title,createdAt,updatedAt,author,body"])
         if code:
             self.unreadable(S, "open pull requests", o.strip()[-120:])
             return
@@ -581,6 +593,7 @@ class Tick:
         self.body_staleness(S, prs)
         self.cap_levels(S, prs)
         self.verdict_levels(S, prs)
+        self.owed_levels(S, prs)
         self.relay_owed(S)
         for head, ns in sorted(by_head.items()):
             if len(ns) > 1:
@@ -687,6 +700,7 @@ class Tick:
             return
         authors, vid = allow
         self._readback = {}  # {pr: [approver verdict first lines]}, the PRs whose comments were read
+        self._verdict_at = {}  # {pr: newest approver verdict created_at}
         lg, dispatched = _module("ledger_tick", "tools/audit/seat/ledger.py"), self._dispatched(S)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
@@ -703,6 +717,8 @@ class Tick:
                   and (c.get("user") or {}).get("id") == vid
                   and (c.get("body") or "").startswith("Fix review:")]
             self._readback[str(n)] = [(c.get("body") or "").split("\n", 1)[0].rstrip("\r") for c in vs]
+            if vs:
+                self._verdict_at[n] = max(c.get("created_at") or "" for c in vs)
             if dispatched and (str(n), head) in dispatched and not any(
                     (pw.parse_verdict(f) or ("", ""))[1] == head for f in self._readback[str(n)]):
                 age = self._reviewer_ref_age(n)
@@ -740,6 +756,204 @@ class Tick:
             for text in lg.review_owed(prs, self._readback, dispatched, self._carries,
                                        getattr(rr, "RECORD_BRANCH", None)):
                 self.line(S, text, flag=True)
+
+    # ------------------------------------------------------- OWED buckets
+    def _parked(self) -> "dict[int, str]":
+        """{pr: 'step: why'} for the `PARK #N <step>: <why>` lines after the train log's
+        last `STARTED` (the latest run only); the log the TRAIN pass already reads."""
+        try:
+            with open(self.train_log, encoding="utf-8", errors="replace") as fh:
+                lines = [l.rstrip() for l in fh]
+        except (OSError, TypeError):
+            return {}
+        start = max((i for i, l in enumerate(lines) if "STARTED" in l), default=-1)
+        out = {}
+        for l in lines[start + 1:]:
+            m = re.search(r"\bPARK #(\d+) (\S+?): (.*)$", l)
+            if m:
+                out[int(m.group(1))] = f"{m.group(2)}: {m.group(3)}"
+        return out
+
+    def _heads(self) -> "dict[str, str] | None":
+        """One `ls-remote` over the handoff families: {ref: sha}; None when it fails."""
+        if getattr(self, "_handoff_heads", False) is not False:
+            return self._handoff_heads
+        got = {}
+        for fam in ("handoff", "handoff-wip", "handoff-body"):
+            code, o = self.git(["ls-remote", "origin", f"refs/heads/{fam}/*"])
+            if code:
+                got = None
+                break
+            for l in o.splitlines():
+                f = l.split()
+                if len(f) == 2:
+                    got[f[1].removeprefix("refs/heads/")] = f[0]
+        self._handoff_heads = got
+        return got
+
+    def _age_min(self, ref: str, sha: str) -> "int | None":
+        """Minutes since `sha` (the tip of `ref`) was committed; None: a read failed."""
+        if self.git(["fetch", "-q", "origin", f"refs/heads/{ref}"])[0]:
+            return None
+        code, ct = self.git(["log", "-1", "--format=%ct", sha])
+        try:
+            return int((self.now.timestamp() - int(ct.strip())) // 60) if code == 0 else None
+        except ValueError:
+            return None
+
+    def _fired(self) -> "list[tuple]":
+        """[(utc or None, line)] for each FIRED line of the dispatch seat's ledger."""
+        try:
+            with open(self.fired_log, encoding="utf-8", errors="replace") as fh:
+                rows = [l.strip() for l in fh if "FIRED" in l]
+        except (OSError, TypeError):
+            return []
+        out = []
+        for l in rows:
+            m = FIRED_STAMP.match(l)
+            when = None
+            if m:
+                when = datetime.datetime.fromisoformat(m.group(1).rstrip("Z")).replace(
+                    tzinfo=datetime.timezone.utc)
+            out.append((when, l))
+        return out
+
+    def _fire_names(self, n: int, topics: list, line: str) -> bool:
+        """A FIRED line names a PR by number, topic or its payload file
+        (`payload-fix-<n>-r<k>.json`, `payload-<n>-r<k>.json`)."""
+        return bool(re.search(rf"#{n}(?!\d)|payload-(?:fix-)?{n}-r\d+\.json", line)) or any(
+            t and re.search(rf"(?<![\w-]){re.escape(t)}(?![\w-])", line, re.I) for t in topics)
+
+    def _seat_on(self, n: int, topics: list, heads: dict, kinds=("handoff-wip", "handoff", "handoff-body")) -> bool:
+        """A seat is on a PR when, inside SEAT_WINDOW_MIN, a FIRED line names it, or a
+        handoff-wip/, handoff/ or handoff-body/<topic> ref moved (`kinds` narrows the refs)."""
+        cutoff = self.now - datetime.timedelta(minutes=SEAT_WINDOW_MIN)
+        for when, l in self._fired():
+            if (when is None or when >= cutoff) and self._fire_names(n, topics, l):
+                return True
+        for t in topics:
+            for fam in kinds:
+                sha = heads.get(f"{fam}/{t}")
+                age = self._age_min(f"{fam}/{t}", sha) if sha else None
+                if age is not None and age <= SEAT_WINDOW_MIN:
+                    return True
+        return False
+
+    @staticmethod
+    def _topics(branch: str) -> list:
+        t = branch[4:] if branch.startswith("fix/") else branch
+        return list(dict.fromkeys([t, t[:-3] if t.endswith("-pr") else t]))
+
+    def owed_levels(self, S: str, prs: list) -> None:
+        """Every open pull request in exactly one bucket, from data the pass already read
+        (head, checks, mergeable state, the --queue file, the train log, the verdict
+        comments) plus git refs; no new GitHub call. Buckets: train | verdict-pending |
+        fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
+        | review-owed (REVIEW OWED owns it). `owed` prints one `OWED <kind> #N <head12>
+        <reason>` line (kinds in ledger.KINDS, derived each pass, so a moved head closes
+        it), the critical-path groups' PRs first, then one count line."""
+        heads = self._heads()
+        if heads is None:
+            self.unreadable(S, "owed buckets", "git ls-remote of the handoff refs failed")
+            return
+        queue = {int(i["pr"]): i.get("verdict") for i in (self._queue() or []) if i.get("pr")}
+        parked = self._parked()
+        readback = getattr(self, "_readback", {}) or {}
+        dispatched = self._dispatched(S) or set()
+        rl, roster = self._roster(S, announce=False)
+        crit = (set(rl.critical_path(roster)) if rl is not None else set()) if roster else set()
+        files = getattr(self, "_files", {}) or {}
+        open_n = {p["number"]: p for p in prs}
+        counts: dict = {}
+        owed: list = []
+        rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
+        record = getattr(rr, "RECORD_BRANCH", None)
+        for pr in sorted(prs, key=lambda p: p["number"]):
+            n, head = pr["number"], pr.get("headRefOid") or ""
+            branch = pr.get("headRefName") or ""
+            if pr.get("isDraft") or not head or branch == record or str(n) not in readback:
+                continue
+            topics, lines = self._topics(branch), readback[str(n)]
+            last = lines[-1] if lines else ""
+            ms = (pr.get("mergeStateStatus") or "").upper()
+            bucket, reason, kind = self._bucket(n, head, pr, topics, lines, last, ms, queue, parked,
+                                                dispatched, heads, files, open_n, roster, rl)
+            counts[bucket] = counts.get(bucket, 0) + 1
+            if bucket == "owed":
+                group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
+                owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
+        for _, _, text in sorted(owed):
+            self.line(S, text, flag=True)
+        self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none"))
+        self.payloads(S)
+
+    def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
+                open_n, roster, rl):
+        """(bucket, reason, kind) for one open PR; the first arm that holds wins."""
+        if n in parked:
+            return "owed", f"train-parked {parked[n]}", "train-parked"
+        v = queue.get(n)
+        if v and (v == head or self.git(["merge-base", "--is-ancestor", v, head])[0] == 0):
+            return "train", "", ""
+        blocked = sum(1 for l in lines if l.startswith("Fix review: blocked "))
+        if blocked >= RECUT_BLOCKED and "## Re-cut" not in (pr.get("body") or ""):
+            return "owed", f"{blocked} blocked verdicts, head is not a re-cut or a split", "recut"
+        topic = next((t for t in topics if f"handoff/{t}" in heads), None)
+        body = next((t for t in topics if f"handoff-body/{t}" in heads), None)
+        if topic and body:
+            body_age = self._age_min(f"handoff-body/{body}", heads[f"handoff-body/{body}"])
+            code, ct = self.git(["log", "-1", "--format=%ct", head])
+            try:
+                head_age = int((self.now.timestamp() - int(ct.strip())) // 60) if code == 0 else None
+            except ValueError:
+                head_age = None
+            in_head = self.git(["merge-base", "--is-ancestor", heads[f"handoff/{topic}"], head])[0] == 0
+            if (body_age is not None and head_age is not None and body_age < head_age and in_head
+                    and not self._seat_on(n, topics, heads, kinds=("handoff-wip", "handoff"))):
+                return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
+        if verdict_kind(last, head) == "blocked":
+            newer = self._handoff_newer(pr.get("headRefName") or "", self._verdict_at.get(n) or "")
+            if newer:
+                return "fixer-round", "", ""
+            at = self._verdict_at.get(n)
+            try:
+                age_h = (self.now - datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds() / 3600
+            except (ValueError, AttributeError):
+                return "fixer-round", "", ""
+            if age_h >= self.stall_hours:
+                return "owed", f"blocked at head, no repair in {age_h:.0f}h", "fixer-round"
+            return "fixer-round", "", ""
+        if verdict_kind(last, head) == "merge":
+            return "verdicted", "", ""
+        if (str(n), head) in dispatched:
+            return "verdict-pending", "", ""
+        mine = {f for f in (files.get(n) or []) if not f.startswith(ROW_DIR) and f not in CLAIM_FILES}
+        for m, other in sorted(open_n.items()):
+            if m < n and mine & {f for f in (files.get(m) or []) if not f.startswith(ROW_DIR)}:
+                return "waiting-on", f"#{m}", ""
+        if rl is not None and roster:
+            g = rl.group_for_branch(roster, pr.get("headRefName") or "")
+            grp = next((x for x in roster.get("groups", []) if x.get("group") == g), None)
+            for a in (grp or {}).get("after") or []:
+                for m, other in open_n.items():
+                    if rl.group_for_branch(roster, other.get("headRefName") or "") == a:
+                        return "waiting-on", f"#{m}", ""
+        if ms == "DIRTY":
+            return "owed", "DIRTY, no repair under way", "dirty"
+        if getattr(self, "_red", {}).get(n) and not self._seat_on(n, topics, heads):
+            return "owed", f"red {','.join(self._red[n])}, no verdict at head, no seat on it", "red-unowned"
+        return "review-owed", "", ""
+
+    def payloads(self, S: str) -> None:
+        """FIRE-OWED: a rendered payload file older than FIRE_GRACE_MIN that no FIRED line names."""
+        if not self.payload_dir:
+            return
+        fired = self._fired()
+        for f in sorted(Path(self.payload_dir).glob("payload-*.json")):
+            age = (self.now.timestamp() - f.stat().st_mtime) / 60
+            if age > FIRE_GRACE_MIN and not any(f.name in l for _, l in fired):
+                self.line(S, f"OWED fire-owed {f.name} rendered {int(age)}m ago, no FIRED line "
+                             "(firing is a RemoteTrigger call: the orchestrator's turn)", flag=True)
 
     def _reviewer_ref_age(self, n: int) -> "int | None":
         """Minutes since the tip of `dispatch/reviewer-rev-<n>` (cloud_dispatch.py's
@@ -875,6 +1089,8 @@ class Tick:
             latest = self.latest(runs)
             _, run, red = self.judge(latest)
             self._unsettled[n] = bool(run or red or not runs)
+            self._red = getattr(self, "_red", {})
+            self._red[n] = list(red)
             if not runs:
                 self.line(S, f"#{n}: ZERO check runs at head (the bot-push "
                              "shape: run approve_held_runs.sh, not a fixer)",
@@ -3556,6 +3772,96 @@ def self_test() -> int:
             ("a null started_at is stuck, not live", t.stuck(None, 61.0)),
             ("a fresh started_at is not stuck", not t.stuck(iso(NOW), 61.0))])
         total, failed = total + a_, failed + f_
+
+        # ---- OWED buckets (carries 2-6): one bucket per open PR, one OWED line per owed one ----
+        h = lambda n: f"{n:040x}"
+        def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
+                    train=None, body=None, bodies=None, disp=()):
+            """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines)."""
+            od = tmp / f"ob{len(list(tmp.iterdir()))}"
+            od.mkdir()
+            qf = od / "q.json"
+            qf.write_text(json.dumps([{"pr": n, "verdict": v} for n, v in (queue_v or {}).items()]))
+            tl = None
+            if train is not None:
+                tl = str(od / "train.log")
+                Path(tl).write_text(train)
+            fl = None
+            if fired is not None:
+                fl = str(od / "fired.log")
+                Path(fl).write_text(fired)
+            board = [dict(pr_obj(n, h(n), ms=ms), body=(bodies or {}).get(n, "")) for n, ms, _, _ in specs]
+            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl)
+            t._git.h[:0] = [(("ls-remote", "origin", ref.rsplit("/", 1)[0] + "/*"), 0, f"{sha}\trefs/heads/{ref}\n")
+                            for ref, sha in refs] + [(("ls-remote",), 0, "")]
+            t._git.h[:0] = [(("log", "-1", "--format=%ct", sha), 0, f"{int((NOW - timedelta(minutes=m)).timestamp())}\n")
+                            for sha, m in (cts or {}).items()] + [(("fetch", "-q"), 0, ""), (("merge-base", "--is-ancestor"), 0, "")]
+            t._readback = {str(n): ls for n, _, ls, _ in specs}
+            t._verdict_at = {n: iso(NOW - timedelta(minutes=a)) for n, _, ls, a in specs if ls}
+            t._red = red or {}
+            t._files = files or {}
+            t.owed_levels("PRS", board)
+            return t, [x["text"] for x in t.sections.get("PRS", []) if x["flag"] and x["text"].startswith("OWED ")]
+        from datetime import timedelta
+        blk = lambda n: f"Fix review: blocked {h(n)}"
+        # P265: #2906 (blocked at head, ~9 h, no repair), #2917 (DIRTY), #2919 (red, no seat): one OWED line each
+        t_o, o1 = oboard2([(80, "BLOCKED", [blk(80)], 540), (81, "DIRTY", [], 0), (82, "BLOCKED", [], 0)],
+                          red={82: ["gate"]})
+        _, o_null = oboard2([(80, "BLOCKED", [blk(80)], 60)])
+        _, o_a = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
+                         fired=f"{iso(NOW - timedelta(minutes=40))} FIRED payload-fix-82-r5.json\n")
+        _, o_b = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
+                         refs=[("handoff-wip/82", "e" * 40)], cts={"e" * 40: 5})
+        _, o_c = oboard2([(82, "BLOCKED", [], 0)], red={82: ["gate"]},
+                         fired=f"{iso(NOW - timedelta(hours=9))} FIRED payload-fix-82-r5.json\n")
+        # P279: PARK lines after the last STARTED; P265 train bucket; card 8 re-cut
+        pk = "STARTED train.sh pid 1 over #83\nPARK #83 preflight: policy\nTRAIN DONE\n"
+        _, o_pk = oboard2([(83, "CLEAN", [f"Fix review: merge {h(83)}"], 5)], queue_v={83: h(83)}, train=pk)
+        _, o_pk0 = oboard2([(83, "CLEAN", [f"Fix review: merge {h(83)}"], 5)], queue_v={83: h(83)},
+                           train="PARK #83 preflight: policy\nSTARTED train.sh pid 1 over #83\nTRAIN DONE\n")
+        _, o_r3 = oboard2([(84, "CLEAN", [blk(84)] * 3, 5)])
+        _, o_r2 = oboard2([(84, "CLEAN", [blk(84)] * 2, 5)])
+        _, o_rc = oboard2([(84, "CLEAN", [blk(84)] * 3, 5)], bodies={84: "## Re-cut\nx"})
+        _, o_rm = oboard2([(84, "CLEAN", [f"Fix review: merge {h(84)}"] * 3, 5)])
+        # carry 5: BODY-AHEAD (handoff-body newer than the head, code handoff in the head)
+        ba = dict(refs=[("handoff/85", "c" * 40), ("handoff-body/85", "b" * 40)], cts={h(85): 100, "b" * 40: 30})
+        _, o_ba = oboard2([(85, "BLOCKED", [], 0)], **ba)
+        _, o_ba0 = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 20, "b" * 40: 30})
+        _, o_baf = oboard2([(85, "BLOCKED", [], 0)], fired=f"{iso(NOW - timedelta(minutes=10))} FIRED #85 r2\n", **ba)
+        pd = tmp / "payloads"
+        pd.mkdir()
+        pf = pd / "payload-fix-86-r1.json"
+        pf.write_text("{}")
+        os.utime(pf, ((NOW - timedelta(minutes=60)).timestamp(),) * 2)
+        def fire_owed(fired):
+            fl = tmp / "fired-fo.log"
+            fl.write_text(fired)
+            tf = tick(prs=[], fired_log=str(fl), payload_dir=str(pd))
+            tf.payloads("PRS")
+            return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
+        fo, fo0 = fire_owed(""), fire_owed("FIRED payload-fix-86-r1.json\n")
+        bk = t_o.sections["PRS"][-1]["text"]
+        a, f = check("OWED buckets", [
+            ("#2906 / #2917 / #2919 shapes each print one OWED line naming the reason",
+             len(o1) == 3 and "fixer-round #80" in o1[0] + o1[1] + o1[2] and any("dirty #81" in x for x in o1)
+             and any("red-unowned #82" in x and "red gate" in x for x in o1)),
+             ("null: blocked at head for 1 h (inside the round) prints nothing", o_null == []),
+            ("every open PR has exactly one bucket (count line sums to the PRs read)",
+             bk.startswith("buckets: ") and sum(int(x.rsplit(" ", 1)[1]) for x in bk[9:].split(", ")) == 3),
+            ("carry 6 arm (a): a payload-file FIRED line inside the window is a seat on it", o_a == []),
+            ("carry 6 arm (b): handoff-wip moved inside the window is a seat on it", o_b == []),
+            ("carry 6 null (c): neither, or a fire outside the window, is RED-UNOWNED",
+             len(o_c) == 1 and "red-unowned" in o_c[0]),
+            ("P279: a PARK after the last STARTED is owed naming the step; a PARK before it is in train",
+             len(o_pk) == 1 and "train-parked preflight: policy" in o_pk[0] and o_pk0 == []),
+            ("card 8: the third blocked verdict owes a re-cut; two, a recorded re-cut, and merges owe none",
+             len(o_r3) == 1 and "recut #84" in o_r3[0] and "3 blocked" in o_r3[0]
+             and o_r2 == [] and o_rc == [] and o_rm == []),
+            ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
+             len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
+            ("carry 5 FIRE-OWED: a rendered payload with no FIRED line owes; one a FIRED line names does not",
+             len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [])])
+        total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
         claim = CLAIM_FILES[0]
@@ -4371,6 +4677,8 @@ def main() -> int:
                          "CARRY (opt-in, weekly and at closure) runs only when named")
     ap.add_argument("--carry-last", type=int, default=CARRY_LAST,
                     help="CARRY: the merged pull requests the sweep reads")
+    ap.add_argument("--fired-log", help="the dispatch seat's FIRED ledger (OWED levels' seat-on-it test)")
+    ap.add_argument("--payload-dir", help="rendered cloud payloads (FIRE-OWED)")
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--self-test", action="store_true")
     a = ap.parse_args()
@@ -4389,7 +4697,7 @@ def main() -> int:
              mandate_id=a.mandate_id,
              mandate_since_days=a.mandate_since_days,
              stall_hours=a.stall_hours, behind_max=a.behind_max,
-             carry_last=a.carry_last)
+             carry_last=a.carry_last, fired_log=a.fired_log, payload_dir=a.payload_dir)
     rep = t.run(only)
     print(json.dumps(rep, indent=1) if a.json else render(rep))
     return 0
