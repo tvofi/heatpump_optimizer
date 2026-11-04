@@ -64,6 +64,9 @@ ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a
 # so 12 min of waiting plus one poll leaves two minutes. The self-test pins it
 # under the job's `timeout-minutes`.
 GATE_WAIT_MAX_S = 720
+# An own job not yet listed at all: measured lag 20 s (41289450679), while a
+# structural ABSENT (a renamed job) is absent on every run, so its wait is short.
+GATE_ABSENT_MAX_S = 2 * POLL_S
 
 
 def _names(units, drop=(), extra=None) -> tuple[str, ...]:
@@ -102,15 +105,22 @@ def deferral(ids: list) -> str:
 
 
 OWN_PENDING = ": PENDING (this run)"
+OWN_ABSENT = ": ABSENT (this run)"
 
 
-def lagging(why: list[str]) -> bool:
-    """Every reason is one of this run's own required jobs read as unfinished.
-    `gate` needs every unit of its own run (through pr-contract), so such a job
-    has finished and the jobs listing lags it (run 41870314676: closures done
-    17:36:51Z, read pending at 17:37:43Z). judge() re-reads it, bounded; it
-    never reads as success, so the bound exhausted is still a FAIL."""
-    return bool(why) and all(w.endswith(OWN_PENDING) for w in why)
+def lag_bound(why: list[str]) -> int:
+    """Seconds judge() may re-read when every reason is the jobs listing lagging
+    this run's own graph, else 0. `gate` needs prelude and every unit of its own
+    run (through pr-contract), so an own job listed unfinished, or not listed,
+    has finished and the listing lags it (run 41870314676: closures done
+    17:36:51Z, read pending at 17:37:43Z; dev/audit/rca/r10-gate-stale-jobs.md).
+    A unit outside this run's workset is never ABSENT (gate() names no source),
+    and an unlisted prelude is no lag reason. A lagging job never reads as
+    success, so the bound exhausted is still a FAIL, and any other reason beside
+    it is published at once."""
+    if not why or not all(w.endswith((OWN_PENDING, OWN_ABSENT)) for w in why):
+        return 0
+    return GATE_ABSENT_MAX_S if any(w.endswith(OWN_ABSENT) for w in why) else GATE_WAIT_MAX_S
 
 
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
@@ -123,7 +133,8 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     ev = ctx["event_name"]
     pre = api["prelude"]
     if pre.get("conclusion") != "success":
-        return False, [f"prelude: {pre.get('conclusion')}"]
+        listed_unfinished = pre.get("status") not in (None, "completed")
+        return False, ["prelude" + OWN_PENDING if listed_unfinished else f"prelude: {pre.get('conclusion')}"]
     if (pre.get("kind"), pre.get("pr", "")) != (kind, pr):
         return False, [f"prelude says kind={pre.get('kind')} pr={pre.get('pr')!r}, the event says kind={kind} pr={pr!r}"]
     if int(ctx.get("run_attempt", 1)) >= ATTEMPT_CAP:
@@ -175,7 +186,7 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         for n in names:
             st = src["jobs"].get(f"{unit} / {n}")
             if st is None:
-                bad.append(f"{unit} / {n}: ABSENT ({where})")
+                bad.append(f"{unit} / {n}: ABSENT ({where})" if src is not me else f"{unit} / {n}{OWN_ABSENT}")
             elif st[0] != "completed":
                 bad.append(f"{unit} / {n}: PENDING ({where})" if src is not me else f"{unit} / {n}{OWN_PENDING}")
             elif st[1] != "success":
@@ -195,7 +206,8 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
     jobs = run_jobs(get, repo, ctx["run_id"])
-    api = {"prelude": {"conclusion": (jobs.get("prelude") or (None, None))[1], **claim},
+    status, conclusion = jobs.get("prelude") or (None, None)
+    api = {"prelude": {"status": status, "conclusion": conclusion, **claim},
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
         lp = _pull(get, repo, pr)
@@ -220,20 +232,25 @@ def reaches_custom_components(base: str, head: str) -> bool:
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
           now=time.monotonic) -> tuple[str, list[str], list[str]]:
     """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
-    that only defers, or only waits on this run's own lagging jobs, is never
-    published while the bound allows a re-read."""
+    that only defers, or only waits on this run's own lagging jobs (lag_bound),
+    is never published while its bound allows a re-read."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
-    t0 = now()
+    t0, lagged = now(), []
     while True:
         api = read_api(ctx, claim, cc, get)
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
-        if ok or (why != [deferral(waiting)] and not lagging(why)) or now() - t0 + POLL_S > GATE_WAIT_MAX_S:
+        bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
+        if ok or now() - t0 + POLL_S > bound:
             break
+        if why != [deferral(waiting)]:
+            lagged = lagged or why
         sleep(POLL_S)
     owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
     notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
+    if lagged:                                   # the listing lagged this run: say so (RCA countermeasure 4)
+        notes.append(f"listing lag: {lagged[0]} re-read for {int(now() - t0)} s")
     return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
 
 
@@ -358,9 +375,11 @@ def self_test() -> int:
     check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
     skip = [dict(j, conclusion="skipped") if j["name"] == "tests / browser" else j for j in green]
     check("a skipped required job (4.2)", judge(ctx, claim, fake(skip), cc)[0], "FAIL tests / browser: SKIPPED (this run)")
-    check("a run without tests / arch-instrument (U5b)",
-          judge(ctx, claim, fake([j for j in green if j["name"] != "tests / arch-instrument"]), cc)[0],
-          "FAIL tests / arch-instrument: ABSENT (this run)")
+    naps = []
+    check("a run without tests / arch-instrument (U5b): re-read, inside the ABSENT bound, then red",
+          (judge(ctx, claim, fake([j for j in green if j["name"] != "tests / arch-instrument"]), cc, naps.append,
+                 lambda: sum(naps))[0], 0 < sum(naps) <= GATE_ABSENT_MAX_S),
+          ("FAIL tests / arch-instrument: ABSENT (this run)", True))
     check("D-2 null: arch-score red, diff misses custom_components/",
           judge(ctx, claim, fake([dict(j, conclusion="failure") if j["name"].startswith("arch") else j for j in green]),
                 lambda b, h: False)[0], "PASS")
@@ -497,6 +516,34 @@ def self_test() -> int:
     get, naps, nap, now = own(jset(**{"tests / browser": {"conclusion": "skipped"}}), green)
     check("null: a skipped own unit is unchanged, no wait",
           (verdict(ctx, get, nap, now), naps), ("FAIL tests / browser: SKIPPED (this run)", []))
+    pend = {"status": "in_progress", "conclusion": None}
+    get, naps, nap, now = own(stale, green)
+    check("a cleared lag is noticed: one note names the job and the wait; a fresh listing notes nothing (null)",
+          ([x for x in judge(ctx, claim, get, cc, nap, now)[2] if x.startswith("listing lag")],
+           [x for x in judge(ctx, claim, fake(), cc)[2] if x.startswith("listing lag")]),
+          (["listing lag: tests / mutation: PENDING (this run) re-read for 60 s"], []))
+    get, naps, nap, now = own(jset(prelude=pend), green)
+    check("41863133083 shape: prelude listed unfinished, then success -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(prelude=pend), jset(prelude={"conclusion": "failure"}))
+    check("41094975103 shape: prelude listed unfinished, then failure -> its true reason, after the re-read",
+          (verdict(ctx, get, nap, now), naps), ("FAIL prelude: failure", [POLL_S]))
+    get, naps, nap, now = own([j for j in green if j["name"] != "prelude"])
+    check("null: prelude not listed at all is no lag, no wait (only a listed unfinished prelude waits)",
+          (verdict(ctx, get, nap, now), naps), ("FAIL prelude: None", []))
+    get, naps, nap, now = own([j for j in green if j["name"] != "pr-contract / pr-contract"], green)
+    check("41289450679 shape: an own job not yet listed, then listed -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(**{"tests / mutation": lag}), [j for j in green if j["name"] != "hassfest / hassfest"])
+    out = verdict(ctx, get, nap, now)
+    check("an own job never listed stays red, its wait inside the shorter ABSENT bound",
+          (out, 0 < sum(naps) <= GATE_ABSENT_MAX_S), ("FAIL hassfest / hassfest: ABSENT (this run)", True))
+    ectx, eclaim = {**ctx, "action": "edited"}, {"kind": "edit", "pr": "7"}
+    get, naps, nap, now = own([j for j in green if j["name"] == "prelude" or j["name"].split(" / ")[0] in BODY])
+    out, why, _ = judge(ectx, eclaim, get, cc, nap, now)
+    check("null (workset): an edit run lists no code unit; that is no ABSENT and no wait",
+          (out.startswith("FAIL") and any(w.endswith("judged base 'main'") for w in why),
+           [w for w in why if "ABSENT" in w], naps), (True, [], []))
     import re
     ci = (HERE.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
     m = re.search(r"\n  gate:\n(?:    .*\n)*?    timeout-minutes: (\d+)\n", ci)
