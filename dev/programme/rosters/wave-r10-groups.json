@@ -16465,7 +16465,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "carries-open",
     "branch": "handoff/r10-carry-residue",
     "commit": null,
     "last_step": null,
