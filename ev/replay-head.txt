@@ -1,0 +1,29 @@
+1. reproduce: window at 8f286293b grades 21.967 (budget 34.267 + band 1.3 = 35.567): ok
+2. cause: graded median vs slow-host draws in the window
+   after 432e25c60  median 35.400  slow closures draws 4/7  ok
+   after 35b711976  median 35.400  slow closures draws 4/7  ok
+   after 158c3e0e5  median 34.767  slow closures draws 3/6  ok
+   after ea6ae2773  median 33.675  slow closures draws 2/6  ok
+   after 8cdb5dd5b  median 33.767  slow closures draws 2/6  ok
+   after 907d29f0e  median 33.767  slow closures draws 2/6  ok
+   after 5e9c39294  median 36.500  slow closures draws 3/6  GREW
+   after c7aa12165  median 36.500  slow closures draws 3/6  GREW
+   after 8f286293b  median 39.067  slow closures draws 4/7  GREW
+   after dfb4ce2b5  median 39.667  slow closures draws 5/7  GREW
+   after 8fcaf47e1  median 39.834  slow closures draws 6/8  GREW
+   after 279cb497f  median 39.834  slow closures draws 6/8  GREW
+   after 3905069f3  median 40.025  slow closures draws 7/8  GREW
+   after a9c149289  median 40.534  slow closures draws 7/8  GREW
+   after 45fc769da  median 40.508  slow closures draws 6/8  GREW
+   after a568a2e12  median 40.342  slow closures draws 5/8  GREW
+   after ea59e9a09  median 40.909  slow closures draws 5/8  GREW
+   after d40e377e5  median 38.867  slow closures draws 5/8  GREW
+   after 38dcb6c5d  median 38.867  slow closures draws 5/8  GREW
+   after 871a20da1  median 38.867  slow closures draws 5/8  GREW
+   after d15a2d7df  median 38.867  slow closures draws 5/8  GREW
+   after b8e823699  median 38.867  slow closures draws 5/8  GREW
+   after f8bab78d1  median 38.867  slow closures draws 5/8  GREW
+   after c3a279e32  median 38.867  slow closures draws 5/8  GREW
+   windows where under half the graded runs drew the slow closures host: 3, max median 33.767; over 70%: 6, min median 39.667
+3. candidate: planned critical path 1345.7s over 34 scripts; null (same tree again) 1345.7s; stress.py +300s -> 1445.7s
+RESULT: does NOT hold [False, True, True]
