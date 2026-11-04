@@ -343,6 +343,28 @@ def _baseline_targets(
     return targets.tolist()
 
 
+def _floor_demand_terms(
+    model: ThermalModel,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+) -> tuple[float, float, float]:
+    """``(u, a, b)`` with the slab-fed zone's demand at ``T`` = ``u*(T-out) - a - b``."""
+    p = model.params
+    if not p.two_zone_enabled:
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation
+        )
+        return u_eff, p.internal_gains, model.compute_solar_gain(solar_radiation)
+    u_lower = model.effective_heat_loss_coefficient(
+        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    )
+    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
+    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
+    return u_lower, q_solar_lower, q_int_lower
+
+
 def _floor_demand_at_target(
     model: ThermalModel,
     target: float,
@@ -357,19 +379,10 @@ def _floor_demand_at_target(
     exchange is zero with both floors at ``target`` (the two-zone demand adds
     the exchange at the actual temperatures).
     """
-    p = model.params
-    if not p.two_zone_enabled:
-        u_eff = model.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-        q_solar = model.compute_solar_gain(solar_radiation)
-        return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
-    u_lower = model.effective_heat_loss_coefficient(
-        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    u, a, b = _floor_demand_terms(
+        model, outdoor_temp, wind_speed, precipitation, solar_radiation
     )
-    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
-    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
-    return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+    return u * (target - outdoor_temp) - a - b
 
 
 def _settlement_schedule(
@@ -422,40 +435,67 @@ def _settlement_schedule(
         else None
     )
 
-    def stored_kwh_th(j: int) -> float:
-        state = replace(
-            h.initial_state, room_temperature=float(room_temps[j]),
-            slab_temperature=float(slab_temps[j]),
-        )
-        if two_zone:
-            state.upper_floor_temperature = float(upper_temps[j])
-            state.lower_floor_temperature = float(lower_temps[j])
-        if buffer is not None:
-            state.buffer_tank_temperature = float(buffer[j])
-        return opt._stored_thermal_energy(state)
-
-    zone = lower_temps if two_zone else room_temps
+    state = replace(h.initial_state)
+    _l = lambda x: np.asarray(x, dtype=float).tolist()  # noqa: E731
+    rooms = _l(room_temps)
+    slabs = _l(slab_temps)
+    if two_zone:
+        uppers = _l(upper_temps)
+        lowers = _l(lower_temps)
+        zone = lowers
+    else:
+        zone = rooms
+    bufs = _l(buffer) if buffer is not None else None
+    outs = _l(h.outdoor_temps)
+    winds = _l(h.wind_speeds)
+    precs = _l(h.precipitation)
+    suns = _l(h.solar_radiation)
     baseline = _baseline_power_list(baseline_power)
     schedule: list[CurrentAction] = []
-    before = stored_kwh_th(0)
+    stored = opt._stored_thermal_energy
+    compute_cop = model.compute_cop
+    dt = h.dt
+    n_base = len(baseline)
+
+    state.room_temperature = rooms[0]
+    state.slab_temperature = slabs[0]
+    if two_zone:
+        state.upper_floor_temperature = uppers[0]
+        state.lower_floor_temperature = lowers[0]
+    if bufs is not None:
+        state.buffer_tank_temperature = bufs[0]
+    before = stored(state)
     for i in range(h.n_steps):
-        cop = max(model.compute_cop(float(h.outdoor_temps[i]), humidity=hums[i]), 1e-3)
-        after = stored_kwh_th(i + 1)
-        weather = (
-            float(h.outdoor_temps[i]), float(h.wind_speeds[i]),
-            float(h.precipitation[i]), float(h.solar_radiation[i]),
-        )
-        delivered = 0.5 * (float(zone[i]) + float(zone[i + 1]))
+        out = outs[i]
+        cop = compute_cop(out, humidity=hums[i])
+        if cop < 1e-3:
+            cop = 1e-3
+        j = i + 1
+        state.room_temperature = rooms[j]
+        state.slab_temperature = slabs[j]
+        if two_zone:
+            state.upper_floor_temperature = uppers[j]
+            state.lower_floor_temperature = lowers[j]
+        if bufs is not None:
+            state.buffer_tank_temperature = bufs[j]
+        after = stored(state)
+        wind = winds[i]
+        prec = precs[i]
+        sun = suns[i]
+        delivered = 0.5 * (zone[i] + zone[j])
+        u, ga, gb = _floor_demand_terms(model, out, wind, prec, sun)
+        d_t = u * (targets[i] - out) - ga - gb
+        d_d = u * (delivered - out) - ga - gb
         step: CurrentAction = {
-            "stored_kw_th": (after - before) / h.dt,
+            "stored_kw_th": (after - before) / dt,
             "comfort_kw": (
-                max(0.0, _floor_demand_at_target(model, targets[i], *weather))
-                - max(0.0, _floor_demand_at_target(model, delivered, *weather))
+                (d_t if d_t > 0.0 else 0.0) - (d_d if d_d > 0.0 else 0.0)
             ) / cop,
             "steady_cop": cop,
         }
-        if i < len(baseline):
+        if i < n_base:
             step["baseline_kw"] = baseline[i]
+        before = after
         schedule.append(step)
         before = after
     return schedule
