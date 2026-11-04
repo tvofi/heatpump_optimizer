@@ -1,0 +1,16 @@
+M1-stored-zero features rc=1 1 of 4783 FEATURE CHECKS FAILED FAILS:   FAIL R10-SAV-COMFORT: the plan's per-step stored-heat change telescopes to the store's, uncapped  [96 96 96 0.0 40.10562397286112]|
+M2-zone-rooms features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M3-delivered-start features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M4-comfort-noclip features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M6-terms-2z-swap-u features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M5-cop-floor-off features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M8-stored-cop-mul features rc=1 1 of 4783 FEATURE CHECKS FAILED FAILS:   FAIL R10-SAV-COMFORT: the month row settles the plan's stored-heat change at the row's metered kWh price  [{'month': '2026-01', 'baseline_sek': 0.0, 'actual_sek': 15.0, 'savings_sek': -15.0, 'savings_pct': None, 'estimated': False, 'meter_calibration': None, 'stored_heat_sek': -20.0, 'comfort_sek': 2.5}]|
+M7-terms-1z-solar features rc=1 2 of 4783 FEATURE CHECKS FAILED FAILS:   FAIL the held house at the booked power is a steady state of the plant model  [room 19.5 -> 19.506186577558942, slab 24.988125 -> 24.988125]|  FAIL with no demand at the held target the slab sits at the target, not below it  [(21.0, 21.900839690430004)]|
+M9-stored-unscaled features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M10-comfort-unscaled features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M11-cop-floor-meta features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M12-buffer-off features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M13-sched-baseline-off features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+M14-floor-target-old-order features rc=0 ALL 4783 FEATURE CHECKS PASSED FAILS: 
+ALLDONE
+M13 entities.py rc=0 ALL 2602 ENTITY CHECKS PASSED
