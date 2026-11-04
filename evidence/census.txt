@@ -1,0 +1,15 @@
+== base
+dev/audit/harnesses/r10_demand_overbook.py:212:    band = max(cfg.target_temp - cfg.min_temp, 1.0)
+dev/audit/harnesses/r10_demand_overbook.py:219:                + O._COMFORT_PULL_SINGLE_ZONE * cfg.comfort_weight * ((room - cfg.target_temp
+dev/audit/rounds/round3/D0/reports/verify-2.md:269:   band (`_COMFORT_PULL_TWO_ZONE`). `comfort_regressions=0` therefore means "no
+dev/audit/rounds/round5/D0/seat-a/patch_f1b.diff:5:@@ -249,7 +249,7 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:38:    _COMFORT_PULL_SINGLE_ZONE, _COMFORT_PULL_TWO_ZONE
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:62:        comfort = _COMFORT_PULL_TWO_ZONE * weight * (
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:76:    comfort = _COMFORT_PULL_SINGLE_ZONE * weight * np.sum((dev / comfort_band) ** 2, axi
+== head
+dev/audit/harnesses/r10_demand_overbook.py:254:                + O._COMFORT_PULL_SINGLE_ZONE * cfg.comfort_weight * ((room - targets[i]) / b
+dev/audit/rounds/round3/D0/reports/verify-2.md:269:   band (`_COMFORT_PULL_TWO_ZONE`). `comfort_regressions=0` therefore means "no
+dev/audit/rounds/round5/D0/seat-a/patch_f1b.diff:5:@@ -249,7 +249,7 @@ _COMFORT_PULL_TWO_ZONE = 0.0125
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:38:    _COMFORT_PULL_SINGLE_ZONE, _COMFORT_PULL_TWO_ZONE
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:62:        comfort = _COMFORT_PULL_TWO_ZONE * weight * (
+dev/audit/rounds/round9/D9/s1/comfort_rowloop.py:76:    comfort = _COMFORT_PULL_SINGLE_ZONE * weight * np.sum((dev / comfort_band) ** 2, axi
