@@ -16616,6 +16616,44 @@
     "stage": "not-started"
    },
    "brief": "Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py refuses to write the whole replay when one entity id is not masked to a role or a hashed id. That removes the evidence a savings or planning report needs. Name which entity id class escapes the mask on that export (derived shape only, never the id), fix the masking at its owner so that id gets a role or hash, and keep the refusal for an id that truly cannot be masked. Enumerate every entity-id source the replay writes. Control: the refusal still fires on a planted unmasked id, and a clean export writes a non-empty replay."
+  },
+  {
+   "group": "R10-RCA-SAV-ESTIMATE",
+   "lane": "CP",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "savings-reference",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-HOTFIX-SAV-ESTIMATE"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "in-progress"
+   },
+   "brief": "Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. Handoff is on handoff/r10-rca-sav-estimate; open its pull request only after the hotfix merges, with the census re-run at that head."
   }
  ]
 }
