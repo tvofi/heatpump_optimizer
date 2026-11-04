@@ -55,8 +55,9 @@ THE METRICS, each an answer to a named cost:
                   on a 34.267 budget); kept under the window-work statistic,
                   whose need is how far a window reads past the record of
                   every window before it (0.55 over 40 runs, measured by
-                  dev/audit/harnesses/r10_hotfix_ci_critpath_3.py). It never applies to a counter, a
-                  re-record carries it over, and widening it is a raise.
+                  dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py).
+                  It never applies to a counter, a re-record carries it
+                  over, and widening it is a raise.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
 
@@ -662,12 +663,18 @@ def window_work_minutes(runs: list[dict]) -> float:
     growth would. And real growth moves it only once every pre-growth fast
     run has aged out of the window: +300 s on `tests / closures` reads
     nothing until 12 of the 16 newest runs carry it, all of it at 15
-    (dev/audit/harnesses/r10_hotfix_ci_critpath_3.py), against 8 of 8 under
+    (dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py), against 8 of 8 under
     the retired median-of-8.
 
     Only a `success` job prices: a skipped one did no work, a cancelled or
     failed one stopped short. A job that never succeeded in the window costs
-    nothing. None when no run in the window is measurable."""
+    nothing. What that costs: a chain job that fails stops pricing, so a
+    broken lane under-reads the grade, and a record taken across such a
+    stretch is recorded low. `tests / ci-ratchet` ends every chain and failed
+    in all sixteen newest runs of the record's runs.json, so it prices 0
+    there: the window reads 20.75 against 21.7 with it priced, and it prices
+    again once it succeeds (review of #3180 at 3f7777a59). None when no run
+    in the window is measurable."""
     chains, work = [], {}
     for r in runs:
         walked = _walk(r)
@@ -1192,6 +1199,20 @@ def self_test() -> int:
         gx, msg = safe(lambda: critical_path_minutes(f))
         ck("a cancelled job never prices (32.1, not 31.95)",
            gx is not None and abs(gx - 32.1) < 0.02, msg or f"got {gx}")
+        # OTHER_WORK_FRACTION's level, pinned from both sides (review of #3180
+        # at 3f7777a59: the 1/3 -> 1/2 mutant passed every check above). A job
+        # at 30.0 in fourteen runs, 12.0 in one (between a half and a third of
+        # its median) and 9.0 in one (between a third and a quarter): a third
+        # prices it at 12.0; a half would price 30.0, a quarter 9.0.
+        def lone(i, w):
+            return {**ci_run(i, f"2026-10-{30 - i:02d}T00:00:00Z", None),
+                    "jobs": [j("prelude", 0.0, 0.0, 0.3),
+                             j("tests / arch-instrument", 0.3, 0.3, 0.3 + w)]}
+        level = [lone(1, 12.0), lone(2, 9.0)] + [lone(i, 30.0) for i in range(3, 17)]
+        gl, msg = safe(lambda: window_work_minutes(level))
+        ck("the other-work floor sits at a third of the window median "
+           "(12.3: a half would read 30.3, a quarter 9.3)",
+           gl is not None and abs(gl - 12.3) < 0.05, msg or f"got {gl}")
         # Twenty runs, the one fast draw newest: the newest sixteen grade 32.1;
         # a record over all twenty reads every sixteen-run window and keeps the
         # largest, 63.9 -- the statistic's own window-to-window spread.
