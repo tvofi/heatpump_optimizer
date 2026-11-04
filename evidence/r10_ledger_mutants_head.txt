@@ -1,2 +1,0 @@
-  FAIL T3_review_owed_silent: anchor occurs once in tools/audit/seat/orchestrator_tick.py
-r10_ledger_mutants self-test: 135 checks, 1 failed
