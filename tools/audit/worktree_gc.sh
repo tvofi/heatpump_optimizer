@@ -22,7 +22,9 @@
 #      branch's existence. Merged work is on main, so `git worktree remove
 #      --force` is safe however dirty the worktree is; its uncommitted diff is
 #      PRINTED first (the orchestrator's stop-a-seat check). Then the local
-#      branch (`git branch -D`), then the seat scratch directory.
+#      branch, leased at the head the porcelain read (`git update-ref -d
+#      refs/heads/<branch> <head>`: a branch that moved since is kept and the
+#      refusal reported), then the seat scratch directory.
 #   B. a DETACHED worktree (reviewers check out merged pull request heads)
 #      whose HEAD sha is a PROPER ancestor of origin/main -- the tip itself is
 #      excluded, because reading live main is a running seat, not a leftover --
@@ -120,7 +122,15 @@ case "$*" in
   "-C "*" rev-list --count HEAD --not --remotes")
       f="$STUB/unpushed/$(enc "$2")"; [ -f "$f" ] && cat "$f" || echo 0; exit 0 ;;
   "worktree remove --force "*) rm -rf "$4" ;;
-  "branch -D "*) exit 0 ;;
+  "update-ref -d "*)
+      # The local lease: refuse when the ref's live value (a live/ file, else
+      # unmoved) is not the old value given; no old value deletes regardless.
+      f="$STUB/live/$(enc "$3")"
+      if [ -n "${4:-}" ] && [ -f "$f" ] && [ "$(cat "$f")" != "$4" ]; then
+        echo "fatal: cannot lock ref '$3': is at $(cat "$f") but expected $4" >&2; exit 1
+      fi
+      printf '%s\n' "$3" >> "$STUB/deleted"; exit 0 ;;
+  "branch -D "*) printf 'refs/heads/%s\n' "$3" >> "$STUB/deleted"; exit 0 ;;   # unleased: deletes wherever the ref is
   *) echo "git-stub: unexpected call: $*" >&2; exit 9 ;;
 esac
 STUB
@@ -163,7 +173,7 @@ PY
   H3=10800; H25=90000
   encpath() { printf '%s' "$1" | tr '/ ' '__'; }
 
-  mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; printf '%s\n' "$d/root" > "$d/rootfile"; }
+  mkcase() { local d="$W/$1"; mkdir -p "$d/tmp" "$d/ev" "$d/root"; : > "$d/log"; : > "$d/deleted"; printf '%s\n' "$d/root" > "$d/rootfile"; }
   run() { # name args... -> rc; out/err captured in the case dir
     local d="$W/$1"; shift
     # The redirect variables MUST be exported: set as plain shell variables
@@ -252,7 +262,7 @@ PY
   D="$W/sweep"
   gone "$D/orch/seat-merged/wt"; st $? 0 "merged+clean: worktree removed"
   st "$(grep -c "^git worktree remove --force $D/orch/seat-merged/wt$" "$D/log")" 1 "with git worktree remove --force"
-  st "$(grep -c "^git branch -D fix/merged$" "$D/log")" 1 "and the local branch deleted"
+  st "$(grep -c "^git update-ref -d refs/heads/fix/merged 2222222222222222222222222222222222222222$" "$D/log")" 1 "and the local branch deleted, leased at the head the porcelain read"
   gone "$D/orch/seat-merged"; st $? 0 "and the seat scratch directory removed"
   [ -d "$D/orch/seat-open/wt" ] && [ -d "$D/orch/seat-open" ]; st $? 0 "open PR: worktree and seat kept"
   st "$(gots sweep "keep  $D/orch/seat-open/wt  open-pr")" 1 "kept naming open-pr"
@@ -309,7 +319,7 @@ PY
   # unpushed work (the 2026-10-20 roster worktree): a branch with a merged PR, one commit on no remote ref.
   [ -d "$D/orch/seat-unpushed/wt" ]; st $? 0 "a branch worktree with an unpushed commit is kept though its PR merged"
   st "$(gots sweep "keep  $D/orch/seat-unpushed/wt  unpushed")" 1 "naming unpushed"
-  st "$(grep -c "branch -D fix/unpushed" "$D/log")" 0 "and its branch is not deleted"
+  st "$(grep -c "update-ref -d refs/heads/fix/unpushed" "$D/log")" 0 "and its branch is not deleted"
   st "$(grep -c "remove --force $D/orch/seat-unpushed" "$D/log")" 0 "and no remove call for it (apply path)"
   st "$(gots sweep "summary -- eligible")" 1 "one summary line"
 
@@ -318,6 +328,20 @@ PY
   run dryup --dry-run --keep-dir "$W/dryup/ev" o/r
   st "$(gots dryup "keep  $W/dryup/orch/seat-unpushed/wt  unpushed")" 1 "dry-run: the unpushed worktree is kept (classify path)"
   st "$(gots dryup "remove  $W/dryup/orch/seat-onremote/wt  on-remote")" 1 "dry-run: and the on-remote one is named for removal"
+
+  # A branch that moves after the read (a seat commits between the porcelain
+  # read and the delete) survives: the delete is leased at the head the
+  # classifier read, and a refused lease is reported, not retried.
+  mkcase moved; build moved
+  printf 'worktree %s/orch/seat-moved/wt\nHEAD 2222222222222222222222222222222222222222\nbranch refs/heads/fix/moved\n\n' "$W/moved" >> "$W/moved/porcelain"
+  printf '[{"state":"MERGED"}]\n' > "$W/moved/pr/fix_moved.json"
+  mkdir -p "$W/moved/orch/seat-moved/wt" "$W/moved/live"
+  printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' > "$W/moved/live/$(encpath refs/heads/fix/moved)"
+  run moved --keep-dir "$W/moved/ev" o/r; st $? 0 "a branch moved after the read: rc 0 (fail-soft)"
+  D="$W/moved"
+  st "$(grep -cx "refs/heads/fix/moved" "$D/deleted")" 0 "the moved branch is not deleted"
+  st "$(grep -c "FAILED to delete branch fix/moved" "$D/err")" 1 "and the refused delete is reported"
+  st "$(grep -cx "refs/heads/fix/merged" "$D/deleted")" 1 "null control: the unmoved merged branch in the same run deletes"
 
   # A failed fetch closes the on-remote class; an unreadable lsof keeps what it would remove.
   mkcase nofetch; build nofetch; : > "$W/nofetch/fetchfail"
@@ -372,7 +396,7 @@ PY
   run dry --dry-run --keep-dir "$W/dry/ev" o/r; st $? 0 "--dry-run exits 0"
   D="$W/dry"
   st "$(grep -c "^git worktree remove" "$D/log")" 0 "removes no worktree"
-  st "$(grep -c "^git branch -D" "$D/log")" 0 "deletes no branch"
+  st "$(grep -c "^git update-ref -d" "$D/log")" 0 "deletes no branch"
   [ -d "$D/orch/seat-merged/wt" ] && [ -d "$D/orch/seat-merged" ]; st $? 0 "leaves the merged seat on disk"
   [ -d "$D/orch/seat-detached/evidence-run12" ]; st $? 0 "moves no evidence"
   st "$(gots dry "remove  $D/orch/seat-merged/wt")" 1 "and says what would go"
@@ -655,7 +679,10 @@ classify() {
     if [ -n "$st_out" ] || [ "$st_rc" -ne 0 ]; then print_uncommitted "$wt"; fi
     remove_worktree "$wt"
     if [ "$DRY" -eq 0 ]; then
-      git branch -D "$branch" 2>/dev/null \
+      # Leased at the head the porcelain read: a seat that commits after the
+      # unpushed read moves the branch, the lease refuses, and the commit stays
+      # on its branch. `branch -D` deleted wherever the ref then pointed.
+      { [ -n "$head" ] && git update-ref -d "refs/heads/$branch" "$head" 2>/dev/null; } \
         || printf 'worktree_gc: FAILED to delete branch %s\n' "$branch" >&2
     else
       printf 'remove  branch %s\n' "$branch"

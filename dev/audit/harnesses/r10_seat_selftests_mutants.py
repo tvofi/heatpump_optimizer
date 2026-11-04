@@ -587,6 +587,8 @@ MUTANTS = [
     ("worktree_gc-1", "tools/audit/worktree_gc.sh", '    if [ "$up" != 0 ]; then', "    if false; then"),
     ("worktree_gc-2", "tools/audit/worktree_gc.sh", "      1) printf 'keep  %s  cwd-inside", "      9) printf 'keep  %s  cwd-inside"),
     ("worktree_gc-3", "tools/audit/worktree_gc.sh", '  [ "$FETCH_OK" -eq 1 ] || return 1', "  true"),
+    ("worktree_gc-4", "tools/audit/worktree_gc.sh", 'git update-ref -d "refs/heads/$branch" "$head" 2>',
+     'git update-ref -d "refs/heads/$branch" 2>'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
