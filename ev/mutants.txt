@@ -1,0 +1,16 @@
+== M1
+gh_read self-test: 122 checks, 0 failed
+1 self-test check(s) failed: attribute_merge: empty map, subject names a PR whose merge commit is the sha -> recovered by one confirming read
+== M2
+gh_read self-test: 122 checks, 0 failed
+1 self-test check(s) failed: attribute_merge: empty map, subject's PR merged elsewhere -> refuses
+== M3
+gh_read self-test: 122 checks, 0 failed
+record_row self-test: all checks passed
+== M4
+gh_read self-test: 122 checks, 0 failed
+record_row self-test: all checks passed
+== M5
+    ...<3 lines>...
+        "confirmed empty")
+Refuse: merge commit aaaaaaa attributes to no pull request via the REST API, nor via its subject confirmed against the pull request's merge commit; the window is UNCHECKED this run, not confirmed empty
