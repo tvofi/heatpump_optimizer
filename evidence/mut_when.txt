@@ -1,0 +1,15 @@
+ custom_components/heatpump_optimizer/config_flow.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a two-zone entry is not offered the whole-house heat loss; a single-zone one is (R10-TWO-ZONE-HHL)  [two=['after_save', 'heat_pump_cop_nominal', 'heat_pump_cop_partload_derate', 'heat_pump_max_power', 'heat_pump_min_power', 'house_heat_loss_coefficient', 'house_thermal_mass', 'slab_heat_transfer', 'slab_thermal_mass'] one=['after_save', 'heat_pump_cop_nominal', 'heat_pump_cop_partload_derate', 'heat_pump_max_power', 'heat_pump_min_power', 'house_heat_loss_coefficient', 'house_thermal_mass', 'slab_heat_transfer', 'slab_thermal_mass']]
+1 of 539 checks FAILED
+tests/config_flow_steps.py rc=1
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  FAIL and main() passes the committed table at its own recorded count (the null control)  [the recorded value must grade green at the tree it was recorded on]
+  ok   after a floor-FAIL re-validation each coverage ledger holds one row per script and no `reused` row
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   a budget refusal names a tail-cut site as one that survived every shared driver, a never-started one as not started, and a tail-cut-only run as no verdict measured -- all refused, none PASSED
+  ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+1 of 2602 ENTITY CHECKS FAILED
+tests/entities.py rc=1
+DONE
