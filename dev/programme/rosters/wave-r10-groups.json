@@ -15394,9 +15394,9 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): arm (2) pins async_shutdown's forget_held call site from tests, it does not edit coordinator.py; a fix that needs a coordinator.py edit stops and reports before editing."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-prod-residue-pins",
-    "commit": null,
+    "commit": "5a04096d17112c49211dea236c300667f95d97be",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s9 residual sweep, 2026-11-01: created to receive the LIVE production residuals of #2351 and #2365, which no live group's seam owns",
@@ -16492,7 +16492,8 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress"
+    "stage": "in-progress",
+    "pr": 3205
    },
    "brief": "Critical path. gate.py judges this run's own needed units from the Actions jobs API, which under load returned in_progress for jobs already complete: proof run 41870314676 read tests / mutation and tests / closures PENDING at 17:37:43Z after they completed at 17:35:07Z and 17:36:51Z; main run 41870522291 read four units PENDING at 17:44:55Z. A false red discards a train proof. Owner tools/ci/gate.py."
   }
