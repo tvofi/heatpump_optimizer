@@ -1150,7 +1150,13 @@ CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
 #: makes COP an observable (``flow_meter.read_heat_output_kw``).
 CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
-DEFAULT_FREQ_CONTROL_MODE: Final = "observe"
+#: The two frequency-control stages. Anything unrecognised in config reads
+#: as observe. Here rather than in ``freq_control`` because ``entry_config``
+#: parses them, and ``freq_control`` reads the plan's running rule from
+#: ``thermal_model``, which reads ``entry_config``.
+FREQ_MODE_OBSERVE: Final = "observe"
+FREQ_MODE_CONTROL: Final = "control"
+DEFAULT_FREQ_CONTROL_MODE: Final = FREQ_MODE_OBSERVE
 #: The compressor's frequency range where no number entity publishes one:
 #: a sensor-only install's whole range (#1067), and the stand-in for a
 #: min or max attribute a number entity leaves out.

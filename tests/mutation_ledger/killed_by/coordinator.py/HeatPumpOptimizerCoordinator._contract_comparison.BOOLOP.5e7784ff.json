@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._contract_comparison BOOLOP 5e7784ff",
+  "killed_by": "tests/features.py",
+  "old": "        if kwh > 0 and fixed_price > 0:",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if kwh > 0 or fixed_price > 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
+}
