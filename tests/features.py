@@ -76661,6 +76661,22 @@ R.check(
     _cpd_none_view is None and _cpd_stamped_view == _cpd_band_c.as_dict(),
     f"{_cpd_none_view} {_cpd_stamped_view}",
 )
+# The two ``or`` fallbacks on a missing stamp: an empty stamp publishes None,
+# and the arbiter maps a plan whose stamp is None (never solved on a band) on
+# the configured band without raising.
+_cpd_c._optimization_result = _CpNS(solve_band={})
+_cpd_empty_view = _cpd_c._learning_view().get("pump_max_power", "absent")
+try:
+    _cpd_top_nostamp = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), None)
+    _cpd_nostamp_err = None
+except AttributeError as _e:
+    _cpd_top_nostamp, _cpd_nostamp_err = None, _e
+R.check(
+    "part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp "
+    "(None) writes what the configured band writes and does not raise",
+    _cpd_empty_view is None and _cpd_nostamp_err is None and _cpd_top_nostamp == _cpd_top_none,
+    f"view {_cpd_empty_view} arbiter {_cpd_top_nostamp} vs {_cpd_top_none} err {_cpd_nostamp_err}",
+)
 _cpd_status = _CpStatus.__new__(_CpStatus)
 _cpd_status._data = lambda: {"pump_max_power": _CPD_LEARNED}
 _cpd_attrs = _CpStatus.extra_state_attributes.fget(_cpd_status)
