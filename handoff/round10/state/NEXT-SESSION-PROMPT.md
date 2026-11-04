@@ -39,7 +39,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LIVE-BUNDLE-READS (stage carries-open, branch `handoff/r10-live-bundle-reads`): `git fetch origin handoff/r10-live-bundle-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-REPLAY-COST-BUDGET (stage in-progress, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROD-RESIDUE-PINS (stage carries-open, branch `handoff/r10-prod-residue-pins`): `git fetch origin handoff/r10-prod-residue-pins && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GANTT-DRIFT (stage absorbed, branch `handoff/r10-fly-gantt-drift`): `git fetch origin handoff/r10-fly-gantt-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-OPEN-LOG (stage in-progress): no branch pushed yet, so nothing to fetch
