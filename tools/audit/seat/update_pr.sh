@@ -20,7 +20,9 @@
 # (R10-ROW-ONLY-UPDATE): app_push.sh's own verdict replaces the full prepr with the body contract
 # when the push is exactly this PR's row added onto its live head under the body plus this run's
 # note, and runs prepr otherwise; its `app_push: ROW-ONLY:` line, naming which and why, is printed
-# here. A head that merges new code, or main, never asks.
+# here. A head that merges new code, or main, asks for --reuse instead (P386): the fixer's receipted
+# prepr, the handoff body's `Prepr:` trailer, is not repeated over its clean merge with the live head
+# and main, and app_push.sh runs the full prepr on any other head; its `app_push: REUSE:` line too.
 # BODY-ONLY (R10-FLOW-BODY-ONLY): when the merges and the row leave the head exactly the live head
 # (the code sha already in it, or `-`; main clean; the row present), nothing is pushed:
 # body_patch.sh runs the body contract at that head from this run's worktree and PATCHes the body,
@@ -125,10 +127,10 @@ else: pre="`%s` "%H + " and then ".join(x for x in (N, R) if x) + ".\n\n"  # mai
 s=prefix(s,pre); open(p,'w').write(s)
 E
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
-RO=""; [ "$(git rev-parse "$H^@")" != "$LIVE" ] || RO=--row-only  # mut:rowonly
+RO=--reuse; [ "$(git rev-parse "$H^@")" != "$LIVE" ] || RO=--row-only  # mut:rowonly
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
 { pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" $RO $R $WT $BR $B $ISS > $WT.log 2>&1 & } 9>>"$PR_PUSH_LOCK"
 pr_wait $! $WT.log
-grep -h '^app_push: ROW-ONLY:' $WT.log || :
+grep -h '^app_push: \(ROW-ONLY\|REUSE\):' $WT.log || :
 echo "HEAD=$H"
