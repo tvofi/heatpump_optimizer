@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_user GUARD_OFF 7d7b4e80",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "                    elif verdict != \"ok\":",
+  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`elif False:`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=4."
+}
