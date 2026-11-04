@@ -1,0 +1,14 @@
+  GITHUB_TOKEN: ***
+  PINNED: c3a279e3252a8b57bb00b5a677318cd4fe20387f
+##[endgroup]
+NIGHTLY FAILED: slow failed 1 night ago.
+  scheduled run 41555367389, 2026-11-03T00:47:41+00:00, head b8e8236, run conclusion 'failure'
+  https://github.com/tvofi/heatpump_optimizer/actions/runs/41555367389
+  (run 41749544997 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+  failing jobs:
+    slow  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/41555367389/job/125652838863
+
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+
+A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+    gh workflow run nightly.yml --ref main
