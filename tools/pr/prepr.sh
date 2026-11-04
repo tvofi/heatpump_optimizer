@@ -3492,7 +3492,7 @@ STUB
   # slot. DRIVEN like the 6b rows drive `closures_line`: a throwaway repository
   # whose tests/closure.py stub writes the `affected` case and scripts it is told.
   OWQ=$(mktemp -d)
-  ( cd "$OWQ" && git init -q . && git config user.email t@t && git config user.name t \
+  ( set -e; throwaway_git_env; cd "$OWQ"; throwaway_git_init . -q -b main; git config user.email t@t; git config user.name t \
     && mkdir tests && printf 'import os, sys\nw = sys.argv[sys.argv.index("--workdir") + 1]\nos.makedirs(w, exist_ok=True)\nopen(w + "/affected.case", "w").write(os.environ["OWE_CASE"])\nopen(w + "/affected.scripts", "w").write(os.environ.get("OWE_SCRIPTS", ""))\n' > tests/closure.py \
     && echo a > f && git add . && git commit -qm base && git branch -q base && echo b >> f && git commit -qam change )
   owes() { # case, scripts, records_here rc -> rc of closures_owes_slot
