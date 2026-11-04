@@ -1,63 +1,68 @@
-R10-LIVE-BUNDLE-READS (issue #3120). Fixes `tools/replay/debug_ingest.py` against a real Home Assistant download (D15-s1-03, D15-s1-01) and does the live-bundle reads that round 10 could not do for want of the owner's bundle. The bundle is owner data, read locally and never committed or quoted; only derived numbers and reason words appear below. Privacy gate (D15 step 2) run first: `tests/replay.py` `leak_probes()` 46 arms, 0 failing; `export.violations` catches a planted credential in the bundle (+2 violations over the unplanted count) and passes the derived-figure document this body is made from (0 violations; a planted street address in the same shape is caught, 1 violation).
+R10-LIVE-BUNDLE-READS (issue #3120), repair round 2. Closes #3120.
 
-The fix: `load_bundle` unwraps `data.debug` when the top level is a download (`unwrap_download`); stage 4 compares the store window and the rows over the samples both hold, each stamp once. Design choice, said so a reader does not take it for a bug: the comparison is now over the intersection, and it still fails (not vacuous) when the intersection is empty.
+The fix (round 1, unchanged): `tools/replay/debug_ingest.py` `load_bundle` unwraps `data.debug` when the top level is a Home Assistant "Download diagnostics" file (`unwrap_download`), and stage 4 compares the store window and the rows over the samples both hold, each stamp once (D15-s1-03, D15-s1-01). Design choice, said so a reader does not take it for a bug: the comparison is over the intersection, and it still fails (not vacuous) when the intersection is empty.
 
-Carry dispositions (roster carries of R10-LIVE-BUNDLE-READS, numbered from 1):
-- Carry 1 (R10-HEAT-METER, L9 `unhealthy_input`): done, see Figures; outdoor limit unchanged.
-- Carry 2 (R10-REPLAY-REAL-DAY carry 4): dismissed as the duplicate of Carry 1 the roster marks; same reading.
-- Carry 3 (L6, 238 min house meter): done, see Figures; no code change, the rule already keys on report time.
-- Carry 4 (R10-SCORES `--bundle` scale drift): done, see Figures.
-- Carry 5 (D15-s1-01, D15-s1-03, L-a, L-b): fix landed, L-a dismissed with its reading, L-b reproduced and explained.
-- Carry 6 (coordinator lane note): honoured, no coordinator.py edit.
+This round settles the block of verdict/3186 (class-open: `dev/audit/rounds/round10/D15/s1/intake.py`). With `load_bundle` unwrapping, the finder's harness lost its wrapper: `bundle_unwrapped` read 0 on every download and `--perturb unwrap` did nothing. The repair:
+- `debug_ingest.read_download(path)`: the file as handed, gunzipped and parsed, wrapper intact. `load_bundle` is now `unwrap_download(read_download(path))`, so there is still one loader and no second gzip/json path.
+- `intake.py` reads the download through `read_download` (on a tree before it exists, `load_bundle` is that reader, so the harness still runs at the base); `bundle_unwrapped` is measured on the file as handed again. Its wrapped M3 arm is now what `load_bundle` hands `ingest` (the tool's own path), and `--perturb unwrap` flips that unwrap, so the arm moves at both ends. Header updated to say so.
+- The verdict's finding: `intake.py` M4 called `store._store_name`, which the tree names `store_name`; it crashed at base and head, so the store metrics never printed. Fixed; they print at both ends.
 
-Handed to the orchestrator, not landed by this seat (a local seat does not write the roster): Three items are owed to R10-ROUND-PLAYBOOK and are handed to the orchestrator to land as roster ops before merge: (1) a version change across a gap is a restart whatever the gap's length (the `d15_restart_gaps.py` rule read 0 at a 43.6 min upgrade gap); (2) its carry beginning "Round-11 D15 inputs, re-homed from R10-REPLAY-REAL-DAY" is done here and can be closed; (3) only 1 of 8 ring snapshots carries `unhealthy_input`, so the next live bundle re-reads it with `d15_bundle_reads.py`.
+Alternatives, and why each lost: reading the raw file inside `intake.py` (a second gzip/json loader beside `load_bundle`, duplicated concept); dispositioning the seam in the body and leaving the harness blind (its M1 and M3 wrapper arm would stay meaningless for the next live bundle); keeping the old "unwrap" perturbation semantics (at the head it is a no-op by construction).
+
+LOCAL-SAFE: this round read no live bundle. Every figure below is from the synthetic download `debug_ingest._download(debug_ingest._tail_repeat_bundle())` the reviewer used, or the bare `_tail_repeat_bundle()` as the null control, written to a scratch file outside the tree. The round-1 live-bundle reads (carries 1, 3, 4, 5 and L-a, L-b) are not re-taken and not restated here: they stand as recorded in the round-1 body (handoff-body ref 9ab3e10c, code 06234008), and this diff does not touch the code they measured beyond `load_bundle`'s extraction, which is behaviour-identical (the wrapped-download arm of `gate_checks()` is green).
+
+Carry dispositions (roster carries of R10-LIVE-BUNDLE-READS, numbered from 1): carry 1 (R10-HEAT-METER, L9 `unhealthy_input`) done, no code change; carry 2 (R10-REPLAY-REAL-DAY carry 4) dismissed as the duplicate of carry 1 the roster marks; carry 3 (L6 house meter age) done, no code change; carry 4 (R10-SCORES `--bundle` scale drift) done; carry 5 (D15-s1-01, D15-s1-03, L-a, L-b) fix landed, L-a dismissed with its reading, L-b reproduced and by design; carry 6 (coordinator lane note) honoured, no `coordinator.py` edit. The verdict's own carry (the `_store_name` crash, `Carry: R10-LIVE-BUNDLE-READS`) is closed in this diff.
+
+Handed to the orchestrator, not landed by this seat (a fixer writes no roster): round 1's three items for R10-ROUND-PLAYBOOK (a version change across a gap is a restart whatever its length; the "Round-11 D15 inputs" carry is done in this group and may be discharged; re-read `unhealthy_input` on the next bundle) are on handoff/audit-r10-roster at 4d89ce26ccfd20bbfc8fc0b675245370ead6deb3, as the verdict records, to land as roster ops before merge.
 
 ## Head
 
-0623400819922e51443917996f49de671f138d34
+df48d4e7a3d0698bce3002023767bc3d6bc6b1fe
 
 ## Mutation proof
 
-Failing test first: the three new arms of `debug_ingest.gate_checks()` (driven by `tests/entities.py`) fail on the unfixed file. Wrapped download at origin/main (c3a279e32): 6 of 12 stages fail (schema, manifest-cycles, manifest-version, rows-match, stores-present, bias-rederived); tail-repeat bundle: bias-rederived fails; both pass at the head.
-Mutants, each run through `gate_checks()`:
-- `return unwrap_download(json.loads(raw))` to `return json.loads(raw)`: the wrapped-download arm goes red (6 stages).
-- `by_time.setdefault(parsed.when, parsed)` to a key unique per row (no de-duplication): the clean arm, the wrapped arm and the tail-repeat arm go red on bias-rederived.
-- `shared = sorted(set(held) & set(by_time))` to `sorted(held)`: the run raises KeyError (a kill by crash, not by a named check).
-Restored after each; `git diff` shows only the fix.
+Round 1 (re-run this round through `debug_ingest.gate_checks()` at the head): failing first, the wrapped download fails 6 of 12 stages at the base and the tail-repeat bundle fails bias-rederived; mutants unwrap removed, de-duplication removed, `shared = sorted(held)`, each go red as the verdict's ev/mutants.txt records (M1, M2, M3).
+
+New pin, this round: `gate_checks()` arm `debug ingest: read_download keeps the wrapper the harnesses measure`. Mutant: `read_download`'s `return json.loads(raw)` changed to `return unwrap_download(json.loads(raw))`. `gate_checks()` then reads 7 of 8, FAILING: `['debug ingest: read_download keeps the wrapper the harnesses measure']`. Restored; 8 of 8, `git diff` shows only the fix.
+
+The harness repair, mutated the other way: the head's `--perturb unwrap` arm is itself the mutant of the tool's unwrap (it feeds `ingest` the raw download), and moves `ingest_fails_wrapped` 0 -> 6 at the head (Figures).
 
 ## Null control
 
-`debug_ingest`'s own self-test bundle (unwrapped, one sample): the pre-existing arms read the same before and after (clean 12 of 12; `--corrupt accuracy` still refused by the loader, `corruption-refused` ok). New negative arms: a shared sample whose row disagrees with the store still fails bias-rederived; rows sharing no sample with the store fail it too. The flat control for the reads is below: a week with every heartbeat reporting names none.
+The bare synthetic bundle (`_tail_repeat_bundle()`, no wrapper) through the repaired harness: `bundle_unwrapped=0`, and `--perturb unwrap` leaves `ingest_fails_wrapped` unchanged at both ends (base 1 -> 1, head 0 -> 0), so the perturbation moves only when a wrapper exists. `gate_checks()`'s pre-existing arms (clean bundle, `--corrupt accuracy` refused, planted credential) read the same as round 1.
 
 ## Figures
 
-All commands from the repository root with `PYTHONPATH=tests/hastub:custom_components` (add `tests` for debug_ingest) and the bundle path from the seat; bundle at 7.1.1, exported 2026-11-04T07:22Z.
+Finder's harness: `dev/audit/rounds/round10/D15/s1/intake.py` (D15-s1-01, D15-s1-03), the repaired copy at the head, run at both ends: base `a9c2f90fc77be2e7a870f3f2735dcd0f79b5f475` (the merge base) and the head, from each tree's root, `PYTHONPATH=tests/hastub python3 <intake.py> --bundle S [--perturb unwrap]`, with S the synthetic download above. Counts only.
+- base, S: `bundle_unwrapped=1`, `ingest_fails_wrapped=6`, `ingest_fails_unwrapped=1` (bias-rederived), `bias_delta_tail=0.25`, `bias_delta_by_t=0.0`, `store_docs=1`, `store_off_domain_fields=0`; no traceback (the committed harness crashed in M4 at both ends: verdict ev/finder_harness_intake.txt).
+- base, S, `--perturb unwrap`: `ingest_fails_wrapped=1` (6 -> 1, the finder's documented movement).
+- head, S: `bundle_unwrapped=1` (the committed harness read 0 here: the block), `ingest_fails_wrapped=0`, `ingest_fails_unwrapped=0`, `bias_delta_tail=0.0`, `bias_delta_by_t=0.0`, store metrics print.
+- head, S, `--perturb unwrap`: `ingest_fails_wrapped=6` (0 -> 6; the committed harness's arm was a no-op here).
+- bare bundle, both ends, with and without `--perturb unwrap`: `bundle_unwrapped=0`; wrapped arm equal to the unwrapped arm (base 1, head 0).
 
-Fix, `tools/replay/debug_ingest.py --bundle B`: at origin/main the download as handed reads 6 of 12 stages; at the head 12 of 12. Store window 192 samples, rows hold 300 distinct sample stamps in 327 rows, 191 shared; store bias and rows bias over the shared samples are equal (delta 0.0 C). D15-s1-01 does not reproduce on this bundle: with only the unwrap applied at origin/main, delta is 0.013 C (< 0.05), so the carry's 0.109 belonged to an older bundle; the fixed comparison is the correct rule regardless. `live_deque_bias` (0.339) differs from the store window (0.245): the diagnostics figure is taken at export time, the store at its last save; not a defect, a timing difference. `replay` is null (the manifest says one entity id was not masked), so stage 2 `replay-clean` is vacuous on this bundle; no replay-half step ran.
+`debug_ingest.gate_checks()` at the head: 8 of 8 ok (`PYTHONPATH=tests/hastub python3 -c 'import sys;sys.path[:0]=["tools/replay","tests","custom_components"];import debug_ingest as d;print([n for n,ok,_ in d.gate_checks() if not ok])'` prints `[]`).
 
-`dev/audit/harnesses/d15_bundle_reads.py --bundle B` (new; instrument for the next bundle):
-- L9 `unhealthy_input`: the ring holds 8 weekly snapshots; 6 are unhealthy, 1 carries the field (the newest, taken 2026-10-28), the 7 earlier ones predate #2261 and carry no key, so the 5 unhealthy ones among them are unattributable, not healthy. The newest names `external_heat_source`: a plant-wide freeze reason from the external-heat detector (this install has a wood tank), not an indoor, outdoor or power input. 0 snapshots name outdoor. Decision: outdoor's 180 min on-change limit is not implicated by any evidence and stays; no change. Controls (real `SnapshotRing`): every heartbeat reporting gives `unhealthy_input=None`; one input silent gives `stale:outdoor_temp_entity`. The two healthy weeks (2026-10-14, 2026-10-21) name none, consistent with the null.
-- L6 age rule: `inputs.age_limit_for` plus `inputs.state_age`, all three meters 240 min since the last write: a meter reporting on change is not flagged (its limit is infinite for the house-power key); a polling meter re-reporting an unchanged value is not flagged (age is read from `last_reported`); a polling meter that went silent is flagged. Mutant `--mutant last_changed`: the re-reporting meter turns flagged, so the control moves. The sensors self-test (`debugger.sensor_sanity`) has no age rule at all: it reports missing counts, range and longest flat run, and the live health view. The 238 min flag of the lead came from the freshness rule, and #2234 (R10 N-staleness) already keys it on the report time and the source's reporting kind. The bundle's `self_tests` is null (collection not final), so the original flag is not re-readable. No change.
-- L-a: not reproduced at 7.1.x. Rows 327, distinct samples 300, longest run of rows repeating one sample 9 (lead: 446), longest gap between distinct samples 0.84 h (lead: 115 h), largest row-stamp lead over its own sample 0.79 h. Perturbation `--plant-stall`: the same bundle with the tracker stopped at the midpoint reads longest repeat 164 rows and row lag 40.99 h, so the measure sees a stall. Dismissed with the reading.
-- L-b: reproduced, 3 of 327 rows lack `action_mode`, `action_kw` and `heat_pump_on`. They are the first row after a start: row 133 follows a 43.6 min gap and is the first 7.1.1 row (the upgrade restart), the other two (rows 1 and 194) are each followed by a row within 1.0 min. `debugger.cycle_row` omits a key whose value is None, and `current_action` is empty until the first plan of a start is solved; the docstring says absent fields are omitted. By design, not a defect; a row scan that treats absent as a failure would be wrong. Side finding: `d15_restart_gaps.py` reads 0 gaps because the 43.6 min gap is under its 3-interval rule (2700 s at the 900 s interval) although the version changed across it..
+Seams for the class (fixer.md step 8). Rule: `git grep -n "load_bundle" tools tests dev`, re-run at the head; every line it returns:
+- `tools/replay/debug_ingest.py` `def load_bundle`: the loader; now `unwrap_download(read_download(path))`. Closed in this diff.
+- `tools/replay/debug_ingest.py` `_via_file` (`(reader or load_bundle)(path)`): the gate's own file round-trip; reads through `load_bundle` by default and `read_download` for the new arm. Closed in this diff.
+- `tools/replay/debug_ingest.py` `main` (`ingest(load_bundle(args.bundle), ...)`): the `--bundle` path the fix is for. Closed (round 1).
+- `tools/replay/debug_replay.py` (`bundle = debug_ingest.load_bundle(args.bundle)`): gains the unwrap; it wants the bundle, not the wrapper. Closed (round 1).
+- `dev/audit/rounds/round10/D15/s1/intake.py` `main` (`getattr(di, "read_download", di.load_bundle)` and `di.load_bundle(a.bundle)`): the finder's harness; repaired in this diff, as above.
+- `dev/audit/rounds/round10/JUDGE-INPUT.json` (two lines), `dev/audit/rounds/round10/intake/out/normalised-reports.json` (two), `dev/audit/rounds/round10/reports-B11.json` (two): the finding's `seam_rule` and `proposed_fix_scope` as recorded; a record, not a reader. No change.
+- `dev/programme/rosters/wave-r10-groups.json` (the R10-LIVE-BUNDLE-READS roster text): describes the fix; not a reader. No change.
+Correction of the round-1 body: its caller list named `dbg_bundle_gen.py`, which does not call `load_bundle`, and omitted `intake.py`; the list above is the rule's output.
 
-`dev/audit/harnesses/r10_scores_envelope.py --bundle B` (scale drift, the re-homed read): stored scale 1.065, split 0.936, 10 samples (the learner restarted counting after the newest ring snapshot), two-zone. Time constants: configured 19.7 h (grade 0), effective 13.6 h (grade 0 on the 20-100 h band; the tree's `house_grade` reads 7.6). The 2.6x drift lead is visible in the ring, not in the live scale: the scale walked 0.876 (2026-09-09) to 2.182 (2026-10-21), a ratio of 2.49, then re-anchored (anchor 0.191 to 0.507 at 2026-10-28, scale 1.039) and the samples count reset below 50 by the time of the bundle. No live drift at this bundle; the walk itself is a historical, pre-7.1 observation. Null control: ratio of the unplanted ring entries 2026-09-09 and 2026-09-16 is 1.00.
+Readers of the harness's wrapper metric and unwrap arm, rule `git grep -n "bundle_unwrapped\|perturb unwrap\|D15/s1/intake"` at the head: `intake.py` itself (repaired); `dev/audit/rounds/round10/D15/s1/REPORT.md` (the finder's measurement record of the base-era `6 -> 1`, which the repaired harness reproduces at the base; a record that recounts, left as written); the round-10 JSON records named above and `tests/closures.json` (the file's classification entry). No other reader.
 
-No coordinator.py edit was needed or made.
-
-Restart gaps (`d15_restart_gaps.py --bundle B`): restart_gaps=0 at 327 rows, max spacing 2613.9 s against the 2700 s rule.
-
-Seams for the class (fixer.md step 8; rule: `git grep -n "json.loads(raw)" tools/replay` and `git grep -n "load_bundle" tools tests dev`): `load_bundle` is the one loader; its other callers are `debug_replay.py` (gains the unwrap) and `dbg_bundle_gen.py` (bare bundles, unchanged). `d15_restart_gaps.unwrap` and `r10_scores_envelope.arm_bundle` already unwrap.
-
-Not run: `tests/entities.py` aborts before the new arms on this macOS box (a PermissionError from the stall sampler at line 18578 of tests/entities.py, `Cannot get task port`), a Linux-only path; the scoped gate selects only that script, so CI is its first full run. The arms were run directly through `debug_ingest.gate_checks()`: 7 of 7 ok. `tests/harness_headers.py`: 112 checks passed. `tests/structure.py`: passed. `ci_predict.py --base origin/main`: no red predicted after `--apply-inert`.
+Gate: `tests/closure.py select --diff <merge base>`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`, running `tests/entities.py`: ALL 2607 ENTITY CHECKS PASSED. `tests/structure.py`: STRUCTURE RATCHET PASSED. `tests/harness_headers.py`: ALL 112 HARNESS HEADER CHECKS PASSED. `tools/pr/prepr.sh`: rc=0 at the head. Toolchain: `cloud-setup.sh --check` OK; numpy 2.5.4 and scipy 1.18.1 match `tests/requirements-ci.txt`. No production file under `custom_components/` changed, so no golden can drift; claim files, `VERSION`, the manifest version and the `RELEASE_NOTES.md` heading are untouched. origin/main is 616868bdc5ca54d9555cfc89715f05a33527661e at 2026-11-04T10:46Z, unmoved since the prepr.sh run, so no second run; it merges with this head without conflict (`git merge-tree --write-tree origin/main HEAD`), so no merge was made (fixer.md step 6).
 
 ## Red checks
 
-none
+- tests / nightly-status: red on main's ancestry, not this PR's; the job reports main's nightly run, and this diff reaches nothing it reads (two files under `tools/replay/` and `dev/audit/`). No cheaper detector exists for it on this branch: the cause is upstream of the diff, and the nightly's own seat owns it.
 
 ## Forward-carry
 
-none
+- The verdict's surviving mutant M5 (`"schema" not in doc` guard dropped): equivalent on the bundle's reachable domain (every bare bundle carries `schema`, `debugger.py` `BUNDLE_SCHEMA`; none has a top-level `data`). Carry: dismissed: equivalent mutant on the bundle's reachable domain
 
 ## Friction
 
