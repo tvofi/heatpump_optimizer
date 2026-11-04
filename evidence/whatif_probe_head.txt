@@ -1,0 +1,2 @@
+whatif: no store                   hub 5.0 live solve max [5.0] what-if solve max [5.0] error None
+whatif: store 12 @ 0.5 (learned)   hub 5.0 live solve max [2.5] what-if solve max [2.5] error None

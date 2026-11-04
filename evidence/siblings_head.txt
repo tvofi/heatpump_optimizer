@@ -1,0 +1,54 @@
+custom_components/heatpump_optimizer/away.py:292:    max_power = float(model.params.max_electrical_power)
+custom_components/heatpump_optimizer/battery.py:386:        charge_power_kw=params.max_electrical_power,
+custom_components/heatpump_optimizer/battery.py:388:        charge_heat_per_cop_kw=heat_per_cop_kw(params, params.max_electrical_power),
+custom_components/heatpump_optimizer/coordinator.py:2237:    return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
+custom_components/heatpump_optimizer/coordinator.py:3882:        p_max = self._thermal_model.params.max_electrical_power
+custom_components/heatpump_optimizer/coordinator.py:4876:        thermal_kw = params.max_electrical_power * max(cop, 1.0)
+custom_components/heatpump_optimizer/coordinator.py:5874:                        self._thermal_model.params.max_electrical_power),
+custom_components/heatpump_optimizer/coordinator.py:6082:        quiet = quiet_windows.compose_with_silent(caps, ctx._config, ctx.hass.states.get, solve_now, n, config.dt_hours, params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
+custom_components/heatpump_optimizer/coordinator.py:8892:        nameplate = float(getattr(self, "_ctx", self)._thermal_params.max_electrical_power)
+custom_components/heatpump_optimizer/coordinator.py:9118:        p_max = float(ctx._thermal_params.max_electrical_power)
+custom_components/heatpump_optimizer/coordinator.py:9147:        p_max = float(ctx._thermal_params.max_electrical_power)
+custom_components/heatpump_optimizer/coordinator.py:10190:            threshold_kw=float(ctx._thermal_params.max_electrical_power)
+custom_components/heatpump_optimizer/coordinator.py:10541:        specs = price_tiles.specs(record.config, record.params.max_electrical_power)
+custom_components/heatpump_optimizer/coordinator.py:10915:            max_power_kw=params.max_electrical_power,
+custom_components/heatpump_optimizer/coordinator.py:10929:                override / max(ctx._thermal_params.max_electrical_power, 0.1)
+custom_components/heatpump_optimizer/coordinator.py:11103:        _quiet = quiet_windows.compose_with_silent(cap_extra, quiet_windows.overridden_config(ctx._config, overrides), ctx.hass.states.get, solve_at, len(horizon.prices), scratch_config.dt_hours, scratch_params.max_electrical_power, optimizer_active=self._mode != MODE_OFF)
+custom_components/heatpump_optimizer/draw_range.py:3:The planner books ``min_electrical_power``..``max_electrical_power`` as the
+custom_components/heatpump_optimizer/draw_range.py:556:            drawn_kw, space, params.min_electrical_power, params.max_electrical_power,
+custom_components/heatpump_optimizer/draw_range.py:579:    cfg_max = float(params.max_electrical_power)
+custom_components/heatpump_optimizer/draw_range.py:651:    cfg_max = float(params.max_electrical_power)
+custom_components/heatpump_optimizer/heat_energy.py:393:            max_heat_kw=params.max_electrical_power * params.cop_nominal_floored,
+custom_components/heatpump_optimizer/optimizer.py:1280:    p_max = params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:3115:        p_max = self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:3730:        return (np.clip(np.asarray(prev, dtype=float), 0.0, self.model.params.max_electrical_power),)
+custom_components/heatpump_optimizer/optimizer.py:3849:                n_steps, self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:3867:                    n_steps, self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:3883:                            self.model.params.max_electrical_power,
+custom_components/heatpump_optimizer/optimizer.py:4126:        p_max = self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:4232:        p_max = self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:4422:                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
+custom_components/heatpump_optimizer/optimizer.py:4484:                self.model.params.min_electrical_power, self.model.params.max_electrical_power,
+custom_components/heatpump_optimizer/optimizer.py:4532:        p_max = self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:4797:        p_max = self.model.params.max_electrical_power
+custom_components/heatpump_optimizer/optimizer.py:5157:            heat: float = delivered_heat_kw(p, cop, p.max_electrical_power)
+custom_components/heatpump_optimizer/optimizer.py:5348:                design_power = p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/optimizer.py:5373:            power = min(power_for_heat_per_cop_kw(p, required_thermal / cop), p.max_electrical_power)
+custom_components/heatpump_optimizer/pump_arbiter.py:521:    p_max = getattr(params, "max_electrical_power", None)
+custom_components/heatpump_optimizer/pump_arbiter.py:529:            else getattr(thermal_params, "max_electrical_power", None)
+custom_components/heatpump_optimizer/sysid.py:220:        e = p.max_electrical_power * p.cop_nominal_floored / p.emitter_design_delta_t_floored
+custom_components/heatpump_optimizer/thermal_model.py:518:    max_electrical_power: float = DEFAULT_HEAT_PUMP_MAX_POWER  # kW
+custom_components/heatpump_optimizer/thermal_model.py:715:        return max(0.3 * self.max_electrical_power, 0.2)
+custom_components/heatpump_optimizer/thermal_model.py:971:            "max_electrical_power": "HEAT_PUMP_MAX_POWER",
+custom_components/heatpump_optimizer/thermal_model.py:1796:        p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:1965:    design_power = p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:2140:        params.min_electrical_power, params.max_electrical_power)
+custom_components/heatpump_optimizer/thermal_model.py:2153:    band = params.max_electrical_power - params.min_electrical_power
+custom_components/heatpump_optimizer/thermal_model.py:2197:    band = (params.max_electrical_power - params.min_electrical_power) * hours
+custom_components/heatpump_optimizer/thermal_model.py:2201:    p_max = params.max_electrical_power * hours
+custom_components/heatpump_optimizer/thermal_model.py:2956:        design_power = p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:3785:                design_power = p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:3816:                        p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:4087:            design_power = p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/thermal_model.py:4097:            p.max_electrical_power * p.cop_nominal_floored
+custom_components/heatpump_optimizer/topology.py:1023:        else params.max_electrical_power * _ADVISOR_DUTY_FRACTION
