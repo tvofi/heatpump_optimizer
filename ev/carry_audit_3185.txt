@@ -1,0 +1,6 @@
+NOTE #3185 body item a1c00815: dismissed:caught by reading
+NOTE #3185 body item 5e20edb5: dismissed:paid in diff
+NOTE #3185 body item 18e8e6aa: R10-FLY-ARCHSCORE-STMT-PACKING: R10-FLY-ARCHSCORE-STMT-PACKING resolved on origin/handoff/audit-r10-roster
+NOTE #3185 review 6633403670 item a2e21972: #2259 superseded by R10-FLY-ARCHSCORE-STMT-PACKING (item a2e21972)
+NOTE #3185 review 6633403670 item a2e21972: R10-FLY-ARCHSCORE-STMT-PACKING: R10-FLY-ARCHSCORE-STMT-PACKING resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT #3185: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
