@@ -1,0 +1,13 @@
+# head 6f742a33e5216932d4fb0f4583e09b137432ea9f, reviewer probe ev/rev_null_settled.py (finder's arm_null loop, full SETTLEMENT_KEYS snapshot)
+RESULT rev arm=const flatcop=False only_base=False baseline 138.73 actual 132.11 saved 6.62 (4.77 %) stored_heat_sek -11.15 comfort_sek 6.23 comfort_matched 0.39 (+0.28 %)
+RESULT rev arm=vary flatcop=False only_base=True baseline 154.1 actual 135.09 saved 19.01 (12.34 %) stored_heat_sek 0.0 comfort_sek 0.0 comfort_matched 19.01 (+12.34 %)
+RESULT rev arm=vary flatcop=False only_base=False baseline 167.25 actual 135.09 saved 32.16 (19.23 %) stored_heat_sek 13.15 comfort_sek 8.28 comfort_matched 23.88 (+14.28 %)
+RESULT rev arm=const flatcop=True only_base=False baseline 93.04 actual 90.65 saved 2.39 (2.57 %) stored_heat_sek 1.24 comfort_sek 2.15 comfort_matched 0.24 (+0.26 %)
+RESULT rev arm=vary flatcop=True only_base=False baseline 93.63 actual 92.07 saved 1.56 (1.67 %) stored_heat_sek 1.83 comfort_sek 1.31 comfort_matched 0.25 (+0.27 %)
+# twozone_comfort.py (two-zone house, 24 h flat, winter_cold):
+head          RESULT twozone two_zone=True comfort_kwh 1.7704 step0 0.0460
+M2 zone=rooms RESULT twozone two_zone=True comfort_kwh 2.0018 step0 0.0110
+M3 delivered=zone[i] RESULT twozone comfort_kwh 1.7781; vary arm comfort_sek 8.24 (head 8.28)
+M4 no clip    RESULT twozone comfort_kwh 1.7704; vary arm comfort_sek 8.28 (identical: equivalent on these winter configs)
+# features.py at unmutated head: ALL 4783 FEATURE CHECKS PASSED (8m00s)
+# mypy 2.4.1 --strict on ev/mypy_lambda_snip.py: each call of an untyped lambda is [no-untyped-call]; _settlement_schedule calls _l 9 times = CI's +9
