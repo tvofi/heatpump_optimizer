@@ -379,19 +379,10 @@ def _floor_demand_at_target(
     exchange is zero with both floors at ``target`` (the two-zone demand adds
     the exchange at the actual temperatures).
     """
-    p = model.params
-    if not p.two_zone_enabled:
-        u_eff = model.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-        q_solar = model.compute_solar_gain(solar_radiation)
-        return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
-    u_lower = model.effective_heat_loss_coefficient(
-        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    u, a, b = _floor_demand_terms(
+        model, outdoor_temp, wind_speed, precipitation, solar_radiation
     )
-    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
-    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
-    return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+    return u * (target - outdoor_temp) - a - b
 
 
 def _settlement_schedule(
