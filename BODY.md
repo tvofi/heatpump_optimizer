@@ -23,7 +23,7 @@ R10-ARCH-SHAPES-CLASSIFIER: land the reason-classifier arm of D8-s1-01 that #281
 
 ## Head
 
-c4d45522c669. Measured at merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f, which was origin/main when prepr ran (stamped `date -u` 2026-11-04T07:11Z). Main has not moved since that prepr run, so there is no second run.
+913e74e876606ecf573b387b613f5a4e621b9bc7 (PR head; code identical to c4d45522c669 plus the delivery row record). Repair pass 2026-11-04T09:20Z. Merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f; origin/main is now a9c2f90fc77be2e7a870f3f2735dcd0f79b5f475 and `git merge-tree --write-tree origin/main HEAD` reports no conflict, so no merge was made.
 
 ## Mutation proof
 
@@ -116,7 +116,11 @@ Each site is pinned by `mutation-autofix` after the push (its lane mutates `cust
 
 ## Red checks
 
-- `mutation` at c4d45522c669: red by construction on the 8 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+Read from the whole check-run set of PR #3184 at 913e74e876606ecf573b387b613f5a4e621b9bc7 (43 runs, one page):
+
+- `tests / mutation` (job 126469507836): `MUTATION TABLE REFUSED`, 8 added unpinned sites (coordinator.py:10621, freq_control.py:201 and :228, optimizer.py:340, :341, :1421, :1423, thermal_model.py:1218), the same 8 under `## Unpinned sites`. Red by construction; `tests / mutation-pins (1)` and `(2)` were in progress at read time, which is mutation-autofix's lane, so this seat pinned nothing and a second pin commit would duplicate it. A local `mutation_table.py --pin-killed` run had not finished its baselines when this was written, so no survivor is claimed or excluded here.
+- `tests / replay` (job 126469677904): 1 of 176 replay checks FAILED, `synthetic-dhw-only.json: cycle_cost [cpu_ratio 2.825 over its budget 2.173]`. The same job's first pass recorded `cpu_ratio=3.996` for that fixture and the doubled-cost arms read 5.70, 2.83 and 3.26, so the reading swings across the budget on a shared runner: timing noise. Control: `PYTHONPATH=tests/hastub python3 tests/replay.py` on this tree printed `ALL 176 replay checks PASSED` (exit 0), including that fixture's cycle_cost. A rerun of the job is the proof; no code change fits a timing flake and the budget is not loosened.
+- `tests / nightly-status` (job 126469507775): the unrequired nightly lane, red on the default branch's nightly. Its message says it is not a required context on main-protect and names the fix as `gh workflow run nightly.yml --ref main`. Main's, not this branch's: this diff touches neither nightly.yml nor that lane.
 
 The branch also turned three checks red, all in the local scoped gate at b03b76d5d and all fixed before the handoff:
 - **typing_ruler** (`attr-defined` +5). Importers took `FREQ_MODE_*` from `freq_control` after it began importing them from `const`, which is an implicit re-export. The cheaper detector is the source-only typing ruler: it runs mypy, takes about a minute, and is run_always. No cheaper one exists for re-export semantics.
