@@ -54,8 +54,8 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 141 of the 528 script pairs (33 choose 2) sharing 0.80 or more
-of their production-module closure, all 141 among the 406 pairs whose two
+recording finds 144 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure, all 144 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
@@ -78,7 +78,11 @@ its pairs with finite_boundary.py, structure.py and typing_ruler.py from
 driving_grade.py re-recorded every closure that imports the coordinator,
 putting block_duty.py and boost_drift_replay.py each with finite_boundary.py
 and structure.py, plan_view.py with both, and card.mjs with features.py at
-the 0.80 floor, and the count from 134 to 141).
+the 0.80 floor, and the count from 134 to 141; the bot's closure re-record
+then added driving_grade.py to typing_ruler.py's closure, which had been
+recorded without it, putting block_duty.py, boost_drift_replay.py and
+plan_view.py each with typing_ruler.py at the 0.80 floor, and the count from
+141 to 144).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (96 shared production files each), doc_claims.py/harness_headers.py
