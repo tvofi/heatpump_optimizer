@@ -6,9 +6,13 @@ What changed: `REVIEW OWED` skips the record branch (carry 1). A new `owed_level
 
 ## Head
 
-e4bdbc6a2ddcd2cc8f42ecb0b5eefb415111b9eb (measured at; `origin/main` is c3a279e3252a, unmoved since the branch was cut, so no second prepr run was owed beyond the one below). The repair commit on d945dddaa adds `tools/audit/seat/open_pr.sh`, `tools/pr/app_approve.sh` and `tools/audit/seat/cloud_relay.sh` to `INERT_EXCEPT` in `tests/closure.py`: ledger.py's self-test, which `tests/entities.py` runs, reads them, so they must sit in the recorded closure rather than the INERT prefixes.
+c9993ab55cbbac35cc440713d61ad9cc30b2cfa6 (measured at; `origin/main` is c3a279e3252a, unmoved since the branch was cut, so `tools/pr/prepr.sh` ran once, at this head, and is clean: rc=0, the ci predict arm and the closures arm ok).
 
-Closures prediction left to the bot: `tools/pr/prepr.sh` ran with `PREPR_SKIP_CLOSURES=1`, because `derive_closures.sh --single` on `tests/entities.py` took 18 min and exited 1 in the prior round. Its only refusal is `ci predict`: 3 predicted `tests / closures` UNDER-SCOPED entries for `tests/entities.py` (cloud_relay.sh, open_pr.sh, app_approve.sh); every other step is ok. CI's closures-autofix records them once the PR exists (`ci-autofix.md`).
+The earlier head added `tools/audit/seat/open_pr.sh`, `tools/pr/app_approve.sh` and `tools/audit/seat/cloud_relay.sh` to `INERT_EXCEPT` on the premise that `tests/entities.py` runs ledger.py's self-test. It does not: `derive_closures.sh --single tests/entities.py` (recorded in a kept out-dir) shows none of the three in its record, ledger.py's self-test runs only from governance.yml, and `tests/entities.py` then fails "every tracked file is either measured or deliberately classified" for the two it names. Cause of the predicted reds: `ci_predict.self_test_hosts` took `tests/entities.py` for a host because the prose "self-tests" sat twelve lines from a `ledger.py landed` string fixture (line 28492). Repairs: the INERT_EXCEPT entries are reverted (the files are INERT again; `tests/closures.json` is byte-identical to main), and `self_test_hosts` now requires the `--self-test` flag near the file, not the word. ledger.py's self-test is not narrowed.
+
+Mutation proof for that change: with the old regex restored, `python3 tools/pr/ci_predict.py --self-test` goes red on two cases (the INERT-read and the UNDER-SCOPED ones, because the new harness_headers fixture line carries the prose "the self-tests run elsewhere" in the window); with the fix, `ci_predict self-test: 0 failed`. Null control: the hosts that really name `--self-test` near the file are still predicted.
+
+Not established: that recording (and a direct `tests/entities.py` run at the INERT_EXCEPT head) also printed `FAIL a3:roster` (one entity registered against the committed roster), which the d945dddaa run below did not. I did not rerun `tests/entities.py` at this head, and no recording was merged; CI's scoped closures job runs it.
 
 ## Approval
 
@@ -35,7 +39,7 @@ Unmutated tree: `orchestrator_tick self-test: 261 checks, 0 failed` (251 before 
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: MODE: SCOPED -- 2 script(s) run (tests/doc_claims.py, tests/entities.py).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, no budget raised or re-recorded.
 - `node tools/policy/policy_lint.mjs`: TOTAL: 0 error(s); `--budgets` within caps (standing-dispatch.md held at its 39-line cap).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` at d945dddaa: rc=0 (its template arm ran red at an earlier head because standing-dispatch.md was over its policy_lint file cap; fixed in the last commit).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at d945dddaa (the base of this repair): rc=0 (its template arm ran red at an earlier head because standing-dispatch.md was over its policy_lint file cap; fixed in the last commit).
 
 ## Red checks
 
