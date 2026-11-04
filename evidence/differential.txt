@@ -1,0 +1,7 @@
+RESULT 233 cases, 0 differ, 62 clash messages
+RESULT errors 0 sample: off window 22:00-00:00 overlaps the hot-water window 22:00-00:00 on Monday | heatpump-optimizer-card:sensor.a:sensor.b::24 ; heatpump-optimizer-card:sensor.a:sensor.b:T:48
+RESULT 233 cases, 12 differ, 62 clash messages (perturbed)
+RESULT errors 0 sample: off window 22:00-00:00 overlaps the hot-water window 22:00-00:00 on Monday | heatpump-optimizer-card:sensor.a:sensor.b::24 ; heatpump-optimizer-card:sensor.a:sensor.b:T:48
+  differ: stepped1
+  differ: smooth1
+  differ: stepped2
