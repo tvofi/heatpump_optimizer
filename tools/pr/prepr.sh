@@ -4166,7 +4166,7 @@ step "claims hygiene" $? "$CLAIMS_LINE"
 # push that only re-bodies.
 if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
-elif [ -n "$REUSE" ]; then
+elif [ -n "${REUSE:-}" ]; then
   say skip "closures" "PREPR_SKIP_CODE: the receipted run covered the code; closures-autofix covers the merge"
 else
   closures_step "$BASE"
