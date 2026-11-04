@@ -3,7 +3,6 @@
 is priced in (R10-HOTFIX-CI-CRITPATH-4).
 
     python3 tests/host_probe.py            # the probe (CI: a step of its own)
-    python3 tests/host_probe.py --self-test
 
 Hosted runners differ ~2x on the same work (`tests / fast (3.14)` read
 1008..2094 s over 60 push runs on one tree), so a job's wall reads which host
@@ -15,16 +14,18 @@ per job), and tests/ci_ratchet.py reads that step's duration off the jobs
 API to price the job's work in reference-host seconds (normalised_work).
 
 The work never changes: a change to ROUNDS or to work() changes the unit
-every recorded critical_path_minutes is in, so CHECKSUM refuses it here; a
-deliberate change re-records the budget in the same pull request.
+every recorded critical_path_minutes is in, so CHECKSUM refuses it on
+every CI run and tests/entities.py pins one round of it; a deliberate change
+re-derives PROBE_REFERENCE_S and re-records the budget in the same pull
+request.
 """
 from __future__ import annotations
 
 import sys
 import time
 
-ROUNDS = 1100
-CHECKSUM = 1130802249442256922
+ROUNDS = 1600
+CHECKSUM = 173938904679337691
 
 
 def work(rounds: int = ROUNDS) -> int:
@@ -47,12 +48,7 @@ def work(rounds: int = ROUNDS) -> int:
     return acc
 
 
-def main(argv: list[str]) -> int:
-    if argv[1:] == ["--self-test"]:
-        got = work(1)
-        ok = got == SELF_TEST_ONE_ROUND
-        print(f"{'ok' if ok else 'FAIL'}  one round's checksum is the recorded one ({got})")
-        return 0 if ok else 1
+def main() -> int:
     t0 = time.perf_counter()
     got = work()
     dt = time.perf_counter() - t0
@@ -65,7 +61,5 @@ def main(argv: list[str]) -> int:
     return 0
 
 
-SELF_TEST_ONE_ROUND = 4288780
-
 if __name__ == "__main__":
-    sys.exit(main(sys.argv))
+    sys.exit(main())

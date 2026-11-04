@@ -290,6 +290,11 @@ jobs:
       - name: Show the lane-skip decision refusing every unsafe skip
         run: python3 tests/lane_skip.py self-test
 
+      # The host-probe bridge (R10-HOTFIX-CI-CRITPATH-4): the reference a
+      # probed fast lane implies, offline on synthetic runs.
+      - name: Show the probe bridge deriving the reference and refusing without a probed run
+        run: python3 tools/audit/seat/probe_bridge.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.

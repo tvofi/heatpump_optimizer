@@ -262,12 +262,15 @@ def main() -> int:
     f_local = statistics.median(rat.values())
     r14 = b["probe_s"]["3.14"] / f_local * unit
     r13 = r14 * b["probe_s"]["3.13"] / b["probe_s"]["3.14"]
-    print(f"5. bridge: {len(rat)} scripts, local factor {f_local:.3f} "
+    print(f"5. bridge: {len(rat)} scripts run alone, local factor {f_local:.3f} "
           f"(per script {min(rat.values()):.2f}..{max(rat.values()):.2f}); probe "
           f"3.14 {b['probe_s']['3.14']:.2f} s, 3.13 {b['probe_s']['3.13']:.2f} s locally")
-    print(f"   PROBE_REFERENCE_S derived 3.14 {r14:.1f}, 3.13 {r13:.1f}; in the tree {cr.PROBE_REFERENCE_S}")
-    holds &= (abs(r14 - cr.PROBE_REFERENCE_S["3.14"]) < 0.05
-              and abs(r13 - cr.PROBE_REFERENCE_S["3.13"]) < 0.05)
+    par = [b["parallel_scripts_s"][k] / ref[k] for k in heavy if k in b["parallel_scripts_s"]]
+    print(f"   the parallel arm, not used: {len(par)} scripts run three-wide here, "
+          f"{min(par):.2f}..{max(par):.2f}, median {statistics.median(par):.3f}")
+    print(f"   PROBE_REFERENCE_S derived 3.14 {r14:.2f}, 3.13 {r13:.2f}; in the tree {cr.PROBE_REFERENCE_S}")
+    holds &= (abs(r14 - cr.PROBE_REFERENCE_S["3.14"]) < 0.006
+              and abs(r13 - cr.PROBE_REFERENCE_S["3.13"]) < 0.006)
     print(f"RESULT holds={int(holds)}")
     return 0 if holds else 1
 

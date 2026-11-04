@@ -615,7 +615,7 @@ PROBE_STEP = "Probe the runner's speed"
 # fleet's fast class, the host the pre-probe grade priced each heavy job on
 # (its fastest draw), so the recorded critical_path_minutes keeps its unit:
 # the bridge in dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py.
-PROBE_REFERENCE_S = {"3.13": 11.0, "3.14": 10.0}
+PROBE_REFERENCE_S = {"3.13": 18.92, "3.14": 17.50}
 
 
 def reference_work(job: dict, work: float) -> "float | None":

@@ -467,10 +467,7 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
-      # critical_path_minutes prices this job's work on a reference host:
-      # its wall over this step's seconds (tests/host_probe.py: fixed work,
-      # so its duration is this runner's speed). tests/ci_ratchet.py reads
-      # the step by its name, interpreter included -- keep the two in step.
+      # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.14)
         if: needs.closure-scope.outputs.fast_skip != 'skip'
         run: python3 tests/host_probe.py
@@ -842,10 +839,7 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
-      # critical_path_minutes prices this job's work on a reference host:
-      # its wall over this step's seconds (tests/host_probe.py: fixed work,
-      # so its duration is this runner's speed). tests/ci_ratchet.py reads
-      # the step by its name, interpreter included -- keep the two in step.
+      # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.13)
         run: python3 tests/host_probe.py
 
@@ -2045,10 +2039,7 @@ jobs:
           --build-constraint tests/requirements-build.txt
           -r tests/requirements-ci.txt
 
-      # critical_path_minutes prices this job's work on a reference host:
-      # its wall over this step's seconds (tests/host_probe.py: fixed work,
-      # so its duration is this runner's speed). tests/ci_ratchet.py reads
-      # the step by its name, interpreter included -- keep the two in step.
+      # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.13)
         if: env.DOCS_ONLY_FAST != 'true'
         run: python3 tests/host_probe.py
