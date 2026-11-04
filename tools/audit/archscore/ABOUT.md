@@ -64,6 +64,7 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C22 a card function's own names are numbered by first use and its no-op and empty statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) or by a lone `;` (44c, #2373 round-2 review) | 44, 44b, 44c |
 | C23 `shape_copies` (gate-only): a function's own names are numbered, numbers, strings and `mod.X` abstracted as the clone window does (`metrics/shapes.py`) | a below-window rule copied with every name changed (`a3_shape_copies_control`); a private helper copied into its importer (also refused by `duplication_copies`) | 45 |
 | C24 `card_rule_copies` (gate-only): a one-statement card rule -- a run of an `&&`/`||` chain testing one value, its values (a name with its member path) numbered and its strings kept -- spelled at a second site (`metrics/card.rule_copies`); a template literal's run of two or more `${..}` formatting one value (its root name, members as spelled) with the text between them is a rule the same way, and a markup template -- its own text opens or closes a tag -- is none | a rule spelled once more inline below the 20-token window: `== null` written out as `x === null \|\| x === undefined` (46); the #2401 review's three respelled card_shapes rules read card_clone_copies 108 -> 108; the Setup diagram's edge key `${e[0]}>${e[1]}` written out again instead of read from its binding (47) | 46, 47 |
+| C25 `coord_footprint` counts the statements a statement packs (`footprint._units`): a tuple target (`a, b, c = (f(x) for x in xs)`), a tuple value (`a, b = f(), g()`), a chain (`a = b = f()`), a bare tuple expression, several `with` items, several `import` names, a multi-target `del`; a tuple pair of plumbing (`a, b = x.p, x.q`) or a chain of aliases is plumbing, as the plain spelling is | packing plain statements into one AST statement to lower the footprint (the #3185 review, a2e21972: 6 of the 7 statements behind its movement were one packed generator unpack) | 48 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -106,6 +107,16 @@ perturbation moves one, and the corpus vectors re-measured for `untyped_payload_
 are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload_keys,family_orphan_overrides`).
 `ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
 The cases need the pin to hold no instance, so `controls.py`'s `on` names the case an arm is applied on top of.
+
+### What R10-FLY-ARCHSCORE-STMT-PACKING moved (C25)
+
+`coord_footprint` charged a packed statement once, whatever it bound. C25 reads each as the plain statements it spells, so
+the untouched tree reads higher (the stored corpus re-measured with `calibrate.py --measure-corpus --only-metric footprint`)
+and a packed change reads as its plain one. No corpus verdict moved. One planted verdict did:
+`a1_G2_dedupe` (GOOD) reads IMPROVES, not NULL, because the replay block it removes holds `wind_speed, precipitation =
+self._current_weather()`, a packed unpack the old count read as one statement. Siblings enumerated: the shapes in the C25 row;
+`for a, b in x` and a lone destructuring `a, b = pair` are one operation on one value, and read by arity (`pair` is two),
+as the plain `a = pair[0]` would. `ARCHSCORE_ABLATE=C25` reopens attempt 48.
 
 ### What R10-STRUCTURE-BLIND moved (D7-s1-01, D7-s3-01)
 

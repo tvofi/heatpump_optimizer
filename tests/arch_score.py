@@ -56,7 +56,7 @@ from harness import Results  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
 
 from archscore import calibrate, gate, score, vector  # noqa: E402
-from archscore.metrics import card  # noqa: E402
+from archscore.metrics import card, footprint  # noqa: E402
 
 FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978"
 
@@ -438,6 +438,28 @@ def main() -> int:
                 f"{[(r['id'], r['verdict']) for r in known]}; recorded {sorted(recorded['KNOWN-OPEN'])}")
         R.check("the rename null reads NULL",
                 next(r for r in rows if r["id"] == "rt_00_null_rename")["verdict"] == "NULL")
+
+    # coord_footprint (counter C25): a packed statement reads as the plain ones it spells.
+    def _n(src: str) -> int:
+        return footprint.logic_stmts(ast.parse(src))
+
+    packed_plain = [
+        ("a, b, c = (f(x) for x in xs)", "a = f(xs[0])\nb = f(xs[1])\nc = f(xs[2])"),
+        ("a, b = f(x), g(y)", "a = f(x)\nb = g(y)"),
+        ("a = b = f(x)", "a = f(x)\nb = f(x)"),
+        ("a, b = x.p, x.q", "a = x.p\nb = x.q"),
+        ("a = b = x.p", "a = x.p\nb = x.p"),
+        ("f(x), g(y)", "f(x)\ng(y)"),
+        ("with p() as a, q() as b:\n    pass", "with p() as a:\n    with q() as b:\n        pass"),
+        ("import os, sys", "import os\nimport sys"),
+        ("del a, b", "del a\ndel b"),
+    ]
+    R.check("coord_footprint reads a packed statement as the plain statements it spells (every packing shape)",
+            all(_n(pk) == _n(pl) for pk, pl in packed_plain),
+            f"{[(pk, _n(pk), _n(pl)) for pk, pl in packed_plain if _n(pk) != _n(pl)]}")
+    R.check("coord_footprint control: an unpacked body and a single destructuring read one statement each",
+            _n("a = f(x)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0,
+            f"{_n('a = f(x)')} {_n('a, b = pair')} {_n('a = x.p')}")
 
     # The check can fail: a moved case must not read as it did.
     good = next(c for c in collected if c["id"] == "d979110c")

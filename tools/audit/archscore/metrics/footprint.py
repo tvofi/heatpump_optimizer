@@ -57,8 +57,53 @@ def _plumbing(s: ast.AST) -> bool:
     return False
 
 
+def _arity(t: ast.AST) -> int:
+    """Names a target binds: ``a, (b, c)`` is three, ``x.y`` and ``x[i]`` one each."""
+    if isinstance(t, (ast.Tuple, ast.List)):
+        return sum(_arity(e) for e in t.elts)
+    return _arity(t.value) if isinstance(t, ast.Starred) else 1
+
+
+def _pairs(s: ast.Assign) -> list[tuple[ast.AST, ast.AST]] | None:
+    """The ``(target, value)`` pairs of a tuple target bound to a tuple of the same length, else None."""
+    if len(s.targets) == 1 and isinstance(s.targets[0], (ast.Tuple, ast.List)) \
+            and isinstance(s.value, (ast.Tuple, ast.List)) and len(s.targets[0].elts) == len(s.value.elts) \
+            and not any(isinstance(e, ast.Starred) for e in s.targets[0].elts + s.value.elts):
+        return list(zip(s.targets[0].elts, s.value.elts))
+    return None
+
+
+def _units(s: ast.AST) -> int:
+    """The statements a statement packs (counter C25). One AST statement can hold several: a
+    tuple-unpack ``a, b, c = (f(x) for x in xs)``, a tuple on the right ``a, b = f(), g()``, a chain
+    ``a = b = f()``, a bare tuple ``f(), g()``, ``with p as a, q as b`` and ``import a, b``. Each reads
+    as the plain statements it spells, so packing them lowers no count. A single-target, single-value
+    statement is one."""
+    if isinstance(s, ast.Assign):
+        pairs = _pairs(s)
+        if pairs is not None:  # ``a, b = x.p, x.q`` is the two statements it spells, each judged alone
+            return sum(1 for t, v in pairs if not _plumbing(ast.Assign(targets=[t], value=v)))
+        if len(s.targets) > 1 and all(isinstance(t, ast.Name) for t in s.targets) \
+                and _plumbing(ast.Assign(targets=s.targets[:1], value=s.value)):
+            return 0  # ``a = b = x.y`` is two aliases
+        rhs = len(s.value.elts) if isinstance(s.value, (ast.Tuple, ast.List)) else 1
+        return max(1, sum(_arity(t) for t in s.targets), rhs)
+    if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Tuple, ast.List)):
+        return max(1, len(s.value.elts))
+    if isinstance(s, (ast.With, ast.AsyncWith)):
+        return len(s.items)
+    if isinstance(s, (ast.Import, ast.ImportFrom)):
+        return len(s.names)
+    if isinstance(s, ast.Delete):
+        return sum(_arity(t) for t in s.targets)
+    return 1
+
+
+PACKING_UNITS = True  # False: one per statement, for ``vector.ablated`` (counter C25 off)
+
+
 def logic_stmts(node: ast.AST) -> int:
-    return sum(1 for n in ast.walk(node) if isinstance(n, ast.stmt) and not _is_doc(n)
+    return sum(_units(n) if PACKING_UNITS else 1 for n in ast.walk(node) if isinstance(n, ast.stmt) and not _is_doc(n)
                and not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
                and not _plumbing(n))
 

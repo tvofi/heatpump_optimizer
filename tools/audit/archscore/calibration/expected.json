@@ -304,7 +304,7 @@
   "admissible": true,
   "label": "GOOD",
   "set": "planted",
-  "verdict": "NULL"
+  "verdict": "IMPROVES"
  },
  "a1_G3_move_cluster_with_state": {
   "admissible": true,
@@ -1349,5 +1349,11 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_48_footprint_packed_unpack": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
  }
 }
