@@ -1,0 +1,25 @@
+Fix review: merge 02d6df06cbf8fd7d0387a3dca40161c219b51d8c
+
+bus-nonce: 3bbe350b8083397ee9b6d0b7bb267f29
+
+## Round
+
+Round 1, at head 02d6df06cbf8fd7d0387a3dca40161c219b51d8c (code head 91a7c9c2e727c59e523af81faae212dd3aa17b50 plus the PR's own delivery row). Merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f = origin/main at review time; `git diff <mb>...origin/main -- dev/governance/roles/` empty, so the contract is current. Judged from detached worktrees at the head and at the base.
+
+## Evidence
+
+- RESULT refutation: the #2499 residual was in the reference, not the plan. The finder's harness `dev/audit/harnesses/r10_demand_overbook.py --one <arm> --dp`, re-run by me at both ends (ev/base-*.txt, ev/head-*.txt), reproduces every figure in the body's `## Figures` exactly: base null dp_learned dp_kwh 8.62 / plan_kwh 10.74 / gap 0.2601, dp_true dp_kwh 9.00 / gap 0.2928; head null dp_kwh 10.75 / plan_kwh 10.74 / gap 0.0, plan_cost 17.801 = prod_cost 17.801, dp_true 11.00 / gap 0.0; base owner_i01 3.75 / 5.27 / gap 0.158 (true 0.1598); head owner_i01 4.50 / 5.27 / gap -0.0006, plan_cost 10.087 = prod_cost 10.087, dp_true 4.12 / gap -0.0012. plan_kwh, plan/deliv (1.165, 0.854) and scale (0.98, 0.616) are identical at both ends: the plan is unchanged, only the reference moved.
+- RESULT close condition met: the flat-price (null) arm's plan_kwh 10.74 is within the DP's 10.75 at the head. The null arm is the brief's flat-price control.
+- RESULT mutant (step 1, the fix's own line): replacing `_build_comfort_bounds` in `_dp_reference` with the flat `target_temp/min_temp/max_temp` band reproduces the base reading exactly (gap 0.2601, dp_kwh 8.62) and the new cross-check flags it: plan_cost 20.384 vs prod_cost 17.801 (ev/mutant-flatband-null.txt). The measurement moves under its own perturbation, so the refutation is not void.
+- RESULT perturbation (does the corrected reference still detect a worse plan?): plan schedule scaled x0.8 → null gap 0.0067 (dp_true 0.0077); x1.2 on owner_i01 → gap 0.0264 (dp_true 0.0382), plan_kwh 6.33 vs dp 4.50. On null x1.2 the plan only rises 10.74→10.89 kWh (most steps already at the 5 kW cap) and gap reads 0.0001: the reference is live but low-sensitivity there (ev/perturb-*.txt).
+- RESULT body's scratch figure re-derived: the base (flat-band) reference's DP schedule scored on the production objective costs 19.744 against the plan's 17.801 (ev/base-ref-dpsched-prodcost-null.txt; my own instrument, a scratch copy of the head harness with the flat band and the DP schedule fed to `_production_cost`; not landed, matching the body's disclosure that its own probe is out of tree).
+- `_build_comfort_bounds(np.array(hours), n, None, None, times)` matches the signature at custom_components/heatpump_optimizer/optimizer.py:3746; the reference passes no margins/floors, and plan_cost == prod_cost on both arms shows the reconstruction prices what the solve prices for these arms.
+- Class census (step 6) re-run at both ends (ev/census.txt): the flat-band rule returns the harness line at the base and nothing at the head; the pull rule returns comfort_rowloop.py (takes the solve's per-step band) and two records, as the body says.
+- Toolchain: my venv is numpy 2.4.6 / scipy 1.17.1 (cloud-setup --check OK), not the body's 2.5.4 / 1.18.1; every figure still reproduced to the printed digit.
+- Standing checks: three-dot diff touches only the harness and dev/programme/delivery/3183.md (the delivery row is present); claim files, VERSION, manifest and RELEASE_NOTES.md unchanged vs base; no host path in the diff; `python3 tests/structure.py`: STRUCTURE RATCHET PASSED (no budget file touched); `tests/closure.py select --diff <mb>`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out`; run_always lines: env_drift --claims-only rc 0, closure selftest rc 0, layout rc 0, harness_headers (with the hastub PYTHONPATH) ALL 112 HARNESS HEADER CHECKS PASSED.
+- `git merge-tree --write-tree origin/main 02d6df06…`: exit 0, tree b335488363cb52ca439380bf98e2181003f92503, no conflict.
+- No production code changes: no golden claims owed, no production mutants, arch score n/a; CI `mutation` green with nothing to draw.
+- Closes line: body says `Refs #2499` and explains the closing keyword is withheld until the roster entry lands on main (prepr preflight); the brief says #2499 is kept open. Consistent.
+- Red checks: the only concluded red on the whole check-run set (43 runs) is `tests / nightly-status`, whose log (ev/nightly-status-tail.txt) is main's scheduled `slow` nightly failing at b8e8236 on 2026-11-03; the diff (one audit harness, scoped out of every closure, and a delivery row) does not reach what it reads, so per fix-review.md step 11 it is not this PR's and the body's `## Red checks: none` stands.
+- Forward-carry: n/a as the body says; the correction lands in the harness itself and the census finds no other reference.
+- CI: `merge_train.py classify 02d6df06… --pr 3183` → `GREEN 02d6df06cbf8fd7d0387a3dca40161c219b51d8c pending: none red: none` (rc 0, 08:01:19 UTC; ev/classify.txt).
