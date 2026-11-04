@@ -18,7 +18,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-ROSTER-SCHEMA (stage absorbed, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage in-progress, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-ARCH-SHAPES-CLASSIFIER (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-ARCH-SHAPES-CLASSIFIER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-LEARNED-STORE-LOAD (stage in-progress, branch `handoff/r10-learned-store-load`): `git fetch origin handoff/r10-learned-store-load && git worktree add --detach $SEAT/wt FETCH_HEAD`
