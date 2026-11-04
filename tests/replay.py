@@ -1509,6 +1509,24 @@ def mask_checks() -> list[tuple[str, bool, str]]:
     return res + mask_seam_checks()
 
 
+def _sealed_options(states: dict, options: dict, plant: bool = False) -> tuple[dict | None, str]:
+    """``document`` then ``seal`` over ``options``; ``plant`` skips the mask."""
+    import export
+
+    conf = export.entry_keys(*export.default_const_paths())
+    raw = export._doc.document(
+        time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
+        recorder_schema=48, entry={"entry_id": "01JX", "data": {}, "options": options},
+        inputs=[k for k in states if k != "sensor.hpo_out"], published=["sensor.hpo_out"],
+        price_series_entity=None, states=states, conf=conf)
+    if plant:
+        raw["states"]["sensor.planted_unmasked"] = []
+    try:
+        return export._doc.seal(raw, conf), ""
+    except export._doc.Refused as err:
+        return None, str(err)
+
+
 def mask_seam_checks() -> list[tuple[str, bool, str]]:
     """Every place an id can sit, each alone: ``mask_ids`` renames it and
     ``mask_violations`` refuses it unrenamed -- a dict key anywhere (an
@@ -1545,6 +1563,24 @@ def mask_seam_checks() -> list[tuple[str, bool, str]]:
         stray = [f"raised {type(err).__name__}"]
     res.append(("mask:a_payload_that_is_no_document_has_no_violation", stray == [],
                 f"a list payload: {stray}"))
+    # R10-FLY-REPLAY-MASK: an id configured under an entry key ``sanitise`` drops
+    # (a key off the allowlist) or inside a list beside a non-id item took a role
+    # ``seal`` could not re-derive, and refused the whole replay.
+    ts = "2026-01-15T00:00:00+00:00"
+    rows = {"sensor.in": [[ts, "1", None, None]], "sensor.off_list": [[ts, "2", None, None]],
+            "sensor.late": [[ts, "3", None, None]], "sensor.hpo_out": [[ts, "4", None, None]]}
+    for name, opts in (("key_off_the_allowlist", {"legacy_probe_entity": "sensor.off_list"}),
+                       ("list_beside_a_non_id", {"room_sensor_entities": ["", "sensor.late"]})):
+        sealed, why = _sealed_options(rows, opts)
+        res.append((f"mask:id_under_{name}_seals_masked",
+                    sealed is not None and bool(sealed["states"])
+                    and not any(i in json.dumps(sealed) for i in ("off_list", "late")),
+                    why or f"{len(sealed['states'])} states"))
+    plain, why = _sealed_options(rows, {"outdoor_temp_entity": "sensor.in"})
+    res.append(("mask:clean_export_writes_a_non_empty_replay",
+                plain is not None and len(plain["states"]) == 4, why))
+    planted, _ = _sealed_options(rows, {}, plant=True)
+    res.append(("mask:planted_unmasked_id_still_refused", planted is None, "planted id"))
     # Carry 12 (D15-s1-04): a bool under a credential-named key carries no
     # credential -- ``_collect_strings`` already skips it, and ``_walk`` must
     # agree -- while a string under one still does (the null).
@@ -1576,7 +1612,8 @@ def _sealed(states: dict, entry_data: dict) -> tuple[dict | None, str]:
         time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
         recorder_schema=48, entry={"entry_id": "01JX", "data": entry_data, "options": {}},
         inputs=[k for k in states if k != "sensor.hpo_out"], published=["sensor.hpo_out"],
-        price_series_entity=None, states=states)
+        price_series_entity=None, states=states,
+        conf=export.entry_keys(*export.default_const_paths()))
     try:
         return export._doc.seal(raw, export.entry_keys(*export.default_const_paths())), ""
     except export._doc.Refused as err:
