@@ -43,14 +43,19 @@ THE METRICS, each an answer to a named cost:
                   on the same work, so the median of runs read which hosts
                   the three ~18-minute lanes drew and went red on a diff of
                   delivery rows (8f286293b, R10-HOTFIX-CI-CRITPATH-3).
+                  A slow or hung run never prices a job (the other-work
+                  floor is keyed on the median), but growth reads only once
+                  it fills most of the window (window_work_minutes).
                   Recorded at the largest value any PUSH_WINDOW consecutive
                   runs of a wider window read (`--gather-runs FILE --window
                   40`), the statistic's own window-to-window spread.
   critical_path_minutes_band   not a metric: the minutes past its budget
                   that critical_path_minutes may read before it is GREW.
                   Sized at 1.3 for the retired median (05c0d6d5d read 34.467
-                  on a 34.267 budget); kept, never widened, under the
-                  window-work statistic. It never applies to a counter, a
+                  on a 34.267 budget); kept under the window-work statistic,
+                  whose need is how far a window reads past the record of
+                  every window before it (0.55 over 40 runs, measured by
+                  dev/audit/harnesses/r10_hotfix_ci_critpath_3.py). It never applies to a counter, a
                   re-record carries it over, and widening it is a raise.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
@@ -93,6 +98,7 @@ import io
 import json
 import math
 import os
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -550,6 +556,10 @@ def _walk(r: dict) -> "list[dict] | None":
             raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
                            "has no created_at/started_at; its queue is unknown "
                            "(fail closed)")
+        if not j.get("conclusion"):
+            raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
+                           "has no conclusion; whether its work prices is unknown "
+                           "(fail closed)")
     if any(counted(str(j.get("name") or "")) and j.get("conclusion") == "cancelled"
            for j in ran):
         return None
@@ -569,7 +579,7 @@ def _walk(r: dict) -> "list[dict] | None":
         walked.append({"name": name, "work": work, "end": base + work,
                        "completed": _at(j["completed_at"]).timestamp(),
                        "counted": counted(name), "pred": pred,
-                       "skipped": j.get("conclusion") == "skipped"})
+                       "priced": j.get("conclusion") == "success"})
     if not any(w["counted"] for w in walked):
         raise _refusal(f"{kind} push run {r.get('id')} has no completed "
                        f"{'`' + TESTS_JOB_PREFIX + '*` ' if kind == 'CI' else ''}job (fail closed)")
@@ -625,25 +635,39 @@ def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW) 
 # A job's work on one host is up to ~2.4x its work on another (R10-HOTFIX-
 # CI-CRITPATH-3: a CPU-bound reference solve read 45.0 ms against 18.8 ms on
 # the same code; per-script ratios 1.6-2.9 over one job's 31 scripts). A run
-# whose work is under a third of the job's window maximum therefore did other
+# whose work is under a third of the job's window MEDIAN therefore did other
 # work -- a consumed proof, a skipped lane -- not the same work on a faster
-# host, and never prices the job.
+# host, and never prices the job. The median, never the maximum: one slow or
+# hung run past three times the job's fastest lifted a maximum-keyed floor
+# over every genuine fast run and priced the job on a slow draw (+6.95 on
+# `tests / fast (3.14)`, review of #3180 at 563c8e6db).
 OTHER_WORK_FRACTION = 1 / 3
 
 
 def window_work_minutes(runs: list[dict]) -> float:
     """The window's tests WORK, read off host speed: every job priced at its
-    fastest run in the window (the run on the fastest host it drew), summed
-    along each run's own critical chain (run_chain), the longest chain
-    kept. A job that grows grows on every host, so its minimum moves; a job
-    that drew a slow host does not move it unless it drew one in every run
-    of the window, which PUSH_WINDOW sizes away. The median of run_minutes
-    read the host draw instead: each of the three ~18-minute lanes drew a
-    host ~1.9x slower in ~2 runs of 3, so the window's median sat on a slow
-    draw and went red over a diff of delivery rows (8f286293b).
+    fastest `success` run in the window (the run on the fastest host it
+    drew), summed along each run's own critical chain (run_chain), the
+    longest chain kept. A job that grows grows on every host, so its minimum
+    moves; a slow or hung run does not, however slow (OTHER_WORK_FRACTION's
+    floor is keyed on the median). The median of run_minutes read the host
+    draw instead: each of the three ~18-minute lanes drew a host ~1.9x slower
+    in ~2 runs of 3, so the window's median sat on a slow draw and went red
+    over a diff of delivery rows (8f286293b).
 
-    A job that never priced (skipped in every run) costs nothing. None when
-    no run in the window is measurable."""
+    What the minimum costs. The hosts are not two-speed (`tests / closures`
+    read 1117..2401 s over 40 runs with mid values between), so the price is
+    the fastest host the window drew: losing the fastest draws reprices the
+    job on a mid host, and fifteen of sixteen runs drawing slow moves it as
+    growth would. And real growth moves it only once every pre-growth fast
+    run has aged out of the window: +300 s on `tests / closures` reads
+    nothing until 12 of the 16 newest runs carry it, all of it at 15
+    (dev/audit/harnesses/r10_hotfix_ci_critpath_3.py), against 8 of 8 under
+    the retired median-of-8.
+
+    Only a `success` job prices: a skipped one did no work, a cancelled or
+    failed one stopped short. A job that never succeeded in the window costs
+    nothing. None when no run in the window is measurable."""
     chains, work = [], {}
     for r in runs:
         walked = _walk(r)
@@ -651,13 +675,13 @@ def window_work_minutes(runs: list[dict]) -> float:
             continue
         chains.append(run_chain(r))
         for j in walked:
-            if not j["skipped"]:
+            if j["priced"]:
                 work.setdefault(j["name"], []).append(j["work"])
     if not chains:
         return None
     price = {}
     for name, seen in work.items():
-        floor = max(seen) * OTHER_WORK_FRACTION
+        floor = statistics.median(seen) * OTHER_WORK_FRACTION
         price[name] = min(w for w in seen if w >= floor)
     return round(max(sum(price.get(n, 0.0) for n in ch) for ch in chains) / 60, 3)
 
@@ -976,7 +1000,7 @@ def self_test() -> int:
     def ci_run(rid, created, tests_end, *, other_end="2026-10-22T02:00:00Z", jobs=True):
         # Every job ready and started at the run's creation (no queue), so its
         # work is its span: the wall these fixtures were written against.
-        t0 = {"created_at": created, "started_at": created}
+        t0 = {"created_at": created, "started_at": created, "conclusion": "success"}
         js = [{"name": "tests / fast (3.14)", "completed_at": tests_end, **t0},
               {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z", **t0},
               {"name": "gate", "completed_at": other_end, **t0},
@@ -991,7 +1015,8 @@ def self_test() -> int:
                  "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z",
                  "jobs": [{"name": "fast (3.14)", "created_at": "2026-10-21T00:00:00Z",
                            "started_at": "2026-10-21T00:00:00Z",
-                           "completed_at": "2026-10-21T00:50:00Z"}]}
+                           "completed_at": "2026-10-21T00:50:00Z",
+                           "conclusion": "success"}]}
     m, msg = safe(lambda: run_minutes(ci_run(2, "2026-10-22T00:00:00Z", "2026-10-22T00:40:00Z")))
     ck("a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)",
        m == 40.0, msg or f"got {m}")
@@ -1106,6 +1131,13 @@ def self_test() -> int:
     mc, msg = safe(lambda: run_minutes(run_c))
     ck("a run with a cancelled `tests / *` job is not in the window (its work was cut short)",
        mc is None, msg or f"got {mc}")
+    bare = {**run_q, "jobs": [{k: v for k, v in queued[0].items() if k != "conclusion"}] + queued[1:]}
+    try:
+        msg = refused(lambda: run_minutes(bare))
+    except Exception as exc:  # a crash reddens this check by name
+        msg = f"crashed: {exc!r}"
+    ck("a ran job with no conclusion refuses (whether it prices is unknown)",
+       "has no conclusion" in msg, msg or "no refusal")
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "runs.json"
         # R10-HOTFIX-CI-CRITPATH-3: the same arch-instrument work on a host
@@ -1133,9 +1165,33 @@ def self_test() -> int:
         noop = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 22.9)] + queued[4:]
         f.write_text(window([{**run_q, "jobs": noop}] + [run_sl] * 15))
         gn, msg = safe(lambda: critical_path_minutes(f))
-        ck("a run under a third of the job's window maximum did other work and "
+        ck("a run under a third of the job's window median did other work and "
            "never prices it (63.9, not 5.3)",
            gn is not None and abs(gn - 63.9) < 0.05, msg or f"got {gn}")
+        # Review of #3180 at 563c8e6db: one hung run of a lane, past three
+        # times its fastest, lifted a maximum-keyed floor over every fast run
+        # and priced the lane on it (+6.95 on real runs). Keyed on the median
+        # it moves nothing, however slow.
+        hung = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 17.9 + 3.2 * 31.8)] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": hung}] + [run_q] * 15))
+        g_hung, msg = safe(lambda: critical_path_minutes(f))
+        ck("one run of a job past three times its fastest does not move the grade "
+           "(32.1, not 102.1)",
+           g_hung is not None and abs(g_hung - 32.1) < 0.05, msg or f"got {g_hung}")
+        # A failed job stopped short: its work is not the job's, however far
+        # above the other-work floor (15.0 against 31.8).
+        failjob = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 32.9, "failure")] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": failjob}] + [run_q] * 15))
+        gf, msg = safe(lambda: critical_path_minutes(f))
+        ck("a failed job never prices (32.1, not 15.3)",
+           gf is not None and abs(gf - 32.1) < 0.05, msg or f"got {gf}")
+        # A cancelled job outside `tests / *` leaves its run measurable, so its
+        # truncated work would price the job (prelude 0.15, not 0.3).
+        cut = [j("prelude", 0.0, 0.2, 0.35, "cancelled")] + queued[1:]
+        f.write_text(window([{**run_q, "jobs": cut}] + [run_q] * 15))
+        gx, msg = safe(lambda: critical_path_minutes(f))
+        ck("a cancelled job never prices (32.1, not 31.95)",
+           gx is not None and abs(gx - 32.1) < 0.02, msg or f"got {gx}")
         # Twenty runs, the one fast draw newest: the newest sixteen grade 32.1;
         # a record over all twenty reads every sixteen-run window and keeps the
         # largest, 63.9 -- the statistic's own window-to-window spread.
