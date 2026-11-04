@@ -1,0 +1,2 @@
+ci-ratchet: 1 metric(s) grew; pay the debt or re-record deliberately with --record "<reason>" (CLAUDE.md rule 2)
+  GREW  critical_path_minutes: 40.817 (budget 34.267, band 1.3)
