@@ -76736,6 +76736,21 @@ R.check(
     f"{_rp2_real}",
 )
 
+# The strict < of the short-remainder guard: a 2:1 hot-water share leaves exactly
+# SPLIT_MIN_MINUTES for the heating, which is still long enough to be its own share.
+_rp2_edge = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[1.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp.plan = _rp2_edge
+_rp2_boundary = (_rp2_share(9.9), _rp2_share(10.1))
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still "
+    "a heating share (the guard is a strict <)",
+    _rp2_boundary == ("dhw", "space"),
+    f"{_rp2_boundary}",
+)
+
 # #2351 carry 1: the production async_shutdown calls forget_held(hass), so a
 # reloaded entry warns a hass-owned held condition again.
 _rp3 = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
