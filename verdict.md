@@ -1,0 +1,36 @@
+Fix review: blocked af8ff29be58edf8c15eb146c9d9432be60899e23 mutation-vacuous: coordinator.py _solve_hubs default ruling (what-if band) survives
+
+bus-nonce: d9607da61a6eee366de4395796fde80c
+
+## Block
+
+Round 1 (first-round fix review of #3193, R10-COP-GATE-D) at head af8ff29be58edf8c15eb146c9d9432be60899e23.
+
+The body states "The what-if caller gets its own ruling there". That ruling is the fallback `band or _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)` in `_solve_hubs` (coordinator.py:6032), and `async_simulate` (coordinator.py:11057, `base is None`) is its only caller that passes no band. Deleting that ruling fails no check:
+
+- Mutant r2_whatif_noband: `**_band_fields(band or _solve_band(...)),` -> `**_band_fields(band) if band else {},`. `tests/features.py` prints `ALL 4800 FEATURE CHECKS PASSED`, rc=0 (ev/mut_r2_whatif_noband.log).
+- The mutant is not equivalent. My probe (ev/whatif_band_probe.py, mine, not the finder's or the fixer's) runs the harness rig with twelve store samples at half the hub maximum and records the top each solve books. At the head, the live solve books 2.5 and the what-if solve books 2.5. Under the mutant, the live solve books 2.5 and the what-if solve books 5.0 (ev/whatif_probe_head.txt, ev/whatif_probe_mutant_r2.txt). The no-store null control is 5.0 / 5.0 in both trees.
+- Effect: on an install with a learned top, the card's what-if is solved on the configured band while the plan it is differenced against is solved on the learned band. The what-if's cost delta then contains the band change, not just the user's override. Nothing in the suite would catch that regression.
+
+Owed: a value check that a what-if solve with a learned store books the learned top, or equals the live plan's stamped band, with a no-store null. Then re-run the mutant above and confirm it fails.
+
+## Findings
+
+- Carry [9] (set-point-to-draw linearity) stays open and unmeasured. The body keeps it as this group's carry until a live diagnostics bundle exists. Carry: R10-COP-GATE-D
+- Carry [4]: `_propagated_slab` books a whole switch-back interval as space heat. The body measures +2.250 kW on a 3.0 kW interval against a +0.000 all-space null. It is left unfixed by the approved part D note, which assigns it to the part E seam. Carry: R10-COP-GATE-E
+
+## Evidence
+
+- Head reviewed: af8ff29be58edf8c15eb146c9d9432be60899e23 (ev/HEAD.txt). Base and merge base: d7582ed404a87603bd02fefda610d7ebbe4181e1 = origin/main at review time; `git diff merge-base...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
+- Merge: `git merge-tree --write-tree origin/main af8ff29b` exits 0 with tree 7f70f8d4e6d0 and no conflict (ev/merge-tree.txt).
+- CI: `merge_train.py classify af8ff29b --pr 3193` printed `GREEN af8ff29be58edf8c15eb146c9d9432be60899e23 pending: none red: none`, rc=0 at 19:55Z (ev/classify.txt). The check runs read whole (get_check_runs, 55 runs). Red at this head: `tests / replay` (job 126802013348, `1 of 176 replay checks FAILED`) and `tests / nightly-status` (job 126801625776), neither required. `gate` succeeded twice, `tests / mutation` succeeded, and `pr-contract / pr-contract` succeeded at 19:53:27Z, after the last red concluded (replay at 19:27:07Z). The body names and answers both reds (step 11 met). nightly-status reads main's nightly and is not this PR's.
+- Replay re-measure, which the body asks the next seat for, on synthetic-dhw-only.json at both ends: the head gives `cpu_ratio 2.78` (loop 0.1705) and the base d7582ed4 gives `cpu_ratio 2.746` (loop 0.1853). Both FAIL the same 2.173 budget in this container (ev/replay_wt.txt, ev/replay_wtb.txt; one run each, sequential, on an otherwise idle 4-CPU box). The over-budget ratio reproduces at the base within 1.3 %, so this diff does not cause it: the red is the budget against main as it stands, not R10-COP-GATE-D's cost.
+- Head tests: `tests/features.py` prints `ALL 4800 FEATURE CHECKS PASSED` and `tests/entities.py` prints `ALL 2603 ENTITY CHECKS PASSED`, both rc=0. The body's 4791 was taken at 5e117b76 before the main merge, and the 9 added checks come from main. `tests/structure.py` prints `STRUCTURE RATCHET PASSED`. `tests/env_drift.py --all origin/main` prints `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE`.
+- Reviewer mutants (ev/mutants.py, ev/mutants_summary.txt; each in a fresh worktree at the head, full `tests/features.py`). Killed: r1 `_band_fields` guard off (the repair site coordinator.py:2235, 1 failed), r3 stamp dropped (1), r4 15 % edge `>=`->`>` (1), r5 warm-start clip dropped (1), r6 arbiter stamp read removed (2), r7 min clamp dropped (1), r8 publish dropped (2), r9 plan-writes-power rule dropped (2), r10 lapsed/awaiting merged (2). Survived: r2 (Block). The repair for the red mutation table, the `_band_fields` value check, does kill GUARD_OFF at 2235.
+- Finder's harness at both ends. The finder's original `evidence/r3_probe_reader.py` (design-verdict/R10-CEILING-PROBE) prints byte-identical output at base and head (ev/finder_r3_wtb.txt, ev/finder_r3_wt.txt). It reads the store and `planned_range`, which this change leaves unchanged by design: flat, not regressed. The committed `dev/audit/harnesses/r10_cop_gate_top.py` is the fixer's port and is disclosed as one. Run at the base and the head (ev/harness_base.txt, ev/harness_head.txt), it reproduces every row of the body's null-control table: configured rows hash d0696d53de9f / cd0dbbd84694 at both ends, the learned rows move to 2.5 / 3c8491e2461c and 2.5 / e5fbb0a1d078, and the map arm moves 45.0 -> 55.0.
+- Claims: the five coord fixtures each add exactly four null `pump_max_power` leaves (numstat 4/0) and are claimed in `claimed_drift.txt`. `card_claimed_drift.txt` is untouched. VERSION, manifest.json and RELEASE_NOTES.md are untouched.
+- Class (step 6): the rule `git grep -n max_electrical_power -- custom_components` gives 51 lines in 10 files at the base (re-derived, matches the body) and 54 at the head. I mapped each site to its enclosing function with my own ast walk (ev/siblings_head_funcs.txt). Every function is dispositioned in the body's (i)/(ii) lists. `thermal_model._tabled_values` (the config-key table) is not named, but it falls under "ThermalParameters itself" by my reading.
+- Budgets (step 14): `class_excess_loc` 17630->17618 and `max_class_loc` 7975->7960, both down. With the mechanism removed (`_record_manual_release` moved back into the class, seam-map row restored), structure.py prints `FAIL class_excess_loc 17636 > 17618` and `FAIL max_class_loc 7978 > 7960`, and both also exceed the base budgets (ev/s14_move_reverted_structure.txt). The movement is earned by a method that never read `self` leaving the class.
+- The CI mutation lane being green does not cover the Block's site. No operator in the table draws the drop of an `x or default()` fallback; the lane's sites on that diff line were not reported as unpinned.
+- Head re-read at the time of writing: af8ff29be58edf8c15eb146c9d9432be60899e23.
+- Seat notes: the first harness invocation without PYTHONPATH failed on the hastub import (re-run correctly). The dispatch footer's "push handoff-wip at each milestone" conflicts with the payload's "push nothing else" and the role's probe-ref return. I pushed only the probe ref.

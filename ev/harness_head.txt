@@ -1,0 +1,19 @@
+reader: 11 samples -> learned_max_kw None planned_range None solve top 5.0 solve_band ('configured', 'awaiting_probe')
+reader: 12 samples -> learned_max_kw 3.0 planned_range None solve top 3.0 solve_band ('ceiling_probe', 'measured_below_configured')
+rule: eleven samples     -> configured awaiting_probe max 5.0 min 1.0
+rule: twelve at 3.0      -> ceiling_probe measured_below_configured max 3.0 min 1.0
+rule: lapsed (+46 d)     -> configured lapsed max 5.0 min 1.0
+rule: within 15 % (4.5)  -> configured not_below_configured max 5.0 min 1.0
+rule: edge (4.25)        -> configured not_below_configured max 5.0 min 1.0
+rule: above (6.0)        -> configured not_below_configured max 5.0 min 1.0
+rule: plan writes power  -> configured plan_writes_power max 5.0 min 1.0
+map: 3.0 kW plan step, unstamped -> 45.0
+map: 3.0 kW plan step, stamped learned (1.0, 3.0) -> 55.0
+plan: fresh, no store              hub max 5.0 top step 5.0000 sha d0696d53de9f stamp ('configured', 'awaiting_probe')
+plan: store 12 @ 0.9 (within 15 %) hub max 5.0 top step 5.0000 sha d0696d53de9f stamp ('configured', 'not_below_configured')
+plan: store 11 @ 0.5               hub max 5.0 top step 5.0000 sha d0696d53de9f stamp ('configured', 'awaiting_probe')
+plan: plan-writes-power, 12 @ 0.5  hub max 5.0 top step 5.0000 sha d0696d53de9f stamp ('configured', 'plan_writes_power')
+plan: store 12 @ 0.5 (learned)     hub max 5.0 top step 2.5000 sha 3c8491e2461c stamp ('ceiling_probe', 'measured_below_configured')
+plan: flat price, no store         hub max 5.0 top step 5.0000 sha cd0dbbd84694 stamp ('configured', 'awaiting_probe')
+plan: flat price, 12 @ 0.5         hub max 5.0 top step 2.5000 sha e5fbb0a1d078 stamp ('ceiling_probe', 'measured_below_configured')
+rc=0
