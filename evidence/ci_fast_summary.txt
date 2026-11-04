@@ -1,0 +1,4 @@
+job tests / fast (3.14) id=126481159842 conclusion=success, head b2399a08527bf850507753b43a96d3ad56fef655, GOLDEN_REF a9c2f90fc
+wall clock: env_drift --claims-only 0s; closure.py selftest 5s; tests/entities.py 538s; layout.py 5s; harness_headers.py 198s
+ALL 112 HARNESS HEADER CHECKS PASSED
+5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN

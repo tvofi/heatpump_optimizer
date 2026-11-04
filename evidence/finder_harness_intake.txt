@@ -1,0 +1,16 @@
+== finder harness intake.py, synthetic download (debug_ingest._download(_tail_repeat_bundle())), HEAD b2399a08
+RESULT bundle_unwrapped=0 bool
+RESULT ingest_fails_wrapped=0 count
+RESULT ingest_fails_unwrapped=0 count  ()
+RESULT bias_delta_tail=0.0 celsius
+RESULT bias_delta_by_t=0.0 celsius (n_distinct_row_samples=2)
+Traceback (most recent call last):
+AttributeError: module 'heatpump_optimizer.store' has no attribute '_store_name'. Did you mean: 'store_name'?
+== same, BASE a9c2f90fc
+RESULT bundle_unwrapped=1 bool
+RESULT ingest_fails_wrapped=6 count
+RESULT ingest_fails_unwrapped=1 count  (bias-rederived)
+RESULT bias_delta_tail=0.25 celsius
+RESULT bias_delta_by_t=0.0 celsius (n_distinct_row_samples=2)
+Traceback (most recent call last):
+AttributeError: module 'heatpump_optimizer.store' has no attribute '_store_name'. Did you mean: 'store_name'?
