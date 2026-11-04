@@ -60,27 +60,26 @@ delivery_row self-test: 6 checks, 0 failed
   ok     mutant mut:grace (the KILL line deleted): the TERM-proof child survives
   ok     mutant mut:sigign (its line deleted): the second TERM ends the host mid-reap and the child survives
   ok   a lead (PR_REAP_LEAD) is TERMed alone and stops its own child first; nothing of its tree survives
-Terminated
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
+tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
 tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
@@ -136,6 +135,8 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   open_pr: its row push passes --row-only, and its code push does not
   ok     mutant mut:release (its line deleted): the opened PR's worktree still holds its branch
   ok     mutant mut:oprowonly (its line deleted): the row push runs the full prepr
+  ok   update_pr: a relay body-only run on a head lacking its row refuses, the head unmoved and nothing pushed
+  ok     mutant mut:bodyonly (its line deleted): the relay's body-only run pushes the row, moving the head
   ok   update_pr: a head that only gains its row pushes once, asking for --row-only
   ok   update_pr: a body-only run (code -, row present) PATCHes the body at the unmoved head from its worktree and pushes nothing
   ok   update_pr: a code sha the head already holds runs no push and no prepr: body-only (card 4's re-run)
@@ -143,7 +144,9 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   update_pr: a body-only run on a moved head refuses, with body_patch.sh's reason, and pushes nothing
   ok   update_pr: code - with a handoff tip the head lacks refuses, and patches no body
   ok   null control: a new code sha is merged and pushed through the full prepr, main still unmerged
-  ok   update_pr: a DIRTY pull request still absorbs main, through the full prepr
+  ok   update_pr: a relay body-only run on a DIRTY head whose merge of main is clean refuses, the head unmoved and nothing pushed
+  ok     mutant mut:bodyonly (its line deleted): the relay's body-only run merges main into the DIRTY head and pushes it
+  ok   null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, through the full prepr
   FAIL update_pr: main conflicting with the head while gh answers CLEAN is merged: the run stops, patching and pushing nothing
   FAIL update_pr: main conflicting with the head while gh answers an error is merged: the run stops, patching and pushing nothing
   ok   open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree
@@ -163,7 +166,7 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
   ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
   ok   null control: a code sha the head lacks is merged and never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha 'e3971b0' passes every check, and its failed push names its log
+  ok   null control: update_pr with code sha '3fd33e8' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -187,5 +190,5 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   every # mut: line is a whole statement, never one continued from the line above
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 168 checks, 2 failed
+pr_args self-test: 172 checks, 2 failed
 rc=1

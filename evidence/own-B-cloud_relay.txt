@@ -262,10 +262,10 @@
   ok   a body already applied runs nothing on the next pass (null control)
   ok   a new body for a head holding its handoff runs update_pr once, body-only (code -)
   ok   the next body move runs it once more
-cat: /tmp/cloud_relay_st.53T3fc/hupdated: No such file or directory
+cat: /tmp/cloud_relay_st.jaK6Ds/hupdated: No such file or directory
   FAIL a new body at a contained head holding a merge verdict runs update_pr once, body-only (rc=1, want 0)
   FAIL and is neither printed HELD nor owed handoff-held (rc=1, want 0)
-cat: /tmp/cloud_relay_st.53T3fc/hupdated: No such file or directory
+cat: /tmp/cloud_relay_st.jaK6Ds/hupdated: No such file or directory
   FAIL a new body at a contained head with a reviewer dispatched runs update_pr once, body-only (rc=1, want 0)
   ok   a handoff tip the verdicted head does not hold is still HELD-VERDICT (null control)
   ok   and runs no update and owes handoff-held

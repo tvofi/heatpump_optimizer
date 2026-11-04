@@ -1,0 +1,109 @@
+## grep -n update_pr cloud_relay.sh (non-comment)
+520:      upd=(bash "$why/update_pr.sh")  # mut:toolsseat
+524:    HPO_UPDATE_BODY_ONLY=$bonly pr_own_group "${upd[@]}" "$br" "$([ -n "$bonly" ] && echo - || echo "$hs")" "$body" $iss > "$bd/update.out" 2>&1 &  # never-empty: upd is assigned the bash update_pr.sh command on the line above
+530:    if [ "$urc" = 75 ]; then echo "cloud_relay: update_pr busy on $br; the next pass retries" >&2; rm -rf "$bd"; continue; fi
+897:  chk "a handoff ahead of its PR runs update_pr with branch and code sha" 0 grep -q "^fix/topic-a-pr $HS " "$t/updated"
+899:  chk "the body handed to update_pr is the handoff-body BODY.md" 0 grep -q "^Part of #201" "$t/body.seen"
+903:  chk "the body update_pr gets passes prepr's body-path check (not directly in a shared root)" 1 shared_root "$(cat "$t/body.path")"
+982:  chk "a merge verdict at the head holds the handoff ahead: no update_pr call" 0 test ! -e "$t/hupdated"
+1011:  chk "a dispatch at the head with no verdict holds the handoff: no update_pr call" 0 test ! -e "$t/hupdated"
+1019:  chk "once a verdict at the head posts, the held edits land: update_pr runs" 0 grep -q "^fix/topic-a-pr $HS2\$" "$t/hupdated"
+1055:  printf '#!/bin/bash\nd=$(cd "$(dirname "$0")" && pwd)\nn=$(git -C "$d" rev-list --count HEAD..origin/main -- :/tools)\n[ "$n" = 0 ] || { echo "REFUSE STALE CHECKOUT behind by $n"; exit 1; }\necho "$(git -C "$d" rev-parse HEAD) $1 $2" >> "%s/tupdated"\n' "$t" > "$t/tm/tools/audit/seat/update_pr.sh"
+1061:  rm -rf "$t/seat"; cp -R "$HERE" "$t/seat"; printf '#!/bin/bash\necho "REFUSE STALE CHECKOUT (the relay checkout)"; exit 1\n' > "$t/seat/update_pr.sh"
+1069:  git -C "$TW" checkout -q --detach "$TA"; echo dirty >> "$TW/tools/audit/seat/update_pr.sh"; rm -f "$t/tupdated" "$t/state/cloud-handoff-failed"
+1074:    test "$(git -C "$TW" rev-parse HEAD) $(tail -n 1 "$TW/tools/audit/seat/update_pr.sh")" = "$TA dirty"
+1104:  ru=$t/ru.sh; printf '#!/bin/sh\necho "update_pr: REFUSE: X"\necho "update_pr: cleaned up"\nexit 1\n' > "$ru"; chmod +x "$ru"; HPO_RELAY_UPDATE=$ru
+1106:  chk "a failed update's handoff-update line ends in its last REFUSE line" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: X\$" "$LOG.level"
+1108:  chk "and keeps it on the next pass, which does not retry" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: X\$" "$LOG.level"
+1111:  printf '#!/bin/sh\necho "update_pr: merging"\necho "update_pr: STALE CHECKOUT"\nexit 1\n' > "$ru"; handoff_arm >/dev/null 2>&1
+1112:  chk "an update failing with no REFUSE line records its last line" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: STALE CHECKOUT\$" "$LOG.level"
+1116:  chk "a body whose Code: names the previous handoff head runs no update_pr" 0 test ! -e "$t/hupdated"
+1134:  chk "a new body for a head holding its handoff runs update_pr once, body-only (code -)" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr - body-only"
+1141:  chk "a new body at a contained head holding a merge verdict runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")" = "fix/topic-a-pr - body-only"
+1145:  chk "a new body at a contained head with a reviewer dispatched runs update_pr once, body-only" 0 test "$(cat "$t/hupdated")-$(grep -c HELD <<< "$ho")" = "fix/topic-a-pr - body-only-0"
+1159:  r2=$t/r2.sh; printf '#!/bin/sh\necho "$1 $2" >> "%s/hupdated"\necho "update_pr: REFUSE: first"\necho "update_pr: REFUSE: second"\necho "update_pr: replayed tail"\nexit 1\n' "$t" > "$r2"; chmod +x "$r2"; HPO_RELAY_UPDATE=$r2
+1161:  chk "a failed update's handoff-update line ends in the last of its REFUSE lines" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: second\$" "$LOG.level"
+1162:  chk "and the update's whole output reaches the relay's stderr" 0 grep -qx "update_pr: replayed tail" <<< "$ho"
+1165:  chk "and not retried on the next pass, which keeps its reason" 0 test "$(grep -c . "$t/hupdated")-$(grep -c "handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: second\$" "$LOG.level")" = 1-1
+1304:  cp "$t/lead.sh" "$t/tm/tools/audit/seat/update_pr.sh"; tmc lead; git -C "$t/o.git" fetch -qf "$t/tm" "HEAD:refs/heads/main"
+1305:  mkdir -p "$t/seat" && cp "$HERE/cloud_relay.sh" "$HERE/pr_args.sh" "$t/seat/" && cp "$t/lead.sh" "$t/seat/update_pr.sh"
+1309:  chk "with no stub, the relay runs update_pr.sh beside it as the lead, asynchronously: a TERM ends it in that order" \
+## three-dot at head vs (2fd46f26 three-dot + 62673524 + 9da59904)
+ .../harnesses/r10_hotfix_ci_critpath_3/replay.py   | 152 ++++++++++
+ .../harnesses/r10_hotfix_ci_critpath_3/runs.json   |   1 +
+ dev/audit/harnesses/r10_seat_selftests_mutants.py  |   6 +-
+ dev/programme/delivery/3180.md                     |   1 +
+ tests/ci_budgets.json                              |   6 +-
+ tests/ci_ratchet.py                                | 325 ++++++++++++++++-----
+ tests/closures.json                                |   1 +
+ ...curacyTracker.from_dict.GUARD_OFF.f650e4ac.json |   6 +
+ .../killed_by/away.py/@module.CONST.55663841.json  |   6 +
+ .../_migrate_helpers.GUARD_OFF.5c3f70fd.json       |   6 +
+ .../interpret_presence.GUARD_OFF.2e6059dd.json     |   6 +
+ .../interpret_presence.GUARD_OFF.b0f9b4b7.json     |   6 +
+ ...timizationButton.available.BOOLOP.ef813f53.json |   6 +
+ .../violations.GUARD_OFF.22253aaf.json             |   6 +
+ ...mfortLearner.from_dict.RETURN_DEL.4037ead2.json |   6 +
+ ...figFlow.async_step_dhw.RETURN_DEL.3e61c77a.json |   6 +
+ ...figFlow.async_step_user.GUARD_OFF.7d7b4e80.json |   6 +
+ .../entry_identity.RETURN_DEL.f1dc2f5d.json        |   6 +
+ .../coordinator.py/@module.CONST.17af9bd8.json     |   6 +
+ .../coordinator.py/@module.CONST.2b51fbe6.json     |   6 +
+ ...nator._contract_comparison.BOOLOP.5e7784ff.json |   6 +
+ ...inator._dhw_setpoint_sweep.BOOLOP.eaa0ffbe.json |   6 +
+ ...nator._on_defrost_event.GUARD_OFF.88a8ba23.json |   6 +
+ ...inator._power_headroom.CLAMP_DROP.32291c18.json |   6 +
+ ...or._tibber_start_reauth.GUARD_OFF.df958d2e.json |   6 +
+ ...or._track_curve_comfort.GUARD_OFF.442286fa.json |   6 +
+ ...r._update_current_state.GUARD_OFF.12569471.json |   6 +
+ .../_comparable_ts.BOOLOP.1443f95f.json            |   6 +
+ .../_run_in_process.GUARD_OFF.2ef6f3b7.json        |   6 +
+ .../_store_diagnosis.GUARD_OFF.432112da.json       |   6 +
+ ...ner.async_learn_cooling.GUARD_OFF.551bc968.json |   6 +
+ ...dhw_legionella_ceilings.GUARD_OFF.8fce8521.json |   6 +
+ ...nner._dhw_window_floors.CMP_BOUND.94758c59.json |   6 +
+ ...lan_dhw_cheapest_first.RETURN_DEL.e0d7cd6a.json |   6 +
+ .../windows_for_day.GUARD_OFF.3a2d3e22.json        |   6 +
+ ...fectionSwitch._write.RETURN_DEL.7d8da489~2.json |   6 +
+ ...ctor.forecast_free_heat.GUARD_OFF.510bef24.json |   6 +
+ .../_parse_rule.GUARD_OFF.64edb0f3.json            |   6 +
+ .../InputReader._begin.GUARD_OFF.9ebc2cb3.json     |   6 +
+ .../InputReader.read_state.BOOLOP.bc1f4c43.json    |   6 +
+ .../InputReader.read_state.GUARD_OFF.a3eaa883.json |   6 +
+ .../InputReading.stale.RETURN_DEL.5381e223.json    |   6 +
+ ...lyLedger.savings_months.GUARD_OFF.fe2c30bd.json |   6 +
+ ...rride.pinned_step_count.GUARD_OFF.e592418d.json |   6 +
+ .../score_name.RETURN_DEL.bc6b73cf.json            |   6 +
+ .../group_by_reason.RETURN_DEL.6ec4a824.json       |   6 +
+ ...dianceSeries.latest_before.BOOLOP.0081425f.json |   6 +
+ ...penMeteoSolar._get_json.GUARD_OFF.d4960463.json |   6 +
+ .../optimizer.py/@module.CONST.5b93e2f4.json       |   6 +
+ ...._anticipatory_weights.RETURN_DEL.eb192fc8.json |   6 +
+ ...imizer._pv_surplus_list.GUARD_OFF.c284fd62.json |   6 +
+ .../handle_assign_entity.GUARD_OFF.0bf43298.json   |   6 +
+ ...pacityTariff.sample_factor.BOOLOP.63eed1b6.json |   6 +
+ ...ityTariff.sample_factor.CMP_BOUND.e08082ad.json |   6 +
+ .../metering_windows.GUARD_OFF.4370df53.json       |   6 +
+ ...mulate_trajectory_batch.GUARD_OFF.1e0d98c5.json |   6 +
+ ...arameters.dhw_max_temp.RETURN_DEL.4b89a6e4.json |   6 +
+ ...Parameters.from_config.RETURN_DEL.ce66b26d.json |   6 +
+ .../render_text_summary.RETURN_DEL.c95ab678.json   |   6 +
+ .../wood_fuel.py/_cops.RETURN_DEL.a8227ccf.json    |   6 +
+ .../wood_fuel.py/night_advice.BOOLOP.57fadad6.json |   6 +
+ .../wood_fuel_ready.RETURN_DEL.8d07036a.json       |   6 +
+ tools/audit/seat/cloud_relay.sh                    |  13 +-
+ tools/audit/seat/instruments/cloud_relay.sh.md     |   5 +-
+ tools/audit/seat/instruments/update_pr.sh.md       |   4 +-
+ tools/audit/seat/pr_args.sh                        |  25 +-
+ tools/audit/seat/update_pr.sh                      |   7 +-
+ 67 files changed, 786 insertions(+), 90 deletions(-)
+
+ dev/audit/harnesses/r10_seat_selftests_mutants.py | 47 ++++++++---
+ dev/programme/delivery/3089.md                    |  1 +
+ tools/audit/seat/cloud_relay.sh                   | 81 ++++++++++++++++---
+ tools/audit/seat/instruments/body_push.sh.md      |  6 ++
+ tools/audit/seat/instruments/cloud_relay.sh.md    | 25 +++++-
+ tools/audit/seat/instruments/update_pr.sh.md      | 23 ++++--
+ tools/audit/seat/pr_args.sh                       | 95 ++++++++++++++++++++++-
+ tools/audit/seat/update_pr.sh                     | 70 +++++++++++++----
+ 8 files changed, 303 insertions(+), 45 deletions(-)
