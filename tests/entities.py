@@ -9537,8 +9537,16 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
         continue
+    # A row its ``when`` hides for this house is not on the page to submit
+    # (R10-TWO-ZONE-HHL: the whole-house heat loss on two zones); keyed on
+    # the registry's own predicate, so only a row the page hides is skipped.
+    _hidden = {
+        row.key for row in config_flow._OPTION_FIELDS
+        if row.step in ("thermal_model", "thermal_model_zones")
+        and row.when is not None and not row.when(_stored)
+    }
     for _key, _value in _stored.items():
-        if _accepted.get(_key) != _value:
+        if _key not in _hidden and _accepted.get(_key) != _value:
             _unsubmittable.append(
                 f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
             )

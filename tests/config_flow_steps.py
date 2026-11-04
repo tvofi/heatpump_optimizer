@@ -2207,6 +2207,23 @@ async def options_advanced_pages():
         and const.CONF_HOUSE_THERMAL_MASS in two_zone_keys,
         f"two={sorted(two_zone_keys)} one={sorted(one_zone_keys)}",
     )
+    # Hidden, not cleared: a two-zone save keeps the stored figure, so an
+    # entry switched back to one zone finds its own value again.
+    flow, entry, _ = fresh_options(pre_options={
+        const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON,
+        const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: 0.31,
+    })
+    await flow.async_step_thermal_model(None)
+    await submit(flow, "thermal_model", {const.CONF_HOUSE_THERMAL_MASS: 12.0})
+    check(
+        "opt_thermal_model",
+        "happy",
+        "a two-zone thermal-page save keeps the hidden whole-house heat loss "
+        "(R10-TWO-ZONE-HHL)",
+        entry.options.get(const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT) == 0.31
+        and entry.options.get(const.CONF_HOUSE_THERMAL_MASS) == 12.0,
+        f"options={dict(entry.options)}",
+    )
 
     # #1067: pricing the curve lift is for a direct plant. Behind a
     # throttling valve the tank temperature already is the priced flow, so
