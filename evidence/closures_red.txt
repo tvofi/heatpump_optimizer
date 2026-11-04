@@ -1,0 +1,46 @@
+   [15:50:24] record tests/validate.py 
+   [15:50:58] done   tests/validate.py (exit 0)
+   [15:50:58] record tests/layout.py 
+   [15:51:16] done   tests/layout.py (exit 0)
+   [15:51:16] record tests/manual_plan.py 
+   [15:51:36] done   tests/manual_plan.py (exit 0)
+   [15:51:36] record tests/env_drift.py --cache-key 8e90d81443317f76f22602a89651f7ca17c633f9 --all
+   [15:51:38] done   tests/env_drift.py (exit 0)
+   [15:51:38] record tests/ha_contract.py 
+   [15:51:38] done   tests/ha_contract.py (exit 0)
+   [15:51:38] record tests/md_tables.mjs 
+   [15:51:39] done   tests/md_tables.mjs (exit 0)
+ 
+ recorded into /home/runner/work/_temp/closures; tests/closures.json left untouched (--record-only)
+ ##[group]Run # --partial drops one check and one only: "a selectable script with
+ [36;1m# --partial drops one check and one only: "a selectable script with[0m
+ [36;1m# no recording at all", which a scoped re-derive fails by[0m
+ [36;1m# construction. The under-approximation comparison -- the thing this[0m
+ [36;1m# job exists for -- is identical on both paths. The output goes to[0m
+ [36;1m# check.txt in the uploaded recordings: closures-autofix runs the[0m
+ [36;1m# base's closure.py, and reddens where this one printed UNDER-SCOPED[0m
+ [36;1m# and that one did not (#1846).[0m
+ [36;1mset -o pipefail[0m
+ [36;1mif [ "$SCOPE_CASE" = "scoped" ]; then[0m
+ [36;1m  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" --partial 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"[0m
+ [36;1melse[0m
+ [36;1m  python -u tests/closure.py check --in-dir "$RUNNER_TEMP/closures" 2>&1 | tee "$RUNNER_TEMP/closures/check.txt"[0m
+ [36;1mfi[0m
+ shell: /usr/bin/bash -e {0}
+ env:
+   DOCS_ONLY_FAST: false
+   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+   PYTHONPATH: tests/hastub
+   SCOPE_CASE: full
+ ##[endgroup]
+ INERT READS UNDER-APPROXIMATED: a recording opened an INERT file the
+   committed `inert_reads` does not list for it; the merge fast path
+   would treat a change to it as unread (R9-F10.9d). Re-derive:
+   ./tests/derive_closures.sh --single <script>
+     tests/harness_headers.py: dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py
+ ##[error]Process completed with exit code 1.

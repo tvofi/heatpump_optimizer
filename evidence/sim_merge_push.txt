@@ -1,0 +1,18 @@
+A newest window at head, unprobed (merge push grades this): 29.067
+B first post-merge push: 15 real + merge run probed at 31 s: 25.221
+B first post-merge push: 15 real + merge run probed at 35 s: 22.536
+B first post-merge push: 15 real + merge run probed at 38 s: 20.894
+B first post-merge push: 15 real + merge run probed at 40 s: 19.936
+B first post-merge push: 15 real + merge run probed at 44 s: 18.281
+C fully probed window, probe 40 s: 20.042
+C slow fleet 1.9x (walls and probes): 20.041
+C +300 s on closures in newest 4: 0.111
+C +300 s on closures in newest 8: 0.127
+C +300 s on closures in newest 9: 0.127
+C +300 s on closures in newest 12: 0.127
+C +300 s on closures in newest 16: 2.365
+D +300 s on tests / fast (3.14) in newest 4: 0.0 (all of it: 2.188)
+D +300 s on tests / fast (3.14) in newest 8: 0.0 (all of it: 2.188)
+D +300 s on tests / fast (3.14) in newest 9: 0.0 (all of it: 2.188)
+D +300 s on tests / fast (3.14) in newest 12: 0.0 (all of it: 2.188)
+D +300 s on tests / fast (3.14) in newest 16: 0.0 (all of it: 2.188)
