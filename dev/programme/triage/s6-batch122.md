@@ -3,7 +3,9 @@
 The rolling batch after batch 121. Facts were read at the root-cause seat's head `d8eeae8f8`
 (`handoff/r10-rca-sav-estimate`), at the fix seat's local work-in-progress commit `4fff42664` of
 R10-HOTFIX-SAV-ESTIMATE and its run files, and in the owner's diagnostics export (derived ratios only).
-The fix has no handoff ref yet, so its figures are provisional and the group below re-measures them.
+The fix had no handoff ref yet, so its figures were provisional and the group below re-measures them.
+
+**Corrected after this ruling.** The orchestrator voided the run files at `4fff42664`, because that branch had dropped the reference's zero floor. The fix seat re-took every arm at its tree `39143c38f`, the same production and harness tree as its local head `e1ee044cc`, not yet handed off. The seven ratios did not change, so the verdict stands. It reports the arms book step 0 of the reference, which its later fixes did not move. The figures are the seat's, not re-run here. The calibration finding below is answered.
 
 ## P387: a meter band on the published savings row, under the no-wood reference
 
@@ -23,8 +25,8 @@ Instances:
   about 1 / ((1 - w)(1 - s)). Wood only shrinks the denominator, and at `4fff42664` the reference holds no wood term
   (`_compute_baseline_power`, and `dhw_planner.py` drops the refill coil). So wood can raise R without limit and cannot
   lower it. R above 2 means a stated saving above 50 %, and R below 0.5 means below -100 %.
-- **Sound arms, from `r10_sav_wood_reference.py` run files at `4fff42664`, R as booked over plan kWh.** The plant
-  equals the model there, so metered equals plan and calibration is 1.0. The wood arms ran `--quick`.
+- **Sound arms, from `r10_sav_wood_reference.py` at `39143c38f`, as the fix seat reported them, R as booked over plan kWh.**
+  The plant equals the model there, so metered equals plan, except `wood-unforeseen`, where booked over metered is about 1.92 by the fix seat's derived ratio. The wood arms ran `--quick`; the valve arms ran the full two days.
 
   | arm | R | ceiling 2.0 | floor 0.5 |
   |---|---|---|---|
@@ -33,11 +35,11 @@ Instances:
   | `wood-cold` | 1.08 | no | no |
   | `wood-stale` | 1.13 | no | no |
   | `wood-coast` | 1.70 | no | no |
+  | `wood-unforeseen` | 1.72 | no | no |
   | `wood-fire` | 1.78 | no | no |
   | `wood-full` | 7.70 | **false fire** | no |
 
-  `valve-flat` read DEFECT on the harness's own residual rule in that run (+5.87 % against 3.0), which is the fix seat's
-  open item; its R is far from the floor either way. `valve-vary` read SOUND.
+  `valve-flat` read DEFECT at `4fff42664` on the harness's residual rule of that run. A later run of the fix seat (`v3-valve-flat`) reads SOUND under the changed rule (flat percent within 10), with the row at 4.12 %. `valve-vary` reads a row of 28.75 %.
 - **The rule on each class instance.** Ratios for 2026-09 to 2026-11 come from the owner's export, exported
   2026-11-04T20:07Z, whose config has `wood_furnace_enabled` true.
 
@@ -59,13 +61,14 @@ Instances:
   enumerated installs only and the RCA says so, and this is the only meter reading that survives the owner's ruling.
 - **What remains uncovered.** An inflated reference on a wood house now has no meter oracle: R10-SAV-WOOD-MEASURED was withdrawn by the
   same ruling, and metered actuals cannot separate it from wood. This is a consequence of the owner's ruling and is stated, not solved.
-- **Finding for the hotfix: calibration cancels the meter on the published row.** `savings_months` multiplies the
+- **Finding for the hotfix, answered by its wood floor: calibration cancels the meter on the published row.** `savings_months` multiplies the
   reference by metered over plan, so the published baseline over actual is booked over plan and the metered kWh cancels. Driven through
   `MonthlyLedger` at `4fff42664`, reference 2 kW, plan 1 kW, one day: metered equal to plan gives 50.0 %, calibration 1.0;
   metered half the plan gives 50.0 %, calibration 0.5. So heat the plan did not foresee, which is what an unforecast fire is, earns
   no saving, while the owner's ruling says it counts. The wood arms cannot see this because their plant equals the model. How large
   it is on a real wood house is not measured: the export reads metered over plan 0.68 in 2026-11, on the defective month. The same
   cancellation means a band on the published row reads no meter, so the floor must read the booked lines.
+  **Answered:** the fix seat's `savings_months` takes `wood_configured`, and on a wood-configured row calibration may only raise the reference. Driven at its checkout `77af298ef`, meter over plan 1.0, 0.5, 0.25 reads 50, 75, 87.5 % with wood and 50, 50, 50 % without. The no-wood path keeps the cancellation by specification, so the floor still reads the booked lines. The first re-check here left the argument out and wrongly reported the finding as still open. `wood-unforeseen` is the closed-loop arm: its harness meters half the plan from 17:00, about 0.90 over the day as the fix seat derives from the row. Its printed calibration 1.0 is after the floor, and its "uncalibrated" print cannot tell the floor from no calibration, so the pin is the drive above and the fix seat's `tests/features.py` checks.
 - **The class mint.** `fold_ledger.py check` on a whole-tree export of `d8eeae8f8`: 48 classes, 0 violations. `fold_ledger.py sync`
   there: already carried, so the `audit-find.js` hunk is the generated block and the schema line is the enum `fold` requires. #2625 and
   #2696 touched the same two files the same way.
