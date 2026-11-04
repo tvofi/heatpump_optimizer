@@ -1,0 +1,19 @@
+diff --git a/tests/run.sh b/tests/run.sh
+index ab6ccdd37..43c9a1b99 100755
+--- a/tests/run.sh
++++ b/tests/run.sh
+@@ -806,13 +806,7 @@ if [ "$JOBS" -gt 1 ]; then
+       esac
+       echo "########## $label ##########"
+       cat "$WORKDIR/$id.log"
+-      if [ "$rc" -ne 0 ]; then
+-        if ended_before_summary "$WORKDIR/$id.log"; then
+-          echo ">>> ENDED BEFORE ITS SUMMARY: $label (exit $rc; last line reached: $(grep -v '^[[:space:]]*$' "$WORKDIR/$id.log" | tail -n 1 | cut -c1-200))"
+-        else
+-          echo ">>> FAILED: $label"
+-        fi
+-      fi
++      [ "$rc" -ne 0 ] && echo ">>> FAILED: $label"
+     done < "$WORKDIR/$lane.manifest"
+   done
+ fi

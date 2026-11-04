@@ -1,0 +1,36 @@
+== M1 reader reverted to FAILED only
+  FAIL FAILED_SCRIPT names the script from the crash line and from the failed-check line
+merge_train self-test: 442 checks, 1 failed
+pin ok [0, 1]
+<stdin>:2: DeprecationWarning: "\&" is an invalid escape sequence. Such sequences will not work in the future. 
+== M3 run.sh if/else reverted to one-line FAILED
+  FAIL run.sh's lane report still has the SUMMARY_LINE / ended_before_summary / if-else this check lifts
+merge_train self-test: 439 checks, 1 failed
+pin ok [0, 1]
+== M4 negation dropped
+  FAIL a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  FAIL a script that failed a check keeps the plain FAILED line
+merge_train self-test: 442 checks, 2 failed
+pin FAIL [1, 0]
+== M5 FAILED dropped from SUMMARY_LINE
+  FAIL a script that failed a check keeps the plain FAILED line
+merge_train self-test: 442 checks, 1 failed
+pin FAIL [0, 0]
+== M6 branches swapped (ENDED wording on failed-check)
+  FAIL a script that failed a check keeps the plain FAILED line
+merge_train self-test: 442 checks, 1 failed
+pin ok [0, 1]
+== M7 ENDED line renamed to CRASHED
+  FAIL a script that crashed before its summary prints the ENDED BEFORE line, not FAILED
+  FAIL FAILED_SCRIPT names the script from the crash line and from the failed-check line
+merge_train self-test: 442 checks, 2 failed
+pin ok [0, 1]
+== M8 outer rc guard inverted (-ne -> -eq) at the lane report
+merge_train self-test: 442 checks, 0 failed
+pin ok [0, 1]
+== M9 outer rc guard removed (prints a marker for every script)
+merge_train self-test: 442 checks, 0 failed
+pin ok [0, 1]
+== M3 clean (exact pre-PR one-liner)
+  FAIL run.sh's lane report still has the SUMMARY_LINE / ended_before_summary / if-else this check lifts
+merge_train self-test: 439 checks, 1 failed

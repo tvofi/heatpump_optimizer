@@ -1,6 +1,0 @@
-  FAIL no rename-detecting --name-only diff under RENAME_SITES  [.github/workflows/tests.yml:633: echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"]
-  ok   the census reads .mjs: it refuses the porcelain JS diff, not its twin or the comment
-  ok   the census joins a backslash continuation: it refuses the split porcelain diff at its first line
-  ok   the census refuses a planted --cached name-only diff that builds a list, not its --no-renames twin
-  ok   the census refuses a planted rename-detecting diff, and only it
-1 of 118 closure shrink pins FAILED

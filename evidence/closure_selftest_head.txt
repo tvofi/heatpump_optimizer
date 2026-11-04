@@ -1,6 +1,0 @@
-=== the changed-file list keeps both sides of a rename (O17) ===
-  ok   the changed list keeps both sides of a rename onto a delivery row
-  ok   no rename-detecting --name-only diff under RENAME_SITES
-  ok   the census refuses a planted --cached name-only diff that builds a list, not its --no-renames twin
-  ok   the census refuses a planted rename-detecting diff, and only it
-ALL 118 closure shrink pins PASSED
