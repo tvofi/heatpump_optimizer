@@ -1,8 +1,0 @@
-['conclusion', 'created_at', 'event', 'head_branch', 'head_sha', 'id', 'jobs', 'path', 'run_number', 'status']
-['completed_at', 'conclusion', 'created_at', 'name', 'started_at']
-runs 31 completed 31 [(3775, 'completed'), (3779, 'completed'), (3790, 'completed')]
-closures [(3775, 21.2), (3779, 33.7), (3790, 34.1), (3800, 24.4), (3817, 33.9), (3833, 24.8), (3838, 38.6), (3849, 38.4), (3850, 29.3), (3858, 28.5), (3859, 21.1), (3860, 20.6), (3865, 37.7), (3867, 38.4), (3868, 38.2), (3870, 38.2), (3896, 39.2), (3912, 40.0), (3922, 20.9), (3937, 39.0), (3963, 38.7), (3978, 26.8), (3984, 21.8), (3991, 39.4), (4009, 34.0), (4015, 39.0), (4028, 18.6), (4035, 39.7), (4046, 39.0), (4055, 20.6), (4056, 24.1)]
-n 31 fastrange 18.6 29.3 slowrange 33.7 40.0
-from 3865: slow 13 of 19 ; before: slow 5 of 12
-run_minutes (authored-head ci_ratchet): {3870: 39.667, 4055: 33.5}
-run_minutes None count 2 of 31
