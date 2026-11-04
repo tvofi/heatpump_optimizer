@@ -733,7 +733,9 @@ class Tick:
         if lg is None:
             self.unreadable(S, "REVIEW OWED", "tools/audit/seat/ledger.py absent")
         elif dispatched is not None:
-            for text in lg.review_owed(prs, self._readback, dispatched, self._carries):
+            rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
+            for text in lg.review_owed(prs, self._readback, dispatched, self._carries,
+                                       getattr(rr, "RECORD_BRANCH", None)):
                 self.line(S, text, flag=True)
 
     def _reviewer_ref_age(self, n: int) -> "int | None":
@@ -4161,6 +4163,13 @@ def self_test() -> int:
         t_cr._carries = lambda v, hd: asked.append((v, hd)) or hd == h(64)
         t_cr.verdict_levels("PRS", cr_board)
         cr = [x for x in flagged(t_cr.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
+        # Carry 1 (P322): the record branch is never owed a review; a fix/ PR in the same state is.
+        rec_board = [dict(pr_obj(66, h(66)), headRefName="record/autofix"), pr_obj(67, h(67))]
+        rec_extra = [((f"issues/{n}/comments?per_page=100",), 0, json.dumps([[]])) for n in (66, 67)]
+        t_rec = tick(prs=rec_board, gh_extra=rec_extra, bus_state=str(tmp / "bus-ro"))
+        t_rec._git.on(("ls-remote",), out="")
+        t_rec.verdict_levels("PRS", rec_board)
+        rec = [x for x in flagged(t_rec.sections.get("PRS", [])) if x.startswith("REVIEW OWED")]
         (tmp / "bus-dir").mkdir()
         (tmp / "bus-dir" / "dispatched").mkdir()
         t_rb = tick(prs=ro_board, gh_extra=ro_extra, bus_state=str(tmp / "bus-dir"))
@@ -4171,6 +4180,8 @@ def self_test() -> int:
              ro == [f"REVIEW OWED: #62 {h(62)[:12]}"]),
             ("a head the newest merge verdict carries to owes no review; one it does not carry to does",
              cr == [f"REVIEW OWED: #65 {h(65)[:12]}"] and asked == [(h(70), h(64)), (h(70), h(65))]),
+            ("P322: a record/autofix PR at an unverdicted head prints no REVIEW OWED; the fix/ PR beside it does",
+             rec == [f"REVIEW OWED: #67 {h(67)[:12]}"]),
             ("an unreadable dispatch record is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: bus dispatch record" in x for x in rb)
              and not any(x.startswith("REVIEW OWED") for x in rb)),

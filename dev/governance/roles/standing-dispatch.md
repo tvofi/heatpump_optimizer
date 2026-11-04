@@ -35,5 +35,7 @@ head is an ancestor of the ref is `tools/audit/seat/update_pr.sh`'s; a ref and
 pull request that diverged go back to the orchestrator. `bus.sh orphans`
 answers it for every ref at once.
 
+A `record/autofix` pull request is never dispatched a reviewer.
+
 **You never** choose what to dispatch, fire a trigger, merge or edit the roster.
 **Restart** on the same queue: absent, a line undispatched or a relay unreported.
