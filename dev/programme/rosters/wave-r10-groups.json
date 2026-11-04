@@ -16575,7 +16575,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "absorbed"
    },
    "brief": "Owner-reported 2026-11-04 (tvofi): the monthly savings row on a house with a wood tank. Book wood's delivered heat from measurement, so the thermostat reference no longer relies on the wood law. No fire: release is the tank's measured fall times its mass, less standing loss. Fire: the existing free_heat_kw in custom_components/heatpump_optimizer/external_heat.py. The reference drops the wood law and the settlement subtracts that heat over COP. Crosses external_heat.py, the coordinator's pending snapshot, the ledger and the reference, so a design note comes first (designer.md). Why: no reference-only rule passes both a matched plant and the owner's export, where tank temperature alone cannot separate coasting and delivering from sitting above the model's curve; a horizon share books wood as a saving. Acceptance: the wood arms of the wood-reference harness the hotfix group lands under dev/audit/harnesses/ (fire covers demand, evening fire, hot tank coasting, no wood, tank just above curve), re-measured at this group's merge base with the flat-price null control, plus the owner's export (derived ratios only). Until this lands two-tank houses show no saving on the card (the hotfix's basis marker); this group lifts that for new months only."
   }
