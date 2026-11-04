@@ -227,10 +227,15 @@ def fold(ctx: Ctx) -> None:
 
 
 def event(ctx: Ctx, line: str) -> None:
-    """Append `<utc> line` to events.txt unless that line is already there."""
+    """Append `<utc> line` to events.txt unless that line is already there (HEAD-MOVED: unless it is that PR's last)."""
     with Locked(ctx):
         path = ctx.digest / "events.txt"
-        if any(ln.split(" ", 1)[-1] == line for ln in read(path).splitlines()):
+        kept = [ln.split(" ", 1)[-1] for ln in read(path).splitlines()]
+        if line.startswith("HEAD-MOVED "):  # a head may return to an old sha: dedupe on the PR's last move only
+            same = [e for e in kept if e.startswith(" ".join(line.split()[:2]) + " ")]
+            if same and same[-1] == line:
+                return
+        elif line in kept:
             return
         with path.open("a") as f:
             f.write(f"{utc(ctx.now)} {line}\n")
@@ -245,8 +250,11 @@ def actionable(board: str) -> list[str]:
 def tick_digest(ctx: Ctx) -> None:
     text = read(ctx.board)
     first = text.splitlines()[0] if text else ""
+    seen_before = ctx.memory("tick.json", {"pass": "", "transient": []})
     if not PROVENANCE.match(first):
         why = "absent" if not text else "has no provenance line"
+        # forget the pass: the same board returning after an outage is a fresh read, not "already seen"
+        ctx.remember("tick.json", {"pass": "", "transient": seen_before["transient"]}, {"pass": "", "transient": []})
         return write_job(ctx, "tick-digest", [f"tick-digest: UNREADABLE board {ctx.board.name} {why}"])
     seen = ctx.memory("tick.json", {"pass": "", "transient": []})
     if seen["pass"] == first:
@@ -287,7 +295,18 @@ def roster_drain(ctx: Ctx) -> None:
     done = set(ctx.memory("roster-done.json", []))
     holds = ctx.memory("roster-hold.json", {})
     lines, count, ran = [], collections.Counter(), False
-    for raw in read(ctx.state / "roster-drain.queue").split("\n"):
+    # The queue is append-only. Only newline-terminated lines run: a last segment read mid-append waits
+    # for its newline. A queue with fewer terminated lines than a past pass drained was cleared or
+    # rotated, which would silently skip a re-queued op under its occurrence key: refuse it visibly.
+    whole = read(ctx.state / "roster-drain.queue").split("\n")[:-1]
+    seen = int(ctx.memory("roster-queue-lines.json", 0))
+    if len(whole) < seen or ctx.memory("roster-shrank.json", False):
+        ctx.remember("roster-shrank.json", True, False)  # sticky: the op queued after the clear must not vanish
+        return write_job(ctx, "roster-drain", [
+            f"roster: QUEUE-SHRANK {len(whole)} terminated line(s) now, {seen} drained before; the queue is "
+            "append-only; nothing ran. Rebaseline by deleting roster-done.json, roster-hold.json, "
+            "roster-queue-lines.json and roster-shrank.json under the digest state"])
+    for raw in whole:
         text = raw.strip()
         if not text or text.startswith("#"):
             continue
@@ -321,6 +340,7 @@ def roster_drain(ctx: Ctx) -> None:
         if not any("no op attempted" in ln for ln in said):
             done.add(key)  # applied or refused: never retried past the lint gate
             holds.pop(key, None)
+    ctx.remember("roster-queue-lines.json", len(whole), 0)
     ctx.remember("roster-done.json", sorted(done), [])
     ctx.remember("roster-hold.json", holds, {})
     if lines or ran or "HOLD-STALE" in read(ctx.digest / "jobs" / "roster-drain"):
