@@ -3083,17 +3083,43 @@ def envelope_score(
     return grade, None, drivers
 
 
+#: Each grade's reference, where its drivers sum to zero (#2816): the house
+#: at typical for its type and era, the pump at its own COP history, and
+#: driving at buying flat at the day's mean price.
+SCORE_REFERENCE: dict[str, float] = {"envelope": 50.0, "machine": 100.0, "operation": 0.0}
+
+
 def machine_score(
     baseline: Mapping[Any, Any], cusum_stat: float
-) -> tuple[float | None, str | None]:
-    """The heat pump grade (#65) and, when it is None, the code saying why.
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The heat pump grade (#65), the code saying why it is None, and its drivers.
 
     100 while the COP watch (#12) accumulates no shortfall; the grade falls
     as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    Its one driver, ``cop_shortfall``, is the grade's distance below 100,
+    the pump matching its own COP history (``SCORE_REFERENCE``).
     """
     if not _watched_cop_buckets(baseline):
-        return None, "cop_watch_learning"
-    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+        return None, "cop_watch_learning", []
+    grade = (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0
+    return grade, None, [{"code": "cop_shortfall", "points": grade - SCORE_REFERENCE["machine"]}]
+
+
+def machine_evidence(baseline: Mapping[Any, Any], frozen_refusals: int) -> dict[str, Any]:
+    """What the heat pump grade waits on: samples per 3 degC outdoor band.
+
+    Each COP baseline bucket against ``COP_BASELINE_MIN_SAMPLES`` (one bucket
+    at it starts the watch, ``_watched_cop_buckets``), most samples first,
+    and the intervals a learner freeze refused since start.
+    """
+    bands = [
+        {"outdoor_c": 3 * band, "hot_water": curve is True, "samples": int(entry[1])}
+        for (band, curve), entry in baseline.items()
+        if np.isfinite(entry[1])
+    ]
+    bands.sort(key=lambda b: (-b["samples"], b["outdoor_c"]))
+    return {"required": COP_BASELINE_MIN_SAMPLES, "bands": bands,
+            "refused_frozen": int(frozen_refusals)}
 
 
 def operation_reason(score_day: Mapping[str, Any]) -> str:
@@ -3102,35 +3128,83 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
     return "free_price_reset" if free >= SCORE_FREE_SPAN_RESET else "no_scored_day"
 
 
+def operation_day_drivers(
+    book: Mapping[str, Any], mean_spot: float, sample: float
+) -> dict[str, float]:
+    """One priced day's Driving sample split into its signed drivers.
+
+    The day's saving against the flat replay, ``mean_spot * kWh - paid``,
+    splits exactly in two: the energy bought below the day's running mean
+    as it was bought (``kwh_lo``, ``sek_lo``) and the rest, each weighed
+    against the day's own mean. ``cheap_hours`` pushes the grade up,
+    ``dear_hours`` down; both scale onto the clipped ``sample``, so they sum
+    to it (``SCORE_REFERENCE``: flat buying scores 0).
+    """
+    kwh, sek = finite_float(book.get("kwh"), 0.0), finite_float(book.get("sek"), 0.0)
+    kwh_lo, sek_lo = finite_float(book.get("kwh_lo"), 0.0), finite_float(book.get("sek_lo"), 0.0)
+    saved = {
+        "cheap_hours": mean_spot * kwh_lo - sek_lo,
+        "dear_hours": mean_spot * (kwh - kwh_lo) - (sek - sek_lo),
+    }
+    total = sum(saved.values())
+    scale = sample / total if sample > 0.0 and total > 0.0 else 0.0
+    return {code: value * scale for code, value in saved.items()}
+
+
+def operation_score(
+    grade: float | None, drivers: Mapping[str, float] | None, score_day: Mapping[str, Any]
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The Driving grade, why it is None, and its drivers (``operation_day_drivers``).
+
+    The drivers fold with the grade's own EMA, so they sum to it; what they
+    do not account for -- a grade folded before they were kept -- is
+    ``earlier_days``, decaying with the EMA.
+    """
+    if grade is None:
+        return None, operation_reason(score_day), []
+    held = [{"code": code, "points": finite_float((drivers or {}).get(code), 0.0)}
+            for code in ("cheap_hours", "dear_hours")]
+    rest = grade - SCORE_REFERENCE["operation"] - sum(d["points"] for d in held)
+    return grade, None, [*held, {"code": "earlier_days", "points": rest}]
+
+
 def compose_scores(
     envelope: tuple[float | None, str | None, list[dict[str, Any]]],
-    machine: tuple[float | None, str | None],
-    operation: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None, list[dict[str, Any]]],
+    operation: tuple[float | None, str | None, list[dict[str, Any]]],
+    machine_waits_on: dict[str, Any] | None = None,
 ) -> Scores:
-    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why, drivers).
 
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none. The house grade's
-    drivers ride ``envelope_drivers`` (#2816).
+    code in ``reasons`` (#2258), and a grade carries none. Each part's
+    drivers ride ``<part>_drivers`` (#2816), signed points summing to the
+    grade minus the part's ``SCORE_REFERENCE``, and are empty with no grade;
+    a heat pump with none says what it waits on in ``machine_evidence``.
     """
-    house = envelope[:2]
-    parts = {"envelope": house, "machine": machine, "operation": operation}
-    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
-    available = [g for g, _why in (machine, operation) if g is not None]
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: part[1] for key, part in parts.items() if part[1] is not None}
+    available = [part[0] for part in (machine, operation) if part[0] is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
-    return {
-        "envelope": None if house[0] is None else round(house[0], 1),
+    def drivers(part: tuple[Any, Any, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        return [{"code": d["code"], "points": round(d["points"], 1)} for d in part[2]]
+
+    scores: Scores = {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
-        "envelope_drivers": [
-            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
-        ],
+        "envelope_drivers": drivers(envelope),
+        "machine_drivers": drivers(machine),
+        "operation_drivers": drivers(operation),
     }
+    if machine[0] is None and machine_waits_on is not None:
+        scores["machine_evidence"] = machine_waits_on
+    return scores
 
 
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
@@ -3646,6 +3720,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # spot samples) plus the smoothed score, persisted with the ledger.
         self._score_day: dict[str, Any] = {}
         self._operation_score: float | None = None
+        self._operation_drivers: dict[str, float] | None = None  # operation_day_drivers, EMA-folded
         # #39: the price tiles, refreshed one per scheduled solve.
         # #52: the last settled interval's (planned, realised, actual)
         # triple, and the latest attribution run over one. In memory only:
@@ -5059,6 +5134,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_NO_POWER
         heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, room_air=heat_kw is None and not heat_energy.meter_of(self).counter):
+            self._measured_cop.frozen_refusals += 1  # machine_evidence's tally
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
@@ -8077,7 +8153,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # operation sample, never the loop.
             try:
                 # A day-less book is the free-day close's #908 streak alone.
-                keys = ("kwh", "sek", "spot_sum", "spot_h") if "day" in day else ()
+                keys = ("kwh", "sek", "spot_sum", "spot_h", *(k for k in ("kwh_lo", "sek_lo") if k in day)) if "day" in day else ()
                 numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
                 cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                 if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
@@ -8087,6 +8163,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
+        drivers = stored.get("operation_drivers")
+        if isinstance(drivers, dict) and self._operation_score is not None and admitted(
+                "ledger", {"operation_drivers": drivers}):
+            self._operation_drivers = {str(k): float(v) for k, v in drivers.items()} or None
         price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
             "ledger", {"price_tiles": {name: part}}))
 
@@ -8105,6 +8185,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "month_reports": self._month_reports,
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
+                    "operation_drivers": self._operation_drivers or {},
                     "fuse_advisor": dict(self._fuse_advisor),
                     "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
@@ -10363,6 +10444,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
             )
             book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
+            if np.isfinite(sek) and spot < book["spot_sum"] / book["spot_h"]:
+                # Bought below the day's running mean: operation_day_drivers' cheap side.
+                book["kwh_lo"] = finite_float(book.get("kwh_lo"), 0.0) + max(0.0, kwh)
+                book["sek_lo"] = finite_float(book.get("sek_lo"), 0.0) + sek
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -10388,14 +10473,18 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             streak = finite_float(book.get("free_streak"), 0.0) + 1.0
             self._score_day = {"free_streak": streak}
             if streak >= SCORE_FREE_SPAN_RESET:
-                self._operation_score = None
+                self._operation_score = self._operation_drivers = None
         else:
             paid_mean = finite_float(book.get("sek"), 0.0) / kwh
             saved_fraction = 1.0 - paid_mean / mean_spot
             sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
+            drivers = operation_day_drivers(book, mean_spot, sample)
             if self._operation_score is not None:
                 sample = (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
-            self._operation_score = sample
+                held = self._operation_drivers or {}
+                drivers = {code: (1.0 - SCORE_ALPHA) * finite_float(held.get(code), 0.0)
+                           + SCORE_ALPHA * value for code, value in drivers.items()}
+            self._operation_score, self._operation_drivers = sample, drivers
         self._schedule_ledger_save()
 
     def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
@@ -10411,7 +10500,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
-            (operation, None if operation is not None else operation_reason(self._score_day)),
+            operation_score(operation, self._operation_drivers, self._score_day),
+            machine_evidence(self._cop_baseline, self._measured_cop.frozen_refusals),
         )
 
     def _narrative_view(self) -> Narrative:

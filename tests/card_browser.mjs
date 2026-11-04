@@ -1182,6 +1182,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
       const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
       try {
         await page.goto("http://hpo.test/");
+        // Each state starts from empty storage: one context serves the whole
+        // cell, so a choice an earlier state persists (hidden_series's chips)
+        // would otherwise hold for every later one (#2841).
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
         await page.addScriptTag({ content: cardSrc });
         await page.addScriptTag({ content: `(${instrument.toString()})();` });
         await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {
