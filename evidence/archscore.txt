@@ -1,0 +1,6 @@
+Architecture score: dS +0.0000 NULL
+  card_rule_copies 93 -> 70  (gate only)
+
+real	0m48.611s
+user	0m46.326s
+sys	0m1.542s
