@@ -1,0 +1,9 @@
+push job names 40
+RESULT main newest16 = 29.067 limit 23.283
+RESULT probed 41854976917(pull_request) + main15 = 28.25
+RESULT probed 41862133797(workflow_dispatch) + main15 = 25.627
+RESULT probed 41862145105(pull_request) + main15 = 25.993
+RESULT 3 probed + main13 = 28.233
+RESULT 16 copies of probed 41862133797 = 24.327
+RESULT 16 copies of probed 41862145105 = 24.193
+RESULT the 3 probed runs, 16-run window by repetition = 41.817
