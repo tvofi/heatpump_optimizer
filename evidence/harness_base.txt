@@ -1,0 +1,19 @@
+reader: 11 samples -> learned_max_kw None planned_range None solve top 5.0 solve_band absent
+reader: 12 samples -> learned_max_kw 3.0 planned_range None solve top 5.0 solve_band absent
+rule: eleven samples     -> absent
+rule: twelve at 3.0      -> absent
+rule: lapsed (+46 d)     -> absent
+rule: within 15 % (4.5)  -> absent
+rule: edge (4.25)        -> absent
+rule: above (6.0)        -> absent
+rule: plan writes power  -> absent
+map: 3.0 kW plan step, unstamped -> 45.0
+map: 3.0 kW plan step, stamped absent -> 45.0
+plan: fresh, no store              hub max 5.0 top step 5.0000 sha d0696d53de9f stamp absent
+plan: store 12 @ 0.9 (within 15 %) hub max 5.0 top step 5.0000 sha d0696d53de9f stamp absent
+plan: store 11 @ 0.5               hub max 5.0 top step 5.0000 sha d0696d53de9f stamp absent
+plan: plan-writes-power, 12 @ 0.5  hub max 5.0 top step 5.0000 sha d0696d53de9f stamp absent
+plan: store 12 @ 0.5 (learned)     hub max 5.0 top step 5.0000 sha d0696d53de9f stamp absent
+plan: flat price, no store         hub max 5.0 top step 5.0000 sha cd0dbbd84694 stamp absent
+plan: flat price, 12 @ 0.5         hub max 5.0 top step 5.0000 sha cd0dbbd84694 stamp absent
+rc=0
