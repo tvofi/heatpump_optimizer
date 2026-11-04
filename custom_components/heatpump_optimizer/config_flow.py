@@ -39,6 +39,7 @@ class _ShowFormParent(Protocol):
     ) -> ConfigFlowResult: ...
 
 from .const import (
+    FACTORY_RESET_SCOPES,
     DOMAIN,
     CONFIG_ENTRY_VERSION,
     CONF_TIBBER_TOKEN,
@@ -264,6 +265,8 @@ from .const import (
     DEFAULT_WOOD_TYPE,
     DEFAULT_WOOD_PACKING,
     DEFAULT_WOOD_FURNACE_EFFICIENCY,
+    CONF_WOOD_LIGHTING_LEAD_MINUTES,
+    DEFAULT_WOOD_LIGHTING_LEAD_MINUTES,
     WOOD_TYPES,
     WOOD_PACKINGS,
     CONF_PRICE_PRIOR_ENABLED,
@@ -1550,6 +1553,9 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
     _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+    # R10-FACTORY-RESET: an action behind a confirmation, not a settings page;
+    # last, so no one meets it on the way to a setting.
+    _P("factory_reset", "Reset to factory defaults", _ADVANCED),
 )
 
 #: Every field the options flow presents, in the order each page renders them.
@@ -1690,6 +1696,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_WOOD_PACKING, DEFAULT_WOOD_PACKING, _select(list(WOOD_PACKINGS), 'wood_packing'), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_PRICE_SEK_M3, _SUGGESTED, _ByHass(lambda hass: _money(10000, 10, hass, "/m³")), when=wood_furnace_on, group="wood"),
     _F("building", CONF_WOOD_FURNACE_EFFICIENCY, DEFAULT_WOOD_FURNACE_EFFICIENCY, _number(10, 95, 1, '%', slider=True), when=wood_furnace_on, group="wood"),
+    _F("building", CONF_WOOD_LIGHTING_LEAD_MINUTES, DEFAULT_WOOD_LIGHTING_LEAD_MINUTES, _number(0, 240, 15, 'min', slider=True), when=wood_furnace_on, group="wood"),
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
     _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
@@ -2359,6 +2366,13 @@ def _setup_overview_form(
         },
         last_step=last_step,
     )
+
+
+#: The factory reset's one form: which scope, and the explicit confirmation.
+_FACTORY_RESET_SCHEMA: Final = vol.Schema({
+    vol.Required("scope", default=FACTORY_RESET_SCOPES[2]): _select(list(FACTORY_RESET_SCOPES), "factory_reset_scope"),
+    vol.Required("confirm", default=False): selector.BooleanSelector(),
+})
 
 
 class HeatPumpOptimizerConfigFlow(
@@ -3283,6 +3297,22 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
         # -- offering the choice here would be a button that lies. It carries
         # no registry rows for the same reason.
         return _setup_overview_form(self, self._current)
+
+    async def async_step_factory_reset(
+        self, user_input: dict[str, Any] | None = None
+    ) -> ConfigFlowResult:
+        """R10-FACTORY-RESET: unconfirmed, back to the menu with nothing changed;
+        confirmed, the reset runs and closes the dialog, saying whether it applied."""
+        if user_input is None:
+            return self.async_show_form(step_id="factory_reset", data_schema=_FACTORY_RESET_SCHEMA)
+        if not user_input.get("confirm"):
+            return await self.async_step_advanced()
+        if (coord := getattr(self._entry, "runtime_data", None)) is None:
+            return self.async_abort(reason="factory_reset_not_loaded")
+        from .coordinator import async_factory_reset
+
+        done = await async_factory_reset(coord, user_input["scope"])
+        return self.async_abort(reason="factory_reset_done" if done else "factory_reset_not_applied")
 
     async def async_step_quick_setup(
         self, user_input: dict[str, Any] | None = None

@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/battery.py:VirtualBattery.charge_rate_kw CLAMP_DROP b403cdd2",
+  "old": "        return max(self.cop, 0.1) * self.charge_heat_per_cop_kw",
+  "reason": "R10-COP-PARTLOAD p2 round 2 re-anchored this line (the factor became `charge_heat_per_cop_kw`); the clamp is the old line's. `battery.build`'s only caller (`coordinator.py`, the battery view) passes `cop` from `ThermalModel.compute_cop`, which returns `_cop_law`'s `max(cop, 1.0)` (#928's resistive bound), so `max(cop, 0.1)` cannot select its second arm.",
+  "verdict": "equivalent"
+}

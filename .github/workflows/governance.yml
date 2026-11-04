@@ -54,14 +54,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The citation resolvers ask git whether a path or symbol exists at a
           # cited tag; a shallow checkout answers "no" for every one of them.
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -253,12 +253,12 @@ jobs:
     env:
       HPO_JOB_GRADES: nothing
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -441,6 +441,14 @@ jobs:
           python3 -I tools/audit/seat/tmp_paths.py --self-test
           python3 -I tools/audit/seat/tmp_paths.py --check
 
+      # macOS bash 3.2 dies on an empty array's bare "${a[@]}" under `set -u`,
+      # which CI's bash 5 expands cleanly (triage P303): the static rule.
+      - name: Refuse a bare array expansion in a set -u script
+        run: |
+          set -euo pipefail
+          python3 -I tools/audit/seat/bare_array.py --self-test
+          python3 -I tools/audit/seat/bare_array.py --check
+
       # A push whose ref name or commit message names the host (#2310: 70
       # wip-sync refs carried the account name). The self-test drives the
       # slug, the guard and wt_sync.sh end to end on a planted identity; the
@@ -550,6 +558,7 @@ jobs:
           python3 -I tools/coverage/partition.py --self-test
           python3 -I tools/merge/ledger_merge.py --self-test
           python3 -I tools/plan/replan.py --self-test
+          python3 -I tools/plan/size_durations.py --self-test
           node tools/policy/policy_lint.mjs --self-test
           python3 -I tools/policy/record-predicate/row_files_replay.py --self-test
           bash tools/pr/approve_held_runs.sh --self-test
@@ -593,6 +602,22 @@ jobs:
           python3 -I tools/audit/seat/ledger.py --self-test | tee "$RUNNER_TEMP/ledger-self-test.txt"
           grep -Eq '^ledger self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/ledger-self-test.txt"
 
+      # The after-merge bookkeeping (R10-FLY-TRAIN-DEFAULTS part 2): the #201 line from
+      # its template and the four steps merge_pr.sh and the train run after a merge.
+      - name: Show the post-merge record line refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/record_beat.py --self-test | tee "$RUNNER_TEMP/record-beat-self-test.txt"
+          grep -Eq '^record_beat self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/record-beat-self-test.txt"
+
+      - name: Show the post-merge bookkeeping refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/postmerge.py --self-test | tee "$RUNNER_TEMP/postmerge-self-test.txt"
+          grep -Eq '^postmerge self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/postmerge-self-test.txt"
+
       - name: Show the roster queue runner refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -634,6 +659,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/features_block.py --self-test | tee "$RUNNER_TEMP/features-block-self-test.txt"
           grep -Eq '^features_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/features-block-self-test.txt"
+
+      - name: Show the mutant driver killing, sparing and restoring its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
+          grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
 
       - name: Show the handoff push and its row writer refusing their own fixtures
         if: ${{ !cancelled() }}
@@ -699,6 +731,13 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/pr_cap.py --self-test | tee "$RUNNER_TEMP/pr-cap-self-test.txt"
           grep -Eq '^pr_cap self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/pr-cap-self-test.txt"
+
+      - name: Show the open driver refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/open_driver.py --self-test | tee "$RUNNER_TEMP/open-driver-self-test.txt"
+          grep -Eq '^open_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-driver-self-test.txt"
 
       - name: Show the proof watcher refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -786,6 +825,15 @@ jobs:
           python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test | tee "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
           grep -Eq '^r10_ledger_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-ledger-mutants-self-test.txt"
 
+      # The mandate guard's mutation sweep (R10-FLY-MANDATE-REVOKE-GUARD), for
+      # the same reason: CI pins its plants' preconditions, never the sweep.
+      - name: Show the mandate-guard mutation harness pinning its own plants
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/r10_mandate_guard_mutants.py --self-test | tee "$RUNNER_TEMP/r10-mandate-guard-mutants-self-test.txt"
+          grep -Eq '^r10_mandate_guard_mutants self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/r10-mandate-guard-mutants-self-test.txt"
+
       - name: Show the roster library refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -813,6 +861,13 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/seat_venv.sh --self-test | tee "$RUNNER_TEMP/seat-venv-self-test.txt"
           grep -Eq '^seat_venv self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/seat-venv-self-test.txt"
+
+      - name: Show the gh call-log shim refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/gh_calls.py --self-test | tee "$RUNNER_TEMP/gh-calls-self-test.txt"
+          grep -Eq '^gh_calls self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/gh-calls-self-test.txt"
 
       - name: Show the cloud setup profile refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -1027,14 +1082,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The matrix derives its baseline from origin/main and grafts a
           # shallow shape from HEAD~1; both need real history.
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -1139,11 +1194,11 @@ jobs:
       # Full history and tags: agreement.mjs's merge-subject corpus is every
       # first-parent subject since v6.5.0, and a shallow clone hands it an
       # empty window.
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -1224,7 +1279,7 @@ jobs:
       # the restored `agreement_py.py` refuses to answer while that list
       # misses a file it loads (its restore precondition, #2423), so the list
       # is derived and checked here rather than carried by hand.
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1323,7 +1378,7 @@ jobs:
       # blast radius.
       issues: write
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The window is `<last version tag>..origin/main`. A shallow checkout
           # has neither the tag nor the history, and `git log` on one answers
@@ -1333,7 +1388,7 @@ jobs:
           fetch-depth: 0
           fetch-tags: true
 
-      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: "22"
 
@@ -1607,7 +1662,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # The window is `<last tag>..origin/main`, so the tags and main's
           # history both have to be here. A shallow clone would silently
@@ -1615,7 +1670,7 @@ jobs:
           # names as its own failure mode.
           fetch-depth: 0
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 
@@ -1679,12 +1734,12 @@ jobs:
       group: delivery-status-publish
       cancel-in-progress: true
     steps:
-      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           fetch-depth: 0
           persist-credentials: false
 
-      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
 

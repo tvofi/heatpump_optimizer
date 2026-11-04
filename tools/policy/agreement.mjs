@@ -22,7 +22,8 @@
 //     Each such grammar must be named in SHARED_GRAMMARS with a disposition --
 //     a PAIR above that drives it, the one module that now holds it, or why it
 //     is not a concept -- and an entry whose grammar no longer spans two files
-//     is DEAD. A second reader written tomorrow with a copied grammar is found
+//     is DEAD -- unless it names the second reader it awaits (AN ENTRY BEFORE
+//     ITS SECOND READER, below discovery). A second reader written tomorrow with a copied grammar is found
 //     without anyone listing it; one with a DIFFERENT grammar is not, which is
 //     why the pairs arm exists and why a fix that finds a sibling registers it.
 //
@@ -176,34 +177,100 @@ function nonTemplateMerges(log) {
 }
 // One step of the quote reader at text[i]: how many characters there are quoted
 // text (the quote marks included, a Python triple quote read as one mark), or 0,
-// so a bracket there opens nothing.
-function quoted(st, text, i) {
+// so a bracket there opens nothing. By the file's language (`kind`): in a JS
+// file a backtick opens a template literal and a `/` where an expression starts
+// a regex literal (its `[]` class holding a `/`); in a shell or prose file a
+// backtick opens a command substitution or a code span, and a `\` outside a
+// quote makes the next character text. An interpolation slot -- a template's
+// `${`, a Python f-string's `{` (not `{{`), a shell double quote's `$(` (not
+// `${`, whose body is a word) -- is code again until the bracket that closes
+// it, then the string resumes:
+// a quote, a bracket or a string in the slot is the slot's, as the language
+// reads it (Python 3.12 reads an f-string's own quote mark in a slot as a
+// nested string). A quote holds its line ends where the language's does: a
+// triple quote, a template literal, and a slot of either.
+const fresh = () => ({ q: '', esc: false, f: false, span: false, slots: [] })
+const SLOT_OPEN = { '{': '}', '(': ')' }
+function quoted(st, text, i, kind) {
   const c = text[i]
   if (st.q) {
-    if (st.esc) st.esc = false
-    else if (c === '\\') st.esc = true
-    else if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; return k }
+    if (st.esc) { st.esc = false; return 1 }
+    if (c === '\\') { st.esc = true; return 1 }
+    if (text.startsWith(st.q, i)) { const k = st.q.length; st.q = ''; st.f = false; return k }
+    if (st.f && text.startsWith('{{', i)) return 2
+    const k = st.q === '`' && kind === 'js' ? text.startsWith('${', i) && 2
+      : st.f ? c === '{' && 1 : st.q === '"' && kind === 'sh' && text.startsWith('$(', i) && 2
+    if (k) { st.slots.push({ q: st.q, f: st.f, span: st.span, open: text[i + k - 1], depth: 0 }); st.q = ''; st.f = false; return k }
     return 1
   }
-  if (c === '"' || c === "'") { st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c; return st.q.length }
+  const top = st.slots[st.slots.length - 1]
+  if (top && c === top.open) top.depth++
+  else if (top && c === SLOT_OPEN[top.open] && !top.depth--) { st.slots.pop(); Object.assign(st, { q: top.q, f: top.f, span: top.span }); return 1 }
+  if (c === '"' || c === "'") {
+    st.q = text.startsWith(c.repeat(3), i) ? c.repeat(3) : c
+    st.f = kind === 'py' && /(?<![\w])[rRbBuU]?[fF][rR]?$/.test(text.slice(Math.max(0, i - 3), i))
+    st.span = st.q.length === 3
+    return st.q.length
+  }
+  if (c === '`' && kind !== 'py') { st.q = c; st.span = kind === 'js'; return 1 }
+  if (c === '\\' && kind === 'sh') return 2
+  if (c === '/' && kind === 'js' && !'/*'.includes(text[i + 1]) && /(?:^|[(,=:[!&|?{};+\-*%<>~^\n]|\breturn)\s*$/.test(text.slice(Math.max(0, i - 8), i))) {
+    for (let j = i + 1, cls = false; j < text.length && text[j] !== '\n'; j++) {
+      if (text[j] === '\\') j++
+      else if (text[j] === '[') cls = true
+      else if (text[j] === ']') cls = false
+      else if (text[j] === '/' && !cls) return j + 1 - i
+    }
+  }
   return 0
 }
-// Whether a comment opens at text[i], outside a quote, by the file's language
-// (`kind`): Python's `#`, a shell or Markdown word's leading `#`, JS's `//`. A
-// bracket or quote mark in a comment is prose, to either read below.
-const commentAt = (kind, text, i) => kind === 'js' ? text.startsWith('//', i) : text[i] === '#' && (kind === 'py' || !i || /\s/.test(text[i - 1]))
+// Whether the reader is in a quote that holds its line ends, or in a slot of one.
+const spansLines = (st) => (st.q && st.span) || st.slots.some((s) => s.span)
+// Where a comment that opens at text[i], outside a quote, ends by the file's
+// language (`kind`), or -1 where none opens: Python's `#`, a shell or Markdown
+// word's leading `#` and JS's `//` end before their line end; JS's `/* */` past
+// its `*/`, across lines. A bracket or quote mark in a comment is prose, to
+// either read below.
+function commentEnd(kind, text, i) {
+  if (kind === 'js' && text.startsWith('/*', i)) { const e = text.indexOf('*/', i + 2); return e < 0 ? text.length : e + 2 }
+  if (kind === 'js' ? text.startsWith('//', i) : text[i] === '#' && (kind === 'py' || !i || /\s/.test(text[i - 1]))) {
+    const e = text.indexOf('\n', i); return e < 0 ? text.length : e
+  }
+  return -1
+}
+// The innermost bracket still open at `at`, read from `from` with the reader
+// the extent uses, or -1.
+function openAt(text, from, at, kind) {
+  const open = []; let st = fresh()
+  for (let i = from; i < at; i++) {
+    const c = text[i]
+    if (c === '\n' && !spansLines(st)) { st = fresh(); continue }
+    const n = quoted(st, text, i, kind)
+    if (n) { i += n - 1; continue }
+    const e = commentEnd(kind, text, i)
+    if (e >= 0) { i = e - 1; continue }
+    if ('([{'.includes(c)) open.push(i)
+    else if (')]}'.includes(c)) open.pop()
+  }
+  return open.length ? open[open.length - 1] : -1
+}
 // A call, not a line: what a merge call carries runs from the innermost bracket
 // still open at it (or its line's start) to where that bracket closes,
 // or to the first line end that is outside every bracket it opened and not
 // escaped by `\`: an argv list or a call split over lines (merge_train.py's own
 // merge among them) and a shell continuation are one call, and a sibling in the
 // same table is not. A bracket inside a quote is text, and a line end inside a
-// Python triple-quoted string is the string's. A blank line ends it, so prose
-// with a stray parenthesis cannot run on, except in a Python or JS file,
-// where the language reads a blank line inside a bracket as nothing. The open
-// bracket is read from the statement's first line, the line after the last
-// blank one, so an argv wrapped after its program or exploded one element per
-// line is one call; a line end there resets a quote as the forward read does.
+// Python triple-quoted string or a JS template literal is the string's. A blank
+// line ends it, so prose with a stray parenthesis cannot run on, except in a
+// Python or JS file, where the language reads a blank line inside a bracket as
+// nothing. The open bracket is read from the statement's first line, the line
+// after the last blank one, so an argv wrapped after its program or exploded one
+// element per line is one call; a line end there resets a quote as the forward
+// read does. Where that read opens no bracket in a Python or JS file, it is
+// re-read from the file's start, for the same reason: an argv holding a blank
+// line before `pr` is one call. Only then, so a lexer state the file's start
+// carries in (a regex literal holding a quote mark) moves no call a
+// statement's own bracket already holds.
 // With no bracket open the forward read starts at the line's start, as main's
 // line guard reads, and a closer before `pr` that matches nothing on the line
 // is skipped, not read as the call's end.
@@ -211,31 +278,24 @@ function callExtent(text, at, kind) {
   const ls = text.lastIndexOf('\n', at - 1) + 1
   let ps = ls
   for (let p; ps > 0 && (p = text.lastIndexOf('\n', ps - 2) + 1, text.slice(p, ps - 1).trim()); ps = p);
-  const open = []; let st = { q: '', esc: false }
-  for (let i = ps; i < at; i++) {
-    const c = text[i]
-    if (c === '\n' && st.q.length !== 3) { st = { q: '', esc: false }; continue }
-    const n = quoted(st, text, i)
-    if (n) { i += n - 1; continue }
-    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); if (e < 0) break; i = e - 1; continue }
-    if ('([{'.includes(c)) open.push(i)
-    else if (')]}'.includes(c)) open.pop()
-  }
-  const start = open.length ? open[open.length - 1] : ls
-  let depth = 0; st = { q: '', esc: false }
-  for (let i = start + (open.length ? 1 : 0); i < text.length; i++) {
+  let b = openAt(text, ps, at, kind)
+  if (b < 0 && kind !== 'sh' && ps > 0) b = openAt(text, 0, at, kind)
+  const start = b < 0 ? ls : b
+  let depth = 0; let st = fresh()
+  for (let i = start + (b < 0 ? 0 : 1); i < text.length; i++) {
     const c = text[i]
     if (c === '\n') {
-      if (st.q.length === 3) continue
-      st = { q: '', esc: false }
+      if (spansLines(st)) continue
+      st = fresh()
       const next = text.indexOf('\n', i + 1)
       if (kind === 'sh' && !text.slice(i + 1, next < 0 ? text.length : next).trim()) return text.slice(start, i)
-      if (!open.length && !depth && text[i - 1] !== '\\') return text.slice(start, i)
+      if (b < 0 && !depth && text[i - 1] !== '\\') return text.slice(start, i)
       continue
     }
-    const n = quoted(st, text, i)
+    const n = quoted(st, text, i, kind)
     if (n) { i += n - 1; continue }
-    if (commentAt(kind, text, i)) { const e = text.indexOf('\n', i); if (e < 0) break; i = e - 1; continue }
+    const e = commentEnd(kind, text, i)
+    if (e >= 0) { i = e - 1; continue }
     if ('([{'.includes(c)) depth++
     else if (')]}'.includes(c) && --depth < 0) {
       // Before `pr`, a closer no opener of the line matches is the lead's -- a
@@ -492,7 +552,8 @@ const PAIRS = [
 // `module:<path>` (one module holds it; the other files import it), or
 // `not-a-concept:<why>`. Seeded by the root-cause seat with the round-9
 // instances only; the barrier pull request classifies every entry the
-// discovery arm prints.
+// discovery arm prints. Any of them may end ` (awaits <path>)` while its
+// grammar's second reader is still to land (AN ENTRY BEFORE ITS SECOND READER).
 const SHARED_GRAMMARS = {
   "(if|elif|while|until)\\b|^!|\\|\\||&&|": "identical:countermeasure A's errexit safe-producer grammar, in entities.py a disclosed port of the frozen finder harness r10_errexit_capture.py (e1a684789), equal to it on six trees in R10-ERREXIT-COUNTERMEASURES",
   "  ([A-Za-z][\\w-]*):": "identical:the job-id scan of a workflow's jobs: block, a disclosed copy of entities.py _workflow_job_ids in the governance-workflow-jobs reader, null-controlled by the 'briefs' job",
@@ -528,10 +589,11 @@ const SHARED_GRAMMARS = {
   "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
 }
 
+const isGovernanceCode = (f) => /\.(py|mjs|js|cjs)$/.test(f)
+  && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
+  && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f)
 function governanceCode() {
-  return canonList(git(['ls-files']).split('\n')).filter((f) => /\.(py|mjs|js|cjs)$/.test(f)
-    && /^(\.claude|tools|tests)\//.test(f) && !/^tools\/audit\/round\d/.test(f)
-    && !/\/fixtures\//.test(f) && !/^tests\/(hastub|pwlane)\//.test(f))
+  return canonList(git(['ls-files']).split('\n')).filter(isGovernanceCode)
 }
 // A regex literal can start only where an operand can: after one of these
 // punctuators or `return`. Anything else between two slashes is division or
@@ -540,7 +602,7 @@ const JS_RE = /(?:^|[(,=:[!&|?{};>]|\breturn)\s*\/((?:\\.|\[(?:\\.|[^\]\\\n])*\]
 const PY_RE = /re\.(?:compile|match|search|fullmatch|findall|finditer|sub)\(\s*r?(["'])((?:\\.|(?!\1).)+)\1/g
 const norm = (r) => r.replace(/^\^/, '').replace(/\$$/, '').replaceAll('\\s*', '').replaceAll('[ \\t]*', '')
 
-function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept)) {
+function discovery(report, files = governanceCode(), read = rd, registry = SHARED_GRAMMARS, pairNames = PAIRS.map((p) => p.concept), hist = null) {
   const occ = new Map()
   for (const f of files) {
     const s = read(f)
@@ -557,8 +619,63 @@ function discovery(report, files = governanceCode(), read = rd, registry = SHARE
     if (!/^(pair|module|identical|not-a-concept):\S/.test(d)) report.refused.push(`discovery ${JSON.stringify(k)}: disposition ${JSON.stringify(d)} is not pair:, module:, identical: or not-a-concept:`)
     if (d.startsWith('pair:') && !pairs.has(d.slice(5))) report.refused.push(`discovery ${JSON.stringify(k)}: names pair ${d.slice(5)}, which is not registered`)
   }
-  for (const k of Object.keys(registry)) if (!shared.some(([s]) => s === k)) report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`)
+  for (const k of Object.keys(registry)) {
+    const w = AWAITS.exec(registry[k])
+    if (shared.some(([s]) => s === k)) { if (w) report.note.push(`discovery ${JSON.stringify(k)}: a second file reads it, so its (awaits ${w[1]}) clause is spent: drop it`); continue }
+    if (!w) { report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} no longer spans two files`); continue }
+    awaiting(report, k, registry[k].slice(0, w.index), w[1], occ.get(k)?.size ?? 0, files, pairs, hist ??= headHistory())
+  }
   report.note.push(`discovery: ${files.length} governance code files, ${occ.size} distinct grammars, ${shared.length} shared by two or more files`)
+}
+
+// AN ENTRY BEFORE ITS SECOND READER (#3100). CI grades a pull request with the
+// base's copy of this file, SHARED_GRAMMARS with it (governance.yml's restore),
+// so the pull request that adds a grammar's second reader is graded by a
+// registry that must already hold the entry; and an entry that lands first
+// spans one file, which main's own push run reads DEAD. So an ordinary
+// disposition may end ` (awaits <path>)`, and the entry is not DEAD at one file
+// while every one of these holds: exactly one file reads the grammar; <path> is
+// governance code, is not in the tree, and was never on HEAD's history (a
+// reader that left is not awaited, so a reader removed later reads DEAD as
+// before); and the clause landed at most AWAIT_DAYS before HEAD, by committer
+// date on HEAD's first-parent line. Each refusal is DEAD, with its reason.
+// Once a second file reads the grammar the entry is an ordinary two-file entry
+// the base copy accepts unchanged, so the reader's pull request needs no edit
+// to this pinned file; the spent clause is then a note, never a refusal,
+// because only an edit to this file could cure it and the base copy never sees
+// that edit. For the same reason the age bound is fatal only where the
+// registry graded is the one HEAD commits (main's push run, a local run): a
+// pull request that drops an expired entry is graded by the base's copy,
+// which still holds it, and reads a note, as does any run whose registry
+// differs from HEAD's: HEAD's history does not date the registry it grades. dev/audit/harnesses/agreement_two_pr.mjs
+// runs the sequence through real commits.
+const AWAITS = / \(awaits ([^()\s]+)\)$/
+const AWAIT_DAYS = 7
+const SELF = path.relative(ROOT, fileURLToPath(import.meta.url))
+function headHistory(g = git, self = SELF, read = () => fs.readFileSync(at(self), 'utf8')) {
+  const one = (args) => { try { return g(args).trim() } catch { return '' } }
+  const ct = (args) => Number(one(['log', '-1', '--format=%ct', ...args]))
+  return {
+    shallow: () => one(['rev-parse', '--is-shallow-repository']) !== 'false',
+    existed: (p) => one(['log', '-1', '--format=%h', 'HEAD', '--', p]) || null,
+    days: (needle) => { if (!one(['show', `HEAD:${self}`]).includes(needle)) return NaN; const t = ct(['--first-parent', `-S${needle}`, 'HEAD', '--', self]); return t ? (ct(['HEAD']) - t) / 86400 : NaN },
+    own: () => one(['show', `HEAD:${self}`]) === read().trim(),
+  }
+}
+function awaiting(report, k, d, p, readers, files, pairs, h) {
+  const dead = (why) => report.dead.push(`SHARED_GRAMMARS ${JSON.stringify(k)} awaits ${p}, ${why}`)
+  if (!/^(pair|module|identical|not-a-concept):\S/.test(d) || (d.startsWith('pair:') && !pairs.has(d.slice(5)))) return dead('but its disposition is no registered pair:, module:, identical: or not-a-concept:')
+  if (readers !== 1) return dead('but no file reads its grammar')
+  if (!isGovernanceCode(p)) return dead('which is not a governance code path discovery reads')
+  if (files.includes(p)) return dead('which is in the tree and does not read its grammar')
+  if (h.shallow()) return dead(`but HEAD's history is shallow, so whether ${p} ever existed is unknowable`)
+  const was = h.existed(p)
+  if (was) return dead(`which existed at ${was}: a reader that left is not awaited`)
+  if (!h.own()) return report.note.push(`discovery ${JSON.stringify(k)}: awaits ${p}; graded by a registry this tree edits, so main's push run decides its age`)
+  const n = h.days(`(awaits ${p})`)
+  if (!(n >= 0)) return dead("but its age is unknowable: HEAD's first-parent line does not date the clause, or dates it after HEAD")
+  if (n > AWAIT_DAYS) return dead(`a clause ${n.toFixed(1)} days old, past the ${AWAIT_DAYS}-day bound: land the reader or drop the entry`)
+  report.note.push(`discovery ${JSON.stringify(k)}: one file reads it, awaiting ${p}`)
 }
 
 async function pairsArm(report, pairs = PAIRS) {
@@ -798,6 +915,68 @@ async function selfTest() {
     py('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length === 1])
   probes.push(['null control: a blank line inside a bracket in a shell or prose file still ends the call',
     !wr('run(["gh", "pr", "merge", n,\n\n    "--subject", "x"])\n').length])
+  // R10-MERGE-SUBJECT-CASEARM's routed spellings: a blank line between the
+  // bracket and `pr` in a Python or JS argv, and a closer in a JS block comment
+  // past `merge`. Each is one merge call whose subject is refused; with `view`
+  // none is.
+  const ROUTED = [
+    ['a blank line in a Python argv before "pr"', 'tools/x.py', (v) => `run([\n    "gh",\n\n    "pr", "${v}", n,\n    "--subject", s])\n`],
+    ['a blank line in a JS argv before "pr"', 'tools/x.mjs', (v) => `execFileSync('gh', [\n\n  'pr', '${v}', n,\n  '--subject', s])\n`],
+    ['a closer in a JS block comment after "merge"', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /* ) */ '--subject', s])\n`],
+  ]
+  for (const [what, f, src] of ROUTED) {
+    probes.push([`extent: ${what} is one call, its subject refused`, guard([], { ...writers, [f]: src('merge') }).length === 1])
+    probes.push([`null control: ${what} running pr view is not a merge call`, !guard([], { ...writers, [f]: src('view') }).length])
+  }
+  // The Python and JS read from the file's start opens nothing a closed group, a
+  // block comment or a template literal above the call holds, so a call in no
+  // bracket of its own ends with its line and the next statement's flag is not
+  // the call's.
+  const after = (q) => `${q}cmd = "gh pr merge 9"\nother("--subject", s)\n`
+  probes.push(['null control: a bracket group closed above a blank line, in a Python or JS file, opens nothing',
+    ['tools/x.py', 'tools/x.mjs'].every((f) => !guard([], { ...writers, [f]: after('x = (\n  1,\n)\n\n') }).length)])
+  probes.push(['null control: a bracket in a JS block comment above the call opens nothing',
+    !guard([], { ...writers, 'tools/x.mjs': after('/* see the\n   note ( */\n\n') }).length])
+  probes.push(['null control: a bracket in a JS template literal, on its first line or a later one, opens nothing',
+    !guard([], { ...writers, 'tools/x.mjs': after('x = `a (b`\n\n') }).length && !guard([], { ...writers, 'tools/x.mjs': after('x = `a\n(b`\n\n') }).length])
+  // The file's start is read only where the statement opens no bracket: a regex
+  // literal holding a backtick above an argv wrapped after its program moves
+  // nothing of the call the statement's own bracket holds, as at main.
+  // The rest of the lexer class the matrix in r10_merge_subject_argv_seam.mjs
+  // enumerates: a closer in a slot holding the string's own quote or a nested
+  // template, and in a regex literal or its class, after `merge`.
+  const LEXED = [
+    ['an f-string slot holding its own quote', 'tools/x.py', (v) => `run(["gh", "pr", "${v}", n, f"{d[")"]}",\n    "--subject", s])\n`],
+    ['a template slot holding a template', 'tools/x.mjs', (v) => "execFileSync('gh', ['pr', '" + v + "', n, `${f(`)`)}`,\n  '--subject', s])\n"],
+    ['a template slot holding an object literal and a template', 'tools/x.mjs', (v) => "execFileSync('gh', ['pr', '" + v + "', n, `${ {a: 1}[`)`] }`,\n  '--subject', s])\n"],
+    ['a regex literal', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /\\)/,\n  '--subject', s])\n`],
+    ['a regex class holding a slash', 'tools/x.mjs', (v) => `execFileSync('gh', ['pr', '${v}', n, /[/)]/,\n  '--subject', s])\n`],
+    ['an escaped shell closer', 'tools/x.sh', (v) => `gh pr ${v} 9 \\) --subject x\n`],
+    ['a shell command substitution in a double quote, holding its quote', 'tools/x.sh', (v) => `gh pr ${v} 9 "$(echo ")")" --subject x\n`],
+    ['a shell backtick substitution', 'tools/x.sh', (v) => `gh pr ${v} 9 \`echo )\` --subject x\n`],
+  ]
+  for (const [what, f, src] of LEXED) {
+    probes.push([`lexer: a closer in ${what} after "merge" does not end the call, its subject refused`, guard([], { ...writers, [f]: src('merge') }).length === 1])
+    probes.push([`null control: ${what} running pr view is not a merge call`, !guard([], { ...writers, [f]: src('view') }).length])
+  }
+  probes.push(['null control: a division is no regex literal, and an f-string\'s {{ opens no slot, so the next statement\'s flag is not the call\'s',
+    !guard([], { ...writers, 'tools/x.mjs': 'x = (a / b) / c\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
+    && !guard([], { ...writers, 'tools/x.py': 'x = f"{{ ("\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
+  probes.push(['a backslash continuation outside a bracket, in a Python or JS file, continues the call: its --subject is refused',
+    ['tools/x.py', 'tools/x.mjs'].every((f) => guard([], { ...writers, [f]: 'cmd = "gh pr merge 9 " \\\n    "--subject x"\n' }).length === 1)])
+  probes.push(['a shell parameter default is a word, not a slot: a closer in it, in a double quote, does not end the call',
+    guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 "${x:-)}" --subject x\n' }).length === 1])
+  probes.push(['null control: a shell backtick ends with its line, and an escaped line end still continues the call',
+    !guard([], { ...writers, 'tools/x.md': 'a `b\nc` (d\ngh pr merge 9\n--subject x\n' }).length
+    && guard([], { ...writers, 'tools/x.sh': 'gh pr merge 9 \\\n  --subject x\n' }).length === 1])
+  probes.push(['null control: a template slot holds its line ends and its own braces, so a bracket in or after it opens nothing',
+    !guard([], { ...writers, 'tools/x.mjs': 'x = `${\n  y\n}(`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length
+    && !guard([], { ...writers, 'tools/x.mjs': 'x = `${ {a: 1}.a }`\ncmd = "gh pr merge 9"\nother("--subject", s)\n' }).length])
+  probes.push(['a prose parenthesis left open above a blank line opens nothing for a shell or prose call: its --subject is refused',
+    ['tools/x.md', 'tools/x.sh'].every((f) => guard([], { ...writers, [f]: 'Merge it by hand (see the note\n\ngh pr merge 9 --subject x\n' }).length === 1)])
+  probes.push(['a lexer state carried from the file start does not move a call its statement\'s bracket holds: its --subject is refused',
+    guard([], { ...writers, 'tools/x.mjs': "const r = /`/\n\nexecFileSync('gh', [\n  'pr', 'merge', n,\n  '--subject', s])\n" }).length === 1
+    && guard([], { ...writers, 'tools/x.py': 'x = \'\'\'a\n\nrun(["gh",\n  "pr", "merge", n,\n  "--subject", s])\n' }).length === 1])
   probes.push(['a merge_pull_request call whose commit_title is on a later line is refused', wr('merge_pull_request(\n  owner, repo,\n  commit_title=t)\n').length === 1])
   probes.push(['null control: a split merge call with no subject passes, and a flag on the next command is not the call\'s',
     !wr('self.run(["gh", "pr", "merge", n, "--merge",\n         "--match-head-commit", h])\n').length && !wr('gh pr merge 9 --merge\necho --body\n').length
@@ -894,6 +1073,23 @@ async function selfTest() {
     // first-parent merge there, so a hand subject on HEAD's line is refused.
     rg(['update-ref', '-d', 'refs/remotes/origin/main'])
     probes.push(['with no origin/main ref the walk falls back to HEAD and refuses a hand subject there', only(walk(), m2)])
+    // headHistory() over real commits (AN ENTRY BEFORE ITS SECOND READER):
+    // zz2.mjs is held, then leaves as the clause lands, and HEAD is 8 days on.
+    const blob = (text) => execFileSync('git', ['hash-object', '-w', '--stdin'], { cwd: repo, input: text, encoding: 'utf8', env }).trim()
+    const tree = (p, b) => execFileSync('git', ['mktree'], { cwd: repo, input: `100644 blob ${b}\t${p}\n`, encoding: 'utf8', env }).trim()
+    const dated = (t, tr, ...ps) => execFileSync('git', ['commit-tree', tr, ...ps.flatMap((x) => ['-p', x]), '-m', 'h'], { cwd: repo, encoding: 'utf8', env: { ...env, GIT_COMMITTER_DATE: `@${t} +0000` } }).trim()
+    const regText = 'x (awaits zz2.mjs)\n'; const reg = tree('reg.mjs', blob(regText)); const t0 = 1700000000
+    const h1 = dated(t0, tree('zz2.mjs', blob('const ZZ = 1\n'))); const h2 = dated(t0 + 86400, reg, h1); const h3 = dated(t0 + 9 * 86400, reg, h2)
+    at_(h3, h3)
+    const hh = headHistory(rg, 'reg.mjs', () => regText)
+    probes.push(['headHistory over real commits: a path HEAD once held names the commit that last touched it; one never held is null',
+      hh.existed('zz2.mjs') === rg(['rev-parse', '--short', h2]).trim() && hh.existed('never.mjs') === null && hh.shallow() === false])
+    probes.push(["headHistory over real commits: a clause's age is HEAD's committer date less the date it landed on, in days; one HEAD does not hold has none", hh.days('(awaits zz2.mjs)') === 8 && Number.isNaN(hh.days('(awaits other.mjs)'))])
+    probes.push(['headHistory over real commits: the registry is own only while it is byte-equal to HEAD\'s', hh.own() && !headHistory(rg, 'reg.mjs', () => 'y\n').own()])
+    at_(dated(t0 + 10 * 86400, tree('reg.mjs', blob('x\n')), h3), h3)
+    probes.push(['headHistory over real commits: a clause HEAD dropped is not dated by the commit that dropped it', Number.isNaN(hh.days('(awaits zz2.mjs)'))])
+    fs.writeFileSync(path.join(repo, '.git', 'shallow'), `${h2}\n`)
+    probes.push(['headHistory over real commits: a shallow history reads shallow', hh.shallow() === true])
   } finally { fs.rmSync(repo, { recursive: true, force: true }) }
   const disc = (files, registry) => {
     const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
@@ -906,6 +1102,62 @@ async function selfTest() {
   probes.push(['a grammar in one file is not shared', !disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, {}).unregistered.length])
   probes.push(['an entry that no longer spans two files is DEAD', disc({ 'a.mjs': g, 'b.mjs': 'const B = 1\n' }, { 'some-shared-grammar-(\\d+)-x': 'identical:synthetic' }).dead.length === 1])
   probes.push(['a disposition of no known kind is refused', disc({ 'a.mjs': g, 'b.mjs': g }, { 'some-shared-grammar-(\\d+)-x': 'whatever' }).refused.length === 1])
+  // AN ENTRY BEFORE ITS SECOND READER. Each verdict is keyed on its message,
+  // never a count alone. `h` is HEAD's history as headHistory() reads it.
+  const discH = (files, registry, h) => {
+    const r = { divergent: [], unregistered: [], dead: [], refused: [], note: [] }
+    discovery(r, Object.keys(files), (f) => files[f], registry, ['a-pair'], h)
+    return r
+  }
+  const K = 'some-shared-grammar-(\\d+)-x'; const SOLE = 'tools/zz1.mjs'; const P = 'tools/zz2.mjs'
+  const T1 = { [SOLE]: g, 'tools/other.mjs': 'const B = 1\n' }; const T2 = { ...T1, [P]: g }
+  const HIST = { shallow: () => false, existed: () => null, days: () => 0, own: () => true }
+  const AW = `identical:synthetic (awaits ${P})`
+  const verdict = (r) => [...r.unregistered.map((x) => `UNREGISTERED ${x}`), ...r.dead.map((x) => `DEAD ${x}`), ...r.refused.map((x) => `REFUSED ${x}`)]
+  const deadOnly = (r, msg) => !r.refused.length && !r.unregistered.length && r.dead.length === 1 && r.dead[0] === `SHARED_GRAMMARS ${JSON.stringify(K)} ${msg}`
+  const ok = discH(T1, { [K]: AW }, HIST)
+  probes.push(['a one-file entry awaiting a reader that never existed, inside the bound, is accepted', !verdict(ok).length && ok.note.includes(`discovery ${JSON.stringify(K)}: one file reads it, awaiting ${P}`)])
+  probes.push(['a one-file entry with no clause still reads DEAD, message unchanged', deadOnly(discH(T1, { [K]: 'identical:synthetic' }, HIST), 'no longer spans two files')])
+  probes.push(['a reader that left is not awaited: a clause naming a path HEAD once held reads DEAD',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, existed: (p) => (p === P ? 'abc1234' : null) }), `awaits ${P}, which existed at abc1234: a reader that left is not awaited`)])
+  probes.push(['a clause naming a path in the tree that does not read the grammar reads DEAD',
+    deadOnly(discH({ ...T1, [P]: 'const C = 2\n' }, { [K]: AW }, HIST), `awaits ${P}, which is in the tree and does not read its grammar`)])
+  probes.push(['a clause naming a path discovery never reads reads DEAD',
+    deadOnly(discH(T1, { [K]: 'identical:synthetic (awaits docs/x.md)' }, HIST), 'awaits docs/x.md, which is not a governance code path discovery reads')])
+  probes.push(['a clause whose grammar no file reads reads DEAD',
+    deadOnly(discH({ 'tools/other.mjs': 'const B = /an-unrelated-grammar-(\\d+)-y/\n' }, { [K]: AW }, HIST), `awaits ${P}, but no file reads its grammar`)])
+  probes.push(['a clause on a disposition of no known kind reads DEAD',
+    deadOnly(discH(T1, { [K]: `whatever (awaits ${P})` }, HIST), `awaits ${P}, but its disposition is no registered pair:, module:, identical: or not-a-concept:`)])
+  probes.push(['a clause on a pair: that is not registered reads DEAD',
+    deadOnly(discH(T1, { [K]: `pair:no-such-pair (awaits ${P})` }, HIST), `awaits ${P}, but its disposition is no registered pair:, module:, identical: or not-a-concept:`)])
+  probes.push(['on a shallow history the clause reads DEAD, never accepted',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, shallow: () => true }), `awaits ${P}, but HEAD's history is shallow, so whether ${P} ever existed is unknowable`)])
+  probes.push(['a clause dated after HEAD reads DEAD: its age is unknowable, never 0',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => -1 }), `awaits ${P}, but its age is unknowable: HEAD's first-parent line does not date the clause, or dates it after HEAD`)])
+  probes.push(['a clause past the bound reads DEAD on a registry HEAD commits',
+    deadOnly(discH(T1, { [K]: AW }, { ...HIST, days: () => 8 }), `awaits ${P}, a clause 8.0 days old, past the 7-day bound: land the reader or drop the entry`)])
+  const cure = discH(T1, { [K]: AW }, { ...HIST, days: () => 8, own: () => false })
+  probes.push(['a clause past the bound is a note on a pull request that edits the registry, so dropping the entry is green', !verdict(cure).length && cure.note.includes(`discovery ${JSON.stringify(K)}: awaits ${P}; graded by a registry this tree edits, so main's push run decides its age`)])
+  const spent = discH(T2, { [K]: AW }, { ...HIST, existed: () => 'abc1234', days: () => 99 })
+  probes.push(['a spent clause at two files is a note, never a refusal', !verdict(spent).length && spent.note.includes(`discovery ${JSON.stringify(K)}: a second file reads it, so its (awaits ${P}) clause is spent: drop it`)])
+  // THE TWO-PULL-REQUEST SEQUENCE (#3166's review): every step graded the way
+  // CI grades it -- a pull request by its BASE's registry, main's push run by
+  // its own. PR A lands the entry, PR B the second reader, PR D later removes
+  // it. Returns each step whose verdict differs from the one it must read.
+  const twoPr = (entry) => {
+    const R2 = { [K]: entry }; const gone = { ...HIST, existed: (p) => (p === P ? 'abc1234' : null) }
+    return [
+      ['main1 push', T1, {}, HIST, []],
+      ['PR A graded by main1', T1, {}, HIST, []],
+      ['main2 push', T1, R2, HIST, []],
+      ['PR B graded by main2', T2, R2, HIST, []],
+      ['main3 push', T2, R2, gone, []],
+      ['PR D graded by main3', T1, R2, gone, [`DEAD SHARED_GRAMMARS ${JSON.stringify(K)} ${entry.endsWith(`(awaits ${P})`) ? `awaits ${P}, which existed at abc1234: a reader that left is not awaited` : 'no longer spans two files'}`]],
+    ].filter(([, t, r, h, want]) => JSON.stringify(verdict(discH(t, r, h))) !== JSON.stringify(want)).map(([n]) => n)
+  }
+  probes.push(['two pull requests: an awaiting entry lands before its reader, and every step reads what it must', !twoPr(AW).length])
+  probes.push(['null: the same sequence with an entry naming no awaited reader is red at main2 push, and only there', JSON.stringify(twoPr('identical:synthetic')) === '["main2 push"]'])
+  probes.push(['null: the reader PR without the entry on its base is UNREGISTERED', JSON.stringify(verdict(discH(T2, {}, HIST))) === JSON.stringify([`UNREGISTERED ${JSON.stringify(K)} in ${SOLE}, ${P}`])])
   let bad = 0
   for (const [name, ok] of probes) { console.log(`  ${ok ? 'ok  ' : 'FAIL'} ${name}`); if (!ok) bad++ }
   console.log(`SELF-TEST ${probes.length - bad} of ${probes.length} probes held`)

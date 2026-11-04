@@ -623,7 +623,8 @@ def plan_page_arms(root: Path, ok, git) -> None:
                            .read_text(encoding="utf-8"))
     r_, ref_, blob_ = replan.load_roster(str(drv), "main")
     plan = replan.build_plan(r_, durations, dict(replan.DEFAULT_CAPS),
-                             dt.datetime(2026, 1, 5), "v1.0.0", ref_, blob_)
+                             dt.datetime(2026, 1, 5), "v1.0.0", ref_, blob_,
+                             round_n=roster_lib.roster_round(rel))
     planf, snapf = root / "plan.json", root / "psnap.json"
     planf.write_text(json.dumps(plan), encoding="utf-8")
     snapf.write_text(json.dumps({"issues": [], "open_prs": [], "merged_prs": []}),

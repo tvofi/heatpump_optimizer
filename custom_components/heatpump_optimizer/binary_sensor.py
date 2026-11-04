@@ -333,5 +333,8 @@ class WoodCheaperBinarySensor(_OptimizerBinarySensorBase):
         return {
             "sek_per_kwh": fuel.get("sek_per_kwh"),
             "cheaper_hour_count": fuel.get("cheaper_hour_count"),
+            "cheaper_windows": fuel.get("cheaper_windows") or [],
+            "lighting_start": fuel.get("lighting_start"),
+            "lighting_end": fuel.get("lighting_end"),
         }
 

@@ -12,7 +12,7 @@ Sample: tools/audit/round9/D11/s2/reviews_snapshot.json (12 first-parent merges
 Perturbation (the fix CLAUDE.md's identity section describes): a seat's approval
   posted under its own App identity (hpo-approver[bot]) instead of the owner's
   account -> owner approvals counted drop to the human ones (seat_counted -> 0).
-Command: PYTHONPATH=tests/hastub /home/claude/venv314/bin/python tools/audit/round9/D11/s2/owner_review.py
+Command: PYTHONPATH=tests/hastub python3 dev/audit/rounds/round9/D11/s2/owner_review.py
 Expected: RESULT owner_approved_at_head=6, seat_counted_as_owner=6, perturbed_seat_counted=0 (exact on the snapshot).
 Baseline: 1936d5ca72a06556eeed4e8e5bf3dea520e517e1. Machine: B3.
 """
@@ -20,7 +20,7 @@ import sys, os
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from _common import tail  # noqa: E402
 import copy, json, re
-sys.path.insert(0, ".claude/workflows")
+sys.path[:0] = [".claude/workflows", "tools/policy"]  # old path first, then .claude/workflows/budget_raise_gate.py -> tools/policy/budget_raise_gate.py
 import budget_raise_gate as brg  # noqa: E402
 
 SEAT = re.compile(r"orchestrator gives it|given by the orchestrator", re.I)

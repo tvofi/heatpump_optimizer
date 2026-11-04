@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:power_for_heat_per_cop_kw RETURN_DEL bc569d66",
+  "killed_by": "tests/features.py",
+  "old": "    return float(power) if np.ndim(heat_per_cop) == 0 else power",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
+}

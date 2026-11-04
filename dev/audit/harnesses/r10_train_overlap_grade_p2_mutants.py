@@ -37,6 +37,8 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 SRC = ROOT / "tools/audit/seat/merge_train.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # (id, arm, the span, its replacement)
 MUTANTS = [
@@ -108,6 +110,7 @@ def one(m: tuple[str, str, str, str]) -> tuple[str, str, list[str]]:
 
 
 def main(argv: list[str]) -> int:
+    mutant_guard.arm([], scratch=[SRC.parent / f"_mutant_{m[0]}.py" for m in MUTANTS])
     if argv[:1] == ["--list"]:
         for mid, arm, _o, _n in MUTANTS:
             print(f"{mid}\t{arm}")

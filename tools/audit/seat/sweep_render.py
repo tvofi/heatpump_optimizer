@@ -37,6 +37,15 @@ failed and writes nothing:
   structure    a missing or repeated marker, an overlay that is not a JSON
                object, a table row that repeats a name.
 
+THE OPTIONAL FLAG PLACEHOLDERS (`OPTIONAL_FLAGS`): `seat_alives` and
+`launch_ledger` hand `pulse.py` the standing seats' alive files and the launch
+ledger. The overlay may omit them or give an empty string or list: the flag is
+then left out of step (1b) and the render does not fail. `seat_alives` is
+`SEAT=FILE[:MIN]` entries, a list or whitespace-separated, rendered as one
+`--seat-alive ENTRY` each, however many the session runs; `launch_ledger` is
+one file, rendered `--launch-ledger FILE`. An entry that is not `SEAT=FILE`
+is refused as `unfilled`.
+
 WHAT IT DOES NOT CHECK. Whether a step restates policy instead of citing it,
 and whether a cited section number says what the step claims: those are a
 reviewer's reading. A value's own correctness (a mandate that has expired, a
@@ -73,6 +82,12 @@ DEFAULTS = {
     "tick board: design builds": "DESIGN-BUILD:",
     "train flags": "--overlap --approval-carry --skip-bad --free-holders --bot-prs --pre-flight",
 }
+
+
+#: Placeholders the overlay may omit or leave empty; each renders as the pulse.py
+#: flag given, repeated once per entry, or as nothing when there is none.
+OPTIONAL_FLAGS = {"seat_alives": "--seat-alive", "launch_ledger": "--launch-ledger"}
+ENTRY = re.compile(r"^[a-z]+=\S+$")
 
 
 class Refused(Exception):
@@ -123,6 +138,21 @@ def value_text(name: str, v) -> str:
     return s
 
 
+def flag_text(name: str, v) -> str:
+    """An optional flag placeholder as the flags it stands for ("" for none)."""
+    if v is None or v == "" or v == []:
+        return ""
+    if isinstance(v, list):
+        entries = [value_text(name, e) for e in v]
+    else:
+        entries = value_text(name, v).split()
+    if name == "launch_ledger" and len(entries) != 1:
+        raise Refused(f"unfilled: `{name}` is one file, got {len(entries)}")
+    if name == "seat_alives" and not all(ENTRY.match(e) for e in entries):
+        raise Refused(f"unfilled: `{name}` entries are SEAT=FILE[:MIN]")
+    return " ".join(f"{OPTIONAL_FLAGS[name]} {e}" for e in entries)
+
+
 def render(template: str, overlay, root: Path = ROOT) -> str:
     if not isinstance(overlay, dict):
         raise Refused("structure: the overlay is not a JSON object")
@@ -135,16 +165,18 @@ def render(template: str, overlay, root: Path = ROOT) -> str:
     unused = [n for n in names if n not in used]
     if unused:
         raise Refused("unused: " + ", ".join(f"`{n}`" for n in unused) + " declared and never used by the sweep")
-    missing = [n for n in names if n not in overlay]
+    missing = [n for n in names if n not in overlay and n not in OPTIONAL_FLAGS]
     if missing:
         raise Refused("unfilled: the overlay omits " + ", ".join(f"`{n}`" for n in missing))
-    values = {n: value_text(n, overlay[n]) for n in names}
+    values = {n: flag_text(n, overlay.get(n)) if n in OPTIONAL_FLAGS else value_text(n, overlay[n]) for n in names}
     bad = citations(template, root)
     if bad:
         raise Refused("citation: " + ", ".join(f"`{p}`" for p in bad) + " cited and not in the tree")
     out, spans, pos = [], [], 0
     for m in PLACEHOLDER.finditer(sweep):
         out.append(sweep[pos:m.start()])
+        if not values[m.group(1)] and out[-1].endswith(" "):
+            out[-1] = out[-1][:-1]  # an omitted optional flag leaves no double space
         start = sum(map(len, out))
         out.append(values[m.group(1)])
         spans.append((start, start + len(values[m.group(1)])))
@@ -180,9 +212,10 @@ def self_test() -> int:
     names = declared(tracked)
     full = {n: f"<{n}>" for n in names}
     full["plan_slots"] = 10
+    full["seat_alives"], full["launch_ledger"] = "tick=<a>", "<l>"
     try:
         text = render(tracked, full)
-        ok = all(f"<{n}>" in text for n in names if n != "plan_slots") and "{{" not in text
+        ok = all(f"<{n}>" in text for n in names if n not in ("plan_slots", *OPTIONAL_FLAGS)) and "{{" not in text
     except Refused as e:
         print(f"    {e}")
         ok = False
@@ -197,6 +230,24 @@ def self_test() -> int:
     check("a sweep carrying every default fragment misses none (null control)", defaults_missing(every) == [])
     check("a sweep without the train flags is reported missing exactly them",
           defaults_missing(every.replace(DEFAULTS["train flags"], "")) == ["train flags"])
+
+    # step (1b)'s liveness flags: one --seat-alive per seat the overlay lists, none hard-coded (P302).
+    five = dict(full, seat_alives="tick=/s/t:5 merge=/s/m dispatch=/s/d roster=/s/r:7 extra=/s/e")
+    flags = re.findall(r"--seat-alive (\S+)", render(tracked, five))
+    check("an overlay with five seats renders five --seat-alive arguments, each entry verbatim",
+          flags == ["tick=/s/t:5", "merge=/s/m", "dispatch=/s/d", "roster=/s/r:7", "extra=/s/e"])
+    check("a JSON list of two seats renders two --seat-alive arguments",
+          re.findall(r"--seat-alive (\S+)", render(tracked, dict(full, seat_alives=["tick=/a", "merge=/b"])))
+          == ["tick=/a", "merge=/b"])
+    none = {k: v for k, v in full.items() if k not in OPTIONAL_FLAGS}
+    bare, empty = render(tracked, none), render(tracked, dict(full, seat_alives="", launch_ledger=""))
+    check("null control: an overlay with no seat_alives renders step (1b) without the flag and does not fail",
+          "--seat-alive" not in bare and "--launch-ledger" not in bare and bare == empty
+          and "  " not in "".join(l for l in bare.splitlines() if "pulse.py --repo" in l))
+    check("launch_ledger renders as one --launch-ledger FILE",
+          re.findall(r"--launch-ledger ([^\s`]+)", render(tracked, dict(full, launch_ledger="/led"))) == ["/led"])
+    check("a seat_alives entry that is not SEAT=FILE is refused",
+          refusal(tracked, dict(full, seat_alives="tick")).startswith("unfilled"))
 
     mini = "## Placeholders\n\n| `a` | x |\n| `b` | y |\n\n## Other\n\n" + BEGIN + "\nrun {{a}} then {{b}}\n" + END + "\n"
     check("a minimal template renders (null control for the refusals below)",

@@ -6925,9 +6925,16 @@ R.check(
     _wf_ready_entity.available is True,
 )
 R.check(
-    "cheaper attributes are sek_per_kwh and cheaper_hour_count",
+    "cheaper attributes are sek_per_kwh, cheaper_hour_count and the "
+    "windows, empty while the view carries none",
     _wf_ready_entity.extra_state_attributes
-    == {"sek_per_kwh": 0.6, "cheaper_hour_count": 1},
+    == {
+        "sek_per_kwh": 0.6,
+        "cheaper_hour_count": 1,
+        "cheaper_windows": [],
+        "lighting_start": None,
+        "lighting_end": None,
+    },
 )
 
 # Mold Floor Breach (#1495). The floor is the one the solve enforces -- the
@@ -9080,8 +9087,10 @@ for _step in options._MENU_LABELS:
     if not _sresult.get("menu_options"):
         _odd_outcomes.append(f"{_step}: menu without menu_options")
         continue
-    if _step == "setup_overview":
-        # The one read-only page: back to the menu with nothing written.
+    if _step in ("setup_overview", "factory_reset"):
+        # The one read-only page: back to the menu with nothing written. And
+        # the factory reset (R10-FACTORY-RESET): untouched, it is unconfirmed,
+        # which is the menu back with nothing written -- its null control.
         if _sf._entry.options or _sf.hass.config_entries.updated:
             _unwritten_menus.append(_step)
         continue
@@ -10057,6 +10066,45 @@ for _lang, _texts in (("strings.json", strings), *(
         f"{_lang}: no translation leaf carries a double-escaped \\u sequence",
         not _escaped,
         ", ".join(_escaped[:6]),
+    )
+
+# udf-strings-history (R10-UX-HEALTH part 3): text a user reads states what a
+# setting does now, never how the integration used to behave -- "as before"
+# or "used to be a flat repeat" means nothing to someone who never ran the
+# old version. The markers are the change-history phrasings each catalogue
+# held when this check was written (design choice: a phrase list, because
+# tense has no syntactic shape; "used to <verb>" as instrument -- "used to
+# read your prices" -- and runtime history in a repair -- "until now the plan
+# was held" -- are current behaviour and stay out of it). The second round's
+# phrasings name the integration's own past without "as": "how it worked
+# before" (peak_tariff_offpeak_factor) and "keeps the old rule"
+# (two_zone_mode); "previously", "formerly" and sv "förut", "numera" held no
+# leaf of current behaviour when added, so they are refused outright.
+_HISTORY_MARKERS = {
+    "en": re.compile(
+        r"\b(?:as before|used to be|(?:worked|behaved|did) before|the old (?:rule|behaviou?r|way)"
+        r"|previously|formerly)\b", re.IGNORECASE),
+    "sv": re.compile(
+        r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
+        r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+}
+
+
+def _history_leaves(data, marker, prefix=""):
+    if isinstance(data, dict):
+        return [hit for key, value in data.items()
+                for hit in _history_leaves(value, marker, f"{prefix}.{key}" if prefix else key)]
+    return [prefix] if isinstance(data, str) and marker.search(data) else []
+
+
+for _lang, _code, _texts in (("strings.json", "en", strings), *(
+    (f"{name}.json", name, data) for name, data in files.items()
+)):
+    _history = _history_leaves(_texts, _HISTORY_MARKERS[_code])
+    R.check(
+        f"{_lang}: no UI text describes how the integration used to behave",
+        not _history,
+        f"{len(_history)}: " + ", ".join(_history[:6]),
     )
 
 # #828: the key-identity check only compares the three files to each
@@ -12437,7 +12485,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
-        "system_identification", "tank_cooling"
+        "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
@@ -12537,7 +12585,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "VentilationBinarySensor": frozenset({"evidence"}),
     "WoodCheaperBinarySensor": frozenset({
-        "cheaper_hour_count", "sek_per_kwh"
+        "cheaper_hour_count", "cheaper_windows", "lighting_end",
+        "lighting_start", "sek_per_kwh"
     }),
     "WoodBurnAdvisorSensor": frozenset({"action", "reason", "when"}),
 }
@@ -15413,6 +15462,28 @@ R.check(
 )
 
 _heat_loss_reset = _svc_call(const.SERVICE_RESET_HEAT_LOSS, {"learners": ["lower_floor_loss_ratio"]})
+# The factory reset's handler (R10-FACTORY-RESET) hands the entry's coordinator
+# and the scope to ``coordinator.async_factory_reset``; the reset itself is
+# features.py's, over real stores.
+from heatpump_optimizer import services as _svc_module  # noqa: E402
+
+_svc_fr_real, _svc_fr_args = _svc_module.async_factory_reset, []
+
+
+async def _svc_fr_record(coord, scope):
+    _svc_fr_args.append((coord, scope))
+    return True  # applied: a refused reset raises (features.py drives that arm)
+
+
+_svc_module.async_factory_reset = _svc_fr_record
+_svc_fr = _svc_call(const.SERVICE_FACTORY_RESET, {"entry_id": _svc_entry.entry_id, "scope": "learners"})
+_svc_module.async_factory_reset = _svc_fr_real
+R.check(
+    "factory_reset hands that entry's coordinator its scope and reports both",
+    _svc_fr_args == [(_svc_coord, "learners")]
+    and _svc_fr == {"reset": _svc_entry.entry_id, "scope": "learners"},
+    str(_svc_fr),
+)
 R.check(
     "reset_heat_loss_learners reaches the coordinator and reports what it reset",
     "reset_heat_loss" in _svc_log
@@ -15458,6 +15529,7 @@ _svc_covered = {
     const.SERVICE_DIAGNOSE_INTERVAL,
     const.SERVICE_DEBUG_COLLECT,
     const.SERVICE_RESET_HEAT_LOSS,
+    const.SERVICE_FACTORY_RESET,
 }
 R.check(
     "every registered service was invoked above",
@@ -16083,6 +16155,72 @@ def _gl_run_sh_leases_stress() -> tuple[bool, str]:
 
 _gl_ok, _gl_detail = _gl_run_sh_leases_stress()
 R.check("run.sh's lane_stress waits for the lease and its other scripts do not", _gl_ok, _gl_detail)
+
+
+def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
+    """P206 at run.sh level (#3051 review): run.sh's own leased/run_always,
+    sourced and driven against a stub tree recording stress.py at 1 s. With
+    the `.waited` marker absent the run is recorded with its rc; present (the
+    lease held elsewhere past the bound) it is `#skip`, named unrun, and the
+    lane console word is SKIP, not ok."""
+    text = (_closure.ROOT / "tests/run.sh").read_text()
+    fns = "".join(_re.findall(r"(?ms)^(?:scope_script|run_always|leased)\(\) \{.*?^\}\n", text))
+    with _tempfile.TemporaryDirectory() as tds:
+        td = _gl_stub_tree(Path(tds) / "t")
+        (td / "tests/closures.json").write_text('{"recorded": {"tests/stress.py": {"seconds": 1}}}')
+        lock = Path(tds) / "lock"
+        script = td / "drive.sh"
+        script.write_text("PYTHON=%s; LANE=x; step=0; WAIT_UNRUN=\n%s\nrun_always \"$PYTHON\" tests/stress.py\n"
+                          % (sys.executable, fns))
+        env = {k: v for k, v in _os.environ.items()
+               if not k.startswith(("HPO_GATE", "HPO_SLOT"))}
+        env["HPO_GATE_LOCK_DIR"] = str(lock)
+
+        def drive(name: str, jobs: str) -> _subprocess.Popen:
+            work = Path(tds) / name
+            work.mkdir()
+            return _subprocess.Popen(["bash", str(script)], cwd=td, text=True,
+                                     env={**env, "JOBS": jobs, "WORKDIR": str(work)},
+                                     stdout=_subprocess.PIPE, stderr=_subprocess.DEVNULL)
+
+        def row(name: str) -> list[str]:
+            lines = (Path(tds) / name / "x.manifest").read_text().splitlines()
+            return lines[0].split("\t") if len(lines) == 1 else lines
+
+        free = drive("free", "1")
+        free_out = free.communicate(timeout=60)[0]
+        free_row, free_ran = row("free"), (td / "stress.ran").exists()
+        (td / "stress.ran").unlink(missing_ok=True)
+        _gate_lock.take("other", lock_dir=lock, lease_seconds=120, wait=False)
+        try:
+            serial, lanes = drive("serial", "1"), drive("lanes", "3")
+            serial_out = serial.communicate(timeout=90)[0]
+            lanes_out = lanes.communicate(timeout=90)[0]
+        finally:
+            _gate_lock.release("other", lock_dir=lock)
+        serial_row, lanes_row = row("serial"), row("lanes")
+        held_ran = (td / "stress.ran").exists()
+    skip = ["0", "#skip tests/stress.py"]
+    mapped = (free_ran and free_row[1] == "0" and free_row[3].endswith(" tests/stress.py")
+              and "SKIP:" not in free_out and not held_ran
+              and serial_row[1::2] == skip and lanes_row[1::2] == skip
+              and "SKIP: tests/stress.py (waited past its bound" in serial_out)
+    word = _re.findall(r"\] (\S+) +\S+ tests/stress\.py \(", lanes_out)
+    return {
+        "map": (mapped, f"absent: ran={free_ran} row={free_row}; present: ran={held_ran} "
+                        f"serial={serial_row} lanes={lanes_row}"),
+        "word": (word == ["SKIP"], f"lane console words={word}"),
+    }
+
+
+try:
+    _gl_wu = _gl_run_sh_wait_unrun()
+except Exception as _gl_exc:  # a crash is these checks' red, not the script's
+    _gl_wu = {k: (False, f"raised {_gl_exc!r}") for k in ("map", "word")}
+R.check("run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)",
+        *_gl_wu["map"])
+R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
+        *_gl_wu["word"])
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
@@ -22715,7 +22853,9 @@ R.check(
 # Unioning two lists reinstates a claim this branch deleted, and
 # `inherited_claims_error` cannot see it, because the unioned list is no longer
 # exactly the baseline's -- `_CM_UNION_IS_SILENT` below measures that. So the
-# driver unions comments and REFUSES a claim list both sides rewrote.
+# driver unions comments, merges the claim list three-way PER SCENARIO and the
+# may-drift lines PER FIXTURE (a deletion stays deleted), and REFUSES a
+# scenario or fixture both sides rewrote.
 _CM_BASE = (
     "# Scenarios this branch deliberately moves, one name per line.\n"
     "#\n"
@@ -22769,17 +22909,146 @@ R.check(
     f"claims={_env_drift.parse_claim_map(_CM_MERGED or '')!r}",
 )
 
-# The case that refuses union. Both sides rewrote the claim list, so no rule
-# can say which claim describes which diff; git keeps the markers.
+# Both sides changed the claim list, each on its own scenario (P209, #2876's
+# shape: additions on both sides, none deleted). Per scenario only one side
+# wrote each line, so the merge keeps both and reinstates nothing.
 _CM_OURS_CLAIM = _CM_OURS.rstrip("\n") + "\neverything_on # this branch's own measured drift\n"
 _CM_THEIRS_CLAIM = (
     _CM_THEIRS.rstrip("\n") + "\nvalve_storage_small_tank # the other branch's drift\n"
 )
+_CM_DISJOINT = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM)
 R.check(
-    "a claim list both sides rewrote is refused, not unioned",
-    _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM) is None,
-    "two branches' claim lists were merged; a claim excuses a golden diff and "
-    "cannot be inherited by a merge",
+    "claims both sides added on different scenarios are both kept",
+    _CM_DISJOINT is not None
+    and _env_drift.parse_claim_map(_CM_DISJOINT) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    }
+    and _CM_DISJOINT.count("# claims-for: 6.3.16") == 1
+    and "# may-drift: wood_coil -- machine-sensitive" in _CM_DISJOINT
+    and _CM_DISJOINT.startswith("# Scenarios this branch")
+    and _CM_DISJOINT.index("valve_storage_small_tank #")
+    < _CM_DISJOINT.index("everything_on #")
+    < _CM_DISJOINT.index("# may-drift:"),
+    f"merged={_CM_DISJOINT!r}",
+)
+# The case that still refuses. Both sides changed the SAME scenario's lines,
+# so no rule can say which claim describes which diff; git keeps the markers.
+# #2834's shape (the five coord_* scenarios on both sides), at one scenario.
+_CM_OURS_SAME = (
+    _CM_OURS.rstrip("\n") + "\nvalve_storage_small_tank # this branch's reason\n"
+)
+R.check(
+    "a scenario both sides rewrote is refused, not unioned",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM) is None
+    and _env_drift.merge_claim_decision(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM)[1]
+    == ["valve_storage_small_tank"]
+    and "valve_storage_small_tank: this branch"
+    in _env_drift.merge_claim_refusal(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM),
+    "two branches' claims for one scenario were merged; a claim excuses a "
+    "golden diff and cannot be inherited by a merge -- refusal="
+    + _env_drift.merge_claim_refusal(_CM_BASE, _CM_OURS_SAME, _CM_THEIRS_CLAIM),
+)
+# A deletion stays deleted: the reinstatement a two-way union makes is the
+# hazard the refusal existed for, and a three-way per-scenario merge cannot
+# make it. Main carries a claim at the base; this branch deletes it and claims
+# another scenario, main leaves it alone and claims a third.
+_CM_BASE_HELD = _CM_BASE.replace(
+    "\n# may-drift:", "everything_on # a claim the base carries\n\n# may-drift:"
+)
+assert _CM_BASE_HELD != _CM_BASE, "base claim anchor missing"
+_CM_THEIRS_HELD = _CM_THEIRS.replace(
+    "\n# may-drift:",
+    "everything_on # a claim the base carries\n"
+    "away_mode # main's new drift\n\n# may-drift:",
+)
+_CM_OURS_DEL = _CM_OURS.replace(
+    "\n# may-drift:", "config_flow # this branch's drift\n\n# may-drift:"
+)
+_CM_DELETED = _env_drift.merge_claim_file(_CM_BASE_HELD, _CM_OURS_DEL, _CM_THEIRS_HELD)
+R.check(
+    "a claim one side deleted and the other left alone stays deleted",
+    _CM_DELETED is not None
+    and _env_drift.parse_claim_map(_CM_DELETED) == {
+        "away_mode": ["main's new drift"],
+        "config_flow": ["this branch's drift"],
+    },
+    f"merged={_CM_DELETED!r}",
+)
+R.check(
+    "a claim one side deleted and the other rewrote is refused",
+    _env_drift.merge_claim_file(
+        _CM_BASE_HELD, _CM_OURS_DEL,
+        _CM_THEIRS_HELD.replace("a claim the base carries", "main rewrote it"),
+    ) is None,
+    "a deleted claim came back carrying the other side's reason",
+)
+# The same rule from main's side: main deletes the base's claim, this branch
+# leaves it alone and claims another scenario. The deletion is main's and
+# must win; a decision that reads this branch's untouched copy brings it back.
+_CM_OURS_HELD = _CM_OURS.replace(
+    "\n# may-drift:",
+    "everything_on # a claim the base carries\n"
+    "config_flow # this branch's drift\n\n# may-drift:",
+)
+_CM_THEIRS_DEL = _CM_THEIRS.replace(
+    "\n# may-drift:", "away_mode # main's new drift\n\n# may-drift:"
+)
+_CM_THEIRS_DELETED = _env_drift.merge_claim_file(
+    _CM_BASE_HELD, _CM_OURS_HELD, _CM_THEIRS_DEL
+)
+R.check(
+    "a claim main deleted and this branch left alone stays deleted",
+    _CM_THEIRS_DELETED is not None
+    and _env_drift.parse_claim_map(_CM_THEIRS_DELETED) == {
+        "away_mode": ["main's new drift"],
+        "config_flow": ["this branch's drift"],
+    },
+    f"merged={_CM_THEIRS_DELETED!r}",
+)
+# Both sides added the same claim, word for word, beside notes of their own:
+# one change made twice is not two changes, so it resolves, kept once.
+_CM_OURS_TWIN = _CM_OURS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_THEIRS_TWIN = _CM_THEIRS.rstrip("\n") + "\naway_mode # the same drift\n"
+_CM_TWIN = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_TWIN, _CM_THEIRS_TWIN)
+R.check(
+    "a claim both sides added identically resolves, kept once",
+    _CM_TWIN is not None
+    and _CM_TWIN.count("away_mode #") == 1
+    and _env_drift.parse_claim_map(_CM_TWIN) == {"away_mode": ["the same drift"]},
+    f"merged={_CM_TWIN!r}",
+)
+# Null control: claims from different releases are not merged per scenario.
+R.check(
+    "claims both sides changed under different claims-for stamps are refused",
+    _env_drift.merge_claim_file(
+        _CM_BASE, _CM_OURS_CLAIM,
+        _CM_THEIRS_CLAIM.replace("claims-for: 6.3.16", "claims-for: 6.3.17"),
+    ) is None
+    and "different\n'claims-for:' stamps" in _env_drift.merge_claim_refusal(
+        _CM_BASE, _CM_OURS_CLAIM,
+        _CM_THEIRS_CLAIM.replace("claims-for: 6.3.16", "claims-for: 6.3.17"),
+    ),
+    "a claim stamped for another release excuses that release's diff only",
+)
+# Both sides bumped the stamp to the SAME release and changed disjoint claims:
+# every claim either side wrote describes that release's diff, so the stamps
+# agree and the merge is per scenario -- the guard above must not refuse it
+# only because the base held the older stamp. One side's bump alone beside
+# the other's claim change stays refused (the check above).
+_CM_BUMPED = [s.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+              for s in (_CM_OURS_CLAIM, _CM_THEIRS_CLAIM)]
+_CM_BOTH_BUMPED = _env_drift.merge_claim_file(_CM_BASE, *_CM_BUMPED)
+R.check(
+    "claims both sides changed under one stamp both bumped resolve per scenario",
+    _CM_BOTH_BUMPED is not None
+    and [ln for ln in _CM_BOTH_BUMPED.splitlines() if "claims-for:" in ln]
+    == ["# claims-for: 6.3.17"]
+    and _env_drift.parse_claim_map(_CM_BOTH_BUMPED) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    },
+    f"merged={_CM_BOTH_BUMPED!r}",
 )
 # Why refusing matters, measured rather than asserted: had the driver unioned,
 # the #495 inherited-claims guard would NOT have fired, because the unioned
@@ -22827,6 +23096,98 @@ R.check(
     and "# may-drift: wood_coil -- machine-sensitive" in _CM_MD_MERGED,
     f"merged={_CM_MD_MERGED!r}",
 )
+# A may-drift line one side deletes (R8-P3: the suspension that claims the
+# fixture this release) while the other leaves it alone stays deleted, and
+# the claims both sides added still merge -- #2745's and e438816e3's shape,
+# which the two-way survival check refused. Deleting one only narrows what
+# the gate exempts; a may-drift line both sides keep is still owed.
+_CM_OURS_SUSPEND = _CM_OURS_CLAIM.replace(
+    "# may-drift: wood_coil -- machine-sensitive\n", ""
+).rstrip("\n") + "\nwood_coil # suspended may-drift, claimed this release\n"
+assert "# may-drift: wood_coil" not in _CM_OURS_SUSPEND, "may-drift anchor missing"
+_CM_SUSPENDED = _env_drift.merge_claim_file(_CM_BASE, _CM_OURS_SUSPEND, _CM_THEIRS_CLAIM)
+R.check(
+    "a may-drift line one side suspended stays suspended through the merge",
+    _CM_SUSPENDED is not None
+    and "# may-drift: wood_coil" not in _CM_SUSPENDED
+    and set(_env_drift.parse_claim_map(_CM_SUSPENDED))
+    == {"wood_coil", "everything_on", "valve_storage_small_tank"},
+    f"merged={_CM_SUSPENDED!r}",
+)
+# A may-drift line is value-bearing like a claim -- it exempts a fixture -- so
+# it merges three-way per fixture by the claim rule, not by the note union. The
+# union keeps both sides of an overlapping hunk: one side suspends `wood_coil`
+# while the other rewords the ADJACENT `flat_prices` line, and a union alone
+# brings the suspended line back beside both wordings (#3066 review, D2).
+_CM_MD_BASE = _CM_BASE.replace(
+    "# may-drift: wood_coil -- machine-sensitive\n",
+    "# may-drift: flat_prices -- polish\n# may-drift: wood_coil -- machine-sensitive\n",
+)
+assert _CM_MD_BASE != _CM_BASE, "may-drift pair anchor missing"
+_CM_MD_SUSPEND = _CM_MD_BASE.replace("# may-drift: wood_coil -- machine-sensitive\n", "")
+_CM_MD_REWORD = _CM_MD_BASE.replace("-- polish\n", "-- polish (reworded)\n")
+_CM_MD_NOTE = "# #3066: a note so neither side is the base.\n"
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch", _CM_MD_SUSPEND + _CM_MD_NOTE, _CM_MD_REWORD),
+    ("main", _CM_MD_REWORD + _CM_MD_NOTE, _CM_MD_SUSPEND),
+):
+    _cm_md = _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a may-drift line {_cm_label} suspended beside a reworded neighbour "
+        "stays suspended",
+        _cm_md is not None
+        and "# may-drift: wood_coil" not in _cm_md
+        and _cm_md.count("# may-drift: flat_prices") == 1
+        and "# may-drift: flat_prices -- polish (reworded)\n" in _cm_md,
+        f"merged={_cm_md!r}",
+    )
+# A may-drift line one side deleted and the other rewrote is the claim rule's
+# delete-against-edit: no rule says which side describes the fixture, so it
+# refuses and the refusal names the fixture (#3066 review, D3). Both sides
+# rewording one line differently refuses alike.
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("deleted against rewritten",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("# may-drift: flat_prices -- polish\n", "")),
+    ("rewritten both ways",
+     _CM_MD_REWORD, _CM_MD_BASE.replace("-- polish\n", "-- polish v2\n")),
+):
+    R.check(
+        f"a may-drift line {_cm_label} is refused and named",
+        _env_drift.merge_claim_file(_CM_MD_BASE, _cm_ours, _cm_theirs) is None
+        and "may-drift" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs)
+        and "  may-drift: flat_prices:" in _env_drift.merge_claim_refusal(
+            _CM_MD_BASE, _cm_ours, _cm_theirs),
+        _env_drift.merge_claim_refusal(_CM_MD_BASE, _cm_ours, _cm_theirs),
+    )
+# The stamp is the other value-bearing comment line, and the union decided it
+# alike: a bump beside the other side's adjacent note kept both stamps, and
+# `_parse_claims` reads the first, so a bump this branch made was lost.
+_CM_ST_NOTE = "# claims-for: 6.3.16\n#\n"
+assert _CM_ST_NOTE in _CM_BASE, "stamp anchor missing"
+_CM_ST_BUMP = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.17")
+_CM_ST_ADJ = _CM_BASE.replace(_CM_ST_NOTE, "# claims-for: 6.3.16\n# an adjacent note\n")
+for _cm_label, _cm_ours, _cm_theirs in (
+    ("this branch bumped", _CM_ST_BUMP, _CM_ST_ADJ),
+    ("main bumped", _CM_ST_ADJ, _CM_ST_BUMP),
+):
+    _cm_st = _env_drift.merge_claim_file(_CM_BASE, _cm_ours, _cm_theirs)
+    R.check(
+        f"a stamp {_cm_label} beside an adjacent note is the one stamp kept",
+        _cm_st is not None
+        and _env_drift._parse_claims(_cm_st)[0] == "6.3.17"
+        and _cm_st.count("claims-for:") == 1
+        and "# an adjacent note" in _cm_st,
+        f"merged={_cm_st!r}",
+    )
+_CM_ST_OTHER = _CM_BASE.replace("claims-for: 6.3.16", "claims-for: 6.3.18")
+R.check(
+    "a stamp both sides bumped differently is refused and named",
+    _env_drift.merge_claim_file(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER) is None
+    and "  claims-for::" in _env_drift.merge_claim_refusal(
+        _CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+    _env_drift.merge_claim_refusal(_CM_BASE, _CM_ST_BUMP, _CM_ST_OTHER),
+)
 
 # End to end: a real two-branch conflict, resolved by git calling the driver.
 # The unit checks above pin the resolution; this pins the wiring -- the
@@ -22869,14 +23230,21 @@ with _tempfile.TemporaryDirectory() as _cm_td:
     # Same repo, second scenario: both sides rewrite the claim list. The
     # driver must refuse and leave the markers a human resolves.
     _cm_git("checkout", "-qb", "claimside", "main")
-    _cm_claim.write_text(_CM_OURS_CLAIM)
+    _cm_claim.write_text(_CM_OURS_SAME)
     _cm_git("commit", "-qam", "our claim")
+    _cm_git("checkout", "-qb", "disjointside", "main")
+    _cm_claim.write_text(_CM_OURS_CLAIM)
+    _cm_git("commit", "-qam", "our other claim")
     _cm_git("checkout", "-q", "main")
     _cm_claim.write_text(_CM_THEIRS_CLAIM)
     _cm_git("commit", "-qam", "their claim")
     _cm_git("checkout", "-q", "claimside")
     _cm_refused = _cm_git("merge", "main", "-m", "merge main")
     _cm_refused_file = _cm_claim.read_text()
+    _cm_git("merge", "--abort")
+    _cm_git("checkout", "-q", "disjointside")
+    _cm_disjoint = _cm_git("merge", "main", "-m", "merge main")
+    _cm_disjoint_file = _cm_claim.read_text()
 R.check(
     "git resolves a real two-branch note conflict through the driver",
     _cm_install == "installed"
@@ -22889,16 +23257,28 @@ R.check(
     f"err={_cm_merge.stderr!r} file={_cm_after!r}",
 )
 R.check(
-    "and it leaves a conflict for a claim list both sides rewrote",
+    "and it leaves a conflict for a scenario both sides rewrote",
     _cm_refused.returncode != 0
     and "<<<<<<<" in _cm_refused_file
     and ">>>>>>>" in _cm_refused_file
-    and "everything_on" in _cm_refused_file
-    and "valve_storage_small_tank" in _cm_refused_file
-    and "CONFLICTING CLAIMS" in _cm_refused.stderr,
+    and "this branch's reason" in _cm_refused_file
+    and "the other branch's drift" in _cm_refused_file
+    and "CONFLICTING CLAIMS" in _cm_refused.stderr
+    and "valve_storage_small_tank" in _cm_refused.stderr,
     "a refusal must look exactly like an unconfigured merge -- markers in the "
     f"file, non-zero exit -- got rc={_cm_refused.returncode} "
     f"err={_cm_refused.stderr!r} file={_cm_refused_file!r}",
+)
+R.check(
+    "git resolves claims both sides added on different scenarios",
+    _cm_disjoint.returncode == 0
+    and "<<<<<<<" not in _cm_disjoint_file
+    and _env_drift.parse_claim_map(_cm_disjoint_file) == {
+        "valve_storage_small_tank": ["the other branch's drift"],
+        "everything_on": ["this branch's own measured drift"],
+    },
+    f"rc={_cm_disjoint.returncode} err={_cm_disjoint.stderr!r} "
+    f"file={_cm_disjoint_file!r}",
 )
 # The driver checks its own output before writing it. These are that check's
 # null controls: each corrupts one property a hand resolution preserves, and
@@ -22907,14 +23287,19 @@ R.check(
 _CM_GOOD = _CM_MERGED
 R.check(
     "the merge verification passes the file the merge actually produced",
-    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) is None,
-    _env_drift.merge_claim_defect(_CM_GOOD, _CM_OURS, _CM_OURS, _CM_THEIRS) or "",
+    _env_drift.merge_claim_defect(_CM_GOOD, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) is None
+    and _env_drift.merge_claim_defect(
+        _CM_DISJOINT,
+        _env_drift.merge_claim_decision(_CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM)[0],
+        _CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM,
+    ) is None,
+    _env_drift.merge_claim_defect(_CM_GOOD, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) or "",
 )
 R.check(
     "the merge verification catches a lost stamp, a lost may-drift line, a "
     "smuggled claim and surviving markers",
     all(
-        (_env_drift.merge_claim_defect(bad, _CM_OURS, _CM_OURS, _CM_THEIRS) or "")
+        (_env_drift.merge_claim_defect(bad, {}, _CM_BASE, _CM_OURS, _CM_THEIRS) or "")
         .startswith(head)
         for bad, head in (
             (_CM_GOOD.replace("# claims-for: 6.3.16\n", ""), "the 'claims-for:'"),
@@ -22924,8 +23309,30 @@ R.check(
             (_CM_GOOD + "<<<<<<< main\n", "conflict markers"),
             ("", "the result is empty"),
         )
-    ),
+    )
+    # A decided line rewritten to a reason neither side wrote.
+    and (_env_drift.merge_claim_defect(
+        _CM_DISJOINT.replace("the other branch's drift", "nobody's"),
+        {"valve_storage_small_tank": ["valve_storage_small_tank # nobody's"],
+         "everything_on": ["everything_on # this branch's own measured drift"]},
+        _CM_BASE, _CM_OURS_CLAIM, _CM_THEIRS_CLAIM,
+    ) or "").startswith("the claims for 'valve_storage_small_tank'"),
     "a verification that cannot fail is not a verification",
+)
+# The may-drift arm in the other direction: a line one side suspended, put
+# back into the file the merge produced, is refused -- the union's D2 output.
+_CM_MD_OURS = _CM_MD_SUSPEND + _CM_MD_NOTE
+_CM_MD_GOOD = _env_drift.merge_claim_file(_CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) or ""
+R.check(
+    "the merge verification catches a suspended may-drift line put back",
+    _env_drift.merge_claim_defect(
+        _CM_MD_GOOD, {}, _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD) is None
+    and (_env_drift.merge_claim_defect(
+        _CM_MD_GOOD + "# may-drift: wood_coil -- machine-sensitive\n", {},
+        _CM_MD_BASE, _CM_MD_OURS, _CM_MD_REWORD,
+    ) or "").startswith(
+        "a may-drift or stamp line was lost or reinstated: ['may-drift: wood_coil']"),
+    f"good={_CM_MD_GOOD!r}",
 )
 
 R.check(
@@ -28061,6 +28468,56 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- bare array expansion under set -u (R10-FLY-BUS-BASH32, triage P303) -------
+#
+# macOS /bin/bash 3.2 rejects an EMPTY array's `"${a[@]}"` under `set -u`; CI's
+# bash 5 expands it cleanly, so no run-time row here can see the defect -- this
+# is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
+# tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and every file is judged, `set -u` or not,
+# because a sourced library runs under its caller's -u; a reason placed after a
+# `# mut:<name>` marker is refused on any line, since the self-tests find their
+# mutant line by that marker at the line's end.
+import importlib.util as _ba_util  # noqa: E402
+
+try:
+    _ba_spec = _ba_util.spec_from_file_location(
+        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+    _ba = _ba_util.module_from_spec(_ba_spec)
+    _ba_spec.loader.exec_module(_ba)
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    _ba_rows = (
+        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+         "an allow-marked never-empty site passes (null)"),
+        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
+        (_ba.self_test.__call__() == 0, "its own self-test passes"),
+    )
+except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+R.check(
+    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    not _ba_hits,
+    "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
+)
+for _ba_ok, _ba_name in _ba_rows:
+    R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
+
 # --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
 #
 # `record` reddens on main after every rowless merge, and the beat that clears
@@ -29132,13 +29589,13 @@ timeout-minutes: 10
 env:
   HPO_JOB_GRADES: nothing
 steps:
-  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       fetch-depth: 0
       # policy_lint.mjs's citation resolvers ask git about cited tags.
       fetch-tags: true
 
-  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+  - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
     with:
       python-version: "3.13"
 
@@ -29186,7 +29643,7 @@ steps:
   # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
   # fresh coverage.json to grade and the recorded green already passed the
   # ratchet on the identical inputs. The canon matches the workflow's arm.
-  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+  - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
     if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
@@ -29239,7 +29696,7 @@ steps:
       fi
       exit 0
 
-  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+  - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     with:
       node-version: "22"
@@ -35191,6 +35648,85 @@ R.check(
         "skip-no-base-program", "skip-unchanged", "")),
     f"quiet={_closure.AUTOFIX_QUIET[_MA]}",
 )
+# Countermeasure C of R10-RCA-MUTATION-SURVIVOR (#2840): `mutation-autofix`
+# reddens when the measurement it applied left an added site alive, and says
+# which. Replayed on the shape of #2817's `4fbe4c6a5` measurement (`24 pinned,
+# 2 left unpinned`, the two lives lines below), on `0 left unpinned`, and on a
+# measurement it did not apply. The survivors come from the run's own report
+# lines, so a site cut for the budget, which a later run drives, is no survivor.
+_SV_RUN = (
+    "  pinned   coordinator.py:6100 GUARD_OFF -- killed by tests/features.py\n"
+    "  UNPINNED coordinator.py:6278 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6306 GUARD_OFF -- lives\n"
+    "  UNPINNED coordinator.py:6400 GUARD_OFF -- skip-budget\n"
+    "  UNPINNED coordinator.py:6410 GUARD_OFF -- killed by tests/features.py, "
+    "but its anchor also covers a site no run killed\n"
+    "\nPIN KILLED: 24 pinned, 4 left unpinned (2 survived, 1 not started for the "
+    "budget, 0 exclusive tails cut, 0 timed out, 0 skipped)\n")
+_SV_SITES = _mut.survivor_sites(_SV_RUN)
+_SV_RED = _closure.autofix_report(_MA, "changed", _SV_SITES)
+_SV_GOT = [
+    _SV_SITES,
+    _closure.autofix_report(_MA, "changed", [])[0],
+    _SV_RED[0], "coordinator.py:6278 GUARD_OFF" in _SV_RED[1]
+    and "coordinator.py:6306 GUARD_OFF" in _SV_RED[1],
+    _closure.autofix_report(_MA, "skip-head-moved", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-nothing-killed", _SV_SITES)[0],
+    _closure.autofix_report(_MA, "skip-not-allowed", _SV_SITES)[0],
+    _mut.survivor_sites("PIN KILLED: 3 pinned, 0 left unpinned\n"),
+    _mut.survivor_sites(None),
+]
+R.check(
+    "mutation-autofix is red on an applied measurement that left a site alive, naming each; "
+    "green on `0 left unpinned`; quiet on skip-head-moved",
+    _SV_GOT == [["coordinator.py:6278 GUARD_OFF", "coordinator.py:6306 GUARD_OFF"],
+                0, 1, True, 0, 1, 0, [], []],
+    f"(sites, changed+none, changed+2, named, head-moved, nothing-killed+2, not-allowed, "
+    f"0 left, no run) -> {_SV_GOT}",
+)
+# The survivors travel with the pins: each `mutation-pins` shard writes
+# `survivors.txt` beside `pins.json`, `merge_pin_shards` unions them, and
+# `mutation-autofix` reads the union back (`read_survivors`) into the env the
+# report step grades. A merge that kept one shard's list would green the job
+# on the other's survivor.
+with _tempfile.TemporaryDirectory() as _sv_td:
+    _sv_root = Path(_sv_td) / "shards"
+    for _k, _surv in ((1, ["a.py:1 GUARD_OFF"]), (2, []), (3, ["b.py:2 RETURN_DEL"])):
+        _d = _sv_root / f"mutation-pins-{_k}"
+        _d.mkdir(parents=True)
+        (_d / "status").write_text("measured\n")
+        (_d / "pins.json").write_text("{}")
+        (_d / "head").write_text("h\n")
+        (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+    _mut.merge_pin_shards(str(_sv_root), str(Path(_sv_td) / "m"))
+    _SV_MERGED = _mut.read_survivors(str(Path(_sv_td) / "m"))
+    _SV_NONE = _mut.read_survivors(str(Path(_sv_td) / "absent"))
+_MA_JOB = _workflow_job(_TESTS_YML, "mutation-autofix")
+_MP_JOB = _workflow_job(_TESTS_YML, "mutation-pins")
+R.check(
+    "the survivors are written by each pin shard, merged as a union, read by mutation-autofix "
+    "and graded by its report step",
+    _SV_MERGED == ["a.py:1 GUARD_OFF", "b.py:2 RETURN_DEL"] and _SV_NONE == []
+    and "mutation_table.survivor_sites(run.read_text())" in _MP_JOB
+    and "mutation_table.read_survivors(pins)" in _MA_JOB
+    and "AUTOFIX_SURVIVORS: ${{ steps.autofix.outputs.survivors }}" in _MA_JOB
+    and _closure.AUTOFIX_SURVIVOR_GRADED[_MA] == ("changed", "skip-nothing-killed"),
+    f"merged={_SV_MERGED} absent={_SV_NONE}",
+)
+# R10-PIN-DRIVE-INCONCLUSIVE: a pin drive whose lazy baseline refused (rc 0 at
+# --scope changed) returns before `pin_results` is written, so no `PIN KILLED:`
+# summary -- the one line `measurement()` grades by -- can describe sites a red
+# baseline kept from being judged as if they had survived. Order, not wording:
+# `LazyBaselines.killed` reads every run after the stop as no kill.
+_PD_STOP = _MUT_BODY.find("        if verdicts.stop is not None:\n            return verdicts.stop\n        print(f\"  REACH SKIP")
+R.check(
+    "a pin drive whose baseline refused returns before its results are reported as survivors",
+    0 < _PD_STOP < _MUT_BODY.find("entries, report, pin_rc = pin_results(results, kill_runs, baseline,")
+    and _mut.LazyBaselines({}, lambda w, s: 0).killed(
+        0, "x.py", _mut.ScriptRun(rc=1, failed=1, seconds=0.0))
+    is False,
+    f"stop-return at {_PD_STOP}",
+)
 _ma_returns = (_returned_statuses(_mut.measurement)
                | _returned_statuses(_mut.apply_pins))
 R.check(
@@ -35287,6 +35823,56 @@ R.check(
     "(whole and capped, anchors reached over seeds, same seed same slice, cap 1 "
     "skips the twin, no driver no slice, drivers carried, distinct cap-1 "
     f"slices) -> {_DP_GOT}",
+)
+
+# P85, the ledger lane's four shards: `--shard K/N` with `--drain` cuts ONE
+# night's slice -- the seed's `drain_pool` at N times the cap -- by whole
+# anchor. Null control: the shards' union is that unsharded slice, site for
+# site and not by count, no site is in two shards, and a different seed moves
+# the slice (so a shard that ignored the seed could not pass). The shard merge
+# also unions the `survivors.txt` each `write_drain` wrote: a merge that kept
+# one shard's list would pass the pin check above and drop the others'.
+_SH_UN = [_dp_site(f"p.py:g CLAMP_DROP s{i}", "p.py", 20 + i) for i in range(9)]
+_SH_UN += [_dp_site("p.py:g CLAMP_DROP s0", "p.py", 40)]  # a twin: one anchor, two sites
+try:
+    _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
+    _sh_key = lambda p: sorted((s["anchor"], s["line"]) for s in p)  # noqa: E731
+    # cap 2 a shard over 3 shards draws 6 of the 10 sites, so the seed matters
+    _sh_parts = [_mut.drain_pool(*_sh_args, 7, 2, (k, 3)) for k in range(1, 4)]
+    _sh_whole = _mut.drain_pool(*_sh_args, 7, 6)
+    _sh_flat = [x for p in _sh_parts for x in _sh_key(p)]
+    _sh_other = _mut.drain_pool(*_sh_args, 8, 6)
+    with _tempfile.TemporaryDirectory() as _sd_td:
+        _sd_root = Path(_sd_td) / "shards"
+        for _k, _surv in ((1, ["a:1", "b:2"]), (2, ["b:2", "c:3"]), (3, []), (4, ["d:4"])):
+            _d = _sd_root / f"mutation-ledger-{_k}"
+            _d.mkdir(parents=True)
+            (_d / "status").write_text("measured\n" if _k < 4 else "skip-nothing-killed\n")
+            (_d / "pins.json").write_text(json.dumps({f"p:{_k}": {"killed_by": "t"}} if _k < 4 else {}))
+            (_d / "head").write_text("h\n")
+            (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "m"))
+        _sd_got = (Path(_sd_td) / "m" / "survivors.txt").read_text().split()
+        # a pin merge (no survivors.txt anywhere) leaves none behind
+        for _d in _sd_root.iterdir():
+            (_d / "survivors.txt").unlink()
+        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "n"))
+        _sd_none = (Path(_sd_td) / "n" / "survivors.txt").exists()
+    _SH_GOT = [
+        sorted(_sh_flat) == _sh_key(_sh_whole) and len(_sh_flat) == len(set(_sh_flat)) > 0,
+        all(not ({s["anchor"] for s in a} & {s["anchor"] for s in b})
+            for i, a in enumerate(_sh_parts) for b in _sh_parts[i + 1:]),
+        _sh_key(_sh_whole) != _sh_key(_sh_other),
+        _sd_got, _sd_none,
+    ]
+except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
+    _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
+R.check(
+    "--drain --shard K/N: the shards are disjoint whole-anchor slices whose union is "
+    "the unsharded slice at N times the cap; the merge unions the survivors",
+    _SH_GOT[:3] == [True, True, True] and _SH_GOT[3:] == [["a:1", "b:2", "c:3", "d:4"], False],
+    f"(union == unsharded, anchors disjoint, seed moves the slice, merged survivors, "
+    f"pin-merge writes none) -> {_SH_GOT}",
 )
 
 # The push half. On the measured head every pin applies once and a second
@@ -35456,7 +36042,7 @@ R.check(
 _dr_at = _MUT_BODY.find("    if args.drain:\n        head = ")
 R.check(
     "--drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched",
-    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max)" in _MUT_BODY
+    "pool = drain_pool(unpinned, closures, allow, args.seed, args.max, shard)" in _MUT_BODY
     and "status = write_drain(Path(args.drain), entries, head, survivors)" in _MUT_BODY
     and 'how="--drain"' in _MUT_BODY
     and 0 < _dr_at < _MUT_BODY.find("        budgets.setdefault(\"killed_by\", {}).update(entries)")
@@ -35471,7 +36057,13 @@ R.check(
 _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
 _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
-    ('--scope full --drain "$out" --max 40', _ml_meas),
+    ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
+    ("--max 80 --jobs 4", _ml_meas),
+    ("--budget-minutes 240", _ml_meas),
+    ("shard: [1, 2, 3, 4]", _ml_meas),
+    ("pattern: mutation-ledger-*", _ml_push),
+    ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
+    ("if: always() && matrix.shard == 1", _ml_meas),
     ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
     ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
@@ -35527,7 +36119,7 @@ R.check(
 _CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
 R.check(
     "one schedule cron, nightly.yml's; required lanes share that run (#1930 (d))",
-    _CRONS == ["17 2 * * *"]
+    _CRONS == ["37 0 * * *"]
     and "cron:" not in _TESTS_YML.split("\njobs:", 1)[0]
     and "github.event.schedule" not in _MUTN_JOB
     and "github.event.schedule" not in _ml_meas
@@ -37674,7 +38266,7 @@ R.check(
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
-    ("mutation-ledger", "--budget-minutes 270"),
+    ("mutation-ledger", "--budget-minutes 240"),
     ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
     # The budget's ceilings, derived 2026-10-09 from the draw_range-class
@@ -40345,6 +40937,9 @@ _R10_LOG_ALLOWED_BY_REASON = {
         ("coordinator.py", "_async_load_thermal_learning"): 1,
         ("coordinator.py", "_async_setup_peak_guard"): 1,
         ("coordinator.py", "async_restore_learned_snapshot"): 1,
+        # R10-FACTORY-RESET: one line per reset the user asked for, applied
+        # or refused by Home Assistant's unload.
+        ("coordinator.py", "async_factory_reset"): 1,
         ("coordinator.py", "_thermal_param_changes"): 1, ("coordinator.py", "async_simulate"): 1,
         ("coordinator.py", "async_adopt_heat_loss_refit"): 1, ("coordinator.py", "async_shutdown"): 1,
     },

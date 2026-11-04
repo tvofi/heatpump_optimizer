@@ -70,7 +70,7 @@ Direct-merge only what step 3 leaves out of the queue, other than a `record:` pu
 
 ## 8. Prepr slots
 
-Up to four `prepr.sh` run at a time: each takes one of `tests/gate_lock.py`'s four heavy slots, and a fifth queues. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, `tools/pr/app_push.sh` and a `tests/derive_closures.sh` run each count as one. Do not start a fifth. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry.
+Up to four `prepr.sh` run at a time: each takes one of `tests/gate_lock.py`'s four heavy slots, and a fifth queues: the lease, not the tick's count, is the cap. A seat's own prepr counts. `tools/audit/seat/open_pr.sh`, `tools/audit/seat/update_pr.sh`, `tools/pr/app_push.sh` and a `tests/derive_closures.sh` run each count as one. Do not recarry a branch a seat is writing. Skip a group whose fixer or reviewer worktree was written in the last 15 minutes, or whose own prepr is running. Recarry may run during a train's CI wait. It may not run while the train itself is in recarry.
 
 ## 9. Conflicting or DIRTY
 
@@ -86,7 +86,7 @@ Zero check runs is stalled zero-runs. Run `tools/pr/approve_held_runs.sh` after 
 
 ## 12. After each merge
 
-Run `tools/audit/worktree_gc.sh` with the owner and repo as its one argument. Post one #201 comment through `tools/pr/gh_comment.py` and require a byte-identical read-back. That comment is not a heartbeat. Run `tools/audit/seat/roster_edit.py` set-stage only when the pull request belongs to a roster group. Run `tools/audit/seat/state_docs.py` with its push flag and the mirror at `~/hpo-orch/state`. The state docs are not the handover. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
+`tools/audit/seat/postmerge.py` runs after every merge, from `merge_pr.sh` and from the train, and an `OWED` line it prints is the work left: rerun it with `--retry` once the cause is gone. This step keeps only what that tool cannot do. Only a decision-changing merge owes `dev/programme/HANDOVER.md` an updated-for line, in its own pull request. After a roster update, an open issue the plan does not name is scheduled, deferred, or refused. Do not file a new issue. Issues a session has already deferred stay deferred. The overlay names them.
 
 ## 13. Stamps
 

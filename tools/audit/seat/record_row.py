@@ -113,6 +113,18 @@ OPEN_ROW_TITLE = "record: delivery rows (autofix)"
 PLAN_FILE = "dev/programme/plan-2026-09-open-issues.md"
 HANDOVER_FILE = "dev/programme/HANDOVER.md"
 
+#: The reds a record pull request answers, by full check-run name
+#: `<caller job> / <job>` (ci.yml calls tests.yml and governance.yml from jobs
+#: `tests` and `governance`; no called job sets `name:`), which is what
+#: `review_packet.py` gate_digest passes `policy_lint.mjs --pr-body` as `--red`.
+#: The short form is what a scheduled run of the called workflow alone reports.
+#: The body text and the self-test both read this one definition.
+RED_CHECKS = {
+    "record": "governance / record",
+    "nightly-status": "tests / nightly-status",
+    "delivery-status": "governance / delivery-status",
+}
+
 #: The programme's tracking issue; the beat posts its coordination comment
 #: there (delivery-status-tracking.md item 3).
 TRACKING_ISSUE = 201
@@ -544,16 +556,16 @@ def pr_body(head_sha: str, base_sha: str, rows: list[dict]) -> str:
         "",
         "## Red checks",
         "",
-        "`record`, `nightly-status` and `delivery-status` may stand red on "
-        "main at the base this beat was computed against; each is answered "
-        "here.",
+        _red_names_line() + " may stand red on main at the base this beat "
+        "was computed against; each is answered here.",
         "",
-        "- `record`: a rowless merge is the batch interval the record "
+        f"- `{RED_CHECKS['record']}` (`record`): a rowless merge is the batch interval the record "
         "protocol promises, and this pull request is that batch, which is "
         "the answer the check's own refusal text names. No cheaper detector "
         "exists than the check that already fired; its standing cost is one "
         "beat per batch.",
-        "- `nightly-status` and `delivery-status` grade `main`, not this "
+        f"- `{RED_CHECKS['nightly-status']}` (`nightly-status`) and "
+        f"`{RED_CHECKS['delivery-status']}` (`delivery-status`) grade `main`, not this "
         "pull request. This beat's delivery rows are precisely the drain "
         "`delivery-status` batches, so the red is the batch this beat "
         "exists to close; `nightly-status` executes nothing this diff "
@@ -958,6 +970,12 @@ def _load_roster(args) -> dict | None:
     return None
 
 
+def _red_names_line() -> str:
+    """The Red checks lead-in: each reporter by full name, short beside it."""
+    parts = [f"`{full}` (`{short}`)" for short, full in RED_CHECKS.items()]
+    return ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
 def _body_check(body: str, reds: list[str], workdir: Path,
                 title: str) -> tuple[int, str]:
     """Run `policy_lint.mjs`'s own body check on `body` with `reds`.
@@ -1287,7 +1305,7 @@ def self_test() -> int:
            "nightly-status" in secs["Red checks"]
            and "delivery-status" in secs["Red checks"])
         _bc_rc, _bc_out = _body_check(
-            body, ["record", "nightly-status", "delivery-status"],
+            body, list(RED_CHECKS.values()),
             root / "bodycheck", pr_title(rows))
         ok("body check passes the generated body over the reporter reds "
            f"(rc {_bc_rc}: {_bc_out.strip().splitlines()[-1] if _bc_out.strip() else ''})",
@@ -1296,7 +1314,8 @@ def self_test() -> int:
             secs["Red checks"],
             secs["Red checks"].replace("nightly-status", "the nightly lane")
             .replace("delivery-status", "the delivery reporter"))
-        _nc_rc, _nc_out = _body_check(_unnamed, ["nightly-status"],
+        _nc_rc, _nc_out = _body_check(_unnamed,
+                                      [RED_CHECKS["nightly-status"]],
                                       root / "bodycheck-null",
                                       pr_title(rows))
         ok("a body that does not name nightly-status is refused (null "

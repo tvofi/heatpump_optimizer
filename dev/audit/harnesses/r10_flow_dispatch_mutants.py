@@ -49,6 +49,8 @@ def repo_root(start):
 
 ROOT = repo_root(__file__)
 REL = "tools/audit/seat/cloud_dispatch.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 F = ROOT / REL
 
 MUTANTS = [
@@ -106,9 +108,7 @@ def run() -> tuple[int, list[str]]:
 
 
 def main(names: list[str]) -> int:
-    if subprocess.run(["git", "-C", str(ROOT), "diff", "--quiet", "--", REL]).returncode:
-        print(f"refused: {REL} has uncommitted changes")
-        return 2
+    mutant_guard.arm([REL])
     orig = F.read_text()
     survived = 0
     picked = [m for m in MUTANTS if not names or m[0] in names]

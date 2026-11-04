@@ -56,7 +56,7 @@ def count(prices, wood_price):
     view = wood_fuel.build_wood_fuel_view(
         {**CFG, const.CONF_WOOD_PRICE_SEK_M3: wood_price}, prices=prices, outdoor=outdoor,
         space_kw=space, dhw_kw=dhw, cop_at=lambda t: 2.5 + 0.05 * t, timestamps=stamps,
-        forecast_kw=[], suppressing=False)
+        forecast_kw=[])
     return view["cheaper_hour_count"], view
 
 

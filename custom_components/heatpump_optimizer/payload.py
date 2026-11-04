@@ -443,6 +443,11 @@ class WoodSlot(TypedDict, total=False):
     source: str
 
 
+class WoodWindow(TypedDict):
+    start: str
+    end: str
+
+
 class WoodFuel(TypedDict, total=False):
     ready: bool
     cheaper: bool
@@ -455,6 +460,9 @@ class WoodFuel(TypedDict, total=False):
     cheaper_hour_count: int
     slots: list[WoodSlot]
     night_advice: NightAdvice
+    cheaper_windows: list[WoodWindow]
+    lighting_start: str
+    lighting_end: str
 
 
 class Accuracy(TypedDict, total=False):
@@ -549,6 +557,11 @@ class SysIdView(TypedDict, total=False):
     active: bool
     samples: int
     last_run: str | None
+    # R10-CEILING-PROBE / #2808: the armed kind ("fit" or "ceiling_probe"),
+    # a learners' freeze holding the armed run, and the last arm press.
+    kind: str
+    held: str | None
+    last_attempt: str | None
     result: SysIdResultView
 
 

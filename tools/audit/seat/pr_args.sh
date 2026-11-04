@@ -170,7 +170,7 @@ pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's chec
   local d n h o why
   d=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
-    && n=$(git -C "$d" rev-list --count HEAD..origin/main -- "${PR_FRESH_PATHS[@]}" 2>/dev/null) \
+    && n=$(git -C "$d" rev-list --count HEAD..origin/main -- ${PR_FRESH_PATHS[@]+"${PR_FRESH_PATHS[@]}"} 2>/dev/null) \
     || pr_refuse "could not count what origin/main adds over the checkout holding $d"
   [ "$n" != 0 ] || return 0
   why="STALE CHECKOUT $h behind origin/main $o by $n commit(s) touching tools/audit/seat tools/pr"
@@ -237,15 +237,16 @@ pr_reap() { # TERM every descendant of this shell, then KILL whatever outlives a
   pr_descendants $$
   [ "${#PR_REAP_PIDS[@]}" -gt 0 ] || return 0
   pr_lead_stop  # mut:lead
-  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done
+  for p in "${PR_REAP_PIDS[@]}"; do pr_kill TERM "$p"; done  # never-empty: the early return two lines up leaves when PR_REAP_PIDS is empty
   while [ "$n" -lt "${PR_REAP_TENTHS:-20}" ]; do
     alive=()
-    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done
+    for p in "${PR_REAP_PIDS[@]}"; do kill -0 "$p" 2>/dev/null && alive[${#alive[@]}]=$p; done  # never-empty: the early return above the loop, then the alive check each pass, keep PR_REAP_PIDS non-empty
     [ "${#alive[@]}" -gt 0 ] || return 0
-    PR_REAP_PIDS=("${alive[@]}")
+    PR_REAP_PIDS=("${alive[@]}")  # never-empty: the line above returns when alive is empty
     sleep 0.1
     n=$((n + 1))
   done
+  # never-empty: PR_REAP_PIDS held a pid at the early return and only shrinks to a non-empty alive
   for p in "${PR_REAP_PIDS[@]}"; do pr_kill KILL "$p"; done  # mut:grace
   return 0
 }
@@ -622,7 +623,9 @@ STUB
   # each arm counts what is still alive after the signal. The bystander sleeper
   # started here descends from no pusher: it is the null control for "kills only
   # what it started", and the arm the by-pid rule is mutated against.
-  ln -s /bin/sleep "$REAP_DIR/unrelated-sleep"
+  # A wrapper, never a link to the sleep binary: uutils' multicall sleep (ubuntu-26.04's
+  # /bin/sleep) refuses an argv[0] that is not `sleep`. The exec keeps $UNREL the sleeper's pid.
+  printf '#!/bin/sh\nexec sleep "$1"\n' > "$REAP_DIR/unrelated-sleep"; chmod +x "$REAP_DIR/unrelated-sleep"
   "$REAP_DIR/unrelated-sleep" "${PR_SELFTEST_SECONDS:-1200}" & UNREL=$!  # the bound's session ends it at the latest
   ralive() { # <pids file> -> how many of its pids are alive; polled, since a killed child can be a zombie for a moment
     local p n k=0
@@ -1174,6 +1177,9 @@ sys.exit(99)
 GH
   mkdir -p "$t/rowless-bin" && cp "$t/rowless-gh" "$t/rowless-bin/gh" && chmod +x "$t/rowless-bin/gh"
   cp "$src/../../pr/gh_comment.py" "$m/tools/pr/gh_comment.py"
+  # gh_comment.py's mandate guard imports the budget-raise gate's predicate (P336), which imports tests/layout.py.
+  mkdir -p "$m/tools/policy" "$m/tests" && cp "$src/../../policy/budget_raise_gate.py" "$m/tools/policy/" \
+    && cp "$src/../../../tests/layout.py" "$m/tests/"
   rowless() { # <mutant> [edit: the title edit after the PR exists fails, not the row push | postpush: the row push lands, then fails]
     local sd=$t/rowless-$1${2:-} sdir=$t/rowless-$1${2:-}-stub g
     rm -rf "$sd" "$sdir"; mkdir -p "$sdir" "$sd"; sd=$(cd "$sd" && pwd -P)

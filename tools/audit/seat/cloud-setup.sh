@@ -12,8 +12,9 @@
 #   venv-ci  tests/requirements-ci.txt, hash-pinned: numpy, scipy and the rest
 #            of what `fast` installs; first on PATH, so `python3` is this one
 #   venv-ha  tests/requirements-typing.txt, hash-pinned, --no-deps exactly as
-#            the `typing` job installs it: mypy, homeassistant 2026.9.3 and
-#            homeassistant-stubs 2026.9.3; exported as HPO_TYPING_PYTHON
+#            the `typing` job installs it: mypy, homeassistant and
+#            homeassistant-stubs; exported as HPO_TYPING_PYTHON, and asserted
+#            to import the lock's homeassistant pin, read from the lock
 #
 # The pins are read from the checkout, never restated here, so this script
 # cannot drift from the lock files; a lock edit reaches the next session.
@@ -61,7 +62,7 @@ EOF
 variables() { # prefix: the environment variables a seat's shell needs
   local d rest="" parts
   IFS=: read -ra parts <<< "$PATH"
-  for d in "${parts[@]}"; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
+  for d in ${parts[@]+"${parts[@]}"}; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
   printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
     "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE"
 }
@@ -100,9 +101,9 @@ self_test() (
   mapfile -t vars < <(PATH="$base" variables "$P")
   out=$(PATH="$P/venv-ci/bin:$base:$P/venv-ci/bin" variables "$P" | head -n 1)
   [ "$out" = "${vars[0]}" ]; expect "the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice" $?
-  out=$(run "${vars[@]}" bash -c python3)
+  out=$(run "${vars[@]}" bash -c python3)  # never-empty: vars is the three-line output of variables, asserted above
   [ "$out" = venv ]; expect "a non-login bash under the printed variables gets venv-ci's python3" $?
-  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null
+  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null  # never-empty: vars is the three-line output of variables, asserted above
   expect "check is OK under the printed variables" $?
   out=$(run bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
   [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python OPENBLAS_CORETYPE=$CORETYPE"*) true ;; *) false ;; esac
@@ -116,7 +117,7 @@ self_test() (
   [ $? = 1 ]; expect "check refuses without OPENBLAS_CORETYPE" $?
   run bash -c ". \"\$2\"; $fns; check \"\$1\"" _ "$P" "$W/profile.sh" >/dev/null
   expect "check is OK in a shell that sourced the profile" $?
-  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
+  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?  # never-empty: vars is the three-line output of variables, asserted above
   [ "$rc" = 0 ] && case $out in *" OK "*) true ;; *) false ;; esac
   expect "cloud-setup.sh --check exits 0 under the printed variables" $?
   out=$(run HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
@@ -177,7 +178,8 @@ pins venv-ci -r "$REPO/tests/requirements-ci.txt"
 pins venv-ha --no-deps -r "$REPO/tests/requirements-typing.txt"
 
 "$PREFIX/venv-ci/bin/python" -c 'import numpy, scipy, voluptuous'
-"$PREFIX/venv-ha/bin/python" -c 'import homeassistant.const as c; assert c.__version__ == "2026.9.3", c.__version__'
+HA_PIN=$(sed -n 's/^homeassistant==\([^ ]*\) .*/\1/p' "$REPO/tests/requirements-typing.txt")
+"$PREFIX/venv-ha/bin/python" -c 'import homeassistant.const as c, sys; assert c.__version__ == sys.argv[1], c.__version__' "$HA_PIN"
 
 write_profile "$PROFILE" "$PREFIX"
 

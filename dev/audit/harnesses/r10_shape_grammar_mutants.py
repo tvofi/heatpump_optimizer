@@ -28,6 +28,8 @@ ROOT = Path(subprocess.run(
     ["git", "rev-parse", "--show-toplevel"], capture_output=True, text=True,
     check=True).stdout.strip())
 TARGET = "tests/env_drift.py"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 EQUIVALENT = {"R10"}
 
 MUTANTS = {
@@ -97,9 +99,7 @@ def pins() -> str:
 
 def main(names: list[str]) -> int:
     path = ROOT / TARGET
-    if subprocess.run(["git", "diff", "--quiet", "--", TARGET], cwd=ROOT).returncode:
-        print(f"REFUSED: {TARGET} has uncommitted changes")
-        return 2
+    mutant_guard.arm([TARGET], root=ROOT)
     clean = path.read_bytes()
     src = clean.decode()
     null = pins()

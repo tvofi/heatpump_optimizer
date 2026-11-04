@@ -340,6 +340,10 @@ CONF_WOOD_FURNACE_EFFICIENCY: Final = "wood_furnace_efficiency"
 DEFAULT_WOOD_TYPE: Final = "mixed"
 DEFAULT_WOOD_PACKING: Final = "packed"
 DEFAULT_WOOD_FURNACE_EFFICIENCY: Final = 75.0
+# How long before a cheaper-than-pump window the furnace should be lit, so
+# the boiler is past its warm-up and charging the tank as the window opens.
+CONF_WOOD_LIGHTING_LEAD_MINUTES: Final = "wood_lighting_lead_minutes"
+DEFAULT_WOOD_LIGHTING_LEAD_MINUTES: Final = 60.0
 WOOD_TYPES: Final = ("birch", "pine", "mixed")
 WOOD_PACKINGS: Final = ("packed", "loose")
 
@@ -677,6 +681,8 @@ SERVICE_DIAGNOSE_INTERVAL: Final = "diagnose_interval"
 SERVICE_DEBUG_COLLECT: Final = "debug_collect"
 #: R10-HOTFIX-LEARNER-INPUTS — the heat-loss learners back to the configuration.
 SERVICE_RESET_HEAT_LOSS: Final = "reset_heat_loss_learners"
+#: R10-FACTORY-RESET — one entry's settings, learners or both to their defaults.
+SERVICE_FACTORY_RESET: Final = "factory_reset"
 MANUAL_PLAN_STORE_VERSION: Final = 1
 # A full solve is seconds of CPU. Dragging a slider must not trigger one per
 # pixel, so simulation requests are rate-limited to this interval.
@@ -1429,6 +1435,9 @@ HEAT_LOSS_BASES: Final = ("commanded", "metered", "measured_heat")
 #: The heat-loss learners by their store key: what the one void path
 #: (``_void_heat_loss_learners``) resets and the reset action's ``learners`` offers.
 HEAT_LOSS_LEARNERS: Final = ("house_heat_loss_scale", "lower_floor_loss_ratio")
+#: A factory reset's scopes (R10-FACTORY-RESET), the service's ``scope`` and the
+#: options step's choice: the settings, every learned store, or both.
+FACTORY_RESET_SCOPES: Final = ("settings", "learners", "both")
 
 # DHW demand window defaults
 DEFAULT_DHW_SCHEDULE_ENABLED: Final = True

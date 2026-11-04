@@ -38,6 +38,8 @@ def repo_root(start):
 
 
 ROOT = repo_root(__file__)
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 PL, GATE = "tools/policy/policy_lint.mjs", "tools/policy/budget_raise_gate.py"
 PRC, PREPR, PATCH = ".github/workflows/pr-contract.yml", "tools/pr/prepr.sh", "tools/audit/seat/body_patch.sh"
 MUTANTS = [
@@ -69,6 +71,7 @@ def owner(name, path, agreement):
 
 def main(argv):
     agreement = argv[argv.index("--agreement-json") + 1] if "--agreement-json" in argv else None
+    mutant_guard.arm(sorted({m[1] for m in MUTANTS}))
     restored = 0
     for name, path, old, new, *count in MUTANTS:
         if name.startswith("M5") and not agreement:

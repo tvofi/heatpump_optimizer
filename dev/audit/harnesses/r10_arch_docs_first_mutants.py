@@ -9,6 +9,8 @@ M0 is the null control: no mutation, no FAIL line.
 """
 import pathlib, subprocess, sys, os
 root = pathlib.Path(sys.argv[1])
+sys.path.insert(0, str(pathlib.Path(__file__).resolve().parent))
+import mutant_guard  # noqa: E402 -- restores the mutated file on a kill and refuses a leftover mutant
 DC = "tests/doc_claims.py"
 M = [
  ("M0 null (no mutation)", DC, None, None),
@@ -33,6 +35,7 @@ M = [
  ("P3 production: button gone from README top", "README.md", "[coffee]: https://buymeacoffee.com/rpgshcwb2tp\n", ""),
  ("P4 production: a marker dropped from dev/README.md", "dev/README.md", "- `.github/workflows/gate-sweep.yml`, which re-runs a stale `gate` at a pull request's live head [target: R10-CI-LAYOUT-P2]", "- `.github/workflows/gate-sweep.yml`, which re-runs a stale `gate` at a pull request's live head"),
 ]
+mutant_guard.arm({f for _n, f, o, _w in M if o is not None}, root=root)
 env = dict(os.environ, PYTHONPATH="tests/hastub:tests:custom_components")
 for name, f, old, new in M:
     p = root / f

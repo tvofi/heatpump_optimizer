@@ -463,7 +463,9 @@ def layout_preds(root: Path, base: str) -> list[tuple[str, str]]:
 
 def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
     """`instrument-self-tests`'s `selftest_wiring.py --check`: a self-testing
-    file under `tools/` that no workflow `run:` line names.
+    file under `tools/` that no workflow `run:` line names (UNWIRED), and every
+    index gap (MISMATCH, UNINDEXED, DUPLICATE, MISSING) naming a changed file
+    (#3004 round 3: a MISMATCH on the page the PR adds went red unpredicted).
 
     The second arm of the class `privacy_preds` closed, in the same CI job and
     by the same shape of gap: the check runs in CI and no local path runs it,
@@ -476,10 +478,17 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
         return []
     r = subprocess.run([sys.executable, "-I", str(tool), "--check"], cwd=root,
                        capture_output=True, text=True)
-    unwired = [ln.split()[1].rstrip(":") for ln in r.stdout.splitlines()
-               if ln.startswith("  UNWIRED ")]
-    return [("instrument", f"UNWIRED {p}: no workflow run line names its self-test")
-            for p in unwired if p in changed]
+    kinds = ("UNWIRED", "MISMATCH", "UNINDEXED", "DUPLICATE", "MISSING")
+    gaps = [ln.split(None, 2) for ln in r.stdout.splitlines()
+            if ln.split(None, 1)[:1] and ln.split(None, 1)[0] in kinds]
+
+    def named(p: str) -> bool:
+        # DUPLICATE names its target relative to the guide's directory.
+        return p in changed or any(c.endswith("/" + p) for c in changed)
+
+    return [("instrument", f"{g[0]} {g[1].rstrip(':')}: "
+             + (g[2] if len(g) > 2 else "").strip())
+            for g in gaps if len(g) > 1 and named(g[1].rstrip(":"))]
 
 
 def privacy_preds(root: Path) -> list[tuple[str, str]]:
@@ -772,6 +781,14 @@ def stale_pin_preds(problems, base):
     return out
 
 
+def null_control_preds(m, files: list[str]) -> list[tuple[str, str]]:
+    """`mutation`'s null-control refusal over a pool's files, CI's `null_for`."""
+    if files and m.null_for([{"file": f} for f in files]) is None:
+        return [("mutation", f"NO NULL CONTROL in {', '.join(files)}: no full-line "
+                 "comment to drive the null control; add one")]
+    return []
+
+
 def unpinned(base):
     """`mutation`'s source-only ratchet, CI's own functions, no mutant run."""
     import mutation_table as m
@@ -789,8 +806,12 @@ def unpinned(base):
         return stale + [("mutation", f"BASE UNREADABLE {base}: the ratchet has nothing "
                  f"to compare against, and CI refuses that too")]
     added = m.added_unpinned(pinned_out, base_sites, m.diff_sides(base))
-    return stale + [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}")
-                    for k, s in m.added_keys(added)]
+    keyed = m.added_keys(added)
+    # `tests / mutation` refuses a pool with no whole-line comment (null_for) and
+    # no autofix job repairs it (#2997 rounds 1 and 2): a red, not a warning.
+    nonull = null_control_preds(m, sorted({s["file"] for _, s in keyed}))
+    return stale + nonull + [("mutation", f"ADDED UNPINNED {k}: {s['old'].strip()[:60]}")
+                             for k, s in keyed]
 
 
 # The arms, in the order they run. `--only` selects one where a caller needs a
@@ -800,6 +821,12 @@ def unpinned(base):
 # review, 2026-10-26).
 ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "graders", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
+
+
+def is_red(job: str, line: str) -> bool:
+    """A prediction that sets the rc: every arm but `mutation`'s warnings. The
+    null-control refusal is `mutation`'s one red, as no autofix job repairs it."""
+    return job != "mutation" or line.startswith("NO NULL CONTROL")
 
 
 def predict(root: Path, base_ref: str, pairs: set | None = None,
@@ -848,7 +875,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         if p not in seen:
             seen.add(p)
             out.append(p)
-    return (1 if any(j != "mutation" for j, _ in out) else 0), out, base
+    return (1 if any(is_red(j, l) for j, l in out) else 0), out, base
 
 
 def apply_inert(root: Path, pairs: set) -> list[tuple[str, str]]:
@@ -1056,7 +1083,7 @@ def main(argv: list[str] | None = None) -> int:
         print("CI PREDICT: a STALE PIN's file under tests/mutation_ledger/ is "
               "deleted by hand; `mutation-autofix` never drops one, and pins "
               "the edited line afresh once it is gone")
-    jobs = sorted({JOB.get(j, j) for j, _ in preds if j != "mutation"})
+    jobs = sorted({JOB.get(j, j) for j, l in preds if is_red(j, l)})
     sites = sum(1 for j, l in preds if j == "mutation" and l.startswith("ADDED"))
     if sites:
         print(f"CI PREDICT: {sites} unpinned site(s) the diff adds -- a "
@@ -1071,7 +1098,7 @@ def main(argv: list[str] | None = None) -> int:
     for line in repairs(root, preds, scripts):
         print(f"CI PREDICT: {line}")
     if jobs:
-        reds = sum(1 for j, _ in preds if j != "mutation")
+        reds = sum(1 for j, l in preds if is_red(j, l))
         who = ("`--apply-inert` repairs them" if inert == reds else
                f"`--apply-inert` repairs the {inert} INERT READS, the lines "
                f"above the rest" if inert else
@@ -1115,6 +1142,61 @@ def wiring_self_test(root: Path) -> int:
             got = len(wiring_preds(t, changed))
             print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
             bad += got != want
+        # The index arms: a MISMATCH on an instrument page, changed and not.
+        seat = t / "tools" / "audit" / "seat"
+        (seat / "instruments").mkdir()
+        page = "tools/audit/seat/instruments/a.py.md"
+        (seat / "INSTRUMENTS.md").write_text("- [`z.py`](instruments/a.py.md) — a\n")
+        (t / page).write_text("# `a.py`\n\n- `a.py` — a.\n")
+        wf.joinpath("w.yml").write_text(wired)
+        for label, changed, want in (
+                ("a planted MISMATCH on a changed instrument page is predicted red", {page}, 1),
+                ("null control: the same MISMATCH on a page the diff leaves alone", set(), 0)):
+            got = len(wiring_preds(t, changed))
+            print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+            bad += got != want
+    return bad
+
+
+def null_control_self_test(root: Path) -> int:
+    """`null_control_preds` over a comment-free pool, a commented one and a mix."""
+    sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
+    import mutation_table as m
+    base = "custom_components/heatpump_optimizer"
+    bare, commented = f"{base}/flow_meter.py", f"{base}/button.py"
+    bad = 0
+    for label, files, want in (
+            ("a pool of only a comment-free file is predicted red", [bare], 1),
+            ("null control: a pool holding a commented file predicts nothing", [commented], 0),
+            ("a mixed pool still has a null control", [bare, commented], 0),
+            ("an empty pool predicts nothing", [], 0)):
+        got = len(null_control_preds(m, files))
+        print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+        bad += got != want
+    # The real path: predict(only="mutation") over a diff adding one unpinned
+    # site, so `unpinned()`'s call site and `is_red` are driven, not only the
+    # predicate (review of #3042 round 1: both survived). Only site discovery
+    # is stubbed; `null_for` reads the real file.
+    keep = {n: getattr(m, n) for n in ("load_budgets", "inventory", "unpinned_sites",
+            "completeness_problems", "base_unpinned_sites", "added_unpinned", "diff_sides")}
+    try:
+        for label, f, want in (
+                ("an unpinned site in a comment-free file is refused, rc=1", bare, 1),
+                ("null control: the same site in a commented file is no refusal, rc=0", commented, 0)):
+            site = {"file": f, "line": 1, "kind": "CMP", "old": "x == 1"}
+            m.load_budgets, m.inventory = (lambda: {}), (lambda: [])
+            m.unpinned_sites = lambda b, s, site=site: [site]
+            m.completeness_problems = lambda b, s: []
+            m.base_unpinned_sites = lambda ref, s: []
+            m.added_unpinned = lambda u, b, sides: u
+            m.diff_sides = lambda ref: (set(), set())
+            rc, preds, _ = predict(root, "HEAD", only="mutation")
+            ok = rc == want and any(l.startswith("NO NULL CONTROL") for _, l in preds) == bool(want)
+            print(f"  {'ok  ' if ok else 'FAIL'} {label}")
+            bad += not ok
+    finally:
+        for n, v in keep.items():
+            setattr(m, n, v)
     return bad
 
 
@@ -1142,6 +1224,7 @@ def self_test() -> int:
     bad += self_test_reads_self_test(root)
     bad += rekey_self_test()
     bad += wiring_self_test(root)
+    bad += null_control_self_test(root)
     bad += graders_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"
     if gate.exists():
