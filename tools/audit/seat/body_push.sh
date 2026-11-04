@@ -42,7 +42,12 @@ if [ -n "$HREF" ]; then
   # The `mutation` red an unpinned site makes is derived, so it is written into
   # `## Red checks` before the lint, not refused at the open (P67).
   (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")
-  if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" 2>&1); then
+  # The red-check arm reads the pull request's head ref over the network, so it
+  # is asked for only when origin holds fix/<topic> (a first handoff has none).
+  PRB=""
+  [ -z "$(git ls-remote origin "refs/heads/fix/$TOPIC" 2>/dev/null)" ] || PRB="--pr-branch fix/$TOPIC"
+  # shellcheck disable=SC2086 # PRB is empty or exactly two words
+  if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
     printf '%s\n' "$LINT" >&2
     echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2
     exit 1
@@ -60,6 +65,20 @@ if [ -n "$HREF" ]; then
     exit 1
   elif [ "$prc" != 0 ]; then
     echo "body_push: the review packet's handoff refusals were not run (rc $prc, above); dispatch still runs structure and hot-file" >&2
+  fi
+  # The carry landing (CARRY 11, P287): a body carry its group does not yet hold, on main's
+  # roster or the round's branch, is refused here, so it lands before the open rather than after
+  # a review round (2 of 15 blocked verdicts on 2026-10-29). bus.sh dispatch runs the same check.
+  # rc 3 (the roster unreadable) is said, never a refusal. HPO_HANDOFF_LANDED replaces the check.
+  lrc=0
+  LD=$(cd "$ROOT" && ${HPO_HANDOFF_LANDED:-python3 -I "$ROOT/tools/audit/carry_audit.py" --roster-ref origin/main} \
+    landed --body "$ABS" --topic "$TOPIC" 2>&1) || lrc=$?
+  printf '%s\n' "$LD"
+  if [ "$lrc" = 1 ]; then  # mut:landed
+    echo "body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body" >&2
+    exit 1
+  elif [ "$lrc" != 0 ]; then
+    echo "body_push: the carry landing was not checked (rc $lrc, above); bus.sh dispatch checks it again" >&2
   fi
 else
   echo "body_push: no handoff/$TOPIC on origin, so a result body: the pr-body lint does not apply"

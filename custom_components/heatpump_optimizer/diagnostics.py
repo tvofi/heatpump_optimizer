@@ -401,7 +401,7 @@ _VIEWS: tuple[tuple[str, Callable[[Any], Any]], ...] = (
     ("early_cutoff", lambda c: early_cutoff.diagnostics_view(early_cutoff.state_for(c))),
     ("draw_range", lambda c: draw_range.diagnostics_view(
         c.accuracy.draw, c.thermal_params,
-        probe_install(c.arbiter_inputs().config))),
+        probe_install(c.arbiter_inputs().config), dt_util.utcnow().timestamp())),
     # Why the observed-COP sensor has nothing yet: it is unavailable then, and
     # Home Assistant hides an unavailable entity's attributes.
     ("cop_learner", lambda c: accuracy.diagnostics_view(c.measured_cop, c.thermal_params, c.accuracy.draw)),

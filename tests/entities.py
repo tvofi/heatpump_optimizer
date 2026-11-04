@@ -10068,6 +10068,45 @@ for _lang, _texts in (("strings.json", strings), *(
         ", ".join(_escaped[:6]),
     )
 
+# udf-strings-history (R10-UX-HEALTH part 3): text a user reads states what a
+# setting does now, never how the integration used to behave -- "as before"
+# or "used to be a flat repeat" means nothing to someone who never ran the
+# old version. The markers are the change-history phrasings each catalogue
+# held when this check was written (design choice: a phrase list, because
+# tense has no syntactic shape; "used to <verb>" as instrument -- "used to
+# read your prices" -- and runtime history in a repair -- "until now the plan
+# was held" -- are current behaviour and stay out of it). The second round's
+# phrasings name the integration's own past without "as": "how it worked
+# before" (peak_tariff_offpeak_factor) and "keeps the old rule"
+# (two_zone_mode); "previously", "formerly" and sv "förut", "numera" held no
+# leaf of current behaviour when added, so they are refused outright.
+_HISTORY_MARKERS = {
+    "en": re.compile(
+        r"\b(?:as before|used to be|(?:worked|behaved|did) before|the old (?:rule|behaviou?r|way)"
+        r"|previously|formerly)\b", re.IGNORECASE),
+    "sv": re.compile(
+        r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
+        r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+}
+
+
+def _history_leaves(data, marker, prefix=""):
+    if isinstance(data, dict):
+        return [hit for key, value in data.items()
+                for hit in _history_leaves(value, marker, f"{prefix}.{key}" if prefix else key)]
+    return [prefix] if isinstance(data, str) and marker.search(data) else []
+
+
+for _lang, _code, _texts in (("strings.json", "en", strings), *(
+    (f"{name}.json", name, data) for name, data in files.items()
+)):
+    _history = _history_leaves(_texts, _HISTORY_MARKERS[_code])
+    R.check(
+        f"{_lang}: no UI text describes how the integration used to behave",
+        not _history,
+        f"{len(_history)}: " + ", ".join(_history[:6]),
+    )
+
 # #828: the key-identity check only compares the three files to each
 # other, so a field missing a data_description from all three — which
 # renders with a label and no pointer — passed. reauth_confirm.tibber_token
@@ -12446,7 +12485,7 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
         "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
-        "system_identification", "tank_cooling"
+        "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
         "free_headroom_threshold_kw", "fuse_advisor", "month",
@@ -28429,6 +28468,56 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- bare array expansion under set -u (R10-FLY-BUS-BASH32, triage P303) -------
+#
+# macOS /bin/bash 3.2 rejects an EMPTY array's `"${a[@]}"` under `set -u`; CI's
+# bash 5 expands it cleanly, so no run-time row here can see the defect -- this
+# is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
+# tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and every file is judged, `set -u` or not,
+# because a sourced library runs under its caller's -u; a reason placed after a
+# `# mut:<name>` marker is refused on any line, since the self-tests find their
+# mutant line by that marker at the line's end.
+import importlib.util as _ba_util  # noqa: E402
+
+try:
+    _ba_spec = _ba_util.spec_from_file_location(
+        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+    _ba = _ba_util.module_from_spec(_ba_spec)
+    _ba_spec.loader.exec_module(_ba)
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    _ba_rows = (
+        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+         "an allow-marked never-empty site passes (null)"),
+        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
+        (_ba.self_test.__call__() == 0, "its own self-test passes"),
+    )
+except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+R.check(
+    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    not _ba_hits,
+    "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
+)
+for _ba_ok, _ba_name in _ba_rows:
+    R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
+
 # --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
 #
 # `record` reddens on main after every rowless merge, and the beat that clears
@@ -29500,13 +29589,13 @@ timeout-minutes: 10
 env:
   HPO_JOB_GRADES: nothing
 steps:
-  - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5
+  - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
     with:
       fetch-depth: 0
       # policy_lint.mjs's citation resolvers ask git about cited tags.
       fetch-tags: true
 
-  - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+  - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
     with:
       python-version: "3.13"
 
@@ -29554,7 +29643,7 @@ steps:
   # R9-CI-SKIP: both arms stand down when `coverage` skipped -- there is no
   # fresh coverage.json to grade and the recorded green already passed the
   # ratchet on the identical inputs. The canon matches the workflow's arm.
-  - uses: actions/download-artifact@37930b1c2abaa49bbe596cd826c3c89aef350131 # v7
+  - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8.0.2
     if: steps.changed.outputs.coverage_ratchet == 'true' && needs.coverage.result != 'skipped'
     with:
       name: coverage-json
@@ -29607,7 +29696,7 @@ steps:
       fi
       exit 0
 
-  - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+  - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
     with:
       node-version: "22"

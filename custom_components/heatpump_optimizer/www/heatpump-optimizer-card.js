@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.0";
+const CARD_VERSION = "7.1.1";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -8640,6 +8640,14 @@ class Legend {
 // the breakdown is open, stays on the card (`_scoreOpen`) with the click
 // handlers that flip it. PR 4a of #136.
 
+/** One entity state as a re-render signature part: its state and when it was
+ * last written, or "-" with no state. A missing `last_updated` reads as an
+ * empty stamp. The headline, advisor and health signatures all build theirs
+ * from it. */
+function stateSignature(st) {
+  return st ? `${st.state}@${st.last_updated || ""}` : "-";
+}
+
 /** The headline sensors' contribution to the re-render signature.
  *
  * `indoor` is the indoor-temperature sensor's state (or null) and `now` the
@@ -8648,11 +8656,8 @@ class Legend {
  * would never redraw a card whose plan had not changed (R9-UI-3). */
 function headlineSignature(plan, cfg, indoor, now) {
   if (!cfg.show_stats) return "off";
-  return HEADLINE_SUFFIXES.map((sfx) => {
-    const st = plan.statEntity(sfx);
-    return st ? `${st.state}@${st.last_updated || ""}` : "-";
-  }).concat(
-    indoor ? `${indoor.state}@${indoor.last_updated || ""}` : "-",
+  return HEADLINE_SUFFIXES.map((sfx) => stateSignature(plan.statEntity(sfx))).concat(
+    stateSignature(indoor),
     String(priceNow(plan, now)),
   ).join("~");
 }
@@ -9084,10 +9089,7 @@ const SETTINGS_PATH = "/config/integrations/integration/heatpump_optimizer";
 const DAYS_PER_MONTH = 30;
 
 function advisorSignature(plan) {
-  return Object.values(ADVISOR_SUFFIXES).map((sfx) => {
-    const st = plan.statEntity(sfx);
-    return st ? `${st.state}@${st.last_updated}` : "-";
-  }).join("|");
+  return Object.values(ADVISOR_SUFFIXES).map((sfx) => stateSignature(plan.statEntity(sfx))).join("|");
 }
 
 /** One advisor sensor as an inbox row, or null when it has nothing to say
@@ -9427,7 +9429,7 @@ function inputProblemState(plan) {
 }
 
 function healthSignature(plan, minute) {
-  const sig = (st) => (st ? `${st.state}@${st.last_updated}` : "-");
+  const sig = stateSignature;
   return [sig(inputProblemState(plan)), sig(plan.statEntity(HEALTH_STATUS_SUFFIX)),
     sig(plan.statEntity("_last_optimization")), sig(plan.statEntity("_next_optimization")),
     ...HEALTH_WAITING.map(([, sfx]) => sig(plan.statEntity(sfx))),
@@ -9662,12 +9664,15 @@ function healthModelHtml(plan) {
   const house = learnerPhase(lp.house);
   if (Number.isFinite(num(a.heat_loss_w_per_k)) && house !== null) {
     // Without a power meter the house's scale cannot be told from what the
-    // pump delivers (R10-DEMAND-OVERBOOK), so it is not called learned.
-    const detail = !inputAssigned(plan, "heat_pump_power_entity") ? L("health.model_unobservable")
+    // pump delivers (R10-DEMAND-OVERBOOK, #2499), so it is neither called
+    // learned nor drawn with a learned bar.
+    const observable = inputAssigned(plan, "heat_pump_power_entity");
+    const detail = !observable ? L("health.model_unobservable")
       : hl.learned ? `${L("health.model_from", { n: hl.samples })} ${healthVersusSettings(L("health.model_house"), hl.scale)}`
         : house ? house.text : L("health.model_estimate");
     rows.push(healthModelRow("heat_loss", L("health.model_heat_loss"), detail,
-      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }), hl.learned ? 1 : house ? house.share : 0));
+      L("health.model_w_per_k", { v: Math.round(num(a.heat_loss_w_per_k)) }),
+      !observable ? 0 : hl.learned ? 1 : house ? house.share : 0));
   }
   const sol = a.solar_aperture || {};
   const solar = learnerPhase(lp.solar);

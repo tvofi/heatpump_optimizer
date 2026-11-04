@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/draw_range.py:_stored_overdraws CLAMP_DROP 9ccb0e19",
+  "killed_by": "tests/features.py",
+  "old": "    return max(raw, 0) if type(raw) is int else 0",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`return (raw) if type(raw) is int else 0`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
