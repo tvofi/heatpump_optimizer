@@ -1,5 +1,0 @@
-planned a1484914 moved-to 96965aa6
-done [('tag', 'archive/fix/x@a148491476fe98d2328e461a922cbad63d1f57a6'), ('delete', 'fix/x')]
-heads: (none)
-tags: a148491476fe98d2328e461a922cbad63d1f57a6	refs/tags/archive/fix/x
-RESULT moved-tip-deleted-untagged=1
