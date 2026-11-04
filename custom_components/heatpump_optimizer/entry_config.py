@@ -21,9 +21,8 @@ from types import MappingProxyType
 from typing import Any
 
 from . import mixing_valve
-from .freq_control import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE
 from . import const
-from .const import finite_float
+from .const import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE, finite_float
 
 Parse = Callable[[Any, Any], Any]
 

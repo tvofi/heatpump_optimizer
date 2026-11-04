@@ -1194,9 +1194,9 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
     Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
     pump at all (``planned_draws_run`` over both channels): a channel is never
     "heating now" on a step the plan's on schedule calls off. The plan views'
-    ``active_now`` and slot merge read this, so neither can count a step the
-    on schedule calls off. An ``other`` series shorter than ``channel`` draws
-    nothing past its end.
+    ``active_now`` and slot merge and the reason classifiers all read this,
+    so none of them can count a step the on schedule calls off. An ``other``
+    series shorter than ``channel`` draws nothing past its end.
     """
     channel = np.asarray(channel_kw, dtype=float)
     other = np.zeros_like(channel)
@@ -1205,6 +1205,17 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
         other[: len(given)] = given
     runs = planned_draws_run(channel, other)
     return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
+
+def channel_heating_draw(channel_kw: Any, other_kw: Any = None) -> np.ndarray:
+    """A channel's draw on the steps it heats (``channel_heating_steps``), 0 elsewhere.
+
+    What the reason classifiers read in place of the raw draw, so a step whose
+    share sits over :data:`CHANNEL_ACTIVE_KW` while the plan runs no pump at
+    all is idle to them, as it is to the switch schedule.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    return np.where(channel_heating_steps(channel, other_kw), channel, 0.0)
 
 def planned_draw_runs(
     space_kw: float,
@@ -3777,10 +3788,7 @@ class ThermalModel:
                 ua_floor = (
                     (1.0 - p.radiator_power_fraction) * design_power / design_dt
                 )
-                c_buf = p.buffer_tank_thermal_mass
-                if c_buf < 1e-6:
-                    c_buf = 0.04  # the step's own fallback
-                buf_row = design_power / design_dt / c_buf
+                buf_row = design_power / design_dt / _buffer_capacity(p)
             worst = max(
                 (u_upper + p.inter_zone_transfer + ua_rad)
                 / p.upper_floor_thermal_mass,
