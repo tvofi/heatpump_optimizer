@@ -6,7 +6,9 @@ What changed: `REVIEW OWED` skips the record branch (carry 1). A new `owed_level
 
 ## Head
 
-d945dddaa19d0aebcb994b354941aa24c13ea9f0 (measured at; `origin/main` is c3a279e3252a, unmoved since the branch was cut, so no second prepr run was owed).
+e4bdbc6a2ddcd2cc8f42ecb0b5eefb415111b9eb (measured at; `origin/main` is c3a279e3252a, unmoved since the branch was cut, so no second prepr run was owed beyond the one below). The repair commit on d945dddaa adds `tools/audit/seat/open_pr.sh`, `tools/pr/app_approve.sh` and `tools/audit/seat/cloud_relay.sh` to `INERT_EXCEPT` in `tests/closure.py`: ledger.py's self-test, which `tests/entities.py` runs, reads them, so they must sit in the recorded closure rather than the INERT prefixes.
+
+Closures prediction left to the bot: `tools/pr/prepr.sh` ran with `PREPR_SKIP_CLOSURES=1`, because `derive_closures.sh --single` on `tests/entities.py` took 18 min and exited 1 in the prior round. Its only refusal is `ci predict`: 3 predicted `tests / closures` UNDER-SCOPED entries for `tests/entities.py` (cloud_relay.sh, open_pr.sh, app_approve.sh); every other step is ok. CI's closures-autofix records them once the PR exists (`ci-autofix.md`).
 
 ## Approval
 
@@ -33,7 +35,7 @@ Unmutated tree: `orchestrator_tick self-test: 261 checks, 0 failed` (251 before 
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: MODE: SCOPED -- 2 script(s) run (tests/doc_claims.py, tests/entities.py).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, no budget raised or re-recorded.
 - `node tools/policy/policy_lint.mjs`: TOTAL: 0 error(s); `--budgets` within caps (standing-dispatch.md held at its 39-line cap).
-- `PYTHONPATH=tests/hastub python3 tests/entities.py` at the head: rc=0 (its template arm ran red at an earlier head because standing-dispatch.md was over its policy_lint file cap; fixed in the last commit).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at d945dddaa: rc=0 (its template arm ran red at an earlier head because standing-dispatch.md was over its policy_lint file cap; fixed in the last commit).
 
 ## Red checks
 
