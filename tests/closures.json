@@ -1638,6 +1638,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/host_probe.py",
    "tests/issue996_count.py",
    "tests/lane_skip.py",
    "tests/layout.json",
@@ -4862,7 +4863,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
