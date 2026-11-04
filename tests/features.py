@@ -23819,7 +23819,7 @@ R.check(
     "R10-GRADE-DRIVERS: the Driving drivers ride the store across a restart, and "
     "a grade stored before they were kept reads as earlier days, never as a "
     "driver it did not measure",
-    _gd_mod.as_stored(_gd_r, 1.0) == _gd_mod.as_stored(_gd_o, 1.0) != {}
+    _gd_mod.held(_gd_r) == _gd_mod.held(_gd_o) != {}
     and _gd_r._scores_view(_rs_advice(_gd_r))["operation_drivers"] == _gd_s6["operation_drivers"]
     and _gd_up_s["operation_drivers"] == [
         {"code": "cheap_hours", "points": 0.0}, {"code": "dear_hours", "points": 0.0},

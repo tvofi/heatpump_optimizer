@@ -8124,7 +8124,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
-        driving_grade.restore(self, stored.get("operation_drivers"), lambda drivers: admitted(
+        driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
             "ledger", {"operation_drivers": drivers}))
         price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
             "ledger", {"price_tiles": {name: part}}))
@@ -8144,7 +8144,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "month_reports": self._month_reports,
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
-                    "operation_drivers": driving_grade.as_stored(self, self._operation_score),
+                    "operation_drivers": driving_grade.as_stored(driving_grade.held(self), self._operation_score),
                     "fuse_advisor": dict(self._fuse_advisor),
                     "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
@@ -10396,7 +10396,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
         if spot_known:  # #2229: an unpriced kWh pays nothing
-            driving_grade.tally(book, kwh, sek, spot, elapsed_hours)
+            self._score_day = driving_grade.tally(book, kwh, sek, spot, elapsed_hours)
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -10424,7 +10424,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if streak >= SCORE_FREE_SPAN_RESET:
                 self._operation_score = None
         else:
-            self._operation_score = driving_grade.fold(self, self._operation_score, book, mean_spot)
+            drivers = driving_grade.held(self)
+            self._operation_score = driving_grade.fold(drivers, self._operation_score, book, mean_spot)
         self._schedule_ledger_save()
 
     def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
@@ -10441,7 +10442,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
             (operation, None if operation is not None else operation_reason(self._score_day),
-             driving_grade.drivers(self, operation)),
+             driving_grade.published(driving_grade.held(self), operation)),
             machine_evidence(self._cop_baseline, self._measured_cop.frozen_refusals),
         )
 
