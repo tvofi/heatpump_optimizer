@@ -25005,6 +25005,17 @@ R.check(
     "so no frequency is recommended and no exhaustion is reported; 0.11 kW, "
     "a step it runs, still gets an answer (the null)",
 )
+_fm_low = FrequencyMap()
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _fm_low.observe(25.0, 0.06, 20.0, 120.0)  # the one bucket predicts 0.06 kW
+R.check(
+    "evidence below a target the plan calls off is not exhaustion (D8-s1-01)",
+    not _fm_low.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm_low.evidence_exhausted(0.11, 20.0, 120.0),
+    "the map's only bucket reaches 0.06 kW, under both targets: 0.07 kW is "
+    "an off step, so the owner's gate answers False; 0.11 kW, a step the plan "
+    "runs, is beyond that bucket's reach and reads True (the null)",
+)
 R.check(
     "above every bucket's reach the answer is TRUE flat out, and says so",
     _fm.recommend(50.0, 20.0, 120.0) == 120.0
