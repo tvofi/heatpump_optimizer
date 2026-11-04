@@ -6,5 +6,4 @@ Never write to any branch except your return refs. Never work around a hook or a
 
 Brief (snapshotted when this payload was rendered):
 
-
-TIME: you have hours, not minutes. A gate, prepr or recording may run an hour: wait with Monitor windows of up to 60 min and re-arm them. Never end the session waiting on a choice: take the option that keeps coverage and the architecture sound, say so in the body, and go on. Push handoff-wip at each milestone, so your liveness can be read. If truly blocked, push BLOCKED.md on handoff-wip naming the question.
+Delta fix review of #3089 R10-FLOW-BODY-ONLY at the live head 98beb50f (full SHA from the dispatch head) against your reviewed-head 2fd46f26d7b35ff196d24b5e163048ed1f904cf7 (verdict/3089 blocked class-open: update_pr.sh with code - moves a DIRTY or rowless head under a merge verdict or dispatched review) under dev/governance/roles/fix-review.md; judge from a detached worktree with the FINDER's harness (verdict/3089 VERDICT.md, evidence/own-mutants.diff), never the fixer's. Confirm the class is closed at the one seam (the body-only refusal): both of the finder's mutants plus the new DIRTY-clean-merge and missing-row mutants killed, null control green, re-measured at this head; body retaken (## Head, ## Red checks whole check-run set, Re-cut note, carry_audit). Return by refs with bus.sh push-verdict.
