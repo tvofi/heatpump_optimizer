@@ -16307,6 +16307,47 @@
     "note": "s11 verify"
    },
    "brief": "Owner-reported 2026-11-04: v7.1.2 is installed but Home Assistant shows 7.1.1. Measured: tag v7.1.2 is lightweight, at merge b8e823699 with no stamp commit; VERSION, manifest.json and CARD_VERSION there read 7.1.1, and RELEASE_NOTES.md has no v7.1.2 heading. release.yml checks ancestry on main and the zip's domain, never that the tag equals VERSION and the manifest. Fix: release.yml refuses a tag whose version differs from VERSION, the manifest version or CARD_VERSION, before any asset or release is created. Failing test first; controls: a stamped tag passes (null), an unstamped tag at a merge refuses."
+  },
+  {
+   "group": "R10-RCA-RELEASE-TAG",
+   "lane": "CP",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "release-integrity",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Root cause seat beside R10-HOTFIX-RELEASE-TAG, defect-root-cause.md trigger 1 (reached a release). Establish who or what pushed unstamped tag v7.1.2 on 2026-11-02 around 21:08Z while stamp.py was refusing on a red main, the process state a-d, the cost test, and whether the tag ruleset (owner setting) lets a non-stamp tag through. Record at dev/audit/rca/."
+   ],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-carry-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s11 verify"
+   },
+   "brief": "Root cause seat beside R10-HOTFIX-RELEASE-TAG, defect-root-cause.md trigger 1 (reached a release). Establish who or what pushed unstamped tag v7.1.2 on 2026-11-02 around 21:08Z while stamp.py was refusing on a red main, the process state a-d, the cost test, and whether the tag ruleset (owner setting) lets a non-stamp tag through. Record at dev/audit/rca/."
   }
  ]
 }
