@@ -1,0 +1,27 @@
+SURVIVED tick: NOT REVIEWABLE not transient
+    literals not in the board's printers or the family: MERGE-READY:
+KILLED   tick: MERGE-READY dropped from family  <- null: a RED that cleared on the next board never appears
+    literals not in the board's printers or the family: mergeable state DIRTY
+KILLED   tick: DIRTY dropped from family  <- the fixture board's digest is exactly its recorded actionable set
+KILLED   owed: --acks dropped  <- owed-check: the instrument is handed the board and the ledger
+KILLED   owed: rc1 without keys silent  <- owed-check: rc 2 is UNREADABLE
+KILLED   roster: occurrence count dropped  <- roster-drain: an identical second line is its own line
+KILLED   roster: comments run  <- roster-drain: a queue line drains once, is marked, and is not re-run
+SURVIVED roster: malformed hold retried
+SURVIVED roster: hold op not stripped
+SURVIVED plan: state_docs --mirror dropped
+KILLED   plan: overlay key missing silent  <- CRASH ValueError: not enough values to unpack (expected 4, got 1)
+KILLED   pulse: pulse.txt not written  <- CRASH FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmpge8qm3v6/s25/beatd/
+SURVIVED pulse: launch ledger dropped
+KILLED   pulse: seat_queues dropped  <- pulse null: nothing stopped writes no digest, but the pulse file
+SURVIVED cancel: truncated not a failure
+KILLED   disk: gc never run  <- disk: a collection that frees enough writes nothing
+SURVIVED opener: NEEDS-TITLE dropped
+SURVIVED opener: STARVED dropped
+KILLED   head: HEAD-MOVED dedupe any-same  <- head-watch: a head returning to an old sha is still a move (A->B->A->B is three events)
+SURVIVED head: closed PRs kept forever
+SURVIVED fold: counter->set
+KILLED   fold: gone.txt never written  <- fold: a gone line is gone.txt and no new stamp
+KILLED   write_job: no norm  <- opener: an open-refused line lands in jobs/opener, a STUCK line in events.txt too
+SURVIVED need: empty string accepted
+own_mutants2: 24 planted, 11 survived
