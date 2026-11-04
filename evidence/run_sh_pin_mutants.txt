@@ -1,6 +1,0 @@
-Reviewer's replica of entities.py _gl_ended_before_summary (ev/pin_replica.py; my own instrument, same lift-and-drive logic under bash -e -c), run in a worktree at 3339aa92b6a60e6492263da1a6b6dd5efaa39b64:
-head:                                          pin ok [0, 1]
-mutant 1 (drop the '!' in ended_before_summary): pin FAIL [1, 0]
-mutant 2 (drop FAILED from SUMMARY_LINE):        pin FAIL [0, 0]
-mutant 3 (call site, tests/run.sh:809-815, revert the if/else to the old one-line '>>> FAILED'): no check in the tree names 'ENDED BEFORE' (grep over *.py *.sh *.mjs *.yml finds only tests/run.sh:811), so nothing pins the call site; mutant survives by inspection.
-All mutants restored; git status clean.

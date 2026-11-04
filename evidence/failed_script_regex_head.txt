@@ -1,0 +1,4 @@
+FAILED_SCRIPT = >>> (?:FAILED|ENDED BEFORE ITS SUMMARY): .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b
+'>>> FAILED: tests/entities.py' -> ['tests/entities.py']
+'>>> ENDED BEFORE ITS SUMMARY: tests/entities.py (exit 1; last line reached: OSError)' -> ['tests/entities.py']
+'>>> ENDED BEFORE ITS SUMMARY: python3 tests/entities.py (exit 1; last line reached: OSError)' -> ['tests/entities.py']

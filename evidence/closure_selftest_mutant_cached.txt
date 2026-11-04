@@ -1,2 +1,0 @@
-  FAIL the census refuses a planted --cached name-only diff that builds a list, not its --no-renames twin  [['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])', 'tests/z.sh:1: git diff --name-only "$B"...HEAD', 'tests/y.mjs:2: const a = git("diff", "--name-only", `${b}...HEAD`);']]
-1 of 118 closure shrink pins FAILED

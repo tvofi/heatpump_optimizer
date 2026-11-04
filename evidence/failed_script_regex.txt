@@ -1,3 +1,0 @@
-merge_train.py:695 FAILED_SCRIPT = >>> FAILED: .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b
-'>>> FAILED: tests/entities.py' -> ['tests/entities.py']
-'>>> ENDED BEFORE ITS SUMMARY: tests/entities.py (exit 1; last line reached: OSError)' -> []
