@@ -20,11 +20,11 @@ SEAM F2_learner_gate coordinator:_observe_frequency:10654  self._freq_map.observ
 SEAM F2_learner_gate coordinator:_on_power_event:8559  self._peak_tracker.observe
 SEAM F2_learner_gate coordinator:_settle_defrost:9771  self._defrost.observe
 SEAM F3_cop_law_fork thermal_model:compute_cop:2705  not self.params.cop_flow_carnot
-SEAM F3_cop_law_fork thermal_model:_batch_cop:3930  p.flow_curve_cop and (not p.cop_flow_carnot)
+SEAM F3_cop_law_fork thermal_model:_batch_cop:3927  flow_carnot_eligible and p.cop_flow_carnot
 SEAM F5_clone binary_sensor:available:321  [3] binary_sensor:available:321 | climate:available:123 | sensor:available:2438
 SEAM F5_clone optimizer:_optimize_space_only:4482  [3] optimizer:_optimize_space_only:4482 | optimizer:_optimize_with_dhw:4743 | optimizer:_solve_space:3944
 SEAM F5_clone tariff:_smooth_topk_sum:716  [3] tariff:_smooth_topk_sum:716 | tariff:_smooth_topk_sum_batch:760 | tariff:peak_cost_batch:1124
-SEAM F5_clone thermal_model:_simulate_step_single:3271  [3] thermal_model:_simulate_step_single:3271 | thermal_model:_simulate_step_two_zone:3383 | thermal_model:simulate_trajectory_batch:4001
+SEAM F5_clone thermal_model:_simulate_step_single:3271  [3] thermal_model:_simulate_step_single:3271 | thermal_model:_simulate_step_two_zone:3383 | thermal_model:simulate_trajectory_batch:3998
 SEAM F5_clone coordinator:_accumulate_energy:10068  [2] coordinator:_accumulate_energy:10068 | coordinator:_maybe_run_fuse_advisor:8727
 SEAM F5_clone coordinator:_async_learn_house_heat_loss:5466  [2] coordinator:_async_learn_house_heat_loss:5466 | coordinator:_async_learn_lower_floor_loss:5627
 SEAM F5_clone coordinator:_file_lead_predictions:9984  [2] coordinator:_file_lead_predictions:9984 | coordinator:_predicted_next_room_temp:10027
@@ -44,7 +44,7 @@ SEAM F5_clone sysid:_lm_solve:780  [2] sysid:_lm_solve:780 | sysid:_slab_ua_prof
 SEAM F5_clone tariff:_close_window:312  [2] tariff:_close_window:312 | tariff:from_dict:407
 SEAM F5_clone tariff:_window_means_batch:1058  [2] tariff:_window_means_batch:1058 | tariff:metering_windows:534
 SEAM F5_clone tariff:plan_window_days:660  [2] tariff:plan_window_days:660 | tariff:window_factors:587
-SEAM F5_clone thermal_model:simulate_trajectory:3823  [2] thermal_model:simulate_trajectory:3823 | thermal_model:simulate_trajectory_with_dhw:4330
+SEAM F5_clone thermal_model:simulate_trajectory:3820  [2] thermal_model:simulate_trajectory:3820 | thermal_model:simulate_trajectory_with_dhw:4327
 SEAM F6_hour_clock dhw_schedule:format_clock:451  round(h*60) % (24*60)
 SEAM F6_hour_clock quiet_windows:wall_clock:294  round(h*60) % (24*60)
 SEAM F7_scrub_mixin sensor:_PayloadNumberMixin:343  native_value (mixin)

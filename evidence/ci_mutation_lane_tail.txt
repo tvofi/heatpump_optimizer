@@ -1,0 +1,11 @@
+tests / mutation, job 126587903400, head 87319cb1c2218489d112548e05512100221660a5 (log tail, read 2026-11-04 via get_job_logs)
+PIN RE-VERIFICATION: 7 reproduced, 0 not reproduced, 0 not re-verified
+  ok    custom_components/heatpump_optimizer/coordinator.py:10621 CMP_BOUND  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/freq_control.py:201 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/freq_control.py:228 GUARD_OFF  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/optimizer.py:340 CLAMP_DROP  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/optimizer.py:341 CLAMP_DROP  -- killed by tests/features.py
+  ok    custom_components/heatpump_optimizer/optimizer.py:1423 RETURN_DEL  -- killed by tests/plan_view.py
+  ok    custom_components/heatpump_optimizer/thermal_model.py:1218 RETURN_DEL  -- killed by tests/features.py
+  0 survivor(s) of 7 evaluated = 0.0%, cap 20.0%
+MUTATION TABLE PASSED

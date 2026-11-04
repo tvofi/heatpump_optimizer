@@ -36,30 +36,30 @@
 
 -- sanitising: the export's rules and nightly_ha's A10 rule
   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
-reading the recorder: SQLite database /tmp/tmpe45k1qss/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpgt10yaqf/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpccnoweo8/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpvt26xhzd/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpsh0q0xdm/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpf1vd8u46/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_7dcvdf2/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_25i5xtq/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp6cta126t/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp5hhhuxm7/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmptjk9q3d8/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpf_n2_dwd/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmprx2hlfhi/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp4fhi_phk/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_sp48wv_/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp1cnz2nzq/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmps79_j012/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmphtl60814/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp2nde87r_/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpmnheak0n/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpa5tm3snq/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp41366n_g/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpfbz0sll6/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_wvcr2j0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpu7ziqqrx/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp14177e28/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpr36hjnrs/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplotq7v8t/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmppak63hp6/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplo8egqfi/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpw52uoyw3/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpy7q6oaxs/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpq9fqnwnl/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp64h0iibn/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8kwrs48w/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpcmup91iv/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi87jjmyi/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpea8skwwy/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplmh5iddo/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxu3dcp3c/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpvdpy3t5a/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpwu_0sct0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplw2bin4r/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmmx6we9s/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmphjxib5lc/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpm1nupgae/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpc_8eahoz/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmphmcrd3cj/home-assistant_v2.db
   ok   sanitised:synthetic-dhw-only.json
   ok   a10_location:synthetic-dhw-only.json
   ok   away_coverage:synthetic-dhw-only.json
@@ -172,13 +172,13 @@ reading the recorder: SQLite database /tmp/tmp_wvcr2j0/home-assistant_v2.db
   ok   cut_day:null_restart_with_inputs_gone_is_no_reload
   ok   cut_day:null_day_without_a_command_has_none
   ok   cut_day:two_paired_switches_refused
-reading the recorder: SQLite database /tmp/tmpcl27mpns/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp5b754e2w/home-assistant_v2.db
   ok   the synthetic fixture is what synthesize.py + export.py write
 
 -- replay synthetic-dhw-only.json
   ok   synthetic-dhw-only.json: the replay ran to the end
-  48 cycles over 82 entities in 13.5 s; cost {'cpu_ratio': 2.5526, 'peak_kib': 1931.3, 'loop_cpu_ratio': 0.1618, 'timed': 23, 'traced': 24, 'ref_ms': 27.928037999998878, 'loop_ref_ms': 79.452109}
-  record: synthetic-dhw-only.json cpu_ratio=3.61 peak_kib=2731 loop_cpu_ratio=0.2288
+  48 cycles over 82 entities in 14.4 s; cost {'cpu_ratio': 2.5684, 'peak_kib': 1931.0, 'loop_cpu_ratio': 0.1515, 'timed': 23, 'traced': 24, 'ref_ms': 34.66683899999978, 'loop_ref_ms': 99.85240199999978}
+  record: synthetic-dhw-only.json cpu_ratio=3.632 peak_kib=2731 loop_cpu_ratio=0.2143
   ok   synthetic-dhw-only.json: at least one cycle and one entity
   ok   synthetic-dhw-only.json: finite
   ok   synthetic-dhw-only.json: unit
@@ -187,21 +187,21 @@ reading the recorder: SQLite database /tmp/tmpcl27mpns/home-assistant_v2.db
   ok   synthetic-dhw-only.json: cycle
   ok   synthetic-dhw-only.json: not_frozen
   ok   synthetic-dhw-only.json: away
-  FAIL synthetic-dhw-only.json: cycle_cost  [2 offender(s): cpu_ratio 2.553 over its budget 2.173 | loop_cpu_ratio 0.1618 over its budget 0.143]
+  FAIL synthetic-dhw-only.json: cycle_cost  [2 offender(s): cpu_ratio 2.568 over its budget 2.173 | loop_cpu_ratio 0.1515 over its budget 0.143]
   ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
-  cpu doubled: cost {'cpu_ratio': 5.1432, 'peak_kib': 1933.2, 'loop_cpu_ratio': 1.0111, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 28.80153900000004, 'loop_ref_ms': 86.4308420000004}
+  cpu doubled: cost {'cpu_ratio': 5.0847, 'peak_kib': 1932.5, 'loop_cpu_ratio': 1.0098, 'injected_ratio': 1.0002, 'timed': 23, 'traced': 24, 'ref_ms': 36.615148000000985, 'loop_ref_ms': 107.3073210000004}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
   ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
   ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
-  memory doubled: cost {'cpu_ratio': 2.3541, 'peak_kib': 3872.4, 'loop_cpu_ratio': 0.1488, 'timed': 23, 'traced': 24, 'ref_ms': 31.02292899999881, 'loop_ref_ms': 89.43256000000055}
+  memory doubled: cost {'cpu_ratio': 2.449, 'peak_kib': 3866.9, 'loop_cpu_ratio': 0.1633, 'timed': 23, 'traced': 24, 'ref_ms': 42.47460899999966, 'loop_ref_ms': 106.70308299999998}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
   ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
-  loop doubled: cost {'cpu_ratio': 3.0682, 'peak_kib': 1929.8, 'loop_cpu_ratio': 0.3183, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 28.606628999999995, 'loop_ref_ms': 84.79030899999995}
+  loop doubled: cost {'cpu_ratio': 3.0993, 'peak_kib': 1930.2, 'loop_cpu_ratio': 0.3214, 'injected_ratio': 1.0012, 'timed': 23, 'traced': 24, 'ref_ms': 35.023071000000016, 'loop_ref_ms': 102.09159999999994}
   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
   ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
   ok   the doubled-cost arms are skipped on committed fixtures only, never all
 
-replay lane wall time 77.5 s
+replay lane wall time 80.3 s
 
 1 of 163 replay checks FAILED
 rc=1
