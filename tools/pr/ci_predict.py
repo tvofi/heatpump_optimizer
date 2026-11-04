@@ -329,11 +329,17 @@ def no_recording(root, base, changed, closure):
 # state_docs.py spawns. Recording the changed file's own self-test with CI's
 # recorder, then grading that record as its host's with CI's own `check`,
 # took 4.7 s and named both pairs CI named. A host counts only when its source
-# names the file within SELF_TEST_WINDOW lines of a `--self-test` flag: a
-# script that lists a file as text (harness_headers' scan) does not run it, and
-# neither does one whose comment nearby only says "self-test" (tests/entities.py
-# spells a fixture `ledger.py landed` twelve lines under such a comment).
+# names the file within SELF_TEST_WINDOW lines of a run of its self-test, by
+# the `--self-test` flag or the quoted `"self-test"` subcommand (tests/entities.py
+# runs tests/lane_skip.py that way): a script that lists a file as text
+# (harness_headers' scan) does not run it, and neither does one whose comment
+# nearby only says "self-test" (tests/entities.py spells a fixture `ledger.py
+# landed` twelve lines under such a comment).
 SELF_TEST_WINDOW = 12
+# The two spellings a script really runs a self-test by: the `--self-test` flag, and
+# the `self-test` subcommand as a quoted argv element (tests/entities.py runs
+# tests/lane_skip.py as `[sys.executable, ..., "self-test"]`).
+_RUNS_SELF_TEST = re.compile(r"--self[-_]test|[\"']self-test[\"']")
 SELF_TEST_TIMEOUT = 180
 _RECORD_DRIVER = ("import sys; sys.path.insert(0, 'tests'); import closure; "
                   "sys.exit(closure._exec_record(sys.argv[1], sys.argv[2], ['--self-test']))")
@@ -356,7 +362,7 @@ def self_test_hosts(root: Path, f: str, closures: dict) -> list[str]:
         except OSError:
             continue
         w = SELF_TEST_WINDOW
-        if any(re.search(r"--self[-_]test", ln) for i, line in enumerate(lines) if name in line
+        if any(_RUNS_SELF_TEST.search(ln) for i, line in enumerate(lines) if name in line
                for ln in lines[max(0, i - w):i + w + 1]):
             hosts.append(script)
     return hosts
@@ -1427,6 +1433,21 @@ def self_test_reads_self_test(root: Path) -> int:
             good = ok(*got)
             print(f"  {'ok  ' if good else 'FAIL'} {label}{'' if good else ' -- ' + repr(got[0])}")
             bad += not good
+        # which source spellings make a host: a run by flag or by the `self-test` subcommand, not prose
+        sub = "tests/lane_skip.py"
+        spell = {
+            "tests/h_flag.py": f"r = run(['python3', '{sub}', '--self-test'])\n",
+            "tests/h_sub.py": f"subprocess.run([sys.executable, 'x/{Path(sub).name}', \"self-test\"])\n",
+            "tests/h_prose.py": f"# {Path(sub).name} has a self-test the gate runs elsewhere\n",
+            "tests/h_table.py": f"T = {{('{sub}', 'self_test'): 'a function name'}}\n",
+        }
+        for s, src in spell.items():
+            (t / s).write_text(src)
+        got = self_test_hosts(t, sub, {s: [sub] for s in spell})
+        good = got == ["tests/h_flag.py", "tests/h_sub.py"]
+        print(f"  {'ok  ' if good else 'FAIL'} a host runs the self-test by `--self-test` or the quoted `self-test` "
+              f"subcommand (lane_skip's shape); a comment, or a `self_test` table key, is no host{'' if good else ' -- ' + repr(got)}")
+        bad += not good
     return bad
 
 

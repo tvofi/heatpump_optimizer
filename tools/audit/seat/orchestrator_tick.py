@@ -845,7 +845,9 @@ class Tick:
         return list(dict.fromkeys([t, t[:-3] if t.endswith("-pr") else t]))
 
     def owed_levels(self, S: str, prs: list) -> None:
-        """Every open pull request in exactly one bucket, from data the pass already read
+        """Every open pull request this pass can read in exactly one bucket (a draft, a PR with
+        no head, the record branch and one whose comments were not read are counted on the
+        count line's `not bucketed:` tail instead), from data the pass already read
         (head, checks, mergeable state, the --queue file, the train log, the verdict
         comments) plus git refs; no new GitHub call. Buckets: train | verdict-pending |
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
@@ -865,13 +867,17 @@ class Tick:
         files = getattr(self, "_files", {}) or {}
         open_n = {p["number"]: p for p in prs}
         counts: dict = {}
+        skipped: dict = {}
         owed: list = []
         rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
         record = getattr(rr, "RECORD_BRANCH", None)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
             branch = pr.get("headRefName") or ""
-            if pr.get("isDraft") or not head or branch == record or str(n) not in readback:
+            why = ("draft" if pr.get("isDraft") else "no head" if not head else "record branch"
+                   if branch == record else "comments unread" if str(n) not in readback else "")
+            if why:
+                skipped[why] = skipped.get(why, 0) + 1
                 continue
             topics, lines = self._topics(branch), readback[str(n)]
             last = lines[-1] if lines else ""
@@ -879,12 +885,16 @@ class Tick:
             bucket, reason, kind = self._bucket(n, head, pr, topics, lines, last, ms, queue, parked,
                                                 dispatched, heads, files, open_n, roster, rl)
             counts[bucket] = counts.get(bucket, 0) + 1
+            if bucket == "unreadable":
+                self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
                 group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
                 owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
-        self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none"))
+        self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none")
+                  + ("; not bucketed: " + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items()))
+                     if skipped else ""))
         self.payloads(S)
 
     def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
@@ -913,9 +923,11 @@ class Tick:
                 return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
         if verdict_kind(last, head) == "blocked":
             newer = self._handoff_newer(pr.get("headRefName") or "", self._verdict_at.get(n) or "")
+            if newer is None:
+                return "unreadable", "git read of the handoff ref failed", ""
             if newer:
                 return "fixer-round", "", ""
-            at = self._verdict_at.get(n)
+            at =self._verdict_at.get(n)
             try:
                 age_h = (self.now - datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds() / 3600
             except (ValueError, AttributeError):
@@ -3776,10 +3788,17 @@ def self_test() -> int:
         # ---- OWED buckets (carries 2-6): one bucket per open PR, one OWED line per owed one ----
         h = lambda n: f"{n:040x}"
         def oboard2(specs, red=None, fired=None, refs=(), cts=None, files=None, queue_v=None,
-                    train=None, body=None, bodies=None, disp=()):
-            """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines)."""
+                    train=None, body=None, bodies=None, disp=(), newer=None, newer_fail=(),
+                    extra=(), roster=None, extra_read=(), ancestor=True, via_prs=False):
+            """specs [(n, ms, [verdict lines], verdict_age_min)] -> (tick, owed lines).
+            disp: PR numbers on bus.sh's dispatch record at their head; newer {n: minutes ago}: a
+            handoff/<n> tip committed that long ago; newer_fail: PRs whose handoff ls-remote fails;
+            extra: PR objects beside the specs, whose comments the pass did not read."""
             od = tmp / f"ob{len(list(tmp.iterdir()))}"
             od.mkdir()
+            bus = od / "bus"
+            bus.mkdir()
+            (bus / "dispatched").write_text("".join(f"{n} {h(n)} thread {'0' * 32}\n" for n in disp))
             qf = od / "q.json"
             qf.write_text(json.dumps([{"pr": n, "verdict": v} for n, v in (queue_v or {}).items()]))
             tl = None
@@ -3791,16 +3810,28 @@ def self_test() -> int:
                 fl = str(od / "fired.log")
                 Path(fl).write_text(fired)
             board = [dict(pr_obj(n, h(n), ms=ms), body=(bodies or {}).get(n, "")) for n, ms, _, _ in specs]
-            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl)
+            board += list(extra)
+            t = tick(prs=board, queue=str(qf), train_log=tl, fired_log=fl, bus_state=str(bus), roster=roster)
             t._git.h[:0] = [(("ls-remote", "origin", ref.rsplit("/", 1)[0] + "/*"), 0, f"{sha}\trefs/heads/{ref}\n")
                             for ref, sha in refs] + [(("ls-remote",), 0, "")]
             t._git.h[:0] = [(("log", "-1", "--format=%ct", sha), 0, f"{int((NOW - timedelta(minutes=m)).timestamp())}\n")
                             for sha, m in (cts or {}).items()] + [(("fetch", "-q"), 0, ""), (("merge-base", "--is-ancestor"), 0, "")]
+            t._git.h[:0] = ([(("ls-remote", f"refs/heads/handoff/{n}"), 1, "fatal") for n in newer_fail]
+                            + [(("ls-remote", f"refs/heads/handoff/{n}"), 0, f"{n:x}".rjust(40, "d") + f"\trefs/heads/handoff/{n}\n")
+                               for n in (newer or {})]
+                            + [(("log", "-1", "--format=%ct", f"{n:x}".rjust(40, "d")), 0,
+                                f"{int((NOW - timedelta(minutes=m)).timestamp())}\n") for n, m in (newer or {}).items()])
+            if not ancestor:
+                t._git.h.insert(0, (("merge-base", "--is-ancestor"), 1, ""))
             t._readback = {str(n): ls for n, _, ls, _ in specs}
+            t._readback.update({str(n): [] for n in extra_read})
             t._verdict_at = {n: iso(NOW - timedelta(minutes=a)) for n, _, ls, a in specs if ls}
             t._red = red or {}
             t._files = files or {}
-            t.owed_levels("PRS", board)
+            if via_prs:  # the whole PRS pass: the level must run in a real tick, not only when called
+                t.prs(["tests", "closures"])
+            else:
+                t.owed_levels("PRS", board)
             return t, [x["text"] for x in t.sections.get("PRS", []) if x["flag"] and x["text"].startswith("OWED ")]
         from datetime import timedelta
         blk = lambda n: f"Fix review: blocked {h(n)}"
@@ -3828,6 +3859,38 @@ def self_test() -> int:
         _, o_ba = oboard2([(85, "BLOCKED", [], 0)], **ba)
         _, o_ba0 = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 20, "b" * 40: 30})
         _, o_baf = oboard2([(85, "BLOCKED", [], 0)], fired=f"{iso(NOW - timedelta(minutes=10))} FIRED #85 r2\n", **ba)
+        # R10-TICK-LEVELS null controls: a DIRTY and red PR a bucket already owns prints no OWED line
+        rec = getattr(_module("record_row_tick", "tools/audit/seat/record_row.py"), "RECORD_BRANCH", "record")
+        bk_of = lambda t: t.sections["PRS"][-1]["text"]
+        gate_red = lambda n: {n: ["gate"]}
+        t_tr, o_tr = oboard2([(87, "DIRTY", [], 0)], red=gate_red(87), queue_v={87: h(87)},
+                             train="STARTED train.sh pid 1 over #87\n")
+        t_vd, o_vd = oboard2([(88, "DIRTY", [f"Fix review: merge {h(88)}"], 5)], red=gate_red(88))
+        t_vp, o_vp = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89), disp=(89,))
+        t_vp0, o_vp0 = oboard2([(89, "DIRTY", [], 0)], red=gate_red(89))
+        t_wf, o_wf = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
+                             files={90: ["a.py"], 91: ["a.py"]})
+        _, o_wf0 = oboard2([(90, "CLEAN", [], 0), (91, "DIRTY", [], 0)], red=gate_red(91),
+                           files={90: ["a.py"], 91: ["b.py"]})
+        t_nw, o_nw = oboard2([(92, "BLOCKED", [blk(92)], 540)], newer={92: 30})
+        t_nf, o_nf = oboard2([(93, "BLOCKED", [blk(93)], 540)], newer_fail=(93,))
+        _, o_nw0 = oboard2([(92, "BLOCKED", [blk(92)], 540)], newer={92: 600})
+        _, o_na = oboard2([(85, "BLOCKED", [], 0)], refs=ba["refs"], cts={h(85): 100, "b" * 40: 30}, ancestor=False)
+        t_rc, o_rc2 = oboard2([(94, "CLEAN", [], 0)], extra=[pr_obj(95, h(95), ms="DIRTY", branch=rec),
+                                                              pr_obj(96, h(96), ms="DIRTY", draft=True),
+                                                              pr_obj(97, h(97), ms="DIRTY")],
+                              extra_read=(95, 96), red={95: ["gate"], 96: ["gate"], 97: ["gate"]})
+        t_pr, o_pr = oboard2([(98, "DIRTY", [], 0)], via_prs=True)
+        orf = tmp / "owed-roster.json"  # GB is after GA; GZ stands alone: the critical path is GA, GB
+        orf.write_text(json.dumps({"groups": [
+            {"group": "GA", "resume": {"stage": "not-started"}},
+            {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+            {"group": "GZ", "resume": {"stage": "not-started"}}]}))
+        gpr = lambda n, g, ms="DIRTY": pr_obj(n, h(n), ms=ms, branch=f"fix/{g}")
+        t_ae, o_ae = oboard2([], extra=[gpr(90, "ga", "CLEAN"), gpr(91, "gb")], extra_read=(90, 91),
+                             red=gate_red(91), roster=str(orf))
+        _, o_ae0 = oboard2([], extra=[gpr(91, "gb")], extra_read=(91,), red=gate_red(91), roster=str(orf))
+        _, o_co = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -3840,6 +3903,14 @@ def self_test() -> int:
             tf.payloads("PRS")
             return [x["text"] for x in tf.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
         fo, fo0 = fire_owed(""), fire_owed("FIRED payload-fix-86-r1.json\n")
+        pd2 = tmp / "payloads-young"
+        pd2.mkdir()
+        pf2 = pd2 / "payload-fix-86-r2.json"
+        pf2.write_text("{}")
+        os.utime(pf2, ((NOW - timedelta(minutes=FIRE_GRACE_MIN - 5)).timestamp(),) * 2)
+        tfy = tick(prs=[], fired_log=os.devnull, payload_dir=str(pd2))
+        tfy.payloads("PRS")
+        fo_young = [x["text"] for x in tfy.sections.get("PRS", []) if x["text"].startswith("OWED fire-owed")]
         bk = t_o.sections["PRS"][-1]["text"]
         a, f = check("OWED buckets", [
             ("#2906 / #2917 / #2919 shapes each print one OWED line naming the reason",
@@ -3860,7 +3931,29 @@ def self_test() -> int:
             ("carry 5 BODY-AHEAD: a body ref newer than the head owes; an older one, or a fire, does not",
              len(o_ba) == 1 and "body-ahead #85" in o_ba[0] and o_ba0 == [] and o_baf == []),
             ("carry 5 FIRE-OWED: a rendered payload with no FIRED line owes; one a FIRED line names does not",
-             len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [])])
+             len(fo) == 1 and "payload-fix-86-r1.json" in fo[0] and fo0 == [] and fo_young == []),
+            ("null: a DIRTY, red PR in train (a queue verdict, no merge verdict) prints no OWED, names the bucket",
+             o_tr == [] and "train 1" in bk_of(t_tr)),
+            ("null: a DIRTY, red PR with a merge verdict at its head is verdicted, owed nothing",
+             o_vd == [] and "verdicted 1" in bk_of(t_vd)),
+            ("null: a DIRTY, red PR on the dispatch record is verdict-pending; off it, it is owed",
+             o_vp == [] and "verdict-pending 1" in bk_of(t_vp) and len(o_vp0) == 1 and "dirty #89" in o_vp0[0]),
+            ("null: a DIRTY, red PR sharing a file with a lower open PR is waiting-on it; a disjoint one is owed",
+             o_wf == [] and "waiting-on 1" in bk_of(t_wf) and len(o_wf0) == 1 and "dirty #91" in o_wf0[0]),
+            ("blocked arm: a handoff tip newer than the verdict is a fixer-round, an older one is owed",
+             o_nw == [] and "fixer-round 1" in bk_of(t_nw) and len(o_nw0) == 1 and "fixer-round #92" in o_nw0[0]),
+            ("O3: an unreadable handoff ref is UNREADABLE and no OWED line, never a stalled fixer-round",
+             o_nf == [] and "unreadable 1" in bk_of(t_nf)
+             and any(x["text"].startswith("UNREADABLE: owed buckets") and "#93" in x["text"] for x in t_nf.sections["PRS"])),
+            ("BODY-AHEAD: a code handoff that is not in the head is no repair done", o_na == []),
+            ("O4: the count line names what it leaves out (record branch, draft, comments unread) beside the buckets",
+             o_rc2 == [] and bk_of(t_rc) == "buckets: review-owed 1; not bucketed: comments unread 1, draft 1, record branch 1"),
+            ("a tick's PRS pass runs the level: a DIRTY PR prints its OWED line from prs(), not only from owed_levels()",
+             len(o_pr) == 1 and "dirty #98" in o_pr[0]),
+            ("null: a DIRTY, red PR whose group is after an open group is waiting-on it; with no open PR there it is owed",
+             o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
+            ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
+             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
