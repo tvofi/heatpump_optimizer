@@ -6,11 +6,3 @@ FAIL coordinator._async_learn_buffer_cooling: 'float(self._current_action.get('p
 FAIL coordinator._observe_frequency: 'self._commanded_power() > 0.05 and reported >= hz_min and (not defrost_interval(self._pump_signals.defrosting))' -> watch_active=True owner_runs=False
 RESULT probes_failed=6 count
 RESULT probes_total=6 count
-PASS optimizer.classify_space_steps: reason=idle_coasting owner_runs=False
-PASS optimizer.classify_dhw_steps: reason=idle owner_runs=False
-PASS freq_control.FrequencyMap.recommend: recommend=None owner_runs=False
-PASS freq_control.FrequencyMap.evidence_exhausted: exhausted=False owner_runs=False
-PASS coordinator._async_learn_buffer_cooling: 'float(self._current_action.get('power', 0.0)) > 0.1' -> heating=False owner_runs=False
-PASS coordinator._observe_frequency: 'self._commanded_power() > 0.1 and reported >= hz_min and (not defrost_interval(self._pump_signals.defrosting))' -> watch_active=False owner_runs=False
-RESULT probes_failed=0 count
-RESULT probes_total=6 count

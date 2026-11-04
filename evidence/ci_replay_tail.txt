@@ -1,0 +1,4 @@
+tests / replay, job 126588166343, head 87319cb1c2218489d112548e05512100221660a5, completed 13:14:08Z
+  record: synthetic-dhw-only.json cpu_ratio=4.341 peak_kib=2727 loop_cpu_ratio=0.1421
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): cpu_ratio 3.069 over its budget 2.173]
+1 of 176 replay checks FAILED
