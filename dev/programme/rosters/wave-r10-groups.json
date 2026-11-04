@@ -16530,7 +16530,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Owner ruling tvofi 2026-11-04: the reference assumes no wood at all and actuals stay metered, so wood and fire timing count in the saving, with a disclaimer on houses with wood that it includes wood heat and excludes firewood cost. This replaces the dash on two-tank houses; old-basis rows keep the dash. R10-SAV-WOOD-MEASURED is withdrawn."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress"
