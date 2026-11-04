@@ -1,0 +1,18 @@
+reviewer's fleet bridge on PR run 41854976917, job 126662136647 (tests / fast (3.14)), probe step 40 s (step timestamps 15:13:04..15:13:44)
+timing-summary rows parsed 29 (last 5000 log lines); heavy matched 12 of 13
+   0.889  python3 tests/boost_drift_replay.py  273 s vs 60-run median 307.0
+   0.961  python3 tests/edge.py  37 s vs 60-run median 38.5
+   0.980  python3 tests/optimality.py  146 s vs 60-run median 149.0
+   0.986  node tests/card.mjs  109 s vs 60-run median 110.5
+   1.000  python3 tests/structure.py  24 s vs 60-run median 24.0
+   1.008  python3 tests/features.py  627 s vs 60-run median 622.0
+   1.025  python3 tests/finite_boundary.py  82 s vs 60-run median 80.0
+   1.026  python3 tests/validate.py  39 s vs 60-run median 38.0
+   1.027  python3 tests/harness_headers.py  209 s vs 60-run median 203.5
+   1.034  python3 tests/entities.py  536 s vs 60-run median 518.5
+   1.040  python3 tests/stress.py  367 s vs 60-run median 353.0
+   1.294  python3 tests/backtest.py  130 s vs 60-run median 100.5
+host factor (median ratio, replay.py's rule) 1.017
+implied PROBE_REFERENCE_S[3.14] = 40 * 0.565 / 1.017 = 22.23  (tree 17.50)
+   solo python3 tests/stress.py: factor 1.040 -> 21.74
+   solo python3 tests/harness_headers.py: factor 1.027 -> 22.01
