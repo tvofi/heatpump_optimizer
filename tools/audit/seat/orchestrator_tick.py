@@ -3881,6 +3881,16 @@ def self_test() -> int:
                                                               pr_obj(97, h(97), ms="DIRTY")],
                               extra_read=(95, 96), red={95: ["gate"], 96: ["gate"], 97: ["gate"]})
         t_pr, o_pr = oboard2([(98, "DIRTY", [], 0)], via_prs=True)
+        orf = tmp / "owed-roster.json"  # GB is after GA; GZ stands alone: the critical path is GA, GB
+        orf.write_text(json.dumps({"groups": [
+            {"group": "GA", "resume": {"stage": "not-started"}},
+            {"group": "GB", "resume": {"stage": "not-started"}, "after": ["GA"]},
+            {"group": "GZ", "resume": {"stage": "not-started"}}]}))
+        gpr = lambda n, g, ms="DIRTY": pr_obj(n, h(n), ms=ms, branch=f"fix/{g}")
+        t_ae, o_ae = oboard2([], extra=[gpr(90, "ga", "CLEAN"), gpr(91, "gb")], extra_read=(90, 91),
+                             red=gate_red(91), roster=str(orf))
+        _, o_ae0 = oboard2([], extra=[gpr(91, "gb")], extra_read=(91,), red=gate_red(91), roster=str(orf))
+        _, o_co = oboard2([], extra=[gpr(99, "gz"), gpr(100, "gb")], extra_read=(99, 100), roster=str(orf))
         pd = tmp / "payloads"
         pd.mkdir()
         pf = pd / "payload-fix-86-r1.json"
@@ -3939,7 +3949,11 @@ def self_test() -> int:
             ("O4: the count line names what it leaves out (record branch, draft, comments unread) beside the buckets",
              o_rc2 == [] and bk_of(t_rc) == "buckets: review-owed 1; not bucketed: comments unread 1, draft 1, record branch 1"),
             ("a tick's PRS pass runs the level: a DIRTY PR prints its OWED line from prs(), not only from owed_levels()",
-             len(o_pr) == 1 and "dirty #98" in o_pr[0])])
+             len(o_pr) == 1 and "dirty #98" in o_pr[0]),
+            ("null: a DIRTY, red PR whose group is after an open group is waiting-on it; with no open PR there it is owed",
+             o_ae == [] and "waiting-on 1" in bk_of(t_ae) and len(o_ae0) == 1 and "dirty #91" in o_ae0[0]),
+            ("the critical-path group's OWED line prints before a lower-numbered PR's outside it",
+             len(o_co) == 2 and "#100" in o_co[0] and "#99" in o_co[1])])
         total, failed = total + a, failed + f
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
