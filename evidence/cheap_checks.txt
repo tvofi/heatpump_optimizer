@@ -1,0 +1,6 @@
+
+STRUCTURE RATCHET PASSED
+
+FIXTURE ok: 93 error(s) hold 260 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+dev/governance/roles/standing-dispatch.md         38   39      505   509 
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
