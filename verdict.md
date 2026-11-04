@@ -1,0 +1,22 @@
+Design review: revise 205c766b79026e07e5a5e247883224b10d5fd1a7 class-open
+
+Group R10-CLONE-2238, note design.md at design/R10-CLONE-2238 (205c766b7), base c3a279e3252a8b57bb00b5a677318cd4fe20387f, which is current origin/main (zero commits between them), so the base tree and the main tree are the same tree.
+
+## Revise points
+
+1. class-open: design.md section 4, P3 sibling grep, and section 2 row P3. The note's regex `upper_temp_trajectory\s*\n?\s*if .*two_zone_enabled` finds three sites. It misses a fourth copy of the same fact, at `custom_components/heatpump_optimizer/optimizer.py:4259-4264` (the `space_pins` release loop): `two_zone = self.model.params.two_zone_enabled; room = result.upper_temp_trajectory if two_zone and result.upper_temp_trajectory else result.room_temp_trajectory`. The rule is the same, written through a local name, so the regex cannot see it. Fix wanted: add optimizer.py:4261 as a fourth caller of `OptimizationResult.sensor_trajectory(two_zone)`. Widen the sibling command so it would have found this site. A plain `rg -n 'upper_temp_trajectory' custom_components/` lists every reader, and each reader the note leaves out should get a one-line reason. Add the site to P3's failing test or name it as a mutation target. Checked and out of scope, as different facts: `coordinator.py:2885`, which is upper when present, with no two-zone gate, for the recorded ut column, and `coordinator.py:4589`, which requires both zones.
+
+## Checked and holding (no revise)
+
+- Re-measurement (step 1, brief): I ran `git archive origin/main`, then `python3 -I dev/audit/rounds/round10/D14/sweep-P2/enumerate_p2.py --json`. F5_clone reads 24. The nine pairs the note keeps are listed: entries 4, 5, 6, 13, 14, 18, 20, 21, 22. `_fold_internal_gains|_fold_solar_aperture` and `_buffer_charge_ceiling|hold_demand_kw` are absent, so dropping them is correct. Null control: `--fixture` reads 0 in all seven families.
+- Seams (step 1): every owner is new, sits in the module that already holds both copies, and creates no new write path. P6's owner sits on `_WaitsForEvidenceMixin`, and both `PredictionAccuracySensor` (sensor.py:1872) and `ContractComparisonSensor` (sensor.py:2354-2356) inherit it. P4's single cross-module owner, `tariff.billed_windows`, covers all three padding copies: tariff.py:873-878, tariff.py:1166-1170 and optimizer.py:4711-4713.
+- Sibling greps, run independently: P1 has coordinator.py:1217 and 10093-10094, and nothing else reads `pending.get("space_power")`. P2 has coordinator.py:5556 and 5679, and the 1329 argument is correctly excluded. P7 has tariff.py:332-333 and 413-414. P8 has tariff.py:557 and 1077 only. P9 has tariff.py:609 and 670, with 261 and 306 correctly excluded. P5 has optimizer.py:3155 and 3174.
+- Shape (step 2): no behaviour changes, bit-identity is claimed, and every move maps to one listed pair. The fuse-advisor dismissal (P1) is reasoned and measured.
+- Evidence (step 4): each failing test fails at the base, because the owner is absent. Each one drives both production callers, and a mutant that restores either inline copy is killed. The controls are the enumerator `--fixture` null, a per-commit F5 delta, and archscore before and after. The note states that no golden should move and names no claim-file touch, which is correct for a bit-identical refactor.
+- Consistency (step 5): D7.md item 8 (one owner per duplicated rule) fits. The open designs with overlapping hot files are R10-ADVISOR-WHATIF and R10-WHY-NOW-WIDGET. WHY-NOW adds `OptimizationResult.space_drivers`, which is a different concern on the same dataclass and claims no seam. ADVISOR-WHATIF names none of these functions.
+- Cost (step 6): four production files, test additions to existing scripts, and one budget re-record, in nine commits. That fits size L.
+
+## Notes for the fixer (carries, not revise points)
+
+- Carry: R10-CLONE-2238 (item golden-check). Name the golden-bearing scripts that cover P1-P3, P5 and P7. The spike's 618-output bit-identity check covered only the tariff partition and starts functions. Say in the body that the scoped gate ran them with zero drift.
+- Carry: R10-CLONE-2238 (item bugclasses-json). The roster lists `dev/audit/config/bugclasses.json` among the group's files, but the note does not say what changes there. Either update the P2 instances that the fix closes, or state in the body that the file is untouched and why.
