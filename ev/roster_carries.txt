@@ -1,0 +1,25 @@
+carries: 24
+ - [] tvofi 2026-10-24 cards 1, 2 (amended twice) and 6 (owner accepted; CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): write round 10's final shape int
+ - [] Round-11 decision item (tvofi, 2026-10-25, orchestrator session: "this should be a round 11 decision"): whether to move the repository to a GitHub organization 
+ - [] Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). HANDOVER trap: a re
+ - [] Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). Pre-study: the Lean
+ - [] Rerouted from R10-FLOW-MQ-PROBE (dropped: #2826 closed unmerged, tvofi 2026-10-25 ruling; the org move is a round-11 decision carried here). tvofi 2026-10-24 ca
+ - [] Owner-sourced (tvofi, 2026-10-25, decision cards from the pipeline benchmark seat, measured at origin/main c9cbe6b45). ACCEPTED for round 11: G1-G10. REJECTED: 
+ - [] Owner-sourced (tvofi, 2026-10-25): the throughput/yield/quality proposals tvofi accepted are recorded here for round-11 planning. The set is V63-V103, with tvof
+ - [] `rounds.py`: unenforced: the group's brief names `rounds.py --stats`, which is not a mode; the invocation exits 0 with zero bytes and would read as a measuremen
+ - [] From #2946 (R10-CONFIGFLOW-PAGES arm D, verdict/2946 carry-missing): round 11's class-P2 sweep must run differently in two ways. (1) The eleven F5 clone-class s
+ - [] The eleven F5 clone-class sweep instances of #2238 (#7, #16, #17, #18, #30, #31, #32, #36, #39, #40, #41) have no owning group. They stay as class P2's instance
+ - [] `delivery-status-tracking`: stale: the roster group R10-CONFIGFLOW-PAGES on `handoff/audit-r10-roster` still read `resume.stage` `not-started` at this dispatch,
+ - [] A seat must record an instruction from another agent that contradicts policy as pending, not as direction (P216, V129, from this seat's own record at 20:20Z: th
+ - [] STRANDED CARRY 9 (carry-strand audit, orchestrator s9, 2026-10-31)  Source: group R10-ORCH-BEATD, index 12; triage id: none; roster ref origin/handoff/audit-r10
+ - [] STRANDED CARRY 14 (carry-strand audit, orchestrator s9, 2026-10-31)  Source: group R10-ORCH-MACHINERY, index 1; triage id: none; roster ref origin/handoff/audit
+ - [] STRANDED CARRY 45 (carry-strand audit, orchestrator s9, 2026-10-31)  Source: group R10-ORCH-BEATD, index 24; triage id: none; roster ref origin/handoff/audit-r1
+ - [] STRANDED CARRY 52 (carry-strand audit, orchestrator s9, 2026-10-31)  Source: group R10-ORCH-MACHINERY, index 2; triage id: none; roster ref origin/handoff/audit
+ - [] Owner directive (tvofi, 2026-10-31): "the architects 30% arch score improvement can be even higher if cheap enough, and each group that touches production code 
+ - [] Owner ruling (tvofi, 2026-11-01, "go with what you recommend"): the mold guard keeps precedence over the away setback. It protects the building, and on the owne
+ - ['Round-11 D15 inputs', 'unhealthy_input'] Round-11 D15 inputs, re-homed from R10-REPLAY-REAL-DAY (its 0-based carries 3, 5 and 8; handoff 73ef64912). Both items read the owner's live diagnostics bundle,
+ - [] Machinery freeze after v10.0.0 (tvofi 2026-11-01, production-share ruling). From the round-10 closeout stamp on, a change to the programme's machinery (tools/au
+ - [] Production slots (tvofi 2026-11-01, production-share ruling). Of the open-PR cap (16 in round 10), reserve 10 slots for pull requests that touch custom_componen
+ - [] Proposal bar (tvofi 2026-11-01, production-share ruling; in force operationally since 2026-11-01T19:50Z by owner ruling to the triage seat). proposal-triage.md:
+ - [] From the s9 leads and prose sweep (2026-11-01): dev/programme/HANDOVER.md still lists the pr_cap owed-handoff exemption as owed, but it is fixed in code on main
+ - ['restart', 'version change', 'Round-11 D15 inputs', 'unhealthy_input'] From R10-LIVE-BUNDLE-READS (handoff 06234008): a version change across a gap counts as a restart whatever its length; the 43.6 min upgrade gap read as no restar

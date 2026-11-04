@@ -1,0 +1,14 @@
+== M1-no-unwrap
+FAILING: ['debug ingest: a download wrapped as HA writes it ingests like the bare bundle']
+== M2-no-dedup
+FAILING: ['debug ingest: schema, stores, accuracy, bias, planted leak', 'debug ingest: a download wrapped as HA writes it ingests like the bare bundle', 'debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
+== M3-held-all
+CRASH KeyError datetime.datetime(2026, 1, 15, 10, 0, tzinfo=datetime.timezone.utc)
+== M4-last-wins
+FAILING: ['debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived']
+== M5-no-schema-guard
+FAILING: []
+== M6-store-all-samples
+FAILING: ['debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
+== M7-row-t-fallback
+FAILING: ['debug ingest: rows repeating the newest sample and covering half the store re-derive the bias']
