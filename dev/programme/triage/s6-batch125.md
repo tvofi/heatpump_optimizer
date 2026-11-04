@@ -8,6 +8,8 @@ transcripts are not readable from here.
 Verdict: ACCEPT narrowed. Part 1 goes to R10-BODY-CONTRACT in a different form: `body_push.sh` keeps a refused body itself, on its own ref, and the
 brief gains no step. Part 2, disabling the frugal guard in the cloud env, is DEFER: it is the owner's call, and its cost is uncounted.
 
+**Owner ruling after this entry (tvofi, 2026-11-04, relayed by the orchestrator): "Turn it off in the cloud".** The orchestrator had laid out the guard, the options and a recommendation to keep it on. Part 2's DEFER is closed by that ruling, and the route is the orchestrator's group R10-FLY-CLOUD-FRUGAL-OFF. The figures below stay as read; no count of blocks was taken.
+
 Source: the orchestrator's queue line of 2026-11-04T22:10:46Z.
 
 Instances:
@@ -30,4 +32,4 @@ Cost:
 Binding:
 - **Carry on R10-BODY-CONTRACT:** When `body_push.sh` refuses after the body file exists (predictor, pr-body lint, review packet, carry landing), it first publishes the refused body on an orphan ref `handoff-wip/<topic>-body`, the same parentless or fast-forward `commit-tree` the real push uses, prints `body_push: refused body kept at <ref> <sha>`, and keeps its refusal and exit code. A failed keep is printed and never changes the refusal. Cases on record: #3055 round 3, r10-closeout-cleanup, f-3197-r3. Check before building: that the seat tail and `ref_privacy` allow the ref, that `cloud_relay.sh` and `bus.sh orphans` stay blind to it as they are to `handoff-wip/`, that `prune_refs.py` collects it, and that a successful push deletes it. Arms: each refusal path keeps the body and still exits non-zero; a keep whose push fails leaves the same refusal; a successful push publishes `handoff-body/<topic>` and leaves no keep ref; a refused body is not in the code head's ancestry (null). Mutant: dropping the keep fails the refusal arms. triage: dev/programme/triage/s6-batch125.md#P390
 - **Until that lands:** a hand-written brief may keep `PR-BODY.md` on `handoff-wip/<topic>` only for a body-only seat, never for a seat that hands off code.
-- **The guard stays as it is.** What would change the answer: the owner's ruling on the cloud env, given a count of guard blocks and the turns they cost from at least the two named seats' transcripts. The orchestrator takes that question to the owner; this seat does not.
+- **The guard:** off in the cloud env, by the owner's ruling above, through R10-FLY-CLOUD-FRUGAL-OFF. The ruling names the cloud only, so the 2026-10-21 ruling keeps binding local seats.
