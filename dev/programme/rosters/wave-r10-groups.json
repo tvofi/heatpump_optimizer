@@ -16264,6 +16264,49 @@
     "note": "s11 replan fold"
    },
    "brief": "The relay's residue, one owning seam: tools/audit/seat/cloud_relay.sh (fold of R10-RELAY-HANDOFF-ARM, R10-FLY-RELAY-DELIVERED-GUARD and the last open carry of R10-FLY-RELAY-REVIEW-FF; s11 replan). Part of #201."
+  },
+  {
+   "group": "R10-HOTFIX-RELEASE-TAG",
+   "lane": "CP",
+   "kind": "hotfix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "release-integrity",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    ".github/workflows/release.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Owner-reported 2026-11-04: v7.1.2 is installed but Home Assistant shows 7.1.1. Measured: tag v7.1.2 is lightweight, at merge b8e823699 with no stamp commit; VERSION, manifest.json and CARD_VERSION there read 7.1.1, and RELEASE_NOTES.md has no v7.1.2 heading. release.yml checks ancestry on main and the zip's domain, never that the tag equals VERSION and the manifest. Fix: release.yml refuses a tag whose version differs from VERSION, the manifest version or CARD_VERSION, before any asset or release is created. Failing test first; controls: a stamped tag passes (null), an unstamped tag at a merge refuses."
+   ],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-carry-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s11 verify"
+   },
+   "brief": "Owner-reported 2026-11-04: v7.1.2 is installed but Home Assistant shows 7.1.1. Measured: tag v7.1.2 is lightweight, at merge b8e823699 with no stamp commit; VERSION, manifest.json and CARD_VERSION there read 7.1.1, and RELEASE_NOTES.md has no v7.1.2 heading. release.yml checks ancestry on main and the zip's domain, never that the tag equals VERSION and the manifest. Fix: release.yml refuses a tag whose version differs from VERSION, the manifest version or CARD_VERSION, before any asset or release is created. Failing test first; controls: a stamped tag passes (null), an unstamped tag at a merge refuses."
   }
  ]
 }
