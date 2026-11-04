@@ -16240,7 +16240,7 @@ def _gl_ended_before_summary() -> tuple[bool, str]:
         failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
         out = []
         for log in (crash, failed):
-            r = _sp.run(["bash", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
             out.append(r.returncode)
     return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
 
