@@ -12,6 +12,12 @@ the design note asks, to print the solve's ruling and its top.
   rule      every row of the design's rule table, plus the 15 % edge
   map       the flow set-point one arbiter pass writes for a 3.0 kW plan step,
             the plan stamped with the learned band against unstamped
+  plan      one live coordinator cycle per row (the round-9 rig: fixed
+            hourly prices, -5 degC, the clock frozen): the plan's top step,
+            a sha1 of its power_schedule and the stamp, for a fresh install,
+            a store within 15 %, eleven samples, a plan-writes-power install,
+            a learned top at half the configured one, and both again at a
+            flat price. Every configured row must hash as the fresh install
 
 Synthetic inputs only. Run from a worktree root (any tree; an arm whose
 symbols the tree lacks prints ``absent``, and at a base with no ruling the
@@ -23,7 +29,15 @@ from __future__ import annotations
 from datetime import datetime, timedelta, timezone
 from types import SimpleNamespace as NS
 
-from harness import FakeHass, FakeState
+import asyncio
+import hashlib
+import json
+from unittest import mock
+
+from harness import FakeEntry, FakeHass, FakeState
+from homeassistant.util import dt as dt_util
+from heatpump_optimizer import const
+from heatpump_optimizer import coordinator as cmod
 from heatpump_optimizer import draw_range as dr
 from heatpump_optimizer import pump_arbiter as pa
 from heatpump_optimizer.entry_config import EntryConfig
@@ -104,7 +118,60 @@ def map_arm() -> None:
           f"{_flow(None if b is None else b.as_dict())!r}")
 
 
+RIG_NOW = datetime(2026, 1, 15, 6, 0, tzinfo=timezone.utc)
+FLOW = {"pump_duty_mode": "control", "space_setpoint_unit": "flow",
+        "space_setpoint_entity": "number.water_set", "heat_pump_power_entity": "sensor.hp_power"}
+FREQ = {"compressor_freq_entity": "number.hp_compressor_hz", "freq_control_mode": "control"}
+
+
+def _rig(entry_id, extra, flat):
+    hass = FakeHass()
+    hass.states.set("sensor.indoor", FakeState("21.0"))
+    hass.states.set("sensor.outdoor", FakeState("-3.0"))
+    entry = FakeEntry(data={const.CONF_INDOOR_TEMP_ENTITY: "sensor.indoor",
+                            const.CONF_OUTDOOR_TEMP_ENTITY: "sensor.outdoor", **extra}, entry_id=entry_id)
+    coord = cmod.HeatPumpOptimizerCoordinator(hass, entry)
+    coord._prices = [{"total": 0.8 if flat else round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+                      "starts_at": (RIG_NOW + timedelta(hours=h - 2)).isoformat(), "level": "NORMAL"}
+                     for h in range(50)]
+    coord._weather_forecast = [{"datetime": (RIG_NOW + timedelta(hours=h)).isoformat(), "temperature": -5.0,
+                                "wind_speed": 3.0, "precipitation": 0.0, "humidity": 85.0} for h in range(48)]
+
+    async def noop(*_a, **_k):
+        return None
+
+    coord._fetch_tibber_prices = coord._fetch_weather_forecast = coord._fetch_solar_forecast = noop
+    return coord
+
+
+async def _inline(hass, optimizer, inputs):
+    from heatpump_optimizer.optimizer import optimize_in_process
+    return optimize_in_process(optimizer, inputs)
+
+
+def plan_arm() -> None:
+    dt_util.freeze(RIG_NOW)
+    rows = (("fresh, no store", FLOW, 0, 0.0, False), ("store 12 @ 0.9 (within 15 %)", FLOW, 12, 0.9, False),
+            ("store 11 @ 0.5", FLOW, 11, 0.5, False), ("plan-writes-power, 12 @ 0.5", FREQ, 12, 0.5, False),
+            ("store 12 @ 0.5 (learned)", FLOW, 12, 0.5, False), ("flat price, no store", FLOW, 0, 0.0, True),
+            ("flat price, 12 @ 0.5", FLOW, 12, 0.5, True))
+    for label, extra, n, frac, flat in rows:
+        c = _rig("top_" + label, extra, flat)
+        hub_max = float(cmod._ctx_of(c)._thermal_params.max_electrical_power)
+        if n:
+            c._accuracy.draw = store([frac * hub_max] * n, dt_util.now().timestamp() - 60.0)
+        with mock.patch.object(cmod, "_await_optimize", _inline):
+            asyncio.run(c.async_run_optimization())
+        ps = [round(float(x), 12) for x in c._optimization_result.power_schedule]
+        band = getattr(c._optimization_result, "solve_band", None)
+        print(f"plan: {label:28s} hub max {hub_max} top step {max(ps):.4f} "
+              f"sha {hashlib.sha1(json.dumps(ps).encode()).hexdigest()[:12]} "
+              f"stamp {'absent' if not band else (band['source'], band['reason'])}")
+    dt_util.freeze(None)
+
+
 if __name__ == "__main__":
     reader_arm()
     rule_arm()
     map_arm()
+    plan_arm()
