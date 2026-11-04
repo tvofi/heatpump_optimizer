@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pump_arbiter.py:supply_write BOOLOP 92bdc254",
-  "killed_by": "tests/features.py",
-  "old": "    if on or not ((signals.space_blocked and signals.dhw_blocked) or signals.mode.cooling):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if on or not ((signals.space_blocked or signals.dhw_blocked) or signals.mode.cooling):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=3."
-}

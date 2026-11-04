@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/pv.py:import_margin RETURN_DEL 9abdee01",
-  "killed_by": "tests/features.py",
-  "old": "    return np.asarray(import_prices, dtype=float) - float(export_price)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

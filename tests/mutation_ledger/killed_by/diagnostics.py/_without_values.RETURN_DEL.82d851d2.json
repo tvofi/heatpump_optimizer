@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/diagnostics.py:_without_values RETURN_DEL 82d851d2",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    return REDACTED if str(value) in private else value",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=7."
-}

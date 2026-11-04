@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/modbus_prefill.py:_window RETURN_DEL 0e8c3bf4",
-  "killed_by": "tests/features.py",
-  "old": "    return f\"{begin}-{end}\"",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
-}

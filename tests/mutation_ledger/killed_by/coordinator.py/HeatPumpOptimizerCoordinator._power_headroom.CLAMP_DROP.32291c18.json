@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._power_headroom CLAMP_DROP 32291c18",
-  "killed_by": "tests/features.py",
-  "old": "            \"headroom_kw\": round(max(0.0, limit - house_now), 3),",
-  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`\"headroom_kw\": round((0.0), 3),`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

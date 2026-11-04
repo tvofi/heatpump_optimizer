@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._optimize_with_dhw CLAMP_DROP 2fef7594",
-  "killed_by": "tests/env_drift.py",
-  "old": "            usage_intensity >= max(1.0, float(np.percentile(usage_intensity, 70)))",
-  "reason": "Recorded by `mutation_table.py --drain` against c3530277373ddf87652858f9ecb0ee1cf36f4347: CLAMP_DROP (`usage_intensity >= (1.0)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=2."
-}

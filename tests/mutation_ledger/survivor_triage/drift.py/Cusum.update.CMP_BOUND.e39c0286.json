@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/drift.py:Cusum.update CMP_BOUND e39c0286",
-  "old": "        signed = departure * (1 if self.side >= 0 else -1)",
-  "reason": "Survival measured by the CI pin chain at head d0001a468 (run 39133850652, job 117694465507, ratchet base f1b21daab): `drift.py:159 CMP_BOUND -- lives`, every driver in play green, the drift.py:35 NULL_COMMENT null control surviving them too. Equivalent over every reachable input (CMP_BOUND, `>=` -> `>`): the two arms differ only at `self.side == 0`. `side` is a dataclass field set only at construction (default 1); `Cusum.load` and `as_dict` never carry it; `grep -rn '\\.side\\b' custom_components/` names only this read, and `grep -rn 'Cusum(' custom_components/` names the two constructions, coordinator.py's `_vent_cusum` (side=-1) and `_cop_health_cusum` (side=1). The class contract (the field's own comment) is +1 or -1, so side 0 is no input the function can see. The expression is the base's, unchanged in logic (it read `float(residual) * ...` before #2241 moved the departure into `_departure`).",
-  "verdict": "equivalent"
-}

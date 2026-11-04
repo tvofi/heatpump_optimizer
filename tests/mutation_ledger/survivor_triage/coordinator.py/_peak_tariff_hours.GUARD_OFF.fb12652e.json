@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_peak_tariff_hours GUARD_OFF fb12652e",
-  "old": "    if not spec.strip():",
-  "reason": "Equivalent (GUARD_OFF, `if not spec.strip():` -> `if False:`, so the empty-option early return never fires and control falls to `return tuple(parse_windows(spec.strip()))`): the two arms return the SAME value on every input, because `parse_windows(\"\")` is `[]` -- measured directly, `python3 -c 'from heatpump_optimizer.dhw_schedule import parse_windows; print(parse_windows(\"\"))'` prints `[]`, so the fall-through gives `tuple([]) == ()`, which is what the guard returns; a whitespace-only spec strips to the same `\"\"`. Every other spec already skipped the guard. This is the #2226 route change: the body moved from `_tariff_hours` into this module-level `lru_cache`d parser, and the guard came with it unchanged (the line is fba6de8de's). Measured at fba6de8de by hand-mutation against the mutant driven from a `git archive` of HEAD: `tests/features.py`'s R10-FEEDS block rc=0 and `tests/config_flow_steps.py` rc=0, both separating nothing -- as expected of a mutant no check can separate. The other two old (#2226) tariff sites, `_peak_tariff_months` and `_tariff_hours`'s mask, are pinned and not involved here.",
-  "verdict": "equivalent"
-}

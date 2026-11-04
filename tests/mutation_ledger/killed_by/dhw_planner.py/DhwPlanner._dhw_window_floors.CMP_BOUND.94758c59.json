@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/dhw_planner.py:DhwPlanner._dhw_window_floors CMP_BOUND 94758c59",
-  "killed_by": "tests/features.py",
-  "old": "            while end_idx < n_steps and in_window[end_idx]:",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`while end_idx <= n_steps and in_window[end_idx]:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}
