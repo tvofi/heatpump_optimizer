@@ -1,0 +1,4 @@
+NOTE review 0 item 38811db3: #201
+NOTE review 0 item c1887e6e: #201
+NOTE review 0 item a51a0da8: dismissed:under the band and seconds-scale jobs; probing them would cost more than the residual
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
