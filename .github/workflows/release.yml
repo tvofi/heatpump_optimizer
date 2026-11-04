@@ -140,6 +140,14 @@ jobs:
           fi
           echo "${GITHUB_SHA} is on main"
 
+      # A TAG WHOSE TREE DOES NOT READ ITS OWN VERSION STOPS HERE. v7.1.2 was
+      # tagged lightweight at a merge with no stamp commit, so VERSION, the
+      # manifest and CARD_VERSION read 7.1.1 and the zip installed as 7.1.1.
+      # Runs before any asset or release exists; the logic is stamp.py's
+      # tag_version_problem, pinned by its --self-test.
+      - name: Refuse a tag whose tree reads another version
+        run: python3 tools/release/stamp.py --verify-tag "${TAG}" --ref "${GITHUB_SHA}"
+
       - name: Extract the tag's section from RELEASE_NOTES.md
         run: |
           awk -v tag="${TAG}" '

@@ -540,6 +540,49 @@ def rule4_problem(window: list[tuple[str, int, str]], body: str,
     return None
 
 
+#: The three places a release's version is written, as paths in the tag's tree.
+TAG_VERSION_FILES = {
+    "VERSION": "VERSION",
+    "manifest": "custom_components/heatpump_optimizer/manifest.json",
+    "CARD_VERSION": "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+}
+
+
+def versions_at(ref: str, runner=sh) -> dict:
+    """The three version strings at `ref` (None where a file cannot be read)."""
+    out: dict = {}
+    for name, path in TAG_VERSION_FILES.items():
+        try:
+            text = runner("git", "show", f"{ref}:{path}")
+        except (subprocess.CalledProcessError, OSError):
+            out[name] = None
+            continue
+        if name == "VERSION":
+            out[name] = text.strip()
+        elif name == "manifest":
+            try:
+                out[name] = json.loads(text).get("version")
+            except ValueError:
+                out[name] = None
+        else:
+            m = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', text)
+            out[name] = m.group(1) if m else None
+    return out
+
+
+def tag_version_problem(tag: str, versions: dict) -> str | None:
+    """Why `tag` may not be released from a tree reading `versions`, or None.
+
+    A tag is released only when VERSION, the manifest and CARD_VERSION all read
+    the tag's own number: v7.1.2 was once tagged at a merge with no stamp
+    commit, and its zip installed as 7.1.1."""
+    want = tag[1:] if tag.startswith("v") else tag
+    bad = [f"{name} reads {got!r}" for name, got in versions.items() if got != want]
+    if bad:
+        return f"{tag} does not match its tree: " + "; ".join(bad) + f" (expected {want!r})"
+    return None
+
+
 def rewrite_card_version(text: str, new_version: str) -> tuple[str, str | None]:
     """Replace CARD_VERSION in the bundled card. Returns (new_text, old_version)."""
     match = re.search(r'const CARD_VERSION = "(\d+\.\d+\.\d+)";', text)
@@ -1811,6 +1854,44 @@ def self_test() -> int:
     check("round close: main takes the version from next_version, the round from the roster",
           "next_version(current, args.bump, args.round_close," in _main_src
           and "roster_round_at(ROOT)" in _main_src)
+    # R10-HOTFIX-RELEASE-TAG: v7.1.2 was a lightweight tag at a merge with no
+    # stamp commit, so VERSION, the manifest and CARD_VERSION read 7.1.1 and the
+    # release zip installed as 7.1.1. The release workflow refuses such a tag
+    # through tag_version_problem, here driven on a real throwaway repository.
+    with tempfile.TemporaryDirectory() as _td:
+        _tp = Path(_td)
+        _tenv = throwaway_git_init(_tp, "-q")
+
+        def _tg(*a):
+            return subprocess.run(a, cwd=_tp, text=True, capture_output=True, check=True, env=_tenv).stdout
+
+        (_tp / "custom_components" / "heatpump_optimizer" / "www").mkdir(parents=True)
+        (_tp / "VERSION").write_text("7.1.1\n")
+        (_tp / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
+            '{\n  "domain": "heatpump_optimizer",\n  "version": "7.1.1"\n}\n')
+        (_tp / "custom_components" / "heatpump_optimizer" / "www" / "heatpump-optimizer-card.js").write_text(
+            'const CARD_VERSION = "7.1.1";\n')
+        _tg("git", "add", "-A")
+        _tg("git", "commit", "-q", "-m", "stamp 7.1.1")
+        _tg("git", "tag", "v7.1.1")
+        _tg("git", "tag", "v7.1.2")  # lightweight, no stamp commit: the defect
+        _runner = lambda *a: _tg(*a)
+        check("tag check: a tag whose tree reads its own version passes",
+              tag_version_problem("v7.1.1", versions_at("v7.1.1", runner=_runner)) is None)
+        _why = tag_version_problem("v7.1.2", versions_at("v7.1.2", runner=_runner))
+        check("tag check: a tag whose tree reads an older version refuses, naming all three",
+              _why is not None and "VERSION" in _why and "manifest" in _why and "CARD_VERSION" in _why)
+        (_tp / "VERSION").write_text("7.1.2\n")
+        _tg("git", "commit", "-q", "-am", "stamp 7.1.2 partly")
+        _why2 = tag_version_problem("v7.1.2", versions_at("HEAD", runner=_runner))
+        check("tag check: one stale file of three still refuses",
+              _why2 is not None and "tree: VERSION reads" not in _why2 and "manifest reads" in _why2)
+    check("tag check: a file that cannot be read refuses",
+          tag_version_problem("v7.1.2", {"VERSION": None, "manifest": "7.1.2", "CARD_VERSION": "7.1.2"}) is not None)
+    check("tag check: the release workflow runs it before any release is created",
+          "--verify-tag" in (ROOT / ".github" / "workflows" / "release.yml").read_text()
+          and (ROOT / ".github" / "workflows" / "release.yml").read_text().index("--verify-tag")
+          < (ROOT / ".github" / "workflows" / "release.yml").read_text().index("Build the integration ZIP"))
     print(f"RESULT stamp_self_test={'pass' if ok else 'fail'}")
     return 0 if ok else 1
 
@@ -2464,7 +2545,18 @@ def main() -> int:
                     help="do not dispatch the record beat for a window that owes rows; rule 5 "
                          "decides alone")
     ap.add_argument("--self-test", action="store_true")
+    ap.add_argument("--verify-tag", metavar="TAG",
+                    help="refuse (exit 1) unless VERSION, the manifest and CARD_VERSION at --ref "
+                         "all read TAG's version; the release workflow's first gate")
+    ap.add_argument("--ref", default="HEAD", help="the commit --verify-tag reads (default HEAD)")
     args = ap.parse_args()
+    if args.verify_tag:
+        why = tag_version_problem(args.verify_tag, versions_at(args.ref))
+        if why:
+            print(f"refusing to release: {why}", file=sys.stderr)
+            return 1
+        print(f"{args.verify_tag} matches VERSION, the manifest and CARD_VERSION at {args.ref}")
+        return 0
     if args.self_test:
         return self_test()
     if not (args.bump or args.round_close is not None) or not args.title:
