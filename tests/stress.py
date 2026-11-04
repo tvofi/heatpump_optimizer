@@ -806,6 +806,7 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel,
     ThermalParameters,
     ThermalState,
+    channel_heating_steps,
 )
 
 R = Results("Stress and economics")
@@ -1466,10 +1467,18 @@ def check_invariants(label: str, run: dict) -> list[str]:
     if len(result.space_reasons) != n:
         problems.append("reason codes do not cover the horizon")
     else:
+        # A heating step is one the owner says the space channel heats at
+        # (channel_heating_steps: its own draw over CHANNEL_ACTIVE_KW on a step
+        # the plan runs the pump at all), never a raw-draw copy of that line:
+        # a share on a step the plan calls off is idle to the classifier, as
+        # it is to the switch schedule (D8-s1-01).
+        heats = channel_heating_steps(
+            space, dhw if dhw.size == space.size else None
+        )
         unexplained = sum(
             1
-            for i, p in enumerate(space)
-            if p > 0.05 and result.space_reasons[i] == "idle"
+            for i, on in enumerate(heats)
+            if on and result.space_reasons[i] == "idle"
         )
         if unexplained:
             problems.append(f"{unexplained} heating steps have no reason code")
