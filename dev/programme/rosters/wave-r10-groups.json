@@ -15782,6 +15782,45 @@
     "note": "split p2 of R10-ARCHSCORE-SPELLINGS (p1 merged PR-3169 871a20da); fixer fired 19:18Z"
    },
    "brief": "Part 2 of R10-ARCHSCORE-SPELLINGS, split after #3169 r3: a generic template census of duplicated card-rule spellings, paid by deduplicating its real copies (card_rule_copies not above 72 net, a generic exclusion criterion for non-rule-copy shapes, archscore dS not worse, no budget raise). Closes #2259."
+  },
+  {
+   "lane": "IN",
+   "kind": "instrument",
+   "class": "N-structure-blind",
+   "severity": "high",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-HOTFIX-CI-CRITPATH-3",
+   "after": [],
+   "files": [
+    "tests/ci_ratchet.py",
+    "tests/ci_budgets.json"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-hotfix-ci-critpath-3",
+    "note": "s11 expedite, fired 2026-11-04"
+   },
+   "brief": "Expedite: main gate red on critical_path_minutes, the statistic grades hosted-runner speed. Third instance; RCA in R10-RCA-CI-CRITPATH-3."
   }
  ]
 }
