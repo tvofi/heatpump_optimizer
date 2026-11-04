@@ -23,7 +23,7 @@ R10-ARCH-SHAPES-CLASSIFIER: land the reason-classifier arm of D8-s1-01 that #281
 
 ## Head
 
-913e74e876606ecf573b387b613f5a4e621b9bc7 (PR head; code identical to c4d45522c669 plus the delivery row record). Repair pass 2026-11-04T09:20Z. Merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f; origin/main is now a9c2f90fc77be2e7a870f3f2735dcd0f79b5f475 and `git merge-tree --write-tree origin/main HEAD` reports no conflict, so no merge was made.
+825f8ecd0506076463683a766863a23793521386 (code head pushed to `handoff/r10-arch-shapes-classifier`). It is PR head c34999c1dd512e45fea3027bc49da31a78050d8a (the handoff 913e74e87 plus the bot commit `ci: pin killed mutants`) plus two commits of repair round 2, 2026-11-04: the new features check, then the pin json for the one site it kills. Merge base c3a279e3252a8b57bb00b5a677318cd4fe20387f. `origin/main` moved during the repair (a9c2f90f to 8e90d81443317f76f22602a89651f7ca17c633f9, fetched 2026-11-04 after the first `prepr.sh` run predicted `governance / wave-script AGREEMENT UNMERGED` and `GRADER UNMERGED`), so the head is a merge commit (`git merge origin/main`, no conflict; the ledger driver resolved `tests/structure_budgets.json` and `tests/closures.json`). Steps 2-8 were re-executed on the merged tree: `tests/features.py` printed `ALL 4786 FEATURE CHECKS PASSED`, `tests/entities.py` `ALL 2602 ENTITY CHECKS PASSED`, `tests/structure.py` `STRUCTURE RATCHET PASSED`, and `tools/pr/prepr.sh` ended `PRE-PR: <head> rc=0` with `ci predict` reading no predicted red against 8e90d8144331. `tests/golden/claimed_drift.txt` differs from origin/main by the ten lines of this PR's own shape claim (`## Figures`, unchanged since the first handoff); `card_claimed_drift.txt` is identical to origin/main, and VERSION, the manifest version and the `RELEASE_NOTES.md` heading are untouched.
 
 ## Mutation proof
 
@@ -44,6 +44,11 @@ Each failing check exercises a single seam:
 
 With the code restored, the gate's features run read `ALL 4785 FEATURE CHECKS PASSED`.
 
+**Repair round 2: the evidence_exhausted gate in isolation.** The review of 913e74e8 found that "a target the plan calls off asks the map for nothing (D8-s1-01)" does not kill `freq_control.py:228 GUARD_OFF`: its map holds buckets at 2.0 to 6.0 kW, so `evidence_exhausted(0.07)` reads False with or without the gate. The new check "evidence below a target the plan calls off is not exhaustion (D8-s1-01)" builds a map whose one bucket predicts 0.06 kW (`observe(25.0, 0.06, 20.0, 120.0)` repeated `FREQ_MIN_SAMPLES + 1` times) and requires `evidence_exhausted(0.07)` False and, as its null control on the same map, `evidence_exhausted(0.11)` True.
+- With the gate replaced by `if False:` (the one mutated line, nothing else), `PYTHONPATH=tests/hastub python3 tests/features.py` printed `FAIL evidence below a target the plan calls off is not exhaustion (D8-s1-01)`, `1 of 4786 FEATURE CHECKS FAILED` and `rc=1`.
+- With the file restored by `git checkout`, the same command printed `ALL 4786 FEATURE CHECKS PASSED`.
+- `python3 tests/mutation_table.py --pin-killed --base origin/main --jobs 3` printed `pinned   custom_components/heatpump_optimizer/freq_control.py:228 GUARD_OFF -- killed by tests/features.py` and `PIN KILLED: 1 pinned, 0 left unpinned`. The null control `freq_control.py:33 NULL_COMMENT` survived every driver, as it must. The pin json is `tests/mutation_ledger/killed_by/freq_control.py/FrequencyMap.evidence_exhausted.GUARD_OFF.39c9b8d5.json`, committed.
+
 The combined run does not show that each check kills its own mutant in isolation. Each check drives only its own seam, but a reviewer wanting per-mutant runs needs to rerun them. The preheat fixer's commit 589f65e2d recorded "Main's code fails exactly the first two" of its tests.
 
 ## Null control
@@ -57,7 +62,9 @@ The combined run does not show that each check kills its own mutant in isolation
 
 ## Figures
 
-All figures were taken at head 2bf3bed46 unless marked otherwise. The head c4d45522c669 adds only the tests/closures.json INERT entry. Toolchain: `bash tools/audit/seat/cloud-setup.sh` refreshed the venvs, and `cloud-setup.sh --check` printed OK. Afterwards, `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` printed `2.5.4 1.18.1`, which matches tests/requirements-ci.txt. CI stays the authority for goldens.
+Repair round 2 additions: `python3 tests/entities.py` printed `ALL 2602 ENTITY CHECKS PASSED`; `python3 tests/structure.py` printed `STRUCTURE RATCHET PASSED` (`seam_cut_total 423 <= 423`); `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` printed `MODE: SCOPED -- 29 script(s) run, 4 scoped out`. The commands for the first block of figures below are unchanged and were taken as stated there.
+
+All figures below were taken at head 2bf3bed46 unless marked otherwise. The head c4d45522c669 adds only the tests/closures.json INERT entry. Toolchain: `bash tools/audit/seat/cloud-setup.sh` refreshed the venvs, and `cloud-setup.sh --check` printed OK. Afterwards, `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` printed `2.5.4 1.18.1`, which matches tests/requirements-ci.txt. CI stays the authority for goldens.
 
 **Scoped gate and per-script checks**
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D` printed `MODE: SCOPED -- 29 script(s) run, 4 scoped out` at b03b76d5d. That diff later added tests/stress.py, which the scope already ran. At head c4d45522c669 the diff also touches tests/closures.json (the INERT entry), which the gate cannot scope, so prepr skipped its closures step and CI runs the full suite.
@@ -104,10 +111,10 @@ The positive control is the features check that labels a forecast wind spell at 
 
 ## Unpinned sites
 
-Each site is pinned by `mutation-autofix` after the push (its lane mutates `custom_components/`). The check named against each is the one expected to kill it, and that lane's run is the proof.
+Seven sites are pinned by `mutation-autofix` (`ci: pin killed mutants`, c34999c1); the eighth, freq_control.py:228, is pinned by this seat's `--pin-killed` run. The check named against each is the one expected to kill it, and that lane's run is the proof.
 - `custom_components/heatpump_optimizer/coordinator.py:10621 CMP_BOUND`: killed by "the watchdog's two bounds: the floor is exclusive, the minimum inclusive" (`_p8s_watch(2.0, 20.0) == [True]` at `reported == hz_min`).
 - `custom_components/heatpump_optimizer/freq_control.py:201 GUARD_OFF`: killed by "a target the plan calls off asks the map for nothing (D8-s1-01)" (recommend at 0.07 kW answers a frequency).
-- `custom_components/heatpump_optimizer/freq_control.py:228 GUARD_OFF`: killed by the same check (evidence_exhausted at 0.07 kW reads True).
+- `custom_components/heatpump_optimizer/freq_control.py:228 GUARD_OFF`: the earlier claim that "a target the plan calls off asks the map for nothing" kills it was wrong (review of 913e74e8). It is killed by the new check "evidence below a target the plan calls off is not exhaustion (D8-s1-01)" (`## Mutation proof`, repair round 2) and pinned by the committed json; the bot's `ci: pin killed mutants` pinned the other seven.
 - `custom_components/heatpump_optimizer/optimizer.py:340 CLAMP_DROP`: killed by "pin _weather_loss_factors' two floors by value" (9bfbe3866): with a zero nameplate, dropping the 0.001 floor gives a flat 0.
 - `custom_components/heatpump_optimizer/optimizer.py:341 CLAMP_DROP`: killed by the same floor check: with a zero learned scale, dropping the 1e-9 floor divides 0 by 0 (NaN).
 - `custom_components/heatpump_optimizer/optimizer.py:1421 GUARD_OFF`: killed by every classifier call with `other=None`, which then reaches `channel_heating_draw(None, ...)` ("a step the plan runs no pump at is idle to the reason classifiers (D8-s1-01)" among them).
@@ -116,16 +123,23 @@ Each site is pinned by `mutation-autofix` after the push (its lane mutates `cust
 
 ## Red checks
 
-Read from the whole check-run set of PR #3184 at 913e74e876606ecf573b387b613f5a4e621b9bc7 (43 runs, one page):
+Read from the whole check-run set of PR #3184 at c34999c1dd512e45fea3027bc49da31a78050d8a, the PR head this repair starts from (54 runs, one page of 100, read 2026-11-04 by `get_check_runs`). The new code head has no CI yet: a handoff ref runs no job. Every concluded red at c34999c1:
 
-- `tests / mutation` (job 126469507836): `MUTATION TABLE REFUSED`, 8 added unpinned sites (coordinator.py:10621, freq_control.py:201 and :228, optimizer.py:340, :341, :1421, :1423, thermal_model.py:1218), the same 8 under `## Unpinned sites`. Red by construction; `tests / mutation-pins (1)` and `(2)` were in progress at read time, which is mutation-autofix's lane, so this seat pinned nothing and a second pin commit would duplicate it. A local `mutation_table.py --pin-killed` run had not finished its baselines when this was written, so no survivor is claimed or excluded here.
-- `tests / replay` (job 126469677904): 1 of 176 replay checks FAILED, `synthetic-dhw-only.json: cycle_cost [cpu_ratio 2.825 over its budget 2.173]`. The same job's first pass recorded `cpu_ratio=3.996` for that fixture and the doubled-cost arms read 5.70, 2.83 and 3.26, so the reading swings across the budget on a shared runner: timing noise. Control: `PYTHONPATH=tests/hastub python3 tests/replay.py` on this tree printed `ALL 176 replay checks PASSED` (exit 0), including that fixture's cycle_cost. A rerun of the job is the proof; no code change fits a timing flake and the budget is not loosened.
-- `tests / nightly-status` (job 126469507775): the unrequired nightly lane, red on the default branch's nightly. Its message says it is not a required context on main-protect and names the fix as `gh workflow run nightly.yml --ref main`. Main's, not this branch's: this diff touches neither nightly.yml nor that lane.
+- `tests / mutation` (job 126509242207): `MUTATION TABLE REFUSED` on the 8 added unpinned sites. The bot's pin run pinned seven; the eighth, `freq_control.py:228 GUARD_OFF`, survived because the check the earlier body named did not kill it. Repaired here: a new check kills it and the pin json is committed (`## Mutation proof`).
+- `gate` (jobs 126520080238 and 126519094366, two runs): the required aggregate, red because `tests / mutation` and `pr-contract / pr-contract` are red below it.
+- `pr-contract / pr-contract` (jobs 126519711082 and 126518787652): `ERROR [pr-body] the red history could not be derived: check-runs at e3daad4: HTTP 502 from /repos/tvofi/heatpump_optimizer/commits/e3daad4d2c08317cb061606dacf45f9a059cb64c/check-runs`, a transient HTTP 502 reading check-runs, and nothing else red in that job (`CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)` in the same log). A re-run is the proof; this body changes nothing it reads from a 502.
 
-The branch also turned three checks red, all in the local scoped gate at b03b76d5d and all fixed before the handoff:
+Reds on ancestors of this head, read from the check-run sets of 913e74e8 and c34999c1 (the ancestry), each answered:
+- `tests / mutation-autofix` (red at the bot head): the autofix job went red by design because its applied measurement left `freq_control.py:228 GUARD_OFF` alive (`ci-autofix.md`: a survivor is red; triage is manual). Answered by the repair: the new check kills the site and the pin json is committed.
+- `tests / replay`: 1 of 176 replay checks FAILED, `synthetic-dhw-only.json: cycle_cost [cpu_ratio 2.825 over its budget 2.173]`. Timing noise on a shared runner: the review measured the fixture at base (`cpu_ratio 2.553`) and at head (`2.455`), both over 2.173, so the base fails the same way and the red is the runner's. The diff touches no replay code or budget; no cheaper detector exists than the replay lane itself, whose standing cost is its own minutes. It is skipped at c34999c1.
+- `tests / nightly-status`: the unrequired nightly lane, red on the default branch's nightly. This diff touches neither nightly.yml nor that lane, so the red is the orchestrator's on `main` (`defect-root-cause.md`).
+
+The branch also turned three checks red in the local scoped gate at b03b76d5d, all fixed before the first handoff:
 - **typing_ruler** (`attr-defined` +5). Importers took `FREQ_MODE_*` from `freq_control` after it began importing them from `const`, which is an implicit re-export. The cheaper detector is the source-only typing ruler: it runs mypy, takes about a minute, and is run_always. No cheaper one exists for re-export semantics.
 - **stress** (`winter_extreme/2z/space`, "1 heating steps have no reason code"). The invariant was a copy of the retired 0.05 line. A cheaper detector would be the P2 registry extended to `tests/`. It does not exist, because the registry reads production modules only. Recorded refusal: tests are not production deciders, and the stress sweep runs on every scoped diff that touches the optimizer.
 - **harness_headers** (canonical `repo_root` walk). The new harness's copy lacked the inner import. The cheaper detector is harness_headers itself, about 10 s and run_always.
+
+The mutation red is also one a cheaper detector could have run: `python3 tests/mutation_table.py --pin-killed --base origin/main` is the lane's own command and ran here in minutes; the fixer's miss was naming a killer check without mutating the site in isolation (`fixer.md` step 2), now done.
 
 ## Forward-carry
 
