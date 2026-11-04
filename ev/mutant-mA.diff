@@ -1,0 +1,51 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 2209f523f..13459a804 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -118,7 +118,7 @@ over the step is hot water). Each step is ``delivered``,
+ ``space-instead``, ``dhw-instead``, ``idle-instead``, ``unknown`` (no power
+ meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
+ reads as hot water; a big draw can hide a tank rise. The last
+-:func:`log_steps` steps and their counts are in the diagnostics; the ledger
++:data:`LOG_STEPS` steps and their counts are in the diagnostics; the ledger
+ is not persisted. It is what decides whether control is worth turning on:
+ ``delivered`` over the other verdicts is how often the pump already does
+ what the plan wanted.
+@@ -212,14 +212,8 @@ RETRY_MINUTES = 5.0
+ #: the other duty for the whole step (valve travel and compressor cycling).
+ SPLIT_MIN_MINUTES = 5.0
+ TANK_RISE_C = 0.5
++LOG_STEPS = 96
+ _STORE_VERSION = 1
+-
+-
+-def log_steps() -> int:
+-    """One day of plan steps, the decision log's length (width owned by plan_step)."""
+-    return 24 * 60 // PLAN_STEP_MINUTES
+-
+-
+ _TICK = timedelta(minutes=1)
+ #: How long into a step the meter still reads the last step (#2492 carry 8):
+ #: the supply tick writes the switch in the step's first tick, and the
+@@ -249,7 +243,7 @@ class ArbiterState:
+     misses: dict[str, int] = field(default_factory=dict)
+     retry: dict[str, datetime] = field(default_factory=dict)
+     step: dict[str, Any] | None = None
+-    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=log_steps()))
++    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=LOG_STEPS))
+     dhw_since: datetime | None = None
+     last_duty: str | None = None
+     loaded: bool = False
+@@ -1159,10 +1153,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
+     result = inp.plan
+     i = bisect.bisect_right(result.timestamps, now) - 1
+     space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
+-    dhw_min = PLAN_STEP_MINUTES * dhw / (space + dhw)
++    dhw_min = 15.0 * dhw / (space + dhw)
+     if dhw_min < SPLIT_MIN_MINUTES:
+         return "space"
+-    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
++    if 15.0 - dhw_min < SPLIT_MIN_MINUTES:
+         return "dhw"
+     return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
+ 
