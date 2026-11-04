@@ -4379,17 +4379,14 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
     def _load_scalar_learners(self, stored: Mapping[str, Any]) -> None:
         """The four scalar learners and their sample counts: the store loader's and the snapshot restore's one parser."""
-        buffer, house, lower, cop = (
-            _stored_learner(stored, key, samples, apply) for key, samples, apply in (
-                ("buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate),
-                ("house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale),
-                ("lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio),
-                (_COP_STORE_KEY, "cop_samples", self._apply_cop_scale),
-            ))
-        if buffer is not None: self._buffer_cooling_samples = buffer
-        if house is not None: self._house_heat_loss_samples = house
-        if lower is not None: self._lower_floor_loss_samples = lower
-        if cop is not None: self._cop_samples = cop
+        n = [_stored_learner(stored, key, samples, apply) for key, samples, apply in (
+            ("buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate),
+            ("house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale),
+            ("lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio),
+            (_COP_STORE_KEY, "cop_samples", self._apply_cop_scale))]
+        cur = (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples, self._cop_samples)
+        (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples,
+         self._cop_samples) = (c if v is None else v for v, c in zip(n, cur))
 
     def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
