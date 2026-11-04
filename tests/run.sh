@@ -483,6 +483,9 @@ for f in tests/*.py tests/*.mjs; do
     # the Actions API listing it has no token for. tests/entities.py drives
     # its refusal rule and its null control instead.
     ci_ratchet.py) continue ;;
+    # The runner's speed probe: a step of its own in each heavy CI job,
+    # timed by the Actions API for ci_ratchet.py; tests/entities.py pins it.
+    host_probe.py) continue ;;
     # The nightly's reporter (#533): the `nightly-status` job runs it on every
     # pull request. It reads the GitHub Actions API, which this suite has no
     # network and no token for, and its verdict is about CI's history rather
@@ -768,7 +771,7 @@ done
 for f in tests/*.py tests/*.mjs; do
   base=$(basename "$f")
   case "$base" in
-    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py) continue ;;
+    harness.py|profiles.py|throwaway_git.py|dst_checks.py|closure.py|gate_lock.py|lane_skip.py|issue996_count.py|ha_floor.py|dom_stub.mjs|card_rig.mjs|card_browser.mjs|node_fs_trace.mjs|nightly_ha.py|replay.py|nightly_status.py|delivery_status.py|coverage_ratchet.py|mutation_table.py|ci_ratchet.py|host_probe.py) continue ;;
   esac
   # The arch part owes the pair and nothing else; `fast` owes the rest, the
   # pair as its two named skips.
