@@ -44,7 +44,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-GANTT-DRIFT (stage absorbed, branch `handoff/r10-fly-gantt-drift`): `git fetch origin handoff/r10-fly-gantt-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-OPEN-LOG (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-RCA-CI-CRITPATH-3 (stage in-progress, branch `handoff/r10-rca-ci-critpath-3`): `git fetch origin handoff/r10-rca-ci-critpath-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-OVERBOOK-RESIDUAL (stage in-progress, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-LEVELS (stage in-progress, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-GATE-STALE-JOBS (stage in-progress): no branch pushed yet, so nothing to fetch
 
