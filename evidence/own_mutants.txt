@@ -1,0 +1,14 @@
+killed   budgets-from-base 1 FAIL the same candidate at exactly cap+band exits 0 (4 <= 3 + 1): got 1, want 0
+SURVIVED round-down 0 
+SURVIVED octopus-counted 0 
+SURVIVED budgets-touch-not-required 0 
+SURVIVED before-zero-allowed 0 
+killed   short-history-accepted 1 FAIL a history shorter than the window is refused, never measured short: got 'measured', want 'refused'
+killed   extra-key-accepted 1 FAIL load_budgets refuses an unread key: got 'read', want 'refused'
+killed   event-base-only 0 
+SURVIVED no-product-refusal 0 
+SURVIVED bool-before-accepted 0 
+SURVIVED entry-key-missing-ok 0 
+killed   record-file-version-dropped 1 FAIL VERSION and RELEASE_NOTES.md are record paths: got (False, True, True), want (True, True, True)
+killed   window-lt1-ok 1 FAIL load_budgets refuses a zero window: got 'read', want 'refused'
+killed   candidate-exempt-unchecked 2 FAIL exemption: 11% with evidence passes: got 1, want 0
