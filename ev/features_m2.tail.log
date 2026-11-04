@@ -1,0 +1,161 @@
+rol: a zero derate hands the quotient back unchanged
+  ok   the savings baseline buys a derated pump's heat at the power that delivers it: on the band its draw rises with the derate; null control: a draw below the modulation floor is unchanged
+  ok   the hot-water clamp's truncated steps land on their ceiling in the derated simulation, not short of it or past it, at a draw above the plain quotient's; null control: with no derate they land there too
+  ok   the hot-water LP's plan, simulated with the derate, reaches the floor it was solved against: its last-step draw is the root, not heat / cop; and capped below that draw it sizes its energy ceiling by the derated heat; null control: with no derate the floor is met at a lower draw
+  ok   the setpoint sweep prices a day's hot water at the draw that delivers it: with a floorless band every candidate costs more under the derate; null control: the zero-derate costs are the plain quotient's
+  ok   a top-up's increment adds exactly the heat asked for to the step's own derated heat, up or down, and costs more than the plain quotient on the band; null control: a zero derate hands the quotient back unchanged
+  ok   the cheapest-first planner buys a derated pump's heat at the draw that delivers it: one block lands the tank where the zero-derate block does, at a higher draw; capped, its spare heat is the derated heat the cap delivers and the floor is still met; null control: with no derate the same tank and the plain draw
+  ok   the anti-legionella run-up walks back along the heat a derated pump delivers at its run power: each step lifts the tank less, so the floor before the cycle starts higher; null control: no derate, the plain walk
+  ok   the floor repair's top-up and its room under the ceiling are the draws that deliver the heat at a derate: the derated tank walks the same temperatures as the zero-derate one, at higher draws; null control: with no derate the plain quotients
+  ok   the always-hot hot-water baseline buys its mean draw at the power that delivers it: on a floorless band the derate raises it; null control: below a 1 kW modulation floor, where real installs run it, unchanged
+  ok   the capacity caps turn an envelope that holds exactly the heat the model says nameplate delivers back into nameplate, under a derate too, not a cap trimmed by the derate; null control: no derate, no cap either
+  ok   the buffer-cap tightening cuts a refusing step to the draw whose derated heat the tank takes: re-simulated at the new caps nothing is refused, and the cut is shallower than the plain quotient's; null control: with no derate it refuses nothing either
+  ok   the virtual battery's charge rate is the heat the pump delivers at nameplate, derate included; null control: no derate, power times COP
+
+-- R10-HEAT-METER: a delivered-heat counter, split by the mode dwell (#2261)
+  ok   a counter span closes on elapsed time, inside the learners' sample bounds, under a drifting cadence and one event-driven cycle (null control: no drift allowance overruns the bound at a 45 min cadence)
+  ok   a counter reset and a rollover are refused, and the next span reads true (null control: the same plant without either)
+  ok   an integer-kWh counter is refused at 0.6 kW, reads 1.5 kW unbiased over its spans (null control: 3.0 kW reads 3.0)
+  ok   a counter that never stepped is refused, and so is a span that expects no heat
+  ok   the electric delta shares the heat span's instants: heat over electricity is the plant's COP exactly
+  ok   an electric counter not read at the close leaves the span unaligned (None), never a delta over other instants
+  ok   a live mode read carries its last_changed and a last-good one carries none
+  ok   heat then hot water inside one interval splits at the mode's last_changed (10 of 30 minutes space), and an integrated heat takes that share
+  ok   the same interval on a point reading (thermal power) gives no space figure, not a half (null control: a space-only interval gives the reading)
+  ok   a single-duty step the arbiter wrote (owned) counts as observed
+  ok   a mode that left and came back between two reads is an unseen excursion: the interval is unobserved and splits by the plan
+  ok   a combination mode and a last-good mode split by the plan, reproducing the whole-unit rule on every (heat, space, hot water) of a grid
+  ok   on the plan's split the COP curve choice and the ledger's hot-water share are the sites' own rules, bit for bit
+  ok   a configured heat counter outranks the thermal power entity and the flow meter, and a cycle reads no heat from it (null control: the thermal entity alone reads 4.2 kW)
+  ok   the install probe reports a heat counter as measured heat, alone or beside the thermal entity; the options step asks for it beside the energy meter
+  ok   a quiet heat counter holding its value reads fresh; one that re-reported and then fell silent past 180 min is stale; MWh reads as kWh
+  ok   a counter span folds COP as heat over electricity, exactly the plant's on a known-COP plant; inside the span a cycle folds nothing
+  ok   null control: heat equal to the model's COP times the electricity reproduces the model, and the scale holds at 1.0
+  ok   with no electric counter the span's COP is refused as unaligned meters
+  ok   a heat counter with the electric counter and no power entity folds its span's COP as heat over electricity; a cycle inside the span reads span_open, not no_measured_power
+  ok   null control on that install: heat equal to the model's COP times the electricity reproduces the model and the scale holds at 1.0
+  ok   on that install the duty floor is judged at the span close on its mean draw and ask: 0.5 kW refuses, the 2.0 kW span folds (null control)
+  ok   one gated middle cycle refuses that learner's span and only its own; the span replays from its opening state over its plan
+  ok   the per-cycle span gate: a stale input, the boost freeze and ventilation gate it, the unmetered-power freeze lifts, and a cycle with no interval gates
+  ok   the first fold that replays a measured heat earns the measured_heat basis, voiding the earlier fit first; the next fold keeps it (null controls: no heat reading and a flow-meter estimate keep their basis and scale)
+  ok   the earned basis is saved and restored with the meter still configured; with it removed the basis is the configured one and the fit is kept, not voided; the store schema admits the third basis
+  ok   only an unearned meter on a measured-heat install earns the basis, and only on a heat reading (null control: the same install with a reading earns it)
+  ok   on a counter install with the basis earned the detector still steps every cycle and the per-cycle path folds nothing (null control: before it is earned the cycle folds, as without a counter)
+  ok   the ledger and the diagnosis triple split by the same observed dwell (one third space) where the plan said all space
+  ok   at a 30 min cadence the span closes 3 min inside the last cadence that fits the 1.5 h bound: a read at exactly 0.95 h closes it, one at 0.92 h does not
+  ok   a span of exactly the learners' 1.5 h maximum is read (their bound is strict); an idle span reads zero heat, not a reset; a delta of exactly 1.5 x the nameplate over the span is read and 1.75 x is a rollover
+  ok   the counter's resolution is its smallest step (2, then 1, then 2 kWh read 1); a span expecting exactly one step is read, and one expecting no heat is refused without dividing by it
+  ok   with no heat reading, or an observed split with no weight, the space share is None, never a division
+  ok   a refused span reads its refusal, and no heat
+  ok   a span whose resolution is refused replays into no fabric learner (null control: the same span with a fine counter replays into both)
+  ok   a span run folds its own heat with no freeze; a per-cycle run reads the cycle's heat and folds unless the span owns the scale
+  ok   an empty dwell, a window of no length and one opening before the first read are unobserved
+  ok   an unobserved stretch before the window leaves the window observed
+  ok   a change stamped ahead of its read lands at the read, and one stamped before the previous read lands at that read
+  ok   a span that switched to hot water 20 min in splits 20/40 at its close, not by the plan (null control: no change reads all space)
+  ok   the dwell keeps only the segments the open span and the cycle read (40 flips leave at most 4)
+  ok   a span reopened with no baseline closes with no evidence (null control: the span before it, anchored, hands its opening state)
+  ok   a closed span reaches the house and lower-floor learners with its 6 kW of space heat; a span whose house gate failed reaches the lower floor alone
+  ok   each fabric learner returns its span gate (True) when it folds and when it refuses a residual past the bar; the lower floor folds at exactly 6 K
+  ok   null control for the resolution bound: at the design's 0.5 the one-hour span refuses every integer-kWh span at 1.5 kW, which 1.0 reads
+  ok   a house meter holding 0 W for 4 h on change only reads 0 kW (PV covering the house); one that re-reported and then fell silent 40 min is stale
+  ok   a snapshot on an unhealthy day names the input that made it so, and a healthy day names none (D15 L9)
+
+-- supply switch at step boundaries (#2492, R10-SAV-ACTUATION)
+  ok   a synthetic install at cycle phase 0 and at 14 min books identical duty verdicts (#2492)
+  ok   a planned-idle step books no run from the previous step's tail power (#2492 carry 8)
+  ok   null control: without the meter tail every step is delivered
+  ok   the step tick writes the switch at the boundary of each step whose command changes
+  ok   an early cut-off holds across a step boundary the plan keeps on
+  ok   the step tick writes the plan's OFF at a boundary when nothing holds the cycle's write off the plan
+  ok   the step tick writes nothing at a boundary under a live boost across a boundary whose plan step is off
+  ok   the step tick writes nothing at a boundary under a system_identification action
+  ok   the step tick writes nothing at a boundary under a fixed (comfort) mode
+  ok   the step tick writes nothing at a boundary under a stale plan
+  ok   the step tick writes nothing at a boundary under a released entry
+  ok   the step tick writes nothing at a boundary under a step past the plan's power schedule
+  ok   unload drops the one step tick two cycles armed
+  ok   an install with no supply switch arms no step tick, where one with a switch arms it
+  ok   the step tick inside MIN_OFF of an early cut-off writes no turn_on at a step the plan turns on
+  ok   null control: the same tick with no cut on record turns the switch on as the plan says
+  ok   the step tick writes nothing at a step the plan turns off while the pump's mode blocks both channels
+  ok   null control: the same tick in a mode that blocks nothing writes the plan's OFF
+  ok   the step tick writes nothing inside a step whose boost starts mid-step
+  ok   null control: the same tick at the next boundary writes the boost's ON
+  ok   every slot the pump arbiter persists is declared in the pump_duty store domain
+
+-- R10-CEILING-PROBE: the experiment's step reaches the pump; the ceiling store
+  ok   the probe's step (the configured 5.0 kW maximum) is heating at the flow ceiling
+  ok   the fit's sized 1.5 kW step writes its own level, below the ceiling, from the action not the plan (whose step here is 5.0 kW)
+  ok   the experiment's zero step (the fit's relax) is idle: the gate is written
+  ok   moving control: a plan at 5.0 and at 1.5 kW write two levels, the ceiling and the fit's -- before the fix the experiment wrote the baseline at both
+  ok   the experiment's duty is space exactly where its booked heat_pump_on is True
+  ok   a probe interval: the cycle books the supply on, and the step tick writes nothing over it
+  ok   item 29: the accessor is raw -- eleven samples give None, twelve their median
+  ok   item 29: twelve at 4.5 kW on a 5.0 kW configuration publish 4.5 (within 15 % is still published raw; the agreement ruling is R10-COP-GATE part D's); eleven, None
+  ok   item 29: the accessor is the median of the store, not its mean or its extreme -- one low interval (a cut step, a partial draw) among eleven at 3.0 kW, and one high outlier among eleven, both leave it at 3.0
+  ok   item 29: the accessor is the median, not an upper quantile -- nine intervals at 3.0 kW and three at 4.0 kW give 3.0, where the 90th percentile is 4.0
+  ok   the top lapses 45 days after the newest sample, and a sample stamped ahead of the clock has no knowable age
+  ok   an experiment's ceiling interval writes the store, not the window; the same interval the plan commanded writes the window, not the store
+  ok   a gate-held 1.4 kW draw above a learned 1.1 kW idle is a running sample yet stores nothing, nor does a ceiling draw at the idle draw or a sub-ceiling one; the same 1.4 kW with the ceiling written does
+  ok   reversal control: 48 ceiling draws through the window latch the clamp to the experiment's own measurement; the same 48 in the store leave engaged False, observed() unset and the top published beside the latch
+  ok   item 8: two ordinary ceiling-written draws 20 % over the learned top drop the store; one does not, 10 % over never does, and a sub-ceiling draw is no test
+  ok   a new probe sample restarts the overdraw count
+  ok   the store and its overdraw count persist through the accuracy store, a store-only record (no window, no configuration) included, and the domains admit every cell
+  ok   an unreadable store row is dropped, not the record; a non-count overdraw reads 0
+  ok   the probe's duration search: 2.0 h on the leaky house, 1.0 h on the tight one against the 0.8 K bound, none on a house no two-cycle step fits
+  ok   item 14, both sides of the bound: the probe takes the full 0.8 K, where the fit's noise-headroom bound (0.65 K) would leave the tight house one cycle and refuse it
+  ok   the kind: the fit while unconverged (150, 199), the probe once converged where the install can run one, and a published refusal where it cannot
+  ok   each kind its own clock: the probe waits 7 days unlearned and 30 once learned, from the store's newest sample or this process's last probe step
+  ok   a converged house arms a probe: it settles an hour on the plan, steps the configured 5.0 kW for four intervals, then hands back to the plan, fitting and adopting nothing
+  ok   the view names the kind and the last arm press
+  ok   a converged house with no meter or no flow set-point is refused at the press, and the refusal is published (it used to arm and idle in silence)
+  ok   the comfort and price gates hold the probe: none starts outside the night window
+  ok   the comfort and price gates hold the probe: none starts outside the outdoor band
+  ok   the comfort and price gates hold the probe: none starts on an expensive hour
+  ok   the comfort and price gates hold the probe: none starts on a flat price
+  ok   flat-price null: the fit's gate is unchanged on a flat price (ready), the probe's refuses it
+  ok   the comfort abort still stops a probe mid-step
+  ok   item 15: the searched duration is the one stepped -- the tight house's 1.0 h probe steps two intervals, not the configured 2.0 h
+  ok   a freeze holds an armed experiment and publishes why; once started, it aborts
+  ok   eligibility is install-level and shared with the arbiter's flow-command rule: a meter and a flow set-point driven in Control
+  ok   the button's route: a converged flow-metered install arms the probe, a converged duty-cycling one is refused with the reason, an unconverged one arms the fit
+  ok   item 7: a probe three days ago, read back from the stored record by a fresh experiment object, still refuses the press; eight days ago arms
+  ok   the coordinator's freeze holds the armed probe with its reason, and aborts a started one
+  ok   item 30: a run's last step interval goes to the store although the plan has been adopted since; a plan p_max interval just before a run goes to the window although the experiment has started since
+  ok   the synthetic pump's known 3.0 kW maximum is recovered within 2 %: three 2.0 h probes (four store samples each) and six 1.0 h probes (two each)
+  ok   control: routed on the mode one interval late, the 1.0 h probes store one sample each and a probe interval reaches the window
+  ok   the recorded outcome names the kind, the phase, the refusal and the last press, outside the unrecorded set, where the bulky view stays
+  ok   the fit's clock is inclusive: exactly 30 days after its last run arms it; 200 learner samples is converged, 199 is not
+  ok   the probe's clock is inclusive: exactly 7 days after the newest store sample arms it
+  ok   a fit armed unconverged stands down at the start once the learner reaches 200 samples
+  ok   the lapse is inclusive: a top exactly 45 days old still stands
+  ok   the store's edges: a set-point exactly CEILING_TOLERANCE_K under the ceiling is the ceiling, a draw exactly at the idle margin is the idle draw
+  ok   an overdraw counts at a set-point exactly CEILING_TOLERANCE_K under the ceiling
+  ok   the store keeps the newest 48 samples (CEILING_WINDOW)
+  ok   a stored row at the standby floor is dropped, one above it kept; a negative count reads 0
+  ok   a plan action's power is not the experiment's: the plan's own step (5.0 kW) decides duty and level although the action reads 0 kW
+  ok   no experiment view, no outcome row
+  ok   a probe armed on a declared plant seeds no fit: no slab pair, no re-seeded gains prior
+  ok   a house no two-cycle probe fits is aborted at the step with the reason, injecting nothing and starting no probe clock
+  ok   a draw exactly AGREE_TOLERANCE over the learned top is no overdraw
+  ok   the duration search's bound is inclusive: a peak exactly at the bound keeps the 2.0 h step, one ulp under it shortens to 1.5 h
+  ok   the fit's degenerate-house fallback is strict: a loss or a mass of exactly 1e-6 is no house to size on, and steps 0.3 of the maximum
+  ok   the probe prices its heat at the fit's COP floor (0.1): at a reported COP of 0.05 the 0.5 kW it injects fits no step on this house, where 0.25 kW would fit 2.0 h
+  ok   a step inside a quiet off or silent window is named; outside one, or with none set, it is not
+  ok   inside a quiet off window the coordinator holds an armed probe with the reason and aborts a started one; a window elsewhere in the day holds nothing
+  ok   hold_reason ranks a mode that cannot heat first, then the learners' freeze, then an unread room, then a quiet window, and is None when none holds
+  ok   arm_from_config takes the switch from the entry's configuration: off arms nothing, whatever the sysid config held before
+  ok   arm_from_config logs the armed kind once when it arms, and says nothing of arming when it does not
+  ok   R10-HOTFIX-AWAY-PRESENCE a presence entity whose interpreted away state flips, or a holiday calendar whose dates change, asks for a refresh at once, one per change
+  ok   R10-HOTFIX-AWAY-PRESENCE null control: a change that leaves the interpreted away state or the holiday dates as they were asks for no refresh
+/tmp/tmp.ULskFUbhLe/m2/tests/features.py:76765: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  _ap_unload()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
+  ok   R10-HOTFIX-AWAY-PRESENCE no presence entity or calendar, no listener; one each when both are set, and the entry's unload drops both
+  ok   R10-HOTFIX-AWAY-PRESENCE an entry with no unload list gets no listener: none is registered that its unload could not drop
+  ok   R10-HOTFIX-AWAY-PRESENCE the republished reload handover says the next solve is due now, not the pre-reload cycle's time
+  ok   R10-HOTFIX-AWAY-PRESENCE null control: the handover keeps its own plan age (the plan is still the pre-reload one)
+
+2 of 4785 FEATURE CHECKS FAILED
+rc=1
