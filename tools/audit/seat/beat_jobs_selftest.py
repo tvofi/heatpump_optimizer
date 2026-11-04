@@ -131,6 +131,16 @@ def cases(bj) -> dict[str, bool]:
     bj.tick_digest(c)
     res["tick-digest: a transient RED gives nothing; on a second board it appears"] = (
         pre and once and same and digest(c) == red + "\n")
+    nr = "#3103: NOT REVIEWABLE head 0123abcd not fetchable"
+    c, _ = fresh()
+    pre = nr not in digest(c)
+    c.board.write_text(board("2026-11-01T09:00:00+00:00", nr))
+    bj.tick_digest(c)
+    once = nr not in digest(c)
+    c.board.write_text(board("2026-11-01T09:04:00+00:00", nr))
+    bj.tick_digest(c)
+    res["tick-digest: a transient NOT REVIEWABLE gives nothing; on a second board it appears"] = (
+        pre and once and digest(c) == nr + "\n")
     c, _ = fresh()
     c.board.write_text(board("2026-11-01T09:00:00+00:00", red))
     bj.tick_digest(c)
@@ -198,6 +208,10 @@ def cases(bj) -> dict[str, bool]:
     res["owed-check: the instrument is handed the board and the ledger"] = (
         arg(a, "--tick") == str(c.board) and arg(a, "--acks") == str(c.state / "ledger")
         and arg(a, "--state").endswith("owed-unactioned.json"))
+    c, f = fresh(overlay={"repo": "o/r", "seat_ledger": ""})
+    bj.owed_check(c)
+    res["a row whose overlay key is empty says so, and runs nothing"] = (
+        digest(c) == "owed-check: UNREADABLE overlay lacks seat_ledger\n" and not f.calls)
     c, f = fresh(overlay={"repo": "o/r"})
     bj.owed_check(c)
     res["a row whose overlay key is missing says so, and runs nothing"] = (
@@ -243,6 +257,21 @@ def cases(bj) -> dict[str, bool]:
     bj.roster_drain(c)
     res["roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"] = (
         held and stale and f.ran("roster_queue.py") == 1 and "pushed" in digest(c))
+    one = bj.read(c.digest / "state" / "roster-one.queue")
+    res["roster-drain: a released hold hands roster_queue the held op, not the hold line"] = (
+        one == "set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
+
+    c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
+    q = c.state / "roster-drain.queue"
+    q.write_text("hold only-a-path\n")
+    bj.roster_drain(c)
+    first = digest(c) == "roster: refused malformed hold line: hold only-a-path\n"
+    marked = bool(c.memory("roster-done.json", []))
+    q.write_text("hold only-a-path\nset-stage G1 done\n")
+    bj.roster_drain(c)
+    res["roster-drain: a malformed hold line is refused once and marked, never re-printed"] = (
+        first and marked and f.ran("roster_queue.py") == 1
+        and digest(c) == "roster: set-stage G1 pushed 0123abcde\n")
 
     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
     q = c.state / "roster-drain.queue"
@@ -286,6 +315,10 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(answers={"state_docs.py": (2, "", "state_docs: refused: dirty mirror REFUSED\n")})
     bj.plan_beat(c)
     res["plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"] = digest(c).startswith("plan-beat: REFUSED rc=2")
+    sd = f.calls[1]
+    res["plan-beat: state_docs is handed the mirror and the plan"] = (
+        arg(sd, "--mirror") == str(c.state / "mirror") and arg(sd, "--plan") == arg(f.calls[0], "--out")
+        and "--push" in sd)
     a = f.calls[0]
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
@@ -309,6 +342,9 @@ def cases(bj) -> dict[str, bool]:
     c, f = fresh(overlay={"repo": "o/r", "seat_alives": ["merge=/x/alive"]}, answers={"pulse.py": (0, ok, "")})
     bj.pulse(c)
     a = f.calls[0]
+    c, f = fresh(overlay={"repo": "o/r", "launch_ledger": "/x/launches.tsv"}, answers={"pulse.py": (0, ok, "")})
+    bj.pulse(c)
+    res["pulse: launch_ledger is a --launch-ledger argument"] = arg(f.calls[0], "--launch-ledger") == "/x/launches.tsv"
     res["pulse: each seat_alives entry is a --seat-alive argument"] = arg(a, "--seat-alive") == "merge=/x/alive"
 
     # cancel-sweep
@@ -319,6 +355,11 @@ def cases(bj) -> dict[str, bool]:
     c, _ = fresh(answers={"cancel_superseded.py": (0, "cancel_superseded: could not cancel 9\n" + summ, "")})
     bj.cancel_sweep(c)
     res["cancel-sweep: a failure reaches the digest"] = digest(c) == "cancel_superseded: could not cancel 9\n"
+
+    c, _ = fresh(answers={"cancel_superseded.py": (0, "cancel_superseded: run list truncated at 1000\n" + summ, "")})
+    bj.cancel_sweep(c)
+    res["cancel-sweep: a truncated listing reaches the digest"] = (
+        digest(c) == "cancel_superseded: run list truncated at 1000\n")
 
     c, f = fresh(answers={"cancel_superseded.py": (1, "", "boom\n")})
     bj.cancel_sweep(c)
@@ -353,6 +394,12 @@ def cases(bj) -> dict[str, bool]:
         and "--board" in f.calls[0])
     bj.opener(c)
     res["opener: a STUCK line re-printed is not a second event"] = bj.read(c.digest / "events.txt") == ev
+    for word, row in (("NEEDS-TITLE", "NEEDS-TITLE r10-e 0123abcd no title line"),
+                      ("STARVED", "STARVED r10-f 0123abcd no slot for 3 passes")):
+        c, _ = fresh(answers={"open_driver.py": (0, "START r10-a 0123abcd R10-A pid=4\n" + row + "\n", "")})
+        bj.opener(c)
+        res[f"opener: a {word} line lands in jobs/opener, and is no event"] = (
+            digest(c) == row + "\n" and not (c.digest / "events.txt").exists())
     c, _ = fresh(answers={"open_driver.py": (0, "START r10-a 0123abcd R10-A pid=4\n", "")})
     bj.opener(c)
     res["opener null: a pass that only starts writes nothing"] = not files(c)
@@ -386,6 +433,13 @@ def cases(bj) -> dict[str, bool]:
         c.now += 120
     res["head-watch: a head returning to an old sha is still a move (A->B->A->B is three events)"] = (
         len(bj.read(c.digest / "events.txt").splitlines()) == 3)
+    c, _ = fresh(answers={"gh": lambda a: (0, heads["v"], "")})
+    heads["v"] = f"12 {SHA['a']}\n13 {SHA['b']}\n"
+    bj.head_watch(c)
+    heads["v"] = f"13 {SHA['b']}\n"
+    bj.head_watch(c)
+    res["head-watch: a closed pull request leaves heads.tsv"] = (
+        bj.read(c.digest / "heads.tsv") == f"13\t{SHA['b']}\n")
     c, _ = fresh(answers={"gh": (1, "", "boom")})
     bj.head_watch(c)
     res["head-watch: an unreadable API is UNREADABLE"] = digest(c) == "head-watch: UNREADABLE gh rc=1\n"
@@ -399,8 +453,23 @@ def cases(bj) -> dict[str, bool]:
     res["fold: a gone line is gone.txt and no new stamp"] = (
         bj.read(c.digest / "gone.txt") == "PULSE a STOPPED x\n" and files(c)["new.stamp"] == s1
         and digest(c) == "")
+    res["fold: a fold that added nothing empties new.txt, and leaves the stamp"] = (
+        bj.read(c.digest / "new.txt") == "" and files(c)["new.stamp"] == s1)
     c.now += 60
     bj.write_job(c, "disk", ["disk: 1 GiB"])
+    res["fold: a fold that dropped nothing empties gone.txt"] = (
+        bj.read(c.digest / "gone.txt") == "" and bj.read(c.digest / "new.txt") == "disk: 1 GiB\n")
+    c, _ = fresh()
+    bj.write_job(c, "pulse", ["PULSE a STOPPED x"])
+    s1 = files(c)["new.stamp"]
+    c.now += 60
+    bj.write_job(c, "pulse", ["PULSE a STOPPED x", "PULSE a STOPPED x"])
+    res["fold: a duplicated line is one more line, new.txt and a new stamp"] = (
+        bj.read(c.digest / "new.txt") == "PULSE a STOPPED x\n" and files(c)["new.stamp"] != s1
+        and digest(c) == "PULSE a STOPPED x\nPULSE a STOPPED x\n")
+    c.now += 60
+    bj.write_job(c, "disk", ["disk: 1 GiB"])
+    bj.write_job(c, "pulse", ["PULSE a STOPPED x"])
     bj.write_job(c, "pulse", ["PULSE a STOPPED x"])
     res["fold: the digest is in row order"] = digest(c) == "PULSE a STOPPED x\ndisk: 1 GiB\n"
 
@@ -447,7 +516,7 @@ MUTANTS = {
                         "opener: an open-refused line lands in jobs/opener, a STUCK line in events.txt too"),
     "head_no_compare": ("        if n in old and old[n] != heads[n]:", "        if False:",
                         "head-watch: a head move writes one line to events.txt and events.tsv stays absent"),
-    "fold_stamp_always": ("    if new:\n        atomic(ctx.digest / \"new.txt\"", "    if True:\n        atomic(ctx.digest / \"new.txt\"",
+    "fold_stamp_always": ("    if new:\n        atomic(ctx.digest / \"new.stamp\"", "    if True:\n        atomic(ctx.digest / \"new.stamp\"",
                           "fold: a gone line is gone.txt and no new stamp"),
     "null_pass_writes": ("    if read(path) == text:\n        return\n    with Locked(ctx):",
                          "    with Locked(ctx):",
@@ -484,6 +553,35 @@ MUTANTS = {
                                "tick-digest: the same board returning after an outage clears the UNREADABLE line"),
     "event_dedupe_dropped": ("        elif line in kept:\n            return\n", "",
                              "opener: a STUCK line re-printed is not a second event"),
+    "transient_not_reviewable_dropped": ('TRANSIENT = re.compile(r"^#\\d+: (?:NOT REVIEWABLE|RED unanswered)")',
+                                         'TRANSIENT = re.compile(r"^#\\d+: (?:RED unanswered)")',
+                                         "tick-digest: a transient NOT REVIEWABLE gives nothing; on a second board it appears"),
+    "roster_hold_op_unstripped": ("            op = parts[2]\n", "",
+                                  "roster-drain: a released hold hands roster_queue the held op, not the hold line"),
+    "roster_malformed_hold_retried": ('lines.append(f"roster: refused malformed hold line: {text}")\n                done.add(key)',
+                                      'lines.append(f"roster: refused malformed hold line: {text}")',
+                                      "roster-drain: a malformed hold line is refused once and marked, never re-printed"),
+    "plan_mirror_dropped": ('"--push", "--mirror", mirror, "--plan", plan)', '"--push", "--plan", plan)',
+                            "plan-beat: state_docs is handed the mirror and the plan"),
+    "pulse_ledger_dropped": ('        args += ["--launch-ledger", str(o["launch_ledger"])]', '        pass',
+                             "pulse: launch_ledger is a --launch-ledger argument"),
+    "cancel_truncated_dropped": ("unreadable|truncated", "unreadable",
+                                 "cancel-sweep: a truncated listing reaches the digest"),
+    "opener_needs_title_dropped": ("|NEEDS-TITLE |STARVED |STUCK ", "|STARVED |STUCK ",
+                                   "opener: a NEEDS-TITLE line lands in jobs/opener, and is no event"),
+    "opener_starved_dropped": ("|NEEDS-TITLE |STARVED |STUCK ", "|NEEDS-TITLE |STUCK ",
+                               "opener: a STARVED line lands in jobs/opener, and is no event"),
+    "head_closed_kept": ('    text = "".join(f"{n}\\t{heads[n]}\\n" for n in sorted(heads, key=int))',
+                         '    text = "".join(f"{n}\\t{v}\\n" for n, v in sorted({**old, **heads}.items(), key=lambda kv: int(kv[0])))',
+                         "head-watch: a closed pull request leaves heads.tsv"),
+    "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
+                            "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
+                            "fold: a duplicated line is one more line, new.txt and a new stamp"),
+    "need_accepts_empty": ('if self.overlay.get(k) in (None, "")]', 'if self.overlay.get(k) is None]',
+                           "a row whose overlay key is empty says so, and runs nothing"),
+    "fold_new_kept_stale": ('    atomic(ctx.digest / "new.txt", "".join(ln + "\\n" for ln in new))  # empty when the fold added nothing\n    atomic(ctx.digest / "gone.txt", "".join(ln + "\\n" for ln in gone))\n    if new:\n',
+                            '    if new:\n        atomic(ctx.digest / "new.txt", "".join(ln + "\\n" for ln in new))\n    if gone:\n        atomic(ctx.digest / "gone.txt", "".join(ln + "\\n" for ln in gone))\n    if new:\n',
+                            "fold: a fold that added nothing empties new.txt, and leaves the stamp"),
 }
 
 
