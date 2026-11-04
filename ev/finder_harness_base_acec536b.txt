@@ -1,0 +1,15 @@
+RESULT 125461180429 23.83 cpu_ratio clean 2.5671 -> ['runner class unknown: ref_ms 23.83 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed'] | doubled 5.2086 -> ['runner class unknown: ref_ms 23.83 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed']
+RESULT 125461180429 23.83 loop_cpu_ratio clean 0.1282 -> ['runner class unknown: ref_ms 23.83 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed'] | doubled 0.2603 -> ['runner class unknown: ref_ms 23.83 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed']
+RESULT 125160076828 30.32 cpu_ratio clean 2.81 -> WITHIN | doubled 5.701 -> ['cpu_ratio 5.701 over its budget 3.934']
+RESULT 125240101580 30.93 cpu_ratio clean 2.7543 -> WITHIN | doubled 5.5315 -> ['cpu_ratio 5.532 over its budget 3.934']
+RESULT 125097530406 45.65 cpu_ratio clean 2.3246 -> WITHIN | doubled 4.6473 -> ['cpu_ratio 4.647 over its budget 3.357']
+RESULT 125316010511 46.36 cpu_ratio clean 2.4235 -> WITHIN | doubled 4.7775 -> ['cpu_ratio 4.777 over its budget 3.357']
+RESULT 125530195186-head 46.56 cpu_ratio clean 2.3273 -> WITHIN | doubled 4.6962 -> ['cpu_ratio 4.696 over its budget 3.357']
+RESULT 125530195186-head 46.56 loop_cpu_ratio clean 0.0923 -> WITHIN | doubled 0.1913 -> ['loop_cpu_ratio 0.1913 over its budget 0.1278']
+RESULT 124414072168 52.76 cpu_ratio clean 1.4563 -> WITHIN | doubled 2.8848 -> ['cpu_ratio 2.885 over its budget 2.081']
+RESULT 124725704090 53.27 cpu_ratio clean 1.451 -> WITHIN | doubled 2.841 -> ['cpu_ratio 2.841 over its budget 2.081']
+RESULT 125036077984 52.43 cpu_ratio clean 1.4926 -> WITHIN | doubled 2.9251 -> ['cpu_ratio 2.925 over its budget 2.081']
+RESULT 125000687320-refused 28.01 cpu_ratio clean 1.8924 -> ['runner class unknown: ref_ms 28.01 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed'] | doubled 3.8922 -> ['runner class unknown: ref_ms 28.01 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed']
+RESULT 123225871060-refused 34.35 cpu_ratio clean 1.8747 -> ['runner class unknown: ref_ms 34.35 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed'] | doubled None -> None
+RESULT memory-doubled ref24 ['no recorded budget: record peak_kib=5460']
+RESULT owner ref24 WITHIN

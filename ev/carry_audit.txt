@@ -1,0 +1,5 @@
+carry_audit check --body <empty: the PR body was audited at the head by review_packet: 0 finding items> --comments <verdict.md>
+NOTE review 0 item d04dc5c8: R10-REPLAY-COST-BUDGET
+NOTE review 0 item faa5d13d: R10-REPLAY-COST-BUDGET
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
