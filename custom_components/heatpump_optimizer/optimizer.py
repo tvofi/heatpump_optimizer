@@ -436,7 +436,10 @@ def _settlement_schedule(
     )
 
     state = replace(h.initial_state)
-    _l = lambda x: np.asarray(x, dtype=float).tolist()  # noqa: E731
+
+    def _l(x: Any) -> list[Any]:
+        return list(np.asarray(x, dtype=float).tolist())
+
     rooms = _l(room_temps)
     slabs = _l(slab_temps)
     if two_zone:
