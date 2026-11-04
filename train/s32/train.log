@@ -1,0 +1,14 @@
+train.sh: queue=train/queue27.json repo=tvofi/heatpump_optimizer state=train/s32 pid=67431 start=2026-10-25T06:13:07Z
+BATCH 20261025-061307 pid=67988 base=main queue=2 (#2762 #2789) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold a8a5554f: the record beat waits
+BOT #2789 MERGED 7138516b4b03764b4e76afbfdf183bab2cb1396b
+OVERLAP: main at 7138516b4b03 is still running (gate): a wait, not red; --overlap does not wait
+PARK #2762 findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2762); first: body item c8bac42d (bad): R10-POLICY-FIXER-MD: R10-POLICY-FIXER-MD is done (resume.stage done)
+PARK #2789 head: #2789 is MERGED, not open
+PRE-FLIGHT: 0 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 2 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-25T06:13:24Z

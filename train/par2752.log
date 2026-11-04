@@ -1,0 +1,13 @@
+CHAIN START #2752 try 1 af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+CHAIN rc=1 #2752 try 1: not clean
+CHAIN rerun-failed run 40115899730 for #2752
+CHAIN rerun-failed run 40115898269 for #2752
+CHAIN START #2752 try 2 af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+CHAIN rc=1 #2752 try 2: not clean
+CHAIN rerun-failed run 40119047807 for #2752
+CHAIN rerun-failed run 40115899730 for #2752
+CHAIN rerun-failed run 40115898269 for #2752
+CHAIN START #2752 try 3 af79498c8e0d50b7e15ca4f759e0e32b7df9aece
+CHAIN rc=0 #2752 try 3: worktree_gc: summary -- eligible 1, removed 1, kept 78
+CHAIN RESULT #2752 MERGED 646dbaa65ed40bafbf8eb9ecf16acf69be8945b3
+CHAIN DONE

@@ -1,0 +1,2 @@
+===== daemonize pid=32756 2026-10-25T00:49:34Z argv: bash tools/audit/seat/merge_pr.sh 2762 2f5bf7257adbb51aee04cac0e0bf6a465f8f13d2 /Users/timmalmstrom/.zcode/bus/verdicts/2762/189f1af6edcd0b4a61d52a51dc11185e5b5a1237 owner --mandate 6329234399
+app_comment: REFUSE: head moved: the merge verdict names c851f2a8d464bff58730c5351698eba8cffffff1, the live head of #2762 is 2f5bf7257adbb51aee04cac0e0bf6a465f8f13d2

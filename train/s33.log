@@ -1,0 +1,4 @@
+HEAD is now at 7138516b4 Merge pull request #2789 from tvofi/record/autofix
+HEAD 7138516b4b03764b4e76afbfdf183bab2cb1396b origin/main 7138516b4b03764b4e76afbfdf183bab2cb1396b
+#2790 PARK (recarry: triage/s6-batch21 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-triage-s6-batch21; the train's `git worktree add -B` would refuse it -- re-point the queue entry's worktree)
+PRE-FLIGHT: 1 entries: 0 PASS, 1 PARK, 0 FAIL

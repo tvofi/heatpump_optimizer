@@ -1,0 +1,79 @@
+train.sh: queue=train/queue17.json repo=tvofi/heatpump_optimizer state=train/s20 pid=19222 start=2026-10-24T19:17:43Z
+BATCH 20261024-191743 pid=19249 base=main queue=3 (#2714 #2741 #2710) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold cecc2c41: the record beat waits
+BOT #2754 MERGED a260e563086a85dcd2f1bc0ffaf033c93a01e783
+OVERLAP: main at a260e563086a is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 3 of 3 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2714 serial: workflow
+#2741 admitted at 77656132
+#2710 admitted at 7e5838a0
+OVERLAP: recarrying #2714 up front, their pull_request runs fire together
+#2714 overlap: recarry start
+TRAIN HOLD refs/heads/train-hold 3fdaa9c6: the record beat waits
+#2714 recarry START (branch fix/r10-roster-runq)
+#2714 recarry: main merged, head bd3365e8; app_push: RECARRY: prepr SKIPPED: HEAD bd3365e8 is the clean merge of the live head 1b56c862 and origin/main's a260e563, and the body is the live one
+proof batch/20261024-191743-1 at 38cf3bb1: pushed, 1 workflows dispatched
+TRAIN HOLD refs/heads/train-hold 37f413af: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 73874582: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 136b2062: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 4, t+725s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 458ef638: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 5, t+967s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold a662e171: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 6, t+1209s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold ab0d22ad: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 7, t+1451s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 45a140ca: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 8, t+1693s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9dc9ec8d: the record beat waits
+beat: waiting proof batch/20261024-191743-1 (poll 9, t+1934s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 3148aefe: the record beat waits
+proof batch/20261024-191743-1 38cf3bb1 red=[]
+#2741 approved (app)
+[MAIN-MOVED] before #2741's merge: re-proving #2741, #2710 on 2636ce9e (1/3)
+proof batch/20261024-191743-m1-1 at 0009c13b: pushed, 1 workflows dispatched
+TRAIN HOLD refs/heads/train-hold 71a16f89: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 3f84c7af: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 3, t+483s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold d5ec8424: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 4, t+725s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 03c3d5be: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 5, t+967s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2f0cb3ed: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 6, t+1209s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5a307e11: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 7, t+1452s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5f0fdf89: the record beat waits
+beat: waiting proof batch/20261024-191743-m1-1 (poll 8, t+1695s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 65913358: the record beat waits
+proof batch/20261024-191743-m1-1 0009c13b red=[]
+#2741 approved (app)
+#2741 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2741 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2741 MERGED 593c4fb28d82212d2b2eb1907255f7ac576f7972
+#2741 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2741 main 593c4fb2 tree == proof ad8e10fc
+#2710 approved (app)
+#2710 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2710 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2710 MERGED 1e5f91bc87a4db77f53d4520a4c17bfc481c6a88
+#2710 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2710 main 1e5f91bc tree == proof 0009c13b
+serial: #2714
+#2714 bd3365e8 ci red=[]
+#2714 bd3365e8 platform gate=green: 2 required gate run(s) pass
+#2714 approved (mandate)
+#2714 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2714 MERGED c3e3bd18eda97f329853f754e6597d2cfbbc52f4
+#2714 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released train/s20/wt/2714 (rc=128: fatal: 'train/s20/wt/2714' is not a working tree); remove it by hand
+deleted batch/20261024-191743-1, batch/20261024-191743-m1-1
+SKIP REPORT: 0 skipped of 3
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=0 end=2026-10-24T20:38:07Z

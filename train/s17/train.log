@@ -1,0 +1,58 @@
+train.sh: queue=train/queue14.json repo=tvofi/heatpump_optimizer state=train/s17 pid=30092 start=2026-10-24T17:08:06Z
+BATCH 20261024-170806 pid=30134 base=main queue=2 (#2714 #2742) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold d0903bd7: the record beat waits
+BOT #2751 pending at 587b0b96: AUTOMERGE PENDING #2751: pending: gate; not merged
+OVERLAP: main at d3b381a23be6 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2714 serial: workflow
+#2742 admitted at 7dc281cd
+OVERLAP: recarrying #2714 up front, their pull_request runs fire together
+#2714 overlap: recarry start
+BOT #2751 pending at 587b0b96: AUTOMERGE PENDING #2751: pending: gate; not merged
+TRAIN HOLD refs/heads/train-hold 6fd038a6: the record beat waits
+#2714 recarry START (branch fix/r10-roster-runq)
+#2714 recarry: main merged, head bb330d2d; app_push: RECARRY: prepr SKIPPED: HEAD bb330d2d is the clean merge of the live head c3332e36 and origin/main's d3b381a2, and the body is the live one
+#2742 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2742 approved (app)
+OVERLAP: main at d3b381a23be6 is still running (gate): a wait, not red; --overlap does not wait
+#2742 MERGED 4a00a3f053c252b3bbf9f0e75ae36d27331f8ac3
+#2742 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2742 main 4a00a3f0 tree == proof 1941fb9a
+OVERLAP: main at 4a00a3f053c2 is still running (gate): a wait, not red; --overlap does not wait
+serial: #2714
+TRAIN HOLD refs/heads/train-hold 2c048698: the record beat waits
+beat: waiting CI at bb330d2d (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 44e4d268: the record beat waits
+beat: waiting CI at bb330d2d (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 524cda6d: the record beat waits
+beat: waiting CI at bb330d2d (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2e5f6571: the record beat waits
+beat: waiting CI at bb330d2d (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold fb5bfb59: the record beat waits
+beat: waiting CI at bb330d2d (poll 6, t+1210s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold c9a4142f: the record beat waits
+beat: waiting CI at bb330d2d (poll 7, t+1451s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2acf524c: the record beat waits
+beat: waiting CI at bb330d2d (poll 8, t+1693s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold ef56cd04: the record beat waits
+beat: waiting CI at bb330d2d (poll 9, t+1935s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 1355ed49: the record beat waits
+beat: waiting CI at bb330d2d (poll 10, t+2177s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold f9d49610: the record beat waits
+beat: waiting CI at bb330d2d (poll 11, t+2419s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold a40b6b6d: the record beat waits
+beat: waiting CI at bb330d2d (poll 12, t+2661s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 999e55ba: the record beat waits
+beat: waiting CI at bb330d2d (poll 13, t+2903s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 8f81e1cb: the record beat waits
+beat: waiting CI at bb330d2d (poll 14, t+3146s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9f4437dd: the record beat waits
+#2714 bb330d2d ci red=['gate']
+SKIP #2714 ci: #2714 red at the head: gate
+released train/s17/wt/2714
+SKIP REPORT: 1 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-24T18:07:18Z

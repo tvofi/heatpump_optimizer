@@ -1,0 +1,6 @@
+===== daemonize pid=82249 2026-10-25T05:50:51Z argv: bash train/launch-s30.sh
+HEAD is now at 8a11b8bdd Merge pull request #2765 from tvofi/fix/r10-fly-yield-guard
+HEAD 8a11b8bdd6bfdca0b5f6bd356638fad2b234525f origin/main 8a11b8bdd6bfdca0b5f6bd356638fad2b234525f
+#2787 PARK (recarry: fix/audit-r10-roster-pr9 is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-audit-r10-roster-pr9; the train's `git worktree add -B` would refuse it -- re-point the queue entry'
+#2788 PASS
+PRE-FLIGHT: 2 entries: 1 PASS, 1 PARK, 0 FAIL

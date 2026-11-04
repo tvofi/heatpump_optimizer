@@ -1,0 +1,170 @@
+train.sh: queue=train/queue24.json repo=tvofi/heatpump_optimizer state=train/s27 pid=33392 start=2026-10-25T03:32:01Z
+BATCH 20261025-033201 pid=34362 base=main queue=4 (#2779 #2758 #2756 #2782) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold f9043d04: the record beat waits
+BOT #2786 pending at dc4f2643: AUTOMERGE PENDING #2786: pending: gate; not merged
+OVERLAP: main at ab00437c94bd is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 4 of 4 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2779 serial: workflow
+#2758 approved at admission (app)
+#2758 admitted at 5a529f15
+#2756 approved at admission (app)
+#2756 admitted at ffbcb3cb
+#2782 approved at admission (app)
+#2782 admitted at 3783fe27
+OVERLAP: recarrying #2779 up front, their pull_request runs fire together
+#2779 overlap: recarry start
+BOT #2786 pending at dc4f2643: AUTOMERGE PENDING #2786: pending: gate; not merged
+TRAIN HOLD refs/heads/train-hold 01bd5f38: the record beat waits
+#2779 recarry START (branch fix/r10-roster-freeze-b-r2)
+#2779 recarry: main merged, head 5943ad8b; app_push: RECARRY: prepr SKIPPED: HEAD 5943ad8b is the clean merge of the live head ed5720ca and origin/main's ab00437c, and the body is the live one
+proof batch/20261025-033201-1 at a8579edb: pushed, 1 workflows dispatched
+TRAIN HOLD refs/heads/train-hold f3e2bcc1: the record beat waits
+ALREADY #2758: queued in the live train (pid 34362); nothing added
+ALREADY #2756: queued in the live train (pid 34362); nothing added
+ALREADY #2782: queued in the live train (pid 34362); nothing added
+ADDED #2765 to the live train (pid 34362); it joins the batch after the one running
+beat: waiting proof batch/20261025-033201-1 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 8ad826f2: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold c831ed81: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 75c9c00f: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 5, t+967s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 392eeb02: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 6, t+1209s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 452e32f2: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 7, t+1451s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 487b2d87: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 8, t+1693s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9a791aeb: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 9, t+1935s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5849e9b9: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 10, t+2177s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold d82cdb81: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 11, t+2418s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9fb8433a: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 12, t+2660s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold d2ab0c9d: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 13, t+2901s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2fe6f82e: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 14, t+3143s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2fd6f79e: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 15, t+3385s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 4086be43: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 16, t+3626s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 1f4cf25b: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 17, t+3868s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 5e75c669: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 18, t+4110s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 4cfc065d: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 19, t+4352s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 3d09cac2: the record beat waits
+beat: waiting proof batch/20261025-033201-1 (poll 20, t+4593s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 1fc21d7f: the record beat waits
+proof batch/20261025-033201-1 a8579edb red=[]
+#2758 approved (already, at this head, by this train)
+OVERLAP: main at ab00437c94bd is RED (gate) right before #2758's merge; --overlap logs it and does not wait
+#2758 MERGED 9082f264231448393938225931aa0218c5ecb76a
+#2758 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2758 main 9082f264 tree == proof d4556674
+#2756 approved (already, at this head, by this train)
+#2756 MERGED 6939389f8c0cfbf684bd92e64f5e1c4552e89986
+#2756 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2756 main 6939389f tree == proof 76631081
+#2782 approved (already, at this head, by this train)
+#2782 MERGED cc9d584ac8f80280be28799c0dc8882fe74e8031
+#2782 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2782 main cc9d584a tree == proof a8579edb
+serial: #2779
+#2779 5943ad8b ci red=[]
+#2779 5943ad8b platform gate=green: 2 required gate run(s) pass
+#2779 approved (mandate)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (1/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (2/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (3/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (4/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (5/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (6/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (7/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (8/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (9/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (10/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (11/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (12/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (13/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (14/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (15/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (16/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (17/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (18/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (19/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (20/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (21/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (22/24)
+#2779 review run(s) 40163715143 at 5943ad8b still running; the merge waits (23/24)
+#2779 MERGED c01d54b9811349f79599a915cf016ae7357842a2
+#2779 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+NOT released train/s27/wt/2779 (rc=128: fatal: 'train/s27/wt/2779' is not a working tree); remove it by hand
+deleted batch/20261025-033201-1
+SKIP REPORT: 0 skipped of 4
+TRAIN HOLD released
+ADDED #2765: batch 2 of this train
+BATCH DONE 20261025-033201: 1 more batch(es) on this train, next #2765
+BATCH 20261025-033201-b2 pid=34362 base=main queue=1 (#2765) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 7640ac1e: the record beat waits
+BOT #2786 MERGED 1afbbceaea843b2c7ffe914e1aa9b7172cbc0161
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 1 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2765 approved at admission (app)
+#2765 admitted at 46bf8243
+#2765 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2765 approved (already, at this head, by this train)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (1/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (2/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (3/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (4/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (5/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (6/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (7/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (8/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (9/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (10/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (11/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (12/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (13/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (14/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (15/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (16/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (17/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (18/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (19/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (20/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (21/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (22/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (23/24)
+#2765 review run(s) 40163906078 at 46bf8243 still running; the merge waits (24/24)
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 3/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 4/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 5/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 6/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 7/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+OVERLAP: main at 1afbbceaea84 is still running (gate): a wait, not red; --overlap does not wait
+#2765 merge attempt 8/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+SKIP #2765 merge: not merged after 8 attempts; the last refusal: ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+SKIP REPORT: 1 skipped of 5
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-25T05:06:04Z

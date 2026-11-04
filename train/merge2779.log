@@ -1,0 +1,5 @@
+===== daemonize pid=34001 2026-10-25T00:34:16Z argv: bash tools/audit/seat/merge_pr.sh 2779 72ee6a18a606fa25d5469a051ecdc43a99b87c97 /Users/timmalmstrom/hpo-orch/r10s6/ev2779 owner --mandate 6329234399 --ready
+✓ Pull request tvofi/heatpump_optimizer#2779 is marked as "ready for review"
+READBACK id=6391472499 live_len=5923 want_len=5923 live_sha=00c5182456277cf7 want_sha=00c5182456277cf7 identical=True
+state BLOCKED
+not clean

@@ -1,0 +1,10 @@
+===== daemonize pid=1733 2026-10-25T20:52:31Z argv: bash tools/audit/seat/update_pr.sh fix/r10-arch-shapes-pr b2a55c4a92853196a271b9239d74c81f70ae53b2 /Users/timmalmstrom/hpo-orch/r10s6/w35/body-2819-fixed.md
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (882 entries)
+  re-run the gate that owns this file before pushing
+Auto-merging tests/closures.json
+  REFUSE   'Closes #2236' closes #2236; not in the intended list
+  REFUSE   'Closes #2239' closes #2239; not in the intended list
+  REFUSE   preflight              
+app_push: REFUSE: the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again
+update_pr: REFUSE: the push failed; its log is /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-arch-shapes-pr.log

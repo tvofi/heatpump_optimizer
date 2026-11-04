@@ -1,0 +1,12 @@
+[
+  {
+    "pr": 2762,
+    "phase": "pre-flight",
+    "reason": "findings: 1 finding item(s) with no valid `Carry:` (carry_audit.py pr 2762); first: body item c8bac42d (bad): R10-POLICY-FIXER-MD: R10-POLICY-FIXER-MD is done (resume.stage done)"
+  },
+  {
+    "pr": 2789,
+    "phase": "pre-flight",
+    "reason": "head: #2789 is MERGED, not open"
+  }
+]

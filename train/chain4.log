@@ -1,0 +1,5 @@
+===== daemonize pid=40180 2026-10-24T23:55:56Z argv: bash train/chain4.sh
+READBACK id=6391127351 live_len=5705 want_len=5705 live_sha=bccf921a8db8d193 want_sha=bccf921a8db8d193 identical=True
+state BLOCKED
+not clean
+app_comment: REFUSE: pull request #2711 is closed; a verdict posts only on an open one

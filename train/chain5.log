@@ -1,0 +1,5 @@
+===== daemonize pid=87695 2026-10-25T00:22:29Z argv: bash train/chain5.sh
+READBACK id=6391454151 live_len=5705 want_len=5705 live_sha=bccf921a8db8d193 want_sha=bccf921a8db8d193 identical=True
+state BLOCKED
+not clean
+CHAIN_DONE

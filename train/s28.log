@@ -1,0 +1,5 @@
+===== daemonize pid=29440 2026-10-25T05:09:25Z argv: bash train/launch-s28.sh
+HEAD is now at 1afbbceae Merge pull request #2786 from tvofi/record/autofix
+HEAD 1afbbceaea843b2c7ffe914e1aa9b7172cbc0161 origin/main 1afbbceaea843b2c7ffe914e1aa9b7172cbc0161
+#2765 PARK (recarry: fix/r10-fly-yield-guard is already checked out at /Users/timmalmstrom/.local/state/hpo/pr/upd-fix-r10-fly-yield-guard; the train's `git worktree add -B` would refuse it -- re-point the queue entry's 
+PRE-FLIGHT: 1 entries: 0 PASS, 1 PARK, 0 FAIL

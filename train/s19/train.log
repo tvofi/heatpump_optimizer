@@ -1,0 +1,55 @@
+train.sh: queue=train/queue16.json repo=tvofi/heatpump_optimizer state=train/s19 pid=61469 start=2026-10-24T18:25:24Z
+BATCH 20261024-182524 pid=61528 base=main queue=2 (#2714 #2709) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 7d521e17: the record beat waits
+BOT #2754 refused by the guard at 8c409800: AUTOMERGE REFUSE #2754: required check gate failed; not merged
+OVERLAP: main at 87ecf385b1d2 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2714 serial: workflow
+#2709 serial: grader, workflow
+OVERLAP: recarrying #2714, #2709 up front, their pull_request runs fire together
+#2714 overlap: recarry start
+BOT #2754 refused by the guard at 8c409800: AUTOMERGE REFUSE #2754: required check gate failed; not merged
+TRAIN HOLD refs/heads/train-hold fb601332: the record beat waits
+#2714 recarry START (branch fix/r10-roster-runq)
+#2714 recarry: main merged, head 1b56c862; app_push: RECARRY: prepr SKIPPED: HEAD 1b56c862 is the clean merge of the live head bb330d2d and origin/main's 87ecf385, and the body is the live one
+#2709 overlap: recarry start
+BOT #2754 refused by the guard at 8c409800: AUTOMERGE REFUSE #2754: required check gate failed; not merged
+serial: #2714, #2709
+TRAIN HOLD refs/heads/train-hold 688b19dd: the record beat waits
+beat: waiting CI at 1b56c862 (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 129b506e: the record beat waits
+beat: waiting CI at 1b56c862 (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold b04e3b64: the record beat waits
+beat: waiting CI at 1b56c862 (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 1e089f84: the record beat waits
+beat: waiting CI at 1b56c862 (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold a85b6ceb: the record beat waits
+#2714 1b56c862 ci red=['gate']
+SKIP #2714 ci: #2714 red at the head: gate
+TRAIN HOLD refs/heads/train-hold 6cd5d653: the record beat waits
+beat: waiting CI at 10f7631d (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 590f30a4: the record beat waits
+beat: waiting CI at 10f7631d (poll 3, t+484s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 827c7acd: the record beat waits
+beat: waiting CI at 10f7631d (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 02660239: the record beat waits
+beat: waiting CI at 10f7631d (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 7cbc7f38: the record beat waits
+beat: waiting CI at 10f7631d (poll 6, t+1210s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 70cc9154: the record beat waits
+beat: waiting CI at 10f7631d (poll 7, t+1452s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold dadf2314: the record beat waits
+#2709 10f7631d ci red=[]
+#2709 10f7631d platform gate=green: 2 required gate run(s) pass
+#2709 approved (mandate)
+#2709 merge attempt 1/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2709 merge attempt 2/8 refused (rc=1): ble: the base branch policy prohibits the merge. To have the pull request merged after all the requirements have been met, add the `--auto` flag. To use administrator privileges to immediately merge the pull request, add the `--admin` flag.
+#2709 MERGED 6c25b26d6214c10ace9dd42046d6395d0c26edac
+#2709 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+released train/s19/wt/2714
+SKIP REPORT: 1 skipped of 2
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-24T19:17:30Z

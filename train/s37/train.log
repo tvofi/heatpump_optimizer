@@ -1,0 +1,71 @@
+train.sh: queue=train/queue37.json repo=tvofi/heatpump_optimizer state=train/s37 pid=11718 start=2026-10-25T07:03:11Z
+BATCH 20261025-070311 pid=12808 base=main queue=2 (#2792 #2793) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 1fb5a71b: the record beat waits
+BOT #2794 pending at bc75120c: AUTOMERGE PENDING #2794: pending: gate; not merged
+OVERLAP: main at 21a1e04a7e83 is still running (gate): a wait, not red; --overlap does not wait
+PRE-FLIGHT: 2 of 2 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+#2792 serial: grader
+#2793 approved at admission (already, at this head, by hpo-approver[bot])
+#2793 admitted at ead46b94
+OVERLAP: recarrying #2792 up front, their pull_request runs fire together
+#2792 overlap: recarry start
+BOT #2794 pending at bc75120c: AUTOMERGE PENDING #2794: pending: gate; not merged
+#2793 D: a batch of one merges at its verdicted head, unproved; main's FULL push run is its gate, and a red there is reverted first
+#2793 approved (already, at this head, by this train)
+OVERLAP: main at 21a1e04a7e83 is still running (gate): a wait, not red; --overlap does not wait
+#2793 MERGED f40142d66c9cc8e2f144a815990fc1fe1d99d9a8
+#2793 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+#2793 main f40142d6 tree == proof b44af8db
+OVERLAP: main at f40142d66c9c is still running (gate): a wait, not red; --overlap does not wait
+serial: #2792
+TRAIN HOLD refs/heads/train-hold f56b6720: the record beat waits
+ADDED #2794 to the live train (pid 12808); it joins the batch after the one running
+beat: waiting CI at f673505c (poll 2, t+242s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold f24a806b: the record beat waits
+beat: waiting CI at f673505c (poll 3, t+483s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 20c5558d: the record beat waits
+beat: waiting CI at f673505c (poll 4, t+726s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 2309e502: the record beat waits
+beat: waiting CI at f673505c (poll 5, t+968s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold d5d057f3: the record beat waits
+beat: waiting CI at f673505c (poll 6, t+1210s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold c97d09c7: the record beat waits
+beat: waiting CI at f673505c (poll 7, t+1452s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 4dcf4da4: the record beat waits
+beat: waiting CI at f673505c (poll 8, t+1694s, required: 1, concluded: 0/1)
+TRAIN HOLD refs/heads/train-hold 9a8fc6bf: the record beat waits
+#2792 f673505c ci red=[]
+#2792 f673505c platform gate=green: 2 required gate run(s) pass
+#2792 approved (app)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (1/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (2/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (3/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (4/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (5/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (6/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (7/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (8/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (9/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (10/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (11/24)
+#2792 review run(s) 40173433206 at f673505c still running; the merge waits (12/24)
+#2792 MERGED ce3a77c5f5036767a951ab26d072f49ed05d3c05
+#2792 closes {"data":{"repository":{"pullRequest":{"closingIssuesReferences":{"nodes":[]}}}}}
+SKIP REPORT: 0 skipped of 2
+TRAIN HOLD released
+ADDED #2794: batch 2 of this train
+BATCH DONE 20261025-070311: 1 more batch(es) on this train, next #2794
+BATCH 20261025-070311-b2 pid=12808 base=main queue=1 (#2794) --overlap --skip-bad
+TRAIN HOLD refs/heads/train-hold 87457fc0: the record beat waits
+BOT #2794 MERGED 880b667aaa22e25cb0c16712374a7f29ac39b2d3
+OVERLAP: main at 880b667aaa22 is still running (gate): a wait, not red; --overlap does not wait
+PARK #2794 head: #2794 is MERGED, not open
+PRE-FLIGHT: 0 of 1 admitted
+/Users/timmalmstrom/hpo-seats/r10s6/orch-wt/dev/audit/rounds/round6/D11/fix/codeowners_gap.py:897: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ("find -exec", _run("find tools -name '*.sh' -exec {} \;")),
+SKIP REPORT: 1 skipped of 3
+TRAIN HOLD released
+TRAIN DONE
+TRAIN_RC=1 end=2026-10-25T07:38:51Z

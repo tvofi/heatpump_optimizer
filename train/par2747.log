@@ -1,0 +1,10 @@
+CHAIN START #2747 try 1 ee1960f70237e64f05e81dd3d4ed354bac397bdf
+CHAIN rc=1 #2747 try 1: not clean
+CHAIN rerun-failed run 40113040641 for #2747
+CHAIN START #2747 try 2 ee1960f70237e64f05e81dd3d4ed354bac397bdf
+CHAIN rc=1 #2747 try 2: not clean
+CHAIN rerun-failed run 40119608687 for #2747
+CHAIN START #2747 try 3 ee1960f70237e64f05e81dd3d4ed354bac397bdf
+CHAIN rc=0 #2747 try 3: worktree_gc: summary -- eligible 2, removed 2, kept 78
+CHAIN RESULT #2747 MERGED 343fb2a2c23dbb1a78142ce869be495187b8d481
+CHAIN DONE
