@@ -1,0 +1,2 @@
+1. reproduce: window at 8f286293b grades 36.5 (budget 34.267 + band 1.3 = 35.567): GREW
+RESULT: holds
