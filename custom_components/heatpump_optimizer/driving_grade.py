@@ -30,7 +30,7 @@ FULL_SAVING = 0.2
 #: The grade the drivers move from: buying flat at the day's mean price.
 REFERENCE = 0.0
 
-_HELD: WeakKeyDictionary[Any, dict[str, float]] = WeakKeyDictionary()
+_DRIVERS_BY_OWNER: WeakKeyDictionary[Any, dict[str, float]] = WeakKeyDictionary()
 
 
 def _add(book: dict[str, Any], key: str, value: float) -> None:
@@ -39,7 +39,7 @@ def _add(book: dict[str, Any], key: str, value: float) -> None:
 
 def held(owner: Any) -> dict[str, float]:
     """``owner``'s drivers, folded with its grade (empty until a day folds)."""
-    return _HELD.setdefault(owner, {})
+    return _DRIVERS_BY_OWNER.setdefault(owner, {})
 
 
 def tally(day: Mapping[str, Any], kwh: float, sek: float, spot: float, hours: float) -> dict[str, Any]:
