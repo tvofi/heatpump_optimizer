@@ -123,6 +123,8 @@ SELF = "tools/audit/seat/orchestrator_tick.py"
 SEAT = Path(__file__).resolve().parent
 ROOT = Path(__file__).resolve().parents[3]
 RULESET = "main-protect-checks"
+STUCK_FACTOR = 2  # a lane pending past this many critical-path medians is stuck (ETA and WAITING share it)
+GATE_CONTEXTS = {"gate", "pr-contract"}  # the contexts an early-gate race reddens
 STALL_MINUTES = 90  # P328: p95 dispatch-to-verdict is 70 min; 90 fires on ~2.6% of reviews
 #: Per merge_train.py (its self-test pins the two equal): under the umbrella
 #: the one required context, `gate`, is written by a dispatch too, so nothing
@@ -383,12 +385,13 @@ class Tick:
             return None
 
     def stuck(self, started, med) -> bool:
-        """A lane pending past 2x the median: the ETA check's own threshold."""
+        """A lane pending past STUCK_FACTOR x the median: the ETA check's own threshold.
+        A null or unparseable `started_at` cannot be bounded, so it reads stuck."""
         try:
             st = datetime.datetime.fromisoformat(str(started).replace("Z", "+00:00"))
         except ValueError:
-            return False
-        return (self.now - st).total_seconds() / 60 > 2 * med
+            return True
+        return (self.now - st).total_seconds() / 60 > STUCK_FACTOR * med
 
     def split_absent(self, absent: list[str], latest: dict) -> "tuple[list[str], list[str]]":
         """(waiting, absent): a required job with no check run yet is only
@@ -475,7 +478,7 @@ class Tick:
         otherwise counts twice: the zsh -c parent and the child)."""
         out = []
         for pid, cmd in entries:
-            if needle not in cmd or "orchestrator_tick" in cmd:
+            if needle not in cmd or "orchestrator_tick" in cmd or "--self-test" in cmd:
                 continue
             if python_only and not re.match(r"\S*python3?\S*\s", cmd):
                 continue
@@ -903,6 +906,12 @@ class Tick:
                 self.line(S, f"#{n}: RAISE APPROVAL OWED at {head[:8]}: review it, then approve "
                              "under the owner or the mandate (0013) -- not its fixer (K15 (d)): "
                              f"{owed}", flag=True)
+            elif req_red and run and set(req_red) <= GATE_CONTEXTS:
+                gt = _module("gate_tick", "tools/ci/gate.py")
+                self.line(S, f"#{n}: gate race at {head[:8]}: {', '.join(req_red)} red while "
+                             f"{', '.join(run)} still run -- rerun the failed jobs once siblings settle "
+                             f"(the gate defers up to {getattr(gt, 'GATE_WAIT_MAX_S', '?')}s, GATE_WAIT_MAX_S)",
+                          flag=True)
             elif req_red:
                 self.line(S, f"#{n}: NOT REVIEWABLE at {head[:8]}: required "
                              f"{', '.join(req_red)} concluded red -- back to its "
@@ -2162,7 +2171,7 @@ class Tick:
                     except ValueError:
                         continue
                     mins = (self.now - st).total_seconds() / 60
-                    if mins > 2 * med:
+                    if mins > STUCK_FACTOR * med:
                         self.line(S, f"lane {name} at #{n} pending "
                                      f"{mins:.0f}m vs median {med} -- "
                                      "re-run or diagnose", flag=True)
@@ -3520,6 +3529,33 @@ def self_test() -> int:
                  (len(owed) == 1 and f"{bud}: m: 3 -> 4" in owed[0]) if want else not owed),
                 ("NOT REVIEWABLE " + ("absent" if want else "present"), bool(nr) != want)])
             total, failed = total + a, failed + f
+        # Carry 8 (P82): an early-gate race (gate red while a sibling still runs) is a gate-race
+        # line naming GATE_WAIT_MAX_S; null: the same red with nothing running stays NOT REVIEWABLE.
+        for label, sib, want in (("gate red beside a running sibling", True, True),
+                                 ("null: gate red, nothing running", False, False)):
+            runs = [run_obj("gate", conclusion="failure")] + (
+                [run_obj("coverage", status="in_progress", conclusion=None, started=NOW)] if sib else [])
+            t = tick(prs=[pr_obj(76, H1)], required_names=("gate",), runs_at={H1: runs},
+                     bodies={76: "## Red checks\n\ngate: x\n"})
+            t.one_pr("PRS", pr_obj(76, H1), None, t.required("PRS"))
+            txt = [x["text"] for x in t.findings]
+            gr = [x for x in txt if x.startswith("#76: gate race at")]
+            nr = [x for x in txt if x.startswith("#76: NOT REVIEWABLE")]
+            a_, f_ = check(f"P82 {label}", [
+                ("gate race line " + ("names GATE_WAIT_MAX_S" if want else "absent"),
+                 (len(gr) == 1 and "GATE_WAIT_MAX_S" in gr[0]) if want else not gr),
+                ("NOT REVIEWABLE " + ("absent" if want else "present"), bool(nr) != want)])
+            total, failed = total + a_, failed + f_
+        # Carry 8: a reviewer's `merge_train.py --self-test` is not a second train; a null
+        # started_at cannot bound a run, so stuck() reads True (split_absent then reads ABSENT).
+        t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
+                                        (12, "python3 tools/audit/seat/merge_train.py --self-test")])
+        t.train()
+        a_, f_ = check("carry 8 train self-test", [
+            ("a self-test beside one train is no merge race", not any("merge race" in x["text"] for x in t.findings)),
+            ("a null started_at is stuck, not live", t.stuck(None, 61.0)),
+            ("a fresh started_at is not stuck", not t.stuck(iso(NOW), 61.0))])
+        total, failed = total + a_, failed + f_
         # PRS (c): DIRTY names the conflicted files from git merge-tree first;
         # the claimnotes repair only for claim files alone (#2569's shape).
         claim = CLAIM_FILES[0]
