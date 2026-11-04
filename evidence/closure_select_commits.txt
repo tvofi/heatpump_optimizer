@@ -1,0 +1,2 @@
+d41f80eee:  MODE: SCOPED -- 0 script(s) run, 33 scoped out. 
+a7ecefe2d:  MODE: SCOPED -- 1 script(s) run, 32 scoped out.  RUN tests/entities.py 

@@ -34,6 +34,8 @@
    #3180's record: its largest window (runs 3859..4015) reads 21.983, fast (3.14) priced 17.73; red 4 reads 7.084 over it, fast (3.14) 9.60 over
 5. host: fast (3.14) job 125436393198 (run 4009) vs 126534731510 (run 4128): 33 vs 33 scripts, same set True; summed 1824s vs 3137s (x1.72); per-script ratio 1.26..3.09 over the 14 scripts of >= 10 s
    fast (3.14) by runner image (n, min, max): {'20261025.179.1': (43, 17.7, 34.9), '20261101.186.1': (1, 33.4, 33.4)}
+   the 4009 vs 4128 comparison crosses an image change: True (20261025.179.1 vs 20261101.186.1); same-image slow job, run 4035: 27.3 min on 20261025.179.1
    fast (3.14) under 26 min: 14 of 28 runs 3770..4009, 0 of 16 after; closures under 27 min after 4009: 7 of 16
 6. planned critical path from tests/closures.json at red 3 / red 4: {'c3a279e32': 1345.7, '8e90d8144': 1345.7}
 RESULT: holds
+rc=0
