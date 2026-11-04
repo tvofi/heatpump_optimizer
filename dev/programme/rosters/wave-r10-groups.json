@@ -16295,9 +16295,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "Owner-reported 2026-11-04: v7.1.2 is installed but Home Assistant shows 7.1.1. Measured: tag v7.1.2 is lightweight, at merge b8e823699 with no stamp commit; VERSION, manifest.json and CARD_VERSION there read 7.1.1, and RELEASE_NOTES.md has no v7.1.2 heading. release.yml checks ancestry on main and the zip's domain, never that the tag equals VERSION and the manifest. Fix: release.yml refuses a tag whose version differs from VERSION, the manifest version or CARD_VERSION, before any asset or release is created. Failing test first; controls: a stamped tag passes (null), an unstamped tag at a merge refuses."
-   ],
+   "carry": [],
    "architect_note": "",
    "resume": {
     "stage": "carries-open",
