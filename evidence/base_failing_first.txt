@@ -1,3 +1,0 @@
-BASE wrapped fails 6 ['bias-rederived', 'manifest-cycles', 'manifest-version', 'rows-match', 'schema', 'stores-present']
-BASE tail-repeat fails ['bias-rederived']
-BASE tamper bias-fail True | BASE disjoint bias-fail True

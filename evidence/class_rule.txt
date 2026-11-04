@@ -1,7 +1,9 @@
-$ git grep -n "json.loads(raw)" tools/replay
-tools/replay/debug_ingest.py:51:    return unwrap_download(json.loads(raw))
-$ git grep -n "load_bundle" tools tests dev
-dev/audit/rounds/round10/D15/s1/intake.py:223:    download = di.load_bundle(a.bundle)
+dev/audit/rounds/round10/D15/s1/intake.py:10:     load_bundle hands it from the download vs on data.debug; bias_delta_tail vs bias_delta_by_t: the
+dev/audit/rounds/round10/D15/s1/intake.py:18:Perturbations: dedupe (M3 stage 4), unwrap (M3 wrapper: flips load_bundle's unwrap,
+dev/audit/rounds/round10/D15/s1/intake.py:224:    # the file as handed; a tree before read_download has load_bundle as that reader
+dev/audit/rounds/round10/D15/s1/intake.py:225:    download = getattr(di, "read_download", di.load_bundle)(a.bundle)
+dev/audit/rounds/round10/D15/s1/intake.py:230:    # the wrapped arm is the tool's own path: what load_bundle hands ingest
+dev/audit/rounds/round10/D15/s1/intake.py:231:    m1(dbg); m2(dbg); m3(download, dbg, a.perturb, di.load_bundle(a.bundle)); m4(dbg, a.perturb)
 dev/audit/rounds/round10/JUDGE-INPUT.json:1118:  "seam_rule": "grep -n 'def load_bundle' tools/replay/*.py",
 dev/audit/rounds/round10/JUDGE-INPUT.json:1124:  "proposed_fix_scope": "unwrap data.debug in load_bundle",
 dev/audit/rounds/round10/intake/out/normalised-reports.json:4412:        "seam_rule": "grep -n 'def load_bundle' tools/replay/*.py",
@@ -9,7 +11,7 @@ dev/audit/rounds/round10/intake/out/normalised-reports.json:4418:        "propos
 dev/audit/rounds/round10/reports-B11.json:263:          "seam_rule": "grep -n 'def load_bundle' tools/replay/*.py",
 dev/audit/rounds/round10/reports-B11.json:269:          "proposed_fix_scope": "unwrap data.debug in load_bundle",
 dev/programme/rosters/wave-r10-groups.json:15322:    "From the round-10 register: D15-s1-01 (debug_ingest stage-4 bias re-derivation false-fails on a real bundle; verifier weakened to low: dedupe alone still leaves delta 0.109 > 0.05 because the rows cover 97 of the store's 192 samples) and D15-s1-03 (debug_ingest --bundle fails 6 of 12 stages on the download as handed, which wraps the bundle in data.debug), both verified by the D15 verifier (dev/audit/rounds/round10/D15/verify.md rows s1-01, s1-03) but judged unreproduced (no bundle in tree) and never routed; and two B11 leads the register records as \"not routed: raised after the leads seat ran; open for the judge\" with no later disposition anywhere in the tree or roster: (L-a) AccuracyTracker samples stop for 115 h while cycle rows continue, one sample repeated across 446 rows (v6.7.17 window, re-check at baseline), and (L-b) the first cycle row after a restart carries no action_mode, action_kw or heat_pump_on keys. Measured at origin/main 92588d581: tools/replay/debug_ingest.py `load_bundle` (lines 46-51) only gunzips and json-loads, with no data.debug unwrap, so stage 1 reads `bundle.get(\"schema\")` on the wrapper; stage 4 (lines 121-150) takes `row_pairs[-len(tracker.samples):]` with no de-duplication and no restriction to the samples both sides hold. L-a and L-b are unmeasured at any version past v6.7.17/v7.0.0. Fix: unwrap data.debug when the top level is a Home Assistant diagnostics download; compare the store window and the row window over the samples both hold, de-duplicated by time; then run the fixed tool on the next live bundle this group reads and either reproduce L-a and L-b with a number or record each dismissed with the reading. Failing test first: a synthetic download wrapped as HA writes it fails 6 stages at main and 0 after; a synthetic bundle whose rows repeat one sample across the tail and cover half the store fails bias-rederived at main and passes after. Null control: `tools/replay/debug_ingest.py`'s own self-test bundle (unwrapped, one sample) reads 12/12 before and after; the planted-accuracy corruption (--corrupt accuracy) still fails. Carry: R10-LIVE-BUNDLE-READS"
-tools/replay/debug_ingest.py:46:def load_bundle(path: Path) -> dict:
-tools/replay/debug_ingest.py:243:        return load_bundle(path)
-tools/replay/debug_ingest.py:285:    results = ingest(load_bundle(args.bundle), corrupt=args.corrupt)
+tools/replay/debug_ingest.py:56:def load_bundle(path: Path) -> dict:
+tools/replay/debug_ingest.py:249:        return (reader or load_bundle)(path)
+tools/replay/debug_ingest.py:295:    results = ingest(load_bundle(args.bundle), corrupt=args.corrupt)
 tools/replay/debug_replay.py:198:        bundle = debug_ingest.load_bundle(args.bundle)
