@@ -1,0 +1,8 @@
+MUTANT median-to-max: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: does NOT hold
+MUTANT median-to-min: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT floor-removed: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT priced-not-skipped: self-test FAIL lines=2 | ci-ratchet self-test: 52 checks, 2 failed | replay: RESULT: does NOT hold
+MUTANT priced-all: self-test FAIL lines=2 | ci-ratchet self-test: 52 checks, 2 failed | replay: RESULT: does NOT hold
+MUTANT no-conclusion-guard: self-test FAIL lines=1 | ci-ratchet self-test: 52 checks, 1 failed | replay: RESULT: holds
+MUTANT price-max: self-test FAIL lines=5 | ci-ratchet self-test: 52 checks, 5 failed | replay: RESULT: does NOT hold
+MUTANT fraction-half: self-test FAIL lines=0 | ci-ratchet self-test: 52 checks, 0 failed | replay: RESULT: does NOT hold
