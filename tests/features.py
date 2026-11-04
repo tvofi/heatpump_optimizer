@@ -60878,6 +60878,7 @@ _P5_DISPOSED = {
     "_apply_learner_payloads": "restores a stored snapshot (drift rollback)",
     "_async_load_thermal_learning": "restore from the store",
     "_load_t4b_learners": "restore from the store",
+    "_load_scalar_learners": "restore from the store or a snapshot: the one parser of the four scalar learners",
     "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
     "_void_heat_loss_learners": "voids evidence (a sensor swap, a nameplate edit, "
     "the reset action); no evidence enters",
