@@ -16334,9 +16334,7 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [
-    "Root cause seat beside R10-HOTFIX-RELEASE-TAG, defect-root-cause.md trigger 1 (reached a release). Establish who or what pushed unstamped tag v7.1.2 on 2026-11-02 around 21:08Z while stamp.py was refusing on a red main, the process state a-d, the cost test, and whether the tag ruleset (owner setting) lets a non-stamp tag through. Record at dev/audit/rca/."
-   ],
+   "carry": [],
    "architect_note": "",
    "resume": {
     "stage": "carries-open",
