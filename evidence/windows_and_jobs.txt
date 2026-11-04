@@ -1,0 +1,54 @@
+0 c3a279e32 21.717 37.9585
+1 f8bab78d1 21.717 40.658500000000004
+2 b8e823699 21.75 40.85
+3 b46969633 21.75 40.658500000000004
+4 1599dd264 21.75 40.658500000000004
+5 8b823e7f4 21.75 38.716499999999996
+6 7a92dcec7 21.75 40.65
+7 489d93fa7 20.817 40.65
+8 59b7c0771 20.817 38.716499999999996
+9 d15a2d7df 20.817 38.8665
+10 871a20da1 20.817 38.8665
+11 38dcb6c5d 22.0 38.8665
+12 d40e377e5 22.0 38.8665
+13 ea59e9a09 21.933 40.908500000000004
+14 a568a2e12 21.967 40.342
+15 45fc769da 21.967 40.5085
+16 a9c149289 21.967 40.533500000000004
+17 3905069f3 21.967 40.025
+18 279cb497f 21.967 39.8335
+19 8fcaf47e1 21.967 39.8335
+20 dfb4ce2b5 21.933 39.667
+21 8f286293b 21.933 39.067
+22 c7aa12165 21.933 36.5
+23 5e9c39294 21.933 36.5
+24 907d29f0e 21.383 33.7665
+--- per job work (s) and conclusion, newest 28
+c3a279e32 fail closur=1449 fast (=1962 arch-i=1133 covera=1018 ci-rat=96!fail prelud=22
+f8bab78d1 fail closur=1234 fast (=1928 arch-i=1887 covera=51 ci-rat=57!fail prelud=25
+b8e823699 fail closur=2337 fast (=2016 arch-i=1088 covera=51 ci-rat=89!fail prelud=27
+b46969633 canc closur=2377 fast (=1964 arch-i=1940 covera=36 ci-rat=80!fail prelud=22
+1599dd264 canc closur=2356 fast (=2022 arch-i=1928 covera=54 ci-rat=101!fail prelud=22
+8b823e7f4 canc closur=1245 fast (=1994 arch-i=1826 covera=44 ci-rat=86!fail prelud=26
+7a92dcec7 canc closur=1613 fast (=1811 arch-i=1755 covera=47 ci-rat=64!fail prelud=23
+489d93fa7 canc closur=2345 fast (=1959 arch-i=1010 covera=50 ci-rat=76!fail prelud=28
+59b7c0771 canc closur=2336 fast (=1981 arch-i=1905 covera=50 ci-rat=66!fail prelud=28
+d15a2d7df fail closur=2381 fast (=1640 arch-i=1935 covera=108 ci-rat=71!fail prelud=25
+871a20da1 fail closur=1117 fast (=2094 arch-i=1533 covera=1226 ci-rat=72!fail prelud=31
+38dcb6c5d fail closur=2341 fast (=2039 arch-i=1908 covera=716 ci-rat=74!fail prelud=34
+d40e377e5 fail closur=2040 fast (=1223 arch-i=1965 covera=1712 ci-rat=109!fail prelud=67
+ea59e9a09 fail closur=2365 fast (=1969 arch-i=1745 covera=1167 ci-rat=59!fail prelud=24
+a568a2e12 fail closur=1306 fast (=2023 arch-i=1149 covera=1174 ci-rat=74!fail prelud=25
+45fc769da fail closur=1608 fast (=1797 arch-i=1872 covera=1996 ci-rat=70!fail prelud=30
+a9c149289 fail closur=2323 fast (=2009 arch-i=1945 covera=3070!fail ci-rat=79!fail prelud=28
+3905069f3 fail closur=2343 fast (=1963 arch-i=1884 covera=724 ci-rat=83!fail prelud=35
+279cb497f fail closur=1257 fast (=1493 arch-i=1870 covera=901 ci-rat=70!fail prelud=19
+8fcaf47e1 fail closur=2401 fast (=1516 arch-i=1739 covera=690 ci-rat=83!fail prelud=27
+dfb4ce2b5 fail closur=2354 fast (=1957 arch-i=1782 covera=1874 ci-rat=90!fail prelud=23
+8f286293b fail closur=2292 fast (=1953 arch-i=1893 covera=39 ci-rat=63!fail prelud=25
+c7aa12165 succ closur=2295 fast (=1064 arch-i=1859 covera=1324 ci-rat=78 prelud=27
+5e9c39294 succ closur=2304 fast (=1155 arch-i=1919 covera=1818 ci-rat=72 prelud=27
+907d29f0e succ closur=2263 fast (=1197 arch-i=1097 covera=1409 ci-rat=62 prelud=19
+8cdb5dd5b succ closur=1238 fast (=1485 arch-i=1089 covera=1925 ci-rat=68 prelud=23
+ea6ae2773 succ closur=1267 fast (=1750 arch-i=1063 covera=1452 ci-rat=68 prelud=35
+158c3e0e5 canc closur=-!canc fast (=- arch-i=- covera=- ci-rat=-!canc prelud=-

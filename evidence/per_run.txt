@@ -1,0 +1,40 @@
+41577822624 c3a279e32 2026-11-03T04:23:15Z completed failure 34.667 prelude->fast (3.14)->ci-ratchet
+41555455326 f8bab78d1 2026-11-03T00:48:28Z completed failure 33.5 prelude->fast (3.14)->ci-ratchet
+41513913688 b8e823699 2026-11-02T19:52:09Z completed failure 40.883 prelude->closures->ci-ratchet
+41513774351 b46969633 2026-11-02T19:51:13Z completed cancelled 41.317 prelude->closures->ci-ratchet
+41513704131 1599dd264 2026-11-02T19:50:44Z completed cancelled 41.317 prelude->closures->ci-ratchet
+41513617168 8b823e7f4 2026-11-02T19:50:11Z completed cancelled 35.1 prelude->fast (3.14)->ci-ratchet
+41513537435 7a92dcec7 2026-11-02T19:49:40Z completed cancelled 31.633 prelude->fast (3.14)->ci-ratchet
+41513472149 489d93fa7 2026-11-02T19:49:15Z completed cancelled 40.817 prelude->closures->ci-ratchet
+41513400917 59b7c0771 2026-11-02T19:48:47Z completed cancelled 40.5 prelude->closures->ci-ratchet
+41513327647 d15a2d7df 2026-11-02T19:48:18Z completed failure 41.283 prelude->closures->ci-ratchet
+41506687984 871a20da1 2026-11-02T19:05:34Z completed failure 36.617 prelude->fast (3.14)->ci-ratchet
+41498469873 38dcb6c5d 2026-11-02T18:13:14Z completed failure 40.817 prelude->closures->ci-ratchet
+41491607650 d40e377e5 2026-11-02T17:29:09Z completed failure 36.933 prelude->closures->ci-ratchet
+41475249173 ea59e9a09 2026-11-02T15:48:41Z completed failure 40.8 prelude->closures->ci-ratchet
+41466997614 a568a2e12 2026-11-02T14:58:18Z completed failure 35.367 prelude->fast (3.14)->ci-ratchet
+41458260834 45fc769da 2026-11-02T14:02:52Z completed failure 34.933 prelude->coverage->ci-ratchet
+41450035669 a9c149289 2026-11-02T13:05:55Z completed failure 52.95 prelude->coverage->ci-ratchet
+41433471201 3905069f3 2026-11-02T11:01:48Z completed failure 41.017 prelude->closures->ci-ratchet
+41421154794 279cb497f 2026-11-02T09:30:03Z completed failure 31.483 cancel-superseded->prelude->arch-instrument
+41413405880 8fcaf47e1 2026-11-02T08:29:08Z completed failure 41.85 prelude->closures->ci-ratchet
+41408568169 dfb4ce2b5 2026-11-02T07:47:27Z completed failure 41.117 prelude->closures->ci-ratchet
+41397326281 8f286293b 2026-11-02T06:00:58Z completed failure 39.667 prelude->closures->ci-ratchet
+41394217043 c7aa12165 2026-11-02T05:28:21Z completed success 40.0 prelude->closures->ci-ratchet
+41394108723 5e9c39294 2026-11-02T05:27:12Z completed success 40.05 prelude->closures->ci-ratchet
+41393840932 907d29f0e 2026-11-02T05:24:26Z completed success 39.067 prelude->closures->ci-ratchet
+41393728768 8cdb5dd5b 2026-11-02T05:23:18Z completed success 33.6 prelude->coverage->ci-ratchet
+41390010494 ea6ae2773 2026-11-02T04:43:10Z completed success 30.883 prelude->fast (3.14)->ci-ratchet
+41389536586 158c3e0e5 2026-11-02T04:37:50Z completed cancelled None 
+41389318801 35b711976 2026-11-02T04:35:26Z completed cancelled 33.933 prelude->fast (3.14)->ci-ratchet
+41389212994 432e25c60 2026-11-02T04:34:19Z completed cancelled None 
+41384617176 3dd369722 2026-11-02T03:43:22Z completed success 40.267 prelude->closures->ci-ratchet
+41384505496 48216600f 2026-11-02T03:42:02Z completed success 29.917 refresh->prelude->arch-instrument
+41378499375 8247a1ed1 2026-11-02T02:34:59Z completed success 35.6 prelude->closures->ci-ratchet
+41374627366 94d8b47f6 2026-11-02T01:51:19Z completed success 33.417 prelude->fast (3.14)->ci-ratchet
+41370135038 76801494f 2026-11-02T01:00:11Z completed success 35.683 prelude->closures->ci-ratchet
+41365303753 78dd34354 2026-11-02T00:05:51Z completed success 35.4 prelude->closures->ci-ratchet
+41363701362 9644fb7d0 2026-11-01T23:46:08Z completed success 31.95 cancel-superseded->prelude->arch-instrument
+41363546331 59d717699 2026-11-01T23:44:14Z completed cancelled 35.483 prelude->closures->ci-ratchet
+41363503767 a7cec69d9 2026-11-01T23:43:42Z completed cancelled 35.217 prelude->closures->ci-ratchet
+41363452534 3027abc02 2026-11-01T23:43:02Z completed cancelled 32.233 prelude->coverage->ci-ratchet
