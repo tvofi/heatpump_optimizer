@@ -1,0 +1,2 @@
+From R10-LIVE-BUNDLE-READS (handoff 06234008): a version change across a gap counts as a restart whatever its length; the 43.6 min upgrade gap read as no restart. Its Round-11 D15 inputs carry was done in that group and may be discharged. Re-read unhealthy_input on the next bundle: only the newest of 8 snapshots carries it. Carry: R10-ROUND-PLAYBOOK
+4d89ce26ccfd20bbfc8fc0b675245370ead6deb3
