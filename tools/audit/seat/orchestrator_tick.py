@@ -845,7 +845,9 @@ class Tick:
         return list(dict.fromkeys([t, t[:-3] if t.endswith("-pr") else t]))
 
     def owed_levels(self, S: str, prs: list) -> None:
-        """Every open pull request in exactly one bucket, from data the pass already read
+        """Every open pull request this pass can read in exactly one bucket (a draft, a PR with
+        no head, the record branch and one whose comments were not read are counted on the
+        count line's `not bucketed:` tail instead), from data the pass already read
         (head, checks, mergeable state, the --queue file, the train log, the verdict
         comments) plus git refs; no new GitHub call. Buckets: train | verdict-pending |
         fixer-round | waiting-on #M | owed | verdicted (MERGE-READY and its levels own it)
@@ -865,13 +867,17 @@ class Tick:
         files = getattr(self, "_files", {}) or {}
         open_n = {p["number"]: p for p in prs}
         counts: dict = {}
+        skipped: dict = {}
         owed: list = []
         rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
         record = getattr(rr, "RECORD_BRANCH", None)
         for pr in sorted(prs, key=lambda p: p["number"]):
             n, head = pr["number"], pr.get("headRefOid") or ""
             branch = pr.get("headRefName") or ""
-            if pr.get("isDraft") or not head or branch == record or str(n) not in readback:
+            why = ("draft" if pr.get("isDraft") else "no head" if not head else "record branch"
+                   if branch == record else "comments unread" if str(n) not in readback else "")
+            if why:
+                skipped[why] = skipped.get(why, 0) + 1
                 continue
             topics, lines = self._topics(branch), readback[str(n)]
             last = lines[-1] if lines else ""
@@ -879,12 +885,16 @@ class Tick:
             bucket, reason, kind = self._bucket(n, head, pr, topics, lines, last, ms, queue, parked,
                                                 dispatched, heads, files, open_n, roster, rl)
             counts[bucket] = counts.get(bucket, 0) + 1
+            if bucket == "unreadable":
+                self.unreadable(S, "owed buckets", f"#{n}: {reason}")
             if bucket == "owed":
                 group = rl.group_for_branch(roster, branch) if rl is not None and roster else None
                 owed.append((0 if group in crit else 1, n, f"OWED {kind} #{n} {head[:12]} {reason}"))
         for _, _, text in sorted(owed):
             self.line(S, text, flag=True)
-        self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none"))
+        self.line(S, "buckets: " + (", ".join(f"{k} {v}" for k, v in sorted(counts.items())) or "none")
+                  + ("; not bucketed: " + ", ".join(f"{k} {v}" for k, v in sorted(skipped.items()))
+                     if skipped else ""))
         self.payloads(S)
 
     def _bucket(self, n, head, pr, topics, lines, last, ms, queue, parked, dispatched, heads, files,
@@ -913,9 +923,11 @@ class Tick:
                 return "owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"
         if verdict_kind(last, head) == "blocked":
             newer = self._handoff_newer(pr.get("headRefName") or "", self._verdict_at.get(n) or "")
+            if newer is None:
+                return "unreadable", "git read of the handoff ref failed", ""
             if newer:
                 return "fixer-round", "", ""
-            at = self._verdict_at.get(n)
+            at =self._verdict_at.get(n)
             try:
                 age_h = (self.now - datetime.datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds() / 3600
             except (ValueError, AttributeError):
