@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:_settlement_schedule CLAMP_DROP 8c85837f",
+  "killed_by": "tests/features.py",
+  "old": "                max(0.0, _floor_demand_at_target(model, targets[i], *weather))",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CLAMP_DROP (`(0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
