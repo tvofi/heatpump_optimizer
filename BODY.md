@@ -1,12 +1,12 @@
 Triage batch 125 records one ruling, P390, on a body lost when `body_push.sh` refuses in a cloud seat, and on the frugal guard in the cloud env.
 
-- **P390: ACCEPT narrowed.** R10-BODY-CONTRACT takes one carry: `body_push.sh` keeps a refused body on its own orphan ref. The proposed push to `handoff-wip/<topic>` would put the body in the code's ancestry. Disabling the guard is DEFER: it is the owner's call, and its cost is uncounted.
+- **P390: ACCEPT narrowed.** R10-BODY-CONTRACT takes one carry: `body_push.sh` keeps a refused body on its own orphan ref. The proposed push to `handoff-wip/<topic>` would put the body in the code's ancestry. Disabling the guard was DEFER as the owner's call; the owner then ruled "Turn it off in the cloud" (2026-11-04), which the entry records, routed to R10-FLY-CLOUD-FRUGAL-OFF.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`. The carry is held for the orchestrator to route through `roster_edit.py`.
 
 ## Head
 
-`23488d44f7a20b2548d896b8086a51d4abf4d817`; the one file is the whole diff against `086a59da409fc634bfbf7882c97367cf2ad8bc5f`.
+`03f7d25c19b39cbd02e317286197483117473fe3`; the one file is the whole diff against `086a59da409fc634bfbf7882c97367cf2ad8bc5f`.
 
 ## Mutation proof
 
@@ -21,7 +21,7 @@ This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py
 
 ## Figures
 
-- `git diff --stat 086a59da409fc634bfbf7882c97367cf2ad8bc5f...23488d44f7a20b2548d896b8086a51d4abf4d817`: 1 file changed, 33 insertions(+).
+- `git diff --stat 086a59da409fc634bfbf7882c97367cf2ad8bc5f...03f7d25c19b39cbd02e317286197483117473fe3`: 1 file changed, 35 insertions(+).
 - The ruling's figures are cited beside their sources in its `Instances:`.
 - No capped file is touched; the diff is one markdown file.
 
