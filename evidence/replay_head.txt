@@ -1,0 +1,27 @@
+1. diagnose: the grade at main (fastest draw) over the newest windows of 16
+   window from 41818271680 (8e90d8144): 29.067; tests / fast (3.14) fastest draw 1640 s
+   window from 41812846310 (616868bdc): 22.117; tests / fast (3.14) fastest draw 1223 s
+   window from 41807454797 (fad43b047): 22.367; tests / fast (3.14) fastest draw 1223 s
+   window from 41797862663 (a9c2f90fc): 22.367; tests / fast (3.14) fastest draw 1223 s
+   window from 41577822624 (c3a279e32): 20.75; tests / fast (3.14) fastest draw 1223 s
+   window from 41555455326 (f8bab78d1): 20.75; tests / fast (3.14) fastest draw 1223 s
+   the run ageing out between the two newest windows: 41491607650 (d40e377e5), tests / fast (3.14) 1223 s
+2. host: 60 runs, 13 scripts of >= 20 s; fast class (factor < 0.65) in 10 runs, 1 of the newest 26; UNIT 0.565
+   wall          median 1907 s, 1008..2094, sd 17.5 %
+   wall / factor median 1911 s, 1780..2125, sd 2.9 %
+3. probed: 45 windows; at main 19.967..29.783, this tree unprobed 19.967..29.783, fast (3.14) probed 18.933..29.783; budget 21.983 + band 1.3
+   window from 41818271680: at main 29.067, this tree unprobed 29.067, probed 20.35
+   window from 41812846310: at main 22.117, this tree unprobed 22.117, probed 20.35
+   window from 41807454797: at main 22.367, this tree unprobed 22.367, probed 20.6
+   window from 41797862663: at main 22.367, this tree unprobed 22.367, probed 20.6
+4. controls over the newest window, every job probed (grade 19.118):
+   slow fleet, every job 1.9x, probes too: +0.026 (1 s rounding bound 0.624)
+   one hung run, tests / fast (3.14) at 3.2x the fastest: +0.000
+   +300 s on tests / fast (3.14) in the newest k runs (probed / at main; all of it probed is >= 2.66): k=1 +0.00/+0.00  k=4 +0.18/+0.00  k=8 +1.93/+0.00  k=9 +2.30/+0.00  k=12 +2.46/+0.00  k=16 +2.70/+5.00
+5. bridge: fleet.json, 3 probed fast (3.14) jobs imply 3.14 [22.4, 22.43, 20.72] -> 22.4; heavy-job probes {'3.13': [22.0, 22.0, 38.0, 38.0, 39.0, 39.0], '3.14': [22.0, 24.0, 32.0, 39.0, 39.0, 40.0]}; 3.13/3.14 rank ratio 0.9875 -> 3.13 22.12; in the tree {'3.13': 22.12, '3.14': 22.4}: agree
+   the one-machine bridge, not used: local factor 0.796, probe 24.66 s -> 3.14 17.50, 22 % under the fleet
+6. forward: the merge push grades the newest 16 push runs, none probed: 29.067 against 23.283
+   fleet run 41854976917: not a stand-in, ['tests / closures'] did not succeed
+   merge run 41862133797: first push after 25.644 (GREW); under 17.50 / 18.92 22.252; probed jobs 1.9x slower +0.456 (rounding 1.166); +300 s closures +5.027
+   merge run 41862145105: first push after 25.993 (GREW); under 17.50 / 18.92 22.633; probed jobs 1.9x slower +0.949 (rounding 1.181); +300 s closures +5.144
+RESULT holds=1

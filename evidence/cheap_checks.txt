@@ -1,7 +1,0 @@
-selftest_wiring: 112 self-testing, 112 wired, 0 unwired
-selftest_wiring: 0 index gap(s)
-
-STRUCTURE RATCHET PASSED
-version/claims/budgets diff lines: 0
-ALL 112 HARNESS HEADER CHECKS PASSED
-CI PREDICT: no closures, fast, governance or instrument red predicted against 8e90d8144331 (a data-file read is not seen)
