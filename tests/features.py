@@ -76700,4 +76700,38 @@ R.check(
 )
 
 
+# R10-TWO-ZONE-HHL: the plant system identification sizes its step on is the
+# zone model it is given. On two zones that is the zones' loss and mass, so the
+# whole-house coefficient the options flow hides there moves nothing.
+from heatpump_optimizer import const as _tzh_const  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalParameters as _tzh_tp  # noqa: E402
+
+
+def _tzh_plant(mode: str, hhl: float) -> HousePlant:
+    return HousePlant.of_params(_tzh_tp.from_config({
+        _tzh_const.CONF_TWO_ZONE_MODE: mode, _tzh_const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: hhl,
+        _tzh_const.CONF_HOUSE_THERMAL_MASS: 10.0,
+        _tzh_const.CONF_UPPER_FLOOR_HEAT_LOSS: 0.13, _tzh_const.CONF_LOWER_FLOOR_HEAT_LOSS: 0.2,
+        _tzh_const.CONF_UPPER_FLOOR_THERMAL_MASS: 1.26, _tzh_const.CONF_LOWER_FLOOR_THERMAL_MASS: 1.0,
+    }))
+
+
+_tzh_two = {_tzh_plant(_tzh_const.TWO_ZONE_MODE_ON, hhl) for hhl in (0.1, 0.4, 1.0)}
+_tzh_one = {_tzh_plant(_tzh_const.TWO_ZONE_MODE_OFF, hhl).ua for hhl in (0.1, 0.4, 1.0)}
+R.check(
+    "R10-TWO-ZONE-HHL a two-zone HousePlant is the zones' loss and mass, "
+    "whatever the whole-house coefficient",
+    len(_tzh_two) == 1
+    and abs(next(iter(_tzh_two)).ua - 0.33) < 1e-9
+    and abs(next(iter(_tzh_two)).capacity - 2.26) < 1e-9,
+    str(_tzh_two),
+)
+R.check(
+    "R10-TWO-ZONE-HHL null control: a single-zone HousePlant still follows "
+    "the whole-house coefficient",
+    len(_tzh_one) == 3,
+    str(_tzh_one),
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

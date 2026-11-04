@@ -2186,6 +2186,28 @@ async def options_advanced_pages():
         f"options={entry.options.get(const.CONF_MIXING_VALVE_WRITE_TARGET_KIND)!r}",
     )
 
+    # R10-TWO-ZONE-HHL: on a two-zone house every reader of the whole-house
+    # heat loss takes the zones' loss instead, so the thermal page does not
+    # offer it as a setting there. Null control: single zone still shows it.
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_ON}
+    )
+    two_zone_keys = schema_keys(await flow.async_step_thermal_model(None))
+    flow, entry, _ = fresh_options(
+        pre_options={const.CONF_TWO_ZONE_MODE: const.TWO_ZONE_MODE_OFF}
+    )
+    one_zone_keys = schema_keys(await flow.async_step_thermal_model(None))
+    check(
+        "opt_thermal_model",
+        "happy",
+        "a two-zone entry is not offered the whole-house heat loss; a "
+        "single-zone one is (R10-TWO-ZONE-HHL)",
+        const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT not in two_zone_keys
+        and const.CONF_HOUSE_HEAT_LOSS_COEFFICIENT in one_zone_keys
+        and const.CONF_HOUSE_THERMAL_MASS in two_zone_keys,
+        f"two={sorted(two_zone_keys)} one={sorted(one_zone_keys)}",
+    )
+
     # #1067: pricing the curve lift is for a direct plant. Behind a
     # throttling valve the tank temperature already is the priced flow, so
     # the page refuses the pair rather than saving a switch that does nothing.
