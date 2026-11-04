@@ -76443,7 +76443,7 @@ _cpd_r1 = _cpd_solve(_cpd_live)
 _cpd_stamp1 = dict(_cpd_live._optimization_result.solve_band)
 _cpd_live._accuracy.draw.observe_ceiling(_cpd_live_top, _cpd_now_s - 60.0)  # the twelfth
 _cpd_band_after_fold = _cp_pa._band_kw(_cpd_live.arbiter_inputs())
-_cpd_view_after_fold = _cpd_live._learning_view()["pump_max_power"]
+_cpd_view_after_fold = _cpd_live._learning_view().get("pump_max_power")
 _cpd_r2 = _cpd_solve(_cpd_live)
 _cpd_stamp2 = dict(_cpd_live._optimization_result.solve_band)
 _cpd_plan_max = max(_cpd_live._optimization_result.power_schedule)
@@ -76456,13 +76456,13 @@ R.check(
     "that stamp; the next solve books the learned top and stamps it; a store dropped "
     "without a solve keeps the stamped learned band",
     _cpd_r1 is None and _cpd_r2 is None
-    and (_cpd_stamp1["source"], _cpd_stamp1["reason"]) == ("configured", "awaiting_probe")
-    and _cpd_band_after_fold == (_cpd_stamp1["planned_min_kw"], _cpd_stamp1["planned_max_kw"])
-    and _cpd_view_after_fold["source"] == "configured"
-    and _cpd_stamp2["source"] == "ceiling_probe"
-    and abs(_cpd_stamp2["planned_max_kw"] - _cpd_live_top) < 1e-3
+    and (_cpd_stamp1.get("source"), _cpd_stamp1.get("reason")) == ("configured", "awaiting_probe")
+    and _cpd_band_after_fold == (_cpd_stamp1.get("planned_min_kw"), _cpd_stamp1.get("planned_max_kw"))
+    and (_cpd_view_after_fold or {}).get("source") == "configured"
+    and _cpd_stamp2.get("source") == "ceiling_probe"
+    and abs(_cpd_stamp2.get("planned_max_kw", 0.0) - _cpd_live_top) < 1e-3
     and _cpd_plan_max <= _cpd_live_top + 1e-6
-    and _cpd_band_after_drop == (_cpd_stamp2["planned_min_kw"], _cpd_stamp2["planned_max_kw"])
+    and _cpd_band_after_drop == (_cpd_stamp2.get("planned_min_kw"), _cpd_stamp2.get("planned_max_kw"))
     and float(_cpd_live_hub.max_electrical_power) == 2.0 * _cpd_live_top,
     f"r {_cpd_r1} {_cpd_r2} stamp1 {_cpd_stamp1.get('reason')} fold-band {_cpd_band_after_fold} "
     f"stamp2 {_cpd_stamp2.get('source')} {_cpd_stamp2.get('planned_max_kw')} plan-max {_cpd_plan_max} "
@@ -76485,10 +76485,11 @@ _cpd_attrs_none = _CpStatus.extra_state_attributes.fget(_cpd_status)
 R.check(
     "part D publish: the model status sensor names the configured and planned tops and "
     "publishes source and reason as top-level codes; no plan publishes None",
-    _cpd_attrs["pump_max_power"]["configured_max_kw"] == 5.0
-    and _cpd_attrs["pump_max_power"]["planned_max_kw"] == 3.0
-    and _cpd_attrs["pump_max_power_source"] == "ceiling_probe"
-    and _cpd_attrs["pump_max_power_reason"] == "measured_below_configured"
+    (_cpd_attrs.get("pump_max_power") or {}).get("configured_max_kw") == 5.0
+    and (_cpd_attrs.get("pump_max_power") or {}).get("planned_max_kw") == 3.0
+    and _cpd_attrs.get("pump_max_power_source") == "ceiling_probe"
+    and _cpd_attrs.get("pump_max_power_reason") == "measured_below_configured"
+    and all(k in _cpd_attrs_none for k in ("pump_max_power", "pump_max_power_source", "pump_max_power_reason"))
     and (_cpd_attrs_none["pump_max_power"], _cpd_attrs_none["pump_max_power_source"],
          _cpd_attrs_none["pump_max_power_reason"]) == (None, None, None),
     f"{_cpd_attrs.get('pump_max_power')} {_cpd_attrs_none.get('pump_max_power')}",
