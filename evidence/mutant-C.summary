@@ -1,2 +1,4 @@
-477 passed, 0 failed
-rc=0
+  FAIL a failing slot-take is attempted once across two take_slot calls (no re-queue on the WARN path) (got 2, wanted 1)
+  FAIL and the unleased marker is written once (got 2, wanted 1)
+484 passed, 2 failed
+rc=2

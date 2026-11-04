@@ -1,5 +1,5 @@
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index 4e9d7f7fe..89c7d8278 100755
+index 89d122175..45cb5a0bf 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
 @@ -777,7 +777,7 @@ closures_owes_slot() { # merge base

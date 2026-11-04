@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 89d122175..2a6aa7f3c 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -4066,7 +4066,6 @@ HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
+ if [ $? -eq 0 ]; then
+   say skip "field coverage" "$HV"
+ else
+-take_slot
+ if test -f .claude/workflows/field_coverage.mjs; then heavy_run /tmp/prepr-fc.$$ node .claude/workflows/field_coverage.mjs; else heavy_run /tmp/prepr-fc.$$ node tools/policy/field_coverage.mjs; fi
+ # the refusal cause lines sit above the summary this prints, and the file is
+ # removed below, so they are carried beside it or not at all (#2118, #2134).

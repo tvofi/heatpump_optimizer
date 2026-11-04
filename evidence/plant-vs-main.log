@@ -1,0 +1,18 @@
+  ok       merge-base             8e90d81443317f76f22602a89651f7ca17c633f9
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  ok       gate priority          0 (env, .gate-priority, then the critical-path default)
+  ok       gate mode              MODE: SCOPED
+  ok       policy_lint             FIXTURE ok: 93 error(s) hold 260 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+  ok       heavy slot             taken slot=0 label=prepr-12849 expires_at=2026-11-04T15:44:57.724232+00:00
+  ok       mutants                MUTANTS ok: every check this clone could drive turns the acceptance red when it is emptied -- corpus [checkIndex, checkDuplicates, checkBudgets, coverageOverTree, nam
+  ok       rules_sync             RULES-SYNC ok: every generated rule is the generated form of its source
+  ok       fragments              FRAGMENTS ok: 13 canonical fragment(s) [GH_READ, GH_WRITE, GH_MERGE, GATE, DOC, WT, WT_REVIEW, RANK, tierOk, MERGE, mergePrompt, waitMainPrompt, stampPrompt] match ev
+  ok       hooks                  HOOKS ok: 4 wired hook(s) exist and pass their own --self-test
+  ok       codeowners_gap         RESULT uncovered_files=0 count 
+  ok       brief_lint             CARRY ok: 10 error(s) pin the carry acceptance across three malformed fixtures, and the correct one produces no finding of any severity
+  ok       field coverage         FIELD COVERAGE ok
+  ok       agreement lane         AGREEMENT ok
+  skip     register check         the diff changes no file register check reads -- no hit in its declared path list; the closure table maps all 7 changed file(s), so no read is reached
+  ok       temp paths             tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 8e90d8144331
+  ok       ref privacy            ref_privacy --check at HEAD: 29 file(s) with a push site, 12 guarded, 172 line(s) added since 8e90d8144331 judged, 0 refused
+  ok       pinned graders         

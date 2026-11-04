@@ -1,46 +1,45 @@
 # Review packet #3191
-head: 5640ad9d03e8a9bd9b5f8cae7701887170e70713
-base: 616868bdc5ca54d9555cfc89715f05a33527661e
+head: cf2ed7303beaea740760c0afe8c58411169b9522
+base: 8e90d81443317f76f22602a89651f7ca17c633f9
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=126543728451 neutral
-arch-score / arch-score id=126543355314 success
-arm id=126543199441 skipped
-budget-raise-gate / budget-raise-gate id=126543355293 success
-cancel-superseded id=126543131649 success
-codeql / Analyze (actions) id=126543354965 success
-codeql / Analyze (javascript-typescript) id=126543355258 success
-codeql / Analyze (python) id=126543354992 in_progress
-governance / delivery-status id=126543355204 success
-governance / delivery-status-publish id=126543357717 skipped
-governance / env-matrix id=126543355114 success
-governance / instrument-self-tests id=126543355092 in_progress
-governance / policy-docs id=126543355011 success
-governance / record id=126543357522 skipped
-governance / wave-script id=126543355067 success
-hassfest / hassfest id=126543354935 success
-kernel-points id=126543355901 skipped
-prelude id=126543131713 in_progress
-refresh id=126543131341 success
-tests / arch-instrument id=126543564704 success
-tests / briefs id=126543355380 success
-tests / browser id=126543564844 success
-tests / claims-autofix id=126547788677 skipped
-tests / closure-scope id=126543355327 success
-tests / closures id=126543564932 success
-tests / closures-autofix id=126550646315 skipped
-tests / coverage id=126543564870 in_progress
-tests / fast (3.14) id=126543564737 success
-tests / mutation id=126543355357 success
-tests / mutation-autofix id=126543700689 skipped
-tests / mutation-pins id=126543699998 skipped
-tests / nightly-ha id=126543567062 skipped
-tests / nightly-status id=126543355253 failure
-tests / replay id=126543567391 skipped
-tests / typing id=126543564965 success
-validate / validate-hacs id=126543355398 success
+CodeQL id=126655502408 neutral
+arch-score / arch-score id=126654872418 success
+arm id=126654574589 skipped
+budget-raise-gate / budget-raise-gate id=126654872098 success
+cancel-superseded id=126654580978 success
+codeql / Analyze (actions) id=126654872669 success
+codeql / Analyze (javascript-typescript) id=126654872406 success
+codeql / Analyze (python) id=126654872523 in_progress
+governance / delivery-status id=126654872586 success
+governance / delivery-status-publish id=126654874163 skipped
+governance / env-matrix id=126654872560 success
+governance / instrument-self-tests id=126654872749 in_progress
+governance / policy-docs id=126654872779 success
+governance / record id=126654874720 skipped
+governance / wave-script id=126654872629 success
+hassfest / hassfest id=126654872197 success
+kernel-points id=126654874871 skipped
+prelude id=126654581404 success
+refresh id=126654581580 success
+tests / arch-instrument id=126655255392 success
+tests / briefs id=126654872461 success
+tests / browser id=126655255327 success
+tests / claims-autofix id=126661747838 skipped
+tests / closure-scope id=126654872432 success
+tests / closures id=126655255505 in_progress
+tests / coverage id=126655255207 in_progress
+tests / fast (3.14) id=126655255496 success
+tests / mutation id=126654872710 success
+tests / mutation-autofix id=126655354974 skipped
+tests / mutation-pins id=126655354923 skipped
+tests / nightly-ha id=126655259352 skipped
+tests / nightly-status id=126654872754 failure
+tests / replay id=126655258245 skipped
+tests / typing id=126655255536 success
+validate / validate-hacs id=126654872410 success
 
 ## Refusals
 none
@@ -52,16 +51,18 @@ none
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         HPO_GATE_LOCK_DIR=$(mktemp -d)/lk python3 tests/gate_lock.py slot-take --label sN --owner-pid <pid>
-             `tests/gate_lock.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub bash tools/pr/prepr.sh --self-test
+ok         PYTHONPATH=tests/hastub bash tools/pr/prepr.sh --self-test
              `tools/pr/prepr.sh` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         node tools/policy/policy_lint.mjs
-             `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
 
-FIGURES: 4 resolved, 0 not verified, 0 refused
+FIGURES: 5 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -154,7 +155,7 @@ index 000000000..a4255d489
 @@ -0,0 +1 @@
 +- [#3191](https://github.com/tvofi/heatpump_optimizer/pull/3191) — **open**, R10-PREPR-CAP: lazy heavy-slot take (R10-PREPR-CAP)
 diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
-index fc76d1e0e..4e9d7f7fe 100755
+index fc76d1e0e..89d122175 100755
 --- a/tools/pr/prepr.sh
 +++ b/tools/pr/prepr.sh
 @@ -769,6 +769,19 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
@@ -246,7 +247,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    rm -rf "$CG"
    rm -rf "${WF:?}"
  
-@@ -3399,8 +3460,29 @@ STUB
+@@ -3399,8 +3460,75 @@ STUB
    st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
    st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
    st "$(grep -cF "slot-leased --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and clears the count on the way out"
@@ -255,11 +256,49 @@ index fc76d1e0e..4e9d7f7fe 100755
 +  # LAZY (carries 25 and 26): the take is a function the heavy steps call, never
 +  # an unconditional line before the light ones. Every call precedes the heavy
 +  # command it guards, and the idempotence and the join are DRIVEN below.
-+  st "$(grep -cE '^ *take_slot( |$)|&& take_slot$' <<<"$flow")" 4 "the main flow calls take_slot at the mutants, self-test, closures and diff-mutants steps (and defines it once)"
++  st "$(grep -cE '^ *take_slot( |$)|&& take_slot$' <<<"$flow")" 5 "the main flow calls take_slot at the mutants, field coverage, self-test, closures and diff-mutants steps (and defines it once; 3f5 is light and stays unleased)"
 +  slot_order=$(awk '/^take_slot\(\)/{d=1} /step "policy_lint"/{seen=1} /^ *take_slot$/{ if(d && seen){print "ok"} exit }' <<<"$flow")
 +  st "$slot_order" ok "and the first call sits after the light policy_lint step: a run that skips every heavy step never takes one"
 +  st "$(awk '/^take_slot$/{c=1} /policy_lint_mutants.mjs; then heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the mutants drive runs inside the slot (take_slot precedes its heavy_run)"
 +  st "$(awk '/^  take_slot$/{c=1} /prepr.sh --self-test; else heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the self-test runs inside the slot"
++  # Step 3f3 (field coverage, ~234 s idle) is heavy_skip-gated like 3a but is not
++  # the mutants drive's read-set: a workflow-only diff skips the mutants and runs
++  # field coverage. DRIVEN: the production 3a and 3f3 blocks, with heavy_skip
++  # answering "mutants skip, field coverage runs" (the plant is a one-line change
++  # to .github/workflows/arch-score.yml); the log must read skip, take, run.
++  blk3=$(sed -n '/^HV=\$(heavy_skip "mutants"/,/^# --- 3b\./p' "$PREPR_PATH" | sed '$d'; sed -n '/^HV=\$(heavy_skip "field coverage"/,/^# --- 3f4\./p' "$PREPR_PATH" | sed '$d')
++  slot_log() { # mutants verdict, field-coverage verdict (0 skip, 1 run) -> event log
++    ( L=$(mktemp); MS=$1; FS=$2
++      heavy_skip() { case "$1" in mutants) return "$MS" ;; *) return "$FS" ;; esac; }
++      say() { echo "skip $2" >> "$L"; }; take_slot() { echo take >> "$L"; }
++      heavy_run() { echo "run ${*: -1}" >> "$L"; }; step() { :; }
++      HEAVY_PLAN_FILE=x; eval "$blk3" >/dev/null 2>&1
++      tr '\n' ' ' < "$L"; rm -f "$L" )
++  }
++  got=$(slot_log 0 1)
++  case "$got" in "skip mutants take run "*"field_coverage.mjs ") r=0 ;; *) r=1 ;; esac
++  st "$r" 0 "a plan where the mutants skip and field coverage runs takes the slot before 3f3's recorder ($got)"
++  got=$(slot_log 0 0)
++  case "$got" in "skip mutants skip field coverage ") r=0 ;; *) r=1 ;; esac
++  st "$r" 0 "and a plan skipping both takes no slot (null control)"
++  # `closures_owes_slot` alone decides whether the scoped recorder runs inside a
++  # slot. DRIVEN like the 6b rows drive `closures_line`: a throwaway repository
++  # whose tests/closure.py stub writes the `affected` case and scripts it is told.
++  OWQ=$(mktemp -d)
++  ( set -e; throwaway_git_env; cd "$OWQ"; throwaway_git_init . -q -b main; git config user.email t@t; git config user.name t \
++    && mkdir tests && printf 'import os, sys\nw = sys.argv[sys.argv.index("--workdir") + 1]\nos.makedirs(w, exist_ok=True)\nopen(w + "/affected.case", "w").write(os.environ["OWE_CASE"])\nopen(w + "/affected.scripts", "w").write(os.environ.get("OWE_SCRIPTS", ""))\n' > tests/closure.py \
++    && echo a > f && git add . && git commit -qm base && git branch -q base && echo b >> f && git commit -qam change )
++  owes() { # case, scripts, records_here rc -> rc of closures_owes_slot
++    ( cd "$OWQ"; export OWE_CASE=$1 OWE_SCRIPTS=$2; RH=$3
++      closures_records_here() { return "$RH"; }
++      closures_owes_slot base >/dev/null 2>&1 ); echo $?
++  }
++  st "$(owes scoped 'a.py' 0)" 0 "closures_owes_slot: a scoped diff with scripts, on a machine that records, owes the slot"
++  st "$(owes skip 'a.py' 0)" 1 "and a skip diff owes none"
++  st "$(owes full 'a.py' 0)" 1 "and a full diff owes none (CI re-records every closure)"
++  st "$(owes scoped 'a.py' 1)" 1 "and a machine that leaves recording to CI owes none"
++  st "$(owes scoped '' 0)" 1 "and a scoped diff whose affected.scripts is empty owes none (null control)"
++  rm -rf "$OWQ"
 +  TSL=$(mktemp -d); : > "$TSL/log"
 +  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
 +    say() { :; }; exit_on_signals() { :; }
@@ -267,6 +306,14 @@ index fc76d1e0e..4e9d7f7fe 100755
 +    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
 +    take_slot; take_slot )
 +  st "$(grep -c slot-take "$TSL/log")" 1 "take_slot called twice takes exactly one slot (idempotent)"
++  : > "$TSL/log"
++  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
++    say() { :; }; exit_on_signals() { :; }
++    python3() { echo "$*" >> "$TSL/log"; case "$*" in *slot-take*) return 1 ;; esac; return 0; }
++    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
++    take_slot; take_slot )
++  st "$(grep -c slot-take "$TSL/log")" 1 "a failing slot-take is attempted once across two take_slot calls (no re-queue on the WARN path)"
++  st "$(grep -c slot-unleased "$TSL/log")" 1 "and the unleased marker is written once"
 +  : > "$TSL/log"
 +  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; export HPO_SLOT_LABEL=outer
 +    say() { :; }; exit_on_signals() { :; }
@@ -278,7 +325,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    # (7) The priority the slot-take reads is derived from the branch's group and
    # exported BEFORE the take, so the lease's ticket carries it (tvofi,
    # 2026-10-20). The derivation's own four arms are gate_priority.py's
-@@ -3552,7 +3634,7 @@ EOF
+@@ -3552,7 +3680,7 @@ EOF
    # survivors: `EARLY_REDS_RC=0` in step 1a2, and `if false` for the --pr-branch
    # guard). The arm is a stub returning a chosen rc; the blocks are the
    # production text, extracted and evaluated.
@@ -287,7 +334,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    bcg=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^  P=\$(mktemp)/p' "$PREPR_PATH" | sed '$d'; echo fi)
    # The body FILE lives under $WB (a mktemp dir inside ST_ROOT, which the EXIT trap removes),
    # never in the tracked fixture directory: a stray file there dirties the
-@@ -3581,6 +3663,26 @@ EOF
+@@ -3581,6 +3709,26 @@ EOF
      case "$got" in 0:*FELL-THROUGH*) r=0 ;; *) r=1 ;; esac
      st "$r" 0 "step 1a2 does not refuse when the arm returns rc $sr (null control)"
    done
@@ -314,7 +361,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    bcchk() { # stub rc -> output ending REDSRC=<BODY_CHECK_REDS_RC>
      ( STUBRC=$1; BASE=x
        reds_arm() { echo "stub-line"; return "$STUBRC"; }
-@@ -3748,6 +3850,18 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+@@ -3748,6 +3896,18 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
    fi
  fi
  
@@ -333,7 +380,7 @@ index fc76d1e0e..4e9d7f7fe 100755
  # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
  # The lease is generic: it orders waiters by an integer and never decides who
  # deserves one. This step supplies the integer from tools/pr/gate_priority.py,
-@@ -3780,9 +3894,23 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
+@@ -3780,9 +3940,23 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
  # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
  # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
  SLOT_LABEL="prepr-$$"
@@ -360,7 +407,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    slot_stderr=$(mktemp)
    if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --owner-pid $$ >"$slot_stderr" 2>&1; then
      export HPO_SLOT_LABEL="$SLOT_LABEL"
-@@ -3803,7 +3931,7 @@ else
+@@ -3803,7 +3977,7 @@ else
      exit_on_signals
    fi
    rm -f "$slot_stderr"
@@ -369,7 +416,7 @@ index fc76d1e0e..4e9d7f7fe 100755
  
  # One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
  PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
-@@ -3838,6 +3966,7 @@ HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
+@@ -3838,6 +4012,7 @@ HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
  if [ $? -eq 0 ]; then
    say skip "mutants" "$HV"
  else
@@ -377,7 +424,26 @@ index fc76d1e0e..4e9d7f7fe 100755
  if test -f .claude/workflows/policy_lint_mutants.mjs; then heavy_run /tmp/prepr-mutants.$$ node .claude/workflows/policy_lint_mutants.mjs; else heavy_run /tmp/prepr-mutants.$$ node tools/policy/policy_lint_mutants.mjs; fi
  step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
  rm -f /tmp/prepr-mutants.$$
-@@ -3952,6 +4081,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
+@@ -3891,6 +4066,7 @@ HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
+ if [ $? -eq 0 ]; then
+   say skip "field coverage" "$HV"
+ else
++take_slot
+ if test -f .claude/workflows/field_coverage.mjs; then heavy_run /tmp/prepr-fc.$$ node .claude/workflows/field_coverage.mjs; else heavy_run /tmp/prepr-fc.$$ node tools/policy/field_coverage.mjs; fi
+ # the refusal cause lines sit above the summary this prints, and the file is
+ # removed below, so they are carried beside it or not at all (#2118, #2134).
+@@ -3918,7 +4094,9 @@ rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
+ # Skipped on the closure derivation's proof (`heavy_skip` above): the step's
+ # read-set is the dev/audit/ config, rounds and rca trees, and a diff reaching
+ # none of them prints the skip and its disjointness. The plan is removed here,
+-# with the last heavy step that reads it.
++# with the last heavy step that reads it. UNLEASED ON PURPOSE (no `take_slot`):
++# the step is light (about 0.5 s), so queueing for a slot would cost more than
++# the work; 3f3 above (234 s idle) is the heavy one and takes the slot.
+ HV=$(heavy_skip "register check" "${HEAVY_PLAN_FILE:-}")
+ if [ $? -eq 0 ]; then
+   say skip "register check" "$HV"
+@@ -3952,6 +4130,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
  # detector. A diff that cannot be listed is treated as owing it.
  if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
       || selftest_owed /tmp/prepr-st.$$; then
@@ -385,7 +451,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    if test -f tools/audit/prepr.sh; then heavy_run /tmp/prepr-stlog.$$ bash tools/audit/prepr.sh --self-test; else heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test; fi
    step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
    rm -f /tmp/prepr-stlog.$$
-@@ -4026,6 +4156,9 @@ step "claims hygiene" $? "$CLAIMS_LINE"
+@@ -4026,6 +4205,9 @@ step "claims hygiene" $? "$CLAIMS_LINE"
  if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
    say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
  else
@@ -395,7 +461,7 @@ index fc76d1e0e..4e9d7f7fe 100755
    closures_step "$BASE"
    case $? in
      3) say skip "closures" "$CLOSURES_LINE" ;;
-@@ -4062,6 +4195,7 @@ if [ -z "${MUTANT_CMD:-}" ]; then
+@@ -4062,6 +4244,7 @@ if [ -z "${MUTANT_CMD:-}" ]; then
  elif [ ! -f tools/audit/seat/mutant_run.py ]; then
    say skip "diff mutants" "tools/audit/seat/mutant_run.py is not in this tree"
  else
