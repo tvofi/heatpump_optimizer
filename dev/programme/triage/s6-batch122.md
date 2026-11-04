@@ -26,7 +26,7 @@ Instances:
   (`_compute_baseline_power`, and `dhw_planner.py` drops the refill coil). So wood can raise R without limit and cannot
   lower it. R above 2 means a stated saving above 50 %, and R below 0.5 means below -100 %.
 - **Sound arms, from `r10_sav_wood_reference.py` at `39143c38f`, as the fix seat reported them, R as booked over plan kWh.**
-  The plant equals the model there, so metered equals plan and calibration is 1.0. The wood arms ran `--quick`; the valve arms ran the full two days.
+  The plant equals the model there, so metered equals plan, except `wood-unforeseen`, where booked over metered is about 1.92 by the fix seat's derived ratio. The wood arms ran `--quick`; the valve arms ran the full two days.
 
   | arm | R | ceiling 2.0 | floor 0.5 |
   |---|---|---|---|
@@ -68,7 +68,7 @@ Instances:
   no saving, while the owner's ruling says it counts. The wood arms cannot see this because their plant equals the model. How large
   it is on a real wood house is not measured: the export reads metered over plan 0.68 in 2026-11, on the defective month. The same
   cancellation means a band on the published row reads no meter, so the floor must read the booked lines.
-  **Answered:** the fix seat's `savings_months` takes `wood_configured`, and on a wood-configured row calibration may only raise the reference. Driven at its checkout `77af298ef`, meter over plan 1.0, 0.5, 0.25 reads 50, 75, 87.5 % with wood and 50, 50, 50 % without. The no-wood path keeps the cancellation by specification, so the floor still reads the booked lines. The first re-check here left the argument out and wrongly reported the finding as still open. `wood-unforeseen` has calibration 1.0, so it is not itself a meter-below-plan case; that case is in the drive above and in the fix seat's `tests/features.py` checks.
+  **Answered:** the fix seat's `savings_months` takes `wood_configured`, and on a wood-configured row calibration may only raise the reference. Driven at its checkout `77af298ef`, meter over plan 1.0, 0.5, 0.25 reads 50, 75, 87.5 % with wood and 50, 50, 50 % without. The no-wood path keeps the cancellation by specification, so the floor still reads the booked lines. The first re-check here left the argument out and wrongly reported the finding as still open. `wood-unforeseen` is the closed-loop arm: its harness meters half the plan from 17:00, about 0.90 over the day as the fix seat derives from the row. Its printed calibration 1.0 is after the floor, and its "uncalibrated" print cannot tell the floor from no calibration, so the pin is the drive above and the fix seat's `tests/features.py` checks.
 - **The class mint.** `fold_ledger.py check` on a whole-tree export of `d8eeae8f8`: 48 classes, 0 violations. `fold_ledger.py sync`
   there: already carried, so the `audit-find.js` hunk is the generated block and the schema line is the enum `fold` requires. #2625 and
   #2696 touched the same two files the same way.
