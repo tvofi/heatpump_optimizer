@@ -1,0 +1,25 @@
+gc rc=0
+  gc| keep  /tmp/tmp.ZjWvpbEVrF/repo  main
+  gc| remove  /tmp/tmp.ZjWvpbEVrF/seats/seat-a/wt
+  gc| removed  /tmp/tmp.ZjWvpbEVrF/seats/seat-a/wt
+  gc| remove  /tmp/tmp.ZjWvpbEVrF/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.ZjWvpbEVrF/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+moved tip=6aaf1e24737b1f0661317f23aa8eb2d6baf8c91a worktree now: removed
+RESULT race=1 detached-moved-head-lost=1
+gc rc=0
+  gc| keep  /tmp/tmp.yEfLHV9pXx/repo  main
+  gc| remove  /tmp/tmp.yEfLHV9pXx/seats/seat-a/wt
+  gc| removed  /tmp/tmp.yEfLHV9pXx/seats/seat-a/wt
+  gc| remove  /tmp/tmp.yEfLHV9pXx/seats/seat-a (seat scratch)
+  gc| removed  /tmp/tmp.yEfLHV9pXx/seats/seat-a
+  gc| worktree_gc: summary -- eligible 1, removed 1, kept 1
+moved tip=none worktree now: removed
+RESULT race=0 detached-moved-head-lost=0
+== merge-base c3a279e3 (main, before this PR)
+  gc| remove  /tmp/tmp.g67VAoaK9s/seats/seat-a/wt
+  gc| remove  /tmp/tmp.g67VAoaK9s/seats/seat-a (seat scratch)
+RESULT race=1 detached-moved-head-lost=1
+  gc| remove  /tmp/tmp.cUfgfJuwMo/seats/seat-a/wt
+  gc| remove  /tmp/tmp.cUfgfJuwMo/seats/seat-a (seat scratch)
+RESULT race=0 detached-moved-head-lost=0
