@@ -1,0 +1,59 @@
+  ok   the self-test checks the floor, then takes its temp root, before any fixture
+  ok   a KILL to the prepr during a heavy step leaves no step or step lane running behind it
+  ok   a TERM to the prepr alone during a heavy step ends it, the step and the step's lane at once
+  ok   a TERM to the prepr's process group during a heavy step ends all three
+  ok   the same step in the foreground outlives a KILL to the prepr (null control: the orphan)
+  ok   and a TERM to the prepr waits behind it (null control: the deferred trap)
+  ok   no step from 3 to 3h runs a program in the foreground
+  ok   and 3h's self-test, the heaviest, runs through heavy_run
+  ok   and 6b's recorder runs through the same helper
+  ok   a carry to a group the stale round-branch mirror lacks is refused there (the fetch's null control)
+  ok   the same carry passes once carry_line fetches the round branch
+  ok   and the ok line names the count and the ref it read
+  ok   a carry to a group only the worktree's roster holds passes the offline read (the defect's null control)
+  ok   and carry_line refuses it: the round branch, where fix-review step 10 looks, lacks the group
+  ok   and the refusal is carry_audit's own BAD-DEST line, naming the group
+  ok   an unrouted ## Forward-carry item is refused
+  ok   and the refusal is carry_audit's own UNROUTED line
+  ok   a round branch that cannot be fetched refuses, never reads the stale mirror
+  ok   and the refusal says why
+  ok   the body step runs carry_line on the body and refuses on its rc
+  ok   step 7's preflight derives the intended list and refuses on its rc
+  ok   the main flow runs the red-check arm before the heavy slot is taken (P351)
+  ok   and reads the check runs once: step 7c reuses the early answer
+  ok   --body-check --pr-branch runs the same arm and refuses on its rc
+  ok   body_push passes --pr-branch when origin holds fix/<topic>
+  ok   step 1a2 exits nonzero when the arm concluded a red (rc 1) -- before the heavy slot
+  ok   and prints the ancestry reds step line
+  ok   and does not fall through to the heavy steps
+  ok   step 1a2 does not refuse when the arm returns rc 0 (null control)
+  ok   step 1a2 does not refuse when the arm returns rc 3 (null control)
+  ok   step 1a3 exits nonzero on a head_arm refusal, naming it, before any heavy step
+  ok   and does not fall through to the heavy steps
+  ok   step 1a3 lets a body naming this head run every step as today (null control)
+  ok   --body-check --pr-branch refuses (line and flag) when the arm concluded a red
+  ok   --body-check --pr-branch passes when the arm returns rc 0 (null control)
+  ok   and --body-check runs the same preflight and refuses on its rc
+  ok   the red-check-arm rows leave git status --porcelain unchanged
+  ok   and a row that writes into the tracked fixture dir changes it (null control)
+  ok   --body-check runs step 7a's figure lint and refuses on its rc (carry 8)
+  ok   --body-check runs privacy_line and refuses on its rc (P78)
+  ok   step 3f7 runs privacy_line and refuses on its rc
+  ok   step 4 keys its wave-script run on WAVE_INPUTS
+  ok   step 6g runs claims_reg_line and refuses on its rc
+  ok   the clone's mirror lacks the pushed head (the gate's null control: 7b's read)
+  ok   reds_head_sha finds a pushed head the mirror lacked
+  ok   and returns the origin's sha for it
+  ok   a head the origin does not carry is a skip
+  ok   and the red-check arm (reds_arm, run by step 1a2) gates on it, not on 7b's UPSHA
+  ok   the summary run keeps the refusal's rc
+  ok   summary stdout carries no passing step's per-test chatter
+  ok   and carries the REFUSE line with its reason (null control: the refusal stays visible)
+  ok   and the refusal's failing lines
+  ok   the last line is the result with rc, naming a unique log under TMPDIR
+  ok   and that log holds the full output
+  ok   PREPR_VERBOSE=1 prints the full output on stdout
+  ok   the main flow starts the summary after step 1 and ends on its result line
+
+477 passed, 0 failed
+rc=0
