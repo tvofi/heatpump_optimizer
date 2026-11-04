@@ -6,7 +6,7 @@ No product behaviour changes: the diff is one markdown file under `dev/programme
 
 ## Head
 
-`9526e320bf1d8242b22a511a6a030ca6fc4025a7`; the one file is the whole diff against `d7582ed40`.
+`e26398a0a4f0c9f54b6e4163c3f8303e60eebbea`; the one file is the whole diff against `d7582ed40`.
 
 ## Mutation proof
 
@@ -21,7 +21,7 @@ This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py
 
 ## Figures
 
-- `git diff --stat d7582ed40...9526e320bf1d8242b22a511a6a030ca6fc4025a7`: 1 file.
+- `git diff --stat d7582ed40...e26398a0a4f0c9f54b6e4163c3f8303e60eebbea`: 1 file.
 - The ruling's figures are cited beside their sources in its `Instances:`.
 - No capped file is touched; the diff is one markdown file.
 
