@@ -4008,6 +4008,7 @@
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
    "dev/audit/harnesses/r10_open_driver_mutants.py",
+   "dev/audit/harnesses/r10_partload_pricing.py",
    "dev/audit/harnesses/r10_plan_durations_mutants.py",
    "dev/audit/harnesses/r10_plan_issues_chart_mutants.py",
    "dev/audit/harnesses/r10_plan_page_mutants.py",
