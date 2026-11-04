@@ -13698,9 +13698,9 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): this group is planned off the coordinator.py cap; no carry or brief seam names coordinator.py. A fix that needs a coordinator.py edit stops and reports before editing, and is then re-queued behind the coordinator cap."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-partload-pricing",
-    "commit": null,
+    "commit": "8e90d81443317f76f22602a89651f7ca17c633f9",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-COP-PARTLOAD",
@@ -15824,7 +15824,8 @@
    "resume": {
     "stage": "in-progress",
     "branch": "handoff/r10-rca-ci-critpath-3",
-    "note": "s11 expedite, fired 2026-11-04"
+    "note": "s11 expedite, fired 2026-11-04",
+    "pr": 3189
    },
    "brief": "Root-cause seat for the third red of critical_path_minutes and the 25 h unattended red main, by dev/governance/roles/root-cause.md."
   },
