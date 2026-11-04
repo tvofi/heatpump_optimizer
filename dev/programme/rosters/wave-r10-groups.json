@@ -13273,12 +13273,13 @@
     "Folded from R10-SEAT-SINGLE-WRITER into R10-FLY-STANDING-CONTRACTS (shared owning seam; s11 replan). BRIEF: One writer per standing seat and per orchestrator session: a generation token a superseded seat's lingering job checks before it writes, and a session lock keyed on the session binary's own pid that a second resumed session refuses on. Measure first which tracked writers exist per standing seat; wire only those. Stranded on R10-ORCH-BEATD, re-routed through R10-FLY-SEAT-ALIVE-ID, which #3070 closed. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-fly-standing-contracts",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a designer (dev/governance/roles/designer.md) for design/R10-FLY-STANDING-CONTRACTS, then its design reviewer; the fixer dispatches only on Design review: approve; policy files, the owner approves the merge",
-    "note": "orchestrator s9, 2026-10-31, slipped-proposal audit (tvofi request): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt) | set-size S -> L (cite origin/handoff/audit-r10-roster@a6fda9d26)"
+    "note": "orchestrator s9, 2026-10-31, slipped-proposal audit (tvofi request): re-routes P51 and P95 from R10-ORCH-BEATD (done at #2916, both unbuilt) | set-size S -> L (cite origin/handoff/audit-r10-roster@a6fda9d26)",
+    "pr": 3197
    },
    "brief": "Standing-seat mechanisation, made permanent (owner, tvofi 2026-10-31, verbatim: \"Fold in making this mechanisation/updated sweep and contracts permanent in a suitable group. The group should also review the live usage of the sweep so for when it starts, and fix any gaps\"). The owner also ruled: \"consider if all of the seats and their tasks are necessary LLM tasks\", \"the tick seat is planned to be replaced by a script within the sweep\" and \"recycle the standing seat at a suitable frequency ... Make that rule persistent\". Re-scoped by orchestrator s9 from the two contract edits this group held (carries 0-1, from R10-ORCH-BEATD), which stay in scope. Size L (tvofi 2026-11-01, at 20 carries): a designer writes design/R10-FLY-STANDING-CONTRACTS per dev/governance/roles/designer.md, and it passes design review (design-review.md), before any fixer starts. The four contracts are policy, so the owner approves the merge.\nSTEP 1, before any code: a live-usage review. Read how the sweep and its local stand-ins ran in the session that dispatches you, and list every gap before building. Sources:\n- the orchestrator's seat ledger and its OWED-ACK lines;\n- the stand-ins' logs: the tick digest (the tick-digest script, its digest log and new/gone files), the sweep runner (the sweep-runner script, the roster-drain script and the runner log), and the opener driver's log;\n- the rendered sweep and its overlay;\n- cloud_relay's level file;\n- the tick board.\nAsk the orchestrator for their absolute paths; they are out of tree, so read them and never cite them in tracked text. Compare each against tools/audit/seat/sweep_template.md step by step, and against the four standing contracts. Each gap is a row in the body's `## Live-usage review` with its evidence. Gaps recorded in the field on 2026-10-31:\n- owed_unactioned.py counts every run as a sweep, so it must run once per sweep, never per tick pass;\n- the tick can read a PR between open_pr's two pushes, so a NOT REVIEWABLE or RED line at an intermediate merge head is transient;\n- a blind touch loop on a seat's alive file defeats liveness;\n- a sweep step that fast-forwards the checkout the tick loop and relay run from corrupts them, because bash reads its scripts incrementally;\n- during a recycle, sending work to both the outgoing and incoming seat minted three nonces at one head;\n- hold-file lines never expire.\nSTEP 2, build: the tracked forms of the mechanised seats, as tools/audit/seat/ jobs in the beat's job table, which does not exist yet (create it if R10-ORCH-LEDGER has not, and its heartbeat and pitch rows add to it):\n- tick-digest (its carry, re-routed here);\n- roster-drain (roster_queue.py over pending lines with exact-line marking; census-10's loop if it has landed);\n- plan-beat (replan.py, then state_docs.py --push --mirror --plan, every 30 min);\n- pulse;\n- cancel-sweep;\n- disk;\n- the opener, through the opener driver carry b94-P337 builds, once it lands, else a job invoking the tracked opener.\nEvery job writes only actionable lines to one digest under $HPO_STATE_DIR, the file the orchestrator's single wake reads.\nSTEP 3, the template and contracts:\n- sweep_template.md: steps (1b) and (5) read the digest; the tick-seat restart becomes a tick-digest job check; tick_brief drops out of the placeholder table, or becomes optional.\n- standing-tick.md and standing-roster.md: mark the seat retired into its job, with the owner's 2026-10-24 constraint ('make sure the retirement of the standing seats dont cause you to run things inline'). Remove a seat only once its job is live and verified.\n- All four contracts: the Recycle paragraph (carry s9-seat-recycle) plus carries 0-1's Wait and Reads paragraphs.\n- orchestrator.md section 5's standing-seats sentence: name which seats remain LLM seats (dispatch, triage; merge until closing-stage field and the approval-race fix land) and that the rest are beat jobs.\nControls:\n- each job's null (nothing owed writes nothing) and a planted case;\n- the digest reproduces a recorded board's actionable set;\n- a contract-lint row per paragraph;\n- a mutant per job's predicate."
   },
@@ -13589,12 +13590,13 @@
     "Unanswered residual of R10-CEILING-PROBE Carry 1, from #2465 (handoff-body/r10-ceiling-probe 61b216fc; orchestrator s9 2026-10-31). The gain between set-point and drawn power at levels between the duty gate and the ceiling is unmeasured: the probe measures only the draw at the ceiling, as its approved note scopes it. #2465 routed this gap to R10-DEMAND-OVERBOOK, which is done, and carry_audit refuses a done destination. It is re-routed here because R10-COP-GATE is the live group that owns the DrawRange and power modelling and runs after the probe. Measure first: from the probe's stored samples plus ordinary operation, report whether drawn power tracks the set-point linearly between gate and ceiling, with a flat-price null control. Only if it does not, build the correction, or record a refusal with the number. Carry: R10-COP-GATE"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-cop-gate-d",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-COP-GATE, R10-UX-HEALTH"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-COP-GATE, R10-UX-HEALTH",
+    "pr": 3193
    },
    "brief": "Part D of R10-COP-GATE, split out so the parent can close: the learned top of the pump's draw range reaches the plan, as the approved design for part D rules (design/R10-COP-GATE at 72902290879c, dev/programme/designs/R10-COP-GATE-D.md), dispatched once R10-CEILING-PROBE has merged (the parent's resume.next_step). It also holds the parent's unmeasured COP-eligibility control (a counter install with no electric counter shows its refusal code, never a COP gate pass), the draw-attribution lead in the coordinator's slab propagation (measure first), the set-point-to-draw linearity question the ceiling probe left (measure first), and the English strings and translations parity defect, since part D edits strings.json and both translations. Production code: the fixer runs fixer.md steps 2-8 with the flat-price null control on every cost figure. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -13642,12 +13644,13 @@
     "Driving score-row hover with signed drivers, DECIDED (tvofi 2026-11-01, rulings card 2 option (c) Both, part (a)); no longer pending confirmation. From: R10-UX-HEALTH carry 14, left open by #2997 until the owner said which widget the \"driving scale\" is. Ruling: the \"driving scale\" hover on the card is the Driving row of the score breakdown (score.label_operation), the 0-100 grade of whether the plan bought at the cheap hours, shown beside House and Heat pump. The fixer does not ask the orchestrator which widget it is. The live \"what drives the current slot\" widget is a separate group, R10-WHY-NOW-WIDGET, which runs after this one; build nothing of it here. Measured: the card has the Driving row today but its hover lists no reason codes, and the grade drivers of House and Heat pump come from the coordinator payload (`envelope_drivers`, #2816) while operation has no equivalent. Fix: the coordinator publishes operation drivers the way it publishes `envelope_drivers`, each factor signed (positive pushes the Driving score up, negative down) with a rough weight, for example the cheap-hour share of bought energy, the day's price spread and comfort-forced runs; the card's Driving hover lists them, mirroring the House and Heat pump hover interface in presets.py rather than inventing a second one. Every score or scale hover in the card (House, Heat pump, Driving, and any other) also explains its metric in plain words: what is measured, the unit, what a high or low value means, and what \"no data\" means. Acceptance: no score or scale widget has a hover without both a metric explanation and its current reason codes. Failing test first: a card.mjs case with a payload carrying operation drivers asserts the Driving hover lists each driver with its sign and weight, and one with no operation drivers asserts the \"no data\" explanation; both fail on the base. Null control: a payload whose operation drivers are all zero renders the explanation and no reason rows, and the House and Heat pump hovers render unchanged. Perturbation: flip the sign of one driver in the payload and the hover direction mark flips with it. Strings: en and sv for every new label and every metric explanation, in the translations and the card, with a card_browser.mjs screenshot check, light and dark, phone and desktop."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-grade-drivers",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done; the Driving score-row hover is decided (tvofi 2026-11-01), R10-WHY-NOW-WIDGET follows as a separate group",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-COP-GATE, R10-UX-HEALTH"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-COP-GATE, R10-UX-HEALTH",
+    "pr": 3198
    },
    "brief": "Item B of R10-COP-GATE, never started (#3005, #3038): the heat-pump grade publishes its own drivers and the card shows their hover reason codes, mirroring the house grade's driver interface in custom_components/heatpump_optimizer/presets.py rather than inventing a second one, with plain-words metric text in every hover. Beside it, two card residues of R10-UX-HEALTH that share the renderer and the browser grid: the Driving score-row hover with signed drivers (decided by tvofi 2026-11-01, rulings card 2 option (c) Both: the driving scale is the Driving row of the score breakdown, no longer pending confirmation; the live current-slot widget is the separate group R10-WHY-NOW-WIDGET, after this one) and the localStorage reset after each page load in tests/card_browser.mjs's P9 grid, with the ink collision it then exposes. Reviewer: opus with tests/card_browser.mjs screenshots, light and dark, phone and desktop. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -13747,12 +13750,13 @@
     "Two-zone sysid step precondition, re-routed by the triage seat (s9 hold audit, 2026-11-01) from a hold on R10-UX-HEALTH, which waited for its part-3 verdict. R10-TWO-ZONE-HHL (not-started, owns sysid.py and config_flow.py) was created by the s9 carry-routing pass to receive R10-UX-HEALTH carries, and its carry 1 asks to hide house_heat_loss_coefficient in two-zone mode. This carry is the precondition for that hide, so it has to sit beside it in that group, or the group builds the hide alone.\n\nFrom the R10-UX-HEALTH part-3 fixer (handoff/r10-ux-health-p3 bbbce602dc4b, 2026-10-31). Carry 22, hiding house_heat_loss_coefficient in two-zone mode, is NOT built, and must not be built as a hide alone. The field is not inert: system identification still reads it when it sizes its test step. sysid.HousePlant.of_params has no two-zone branch. On the live probe's two-zone setup, the harness dev/audit/harnesses/r10_two_zone_hhl_inert.py measures step 1.738 kW at 0.1 and 3.386 kW at 0.4, and no step fits at 1.0, identical to single zone.\nPrecondition, in this order:\n(1) Make the sysid step sizer use the two-zone zone loss. This is a change in custom_components/heatpump_optimizer/sysid.py, so an architect note is owed first (one owner: sysid computes the step from the zone model it is given).\n(2) Only then hide the field in two-zone mode.\nControl: the harness prints a single distinct value in two_zone_sysid_steps once (1) lands. At the current head it prints three."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-two-zone-hhl",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-UX-HEALTH"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-UX-HEALTH",
+    "pr": 3196
    },
    "brief": "R10-UX-HEALTH's carry on the two-zone house heat-loss coefficient, which #3062 found is not inert: the system-identification step sizer in custom_components/heatpump_optimizer/sysid.py reads it in two-zone mode while every other reader treats it as unused there. First give the sizer a two-zone branch (or record why the whole-house figure is right), then decide whether the options flow hides or relabels the field, with the controls the carry states. Runs after R10-CEILING-PROBE, which owns sysid.py. Single-carry group: no live group owns this seam. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -15388,12 +15392,13 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): arm (2) pins async_shutdown's forget_held call site from tests, it does not edit coordinator.py; a fix that needs a coordinator.py edit stops and reports before editing."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-prod-residue-pins",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s9 residual sweep, 2026-11-01: created to receive the LIVE production residuals of #2351 and #2365, which no live group's seam owns"
+    "note": "s9 residual sweep, 2026-11-01: created to receive the LIVE production residuals of #2351 and #2365, which no live group's seam owns",
+    "pr": 3199
    },
    "brief": "Two production residuals the s9 residual sweep re-verified LIVE at origin/main 92588d581, from review notes that never reached a group. (1) #2365: pump_arbiter.py spells the plan step width as the literal 15.0 twice in `_share` and as LOG_STEPS = 96, though it imports PLAN_STEP_MINUTES from plan_step.py; derive both from that owner. (2) #2351: deleting forget_held from the coordinator's async_shutdown survives features.py and finite_boundary.py; pin the shutdown call site through the production async_shutdown. Each carry names its failing test and null control. Re-measure every figure at this group's own merge base; carry no count. No golden fixture is expected to move; if one does, stop and report it."
   },
@@ -16153,12 +16158,13 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-tick-levels",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s11 replan fold"
+    "note": "s11 replan fold",
+    "pr": 3200
    },
    "brief": "The tick's level lines, one owning seam: tools/audit/seat/orchestrator_tick.py (fold of R10-TICK-PR-BUCKETS and R10-TICK-GROUP-LINES; s11 replan). Two already-delivered arms are not rebuilt: APPROVAL-OWED (8922cbf97) and REVIEW STALLED (3a15e84a4). The topic-family barrier carry (triage: dev/programme/triage/s6-batch115-rca-topic-family.md) goes last and may be its own part. Part of #201."
   },
