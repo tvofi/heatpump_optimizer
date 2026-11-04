@@ -76614,6 +76614,44 @@ R.check(
     f"stamp2 {_cpd_stamp2.get('source')} {_cpd_stamp2.get('planned_max_kw')} plan-max {_cpd_plan_max} "
     f"drop-band {_cpd_band_after_drop}",
 )
+# The what-if (async_simulate, base None) passes no band, so ``_solve_hubs``
+# rules its own: with a learned store it books the learned top the live plan
+# stamps, not the configured one (null: no store, 5.0 against 5.0 in both).
+def _cpd_whatif_tops(n_samples):
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _, _, c = _r9f13_make(f"cpd_whatif{n_samples}", dict(_CP_PROBE_CFG))
+    hub_max = float(_cp_cmod._ctx_of(c)._thermal_params.max_electrical_power)
+    if n_samples:
+        c._accuracy.draw = _cp_store([0.5 * hub_max] * n_samples, _cp_cmod.dt_util.now().timestamp() - 60.0)
+    seen = []
+
+    async def _rec(hass, optimizer, inputs):
+        seen.append(float(optimizer.model.params.max_electrical_power))
+        return await _r9f13_inline(hass, optimizer, inputs)
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _rec):
+        _r9f13_aio.run(c.async_run_optimization())
+        live = list(seen)
+        seen.clear()
+        _r9f13_aio.run(c.async_simulate({"target_temp": 21.5}))
+        sim = list(seen)
+    _r9f13_dt.freeze(None)
+    return hub_max, live, sim
+
+
+_cpd_wi_hub, _cpd_wi_live, _cpd_wi_sim = _cpd_whatif_tops(12)
+_cpd_wi0_hub, _cpd_wi0_live, _cpd_wi0_sim = _cpd_whatif_tops(0)
+R.check(
+    "part D what-if: with twelve store samples at half the hub's maximum the what-if solve "
+    "books the learned top the live solve books, not the configured one; with no store both "
+    "book the configured top",
+    bool(_cpd_wi_live) and bool(_cpd_wi_sim)
+    and _cpd_wi_live[-1] == _cpd_wi_sim[-1] == 0.5 * _cpd_wi_hub
+    and bool(_cpd_wi0_live) and bool(_cpd_wi0_sim)
+    and _cpd_wi0_live[-1] == _cpd_wi0_sim[-1] == _cpd_wi0_hub,
+    f"learned live {_cpd_wi_live} what-if {_cpd_wi_sim} hub {_cpd_wi_hub}; "
+    f"null live {_cpd_wi0_live} what-if {_cpd_wi0_sim} hub {_cpd_wi0_hub}",
+)
 _cpd_c._optimization_result = None
 _cpd_none_view = _cpd_c._learning_view().get("pump_max_power", "absent")
 _cpd_c._optimization_result = _CpNS(solve_band=_cpd_band_c.as_dict())
@@ -76622,6 +76660,22 @@ R.check(
     "part D publish: the learning view carries the live plan's stamp, None with no plan",
     _cpd_none_view is None and _cpd_stamped_view == _cpd_band_c.as_dict(),
     f"{_cpd_none_view} {_cpd_stamped_view}",
+)
+# The two ``or`` fallbacks on a missing stamp: an empty stamp publishes None,
+# and the arbiter maps a plan whose stamp is None (never solved on a band) on
+# the configured band without raising.
+_cpd_c._optimization_result = _CpNS(solve_band={})
+_cpd_empty_view = _cpd_c._learning_view().get("pump_max_power", "absent")
+try:
+    _cpd_top_nostamp = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), None)
+    _cpd_nostamp_err = None
+except AttributeError as _e:
+    _cpd_top_nostamp, _cpd_nostamp_err = None, _e
+R.check(
+    "part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp "
+    "(None) writes what the configured band writes and does not raise",
+    _cpd_empty_view is None and _cpd_nostamp_err is None and _cpd_top_nostamp == _cpd_top_none,
+    f"view {_cpd_empty_view} arbiter {_cpd_top_nostamp} vs {_cpd_top_none} err {_cpd_nostamp_err}",
 )
 _cpd_status = _CpStatus.__new__(_CpStatus)
 _cpd_status._data = lambda: {"pump_max_power": _CPD_LEARNED}
@@ -77091,6 +77145,96 @@ R.check(
     "(the plan is still the pre-reload one)",
     9.0 <= (_ap_first.get("plan_age_minutes") or 0) <= 11.0,
     str(_ap_first.get("plan_age_minutes")),
+)
+
+
+R.section("R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches")
+
+# #2365: _share and the decision log take the step width from plan_step's
+# owner. Drive the production symbols with the width patched to 30 minutes.
+_rp2_coord = _PaCoord(("Heating + DHW",), duties="b")
+_rp2_plan = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[3.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp = _PaNS(mode=_PA_AUTO, disinfecting=False, plan=_rp2_plan)
+
+
+def _rp2_share(minutes_in):
+    return _pa._share(_rp2_coord, _rp2_inp, "both", _PA_T0 + timedelta(minutes=minutes_in))
+
+
+_rp2_real = (_rp2_share(5.9), _rp2_share(6.1), _pa.ArbiterState().log.maxlen)
+_rp2_saved = _pa.PLAN_STEP_MINUTES
+_pa.PLAN_STEP_MINUTES = 30
+try:
+    _rp2_wide = (_rp2_share(11.9), _rp2_share(12.1), _pa.ArbiterState().log.maxlen)
+finally:
+    _pa.PLAN_STEP_MINUTES = _rp2_saved
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a "
+    "30-minute step (6 of a 15-minute one) and the log holds a day of steps",
+    _rp2_wide == ("dhw", "space", 48),
+    f"{_rp2_wide}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365 null control: at the real 15-minute width the split "
+    "is minute 6 and the log holds 96 steps",
+    _rp2_real == ("dhw", "space", 96),
+    f"{_rp2_real}",
+)
+
+# The strict < of the short-remainder guard: a 2:1 hot-water share leaves exactly
+# SPLIT_MIN_MINUTES for the heating, which is still long enough to be its own share.
+_rp2_edge = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[1.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp.plan = _rp2_edge
+_rp2_boundary = (_rp2_share(9.9), _rp2_share(10.1))
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still "
+    "a heating share (the guard is a strict <)",
+    _rp2_boundary == ("dhw", "space"),
+    f"{_rp2_boundary}",
+)
+
+# #2351 carry 1: the production async_shutdown calls forget_held(hass), so a
+# reloaded entry warns a hass-owned held condition again.
+_rp3 = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+
+
+def _rp3_run(shutdown):
+    capture = _LogCapture()
+    logger = _logging.getLogger("heatpump_optimizer")
+    real_level = logger.level
+    logger.addHandler(capture)
+    logger.setLevel(_logging.DEBUG)
+    try:
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+        if shutdown:
+            _asyncio.run(_rp3.async_shutdown())
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(capture)
+        logger.setLevel(real_level)
+        _coord_mod.forget_held(_rp3.hass)
+    return [lv for lv, msg in capture.records if "Probe hass-owned" in msg]
+
+
+_rp3_cycle = _rp3_run(True)
+_rp3_null = _rp3_run(False)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch "
+    "(WARNING twice across a shutdown)",
+    _rp3_cycle == [_logging.WARNING, _logging.WARNING],
+    f"{_rp3_cycle}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351 null control: without the shutdown the second call "
+    "stays at DEBUG",
+    _rp3_null == [_logging.WARNING, _logging.DEBUG],
+    f"{_rp3_null}",
 )
 
 
