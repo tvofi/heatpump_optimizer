@@ -16484,7 +16484,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From this pull request, body item e67341cc: Handoff `a6305aa29` re-reads own PENDING only; `FAIL prelude: None` (10 false reds) and own ABSENT (1) still go red with no re-read. Carry: R10-HOTFIX-GATE-STALE-JOBS (items e67341cc)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress"
