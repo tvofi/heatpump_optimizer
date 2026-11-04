@@ -1,18 +1,19 @@
-Fix review: blocked b2499f12d1cb100b36a1820717fbf623566ebd24 owner-stale: P378 DEFER names R10-TICK-PR-BUCKETS as the owner, a group the roster marks absorbed
+Fix review: merge c6c212f7524abfefa1c4590821bad7ea84cd2650
 
-bus-nonce: 738d6816e5a82b714861fd5b254b2f3e
+bus-nonce: c8f2af3eb02728deb8bc6fc2f1b02389
 
-Round 1.
-
-## Block
-The ruling's DEFER names "the group already owning the item" as R10-TICK-PR-BUCKETS at stage `not-started`, read at roster `efd37113a` (2026-11-02). On the roster branch head `9bc39aede` that group is `stage: absorbed`; its FIRE-OWED level and the payload-file arm were folded into R10-TICK-LEVELS (`stage: in-progress`, `pr: 3200`, note "s11 replan fold", `aa6b12a8e`, 2026-11-04 06:59 +01:00), which is before this head (18:19 +01:00). The substance holds (R10-TICK-LEVELS's brief still carries the FIRE-OWED predicate, its null control, and "Apply the same definition to FIRE-OWED"), but a DEFER must name an owner that exists (proposal-triage.md), and "the answer changes if that group closes without building" is undefined for an absorbed group. Fix: name R10-TICK-LEVELS (PR #3200), re-read at the then-current roster head, in the Verdict, Instances and Binding lines.
-
-## Findings
-- Residual: Instances cite "line 201 to 230", "line 223" etc. and render/fire timestamps from the session-local seat and fire ledgers, which are not in the tree; I could not re-derive them. Carry: dismissed: session-local logs, outside any reviewer's reach; the ruling names the files read.
-- Residual: the `gh pr view <n> --json files` counts (8, 3, 12, 2 files; 0 under custom_components/) were not re-derived. Carry: dismissed: not contradicted by anything readable here, and the ruling's DEFER does not turn on them.
+Round 1, measured at head c6c212f7524abfefa1c4590821bad7ea84cd2650 (the brief's b2499f12 is an earlier head; the diff is still only the batch file and its delivery row).
 
 ## Evidence
-- Checked and fine: verdict grammar (DEFER with owner and change condition), one `## P378` entry with Verdict/Source/Instances/Cost/Binding, `s6-batch115.md#P375` exists with the payload-file definition, `standing-dispatch.md` exists, no capped file touched, no VERSION/manifest/notes/claim edit (two files in the three-dot diff), carry_audit 0 findings, figure_lint 0 refused (1 unverified, a generic git diff).
-- merge-tree against origin/main `d7582ed40`: rc 0.
-- CI on this head: classify returned WAIT (rc 3, pending, gate red: none) when I reviewed; not awaited, since the block is content, not CI.
-- No roles/ drift between merge base and main.
+- RESULT: CI GREEN at this head (merge_train classify rc=0: pending none, red none).
+- RESULT: git merge-tree --write-tree origin/main HEAD exits 0 (tree 81b76c7f), so no conflict.
+- RESULT: the diff adds dev/programme/triage/s6-batch116.md and dev/programme/delivery/3203.md only; no production, claim, budget, VERSION or closure file moves, so there is no mutation, golden or budget check to run.
+- RESULT: verdict grammar holds. The entry has Verdict: DEFER, Source:, Instances:, Cost: and Binding:, and it names the group that owns the item (R10-TICK-LEVELS) and what would change the answer, as proposal-triage.md requires.
+- RESULT: the roster at a62d10eb0 and a PR-file query each match the entry's claims. R10-TICK-LEVELS is in-progress with pr 3200, R10-TICK-PR-BUCKETS is absorbed, and both carry the "Three owed classes", s6-batch115.md#P375 and "FIRED line prints nothing" texts. #3089, #3177, #3085 and #3174 touch 8, 3, 12 and 2 files with 0 under custom_components/. At d7e67e0d7, tools/audit/seat/orchestrator_tick.py has the FIRE-OWED payloads() arm at lines 947-948. b8e823699, efd37113a and a62d10eb0 are commits.
+- Not re-derived: the ledger timestamps and line numbers (seat ledger, ledger-standin.txt, handoffs) are session-local files that are not in the tree. I could not verify them, and the entry cites them as the orchestrator's report.
+- tests / nightly-status was red in the packet digest; the diff reaches nothing it reads, so it is not this PR's. The final classify counts no red.
+- The ACCEPT-destination check does not apply, since the ruling is DEFER. The fix-review checks that need code (mutation, harness, claims, class rule, forward carry) do not apply to a record-only diff. The entry adds no carry, because the owning group already holds the text.
+- Packet figure_lint: 0 refused, 1 unverified (a packet-internal diff command).
+
+## Findings
+- none
