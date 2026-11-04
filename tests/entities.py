@@ -4090,29 +4090,18 @@ def _p2_registry(sources):
                  "narrative.py::build":
                      "an energy display floor in kWh per narrative line, not a power",
                  "optimizer.py::classify_space_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "optimizer.py::classify_dhw_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "accuracy.py::delivered_ratio":
                      "a ratio's denominator floor on a sample's predicted and "
                      "measured power: below it the ratio is noise, whatever the plan says",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._async_learn_buffer_cooling":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_async_learn_buffer_cooling.heating (the commanded action's power)",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._observe_frequency":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_observe_frequency.watch_active (the commanded power)",
                  "freq_control.py::FrequencyMap.observe":
                      "the frequency map's own no-evidence floor on a METERED draw",
-                 "freq_control.py::FrequencyMap.recommend":
-                     "distinct finding: #2238 P2 sweep instance FrequencyMap.recommend",
-                 "freq_control.py::FrequencyMap.evidence_exhausted":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "FrequencyMap.evidence_exhausted",
              }),
         # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
         # compressor's own evidence -- the meter reads the cycle the pump runs
