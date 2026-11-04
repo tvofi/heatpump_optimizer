@@ -1439,6 +1439,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/driving_grade.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -2749,6 +2750,7 @@
    "custom_components/heatpump_optimizer/disinfection.py",
    "custom_components/heatpump_optimizer/draw_range.py",
    "custom_components/heatpump_optimizer/drift.py",
+   "custom_components/heatpump_optimizer/driving_grade.py",
    "custom_components/heatpump_optimizer/early_cutoff.py",
    "custom_components/heatpump_optimizer/entity.py",
    "custom_components/heatpump_optimizer/entry_config.py",
@@ -4876,7 +4878,7 @@
    "seconds": 25.0
   },
   "tests/entities.py": {
-   "rc": 0,
+   "rc": 1,
    "seconds": 867.9
   },
   "tests/env_drift.py": {
