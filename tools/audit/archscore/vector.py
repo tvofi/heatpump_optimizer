@@ -80,7 +80,7 @@ SCORE_METRICS = {
 }
 # Weight 0: must not rise, never counted. They retire when the role engine reads these spellings.
 GATE_ONLY = ("reflective_writes", "computed_attr_access", "family_orphan_overrides", "unread_private_globals",
-             "unused_boundary_imports", "shape_copies")
+             "unused_boundary_imports", "shape_copies", "card_rule_copies")
 
 
 def ablated() -> set[str]:
@@ -164,6 +164,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         literal_clones.NORMALISE = "C20" not in off
         literal_clones.INLINE_LOCALS = "C21" not in off
         card.OWN_NAMES = "C22" not in off
+        card.RULES = "C24" not in off
         shapes.ERASE = "C23" not in off
         jobs = {
             "structure": lambda: structure_rows(flat),
@@ -205,6 +206,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
             elif name == "card":
                 out["card_dead_definitions"] = v["card_dead_definitions"] if v else None
                 out["card_clone_copies"] = v["card_clone_copies"] if v else None
+                out["card_rule_copies"] = v["card_rule_copies"] if v and card.RULES else None
             elif name == "layering":
                 out["layer_violations"] = v["layer_violations"] if v else None
                 out["unused_boundary_imports"] = v["unused_boundary_imports"] if v else None

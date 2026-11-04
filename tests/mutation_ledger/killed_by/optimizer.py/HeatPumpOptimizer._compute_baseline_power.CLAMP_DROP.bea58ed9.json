@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer._compute_baseline_power CLAMP_DROP bea58ed9",
+  "killed_by": "tests/features.py",
+  "old": "            required_thermal = max(0.0, required_thermal - ext_i)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`required_thermal = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
+}
