@@ -16543,7 +16543,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Owner ruling tvofi 2026-11-04: the reference assumes no wood at all and actuals stay metered, so wood and fire timing count in the saving, with a disclaimer on houses with wood that it includes wood heat and excludes firewood cost. This replaces the dash on two-tank houses; old-basis rows keep the dash. R10-SAV-WOOD-MEASURED is withdrawn."
+    "Owner ruling tvofi 2026-11-04: the reference assumes no wood at all and actuals stay metered, so wood and fire timing count in the saving, with a disclaimer on houses with wood that it includes wood heat and excludes firewood cost. This replaces the dash on two-tank houses; old-basis rows keep the dash. R10-SAV-WOOD-MEASURED is withdrawn.",
+    "Before it merges: `savings_months` scales the no-wood reference by metered over plan, so the published percent is booked over plan and metered kWh cancels: at the work-in-progress commit `4fff42664`, metered at half the plan reads the same 50.0 % as metered equal to the plan, so heat the plan did not foresee earns no saving, against the ruling of the owner that wood counts. The wood arms cannot see it, because their plant equals the model. Add an arm with metered below plan on a wood house, state the result, and decide in the body whether calibration stays on wood houses; if the two owner rulings (2026-10-24 calibration, 2026-11-04 no wood) cannot both hold there, ask the owner through the orchestrator. triage: dev/programme/triage/s6-batch122.md#P387 at 8439f738e"
    ],
    "architect_note": "",
    "resume": {
