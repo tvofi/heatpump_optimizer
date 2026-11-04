@@ -1,0 +1,8 @@
+old median-8 base 37.959
+old +300 tests / closures k=1:37.959 k=2:37.959 k=4:37.959 k=5:37.959 k=8:40.459
+old +300 tests / fast (3.14) k=1:40.242 k=2:40.242 k=4:40.242 k=5:40.242 k=8:40.459
+variant base 20.75
+variant one outlier 3.2x tests / closures 20.75
+variant one outlier 3.2x tests / fast (3.14) 20.75
+variant one outlier 3.2x tests / arch-instrument 20.75
+variant +300 closures all16 23.983
