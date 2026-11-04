@@ -29,28 +29,35 @@ THE METRICS, each an answer to a named cost:
   script_runs_full_case_pr   the same count on a full-case pull-request run
                   (every script measured and re-derived once). Scoping's
                   ratchet: what a full-case PR costs may only shrink.
-  critical_path_minutes   median WORK minutes of the last completed push
-                  runs of the tests workflow (the GitHub API run list with
-                  each run's jobs, fetched by --gather-runs): a run's
-                  critical path to its last `tests / *` job (a pre-umbrella
-                  Tests run: its every job) with each job's runner queue
-                  removed -- see run_minutes. Never the wall: the wall reads
-                  the account's runner contention, which an overlapping
-                  train's sibling pushes multiply (59.7 wall on 32.1 work,
-                  CI job 121295715608).
-                  A NOISY metric still (hosts differ by ~2 minutes on the
-                  same work): graded at the window's median, recorded at the
-                  p90 of a wider window (`--gather-runs FILE --window 40`),
-                  so the ratchet refuses a median beyond the work's own
-                  run-to-run noise, never one slow host.
+  critical_path_minutes   WORK minutes of the newest PUSH_WINDOW (16)
+                  completed push runs of the tests workflow (the GitHub API
+                  run list with each run's jobs, fetched by --gather-runs),
+                  read off host speed (window_work_minutes): every job
+                  priced at its fastest run in the window, summed along each
+                  run's own critical chain to its last `tests / *` job (a
+                  pre-umbrella Tests run: its every job) with each runner
+                  queue removed -- see run_minutes -- the longest chain
+                  kept. Never the wall: the wall reads the account's runner
+                  contention (59.7 wall on 32.1 work, CI job 121295715608).
+                  Never one run's work either: hosted runners differ ~1.9x
+                  on the same work, so the median of runs read which hosts
+                  the three ~18-minute lanes drew and went red on a diff of
+                  delivery rows (8f286293b, R10-HOTFIX-CI-CRITPATH-3).
+                  A slow or hung run never prices a job (the other-work
+                  floor is keyed on the median), but growth reads only once
+                  it fills most of the window (window_work_minutes).
+                  Recorded at the largest value any PUSH_WINDOW consecutive
+                  runs of a wider window read (`--gather-runs FILE --window
+                  40`), the statistic's own window-to-window spread.
   critical_path_minutes_band   not a metric: the minutes past its budget
-                  that critical_path_minutes may read before it is GREW. An
-                  8-run median still swings with the host draw, and a window
-                  of record-only merges read 34.467 on a 34.267 budget
-                  (05c0d6d5d). Sized at the measured maximum |8-run median -
-                  window median| over 145 runs, 1.3; it never applies to a
-                  counter, a re-record carries it over, and widening it is a
-                  raise.
+                  that critical_path_minutes may read before it is GREW.
+                  Sized at 1.3 for the retired median (05c0d6d5d read 34.467
+                  on a 34.267 budget); kept under the window-work statistic,
+                  whose need is how far a window reads past the record of
+                  every window before it (0.55 over 40 runs, measured by
+                  dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py).
+                  It never applies to a counter, a re-record carries it
+                  over, and widening it is a raise.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
 
@@ -92,6 +99,7 @@ import io
 import json
 import math
 import os
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -485,7 +493,7 @@ PUSH_RUNS = ("ci.yml", "tests.yml")
 PUSH_RUN_KIND = {"ci.yml": "CI", "tests.yml": "Tests"}
 PUSH_RUNS_URL = "repos/{repo}/actions/workflows/{wf}/runs?event=push&branch=main&per_page={n}"
 JOBS_URL = "repos/{repo}/actions/runs/{run}/jobs?per_page=100"
-PUSH_WINDOW = 8
+PUSH_WINDOW = 16
 TESTS_JOB_PREFIX = "tests / "
 
 
@@ -523,6 +531,17 @@ def run_minutes(r: dict) -> "float | None":
 
     A run without its jobs, with no completed counted job, or with a ran job
     missing a timestamp refuses: its work is unknown, never its wall."""
+    walked = _walk(r)
+    if walked is None:
+        return None
+    return round(max(j["end"] for j in walked if j["counted"]) / 60, 3)
+
+
+def _walk(r: dict) -> "list[dict] | None":
+    """run_minutes' walk, kept per job: each ran job's name, work seconds,
+    zero-queue end, whether it is counted, and the index of the job that
+    supplied its base (its need that ended last; None at a root). None and
+    the refusals are run_minutes'."""
     kind = run_kind(r)
     if r.get("status") != "completed" or kind is None:
         return None
@@ -538,27 +557,51 @@ def run_minutes(r: dict) -> "float | None":
             raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
                            "has no created_at/started_at; its queue is unknown "
                            "(fail closed)")
+        if not j.get("conclusion"):
+            raise _refusal(f"{kind} push run {r.get('id')} job {j.get('name')!r} "
+                           "has no conclusion; whether its work prices is unknown "
+                           "(fail closed)")
     if any(counted(str(j.get("name") or "")) and j.get("conclusion") == "cancelled"
            for j in ran):
         return None
     ran.sort(key=lambda j: (_at(j["created_at"]), _at(j["completed_at"])))
-    done: list[tuple[float, float]] = []      # (completed, zero-queue end) seen
-    tests_ends = []
+    walked: list[dict] = []
     for j in ran:
         ready = _at(j["created_at"]).timestamp() + QUEUE_EPS
-        before = [(c, e) for c, e in done if c <= ready]
-        base = 0.0
+        before = [i for i, w in enumerate(walked) if w["completed"] <= ready]
+        base, pred = 0.0, None
         if before:
-            last = max(c for c, _ in before)
-            base = max(e for c, e in before if c >= last - QUEUE_EPS)
-        end = base + max(0.0, (_at(j["completed_at"]) - _at(j["started_at"])).total_seconds())
-        done.append((_at(j["completed_at"]).timestamp(), end))
-        if counted(str(j.get("name") or "")):
-            tests_ends.append(end)
-    if not tests_ends:
+            last = max(walked[i]["completed"] for i in before)
+            near = [i for i in before if walked[i]["completed"] >= last - QUEUE_EPS]
+            pred = max(near, key=lambda i: walked[i]["end"])
+            base = walked[pred]["end"]
+        name = str(j.get("name") or "")
+        work = max(0.0, (_at(j["completed_at"]) - _at(j["started_at"])).total_seconds())
+        walked.append({"name": name, "work": work, "end": base + work,
+                       "completed": _at(j["completed_at"]).timestamp(),
+                       "counted": counted(name), "pred": pred,
+                       "priced": j.get("conclusion") == "success"})
+    if not any(w["counted"] for w in walked):
         raise _refusal(f"{kind} push run {r.get('id')} has no completed "
                        f"{'`' + TESTS_JOB_PREFIX + '*` ' if kind == 'CI' else ''}job (fail closed)")
-    return round(max(tests_ends) / 60, 3)
+    return walked
+
+
+def run_chain(r: dict) -> "list[str] | None":
+    """The run's critical chain, root first: from the counted job that ended
+    last, back through each job's base (run_minutes' walk-back rule). Every
+    link is a need that ended last, so the chain is a real dependency path of
+    the workflow, whichever hosts the run drew."""
+    walked = _walk(r)
+    if walked is None:
+        return None
+    i = max((k for k, w in enumerate(walked) if w["counted"]),
+            key=lambda k: walked[k]["end"])
+    chain = []
+    while i is not None:
+        chain.append(walked[i]["name"])
+        i = walked[i]["pred"]
+    return chain[::-1]
 
 
 def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW) -> int:
@@ -590,23 +633,85 @@ def gather_runs(out_file, *, repo=None, runner=None, window: int = PUSH_WINDOW) 
     return len(runs)
 
 
-def critical_path_minutes(runs_json: Path, stat: str = "median") -> float:
-    """The window's COMPLETED push runs' work (run_minutes): the median when
-    grading, the p90 (nearest rank, the ceil(0.9 n)-th smallest) when
-    recording -- the budget's headroom is the metric's own run-to-run noise,
-    so a median past it is growth in most of the window, not one slow host."""
-    runs = json.loads(runs_json.read_text())["workflow_runs"]
-    minutes = [m for m in map(run_minutes, runs) if m is not None]
-    if not minutes:
+# A job's work on one host is up to ~2.4x its work on another (R10-HOTFIX-
+# CI-CRITPATH-3: a CPU-bound reference solve read 45.0 ms against 18.8 ms on
+# the same code; per-script ratios 1.6-2.9 over one job's 31 scripts). A run
+# whose work is under a third of the job's window MEDIAN therefore did other
+# work -- a consumed proof, a skipped lane -- not the same work on a faster
+# host, and never prices the job. The median, never the maximum: one slow or
+# hung run past three times the job's fastest lifted a maximum-keyed floor
+# over every genuine fast run and priced the job on a slow draw (+6.95 on
+# `tests / fast (3.14)`, review of #3180 at 563c8e6db).
+OTHER_WORK_FRACTION = 1 / 3
+
+
+def window_work_minutes(runs: list[dict]) -> float:
+    """The window's tests WORK, read off host speed: every job priced at its
+    fastest `success` run in the window (the run on the fastest host it
+    drew), summed along each run's own critical chain (run_chain), the
+    longest chain kept. A job that grows grows on every host, so its minimum
+    moves; a slow or hung run does not, however slow (OTHER_WORK_FRACTION's
+    floor is keyed on the median). The median of run_minutes read the host
+    draw instead: each of the three ~18-minute lanes drew a host ~1.9x slower
+    in ~2 runs of 3, so the window's median sat on a slow draw and went red
+    over a diff of delivery rows (8f286293b).
+
+    What the minimum costs. The hosts are not two-speed (`tests / closures`
+    read 1117..2401 s over 40 runs with mid values between), so the price is
+    the fastest host the window drew: losing the fastest draws reprices the
+    job on a mid host, and fifteen of sixteen runs drawing slow moves it as
+    growth would. And real growth moves it only once every pre-growth fast
+    run has aged out of the window: +300 s on `tests / closures` reads
+    nothing until 12 of the 16 newest runs carry it, all of it at 15
+    (dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py), against 8 of 8 under
+    the retired median-of-8.
+
+    Only a `success` job prices: a skipped one did no work, a cancelled or
+    failed one stopped short. A job that never succeeded in the window costs
+    nothing. What that costs: a chain job that fails stops pricing, so a
+    broken lane under-reads the grade, and a record taken across such a
+    stretch is recorded low. `tests / ci-ratchet` ends every chain and failed
+    in all sixteen newest runs of the record's runs.json, so it prices 0
+    there: the window reads 20.75 against 21.7 with it priced, and it prices
+    again once it succeeds (review of #3180 at 3f7777a59). None when no run
+    in the window is measurable."""
+    chains, work = [], {}
+    for r in runs:
+        walked = _walk(r)
+        if walked is None:
+            continue
+        chains.append(run_chain(r))
+        for j in walked:
+            if j["priced"]:
+                work.setdefault(j["name"], []).append(j["work"])
+    if not chains:
+        return None
+    price = {}
+    for name, seen in work.items():
+        floor = statistics.median(seen) * OTHER_WORK_FRACTION
+        price[name] = min(w for w in seen if w >= floor)
+    return round(max(sum(price.get(n, 0.0) for n in ch) for ch in chains) / 60, 3)
+
+
+def critical_path_minutes(runs_json: Path, stat: str = "grade") -> float:
+    """window_work_minutes over runs.json's push runs, newest first. Graded
+    over the newest PUSH_WINDOW; recorded (`stat="record"`, over a wider
+    `--gather-runs --window N`) at the largest value any PUSH_WINDOW
+    consecutive runs of it read -- the budget's headroom is the statistic's
+    own window-to-window spread, never one window's luck."""
+    runs = sorted(json.loads(runs_json.read_text())["workflow_runs"],
+                  key=lambda r: r.get("created_at") or "", reverse=True)
+    if stat == "record":
+        spans = [runs[i:i + PUSH_WINDOW]
+                 for i in range(max(1, len(runs) - PUSH_WINDOW + 1))]
+    else:
+        spans = [runs[:PUSH_WINDOW]]
+    values = [v for v in map(window_work_minutes, spans) if v is not None]
+    if not values:
         raise SystemExit("ci-ratchet: no completed push CI or Tests runs in "
                          "runs.json; cannot derive critical_path_minutes "
                          "(fail closed)")
-    minutes.sort()
-    n = len(minutes)
-    if stat == "p90":
-        return minutes[math.ceil(0.9 * n) - 1]
-    mid = n // 2
-    return minutes[mid] if n % 2 else (minutes[mid - 1] + minutes[mid]) / 2
+    return max(values)
 
 
 def derive(metrics_dir: Path, runs_json: Path | None,
@@ -633,7 +738,7 @@ def derive(metrics_dir: Path, runs_json: Path | None,
         derived["script_runs_full_case_pr"] = max(full_pr)
     if runs_json is not None:
         derived["critical_path_minutes"] = critical_path_minutes(
-            runs_json, "p90" if record else "median")
+            runs_json, "record" if record else "grade")
     return derived
 
 
@@ -902,7 +1007,7 @@ def self_test() -> int:
     def ci_run(rid, created, tests_end, *, other_end="2026-10-22T02:00:00Z", jobs=True):
         # Every job ready and started at the run's creation (no queue), so its
         # work is its span: the wall these fixtures were written against.
-        t0 = {"created_at": created, "started_at": created}
+        t0 = {"created_at": created, "started_at": created, "conclusion": "success"}
         js = [{"name": "tests / fast (3.14)", "completed_at": tests_end, **t0},
               {"name": "tests / ci-ratchet", "completed_at": "2026-10-22T00:10:00Z", **t0},
               {"name": "gate", "completed_at": other_end, **t0},
@@ -917,7 +1022,8 @@ def self_test() -> int:
                  "created_at": "2026-10-21T00:00:00Z", "updated_at": "2026-10-21T00:50:00Z",
                  "jobs": [{"name": "fast (3.14)", "created_at": "2026-10-21T00:00:00Z",
                            "started_at": "2026-10-21T00:00:00Z",
-                           "completed_at": "2026-10-21T00:50:00Z"}]}
+                           "completed_at": "2026-10-21T00:50:00Z",
+                           "conclusion": "success"}]}
     m, msg = safe(lambda: run_minutes(ci_run(2, "2026-10-22T00:00:00Z", "2026-10-22T00:40:00Z")))
     ck("a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)",
        m == 40.0, msg or f"got {m}")
@@ -942,7 +1048,8 @@ def self_test() -> int:
         f.write_text(json.dumps({"workflow_runs": [tests_run, ci_run(2, "2026-10-22T00:00:00Z",
                                                                      "2026-10-22T00:40:00Z")]}))
         cp, msg = safe(lambda: critical_path_minutes(f))
-        ck("a window across the cut-over is the median of both kinds (45)", cp == 45.0, msg or f"got {cp}")
+        ck("a window across the cut-over measures both kinds, its longest chain (50)",
+           cp == 50.0, msg or f"got {cp}")
         # The red this pins (CI job 120791448344): a window of umbrella runs
         # alone, each titled by run-name, is measured -- not "no runs".
         f.write_text(json.dumps({"workflow_runs": [
@@ -950,16 +1057,16 @@ def self_test() -> int:
             for i in range(1, 9)]}))
         cp, msg = safe(lambda: critical_path_minutes(f))
         ck("an all-umbrella window, titled `CI code ...` by run-name, is measured "
-           "by workflow path (34.5)", cp == 34.5, msg or f"got {cp}")
+           "by workflow path (its fastest run's 31)", cp == 31.0, msg or f"got {cp}")
         ck("a ci.yml run is kind CI whatever its title, a ref suffix included",
            run_kind({"name": "anything", "path": ".github/workflows/ci.yml@refs/heads/main"}) == "CI"
            and run_kind({"name": "CI", "path": ".github/workflows/card.yml"}) is None,
            "keyed on .name, not .path")
 
-        listings = {"ci.yml": [ci_run(i, f"2026-10-22T0{i}:00:00Z", "2026-10-22T09:00:00Z", jobs=False)
-                               for i in range(1, 6)],
-                    "tests.yml": [{**tests_run, "id": 10 + i, "created_at": f"2026-10-21T0{i}:00:00Z"}
-                                  for i in range(1, 6)]}
+        listings = {"ci.yml": [ci_run(i, f"2026-10-22T{i:02d}:00:00Z", "2026-10-22T19:00:00Z", jobs=False)
+                               for i in range(1, 11)],
+                    "tests.yml": [{**tests_run, "id": 100 + i, "created_at": f"2026-10-21T{i:02d}:00:00Z"}
+                                  for i in range(1, 11)]}
         reads = []
 
         def gh(argv, **_kw):
@@ -972,10 +1079,10 @@ def self_test() -> int:
             return subprocess.CompletedProcess(argv, 0, json.dumps({"workflow_runs": listings[wf]}), "")
         n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh))
         got = json.loads(f.read_text())["workflow_runs"] if n else []
-        ck("--gather-runs keeps the newest 8 push runs of ci.yml and tests.yml together, jobs on every run",
-           n == 8 and [run_kind(r) for r in got].count("CI") == 5
+        ck("--gather-runs keeps the newest PUSH_WINDOW (16) push runs of ci.yml and tests.yml together, jobs on every run",
+           PUSH_WINDOW == 16 and n == 16 and [run_kind(r) for r in got].count("CI") == 10
            and all("jobs" in r for r in got)
-           and sum("/jobs?" in a[-1] for a in reads) == 8, msg or f"n={n}")
+           and sum("/jobs?" in a[-1] for a in reads) == 16, msg or f"n={n}")
         reads.clear()
         n, msg = safe(lambda: gather_runs(f, repo="o/r", runner=gh, window=3))
         ck("--gather-runs --window N keeps the newest N (a record's wider window)",
@@ -1031,21 +1138,91 @@ def self_test() -> int:
     mc, msg = safe(lambda: run_minutes(run_c))
     ck("a run with a cancelled `tests / *` job is not in the window (its work was cut short)",
        mc is None, msg or f"got {mc}")
+    bare = {**run_q, "jobs": [{k: v for k, v in queued[0].items() if k != "conclusion"}] + queued[1:]}
+    try:
+        msg = refused(lambda: run_minutes(bare))
+    except Exception as exc:  # a crash reddens this check by name
+        msg = f"crashed: {exc!r}"
+    ck("a ran job with no conclusion refuses (whether it prices is unknown)",
+       "has no conclusion" in msg, msg or "no refusal")
     with tempfile.TemporaryDirectory() as td:
         f = Path(td) / "runs.json"
-        # Ten runs: seven of 32.1, two of 41.2, one of 51.2 -- median 32.1,
-        # p90 (the 9th smallest) 41.2, max 51.2, so each statistic is told
-        # apart from the other two.
-        run_t = {**run_q, "jobs": queued[:-2] + [j("tests / ci-ratchet", 54.6, 58.6, 79.7)]}
-        f.write_text(json.dumps({"workflow_runs": [
-            {**run_q, "id": i} for i in range(1, 8)]
-            + [{**run_s, "id": 8}, {**run_s, "id": 9}, {**run_t, "id": 10}]}))
+        # R10-HOTFIX-CI-CRITPATH-3: the same arch-instrument work on a host
+        # twice as slow (63.6 minutes, not 31.8) reads 63.9 per run, so a
+        # window of fifteen slow draws and one fast one has median 63.9 --
+        # the host draw. The grade prices each job at its fastest run: 32.1.
+        slow = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 81.5)] + queued[4:]
+        run_sl = {**run_q, "jobs": slow}
+
+        def window(runs):
+            return json.dumps({"workflow_runs": [
+                {**r, "id": i, "created_at": f"2026-10-{30 - i:02d}T00:00:00Z"}
+                for i, r in enumerate(runs, 1)]})
+        f.write_text(window([run_sl] * 15 + [run_q]))
         g, msg = safe(lambda: critical_path_minutes(f))
-        r, msg2 = safe(lambda: critical_path_minutes(f, stat="p90"))
-        ck("the grade is the window's median, a record its p90 (headroom for the "
-           "metric's own noise, never for the queue; not its max)",
-           g is not None and abs(g - 32.1) < 0.05 and r is not None and abs(r - 41.2) < 0.05,
-           msg or msg2 or f"median {g} p90 {r}")
+        ck("a window of slow host draws grades the work, not the draw "
+           "(32.1, its median 63.9)",
+           g is not None and abs(g - 32.1) < 0.05
+           and abs(run_minutes(run_sl) - 63.9) < 0.05, msg or f"got {g}")
+        grown = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 54.7)] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": grown}] * 16))
+        gg, msg = safe(lambda: critical_path_minutes(f))
+        ck("a job grown by 5 minutes on every host grows the grade by 5 (37.1)",
+           gg is not None and abs(gg - 37.1) < 0.05, msg or f"got {gg}")
+        noop = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 22.9)] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": noop}] + [run_sl] * 15))
+        gn, msg = safe(lambda: critical_path_minutes(f))
+        ck("a run under a third of the job's window median did other work and "
+           "never prices it (63.9, not 5.3)",
+           gn is not None and abs(gn - 63.9) < 0.05, msg or f"got {gn}")
+        # Review of #3180 at 563c8e6db: one hung run of a lane, past three
+        # times its fastest, lifted a maximum-keyed floor over every fast run
+        # and priced the lane on it (+6.95 on real runs). Keyed on the median
+        # it moves nothing, however slow.
+        hung = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 17.9 + 3.2 * 31.8)] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": hung}] + [run_q] * 15))
+        g_hung, msg = safe(lambda: critical_path_minutes(f))
+        ck("one run of a job past three times its fastest does not move the grade "
+           "(32.1, not 102.1)",
+           g_hung is not None and abs(g_hung - 32.1) < 0.05, msg or f"got {g_hung}")
+        # A failed job stopped short: its work is not the job's, however far
+        # above the other-work floor (15.0 against 31.8).
+        failjob = queued[:3] + [j("tests / arch-instrument", 0.5, 17.9, 32.9, "failure")] + queued[4:]
+        f.write_text(window([{**run_q, "jobs": failjob}] + [run_q] * 15))
+        gf, msg = safe(lambda: critical_path_minutes(f))
+        ck("a failed job never prices (32.1, not 15.3)",
+           gf is not None and abs(gf - 32.1) < 0.05, msg or f"got {gf}")
+        # A cancelled job outside `tests / *` leaves its run measurable, so its
+        # truncated work would price the job (prelude 0.15, not 0.3).
+        cut = [j("prelude", 0.0, 0.2, 0.35, "cancelled")] + queued[1:]
+        f.write_text(window([{**run_q, "jobs": cut}] + [run_q] * 15))
+        gx, msg = safe(lambda: critical_path_minutes(f))
+        ck("a cancelled job never prices (32.1, not 31.95)",
+           gx is not None and abs(gx - 32.1) < 0.02, msg or f"got {gx}")
+        # OTHER_WORK_FRACTION's level, pinned from both sides (review of #3180
+        # at 3f7777a59: the 1/3 -> 1/2 mutant passed every check above). A job
+        # at 30.0 in fourteen runs, 12.0 in one (between a half and a third of
+        # its median) and 9.0 in one (between a third and a quarter): a third
+        # prices it at 12.0; a half would price 30.0, a quarter 9.0.
+        def lone(i, w):
+            return {**ci_run(i, f"2026-10-{30 - i:02d}T00:00:00Z", None),
+                    "jobs": [j("prelude", 0.0, 0.0, 0.3),
+                             j("tests / arch-instrument", 0.3, 0.3, 0.3 + w)]}
+        level = [lone(1, 12.0), lone(2, 9.0)] + [lone(i, 30.0) for i in range(3, 17)]
+        gl, msg = safe(lambda: window_work_minutes(level))
+        ck("the other-work floor sits at a third of the window median "
+           "(12.3: a half would read 30.3, a quarter 9.3)",
+           gl is not None and abs(gl - 12.3) < 0.05, msg or f"got {gl}")
+        # Twenty runs, the one fast draw newest: the newest sixteen grade 32.1;
+        # a record over all twenty reads every sixteen-run window and keeps the
+        # largest, 63.9 -- the statistic's own window-to-window spread.
+        f.write_text(window([run_q] + [run_sl] * 19))
+        g, msg = safe(lambda: critical_path_minutes(f))
+        r, msg2 = safe(lambda: critical_path_minutes(f, stat="record"))
+        ck("the grade reads the newest PUSH_WINDOW runs, a record the largest "
+           "of its every PUSH_WINDOW-run window (32.1, 63.9)",
+           g is not None and abs(g - 32.1) < 0.05 and r is not None and abs(r - 63.9) < 0.05,
+           msg or msg2 or f"grade {g} record {r}")
         md = Path(td) / "m"
         md.mkdir()
         (md / "ci-metrics-fast.tsv").write_text("fast\tmode\tfull\t1\t0\tpush\t77\n")
@@ -1056,10 +1233,10 @@ def self_test() -> int:
             dr, msg2 = safe(lambda: derive(md, f, record=True))
         finally:
             globals()["archscore_metrics"] = real
-        ck("derive grades the median and a --record derive writes the p90",
+        ck("derive grades the newest window and a --record derive writes the largest window",
            (dg or {}).get("critical_path_minutes") is not None
            and abs(dg["critical_path_minutes"] - 32.1) < 0.05
-           and abs((dr or {}).get("critical_path_minutes", 0) - 41.2) < 0.05,
+           and abs((dr or {}).get("critical_path_minutes", 0) - 63.9) < 0.05,
            msg or msg2 or f"grade {dg} record {dr}")
 
     # The timing band (R10-HOTFIX-CI-CRITPATH-2): critical_path_minutes is

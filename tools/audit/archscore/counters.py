@@ -31,8 +31,9 @@ C20 literal specs normalised, an in-package callee's positionals bound; C21 a lo
     to a spec reads as it  ``metrics/literal_clones``
 C22 a card function's own names numbered and its no-op and empty statements dropped  ``metrics/card``
 C23 ``shape_copies``, gate-only: a function's own names numbered, numbers and strings abstracted  ``metrics/shapes``
-C24 ``card_rule_copies``, gate-only: a one-statement card rule (an ``&&``/``||`` run testing one value) spelled at a
-    second site, its values numbered  ``metrics/card.rule_copies``
+C24 ``card_rule_copies``, gate-only: a one-statement card rule (an ``&&``/``||`` run testing one value, or a
+    template's ``${..}`` run formatting one value, markup aside) spelled at a second site, its values numbered
+    ``metrics/card.rule_copies``
 """
 from __future__ import annotations
 
