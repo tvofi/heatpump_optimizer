@@ -1,0 +1,292 @@
+﻿2026-11-04T15:16:07.3175855Z Current runner version: '2.338.2'
+2026-11-04T15:16:07.3202887Z ##[group]Runner Image Provisioner
+2026-11-04T15:16:07.3204205Z Hosted Compute Agent
+2026-11-04T15:16:07.3205009Z Version: 20261021.618
+2026-11-04T15:16:07.3206067Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-04T15:16:07.3207072Z Build Date: 2026-10-21T00:45:21Z
+2026-11-04T15:16:07.3207961Z Worker ID: {97d1b9be-d995-4059-b438-69fca65972e5}
+2026-11-04T15:16:07.3208884Z Region: eastus3
+2026-11-04T15:16:07.3209653Z Cloud: Azure
+2026-11-04T15:16:07.3210379Z ##[endgroup]
+2026-11-04T15:16:07.3212468Z ##[group]Operating System
+2026-11-04T15:16:07.3213360Z Ubuntu
+2026-11-04T15:16:07.3214074Z 26.04.1
+2026-11-04T15:16:07.3214846Z LTS
+2026-11-04T15:16:07.3215800Z ##[endgroup]
+2026-11-04T15:16:07.3216554Z ##[group]Runner Image
+2026-11-04T15:16:07.3217365Z Image: ubuntu-26.04
+2026-11-04T15:16:07.3218160Z Version: 20261025.179.1
+2026-11-04T15:16:07.3219653Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261025.179/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-04T15:16:07.3221430Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261025.179
+2026-11-04T15:16:07.3222559Z ##[endgroup]
+2026-11-04T15:16:07.3224070Z ##[group]GITHUB_TOKEN Permissions
+2026-11-04T15:16:07.3226726Z Actions: write
+2026-11-04T15:16:07.3227560Z Contents: write
+2026-11-04T15:16:07.3228680Z Metadata: read
+2026-11-04T15:16:07.3229492Z ##[endgroup]
+2026-11-04T15:16:07.3231964Z Secret source: Actions
+2026-11-04T15:16:07.3233260Z Cache mode: write
+2026-11-04T15:16:07.3234425Z Prepare workflow directory
+2026-11-04T15:16:07.3656070Z Prepare all required actions
+2026-11-04T15:16:07.3731924Z Getting action download info
+2026-11-04T15:16:07.5848160Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-04T15:16:07.6924272Z Download action repository 'actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0' (SHA:6d4fd22b20465ccc0f7354476588e8df7c9ca0e0)
+2026-11-04T15:16:07.9852317Z Download action repository 'actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333' (SHA:9000827ccba6bdab643e8b6fd33ac0654aef8333)
+2026-11-04T15:16:08.3596648Z Uses: tvofi/heatpump_optimizer/.github/workflows/tests.yml@refs/pull/3189/merge (61840be677a65fba0ff125cbe69dd7986ac7b720)
+2026-11-04T15:16:08.3601711Z ##[group] Inputs
+2026-11-04T15:16:08.3602382Z   gate_scope: auto
+2026-11-04T15:16:08.3602969Z   pr: 3189
+2026-11-04T15:16:08.3603522Z   base: main
+2026-11-04T15:16:08.3604133Z   head: fd9c5bab5bc0505dd5c11e7c8fe2b40ccd3922b6
+2026-11-04T15:16:08.3604865Z   recheck: 
+2026-11-04T15:16:08.3605556Z   no-skip: 
+2026-11-04T15:16:08.3606115Z ##[endgroup]
+2026-11-04T15:16:08.3606737Z Complete job name: tests / closures-autofix
+2026-11-04T15:16:08.4450175Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-04T15:16:08.4451652Z with:
+2026-11-04T15:16:08.4452379Z   ref: fix/r10-rca-ci-critpath-3
+2026-11-04T15:16:08.4456914Z   token: ***
+2026-11-04T15:16:08.4457705Z   persist-credentials: false
+2026-11-04T15:16:08.4458505Z   repository: tvofi/heatpump_optimizer
+2026-11-04T15:16:08.4459385Z   ssh-strict: true
+2026-11-04T15:16:08.4460093Z   ssh-user: git
+2026-11-04T15:16:08.4460766Z   clean: true
+2026-11-04T15:16:08.4461538Z   sparse-checkout-cone-mode: true
+2026-11-04T15:16:08.4462337Z   fetch-depth: 1
+2026-11-04T15:16:08.4463044Z   fetch-tags: false
+2026-11-04T15:16:08.4463784Z   show-progress: true
+2026-11-04T15:16:08.4464493Z   lfs: false
+2026-11-04T15:16:08.4465174Z   submodules: false
+2026-11-04T15:16:08.4466320Z   set-safe-directory: true
+2026-11-04T15:16:08.4467111Z   allow-unsafe-pr-checkout: false
+2026-11-04T15:16:08.4468360Z ##[endgroup]
+2026-11-04T15:16:08.7891902Z Syncing repository: tvofi/heatpump_optimizer
+2026-11-04T15:16:08.7897329Z ##[group]Getting Git version info
+2026-11-04T15:16:08.7900073Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-04T15:16:08.7903642Z [command]/usr/bin/git version
+2026-11-04T15:16:08.7906335Z git version 2.56.0
+2026-11-04T15:16:08.7911827Z ##[endgroup]
+2026-11-04T15:16:08.7921299Z Temporarily overriding HOME='/home/runner/work/_temp/571be101-ec67-45ff-b53a-f9ee8bb852c0' before making global git config changes
+2026-11-04T15:16:08.7924929Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T15:16:08.7928418Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-04T15:16:08.8016637Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-04T15:16:08.8019239Z ##[group]Determining repository object format
+2026-11-04T15:16:09.0825910Z ##[endgroup]
+2026-11-04T15:16:09.0829674Z ##[group]Initializing the repository
+2026-11-04T15:16:09.0836498Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-04T15:16:09.0963446Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-04T15:16:09.0965887Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-04T15:16:09.0967614Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-04T15:16:09.0969148Z hint: call:
+2026-11-04T15:16:09.0970120Z hint:
+2026-11-04T15:16:09.0971397Z hint: 	git config --global init.defaultBranch <name>
+2026-11-04T15:16:09.0972668Z hint:
+2026-11-04T15:16:09.0973876Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-04T15:16:09.0976072Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-04T15:16:09.0978143Z hint:
+2026-11-04T15:16:09.0979810Z hint: 	git branch -m <name>
+2026-11-04T15:16:09.0981587Z hint:
+2026-11-04T15:16:09.0983543Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-04T15:16:09.1002530Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-11-04T15:16:09.1009357Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-11-04T15:16:09.1058377Z ##[endgroup]
+2026-11-04T15:16:09.1061374Z ##[group]Disabling automatic garbage collection
+2026-11-04T15:16:09.1063821Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-04T15:16:09.1101213Z ##[endgroup]
+2026-11-04T15:16:09.1103764Z ##[group]Setting up auth
+2026-11-04T15:16:09.1105769Z Removing SSH command configuration
+2026-11-04T15:16:09.1108284Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T15:16:09.1153804Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T15:16:09.1577319Z Removing HTTP extra header
+2026-11-04T15:16:09.1581091Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T15:16:09.1615168Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T15:16:09.1844852Z Removing includeIf entries pointing to credentials config files
+2026-11-04T15:16:09.1849948Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T15:16:09.1885970Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T15:16:09.2135071Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-04T15:16:09.2174671Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:09.2210040Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:09.2249001Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:09.2285033Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:09.2313884Z ##[endgroup]
+2026-11-04T15:16:09.2316777Z ##[group]Fetching the repository
+2026-11-04T15:16:09.2323443Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +refs/heads/fix/r10-rca-ci-critpath-3*:refs/remotes/origin/fix/r10-rca-ci-critpath-3* +refs/tags/fix/r10-rca-ci-critpath-3*:refs/tags/fix/r10-rca-ci-critpath-3*
+2026-11-04T15:16:12.3157103Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-04T15:16:12.3160054Z  * [new branch]      fix/r10-rca-ci-critpath-3 -> origin/fix/r10-rca-ci-critpath-3
+2026-11-04T15:16:12.3165159Z ##[endgroup]
+2026-11-04T15:16:12.3167312Z ##[group]Determining the checkout info
+2026-11-04T15:16:12.3169357Z [command]/usr/bin/git branch --list --remote origin/fix/r10-rca-ci-critpath-3
+2026-11-04T15:16:12.3195815Z   origin/fix/r10-rca-ci-critpath-3
+2026-11-04T15:16:12.3198682Z ##[endgroup]
+2026-11-04T15:16:12.3203276Z [command]/usr/bin/git sparse-checkout disable
+2026-11-04T15:16:12.3250962Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-04T15:16:12.3283258Z ##[group]Checking out the ref
+2026-11-04T15:16:12.3286544Z [command]/usr/bin/git checkout --progress --force -B fix/r10-rca-ci-critpath-3 refs/remotes/origin/fix/r10-rca-ci-critpath-3
+2026-11-04T15:16:12.8987486Z Switched to a new branch 'fix/r10-rca-ci-critpath-3'
+2026-11-04T15:16:12.8991070Z branch 'fix/r10-rca-ci-critpath-3' set up to track 'origin/fix/r10-rca-ci-critpath-3'.
+2026-11-04T15:16:12.9021237Z ##[endgroup]
+2026-11-04T15:16:12.9176364Z [command]/usr/bin/git log -1 --format=%H
+2026-11-04T15:16:12.9178015Z fd9c5bab5bc0505dd5c11e7c8fe2b40ccd3922b6
+2026-11-04T15:16:12.9180693Z ##[group]Removing auth
+2026-11-04T15:16:12.9181402Z Removing SSH command configuration
+2026-11-04T15:16:12.9182362Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T15:16:12.9185237Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T15:16:12.9397168Z Removing HTTP extra header
+2026-11-04T15:16:12.9401389Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T15:16:12.9431157Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T15:16:12.9672964Z Removing includeIf entries pointing to credentials config files
+2026-11-04T15:16:12.9677958Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T15:16:12.9700589Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-04T15:16:12.9701770Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-04T15:16:12.9702740Z includeif.gitdir:/github/workspace/.git.path
+2026-11-04T15:16:12.9703270Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-04T15:16:12.9709489Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-04T15:16:12.9732274Z /home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:12.9742600Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-5bef719f\-655e\-4d3a\-9592\-55503a391bdf\.config
+2026-11-04T15:16:12.9784410Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-04T15:16:12.9808360Z /home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:12.9816446Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-5bef719f\-655e\-4d3a\-9592\-55503a391bdf\.config
+2026-11-04T15:16:12.9850798Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-04T15:16:12.9881001Z /github/runner_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:12.9890241Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-5bef719f\-655e\-4d3a\-9592\-55503a391bdf\.config
+2026-11-04T15:16:12.9923478Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-04T15:16:12.9944300Z /github/runner_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config
+2026-11-04T15:16:12.9952428Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-5bef719f\-655e\-4d3a\-9592\-55503a391bdf\.config
+2026-11-04T15:16:12.9984339Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T15:16:13.0220218Z Removing credentials config '/home/runner/work/_temp/git-credentials-5bef719f-655e-4d3a-9592-55503a391bdf.config'
+2026-11-04T15:16:13.0230061Z ##[endgroup]
+2026-11-04T15:16:13.0464436Z ##[group]Run set -euo pipefail
+2026-11-04T15:16:13.0465009Z [36;1mset -euo pipefail[0m
+2026-11-04T15:16:13.0465739Z [36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null \[0m
+2026-11-04T15:16:13.0466285Z [36;1m  || git fetch --no-tags --depth=1 origin "$PINNED"[0m
+2026-11-04T15:16:13.0466761Z [36;1mgit checkout "$PINNED" -- tests/closure.py[0m
+2026-11-04T15:16:13.0467175Z [36;1mgit reset -q -- tests/closure.py[0m
+2026-11-04T15:16:13.0467653Z [36;1m# The report runs after `pull --rebase --autostash`, which can leave[0m
+2026-11-04T15:16:13.0468217Z [36;1m# the pull request's copy in the tree; it runs this copy instead.[0m
+2026-11-04T15:16:13.0468794Z [36;1minstall -D -m 0444 tests/closure.py "$RUNNER_TEMP/pinned/closure.py"[0m
+2026-11-04T15:16:13.0492904Z shell: /usr/bin/bash -e {0}
+2026-11-04T15:16:13.0493288Z env:
+2026-11-04T15:16:13.0493617Z   PINNED: 8e90d81443317f76f22602a89651f7ca17c633f9
+2026-11-04T15:16:13.0494011Z ##[endgroup]
+2026-11-04T15:16:13.2537209Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-04T15:16:13.2537817Z  * branch            8e90d81443317f76f22602a89651f7ca17c633f9 -> FETCH_HEAD
+2026-11-04T15:16:13.7148392Z ##[group]Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+2026-11-04T15:16:13.7148887Z with:
+2026-11-04T15:16:13.7149176Z   python-version: 3.13
+2026-11-04T15:16:13.7149484Z   check-latest: false
+2026-11-04T15:16:13.7152189Z   token: ***
+2026-11-04T15:16:13.7152611Z   mirror: https://raw.githubusercontent.com/actions/python-versions/main
+2026-11-04T15:16:13.7153084Z   update-environment: true
+2026-11-04T15:16:13.7153407Z   allow-prereleases: false
+2026-11-04T15:16:13.7153723Z   freethreaded: false
+2026-11-04T15:16:13.7154022Z ##[endgroup]
+2026-11-04T15:16:13.8275233Z ##[group]Installed versions
+2026-11-04T15:16:13.8413825Z Successfully set up CPython (3.13.17)
+2026-11-04T15:16:13.8414800Z ##[endgroup]
+2026-11-04T15:16:13.8576985Z ##[group]Run actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333
+2026-11-04T15:16:13.8577487Z with:
+2026-11-04T15:16:13.8577768Z   name: closure-recordings
+2026-11-04T15:16:13.8578259Z   path: /home/runner/work/_temp/closures
+2026-11-04T15:16:13.8578633Z   merge-multiple: false
+2026-11-04T15:16:13.8578961Z   repository: tvofi/heatpump_optimizer
+2026-11-04T15:16:13.8579316Z   run-id: 41852510759
+2026-11-04T15:16:13.8579622Z   skip-decompress: false
+2026-11-04T15:16:13.8579924Z   digest-mismatch: error
+2026-11-04T15:16:13.8580222Z env:
+2026-11-04T15:16:13.8580559Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:13.8581101Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-04T15:16:13.8581614Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:13.8582084Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:13.8582590Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:13.8583045Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-04T15:16:13.8583447Z ##[endgroup]
+2026-11-04T15:16:13.9971390Z Downloading single artifact
+2026-11-04T15:16:14.1726536Z Preparing to download the following artifacts:
+2026-11-04T15:16:14.1727806Z - closure-recordings (ID: 13337297391, Size: 83911, Expected Digest: sha256:5185cabf357ad20c6bca3d604c4e4215b6b6ec87d8c9ed6508206f2c3c9973e0)
+2026-11-04T15:16:14.4574586Z Redirecting to blob download url: https://productionresultssa6.blob.core.windows.net/actions-results/bab1246b-c24a-845f-9e6d-43e0081a5f94/workflow-job-run-19d12e43-de9d-5ab1-b35f-ce818b8e40b1/artifacts/f607497981b53bfa43c416e8c0719f1419ae2bd5f407830f1fa7e6d38c90c571.zip
+2026-11-04T15:16:14.4577362Z Starting download of artifact to: /home/runner/work/_temp/closures
+2026-11-04T15:16:14.5344991Z (node:2518) [DEP0005] DeprecationWarning: Buffer() is deprecated due to security and usability issues. Please use the Buffer.alloc(), Buffer.allocUnsafe(), or Buffer.from() methods instead.
+2026-11-04T15:16:14.5346686Z (Use `node --trace-deprecation ...` to show where the warning was created)
+2026-11-04T15:16:14.5545842Z SHA256 digest of downloaded artifact is 5185cabf357ad20c6bca3d604c4e4215b6b6ec87d8c9ed6508206f2c3c9973e0
+2026-11-04T15:16:14.5546556Z Artifact download completed successfully.
+2026-11-04T15:16:14.5546957Z Total of 1 artifact(s) downloaded
+2026-11-04T15:16:14.5549887Z Download artifact has finished successfully
+2026-11-04T15:16:14.5656458Z ##[group]Run export SUBJECT=$(git log -1 --pretty=%s)
+2026-11-04T15:16:14.5657013Z [36;1mexport SUBJECT=$(git log -1 --pretty=%s)[0m
+2026-11-04T15:16:14.5657411Z [36;1mpython3 -I - <<'PY'[0m
+2026-11-04T15:16:14.5657737Z [36;1mimport os, sys[0m
+2026-11-04T15:16:14.5658069Z [36;1msys.path.append("tests")[0m
+2026-11-04T15:16:14.5658420Z [36;1mimport closure[0m
+2026-11-04T15:16:14.5658758Z [36;1mallowed = closure.autofix_allowed([0m
+2026-11-04T15:16:14.5659155Z [36;1m    event_name=os.environ["EVENT_NAME"],[0m
+2026-11-04T15:16:14.5659587Z [36;1m    closures_result=os.environ["CLOSURES_RESULT"],[0m
+2026-11-04T15:16:14.5660019Z [36;1m    head_repo=os.environ["HEAD_REPO"],[0m
+2026-11-04T15:16:14.5660427Z [36;1m    repo=os.environ["REPO"],[0m
+2026-11-04T15:16:14.5660830Z [36;1m    commit_subject=os.environ["SUBJECT"],[0m
+2026-11-04T15:16:14.5661214Z [36;1m)[0m
+2026-11-04T15:16:14.5661504Z [36;1mprint(f"allowed={allowed}")[0m
+2026-11-04T15:16:14.5661916Z [36;1mif not allowed:[0m
+2026-11-04T15:16:14.5662240Z [36;1m    status = "skip-not-allowed"[0m
+2026-11-04T15:16:14.5662598Z [36;1melse:[0m
+2026-11-04T15:16:14.5662937Z [36;1m    status = closure.apply_under_scoped_recordings([0m
+2026-11-04T15:16:14.5663436Z [36;1m        os.environ["RUNNER_TEMP"] + "/closures", partial=True)[0m
+2026-11-04T15:16:14.5663873Z [36;1mprint(f"AUTOFIX: {status}")[0m
+2026-11-04T15:16:14.5664283Z [36;1mwith open(os.environ["GITHUB_OUTPUT"], "a") as fh:[0m
+2026-11-04T15:16:14.5664711Z [36;1m    fh.write(f"status={status}\n")[0m
+2026-11-04T15:16:14.5665059Z [36;1mPY[0m
+2026-11-04T15:16:14.5698002Z shell: /usr/bin/bash -e {0}
+2026-11-04T15:16:14.5698371Z env:
+2026-11-04T15:16:14.5698896Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.5699438Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-04T15:16:14.5699948Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.5700442Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.5700915Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.5701394Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-04T15:16:14.5701820Z   EVENT_NAME: pull_request
+2026-11-04T15:16:14.5702141Z   CLOSURES_RESULT: failure
+2026-11-04T15:16:14.5702467Z   HEAD_REPO: tvofi/heatpump_optimizer
+2026-11-04T15:16:14.5702842Z   REPO: tvofi/heatpump_optimizer
+2026-11-04T15:16:14.5703171Z ##[endgroup]
+2026-11-04T15:16:14.8345208Z allowed=True
+2026-11-04T15:16:14.8346326Z AUTOFIX: skip-failed-recording
+2026-11-04T15:16:14.8569731Z ##[group]Run python3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \
+2026-11-04T15:16:14.8570549Z [36;1mpython3 -I "$RUNNER_TEMP/pinned/closure.py" autofix-report --job closures-autofix \[0m
+2026-11-04T15:16:14.8571104Z [36;1m  --status "skip-failed-recording"[0m
+2026-11-04T15:16:14.8591516Z shell: /usr/bin/bash -e {0}
+2026-11-04T15:16:14.8591859Z env:
+2026-11-04T15:16:14.8592209Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.8592752Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-04T15:16:14.8593258Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.8593728Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.8594188Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-04T15:16:14.8594656Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-04T15:16:14.8595063Z ##[endgroup]
+2026-11-04T15:16:14.9351263Z closures-autofix: skip-failed-recording -- THE REPAIR DID NOT HAPPEN.
+2026-11-04T15:16:14.9353191Z No commit will be pushed, so waiting for one waits forever. This is
+2026-11-04T15:16:14.9354264Z the case `.cursor/rules/ci-autofix.mdc` already lists as a human
+2026-11-04T15:16:14.9355267Z judgment call, and its rule against re-recording an UNDER-SCOPED
+2026-11-04T15:16:14.9356442Z yourself does not apply once the bot has reported that it did not.
+2026-11-04T15:16:14.9357459Z A script exited non-zero WHILE being recorded, so its closure is only
+2026-11-04T15:16:14.9358498Z what it reached before stopping -- and merging that would under-scope
+2026-11-04T15:16:14.9359526Z the gate, which is why the merge refuses it. The under-approximation
+2026-11-04T15:16:14.9360505Z this job was going to repair is real and still unrepaired.
+2026-11-04T15:16:14.9361464Z Fix the failing script first; the closures job re-records on the next
+2026-11-04T15:16:14.9362352Z push and this repair then happens on its own.
+2026-11-04T15:16:14.9363002Z 
+2026-11-04T15:16:14.9443031Z ##[error]Process completed with exit code 1.
+2026-11-04T15:16:14.9603777Z Post job cleanup.
+2026-11-04T15:16:15.0447571Z [command]/usr/bin/git version
+2026-11-04T15:16:15.0484338Z git version 2.56.0
+2026-11-04T15:16:15.0520462Z Temporarily overriding HOME='/home/runner/work/_temp/f75b1ff5-0ba6-4245-b0b5-3249651e883e' before making global git config changes
+2026-11-04T15:16:15.0521809Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-04T15:16:15.0525807Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-04T15:16:15.0557677Z Removing SSH command configuration
+2026-11-04T15:16:15.0564057Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-04T15:16:15.0599339Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-04T15:16:15.0838714Z Removing HTTP extra header
+2026-11-04T15:16:15.0844122Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-04T15:16:15.0875043Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-04T15:16:15.1110276Z Removing includeIf entries pointing to credentials config files
+2026-11-04T15:16:15.1117517Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-04T15:16:15.1148831Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-04T15:16:15.1512586Z Cleaning up orphan processes
