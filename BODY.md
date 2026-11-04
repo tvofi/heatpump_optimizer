@@ -15,7 +15,11 @@ Carry 1's control and null control, and Carry 2's control, are figures below. No
 
 ## Head
 
-`051b05d935bf308083821d36b790babdbe009398`, merge base `8e90d81443317f76f22602a89651f7ca17c633f9` (origin/main tip at `2026-11-04T11:14:54Z`). The mutation proofs were taken at `9c4b0f1308ab` on base `c3a279e3252a`. origin/main then moved four times and was merged each time without conflict: `a9c2f90fc` (mutation-ledger records only), `fad43b047` (#3180, CI ratchet), `616868bdc` (#3179, archscore and card template rules) and `8e90d8144` (#3182, R10-PARTLOAD-PRICING, which changes `thermal_model.py`). Because #3182 reaches the solve, the harness, `tests/features.py` and `tests/config_flow_steps.py` were re-run on this merged head, and every harness line in `## Figures` printed the same value it did at `9c4b0f1308ab`. Also re-taken here: the scope is unchanged (`MODE: SCOPED -- 22 script(s) run, 11 scoped out.`, the same 22 scripts), `python3 tests/structure.py` passes against #3182's re-recorded budgets, `python3 tools/audit/archscore/score.py --diff origin/main` reads `dS +0.0000 NULL` (at `93cd81043`), and `tools/pr/prepr.sh` ran clean.
+`5988ba9079b98b88c2310daa8a3b10997759cf10`. Merge-resolution only: the reviewed head is `53ce1267c758ae81bd21af1a0d7eba80bc9223c8`; the change over it is a merge of origin/main (first `d1e7dbbbbe3339de86f4651fdbd97d00a12716b2`, then `2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e`), whose one textual conflict, `tests/features.py`, is resolved by keeping both sides' trailing blocks (this PR's R10-TWO-ZONE-HHL checks, then main's R10-PROD-RESIDUE-PINS checks, each closed by its own `)`). No other file was edited by hand: `git diff -U0 5988ba9079b98b88c2310daa8a3b10997759cf10^1 5988ba9079b98b88c2310daa8a3b10997759cf10` shows no conflict marker, and `tests/entities.py` auto-merged.
+
+The PR's own diff is unchanged: `git diff --stat 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e 5988ba9079b98b88c2310daa8a3b10997759cf10` reads `8 files changed, 149 insertions(+), 17 deletions(-)`, the same as `git diff --stat $(git merge-base 53ce1267c758ae81bd21af1a0d7eba80bc9223c8 2a9cd3476dae) 53ce1267c758ae81bd21af1a0d7eba80bc9223c8` before the merge. Delta over the reviewed head, `git diff --stat 53ce1267c758ae81bd21af1a0d7eba80bc9223c8 5988ba9079b98b88c2310daa8a3b10997759cf10`: `47 files changed, 1323 insertions(+), 170 deletions(-)`, all of it main's merged commits except the `tests/features.py` resolution. origin/main has since moved to `ce7a6bac75041b803158178ba2282082d7747c7e` (records and `tests/closures.json` only; `git merge-tree --write-tree origin/main HEAD` is clean), not merged here; `tools/pr/prepr.sh` ran at `5988ba9079b98b88c2310daa8a3b10997759cf10` against `2a9cd3476dae`.
+
+Figures from the reviewed body below (mutation proofs, harness, null control) describe `53ce1267`'s PR diff, which is byte-identical in production and test files here; the scoped gate was re-run through `prepr.sh` at this head. VERSION, claim files and budgets are untouched. Toolchain: numpy 2.5.4, scipy 1.18.1, matching `tests/requirements-ci.txt`.
 
 ## Mutation proof
 
@@ -59,9 +63,7 @@ Carry 2's control ("a single distinct value in two_zone_sysid_steps") holds at b
 
 ## Red checks
 
-`mutation`: predicted red by `tools/pr/ci_predict.py` for the one unpinned site above until `mutation-autofix` pins it (`ci-autofix.md`: a killed unpinned mutant is that job's repair). Cheaper detector: the predictor itself, already run before the handoff, seconds per run; nothing cheaper exists.
-
-`tests/entities.py` went red on this branch before the handoff: `any house the questionnaire can describe can still save the expert page` compared every stored key against the thermal pages' submit, and on two-zone houses the hidden coefficient came back `None`. Answered in the diff: the check skips exactly the rows the registry's own `when` hides for that house, and `tests/config_flow_steps.py` pins that a two-zone save keeps the stored value. Cheaper detector: none needed, the closure ran it locally before any push of the code ref.
+At `5988ba9079b98b88c2310daa8a3b10997759cf10`: `tools/pr/prepr.sh` rc=0 (`MODE: SCOPED`), `python3 tests/structure.py` passes (`STRUCTURE RATCHET PASSED`; the resolution adds no metric movement), no concluded red check at this head. The predicted `mutation` red (one unpinned site, `_single_zone`'s RETURN_DEL) is already pinned in-tree by the `_single_zone.RETURN_DEL.6de1e154.json` record in this diff; the earlier `tests/entities.py` red was answered before the first handoff, as stated in the reviewed body.
 
 ## Forward-carry
 
