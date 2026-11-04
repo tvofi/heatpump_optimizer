@@ -329,8 +329,10 @@ def no_recording(root, base, changed, closure):
 # state_docs.py spawns. Recording the changed file's own self-test with CI's
 # recorder, then grading that record as its host's with CI's own `check`,
 # took 4.7 s and named both pairs CI named. A host counts only when its source
-# names the file within SELF_TEST_WINDOW lines of a self-test mention: a
-# script that lists a file as text (harness_headers' scan) does not run it.
+# names the file within SELF_TEST_WINDOW lines of a `--self-test` flag: a
+# script that lists a file as text (harness_headers' scan) does not run it, and
+# neither does one whose comment nearby only says "self-test" (tests/entities.py
+# spells a fixture `ledger.py landed` twelve lines under such a comment).
 SELF_TEST_WINDOW = 12
 SELF_TEST_TIMEOUT = 180
 _RECORD_DRIVER = ("import sys; sys.path.insert(0, 'tests'); import closure; "
@@ -354,7 +356,7 @@ def self_test_hosts(root: Path, f: str, closures: dict) -> list[str]:
         except OSError:
             continue
         w = SELF_TEST_WINDOW
-        if any(re.search(r"self[-_]test", ln) for i, line in enumerate(lines) if name in line
+        if any(re.search(r"--self[-_]test", ln) for i, line in enumerate(lines) if name in line
                for ln in lines[max(0, i - w):i + w + 1]):
             hosts.append(script)
     return hosts
@@ -1383,7 +1385,7 @@ def self_test_reads_self_test(root: Path) -> int:
         far = "\n" * (SELF_TEST_WINDOW + 1)
         i = "tests/doc_claims.py"  # lists the file under inert_reads alone, and names its self-test
         (t / h).write_text("# runs throwaway_git.py\n# through its --self-test\n")
-        (t / n).write_text(f"# lists throwaway_git.py as text{far}# its own --self-test\n")
+        (t / n).write_text(f"# lists throwaway_git.py as text; the self-tests run elsewhere{far}# its own --self-test\n")
         (t / i).write_text("# throwaway_git.py --self-test\n")
         (t / f).write_text("# throwaway_git.py --self-test\n")
         listed = {h: [f, h], n: [f, n], f: [f]}
