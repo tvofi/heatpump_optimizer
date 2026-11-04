@@ -1,3 +1,0 @@
-<class 'dict'> 2
-{'class_wait_s': 60.0, 'jobs': 9}
-dict_keys(['class_wait_s', 'jobs'])
