@@ -1,0 +1,10 @@
+== wt-base1 7f95f9084b42aa5bd651a9aa98cc5b4292adcaaa
+done [('tag', 'archive/fix/x@6481a7b2f3b965599b833c8e44bc924fb6e35958'), ('delete', 'fix/x')]
+heads: (none)
+tags: 6481a7b2f3b965599b833c8e44bc924fb6e35958	refs/tags/archive/fix/x
+RESULT moved-tip-deleted-untagged=1
+== wt b195da4715d4b160e9e638d648e73603c7df59a4
+done [('tag', 'archive/fix/x@c75b3932430e60ec9e76c91296edb79107020a7e'), ('delete-FAILED', 'chunk of 1 from fix/x: fatal: --negotiate-only needs one or more --negotiation-tip=*\nwarning: push negotiation failed; proceeding anyway with push\nerror: atomic push failed for ref re')]
+heads: 12d75c22dccebfbe015c438b40dbbc85184bc216	refs/heads/fix/x
+tags: c75b3932430e60ec9e76c91296edb79107020a7e	refs/tags/archive/fix/x
+RESULT moved-tip-deleted-untagged=0

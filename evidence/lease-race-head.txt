@@ -1,6 +1,0 @@
-1bd5a9518656b7b017cc6860da51efbaf2457aa6  /tmp/tmp.ENs3pOkCaa/evidence/lease-race.py
-planned 5157d65e moved-to 2196e449
-done [('tag', 'archive/fix/x@5157d65ec24ed194a57c425052fca32e8a749c9c'), ('delete-FAILED', 'chunk of 1 from fix/x: fatal: --negotiate-only needs one or more --negotiation-tip=*\nwarning: push negotiation failed; proceeding anyway with push\nerror: atomic push failed for ref re')]
-heads: 2196e4498706bb51ae152e5f2fd7254b33446e83	refs/heads/fix/x
-tags: 5157d65ec24ed194a57c425052fca32e8a749c9c	refs/tags/archive/fix/x
-RESULT moved-tip-deleted-untagged=0

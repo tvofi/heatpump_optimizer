@@ -1,3 +1,0 @@
-protected-files: checked
-host-path: checked
-policy-files: checked
