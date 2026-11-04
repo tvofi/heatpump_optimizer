@@ -2924,13 +2924,18 @@ function parseWindows(spec) {
   return out;
 }
 
+/** A window's range as the integration's parser and the card's messages spell it. */
+function windowRange(w) {
+  return `${w.start}-${w.end}`;
+}
+
 /** The inverse, in the format the integration's parser expects: the selector
  * before its range, and none for "daily" -- a flat spec stays a flat spec. */
 function formatWindows(windows) {
   return (windows || [])
     .map((w) => {
       const days = w.days && w.days !== "daily" ? `${w.days} ` : "";
-      return `${days}${w.start}-${w.end}`;
+      return `${days}${windowRange(w)}`;
     })
     .join(", ");
 }
@@ -2990,29 +2995,26 @@ function quietOverlapProblem(silentSpec, offSpec, dhwSpec) {
     const mm = String(minutes % 60).padStart(2, "0");
     return `${hh}:${mm}`;
   };
+  const span = (w) => `${fmt(w[0])}-${fmt(w[1])}`;
   const overlaps = (a, b) => a[0] < b[1] && b[0] < a[1];
   for (let day = 0; day < 7; day++) {
     const offDay = windowsOnDay(offSpec, day);
     if (!offDay.length) continue;
-    const dhwDay = windowsOnDay(dhwSpec, day);
-    const silentDay = windowsOnDay(silentSpec, day);
+    // Hot-water windows first, then silent ones: the first clash is the one reported.
+    const others = [
+      ["hot-water", windowsOnDay(dhwSpec, day)],
+      ["silent", windowsOnDay(silentSpec, day)],
+    ];
     for (const window of offDay) {
-      for (const other of dhwDay) {
-        if (overlaps(window, other)) {
-          return (
-            `off window ${fmt(window[0])}-${fmt(window[1])} overlaps ` +
-            `the hot-water window ${fmt(other[0])}-${fmt(other[1])} ` +
-            `on ${QUIET_DAY_NAMES[day]}`
-          );
-        }
-      }
-      for (const other of silentDay) {
-        if (overlaps(window, other)) {
-          return (
-            `off window ${fmt(window[0])}-${fmt(window[1])} overlaps ` +
-            `the silent window ${fmt(other[0])}-${fmt(other[1])} ` +
-            `on ${QUIET_DAY_NAMES[day]}`
-          );
+      for (const [kind, windows] of others) {
+        for (const other of windows) {
+          if (overlaps(window, other)) {
+            return (
+              `off window ${span(window)} overlaps ` +
+              `the ${kind} window ${span(other)} ` +
+              `on ${QUIET_DAY_NAMES[day]}`
+            );
+          }
         }
       }
     }
@@ -3538,6 +3540,9 @@ const SlotModel = {
 // path, taking the layout-editing state explicitly instead of reaching
 // back into the class. Returns the svg markup and the laid-out boxes --
 // the geometry carrier the drag editor and the QA renderer read.
+/** A drawn edge's key, `from>to`: the diagram's data-edge, the rejected set's and the editor's. */
+const edgeKey = (e) => `${e[0]}>${e[1]}`;
+
 function setupSvgHtml(topo, ctx) {
   let boxesOut = null;
   // The width this diagram is drawn at, in CSS px, through the ctx thunk;
@@ -3935,7 +3940,7 @@ function setupSvgHtml(topo, ctx) {
     );
     const matched = editing && ctx.edit.match ? " layout-match" : "";
     for (const e of drawnEdges) {
-      const edge = `${e[0]}>${e[1]}`;
+      const edge = edgeKey(e);
       pipe(byPlace.get(e[0]), byPlace.get(e[1]), edge,
         rejected.has(edge) ? " invalid" : matched);
     }
@@ -8045,23 +8050,27 @@ function seriesPath(s, scaleX, scaleY, plotB) {
   return out.join("");
 }
 
+/** A point as an SVG path writes it, to two decimals. */
+function pathPoint(p) {
+  return `${p.x.toFixed(2)} ${p.y.toFixed(2)}`;
+}
+
 function steppedLine(pts) {
-  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  let d = `M ${pathPoint(pts[0])}`;
   for (let i = 1; i < pts.length; i++) {
-    d += ` L ${pts[i].x.toFixed(2)} ${pts[i - 1].y.toFixed(2)}`;
-    d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    d += ` L ${pathPoint({ x: pts[i].x, y: pts[i - 1].y })}`;
+    d += ` L ${pathPoint(pts[i])}`;
   }
   return d;
 }
 
 function smoothLine(pts) {
   if (pts.length < 3) {
-    let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
-    for (let i = 1; i < pts.length; i++)
-      d += ` L ${pts[i].x.toFixed(2)} ${pts[i].y.toFixed(2)}`;
+    let d = `M ${pathPoint(pts[0])}`;
+    for (let i = 1; i < pts.length; i++) d += ` L ${pathPoint(pts[i])}`;
     return d;
   }
-  let d = `M ${pts[0].x.toFixed(2)} ${pts[0].y.toFixed(2)}`;
+  let d = `M ${pathPoint(pts[0])}`;
   for (let i = 0; i < pts.length - 1; i++) {
     const p0 = pts[i - 1] || pts[i];
     const p1 = pts[i];
@@ -8092,7 +8101,7 @@ function smoothLine(pts) {
     c2x = Math.min(Math.max(c2x, xLo), xHi);
     d += ` C ${c1x.toFixed(2)} ${c1y.toFixed(2)} ${c2x.toFixed(2)} ${c2y.toFixed(
         2
-      )} ${p2.x.toFixed(2)} ${p2.y.toFixed(2)}`;
+      )} ${pathPoint(p2)}`;
   }
   return d;
 }
@@ -8535,7 +8544,8 @@ class Legend {
   // from the other.
   storageKey(cfg) {
     const title = cfg.title !== undefined ? cfg.title : "";
-    return `${CARD_TAG}:${cfg.space_entity}:${cfg.dhw_entity}:${title}:${cfg.hours}`;
+    // The legacy key is this one's prefix.
+    return `${this.storageKeyLegacy(cfg)}:${title}:${cfg.hours}`;
   }
 
   /** The pre-v4.2.0 key, read as a fallback so an upgrade does not silently
@@ -12263,14 +12273,15 @@ class WhatIfPanel {
   /** A comparable summary of the draft, for spotting real edits. */
   draftSignature() {
     const d = this.draft();
+    const windowSig = (w) => `${w.days || "daily"} ${windowRange(w)}`;
     return JSON.stringify([
       d.comfort,
       d.dhwMin,
       d.dayStart,
       d.dayEnd,
-      d.dhwWindows.map((w) => `${w.days || "daily"} ${w.start}-${w.end}`),
+      d.dhwWindows.map(windowSig),
       (d.quietWindows || []).map(
-        (w) => `${w.days || "daily"} ${w.start}-${w.end} ${w.action || "silent"}`
+        (w) => `${windowSig(w)} ${w.action || "silent"}`
       ),
       d.silentFraction,
     ]);
@@ -12362,7 +12373,7 @@ class WhatIfPanel {
     if (invalid) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.invalid_window_time", {
-        window: `${invalid.start}-${invalid.end}`,
+        window: windowRange(invalid),
       });
       return;
     }
@@ -12481,7 +12492,7 @@ class WhatIfPanel {
     if (invalid) {
       out.className = "wi-result dearer";
       out.textContent = L("errors.invalid_window_time", {
-        window: `${invalid.start}-${invalid.end}`,
+        window: windowRange(invalid),
       });
       return;
     }
@@ -12550,15 +12561,17 @@ class WhatIfPanel {
       );
     }
 
+    // A minimum's change against the baseline, shown from 0.1 °C.
+    const dropText = (drop) =>
+      drop !== null && Math.abs(drop) >= 0.1
+        ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
+        : "";
     const room = Number(result.min_room_temperature);
     const roomBase = Number(result.baseline_min_room_temperature);
     if (Number.isFinite(room)) {
       const drop = Number.isFinite(roomBase) ? room - roomBase : null;
       parts.push(
-        L("whatif.min_room_temp", { t: room.toFixed(1) }) +
-          (drop !== null && Math.abs(drop) >= 0.1
-            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
-            : "")
+        L("whatif.min_room_temp", { t: room.toFixed(1) }) + dropText(drop)
       );
     }
 
@@ -12567,10 +12580,7 @@ class WhatIfPanel {
     if (Number.isFinite(dhw)) {
       const drop = Number.isFinite(dhwBase) ? dhw - dhwBase : null;
       parts.push(
-        L("whatif.min_dhw_temp", { t: dhw.toFixed(1) }) +
-          (drop !== null && Math.abs(drop) >= 0.1
-            ? ` (${drop > 0 ? "+" : ""}${drop.toFixed(1)})`
-            : "")
+        L("whatif.min_dhw_temp", { t: dhw.toFixed(1) }) + dropText(drop)
       );
     }
 
@@ -13745,8 +13755,7 @@ class LayoutEditor {
     if (!ed) return;
     const topo = this.host.plan.attrRaw("setup_topology", null) || {};
     const catalog = Array.isArray(topo.catalog) ? topo.catalog : [];
-    const name = (e) => `${e[0]}>${e[1]}`;
-    const drawn = new Set(ed.edges.map(name));
+    const drawn = new Set(ed.edges.map(edgeKey));
     const equals = (set) =>
       set.size === drawn.size && [...drawn].every((k) => set.has(k));
 
@@ -13756,7 +13765,7 @@ class LayoutEditor {
     let nearestSet = null;
     let nearestDiff = null;
     for (const entry of catalog) {
-      const set = new Set((entry.edges || []).map(name));
+      const set = new Set((entry.edges || []).map(edgeKey));
       if (equals(set)) {
         if (entry.valid) match = match || entry;
         else sameButUnusable = sameButUnusable || entry;
@@ -14089,7 +14098,7 @@ class LayoutEditor {
     const ed = this.edit;
     if (!ed) return;
     const before = ed.edges.length;
-    ed.edges = ed.edges.filter((e) => `${e[0]}>${e[1]}` !== name);
+    ed.edges = ed.edges.filter((e) => edgeKey(e) !== name);
     if (ed.edges.length !== before) ed.dirty = true;
     this.evaluate();
     this.refresh();
