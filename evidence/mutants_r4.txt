@@ -1,0 +1,18 @@
+MUTANT NULL [s/^$/&/]: CONTROLS 33 of 33 ok 
+MUTANT K24 [s/"ref24": {"cpu_ratio": 3.630,/"ref24": {"cpu_ratio": 5.3,/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:class_budgets [(23.83, ['cpu_ratio 2.567: budget 5.3 cannot see a 2x cycle; re-record 3.63'], [])] 
+MUTANT K24L [s/, "loop_cpu_ratio": 0.1813}/}/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:class_budgets [(23.83, ['loop_cpu_ratio 0.1282 over its budget 0.1278'], ['loop_cpu_ratio 0.2603 over its budget 0.1278'])] 
+MUTANT K24B [/"ref24": (22.64, 25.53),/d]: CONTROLS 31 of 33 ok FAIL control:cycle_cost:class_budgets [(23.83, ['no recorded budget: record cpu_ratio=3.63'], ['no recorded budget: record cpu_ratio=7.366']), (23.83, ['no reco FAIL control:cycle_cost:runner_class_unknown bad=['runner class unknown: ref_ms 37.84 lies in no band of COST_RUNNER_CLASSES [(28.72, 32.69), (42.99, 49.51), (4 
+MUTANT K30 [s/"ref30": {"cpu_ratio": 3.934}/"ref30": {"cpu_ratio": 5.76}/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:class_budgets [(30.32, ['cpu_ratio 2.81: budget 5.76 cannot see a 2x cycle; re-record 3.974'], []), (30.93, ['cpu_ratio 2.754: budget 5. 
+MUTANT K46 [s/"ref46": {"cpu_ratio": 3.357}/"ref46": {"cpu_ratio": 4.83}/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:class_budgets [(45.65, ['cpu_ratio 2.325: budget 4.83 cannot see a 2x cycle; re-record 3.287'], []), (46.36, [], [])] 
+MUTANT K53 [s/"ref53": {"cpu_ratio": 2.081}/"ref53": {"cpu_ratio": 2.96}/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:class_budgets [(52.76, ['cpu_ratio 1.456: budget 2.96 cannot see a 2x cycle; re-record 2.06'], []), (53.27, ['cpu_ratio 1.451: budget 2. 
+MUTANT M4 [s/and c in keyed), None)/and c in keyed), "ref46")/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:runner_class_unknown bad=[] good=[] 
+MUTANT FALLBK [s/        return None, \[f"runner class unknown/        return COST_BUDGETS.get(name), [] or [f"runner class unknown/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:runner_class_unknown bad=[] good=[] 
+MUTANT W30 [s/"ref30": (28.72, 32.69)/"ref30": (26.0, 32.69)/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:runner_class_unknown bad=[] good=[] 
+MUTANT W30u [s/"ref30": (28.72, 32.69)/"ref30": (28.72, 35.0)/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:runner_class_unknown bad=[] good=[] 
+MUTANT W46 [s/"ref46": (42.99, 49.51)/"ref46": (33.0, 49.51)/]: CONTROLS 32 of 33 ok FAIL control:cycle_cost:runner_class_unknown bad=[] good=[] 
+MUTANT W24u [s/"ref24": (22.64, 25.53)/"ref24": (22.64, 28.0)/]: CONTROLS 33 of 33 ok 
+MUTANT W24d [s/"ref24": (22.64, 25.53)/"ref24": (12.0, 25.53)/]: CONTROLS 33 of 33 ok 
+MUTANT W53u [s/"ref53": (49.60, 56.78)/"ref53": (49.60, 90.0)/]: CONTROLS 33 of 33 ok 
+MUTANT RF-EMPTY [s/^COST_RULERS_REFUSED: tuple\[float, ...\] = (28.01, 34.35)/COST_RULERS_REFUSED: tuple[float, ...] = ()/]: CONTROLS 33 of 33 ok 
+MUTANT LANE-FALLBK [s/        refused or cost_offenders(figures, budget))/        cost_offenders(figures, budget or COST_BUDGETS.get(path.name)))/]: CONTROLS 33 of 33 ok 
+LANE-FALLBK effect on an unknown ruler: ['no recorded budget: record cpu_ratio=3.536', 'no recorded budget: record peak_kib=2728', 'no recorded budget: record loop_cpu_ratio=0.1414']
