@@ -15821,6 +15821,44 @@
     "note": "s11 expedite, fired 2026-11-04"
    },
    "brief": "Expedite: main gate red on critical_path_minutes, the statistic grades hosted-runner speed. Third instance; RCA in R10-RCA-CI-CRITPATH-3."
+  },
+  {
+   "lane": "IN",
+   "kind": "rca",
+   "class": "N-structure-blind",
+   "severity": "medium",
+   "size": "S",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 5,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "group": "R10-RCA-CI-CRITPATH-3",
+   "after": [],
+   "files": [
+    "dev/audit/rca/r10-ci-critpath-3.md"
+   ],
+   "carry": [],
+   "resume": {
+    "stage": "in-progress",
+    "branch": "handoff/r10-rca-ci-critpath-3",
+    "note": "s11 expedite, fired 2026-11-04"
+   },
+   "brief": "Root-cause seat for the third red of critical_path_minutes and the 25 h unattended red main, by dev/governance/roles/root-cause.md."
   }
  ]
 }
