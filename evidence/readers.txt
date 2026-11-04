@@ -1,0 +1,19 @@
+tools/policy/policy_lint.mjs:1954:// D13-s1-01: `/repos/<slug>/commits/<sha>/pulls` answered `[]` for 52 of 253
+tools/policy/policy_lint.mjs:2112:    const res = ghGet(`/repos/${slug}/commits/${sha}/pulls`)
+tools/policy/policy_lint.mjs:2185:// falls back to subject mode when `/commits/<sha>/pulls` will not answer, and
+tools/policy/policy_lint.mjs:4906:  // D13-s1-01. A merge commit whose `/commits/<sha>/pulls` answer is `[]` must
+tools/policy/policy_lint.mjs:7258:// `--record` reads the window's merges through `/commits/<sha>/pulls`. With no
+tools/policy/policy_lint.mjs:7322:  console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []`)
+tools/policy/policy_lint.mjs:7409:  console.log(`GAP: ${enumerated.gapShas.length} merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []`)
+tools/policy/record-predicate/sweep.mjs:51:// `/commits/<sha>/pulls`, which is the enumerator `policy_lint --record` itself
+tools/policy/record-predicate/sweep.mjs:202:    const out = gh(`repos/${slug}/commits/${sha}/pulls`, '.[0].number')
+tools/audit/seat/record_row.py:915:    The ONE reader of `/commits/<sha>/pulls` in this module. The endpoint
+tools/audit/seat/record_row.py:928:    pulls = _api(repo, f"/commits/{sha}/pulls", token) or []
+tools/audit/seat/record_row.py:949:    `attribute_merge` (the `/commits/<sha>/pulls` commit-to-pull-request map),
+tools/audit/seat/record_row.py:1771:       _enum_got[0][1] == [f"/commits/{'a' * 40}/pulls",
+tools/audit/seat/record_row.py:1772:                           f"/commits/{'c' * 40}/pulls"])
+tools/audit/seat/record_row.py:1807:       _r[0] == _p and _r[1] == [f"/commits/{_s}/pulls", "/pulls/3179"])
+tools/audit/seat/record_row.py:1810:       _r[0]["number"] == 7 and _r[1] == [f"/commits/{_s}/pulls"])
+tools/audit/seat/record_row.py:1816:       isinstance(_r[0], Refuse) and _r[1] == [f"/commits/{_s}/pulls"])
+.github/workflows/governance.yml:1551:      # exits 0 when `/commits/<sha>/pulls` will not answer: the subject-mode
+tests/entities.py:30624:    "`--record` exits 0 when `/commits/<sha>/pulls` will not answer, so a "

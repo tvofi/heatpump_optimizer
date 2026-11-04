@@ -1,0 +1,6 @@
+Mutants applied one at a time to tools/audit/seat/record_row.py at da3c0168, self-test run, file restored after each (git status clean after):
+M1 attribute_merge: subject_number(subject) -> None           => KILLED
+M2 attribute_merge: merge_commit_sha==sha confirmation dropped => KILLED (the body's named mutant)
+M3 enumerate_merges: attribute_merge(repo, sha, "", token)     => SURVIVED
+M4 enumerate_merges: git log --format back to %H%x1f%P          => SURVIVED
+M5 attribute_merge: map-match return removed                    => KILLED (crash in enumerate self-test)

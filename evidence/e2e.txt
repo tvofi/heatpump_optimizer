@@ -1,0 +1,2 @@
+$S/basewt/tools/audit/seat/record_row.py: RESULT e2e: REFUSE merge commit 616868b attributes to no pull request via the REST API; the window is UNCHECKED this run, not confirmed empty
+tools/audit/seat/record_row.py: RESULT e2e: [3179]
