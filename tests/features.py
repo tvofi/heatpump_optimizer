@@ -76557,6 +76557,18 @@ R.check(
     and _cpd_params_11.min_electrical_power == _cpd_hub.min_electrical_power,
     f"{_cpd_band_c} copy {_cpd_params_c.max_electrical_power} hub {_cpd_hub.max_electrical_power}",
 )
+# ``_band_fields`` itself, fed bands whose figures differ from the hub's: a
+# configured band books nothing (the copy keeps the hub's figures byte for
+# byte), the learned band books its own top and bottom (null control).
+_cpd_bf_cfg = _cp_cmod.draw_range.SolveBand(5.0, 9.0, 2.0, "configured", "awaiting_probe", None, 0, None)
+_cpd_bf_probe = _cp_cmod.draw_range.SolveBand(5.0, 3.0, 1.0, "ceiling_probe", "measured_below_configured", 3.0, 12, None)
+R.check(
+    "_band_fields: a configured band returns no fields; a ceiling_probe band returns its "
+    "max and min as the solve copy's electrical power range",
+    _cp_cmod._band_fields(_cpd_bf_cfg) == {}
+    and _cp_cmod._band_fields(_cpd_bf_probe) == {"max_electrical_power": 3.0, "min_electrical_power": 1.0},
+    f"{_cp_cmod._band_fields(_cpd_bf_cfg)} {_cp_cmod._band_fields(_cpd_bf_probe)}",
+)
 # Invariant 3 through the live cycle: the plan is stamped with the band it
 # was solved on, and the arbiter and the payload read the stamp until the next
 # solve, whatever the store does in between.
