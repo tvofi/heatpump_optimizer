@@ -1,0 +1,18 @@
+== m2
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 6814f859d..be6935c8d 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -338,7 +338,7 @@ def _weather_loss_factors(
+     said preheat_weather (live defect, tvofi 2026-10-30).
+     """
+     base_loss = max(model.params.heat_loss_coefficient, 0.001)
+-    calm_loss = max(model.effective_heat_loss_coefficient(base_loss), 1e-9)
++    calm_loss = base_loss
+     return np.array([
+         model.effective_heat_loss_coefficient(base_loss, wind_speeds[i], precipitation[i])
+         / calm_loss
+  FAIL a learned heat-loss scale of 1.24 under a flat forecast labels no step weather pre-heating, and the plan does heat  [['idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_c
+  FAIL a forecast wind spell still labels weather pre-heating, at scale 1.0 and 1.24, and only on the spell's steps  [{1.0: ['idle_coasting', 'idle_coasting', 'idle_coasting', 'idle_coasting', 'cheap_
+2 of 4785 FEATURE CHECKS FAILED
+rc=1
