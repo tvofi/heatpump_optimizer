@@ -1,0 +1,2 @@
+selftest_wiring: 112 self-testing, 112 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
