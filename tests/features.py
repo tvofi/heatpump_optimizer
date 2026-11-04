@@ -76970,4 +76970,94 @@ R.check(
 )
 
 
+R.section("R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches")
+
+# #2365: _share and the decision log take the step width from plan_step's
+# owner. Drive the production symbols with the width patched to 30 minutes.
+_rp2_coord = _PaCoord(("Heating + DHW",), duties="b")
+_rp2_plan = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[3.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp = _PaNS(mode=_PA_AUTO, disinfecting=False, plan=_rp2_plan)
+
+
+def _rp2_share(minutes_in):
+    return _pa._share(_rp2_coord, _rp2_inp, "both", _PA_T0 + timedelta(minutes=minutes_in))
+
+
+_rp2_real = (_rp2_share(5.9), _rp2_share(6.1), _pa.ArbiterState().log.maxlen)
+_rp2_saved = _pa.PLAN_STEP_MINUTES
+_pa.PLAN_STEP_MINUTES = 30
+try:
+    _rp2_wide = (_rp2_share(11.9), _rp2_share(12.1), _pa.ArbiterState().log.maxlen)
+finally:
+    _pa.PLAN_STEP_MINUTES = _rp2_saved
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a "
+    "30-minute step (6 of a 15-minute one) and the log holds a day of steps",
+    _rp2_wide == ("dhw", "space", 48),
+    f"{_rp2_wide}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365 null control: at the real 15-minute width the split "
+    "is minute 6 and the log holds 96 steps",
+    _rp2_real == ("dhw", "space", 96),
+    f"{_rp2_real}",
+)
+
+# The strict < of the short-remainder guard: a 2:1 hot-water share leaves exactly
+# SPLIT_MIN_MINUTES for the heating, which is still long enough to be its own share.
+_rp2_edge = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[1.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp.plan = _rp2_edge
+_rp2_boundary = (_rp2_share(9.9), _rp2_share(10.1))
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still "
+    "a heating share (the guard is a strict <)",
+    _rp2_boundary == ("dhw", "space"),
+    f"{_rp2_boundary}",
+)
+
+# #2351 carry 1: the production async_shutdown calls forget_held(hass), so a
+# reloaded entry warns a hass-owned held condition again.
+_rp3 = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+
+
+def _rp3_run(shutdown):
+    capture = _LogCapture()
+    logger = _logging.getLogger("heatpump_optimizer")
+    real_level = logger.level
+    logger.addHandler(capture)
+    logger.setLevel(_logging.DEBUG)
+    try:
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+        if shutdown:
+            _asyncio.run(_rp3.async_shutdown())
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(capture)
+        logger.setLevel(real_level)
+        _coord_mod.forget_held(_rp3.hass)
+    return [lv for lv, msg in capture.records if "Probe hass-owned" in msg]
+
+
+_rp3_cycle = _rp3_run(True)
+_rp3_null = _rp3_run(False)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch "
+    "(WARNING twice across a shutdown)",
+    _rp3_cycle == [_logging.WARNING, _logging.WARNING],
+    f"{_rp3_cycle}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351 null control: without the shutdown the second call "
+    "stays at DEBUG",
+    _rp3_null == [_logging.WARNING, _logging.DEBUG],
+    f"{_rp3_null}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
