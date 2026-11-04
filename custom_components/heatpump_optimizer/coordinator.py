@@ -2176,7 +2176,7 @@ class SolveRecord:
     inputs: SolveInputs
     #: The band ``params`` books (``draw_range.solve_band``), stamped on the
     #: plan this record solves so the arbiter maps it by the same band.
-    band: draw_range.SolveBand | None = None
+    band: draw_range.SolveBand
 
     def optimizer(self) -> HeatPumpOptimizer:
         return HeatPumpOptimizer(ThermalModel(self.params), self.config)
@@ -6231,7 +6231,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
 
             _record_manual_release(result, pinned_override)
 
-            self._optimization_result = replace(result, solve_band=record.band.as_dict() if record.band else {})
+            self._optimization_result = replace(result, solve_band=record.band.as_dict())
             self._last_optimization = dt_util.now()
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
