@@ -47,8 +47,21 @@ import sys
 import tempfile
 from pathlib import Path
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 HERE = Path(__file__).resolve().parent
-ROOT = HERE.parents[3]
+ROOT = repo_root(HERE)
 sys.path.insert(0, str(ROOT))
 sys.path.insert(0, str(ROOT / "tests"))
 
@@ -235,6 +248,12 @@ def host() -> bool:
     cl = [j for j in jobs if j["name"] == "tests / closures" and j["run"] > 4009]
     ncl = sum(j["minutes"] < 27 for j in cl)
     print(f"   fast (3.14) by runner image (n, min, max): {span}")
+    img_pair = (next(j["image"] for j in fast_lane if j["run"] == 4009),
+                next(j["image"] for j in fast_lane if j["run"] == 4128))
+    print(f"   the 4009 vs 4128 comparison crosses an image change: {img_pair[0] != img_pair[1]} "
+          f"({img_pair[0]} vs {img_pair[1]}); same-image slow job, run 4035: "
+          f"{next(j['minutes'] for j in fast_lane if j['run'] == 4035)} min on "
+          f"{next(j['image'] for j in fast_lane if j['run'] == 4035)}")
     print(f"   fast (3.14) under {FAST_HOST_FAST_LANE_MIN:.0f} min: {nf} of {len(first)} "
           f"runs 3770..4009, {nl} of {len(later)} after; closures under 27 min after "
           f"4009: {ncl} of {len(cl)}")
