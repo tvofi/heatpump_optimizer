@@ -1,0 +1,7 @@
+486 passed, 0 failed
+rc=0
+  ok   PREPR_VERBOSE=1 prints the full output on stdout
+  ok   the main flow starts the summary after step 1 and ends on its result line
+
+486 passed, 0 failed
+rc=0

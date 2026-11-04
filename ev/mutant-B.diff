@@ -1,0 +1,13 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 89d122175..45cb5a0bf 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -777,7 +777,7 @@ closures_owes_slot() { # merge base
+   if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt" \
+      && python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1; then
+     k=$(cat "$cw/aff/affected.case" 2>/dev/null)
+-    [ "$k" = scoped ] && [ -s "$cw/aff/affected.scripts" ] && r=0
++    [ "$k" = full ] && [ -s "$cw/aff/affected.scripts" ] && r=0
+   fi
+   rm -rf "$cw"; return "$r"
+ }

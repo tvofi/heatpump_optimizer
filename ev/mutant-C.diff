@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 89d122175..e0b38ecea 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -3951,7 +3951,6 @@ SLOT_LABEL="prepr-$$"
+ SLOT_TAKEN=""
+ take_slot() { # idempotent: the first call takes (or joins) the slot, later calls are no-ops
+   [ -z "$SLOT_TAKEN" ] || return 0
+-  SLOT_TAKEN=1
+   local slot_stderr
+   if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+     say ok "heavy slot" "joined $HPO_SLOT_LABEL: this run is already inside a slot"

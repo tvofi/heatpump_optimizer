@@ -1,0 +1,4 @@
+  FAIL the main flow calls take_slot at the mutants, field coverage, self-test, closures and diff-mutants steps (and defines it once; 3f5 is light and stays unleased) (got 4, wanted 5)
+  FAIL a plan where the mutants skip and field coverage runs takes the slot before 3f3's recorder (skip mutants run tools/policy/field_coverage.mjs ) (got 1, wanted 0)
+484 passed, 2 failed
+rc=2

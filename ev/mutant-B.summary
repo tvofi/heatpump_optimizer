@@ -1,0 +1,4 @@
+  FAIL closures_owes_slot: a scoped diff with scripts, on a machine that records, owes the slot (got 1, wanted 0)
+  FAIL and a full diff owes none (CI re-records every closure) (got 0, wanted 1)
+484 passed, 2 failed
+rc=2

@@ -1,0 +1,12 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index 89d122175..e7d695c91 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -772,6 +772,7 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
+ # rc 0 when `closures_line` would run the recorder, i.e. the slot is owed.
+ closures_owes_slot() { # merge base
+   local cw k r=1
++  return 1 # MUTANT A
+   closures_records_here || return 1
+   cw=$(mktemp -d)
+   if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt" \
