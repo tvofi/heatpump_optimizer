@@ -30,12 +30,10 @@ from typing import Any, Callable
 
 import numpy as np
 
-from .const import finite_float
+from .const import FREQ_MODE_CONTROL, FREQ_MODE_OBSERVE, finite_float
 from .payload import FreqMapBucket
+from .thermal_model import planned_draw_runs
 
-#: The two stages. Anything unrecognised in config reads as observe.
-FREQ_MODE_OBSERVE = "observe"
-FREQ_MODE_CONTROL = "control"
 #: Where the reading comes from. Only a number can be written, so control
 #: needs ``number``; a sensor alone (#1067: a Modbus package with no
 #: writable frequency register) is enough to observe.
@@ -193,7 +191,9 @@ class FrequencyMap:
         frequency (run flat out); with no evidence, or nothing to deliver,
         there is no answer, and None must never be turned into a write.
         """
-        if not np.isfinite(target_kw) or target_kw <= 0.05:
+        # "Nothing to deliver" is the plan's own running rule (D8-s1-01):
+        # a target the plan calls off asks no frequency of the compressor.
+        if not np.isfinite(target_kw) or not planned_draw_runs(target_kw):
             return None
         candidates = self._evidenced(hz_min, hz_max)
         if not candidates:
@@ -220,7 +220,7 @@ class FrequencyMap:
         deserves to know when the map is extrapolating rather than
         answering from evidence.
         """
-        if not np.isfinite(target_kw) or target_kw <= 0.05:
+        if not np.isfinite(target_kw) or not planned_draw_runs(target_kw):
             return False
         candidates = self._evidenced(hz_min, hz_max)
         return bool(candidates) and all(
