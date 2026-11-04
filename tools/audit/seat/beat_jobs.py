@@ -18,9 +18,9 @@ file is its only writer:
   jobs/<row>     the row's actionable lines, stamps and ages normalised,
                  written atomically and only when they changed;
   digest.txt     every jobs file, concatenated in row order;   written by fold()
-  new.txt        the lines the last changing fold added;       written by fold()
-  gone.txt       the lines the last changing fold dropped;     written by fold()
-  new.stamp      touched (the fold's UTC) only when new.txt was rewritten;
+  new.txt        the lines the last changing fold added (empty when it added none);  by fold()
+  gone.txt       the lines the last changing fold dropped (empty when it dropped none); by fold()
+  new.stamp      touched (the fold's UTC) only when that fold added a line;
   events.txt     `<utc> HEAD-MOVED #<n> <old12> <new12>` (head-watch) and
                  `<utc> STUCK ...` (opener) lines, appended once each;
   heads.tsv      head-watch's last-seen head per open pull request;
@@ -214,11 +214,10 @@ def fold_locked(ctx: Ctx) -> None:
     was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())
     new, gone = list((now - was).elements()), list((was - now).elements())
     atomic(ctx.digest / "digest.txt", text)
+    atomic(ctx.digest / "new.txt", "".join(ln + "\n" for ln in new))  # empty when the fold added nothing
+    atomic(ctx.digest / "gone.txt", "".join(ln + "\n" for ln in gone))
     if new:
-        atomic(ctx.digest / "new.txt", "".join(ln + "\n" for ln in new))
         atomic(ctx.digest / "new.stamp", utc(ctx.now) + "\n")
-    if gone:
-        atomic(ctx.digest / "gone.txt", "".join(ln + "\n" for ln in gone))
 
 
 def fold(ctx: Ctx) -> None:
