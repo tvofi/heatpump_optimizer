@@ -1,0 +1,7 @@
+Check runs of 2e3a51a9954c6816ba96b6267a1d1fbf8cd54925 (get_check_runs, 68 runs, one page of 100), read 2026-11-05 ~00:35Z.
+Workflow runs on this head: 41931690213 (CI code) cancelled at 00:00:09Z; 41931690869 (CI edit) cancelled 23:34:30Z; 41933014995 (CI edit) cancelled 23:41:02Z.
+gate: cancelled x3 (126940419663, 126943284979, 126951344804); pr-contract: skipped x3.
+failure: tests / nightly-status (126936583814) -- the only concluded red.
+cancelled: tests / closures, tests / fast (3.14), tests / coverage, codeql / Analyze (python), tests / closures-autofix, ci-ratchet, claims-autofix, lane-proofs, graders-head-copy, coverage-ratchet, prelude x2.
+success: governance / instrument-self-tests, policy-docs, env-matrix, wave-script, delivery-status; tests / mutation, closure-scope, briefs, typing, browser, arch-instrument; arch-score; budget-raise-gate; hassfest; validate-hacs; codeql actions, js-ts.
+merge_train classify: RED ... pending: none red: gate (rc=1), first at 23:35:12Z (cancelled superseded run's gate), unchanged through 00:04Z+ (see classify.log copy).
