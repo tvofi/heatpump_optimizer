@@ -2316,12 +2316,25 @@ jobs:
       - name: Self-test the window fetch and parse
         run: python3 -I tests/ci_ratchet.py --self-test
 
-      - name: Gather this run's and the recent window's metrics
+      # The window's two fetches -- the metrics artifacts and the push runs'
+      # job lists -- read nothing from each other, so they run side by side:
+      # this job ends the critical path (tests/ci_ratchet.py run_minutes), and
+      # its two network steps ran one after the other, 22-40 s each. A failure
+      # of either fails the step: `wait` is read per pid, never swallowed.
+      #
+      # The window is ci.yml's push runs and, across the cut-over, the
+      # pre-umbrella Tests runs, each carrying its jobs: the critical path is
+      # a run's work to its last `tests / *` job with runner queue removed
+      # (see tests/ci_ratchet.py run_minutes; U9a). Its reads and its
+      # refusals are tests/ci_ratchet.py's, self-tested above.
+      - name: Gather the metrics and the recent push runs' durations
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
           M="$RUNNER_TEMP/metrics"; mkdir -p "$M"
+          python3 -I tests/ci_ratchet.py --gather-runs "$RUNNER_TEMP/runs.json" &
+          runs_pid=$!
           # This run's three lanes, by name, from this run.
           for lane in fast coverage closures; do
             gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \
@@ -2335,16 +2348,14 @@ jobs:
           # read as .workflow_run.id with a .run_id fallback (the list API
           # stopped returning .run_id on 2026-10-12); both stay null-safe in
           # ci_ratchet.window_entries, which owns the selection now.
-          python3 -I tests/ci_ratchet.py --gather --metrics-dir "$M"
-      # The window is ci.yml's push runs and, across the cut-over, the
-      # pre-umbrella Tests runs, each carrying its jobs: the critical path is
-      # a run's work to its last `tests / *` job with runner queue removed
-      # (see tests/ci_ratchet.py run_minutes; U9a). Its reads and its
-      # refusals are tests/ci_ratchet.py's, self-tested above.
-      - name: Fetch the recent push runs' durations
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: python3 -I tests/ci_ratchet.py --gather-runs "$RUNNER_TEMP/runs.json"
+          gather_rc=0
+          python3 -I tests/ci_ratchet.py --gather --metrics-dir "$M" || gather_rc=$?
+          runs_rc=0
+          wait "$runs_pid" || runs_rc=$?
+          [ "$gather_rc" -eq 0 ] && [ "$runs_rc" -eq 0 ] || {
+            echo "::error::window fetch failed (metrics rc $gather_rc, runs rc $runs_rc)"
+            exit 1
+          }
 
       - name: Grade the ratchet
         run: >-
