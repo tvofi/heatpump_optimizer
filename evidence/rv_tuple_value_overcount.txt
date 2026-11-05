@@ -1,0 +1,2 @@
+wtb cur=(4 attrs): 1  r=f(a),g(b): 1  def return a,b: 1  x = [1,2,3]: 1
+wt cur=(4 attrs): 4  r=f(a),g(b): 2  def return a,b: 1  x = [1,2,3]: 3

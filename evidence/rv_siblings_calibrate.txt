@@ -1,0 +1,12 @@
+calibrate.py --only rt_48_footprint_packed_unpack,rt_49_rv_nested_tuple,rt_50_rv_for_literal,rt_00_null_rename --jobs 4, at head 0a13dd1a9c053948311df30953557ddb6b341120 (reviewer scripts 49/50 uncommitted, in ev/)
+default (C25 on):
+rt_00_null_rename             redteam NULL NULL     y 0.0000
+rt_48_footprint_packed_unpack redteam GAME NULL     y 0.0000
+rt_49_rv_nested_tuple         redteam GAME IMPROVES y 0.0017 coord_footprint+0.002
+rt_50_rv_for_literal          redteam GAME IMPROVES y 0.0089 coord_footprint+0.009
+RED TEAM 1/3 attempts read NULL or inadmissible; IMPROVES: rt_49_rv_nested_tuple, rt_50_rv_for_literal
+ARCHSCORE_ABLATE=C25:
+rt_00_null_rename             redteam NULL NULL     y 0.0000
+rt_48_footprint_packed_unpack redteam GAME IMPROVES y 0.0092 coord_footprint+0.009
+rt_49_rv_nested_tuple         redteam GAME IMPROVES y 0.0092 coord_footprint+0.009
+rt_50_rv_for_literal          redteam GAME IMPROVES y 0.0092 coord_footprint+0.009
