@@ -69,6 +69,11 @@
 #
 #
 shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
+coord_all_features  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_dhw  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_grid_fee  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_minimal  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
 coord_all_features  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_dhw  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_grid_fee  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
@@ -748,3 +753,13 @@ coord_two_zone  # R10-GRADE-DRIVERS, additions only: the scores gain machine_dri
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+# R10-COP-GATE-D: the plan carries the band it was solved on and the model
+# status sensor publishes which electrical maximum the plan used, so every
+# coord capture gains `data.pump_max_power` and, under
+# `sensors.model_status.extra_state_attributes`, `pump_max_power`,
+# `pump_max_power_reason` and `pump_max_power_source`. Those four leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# origin/main, one environment). Claimed rather than re-recorded, as
+# R10-HOUSE-GRADE's key was: the committed files were patched in those four
+# paths alone, each null because a coord fixture holds no plan.
