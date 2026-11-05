@@ -1,0 +1,56 @@
+  ok   2 production merges in 6 give 4 nonproduction
+  ok   churn per kilo product lines is 1000*24/20
+  ok   a path under blueprints/ is product
+  ok   a lookalike prefix is not product
+  ok   VERSION and RELEASE_NOTES.md are record paths
+  ok   a merge touching a record path and a tools path is machinery
+  ok   a merge with one product line is production
+  ok   the window is the newest W: W=3 counts merges 4..6 only
+  ok   a history shorter than the window is refused, never measured short
+  ok   the base window reads 3 nonproduction of 5
+  ok   a candidate machinery merge past cap+band exits 1 (4 > 2 + 1)
+  ok   ...and prints the metric, its cap and its band
+  ok   the candidate takes the newest slot and the oldest merge drops out
+  ok   the same candidate at exactly cap+band exits 0 (4 <= 3 + 1)
+  ok   push mode at the base inside cap+band exits 0 (3 <= 2 + 1)
+  ok   over() refuses only past cap+band
+  ok   over() refuses the churn ratio past its cap+band
+  ok   null control: a pure move across the boundary leaves M1 and M2 identical
+  ok   ...and the move with one line added counts that merge production
+  ok   a rename's lines are charged to its destination
+  ok   a whitespace-only reformat of product code costs 0 product lines
+  ok   splitting a machinery merge raises M1 by exactly 1 and leaves M2 flat
+  ok   splitting a production merge leaves M2 flat
+  ok   exemption: no entry refuses
+  ok   exemption: exactly 10% refuses
+  ok   exemption: exactly 10% as floats refuses
+  ok   exemption: 11% with evidence passes
+  ok   exemption: 11% right-first-time (a gain) passes
+  ok   exemption: 11% with a missing evidence path refuses
+  ok   exemption: an entry naming another pull request refuses
+  ok   exemption: an unknown measure refuses
+  ok   exemption: a bool `before` is not a number and refuses
+  ok   exemption: an int `before` of the same value passes (null control)
+  ok   exemption: an entry lacking `pr` is refused, not raised
+  ok   exemption: an entry lacking `measure` is refused, not raised
+  ok   exemption: an entry lacking `before` is refused, not raised
+  ok   exemption: an entry lacking `after` is refused, not raised
+  ok   exemption: an entry lacking `before_command` is refused, not raised
+  ok   exemption: an entry lacking `after_command` is refused, not raised
+  ok   exemption: an entry lacking `evidence` is refused, not raised
+  ok   improvement() is exact: 100 -> 90 is 1/10
+  ok   positive control: an entry its own merge added takes that merge out of the window
+  ok   an entry appended later for an already-merged PR leaves M1 and M2 unchanged
+  ok   one merge appending entries for two merged PRs leaves M1 and M2 unchanged
+  ok   an entry added before its PR merged exempts nothing when that PR merges
+  ok   load_budgets reads the fixture's caps
+  ok   load_budgets refuses an unread key
+  ok   load_budgets refuses a float cap
+  ok   load_budgets refuses a missing band
+  ok   load_budgets refuses a zero window
+  ok   load_budgets refuses exemptions not a list
+  ok   --check-event: a base and a PR number select PR mode
+  ok   --check-event: a base with no PR number is push mode at the head
+  ok   --check-event: nothing set is push mode at HEAD
+machinery_ratchet self-test: 54 checks, 0 failed
+null-control rc=0

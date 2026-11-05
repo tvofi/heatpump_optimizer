@@ -1,9 +1,0 @@
---- tools/audit/repo_root.py
-+++ r10_machinery_ratchet_mutants.py
-@@ -1,6 +1,5 @@
- def repo_root(start):
-     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
--    from pathlib import Path
-     here = Path(start).resolve()
-     if here.is_file():
-         here = here.parent
