@@ -1,0 +1,12 @@
+parents of head:
+0b66b88c2a8c2c28ec93bf33ab0fbfae9ca771c9 af941ad4a296ffec76562e3161972bce3ad2dec4
+5e1e16a6 ancestor:
+yes
+bc806747 parents: e102db7b7ac0eb7510d2b853ee86dd1ee49a1c4e
+selftest at bc806747b:
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tbc/tools/policy/fixtures/required-contexts.json'
+main moved since base, tools/ci + ci.yml:
+diff 5e1e16a6..head on gate.py:
+structure:
+
+STRUCTURE RATCHET PASSED
