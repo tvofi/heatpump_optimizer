@@ -1,12 +1,12 @@
-== instrument a45cf7f509477596e8024ad2293073f83f04d3e3 spelling packed
+== instrument c8204eb8 ABLATE=none spelling cc67aa45df1ca9931130c6bdca543d9acc97a748
+Architecture score: dS +0.0069 IMPROVES
+  coord_footprint 2513 -> 2501  +0.0069
+== instrument c8204eb8 ABLATE=none spelling 11cc9a49774b6ec9f122eb11912b76cd613b820b
+Architecture score: dS +0.0075 IMPROVES
+  coord_footprint 2513 -> 2500  +0.0075
+== instrument c8204eb8 ABLATE=C25 spelling cc67aa45df1ca9931130c6bdca543d9acc97a748
 Architecture score: dS +0.0042 IMPROVES
   coord_footprint 2381 -> 2374  +0.0042
-== instrument a45cf7f509477596e8024ad2293073f83f04d3e3 spelling plain
+== instrument c8204eb8 ABLATE=C25 spelling 11cc9a49774b6ec9f122eb11912b76cd613b820b
 Architecture score: dS +0.0030 IMPROVES
   coord_footprint 2381 -> 2376  +0.0030
-== instrument 0a13dd1a9c053948311df30953557ddb6b341120 spelling packed
-Architecture score: dS +0.0006 IMPROVES
-  coord_footprint 2483 -> 2482  +0.0006
-== instrument 0a13dd1a9c053948311df30953557ddb6b341120 spelling plain
-Architecture score: dS +0.0029 IMPROVES
-  coord_footprint 2483 -> 2478  +0.0029

@@ -1,2 +1,22 @@
-eb63c2023b892b53f29e3b131511fec474aebe2c
+origin/main=7c274274830ce553b8faec9574837de91a2be234
+LEDGER-MERGE: resolved tests/closures.json
+b7b119358120a284bc3922b979e7d730d39550ce
 rc=0
+merge-base=499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+files touching VERSION/manifest/notes/structure/claims/budgets:
+(none above = untouched)
+dev/programme/delivery/3218.md
+tests/arch_score.py
+tests/closures.json
+tools/audit/archscore/ABOUT.md
+tools/audit/archscore/calibration/corpus_vectors.json
+tools/audit/archscore/calibration/expected.json
+tools/audit/archscore/metrics/footprint.py
+tools/audit/archscore/planted/redteam/48_footprint_packed_unpack.py
+tools/audit/archscore/planted/redteam/49_footprint_packed_nested.py
+tools/audit/archscore/planted/redteam/50_footprint_packed_for_literal.py
+tools/audit/archscore/planted/redteam/51_footprint_packed_walrus.py
+tools/audit/archscore/planted/redteam/52_footprint_packed_set_display.py
+tools/audit/archscore/planted/redteam/53_footprint_ifexp_chain.py
+tools/audit/archscore/planted/redteam/rt_lib.py
+tools/audit/archscore/vector.py
