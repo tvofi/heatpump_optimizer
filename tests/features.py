@@ -42906,6 +42906,219 @@ R.check(
     repr(_cal_tiny.months),
 )
 
+# R10-SAV-COMFORT part 3 (owner ruling, 2026-11-04): the month row settles the
+# house's stored heat, and publishes the comfort shortfall beside the saving.
+# Each interval books the plan's stored-heat change (kW_th), its steady COP and
+# the steady thermostat's kW_e at the target less at the delivered room; the
+# row converts the stored heat once, at the month's mean COP, and prices it
+# once, at its own metered kWh price, so a store charged in a warm or cheap hour
+# and drawn in a cold or dear one keeps its timing saving.
+_st = _SavLedger()
+for _hh, _sp in enumerate((1.0, 2.0, 3.0, 4.0)):
+    _st.add_savings_settlement(
+        _SavDT(2026, 1, 3, _hh), baseline_kw=2.0, actual_kwh=1.5, spot=_sp, dt=1.0,
+        stored_kw_th=-1.0, steady_cop=2.0, comfort_kw=0.25,
+    )
+_st_row = _st.savings_months(_SavDT(2026, 2, 10))[0]
+R.check(
+    "R10-SAV-COMFORT: the month row settles the plan's stored-heat change at the row's metered kWh price",
+    _st_row.get("stored_heat_sek") == -5.0 and _st_row["baseline_sek"] == 15.0
+    and _st_row["actual_sek"] == 15.0 and _st_row["savings_sek"] == 0.0,
+    repr(_st_row),
+)
+R.check(
+    "R10-SAV-COMFORT: the comfort shortfall is published beside the saving, not netted out of it",
+    _st_row.get("comfort_sek") == 2.5
+    and _st_row["savings_sek"] == round(_st_row["baseline_sek"] - _st_row["actual_sek"], 2),
+    repr(_st_row),
+)
+_st_t = _SavLedger()
+for _hh, (_sp, _dk) in enumerate(((1.0, 1.0), (4.0, -1.0))):
+    _st_t.add_savings_settlement(
+        _SavDT(2026, 1, 3, _hh), baseline_kw=1.0, actual_kwh=1.0 + _dk, spot=_sp, dt=1.0,
+        stored_kw_th=4.0 * _dk, steady_cop=4.0 if _dk > 0 else 2.0,
+    )
+_st_t_row = _st_t.savings_months(_SavDT(2026, 2, 10))[0]
+R.check(
+    "R10-SAV-COMFORT: a store charged cheap at COP 4 and drawn dear at COP 2 settles at one COP and one price, so its timing saving stays",
+    _st_t_row.get("stored_heat_sek") == 0.0 and _st_t_row["savings_sek"] == 3.0,
+    repr(_st_t_row),
+)
+_st_null = _SavLedger()
+_st_null.add_savings_settlement(_SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.5, spot=2.0, dt=1.0)
+R.check(
+    "R10-SAV-COMFORT null control: an interval without either reading settles nothing",
+    _st_null.savings_months(_SavDT(2026, 2, 10))[0]
+    == {"month": "2026-01", "baseline_sek": 4.0, "actual_sek": 3.0, "savings_sek": 1.0,
+        "savings_pct": 25.0, "estimated": False, "meter_calibration": None,
+        "stored_heat_sek": 0.0, "comfort_sek": 0.0},
+    repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
+)
+_st_z = _SavLedger()
+_st_z.add_savings_settlement(
+    _SavDT(2026, 1, 3), baseline_kw=2.0, actual_kwh=1.0, spot=2.0, dt=1.0,
+    stored_kw_th=-1.0, steady_cop=0.0,
+)
+try:
+    _st_z_sek = _st_z.savings_months(_SavDT(2026, 2, 10))[0].get("stored_heat_sek")
+except Exception as _st_exc:  # a ledger that divides by the raw COP must fail this check, by name
+    _st_z_sek = repr(_st_exc)
+R.check(
+    "R10-SAV-COMFORT: a step COP of zero converts the stored heat at the 1e-3 floor, not by a division by zero",
+    _st_z_sek == -2000.0,
+    repr(_st_z_sek),
+)
+# The plan carries both per step, and the current action hands the step's to
+# the settlement: the stored change telescopes to the store's change over the
+# horizon, uncapped, and each step carries its steady COP.
+from profiles import DT as _st_DT, house as _st_house, prices as _st_prices
+from profiles import solve_inputs as _st_inputs, weather as _st_weather
+from heatpump_optimizer.optimizer import (
+    HeatPumpOptimizer as _StOpt, OptimizationConfig as _StCfg,
+)
+from heatpump_optimizer.thermal_model import (
+    ThermalModel as _StModel, ThermalParameters as _StParams, ThermalState as _StState,
+)
+_st_cfg = _st_house(two_zone=False, dhw=False)
+_st_par = _StParams.from_config(_st_cfg)
+_st_par.dhw_enabled = False
+_st_model = _StModel(_st_par)
+_st_opt = _StOpt(_st_model, _StCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=_st_cfg["target_temperature"],
+    min_temp=_st_cfg["min_temperature"], max_temp=_st_cfg["max_temperature"],
+))
+_st_t0 = _SavDT(2026, 1, 15)
+_st_out, _st_wind, _st_rain, _st_sol = _st_weather("winter_cold", _st_t0)
+_st_plan = _st_opt.optimize(inputs=_st_inputs(
+    initial_state=_StState(
+        room_temperature=19.0, slab_temperature=20.0, outdoor_temperature=float(_st_out[0]),
+        upper_floor_temperature=19.0, lower_floor_temperature=19.0, dhw_temperature=52.0,
+        dhw_hours_since_legionella=20.0, buffer_tank_temperature=40.0,
+    ),
+    prices=_st_prices("flat", _st_t0), outdoor_temps=_st_out, wind_speeds=_st_wind,
+    precipitation=_st_rain, solar_radiation=_st_sol, start_time=_st_t0,
+))
+_st_n = len(_st_plan.power_schedule)
+_st_sched = getattr(_st_plan, "settlement_schedule", [])
+_st_stored = [step["stored_kw_th"] for step in _st_sched]
+_st_comfort = [step["comfort_kw"] for step in _st_sched]
+_st_th = sum(v * _st_DT for v in _st_stored)
+_st_want = _st_par.room_thermal_mass * (
+    _st_plan.room_temp_trajectory[-1] - _st_plan.room_temp_trajectory[0]
+) + _st_par.slab_thermal_mass * (
+    _st_plan.slab_temp_trajectory[-1] - _st_plan.slab_temp_trajectory[0]
+)
+_st_act = _st_opt.get_current_action(_st_plan, _st_t0) if _st_n else {}
+R.check(
+    "R10-SAV-COMFORT: the plan's per-step stored-heat change telescopes to the store's, uncapped",
+    len(_st_stored) == _st_n == len(_st_comfort) and abs(_st_th - _st_want) < 1e-6,
+    f"{len(_st_stored)} {len(_st_comfort)} {_st_n} {_st_th} {_st_want}",
+)
+R.check(
+    "R10-SAV-COMFORT: a house started 2 K under target books a comfort shortfall, and the action carries both",
+    len(_st_comfort) == _st_n and _st_comfort[0] > 0.0
+    and _st_act.get("stored_kw_th") == _st_stored[0]
+    and _st_act.get("comfort_kw") == _st_comfort[0]
+    and _st_act.get("steady_cop") == _st_model.compute_cop(float(_st_plan.outdoor_temps[0])),
+    f"{_st_comfort[:2]} {_st_act}",
+)
+
+# R10-SAV-COMFORT: the settlement schedule's wiring, driven directly on
+# controlled trajectories. A fake stored-heat function weights every state
+# field differently, so a state field the schedule fails to set (or sets when
+# it must not) moves ``stored_kw_th`` by a known amount.
+import types as _sw_types
+from heatpump_optimizer.optimizer import _settlement_schedule as _sw_sched
+from heatpump_optimizer.thermal_model import ThermalState as _SwState
+
+
+def _sw_run(two_zone, buf, base, cop=2.0, n=3, outdoor=0.0):
+    params = _sw_types.SimpleNamespace(
+        two_zone_enabled=two_zone, heat_loss_coefficient=0.2, internal_gains=0.5,
+        lower_floor_heat_loss_learned=0.1, upper_floor_area_ratio=0.5,
+    )
+    model = _sw_types.SimpleNamespace(
+        params=params, compute_cop=lambda out, humidity=None: cop,
+        effective_heat_loss_coefficient=lambda u, w=0.0, p=0.0: u,
+        compute_solar_gain=lambda s: 0.0, solar_gain_per_zone=lambda s: (0.0, 0.0),
+    )
+    opt = _sw_types.SimpleNamespace(
+        model=model, config=_sw_types.SimpleNamespace(target_temp=21.0),
+        _stored_thermal_energy=lambda s: (
+            s.room_temperature + 10 * s.slab_temperature + 100 * s.upper_floor_temperature
+            + 1000 * s.lower_floor_temperature + 10000 * s.buffer_tank_temperature
+        ),
+    )
+    h = _sw_types.SimpleNamespace(
+        n_steps=n, humidity=None, comfort_targets=None, dt=0.5,
+        initial_state=_SwState(
+            room_temperature=1.0, slab_temperature=1.0, upper_floor_temperature=1.0,
+            lower_floor_temperature=1.0, buffer_tank_temperature=1.0,
+        ),
+        outdoor_temps=[outdoor] * n, wind_speeds=[0.0] * n, precipitation=[0.0] * n,
+        solar_radiation=[0.0] * n,
+    )
+    ramp = lambda k: [float(k * i * i + 20) for i in range(n + 1)]
+    traj = (ramp(1), ramp(2), ramp(3), ramp(4))
+    try:
+        return _sw_sched(opt, h, traj, None if buf is None else ramp(5)[: buf], base)
+    except Exception as exc:  # a mutant that crashes must fail a named check
+        return repr(exc)
+
+
+def _sw_want(two_zone, buffered, n=3):
+    sq = lambda k: [float(k * i * i + 20) for i in range(n + 1)]
+    r, s, u, lo, b = sq(1), sq(2), sq(3), sq(4), sq(5)
+    out = []
+    for i in range(n):
+        d = (r[i + 1] - r[i]) + 10 * (s[i + 1] - s[i])
+        if two_zone:
+            d += 100 * (u[i + 1] - u[i]) + 1000 * (lo[i + 1] - lo[i])
+        if buffered:
+            d += 10000 * (b[i + 1] - b[i])
+        out.append(d / 0.5)
+    return out
+
+
+def _sw_stored(res):
+    return [x["stored_kw_th"] for x in res] if isinstance(res, list) else res
+
+
+for _tz in (False, True):
+    for _bf in (None, 4, 3, 2):  # absent, valid (> n_steps), exactly n_steps, shorter
+        _res = _sw_run(_tz, _bf, [1.0, 2.0])
+        R.check(
+            f"R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone={_tz}, buffer length {_bf})",
+            _sw_stored(_res) == _sw_want(_tz, _bf == 4),
+            f"{_sw_stored(_res)} want {_sw_want(_tz, _bf == 4)}",
+        )
+_sw_base = _sw_run(False, None, [1.0, 2.0])
+R.check(
+    "R10-SAV-COMFORT: the baseline is booked on the steps it covers and no further",
+    isinstance(_sw_base, list) and [x.get("baseline_kw") for x in _sw_base] == [1.0, 2.0, None]
+    and "baseline_kw" not in _sw_base[2] and "baseline_kw" not in _sw_run(False, None, None)[0],
+    repr(_sw_base),
+)
+# Demand is 0.2 K-to-kW with 0.5 kW of gains; the room ramps 20, 21, 24, 29 so
+# the delivered midpoints are 20.5, 22.5, 26.5 against a 21 target. The
+# shortfall is the thermostat's heat demand at the target less at the delivered
+# room, each floored at zero (a house warmer than it needs buys no heat),
+# over the step's COP of 2.
+for _out, _want_c in ((10.0, [0.05, -0.15, -0.55]), (20.2, [0.0, 0.0, -0.38])):
+    _got_c = [x["comfort_kw"] for x in _sw_run(False, None, None, outdoor=_out)]
+    R.check(
+        f"R10-SAV-COMFORT: the comfort shortfall floors each demand at zero (outdoor {_out})",
+        len(_got_c) == 3 and all(abs(g - w) < 1e-9 for g, w in zip(_got_c, _want_c)),
+        f"{_got_c} want {_want_c}",
+    )
+_sw_floor = _sw_run(False, None, None, cop=0.0)
+R.check(
+    "R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept",
+    isinstance(_sw_floor, list) and all(x["steady_cop"] == 1e-3 for x in _sw_floor)
+    and all(x["steady_cop"] == 2.0 for x in _sw_run(False, None, None)),
+    repr(_sw_floor),
+)
+
 # Item 1: the settlement books the plan's thermostat baseline at the step
 # covering the interval. A thermostat that ran all along does not care where
 # the optimiser left the house, so step 0 must not depend on the plan's start
@@ -43437,9 +43650,14 @@ _sv._current_action = {"power": 1.0, "dhw_power": 0.5, "baseline_kw": 3.25}
 _pend_src = _SavPath(
     "custom_components/heatpump_optimizer/coordinator.py"
 ).read_text()
+from heatpump_optimizer.ledger import SETTLEMENT_KEYS as _SAV_KEYS
+# R10-SAV-COMFORT: the copy is the spread of the ledger's SETTLEMENT_KEYS,
+# which names baseline_kw beside the step's stored-heat and comfort readings.
 R.check(
-    "interval-start pending copies baseline_kw from the current action",
-    '"baseline_kw": self._current_action.get("baseline_kw")' in _pend_src,
+    "interval-start pending copies baseline_kw and every settlement key from the current action",
+    "**{k: self._current_action.get(k) for k in SETTLEMENT_KEYS}" in _pend_src
+    and set(_SAV_KEYS) == {"baseline_kw", "stored_kw_th", "comfort_kw", "steady_cop"},
+    repr(_SAV_KEYS),
 )
 
 R.section("3L-G8 — wood fuel math")
