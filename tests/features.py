@@ -13762,7 +13762,7 @@ _fr_found = set()
 for _fr_p in sorted(_FrPath("custom_components/heatpump_optimizer").glob("*.py")):
     for _fr_n in _fr_ast.walk(_fr_ast.parse(_fr_p.read_text())):
         if (isinstance(_fr_n, _fr_ast.Call) and isinstance(_fr_n.func, _fr_ast.Name)
-                and _fr_n.func.id == "QuarantiningStore"):
+                and _fr_n.func.id in ("QuarantiningStore", "LedgerStore")):
             for _fr_arg in _fr_n.args:
                 if isinstance(_fr_arg, _fr_ast.JoinedStr):
                     _fr_found.add(_fr_arg.values[-1].value.lstrip("_"))
@@ -14533,12 +14533,8 @@ R.check(
 )
 
 
-# The savings reference backs its electric demand off by the same wood share,
-# and only where the layout models the wood tank: a single-tank state that
-# carries a wood reading is the thermostat it would be without one. The HP
-# tank starts at 25 C, below the curve: behind a valve the reference coasts
-# on a tank above the curve before it buys anything (R10-BUFFER-STORE), so
-# the 45 C tank of the states above would leave both arms at zero.
+# The savings reference has no wood (owner ruling, 2026-11-04): a wood reading
+# moves it on no layout, hot or cold, and the actual keeps wood's heat.
 def _w2t_reference(params, wood, n=16):
     _z = np.zeros(n)
     return _PvOpt(_PvModel(params), _PvOptCfg(target_temp=21.0))._compute_baseline_power(
@@ -14550,9 +14546,8 @@ _w2t_ref_cold = _w2t_reference(_w2t_params_two, 20.0)
 _w2t_ref_off = _w2t_reference(_w2t_params_off, 80.0)
 _w2t_ref_off_none = _w2t_reference(_w2t_params_off, None)
 R.check(
-    "the savings reference backs off by the wood share on the two-tank layout, "
-    "and a wood reading on any other layout moves it not at all",
-    float(np.sum(_w2t_ref_hot)) < float(np.sum(_w2t_ref_cold)) - 1.0
+    "the savings reference has no wood: a wood reading moves it on no layout",
+    np.array_equal(_w2t_ref_hot, _w2t_ref_cold)
     and np.array_equal(_w2t_ref_off, _w2t_ref_off_none),
     f"two-tank hot {np.sum(_w2t_ref_hot):.2f} vs cold {np.sum(_w2t_ref_cold):.2f} kW-steps; "
     f"single-tank with a reading {np.sum(_w2t_ref_off):.2f} vs without "
@@ -34736,14 +34731,12 @@ _de_coil_none, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
     _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
-    "the refill coil cheapens the always-hot baseline only when wood is known",
-    # 0.1002 / 0.2059 before R8-P3 (#1530): this valve config prices the tank
-    # at the buffer's Carnot lift now, a lower COP, so both figures rise.
-    abs(_de_coil_70[0] - 0.11854480778140909) < 1e-12
+    "the reference's hot water has no refill coil: a known wood tank moves nothing "
+    "(owner ruling, 2026-11-04)",
+    _de_coil_70[0] == _de_coil_none[0]
     and abs(_de_coil_none[0] - 0.24359207337361277) < 1e-12,
-    f"coil+70 {_de_coil_70[0]} coil+None {_de_coil_none[0]} — equal values "
-    f"mean the coil reduction was dropped; a 70 C tank that still prices "
-    f"the full electric draw invents savings",
+    f"coil+70 {_de_coil_70[0]} coil+None {_de_coil_none[0]} — a lower coil+70 means "
+    f"the reference owns the coil again, and the coil's heat leaves the saving",
 )
 
 _de_coil_arg, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
@@ -34751,11 +34744,9 @@ _de_coil_arg, _, _, _ = _dhw_planner(_de_coil_opt)._baseline_dhw_economics(
     _de_out, 3, 40.0, _de_price, _de_bp, _de_sp, _de_dh,
 )
 R.check(
-    "standby uses the passed setpoint; the coil still uses the configured one",
-    abs(_de_coil_arg[0] - 0.07429802182888166) < 1e-12,  # 0.0699 before R8-P3
-    f"{_de_coil_arg[0]} — 0.119 means standby ignored the 40 C argument; "
-    f"a different third figure means the coil used the argument instead of "
-    f"params.dhw_setpoint, which is the inlet identity the draw was built on",
+    "standby uses the passed setpoint",
+    abs(_de_coil_arg[0] - 0.17257582848084152) < 1e-12,
+    f"{_de_coil_arg[0]} — 0.2436 means standby ignored the 40 C argument",
 )
 
 
@@ -42365,10 +42356,11 @@ R.check(
     repr(_sav_factor(_jan31)),
 )
 R.check(
-    "pct is baseline-relative and clipped",
+    "pct is baseline-relative and unclipped: the row's percent is its own two amounts' ratio",
     abs(_sav_pct(100.0, 60.0) - 60.0) < 1e-12
-    and abs(_sav_pct(100.0, 200.0) - 100.0) < 1e-12
-    and abs(_sav_pct(100.0, -200.0) - (-100.0)) < 1e-12,
+    and abs(_sav_pct(100.0, 200.0) - 200.0) < 1e-12
+    and abs(_sav_pct(151.85, -909.91) - (-909.91 / 151.85 * 100.0)) < 1e-9,
+    repr(_sav_pct(151.85, -909.91)),
 )
 R.check(
     "pct is omitted when baseline_sek <= 0.01, not published as 0.0",
@@ -42565,6 +42557,268 @@ R.check(
     abs(_neg_row["savings_sek"] - (-0.25 * 24) * 672.0 / 24.0) < 1e-9
     and abs(_neg_row["savings_pct"] + 100.0 / 3.0) < 1e-9,
     repr(_neg_row),
+)
+# R10-HOTFIX-SAV-ESTIMATE: a month's reference basis. Totals cannot be rebooked,
+# so a month booked against a retired reference keeps its columns and states no
+# saving; a fresh month is stamped at its first booking.
+import asyncio as _sb_asyncio
+import copy as _sb_copy
+
+from heatpump_optimizer.const import LEDGER_STORE_VERSION as _SB_VERSION
+from heatpump_optimizer.ledger import (
+    OLD_REFERENCE_BASIS as _SB_OLD,
+    REFERENCE_BASIS as _SB_NOW,
+    REFERENCE_BASIS_META as _SB_META,
+)
+from heatpump_optimizer.store import LedgerStore as _SbStore
+from homeassistant.helpers import storage as _sb_storage
+
+_sb_led = _SavLedger()
+_sb_t = _SavDT(2026, 2, 9, 3, 0)
+_sb_led.observe_spot_and_settle_savings(_sb_t, 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_led.observe_spot_and_settle_savings(_sb_t, 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+_sb_row = _sb_led.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+_sb_meta = _sb_led.months["2026-02"]["meta"][_SB_META]
+R.check(
+    "a month's first savings booking stamps the reference in force, once",
+    _sb_meta == {"sum": float(_SB_NOW), "count": 1} and _sb_row["old_basis"] is False
+    and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
+    repr((_sb_meta, _sb_row)),
+)
+_sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
+del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
+_sb_lines = _sb_copy.deepcopy(_sb_v1["ledger"]["months"]["2026-02"]["lines"])
+_sb_run = _sb_asyncio.run
+_sb_run(_sb_storage.Store(None, 1, "sb_ledger").async_save(_sb_v1))
+_sb_loaded = _sb_run(_SbStore(None, _SB_VERSION, "sb_ledger").async_load())
+_sb_run(_SbStore(None, _SB_VERSION, "sb_ledger").async_remove())
+_sb_old = _SavLedger.from_dict(_sb_loaded["ledger"])
+_sb_old_row = _sb_old.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+R.check(
+    "a v1 ledger migrates to v2: every month on the old basis, every line as stored",
+    _SB_VERSION == 2 and _sb_loaded["starts"] == {"kept": 1}
+    and _sb_loaded["ledger"]["months"]["2026-02"]["lines"] == _sb_lines
+    and _sb_loaded["ledger"]["months"]["2026-02"]["meta"][_SB_META]
+    == {"sum": float(_SB_OLD), "count": 1},
+    repr(_sb_loaded),
+)
+R.check(
+    "an old-basis row keeps both columns and states no saving and no percent",
+    _sb_old_row["old_basis"] is True and _sb_old_row["savings_sek"] is None
+    and _sb_old_row["savings_pct"] is None
+    and _sb_old_row["baseline_sek"] == _sb_row["baseline_sek"]
+    and _sb_old_row["actual_sek"] == _sb_row["actual_sek"],
+    repr(_sb_old_row),
+)
+_sb_old.observe_spot_and_settle_savings(_SavDT(2026, 2, 9, 5, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0)
+R.check(
+    "an old-basis month stays old when it books on: its total is mixed",
+    _sb_old.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True
+    and _sb_old.months["2026-02"]["meta"][_SB_META]["sum"] == float(_SB_OLD),
+    repr(_sb_old.months["2026-02"]["meta"]),
+)
+_sb_bare = _SavLedger()
+_sb_bare.add(_sb_t, "savings_baseline", kwh=1.0, sek=1.0)
+R.check(
+    "a month with savings lines and no stamp reads as the old basis",
+    _sb_bare.savings_months(_SavDT(2026, 3, 2, 0, 0))[0]["old_basis"] is True,
+    repr(_sb_bare.months),
+)
+# R10-HOTFIX-SAV-ESTIMATE: the settlement books step 0 of a plan re-made every
+# interval, so behind a valve the first step must not be the stores' transient.
+# At one outdoor the steady demand is flat, so a sound step 0 IS the horizon mean;
+# spread across starts is no acceptance (all-zero first steps have spread 0).
+def _sb_first_steps(two_zone, wood_probe, valve="manual"):
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _O, OptimizationConfig as _C
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    cfg = {"mixing_valve_mode": valve, "mixing_valve_target": 21.0, "buffer_tank_volume": 750.0,
+           "heat_pump_max_power": 4.0, "buffer_max_temperature": 56.0,
+           "two_zone_mode": "on" if two_zone else "off"}
+    if wood_probe:
+        cfg.update(wood_furnace_enabled=True, wood_tank_volume=750.0, wood_tank_top_entity="sensor.w")
+    model = _M(_P.from_config(_h(two_zone=two_zone, dhw=False, **cfg)))
+    opt = _O(model, _C(horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    out, zero = _np.full(96, -5.0), _np.zeros(96)
+    weather = _W(outdoor_temps=out, wind_speeds=zero, precipitation=zero, solar_radiation=zero)
+    return {
+        (buf, wood): opt._compute_baseline_power(weather, _S(
+            room_temperature=20.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+            upper_floor_temperature=20.0, lower_floor_temperature=20.0,
+            buffer_tank_temperature=buf, wood_tank_temperature=wood,
+        ), 0.25)[0]
+        for buf in (20.0, 27.3, 40.0) for wood in ((5.0, 28.0) if wood_probe else (None,))
+    }
+
+
+for _sb_name, _sb_args in (
+    ("a wood tank, cold or warm", (True, True)),
+    ("two zones and no wood tank", (True, False)),
+    ("one zone and no wood tank", (False, False)),
+):
+    _sb_arms = _sb_first_steps(*_sb_args)
+    _sb_ratios = {k: float(v[0] / v.mean()) if v.mean() > 0 else 0.0 for k, v in _sb_arms.items()}
+    R.check(
+        f"behind a valve with {_sb_name}, the thermostat's first step is its horizon mean, not 0 or an overshoot",
+        all(abs(r - 1.0) < 1e-9 for r in _sb_ratios.values()),
+        repr(_sb_ratios),
+    )
+    R.check(
+        f"behind a valve with {_sb_name}, a positive reference with no zero step",
+        all(v.min() > 0.0 for v in _sb_arms.values()),
+        repr({k: float(v.min()) for k, v in _sb_arms.items()}),
+    )
+    R.check(
+        f"behind a valve with {_sb_name}, the thermostat's horizon does not inherit the measured buffer",
+        max(abs(_sb_arms[(20.0, k[1])].mean() - v.mean()) for k, v in _sb_arms.items()) < 1e-9,
+        repr({k: float(v.mean()) for k, v in _sb_arms.items()}),
+    )
+# The owner's no-wood ruling against the 10-24 calibration: a meter under the
+# plan on a wood house is heat wood delivered, so it must count (triage P387).
+def _sb_meter_row(meter_over_plan, wood):
+    led = _SavLedger()
+    for hour in range(24):
+        led.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": 2.0, "power": 1.0}, meter_over_plan, 1.0
+        )
+    return led.savings_months(_SavDT(2026, 3, 2, 0, 0), wood_configured=wood)[0]
+
+
+_sb_wood_pct = {f: _sb_meter_row(f, True)["savings_pct"] for f in (1.0, 0.5, 0.25)}
+_sb_plain_pct = {f: _sb_meter_row(f, False)["savings_pct"] for f in (1.0, 0.5, 0.25)}
+R.check(
+    "with wood configured a meter under the plan earns its saving: the calibration does not cancel it",
+    _sb_wood_pct == {1.0: 50.0, 0.5: 75.0, 0.25: 87.5},
+    repr(_sb_wood_pct),
+)
+R.check(
+    "with no wood the calibration stands as specified: the meter cancels at every ratio",
+    _sb_plain_pct == {1.0: 50.0, 0.5: 50.0, 0.25: 50.0},
+    repr(_sb_plain_pct),
+)
+_sb_up = _sb_meter_row(1.5, True)
+R.check(
+    "with wood configured a model that under-reads the meter is still corrected, and the row publishes what it applied",
+    _sb_up["meter_calibration"] == 1.5 and _sb_up["baseline_sek"] == 72.0
+    and _sb_meter_row(0.5, True)["meter_calibration"] == 1.0,
+    repr(_sb_up),
+)
+from heatpump_optimizer.notifier import _monthly_receipt as _sb_receipt
+
+
+def _sb_event(row, wood_on):
+    data = {"insight": {"monthly_report": {"month": "2026-09", "total_sek": 1.0}},
+            "savings_months": [row], "wood_fuel": {"show_whatif": wood_on}, "currency": "SEK"}
+    return _sb_receipt(data)["receipt"].data
+
+
+_sb_ev_old = _sb_event({"month": "2026-09", "savings_sek": None, "savings_pct": None, "old_basis": True}, True)
+_sb_ev_new = _sb_event({"month": "2026-09", "savings_sek": -600.0, "savings_pct": -300.0, "old_basis": False}, False)
+R.check(
+    "the receipt event carries what the card states: no saving on the old basis, the percent unclipped, wood stated",
+    _sb_ev_old["saving_sek"] is None and _sb_ev_old["saving_pct"] is None
+    and _sb_ev_old["saving_old_basis"] is True and _sb_ev_old["saving_includes_wood"] is True
+    and _sb_ev_new["saving_pct"] == -300.0 and _sb_ev_new["saving_old_basis"] is False
+    and _sb_ev_new["saving_includes_wood"] is False,
+    repr((_sb_ev_old, _sb_ev_new)),
+)
+_sb_plain = _sb_first_steps(True, False)[(20.0, None)]
+_sb_wood = _sb_first_steps(True, True)
+_sb_gap = max(abs(v - _sb_plain).max() for v in _sb_wood.values())
+R.check(
+    "the reference has no wood: a wood tank, cold or warm, reads the plain valved house's kW",
+    _sb_gap < 1e-9,
+    repr(_sb_gap),
+)
+# A thermostat that wants no heat buys none. Its demand goes negative on a warm
+# house, and with no floor the reference sells heat back to itself: a plain
+# house's summer plan read 56.99 % against the 5.88 % of a floored one.
+def _sb_warm_reference():
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _O, OptimizationConfig as _C
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    opt = _O(_M(_P.from_config(_h(dhw=False))), _C(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    zero = _np.zeros(96)
+    return opt._compute_baseline_power(
+        _W(outdoor_temps=_np.full(96, 22.0), wind_speeds=zero, precipitation=zero,
+           solar_radiation=_np.full(96, 300.0)),
+        _S(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=22.0,
+           upper_floor_temperature=21.0, lower_floor_temperature=21.0), 0.25)
+
+
+_sb_warm_power, _sb_warm_end = _sb_warm_reference()
+R.check(
+    "a thermostat on a warm plain house buys no heat and sells none: not one reference step is negative",
+    float(_sb_warm_power.min()) == 0.0 and float(_sb_warm_power.max()) == 0.0
+    and _sb_warm_end.room_temperature > 21.0,
+    repr((float(_sb_warm_power.min()), float(_sb_warm_power.max()), _sb_warm_end.room_temperature)),
+)
+# The solve's starts anchor on what the plan's house buys, and that house has its
+# wood: a tank that covers the reference's kWh seeds nothing, a house with none
+# seeds them all, and the reference itself is not scaled.
+def _sb_seed_share():
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import _wood_covered_share as _share
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S,
+    )
+    valve = dict(mixing_valve_mode="manual", buffer_tank_volume=750.0, two_zone_mode="on")
+    wood = _M(_P.from_config(_h(two_zone=True, dhw=False, wood_furnace_enabled=True, wood_tank_volume=500.0,
+                                wood_tank_top_entity="sensor.w", **valve)))
+    plain = _M(_P.from_config(_h(two_zone=True, dhw=False, **valve)))
+    full_kwh = wood.params.wood_tank_thermal_mass * 34.0 / wood.params.cop_nominal_floored
+    hot = _S(wood_tank_temperature=55.0)
+    return (_share(wood, hot, full_kwh / 2.0, 21.0), _share(wood, hot, full_kwh * 2.0, 21.0),
+            _share(wood, _S(wood_tank_temperature=15.0), full_kwh, 21.0),
+            _share(wood, _S(wood_tank_temperature=None), full_kwh, 21.0),
+            _share(plain, hot, full_kwh, 21.0), _share(wood, hot, 0.0, 21.0))
+
+
+_sb_seed = _sb_seed_share()
+R.check(
+    "a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers: all, half, "
+    "none when cold, none unread, none with no wood tank, none of nothing",
+    _sb_seed[0] == 1.0 and abs(_sb_seed[1] - 0.5) < 1e-12 and _sb_seed[2:] == (0.0, 0.0, 0.0, 0.0),
+    repr(_sb_seed),
+)
+# The reference's wood tank is its 0 C stand-in, so a start gap against it reads
+# wood's measured heat as the plan's borrowed heat and debits it: the wood side
+# is shared at the start, as at the end. The buffer's gap is the null control:
+# it is a store the settlement does value, so it must still move the figure.
+def _sb_start_gap(wood, buffer):
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _O, OptimizationConfig as _C
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    opt = _O(_M(_P.from_config(_h(
+        two_zone=True, dhw=False, mixing_valve_mode="manual", mixing_valve_target=21.0,
+        buffer_tank_volume=750.0, buffer_max_temperature=56.0, wood_furnace_enabled=True,
+        wood_tank_volume=750.0, wood_tank_top_entity="sensor.w",
+    ))), _C(horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    out, zero, price = _np.full(96, -5.0), _np.zeros(96), _np.full(96, 1.0)
+    return opt._start_gap_cost(
+        _S(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-5.0,
+           upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+           buffer_tank_temperature=buffer, wood_tank_temperature=wood),
+        _W(outdoor_temps=out, wind_speeds=zero, precipitation=zero, solar_radiation=zero),
+        None, price, out, opt._settlement_caps(out), None, 500.0, 0.0,
+    )
+
+
+_sb_gap_hot, _sb_gap_cold, _sb_gap_buf = _sb_start_gap(55.0, 32.0), _sb_start_gap(20.0, 32.0), _sb_start_gap(55.0, 50.0)
+R.check(
+    "the start gap settles no wood: a measured wood tank, hot or cold, is the plan's own and debits nothing",
+    _sb_gap_hot == _sb_gap_cold and abs(_sb_gap_buf - _sb_gap_hot) > 1.0,
+    repr((_sb_gap_hot, _sb_gap_cold, _sb_gap_buf)),
 )
 # An interval of no length settled no hours, so the stored coverage (the
 # payload the ledger store saves) takes no sample from it, as it takes none
@@ -63287,33 +63541,50 @@ R.check(
     _f23_opt.model.params.dhw_coil_active and max(_f23_gaps.values()) <= 1e-9,
     f"end gaps (K): {({k: round(v, 6) for k, v in _f23_gaps.items()})}",
 )
-# The reference's no-coil twin: the same call, the coil's draws withheld.
+# The reference has no coil (owner ruling, 2026-11-04): switching the plan's coil
+# off leaves its simulated end as it was, and its settled end shares the plan's wood.
 _f23_ba, _f23_bk = _f23_seen["base_call"]
-_f23_bk_full = dict(_f23_bk)
-_f23_bk.pop("coil_draws", None)
-_, _f23_bend_nocoil = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk)
-R.check(
-    "R9-F2.3 D2-s2-03: the thermostat reference's wood tank ends lower than "
-    "its no-coil twin -- it owns the coil the plan owns",
-    float(_f23_bend.wood_tank_temperature)
-    < float(_f23_bend_nocoil.wood_tank_temperature) - 1e-6,
-    f"reference wood end {float(_f23_bend.wood_tank_temperature):.6f} vs "
-    f"no-coil {float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
-)
-# ... and only while the coil is on: switched off, the draws change nothing.
+_, _f23_bend_on = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk)
 _f23_opt.model.params.dhw_wood_coil_enabled = False
 try:
-    _, _f23_bend_off = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk_full)
+    _, _f23_bend_off = _f23_real_base(_f23_opt, *_f23_ba, **_f23_bk)
 finally:
     _f23_opt.model.params.dhw_wood_coil_enabled = True
 R.check(
-    "R9-F2.3 D2-s2-03: with the coil switched off, the reference's draws "
-    "leave its wood tank as its no-coil twin's",
-    np.any(np.asarray(_f23_bk_full.get("coil_draws", [])) > 0)
-    and float(_f23_bend_off.wood_tank_temperature)
-    == float(_f23_bend_nocoil.wood_tank_temperature),
-    f"off {float(_f23_bend_off.wood_tank_temperature):.6f} vs no-coil "
-    f"{float(_f23_bend_nocoil.wood_tank_temperature):.6f}",
+    "the thermostat reference owns no coil: its wood stand-in ends the same with the coil on or off",
+    float(_f23_bend_on.wood_tank_temperature) == float(_f23_bend_off.wood_tank_temperature)
+    and float(_f23_bend_on.wood_tank_temperature) < float(_f23_oend.wood_tank_temperature),
+    f"on {float(_f23_bend_on.wood_tank_temperature):.6f} off "
+    f"{float(_f23_bend_off.wood_tank_temperature):.6f} plan {float(_f23_oend.wood_tank_temperature):.6f}",
+)
+R.check(
+    "the settle-up's reference end carries the plan's wood side: heat wood left is no store to settle",
+    float(_f23_bend.wood_tank_temperature) == float(_f23_oend.wood_tank_temperature),
+    f"reference {float(_f23_bend.wood_tank_temperature):.6f} plan "
+    f"{float(_f23_oend.wood_tank_temperature):.6f}",
+)
+# The space-only path settles through its own call, and a plan's deferred cost
+# reads the wood store directly: a stand-in end there debits the plan its firewood.
+from golden import SCENARIOS as _f23_scenarios, capture as _f23_capture  # noqa: E402
+
+_f23_space_ends = []
+
+
+def _f23_space_def(self, *a, **k):
+    _f23_space_ends.append((a[0].wood_tank_temperature, a[1].wood_tank_temperature))
+    return _f23_real_def(self, *a, **k)
+
+
+_F23Opt._deferred_energy_cost = _f23_space_def
+try:
+    _f23_capture("wood_two_tank", _f23_scenarios["wood_two_tank"])
+finally:
+    _F23Opt._deferred_energy_cost = _f23_real_def
+# The start gap's call shares it as well, so every call reads the two equal.
+R.check(
+    "the space-only settle-up's reference end carries the plan's wood side too",
+    bool(_f23_space_ends) and all(ref == plan for ref, plan in _f23_space_ends),
+    repr(_f23_space_ends[:3]),
 )
 
 # D7-s1-71 / D5-s2-03: the cold-water inlet default is defined once. The

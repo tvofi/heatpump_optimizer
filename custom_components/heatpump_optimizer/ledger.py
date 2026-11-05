@@ -65,6 +65,18 @@ SPOT_PRICE_META = "spot_price"
 #: 2026-10-24): the baseline runs at the power levels the pump recorded.
 SAVINGS_PLAN_LINE = "savings_plan"
 
+#: Which reference a month's savings lines were booked against. Stamped on the
+#: month's first booking; a month's totals cannot be rebooked, so a row whose
+#: stamp is not ``REFERENCE_BASIS`` keeps its two columns and states no saving.
+REFERENCE_BASIS_META = "reference_basis"
+
+#: The reference in force: a heat-pump thermostat with no wood tank and no fire,
+#: its horizon spread by steady demand. Bump when the booked reference changes.
+REFERENCE_BASIS = 1
+
+#: What ``migrate_ledger_v1`` stamps: every month a v1 store holds predates it.
+OLD_REFERENCE_BASIS = 0
+
 #: Below this many modelled kWh a month the plan commanded almost nothing:
 #: a meter-over-model ratio over it measures the meter's own residue, not
 #: the plan's power levels, so the thermostat stays at modelled power.
@@ -115,14 +127,30 @@ def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
 
 
 def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
-    """Same clip as optimizer._savings_percentage, but None when the baseline is ~0.
+    """The saving over the baseline, in percent; None when the baseline is ~0.
 
-    The optimizer helper returns 0.0 in that case; the published row must omit
-    the percentage instead of claiming 0 %.
+    Unclipped: the row publishes both amounts beside it, so -100 beside a saving
+    six times its baseline states what the row's own figures refute. The plan's
+    clip (``optimizer._savings_percentage``) guards a near-zero baseline, which
+    this answers by omitting the figure.
     """
     if baseline_sek <= 0.01:
         return None
-    return float(np.clip(savings_sek / baseline_sek * 100.0, -100.0, 100.0))
+    return savings_sek / baseline_sek * 100.0
+
+
+def migrate_ledger_v1(stored: dict[str, Any]) -> dict[str, Any]:
+    """A v1 ledger document at v2: every month it holds is on the old basis.
+
+    Only a meta entry is added; no line, so no total, is rewritten.
+    """
+    ledger = stored.get("ledger")
+    months = ledger.get("months") if isinstance(ledger, dict) else None
+    for month in months.values() if isinstance(months, dict) else ():
+        meta = month.get("meta") if isinstance(month, dict) else None
+        if isinstance(meta, dict):
+            meta.setdefault(REFERENCE_BASIS_META, {"sum": float(OLD_REFERENCE_BASIS), "count": 1})
+    return stored
 
 
 def _leaf(raw: Any) -> float:
@@ -255,8 +283,11 @@ class MonthlyLedger:
         """
         if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
-        lines = self._month(month_key(when))["lines"]
+        month = self._month(month_key(when))
+        lines = month["lines"]
         calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
+        if "savings_baseline" not in lines:
+            month["meta"].setdefault(REFERENCE_BASIS_META, {"sum": float(REFERENCE_BASIS), "count": 1})
         base_kwh = float(baseline_kw) * float(dt)
         self.add(
             when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
@@ -382,7 +413,7 @@ class MonthlyLedger:
             return None
         return self.line(month, "savings_actual")["kwh"] / plan_kwh
 
-    def savings_months(self, now: datetime) -> list[SavingsMonth]:
+    def savings_months(self, now: datetime, *, wood_configured: bool = False) -> list[SavingsMonth]:
         """Published rows: months that booked savings_baseline, oldest first.
 
         One basis for every cell: the intervals a plan covered, priced at
@@ -392,11 +423,15 @@ class MonthlyLedger:
         are the pump's recorded ones and a model that under-reads the meter
         is not booked as a loss; ``savings_sek`` is the one less the other.
         At one flat price the saving is the volume difference alone. The
+        reference has no wood, so wood's heat counts in the saving and
+        firewood's cost nowhere (owner ruling, 2026-11-04). The
         lines no thermostat prices (capacity, wear, uncovered intervals)
         are in neither column: the receipt states them.
 
         The open month is an estimate: every figure is scaled by
-        ``coverage_factor``.
+        ``coverage_factor``. A month booked against another reference
+        (``REFERENCE_BASIS_META``) states its two columns and no saving. With
+        wood configured the calibration only raises the thermostat.
         """
         open_key = month_key(now)
         rows: list[SavingsMonth] = []
@@ -405,6 +440,11 @@ class MonthlyLedger:
             if "savings_baseline" not in lines:
                 continue
             calibration = self.meter_calibration(key)
+            if wood_configured and calibration is not None:
+                # A meter under the plan is what a fire the plan did not foresee
+                # looks like; scaling down by it would cancel wood's heat from
+                # the saving. Only an under-read model is corrected here.
+                calibration = max(1.0, calibration)
             baseline_sek = self.line(key, "savings_baseline")["sek"] * (
                 1.0 if calibration is None else calibration
             )
@@ -416,13 +456,15 @@ class MonthlyLedger:
                 actual_sek *= factor
             baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)
             saved = round(baseline_sek - actual_sek, 2)
+            old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS
             rows.append(
                 {
                     "month": key,
                     "baseline_sek": baseline_sek,
                     "actual_sek": actual_sek,
-                    "savings_sek": saved,
-                    "savings_pct": savings_pct(baseline_sek, saved),
+                    "savings_sek": None if old_basis else saved,
+                    "savings_pct": None if old_basis else savings_pct(baseline_sek, saved),
+                    "old_basis": old_basis,
                     "estimated": estimated,
                     "meter_calibration": None if calibration is None else round(calibration, 3),
                 }

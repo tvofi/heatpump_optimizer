@@ -49,7 +49,7 @@ from .price_tiles import TILE_NAMES
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
-from .ledger import BILLED_LINES
+from .ledger import BILLED_LINES, migrate_ledger_v1
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
@@ -820,3 +820,14 @@ class QuarantiningStore(Store[_StorePayload]):
         """
         if self._reading is not None:
             await asyncio.shield(self._reading)
+
+
+class LedgerStore(QuarantiningStore):
+    """The money store; v2 stamps what a v1 document holds as the old basis."""
+
+    async def _async_migrate_func(
+        self, old_major_version: int, old_minor_version: int, old_data: Any
+    ) -> Any:
+        if old_major_version == 1 and isinstance(old_data, dict):
+            return migrate_ledger_v1(old_data)
+        return await super()._async_migrate_func(old_major_version, old_minor_version, old_data)
