@@ -1,8 +1,0 @@
-## 533s/if conf is not None and (/if conf is not None or (/
-    if conf is not None or (key not in conf or SECRET_KEY.search(str(key))):
-                            ^^^^^^^^^^^^^^^
-TypeError: argument of type 'NoneType' is not a container or iterable
-## 540s/if not isinstance(value, list):/if False:/
-    for i, item in enumerate(value, start=1):
-                   ~~~~~~~~~^^^^^^^^^^^^^^^^
-TypeError: 'int' object is not iterable
