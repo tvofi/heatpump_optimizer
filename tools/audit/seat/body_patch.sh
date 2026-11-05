@@ -117,7 +117,8 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
   # never-empty: args starts with the literal --pr-body list
-  node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
+  # the body cites paths of the head under review, not of this checkout
+  BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
   python3 -I tools/audit/carry_audit.py check --body "$body" || rc=1 # mut:carry
   rm -rf "$d"
   return "$rc"
@@ -284,6 +285,7 @@ STUB
 cat > "$W/bin/node" <<'STUB'
 #!/bin/bash
 printf 'node %s\n' "$*" >> "$STUB/log"
+printf 'treerev %s\n' "${BRIEF_LINT_TREE_REV-unset}" >> "$STUB/log"
 prev=""; for a in "$@"; do [ "$prev" = "--paths-file" ] && cp "$a" "$STUB/paths"; [ "$prev" = "--existing-file" ] && cp "$a" "$STUB/existing"; prev="$a"; done
 [ -f "$STUB/lint-fails" ] && { echo "policy_lint: REFUSE stub" >&2; exit 1; }
 exit 0
@@ -370,6 +372,7 @@ l3=$(grep -n '^curl GET repos/o/r/installation$' "$W/ok/log" | head -1 | cut -d:
 if [ "$l1" -lt "$l2" ] && [ "$l2" -lt "$l3" ] && [ "$l3" -lt "$l4" ]; then ORD=ordered; else ORD="head=$l1 lint=$l2 mint=$l3 patch=$l4"; fi
 st "$ORD" ordered "live head read, then the contract, then the mint, then the PATCH (#678's ordering)"
 st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --base $BASE --title fix: the title --author hpo-author --paths-file .* --existing-file .* --red fast (3.14) --red lint$" "$W/ok/log")" 1 "policy_lint gets pr-contract's arguments: body, head, base, title, author, paths, existing, one --red per check"
+st "$(grep '^treerev ' "$W/ok/log" | head -1)" "treerev $HEAD" "policy_lint runs with BRIEF_LINT_TREE_REV at the head, so cited paths resolve in the head's tree"
 st "$(cat "$W/ok/paths")" "$(printf 'a.txt\nb.txt')" "its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt"
 st "$(cat "$W/ok/existing")" "a.txt" "its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt"
 st "$(grep -c "^carry_audit check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body"
@@ -512,6 +515,7 @@ mutant redf   '/# mut:redfilter$/s/select(.*)/select(true)/'
 mutant dot2   '/# mut:threedot$/s/"\$base\.\.\.\$head"/"$base" "$head"/'
 mutant trb    '/# mut:titlereadback$/s/.*/same = True/'
 mutant tshp   '/# mut:titleshape$/s/.*/:/'
+mutant treerev '/# mut:contract$/s/BRIEF_LINT_TREE_REV=\$head //'
 mutant tctr   '/# mut:titlecontract$/s/.*/    :/'
 MBP() { echo "$W/mut-$1/audit/seat/body_patch.sh"; }
 mkcase m1 "$MOVED"; run m1 "$(MBP head)" --repo o/r 7 "$HEAD" "$W/body.md"
@@ -543,6 +547,9 @@ mkcase m13 "$HEAD" merged; run m13 "$(MBP tshp)" --repo o/r --title 7 "$HEAD" "$
 st "$(calls m13 'curl PATCH')" 1 "MUTANT title shape check deleted: a multi-line title is now SENT"
 mkcase m14; : > "$W/m14/lint-fails"; run m14 "$(MBP tctr)" --repo o/r --title 7 "$HEAD" "$T2"
 st "$(calls m14 'curl PATCH')" 1 "MUTANT open-PR title contract deleted: a title the contract refuses is now SENT"
+
+mkcase m15; run m15 "$(MBP treerev)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(grep -c "^treerev $HEAD\$" "$W/m15/log")" 0 "MUTANT BRIEF_LINT_TREE_REV dropped: policy_lint no longer runs at the head (the ok-run assertion catches it)"
 
 echo "body_patch self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]

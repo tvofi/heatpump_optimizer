@@ -54,6 +54,7 @@
 // states the errors it must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -106,9 +107,19 @@ const workflowFiles = (re) => {
 }
 
 let _trackedFiles = null
+// The listing of `rev`, or of the checkout when rev is unset. A rev that does
+// not resolve throws: falling back to the checkout would resolve a body's cited
+// paths against the wrong tree.
+export function treeListing(rev, cwd = ROOT) {
+  const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+}
+
 export function trackedFiles() {
   if (_trackedFiles) return _trackedFiles
-  const out = git(['ls-files'])
+  // BRIEF_LINT_TREE_REV: body_patch.sh lints a body at the PR head, which is
+  // not the caller's checkout; cited paths must resolve in that head's tree.
+  const out = treeListing(process.env.BRIEF_LINT_TREE_REV)
   const list = canonList(out.split('\n').filter(Boolean))
   _trackedFiles = { set: new Set(list), byBase: basenameMap(list), list }
   return _trackedFiles
@@ -1252,6 +1263,46 @@ function assertCarryFixtures() {
   return 0
 }
 
+// treeListing acceptance: a throwaway repo whose second commit adds b.txt and
+// deletes a.txt. The head listing must show the add and not the delete, the
+// first commit's the reverse (null control), the checkout form follows the
+// working tree, and an unresolvable rev must throw.
+function assertTreeRev() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'treerev-'))
+  const problems = []
+  try {
+    const g = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    g('init', '-q')
+    fs.writeFileSync(path.join(dir, 'a.txt'), 'a')
+    g('add', '.'); g('commit', '-qm', 'one')
+    const first = g('rev-parse', 'HEAD').trim()
+    fs.writeFileSync(path.join(dir, 'b.txt'), 'b')
+    g('rm', '-q', 'a.txt'); g('add', '.'); g('commit', '-qm', 'two')
+    const head = g('rev-parse', 'HEAD').trim()
+    g('checkout', '-q', first)
+    const at_head = treeListing(head, dir).split('\n')
+    const at_first = treeListing(first, dir).split('\n')
+    const checkout = treeListing(undefined, dir).split('\n')
+    if (!at_head.includes('b.txt') || at_head.includes('a.txt')) problems.push('the head listing is not the head tree (b.txt present, a.txt absent)')
+    if (!at_first.includes('a.txt') || at_first.includes('b.txt')) problems.push('the null control listing is not the first commit tree')
+    if (!checkout.includes('a.txt') || checkout.includes('b.txt')) problems.push('the checkout listing does not follow the checkout (a rev would be ignored)')
+    let threw = false
+    try { treeListing('no-such-rev-probe', dir) } catch { threw = true }
+    if (!threw) problems.push('an unresolvable rev did not throw; it fell back silently')
+  } catch (e) {
+    problems.push(`probe repo failed: ${e.message}`)
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+  if (problems.length) {
+    console.log('\nTREEREV VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nTREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one')
+  return 0
+}
+
 const GUARD_PROBE = 'driver-guard acceptance probe'
 
 // Roster-reader acceptance: fixtures/roster-probe/wave-probe-groups.json.
@@ -1367,6 +1418,7 @@ function main() {
     acceptanceRc += assertIssuelessWarning()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
+    acceptanceRc += assertTreeRev()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
