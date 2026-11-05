@@ -11,4 +11,5 @@
   lsof is `cwd-unread`) or the head is the origin/main tip; a failed fetch keeps
   them all as `unmerged-head`. Every worktree removal is leased at the HEAD
   the listing read (`update-ref --no-deref -d HEAD <head>`): one whose HEAD
-  moved since is kept and the refusal reported.
+  moved since is kept and the refusal reported. An orphaned seat's removal
+  is leased the same way, at the HEAD read in its unregistered `wt/`.

@@ -619,6 +619,9 @@ MUTANTS = [
     # #3085 round 3: the worktree removal is leased at the HEAD the read gave, in both tools.
     ("worktree_gc-5", "tools/audit/worktree_gc.sh", 'update-ref --no-deref -d HEAD "$2" 2>',
      'update-ref --no-deref -d HEAD 2>'),
+    # #3085 class C: the orphaned-seat rm -rf is leased at the orphan's own HEAD read.
+    ("worktree_gc-6", "tools/audit/worktree_gc.sh", 'update-ref --no-deref -d HEAD "$ohead" 2>',
+     'update-ref --no-deref -d HEAD 2>'),
     ("closeout-4", "closeout.py", '"update-ref", "--no-deref", "-d", "HEAD", head)',
      '"update-ref", "--no-deref", "-d", "HEAD")'),
 ]
