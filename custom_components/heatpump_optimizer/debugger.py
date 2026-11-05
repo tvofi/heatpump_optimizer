@@ -451,6 +451,7 @@ def replay_document(
         recorder_schema=schema, entry=wants["entry"], inputs=inputs,
         published=wants["published"], price_series_entity=price,
         states={eid: states.get(eid, []) for eid in sorted(inputs | set(wants["published"]))},
+        conf=conf,
     )
     return replay_doc.seal(raw, conf)
 
