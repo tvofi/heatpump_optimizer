@@ -2106,25 +2106,25 @@ function enumerateMerges(commits, pullsBySha) {
 // A recovered number is only a claim until the pull request's own
 // merge_commit_sha equals the commit it was read from (record_row.py
 // `attribute_merge`). `get` is a parameter so the acceptance drives it offline.
-function confirmGapMerge(sha, pr, get = ghGet) {
-  const slug = repoSlug()
+function confirmGapMerge(sha, pr, get = ghGet, slug = repoSlug()) {
   const res = get(`/repos/${slug}/pulls/${pr}`)
   return Boolean(res.ok && res.data && res.data.merge_commit_sha === sha)
 }
 
-function fetchPullsBySha(commits) {
-  const slug = repoSlug()
+// `get` and `slug` are parameters, as `confirmGapMerge`'s are, so the acceptance
+// drives the enumeration (and its refusal) offline.
+function fetchPullsBySha(commits, get = ghGet, slug = repoSlug()) {
   if (!slug) return { ok: false, why: 'no github remote on origin' }
   const map = new Map()
   const gapShas = []
   for (const { sha, subject } of commits) {
-    const res = ghGet(`/repos/${slug}/commits/${sha}/pulls`)
+    const res = get(`/repos/${slug}/commits/${sha}/pulls`)
     if (!res.ok) return { ok: false, why: res.why }
     const rows = Array.isArray(res.data) ? res.data : []
     const resolved = resolvePrFromCommit(subject, rows)
     if (!resolved) continue
-    if (resolved.source === 'subject-gap' && !confirmGapMerge(sha, resolved.pr)) {
-      return { ok: false, why: `merge commit ${sha.slice(0, 7)} names #${resolved.pr} in its subject, but that pull request's merge commit differs` }
+    if (resolved.source === 'subject-gap' && !confirmGapMerge(sha, resolved.pr, get, slug)) {
+      return { ok: false, why: `merge commit ${sha.slice(0, 7)} names #${resolved.pr} in its subject, but that pull request's merge commit differs from it, or /pulls/${resolved.pr} could not be read (HTTP error or rate limit)` }
     }
     map.set(sha, resolved.pr)
     if (resolved.source === 'subject-gap') gapShas.push(sha)
@@ -4947,6 +4947,17 @@ function assertAcceptance(derived) {
   if (confirmGapMerge(gapSha, '900', gapGet(gapSha)) !== true) gapFail.push('a subject-gap number whose pull request merge_commit_sha equals the sha was not confirmed')
   if (confirmGapMerge(gapSha, '900', gapGet('b'.repeat(40))) !== false) gapFail.push('a subject-gap number whose pull request merged at a different commit was confirmed')
   if (confirmGapMerge(gapSha, '900', () => ({ ok: false, why: 'HTTP 404' })) !== false) gapFail.push('a subject-gap number whose pull request could not be read was confirmed')
+  // The ENUMERATION, not only the helper: `fetchPullsBySha` is where the
+  // refusal lives, so deleting its guard must fail here.
+  pins += 3
+  const gapEnumGet = (rows, merge) => (path) => (path.endsWith('/pulls') ? { ok: true, data: rows } : merge === null ? { ok: false, why: 'HTTP 404' } : { ok: true, data: { merge_commit_sha: merge } })
+  const gapEnumCommits = [{ sha: gapSha, subject: 'Merge pull request #900 from tvofi/b' }]
+  const gapEnumApi = fetchPullsBySha(gapEnumCommits, gapEnumGet([{ number: 42 }], 'b'.repeat(40)), 'o/r')
+  if (!gapEnumApi.ok || gapEnumApi.map.get(gapSha) !== '42' || gapEnumApi.gapShas.length) gapFail.push('an enumeration API row was not taken as the number, unlisted in gapShas')
+  const gapEnumOk = fetchPullsBySha(gapEnumCommits, gapEnumGet([], gapSha), 'o/r')
+  if (!gapEnumOk.ok || gapEnumOk.map.get(gapSha) !== '900' || gapEnumOk.gapShas.join() !== gapSha) gapFail.push('an enumeration gap whose pull request merge_commit_sha equals the sha was not recovered and listed in gapShas')
+  const gapEnumBad = fetchPullsBySha(gapEnumCommits, gapEnumGet([], 'b'.repeat(40)), 'o/r')
+  if (gapEnumBad.ok !== false || !/could not be read/.test(String(gapEnumBad.why))) gapFail.push('an enumeration gap whose pull request merged at a different commit was trusted, or its refusal does not name both causes')
   if (gapFail.length) {
     console.log(`\nFIXTURE VACUOUS: resolvePrFromCommit ${JSON.stringify(gapFail)}. Measured D13-s1-01: 52 of 253 window merges answered [] and were dropped rather than recovered.`)
     return 1
