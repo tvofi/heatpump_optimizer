@@ -1,0 +1,5 @@
+grep_rc=1
+gh is /tmp/tmp.n2CRpMtLwf/ev/shim/gh
+gh is /tmp/tmp.n2CRpMtLwf/ev/stub/gh
+harmless rc=0 lines=1
+repo^_view^_o/r^_

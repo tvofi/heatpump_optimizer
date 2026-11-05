@@ -1,4 +1,4 @@
-== refusals (shim dir /tmp/tmp.O6mozvpCUE/off/shim)
+== refusals (shim dir /tmp/tmp.n2CRpMtLwf/ev/shim)
 OK expect=refuse rc=1 stublines=0 :: planted-kill
 OK expect=refuse rc=1 stublines=0 :: field-only
 OK expect=refuse rc=1 stublines=0 :: flags-first
@@ -22,14 +22,14 @@ OK expect=refuse rc=1 stublines=0 :: issue-hash
 OK expect=refuse rc=1 stublines=0 :: issue-url
 OK expect=refuse rc=1 stublines=0 :: issue-url-anchor
 == bypass probes (expect refuse)
-FAIL expect=refuse rc=0 stublines=1 :: api-trailing-slash
-FAIL expect=refuse rc=0 stublines=1 :: issue-url-trailing-slash
-FAIL expect=refuse rc=0 stublines=1 :: issue-long-body-before
+OK expect=refuse rc=1 stublines=0 :: api-trailing-slash
+OK expect=refuse rc=1 stublines=0 :: issue-url-trailing-slash
+OK expect=refuse rc=1 stublines=0 :: issue-long-body-before
 OK expect=refuse rc=1 stublines=0 :: issue-body-eq-ok
-FAIL expect=refuse rc=0 stublines=1 :: issue-body-file-before
-FAIL expect=refuse rc=0 stublines=1 :: api-leading-zero
-FAIL expect=refuse rc=0 stublines=1 :: issue-leading-zero
-FAIL expect=refuse rc=0 stublines=1 :: api-pct
+OK expect=refuse rc=1 stublines=0 :: issue-body-file-before
+OK expect=refuse rc=1 stublines=0 :: api-leading-zero
+OK expect=refuse rc=1 stublines=0 :: issue-leading-zero
+OK expect=refuse rc=1 stublines=0 :: api-pct
 FAIL expect=refuse rc=0 stublines=1 :: graphql-declared-residual
 FAIL expect=refuse rc=0 stublines=1 :: pr-comment-201
 == null controls (expect pass)

@@ -1,6 +1,4 @@
-/tmp/tmp.O6mozvpCUE/ev/head tools/audit/seat/gh_calls.py rc=0 ::  :: gh_calls self-test: 98 checks, 0 failed
-/tmp/tmp.O6mozvpCUE/ev/head tools/policy/budget_raise_gate.py rc=0 ::  :: budget_raise_gate self-test: 274 checks, 0 failed
-/tmp/tmp.O6mozvpCUE/ev/head tools/audit/seat/merge_train.py rc=0 ::   ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
-  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
-  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED :: merge_train self-test: 443 checks, 0 failed
-done
+gh_calls self-test: 146 checks, 0 failed
+seat_venv self-test: 25 checks, 0 failed
+budget_raise_gate self-test: 274 checks, 0 failed
+merge_train self-test: 443 checks, 0 failed

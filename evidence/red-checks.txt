@@ -1,3 +1,5 @@
-Check runs at e7126ae228c8f99363dc0eec9e40920846b614f9 (get_check_runs, total_count 40, one page of 100):
-governance / delivery-status id=127115047469 failure: "DELIVERY STATUS OVERDUE — 10 rowed, 10 pending, 10 overdue (overdue at 12 commits)"; overdue rows #3201 #3206 #3189 #3204 #3203 #3202 #3174 #3091 #3089 #3192 (main's merges; not #3223). PINNED dad3178d6c81cfe2bb410e7045de28f686a6f845. "This check is NOT a required context".
-tests / nightly-status id=127115047402 failure: "NIGHTLY FAILED: slow failed last night. scheduled run 41943946464, 2026-11-05T00:47:36+00:00, head 499162c" job 126971378040. PINNED dad3178d6c81cfe2bb410e7045de28f686a6f845. Unrequired.
+get_check_runs PR #3223 at head 107b6137c8f277f2c8ca4ed94f90e161dabcf5cf, read ~10:28Z: total_count 40, one page of 100.
+Concluded red: governance / delivery-status (127184912382, run 42009512141) failure; tests / nightly-status (127184912222) failure.
+In progress at read: prelude (127188940426, 127184652944), tests / coverage, tests / closures, tests / fast (3.14), codeql / Analyze (python), governance / instrument-self-tests.
+budget-raise-gate / budget-raise-gate 127184912361: success, 10:18:22 -> 10:18:51 (29 s), on a diff that raises no cap (not the mandated path).
+arch-score / arch-score 127184912362: success. policy-docs 127184912292: success.
