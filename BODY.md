@@ -51,7 +51,7 @@ Not built, each waits and is owed by this group's continuation:
 - Closed-destination arm (s9-opt-2b): `carry_audit.py check` now takes `--pr-group G` to list the live after-edged consumers, but `pr-contract.yml` does not pass it yet, so the refusal prints `unknown (no --pr-group)`. The roster has no stage called "closing"; `carries-open` is left accepted (it is the stage `closing_stage` writes to keep a group open). The brief renderer companion is R10-DISPATCH-AT-HANDOFF's. Carry: R10-DISPATCH-AT-HANDOFF
 - Fold grammar scope: only the issue body is read, not its comments; `Fold (x): Carry:` is checked for a well-formed destination, not against the roster; wired into `check --body` only, not `pr`. Carry: R10-BODY-CONTRACT
 - Hot files: `body_push.sh` is also edited by open PR #3221 (receipt trailer); this diff adds only new functions (`keep_refused`, `drop_keep`, the self-test) and one call per refusal path, so expect a merge-resolution round if #3221 lands first. Carry: R10-BODY-CONTRACT
-- `cloud_dispatch.py` fixer prompt tail now allows `handoff-wip/<topic>-body` (4 changed lines). `ref_privacy.py` guards any ref and `prune_refs.py` classifies the ref as residue with no edit; the relay and bus globs never list `handoff-wip/`.
+- `cloud_dispatch.py` fixer prompt tail now allows `handoff-wip/<topic>-body` (4 changed lines). `ref_privacy.py` guards any ref and `prune_refs.py` classifies the ref as residue with no edit; the relay and bus globs never list `handoff-wip/`. Carry: dismissed: a recorded precondition check, nothing owed.
 
 ## Friction
 
