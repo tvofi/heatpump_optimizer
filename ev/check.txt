@@ -1,0 +1,4 @@
+machinery_ratchet: push mode at HEAD; window 580 merge(s): 62 production, 213 machinery, 305 record; 14231 product line(s), 236799 nonproduct
+  ok   nonproduction_merges 518 <= 521 + band 5
+  ok   churn_per_kilo_product_lines 16640 <= 14797 + band 3636
+rc=0

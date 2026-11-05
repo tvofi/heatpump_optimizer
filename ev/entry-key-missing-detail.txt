@@ -1,0 +1,42 @@
+rc 1
+ts merges 4..6 only
+  ok   a history shorter than the window is refused, never measured short
+  ok   the base window reads 3 nonproduction of 5
+  ok   a candidate machinery merge past cap+band exits 1 (4 > 2 + 1)
+  ok   ...and prints the metric, its cap and its band
+  ok   the candidate takes the newest slot and the oldest merge drops out
+  ok   the same candidate at exactly cap+band exits 0 (4 <= 3 + 1)
+  ok   push mode at the base inside cap+band exits 0 (3 <= 2 + 1)
+  ok   over() refuses only past cap+band
+  ok   over() refuses the churn ratio past its cap+band
+  ok   null control: a pure move across the boundary leaves M1 and M2 identical
+  ok   ...and the move with one line added counts that merge production
+  ok   a rename's lines are charged to its destination
+  ok   a whitespace-only reformat of product code costs 0 product lines
+  ok   splitting a machinery merge raises M1 by exactly 1 and leaves M2 flat
+  ok   splitting a production merge leaves M2 flat
+  ok   exemption: no entry refuses
+  ok   exemption: exactly 10% refuses
+  ok   exemption: exactly 10% as floats refuses
+  ok   exemption: 11% with evidence passes
+  ok   exemption: 11% right-first-time (a gain) passes
+  ok   exemption: 11% with a missing evidence path refuses
+  ok   exemption: an entry naming another pull request refuses
+  ok   exemption: an unknown measure refuses
+  ok   exemption: a bool `before` is not a number and refuses
+  ok   exemption: an int `before` of the same value passes (null control)
+
+Traceback (most recent call last):
+  File "/tmp/tmp.hSm25rOhQm/tools/audit/machinery_ratchet.py", line 734, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.hSm25rOhQm/tools/audit/machinery_ratchet.py", line 709, in main
+    return self_test()
+  File "/tmp/tmp.hSm25rOhQm/tools/audit/machinery_ratchet.py", line 632, in self_test
+    entry_grants(".", "none", held)[0], False)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.hSm25rOhQm/tools/audit/machinery_ratchet.py", line 197, in entry_grants
+    return False, f"entry for #{entry['pr']}: evidence {entry['evidence']} does not resolve at {rev[:12]}"
+                                ~~~~~^^^^^^
+KeyError: 'pr'
+

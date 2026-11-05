@@ -1,0 +1,3 @@
+{"churn_per_kilo_product_lines": 14797, "exempted": [], "head": "c3a279e3252a8b57bb00b5a677318cd4fe20387f", "machinery": 216, "nonproduct_lines": 200549, "nonproduction_merges": 521, "product_lines": 13553, "production": 59, "record": 305, "window": 580}
+{"churn_per_kilo_product_lines": {"band": 3636, "max": 14824, "min": 11188}, "nonproduction_merges": {"band": 5, "max": 521, "min": 516}, "positions": 150}
+rc=0

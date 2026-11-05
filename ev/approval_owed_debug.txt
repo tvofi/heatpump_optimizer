@@ -1,0 +1,7 @@
+required ['gate']
+red over gating ['budget-raise-gate / budget-raise-gate', 'gate']
+gate_raise_only False
+ suite 126998710631 red
+ suite 126998680921 red
+ suite 127000280539 red
+raise_hold (['dev/governance/config/machinery_budgets.json: window_merges: None -> 580 (a pinned value the gate cannot sign as routine)'], False, "1 budget raise(s), first dev/governance/config/machinery_budgets.json: window_merges: None -> 580 (a pinned value the gate cannot sign as routine): a raise is the owner's (0013): no decisive review by tvofi (id 70032254) on this pull request")

@@ -1,0 +1,21 @@
+control  unmutated: rc=0
+killed   product-prefix: 1 failing: a path under blueprints/ is product: got False, want True
+killed   production-gt-0: 17 failing: 2 production merges in 6 give 4 nonproduction: got (0, 6, 0, 0), want (4, 2, 2, 2) | a merge touching a record path and a tools path is machinery: got 'production', want 'machinery' | the window is the newest W: W=3 counts merges 4..6 only: got 0, want 2
+killed   record-all-paths: 1 failing: a merge touching a record path and a tools path is machinery: got 'record', want 'machinery'
+killed   cap-plus-band-ge: 6 failing: the same candidate at exactly cap+band exits 0 (4 <= 3 + 1): got 1, want 0 | push mode at the base inside cap+band exits 0 (3 <= 2 + 1): got 1, want 0 | over() refuses only past cap+band: got (['nonproduction_merges'], ['nonproduction_merges']), want ([], ['nonproduction_merges'])
+killed   cap-without-band: 3 failing: the same candidate at exactly cap+band exits 0 (4 <= 3 + 1): got 1, want 0 | push mode at the base inside cap+band exits 0 (3 <= 2 + 1): got 1, want 0 | over() refuses only past cap+band: got (['nonproduction_merges'], ['nonproduction_merges']), want ([], ['nonproduction_merges'])
+killed   pr-mode-no-drop-oldest: 1 failing: the candidate takes the newest slot and the oldest merge drops out: got (4, 6), want (4, 5)
+killed   pr-mode-candidate-ignored: 10 failing: a candidate machinery merge past cap+band exits 1 (4 > 2 + 1): got 0, want 1 | ...and prints the metric, its cap and its band: got False, want True | the candidate takes the newest slot and the oldest merge drops out: got (3, 5), want (4, 5)
+killed   threshold-ge: 2 failing: exemption: exactly 10% refuses: got 0, want 1 | exemption: exactly 10% as floats refuses: got 0, want 1
+killed   evidence-not-checked: 1 failing: exemption: 11% with a missing evidence path refuses: got 0, want 1
+killed   absent-at-p-not-checked: 1 failing: an entry added before its PR merged exempts nothing when that PR merges: got (4, 3000), want (4, 3200)
+killed   subject-number-not-matched: 4 failing: exemption: an entry naming another pull request refuses: got 0, want 1 | an entry appended later for an already-merged PR leaves M1 and M2 unchanged: got (2, 800), want (3, 1400) | one merge appending entries for two merged PRs leaves M1 and M2 unchanged: got (2, 800), want (3, 1400)
+killed   subject-number-not-parsed: 1 failing: positive control: an entry its own merge added takes that merge out of the window: got False, want True
+killed   no-rename-detection: 1 failing: null control: a pure move across the boundary leaves M1 and M2 identical: got (2, 1200), want (1, 1182)
+killed   no-whitespace-ignore: 1 failing: a whitespace-only reformat of product code costs 0 product lines: got (20, 1, 'production'), want (0, 1, 'machinery')
+killed   rename-charged-to-source: 1 failing: a rename's lines are charged to its destination: got [(1, 0, ['tools/a', 'custom_components/a'], 'tools/a')], want [(1, 0, ['tools/a', 'custom_components/a'], 'custom_components/a')]
+killed   bool-before-accepted: 1 failing: exemption: a bool `before` is not a number and refuses: got 0, want 1
+killed   entry-key-missing-ok: 1 failing: ror: 'pr'
+killed   gain-measured-as-cost: 1 failing: exemption: 11% right-first-time (a gain) passes: got 1, want 0
+RESULT 18 mutants: 18 killed, 0 survived, 0 stale
+rc=0
