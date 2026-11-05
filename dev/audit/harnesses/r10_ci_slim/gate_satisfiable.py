@@ -107,11 +107,12 @@ def main(argv) -> int:
              "mixed": [cc, "tools/ci/gate.py"]}
     pr_cc = G.REQUIRED["pr-cc"]
     for label, files in diffs.items():
-        mach = P.machinery(files)
+        # A tree before C7 has neither function: every lane runs and pins measure.
+        mach = getattr(P, "machinery", lambda f: True)(files)
         legs = {leg: Q.decide(leg, "pull_request", files)[0] for leg in Q.LEGS}
         skipped = sorted(IDLED_WHOLE) if not mach else []
         good, why = judge(list(pr_cc), skipped)
-        print(f"{label}: files={files} machinery={mach} pins_due(delta=files)={P.pins_due(files)} legs={legs} "
+        print(f"{label}: files={files} machinery={mach} pins_due(delta=files)={getattr(P, "pins_due", lambda f: True)(files)} legs={legs} "
               f"-> gate {'PASS' if good else 'FAIL ' + '; '.join(why)}")
         ok &= good
     # Null control: a job-level stand-down on a required job is caught, and its SKIPPED fails the gate.
