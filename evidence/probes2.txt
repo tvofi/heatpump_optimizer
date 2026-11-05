@@ -1,3 +1,0 @@
-Q1 NOT REVIEWABLE first board digest: ''
-Q2 after the line cleared: digest '' new.txt 'MERGE-READY: #9 9a8b7c6d\n' gone.txt 'MERGE-READY: #9 9a8b7c6d\n'
-Q3 op handed to roster_queue on release: ['set-stage G1 done']
