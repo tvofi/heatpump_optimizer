@@ -2,7 +2,9 @@ R10-BODY-CONTRACT: the body contract at the head (V115), roster ref, review trai
 
 ## Head
 
-`ed10a06e9ca9c1e5f02831b17d4e7b8531d274f2`, with origin/main `79f765e6b2e0f97e61b57d7b605fc4e70b4bf21e` merged (taken `date -u` 2026-11-05T08:30Z); `tools/pr/prepr.sh` was rerun after that merge.
+`ec14238f0d0c2491d30950b78c1539815bc3b693`, with origin/main `b707d89329c746c870d07e0b1725e644874078dc` merged (it had not moved since the previous merge; `git log HEAD..origin/main` is empty, so the `tools/pr/prepr.sh` run at this head is the only one needed). Repair round 2 of #3227 after a blocking review at `a52354e6`.
+
+Carry 11 to Carry 16 are the roster's carries of this group from the previous body (the Forward-carry items of that body); the new items under Forward-carry are the review findings this round did not fix.
 
 ## Mutation proof
 
@@ -14,6 +16,9 @@ Each arm was red first where it can be red on the unchanged code, and each has a
 - Closed destination: testing against `DONE_STAGES` instead of `roster_lib.CARRY_CLOSED`, or listing every live group, turns the closed-group arms red.
 - Fold grammar: disabling the unanswered-fold test fails the "(a)-(d) answered, (e) named" arm.
 - Keep ref: replacing the `# mut:keep` calls fails all four refusal arms.
+- Repair 1 (bare array): the merged marker comment is above `policy_lint`; `python3 -I tools/audit/seat/bare_array.py --check` was red at `a52354e6` (names `body_patch.sh:146`, rc 1) and is rc 0 now. The pre-existing `bare_array.py` self-test already holds the mutant of the same shape (a comment between the marker and the line).
+- Repair 2 (closing keywords): thirteen new arms in the carry_audit self-test, one per form (the nine keywords close/closes/closed, fix/fixes/fixed, resolve/resolves/resolved; the colon spelling; the issue-URL, owner/repo and GH- reference shapes), were ten red on the old two-keyword `CLOSES` before the regex change (failing test first). Mutants, each run: back to the two keywords (10 failed); dropping fix (5), resolve (4), closed (1), the URL shape (1), the owner/repo shape (1), the GH- shape (1).
+- Pins for the review's surviving mutants, each run red against its mutant: `fold_rc = 0` in `check` (2 failed), dropping `| fold_rc` on the roster path (1) and on the empty path (1) through three end-to-end `check --body` arms; `dests.pr_group = pr_group_of(...)  # mut:branch` replaced by `pass` (1 failed, an end-to-end `check --branch` arm); `carry_fold.py` `if bad:` to `if False:` (1 failed, a body with one good and one done destination writes nothing); `treeListing(process.env.BRIEF_LINT_TREE_REV, cwd)` to `treeListing(undefined, cwd)` (`TREEREV VACUOUS`, through `trackedFiles(dir)` with the variable set and unset); stripping `<!--.*?-->` from `fold_problems` (1 failed).
 - Carry 6 (`--branch`): making `pr_group_of` return None fails `branch fix/r10-pr resolves to the PR group R10-PR` and the `-pr` suffix arm (2 failed, run this pass).
 - Carry 9 (control lint): changing `if (!names) {` to `if (false) {` makes `assertCarryControl` print `CONTROL VACUOUS` for both `the FUTURE-STATE section 2 figures` and the bare statistic (run this pass).
 - Carry 8 A2 (`carry_fold.py`): replacing the post-fold `landed` call (`# mut:postfold`) with `[]` fails `an op that returned 0 but wrote nothing fails after the fold, naming the id` (1 failed, run this pass).
@@ -27,6 +32,7 @@ Each arm was red first where it can be red on the unchanged code, and each has a
 - Control lint: a control naming `dev/audit/harnesses/agreement_two_pr.mjs` passes; a control in a legacy carry file (`carry-201.json`) with no path passes (the narrowing).
 - carry_fold: the same body folded twice writes nothing the second time; a done destination is refused before any write.
 - Keep ref: a successful push leaves no keep ref.
+- Closing keywords: `Mentions #7`, `Fixing #7` and `unfixes #7` close nothing and owe no fold answer; `check --body` with the fold answered is accepted; `check` without `--branch` still prints `valid targets: unknown`.
 
 ## Figures
 
@@ -43,7 +49,16 @@ Each arm was red first where it can be red on the unchanged code, and each has a
 
 ## Red checks
 
-`none`: `tools/pr/prepr.sh` ran clean on this head. An earlier run, before the budget payment and the INERT classification, refused `closures` (`tests/entities.py` needs `paho` in this sandbox, an environment gap), the two policy-doc budgets, and a classification line for `carry_fold.py`; each was repaired (budget payment, `ci_predict.py --apply-inert`), and CI settles the `closures` table. The cheaper detector for the budget refusals was `policy_lint.mjs --budgets`, run locally.
+Read against the check runs of the PR head `a52354e6e441236ec0b63fa49fd303900c64f6cf`, the last head CI graded (the final head below has no run until it is pushed; CI is the authority for it). Merge base: `b707d89329c746c870d07e0b1725e644874078dc` (`git merge-base origin/main HEAD`). Every concluded red, all pages:
+
+- `governance / instrument-self-tests` (job 127227661299), step 27 `Refuse a bare array expansion in a set -u script`: this diff. `body_patch.sh:146` carried a comment between the `# never-empty:` marker and the `policy_lint` line, which `bare_array.py` does not accept. Repaired here (marker and reason on one comment line directly above the line); `bare_array.py --check` rc 0 at this head.
+- `tests / fast (3.14)` (job 127227966145), step `Run the suite`: this diff, the same line, read by `tests/entities.py` (`no tracked tools/**/*.sh script expands a bare "${array[@]}"`). `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head: `ALL 2631 ENTITY CHECKS PASSED`.
+- `pr-contract / pr-contract` (jobs 127240182833, 127241211745, 127242351411), step 10 `Check the body against the contract`: this body, which said `none` and answered neither red above. Answered here.
+- `gate` (jobs 127240629116, 127241637011, 127242766124): the aggregate of the two required reds above; it follows them.
+- `governance / delivery-status` (job 127227661367): inherited. It grades main's ledger, red on the base ancestry (merge base `b707d89329c746c870d07e0b1725e644874078dc`): overdue delivery rows of other merged PRs, not this diff's. This diff touches `.github/workflows/governance.yml` for self-test steps only.
+- `tests / nightly-status` (job 127227661278): inherited. It reads last night's run of main (merge base `b707d89329c746c870d07e0b1725e644874078dc`): the nightly slow-job replay cost-band failure, carried by R10-REPLAY-COST-BUDGET. This diff does not touch that lane.
+
+Root cause of the two own reds (`defect-root-cause.md`, red-check trigger): the last edit to `body_patch.sh` (the inserted comment line) was made after the prepr run that the previous body cited, and `tools/pr/prepr.sh` did not run `bare_array.py --check` at all. The cheaper detector was `python3 -I tools/audit/seat/bare_array.py --check` (seconds). Countermeasure built: `privacy_line` in `prepr.sh`, step 3f7, now runs it first (one added command in an existing step) and refuses with its last line.
 
 ## Forward-carry
 
@@ -53,6 +68,10 @@ Not built here; each is stated once, and the dispatch seat lands them in the ros
 - Fold grammar scope: only the issue body is read, not its comments; `Fold (x): Carry:` is checked for a well-formed destination, not against the roster; wired into `check --body` only, not `pr`. Carry: R10-BODY-CONTRACT (Carry 13)
 - Hot files: `body_push.sh` is also edited by open PR 3221 (receipt trailer); this diff adds only new functions and one call per refusal path. Carry: R10-BODY-CONTRACT (Carry 14)
 - Carry control lint narrowing: the lint skips the 15 legacy carry files named in `LEGACY_CONTROL_FILES` in `brief_lint.mjs` (their controls name no path or cite unresolvable paths); repairing them rewrites other groups' controls. The set is closed and shrinks as those carries are re-measured. Carry: R10-BODY-CONTRACT (Carry 15)
+- Issue-side fold spellings: `FOLD_LINE` reads `Fold (x):` with a lowercase letter and the colon straight after the parenthesis, so an owner's `**Fold (a)**:` or `Fold (A):` gets no fold read; the live spelling could not be confirmed. Carry: R10-BODY-CONTRACT
+- Dismissal pointer grammar: `seg_dests` accepts `,` and `;` as well as `|` after the group, wider than the documented `Carry: <GROUP> | dismissed:`; align the docs or narrow the regex. Carry: R10-BODY-CONTRACT
+- The `Round:\s*\d` trailer reads any item line opening `Round: <digit>`, so a finding written that way is read as a trailer; the null control covers only `Round:` with no number. Carry: R10-BODY-CONTRACT
+- Dropping `--branch "$HEAD_REF"` from `pr-contract.yml` is unpinned: nothing tests the workflow text, and the effect is only the refusal printing `valid targets: unknown`. Carry: R10-BODY-CONTRACT
 - Policy files drafted here, merging on the owner's approval: the one sentence in `dev/governance/roles/fix-review.md` and `judge.md` (#2438 (ii)), and the template and contract are untouched. Carry: dismissed: nothing owed beyond the owner's review at merge
 
 ## Friction
@@ -61,7 +80,16 @@ Not built here; each is stated once, and the dispatch seat lands them in the ros
 
 ## Approval
 
-Not yet given. This diff touches two policy files, `dev/governance/roles/fix-review.md` and `dev/governance/roles/judge.md` (one sentence each, #2438 (ii), with spent prose trimmed to stay under the token caps); the owner's approving GitHub review at merge is the approval, and it waits for that review.
+Not yet given. This diff touches two policy files; the owner's approving GitHub review at merge is the approval, and it waits for that review. The three-dot diff changes three places in `dev/governance/roles/fix-review.md` and five in `dev/governance/roles/judge.md` (#2438 (ii)); each, old to new:
+- `fix-review.md` step 2: removed "A fixer who measures with a harness they wrote is measuring themselves." (token-cap payment; the rule "Measure with the finder's harness" stays).
+- `fix-review.md` step 14: "On a raise, judge each payment the body lists and hunt one it missed" became "On a raise, judge each listed payment and hunt one it missed" (token-cap payment).
+- `fix-review.md` closing: "from the fourth, `fixer.md` owes a re-cut, not a repair." became "from the fourth, `fixer.md` owes a re-cut." (token-cap payment).
+- `fix-review.md` closing, ADDED (the policy change): "A ruling naming a destination stage states it as a `Carry:` marker."
+- `judge.md` opening: "You do not trust the finders or the verifiers; you re-measure." became "You trust neither finders nor verifiers; you re-measure." (token-cap payment).
+- `judge.md` step 3: "Compare the metric definitions the finder and the verifiers wrote. Where they measured different things, mark the votes `not comparable` and decide on your own measurement." became "Compare the metric definitions; where they differ, mark the votes `not comparable` and decide on your own measurement." (token-cap payment).
+- `judge.md` step 7: "`unreproduced` is no kill and no pass: the round is not dry until it is re-measured or refuted." became "`unreproduced` is no kill, no pass: re-measure or refute it before the round is dry." (token-cap payment).
+- `judge.md` closing, ADDED (the policy change): "A ruling naming a destination stage states it as a `Carry:` marker."
+No `*budget*` file changed; no cap was raised (`fix-review.md` 137/140 lines, 2440/2451 tokens; `judge.md` 29/30, 467/469).
 
 ## Brief carries by number
 
