@@ -34,6 +34,9 @@ failed and writes nothing:
                checkout the template is read from: a step cites the
                instrument it runs, and a citation that does not resolve
                re-derives nothing and runs nothing;
+  git-cwd      a rendered `git ` command that does not open `git -C`: a
+               sweep runs from a state directory, where a bare git reads no
+               repository (the 2026-10-24 step (2) read no handoff refs);
   structure    a missing or repeated marker, an overlay that is not a JSON
                object, a table row that repeats a name.
 
@@ -71,6 +74,7 @@ PLACEHOLDER = re.compile(r"\{\{([A-Za-z0-9_]*)\}\}")
 TABLE_ROW = re.compile(r"^\|\s*`([A-Za-z0-9_]+)`\s*\|")
 CITED = re.compile(r"`((?:tools|tests|dev|\.github)/[^`\s{}<>*]+|CLAUDE\.md)[^`]*`")
 HOST = re.compile(HOME_DIR)
+BARE_GIT = re.compile(r"`git (?!-C )")
 #: What every rendered sweep carries by default (tvofi, 2026-10-28: round 10's
 #: session additions became the template's defaults). One fragment per default
 #: the self-test pins; the template is still the one owner of the wording.
@@ -187,6 +191,10 @@ def render(template: str, overlay, root: Path = ROOT) -> str:
         if not any(a <= m.start() and m.end() <= b for a, b in spans):
             line = text.count("\n", 0, m.start()) + 1
             raise Refused(f"host-path: rendered line {line} names a home directory no overlay value supplied")
+    bare = BARE_GIT.search(text)
+    if bare:
+        line = text.count("\n", 0, bare.start()) + 1
+        raise Refused(f"git-cwd: rendered line {line} runs git without -C")
     return text
 
 
@@ -248,6 +256,23 @@ def self_test() -> int:
           re.findall(r"--launch-ledger ([^\s`]+)", render(tracked, dict(full, launch_ledger="/led"))) == ["/led"])
     check("a seat_alives entry that is not SEAT=FILE is refused",
           refusal(tracked, dict(full, seat_alives="tick")).startswith("unfilled"))
+
+    # the sweep's git calls and step (5)'s board read (carries 6 and 7 of R10-FLY-STANDING-CONTRACTS)
+    rendered = render(tracked, full)
+    check("every git command in the rendered sweep carries -C", re.findall(r"`git (\S+)", rendered)
+          and all(a == "-C" for a in re.findall(r"`git (\S+)", rendered)))
+    bare_two = tracked.replace("`git -C {{orch_checkout}} ls-remote", "`git ls-remote")
+    check("null control: step (2) without its -C is refused as git-cwd",
+          bare_two != tracked and refusal(bare_two, full).startswith("git-cwd"))
+    five_line = next((ln for ln in rendered.splitlines() if ln.startswith("(5) ")), "")
+    check("step (5) reads the digest whole and prints both board counts",
+          "<digest>/digest.txt whole" in five_line and "grep -c '^-> ' <tick_log>" in five_line
+          and "grep -c 'OWED' <tick_log>" in five_line)
+    check("the rendered sweep names no tick seat's own log and no newest-pass read",
+          "tick-owed" not in rendered and "newest pass" not in rendered and "newest actionable" not in rendered)
+    old_five = tracked.replace("Read {{digest}}/digest.txt whole", "Read {{tick_log}}'s newest pass unfiltered")
+    check("null control: step (5) restored to the newest pass fails the read check",
+          old_five != tracked and "<digest>/digest.txt whole" not in render(old_five, full))
 
     mini = "## Placeholders\n\n| `a` | x |\n| `b` | y |\n\n## Other\n\n" + BEGIN + "\nrun {{a}} then {{b}}\n" + END + "\n"
     check("a minimal template renders (null control for the refusals below)",
