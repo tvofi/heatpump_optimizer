@@ -1,0 +1,6 @@
+JOB 127227661299 governance / instrument-self-tests failure a52354e6e
+  step 27 failure Refuse a bare array expansion in a set -u script
+JOB 127227966145 tests / fast (3.14) failure a52354e6e
+  step 12 failure Run the suite
+JOB 127242351411 pr-contract / pr-contract failure a52354e6e
+  step 10 failure Check the body against the contract

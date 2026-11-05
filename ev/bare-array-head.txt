@@ -1,0 +1,1 @@
+tools/audit/seat/body_patch.sh:146: BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
