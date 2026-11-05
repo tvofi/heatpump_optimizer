@@ -155,6 +155,31 @@ metric_line() {
   printf 'coverage\t%s\t%s\t%s\t%s\t%s\t%s\n' "$1" "$2" "$3" "$4" \
     "${GITHUB_EVENT_NAME:-local}" "${GITHUB_RUN_ID:-local}" >> "$_hpo_ci_metrics"
 }
+# A measured script's descendants (a multiprocessing pool, a daemonised worker)
+# write their .coverage.* files when THEY exit, which can be after the script
+# returns. Reading the data directory at the script's return then records a
+# script whose workers were still running as `nodata`, with no error, and the
+# ratchet reads a package-wide drop it cannot attribute (#2632's features.py:
+# 740 live workers at exit, 85.9 % against 98.7 %). Every descendant inherits
+# COVERAGE_PROCESS_START, so a process whose environment still carries this
+# script's own rcfile path is one the script left behind: wait for it, and name
+# the script when it does not exit. Linux only (/proc); elsewhere the wait is
+# skipped, as the closures recording is (gate-scoping.md).
+wait_descendants() {
+  local s="$1" rc="$WORK/coveragerc.$1" end
+  [ -d /proc/self ] || return 0
+  end=$((SECONDS + ${W5P_DESCENDANT_WAIT:-300}))
+  # Test the output, not the status: grep exits 2 on an unreadable /proc entry
+  # even when it matched.
+  while [ -n "$(grep -lsaxFz -- "COVERAGE_PROCESS_START=$rc" /proc/[0-9]*/environ 2> /dev/null)" ]; do
+    if [ "$SECONDS" -ge "$end" ]; then
+      echo "tests/$s.py left descendants still running ${W5P_DESCENDANT_WAIT:-300}s after it returned; their coverage data is not in yet" >&2
+      return 1
+    fi
+    sleep 1
+  done
+}
+
 measure() {
   while IFS=$'\t' read -r verb s; do
     [ -n "$s" ] || continue
@@ -183,6 +208,7 @@ measure() {
     printf '%s\tmeasured\n' "$s" >> "$OUT/per/provenance.tsv"
     echo "ran tests/$s.py exit=$rc wall=$((b-a))s"
     metric_line "$s" "$class" "$rc" "$((b-a))"
+    wait_descendants "$s" || return 1
     if ls "$WORK/data/$s"/.coverage.* > /dev/null 2>&1; then
       # env -u, never an empty COVERAGE_PROCESS_START= prefix: with
       # $WORK/site's sitecustomize on PYTHONPATH, coverage 7.13.1's

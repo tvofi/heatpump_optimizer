@@ -2335,6 +2335,43 @@ def _dt_now():
     assert got.utcoffset() == zone.utcoffset(got.replace(tzinfo=None))
 
 
+def _unconfigured_zone():
+    """``DEFAULT_TIME_ZONE`` as ``util/dt`` sets it with no zone configured.
+
+    A fresh copy of the loaded module, executed with ``HASTUB_TZ`` absent from
+    the environment: the default case is constructed, not read off the host,
+    so these contracts state the same thing under any ``HASTUB_TZ`` or ``TZ``
+    (R10-SUITE-HOST-DETERMINISM). The provider's own module is the one copied,
+    so the nightly lane copies upstream's.
+    """
+    import importlib.util
+    import os
+
+    from homeassistant.util import dt as dt_util
+
+    saved = os.environ.pop("HASTUB_TZ", None)
+    try:
+        spec = importlib.util.spec_from_file_location("_dt_unconfigured", dt_util.__file__)
+        fresh = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(fresh)
+    finally:
+        if saved is not None:
+            os.environ["HASTUB_TZ"] = saved
+    return fresh.DEFAULT_TIME_ZONE
+
+
+def _in_default_case(fn):
+    """``fn()`` with the loaded module's zone set to the unconfigured one."""
+    from homeassistant.util import dt as dt_util
+
+    saved = dt_util.DEFAULT_TIME_ZONE
+    dt_util.DEFAULT_TIME_ZONE = _unconfigured_zone()
+    try:
+        return fn()
+    finally:
+        dt_util.DEFAULT_TIME_ZONE = saved
+
+
 @contract(
     "homeassistant.util.dt.now",
     "returns an aware datetime when no zone has been configured",
@@ -2342,12 +2379,9 @@ def _dt_now():
     "read by now()",
 )
 def _dt_now_default_aware():
-    import os
-
     from homeassistant.util import dt as dt_util
 
-    assert os.environ.get("HASTUB_TZ") is None, "HASTUB_TZ is set: not the default case"
-    assert dt_util.now().tzinfo is not None
+    assert _in_default_case(dt_util.now).tzinfo is not None
 
 
 @contract(
@@ -2398,16 +2432,11 @@ def _dt_as_utc():
     cite="util/dt.py -- `DEFAULT_TIME_ZONE: dt.tzinfo = dt.UTC` at module level",
 )
 def _dt_default_zone():
-    import os
-
-    from homeassistant.util import dt as dt_util
-
-    # The divergence is that the stub has NO zone by default. With HASTUB_TZ
-    # set it has one, so the environment has to be part of the statement or
+    # The divergence was that the stub had NO zone by default. With HASTUB_TZ
+    # set it has one, so the zone read here is the unconfigured module's, or
     # this contract would report the divergence repaired whenever
     # dst_checks.py's environment leaked into the run.
-    assert os.environ.get("HASTUB_TZ") is None, "HASTUB_TZ is set: not the default case"
-    assert dt_util.DEFAULT_TIME_ZONE is not None
+    assert _unconfigured_zone() is not None
 
 
 @contract(
@@ -2417,13 +2446,11 @@ def _dt_default_zone():
     expect="real",
 )
 def _dt_as_local():
-    import os
     from datetime import datetime
 
     from homeassistant.util.dt import as_local
 
-    assert os.environ.get("HASTUB_TZ") is None, "HASTUB_TZ is set: not the default case"
-    assert as_local(datetime(2026, 1, 2, 3, 4)).tzinfo is not None
+    assert _in_default_case(lambda: as_local(datetime(2026, 1, 2, 3, 4))).tzinfo is not None
 
 
 # -- core --------------------------------------------------------------------
