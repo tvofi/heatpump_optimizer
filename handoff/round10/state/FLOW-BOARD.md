@@ -1,23 +1,23 @@
 # Flow board
 
-Window ends 2026-11-05T15:19:21+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-05T17:48:16+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
-| roster groups closed vs takt | 0 / 1.0 | 2 / 24.0 |
+| roster groups closed vs takt | 1 / 1.0 | 3 / 24.0 |
 | fly-ins closed | 0 | 14 |
-| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 19 / 1 / 0 / 14 |
-| first-pass fix-review yield | 0/0 (-) | 5/30 (0.17) |
-| blocked-class mix | none | body-stale:1, carry-missing:1, ci-cancelled:2, ci-red:11, ci-red-cancelled:1, citation-wrong:1, claim-refuted:1, class-open:5, defect:2, figures-uncited:1, harness:2, metric-gamed:1, mutation-vacuous:4, owner-stale:1, pr-closed:1, pr-contract-red:1, ratchet-grown:1, root-cause-detectable:3, root-cause-unrecorded:1 |
-| lead time per size (h, n/p50/max) | M n=1 p50=79.52 max=79.52 | M n=5 p50=19.94 max=93.08; S n=14 p50=12.32 max=83.83 |
+| main moves: group-carrying / record / roster-edit / fly-in | 1 / 0 / 0 / 0 | 18 / 1 / 0 / 14 |
+| first-pass fix-review yield | 1/1 (1.00) | 3/26 (0.12) |
+| blocked-class mix | none | body-stale:2, carry-missing:1, ci-cancelled:2, ci-red:10, ci-red-cancelled:1, citation-wrong:1, claim-refuted:1, class-open:5, defect:2, figures-uncited:1, harness:2, mutation-vacuous:4, owner-stale:1, pr-closed:1, pr-contract-red:1, ratchet-grown:1, root-cause-detectable:2, root-cause-unrecorded:1 |
+| lead time per size (h, n/p50/max) | S n=1 p50=2.05 max=2.05 | M n=5 p50=19.94 max=93.08; S n=13 p50=13.33 max=83.83 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 58 | 3 | 3 |
+| 1 | 57 | 3 | 3 |
 
 ## Rules
 
