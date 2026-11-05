@@ -92,6 +92,31 @@ same = (got == want) if field == "title" else eq1(got, want) # mut:titlereadback
 print("ok" if same else "body")' "$@"
 }
 
+# `--roster-ref` for carry_audit: the round's roster branch, freshly fetched, so
+# a carry landed there since this clone last fetched is seen (main's copy and a
+# stale tracking ref both lag it). The branch is named from the newest roster at
+# origin/main (roster_lib.round_branch). A fetch that fails refuses (rc 1)
+# unless the remote proves the branch absent (ls-remote rc 2): carry_audit
+# refuses an explicit ref it cannot read, so an absent branch omits the
+# argument and carry_audit reads the tree's roster, with a NOTE.
+RR=()
+roster_ref_args() {
+  local n b rc
+  RR=()
+  n=$(git ls-tree --name-only origin/main dev/programme/rosters/ 2>/dev/null \
+      | sed -n 's#.*/wave-r\([0-9][0-9]*\)-groups\.json$#\1#p' | sort -n | tail -1)
+  if [ -z "$n" ]; then echo "body_patch: NOTE: no roster readable at origin/main; carry_audit reads the tree's roster" >&2; return 0; fi
+  b=handoff/audit-r$n-roster
+  if git fetch -q origin "+refs/heads/$b:refs/remotes/origin/$b" 2>/dev/null; then
+    RR=(--roster-ref "origin/$b") # mut:rosterref
+    return 0
+  fi
+  git ls-remote --exit-code --heads origin "$b" >/dev/null 2>&1; rc=$?
+  if [ "$rc" = 2 ]; then echo "body_patch: NOTE: $b does not exist on origin; carry_audit reads the tree's roster" >&2; return 0; fi
+  echo "body_patch: the round roster branch $b could not be fetched, so the carry check cannot see its carries" >&2
+  return 1
+}
+
 # The contract arm: pr-contract's own policy_lint call, then the carry check.
 # Runs in the current directory (a worktree holding the head's objects).
 contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the pr-json carries)
@@ -119,7 +144,9 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
   # never-empty: args starts with the literal --pr-body list
   # the body cites paths of the head under review, not of this checkout
   BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
-  python3 -I tools/audit/carry_audit.py check --body "$body" || rc=1 # mut:carry
+  if roster_ref_args; then
+    python3 -I tools/audit/carry_audit.py ${RR[@]+"${RR[@]}"} check --body "$body" || rc=1 # mut:carry
+  else rc=1; fi
   rm -rf "$d"
   return "$rc"
 }
@@ -250,6 +277,12 @@ throwaway_git_init "$W/repo" -q
   && echo c > c.txt && git add c.txt && git commit -qm moved && git rev-parse HEAD > "$W/moved.sha" \
   && git checkout -q --detach "$(cat "$W/base.sha")" \
   && echo d > d.txt && git add d.txt && git commit -qm main-moved && git rev-parse HEAD > "$W/base2.sha" ) >/dev/null 2>&1
+# origin: a repository holding the roster at main and the round's roster branch.
+mkdir -p "$W/orig/dev/programme/rosters" "$W/orig2"
+( cd "$W/orig" && git init -q -b main . && throwaway_git_env && echo '{"groups": []}' > dev/programme/rosters/wave-r10-groups.json \
+  && git add . && git commit -qm roster && git branch handoff/audit-r10-roster \
+  && cd "$W/orig2" && git init -q -b main . && echo x > x && git add . && git commit -qm x \
+  && cd "$W/repo" && git remote add origin "$W/orig" && git fetch -q origin main:refs/remotes/origin/main ) >/dev/null 2>&1
 BASE=$(cat "$W/base2.sha"); HEAD=$(cat "$W/head.sha"); MOVED=$(cat "$W/moved.sha")
 printf '## Head\n\n`%s`\n\nthe corrected body, 113\n' "$HEAD" > "$W/body.md"
 
@@ -375,7 +408,7 @@ st "$(grep -c -- "--pr-body $W/body.md --head $HEAD --base $BASE --title fix: th
 st "$(grep '^treerev ' "$W/ok/log" | head -1)" "treerev $HEAD" "policy_lint runs with BRIEF_LINT_TREE_REV at the head, so cited paths resolve in the head's tree"
 st "$(cat "$W/ok/paths")" "$(printf 'a.txt\nb.txt')" "its paths are what the head changes against the base (three-dot): a.txt and b.txt, not the moved base's d.txt nor the later c.txt"
 st "$(cat "$W/ok/existing")" "a.txt" "its existing paths are the files the base already had (--diff-filter=a): a.txt, not the added b.txt"
-st "$(grep -c "^carry_audit check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body"
+st "$(grep -c "^carry_audit --roster-ref origin/handoff/audit-r10-roster check --body $W/body.md$" "$W/ok/log")" 1 "carry_audit check --body runs on the same body, at the freshly fetched round roster branch"
 st "$(calls ok 'curl DELETE installation/token')" 1 "the installation token is revoked on exit"
 st "$(leftover ok)" 0 "the private directory is gone"
 st "$(leaks ok)" 0 "no token, key or signature text in stdout or stderr"
@@ -413,6 +446,17 @@ st "$(calls lint curl)" 0 "never sent, never minted"
 mkcase carry; : > "$W/carry/carry-fails"
 run carry "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: carry_audit refuses the body"
 st "$(calls carry curl)" 0 "never sent, never minted"
+mkcase nofetch
+git -C "$W/repo" remote set-url origin "$W/nowhere"
+run nofetch "$BP" --repo o/r 7 "$HEAD" "$W/body.md"
+st $? 1 "REFUSE: the round roster branch cannot be fetched and the remote cannot say it is absent"
+st "$(calls nofetch curl)$(calls nofetch carry_audit)" 00 "no carry check on a roster it could not see, nothing minted"
+mkcase nobranch
+git -C "$W/repo" remote set-url origin "$W/orig2"
+run nobranch "$BP" --repo o/r 7 "$HEAD" "$W/body.md"
+st $? 0 "the branch proved absent on origin: the carry check runs without --roster-ref (null control)"
+st "$(grep -c '^carry_audit check --body ' "$W/nobranch/log")$(grep -c 'NOTE: handoff/audit-r10-roster does not exist' "$W/nobranch/err")" 11 "... and says so"
+git -C "$W/repo" remote set-url origin "$W/orig"
 mkcase checks; : > "$W/checks/checks-fail"
 run checks "$BP" --repo o/r 7 "$HEAD" "$W/body.md"; st $? 1 "REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds')"
 st "$(calls checks curl)" 0 "(and nothing minted)"
@@ -506,6 +550,7 @@ mutant head   '/# mut:head$/s/.*/:/'
 mutant prew   '/# mut:prewrite$/s/.*/:/'
 mutant lint   '/# mut:contract$/s/.*/:/'
 mutant carry  '/# mut:carry$/s/.*/:/'
+mutant rref   '/# mut:rosterref$/s/.*/    :/'
 mutant rb     '/# mut:readback$/s/.*/        body) rbok=1; break ;;/'
 mutant rbhead '/# mut:rbhead$/s/.*/        stale\\ *) rbok=1; break ;;/'
 mutant rbx    '/# mut:rbexhaust$/s/.*/:/'
@@ -526,6 +571,8 @@ mkcase m3; : > "$W/m3/lint-fails"; run m3 "$(MBP lint)" --repo o/r 7 "$HEAD" "$W
 st "$(calls m3 'curl PATCH')" 1 "MUTANT policy_lint arm deleted: the refused body is now SENT"
 mkcase m4; : > "$W/m4/carry-fails"; run m4 "$(MBP carry)" --repo o/r 7 "$HEAD" "$W/body.md"
 st "$(calls m4 'curl PATCH')" 1 "MUTANT carry_audit arm deleted: the refused body is now SENT"
+mkcase m4b; run m4b "$(MBP rref)" --repo o/r 7 "$HEAD" "$W/body.md"
+st "$(grep -c '^carry_audit --roster-ref ' "$W/m4b/log")" 0 "MUTANT --roster-ref dropped: the carry check runs without the round roster (first assertion fails)"
 mkcase m5; : > "$W/m5/mangle"; run m5 "$(MBP rb)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?
 st "$rc$(grep -c '^body_patch: OK' "$W/m5/out")" 01 "MUTANT body read-back deleted: a mangled body now reads OK"
 mkcase m6; : > "$W/m6/move-at-2"; run m6 "$(MBP rbhead)" --repo o/r 7 "$HEAD" "$W/body.md"; rc=$?

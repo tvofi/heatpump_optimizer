@@ -1185,6 +1185,13 @@ def _self_test() -> int:
     git("update-ref", "-d", "refs/remotes/" + rnd[0])
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
+    # body_patch passes --roster-ref <fetched round branch>: that ref, not the tree's roster, is read.
+    rp.write_text(json.dumps({"groups": roster["groups"] + [{"group": "R10-WTONLY", "resume": {"stage": "not-started"}}]}))
+    r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("a group only in the worktree roster is refused when --roster-ref names a ref lacking it", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name)))
+    check("... and passes with no --roster-ref, the tree's roster read (null control)", r["b"] == 0)
+    rp.write_text(json.dumps(roster))
     # P98 arm (b2): a tree behind origin/main reads the roster at origin/main.
     main_only = {"groups": roster["groups"] + [{"group": "R10-MAINONLY", "resume": {"stage": "not-started"}}]}
     rp.write_text(json.dumps(main_only))
