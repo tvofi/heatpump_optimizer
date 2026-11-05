@@ -1,0 +1,55 @@
+gate|success|2026-11-05T01:14:01Z
+pr-contract / pr-contract|success|2026-11-05T01:13:27Z
+tests / briefs|success|2026-11-04T22:42:29Z
+cancel-superseded|success|2026-11-04T22:27:57Z
+arch-score / arch-score|success|2026-11-04T22:36:39Z
+prelude|success|2026-11-04T22:33:34Z
+governance / delivery-status-publish|skipped|2026-11-04T22:33:34Z
+tests / ci-ratchet|skipped|2026-11-05T00:56:19Z
+tests / graders-head-copy|success|2026-11-05T00:57:11Z
+tests / coverage-ratchet|success|2026-11-05T00:56:38Z
+tests / lane-proofs|success|2026-11-05T00:58:04Z
+tests / closures-autofix|skipped|2026-11-04T23:19:43Z
+tests / mutation-autofix|skipped|2026-11-04T22:40:21Z
+tests / replay|success|2026-11-04T23:14:19Z
+tests / coverage|success|2026-11-05T00:56:19Z
+tests / claims-autofix|skipped|2026-11-05T00:54:02Z
+tests / browser|success|2026-11-04T23:08:35Z
+tests / nightly-ha|skipped|2026-11-04T22:38:25Z
+tests / fast (3.14)|success|2026-11-05T00:54:02Z
+tests / closures|success|2026-11-04T23:19:42Z
+tests / arch-instrument|success|2026-11-04T22:59:04Z
+governance / wave-script|success|2026-11-04T22:36:38Z
+tests / mutation|success|2026-11-04T22:40:21Z
+tests / mutation-pins|skipped|2026-11-04T22:40:21Z
+tests / typing|success|2026-11-04T22:48:17Z
+codeql / Analyze (javascript-typescript)|success|2026-11-04T22:42:30Z
+governance / env-matrix|success|2026-11-04T22:47:15Z
+budget-raise-gate / budget-raise-gate|success|2026-11-04T22:38:12Z
+validate / validate-hacs|success|2026-11-04T22:38:32Z
+codeql / Analyze (actions)|success|2026-11-04T22:42:56Z
+governance / instrument-self-tests|success|2026-11-04T23:00:03Z
+codeql / Analyze (python)|success|2026-11-04T23:16:21Z
+governance / delivery-status|success|2026-11-04T22:37:55Z
+hassfest / hassfest|success|2026-11-04T22:40:16Z
+tests / closure-scope|success|2026-11-04T22:38:25Z
+governance / policy-docs|success|2026-11-04T22:35:46Z
+governance / record|skipped|2026-11-04T22:33:34Z
+kernel-points|skipped|2026-11-05T01:12:35Z
+refresh|success|2026-11-04T22:29:01Z
+tests / nightly-status|failure|2026-11-05T01:12:51Z
+gate|success|2026-11-05T01:05:59Z
+pr-contract / pr-contract|success|2026-11-05T01:05:31Z
+kernel-points|skipped|2026-11-05T01:03:02Z
+hassfest|skipped|2026-11-05T01:03:02Z
+governance|skipped|2026-11-05T01:03:02Z
+tests|skipped|2026-11-05T01:03:02Z
+validate|skipped|2026-11-05T01:03:02Z
+codeql|skipped|2026-11-05T01:03:02Z
+arch-score / arch-score|success|2026-11-05T01:04:42Z
+budget-raise-gate / budget-raise-gate|success|2026-11-05T01:03:34Z
+cancel-superseded|success|2026-11-04T22:35:24Z
+refresh|success|2026-11-04T22:33:47Z
+prelude|success|2026-11-05T01:03:02Z
+CodeQL|success|2026-11-04T22:42:22Z
+arm|skipped|2026-11-04T22:20:05Z
