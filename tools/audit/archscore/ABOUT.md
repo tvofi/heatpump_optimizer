@@ -133,17 +133,20 @@ attempt reads WORSENS (inadmissible: its `repr(...)` wrapper is a new logic stat
 Round 2 review (c8204eb8): the conditional tree was followed through `orelse` only, so `(a if q else b) if p else c` read one
 against the five of its nested if/else (attempt 54, IMPROVES +0.0022 before the repair, NULL after); a starred target
 (`a, *b = e1, e2, e3`) read one more than its plain spelling. Both are fixed in `footprint._chain` and `_bound`.
-Remaining shapes, each disposed, none planted on the coordinator as an admitted hole:
+Remaining shapes, each disposed (attempt 55 is the one recorded open):
 
 - `for a, b in [(e1, e2), (e3, e4)]: s(a, b)` and its `async for` twin read the pairs plus the body, which is written once, so
   they read above the unrolled calls. Over-counts, the safe direction: the loop is charged for the values it binds, which the
   loop spelling of a lookup table does not save (attempt 50 pins the one-element form that was the hole).
-- `p and f(x) or g(y)` (a `BoolOp` used as control flow) and `[fn(x) for fn in (f, g)]` (a comprehension used as a loop over a
-  literal) read one statement each. Not counted: a `BoolOp` is also the idiom `a or b` and a comprehension is also the idiom for a
-  mapping, and no structural test separates control flow from the idiom, so counting either would charge ordinary code. The
-  gaming reach is bounded: the spelling reads as one expression with its operands in place and does not delete a branch's
-  operands, and each operand that is a call still counts as plumbing or as one logic statement by `_plumbing`. Open by design; a
-  respelling that lowers the footprint here reads as the idiom it is, and a reviewer reads the diff for it.
+- `x = p and A or B` (a `BoolOp` used as control flow) is the respelling of a lone `x = A if p else B`, which is disposed above as the
+  idiom: an if/else of three statements reads one in either spelling, bounded, not a class. Planted as attempt 55 over every
+  single-name if/else of the coordinator, it reads IMPROVES (admissible) and is recorded KNOWN-OPEN (`planted/cases.py`
+  `KNOWN_OPEN`), so a class fix flips it and `tests/arch_score.py` refuses until it is re-recorded. A chain of such terms
+  (`p and A or q and B or C`) is not closed either. Not counted: `a or b` and `a and b` are idioms and no structural test
+  separates control flow from them. The behaviour differs when `A` is falsy, which the suite sees and the score does not.
+- `[fn(x + 1) for fn in (f, g)]` (a comprehension used as a loop over a literal) reads one against two unrolled calls; the same
+  idiom argument, and not planted: a comprehension is also a mapping, and the unrolled spelling it replaces is a loop body
+  written once. Disposition: open by design, bounded by one statement per literal element.
 
 ### What R10-STRUCTURE-BLIND moved (D7-s1-01, D7-s3-01)
 
