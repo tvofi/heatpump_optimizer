@@ -1,0 +1,52 @@
+=== job 127017059892
+shell: /usr/bin/bash -e {0}
+env:
+  PINNED: 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+  INPUT_BASE: 
+programs restored from 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 3218
+  BASE: main
+  KIND: edit
+FAIL tests / fast (3.14): cancelled (run 41955325094)
+tests / arch-instrument: cancelled (run 41955325094)
+tests / closures: cancelled (run 41955325094)
+codeql / Analyze (python): cancelled (run 41955325094)
+governance / env-matrix: cancelled (run 41955325094)
+pr-contract / pr-contract: failure (this run)
+##[error]Process completed with exit code 1.
+Post job cleanup.
+git version 2.56.0
+Removing SSH command configuration
+Removing HTTP extra header
+Removing includeIf entries pointing to credentials config files
+Cleaning up orphan processes
+=== job 127013509176
+[36;1mif test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --version-edit origin/main "$PR_HEAD"; else bash tools/pr/prepr.sh --version-edit origin/main "$PR_HEAD"; fi[0m
+shell: /usr/bin/bash -e {0}
+env:
+  PR_HEAD: c8204eb8360999253c6e4ded50e58b96a8847bc2
+no version edit: origin/main...c8204eb8360999253c6e4ded50e58b96a8847bc2 moves none of VERSION, the manifest version or a notes heading
+[36;1mset -euo pipefail[0m
+[36;1mgit fetch --no-tags origin '+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster'[0m
+[36;1mpython3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md[0m
+shell: /usr/bin/bash -e {0}
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+Post job cleanup.
+git version 2.56.0
+Removing SSH command configuration
+Removing HTTP extra header
+Removing includeIf entries pointing to credentials config files
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+includeif.gitdir:/github/workspace/.git.path
+includeif.gitdir:/github/workspace/.git/worktrees/*.path
+/home/runner/work/_temp/git-credentials-0be73607-7f1e-4a2c-98bf-a9e31ebf7b98.config
+/home/runner/work/_temp/git-credentials-0be73607-7f1e-4a2c-98bf-a9e31ebf7b98.config
+/github/runner_temp/git-credentials-0be73607-7f1e-4a2c-98bf-a9e31ebf7b98.config
+/github/runner_temp/git-credentials-0be73607-7f1e-4a2c-98bf-a9e31ebf7b98.config
+Removing credentials config '/home/runner/work/_temp/git-credentials-0be73607-7f1e-4a2c-98bf-a9e31ebf7b98.config'
+Cleaning up orphan processes

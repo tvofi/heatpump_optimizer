@@ -1,0 +1,33 @@
+calibrate at c8204eb8 + reviewer plant 54 (uncommitted, in ev/)
+default:
+MOVED rt_40_layer_module_const_ann: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_41_layer_chain_past_module: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_42_literal_respelled: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_42b_literal_module_constant: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_42c_literal_keyword_args: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_42d_literal_module_attr: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_43_literal_local_hop: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44_card_rename_locals: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44b_card_noop_split: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44c_card_empty_statement: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_45_shape_private_copy: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_46_card_rule_respelled: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_47_card_template_respelled: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_54_rv_ifexp_body_chain: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+calibration moved on 180 case(s)
+ARCHSCORE_ABLATE=C25:
+MOVED rt_44_card_rename_locals: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44b_card_noop_split: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_44c_card_empty_statement: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+MOVED rt_45_shape_private_copy: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_46_card_rule_respelled: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_47_card_template_respelled: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now None
+MOVED rt_48_footprint_packed_unpack: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_49_footprint_packed_nested: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_50_footprint_packed_for_literal: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_51_footprint_packed_walrus: recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_52_footprint_packed_set_display: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_53_footprint_ifexp_chain: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_54_rv_ifexp_body_chain: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}
+MOVED rt_55_rv_display_wrapped: recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now None
+calibration moved on 187 case(s)
