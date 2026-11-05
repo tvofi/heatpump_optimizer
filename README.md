@@ -580,7 +580,7 @@ every sensor is created on every install regardless of which group it is in.
 
 | Sensor | Unit | What it tells you | Notes |
 |---|---|---|---|
-| Plan Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule | Only the hot-water half of the baseline is always-on |
+| Plan Predicted Savings | CUR | Saving over 24 h against a simulated conventional thermostat following the same comfort schedule, with no wood: heat from wood counts in the saving, firewood's cost does not | Only the hot-water half of the baseline is always-on |
 | Plan Savings Percentage | % | The same saving as a percentage | |
 | Cost Predicted | CUR | Cost of the optimized 24 h plan | |
 | Cost Baseline | CUR | Cost of the baseline over the same 24 h | |

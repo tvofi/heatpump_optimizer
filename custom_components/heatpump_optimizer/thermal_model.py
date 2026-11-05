@@ -1897,6 +1897,30 @@ def _circuit_draw(circuits: list[tuple[float, float, float]], tank: float) -> fl
     return sum(ua * max(0.0, min(tank, top) - zone) for ua, top, zone in circuits)
 
 
+def valve_hold_temperature(
+    model: "ThermalModel", state: ThermalState, need_kw: float,
+    outdoor_temp: float, wind_speed: float, precipitation: float,
+) -> float:
+    """The lowest tank temperature whose draw behind the valve is ``need_kw``.
+
+    Capped at the curve the valve mixes down to and ``buffer_max_temp``: heat
+    above it reaches no emitter. Where a thermostat keeps its tank
+    (R10-BUFFER-STORE), and so where its first step starts from.
+    """
+    p = model.params
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    # The draw is piecewise linear in the tank temperature, kinked where a
+    # circuit starts drawing (its zone) and where its curve caps it; the
+    # highest kink is the curve's top, or the cap behind a direct slab.
+    # Its inverse is the same line read the other way, and a need past the
+    # highest kink's draw holds that kink.
+    kinks = sorted({
+        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
+    })
+    return float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+
+
 def valve_charge_demand(
     model: "ThermalModel", state: ThermalState, need_kw: float,
     outdoor_temp: float, wind_speed: float, precipitation: float,
@@ -1920,15 +1944,8 @@ def valve_charge_demand(
     circuits = _valve_draw_circuits(
         model, state, outdoor_temp, wind_speed, precipitation)
     tank = state.buffer_tank_temperature
-    # The draw is piecewise linear in the tank temperature, kinked where a
-    # circuit starts drawing (its zone) and where its curve caps it; the
-    # highest kink is the curve's top, or the cap behind a direct slab.
-    # Its inverse is the same line read the other way, and a need past the
-    # highest kink's draw holds that kink.
-    kinks = sorted({
-        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
-    })
-    goal = float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+    goal = valve_hold_temperature(
+        model, state, need_kw, outdoor_temp, wind_speed, precipitation)
     loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
     return (
         _circuit_draw(circuits, tank) + loss
@@ -2349,8 +2366,8 @@ def wood_share(
     lets any real tank cover a whole step, so priority degenerates to
     "wood to the floor" even at 30 °C against a 40 °C curve.
 
-    Module-level and pure so the savings baseline can reuse it verbatim —
-    two copies of this law would drift the first time one is tuned.
+    Module-level and pure: two copies of this law would drift the first time
+    one is tuned.
     """
     if wood_temp >= flow_set:
         return 1.0

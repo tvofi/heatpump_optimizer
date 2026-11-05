@@ -118,11 +118,20 @@ SUBSTITUTES = NONFINITE + WRONG_TYPE
 # Arm 1 — the seam set is derived, not carried
 # ---------------------------------------------------------------------------
 
+#: The boundary's class and every subclass, read off the module that owns them,
+#: so a store with its own migration is a boundary without being named here.
+_QUARANTINE_CLASSES = frozenset(
+    name for name, obj in vars(_store).items()
+    if isinstance(obj, type) and issubclass(obj, QuarantiningStore)
+)
+
+
 def _boundary_sites() -> tuple[list[str], list[str]]:
     """Every ``QuarantiningStore(...)`` and raw ``Store(...)`` construction.
 
     The enumeration rule: walk the package's AST; a ``Call`` whose callee is the
-    bare name ``QuarantiningStore`` is a store-load boundary, and a ``Call``
+    bare name ``QuarantiningStore`` or a subclass the store module defines is a
+    store-load boundary, and a ``Call``
     whose callee is the bare name ``Store`` is a boundary that skipped the
     choke point. ``Store[_T]`` in a base class or a type annotation is neither
     (a ``Subscript``/base, not a ``Call``), so it never trips the raw check.
@@ -137,7 +146,7 @@ def _boundary_sites() -> tuple[list[str], list[str]]:
             func = node.func
             if isinstance(func, ast.Name):
                 rel = str(path.relative_to(ROOT))
-                if func.id == "QuarantiningStore":
+                if func.id in _QUARANTINE_CLASSES:
                     quarantined.append(f"{rel}:{node.lineno}")
                 elif func.id == "Store":
                     raw.append(f"{rel}:{node.lineno}")
@@ -2232,7 +2241,7 @@ def _version_names() -> list[tuple[str, str | None]]:
     for path in sorted(PKG.rglob("*.py")):
         for node in ast.walk(ast.parse(path.read_text(), filename=str(path))):
             if not (isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
-                    and node.func.id == "QuarantiningStore"):
+                    and node.func.id in _QUARANTINE_CLASSES):
                 continue
             arg = node.args[1] if len(node.args) > 1 else next(
                 (k.value for k in node.keywords if k.arg == "version"), None)
@@ -2349,9 +2358,13 @@ def _version_arm(by_name) -> None:
                     if key not in _storage._DISK:
                         overwritten.append(f"{name}@reload:unsaved")
                 warned, issued = _surfaced(coord, key)
-                if not lag and (warned or issued):
+                # One below a store with its own migration is that migration's,
+                # no mismatch: it surfaces nothing. features.py pins what it migrates to.
+                migrated = lag == 1 and type(stores[key])._async_migrate_func is not (
+                    QuarantiningStore._async_migrate_func)
+                if (not lag or migrated) and (warned or issued):
                     noisy.append(name)
-                elif lag and not (warned and issued):
+                elif lag and not migrated and not (warned and issued):
                     unsurfaced.append(f"{name}@{lag}:warned={warned},issued={issued}")
     finally:
         QuarantiningStore.async_load = real_load
@@ -2362,7 +2375,7 @@ def _version_arm(by_name) -> None:
         _storage._VERSIONS.clear()
         _store._NEWER_ON_DISK.clear()
     R.check(
-        "a store read at its own version surfaces nothing (the control)",
+        "a store read at its own version, or one its own migration reads, surfaces nothing (the control)",
         not noisy and len(stores) == len(LOADERS),
         f"noisy={noisy} stores={len(stores)} loaders={len(LOADERS)}",
     )
@@ -2445,6 +2458,26 @@ def _version_arm(by_name) -> None:
         floor_saves == 0 and minor_saves == 1,
         f"saves after the hook saw a newer major={floor_saves}; after a "
         f"minor-only mismatch={minor_saves} (want 1)",
+    )
+    # The ledger's own hook migrates a v1 document alone: any other major --
+    # a newer one the 2025.2.0 floor hands it on a downgrade -- or a v1
+    # document that is not a mapping falls through to the default's refusal,
+    # never into migrate_ledger_v1 and never to a silent None.
+    ledger_verdicts = []
+    for major, data in ((3, {}), (1, []), (1, {})):
+        probe = _store.LedgerStore(FakeHass(), 2, f"{const.DOMAIN}_{ENTRY_ID}_ledger_hook_probe")
+        try:
+            out = asyncio.run(probe._async_migrate_func(major, 1, data))
+            ledger_verdicts.append("returned" if out is not None else "None")
+        except NotImplementedError:
+            ledger_verdicts.append("not-implemented")
+        except Exception as exc:  # noqa: BLE001 -- a fall-through into the v1 migration
+            ledger_verdicts.append(type(exc).__name__)
+    R.check(
+        "the ledger store migrates only a v1 mapping; a newer major and a v1 "
+        "non-mapping reach the default hook's NotImplementedError",
+        ledger_verdicts == ["not-implemented", "not-implemented", "returned"],
+        f"verdicts={ledger_verdicts}",
     )
     # A downgrade leaves the store as Home Assistant's own exception, after the
     # surfacing: the loaders catch any exception alike, so only the type tells
