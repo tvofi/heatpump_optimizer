@@ -77101,6 +77101,14 @@ R.check(
     all(v == 0.0 for v in _dg_zero.values()),
     f"{_dg_zero}",
 )
+_dg_negzero = _gd_mod.day_drivers(_dg_book, 2.0, -0.0)
+_dg_zero2 = _gd_mod.day_drivers(_dg_book, 2.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a negative-zero sample books the same zeros as a zero one, sign included",
+    {k: repr(v) for k, v in _dg_negzero.items()} == {k: repr(v) for k, v in _dg_zero2.items()}
+    and all(v > 0.0 for v in _gd_mod.day_drivers(_dg_book, 2.0, 5.0).values()),
+    f"{_dg_negzero} vs {_dg_zero2}",
+)
 _dg_neg_total = _gd_mod.day_drivers({"kwh": 1.0, "sek": 2.0}, 1.0, 50.0)
 R.check(
     "R10-GRADE-DRIVERS day_drivers: a day that saved nothing scales to 0",
