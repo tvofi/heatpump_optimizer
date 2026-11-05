@@ -11,3 +11,10 @@
   Refusal: no real gh, `gh shim: no real gh on PATH`, rc 127. When: the shared
   token's core bucket is spent and no host log names the caller (P284). Tested by
   `gh_calls.py --self-test`.
+  Comment guard (R10-RAISE-GATE-SHIM): a comment write on #201 (`gh issue comment`, or a
+  `gh api` field/`--input`/non-GET at `.../issues/201/comments`) is refused unless the caller is
+  python running the tree's own `tools/pr/gh_comment.py`, resolved by real path (the installer
+  bakes the path into the copy; a symlink or another file of that basename is refused). The
+  target and path are read after dropping leading zeros, trailing slashes, query, anchor, one
+  %-decoding and dot segments; one it cannot read as a plain number is refused. Residual: a
+  PATCH of a comment and a graphql mutation.

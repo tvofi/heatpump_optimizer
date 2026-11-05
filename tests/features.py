@@ -8238,6 +8238,7 @@ from heatpump_optimizer.drift import Cusum as _Cusum
 
 class _LearnPersist:
     _async_save_thermal_learning = Coord._async_save_thermal_learning
+    _load_scalar_learners = Coord._load_scalar_learners
     _async_load_thermal_learning = Coord._async_load_thermal_learning
     # The save path serialises through the same producer the snapshots
     # use (T4a); a stub with its own dict would test a second format.
@@ -9040,11 +9041,14 @@ R.check(
 _snap = _LearnPersist(_CountingLearnStore())
 _snap._thermal_params.heat_loss_coefficient = _NEW
 _snap._apply_house_heat_loss_scale(1.0)
-_snap._house_heat_loss_samples = 300
+# The count the law weighs is the snapshot's, as the loader's is the store's
+# (R10-LEARNED-STORE-LOAD): the live count since is not the restored scale's.
+_snap._house_heat_loss_samples = 0
 _snap._apply_learner_payloads(
     {
         "thermal_learning": {
             "house_heat_loss_scale": _SCALE,
+            "house_heat_loss_samples": 300,
             "house_heat_loss_anchor": _OLD,
         }
     }
@@ -14037,6 +14041,93 @@ for _race_name, (_race_load, _race_cmd, _race_read, _race_want) in _RACES.items(
         _raced == _null == _race_want,
         f"raced {_raced!r}, after the read {_null!r}, want {_race_want!r}",
     )
+
+
+# R10-LEARNED-STORE-LOAD: the learned-state loads and the writers that must
+# wait for them, through the production coordinator. (1) A thermal save
+# issued while _async_load_thermal_learning runs -- the loader's own gated
+# re-anchor save included -- must not write the stored COP and T4b learners
+# back as their defaults: every payload saved carries them. (2) A restore
+# issued while the snapshot ring's load is in flight restores the newest
+# snapshot, sample counts included. Null control: the same command after the
+# load landed.
+from heatpump_optimizer.coordinator import _COP_STORE_KEY as _lsl_cop_key  # noqa: E402
+
+_lsl_stored = {  # pre-anchor (no anchor keys), so the loader's own gated save fires
+    "house_heat_loss_scale": 1.3, "house_heat_loss_samples": 12,
+    _lsl_cop_key: 1.15, "cop_samples": 30,
+    "capacity_envelope": {"-5": [7.5, 4]}}
+
+
+def _lsl_saves(coord):
+    """Every thermal payload saved, as (cop samples, envelope keys)."""
+    store, seen = coord._thermal_learning_store, []
+    real = store.async_save
+
+    async def recording(data):
+        seen.append((data.get("cop_samples"), sorted(data.get("capacity_envelope") or {})))
+        await real(data)
+
+    store.async_save = recording
+    return seen
+
+
+def _lsl_save_race(after):
+    seen = {}
+
+    def build():
+        coord = _race_coord()
+        seen["saves"] = _lsl_saves(coord)
+        return coord
+
+    _store_race(build, lambda c: (c._thermal_learning_store, dict(_lsl_stored),
+                                  c._async_load_thermal_learning),
+                lambda c: c._async_save_thermal_learning(), lambda c: None, after=after)
+    return seen["saves"]
+
+
+_lsl_raced, _lsl_null = _lsl_save_race(False), _lsl_save_race(True)
+R.check(
+    "a thermal save issued mid-load keeps the stored COP and T4b learners in every payload",
+    bool(_lsl_raced) and all(s == (30, ["-5"]) for s in _lsl_raced + _lsl_null),
+    f"raced {_lsl_raced}, after the load {_lsl_null}",
+)
+
+
+def _lsl_ring():
+    """A ring whose newest snapshot holds a learned state the live one lacks."""
+    coord = _race_coord()
+    coord._apply_house_heat_loss_scale(1.4)
+    coord._house_heat_loss_samples = 33
+    coord._apply_cop_scale(1.1)
+    coord._cop_samples = 21
+    coord._snapshot_ring.take(datetime.now(timezone.utc), coord._learner_snapshot_payloads(),
+                              coord._accuracy.summary(), True)
+    return coord._snapshot_ring.as_dict()
+
+
+_lsl_ring_payload = _lsl_ring()
+
+
+def _lsl_restore_race(after):
+    out = {}
+
+    async def restore(c):
+        out["applied"] = await c.async_restore_learned_snapshot()
+
+    got = _store_race(_race_coord, lambda c: (c._snapshot_store, _lsl_ring_payload,
+                                              c._async_load_snapshots),
+                      restore, lambda c: (round(c._house_heat_loss_scale, 6), c._house_heat_loss_samples,
+                                          round(c._cop_scale, 6), c._cop_samples), after=after)
+    return out["applied"], got
+
+
+_lsl_restored, _lsl_restored_null = _lsl_restore_race(False), _lsl_restore_race(True)
+R.check(
+    "a restore issued right after setup applies the newest snapshot, sample counts included",
+    _lsl_restored == _lsl_restored_null == (True, (1.4, 33, 1.1, 21)),
+    f"raced {_lsl_restored}, after the load {_lsl_restored_null}",
+)
 
 
 # #2248's class (N-restore-race) over the setup refresh: each store read the
@@ -60921,6 +61012,7 @@ _P5_DISPOSED = {
     "_apply_learner_payloads": "restores a stored snapshot (drift rollback)",
     "_async_load_thermal_learning": "restore from the store",
     "_load_t4b_learners": "restore from the store",
+    "_load_scalar_learners": "restore from the store or a snapshot: the one parser of the four scalar learners",
     "_reanchor_house_heat_loss_scale": "re-expresses a restored scale (#86)",
     "_void_heat_loss_learners": "voids evidence (a sensor swap, a nameplate edit, "
     "the reset action); no evidence enters",

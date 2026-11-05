@@ -51,7 +51,7 @@ for a in "$@"; do
     --method=*) meth=${a#*=} ;;
     -f|-F|--field|--raw-field|--input) skip=1; prev=$a; write=1 ;;
     -f?*|-F?*|--field=*|--raw-field=*|--input=*) write=1 ;;
-    -H|-q|-t|-p|-R|-B|-b|--header|--jq|--template|--hostname|--cache|--preview|--repo) skip=1; prev=$a ;;
+    -H|-q|-t|-p|-R|-B|-b|--body|--body-file|--header|--jq|--template|--hostname|--cache|--preview|--repo) skip=1; prev=$a ;;
     -*) ;;
     *) if [ -z "$sub" ]; then sub=$a; elif [ -z "$verb" ]; then verb=$a; else third=$a; break; fi ;;
   esac
@@ -127,26 +127,110 @@ esac
 
 # The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
 # lives in that script alone, so a raw post bypassed it): a comment WRITE on the tracking
-# issue is refused unless the caller is gh_comment.py, python's first script word. The
+# issue is refused unless the caller is python running the tree's own gh_comment.py. The
 # issue number is budget_raise_gate.MANDATE_ISSUE (gh_calls.py's own checks pin the two
-# equal). A write is `gh issue comment 201`, or `gh api` at .../issues/201/comments with
-# a field, an --input or a method other than GET. Residual, by design: a PATCH of
-# issues/comments/<id> and a graphql mutation name no issue, so this reads neither.
+# equal). A write is `gh issue comment <target>`, or `gh api` at .../issues/<n>/comments
+# with a field, an --input or a method other than GET. Fail closed: a target or path this
+# cannot read as one plain number (a branch word, an unresolved %-escape, a backslash, a
+# newline) is refused too, so is `gh issue comment` with no target. The number is read
+# after dropping leading zeros, a trailing slash, a query or anchor, one %-decoding and
+# `.`/`..`/empty path segments. `issue comment` is read by gh's own flag table (the value
+# of -b/--body, -F/--body-file and -R/--repo is skipped, attached or detached, above).
+# Residual, by design: a PATCH of issues/comments/<id> and a graphql mutation name no issue,
+# so this reads neither; `gh pr comment` is not read (#201 is an issue).
 tracker=201
+# gh_comment.py's own path: seat_venv.sh --install-shims bakes the tree's into the next
+# line; a shim run from its place in the tree derives it; anywhere else it stays empty,
+# and then no caller passes.
+gcpy=@HPO_GH_COMMENT@
+case $gcpy in @*) case $0 in */tools/audit/seat/shims/*) gcpy=${0%/tools/audit/seat/shims/*}/tools/pr/gh_comment.py ;; *) gcpy= ;; esac ;; esac
+
+# num <word>: the decimal number a word names, leading zeros dropped, or ? when it is not
+# one plain number (a URL counts only as .../issues/<n> or .../pull/<n>)
+num() {
+  local w=$1 n p
+  case $w in *\\*) printf '?'; return ;; esac
+  w=${w%%[#?]*}; w=${w#\#}
+  case $w in *%*) w=$(printf '%b' "${w//%/\\x}"); case $w in *[%#?\\]*) printf '?'; return ;; esac ;; esac
+  while [ "${w%/}" != "$w" ]; do w=${w%/}; done
+  case $w in
+    */*) n=${w##*/}; p=${w%/*}; case ${p##*/} in issues|pull) ;; *) printf '?'; return ;; esac ;;
+    *) n=$w ;;
+  esac
+  case $n in ''|*[!0-9]*) printf '?'; return ;; esac
+  n=${n#"${n%%[!0]*}"}
+  printf '%s' "${n:-0}"
+}
+# api_hits <path>: 0 when the path is .../issues/<tracker>/comments, 2 when it cannot be
+# read, else 1
+api_hits() {
+  local w=$1 IFS=/ seg k t
+  local -a segs out
+  case $w in *\\*|*$'\n'*) return 2 ;; esac
+  w=${w%%[#?]*}
+  case $w in *%*) w=$(printf '%b' "${w//%/\\x}"); case $w in *[%#?\\]*|*$'\n'*) return 2 ;; esac ;; esac
+  case $w in *://*) w=${w#*://}; w=${w#*/} ;; esac
+  set -f; read -r -a segs <<< "$w"; set +f
+  out=()
+  for seg in "${segs[@]}"; do
+    case $seg in
+      ''|.) ;;
+      ..) [ "${#out[@]}" -gt 0 ] && out=("${out[@]:0:$((${#out[@]} - 1))}") ;;
+      *) out+=("$seg") ;;
+    esac
+  done
+  k=0
+  while [ "$((k + 2))" -lt "${#out[@]}" ]; do
+    if [ "${out[$k]}" = issues ] && [ "${out[$((k + 2))]}" = comments ] && [ "$((k + 3))" -eq "${#out[@]}" ]; then
+      t=$(num "${out[$((k + 1))]}")
+      [ "$t" = "$tracker" ] && return 0
+    fi
+    k=$((k + 1))
+  done
+  return 1
+}
+# rp <file>: the physical path of an existing regular file that is not a symlink, else nothing
+rp() {
+  local p=$1 d
+  case $p in /*) ;; *) p=$PWD/$p ;; esac
+  { [ -f "$p" ] && [ ! -L "$p" ]; } || return 1
+  d=$(cd "${p%/*}" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s' "$d" "${p##*/}"
+}
+
 case $sub:$verb in
-  issue:comment) case $third in $tracker|*/issues/$tracker|*/issues/$tracker#*|"#$tracker") hit=1 ;; esac ;;
-  api:*/issues/$tracker/comments) { [ -n "$write" ] || { [ -n "$meth" ] && [ "$meth" != GET ]; }; } && hit=1 ;;
+  issue:comment) t=$(num "$third"); { [ "$t" = "$tracker" ] || [ "$t" = '?' ]; } && hit=1 ;;
+  api:*) if [ -n "$write" ] || { [ -n "$meth" ] && [ "$meth" != GET ]; }; then api_hits "$verb"; [ $? != 1 ] && hit=1; fi ;;
 esac
 if [ -n "${hit:-}" ]; then
   gcp=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
   set -f; read -r -a gw <<< "$gcp"; set +f
   ok=
+  # python's own option table (as the parent field above reads it): the script is the first
+  # word that is not an option nor an option's value; -c, -m and any option unknown end it
   case ${gw[0]##*/} in python|python[0-9]*)
-    for w in "${gw[@]:1}"; do
-      case $w in -*) continue ;; esac
-      [ "${w##*/}" = gh_comment.py ] && ok=1
-      break
-    done ;;
+    i=1 script=
+    while [ "$i" -lt "${#gw[@]}" ]; do
+      w=${gw[$i]}
+      case $w in
+        --*) break ;;
+        -?*)
+          j=1
+          while [ "$j" -lt "${#w}" ]; do
+            case ${w:$j:1} in
+              [bBdEhiIOqPRSuvVx]) ;;
+              [WX]) [ "$((j + 1))" -eq "${#w}" ] && i=$((i + 1)); break ;;
+              *) break 2 ;;
+            esac
+            j=$((j + 1))
+          done ;;
+        *) script=$w; break ;;
+      esac
+      i=$((i + 1))
+    done
+    if [ -n "$script" ] && [ -n "$gcpy" ]; then
+      a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
+    fi ;;
   esac
   [ -n "$ok" ] || { echo "gh shim: a comment write on #$tracker goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
 fi
