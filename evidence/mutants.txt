@@ -1,0 +1,17 @@
+== M1 shim refusal disabled
+gh_calls self-test: 190 checks, 65 failed
+FAIL planted raw gh api POST kill pairing #201: want refused got passed rc=0 stub='api -X POST repos/tvofi/heatpump_optimizer/issues/201/comments -f body=<W>\\ mandate\\ f'
+RESULT controls: 6/38 as expected
+== M2 merge_train reads shape only
+  FAIL a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate refuses it (the train reads budget_raise_gate.justified, its measured figure)
+merge_train self-test: 443 checks, 1 failed
+== M3 check_body shape only
+  FAIL e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so: got (0, False), want (1, True)
+budget_raise_gate self-test: 274 checks, 1 failed
+== M4 --check-body passes no scorer
+  FAIL e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so: got (0, False), want (1, True)
+budget_raise_gate self-test: 274 checks, 1 failed
+== M5 installer does not bake gcpy
+seat_venv self-test: 25 checks, 0 failed
+gh_calls self-test: 190 checks, 0 failed
+== M6 api path case: no mutant (gap)

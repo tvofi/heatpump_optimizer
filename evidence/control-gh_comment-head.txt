@@ -1,0 +1,9 @@
+  live first line: 'x'
+REFUSED: the comment on the record is not the body that was sent
+OK body_file=/home/user/rev3223/seat/body.md chars=23 sha=10240a6e23c8307d
+WROTE id=1 url=?
+READBACK id=1 live_len=1 want_len=23 live_sha=2d711642b726b044 want_sha=10240a6e23c8307d identical=False
+rc=2
+STUB:
+api /repos/tvofi/heatpump_optimizer/issues/201/comments --method POST --input /tmp/gh_comment_smkawnxd.json 
+api /repos/tvofi/heatpump_optimizer/issues/comments/1 
