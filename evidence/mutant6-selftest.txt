@@ -1,0 +1,7 @@
+== mutant worktree_gc-6 self-test
+FAIL orphan with a merged branch: removed (got '1', want '0')
+FAIL the orphan removal leased at the head the read gave (class C) (got '0', want '1')
+FAIL null control: the unmoved detached orphan in the same run is removed (got '1', want '0')
+worktree_gc self-test: 105 checks, 3 failed
+== null (restored)
+worktree_gc self-test: 105 checks, 0 failed

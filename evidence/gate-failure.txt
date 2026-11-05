@@ -1,0 +1,45 @@
+##[group]Determining the checkout info
+##[endgroup]
+##[group]Checking out the ref
+Note: switching to 'refs/remotes/pull/3085/merge'.
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+  git switch -c <new-branch-name>
+Or undo this operation with:
+  git switch -
+Turn off this advice by setting config variable advice.detachedHead to false
+HEAD is now at 1ddc2ad44 Merge 31e0bab01a714bf949cb99efce04dab19c44563b into 7c274274830ce553b8faec9574837de91a2be234
+##[endgroup]
+1ddc2ad44a69e9353f6d0ba4de99559149dd492e
+##[group]Removing auth
+Removing SSH command configuration
+Removing HTTP extra header
+##[endgroup]
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+env:
+  PINNED: 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+  INPUT_BASE: 
+##[endgroup]
+programs restored from 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 3085
+  BASE: main
+  KIND: edit
+##[endgroup]
+FAIL tests / fast (3.14): cancelled (run 41957409301)
+tests / closures: cancelled (run 41957409301)
+codeql / Analyze (python): cancelled (run 41957409301)
+##[error]Process completed with exit code 1.
+Post job cleanup.
+git version 2.56.0
+Temporarily overriding HOME='/home/runner/work/_temp/bef97bc5-49c6-4080-b6a5-ce608f3d23a0' before making global git config changes
+Removing SSH command configuration
+Removing HTTP extra header
+Cleaning up orphan processes

@@ -1,0 +1,42 @@
+== attached head race=1
+gc rc=0
+  gc| keep  /tmp/tmp.H05f5kSNHG/repo  main
+  gc| remove  /tmp/tmp.H05f5kSNHG/seats/seat-a (orphaned seat)
+  gc| worktree_gc: FAILED to remove /tmp/tmp.H05f5kSNHG/seats/seat-a: its HEAD is no longer 1e78d0b0bdd2856034c68d254e7202ab476cd945, kept
+moved tip=4440ae62ad295daa2a61c107f494c2c4e52f57a4 seat wt now: present
+RESULT race=1 orphan-detached-moved-head-lost=0
+== attached head race=0
+gc rc=0
+  gc| keep  /tmp/tmp.MQrOunhcD4/repo  main
+  gc| remove  /tmp/tmp.MQrOunhcD4/seats/seat-a (orphaned seat)
+  gc| removed  /tmp/tmp.MQrOunhcD4/seats/seat-a
+moved tip=none seat wt now: removed
+RESULT race=0 orphan-detached-moved-head-lost=0
+== attached 5aae race=1
+gc rc=0
+  gc| keep  /tmp/tmp.jaXWqsc4Nh/repo  main
+  gc| remove  /tmp/tmp.jaXWqsc4Nh/seats/seat-a (orphaned seat)
+  gc| removed  /tmp/tmp.jaXWqsc4Nh/seats/seat-a
+moved tip=1ee9227c08362fa294dbd81f92c540052c191dfe seat wt now: removed
+RESULT race=1 orphan-detached-moved-head-lost=1
+== attached 5aae race=0
+gc rc=0
+  gc| keep  /tmp/tmp.cA6mM0PE8W/repo  main
+  gc| remove  /tmp/tmp.cA6mM0PE8W/seats/seat-a (orphaned seat)
+  gc| removed  /tmp/tmp.cA6mM0PE8W/seats/seat-a
+moved tip=none seat wt now: removed
+RESULT race=0 orphan-detached-moved-head-lost=0
+== attached mut6 race=1
+gc rc=0
+  gc| keep  /tmp/tmp.Ls8IQMEkDO/repo  main
+  gc| remove  /tmp/tmp.Ls8IQMEkDO/seats/seat-a (orphaned seat)
+  gc| removed  /tmp/tmp.Ls8IQMEkDO/seats/seat-a
+moved tip=6060de4dee98f7e7a9f1adb37c02e1a81ae4ceac seat wt now: removed
+RESULT race=1 orphan-detached-moved-head-lost=1
+== attached mut6 race=0
+gc rc=0
+  gc| keep  /tmp/tmp.9ikGwOnnvV/repo  main
+  gc| remove  /tmp/tmp.9ikGwOnnvV/seats/seat-a (orphaned seat)
+  gc| removed  /tmp/tmp.9ikGwOnnvV/seats/seat-a
+moved tip=none seat wt now: removed
+RESULT race=0 orphan-detached-moved-head-lost=0
