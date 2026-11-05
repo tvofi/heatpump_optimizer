@@ -87,7 +87,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import QuarantiningStore, admitted, load_mapping
+from .store import LedgerStore, QuarantiningStore, admitted, load_mapping
 from .entry_config import EntryConfig, factory_settings, undo_point, undone_settings
 from homeassistant.util import dt as dt_util
 
@@ -3699,7 +3699,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # offending value, cleared unconditionally (setpoint_check.ConfigNotices).
         self._config_notices = setpoint_check.ConfigNotices()
         self._ledger = MonthlyLedger()
-        self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+        self._ledger_store: LedgerStore[dict[str, Any]] = LedgerStore(
             hass,
             LEDGER_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_ledger",
@@ -7937,7 +7937,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "peak_month": self._peak_tracker.month,
             "pv_enabled": _ctx_of(self)._config.pv_enabled,
             "pv": self._pv_summary,
-            "savings_months": self._ledger.savings_months(dt_util.now()),
+            "savings_months": self._ledger.savings_months(dt_util.now(), wood_configured=wood_furnace_on(_ctx_of(self)._config)),
             "receipts": [self._month_reports[k] for k in sorted(self._month_reports)],
             "plan_replay": self._accuracy.replay(dt_util.now()),
         }

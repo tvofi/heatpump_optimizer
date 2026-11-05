@@ -10304,6 +10304,18 @@ const STOCK_THEMES = {
     };
   };
 
+  // R10-HOTFIX-SAV-ESTIMATE: an old-basis month states no saving, and says why.
+  {
+    const held = tableOf([
+      { month: "2026-09", baseline_sek: 1779.92, actual_sek: 344.81, savings_sek: null, savings_pct: null, old_basis: true },
+    ], "old-basis-savings");
+    const text = held.cells.map((c) => c.text);
+    check("an old-basis month draws both columns, a dash for saving and percent, and the note",
+      text[1] === "1779.92" && text[2] === "344.81" && text[3] === "—" && text[4] === "—"
+        && text[0].includes("old basis"),
+      JSON.stringify(text));
+  }
+
   const { dump, table, cells, heads } = tableOf(months, "c3-savings");
   // "Numeric" by position, not by a regex over the rendered text: the month
   // column reads as digits too ("2025-11") and must NOT be right-aligned.
