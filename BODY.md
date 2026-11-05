@@ -1,13 +1,13 @@
 Triage batch 126 rules on the existing set under the owner's 5 % and 10 % rule: P391 on the non-production CI lanes and P392 on the triage seat itself.
 
-- **P391: DEFER.** Eleven lanes fail the bar at the upper bound, together 25 % of sampled runner hours. Each is a proposal for the owner through the orchestrator; nothing is removed. Required safety lanes and production tests are listed separately and not ruled.
+- **P391: DEFER.** Twelve lanes fail the bar at the upper bound, together 25 % of sampled runner hours. Each is a proposal for the owner through the orchestrator; nothing is removed. Required safety lanes and production tests are listed separately and not ruled.
 - **P392: DEFER.** The seat costs 7 to 12 % of local tokens and has no measured benefit, so it does not pass on the working reading. The seat is ruling on itself, and the entry says so.
 
 No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`.
 
 ## Head
 
-`15b2376fb1536d2775eab91145f0496cd1100042`; the one file is the whole diff against `dad3178d6c81cfe2bb410e7045de28f686a6f845`.
+`c1dd4a51c0aa9aaf39b0ca4556aa11e487f05824`; the one file is the whole diff against `dad3178d6c81cfe2bb410e7045de28f686a6f845`.
 
 ## Mutation proof
 
@@ -19,7 +19,7 @@ P393 reads `None`. With the file absent, a carry citing it is refused as not on 
 
 ## Figures
 
-- `git diff --stat dad3178d6c81cfe2bb410e7045de28f686a6f845...15b2376fb1536d2775eab91145f0496cd1100042`: 1 file changed, 95 insertions(+).
+- `git diff --stat dad3178d6c81cfe2bb410e7045de28f686a6f845...c1dd4a51c0aa9aaf39b0ca4556aa11e487f05824`: 1 file changed, 95 insertions(+).
 - The ruling's figures are cited with their sources and limits at the top of the file.
 - No capped file is touched.
 
