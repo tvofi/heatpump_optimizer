@@ -10021,10 +10021,41 @@ base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)
     R.check(
-        f"{name}.json matches strings.json exactly",
+        f"{name}.json has exactly strings.json's keys",
         not diff,
         ", ".join(sorted(diff)[:6]),
     )
+
+
+def leaf_values(data, prefix=""):
+    """``{dotted path: leaf}`` for every non-dict leaf."""
+    out = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        out.update(leaf_values(value, path) if isinstance(value, dict) else {path: value})
+    return out
+
+
+# Carry 0 (R10-COP-GATE-D): Home Assistant serves translations/en.json, so the
+# English text shipped is en.json's, not strings.json's. The key check above
+# read "exactly" while comparing keys only, and en.json's pump_duty_mode text
+# went stale beside an edited source. en.json is a copy of strings.json leaf
+# for leaf; sv.json is a translation, so only its keys are pinned.
+def en_value_drift(source, en):
+    """The dotted paths where en's leaf differs from the source's."""
+    a, b = leaf_values(source), leaf_values(en)
+    return sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
+
+
+_en_drift = en_value_drift(strings, files["en"])
+R.check(
+    "en.json equals strings.json leaf for leaf (null: a source compared with itself "
+    "drifts nowhere, and one edited leaf is found)",
+    not _en_drift
+    and en_value_drift(strings, strings) == []
+    and en_value_drift({"a": {"b": "x"}}, {"a": {"b": "y"}}) == ["a.b"],
+    ", ".join(_en_drift[:6]),
+)
 
 # D4-s2-03 (N-escape): a translation leaf written with two backslashes before
 # a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
@@ -12473,7 +12504,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
+        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -16210,6 +16242,32 @@ R.check("run.sh records a wait past its bound as #skip, named unrun, and a run w
         *_gl_wu["map"])
 R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
         *_gl_wu["word"])
+
+
+def _gl_ended_before_summary() -> tuple[bool, str]:
+    """run.sh names a non-zero script that never reached a summary line apart
+    from one that failed a check: the function and its pattern are lifted from
+    run.sh and driven on a crash log and a failed-check log."""
+    import re as _re2
+    import subprocess as _sp
+    src = (_closure.ROOT / "tests/run.sh").read_text()
+    pat = _re2.search(r"^SUMMARY_LINE=.*$", src, _re2.M)
+    fn = _re2.search(r"^ended_before_summary\(\) \{.*?^\}", src, _re2.M | _re2.S)
+    if not (pat and fn):
+        return False, "run.sh defines no SUMMARY_LINE / ended_before_summary"
+    with _tempfile.TemporaryDirectory() as tds:
+        crash, failed = Path(tds) / "crash.log", Path(tds) / "failed.log"
+        crash.write_text("sampling...\nTraceback (most recent call last):\nOSError\n")
+        failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
+        out = []
+        for log in (crash, failed):
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            out.append(r.returncode)
+    return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
+
+
+R.check("run.sh names a script ended before its summary apart from a failed check (R10 carry)",
+        *_gl_ended_before_summary())
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
