@@ -1,0 +1,3 @@
+R10-HANDOFF-PATH
+From PR 3197 (r10-fly-standing-contracts-p1), body item 3b71b45b (roster item e50eef9d): the opener row's STUCK arm has no producer until open_driver.py prints a `STUCK ` line; the stage that lands STUCK must keep the `STUCK ` prefix the OPENER regex in the standing-contracts beat reads (items 3b71b45b e50eef9d)
+roster ref handoff/audit-r10-roster f772f554243a329f46b38ba5f75580b213e4e316

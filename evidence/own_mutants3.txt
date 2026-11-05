@@ -1,0 +1,13 @@
+KILLED   fold: gone.txt never written (re-sited)  <- fold: a gone line is gone.txt and no new stamp
+KILLED   fold: gone.txt kept stale  <- fold: a fold that dropped nothing empties gone.txt
+KILLED   fold: stamp on gone too  <- fold: a gone line is gone.txt and no new stamp
+KILLED   roster: unterminated tail runs  <- roster-drain null: no queue writes nothing
+KILLED   roster: shrink not sticky  <- roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+KILLED   roster: shrink undetected  <- roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+KILLED   roster: drained count not remembered  <- roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs
+KILLED   roster: no-op-attempted not retried  <- roster-drain: a no-op-attempted report is retried on the next pass
+KILLED   events: STUCK whole-file dedupe dropped  <- opener: a STUCK line re-printed is not a second event
+SURVIVED events: HEAD-MOVED never deduped
+KILLED   tick: pass kept on UNREADABLE  <- tick-digest: the same board returning after an outage clears the UNREADABLE line
+NULL unmutated: 0 failed of 63
+own_mutants3: 11 planted, 1 survived
