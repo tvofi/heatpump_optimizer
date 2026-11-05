@@ -134,3 +134,5 @@ Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
 in the grammar above; one that does not parse is refused. Before you return one, run the packet's closing self-audit (`carry_audit.py check`); return it only at rc 0.
 
 **Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
+
+A ruling that names a destination stage (a group, issue or brief that must receive a finding) states it as a `Carry:` marker, never as prose alone; `carry_audit.py` reads the marker and prose naming a stage is not read (`finding-propagation.md`, #2438).

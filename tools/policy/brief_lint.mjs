@@ -948,6 +948,16 @@ export function checkCarryShape(file, data, findings, roster) {
   })
 }
 
+// Carry files written before the control lint existed (#2438 (i)), whose controls name no path.
+// Repairing them would rewrite other groups' controls, so the control lint leaves out these files and
+// only them (both its citation check and its no-path rule): the set is closed -- a new carry file is
+// never added here -- and shrinks as a carry is re-measured or consumed.
+const LEGACY_CONTROL_FILES = new Set([
+  'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
+  'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
+  'carry-1659.json', 'carry-1660.json', 'carry-1795.json', 'carry-201.json', 'carry-752.json',
+])
+
 export function lintCarryFile(file, { roster } = {}) {
   const findings = []
   const label = path.posix.basename(file)
@@ -962,6 +972,17 @@ export function lintCarryFile(file, { roster } = {}) {
   const carries = Array.isArray(data?.carries) ? data.carries : []
   carries.forEach((c, i) => {
     if (!c || typeof c !== 'object') return
+    // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
+    // derived count in it is refused the same way (the next stage re-establishes the finding from it).
+    if (typeof c.control === 'string' && c.control.trim() && !LEGACY_CONTROL_FILES.has(label)) {
+      lintBrief(`${label} carry ${i} control`, c.control, findings)
+      // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator,
+      // no figure). The requirement binds every carry file but the LEGACY_CONTROL_FILES recorded below.
+      const names = [...c.control.matchAll(PATH_TOKEN_RE)].length + [...c.control.matchAll(PATHLINE_RE)].length
+      if (!names) {
+        findings.push({ group: `${label} carry ${i} control`, severity: 'error', kind: 'carry', message: 'names no path to the harness or command that re-establishes it; a bare figure or section name is not an enumerator' })
+      }
+    }
     if (typeof c.brief !== 'string' || !c.brief.trim()) return // absence already reported
     lintBrief(`${label} carry ${i}`, c.brief, findings)
   })
@@ -1233,6 +1254,42 @@ const REQUIRED_CARRY = [
   { file: 'carry-990004.json', kind: 'carry', needle: 'already has a live roster group (wave-probe-groups.json PROBE-G1)' },
 ]
 
+// A carry's control is cited like its brief and must name a path a seat can re-run (#2438 (i)).
+function carryControlFindings(control, name = 'carry-999999.json') {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'carry-control-'))
+  try {
+    const file = path.join(dir, name)
+    const fx = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+    fx.issue = Number(name.match(/\d+/)[0])
+    fx.carries[0].control = control
+    fs.writeFileSync(file, JSON.stringify(fx))
+    return lintCarryFile(file, { roster: new Map() }).filter((f) => f.severity === 'error')
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+function assertCarryControl() {
+  const problems = []
+  for (const bad of ['the FUTURE-STATE section 2 figures', 'states 22 for metrics (a bare statistic)']) {
+    if (!carryControlFindings(bad).some((f) => f.message.includes('names no path'))) problems.push(`control ${JSON.stringify(bad)} is accepted`)
+  }
+  if (!carryControlFindings('run dev/audit/harnesses/no_such_probe_x.py').some((f) => f.kind === 'path')) {
+    problems.push('a control citing a path not in the tree is accepted; it is not linted as a brief is')
+  }
+  const good = carryControlFindings('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
+  if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
+  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
+  if (legacy.length) problems.push(`a legacy carry file is refused (the narrowing): ${legacy[0].message}`)
+  if (problems.length) {
+    console.log('\nCONTROL VACUOUS: carry control:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the 15 legacy files are left out')
+  return 0
+}
+
 function assertCarryFixtures() {
   const dir = FIXTURES
   let problems = []
@@ -1418,6 +1475,7 @@ function main() {
     acceptanceRc += assertIssuelessWarning()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
+    acceptanceRc += assertCarryControl()
     acceptanceRc += assertTreeRev()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)

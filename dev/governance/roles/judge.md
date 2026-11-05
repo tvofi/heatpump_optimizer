@@ -28,3 +28,5 @@ measurement; the verdicts are yours. Then, per survivor:
 
 On a fix PR, only from round 3 or a disputed verdict; below it the fix reviewer
 is the check. Re-run the body's before/after, at its head SHA, before the merge.
+
+A ruling that names a destination stage (a group, issue or brief that must receive a finding) states it as a `Carry:` marker, never as prose alone; `carry_audit.py` reads the marker and prose naming a stage is not read (`finding-propagation.md`, #2438).
