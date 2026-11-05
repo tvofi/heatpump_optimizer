@@ -39,6 +39,13 @@ HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
+  # The identity refusal at the handoff (P274): the code head's commits over main are judged
+  # as the opener would judge them (handoff_push.sh, app_push.sh), so a commit authored by a
+  # runner default is refused here, before the body ref -- the return signal -- is written.
+  python3 -I "$HERE/ref_privacy.py" guard --ref "handoff/$TOPIC" --commits "$HREF" --over refs/remotes/origin/main -C "$ROOT" || {
+    echo "body_push: a commit of handoff/$TOPIC fails the push guard (above); re-author it, push the code again, then the body" >&2
+    exit 1
+  }
   # The `mutation` red an unpinned site makes is derived, so it is written into
   # `## Red checks` before the lint, not refused at the open (P67).
   (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")

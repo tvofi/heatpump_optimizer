@@ -947,6 +947,31 @@ def self_test() -> int:
            rc != 0 and heads == "" and "host-email in the author email of" in body_err, f"rc={rc} {heads}")
         rc, heads = body("r10-clean")
         ok("and pushes a clean topic (the null control)", rc == 0 and "handoff-body/r10-clean" in heads, f"rc={rc}")
+        # P274: with a handoff/<topic> on origin the code head's commits over main are judged
+        # before the body ref is written. The planted checkout carries no prepr.sh, so a head
+        # that passes the guard fails later, on a step that is not the guard's.
+        gline = "body_push: a commit of handoff/r10-id fails the push guard"
+        env_id = env
+        env = {**env, "GIT_AUTHOR_NAME": "Claude", "GIT_AUTHOR_EMAIL": "noreply@anthropic.com"}
+        g("commit", "-q", "--allow-empty", "-m", "runner-default author")
+        env = env_id
+        g("push", "-q", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("body_push refuses a handoff head authored by a runner default, and writes no body ref",
+           rc != 0 and "handoff-body/r10-id" not in heads and gline in body_err, f"rc={rc} {heads} {body_err[-300:]!r}")
+        g("commit", "-q", "--amend", "--allow-empty", "--reset-author", "-m", "re-authored")
+        g("push", "-q", "-f", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("and once re-authored the guard passes (the null control: any later failure is not the guard's)",
+           gline not in body_err and "fails the push guard" not in body_err, f"rc={rc} {body_err[-300:]!r}")
+        env = {**env, "GIT_AUTHOR_NAME": "Claude", "GIT_AUTHOR_EMAIL": "noreply@anthropic.com"}
+        g("commit", "-q", "--allow-empty", "-m", "anthropic-authored, held by main")
+        env = env_id
+        g("push", "-q", "origin", "HEAD:main")
+        g("push", "-q", "-f", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("and an anthropic-authored commit origin/main already holds is not judged (the null control)",
+           gline not in body_err and "fails the push guard" not in body_err, f"rc={rc} {body_err[-300:]!r}")
 
     # The registry, over planted lines.
     lines = [("tools/x/new.sh", 3, 'git push -q origin "$c:refs/heads/x/$slug"'),
