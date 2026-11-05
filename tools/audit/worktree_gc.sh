@@ -40,6 +40,9 @@
 #      a registered worktree, with nothing under it modified within 2 hours
 #      (the guard that protects a running seat), no unmerged branch readable
 #      inside it and no other live worktree beneath it -- the 9.5 GB class.
+#      A wt/ git can read is removed leased at the HEAD read in it (`git -C
+#      <wt> update-ref --no-deref -d HEAD <head>`, then rm -rf): a HEAD that
+#      moved since, or one that cannot be read, keeps the seat.
 #   D. a stale venv (a *-venv* directory under /tmp) untouched for 24 hours
 #      that no registered worktree symlinks into at depth <= 2.
 #
