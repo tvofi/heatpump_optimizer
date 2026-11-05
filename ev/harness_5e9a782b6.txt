@@ -1,0 +1,11 @@
+ok   want PASS got PASS                                                       waited  300 s  41870314676 proof: mutation/closures stale >=285 s
+ok   want FAIL got FAIL tests / mutation: failure (this run)                  waited  180 s  41870522291 main: real red hidden, stale 171 s
+ok   want PASS got PASS                                                       waited  720 s  41876634563 prelude stale, 704 s
+ok   want PASS got PASS                                                       waited  180 s  41863133083 prelude stale, 134 s
+ok   want FAIL got FAIL prelude: failure                                      waited  360 s  41094975103 prelude really failed, stale 357 s
+ok   want PASS got PASS                                                       waited   60 s  41289450679 pr-contract absent, 20 s
+ok   want FAIL got FAIL tests / closures: PENDING (this run)                  waited  720 s  past the bound: stale 800 s
+ok   want PASS got PASS                                                       waited    0 s  null: fresh listing
+ok   want FAIL got FAIL tests / closures: failure (this run)                  waited    0 s  null: real red, fresh listing
+mismatches 0 of 9
+rc=0

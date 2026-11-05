@@ -1,0 +1,10 @@
+MUTANT [lag_bound-return0]: gate self-test: 49 checks, 8 failed
+MUTANT [all-to-any]: gate self-test: 49 checks, 1 failed
+MUTANT [absent-eq-wait]: gate self-test: 49 checks, 1 failed
+MUTANT [listed_unfinished-False]: gate self-test: 49 checks, 2 failed
+MUTANT [listed_unfinished-True]: gate self-test: 49 checks, 2 failed
+MUTANT [bound-0]: gate self-test: 49 checks, 14 failed
+MUTANT [absent-uses-wait-bound]: gate self-test: 49 checks, 2 failed
+MUTANT [own_pending-renamed]: gate self-test: 49 checks, 2 failed
+MUTANT [no-lag-note]: gate self-test: 49 checks, 1 failed
+NULL: gate self-test: 49 checks, 0 failed
