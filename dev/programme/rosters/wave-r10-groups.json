@@ -13824,7 +13824,7 @@
     "From #2316 (R10-REF-PRIVACY) review 6209184343, item a49e22d2, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: tools/audit/seat/ref_privacy.py's push-site grammar and its \"WHAT IT DOES NOT CATCH\" docstring (lines 97-117) name neither `git send-pack` nor `gh api graphql -F query=@<file>`; grep finds 0 matches for `send-pack` or `query=@` in the module. The createRef/updateRef arm reads the mutation text on the line, so a mutation held in a file passed with `-F query=@file` is never seen. Fix: add both spellings to the docstring's not-caught list, or match them in the `--check` push-site enumeration if that is the sounder seam (a `gh api graphql` call with `query=@` is a ref write the line cannot judge, so registering it as a push site that needs a PUSHERS entry is the class fix). Failing test first: a planted tracked file under tools/ holding `gh api graphql -F query=@mut.graphql` (and one holding `git send-pack origin HEAD:refs/heads/x`) is refused by `--check` as an unregistered push site, or, if only disclosed, a self-test line asserts the docstring names both. Null control: a `gh api graphql -f query='{ viewer { login } }'` read is not a push site. [implemented: d1cab99a11ea3a1d92976f0355f9eb3ee68cd259]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-seat-identity-guards",
     "commit": "d1cab99a11ea3a1d92976f0355f9eb3ee68cd259",
     "last_step": null,
