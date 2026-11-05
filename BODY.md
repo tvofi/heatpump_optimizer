@@ -8,11 +8,11 @@ Seat commits and pushes carried a runner identity (P253, P320), the handoff body
 - Carry 3 (P317): `prepr.sh --body-check` calls `body_privacy_line` and folds its rc.
 - Carry 7: ref_privacy `--check` push-site enumeration now includes `git send-pack` and `gh api graphql -F query=@file`.
 - Carry 5, the home-directory carry: re-measured at this merge base, an Identity whose home is the root account yields no private names (`root` is in PUBLIC_ACCOUNTS) and `dev/governance/roles/root-cause.md` is not refused; the existing `_home_re` / R10-FLY-REFPRIV-HOME-SEGMENT arm already satisfies it.
-- Hot files `tools/pr/prepr.sh` and `tools/audit/seat/body_push.sh` overlap open PR #3221 (different regions); a merge-resolution round may follow. Hot files merged origin/main at 6777ec33337b256d29ea145d98da413dbf076a2a. No budget raise.
+- Hot files `tools/pr/prepr.sh` and `tools/audit/seat/body_push.sh` overlap open PR #3221 (different regions); a merge-resolution round may follow. Hot files merged origin/main at 0ae75bf3146566bffca4490464dcc8d6d45c29ab (main has not moved since the last prepr run, so no second run). No budget raise.
 
 ## Head
 
-c34c211dd6ee96dcf5d7f63162b3f31a52cb516e
+ab764c5862fb9aacf2f29b5d0b61f97022bc609c
 
 ## Mutation proof
 
@@ -34,11 +34,17 @@ Unmutated tree: all of the above pass. Without the exports, the config identity 
 - structure ratchet passed: `python3 tests/structure.py`
 - Scope: `python3 tests/closure.py select` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out` (tests/entities.py); run_always scripts closure selftest, layout, harness_headers also passed.
 - Toolchain numpy 2.5.4, scipy 1.18.1 match tests/requirements-ci.txt; no solver file touched, so no golden run.
-- Measured: `date -u` 2026-11-05 06:41:21Z; base 6777ec33337b256d29ea145d98da413dbf076a2a; a full prepr run on the pre-merge tree (base 8364e62460f6) was clean; on this tip prepr was clean through the closures step and was then stopped by the 30-minute background limit before ci predict, so those last lines were not re-read here.
+- Repair round 2: `bash tools/audit/seat/pr_args.sh --self-test` read 172 checks, 1 failed (row: the pusher census) before the edit and 172 checks, 0 failed after; ref_privacy 109, cloud_dispatch 126, cloud-setup 19, cloud_relay 332 checks, all 0 failed; `tools/pr/prepr.sh` at the final head exited 0 (ci predict clean, body check skipped as no body passed).
+- Measured: base 0ae75bf3146566bffca4490464dcc8d6d45c29ab (earlier figures were taken at 6777ec33337b256d29ea145d98da413dbf076a2a); a full prepr run on the pre-merge tree (base 8364e62460f6) was clean; on this tip prepr was clean through the closures step and was then stopped by the 30-minute background limit before ci predict, so those last lines were not re-read here.
 
 ## Red checks
 
-none. A first full prepr run was red on the diff's own faults, fixed before this head: the bare `"${vars[@]}"` expansions (entities.py) and three /tmp literals in cloud-setup.sh (tmp_paths). One `--body-check ... (P317)` self-test row failed once in that run and passed on every rerun, including in isolation; cause not established.
+Final head, all check-run pages:
+
+- `governance / instrument-self-tests` was red at 97cbe20b: the comment this diff added to `tools/audit/seat/body_push.sh` named the two pushers by file name, so `PR_PUSHER_RULE` (applied by `git grep` without skipping comments) read body_push.sh as an undispositioned pusher and the row "the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps" failed (172 checks, 1 failed); the job then ran into its 30-minute timeout and was cancelled. Repaired: the comment names the guard by what it does, with no literal pusher token. body_push.sh is not a pusher (it writes an orphan body ref and never opens or updates a pull request), so no PR_PUSHERS entry. Null control: the pre-edit run is the control, the same token on the same row failed 1 and the edit made it 0; I did not re-add the token after the main merge.
+- The earlier `governance / policy-docs` and `instrument-self-tests` reds of 749a3161 came from that head predating #3208 (no dev/governance/config/machinery_budgets.json) and were cured by merging origin/main.
+- `governance / delivery-status`: red on the base's ancestry (3ec5178c, cd0dd169); the diff touches no delivery file.
+- `tests / nightly-status`: red on the base's ancestry (3ec5178c, cd0dd169); the diff touches nothing the nightly closure reads.
 
 ## Forward-carry
 
