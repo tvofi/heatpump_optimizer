@@ -3819,6 +3819,7 @@
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "tools/audit/seat/beatd.py",
+   "tools/audit/seat/carry_fold.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
    "tools/audit/seat/closeout.py",
