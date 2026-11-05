@@ -490,6 +490,7 @@ def self_test():
             check(f"parent check: {label}", run([], via=via).returncode == want_rc)
         for label, args in (("a GET of #201's comments", ["api", "repos/o/r/issues/201/comments"]),
                             ("a post to another issue", ["api", "repos/o/r/issues/202/comments", "-f", "body=x"]),
+                            ("a post to another issue with upper-case segments", ["api", "repos/o/r/ISSUES/202/COMMENTS", "-f", "body=x"]),
                             ("a post to a comment of a longer number", ["api", "repos/o/r/issues/2011/comments", "-f", "body=x"]),
                             ("a post to dot segments that resolve to another issue", ["api", "repos/o/r/issues/201/../202/comments", "-f", "body=x"]),
                             ("a post to a percent-encoded other issue", ["api", "repos/o/r/issues/%32%30%32/comments", "-f", "body=x"]),
