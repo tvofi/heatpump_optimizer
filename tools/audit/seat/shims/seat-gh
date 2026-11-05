@@ -128,7 +128,7 @@ esac
 # The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
 # lives in that script alone, so a raw post bypassed it): a comment WRITE on the tracking
 # issue is refused unless the caller is gh_comment.py, python's first script word. The
-# issue number is budget_raise_gate.MANDATE_ISSUE (gh_calls.py --self-test pins the two
+# issue number is budget_raise_gate.MANDATE_ISSUE (gh_calls.py's own checks pin the two
 # equal). A write is `gh issue comment 201`, or `gh api` at .../issues/201/comments with
 # a field, an --input or a method other than GET. Residual, by design: a PATCH of
 # issues/comments/<id> and a graphql mutation name no issue, so this reads neither.
