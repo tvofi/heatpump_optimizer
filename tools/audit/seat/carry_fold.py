@@ -139,6 +139,11 @@ def _self_test() -> int:
     calls.clear()
     rc, out = fold(body.replace("R10-DEST", "R10-GONE"), load, writes, "#9", "r10-x")
     check("a done destination is refused before any write", rc == 1 and calls == [] and "bad destination" in out[0])
+    mixed = body + "- the second ask. Carry: R10-GONE\n"
+    calls.clear()
+    rc, out = fold(mixed, load, writes, "#9", "r10-x")
+    check("one good and one done destination: nothing is written for the good one", rc == 1 and calls == [])
+    state["R10-DEST"]["carry"].clear()
     rc, out = fold(body, load, lambda op: 2, "#9", "r10-x")
     check("a failed write refuses and says so", rc == 1 and "REFUSED" in out[-1])
     print(f"carry_fold self-test: {passed + failed} checks, {failed} failed")

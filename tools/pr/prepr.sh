@@ -270,6 +270,9 @@ figures_check() { # body file
 # Under a second; it reads the diff from the merge base, never the whole tree.
 privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
   local out r
+  # instrument-self-tests also runs bare_array.py --check (a bare "${arr[@]}" in a tools/ script,
+  # R10-BODY-CONTRACT's body_patch.sh:146); seconds, so it rides this step.
+  out=$(python3 -I tools/audit/seat/bare_array.py --check 2>&1) || { printf 'bare_array: %s' "$(tail -1 <<<"$out")"; return 1; }
   out=$(python3 -I tools/audit/seat/ref_privacy.py --check 2>&1); r=$?
   [ "$r" -eq 0 ] && { tail -1 <<<"$out"; return 0; }
   printf '%s-- %s' "$(grep -m3 '^ref_privacy: REFUSE' <<<"$out" | sed 's/^ref_privacy: REFUSE //' | tr '\n' ';')" "$(tail -1 <<<"$out")"
