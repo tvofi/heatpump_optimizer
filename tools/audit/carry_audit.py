@@ -436,6 +436,14 @@ class Dests:
         return f"{', '.join(live)} (live, after {self.pr_group})" if live else f"none live after {self.pr_group}"
 
 
+def pr_group_of(dests: "Dests", branch: str) -> str | None:
+    """The roster group a pull request's head branch answers for: `roster_lib.group_for_branch`,
+    then once more without a trailing `-pr` (a fix branch drifts from its group by that suffix)."""
+    roster = {"groups": list(dests.groups.values())}
+    return (roster_lib.group_for_branch(roster, branch)
+            or roster_lib.group_for_branch(roster, branch[:-3] if branch.endswith("-pr") else ""))
+
+
 def issue_numbers(group: dict) -> list[int]:
     """The issues a group owns: the integers of its `issues` and `fixes`."""
     return [n for n in list(group.get("issues") or []) + list(group.get("fixes") or [])
@@ -866,6 +874,8 @@ def main(argv: list[str]) -> int:
     c.add_argument("--comments")
     c.add_argument("--issue-folds-file", help="JSON {\"<n>\": \"<issue text>\"}: the issues a `Closes #N` "
                    "reads offline, instead of gh")
+    c.add_argument("--branch", help="the pull request's head branch, resolved to its group (pr-contract.yml "
+                   "passes it: the workflow cannot name the group itself)")
     c.add_argument("--pr-group", help="the pull request's roster group: a closed destination's refusal "
                    "lists the live groups after-edged on it")
     for name in ("landed", "land-ops"):
@@ -897,6 +907,8 @@ def main(argv: list[str]) -> int:
             if not finding_rows(body, comments)[0]:
                 return report({"rows": []}) | fold_rc  # nothing to route: the roster is not read
             dests = load_dests(Path(a.git_dir), ref, a.briefs_dir, pr_group=a.pr_group)
+            if not dests.pr_group and a.branch:
+                dests.pr_group = pr_group_of(dests, a.branch)  # mut:branch
             return report(audit(body, comments, dests)) | fold_rc
         if a.cmd in ("landed", "land-ops"):
             # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
@@ -1097,6 +1109,9 @@ def _self_test() -> int:
         r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
         check(f"a live group ({g}) is accepted with no note (null control)",
               r["u"] == 0 and r["b"] == 0 and r["rows"][0]["notes"] == [g])
+    for br, want in (("fix/r10-pr", "R10-PR"), ("fix/r10-pr-pr", "R10-PR"), ("fix/r10-nothing", None)):
+        check(f"branch {br} resolves to the PR group {want} (the workflow passes --branch, not --pr-group)",
+              pr_group_of(Dcl, br) == want)
     r = run(plant.rstrip() + " Carry: R10-OVER\n")
     check("a closed group with no PR group known is still refused, saying so",
           r["b"] == 1 and "R10-OVER is done (resume.stage done)" in r["rows"][0]["bad"][0])
