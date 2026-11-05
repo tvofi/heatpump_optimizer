@@ -5853,9 +5853,19 @@ function ctxL(card, key) {
     machine_evidence: { required: 20, refused_frozen: 2, bands: [
       { outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] } }));
   check("R10-GRADE-DRIVERS: an ungraded heat pump shows samples per outdoor band against the requirement, and freeze refusals",
-    /Heat pump: — Not enough COP data yet to watch the heat pump\. \(samples per outdoor band, 20 needed: -3 to 0 °C 12, 0 to 3 °C hot water 5; 2 refused while learning was frozen\)/.test(waiting.title || "")
+    /Heat pump: — Not enough COP data yet to watch the heat pump\. \(samples per outdoor band, 20 needed: −3 to 0 °C: 12 samples, 0 to 3 °C hot water: 5 samples; 2 refused while learning was frozen\)/.test(waiting.title || "")
     && /data-part="machine"[^>]*>[\s\S]*?sb-drivers">samples per outdoor band, 20 needed/.test(waiting.open)
     && /A band is watched once it holds 20 samples/.test(rowTitle(waiting, "machine")), waiting.title);
+  check("R10-GRADE-DRIVERS: a negative evidence band uses the card's minus sign and its count carries a unit, in sv as well",
+    !/(^|[ ,])-\d/.test((waiting.title || "").split("(").slice(-1)[0])
+    && /−3 to 0 °C: 12 samples/.test(waiting.title || "")
+    && (() => {
+      vm.runInContext('setLanguage("sv")', ctx);
+      try {
+        return /−3 till 0 °C: 12 prov, 0 till 3 °C varmvatten: 5 prov/.test(
+          fn("machineEvidence")({ required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] }));
+      } finally { vm.runInContext('setLanguage("en")', ctx); }
+    })(), waiting.title);
   check("R10-GRADE-DRIVERS: every breakdown row's hover carries its metric and its current reasons",
     [driving, waiting, noDrive].every((s) => ["envelope", "machine", "operation"].every((k) => {
       const t = rowTitle(s, k);

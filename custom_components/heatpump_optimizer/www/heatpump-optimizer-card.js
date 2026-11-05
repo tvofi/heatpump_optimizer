@@ -884,8 +884,8 @@ const STRINGS = {
     "score.driver_typical_operation": "bought at the day's flat mean price",
     // What an ungraded heat pump waits on (`machine_evidence`).
     "score.evidence_bands": "samples per outdoor band, {required} needed: {bands}",
-    "score.evidence_band": "{lo} to {hi} °C {n}",
-    "score.evidence_band_dhw": "{lo} to {hi} °C hot water {n}",
+    "score.evidence_band": "{lo} to {hi} °C: {n} samples",
+    "score.evidence_band_dhw": "{lo} to {hi} °C hot water: {n} samples",
     "score.evidence_empty": "no COP samples yet",
     "score.evidence_frozen": "{n} refused while learning was frozen",
     "score.label_machine": "Heat pump",
@@ -1701,8 +1701,8 @@ const STRINGS = {
     "score.driver_typical_machine": "som sin egen COP-historik",
     "score.driver_typical_operation": "köpt till dagens platta medelpris",
     "score.evidence_bands": "prov per utomhusband, {required} krävs: {bands}",
-    "score.evidence_band": "{lo} till {hi} °C {n}",
-    "score.evidence_band_dhw": "{lo} till {hi} °C varmvatten {n}",
+    "score.evidence_band": "{lo} till {hi} °C: {n} prov",
+    "score.evidence_band_dhw": "{lo} till {hi} °C varmvatten: {n} prov",
     "score.evidence_empty": "inga COP-prov ännu",
     "score.evidence_frozen": "{n} avvisade medan inlärningen var fryst",
     "score.label_machine": "Värmepumpen",
@@ -8948,10 +8948,11 @@ function scoreDrivers(part, drivers) {
  * fullest 3 °C outdoor bands' samples against the requirement, and the
  * intervals a learner freeze refused; nothing when none was published. */
 function machineEvidence(ev) {
+  const signed = (v) => String(Number(v)).replace("-", "−");
   if (!ev || !Array.isArray(ev.bands)) return "";
   const bands = ev.bands.slice(0, 4).map((b) => L(
     b.hot_water ? "score.evidence_band_dhw" : "score.evidence_band",
-    { lo: b.outdoor_c, hi: Number(b.outdoor_c) + 3, n: b.samples }));
+    { lo: signed(b.outdoor_c), hi: signed(Number(b.outdoor_c) + 3), n: b.samples }));
   const parts = [bands.length
     ? L("score.evidence_bands", { required: ev.required, bands: bands.join(", ") })
     : L("score.evidence_empty")];
