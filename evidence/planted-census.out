@@ -1,0 +1,12 @@
+RESULT census single: booked over horizon mean 1.00 ok
+RESULT census unvalved: booked over horizon mean 1.00 ok
+RESULT census valve-at-curve: booked over horizon mean 1.00 ok
+RESULT census valve-charged: booked over horizon mean 1.00 ok
+RESULT census wood-warm: booked over horizon mean 1.00 ok
+RESULT census wood-hot: booked over horizon mean 1.00 ok
+census: 6 of 6 cells ran, 0 out of band: -
+
+real	0m15.384s
+user	0m15.484s
+sys	0m0.167s
+rc=0
