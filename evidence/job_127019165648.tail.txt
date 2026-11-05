@@ -1,0 +1,60 @@
+2026-11-05T03:43:56.8913181Z   ok   synthetic-dhw-only.json: at least one cycle and one entity
+2026-11-05T03:43:56.8913382Z   ok   synthetic-dhw-only.json: finite
+2026-11-05T03:43:56.8913538Z   ok   synthetic-dhw-only.json: unit
+2026-11-05T03:43:56.8913696Z   ok   synthetic-dhw-only.json: no_default
+2026-11-05T03:43:56.8913857Z   ok   synthetic-dhw-only.json: agreement
+2026-11-05T03:43:56.8914016Z   ok   synthetic-dhw-only.json: cycle
+2026-11-05T03:43:56.8914172Z   ok   synthetic-dhw-only.json: not_frozen
+2026-11-05T03:43:56.8914325Z   ok   synthetic-dhw-only.json: away
+2026-11-05T03:43:56.8914729Z   FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): runner class unknown: ref_ms 20.54 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed]
+2026-11-05T03:43:56.8915176Z   ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+2026-11-05T03:43:56.8915587Z   cpu doubled: cost {'cpu_ratio': 6.8571, 'peak_kib': 1930.3, 'loop_cpu_ratio': 1.0725, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 20.677245000001676, 'loop_ref_ms': 75.16498799999916}
+2026-11-05T03:43:56.8916268Z   FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu  [cpu_ratio 6.8571 against clean 3.4016: runner class unknown: ref_ms 20.68 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed]
+2026-11-05T03:43:56.8916848Z   ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
+2026-11-05T03:43:56.8917123Z   ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+2026-11-05T03:43:56.8917505Z   memory doubled: cost {'cpu_ratio': 3.4258, 'peak_kib': 3861.9, 'loop_cpu_ratio': 0.1233, 'timed': 23, 'traced': 24, 'ref_ms': 20.29082700000001, 'loop_ref_ms': 75.179670999999}
+2026-11-05T03:43:56.8918162Z   FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory  [peak_kib 3861.9 against clean 1929.3: runner class unknown: ref_ms 20.29 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed]
+2026-11-05T03:43:56.8918784Z   ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+2026-11-05T03:43:56.8919195Z   loop doubled: cost {'cpu_ratio': 3.8261, 'peak_kib': 1929.3, 'loop_cpu_ratio': 0.2387, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 20.365088000000142, 'loop_ref_ms': 76.88709900000035}
+2026-11-05T03:43:56.8920263Z   FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop  [loop_cpu_ratio 0.2387 against clean 0.1249: runner class unknown: ref_ms 20.37 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed]
+2026-11-05T03:43:56.8920820Z   ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
+2026-11-05T03:43:56.8921055Z   ok   AWAY_COVERED names committed fixtures
+2026-11-05T03:43:56.8921396Z   ok   the doubled-cost arms are skipped on committed fixtures only, never all
+2026-11-05T03:43:56.8921553Z 
+2026-11-05T03:43:56.8921609Z replay lane wall time 450.4 s
+2026-11-05T03:43:56.8921699Z 
+2026-11-05T03:43:56.8921751Z 4 of 181 replay checks FAILED
+2026-11-05T03:43:56.9071351Z ##[error]Process completed with exit code 1.
+2026-11-05T03:43:56.9167149Z Post job cleanup.
+2026-11-05T03:43:56.9685669Z [command]/usr/bin/git version
+2026-11-05T03:43:56.9714808Z git version 2.56.0
+2026-11-05T03:43:56.9733927Z Temporarily overriding HOME='/home/runner/work/_temp/85782ba9-57c9-4f24-90ec-9375bc309430' before making global git config changes
+2026-11-05T03:43:56.9734746Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T03:43:56.9737092Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T03:43:56.9762679Z Removing SSH command configuration
+2026-11-05T03:43:56.9766427Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T03:43:56.9792344Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T03:43:57.0008415Z Removing HTTP extra header
+2026-11-05T03:43:57.0011799Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T03:43:57.0036650Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T03:43:57.0244308Z Removing includeIf entries pointing to credentials config files
+2026-11-05T03:43:57.0247839Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T03:43:57.0266986Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T03:43:57.0267543Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T03:43:57.0267992Z includeif.gitdir:/github/workspace/.git.path
+2026-11-05T03:43:57.0268315Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T03:43:57.0272782Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T03:43:57.0290573Z /home/runner/work/_temp/git-credentials-2ee797ab-2f06-4de4-9999-bc9779ae0841.config
+2026-11-05T03:43:57.0297375Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-2ee797ab\-2f06\-4de4\-9999\-bc9779ae0841\.config
+2026-11-05T03:43:57.0329041Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T03:43:57.0346931Z /home/runner/work/_temp/git-credentials-2ee797ab-2f06-4de4-9999-bc9779ae0841.config
+2026-11-05T03:43:57.0353612Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-2ee797ab\-2f06\-4de4\-9999\-bc9779ae0841\.config
+2026-11-05T03:43:57.0378096Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-05T03:43:57.0395419Z /github/runner_temp/git-credentials-2ee797ab-2f06-4de4-9999-bc9779ae0841.config
+2026-11-05T03:43:57.0399964Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-2ee797ab\-2f06\-4de4\-9999\-bc9779ae0841\.config
+2026-11-05T03:43:57.0425439Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T03:43:57.0442469Z /github/runner_temp/git-credentials-2ee797ab-2f06-4de4-9999-bc9779ae0841.config
+2026-11-05T03:43:57.0446980Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-2ee797ab\-2f06\-4de4\-9999\-bc9779ae0841\.config
+2026-11-05T03:43:57.0472978Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T03:43:57.0676313Z Removing credentials config '/home/runner/work/_temp/git-credentials-2ee797ab-2f06-4de4-9999-bc9779ae0841.config'
+2026-11-05T03:43:57.0794754Z Cleaning up orphan processes
