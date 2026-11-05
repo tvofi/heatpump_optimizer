@@ -1030,7 +1030,7 @@
   "source": "README.md",
   "claim": "the Swedish translation actually differs from the English entity names",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "0 of 82 entity names identical in sv and en",
+  "result": "0 of 84 entity names identical in sv and en",
   "verdict": "true",
   "truth": ""
  },

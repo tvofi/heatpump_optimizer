@@ -172,7 +172,6 @@
   "_reading_ok": "core",
   "_reanchor_house_heat_loss_scale": "learning",
   "_record_accuracy": "core",
-  "_record_manual_release": "core",
   "_record_quiet_comfort_period": "learning",
   "_refresh_model_corrections": "learning",
   "_release_registrations": "core",
