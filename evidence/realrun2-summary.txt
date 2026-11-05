@@ -1,0 +1,7 @@
+start HEAD=1acf58eb7c1fc4fe29e7e7098172db63f9bb9922 02:32:46
+mid-run commit fba41aea801e6b8d61afdb84871ff723ce995b62, body Head now names it 02:36:46
+prepr rc=0 end 02:45:01
+  ok       receipt                fba41aea801e written for body_push.sh's Prepr: trailer
+PRE-PR: fba41aea801e6b8d61afdb84871ff723ce995b62 00000000000000000000000000 rc=0; full log: /tmp/prepr-log.fqqvehnR (PREPR_VERBOSE=1 prints it on stdout)
+receipt file: fba41aea801e6b8d61afdb84871ff723ce995b62 d2bd2cd1513647ab18ba1f23e1341c693a56edcb
+measured start HEAD=1acf58eb7c1fc4fe29e7e7098172db63f9bb9922 ; HEAD now=fba41aea801e6b8d61afdb84871ff723ce995b62

@@ -1,0 +1,7 @@
+## closure select
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+## structure
+
+STRUCTURE RATCHET PASSED
+## claim/version diff (three-dot)
+(end)
