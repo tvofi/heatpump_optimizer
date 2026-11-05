@@ -2045,6 +2045,25 @@
           "learning": "Learning",
           "learned": "Learned",
           "attention": "Needs attention"
+        },
+        "state_attributes": {
+          "pump_max_power_source": {
+            "name": "Maximum power the plan used",
+            "state": {
+              "configured": "Configured maximum",
+              "ceiling_probe": "Measured by the ceiling probe"
+            }
+          },
+          "pump_max_power_reason": {
+            "name": "Why the plan used that maximum",
+            "state": {
+              "plan_writes_power": "Configured: the plan writes the power itself, so the meter only echoes it",
+              "awaiting_probe": "Configured: the ceiling probe has too few samples yet",
+              "lapsed": "Configured: the ceiling probe's measurement is too old",
+              "not_below_configured": "Configured: the measured maximum agrees with it",
+              "measured_below_configured": "Measured: the pump draws clearly less than its configured maximum"
+            }
+          }
         }
       },
       "indoor_temperature_predicted": {
