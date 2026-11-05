@@ -280,7 +280,7 @@ def _prompt(role: str, repo: str, pr: str, head: str, topic: str, nonce: str, br
             f"Output: write your result as a body file and run `bash tools/audit/seat/body_push.sh "
             f"{topic} <result.md>`, which pushes refs/heads/handoff-body/{topic}; that push is the "
             "return signal. A return push carries only your own result tokens.")
-    refs = f"your return refs and refs/heads/{WIP_NS}/{topic}" if role == "fixer" else "your return refs"
+    refs = f"your return refs and refs/heads/{WIP_NS}/{topic} and refs/heads/{WIP_NS}/{topic}-body" if role == "fixer" else "your return refs"
     tail = (f"Never write to any branch except {refs}. Never work around a hook or a refusal; "
             "report it in your result instead.")
     text = "\n".join([first, setup, body, tail]) + "\n"
@@ -1045,7 +1045,7 @@ def self_test() -> int:
     check("the fixer step-pushes fast-forward to handoff-wip/<topic>, never to handoff/, and the tail allows it",
           f"push each verified step, fast-forward only, to {wip} before any wait" in fx
           and "never step-push to\nhandoff/t-1" not in fx and "never step-push to handoff/t-1" in fx
-          and f"except your return refs and {wip}." in fx)
+          and f"except your return refs and {wip} and {wip}-body." in fx)
     check("the fixer deletes the step ref only after body_push.sh succeeds",
           0 <= fx.find("body_push.sh t-1") < fx.find(f"`git push origin :{wip}`"))
     check("the fixer merges a moved origin/main and reruns prepr.sh before it pushes the handoff",

@@ -3837,6 +3837,7 @@
    "tools/audit/seat/beat_jobs.py",
    "tools/audit/seat/beat_jobs_selftest.py",
    "tools/audit/seat/beatd.py",
+   "tools/audit/seat/carry_fold.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
    "tools/audit/seat/closeout.py",
