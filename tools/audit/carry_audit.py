@@ -635,7 +635,9 @@ def report(res: dict, label: str = "") -> int:
 
 
 FOLD_LINE = re.compile(r"^\s*(?:[-*+]\s+)?(?:\*\*)?Fold \(([a-z])\):\s*(.*)$", re.M)
-CLOSES = re.compile(r"\bcloses?\s*:?\s+#(\d+)", re.I)
+# prepr.sh's INTENDED_JQ and preflight.sh's CLOSING_REF: the nine GitHub closing keywords, four reference shapes.
+CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+"
+                    r"(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)(\d+)", re.I)
 
 
 def fold_answered(ans: str) -> bool:
@@ -1089,6 +1091,14 @@ def _self_test() -> int:
           fp("Closes #7\n", "Please fix this; a fold (a): in prose.\n") == [])
     check("a body that does not close the issue owes no fold answer (null control)",
           fp("Refs #7\n\nnothing\n") == [])
+    # The closing set is prepr.sh's INTENDED_JQ: nine keywords, four reference shapes. One arm each.
+    for form in ("Close #7", "Closes #7", "Closed #7", "Fix #7", "Fixes #7", "Fixed #7", "Resolve #7",
+                 "Resolves #7", "Resolved #7", "closes: #7", "Fixes https://github.com/o/r/issues/7",
+                 "Fixes o/r#7", "Resolves GH-7"):
+        check(f"`{form}` closes the issue, so its unanswered fold is refused",
+              len(fp(form + "\n\nFold (a): built\n")) == 4)
+    check("`Mentions #7` and `Fixing #7` close nothing (null control)",
+          fp("Mentions #7\nFixing #7\nunfixes #7\n") == [])
     nf, nn = fold_problems("Closes #8\n", lambda n: None)
     check("an issue that cannot be fetched fails open with a printed note", nf == [] and len(nn) == 1 and "#8" in nn[0])
     # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
