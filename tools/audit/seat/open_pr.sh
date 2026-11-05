@@ -117,7 +117,8 @@ python3 "$PRT/ci_predict.py" --rekey-body $D/body.md --from $C || echo "open_pr:
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 # Asynchronous, so a stop signal interrupts the `wait` and the EXIT trap reaps
 # the tree (pr_args.sh's why).
-{ pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" --reuse $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"  # mut:opreuse
+RU=--reuse  # mut:opreuse
+{ pr_push_hold; PREPR_SKIP_CLOSURES=1 PYTHONPATH=tests/hastub bash "$_push" ${RU-} $R $WT $BR $D/body.md $ISS > $D/p1.log 2>&1 & } 9>>"${PR_PUSH_LOCK:-/dev/null}"
 pr_wait $! $D/p1.log
 grep -h '^app_push: REUSE:' $D/p1.log || :
 PR_PUSHED=$(git rev-parse HEAD)
