@@ -13212,9 +13212,9 @@
     "STRANDED CARRY 55 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-PARAMS-OWNER, index 7; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: #2674 probe seat never scheduled; #2674 open and listed only by closed groups (ISSUE-STRANDED).\n\nFold into: R10-LEARNED-STORE-LOAD (live). Its brief owns the learned-store load/restore lifecycle seam that the seven #2674 leads probe.\n\nOriginal text, verbatim:\n#2674 (ls-r2: seven unprobed store-load leads) is scheduled as a probe-role seat on this group. Recipe with null control is in the issue; first probe whether each writer runs in the first refresh.\n\nCarry: R10-LEARNED-STORE-LOAD"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-learned-store-load",
-    "commit": null,
+    "commit": "79f765e6b2e0f97e61b57d7b605fc4e70b4bf21e",
     "last_step": null,
     "next_step": "dispatch after R10-FACTORY-RESET merges (same seam)",
     "note": "found by the R10-FACTORY-RESET fixer, 2026-10-31",
@@ -13820,12 +13820,13 @@
     "From #2316 (R10-REF-PRIVACY) review 6209184343, item a49e22d2, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: tools/audit/seat/ref_privacy.py's push-site grammar and its \"WHAT IT DOES NOT CATCH\" docstring (lines 97-117) name neither `git send-pack` nor `gh api graphql -F query=@<file>`; grep finds 0 matches for `send-pack` or `query=@` in the module. The createRef/updateRef arm reads the mutation text on the line, so a mutation held in a file passed with `-F query=@file` is never seen. Fix: add both spellings to the docstring's not-caught list, or match them in the `--check` push-site enumeration if that is the sounder seam (a `gh api graphql` call with `query=@` is a ref write the line cannot judge, so registering it as a push site that needs a PUSHERS entry is the class fix). Failing test first: a planted tracked file under tools/ holding `gh api graphql -F query=@mut.graphql` (and one holding `git send-pack origin HEAD:refs/heads/x`) is refused by `--check` as an unregistered push site, or, if only disclosed, a self-test line asserts the docstring names both. Null control: a `gh api graphql -f query='{ viewer { login } }'` read is not a push site."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-seat-identity-guards",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLOW-BODY-ONLY, R10-FLY-NO-FOOTERS, R10-FLY-SUITE-ENV-FLAKES"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLOW-BODY-ONLY, R10-FLY-NO-FOOTERS, R10-FLY-SUITE-ENV-FLAKES",
+    "pr": 3222
    },
    "brief": "Seat identity and privacy guards left by R10-FLY-NO-FOOTERS and R10-FLOW-BODY-ONLY: refuse commits authored by the Claude identity at the push guard in tools/audit/seat/ref_privacy.py, export the seat identity in tools/audit/seat/cloud-setup.sh so an environment author cannot override it, gate the handoff body push on the same guard, run the body privacy refusal from tools/pr/prepr.sh's body check, fix the cloud home-directory refusal of a repository path, and set the runner temp directory a replayed governance step needs. Build the identity refusal first, alone if needed. Runs after R10-PREPR-CAP, which holds tools/pr/prepr.sh. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -15202,12 +15203,13 @@
     "Re-routed by the orchestrator (s9, 2026-11-01) from R10-FLY-MANDATE-REVOKE-GUARD, which went done with this carry still in its array (carry beginning \"From the #3045 round-1 fix review\", verdict/3045 0ec244aa7f9757aab956f8f62503e75c99e7afde, blocked metric-gamed). tools/policy/budget_raise_gate.py checks only the shape of the `Architecture score: dS <n> <verdict>` line, never its value against what the arch-score job measured at the head; that is how an unearned improvement figure (body dS +0.0012, true +0.0000) passed the gate twice on #3045. This group already owns \"the train and the body check read only the raise justification's shape\"; build the value check there: the gate reads the arch-score job's dS at the head and refuses a body whose figure differs. Control: a body quoting a dS the job did not measure is refused; the #3045 round-1 body at 0ec244aa is the planted case; a body quoting the measured value passes."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-raise-gate-shim",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD",
+    "pr": 3223
    },
    "brief": "Gaps the R10-FLY-MANDATE-REVOKE-GUARD fixer stated after #3064: a raw post to #201 bypasses the gh_comment.py guard (close it at the seat gh shim R10-FLY-GH-CALL-LOG adds), the train and the body check read only the raise justification's shape, and the budget-raise-gate job's timeout is unmeasured on CI's runner. Runs after R10-FLY-GH-CALL-LOG. Single-carry group. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -16725,7 +16727,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "`finding-propagation.md`: stale: review comment 6633403670, item a2e21972 (archscore `coord_footprint` counts a packed generator tuple-unpack as one statement) named #2259, which #3179 closed legitimately and whose part 2 covered card-rule spellings, not statement packing; the live destination is the new group. Carry: R10-FLY-ARCHSCORE-STMT-PACKING (item a2e21972, supersedes #2259)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
