@@ -522,10 +522,33 @@ def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
 # --- masking every entity id ---------------------------------------------------
 
 
-def entity_roles(entry: Json, price_series_entity: str | None) -> dict[str, str]:
-    """``{id: <domain>.<role>}`` for every id the entry holds under a key, options
-    before data, keys in order, then the price series as ``price``. An id keeps
-    its first role; a role a second id would take leaves that id to the hash."""
+def _role_claims(entry: Json, conf: frozenset[str] | None) -> Iterable[tuple[object, str]]:
+    """``(value, role)`` for every entry value that may name an id, options before
+    data, keys in order: with ``conf`` only the keys ``sanitise`` keeps, each
+    through ``_entry_shape`` as ``sanitise`` shapes it, so the roles agree with those ``_unmasked``
+    re-derives from the sanitised entry, where a dropped key or item is gone."""
+    for section in ("options", "data"):
+        block = entry.get(section)
+        for key, value in sorted(block.items() if isinstance(block, dict) else ()):
+            if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):
+                continue
+            if conf is not None:
+                # the one predicate ``sanitise`` applies; a _DROP it returns is no str,
+                # so the consumer's id test passes it over
+                value = _entry_shape(str(key), value)
+            role = re.sub(r"_entit(y|ies)$", "", str(key))
+            if not isinstance(value, list):
+                yield value, role
+                continue
+            for i, item in enumerate(value, start=1):
+                yield item, f"{role}_n{i}"
+
+
+def entity_roles(entry: Json, price_series_entity: str | None,
+                 conf: frozenset[str] | None = None) -> dict[str, str]:
+    """``{id: <domain>.<role>}`` for every id the entry holds under a key
+    (``_role_claims``), then the price series as ``price``. An id keeps its first
+    role; a role a second id would take leaves that id to the hash."""
     roles: dict[str, str] = {}
 
     def claim(eid: object, role: str) -> None:
@@ -534,15 +557,8 @@ def entity_roles(entry: Json, price_series_entity: str | None) -> dict[str, str]
             if rid not in roles.values():
                 roles[eid] = rid
 
-    for section in ("options", "data"):
-        block = entry.get(section)
-        for key, value in sorted(block.items() if isinstance(block, dict) else ()):
-            role = re.sub(r"_entit(y|ies)$", "", str(key))
-            if isinstance(value, list):
-                for i, item in enumerate(value, start=1):
-                    claim(item, f"{role}_n{i}")
-            else:
-                claim(value, role)
+    for value, role in _role_claims(entry, conf):
+        claim(value, role)
     for role in ("price", "price_series"):
         claim(price_series_entity, role)
     return roles
@@ -556,10 +572,10 @@ def hashed_id(entity_id: str, key: str) -> str:
     return f"{entity_id.split('.', 1)[0]}.e_{digest[:10]}"
 
 
-def mask_ids(doc: Json, key: str) -> Json:
+def mask_ids(doc: Json, key: str, conf: frozenset[str] | None = None) -> Json:
     """``doc`` with every entity id, at any depth and as any dict key,
     renamed through ``entity_roles`` else ``hashed_id``: one mapping."""
-    roles = entity_roles(doc.get("entry") or {}, doc.get("price_series_entity"))
+    roles = entity_roles(doc.get("entry") or {}, doc.get("price_series_entity"), conf)
 
     def rename(node: object) -> object:
         if isinstance(node, str) and ENTITY_ID.match(node):
@@ -626,6 +642,7 @@ def document(
     *, time_zone: str, window: tuple[str, str], recorder_schema: int | None,
     entry: Json, inputs: Iterable[str], published: Iterable[str],
     price_series_entity: str | None, states: dict[str, list[list[Any]]],
+    conf: frozenset[str] | None = None,
 ) -> Json:
     """The unsanitised ``hpo-replay/1`` document, every entity id masked
     (``mask_ids``, keyed by the entry's id); ``seal`` makes it writable."""
@@ -644,7 +661,7 @@ def document(
         "published": sorted(published),
         "price_series_entity": price_series_entity,
         "states": states,
-    }, str(entry.get("entry_id") or ""))
+    }, str(entry.get("entry_id") or ""), conf)
 
 
 def _copy(value: str) -> re.Pattern[str]:
