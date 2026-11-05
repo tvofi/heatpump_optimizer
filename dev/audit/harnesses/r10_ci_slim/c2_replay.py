@@ -8,10 +8,14 @@ TREE is a checkout (this one, or a merge-base worktree for the control); RUNS.js
 critical_path_minutes and script_runs_per_push lines and the GREW count for the recorded window, a
 planted +10 critical-path growth, and a planted +1 script-run growth.
 """
+import importlib.util
+import json
+import sys
+from pathlib import Path
+
 from pathlib import Path
 tree = Path(sys.argv[1]); runs = Path(sys.argv[2])
 sys.path.insert(0, str(tree / "tests"))
-import importlib.util
 spec = importlib.util.spec_from_file_location("cr", tree / "tests" / "ci_ratchet.py"); cr = importlib.util.module_from_spec(spec); spec.loader.exec_module(cr)
 budgets = json.loads((tree / "tests" / "ci_budgets.json").read_text())
 cp = cr.critical_path_minutes(runs)
