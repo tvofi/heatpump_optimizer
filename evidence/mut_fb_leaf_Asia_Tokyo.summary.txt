@@ -1,3 +1,0 @@
-  FAIL no stored instant reaches a loader beyond the clock plus its store's lead  [escaped=['dhw_legionella:last_cycle', 'dhw_legionella:last_attempt', 'dhw_legionella:__instant_probe', 'boost:__instant_probe', 'pump_duty:written/dhw_setpoint/1', 'pump_duty:__instant_probe'] of 6]
-1 of 108 FINITE BOUNDARY CHECKS FAILED
-rc=1
