@@ -14057,7 +14057,8 @@
     "From PR 3227, body item 0fa407be: Hot files: `body_push.sh` is also edited by open PR 3221 (receipt trailer); this diff adds only new functions and one call per refusal path. Carry: R10-BODY-CONTRACT (Carry 14) (items 0fa407be)",
     "From PR 3227, body item 2fbd12b3: Carry control lint narrowing: the lint skips the 15 legacy carry files named in `LEGACY_CONTROL_FILES` in `brief_lint.mjs` (their controls name no path or cite unresolvable paths); repairing them rewrites other groups' controls. The set is closed and shrinks as those carries are re-measured. Carry: R10-BODY-CONTRACT (Carry 15) (items 2fbd12b3)",
     "From PR 3227, body item 2b6255d7: Issue-side fold spellings: `FOLD_LINE` reads `Fold (x):` with a lowercase letter and the colon straight after the parenthesis, so an owner's `**Fold (a)**:` or `Fold (A):` gets no fold read; the live spelling could not be confirmed. Carry: R10-BODY-CONTRACT (items 2b6255d7)",
-    "From PR 3227, body item f358c0dd: Dismissal pointer grammar: `seg_dests` accepts `,` and `;` as well as `|` after the group, wider than the documented `Carry: <GROUP> | dismissed:`; align the docs or narrow the regex. Carry: R10-BODY-CONTRACT (items f358c0dd)"
+    "From PR 3227, body item f358c0dd: Dismissal pointer grammar: `seg_dests` accepts `,` and `;` as well as `|` after the group, wider than the documented `Carry: <GROUP> | dismissed:`; align the docs or narrow the regex. Carry: R10-BODY-CONTRACT (items f358c0dd)",
+    "From PR 3227, body item 3e2ca635: The `Round:\\s*\\d` trailer reads any item line opening `Round: <digit>`, so a finding written that way is read as a trailer; the null control covers only `Round:` with no number. Carry: R10-BODY-CONTRACT (items 3e2ca635)"
    ],
    "resume": {
     "stage": "in-progress",
