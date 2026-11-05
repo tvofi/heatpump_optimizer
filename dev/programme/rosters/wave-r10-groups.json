@@ -3726,7 +3726,9 @@
     "From PR 3220, body item d7f65c3b: Open finding, unattributed residual: with the stored term now in the row, the harness's residual is unchanged at -3.90 % (flat) and -8.02 % (varying), and -3.57 % on wood-cold and -3.61 % on wood-stale. This is not zero. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`) (items d7f65c3b)",
     "From PR 3220, body item 7f2fa39d: Open finding: `_apportion_by_steady_demand` has no pump cap, unchanged from round 2. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`) (items 7f2fa39d)",
     "From PR 3220, body item fc24128d: Open finding, unchanged: `_apportion_by_steady_demand` has no pump cap. This pass measured it: on a 3 kW pump, a -25 C night and 400 W/m2 midday sun the spread reference peaks at 1.226x the pump. The solve's seed is clamped (now pinned), but the booked reference itself can ask a step the pump cannot deliver. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`). (items fc24128d)",
-    "From PR 3220, body item 7da8ff67: Open finding, unchanged: the harness's unattributed residual (-3.90 % flat, -8.02 % varying). Carry: R10-SAV-COMFORT (same roster). (items 7da8ff67)"
+    "From PR 3220, body item 7da8ff67: Open finding, unchanged: the harness's unattributed residual (-3.90 % flat, -8.02 % varying). Carry: R10-SAV-COMFORT (same roster). (items 7da8ff67)",
+    "Open finding, unchanged: `_apportion_by_steady_demand` has no pump cap. This pass measured it: on a 3 kW pump, a -25 C night and 400 W/m2 midday sun the spread reference peaks at 1.226x the pump. The solve's seed is clamped (now pinned), but the booked reference itself can ask a step the pump cannot deliver. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`).",
+    "Open finding, unchanged: the harness's unattributed residual (-3.90 % flat, -8.02 % varying). Carry: R10-SAV-COMFORT (same roster)."
    ],
    "architect_note": "",
    "resume": {
@@ -16609,8 +16611,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3220
+    "stage": "carries-open",
+    "pr": 3220,
+    "commit": "7d95405e384e1ebf8223f04657c85996af55f3d9"
    },
    "brief": "Owner-reported 2026-11-04 (tvofi): the month table reads nonsense (November baseline far below actual, percent clipped at -100). Each re-plan books only the reference's first step, which reads zero when a valve's buffer is above the curve. Part 1: hold the buffer and spread the horizon energy by steady demand, remove the percent clip, add a per-month basis marker through the store's versioned migration, and show a dash for savings on old-basis rows and on two-tank houses until R10-SAV-WOOD-MEASURED lands. Local fixer seat; root-cause seat beside it."
   },
@@ -16952,7 +16955,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3230
    },
    "group": "R10-CI-SLIM",
    "lane": "C",
