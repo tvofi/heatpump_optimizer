@@ -27,7 +27,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GRADE-DRIVERS (stage in-progress, branch `handoff/r10-grade-drivers`): `git fetch origin handoff/r10-grade-drivers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-PRICING (stage carries-open, branch `handoff/r10-partload-pricing`): `git fetch origin handoff/r10-partload-pricing && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TWO-ZONE-HHL (stage in-progress, branch `handoff/r10-two-zone-hhl`): `git fetch origin handoff/r10-two-zone-hhl && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-TWO-ZONE-HHL (stage carries-open, branch `handoff/r10-two-zone-hhl`): `git fetch origin handoff/r10-two-zone-hhl && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-HANDOFF-ARM (stage absorbed, branch `handoff/r10-relay-handoff-arm`): `git fetch origin handoff/r10-relay-handoff-arm && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OPENER-REUSE (stage absorbed, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage absorbed, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
