@@ -1,0 +1,5 @@
+const: control (no stored/comfort readings): baseline 149.88 actual 132.11 saved 17.77 (11.86 %)
+const: settled row: baseline 149.88 actual 132.11 saved 17.77 (11.86 %) stored_heat_sek -11.15 comfort_sek 6.23
+const: comfort-matched saving 11.54 (+7.70 % of the settled baseline)
+const: DEFECT
+rc=1
