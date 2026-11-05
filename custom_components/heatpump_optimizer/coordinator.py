@@ -2174,6 +2174,9 @@ class SolveRecord:
     config: OptimizationConfig
     params: ThermalParameters
     inputs: SolveInputs
+    #: The band ``params`` books (``draw_range.solve_band``), stamped on the
+    #: plan this record solves so the arbiter maps it by the same band.
+    band: draw_range.SolveBand
 
     def optimizer(self) -> HeatPumpOptimizer:
         return HeatPumpOptimizer(ThermalModel(self.params), self.config)
@@ -2219,6 +2222,38 @@ def _sweep_price(kwh_price: float | None, prices: list[dict[str, Any]]) -> float
     """
     level = kwh_price or float(np.mean([p.get("total", 0.0) for p in prices]))
     return level if level > 1e-6 else max(abs(level), 0.1)
+
+
+def _solve_band(draw: draw_range.DrawRange, hub: ThermalParameters, config: Any) -> draw_range.SolveBand:
+    """This moment's ``draw_range.solve_band`` from the hub and the store."""
+    return draw_range.solve_band(draw, hub, probe_install(config), dt_util.now().timestamp())
+
+
+def _band_fields(band: draw_range.SolveBand) -> dict[str, float]:
+    """The solve copy's power range under ``band``; none where configured,
+    so a configured band leaves the copy the hub's figures byte for byte."""
+    if band.source == "configured":
+        return {}
+    return {"max_electrical_power": band.max_kw, "min_electrical_power": band.min_kw}
+
+
+def _record_manual_release(
+    result: "OptimizationResult", override: "ManualOverride | None"
+) -> None:
+    """Fold the solve's safety releases onto the override it pinned (#1754).
+
+    ``override`` is the one this solve's pins were built from, captured
+    before the await and passed by identity; reading the live
+    ``self._manual_override`` here let a mid-solve swap inherit them.
+    """
+    if override is None:
+        return
+    override.released_space = [
+        {"step": i, "reason": "safety"} for i in result.manual_released_space
+    ]
+    override.released_dhw = [
+        {"step": i, "reason": "safety"} for i in result.manual_released_dhw
+    ]
 
 
 def _whatif_banded(state: Any) -> bool:
@@ -5941,7 +5976,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _raise_update_failed("update_failed", f"Error updating data: {err}", err, error=str(err))
 
     def _solve_hubs(
-        self, n_steps: int, *, banded: bool
+        self, n_steps: int, *, banded: bool, band: draw_range.SolveBand | None = None
     ) -> tuple[OptimizationConfig, ThermalParameters, ThermalState]:
         """Private copies of the three hubs with this moment's solve values.
 
@@ -5994,6 +6029,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             **dhw_bands,
             **self._model_corrections(now),
             **self._dhw_plan_fields(now),
+            **_band_fields(band or _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)),
         )
         state = replace(
             copy.deepcopy(ctx._current_state),
@@ -6025,7 +6061,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """
         ctx = getattr(self, "_ctx", self)
         n = len(horizon.prices)
-        config, params, state = self._solve_hubs(n, banded=True)
+        band = _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)
+        config, params, state = self._solve_hubs(n, banded=True, band=band)
         space_pins, dhw_pins = self._manual_pins(solve_now, n)
         # The opt-in fuse guard (#3): a hard per-step ceiling on heat pump
         # power at what the fuse leaves after the rest of the house.
@@ -6080,7 +6117,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 off_steps=quiet.off_steps,
                 quiet_actions=quiet.actions,
             ),
-        ))
+        ), band)
 
     async def async_run_optimization(self) -> str | None:
         """Run the MPC optimization.
@@ -6192,9 +6229,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     f"solver returned a failed plan: {result.status}"
                 )
 
-            self._record_manual_release(result, pinned_override)
+            _record_manual_release(result, pinned_override)
 
-            self._optimization_result = result
+            self._optimization_result = replace(result, solve_band=record.band.as_dict())
             self._last_optimization = dt_util.now()
             if self._solve_failures >= SOLVE_FAILURE_ISSUE_COUNT:
                 ir.async_delete_issue(self.hass, DOMAIN, "solve_failures")
@@ -7742,6 +7779,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "measured_cop": self._measured_cop.cop,
             "measured_cop_at": None if self._measured_cop.at is None else self._measured_cop.at.isoformat(),
             "cop_refusal": self._measured_cop.refusal,
+            "pump_max_power": getattr(self._optimization_result, "solve_band", None) or None,
             "cop_observability": cop_observability(
                 electric=install.cop_electric(), measured_heat=install.measured_heat,
                 follows=draw_range.follows_ask(self._accuracy.draw),
@@ -8292,24 +8330,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             np.array(space, dtype=float) if space is not None else None,
             np.array(dhw, dtype=float) if dhw is not None else None,
         )
-
-    def _record_manual_release(
-        self, result: "OptimizationResult", override: "ManualOverride | None"
-    ) -> None:
-        """Fold the solve's safety releases onto the override it pinned (#1754).
-
-        ``override`` is the one this solve's pins were built from, captured
-        before the await and passed by identity; reading the live
-        ``self._manual_override`` here let a mid-solve swap inherit them.
-        """
-        if override is None:
-            return
-        override.released_space = [
-            {"step": i, "reason": "safety"} for i in result.manual_released_space
-        ]
-        override.released_dhw = [
-            {"step": i, "reason": "safety"} for i in result.manual_released_dhw
-        ]
 
     def _manual_plan_state(self) -> ManualPlan | None:
         """The override state the plan sensors expose, or ``None`` when inactive.

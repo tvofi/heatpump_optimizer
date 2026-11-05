@@ -7,13 +7,14 @@ maximum is several times its real running draw had every plan book levels it
 never reached, and the heat they were credited with was never delivered.
 
 ``DrawRange`` keeps the running samples -- the metered draw beside the space
-level the plan asked for -- and answers one question: the range the plan
-may book. Until there is evidence the configured figures stand; with it, the
-plan is clamped to the metered range. ``is_running_space`` is the one
-filter saying which intervals are running samples, from values the
-coordinator reads (it alone can see the meter, the freezes, a resistive
-element and the defrost window); ``planned_range`` is the one answer to
-which installs the clamp applies to and how far. Nothing here takes the
+level the plan asked for -- and judges whether the plan and the meter
+disagree (``engaged``); ``planned_range`` is the metered range that judgement
+would clamp to, published in diagnostics and read by no solve. The range a
+solve books is ``solve_band``'s: the configured figures, or the ceiling
+store's learned top where the experiment metered the pump below them.
+``is_running_space`` is the one filter saying which intervals are running
+samples, from values the coordinator reads (it alone can see the meter, the
+freezes, a resistive element and the defrost window). Nothing here takes the
 coordinator.
 
 **Why evidence, and a latch.** A pump in mild weather runs well below its
@@ -560,10 +561,12 @@ def fold(
 def planned_range(
     draw: DrawRange, params: Any, cap: InstallCapability
 ) -> tuple[float, float] | None:
-    """The effective ``(min, max)`` a solve may book, or ``None``.
+    """The window's latched ``(min, max)``, or ``None``: diagnostics only.
 
-    ``None`` -- the configured figures stand -- until ``draw`` has the
-    evidence, and always where the plan writes the power itself
+    No solve reads it: the range a solve books is ``solve_band``'s. Kept as
+    the window's view beside the ceiling store's in ``diagnostics_view``.
+
+    ``None`` until ``draw`` has the evidence, and always where the plan writes the power itself
     (``plan_writes_power``): there the metered draw is the plan's own echo.
     On an install that can duty-cycle the min end stays configured: a level
     below it is an average over the step, which a pump running at its metered
@@ -595,3 +598,71 @@ def diagnostics_view(
     view["effective_max_kw"] = None if effective is None else round(effective[1], 3)
     view["learned_max_kw"] = None if learned is None else round(learned, 3)
     return view
+
+
+@dataclass(frozen=True)
+class SolveBand:
+    """The draw range one solve books, and which top it used and why.
+
+    The coordinator computes it once per solve and stamps it on the plan
+    (``OptimizationResult.solve_band``), so the arbiter maps a plan's steps
+    by the band they were solved on, never a recomputed one.
+    """
+
+    configured_max_kw: float
+    max_kw: float
+    min_kw: float
+    source: str
+    reason: str
+    #: The learned top (or the store's sample count while awaiting it) and
+    #: the newest sample's epoch seconds: the reason's evidence.
+    learned_max_kw: float | None = None
+    samples: int = 0
+    since_s: float | None = None
+
+    def as_dict(self) -> dict[str, Any]:
+        return {
+            "configured_max_kw": round(self.configured_max_kw, 3),
+            "planned_max_kw": round(self.max_kw, 3),
+            "planned_min_kw": round(self.min_kw, 3),
+            "source": self.source,
+            "reason": self.reason,
+            "learned_max_kw": None if self.learned_max_kw is None else round(self.learned_max_kw, 3),
+            "samples": self.samples,
+            "since_s": self.since_s,
+        }
+
+
+def solve_band(
+    draw: DrawRange, params: Any, cap: InstallCapability, now_s: float
+) -> SolveBand:
+    """The ``(min, max)`` a solve books: the configured figures, or the
+    ceiling store's learned top where it measured the pump below them.
+
+    The top only ever comes down (a learned top above the configured one
+    books the configured one: less heat, never fictional heat), and only by
+    more than ``AGREE_TOLERANCE``, so a correctly configured pump keeps its
+    figures. The bottom end never moves except to stay at or under the top.
+    Where the plan writes the power itself the draw is the plan's echo and
+    the configured figures stand. The hub keeps the configured figures: a
+    caller applies ``max_kw`` and ``min_kw`` to its solve copy only.
+    """
+    cfg_min = float(params.min_electrical_power)
+    cfg_max = float(params.max_electrical_power)
+    since = draw.ceiling_since()
+    samples = len(draw.ceiling)
+
+    def configured(reason: str, learned: float | None = None) -> SolveBand:
+        return SolveBand(cfg_max, cfg_max, cfg_min, "configured", reason, learned, samples, since)
+
+    if cap.plan_writes_power():
+        return configured("plan_writes_power")
+    learned = draw.learned_max_kw(now_s)
+    if learned is None:
+        return configured("lapsed" if samples >= CEILING_MIN_SAMPLES else "awaiting_probe")
+    if learned >= (1.0 - AGREE_TOLERANCE) * cfg_max:
+        return configured("not_below_configured", learned)
+    return SolveBand(
+        cfg_max, learned, min(cfg_min, learned), "ceiling_probe",
+        "measured_below_configured", learned, samples, since,
+    )
