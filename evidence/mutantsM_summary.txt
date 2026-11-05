@@ -1,0 +1,26 @@
+MUTANT comfort_unscaled rc=0
+    ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ALL 134 DST / QUARTER-GRID CHECKS PASSED
+    ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+    ok   a pump command that FAILED is not remembered as done
+  ALL 4830 FEATURE CHECKS PASSED
+  Traceback (most recent call last):
+  RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+  Traceback (most recent call last):
+  numpy.linalg.LinAlgError: Singular matrix
+  Traceback (most recent call last):
+  RuntimeError: no HTTP session available in the test stub
+  Traceback (most recent call last):
+MUTANT stored_unscaled rc=0
+    ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ALL 134 DST / QUARTER-GRID CHECKS PASSED
+    ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+    ok   a pump command that FAILED is not remembered as done
+  ALL 4830 FEATURE CHECKS PASSED
+  Traceback (most recent call last):
+  RuntimeError: solver returned a failed plan: failed (injected L-BFGS-B blow-up)
+  Traceback (most recent call last):
+  numpy.linalg.LinAlgError: Singular matrix
+  Traceback (most recent call last):
+  RuntimeError: no HTTP session available in the test stub
+  Traceback (most recent call last):

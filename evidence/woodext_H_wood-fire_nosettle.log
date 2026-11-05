@@ -1,0 +1,10 @@
+wood-fire
+  row: baseline 173.48 actual 106.62 saved 66.86 pct 38.54046575974176
+  row: stored_heat_sek 0.0 comfort_sek 0.0 (--no-settlement)
+  calibration 1.0; uncalibrated baseline 173.48, pct 38.54
+  plan kWh 88.85 at COP 1.828; booked reference 144.56 at COP 1.820; gap +55.71; mean room 18.42 C against 21.00
+  comfort term +6.32 kWh_e (the reference's warmer house); stored term -9.23 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 129.02 kWh against plan 88.85: +31.13 %
+wood-fire: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+rc=0
