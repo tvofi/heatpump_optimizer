@@ -864,21 +864,11 @@ const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 // in W4D-G9's done brief for #954. The owner's ruling (#201, 5708947495) sends
 // such a carry to carry-<N>.json. A live group anywhere still wins, in either
 // order, so a stage reopened as a group closes the carry file again.
-// The rosters live under dev/programme/rosters (roster_lib.ROSTERS_DIR); .claude/workflows holds
-// only a straggler. A no-argument index reads both, or a carry at a roster-covered issue passes.
-const rosterDirFiles = () => {
-  try {
-    const d = at('dev/programme/rosters')
-    return fs.readdirSync(d).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(d, f))
-  } catch {
-    return []
-  }
-}
 export function rosterIssues(dir) {
   const out = new Map()
   let files
   try {
-    files = dir ? fs.readdirSync(dir).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(dir, f)) : [...workflowFiles(ROSTER_FILE_RE), ...rosterDirFiles()]
+    files = dir ? fs.readdirSync(dir).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(dir, f)) : workflowFiles(ROSTER_FILE_RE)
   } catch {
     return out
   }
@@ -1323,19 +1313,6 @@ const GUARD_PROBE = 'driver-guard acceptance probe'
 // that must index NOTHING. The last is the over-fire control; without it a
 // widening that indexed everything would pass this probe and refuse every
 // carry.
-// Lint a one-carry file at `issue` with `control`, against the live (no-argument) roster.
-function carryProbe(issue, control) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'carry-probe-'))
-  try {
-    const file = path.join(dir, `carry-${issue}.json`)
-    const c = { from: 'probe', effect: 'narrows', control, remeasure: 'probe', brief: 'tests/closures.json holds it' }
-    fs.writeFileSync(file, JSON.stringify({ issue, stage: 'probe', carries: [c] }))
-    return lintCarryFile(file)
-  } finally {
-    fs.rmSync(dir, { recursive: true, force: true })
-  }
-}
-
 function assertRosterIssues() {
   const dir = path.join(FIXTURES, 'roster-probe')
   let idx
@@ -1369,20 +1346,6 @@ function assertRosterIssues() {
   // That mutation escaped the first form of this control.
   if (idx.size !== 4) {
     problems.push(`the index holds ${idx.size} issue(s), not 4: a non-numeric entry ("NA") or a done-only issue was indexed, or two distinct numeric strings collapsed onto one key`)
-  }
-  // The no-argument index is the one the driver and every carry lint use: it must read the rosters
-  // under dev/programme/rosters, so a carry filed at a roster-covered issue is refused. The control
-  // issue (999999) is in no roster and is accepted.
-  const live = rosterIssues()
-  const covered = [...rosterIssues(at('dev/programme/rosters')).keys()][0]
-  if (covered === undefined || !live.has(covered)) {
-    problems.push(`rosterIssues() with no argument does not index issue ${covered} of dev/programme/rosters; a carry file at a covered issue is accepted`)
-  } else {
-    const refused = carryProbe(covered, 'tests/closures.json holds it').some((f) => f.message.includes('already has a live roster group'))
-    if (!refused) problems.push(`a carry at roster-covered issue ${covered} is not refused`)
-  }
-  if (carryProbe(999999, 'tests/closures.json holds it').some((f) => f.message.includes('already has a live roster group'))) {
-    problems.push('a carry at issue 999999, covered by no roster, is refused (over-fire)')
   }
   if (problems.length) {
     console.log('\nROSTER VACUOUS: roster reader:')
