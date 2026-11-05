@@ -1272,7 +1272,7 @@ function assertTreeRev() {
   const problems = []
   try {
     const g = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
-    g('init', '-q')
+    g('init', dir); g('config', 'maintenance.auto', 'false'); g('config', 'gc.auto', '0') // the local layer of tests/throwaway_git.py, which has no node twin
     fs.writeFileSync(path.join(dir, 'a.txt'), 'a')
     g('add', '.'); g('commit', '-qm', 'one')
     const first = g('rev-parse', 'HEAD').trim()
