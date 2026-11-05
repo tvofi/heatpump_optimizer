@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/ledger.py b/custom_components/heatpump_optimizer/ledger.py
+index 182033d60..0c12aac3d 100644
+--- a/custom_components/heatpump_optimizer/ledger.py
++++ b/custom_components/heatpump_optimizer/ledger.py
+@@ -426,7 +426,7 @@ class MonthlyLedger:
+             stored_sek = 0.0 if cop is None or actual["kwh"] <= 0 else scale * (
+                 self.line(key, SAVINGS_STORED_LINE)["kwh"] / cop * actual["sek"] / actual["kwh"])
+             comfort_sek = self.line(key, SAVINGS_COMFORT_LINE)["sek"] * scale
+-            baseline_sek = self.line(key, "savings_baseline")["sek"] * scale + stored_sek
++            baseline_sek = self.line(key, "savings_baseline")["sek"] * scale
+             actual_sek = actual["sek"]
+             estimated = key == open_key
+             if estimated:

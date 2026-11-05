@@ -1,0 +1,60 @@
+Note: switching to 'refs/remotes/pull/3195/merge'.
+
+You are in 'detached HEAD' state. You can look around, make experimental
+changes and commit them, and you can discard any commits you make in this
+state without impacting any branches by switching back to a branch.
+
+If you want to create a new branch to retain commits you create, you may
+do so (now or later) by using -c with the switch command. Example:
+
+  git switch -c <new-branch-name>
+
+Or undo this operation with:
+
+  git switch -
+
+Turn off this advice by setting config variable advice.detachedHead to false
+
+HEAD is now at d52cdb34e Merge c383169a50b6b9668a0e88d829bfc3127f4b3c73 into 783d8dc72811ab75ae4ffca367456f44896f47d3
+##[endgroup]
+[command]/usr/bin/git log -1 --format=%H
+d52cdb34e8a0d52606abe2348190e9aeb4eaf808
+##[group]Removing auth
+Removing SSH command configuration
+Removing HTTP extra header
+Removing includeIf entries pointing to credentials config files
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+includeif.gitdir:/github/workspace/.git.path
+includeif.gitdir:/github/workspace/.git/worktrees/*.path
+/home/runner/work/_temp/git-credentials-07c6e13d-5fd0-446f-a8b8-322bc6fe36fb.config
+/home/runner/work/_temp/git-credentials-07c6e13d-5fd0-446f-a8b8-322bc6fe36fb.config
+/github/runner_temp/git-credentials-07c6e13d-5fd0-446f-a8b8-322bc6fe36fb.config
+/github/runner_temp/git-credentials-07c6e13d-5fd0-446f-a8b8-322bc6fe36fb.config
+Removing credentials config '/home/runner/work/_temp/git-credentials-07c6e13d-5fd0-446f-a8b8-322bc6fe36fb.config'
+##[endgroup]
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+env:
+  PINNED: 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e
+  INPUT_BASE: 
+##[endgroup]
+programs restored from 2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+shell: /usr/bin/bash -e {0}
+env:
+  GH_TOKEN: ***
+  PR: 3195
+  BASE: main
+  KIND: edit
+##[endgroup]
+FAIL prelude: failure
+##[error]Process completed with exit code 1.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.56.0
+Adding repository directory to the temporary git global config as a safe directory
+Removing SSH command configuration
+Removing HTTP extra header
+Removing includeIf entries pointing to credentials config files
+Cleaning up orphan processes
