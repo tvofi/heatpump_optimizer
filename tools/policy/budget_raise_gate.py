@@ -205,14 +205,16 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
     # falls to `frozen`, which is the reading the consumer itself gives an
     # unknown metric ("is not a metric this ratchet knows"): a new metric
     # reaches this file only through ci_ratchet.py, never past this gate.
+    # critical_path_minutes is the one exception: the ratchet's REPORT_ONLY
+    # reference (R10-CI-SLIM card C2), printed and never graded, so moving it
+    # is no raise; its retired band falls to `frozen` like any unknown key.
     "tests/ci_budgets.json": [
         (("recorded_at",), FREE),
         (("reason",), FREE),
+        (("critical_path_minutes",), FREE),
         (("archscore.*",), MAX),
         (("script_runs_per_push",), MAX),
         (("script_runs_full_case_pr",), MAX),
-        (("critical_path_minutes",), MAX),
-        (("critical_path_minutes_band",), MAX0),
     ],
     "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
@@ -857,21 +859,18 @@ def self_test() -> int:
           raised(I, i0, {**i0, "script_runs_per_push": 54}), True)
     check("ci: the full-case PR count up is a raise",
           raised(I, i0, {**i0, "script_runs_full_case_pr": 54}), True)
-    check("ci: the critical path up is a raise",
-          raised(I, i0, {**i0, "critical_path_minutes": 61.5}), True)
+    check("ci: the report-only critical-path reference up is routine (C2)",
+          raised(I, i0, {**i0, "critical_path_minutes": 61.5}), False)
     check("ci: an archscore vector entry up is a raise",
           raised(I, i0, {**i0, "archscore.duplication_copies": 69}), True)
     check("ci: an archscore cap removed is a raise",
           raised(I, i0, {k: v for k, v in i0.items() if k != "archscore.family_splits"}), True)
-    # The timing band: absent is zero tolerance, so adding one is a raise.
-    check("ci: a critical-path band added is a raise (absent is a band of zero)",
+    # The retired timing band (C2) is a key the ratchet no longer knows: frozen,
+    # so re-adding it and removing it are each a change only the owner signs.
+    check("ci: the retired critical-path band re-added is frozen",
           raised(I, i0, {**i0, "critical_path_minutes_band": 1.3}), True)
-    check("ci: a critical-path band widened is a raise",
-          raised(I, {**i0, "critical_path_minutes_band": 1.3},
-                 {**i0, "critical_path_minutes_band": 1.4}), True)
-    check("ci: a critical-path band narrowed is routine",
-          raised(I, {**i0, "critical_path_minutes_band": 1.3},
-                 {**i0, "critical_path_minutes_band": 0.9}), False)
+    check("ci: the retired critical-path band removed is frozen (C2's own diff)",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3}, i0), True)
     check("ci: a key the ratchet does not know is frozen (the consumer refuses it too)",
           raised(I, i0, {**i0, "jobs_per_day": 3}), True)
 
