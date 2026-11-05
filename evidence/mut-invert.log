@@ -1,0 +1,5 @@
+  FAIL a posted merge verdict is added to the train at its head, after the post (the event add)
+  FAIL a PR listed in the hold file is not added to the train
+  FAIL a PR the hold file does not list is added (null control for the skip)
+  FAIL an empty hold file adds as before (null control)
+bus self-test: 132 checks, 4 failed
