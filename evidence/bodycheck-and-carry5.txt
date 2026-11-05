@@ -1,0 +1,7 @@
+== driven --body-check (HOME=/Users/exampleuser): head bad -> REFUSE ref_privacy (body): line 3: home-directory, account-name in the body; head ok -> ok; mutant (bline=$(true)) bad -> ok (refusal lost)
+== carry5 HOME=/root USER=root body-lines
+line 1: home-directory in the body
+rc=1
+rc=0
+== base
+rc=0
