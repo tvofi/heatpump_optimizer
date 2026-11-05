@@ -1,5 +1,0 @@
-<class 'dict'> ['jobs']
-<class 'list'>
-127243119933 tests / ci-ratchet completed failure
-127243932322 gate completed failure
-0 2
