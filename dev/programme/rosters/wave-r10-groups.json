@@ -16682,8 +16682,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3216
+    "stage": "carries-open",
+    "pr": 3216,
+    "commit": "8ddab317856452e13699ee82c895553d7896ea6e"
    },
    "brief": "Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. Handoff is on handoff/r10-rca-sav-estimate; open its pull request only after the hotfix merges, with the census re-run at that head."
   },
