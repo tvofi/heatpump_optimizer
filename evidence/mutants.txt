@@ -1,15 +1,41 @@
-NOTE: re-run with PYTHONDONTWRITEBYTECODE=1 after a stale-pyc false reading
-## M0 none (head)
-RESULT mask_checks total 19 failed 0 []
-## M1 conf key guard off
+## M0 null
+RESULT mask_checks total 23 failed 0 []
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mask_checks total 19 failed 2 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked']
-## M2 list filter off (body's mutant 2)
+## M1 :533 key guard GUARD_OFF
+RESULT mask_checks total 23 failed 4 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked', 'mask:build_export_passes_conf_to_document', 'mask:debugger_replay_document_passes_conf_to_document']
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mask_checks total 19 failed 0 []
-## M3 mask_ids passes None for conf
+## M1b :533 BOOLOP
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mask_checks total 19 failed 2 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked']
-## M5 document drops conf to mask_ids
+## M2 :535 _entry_shape guard GUARD_OFF
+RESULT mask_checks total 23 failed 1 ['mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked']
  1 file changed, 1 insertion(+), 1 deletion(-)
-RESULT mask_checks total 19 failed 2 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked']
+## M3 :538 _entry_shape call -> pass
+RESULT mask_checks total 23 failed 1 ['mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked']
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## M4 :540 list test GUARD_OFF
+ 1 file changed, 2 insertions(+)
+            if conf is not None:
+                # the one predicate ``sanitise`` applies; a _DROP it returns is no str,
+                # so the consumer's id test passes it over
+                value = _entry_shape(str(key), value)
+            if value is _DROP:
+                continue
+            role = re.sub(r"_entit(y|ies)$", "", str(key))
+            if not isinstance(value, list):
+## M5 re-add r2 :537 _DROP skip (equivalence check)
+RESULT mask_checks total 23 failed 0 []
+ 1 file changed, 2 insertions(+)
+## M5b re-added skip as if False (r2 GUARD_OFF form, i.e. head)
+RESULT mask_checks total 23 failed 0 []
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## M6 mask_ids passes None
+RESULT mask_checks total 23 failed 5 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked', 'mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked', 'mask:build_export_passes_conf_to_document', 'mask:debugger_replay_document_passes_conf_to_document']
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## M7 document drops conf
+RESULT mask_checks total 23 failed 5 ['mask:id_under_key_off_the_allowlist_seals_masked', 'mask:id_under_list_beside_a_non_id_seals_masked', 'mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked', 'mask:build_export_passes_conf_to_document', 'mask:debugger_replay_document_passes_conf_to_document']
+ 1 file changed, 1 deletion(-)
+## M8 debugger.py conf=conf deleted
+RESULT mask_checks total 23 failed 1 ['mask:debugger_replay_document_passes_conf_to_document']
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+## M9 export.py conf=conf deleted
+RESULT mask_checks total 23 failed 1 ['mask:build_export_passes_conf_to_document']
