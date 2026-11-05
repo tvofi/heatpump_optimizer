@@ -1,4 +1,0 @@
-tree=0a459e607bd7de54e7a80233ee8f15e550256d77 dirty=1 HASTUB_TZ=America/New_York TZ=unset
-  FAIL with no meter, a month of DHW-only mornings bills what the stated rule bills on the commanded kW, every catalog row  [['ellevio_villa_effekt_2026: got (4.741231328852729, 4.733068063458062), bill (9.442223505355438, 9.368735435545684)']]
-1 of 4770 FEATURE CHECKS FAILED
-rc=1 wall=1043s

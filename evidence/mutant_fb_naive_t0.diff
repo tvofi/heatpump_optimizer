@@ -1,0 +1,13 @@
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 6da8f0261..dcf336102 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -1374,7 +1374,7 @@ def _with_instants(payload, when, zone):
+     (``QuarantiningStore``'s ``naive_zone``), so the leaf names the same
+     instant whatever zone the host or Home Assistant is configured in.
+     """
+-    naive = when.astimezone(zone).replace(tzinfo=None).isoformat()
++    naive = when.astimezone(_dt.timezone.utc).replace(tzinfo=None).isoformat()
+     out = json.loads(json.dumps(payload))
+     for path, _w in list(_instants(out)):
+         _set_path(out, path, naive)

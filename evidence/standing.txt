@@ -1,11 +1,7 @@
-origin/main=3905069f38a60559186fef916b0241e311cc81cd
-tests/golden/claimed_drift.txt head=bcf56ccc9a60673766629911a9170e41c7440d99 main=bcf56ccc9a60673766629911a9170e41c7440d99
-tests/golden/card_claimed_drift.txt head=ccd8e7877e1a08062051e121073cf5722755beb7 main=ccd8e7877e1a08062051e121073cf5722755beb7
-VERSION head=21c8c7b46b8993bd95ff730695cad0d26e4239f3 main=21c8c7b46b8993bd95ff730695cad0d26e4239f3
-custom_components/heatpump_optimizer/manifest.json head=1d0534d9a98e81f3149d54a8fde85bf252460040 main=1d0534d9a98e81f3149d54a8fde85bf252460040
-RELEASE_NOTES.md head=5be64a3d53e2568c33ce4beed5b3fa2728e6eee3 main=5be64a3d53e2568c33ce4beed5b3fa2728e6eee3
-2b2652e82fbf53f1354f7cf96053115a7bb5398d
-merge-tree rc=0
-added host paths:
-budget files:
-end
+merge-base 6777ec33337b256d29ea145d98da413dbf076a2a
+unchanged tests/golden/claimed_drift.txt
+unchanged tests/golden/card_claimed_drift.txt
+unchanged VERSION
+unchanged custom_components/heatpump_optimizer/manifest.json
+unchanged RELEASE_NOTES.md
+0
