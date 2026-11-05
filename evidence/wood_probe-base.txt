@@ -1,0 +1,22 @@
+WeatherSeries fields: ['outdoor_temps', 'wind_speeds', 'precipitation', 'solar_radiation', 'humidity', 'external_heat_kw']
+RESULT probe valved-2z-wood wood=None fire=0.0kW: kWh 25.214 step0 0.000 min 0.000 dkWh vs no-wood/no-fire +0.000
+RESULT probe valved-2z-wood wood=None fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.214
+RESULT probe valved-2z-wood wood=20.0 fire=0.0kW: kWh 25.214 step0 0.000 min 0.000 dkWh vs no-wood/no-fire +0.000
+RESULT probe valved-2z-wood wood=20.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.214
+RESULT probe valved-2z-wood wood=80.0 fire=0.0kW: kWh 13.894 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -11.320
+RESULT probe valved-2z-wood wood=80.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.214
+two_tank_modelled True valve manual
+RESULT probe unvalved-2z-wood wood=None fire=0.0kW: kWh 35.275 step0 1.361 min 1.361 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-2z-wood wood=None fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -35.275
+RESULT probe unvalved-2z-wood wood=20.0 fire=0.0kW: kWh 35.275 step0 1.361 min 1.361 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-2z-wood wood=20.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -35.275
+RESULT probe unvalved-2z-wood wood=80.0 fire=0.0kW: kWh 35.275 step0 1.361 min 1.361 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-2z-wood wood=80.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -35.275
+two_tank_modelled False valve none
+RESULT probe unvalved-1z-wood wood=None fire=0.0kW: kWh 25.259 step0 1.052 min 1.052 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-1z-wood wood=None fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.259
+RESULT probe unvalved-1z-wood wood=20.0 fire=0.0kW: kWh 25.259 step0 1.052 min 1.052 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-1z-wood wood=20.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.259
+RESULT probe unvalved-1z-wood wood=80.0 fire=0.0kW: kWh 25.259 step0 1.052 min 1.052 dkWh vs no-wood/no-fire +0.000
+RESULT probe unvalved-1z-wood wood=80.0 fire=5.0kW: kWh 0.000 step0 0.000 min 0.000 dkWh vs no-wood/no-fire -25.259
+two_tank_modelled False valve none
