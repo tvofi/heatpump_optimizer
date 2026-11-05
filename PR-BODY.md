@@ -2,6 +2,10 @@ The owner's month row read nonsense on a valved house with a wood tank (tvofi, 2
 
 **The owner's September, October and November rows show a dash, and the first saving figure arrives with the next new month.** Totals are never rewritten.
 
+Carry 1, the owner's no-wood ruling (2026-11-04): done. The reference has no wood tank, no fire and no refill coil on any house; wood-configured houses show a figure with the disclaimer that the saving includes wood's heat and firewood's cost is not counted, and old-basis rows keep the dash. Pinned by `the reference has no wood: a wood tank, cold or warm, reads the plain valved house's kW` and `the reference's hot water has no refill coil: a known wood tank moves nothing (owner ruling, 2026-11-04)`, both passing in this pass's `tests/features.py` run at ca0d33c12.
+
+Carry 2, triage P387 (`dev/programme/triage/s6-batch122.md#P387`, metered kWh cancels in the calibrated percent): answered by the calibration floor. On a wood-configured house calibration may only raise the reference, so a meter under the plan is never scaled down (option A, relayed by the orchestrator under the mandate, pending the owner's override); with no wood the 2026-10-24 calibration stands as specified. Pinned by `with wood configured a meter under the plan earns its saving: the calibration does not cancel it`, passing in the same run.
+
 ## Re-cut
 
 Round 4. The production change is the reviewed one (1d114ed62, merge verdict at 6790e0966) and is untouched here: this pass only answers `tests / mutation`, which refused the eight sites the diff adds without a disposition, and `tests / mutation-autofix`, red on `skip-nothing-killed` (run 42024722714). Per `ci-autofix.md` the triage is manual: six sites get a killing check, two a written `equivalent` verdict, and `--pin-killed` records the kills. Every figure below was taken in this pass.
