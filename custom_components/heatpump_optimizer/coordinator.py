@@ -289,6 +289,7 @@ from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
+    SETTLEMENT_KEYS,
     MonthlyLedger,
     explain_metered,
     freeze_month_report,
@@ -9937,7 +9938,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "solar": ctx._current_state.solar_radiation,  # #2223, the sample's
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
-            "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),
+            "diag": self._capture_diagnosis_inputs(), **{k: self._current_action.get(k) for k in SETTLEMENT_KEYS},
         }
     def _dhw_probe_temperature(self) -> float | None:
         """The tank's MEASURED temperature, or ``None`` when there is none.
