@@ -10226,6 +10226,18 @@ const STOCK_THEMES = {
     };
   };
 
+  // R10-HOTFIX-SAV-ESTIMATE: an old-basis month states no saving, and says why.
+  {
+    const held = tableOf([
+      { month: "2026-09", baseline_sek: 1779.92, actual_sek: 344.81, savings_sek: null, savings_pct: null, old_basis: true },
+    ], "old-basis-savings");
+    const text = held.cells.map((c) => c.text);
+    check("an old-basis month draws both columns, a dash for saving and percent, and the note",
+      text[1] === "1779.92" && text[2] === "344.81" && text[3] === "—" && text[4] === "—"
+        && text[0].includes("old basis"),
+      JSON.stringify(text));
+  }
+
   const { dump, table, cells, heads } = tableOf(months, "c3-savings");
   // "Numeric" by position, not by a regex over the rendered text: the month
   // column reads as digits too ("2025-11") and must NOT be right-aligned.
@@ -10842,19 +10854,30 @@ const STOCK_THEMES = {
     // stretch between the old live edge and the chunk's end is a hole
     // that no NEW chunk index ever covers (indices only extend forward).
     // Only refetching the stale chunk fills it.
-    const { c } = mkCard(realisticHistory(FROZEN + 6 * HOUR));
-    c.view.panBy(-10 * HOUR);
-    await flushHistory();
+    //
+    // The clock is this block's own, six hours into a chunk of the UTC-epoch
+    // grid the chunks and the fixture's write rhythm both run on. FROZEN is
+    // a naive plan time read in the host's zone, so it lands anywhere on that
+    // grid: under America/New_York it sat an hour short of the chunk's end,
+    // in a silent hour, and the stretch held nothing to refetch. Under UTC
+    // the two clocks are the same instant.
     const CH = 12 * HOUR;
-    const b = (Math.floor(FROZEN / CH) + 1) * CH; // the chunk's own end
-    const before = ((c.histSource.log || {}).room || [])
-      .filter((p) => p.t > FROZEN && p.t < b).length;
-    c.histSource.ensure(FROZEN - HOUR, FROZEN + 13 * HOUR);
-    await flushHistory();
-    const after = ((c.histSource.log || {}).room || [])
-      .filter((p) => p.t > FROZEN && p.t < b).length;
-    check("a stale live-edge chunk is fetched again, filling the seam hole",
-      before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+    const seamNow = Math.floor(FROZEN / CH) * CH + 6 * HOUR;
+    ctx.Date = frozenDateClass(RealDate, seamNow);
+    try {
+      const { c } = mkCard(realisticHistory(seamNow + 6 * HOUR));
+      c.view.panBy(-10 * HOUR);
+      await flushHistory();
+      const b = (Math.floor(seamNow / CH) + 1) * CH; // the chunk's own end
+      const before = ((c.histSource.log || {}).room || [])
+        .filter((p) => p.t > seamNow && p.t < b).length;
+      c.histSource.ensure(seamNow - HOUR, seamNow + 13 * HOUR);
+      await flushHistory();
+      const after = ((c.histSource.log || {}).room || [])
+        .filter((p) => p.t > seamNow && p.t < b).length;
+      check("a stale live-edge chunk is fetched again, filling the seam hole",
+        before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+    } finally { ctx.Date = FrozenDate; }
   }
 
   // ---- carry-in (#1643, F6.2): pin what #1643's own mutation run left

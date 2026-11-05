@@ -2045,6 +2045,25 @@
           "learning": "Lär sig",
           "learned": "Inlärd",
           "attention": "Behöver åtgärd"
+        },
+        "state_attributes": {
+          "pump_max_power_source": {
+            "name": "Maxeffekt som planen använde",
+            "state": {
+              "configured": "Inställd maxeffekt",
+              "ceiling_probe": "Uppmätt av takprovet"
+            }
+          },
+          "pump_max_power_reason": {
+            "name": "Varför planen använde den maxeffekten",
+            "state": {
+              "plan_writes_power": "Inställd: planen skriver effekten själv, så mätaren visar bara den",
+              "awaiting_probe": "Inställd: takprovet har ännu för få mätpunkter",
+              "lapsed": "Inställd: takprovets mätning är för gammal",
+              "not_below_configured": "Inställd: den uppmätta maxeffekten stämmer med den",
+              "measured_below_configured": "Uppmätt: pumpen drar tydligt mindre än sin inställda maxeffekt"
+            }
+          }
         }
       },
       "indoor_temperature_predicted": {

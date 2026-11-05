@@ -104,6 +104,8 @@ KINDS = {
     "design-build": "derived", "review-owed": "derived",
     "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived",
+    "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
+    "red-unowned": "derived", "body-ahead": "derived", "fire-owed": "derived",
     "reviewer-fire": "event", "verdict-unposted": "event", "approve-held-runs": "event",
     "dispatch": "event", "train-stop": "event", "postmerge-owed": "event",
 }
@@ -616,15 +618,17 @@ def design_builds(verdicts: dict, designs: dict, stage_of, disp: dict) -> list[s
     return out
 
 
-def review_owed(prs: list, readback: dict, dispatched: set, carries=None) -> list[str]:
+def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_branch=None) -> list[str]:
     """`REVIEW OWED: #N <head12>` per open non-draft PR whose comments were
     read, no verdict names its head, no dispatch record is at that head, and
     -- with `carries(verdict_head, head)` -- the newest verdict is not a merge
-    that carries to the head (the train's predicate, app_approve_carries)."""
+    that carries to the head (the train's predicate, app_approve_carries). A PR whose
+    `headRefName` is `skip_branch` (the record branch, passed in) is never owed one."""
     out = []
     for pr in sorted(prs, key=lambda p: p["number"]):
         n, head = pr["number"], pr.get("headRefOid") or ""
-        if pr.get("isDraft") or str(n) not in readback or not head:
+        if pr.get("isDraft") or str(n) not in readback or not head \
+                or (skip_branch and pr.get("headRefName") == skip_branch):
             continue
         lines = readback[str(n)]
         if any(verdict_head(l) == head for l in lines) or (str(n), head) in dispatched:
