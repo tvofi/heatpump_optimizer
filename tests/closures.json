@@ -1637,6 +1637,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/host_probe.py",
    "tests/issue996_count.py",
    "tests/lane_skip.py",
    "tests/layout.json",
@@ -3836,6 +3837,7 @@
    "tools/audit/seat/plan_audit.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
    "tools/audit/seat/pulse.py",
@@ -3948,6 +3950,7 @@
    "dev/audit/harnesses/r10_configflow_pages.py",
    "dev/audit/harnesses/r10_cop_conversions.py",
    "dev/audit/harnesses/r10_cop_gate.py",
+   "dev/audit/harnesses/r10_cop_gate_top.py",
    "dev/audit/harnesses/r10_cop_gate_vent.py",
    "dev/audit/harnesses/r10_cop_partload.py",
    "dev/audit/harnesses/r10_cop_partload_equiv.py",
@@ -3982,6 +3985,7 @@
    "dev/audit/harnesses/r10_heat_meter.py",
    "dev/audit/harnesses/r10_heat_meter_mutants.py",
    "dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py",
+   "dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py",
    "dev/audit/harnesses/r10_house_grade.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
@@ -4827,7 +4831,7 @@
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 69.1
+   "seconds": 157.3
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -4911,7 +4915,7 @@
   },
   "tests/manual_plan.py": {
    "rc": 0,
-   "seconds": 9.2
+   "seconds": 19.1
   },
   "tests/md_tables.mjs": {
    "rc": 0,
