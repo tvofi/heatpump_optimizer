@@ -1943,9 +1943,14 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             # ``pickle.load``: a worker that is alive but silent never raises,
             # and holding ``_PROCESS_LOCK`` in that read wedged every later
             # solve, every reload and the stop path until a restart.
+            # A stream with no descriptor (an in-memory one) has nothing to
+            # wait on and is read as before; the worker's pipe always has one.
+            try:
+                has_fd = stdout.fileno() >= 0
+            except (AttributeError, OSError, ValueError):
+                has_fd = False
             timeout = PROCESS_REPLY_TIMEOUT_S
-            ready, _w, _x = select.select([stdout], [], [], timeout)
-            if not ready:
+            if has_fd and not select.select([stdout], [], [], timeout)[0]:
                 _PROCESS_WORKER = None
                 try:
                     worker.kill()

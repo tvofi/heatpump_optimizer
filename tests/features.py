@@ -38772,6 +38772,8 @@ _ET_KEYS = {
     "set_temperature_comfort_band_violation": {"violations"},
     # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
     "process_worker_unusable": {"cycles"},
+    # The worker read deadline (a silent worker is reaped, not waited on).
+    "process_worker_timeout": {"minutes"},
     "update_failed": {"error"},
     "tibber_fetch_failed": {"error"},
     # D10-s1-03: the refused token, through _raise_auth_failed.
