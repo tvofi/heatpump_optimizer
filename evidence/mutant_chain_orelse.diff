@@ -1,0 +1,17 @@
+diff --git a/tools/audit/archscore/metrics/footprint.py b/tools/audit/archscore/metrics/footprint.py
+index 869ab7b27..93a9963c8 100644
+--- a/tools/audit/archscore/metrics/footprint.py
++++ b/tools/audit/archscore/metrics/footprint.py
+@@ -102,9 +102,9 @@ def _chain(e: ast.AST) -> int:
+     """Branches of the conditional-expression tree ``a if p else b if q else c`` (three), 0 for a lone one. An
+     ``IfExp`` is followed through its body arm as well as its orelse: ``(a if q else b) if p else c`` is three
+     branches, as its nested if/else spells (red-team attempt 54)."""
+-    def leaves(x: ast.AST) -> int:
+-        return leaves(x.body) + leaves(x.orelse) if isinstance(x, ast.IfExp) else 1
+-    k = leaves(e)
++    k = 1
++    while isinstance(e, ast.IfExp):
++        e, k = e.orelse, k + 1
+     return k if k > 2 else 0
+ 
+ 
