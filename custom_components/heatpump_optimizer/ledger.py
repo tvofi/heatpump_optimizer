@@ -439,11 +439,10 @@ class MonthlyLedger:
         are the pump's recorded ones and a model that under-reads the meter
         is not booked as a loss; ``savings_sek`` is the one less the other.
         At one flat price the saving is the volume difference alone. The
-        reference has no wood, so wood's heat counts in the saving and
-        firewood's cost nowhere (owner ruling, 2026-11-04). The
-        plan's stored-heat change settles into ``baseline_sek`` (owner ruling,
-        2026-11-04; ``SAVINGS_STORED_LINE``); ``comfort_sek`` stays inside the
-        saving, published beside it, both scaled as the thermostat is. The
+        reference has no wood, so wood's heat counts in the saving and firewood's
+        cost nowhere; the plan's stored-heat change settles into ``baseline_sek``
+        (owner rulings, 2026-11-04; ``SAVINGS_STORED_LINE``); ``comfort_sek``, in
+        the saving and published beside it, scales as the thermostat does. The
         lines no thermostat prices (capacity, wear, uncovered intervals)
         are in neither column: the receipt states them.
 

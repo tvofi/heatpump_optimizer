@@ -43149,7 +43149,7 @@ R.check(
     "R10-SAV-COMFORT null control: an interval without either reading settles nothing",
     _st_null.savings_months(_SavDT(2026, 2, 10))[0]
     == {"month": "2026-01", "baseline_sek": 4.0, "actual_sek": 3.0, "savings_sek": 1.0,
-        "savings_pct": 25.0, "estimated": False, "meter_calibration": None,
+        "savings_pct": 25.0, "old_basis": False, "estimated": False, "meter_calibration": None,
         "stored_heat_sek": 0.0, "comfort_sek": 0.0},
     repr(_st_null.savings_months(_SavDT(2026, 2, 10))),
 )
