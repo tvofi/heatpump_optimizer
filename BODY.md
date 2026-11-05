@@ -59,6 +59,10 @@ Not built here; each is stated once, and the dispatch seat lands them in the ros
 
 - finding-propagation: unenforced: a roster-wide default (`rosterIssues()` with no argument) cannot be switched on while a carry collides with a live group, and nothing flags the collision until the default changes. Carry: R10-BODY-CONTRACT
 
+## Approval
+
+Not yet given. This diff touches two policy files, `dev/governance/roles/fix-review.md` and `dev/governance/roles/judge.md` (one sentence each, #2438 (ii), with spent prose trimmed to stay under the token caps); the owner's approving GitHub review at merge is the approval, and it waits for that review.
+
 ## Brief carries by number
 
 - Carry 1 (`--roster-ref` on the contract arm): built.
