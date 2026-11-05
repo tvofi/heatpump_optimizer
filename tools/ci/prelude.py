@@ -62,10 +62,16 @@ STARTED = ("in_progress", "completed")
 # R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
 # closures' recording, governance / env-matrix, governance /
 # instrument-self-tests) stand down on a pull request whose every changed file
-# is product: under custom_components/, or a test script tests/closures.json
-# measures. Anything else -- tools/, .github/, dev/, tests infrastructure, a
-# new or unmeasured script, a doc -- runs them, and every push runs them.
-PRODUCT_PREFIXES = ("custom_components/",)
+# is product: the package, its docs, a test script tests/closures.json
+# measures, or the data those scripts read (golden fixtures, mutation-ledger
+# pins). Anything else -- tools/, .github/, dev/, policy, tests
+# infrastructure, a new or unmeasured script, an unknown root file -- runs
+# them, and every push runs them.
+PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
+PRODUCT_FILES = frozenset({"README.md"})
+# C7(c): what can change whether a mutant dies -- the package, a measured test
+# script, a golden fixture it compares against. A pin, a doc or a record cannot.
+KILL_PREFIXES = ("custom_components/", "tests/golden/")
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
@@ -233,13 +239,14 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
-def _product(closures_json: Path):
-    """The predicate `f is product`, or None when the script table is unreadable."""
+def _product(closures_json: Path, prefixes=PRODUCT_PREFIXES, files=PRODUCT_FILES):
+    """The predicate `f is under prefixes, in files, or a measured script`, or
+    None when the script table is unreadable."""
     try:
         scripts = set(json.loads(closures_json.read_text())["closures"])
     except (OSError, ValueError, KeyError, TypeError):
         return None
-    return lambda f: f.startswith(PRODUCT_PREFIXES) or f in scripts
+    return lambda f: f.startswith(prefixes) or f in files or f in scripts
 
 
 def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
@@ -253,15 +260,15 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) 
 def pins_due(since_last_head: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
     """R10-CI-SLIM card C7(c): whether `mutation-pins` measures at this head. It
     measures the diff's unpinned production sites, so a push whose own delta
-    (the previous head to this one) touches no product file -- mutation-autofix's
+    (the previous head to this one) touches nothing that can change a kill -- mutation-autofix's
     pin commit, a body-only or tooling fix-up -- has nothing new to measure, and
     the sites still unpinned were measured at the head before. A delta that
-    touches the package or a measured test script (a test written to kill a
+    touches the package, a golden fixture or a measured test script (a test written to kill a
     survivor) measures again. No delta (opened, reopened, a force-push the diff
     cannot read) measures."""
     files = [f for f in (since_last_head or []) if f.strip()]
-    is_product = _product(closures_json)
-    return not files or is_product is None or any(map(is_product, files))
+    can_kill = _product(closures_json, KILL_PREFIXES, frozenset())
+    return not files or can_kill is None or any(map(can_kill, files))
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -509,8 +516,12 @@ def self_test() -> int:
         cc = "custom_components/heatpump_optimizer/coordinator.py"
         check("C7a: a product-only diff (package + a measured script) idles the machinery lanes",
               machinery([cc, "tests/fast_case.py"], cj), False)
+        check("C7a: ... and so do its docs, golden fixtures and ledger pins",
+              machinery([cc, "docs/how-it-works.md", "README.md", "tests/golden/x.json",
+                         "tests/mutation_ledger/a.json"], cj), False)
         for f in ("tools/ci/gate.py", ".github/workflows/ci.yml", "dev/programme/HANDOVER.md", "tests/closure.py",
-                  "tests/new_script.py", "README.md", "tests/closures.json"):
+                  "tests/new_script.py", "tests/closures.json", "tests/structure_budgets.json", "CLAUDE.md",
+                  ".claude/settings.json", "pyproject.toml"):
             check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
         check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
         check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
@@ -522,7 +533,9 @@ def self_test() -> int:
         cj = Path(td) / "closures.json"
         cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
         check("C7c: a pin commit's delta (the ledger only) measures nothing again",
-              pins_due(["tests/mutation_budgets.json"], cj), False)
+              pins_due(["tests/mutation_budgets.json", "tests/mutation_ledger/a.json"], cj), False)
+        check("C7c: a delta to a golden fixture measures (a kill compares against it)",
+              pins_due(["tests/golden/x.json"], cj), True)
         check("C7c: a tooling or body-record delta measures nothing again",
               pins_due(["tools/ci/gate.py", "dev/programme/delivery/1.md"], cj), False)
         check("C7c: a delta touching the package measures (null control)",
