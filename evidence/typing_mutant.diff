@@ -1,0 +1,16 @@
+diff --git a/custom_components/heatpump_optimizer/optimizer.py b/custom_components/heatpump_optimizer/optimizer.py
+index 95b8498ae..a24bd0407 100644
+--- a/custom_components/heatpump_optimizer/optimizer.py
++++ b/custom_components/heatpump_optimizer/optimizer.py
+@@ -456,10 +456,7 @@ def _settlement_schedule(
+     )
+ 
+     state = replace(h.initial_state)
+-
+-    def _l(x: Any) -> list[Any]:
+-        return list(np.asarray(x, dtype=float).tolist())
+-
++    _l = lambda x: np.asarray(x, dtype=float).tolist()  # noqa: E731
+     rooms = _l(room_temps)
+     slabs = _l(slab_temps)
+     if two_zone:

@@ -1,0 +1,6 @@
+PIN KILLED -- 4 new unpinned site(s) against 783d8dc72811ab75ae4ffca367456f44896f47d3 to drive
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:454 CMP_BOUND -- lives
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:494 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:499 GUARD_OFF -- lives
+  UNPINNED custom_components/heatpump_optimizer/optimizer.py:519 CMP_BOUND -- lives
+PIN KILLED: 0 pinned, 4 left unpinned (4 survived, 0 not started for the budget, 0 exclusive tails cut, 0 timed out, 0 skipped) -- a survivor needs a killing check or a survivor_triage verdict, which no tool writes

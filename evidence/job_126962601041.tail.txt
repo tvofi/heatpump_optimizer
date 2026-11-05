@@ -1,0 +1,60 @@
+             `tools/pr/prepr.sh` is in the tree at this head
+
+FIGURES: 12 resolved, 4 not verified, 0 refused
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+  check    quantifiers -- did you enumerate the SET, or sample it?
+             12:each
+             13:each
+             14:each
+             21:every
+             21:each
+             27:both
+             43:each
+             53:each
+  check    figures -- each is in ## Figures with its command, or is an instrument's own output and not restated
+             2492 s
+             04 o
+             00 k
+             0.28 %
+             4.50 %
+             0.01 %
+             0.28 %
+             14.28 %
+  check    policy corpus -- 3 file(s) origin/main moved since your merge base and this branch does not touch: the copy every seat here reads is not the current contract. Re-read them, or update the branch.
+             .claude/rules/gate-scoping.md
+             dev/governance/roles/nudge.md
+             dev/governance/rules/gate-scoping.md
+  clean    no refusal (the 'check' lines above are yours to answer)
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+env:
+  PR_HEAD: c383169a50b6b9668a0e88d829bfc3127f4b3c73
+##[endgroup]
+no version edit: origin/main...c383169a50b6b9668a0e88d829bfc3127f4b3c73 moves none of VERSION, the manifest version or a notes heading
+##[group]Run set -euo pipefail
+shell: /usr/bin/bash -e {0}
+##[endgroup]
+NOTE stale tree: d52cdb34e8a0d52606abe2348190e9aeb4eaf808 lacks origin/main c0b082bc48777199cb9b4998514b20b88ec805a1; roster read at origin/main
+NOTE body item b81d7043: #2492
+NOTE body item 5d3b8c5e: #2492
+NOTE body item 07e9ffc2: #201
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.56.0
+Adding repository directory to the temporary git global config as a safe directory
+Removing SSH command configuration
+Removing HTTP extra header
+Removing includeIf entries pointing to credentials config files
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+includeif.gitdir:/github/workspace/.git.path
+includeif.gitdir:/github/workspace/.git/worktrees/*.path
+/home/runner/work/_temp/git-credentials-d468e247-4b32-46a8-b430-0f6e3a72c827.config
+/home/runner/work/_temp/git-credentials-d468e247-4b32-46a8-b430-0f6e3a72c827.config
+/github/runner_temp/git-credentials-d468e247-4b32-46a8-b430-0f6e3a72c827.config
+/github/runner_temp/git-credentials-d468e247-4b32-46a8-b430-0f6e3a72c827.config
+Removing credentials config '/home/runner/work/_temp/git-credentials-d468e247-4b32-46a8-b430-0f6e3a72c827.config'
+Cleaning up orphan processes

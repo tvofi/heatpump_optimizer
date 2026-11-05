@@ -1,0 +1,23 @@
++ python3 -m venv .venv-typing
++ .venv-typing/bin/python -m pip install -q --require-hashes --no-deps --build-constraint tests/requirements-build.txt -r tests/requirements-typing.txt
+
+[notice] A new release of pip is available: 26.2.1 -> 26.3
+[notice] To update, run: /root/wt/.venv-typing/bin/python -m pip install --upgrade pip
++ .venv-typing/bin/python tests/typing_ruler.py --mypy
+
+=== typing ruler (mypy 2.4.1, homeassistant-stubs 2026.9.3, stub-free) ===
+  ok   every recorded typing count is a finite non-negative integer
+  ok   interpreter is at least Python 3.14.2
+  ok   mypy is pinned at 2.4.1
+  ok   homeassistant-stubs is pinned at 2026.9.3
+  ..   third-party resolution (chosen by the stubs, recorded not asserted)  [aiohttp==3.14.5, numpy==2.5.4, scipy-stubs==1.18.1.1, threadpoolctl==3.7.0, voluptuous==0.16.0]
+  ok   every third-party requirement is installed
+  ok   mypy exited 0 or 1 (clean, or errors found)
+  ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
+
+########## errors by module (reported, not ratcheted) ##########
+  ok   errors did not grow
+  ok   type_ignores did not grow
+
+ALL 9 typing-ruler checks PASSED
+typing rc=0
