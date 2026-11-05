@@ -28,6 +28,7 @@ from pathlib import Path
 
 def repo_root(start):
     """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
     here = Path(start).resolve()
     if here.is_file():
         here = here.parent
@@ -67,6 +68,9 @@ MUTANTS = (
     ("no-whitespace-ignore", "\"diff\", \"-M\", \"-w\"", "\"diff\", \"-M\""),
     ("rename-charged-to-source", "rows.append((n(added), n(deleted), [src, dst], dst))",
      "rows.append((n(added), n(deleted), [src, dst], src))"),
+    ("bool-before-accepted", "    if isinstance(v, bool) or not isinstance(v, (int, float))",
+     "    if not isinstance(v, (int, float))"),
+    ("entry-key-missing-ok", "    if missing:\n        return False, f\"entry for", "    if False:\n        return False, f\"entry for"),
     ("gain-measured-as-cost", "else (after - before) / before", "else (before - after) / before"),
 )
 

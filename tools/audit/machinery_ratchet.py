@@ -622,6 +622,14 @@ def self_test() -> int:
            pr_case("ex-other", entry(8)), 1)
         ok("exemption: an unknown measure refuses",
            pr_case("ex-measure", entry(9, measure_="vibes")), 1)
+        ok("exemption: a bool `before` is not a number and refuses",
+           pr_case("ex-bool", entry(9, True, 0)), 1)
+        ok("exemption: an int `before` of the same value passes (null control)",
+           pr_case("ex-int", entry(9, 1, 0)), 0)
+        for key in ENTRY_KEYS:
+            held = {k: v for k, v in entry(9).items() if k != key}
+            ok(f"exemption: an entry lacking `{key}` is refused, not raised",
+               entry_grants(".", "none", held)[0], False)
         ok("improvement() is exact: 100 -> 90 is 1/10", improvement(entry(9, 100, 90)), Fraction(1, 10))
 
         # Merged merges, in push mode: an entry its own merge added exempts it
