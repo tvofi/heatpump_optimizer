@@ -1383,6 +1383,13 @@ st "$(reuse_verdict "$U/wt" "$(ulist "$uc")" fix/t >/dev/null; echo $?)" 0 "real
 (cd "$U/wt" && printf 'x\n' > x && rgit add x && rgit commit -qm extra)
 st "$(reuse_verdict "$U/wt" "$(ulist "$uc")" fix/t | grep -c 'is not the clean merge of code')" 1 "real git: one more file past the row runs the full prepr"
 (cd "$U/wt" && rgit reset -q --hard HEAD~2)
+# (e) alone: two commits past the clean merge that net to no tree change, so the
+# tree check passes and only the commit count sees subjects nothing checked
+# (fix review of #3221, plant F9); the head reset under them reuses again.
+(cd "$U/wt" && printf 'x\n' > tx && rgit add tx && rgit commit -qm "neutral one" && rgit rm -q tx && rgit commit -qm "neutral two")
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "^HEAD carries 2 commit(s) beyond code ${uc:0:8}, the live head and main, not only this pull request's own row$")" 1 "real git (e): two tree-neutral commits past the clean merge run the full prepr"
+(cd "$U/wt" && rgit reset -q --hard HEAD~2)
+st "$(reuse_verdict "$U/wt" "[]" fix/t >/dev/null; echo $?)" 0 "real git: the clean merge without them reuses (the (e) arm's null control)"
 ubody ""
 st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "carries no one .Prepr: <sha> <tree>. trailer, so no receipt$")" 1 "real git (b): a body with no receipt runs the full prepr (null control)"
 ubody "Prepr: $(git -C "$U/wt" rev-parse B) $(git -C "$U/wt" rev-parse 'B^{tree}')"
