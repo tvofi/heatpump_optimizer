@@ -474,6 +474,24 @@ jobs:
           MKL_NUM_THREADS: "1"
         run: python3 tests/rolling.py
 
+      # The suite under a configured zone that is not UTC (R10-SUITE-
+      # HOST-DETERMINISM): every other lane runs with HASTUB_TZ unset, so a
+      # check naming an instant as a naive or UTC literal, while production
+      # reads the configured zone's wall clock, stays green there. Kolkata
+      # is a half-hour offset far from UTC; the two scripts are the ones
+      # the round-1 and round-2 reviews read red under a non-UTC zone. Its
+      # own step, so its red is its own; the whole sweep, by hand, is
+      # dev/audit/harnesses/host_zone_features.py --suite.
+      - name: Zone-sensitive scripts under Asia/Kolkata
+        if: success() || failure()
+        env:
+          PYTHONPATH: tests/hastub
+          HASTUB_TZ: Asia/Kolkata
+          TZ: Asia/Kolkata
+        run: |
+          python3 tests/features.py
+          python3 tests/finite_boundary.py
+
       # Recorded days (tests/replay/*.json, written by tools/replay/export.py)
       # fed through the real coordinator cycle by cycle, every published
       # entity judged -- the lane #1499 argued for: a defect found in use

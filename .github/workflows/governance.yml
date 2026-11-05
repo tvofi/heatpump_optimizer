@@ -136,6 +136,7 @@ jobs:
             '.claude/workflows/*.py' \
             '.claude/workflows/vendor' \
             'tools/audit/*.sh' \
+            'tools/audit/machinery_ratchet.py' \
             'tools/audit/record-predicate' \
             'tools/audit/round6/D11/fix/codeowners_gap.py' \
             'tools/policy/*.mjs' \
@@ -151,7 +152,7 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Refuse a Cursor rule that is not the generated form of its source
@@ -190,6 +191,21 @@ jobs:
       - name: Report what the linter found
         if: always()
         run: if test -f .claude/workflows/policy_lint.mjs; then node .claude/workflows/policy_lint.mjs --report; else node tools/policy/policy_lint.mjs --report; fi|| true
+
+      # The machinery ratchet (R10-MACHINERY-RATCHETS; ratchet-budgets.md):
+      # the newest window of main's merges against the caps in
+      # dev/governance/config/machinery_budgets.json, the base's copy of the
+      # program (restored above; the pull request that lands it is graded by
+      # its own, the stated hole for a new file). A pull request is graded as
+      # the candidate merge on its base; a push, the schedule, a merge group
+      # and a dispatch with no pull request grade the window ending at the
+      # checked-out commit. Offline: git history only.
+      - name: Refuse a window of merges past the machinery caps
+        env:
+          MACHINERY_BASE: ${{ github.event.pull_request.base.sha || (inputs.base && format('origin/{0}', inputs.base)) || '' }}
+          MACHINERY_HEAD: ${{ github.event.pull_request.head.sha || github.sha }}
+          MACHINERY_PR: ${{ github.event.pull_request.number || github.event.inputs.pr || '' }}
+        run: python3 -I tools/audit/machinery_ratchet.py --check-event
 
       # Last: the base's checker drives the hooks' own self-tests, which are the
       # pull request's (owned) copies -- so nothing graded runs after them.
@@ -289,6 +305,13 @@ jobs:
       # decision steps, on every pull request.
       - name: Show the lane-skip decision refusing every unsafe skip
         run: python3 tests/lane_skip.py self-test
+
+      # The host-probe bridge (R10-HOTFIX-CI-CRITPATH-4): the reference a
+      # probed fast lane implies, offline on synthetic runs, and the pin that
+      # tests/ci_ratchet.py's PROBE_REFERENCE_S is the one the committed fleet
+      # record re-derives (a constant moved without a fleet measurement).
+      - name: Show the probe bridge deriving the reference and refusing without a probed run
+        run: python3 tools/audit/seat/probe_bridge.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
@@ -393,6 +416,16 @@ jobs:
           set -o pipefail
           if test -f .claude/workflows/budget_raise_gate.py; then python3 .claude/workflows/budget_raise_gate.py --self-test; else python3 tools/policy/budget_raise_gate.py --self-test; fi| tee "$RUNNER_TEMP/brg-self-test.txt"
           grep -Eq '^budget_raise_gate self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/brg-self-test.txt"
+
+      # The machinery ratchet's arms (kinds, window, cap+band, the
+      # cross-boundary move null control, splits, every exemption arm) over
+      # throwaway repositories. Pinned but not owned, so the tally line must
+      # say 0 failed, as for the budget-raise gate above.
+      - name: Show the machinery ratchet refusing its own fixtures
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/machinery_ratchet.py --self-test | tee "$RUNNER_TEMP/mr-self-test.txt"
+          grep -Eq '^machinery_ratchet self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mr-self-test.txt"
 
       # Which CodeQL legs a pull request may skip (O17): every skip arm against
       # its analyze null control, and every non-pull_request event analyzing
@@ -535,6 +568,10 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
           grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+          bash tools/audit/seat/body_push.sh --self-test | tee "$RUNNER_TEMP/body-push-self-test.txt"
+          grep -Eq '^body_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-push-self-test.txt"
+          python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
+          grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
@@ -753,6 +790,13 @@ jobs:
           python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
           grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
 
+      - name: Show the round closeout refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/closeout.py --self-test | tee "$RUNNER_TEMP/closeout-self-test.txt"
+          grep -Eq '^closeout self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/closeout-self-test.txt"
+
       - name: Show the programme pulse refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -903,6 +947,12 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
           grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
+      - name: Show the beat's job rows refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
+          grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -1160,7 +1210,7 @@ jobs:
              && grep -F -q "'.claude/workflows/policy_lint.mjs'" tools/policy/policy_lint_envmatrix.mjs; then
             git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
           fi
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
           # The base matrix still starts .claude/workflows/policy_lint.mjs.
           # That module is gone (env-matrix job 112529653069: Cannot find
@@ -1264,7 +1314,7 @@ jobs:
             'dev/audit/rounds/round4/D11/governance_cost.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Drive the wave script's branching

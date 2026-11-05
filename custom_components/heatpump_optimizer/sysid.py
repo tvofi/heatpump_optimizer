@@ -354,10 +354,20 @@ class HousePlant:
     def of_params(cls, p: ThermalParameters) -> "HousePlant":
         """The coordinator's configured plant: the learned heat-loss scale
         folded into ``ua``, and the slab pair the sizing needs (#943). One
-        construction, so the wiring cannot drop a field."""
+        construction, so the wiring cannot drop a field.
+
+        On two zones the house is the zones (R10-TWO-ZONE-HHL): ``ua`` is
+        their loss as the dynamics use it (``house_heat_loss_base``) and
+        ``capacity`` their mass, as :meth:`SystemIdentification.arm` seeds the
+        fit -- the whole-house figures are a single-zone model's, which a
+        two-zone install neither runs nor is offered."""
+        two_zone = p.two_zone_enabled
         return cls(
-            ua=p.heat_loss_coefficient * p.house_heat_loss_scale,
-            capacity=p.room_thermal_mass,
+            ua=p.house_heat_loss_base * p.house_heat_loss_scale,
+            capacity=(
+                p.upper_floor_thermal_mass + p.lower_floor_thermal_mass
+                if two_zone else p.room_thermal_mass
+            ),
             gains=p.internal_gains,
             slab_mass=p.slab_thermal_mass,
             slab_transfer=p.slab_heat_transfer,
