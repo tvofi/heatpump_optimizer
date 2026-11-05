@@ -10,21 +10,106 @@
 # never a rewrite. `handoff_push.sh` reads BODY.md from the ref's tip.
 # Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
 set -euo pipefail
+if [ "${1:-}" = "--self-test" ]; then
+  # A local bare origin, stub predictor / lint / packet / landing, the real ref_privacy guard. Each
+  # refusal path must keep the body on handoff-wip/t-body and still exit 1; each `# mut:keep` call is
+  # then deleted from a copy and the same arms must fail.
+  set +e; SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0"); SH=$(dirname "$SELF")
+  W=$(mktemp -d) || exit 2; trap 'rm -rf "$W"' EXIT
+  FAILS=0; st() { if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
+  # shellcheck source=../../../tests/throwaway_git.sh
+  . "$SH/../../../tests/throwaway_git.sh"
+  mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$W/$1/audit/seat/"
+    if [ "$2" = real ]; then cp "$SELF" "$W/$1/audit/seat/body_push.sh"; else sed '/# mut:keep$/s/.*/    :/' "$SELF" > "$W/$1/audit/seat/body_push.sh"; fi
+    printf '#!/bin/bash\n[ "$1" = --body-check ] && [ -f "$FLAGS/lint" ] && { echo lint-stub-refuses; exit 1; }\nexit 0\n' > "$W/$1/pr/prepr.sh"; }
+  mkcopy t real; mkcopy m mutant
+  printf '#!/bin/bash\nexit 0\n' > "$W/packer"; printf '#!/bin/bash\n[ -f "$FLAGS/packet" ] && exit 1\nexit 0\n' > "$W/packer"
+  printf '#!/bin/bash\n[ -f "$FLAGS/landed" ] && exit 1\nexit 0\n' > "$W/landed"; chmod +x "$W/packer" "$W/landed"
+  throwaway_git_init "$W/o.git" -q --bare; throwaway_git_init "$W/repo" -q
+  mkdir -p "$W/repo/tools/pr"
+  printf 'import os, sys\nsys.exit(1 if os.path.exists(os.environ["FLAGS"] + "/pred") else 0)\n' > "$W/repo/tools/pr/ci_predict.py"
+  ( cd "$W/repo" && throwaway_git_env && echo a > a && git add . && git commit -qm code && git remote add origin "$W/o.git" \
+    && git push -q origin HEAD:refs/heads/main && git fetch -q origin && git push -q origin HEAD:refs/heads/handoff/t ) >/dev/null 2>&1
+  printf 'the body\n' > "$W/body.md"
+  # A hook that refuses any push to handoff-wip/, installed for the failed-keep arm only.
+  printf '#!/bin/sh\nwhile read o n r; do case $r in refs/heads/handoff-wip/*) exit 1;; esac; done\n' > "$W/hook"; chmod +x "$W/hook"
+  run() { # copy -> rc ; FLAGS names the refusal switches, out in $W/out
+    ( cd "$W/repo" && throwaway_git_env && FLAGS="$W/flags" HPO_HANDOFF_PACKER="$W/packer" HPO_HANDOFF_LANDED="$W/landed" \
+        bash "$W/$1/audit/seat/body_push.sh" t "$W/body.md" > "$W/out" 2>&1 ); }
+  keepsha() { git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-wip/t-body 2>/dev/null || echo none; }
+  drop() { git -C "$W/o.git" update-ref -d refs/heads/handoff-wip/t-body 2>/dev/null; rm -rf "$W/flags"; mkdir -p "$W/flags"; }
+  drop
+  CODE=$(git -C "$W/repo" rev-parse HEAD)
+  for arm in pred lint packet landed; do
+    drop; : > "$W/flags/$arm"; run t; rc=$?
+    st "$rc" 1 "REFUSE $arm: exit code unchanged"
+    k=$(keepsha)
+    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "the body" "... and the refused body is kept at handoff-wip/t-body"
+    st "$(grep -c "^body_push: refused body kept at handoff-wip/t-body $k\$" "$W/out")" 1 "... and the keep line names the ref and sha"
+    st "$(git -C "$W/o.git" rev-list --count "$k" 2>/dev/null)" 1 "... as a parentless commit"
+    st "$(git -C "$W/repo" merge-base --is-ancestor "$k" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the kept body is not in the code head's ancestry"
+    drop; : > "$W/flags/$arm"; run m; rc=$?
+    st "$(keepsha)" none "MUTANT keep deleted ($arm): nothing is kept, so the arm above would fail"
+  done
+  drop; : > "$W/flags/lint"; run t; first=$(keepsha); run t
+  st "$(git -C "$W/o.git" rev-parse "$(keepsha)^" 2>/dev/null)" "$first" "a second refusal fast-forwards the keep ref"
+  drop; : > "$W/flags/lint"; cp "$W/hook" "$W/o.git/hooks/pre-receive"; run t; rc=$?
+  st "$rc$(keepsha)" 1none "a keep whose push fails leaves the same refusal"
+  st "$(grep -c 'could not be kept at handoff-wip/t-body; the refusal stands' "$W/out")" 1 "... and says the keep failed"
+  rm -f "$W/o.git/hooks/pre-receive"
+  drop; : > "$W/flags/lint"; run t; st "$(keepsha | grep -c .)" 1 "a refusal is kept before the healthy run"
+  rm -rf "$W/flags"; mkdir -p "$W/flags"; run t; rc=$?
+  st "$rc" 0 "the healthy run pushes"
+  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
+  st "$(keepsha)" none "... and the keep ref is gone"
+  st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
+  echo "body_push self-test: $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
+fi
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
 REF=handoff-body/$TOPIC
 [ -f "$BODY" ] || { echo "body_push: no body at $BODY" >&2; exit 2; }
 [ -z "$NOTE" ] || [ -f "$NOTE" ] || { echo "body_push: no note at $NOTE" >&2; exit 2; }
+# A refusal after the body exists must not cost the body: keep_refused publishes it on the orphan
+# ref handoff-wip/<topic>-body (parentless, then fast-forward, as the real push below), a prefix
+# neither cloud_relay.sh's handoff arm nor `bus.sh orphans` lists. It changes neither the refusal
+# nor its exit code; a failed keep is said and nothing else. drop_keep removes it after a success.
+keep_refused() {
+  local kref=handoff-wip/$TOPIC-body kdir; kdir=$(dirname "$0")
+  (
+    kt=$(git ls-remote origin "refs/heads/$kref" 2>/dev/null | awk 'NF { print $1; exit }') || kt=""
+    kp=""
+    if [ -n "$kt" ]; then git fetch -q origin "refs/heads/$kref" || exit 1; kp="-p $kt"; fi
+    kf="${TMPDIR:-/tmp}/body_keep.$$"
+    { printf '100644 blob %s\tBODY.md\n' "$(git hash-object -w -- "$BODY")"
+      [ -z "$NOTE" ] || printf '100644 blob %s\tRESUME.md\n' "$(git hash-object -w -- "$NOTE")"; } > "$kf" || exit 1
+    kx=$(git mktree < "$kf"); rm -f "$kf"
+    # shellcheck disable=SC2086 # $kp is empty or exactly "-p <sha>"
+    kc=$(git commit-tree "$kx" $kp -m "refused body: $TOPIC") || exit 1
+    python3 -I "$kdir/ref_privacy.py" guard --ref "$kref" --commits "$kc" || exit 1
+    git push -q origin "$kc:refs/heads/$kref" || exit 1
+    echo "body_push: refused body kept at $kref $kc"
+  ) || echo "body_push: the refused body could not be kept at $kref; the refusal stands" >&2
+  return 0
+}
+drop_keep() {
+  local kref=handoff-wip/$TOPIC-body
+  [ -n "$(git ls-remote origin "refs/heads/$kref" 2>/dev/null)" ] || return 0
+  git push -q origin ":refs/heads/$kref" 2>/dev/null || echo "body_push: could not delete the kept body $kref" >&2
+  return 0
+}
 # The handoff gate (dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md, M2): the static
 # predictor, over the code head this body describes (the checkout it runs in),
 # refuses before the push a head that `open_pr.sh`'s prepr step 6d would refuse
 # for a reason a static read names. Seconds, where a full prepr here (M1) costs
 # minutes on every handoff and failed the RCA's cost test. Its output names
 # each arm's repair (M3). A checkout with no predictor is refused, never passed.
+
 ROOT=$(git rev-parse --show-toplevel)
 [ -f "$ROOT/tools/pr/ci_predict.py" ] || { echo "body_push: $ROOT carries no tools/pr/ci_predict.py; run it from the code head's worktree" >&2; exit 1; }
 if ! PRED=$(cd "$ROOT" && PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main 2>&1); then
   printf '%s\n' "$PRED" >&2
   echo "body_push: the predictor refuses this head (above); repair it, push the code, then the body" >&2
+  keep_refused # mut:keep
   exit 1
 fi
 # The pr-body gate (dev/audit/rca/R10-RCA-BODY-LINT.md). A body for the head
@@ -50,6 +135,7 @@ if [ -n "$HREF" ]; then
   if ! LINT=$(cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --body-check "$ABS" $PRB 2>&1); then
     printf '%s\n' "$LINT" >&2
     echo "body_push: the pr-body lint refuses this body (above), as open_pr.sh's prepr step 7 would; repair it and push again" >&2
+    keep_refused # mut:keep
     exit 1
   fi
   printf '%s\n' "$LINT" | tail -1
@@ -62,6 +148,7 @@ if [ -n "$HREF" ]; then
   printf '%s\n' "$PK"
   if [ "$prc" = 1 ]; then
     echo "body_push: the review packet refuses this head at the handoff (above); answer each, push the code, then the body" >&2
+    keep_refused # mut:keep
     exit 1
   elif [ "$prc" != 0 ]; then
     echo "body_push: the review packet's handoff refusals were not run (rc $prc, above); dispatch still runs structure and hot-file" >&2
@@ -76,6 +163,7 @@ if [ -n "$HREF" ]; then
   printf '%s\n' "$LD"
   if [ "$lrc" = 1 ]; then  # mut:landed
     echo "body_push: a carry above is not in its group's brief or carries; land it on the round's roster branch (carry_audit.py land-ops), then push the body" >&2
+    keep_refused # mut:keep
     exit 1
   elif [ "$lrc" != 0 ]; then
     echo "body_push: the carry landing was not checked (rc $lrc, above); bus.sh dispatch checks it again" >&2
@@ -113,4 +201,5 @@ C=$(git commit-tree "$TREE" $P -m "$MSG")
 # identity, and any parent origin does not hold (R10-FLY-NO-FOOTERS-PUSH-PATHS).
 python3 -I "$(dirname "$0")/ref_privacy.py" guard --ref "$REF" --commits "$C"
 git push -q origin "$C:refs/heads/$REF"
+drop_keep
 echo "$REF $C"
