@@ -35,7 +35,7 @@ Environment caveat: measured on CPython 3.14.6 with `tests/requirements-ci.txt` 
 
 ## Unpinned sites
 
-`custom_components/heatpump_optimizer/inputs.py:478` GUARD_OFF (`if entity_id.split(".", 1)[0] in _ATTRIBUTE_TARGET_DOMAINS:`) is the line the contributor's change edits; its old pin (`setpoint_unit.GUARD_OFF.2c91312e`) is dropped in this pull request's last commit because the edit made it stale, and `mutation-autofix` pins the line afresh if `tests/features.py` kills `if False:` there. Not yet pinned at open.
+`custom_components/heatpump_optimizer/inputs.py:478 GUARD_OFF` (the line `if entity_id.split(".", 1)[0] in _ATTRIBUTE_TARGET_DOMAINS:`) is the line the contributor's change edits; its old pin (`setpoint_unit.GUARD_OFF.2c91312e`) is dropped in this pull request's last commit because the edit made it stale, and `mutation-autofix` pins the line afresh if `tests/features.py` kills `if False:` there. Not yet pinned at open.
 
 ## Red checks
 
