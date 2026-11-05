@@ -10,7 +10,7 @@
 
 ## P391: the non-production CI lanes
 
-Verdict: DEFER. Eleven lanes fail the bar even at the upper bound, together 25 % of the sampled runner hours. What would change it: the owner's decision on each proposal below, or a measured benefit the lane's owner brings.
+Verdict: DEFER. Twelve lanes fail the bar even at the upper bound, together 25 % of the sampled runner hours. What would change it: the owner's decision on each proposal below, or a measured benefit the lane's owner brings.
 
 Source: the owner's ruling above, by the orchestrator's message after P390.
 
@@ -63,7 +63,7 @@ Instances:
 
 Cost: removing the first two tables would free up to 25 % of sampled runner hours. Gate-listed lanes need `tools/ci/prelude.py`, the workflows and the ruleset's contract changed, all code-owned. Narrowing needs a measured scope, as `replay` already has (R10-REPLAY-SCOPED). No capped file is touched by this ruling.
 
-Binding: no action. Each proposal goes to the owner through the orchestrator; a removal keeps its reason in the decision record. Do not route this as CI capacity: the owner ruled that out on 2026-11-01, and this is the cost-benefit ruling he asked for.
+Binding: no action. Each proposal goes to the owner through the orchestrator; a removal keeps its reason in the decision record. Do not route this as CI capacity: the owner ruled that out on 2026-11-01, and this is the cost-benefit ruling the owner asked for.
 
 ## P392: the triage seat
 
@@ -80,10 +80,10 @@ Instances:
   | cache creation | 71.5 M | 12.0 % |
   | cache read | 1.92 G | 7.2 % |
 
-  Reviews of triage pull requests add 0.50 M output and 0.16 G cache read. The two windows differ, and cloud seats are missing from both sides, so a share is approximate. This session alone: 0.31 M output and 36 M cache read for six rulings and their repairs.
+  Reviews of triage pull requests add 0.50 M output and 0.16 G cache read. The two windows differ, and cloud seats are missing from both sides, so a share is approximate. This session alone: 0.31 M output and 36 M cache read for four rulings (P387 to P390) and their repairs.
 - **What it produced.** 382 entries on the roster branch: 233 ACCEPT, 93 DEFER, 55 REJECT, 1 owner. 247 roster carries cite triage: 56 marked implemented, 58 moved, 5 dismissed, 57 on a closed group, 71 on an open group.
 - **What is not measured.** No ruling has a before-and-after figure on any of the four measures. The ledger meant to record a proven improvement over 10 %, `exemptions` in `dev/governance/config/machinery_budgets.json`, is empty. The cost a REJECT or DEFER avoided is an estimate, never a measurement. No week ran without the seat to compare.
-- **This session's own record.** P389 was a proposal the instrument already answered, and the orchestrator withdrew it. P387's finding was real when filed, then answered by the fix. I made three errors, all corrected, that a seat with no such step would not have made.
+- **This session's own record.** P389 was a proposal the instrument already answered, and the orchestrator withdrew it. P387's finding was real when filed, then answered by the fix. This seat also made four slips, all corrected: a wrong calibration re-check, a wrong note on one harness arm, body commits under the owner's name, and a copy into another seat's temp directory.
 
 Cost: removing the seat frees at most 7 to 12 % of local tokens, less whatever moves to the orchestrator; that is not measured either.
 
