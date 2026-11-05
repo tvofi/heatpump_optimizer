@@ -1,25 +1,12 @@
-Fix review: blocked 2cfa51a43dea225ad55adf1ac3826f58da613655 pr-contract-red: pr-contract / pr-contract failed at this head (run 41981691725, job 127094257612) because the body's ## Red checks does not name red check `tests / mutation-autofix`
+Fix review: merge 2cfa51a43dea225ad55adf1ac3826f58da613655
 
-bus-nonce: 5e6e995a5fb3bceebfef469ad06f5908
-
-## Block
-
-CI-only re-check of 2cfa51a43dea225ad55adf1ac3826f58da613655 (code not re-reviewed, per brief).
-
-Step 3 fails. The pr-contract job at this head (06:42 UTC) ran policy_lint and exited 1:
-`[pr-body] check `tests / mutation-autofix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.`
-Red history across the 17 commits: governance / delivery-status, tests / mutation, tests / mutation-autofix, tests / nightly-status. The body names the other three but not mutation-autofix. Fix: add a `tests / mutation-autofix` bullet to ## Red checks (the red was the bot run that pinned replay_doc.py:535; cheaper detector = prepr step 6d, or none). Edit the body only; the head does not move.
-
-Step 2 is not settled either: classify reads WAIT (gate still in progress at the time of review; two gate runs in_progress). Step 1 holds: review_carry prints CARRY.
-
-## Findings
-
-- Defect: body `## Red checks` omits `tests / mutation-autofix`; pr-contract red until the body names and answers it. Carry: R10-FLY-REPLAY-MASK | #3219 | O1 | dismissed: fixed by a body edit on this PR, not a separate issue
+bus-nonce: 1d8cdfb0c1c417a30fdbcd6183797103
 
 ## Evidence
-
-- ev/HEAD.txt: head reviewed.
-- ev/review_carry.txt: CARRY.
-- ev/classify.txt: classify output at review time (WAIT; gate pending).
-- Inherited reporters failing: tests / nightly-status, governance / delivery-status (as the body says).
-- ## Head names one head, 2cfa51a4...; figures: 3 resolved, 1 inline-script figure unverified (the python3 -c one), not a refusal.
+- review_carry.py aca500910 -> 2cfa51a43dea225ad55adf1ac3826f58da613655: CARRY (one branch-only non-merge commit, "ci: pin killed mutants").
+- merge-tree --write-tree origin/main 2cfa51a43dea225ad55adf1ac3826f58da613655: clean (rc 0).
+- merge_train.py classify exited 2 here: "REFUSE ci: the check runs at 2cfa51a43dea could not be read" (unreadable by the tool in this seat). I read every check-run of the head myself over the GitHub MCP, both pages (107 runs), see ev/checks.txt.
+- Concluded reds of the head: pr-contract / pr-contract (06:42Z run), governance / delivery-status, tests / nightly-status. The body's ## Red checks names each: pr-contract and gate of 06:42-06:44Z (cured by the body edit), and nightly-status and delivery-status as inherited from the merge base. tests / mutation-autofix is named too and is skipped at this head.
+- Later pr-contract runs (06:56Z, 06:25Z) are success, so the body lints. gate is success at 06:59Z and 07:01Z. tests / mutation is success.
+- ## Head names one PR head (2cfa51a43dea225ad55adf1ac3826f58da613655) and refers to aca50091 only as the previously reviewed head.
+- Code not re-reviewed, per the brief.

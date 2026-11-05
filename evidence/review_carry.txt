@@ -1,5 +1,0 @@
-review_carry: aca500910 -> 2cfa51a43  main=origin/main
-  branch-only commits: 1
-  why: 1 of 1 branch-only commit(s) are non-merge, and app_approve.sh --carry carries the range
-  2cfa51a43  ci: pin killed mutants
-review_carry: CARRY
