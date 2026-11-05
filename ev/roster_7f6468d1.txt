@@ -1,0 +1,31 @@
+16813:   "group": "R10-GATE-LEASE-TOCTOU",
+16814-   "lane": "C",
+16815-   "kind": "fix",
+16816-   "issues": [],
+16817-   "fixes": [],
+16818-   "findings": [],
+16819-   "class": "gate-lease-race",
+16820-   "severity": "medium",
+16821-   "size": "S",
+16822-   "wave": 1,
+16823-   "files": [
+16824-    "tests/gate_lock.py"
+16825-   ],
+16826-   "hot_files": [],
+16827-   "fixerModel": "sonnet",
+16828-   "reviewerModel": "opus",
+16829-   "model": {
+16830-    "fixer": "sonnet",
+16831-    "reviewer": "opus",
+16832-    "rca": null,
+16833-    "runner": "haiku",
+16834-    "record": "sonnet"
+16835-   },
+16836-   "effort": "medium",
+16837-   "fixture": false,
+16838-   "owner_gate": null,
+16839-   "rca": [],
+16840-   "after": [],
+16841-   "carry": [],
+16842-   "architect_note": "",
+16843-   "resume": {

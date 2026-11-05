@@ -1,0 +1,6 @@
+16841-   "after": [],
+16842-   "carry": [
+16843:    "From PR 3170, body item 42008ca4: the free-slot race in tests/gate_lock.py stays open after that PR. A delay-only plant turned the one-winner check red in 8 of 10 runs at 5ee2be2d; the fix must turn that plant green. Re-measure at your merge base."
+16844-   ],
+16845-   "architect_note": "",
+16846-   "resume": {
