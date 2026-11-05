@@ -1,0 +1,3 @@
+  FAIL part D what-if: with twelve store samples at half the hub's maximum the what-if solve books the learned top the live solve books, not the configured one; with no store both book the configured top  [learned live [2.5] what-if [5.0] hub 5.0; null live [5.0] what-if [5.0] hub 5.0]
+1 of 4807 FEATURE CHECKS FAILED
+rc=1

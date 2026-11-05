@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/pump_arbiter.py b/custom_components/heatpump_optimizer/pump_arbiter.py
+index 925fea26b..810ba7d7c 100644
+--- a/custom_components/heatpump_optimizer/pump_arbiter.py
++++ b/custom_components/heatpump_optimizer/pump_arbiter.py
+@@ -518,7 +518,7 @@ def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
+     step maps on the hub's band, which sysid sized it on; so does a plan with
+     no stamp. The hub's band from the model when the params snapshot lacks it.
+     """
+-    band = getattr(inp.plan, "solve_band", None) or {}
++    band = getattr(inp.plan, "solve_band", None)
+     if band and _experiment_kw(inp) is None:
+         return band["planned_min_kw"], band["planned_max_kw"]
+     params = inp.params
