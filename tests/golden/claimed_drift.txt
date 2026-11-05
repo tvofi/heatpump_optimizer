@@ -758,3 +758,8 @@ coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing
 # origin/main, one environment). Claimed rather than re-recorded, as
 # R10-HOUSE-GRADE's key was: the committed files were patched in those four
 # paths alone, each null because a coord fixture holds no plan.
+# R10-EXT-3224: the DHW set-point selector admits water_heater, so config_flow
+# changes exactly two leaves (the plain and the seeded render of
+# dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
+# it, so every other fixture is byte-identical. Re-recorded in the committed file.
+config_flow  # R10-EXT-3224: dhw_setpoint_entity selector filter gains water_heater (2 leaves, nothing else moves)
