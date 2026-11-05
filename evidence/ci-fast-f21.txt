@@ -1,3 +1,0 @@
-2026-11-05T02:24:32.4951927Z RESULT f21_p3_two_zone=1 j_plain=108.958453 j_continuation_off=108.992821 continuation_gain=+0.034369 j_seeded_half_price=108.307233
-2026-11-05T02:24:32.4952113Z   ok   R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it
-2026-11-05T02:24:32.4952357Z RESULT f21_p3_two_zone=0 j_plain=99.470771 j_continuation_off=99.470771 continuation_gain=+0.000000 j_seeded_half_price=99.441227

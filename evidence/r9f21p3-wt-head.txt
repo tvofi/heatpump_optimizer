@@ -1,5 +1,0 @@
-RESULT f21_p3_two_zone=1 j_plain=108.992821 j_continuation_off=108.992821 continuation_gain=+0.000000 j_seeded_half_price=108.314501
-  FAIL R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it  [shipped 108.9928 against 108.9928 with the multi-start's continuation removed -- a gain of +0.0000, against a bound of 0: the gain is a cliff, so a continuation that does not reach the basin ships this second plan bit-identically]
-RESULT f21_p3_two_zone=0 j_plain=99.470771 j_continuation_off=99.470771 continuation_gain=+0.000000 j_seeded_half_price=99.441228
-  ok   R9-F2.1 P3 (null arm, single-zone): a single-zone solve ships the same storage plan bit-identically with the continuation removed
-rc=0

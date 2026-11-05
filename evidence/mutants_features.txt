@@ -1,0 +1,22 @@
+== null: 1 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+== wood0: 2 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers: all, half, none when cold, none unread, none with no wood tank, none of nothing  [(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)]
+== wood1: 2 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers: all, half, none when cold, none unread, none with no wood tank, none of nothing  [(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)]
+== floordel: 3 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a thermostat on a warm plain house buys no heat and sells none: not one reference step is negative  [(-0.6792061090908971, 0.0, np.float64(22.212488471541985))]
+  FAIL a summer house holding passive warmth reads its hot-water saving, not a loss  [saving -4.091563757500916 (0.0 %)]
+== floorlate: 2 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a thermostat's end state is the house its booked power heats: a replay of the kW lands on it, warm day and swinging day  [((np.float64(3.473330202972587), np.float64(6.074131973987111)), (np.float64(0.2944608280172467), np.float64(0.5161942629878915)), 34.81945972039205)]
+== floorpower: 3 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL two-zone: a valved reference costs the unvalved one plus the tank's loss  [valved 10.12 kWh vs unvalved 9.00 + loss bound 0.52]
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a thermostat's end state is the house its booked power heats: a replay of the kW lands on it, warm day and swinging day  [((np.float64(3.473330202972587), np.float64(6.074131973987111)), (np.float64(0.2944608280172467), np.float64(0.5161942629878915)), 34.81945972039205)]
+== migguard: 2 of 4832 FEATURE CHECKS FAILED rc=1 
+  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+  FAIL a v1 month with no savings booked at the upgrade books its first saving on the new reference  [({'2026-02': {'lines': {'savings_baseline': {'kwh': 4.0, 'sek': 4.0}, 'savings_actual': {'kwh': 2.0, 'sek': 2.0}, 'savings_plan': {'kwh': 4.0, 'sek': 4.0}}, 'meta': {'settled_hours': {'sum': 2.0, 'count': 2}, 'spot_price': {'sum': 2.0, 'count': 2}, 'reference_basis': {'sum': 0.0, 'count': 1}}}, '2

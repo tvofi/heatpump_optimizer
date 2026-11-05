@@ -1,5 +1,0 @@
-RESULT f21_p3_two_zone=1 j_plain=109.578998 j_continuation_off=109.589887 continuation_gain=+0.010889 j_seeded_half_price=108.814308
-  ok   R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it
-RESULT f21_p3_two_zone=0 j_plain=99.484149 j_continuation_off=99.484149 continuation_gain=+0.000000 j_seeded_half_price=99.367915
-  ok   R9-F2.1 P3 (null arm, single-zone): a single-zone solve ships the same storage plan bit-identically with the continuation removed
-rc=0

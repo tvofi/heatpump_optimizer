@@ -1,5 +1,0 @@
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-  FAIL a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers: all, half, none when cold, none unread, none with no wood tank, none of nothing  [(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)]
-  FAIL R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it  [shipped 108.9928 against 108.9928 with the multi-start's continuation removed -- a gain of +0.0000, against a bound of 0: the gain is a cliff, so a continuation that does not reach the basin ships this second plan bit-identically]
-3 of 4814 FEATURE CHECKS FAILED
-rc=1
