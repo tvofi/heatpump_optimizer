@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index dedcb151e..61a92ae0a 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -8941,7 +8941,7 @@ function scoreDrivers(part, drivers) {
+     .filter((d) => d.pts !== 0)
+     .map((d) => `${L(`score.driver_${d.code}`)} ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}`);
+   return shown.length ? shown.join("; ")
+-    : L(part === "envelope" ? "score.driver_typical" : `score.driver_typical_${part}`);
++    : L("score.driver_typical");
+ }
+ 
+ /** What an ungraded heat pump waits on (`machine_evidence`): the four

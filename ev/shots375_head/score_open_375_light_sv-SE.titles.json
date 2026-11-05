@@ -1,0 +1,5 @@
+[
+ "Huset: 90/100 (typiskt för sin typ och period)\nHuset: klimatskalets värmeförlust i W/K, korrigerad för värmetröghet, mot det typiska för den inställda hustypen och byggperioden. 50 är typiskt för den typen och perioden; över är tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
+ "Värmepumpen: 75/100\nVärmepumpen: uppmätt COP — levererad värme per kWh el — i varje utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är som historiken; varje poäng under är ett bestående COP-underskott (se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; inget betyg ännu betyder att inget band har det — inte noll.",
+ "Körningen: — Inget underlag ännu — inte noll.\nKörningen: om planen köper på de billiga timmarna. Varje dags energi prissätts mot dagens platta medelspotpris — 20 % under platt ger 100, på eller över platt ger 0 — och betyget är ett medel av de senaste dagarna. Inget betyg betyder att ingen dag med pris bedömts ännu — inte noll."
+]
