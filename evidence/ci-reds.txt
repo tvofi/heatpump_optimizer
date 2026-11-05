@@ -1,0 +1,9 @@
+Check runs of head 1c42ca3fda183b63a6c3579071bef9a8e354acef read via the PR check-runs API (total_count 56, one page of 100) at ~03:23Z, plus jobs of run 41953777322 at ~03:46Z.
+Concluded non-green:
+- gate (run 41953331353, job 127026447132): failure 03:36:01 -- "FAIL run(s) [41953777322] at this head are still being judged; their gate decides"
+- gate (run 41953777322, job 127034604058): failure 03:44:13 -- "FAIL codeql / Analyze (python): cancelled (run 41953331353)"
+- codeql / Analyze (python) (job 127006069110): cancelled, started 02:21:26, completed 03:06:36
+- governance / delivery-status (job 127006069173): failure -- overdue #3089 2a9cd34, overdue #3192 d4e584e; "This check is NOT a required context"
+- tests / nightly-status (job 127006069356): failure (log tail carries only cleanup lines)
+- pr-contract / pr-contract: success in run 41953331353 (03:18:13-03:18:54) and in run 41953777322 (03:42:43-03:43:20); the latter started before the gate in run 41953777322 concluded red (03:44:16)
+merge_train classify: RED 1c42ca3fda183b63a6c3579071bef9a8e354acef pending: none red: gate (rc=1, 03:44:35)
