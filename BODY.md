@@ -56,3 +56,17 @@ Not built, each waits and is owed by this group's continuation:
 ## Friction
 
 - finding-propagation: unenforced: a roster-wide default (`rosterIssues()` with no argument) cannot be switched on while a carry collides with a live group, and nothing flags the collision until the default changes. Carry: R10-BODY-CONTRACT
+
+## Brief carries by number
+
+Numbered in the order the group brief lists them.
+- Carry 1 (`--roster-ref` on the contract arm): built.
+- Carry 2 (card 7, generated figure block): not built, under Forward-carry.
+- Carry 3 (V115 body contract at the head): built.
+- Carry 4 (`bus-nonce:` and `Round:` trailers): built.
+- Carry 5 (`Fold (x):` grammar): built, scope limits under Forward-carry.
+- Carry 6 (s9 closed-destination refusal): built, with `pr-contract.yml` not yet passing `--pr-group`, under Forward-carry.
+- Carry 7 (`Carry: G | dismissed:` pointer): built.
+- Carry 8 (A1 and A2): not built, under Forward-carry.
+- Carry 9 (#2438 control lint): not built (built and removed), under Forward-carry; the `fix-review.md` and `judge.md` sentence (ii) was not written.
+- Carry 10 (refused-body keep ref): built.
