@@ -172,6 +172,11 @@ NOT_A_TEST = {
     # its --record guard and its null control, so a change to how it
     # classifies selects that script.
     "ci_ratchet.py",
+    # The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4): a step of each
+    # heavy CI job, timed by the Actions API, never a test of this suite.
+    # NOT_A_TEST and NOT inert: `tests/entities.py` imports it to pin its
+    # fixed work and the workflow steps that name it.
+    "host_probe.py",
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread via `gh`, which this suite has neither the network
     # nor the token for, and its verdict is about the record rather than
