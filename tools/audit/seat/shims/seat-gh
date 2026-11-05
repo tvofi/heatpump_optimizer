@@ -39,13 +39,21 @@ done
 IFS=$ifs
 [ -n "$real" ] || { echo "gh shim: no real gh on PATH" >&2; exit 127; }
 
-sub=; verb=; skip=0
+sub=; verb=; third=; skip=0; prev=; meth=; write=
 for a in "$@"; do
-  if [ $skip = 1 ]; then skip=0; continue; fi
+  if [ $skip = 1 ]; then
+    case $prev in -X|--method) meth=$a ;; esac
+    skip=0; continue
+  fi
   case $a in
-    -X|-H|-f|-F|-q|-t|-p|-R|-B|-b|--method|--header|--field|--raw-field|--input|--jq|--template|--hostname|--cache|--preview|--repo) skip=1 ;;
+    -X|--method) skip=1; prev=$a ;;
+    -X?*) meth=${a#-X} ;;
+    --method=*) meth=${a#*=} ;;
+    -f|-F|--field|--raw-field|--input) skip=1; prev=$a; write=1 ;;
+    -f?*|-F?*|--field=*|--raw-field=*|--input=*) write=1 ;;
+    -H|-q|-t|-p|-R|-B|-b|--header|--jq|--template|--hostname|--cache|--preview|--repo) skip=1; prev=$a ;;
     -*) ;;
-    *) if [ -z "$sub" ]; then sub=$a; else verb=$a; break; fi ;;
+    *) if [ -z "$sub" ]; then sub=$a; elif [ -z "$verb" ]; then verb=$a; else third=$a; break; fi ;;
   esac
 done
 case $sub in
@@ -116,5 +124,31 @@ esac
   # umask governs creation only: a log an earlier shim wrote 0644 is made owner-only here
   chmod 600 "$log"
 ) 2>/dev/null || true
+
+# The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
+# lives in that script alone, so a raw post bypassed it): a comment WRITE on the tracking
+# issue is refused unless the caller is gh_comment.py, python's first script word. The
+# issue number is budget_raise_gate.MANDATE_ISSUE (gh_calls.py --self-test pins the two
+# equal). A write is `gh issue comment 201`, or `gh api` at .../issues/201/comments with
+# a field, an --input or a method other than GET. Residual, by design: a PATCH of
+# issues/comments/<id> and a graphql mutation name no issue, so this reads neither.
+tracker=201
+case $sub:$verb in
+  issue:comment) case $third in $tracker|*/issues/$tracker|*/issues/$tracker#*|"#$tracker") hit=1 ;; esac ;;
+  api:*/issues/$tracker/comments) { [ -n "$write" ] || { [ -n "$meth" ] && [ "$meth" != GET ]; }; } && hit=1 ;;
+esac
+if [ -n "${hit:-}" ]; then
+  gcp=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
+  set -f; read -r -a gw <<< "$gcp"; set +f
+  ok=
+  case ${gw[0]##*/} in python|python[0-9]*)
+    for w in "${gw[@]:1}"; do
+      case $w in -*) continue ;; esac
+      [ "${w##*/}" = gh_comment.py ] && ok=1
+      break
+    done ;;
+  esac
+  [ -n "$ok" ] || { echo "gh shim: a comment write on #$tracker goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
+fi
 
 exec "$real" "$@"

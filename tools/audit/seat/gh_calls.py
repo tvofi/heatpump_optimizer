@@ -25,6 +25,7 @@ urllib read are not counted.
 """
 from __future__ import annotations
 
+import importlib.util
 import os
 import re
 import shutil
@@ -446,9 +447,45 @@ def self_test():
             check(f"mutant killed: {name}", ok and tripped)
             install(good)
 
-        killed("no --input skip", "--input|", "", "input")
+        killed("no --input skip", "--raw-field|--input) skip", "--raw-field) skip", "input")
         killed("clean() is cat", "tr -c 'A-Za-z0-9_./:-' '?'", "cat", "clean")
         killed("no mkdir of the state dir", '  mkdir -p "$state"\n', "", "mkdir")
+
+        # The #201 comment guard (R10-RAISE-GATE-SHIM): a comment write on the tracking issue
+        # reaches the real gh only through gh_comment.py. The stub exits 7, a refusal exits 1.
+        planted = ["api", "-X", "POST", "repos/o/r/issues/201/comments", "-f", "body=Revoked mandate 1234567"]
+        raw = run(planted)
+        check("planted: a raw `gh api` post of a revocation to #201 is refused, the real gh never run",
+              raw.returncode == 1 and b"gh_comment.py" in raw.stderr and b"STUB" not in raw.stdout)
+        gcs = w / "gh_comment.py"
+        gcs.write_text("import subprocess, sys\nsys.exit(subprocess.run(['gh', *sys.argv[1:]]).returncode)\n")
+        via_ok = run([], via=f"{py} -I {gcs} " + " ".join(planted[:5]) + " -f body=ok")
+        check("control: the same post made by a python running gh_comment.py reaches the real gh",
+              via_ok.returncode == 7 and b"STUB api -X POST" in via_ok.stdout)
+        spoof = run([], via=f"{py} -c 'pass' gh_comment.py; gh api repos/o/r/issues/201/comments -f body=x")
+        check("a shell that merely names gh_comment.py is not gh_comment.py", spoof.returncode == 1)
+        for label, args in (("a GET of #201's comments", ["api", "repos/o/r/issues/201/comments"]),
+                            ("a post to another issue", ["api", "repos/o/r/issues/202/comments", "-f", "body=x"]),
+                            ("a post to a comment of a longer number", ["api", "repos/o/r/issues/2011/comments", "-f", "body=x"]),
+                            ("a gh issue comment on another issue", ["issue", "comment", "202", "-b", "x"])):
+            check(f"null control: {label} reaches the real gh", run(args).returncode == 7)
+        for label, args in (("gh issue comment 201", ["issue", "comment", "201", "-b", "revoked 1234567"]),
+                            ("gh issue comment on a #201 URL", ["issue", "comment", "https://github.com/o/r/issues/201", "-b", "x"]),
+                            ("gh api --method=POST", ["api", "--method=POST", "repos/o/r/issues/201/comments"]),
+                            ("gh api -XPOST", ["api", "-XPOST", "repos/o/r/issues/201/comments"]),
+                            ("gh api --input", ["api", "repos/o/r/issues/201/comments", "--input", "f.json"])):
+            check(f"{label} is refused", run(args).returncode == 1)
+        mut = good.replace("tracker=201", "tracker=0")
+        check("mutant: the guard's issue number changed lets the planted post through",
+              mut != good and run(planted, shim_text=mut).returncode == 7)
+        install(good)
+        try:
+            spec = importlib.util.spec_from_file_location("budget_raise_gate", SHIM.parents[3] / "policy" / "budget_raise_gate.py")
+            g = importlib.util.module_from_spec(spec)
+            spec.loader.exec_module(g)
+            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE", f"tracker={g.MANDATE_ISSUE}\n" in good)
+        except (OSError, ImportError, AttributeError):
+            check("the shim's tracker number is budget_raise_gate.MANDATE_ISSUE (gate readable)", False)
 
         # a shim is never its own real gh. The PATH is hermetic: no real gh on any host.
         (w / "real" / "gh").unlink()
