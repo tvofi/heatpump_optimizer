@@ -1,0 +1,4 @@
+RESULT body=measured justification=True justified=(True, "the body's arch_score figure is the measured one, dS +0.0000 NULL")
+RESULT body=measured check_body(raises=[x])=(True, "the body's arch_score figure is the measured one, dS +0.0000 NULL")
+RESULT body=planted justification=True justified=(False, '`## Raise justification` claims dS +0.0012 IMPROVES, but tools/audit/archscore/score.py measures dS +0.0000 NULL for this head three-dot: a mandated raise rests on the true figure')
+RESULT body=planted check_body(raises=[x])=(False, '`## Raise justification` claims dS +0.0012 IMPROVES, but tools/audit/archscore/score.py measures dS +0.0000 NULL for this head three-dot: a mandated raise rests on the true figure')

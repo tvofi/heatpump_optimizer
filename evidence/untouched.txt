@@ -1,5 +1,5 @@
-identical tests/golden/claimed_drift.txt
-identical tests/golden/card_claimed_drift.txt
-identical VERSION
-identical custom_components/heatpump_optimizer/manifest.json
-identical RELEASE_NOTES.md
+same VERSION
+same RELEASE_NOTES.md
+same tests/golden/claimed_drift.txt
+same tests/golden/card_claimed_drift.txt
+same custom_components/heatpump_optimizer/manifest.json

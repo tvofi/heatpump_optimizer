@@ -1,0 +1,25 @@
+== further refusals (expect refuse)
+OK expect=refuse rc=1 stublines=0 :: dashdash-path
+OK expect=refuse rc=1 stublines=0 :: repositories-id
+OK expect=refuse rc=1 stublines=0 :: pct-lower
+OK expect=refuse rc=1 stublines=0 :: pct-path-comments
+OK expect=refuse rc=1 stublines=0 :: api-fields-method-lower
+OK expect=refuse rc=1 stublines=0 :: api-dot-segment
+OK expect=refuse rc=1 stublines=0 :: api-input-eq
+OK expect=refuse rc=1 stublines=0 :: api-host-flag
+OK expect=refuse rc=1 stublines=0 :: issue-comment-edit-last
+OK expect=refuse rc=1 stublines=0 :: issue-comment-body-file-eq
+OK expect=refuse rc=1 stublines=0 :: issue-comment-Ff
+OK expect=refuse rc=1 stublines=0 :: issue-comment-url-query
+OK expect=refuse rc=1 stublines=0 :: issue-comment-plus
+OK expect=refuse rc=1 stublines=0 :: issue-comment-repo-eq
+OK expect=refuse rc=1 stublines=0 :: issue-comment-pull-url
+FAIL expect=refuse rc=0 stublines=1 :: issue-close-comment-201
+FAIL expect=refuse rc=0 stublines=1 :: issue-close-c-201
+FAIL expect=refuse rc=0 stublines=1 :: issue-reopen-comment-201
+FAIL expect=refuse rc=0 stublines=1 :: alias-word
+== further null controls (expect pass)
+OK expect=pass rc=0 stublines=1 :: get-201-paginate
+OK expect=pass rc=0 stublines=1 :: issue-close-202-comment
+OK expect=pass rc=0 stublines=1 :: post-2010
+OK expect=pass rc=0 stublines=1 :: issue-comment-1201
