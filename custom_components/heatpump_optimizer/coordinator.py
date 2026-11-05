@@ -4358,21 +4358,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not load learned thermal parameters: %s", err)
             return
 
-        if (n := _stored_learner(stored, "buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate)) is not None:
-            self._buffer_cooling_samples = n
-        if (n := _stored_learner(stored, "house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale)) is not None:
-            self._house_heat_loss_samples = n
-        if (n := _stored_learner(stored, "lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio)) is not None:
-            self._lower_floor_loss_samples = n
-
-        # Re-anchored before anything solves; gated write: `updated_at` defeats the hash skip.
-        _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
-        _reanchored = self._reanchor_house_heat_loss_scale(stored)
-        if _reanchored or not _had_anchor:
-            await self._async_save_thermal_learning()
-
-        if (n := _stored_learner(stored, _COP_STORE_KEY, "cop_samples", self._apply_cop_scale)) is not None:
-            self._cop_samples = n
+        self._load_scalar_learners(stored)
+        # Re-anchored before anything solves; gated write, last: `updated_at` defeats the hash skip.
+        save = self._reanchor_house_heat_loss_scale(stored) or not all(
+            k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
         self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
@@ -4418,6 +4407,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "back to control to re-arm it"
             )
         self._load_t4b_learners(stored)
+        # Last: the store's read fence is every save's and restore's load barrier only while nothing between
+        # the read and here awaits; mid-load, this save wrote the COP and T4b defaults (R10-LEARNED-STORE-LOAD).
+        if save:
+            await self._async_save_thermal_learning()
+
+    def _load_scalar_learners(self, stored: Mapping[str, Any]) -> None:
+        """The four scalar learners and their sample counts: the store loader's and the snapshot restore's one parser."""
+        n = [_stored_learner(stored, key, samples, apply) for key, samples, apply in (
+            ("buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate),
+            ("house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale),
+            ("lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio),
+            (_COP_STORE_KEY, "cop_samples", self._apply_cop_scale))]
+        cur = (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples, self._cop_samples)
+        (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples,
+         self._cop_samples) = (c if v is None else v for v, c in zip(n, cur))
 
     def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
@@ -9375,14 +9379,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
             if (tracker := getattr(self, "_accuracy", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936
-            for setter, key in (
-                (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
-                (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
-                (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
-                (self._apply_cop_scale, _COP_STORE_KEY),
-            ):
-                if (value := finite_float(thermal.get(key))) is not None:
-                    setter(value)
+            self._load_scalar_learners(thermal)  # the loader's parser: sample counts roll back too
             # T4b learners roll back through the same parser the store
             # loader uses, cleared first so a restore is a restore, not a
             # merge with the drifted state it replaces — ALL of them: a
@@ -9537,8 +9534,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_restore_learned_snapshot(self) -> bool:
         """The one-click rollback service. True when a snapshot applied."""
         # ls-r1: every store the restore rewrites is read first, or a startup
-        # read still in flight lands on top of the restored learner.
-        for store in _restored_stores(self):
+        # read still in flight lands on top of the restored learner; and the
+        # ring it restores from, or a restore right after setup finds it
+        # empty (R10-LEARNED-STORE-LOAD).
+        for store in (*_restored_stores(self), self._snapshot_store):
             await store.async_wait_for_read()
         snap = self._snapshot_ring.undo_target()
         if snap is None:
