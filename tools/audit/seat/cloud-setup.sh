@@ -142,11 +142,11 @@ self_test() (
   [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
   out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
   [ "$out" = stub ]; expect "under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)" $?
-  [ "$(printf '%s\n' "${vars[@]}" | grep -c '^RUNNER_TEMP=/tmp/hpo-runner-temp$')" = 1 ]
+  [ "$(printf '%s\n' "${vars[@]}" | grep -c '^RUNNER_TEMP=/tmp/hpo-runner-temp$')" = 1 ]  # never-empty: vars is the seven-line output of variables, asserted above
   expect "variables prints RUNNER_TEMP" $?
   out=$(run bash -c '. "$1"; echo "$RUNNER_TEMP"' _ "$W/profile.sh")
   [ "$out" = /tmp/hpo-runner-temp ]; expect "the profile exports RUNNER_TEMP" $?
-  n=$(printf '%s\n' "${vars[@]}" | grep -c '^GIT_\(AUTHOR\|COMMITTER\)_\(NAME\|EMAIL\)=')
+  n=$(printf '%s\n' "${vars[@]}" | grep -c '^GIT_\(AUTHOR\|COMMITTER\)_\(NAME\|EMAIL\)=')  # never-empty: vars is the seven-line output of variables, asserted above
   [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
   out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")
   [ "$out" = "$SEAT_NAME $SEAT_EMAIL $SEAT_NAME $SEAT_EMAIL" ]; expect "the profile exports the seat identity" $?
@@ -156,7 +156,7 @@ self_test() (
   out=$(git -C "$W/r" log -1 --format='%an <%ae> %cn <%ce>')
   [ "$out" = "Claude <noreply@anthropic.com> Claude <noreply@anthropic.com>" ]
   expect "control: without the exports the config identity authors the commit" $?
-  run "${vars[@]}" git -C "$W/r" commit -q --allow-empty -m y
+  run "${vars[@]}" git -C "$W/r" commit -q --allow-empty -m y  # never-empty: vars is the seven-line output of variables, asserted above
   out=$(git -C "$W/r" log -1 --format='%an <%ae> %cn <%ce>')
   [ "$out" = "$SEAT_NAME <$SEAT_EMAIL> $SEAT_NAME <$SEAT_EMAIL>" ]
   expect "a commit made under the exports is authored and committed as the seat even with a conflicting user.name in config" $?
