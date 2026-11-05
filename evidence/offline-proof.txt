@@ -1,7 +1,0 @@
-Offline arm proof (run before any control):
-  env -i HOME=<empty dir> PATH=<shimdir>:<stubdir>:/usr/bin:/bin ... sh -c 'env | grep -i token; gh --version'
-  `env | grep -i token` printed nothing (GH_TOKEN, GITHUB_TOKEN, GH_ENTERPRISE_TOKEN unset); HOME an empty dir (no stored gh login).
-  stub log after the probe: `--version` (the stub records argv and exits 0; no network).
-  The shim was installed by the tree's own `seat_venv.sh --install-shims` (baked gcpy=<worktree>/tools/pr/gh_comment.py);
-  its real-gh lookup resolved to the stub (first non-shim gh on PATH).
-Every row of controls-*.txt ran under the same env -i line, one stub log per row.

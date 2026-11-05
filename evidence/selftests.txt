@@ -1,7 +1,0 @@
-self-tests at head (offline env):
-gh_calls self-test: 195 checks, 0 failed
-seat_venv self-test: 27 checks, 0 failed
-queue_pre_flight self-test: 45 checks, 0 failed
-budget_raise_gate self-test: 274 checks, 0 failed; merge_train self-test: 443 checks, 0 failed (mutv.out)
-three-dot added lines matching 'revok' (case-insensitive): 0
-STRUCTURE RATCHET PASSED
