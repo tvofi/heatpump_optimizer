@@ -11,17 +11,15 @@ medium effort: rulings are checked against code.
 **The bar is "clearly".** A proposal is wired in only when its measured
 benefit clearly outweighs everything it adds: wall-clock or seat time on the
 critical path; tokens (seat model x effort x expected runs); GitHub API calls;
-standing CPU on the Pi-class target or the CI runners; code and policy
-complexity (lines, new files, new checks, hot files touched, review rounds);
+standing CPU on the Pi-class target or CI runners; code and policy
+complexity (lines, new files and checks, hot files touched, review rounds);
 and maintenance surface. An even or marginal trade is REJECT; an unmeasured
-benefit is DEFER, never ACCEPT.
+benefit is DEFER, never ACCEPT. An ACCEPT on the >10% exemption
+(`ratchet-budgets.md`) says so; its PR records it.
 
-**Verdicts:**
-- **ACCEPT** names its destination: an existing roster group and its carry
-  text, or a new group and its brief.
-- **DEFER** names what would change the answer, or the group already owning
-  the item.
-- **REJECT** names the binding cost.
+**Verdicts:** ACCEPT names a destination (a roster group and carry
+text, or a new group and brief); DEFER, what would change it or the owning
+group; REJECT, the binding cost.
 
 **The ruling** is one `## P<n>: <title>` entry in a batch file under
 `dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
