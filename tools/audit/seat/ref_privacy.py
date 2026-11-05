@@ -82,7 +82,8 @@ variable; or a `gh api` call that writes a ref -- `git/refs` or `git/tags`
 with a field (`-f`, `-F`, `--field`, `--input`) or a POST/PATCH/PUT method, or
 a `createRef`/`updateRef` mutation; or a release that makes a tag --
 `gh release create`, or `gh api .../releases` with a field or a write
-method -- in `tools/`,
+method; or `git send-pack`; or `gh api graphql -F query=@<file>`, whose
+mutation is in a file the line does not show -- in `tools/`,
 `.claude/workflows/` and `.github/workflows/`, less round evidence and vendored
 code. Each such file must have an entry in PUSHERS below: `guarded` (the file
 must call this module) or a stated reason it composes nothing a host could leak
@@ -446,6 +447,8 @@ _SITE = re.compile(
     r"(?:\b(?:git|rgit)\b|\$\{?(?i:git)\}?(?![\w]))[^\n]*?(?<![\w.-])push(?![\w-])"
     r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*git/(?:refs|tags)\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|\bgh\b[^\n]*?\bapi\b[^\n]*\b(?:createRef|updateRef)\b"
+    r"|\bgit\b[^\n]*?(?<![\w.-])send-pack(?![\w-])"
+    r"|\bgh\b[^\n]*?\bapi\b[^\n]*\bgraphql\b[^\n]*(?:(?<![\w-])-F|--field)[\"',\s=]*query=@"
     r"|\bgh\s+release\s+create\b"
     r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*/releases\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|(?:^|[;&|(]\s*)g\s+push\b"
@@ -495,7 +498,7 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
 # hands it to the platform's regcomp, and BSD's (macOS) has no `\b`, so a
 # `\bpush\b` there matched nothing a GNU seat's matched (#2554). The word
 # boundaries are `_SITE`'s, in Python's re on every platform; this only narrows.
-_GREP_PATTERN = "push|git/(refs|tags)|createRef|updateRef|release +create|/releases"
+_GREP_PATTERN = "push|send-pack|graphql|git/(refs|tags)|createRef|updateRef|release +create|/releases"
 
 
 def grep(ref: str, root: Path = ROOT) -> list[tuple[str, int, str]]:
@@ -990,6 +993,9 @@ def self_test() -> int:
              ("tools/x/ghpy.py", 3, '["gh", "api", f"repos/{repo}/git/refs", "-f", f"ref={ref}",'),
              ("tools/x/ghpatch.sh", 3, 'gh api -X PATCH "repos/$r/git/refs/heads/$b" -F force=true'),
              ("tools/x/ghgql.sh", 3, 'gh api graphql -f query="mutation { createRef(input: $i) { ref { name } } }"'),
+             ("tools/x/ghgqlf.sh", 3, 'gh api graphql -F query=@mut.graphql'),
+             ("tools/x/sendpack.sh", 3, 'git send-pack origin HEAD:refs/heads/x'),
+             ("tools/x/ghgqlq.sh", 3, "gh api graphql -f query='{ viewer { login } }'"),
              ("tools/x/ghread.sh", 3, 'gh api "repos/$r/git/refs/heads/$b" --jq .object.sha'),
              ("tools/x/ghdel.sh", 3, 'gh api -X DELETE "repos/$r/git/refs/heads/$b"'),
              (".github/workflows/x-rel.yml", 9, '          gh release create "${TAG}" \\'),
@@ -1010,12 +1016,16 @@ def self_test() -> int:
        {"tools/x/ghsh.sh", "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"} <= set(found))
     ok("and a gh api ref read or DELETE is not (the null control)",
        not {"tools/x/ghread.sh", "tools/x/ghdel.sh"} & set(found))
+    ok("a query read from a file (gh api graphql -F query=@f) and git send-pack are sites",
+       {"tools/x/ghgqlf.sh", "tools/x/sendpack.sh"} <= set(found))
+    ok("and an inline read-only graphql query is not (the null control)", "tools/x/ghgqlq.sh" not in found)
     ok("a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)",
        {".github/workflows/x-rel.yml", "tools/x/relapi.sh"} <= set(found))
     ok("and a release read is not (the null control)",
        not {"tools/x/relview.sh", "tools/x/relget.sh"} & set(found))
     for extra in (".github/workflows/x-rel.yml", "tools/x/relapi.sh", "tools/x/cont.sh", "tools/x/gfn.py", "tools/x/var.sh", "tools/x/var2.sh", "tools/x/ghsh.sh",
-                  "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"):
+                  "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh",
+                  "tools/x/ghgqlf.sh", "tools/x/sendpack.sh"):
         found.pop(extra, None)
     texts = {"tools/x/guarded.sh": 'RP=ref_privacy.py; "$RP" guard --ref "$ref" && git push',
              "tools/x/py.py": "import ref_privacy\nref_privacy.refusal(ref)\n",
