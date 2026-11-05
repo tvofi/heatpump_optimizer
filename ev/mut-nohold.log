@@ -1,0 +1,3 @@
+  FAIL a PR listed in the hold file is not added to the train
+  FAIL a malformed hold file adds nothing (never hold-none)
+bus self-test: 132 checks, 2 failed
