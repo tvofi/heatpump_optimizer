@@ -53,6 +53,10 @@ A DESTINATION (`Dests.check`):
              carries N; with `gh` reads (`pr`, `sweep`) it must also be open;
   O<n>       a brief `O<n>-*.md` (or exactly `O<n>-name.md`) in --briefs-dir
              or $HPO_BRIEFS_DIR; with neither (CI) it passes, printed UNVERIFIED;
+  FOLDS      a body saying `Closes #N` answers each `Fold (x): <ask>` line of the issue
+             with `Fold (x): built`, `Fold (x): Carry: <dest>` or `Fold (x): dismissed:
+             <reason>`; FOLD-UNANSWERED names the letter (`check --issue-folds-file`
+             reads issue texts offline; an unfetchable issue passes with a NOTE).
   dismissed: a reason of two words or more; `Carry: <GROUP> | dismissed: <reason>`
              is the dismissal alone, GROUP a pointer valid when any group of the roster.
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
@@ -622,6 +626,38 @@ def report(res: dict, label: str = "") -> int:
     return 1 if (u or b) else 0
 
 
+FOLD_LINE = re.compile(r"^\s*(?:[-*+]\s+)?(?:\*\*)?Fold \(([a-z])\):\s*(.*)$", re.M)
+CLOSES = re.compile(r"\bcloses?\s*:?\s+#(\d+)", re.I)
+
+
+def fold_answered(ans: str) -> bool:
+    """Whether the text after `Fold (x):` is `built`, `Carry: <dest>` or `dismissed: <reason>`."""
+    ans = ans.strip().strip("`*_").strip()
+    if re.fullmatch(r"built\W*", ans, re.I):
+        return True
+    if re.match(r"carry\s*:", ans, re.I):
+        return bool(seg_dests("Carry:" + ans.split(":", 1)[1]))
+    return bool(re.match(r"dismissed\s*:\s*\S", ans, re.I))
+
+
+def fold_problems(body: str, issue_text) -> "tuple[list[str], list[str]]":
+    """(unanswered folds, notes) of a body that says `Closes #N`. An issue's owner
+    folds are its `Fold (x): <ask>` lines; the body answers each on a line of its own,
+    outside fences. `issue_text(n)` is the issue's text or None (unfetchable: the
+    close passes with a note, so a network miss never blocks a merge)."""
+    text = "\n".join(re.sub(r"```.*?```|~~~.*?~~~", "", body, flags=re.S).split("\n"))
+    answered = {m.group(1) for m in FOLD_LINE.finditer(text) if fold_answered(m.group(2))}
+    problems, notes = [], []
+    for n in dict.fromkeys(int(x) for x in CLOSES.findall(text)):
+        it = issue_text(n)
+        if it is None:
+            notes.append(f"#{n} not fetched: its folds are not checked")
+            continue
+        problems += [f"#{n} fold ({k}) is unanswered: {ask.strip()[:90]!r}"
+                     for k, ask in FOLD_LINE.findall(it) if k not in answered]
+    return problems, notes
+
+
 # ------------------------------------------------------------------- reads
 def gh_json(path: str, paginate: bool = False):
     argv = ["gh", "api", *(["--paginate", "--slurp"] if paginate else []), path]
@@ -642,6 +678,34 @@ def gh_issue_state(repo: str):
             cache[n] = gh_json(f"repos/{repo}/issues/{n}").get("state")
         return cache[n]
     return state
+
+
+def gh_issue_text(repo: str):
+    """n -> the issue's body, or None when `gh` cannot read it."""
+    def text(n: int) -> str | None:
+        try:
+            return gh_json(f"repos/{repo}/issues/{n}").get("body") or ""
+        except (SystemExit, ValueError):
+            return None
+    return text
+
+
+def folds_rc(body: str, repo: str, folds_file: str | None) -> int:
+    """Print the unanswered folds of <body>'s closes (`--issue-folds-file` JSON
+    `{"<n>": "<issue text>"}` offline, else `gh`); 1 when any."""
+    if not CLOSES.search(body):
+        return 0
+    if folds_file:
+        data = json.loads(Path(folds_file).read_text(encoding="utf-8"))
+        reader = lambda n: data.get(str(n))  # noqa: E731
+    else:
+        reader = gh_issue_text(repo)
+    problems, notes = fold_problems(body, reader)
+    for x in notes:
+        print(f"NOTE fold {x}")
+    for x in problems:
+        print(f"FOLD-UNANSWERED {x}")
+    return 1 if problems else 0
 
 
 def issue_reader(repo: str, path: str | None = None):
@@ -800,6 +864,8 @@ def main(argv: list[str]) -> int:
     c = sub.add_parser("check")
     c.add_argument("--body", required=True)
     c.add_argument("--comments")
+    c.add_argument("--issue-folds-file", help="JSON {\"<n>\": \"<issue text>\"}: the issues a `Closes #N` "
+                   "reads offline, instead of gh")
     c.add_argument("--pr-group", help="the pull request's roster group: a closed destination's refusal "
                    "lists the live groups after-edged on it")
     for name in ("landed", "land-ops"):
@@ -827,10 +893,11 @@ def main(argv: list[str]) -> int:
         if a.cmd == "check":
             body = Path(a.body).read_text()
             comments = json.loads(Path(a.comments).read_text()) if a.comments else []
+            fold_rc = folds_rc(body, a.repo, a.issue_folds_file)
             if not finding_rows(body, comments)[0]:
-                return report({"rows": []})  # nothing to route: the roster is not read
+                return report({"rows": []}) | fold_rc  # nothing to route: the roster is not read
             dests = load_dests(Path(a.git_dir), ref, a.briefs_dir, pr_group=a.pr_group)
-            return report(audit(body, comments, dests))
+            return report(audit(body, comments, dests)) | fold_rc
         if a.cmd in ("landed", "land-ops"):
             # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
             try:
@@ -988,6 +1055,30 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
+    # THE FOLD GRAMMAR: a body that closes an issue answers each `Fold (x): <ask>` line of it.
+    folds = ("Intro, with a fold (f): lowercase prose is not a fold.\n- Fold (a): do x\nFold (b): do y\n"
+             "**Fold (c):** do z\nFold (d): do w\nFold (e): do v\n")
+    full = ("Closes #7\n\n- Fold (a): built\nFold (b): Carry: R10-LIVE\nFold (c): dismissed: host load, not a defect\n"
+            "Fold (d): built\nFold (e): Carry: R10-LIVE\n")
+    def fp(body, text=folds):
+        return fold_problems(body, lambda n: text if n == 7 else None)[0]
+    got = fp("Closes #7\n\nFold (a): built\nFold (b): built\nFold (c): built\nFold (d): built\n")
+    check("a close answering only (a)-(d) is refused naming (e)", len(got) == 1 and "(e)" in got[0] and "#7" in got[0])
+    check("... all five answered, one each as built / Carry: / dismissed: is accepted (null control)", fp(full) == [])
+    check("... the same with the (e) answer line deleted is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE\n", ""))] == [True])
+    check("... `Fold (e): dismissed:` with no reason is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "Fold (e): dismissed:"))] == [True])
+    check("... `Fold (e): Carry:` naming nothing is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "Fold (e): Carry:"))] == [True])
+    check("... an answer inside a code fence is no answer",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "```\nFold (e): built\n```"))] == [True])
+    check("an issue with no `Fold (x):` line is accepted unchanged (null control)",
+          fp("Closes #7\n", "Please fix this; a fold (a): in prose.\n") == [])
+    check("a body that does not close the issue owes no fold answer (null control)",
+          fp("Refs #7\n\nnothing\n") == [])
+    nf, nn = fold_problems("Closes #8\n", lambda n: None)
+    check("an issue that cannot be fetched fails open with a printed note", nf == [] and len(nn) == 1 and "#8" in nn[0])
     # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
     # after-edged on the pull request's own group as the valid targets.
     def gr(name, stage, after=()):
