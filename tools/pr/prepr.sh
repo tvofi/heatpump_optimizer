@@ -1625,6 +1625,9 @@ selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
 # writes none, PREPR_SKIP_CODE included; so does a run over a dirty tree, whose
 # HEAD is not what ran. `--body-check` and `--fill-red` exit before the main
 # flow, which removes an earlier receipt first, so a failing run leaves none.
+# The receipt names the HEAD the run STARTED on, read where the main flow starts
+# (`receipt_line`); a HEAD that moved while the steps ran is refused, since a
+# commit landing mid-run is code the steps never saw.
 receipt_file() { # -> the receipt's path in this checkout's git dir
   local g; g=$(git rev-parse --absolute-git-dir 2>/dev/null) || return 1
   printf '%s/hpo-prepr-receipt\n' "$g"
@@ -1636,7 +1639,12 @@ receipt_skips() { # -> the PREPR_SKIP_* variables set non-empty, PREPR_SKIP_CLOS
   done
   printf '%s' "${out# }"
 }
-receipt_write() { # rc, body -> one line; the receipt only for a passing full run with a body over a clean tree
+receipt_line() { # -> `<HEAD sha> <tree sha>`, the receipt's one line, or nothing
+  local h t
+  h=$(git rev-parse --verify -q HEAD 2>/dev/null) && t=$(git rev-parse --verify -q 'HEAD^{tree}' 2>/dev/null) || return 0
+  printf '%s %s\n' "$h" "$t"
+}
+receipt_write() { # rc, body, the run's starting receipt_line -> one line; the receipt only for a passing full run with a body over a clean, unmoved tree
   local f s
   f=$(receipt_file) || { say skip "receipt" "no git dir, so none written"; return 0; }
   [ "$1" = 0 ] || { say skip "receipt" "rc=$1, so none written"; return 0; }
@@ -1645,7 +1653,10 @@ receipt_write() { # rc, body -> one line; the receipt only for a passing full ru
   [ -z "$s" ] || { say skip "receipt" "$s set, so no full run and none written"; return 0; }
   [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] \
     || { say skip "receipt" "the tree is dirty, so HEAD is not what ran and none written"; return 0; }
-  printf '%s %s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" > "$f" \
+  [ -n "${3:-}" ] || { say skip "receipt" "the run's starting HEAD was not read, so none written"; return 0; }
+  [ "$3" = "$(receipt_line)" ] \
+    || { step "receipt" 1 "HEAD is $(receipt_line | cut -c1-12), not ${3:0:12} where this run started: the steps never saw the commit(s) between, so none written -- run prepr again"; return 0; }
+  printf '%s\n' "$3" > "$f" \
     && say ok "receipt" "$(cut -c1-12 "$f") written for body_push.sh's Prepr: trailer"
 }
 
@@ -3913,7 +3924,7 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   (cd "$RQ/wt" && git checkout -q main && printf 'm\n' > f && git add f && git commit -qm conflicting && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
   st "$(msteps | grep -c '^REFUSE merged tree rc=1')" 1 "a head that does not merge cleanly with main is refused, never measured on HEAD alone"
   # The receipt: a passing full run with a body over a clean tree, and nothing else.
-  rw() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && say() { rsay "$@"; } && receipt_write "$@" >/dev/null && cat "$(receipt_file)" 2>/dev/null); }
+  rw() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && say() { rsay "$@"; } && receipt_write "$1" "$2" "${3-$RH}" >/dev/null && cat "$(receipt_file)" 2>/dev/null); }
   RH="$(git -C "$RQ/wt" rev-parse HEAD) $(git -C "$RQ/wt" rev-parse 'HEAD^{tree}')"
   st "$(rw 0 body.md)" "$RH" "receipt: a passing run with a body writes <HEAD sha> <tree sha> in the git dir"
   st "$(PREPR_SKIP_CLOSURES=1 rw 0 body.md)" "$RH" "receipt: PREPR_SKIP_CLOSURES alone still writes one"
@@ -3924,18 +3935,34 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   (printf 'dirty\n' >> "$RQ/wt/f")
   st "$(rw 0 body.md)" "" "receipt: a dirty tree writes none"
   (cd "$RQ/wt" && git checkout -q f)
+  # The HEAD the run started on (the reviewer's ev/midrun.sh, function-level): a
+  # commit landing while the steps ran is refused, never receipted; the first
+  # receipt row, its start unmoved, is the null control.
+  rwm() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && printf 'mid\n' > mid && git add mid && git commit -qm mid \
+    && say() { rsay "$@"; } && step() { rstep "$@"; } \
+    && printf '%s|%s' "$(receipt_write 0 body.md "$RH" | grep -c '^REFUSE receipt rc=1$')" "$(cat "$(receipt_file)" 2>/dev/null)"; git reset -q --hard HEAD~1); }
+  st "$(rwm)" "1|" "receipt: HEAD moved past the run's start (a commit landing mid-run) is refused and writes none"
+  st "$(rw 0 body.md '')" "" "receipt: a run whose start HEAD was not read writes none"
   (cd "$RQ/wt" && rm -f "$(receipt_file)" && bash "$OLDPWD/tools/pr/prepr.sh" --body-check "$RQ/none.md" >/dev/null 2>&1)
   st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo written)" "" "receipt: --body-check writes none"
   # body_push.sh's trailer, extracted from it: only the receipt at this code head, with its tree.
   eval "$(sed -n '/^prepr_trailer() {/,/^}/p' tools/audit/seat/body_push.sh)"
-  (cd "$RQ/wt" && say() { :; } && receipt_write 0 body.md)
+  (cd "$RQ/wt" && say() { :; } && receipt_write 0 body.md "$RH")
   st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "Prepr: $RH" "body_push: the receipt at the code head becomes the Prepr: trailer"
   st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD~1)")" "" "body_push: a receipt at another sha gives none"
   printf '%s %s\n' "$(git -C "$RQ/wt" rev-parse HEAD)" "$(git -C "$RQ/wt" rev-parse 'HEAD~1^{tree}')" > "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt"
   st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "" "body_push: a receipt whose tree is not the head's gives none"
-  # (a): a PREPR_SKIP_CODE run takes no heavy slot and runs no code-keyed step.
-  RA=$(cd "$RQ/wt" && git reset -q --hard origin/main~1 && PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" 2>&1)
+  printf '%s %s\n' "$(git -C "$RQ/wt" rev-parse HEAD~1)" "$(git -C "$RQ/wt" rev-parse 'HEAD^{tree}')" > "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt"
+  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "" "body_push: a receipt whose tree is the head's but whose sha is not gives none"
+  # (a): a PREPR_SKIP_CODE run takes no heavy slot and runs no code-keyed step, but
+  # runs the merged-tree steps through the main flow's own call; and, given a body,
+  # it removes an earlier receipt first, so a run that writes none leaves none.
+  RA=$(cd "$RQ/wt" && git reset -q --hard origin/main~1 && printf 'stale\n' > "$(receipt_file)" \
+    && printf '## Head\n\n`%s`\n' "$(git rev-parse HEAD)" > "$RQ/a.md" \
+    && PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" "$RQ/a.md" 2>&1)
   st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
+  st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +merged structure ')$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +ci predict ')" 11 "(a) and runs tests/structure.py and ci predict on HEAD merged with main, once each"
+  st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
   rm -rf "$RQ"
 
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
@@ -3992,6 +4019,7 @@ if [ -n "${1:-}" ]; then
   # An earlier run's receipt goes first, so a run that fails leaves none (`receipt_write`).
   rm -f "$(receipt_file)" 2>/dev/null
 fi
+RUN_START=$(receipt_line)  # the HEAD every step below measures; `receipt_write` refuses any other
 
 # --- 1. the merge base resolves.
 # A shallow clone answers "no common ancestor" and every scoped command below
@@ -4587,7 +4615,7 @@ if [ -n "$ORDER" ]; then
 fi
 
 rm -f "${UNPINNED_SITES:-}"
-receipt_write "$rc" "${BODY:-}"
+receipt_write "$rc" "${BODY:-}" "$RUN_START"
 echo
 echo "PRE-PR: $(git rev-parse HEAD) $digest"
 summary_end "$(git rev-parse HEAD)"

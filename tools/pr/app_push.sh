@@ -1394,9 +1394,31 @@ st "$(reuse_verdict "$U/wt" "[]" fix/t)" "the receipt's tree $(git -C "$U/wt" re
 ubody "Prepr: $uc $ut"
 st "$(reuse_verdict "$U/wt" "[]" fix/t >/dev/null; echo $?)" 0 "real git: the same receipt restored reuses again (the (f) arm's null control)"
 st "$(reuse_verdict "$U/wt" "[]" fix/t-pr >/dev/null; echo $?)" 0 "real git: open_pr.sh's fix/<topic>-pr branch finds handoff-body/<topic>"
+ubody "$(printf 'Prepr: %s %s\nPrepr: %s %s' "$uc" "$ut" "$uc" "$ut")"
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "carries no one .Prepr: <sha> <tree>. trailer, so no receipt$")" 1 "real git (a): two Prepr: trailers, though each is the receipt, run the full prepr"
+ubody "Prepr: $uc $ut"
 (cd "$U/wt" && rgit checkout -q main && printf 'a3\n' > a && rgit add a && rgit commit -qm conflicting && rgit push -q origin main \
   && rgit checkout -q fix/t && rgit reset -q --hard C && rgit merge -q --no-edit origin/main; printf 'resolved\n' > a && rgit add a && rgit commit -qm resolved)
 st "$(reuse_verdict "$U/wt" "[]" fix/t)" "code ${uc:0:8} does not merge cleanly with $(git -C "$U/wt" rev-parse --short=8 origin/main); a resolution goes through the full prepr" "real git (c): a conflict resolved in the merge runs the full prepr"
+# (c)'s first-parent arm: HEAD holds a side commit main merged, not main's own
+# first-parent history; the earlier reusing rows are its null control.
+(cd "$U/wt" && rgit checkout -q -b side origin/main~1 && printf 'sd\n' > sd && rgit add sd && rgit commit -qm side \
+  && rgit checkout -q main && rgit reset -q --hard origin/main && rgit merge -q --no-ff --no-edit side && rgit push -q origin main \
+  && rgit checkout -q fix/t && rgit reset -q --hard C && rgit merge -q --no-edit side)
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "^the main HEAD holds, $(git -C "$U/wt" rev-parse --short=8 side), is not on the freshly fetched origin/main's first-parent chain$")" 1 "real git (c): HEAD holding a main commit off main's first-parent chain runs the full prepr"
+
+# --reuse wiring past a reusing verdict: a copy whose reuse_verdict is replaced by
+# one that reuses, so prepr runs under PREPR_SKIP_CODE and row_only_checks follow it.
+sed '/^reuse_verdict() {/,/^}/c\
+function reuse_verdict { RV_HEAD=$(git -C "$1" rev-parse HEAD); RV_C=$RV_HEAD; RV_TITLE=""; RV_WHY="stub reuse"; echo "$RV_WHY"; }' "$SELF" > "$W/tool/app_push_reuse.sh"
+rucase() { mkcase "$1"; cp "$W/body.md" "$W/$1/body.md"; ( export STUB="$W/$1" PATH="$W/bin:$PATH" TMPDIR="$W/$1/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/$1/body.md" > "$W/$1/out" 2> "$W/$1/err" ); }
+rucase ureused; st $? 0 "--reuse, the verdict reusing: pushed"
+st "$(grep -c "^prepr PREPR_SKIP_CODE=$SHA " "$W/ureused/log")$(grep -c '^node tools/policy/policy_lint.mjs --pr-body ' "$W/ureused/log")$(grep -c '^carry_audit check --body ' "$W/ureused/log")" 111 "and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check"
+mkcase ufail; : > "$W/ufail/node-fails"; cp "$W/body.md" "$W/ufail/body.md"
+( export STUB="$W/ufail" PATH="$W/bin:$PATH" TMPDIR="$W/ufail/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/ufail/body.md" > "$W/ufail/out" 2> "$W/ufail/err" ); st $? 1 "--reuse, the verdict reusing: a body the contract refuses refuses after the reduced prepr"
+st "$(grep -c '^git .*push' "$W/ufail/log")$(calls ufail curl)" 00 "and nothing was minted or pushed"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
