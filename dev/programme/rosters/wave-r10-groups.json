@@ -14051,12 +14051,13 @@
     "From r10-body-contract, body item ee4d03d3: finding-propagation: unenforced: a roster-wide default (`rosterIssues()` with no argument) cannot be switched on while a carry collides with a live group, and nothing flags the collision until the default changes. Carry: R10-BODY-CONTRACT (items ee4d03d3)"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-body-contract",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "tvofi 2026-11-01 ruled the owner fold grammar (rulings card 3 option (a)): Fold (x): lines on the issue, answered built, Carry: or dismissed: in the closing body; see the carry"
+    "note": "tvofi 2026-11-01 ruled the owner fold grammar (rulings card 3 option (a)): Fold (x): lines on the issue, answered built, Carry: or dismissed: in the closing body; see the carry",
+    "pr": 3227
    },
    "brief": "The pull-request body contract's residue: the offline contract resolves cited paths at the gated head and reads the round roster ref, every body figure comes from a generated block (the owner's card 7), carry_audit reads review trailers as trailers, and the lost-ask fold count a closing body must answer (left unbuilt by #3065, which asks the orchestrator to rule on its grammar first). Runs after R10-FLY-RELAY-REVIEW-FF, whose open #3065 edits tools/audit/carry_audit.py. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -16739,8 +16740,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3218
+    "stage": "carries-open",
+    "pr": 3218,
+    "commit": "7af0c2a7902c6d3d0f253d8bb6227c98c9e8d16a"
    },
    "brief": "From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one statement, so on that diff 6 of the 7 statements behind its score movement were packing and the plain spelling read about a seventh of it. A seat can lower the metric by packing statements with nothing improved. Make the count independent of that spelling under tools/audit/archscore/, enumerate the sibling packing shapes, and re-measure the calibration. Control: packed and plain spellings of one change read the same, and an untouched tree does not move."
   },
