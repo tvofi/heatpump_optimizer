@@ -1,0 +1,15 @@
+worktree_gc self-test: 100 checks, 0 failed
+closeout self-test: 28 checks, 0 failed
+SELF-TEST PASS (74 checks)
+STRUCTURE RATCHET PASSED
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+  gc| worktree_gc: FAILED to remove worktree /tmp/tmp.iFZy0tGBbq/seats/seat-a/wt: its HEAD is no longer a7fec910d4ca71598873bc50c51d6f033fe94960, kept
+RESULT race=1 detached-moved-head-lost=0
+RESULT race=0 detached-moved-head-lost=0
+0fe381af81201c7b2d86a7b0ed28e14a5b5cf748  /tmp/tmp.4gFcMtrfNl/r2.sh
+RESULT race=1 moved-tip-deleted-unpushed=0
+RESULT race=0 moved-tip-deleted-unpushed=0
+/tmp/tmp.4gFcMtrfNl/gc-c3a.sh 1: RESULT race=1 detached-moved-head-lost=1
+/tmp/tmp.4gFcMtrfNl/gc-c3a.sh 0: RESULT race=0 detached-moved-head-lost=0
+/tmp/tmp.4gFcMtrfNl/gc-base.sh 1: RESULT race=1 detached-moved-head-lost=1
+/tmp/tmp.4gFcMtrfNl/gc-base.sh 0: RESULT race=0 detached-moved-head-lost=0
