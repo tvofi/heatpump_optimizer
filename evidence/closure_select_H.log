@@ -1,0 +1,97 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 30 script(s) run, 3 scoped out.
+  changed files (54), measured against the recorded closures in tests/closures.json:
+      README.md
+      custom_components/heatpump_optimizer/const.py
+      custom_components/heatpump_optimizer/coordinator.py
+      custom_components/heatpump_optimizer/dhw_planner.py
+      custom_components/heatpump_optimizer/ledger.py
+      custom_components/heatpump_optimizer/notifier.py
+      custom_components/heatpump_optimizer/optimizer.py
+      custom_components/heatpump_optimizer/payload.py
+      custom_components/heatpump_optimizer/store.py
+      custom_components/heatpump_optimizer/thermal_model.py
+      custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+      dev/audit/harnesses/r10_sav_wood_reference.py
+      dev/programme/delivery/3220.md
+      docs/automations.md
+      docs/how-it-works.md
+      tests/card.mjs
+      tests/card_browser.mjs
+      tests/closures.json
+      tests/features.py
+      tests/finite_boundary.py
+      tests/golden/claimed_drift.txt
+      tests/mutation_ledger/killed_by/ledger.py/@module.CONST.b8e5f250.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.add_savings_settlement.GUARD_OFF.374236fe.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.savings_months.BOOLOP.c9f8a17d.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.savings_months.CLAMP_DROP.c2367089.json
+      tests/mutation_ledger/killed_by/ledger.py/MonthlyLedger.savings_months.GUARD_OFF.c9f8a17d.json
+      tests/mutation_ledger/killed_by/ledger.py/migrate_ledger_v1.GUARD_OFF.92c6d774.json
+      tests/mutation_ledger/killed_by/ledger.py/migrate_ledger_v1.RETURN_DEL.993566ca.json
+      tests/mutation_ledger/killed_by/ledger.py/savings_pct.RETURN_DEL.446f0a0b.json
+      tests/mutation_ledger/killed_by/ledger.py/savings_pct.RETURN_DEL.4bbcde55.json
+      tests/mutation_ledger/killed_by/notifier.py/_monthly_receipt.BOOLOP.92e836c6.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._apportion_by_steady_demand.RETURN_DEL.08f01ce2.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.03ee6373.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.BOOLOP.64b1ab84.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CLAMP_DROP.bea58ed9.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.03ee6373.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.308a9d57.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.52814e2f.json
+      tests/mutation_ledger/killed_by/optimizer.py/HeatPumpOptimizer._compute_baseline_power.GUARD_OFF.efb0739b.json
+      tests/mutation_ledger/killed_by/optimizer.py/_sharing_wood_side.RETURN_DEL.af6090f0.json
+      tests/mutation_ledger/killed_by/optimizer.py/_thermostat_held_state.GUARD_OFF.271bcd6f.json
+      tests/mutation_ledger/killed_by/optimizer.py/_thermostat_held_state.GUARD_OFF.5c05badb.json
+      tests/mutation_ledger/killed_by/optimizer.py/_thermostat_held_state.RETURN_DEL.7cb5653d.json
+      tests/mutation_ledger/killed_by/optimizer.py/_wood_covered_share.CLAMP_DROP.33e6cef6.json
+      tests/mutation_ledger/killed_by/optimizer.py/_wood_covered_share.CLAMP_DROP.35af5e76.json
+      tests/mutation_ledger/killed_by/optimizer.py/_wood_covered_share.CMP_BOUND.74b19240.json
+      tests/mutation_ledger/killed_by/optimizer.py/_wood_covered_share.GUARD_OFF.74b19240.json
+      tests/mutation_ledger/killed_by/optimizer.py/_wood_covered_share.RETURN_DEL.33e6cef6.json
+      tests/mutation_ledger/killed_by/store.py/LedgerStore._async_migrate_func.GUARD_OFF.47b413ef.json
+      tests/mutation_ledger/killed_by/thermal_model.py/valve_charge_demand.CLAMP_DROP.4f2d48ae.json
+      tests/mutation_ledger/killed_by/thermal_model.py/valve_hold_temperature.CLAMP_DROP.4f2d48ae.json
+      tests/mutation_ledger/killed_by/thermal_model.py/valve_hold_temperature.RETURN_DEL.0b22e8fe.json
+      tests/mutation_ledger/survivor_triage/optimizer.py/HeatPumpOptimizer._compute_baseline_power.CMP_BOUND.64b1ab84.json
+      tests/structure_budgets.json
+
+      RUN   tests/arch_score_head.py
+      RUN   tests/backtest.py
+      RUN   tests/block_duty.py
+      RUN   tests/boost_drift_replay.py
+      RUN   tests/config_flow_steps.py
+      RUN   tests/debug_collect.py
+      RUN   tests/deployment_shape.py
+      RUN   tests/doc_claims.py
+      RUN   tests/edge.py
+      RUN   tests/entities.py
+      RUN   tests/env_drift.py
+      RUN   tests/features.py
+      RUN   tests/finite_boundary.py
+      RUN   tests/frontend.py
+      RUN   tests/golden.py
+      RUN   tests/guard_pins.py
+      RUN   tests/harness_headers.py
+      RUN   tests/manual_plan.py
+      RUN   tests/md_tables.mjs
+      RUN   tests/open_meteo.py
+      RUN   tests/optimality.py
+      RUN   tests/plan_view.py
+      RUN   tests/card.mjs
+      RUN   tests/card_drift.mjs
+      RUN   tests/solar_alignment.py
+      RUN   tests/stress.py
+      RUN   tests/structure.py
+      RUN   tests/typing_ruler.py
+      RUN   tests/validate.py
+      RUN   tests/wood_advisor.py
+
+      SKIP  tests/arch_score.py  (closure: 158 files, no changed file is in its measured closure)
+      SKIP  tests/ha_contract.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/layout.py  (closure: 3 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
