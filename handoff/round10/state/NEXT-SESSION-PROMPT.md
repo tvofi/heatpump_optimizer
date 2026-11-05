@@ -48,7 +48,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HANDOFF-PATH (stage in-progress, branch `handoff/r10-handoff-path`): `git fetch origin handoff/r10-handoff-path && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-RECORD-ATTRIB (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-CI-CRITPATH-4 (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-GATE-STALE-JOBS (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-GATE-STALE-JOBS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SAV-ESTIMATE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-WOOD-MEASURED (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-FLY-REPLAY-MASK (stage in-progress): no branch pushed yet, so nothing to fetch

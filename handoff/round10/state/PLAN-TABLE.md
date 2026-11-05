@@ -434,7 +434,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-RCA-RELEASE-TAG | CP | 1 | done | - | sonnet/opus | - | Root cause seat beside R10-HOTFIX-RELEASE-TAG, defect-root-cause.md trigger 1 (reached a release). |  |
 | R10-HOTFIX-RECORD-ATTRIB | CP | 1 | carries-open | - | sonnet/opus | - | Measured 2026-11-04: GET commits/616868bdc5ca/pulls returns [] though #3179 is MERGED at that commit (its subject reads Merge pull request #3179); the siblin... |  |
 | R10-HOTFIX-CI-CRITPATH-4 | CP | 1 | carries-open | - | opus/opus | - | Main red on critical_path_minutes after #3180; measure work against runner speed, then fix what the grade measures. |  |
-| R10-HOTFIX-GATE-STALE-JOBS | CP | 1 | in-progress | - | opus/opus | - | Critical path. |  |
+| R10-HOTFIX-GATE-STALE-JOBS | CP | 1 | carries-open | - | opus/opus | - | Critical path. |  |
 | R10-HOTFIX-SAV-ESTIMATE | CP | 1 | in-progress | - | opus/opus | - | Owner-reported 2026-11-04 (tvofi): the month table reads nonsense (November baseline far below actual, percent clipped at -100). |  |
 | R10-SAV-WOOD-MEASURED | CP | 2 | absorbed | - | opus/opus | - | Owner-reported 2026-11-04 (tvofi): the monthly savings row on a house with a wood tank. |  |
 | R10-FLY-REPLAY-MASK | CP | 1 | in-progress | - | sonnet/opus | - | Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py... |  |
