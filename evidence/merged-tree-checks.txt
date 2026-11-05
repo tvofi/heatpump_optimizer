@@ -1,6 +1,0 @@
-budget_raise_gate self-test: 272 checks, 0 failed
-machinery_ratchet self-test: 54 checks, 0 failed
-ref_privacy self-test: 109 checks, 0 failed
-cloud_setup self-test: 19 checks, 0 failed
-STRUCTURE RATCHET PASSED
-merged tree 021ea6feaceb1b036915f4e8fb9ec7856b757a93 (origin/main dad3178d6 + head)

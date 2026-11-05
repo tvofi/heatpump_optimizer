@@ -1,5 +1,0 @@
-
-STRUCTURE RATCHET PASSED
-structure-rc=0
-  MODE: FULL -- every test script runs, nothing is scoped out.
-closure.py select --files <three-dot diff names>: code head c34c211dd -> MODE: SCOPED -- 1 script(s) run, 32 scoped out; head 749a3161 -> same

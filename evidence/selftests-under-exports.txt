@@ -1,6 +1,0 @@
-python3 -I tools/audit/seat/ref_privacy.py --self-test :: rc=0 ref_privacy self-test: 109 checks, 0 failed
-python3 -I tools/audit/seat/cloud_dispatch.py --self-test :: rc=0 cloud_dispatch self-test: 126 checks, 0 failed
-bash tools/audit/seat/bus.sh --self-test :: rc=0 bus self-test: 128 checks, 0 failed
-bash tools/audit/seat/handoff_push.sh --self-test :: rc=0 handoff_push self-test: 6 checks, 0 failed
-bash tools/audit/seat/heartbeat.sh --self-test :: rc=0 heartbeat self-test: 7 checks, 0 failed
-bash tools/audit/seat/wt_sync.sh --self-test :: rc=0 
