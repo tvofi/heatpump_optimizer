@@ -1,35 +1,14 @@
-  ok    D4-05/D4-06 action and setup text clears 4.5:1 (card fallbacks only)
-  ok    C4 now marker clears 3:1 (HA light theme)
-  ok    C4 now label clears 4.5:1 (HA light theme)
-  ok    C4 estimated-price edge clears 3:1 (HA light theme)
-  ok    C4 vertical gridline is perceptible, not 3:1 (HA light theme)
-  ok    C4 horizontal gridline is perceptible, not 3:1 (HA light theme)
-  ok    C4 every .series[data-key] clears 3:1 (HA light theme)
-  ok    C4 now marker clears 3:1 (HA dark theme)
-  ok    C4 now label clears 4.5:1 (HA dark theme)
-  ok    C4 estimated-price edge clears 3:1 (HA dark theme)
-  ok    C4 vertical gridline is perceptible, not 3:1 (HA dark theme)
-  ok    C4 horizontal gridline is perceptible, not 3:1 (HA dark theme)
-  ok    C4 every .series[data-key] clears 3:1 (HA dark theme)
-  ok    R8 D4-01 the reading-order rule fires on a hand-built out-of-order row
-        tab stops: 375 tile=11, 375 tile_score=12, 375 plan=33, 375 plan_busy=44, 375 setup=21, 375 setup_picker=12, 375 savings=6, 375 advisor=9, 768 tile=11, 768 tile_score=12, 768 plan=33, 768 plan_busy=44, 768 setup=21, 768 setup_picker=11, 768 savings=5, 768 advisor=9, 1280 tile=11, 1280 tile_score=12, 1280 plan=33, 1280 plan_busy=44, 1280 setup=21, 1280 setup_picker=11, 1280 savings=5, 1280 advisor=9
-  ok    R8 D4-01 no Tab step jumps back up the screen, on any view at 375, 768 or 1280
-  ok    R8 D4-01 and no control reorders Tab with a positive tabindex
   ok    R8 D4-01 and the walk reached the controls of every view
   P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)
-  P9 grid: 333 cells, 21308 text runs, 1040 box-intersecting pairs inked, 105 colour rules, 301.0 s
+  P9 grid: 351 cells, 22524 text runs, 1110 box-intersecting pairs inked, 105 colour rules, 293.0 s
   ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
   ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
   ok    P9 grid: every visible text run clears WCAG AA against what is under it
   ok    P9 grid: no two text runs share ink
   ok    P9 grid: no pop-up leaves the viewport or its chart
   ok    P9 grid: every listbox option reads differently from its siblings as shown
-  FAIL  P9 grid: no text is clipped where its ancestor cannot scroll to it
-        17: div.sb-text.sb-drivers "learned heat loss vs configure" 48.5px | div.sb-text.sb-drivers "samples per outdoor band, 20 n" 667.0px | div.sb-text.sb-drivers "energy bought below the day's " 218.3px | div.sb-text.sb-drivers "inlärd värmeförlust mot instäl" 65.2px | div.sb-text.sb-drivers "prov per utomhusband, 20 krävs" 577.5px | div.sb-text.sb-drivers "energi köpt under dagens medel" 139.4px
+  ok    P9 grid: no text is clipped where its ancestor cannot scroll to it
   ok    P9 grid: every target clears 24 px or the 2.5.8 spacing exception
-{
- ],
-}
   ok    B12 hero card renders an svg with real size
   ok    B12 hero screenshot is a PNG of the dashboard tile
   ok    R9-UX-1 the idle-step hover explains the step and stays inside the chart (light)
@@ -56,5 +35,6 @@
   ok    R9-UX-8 narrative at 640 px: 6 rows in 1 column(s), numbers whole and flush right
   ok    R9-UX-8 narrative at 1280 px: 6 rows in 2 column(s), numbers whole and flush right
 
-1 BROWSER CHECK(S) FAILED
-EXIT 1
+ALL BROWSER CHECKS PASSED
+EXIT 0
+EXIT 0
