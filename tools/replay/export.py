@@ -492,7 +492,7 @@ def build_export(
     raw = _doc.document(
         time_zone=tz_name, window=(start.isoformat(), end.isoformat()),
         recorder_schema=version, entry=entry, inputs=inputs, published=published,
-        price_series_entity=price_entity, states=states,
+        price_series_entity=price_entity, states=states, conf=conf,
     )
     quiet = quiet_inputs(raw)
     if quiet:
