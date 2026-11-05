@@ -278,10 +278,11 @@ throwaway_git_init "$W/repo" -q
   && git checkout -q --detach "$(cat "$W/base.sha")" \
   && echo d > d.txt && git add d.txt && git commit -qm main-moved && git rev-parse HEAD > "$W/base2.sha" ) >/dev/null 2>&1
 # origin: a repository holding the roster at main and the round's roster branch.
-mkdir -p "$W/orig/dev/programme/rosters" "$W/orig2"
-( cd "$W/orig" && git init -q -b main . && throwaway_git_env && echo '{"groups": []}' > dev/programme/rosters/wave-r10-groups.json \
+mkdir -p "$W/orig/dev/programme/rosters"
+throwaway_git_init "$W/orig" -q -b main; throwaway_git_init "$W/orig2" -q -b main
+( cd "$W/orig" && throwaway_git_env && echo '{"groups": []}' > dev/programme/rosters/wave-r10-groups.json \
   && git add . && git commit -qm roster && git branch handoff/audit-r10-roster \
-  && cd "$W/orig2" && git init -q -b main . && echo x > x && git add . && git commit -qm x \
+  && cd "$W/orig2" && echo x > x && git add . && git commit -qm x \
   && cd "$W/repo" && git remote add origin "$W/orig" && git fetch -q origin main:refs/remotes/origin/main ) >/dev/null 2>&1
 BASE=$(cat "$W/base2.sha"); HEAD=$(cat "$W/head.sha"); MOVED=$(cat "$W/moved.sha")
 printf '## Head\n\n`%s`\n\nthe corrected body, 113\n' "$HEAD" > "$W/body.md"
