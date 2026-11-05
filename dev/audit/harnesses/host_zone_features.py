@@ -21,6 +21,13 @@ the gate's own environment (``TZ=UTC``, ``HASTUB_TZ`` unset), the null row.
 A script ``tests/gate_lock.py needs-lease`` names ``lease`` measures the
 machine, so it runs alone after the pool; no script runs beside itself.
 
+A zone written ``Zone@YYYY-MM-DDTHH:MM:SS`` also starts the process clock
+at that local wall-clock time under ``faketime`` (libfaketime, on ``PATH`` or
+``FAKETIME_BIN``), and lets it run: ``Europe/Stockholm@2026-03-29T01:59:30``
+crosses the spring transition thirty seconds into every script, so a check
+that reads the host's day or offset meets a transition date, not only an
+offset.
+
 ``--golden-zones`` captures every golden payload (``env_drift.py --all``'s
 set) under each zone and compares it with the gate row's capture, printing
 one ``RESULT null.golden_zones.<zone>`` line per zone: golden.py's own drift
@@ -145,7 +152,16 @@ MUTANTS = {
 AXIS = os.environ.get("HOST_ZONE_AXIS", "both")
 
 
+def zone_cmd(cmd: list[str], zone: str) -> list[str]:
+    """cmd, under faketime from the zone's ``@`` start instant when it names one."""
+    _name, at, start = zone.partition("@")
+    if not at:
+        return cmd
+    return [os.environ.get("FAKETIME_BIN", "faketime"), start.replace("T", " "), *cmd]
+
+
 def zone_env(tree: Path, zone: str) -> dict:
+    zone = zone.partition("@")[0]
     env = {**os.environ, "PYTHONPATH": str(tree / "tests" / "hastub"),
            "GOLDEN_MODE": os.environ.get("GOLDEN_MODE", "drift")}
     if zone == "gate":
@@ -160,7 +176,7 @@ def zone_env(tree: Path, zone: str) -> dict:
 
 
 def run_zone(tree: Path, script: str, zone: str) -> tuple[str, str, list[str]]:
-    proc = subprocess.run([sys.executable, script], cwd=tree, env=zone_env(tree, zone),
+    proc = subprocess.run(zone_cmd([sys.executable, script], zone), cwd=tree, env=zone_env(tree, zone),
                           capture_output=True, text=True, check=False)
     out = proc.stdout + proc.stderr
     found = SUMMARY.findall(out)
@@ -215,7 +231,7 @@ def golden_zones(tree: Path, zones: tuple[str, ...], label: str) -> bool:
     Prints one RESULT per zone naming the payloads that moved.
     """
     def capture(zone):
-        proc = subprocess.run([sys.executable, "-c", GOLDEN_CAPTURE], cwd=tree,
+        proc = subprocess.run(zone_cmd([sys.executable, "-c", GOLDEN_CAPTURE], zone), cwd=tree,
                               env=zone_env(tree, zone), capture_output=True,
                               text=True, check=False, stdin=subprocess.DEVNULL)
         if proc.returncode:
@@ -268,12 +284,12 @@ def _label(cmd: list[str]) -> str:
 
 def _run_cmd(tree: Path, cmd: list[str], zone: str) -> tuple[str, list[str]]:
     if cmd[1] in PLAN_READERS:
-        pre = subprocess.run([sys.executable, "tests/plan_view.py"], cwd=tree,
+        pre = subprocess.run(zone_cmd([sys.executable, "tests/plan_view.py"], zone), cwd=tree,
                              env=zone_env(tree, zone), capture_output=True, text=True,
                              check=False, stdin=subprocess.DEVNULL)
         if pre.returncode:
             return f"fail(plan_view rc={pre.returncode}) :: ", []
-    proc = subprocess.run(cmd, cwd=tree, env=zone_env(tree, zone), capture_output=True,
+    proc = subprocess.run(zone_cmd(cmd, zone), cwd=tree, env=zone_env(tree, zone), capture_output=True,
                           text=True, check=False, stdin=subprocess.DEVNULL)
     out = proc.stdout + proc.stderr
     lines = [ln.strip() for ln in out.splitlines() if re.search(r"PASSED|FAILED", ln)]
