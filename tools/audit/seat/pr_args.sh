@@ -366,6 +366,8 @@ tools/policy/check-wave-script.mjs mention: a test title
 tools/policy/friction_issues.mjs mention: comments
 tools/audit/seat/gh_read.py mention: its docstring cites the read-back rule of app_push.sh; it runs no subprocess
 tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_mint.sh and runs no push
+tools/audit/seat/body_push.sh mention: comments; it writes the Prepr: trailer app_push.sh --reuse reads, and runs no push
+tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse passes it, and runs no push
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
 tools/policy/policy_lint.mjs mention: a refusal message'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
@@ -576,7 +578,7 @@ STUB
   for k in dirt orig; do
     [ -e "$t/fix$k" ] && continue
     git -C "$o" checkout -q -b "handoff/$k" "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
-      && if [ "$k" = dirt ]; then printf '#!/bin/bash\n: > "$2/dirt"; exit 1\n'; else printf '#!/bin/bash\ngit -C "$2" push -q origin "$3"; exit 1\n'; fi > "$o/tools/pr/app_push.sh" \
+      && if [ "$k" = dirt ]; then printf '#!/bin/bash\n[ "$1" != --reuse ] || shift\n: > "$2/dirt"; exit 1\n'; else printf '#!/bin/bash\n[ "$1" != --reuse ] || shift\ngit -C "$2" push -q origin "$3"; exit 1\n'; fi > "$o/tools/pr/app_push.sh" \
       && git -C "$o" add b tools/pr/app_push.sh && git -C "$o" commit -q -m "code $k" \
       && git -C "$o" update-ref "refs/heads/handoff-body/$k" "$body" && git -C "$o" checkout -q main && touch "$t/fix$k"
   done
@@ -1096,7 +1098,7 @@ print("free")' "$1"
     git -C "$o" checkout -q -b handoff/r "$base" && mkdir -p "$o/tools/pr" && printf 'b\n' > "$o/b" \
       && cat > "$o/tools/pr/app_push.sh" <<'STUB'
 #!/bin/bash
-D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; [ "$1" != --row-only ] || shift
+D=$STUB_DIR; printf '%s\n' "$*" >> "$D/argv"; case $1 in --row-only|--reuse) shift ;; esac
 wt=$2; br=$3; n=$(( $(cat "$D/n" 2>/dev/null || echo 0) + 1 )); echo $n > "$D/n"
 case $n in
   1) git -C "$wt" push -q origin "$br" || exit 1; echo "app_push: PUSHED to $br; pull request #5 is open"; exit 0 ;;
@@ -1143,9 +1145,12 @@ STUB
   [ "$(cat "$t/opwt")" = detached ]
   ck "open_pr: a successful open leaves its worktree detached at the pushed head" $?
   # The row push asks app_push.sh for --row-only (P53): one full prepr per open, not two; the
-  # code push never asks (null control).
-  [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = --row-only ] && [ "$(sed -n 1p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
-  ck "open_pr: its row push passes --row-only, and its code push does not" $?
+  # code push asks for --reuse (P386), whose verdict reuses a receipted prepr or runs the full
+  # one, and never for --row-only (null control).
+  [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = --row-only ] && [ "$(sed -n 1p "$t/argv" | cut -d' ' -f1)" = --reuse ]
+  ck "open_pr: its row push passes --row-only, and its code push --reuse, never --row-only" $?
+  racerun opreuse; [ "$(sed -n 1p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] && [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = --row-only ]
+  ck "  mutant mut:opreuse (its line deleted): the code push asks no reuse verdict, so it runs the full prepr" $?
   racerun release; [ "$(cat "$t/opwt")" = branch ] && [ "$(cat "$t/rowpushed")" = 1 ]
   ck "  mutant mut:release (its line deleted): the opened PR's worktree still holds its branch" $?
   racerun oprowonly; [ "$(sed -n 2p "$t/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ]
@@ -1156,7 +1161,7 @@ STUB
   # records its arguments and pushes; fix/v starts at handoff/v's tip, without its row.
   if [ ! -e "$t/fixv" ]; then
     git -C "$o" checkout -q -b handoff/v "$base" && mkdir -p "$o/tools/pr" && printf 'v\n' > "$o/v" \
-      && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$STUB_DIR/argv"; [ "$1" != --row-only ] || shift\ngit -C "$2" push -q origin "$3" || exit 1; echo "app_push: PUSHED"\n' > "$o/tools/pr/app_push.sh" \
+      && printf '#!/bin/bash\nprintf "%%s\\n" "$*" >> "$STUB_DIR/argv"; case $1 in --row-only|--reuse) shift ;; esac\ngit -C "$2" push -q origin "$3" || exit 1; echo "app_push: PUSHED"\n' > "$o/tools/pr/app_push.sh" \
       && git -C "$o" add v tools/pr/app_push.sh && git -C "$o" commit -q -m "code v" \
       && git -C "$o" branch fix/v HEAD && git -C "$o" checkout -q main && touch "$t/fixv"
   fi
@@ -1212,9 +1217,9 @@ STUB
   [ "$(cat "$t/rc")" = 1 ] && grep -qF "update_pr: REFUSE: handoff/v ($codeV2) is not in the head" "$t/out" && [ "$(bpcalls)" = 4 ]
   ck "update_pr: code - with a handoff tip the head lacks refuses, and patches no body" $?
   upd - "$codeV2"
-  [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 2 ] && [ "$(sed -n 2p "$wsd/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] \
+  [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 2 ] && [ "$(sed -n 2p "$wsd/argv" | cut -d' ' -f1)" = --reuse ] \
     && git -C "$o" merge-base --is-ancestor "$codeV2" fix/v && ! git -C "$o" merge-base --is-ancestor main fix/v
-  ck "null control: a new code sha is merged and pushed through the full prepr, main still unmerged" $?
+  ck "null control: a new code sha is merged and pushed asking for --reuse, never --row-only (app_push.sh's verdict or the full prepr judges it), main still unmerged" $?
   touch "$wsd/dirty"; bonly -
   [ "$(cat "$t/rc")" = 1 ] && grep -qF "update_pr: REFUSE: body-only update would move the head $(cat "$t/vbefore")" "$t/out" \
     && [ "$(pushes)" = 2 ] && [ "$(bpcalls)" = 4 ] && [ "$(cat "$t/vbefore")" = "$(cat "$t/vafter")" ]
@@ -1225,8 +1230,8 @@ STUB
   unmove 2
   upd - -
   [ "$(cat "$t/rc")" = 0 ] && [ "$(pushes)" = 3 ] && git -C "$o" merge-base --is-ancestor main fix/v \
-    && [ "$(sed -n 3p "$wsd/argv" | cut -d' ' -f1)" = tvofi/heatpump_optimizer ] && grep -qF "merges origin/main" "$t/bv.md"
-  ck "null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, through the full prepr" $?
+    && [ "$(sed -n 3p "$wsd/argv" | cut -d' ' -f1)" = --reuse ] && grep -qF "merges origin/main" "$t/bv.md"
+  ck "null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, asking for --reuse, never --row-only" $?
   # merge-tree is the local proof when GitHub does not say DIRTY (#3089 review, mutant A): main
   # conflicting with fix/v is merged, so the run stops on the conflict, patching and pushing nothing
   rm -f "$wsd/dirty"; printf 'main side\n' > "$o/v" && git -C "$o" add v && git -C "$o" commit -q -m "main: v conflicts"
@@ -1373,7 +1378,7 @@ GH
   ck "null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push" $?
   # The row-only arm (R10-ROW-ONLY-UPDATE): a head that is the live head plus one commit (here code
   # sha `-` adding the row) asks app_push.sh for --row-only, whose own verdict decides whether a
-  # full prepr is owed; a head merging new code never asks.
+  # full prepr is owed; a head merging new code asks for --reuse instead (P386), never --row-only.
   # Branch fix/w carries an app_push.sh stub that records its arguments, then fails the push.
   if [ ! -e "$t/fixw" ]; then
     git -C "$o" checkout -q -b fix/w "$base" && mkdir -p "$o/tools/pr" \
@@ -1384,10 +1389,12 @@ GH
     rm -f "$t/argv"; cp "$t/body.md" "$t/b.md"; HANDOFF_TOPIC=x run "$1" update_pr.sh fix/w "$2" "$t/b.md"; }
   rowrun - -; [[ $(cat "$t/argv" 2>/dev/null) == "--row-only tvofi/heatpump_optimizer "* ]]
   ck "update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr" $?
-  rowrun rowonly -; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
-  ck "  mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr" $?
-  rowrun - "$code"; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
-  ck "null control: a code sha the head lacks is merged and never asks for --row-only, so its push runs the full prepr" $?
+  rowrun rowonly -; [[ $(cat "$t/argv" 2>/dev/null) == "--reuse tvofi/heatpump_optimizer "* ]]
+  ck "  mutant mut:rowonly (its line deleted): code sha '-' asks for --reuse, not --row-only" $?
+  rowrun - "$code"; [[ $(cat "$t/argv" 2>/dev/null) == "--reuse tvofi/heatpump_optimizer "* ]]
+  ck "null control: a code sha the head lacks is merged and never asks for --row-only; it asks for --reuse, whose verdict or the full prepr judges its push" $?
+  rowrun updreuse "$code"; [[ $(cat "$t/argv" 2>/dev/null) == "tvofi/heatpump_optimizer "* ]]
+  ck "  mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr" $?
   for c in "$code" -; do
     cp "$t/body.md" "$t/b.md"; run - update_pr.sh fix/x "$c" "$t/b.md"
     [ "$(cat "$t/rc")" != 0 ] && ! grep -q 'REFUSE: code sha\|REFUSE: origin has\|argument(s)' "$t/out" \
