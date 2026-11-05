@@ -1,0 +1,15 @@
+ .github/workflows/nightly.yml                      |  18 +
+ .../heatpump_optimizer/coordinator.py              |   4 +-
+ dev/audit/harnesses/host_zone_features.py          | 406 +++++++++++++++++++++
+ dev/programme/delivery/3170.md                     |   1 +
+ tests/card.mjs                                     |  35 +-
+ tests/closures.json                                |   1 +
+ tests/entities.py                                  |  53 ++-
+ tests/features.py                                  |  51 ++-
+ tests/finite_boundary.py                           |  74 ++--
+ tests/gate_lock.py                                 |  14 +-
+ tests/golden.py                                    |  19 +-
+ tests/guard_pins.py                                |   5 +-
+ tests/ha_contract.py                               |  57 ++-
+ tools/coverage/coverage_tree.sh                    |  26 ++
+ 14 files changed, 688 insertions(+), 76 deletions(-)

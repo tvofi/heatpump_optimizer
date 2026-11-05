@@ -1,0 +1,25 @@
+Fix review: merge 10805aa975d9c6ba62f9fe669f8d288c431a6468
+
+bus-nonce: e925dd1c62b4769ea21ff4a46cb79b50
+
+## Head
+
+I measured 10805aa975d9c6ba62f9fe669f8d288c431a6468. `git ls-remote origin refs/pull/3170/head` reads it, and the PR body's `## Head` names it. This is a CI-only re-check of round 5's block (`root-cause-unanswered: tests / replay`). The code was not re-reviewed, as the brief says. `review_carry.py 5ee2be2d 10805aa9` prints CARRY: both branch-only commits are main merges (ev/review_carry.txt). `git merge-tree --write-tree origin/main 10805aa9` exits 0 (ev/merge_tree.txt).
+
+Round 5 of this review chain (round 4 was the carry-missing block). Past the fourth round: the orchestrator's body says the final round is body-only and the host-zone class is closed. This round changed no code.
+
+## Evidence
+
+- RESULT replay-log: the job log (job 127191893386, run 42011494510; the check-runs listing shows the same job as id 127224941881, both with the same timestamps and failing step) ends `4 of 194 replay checks FAILED`. All four are `cycle_cost` arms on synthetic-dhw-only.json. Each reads `runner class unknown: ref_ms <v> lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed`, with ref_ms 21.58 (clean), 21.67 (cpu doubled), 21.91 (memory doubled) and 22.10 (loop doubled). That is below the lowest band, 22.64. The body's figures (4 of 194, 21.58 to 22.10, 21.91 on the memory arm, lowest band 22.64) match.
+- RESULT nightly-log: main's nightly slow job 126971378040 (run 41943946464) ends `5 of 181 replay checks FAILED`. Four are the same `runner class unknown` arms on synthetic-dhw-only.json at ref_ms 40.1, 40.27, 40.27 and 39.76, in no band. The fifth is owner-2026-10-30-away.json `loop_cpu_ratio 0.1232: budget 0.249 cannot see a 2x cycle; re-record 0.1742`. The body's cause (same runner-class cost lane, ref_ms 40.1) is confirmed. The body does not mention the fifth, a budget re-record in the same lane; it belongs to the same carry.
+- RESULT diff-scope: `git diff $(git merge-base origin/main 10805aa9)..10805aa9 --stat` (merge base cd0dd169) lists 14 files. They are nightly.yml, `coordinator.py` (docstring only, per the body's AST check, which I did not repeat), the host-zone harness, tests/{card.mjs,entities.py,features.py,finite_boundary.py,gate_lock.py,golden.py,guard_pins.py,ha_contract.py}, tests/closures.json, tools/coverage/coverage_tree.sh and the delivery row. It touches no replay script and no cost-band table (ev/diff_stat.txt). The body's claim holds.
+- RESULT check-runs: `get_check_runs` returns total_count 82, read in one page of 100 (ev/check_runs.txt). Concluded red: `tests / replay`, `governance / delivery-status` and `tests / nightly-status`, all of run 42011494510. Cancelled: none. The newer run 42021361972 (11:44Z) concluded `gate` and `pr-contract` success, with the rest skipped. `governance / policy-docs` is success. The body's `## Red checks` names all three reds and `policy-docs`: replay as inherited with cause and base; delivery-status as other merged PRs' rows (#3170 not listed); nightly-status as the scheduled night at 499162c8, which predates this PR's nightly step. The red-check trigger is answered for every red.
+- RESULT classify: `merge_train.py classify 10805aa9 --pr 3170` prints `GREEN 10805aa975d9c6ba62f9fe669f8d288c431a6468 pending: none red: none`, rc 0.
+- RESULT body-head: the body's `## Head` names 10805aa975d9c6ba62f9fe669f8d288c431a6468 as the head. Its first paragraph also names 0cac0fe2 as the "final head". 0cac0fe2 is the parent merge of 10805aa9 (a main merge, CARRY), a wording slip only.
+- Not re-derived: `machinery_budgets.json` is present in this tree (merged from #3208), so the old governance / policy-docs and instrument-self-tests concern does not apply, and both are green. The delivery-status overdue count (body: 12; round 5: 13) grows with each main commit, and I did not re-read its log. The host-zone figures were verified at round 4 and the delta is main merges only. R10-REPLAY-COST-BUDGET is the roster group the brief says exists at carries-open, and I did not open the roster for it.
+
+## Findings
+
+- The replay lane's `COST_RUNNER_CLASSES` bands miss the runners CI assigns (ref_ms 21.58 to 22.10 on this head, 40.1 on main's nightly), so `cycle_cost` refuses with no budget whatever the diff. Main's nightly also fails a loop_cpu_ratio budget that needs re-recording (owner-2026-10-30-away.json: 0.1232 against a budget that cannot see a 2x cycle). The PR neither causes nor fixes either, and the body names the carry. Carry: R10-REPLAY-COST-BUDGET
+- The body's `nightly-status` answer says the replay step's log was not read. That is harmless since the replay entry names the cause. The same sentence is the body's only gap, and no action is owed. Carry: dismissed: the cause is named in the replay entry and the answer to the trigger is complete.
+- The `_free_slot` is_file TOCTOU in tests/gate_lock.py stays carried and was verified in the prior round at roster 7f6468d1. Carry: R10-GATE-LEASE-TOCTOU
