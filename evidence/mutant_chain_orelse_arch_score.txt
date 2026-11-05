@@ -110,7 +110,7 @@
   ok   a1_B7_god_helper_module (BAD) classifies as recorded
   ok   a1_B8_star_import_const (BAD) classifies as recorded
   ok   a1_G1_extract_block (GOOD) classifies as recorded
-  FAIL a1_G2_dedupe (GOOD) classifies as recorded  [recorded {'admissible': True, 'label': 'GOOD', 'set': 'planted', 'verdict': 'IMPROVES'} now {'set': 'planted', 'label': 'GOOD', 'verdict': 'NULL', 'admissible': True}; rises []]
+  ok   a1_G2_dedupe (GOOD) classifies as recorded
   ok   a1_G3_move_cluster_with_state (GOOD) classifies as recorded
   ok   a1_G4a_public_accessor_existing (GOOD) classifies as recorded
   ok   a1_G4b_public_accessor_new (GOOD) classifies as recorded
@@ -271,20 +271,22 @@
   ok   rt_45_shape_private_copy (GAME) classifies as recorded
   ok   rt_46_card_rule_respelled (GAME) classifies as recorded
   ok   rt_47_card_template_respelled (GAME) classifies as recorded
-  FAIL rt_48_footprint_packed_unpack (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
-  FAIL rt_49_footprint_packed_nested (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
-  FAIL rt_50_footprint_packed_for_literal (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
-  FAIL rt_51_footprint_packed_walrus (GAME) classifies as recorded  [recorded {'admissible': False, 'label': 'GAME', 'set': 'redteam', 'verdict': 'WORSENS'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
-  FAIL rt_52_footprint_packed_set_display (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
-  FAIL rt_53_footprint_ifexp_chain (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
+  ok   rt_48_footprint_packed_unpack (GAME) classifies as recorded
+  ok   rt_49_footprint_packed_nested (GAME) classifies as recorded
+  ok   rt_50_footprint_packed_for_literal (GAME) classifies as recorded
+  ok   rt_51_footprint_packed_walrus (GAME) classifies as recorded
+  ok   rt_52_footprint_packed_set_display (GAME) classifies as recorded
+  ok   rt_53_footprint_ifexp_chain (GAME) classifies as recorded
+  FAIL rt_54_footprint_ifexp_body_chain (GAME) classifies as recorded  [recorded {'admissible': True, 'label': 'GAME', 'set': 'redteam', 'verdict': 'NULL'} now {'set': 'redteam', 'label': 'GAME', 'verdict': 'IMPROVES', 'admissible': True}; rises []]
+  ok   rt_55_footprint_boolop_control (KNOWN-OPEN) classifies as recorded
   ok   no weight perturbation moves a verdict beyond what is recorded
   ok   the red-team attempts are all present: every script is a case, every recorded GAME ran
-  FAIL no red-team attempt reads IMPROVES  [['rt_48_footprint_packed_unpack', 'rt_49_footprint_packed_nested', 'rt_50_footprint_packed_for_literal', 'rt_51_footprint_packed_walrus', 'rt_52_footprint_packed_set_display', 'rt_53_footprint_ifexp_chain']]
+  FAIL no red-team attempt reads IMPROVES  [['rt_54_footprint_ifexp_body_chain']]
   ok   the known-open attempts are present and still read IMPROVES (a class fix flips them: re-record)
   ok   the rename null reads NULL
-  FAIL coord_footprint reads a packed statement as the plain statements it spells (every packing shape)  [[('a, b, c = (f(x) for x in xs)', 1, 3), ('a, b = f(x), g(y)', 1, 0), ('a = b = f(x)', 1, 0), ('a, b = x.p, x.q', 1, 0), ('a = b = x.p', 1, 0), ('f(x), g(y)', 1, 0), ('f(x + 1), g(y + 1)', 1, 2), ('with p() as a, q() as b:\n    pass', 2, 3), ('import os, sys', 1, 2), ('del a, b', 1, 2), ('a, (b, c) = f(x + 1), (g(y + 1), h(z + 1))', 1, 3), ('(a, b), c = (f(x + 1), g(y + 1)), h(z + 1)', 1, 3), ('f(x + 1), (g(y + 1), h(z + 1))', 1, 3), ('for a, b, c in [(f(x + 1), g(y + 1), h(z + 1),)]:\n    pass', 2, 4), ('{f(x + 1), g(y + 1)}', 1, 2), ('{1: f(x + 1), 2: g(y + 1)}', 1, 2), ('(a := f(x + 1), b := g(y + 1))', 1, 2), ('repr((a := f(x + 1), b := g(y + 1)))', 1, 3), ('c = (a := f(x + 1)) + (b := g(y + 1))', 1, 3), ('a = f(x + 1) if p else g(y + 1) if q else h(z + 1)', 1, 5)]]
-  FAIL coord_footprint control: an unpacked body and a single destructuring read one statement each  [1 1 0 1]
+  FAIL coord_footprint reads a packed statement as the plain statements it spells (every packing shape)  [[('a = (f(x + 1) if q else g(y + 1)) if p else h(z + 1)', 1, 5), ('a = (f(x + 1) if q else g(y + 1)) if p else (h(z + 1) if r else k(w + 1))', 5, 7)]]
+  ok   coord_footprint control: an unpacked body and a single destructuring read one statement each
   ok   a vector with one metric nudged up changes the verdict
 
-10 of 277 ARCHITECTURE SCORE CHECKS FAILED
+3 of 279 ARCHITECTURE SCORE CHECKS FAILED
 rc=1

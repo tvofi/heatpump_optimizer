@@ -1,0 +1,28 @@
+RESULT 'walrus in list display assign'      packed=3 plain=3 SAME
+RESULT 'walrus in if header x2'             packed=4 plain=4 SAME
+RESULT 'walrus in return'                   packed=3 plain=3 SAME
+RESULT 'set display 3'                      packed=3 plain=3 SAME
+RESULT 'dict display values+keys'           packed=2 plain=2 SAME
+RESULT 'list display expr'                  packed=2 plain=2 SAME
+RESULT 'ifexp chain 3'                      packed=7 plain=7 SAME
+RESULT 'ifexp chain as expr stmt'           packed=5 plain=5 SAME
+RESULT 'ifexp chain in return'              packed=5 plain=5 SAME
+RESULT 'ifexp chain nested in body side'    packed=5 plain=5 SAME
+RESULT 'starred target'                     packed=2 plain=2 SAME
+RESULT 'starred head'                       packed=2 plain=2 SAME
+RESULT 'for two-element literal'            packed=3 plain=3 SAME
+RESULT 'for two-element literal tuple'      packed=3 plain=3 SAME
+RESULT 'for nested tuple target'            packed=4 plain=4 SAME
+RESULT 'for two-row literal'                packed=4 plain=2 DIFF
+RESULT 'async for literal'                  packed=3 plain=2 DIFF
+RESULT 'comprehension for literal'          packed=1 plain=3 DIFF
+RESULT 'chain + tuple'                      packed=3 plain=3 SAME
+RESULT 'annassign tuple value'              packed=1 plain=1 SAME
+RESULT 'lambda body tuple'                  packed=1 plain=1 SAME
+RESULT 'boolop expr'                        packed=1 plain=3 DIFF
+RESULT 'listcomp side effects'              packed=1 plain=2 DIFF
+RESULT 'semicolon'                          packed=2 plain=2 SAME
+RESULT 'ctrl display one target'            packed=1 plain=None 
+RESULT 'ctrl attr display one target'       packed=1 plain=None 
+RESULT 'ctrl lone ifexp'                    packed=1 plain=None 
+RESULT 'ctrl for one target literal'        packed=2 plain=None 

@@ -277,6 +277,8 @@
   ok   rt_51_footprint_packed_walrus (GAME) classifies as recorded
   ok   rt_52_footprint_packed_set_display (GAME) classifies as recorded
   ok   rt_53_footprint_ifexp_chain (GAME) classifies as recorded
+  ok   rt_54_footprint_ifexp_body_chain (GAME) classifies as recorded
+  ok   rt_55_footprint_boolop_control (KNOWN-OPEN) classifies as recorded
   ok   no weight perturbation moves a verdict beyond what is recorded
   ok   the red-team attempts are all present: every script is a case, every recorded GAME ran
   ok   no red-team attempt reads IMPROVES
@@ -286,5 +288,5 @@
   ok   coord_footprint control: an unpacked body and a single destructuring read one statement each
   ok   a vector with one metric nudged up changes the verdict
 
-ALL 277 ARCHITECTURE SCORE CHECKS PASSED
+ALL 279 ARCHITECTURE SCORE CHECKS PASSED
 rc=0
