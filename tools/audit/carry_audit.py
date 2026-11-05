@@ -41,7 +41,8 @@ starts an item without a bullet. A FINDING item:
            lines and the attribution line never are.
 
 A DESTINATION (`Dests.check`):
-  GROUP      a group of the newest roster (`roster_lib`), not done; with no
+  GROUP      a group of the newest roster (`roster_lib`), not done or absorbed (a refusal
+             lists the live groups after-edged on `check --pr-group G` as valid targets); with no
              --roster-ref, also one open on the round's roster branch
              (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
              a checkout lacking origin/main reads the roster there instead of
@@ -358,7 +359,9 @@ class Dests:
     a carry to a group open there as in the tree before the group reaches main."""
 
     def __init__(self, roster: dict, carry_issues: set[int], briefs_dir: str | None = None,
-                 issue_state=None, round_roster: tuple[str, dict] | None = None) -> None:
+                 issue_state=None, round_roster: tuple[str, dict] | None = None,
+                 pr_group: str | None = None) -> None:
+        self.pr_group = pr_group  # the pull request's own group: its live after-edged consumers are the targets
         self.groups = roster_lib.groups_of(roster)
         self.round_ref, self.round_groups = ((round_roster[0], roster_lib.groups_of(round_roster[1]))
                                              if round_roster else (None, {}))
@@ -408,11 +411,25 @@ class Dests:
         g, r = self.groups.get(tok), self.round_groups.get(tok)
         if g is None and r is None:
             return False, f"{tok} is not a group of the roster{f' or of {self.round_ref}' if self.round_ref else ''}"
-        if g is not None and roster_lib.is_open(g):
+        if g is not None and self.live(g):
             return True, ""
-        if r is not None and roster_lib.is_open(r):
+        if r is not None and self.live(r):
             return True, f"{tok} resolved on {self.round_ref}"
-        return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
+        stage = ((g or r).get("resume") or {}).get("stage")
+        return False, (f"{tok} is {'done' if stage in roster_lib.DONE_STAGES else stage} (resume.stage {stage}); "
+                       f"valid targets: {self.consumers()}")
+
+    @staticmethod
+    def live(group: dict) -> bool:
+        """A group that can still take a carry: not done, not absorbed."""
+        return (group.get("resume") or {}).get("stage") not in roster_lib.CARRY_CLOSED
+
+    def consumers(self) -> str:
+        """The live groups after-edged on the pull request's group, for a refusal to print."""
+        if not self.pr_group:
+            return "unknown (no --pr-group)"
+        live = [n for n, g in self.groups.items() if self.live(g) and self.pr_group in (g.get("after") or [])]
+        return f"{', '.join(live)} (live, after {self.pr_group})" if live else f"none live after {self.pr_group}"
 
 
 def issue_numbers(group: dict) -> list[int]:
@@ -458,7 +475,7 @@ def carry_issues(repo, ref: str | None = None) -> set[int]:
 
 
 def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
-               issue_state=None, extra_ref: str | None = None) -> Dests:
+               issue_state=None, extra_ref: str | None = None, pr_group: str | None = None) -> Dests:
     round_roster = None
     git = roster_lib.git_in(str(repo))
     if ref:
@@ -491,7 +508,7 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
     # carry files join the set, read with one local ls-tree; an unreadable ref adds nothing.
     if extra_ref:
         carry |= carry_issues(repo, extra_ref)  # mut:extra
-    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
+    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster, pr_group)
 
 
 # ---------------------------------------------------------------- the audit
@@ -783,6 +800,8 @@ def main(argv: list[str]) -> int:
     c = sub.add_parser("check")
     c.add_argument("--body", required=True)
     c.add_argument("--comments")
+    c.add_argument("--pr-group", help="the pull request's roster group: a closed destination's refusal "
+                   "lists the live groups after-edged on it")
     for name in ("landed", "land-ops"):
         x = sub.add_parser(name)
         x.add_argument("--body", required=True)
@@ -810,7 +829,7 @@ def main(argv: list[str]) -> int:
             comments = json.loads(Path(a.comments).read_text()) if a.comments else []
             if not finding_rows(body, comments)[0]:
                 return report({"rows": []})  # nothing to route: the roster is not read
-            dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
+            dests = load_dests(Path(a.git_dir), ref, a.briefs_dir, pr_group=a.pr_group)
             return report(audit(body, comments, dests))
         if a.cmd in ("landed", "land-ops"):
             # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
@@ -969,6 +988,27 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
+    # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
+    # after-edged on the pull request's own group as the valid targets.
+    def gr(name, stage, after=()):
+        return {"group": name, "after": list(after), "resume": {"stage": stage}}
+    Dcl = Dests({"groups": [gr("R10-PR", "in-progress"), gr("R10-GONE", "done"), gr("R10-ABS", "absorbed"),
+                            gr("R10-CONS", "not-started", ["R10-PR"]), gr("R10-DEAD", "done", ["R10-PR"]),
+                            gr("R10-OTHER", "not-started", ["R10-LIVE"]), gr("R10-NS", "not-started")]},
+                set(), None, pr_group="R10-PR")
+    for g in ("R10-GONE", "R10-ABS"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
+        msg = r["rows"][0]["bad"][0] if r["b"] == 1 else ""
+        check(f"a closed group ({g}) is refused naming it and listing the live after-edged consumers",
+              g in msg and "R10-CONS" in msg and "R10-OTHER" not in msg and "R10-DEAD" not in msg
+              and "R10-NS" not in msg)
+    for g in ("R10-CONS", "R10-NS"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
+        check(f"a live group ({g}) is accepted with no note (null control)",
+              r["u"] == 0 and r["b"] == 0 and r["rows"][0]["notes"] == [g])
+    r = run(plant.rstrip() + " Carry: R10-OVER\n")
+    check("a closed group with no PR group known is still refused, saying so",
+          r["b"] == 1 and "R10-OVER is done (resume.stage done)" in r["rows"][0]["bad"][0])
     r = run(plant.rstrip() + " Carry: R10-INVENTED | dismissed: two words\n")
     check("a dismissal pointer that is no group names it as not a group",
           r["b"] == 1 and "R10-INVENTED is not a group" in r["rows"][0]["bad"][0])
