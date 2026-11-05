@@ -151,7 +151,7 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Refuse a Cursor rule that is not the generated form of its source
@@ -289,6 +289,13 @@ jobs:
       # decision steps, on every pull request.
       - name: Show the lane-skip decision refusing every unsafe skip
         run: python3 tests/lane_skip.py self-test
+
+      # The host-probe bridge (R10-HOTFIX-CI-CRITPATH-4): the reference a
+      # probed fast lane implies, offline on synthetic runs, and the pin that
+      # tests/ci_ratchet.py's PROBE_REFERENCE_S is the one the committed fleet
+      # record re-derives (a constant moved without a fleet measurement).
+      - name: Show the probe bridge deriving the reference and refusing without a probed run
+        run: python3 tools/audit/seat/probe_bridge.py --self-test
 
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
@@ -753,6 +760,13 @@ jobs:
           python3 -I tools/audit/seat/prune_refs.py --self-test | tee "$RUNNER_TEMP/prune-refs-self-test.txt"
           grep -Eq '^SELF-TEST PASS \([1-9][0-9]* checks\)$' "$RUNNER_TEMP/prune-refs-self-test.txt"
 
+      - name: Show the round closeout refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/closeout.py --self-test | tee "$RUNNER_TEMP/closeout-self-test.txt"
+          grep -Eq '^closeout self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/closeout-self-test.txt"
+
       - name: Show the programme pulse refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
@@ -1160,7 +1174,7 @@ jobs:
              && grep -F -q "'.claude/workflows/policy_lint.mjs'" tools/policy/policy_lint_envmatrix.mjs; then
             git checkout HEAD -- tools/policy/policy_lint_envmatrix.mjs
           fi
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
           # The base matrix still starts .claude/workflows/policy_lint.mjs.
           # That module is gone (env-matrix job 112529653069: Cannot find
@@ -1264,7 +1278,7 @@ jobs:
             'dev/audit/rounds/round4/D11/governance_cost.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       - name: Drive the wave script's branching

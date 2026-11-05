@@ -54,6 +54,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`review_packet.py`](instruments/review_packet.py.md) — the fix reviewer's packet at the frozen head
 - [`ci-watch.sh`](instruments/ci-watch.sh.md) — watches open PRs' check states and alerts only on NEW states (per-PR signature file)
 - [`ci_critpath.py`](instruments/ci_critpath.py.md) — one workflow run's critical path from its job and step timestamps (each job's queue, duration and longest step), its `needs:` read from the run's own head
+- [`probe_bridge.py`](instruments/probe_bridge.py.md) — re-derives the host probe's reference seconds from probed push runs on the hosted fleet itself
 - [`cloud-setup.sh`](instruments/cloud-setup.sh.md) — the cloud seat environment's setup script (interpreter, CI-run pinning)
 - [`cloud_dispatch.py`](instruments/cloud_dispatch.py.md) — renders the whole cloud-runner trigger payload (reviewer, fixer, probe, designer, design-reviewer)
 - [`cloud_relay.sh`](instruments/cloud_relay.sh.md) — the orchestrator's half of a cloud reviewer's return
@@ -82,6 +83,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`pr_cap.py`](instruments/pr_cap.py.md) — the soft cap, on dispatch since 2026-10-20
 - [`proof_watch.py`](instruments/proof_watch.py.md) — watches one named check-run at one pinned head of one pull request and, once it completes `success` beside green required contexts and a valid merge verdict at that exact head, merges through `merge_pr.sh`
 - [`ci_probe.py`](instruments/ci_probe.py.md) — the writes a CI-layout probe needs
+- [`closeout.py`](instruments/closeout.py.md) — the round's final act: archive, prune and clean up, a dry plan by default and refused while any other group is open
 - [`prune_refs.py`](instruments/prune_refs.py.md) — reconciles the remote branch refs down to main plus a few development branches at programme closure, archive-as-tags first
 - [`pulse.py`](instruments/pulse.py.md) — says whether the programme is still being driven
 - [`queue_pre_flight.py`](instruments/queue_pre_flight.py.md) — runs a merge queue's admission reads offline, before the train launches
