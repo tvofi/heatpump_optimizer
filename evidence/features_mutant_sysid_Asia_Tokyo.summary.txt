@@ -1,4 +1,0 @@
-tree=0a459e607bd7de54e7a80233ee8f15e550256d77 dirty=1 HASTUB_TZ=Asia/Tokyo TZ=unset
-  FAIL #943: the honest sizer leaves a power-limited heavy house at the full nameplate step, inside the allowance  [sized None kW el of max 6.0; peak 0.000 C — an over-conservative 'fix' that shrinks the step on the slow slab this house really has would starve its excitation]
-1 of 4770 FEATURE CHECKS FAILED
-rc=1 wall=1021s

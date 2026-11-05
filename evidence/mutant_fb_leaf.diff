@@ -1,0 +1,13 @@
+diff --git a/tests/finite_boundary.py b/tests/finite_boundary.py
+index 6da8f0261..be33d0104 100644
+--- a/tests/finite_boundary.py
++++ b/tests/finite_boundary.py
+@@ -1426,7 +1426,7 @@ def _instant_arm(by_name) -> None:
+     async def _recording(self):
+         key = str(getattr(self, "key", None) or getattr(self, "_key", ""))
+         # ``None`` reads a naive leaf on the bound's own clock, UTC.
+-        zone = getattr(self, "_naive_zone", _dt.timezone.utc) or _dt.timezone.utc
++        zone = _dt.timezone.utc
+         written = None
+         if key in planned:
+             healthy, when = planned[key]

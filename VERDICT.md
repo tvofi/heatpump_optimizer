@@ -1,72 +1,88 @@
-Fix review: blocked 0a459e607bd7de54e7a80233ee8f15e550256d77 class-open: tests/finite_boundary.py still fails host-zone checks at the head under America/New_York (1 of 108) and Asia/Kolkata (2 of 108), and passes under UTC
+Fix review: blocked 5ee2be2db0abefd7988a4465b4f431334925895e carry-missing: the gate-lease _free_slot is_file TOCTOU the body leaves open is in no roster carry, and three concluded reds are unnamed in Red checks
 
-bus-nonce: 1da1bf49ae825a4da6b38bfe7c2c50c2
+bus-nonce: b75283b556476b0f0589bcecef7b7c96
 
 ## Head
 
-I measured 0a459e607bd7de54e7a80233ee8f15e550256d77, the head the dispatch names and the head `## Head` names. `git ls-remote origin refs/pull/3170/head` re-read the same head at the end of the review. This is round 2, a delta review of the round-1 block at b307f359. Merge base and origin/main are both 3905069f38a60559186fef916b0241e311cc81cd. I judged the change only through the three-dot diff. The PR's own round-2 commits are 332127330, 7108d8478, 8f2bcb30a and 4119c8982; ba8593ecf and b307f3599 are round 1's.
+I measured 5ee2be2db0abefd7988a4465b4f431334925895e, the head the dispatch names and the head `## Head` names. `git ls-remote origin refs/pull/3170/head` re-read the same head at the end of the review.
+
+- Merge base: 6777ec33337b256d29ea145d98da413dbf076a2a. origin/main was at dad3178d6 when I read it.
+- This is round 4, the final round the owner's mandate allows. It is a delta review over the round-2 block at 0a459e60.
+- Contract currency: `git diff <mb>...origin/main -- dev/governance/roles/` touches only proposal-triage.md, so fix-review.md is current.
+- I judged the change only through the three-dot diff. Since 0a459e60, the PR's own patch changed in nightly.yml, host_zone_features.py, card.mjs, finite_boundary.py, golden.py, guard_pins.py and ha_contract.py. Its patch to coordinator.py, entities.py, features.py, gate_lock.py, coverage_tree.sh, closures.json and the delivery row is byte-identical to round 2's.
 
 ## Block
 
-1. **class-open: tests/finite_boundary.py.** The brief's scope (1) asks for features.py "and the suite scripts that read host time" to pass under every listed zone. The PR body's class rule only enumerates features.py checks. At the head, features.py now passes everywhere. finite_boundary.py does not:
-   - `HASTUB_TZ=TZ=America/New_York`: `1 of 108 FINITE BOUNDARY CHECKS FAILED`, on "no stored instant reaches a loader beyond the clock plus its store's lead". Escaped instants include `thermal_learning:updated_at` and the `__instant_probe` and `__instant_probe_aware` leaves of every store.
-   - `HASTUB_TZ=TZ=Asia/Kolkata`: `2 of 108` failed, on "an honest payload comes back byte-identical (null control)" (12 stores rewritten) and "an instant inside its store's lead survives the load" (lead lost for manual_plan, boost, accuracy and snapshots).
-   - UTC: `ALL 108 FINITE BOUNDARY CHECKS PASSED`.
+1. **carry-missing: the gate-lease `_free_slot` TOCTOU is not carried to any stage.**
+   - The body's carries list says of Carry 2 (0-based 1): "The `_free_slot` is_file TOCTOU in `tests/gate_lock.py` is NOT built here and stays open in this carry (Forward-carry)". But `## Forward-carry` reads "none".
+   - The roster carry it points to has no such text. That carry is origin/handoff/audit-r10-roster 56c3ebcd8, dev/programme/rosters/wave-r10-groups.json, R10-SUITE-HOST-DETERMINISM `carry`[1], line 14857. It says only "Make the check deterministic (wait on a condition, never a fixed window), then re-measure the pair of runs".
+   - None of `_free_slot`, `TOCTOU` or `is_file` appears anywhere in dev/programme on that ref. On origin/main, `_free_slot` appears only in dev/audit/rca/R10-RCA-GATE-LEASE-FLAKE.md. That RCA is about the earlier torn-create seam, which fab4a07c1 fixed, not about this one.
+   - The finding is live at this head. tests/gate_lock.py is untouched since round 1. With a delay-only plant (a 30 ms sleep after `_read_at` returns None for a slot path, and no logic changed), `one_winner` reads red **8 of 10** (ev/gl_head_toctou.txt). The PR's test-side condition wait makes the check see the overlap more reliably. It does not remove the production race behind the flake carry [1] exists for.
+   - So once this merges, the cause and its control exist only in verdict refs and this PR's text. That is the case rule 10 blocks on.
+   - To settle it, write the TOCTOU into the group's roster carry (or a named next part), with the delay-only plant (ev/gl_toctou.py) as its precondition control: the fix must turn it green. Then name that roster SHA in `## Forward-carry`. Alternatively, build the fix in `_free_slot`.
+2. **root-cause-unanswered: three concluded reds at this head are unnamed in `## Red checks`.** `pr-contract` refuses on all three in every run since. The latest is 127129922291, which started after the last red concluded.
+   - `governance / policy-docs` (127109349298): `machinery_ratchet: dev/governance/config/machinery_budgets.json is absent at 5ee2be2d...` (exit 2). The file is absent at the head and at the merge base 6777ec33, and present on origin/main. This looks inherited from main's newer machinery ratchet, red on any head whose base predates it. The body owes that answer, naming base 6777ec33 and the check.
+   - `governance / delivery-status` (127109349630): `DELIVERY STATUS OVERDUE — 10 rowed, 10 pending, 10 overdue`. pr-contract says the diff touches what it reads (.github/workflows/nightly.yml), so the body must name it and answer it.
+   - `tests / nightly-status` (127109349506): `NIGHTLY FAILED: slow failed last night`. The diff adds a step to that very `slow` job, so the body must answer whether the red is this PR's own.
+   - `merge_train.py classify` printed `RED 5ee2be2d... pending: none red: gate` (rc=1). This is not APPROVAL-OWED. The body's `## Red checks` covers only 0a459e60's replay red, and says this head "has no CI yet".
 
-   The merge base reads the same counts (New_York 1, Kolkata 2), so this predates the PR. It is the same shape as the four features seams fixed here. `_instant_arm` freezes a naive `t0 = datetime(2026, 6, 1, 12, 0, 0)` (tests/finite_boundary.py:1430), which the stub reads as configured-zone wall clock. The arm's own `_utc` (tests/finite_boundary.py:1363) then reads the naive probe leaves as UTC. America/New_York is one of the four zones the body itself claims to cover.
+   I cannot tell for each red whether a cheaper detector existed, because main moved after prepr.sh ran on 04dc6057. So the class is `unanswered`, not `detectable`.
 
-   The PR is titled "suite host determinism", and the brief requires all scripts to pass at the head. Either fix the arm by the PR's own pattern, or have the owner scope the class to features.py explicitly in the body and route finite_boundary as a named next part. If you fix it:
-   - name `t0` in `DEFAULT_TIME_ZONE`, or make it aware, and have `_utc` adopt the configured zone for a naive leaf, whichever production's loader actually does;
-   - settle per check whether production or the test is wrong;
-   - add a mutant to `host_zone_features.py` or an equivalent harness that runs finite_boundary under the four zones plus a half-hour zone.
+The host-zone class itself is closed at this head (Evidence). If the orchestrator splits the group, the host-zone part is the mergeable one. The `_free_slot` race needs its own part, and the reds need a body answer.
 
 ## Findings
 
-- tests/finite_boundary.py fails under a non-UTC `HASTUB_TZ` at the head and at the base: New_York 1 of 108, Kolkata 2 of 108, UTC all passed. The cause is a naive frozen clock against a checker that reads naive leaves as UTC (Block 1). Carry: R10-SUITE-HOST-DETERMINISM
-- No CI lane runs any suite script under a non-UTC `HASTUB_TZ`. `grep` over `.github` and `tests/run.sh` finds no assignment, so the zone fixes in this PR are guarded only by the out-of-gate harness `dev/audit/harnesses/host_zone_features.py`, which its docstring says is minutes per zone. A later edit can reintroduce a UTC-literal instant and stay green in CI. Consider a cheap one-zone lane (for example Asia/Kolkata, which is half-hour and far from UTC) on features.py and finite_boundary.py, or record the decision not to build one. Carry: R10-SUITE-HOST-DETERMINISM
+- Gate-lease `_free_slot` is_file TOCTOU (tests/gate_lock.py, unchanged by this PR) is still live at the head: delay-only plant 8 of 10 red. It is in no roster carry and no `## Forward-carry` (Block 1). Write it into R10-SUITE-HOST-DETERMINISM's carry with ev/gl_toctou.py as its precondition control, or build it. Carry: R10-SUITE-HOST-DETERMINISM
+- Three concluded reds at the head are unnamed in `## Red checks`, and pr-contract refuses on them (Block 2). policy-docs (machinery_budgets.json absent at base 6777ec33, present on main) looks inherited. delivery-status and nightly-status each need an answer because the diff touches nightly.yml. Carry: R10-SUITE-HOST-DETERMINISM
 
 ## Evidence
 
-- Contract currency: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, because the merge base equals origin/main.
-- RESULT features.py at the head (`PYTHONPATH=tests/hastub python3 tests/features.py`, my own runner ev/runz.sh, not the fixer's harness). Each row is in ev/features_*.summary.txt:
+- RESULT host-zone class at the head. My own runner is ev/runz.sh, which sets `HASTUB_TZ` and `TZ` to the zone with `PYTHONPATH=tests/hastub`. It is the reviewer's, not the fixer's harness.
 
-  | zone | result |
-  |---|---|
-  | UTC | ALL 4770 passed |
-  | America/New_York | ALL 4770 passed |
-  | Asia/Tokyo | ALL 4770 passed |
-  | Europe/Stockholm (TZ set too) | ALL 4770 passed |
-  | Asia/Kolkata (half-hour) | ALL 4770 passed |
-  | Australia/Sydney (DST in force at the January and February instants) | ALL 4770 passed |
+  | zone | tests/features.py | tests/finite_boundary.py |
+  |---|---|---|
+  | UTC | ALL 4800 passed (rc 0) | ALL 108 passed (rc 0) |
+  | Europe/Stockholm | ALL 4800 passed | ALL 108 passed |
+  | America/New_York | ALL 4800 passed | ALL 108 passed |
+  | Asia/Tokyo | ALL 4800 passed | ALL 108 passed |
+  | Asia/Kolkata | ALL 4800 passed | ALL 108 passed |
 
-  Round 1 read New_York 3 of 4770 and Tokyo 3 of 4770 at b307f359. The round-1 block on features.py is settled.
-- RESULT mutation proof, my own worktrees at the head, each with one fixed site restored to its host-zone read. Each mutant failed exactly its own check, 1 of 4770, and nothing else:
-  - nometer_month (`zone = _BO_TZ`) under New_York: KILLED.
-  - sysid_night_t0 (`tzinfo=UTC`) under Tokyo: KILLED.
-  - outage_naive_tick (naive UTC wall clock) under New_York: KILLED.
-  - humidity_now (naive `_T6_HUM_NOW`) under Tokyo: KILLED.
-
-  The unmutated head runs above are the null control. The body's mutation figures agree.
-- RESULT root cause, not a pin: the three-dot diff adds no `TZ` or `HASTUB_TZ` assignment in the suite or the runner. The only assignment is in the harness's own subprocess env (host_zone_features.py:80), by design. Each fix names the instant in `DEFAULT_TIME_ZONE` or makes it aware.
-- RESULT other host-time scripts at the head under New_York and Kolkata (ev/other_scripts.txt):
-  - block_duty, config_flow_steps, rolling, manual_plan, solar_alignment and open_meteo pass in both zones.
-  - entities passes under Tokyo and Kolkata (ALL 2593).
-  - ha_contract reads 4 of 96 failed whenever `HASTUB_TZ` is present, UTC included. Its default-case contracts assert that the variable is unset (tests/ha_contract.py:2349), and with it unset it reads ALL 96 passed. That is by design, not a zone defect.
-  - finite_boundary fails: see Block 1.
-- RESULT coordinator.py: the 4-line change is still in the three-dot diff and is explained in the body. With docstrings blanked, the AST hashes match at base and head (ev/coordinator_ast.txt). The function returns `dt_util.as_local(ts).replace(tzinfo=None)`, so the new docstring matches the code.
-- RESULT harness commits, read line by line:
-  - 8f2bcb30a replaces the `git archive` copy with a detached worktree and removes it in `finally`.
-  - 4119c8982 replaces `parents[3]` with the manifest-walk `repo_root`. The redundant inner `from pathlib import Path` is cosmetic.
-  - 7108d8478 adds the harness to `tests/closures.json` under `inert_reads["tests/harness_headers.py"]` (verified by walking the JSON).
-  - The three-dot diff touches neither `tests/harness_headers.py` nor `tests/closure.py`, and adds no allowlist entry. CI `tests / closures` is green at this head.
+  The rows are in ev/head_*.summary.txt. Round 2's block (finite_boundary New_York 1 of 108 and Kolkata 2 of 108) is settled. The body's 4800 per zone re-derives exactly.
+- RESULT null controls, one planted host-zone dependence per script, each run under the same five zones (ev/mutant_*.diff, ev/mut_*.summary.txt):
+  - `fb_leaf` (the harness's finite_boundary_leaf_zone: naive leaves read as UTC): New_York 2 of 108, Tokyo 1, Stockholm 1, Kolkata 1, UTC ALL 108. **KILLED.** This matches the body's figures.
+  - My own writer-side plant (ev/mutant_fb_naive_t0.diff; the name is historical): `_with_instants` writes naive leaves as UTC wall time. New_York 2 of 108, and Stockholm, Tokyo, Kolkata and UTC ALL 108. **KILLED**, though only by New_York. The arm detects this plant where the zone's offset pushes an instant past a lead, and nowhere else. I note this; it does not block.
+  - `feat_humidity` (the harness's humidity_now): New_York, Tokyo and Kolkata 1 of 4800, Stockholm and UTC ALL 4800. **KILLED.** This matches the body.
+- RESULT gate-lease (carry [1]):
+  - The planted torn-create control still reads red at the head: 3 of 20 (ev/gl.py, ev/gl_head_planted.txt).
+  - The production TOCTOU is still live (Block 1).
+- RESULT coverage descendants (carry [2]), using ev/crv.py (round 1's reviewer harness), which runs the head's `_coverage_revalidation` against a tree's coverage_tree.sh:
+  - At the head, a late writer is waited for: `entities` is not `nodata`. Bound 0 refuses, naming the script (ev/crv_head.txt).
+  - Mutant with the `wait_descendants "$s" || return 1` line deleted (ev/mutant_cov.diff): late reads `entities.nodata`, and bound 0 does not refuse (ev/crv_mutant_nowait.txt). So the entities check reads red. **KILLED.**
+- The entities HEAD-vs-worktree row (carry [5]) and the base-red entities checks (carry [4]) are NEXT PART in the body and stay in the roster's carry list. Nothing in this diff builds them, so there is no control to run.
+- RESULT diff read (round-4 changes):
+  - finite_boundary's arm reads a naive leaf in the store's own `_naive_zone`, and in UTC when that is None. This matches store.py:163 (`naive_zone or bound.tzinfo`, where bound is `as_utc(now()) + lead`).
+  - ha_contract constructs the unconfigured zone from a fresh copy of the provider's own util/dt module. It no longer asserts `HASTUB_TZ` unset.
+  - golden pins `DEFAULT_TIME_ZONE = SCENARIO_ZONE (UTC)` only inside `capture_coordinator`, and restores it in `finally`.
+  - guard_pins freezes an aware clock.
+  - card.mjs's seam check runs on its own UTC-grid clock and restores `ctx.Date` in `finally`.
+  - The diff adds no suite-wide TZ pin. The nightly step sets Kolkata on purpose.
 - RESULT standing checks (ev/standing.txt):
-  - `tests/golden/claimed_drift.txt` and `card_claimed_drift.txt` are byte-identical to origin/main.
-  - VERSION, manifest.json and RELEASE_NOTES.md are byte-identical.
-  - The three-dot diff contains no `*_budgets.json`.
-  - No host path appears in the added lines.
-  - The delivery row dev/programme/delivery/3170.md is in the three-dot diff.
-  - `git merge-tree --write-tree origin/main 0a459e60` exits 0, with no conflict.
-- RESULT CI at this head: `merge_train.py classify 0a459e607bd7de54e7a80233ee8f15e550256d77 --pr 3170` printed `GREEN 0a459e607bd7de54e7a80233ee8f15e550256d77 pending: none red: none` (rc=0; ev/ci_classify.final). No check is red at this head, so `## Red checks` owes nothing new here. Its answers for b307f359's replay, pr-contract and gate reds are present.
-- The gate-lease `_free_slot` TOCTOU from round 1 is routed in the body's `## Forward-carry` to this group's Carry 2 on handoff/audit-r10-roster. I did not re-measure it, because round 2 does not touch tests/gate_lock.py.
-- Figures I did not re-derive: the fixer's harness runs at 8f2bcb30a, and the round-1 coverage and gate-lease figures the body carries. My own runs above supersede the features figures.
-- Disclosure: ev/runz.sh and ev/runs.sh are my own runners. The four mutants were built by hand at the same sites the fixer's MUTANTS table names.
+  - Both claim files, VERSION, manifest.json and RELEASE_NOTES.md are unchanged in the three-dot diff, and the diff holds no `*_budgets.json`.
+  - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (ev/structure_head.txt).
+  - `GOLDEN_MODE=drift python3 tests/env_drift.py --all 6777ec33` in the gate environment: `NO UNCLAIMED DRIFT: 56`, `NO STALE FIXTURE: 56`, rc=0 (ev/env_drift_all_mb.txt).
+- RESULT merge: `git merge-tree --write-tree origin/main 5ee2be2d` exits 0. Its only note is `LEDGER-MERGE: resolved tests/closures.json` (ev/merge_tree.txt).
+- RESULT CI: I read all 69 check runs at the head across both pages (ev/check_runs.tsv). The non-green runs are gate ×3, pr-contract ×3, delivery-status, nightly-status and policy-docs. The job logs are ev/job_*.log.gz.
+- Figures I did not re-derive:
+  - the `--suite` sweep's 38-command per-zone table (before at 1a148834, after at e581b01c);
+  - the scratch-baseline env_drift runs under four zones;
+  - the `--golden-zones` counts;
+  - the six-zone mutant table beyond the three mutants above;
+  - the Europe/London row.
+
+  I did not run the 38-command sweep. The brief scoped the measurement to the host-time scripts, and the block does not turn on the sweep.
+- Review packet: `review_packet.py render` returned `UNAVAILABLE: ... HTTP 503` twice. The PR body and checks were read live instead (MCP pull_request_read and the check-runs API).
+
+## Friction
+
+- The brief asks for handoff-wip pushes at milestones, but the payload says to push nothing except the probe ref. I followed the payload and pushed only probe/rev-3170-b75283b5. Carry: dismissed: a brief-wording conflict, resolved by the payload's own rule; no defect in the PR
+- A frugal-routing hook refused routine status polls as "inline search" more than once. Waiting moved to background tasks; no check was skipped. Carry: dismissed: seat tooling friction, no defect in the PR
