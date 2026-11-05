@@ -1,6 +1,0 @@
-origin/main fad43b0471b9cef3c563d2c2ae1eab3d87a34190
-LEDGER-MERGE: resolved tests/closures.json
-de9da103c6a8546610c035f01495a673c94d5895
-merge-tree rc=0
-live head b195da4715d4b160e9e638d648e73603c7df59a4	refs/heads/fix/r10-closeout-cleanup
-protected check done
