@@ -1410,7 +1410,7 @@ st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "^the main HEAD holds, $(git -C
 # --reuse wiring past a reusing verdict: a copy whose reuse_verdict is replaced by
 # one that reuses, so prepr runs under PREPR_SKIP_CODE and row_only_checks follow it.
 sed '/^reuse_verdict() {/,/^}/c\
-reuse_verdict() { RV_HEAD=$(git -C "$1" rev-parse HEAD); RV_C=$RV_HEAD; RV_TITLE=""; RV_WHY="stub reuse"; echo "$RV_WHY"; }' "$SELF" > "$W/tool/app_push_reuse.sh"
+function reuse_verdict { RV_HEAD=$(git -C "$1" rev-parse HEAD); RV_C=$RV_HEAD; RV_TITLE=""; RV_WHY="stub reuse"; echo "$RV_WHY"; }' "$SELF" > "$W/tool/app_push_reuse.sh"
 rucase() { mkcase "$1"; cp "$W/body.md" "$W/$1/body.md"; ( export STUB="$W/$1" PATH="$W/bin:$PATH" TMPDIR="$W/$1/tmp" HPO_IDENTITY_DIR="$W/id"
   bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/$1/body.md" > "$W/$1/out" 2> "$W/$1/err" ); }
 rucase ureused; st $? 0 "--reuse, the verdict reusing: pushed"
