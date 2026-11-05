@@ -1,0 +1,1267 @@
+{
+ "workflow_runs": [
+  {
+   "created_at": "2026-11-04T15:10:32Z",
+   "event": "pull_request",
+   "head_sha": "10e05b94f17695ca312105a9a99d59d226c356db",
+   "id": 41854976917,
+   "jobs": [
+    {
+     "completed_at": "2026-11-04T15:11:05Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:10:32Z",
+     "id": 126661031729,
+     "name": "prelude",
+     "started_at": "2026-11-04T15:10:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:10:46Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:10:32Z",
+     "id": 126661032153,
+     "name": "cancel-superseded",
+     "started_at": "2026-11-04T15:10:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:09Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:10:32Z",
+     "id": 126661032240,
+     "name": "refresh",
+     "started_at": "2026-11-04T15:10:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:48Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661374864,
+     "name": "validate / validate-hacs",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:54Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375102,
+     "name": "tests / briefs",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:56Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375118,
+     "name": "tests / mutation",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:06Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375143,
+     "name": "arch-score / arch-score",
+     "started_at": "2026-11-04T15:11:09Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:54Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375185,
+     "name": "governance / wave-script",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:28Z",
+     "conclusion": "failure",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375204,
+     "name": "tests / nightly-status",
+     "started_at": "2026-11-04T15:11:14Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:44Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375232,
+     "name": "hassfest / hassfest",
+     "started_at": "2026-11-04T15:11:24Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:34:19Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375318,
+     "name": "governance / instrument-self-tests",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:09Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375324,
+     "name": "budget-raise-gate / budget-raise-gate",
+     "started_at": "2026-11-04T15:11:43Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:39Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375401,
+     "name": "governance / delivery-status",
+     "started_at": "2026-11-04T15:11:12Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:51:45Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375443,
+     "name": "codeql / Analyze (python)",
+     "started_at": "2026-11-04T15:11:23Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:18:21Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375449,
+     "name": "governance / env-matrix",
+     "started_at": "2026-11-04T15:11:30Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:38Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375473,
+     "name": "codeql / Analyze (javascript-typescript)",
+     "started_at": "2026-11-04T15:11:08Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:14:45Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375603,
+     "name": "governance / policy-docs",
+     "started_at": "2026-11-04T15:11:41Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:20Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661375771,
+     "name": "tests / closure-scope",
+     "started_at": "2026-11-04T15:11:47Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:08Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661376665,
+     "name": "codeql / Analyze (actions)",
+     "started_at": "2026-11-04T15:11:12Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:05Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661377752,
+     "name": "governance / record",
+     "started_at": "2026-11-04T15:11:05Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:05Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661378004,
+     "name": "kernel-points",
+     "started_at": "2026-11-04T15:11:05Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:05Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:11:05Z",
+     "id": 126661378574,
+     "name": "governance / delivery-status-publish",
+     "started_at": "2026-11-04T15:11:05Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:56Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:11:56Z",
+     "id": 126661897035,
+     "name": "tests / mutation-pins",
+     "started_at": "2026-11-04T15:11:56Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:11:56Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:11:56Z",
+     "id": 126661897146,
+     "name": "tests / mutation-autofix",
+     "started_at": "2026-11-04T15:11:56Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:45:30Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136012,
+     "name": "tests / arch-instrument",
+     "started_at": "2026-11-04T15:12:24Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:13:39Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:13:00Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:16:34Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136381,
+     "name": "tests / browser",
+     "started_at": "2026-11-04T15:12:23Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:44:21Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136413,
+     "name": "tests / coverage",
+     "started_at": "2026-11-04T15:12:24Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:13:39Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:13:01Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:13:30Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136522,
+     "name": "tests / typing",
+     "started_at": "2026-11-04T15:12:23Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:45:34Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136647,
+     "name": "tests / fast (3.14)",
+     "scripts_s": {
+      "node tests/card.mjs": 109,
+      "node tests/card_drift.mjs SHA": 5,
+      "node tests/md_tables.mjs": 0,
+      "node tests/setup_qa_render.mjs": 1,
+      "python3 tests/backtest.py": 130,
+      "python3 tests/block_duty.py": 1,
+      "python3 tests/boost_drift_replay.py": 273,
+      "python3 tests/closure.py selftest": 4,
+      "python3 tests/config_flow_steps.py": 22,
+      "python3 tests/debug_collect.py": 1,
+      "python3 tests/deployment_shape.py": 2,
+      "python3 tests/doc_claims.py": 10,
+      "python3 tests/edge.py": 37,
+      "python3 tests/entities.py": 536,
+      "python3 tests/env_drift.py --all SHA": 186,
+      "python3 tests/env_drift.py --claims-only SHA": 1,
+      "python3 tests/features.py": 627,
+      "python3 tests/finite_boundary.py": 82,
+      "python3 tests/frontend.py": 0,
+      "python3 tests/guard_pins.py": 1,
+      "python3 tests/ha_contract.py": 0,
+      "python3 tests/harness_headers.py": 209,
+      "python3 tests/layout.py": 5,
+      "python3 tests/manual_plan.py": 9,
+      "python3 tests/open_meteo.py": 0,
+      "python3 tests/optimality.py": 146,
+      "python3 tests/plan_view.py": 1,
+      "python3 tests/solar_alignment.py": 1,
+      "python3 tests/stress.py": 367,
+      "python3 tests/structure.py": 24,
+      "python3 tests/typing_ruler.py": 1,
+      "python3 tests/validate.py": 39,
+      "python3 tests/wood_advisor.py": 1
+     },
+     "started_at": "2026-11-04T15:12:28Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:13:44Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:13:04Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:51:45Z",
+     "conclusion": "failure",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662136815,
+     "name": "tests / closures",
+     "started_at": "2026-11-04T15:12:25Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:13:41Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:13:02Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:12:20Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:12:20Z",
+     "id": 126662138851,
+     "name": "tests / replay",
+     "started_at": "2026-11-04T15:12:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:12:20Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:12:21Z",
+     "id": 126662139529,
+     "name": "tests / nightly-ha",
+     "started_at": "2026-11-04T15:12:21Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:44:36Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:44:21Z",
+     "id": 126681891200,
+     "name": "tests / coverage-ratchet",
+     "started_at": "2026-11-04T15:44:24Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:44:52Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:44:21Z",
+     "id": 126681891238,
+     "name": "tests / graders-head-copy",
+     "started_at": "2026-11-04T15:44:24Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:45:43Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:45:35Z",
+     "id": 126682651337,
+     "name": "tests / lane-proofs",
+     "started_at": "2026-11-04T15:45:38Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:45:35Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:45:35Z",
+     "id": 126682654472,
+     "name": "tests / claims-autofix",
+     "started_at": "2026-11-04T15:45:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:18Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:51:46Z",
+     "id": 126686372912,
+     "name": "tests / closures-autofix",
+     "started_at": "2026-11-04T15:51:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:51:46Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:51:46Z",
+     "id": 126686375530,
+     "name": "tests / ci-ratchet",
+     "started_at": "2026-11-04T15:51:46Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:59Z",
+     "conclusion": "failure",
+     "created_at": "2026-11-04T15:52:19Z",
+     "id": 126686675448,
+     "name": "pr-contract / pr-contract",
+     "started_at": "2026-11-04T15:52:21Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:59:32Z",
+     "conclusion": "cancelled",
+     "created_at": "2026-11-04T15:52:59Z",
+     "id": 126687039288,
+     "name": "gate",
+     "started_at": "2026-11-04T15:53:02Z",
+     "steps": []
+    }
+   ],
+   "path": ".github/workflows/ci.yml",
+   "status": "completed"
+  },
+  {
+   "created_at": "2026-11-04T15:52:04Z",
+   "event": "workflow_dispatch",
+   "head_sha": "abf21ae3432b2f8e2c4362255edfbf414774f146",
+   "id": 41862133797,
+   "jobs": [
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:04Z",
+     "id": 126686539699,
+     "name": "prelude",
+     "started_at": "2026-11-04T15:52:07Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:04Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:04Z",
+     "id": 126686541468,
+     "name": "refresh",
+     "started_at": "2026-11-04T15:52:04Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:04Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:04Z",
+     "id": 126686542571,
+     "name": "cancel-superseded",
+     "started_at": "2026-11-04T15:52:04Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:04Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686800878,
+     "name": "budget-raise-gate / budget-raise-gate",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:55Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686800999,
+     "name": "hassfest / hassfest",
+     "started_at": "2026-11-04T15:52:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:45Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801041,
+     "name": "arch-score / arch-score",
+     "started_at": "2026-11-04T15:52:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:16Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801045,
+     "name": "validate / validate-hacs",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:29Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801085,
+     "name": "codeql / Analyze (actions)",
+     "started_at": "2026-11-04T15:52:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:14Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801099,
+     "name": "tests / briefs",
+     "started_at": "2026-11-04T15:52:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:56Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801242,
+     "name": "codeql / Analyze (javascript-typescript)",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:56:25Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801274,
+     "name": "governance / policy-docs",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:03Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801276,
+     "name": "tests / closure-scope",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": null,
+     "conclusion": null,
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801306,
+     "name": "codeql / Analyze (python)",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:21:28Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801315,
+     "name": "governance / instrument-self-tests",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:17Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801375,
+     "name": "governance / wave-script",
+     "started_at": "2026-11-04T15:52:35Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:20Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801394,
+     "name": "tests / mutation",
+     "started_at": "2026-11-04T15:52:36Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:59:28Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686801827,
+     "name": "governance / env-matrix",
+     "started_at": "2026-11-04T15:52:37Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686803122,
+     "name": "kernel-points",
+     "started_at": "2026-11-04T15:52:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686803724,
+     "name": "governance / record",
+     "started_at": "2026-11-04T15:52:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686804156,
+     "name": "tests / nightly-status",
+     "started_at": "2026-11-04T15:52:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686804785,
+     "name": "governance / delivery-status",
+     "started_at": "2026-11-04T15:52:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:33Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:33Z",
+     "id": 126686804818,
+     "name": "governance / delivery-status-publish",
+     "started_at": "2026-11-04T15:52:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:17:11Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075541,
+     "name": "tests / arch-instrument",
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:12Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:53:40Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T16:23:27Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075553,
+     "name": "tests / coverage",
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:20Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:53:42Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T16:13:34Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075621,
+     "name": "tests / fast (3.14)",
+     "scripts_s": {
+      "node tests/card.mjs": 68,
+      "node tests/card_drift.mjs SHA": 3,
+      "node tests/md_tables.mjs": 0,
+      "node tests/setup_qa_render.mjs": 1,
+      "python3 tests/backtest.py": 45,
+      "python3 tests/block_duty.py": 1,
+      "python3 tests/boost_drift_replay.py": 179,
+      "python3 tests/closure.py selftest": 4,
+      "python3 tests/config_flow_steps.py": 12,
+      "python3 tests/debug_collect.py": 1,
+      "python3 tests/deployment_shape.py": 2,
+      "python3 tests/doc_claims.py": 6,
+      "python3 tests/edge.py": 18,
+      "python3 tests/entities.py": 348,
+      "python3 tests/env_drift.py --all SHA": 234,
+      "python3 tests/env_drift.py --claims-only SHA": 0,
+      "python3 tests/features.py": 388,
+      "python3 tests/finite_boundary.py": 50,
+      "python3 tests/frontend.py": 1,
+      "python3 tests/guard_pins.py": 1,
+      "python3 tests/ha_contract.py": 0,
+      "python3 tests/harness_headers.py": 127,
+      "python3 tests/layout.py": 3,
+      "python3 tests/manual_plan.py": 5,
+      "python3 tests/open_meteo.py": 1,
+      "python3 tests/optimality.py": 90,
+      "python3 tests/plan_view.py": 0,
+      "python3 tests/solar_alignment.py": 0,
+      "python3 tests/stress.py": 197,
+      "python3 tests/structure.py": 14,
+      "python3 tests/typing_ruler.py": 0,
+      "python3 tests/validate.py": 20,
+      "python3 tests/wood_advisor.py": 1
+     },
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:04Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:53:40Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:56:56Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075656,
+     "name": "tests / browser",
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:16:25Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075721,
+     "name": "tests / closures",
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:53:54Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:53:32Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:54:01Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:03Z",
+     "id": 126687075925,
+     "name": "tests / typing",
+     "started_at": "2026-11-04T15:53:06Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:03Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:04Z",
+     "id": 126687078148,
+     "name": "tests / replay",
+     "started_at": "2026-11-04T15:53:04Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:03Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:04Z",
+     "id": 126687078611,
+     "name": "tests / nightly-ha",
+     "started_at": "2026-11-04T15:53:04Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:20Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:20Z",
+     "id": 126687221937,
+     "name": "tests / mutation-autofix",
+     "started_at": "2026-11-04T15:53:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:20Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:20Z",
+     "id": 126687222763,
+     "name": "tests / mutation-pins",
+     "started_at": "2026-11-04T15:53:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:13:34Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:13:34Z",
+     "id": 126697295234,
+     "name": "tests / claims-autofix",
+     "started_at": "2026-11-04T16:13:34Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:16:25Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:16:25Z",
+     "id": 126698736604,
+     "name": "tests / closures-autofix",
+     "started_at": "2026-11-04T16:16:25Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:23:42Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T16:23:27Z",
+     "id": 126702729820,
+     "name": "tests / coverage-ratchet",
+     "started_at": "2026-11-04T16:23:30Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:23:27Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:23:27Z",
+     "id": 126702731849,
+     "name": "tests / lane-proofs",
+     "started_at": "2026-11-04T16:23:27Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:23:27Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:23:27Z",
+     "id": 126702732458,
+     "name": "tests / graders-head-copy",
+     "started_at": "2026-11-04T16:23:27Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:23:27Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:23:27Z",
+     "id": 126702733142,
+     "name": "tests / ci-ratchet",
+     "started_at": "2026-11-04T16:23:27Z",
+     "steps": []
+    }
+   ],
+   "path": ".github/workflows/ci.yml",
+   "status": "completed"
+  },
+  {
+   "created_at": "2026-11-04T15:52:16Z",
+   "event": "pull_request",
+   "head_sha": "abf21ae3432b2f8e2c4362255edfbf414774f146",
+   "id": 41862145105,
+   "jobs": [
+    {
+     "completed_at": "2026-11-04T15:52:46Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:16Z",
+     "id": 126686652814,
+     "name": "prelude",
+     "started_at": "2026-11-04T15:52:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:52Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:16Z",
+     "id": 126686653281,
+     "name": "refresh",
+     "started_at": "2026-11-04T15:52:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:16Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:17Z",
+     "id": 126686654919,
+     "name": "cancel-superseded",
+     "started_at": "2026-11-04T15:52:17Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:19Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686916902,
+     "name": "tests / closure-scope",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:32Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686916960,
+     "name": "tests / mutation",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:21Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686916972,
+     "name": "validate / validate-hacs",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:56:33Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917044,
+     "name": "governance / policy-docs",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:42Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917094,
+     "name": "governance / wave-script",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:21Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917131,
+     "name": "governance / delivery-status",
+     "started_at": "2026-11-04T15:52:50Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:16:35Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917173,
+     "name": "governance / instrument-self-tests",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:02Z",
+     "conclusion": "failure",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917212,
+     "name": "tests / nightly-status",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:59:46Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917228,
+     "name": "governance / env-matrix",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": null,
+     "conclusion": null,
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917232,
+     "name": "codeql / Analyze (python)",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:50Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917249,
+     "name": "codeql / Analyze (javascript-typescript)",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:42Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917399,
+     "name": "tests / briefs",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:14Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917402,
+     "name": "hassfest / hassfest",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:41Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917469,
+     "name": "arch-score / arch-score",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:18Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917493,
+     "name": "budget-raise-gate / budget-raise-gate",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:46Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686917574,
+     "name": "codeql / Analyze (actions)",
+     "started_at": "2026-11-04T15:52:49Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:46Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686918979,
+     "name": "governance / record",
+     "started_at": "2026-11-04T15:52:46Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:46Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686920008,
+     "name": "kernel-points",
+     "started_at": "2026-11-04T15:52:46Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:52:46Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:52:46Z",
+     "id": 126686920430,
+     "name": "governance / delivery-status-publish",
+     "started_at": "2026-11-04T15:52:46Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:16:28Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214018,
+     "name": "tests / closures",
+     "started_at": "2026-11-04T15:53:22Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:15Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:53:53Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T16:12:43Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214032,
+     "name": "tests / arch-instrument",
+     "started_at": "2026-11-04T15:53:23Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:13Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:53:51Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:54:52Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214046,
+     "name": "tests / typing",
+     "started_at": "2026-11-04T15:53:22Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:27:26Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214067,
+     "name": "tests / fast (3.14)",
+     "scripts_s": {
+      "node tests/card.mjs": 122,
+      "node tests/card_drift.mjs SHA": 6,
+      "node tests/md_tables.mjs": 0,
+      "node tests/setup_qa_render.mjs": 1,
+      "python3 tests/backtest.py": 160,
+      "python3 tests/block_duty.py": 1,
+      "python3 tests/boost_drift_replay.py": 325,
+      "python3 tests/closure.py selftest": 5,
+      "python3 tests/config_flow_steps.py": 20,
+      "python3 tests/debug_collect.py": 2,
+      "python3 tests/deployment_shape.py": 3,
+      "python3 tests/doc_claims.py": 11,
+      "python3 tests/edge.py": 55,
+      "python3 tests/entities.py": 553,
+      "python3 tests/env_drift.py --all SHA": 395,
+      "python3 tests/env_drift.py --claims-only SHA": 1,
+      "python3 tests/features.py": 652,
+      "python3 tests/finite_boundary.py": 85,
+      "python3 tests/frontend.py": 0,
+      "python3 tests/guard_pins.py": 0,
+      "python3 tests/ha_contract.py": 1,
+      "python3 tests/harness_headers.py": 212,
+      "python3 tests/layout.py": 5,
+      "python3 tests/manual_plan.py": 8,
+      "python3 tests/open_meteo.py": 1,
+      "python3 tests/optimality.py": 154,
+      "python3 tests/plan_view.py": 1,
+      "python3 tests/solar_alignment.py": 1,
+      "python3 tests/stress.py": 372,
+      "python3 tests/structure.py": 25,
+      "python3 tests/typing_ruler.py": 0,
+      "python3 tests/validate.py": 53,
+      "python3 tests/wood_advisor.py": 1
+     },
+     "started_at": "2026-11-04T15:53:22Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:40Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.14)",
+       "started_at": "2026-11-04T15:54:01Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:57:33Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214082,
+     "name": "tests / browser",
+     "started_at": "2026-11-04T15:53:22Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:24:40Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687214111,
+     "name": "tests / coverage",
+     "started_at": "2026-11-04T15:53:22Z",
+     "steps": [
+      {
+       "completed_at": "2026-11-04T15:54:37Z",
+       "conclusion": "success",
+       "name": "Probe the runner's speed (python 3.13)",
+       "started_at": "2026-11-04T15:53:58Z"
+      }
+     ]
+    },
+    {
+     "completed_at": "2026-11-04T15:53:19Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:19Z",
+     "id": 126687216223,
+     "name": "tests / nightly-ha",
+     "started_at": "2026-11-04T15:53:19Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:19Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:20Z",
+     "id": 126687216465,
+     "name": "tests / replay",
+     "started_at": "2026-11-04T15:53:20Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:32Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:32Z",
+     "id": 126687328559,
+     "name": "tests / mutation-pins",
+     "started_at": "2026-11-04T15:53:32Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T15:53:32Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T15:53:33Z",
+     "id": 126687329560,
+     "name": "tests / mutation-autofix",
+     "started_at": "2026-11-04T15:53:33Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:16:29Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:16:29Z",
+     "id": 126698772478,
+     "name": "tests / closures-autofix",
+     "started_at": "2026-11-04T16:16:29Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:25:00Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T16:24:40Z",
+     "id": 126703422197,
+     "name": "tests / coverage-ratchet",
+     "started_at": "2026-11-04T16:24:44Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:25:06Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T16:24:40Z",
+     "id": 126703422338,
+     "name": "tests / graders-head-copy",
+     "started_at": "2026-11-04T16:24:43Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:27:36Z",
+     "conclusion": "success",
+     "created_at": "2026-11-04T16:27:26Z",
+     "id": 126705022704,
+     "name": "tests / lane-proofs",
+     "started_at": "2026-11-04T16:27:29Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:27:26Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:27:26Z",
+     "id": 126705025014,
+     "name": "tests / ci-ratchet",
+     "started_at": "2026-11-04T16:27:26Z",
+     "steps": []
+    },
+    {
+     "completed_at": "2026-11-04T16:27:26Z",
+     "conclusion": "skipped",
+     "created_at": "2026-11-04T16:27:26Z",
+     "id": 126705025121,
+     "name": "tests / claims-autofix",
+     "started_at": "2026-11-04T16:27:26Z",
+     "steps": []
+    }
+   ],
+   "path": ".github/workflows/ci.yml",
+   "status": "completed"
+  }
+ ]
+}
