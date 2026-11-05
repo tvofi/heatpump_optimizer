@@ -373,26 +373,10 @@ class DhwPlanner:
         standby_loss = p.dhw_tank_heat_loss_coefficient * max(
             dhw_setpoint - TANK_ROOM_AMBIENT_TEMP, 0.0
         )
-        baseline_draw = p.dhw_draw_power
-        if (
-            p.dhw_coil_active
-            and initial_state.wood_tank_temperature is not None
-        ):
-            # The baseline house owns the same refill coil (v3.15.1) — the
-            # plumbing is not optimizer value. Held at the initial wood
-            # temperature for the whole day: the real coil weakens as the
-            # tank cools, so this makes the baseline at least as cheap as
-            # reality and the reported savings err low, never high.
-            baseline_draw, _ = dhw_coil_draw_reduction(
-                baseline_draw,
-                initial_state.wood_tank_temperature,
-                p.dhw_setpoint,
-                # The same inlet reference the draw itself was computed from;
-                # see dhw_coil_draw_reduction for why the two must agree.
-                inlet_temp=p.dhw_inlet_reference,
-            )
+        # The reference house has no wood side, so no refill coil: whatever the
+        # coil saves counts in the saving (owner ruling, 2026-11-04).
         baseline_dhw = np.full(
-            n_steps, power_for_heat_per_cop_kw(p, (baseline_draw + standby_loss) / cop_dhw))
+            n_steps, power_for_heat_per_cop_kw(p, (p.dhw_draw_power + standby_loss) / cop_dhw))
         # All three figures are piecewise in the PV surplus, like the objective.
         # The baseline house would self-consume the same sun, so pricing only
         # the optimized plan that way would manufacture fictitious savings.

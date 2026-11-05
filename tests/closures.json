@@ -155,6 +155,14 @@
    "tools/audit/archscore/planted/redteam/45_shape_private_copy.py",
    "tools/audit/archscore/planted/redteam/46_card_rule_respelled.py",
    "tools/audit/archscore/planted/redteam/47_card_template_respelled.py",
+   "tools/audit/archscore/planted/redteam/48_footprint_packed_unpack.py",
+   "tools/audit/archscore/planted/redteam/49_footprint_packed_nested.py",
+   "tools/audit/archscore/planted/redteam/50_footprint_packed_for_literal.py",
+   "tools/audit/archscore/planted/redteam/51_footprint_packed_walrus.py",
+   "tools/audit/archscore/planted/redteam/52_footprint_packed_set_display.py",
+   "tools/audit/archscore/planted/redteam/53_footprint_ifexp_chain.py",
+   "tools/audit/archscore/planted/redteam/54_footprint_ifexp_body_chain.py",
+   "tools/audit/archscore/planted/redteam/55_footprint_boolop_control.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -1518,6 +1526,7 @@
    "dev/audit/rounds/round5/D13/seat-a/fixtures/window_merges.json",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
    "dev/governance/config/cfr_exclusions.json",
+   "dev/governance/config/machinery_budgets.json",
    "dev/governance/dimensions/D0.md",
    "dev/governance/dimensions/D1.md",
    "dev/governance/dimensions/D10.md",
@@ -1637,6 +1646,7 @@
    "tests/hastub/homeassistant/loader.py",
    "tests/hastub/homeassistant/util/__init__.py",
    "tests/hastub/homeassistant/util/dt.py",
+   "tests/host_probe.py",
    "tests/issue996_count.py",
    "tests/lane_skip.py",
    "tests/layout.json",
@@ -1812,11 +1822,20 @@
    "tools/audit/archscore/planted/redteam/45_shape_private_copy.py",
    "tools/audit/archscore/planted/redteam/46_card_rule_respelled.py",
    "tools/audit/archscore/planted/redteam/47_card_template_respelled.py",
+   "tools/audit/archscore/planted/redteam/48_footprint_packed_unpack.py",
+   "tools/audit/archscore/planted/redteam/49_footprint_packed_nested.py",
+   "tools/audit/archscore/planted/redteam/50_footprint_packed_for_literal.py",
+   "tools/audit/archscore/planted/redteam/51_footprint_packed_walrus.py",
+   "tools/audit/archscore/planted/redteam/52_footprint_packed_set_display.py",
+   "tools/audit/archscore/planted/redteam/53_footprint_ifexp_chain.py",
+   "tools/audit/archscore/planted/redteam/54_footprint_ifexp_body_chain.py",
+   "tools/audit/archscore/planted/redteam/55_footprint_boolop_control.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
    "tools/audit/carry_audit.py",
    "tools/audit/judge_batch.py",
+   "tools/audit/machinery_ratchet.py",
    "tools/audit/merge_throughput.py",
    "tools/audit/repo_root.py",
    "tools/audit/round4/D11/d11lib.py",
@@ -3815,9 +3834,13 @@
    "dev/audit/harnesses/r10_ci_layout_u5/run_part.py",
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/rounds/round6/D11/fix/codeowners_gap.py",
+   "tools/audit/seat/beat_jobs.py",
+   "tools/audit/seat/beat_jobs_selftest.py",
    "tools/audit/seat/beatd.py",
+   "tools/audit/seat/carry_fold.py",
    "tools/audit/seat/ci_critpath.py",
    "tools/audit/seat/ci_probe.py",
+   "tools/audit/seat/closeout.py",
    "tools/audit/seat/cloud_dispatch.py",
    "tools/audit/seat/daemonize.py",
    "tools/audit/seat/features_block.py",
@@ -3834,6 +3857,7 @@
    "tools/audit/seat/plan_audit.py",
    "tools/audit/seat/plan_page.py",
    "tools/audit/seat/postmerge.py",
+   "tools/audit/seat/probe_bridge.py",
    "tools/audit/seat/proof_watch.py",
    "tools/audit/seat/prune_refs.py",
    "tools/audit/seat/pulse.py",
@@ -3895,6 +3919,7 @@
    "dev/audit/harnesses/git_auto_maintenance_race.sh",
    "dev/audit/harnesses/h8_single_scenario.py",
    "dev/audit/harnesses/h9_basin_coverage.py",
+   "dev/audit/harnesses/host_zone_features.py",
    "dev/audit/harnesses/hpo_ci_container_setup.sh",
    "dev/audit/harnesses/j5_gil.py",
    "dev/audit/harnesses/k1725_blas_kernel_gap.py",
@@ -3946,6 +3971,7 @@
    "dev/audit/harnesses/r10_configflow_pages.py",
    "dev/audit/harnesses/r10_cop_conversions.py",
    "dev/audit/harnesses/r10_cop_gate.py",
+   "dev/audit/harnesses/r10_cop_gate_top.py",
    "dev/audit/harnesses/r10_cop_gate_vent.py",
    "dev/audit/harnesses/r10_cop_partload.py",
    "dev/audit/harnesses/r10_cop_partload_equiv.py",
@@ -3980,6 +4006,7 @@
    "dev/audit/harnesses/r10_heat_meter.py",
    "dev/audit/harnesses/r10_heat_meter_mutants.py",
    "dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py",
+   "dev/audit/harnesses/r10_hotfix_ci_critpath_4/replay.py",
    "dev/audit/harnesses/r10_house_grade.py",
    "dev/audit/harnesses/r10_i1_action_guards.py",
    "dev/audit/harnesses/r10_i1_solve_cpu_2x.py",
@@ -3994,6 +4021,7 @@
    "dev/audit/harnesses/r10_livestate_held_ctx_reads.py",
    "dev/audit/harnesses/r10_livestate_manual_plan_load.py",
    "dev/audit/harnesses/r10_livestate_restore_race.py",
+   "dev/audit/harnesses/r10_machinery_ratchet_mutants.py",
    "dev/audit/harnesses/r10_main_gate_replay.py",
    "dev/audit/harnesses/r10_mandate_guard_instances.py",
    "dev/audit/harnesses/r10_merge_subject_argv_seam.mjs",
@@ -4022,6 +4050,7 @@
    "dev/audit/harnesses/r10_ratio_anchor.py",
    "dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
+   "dev/audit/harnesses/r10_rca_sav_estimate.py",
    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
    "dev/audit/harnesses/r10_recarry_head.py",
    "dev/audit/harnesses/r10_registry_leak.py",
@@ -4037,8 +4066,10 @@
    "dev/audit/harnesses/r10_sav_actuation_phase.py",
    "dev/audit/harnesses/r10_sav_baseline.py",
    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
+   "dev/audit/harnesses/r10_sav_null_settled.py",
    "dev/audit/harnesses/r10_sav_null_terms.py",
    "dev/audit/harnesses/r10_sav_volume.py",
+   "dev/audit/harnesses/r10_sav_wood_reference.py",
    "dev/audit/harnesses/r10_savings_upgrade_month.py",
    "dev/audit/harnesses/r10_scores_envelope.py",
    "dev/audit/harnesses/r10_seat_selftests_mutants.py",
@@ -4821,11 +4852,11 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 85.9
+   "seconds": 88.0
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 69.1
+   "seconds": 151.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -4837,7 +4868,7 @@
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 161.9
+   "seconds": 166.0
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -4865,7 +4896,7 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 25.0
+   "seconds": 55.0
   },
   "tests/entities.py": {
    "rc": 0,
@@ -4897,7 +4928,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -4905,11 +4936,11 @@
   },
   "tests/layout.py": {
    "rc": 0,
-   "seconds": 17.3
+   "seconds": 13.2
   },
   "tests/manual_plan.py": {
    "rc": 0,
-   "seconds": 9.2
+   "seconds": 19.1
   },
   "tests/md_tables.mjs": {
    "rc": 0,
@@ -4921,11 +4952,11 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 93.0
+   "seconds": 291.9
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.9
+   "seconds": 2.3
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -4933,7 +4964,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 936.3
+   "seconds": 1060.0
   },
   "tests/structure.py": {
    "rc": 0,
@@ -4945,7 +4976,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 54.2
+   "seconds": 23.2
   },
   "tests/wood_advisor.py": {
    "rc": 0,

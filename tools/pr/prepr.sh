@@ -270,6 +270,9 @@ figures_check() { # body file
 # Under a second; it reads the diff from the merge base, never the whole tree.
 privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
   local out r
+  # instrument-self-tests also runs bare_array.py --check (a bare "${arr[@]}" in a tools/ script,
+  # R10-BODY-CONTRACT's body_patch.sh:146); seconds, so it rides this step.
+  out=$(python3 -I tools/audit/seat/bare_array.py --check 2>&1) || { printf 'bare_array: %s' "$(tail -1 <<<"$out")"; return 1; }
   out=$(python3 -I tools/audit/seat/ref_privacy.py --check 2>&1); r=$?
   [ "$r" -eq 0 ] && { tail -1 <<<"$out"; return 0; }
   printf '%s-- %s' "$(grep -m3 '^ref_privacy: REFUSE' <<<"$out" | sed 's/^ref_privacy: REFUSE //' | tr '\n' ';')" "$(tail -1 <<<"$out")"
@@ -769,6 +772,19 @@ closures_line() { # merge base; rc 0 covered, 1 refused, 3 skipped
   rm -rf "$cw"; return "$r"
 }
 
+# rc 0 when `closures_line` would run the recorder, i.e. the slot is owed.
+closures_owes_slot() { # merge base
+  local cw k r=1
+  closures_records_here || return 1
+  cw=$(mktemp -d)
+  if git diff --no-renames --name-only "$1"...HEAD > "$cw/changed.txt" \
+     && python3 tests/closure.py affected --files-from "$cw/changed.txt" --workdir "$cw/aff" >/dev/null 2>&1; then
+    k=$(cat "$cw/aff/affected.case" 2>/dev/null)
+    [ "$k" = scoped ] && [ -s "$cw/aff/affected.scripts" ] && r=0
+  fi
+  rm -rf "$cw"; return "$r"
+}
+
 # Step 6b runs `closures_line` as a job the prepr `wait`s on, never inside
 # `$(...)`: a trapped signal ends that `wait` at once, where the prepr would
 # defer its own TERM trap until a command substitution's recorder finished --
@@ -897,6 +913,15 @@ body_check() { # body file, head sha, title, paths file, red names...
   return "$rc"
 }
 
+# --body-check's body-text privacy arm (P317): the comment/review gate's own
+# `body_refusal` (ref_privacy.py body-lines), so a host path in a PR body is
+# refused at the handoff, not first at review_packet.py's backstop.
+body_privacy_line() { # body file -> one line; rc 0 nothing refused, 1 refused
+  local out
+  out=$(python3 -I tools/audit/seat/ref_privacy.py body-lines "$1" 2>&1) && { echo "no host identity in the body"; return 0; }
+  printf '%s' "$out"; return 1
+}
+
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
 # WHY THIS EXISTS. Every root-cause-unanswered block of the v6.7.16 window named
 # a red standing at the reviewed head, and step 7c reads only commits already
@@ -993,6 +1018,24 @@ body_line() { # body file, head sha, title, paths file, merge base, head, [unpin
   else printf '%s -- %s' "$(body_refusal "$out")" "$raised"; fi
   [ -z "${BODY_LOG:-}" ] || cp -f "$out" "$BODY_LOG"   # --body-check prints every ERROR
   rm -f "$out"; return "$r"
+}
+
+# Step 1a3's early `## Head` arm (P208, carry 23): the SAME body check step 7
+# runs, invoked before any heavy step, and reduced to its `## Head` refusal --
+# no second parser. The `## Approval` arm needs the diff's path list and stays
+# late; the other body refusals stay step 7's, so a run with a matching `## Head`
+# does exactly what it did. rc 0 the body names this head (or no body to read),
+# 1 it does not: the refusal line is the one policy_lint prints.
+head_arm() { # body file, merge base -> refusal line on stdout
+  local out paths r
+  out=$(mktemp); paths=$(mktemp)
+  diff_paths "$2" "$paths" || { rm -f "$out" "$paths"; return 0; }
+  body_check "$1" "$(git rev-parse HEAD)" "$(git log -1 --format=%s)" "$paths" >"$out" 2>&1
+  if grep -q '`## Head` does not name' "$out"; then
+    grep -m1 '`## Head` does not name' "$out" | sed 's/^[[:space:]]*//'
+    r=1
+  else r=0; fi
+  rm -f "$out" "$paths"; return "$r"
 }
 
 # Step 7e's whole body, so `--self-test` drives the code the step runs.
@@ -1584,6 +1627,96 @@ selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
   fi
   printf '%s\n' "$SELFTEST_FIXTURES"
 }
+# --- the receipt and the merged tree (P386, R10-HANDOFF-PATH part 1) --------
+# A full run that passes with a body writes `<HEAD sha> <tree sha>` to
+# hpo-prepr-receipt in this checkout's git dir. body_push.sh carries it onto the
+# handoff-body/<topic> commit as a `Prepr:` trailer when its sha is the handoff's
+# code head, and app_push.sh --reuse reads it there, so a fixer's run is not
+# repeated at open or update. A run that sets any PREPR_SKIP_* but
+# PREPR_SKIP_CLOSURES (closures-autofix repairs that one on the pull request)
+# writes none, PREPR_SKIP_CODE included; so does a run over a dirty tree, whose
+# HEAD is not what ran. `--body-check` and `--fill-red` exit before the main
+# flow, which removes an earlier receipt first, so a failing run leaves none.
+# The receipt names the HEAD the run STARTED on, read where the main flow starts
+# (`receipt_line`); a HEAD that moved while the steps ran is refused, since a
+# commit landing mid-run is code the steps never saw.
+receipt_file() { # -> the receipt's path in this checkout's git dir
+  local g; g=$(git rev-parse --absolute-git-dir 2>/dev/null) || return 1
+  printf '%s/hpo-prepr-receipt\n' "$g"
+}
+receipt_skips() { # -> the PREPR_SKIP_* variables set non-empty, PREPR_SKIP_CLOSURES aside
+  local v out=""
+  for v in $(compgen -v PREPR_SKIP_); do
+    [ "$v" = PREPR_SKIP_CLOSURES ] || [ -z "${!v}" ] || out="$out $v"
+  done
+  printf '%s' "${out# }"
+}
+receipt_line() { # -> `<HEAD sha> <tree sha>`, the receipt's one line, or nothing
+  local h t
+  h=$(git rev-parse --verify -q HEAD 2>/dev/null) && t=$(git rev-parse --verify -q 'HEAD^{tree}' 2>/dev/null) || return 0
+  printf '%s %s\n' "$h" "$t"
+}
+receipt_write() { # rc, body, the run's starting receipt_line -> one line; the receipt only for a passing full run with a body over a clean, unmoved tree
+  local f s
+  f=$(receipt_file) || { say skip "receipt" "no git dir, so none written"; return 0; }
+  [ "$1" = 0 ] || { say skip "receipt" "rc=$1, so none written"; return 0; }
+  [ -n "$2" ] || { say skip "receipt" "no body passed, so none written"; return 0; }
+  s=$(receipt_skips)
+  [ -z "$s" ] || { say skip "receipt" "$s set, so no full run and none written"; return 0; }
+  [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] \
+    || { say skip "receipt" "the tree is dirty, so HEAD is not what ran and none written"; return 0; }
+  [ -n "${3:-}" ] || { say skip "receipt" "the run's starting HEAD was not read, so none written"; return 0; }
+  [ "$3" = "$(receipt_line)" ] \
+    || { step "receipt" 1 "HEAD is $(receipt_line | cut -c1-12), not ${3:0:12} where this run started: the steps never saw the commit(s) between, so none written -- run prepr again"; return 0; }
+  printf '%s\n' "$3" > "$f" \
+    && say ok "receipt" "$(cut -c1-12 "$f") written for body_push.sh's Prepr: trailer"
+}
+
+# HEAD merged with origin/main: HEAD itself when it holds main's tip, else the
+# clean `git merge-tree` result committed unreferenced (rc 1 on a conflict, the
+# pull request's DIRTY). Carry 4: #3052 went red on tests/structure.py at a merge
+# no step had measured.
+merged_head() { # -> the merged sha on stdout
+  local t
+  if git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then git rev-parse HEAD; return; fi
+  t=$(git merge-tree --write-tree HEAD origin/main 2>/dev/null) || return 1
+  git -c user.name=prepr -c user.email=prepr@invalid commit-tree "$t" -p HEAD -p origin/main -m "prepr: HEAD merged with origin/main"
+}
+merged_run() { # merged sha, command... -> the command's rc, run at that sha's tree in a throwaway worktree
+  local m=$1 d r; shift
+  if [ "$m" = "$(git rev-parse HEAD)" ]; then "$@"; return; fi
+  d=$(mktemp -d) || return 1
+  git worktree add -q --detach "$d/t" "$m" >/dev/null 2>&1 \
+    || { echo "no worktree of ${m:0:12} could be made"; rm -rf "$d"; return 1; }
+  ( cd "$d/t" && "$@" ); r=$?
+  git worktree remove --force "$d/t" >/dev/null 2>&1; rm -rf "$d"; git worktree prune 2>/dev/null
+  return "$r"
+}
+# The steps keyed to the merge: tests/structure.py on the merged tree, always,
+# and under PREPR_SKIP_CODE the ci predict step 6d runs on HEAD otherwise, there,
+# static: without step 6d's `--record-self-tests`, which re-runs each changed
+# file's own self-test (minutes on a tools diff, measured on this group's) to
+# record its reads against the closures -- a closures question, which
+# PREPR_SKIP_CLOSURES already leaves to closures-autofix, and heavy work this
+# mode takes no slot for.
+merged_steps() { # body, unpinned-site key file -> step lines
+  local m out r b=""
+  [ -z "$1" ] || [ ! -f "$1" ] || b=$(cd "$(dirname -- "$1")" && pwd)/$(basename -- "$1")
+  if ! m=$(merged_head); then
+    step "merged tree" 1 "HEAD and origin/main do not merge cleanly, so no merged tree exists to check -- merge origin/main"
+    return
+  fi
+  out=$(merged_run "$m" python3 tests/structure.py 2>&1); r=$?
+  step "merged structure" "$r" "$(printf '%s\n' "$out" | tail -1 | cut -c1-160) (tests/structure.py at ${m:0:12}, HEAD merged with origin/main)"
+  [ -n "${PREPR_SKIP_CODE:-}" ] || return 0
+  out=$(merged_run "$m" predict_line origin/main "$2" "$b"); r=$?
+  case $r in
+    3) say skip "ci predict" "$out" ;;
+    0) step "ci predict" 0 "$out (at ${m:0:12}, HEAD merged with origin/main)" ;;
+    *) step "ci predict" 1 "$out (at ${m:0:12}, HEAD merged with origin/main)" ;;
+  esac
+}
+
 selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
   awk 'NR==FNR { if ($0 ~ /\/$/) d[$0]=1; else f[$0]=1; next }
        ($0 in f) { hit=1; exit }
@@ -1651,6 +1784,9 @@ if [ "${1:-}" = "--body-check" ]; then
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
+  bline=$(body_privacy_line "$2"); br=$?
+  if [ "$br" -eq 0 ]; then echo "ref_privacy (body) ok: $bline"; else echo "REFUSE ref_privacy (body): $bline"; fi
+  [ "$r" -ne 0 ] || r=$br
   [ -z "${BODY_CHECK_REDS_RC:-}" ] || r=1
   exit "$r"
 fi
@@ -2051,6 +2187,18 @@ EOS
   case "$got" in *'no budget leaf raised'*) st 1 1 "and the ok line says no raise was found, so the gate ran";; *) st 0 1 "and the ok line says no raise was found, so the gate ran";; esac
   got=$(bl base docs unnamed-red.md)
   st "${got%%:*}" 0 "a diff touching no budget file passes"
+  # Step 1a3's early arm (P208, carry 23), driven through `head_arm` over the same
+  # fixture: a body whose `## Head` names another sha is refused with the
+  # policy_lint line; the body naming this head passes (null control).
+  BRH=$(git --git-dir="$BR/.git" rev-parse HEAD)
+  sed "s/$ZERO/$BRH/g" "$DABS/budget-answered.md" > "$BR/head-ok.md"
+  got=$(GIT_DIR="$BR/.git" head_arm "$DABS/budget-answered.md" base); r=$?
+  st "$r" 1 "head_arm refuses a body whose ## Head names another sha, before any heavy step"
+  case "$got" in *'`## Head` does not name'*) st 1 1 "and prints policy_lint's own line";; *) st 0 1 "and prints policy_lint's own line";; esac
+  got=$(GIT_DIR="$BR/.git" head_arm "$BR/head-ok.md" base); r=$?
+  st "$r" 0 "head_arm passes a body naming this head (null control)"
+  hflow_ok=$(awk '/^# --- 1a3\./{f=1} /^# --- 1b0\./{exit} f' "$PREPR_PATH")
+  st "$(grep -cF 'head_arm "$1" "$BASE"' <<<"$hflow_ok")" 1 "the main flow runs the early ## Head arm between the red-check arm and the priority/slot steps"
   # The same plant through step 7 (R10-FLY-BUDGET-LEAF): no raise, so the
   # line ends `no budget leaf raised`, and what precedes it must be the error.
   # `bl base docs unnamed-red.md` above is its null control.
@@ -3257,6 +3405,24 @@ STUB
   ( cd "$QT" && claims_reg_line "$WF/changed" "$QC" ) >/dev/null 2>&1
   st $? 1 "and a target the repository lacks is not copied, so the register is refused (null control)"
   rm -rf "$QT" "$QC"
+  # THE COST OF 6g'S TARGET COPY IS PINNED (carry 24). The loop is shell-only so
+  # the check stays under the owner's 5 s cap; a per-target interpreter put it
+  # over (2.84-3.12 s across 84 targets, #2853). The pin is the count of
+  # interpreter spawns, which must not grow with the number of targets: 40 and
+  # 4 targets spawn the same number.
+  CQ=$(mktemp -d); mkdir -p "$CQ/$(dirname "$CLAIMS_GEN")"
+  printf '# --print-link-targets\n' >"$CQ/$CLAIMS_GEN"
+  printf '1 0\n' >"$CQ/$(dirname "$CLAIMS_GEN")/claims.json"; printf 'x\n' >"$CQ/$(dirname "$CLAIMS_GEN")/claims.md"
+  printf '%s\n' README.md >"$WF/changed" 2>/dev/null || { WF=$(mktemp -d); printf '%s\n' README.md >"$WF/changed"; }
+  claims_spawns() { # target count -> interpreter spawns
+    : >"$CQ/spawns"
+    ( N=$1; python3() { echo x >>"$CQ/spawns"; case "$*" in *--print-link-targets*) seq 1 "$N" | sed 's|^|docs/t|';; esac; return 0; }
+      claims_reg_line "$WF/changed" "$CQ" ) >/dev/null 2>&1
+    wc -l <"$CQ/spawns" | tr -d ' '
+  }
+  n40=$(claims_spawns 40); n4=$(claims_spawns 4)
+  st "$([ "$n40" = "$n4" ] && [ "$n4" -ge 2 ] && [ "$n4" -le 3 ] && echo flat)" flat "6g spawns the same few interpreters for 40 link targets as for 4 (${n4}/${n40}): no per-target interpreter"
+  rm -rf "$CQ"
   rm -rf "$CG"
   rm -rf "${WF:?}"
 
@@ -3399,8 +3565,75 @@ STUB
   st "$(grep -cF '${HPO_SLOT_LABEL:-}' <<<"$flow")" 1 "and joins a slot it was already inside instead of taking a second"
   st "$(grep -cF 'slot-unleased --label "$SLOT_LABEL"' <<<"$flow")" 1 "a run that cannot take a slot counts itself in slot-status"
   st "$(grep -cF "slot-leased --label '\$SLOT_LABEL'" <<<"$flow")" 1 "and clears the count on the way out"
-  slot_order=$(awk '/step "policy_lint"/{seen=1} /slot-take --label/{ if(!seen){print "ok"} exit }' <<<"$flow")
-  st "$slot_order" ok "and takes it before the heavy steps begin"
+  # LAZY (carries 25 and 26): the take is a function the heavy steps call, never
+  # an unconditional line before the light ones. Every call precedes the heavy
+  # command it guards, and the idempotence and the join are DRIVEN below.
+  st "$(grep -cE '^ *take_slot( |$)|&& take_slot$' <<<"$flow")" 5 "the main flow calls take_slot at the mutants, field coverage, self-test, closures and diff-mutants steps (and defines it once; 3f5 is light and stays unleased)"
+  slot_order=$(awk '/^take_slot\(\)/{d=1} /step "policy_lint"/{seen=1} /^ *take_slot$/{ if(d && seen){print "ok"} exit }' <<<"$flow")
+  st "$slot_order" ok "and the first call sits after the light policy_lint step: a run that skips every heavy step never takes one"
+  st "$(awk '/^take_slot$/{c=1} /policy_lint_mutants.mjs; then heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the mutants drive runs inside the slot (take_slot precedes its heavy_run)"
+  st "$(awk '/^  take_slot$/{c=1} /prepr.sh --self-test; else heavy_run/{ if(c){print "ok"} exit }' <<<"$flow")" ok "the self-test runs inside the slot"
+  # Step 3f3 (field coverage, ~234 s idle) is heavy_skip-gated like 3a but is not
+  # the mutants drive's read-set: a workflow-only diff skips the mutants and runs
+  # field coverage. DRIVEN: the production 3a and 3f3 blocks, with heavy_skip
+  # answering "mutants skip, field coverage runs" (the plant is a one-line change
+  # to .github/workflows/arch-score.yml); the log must read skip, take, run.
+  blk3=$(sed -n '/^HV=\$(heavy_skip "mutants"/,/^# --- 3b\./p' "$PREPR_PATH" | sed '$d'; sed -n '/^HV=\$(heavy_skip "field coverage"/,/^# --- 3f4\./p' "$PREPR_PATH" | sed '$d')
+  slot_log() { # mutants verdict, field-coverage verdict (0 skip, 1 run) -> event log
+    ( L=$(mktemp); MS=$1; FS=$2
+      heavy_skip() { case "$1" in mutants) return "$MS" ;; *) return "$FS" ;; esac; }
+      say() { echo "skip $2" >> "$L"; }; take_slot() { echo take >> "$L"; }
+      heavy_run() { echo "run ${*: -1}" >> "$L"; }; step() { :; }
+      HEAVY_PLAN_FILE=x; eval "$blk3" >/dev/null 2>&1
+      tr '\n' ' ' < "$L"; rm -f "$L" )
+  }
+  got=$(slot_log 0 1)
+  case "$got" in "skip mutants take run "*"field_coverage.mjs ") r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "a plan where the mutants skip and field coverage runs takes the slot before 3f3's recorder ($got)"
+  got=$(slot_log 0 0)
+  case "$got" in "skip mutants skip field coverage ") r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "and a plan skipping both takes no slot (null control)"
+  # `closures_owes_slot` alone decides whether the scoped recorder runs inside a
+  # slot. DRIVEN like the 6b rows drive `closures_line`: a throwaway repository
+  # whose tests/closure.py stub writes the `affected` case and scripts it is told.
+  OWQ=$(mktemp -d)
+  ( set -e; throwaway_git_env; cd "$OWQ"; throwaway_git_init . -q -b main; git config user.email t@t; git config user.name t \
+    && mkdir tests && printf 'import os, sys\nw = sys.argv[sys.argv.index("--workdir") + 1]\nos.makedirs(w, exist_ok=True)\nopen(w + "/affected.case", "w").write(os.environ["OWE_CASE"])\nopen(w + "/affected.scripts", "w").write(os.environ.get("OWE_SCRIPTS", ""))\n' > tests/closure.py \
+    && echo a > f && git add . && git commit -qm base && git branch -q base && echo b >> f && git commit -qam change )
+  owes() { # case, scripts, records_here rc -> rc of closures_owes_slot
+    ( cd "$OWQ"; export OWE_CASE=$1 OWE_SCRIPTS=$2; RH=$3
+      closures_records_here() { return "$RH"; }
+      closures_owes_slot base >/dev/null 2>&1 ); echo $?
+  }
+  st "$(owes scoped 'a.py' 0)" 0 "closures_owes_slot: a scoped diff with scripts, on a machine that records, owes the slot"
+  st "$(owes skip 'a.py' 0)" 1 "and a skip diff owes none"
+  st "$(owes full 'a.py' 0)" 1 "and a full diff owes none (CI re-records every closure)"
+  st "$(owes scoped 'a.py' 1)" 1 "and a machine that leaves recording to CI owes none"
+  st "$(owes scoped '' 0)" 1 "and a scoped diff whose affected.scripts is empty owes none (null control)"
+  rm -rf "$OWQ"
+  TSL=$(mktemp -d); : > "$TSL/log"
+  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
+    say() { :; }; exit_on_signals() { :; }
+    python3() { echo "$*" >> "$TSL/log"; return 0; }
+    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
+    take_slot; take_slot )
+  st "$(grep -c slot-take "$TSL/log")" 1 "take_slot called twice takes exactly one slot (idempotent)"
+  : > "$TSL/log"
+  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; unset HPO_SLOT_LABEL
+    say() { :; }; exit_on_signals() { :; }
+    python3() { echo "$*" >> "$TSL/log"; case "$*" in *slot-take*) return 1 ;; esac; return 0; }
+    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
+    take_slot; take_slot )
+  st "$(grep -c slot-take "$TSL/log")" 1 "a failing slot-take is attempted once across two take_slot calls (no re-queue on the WARN path)"
+  st "$(grep -c slot-unleased "$TSL/log")" 1 "and the unleased marker is written once"
+  : > "$TSL/log"
+  ( SLOT_LABEL=prepr-test; SLOT_TAKEN=""; export HPO_SLOT_LABEL=outer
+    say() { :; }; exit_on_signals() { :; }
+    python3() { echo "$*" >> "$TSL/log"; return 0; }
+    eval "$(sed -n '/^take_slot()/,/^}/p' "$PREPR_PATH")"
+    take_slot )
+  st "$(grep -c slot-take "$TSL/log")" 0 "a take_slot inside an inherited slot takes none (null control: a nested heavy step joins)"
+  rm -rf "$TSL"
   # (7) The priority the slot-take reads is derived from the branch's group and
   # exported BEFORE the take, so the lease's ticket carries it (tvofi,
   # 2026-10-20). The derivation's own four arms are gate_priority.py's
@@ -3552,7 +3785,7 @@ EOF
   # survivors: `EARLY_REDS_RC=0` in step 1a2, and `if false` for the --pr-branch
   # guard). The arm is a stub returning a chosen rc; the blocks are the
   # production text, extracted and evaluated.
-  blk1a2=$(sed -n '/^# --- 1a2\./,/^# --- 1b0\./p' "$PREPR_PATH" | sed '$d')
+  blk1a2=$(sed -n '/^# --- 1a2\./,/^# --- 1a3\./p' "$PREPR_PATH" | sed '$d')
   bcg=$(sed -n '/^if \[ "${1:-}" = "--body-check" \]/,/^  P=\$(mktemp)/p' "$PREPR_PATH" | sed '$d'; echo fi)
   # The body FILE lives under $WB (a mktemp dir inside ST_ROOT, which the EXIT trap removes),
   # never in the tracked fixture directory: a stray file there dirties the
@@ -3581,6 +3814,26 @@ EOF
     case "$got" in 0:*FELL-THROUGH*) r=0 ;; *) r=1 ;; esac
     st "$r" 0 "step 1a2 does not refuse when the arm returns rc $sr (null control)"
   done
+  # Step 1a3 (P208) driven the same way: the arm is a stub with a chosen rc.
+  blk1a3=$(sed -n '/^# --- 1a3\./,/^# --- 1b0\./p' "$PREPR_PATH" | sed '$d')
+  early_head() { # stub rc -> "<exit rc>:<output>"
+    local o r
+    o=$( STUBRC=$1; rc=0; BASE=x
+      head_arm() { echo "stub-head-line"; return "$STUBRC"; }
+      step() { echo "STEP $1 $2 $3"; [ "$2" -eq 0 ] || rc=1; }
+      summary_end() { :; }
+      set -- "$WB/wiring-body.md"
+      eval "$blk1a3"; echo FELL-THROUGH ); r=$?
+    echo "$r:$o"
+  }
+  got=$(early_head 1)
+  case "$got" in 1:*'STEP pr-body 1 stub-head-line'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 1a3 exits nonzero on a head_arm refusal, naming it, before any heavy step"
+  case "$got" in *FELL-THROUGH*) r=1 ;; *) r=0 ;; esac
+  st "$r" 0 "and does not fall through to the heavy steps"
+  got=$(early_head 0)
+  case "$got" in 0:*FELL-THROUGH*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "step 1a3 lets a body naming this head run every step as today (null control)"
   bcchk() { # stub rc -> output ending REDSRC=<BODY_CHECK_REDS_RC>
     ( STUBRC=$1; BASE=x
       reds_arm() { echo "stub-line"; return "$STUBRC"; }
@@ -3607,6 +3860,17 @@ EOF
   st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
   case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
+  case "$bc" in *'bline=$(body_privacy_line "$2"); br=$?'*'[ "$r" -ne 0 ] || r=$br'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check applies body_privacy_line and folds its rc (P317)"
+  # Driven: the planted home is built and handed to the Identity through HOME/USER.
+  pfh="/$(echo Users)/exampleuser"
+  printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
+  printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
+  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
+  st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
+  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "step 3f7 runs privacy_line and refuses on its rc"
@@ -3661,6 +3925,72 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "the main flow starts the summary after step 1 and ends on its result line"
   rm -rf "${SM:?}"
 
+  # --- P386: the receipt, body_push.sh's Prepr: trailer, and the merged-tree steps.
+  # A throwaway origin whose main gains BAD (tests/structure.py fails on it) or
+  # RED (the stub predictor refuses it) after the fix branch was cut, so each
+  # red exists only on HEAD merged with main: fixture arms (d) and (e).
+  RQ=$(mktemp -d)
+  rq() { git -C "$RQ/wt" "$@" >/dev/null 2>&1; }
+  throwaway_git_init "$RQ/o.git" -q --bare -b main && throwaway_git_clone -q "$RQ/o.git" "$RQ/wt" >/dev/null 2>&1 \
+    && mkdir -p "$RQ/wt/tests" && printf 'import os, sys\nprint("structure: BAD" if os.path.exists("BAD") else "structure: ok")\nsys.exit(os.path.exists("BAD"))\n' > "$RQ/wt/tests/structure.py" \
+    && rq add tests && rq commit -qm base && rq push -q origin HEAD:main && rq checkout -q -b fix/t && printf 'f\n' > "$RQ/wt/f" && rq add f && rq commit -qm fix
+  rsay() { printf '%s %s\n' "$1" "$2"; }
+  rstep() { printf '%s %s rc=%s\n' "$([ "$2" -eq 0 ] && echo ok || echo REFUSE)" "$1" "$2"; }
+  # shellcheck disable=SC2329 # called by merged_steps under PREPR_SKIP_CODE
+  rpredict() { if [ -f RED ]; then echo "PREDICT red"; return 1; fi; echo "no red"; }
+  msteps() { (cd "$RQ/wt" && git fetch -q origin && say() { rsay "$@"; } && step() { rstep "$@"; } && predict_line() { rpredict "$@"; } && merged_steps "" /dev/null) 2>/dev/null; }
+  st "$(msteps | grep -c '^ok merged structure rc=0')" 1 "merged_steps: tests/structure.py passes on HEAD merged with a clean main (the (d) arm's null control)"
+  (cd "$RQ/wt" && git checkout -q main && : > BAD && git add BAD && git commit -qm bad && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
+  st "$(msteps | grep -c '^REFUSE merged structure rc=1')$([ -f "$RQ/wt/BAD" ] && echo onhead)" 1 "(d) a clean merge whose tests/structure.py fails is refused, though HEAD alone passes"
+  (cd "$RQ/wt" && git checkout -q main && git rm -q BAD && : > RED && git add RED && git commit -qm red && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
+  st "$(msteps | grep -c 'ci predict')" 0 "a full run's merged_steps leaves ci predict to step 6d"
+  st "$(PREPR_SKIP_CODE=x msteps | grep -c '^REFUSE ci predict rc=1')" 1 "(e) under PREPR_SKIP_CODE a ci predict red on the merged main is refused"
+  (cd "$RQ/wt" && git checkout -q main && git rm -q RED && git commit -qm green && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
+  st "$(PREPR_SKIP_CODE=x msteps | grep -c '^ok ci predict rc=0')" 1 "and passes once main is green again (the (e) arm's null control)"
+  (cd "$RQ/wt" && git checkout -q main && printf 'm\n' > f && git add f && git commit -qm conflicting && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
+  st "$(msteps | grep -c '^REFUSE merged tree rc=1')" 1 "a head that does not merge cleanly with main is refused, never measured on HEAD alone"
+  # The receipt: a passing full run with a body over a clean tree, and nothing else.
+  rw() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && say() { rsay "$@"; } && receipt_write "$1" "$2" "${3-$RH}" >/dev/null && cat "$(receipt_file)" 2>/dev/null); }
+  RH="$(git -C "$RQ/wt" rev-parse HEAD) $(git -C "$RQ/wt" rev-parse 'HEAD^{tree}')"
+  st "$(rw 0 body.md)" "$RH" "receipt: a passing run with a body writes <HEAD sha> <tree sha> in the git dir"
+  st "$(PREPR_SKIP_CLOSURES=1 rw 0 body.md)" "$RH" "receipt: PREPR_SKIP_CLOSURES alone still writes one"
+  st "$(rw 1 body.md)" "" "receipt: a refused run writes none"
+  st "$(rw 0 '')" "" "receipt: a run with no body writes none"
+  st "$(PREPR_SKIP_CODE=x rw 0 body.md)" "" "receipt: a PREPR_SKIP_CODE run (app_push --reuse) writes none"
+  st "$(PREPR_SKIP_ANY=1 rw 0 body.md)" "" "receipt: any other PREPR_SKIP_* writes none"
+  (printf 'dirty\n' >> "$RQ/wt/f")
+  st "$(rw 0 body.md)" "" "receipt: a dirty tree writes none"
+  (cd "$RQ/wt" && git checkout -q f)
+  # The HEAD the run started on (the reviewer's ev/midrun.sh, function-level): a
+  # commit landing while the steps ran is refused, never receipted; the first
+  # receipt row, its start unmoved, is the null control.
+  rwm() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && printf 'mid\n' > mid && git add mid && git commit -qm mid \
+    && say() { rsay "$@"; } && step() { rstep "$@"; } \
+    && printf '%s|%s' "$(receipt_write 0 body.md "$RH" | grep -c '^REFUSE receipt rc=1$')" "$(cat "$(receipt_file)" 2>/dev/null)"; git reset -q --hard HEAD~1); }
+  st "$(rwm)" "1|" "receipt: HEAD moved past the run's start (a commit landing mid-run) is refused and writes none"
+  st "$(rw 0 body.md '')" "" "receipt: a run whose start HEAD was not read writes none"
+  (cd "$RQ/wt" && rm -f "$(receipt_file)" && bash "$OLDPWD/tools/pr/prepr.sh" --body-check "$RQ/none.md" >/dev/null 2>&1)
+  st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo written)" "" "receipt: --body-check writes none"
+  # body_push.sh's trailer, extracted from it: only the receipt at this code head, with its tree.
+  eval "$(sed -n '/^prepr_trailer() {/,/^}/p' tools/audit/seat/body_push.sh)"
+  (cd "$RQ/wt" && say() { :; } && receipt_write 0 body.md "$RH")
+  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "Prepr: $RH" "body_push: the receipt at the code head becomes the Prepr: trailer"
+  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD~1)")" "" "body_push: a receipt at another sha gives none"
+  printf '%s %s\n' "$(git -C "$RQ/wt" rev-parse HEAD)" "$(git -C "$RQ/wt" rev-parse 'HEAD~1^{tree}')" > "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt"
+  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "" "body_push: a receipt whose tree is not the head's gives none"
+  printf '%s %s\n' "$(git -C "$RQ/wt" rev-parse HEAD~1)" "$(git -C "$RQ/wt" rev-parse 'HEAD^{tree}')" > "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt"
+  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "" "body_push: a receipt whose tree is the head's but whose sha is not gives none"
+  # (a): a PREPR_SKIP_CODE run takes no heavy slot and runs no code-keyed step, but
+  # runs the merged-tree steps through the main flow's own call; and, given a body,
+  # it removes an earlier receipt first, so a run that writes none leaves none.
+  RA=$(cd "$RQ/wt" && git reset -q --hard origin/main~1 && printf 'stale\n' > "$(receipt_file)" \
+    && printf '## Head\n\n`%s`\n' "$(git rev-parse HEAD)" > "$RQ/a.md" \
+    && PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" "$RQ/a.md" 2>&1)
+  st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
+  st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +merged structure ')$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +ci predict ')" 11 "(a) and runs tests/structure.py and ci predict on HEAD merged with main, once each"
+  st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo left)" "" "(a) a run with a body removes an earlier receipt first, so one that writes none leaves none"
+  rm -rf "$RQ"
+
   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
   [ "$st_fail" -eq 0 ] || exit 2
   exit 0
@@ -3712,7 +4042,10 @@ if [ -n "${1:-}" ]; then
   fi
   say ok "body path" "not directly in a shared root"
   [ -z "${PREPR_BODY_PATH_ONLY:-}" ] || exit 0
+  # An earlier run's receipt goes first, so a run that fails leaves none (`receipt_write`).
+  rm -f "$(receipt_file)" 2>/dev/null
 fi
+RUN_START=$(receipt_line)  # the HEAD every step below measures; `receipt_write` refuses any other
 
 # --- 1. the merge base resolves.
 # A shallow clone answers "no common ancestor" and every scoped command below
@@ -3724,6 +4057,12 @@ if [ -z "$BASE" ]; then
 fi
 step "merge-base" 0 "$BASE"
 summary_start
+# PREPR_SKIP_CODE=<sha> is app_push.sh --reuse's (P386): the receipt of a full run
+# at that code sha was found and the head is its clean merge with the live head
+# and main, so the steps keyed to the code alone are dropped and no heavy slot is
+# taken; the steps keyed to main, the body or the merge still run (`merged_steps`).
+REUSE=${PREPR_SKIP_CODE:-}
+[ -z "$REUSE" ] || say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"
 
 # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
 TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
@@ -3748,6 +4087,24 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
   fi
 fi
 
+# --- 1a3. the body's `## Head` names this head, BEFORE the heavy steps (P208).
+# Step 7 stays: the head can move during the run (`update_pr.sh`/`open_pr.sh`
+# merge main before pushing). The arm is `head_arm`, the existing body check.
+if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+  EARLY_HEAD_LINE=$(head_arm "$1" "$BASE"); EARLY_HEAD_RC=$?
+  if [ "$EARLY_HEAD_RC" -ne 0 ]; then
+    step "pr-body" 1 "$EARLY_HEAD_LINE -- refused before any heavy step (P208)"
+    summary_end "$(git rev-parse HEAD)"
+    exit $rc
+  fi
+fi
+
+# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
+PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
+
+if [ -n "$REUSE" ]; then
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, machinery ratchet, brief_lint, field coverage, agreement lane, register check"
+else
 # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
 # The lease is generic: it orders waiters by an integer and never decides who
 # deserves one. This step supplies the integer from tools/pr/gate_priority.py,
@@ -3780,9 +4137,23 @@ say ok "gate priority" "$HPO_GATE_PRIORITY (env, .gate-priority, then the critic
 # A FAILED take is a WARN, not a refusal -- a broken lease must not make a branch
 # unrunnable, and the wait a healthy lease imposes is bounded by its own expiry.
 SLOT_LABEL="prepr-$$"
-if [ -n "${HPO_SLOT_LABEL:-}" ]; then
-  say ok "heavy slot" "joined $HPO_SLOT_LABEL: this run is already inside a slot"
-else
+# LAZY (R10-PREPR-CAP carries 25 and 26). The slot is taken by `take_slot`, just
+# before the first heavy step that is not skipped -- the mutants drive, the
+# self-test, the scoped closure recordings, the diff mutants -- and kept to the
+# end. A run whose heavy steps are all skipped never queues: the light checks
+# before it ran unleased, and a 0-script prepr waited 25 min 55 s in the FIFO
+# for seconds of work. A failed plan derivation runs every heavy step, so it
+# takes the slot at the first one. A nested heavy step still joins this slot
+# through HPO_SLOT_LABEL.
+SLOT_TAKEN=""
+take_slot() { # idempotent: the first call takes (or joins) the slot, later calls are no-ops
+  [ -z "$SLOT_TAKEN" ] || return 0
+  SLOT_TAKEN=1
+  local slot_stderr
+  if [ -n "${HPO_SLOT_LABEL:-}" ]; then
+    say ok "heavy slot" "joined $HPO_SLOT_LABEL: this run is already inside a slot"
+    return 0
+  fi
   slot_stderr=$(mktemp)
   if python3 tests/gate_lock.py slot-take --label "$SLOT_LABEL" --owner-pid $$ >"$slot_stderr" 2>&1; then
     export HPO_SLOT_LABEL="$SLOT_LABEL"
@@ -3803,10 +4174,7 @@ else
     exit_on_signals
   fi
   rm -f "$slot_stderr"
-fi
-
-# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
-PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
+}
 
 # --- 2. the scoped gate's MODE line, printed rather than inferred.
 # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
@@ -3838,6 +4206,7 @@ HV=$(heavy_skip "mutants" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "mutants" "$HV"
 else
+take_slot
 if test -f .claude/workflows/policy_lint_mutants.mjs; then heavy_run /tmp/prepr-mutants.$$ node .claude/workflows/policy_lint_mutants.mjs; else heavy_run /tmp/prepr-mutants.$$ node tools/policy/policy_lint_mutants.mjs; fi
 step "mutants" $? "$(tail -1 /tmp/prepr-mutants.$$)"
 rm -f /tmp/prepr-mutants.$$
@@ -3863,6 +4232,15 @@ rm -f /tmp/prepr-hooks.$$
 if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then heavy_run /tmp/prepr-owners.$$ python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else heavy_run /tmp/prepr-owners.$$ python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi
 step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-owners.$$
+
+# --- 3e2. the machinery ratchet (R10-MACHINERY-RATCHETS), as policy-docs runs
+# it on a pull request: this head as the candidate merge on origin/main, over
+# git history only (about 14 s). No PR number exists here, so an exemption the
+# head adds for itself is read by CI alone.
+: > /tmp/prepr-mr.$$
+if test -f tools/audit/machinery_ratchet.py; then heavy_run /tmp/prepr-mr.$$ python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD; fi
+step "machinery ratchet" $? "$(grep -E '^  (ok  |FAIL) ' /tmp/prepr-mr.$$ | tr -s ' ' | tr '\n' ';')"
+rm -f /tmp/prepr-mr.$$
 
 # --- 3f. when the diff touches a pinned path, CI's pinned jobs grade this
 # pull request with the base's copy of it; the graders that run below only on
@@ -3891,6 +4269,7 @@ HV=$(heavy_skip "field coverage" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "field coverage" "$HV"
 else
+take_slot
 if test -f .claude/workflows/field_coverage.mjs; then heavy_run /tmp/prepr-fc.$$ node .claude/workflows/field_coverage.mjs; else heavy_run /tmp/prepr-fc.$$ node tools/policy/field_coverage.mjs; fi
 # the refusal cause lines sit above the summary this prints, and the file is
 # removed below, so they are carried beside it or not at all (#2118, #2134).
@@ -3918,7 +4297,9 @@ rm -f /tmp/prepr-ag.$$ /tmp/prepr-ag.$$.json
 # Skipped on the closure derivation's proof (`heavy_skip` above): the step's
 # read-set is the dev/audit/ config, rounds and rca trees, and a diff reaching
 # none of them prints the skip and its disjointness. The plan is removed here,
-# with the last heavy step that reads it.
+# with the last heavy step that reads it. UNLEASED ON PURPOSE (no `take_slot`):
+# the step is light (about 0.5 s), so queueing for a slot would cost more than
+# the work; 3f3 above (234 s idle) is the heavy one and takes the slot.
 HV=$(heavy_skip "register check" "${HEAVY_PLAN_FILE:-}")
 if [ $? -eq 0 ]; then
   say skip "register check" "$HV"
@@ -3929,6 +4310,7 @@ step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
 rm -f /tmp/prepr-fl.$$
 fi
 rm -f "${HEAVY_PLAN:-}"
+fi  # the code-keyed steps, PREPR_SKIP_CODE's first group
 
 # --- 3f6. no tracked script, workflow or decision record tied to a temp or
 # machine path, which `instrument-self-tests` runs on the branch's own copy.
@@ -3942,6 +4324,10 @@ rm -f /tmp/prepr-tp.$$
 PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"
 
+if [ -n "$REUSE" ]; then
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: pinned graders, self-test, wave-script"
+else
+
 # --- 3g. every grader a pinned job runs has a local path here, or a reason,
 # and the reader understood every pinned job (`pinned_verdict` above).
 VERDICT=$(pinned_verdict "$PREPR_PATH" .github/workflows/*.yml)
@@ -3952,6 +4338,7 @@ step "pinned graders" $? "$(echo $VERDICT)"
 # detector. A diff that cannot be listed is treated as owing it.
 if ! git diff --no-renames --name-only "$BASE"...HEAD > /tmp/prepr-st.$$ 2>/dev/null \
      || selftest_owed /tmp/prepr-st.$$; then
+  take_slot
   if test -f tools/audit/prepr.sh; then heavy_run /tmp/prepr-stlog.$$ bash tools/audit/prepr.sh --self-test; else heavy_run /tmp/prepr-stlog.$$ bash tools/pr/prepr.sh --self-test; fi
   step "self-test" $? "$(tail -1 /tmp/prepr-stlog.$$; grep -E '^  FAIL' /tmp/prepr-stlog.$$ | head -3 | tr '\n' ' ')"
   rm -f /tmp/prepr-stlog.$$
@@ -3988,6 +4375,7 @@ else
   say skip "wave-script" "no change to the script, the checker, the rosters, the briefs or a pinned path"
 fi
 rm -f /tmp/prepr-wv.$$
+fi  # the code-keyed steps, PREPR_SKIP_CODE's second group
 
 # --- 5. VERSION, the manifest and the notes heading are untouched.
 # Versions are assigned after the merge by tools/release/stamp.py. A branch that
@@ -4025,7 +4413,12 @@ step "claims hygiene" $? "$CLAIMS_LINE"
 # push that only re-bodies.
 if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
+elif [ -n "${REUSE:-}" ]; then
+  say skip "closures" "PREPR_SKIP_CODE: the receipted run covered the code; closures-autofix covers the merge"
 else
+  # The slot is taken only when the recorder will run: a scoped diff on a
+  # machine that records here (`closures_owes_slot`); a skip or a full diff is CI's.
+  closures_owes_slot "$BASE" && take_slot
   closures_step "$BASE"
   case $? in
     3) say skip "closures" "$CLOSURES_LINE" ;;
@@ -4039,12 +4432,15 @@ fi
 # it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
 # seconds per such file, none on a diff that changes none.
 UNPINNED_SITES=/tmp/prepr-unpinned.$$
+if [ -z "$REUSE" ]; then  # under PREPR_SKIP_CODE, `merged_steps` runs it on the merged tree
 PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
 case $? in
   3) say skip "ci predict" "$PREDICT_LINE" ;;
   0) step "ci predict" 0 "$PREDICT_LINE" ;;
   *) step "ci predict" 1 "$PREDICT_LINE" ;;
 esac
+fi
+merged_steps "${1:-}" "$UNPINNED_SITES"
 if [ -s "$UNPINNED_SITES" ]; then
   say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
 fi
@@ -4057,11 +4453,15 @@ fi
 # nothing here refuses, and with MUTANT_CMD unset the step skips. The cap keeps
 # the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
 # seat's.
+if [ -n "$REUSE" ]; then
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: diff mutants, no-copies"
+else
 if [ -z "${MUTANT_CMD:-}" ]; then
   say skip "diff mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
 elif [ ! -f tools/audit/seat/mutant_run.py ]; then
   say skip "diff mutants" "tools/audit/seat/mutant_run.py is not in this tree"
 else
+  take_slot
   MUT_OUT=$(python3 -I tools/audit/seat/mutant_run.py --diff "$BASE...HEAD" --cmd "$MUTANT_CMD" \
     --max-mutants "${MUTANT_MAX:-40}" --report-only 2>&1)
   MUT_N=$(printf '%s\n' "$MUT_OUT" | grep -c '^SURVIVED ')
@@ -4089,7 +4489,9 @@ if diff_paths "$BASE" "$COPY_PATHS"; then
 else
   step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
 fi
-rm -f "$COPY_PATHS" "$PREPR_RECORDER_CACHE"
+rm -f "$COPY_PATHS"
+fi  # the code-keyed steps, PREPR_SKIP_CODE's third group
+rm -f "$PREPR_RECORDER_CACHE"
 
 # --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
 # `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
@@ -4103,6 +4505,9 @@ esac
 
 # --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
 # `throwaway_line` above. Reads the committed tree at HEAD.
+if [ -n "$REUSE" ]; then
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: throwaway git, claims register"
+else
 THROWAWAY_LINE=$(throwaway_line "$PWD")
 case $? in
   3) say skip "throwaway git" "$THROWAWAY_LINE" ;;
@@ -4128,6 +4533,7 @@ else
   esac
 fi
 rm -rf "$CR" "$CR.paths" "$CR.arch"
+fi  # the code-keyed steps, PREPR_SKIP_CODE's fourth group
 
 # --- 7. the body, when one was passed.
 BODY="${1:-}"
@@ -4244,6 +4650,7 @@ if [ -n "$ORDER" ]; then
 fi
 
 rm -f "${UNPINNED_SITES:-}"
+receipt_write "$rc" "${BODY:-}" "$RUN_START"
 echo
 echo "PRE-PR: $(git rev-parse HEAD) $digest"
 summary_end "$(git rev-parse HEAD)"

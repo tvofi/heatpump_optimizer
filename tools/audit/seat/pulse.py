@@ -182,9 +182,9 @@ def judge_verdict(snap: dict, now: float, bound: float) -> tuple[str, str]:
     extra = f"; {skew} skew" if skew else ""
     if owed:
         owed.sort(key=lambda x: -x[0])
-        age, v = owed[0]
-        return "STOPPED", (f"{len(owed)} verdict(s) unconsumed at their head for > {bound / 3600:g} h, "
-                           f"oldest #{v['pr']} {v['kind']} {v['sha'][:8]} {age / 3600:.1f} h{extra}")
+        lines = [f"#{v['pr']} {v['kind']} {v['sha'][:8]} {age / 3600:.1f} h" for age, v in owed]
+        head = f"{len(owed)} verdict(s) unconsumed at their head for > {bound / 3600:g} h, oldest {lines[0]}{extra}"
+        return "STOPPED", "\n".join([head, *lines[1:]])
     return "ok", f"every verdict at an open head is under {bound / 3600:g} h{extra}"
 
 
@@ -255,15 +255,15 @@ def judge_alive(a: dict | None, ledger: dict | None, now: float, seat: str) -> t
 
 def seat_of(arm: str, snap: dict, now: float, bound: float) -> str:
     """The standing seat an origin arm's owed input waits on. The verdict arm's
-    is the merge seat when its oldest owed verdict is a merge, else dispatch."""
+    is the merge seat when any owed verdict is a merge and dispatch when any is not."""
     if arm != "verdict":
         return ARM_SEAT[arm]
     heads = snap.get("open_heads") or {}
     owed = [v for v in snap.get("verdicts") or []
             if (h := heads.get(str(v["pr"]))) and (h.startswith(v["sha"]) or v["sha"].startswith(h))
             and (a := _age(now, v["t"])) is not None and a > bound]
-    oldest = min(owed, key=lambda v: v["t"], default=None)
-    return "merge" if oldest and oldest["kind"] == "merge" else "dispatch"
+    kinds = {v["kind"] == "merge" for v in owed}
+    return "merge and dispatch" if len(kinds) == 2 else "merge" if kinds == {True} else "dispatch"
 
 
 def judge(snap: dict, bounds: dict) -> list[tuple[str, str, str]]:
@@ -283,7 +283,8 @@ def judge(snap: dict, bounds: dict) -> list[tuple[str, str, str]]:
 
 def report(rows: list[tuple[str, str, str]], now: float) -> int:
     for arm, word, detail in rows:
-        print(f"PULSE {arm} {word} {detail}")
+        for ln in detail.split("\n"):  # one line per owed item, each a full PULSE line
+            print(f"PULSE {arm} {word} {ln}")
     stopped = sum(w == "STOPPED" for _, w, _ in rows)
     unread = sum(w == "UNREADABLE" for _, w, _ in rows)
     print(f"pulse: {len(rows)} arms, {stopped} stopped, {unread} unreadable at "
@@ -568,6 +569,13 @@ def self_test() -> int:
     mv = snap(verdicts=[{"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 5 * H}])
     check("a STOPPED merge verdict names the merge seat",
           dict((a, d) for a, _, d in judge(mv, B))["verdict"].startswith("seat merge: "))
+    two = snap(verdicts=[{"pr": 2527, "kind": "blocked", "sha": s_blk, "t": now - 9 * H},
+                         {"pr": 2526, "kind": "merge", "sha": s_head, "t": now - 5 * H}],
+               open_heads={"2527": s_blk, "2526": s_head})
+    d2 = dict((a, d) for a, _, d in judge(two, B))["verdict"]
+    check("two owed verdicts name both PRs on two lines and both seats",
+          d2.startswith("seat merge and dispatch: ") and "#2527 blocked" in d2 and "\n#2526 merge" in d2)
+    check("one owed verdict prints one line", "\n" not in r["verdict"][1])
     check("a STOPPED state beat names the merge seat, a starved opener the dispatch seat",
           dict((a, d) for a, _, d in judge(beat, B))["state-beat"].startswith("seat merge: ")
           and ro["opener"][1].startswith("seat dispatch: "))
