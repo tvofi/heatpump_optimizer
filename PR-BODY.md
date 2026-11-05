@@ -56,10 +56,15 @@ Failing first: the final self-test hunks run against the PR head's unfixed produ
   - closeout.py `step_local`'s orchestrator-scratch sweep (`shutil.rmtree(e)` / `e.unlink()` over `--orch-root`, default `~/hpo-orch`, less the `ledger`/`state` prefixes): it deletes the orchestrator's own scratch (scripts, bodies, notes, logs, per `wt_sync.sh`'s snapshot of it), not a seats root (worktree_gc's default is `/tmp/hpo-orch`). Out of class by that root's documented contents: no seat checkout lives there, so no ref is deleted. Stated as it is: the sweep does not itself refuse a git checkout someone places under `--orch-root`. It runs only in the roster-gated `--apply`, the orchestrator's last act.
   - closeout.py's other two `rmtree` matches lie in `self_test()`.
 - `python3 tests/structure.py` at 5a8fd981 -> `STRUCTURE RATCHET PASSED`. No budget file is touched.
-- Scoped gate at 5a8fd981: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` -> `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` The two scripts, `tests/entities.py` and `tests/harness_headers.py`, were run with `PYTHONPATH=tests/hastub`: SCOPED_RESULT.
+- Scoped gate at 5a8fd981: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` -> `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` The two scripts, `tests/entities.py` and `tests/harness_headers.py`, were run with `PYTHONPATH=tests/hastub` at 5a8fd981: `ALL 2616 ENTITY CHECKS PASSED` (rc 0) and `ALL 112 HARNESS HEADER CHECKS PASSED` (rc 0).
 - Claim files: `git diff --quiet origin/main HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt` exit 0, byte-identical. No `VERSION`, manifest or `RELEASE_NOTES.md` path is in the three-dot diff.
-- `bash tools/pr/prepr.sh <body>` at 5a8fd981 against origin/main 499162c8, run once: PREPR_RESULT
+- `bash tools/pr/prepr.sh <body>` at 5a8fd981 against origin/main 499162c8, run once in full, with no skip flag: rc 0 (`PRE-PR: 5a8fd981f53c00dc69836d23ab7273493c37f8fc ... rc=0`, `self-test 486 passed, 0 failed`, `PR-BODY: 0 error(s)`, `FIGURES: 12 resolved, 4 not verified, 0 refused`, `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`, `CI PREDICT: no closures, fast, governance or instrument red predicted against 499162c89d0f`, claim files byte-identical to origin/main, no version edit, `unpinned sites` skip: "the diff adds no unpinned mutation site"). Its `closures` step printed `skip` on its own, and its ancestry-reds step read the branch's reds as answered but reported `code-scanning alerts NOT READ: ... HTTP 403` for this seat's token. origin/main did not move between that run and the handoff push, so no second merge or run was owed
 - Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` -> `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden or numeric fixture is in this diff, so no venv refresh was needed for a measurement.
+
+- Process notes for this round:
+  - The step ref `handoff-wip/r10-closeout-cleanup` still held the previous round's body commits and was not an ancestor of this branch. To keep every step push a fast-forward, each was pushed as a wip-only merge commit (this round's code head and the old wip tip as parents, the code head's tree). The code branch itself carries none of those commits.
+  - One `tests/closure.py select` run printed `MODE: FULL` while a `tests/entities.py` run was in flight on the same worktree. Re-run on the idle tree, the same diff gave `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` twice, once by a second agent. The FULL reading was not reproduced, and its cause was not established.
+  - The first `prepr.sh` invocation refused before any step ran (`REFUSE body path ... sits directly in a root other seats write to`), because the body sat at the scratch root. The body was moved to a seat subdirectory and `prepr.sh` was run once in full.
 
 ## Red checks
 
@@ -69,7 +74,12 @@ The PR head is still 5aae1e12ea1dea099edc87f94a914a33eabd1baf. This round's comm
 - `CodeQL` (126949267441, `neutral`): not red.
 - Every other concluded run at 5aae1e12 is `success` or `skipped`.
 
-Reds at earlier heads of this branch, each repaired before round 1's head and unchanged here: `governance / instrument-self-tests` at 1be96319 (the `prune_refs.py` gh stub; detector `prune_refs.py --self-test`), `CodeQL` at 1be96319 (alert 49, fixed by `_write_stub`'s `O_EXCL` 0o700 create), and `pr-contract`/`gate` at 1be96319 (a stale body; detector `prepr.sh --body-check`).
+Reds at earlier heads of this branch, which `prepr.sh`'s ancestry check reads, each repaired before round 1's head (7f95f908) and unchanged by this round:
+- `governance / instrument-self-tests` at 1be96319: self-test 69, the `prune_refs.py` gh stub. Repaired in fc47684e. Cheaper detector: `prune_refs.py --self-test`, which `prepr.sh`'s self-test step runs. It is `success` at 5aae1e12 (job 126948422235).
+- `CodeQL` at 1be96319: code-scanning alert 49, py/overly-permissive-file. Fixed by `_write_stub`'s `O_EXCL` 0o700 create. No offline detector runs CodeQL's query; the self-test's `_wide_bits` assertion covers the bits. At 5aae1e12 `CodeQL` is `neutral` and `codeql / Analyze (python)` was cancelled with its run (above). This seat could not re-read the alert list: `prepr.sh` reports `code-scanning/analyses page 1: HTTP 403` for this seat's token, so whether an alert is open at the head is not stated here.
+- `governance / delivery-status` at the earlier heads graded main's delivery rows, not this diff. This diff touches `.github/workflows/governance.yml`, which it reads, but only by the earlier rounds' seat-step lines and main's own merged `echo` lines. It is `success` at 5aae1e12 (job 126948422245), whose `governance.yml` this round leaves as it was apart from main's merge. Cheaper detector: `python3 -I -S tests/delivery_status.py --check` on the tree. This round touches no delivery row.
+- `pr-contract` and `gate` at 1be96319: a stale body. Cheaper detector: `prepr.sh --body-check`.
+- `tests / nightly-status`: answered above at 5aae1e12; it was red at the earlier heads for the same main-owned nightly lane.
 
 The 5aae1e12 block was not a CI red. Its cheaper detector is now the `ocmoved` self-test case and mutant `worktree_gc-6`, which run in `instrument-self-tests`.
 
@@ -79,5 +89,4 @@ The 5aae1e12 block was not a CI red. Its cheaper detector is now the `ocmoved` s
 
 ## Friction
 
-- The step ref `handoff-wip/r10-closeout-cleanup` still held the previous round's body commits and was not an ancestor of this branch. To keep every step push a fast-forward, each was pushed as a wip-only merge commit (this round's code head and the old wip tip as parents, the code head's tree). The code branch itself carries none of those commits.
-- One `tests/closure.py select` run printed `MODE: FULL` while a `tests/entities.py` run was in flight on the same worktree. Re-run on the idle tree, the same diff gave `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` twice, once by a second agent. The FULL reading was not reproduced, and its cause was not established.
+none
