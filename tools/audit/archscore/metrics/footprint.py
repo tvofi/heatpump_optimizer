@@ -77,6 +77,8 @@ def _bound(t: ast.AST, v: ast.AST) -> int:
         if _display(v) and not any(isinstance(e, ast.Starred) for e in t.elts + v.elts):
             if len(t.elts) == len(v.elts):
                 return sum(_bound(a, b) for a, b in zip(t.elts, v.elts))
+        if _display(v) and any(isinstance(e, ast.Starred) for e in t.elts):
+            return _arity(t)  # ``a, *b = e1, e2, e3`` is a = e1; b = [e2, e3]: the star takes the rest
         return max(_arity(t), len(v.elts) if _display(v) else 0)
     return 0 if _plumbing(ast.Assign(targets=[t], value=v)) else 1
 
@@ -97,10 +99,12 @@ def _flat(e: ast.AST):
 
 
 def _chain(e: ast.AST) -> int:
-    """Branches of the conditional-expression chain ``a if p else b if q else c`` (three), 0 for a lone one."""
-    k = 1
-    while isinstance(e, ast.IfExp):
-        e, k = e.orelse, k + 1
+    """Branches of the conditional-expression tree ``a if p else b if q else c`` (three), 0 for a lone one. An
+    ``IfExp`` is followed through its body arm as well as its orelse: ``(a if q else b) if p else c`` is three
+    branches, as its nested if/else spells (red-team attempt 54)."""
+    def leaves(x: ast.AST) -> int:
+        return leaves(x.body) + leaves(x.orelse) if isinstance(x, ast.IfExp) else 1
+    k = leaves(e)
     return k if k > 2 else 0
 
 
@@ -122,7 +126,7 @@ def _extras(s: ast.AST) -> int:
     if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Tuple, ast.List, ast.Set, ast.Dict)):
         carried = {id(e) for e in _flat(s.value)}
     nodes = list(_own_exprs(s))
-    inner = {id(n.orelse) for n in nodes if isinstance(n, ast.IfExp) and isinstance(n.orelse, ast.IfExp)}
+    inner = {id(a) for n in nodes if isinstance(n, ast.IfExp) for a in (n.body, n.orelse) if isinstance(a, ast.IfExp)}
     return sum(1 for n in nodes if isinstance(n, ast.NamedExpr) and id(n) not in carried) \
         + sum(2 * _chain(n) - 2 for n in nodes if isinstance(n, ast.IfExp) and id(n) not in inner and _chain(n))
 

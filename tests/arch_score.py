@@ -465,6 +465,15 @@ def main() -> int:
         ("c = (a := f(x + 1)) + (b := g(y + 1))", "a = f(x + 1)\nb = g(y + 1)\nc = a + b"),
         ("a = f(x + 1) if p else g(y + 1) if q else h(z + 1)",
          "if p:\n    a = f(x + 1)\nelif q:\n    a = g(y + 1)\nelse:\n    a = h(z + 1)"),
+        # the chain nested in the BODY arm is the same tree (attempt 54), and so is one in both arms
+        ("a = (f(x + 1) if q else g(y + 1)) if p else h(z + 1)",
+         "if p:\n    if q:\n        a = f(x + 1)\n    else:\n        a = g(y + 1)\nelse:\n    a = h(z + 1)"),
+        ("a = (f(x + 1) if q else g(y + 1)) if p else (h(z + 1) if r else k(w + 1))",
+         "if p:\n    if q:\n        a = f(x + 1)\n    else:\n        a = g(y + 1)\n"
+         "else:\n    if r:\n        a = h(z + 1)\n    else:\n        a = k(w + 1)"),
+        # the star takes the rest: it binds one name, not one per surplus value
+        ("a, *b = f(x + 1), g(y + 1), h(z + 1)", "a = f(x + 1)\nb = [g(y + 1), h(z + 1)]"),
+        ("*a, b = f(x + 1), g(y + 1), h(z + 1)", "a = [f(x + 1), g(y + 1)]\nb = h(z + 1)"),
     ]
     R.check("coord_footprint reads a packed statement as the plain statements it spells (every packing shape)",
             all(_n(pk) == _n(pl) for pk, pl in packed_plain),
