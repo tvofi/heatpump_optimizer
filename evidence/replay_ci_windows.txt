@@ -1,0 +1,8 @@
+CI-window of run 42038071453 8bf45e5dc = 23.574
+CI-window of run 42029578093 b707d8932 = 23.574
+CI-window of run 42022595256 7af0c2a79 = 23.43
+CI-window of run 42022036882 788e8ceed = 23.271
+CI-window of run 42007732815 0ae75bf31 = 23.148
+CI-window of run 42000418963 cd0dd1691 = 23.153
+CI-window of run 41999852971 e57dfbbe0 = 23.117
+CI-window of run 41991109025 79f765e6b = 23.114

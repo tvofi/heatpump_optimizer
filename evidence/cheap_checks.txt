@@ -1,0 +1,12 @@
+  ok   --record carries the band over unchanged and re-records every derived metric
+ci-ratchet self-test: 65 checks, 0 failed
+
+STRUCTURE RATCHET PASSED
+usage: closure.py lane-plan [-h] [--scripts-from SCRIPTS_FROM] [--all-scripts]
+                            [--lanes LANES] --out-dir OUT_DIR
+closure.py lane-plan: error: the following arguments are required: --out-dir
+claims/VERSION/manifest/notes byte-identical
+lane plan: 3 lane(s) for 34 script(s), bound 3
+  lane 1 (1484.4s recorded): tests/stress.py, tests/harness_headers.py, tests/finite_boundary.py, tests/edge.py, tests/manual_plan.py, tests/config_flow_steps.py, tests/guard_pins.py, tests/typing_ruler.py, tests/frontend.py
+  lane 2 (1484.3s recorded): tests/entities.py, tests/arch_score.py, tests/plan_view.py, tests/card.mjs, tests/card_drift.mjs, tests/arch_score_head.py, tests/structure.py, tests/layout.py, tests/wood_advisor.py, tests/debug_collect.py, tests/block_duty.py, tests/env_drift.py, tests/open_meteo.py
+  lane 3 (1484.4s recorded): tests/features.py, tests/dst_checks.py, tests/boost_drift_replay.py, tests/optimality.py, tests/backtest.py, tests/validate.py, tests/doc_claims.py, tests/deployment_shape.py, tests/solar_alignment.py, tests/golden.py, tests/ha_contract.py, tests/md_tables.mjs
