@@ -14312,9 +14312,9 @@
     "From #2406 (R10-ROSTER-FASTPATH) review 6251656756, item 8694f912, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: tests/closure.py `_RENAME_EXEMPT` (line 2875) still exempts any line containing `--cached` from the rename-detecting `--name-only` census (`rename_sites`, line 2920), though `git diff --cached --name-only` does detect renames in the index. Enumerated with the module's own RENAME_SITES and `_logical_lines`: the exemption covers exactly six live lines today, all the same pinned-restore count `$(git diff --cached --name-only | wc -l)` in .github/workflows/budget-raise-gate.yml:84, governance.yml:154/1117/1221, pr-contract.yml:126 and tests.yml:633; none feeds a changed-file list. Fix: drop `--cached` from `_RENAME_EXEMPT` and either add `--no-renames` at those six sites or allow them per file through RENAME_ALLOW with the reason (a count after a pinned restore), so a future `--cached --name-only` that builds a file list is refused. Failing test first: a planted tests/*.sh line `git diff --cached --name-only > files.txt` is refused by `rename_sites` (passes today). Null control: the six restore-count lines, once allowed or given --no-renames, are not refused, and the RENAME_ALLOW stale-entry check stays empty."
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-ci-runner-fixes",
-    "commit": null,
+    "commit": "c0b082bc48777199cb9b4998514b20b88ec805a1",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-CANCEL-SWEEP, R10-FLY-SUITE-ENV-FLAKES",
@@ -16634,7 +16634,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3219
    },
    "brief": "Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py refuses to write the whole replay when one entity id is not masked to a role or a hashed id. That removes the evidence a savings or planning report needs. Name which entity id class escapes the mask on that export (derived shape only, never the id), fix the masking at its owner so that id gets a role or hash, and keep the refusal for an id that truly cannot be masked. Enumerate every entity-id source the replay writes. Control: the refusal still fires on a planted unmasked id, and a clean export writes a non-empty replay."
   },
@@ -16711,7 +16712,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3218
    },
    "brief": "From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one statement, so on that diff 6 of the 7 statements behind its score movement were packing and the plain spelling read about a seventh of it. A seat can lower the metric by packing statements with nothing improved. Make the count independent of that spelling under tools/audit/archscore/, enumerate the sibling packing shapes, and re-measure the calibration. Control: packed and plain spellings of one change read the same, and an untouched tree does not move."
   },
