@@ -1,0 +1,7 @@
+ dev/programme/delivery/3222.md     |  1 +
+ tools/audit/seat/body_push.sh      |  7 ++++
+ tools/audit/seat/cloud-setup.sh    | 40 ++++++++++++++++++++---
+ tools/audit/seat/cloud_dispatch.py |  4 +++
+ tools/audit/seat/ref_privacy.py    | 66 +++++++++++++++++++++++++++++++++++---
+ tools/pr/prepr.sh                  | 23 +++++++++++++
+ 6 files changed, 132 insertions(+), 9 deletions(-)
