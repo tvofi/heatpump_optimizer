@@ -1,5 +1,0 @@
-2026-11-05T03:07:38.1427031Z DELIVERY STATUS OVERDUE — 10 rowed, 10 pending, 4 overdue (overdue at 12 commits)
-2026-11-05T03:07:38.1438484Z   overdue  #3174 62f94f3 12 commit(s) since — R10-REPLAY-COST-BUDGET: replay cost budget
-2026-11-05T03:07:38.1439451Z   overdue  #3091 ce7a6ba 13 commit(s) since — record: #3048 pre-flight waiver note; drop the answered 
-2026-11-05T03:07:38.1440511Z   overdue  #3089 2a9cd34 14 commit(s) since — R10-FLOW-BODY-ONLY: a handoff updates only with the body
-2026-11-05T03:07:38.1441492Z   overdue  #3192 d4e584e 15 commit(s) since — R10-MACHINERY-RATCHETS: grader registration first
