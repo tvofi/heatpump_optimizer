@@ -4,7 +4,7 @@ Closes #3128
 
 ## Head
 
-Code head `977d4e15e0e29d7fe380575b556ccee3a8825ab6` (`handoff/r10-raise-gate-shim`): the PR head `6b416a18fc8752eaa3c10404cec43f896df3ed60` plus three commits. `6b416a18` merges the authored code head `6027fe3e`, which carries `1d4ed28e4`. `origin/main` is `8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc` (`git fetch origin main && git rev-parse origin/main`, 2026-11-05) and equals the merge base (`git merge-base origin/main HEAD`), so main had not moved and no merge was needed.
+Code head `88d809f841a1fadc7ccdb34badc142dc65ef522e` (`handoff/r10-raise-gate-shim`): the PR head `6b416a18fc8752eaa3c10404cec43f896df3ed60` plus three commits of this repair, merged with `725410a6b` (the round-3 seat's commit already on `handoff/r10-raise-gate-shim`: `queue_pre_flight.py`'s self-test answers the train's measured score, three added lines; kept so the handoff ref stays a fast-forward). `6b416a18` merges the authored code head `6027fe3e`, which carries `1d4ed28e4`. `origin/main` is `8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc` (`git fetch origin main && git rev-parse origin/main`, 2026-11-05) and equals the merge base (`git merge-base origin/main HEAD`), so main had not moved and no merge was needed.
 
 The shim under review is `1d4ed28e4`: `tools/audit/seat/shims/seat-gh` carries a deny-by-default `gate()` over `api_gate`, `issue_gate` and `pr_gate` (there is no `api_hits`). A call that could write a comment on the tracking issue (#201) is refused unless the caller is python running the tree's own `tools/pr/gh_comment.py` by real path, or the call is on gh's own explicit table of calls that cannot write one: reads, `issue view/list/status/create`, `issue comment/close/...` on one plain number other than 201, `pr` with no word reading 201, `api` reads, `api` writes at paths that are neither `issues/201/comments`, `issues/comments/<id>`, an unreadable path nor a graphql mutation, and the command groups with no issue-comment surface. Everything else (an unknown subcommand, an alias, an extension, an unknown flag) is refused.
 
@@ -33,6 +33,7 @@ All counts are `python3 tools/audit/seat/gh_calls.py --self-test` at the head, `
 ## Figures
 
 - `python3 tools/audit/seat/gh_calls.py --self-test`: `gh_calls self-test: 195 checks, 0 failed` (190 at `6b416a18`).
+- `python3 tools/audit/seat/queue_pre_flight.py --self-test`: `45 checks, 0 failed` (the merged `725410a6b` change).
 - `bash tools/audit/seat/seat_venv.sh --self-test`: `seat_venv self-test: 27 checks, 0 failed` (25 at `6b416a18`).
 - Mutants: predicate `true || {`: 67 failed of 195; lower-casing deleted: 4 failed; bake replaced by `:`: 1 failed of 27 (commands under Mutation proof).
 - `git diff origin/main...HEAD | grep '^+' | grep -ci 'revok'`: `0`.
@@ -41,7 +42,7 @@ All counts are `python3 tools/audit/seat/gh_calls.py --self-test` at the head, `
 - Claim files, `VERSION`, manifest, `RELEASE_NOTES.md` and every `*_budgets.json`: `git diff origin/main...HEAD --quiet -- <file>` exits 0 for each.
 - Seam enumeration (step 8): the class is "a #201 comment write spelled so the shim cannot read the tracker". Instrument: the self-test's `refused` table plus the review's offline controls (33 of 38 refused as required). Seams returned and dispositions: upper-case path segments (closed here); PATCH of a comment by id, graphql mutations and `gh pr comment` (already refused at this head: rows `a PATCH of a comment by id`, `a graphql mutation`, `gh pr comment 201`); PATCH of `issues/201` (an issue body, not a comment; not read by the gate); `pulls/201/comments` (#201 is not a PR); `exec -a` (the residual under Forward-carry).
 - Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` read `OK`; `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` printed `2.5.4 1.18.1`, equal to `tests/requirements-ci.txt`. No golden or solver measurement is in this diff.
-- `tools/pr/prepr.sh <body>` at `977d4e15` (detached, committed tree; main unmoved since the last run): `PRE-PR: 977d4e15e0e2... rc=0`; `ci predict`: no red predicted; claim files byte-identical to origin/main.
+- `tools/pr/prepr.sh <body>` at `88d809f8` (detached, committed tree; main unmoved since the last run): `PRE-PR: 88d809f841a1... rc=0`; `ci predict`: no red predicted; claim files byte-identical to origin/main.
 
 ## Red checks
 
