@@ -1,0 +1,55 @@
+CodeQL	success	2026-11-05T10:10:42Z	2026-11-05T10:10:44Z	127181259065	github-advanced-security
+arch-score / arch-score	success	2026-11-05T10:09:35Z	2026-11-05T10:10:47Z	127180326920	github-actions
+arch-score / arch-score	success	2026-11-05T10:51:50Z	2026-11-05T10:52:37Z	127200496909	github-actions
+arm	skipped	2026-11-05T10:08:11Z	2026-11-05T10:08:05Z	127180079468	github-actions
+budget-raise-gate / budget-raise-gate	success	2026-11-05T10:10:42Z	2026-11-05T10:11:08Z	127180326810	github-actions
+budget-raise-gate / budget-raise-gate	success	2026-11-05T10:51:50Z	2026-11-05T10:52:19Z	127200496908	github-actions
+cancel-superseded	success	2026-11-05T10:08:10Z	2026-11-05T10:08:20Z	127180045546	github-actions
+cancel-superseded	success	2026-11-05T10:08:25Z	2026-11-05T10:08:36Z	127180047450	github-actions
+codeql	skipped	2026-11-05T10:51:47Z	2026-11-05T10:51:47Z	127200498829	github-actions
+codeql / Analyze (actions)	success	2026-11-05T10:10:15Z	2026-11-05T10:11:13Z	127180326545	github-actions
+codeql / Analyze (javascript-typescript)	success	2026-11-05T10:09:29Z	2026-11-05T10:10:52Z	127180326660	github-actions
+codeql / Analyze (python)	success	2026-11-05T10:10:28Z	2026-11-05T10:47:18Z	127180326637	github-actions
+gate	success	2026-11-05T10:51:29Z	2026-11-05T10:54:01Z	127200336943	github-actions
+gate	success	2026-11-05T10:53:27Z	2026-11-05T10:53:57Z	127201233870	github-actions
+governance	skipped	2026-11-05T10:51:47Z	2026-11-05T10:51:47Z	127200498719	github-actions
+governance / delivery-status	failure	2026-11-05T10:09:56Z	2026-11-05T10:10:24Z	127180326711	github-actions
+governance / delivery-status-publish	skipped	2026-11-05T10:08:44Z	2026-11-05T10:08:44Z	127180329736	github-actions
+governance / env-matrix	success	2026-11-05T10:10:48Z	2026-11-05T10:17:34Z	127180326755	github-actions
+governance / instrument-self-tests	cancelled	2026-11-05T10:11:00Z	2026-11-05T10:41:17Z	127180326851	github-actions
+governance / policy-docs	success	2026-11-05T10:09:25Z	2026-11-05T10:13:25Z	127180326595	github-actions
+governance / record	skipped	2026-11-05T10:08:44Z	2026-11-05T10:08:44Z	127180328822	github-actions
+governance / wave-script	success	2026-11-05T10:10:04Z	2026-11-05T10:10:57Z	127180326744	github-actions
+hassfest	skipped	2026-11-05T10:51:47Z	2026-11-05T10:51:47Z	127200498821	github-actions
+hassfest / hassfest	success	2026-11-05T10:10:22Z	2026-11-05T10:10:44Z	127180326672	github-actions
+kernel-points	skipped	2026-11-05T10:08:44Z	2026-11-05T10:08:44Z	127180329166	github-actions
+kernel-points	skipped	2026-11-05T10:51:48Z	2026-11-05T10:51:47Z	127200499168	github-actions
+pr-contract / pr-contract	success	2026-11-05T10:50:35Z	2026-11-05T10:51:26Z	127199928535	github-actions
+pr-contract / pr-contract	success	2026-11-05T10:52:40Z	2026-11-05T10:53:24Z	127200881552	github-actions
+prelude	success	2026-11-05T10:08:14Z	2026-11-05T10:08:44Z	127180046015	github-actions
+prelude	success	2026-11-05T10:08:19Z	2026-11-05T10:51:47Z	127180047583	github-actions
+refresh	success	2026-11-05T10:08:12Z	2026-11-05T10:08:35Z	127180045768	github-actions
+refresh	success	2026-11-05T10:08:14Z	2026-11-05T10:08:46Z	127180047620	github-actions
+tests	skipped	2026-11-05T10:51:48Z	2026-11-05T10:51:47Z	127200499176	github-actions
+tests / arch-instrument	success	2026-11-05T10:11:48Z	2026-11-05T10:41:27Z	127180932444	github-actions
+tests / briefs	success	2026-11-05T10:09:43Z	2026-11-05T10:10:30Z	127180326541	github-actions
+tests / browser	success	2026-11-05T10:11:54Z	2026-11-05T10:16:14Z	127180932415	github-actions
+tests / ci-ratchet	skipped	2026-11-05T10:50:33Z	2026-11-05T10:50:32Z	127199930136	github-actions
+tests / claims-autofix	skipped	2026-11-05T10:24:32Z	2026-11-05T10:24:32Z	127187831417	github-actions
+tests / closure-scope	success	2026-11-05T10:09:31Z	2026-11-05T10:10:01Z	127180326555	github-actions
+tests / closures	success	2026-11-05T10:10:55Z	2026-11-05T10:50:32Z	127180932296	github-actions
+tests / closures-autofix	skipped	2026-11-05T10:50:32Z	2026-11-05T10:50:32Z	127199929501	github-actions
+tests / coverage	success	2026-11-05T10:11:11Z	2026-11-05T10:30:10Z	127180932281	github-actions
+tests / coverage-ratchet	success	2026-11-05T10:30:14Z	2026-11-05T10:30:26Z	127190468435	github-actions
+tests / fast (3.14)	success	2026-11-05T10:10:32Z	2026-11-05T10:24:31Z	127180932266	github-actions
+tests / graders-head-copy	success	2026-11-05T10:30:14Z	2026-11-05T10:30:36Z	127190468644	github-actions
+tests / lane-proofs	success	2026-11-05T10:41:30Z	2026-11-05T10:41:37Z	127195775143	github-actions
+tests / mutation	success	2026-11-05T10:10:07Z	2026-11-05T10:10:45Z	127180326636	github-actions
+tests / mutation-autofix	skipped	2026-11-05T10:10:46Z	2026-11-05T10:10:45Z	127181292181	github-actions
+tests / mutation-pins	skipped	2026-11-05T10:10:46Z	2026-11-05T10:10:45Z	127181291934	github-actions
+tests / nightly-ha	skipped	2026-11-05T10:10:02Z	2026-11-05T10:10:01Z	127180935065	github-actions
+tests / nightly-status	failure	2026-11-05T10:10:23Z	2026-11-05T10:10:39Z	127180326601	github-actions
+tests / replay	skipped	2026-11-05T10:10:02Z	2026-11-05T10:10:01Z	127180934243	github-actions
+tests / typing	success	2026-11-05T10:11:33Z	2026-11-05T10:12:54Z	127180932374	github-actions
+validate	skipped	2026-11-05T10:51:47Z	2026-11-05T10:51:47Z	127200498747	github-actions
+validate / validate-hacs	success	2026-11-05T10:09:38Z	2026-11-05T10:10:16Z	127180326366	github-actions
