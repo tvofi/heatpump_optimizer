@@ -1,4 +1,0 @@
-  FAIL an honest payload comes back byte-identical (null control)  [rewritten=['dhw_legionella', 'boost', 'pump_duty']]
-  FAIL an instant inside its store's lead survives the load (a lead is not lost)  [lead_lost=['boost']]
-2 of 108 FINITE BOUNDARY CHECKS FAILED
-rc=1

@@ -1,7 +1,0 @@
-merge-base 6777ec33337b256d29ea145d98da413dbf076a2a
-unchanged tests/golden/claimed_drift.txt
-unchanged tests/golden/card_claimed_drift.txt
-unchanged VERSION
-unchanged custom_components/heatpump_optimizer/manifest.json
-unchanged RELEASE_NOTES.md
-0
