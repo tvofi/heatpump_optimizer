@@ -16212,6 +16212,32 @@ R.check("run.sh's lane console prints SKIP, not ok, for a script that waited pas
         *_gl_wu["word"])
 
 
+def _gl_ended_before_summary() -> tuple[bool, str]:
+    """run.sh names a non-zero script that never reached a summary line apart
+    from one that failed a check: the function and its pattern are lifted from
+    run.sh and driven on a crash log and a failed-check log."""
+    import re as _re2
+    import subprocess as _sp
+    src = (_closure.ROOT / "tests/run.sh").read_text()
+    pat = _re2.search(r"^SUMMARY_LINE=.*$", src, _re2.M)
+    fn = _re2.search(r"^ended_before_summary\(\) \{.*?^\}", src, _re2.M | _re2.S)
+    if not (pat and fn):
+        return False, "run.sh defines no SUMMARY_LINE / ended_before_summary"
+    with _tempfile.TemporaryDirectory() as tds:
+        crash, failed = Path(tds) / "crash.log", Path(tds) / "failed.log"
+        crash.write_text("sampling...\nTraceback (most recent call last):\nOSError\n")
+        failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
+        out = []
+        for log in (crash, failed):
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            out.append(r.returncode)
+    return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
+
+
+R.check("run.sh names a script ended before its summary apart from a failed check (R10 carry)",
+        *_gl_ended_before_summary())
+
+
 def _gl_flock_wrap_label() -> tuple[bool, str]:
     """A seat's own label under run.sh: never taken fails at once and takes
     nothing (#1617 round 2: a take here left the label held after the gate);
