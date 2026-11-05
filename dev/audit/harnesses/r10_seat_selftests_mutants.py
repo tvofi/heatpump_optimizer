@@ -587,6 +587,43 @@ MUTANTS = [
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
+    # r10-closeout-cleanup: the roster gate, the step gate, the keeps, the push arm, the topic refusal.
+    ("closeout-1", "closeout.py", "    if blockers:\n        out(", "    if False:\n        out("),
+    ("closeout-2", "closeout.py", "        if problems and apply:\n            break",
+     "        if False:\n            break"),
+    ("prune_refs-1", "prune_refs.py", "    if name.startswith(CLAUDE_PREFIX):\n        return KEEP_SESSION",
+     "    if False:\n        return KEEP_SESSION"),
+    ("prune_refs-2", "prune_refs.py", "name[len(pre):] in open_groups:", "name[len(pre):] in frozenset():"),
+    ("prune_refs-3", "prune_refs.py", "        if age is None or age < limit:", "        if age is None:"),
+    ("prune_refs-4", "prune_refs.py", "    if missing:\n        raise ApplyRefused", "    if False:\n        raise ApplyRefused"),
+    ("prune_refs-5", "prune_refs.py", 'return any(line.startswith("+") for line',
+     'return any(line.startswith("@@") for line'),
+    ("prune_refs-6", "prune_refs.py", "    return fam == \"dispatch\" and bool(rn.search(tail))",
+     "    return False"),
+    # #3085 verdict: every delete leased at the planned sha, atomic per chunk;
+    # the api arm's read-back and abort; step 3's local old-value delete.
+    ("prune_refs-7", "prune_refs.py",
+     '*[f"--force-with-lease=refs/heads/{n}:{s}" for n, s in part],', ""),
+    ("prune_refs-8", "prune_refs.py", 'err = push(["--atomic", ', "err = push(["),
+    ("prune_refs-9", "prune_refs.py", "            if now.returncode != 0 or now.stdout.strip() != sha:",
+     "            if now.returncode != 0:"),
+    ("prune_refs-10", "prune_refs.py", '        if done[-1][0].endswith("FAILED"):\n            return done',
+     '        if False:\n            return done'),
+    ("closeout-3", "closeout.py", '"update-ref", "-d", f"refs/heads/{b}", sha)',
+     '"update-ref", "-d", f"refs/heads/{b}")'),
+    ("worktree_gc-1", "tools/audit/worktree_gc.sh", '    if [ "$up" != 0 ]; then', "    if false; then"),
+    ("worktree_gc-2", "tools/audit/worktree_gc.sh", "      1) printf 'keep  %s  cwd-inside", "      9) printf 'keep  %s  cwd-inside"),
+    ("worktree_gc-3", "tools/audit/worktree_gc.sh", '  [ "$FETCH_OK" -eq 1 ] || return 1', "  true"),
+    ("worktree_gc-4", "tools/audit/worktree_gc.sh", 'git update-ref -d "refs/heads/$branch" "$head" 2>',
+     'git update-ref -d "refs/heads/$branch" 2>'),
+    # #3085 round 3: the worktree removal is leased at the HEAD the read gave, in both tools.
+    ("worktree_gc-5", "tools/audit/worktree_gc.sh", 'update-ref --no-deref -d HEAD "$2" 2>',
+     'update-ref --no-deref -d HEAD 2>'),
+    # #3085 class C: the orphaned-seat rm -rf is leased at the orphan's own HEAD read.
+    ("worktree_gc-6", "tools/audit/worktree_gc.sh", 'update-ref --no-deref -d HEAD "$ohead" 2>',
+     'update-ref --no-deref -d HEAD 2>'),
+    ("closeout-4", "closeout.py", '"update-ref", "--no-deref", "-d", "HEAD", head)',
+     '"update-ref", "--no-deref", "-d", "HEAD")'),
 ]
 
 # Mutants run with extra step environment: (name, base mutant, env).
