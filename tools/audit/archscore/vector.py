@@ -155,6 +155,7 @@ def measure(root: Path, only: set[str] | None = None) -> dict:
         untyped_payload_keys.ANY_SPELLINGS = "C1b" not in off
         untyped_payload_keys.FOLLOW_ANNOTATED = "C14" not in off
         footprint.READ_KW_KEYS = "C11" not in off
+        footprint.PACKING_UNITS = "C25" not in off
         C.FOLLOW_RETURNS = "C15" not in off
         hub_solve_writes.EVENT_ROOTS = "C16" not in off
         hub_solve_writes.PASS_ON = "C16b" not in off
