@@ -16258,9 +16258,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-handoff-path",
-    "commit": null,
+    "commit": "788e8ceed2d7251740e46fa7f1568ea284d85d47",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s11 replan fold | set-files files ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/open_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/open_driver.py', 'tests/structure.py'] -> ['tools/audit/seat/update_pr.sh', 'tools/audit/seat/open_pr.sh', 'tools/audit/seat/pr_args.sh', 'tools/audit/seat/open_driver.py', 'tests/structure.py', 'tools/pr/app_push.sh', 'tools/pr/prepr.sh', 'tools/audit/seat/body_push.sh'] (cite origin/main@af941ad4a296ffec76562e3161972bce3ad2dec4)",
