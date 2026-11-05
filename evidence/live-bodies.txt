@@ -1,30 +1,48 @@
-
-== 3170 wt
+=== #3170 (fix/r10-suite-host-determinism) HEAD ece7cbab: check --body --branch
+NOTE stale tree: ece7cbabb8bd012617692eaeb8ef585f13ee1f4e lacks origin/main 8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc; roster read at origin/main
+NOTE body item 42008ca4: R10-GATE-LEASE-TOCTOU: R10-GATE-LEASE-TOCTOU resolved on origin/handoff/audit-r10-roster
+NOTE body item 507ad27c: R10-REPLAY-COST-BUDGET
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-== 3170 base
+rc=0
+=== #3170 BASE origin/main: check --body
+NOTE body item 42008ca4: R10-GATE-LEASE-TOCTOU: R10-GATE-LEASE-TOCTOU resolved on origin/handoff/audit-r10-roster
+NOTE body item 507ad27c: R10-REPLAY-COST-BUDGET
 CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
-
-== 3198 wt
+rc=0
+=== #3198 (fix/r10-grade-drivers) HEAD ece7cbab: check --body --branch
+NOTE stale tree: ece7cbabb8bd012617692eaeb8ef585f13ee1f4e lacks origin/main 8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc; roster read at origin/main
+NOTE body item 7c609975: R10-WHY-NOW-WIDGET
+NOTE body item 624432b1: dismissed:cosmetic; P9 overlap, clip and contrast pass, and a no-break space between number and unit is a card-wide copy convention, not this PR's
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+=== #3198 BASE origin/main: check --body
+NOTE body item 7c609975: R10-WHY-NOW-WIDGET
+NOTE body item 624432b1: dismissed:cosmetic; P9 overlap, clip and contrast pass, and a no-break space between number and unit is a card-wide copy convention, not this PR's
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+=== #3218 (fix/r10-fly-archscore-stmt-packing) HEAD ece7cbab: check --body --branch
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-== 3198 base
+rc=0
+=== #3218 BASE origin/main: check --body
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-
-== 3218 wt
+rc=0
+=== #3220 (fix/r10-hotfix-sav-estimate) HEAD ece7cbab: check --body --branch
+NOTE stale tree: ece7cbabb8bd012617692eaeb8ef585f13ee1f4e lacks origin/main 8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc; roster read at origin/main
+NOTE body item d7f65c3b: R10-SAV-COMFORT
+NOTE body item 7f2fa39d: R10-SAV-COMFORT
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+=== #3220 BASE origin/main: check --body
+NOTE body item d7f65c3b: R10-SAV-COMFORT
+NOTE body item 7f2fa39d: R10-SAV-COMFORT
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+=== #3222 (fix/r10-seat-identity-guards) HEAD ece7cbab: check --body --branch
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-== 3218 base
+rc=0
+=== #3222 BASE origin/main: check --body
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-
-== 3220 wt
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-== 3220 base
-CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
-
-== 3222 wt
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-== 3222 base
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
-
-== 3227 wt
-CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
-== 3227 base
-CARRY-AUDIT: 7 finding item(s): 7 routed, 0 unrouted, 0 bad destination(s)
+rc=0
+NOTE body item d2915e6f: dismissed:nothing owed beyond the owner's review at merge
+NOTE body item 146f77e8: R10-BODY-CONTRACT
+CARRY-AUDIT: 11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)

@@ -1,0 +1,7 @@
+HEAD ece7cbabb8bd012617692eaeb8ef585f13ee1f4e
+two issues one answer: ([], [])
+control: two issues no answer: (["#7 fold (a) is unanswered: 'do x'", "#8 fold (a) is unanswered: 'do y'"], [])
+'Fold(a): do x\n' ([], [])
+'Fold (A): do x\n' ([], [])
+'**Fold (a)**: do x\n' ([], [])
+'Fold (a): do x\n' (["#7 fold (a) is unanswered: 'do x'"], [])

@@ -1,0 +1,60 @@
+2026-11-05T14:07:01.7287306Z [36;1m  'tests/nightly_status.py'[0m
+2026-11-05T14:07:01.7287815Z [36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"[0m
+2026-11-05T14:07:01.7288367Z [36;1mpython -I -S tests/nightly_status.py[0m
+2026-11-05T14:07:01.7360399Z shell: /usr/bin/bash -e {0}
+2026-11-05T14:07:01.7360695Z env:
+2026-11-05T14:07:01.7361223Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-05T14:07:01.7361738Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib/pkgconfig
+2026-11-05T14:07:01.7362234Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-05T14:07:01.7362693Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-05T14:07:01.7363119Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.18/x64
+2026-11-05T14:07:01.7363540Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.18/x64/lib
+2026-11-05T14:07:01.7366266Z   GITHUB_TOKEN: ***
+2026-11-05T14:07:01.7366541Z   PINNED: b707d89329c746c870d07e0b1725e644874078dc
+2026-11-05T14:07:01.7366858Z ##[endgroup]
+2026-11-05T14:07:04.8408385Z NIGHTLY FAILED: slow failed last night.
+2026-11-05T14:07:04.8409297Z   scheduled run 41943946464, 2026-11-05T00:47:36+00:00, head 499162c, run conclusion 'failure'
+2026-11-05T14:07:04.8410374Z   https://github.com/tvofi/heatpump_optimizer/actions/runs/41943946464
+2026-11-05T14:07:04.8411361Z   failing jobs:
+2026-11-05T14:07:04.8412136Z     slow  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/41943946464/job/126971378040
+2026-11-05T14:07:04.8412959Z 
+2026-11-05T14:07:04.8415029Z This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+2026-11-05T14:07:04.8417677Z 
+2026-11-05T14:07:04.8418436Z A red here is owed a fix and a PROOF, not an explanation. Fix the lane, then verify it on the default branch:
+2026-11-05T14:07:04.8419774Z     gh workflow run nightly.yml --ref main
+2026-11-05T14:07:04.8422299Z and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+2026-11-05T14:07:04.8425210Z If the cause is outside this repository, that is a legitimate answer and it is recorded the same way: name the cause and who owns it, in the body. What is refused is a red nobody answered.
+2026-11-05T14:07:04.8520276Z ##[error]Process completed with exit code 1.
+2026-11-05T14:07:04.8714061Z Post job cleanup.
+2026-11-05T14:07:04.9544797Z [command]/usr/bin/git version
+2026-11-05T14:07:04.9589498Z git version 2.56.0
+2026-11-05T14:07:04.9626233Z Temporarily overriding HOME='/home/runner/work/_temp/b1d10196-77cd-4459-87b1-b9126e2624ab' before making global git config changes
+2026-11-05T14:07:04.9627663Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T14:07:04.9632091Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T14:07:04.9666330Z Removing SSH command configuration
+2026-11-05T14:07:04.9672232Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T14:07:04.9707561Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T14:07:05.0000600Z Removing HTTP extra header
+2026-11-05T14:07:05.0005902Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T14:07:05.0042058Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T14:07:05.0338409Z Removing includeIf entries pointing to credentials config files
+2026-11-05T14:07:05.0345116Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T14:07:05.0372832Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T14:07:05.0374429Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T14:07:05.0375416Z includeif.gitdir:/github/workspace/.git.path
+2026-11-05T14:07:05.0376090Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T14:07:05.0381954Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T14:07:05.0406965Z /home/runner/work/_temp/git-credentials-204d644c-4f60-4ccb-89b7-c08f0d980885.config
+2026-11-05T14:07:05.0418059Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-204d644c\-4f60\-4ccb\-89b7\-c08f0d980885\.config
+2026-11-05T14:07:05.0459681Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T14:07:05.0484706Z /home/runner/work/_temp/git-credentials-204d644c-4f60-4ccb-89b7-c08f0d980885.config
+2026-11-05T14:07:05.0494576Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-204d644c\-4f60\-4ccb\-89b7\-c08f0d980885\.config
+2026-11-05T14:07:05.0526530Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-05T14:07:05.0549148Z /github/runner_temp/git-credentials-204d644c-4f60-4ccb-89b7-c08f0d980885.config
+2026-11-05T14:07:05.0556713Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-204d644c\-4f60\-4ccb\-89b7\-c08f0d980885\.config
+2026-11-05T14:07:05.0589660Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T14:07:05.0613012Z /github/runner_temp/git-credentials-204d644c-4f60-4ccb-89b7-c08f0d980885.config
+2026-11-05T14:07:05.0621124Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-204d644c\-4f60\-4ccb\-89b7\-c08f0d980885\.config
+2026-11-05T14:07:05.0656229Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T14:07:05.0938384Z Removing credentials config '/home/runner/work/_temp/git-credentials-204d644c-4f60-4ccb-89b7-c08f0d980885.config'
+2026-11-05T14:07:05.1086066Z Cleaning up orphan processes
