@@ -16830,7 +16830,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "done",
+    "commit": "8b49d50b0a4c3eebee0edeb6ec98aa365e3d004f"
    },
    "brief": "Main tests / ci-ratchet is red on the critical path metric after PR 3201 merged at a45cf7f5. Re-measure there first and stop if green. Pay by a closures or job-graph change that really shortens the path, with the architecture score run before and after. If no sound payment exists, re-record only the measured value with a Raise justification section under the mandate in force. Control: the ratchet still refuses a planted growth."
   },
