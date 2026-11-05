@@ -509,8 +509,8 @@ tools/pr/prepr.sh: eval: line 3845: syntax error: unexpected end of file
   ok   body_push: a receipt whose tree is not the head's gives none
   ok   body_push: a receipt whose tree is the head's but whose sha is not gives none
   ok   (a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps
-  FAIL (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each (got 00, wanted 11)
+  ok   (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each
   ok   (a) a run with a body removes an earlier receipt first, so one that writes none leaves none
 
-508 passed, 1 failed
-rc=2 secs=361
+509 passed, 0 failed
+rc=0

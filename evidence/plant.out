@@ -1,0 +1,11 @@
+RESULT null control: genuine receipt at clean merge            HEAD 30f908ce is the clean merge of the receipted code 5283bc2c (tree 2153663e) and main's b4c86820 rc=0
+RESULT P1 trailer names another head (not in HEAD)             the receipted code e71bff8e is not in HEAD 30f908ce rc=1
+RESULT P1b trailer names main's tip (in HEAD)                  HEAD's tree is not the clean merge of code b4c86820 and main's b4c86820 (git diff --name-status: A c) rc=1
+RESULT P2 code commit after receipt, then merge main           HEAD's tree is not the clean merge of code 5283bc2c and main's b4c86820 (git diff --name-status: M c) rc=1
+RESULT P2b receipted code amended (C not in HEAD)              the receipted code 5283bc2c is not in HEAD 185e6389 rc=1
+RESULT P3 same change rebased on new base (C not in HEAD)      the receipted code 5283bc2c is not in HEAD 7491ce1e rc=1
+RESULT P3b HEAD merged with a non-main base                    HEAD's tree is not the clean merge of code 5283bc2c and main's b4c86820 (git diff --name-status: A fk) rc=1
+RESULT P4 trailer tree forged                                  the receipt's tree aaff7498 is not code 5283bc2c's tree, so the run it records was not over this code rc=1
+RESULT P5 short sha trailer                                    handoff-body/t's tip 81758f4b carries no one `Prepr: <sha> <tree>` trailer, so no receipt rc=1
+RESULT P6 evil merge (resolution edits code)                   HEAD's tree is not the clean merge of code 5283bc2c and main's b4c86820 (git diff --name-status: M c) rc=1
+RESULT null control again: genuine receipt at clean merge      HEAD 30f908ce is the clean merge of the receipted code 5283bc2c (tree 2153663e) and main's b4c86820 rc=0

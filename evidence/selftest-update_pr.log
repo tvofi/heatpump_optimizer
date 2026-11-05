@@ -1,3 +1,10 @@
+  ok   a row lands under dev/programme/delivery/<N>.md, and nothing is written under docs/
+  ok   a head without its row gains exactly one commit, adding only that row, as tvofi; the stray file and the edit stay out
+  ok   null control: a head that carries its row gains no commit, and its row file is not rewritten
+  ok   no group writes no empty parentheses
+  ok   a group, when given, closes the row in parentheses (open_pr.sh's shape)
+  ok   the row commit's message carries no attribution trailer (ref_privacy's reader finds none)
+delivery_row self-test: 6 checks, 0 failed
   ok   open_pr: three arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
   ok   open_pr: an abbreviated code sha refuses as not 40-hex
@@ -27,11 +34,9 @@
   ok   null control: open_pr with the code sha passes every check, and its failed push names its log
   ok   open_pr: a refused open whose branch origin never had leaves no worktree and no local branch (P72)
   ok     mutant mut:reltidy (its line deleted): the refused open's worktree still holds its branch
-  FAIL null control: a refused open whose worktree is dirty is kept on its branch and named
+  ok   null control: a refused open whose worktree is dirty is kept on its branch and named
   ok     mutant mut:reldirty (its line deleted): the dirty worktree is not named as dirty
-  FAIL null control: a refused open whose branch origin holds is kept on its branch and named
-error: branch 'fix/x-31' not found
-error: branch 'fix/x-32' not found
+  ok   null control: a refused open whose branch origin holds is kept on its branch and named
   ok     mutant mut:relorigin (its line deleted): the worktree of a branch origin holds is removed
   ok   open_pr: tools behind origin/main under tools/audit/seat refuse, naming the count
   ok     mutant mut:stale (its line deleted): the stale tools open
@@ -59,27 +64,25 @@ Terminated
   ok     mutant mut:lead (its line deleted): the lead's child is TERMed beside the lead
   ok   a PR_REAP_LEAD outside the walk (a stale or reused pid) is never signalled; the host's own tree is reaped
   ok     mutant mut:leadwalk (its line deleted): the stale lead's process is TERMed
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
-  FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 388: printf: write error: Broken pipe
+  ok   the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 388: printf: write error: Broken pipe
   ok     the census on the scratch copy passes as it does on the tree
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 388: printf: write error: Broken pipe
   ok     a new script that runs app_push.sh is refused as undispositioned
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
   ok     a runner without pr_exit_trap is refused
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 388: printf: write error: Broken pipe
   ok     a runner whose push runs in the foreground is refused (its `2>&1` backgrounds nothing)
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 388: printf: write error: Broken pipe
   ok     a runner under the branch lock whose push holds no push lock is refused
-tools/audit/seat/pr_args.sh: line 396: printf: write error: Broken pipe
-tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
+tools/audit/seat/pr_args.sh: line 398: printf: write error: Broken pipe
   ok     null control: the same runner without its branch lock needs no push lock
   ok   update_pr: two arguments refuse, naming the count
   ok     mutant mut:arity (its line deleted) fails that arm
@@ -128,11 +131,12 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   update_pr: and once that push ends the run is gone, the lock free, and a later run takes it
   ok     mutant mut:nopgrep (its line deleted): the run stops without saying its tree was not reaped
   ok   null control: a normal successful update_pr leaves nothing behind and stops nothing it did not start
-  FAIL open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
+  ok   open_pr: an update_pr.sh on its branch during its second push is BUSY, and the PR's row reaches origin
   ok   open_pr: a successful open leaves its worktree detached at the pushed head
-  FAIL open_pr: its row push passes --row-only, and its code push does not
-  FAIL   mutant mut:release (its line deleted): the opened PR's worktree still holds its branch
-  FAIL   mutant mut:oprowonly (its line deleted): the row push runs the full prepr
+  ok   open_pr: its row push passes --row-only, and its code push --reuse, never --row-only
+  ok     mutant mut:opreuse (its line deleted): the code push asks no reuse verdict, so it runs the full prepr
+  ok     mutant mut:release (its line deleted): the opened PR's worktree still holds its branch
+  ok     mutant mut:oprowonly (its line deleted): the row push runs the full prepr
   ok   update_pr: a relay body-only run on a head lacking its row refuses, the head unmoved and nothing pushed
   ok     mutant mut:bodyonly (its line deleted): the relay's body-only run pushes the row, moving the head
   ok   update_pr: a head that only gains its row pushes once, asking for --row-only
@@ -141,30 +145,31 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   update_pr: with main ahead and a clean merge-tree, the head sha is identical before and after (R4)
   ok   update_pr: a body-only run on a moved head refuses, with body_patch.sh's reason, and pushes nothing
   ok   update_pr: code - with a handoff tip the head lacks refuses, and patches no body
-  FAIL null control: a new code sha is merged and pushed through the full prepr, main still unmerged
+  ok   null control: a new code sha is merged and pushed asking for --reuse, never --row-only (app_push.sh's verdict or the full prepr judges it), main still unmerged
   ok   update_pr: a relay body-only run on a DIRTY head whose merge of main is clean refuses, the head unmoved and nothing pushed
-  FAIL   mutant mut:bodyonly (its line deleted): the relay's body-only run merges main into the DIRTY head and pushes it
-  FAIL null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, through the full prepr
+  ok     mutant mut:bodyonly (its line deleted): the relay's body-only run merges main into the DIRTY head and pushes it
+  ok   null control: without HPO_UPDATE_BODY_ONLY a DIRTY pull request still absorbs main, asking for --reuse, never --row-only
   ok   update_pr: main conflicting with the head while gh answers CLEAN is merged: the run stops, patching and pushing nothing
   ok   update_pr: main conflicting with the head while gh answers an error is merged: the run stops, patching and pushing nothing
-  FAIL open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree
-  FAIL   mutant mut:rowclose (its line deleted): the PR stays open without its row (the defect), under no comment saying it closed; the next update_pr.sh lands it
-  FAIL open_pr: a step errexit stops after the PR exists (its title edit) closes it with a read-back comment naming the stop
+  ok   open_pr: a refused row push closes the PR with a read-back comment naming the refusal, and leaves no stranded worktree
+  ok     mutant mut:rowclose (its line deleted): the PR stays open without its row (the defect), under no comment saying it closed; the next update_pr.sh lands it
+  ok   open_pr: a step errexit stops after the PR exists (its title edit) closes it with a read-back comment naming the stop
   ok     mutant mut:trapclose (its line deleted): a failing title edit leaves the PR open, unclosed and without its row (the defect)
-  FAIL open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so
-  FAIL   mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)
-  FAIL   mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)
+  ok   open_pr: a row push that lands on origin and then fails leaves the PR open with its row, and says so
+  ok     mutant mut:roworigin (its line deleted): the PR whose row is on origin is closed as rowless (the defect)
+  ok     mutant mut:rowreset (its line deleted): the row commit stays unpushed on the branch in the opener's worktree (the defect)
   ok   open_pr: a main merge that conflicts is aborted and refused, and its clean worktree is removed
   ok     mutant mut:mergeabort (its line deleted): the conflicted worktree is kept as dirty work (the defect)
-  FAIL   mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
-  FAIL   mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
+  ok     mutant mut:oplock (its line deleted): update_pr.sh takes the branch (not BUSY); the unpushed-work refusal alone keeps the row
+  ok     mutants mut:oplock and mut:unpushed (both deleted): the row's push is refused, HEAD detached under it, and the PR keeps no row (the defect)
   ok   update_pr: a worktree holding the branch with a commit origin lacks is refused and stays on its branch
   ok     mutant mut:unpushed (its line deleted): the worktree is detached under its unpushed commit
   ok   null control: a worktree whose HEAD origin has is detached as before, and the run reaches its push
   ok   update_pr: code sha '-' asks app_push.sh for --row-only, whose verdict decides the prepr
-  ok     mutant mut:rowonly (its line deleted): code sha '-' runs the full prepr
-  FAIL null control: a code sha the head lacks is merged and never asks for --row-only, so its push runs the full prepr
-  ok   null control: update_pr with code sha 'b34d991' passes every check, and its failed push names its log
+  ok     mutant mut:rowonly (its line deleted): code sha '-' asks for --reuse, not --row-only
+  ok   null control: a code sha the head lacks is merged and never asks for --row-only; it asks for --reuse, whose verdict or the full prepr judges its push
+  ok     mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr
+  ok   null control: update_pr with code sha 'ccdcd95' passes every check, and its failed push names its log
   ok   null control: update_pr with code sha '-' passes every check, and its failed push names its log
   ok   update_pr: the run leaves its worktree detached, so no worktree holds the branch
   ok     mutant mut:detach (its line deleted): the worktree still holds fix/x
@@ -188,5 +193,5 @@ tools/audit/seat/pr_args.sh: line 386: printf: write error: Broken pipe
   ok   every # mut: line is a whole statement, never one continued from the line above
   ok   null control: a # mut: line continued from the line above is named
   ok   pr_cap.py --self-test: its tally says 0 failed
-pr_args self-test: 172 checks, 19 failed
-rc=1 secs=287
+pr_args self-test: 174 checks, 0 failed
+rc=0
