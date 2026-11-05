@@ -1,0 +1,32 @@
+tools/audit/worktree_gc.sh:106:  trap 'rm -rf "$W"' EXIT
+tools/audit/worktree_gc.sh:134:  "-C "*" update-ref --no-deref -d HEAD "*)
+tools/audit/worktree_gc.sh:143:  "update-ref -d "*)
+tools/audit/worktree_gc.sh:151:  "branch -D "*) printf 'refs/heads/%s\n' "$3" >> "$STUB/deleted"; exit 0 ;;   # unleased: deletes wherever the ref is
+tools/audit/worktree_gc.sh:284:  gone "$D/orch/seat-merged/wt"; st $? 0 "merged+clean: worktree removed"
+tools/audit/worktree_gc.sh:285:  st "$(grep -c "^git -C $D/orch/seat-merged/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "the removal leased at the head the porcelain read (class A)"
+tools/audit/worktree_gc.sh:286:  st "$(grep -c "^git update-ref -d refs/heads/fix/merged 2222222222222222222222222222222222222222$" "$D/log")" 1 "and the local branch deleted, leased at the head the porcelain read"
+tools/audit/worktree_gc.sh:293:  gone "$D/orch/seat-detached/wt"; st $? 0 "detached at a merged sha: worktree removed"
+tools/audit/worktree_gc.sh:294:  st "$(grep -c "^git -C $D/orch/seat-detached/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222223$" "$D/log")" 1 "the removal leased at the head the porcelain read (class B)"
+tools/audit/worktree_gc.sh:302:  st "$(grep -c "^git -C $D/orch/seat-dirtymerged/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "dirty or not (merged work is on main)"
+tools/audit/worktree_gc.sh:306:  l2=$(grep -n "^git -C $D/orch/seat-dirtymerged/wt update-ref --no-deref -d HEAD " "$D/log" | head -1 | cut -d: -f1)
+tools/audit/worktree_gc.sh:318:  st "$(grep -c "^git -C $D/orch/seat-orph-mergedwt/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "the orphan removal leased at the head the read gave (class C)"
+tools/audit/worktree_gc.sh:345:  st "$(grep -c "update-ref -d refs/heads/fix/unpushed" "$D/log")" 0 "and its branch is not deleted"
+tools/audit/worktree_gc.sh:452:  st "$(grep -c "update-ref --no-deref -d HEAD" "$D/log")" 0 "removes no worktree"
+tools/audit/worktree_gc.sh:453:  st "$(grep -c "^git update-ref -d" "$D/log")" 0 "deletes no branch"
+tools/audit/worktree_gc.sh:463:  st "$(grep -c "update-ref --no-deref -d HEAD" "$W/noauth/log")" 0 "and nothing removed"
+tools/audit/worktree_gc.sh:662:    rm -rf "$seat" && printf 'removed  %s\n' "$seat" \
+tools/audit/worktree_gc.sh:699:  if [ -z "${2:-}" ] || ! git -C "$1" update-ref --no-deref -d HEAD "$2" 2>/dev/null; then
+tools/audit/worktree_gc.sh:704:  if rm -rf "$1" && git worktree prune; then
+tools/audit/worktree_gc.sh:753:      { [ -n "$head" ] && git update-ref -d "refs/heads/$branch" "$head" 2>/dev/null; } \
+tools/audit/worktree_gc.sh:869:      if [ -n "$ohead" ] && ! git -C "$seat_real/wt" update-ref --no-deref -d HEAD "$ohead" 2>/dev/null; then
+tools/audit/worktree_gc.sh:873:      rm -rf "$seat_real" && printf 'removed  %s\n' "$seat" && REMOVED_N=$((REMOVED_N+1)) \
+tools/audit/worktree_gc.sh:924:      rm -rf "$venv" && printf 'removed  %s\n' "$venv" && REMOVED_N=$((REMOVED_N+1)) \
+tools/audit/seat/closeout.py:262:    `update-ref -d <ref> <old>` is the local lease: a branch another process
+tools/audit/seat/closeout.py:265:    if c.git("update-ref", "-d", f"refs/heads/{b}", sha).returncode:
+tools/audit/seat/closeout.py:274:    `update-ref --no-deref -d HEAD <old>` is the lease, as in worktree_gc.sh's
+tools/audit/seat/closeout.py:279:    (`git worktree remove` refuses a worktree with no HEAD).
+tools/audit/seat/closeout.py:283:    shutil.rmtree(path, ignore_errors=True)
+tools/audit/seat/closeout.py:320:                shutil.rmtree(e, ignore_errors=True) if e.is_dir() and not e.is_symlink() \
+tools/audit/seat/closeout.py:321:                    else e.unlink()
+tools/audit/seat/closeout.py:618:            shutil.rmtree(d)
+tools/audit/seat/closeout.py:711:        shutil.rmtree(tmp, ignore_errors=True)
