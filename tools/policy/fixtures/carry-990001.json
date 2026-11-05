@@ -12,7 +12,7 @@
     {
       "from": "no pull request; this entry is a fixture",
       "effect": "narrows",
-      "control": "the null control this fixture stands for: with the probe reverted, the same run reports nothing",
+      "control": "the null control this fixture stands for: with the probe reverted, the same run reports nothing (tests/closures.json is its enumerator)",
       "remeasure": "a real carry names the command the next stage re-runs at its own merge base; figures here are snapshots",
       "brief": "A correct carry, cited so the resolvable classes actually run over it rather than finding nothing to check: tests/closures.json is in the tree, and the linter resolves it there."
     }

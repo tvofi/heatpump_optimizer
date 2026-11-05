@@ -446,7 +446,9 @@ jobs:
       # UNVERIFIED and the train's pre-flight checks it.
       - name: Every finding the body records names its destination
         if: always()
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin '+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster'
-          python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md
+          python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md --branch "$HEAD_REF"
