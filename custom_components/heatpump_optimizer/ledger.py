@@ -74,7 +74,7 @@ REFERENCE_BASIS_META = "reference_basis"
 #: its horizon spread by steady demand. Bump when the booked reference changes.
 REFERENCE_BASIS = 1
 
-#: What ``migrate_ledger_v1`` stamps: every month a v1 store holds predates it.
+#: What ``migrate_ledger_v1`` stamps: every month a v1 store booked savings in predates it.
 OLD_REFERENCE_BASIS = 0
 
 #: Below this many modelled kWh a month the plan commanded almost nothing:
@@ -140,15 +140,18 @@ def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
 
 
 def migrate_ledger_v1(stored: dict[str, Any]) -> dict[str, Any]:
-    """A v1 ledger document at v2: every month it holds is on the old basis.
+    """A v1 ledger document at v2: every month it booked savings in is on the old basis.
 
-    Only a meta entry is added; no line, so no total, is rewritten.
+    A month with no ``savings_baseline`` line booked against no reference, so it
+    stays unstamped and its first savings booking stamps the reference then in
+    force. Only a meta entry is added; no line, so no total, is rewritten.
     """
     ledger = stored.get("ledger")
     months = ledger.get("months") if isinstance(ledger, dict) else None
     for month in months.values() if isinstance(months, dict) else ():
         meta = month.get("meta") if isinstance(month, dict) else None
-        if isinstance(meta, dict):
+        lines = month.get("lines") if isinstance(month, dict) else None
+        if isinstance(meta, dict) and isinstance(lines, dict) and "savings_baseline" in lines:
             meta.setdefault(REFERENCE_BASIS_META, {"sum": float(OLD_REFERENCE_BASIS), "count": 1})
     return stored
 

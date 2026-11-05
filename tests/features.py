@@ -42617,6 +42617,32 @@ R.check(
     and _sb_old.months["2026-02"]["meta"][_SB_META]["sum"] == float(_SB_OLD),
     repr(_sb_old.months["2026-02"]["meta"]),
 )
+# A v1 month holding lines but no savings yet was booked on no reference, so
+# the migration leaves it unstamped and its first savings booking stamps it new.
+_sb_unbooked = {"ledger": _sb_copy.deepcopy(_sb_v1["ledger"]), "starts": {}}
+_sb_unbooked["ledger"]["months"]["2026-03"] = {
+    "lines": {"spot": {"kwh": 1.0, "sek": 1.0}}, "meta": {}
+}
+_sb_run(_sb_storage.Store(None, 1, "sb_ledger_unbooked").async_save(_sb_unbooked))
+_sb_unbooked_loaded = _sb_run(_SbStore(None, _SB_VERSION, "sb_ledger_unbooked").async_load())
+_sb_run(_SbStore(None, _SB_VERSION, "sb_ledger_unbooked").async_remove())
+_sb_unbooked_led = _SavLedger.from_dict(_sb_copy.deepcopy(_sb_unbooked_loaded["ledger"]))
+_sb_unbooked_led.observe_spot_and_settle_savings(
+    _SavDT(2026, 3, 9, 3, 0), 1.0, {"baseline_kw": 2.0, "power": 2.0}, 1.0, 1.0
+)
+_sb_unbooked_rows = {
+    r["month"]: r for r in _sb_unbooked_led.savings_months(_SavDT(2026, 4, 2, 0, 0))
+}
+R.check(
+    "a v1 month with no savings booked at the upgrade books its first saving on the new reference",
+    _SB_META not in _sb_unbooked_loaded["ledger"]["months"]["2026-03"]["meta"]
+    and _sb_unbooked_loaded["ledger"]["months"]["2026-02"]["meta"][_SB_META]
+    == {"sum": float(_SB_OLD), "count": 1}
+    and _sb_unbooked_rows["2026-03"]["old_basis"] is False
+    and _sb_unbooked_rows["2026-03"]["savings_sek"] is not None
+    and _sb_unbooked_rows["2026-02"]["old_basis"] is True,
+    repr((_sb_unbooked_loaded["ledger"]["months"], _sb_unbooked_rows)),
+)
 _sb_bare = _SavLedger()
 _sb_bare.add(_sb_t, "savings_baseline", kwh=1.0, sek=1.0)
 R.check(
@@ -42759,6 +42785,61 @@ R.check(
     float(_sb_warm_power.min()) == 0.0 and float(_sb_warm_power.max()) == 0.0
     and _sb_warm_end.room_temperature > 21.0,
     repr((float(_sb_warm_power.min()), float(_sb_warm_power.max()), _sb_warm_end.room_temperature)),
+)
+# The end state is settled as the horizon's stored heat, so it must be the house
+# the booked power heats: the floor sits where the thermostat decides, not on the
+# output alone. Replaying the booked kW from the thermostat's held start reaches
+# the same end; a floor only at the return simulates the negative demand and
+# ends the warm day colder than the house it books.
+def _sb_replayed_end(power, end, outdoor, sun_w_m2):
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import _thermostat_held_state
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    model = _M(_P.from_config(_h(dhw=False)))
+    zero = _np.zeros(96)
+    sun = _np.full(96, sun_w_m2)
+    w = _W(outdoor_temps=outdoor, wind_speeds=zero, precipitation=zero, solar_radiation=sun)
+    state = _thermostat_held_state(model, _S(
+        room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(outdoor[0]),
+        upper_floor_temperature=21.0, lower_floor_temperature=21.0), w, 21.0)
+    for i in range(96):
+        state = model.simulate_step(state, float(power[i]), float(outdoor[i]), 0.0, 0.0, sun_w_m2, 0.25)
+    return abs(state.room_temperature - end.room_temperature), abs(
+        state.slab_temperature - end.slab_temperature)
+
+
+def _sb_swing_reference():
+    import numpy as _np
+    from profiles import house as _h
+    from heatpump_optimizer.optimizer import HeatPumpOptimizer as _O, OptimizationConfig as _C
+    from heatpump_optimizer.thermal_model import (
+        ThermalModel as _M, ThermalParameters as _P, ThermalState as _S, WeatherSeries as _W,
+    )
+    opt = _O(_M(_P.from_config(_h(dhw=False))), _C(
+        horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0))
+    zero = _np.zeros(96)
+    outdoor = 12.0 + 8.0 * _np.sin(_np.linspace(0, 2 * _np.pi, 96))
+    power, end = opt._compute_baseline_power(
+        _W(outdoor_temps=outdoor, wind_speeds=zero, precipitation=zero,
+           solar_radiation=_np.zeros(96)),
+        _S(room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=float(outdoor[0]),
+           upper_floor_temperature=21.0, lower_floor_temperature=21.0), 0.25)
+    return power, end, outdoor
+
+
+import numpy as _sb_np
+
+_sb_swing_power, _sb_swing_end, _sb_swing_out = _sb_swing_reference()
+_sb_warm_gap = _sb_replayed_end(_sb_warm_power, _sb_warm_end, _sb_np.full(96, 22.0), 300.0)
+_sb_swing_gap = _sb_replayed_end(_sb_swing_power, _sb_swing_end, _sb_swing_out, 0.0)
+R.check(
+    "a thermostat's end state is the house its booked power heats: a replay of the kW lands on it, warm day and swinging day",
+    max(_sb_warm_gap + _sb_swing_gap) < 1e-9
+    and float(_sb_swing_power.sum()) > 0.0,
+    repr((_sb_warm_gap, _sb_swing_gap, float(_sb_swing_power.sum()))),
 )
 # The solve's starts anchor on what the plan's house buys, and that house has its
 # wood: a tank that covers the reference's kWh seeds nothing, a house with none
