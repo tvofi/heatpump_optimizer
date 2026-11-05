@@ -635,7 +635,9 @@ def report(res: dict, label: str = "") -> int:
 
 
 FOLD_LINE = re.compile(r"^\s*(?:[-*+]\s+)?(?:\*\*)?Fold \(([a-z])\):\s*(.*)$", re.M)
-CLOSES = re.compile(r"\bcloses?\s*:?\s+#(\d+)", re.I)
+# prepr.sh's INTENDED_JQ and preflight.sh's CLOSING_REF: the nine GitHub closing keywords, four reference shapes.
+CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+"
+                    r"(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)(\d+)", re.I)
 
 
 def fold_answered(ans: str) -> bool:
@@ -653,7 +655,8 @@ def fold_problems(body: str, issue_text) -> "tuple[list[str], list[str]]":
     folds are its `Fold (x): <ask>` lines; the body answers each on a line of its own,
     outside fences. `issue_text(n)` is the issue's text or None (unfetchable: the
     close passes with a note, so a network miss never blocks a merge)."""
-    text = "\n".join(re.sub(r"```.*?```|~~~.*?~~~", "", body, flags=re.S).split("\n"))
+    # fences and HTML comments render as no answer, so neither counts as one
+    text = "\n".join(re.sub(r"```.*?```|~~~.*?~~~|<!--.*?-->", "", body, flags=re.S).split("\n"))
     answered = {m.group(1) for m in FOLD_LINE.finditer(text) if fold_answered(m.group(2))}
     problems, notes = [], []
     for n in dict.fromkeys(int(x) for x in CLOSES.findall(text)):
@@ -1085,10 +1088,20 @@ def _self_test() -> int:
           [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "Fold (e): Carry:"))] == [True])
     check("... an answer inside a code fence is no answer",
           [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "```\nFold (e): built\n```"))] == [True])
+    check("... an answer inside an HTML comment is no answer",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "<!--\nFold (e): built\n-->"))] == [True])
     check("an issue with no `Fold (x):` line is accepted unchanged (null control)",
           fp("Closes #7\n", "Please fix this; a fold (a): in prose.\n") == [])
     check("a body that does not close the issue owes no fold answer (null control)",
           fp("Refs #7\n\nnothing\n") == [])
+    # The closing set is prepr.sh's INTENDED_JQ: nine keywords, four reference shapes. One arm each.
+    for form in ("Close #7", "Closes #7", "Closed #7", "Fix #7", "Fixes #7", "Fixed #7", "Resolve #7",
+                 "Resolves #7", "Resolved #7", "closes: #7", "Fixes https://github.com/o/r/issues/7",
+                 "Fixes o/r#7", "Resolves GH-7"):
+        check(f"`{form}` closes the issue, so its unanswered fold is refused",
+              len(fp(form + "\n\nFold (a): built\n")) == 4)
+    check("`Mentions #7` and `Fixing #7` close nothing (null control)",
+          fp("Mentions #7\nFixing #7\nunfixes #7\n") == [])
     nf, nn = fold_problems("Closes #8\n", lambda n: None)
     check("an issue that cannot be fetched fails open with a printed note", nf == [] and len(nn) == 1 and "#8" in nn[0])
     # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
@@ -1112,6 +1125,38 @@ def _self_test() -> int:
     for br, want in (("fix/r10-pr", "R10-PR"), ("fix/r10-pr-pr", "R10-PR"), ("fix/r10-nothing", None)):
         check(f"branch {br} resolves to the PR group {want} (the workflow passes --branch, not --pr-group)",
               pr_group_of(Dcl, br) == want)
+    # THE CLI WIRING, end to end: `check --body` is what pr-contract.yml runs.
+    def cli(body: str, *extra: str, folds: "dict | None" = None) -> "tuple[int, str]":
+        real, loaded = globals()["load_dests"], []
+        Dcl.pr_group = None  # main() sets it from --branch; each call starts without one
+        globals()["load_dests"] = lambda *a, **k: loaded.append(k) or Dcl
+        buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as td:
+            args = ["check", "--body", str(Path(td, "b.md"))]
+            Path(td, "b.md").write_text(body)
+            if folds is not None:
+                Path(td, "f.json").write_text(json.dumps(folds))
+                args += ["--issue-folds-file", str(Path(td, "f.json"))]
+            try:
+                with contextlib.redirect_stdout(buf):
+                    rc = main(args + list(extra))
+            finally:
+                globals()["load_dests"] = real
+        return rc, buf.getvalue()
+    fold_issue = {"7": "Fold (a): do x\n"}
+    rc, out = cli("Closes #7\n", folds=fold_issue)
+    check("check --body refuses a close with an unanswered fold (rc 1, FOLD-UNANSWERED)",
+          rc == 1 and "FOLD-UNANSWERED" in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-CONS\nCloses #7\n", folds=fold_issue)
+    check("... also when the body has a routed finding, which sends it down the roster path",
+          rc == 1 and "FOLD-UNANSWERED" in out and "1 routed" in out)
+    rc, out = cli("Closes #7\n\nFold (a): built\n", folds=fold_issue)
+    check("check --body accepts the same close once the fold is answered (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n", "--branch", "fix/r10-pr")
+    check("check --branch resolves the PR group, so a closed destination lists its valid targets",
+          rc == 1 and "valid targets: unknown" not in out and "R10-CONS" in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n")
+    check("check without --branch cannot name the valid targets (null control)", rc == 1 and "valid targets: unknown" in out)
     r = run(plant.rstrip() + " Carry: R10-OVER\n")
     check("a closed group with no PR group known is still refused, saying so",
           r["b"] == 1 and "R10-OVER is done (resume.stage done)" in r["rows"][0]["bad"][0])

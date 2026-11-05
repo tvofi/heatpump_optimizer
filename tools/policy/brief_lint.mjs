@@ -115,14 +115,16 @@ export function treeListing(rev, cwd = ROOT) {
   return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
 }
 
-export function trackedFiles() {
-  if (_trackedFiles) return _trackedFiles
+// `cwd` is the acceptance probe's repo; it is never memoized, so the checkout's cache is untouched.
+export function trackedFiles(cwd = ROOT) {
+  if (cwd === ROOT && _trackedFiles) return _trackedFiles
   // BRIEF_LINT_TREE_REV: body_patch.sh lints a body at the PR head, which is
   // not the caller's checkout; cited paths must resolve in that head's tree.
-  const out = treeListing(process.env.BRIEF_LINT_TREE_REV)
+  const out = treeListing(process.env.BRIEF_LINT_TREE_REV, cwd)
   const list = canonList(out.split('\n').filter(Boolean))
-  _trackedFiles = { set: new Set(list), byBase: basenameMap(list), list }
-  return _trackedFiles
+  const files = { set: new Set(list), byBase: basenameMap(list), list }
+  if (cwd === ROOT) _trackedFiles = files
+  return files
 }
 
 const _refResolveCache = new Map()
@@ -1343,6 +1345,19 @@ function assertTreeRev() {
     if (!at_head.includes('b.txt') || at_head.includes('a.txt')) problems.push('the head listing is not the head tree (b.txt present, a.txt absent)')
     if (!at_first.includes('a.txt') || at_first.includes('b.txt')) problems.push('the null control listing is not the first commit tree')
     if (!checkout.includes('a.txt') || checkout.includes('b.txt')) problems.push('the checkout listing does not follow the checkout (a rev would be ignored)')
+    // The wiring: trackedFiles reads the variable, not only treeListing the argument.
+    const prior = process.env.BRIEF_LINT_TREE_REV
+    process.env.BRIEF_LINT_TREE_REV = head
+    let viaEnv, envNull
+    try {
+      viaEnv = trackedFiles(dir).list
+      delete process.env.BRIEF_LINT_TREE_REV
+      envNull = trackedFiles(dir).list
+    } finally {
+      if (prior === undefined) delete process.env.BRIEF_LINT_TREE_REV; else process.env.BRIEF_LINT_TREE_REV = prior
+    }
+    if (!viaEnv.includes('b.txt') || viaEnv.includes('a.txt')) problems.push('trackedFiles ignores BRIEF_LINT_TREE_REV (the head tree was not listed)')
+    if (!envNull.includes('a.txt') || envNull.includes('b.txt')) problems.push('trackedFiles with the variable unset does not follow the checkout (null control)')
     let threw = false
     try { treeListing('no-such-rev-probe', dir) } catch { threw = true }
     if (!threw) problems.push('an unresolvable rev did not throw; it fell back silently')

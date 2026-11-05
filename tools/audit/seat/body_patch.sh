@@ -141,8 +141,7 @@ contract() { # pr-json base head body|- [title] -> rc   (`-`: the live body the 
   local args=(--pr-body "$body" --head "$head" --base "$base" --title "$title" --author "$author"
               --paths-file "$d/files" --existing-file "$d/existing") name rc=0
   while IFS= read -r name; do args+=(--red "$name"); done < "$d/reds"
-  # never-empty: args starts with the literal --pr-body list
-  # the body cites paths of the head under review, not of this checkout
+  # never-empty: args starts with the literal --pr-body list; the body cites paths of the head, not of this checkout
   BRIEF_LINT_TREE_REV=$head node tools/policy/policy_lint.mjs "${args[@]}" || rc=1 # mut:contract
   if roster_ref_args; then
     python3 -I tools/audit/carry_audit.py ${RR[@]+"${RR[@]}"} check --body "$body" || rc=1 # mut:carry
