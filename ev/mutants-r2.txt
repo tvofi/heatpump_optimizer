@@ -1,0 +1,6 @@
+MUTANT refusal-off :: self-test: gh_calls self-test: 146 checks, 38 failed :: offline: FAIL expect=refuse rc=0 stublines=1 :: mut-refusal-off
+MUTANT body-not-skipped :: self-test: gh_calls self-test: 146 checks, 2 failed :: offline: OK expect=refuse rc=1 stublines=0 :: mut-body-not-skipped
+MUTANT zeros-kept :: self-test: gh_calls self-test: 146 checks, 3 failed :: offline: FAIL expect=refuse rc=0 stublines=1 :: mut-zeros-kept
+MUTANT trailing-slash-kept :: self-test: gh_calls self-test: 146 checks, 3 failed :: offline: OK expect=refuse rc=1 stublines=0 :: mut-trailing-slash-kept
+MUTANT write-flag-dropped :: self-test: gh_calls self-test: 146 checks, 12 failed :: offline: FAIL expect=refuse rc=0 stublines=1 :: mut-write-flag-dropped
+MUTANT tracker-0 :: self-test: gh_calls self-test: 146 checks, 34 failed :: offline: FAIL expect=refuse rc=0 stublines=1 :: mut-tracker-0
