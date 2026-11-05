@@ -57,8 +57,117 @@ def _plumbing(s: ast.AST) -> bool:
     return False
 
 
+def _arity(t: ast.AST) -> int:
+    """Names a target binds: ``a, (b, c)`` is three, ``x.y`` and ``x[i]`` one each."""
+    if isinstance(t, (ast.Tuple, ast.List)):
+        return sum(_arity(e) for e in t.elts)
+    return _arity(t.value) if isinstance(t, ast.Starred) else 1
+
+
+def _display(e: ast.AST) -> bool:
+    return isinstance(e, (ast.Tuple, ast.List))
+
+
+def _bound(t: ast.AST, v: ast.AST) -> int:
+    """The statements one target bound to one value spells. A tuple target against a tuple value of its
+    length is its pairs, each judged alone and recursively (``a, (b, c) = e1, (e2, e3)`` is three, a pair of
+    plumbing none); any other tuple target is the names it unpacks; a single target is one (or none, plumbing),
+    a display bound to it being ONE value."""
+    if _display(t):
+        if _display(v) and not any(isinstance(e, ast.Starred) for e in t.elts + v.elts):
+            if len(t.elts) == len(v.elts):
+                return sum(_bound(a, b) for a, b in zip(t.elts, v.elts))
+        if _display(v) and any(isinstance(e, ast.Starred) for e in t.elts):
+            return _arity(t)  # ``a, *b = e1, e2, e3`` is a = e1; b = [e2, e3]: the star takes the rest
+        return max(_arity(t), len(v.elts) if _display(v) else 0)
+    return 0 if _plumbing(ast.Assign(targets=[t], value=v)) else 1
+
+
+def _flat(e: ast.AST):
+    """The elements of a display statement, nested displays flattened: ``(f(), (g(), h()))`` is three."""
+    if _display(e):
+        for x in e.elts:
+            yield from _flat(x)
+    elif isinstance(e, ast.Set):
+        for x in e.elts:
+            yield from _flat(x)
+    elif isinstance(e, ast.Dict):
+        for x in [k for k in e.keys if k is not None] + e.values:
+            yield from _flat(x)
+    else:
+        yield e
+
+
+def _chain(e: ast.AST) -> int:
+    """Branches of the conditional-expression tree ``a if p else b if q else c`` (three), 0 for a lone one. An
+    ``IfExp`` is followed through its body arm as well as its orelse: ``(a if q else b) if p else c`` is three
+    branches, as its nested if/else spells (red-team attempt 54)."""
+    def leaves(x: ast.AST) -> int:
+        return leaves(x.body) + leaves(x.orelse) if isinstance(x, ast.IfExp) else 1
+    k = leaves(e)
+    return k if k > 2 else 0
+
+
+def _own_exprs(s: ast.AST):
+    """Every expression node of a statement's own header and value, not those of the statements it contains."""
+    stack = [c for c in ast.iter_child_nodes(s) if not isinstance(c, (ast.stmt, ast.excepthandler, ast.match_case))]
+    while stack:
+        e = stack.pop()
+        yield e
+        stack.extend(c for c in ast.iter_child_nodes(e) if not isinstance(c, (ast.stmt, ast.excepthandler, ast.match_case)))
+
+
+def _extras(s: ast.AST) -> int:
+    """Statements a statement's own expressions pack: each walrus (``h(a := f(), b := g())`` is three) beyond
+    one that is itself the statement or an element of a bare display, and the branches a conditional-expression
+    chain spells (an if/elif/else of ``k`` branches is ``2k - 1`` statements, the chain's assign being one; a
+    lone ``a if p else b`` is the idiom and reads one)."""
+    carried = {id(s.value)} if isinstance(s, ast.Expr) else set()
+    if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Tuple, ast.List, ast.Set, ast.Dict)):
+        carried = {id(e) for e in _flat(s.value)}
+    nodes = list(_own_exprs(s))
+    inner = {id(a) for n in nodes if isinstance(n, ast.IfExp) for a in (n.body, n.orelse) if isinstance(a, ast.IfExp)}
+    return sum(1 for n in nodes if isinstance(n, ast.NamedExpr) and id(n) not in carried) \
+        + sum(2 * _chain(n) - 2 for n in nodes if isinstance(n, ast.IfExp) and id(n) not in inner and _chain(n))
+
+
+def _units(s: ast.AST) -> int:
+    """The statements a statement packs (counter C25). One AST statement can hold several: a
+    tuple-unpack ``a, b, c = (f(x) for x in xs)``, a tuple on the right ``a, b = f(), g()``, a chain
+    ``a = b = f()``, a bare tuple, set or dict ``f(), g()``, a loop over a literal ``for a, b in [(f(), g())]``,
+    ``with p as a, q as b``, ``import a, b``, a walrus, a conditional-expression chain. Each reads as the
+    plain statements it spells, so packing them lowers no count. A single-target, single-value
+    statement is one, a display bound to one target included."""
+    return _own(s) + _extras(s)
+
+
+def _own(s: ast.AST) -> int:
+    if isinstance(s, ast.Assign):
+        if len(s.targets) == 1:
+            return _bound(s.targets[0], s.value)
+        if len(s.targets) > 1 and all(isinstance(t, ast.Name) for t in s.targets) \
+                and _plumbing(ast.Assign(targets=s.targets[:1], value=s.value)):
+            return 0  # ``a = b = x.y`` is two aliases
+        return max(1, sum(_arity(t) for t in s.targets))
+    if isinstance(s, ast.Expr) and isinstance(s.value, (ast.Tuple, ast.List, ast.Set, ast.Dict)):
+        return sum(1 for e in _flat(s.value) if not isinstance(e, ast.Constant) and not _plumbing(ast.Expr(value=e)))
+    if isinstance(s, (ast.For, ast.AsyncFor)) and isinstance(s.iter, (ast.Tuple, ast.List, ast.Set)):
+        # ``for a, b, c in [(e1, e2, e3)]`` binds three values once; a loop over a literal with one target is one
+        return max(1, sum(_bound(s.target, e) for e in s.iter.elts if _display(s.target) and _display(e)))
+    if isinstance(s, (ast.With, ast.AsyncWith)):
+        return len(s.items)
+    if isinstance(s, (ast.Import, ast.ImportFrom)):
+        return len(s.names)
+    if isinstance(s, ast.Delete):
+        return sum(_arity(t) for t in s.targets)
+    return 1
+
+
+PACKING_UNITS = True  # False: one per statement, for ``vector.ablated`` (counter C25 off)
+
+
 def logic_stmts(node: ast.AST) -> int:
-    return sum(1 for n in ast.walk(node) if isinstance(n, ast.stmt) and not _is_doc(n)
+    return sum(_units(n) if PACKING_UNITS else 1 for n in ast.walk(node) if isinstance(n, ast.stmt) and not _is_doc(n)
                and not isinstance(n, (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef))
                and not _plumbing(n))
 

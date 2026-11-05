@@ -463,6 +463,9 @@ def self_test():
         via_ok = run([], via=f"{py} -I {gcs} " + " ".join(planted[:5]) + " -f body=ok")
         check("control: the same post made by a python running gh_comment.py reaches the real gh",
               via_ok.returncode == 7 and b"STUB api -X POST" in via_ok.stdout)
+        via_close = run([], via=f"{py} -I {gcs} issue close 201 --comment x")
+        check("control: the known poster's own `issue close 201 --comment` reaches the real gh",
+              via_close.returncode == 7 and b"STUB issue close" in via_close.stdout)
         spoof = run([], via=f"{py} -c 'pass' gh_comment.py; gh api repos/o/r/issues/201/comments -f body=x")
         check("a shell that merely names gh_comment.py is not gh_comment.py", spoof.returncode == 1)
         other = w / "other"
@@ -491,7 +494,20 @@ def self_test():
                             ("a gh issue comment on a #202 URL with a trailing slash", ["issue", "comment", "https://github.com/o/r/issues/202/", "-b", "x"]),
                             ("a gh issue comment on a percent-encoded #202", ["issue", "comment", "%32%30%32", "-b", "x"]),
                             ("a gh issue view of #201", ["issue", "view", "201"]),
-                            ("a PATCH of a comment (the declared residual)", ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])):
+                            ("a gh issue list", ["issue", "list", "-R", "o/r", "--state", "all"]),
+                            ("a gh issue close with a comment on another issue", ["issue", "close", "202", "--comment", "x"]),
+                            ("a gh issue close -c on another issue", ["issue", "close", "-c", "x", "202"]),
+                            ("a gh issue reopen with a comment on another issue", ["issue", "reopen", "202", "-c", "x"]),
+                            ("a gh issue close of #202 with no comment", ["issue", "close", "202"]),
+                            ("a gh pr view", ["pr", "view", "5", "--json", "state"]),
+                            ("a gh pr merge of another number", ["pr", "merge", "5", "--squash"]),
+                            ("a graphql read query", ["api", "graphql", "-f", "query=query{viewer{login}}", "-F", "n=1"]),
+                            ("an api GET with an Accept header", ["api", "-H", "Accept: application/vnd.github.raw", "repos/o/r/contents/x"]),
+                            ("an api write at a non-issue path", ["api", "-X", "POST", "repos/o/r/git/refs", "-f", "ref=x"]),
+                            ("a post to a pull request's review comments", ["api", "repos/o/r/pulls/5/comments", "-f", "body=x"]),
+                            ("a workflow run", ["workflow", "run", "ci.yml"]),
+                            ("a gh run list", ["run", "list"]),
+                            ("a version query", ["--version"])):
             check(f"null control: {label} reaches the real gh", run(args).returncode == 7)
         refused = (
             ("gh issue comment 201", ["issue", "comment", "201", "-b", "revoked 1234567"]),
@@ -522,7 +538,33 @@ def self_test():
             ("gh api doubled slashes", ["api", "repos//o/r/issues//201/comments", "-f", "body=x"]),
             ("gh api a full URL", ["api", "https://api.github.com/repos/o/r/issues/201/comments", "-f", "body=x"]),
             ("gh api a query string", ["api", "repos/o/r/issues/201/comments?per_page=1", "-f", "body=x"]),
-            ("gh api an anchor", ["api", "repos/o/r/issues/201/comments#x", "-f", "body=x"]))
+            ("gh api an anchor", ["api", "repos/o/r/issues/201/comments#x", "-f", "body=x"]),
+            # deny by default: the rule refuses each of these, no arm is named for any
+            ("gh issue close 201 --comment", ["issue", "close", "201", "--comment", "x"]),
+            ("gh issue close 201 -c", ["issue", "close", "201", "-c", "x"]),
+            ("gh issue close 201 -cx", ["issue", "close", "201", "-cx"]),
+            ("gh issue close 201 --comment=x", ["issue", "close", "201", "--comment=x"]),
+            ("gh issue reopen 201 --comment", ["issue", "reopen", "201", "--comment", "x"]),
+            ("gh issue close with no comment on #201", ["issue", "close", "201"]),
+            ("gh issue edit 201", ["issue", "edit", "201", "--title", "x"]),
+            ("a gh alias word", ["c201", "-b", "x"]),
+            ("a gh issue verb that is not known", ["issue", "frobnicate", "202"]),
+            ("an unknown flag on gh issue close", ["issue", "close", "--zzz", "x", "202"]),
+            ("an unknown flag before a #201 target", ["issue", "comment", "--zzz", "201", "-b", "x"]),
+            ("a short-flag cluster on gh issue close", ["issue", "close", "-wc", "x", "201"]),
+            ("two targets on gh issue close", ["issue", "close", "202", "201"]),
+            ("gh issue close with no target", ["issue", "close", "-c", "x"]),
+            ("a flag before the subcommand", ["-R", "o/r", "issue", "comment", "201"]),
+            ("gh pr comment 201", ["pr", "comment", "201", "-b", "x"]),
+            ("gh pr close 201 --comment", ["pr", "close", "201", "--comment", "x"]),
+            ("a PATCH of a comment by id", ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"]),
+            ("a DELETE of a comment by id", ["api", "-X", "DELETE", "repos/o/r/issues/comments/9"]),
+            ("a graphql mutation", ["api", "graphql", "-f", "query=mutation{addComment(input:{})}"]),
+            ("a graphql query read from a file", ["api", "graphql", "-F", "query=@q.graphql"]),
+            ("a graphql call with --input", ["api", "graphql", "--input", "q.json"]),
+            ("an api call with an unknown flag", ["api", "--zzz", "repos/o/r/issues/201/comments", "-f", "body=x"]),
+            ("an api call with a non-Accept header", ["api", "-H", "X-HTTP-Method-Override: POST", "repos/o/r/issues/201/comments"]),
+            ("gh extension exec", ["extension", "exec", "x"]))
         for label, args in refused:
             check(f"{label} is refused", run(args).returncode == 1)
         mut = good.replace("tracker=201", "tracker=0")
@@ -536,18 +578,29 @@ def self_test():
             r_ = run(args, shim_text=m) if via is None else run([], via=via, shim_text=m)
             check(f"mutant killed: {name}", m != good and r_.returncode == rc)
             install(good)
-        guard_mutant("--body and --body-file not skipped", "-b|--body|--body-file|", "-b|",
-                     ["issue", "comment", "--body", "202", "201"])
+        guard_mutant("--body not read as taking a value (a #202 comment with a body word is refused)",
+                     "ISSUE_VAL='-b --body ", "ISSUE_VAL='-b ",
+                     ["issue", "comment", "202", "--body", "201"], rc=1)
         guard_mutant("leading zeros kept", 'n=${n#"${n%%[!0]*}"}', ":", ["issue", "comment", "0201", "-b", "x"])
         guard_mutant("no percent-decoding", "*%*) w=$(printf '%b' \"${w//%/\\\\x}\"); case $w in *[%#?\\\\]*) printf '?'; return ;; esac ;; esac\n  while",
                      "*%*) ;; esac\n  while", ["issue", "comment", "%32%30%32", "-b", "x"], rc=1)
         guard_mutant("trailing slash kept on the target", 'while [ "${w%/}" != "$w" ]; do w=${w%/}; done', ":",
                      ["issue", "comment", "https://github.com/o/r/issues/202/", "-b", "x"], rc=1)
-        guard_mutant("an unreadable target passes", "{ [ \"$t\" = \"$tracker\" ] || [ \"$t\" = '?' ]; }", '[ "$t" = "$tracker" ]',
+        guard_mutant("an unreadable target passes", "t=$(num \"${pos[1]}\"); [ \"$t\" != '?' ] && [ \"$t\" != \"$tracker\" ]", 't=$(num "${pos[1]}"); [ "$t" != "$tracker" ]',
                      ["issue", "comment", "main", "-b", "x"])
         guard_mutant("dot segments kept", "      ''|.) ;;\n      ..) [", "      ''|.) ;;\n      zz) [", ["api", "repos/o/r/issues/202/../201/comments", "-f", "body=x"])
-        guard_mutant("a trailing slash makes the api path unread", '"$((k + 3))" -eq "${#out[@]}"', '"$((k + 3))" -eq "${#w}"',
-                     ["api", "repos/o/r/issues/201/comments/", "-f", "body=x"])
+        guard_mutant("empty path segments kept", "      ''|.) ;;\n", "      .) ;;\n",
+                     ["api", "repos//o/r/issues//201/comments", "-f", "body=x"])
+        guard_mutant("the deny-by-default arm passes an unknown subcommand", "    *) return 1 ;;\n  esac\n}\ngate", "    *) return 0 ;;\n  esac\n}\ngate",
+                     ["c201", "-b", "x"])
+        guard_mutant("an unknown flag on issue close is let through", "--*|-?) if has \"$ISSUE_VAL\" \"$a\"; then skip=1; elif ! has \"$ISSUE_BOOL\" \"$a\"; then bad=1; fi ;;",
+                     "--*|-?) if has \"$ISSUE_VAL\" \"$a\"; then skip=1; fi ;;", ["issue", "close", "--zzz", "202"])
+        guard_mutant("graphql mutations let through", "case $low in *mutation*|*subscription*) return 1 ;; esac", ":",
+                     ["api", "graphql", "-f", "query=mutation{addComment(input:{})}"])
+        guard_mutant("a comment by id let through", '[ "$nxt" = comments ] && return 1', ":",
+                     ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])
+        guard_mutant("issue close -c value not skipped (target read as the value)", "ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment ", "ISSUE_VAL='-b --body -F --body-file -R --repo ",
+                     ["issue", "close", "202", "--comment", "201"], rc=1)
         guard_mutant("python -W/-X value read as the script", "[WX]) [", "[W]) [",
                      None, via=f"{py} -X dev -W ignore -I {gcs} {W}", rc=1)
         guard_mutant("the script matched by basename", 'a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1',
