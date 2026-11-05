@@ -1,6 +1,0 @@
-reading the recorder: SQLite database /tmp/tmplti5lwir/home-assistant_v2.db
-RESULT mask:id_under_key_off_the_allowlist_seals_masked True 4 states
-RESULT mask:id_under_list_beside_a_non_id_seals_masked True 4 states
-RESULT mask:clean_export_writes_a_non_empty_replay True 
-RESULT mask:planted_unmasked_id_still_refused True planted id
-RESULT mask_checks total 19 failed 0 []

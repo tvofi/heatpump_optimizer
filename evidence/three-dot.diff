@@ -11,10 +11,10 @@ index 285b28d20..ce9ead047 100644
      return replay_doc.seal(raw, conf)
  
 diff --git a/custom_components/heatpump_optimizer/replay_doc.py b/custom_components/heatpump_optimizer/replay_doc.py
-index d177af2c3..a7cbe681a 100644
+index d177af2c3..e068b78ae 100644
 --- a/custom_components/heatpump_optimizer/replay_doc.py
 +++ b/custom_components/heatpump_optimizer/replay_doc.py
-@@ -522,10 +522,31 @@ def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
+@@ -522,10 +522,33 @@ def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
  # --- masking every entity id ---------------------------------------------------
  
  
@@ -24,20 +24,22 @@ index d177af2c3..a7cbe681a 100644
 -    its first role; a role a second id would take leaves that id to the hash."""
 +def _role_claims(entry: Json, conf: frozenset[str] | None) -> Iterable[tuple[object, str]]:
 +    """``(value, role)`` for every entry value that may name an id, options before
-+    data, keys in order: with ``conf`` only the keys ``sanitise`` keeps, and a
-+    list counting only its ids, so the roles agree with those ``_unmasked``
++    data, keys in order: with ``conf`` only the keys ``sanitise`` keeps, each
++    through ``_entry_shape`` as ``sanitise`` shapes it, so the roles agree with those ``_unmasked``
 +    re-derives from the sanitised entry, where a dropped key or item is gone."""
 +    for section in ("options", "data"):
 +        block = entry.get(section)
 +        for key, value in sorted(block.items() if isinstance(block, dict) else ()):
 +            if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):
 +                continue
++            if conf is not None:
++                # the one predicate ``sanitise`` applies; a _DROP it returns is no str,
++                # so the consumer's id test passes it over
++                value = _entry_shape(str(key), value)
 +            role = re.sub(r"_entit(y|ies)$", "", str(key))
 +            if not isinstance(value, list):
 +                yield value, role
 +                continue
-+            if conf is not None:
-+                value = [v for v in value if isinstance(v, str) and ENTITY_ID.match(v)]
 +            for i, item in enumerate(value, start=1):
 +                yield item, f"{role}_n{i}"
 +
@@ -50,7 +52,7 @@ index d177af2c3..a7cbe681a 100644
      roles: dict[str, str] = {}
  
      def claim(eid: object, role: str) -> None:
-@@ -534,15 +555,8 @@ def entity_roles(entry: Json, price_series_entity: str | None) -> dict[str, str]
+@@ -534,15 +557,8 @@ def entity_roles(entry: Json, price_series_entity: str | None) -> dict[str, str]
              if rid not in roles.values():
                  roles[eid] = rid
  
@@ -68,7 +70,7 @@ index d177af2c3..a7cbe681a 100644
      for role in ("price", "price_series"):
          claim(price_series_entity, role)
      return roles
-@@ -556,10 +570,10 @@ def hashed_id(entity_id: str, key: str) -> str:
+@@ -556,10 +572,10 @@ def hashed_id(entity_id: str, key: str) -> str:
      return f"{entity_id.split('.', 1)[0]}.e_{digest[:10]}"
  
  
@@ -81,7 +83,7 @@ index d177af2c3..a7cbe681a 100644
  
      def rename(node: object) -> object:
          if isinstance(node, str) and ENTITY_ID.match(node):
-@@ -626,6 +640,7 @@ def document(
+@@ -626,6 +642,7 @@ def document(
      *, time_zone: str, window: tuple[str, str], recorder_schema: int | None,
      entry: Json, inputs: Iterable[str], published: Iterable[str],
      price_series_entity: str | None, states: dict[str, list[list[Any]]],
@@ -89,7 +91,7 @@ index d177af2c3..a7cbe681a 100644
  ) -> Json:
      """The unsanitised ``hpo-replay/1`` document, every entity id masked
      (``mask_ids``, keyed by the entry's id); ``seal`` makes it writable."""
-@@ -644,7 +659,7 @@ def document(
+@@ -644,7 +661,7 @@ def document(
          "published": sorted(published),
          "price_series_entity": price_series_entity,
          "states": states,
@@ -105,31 +107,61 @@ index 000000000..33ccc4fb1
 +++ b/dev/programme/delivery/3219.md
 @@ -0,0 +1 @@
 +- [#3219](https://github.com/tvofi/heatpump_optimizer/pull/3219) — **open**, R10-FLY-REPLAY-MASK: fly replay mask (R10-FLY-REPLAY-MASK)
-diff --git a/tests/mutation_ledger/killed_by/replay_doc.py/entity_roles.GUARD_OFF.97aacf73.json b/tests/mutation_ledger/killed_by/replay_doc.py/entity_roles.GUARD_OFF.97aacf73.json
-deleted file mode 100644
-index c3450f3d2..000000000
+diff --git a/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.BOOLOP.3f780d78.json b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.BOOLOP.3f780d78.json
+new file mode 100644
+index 000000000..faad4d1f8
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.BOOLOP.3f780d78.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_role_claims BOOLOP 3f780d78",
++  "killed_by": "tests/debug_collect.py",
++  "old": "            if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`if conf is not None or (key not in conf or SECRET_KEY.search(str(key))):`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
++}
+diff --git a/tests/mutation_ledger/killed_by/replay_doc.py/entity_roles.GUARD_OFF.97aacf73.json b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.3f780d78.json
+similarity index 61%
+rename from tests/mutation_ledger/killed_by/replay_doc.py/entity_roles.GUARD_OFF.97aacf73.json
+rename to tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.3f780d78.json
+index c3450f3d2..667c37ecb 100644
 --- a/tests/mutation_ledger/killed_by/replay_doc.py/entity_roles.GUARD_OFF.97aacf73.json
-+++ /dev/null
-@@ -1,6 +0,0 @@
--{
++++ b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.3f780d78.json
+@@ -1,6 +1,6 @@
+ {
 -  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:entity_roles GUARD_OFF 97aacf73",
--  "killed_by": "tests/entities.py",
++  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_role_claims GUARD_OFF 3f780d78",
+   "killed_by": "tests/entities.py",
 -  "old": "            if isinstance(value, list):",
 -  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
--}
++  "old": "            if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
+ }
+diff --git a/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.879cf566.json b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.879cf566.json
+new file mode 100644
+index 000000000..a3cf79904
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/replay_doc.py/_role_claims.GUARD_OFF.879cf566.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/replay_doc.py:_role_claims GUARD_OFF 879cf566",
++  "killed_by": "tests/debug_collect.py",
++  "old": "            if not isinstance(value, list):",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=2."
++}
 diff --git a/tests/replay.py b/tests/replay.py
-index e675cdb77..e6ed289a3 100644
+index e675cdb77..7e7aa8a18 100644
 --- a/tests/replay.py
 +++ b/tests/replay.py
-@@ -1509,6 +1509,24 @@ def mask_checks() -> list[tuple[str, bool, str]]:
+@@ -1509,6 +1509,66 @@ def mask_checks() -> list[tuple[str, bool, str]]:
      return res + mask_seam_checks()
  
  
-+def _sealed_options(states: dict, options: dict, plant: bool = False) -> tuple[dict | None, str]:
++def _sealed_options(states: dict, options: dict, plant: bool = False,
++                    extra_conf: tuple[str, ...] = ()) -> tuple[dict | None, str]:
 +    """``document`` then ``seal`` over ``options``; ``plant`` skips the mask."""
 +    import export
 +
-+    conf = export.entry_keys(*export.default_const_paths())
++    conf = export.entry_keys(*export.default_const_paths()) | frozenset(extra_conf)
 +    raw = export._doc.document(
 +        time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
 +        recorder_schema=48, entry={"entry_id": "01JX", "data": {}, "options": options},
@@ -143,10 +175,51 @@ index e675cdb77..e6ed289a3 100644
 +        return None, str(err)
 +
 +
++def _conf_reaches_writers_checks() -> list[tuple[str, bool, str]]:
++    """``build_export`` (tools) and ``debugger.replay_document`` (the integration)
++    each seal an entry holding ``legacy_probe_entity``, a key off the allowlist,
++    beside the key that rightly names the same sensor; deleting ``conf=conf`` at
++    either ``document`` call refuses the replay."""
++    import export
++    import synthesize
++
++    sys.path.insert(0, str(ROOT / "custom_components"))
++    from heatpump_optimizer import debugger
++
++    outdoor = synthesize.ENTRY_DATA["outdoor_temp_entity"]
++    probed = {**synthesize.ENTRY_DATA, "legacy_probe_entity": outdoor}
++    saved = synthesize.ENTRY_DATA
++    synthesize.ENTRY_DATA = probed
++    try:
++        with tempfile.TemporaryDirectory() as tmp:
++            db = synthesize.write_install(Path(tmp))
++            payload = export.build_export(
++                Path(tmp), db, 1, (synthesize.DAY + timedelta(days=1)).date().isoformat(),
++                None, [], None)
++        tool, why_tool = payload is not None and outdoor not in json.dumps(payload), "written"
++    except SystemExit as err:
++        tool, why_tool = False, f"refused: {err}"
++    finally:
++        synthesize.ENTRY_DATA = saved
++    start = datetime(2026, 1, 15, tzinfo=timezone.utc)
++    wants = {"inputs": [outdoor], "candidates": None, "config": {}, "published": [],
++             "entry": {"entry_id": "01JX", "data": {}, "options": {
++                 "legacy_probe_entity": outdoor, "outdoor_temp_entity": outdoor}}}
++    try:
++        doc = debugger.replay_document(
++            wants, [], {outdoor: []}, (start, start + timedelta(days=1)), "UTC", 48,
++            export.entry_keys(*export.default_const_paths()))
++        integ, why_int = outdoor not in json.dumps(doc), "sealed"
++    except Exception as err:  # noqa: BLE001 -- the refusal is the finding
++        integ, why_int = False, f"{type(err).__name__}: {err}"
++    return [("mask:build_export_passes_conf_to_document", tool, why_tool),
++            ("mask:debugger_replay_document_passes_conf_to_document", integ, why_int)]
++
++
  def mask_seam_checks() -> list[tuple[str, bool, str]]:
      """Every place an id can sit, each alone: ``mask_ids`` renames it and
      ``mask_violations`` refuses it unrenamed -- a dict key anywhere (an
-@@ -1545,6 +1563,24 @@ def mask_seam_checks() -> list[tuple[str, bool, str]]:
+@@ -1545,6 +1605,40 @@ def mask_seam_checks() -> list[tuple[str, bool, str]]:
          stray = [f"raised {type(err).__name__}"]
      res.append(("mask:a_payload_that_is_no_document_has_no_violation", stray == [],
                  f"a list payload: {stray}"))
@@ -163,6 +236,22 @@ index e675cdb77..e6ed289a3 100644
 +                    sealed is not None and bool(sealed["states"])
 +                    and not any(i in json.dumps(sealed) for i in ("off_list", "late")),
 +                    why or f"{len(sealed['states'])} states"))
++    # A list under a key that does not end ``_entities`` is kept whole by
++    # ``sanitise`` (``_entry_shape``), so a non-id item beside an id must not
++    # refuse; under an ``_entities`` key (none is in the installed allowlist, so
++    # a synthetic one) the non-id item is dropped on both sides, never refused.
++    for name, key, extra in (("list_under_a_kept_key_beside_a_non_id", "after_save", ()),
++                             ("list_under_an_entities_key_beside_a_non_id", "zone_entities",
++                              ("zone_entities",))):
++        sealed, why = _sealed_options(rows, {key: ["abc", "sensor.late"]}, extra_conf=extra)
++        res.append((f"mask:id_in_{name}_seals_masked",
++                    sealed is not None and bool(sealed["states"])
++                    and "late" not in json.dumps(sealed),
++                    why or f"{len(sealed['states'])} states"))
++    # ``conf`` must reach ``document`` from both writers: an entry key off the
++    # allowlist holding an id another key also holds takes the earlier role, which
++    # ``seal`` cannot re-derive, unless ``document`` was given the allowlist.
++    res += _conf_reaches_writers_checks()
 +    plain, why = _sealed_options(rows, {"outdoor_temp_entity": "sensor.in"})
 +    res.append(("mask:clean_export_writes_a_non_empty_replay",
 +                plain is not None and len(plain["states"]) == 4, why))
@@ -171,7 +260,7 @@ index e675cdb77..e6ed289a3 100644
      # Carry 12 (D15-s1-04): a bool under a credential-named key carries no
      # credential -- ``_collect_strings`` already skips it, and ``_walk`` must
      # agree -- while a string under one still does (the null).
-@@ -1576,7 +1612,8 @@ def _sealed(states: dict, entry_data: dict) -> tuple[dict | None, str]:
+@@ -1576,7 +1670,8 @@ def _sealed(states: dict, entry_data: dict) -> tuple[dict | None, str]:
          time_zone="UTC", window=("2026-01-15T00:00:00+00:00", "2026-01-16T00:00:00+00:00"),
          recorder_schema=48, entry={"entry_id": "01JX", "data": entry_data, "options": {}},
          inputs=[k for k in states if k != "sensor.hpo_out"], published=["sensor.hpo_out"],

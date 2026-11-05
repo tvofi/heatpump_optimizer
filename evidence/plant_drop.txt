@@ -1,0 +1,12 @@
+== base
+RESULT scalar_id_under_entities_key_in_conf {'zone_entities': '_DROP'} REFUSED refusing to write: 1 entity id(s) not masked to a role or a hashed id
+RESULT scalar_id_under_entities_key_in_conf_plus_kept_role {'zone_entities': '_DROP', 'outdoor_temp_entity': 'kept'} SEALED states 3 leak False
+RESULT scalar_id_under_entities_key_in_conf_plus_later_role {'zone_entities': '_DROP', 'zz_entity': 'kept'} REFUSED refusing to write: 1 entity id(s) not masked to a role or a hashed id
+RESULT id_with_whitespace_under_kept_key[after_save] {'after_save': '_DROP'} SEALED states 3 leak False
+RESULT id_with_whitespace_under_kept_key_plus_role[after_save] {'after_save': '_DROP', 'outdoor_temp_entity': 'kept'} SEALED states 3 leak False
+== wt
+RESULT scalar_id_under_entities_key_in_conf {'zone_entities': '_DROP'} SEALED states 3 leak False
+RESULT scalar_id_under_entities_key_in_conf_plus_kept_role {'zone_entities': '_DROP', 'outdoor_temp_entity': 'kept'} SEALED states 3 leak False
+RESULT scalar_id_under_entities_key_in_conf_plus_later_role {'zone_entities': '_DROP', 'zz_entity': 'kept'} SEALED states 3 leak False
+RESULT id_with_whitespace_under_kept_key[after_save] {'after_save': '_DROP'} SEALED states 3 leak False
+RESULT id_with_whitespace_under_kept_key_plus_role[after_save] {'after_save': '_DROP', 'outdoor_temp_entity': 'kept'} SEALED states 3 leak False
