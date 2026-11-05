@@ -1,0 +1,9 @@
+Check runs of PR #3167 at head 4e4bb291b503be5abac829a6a068358ffdea1091 (pull_request_read get_check_runs, perPage 100, total_count 55 = whole set, one page)
+Run 41924350700 (main CI):
+  success: tests / replay (126913989042, 23:14:19), tests / closures, tests / browser, tests / typing, tests / arch-instrument, tests / mutation, tests / briefs, tests / closure-scope, codeql / Analyze (python|actions|javascript-typescript), hassfest / hassfest, validate / validate-hacs, arch-score / arch-score, budget-raise-gate / budget-raise-gate, governance / env-matrix|instrument-self-tests|wave-script|delivery-status|policy-docs, prelude, refresh, cancel-superseded
+  cancelled at 23:21:49-23:22:31: gate (126935055893), tests / fast (3.14) (126913989148, started 23:12:14), tests / coverage (126913989080, started 23:05:05), tests / coverage-ratchet, tests / graders-head-copy, tests / ci-ratchet, tests / lane-proofs, tests / claims-autofix
+  skipped: pr-contract (126935055009), mutation-pins, mutation-autofix, closures-autofix, nightly-ha, governance / record, delivery-status-publish, kernel-points
+  failure: tests / nightly-status (126911541197) -- not this PR's (diff reaches neither tests/nightly nor its inputs; defect-root-cause.md)
+Run 41924352912 (second dispatch): prelude cancelled 22:38:52, gate cancelled 22:38:53 (126914223696), rest skipped; refresh, cancel-superseded success.
+CodeQL (126915917606): success.
+merge_train.py classify: RED 4e4bb291b503be5abac829a6a068358ffdea1091 pending: none red: gate  (rc=1)

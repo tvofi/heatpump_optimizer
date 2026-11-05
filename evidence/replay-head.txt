@@ -1,0 +1,235 @@
+
+=== Replay: recorded days through the real coordinator ===
+  ok   at least one fixture
+
+-- controls: each invariant fires on bad data and not on good
+  ok   control:finite
+  ok   control:unit
+  ok   control:no_default
+  ok   control:no_default:setpoint_value_on_a_reading
+  ok   control:no_default:setpoint_at_an_unconfigured_default
+  ok   control:no_default:setpoint_keys_are_published_config
+  ok   control:agreement:attribute
+  ok   control:agreement:plan
+  ok   control:agreement:power
+  ok   control:agreement:climate
+  ok   control:not_frozen
+  ok   control:not_frozen:one_value_beside_zeros
+  ok   control:cycle_cost:cpu
+  ok   control:cycle_cost:memory
+  ok   control:cycle_cost:loose_budget
+  ok   control:cycle_cost:unrecorded
+  ok   control:cycle_cost:loop_thread
+  ok   control:cycle_cost:loop_normaliser
+  ok   control:cycle_cost:cpu_normaliser
+  ok   control:cycle_cost:class_budgets
+  ok   control:cycle_cost:runner_class_unknown
+  ok   control:cycle_cost:arms_skipped_never_everywhere
+  ok   control:cycle_cost:arms_skipped_committed_only
+  ok   control:away:covered_names_are_committed
+  ok   control:cycle_cost:short_doubling
+  ok   control:cycle_cost:unmetered_doubling
+  ok   control:away:view
+  ok   control:away:override
+  ok   control:away:floor
+  ok   control:away:replayed
+  ok   control:away:coverage_needs_a_command
+  ok   control:away:coverage_needs_a_commanded_cycle
+  ok   control:cycle_cost:coverage
+
+-- sanitising: the export's rules and nightly_ha's A10 rule
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+reading the recorder: SQLite database /tmp/tmp8ekx7g5o/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpz0fklm7b/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpeqw0ktmw/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpzcx9136u/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxibax31o/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpo8k9gusm/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpujkb8lnp/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_sxeys7s/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpk0_jrkz5/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8nggbn_z/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpicjod5wo/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpwu6bp04e/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpgo2sso8t/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpo5tjemf_/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpcd4a2kf_/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp2j581ml7/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpw7qgqlvd/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1yg5_ovj/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi6r4i2js/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpu9wrdo5f/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpv3ywu9_4/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmple4cod8p/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmph0tuottc/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpoa8kmgje/home-assistant_v2.db
+  ok   sanitised:owner-2026-10-30-away.json
+  ok   a10_location:owner-2026-10-30-away.json
+  ok   away_coverage:owner-2026-10-30-away.json
+  ok   sanitised:synthetic-dhw-only.json
+  ok   a10_location:synthetic-dhw-only.json
+  ok   away_coverage:synthetic-dhw-only.json
+  ok   control:sanitiser_refuses
+  ok   control:sanitise_clears
+  ok   leak_probe:capital_Latitude:export_drops
+  ok   leak_probe:capital_Latitude:check_refuses
+  ok   leak_probe:lat_lon_short:export_drops
+  ok   leak_probe:lat_lon_short:check_refuses
+  ok   leak_probe:coord_list:export_drops
+  ok   leak_probe:coord_list:check_refuses
+  ok   leak_probe:coord_string:export_drops
+  ok   leak_probe:coord_string:check_refuses
+  ok   leak_probe:basic_auth_url:export_drops
+  ok   leak_probe:basic_auth_url:check_refuses
+  ok   leak_probe:apikey_query:export_drops
+  ok   leak_probe:apikey_query:check_refuses
+  ok   leak_probe:pin_code:export_drops
+  ok   leak_probe:pin_code:check_refuses
+  ok   leak_probe:psk:export_drops
+  ok   leak_probe:psk:check_refuses
+  ok   leak_probe:email:export_drops
+  ok   leak_probe:email:check_refuses
+  ok   leak_probe:serial_mac:export_drops
+  ok   leak_probe:serial_mac:check_refuses
+  ok   leak_probe:entry_address:export_drops
+  ok   leak_probe:entry_address:check_refuses
+  ok   leak_probe:entry_url_in_allowed_key:export_drops
+  ok   leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   leak_probe:state_address:export_drops
+  ok   leak_probe:state_address:check_refuses
+  ok   leak_probe:n1_options_dict:export_drops
+  ok   leak_probe:n1_options_dict:check_refuses
+  ok   leak_probe:n2_currency_name:export_drops
+  ok   leak_probe:n2_currency_name:check_refuses
+  ok   leak_probe:n3_options_address:export_drops
+  ok   leak_probe:n3_options_address:check_refuses
+  ok   leak_probe:n4_token_in_series:export_drops
+  ok   leak_probe:n4_token_in_series:check_refuses
+  ok   leak_probe:state_n10_host_path:export_drops
+  ok   leak_probe:state_n10_host_path:check_refuses
+  ok   leak_probe:n11_host_path_unit:export_drops
+  ok   leak_probe:n11_host_path_unit:check_refuses
+  ok   leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   leak_probe:n14_mac_no_colons:export_drops
+  ok   leak_probe:n14_mac_no_colons:check_refuses
+  ok   leak_probe:state_street_number:export_drops
+  ok   leak_probe:state_street_number:check_refuses
+  ok   leak_probe:entry_free_text:export_drops
+  ok   leak_probe:entry_free_text:check_refuses
+  ok   tibber_price:one_home_picked
+  ok   tibber_price:none_refused
+  ok   tibber_price:two_homes_refused
+  ok   tibber_price:flag_overrides_two
+  ok   tibber_price:flag_overrides_one
+  ok   tibber_price:entry_names_one
+  ok   tibber_price:disabled_skipped
+  ok   tibber_price:unrecorded_skipped
+  ok   tibber_price:unavailable_skipped
+  ok   tibber_price:entity_source_untouched
+  ok   recorder:db_url_whole_day_read
+  ok   recorder:db_url_read_only_session_selects_only
+  ok   recorder:db_url_secret_resolved
+  ok   recorder:db_url_credentials_never_printed
+  ok   recorder:db_url_connect_refusal_names_no_credential
+  ok   recorder:open_line_names_kind_and_db_path
+  ok   recorder:open_line_url_branch_carries_no_url_value
+  ok   recorder:open_recorder_line:default
+  ok   recorder:open_recorder_line:db_path
+  ok   recorder:open_recorder_line:mysql_url
+  ok   recorder:open_recorder_line:sqlite_url
+  ok   recorder:open_recorder_lines_carry_no_url_value
+  ok   recorder:unsupported_scheme_refusal_prints_none_of_the_url
+  ok   recorder:db_url_flag_read
+  ok   recorder:sqlite_db_url_named_by_kind_not_path
+  ok   recorder:db_url_driver_missing_refused_by_name
+  ok   recorder:stale_sqlite_near_empty_day_refused
+  ok   recorder:db_url_emptied_window_refused_naming_inputs_and_recorder
+  ok   recorder:sqlite_db_url_refusal_names_kind_not_path
+  ok   recorder:retired_key_left_out
+  ok   recorder:read_key_unrecorded_refused
+  ok   recorder:url_from_configuration:inline_quoted
+  ok   recorder:url_from_configuration:inline_plain
+  ok   recorder:url_from_configuration:secret
+  ok   recorder:url_from_configuration:include
+  ok   recorder:url_from_configuration:nested_key_ignored
+  ok   recorder:url_from_configuration:no_db_url
+  ok   recorder:url_from_configuration:no_file
+  ok   mask:entry_entities_renamed_to_their_role
+  ok   mask:published_ids_hashed
+  ok   mask:street_in_entity_ids_and_names_absent_from_export
+  ok   mask:check_refuses_unmapped_id_naming_class_not_token
+  ok   mask:check_refuses_address_text_naming_class_not_token
+  ok   mask:seal_refuses_unmapped_id_naming_class_not_token
+  ok   mask:check_refuses_a_document_with_its_times_nulled
+  ok   mask:null_committed_fixture_passes_the_check
+  ok   mask:id_as_any_dict_key_renamed_and_refused_unrenamed
+  ok   mask:id_only_as_a_list_item_refused
+  ok   mask:id_only_as_a_states_key_refused
+  ok   mask:entities_list_ids_take_their_numbered_role
+  ok   mask:a_payload_that_is_no_document_has_no_violation
+  ok   leak_copy:bool_under_a_credential_key_is_no_credential
+  ok   leak_copy:copy_inside_a_list_dropped
+  ok   leak_copy:string_copy_in_attribute_dropped
+  ok   leak_copy:number_copy_refused_naming_its_place_not_its_value
+  ok   leak_copy:null_number_inside_a_longer_one_sealed
+  ok   leak_copy:dropped_text_inside_timestamps_keeps_them
+  ok   leak_copy:credential_text_inside_timestamps_keeps_them
+  ok   leak_copy:state_words_under_a_credential_key_not_searched
+  ok   cut_day:every_cycle_instant_reads_as_the_whole_export
+  ok   cut_day:price_series_kept_to_the_export_end
+  ok   cut_day:no_published_entity_kept
+  ok   cut_day:away_command_from_the_paired_switch_restart_skipped
+  ok   cut_day:reload_is_every_published_entity_gone_and_no_input
+  ok   cut_day:null_restart_with_inputs_gone_is_no_reload
+  ok   cut_day:null_day_without_a_command_has_none
+  ok   cut_day:two_paired_switches_refused
+reading the recorder: SQLite database /tmp/tmpfztcv472/home-assistant_v2.db
+  ok   the synthetic fixture is what synthesize.py + export.py write
+
+-- replay owner-2026-10-30-away.json
+  ok   owner-2026-10-30-away.json: the replay ran to the end
+  16 cycles over 82 entities in 636.7 s; cost {'cpu_ratio': 296.5514, 'peak_kib': 2624.3, 'loop_cpu_ratio': 0.2214, 'timed': 7, 'traced': 8, 'ref_ms': 29.782899000000086, 'loop_ref_ms': 86.92304300001297}
+  record: owner-2026-10-30-away.json cpu_ratio=419.4 peak_kib=3711 loop_cpu_ratio=0.3131
+  ok   owner-2026-10-30-away.json: at least one cycle and one entity
+  ok   owner-2026-10-30-away.json: finite
+  ok   owner-2026-10-30-away.json: unit
+  ok   owner-2026-10-30-away.json: no_default
+  ok   owner-2026-10-30-away.json: agreement
+  ok   owner-2026-10-30-away.json: cycle
+  ok   owner-2026-10-30-away.json: not_frozen
+  ok   owner-2026-10-30-away.json: away
+  ok   owner-2026-10-30-away.json: cycle_cost
+  doubled arms not run: a real install's solve: 16 cycles, about 12 CPU-minutes a replay, so four would overrun the replay job; the arms run on the synthetic fixture
+
+-- replay synthetic-dhw-only.json
+  ok   synthetic-dhw-only.json: the replay ran to the end
+  48 cycles over 82 entities in 13.2 s; cost {'cpu_ratio': 2.7763, 'peak_kib': 1931.0, 'loop_cpu_ratio': 0.1728, 'timed': 23, 'traced': 24, 'ref_ms': 29.92496699999947, 'loop_ref_ms': 87.26803500000014}
+  record: synthetic-dhw-only.json cpu_ratio=3.926 peak_kib=2731 loop_cpu_ratio=0.2444
+  ok   synthetic-dhw-only.json: at least one cycle and one entity
+  ok   synthetic-dhw-only.json: finite
+  ok   synthetic-dhw-only.json: unit
+  ok   synthetic-dhw-only.json: no_default
+  ok   synthetic-dhw-only.json: agreement
+  ok   synthetic-dhw-only.json: cycle
+  ok   synthetic-dhw-only.json: not_frozen
+  ok   synthetic-dhw-only.json: away
+  FAIL synthetic-dhw-only.json: cycle_cost  [1 offender(s): loop_cpu_ratio 0.1728 over its budget 0.1278]
+  ok   synthetic-dhw-only.json: the replay ran to the end (cpu doubled)
+  cpu doubled: cost {'cpu_ratio': 5.5588, 'peak_kib': 1930.3, 'loop_cpu_ratio': 1.1454, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 29.57993800000125, 'loop_ref_ms': 85.04755499999995}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
+  ok   synthetic-dhw-only.json: the cpu arm doubles the whole span cpu_ratio times
+  ok   synthetic-dhw-only.json: the replay ran to the end (memory doubled)
+  memory doubled: cost {'cpu_ratio': 2.7614, 'peak_kib': 3861.7, 'loop_cpu_ratio': 0.1634, 'timed': 23, 'traced': 24, 'ref_ms': 28.654154999999903, 'loop_ref_ms': 87.10583200000066}
+  FAIL synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory  [peak_kib 3861.7 against clean 1931.0: runner class unknown: ref_ms 28.65 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99, 49.51), (49.6, 56.78)]; no budget is assumed]
+  ok   synthetic-dhw-only.json: the replay ran to the end (loop doubled)
+  loop doubled: cost {'cpu_ratio': 3.1674, 'peak_kib': 1934.4, 'loop_cpu_ratio': 0.325, 'injected_ratio': 1.0008, 'timed': 23, 'traced': 24, 'ref_ms': 28.945690000000024, 'loop_ref_ms': 87.50573099999848}
+  ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
+  ok   synthetic-dhw-only.json: the loop arm doubles the whole span loop_cpu_ratio times
+  ok   AWAY_COVERED names committed fixtures
+  ok   the doubled-cost arms are skipped on committed fixtures only, never all
+
+replay lane wall time 713.8 s
+
+2 of 186 replay checks FAILED

@@ -1,21 +1,43 @@
-Fix review: blocked 7637d6634bb6effa013c81169fad2c18e644730f ci-red: tests / replay concluded failure at this head (synthetic-dhw-only.json: cycle_cost cpu_ratio 2.615 over budget 2.173)
+Fix review: blocked 4e4bb291b503be5abac829a6a068358ffdea1091 ci-red: gate concluded cancelled at this head (run 41924350700 cancelled with tests / fast (3.14) and tests / coverage unfinished), no gate verdict exists; code review otherwise clean
 
-bus-nonce: 297429e36cd75fd69af209ab42196886
+bus-nonce: 4c809e022e9139d2738a5285fd3d8b50
 
 ## Head
 
-Measured 7637d6634bb6effa013c81169fad2c18e644730f (round 1, full review). Three-dot diff lists only tests/replay.py (+44) and dev/programme/delivery/3167.md (+1); tools/replay/export.py, claim files, VERSION, manifest and RELEASE_NOTES are untouched; no host path in added lines. git merge-tree --write-tree origin/main head: clean (exit 0).
+Measured 4e4bb291b503be5abac829a6a068358ffdea1091 (round 2, a delta review after the round-1 block of 7637d663 on ci-red). review_carry.py 7637d663 -> head prints FRESH-REVIEW (c3c308ed is a manual merge), so the code was measured afresh. The branch head was still 4e4bb291b503be5abac829a6a068358ffdea1091 at 00:01 UTC. The head and the code handoff c3c308ed are identical under tests/, tools/ and custom_components/ (git diff --stat is empty), so the orchestrator's merge of origin/main 086a59da4 added no code. Three-dot diff: tests/replay.py +44/-0 and dev/programme/delivery/3167.md +1, which matches the body's "additions only".
 
 ## Block
 
-CI check "tests / replay" (job 125145981461, run 41405222589) concluded failure at this head: "1 of 181 replay checks FAILED", the failure being "synthetic-dhw-only.json: cycle_cost [cpu_ratio 2.615 over its budget 2.173]". The PR body says "Red checks: none" and answers nothing for it. My own full local run of tests/replay.py at the head failed the same check class (cycle_cost, loop_cpu_ratio 0.1489 over 0.143) while the machine was loaded by my mutant runs. Every recorder check, including all five new ones, passed in both runs. The failure is a wall-clock CPU budget on a path this PR does not touch, so the likely remedy is a re-run of the check on this head; the fixer or orchestrator should re-run it and, if it recurs, name the red in the body per fix-review step 11. tools/audit/seat/merge_train.py classify printed WAIT (gate red: none) throughout, with prelude (second run), codeql python and instrument-self-tests still in progress, so it never reached an exit code; I am not claiming GREEN.
+The required context `gate` has no conclusion other than `cancelled` at this head. Both gate runs were cancelled: run 41924352912 (gate 126914223696, 22:38:53) and run 41924350700 (gate 126935055893, 23:22:31). Run 41924350700 was cancelled while `tests / fast (3.14)` (started 23:12:14) and `tests / coverage` (started 23:05:05) were still running. Its lanes ci-ratchet, lane-proofs, claims-autofix, coverage-ratchet and graders-head-copy were cancelled too, and pr-contract was skipped. `merge_train.py classify 4e4bb291b503be5abac829a6a068358ffdea1091 --pr 3167` prints `RED 4e4bb291b503be5abac829a6a068358ffdea1091 pending: none red: gate` (rc=1) and did not change in a 20-minute wait after every workflow had concluded (23:41 to 00:01 UTC). The branch did not move, and I found nothing in the PR that explains the cancellation. No lane concluded failure: every lane that finished, except main-owned nightly-status, is green, including `tests / replay` (the round-1 red). The remedy is to re-run CI at this head. A green gate with a pr-contract run over the body discharges this block. I am not claiming GREEN, and step 11 cannot be closed without a pr-contract run at this head.
+
+## Findings
+
+- Follow-up: both CI runs at this head ended `cancelled` with no new push and no later run, which leaves the PR without a gate verdict. The orchestrator owes a re-run of CI at 4e4bb291b503be5abac829a6a068358ffdea1091, then this delta review again on CI alone, because the code measurements below carry. Carry: dismissed: task owed by the orchestrator after this verdict, a CI re-run on an unchanged head; not a code defect
 
 ## Evidence
 
-- Null control: with the new checks on the unmodified head, recorder:open_recorder_line:{default,db_path,mysql_url,sqlite_url} and recorder:open_recorder_lines_carry_no_url_value all ok (local and CI logs).
-- Mutants planted in tools/replay/export.py open_recorder, each restored (diff against original empty): default-branch delete, constant, MySQL label; --db branch delete, constant, MySQL label; SQLite-URL branch delete, constant, MySQL label; MySQL-URL branch delete, constant, SQLite label; default/--db label swap; URL printed on the MySQL branch; URL printed on the SQLite-URL branch. All 15 went red on the named open_recorder_line check (see ev/mutants.txt); the URL-printing mutants also red on recorder:open_recorder_lines_carry_no_url_value or the older credential checks.
-- Scoped gate: MODE: SCOPED -- 3 script(s) run, 30 scoped out (debug_collect, entities, features; tests/replay.py is in the changed files and runs as the separate replay check). The body's list of three scripts matches.
-- python3 tests/structure.py: STRUCTURE RATCHET PASSED; no budget file in the diff.
-- Alert 47: the diff adds no print or log in production code; the code-scanning API returned 403 to this seat so I could not read the alert state. CodeQL python analysis was still in progress at my last read.
-- Failing checks at head from the check-runs API (all pages): tests / replay (failure). Pending at last read: codeql / Analyze (python), governance / instrument-self-tests, prelude (second run).
-- Body figures: 12 mutants claimed, I ran 15 and all red; merge-tree and scoped-gate figures re-derived.
+- Mutation proof, re-run by me on the head worktree (ev/mutants.txt, ev/mutant-mysql-sqlite-label.txt). I planted four mutant kinds (delete, constant, mislabel, print the db/url) on each of the four `print("reading the recorder ...")` lines in tools/replay/export.py open_recorder (lines 340, 350, 352, 354), ran recorder_checks() once per mutant, and restored the file each time (git status --short empty). Results:
+  - Default branch (354): every kind is red on `recorder:open_recorder_line:default` alone. That is the carry #3078 r8 named, now discharged.
+  - db_path, sqlite_url and mysql_url branches: every kind is red on the branch's own open_recorder_line check plus the older checks the body names.
+  - The one survivor in the grid, the MySQL line "mislabelled" as `MySQL/MariaDB database`, is an equivalent mutant: MYSQL_LABEL is that exact string.
+  - The non-equivalent MySQL mislabel (SQLite database) is red on `recorder:open_recorder_line:mysql_url` and two older checks.
+  - Null: unmutated recorder_checks() returns 28 checks, 0 failed, which matches the body's 28.
+- Body figures re-derived at this head:
+  - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints MODE: SCOPED -- 3 script(s) run, 30 scoped out (ev/closure.txt).
+  - debug_collect: ALL 162 passed. entities: ALL 2616 passed. features: ALL 4791 passed (ev/*.txt).
+  - structure.py: STRUCTURE RATCHET PASSED.
+  - The claim files, VERSION, RELEASE_NOTES.md and manifest.json are identical to origin/main (claims-identical).
+  - numstat is 44/0 on tests/replay.py.
+  - Full tests/replay.py locally: 186 checks, and all five new recorder checks are ok. The local run had 2 FAILED, both synthetic-dhw-only.json cycle_cost: this sandbox reads ref_ms 28.65, which lies in no COST_RUNNER_CLASSES band, while running concurrently with my scoped scripts. The body reports 4 failing on its sandbox. The count is runner-dependent and I did not re-derive it. CI's `tests / replay` at this head concluded success (126913989042), which settles the lane.
+  - prepr.sh rc: not re-run. The body defers it to the handoff line.
+- Step 6, class: the finding names one seam, the open line of open_recorder. The diff pins all four of its branches (default, --db, MySQL URL, SQLite URL). recorder_url-derived URLs reach the same two URL branches. No other print site in open_recorder exists (grep of "reading the recorder" returns 4 lines, all covered).
+- Steps 4, 5 and 14: the diff changes no production code, no claim file, no budget, closures.json or INERT, and no version. No instrument moved.
+- Step 13: `git merge-tree --write-tree origin/main 4e4bb291b503be5abac829a6a068358ffdea1091` exits 0 against origin/main af941ad4 (tree c802beb7) and again against d91e464a, re-fetched before the return (tree ac151142). Main since base 086a59da4 does not touch tests/replay.py, tools/replay or custom_components. At the return, the branch head is still 4e4bb291 and classify still prints RED pending: none red: gate.
+- Step 10, forward-carry: the body says none. No later stage changes.
+- Step 11, red checks (ev/check-runs.txt, all 55 runs, one page):
+  - `tests / replay`, the round-1 red, is answered in the body and is green at this head.
+  - `tests / nightly-status` failed. It is not this PR's: the diff reaches nothing it reads.
+  - `gate` was cancelled, which is the block above.
+  - No pr-contract run at this head checked the body, so the step-11 answer is unverified here.
+- CodeQL python analysis concluded success at this head. Code-scanning alert 47 was not readable from this seat.
+- Harness: the finding has no committed finder harness. The new recorder checks in tests/replay.py serve as the pin, and I measured with my own mutation driver, built for this review and kept out of tree (its output is in ev/mutants.txt).
