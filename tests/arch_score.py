@@ -454,13 +454,27 @@ def main() -> int:
         ("with p() as a, q() as b:\n    pass", "with p() as a:\n    with q() as b:\n        pass"),
         ("import os, sys", "import os\nimport sys"),
         ("del a, b", "del a\ndel b"),
+        ("a, (b, c) = f(x + 1), (g(y + 1), h(z + 1))", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)"),
+        ("(a, b), c = (f(x + 1), g(y + 1)), h(z + 1)", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)"),
+        ("f(x + 1), (g(y + 1), h(z + 1))", "f(x + 1)\ng(y + 1)\nh(z + 1)"),
+        ("for a, b, c in [(f(x + 1), g(y + 1), h(z + 1),)]:\n    pass", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)\npass"),
+        ("{f(x + 1), g(y + 1)}", "f(x + 1)\ng(y + 1)"),
+        ("{1: f(x + 1), 2: g(y + 1)}", "f(x + 1)\ng(y + 1)"),
+        ("(a := f(x + 1), b := g(y + 1))", "a = f(x + 1)\nb = g(y + 1)"),
+        ("repr((a := f(x + 1), b := g(y + 1)))", "a = f(x + 1)\nb = g(y + 1)\nrepr((a, b))"),
+        ("c = (a := f(x + 1)) + (b := g(y + 1))", "a = f(x + 1)\nb = g(y + 1)\nc = a + b"),
+        ("a = f(x + 1) if p else g(y + 1) if q else h(z + 1)",
+         "if p:\n    a = f(x + 1)\nelif q:\n    a = g(y + 1)\nelse:\n    a = h(z + 1)"),
     ]
     R.check("coord_footprint reads a packed statement as the plain statements it spells (every packing shape)",
             all(_n(pk) == _n(pl) for pk, pl in packed_plain),
             f"{[(pk, _n(pk), _n(pl)) for pk, pl in packed_plain if _n(pk) != _n(pl)]}")
     R.check("coord_footprint control: an unpacked body and a single destructuring read one statement each",
-            _n("a = f(x + 1)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0,
-            f"{_n('a = f(x + 1)')} {_n('a, b = pair')} {_n('a = x.p')}")
+            _n("a = f(x + 1)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0
+            # a display bound to ONE target is one statement, whatever it holds (the #3218 review: not one per element)
+            and _n("x = [1, 2, 3]") == 1 and _n("cur = (f(x + 1), g(y + 1), h(z + 1), k(w + 1))") == 1
+            and _n("a = f(x + 1) if p else g(y + 1)") == 1 and _n("for x in (1, 2, 3):\n    pass") == 2,
+            f"{_n('a = f(x + 1)')} {_n('a, b = pair')} {_n('a = x.p')} {_n('x = [1, 2, 3]')}")
 
     # The check can fail: a moved case must not read as it did.
     good = next(c for c in collected if c["id"] == "d979110c")
