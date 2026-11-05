@@ -527,6 +527,7 @@
   "problem_messages": [],
   "projected_peak_cost": 0.0,
   "projected_peak_kw": 0.0,
+  "pump_max_power": null,
   "pv": {},
   "pv_enabled": false,
   "pv_self_consumed_kwh": 0.0,
@@ -2054,6 +2055,9 @@
      "ratio": 1.0,
      "samples": 0
     },
+    "pump_max_power": null,
+    "pump_max_power_reason": null,
+    "pump_max_power_source": null,
     "solar_aperture": {
      "needed": 30,
      "samples": 0,
