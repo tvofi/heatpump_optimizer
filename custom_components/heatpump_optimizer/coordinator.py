@@ -796,9 +796,10 @@ WORKER_FALLBACK_CAP = 3
 # of 426 s, while the hang this bounds ran for about 55 minutes with one core
 # busy. A module global read at call time, so a test can shorten it.
 PROCESS_REPLY_TIMEOUT_S = 1800.0
-# How long the stop path waits for ``_PROCESS_LOCK`` after killing the worker.
-# The swap it guards is only bookkeeping, and a read that the kill did not
-# break must not hold Home Assistant's shutdown hostage.
+# How long the stop path waits for ``_PROCESS_LOCK`` after killing the worker,
+# and how long a timed-out reply's reap waits for the killed child. The swap
+# is only bookkeeping, and neither a read the kill did not break nor a child
+# slow to die may hold a solve or Home Assistant's shutdown hostage.
 _SHUTDOWN_LOCK_TIMEOUT_S = 5.0
 
 
@@ -1952,9 +1953,12 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             timeout = PROCESS_REPLY_TIMEOUT_S
             if has_fd and not select.select([stdout], [], [], timeout)[0]:
                 _PROCESS_WORKER = None
+                # Bounded too: a child the kill does not end at once (one
+                # stuck in the kernel) must not turn this into the same
+                # unbounded wait one line further down.
                 try:
                     worker.kill()
-                    worker.wait()
+                    worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)
                 except Exception:  # noqa: BLE001 - must not mask the timeout
                     pass
                 raise ProcessWorkerTimeout(
