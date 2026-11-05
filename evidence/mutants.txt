@@ -1,0 +1,6 @@
+ledger.py 75 MUTANT REFERENCE_BASIS = 2 rc 1 FAIL-lines 5
+optimizer.py 595 MUTANT if need >= 0.0 else rc 1 FAIL-lines 5
+optimizer.py 4772 MUTANT (seed_power) rc 1 FAIL-lines 5
+optimizer.py 5552 MUTANT total < 0.0 rc 1 FAIL-lines 5
+store.py 831 MUTANT old_major_version == 1 or isinstance rc 1 FAIL-lines 2
+store.py 833 MUTANT pass rc 1 FAIL-lines 2
