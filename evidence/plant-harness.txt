@@ -1,0 +1,22 @@
+== head
+RESULT plant=author rc=3 why=ref_privacy: REFUSE: anthropic-identity in the author email of 8d726363586e would publish this host or a tool's attribution; nothing pushed 
+RESULT plant=author-reauthored rc=0
+RESULT plant=committer rc=3 why=ref_privacy: REFUSE: anthropic-identity in the committer email of 3ad141fc1a59 would publish this host or a tool's attribution; nothing pushed 
+RESULT plant=committer-reauthored rc=0
+RESULT plant=both rc=3 why=ref_privacy: REFUSE: anthropic-identity in the author email of bea8805bdfce would publish this host or a tool's attribution; nothing pushed 
+RESULT plant=both-reauthored rc=0
+RESULT plant=trailer rc=3 why=ref_privacy: REFUSE: co-author-trailer in the message of 073f7bc48f66 would publish this host or a tool's attribution; nothing pushed 
+RESULT plant=trailer-reauthored rc=0
+RESULT plant=control rc=0 why=
+RESULT plant=main-held-claude+clean-top rc=0 why=
+== base
+RESULT plant=author rc=0 why=
+RESULT plant=author-reauthored rc=0
+RESULT plant=committer rc=0 why=
+RESULT plant=committer-reauthored rc=0
+RESULT plant=both rc=0 why=
+RESULT plant=both-reauthored rc=0
+RESULT plant=trailer rc=3 why=ref_privacy: REFUSE: co-author-trailer in the message of 695c08ebf8b4 would publish this host or a tool's attribution; nothing pushed 
+RESULT plant=trailer-reauthored rc=0
+RESULT plant=control rc=0 why=
+RESULT plant=main-held-claude+clean-top rc=0 why=
