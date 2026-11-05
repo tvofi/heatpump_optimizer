@@ -1,0 +1,14 @@
+== base
+RESULT list_under_conf_key[after_save] SEALED states 3 leak False
+RESULT list_under_conf_key[away_dhw_min_temperature] SEALED states 3 leak False
+RESULT list_under_conf_key[away_enabled] SEALED states 3 leak False
+RESULT entity_key_off_list REFUSED refusing to write: 1 entity id(s) not masked to a role or a hashed id
+RESULT entities_list_off_list REFUSED refusing to write: 1 entity id(s) not masked to a role or a hashed id
+RESULT conf keys 220 non-secret 219 _entry_shape(key, id) is _DROP for 0
+== wt
+RESULT list_under_conf_key[after_save] SEALED states 3 leak False
+RESULT list_under_conf_key[away_dhw_min_temperature] SEALED states 3 leak False
+RESULT list_under_conf_key[away_enabled] SEALED states 3 leak False
+RESULT entity_key_off_list SEALED states 3 leak False
+RESULT entities_list_off_list SEALED states 3 leak False
+RESULT conf keys 220 non-secret 219 _entry_shape(key, id) is _DROP for 0
