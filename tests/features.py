@@ -42688,6 +42688,16 @@ R.check(
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
+# The stamp is a persisted value: a v2 store already on disk holds the literal
+# 1.0 this release writes, and that month must keep reading as current.
+_sb_disk = _sb_copy.deepcopy(_sb_led.as_dict())
+_sb_disk["months"]["2026-02"]["meta"][_SB_META] = {"sum": 1.0, "count": 1}
+_sb_disk_row = _SavLedger.from_dict(_sb_disk).savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+R.check(
+    "a month a v2 store holds stamped 1 reads on the current reference",
+    _sb_disk_row["old_basis"] is False and _sb_disk_row["savings_sek"] is not None,
+    repr(_sb_disk_row),
+)
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
 _sb_lines = _sb_copy.deepcopy(_sb_v1["ledger"]["months"]["2026-02"]["lines"])
@@ -43445,6 +43455,37 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
                 precipitation=np.array([]), solar_radiation=np.array([])), 25.0) is _hb_held,
             "",
         )
+
+# Behind a valve, at zero demand (a warm, sunny step: the steady demand at
+# target is negative, clamped to 0). The held tank keeps its measured
+# temperature, since no temperature delivers a need of nothing; and a horizon
+# with no steady demand anywhere has no shape to spread its energy by, so the
+# simulated schedule stands as simulated.
+_hz_ws = _HbWSeries(
+    outdoor_temps=np.full(4, 30.0), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.full(4, 800.0),
+)
+_hz_par = _HbParams.from_config(_hb_house(two_zone=False, dhw=False))
+_hz_par.mixing_valve_mode = "manual"
+_hz_opt = _HbOpt(_HbModel(_hz_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hz_held = _hb_held_state(_hz_opt.model, _HbState(
+    room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=30.0,
+    upper_floor_temperature=21.0, lower_floor_temperature=21.0, buffer_tank_temperature=37.5,
+), _hz_ws, 21.0)
+_hz_sim = np.array([1.0, 2.0, 0.5, 0.0])
+try:
+    _hz_spread = _hz_opt._apportion_by_steady_demand(_hz_sim, _hz_ws, [21.0] * 4)
+except ZeroDivisionError as _hz_exc:
+    _hz_spread = _hz_exc
+R.check(
+    "behind a valve at zero demand the held tank keeps its measured temperature, "
+    "and a horizon with no steady demand keeps its simulated schedule",
+    _hz_held.buffer_tank_temperature == 37.5
+    and isinstance(_hz_spread, np.ndarray) and np.array_equal(_hz_spread, _hz_sim),
+    repr((_hz_held.buffer_tank_temperature, _hz_spread)),
+)
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
 # (24 C room, above the 21 C cap the end settlement uses) carries heat the plan

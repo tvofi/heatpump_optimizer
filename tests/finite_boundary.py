@@ -2459,6 +2459,26 @@ def _version_arm(by_name) -> None:
         f"saves after the hook saw a newer major={floor_saves}; after a "
         f"minor-only mismatch={minor_saves} (want 1)",
     )
+    # The ledger's own hook migrates a v1 document alone: any other major --
+    # a newer one the 2025.2.0 floor hands it on a downgrade -- or a v1
+    # document that is not a mapping falls through to the default's refusal,
+    # never into migrate_ledger_v1 and never to a silent None.
+    ledger_verdicts = []
+    for major, data in ((3, {}), (1, []), (1, {})):
+        probe = _store.LedgerStore(FakeHass(), 2, f"{const.DOMAIN}_{ENTRY_ID}_ledger_hook_probe")
+        try:
+            out = asyncio.run(probe._async_migrate_func(major, 1, data))
+            ledger_verdicts.append("returned" if out is not None else "None")
+        except NotImplementedError:
+            ledger_verdicts.append("not-implemented")
+        except Exception as exc:  # noqa: BLE001 -- a fall-through into the v1 migration
+            ledger_verdicts.append(type(exc).__name__)
+    R.check(
+        "the ledger store migrates only a v1 mapping; a newer major and a v1 "
+        "non-mapping reach the default hook's NotImplementedError",
+        ledger_verdicts == ["not-implemented", "not-implemented", "returned"],
+        f"verdicts={ledger_verdicts}",
+    )
     # A downgrade leaves the store as Home Assistant's own exception, after the
     # surfacing: the loaders catch any exception alike, so only the type tells
     # a re-raise from a fall-through that fails on unbound data.
