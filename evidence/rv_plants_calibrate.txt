@@ -1,0 +1,22 @@
+== calibrate at c8204eb8 + reviewer plants 54,55 (in ev/), default
+rt_00_null_rename                            redteam  NULL     NULL      y       0.0000  
+rt_48_footprint_packed_unpack                redteam  GAME     NULL      y       0.0000  
+rt_49_footprint_packed_nested                redteam  GAME     NULL      y       0.0000  
+rt_50_footprint_packed_for_literal           redteam  GAME     NULL      y       0.0000  
+rt_51_footprint_packed_walrus                redteam  GAME     WORSENS   n      -0.0033  coord_footprint 2617->2623
+rt_52_footprint_packed_set_display           redteam  GAME     NULL      y       0.0000  
+rt_53_footprint_ifexp_chain                  redteam  GAME     NULL      y       0.0000  
+rt_54_rv_ifexp_body_chain                    redteam  GAME     IMPROVES  y       0.0022  coord_footprint+0.002
+rt_55_rv_display_wrapped                     redteam  GAME     WORSENS   n      -0.0033  coord_footprint 2617->2623
+  RED TEAM 7/8 attempts read NULL or inadmissible; IMPROVES: rt_54_rv_ifexp_body_chain
+== ARCHSCORE_ABLATE=C25
+rt_00_null_rename                            redteam  NULL     NULL      y       0.0000  
+rt_48_footprint_packed_unpack                redteam  GAME     IMPROVES  y       0.0092  coord_footprint+0.009
+rt_49_footprint_packed_nested                redteam  GAME     IMPROVES  y       0.0034  coord_footprint+0.003
+rt_50_footprint_packed_for_literal           redteam  GAME     IMPROVES  y       0.0034  coord_footprint+0.003
+rt_51_footprint_packed_walrus                redteam  GAME     IMPROVES  y       0.0034  coord_footprint+0.003
+rt_52_footprint_packed_set_display           redteam  GAME     IMPROVES  y       0.0034  coord_footprint+0.003
+rt_53_footprint_ifexp_chain                  redteam  GAME     IMPROVES  y       0.0023  coord_footprint+0.002
+rt_54_rv_ifexp_body_chain                    redteam  GAME     IMPROVES  y       0.0023  coord_footprint+0.002
+rt_55_rv_display_wrapped                     redteam  GAME     WORSENS   n      -0.0034  coord_footprint 2512->2518
+  RED TEAM 1/8 attempts read NULL or inadmissible; IMPROVES: rt_48_footprint_packed_unpack, rt_49_footprint_packed_nested, rt_50_footprint_packed_for_literal, rt_51_footprint_packed_walrus, rt_52_footprint_packed_set_display, rt_53_footprint_ifexp_chain, rt_54_rv_ifexp_body_chain
