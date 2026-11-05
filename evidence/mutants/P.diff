@@ -1,0 +1,26 @@
+diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
+index 9eade190c..d8aba9a30 100644
+--- a/tests/card_browser.mjs
++++ b/tests/card_browser.mjs
+@@ -140,7 +140,7 @@ function gridStates(plan) {
+   const statStates = () => ({
+     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
+-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
++    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 0 }] } },
+     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
+       lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+   });
+@@ -1215,6 +1215,12 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
+         await page.waitForTimeout(60);
+         const { missed, hover } = await page.evaluate((s) => window.__p9.drive(s), st.steps);
+         if (hover) { await page.mouse.move(hover.x, hover.y); await page.waitForTimeout(120); }
++        if (process.env.SHOT_DIR2 && st.name === "score_open" && cell.vp[0] === 375) {
++          const fs2 = await import("node:fs");
++          await page.screenshot({ path: `${process.env.SHOT_DIR2}/${tag.replace(/\//g, "_")}.png`, fullPage: true });
++          const titles = await page.evaluate(() => { const out = []; const walk = (r) => { for (const e of r.querySelectorAll("*")) { if (e.classList && e.classList.contains("sb-row")) out.push(e.getAttribute("title")); if (e.shadowRoot) walk(e.shadowRoot); } }; walk(document); return out; });
++          fs2.writeFileSync(`${process.env.SHOT_DIR2}/${tag.replace(/\//g, "_")}.titles.json`, JSON.stringify(titles, null, 1));
++        }
+         for (const m of missed) bad.missed.push(`${tag}: ${m}`);
+         const m = await page.evaluate((co) => window.__p9.measure(co), false);
+         n += 1; measuredRuns += m.runs; unknown += m.unknownColour; candidates += m.boxPairs.length;
