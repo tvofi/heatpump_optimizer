@@ -40,53 +40,87 @@ Alternatives for the starting HEAD:
 - Taking a lock on HEAD for the length of the run was rejected. It is heavier, and it would still need the same comparison at the end.
 - Writing the start line, after checking that it is unchanged, makes the receipt the measured HEAD by construction.
 
+**Repair round 3.** The second fix review blocked `20d5aab0` on two defects:
+- **`governance / instrument-self-tests` was red: pr_args.sh's fixtures had not been updated for the `--reuse` code push.** `bash tools/audit/seat/pr_args.sh --self-test` gave `172 checks, 19 failed` at `20d5aab0`, and `0 failed` at base `8364e624`. There were three causes:
+  - The stubs shifted only `--row-only`. Under `--reuse` their `$2` was the repository, not the worktree, so the stub pushes failed. That accounts for the race, row-close, kept-worktree and lock rows.
+  - The open row and the two update null controls still expected no flag on the code push.
+  - The pusher census found two new files naming `app_push.sh` with no disposition: comments in `body_push.sh` and `prepr.sh`.
+
+  The repair:
+  - Every stub drops either mode flag.
+  - The open row now asserts `--reuse` on the code push and `--row-only` on the row push. Both update null controls assert `--reuse`, never `--row-only`. They stay meaningful: each still separates a new-code head from a row-only head, which `mut:rowonly` crosses.
+  - Each runner now carries `--reuse` on a line of its own, so a mutant can delete it without deleting the push. In `open_pr.sh` that is `RU=--reuse  # mut:opreuse`, and the push takes `${RU-}`. Before, the marker sat on the whole p1 push line. In `update_pr.sh` it is `[ -n "$RO" ] || RO=--reuse  # mut:updreuse`, placed after the restored `RO=""; … || RO=--row-only  # mut:rowonly`. Each mutant has a row that kills it.
+  - The census gives both files `mention` entries.
+- **The mutation-vacuous condition (e).** One real-git row in app_push.sh's reuse block has the shape of the reviewer's F9: the clean merge of C and main plus two commits that net to no tree change. It asserts (e)'s refusal, `HEAD carries 2 commit(s) beyond code …`. The same head reset under those two commits reuses again, which is its null control.
+
+Alternatives for (1):
+- Reverting the code push to no flag would have restored the old fixtures and dropped P386's reuse at open and update. That is the feature this PR exists for.
+- Keeping the marker on the whole push line would leave a mutant that deletes the push itself. The run would then stop at `pr_wait` for a reason other than the missing flag, which is a vacuous pin.
+
 ## Head
 
-`acd20e42a51fc981e37fe2e45eb72e523dc965f2`. It merges origin/main `8364e624` (stamped 2026-11-05T04:33Z) into the repair commits on the reviewed head `794fe6a7`, through three clean merges: `8ddab317`, `662b2966`, then `8364e624`. Main kept moving during the take, and a container restart stopped one prepr run. `git diff --stat 794fe6a7...origin/main -- tools/pr tools/audit/seat` is empty, so main's commits reach none of this diff's files. Every figure below was re-taken at this head after the last merge. The full prepr at this head is the receipt this body's trailer carries: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, whose passing run's receipt is this body commit's `Prepr:` trailer (body_push.sh writes one only from a receipt at this code head with its tree).
+`533b00b37c7f02896c7d5a14926aa97b947d1b2a`. It is the reviewed head `20d5aab0` with these commits added:
+- four merges of origin/main, all clean: `9514f979` (main `6777ec33`), `34a42f91` (main `3ec5178c`, merged 2026-11-05T07:27Z), `6a85d1d2` (main `dad3178d`, merged 2026-11-05T07:58Z) and `533b00b3` (main `79f765e6`, merged 2026-11-05T08:24Z);
+- the two repair commits: `687eb9a6` (app_push.sh) and `5b3de631` (pr_args.sh, open_pr.sh and update_pr.sh);
+- `fff00030`, a merge-follow-up commit.
+
+Neither `dad3178d` nor `79f765e6` reaches a path under `tools/`, `.claude/` or `.github/`: `git diff --quiet fff00030 533b00b3 -- tools .claude .github` exits 0. So the self-tests of `app_push.sh` and `pr_args.sh`, taken at `fff00030`, were not re-run. Main's only commit to this diff's files is `3ec5178c`'s step 3e2 in `tools/pr/prepr.sh`, the machinery ratchet. `git diff --stat 6777ec33 3ec5178c -- tools/pr/prepr.sh tools/pr/app_push.sh tools/audit/seat/body_push.sh tools/audit/seat/open_pr.sh tools/audit/seat/update_pr.sh tools/audit/seat/pr_args.sh` prints only `tools/pr/prepr.sh | 9 +`, and `git diff --stat 8364e624 6777ec33` over the same files prints nothing.
+
+**Merge follow-up.** Git placed the new step automatically, after `codeowners_gap`, inside the first code-keyed group, which `PREPR_SKIP_CODE` skips. That placement is kept. The ratchet reads the code's own history against main, as `codeowners_gap` beside it reads the code's corpus. CI's `policy-docs` runs it on every pull request whatever prepr did. `fff00030` adds `machinery ratchet` to that group's `say skip "code-keyed steps"` line, so a reuse run names every step it skips. A full run executes the step unchanged.
+
+Every figure below was taken at this head unless it says otherwise. The full prepr at this head is the receipt this body's trailer carries: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`. Its passing run's receipt is this body commit's `Prepr:` trailer, and body_push.sh writes a trailer only from a receipt at this code head with its tree.
 
 ## Mutation proof
 
-Each mutant was applied to a throwaway worktree of the repair head, the file's own self-test was run, and the worktree was removed. `git status --short` in the seat's worktree was empty after each mutant. Every row named below exists only in this repair.
-- **P1, the main flow's `merged_steps "${1:-}" "$UNPINNED_SITES"` call replaced by `:`** (the reviewer's expression). `prepr.sh --self-test`: `508 passed, 1 failed`, `FAIL (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each (got 00, wanted 11)`.
-- **PH, the fix's start check `[ "$3" = "$(receipt_line)" ]` replaced by `true`**: `508 passed, 1 failed`, `FAIL receipt: HEAD moved past the run's start (a commit landing mid-run) is refused and writes none (got 0|61a7ddbb… 7b648a91…, wanted 1|)`.
-- **P3, the early `rm -f "$(receipt_file)"` replaced by `:`**: `508 passed, 1 failed`, `FAIL (a) a run with a body removes an earlier receipt first, so one that writes none leaves none (got left, wanted )`.
-- **P6, body_push.sh `[ "$s" = "$2" ]` weakened to `[ -n "$s" ]`**: `508 passed, 1 failed`, `FAIL body_push: a receipt whose tree is the head's but whose sha is not gives none`.
-- **M2b, reuse_verdict's `grep -x "$mb"` on the first-parent list replaced by `{ cat >/dev/null; true; }`**. `app_push.sh --self-test`: `225 checks, 1 failed`, `FAIL real git (c): HEAD holding a main commit off main's first-parent chain runs the full prepr (got '0', want '1')`.
-- **M5, the trailer count `= 1` relaxed to `-ge 1`**: `225 checks, 1 failed`, `FAIL real git (a): two Prepr: trailers, though each is the receipt, run the full prepr`.
-- **M6, `[ "$reused" = 0 ] || row_only_checks` replaced by `true || row_only_checks`**: `225 checks, 3 failed`. The failures are the wiring rows `and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check (got '100', want '111')`, `a body the contract refuses refuses after the reduced prepr`, and `and nothing was minted or pushed (got '15', want '00')`. Re-run after the stub's spelling commit, with the same result.
+Round 3. Each mutant ran in a throwaway worktree, apart from the seat's own.
+- **A5, reuse_verdict (e)'s `[ "$n" = 0 ] ||` replaced by `true ||`** (the reviewer's expression; app_push.sh line 313). `app_push.sh --self-test` gives `227 checks, 1 failed`, `FAIL real git (e): two tree-neutral commits past the clean merge run the full prepr (got '0', want '1')`. The unmutated head gives `227 checks, 0 failed`. The row came first and ran against the mutant before it was run on the unmutated head.
+- **`mut:opreuse`, open_pr.sh's `RU=--reuse` line deleted.** The pr_args row `mutant mut:opreuse (its line deleted): the code push asks no reuse verdict, so it runs the full prepr` reads `ok`: the stub's first argv line starts `tvofi/heatpump_optimizer`. The same row without the mutant, `open_pr: its row push passes --row-only, and its code push --reuse, never --row-only`, also reads `ok`.
+- **`mut:updreuse`, update_pr.sh's `RO=--reuse` line deleted.** The row `mutant mut:updreuse (its line deleted): a code sha the head lacks asks no reuse verdict, so its push runs the full prepr` reads `ok`.
+- **`mut:rowonly`** now crosses into `--reuse`: `code sha '-' asks for --reuse, not --row-only` reads `ok`.
+- **The repair against the red it answers.** At `20d5aab0` the pr_args self-test gave `172 checks, 19 failed` (the reviewer's `ev/pr_args_selftest.head.log`). At this head it gives `174 checks, 0 failed`. The two added rows are the opreuse and updreuse mutants.
 
-The failing test came first. The two start-HEAD rows were added before the fix and ran red against the unfixed `receipt_write`: `507 passed, 2 failed`, `FAIL receipt: HEAD moved past the run's start … (got 0|7f9d0afa… b365d581…, wanted 1|)` and `FAIL receipt: a run whose start HEAD was not read writes none`. Once the fix was in, the result was `509 passed, 0 failed`.
+Round 2's mutants were taken at `acd20e42`, and they are not re-taken here. None of their files moved since then except app_push.sh's seven-line row above. They are:
+- P1, PH, P3 and P6 in `prepr.sh --self-test`, each `508 passed, 1 failed`;
+- M2b and M5 in app_push.sh's self-test, each one row failed;
+- M6, with three rows failed.
+
+The review found P1 killed. A6 (app_push.sh line 564) was dismissed as equivalent.
 
 ## Null control
 
-- **Start HEAD.** The first receipt row, a run whose start line is the unmoved HEAD, writes `<sha> <tree>`. The moved-HEAD row differs from it by one commit and is refused.
-- **The reviewer's harness at both ends** (`ev/midrun.sh` from probe/rev-3221-33fa557d, sha1 `76abd37d…`). At `794fe6a7` it prints `RESULT: receipt names a HEAD the run did not start on`. At the head it prints `skip receipt: the run's starting HEAD was not read, so none written`. That is the fail-closed arm: the harness calls with the old two arguments, and its RESULT line, keyed to a written receipt, cannot read the refusal.
-- **The ported companion** (`midrun3.sh`, sha1 `40f6b8fc…`, scratch). It passes the start line as the main flow now does and has a null arm:
-  - At `794fe6a7`, moved: `receipt=b34397ef…`, `RESULT: receipt names a HEAD the run did not measure`.
-  - At `794fe6a7`, null: `RESULT: receipt names the measured HEAD`.
-  - At the head, moved: `REFUSE receipt: HEAD is b34397efd791, not b648dc7d9abe where this run started …`, `RESULT: no receipt`.
-  - At the head, null: `RESULT: receipt names the measured HEAD`.
-- **Planted receipts** (`ev/plant.sh`, sha1 `7e3063ae…`, against the production `reuse_verdict`). At both `794fe6a7` and the head, all nine rows PASS: the null and R8 reuse; R1 to R7 run the full prepr.
-- **Each new pin's passing twin.**
-  - The `(a)` rows' twin is the unmutated run.
-  - The R7 row's twin is the single-trailer receipt restored just before it, which reuses.
-  - The R6 row's twin is every earlier reusing real-git row.
-  - The M6 refusal's twin is `ureused`, the same stub without `node-fails`, which pushes.
+- **(e).** The row that follows the F9 row is `real git: the clean merge without them reuses (the (e) arm's null control)`. It is the same receipt and the same head without the two tree-neutral commits, and it reads `ok` both at the head and under A5. So the F9 row fails under A5 because of (e), not because of the fixture.
+- **The flags.** Two pairs separate the assertions:
+  - The open's row push asserts `--row-only` and its code push asserts `--reuse`.
+  - `update_pr: code sha '-' asks app_push.sh for --row-only` (`ok`) and `a code sha the head lacks … asks for --reuse` (`ok`) are the same fixture with one argument changed.
+
+  Each of the two flag mutants turns exactly its own row.
+- Round 2's harnesses (`ev/midrun.sh`, `midrun3.sh`, `ev/plant.sh`) read files this round leaves unchanged except app_push.sh's self-test block, so they were not re-run.
 
 ## Figures
 
-All figures were taken at the head unless stated otherwise.
-- `bash tools/pr/prepr.sh --self-test`: `509 passed, 0 failed`. That is 504 at `794fe6a7`, plus 5 rows: 2 start-HEAD rows, 1 sha-only trailer row, and 2 `(a)` rows.
-- `bash tools/pr/app_push.sh --self-test`: `app_push self-test: 225 checks, 0 failed`. That is 219, plus 6 rows: 1 two-trailer row, 1 off-first-parent row, and 4 wiring rows.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`
+All figures were taken at `533b00b3` unless a figure names a commit. The two seat self-tests were taken at `fff00030`, whose `tools/` tree is identical.
+- `bash tools/audit/seat/pr_args.sh --self-test`: `pr_args self-test: 174 checks, 0 failed`. That is 172 plus 2 rows: the `mut:opreuse` and `mut:updreuse` mutants.
+- `bash tools/audit/seat/open_pr.sh --self-test` and `bash tools/audit/seat/update_pr.sh --self-test` each print `pr_args self-test: 174 checks, 0 failed`, rc=0. They are the same suite, which `instrument-self-tests` runs three times.
+- `bash tools/audit/seat/pr_args.sh --pushers`: no `OPEN` line.
+- `bash tools/pr/app_push.sh --self-test`: `app_push self-test: 227 checks, 0 failed`. That is 225 plus 2 rows: F9 and its null control.
+- `bash tools/pr/prepr.sh --self-test`: `509 passed, 0 failed`.
+- `body_push.sh` has no `--self-test`. Its trailer is pinned inside prepr.sh's self-test, which passes.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
 - The claim files, VERSION, RELEASE_NOTES.md and the manifest are untouched: `git diff --quiet $(git merge-base origin/main HEAD)...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION RELEASE_NOTES.md custom_components/*/manifest.json` exits 0.
 - Toolchain: `cloud-setup.sh --check` gives `OK`. numpy is 2.5.4 and scipy is 1.18.1, matching `tests/requirements-ci.txt`. No golden was run, because this diff touches no solver.
-- The kept-step wall time under `PREPR_SKIP_CODE` (27 s at `91a75ed8`) was not re-taken. The repair adds no step to that set: it adds one `git rev-parse` pair at the start and one at the end.
+- The kept-step wall time under `PREPR_SKIP_CODE` (27 s at `91a75ed8`) was not re-taken.
 
 ## Red checks
 
-none. The head `acd20e42a51fc981e37fe2e45eb72e523dc965f2` has no check run: handoff refs trigger no CI. The reviewed head `794fe6a7`'s red `gate` was a cancelled job, not a failure, per the review. The base is `8364e624`. This diff reaches no workflow file and no `tools/ci` path.
+The head `533b00b3` has no check run yet: handoff refs trigger no CI. The PR head `20d5aab0` had these concluded reds, from the review's `ev/nongreen_checks.txt`, which covers all check-run pages:
+- **`governance / instrument-self-tests`** (127067016573) was this diff's red: pr_args.sh's self-test gave `172 checks, 19 failed`. It is repaired above, and the step now gives `174 checks, 0 failed`.
+  - Cheaper detector: that same self-test, run locally on the seat scripts the diff edits, about 5 minutes. It existed and was not run before the round-2 handoff: root-cause-detectable. This round runs it for every seat script the diff edits.
+  - The countermeasure is in `fixer.md` step 5 already: run what CI runs for every edited instrument.
+- **`pr-contract / pr-contract`** (127077198867, 127077966989, 127078917945) refused the body because `## Red checks` did not name the red above. This body names it.
+- **`gate`** (127077456468, 127078249806, 127079147825) failed on the same red-checks answer as pr-contract.
+- **`governance / delivery-status`** (127067016566): the OVERDUE rows are #3174, #3091, #3089 and #3192, not this PR's row. It is not this diff's red.
+- **`tests / nightly-status`** (127067016664): this diff does not reach it. It is not this diff's red.
 
 ## Forward-carry
 
