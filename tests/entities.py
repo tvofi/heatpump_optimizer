@@ -9526,8 +9526,16 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
         continue
+    # A row its ``when`` hides for this house is not on the page to submit
+    # (R10-TWO-ZONE-HHL: the whole-house heat loss on two zones); keyed on
+    # the registry's own predicate, so only a row the page hides is skipped.
+    _hidden = {
+        row.key for row in config_flow._OPTION_FIELDS
+        if row.step in ("thermal_model", "thermal_model_zones")
+        and row.when is not None and not row.when(_stored)
+    }
     for _key, _value in _stored.items():
-        if _accepted.get(_key) != _value:
+        if _key not in _hidden and _accepted.get(_key) != _value:
             _unsubmittable.append(
                 f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
             )
@@ -29668,6 +29676,7 @@ steps:
           '.claude/workflows/*.py' \
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
+          'tools/audit/machinery_ratchet.py' \
           'tools/audit/record-predicate' \
           'tools/audit/round6/D11/fix/codeowners_gap.py' \
           'tools/policy/*.mjs' \
@@ -41315,6 +41324,46 @@ R.check(
     len(_uxh_keys) >= 20 and not _uxh_odd and _uxh_keys <= _UXH_FIELDS,
     f"{len(_uxh_keys)} keys; not options fields: {sorted(_uxh_keys - _UXH_FIELDS)}; "
     f"reads keyed some other way: {_uxh_odd}",
+)
+
+
+
+# --- the machinery ratchet's budgets file (R10-MACHINERY-RATCHETS) -----------
+#
+# tools/audit/machinery_ratchet.py grades main's merge window against
+# dev/governance/config/machinery_budgets.json. This reads the TRACKED file
+# through the program's own reader (fixer.md step 11: pin the artifact the
+# check reads), then probes a key the reader does not name: a reader that
+# stopped refusing unread keys would let a cap be added that measures nothing.
+def _load_machinery_ratchet():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "hpo_machinery_ratchet", Path("tools/audit/machinery_ratchet.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_MR = _load_machinery_ratchet()
+_MR_TEXT = Path(_MR.BUDGETS).read_text()
+
+
+def _mr_reads(text: str) -> str:
+    try:
+        _MR.load_budgets(text)
+        return "read"
+    except _MR.Refusal as e:
+        return f"refused: {e}"
+
+
+_MR_GOT = (_mr_reads(_MR_TEXT),
+           _mr_reads(json.dumps({**json.loads(_MR_TEXT), "open_groups": 1}))[:7])
+R.check(
+    "the machinery ratchet reads every key of the tracked machinery_budgets.json, "
+    "and refuses a key it does not read",
+    _MR_GOT == ("read", "refused"),
+    f"(tracked file, file plus an unread key) -> {_MR_GOT}",
 )
 
 
