@@ -170,7 +170,8 @@ num() {
   printf '%s' "${n:-0}"
 }
 # norm <path>: the path's segments after %-decoding, dropping a URL's scheme and host, a query
-# or anchor, and `.`/`..`/empty segments, into NSEG; 1 when it cannot be read
+# or anchor, and `.`/`..`/empty segments, and lower-casing every letter (a path segment is
+# matched in lower case: `ISSUES/201/COMMENTS` is the tracker's), into NSEG; 1 when it cannot be read
 norm() {
   local w=$1 IFS=/ seg
   local -a segs
@@ -179,6 +180,7 @@ norm() {
   w=${w%%[#?]*}
   case $w in *%*) w=$(printf '%b' "${w//%/\\x}"); case $w in *[%#?\\]*|*$'\n'*) return 1 ;; esac ;; esac
   case $w in *://*) w=${w#*://}; w=${w#*/} ;; esac
+  w=$(printf '%s' "$w" | tr 'A-Z' 'a-z')
   set -f; read -r -a segs <<< "$w"; set +f
   for seg in "${segs[@]}"; do
     case $seg in
