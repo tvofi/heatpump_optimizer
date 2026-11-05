@@ -1,27 +1,24 @@
-R10-HOTFIX-RECORD-ATTRIB carry repair. #3194 fixed `record_row.py` (`attribute_merge`: empty `/commits/<sha>/pulls` answer -> number from the subject, confirmed against that pull request's `merge_commit_sha`). The one carry it left: `tools/policy/policy_lint.mjs` `fetchPullsBySha` recovered the number from the subject on an empty answer WITHOUT that confirmation. Now `confirmGapMerge` reads `/pulls/<n>` and requires `merge_commit_sha` equal to the sha; otherwise `fetchPullsBySha` returns `ok:false` with a reason, the loud UNCHECKED path the enumeration already has, not a silent trust. `stamp.py` rule 5 reads subjects only and needs no change (checked in #3194).
-
-Alternatives: sharing the Python helper (JS cannot import it); dropping the unconfirmed commit silently (the silent-skip class the module refuses).
+R10-HOTFIX-RECORD-ATTRIB carry repair, round 2. #3194 fixed `record_row.py` (`attribute_merge`). `tools/policy/policy_lint.mjs` `fetchPullsBySha` recovered a number from the subject on an empty `/commits/<sha>/pulls` answer without confirming it against `/pulls/<n>`'s `merge_commit_sha`. Round 1 added `confirmGapMerge` and the guard in `fetchPullsBySha`; the fix review blocked it as mutation-vacuous (M3 deleted the guard and the fixture stayed ok). This repair: `fetchPullsBySha(commits, get = ghGet, slug = repoSlug())` and `confirmGapMerge(sha, pr, get, slug)` take an injectable getter and slug; three enumeration-level pins; and the refusal wording now names both causes (merge commit differs, or `/pulls/<n>` could not be read: HTTP error or rate limit).
 
 ## Head
 
-ee84d35a205f145e73b61f37d22d76e69d530de0, on origin/main 783d8dc72811ab75ae4ffca367456f44896f47d3 (unmoved since the prepr run, so no second run).
+`007f8a66cdf89780c779292d9a1be34f5469f6dd`. origin/main is 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0, already merged in; it did not move between the `tools/pr/prepr.sh` run and the handoff, so no second run.
 
 ## Mutation proof
 
-Predicate mutated: `confirmGapMerge`'s `Boolean(res.ok && res.data && res.data.merge_commit_sha === sha)` replaced by `true`. `node tools/policy/policy_lint.mjs --self-test` then prints `FIXTURE VACUOUS` naming "merged at a different commit was confirmed" and "could not be read was confirmed". Restored; self-test passes.
+Mutant M3 (the reviewer's): the `if (resolved.source === 'subject-gap' && !confirmGapMerge(...)) { return { ok: false, ... } }` block in `fetchPullsBySha` deleted. `node tools/policy/policy_lint.mjs` then printed `FIXTURE VACUOUS: resolvePrFromCommit ["an enumeration gap whose pull request merged at a different commit was trusted, or its refusal does not name both causes"]`, rc=1. Restored. The round-1 mutants M1, M2 and M4 (the helper) are still killed by the helper pins.
 
 ## Null control
 
-Acceptance pins (in `assertAcceptance`, D13-s1-01 block) drive `confirmGapMerge` with a stub getter: matching `merge_commit_sha` -> confirmed (normal path); a differing merge commit -> refused; an unreadable pull request -> refused. The API-row path of `resolvePrFromCommit` is untouched and still pinned (`source api`).
+Unmutated tree: `node tools/policy/policy_lint.mjs` prints `FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes`, rc=0. The three new enumeration pins drive `fetchPullsBySha` with a stub getter: an API row (taken, absent from `gapShas`); an empty answer whose `/pulls/900` merge_commit_sha equals the sha (recovered, listed in `gapShas`); one whose merge commit differs (`ok:false`, the `why` matching "could not be read").
 
 ## Figures
 
-Pin count in the self-test's `FIXTURE ok` line: 260 at origin/main, 263 here (three added pins). Command: `node tools/policy/policy_lint.mjs --self-test | grep 'FIXTURE ok'`.
-Checks: `tools/pr/prepr.sh` rc=0; `tests/entities.py` 2611 checks passed; `tests/structure.py` passed. Gate: `MODE: SCOPED -- 1 script(s) run` (`tests/entities.py`). Toolchain: numpy 2.5.4, scipy 1.18.1 match `tests/requirements-ci.txt`; no golden touched.
+Pins in the `FIXTURE ok` line: 263 at the reviewed head, 266 here (three added). Command: `node tools/policy/policy_lint.mjs | grep 'FIXTURE ok'`. `python3 tests/structure.py`: PASSED. `tools/pr/prepr.sh`: every step ok (gate mode SCOPED, self-test 486 passed, claim files byte-identical to origin/main, no version edit). Not run locally: `tests/entities.py` and goldens (the toolchain was not refreshed; CI is the authority). No golden touched.
 
 ## Red checks
 
-none
+none concluded: this head has not yet run in CI at handoff.
 
 ## Forward-carry
 
