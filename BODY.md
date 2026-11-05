@@ -1,57 +1,53 @@
-R10-FLY-REPLAY-MASK repairs the empty-replay refusal (`seal` refusing "entity id(s) not masked to a role or a hashed id"). The mask now takes roles from the same entry keys and items that `sanitise` keeps, through the one predicate `_entry_shape`. Round 2 of the repair: the first review (blocked, mutation-vacuous) found that the list filter in `_role_claims` was dead under the real allowlist and, for lists under keys not ending `_entities`, diverged from `sanitise` and refused a replay the base sealed.
+R10-FLY-REPLAY-MASK repairs the empty-replay refusal (`seal` refusing "entity id(s) not masked to a role or a hashed id"). The mask now takes roles from the same entry keys and items that `sanitise` keeps, through the one predicate `_entry_shape`. Round 3 of the repair: round 2's `prepr` step 6d refused the body for omitting two unpinned `replay_doc.py` sites.
 
 Closes #3219's finding R10-FLY-REPLAY-MASK.
 
 ## Head
 
-`1e25dcd8059086c1c9e6973ffad5c4f6bbae7daa`, the fix commit merged with `origin/main` at `499162c89d0f4f8369e16e6e41fb3a620bc1ecb0` (merge base with main equals that tip, measured 2026-11-05). `prepr.sh` was run once, after that merge.
+`2aafd3e36b61cde40c0a1a317957fffa4750e11f`, the fix merged with PR head `651468bb` (the bot pin commit) and with `origin/main` at `7c274274830ce553b8faec9574837de91a2be234` (merge base with main equals that tip, measured 2026-11-05 with `git merge-base origin/main HEAD`). `prepr.sh` was run once, on this head.
 
-## What changed since the blocked head
+## What changed
 
-- Dropped the ad-hoc list filter in `_role_claims` (`replay_doc.py`). With `conf`, each kept entry value now goes through `_entry_shape(key, value)`, the very function `sanitise` applies, and a `_DROP` result is skipped. One predicate, so the roles `entity_roles` hands out cannot disagree with what `_unmasked` re-derives from the sanitised entry. Alternatives: (a) delete the filter only: leaves `_entities` lists with non-id items refused (the allowlist holds no such key today, but `_entry_shape` drops them on the sanitise side); (b) a second hand-copied `endswith("_entities")` predicate: duplicates the concept and can drift again. Both lost to calling the shared function.
-- New checks in `tests/replay.py` (`mask_seam_checks`, `_conf_reaches_writers_checks`):
-  - `mask:id_in_list_under_a_kept_key_beside_a_non_id_seals_masked` (the planted class: `after_save: ["abc", <id>]`), red at the blocked head, green now.
-  - `mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked` reaches the `_entities` branch with a synthetic allowlist key, because the installed allowlist holds no key ending `_entities`.
-  - `mask:build_export_passes_conf_to_document` drives `tools/replay/export.py` `build_export` over the synthetic install with a second, off-allowlist key naming the outdoor sensor.
-  - `mask:debugger_replay_document_passes_conf_to_document` drives `debugger.replay_document` with the same entry shape.
-  Design choice stated: the last two pin that `conf` reaches `document` at each production call site by behaviour, not by reading the source.
+- `_role_claims` (`replay_doc.py`): with `conf`, each kept entry value goes through `_entry_shape(key, value)`, the function `sanitise` applies, so the roles `entity_roles` hands out cannot disagree with what `_unmasked` re-derives from the sanitised entry. Alternatives: (a) delete the list filter only: leaves `_entities` lists with non-id items refused; (b) a second hand-copied `endswith("_entities")` predicate: duplicates the concept and can drift; both lost to the shared function.
+- Round 3: the `if value is _DROP: continue` that followed the `_entry_shape` call is deleted. Its mutant (`if False:`) survived `replay.mask_checks()`, and no check can kill it: the only consumer of `_role_claims` is `entity_roles.claim`, which ignores any value that is not a `str` matching `ENTITY_ID`, and a `_DROP` is a bare `object()`. The branch was an equivalent mutant, so I took the deletion over a check that cannot fail (owner-directed alternative was a new check reaching the skip; it cannot exist for this reason, shown by the mutant below). Design choice: `_role_claims` yields the sentinel and the consumer's id test passes it over; the comment at the call says so.
+- Checks in `tests/replay.py` (`mask_seam_checks`, `_conf_reaches_writers_checks`) from round 2, unchanged: `mask:id_in_list_under_a_kept_key_beside_a_non_id_seals_masked`, `mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked`, `mask:build_export_passes_conf_to_document`, `mask:debugger_replay_document_passes_conf_to_document`.
 
 ## Mutation proof
 
-Harness: `replay.mask_checks()` (23 checks), each mutant a one-line predicate change, restored after. Null control is the unmodified tree, first.
+Harness: `replay.mask_checks()` (PYTHONPATH `tests/hastub:.`, `tests` and `tools/replay` on `sys.path`), each mutant one line, restored after. Null control first.
 
-- null (head): 23 checks, none failed.
-- M1 key guard off (`if False and (key not in conf ...`): killed by `mask:id_under_key_off_the_allowlist_seals_masked`, `mask:id_under_list_beside_a_non_id_seals_masked`, `mask:build_export_passes_conf_to_document`, `mask:debugger_replay_document_passes_conf_to_document`.
-- M2 shape predicate off (`value = _entry_shape(...)` replaced by `pass`): killed by `mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked` (this is the reviewer's surviving mutant 2, now killed).
-- M3 `mask_ids` passes `None` for `conf`: killed by five checks, among them both new `_passes_conf_to_document` ones.
-- M5 `document` drops `conf` before `mask_ids`: killed by the same five.
-- M6 `conf=conf` deleted in `debugger.py`: killed by `mask:debugger_replay_document_passes_conf_to_document` alone.
-- M7 `conf=conf` deleted in `tools/replay/export.py`: killed by `mask:build_export_passes_conf_to_document` alone.
-
-Also red-first: `mask:id_in_list_under_a_kept_key_beside_a_non_id_seals_masked` failed ("1 entity id(s) not masked to a role or a hashed id") before the `_role_claims` change, which is the reviewer's regression reproduced.
+- null at this head: 23 checks, none failed.
+- `if conf is not None:` (the `_entry_shape` guard) turned `if False:`: killed by `mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked`.
+- `value = _entry_shape(str(key), value)` replaced by `pass`: killed by the same check.
+- the deleted `if value is _DROP:` guard, measured at `1e25dcd8` as `if False:`: 0 failed (survived). Equivalent by the consumer argument above, so deleted rather than pinned.
+- earlier mutants of the `conf=conf` call sites (`mask_ids`, `document`, `debugger.py`, `tools/replay/export.py`) are untouched by this round's one-hunk change.
 
 ## Null control
 
-The base (merge base) refuses `legacy_probe_entity` and `room_sensor_entities` configured off the allowlist (reviewer's plant, `ev/plant.txt`); the unmodified blocked head refuses the kept-key list `after_save: ["abc", <id>]` the base sealed; this head seals both, and `mask:planted_unmasked_id_still_refused` still refuses a planted unmasked id, so the fix did not loosen the refusal.
+The base refuses `legacy_probe_entity` configured off the allowlist; the blocked round-1 head refused the kept-key list `after_save: ["abc", <id>]` the base sealed; this head seals both, and `mask:planted_unmasked_id_still_refused` still refuses a planted unmasked id.
 
 ## Escaped class on the live export of 2026-11-04
 
-I cannot read the owner's live export of 2026-11-04 (v7.1.1) and did not. The class below is the reachable one by reasoning, not measured: an entity id configured under an entry key that is off the installed allowlist (a key `sanitise` drops, whose value is an id also or only sitting in the states). `entity_roles` gave that id a role from the dropped key, `seal` re-derived roles from the sanitised entry, found a different role (or the hash), and refused the whole replay. Under the real allowlist this is the only seam that reaches the mask; the list shape is latent (the config flow writes no list-valued key). No id is quoted anywhere in this diff, tests or body.
+I cannot read the owner's live export and did not. The reachable class, by reasoning and not measured: an entity id configured under an entry key off the installed allowlist (a key `sanitise` drops); `entity_roles` gave it a role from the dropped key, `seal` re-derived a different role from the sanitised entry and refused the whole replay. No id is quoted anywhere in this diff, tests or body.
+
+Carry 1 (roster item 31ee5e06, the empty `debug.manifest.replay` refused for an unmasked id): answered by this fix at the seam above; the owner's export itself was not read, so whether the refused id is this class is by reasoning, not measured.
 
 ## Figures
 
-- `PYTHONDONTWRITEBYTECODE=1 python3 -c "import sys; sys.path[:0]=['tests','tests/hastub','tools/replay']; import replay; r=replay.mask_checks(); print(len(r), [n for n,ok,w in r if not ok])"` prints the count and the failing names (rule: every `mask:` check, merged tree).
-- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED` (no budget touched).
-- Scoped scripts run locally with `PYTHONPATH=tests/hastub`: `tests/debug_collect.py`, `tests/entities.py`, `tests/features.py`, `tests/doc_claims.py`, `tests/deployment_shape.py`, `tests/harness_headers.py`, `tests/typing_ruler.py` all pass. `tests/replay.py` reports 3 of 189 failed, all `cycle_cost` runner-class band checks (ref_ms 28.4 to 28.72 lie between bands) on this container, unrelated to the mask; `mask_checks()` itself is clean. CI is the authority.
-- Toolchain refreshed with `bash tools/audit/seat/cloud-setup.sh`; numpy 2.5.4 and scipy 1.18.1 match `tests/requirements-ci.txt`.
+- `python3 -c "import sys; sys.path[:0]=['tests','tests/hastub','tools/replay']; import replay; r=replay.mask_checks(); print(len(r), [n for n,ok,w in r if not ok])"` with `PYTHONPATH=tests/hastub:.`: prints the count and failing names (every `mask:` check).
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED`; the scripts it names and `PYTHONPATH=tests/hastub` runs: `debug_collect`, `deployment_shape`, `doc_claims`, `entities`, `features`, `harness_headers`, `typing_ruler`, `config_flow_steps` all exit 0 on the tree without the step-ref `PR-BODY.md`; `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`. `golden`, `env_drift`, `arch_score_head`, `finite_boundary`, `manual_plan` are CI's.
+- Toolchain: `bash tools/audit/seat/cloud-setup.sh`; numpy 2.5.4 and scipy 1.18.1 match `tests/requirements-ci.txt`.
 
 ## Unpinned sites
 
-The `_entry_shape` call and `conf=conf` in `replay_doc.py` and `debugger.py` are `custom_components/` sites for `mutation-autofix`, and each is already killed by the checks above (M2, M3, M5, M6). The `tools/replay/export.py` `conf=conf` site is outside that lane: its in-tree mutant harness is `replay.mask_checks()` (M7).
+- custom_components/heatpump_optimizer/replay_doc.py:535 GUARD_OFF (`if conf is not None:`, the `_entry_shape` guard in `_role_claims`): killed by `mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked`; pinned by `mutation-autofix` after the push.
+- the former `if value is _DROP:` guard at the `:537` site of the round-2 head: no longer exists at this head; the equivalent skip is deleted, so the site is gone, not unpinned.
+- The `tools/replay/export.py` `conf=conf` site is outside the `custom_components/` lane; its in-tree mutant harness is `replay.mask_checks()`, killed by `mask:build_export_passes_conf_to_document`.
 
 ## Red checks
 
-- `tests / mutation` at 1e25dcd80590: red on the 5 unpinned site(s) under `## Unpinned sites` (the `_entry_shape` call in `replay_doc.py`, the two `conf=conf` lines, and the new branches of `_role_claims`). Answer: the cheaper detector is `prepr.sh` step 6d, which printed these sites before the handoff; its standing cost is one prepr run, and `ci-autofix.md`'s `mutation-autofix` job pins the killed `custom_components/` mutants after the push (M2, M3, M5, M6 above are killed). The `tools/replay/export.py` site has no autofix lane; `replay.mask_checks()` kills it (M7).
+- `tests / mutation` and `tests / mutation-autofix`: this branch's own, from the two sites above, answered by the table above; cheaper detector: `prepr.sh` step 6d, which caught it at the round-2 handoff (the cheapest detector, already standing).
+- `governance / delivery-status` and `tests / nightly-status`: red on main's ancestry at base `7c274274830ce553b8faec9574837de91a2be234`, not this branch's; the diff touches none of their scripts, `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`, so the orchestrator owns them on `main`.
 
 ## Forward-carry
 
