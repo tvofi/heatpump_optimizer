@@ -1958,7 +1958,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                 except Exception:  # noqa: BLE001 - must not mask the timeout
                     pass
                 raise ProcessWorkerTimeout(
-                    f"process worker gave no reply within {timeout:.0f} s"
+                    f"process worker gave no reply within {timeout:g} s"
                 )
             status, payload = pickle.load(stdout)
         except ProcessWorkerUnavailable:
