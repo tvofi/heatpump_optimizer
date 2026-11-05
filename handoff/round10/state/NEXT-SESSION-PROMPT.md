@@ -39,7 +39,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TICK-PR-BUCKETS (stage absorbed, branch `handoff/r10-tick-pr-buckets`): `git fetch origin handoff/r10-tick-pr-buckets && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-GROUP-LINES (stage absorbed, branch `handoff/r10-tick-group-lines`): `git fetch origin handoff/r10-tick-group-lines && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-SUITE-HOST-DETERMINISM (stage carries-open, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RAISE-GATE-SHIM (stage in-progress, branch `handoff/r10-raise-gate-shim`): `git fetch origin handoff/r10-raise-gate-shim && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LIVE-BUNDLE-READS (stage carries-open, branch `handoff/r10-live-bundle-reads`): `git fetch origin handoff/r10-live-bundle-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
