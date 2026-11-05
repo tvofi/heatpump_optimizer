@@ -1,3 +1,0 @@
-ok receipt: 7481bf8f4d78 written for body_push.sh's Prepr: trailer
-measured=e782328420ec39afdbed5583be526a5db91c2410 receipt=7481bf8f4d789067ce1e1ac626412af28bbe49ea
-RESULT: receipt names a HEAD the run did not start on

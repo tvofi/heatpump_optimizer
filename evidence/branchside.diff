@@ -1,0 +1,291 @@
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+index fc76d1e0e..54ef7262d 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -1584,6 +1584,85 @@ selftest_inputs() { # -> one path per line; a trailing / is a directory prefix
+   fi
+   printf '%s\n' "$SELFTEST_FIXTURES"
+ }
++# --- the receipt and the merged tree (P386, R10-HANDOFF-PATH part 1) --------
++# A full run that passes with a body writes `<HEAD sha> <tree sha>` to
++# hpo-prepr-receipt in this checkout's git dir. body_push.sh carries it onto the
++# handoff-body/<topic> commit as a `Prepr:` trailer when its sha is the handoff's
++# code head, and app_push.sh --reuse reads it there, so a fixer's run is not
++# repeated at open or update. A run that sets any PREPR_SKIP_* but
++# PREPR_SKIP_CLOSURES (closures-autofix repairs that one on the pull request)
++# writes none, PREPR_SKIP_CODE included; so does a run over a dirty tree, whose
++# HEAD is not what ran. `--body-check` and `--fill-red` exit before the main
++# flow, which removes an earlier receipt first, so a failing run leaves none.
++receipt_file() { # -> the receipt's path in this checkout's git dir
++  local g; g=$(git rev-parse --absolute-git-dir 2>/dev/null) || return 1
++  printf '%s/hpo-prepr-receipt\n' "$g"
++}
++receipt_skips() { # -> the PREPR_SKIP_* variables set non-empty, PREPR_SKIP_CLOSURES aside
++  local v out=""
++  for v in $(compgen -v PREPR_SKIP_); do
++    [ "$v" = PREPR_SKIP_CLOSURES ] || [ -z "${!v}" ] || out="$out $v"
++  done
++  printf '%s' "${out# }"
++}
++receipt_write() { # rc, body -> one line; the receipt only for a passing full run with a body over a clean tree
++  local f s
++  f=$(receipt_file) || { say skip "receipt" "no git dir, so none written"; return 0; }
++  [ "$1" = 0 ] || { say skip "receipt" "rc=$1, so none written"; return 0; }
++  [ -n "$2" ] || { say skip "receipt" "no body passed, so none written"; return 0; }
++  s=$(receipt_skips)
++  [ -z "$s" ] || { say skip "receipt" "$s set, so no full run and none written"; return 0; }
++  [ -z "$(git status --porcelain --untracked-files=no 2>/dev/null)" ] \
++    || { say skip "receipt" "the tree is dirty, so HEAD is not what ran and none written"; return 0; }
++  printf '%s %s\n' "$(git rev-parse HEAD)" "$(git rev-parse 'HEAD^{tree}')" > "$f" \
++    && say ok "receipt" "$(cut -c1-12 "$f") written for body_push.sh's Prepr: trailer"
++}
++
++# HEAD merged with origin/main: HEAD itself when it holds main's tip, else the
++# clean `git merge-tree` result committed unreferenced (rc 1 on a conflict, the
++# pull request's DIRTY). Carry 4: #3052 went red on tests/structure.py at a merge
++# no step had measured.
++merged_head() { # -> the merged sha on stdout
++  local t
++  if git merge-base --is-ancestor origin/main HEAD 2>/dev/null; then git rev-parse HEAD; return; fi
++  t=$(git merge-tree --write-tree HEAD origin/main 2>/dev/null) || return 1
++  git -c user.name=prepr -c user.email=prepr@invalid commit-tree "$t" -p HEAD -p origin/main -m "prepr: HEAD merged with origin/main"
++}
++merged_run() { # merged sha, command... -> the command's rc, run at that sha's tree in a throwaway worktree
++  local m=$1 d r; shift
++  if [ "$m" = "$(git rev-parse HEAD)" ]; then "$@"; return; fi
++  d=$(mktemp -d) || return 1
++  git worktree add -q --detach "$d/t" "$m" >/dev/null 2>&1 \
++    || { echo "no worktree of ${m:0:12} could be made"; rm -rf "$d"; return 1; }
++  ( cd "$d/t" && "$@" ); r=$?
++  git worktree remove --force "$d/t" >/dev/null 2>&1; rm -rf "$d"; git worktree prune 2>/dev/null
++  return "$r"
++}
++# The steps keyed to the merge: tests/structure.py on the merged tree, always,
++# and under PREPR_SKIP_CODE the ci predict step 6d runs on HEAD otherwise, there,
++# static: without step 6d's `--record-self-tests`, which re-runs each changed
++# file's own self-test (minutes on a tools diff, measured on this group's) to
++# record its reads against the closures -- a closures question, which
++# PREPR_SKIP_CLOSURES already leaves to closures-autofix, and heavy work this
++# mode takes no slot for.
++merged_steps() { # body, unpinned-site key file -> step lines
++  local m out r b=""
++  [ -z "$1" ] || [ ! -f "$1" ] || b=$(cd "$(dirname -- "$1")" && pwd)/$(basename -- "$1")
++  if ! m=$(merged_head); then
++    step "merged tree" 1 "HEAD and origin/main do not merge cleanly, so no merged tree exists to check -- merge origin/main"
++    return
++  fi
++  out=$(merged_run "$m" python3 tests/structure.py 2>&1); r=$?
++  step "merged structure" "$r" "$(printf '%s\n' "$out" | tail -1 | cut -c1-160) (tests/structure.py at ${m:0:12}, HEAD merged with origin/main)"
++  [ -n "${PREPR_SKIP_CODE:-}" ] || return 0
++  out=$(merged_run "$m" predict_line origin/main "$2" "$b"); r=$?
++  case $r in
++    3) say skip "ci predict" "$out" ;;
++    0) step "ci predict" 0 "$out (at ${m:0:12}, HEAD merged with origin/main)" ;;
++    *) step "ci predict" 1 "$out (at ${m:0:12}, HEAD merged with origin/main)" ;;
++  esac
++}
++
+ selftest_owed() { # changed-paths file -> 0 when a changed path is a self-test input
+   awk 'NR==FNR { if ($0 ~ /\/$/) d[$0]=1; else f[$0]=1; next }
+        ($0 in f) { hit=1; exit }
+@@ -3661,6 +3740,56 @@ exit $rc'*) r=0 ;; *) r=1 ;; esac
+   st "$r" 0 "the main flow starts the summary after step 1 and ends on its result line"
+   rm -rf "${SM:?}"
+ 
++  # --- P386: the receipt, body_push.sh's Prepr: trailer, and the merged-tree steps.
++  # A throwaway origin whose main gains BAD (tests/structure.py fails on it) or
++  # RED (the stub predictor refuses it) after the fix branch was cut, so each
++  # red exists only on HEAD merged with main: fixture arms (d) and (e).
++  RQ=$(mktemp -d)
++  rq() { git -C "$RQ/wt" "$@" >/dev/null 2>&1; }
++  throwaway_git_init "$RQ/o.git" -q --bare -b main && throwaway_git_clone -q "$RQ/o.git" "$RQ/wt" >/dev/null 2>&1 \
++    && mkdir -p "$RQ/wt/tests" && printf 'import os, sys\nprint("structure: BAD" if os.path.exists("BAD") else "structure: ok")\nsys.exit(os.path.exists("BAD"))\n' > "$RQ/wt/tests/structure.py" \
++    && rq add tests && rq commit -qm base && rq push -q origin HEAD:main && rq checkout -q -b fix/t && printf 'f\n' > "$RQ/wt/f" && rq add f && rq commit -qm fix
++  rsay() { printf '%s %s\n' "$1" "$2"; }
++  rstep() { printf '%s %s rc=%s\n' "$([ "$2" -eq 0 ] && echo ok || echo REFUSE)" "$1" "$2"; }
++  # shellcheck disable=SC2329 # called by merged_steps under PREPR_SKIP_CODE
++  rpredict() { if [ -f RED ]; then echo "PREDICT red"; return 1; fi; echo "no red"; }
++  msteps() { (cd "$RQ/wt" && git fetch -q origin && say() { rsay "$@"; } && step() { rstep "$@"; } && predict_line() { rpredict "$@"; } && merged_steps "" /dev/null) 2>/dev/null; }
++  st "$(msteps | grep -c '^ok merged structure rc=0')" 1 "merged_steps: tests/structure.py passes on HEAD merged with a clean main (the (d) arm's null control)"
++  (cd "$RQ/wt" && git checkout -q main && : > BAD && git add BAD && git commit -qm bad && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
++  st "$(msteps | grep -c '^REFUSE merged structure rc=1')$([ -f "$RQ/wt/BAD" ] && echo onhead)" 1 "(d) a clean merge whose tests/structure.py fails is refused, though HEAD alone passes"
++  (cd "$RQ/wt" && git checkout -q main && git rm -q BAD && : > RED && git add RED && git commit -qm red && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
++  st "$(msteps | grep -c 'ci predict')" 0 "a full run's merged_steps leaves ci predict to step 6d"
++  st "$(PREPR_SKIP_CODE=x msteps | grep -c '^REFUSE ci predict rc=1')" 1 "(e) under PREPR_SKIP_CODE a ci predict red on the merged main is refused"
++  (cd "$RQ/wt" && git checkout -q main && git rm -q RED && git commit -qm green && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
++  st "$(PREPR_SKIP_CODE=x msteps | grep -c '^ok ci predict rc=0')" 1 "and passes once main is green again (the (e) arm's null control)"
++  (cd "$RQ/wt" && git checkout -q main && printf 'm\n' > f && git add f && git commit -qm conflicting && git push -q origin main && git checkout -q fix/t) >/dev/null 2>&1
++  st "$(msteps | grep -c '^REFUSE merged tree rc=1')" 1 "a head that does not merge cleanly with main is refused, never measured on HEAD alone"
++  # The receipt: a passing full run with a body over a clean tree, and nothing else.
++  rw() { (cd "$RQ/wt" && rm -f "$(receipt_file)" && say() { rsay "$@"; } && receipt_write "$@" >/dev/null && cat "$(receipt_file)" 2>/dev/null); }
++  RH="$(git -C "$RQ/wt" rev-parse HEAD) $(git -C "$RQ/wt" rev-parse 'HEAD^{tree}')"
++  st "$(rw 0 body.md)" "$RH" "receipt: a passing run with a body writes <HEAD sha> <tree sha> in the git dir"
++  st "$(PREPR_SKIP_CLOSURES=1 rw 0 body.md)" "$RH" "receipt: PREPR_SKIP_CLOSURES alone still writes one"
++  st "$(rw 1 body.md)" "" "receipt: a refused run writes none"
++  st "$(rw 0 '')" "" "receipt: a run with no body writes none"
++  st "$(PREPR_SKIP_CODE=x rw 0 body.md)" "" "receipt: a PREPR_SKIP_CODE run (app_push --reuse) writes none"
++  st "$(PREPR_SKIP_ANY=1 rw 0 body.md)" "" "receipt: any other PREPR_SKIP_* writes none"
++  (printf 'dirty\n' >> "$RQ/wt/f")
++  st "$(rw 0 body.md)" "" "receipt: a dirty tree writes none"
++  (cd "$RQ/wt" && git checkout -q f)
++  (cd "$RQ/wt" && rm -f "$(receipt_file)" && bash "$OLDPWD/tools/pr/prepr.sh" --body-check "$RQ/none.md" >/dev/null 2>&1)
++  st "$([ -f "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt" ] && echo written)" "" "receipt: --body-check writes none"
++  # body_push.sh's trailer, extracted from it: only the receipt at this code head, with its tree.
++  eval "$(sed -n '/^prepr_trailer() {/,/^}/p' tools/audit/seat/body_push.sh)"
++  (cd "$RQ/wt" && say() { :; } && receipt_write 0 body.md)
++  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "Prepr: $RH" "body_push: the receipt at the code head becomes the Prepr: trailer"
++  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD~1)")" "" "body_push: a receipt at another sha gives none"
++  printf '%s %s\n' "$(git -C "$RQ/wt" rev-parse HEAD)" "$(git -C "$RQ/wt" rev-parse 'HEAD~1^{tree}')" > "$(git -C "$RQ/wt" rev-parse --absolute-git-dir)/hpo-prepr-receipt"
++  st "$(prepr_trailer "$RQ/wt" "$(git -C "$RQ/wt" rev-parse HEAD)")" "" "body_push: a receipt whose tree is not the head's gives none"
++  # (a): a PREPR_SKIP_CODE run takes no heavy slot and runs no code-keyed step.
++  RA=$(cd "$RQ/wt" && git reset -q --hard origin/main~1 && PREPR_SKIP_CODE=0123456789abcdef0123456789abcdef01234567 PREPR_VERBOSE=1 timeout 300 bash "$OLDPWD/tools/pr/prepr.sh" 2>&1)
++  st "$(printf '%s\n' "$RA" | grep -cE '^  [a-zA-Z]+ +(heavy slot|policy_lint|self-test|agreement lane|gate priority) ')$(printf '%s\n' "$RA" | grep -c '^  ok  *code steps  ')" 01 "(a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps"
++  rm -rf "$RQ"
++
+   printf '\n%s passed, %s failed\n' "$st_pass" "$st_fail"
+   [ "$st_fail" -eq 0 ] || exit 2
+   exit 0
+@@ -3712,6 +3841,8 @@ if [ -n "${1:-}" ]; then
+   fi
+   say ok "body path" "not directly in a shared root"
+   [ -z "${PREPR_BODY_PATH_ONLY:-}" ] || exit 0
++  # An earlier run's receipt goes first, so a run that fails leaves none (`receipt_write`).
++  rm -f "$(receipt_file)" 2>/dev/null
+ fi
+ 
+ # --- 1. the merge base resolves.
+@@ -3724,6 +3855,12 @@ if [ -z "$BASE" ]; then
+ fi
+ step "merge-base" 0 "$BASE"
+ summary_start
++# PREPR_SKIP_CODE=<sha> is app_push.sh --reuse's (P386): the receipt of a full run
++# at that code sha was found and the head is its clean merge with the live head
++# and main, so the steps keyed to the code alone are dropped and no heavy slot is
++# taken; the steps keyed to main, the body or the merge still run (`merged_steps`).
++REUSE=${PREPR_SKIP_CODE:-}
++[ -z "$REUSE" ] || say ok "code steps" "reused from the receipt at ${REUSE:0:12}: no heavy slot, and the steps keyed to the code alone are dropped"
+ 
+ # --- 1a. no transport file in any commit the branch adds (`transport_in_ancestry`).
+ TRANSPORT=$(transport_in_ancestry "$BASE" HEAD)
+@@ -3748,6 +3885,12 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+   fi
+ fi
+ 
++# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
++PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
++
++if [ -n "$REUSE" ]; then
++  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, brief_lint, field coverage, agreement lane, register check"
++else
+ # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
+ # The lease is generic: it orders waiters by an integer and never decides who
+ # deserves one. This step supplies the integer from tools/pr/gate_priority.py,
+@@ -3805,9 +3948,6 @@ else
+   rm -f "$slot_stderr"
+ fi
+ 
+-# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
+-PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
+-
+ # --- 2. the scoped gate's MODE line, printed rather than inferred.
+ # CLAUDE.md rule 1: `MODE: SCOPED -- 0 script(s) run` and `MODE: FULL` both
+ # print zero and mean opposite things. Printing it is the whole step; a seat
+@@ -3929,6 +4069,7 @@ step "register check" $? "$(tail -1 /tmp/prepr-fl.$$)"
+ rm -f /tmp/prepr-fl.$$
+ fi
+ rm -f "${HEAVY_PLAN:-}"
++fi  # the code-keyed steps, PREPR_SKIP_CODE's first group
+ 
+ # --- 3f6. no tracked script, workflow or decision record tied to a temp or
+ # machine path, which `instrument-self-tests` runs on the branch's own copy.
+@@ -3942,6 +4083,10 @@ rm -f /tmp/prepr-tp.$$
+ PRIVACY_LINE=$(privacy_line)
+ step "ref privacy" $? "$PRIVACY_LINE"
+ 
++if [ -n "$REUSE" ]; then
++  say skip "code-keyed steps" "PREPR_SKIP_CODE: pinned graders, self-test, wave-script"
++else
++
+ # --- 3g. every grader a pinned job runs has a local path here, or a reason,
+ # and the reader understood every pinned job (`pinned_verdict` above).
+ VERDICT=$(pinned_verdict "$PREPR_PATH" .github/workflows/*.yml)
+@@ -3988,6 +4133,7 @@ else
+   say skip "wave-script" "no change to the script, the checker, the rosters, the briefs or a pinned path"
+ fi
+ rm -f /tmp/prepr-wv.$$
++fi  # the code-keyed steps, PREPR_SKIP_CODE's second group
+ 
+ # --- 5. VERSION, the manifest and the notes heading are untouched.
+ # Versions are assigned after the merge by tools/release/stamp.py. A branch that
+@@ -4025,6 +4171,8 @@ step "claims hygiene" $? "$CLAIMS_LINE"
+ # push that only re-bodies.
+ if [ -n "${PREPR_SKIP_CLOSURES:-}" ]; then
+   say skip "closures" "PREPR_SKIP_CLOSURES is set -- closures-autofix is the only check left"
++elif [ -n "${REUSE:-}" ]; then
++  say skip "closures" "PREPR_SKIP_CODE: the receipted run covered the code; closures-autofix covers the merge"
+ else
+   closures_step "$BASE"
+   case $? in
+@@ -4039,12 +4187,15 @@ fi
+ # it, recorded by CI's recorder (SELF-TEST READS, dev/audit/rca/R10-RCA-CLOSURE-ARGV.md):
+ # seconds per such file, none on a diff that changes none.
+ UNPINNED_SITES=/tmp/prepr-unpinned.$$
++if [ -z "$REUSE" ]; then  # under PREPR_SKIP_CODE, `merged_steps` runs it on the merged tree
+ PREDICT_LINE=$(predict_line origin/main "$UNPINNED_SITES" "${1:-}" "" record)
+ case $? in
+   3) say skip "ci predict" "$PREDICT_LINE" ;;
+   0) step "ci predict" 0 "$PREDICT_LINE" ;;
+   *) step "ci predict" 1 "$PREDICT_LINE" ;;
+ esac
++fi
++merged_steps "${1:-}" "$UNPINNED_SITES"
+ if [ -s "$UNPINNED_SITES" ]; then
+   say WARN "unpinned sites" "$(grep -c . "$UNPINNED_SITES") site(s) the diff adds with no pin -- the body owes each a line under ## Unpinned sites (step 7d)"
+ fi
+@@ -4057,6 +4208,9 @@ fi
+ # nothing here refuses, and with MUTANT_CMD unset the step skips. The cap keeps
+ # the in-tree tier fast; the heavy pass (MUTANT_MAX=0, all mutants) is a cloud
+ # seat's.
++if [ -n "$REUSE" ]; then
++  say skip "code-keyed steps" "PREPR_SKIP_CODE: diff mutants, no-copies"
++else
+ if [ -z "${MUTANT_CMD:-}" ]; then
+   say skip "diff mutants" "MUTANT_CMD unset -- set it to the group's self-test or features_block.py call to mutate the diff's added lines (report only)"
+ elif [ ! -f tools/audit/seat/mutant_run.py ]; then
+@@ -4089,7 +4243,9 @@ if diff_paths "$BASE" "$COPY_PATHS"; then
+ else
+   step "no-copies" 1 "the changed-path list did not derive from $BASE...HEAD, so no-copies was not run"
+ fi
+-rm -f "$COPY_PATHS" "$PREPR_RECORDER_CACHE"
++rm -f "$COPY_PATHS"
++fi  # the code-keyed steps, PREPR_SKIP_CODE's third group
++rm -f "$PREPR_RECORDER_CACHE"
+ 
+ # --- 6e. no moved path re-added: tests.yml's fast job runs the layout guard;
+ # `moved_line` above, 0.4 to 2.1 s. It reads the index against $BASE, so it needs
+@@ -4103,6 +4259,9 @@ esac
+ 
+ # --- 6f. no raw git init/clone: governance.yml's `throwaway_git.py --check`;
+ # `throwaway_line` above. Reads the committed tree at HEAD.
++if [ -n "$REUSE" ]; then
++  say skip "code-keyed steps" "PREPR_SKIP_CODE: throwaway git, claims register"
++else
+ THROWAWAY_LINE=$(throwaway_line "$PWD")
+ case $? in
+   3) say skip "throwaway git" "$THROWAWAY_LINE" ;;
+@@ -4128,6 +4287,7 @@ else
+   esac
+ fi
+ rm -rf "$CR" "$CR.paths" "$CR.arch"
++fi  # the code-keyed steps, PREPR_SKIP_CODE's fourth group
+ 
+ # --- 7. the body, when one was passed.
+ BODY="${1:-}"
+@@ -4244,6 +4404,7 @@ if [ -n "$ORDER" ]; then
+ fi
+ 
+ rm -f "${UNPINNED_SITES:-}"
++receipt_write "$rc" "${BODY:-}"
+ echo
+ echo "PRE-PR: $(git rev-parse HEAD) $digest"
+ summary_end "$(git rev-parse HEAD)"

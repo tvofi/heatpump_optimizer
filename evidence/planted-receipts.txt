@@ -1,9 +1,0 @@
-PASS null: genuine receipt        want=REUSE got=REUSE | HEAD b91c949d is the clean merge of the receipted code 51c61b5b (tree 2153663e) and main's bc8be0b3
-PASS R1 sibling head named        want=FULL  got=FULL  | the receipted code 60500a7a is not in HEAD b91c949d
-PASS R4 forged tree (HEAD's)      want=FULL  got=FULL  | the receipt's tree 7729011a is not code 51c61b5b's tree, so the run it records was not over this code
-PASS R7 two trailers              want=FULL  got=FULL  | handoff-body/t's tip 20b4f57f carries no one `Prepr: <sha> <tree>` trailer, so no receipt
-PASS R2 head moved after receipt  want=FULL  got=FULL  | HEAD's tree is not the clean merge of code 51c61b5b and main's bc8be0b3 (git diff --name-status: A c2)
-PASS R5 evil merge                want=FULL  got=FULL  | HEAD's tree is not the clean merge of code 51c61b5b and main's bc8be0b3 (git diff --name-status: A e)
-PASS R3 rebased, old-base receipt want=FULL  got=FULL  | the receipted code 51c61b5b is not in HEAD 67d6e260
-PASS R6 off-first-parent main     want=FULL  got=FULL  | the main HEAD holds, 1a3d294d, is not on the freshly fetched origin/main's first-parent chain
-PASS R8 unbacked hand trailer     want=REUSE got=REUSE | HEAD 4d125778 is the clean merge of the receipted code 51c61b5b (tree 2153663e) and main's 76ca10b8

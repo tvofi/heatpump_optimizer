@@ -1,7 +1,4 @@
-## closure select
-  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
-## structure
-
 STRUCTURE RATCHET PASSED
-## claim/version diff (three-dot)
-(end)
+  MODE: SCOPED -- 0 script(s) run, 33 scoped out.
+claims/version untouched rc=0
+20d5aab00a01cb3bf3738e1e78a13273089bc523

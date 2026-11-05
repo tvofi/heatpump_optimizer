@@ -1,0 +1,15 @@
+RESULT: PASS NULL valid receipt, HEAD = clean merge of C and main rc=0 want=0 :: HEAD ec42ecc7 is the clean merge of the receipted code e02b890a (tree 2153663e) and main's 537cb9b8
+RESULT: PASS F1 receipt names another head D (tree correct for D, D not in HEAD) rc=1 want=1 :: the receipted code 7b6e2cfb is not in HEAD ec42ecc7
+RESULT: PASS F1b receipt sha = HEAD but tree = C's rc=1 want=1 :: the receipt's tree 2153663e is not code ec42ecc7's tree, so the run it records was not over this code
+RESULT: PASS F2 HEAD moved after the receipt (extra code commit past C+main) rc=1 want=1 :: HEAD's tree is not the clean merge of code e02b890a and main's 537cb9b8 (git diff --name-status: A late)
+RESULT: PASS F2b HEAD = (C + new code N) merged with main rc=1 want=1 :: HEAD's tree is not the clean merge of code e02b890a and main's 537cb9b8 (git diff --name-status: A n)
+RESULT: PASS F3 receipt from a different base (C on B; HEAD is the patch re-cut on main, C not in HEAD) rc=1 want=1 :: the receipted code e02b890a is not in HEAD bc8484d3
+RESULT: PASS F3b old-base sha with the new head's tree rc=1 want=1 :: the receipt's tree 7729011a is not code e02b890a's tree, so the run it records was not over this code
+RESULT: PASS F4 evil merge: clean-merging parents, merge commit edits a (tree != clean merge) rc=1 want=1 :: HEAD's tree is not the clean merge of code e02b890a and main's 537cb9b8 (git diff --name-status: M a)
+RESULT: PASS F5a trailer with a third field rc=1 want=1 :: handoff-body/t's tip f0385912 carries no one `Prepr: <sha> <tree>` trailer, so no receipt
+RESULT: PASS F5b 39-hex sha rc=1 want=1 :: handoff-body/t's tip 09c4a077 carries no one `Prepr: <sha> <tree>` trailer, so no receipt
+RESULT: PASS F5c upper-case sha rc=1 want=1 :: handoff-body/t's tip 1579d8b9 carries no one `Prepr: <sha> <tree>` trailer, so no receipt
+RESULT: PASS F6 receipt on the parent of handoff-body's tip, tip carries none rc=1 want=1 :: handoff-body/t's tip ebac7925 carries no one `Prepr: <sha> <tree>` trailer, so no receipt
+RESULT: PASS NULL2 update: HEAD = live head L (C+main) rc=0 want=0 :: HEAD 016ca347 is the clean merge of the receipted code e02b890a (tree 2153663e), the live head 016ca347 and main's 537cb9b8, plus at most its own row
+RESULT: PASS F7 row commit that also adds another file rc=1 want=1 :: HEAD's tree is not the clean merge of code e02b890a, the live head 016ca347 and main's 537cb9b8 plus dev/programme/delivery/9.md (git diff --name-status: A dev/programme/delivery/9.md;A x)
+RESULT: PASS F8 row commit for another PR's row (8.md, listing #9) rc=1 want=1 :: HEAD's tree is not the clean merge of code e02b890a, the live head 016ca347 and main's 537cb9b8 plus dev/programme/delivery/9.md (git diff --name-status: A dev/programme/delivery/8.md)
