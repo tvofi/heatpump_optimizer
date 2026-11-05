@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-05T21:21:24+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-05T21:55:09+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -9,8 +9,8 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 | roster groups closed vs takt | 0 / 1.0 | 3 / 24.0 |
 | fly-ins closed | 0 | 12 |
 | main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 17 / 1 / 0 / 12 |
-| first-pass fix-review yield | 0/0 (-) | 2/20 (0.10) |
-| blocked-class mix | none | body-stale:3, carry-missing:1, ci-cancelled:2, ci-red:8, ci-red-cancelled:1, citation-wrong:1, class-open:7, defect:1, figures-uncited:1, harness:2, mutation-vacuous:4, pr-closed:1, pr-contract-red:1, ratchet-grown:1, root-cause-detectable:1, root-cause-unrecorded:1 |
+| first-pass fix-review yield | 0/0 (-) | 2/19 (0.11) |
+| blocked-class mix | none | body-stale:3, carry-missing:1, ci-cancelled:2, ci-red:8, ci-red-cancelled:1, citation-wrong:1, class-open:7, defect:1, figures-uncited:1, harness:2, mutation-vacuous:3, pr-closed:1, pr-contract-red:1, ratchet-grown:1, root-cause-detectable:1, root-cause-unrecorded:1 |
 | lead time per size (h, n/p50/max) | none | M n=6 p50=17.70 max=93.08; S n=11 p50=13.33 max=70.37 |
 
 ### WIP by flow lane (snapshot at the window's end)
