@@ -1,0 +1,5 @@
+  ok       body path              not directly in a shared root
+  ok       merge-base             499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+  ok       transport              no commit since the merge base writes under tools/audit/handoff/ handoff/
+  REFUSE   pr-body                ERROR   [pr-body] /tmp/claude-0/rv/body/body.md: `## Head` does not name 794fe6a, which is the head this ran on. Evidence measured at another head describes another tree. Nor is it an autofix repair on a head the section names: 794fe6a is not authored and committed as github-actions[bot] <41898282+github-actions[bot]@users.noreply.github.com>. -- refused before any heavy step (P208)
+PRE-PR: 794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 001 rc=1; full log: /tmp/prepr-log.ATSYEngj (PREPR_VERBOSE=1 prints it on stdout)
