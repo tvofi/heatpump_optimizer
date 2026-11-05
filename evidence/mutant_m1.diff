@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index b337f865f..cd8ef3568 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -6029,7 +6029,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+             **dhw_bands,
+             **self._model_corrections(now),
+             **self._dhw_plan_fields(now),
+-            **_band_fields(band or _solve_band(self._accuracy.draw, ctx._thermal_params, ctx._config)),
++            **(_band_fields(band) if band else {}),
+         )
+         state = replace(
+             copy.deepcopy(ctx._current_state),

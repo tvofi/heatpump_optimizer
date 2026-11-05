@@ -177,7 +177,7 @@
   custom_components/heatpump_optimizer/optimizer.py:4712 _grid_report  ==  custom_components/heatpump_optimizer/tariff.py:843 _peak_excess
   custom_components/heatpump_optimizer/optimizer.py:4513 _optimize_space_only  ==  custom_components/heatpump_optimizer/optimizer.py:4774 _optimize_with_dhw  ==  custom_components/heatpump_optimizer/optimizer.py:3975 _solve_space
   custom_components/heatpump_optimizer/price_model.py:191 observe_day  ==  custom_components/heatpump_optimizer/price_model.py:237 observe_day_quarters
-  custom_components/heatpump_optimizer/pump_arbiter.py:448 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:373 _step_index
+  custom_components/heatpump_optimizer/pump_arbiter.py:454 _planned_room  ==  custom_components/heatpump_optimizer/pump_arbiter.py:379 _step_index
   custom_components/heatpump_optimizer/sensor.py:1913 extra_state_attributes  ==  custom_components/heatpump_optimizer/sensor.py:2409 extra_state_attributes
   custom_components/heatpump_optimizer/tariff.py:312 _close_window  ==  custom_components/heatpump_optimizer/tariff.py:407 from_dict
   custom_components/heatpump_optimizer/tariff.py:760 _smooth_topk_sum_batch  ==  custom_components/heatpump_optimizer/tariff.py:1124 peak_cost_batch
@@ -246,4 +246,3 @@ RESULT thread_factor=1.0 ratio
   ok   seam_cut_total 423 <= 423
 
 STRUCTURE RATCHET PASSED
-rc=0
