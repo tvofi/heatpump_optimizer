@@ -121,6 +121,8 @@ case "$*" in
       f="$STUB/diff/$(enc "$2")"; [ -f "$f" ] && cat "$f"; exit 0 ;;
   "-C "*" rev-parse --abbrev-ref HEAD")
       f="$STUB/branch-of/$(enc "$2")"; [ -f "$f" ] && cat "$f" || { echo "fatal: not a git repository" >&2; exit 128; } ;;
+  "-C "*" rev-parse HEAD")
+      f="$STUB/head-of/$(enc "$2")"; [ -f "$f" ] && cat "$f" || { echo "fatal: not a git repository" >&2; exit 128; } ;;
   "fetch --prune origin") [ -f "$STUB/fetchfail" ] && exit 1; exit 0 ;;
   "for-each-ref --count=1 --contains "*)
       if grep -qx "$4" "$STUB/onremote" 2>/dev/null; then echo "refs/remotes/origin/some-branch"; fi; exit 0 ;;
@@ -263,6 +265,9 @@ PY
   printf 'm\n' > "$W/sweep/orch/seat-orph-mergedwt/wt/m"
   printf 'fix/orphan-open\n' > "$W/sweep/branch-of/$(encpath "$W/sweep/orch/seat-orph-unmerged/wt")"
   printf 'fix/orphan-merged\n' > "$W/sweep/branch-of/$(encpath "$W/sweep/orch/seat-orph-mergedwt/wt")"
+  mkdir -p "$W/sweep/head-of"
+  printf '2222222222222222222222222222222222222222\n' > "$W/sweep/head-of/$(encpath "$W/sweep/orch/seat-orph-mergedwt/wt")"
+  printf '5555555555555555555555555555555555555555\n' > "$W/sweep/head-of/$(encpath "$W/sweep/orch/seat-orph-unmerged/wt")"
   # No branch-of file for seat-orph-old: unreadable git, the pruned class.
   age_old "$H3" "$W/sweep/orch/seat-orph-old" "$W/sweep/orch/seat-orph-mergedwt" "$W/sweep/orch/seat-orph-unmerged"
   # seat-orph-fresh stays at natural now: the 2h guard's null control.
@@ -307,6 +312,7 @@ PY
   [ -d "$D/orch/seat-orph-unmerged" ]; st $? 0 "orphan with an open-PR branch: kept"
   st "$(gots sweep "keep  $D/orch/seat-orph-unmerged  unmerged-branch")" 1 "kept naming unmerged-branch"
   gone "$D/orch/seat-orph-mergedwt"; st $? 0 "orphan with a merged branch: removed"
+  st "$(grep -c "^git -C $D/orch/seat-orph-mergedwt/wt update-ref --no-deref -d HEAD 2222222222222222222222222222222222222222$" "$D/log")" 1 "the orphan removal leased at the head the read gave (class C)"
   gone "$D/tmp/stale-venv"; st $? 0 "stale venv: removed"
   [ -d "$D/tmp/inuse-venv" ]; st $? 0 "venv a live worktree symlinks: kept"
   st "$(gots sweep "keep  $D/tmp/inuse-venv  venv-in-use")" 1 "kept naming venv-in-use"
@@ -370,6 +376,23 @@ PY
   [ -d "$D/orch/seat-dmoved/wt" ]; st $? 0 "the detached worktree whose HEAD moved is kept"
   st "$(grep -c "FAILED to remove worktree $D/orch/seat-dmoved/wt" "$D/err")" 1 "and the refused removal is reported"
   gone "$D/orch/seat-detached/wt"; st $? 0 "null control: the unmoved detached worktree in the same run is removed"
+
+  # An ORPHANED seat (its wt a checkout this repository does not register: a
+  # separate clone, or a worktree of another checkout) DETACHED at a merged
+  # sha, whose HEAD moves after the read: the seat's commit is held by that
+  # HEAD alone, so the rm -rf is leased at the head read (#3085 class C).
+  mkcase ocmoved; build ocmoved
+  D="$W/ocmoved"; mkdir -p "$D/live" "$D/head-of"
+  for s in seat-orph-dmoved seat-orph-dstill; do
+    mkdir -p "$D/orch/$s/wt"; printf 'HEAD\n' > "$D/branch-of/$(encpath "$D/orch/$s/wt")"
+    printf '2222222222222222222222222222222222222222\n' > "$D/head-of/$(encpath "$D/orch/$s/wt")"
+  done
+  printf 'eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee' > "$D/live/$(encpath "$D/orch/seat-orph-dmoved/wt")"
+  age_old "$H3" "$D/orch/seat-orph-dmoved" "$D/orch/seat-orph-dstill"
+  run ocmoved --keep-dir "$D/ev" o/r; st $? 0 "an orphan's detached HEAD moved after the read: rc 0 (fail-soft)"
+  [ -d "$D/orch/seat-orph-dmoved/wt" ]; st $? 0 "the orphaned seat whose HEAD moved is kept"
+  st "$(grep -c "FAILED to remove $D/orch/seat-orph-dmoved: its HEAD is no longer" "$D/err")" 1 "and the refused removal is reported"
+  gone "$D/orch/seat-orph-dstill"; st $? 0 "null control: the unmoved detached orphan in the same run is removed"
 
   # A failed fetch closes the on-remote class; an unreadable lsof keeps what it would remove.
   mkcase nofetch; build nofetch; : > "$W/nofetch/fetchfail"
@@ -792,9 +815,17 @@ if [ -d "$SEATS_REAL" ]; then
     if recently_modified "$seat_real" "$ORPHAN_AGE"; then
       printf 'keep  %s  fresh\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
     fi
-    wt_branch=""
-    if wt_branch=$(git -C "$seat_real/wt" rev-parse --abbrev-ref HEAD 2>/dev/null) \
-       && [ "$wt_branch" != "HEAD" ]; then
+    # The orphan's own HEAD, read once: the rm -rf below is leased at it, as
+    # remove_worktree's is, because a commit a seat makes after this read is
+    # held by that HEAD alone in an unregistered checkout (#3085 class C).
+    wt_branch=""; ohead=""
+    if wt_branch=$(git -C "$seat_real/wt" rev-parse --abbrev-ref HEAD 2>/dev/null); then
+      ohead=$(git -C "$seat_real/wt" rev-parse HEAD 2>/dev/null) || ohead=""
+      if [ -z "$ohead" ]; then
+        printf 'keep  %s  unreadable-head\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
+      fi
+    fi
+    if [ -n "$wt_branch" ] && [ "$wt_branch" != "HEAD" ]; then
       state=$(pr_state_of "$wt_branch")
       case "$state" in
         merged) ;;
@@ -805,8 +836,7 @@ if [ -d "$SEATS_REAL" ]; then
       fi
     elif [ "$wt_branch" = "HEAD" ]; then
       # A detached orphan goes only on a merged head whose sha still resolves.
-      ohead=$(git -C "$seat_real/wt" rev-parse HEAD 2>/dev/null) || ohead=""
-      if [ -z "$ohead" ] || ! head_is_merged_ancestor "$ohead"; then
+      if ! head_is_merged_ancestor "$ohead"; then
         printf 'keep  %s  unmerged-head\n' "$seat"; KEPT_N=$((KEPT_N+1)); continue
       fi
     fi
@@ -830,6 +860,13 @@ if [ -d "$SEATS_REAL" ]; then
         printf 'keep  %s  nondisposable-contents (%s)\n' "$seat" "$(basename "$e")"
         KEPT_N=$((KEPT_N+1)); continue 2
       done
+      # The lease: HEAD deleted at the value read, atomically; a moved HEAD
+      # refuses and the seat stays with its commit. A wt git cannot read has
+      # no HEAD to hold a commit, and goes unleased.
+      if [ -n "$ohead" ] && ! git -C "$seat_real/wt" update-ref --no-deref -d HEAD "$ohead" 2>/dev/null; then
+        printf 'worktree_gc: FAILED to remove %s: its HEAD is no longer %s, kept\n' "$seat" "$ohead" >&2
+        KEPT_N=$((KEPT_N+1)); continue
+      fi
       rm -rf "$seat_real" && printf 'removed  %s\n' "$seat" && REMOVED_N=$((REMOVED_N+1)) \
         || printf 'worktree_gc: FAILED to remove %s\n' "$seat" >&2
     fi
