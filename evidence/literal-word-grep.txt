@@ -1,2 +1,0 @@
-45:+        planted = ["api", "-X", "POST", "repos/o/r/issues/201/comments", "-f", "body=<RV>ed mandate 1234567"]
-99:+            ("gh issue comment 201", ["issue", "comment", "201", "-b", "<RV>ed 1234567"]),
