@@ -650,3 +650,21 @@ class UnpicklableResultOptimizer:
 
     def optimize(self, *, inputs):
         return UnpicklableResult()
+
+
+class SleepyOptimizer:
+    """``optimize`` runs in the child and answers only after ``seconds``.
+
+    Stands in for a worker that is alive but silent: the parent's read sees
+    no reply, no EOF and no error until the sleep ends.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        self.seconds = seconds
+
+    def optimize(self, *, inputs):
+        import os
+        import time
+
+        time.sleep(self.seconds)
+        return ("slept", os.getpid(), inputs)

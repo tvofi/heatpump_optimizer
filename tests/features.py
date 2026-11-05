@@ -41542,6 +41542,96 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+R.section("worker read timeout — a silent worker is reaped, not waited on")
+
+# ``_run_in_process`` blocked in ``pickle.load`` with no deadline while it held
+# ``_PROCESS_LOCK``. A worker that was alive but never answered (one install:
+# no completed solve for ~55 minutes, one core busy) raised nothing, so the
+# #511 fallback never fired, every later solve and reload queued on the lock,
+# and Home Assistant's stop ran into the supervisor's timeout.
+import threading as _wt_threading  # noqa: E402
+import time as _wt_time  # noqa: E402
+
+_wt_timeout_cls = getattr(_g511_coord, "ProcessWorkerTimeout", None)
+_wt_saved = (_g511_coord.PROCESS_REPLY_TIMEOUT_S, _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S)
+_g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+try:
+    _wt_pid_before = _g511_coord._run_in_process(_os.getpid, ())
+    _wt_t0 = _wt_time.monotonic()
+    _wt_err, _wt_out = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (30,))
+    _wt_elapsed = _wt_time.monotonic() - _wt_t0
+    _wt_lock_free = _g511_coord._PROCESS_LOCK.acquire(blocking=False)
+    if _wt_lock_free:
+        _g511_coord._PROCESS_LOCK.release()
+    _wt_pid_after = _g511_coord._run_in_process(_os.getpid, ())
+    R.check(
+        "a worker that gives no reply within the deadline raises ProcessWorkerTimeout",
+        _wt_timeout_cls is not None and isinstance(_wt_err, _wt_timeout_cls)
+        and _wt_out is None and _wt_elapsed < 10,
+        f"raised {_wt_err!r} after {_wt_elapsed:.1f} s; returned {_wt_out!r}",
+    )
+    R.check(
+        "and it frees the lock and the next job gets a fresh worker",
+        _wt_lock_free and _wt_pid_after not in (_wt_pid_before, _g3_parent),
+        f"lock_free={_wt_lock_free} before={_wt_pid_before} after={_wt_pid_after}",
+    )
+    # Null control: a reply inside the deadline is untouched by it.
+    _wt_ok_err, _wt_ok_out = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (0.05,))
+    _wt_ok_pid = _g511_coord._run_in_process(_os.getpid, ())
+    R.check(
+        "null control: a job that answers in time returns and keeps its worker",
+        _wt_ok_err is None and _wt_ok_out is None and _wt_ok_pid == _wt_pid_after,
+        f"raised {_wt_ok_err!r}; pid {_wt_pid_after} -> {_wt_ok_pid}",
+    )
+
+    # ``_await_optimize`` must not rerun the timed-out job in process: the
+    # same job would hold an executor thread just as long.
+    _wt_raised, _wt_plan, _wt_hass, _wt_warned = _g524_solve(_g524_harness.SleepyOptimizer(30))
+    R.check(
+        "_await_optimize keeps the last plan on a timeout: translated UpdateFailed, no in-process solve",
+        _wt_plan is None
+        and type(_wt_raised).__name__ == "UpdateFailed"
+        and getattr(_wt_raised, "translation_key", None) == "process_worker_timeout"
+        and _wt_hass.jobs == [_g511_coord._run_in_process]
+        and [i for i in _wt_hass.issues if i[1] == "solve_worker_fallback"] == [],
+        f"raised {_wt_raised!r}; returned {_wt_plan!r}; jobs={_wt_hass.jobs!r} "
+        f"issues={_wt_hass.issues!r}",
+    )
+    _wt_fast_err, _wt_fast_plan, _wt_fast_hass, _ = _g524_solve(_g524_harness.SleepyOptimizer(0.05))
+    R.check(
+        "null control: a solve inside the deadline returns its plan through the worker",
+        _wt_fast_err is None and isinstance(_wt_fast_plan, tuple)
+        and _wt_fast_plan[0] == "slept" and _wt_fast_plan[1] != _g3_parent
+        and _wt_fast_hass.jobs == [_g511_coord._run_in_process],
+        f"raised {_wt_fast_err!r}; returned {_wt_fast_plan!r}",
+    )
+
+    # The stop path: a lock held past the kill must not hold the stop.
+    _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S = 0.2
+    _g511_coord._run_in_process(_os.getpid, ())
+    _wt_release = _wt_threading.Event()
+
+    def _wt_hold() -> None:
+        with _g511_coord._PROCESS_LOCK:
+            _wt_release.wait(10)
+
+    _wt_holder = _wt_threading.Thread(target=_wt_hold, daemon=True)
+    _wt_holder.start()
+    _wt_time.sleep(0.05)
+    _wt_t1 = _wt_time.monotonic()
+    _g511_coord._shutdown_process_pool()
+    _wt_stop_s = _wt_time.monotonic() - _wt_t1
+    _wt_release.set()
+    _wt_holder.join(5)
+    R.check(
+        "the stop path returns within its lock timeout while the lock is held",
+        _wt_stop_s < 3,
+        f"_shutdown_process_pool took {_wt_stop_s:.2f} s with the lock held",
+    )
+finally:
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S, _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S = _wt_saved
+
+# ---------------------------------------------------------------------------
 R.section("#525 — nothing blocking runs on Home Assistant's event loop")
 
 import subprocess as _g525_subprocess  # noqa: E402

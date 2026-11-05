@@ -469,6 +469,9 @@
     "set_thermal_params_invalid_dhw_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
     },
+    "process_worker_timeout": {
+      "message": "The optimization worker gave no answer within {minutes} minutes and was restarted; the last plan stays in effect"
+    },
     "process_worker_unusable": {
       "message": "The optimization worker failed for {cycles} consecutive cycles; the last plan stays in effect"
     },
