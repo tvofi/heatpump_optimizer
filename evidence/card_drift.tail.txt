@@ -1,0 +1,60 @@
+        @@ -76,15 +76,15 @@
+                     <SPAN class="sb-val" classes=["sb-val"]>
+                       text="75/100"
+                   <DIV class="sb-text" classes=["sb-text"]>
+        -            text="Machine: the heat pump's observed efficiency against its own baseline. Low points at the pump drawing more electricity than its history says it should — see the COP health diagnostics."
+        -        <DIV class="sb-row" data-part="operation" classes=["sb-row"] dataset={part:"operation"}>
+        +            text="Heat pump: the measured COP — heat delivered per kWh of electricity — in each 3 °C outdoor band, against the pump's own history in that band. 100 is matching its history; each point below is a lasting COP shortfall (see the COP health diagnostics). A band is watched once it holds 20 samples; no grade yet means no band does — not a zero."
+        +        <DIV class="sb-row" data-part="operation" title="Driving: — No evidence yet — not a zero.\nDriving: whether the plan buys at the cheap hours. Each day's energy is priced against that day's flat mean spot price — buying 20% below flat scores 100, at or above flat scores 0 — and the grade averages recent days. No grade means no priced day scored yet — not a zero." classes=["sb-row"] dataset={part:"operation"}>
+                   <DIV class="sb-head" classes=["sb-head"]>
+                     <SPAN class="sb-name" classes=["sb-name"]>
+                       text="Driving"
+                     <SPAN class="sb-na" classes=["sb-na"]>
+                       text="— No evidence yet — not a zero."
+                   <DIV class="sb-text" classes=["sb-text"]>
+        -            text="Driving: whether the plan buys at the cheap hours. Yesterday's energy replayed against the day's flat average price — buying 20% below flat scores 100, buying at or above flat scores 0."
+        +            text="Driving: whether the plan buys at the cheap hours. Each day's energy is priced against that day's flat mean spot price — buying 20% below flat scores 100, at or above flat scores 0 — and the grade averages recent days. No grade means no priced day scored yet — not a zero."
+               <UL class="hl-narrative" classes=["hl-narrative"]>
+                 <LI class="nl" classes=["nl"]>
+                   <SPAN class="nl-text" classes=["nl-text"]>
+        
+  identical  expanded_plan
+  identical  what_if_off
+  identical  expanded_zoomed
+  identical  draft_dirty_menu_open
+  identical  draft_mid_drag
+  identical  whatif_edited
+  identical  whatif_weekly
+  identical  override_active
+  identical  shared_steps
+  identical  shared_steps_hover
+  identical  tooltip_hover
+  identical  coarse_pointer
+  identical  reduced_motion
+  identical  setup_single_buffer
+  identical  setup_two_tank
+  identical  setup_coil
+  identical  advisor_page
+  identical  savings_page
+  identical  savings_empty
+  identical  health_page
+  identical  setup_not_published
+  identical  advisor_empty
+  identical  layout_editing_dragged
+  identical  layout_editing_tidy
+  identical  picker_open_filtered
+  identical  wood_alert
+  identical  wood_lane
+  identical  wood_whatif
+  identical  away_toggle
+  identical  away_return
+  identical  away_status
+  identical  editor_schema
+  identical  history_panned
+  identical  history_deep_panned
+  identical  history_no_power
+  identical  history_unavailable
+  identical  history_pending
+
+card_drift: 1 state(s) moved and claimed, 44 identical
+EXIT 0
