@@ -1,55 +1,80 @@
-Fix review: blocked 6dcd1abb85eca7b53bfe390c5b934907f38419f8 ratchet-grown: tests/typing errors 0 -> 2 type-arg, LedgerStore subclasses the generic QuarantiningStore without its type argument (store.py:825, coordinator.py:3630), a concluded red the body does not name
+Fix review: merge 1d114ed62a582faeb04211104ebb118ec30bd6c9
 
-bus-nonce: 222623eb98d8e27e338e5020ccfd4666
+bus-nonce: dc878c5b1636c3c9e7d88bee4994a75f
 
-First-round fix review of R10-HOTFIX-SAV-ESTIMATE (#3220), from detached worktrees at head 6dcd1abb8 and at merge base 2a9cd3476 (plus origin/main 499162c89 and the authored code head a9f8cb2b5). Role contract read from origin/main; `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+## Scope
 
-## Block
-
-`tests / typing` (check run 126999196966) concluded **failure** at this head: `FAIL errors did not grow [recorded 0, measured 2 (+2)]`, `FAIL by_code[type-arg] did not grow [recorded 0, measured 2 (+2)]`, by module `coordinator.py 1`, `store.py 1` (ev/ci-typing-126999196966.txt). The diff is the cause: `store.py:825 class LedgerStore(QuarantiningStore):` subclasses `QuarantiningStore(Store[_StorePayload])` bare, and `coordinator.py:3630` annotates `LedgerStore[dict[str, Any]]`. A ratchet may only move down (CLAUDE.md rule 2), and the body's `## Red checks` names only `mutation`. Repair is one line (`class LedgerStore(QuarantiningStore[_StorePayload])`, or annotate the attribute without a subscript); the cheaper detector is `.venv-typing/bin/python tests/typing_ruler.py --mypy`, which the body does not list among its local runs.
-
-The body check agrees. `pr-contract` ran at 03:24Z and at 03:44Z, both after the last red concluded, and refuses (`PR-BODY: 3 error(s)`, ev/ci-pr-contract-127033654118.txt). `tests / mutation`, `tests / mutation-autofix` and `tests / typing` are each red and not named in `## Red checks`. `tests / mutation` is answered in substance under the short name `mutation`. `tests / mutation-autofix` is the pin lane that pushed 481153bd6 and owes the `ci-autofix.md` naming. `tests / typing` is unanswered, and a cheaper detector exists for it (`root-cause-detectable: tests / typing`). `merge_train.py classify 6dcd1abb8 --pr 3220` exits 1: `RED 6dcd1abb85eca7b53bfe390c5b934907f38419f8 pending: none red: gate` (ev/classify.txt). The `gate` run's own line is `FAIL run(s) [41951546118] at this head are still being judged; their gate decides` (ev/ci-gate-127028354892.txt).
-
-Everything else the brief asked me to judge holds, apart from the findings below. The substance of the fix is sound and matches the owner's rulings. A re-cut is not owed: this is round 1.
-
-## Findings
-
-- The zero floor placed at the wrong spot survives `tests/features.py`. Mutant `floorlate`: `required_thermal = (_thermostat_demand(...))` with no floor in the loop, plus `return np.maximum(baseline_power, 0.0), state` at the return. It reads 2 of 4814 failed, the same two as the null control (`recorded_at` from the archive copy, and R9-F2.1 P3 below). Its numbers are wrong, though. On a plain 1-zone house on a swinging day the reference books 3.4584 kWh against the head's 0.3165 (ev/floor_probe-*.txt). On a warm day it books 0 kWh but simulates negative power, so the horizon ends at a room of 21.447 C against the head's 22.721 C, and that end state is what `_settle_horizon` settles. The pin `a thermostat on a warm plain house buys no heat and sells none: not one reference step is negative` reads only the output's sign. It needs a companion on the reference's end state, or its energy against the floored simulation. Carry: R10-HOTFIX-SAV-ESTIMATE
-- R9-F2.1 P3 (`the half-price continuation buys a strictly better storage plan than the same solve without it`, tests/features.py:62706) is now host-dependent because of this diff. This host is Linux x86_64, Python 3.14.7, numpy 2.5.4 with scipy-openblas 0.3.34, and OPENBLAS_NUM_THREADS=1 makes no difference. Here the base passes (j_plain 109.578998 against 109.589887, gain +0.010889) and so does origin/main 499162c89 (the same figures). The code head a9f8cb2b5 and the PR head both fail: 108.992821 against 108.992821, gain +0.000000. CI's `tests / fast (3.14)` passes it with j_plain 108.958453 against 108.992821, gain +0.034369. The new valved reference seeds the starts so that the continuation's basin is reached on one kernel class and not on another. The plan's objective improved at both ends (about 108.99 against 109.58), so this is a pin that lost its margin, not a worse plan. The body's `## Figures` host-reds list does not include it. Re-pin the continuation on a case where its gain is not a cliff for the new seeds, or record it as a may-drift with the owner. Carry: R10-HOTFIX-SAV-ESTIMATE
-- `migrate_ledger_v1` stamps every month a v1 store holds as the old basis, including a month that has no `savings_baseline` yet. If that month books its first savings after the upgrade, `add_savings_settlement`'s `setdefault` keeps the old stamp, and the month shows a dash although it was booked entirely on the new reference. It fails safe, since it states no saving rather than a wrong one, and it only reaches a month that holds lines but no savings at upgrade time. Stamp only months holding `savings_baseline`. Carry: R10-HOTFIX-SAV-ESTIMATE
-- The review packet refuses `red-unanswered: concluded red check \`tests / mutation\` is not named in ## Red checks`. The body names it as `mutation`, and its answer (ADDED UNPINNED sites, which `mutation-autofix` pins; detector `prepr.sh` 6d) matches the lane's log, which shows 27 `ADDED UNPINNED` lines and no survivor. Name it by its check-run name so the packet reads it. Carry: R10-HOTFIX-SAV-ESTIMATE
+Round 2 (delta round) of the fix review of #3220, R10-HOTFIX-SAV-ESTIMATE. Reviewed head 1d114ed62a582faeb04211104ebb118ec30bd6c9, from a detached worktree at that SHA. Previous verdict blocked 6dcd1abb85eca7b53bfe390c5b934907f38419f8 (ratchet-grown, typing). `review_carry.py 6dcd1abb8 1d114ed62` prints FRESH-REVIEW, because the branch's own commits e76b0d7dc, bf628b2ec, 539995fa5 and 70f0c46f5 change its content. So this round re-reviews those four and re-takes the measurements the brief names. The roles diff from merge base to origin/main touches only `standing-dispatch.md`, so this contract is current.
 
 ## Evidence
 
-- Head measured: 6dcd1abb85eca7b53bfe390c5b934907f38419f8 (ev/HEAD.txt). The body's head paragraph names it, along with the code head a9f8cb2b5 and the main merge 62c40213c.
-- Finder's harness (RCA seat, `handoff/r10-rca-sav-estimate` d8eeae8f, `dev/audit/harnesses/r10_rca_sav_estimate.py`, sha1 04b644563c84d26378cad42a603dc050e7e5fd88, verified), `census`. At the base: `single 1.00 ok`, `unvalved 0.92 ok`, `valve-at-curve 0.00 OUT OF BAND`, `valve-charged 0.00 OUT OF BAND`, `wood-warm 0.00 OUT OF BAND`, `wood-hot 0.00 OUT OF BAND`, 4 out of band, rc 1. At the head: 6 of 6 in BAND (0.5, 1.5), booked over horizon mean 1.00 on five cells and 0.92 on `unvalved`, rc 0. This matches the body. `blind` at the base reads valve-charged step 0 = 0.0 (SOUND by the old metric, which is the blind spot); at the head it reads 1.251. The `ledger` and `attrib` arms need the owner's export, which this host does not have, so the body's 3.30 / 0.72 / 0.18 and 0.00 to 1.00 ratios were not re-derived. (ev/finder-*.txt)
-- Owner's rulings, checked with my own probes (disclosed as mine; ev/wood_probe.py, ev/ledger_probe.py):
-  - No-wood reference. On a valved 2-zone wood house, an unvalved 2-zone and a 1-zone house, the reference's kWh is identical with the wood tank unread, at 20 C or at 80 C, and with a 5 kW fire or none (dkWh +0.000 in all 18 cells). At the base the same probe moves it by up to the whole reference (-25.2, -35.3 and -25.3 kWh with a fire; -11.3 kWh with an 80 C tank, valved). Hot water: the diff removes the coil from `_baseline_dhw_economics` and `coil_draws` from `_compute_baseline_power`. Actuals stay metered, because the plan's side is untouched.
-  - Disclaimer: the card string reads "The saving includes heat from wood. Firewood's cost is not counted.", shown when `wood_fuel.show_whatif`, which is `wood_furnace_on(config)`, the same predicate the ledger's `wood_configured` uses. There is no firewood subtraction and no wood line.
-  - Old basis: a v1 document holding Sep, Oct and Nov rows migrates with every line byte-equal. Each row shows `savings_sek None`, `savings_pct None`, `old_basis True`, with both columns standing (120/44, 40/44, 8/44), wood or not. November stays old after a new booking.
-  - Unclipped: December on the new basis reads saving -6.0 and pct -600.0.
-  - Calibration floor (option A): meter/plan 1.0, 0.5 and 0.25 read 50 / 75 / 87.5 % with wood and 50 / 50 / 50 % without. An under-reading model (1.5) is corrected on both houses, with calibration 1.5 published. This matches the body.
-  - Notifier: `saving_old_basis` and `saving_includes_wood` are added, the latter from `wood_fuel.show_whatif`.
-  - Positive wood-arm rows (+7.5 to +87 %) are the ruling, not a defect: the reference has no wood, so wood's heat is the saving and the disclaimer says so.
-- Mutants of my own, each on a `git archive` copy of the head, full `tests/features.py`, against a null control (comment-only change). The null reads 2 of 4814 failed: `recorded_at = 'unknown'` (no .git in an archive) and R9-F2.1 P3 (host, above). Results beyond the null:
-  - `_wood_covered_share` return 0.0: killed (`a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers`).
-  - `_wood_covered_share` return 1.0: killed by the same check.
-  - Zero floor deleted: killed (`a thermostat on a warm plain house buys no heat and sells none`, `a summer house holding passive warmth reads its hot-water saving, not a loss`). `tests/stress.py` also fails 5 sweep invariants and 2 edge conditions that the null passes.
-  - Floor moved to the return: SURVIVES; see Findings.
-  - Calibration floor removed: killed (`with wood configured a meter under the plan earns its saving`, `... a model that under-reads the meter is still corrected`).
-  - Calibration floor as `min(1.0, ...)`: killed by the same two checks.
-  - Seeds left unscaled (`seed_power = baseline_power * (1.0 - 0.0 * _wood_covered_share(...))`): survives `tests/features.py` (2 of 4814, the null's two), as the body states. Its pin is the stress solver-work channel, which cannot be read on an archive copy (next line). Since the function's unit check kills return 0 and return 1, the share's value is pinned; only its use at the call site rests on CI's stress.
-  - `tests/stress.py`'s solver-work channel cannot judge on an archive copy (no baseline ref resolves: `0 of 54 scenarios are judged`), so the seed-scaling mutant's cost claim (3.99x) was not re-derived here. It is left to CI's stress, as the body says.
-- Full suites at the head on this host: `tests/entities.py` ran to completion, ALL 2616 ENTITY CHECKS PASSED, rc 0 (the body could not finish it on macOS). `tests/features.py` read 1 of 4814 FEATURE CHECKS FAILED, rc 1, the only failure being R9-F2.1 P3 (Findings). CI's `tests / fast (3.14)` ran `MODE: SCOPED -- 30 script(s) run, 3 scoped out` with features.py ok in 345 s.
-- Golden: `env_drift.py --all 2a9cd3476` gives `NO UNCLAIMED DRIFT: 56 scenario(s)`, `NO STALE FIXTURE`, rc 0. All 9 claims move, each in its claimed direction: valve_storage 129.695 to 129.189 DOWN; smart_write DOWN; small_tank 128.078 to 126.962 DOWN; flat_prices 102.374 to 105.998 UP; low_target 111.103 to 115.889 UP; direct_slab 126.782 to 129.925 UP; wood_coil 129.566 to 144.020 UP; wood_two_tank and its smart_write twin 120.254 to 129.189 UP. `claims-for: 7.1.1` equals VERSION 7.1.1. The card claim file is untouched. The 6 suspended may-drift entries are restated verbatim in comments. (ev/env_drift_all.txt)
-- VERSION, the manifest and RELEASE_NOTES.md are untouched by the diff (`git diff 499162c89 6dcd1abb8 --stat` lists none).
-- Merge: `git merge-tree --write-tree origin/main 6dcd1abb8` gives rc 0 (tree 4bfa69034) at origin/main 499162c89. Against #3195 (c383169a5) there is a CONFLICT in `custom_components/heatpump_optimizer/ledger.py` only, with no claim-file conflict, as the body says. (ev/merge-tree*.txt)
-- Structure: `tests/structure.py` reports STRUCTURE RATCHET PASSED at the head, with `class_excess_loc` 17602, re-recorded down.
-- Forward-carry: both R10-SAV-COMFORT items (476710bb, 0497bde5) and the R10-FLY-REPLAY-MASK item (31ee5e06) are on `handoff/audit-r10-roster` 386f291d8 in `wave-r10-groups.json`. The two R10-SAV-COMFORT entries state the measurement but no control as a precondition; that is noted, not blocked, because both are open measure-first items.
-- CI on 6dcd1abb8, as concluded:
-  - Red, this PR's: `tests / mutation` (ADDED UNPINNED only, 27 sites, no survivor; answered in substance), `tests / typing` (the Block), `tests / mutation-autofix`, `pr-contract` (twice), `gate`.
-  - Red, not this PR's: `governance / delivery-status` OVERDUE flags other rows (#3206 among them), and `tests / nightly-status`. This diff only adds its own row.
-  - Green: `tests / fast (3.14)`, `tests / closure-scope`, `arch-score`, `budget-raise-gate`, `env-matrix`, `policy-docs`, `briefs`, `hassfest`, `validate-hacs`.
-  - `merge_train.py classify` exits 1 (RED, gate).
-- Head move: `refs/pull/3220/head` is now 481153bd6, one commit by `github-actions[bot]` ("ci: pin killed mutants", 16 new ledger files). `review_carry.py 6dcd1abb8 481153bd6` prints `CARRY` (ev/review_carry.txt). The patch reviewed is the PR's patch, so this is not head-moved, and the block attaches to it either way.
-- Not re-derived: the body's harness figures from `r10_sav_wood_reference.py` (valve-flat +4.12 %, valve-vary +28.75 %, wood arms) and the 3.99x seed cost; archscore dS +0.0000.
+- RESULT typing: `.venv-typing` built from `tests/requirements-typing.txt` with `--require-hashes --no-deps`, the way `tests.yml` builds it. `tests/typing_ruler.py --mypy` at the head gives `ALL 9 typing-ruler checks PASSED`, rc 0, 0 errors (ev/typing_head.log). Null control: the head with `class LedgerStore(QuarantiningStore):` (the line before e76b0d7dc) gives `FAIL errors did not grow [recorded 0, measured 2 (+2)]` and `FAIL by_code[type-arg] did not grow [recorded 0, measured 2 (+2)]`, rc 1 (ev/typing_null.log). The block is repaired. `tests/typing_budgets.json` is untouched.
+- RESULT features: `PYTHONPATH=tests/hastub python3 tests/features.py` ran in full at the head and printed `ALL 4832 FEATURE CHECKS PASSED`, rc 0 (ev/features_head.log, OPENBLAS_CORETYPE=Haswell).
+- RESULT entities: `PYTHONPATH=tests/hastub python3 tests/entities.py` ran in full at the head and printed `ALL 2622 ENTITY CHECKS PASSED`, rc 0 (ev/entities_head.log). Both were runnable on this Linux host, so nothing was skipped.
+- RESULT census (the finder's harness, `dev/audit/harnesses/r10_rca_sav_estimate.py`, sha1 04b644563c84d26378cad42a603dc050e7e5fd88, identical at d8eeae8f8, the merge base and the head):
+  - At merge base 6125b263d: single 1.00, unvalved 0.92, valve-at-curve 0.00, valve-charged 0.00, wood-warm 0.00, wood-hot 0.00. That is `6 of 6 cells ran, 4 out of band`, rc 1.
+  - At the head: 1.00, 0.92, 1.00, 1.00, 1.00, 1.00. That is `6 of 6 cells ran, 0 out of band`, rc 0 (ev/census_base.log, ev/census_wt.log).
+  - The null cells (single, unvalved) are in band at both ends. Booked over horizon mean is 1.00 on five cells and 0.92 on unvalved, as the body says.
+  - The `ledger` and `attrib` arms need the owner's export, which this host does not have, so they were not run.
+- RESULT mutants: each mutant ran the full `tests/features.py` on a copy of the head tree (ev/make.py, ev/run.sh, ev/mutants_features.txt). The copies have no `.git`, so the null copy (a comment-only change) fails exactly one check, `and the path that proceeds still stamps a resolvable recorded_at (#363)`. That failure is discounted in every row below.
+  - `null`: only that recorded_at check fails. The null is clean.
+  - `wood0` (`_wood_covered_share` returns 0): KILLED by `a wood tank's usable heat, at the pump's COP, is the share of the solve's starts it covers ...`, which reads `(0.0, 0.0, 0.0, 0.0, 0.0, 0.0)`.
+  - `wood1` (it returns 1): KILLED by the same check, which reads `(1.0, 1.0, 1.0, 0.0, 0.0, 0.0)`.
+  - `floordel` (the `max(0.0, ...)` on `required_thermal` is deleted): KILLED by `a thermostat on a warm plain house buys no heat and sells none: not one reference step is negative` (min -0.679) and by `a summer house holding passive warmth reads its hot-water saving, not a loss`.
+  - `floorlate` (no demand floor, `np.maximum(baseline_power, 0.0)` at the return): KILLED by `a thermostat's end state is the house its booked power heats: a replay of the kW lands on it, warm day and swinging day`. The gaps are room/slab 3.473/6.074 C on the warm day and 0.294/0.516 C on the swinging day, the body's figures exactly. The head passes this check with gap 0.
+  - `floorpower` (no demand floor, the floor put on the booked step `baseline_power[i] = max(0.0, power)` while the negative power is still simulated): KILLED by the replay check and by `two-zone: a valved reference costs the unvalved one plus the tank's loss`.
+  - `migguard` (the `"savings_baseline" in lines` condition dropped from `migrate_ledger_v1`): KILLED by `a v1 month with no savings booked at the upgrade books its first saving on the new reference`.
+  - No mutant of mine survived.
+- RESULT P3: at the head, in the suite, `RESULT f21_p3_two_zone=1 j_plain=107.039134 j_continuation_off=107.903727 continuation_gain=+0.864593`. This equals the body under Haswell.
+  - The body's other kernel classes (Sandybridge, Prescott, SkylakeX) were not re-derived on this host. CI's `tests / fast` on the head is the SkylakeX-class evidence.
+  - 539995fa5 moves the pin's tank start from 30 to 35 C and keeps its claim, a strictly positive gain. The comment states why. No golden fixture is touched.
+- RESULT figures (`dev/audit/harnesses/r10_sav_wood_reference.py`, the fixer's harness, sha1 0f98bbb397a62d65a07448e934e0e100e49359da, at the head; ev/wood_reference_head.log):
+  - `first: SOUND`
+  - `valve-flat: SOUND`, pct +4.18, residual -3.90 %
+  - `valve-vary: SOUND`, pct +28.50, residual -8.02 %
+  - wood-cold: pct 7.47, plan 66.89, residual -3.22 %
+  - wood-full: pct 87.88, plan 8.76, residual +88.64 %
+  - wood-unforeseen: pct 49.10, plan 40.63, calibration 1.0
+  - Each equals the body.
+  - wood-stale, wood-coast and wood-fire were not re-run, so their body figures are quoted, not verified.
+  - The three-row calibration check (50 / 75 / 87.5 % with wood, 50 / 50 / 50 % without) was not re-derived as numbers here. Its mechanism is pinned by the calibration checks, which pass at the head, and round 1's reviewer killed its floor mutant.
+- RESULT structure: `python3 tests/structure.py` at the head prints `STRUCTURE RATCHET PASSED` (ev/structure_head.log). The only budget move in the three-dot diff is `class_excess_loc` 17618 -> 17590, downward, plus `recorded_at`. No raise.
+- RESULT merge: `git merge-tree --write-tree origin/main 1d114ed62` against origin/main 6777ec333 exits 0 with tree 3ecb430eaac77c02e38ce39dce227eac047bfe0e. There is no conflict and no claim-driver marker, so #3195's overlap does not conflict at this main.
+- RESULT version: the three-dot diff touches none of `VERSION`, `manifest.json` or `RELEASE_NOTES.md`. `VERSION` is 7.1.1, and `claims-for: 7.1.1` in both claim files.
+- RESULT claims:
+  - The three-dot diff changes `tests/golden/claimed_drift.txt` only. It adds 9 R10-HOTFIX-SAV-ESTIMATE claims (the valve_storage family, valve_upper_direct_slab, wood_coil, wood_two_tank and its smart_write) and suspends their may-drift lines as comments. So no fixture is both claimed and may-drift.
+  - `card_claimed_drift.txt` is unchanged.
+  - This round's commits touch no `tests/golden/` file.
+  - `env_drift.py --all` was not re-run by me. The fixer's gate at 893f4940d reads `NO UNCLAIMED DRIFT` and `NO STALE FIXTURE`, and CI's gate at the head decides.
+- RESULT migration (bf628b2ec): every writer of `savings_baseline` is `add_savings_settlement` (ledger.py:296-306), which stamps a month's REFERENCE_BASIS on its first savings booking (ledger.py:292-293). `savings_months` skips a month with no `savings_baseline` (ledger.py:443). So stamping only months that hold `savings_baseline` loses no old-basis month. A month booked on v1 keeps the dash, and its totals are not rewritten.
+- RESULT owner's rulings (judged on the diff and the passing pins, not re-litigated from round 1):
+  - The no-wood reference is checked in the space and the hot-water reference (`the reference has no wood ...`, `the reference's hot water has no refill coil ...`).
+  - The disclaimer has no firewood line.
+  - The old-basis dash is pinned (`a v1 ledger migrates to v2 ...`, and the new unbooked-month check).
+  - The option-A calibration floor applies only when wood is configured (`if wood_configured and calibration is not None`, pinned by the mutation-ledger records).
+  - The percent is unclipped (`savings_pct` returns the raw ratio).
+  - Positive rows on the wood arms are wood's heat under the owner's no-wood-reference ruling, not a defect. Actuals stay metered.
+- RESULT scope note: the replay check runs an unvalved house. Behind a valve, `_apportion_by_steady_demand` respreads the booked kW by design, so a replay could not land there. On the valved path, the floor's place is held by `two-zone: a valved reference costs the unvalved one plus the tank's loss`, which killed `floorpower`. This is a limit of the pin's domain, not a gap.
+- RESULT head: the PR body's `## Head` names 1d114ed62a582faeb04211104ebb118ec30bd6c9, the head I measured.
+- RESULT forward-carry: on `origin/handoff/audit-r10-roster` (cfe7c09), R10-SAV-COMFORT's carry holds the body's two items "From PR 3220": the residual -3.90 % / -8.02 %, and `_apportion_by_steady_demand` with no pump cap, 4.98 of 6.0 kW. R10-FLY-REPLAY-MASK holds the empty-replay item 31ee5e06. `carry_audit` at the head: 3 routed, 0 unrouted.
+- RESULT CI at 1d114ed62: `merge_train.py classify 1d114ed62... --pr 3220` exited 1, `RED ... pending: none red: gate`.
+  - The run at this head, 41979321879 (CI code, merge ref 196a0f5b), was cancelled at 08:28 UTC. That happened when the orchestrator pushed 6f8dfe831, a merge of origin/main 79f765e6b with no branch-only non-merge commit; `review_carry.py 1d114ed62 6f8dfe831` prints CARRY. So `gate` and `mutation-autofix` were cancelled, `mutation-pins (3)` was cancelled, and `pr-contract` was skipped. CI on this head never concluded, and it cannot now.
+  - Jobs at this head (ev/ci_jobs_1d114ed6_run41979321879.txt):
+    - Success: `tests / typing` (the round-1 block, now green), `tests / fast (3.14)` (the SkylakeX-class runner that was red in round 1, now green), coverage, browser, closures, arch-instrument, lane-proofs, graders-head-copy, coverage-ratchet, mutation-pins 1, 2 and 4, arch-score, budget-raise-gate, policy-docs, instrument-self-tests and env-matrix.
+    - `tests / mutation`: red with `MUTATION TABLE REFUSED -- 3111 unpinned site(s) against 3097 ... 16 of them added by this diff`. These are exactly the 16 sites in the body's `## Unpinned sites`, which `mutation-autofix` pins (`ci-autofix.md`). The body names this red, and the pin lane was cancelled before it ran.
+    - `tests / replay`: red, `4 of 186 replay checks FAILED`. All four are `synthetic-dhw-only.json: cycle_cost` and its three doubled arms, `runner class unknown: ref_ms 37.8 lies in no band of COST_RUNNER_CLASSES`. The body answers the same red at c3992a14 (ref_ms 22) as a runner the class table does not cover. This diff touches neither the table nor the reference benchmark. Every other replay invariant passes.
+    - `governance / delivery-status` and `tests / nightly-status`: red, and named in the body as inherited.
+  - Under step 11, the `pr-contract` run that checks the body after the last red never started on this head. So I have not verified that the reds are answered by the pr-contract run; I verified it only from the body text.
+  - The move to 6f8dfe831, checked under steps 12 and 13: `git merge-tree --write-tree 79f765e6b 1d114ed62` exits 0. The claim and ledger drivers print `LEDGER-MERGE: resolved tests/structure_budgets.json` (class_excess_loc 17618 + both deltas = 17589) and `LEDGER-MERGE: resolved tests/closures.json`. They print no `refused` marker. The resulting tree a82ee2b40 is identical to 6f8dfe831's tree (`git diff --stat` empty; ev/mergetree_79f765e.txt). So the move adds no resolution of its own, and the reviewed patch is unchanged.
+  - This `merge` verdict asserts the patch reviewed at 1d114ed62. It does not assert a green CI there. A red CI never carries, so the train must see a concluded green at the carry target 6f8dfe831 (run 41994531832, in progress when this verdict was written).
+
+- RESULT self-audit: `carry_audit.py check` was run with this verdict as the comment, and the body side was taken from the packet's own run at the head (3 routed, 0 unrouted). It printed `CARRY-AUDIT: 0 finding item(s)`, rc 0.
+
+## Findings
+
+none
+
+## Friction
+
+- The frugal-routing hook capped inline read-only searches at 5 per prompt. I delegated two locate batches to a scout instead of overriding it. No result depended on the scout's judgement, and every figure above is from my own runs.
+- The CI waiter was stopped once by the 30-minute background limit and was re-armed.

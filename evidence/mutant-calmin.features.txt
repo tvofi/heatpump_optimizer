@@ -1,6 +1,0 @@
-  FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
-  FAIL with wood configured a meter under the plan earns its saving: the calibration does not cancel it  [{1.0: 50.0, 0.5: 50.0, 0.25: 50.0}]
-  FAIL with wood configured a model that under-reads the meter is still corrected, and the row publishes what it applied  [{'month': '2026-02', 'baseline_sek': 48.0, 'actual_sek': 36.0, 'savings_sek': 12.0, 'savings_pct': 25.0, 'old_basis': False, 'estimated': False, 'meter_calibration': 1.0}]
-  FAIL R9-F2.1 P3: the half-price continuation buys a strictly better storage plan than the same solve without it  [shipped 108.9928 against 108.9928 with the multi-start's continuation removed -- a gain of +0.0000, against a bound of 0: the gain is a cliff, so a continuation that does not reach the basin ships this second plan bit-identically]
-4 of 4814 FEATURE CHECKS FAILED
-rc=1

@@ -1,3 +1,0 @@
-RESULT floor plain-1z warm: kWh 0.0000 min 0.0000 end room 22.721
-RESULT floor plain-2z warm: kWh 0.0997 min 0.0037 end room 22.776
-RESULT floor plain-1z swing: kWh 0.3165 min 0.0000 end room 21.178

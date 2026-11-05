@@ -1,0 +1,33 @@
+### first
+first: SOUND
+rc=0
+### valve-flat
+  row: baseline 173.48 actual 166.22 saved 7.26 pct 4.184920451925294
+  calibration 1.0; uncalibrated baseline 173.48, pct 4.18
+  residual: reference less comfort, plus stored, 133.31 kWh against plan 138.52: -3.90 %
+  flat: pct 4.184920451925294, residual -3.90 % (rule: flat |pct| < 10.0; vary pct above flat by the timing saving, printed)
+valve-flat: SOUND
+rc=0
+### valve-vary
+  row: baseline 209.73 actual 149.95 saved 59.78 pct 28.503313784389455
+  calibration 1.0; uncalibrated baseline 209.73, pct 28.50
+  residual: reference less comfort, plus stored, 130.33 kWh against plan 140.78: -8.02 %
+  winter_typical: pct 28.503313784389455, residual -8.02 % (rule: flat |pct| < 10.0; vary pct above flat by the timing saving, printed)
+valve-vary: SOUND
+rc=0
+### --quick wood-cold
+  row: baseline 86.74 actual 80.26 saved 6.48 pct 7.470601798478212
+  calibration 1.0; uncalibrated baseline 86.74, pct 7.47
+  residual: reference less comfort, plus stored, 64.80 kWh against plan 66.89: -3.22 %
+rc=0
+### --quick wood-full
+  row: baseline 86.74 actual 10.51 saved 76.23 pct 87.88332949043118
+  calibration 1.0; uncalibrated baseline 86.74, pct 87.88
+  residual: reference less comfort, plus stored, 77.09 kWh against plan 8.76: +88.64 %
+rc=0
+### --quick wood-unforeseen
+  row: baseline 86.74 actual 44.15 saved 42.59 pct 49.10076089462763
+  calibration 1.0; uncalibrated baseline 86.74, pct 49.10
+  residual: reference less comfort, plus stored, 60.89 kWh against plan 40.63: +33.28 %
+rc=0
+0f98bbb397a62d65a07448e934e0e100e49359da  dev/audit/harnesses/r10_sav_wood_reference.py

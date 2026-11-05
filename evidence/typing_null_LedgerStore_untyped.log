@@ -1,3 +1,4 @@
+
 === typing ruler (mypy 2.4.1, homeassistant-stubs 2026.9.3, stub-free) ===
   ok   every recorded typing count is a finite non-negative integer
   ok   interpreter is at least Python 3.14.2
@@ -8,8 +9,6 @@
   ok   mypy exited 0 or 1 (clean, or errors found)
   ok   production-only by construction: every error line is under custom_components/heatpump_optimizer/
 
-measurement written to /home/runner/work/_temp/typing-census.json
-
 ########## errors by module (reported, not ratcheted) ##########
   coordinator.py                      1
   store.py                            1
@@ -18,4 +17,4 @@ measurement written to /home/runner/work/_temp/typing-census.json
   ok   type_ignores did not grow
 
 2 of 10 typing-ruler checks FAILED
-##[error]Process completed with exit code 1.
+rc=1
