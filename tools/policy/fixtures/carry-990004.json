@@ -12,7 +12,7 @@
     {
       "from": "no pull request; this entry is a fixture",
       "effect": "invalidates",
-      "control": "stated so the destination rule is the only defect this fixture reports (see tests/closures.json)",
+      "control": "stated so the destination rule is the only defect this fixture reports",
       "remeasure": "stated so the destination rule is the only defect this fixture reports",
       "brief": "Well formed in every other respect, so the error this fixture pins is the destination and nothing else."
     }

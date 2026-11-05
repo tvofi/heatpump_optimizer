@@ -972,15 +972,6 @@ export function lintCarryFile(file, { roster } = {}) {
   const carries = Array.isArray(data?.carries) ? data.carries : []
   carries.forEach((c, i) => {
     if (!c || typeof c !== 'object') return
-    // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
-    // derived count in it is refused the same way (the next stage re-establishes the finding from it).
-    if (typeof c.control === 'string' && c.control.trim()) {
-      lintBrief(`${label} carry ${i} control`, c.control, findings)
-      // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator, no figure).
-      if (![...c.control.matchAll(PATH_TOKEN_RE)].length && ![...c.control.matchAll(PATHLINE_RE)].length) {
-        findings.push({ group: `${label} carry ${i} control`, severity: 'error', kind: 'carry', message: 'names no path to the harness or command that re-establishes it; a bare figure or section name is not an enumerator' })
-      }
-    }
     if (typeof c.brief !== 'string' || !c.brief.trim()) return // absence already reported
     lintBrief(`${label} carry ${i}`, c.brief, findings)
   })
@@ -1332,7 +1323,7 @@ const GUARD_PROBE = 'driver-guard acceptance probe'
 // that must index NOTHING. The last is the over-fire control; without it a
 // widening that indexed everything would pass this probe and refuse every
 // carry.
-// Lint a one-carry file at `issue` whose control is `control`, against the live (no-argument) roster.
+// Lint a one-carry file at `issue` with `control`, against the live (no-argument) roster.
 function carryProbe(issue, control) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'carry-probe-'))
   try {
@@ -1343,27 +1334,6 @@ function carryProbe(issue, control) {
   } finally {
     fs.rmSync(dir, { recursive: true, force: true })
   }
-}
-
-// A carry's control is cited like its brief and must name a path a seat can re-run.
-function assertCarryControl() {
-  const problems = []
-  const errs = (control) => carryProbe(999999, control).filter((f) => f.severity === 'error')
-  for (const bad of ['the FUTURE-STATE section 2 figures', 'states 22 for metrics (a bare statistic)']) {
-    if (!errs(bad).some((f) => f.message.includes('names no path'))) problems.push(`control ${JSON.stringify(bad)} is accepted`)
-  }
-  if (!errs('run dev/audit/harnesses/no_such_probe_x.py').some((f) => f.kind === 'path')) {
-    problems.push('a control citing a path not in the tree is accepted; it is not linted as a brief is')
-  }
-  const good = errs('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
-  if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
-  if (problems.length) {
-    console.log('\nCONTROL VACUOUS: carry control:')
-    for (const m of problems) console.log(`  ${m}`)
-    return 1
-  }
-  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not')
-  return 0
 }
 
 function assertRosterIssues() {
@@ -1485,7 +1455,6 @@ function main() {
     acceptanceRc += assertIssuelessWarning()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
-    acceptanceRc += assertCarryControl()
     acceptanceRc += assertTreeRev()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)

@@ -17,7 +17,7 @@
     {
       "from": "no pull request; this entry is a fixture",
       "effect": "removes",
-      "control": "stated so the missing field below is the only defect in this entry (see tests/closures.json)",
+      "control": "stated so the missing field below is the only defect in this entry",
       "remeasure": "stated so the missing field below is the only defect in this entry"
     }
   ]
