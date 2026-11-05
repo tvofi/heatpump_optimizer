@@ -15720,9 +15720,10 @@
    "issues": [],
    "fixes": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
-    "pr": 3167
+    "pr": 3167,
+    "commit": "78a2be77c6d5f8eda3a44b23d3011ecc87eff366"
    }
   },
   {
