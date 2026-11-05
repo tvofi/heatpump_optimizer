@@ -1,0 +1,14 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 1512d0e6c..2ea74f717 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -4594,7 +4594,8 @@ function cardStyleBlock(darkMode) {
+         border: 1px solid var(--hpo-divider, #e0e0e0);
+         border-radius: 6px;
+       }
+-      .sb-row { display: flex; flex-direction: column; gap: 1px; }
++      .sb-row { display: flex; flex-direction: column; gap: 1px; overflow: hidden; }
++      .sb-text.sb-drivers { white-space: nowrap; }
+       .sb-head {
+         display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+       }
