@@ -438,7 +438,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-HOTFIX-SAV-ESTIMATE | CP | 1 | in-progress | - | opus/opus | - | Owner-reported 2026-11-04 (tvofi): the month table reads nonsense (November baseline far below actual, percent clipped at -100). |  |
 | R10-SAV-WOOD-MEASURED | CP | 2 | absorbed | - | opus/opus | - | Owner-reported 2026-11-04 (tvofi): the monthly savings row on a house with a wood tank. |  |
 | R10-FLY-REPLAY-MASK | CP | 1 | in-progress | - | sonnet/opus | - | Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py... |  |
-| R10-RCA-SAV-ESTIMATE | CP | 2 | in-progress | - | opus/opus | - | Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. |  |
+| R10-RCA-SAV-ESTIMATE | CP | 2 | carries-open | - | opus/opus | - | Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. |  |
 | R10-FLY-ARCHSCORE-STMT-PACKING | F | 1 | in-progress | - | sonnet/opus | - | From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one... |  |
 | R10-FLY-CLOUD-FRUGAL-OFF | CP | 1 | not-started | - | haiku/sonnet | - | Owner ruling tvofi 2026-11-04: "Turn it off in the cloud", the frugal plugin inline-search guard. |  |
 | R10-HOTFIX-CI-CRITPATH-5 | CP | 1 | not-started | - | sonnet/opus | - | Main tests / ci-ratchet is red on the critical path metric after PR 3201 merged at a45cf7f5. |  |
