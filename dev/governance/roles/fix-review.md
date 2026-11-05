@@ -11,8 +11,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
    run the closure, confirm the named checks fail, restore. If nothing fails,
    the test is vacuous: `blocked <sha> mutation-vacuous: <mutant>`.
 2. Measure with the **finder's** harness, not the fixer's: at the baseline
-   SHA and at the PR head, printing your own `RESULT` lines. A fixer who
-   measures with a harness they wrote is measuring themselves. One flat by
+   SHA and at the PR head, printing your own `RESULT` lines. One flat by
    design (`fixer.md` step 3): confirm it flat, not regressed, at both ends,
    and run the companion yourself at both ends.
 3. Re-run the null control and the both-ends check where the PR claims one.
@@ -125,7 +124,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     neighbouring rules, not only the counter's own re-spelled (#2373). If it reproduces
     the movement, block only where the diff's change is that shape; under a sound
     change it is an instrument finding, carried by `finding-propagation.md`
-    (#1874, #1867, #1868). On a raise, judge each payment the body lists and
+    (#1874, #1867, #1868). On a raise, judge each listed payment and
     hunt one it missed: one that truly improves the code is `metric-gamed` too.
 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
@@ -133,6 +132,6 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
 Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
 in the grammar above; one that does not parse is refused. Before you return one, run the packet's closing self-audit (`carry_audit.py check`); return it only at rc 0.
 
-**Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
+**Say which round this is**: from the fourth, `fixer.md` owes a re-cut.
 
-A ruling that names a destination stage (a group, issue or brief that must receive a finding) states it as a `Carry:` marker, never as prose alone; `carry_audit.py` reads the marker and prose naming a stage is not read (`finding-propagation.md`, #2438).
+A ruling naming a destination stage states it as a `Carry:` marker.
