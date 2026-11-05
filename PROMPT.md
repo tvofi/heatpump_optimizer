@@ -1,0 +1,32 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-fly-relay-hold, at head 2dc960f4a92b1ebf56ed5aa33f55400d8e269a10. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name seat && git config user.email seat@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 2dc960f4a92b1ebf56ed5aa33f55400d8e269a10 for the base you were given.
+Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-fly-relay-hold before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-fly-relay-hold, whose move updates the pull request. Before the handoff, when origin/main has moved since your last `tools/pr/prepr.sh` run, `git merge origin/main`, rerun `tools/pr/prepr.sh` (the body check included) and fix what it refuses; hand off only on a clean run (an unmoved main needs no second run: say so in the body). Then push the code to refs/heads/handoff/r10-fly-relay-hold, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-fly-relay-hold <body.md>`, which pushes refs/heads/handoff-body/r10-fly-relay-hold; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-fly-relay-hold`. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs and refs/heads/handoff-wip/r10-fly-relay-hold. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+INTERIM TOOLCHAIN: this environment's cached venvs are behind the locks (numpy, scipy, homeassistant, measured 2026-11-04). Before any measurement or golden run: `bash tools/audit/seat/cloud-setup.sh` and then `bash tools/audit/seat/cloud-setup.sh --check`; also confirm `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` against tests/requirements-ci.txt. If it cannot be refreshed say so in the body; CI remains the authority for goldens. Medium effort.
+
+Fixers return only by refs, handoff/<topic> and body_push.sh; open no PR, post no comment; no Claude footers; no host paths.
+
+CLOUD FIXER (sonnet, medium effort), group R10-FLY-RELAY-HOLD, topic r10-fly-relay-hold, branch fix/r10-fly-relay-hold, from CURRENT origin/main (fetch it). Follow dev/governance/roles/fixer.md in full: failing test first, mutation proof, the finder's harness at both ends where one exists, a null control for every quantified claim; no budget raise except as the brief states; claim files byte-identical to origin/main; never touch VERSION, the manifest version or the RELEASE_NOTES heading. The body: retake the whole body from .github/PULL_REQUEST_TEMPLATE.md, ## Head names the head, ## Red checks names every concluded red across all check-run pages with causes read from the logs; push it to handoff-wip as PR-BODY.md BEFORE body_push, read it back. Return by refs, handoff/r10-fly-relay-hold then body_push.sh; open no PR; git identity hpo-fixer with the noreply address. If body_push refuses CARRY-MISSING, write the item id and text to BLOCKED.md on the wip and wait up to 60 minutes.
+
+GROUP BRIEF:
+OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. All fixes architecturally sound and minimal; deletion preferred over new machinery; no new seats or lanes; a measured before and after for each claim, with a null control; no seat obligation changes unless the card says so.
+
+CARD C9: Fix the relay's train-add so it honours the hold file (one check, no new machinery)
+DECISION: Yes/No: bus.sh train_add skips a PR listed in the existing cloud-handoff-hold file.
+WHAT CHANGES: One `held` call in bus.sh train_add. This reuses cloud_relay.sh's held().
+MEASURED COST TODAY:
+- bus.sh train_add posts every merge verdict to merge_train.py add with no hold check (bus.sh lines 443-451 at origin/main). The add-queue files for #3198 (14:33:05Z) and #3222 (15:22:58Z) match the relay's POSTED times exactly. Commands: git show origin/main:tools/audit/seat/bus.sh | sed -n 425,452p; ls ~/.local/state/hpo/merge_train/add-queue-20261105-*; grep POSTED cloud-relay.log
+- The hold file ~/.local/state/hpo/cloud-handoff-hold has been empty since 10-31, so no merge-hold grammar exists today. Command: ls -la
+EXPECTED SAVING: hours_to_closure: Not measured: two instances today, and the hours lost per instance are unknown.; uncertainty: High on the size of the saving.
+RISK: None beyond today's.
+EFFORT: XS.
+POLICY: None. This is a defect fix in a seat instrument. Under C1 it qualifies as 'unblocks production merges'.
+RECOMMENDATION: YES, but only as this one-line fix. Do not open a group for it.
+
+TASK: in tools/audit/seat/bus.sh `train_add` (origin/main lines 443-451 at the time of the card) call the existing cloud_relay.sh `held()` check so a PR listed in the cloud-handoff-hold file is skipped (read how cloud_relay.sh reads the file and share the one function; do not copy it). Failing test first (the bus self-test): a held PR is not added and a not-held PR is. Mutation proof of the hold check, a null control (empty hold file adds as today). No new file, seat or lane.
+
+
+TIME: you have hours, not minutes. A gate, prepr or recording may run an hour: wait with Monitor windows of up to 60 min and re-arm them. Never end the session waiting on a choice: take the option that keeps coverage and the architecture sound, say so in the body, and go on. Push handoff-wip at each milestone, so your liveness can be read. If truly blocked, push BLOCKED.md on handoff-wip naming the question.
