@@ -10,10 +10,13 @@ probe's owner-like two-zone config through two production paths:
 
 * the solve -- ``OptimizationConfig.from_mapping`` ->
   ``ThermalParameters.from_config`` -> ``HeatPumpOptimizer.optimize``;
-* system identification's step sizer -- ``HousePlant.of_params`` ->
-  ``SystemIdentification._size_step_power``, the call the coordinator's
-  sysid tick makes, which reads ``heat_loss_coefficient`` with no two-zone
-  branch.
+* system identification's step sizer -- ``SystemIdentification.arm`` with
+  the plant (which hands a two-zone plant to the sizer, as
+  ``arm_from_config`` does) -> ``HousePlant.of_params`` ->
+  ``SystemIdentification._size_step_power``, the calls the coordinator's
+  sysid arm and tick make. R10-TWO-ZONE-HHL: the first cut of this harness
+  skipped ``arm`` and so measured the single-zone sizing path in two-zone
+  mode; the armed sizer already sized on the zones (#1524).
 
 The null control for both is the same sweep in single-zone mode, where the
 coefficient must move each output (a harness that reads zero there is blind).
@@ -25,6 +28,11 @@ until then the UI must keep offering it.
   single_zone_max_dkw    the solve's null control, must be > 0
   two_zone_sysid_steps   the sysid step sizes across the sweep, kW (``None``:
                          no step fits); one distinct value means inert
+  two_zone_heavy_sysid_steps  the same on zones heavy enough for a step to
+                         fit (``HEAVY``), so one distinct value is not a
+                         uniform ``None``
+  two_zone_plant         the distinct (ua, capacity) ``HousePlant.of_params``
+                         hands the sizer across the sweep; one means inert
   single_zone_sysid_steps  the sizer's null control
 
     PYTHONPATH=tests/hastub:custom_components:tests \\
@@ -38,7 +46,7 @@ import numpy as np
 
 from heatpump_optimizer import const as C
 from heatpump_optimizer.optimizer import HeatPumpOptimizer, OptimizationConfig
-from heatpump_optimizer.sysid import HousePlant, SystemIdentification
+from heatpump_optimizer.sysid import HousePlant, SysIdConfig, SystemIdentification
 from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
 from profiles import solve_inputs
 
@@ -57,6 +65,8 @@ CFG = {
     "slab_thermal_mass": 1.0, "slab_heat_transfer": 1.5,
 }
 SWEEP = (0.1, 0.4, 1.0)
+HEAVY = {"upper_floor_thermal_mass": 4.0, "lower_floor_thermal_mass": 4.0}
+ARM_AT = datetime(2026, 11, 1, 1, 0)
 
 
 def _solve(mode: str, hhl: float) -> tuple[np.ndarray, float]:
@@ -70,16 +80,25 @@ def _solve(mode: str, hhl: float) -> tuple[np.ndarray, float]:
     return np.asarray(result.power_schedule, float), float(result.predicted_cost)
 
 
-def _sysid_steps(mode: str) -> list[float | None]:
+def _params(mode: str, hhl: float, extra: dict | None = None) -> ThermalParameters:
+    return ThermalParameters.from_config(
+        {**CFG, **(extra or {}), C.CONF_TWO_ZONE_MODE: mode, C.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: hhl})
+
+
+def _sysid_steps(mode: str, extra: dict | None = None) -> list[float | None]:
     steps = []
     for hhl in SWEEP:
-        params = ThermalParameters.from_config(
-            {**CFG, C.CONF_TWO_ZONE_MODE: mode, C.CONF_HOUSE_HEAT_LOSS_COEFFICIENT: hhl})
-        plant = HousePlant.of_params(params)
-        kw = SystemIdentification()._size_step_power(
-            5.0, 3.0, 20.0, 5.0, plant.ua, plant.capacity, plant.gains, plant.slab_mass, plant.slab_transfer)
-        steps.append(None if kw is None else round(kw, 3))
+        params = _params(mode, hhl, extra)
+        ident = SystemIdentification(SysIdConfig(enabled=True))
+        if not ident.arm(ARM_AT, plant=params):
+            raise SystemExit(f"not armed: {ident.result}")
+        kw = ident._size_step_power(5.0, 3.0, 20.0, 5.0, HousePlant.of_params(params))
+        steps.append(None if kw is None else round(float(kw), 3))
     return steps
+
+
+def _plants(mode: str) -> set[tuple[float | None, float | None]]:
+    return {(p.ua, p.capacity) for p in (HousePlant.of_params(_params(mode, h)) for h in SWEEP)}
 
 
 def _spread(mode: str) -> tuple[float, float]:
@@ -96,4 +115,6 @@ if __name__ == "__main__":
     print(f"RESULT two_zone_max_dcost={two_dcost:.6f}")
     print(f"RESULT single_zone_max_dkw={one_dkw:.6f}")
     print(f"RESULT two_zone_sysid_steps={','.join(map(str, _sysid_steps(C.TWO_ZONE_MODE_ON)))}")
+    print(f"RESULT two_zone_heavy_sysid_steps={','.join(map(str, _sysid_steps(C.TWO_ZONE_MODE_ON, HEAVY)))}")
+    print(f"RESULT two_zone_plant={sorted(_plants(C.TWO_ZONE_MODE_ON))}")
     print(f"RESULT single_zone_sysid_steps={','.join(map(str, _sysid_steps(C.TWO_ZONE_MODE_OFF)))}")
