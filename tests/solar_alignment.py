@@ -121,8 +121,10 @@ client._forecast = ramp_series(midnight)
 _, _, _, _, solar = coord._forecast_arrays()[:5]
 
 # The optimizer's grid is anchored to midnight, so step 0 is the quarter hour
-# containing "now".
-step_offset = int((now - midnight).total_seconds() / 60 / 15)
+# containing "now". Elapsed time in UTC: two instants sharing a zone subtract
+# as wall clocks, an hour off on a DST-transition day.
+step_offset = int((now.astimezone(timezone.utc) - midnight.astimezone(timezone.utc))
+                  .total_seconds() / 60 / 15)
 expected_first = float(step_offset * 15)
 
 check("returns one irradiance value per step", len(solar) == coord._opt_config.n_steps)
@@ -155,7 +157,8 @@ coord_h, now_h, midnight_h = make_coordinator(client_h)
 client_h._forecast = ramp_series(midnight_h, minutes=60)
 _, _, _, _, solar_h = coord_h._forecast_arrays()[:5]
 
-hour_offset = int((now_h - midnight_h).total_seconds() / 3600)
+hour_offset = int((now_h.astimezone(timezone.utc) - midnight_h.astimezone(timezone.utc))
+                  .total_seconds() / 3600)
 check(
     "hourly data lands on the hour containing now",
     abs(solar_h[0] - float(hour_offset * 60)) < 1e-6,

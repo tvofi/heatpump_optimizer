@@ -35798,9 +35798,11 @@ R.check(
 # -2.0 h, and the countdown past the interval, with every check green. The
 # 2 h-past reading is the null control: the clamp bites only below zero.
 _lg_skew = _lg_coord()
-_lg_skew._legionella.last_cycle = dt_util.now() + timedelta(hours=2)
+# Offsets taken in UTC: a zone's wall clock minus two hours is three hours
+# back across the autumn DST change, and hours_since measures in UTC.
+_lg_skew._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() + timedelta(hours=2))
 _lg_skew_future = _lg_skew._legionella.hours_since()
-_lg_skew._legionella.last_cycle = dt_util.now() - timedelta(hours=2)
+_lg_skew._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() - timedelta(hours=2))
 _lg_skew_past = _lg_skew._legionella.hours_since()
 R.check(
     "a last cycle stamped in the future is 0 h ago, not a negative age (#1532)",
@@ -60222,6 +60224,10 @@ R.check(
 _SI_STHLM = _SiZone("Europe/Stockholm")
 _si_zone0 = dt_util.DEFAULT_TIME_ZONE
 dt_util.DEFAULT_TIME_ZONE = _SI_STHLM
+# The loaders bound every stored stamp to their clock, so the clock is the
+# block's own, after the stamp, not the host's: a host date before June read
+# the stamp as ahead of the clock and bounded it to now.
+dt_util.freeze(_SI_NOW)
 try:
     _si_ret = away_mode._parse_return_time("2026-10-05T08:00")
     _si_until = boost_mod._parse_until(_SI_NAIVE)
@@ -60236,6 +60242,7 @@ try:
     )
     _si_aio.run(_si_c._legionella.async_load())
 finally:
+    dt_util.freeze(None)
     dt_util.DEFAULT_TIME_ZONE = _si_zone0
     _si_storage._DISK.clear()
 _SI_LOCAL = datetime(2026, 6, 1, 12, tzinfo=_SI_STHLM)
