@@ -13,4 +13,16 @@
   deletion, and `--archive-scope none` deletes nothing, so no tip is ever
   dropped unarchived; `--dry-run` (the default) prints the plan and writes
   nothing. `--self-test` drives the classifier, the planner, the precedence and
-  the ordering offline (22 checks).
+  the ordering offline, then the push arm and `--topic` against a throwaway bare remote.
+
+  Writes by `--via push` (default): archive tags as `<sha>:refs/tags/archive/<name>`
+  refspecs in chunks of 100, a read-back of the remote's tags, then
+  `git push --delete` in the same chunks, aborting at the first refusal and
+  refusing before any delete when a ref lacks its tag at its own sha; zero API
+  calls (`--via api` is the old one-write-per-ref arm, 2N for N refs). Keeps,
+  beyond the four rules: `claude/*`; `design/` and `design-verdict/` refs of a
+  group `--roster-file` records not done; a tip younger than 6 h, a `dispatch/*`
+  tip younger than 24 h, and a tip whose age cannot be read. `--topic T` limits
+  the plan to one topic's refs (`handoff/T`, `handoff-body/T`, `-rN`,
+  `dispatch/*T*`) and refuses it whole when a `handoff/` tip has a `+` line in
+  `git cherry` against main or any of its refs has an open pull request.

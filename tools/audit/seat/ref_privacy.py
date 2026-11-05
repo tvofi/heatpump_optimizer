@@ -406,6 +406,8 @@ PUSHERS = {
                                     "pull request's own branch"),
     ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
                                       "record/autofix or main (nightly kills), moved out of tests.yml"),
+    "tools/audit/seat/closeout.py": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
+                                     "the live ref writes are prune_refs.py's, which is guarded"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
     "tools/pr/app_comment.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
                                 "the carry it tests only fetches"),
