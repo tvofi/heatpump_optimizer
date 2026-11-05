@@ -29,42 +29,64 @@ Alternatives:
 - A separate check list in `app_push.sh` would have duplicated prepr's steps beside their owner. It lost to one mode of prepr's own flow.
 - Reading the receipt from the body's prose is what the ruling had to do, and prose cannot be verified. A trailer on the body commit carries a sha and a tree that can be checked.
 
+**Repair round 2** (the first fix review blocked `794fe6a7` on two defects, each letting a receipt skip a check the body says still runs):
+- **The main flow's `merged_steps` call is pinned.** The `(a)` arm's real `PREPR_SKIP_CODE` prepr now runs with a body and asserts that one `merged structure` line and one `ci predict` line appear. Under `PREPR_SKIP_CODE` that call is the only ci predict and the only `tests/structure.py` on HEAD merged with main, and the function-level arms (d) and (e) could not see it deleted.
+- **The receipt names the HEAD the run started on.** `receipt_line` reads `<HEAD sha> <tree sha>` once, where the main flow starts (`RUN_START`, right after the early receipt removal). `receipt_write` gets it as a third argument and writes that line, never a fresh read. When HEAD or its tree differ at the end, it refuses through `step "receipt" 1`, so the run ends rc=1 and writes no receipt. When no start was read, it writes none. A commit landing mid-run is therefore code the receipt never claims.
+- **The five follow-ups, one row each, in the self-tests already touched:** reuse_verdict's first-parent arm of (c) (real git: HEAD holding a side commit main merged); two `Prepr:` trailers; `row_only_checks` after the reduced prepr under `--reuse` (a copy whose `reuse_verdict` is a stub that reuses, so the wiring past a reusing verdict runs: prepr under `PREPR_SKIP_CODE`, then the body contract and the carry check, and a contract refusal stops the push); the early receipt removal (the `(a)` run plants a stale receipt and asserts it is gone); and body_push.sh's sha comparison (a receipt whose tree is the head's but whose sha is not).
+- The unsigned-receipt finding stays as it is: P386 dismissed it.
+
+Alternatives for the starting HEAD:
+- Re-reading HEAD at the end and comparing it to `## Head` alone was rejected. A seat that moves both the code and the body mid-run, which is the reviewer's real run 2, passes that check.
+- Taking a lock on HEAD for the length of the run was rejected. It is heavier, and it would still need the same comparison at the end.
+- Writing the start line, after checking that it is unchanged, makes the receipt the measured HEAD by construction.
+
 ## Head
 
-`1acf58eb7c1fc4fe29e7e7098172db63f9bb9922`. The resolution merge, `6e652a3e`, merges origin/main `c0b082bc` into the reviewed head `91a75ed8` and resolves the one conflict in `tools/pr/prepr.sh` as described above. A full prepr ran clean at `6e652a3e`, from 00:40 to 01:01 UTC. Main then moved by one commit, `499162c8` (`ci: record nightly kills`). This head merges that commit, stamped 2026-11-05T01:02Z. The merge was clean and reaches none of `tools/pr` or `tools/audit/seat`: `git diff --stat HEAD~1 HEAD -- tools/pr tools/audit/seat` is empty. Prepr was run again at this head. It ran from 01:02 to 01:22 UTC and ended clean. Origin/main has not moved since, so no further run was needed.
+`acd20e42a51fc981e37fe2e45eb72e523dc965f2`. It merges origin/main `8364e624` (stamped 2026-11-05T04:33Z) into the repair commits on the reviewed head `794fe6a7`, through three clean merges: `8ddab317`, `662b2966`, then `8364e624`. Main kept moving during the take, and a container restart stopped one prepr run. `git diff --stat 794fe6a7...origin/main -- tools/pr tools/audit/seat` is empty, so main's commits reach none of this diff's files. Every figure below was re-taken at this head after the last merge. The full prepr at this head is the receipt this body's trailer carries: `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>`, whose passing run's receipt is this body commit's `Prepr:` trailer (body_push.sh writes one only from a receipt at this code head with its tree).
 
 ## Mutation proof
 
-Each mutant was applied to the production predicate at `6e652a3e`, run and then restored. `git status --short` was empty after the restore.
-- **The tree comparison dropped.** In `reuse_verdict`, `[ "$(git rev-parse "$c^{tree}")" = "$t" ]` became `true`. `bash tools/pr/app_push.sh --self-test` then gives `219 checks, 1 failed`. The only failure is `FAIL real git (f): a tree differing from the trailer's runs the full prepr`: the verdict reused a receipt whose tree was not the code's.
-- **`tests/structure.py` dropped from `merged_steps`.** Its run became `out=""; r=0`. `bash tools/pr/prepr.sh --self-test` then gives `503 passed, 1 failed`. The only failure is `FAIL (d) a clean merge whose tests/structure.py fails is refused, though HEAD alone passes (got 0, wanted 1)`.
+Each mutant was applied to a throwaway worktree of the repair head, the file's own self-test was run, and the worktree was removed. `git status --short` in the seat's worktree was empty after each mutant. Every row named below exists only in this repair.
+- **P1, the main flow's `merged_steps "${1:-}" "$UNPINNED_SITES"` call replaced by `:`** (the reviewer's expression). `prepr.sh --self-test`: `508 passed, 1 failed`, `FAIL (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each (got 00, wanted 11)`.
+- **PH, the fix's start check `[ "$3" = "$(receipt_line)" ]` replaced by `true`**: `508 passed, 1 failed`, `FAIL receipt: HEAD moved past the run's start (a commit landing mid-run) is refused and writes none (got 0|61a7ddbb… 7b648a91…, wanted 1|)`.
+- **P3, the early `rm -f "$(receipt_file)"` replaced by `:`**: `508 passed, 1 failed`, `FAIL (a) a run with a body removes an earlier receipt first, so one that writes none leaves none (got left, wanted )`.
+- **P6, body_push.sh `[ "$s" = "$2" ]` weakened to `[ -n "$s" ]`**: `508 passed, 1 failed`, `FAIL body_push: a receipt whose tree is the head's but whose sha is not gives none`.
+- **M2b, reuse_verdict's `grep -x "$mb"` on the first-parent list replaced by `{ cat >/dev/null; true; }`**. `app_push.sh --self-test`: `225 checks, 1 failed`, `FAIL real git (c): HEAD holding a main commit off main's first-parent chain runs the full prepr (got '0', want '1')`.
+- **M5, the trailer count `= 1` relaxed to `-ge 1`**: `225 checks, 1 failed`, `FAIL real git (a): two Prepr: trailers, though each is the receipt, run the full prepr`.
+- **M6, `[ "$reused" = 0 ] || row_only_checks` replaced by `true || row_only_checks`**: `225 checks, 3 failed`. The failures are the wiring rows `and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check (got '100', want '111')`, `a body the contract refuses refuses after the reduced prepr`, and `and nothing was minted or pushed (got '15', want '00')`. Re-run after the stub's spelling commit, with the same result.
+
+The failing test came first. The two start-HEAD rows were added before the fix and ran red against the unfixed `receipt_write`: `507 passed, 2 failed`, `FAIL receipt: HEAD moved past the run's start … (got 0|7f9d0afa… b365d581…, wanted 1|)` and `FAIL receipt: a run whose start HEAD was not read writes none`. Once the fix was in, the result was `509 passed, 0 failed`.
 
 ## Null control
 
-Every refusing arm has a passing twin on the same throwaway repository.
-- **Verdict arms (in `app_push.sh --self-test`).**
-  - (a) The receipted code merged cleanly with main reuses the receipt, for an open and for an update plus its own row.
-  - (b) The null control: a body with no trailer, a trailer naming another sha, and no body ref at all each run the full prepr. So does the stub-driven push, which runs prepr once with no `PREPR_SKIP_CODE`.
-  - (c) A resolved conflict runs the full prepr.
-  - (f) A wrong tree runs the full prepr. Its twin, the same receipt with the right tree restored, reuses.
-- **Merged-tree arms (in `prepr.sh --self-test`).**
-  - (d) passes with a clean main and is refused only once main gains the file that fails `tests/structure.py`.
-  - (e) passes once main is green again.
-- **Unmodified tree.** At the base `2a9cd347`, `app_push.sh` has no `--reuse`, and `prepr.sh` writes no receipt: it prints `PRE-PR: <sha> <digest>` and records nothing. So every open and code update runs the full prepr, as the ruling measured.
-- **The four named instances.** #3197, #3195, #3085 and the machinery part 2 open all predate this diff. Only this diff's `body_push.sh` writes a `Prepr:` trailer, so none of their body refs carries one, and the verdict reads all four as full prepr, the fail-closed arm. The ruling's reuse reading for #3197 and #3195 came from prose. It becomes a receipt only when those heads are handed off again through this `body_push.sh`, so no end-to-end check of the four was possible here.
+- **Start HEAD.** The first receipt row, a run whose start line is the unmoved HEAD, writes `<sha> <tree>`. The moved-HEAD row differs from it by one commit and is refused.
+- **The reviewer's harness at both ends** (`ev/midrun.sh` from probe/rev-3221-33fa557d, sha1 `76abd37d…`). At `794fe6a7` it prints `RESULT: receipt names a HEAD the run did not start on`. At the head it prints `skip receipt: the run's starting HEAD was not read, so none written`. That is the fail-closed arm: the harness calls with the old two arguments, and its RESULT line, keyed to a written receipt, cannot read the refusal.
+- **The ported companion** (`midrun3.sh`, sha1 `40f6b8fc…`, scratch). It passes the start line as the main flow now does and has a null arm:
+  - At `794fe6a7`, moved: `receipt=b34397ef…`, `RESULT: receipt names a HEAD the run did not measure`.
+  - At `794fe6a7`, null: `RESULT: receipt names the measured HEAD`.
+  - At the head, moved: `REFUSE receipt: HEAD is b34397efd791, not b648dc7d9abe where this run started …`, `RESULT: no receipt`.
+  - At the head, null: `RESULT: receipt names the measured HEAD`.
+- **Planted receipts** (`ev/plant.sh`, sha1 `7e3063ae…`, against the production `reuse_verdict`). At both `794fe6a7` and the head, all nine rows PASS: the null and R8 reuse; R1 to R7 run the full prepr.
+- **Each new pin's passing twin.**
+  - The `(a)` rows' twin is the unmutated run.
+  - The R7 row's twin is the single-trailer receipt restored just before it, which reuses.
+  - The R6 row's twin is every earlier reusing real-git row.
+  - The M6 refusal's twin is `ureused`, the same stub without `node-fails`, which pushes.
 
 ## Figures
 
-- The self-tests at `6e652a3e`, the merged head. `bash tools/pr/app_push.sh --self-test` gives `219 checks, 0 failed`. `bash tools/pr/prepr.sh --self-test` gives `504 passed, 0 failed`: the branch's 482 at `f88cc450` plus the rows main added since `af941ad4`. Each mutant above still fails exactly its own one check, so the resolution dropped neither arm.
-- The gate scope from `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` is `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
-- `python3 tests/structure.py` at `6e652a3e` gives `STRUCTURE RATCHET PASSED`.
-- `git diff origin/main HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION` is empty: the claim files are byte-identical to origin/main.
-- The full run at the resolution merge, `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` at `6e652a3e`, ended `rc=0` with `receipt 6e652a3ea59b written`. The run this head's receipt records is the same command at `1acf58eb`: it ended `rc=0`, and its `receipt` step reads `1acf58eb7c1f written`.
-- The kept-step wall time under `PREPR_SKIP_CODE` was measured at `91a75ed8` and not re-taken: 27 s, with no heavy slot, merged structure 20.9 s and ci predict 2.8 s. The merge adds no step to that set. Main's step 1a3 is a body check and runs in both modes.
+All figures were taken at the head unless stated otherwise.
+- `bash tools/pr/prepr.sh --self-test`: `509 passed, 0 failed`. That is 504 at `794fe6a7`, plus 5 rows: 2 start-HEAD rows, 1 sha-only trailer row, and 2 `(a)` rows.
+- `bash tools/pr/app_push.sh --self-test`: `app_push self-test: 225 checks, 0 failed`. That is 219, plus 6 rows: 1 two-trailer row, 1 off-first-parent row, and 4 wiring rows.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
+- The claim files, VERSION, RELEASE_NOTES.md and the manifest are untouched: `git diff --quiet $(git merge-base origin/main HEAD)...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION RELEASE_NOTES.md custom_components/*/manifest.json` exits 0.
+- Toolchain: `cloud-setup.sh --check` gives `OK`. numpy is 2.5.4 and scipy is 1.18.1, matching `tests/requirements-ci.txt`. No golden was run, because this diff touches no solver.
+- The kept-step wall time under `PREPR_SKIP_CODE` (27 s at `91a75ed8`) was not re-taken. The repair adds no step to that set: it adds one `git rev-parse` pair at the start and one at the end.
 
 ## Red checks
 
-none
+none. The head `acd20e42a51fc981e37fe2e45eb72e523dc965f2` has no check run: handoff refs trigger no CI. The reviewed head `794fe6a7`'s red `gate` was a cancelled job, not a failure, per the review. The base is `8364e624`. This diff reaches no workflow file and no `tools/ci` path.
 
 ## Forward-carry
 
