@@ -1,23 +1,2 @@
-05:28:48 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:30:20 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:31:52 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:33:23 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:34:55 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:36:27 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:37:58 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:39:30 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:41:02 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:42:33 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:44:05 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:45:37 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:47:08 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:48:40 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:50:11 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:51:43 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:53:15 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:54:47 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:56:18 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:57:50 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-05:59:22 rc=3 WAIT 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: gate red: none
-06:00:54 rc=1 RED 20d5aab00a01cb3bf3738e1e78a13273089bc523 pending: none red: gate
-FINAL rc=1
+GREEN fd0d130a7e040c64da4fcd93c1ca2aa2a2fc9f56 pending: none red: none
+rc=0

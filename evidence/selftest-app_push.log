@@ -207,9 +207,11 @@ ok   and that prepr ran once, with no PREPR_SKIP_CODE: the fail-closed arm (b)
 ok   one REUSE line names the full path and why
 ok   REFUSE: --reuse with --row-only
 ok   before any prepr, gh, git, openssl or curl call
-ok   real git (a): an open whose head is the receipted code merged cleanly with main reuses the receipt, RV_C the code (HEAD 0654ca80 is the clean merge of the receipted code 45173a1e (tree 6489ec17) and main's d0813b1c)
+ok   real git (a): an open whose head is the receipted code merged cleanly with main reuses the receipt, RV_C the code (HEAD f3266d29 is the clean merge of the receipted code adb0c757 (tree 6489ec17) and main's 47f89f38)
 ok   real git (a): an update to that live head, merged with main, plus its own row, reuses it
 ok   real git: one more file past the row runs the full prepr
+ok   real git (e): two tree-neutral commits past the clean merge run the full prepr
+ok   real git: the clean merge without them reuses (the (e) arm's null control)
 ok   real git (b): a body with no receipt runs the full prepr (null control)
 ok   real git (b): a receipt naming another sha, an ancestor whose own tree matches, runs the full prepr
 ok   real git (b): no handoff-body ref runs the full prepr
@@ -223,5 +225,5 @@ ok   --reuse, the verdict reusing: pushed
 ok   and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check
 ok   --reuse, the verdict reusing: a body the contract refuses refuses after the reduced prepr
 ok   and nothing was minted or pushed
-app_push self-test: 225 checks, 0 failed
-rc=0 secs=41
+app_push self-test: 227 checks, 0 failed
+rc=0
