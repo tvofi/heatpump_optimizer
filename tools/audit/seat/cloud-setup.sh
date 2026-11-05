@@ -48,7 +48,16 @@ REPO=${HPO_REPO:-/home/user/heatpump_optimizer}
 PREFIX=${HPO_PREFIX:-/opt/hpo}
 PROFILE=${HPO_PROFILE:-/etc/profile.d/hpo-toolchain.sh}
 CORETYPE=Haswell
+# The seat identity (P320): an author in the environment overrides `git config`,
+# so the four variables git reads first are exported; a runner default
+# (Claude <noreply@anthropic.com>) then cannot author a seat's commit. The values
+# are cloud_dispatch.py's SEAT_NAME and SEAT_EMAIL (its self-test asserts they agree).
+SEAT_NAME=seat
+SEAT_EMAIL=seat@users.noreply.github.com
+# RUNNER_TEMP (D): a governance job's `run:` steps read it; a seat replaying one
+# has none. It is exported, not created: the replay does `mkdir -p "$RUNNER_TEMP"`.
 SELF=$(readlink -f "${BASH_SOURCE[0]}")
+. "$(dirname "$SELF")/../../../tests/throwaway_git.sh" # the one way a script builds a throwaway repository
 
 write_profile() { # profile, prefix
   cat > "$1" <<EOF
@@ -56,6 +65,9 @@ write_profile() { # profile, prefix
 case ":\$PATH:" in *":$2/venv-ci/bin:"*) ;; *) export PATH="$2/venv-ci/bin:\$PATH" ;; esac
 export HPO_TYPING_PYTHON="$2/venv-ha/bin/python"
 export OPENBLAS_CORETYPE=$CORETYPE
+export GIT_AUTHOR_NAME="$SEAT_NAME" GIT_AUTHOR_EMAIL="$SEAT_EMAIL"
+export GIT_COMMITTER_NAME="$SEAT_NAME" GIT_COMMITTER_EMAIL="$SEAT_EMAIL"
+export RUNNER_TEMP="$2/runner-temp"
 EOF
 }
 
@@ -64,7 +76,9 @@ variables() { # prefix: the environment variables a seat's shell needs
   IFS=: read -ra parts <<< "$PATH"
   for d in ${parts[@]+"${parts[@]}"}; do [ "$d" = "$1/venv-ci/bin" ] || rest="${rest:+$rest:}$d"; done
   printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
-    "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE"
+    "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE" \
+    "GIT_AUTHOR_NAME=$SEAT_NAME" "GIT_AUTHOR_EMAIL=$SEAT_EMAIL" "GIT_COMMITTER_NAME=$SEAT_NAME" "GIT_COMMITTER_EMAIL=$SEAT_EMAIL" \
+    "RUNNER_TEMP=$1/runner-temp"
 }
 
 check() { # prefix
@@ -101,9 +115,9 @@ self_test() (
   mapfile -t vars < <(PATH="$base" variables "$P")
   out=$(PATH="$P/venv-ci/bin:$base:$P/venv-ci/bin" variables "$P" | head -n 1)
   [ "$out" = "${vars[0]}" ]; expect "the printed PATH holds venv-ci/bin once, first, from a PATH holding it twice" $?
-  out=$(run "${vars[@]}" bash -c python3)  # never-empty: vars is the three-line output of variables, asserted above
+  out=$(run "${vars[@]}" bash -c python3)  # never-empty: vars is the seven-line output of variables, asserted above
   [ "$out" = venv ]; expect "a non-login bash under the printed variables gets venv-ci's python3" $?
-  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null  # never-empty: vars is the three-line output of variables, asserted above
+  run "${vars[@]}" bash -c "$fns; check \"\$1\"" _ "$P" >/dev/null  # never-empty: vars is the seven-line output of variables, asserted above
   expect "check is OK under the printed variables" $?
   out=$(run bash -c "$fns; check \"\$1\"" _ "$P"); rc=$?
   [ "$rc" = 1 ] && case $out in *"REFUSE"*"PATH=$P/venv-ci/bin:$base HPO_TYPING_PYTHON=$P/venv-ha/bin/python OPENBLAS_CORETYPE=$CORETYPE"*) true ;; *) false ;; esac
@@ -117,7 +131,7 @@ self_test() (
   [ $? = 1 ]; expect "check refuses without OPENBLAS_CORETYPE" $?
   run bash -c ". \"\$2\"; $fns; check \"\$1\"" _ "$P" "$W/profile.sh" >/dev/null
   expect "check is OK in a shell that sourced the profile" $?
-  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?  # never-empty: vars is the three-line output of variables, asserted above
+  out=$(run "${vars[@]}" HPO_PREFIX="$P" bash "$SELF" --check); rc=$?  # never-empty: vars is the seven-line output of variables, asserted above
   [ "$rc" = 0 ] && case $out in *" OK "*) true ;; *) false ;; esac
   expect "cloud-setup.sh --check exits 0 under the printed variables" $?
   out=$(run HPO_PREFIX="$P" bash "$SELF" --check); rc=$?
@@ -127,6 +141,24 @@ self_test() (
   [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
   out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
   [ "$out" = stub ]; expect "under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)" $?
+  [ "$(printf '%s\n' "${vars[@]}" | grep -cxF "RUNNER_TEMP=$P/runner-temp")" = 1 ]  # never-empty: vars is the seven-line output of variables, asserted above
+  expect "variables prints RUNNER_TEMP" $?
+  out=$(run bash -c '. "$1"; echo "$RUNNER_TEMP"' _ "$W/profile.sh")
+  [ "$out" = "$P/runner-temp" ]; expect "the profile exports RUNNER_TEMP" $?
+  n=$(printf '%s\n' "${vars[@]}" | grep -c '^GIT_\(AUTHOR\|COMMITTER\)_\(NAME\|EMAIL\)=')  # never-empty: vars is the seven-line output of variables, asserted above
+  [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
+  out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")
+  [ "$out" = "$SEAT_NAME $SEAT_EMAIL $SEAT_NAME $SEAT_EMAIL" ]; expect "the profile exports the seat identity" $?
+  throwaway_git_init "$W/r" -q  # its GIT_* identity lives in the init subshell only; run below is env -i
+  git -C "$W/r" config user.name Claude; git -C "$W/r" config user.email noreply@anthropic.com
+  run git -C "$W/r" commit -q --allow-empty -m x
+  out=$(git -C "$W/r" log -1 --format='%an <%ae> %cn <%ce>')
+  [ "$out" = "Claude <noreply@anthropic.com> Claude <noreply@anthropic.com>" ]
+  expect "control: without the exports the config identity authors the commit" $?
+  run "${vars[@]}" git -C "$W/r" commit -q --allow-empty -m y  # never-empty: vars is the seven-line output of variables, asserted above
+  out=$(git -C "$W/r" log -1 --format='%an <%ae> %cn <%ce>')
+  [ "$out" = "$SEAT_NAME <$SEAT_EMAIL> $SEAT_NAME <$SEAT_EMAIL>" ]
+  expect "a commit made under the exports is authored and committed as the seat even with a conflicting user.name in config" $?
 
   printf 'cloud_setup self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]

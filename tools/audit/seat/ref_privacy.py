@@ -82,7 +82,8 @@ variable; or a `gh api` call that writes a ref -- `git/refs` or `git/tags`
 with a field (`-f`, `-F`, `--field`, `--input`) or a POST/PATCH/PUT method, or
 a `createRef`/`updateRef` mutation; or a release that makes a tag --
 `gh release create`, or `gh api .../releases` with a field or a write
-method -- in `tools/`,
+method; or `git send-pack`; or `gh api graphql -F query=@<file>`, whose
+mutation is in a file the line does not show -- in `tools/`,
 `.claude/workflows/` and `.github/workflows/`, less round evidence and vendored
 code. Each such file must have an entry in PUSHERS below: `guarded` (the file
 must call this module) or a stated reason it composes nothing a host could leak
@@ -241,11 +242,15 @@ def attribution(text: str) -> list[str]:
 
 def email_leaks(email: str, ident: Identity) -> list[str]:
     """`host-email` when a git identity's domain names a machine: a private-use
-    suffix, or this host's own name. A public domain (a noreply address) passes."""
+    suffix, or this host's own name; `anthropic-identity` for an @anthropic.com
+    address, which is a runner whose identity was never set (a seat commits as
+    hpo-fixer). Any other public domain (a noreply address) passes."""
     domain = email.rsplit("@", 1)[-1].casefold().rstrip(".>")
     if (domain == "localhost" or domain.endswith(PRIVATE_EMAIL_SUFFIXES)
             or domain in ident.hosts or domain.split(".", 1)[0] in ident.hosts):
         return ["host-email"]
+    if domain == "anthropic.com" or domain.endswith(".anthropic.com"):
+        return ["anthropic-identity"]
     return []
 
 
@@ -401,6 +406,8 @@ PUSHERS = {
                                     "pull request's own branch"),
     ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
                                       "record/autofix or main (nightly kills), moved out of tests.yml"),
+    "tools/audit/seat/closeout.py": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
+                                     "the live ref writes are prune_refs.py's, which is guarded"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
     "tools/pr/app_comment.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
                                 "the carry it tests only fetches"),
@@ -442,6 +449,8 @@ _SITE = re.compile(
     r"(?:\b(?:git|rgit)\b|\$\{?(?i:git)\}?(?![\w]))[^\n]*?(?<![\w.-])push(?![\w-])"
     r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*git/(?:refs|tags)\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|\bgh\b[^\n]*?\bapi\b[^\n]*\b(?:createRef|updateRef)\b"
+    r"|\bgit\b[^\n]*?(?<![\w.-])send-pack(?![\w-])"
+    r"|\bgh\b[^\n]*?\bapi\b[^\n]*\bgraphql\b[^\n]*(?:(?<![\w-])-F|--field)[\"',\s=]*query=@"
     r"|\bgh\s+release\s+create\b"
     r"|\bgh\b[^\n]*?\bapi\b(?=[^\n]*/releases\b)(?=[^\n]*" + _GH_WRITE + r")"
     r"|(?:^|[;&|(]\s*)g\s+push\b"
@@ -491,7 +500,7 @@ def registry_refusals(found: dict[str, list[int]], text_of, registry=PUSHERS) ->
 # hands it to the platform's regcomp, and BSD's (macOS) has no `\b`, so a
 # `\bpush\b` there matched nothing a GNU seat's matched (#2554). The word
 # boundaries are `_SITE`'s, in Python's re on every platform; this only narrows.
-_GREP_PATTERN = "push|git/(refs|tags)|createRef|updateRef|release +create|/releases"
+_GREP_PATTERN = "push|send-pack|graphql|git/(refs|tags)|createRef|updateRef|release +create|/releases"
 
 
 def grep(ref: str, root: Path = ROOT) -> list[tuple[str, int, str]]:
@@ -729,7 +738,11 @@ def self_test() -> int:
        email_leaks("t@example-mbp", fid) == ["host-email"] and email_leaks("t@EXAMPLE-MBP.local", fid) == ["host-email"])
     ok("a noreply address passes, even naming the account (the null control)",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
-       and email_leaks("noreply@anthropic.com", fid) == [])
+       and email_leaks("hpo-fixer@users.noreply.github.com", fid) == [])
+    ok("an @anthropic.com identity is refused, as the runner default is not a seat's",
+       email_leaks("noreply@anthropic.com", fid) == ["anthropic-identity"]
+       and email_leaks("x@mail.ANTHROPIC.com>", fid) == ["anthropic-identity"]
+       and email_leaks("x@notanthropic.com", fid) == [])
     bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
     ok("a comment body naming this host's home is refused (the bus evidence line)",
        (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
@@ -809,6 +822,19 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
         ok("and passes it re-authored to the fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
+        # P253/P320: the runner's default identity is refused, author or committer.
+        for who in ("AUTHOR", "COMMITTER"):
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env={**env, f"GIT_{who}_NAME": "Claude", f"GIT_{who}_EMAIL": "noreply@anthropic.com"})
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+            ok(f"the guard CLI refuses an unpushed commit whose {who.lower()} is the runner's Claude identity, exit 3",
+               r.returncode == 3 and f"anthropic-identity in the {who.lower()} email of" in r.stderr, r.stderr.strip())
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env=env)
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes once re-authored (the null control)", r.returncode == 0, r.stderr.strip())
         # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
         # trailer is refused, and the same trailer on a commit origin already
         # holds is history, never charged.
@@ -926,6 +952,31 @@ def self_test() -> int:
            rc != 0 and heads == "" and "host-email in the author email of" in body_err, f"rc={rc} {heads}")
         rc, heads = body("r10-clean")
         ok("and pushes a clean topic (the null control)", rc == 0 and "handoff-body/r10-clean" in heads, f"rc={rc}")
+        # P274: with a handoff/<topic> on origin the code head's commits over main are judged
+        # before the body ref is written. The planted checkout carries no prepr.sh, so a head
+        # that passes the guard fails later, on a step that is not the guard's.
+        gline = "body_push: a commit of handoff/r10-id fails the push guard"
+        env_id = env
+        env = {**env, "GIT_AUTHOR_NAME": "Claude", "GIT_AUTHOR_EMAIL": "noreply@anthropic.com"}
+        g("commit", "-q", "--allow-empty", "-m", "runner-default author")
+        env = env_id
+        g("push", "-q", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("body_push refuses a handoff head authored by a runner default, and writes no body ref",
+           rc != 0 and "handoff-body/r10-id" not in heads and gline in body_err, f"rc={rc} {heads} {body_err[-300:]!r}")
+        g("commit", "-q", "--amend", "--allow-empty", "--reset-author", "-m", "re-authored")
+        g("push", "-q", "-f", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("and once re-authored the guard passes (the null control: any later failure is not the guard's)",
+           gline not in body_err and "fails the push guard" not in body_err, f"rc={rc} {body_err[-300:]!r}")
+        env = {**env, "GIT_AUTHOR_NAME": "Claude", "GIT_AUTHOR_EMAIL": "noreply@anthropic.com"}
+        g("commit", "-q", "--allow-empty", "-m", "anthropic-authored, held by main")
+        env = env_id
+        g("push", "-q", "origin", "HEAD:main")
+        g("push", "-q", "-f", "origin", "HEAD:refs/heads/handoff/r10-id")
+        rc, heads = body("r10-id")
+        ok("and an anthropic-authored commit origin/main already holds is not judged (the null control)",
+           gline not in body_err and "fails the push guard" not in body_err, f"rc={rc} {body_err[-300:]!r}")
 
     # The registry, over planted lines.
     lines = [("tools/x/new.sh", 3, 'git push -q origin "$c:refs/heads/x/$slug"'),
@@ -944,6 +995,9 @@ def self_test() -> int:
              ("tools/x/ghpy.py", 3, '["gh", "api", f"repos/{repo}/git/refs", "-f", f"ref={ref}",'),
              ("tools/x/ghpatch.sh", 3, 'gh api -X PATCH "repos/$r/git/refs/heads/$b" -F force=true'),
              ("tools/x/ghgql.sh", 3, 'gh api graphql -f query="mutation { createRef(input: $i) { ref { name } } }"'),
+             ("tools/x/ghgqlf.sh", 3, 'gh api graphql -F query=@mut.graphql'),
+             ("tools/x/sendpack.sh", 3, 'git send-pack origin HEAD:refs/heads/x'),
+             ("tools/x/ghgqlq.sh", 3, "gh api graphql -f query='{ viewer { login } }'"),
              ("tools/x/ghread.sh", 3, 'gh api "repos/$r/git/refs/heads/$b" --jq .object.sha'),
              ("tools/x/ghdel.sh", 3, 'gh api -X DELETE "repos/$r/git/refs/heads/$b"'),
              (".github/workflows/x-rel.yml", 9, '          gh release create "${TAG}" \\'),
@@ -964,12 +1018,16 @@ def self_test() -> int:
        {"tools/x/ghsh.sh", "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"} <= set(found))
     ok("and a gh api ref read or DELETE is not (the null control)",
        not {"tools/x/ghread.sh", "tools/x/ghdel.sh"} & set(found))
+    ok("a query read from a file (gh api graphql -F query=@f) and git send-pack are sites",
+       {"tools/x/ghgqlf.sh", "tools/x/sendpack.sh"} <= set(found))
+    ok("and an inline read-only graphql query is not (the null control)", "tools/x/ghgqlq.sh" not in found)
     ok("a release that makes a tag is a site: gh release create, gh api .../releases with a field (round 3)",
        {".github/workflows/x-rel.yml", "tools/x/relapi.sh"} <= set(found))
     ok("and a release read is not (the null control)",
        not {"tools/x/relview.sh", "tools/x/relget.sh"} & set(found))
     for extra in (".github/workflows/x-rel.yml", "tools/x/relapi.sh", "tools/x/cont.sh", "tools/x/gfn.py", "tools/x/var.sh", "tools/x/var2.sh", "tools/x/ghsh.sh",
-                  "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh"):
+                  "tools/x/ghpy.py", "tools/x/ghpatch.sh", "tools/x/ghgql.sh",
+                  "tools/x/ghgqlf.sh", "tools/x/sendpack.sh"):
         found.pop(extra, None)
     texts = {"tools/x/guarded.sh": 'RP=ref_privacy.py; "$RP" guard --ref "$ref" && git push',
              "tools/x/py.py": "import ref_privacy\nref_privacy.refusal(ref)\n",
