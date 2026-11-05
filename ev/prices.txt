@@ -1,0 +1,9 @@
+0ae75 CI window runs[5:20] 23.148
+  path [('cancel-superseded', 0), ('refresh', 0), ('prelude', 20.0), ('tests / closures', 1292.9), ('tests / ci-ratchet', 76.0)]
+8bf45 CI window runs[1:16] 23.574
+  path [('cancel-superseded', 0), ('refresh', 0), ('prelude', 20.0), ('tests / closures', 1318.5), ('tests / ci-ratchet', 76.0)]
+  moved governance / instrument-self-tests 1410.0 -> 1419.0
+  moved tests / closures 1292.9 -> 1318.5
+  moved tests / coverage 1079.5 -> 1102.2
+  moved tests / fast (3.14) 1141.3 -> 1162.5
+  moved tests / typing 65.0 -> 54.0

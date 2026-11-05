@@ -1,0 +1,8 @@
+tvofi
+2026-11-04T06:18:04Z
+https://github.com/tvofi/heatpump_optimizer/issues/201#issuecomment-6624093439
+MANDATE: agents may approve as tvofi, scope all, from 2026-11-04T06:18Z until 2026-11-14T18:14Z
+Successor to mandate 6329234399, whose stated end falls before the round-10 closure stamp, for the rest of round 10. Intended end: 48 h after the round-10 stamp. Identities per decision 0011; budget raises only under this grant's own rules; a seat's own message is never approval.
+
+Posted by the orchestrator (session s11) at the owner's explicit instruction in chat, 2026-11-04, answering "post a replacement mandate on #201 running to 2026-11-14T18:14Z": "2, yes".
+

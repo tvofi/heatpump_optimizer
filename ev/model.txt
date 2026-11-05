@@ -1,0 +1,18 @@
+8bf45 CI window as-is 23.574 concurrent-model 23.291
+newest16 as-is 23.477 concurrent-model 23.193
+8bf45e5dc work 116 {'Run actions/checkout': 5, "Gather this run's an": 35, 'Fetch the recent pus': 40, 'Grade the ratchet': 30}
+b707d8932 work 102 {'Run actions/checkout': 9, "Gather this run's an": 40, 'Fetch the recent pus': 25, 'Grade the ratchet': 20}
+7af0c2a79 work 74 {"Gather this run's an": 24, 'Fetch the recent pus': 22, 'Grade the ratchet': 20}
+788e8ceed work 98 {"Gather this run's an": 36, 'Fetch the recent pus': 39, 'Grade the ratchet': 16}
+0ae75bf31 work 92 {"Gather this run's an": 28, 'Fetch the recent pus': 24, 'Grade the ratchet': 31}
+cd0dd1691 work 85 {"Gather this run's an": 25, 'Fetch the recent pus': 26, 'Grade the ratchet': 24}
+e57dfbbe0 work 90 {"Gather this run's an": 22, 'Fetch the recent pus': 33, 'Grade the ratchet': 28}
+79f765e6b work 112 {'Run actions/checkout': 8, "Gather this run's an": 39, 'Fetch the recent pus': 37, 'Grade the ratchet': 19}
+dad3178d6 work 101 {"Gather this run's an": 34, 'Fetch the recent pus': 26, 'Grade the ratchet': 31}
+3ec5178c6 work 77 {"Gather this run's an": 16, 'Fetch the recent pus': 22, 'Grade the ratchet': 32}
+6777ec333 work 99 {"Gather this run's an": 35, 'Fetch the recent pus': 28, 'Grade the ratchet': 25}
+6125b263d work 104 {'Run actions/checkout': 6, "Gather this run's an": 36, 'Fetch the recent pus': 36, 'Grade the ratchet': 19}
+8364e6246 work 95 {"Gather this run's an": 33, 'Fetch the recent pus': 23, 'Grade the ratchet': 30}
+78a2be77c work 90 {"Gather this run's an": 26, 'Fetch the recent pus': 24, 'Grade the ratchet': 31}
+662b29669 work 87 {"Gather this run's an": 26, 'Fetch the recent pus': 35, 'Grade the ratchet': 17}
+8ddab3178 work 76 {"Gather this run's an": 17, 'Fetch the recent pus': 22, 'Grade the ratchet': 30}

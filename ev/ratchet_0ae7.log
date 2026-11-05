@@ -1,0 +1,346 @@
+﻿2026-11-05T10:37:24.4267979Z Current runner version: '2.338.2'
+2026-11-05T10:37:24.4294644Z ##[group]Runner Image Provisioner
+2026-11-05T10:37:24.4295593Z Hosted Compute Agent
+2026-11-05T10:37:24.4296196Z Version: 20261021.618
+2026-11-05T10:37:24.4296854Z Commit: 21505ad2541d5be6135ed84fc33697146cf75b8e
+2026-11-05T10:37:24.4297649Z Build Date: 2026-10-21T00:45:21Z
+2026-11-05T10:37:24.4298714Z Worker ID: {2850ff4f-f387-4a1d-bf2d-1c6a33205c12}
+2026-11-05T10:37:24.4299505Z Region: centralus
+2026-11-05T10:37:24.4300070Z Cloud: Azure
+2026-11-05T10:37:24.4300634Z ##[endgroup]
+2026-11-05T10:37:24.4302227Z ##[group]Operating System
+2026-11-05T10:37:24.4302877Z Ubuntu
+2026-11-05T10:37:24.4303448Z 26.04.1
+2026-11-05T10:37:24.4303974Z LTS
+2026-11-05T10:37:24.4304515Z ##[endgroup]
+2026-11-05T10:37:24.4305114Z ##[group]Runner Image
+2026-11-05T10:37:24.4305719Z Image: ubuntu-26.04
+2026-11-05T10:37:24.4306271Z Version: 20261025.179.1
+2026-11-05T10:37:24.4307610Z Included Software: https://github.com/actions/runner-images/blob/ubuntu26/20261025.179/images/ubuntu/Ubuntu2604-Readme.md
+2026-11-05T10:37:24.4309661Z Image Release: https://github.com/actions/runner-images/releases/tag/ubuntu26%2F20261025.179
+2026-11-05T10:37:24.4310635Z ##[endgroup]
+2026-11-05T10:37:24.4311886Z ##[group]GITHUB_TOKEN Permissions
+2026-11-05T10:37:24.4313863Z Actions: read
+2026-11-05T10:37:24.4314484Z Contents: read
+2026-11-05T10:37:24.4315165Z Metadata: read
+2026-11-05T10:37:24.4315761Z ##[endgroup]
+2026-11-05T10:37:24.4317890Z Secret source: Actions
+2026-11-05T10:37:24.4319203Z Cache mode: write
+2026-11-05T10:37:24.4320063Z Prepare workflow directory
+2026-11-05T10:37:24.4674104Z Prepare all required actions
+2026-11-05T10:37:24.4723816Z Getting action download info
+2026-11-05T10:37:24.6923017Z Download action repository 'actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1' (SHA:3d3c42e5aac5ba805825da76410c181273ba90b1)
+2026-11-05T10:37:24.7887887Z Download action repository 'actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0' (SHA:6d4fd22b20465ccc0f7354476588e8df7c9ca0e0)
+2026-11-05T10:37:25.3586218Z Uses: tvofi/heatpump_optimizer/.github/workflows/tests.yml@refs/heads/main (0ae75bf3146566bffca4490464dcc8d6d45c29ab)
+2026-11-05T10:37:25.3591372Z ##[group] Inputs
+2026-11-05T10:37:25.3592366Z   gate_scope: full
+2026-11-05T10:37:25.3592894Z   pr: 
+2026-11-05T10:37:25.3593340Z   base: 
+2026-11-05T10:37:25.3593857Z   head: 0ae75bf3146566bffca4490464dcc8d6d45c29ab
+2026-11-05T10:37:25.3594516Z   recheck: 
+2026-11-05T10:37:25.3594976Z   no-skip: 
+2026-11-05T10:37:25.3595440Z ##[endgroup]
+2026-11-05T10:37:25.3595938Z Complete job name: tests / ci-ratchet
+2026-11-05T10:37:25.4587847Z ##[group]Run actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+2026-11-05T10:37:25.4589391Z with:
+2026-11-05T10:37:25.4589906Z   repository: tvofi/heatpump_optimizer
+2026-11-05T10:37:25.4594023Z   token: ***
+2026-11-05T10:37:25.4594531Z   ssh-strict: true
+2026-11-05T10:37:25.4595027Z   ssh-user: git
+2026-11-05T10:37:25.4595578Z   persist-credentials: true
+2026-11-05T10:37:25.4596184Z   clean: true
+2026-11-05T10:37:25.4596756Z   sparse-checkout-cone-mode: true
+2026-11-05T10:37:25.4597392Z   fetch-depth: 1
+2026-11-05T10:37:25.4597932Z   fetch-tags: false
+2026-11-05T10:37:25.4598651Z   show-progress: true
+2026-11-05T10:37:25.4599223Z   lfs: false
+2026-11-05T10:37:25.4599676Z   submodules: false
+2026-11-05T10:37:25.4600175Z   set-safe-directory: true
+2026-11-05T10:37:25.4600735Z   allow-unsafe-pr-checkout: false
+2026-11-05T10:37:25.4601621Z ##[endgroup]
+2026-11-05T10:37:25.7577007Z Syncing repository: tvofi/heatpump_optimizer
+2026-11-05T10:37:25.7580217Z ##[group]Getting Git version info
+2026-11-05T10:37:25.7581560Z Working directory is '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-05T10:37:25.7583567Z [command]/usr/bin/git version
+2026-11-05T10:37:25.7599983Z git version 2.56.0
+2026-11-05T10:37:25.7622871Z ##[endgroup]
+2026-11-05T10:37:25.7633533Z Temporarily overriding HOME='/home/runner/work/_temp/d86b6f70-4aa7-4131-8497-26b18193ac08' before making global git config changes
+2026-11-05T10:37:25.7637635Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T10:37:25.7641332Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T10:37:25.7707070Z Deleting the contents of '/home/runner/work/heatpump_optimizer/heatpump_optimizer'
+2026-11-05T10:37:25.7710660Z ##[group]Determining repository object format
+2026-11-05T10:37:25.7713097Z ##[endgroup]
+2026-11-05T10:37:25.7715230Z ##[group]Initializing the repository
+2026-11-05T10:37:25.7717904Z [command]/usr/bin/git init /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T10:37:25.7825701Z hint: Using 'master' as the name for the initial branch. This default branch name
+2026-11-05T10:37:25.7828570Z hint: will change to "main" in Git 3.0. To configure the initial branch name
+2026-11-05T10:37:25.7831399Z hint: to use in all of your new repositories, which will suppress this warning,
+2026-11-05T10:37:25.7833531Z hint: call:
+2026-11-05T10:37:25.7834503Z hint:
+2026-11-05T10:37:25.7835741Z hint: 	git config --global init.defaultBranch <name>
+2026-11-05T10:37:25.7837360Z hint:
+2026-11-05T10:37:25.7839547Z hint: Names commonly chosen instead of 'master' are 'main', 'trunk' and
+2026-11-05T10:37:25.7842954Z hint: 'development'. The just-created branch can be renamed via this command:
+2026-11-05T10:37:25.7844834Z hint:
+2026-11-05T10:37:25.7845792Z hint: 	git branch -m <name>
+2026-11-05T10:37:25.7847233Z hint:
+2026-11-05T10:37:25.7849320Z hint: Disable this message with "git config set advice.defaultBranchName false"
+2026-11-05T10:37:25.7853225Z Initialized empty Git repository in /home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/
+2026-11-05T10:37:25.7860012Z [command]/usr/bin/git remote add origin https://github.com/tvofi/heatpump_optimizer
+2026-11-05T10:37:25.7905026Z ##[endgroup]
+2026-11-05T10:37:25.7906897Z ##[group]Disabling automatic garbage collection
+2026-11-05T10:37:25.7908994Z [command]/usr/bin/git config --local gc.auto 0
+2026-11-05T10:37:25.7941025Z ##[endgroup]
+2026-11-05T10:37:25.7942913Z ##[group]Setting up auth
+2026-11-05T10:37:25.7944250Z Removing SSH command configuration
+2026-11-05T10:37:25.7947113Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T10:37:25.7982070Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T10:37:25.8434414Z Removing HTTP extra header
+2026-11-05T10:37:25.8440785Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T10:37:25.8476762Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T10:37:25.8739933Z Removing includeIf entries pointing to credentials config files
+2026-11-05T10:37:25.8744311Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T10:37:25.8778770Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T10:37:25.9051971Z [command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+2026-11-05T10:37:25.9091519Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:37:25.9124820Z [command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:37:25.9160646Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:37:25.9194043Z [command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:37:25.9224855Z ##[endgroup]
+2026-11-05T10:37:25.9227458Z ##[group]Fetching the repository
+2026-11-05T10:37:25.9232026Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +0ae75bf3146566bffca4490464dcc8d6d45c29ab:refs/remotes/origin/main
+2026-11-05T10:37:28.2996914Z From https://github.com/tvofi/heatpump_optimizer
+2026-11-05T10:37:28.2998715Z  * [new ref]         0ae75bf3146566bffca4490464dcc8d6d45c29ab -> origin/main
+2026-11-05T10:37:28.3012717Z [command]/usr/bin/git branch --list --remote origin/main
+2026-11-05T10:37:28.3039292Z   origin/main
+2026-11-05T10:37:28.3047097Z [command]/usr/bin/git rev-parse refs/remotes/origin/main
+2026-11-05T10:37:28.3070509Z 0ae75bf3146566bffca4490464dcc8d6d45c29ab
+2026-11-05T10:37:28.3074729Z ##[endgroup]
+2026-11-05T10:37:28.3075550Z ##[group]Determining the checkout info
+2026-11-05T10:37:28.3076353Z ##[endgroup]
+2026-11-05T10:37:28.3079791Z [command]/usr/bin/git sparse-checkout disable
+2026-11-05T10:37:28.3133617Z [command]/usr/bin/git config --local --unset-all extensions.worktreeConfig
+2026-11-05T10:37:28.3163970Z ##[group]Checking out the ref
+2026-11-05T10:37:28.3167315Z [command]/usr/bin/git checkout --progress --force -B main refs/remotes/origin/main
+2026-11-05T10:37:29.0566160Z Switched to a new branch 'main'
+2026-11-05T10:37:29.0572174Z branch 'main' set up to track 'origin/main'.
+2026-11-05T10:37:29.0604011Z ##[endgroup]
+2026-11-05T10:37:29.0659266Z [command]/usr/bin/git log -1 --format=%H
+2026-11-05T10:37:29.0690795Z 0ae75bf3146566bffca4490464dcc8d6d45c29ab
+2026-11-05T10:37:29.1091944Z ##[group]Run actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0
+2026-11-05T10:37:29.1092415Z with:
+2026-11-05T10:37:29.1092626Z   python-version: 3.13
+2026-11-05T10:37:29.1092864Z   check-latest: false
+2026-11-05T10:37:29.1095213Z   token: ***
+2026-11-05T10:37:29.1095562Z   mirror: https://raw.githubusercontent.com/actions/python-versions/main
+2026-11-05T10:37:29.1095984Z   update-environment: true
+2026-11-05T10:37:29.1096239Z   allow-prereleases: false
+2026-11-05T10:37:29.1096475Z   freethreaded: false
+2026-11-05T10:37:29.1096698Z ##[endgroup]
+2026-11-05T10:37:29.2241629Z ##[group]Installed versions
+2026-11-05T10:37:29.2356022Z Successfully set up CPython (3.13.17)
+2026-11-05T10:37:29.2356982Z ##[endgroup]
+2026-11-05T10:37:29.2494456Z ##[group]Run python3 -I tests/ci_ratchet.py --self-test
+2026-11-05T10:37:29.2494936Z [36;1mpython3 -I tests/ci_ratchet.py --self-test[0m
+2026-11-05T10:37:29.2687228Z shell: /usr/bin/bash -e {0}
+2026-11-05T10:37:29.2687504Z env:
+2026-11-05T10:37:29.2687781Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:29.2688454Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-05T10:37:29.2688946Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:29.2689349Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:29.2689771Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:29.2690174Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-05T10:37:29.2690503Z ##[endgroup]
+2026-11-05T10:37:30.1879411Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: Server Error (HTTP 502)
+2026-11-05T10:37:30.1881637Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 0 and returned 0 bytes
+2026-11-05T10:37:30.1883672Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+2026-11-05T10:37:30.1885562Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+2026-11-05T10:37:30.1888009Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 3/3 failed: gh exited 1 after 0 byte(s): gh: HTTP 500
+2026-11-05T10:37:30.1890180Z ci-ratchet: ci-metrics-closures artifacts fetch attempt 1/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
+2026-11-05T10:37:30.1891783Z ci-ratchet: ci-metrics-closures artifacts fetch attempt 2/2 failed: gh exited 1 after 0 byte(s): unexpected end of JSON input
+2026-11-05T10:37:30.1894019Z ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/1 failed: the ci-metrics-fast artifacts fetch carried other names (ci-metrics-closures, other-name); the name filter was not applied, refusing to read that as the lane's window
+2026-11-05T10:37:30.2392305Z   ok   an empty response refuses, naming the 0-byte fetch and its run (not an empty window)
+2026-11-05T10:37:30.2393558Z   ok   a whitespace-only artifacts response refuses (not an empty window)
+2026-11-05T10:37:30.2394712Z   ok   a truncated artifacts response refuses (not an empty window)
+2026-11-05T10:37:30.2395815Z   ok   a no artifacts list artifacts response refuses (not an empty window)
+2026-11-05T10:37:30.2396865Z   ok   a good response still yields the window (the null control)
+2026-11-05T10:37:30.2397729Z   ok   a duplicate (run, name) keeps the newest copy
+2026-11-05T10:37:30.2398957Z   ok   an artifact with no created_at does not outrank a dated copy
+2026-11-05T10:37:30.2399958Z   ok   an expired artifact, another name and THIS run are all out
+2026-11-05T10:37:30.2400826Z   ok   the .run_id fallback attributes a null .workflow_run
+2026-11-05T10:37:30.2401507Z   ok   the cut is taken in (run, name) order, as jq's unique_by emitted it
+2026-11-05T10:37:30.2402076Z   ok   a failed list call is retried and the retry's window is used
+2026-11-05T10:37:30.2402596Z   ok   an rc 0 with 0 bytes is retried too, not read as a window
+2026-11-05T10:37:30.2403148Z   ok   spent attempts refuse by name (exit code, attempts), no traceback
+2026-11-05T10:37:30.2403790Z   ok   the window is each lane's name-filtered listing, one call per lane, no retry
+2026-11-05T10:37:30.2404467Z   ok   one lane's spent attempts refuse naming that lane (not a two-lane window)
+2026-11-05T10:37:30.2405107Z   ok   a lane listing carrying another name refuses (the filter was ignored)
+2026-11-05T10:37:30.2405724Z   ok   and the same listing, name-filtered, is a window (the null control)
+2026-11-05T10:37:30.2406332Z   ok   one listing read three times still counts each (run, name) once
+2026-11-05T10:37:30.2406926Z   ok   each lane keeps its newest WINDOW_PER_LANE runs, not the union's oldest
+2026-11-05T10:37:30.2408047Z ci-ratchet: skipping expired artifact 12 (ci-metrics-closures): gh: Artifact has expired (HTTP 404)
+2026-11-05T10:37:30.2409177Z   ok   an expired artifact is skipped and the rest of the window survives
+2026-11-05T10:37:30.2409755Z   ok   a non-expiry download failure still refuses by name
+2026-11-05T10:37:30.2410442Z   ok   a CI push run is measured to its last `tests / *` job, not to gate or another unit (40, not 120)
+2026-11-05T10:37:30.2411133Z   ok   a pre-umbrella Tests push run is measured on its every job (the null: 50)
+2026-11-05T10:37:30.2411628Z   ok   another workflow's run, or one not completed, is not in the window
+2026-11-05T10:37:30.2412118Z   ok   a CI push run that carries no jobs refuses (its wall is unknown, never its run's)
+2026-11-05T10:37:30.2412677Z   ok   a CI push run that has no completed tests job refuses (its wall is unknown, never its run's)
+2026-11-05T10:37:30.2413234Z   ok   a window across the cut-over measures both kinds, its longest chain (50)
+2026-11-05T10:37:30.2413845Z   ok   an all-umbrella window, titled `CI code ...` by run-name, is measured by workflow path (its fastest run's 31)
+2026-11-05T10:37:30.2414418Z   ok   a ci.yml run is kind CI whatever its title, a ref suffix included
+2026-11-05T10:37:30.2414769Z push runs: 16 (10 CI)
+2026-11-05T10:37:30.2415222Z   ok   --gather-runs keeps the newest PUSH_WINDOW (16) push runs of ci.yml and tests.yml together, jobs on every run
+2026-11-05T10:37:30.2415911Z push runs: 3 (3 CI)
+2026-11-05T10:37:30.2416227Z   ok   --gather-runs --window N keeps the newest N (a record's wider window)
+2026-11-05T10:37:30.2416690Z   ok   a failed runs read refuses by name (a short window is not a fast one)
+2026-11-05T10:37:30.2417298Z   ok   a run whose lanes queued for runners reads its work, not its wall (32.1 = prelude 0.3 + arch-instrument 31.8, not 59.7)
+2026-11-05T10:37:30.2417925Z   ok   the same work with no queue reads the same 32.1, its wall (the null control)
+2026-11-05T10:37:30.2418777Z   ok   a slower job on the critical path still grows the metric (10 more minutes of ci-ratchet)
+2026-11-05T10:37:30.2419354Z   ok   a run with a cancelled `tests / *` job is not in the window (its work was cut short)
+2026-11-05T10:37:30.2419851Z   ok   a ran job with no conclusion refuses (whether it prices is unknown)
+2026-11-05T10:37:30.2420340Z   ok   a window of slow host draws grades the work, not the draw (32.1, its median 63.9)
+2026-11-05T10:37:30.2420814Z   ok   a job grown by 5 minutes on every host grows the grade by 5 (37.1)
+2026-11-05T10:37:30.2421335Z   ok   a run under a third of the job's window median did other work and never prices it (63.9, not 5.3)
+2026-11-05T10:37:30.2422007Z   ok   one run of a job past three times its fastest does not move the grade (32.1, not 102.1)
+2026-11-05T10:37:30.2422447Z   ok   a failed job never prices (32.1, not 15.3)
+2026-11-05T10:37:30.2422773Z   ok   a cancelled job never prices (32.1, not 31.95)
+2026-11-05T10:37:30.2423266Z   ok   the other-work floor sits at a third of the window median (12.3: a half would read 30.3, a quarter 9.3)
+2026-11-05T10:37:30.2423969Z   ok   the grade reads the newest PUSH_WINDOW runs, a record the largest of its every PUSH_WINDOW-run window (32.1, 63.9)
+2026-11-05T10:37:30.2424602Z   ok   derive grades the newest window and a --record derive writes the largest window
+2026-11-05T10:37:30.2425186Z   ok   a probed job prices its wall times PROBE_REFERENCE_S over its probe ((18 + 1911 * ref / P) / 60)
+2026-11-05T10:37:30.2425894Z   ok   losing the window's one fast draw moves a probed grade by under 1 % (the red at 8e90d8144 moved the fastest-draw grade 31 %)
+2026-11-05T10:37:30.2426672Z   ok   the same windows unprobed reproduce the red: the fastest-draw grade moves over 30 % (the fixture's own null control)
+2026-11-05T10:37:30.2427267Z   ok   a fleet 1.9x slower on the same work does not move the grade
+2026-11-05T10:37:30.2427742Z   ok   300 s more work in 9 of 16 runs grows the grade by all of it (300 * ref / P / 60)
+2026-11-05T10:37:30.2428464Z   ok   one hung run of a probed job does not move the grade
+2026-11-05T10:37:30.2429049Z   ok   no probe step prices the job on its wall (32.15, as before the probe)
+2026-11-05T10:37:30.2429537Z   ok   a failed probe step prices the job on its wall (32.15, as before the probe)
+2026-11-05T10:37:30.2430103Z   ok   a probe under an unreferenced python prices the job on its wall (32.15, as before the probe)
+2026-11-05T10:37:30.2430748Z   ok   a probe step of 0 s prices the job on its wall (32.15, as before the probe)
+2026-11-05T10:37:30.2431227Z   ok   a probe step's interpreter selects its reference (3.13 and 3.14 differ)
+2026-11-05T10:37:30.2431992Z   ok   a longer path that never ended its run still sets the grade (30.5, not 21.5); shortened to 10 minutes, the last job's path is the grade again (21.5, the null control)
+2026-11-05T10:37:30.2432763Z   ok   the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band
+2026-11-05T10:37:30.2433166Z   ok   a median at budget + band exactly passes
+2026-11-05T10:37:30.2433498Z   ok   a median one thousandth past budget + band is growth
+2026-11-05T10:37:30.2433935Z   ok   the band never applies to a counter (54 -> 55 is growth with a band present)
+2026-11-05T10:37:30.2434384Z   ok   no band row is zero tolerance (34.467 on 34.267 is growth)
+2026-11-05T10:37:30.2434788Z   ok   a band row is a known, non-negative bound and not a graded metric
+2026-11-05T10:37:30.2435267Z   ok   --record carries the band over unchanged and re-records every derived metric
+2026-11-05T10:37:30.2435810Z ci-ratchet self-test: 65 checks, 0 failed
+2026-11-05T10:37:30.2517219Z ##[group]Run set -euo pipefail
+2026-11-05T10:37:30.2517556Z [36;1mset -euo pipefail[0m
+2026-11-05T10:37:30.2517845Z [36;1mM="$RUNNER_TEMP/metrics"; mkdir -p "$M"[0m
+2026-11-05T10:37:30.2518580Z [36;1m# This run's three lanes, by name, from this run.[0m
+2026-11-05T10:37:30.2518946Z [36;1mfor lane in fast coverage closures; do[0m
+2026-11-05T10:37:30.2519337Z [36;1m  gh run download "$GITHUB_RUN_ID" --name "ci-metrics-$lane" \[0m
+2026-11-05T10:37:30.2519779Z [36;1m    --dir "$M" || echo "no ci-metrics-$lane artifact this run"[0m
+2026-11-05T10:37:30.2520106Z [36;1mdone[0m
+2026-11-05T10:37:30.2520405Z [36;1m# The recent window: the newest ci-metrics artifact per lane per[0m
+2026-11-05T10:37:30.2520854Z [36;1m# run of the last 15 runs that are not this one, whatever their[0m
+2026-11-05T10:37:30.2521292Z [36;1m# event -- the scoping metric reads pull_request runs, the push[0m
+2026-11-05T10:37:30.2521785Z [36;1m# counts read push runs, and every line carries its own event and[0m
+2026-11-05T10:37:30.2522248Z [36;1m# run id, so the ratchet groups them itself. The run association is[0m
+2026-11-05T10:37:30.2522708Z [36;1m# read as .workflow_run.id with a .run_id fallback (the list API[0m
+2026-11-05T10:37:30.2523160Z [36;1m# stopped returning .run_id on 2026-10-12); both stay null-safe in[0m
+2026-11-05T10:37:30.2523601Z [36;1m# ci_ratchet.window_entries, which owns the selection now.[0m
+2026-11-05T10:37:30.2524033Z [36;1mpython3 -I tests/ci_ratchet.py --gather --metrics-dir "$M"[0m
+2026-11-05T10:37:30.2554041Z shell: /usr/bin/bash -e {0}
+2026-11-05T10:37:30.2554286Z env:
+2026-11-05T10:37:30.2554549Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:30.2554994Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-05T10:37:30.2555418Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:30.2555801Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:30.2556184Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:30.2556568Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-05T10:37:30.2559311Z   GH_TOKEN: ***
+2026-11-05T10:37:30.2559529Z ##[endgroup]
+2026-11-05T10:37:58.1031294Z window: 45 ci-metrics artifact(s)
+2026-11-05T10:37:58.1136084Z ##[group]Run python3 -I tests/ci_ratchet.py --gather-runs "$RUNNER_TEMP/runs.json"
+2026-11-05T10:37:58.1136688Z [36;1mpython3 -I tests/ci_ratchet.py --gather-runs "$RUNNER_TEMP/runs.json"[0m
+2026-11-05T10:37:58.1165639Z shell: /usr/bin/bash -e {0}
+2026-11-05T10:37:58.1165885Z env:
+2026-11-05T10:37:58.1166144Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:58.1166595Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-05T10:37:58.1167036Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:58.1167418Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:58.1167820Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:37:58.1168594Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-05T10:37:58.1171064Z   GH_TOKEN: ***
+2026-11-05T10:37:58.1171266Z ##[endgroup]
+2026-11-05T10:38:22.3757692Z push runs: 16 (16 CI)
+2026-11-05T10:38:22.3866534Z ##[group]Run python3 tests/ci_ratchet.py --metrics-dir "$RUNNER_TEMP/metrics" --runs-json "$RUNNER_TEMP/runs.json"
+2026-11-05T10:38:22.3867354Z [36;1mpython3 tests/ci_ratchet.py --metrics-dir "$RUNNER_TEMP/metrics" --runs-json "$RUNNER_TEMP/runs.json"[0m
+2026-11-05T10:38:22.3896978Z shell: /usr/bin/bash -e {0}
+2026-11-05T10:38:22.3897226Z env:
+2026-11-05T10:38:22.3897488Z   pythonLocation: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:38:22.3897941Z   PKG_CONFIG_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib/pkgconfig
+2026-11-05T10:38:22.3898647Z   Python_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:38:22.3899261Z   Python2_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:38:22.3899638Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.13.17/x64
+2026-11-05T10:38:22.3900037Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.13.17/x64/lib
+2026-11-05T10:38:22.3900388Z ##[endgroup]
+2026-11-05T10:38:52.9950890Z CI ratchet:
+2026-11-05T10:38:52.9953873Z   ok    archscore._inlined_bases: 0 (budget 0)
+2026-11-05T10:38:52.9954734Z   ok    archscore.card_clone_copies: 103 (budget 108)
+2026-11-05T10:38:52.9955523Z   ok    archscore.card_dead_definitions: 0 (budget 0)
+2026-11-05T10:38:52.9956280Z   ok    archscore.card_rule_copies: 70 (budget 72)
+2026-11-05T10:38:52.9957051Z   ok    archscore.computed_attr_access: 28 (budget 32)
+2026-11-05T10:38:52.9957825Z   ok    archscore.coord_footprint: 2370 (budget 2592)
+2026-11-05T10:38:52.9958905Z   ok    archscore.coordinator_multiassigned_attrs: 108 (budget 120)
+2026-11-05T10:38:52.9959664Z   ok    archscore.coordinator_private_reach: 2 (budget 2)
+2026-11-05T10:38:52.9960214Z   ok    archscore.dead_members: 1 (budget 1)
+2026-11-05T10:38:52.9960725Z   ok    archscore.duplication_copies: 28 (budget 68)
+2026-11-05T10:38:52.9961324Z   ok    archscore.family_orphan_overrides: 0 (budget 0)
+2026-11-05T10:38:52.9961894Z   ok    archscore.family_splits: 0 (budget 0)
+2026-11-05T10:38:52.9962425Z   ok    archscore.hub_solve_writes: 1 (budget 16)
+2026-11-05T10:38:52.9962991Z   ok    archscore.import_cycle_modules: 0 (budget 0)
+2026-11-05T10:38:52.9963556Z   ok    archscore.layer_violations: 13 (budget 22)
+2026-11-05T10:38:52.9964100Z   ok    archscore.literal_clone_copies: 123 (budget 123)
+2026-11-05T10:38:52.9964606Z   ok    archscore.params_over_10: 6 (budget 12)
+2026-11-05T10:38:52.9965018Z   ok    archscore.private_cross_module: 10 (budget 17)
+2026-11-05T10:38:52.9965417Z   ok    archscore.public_unused: 1 (budget 1)
+2026-11-05T10:38:52.9965796Z   ok    archscore.reflective_writes: 11 (budget 17)
+2026-11-05T10:38:52.9966181Z   ok    archscore.shape_copies: 42 (budget 66)
+2026-11-05T10:38:52.9966580Z   ok    archscore.shared_inplace_writes: 3 (budget 3)
+2026-11-05T10:38:52.9966993Z   ok    archscore.unread_private_globals: 0 (budget 0)
+2026-11-05T10:38:52.9967629Z   ok    archscore.untyped_payload_keys: 0 (budget 0)
+2026-11-05T10:38:52.9968589Z   ok    archscore.unused_boundary_imports: 0 (budget 0)
+2026-11-05T10:38:52.9969313Z   ok    critical_path_minutes: 23.148 (budget 21.983, band 1.3)
+2026-11-05T10:38:52.9970129Z   ?     script_runs_full_case_pr: not derived this run (missing input); not graded
+2026-11-05T10:38:52.9970861Z   ok    script_runs_per_push: 54 (budget 54)
+2026-11-05T10:38:52.9971427Z ci-ratchet: every metric at or under its budget
+2026-11-05T10:38:53.5737403Z Post job cleanup.
+2026-11-05T10:38:53.7045593Z Post job cleanup.
+2026-11-05T10:38:53.7890121Z [command]/usr/bin/git version
+2026-11-05T10:38:53.7930910Z git version 2.56.0
+2026-11-05T10:38:53.7967073Z Temporarily overriding HOME='/home/runner/work/_temp/6941b337-67e6-445d-a162-690b42836cbc' before making global git config changes
+2026-11-05T10:38:53.7968360Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T10:38:53.7973345Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T10:38:53.8008618Z Removing SSH command configuration
+2026-11-05T10:38:53.8015291Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T10:38:53.8052920Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T10:38:53.8351471Z Removing HTTP extra header
+2026-11-05T10:38:53.8357368Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T10:38:53.8395721Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T10:38:53.8682421Z Removing includeIf entries pointing to credentials config files
+2026-11-05T10:38:53.8692186Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T10:38:53.8724275Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T10:38:53.8725651Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T10:38:53.8726771Z includeif.gitdir:/github/workspace/.git.path
+2026-11-05T10:38:53.8727543Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T10:38:53.8735621Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T10:38:53.8761823Z /home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:38:53.8775995Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-c9105f5e\-8b6a\-49de\-a144\-60586b49b344\.config
+2026-11-05T10:38:53.8819072Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T10:38:53.8855547Z /home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:38:53.8868043Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-c9105f5e\-8b6a\-49de\-a144\-60586b49b344\.config
+2026-11-05T10:38:53.8905724Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-05T10:38:53.8931579Z /github/runner_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:38:53.8941833Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-c9105f5e\-8b6a\-49de\-a144\-60586b49b344\.config
+2026-11-05T10:38:53.8980140Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T10:38:53.9005578Z /github/runner_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config
+2026-11-05T10:38:53.9046634Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-c9105f5e\-8b6a\-49de\-a144\-60586b49b344\.config
+2026-11-05T10:38:53.9084567Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T10:38:53.9381376Z Removing credentials config '/home/runner/work/_temp/git-credentials-c9105f5e-8b6a-49de-a144-60586b49b344.config'
+2026-11-05T10:38:53.9537799Z Cleaning up orphan processes
