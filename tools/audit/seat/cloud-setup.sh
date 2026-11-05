@@ -55,6 +55,7 @@ CORETYPE=Haswell
 SEAT_NAME=seat
 SEAT_EMAIL=seat@users.noreply.github.com
 SELF=$(readlink -f "${BASH_SOURCE[0]}")
+. "$(dirname "$SELF")/../../../tests/throwaway_git.sh" # the one way a script builds a throwaway repository
 
 write_profile() { # profile, prefix
   cat > "$1" <<EOF
@@ -140,7 +141,7 @@ self_test() (
   [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
   out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")
   [ "$out" = "$SEAT_NAME $SEAT_EMAIL $SEAT_NAME $SEAT_EMAIL" ]; expect "the profile exports the seat identity" $?
-  git init -q "$W/r"
+  throwaway_git_init "$W/r" -q  # its GIT_* identity lives in the init subshell only; run below is env -i
   git -C "$W/r" config user.name Claude; git -C "$W/r" config user.email noreply@anthropic.com
   run git -C "$W/r" commit -q --allow-empty -m x
   out=$(git -C "$W/r" log -1 --format='%an <%ae> %cn <%ce>')
