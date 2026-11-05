@@ -241,11 +241,15 @@ def attribution(text: str) -> list[str]:
 
 def email_leaks(email: str, ident: Identity) -> list[str]:
     """`host-email` when a git identity's domain names a machine: a private-use
-    suffix, or this host's own name. A public domain (a noreply address) passes."""
+    suffix, or this host's own name; `anthropic-identity` for an @anthropic.com
+    address, which is a runner whose identity was never set (a seat commits as
+    hpo-fixer). Any other public domain (a noreply address) passes."""
     domain = email.rsplit("@", 1)[-1].casefold().rstrip(".>")
     if (domain == "localhost" or domain.endswith(PRIVATE_EMAIL_SUFFIXES)
             or domain in ident.hosts or domain.split(".", 1)[0] in ident.hosts):
         return ["host-email"]
+    if domain == "anthropic.com" or domain.endswith(".anthropic.com"):
+        return ["anthropic-identity"]
     return []
 
 
@@ -729,7 +733,11 @@ def self_test() -> int:
        email_leaks("t@example-mbp", fid) == ["host-email"] and email_leaks("t@EXAMPLE-MBP.local", fid) == ["host-email"])
     ok("a noreply address passes, even naming the account (the null control)",
        email_leaks("123+" + fake_name + "@users.noreply.github.com", fid) == []
-       and email_leaks("noreply@anthropic.com", fid) == [])
+       and email_leaks("hpo-fixer@users.noreply.github.com", fid) == [])
+    ok("an @anthropic.com identity is refused, as the runner default is not a seat's",
+       email_leaks("noreply@anthropic.com", fid) == ["anthropic-identity"]
+       and email_leaks("x@mail.ANTHROPIC.com>", fid) == ["anthropic-identity"]
+       and email_leaks("x@notanthropic.com", fid) == [])
     bodyleak = "evidence: " + fake_home + "/.zcode/bus/verdicts/7/abc/evidence"
     ok("a comment body naming this host's home is refused (the bus evidence line)",
        (body_refusal(bodyleak, fid) or "").startswith("home-directory, account-name"), str(body_refusal(bodyleak, fid)))
@@ -809,6 +817,19 @@ def self_test() -> int:
         r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
                             "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
         ok("and passes it re-authored to the fixture identity (the null control)", r.returncode == 0, r.stderr.strip())
+        # P253/P320: the runner's default identity is refused, author or committer.
+        for who in ("AUTHOR", "COMMITTER"):
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env={**env, f"GIT_{who}_NAME": "Claude", f"GIT_{who}_EMAIL": "noreply@anthropic.com"})
+            r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                                "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+            ok(f"the guard CLI refuses an unpushed commit whose {who.lower()} is the runner's Claude identity, exit 3",
+               r.returncode == 3 and f"anthropic-identity in the {who.lower()} email of" in r.stderr, r.stderr.strip())
+            subprocess.run(["git", "commit", "-q", "--amend", "--allow-empty", "--no-edit", "--reset-author"],
+                           cwd=seat, check=True, env=env)
+        r = subprocess.run([sys.executable, "-I", str(Path(__file__).resolve()), "guard", "--ref", "fix/x",
+                            "--commits", "HEAD", "-C", seat], env=env, capture_output=True, text=True)
+        ok("and passes once re-authored (the null control)", r.returncode == 0, r.stderr.strip())
         # R10-FLY-NO-FOOTERS end to end: an unpushed commit carrying the session
         # trailer is refused, and the same trailer on a commit origin already
         # holds is history, never charged.
