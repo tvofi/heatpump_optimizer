@@ -17199,10 +17199,15 @@ def _bo_nometer_month(ct_product):
     ct = coord._capacity_tariff()
     rng = np.random.default_rng(1499)
     trace, space_only = [], []
-    start = datetime(2026, 1, 1, tzinfo=_BO_TZ).astimezone(timezone.utc)
+    # The month runs in the configured zone: the production fold stamps each
+    # sample with ``dt_util.now()``, so the tariff's hour and day masks read
+    # that zone's wall clock, and the oracle must read the same one under any
+    # ``HASTUB_TZ`` (UTC unless set).
+    zone = _bo_dt.DEFAULT_TIME_ZONE
+    start = datetime(2026, 1, 1, tzinfo=zone).astimezone(timezone.utc)
     try:
         for hour in range(31 * 24):
-            when = (start + timedelta(hours=hour)).astimezone(_BO_TZ)
+            when = (start + timedelta(hours=hour)).astimezone(zone)
             if 5 <= when.hour <= 7:          # a DHW-only morning charge
                 action = {"power": 0.0, "dhw_power": rng.uniform(6.0, 9.5), "heat_pump_on": True}
             else:
@@ -35506,7 +35511,10 @@ def _943_drive(host, hours=6.0):
     settling — actually delivers. Returns the peak |T - 21| reached and
     the electrical step the sizer chose.
     """
-    t0 = datetime(2026, 1, 5, 2, 0, tzinfo=UTC)
+    # 02:00 in the configured zone: the experiment's night window is local
+    # hours (``SystemIdentification`` reads ``now.hour``), so a UTC literal
+    # falls outside it under a zone far enough from UTC.
+    t0 = datetime(2026, 1, 5, 2, 0, tzinfo=dt_util.DEFAULT_TIME_ZONE)
     p = host._thermal_params
     cop = host._thermal_model.compute_cop(3.0)
     q_hold = p.heat_loss_coefficient * (21.0 - 3.0) - p.internal_gains
@@ -37207,7 +37215,11 @@ async def _pt_degree_at_seam(room):
 # stands, so the two starts part it. The clock is fixed at a night and an
 # afternoon instant: what the check reads is the same at every hour it runs.
 _pt_seams = {}
-for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=UTC), datetime(2026, 1, 15, 15, 7, tzinfo=UTC)):
+# The instants are 03:07 and 15:07 in the configured zone, so the hour the
+# keys name is the local hour the plan's price and comfort windows read, under
+# any ``HASTUB_TZ`` (UTC unless set).
+for _pt_at in (datetime(2026, 1, 15, 3, 7, tzinfo=_fi_dt.DEFAULT_TIME_ZONE),
+               datetime(2026, 1, 15, 15, 7, tzinfo=_fi_dt.DEFAULT_TIME_ZONE)):
     _fi_dt.freeze(_pt_at)
     try:
         for _pt_room in (19.0, 23.0):
@@ -42676,6 +42688,16 @@ R.check(
     and _sb_row["savings_sek"] is not None and _sb_row["savings_pct"] is not None,
     repr((_sb_meta, _sb_row)),
 )
+# The stamp is a persisted value: a v2 store already on disk holds the literal
+# 1.0 this release writes, and that month must keep reading as current.
+_sb_disk = _sb_copy.deepcopy(_sb_led.as_dict())
+_sb_disk["months"]["2026-02"]["meta"][_SB_META] = {"sum": 1.0, "count": 1}
+_sb_disk_row = _SavLedger.from_dict(_sb_disk).savings_months(_SavDT(2026, 3, 2, 0, 0))[0]
+R.check(
+    "a month a v2 store holds stamped 1 reads on the current reference",
+    _sb_disk_row["old_basis"] is False and _sb_disk_row["savings_sek"] is not None,
+    repr(_sb_disk_row),
+)
 _sb_v1 = {"ledger": _sb_copy.deepcopy(_sb_led.as_dict()), "starts": {"kept": 1}}
 del _sb_v1["ledger"]["months"]["2026-02"]["meta"][_SB_META]
 _sb_lines = _sb_copy.deepcopy(_sb_v1["ledger"]["months"]["2026-02"]["lines"])
@@ -43433,6 +43455,102 @@ for _hb_two, _hb_dhw in ((False, False), (True, True)):
                 precipitation=np.array([]), solar_radiation=np.array([])), 25.0) is _hb_held,
             "",
         )
+
+# Behind a valve, at zero demand (a warm, sunny step: the steady demand at
+# target is negative, clamped to 0). The held tank keeps its measured
+# temperature, since no temperature delivers a need of nothing; and a horizon
+# with no steady demand anywhere has no shape to spread its energy by, so the
+# simulated schedule stands as simulated.
+_hz_ws = _HbWSeries(
+    outdoor_temps=np.full(4, 30.0), wind_speeds=np.zeros(4),
+    precipitation=np.zeros(4), solar_radiation=np.full(4, 800.0),
+)
+_hz_par = _HbParams.from_config(_hb_house(two_zone=False, dhw=False))
+_hz_par.mixing_valve_mode = "manual"
+_hz_opt = _HbOpt(_HbModel(_hz_par), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hz_held = _hb_held_state(_hz_opt.model, _HbState(
+    room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=30.0,
+    upper_floor_temperature=21.0, lower_floor_temperature=21.0, buffer_tank_temperature=37.5,
+), _hz_ws, 21.0)
+_hz_sim = np.array([1.0, 2.0, 0.5, 0.0])
+try:
+    _hz_spread = _hz_opt._apportion_by_steady_demand(_hz_sim, _hz_ws, [21.0] * 4)
+except ZeroDivisionError as _hz_exc:
+    _hz_spread = _hz_exc
+R.check(
+    "behind a valve at zero demand the held tank keeps its measured temperature, "
+    "and a horizon with no steady demand keeps its simulated schedule",
+    _hz_held.buffer_tank_temperature == 37.5
+    and isinstance(_hz_spread, np.ndarray) and np.array_equal(_hz_spread, _hz_sim),
+    repr((_hz_held.buffer_tank_temperature, _hz_spread)),
+)
+
+# Behind a valve the reference spreads its energy by steady demand, and on a
+# small pump in a cold night with a sunny day that spread asks more than the
+# pump has (measured 1.23x on this house). The solve's seed from it is clamped,
+# so every start the space solve is handed lies inside its bounds.
+from heatpump_optimizer import optimizer as _hz_omod
+
+_hz_n = 96
+_hz_hours = np.arange(_hz_n) * 0.25
+_hz_day = (_hz_hours > 9) & (_hz_hours < 15)
+_hz_cpar = _HbParams.from_config(_hb_house(two_zone=False, dhw=False, heat_pump_max_power=3.0))
+_hz_cpar.dhw_enabled = False
+_hz_cpar.mixing_valve_mode = "manual"
+_hz_copt = _HbOpt(_HbModel(_hz_cpar), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hz_seen = []
+_hz_orig_ms = _hz_omod._multi_start_minimize
+
+
+def _hz_spy_ms(objective, starts, bounds, **kw):
+    _hz_seen.append(max(
+        float(np.max(np.asarray(s, float) - np.array([hi for _, hi in bounds])))
+        for s in starts
+    ))
+    _hz_seen.append(-min(float(np.min(np.asarray(s, float))) for s in starts))
+    return _hz_orig_ms(objective, starts, bounds, **kw)
+
+
+_hz_baselines = []
+_hz_orig_bp = _HbOpt._compute_baseline_power
+
+
+def _hz_spy_bp(self, *a, **kw):
+    out = _hz_orig_bp(self, *a, **kw)
+    _hz_baselines.append(float(np.max(out[0])))
+    return out
+
+
+_hz_omod._multi_start_minimize = _hz_spy_ms
+_HbOpt._compute_baseline_power = _hz_spy_bp
+try:
+    _hz_copt.optimize(inputs=solve_inputs(
+        initial_state=_HbState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-25.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0,
+        ),
+        prices=_hb_prices("winter_extreme", _hb_t0),
+        outdoor_temps=np.full(_hz_n, -25.0) + np.where(_hz_day, 8.0, 0.0),
+        wind_speeds=np.zeros(_hz_n), precipitation=np.zeros(_hz_n),
+        solar_radiation=np.where(_hz_day, 400.0, 0.0), start_time=_hb_t0,
+    ))
+finally:
+    _hz_omod._multi_start_minimize = _hz_orig_ms
+    _HbOpt._compute_baseline_power = _hz_orig_bp
+_hz_pmax = float(_hz_cpar.max_electrical_power)
+R.check(
+    "behind a valve, a reference spread past the pump seeds the space solve "
+    "only inside its bounds",
+    bool(_hz_seen) and max(_hz_seen) <= 1e-12
+    and max(_hz_baselines, default=0.0) > _hz_pmax,
+    f"worst excess over a bound {max(_hz_seen, default=None)!r}, "
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
+)
 
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
 # (24 C room, above the 21 C cap the end settlement uses) carries heat the plan
@@ -48059,11 +48177,16 @@ def _t3_peak(house, measured, commanded, *, enabled=True):
     dt_util.freeze(_T3_PEAK_NOW)
     try:
         got = _t3_call(c._track_realised_peak)
+        # Read the window at the clock the production fold stamped it with
+        # (``dt_util.now()``: the same instant in the configured zone). The
+        # window key carries the slot's UTC offset, so the UTC literal reads a
+        # different key under a non-UTC ``HASTUB_TZ`` and finds no window.
+        read_at = dt_util.now()
     finally:
         dt_util.freeze(None)
     if isinstance(got, Exception):
         return got
-    return c._peak_tracker.window_snapshot(_T3_PEAK_NOW, c._capacity_tariff())[1]
+    return c._peak_tracker.window_snapshot(read_at, c._capacity_tariff())[1]
 
 
 R.check(
@@ -48235,8 +48358,11 @@ def _t3_outage(last_tick_iso, *, enabled=True):
     return c
 
 
+# The naive tick is the same instant's wall clock in the configured zone,
+# the zone the production read adopts for it (UTC unless ``HASTUB_TZ`` is set).
 _t3_out_naive = _t3_outage(
-    (_T3_OUTAGE_NOW - timedelta(hours=5)).replace(tzinfo=None).isoformat()
+    (_T3_OUTAGE_NOW - timedelta(hours=5))
+    .astimezone(dt_util.DEFAULT_TIME_ZONE).replace(tzinfo=None).isoformat()
 )
 _t3_out_aware = _t3_outage((_T3_OUTAGE_NOW - timedelta(hours=5)).isoformat())
 R.check(
@@ -51267,7 +51393,9 @@ R.check(
 # wrong-by-a-day one, so the entry nearest the current time wins and a
 # forecast with no timestamps falls back to the old first-entry behaviour
 # rather than reading nothing.
-_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0)
+# Aware, so the frozen clock and the entry stamps name one instant under any
+# ``HASTUB_TZ``: a naive entry stamp is read as UTC against the aware clock.
+_T6_HUM_NOW = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
 
 
 def _t6_humidity(entries):
@@ -51728,11 +51856,12 @@ R.check(
 _T6_TS_AWARE = datetime(2026, 2, 1, 12, 0, 0, tzinfo=timezone.utc)
 _T6_TS_NAIVE = datetime(2026, 2, 1, 12, 0, 0)
 R.check(
-    "a naive timestamp against an aware grid is taken as UTC, and the reverse keeps its wall clock",
+    "a naive timestamp against an aware grid is taken as UTC, and the reverse reads the configured zone's wall clock",
     _t6_comparable_ts("2026-02-01T10:00:00", _T6_TS_AWARE)
     == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
     and _t6_comparable_ts("2026-02-01T10:00:00+00:00", _T6_TS_NAIVE)
-    == datetime(2026, 2, 1, 10, 0, 0),
+    == datetime(2026, 2, 1, 10, 0, 0, tzinfo=timezone.utc)
+    .astimezone(dt_util.DEFAULT_TIME_ZONE).replace(tzinfo=None),
     f"naive against aware -> "
     f"{_t6_comparable_ts('2026-02-01T10:00:00', _T6_TS_AWARE)!r}; aware "
     f"against naive -> "
@@ -62670,7 +62799,11 @@ from heatpump_optimizer import coordinator as _f11_cm  # noqa: E402
 
 
 async def _f11_midsolve(away: bool):
-    t0 = datetime(2026, 10, 2, 8, 0)
+    # Aware, so the price and forecast stamps and the frozen clock name one
+    # instant in any ``HASTUB_TZ``: a naive stamp is read as UTC against an
+    # aware clock, which under a non-UTC zone leaves no current price slot and
+    # the solve never reaches the write this check drives.
+    t0 = datetime(2026, 10, 2, 8, 0, tzinfo=timezone.utc)
     hass = FakeHass({"sensor.indoor": FakeState("21.4"),
                      "sensor.outdoor": FakeState("-3.0")})
     entry = _f11_Entry(data={"indoor_temp_entity": "sensor.indoor",
@@ -77569,7 +77702,9 @@ R.check(
     and _cp_qw.quiet_reason({"quiet_off_windows": "09:00-09:30"}, _CP_T0) is None
     and _cp_qw.quiet_reason({}, _CP_T0) is None,
 )
-_cp_dt.freeze(_CP_T0)
+# Quiet windows are wall-clock hours in the configured zone, so the instant is
+# the same 23:00 local under any ``HASTUB_TZ`` (``_CP_T0`` is 23:00 UTC).
+_cp_dt.freeze(_CP_T0.replace(tzinfo=_cp_dt.DEFAULT_TIME_ZONE))
 try:
     _CP_ROOM = {"indoor_temp_entity": "sensor.room", "outdoor_temp_entity": "sensor.out"}
     _cp_quiet = _cp_coord(**_CP_PROBE_CFG, **_CP_ROOM, quiet_off_windows="22:00-23:30")

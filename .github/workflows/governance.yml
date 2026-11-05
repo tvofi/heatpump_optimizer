@@ -568,6 +568,10 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
           grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+          bash tools/audit/seat/body_push.sh --self-test | tee "$RUNNER_TEMP/body-push-self-test.txt"
+          grep -Eq '^body_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-push-self-test.txt"
+          python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
+          grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
@@ -943,6 +947,12 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
           grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
+      - name: Show the beat's job rows refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
+          grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}

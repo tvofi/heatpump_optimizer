@@ -270,6 +270,9 @@ figures_check() { # body file
 # Under a second; it reads the diff from the merge base, never the whole tree.
 privacy_line() { # -> one line; rc 0 nothing refused, 1 refused
   local out r
+  # instrument-self-tests also runs bare_array.py --check (a bare "${arr[@]}" in a tools/ script,
+  # R10-BODY-CONTRACT's body_patch.sh:146); seconds, so it rides this step.
+  out=$(python3 -I tools/audit/seat/bare_array.py --check 2>&1) || { printf 'bare_array: %s' "$(tail -1 <<<"$out")"; return 1; }
   out=$(python3 -I tools/audit/seat/ref_privacy.py --check 2>&1); r=$?
   [ "$r" -eq 0 ] && { tail -1 <<<"$out"; return 0; }
   printf '%s-- %s' "$(grep -m3 '^ref_privacy: REFUSE' <<<"$out" | sed 's/^ref_privacy: REFUSE //' | tr '\n' ';')" "$(tail -1 <<<"$out")"
@@ -908,6 +911,15 @@ body_check() { # body file, head sha, title, paths file, red names...
   rc=$?
   rm -f "$ex"
   return "$rc"
+}
+
+# --body-check's body-text privacy arm (P317): the comment/review gate's own
+# `body_refusal` (ref_privacy.py body-lines), so a host path in a PR body is
+# refused at the handoff, not first at review_packet.py's backstop.
+body_privacy_line() { # body file -> one line; rc 0 nothing refused, 1 refused
+  local out
+  out=$(python3 -I tools/audit/seat/ref_privacy.py body-lines "$1" 2>&1) && { echo "no host identity in the body"; return 0; }
+  printf '%s' "$out"; return 1
 }
 
 # --- the predicted head reds (#1951, R9-FR-12) ---------------------------------
@@ -1772,6 +1784,9 @@ if [ "${1:-}" = "--body-check" ]; then
   vline=$(privacy_line); vr=$?
   if [ "$vr" -eq 0 ]; then echo "ref_privacy ok: $vline"; else echo "REFUSE ref_privacy: $vline"; fi
   [ "$r" -ne 0 ] || r=$vr
+  bline=$(body_privacy_line "$2"); br=$?
+  if [ "$br" -eq 0 ]; then echo "ref_privacy (body) ok: $bline"; else echo "REFUSE ref_privacy (body): $bline"; fi
+  [ "$r" -ne 0 ] || r=$br
   [ -z "${BODY_CHECK_REDS_RC:-}" ] || r=1
   exit "$r"
 fi
@@ -3845,6 +3860,17 @@ EOF
   st "$r" 0 "--body-check runs step 7a's figure lint and refuses on its rc (carry 8)"
   case "$bc" in *'vline=$(privacy_line); vr=$?'*'[ "$r" -ne 0 ] || r=$vr'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "--body-check runs privacy_line and refuses on its rc (P78)"
+  case "$bc" in *'bline=$(body_privacy_line "$2"); br=$?'*'[ "$r" -ne 0 ] || r=$br'*) r=0 ;; *) r=1 ;; esac
+  st "$r" 0 "--body-check applies body_privacy_line and folds its rc (P317)"
+  # Driven: the planted home is built and handed to the Identity through HOME/USER.
+  pfh="/$(echo Users)/exampleuser"
+  printf 'evidence: %s/proj/log\n' "$pfh" >"$WB/priv-bad.md"
+  printf 'evidence: dev/audit/x.md and ~/proj/log\n' >"$WB/priv-ok.md"
+  got=$(HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-bad.md"); r=$?
+  st "$r" 1 "a body naming the host home directory is refused by body_privacy_line"
+  st "$(printf 'REFUSE ref_privacy (body): %s' "$got" | cut -c1-26)" "REFUSE ref_privacy (body):" "and the line reads REFUSE ref_privacy (body)"
+  HOME=$pfh USER=exampleuser body_privacy_line "$WB/priv-ok.md" >/dev/null
+  st $? 0 "a body naming only repository-relative paths and ~/ text passes (null control)"
   case "$flow" in *'PRIVACY_LINE=$(privacy_line)
 step "ref privacy" $? "$PRIVACY_LINE"'*) r=0 ;; *) r=1 ;; esac
   st "$r" 0 "step 3f7 runs privacy_line and refuses on its rc"

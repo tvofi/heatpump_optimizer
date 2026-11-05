@@ -54,6 +54,7 @@
 // states the errors it must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
+import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { execFileSync } from 'node:child_process'
@@ -106,12 +107,24 @@ const workflowFiles = (re) => {
 }
 
 let _trackedFiles = null
-export function trackedFiles() {
-  if (_trackedFiles) return _trackedFiles
-  const out = git(['ls-files'])
+// The listing of `rev`, or of the checkout when rev is unset. A rev that does
+// not resolve throws: falling back to the checkout would resolve a body's cited
+// paths against the wrong tree.
+export function treeListing(rev, cwd = ROOT) {
+  const args = rev ? ['ls-tree', '-r', '--name-only', rev] : ['ls-files']
+  return execFileSync('git', args, { cwd, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+}
+
+// `cwd` is the acceptance probe's repo; it is never memoized, so the checkout's cache is untouched.
+export function trackedFiles(cwd = ROOT) {
+  if (cwd === ROOT && _trackedFiles) return _trackedFiles
+  // BRIEF_LINT_TREE_REV: body_patch.sh lints a body at the PR head, which is
+  // not the caller's checkout; cited paths must resolve in that head's tree.
+  const out = treeListing(process.env.BRIEF_LINT_TREE_REV, cwd)
   const list = canonList(out.split('\n').filter(Boolean))
-  _trackedFiles = { set: new Set(list), byBase: basenameMap(list), list }
-  return _trackedFiles
+  const files = { set: new Set(list), byBase: basenameMap(list), list }
+  if (cwd === ROOT) _trackedFiles = files
+  return files
 }
 
 const _refResolveCache = new Map()
@@ -937,6 +950,16 @@ export function checkCarryShape(file, data, findings, roster) {
   })
 }
 
+// Carry files written before the control lint existed (#2438 (i)), whose controls name no path.
+// Repairing them would rewrite other groups' controls, so the control lint leaves out these files and
+// only them (both its citation check and its no-path rule): the set is closed -- a new carry file is
+// never added here -- and shrinks as a carry is re-measured or consumed.
+const LEGACY_CONTROL_FILES = new Set([
+  'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
+  'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
+  'carry-1659.json', 'carry-1660.json', 'carry-1795.json', 'carry-201.json', 'carry-752.json',
+])
+
 export function lintCarryFile(file, { roster } = {}) {
   const findings = []
   const label = path.posix.basename(file)
@@ -951,6 +974,17 @@ export function lintCarryFile(file, { roster } = {}) {
   const carries = Array.isArray(data?.carries) ? data.carries : []
   carries.forEach((c, i) => {
     if (!c || typeof c !== 'object') return
+    // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
+    // derived count in it is refused the same way (the next stage re-establishes the finding from it).
+    if (typeof c.control === 'string' && c.control.trim() && !LEGACY_CONTROL_FILES.has(label)) {
+      lintBrief(`${label} carry ${i} control`, c.control, findings)
+      // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator,
+      // no figure). The requirement binds every carry file but the LEGACY_CONTROL_FILES recorded below.
+      const names = [...c.control.matchAll(PATH_TOKEN_RE)].length + [...c.control.matchAll(PATHLINE_RE)].length
+      if (!names) {
+        findings.push({ group: `${label} carry ${i} control`, severity: 'error', kind: 'carry', message: 'names no path to the harness or command that re-establishes it; a bare figure or section name is not an enumerator' })
+      }
+    }
     if (typeof c.brief !== 'string' || !c.brief.trim()) return // absence already reported
     lintBrief(`${label} carry ${i}`, c.brief, findings)
   })
@@ -1222,6 +1256,42 @@ const REQUIRED_CARRY = [
   { file: 'carry-990004.json', kind: 'carry', needle: 'already has a live roster group (wave-probe-groups.json PROBE-G1)' },
 ]
 
+// A carry's control is cited like its brief and must name a path a seat can re-run (#2438 (i)).
+function carryControlFindings(control, name = 'carry-999999.json') {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'carry-control-'))
+  try {
+    const file = path.join(dir, name)
+    const fx = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+    fx.issue = Number(name.match(/\d+/)[0])
+    fx.carries[0].control = control
+    fs.writeFileSync(file, JSON.stringify(fx))
+    return lintCarryFile(file, { roster: new Map() }).filter((f) => f.severity === 'error')
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+}
+
+function assertCarryControl() {
+  const problems = []
+  for (const bad of ['the FUTURE-STATE section 2 figures', 'states 22 for metrics (a bare statistic)']) {
+    if (!carryControlFindings(bad).some((f) => f.message.includes('names no path'))) problems.push(`control ${JSON.stringify(bad)} is accepted`)
+  }
+  if (!carryControlFindings('run dev/audit/harnesses/no_such_probe_x.py').some((f) => f.kind === 'path')) {
+    problems.push('a control citing a path not in the tree is accepted; it is not linted as a brief is')
+  }
+  const good = carryControlFindings('dev/audit/harnesses/agreement_two_pr.mjs prints the count')
+  if (good.length) problems.push(`a control naming an existing harness is refused (null control): ${good[0].message}`)
+  const legacy = carryControlFindings('the FUTURE-STATE section 2 figures', 'carry-201.json')
+  if (legacy.length) problems.push(`a legacy carry file is refused (the narrowing): ${legacy[0].message}`)
+  if (problems.length) {
+    console.log('\nCONTROL VACUOUS: carry control:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the 15 legacy files are left out')
+  return 0
+}
+
 function assertCarryFixtures() {
   const dir = FIXTURES
   let problems = []
@@ -1249,6 +1319,59 @@ function assertCarryFixtures() {
     `\nCARRY ok: ${REQUIRED_CARRY.length} error(s) pin the carry acceptance across three malformed fixtures, ` +
       'and the correct one produces no finding of any severity'
   )
+  return 0
+}
+
+// treeListing acceptance: a throwaway repo whose second commit adds b.txt and
+// deletes a.txt. The head listing must show the add and not the delete, the
+// first commit's the reverse (null control), the checkout form follows the
+// working tree, and an unresolvable rev must throw.
+function assertTreeRev() {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'treerev-'))
+  const problems = []
+  try {
+    const g = (...a) => execFileSync('git', ['-c', 'user.name=t', '-c', 'user.email=t@t', ...a], { cwd: dir, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    g('init', dir); g('config', 'maintenance.auto', 'false'); g('config', 'gc.auto', '0') // the local layer of tests/throwaway_git.py, which has no node twin
+    fs.writeFileSync(path.join(dir, 'a.txt'), 'a')
+    g('add', '.'); g('commit', '-qm', 'one')
+    const first = g('rev-parse', 'HEAD').trim()
+    fs.writeFileSync(path.join(dir, 'b.txt'), 'b')
+    g('rm', '-q', 'a.txt'); g('add', '.'); g('commit', '-qm', 'two')
+    const head = g('rev-parse', 'HEAD').trim()
+    g('checkout', '-q', first)
+    const at_head = treeListing(head, dir).split('\n')
+    const at_first = treeListing(first, dir).split('\n')
+    const checkout = treeListing(undefined, dir).split('\n')
+    if (!at_head.includes('b.txt') || at_head.includes('a.txt')) problems.push('the head listing is not the head tree (b.txt present, a.txt absent)')
+    if (!at_first.includes('a.txt') || at_first.includes('b.txt')) problems.push('the null control listing is not the first commit tree')
+    if (!checkout.includes('a.txt') || checkout.includes('b.txt')) problems.push('the checkout listing does not follow the checkout (a rev would be ignored)')
+    // The wiring: trackedFiles reads the variable, not only treeListing the argument.
+    const prior = process.env.BRIEF_LINT_TREE_REV
+    process.env.BRIEF_LINT_TREE_REV = head
+    let viaEnv, envNull
+    try {
+      viaEnv = trackedFiles(dir).list
+      delete process.env.BRIEF_LINT_TREE_REV
+      envNull = trackedFiles(dir).list
+    } finally {
+      if (prior === undefined) delete process.env.BRIEF_LINT_TREE_REV; else process.env.BRIEF_LINT_TREE_REV = prior
+    }
+    if (!viaEnv.includes('b.txt') || viaEnv.includes('a.txt')) problems.push('trackedFiles ignores BRIEF_LINT_TREE_REV (the head tree was not listed)')
+    if (!envNull.includes('a.txt') || envNull.includes('b.txt')) problems.push('trackedFiles with the variable unset does not follow the checkout (null control)')
+    let threw = false
+    try { treeListing('no-such-rev-probe', dir) } catch { threw = true }
+    if (!threw) problems.push('an unresolvable rev did not throw; it fell back silently')
+  } catch (e) {
+    problems.push(`probe repo failed: ${e.message}`)
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true })
+  }
+  if (problems.length) {
+    console.log('\nTREEREV VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nTREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one')
   return 0
 }
 
@@ -1367,6 +1490,8 @@ function main() {
     acceptanceRc += assertIssuelessWarning()
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
+    acceptanceRc += assertCarryControl()
+    acceptanceRc += assertTreeRev()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
