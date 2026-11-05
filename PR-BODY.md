@@ -1,55 +1,66 @@
-R10-RAISE-GATE-SHIM (issue 3128), repair round 2: closes the seat-gh bypasses the round-1 fix review blocked on (`--body`/`--body-file` before the number, the unnormalised target and path spellings, the basename-only parent check), and carries (c) honestly.
+R10-RAISE-GATE-SHIM (issue 3128), repair round 4: the round-3 fix review blocked on `body-stale` (the body described code head `289fe24b`, not the deny-by-default shim). This body is retaken whole for the head below, and the three cheap findings the review measured are closed in the code.
 
 Closes #3128
 
 ## Head
 
-Code head `289fe24b401676199a4c10d0b181e9223cb458f3` (`handoff/r10-raise-gate-shim`): PR head `e7126ae2` plus a merge of `origin/main` `79f765e6b2e0f97e61b57d7b605fc4e70b4bf21e` plus one repair commit. `tools/pr/prepr.sh` was run on this committed tree after the merge (`rc=0`, `ci predict`: no red predicted, `claim files` byte-identical to origin/main); main had not moved at that run. No budget file, claim file, `VERSION`, manifest version or `RELEASE_NOTES.md` is touched; `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+Code head `977d4e15e0e29d7fe380575b556ccee3a8825ab6` (`handoff/r10-raise-gate-shim`): the PR head `6b416a18fc8752eaa3c10404cec43f896df3ed60` plus three commits. `6b416a18` merges the authored code head `6027fe3e`, which carries `1d4ed28e4`. `origin/main` is `8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc` (`git fetch origin main && git rev-parse origin/main`, 2026-11-05) and equals the merge base (`git merge-base origin/main HEAD`), so main had not moved and no merge was needed.
 
-What changed (all in `tools/audit/seat/shims/seat-gh`, its installer `seat_venv.sh --install-shims`, `gh_calls.py --self-test`, the instrument note):
-1. `issue comment` is read by gh's own flag table: `--body` and `--body-file` join the skipped value flags (`-b -F -R --repo` already were), detached and attached. The target is normalised by `num()`: `#`, query, anchor, one %-decoding, trailing slashes dropped, leading zeros dropped, a URL read only as `.../issues/<n>` or `.../pull/<n>`. A target that is not one plain number (no target, a branch word, an unresolved `%`, a backslash) is **refused: fail closed**.
-2. The api path is normalised by `api_hits()`: query/anchor cut, one %-decoding, scheme and host dropped, `.`, `..` and empty segments resolved, then `issues/<n>/comments` must be the whole tail with `<n>` equal to 201 after zero-stripping. A path it cannot read (unresolved `%`, backslash, newline) is refused when the call writes. Decision on the ambiguous spellings of finding 2: all refused; a #202 spelling of the same shapes is a null control that passes.
-3. The parent check reads python's own option table (no-value letters passed, `-W`/`-X` skip their value, `-c`, `-m` and any unknown option end it with no script) and compares the script by physical path with the tree's `tools/pr/gh_comment.py`. A symlink is refused. The installer bakes the tree's path into the installed copy (`gcpy=` line); a shim run from outside the tree has no path, so no caller passes (fail closed).
-Alternatives that lost: listing more spellings in a `case` (the #1874/#2345 shape, class still open); reading the whole argv for the number (refuses a body quoting 201). Residual, unchanged and declared: PATCH of `issues/comments/<id>`, graphql mutations; `gh pr comment` is not read (#201 is an issue, and a branch-word target would be over-refused).
+The shim under review is `1d4ed28e4`: `tools/audit/seat/shims/seat-gh` carries a deny-by-default `gate()` over `api_gate`, `issue_gate` and `pr_gate` (there is no `api_hits`). A call that could write a comment on the tracking issue (#201) is refused unless the caller is python running the tree's own `tools/pr/gh_comment.py` by real path, or the call is on gh's own explicit table of calls that cannot write one: reads, `issue view/list/status/create`, `issue comment/close/...` on one plain number other than 201, `pr` with no word reading 201, `api` reads, `api` writes at paths that are neither `issues/201/comments`, `issues/comments/<id>`, an unreadable path nor a graphql mutation, and the command groups with no issue-comment surface. Everything else (an unknown subcommand, an alias, an extension, an unknown flag) is refused.
+
+This repair changes three things on top of `1d4ed28e4`:
+1. `norm()` lower-cases the api path before matching, so `repos/o/r/ISSUES/201/COMMENTS` is the tracker's (review finding: the case gap).
+2. The kill word is built from fragments at runtime in `gh_calls.py` (the `planted` argv and the `gh issue comment 201` refused row) and the id is the fixture id `fixture-mandate-0000`, replacing the fake numeric id.
+3. `seat_venv.sh --self-test` has a row for the installer's `gcpy=` bake (review finding: the surviving installer mutant).
+
+No budget file, claim file, `VERSION`, manifest version or `RELEASE_NOTES.md` is touched.
 
 ## Mutation proof
 
-- Predicate `[ -n "$ok" ] || {` changed to `true || {` in the shim: `gh_calls self-test: 146 checks, 38 failed` (the refusal arms); restored, 0 failed.
-- `[WX])` changed to `[W])` in the parent option table: `FAIL parent check: null control: -X dev -W ignore -I before the tree's script` and `FAIL mutant killed: python -W/-X value read as the script` (2 failed); restored, 0 failed.
-- Nine in-suite mutants (`guard_mutant`, each kills one rule): `--body`/`--body-file` not skipped; leading zeros kept; no %-decoding; trailing slash kept; an unreadable target passes; dot segments kept; trailing slash unread in the api path; `-W/-X` value read as the script; the script matched by basename. Where fail-closed would hide the mutant (trailing slash, %-decoding, `-X`), the mutant is observed on the **null control** (a #202 spelling) flipping to refused.
+All counts are `python3 tools/audit/seat/gh_calls.py --self-test` at the head, `195 checks, 0 failed`.
+- Predicate `[ -n "$ok" ] || {` changed to `true || {` in the shim (the refusal never fires): `gh_calls self-test: 195 checks, 67 failed`; restored, 0 failed. (The reviewer measured 190 checks, 65 failed at `6b416a18`; the difference is this repair's own rows.)
+- The lower-casing line in `norm()` deleted: 4 failed (`gh api an upper-cased issues segment is refused`, `gh api an upper-cased comments segment is refused`, `mutant killed: path segments not lower-cased` and its `(comments segment)` twin); restored, 0 failed.
+- The installer's bake line in `seat_venv.sh` (`[ "$l" = 'gcpy=@HPO_GH_COMMENT@' ] && l=...`) replaced by `:`: `seat_venv self-test: 27 checks, 1 failed` (`FAIL --install-shims bakes the tree's gh_comment.py path into the installed gh shim`); restored, 0 failed. The same mutation left 25 checks, 0 failed before this repair.
+- The in-suite `guard_mutant` rows of `1d4ed28e4` (each kills one rule of the guard) are unchanged and pass.
 
 ## Null control
 
-Every refusal arm in `gh_calls.py --self-test` has a null control that reaches the real gh (stub rc 7): GET of #201, posts to 202, 2011, dot segments resolving to 202, %-encoded 202, `issue comment 202` with `--body 201` and with `--body-file 201`, a #202 URL with a trailing slash, `issue view 201`, a PATCH, and the tree's own script reached by an absolute path, a relative path and with `-X dev -W ignore -I` / `-Wignore -B` before it.
-
-Harness at both ends (the reviewer's offline `ev/cases.sh` and a spoof script of mine, both against a local stub `gh` that records argv, `env -i`, empty HOME, no token): at `e7126ae2` the shim passed 9 of the bypass probes (reviewer's `ev/shim-cases-head.txt`) and my run of `cases.sh` against the `e7126ae2` shim reads 31 OK / 9 FAIL; against this head every refusal and bypass probe is refused with an empty stub log, except the two the verdict itself calls declared (`graphql-declared-residual`) or out of the block (`pr-comment-201`), which still pass; all 8 null controls still pass. Parent spoofs, old shim: `python3 -X gh_comment.py -c ...` and `python3 <other dir>/gh_comment.py` reached the stub; this head refuses both, and `python3 -I tools/pr/gh_comment.py post ...` by absolute and by relative path still reaches the stub.
-
-**No control wrote to GitHub.** Every shim control ran against a local stub `gh` that records its argv and never reaches the network; the self-test stub exits 7 without a network call. The mandate id appearing in tests is the fixture `fixture-mandate-0000` and the revoke word is never written whole in a file, command or message.
+- A post to another issue with upper-case segments (`repos/o/r/ISSUES/202/COMMENTS`) reaches the real gh (stub rc 7), so the lower-casing refuses only the tracker. The existing nulls (GET of #201, posts to 202 and 2011, dot segments to 202, `%`-encoded 202, `issue comment 202`, `issue view 201`, an api read with Accept, a non-issue path write) still reach the stub.
+- The unmodified shim at `6b416a18` lets both upper-case spellings reach the stub (the review's measurement); the deleted-lower-casing mutant reproduces it.
+- The source `seat-gh` carries the `gcpy=@HPO_GH_COMMENT@` placeholder, asserted by its own row (the bake row's null control).
+- **No control wrote to GitHub.** Every shim control ran against the self-test's local stub `gh` (exits 7, no network call); the refused rows assert the stub never ran. The only mandate id in tests is the fixture `fixture-mandate-0000`. The kill word appears whole in no added line: `git diff origin/main...HEAD | grep '^+' | grep -ci 'revok'` prints `0` (it printed 2 at `6b416a18`: the `planted` argv and the `issue comment 201` row).
 
 ## Figures
 
-- `python3 tools/audit/seat/gh_calls.py --self-test`: `gh_calls self-test: 146 checks, 0 failed` (the instrument's count; round 1 was 98).
-- `python3 tools/audit/seat/seat_venv.sh --self-test`: `25 checks, 0 failed`.
-- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED`; `scope.run` named `tests/entities.py`: `ALL 2623 ENTITY CHECKS PASSED`.
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
-- `tools/pr/prepr.sh`: `PRE-PR: 289fe24b... rc=0`; `ci predict`: none predicted.
-- Seam enumeration (step 8): the class is "a #201 comment write spelled so the shim cannot read the number". Instrument: the reviewer's `cases.sh` plus the self-test `refused` table (29 refused spellings, 11 null controls); every seat-gh spelling in it is closed in this diff; `graphql` and PATCH are the declared residual, `pr comment` out of scope as stated.
-- Toolchain: `cloud-setup.sh --check` read OK (python3 `/opt/hpo/venv-ci/bin/python3`); no numpy/scipy comparison was run and no golden or solver measurement is in this diff (CI remains the authority).
+- `python3 tools/audit/seat/gh_calls.py --self-test`: `gh_calls self-test: 195 checks, 0 failed` (190 at `6b416a18`).
+- `bash tools/audit/seat/seat_venv.sh --self-test`: `seat_venv self-test: 27 checks, 0 failed` (25 at `6b416a18`).
+- Mutants: predicate `true || {`: 67 failed of 195; lower-casing deleted: 4 failed; bake replaced by `:`: 1 failed of 27 (commands under Mutation proof).
+- `git diff origin/main...HEAD | grep '^+' | grep -ci 'revok'`: `0`.
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 1 script(s) run, 32 scoped out`; `scope.run` named `tests/entities.py`, run with `PYTHONPATH=tests/hastub`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; no budget raise.
+- Claim files, `VERSION`, manifest, `RELEASE_NOTES.md` and every `*_budgets.json`: `git diff origin/main...HEAD --quiet -- <file>` exits 0 for each.
+- Seam enumeration (step 8): the class is "a #201 comment write spelled so the shim cannot read the tracker". Instrument: the self-test's `refused` table plus the review's offline controls (33 of 38 refused as required). Seams returned and dispositions: upper-case path segments (closed here); PATCH of a comment by id, graphql mutations and `gh pr comment` (already refused at this head: rows `a PATCH of a comment by id`, `a graphql mutation`, `gh pr comment 201`); PATCH of `issues/201` (an issue body, not a comment; not read by the gate); `pulls/201/comments` (#201 is not a PR); `exec -a` (the residual under Forward-carry).
+- Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` read `OK`; `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` printed `2.5.4 1.18.1`, equal to `tests/requirements-ci.txt`. No golden or solver measurement is in this diff.
+- `tools/pr/prepr.sh <body>` at `977d4e15` (detached, committed tree; main unmoved since the last run): `PRE-PR: 977d4e15e0e2... rc=0`; `ci predict`: no red predicted; claim files byte-identical to origin/main.
 
 ## Red checks
 
-Read live with `get_check_runs` on PR #3223 (68 check runs, one page of 100), which are the runs at the **current PR head `e7126ae2`**. This head `289fe24b` has no runs of its own until the orchestrator moves the PR head, so none could be read for it; the list below is what the PR carries now and is retaken at the next head.
-- `governance / delivery-status`: red since the base ancestry `dad3178d6c81cfe2bb410e7045de28f686a6f845` (OVERDUE on main's rows, not #3223's); this diff touches no delivery row except its own and no closure of that check. Inherited.
-- `tests / nightly-status`: the `slow` lane of a nightly run, red on the same base ancestry `dad3178d`; this diff is not in the nightly's closure. Inherited.
-- `governance / instrument-self-tests`: the log shows `alert_list self-test: 25 checks, 5 failed` (`tools/ci/alert_list.py`, a code-scanning alert reader); this diff does not touch it, and `python3 tools/ci/alert_list.py --self-test` here reads `25 checks, 0 failed`. Not caused by this diff; cause not established here (a CI-environment difference is the likeliest; a root-cause seat owns it).
-- `gate`, `pr-contract / pr-contract`, `arch-score` (second run): red in runs 41988826127 and 41988495065; the gate job is the cancelled/dependent job the round-1 verdict already named, and the pr-contract and arch-score reds are at the old head and body; they are re-answered at the next head's own runs. Not asserted green.
-Defect-root-cause answer for a red my branch turned: none by this diff known; the round-1 `instrument-self-tests UNWIRED` red was already repaired.
+Read with `get_check_runs` on PR #3223 (55 check runs, one page of 100) at the PR head `6b416a18`, base `8bf45e5dc`. The three commits of this repair have no runs until the PR head moves; they are retaken then. Concluded reds, all in run 42049714711:
+- `governance / instrument-self-tests` (job 127322514778): every self-test step visible in the log passes (`local_alerts self-test: 0 failed`, `ALERT-LIST MUTANTS: every mutant refused`). The `alert_list self-test: 25 checks, 12 failed` style lines are printed by `alert_list_mutants.sh` by design (its expected outcome is "every mutant refused", each mutant must fail the self-test) and are not a red. The log the API returns holds no failing step, so the cause is not established from it; this diff touches no `tools/ci/` file. Carry: R10-RAISE-GATE-SHIM
+- `governance / delivery-status` (job 127322514659): the log ends with `overdue` rows of other PRs (`#3206`, `#3189`, `#3204`, ... `#3192`, 21 to 30 commits since) and "This check is NOT a required context"; exit 1. Cause: other PRs' delivery rows on main at base `8bf45e5dc`; this diff adds only its own row. Inherited.
+- `tests / nightly-status` (job 127322514282): `NIGHTLY FAILED: slow failed last night` (scheduled run 41943946464, head `499162c`, job `slow`); not a required context. Cause: a nightly lane on main outside this diff's closure. Inherited.
+
+- `arch-score / arch-score`: red on this PR earlier, in run 41988495065 (job 127126421625) at the older head `e7126ae2`, and green in the two other runs of that head; at `6b416a18` both runs are green (jobs 127348403633 and 127322514610). This diff changes no scored module (a shell shim, a tool, an instrument note), so the flip is not this diff's. Cheaper detector: none known, standing cost nil; cause not established here (a root-cause seat owns it). Not turned by this branch.
+
+`pr-contract`, `gate` and `budget-raise-gate` are green at that head. No red here was turned by this branch.
 
 ## Forward-carry
 
-- Carry: R10-RAISE-GATE-SHIM (c), the `budget-raise-gate` job's 5-minute `timeout-minutes` against the scorer's CPU on the mandated path: **not measured, not measurable here**. The 29 s run at the PR head is not the mandated path (this diff raises no cap), and this seat has no CI runner. The measurement owed: one CI run of the job on a diff that raises a cap, reading the scorer step's duration against 5 minutes (the carry's earlier ~59 s of CPU figure is unverified). Destination: the orchestrator's next raise PR's body, which records the job's duration, and the roster row of this group.
-- Carry: R10-RAISE-GATE-SHIM, the shim's residual (PATCH of `issues/comments/<id>`, graphql, `gh pr comment`): names no issue the shim can read; `gh_comment.py` guards its own patch path.
+- Residual, by design: the caller test reads `ps` args, which a caller writes, so an `exec -a` spoof of the parent (a process naming `gh_comment.py` as its own argv) passes the guard. The shim is a guard against a seat's habit, not an adversary (declared in the shim and the instrument note). Carry: R10-RAISE-GATE-SHIM
+- `score_check` accepts a `## Raise justification` that quotes a wrong figure beside the measured one (predates this PR). Carry: R10-RAISE-GATE-SHIM
+- The shim guards only a `gh` found on PATH (an absolute `/usr/local/bin/gh`, curl with a token and `tools/pr/app_comment.sh` bypass it). Carry: dismissed: the brief scopes the guard to the seat shims and the note calls it a habit guard, not a boundary.
+- Carry (c), the `budget-raise-gate` job's 5-minute timeout against the scorer on a mandated path: not measurable by a seat with no CI runner (29 s on this diff, which raises no cap). Carry: dismissed: the orchestrator reads the job's duration from the next raise PR's run.
 
 ## Friction
 
-`seat_venv.sh --install-shims` runs the installed python shim at its end, which fails on a host with no seat venv, after the gh copy is already written.
+none
