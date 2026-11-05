@@ -28,6 +28,7 @@ re-runnable measurement harnesses a fixer or judge lands with a PR — its
 - [`check_scopes.py`](instruments/check_scopes.py.md) — proves the finder scopes are disjoint and complete within each dimension
 - [`fold_ledger.py`](instruments/fold_ledger.py.md) — folds a round's JUDGE.json and sweeps into `bugclasses.json`
 - [`judge_batch.py`](instruments/judge_batch.py.md) — re-runs every finding's harness, perturbation and null control serially under the gate lease
+- [`machinery_ratchet.py`](instruments/machinery_ratchet.py.md) — caps the nonproduction merges and the nonproduct churn per product line in main's newest merge window, graded in `governance.yml`'s `policy-docs`
 - [`merge_fastpath.py`](instruments/merge_fastpath.py.md) — classifies a changed file as workflow, claim, grader or budget for `merge_train.py`'s batch routing
 - [`merge_throughput.py`](instruments/merge_throughput.py.md) — measures whether merges land inside the previous merge's gate window often enough to justify a merge queue
 - [`preflight.sh`](instruments/preflight.sh.md) — mechanical checks on anything the orchestrator publishes (merge body, issue body, comment, brief)
@@ -83,6 +84,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`pr_cap.py`](instruments/pr_cap.py.md) — the soft cap, on dispatch since 2026-10-20
 - [`proof_watch.py`](instruments/proof_watch.py.md) — watches one named check-run at one pinned head of one pull request and, once it completes `success` beside green required contexts and a valid merge verdict at that exact head, merges through `merge_pr.sh`
 - [`ci_probe.py`](instruments/ci_probe.py.md) — the writes a CI-layout probe needs
+- [`closeout.py`](instruments/closeout.py.md) — the round's final act: archive, prune and clean up, a dry plan by default and refused while any other group is open
 - [`prune_refs.py`](instruments/prune_refs.py.md) — reconciles the remote branch refs down to main plus a few development branches at programme closure, archive-as-tags first
 - [`pulse.py`](instruments/pulse.py.md) — says whether the programme is still being driven
 - [`queue_pre_flight.py`](instruments/queue_pre_flight.py.md) — runs a merge queue's admission reads offline, before the train launches

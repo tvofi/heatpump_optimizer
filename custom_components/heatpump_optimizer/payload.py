@@ -824,6 +824,8 @@ class LearningView(TypedDict, total=False):
     #: and ``accuracy.cop_observability`` (#2262).
     measured_cop_at: str | None
     cop_refusal: str | None
+    #: ``draw_range.SolveBand.as_dict()`` stamped on the live plan, or None.
+    pump_max_power: dict[str, Any] | None
     cop_observability: str
     defrost_derate: float
     defrost_samples: int
