@@ -66,7 +66,10 @@ class _Learner(DhwProfileLearner):
 
 
 def _idle_cooling_learned() -> bool:
-    now = datetime(2026, 1, 5, 12, 0, 0)
+    # Aware, as the dt_util.now() production stores as the previous sample
+    # time: a naive one is read as UTC against a clock in the configured
+    # zone, and under Asia/Tokyo the interval came out negative.
+    now = datetime(2026, 1, 5, 12, 0, 0, tzinfo=timezone.utc)
     dt_util.freeze(now)
     try:
         learner = _Learner()
