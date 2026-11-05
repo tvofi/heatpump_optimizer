@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._grid_fee_schedule RETURN_DEL e95b5d20",
+  "killed_by": "tests/solar_alignment.py",
+  "old": "        return cache[1]",
+  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/solar_alignment.py from rc=0 failed=0 to rc=1 failed=1."
+}

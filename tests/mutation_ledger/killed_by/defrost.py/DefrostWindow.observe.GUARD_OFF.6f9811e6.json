@@ -1,6 +1,6 @@
 {
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._record_manual_release GUARD_OFF e973f3a4",
+  "anchor": "custom_components/heatpump_optimizer/defrost.py:DefrostWindow.observe GUARD_OFF 6f9811e6",
   "killed_by": "tests/features.py",
-  "old": "        if override is None:",
+  "old": "        if flag and not self._state:",
   "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
 }

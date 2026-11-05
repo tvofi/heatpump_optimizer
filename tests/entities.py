@@ -10029,10 +10029,41 @@ base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)
     R.check(
-        f"{name}.json matches strings.json exactly",
+        f"{name}.json has exactly strings.json's keys",
         not diff,
         ", ".join(sorted(diff)[:6]),
     )
+
+
+def leaf_values(data, prefix=""):
+    """``{dotted path: leaf}`` for every non-dict leaf."""
+    out = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        out.update(leaf_values(value, path) if isinstance(value, dict) else {path: value})
+    return out
+
+
+# Carry 0 (R10-COP-GATE-D): Home Assistant serves translations/en.json, so the
+# English text shipped is en.json's, not strings.json's. The key check above
+# read "exactly" while comparing keys only, and en.json's pump_duty_mode text
+# went stale beside an edited source. en.json is a copy of strings.json leaf
+# for leaf; sv.json is a translation, so only its keys are pinned.
+def en_value_drift(source, en):
+    """The dotted paths where en's leaf differs from the source's."""
+    a, b = leaf_values(source), leaf_values(en)
+    return sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
+
+
+_en_drift = en_value_drift(strings, files["en"])
+R.check(
+    "en.json equals strings.json leaf for leaf (null: a source compared with itself "
+    "drifts nowhere, and one edited leaf is found)",
+    not _en_drift
+    and en_value_drift(strings, strings) == []
+    and en_value_drift({"a": {"b": "x"}}, {"a": {"b": "y"}}) == ["a.b"],
+    ", ".join(_en_drift[:6]),
+)
 
 # D4-s2-03 (N-escape): a translation leaf written with two backslashes before
 # a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
@@ -12481,7 +12512,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
+        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
