@@ -4077,7 +4077,7 @@ fi
 PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
 
 if [ -n "$REUSE" ]; then
-  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, brief_lint, field coverage, agreement lane, register check"
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, machinery ratchet, brief_lint, field coverage, agreement lane, register check"
 else
 # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
 # The lease is generic: it orders waiters by an integer and never decides who
@@ -4206,6 +4206,15 @@ rm -f /tmp/prepr-hooks.$$
 if test -f tools/audit/round6/D11/fix/codeowners_gap.py; then heavy_run /tmp/prepr-owners.$$ python3 -I tools/audit/round6/D11/fix/codeowners_gap.py --check; else heavy_run /tmp/prepr-owners.$$ python3 -I dev/audit/rounds/round6/D11/fix/codeowners_gap.py --check; fi
 step "codeowners_gap" $? "$(grep -E '^REFUSED|uncovered_files=' /tmp/prepr-owners.$$ | tr '\n' ' ')"
 rm -f /tmp/prepr-owners.$$
+
+# --- 3e2. the machinery ratchet (R10-MACHINERY-RATCHETS), as policy-docs runs
+# it on a pull request: this head as the candidate merge on origin/main, over
+# git history only (about 14 s). No PR number exists here, so an exemption the
+# head adds for itself is read by CI alone.
+: > /tmp/prepr-mr.$$
+if test -f tools/audit/machinery_ratchet.py; then heavy_run /tmp/prepr-mr.$$ python3 -I tools/audit/machinery_ratchet.py --check --base origin/main --head HEAD; fi
+step "machinery ratchet" $? "$(grep -E '^  (ok  |FAIL) ' /tmp/prepr-mr.$$ | tr -s ' ' | tr '\n' ';')"
+rm -f /tmp/prepr-mr.$$
 
 # --- 3f. when the diff touches a pinned path, CI's pinned jobs grade this
 # pull request with the base's copy of it; the graders that run below only on
