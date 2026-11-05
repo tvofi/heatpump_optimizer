@@ -55,7 +55,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 import mutant_guard  # noqa: E402 -- restores the mutated file on a kill (SIGTERM/SIGINT) and refuses a leftover mutant
 
 # cloud_relay.sh's handoff-arm lines the hold's ordering mutants swap
-_CONTAINED = 'git merge-base --is-ancestor "$hs" "$head" && continue\n'
+_CONTAINED = 'bonly=""; if git merge-base --is-ancestor "$hs" "$head"; then\n'
 _HOLD = 'if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi\n'
 _FAILED = 'if [ -f "$f" ] && grep -qxF "$topic $hs" "$f"; then continue; fi\n'
 
@@ -430,8 +430,9 @@ MUTANTS = [
      'level_set'),
     ("cloud_relay-7", "cloud_relay.sh", '  held) shift; held "$@"; exit $?;;\n', ''),
     # the two orderings the hold is a design choice of: after the contained test, before the failed ledger
-    ("cloud_relay-8", "cloud_relay.sh", _HOLD + "    " + _FAILED, _FAILED + "    " + _HOLD),
-    ("cloud_relay-9", "cloud_relay.sh", _CONTAINED + "    " + _HOLD, _HOLD + "    " + _CONTAINED),
+    # (the freeze now sits between hold and ledger, so the mutant puts a silent ledger test first)
+    ("cloud_relay-8", "cloud_relay.sh", "    " + _HOLD, "    " + _FAILED + "    " + _HOLD),
+    ("cloud_relay-9", "cloud_relay.sh", "    " + _CONTAINED, "    " + _HOLD + "    " + _CONTAINED),
     # the refusal is a level (#2547): the pre-merge event-log line, and a level never cleared
     ("cloud_relay-10", "cloud_relay.sh",
      'level_line handoff-hold-malformed "$(hold_file)" - >> "$state/cloud-level-hold.$$"; level_set',
@@ -453,14 +454,15 @@ MUTANTS = [
     ("cloud_relay-20", "cloud_relay.sh", 'level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo', 'echo'),
     ("cloud_relay-21", "cloud_relay.sh", '"confirm failed: $(last_line "$out")"', '"confirm failed"'),
     # R10-FLOW-ROSTER-FREEZE (a): the freeze dropped, each of its reads, the release, its level
-    ("cloud_relay-22", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze',
-     '    if false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
+    ("cloud_relay-22", "cloud_relay.sh", '    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze',
+     '    if [ -z "$bonly" ] && false && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze'),
     ("cloud_relay-23", "cloud_relay.sh", '    case $v in "merge $2") echo VERDICT; return 0;; "blocked $2") return 1;; esac\n', ''),
     ("cloud_relay-24", "cloud_relay.sh", '"blocked $2") return 1;; esac', 'esac'),
-    ("cloud_relay-25", "cloud_relay.sh", "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { f = 1 }",
-     "  if awk -v p=\"$1\" -v h=\"$2\" '$1 == p { f = 1 }"),
-    ("cloud_relay-26", "cloud_relay.sh", '$1 == "detached" && at { f = 1 }', '$1 == "detached" { f = 1 }'),
-    ("cloud_relay-27", "cloud_relay.sh", '    if ! grep -qxF "$pr" <<< "$released" && why', '    if why'),
+    # P288 (#3065) left the dispatch record the freeze's only read: 25 drops its head test; the
+    # worktree arm 26 mutated is gone, and #3065's cloud_relay-39 pins its absence.
+    ("cloud_relay-25", "cloud_relay.sh", "  v=$(awk -v p=\"$1\" -v h=\"$2\" '$1 == p && $2 == h { n = $4;",
+     "  v=$(awk -v p=\"$1\" -v h=\"$2\" '$1 == p { n = $4;"),
+    ("cloud_relay-27", "cloud_relay.sh", '    if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why', '    if [ -z "$bonly" ] && why'),
     ("cloud_relay-28", "cloud_relay.sh",
      'level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr $why" >> "$state/cloud-level-held.$$"; continue',
      'continue'),
@@ -472,8 +474,22 @@ MUTANTS = [
      'level_line handoff-update "refs/heads/handoff/$topic" "$hs" >> "$state/cloud-level-update.$$"; rm -rf'),
     ("cloud_relay-37", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1); [ -n "$why" ] ||', 'why=; [ -n "$why" ] ||'),
     ("cloud_relay-38", "cloud_relay.sh", 'END { print w }\' "$f.why" 2>/dev/null)', 'END { print w }\' /dev/null)'),
+    # R10-FLOW-BODY-ONLY part (c), ids 50-57 (39-49 are #3065's): a contained head's new body is applied body-only, once per body
+    # move, never on the seeding pass; a failed one is keyed on the body sha; #3037's review
+    # survivors M2 (the first REFUSE line read as the last) and M5 (no replay of the update's output).
+    ("cloud_relay-50", "cloud_relay.sh", '      grep -qxF "$topic $bs" "$bf" && continue\n', '      false && continue\n'),
+    ("cloud_relay-51", "cloud_relay.sh", '[ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }', ':'),
+    ("cloud_relay-52", "cloud_relay.sh", '"$([ -n "$bonly" ] && echo - || echo "$hs")"', '"$hs"'),
+    ("cloud_relay-53", "cloud_relay.sh", 'why=$(grep REFUSE "$bd/update.out" | tail -n 1);', 'why=$(grep REFUSE "$bd/update.out" | head -n 1);'),
+    ("cloud_relay-54", "cloud_relay.sh", '    cat "$bd/update.out" >&2\n', ''),
+    ("cloud_relay-55", "cloud_relay.sh", '[ -z "$bonly" ] || key="$key $bs"', ':'),
+    ("cloud_relay-56", "cloud_relay.sh", 'rm -rf "$bd"; echo "$topic $bs" >> "$bf"  #', 'rm -rf "$bd"  #'),
+    # #3089 review mutant B: a body-only move is not held by the review freeze
+    ("cloud_relay-57", "cloud_relay.sh", 'if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=', 'if true && ! grep -qxF "$pr" <<< "$released" && why='),
+    # #3089 review round 2: the body-only move no longer tells update_pr.sh to keep the head
+    ("cloud_relay-58", "cloud_relay.sh", '    HPO_UPDATE_BODY_ONLY=$bonly pr_own_group', '    pr_own_group'),
     # R10-UPDATE-PR-SIGNALS (#2549): the update in the loop's own process group again
-    ("cloud_relay-29", "cloud_relay.sh", '    pr_own_group "${upd[@]}" "$br"', '    "${upd[@]}" "$br"'),
+    ("cloud_relay-29", "cloud_relay.sh", '$bonly pr_own_group "${upd[@]}" "$br"', '$bonly "${upd[@]}" "$br"'),
     # R10-UPDATE-PR-SIGNALS carry 6 (P163): the STUCK andon's age, its bound, its held test, its wiring
     ("cloud_relay-30", "cloud_relay.sh", '    run, start = int(w[0]), int(w[2])\n',
      '    run, start = int(w[0]), int(os.fstat(f.fileno()).st_mtime)\n'),
@@ -499,6 +515,17 @@ MUTANTS = [
     ("cloud_relay-44", "cloud_relay.sh", '  git -C "$tw" checkout -q --detach origin/main 2>/dev/null \\\n', '  true \\\n'),
     ("ledger-1", "ledger.py", '"confirm-owed": "derived", "push-stuck": "derived",', '"confirm-owed": "derived",'),
     ("pr_args-1", "pr_args.sh", 'p = os.getppid(); start = int(time.time())', 'p = os.getppid(); start = 0'),
+    # R10-FLOW-BODY-ONLY parts (a) and (b), graded by update_pr.sh's step (pr_args.sh's fixture):
+    # main merged only when DIRTY or conflicting; an unmoved head is re-bodied with no push.
+    ("update_pr-1", "update_pr.sh", 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1', 'MAIN=1'),
+    ("update_pr-2", "update_pr.sh", '[ "$ST" != DIRTY ] || MAIN=1', ':'),
+    ("update_pr-3", "update_pr.sh", 'if [ "$H" = "$LIVE" ]; then', 'if false; then'),
+    ("update_pr-4", "update_pr.sh", 'git merge-base --is-ancestor "$HT" "$H" || pr_refuse', 'true || pr_refuse'),
+    ("update_pr-5", "update_pr.sh", '[ "$rc" = 0 ] || pr_refuse "body-only:', 'true || pr_refuse "body-only:'),
+    # #3089 review mutant A: merge-tree's conflict merges main when gh does not say DIRTY
+    ("update_pr-6", "update_pr.sh", 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || MAIN=1', 'git merge-tree --write-tree origin/main HEAD >/dev/null 2>&1 || :'),
+    # #3089 review round 2: a relay body-only run that would move the head (DIRTY merge, added row) refuses
+    ("update_pr-7", "update_pr.sh", '[ -z "${HPO_UPDATE_BODY_ONLY:-}" ] || [ "$H" = "$LIVE" ] || pr_refuse', 'true || pr_refuse'),
     ("tick_loop-3", "tick_loop.sh", 'pass --confirm </dev/null', 'pass </dev/null'),
     # r10-flow-andon: ids are per file (tick_loop-N, heartbeat-N), never a new S number.
     ("tick_loop-1", "tick_loop.sh", '  timeout 60 bash "${HPO_TICK_HEARTBEAT:-$HERE/heartbeat.sh}" --once --message "TICK-PASS $now relay=$rrc tick=$trc"  # mut:heartbeat\n', ""),

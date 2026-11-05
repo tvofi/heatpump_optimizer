@@ -1,0 +1,737 @@
+{
+ "source": "GitHub Actions job logs, read 2026-11-04 13:55-14:10 UTC: the closures jobs' first `lane plan:` line and its three lane lines; each fast (3.14) job's per-script `ok ... (Ns)` lines (40-hex SHAs stripped); every successful `tests / closures` and `tests / fast (3.14)` job of the ci.yml push runs 3770..4128 on main with its runner image version (the log's `Runner Image` group)",
+ "closures_lane_plan": {
+  "125121503116": [
+   "lane plan: 3 lane(s) for 34 script(s), bound 3",
+   "  lane 1 (1345.6s recorded): tests/stress.py, tests/harness_headers.py, tests/arch_score_head.py, tests/backtest.py, tests/doc_claims.py, tests/guard_pins.py, tests/typing_ruler.py, tests/frontend.py",
+   "  lane 2 (1345.7s recorded): tests/entities.py, tests/arch_score.py, tests/finite_boundary.py, tests/structure.py, tests/edge.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/wood_advisor.py, tests/debug_collect.py, tests/solar_alignment.py, tests/block_duty.py, tests/golden.py, tests/open_meteo.py",
+   "  lane 3 (1345.6s recorded): tests/features.py, tests/dst_checks.py, tests/boost_drift_replay.py, tests/plan_view.py, tests/card.mjs, tests/card_drift.mjs, tests/optimality.py, tests/validate.py, tests/layout.py, tests/manual_plan.py, tests/env_drift.py, tests/ha_contract.py, tests/md_tables.mjs"
+  ],
+  "125653313138": [
+   "lane plan: 3 lane(s) for 34 script(s), bound 3",
+   "  lane 1 (1345.6s recorded): tests/stress.py, tests/harness_headers.py, tests/arch_score_head.py, tests/backtest.py, tests/doc_claims.py, tests/guard_pins.py, tests/typing_ruler.py, tests/frontend.py",
+   "  lane 2 (1345.7s recorded): tests/entities.py, tests/arch_score.py, tests/finite_boundary.py, tests/structure.py, tests/edge.py, tests/config_flow_steps.py, tests/deployment_shape.py, tests/wood_advisor.py, tests/debug_collect.py, tests/solar_alignment.py, tests/block_duty.py, tests/golden.py, tests/open_meteo.py",
+   "  lane 3 (1345.6s recorded): tests/features.py, tests/dst_checks.py, tests/boost_drift_replay.py, tests/plan_view.py, tests/card.mjs, tests/card_drift.mjs, tests/optimality.py, tests/validate.py, tests/layout.py, tests/manual_plan.py, tests/env_drift.py, tests/ha_contract.py, tests/md_tables.mjs"
+  ]
+ },
+ "fast_lane_scripts": {
+  "3868": {
+   "job": 125112098863,
+   "script_seconds": {
+    "python3 tests/env_drift.py --claims-only": 0,
+    "python3 tests/closure.py selftest": 5,
+    "python3 tests/validate.py": 22,
+    "python3 tests/edge.py": 27,
+    "python3 tests/backtest.py": 46,
+    "python3 tests/env_drift.py --all": 210,
+    "python3 tests/boost_drift_replay.py": 181,
+    "python3 tests/features.py": 326,
+    "python3 tests/optimality.py": 86,
+    "python3 tests/plan_view.py": 0,
+    "python3 tests/frontend.py": 0,
+    "node tests/card.mjs": 62,
+    "node tests/setup_qa_render.mjs": 1,
+    "node tests/card_drift.mjs": 3,
+    "python3 tests/entities.py": 330,
+    "python3 tests/block_duty.py": 1,
+    "python3 tests/doc_claims.py": 6,
+    "node tests/md_tables.mjs": 0,
+    "python3 tests/wood_advisor.py": 1,
+    "python3 tests/config_flow_steps.py": 10,
+    "python3 tests/structure.py": 13,
+    "python3 tests/typing_ruler.py": 1,
+    "python3 tests/ha_contract.py": 0,
+    "python3 tests/manual_plan.py": 5,
+    "python3 tests/open_meteo.py": 0,
+    "python3 tests/solar_alignment.py": 1,
+    "python3 tests/guard_pins.py": 0,
+    "python3 tests/debug_collect.py": 1,
+    "python3 tests/finite_boundary.py": 42,
+    "python3 tests/layout.py": 3,
+    "python3 tests/deployment_shape.py": 2,
+    "python3 tests/stress.py": 173,
+    "python3 tests/harness_headers.py": 113
+   }
+  },
+  "4009": {
+   "job": 125436393198,
+   "script_seconds": {
+    "python3 tests/env_drift.py --claims-only": 0,
+    "python3 tests/closure.py selftest": 4,
+    "python3 tests/validate.py": 21,
+    "python3 tests/edge.py": 27,
+    "python3 tests/backtest.py": 47,
+    "python3 tests/env_drift.py --all": 231,
+    "python3 tests/boost_drift_replay.py": 188,
+    "python3 tests/features.py": 359,
+    "python3 tests/optimality.py": 89,
+    "python3 tests/plan_view.py": 0,
+    "python3 tests/frontend.py": 1,
+    "node tests/card.mjs": 70,
+    "node tests/setup_qa_render.mjs": 1,
+    "node tests/card_drift.mjs": 3,
+    "python3 tests/entities.py": 374,
+    "python3 tests/block_duty.py": 1,
+    "python3 tests/doc_claims.py": 7,
+    "node tests/md_tables.mjs": 0,
+    "python3 tests/wood_advisor.py": 1,
+    "python3 tests/config_flow_steps.py": 14,
+    "python3 tests/structure.py": 15,
+    "python3 tests/typing_ruler.py": 0,
+    "python3 tests/ha_contract.py": 1,
+    "python3 tests/manual_plan.py": 5,
+    "python3 tests/open_meteo.py": 1,
+    "python3 tests/solar_alignment.py": 0,
+    "python3 tests/guard_pins.py": 1,
+    "python3 tests/debug_collect.py": 1,
+    "python3 tests/finite_boundary.py": 48,
+    "python3 tests/layout.py": 3,
+    "python3 tests/deployment_shape.py": 1,
+    "python3 tests/stress.py": 187,
+    "python3 tests/harness_headers.py": 123
+   }
+  },
+  "4128": {
+   "job": 126534731510,
+   "script_seconds": {
+    "python3 tests/env_drift.py --claims-only": 1,
+    "python3 tests/closure.py selftest": 6,
+    "python3 tests/validate.py": 38,
+    "python3 tests/edge.py": 34,
+    "python3 tests/backtest.py": 145,
+    "python3 tests/env_drift.py --all": 364,
+    "python3 tests/boost_drift_replay.py": 326,
+    "python3 tests/features.py": 673,
+    "python3 tests/optimality.py": 147,
+    "python3 tests/plan_view.py": 1,
+    "python3 tests/frontend.py": 0,
+    "node tests/card.mjs": 114,
+    "node tests/setup_qa_render.mjs": 1,
+    "node tests/card_drift.mjs": 6,
+    "python3 tests/entities.py": 544,
+    "python3 tests/block_duty.py": 1,
+    "python3 tests/doc_claims.py": 11,
+    "node tests/md_tables.mjs": 0,
+    "python3 tests/wood_advisor.py": 1,
+    "python3 tests/config_flow_steps.py": 21,
+    "python3 tests/structure.py": 25,
+    "python3 tests/typing_ruler.py": 0,
+    "python3 tests/ha_contract.py": 0,
+    "python3 tests/manual_plan.py": 9,
+    "python3 tests/open_meteo.py": 0,
+    "python3 tests/solar_alignment.py": 1,
+    "python3 tests/guard_pins.py": 1,
+    "python3 tests/debug_collect.py": 1,
+    "python3 tests/finite_boundary.py": 83,
+    "python3 tests/layout.py": 5,
+    "python3 tests/deployment_shape.py": 3,
+    "python3 tests/stress.py": 367,
+    "python3 tests/harness_headers.py": 208
+   }
+  }
+ },
+ "lane_jobs": [
+  {
+   "run": 3770,
+   "job": 125018714846,
+   "name": "tests / closures",
+   "minutes": 20.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3770,
+   "job": 125018714841,
+   "name": "tests / fast (3.14)",
+   "minutes": 24.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3771,
+   "job": 125018822399,
+   "name": "tests / closures",
+   "minutes": 33.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3771,
+   "job": 125018822416,
+   "name": "tests / fast (3.14)",
+   "minutes": 24.3,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3772,
+   "job": 125019009522,
+   "name": "tests / closures",
+   "minutes": 34.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3772,
+   "job": 125019009483,
+   "name": "tests / fast (3.14)",
+   "minutes": 23.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3775,
+   "job": 125019516199,
+   "name": "tests / closures",
+   "minutes": 21.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3775,
+   "job": 125019516117,
+   "name": "tests / fast (3.14)",
+   "minutes": 18.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3779,
+   "job": 125024642530,
+   "name": "tests / closures",
+   "minutes": 33.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3779,
+   "job": 125024642293,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3790,
+   "job": 125038748078,
+   "name": "tests / closures",
+   "minutes": 34.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3790,
+   "job": 125038748099,
+   "name": "tests / fast (3.14)",
+   "minutes": 31.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3800,
+   "job": 125052214798,
+   "name": "tests / closures",
+   "minutes": 24.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3800,
+   "job": 125052214799,
+   "name": "tests / fast (3.14)",
+   "minutes": 31.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3817,
+   "job": 125064984425,
+   "name": "tests / closures",
+   "minutes": 33.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3817,
+   "job": 125064984409,
+   "name": "tests / fast (3.14)",
+   "minutes": 31.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3833,
+   "job": 125082373899,
+   "name": "tests / closures",
+   "minutes": 24.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3833,
+   "job": 125082373940,
+   "name": "tests / fast (3.14)",
+   "minutes": 18.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3838,
+   "job": 125082717533,
+   "name": "tests / closures",
+   "minutes": 38.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3838,
+   "job": 125082717721,
+   "name": "tests / fast (3.14)",
+   "minutes": 30.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3849,
+   "job": 125096775127,
+   "name": "tests / fast (3.14)",
+   "minutes": 23.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3850,
+   "job": 125097116915,
+   "name": "tests / closures",
+   "minutes": 29.3,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3850,
+   "job": 125097116753,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3858,
+   "job": 125098039348,
+   "name": "tests / fast (3.14)",
+   "minutes": 24.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3859,
+   "job": 125100532528,
+   "name": "tests / closures",
+   "minutes": 21.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3859,
+   "job": 125100532526,
+   "name": "tests / fast (3.14)",
+   "minutes": 29.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3860,
+   "job": 125110596293,
+   "name": "tests / closures",
+   "minutes": 20.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3860,
+   "job": 125110596411,
+   "name": "tests / fast (3.14)",
+   "minutes": 24.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3865,
+   "job": 125110920073,
+   "name": "tests / closures",
+   "minutes": 37.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3865,
+   "job": 125110919984,
+   "name": "tests / fast (3.14)",
+   "minutes": 19.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3867,
+   "job": 125111767216,
+   "name": "tests / closures",
+   "minutes": 38.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3867,
+   "job": 125111767352,
+   "name": "tests / fast (3.14)",
+   "minutes": 19.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3868,
+   "job": 125112098772,
+   "name": "tests / closures",
+   "minutes": 38.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3868,
+   "job": 125112098863,
+   "name": "tests / fast (3.14)",
+   "minutes": 17.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3870,
+   "job": 125121503116,
+   "name": "tests / closures",
+   "minutes": 38.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3870,
+   "job": 125121503189,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3896,
+   "job": 125156256364,
+   "name": "tests / closures",
+   "minutes": 39.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3896,
+   "job": 125156256327,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3912,
+   "job": 125171622506,
+   "name": "tests / closures",
+   "minutes": 40.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3912,
+   "job": 125171622424,
+   "name": "tests / fast (3.14)",
+   "minutes": 25.3,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3922,
+   "job": 125196988316,
+   "name": "tests / closures",
+   "minutes": 20.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3922,
+   "job": 125196988481,
+   "name": "tests / fast (3.14)",
+   "minutes": 24.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3937,
+   "job": 125237867631,
+   "name": "tests / closures",
+   "minutes": 39.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3937,
+   "job": 125237867493,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3963,
+   "job": 125292930412,
+   "name": "tests / closures",
+   "minutes": 38.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3963,
+   "job": 125292930221,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.5,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3978,
+   "job": 125320698444,
+   "name": "tests / closures",
+   "minutes": 26.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3978,
+   "job": 125320698417,
+   "name": "tests / fast (3.14)",
+   "minutes": 29.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3984,
+   "job": 125350661773,
+   "name": "tests / closures",
+   "minutes": 21.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3984,
+   "job": 125350661907,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3991,
+   "job": 125379248933,
+   "name": "tests / closures",
+   "minutes": 39.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 3991,
+   "job": 125379246970,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4009,
+   "job": 125436393109,
+   "name": "tests / closures",
+   "minutes": 34.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4009,
+   "job": 125436393198,
+   "name": "tests / fast (3.14)",
+   "minutes": 20.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4015,
+   "job": 125459855157,
+   "name": "tests / closures",
+   "minutes": 39.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4015,
+   "job": 125459855200,
+   "name": "tests / fast (3.14)",
+   "minutes": 34.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4028,
+   "job": 125487992256,
+   "name": "tests / closures",
+   "minutes": 18.6,
+   "image": "20261018.50.1"
+  },
+  {
+   "run": 4028,
+   "job": 125487991987,
+   "name": "tests / fast (3.14)",
+   "minutes": 34.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4035,
+   "job": 125510679102,
+   "name": "tests / closures",
+   "minutes": 39.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4035,
+   "job": 125510679191,
+   "name": "tests / fast (3.14)",
+   "minutes": 27.3,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4036,
+   "job": 125510959329,
+   "name": "tests / closures",
+   "minutes": 38.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4036,
+   "job": 125510959429,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4037,
+   "job": 125511205527,
+   "name": "tests / closures",
+   "minutes": 39.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4037,
+   "job": 125511205029,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4038,
+   "job": 125511409110,
+   "name": "tests / closures",
+   "minutes": 26.9,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4038,
+   "job": 125511409083,
+   "name": "tests / fast (3.14)",
+   "minutes": 30.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4040,
+   "job": 125511888757,
+   "name": "tests / closures",
+   "minutes": 20.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4040,
+   "job": 125511889110,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4044,
+   "job": 125511986586,
+   "name": "tests / closures",
+   "minutes": 39.3,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4044,
+   "job": 125511986604,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4045,
+   "job": 125512444818,
+   "name": "tests / closures",
+   "minutes": 39.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4045,
+   "job": 125512444712,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4046,
+   "job": 125514460617,
+   "name": "tests / closures",
+   "minutes": 39.0,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4046,
+   "job": 125514460092,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4055,
+   "job": 125653313138,
+   "name": "tests / closures",
+   "minutes": 20.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4055,
+   "job": 125653312947,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4056,
+   "job": 125725515174,
+   "name": "tests / closures",
+   "minutes": 24.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4056,
+   "job": 125725515225,
+   "name": "tests / fast (3.14)",
+   "minutes": 32.7,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4080,
+   "job": 126466350856,
+   "name": "tests / closures",
+   "minutes": 20.1,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4080,
+   "job": 126466350742,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.8,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4107,
+   "job": 126498194600,
+   "name": "tests / closures",
+   "minutes": 39.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4107,
+   "job": 126498194813,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.4,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4116,
+   "job": 126516291086,
+   "name": "tests / closures",
+   "minutes": 26.6,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4116,
+   "job": 126516291606,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.2,
+   "image": "20261025.179.1"
+  },
+  {
+   "run": 4128,
+   "job": 126534731365,
+   "name": "tests / closures",
+   "minutes": 38.5,
+   "image": "20261101.186.1"
+  },
+  {
+   "run": 4128,
+   "job": 126534731510,
+   "name": "tests / fast (3.14)",
+   "minutes": 33.4,
+   "image": "20261101.186.1"
+  }
+ ]
+}

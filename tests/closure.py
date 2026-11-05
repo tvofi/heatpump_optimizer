@@ -172,6 +172,11 @@ NOT_A_TEST = {
     # its --record guard and its null control, so a change to how it
     # classifies selects that script.
     "ci_ratchet.py",
+    # The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4): a step of each
+    # heavy CI job, timed by the Actions API, never a test of this suite.
+    # NOT_A_TEST and NOT inert: `tests/entities.py` imports it to pin its
+    # fixed work and the workflow steps that name it.
+    "host_probe.py",
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread via `gh`, which this suite has neither the network
     # nor the token for, and its verdict is about the record rather than
@@ -2881,7 +2886,7 @@ RENAME_SITES = (".github/workflows/*.yml", "tests/*.py", "tests/*.sh",
                 ".claude/hooks/*.sh", ".claude/hooks/*.mjs")
 _DIFF_CALL = re.compile(r"""git diff|["']diff["']\s*,""")
 #: A `--name-only` diff that cannot meet a rename, or is one on purpose.
-_RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null", "--cached",
+_RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null",
                   "rename-null-control")
 #: (file, text the line must contain, reason). Exact and per file.
 RENAME_ALLOW = (
@@ -2987,18 +2992,25 @@ def _selftest_renames(pin) -> None:
             '// git diff --name-only in a comment\n'  # rename-null-control
             'const a = git("diff", "--name-only", `${b}...HEAD`);\n'  # rename-null-control
             'const b = git("diff", "--no-renames", "--name-only", "HEAD");\n')
+        (Path(td) / "tests" / "c.sh").write_text(
+            'git diff --cached --name-only > files.txt\n'  # rename-null-control
+            'n=$(git diff --cached --no-renames --name-only | wc -l)\n')
         (Path(td) / "tests" / "z.sh").write_text(
             'git diff \\\n  --name-only "$B"...HEAD\n'  # rename-null-control
             'git diff \\\n  --no-renames --name-only HEAD\n')
         bad_m, _ = rename_sites(Path(td))
         (Path(td) / "tests" / "y.mjs").unlink()
         (Path(td) / "tests" / "z.sh").unlink()
+        (Path(td) / "tests" / "c.sh").unlink()
         bad_t, stale_t = rename_sites(Path(td))
     pin("the census reads .mjs: it refuses the porcelain JS diff, not its twin or the comment",
         [b for b in bad_m if b.startswith("tests/y.mjs:")] == ['tests/y.mjs:2: const a = git("diff", "--name-only", `${b}...HEAD`);'],  # rename-null-control
         str(bad_m))
     pin("the census joins a backslash continuation: it refuses the split porcelain diff at its first line",
         [b for b in bad_m if b.startswith("tests/z.sh:")] == ['tests/z.sh:1: git diff --name-only "$B"...HEAD'],  # rename-null-control
+        str(bad_m))
+    pin("the census refuses a planted --cached name-only diff that builds a list, not its --no-renames twin",
+        [b for b in bad_m if b.startswith("tests/c.sh:")] == ['tests/c.sh:1: git diff --cached --name-only > files.txt'],  # rename-null-control
         str(bad_m))
     pin("the census refuses a planted rename-detecting diff, and only it",
         bad_t == ['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])'], str(bad_t))  # rename-null-control
