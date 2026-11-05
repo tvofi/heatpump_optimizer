@@ -16,7 +16,7 @@ if [ "${1:-}" = "--self-test" ]; then
   # then deleted from a copy and the same arms must fail.
   set +e; SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0"); SH=$(dirname "$SELF")
   W=$(mktemp -d) || exit 2; trap 'rm -rf "$W"' EXIT
-  FAILS=0; st() { if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
+  FAILS=0; N=0; st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
   # shellcheck source=../../../tests/throwaway_git.sh
   . "$SH/../../../tests/throwaway_git.sh"
   mkcopy() { mkdir -p "$W/$1/audit/seat" "$W/$1/pr"; cp "$SH/ref_privacy.py" "$W/$1/audit/seat/"
@@ -63,7 +63,7 @@ if [ "${1:-}" = "--self-test" ]; then
   st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
   st "$(keepsha)" none "... and the keep ref is gone"
   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
-  echo "body_push self-test: $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
+  echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
 fi
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
 REF=handoff-body/$TOPIC
