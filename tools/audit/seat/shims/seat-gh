@@ -143,7 +143,7 @@ esac
 #     ruleset, org, search, browse, status, completion, help, version, attestation) pass;
 #   - everything else is refused: an unknown subcommand, a gh alias, an extension.
 # The number is read after dropping leading zeros, a trailing slash, a query or anchor, one
-# %-decoding and `.`/`..`/empty path segments. Residual, by design: the caller test reads
+# %-decoding and `.`/`..`/empty path segments, matched in lower case. Residual, by design: the caller test reads
 # `ps` args, which a caller writes (`exec -a`), so a deliberate spoof of the parent passes
 # (Carry: R10-RAISE-GATE-SHIM); the shim is a guard against a seat's habit, not an adversary.
 tracker=201
