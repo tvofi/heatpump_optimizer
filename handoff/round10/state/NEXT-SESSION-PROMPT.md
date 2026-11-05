@@ -22,7 +22,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-LEARNED-STORE-LOAD (stage carries-open, branch `handoff/r10-learned-store-load`): `git fetch origin handoff/r10-learned-store-load && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FLY-STANDING-CONTRACTS (stage in-progress, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FLY-STANDING-CONTRACTS (stage carries-open, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-DELIVERED-GUARD (stage absorbed, branch `handoff/r10-fly-relay-delivered-guard`): `git fetch origin handoff/r10-fly-relay-delivered-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GRADE-DRIVERS (stage in-progress, branch `handoff/r10-grade-drivers`): `git fetch origin handoff/r10-grade-drivers && git worktree add --detach $SEAT/wt FETCH_HEAD`
