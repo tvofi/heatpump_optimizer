@@ -21,6 +21,7 @@ import logging
 import math
 import os
 import pickle
+import select
 import subprocess
 import sys
 import threading
@@ -789,6 +790,16 @@ SOLVE_FAILURE_ISSUE_COUNT = 3
 # hass.data, not a process global, so a later test's new hass is not charged
 # for an earlier one.
 WORKER_FALLBACK_CAP = 3
+# How long ``_run_in_process`` waits for the worker's reply before it reaps
+# the worker as hung. Far above any real solve: on a Raspberry Pi 4 the
+# spread measured on one install over three days was a median of 18 s and a maximum
+# of 426 s, while the hang this bounds ran for about 55 minutes with one core
+# busy. A module global read at call time, so a test can shorten it.
+PROCESS_REPLY_TIMEOUT_S = 1800.0
+# How long the stop path waits for ``_PROCESS_LOCK`` after killing the worker.
+# The swap it guards is only bookkeeping, and a read that the kill did not
+# break must not hold Home Assistant's shutdown hostage.
+_SHUTDOWN_LOCK_TIMEOUT_S = 5.0
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
@@ -1757,6 +1768,16 @@ class ProcessWorkerUnavailable(RuntimeError):
     """
 
 
+class ProcessWorkerTimeout(ProcessWorkerUnavailable):
+    """The worker took the job and gave no reply within the deadline.
+
+    Not a transport fault that an in-process solve would route around: the
+    same job would occupy an executor thread just as long. The worker has
+    been reaped; the caller keeps the last plan and the next cycle spawns a
+    fresh worker.
+    """
+
+
 def _worker_env() -> dict[str, str]:
     """Make the package importable in the child under BOTH of its names.
 
@@ -1848,13 +1869,22 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
                 worker.wait(timeout=2)
             except Exception:  # noqa: BLE001
                 worker.kill()
-    with _PROCESS_LOCK:
+    # Bounded: a read the kill above did not break would otherwise hold the
+    # stop for as long as it held the lock (observed: the shutdown ran into
+    # the supervisor's timeout). Skipping the swap then only leaves a handle
+    # to a dead child, which ``_ensure_worker`` replaces on its next call.
+    if not _PROCESS_LOCK.acquire(timeout=_SHUTDOWN_LOCK_TIMEOUT_S):
+        _LOGGER.debug("Solve worker lock still held at stop; skipping the handle swap")
+        return
+    try:
         # Only the swap is locked, and only when this reap's own handle is
         # still the installed one: a solve that died on the killed pipes has
         # already cleared it, and a worker spawned after that must not be
         # clobbered by a stop it outlived.
         if _PROCESS_WORKER is worker:
             _PROCESS_WORKER = None
+    finally:
+        _PROCESS_LOCK.release()
 
 
 @callback
@@ -1907,6 +1937,24 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
             stdin.write(job)
             stdin.flush()
+            # The worker serialises its whole reply before writing it
+            # (``process_worker._dump``), so a readable pipe means the job is
+            # done. Wait for that with a deadline instead of blocking in
+            # ``pickle.load``: a worker that is alive but silent never raises,
+            # and holding ``_PROCESS_LOCK`` in that read wedged every later
+            # solve, every reload and the stop path until a restart.
+            timeout = PROCESS_REPLY_TIMEOUT_S
+            ready, _w, _x = select.select([stdout], [], [], timeout)
+            if not ready:
+                _PROCESS_WORKER = None
+                try:
+                    worker.kill()
+                    worker.wait()
+                except Exception:  # noqa: BLE001 - must not mask the timeout
+                    pass
+                raise ProcessWorkerTimeout(
+                    f"process worker gave no reply within {timeout:.0f} s"
+                )
             status, payload = pickle.load(stdout)
         except ProcessWorkerUnavailable:
             # Already the class the fallback route catches; rewrapping it
@@ -2122,6 +2170,12 @@ async def _await_optimize(
     entry_id = _CURRENT_ENTRY_ID.get()
     try:
         result = await _await_process(hass, optimize_in_process, optimizer, inputs)
+    except ProcessWorkerTimeout as err:
+        _LOGGER.warning("%s; keeping the last plan, a fresh worker starts next cycle", err)
+        _raise_update_failed(
+            "process_worker_timeout", f"{err}; the last plan stays in effect", err,
+            minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
+        )
     except ProcessWorkerUnavailable as err:
         _note_worker_fallback(hass, err, entry_id)
         n = _bump_worker_fallback(hass, entry_id)
