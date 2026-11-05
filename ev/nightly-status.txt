@@ -1,0 +1,10 @@
+Prepare all required actions
+  persist-credentials: true
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-a92cd85c-3c3f-4230-b57b-c2f9182951ea.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-a92cd85c-3c3f-4230-b57b-c2f9182951ea.config
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-a92cd85c-3c3f-4230-b57b-c2f9182951ea.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-a92cd85c-3c3f-4230-b57b-c2f9182951ea.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-a92cd85c-3c3f-4230-b57b-c2f9182951ea.config
+##[group]Run set -euo pipefail
+[36;1mset -euo pipefail[0m

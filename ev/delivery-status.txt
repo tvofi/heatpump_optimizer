@@ -1,0 +1,20 @@
+Uses: tvofi/heatpump_optimizer/.github/workflows/governance.yml@refs/pull/3221/merge (0460963dd2c2014e1d9b4645a56d983d5d27c64e)
+[command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +0460963dd2c2014e1d9b4645a56d983d5d27c64e:refs/remotes/pull/3221/merge
+ * [new branch]          dispatch/reviewer-rev-3221  -> origin/dispatch/reviewer-rev-3221
+ * [new branch]          probe/rev-3221-33fa557d     -> origin/probe/rev-3221-33fa557d
+ * [new branch]          probe/rev-3221-3b5bbd75     -> origin/probe/rev-3221-3b5bbd75
+ * [new branch]          review/3221                 -> origin/review/3221
+ * [new branch]          verdict/3221                -> origin/verdict/3221
+ * [new ref]             0460963dd2c2014e1d9b4645a56d983d5d27c64e -> pull/3221/merge
+[command]/usr/bin/git checkout --progress --force refs/remotes/pull/3221/merge
+Note: switching to 'refs/remotes/pull/3221/merge'.
+##[group]Run set -euo pipefail
+[36;1mset -euo pipefail[0m
+DELIVERY STATUS OVERDUE — 10 rowed, 11 pending, 12 overdue (overdue at 12 commits)
+  overdue  #3181 c0b082b 13 commit(s) since — R10-CI-RUNNER-FIXES: ci runner fixes
+  overdue  #3191 d91e464 14 commit(s) since — R10-PREPR-CAP: lazy heavy-slot take
+  overdue  #3201 a45cf7f 15 commit(s) since — R10-HOTFIX-CI-CRITPATH-4: price CI jobs by a per-runner 
+  overdue  #3206 af941ad 16 commit(s) since — R10-HOTFIX-GATE-STALE-JOBS: root cause of gate's false r
+  overdue  #3189 615b2eb 17 commit(s) since — R10-RCA-CI-CRITPATH-3: rca ci critpath 3
+  overdue  #3204 b3cd162 18 commit(s) since — triage: batch 118, P382 ACCEPT
+  overdue  #3203 4785204 19 commit(s) since — triage: batch 116, P378 DEFER
