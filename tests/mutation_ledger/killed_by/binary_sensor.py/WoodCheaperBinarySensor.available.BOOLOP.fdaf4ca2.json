@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/binary_sensor.py:WoodCheaperBinarySensor.available BOOLOP fdaf4ca2",
+  "killed_by": "tests/entities.py",
+  "old": "        return bool(super().available and fuel.get(\"ready\"))",
+  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`return bool(super().available or fuel.get(\"ready\"))`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=4."
+}
