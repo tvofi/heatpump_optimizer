@@ -1,0 +1,21 @@
+Fix review: merge 256189587d9c5c2b8bac5cd2e41542eefbbe7f77
+
+bus-nonce: 2e16dbed93923e5ff63245117668d69f
+
+Delta fix review (CI-and-pins check), round 4 of R10-HOTFIX-SAV-ESTIMATE, head 256189587d9c5c2b8bac5cd2e41542eefbbe7f77, merge base 2dc960f4a. Previous verdict MERGE at 6790e096 (code reviewed at 1d114ed6).
+
+## Findings
+
+- Follow-up: `_apportion_by_steady_demand` has no pump cap (the body measures the spread reference at 1.226x a 3 kW pump on a -25 C night); the solve's seed is clamped and now pinned, the booked reference is not. Carry: R10-SAV-COMFORT
+- Follow-up: the harness's unattributed residual (-3.90 % flat, -8.02 % varying) is open, as the body states. Carry: R10-SAV-COMFORT
+
+## Evidence
+
+- Production diff unchanged: `git diff $(merge-base origin/main HEAD) HEAD -- custom_components blueprints | git patch-id --stable` = 643fd02fb4838c0a51873a690d831df1cebbc99d at this head and at 6790e096 (merge base 788e8cee there). The coordinator.py delta is main's own.
+- (1) Survivors, mutant applied at the live head line, named check run with PYTHONPATH=tests/hastub:repo under venv-ci (ev/mutants.txt, ev/mut_*.log): ledger.py:75 REFERENCE_BASIS 1->2 rc 1 (tests/features.py); optimizer.py:595 need > 0.0 -> >= rc 1; optimizer.py:4772 np.clip dropped rc 1; optimizer.py:5552 total <= 0.0 -> < rc 1 (all tests/features.py); store.py:831 and -> or rc 1; store.py:833 return -> pass rc 1 (tests/finite_boundary.py). Null controls on the unmutated head: tests/features.py rc 0 (ev/null_features.log), tests/finite_boundary.py rc 0 (ev/null_fb.log). Worktree restored after each mutant (clean).
+  optimizer.py:536 CONST and optimizer.py:5541 BOOLOP: written survivor_triage verdicts, both read. 5541 holds: the only caller is optimizer.py:5527, behind the identical assertion at 5491 on the same series, so the mutant is unreachable. 536 holds on its stated reason (either 0.0 or 1.0 takes no wood share on any reachable zone; owner ruling no wood in the reference) and its 192-case differential drive (0 differ); I did not re-run that drive, so that figure is read, not re-derived.
+- (2) Pins: CI run 42105339590 (merge ref afd9727a8 into 2dc960f4a), tests / mutation: 3091 unpinned of 6799, 3093 at the ratchet base, none added, MUTATION TABLE PASSED, PIN RE-VERIFICATION 10 reproduced 0 not reproduced, listing optimizer.py:4772, 5552, store.py:831, 833 and ledger.py:78 (the site at the merge ref). I cite this run and did not re-run the table. The pin rows are killed_by only for sites a check kills; the two equivalents are triage rows.
+- (3) CI at this head: all 68 check-runs read (one page of 100). No red or cancelled but tests / nightly-status and governance / delivery-status (both concluded failure on this head's run, both not this PR's: the body names them inherited; the diff touches neither's inputs beyond its own delivery row). tests / mutation, gate, tests / replay, tests / fast (3.14), tests / coverage, tests / closures, typing, pr-contract: success. merge_train classify: GREEN 256189587d9c5c2b8bac5cd2e41542eefbbe7f77 pending: none red: none.
+- (4) Body: `## Head` names 256189587d9c5c2b8bac5cd2e41542eefbbe7f77. `## Red checks` answers replay as NOT the runner-class band refusal (a loop_cpu_ratio budget offender on 6790e096), and at this head replay is green; both inherited reds are named with causes. Note the body's line "the final head has run no CI" is stale (it did run, green).
+- (5) No budget raise: tests/structure_budgets.json differs only downward (class_excess_loc 17617 -> 17589). VERSION, RELEASE_NOTES.md, card_claimed_drift.txt byte-identical to origin/main; manifest untouched. tests/golden/claimed_drift.txt is NOT byte-identical: it carries this PR's nine R10-HOTFIX-SAV-ESTIMATE fixture claims and suspended may-drift lines, as the body states and as already accepted at 6790e096; I did not re-run env_drift --all. structure.py: STRUCTURE RATCHET PASSED. Harness r10_rca_sav_estimate.py census at head: census: 6 of 6 cells ran, 0 out of band (ev/census_head.txt). git merge-tree --write-tree origin/main head: rc 0, clean (ev/merge_tree.txt).
+- Checks I did not do: mutation table, gate and env_drift --all not re-run (CI cited); the finder's both-ends run at the base not repeated (unchanged production).

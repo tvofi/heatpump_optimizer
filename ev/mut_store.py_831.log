@@ -1,0 +1,35 @@
+unt
+RESULT number_state_escapes=0 count
+  ok   commanded_power_kw refuses a bool or text part on either channel, and adds two numbers (#2242)
+  ok   climate current_temperature reads the measured upper floor first (#2379)
+  ok   climate current_temperature falls back to the indoor copy (#2379)
+  ok   payload_number reads numpy.int64(7) as 7 (#2379)
+  ok   payload_number refuses numpy.bool_(True) (#2379)
+  ok   _gap_energy_rate falls back to the contract price at a zero spot price (#2379)
+  ok   _gap_energy_rate keeps a positive spot price (control) (#2379)
+  ok   zone_setpoint_attributes keeps upper and lower apart (#2379)
+  ok   Compressor Starts publishes an integer count (#2379)
+  ok   Compressor Starts refuses a float count (#2379)
+  ok   _dhw_inlet_c keeps the inclusive lower plausibility bound (-5.0 is valid)
+  ok   FlowCurveBias.from_dict restores to inert on a non-finite stored bias_k
+  ok   PriceShapeModel.from_dict keeps a legitimate stored residual_var value
+  ok   DrawStats.from_dict keeps a legitimate stored open_kwh value
+  ok   MonthlyLedger.add drops a non-finite amount before any month is created
+  ok   every store's version is a named constant, never a literal (#1740)
+  ok   no two stores share a version constant, so a bump migrates one store (#1740)
+  ok   a store read at its own version, or one its own migration reads, surfaces nothing (the control)
+  ok   every store's version mismatch, older or newer, logs a WARNING and raises a repair issue naming its key (#1740)
+  ok   a downgraded store keeps the newer release's document through its load and the next save, so reinstalling that release finds it intact; a bumped store, and one re-read once the newer document is gone, still saves (#1869)
+  ok   a store whose version exceeds 1 overrides the default migration hook, so a bump without a migration fails here (#1740)
+  ok   the default hook raises NotImplementedError and surfaces a major mismatch older or newer, not a minor-only one
+  ok   a store whose hook was handed a newer document (the 2025.2.0 floor's downgrade) does not save over it (#1869)
+  FAIL the ledger store migrates only a v1 mapping; a newer major and a v1 non-mapping reach the default hook's NotImplementedError  [verdicts=['returned', 'AttributeError', 'returned']]
+  ok   a downgrade leaves the store as UnsupportedStorageVersionError (#1740)
+  ok   a store that migrates loads the migrated payload and saves it at its own version, without waiting on its own read (#1740)
+  ok   a save from another task waits for the store's read in flight, and lands after it
+  ok   store.py imports at the 2025.2.0 floor, which has no UnsupportedStorageVersionError (#1869)
+  ok   two concurrent loads of a migrating store both land: the write-back does not wait on the second read, parked on the first (#1869)
+  ok   a task whose read has landed saves after another task's read in flight, not before it (#1869)
+RESULT store_version_unsurfaced=0 count
+
+1 of 109 FINITE BOUNDARY CHECKS FAILED
