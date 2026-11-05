@@ -1,55 +1,33 @@
 # Review packet #3196
-head: 53ce1267c758ae81bd21af1a0d7eba80bc9223c8
-base: 8e90d81443317f76f22602a89651f7ca17c633f9
+head: 18007245e681f4412de83458bee20fa54ae75ac7
+base: 783d8dc72811ab75ae4ffca367456f44896f47d3
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-arch-score / arch-score id=126635185258 success
-budget-raise-gate / budget-raise-gate id=126635201339 success
-cancel-superseded id=126635160421 skipped
-codeql id=126635021120 skipped
-codeql / Analyze (actions) id=126635112366 success
-codeql / Analyze (javascript-typescript) id=126635113409 success
-codeql / Analyze (python) id=126635112893 success
-gate id=126636970279 success
-governance id=126635103986 skipped
-governance / delivery-status id=126635201358 skipped
-governance / delivery-status-publish id=126635112347 skipped
-governance / env-matrix id=126635186935 success
-governance / instrument-self-tests id=126635113887 success
-governance / policy-docs id=126635208035 success
-governance / record id=126635166633 skipped
-governance / wave-script id=126635112833 success
-hassfest id=126635021434 skipped
-hassfest / hassfest id=126635131863 success
-kernel-points id=126635200423 skipped
-pr-contract / pr-contract id=126635639962 success
-prelude id=126635191359 success
-refresh id=126635137634 success
-tests id=126635076838 skipped
-tests / arch-instrument id=126635113047 success
-tests / briefs id=126635113751 success
-tests / browser id=126635115435 success
-tests / ci-ratchet id=126635117990 skipped
-tests / claims-autofix id=126635115204 skipped
-tests / closure-scope id=126635163715 success
-tests / closures id=126635114620 success
-tests / closures-autofix id=126635117725 skipped
-tests / coverage id=126635115094 success
-tests / coverage-ratchet id=126635116952 success
-tests / fast (3.14) id=126635113159 success
-tests / graders-head-copy id=126635115909 skipped
-tests / lane-proofs id=126635117749 skipped
-tests / mutation id=126635142190 success
-tests / mutation-autofix id=126635115879 skipped
-tests / mutation-pins id=126635116075 skipped
-tests / nightly-ha id=126635113922 skipped
-tests / nightly-status id=126635140681 failure
-tests / replay id=126635114913 skipped
-tests / typing id=126635115421 success
-validate id=126635021898 skipped
-validate / validate-hacs id=126635112057 success
+## Gate digest: pending
+arch-score / arch-score id=126914501022 queued
+arm id=126907735204 skipped
+budget-raise-gate / budget-raise-gate id=126914501474 queued
+cancel-superseded id=126907739955 success
+codeql / Analyze (actions) id=126914501328 queued
+codeql / Analyze (javascript-typescript) id=126914501436 queued
+codeql / Analyze (python) id=126914501360 queued
+governance / delivery-status id=126914501411 queued
+governance / delivery-status-publish id=126914504654 skipped
+governance / env-matrix id=126914501320 queued
+governance / instrument-self-tests id=126914501376 queued
+governance / policy-docs id=126914501399 queued
+governance / record id=126914504522 skipped
+governance / wave-script id=126914501346 queued
+hassfest / hassfest id=126914501622 queued
+kernel-points id=126914503703 skipped
+prelude id=126907740417 success
+refresh id=126907740621 success
+tests / briefs id=126914501248 queued
+tests / closure-scope id=126914501490 queued
+tests / mutation id=126914501201 queued
+tests / nightly-status id=126914501601 queued
+validate / validate-hacs id=126914501456 queued
 
 ## Refusals
 none
@@ -315,10 +293,10 @@ index 6b0b58a37..df8f9f0bb 100644
      # throttling valve the tank temperature already is the priced flow, so
      # the page refuses the pair rather than saving a switch that does nothing.
 diff --git a/tests/entities.py b/tests/entities.py
-index c60845404..5aadb2b8f 100644
+index d87040eba..0f09376cb 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -9537,8 +9537,16 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
+@@ -9526,8 +9526,16 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
      except Exception as err:  # noqa: BLE001 - any rejection is the bug
          _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
          continue
@@ -337,10 +315,10 @@ index c60845404..5aadb2b8f 100644
                  f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
              )
 diff --git a/tests/features.py b/tests/features.py
-index c9bf4d677..35632c888 100644
+index 27a67b98a..88a0f5d87 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -76700,4 +76700,38 @@ R.check(
+@@ -76834,6 +76834,40 @@ R.check(
  )
  
  
@@ -378,7 +356,9 @@ index c9bf4d677..35632c888 100644
 +)
 +
 +
- sys.exit(R.close("FEATURE CHECKS"))
+ R.section("R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches")
+ 
+ # #2365: _share and the decision log take the step width from plan_step's
 diff --git a/tests/mutation_ledger/killed_by/config_flow.py/_single_zone.RETURN_DEL.6de1e154.json b/tests/mutation_ledger/killed_by/config_flow.py/_single_zone.RETURN_DEL.6de1e154.json
 new file mode 100644
 index 000000000..9eded8dfb

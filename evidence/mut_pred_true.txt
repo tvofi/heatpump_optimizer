@@ -1,6 +1,0 @@
- custom_components/heatpump_optimizer/config_flow.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-  FAIL a two-zone entry is not offered the whole-house heat loss; a single-zone one is (R10-TWO-ZONE-HHL)  [two=['after_save', 'heat_pump_cop_nominal', 'heat_pump_cop_partload_derate', 'heat_pump_max_power', 'heat_pump_min_power', 'house_heat_loss_coefficient', 'house_thermal_mass', 'slab_heat_transfer', 'slab_thermal_mass'] one=['after_save', 'heat_pump_cop_nominal', 'heat_pump_cop_partload_derate', 'heat_pump_max_power', 'heat_pump_min_power', 'house_heat_loss_coefficient', 'house_thermal_mass', 'slab_heat_transfer', 'slab_thermal_mass']]
-1 of 539 checks FAILED
-tests/config_flow_steps.py rc=1
-DONE
