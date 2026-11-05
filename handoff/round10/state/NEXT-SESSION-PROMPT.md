@@ -24,7 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-LEARNED-STORE-LOAD (stage in-progress, branch `handoff/r10-learned-store-load`): `git fetch origin handoff/r10-learned-store-load && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-STANDING-CONTRACTS (stage in-progress, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-DELIVERED-GUARD (stage absorbed, branch `handoff/r10-fly-relay-delivered-guard`): `git fetch origin handoff/r10-fly-relay-delivered-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-COP-GATE-D (stage in-progress, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GRADE-DRIVERS (stage in-progress, branch `handoff/r10-grade-drivers`): `git fetch origin handoff/r10-grade-drivers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-PRICING (stage carries-open, branch `handoff/r10-partload-pricing`): `git fetch origin handoff/r10-partload-pricing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TWO-ZONE-HHL (stage in-progress, branch `handoff/r10-two-zone-hhl`): `git fetch origin handoff/r10-two-zone-hhl && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -45,6 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-REPLAY-OPEN-LOG (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-LEVELS (stage in-progress, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HANDOFF-PATH (stage in-progress, branch `handoff/r10-handoff-path`): `git fetch origin handoff/r10-handoff-path && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-RECORD-ATTRIB (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-CI-CRITPATH-4 (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-GATE-STALE-JOBS (stage in-progress): no branch pushed yet, so nothing to fetch
