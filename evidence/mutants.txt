@@ -1,10 +1,17 @@
-head 7637d6634bb6effa013c81169fad2c18e644730f, detached worktree, recorder_checks() driven directly
-null control: RESULT bad=0
-default delete/const/mysql-label: RED recorder:open_recorder_line:default
-db delete/const/mysql-label: RED recorder:open_recorder_line:db_path
-sqlite-url delete/const/mysql-label: RED recorder:open_recorder_line:sqlite_url
-mysql-url delete/const/sqlite-label: RED recorder:open_recorder_line:mysql_url
-mysql-url prints URL: RED ..._lines_carry_no_url_value + mysql_url
-sqlite-url prints URL: RED recorder:open_recorder_line:sqlite_url
-default<->db label swap: RED recorder:open_recorder_line:default
-restored: diff against original export.py empty
+NULL 28 []
+mysql delete 28 ['recorder:db_url_credentials_never_printed', 'recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:mysql_url']
+mysql constant 28 ['recorder:db_url_credentials_never_printed', 'recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:mysql_url']
+mysql mislabel 28 []
+mysql leakpath 28 ['recorder:db_url_credentials_never_printed', 'recorder:db_url_connect_refusal_names_no_credential', 'recorder:open_line_names_kind_and_db_path', 'recorder:open_line_url_branch_carries_no_url_value', 'recorder:open_recorder_line:mysql_url', 'recorder:open_recorder_lines_carry_no_url_value']
+sqlite_url delete 28 ['recorder:open_recorder_line:sqlite_url', 'recorder:sqlite_db_url_named_by_kind_not_path']
+sqlite_url constant 28 ['recorder:open_recorder_line:sqlite_url', 'recorder:sqlite_db_url_named_by_kind_not_path']
+sqlite_url mislabel 28 ['recorder:open_recorder_line:sqlite_url', 'recorder:sqlite_db_url_named_by_kind_not_path']
+sqlite_url leakpath 28 ['recorder:open_recorder_line:sqlite_url', 'recorder:sqlite_db_url_named_by_kind_not_path', 'recorder:sqlite_db_url_refusal_names_kind_not_path']
+db_path delete 28 ['recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:db_path']
+db_path constant 28 ['recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:db_path']
+db_path mislabel 28 ['recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:db_path']
+db_path leakpath 28 ['recorder:open_line_names_kind_and_db_path', 'recorder:open_recorder_line:db_path']
+default delete 28 ['recorder:open_recorder_line:default']
+default constant 28 ['recorder:open_recorder_line:default']
+default mislabel 28 ['recorder:open_recorder_line:default']
+default leakpath 28 ['recorder:open_recorder_line:default']
