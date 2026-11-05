@@ -102,6 +102,14 @@ MUTANTS = {
         "    const seamNow = Math.floor(FROZEN / CH) * CH + 6 * HOUR;\n",
         "    const seamNow = FROZEN;\n",
     ),
+    # The grid's elapsed time since local midnight as a wall-clock
+    # difference again: an hour off on a DST-transition day, read by a zone
+    # written Zone@<instant on that day>.
+    "solar_day_elapsed": (
+        "tests/solar_alignment.py",
+        "step_offset = int((now.astimezone(timezone.utc) - midnight.astimezone(timezone.utc))\n",
+        "step_offset = int((now - midnight)\n",
+    ),
     "guard_idle_cooling": (
         "tests/guard_pins.py",
         "    now = datetime(2026, 1, 5, 12, 0, 0, tzinfo=timezone.utc)\n",

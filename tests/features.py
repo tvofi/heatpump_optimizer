@@ -35707,9 +35707,11 @@ R.check(
 # -2.0 h, and the countdown past the interval, with every check green. The
 # 2 h-past reading is the null control: the clamp bites only below zero.
 _lg_skew = _lg_coord()
-_lg_skew._legionella.last_cycle = dt_util.now() + timedelta(hours=2)
+# Offsets taken in UTC: a zone's wall clock minus two hours is three hours
+# back across the autumn DST change, and hours_since measures in UTC.
+_lg_skew._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() + timedelta(hours=2))
 _lg_skew_future = _lg_skew._legionella.hours_since()
-_lg_skew._legionella.last_cycle = dt_util.now() - timedelta(hours=2)
+_lg_skew._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() - timedelta(hours=2))
 _lg_skew_past = _lg_skew._legionella.hours_since()
 R.check(
     "a last cycle stamped in the future is 0 h ago, not a negative age (#1532)",
