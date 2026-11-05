@@ -10021,10 +10021,41 @@ base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)
     R.check(
-        f"{name}.json matches strings.json exactly",
+        f"{name}.json has exactly strings.json's keys",
         not diff,
         ", ".join(sorted(diff)[:6]),
     )
+
+
+def leaf_values(data, prefix=""):
+    """``{dotted path: leaf}`` for every non-dict leaf."""
+    out = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        out.update(leaf_values(value, path) if isinstance(value, dict) else {path: value})
+    return out
+
+
+# Carry 0 (R10-COP-GATE-D): Home Assistant serves translations/en.json, so the
+# English text shipped is en.json's, not strings.json's. The key check above
+# read "exactly" while comparing keys only, and en.json's pump_duty_mode text
+# went stale beside an edited source. en.json is a copy of strings.json leaf
+# for leaf; sv.json is a translation, so only its keys are pinned.
+def en_value_drift(source, en):
+    """The dotted paths where en's leaf differs from the source's."""
+    a, b = leaf_values(source), leaf_values(en)
+    return sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
+
+
+_en_drift = en_value_drift(strings, files["en"])
+R.check(
+    "en.json equals strings.json leaf for leaf (null: a source compared with itself "
+    "drifts nowhere, and one edited leaf is found)",
+    not _en_drift
+    and en_value_drift(strings, strings) == []
+    and en_value_drift({"a": {"b": "x"}}, {"a": {"b": "y"}}) == ["a.b"],
+    ", ".join(_en_drift[:6]),
+)
 
 # D4-s2-03 (N-escape): a translation leaf written with two backslashes before
 # a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
@@ -12473,7 +12504,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
+        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -16210,6 +16242,32 @@ R.check("run.sh records a wait past its bound as #skip, named unrun, and a run w
         *_gl_wu["map"])
 R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
         *_gl_wu["word"])
+
+
+def _gl_ended_before_summary() -> tuple[bool, str]:
+    """run.sh names a non-zero script that never reached a summary line apart
+    from one that failed a check: the function and its pattern are lifted from
+    run.sh and driven on a crash log and a failed-check log."""
+    import re as _re2
+    import subprocess as _sp
+    src = (_closure.ROOT / "tests/run.sh").read_text()
+    pat = _re2.search(r"^SUMMARY_LINE=.*$", src, _re2.M)
+    fn = _re2.search(r"^ended_before_summary\(\) \{.*?^\}", src, _re2.M | _re2.S)
+    if not (pat and fn):
+        return False, "run.sh defines no SUMMARY_LINE / ended_before_summary"
+    with _tempfile.TemporaryDirectory() as tds:
+        crash, failed = Path(tds) / "crash.log", Path(tds) / "failed.log"
+        crash.write_text("sampling...\nTraceback (most recent call last):\nOSError\n")
+        failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
+        out = []
+        for log in (crash, failed):
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            out.append(r.returncode)
+    return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
+
+
+R.check("run.sh names a script ended before its summary apart from a failed check (R10 carry)",
+        *_gl_ended_before_summary())
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
@@ -36555,6 +36613,54 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 _CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+# The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4). critical_path_minutes
+# prices each heavy job over its own runner's probe step, read off the
+# Actions API by the step's NAME and priced by the interpreter that name
+# carries, so the pin is on the coupling: every heavy job carries the step,
+# under the python its own setup-python installs, with a reference the
+# ratchet knows -- a step renamed, or run under another python, falls back
+# to the host-draw price silently. And the probe's work is fixed: one round
+# of it, checksummed here (the full run refuses on its own CHECKSUM in CI).
+import host_probe as _hp  # noqa: E402
+
+R.check(
+    "the host probe is classified: NOT_A_TEST, and not on INERT",
+    "host_probe.py" in _closure.NOT_A_TEST and not _closure.is_inert("tests/host_probe.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+R.check(
+    "the host probe's work is the recorded work (one round's checksum)",
+    _hp.work(1) == 4288780,
+    f"got {_hp.work(1)}: a changed probe is a changed unit -- re-derive "
+    "PROBE_REFERENCE_S and re-record critical_path_minutes with it",
+)
+_HP_JOBS = ("fast", "arch-instrument", "coverage", "closures")
+_hp_bad = []
+for _job in _HP_JOBS:
+    _txt = _workflow_job(_TESTS_YML, _job)
+    _steps = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP) + r" \(python ([^)]+)\)\n"
+                        r"(?:        if: [^\n]*\n)?        run: python3 tests/host_probe\.py\n", _txt)
+    _pins = re.findall(r'python-version: "([0-9.]+)"', _txt)
+    _matrix = re.findall(r'python-version: \[([^\]]*)\]', _txt)
+    _pys = _pins or [v.strip().strip('"') for m in _matrix for v in m.split(",")]
+    _named = [_pys[0] if s == "${{ matrix.python-version }}" and len(_pys) == 1 else s for s in _steps]
+    if len(_named) != 1 or len(set(_pys)) != 1 or _named[0] != _pys[0] \
+            or _named[0] not in _cir.PROBE_REFERENCE_S:
+        _hp_bad.append(f"{_job}: probe steps {_steps}, python {_pys}")
+R.check(
+    "every heavy tests job runs the host probe once, named for the python it "
+    "installs, with a reference the ratchet prices it by",
+    not _hp_bad and all(v > 0 for v in _cir.PROBE_REFERENCE_S.values()),
+    "; ".join(_hp_bad) or f"PROBE_REFERENCE_S {_cir.PROBE_REFERENCE_S}",
+)
+# The null control: the same rule over a job with no probe step refuses.
+_hp_null = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP), _workflow_job(_TESTS_YML, "ci-ratchet"))
+R.check(
+    "and the probe rule finds no step where none runs (ci-ratchet, its null control)",
+    _hp_null == [],
+    f"{_hp_null}",
+)
+
 R.check(
     "the CI ratchet is wired into a push-to-main job that never --records",
     "github.event_name == 'push'" in _CIR_JOB
