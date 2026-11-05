@@ -1,0 +1,5 @@
+  record   red-history           3 commit(s) between origin/main and this head, every failure conclusion across them: governance / delivery-status, tests / mutation, tests / mutation-autofix, tests / nightly-status, tests / typing
+  ERROR   [pr-body] /tmp/pr-body.md: check `tests / mutation` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+  ERROR   [pr-body] /tmp/pr-body.md: check `tests / mutation-autofix` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+  ERROR   [pr-body] /tmp/pr-body.md: check `tests / typing` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+PR-BODY: 3 error(s) in /tmp/pr-body.md

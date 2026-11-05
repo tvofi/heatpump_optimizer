@@ -1,0 +1,17 @@
+RESULT old-basis wood=False 2026-09: base 120.0 actual 44.0 saving None pct None old True
+RESULT old-basis wood=False 2026-10: base 40.0 actual 44.0 saving None pct None old True
+RESULT old-basis wood=False 2026-11: base 8.0 actual 44.0 saving None pct None old True
+RESULT old-basis wood=True 2026-09: base 120.0 actual 44.0 saving None pct None old True
+RESULT old-basis wood=True 2026-10: base 40.0 actual 44.0 saving None pct None old True
+RESULT old-basis wood=True 2026-11: base 8.0 actual 44.0 saving None pct None old True
+RESULT migration rewrites no line: True
+RESULT november after new booking old: [True]
+RESULT december new basis: saving -6.0 pct -600.0 old False
+RESULT calibration meter/plan 1.0 wood=False: pct 50.00 calibration 1.0
+RESULT calibration meter/plan 1.0 wood=True: pct 50.00 calibration 1.0
+RESULT calibration meter/plan 0.5 wood=False: pct 50.00 calibration 0.5
+RESULT calibration meter/plan 0.5 wood=True: pct 75.00 calibration 1.0
+RESULT calibration meter/plan 0.25 wood=False: pct 50.00 calibration 0.25
+RESULT calibration meter/plan 0.25 wood=True: pct 87.50 calibration 1.0
+RESULT calibration meter/plan 1.5 wood=False: pct 50.00 calibration 1.5
+RESULT calibration meter/plan 1.5 wood=True: pct 50.00 calibration 1.5
