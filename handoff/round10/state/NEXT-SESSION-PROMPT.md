@@ -43,7 +43,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROD-RESIDUE-PINS (stage carries-open, branch `handoff/r10-prod-residue-pins`): `git fetch origin handoff/r10-prod-residue-pins && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GANTT-DRIFT (stage absorbed, branch `handoff/r10-fly-gantt-drift`): `git fetch origin handoff/r10-fly-gantt-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TICK-LEVELS (stage in-progress, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-TICK-LEVELS (stage carries-open, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HANDOFF-PATH (stage in-progress, branch `handoff/r10-handoff-path`): `git fetch origin handoff/r10-handoff-path && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-RECORD-ATTRIB (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-CI-CRITPATH-4 (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
