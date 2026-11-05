@@ -16887,6 +16887,42 @@
     "stage": "not-started"
    },
    "brief": "The free-slot step in tests/gate_lock.py checks that a slot file exists and then acts on it, so a slot freed between the two reads lets two takers win. Found by the final fix review of PR 3170, not fixed there. Precondition control: a delay-only plant, a 30 ms sleep after the read returns nothing for a slot path with no logic changed, turned the one-winner check red in 8 of 10 runs at that head; the plant is the delay script in the verdict evidence on the review/3170 ref, and the fix must turn it green. Re-measure at your merge base. Close the race in production code, never by widening the test's wait."
+  },
+  {
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "severity": "medium",
+   "wave": 1,
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "group": "R10-FLY-RELAY-HOLD",
+   "lane": "CP",
+   "class": "relay-hold",
+   "size": "S",
+   "files": [
+    "tools/audit/seat/bus.sh"
+   ],
+   "brief": "OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. All fixes architecturally sound and minimal; deletion preferred over new machinery; no new seats or lanes; a measured before and after for each claim, with a null control; no seat obligation changes unless the card says so.\n\nCARD C9: Fix the relay's train-add so it honours the hold file (one check, no new machinery)\nDECISION: Yes/No: bus.sh train_add skips a PR listed in the existing cloud-handoff-hold file.\nWHAT CHANGES: One `held` call in bus.sh train_add. This reuses cloud_relay.sh's held().\nMEASURED COST TODAY:\n- bus.sh train_add posts every merge verdict to merge_train.py add with no hold check (bus.sh lines 443-451 at origin/main). The add-queue files for #3198 (14:33:05Z) and #3222 (15:22:58Z) match the relay's POSTED times exactly.\n- The hold file ~/.local/state/hpo/cloud-handoff-hold has been empty since 10-31, so no merge-hold grammar exists today.\nEXPECTED SAVING: hours to closure: Not measured: two instances today, and the hours lost per instance are unknown.; uncertainty: High on the size of the saving.\nRISK: None beyond today's.\nEFFORT: XS.\nPOLICY: None. This is a defect fix in a seat instrument. Under C1 it qualifies as 'unblocks production merges'.\nRECOMMENDATION: YES, but only as this one-line fix. Do not open a group for it.\n\nTASK: in tools/audit/seat/bus.sh `train_add` (origin/main lines 443-451 at the time of the card) call the existing cloud_relay.sh `held()` check so a PR listed in the cloud-handoff-hold file is skipped (read how cloud_relay.sh reads the file and share the one function; do not copy it). Failing test first (the bus self-test): a held PR is not added and a not-held PR is. Mutation proof of the hold check, a null control (empty hold file adds as today). No new file, seat or lane."
   }
  ]
 }
