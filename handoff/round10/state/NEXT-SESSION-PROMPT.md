@@ -31,7 +31,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SEAT-IDENTITY-GUARDS (stage carries-open, branch `handoff/r10-seat-identity-guards`): `git fetch origin handoff/r10-seat-identity-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-HANDOFF-ARM (stage absorbed, branch `handoff/r10-relay-handoff-arm`): `git fetch origin handoff/r10-relay-handoff-arm && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OPENER-REUSE (stage absorbed, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-BODY-CONTRACT (stage in-progress, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BODY-CONTRACT (stage carries-open, branch `handoff/r10-body-contract`): `git fetch origin handoff/r10-body-contract && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage absorbed, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-LIB-SCHEMA (stage absorbed, branch `handoff/r10-roster-lib-schema`): `git fetch origin handoff/r10-roster-lib-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-QUEUE (stage absorbed, branch `handoff/r10-roster-queue`): `git fetch origin handoff/r10-roster-queue && git worktree add --detach $SEAT/wt FETCH_HEAD`
