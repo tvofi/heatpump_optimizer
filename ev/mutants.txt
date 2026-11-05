@@ -1,0 +1,13 @@
+MUTANT postfold: FAIL an op that returned 0 but wrote nothing fails after the fold, naming the id carry_fold self-test: 6 checks, 1 failed 
+MUTANT ifbad: FAIL one good and one done destination: nothing is written for the good one carry_fold self-test: 6 checks, 1 failed 
+MUTANT branch: FAIL check --branch resolves the PR group, so a closed destination lists its valid targets carry_audit self-test: 364 checks, 1 failed 
+MUTANT foldrc: FAIL check --body refuses a close with an unanswered fold (rc 1, FOLD-UNANSWERED) FAIL ... also when the body has a routed finding, which sends it down the roster path carry_audit self-test: 364 checks, 2 failed 
+MUTANT closed: FAIL a closed group (R10-ABS) is refused naming it and listing the live after-edged consumers carry_audit self-test: 364 checks, 1 failed 
+MUTANT prgroupnone: FAIL branch fix/r10-pr-pr resolves to the PR group R10-PR (the workflow passes --branch, not --pr-group) FAIL check --branch resolves the PR group, so a closed destination lists its valid targets carry_audit self-test: 364 checks, 3 failed 
+MUTANT trailer: FAIL items: TRAILER reads 'Round: 3' FAIL items: TRAILER reads 'bus-nonce: abc123' carry_audit self-test: 364 checks, 2 failed 
+MUTANT htmlcomment: FAIL ... an answer inside an HTML comment is no answer carry_audit self-test: 364 checks, 1 failed 
+MUTANT pointer: FAIL grammar: `Carry: <done group> | dismissed: <reason>` routes: the group is a pointer, live or done carry_audit self-test: 364 checks, 1 failed 
+MUTANT control: CONTROL VACUOUS: carry control: 
+MUTANT treerev2: TREEREV VACUOUS: 
+MUTANT keep: FAIL a second refusal fast-forwards the keep ref (got 'none^', want 'none') FAIL ... and says the keep failed (got '0', want '1') body_push self-test: 32 checks, 18 failed 
+MUTANT contract: ok   REFUSE: the check runs cannot be listed (an empty list from a failed read is not 'no reds') FAIL mutant treerev changed nothing body_patch self-test: 98 checks, 1 failed 

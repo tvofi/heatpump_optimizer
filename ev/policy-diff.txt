@@ -1,0 +1,67 @@
+diff --git a/dev/governance/roles/fix-review.md b/dev/governance/roles/fix-review.md
+index 95e9632d6..0e272a7c0 100644
+--- a/dev/governance/roles/fix-review.md
++++ b/dev/governance/roles/fix-review.md
+@@ -11,8 +11,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+    run the closure, confirm the named checks fail, restore. If nothing fails,
+    the test is vacuous: `blocked <sha> mutation-vacuous: <mutant>`.
+ 2. Measure with the **finder's** harness, not the fixer's: at the baseline
+-   SHA and at the PR head, printing your own `RESULT` lines. A fixer who
+-   measures with a harness they wrote is measuring themselves. One flat by
++   SHA and at the PR head, printing your own `RESULT` lines. One flat by
+    design (`fixer.md` step 3): confirm it flat, not regressed, at both ends,
+    and run the companion yourself at both ends.
+ 3. Re-run the null control and the both-ends check where the PR claims one.
+@@ -125,7 +124,7 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+     neighbouring rules, not only the counter's own re-spelled (#2373). If it reproduces
+     the movement, block only where the diff's change is that shape; under a sound
+     change it is an instrument finding, carried by `finding-propagation.md`
+-    (#1874, #1867, #1868). On a raise, judge each payment the body lists and
++    (#1874, #1867, #1868). On a raise, judge each listed payment and
+     hunt one it missed: one that truly improves the code is `metric-gamed` too.
+ 15. **Judge `fixer.md` step 17 on added lines**: a breach, or a departure
+     from the architect or approved design note, is `blocked <sha> architecture-unsound: <how>`.
+@@ -133,4 +132,6 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+ Return a verdict with your RESULT lines, its first line and `bus-nonce:` line
+ in the grammar above; one that does not parse is refused. Before you return one, run the packet's closing self-audit (`carry_audit.py check`); return it only at rc 0.
+ 
+-**Say which round this is**: from the fourth, `fixer.md` owes a re-cut, not a repair.
++**Say which round this is**: from the fourth, `fixer.md` owes a re-cut.
++
++A ruling naming a destination stage states it as a `Carry:` marker.
+diff --git a/dev/governance/roles/judge.md b/dev/governance/roles/judge.md
+index cb3f7bc4b..ca7bf9b80 100644
+--- a/dev/governance/roles/judge.md
++++ b/dev/governance/roles/judge.md
+@@ -1,7 +1,7 @@
+ # The judge's contract
+ 
+-You run alone, serially, on the idle box, after the verifiers. You do not trust
+-the finders or the verifiers; you re-measure. **Dedup first**, across
++You run alone, serially, on the idle box, after the verifiers. You trust neither
++finders nor verifiers; you re-measure. **Dedup first**, across
+ dimensions: merge a finding into another only where that one's perturbation
+ moves its harness too. Scripted re-runs of the headers' commands are your
+ measurement; the verdicts are yours. Then, per survivor:
+@@ -12,9 +12,8 @@ measurement; the verdicts are yours. Then, per survivor:
+ 2. Run the finding's perturbation. If the number does not move in the stated
+    direction, the harness is **void**: the finding is `unreproduced` whatever
+    the votes said.
+-3. Compare the metric definitions the finder and the verifiers wrote. Where
+-   they measured different things, mark the votes `not comparable` and decide
+-   on your own measurement.
++3. Compare the metric definitions; where they differ, mark the votes
++   `not comparable` and decide on your own measurement.
+ 4. For aggregates, re-run leave-one-out and drop the most favourable cell.
+ 5. For cost, gain or time claims, re-run the null control.
+ 6. Assign `stop_rule_class` (`bug` or `hygiene`) from what the number shows,
+@@ -24,7 +23,7 @@ measurement; the verdicts are yours. Then, per survivor:
+    `fold_ledger.py` refuses it; two sharing a nearest count as one.
+ 7. Write the verdict line for the register: `verified` / `weakened(sev)` /
+    `refuted` / `unreproduced`, your number, the verifiers' votes. `unreproduced`
+-   is no kill and no pass: the round is not dry until it is re-measured or refuted.
++   is no kill, no pass: re-measure or refute it before the round is dry.
+ 
+ On a fix PR, only from round 3 or a disputed verdict; below it the fix reviewer
+-is the check. Re-run the body's before/after, at its head SHA, before the merge.
++is the check. Re-run the body's before/after, at its head SHA, before the merge. A ruling naming a destination stage states it as a `Carry:` marker.

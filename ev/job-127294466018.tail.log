@@ -1,0 +1,60 @@
+2026-11-05T14:07:24.0115683Z   pending  #3219 0ae75bf 4 commit(s) since — R10-FLY-REPLAY-MASK: fly replay mask
+2026-11-05T14:07:24.0116642Z   pending  #3217 cd0dd16 5 commit(s) since — R10-HOTFIX-RECORD-ATTRIB: record attribution round 2
+2026-11-05T14:07:24.0117615Z   pending  #3195 e57dfbb 6 commit(s) since — R10-SAV-COMFORT (part 3): the month row settles stored h
+2026-11-05T14:07:24.0118503Z   pending  #3185 79f765e 7 commit(s) since — R10-LEARNED-STORE-LOAD: learned store load
+2026-11-05T14:07:24.0119302Z   pending  #3196 dad3178 8 commit(s) since — R10-TWO-ZONE-HHL: two zone hhl
+2026-11-05T14:07:24.0120012Z   pending  #3208 3ec5178 9 commit(s) since — R10-MACHINERY-RATCHETS part 2
+2026-11-05T14:07:24.0121060Z   pending  #3200 6777ec3 10 commit(s) since — R10-TICK-LEVELS part 1: tick board severity levels
+2026-11-05T14:07:24.0121914Z   pending  #3085 6125b26 11 commit(s) since — R10-CLOSEOUT-CLEANUP: closeout cleanup
+2026-11-05T14:07:24.0122703Z   overdue  #3167 78a2be7 13 commit(s) since — R10-REPLAY-OPEN-LOG: replay open log
+2026-11-05T14:07:24.0123585Z   overdue  #3205 662b296 14 commit(s) since — R10-HOTFIX-GATE-STALE-JOBS: gate re-reads this run's lag
+2026-11-05T14:07:24.0124461Z   overdue  #3216 8ddab31 15 commit(s) since — R10-RCA-SAV-ESTIMATE: rca sav estimate
+2026-11-05T14:07:24.0125184Z   overdue  #3193 7c27427 16 commit(s) since — R10-COP-GATE-D: cop gate d
+2026-11-05T14:07:24.0125900Z   overdue  #3181 c0b082b 18 commit(s) since — R10-CI-RUNNER-FIXES: ci runner fixes
+2026-11-05T14:07:24.0126654Z   overdue  #3191 d91e464 19 commit(s) since — R10-PREPR-CAP: lazy heavy-slot take
+2026-11-05T14:07:24.0127353Z   overdue  #3201 a45cf7f 20 commit(s) since — R10-HOTFIX-CI-CRITPATH-4: price CI jobs by a per-runner 
+2026-11-05T14:07:24.0128091Z   overdue  #3206 af941ad 21 commit(s) since — R10-HOTFIX-GATE-STALE-JOBS: root cause of gate's false r
+2026-11-05T14:07:24.0129216Z   overdue  #3189 615b2eb 22 commit(s) since — R10-RCA-CI-CRITPATH-3: rca ci critpath 3
+2026-11-05T14:07:24.0129824Z   overdue  #3204 b3cd162 23 commit(s) since — triage: batch 118, P382 ACCEPT
+2026-11-05T14:07:24.0130650Z   overdue  #3203 4785204 24 commit(s) since — triage: batch 116, P378 DEFER
+2026-11-05T14:07:24.0131277Z   overdue  #3202 086a59d 25 commit(s) since — triage: batch 117, P379 DEFER, P380 REJECT, P381 ACCEPT
+2026-11-05T14:07:24.0131937Z   overdue  #3174 62f94f3 27 commit(s) since — R10-REPLAY-COST-BUDGET: replay cost budget
+2026-11-05T14:07:24.0132621Z   overdue  #3091 ce7a6ba 28 commit(s) since — record: #3048 pre-flight waiver note; drop the answered 
+2026-11-05T14:07:24.0133327Z   overdue  #3089 2a9cd34 29 commit(s) since — R10-FLOW-BODY-ONLY: a handoff updates only with the body
+2026-11-05T14:07:24.0134223Z   overdue  #3192 d4e584e 30 commit(s) since — R10-MACHINERY-RATCHETS: grader registration first
+2026-11-05T14:07:24.0134593Z 
+2026-11-05T14:07:24.0135206Z This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+2026-11-05T14:07:24.0242228Z ##[error]Process completed with exit code 1.
+2026-11-05T14:07:24.0406794Z Post job cleanup.
+2026-11-05T14:07:24.1244674Z [command]/usr/bin/git version
+2026-11-05T14:07:24.1284498Z git version 2.56.0
+2026-11-05T14:07:24.1354611Z Temporarily overriding HOME='/home/runner/work/_temp/b7e66770-28be-4331-866f-27eccc09af24' before making global git config changes
+2026-11-05T14:07:24.1356094Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T14:07:24.1360943Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T14:07:24.1395812Z Removing SSH command configuration
+2026-11-05T14:07:24.1402359Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T14:07:24.1439750Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T14:07:24.1733513Z Removing HTTP extra header
+2026-11-05T14:07:24.1739283Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T14:07:24.1777738Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T14:07:24.2066583Z Removing includeIf entries pointing to credentials config files
+2026-11-05T14:07:24.2073943Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T14:07:24.2099927Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T14:07:24.2101148Z includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T14:07:24.2101990Z includeif.gitdir:/github/workspace/.git.path
+2026-11-05T14:07:24.2102631Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T14:07:24.2109928Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T14:07:24.2134116Z /home/runner/work/_temp/git-credentials-e179b31c-a2ad-416c-a20a-1e14c792de37.config
+2026-11-05T14:07:24.2145694Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-e179b31c\-a2ad\-416c\-a20a\-1e14c792de37\.config
+2026-11-05T14:07:24.2193315Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T14:07:24.2220957Z /home/runner/work/_temp/git-credentials-e179b31c-a2ad-416c-a20a-1e14c792de37.config
+2026-11-05T14:07:24.2229292Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-e179b31c\-a2ad\-416c\-a20a\-1e14c792de37\.config
+2026-11-05T14:07:24.2263662Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-05T14:07:24.2286256Z /github/runner_temp/git-credentials-e179b31c-a2ad-416c-a20a-1e14c792de37.config
+2026-11-05T14:07:24.2294728Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-e179b31c\-a2ad\-416c\-a20a\-1e14c792de37\.config
+2026-11-05T14:07:24.2327483Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T14:07:24.2349635Z /github/runner_temp/git-credentials-e179b31c-a2ad-416c-a20a-1e14c792de37.config
+2026-11-05T14:07:24.2357797Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-e179b31c\-a2ad\-416c\-a20a\-1e14c792de37\.config
+2026-11-05T14:07:24.2391506Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T14:07:24.2676021Z Removing credentials config '/home/runner/work/_temp/git-credentials-e179b31c-a2ad-416c-a20a-1e14c792de37.config'
+2026-11-05T14:07:24.2821729Z Cleaning up orphan processes
