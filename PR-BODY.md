@@ -11,7 +11,7 @@ What changed:
 
 ## Head
 
-1017865aefe429ec5399dd9d4a86ac88178f09f5, the merge of origin/fix/r10-grade-drivers (PR head b1406090, which carries the bot's `ci: merge main` commit 2625b8af), the WIP value checks and origin/main 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0 (tip when measured, 2026-11-05; a merge-base of the same SHA). `git merge-tree --write-tree origin/main HEAD` reports no conflict; origin/main has not moved since this branch's last `tools/pr/prepr.sh` run.
+b256f36d285247b1cf22fd60d039c70fc01f165c. The change over the reviewed content (1017865aefe429ec5399dd9d4a86ac88178f09f5, the f-3198-r3 repair) is a merge of origin/main with the claim-file conflict resolved: `tests/golden/claimed_drift.txt` keeps BOTH claim lines for `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` (main's R10-COP-GATE-D and this branch's R10-GRADE-DRIVERS, each with its own direction; `claims-for:` unchanged, no golden re-recorded). The code is a fast-forward of 1017865a: two merge commits, the first of origin/main at 78a2be77c, the second of origin/main at 6125b263d (tools/audit instruments only; no scored file), then a commit that added the PR body file by mistake and one that removed it (the head tree equals that of 932dbd954). `tests/structure_budgets.json` was resolved by the ledger driver (`max_class_loc` 7975 + both deltas = 7956, `class_excess_loc` 17614); `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED, no budget raised.
 
 ## Mutation proof
 
@@ -37,7 +37,7 @@ Failing test first: the head's `tests/card.mjs` run against the base's card turn
 
 - `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at d113fe6 (the earlier head; the delta since is the merge of main, the bot's re-record, the pins and one check in `tests/features.py`, re-run directly below): `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc=0, with `tests/features.py` and `tests/card.mjs` among them; `env_drift.py --all origin/main` reads no unclaimed drift, and `card_drift.mjs origin/main` one moved state, claimed.
 - `NODE_PATH=/opt/node22/lib/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs` at d113fe6: ALL BROWSER CHECKS PASSED. Indicative only: CI's browser job decides. At 71a59dc (reset, no thinning) the same run failed `P9 grid: no two text runs share ink`, every pair at `wood_lane/375`.
-- `bash tools/pr/prepr.sh` at 1017865aefe429ec5399dd9d4a86ac88178f09f5: rc=0.
+- `bash tools/pr/prepr.sh` at b256f36d285247b1cf22fd60d039c70fc01f165c: rc=0.
 - `python3 tests/structure.py`: rc=0, after `--record` lowered `max_class_loc` 7975 -> 7971 and `class_excess_loc` 17640 -> 17636 (commit 467ee2d's message carries the reason).
 - `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py`: `claims_true=123`, `claims_false=0`, `arch_map_missing=0`.
 - `python3 tools/pr/ci_predict.py --only under-scoped`: no closures, fast, governance or instrument red predicted.
@@ -52,10 +52,19 @@ Failing test first: the head's `tests/card.mjs` run against the base's card turn
 
 ## Red checks
 
-Check-run set of PR #3198 at its head b1406090 (`get_check_runs`, 87 runs over both pages, the latest run of each name). Concluded red, by name:
+The final head has no check run yet: it is a new commit that no PR has had CI on. The concluded reds of the PR's last head b1406090, over both check-run pages (87 runs, the latest of each name), and what each means for this head:
 
-- `tests / fast (3.14)`: `tests/entities.py` refused the selection-cost note in `tests/deployment_shape.py` (the tree derives 144 of the 528 pairs after the bot's closure re-record; the note then read another count). The figures moved because this diff adds one production file, `driving_grade.py`, which every closure importing the coordinator now reads, plus the bot's re-record that put `driving_grade.py` into `typing_ruler.py`'s closure (the note's own paragraph records both steps). Fixed at the root by the note's figures, which `tests/entities.py` reads: `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head prints `ALL 2616 ENTITY CHECKS PASSED`. Cheaper detector: `tools/pr/ci_predict.py` does not model a derived-figure note; entities.py itself runs in the scoped gate , so the detector exists and was in the local path (`scope.run`) -- the count was recorded at 141 in 8cf065a4 and the bot's re-record then moved it to 144 (a precondition changed under a recorded figure, state d); the entities check already catches it, so no new countermeasure is owed.
-- `tests / mutation`: refused 3239 unpinned sites against 3210 at the ratchet base, 33 added by this diff. Answered under `## Unpinned sites`. Cheaper detector: `prepr.sh` step 6d lists the unpinned sites a committed diff adds; it exists and runs locally, and `mutation_table.py --pin-killed` is the repair, so no new countermeasure is owed.
+- `tests / fast (3.14)`: `tests/entities.py` refused the selection-cost note in `tests/deployment_shape.py`; repaired in 1017865a, and `PYTHONPATH=tests/hastub python3 tests/entities.py` passes in this head's scoped gate (`ALL 2622 ENTITY CHECKS PASSED`).
+- `tests / mutation` (3239 unpinned sites against the ratchet base): `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main` at the first merge reads `PIN KILLED: nothing to pin` (0 new unpinned sites; 3170 unpinned of 6784 against 3174 at the base), the killed_by rows being in this diff.
+- `pr-contract / pr-contract` and `gate`: followed `tests / mutation`; not independent.
+- `tests / nightly-status`: grades `main`, not this diff (`defect-root-cause.md`). Inherited, red on the base's ancestry; this diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`.
+- `tests / replay` (`synthetic-dhw-only.json cycle_cost cpu_ratio`): runner noise on the budget, inherited, #3174 re-centres it; this diff adds only score publishing.
+- `tests / mutation-autofix`: skipped on a bot head; its survivors were the 2 sites pinned in 1017865a.
+- `codeql / Analyze (python)` and `tests / closures`: success.
+
+Verified locally at this head: `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` (`MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc=0, including `env_drift.py`, `golden.py`, `features.py`, `card.mjs`); `bash tools/pr/prepr.sh` rc=0 after the second merge, with main unmoved since (6125b263d at `git fetch`, 2026-11-05). Toolchain numpy 2.5.4, scipy 1.18.1, equal to `tests/requirements-ci.txt`; CI remains the authority for goldens.
+
+## Unpinned sites`. Cheaper detector: `prepr.sh` step 6d lists the unpinned sites a committed diff adds; it exists and runs locally, and `mutation_table.py --pin-killed` is the repair, so no new countermeasure is owed.
 - `pr-contract / pr-contract` and `gate`: red because the body at that head listed 32 sites as pinned by `mutation-autofix` while the autofix lane had been skipped on the bot-authored head (`tests / mutation-autofix` conclusion `failure` in the earlier run, `skipped` in the latest); both read the unpinned count and follow `tests / mutation`, so they close with it. Not independent reds.
 - `tests / nightly-status` (earlier run, failure; `skipped` in the latest): grades `main`, not this diff (`defect-root-cause.md`); this diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`. Main-inherited.
 - `tests / replay` (`synthetic-dhw-only.json cycle_cost cpu_ratio 2.384 over its budget 2.173`, red in an earlier run, `skipped`/`success` in the latest): runner noise, inherited; #3174 re-centres the budget and is open. Not caused by this diff's code: `synthetic-dhw-only` runs the optimizer cycle and this diff adds only score publishing.
