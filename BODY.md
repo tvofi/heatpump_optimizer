@@ -11,7 +11,7 @@ What changed:
 
 ## Head
 
-d113fe68fe87774daf870895b50d436cc319f9d7, a merge of origin/main 8e90d81443317f76f22602a89651f7ca17c633f9 (its tip at 2026-11-04T11:47Z) into the branch cut from c3a279e3252a8b57bb00b5a677318cd4fe20387f. Main's delta reaches this branch's files only in the card (99 lines of shared template rules) and `thermal_model.py`; the gate, the browser grid and `prepr.sh` were re-run at this head, and origin/main has not moved since.
+1017865aefe429ec5399dd9d4a86ac88178f09f5, the merge of origin/fix/r10-grade-drivers (PR head b1406090, which carries the bot's `ci: merge main` commit 2625b8af), the WIP value checks and origin/main 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0 (tip when measured, 2026-11-05; a merge-base of the same SHA). `git merge-tree --write-tree origin/main HEAD` reports no conflict; origin/main has not moved since this branch's last `tools/pr/prepr.sh` run.
 
 ## Mutation proof
 
@@ -35,14 +35,16 @@ Failing test first: the head's `tests/card.mjs` run against the base's card turn
 
 ## Figures
 
-- `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at d113fe6: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc=0, with `tests/features.py` and `tests/card.mjs` among them; `env_drift.py --all origin/main` reads no unclaimed drift, and `card_drift.mjs origin/main` one moved state, claimed.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` at d113fe6 (the earlier head; the delta since is the merge of main, the bot's re-record, the pins and one check in `tests/features.py`, re-run directly below): `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc=0, with `tests/features.py` and `tests/card.mjs` among them; `env_drift.py --all origin/main` reads no unclaimed drift, and `card_drift.mjs origin/main` one moved state, claimed.
 - `NODE_PATH=/opt/node22/lib/node_modules PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs` at d113fe6: ALL BROWSER CHECKS PASSED. Indicative only: CI's browser job decides. At 71a59dc (reset, no thinning) the same run failed `P9 grid: no two text runs share ink`, every pair at `wood_lane/375`.
-- `bash tools/pr/prepr.sh` at d113fe6: rc=0.
+- `bash tools/pr/prepr.sh` at 1017865aefe429ec5399dd9d4a86ac88178f09f5: rc=0.
 - `python3 tests/structure.py`: rc=0, after `--record` lowered `max_class_loc` 7975 -> 7971 and `class_excess_loc` 17640 -> 17636 (commit 467ee2d's message carries the reason).
 - `PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py`: `claims_true=123`, `claims_false=0`, `arch_map_missing=0`.
 - `python3 tools/pr/ci_predict.py --only under-scoped`: no closures, fast, governance or instrument red predicted.
 - `PYTHONPATH=tests/hastub python3 dev/audit/harnesses/r10_scores_envelope.py`: 40 `tree_grade=` rows, 0 off 50.0, at the base and at the head.
 - Goldens: the five coordinator fixtures (`coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal`, `coord_two_zone`) gain the new score keys, inserted by path into the committed files (70 lines added, 0 removed). A `golden.py --record --only` here also rewrote float values this box computes differently, so it was discarded: no value is re-recorded on this box. Each fixture, and the card's `score_open`, is claimed.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py` at 1017865aefe429ec5399dd9d4a86ac88178f09f5: `ALL 2616 ENTITY CHECKS PASSED`; `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4807 FEATURE CHECKS PASSED`.
+- Toolchain: `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` prints `2.5.4 1.18.1`, equal to `tests/requirements-ci.txt` (`numpy==2.5.4`, `scipy==1.18.1`) after `bash tools/audit/seat/cloud-setup.sh`; `--check` reads OK. CI stays the authority for goldens, and none was re-recorded here.
 
 ## Architecture score
 
@@ -50,44 +52,23 @@ Failing test first: the head's `tests/card.mjs` run against the base's card turn
 
 ## Red checks
 
-- `mutation` at d113fe68fe87: red by construction on the 32 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+Check-run set of PR #3198 at its head b1406090 (`get_check_runs`, 87 runs over both pages, the latest run of each name). Concluded red, by name:
+
+- `tests / fast (3.14)`: `tests/entities.py` refused the selection-cost note in `tests/deployment_shape.py` (the tree derives 144 of the 528 pairs after the bot's closure re-record; the note then read another count). The figures moved because this diff adds one production file, `driving_grade.py`, which every closure importing the coordinator now reads, plus the bot's re-record that put `driving_grade.py` into `typing_ruler.py`'s closure (the note's own paragraph records both steps). Fixed at the root by the note's figures, which `tests/entities.py` reads: `PYTHONPATH=tests/hastub python3 tests/entities.py` at this head prints `ALL 2616 ENTITY CHECKS PASSED`. Cheaper detector: `tools/pr/ci_predict.py` does not model a derived-figure note; entities.py itself runs in the scoped gate , so the detector exists and was in the local path (`scope.run`) -- the count was recorded at 141 in 8cf065a4 and the bot's re-record then moved it to 144 (a precondition changed under a recorded figure, state d); the entities check already catches it, so no new countermeasure is owed.
+- `tests / mutation`: refused 3239 unpinned sites against 3210 at the ratchet base, 33 added by this diff. Answered under `## Unpinned sites`. Cheaper detector: `prepr.sh` step 6d lists the unpinned sites a committed diff adds; it exists and runs locally, and `mutation_table.py --pin-killed` is the repair, so no new countermeasure is owed.
+- `pr-contract / pr-contract` and `gate`: red because the body at that head listed 32 sites as pinned by `mutation-autofix` while the autofix lane had been skipped on the bot-authored head (`tests / mutation-autofix` conclusion `failure` in the earlier run, `skipped` in the latest); both read the unpinned count and follow `tests / mutation`, so they close with it. Not independent reds.
+- `tests / nightly-status` (earlier run, failure; `skipped` in the latest): grades `main`, not this diff (`defect-root-cause.md`); this diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`. Main-inherited.
+- `tests / replay` (`synthetic-dhw-only.json cycle_cost cpu_ratio 2.384 over its budget 2.173`, red in an earlier run, `skipped`/`success` in the latest): runner noise, inherited; #3174 re-centres the budget and is open. Not caused by this diff's code: `synthetic-dhw-only` runs the optimizer cycle and this diff adds only score publishing.
+- `codeql / Analyze (python)`: `success` in both runs at this head (completed 2026-11-05T00:03Z and 00:20Z); the cancelled run named in the dispatch brief was an earlier infrastructure cancellation, superseded.
+- `tests / closures`: `success` in both runs.
+
+`tests / mutation-autofix` (earlier run, failure at 01:05Z): it named the survivors it could not pin; they are the 2 sites below, now killed.
 
 ## Unpinned sites
 
-- custom_components/heatpump_optimizer/coordinator.py:3106 CLAMP_DROP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:3107 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:3167 BOOLOP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:3167 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:3169 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:5099 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/coordinator.py:10398 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:29 CONST: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:31 CONST: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:42 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:54 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:55 CLAMP_DROP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:57 BOOLOP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:57 CMP_BOUND: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:57 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:60 BOOLOP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:60 CMP_BOUND: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:60 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:61 CLAMP_DROP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:63 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:68 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:84 BOOLOP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:84 CMP_BOUND*2: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:85 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:92 CLAMP_DROP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:94 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:102 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:111 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:115 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:120 BOOLOP: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:120 GUARD_OFF: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
-- custom_components/heatpump_optimizer/driving_grade.py:127 RETURN_DEL: pinned by mutation-autofix (its lane mutates custom_components/; not run locally, so a survivor it reports is owed a triage)
+The ledger rows (`tests/mutation_ledger/killed_by/`) are in this diff. `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main` at this head's parent: 8 new sites driven, 6 pinned killed by `tests/features.py`, 2 survived (both `driving_grade.py:84` CMP_BOUND). The first run read one of them killed by `tests/features.py` and one alive; the alive one, `sample > 0.0` -> `sample >= 0.0`, differs from the original only for a sample of negative zero (the scale becomes -0.0, so every driver prints `-0.0`). That is a value, not an equivalent mutant, so it got a killing check, not a triage: `R10-GRADE-DRIVERS day_drivers: a negative-zero sample books the same zeros as a zero one, sign included` (`tests/features.py`). Re-run after the check: `PIN KILLED: 2 pinned, 0 left unpinned`. The 32 sites the earlier body listed (coordinator.py and driving_grade.py) are covered by the killed_by rows in this diff; no `survivor_triage` was written.
 
-The five stale pins this branch deleted name sites it moved or rewrote: `_fold_score_sample`'s BOOLOP (a survivor triaged equivalent), CLAMP_DROP and GUARD_OFF, whose booking is now `driving_grade.tally`'s, and `machine_score`'s CLAMP_DROP and RETURN_DEL.
+Mutation proof of the new check: with line 84 of `driving_grade.py` mutated to `sample >= 0.0 and total > 0.0`, `day_drivers(book, 2.0, -0.0)` returns `{'cheap_hours': -0.0, 'dear_hours': -0.0}` against `{'cheap_hours': 0.0, 'dear_hours': 0.0}` unmutated, and the mutation table reports the site killed by `tests/features.py`. Null control: the unmutated tree passes `tests/features.py` (`ALL 4807 FEATURE CHECKS PASSED`).
 
 ## Carries
 
