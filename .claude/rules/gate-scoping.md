@@ -20,12 +20,11 @@ clears `tests/entities.py`'s history reds (#1693, #1699, #1704).
 
 `/tmp/hpo-gate.lock` holds two leases; `tests/gate_lock.py needs-lease` names a script's:
 `lease`, exclusive, measuring the machine (`tests/stress.py`, `tests/harness_headers.py`);
-`slot`, one of `$HPO_HEAVY_SLOTS` (four), for one unrecorded or recorded in `closures.json` at or above
-`SLOT_MIN_SECONDS`; else `none`. `$HPO_SLOT_LABEL` names a run's slot. Arrival orders
+`slot`, one of `$HPO_HEAVY_SLOTS` (four): unrecorded, or `closures.json` seconds at or above
+`SLOT_MIN_SECONDS`; else `none`. `prepr.sh` takes one at its first heavy step. Arrival orders
 each priority band; a dead or expired ticket is skipped. An expired or abandoned lease is
 free, a slot once its pid is gone. A `lease` wait ends at the script's recorded seconds, rc 76: `run.sh` names it unrun. `flock-wrap`
-retakes a lapsed lease. That lease, not the tick's count, is nudge.md §8's cap; hold it by hand
-with `tests/gate_lock.py`, never `mkdir`:
+retakes a lapsed lease. That lease, not the tick's count, is nudge.md §8's cap; hold it with `tests/gate_lock.py`, never `mkdir`:
 
 ```
 python3 tests/gate_lock.py take --label <your-label>

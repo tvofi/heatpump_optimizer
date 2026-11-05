@@ -4090,29 +4090,18 @@ def _p2_registry(sources):
                  "narrative.py::build":
                      "an energy display floor in kWh per narrative line, not a power",
                  "optimizer.py::classify_space_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "optimizer.py::classify_dhw_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "accuracy.py::delivered_ratio":
                      "a ratio's denominator floor on a sample's predicted and "
                      "measured power: below it the ratio is noise, whatever the plan says",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._async_learn_buffer_cooling":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_async_learn_buffer_cooling.heating (the commanded action's power)",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._observe_frequency":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_observe_frequency.watch_active (the commanded power)",
                  "freq_control.py::FrequencyMap.observe":
                      "the frequency map's own no-evidence floor on a METERED draw",
-                 "freq_control.py::FrequencyMap.recommend":
-                     "distinct finding: #2238 P2 sweep instance FrequencyMap.recommend",
-                 "freq_control.py::FrequencyMap.evidence_exhausted":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "FrequencyMap.evidence_exhausted",
              }),
         # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
         # compressor's own evidence -- the meter reads the cycle the pump runs
@@ -10032,10 +10021,41 @@ base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)
     R.check(
-        f"{name}.json matches strings.json exactly",
+        f"{name}.json has exactly strings.json's keys",
         not diff,
         ", ".join(sorted(diff)[:6]),
     )
+
+
+def leaf_values(data, prefix=""):
+    """``{dotted path: leaf}`` for every non-dict leaf."""
+    out = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        out.update(leaf_values(value, path) if isinstance(value, dict) else {path: value})
+    return out
+
+
+# Carry 0 (R10-COP-GATE-D): Home Assistant serves translations/en.json, so the
+# English text shipped is en.json's, not strings.json's. The key check above
+# read "exactly" while comparing keys only, and en.json's pump_duty_mode text
+# went stale beside an edited source. en.json is a copy of strings.json leaf
+# for leaf; sv.json is a translation, so only its keys are pinned.
+def en_value_drift(source, en):
+    """The dotted paths where en's leaf differs from the source's."""
+    a, b = leaf_values(source), leaf_values(en)
+    return sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
+
+
+_en_drift = en_value_drift(strings, files["en"])
+R.check(
+    "en.json equals strings.json leaf for leaf (null: a source compared with itself "
+    "drifts nowhere, and one edited leaf is found)",
+    not _en_drift
+    and en_value_drift(strings, strings) == []
+    and en_value_drift({"a": {"b": "x"}}, {"a": {"b": "y"}}) == ["a.b"],
+    ", ".join(_en_drift[:6]),
+)
 
 # D4-s2-03 (N-escape): a translation leaf written with two backslashes before
 # a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
@@ -12484,7 +12504,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
+        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -16221,6 +16242,32 @@ R.check("run.sh records a wait past its bound as #skip, named unrun, and a run w
         *_gl_wu["map"])
 R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
         *_gl_wu["word"])
+
+
+def _gl_ended_before_summary() -> tuple[bool, str]:
+    """run.sh names a non-zero script that never reached a summary line apart
+    from one that failed a check: the function and its pattern are lifted from
+    run.sh and driven on a crash log and a failed-check log."""
+    import re as _re2
+    import subprocess as _sp
+    src = (_closure.ROOT / "tests/run.sh").read_text()
+    pat = _re2.search(r"^SUMMARY_LINE=.*$", src, _re2.M)
+    fn = _re2.search(r"^ended_before_summary\(\) \{.*?^\}", src, _re2.M | _re2.S)
+    if not (pat and fn):
+        return False, "run.sh defines no SUMMARY_LINE / ended_before_summary"
+    with _tempfile.TemporaryDirectory() as tds:
+        crash, failed = Path(tds) / "crash.log", Path(tds) / "failed.log"
+        crash.write_text("sampling...\nTraceback (most recent call last):\nOSError\n")
+        failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
+        out = []
+        for log in (crash, failed):
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            out.append(r.returncode)
+    return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
+
+
+R.check("run.sh names a script ended before its summary apart from a failed check (R10 carry)",
+        *_gl_ended_before_summary())
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
@@ -28468,6 +28515,56 @@ R.check(
         "app_comment.sh"),
     "the predicate must read the step's run line, not the file name anywhere",
 )
+# --- bare array expansion under set -u (R10-FLY-BUS-BASH32, triage P303) -------
+#
+# macOS /bin/bash 3.2 rejects an EMPTY array's `"${a[@]}"` under `set -u`; CI's
+# bash 5 expands it cleanly, so no run-time row here can see the defect -- this
+# is the static rule `tools/audit/seat/bare_array.py` owns, over every tracked
+# tools/**/*.sh. It encodes a design choice: the guard `${a[@]+"${a[@]}"}` or a
+# `# never-empty: <reason>` marker (on the line, or on a comment line directly
+# above it) is the only way out, and every file is judged, `set -u` or not,
+# because a sourced library runs under its caller's -u; a reason placed after a
+# `# mut:<name>` marker is refused on any line, since the self-tests find their
+# mutant line by that marker at the line's end.
+import importlib.util as _ba_util  # noqa: E402
+
+try:
+    _ba_spec = _ba_util.spec_from_file_location(
+        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+    _ba = _ba_util.module_from_spec(_ba_spec)
+    _ba_spec.loader.exec_module(_ba)
+    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+    _ba_rows = (
+        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+         "an allow-marked never-empty site passes (null)"),
+        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+         "a never-empty reason after a mut marker is refused in a set -u file too"),
+        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+         "a reason on the line above keeps the mut marker last (control)"),
+        (_ba.self_test.__call__() == 0, "its own self-test passes"),
+    )
+except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+R.check(
+    "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
+    not _ba_hits,
+    "bash 3.2 (macOS) dies on an empty array under -u; guard with ${a[@]+\"${a[@]}\"} or "
+    "put `# never-empty: <reason>` on the line, or on the line above when it ends in `# mut:<name>`:\n" + "\n".join(_ba_hits),
+)
+for _ba_ok, _ba_name in _ba_rows:
+    R.check("bare_array: " + _ba_name, _ba_ok, "tools/audit/seat/bare_array.py")
+
 # --- record-autofix: the record beat for rowless merges (R9-FR-10, #1952) ----
 #
 # `record` reddens on main after every rowless merge, and the beat that clears
@@ -36516,6 +36613,54 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 _CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+# The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4). critical_path_minutes
+# prices each heavy job over its own runner's probe step, read off the
+# Actions API by the step's NAME and priced by the interpreter that name
+# carries, so the pin is on the coupling: every heavy job carries the step,
+# under the python its own setup-python installs, with a reference the
+# ratchet knows -- a step renamed, or run under another python, falls back
+# to the host-draw price silently. And the probe's work is fixed: one round
+# of it, checksummed here (the full run refuses on its own CHECKSUM in CI).
+import host_probe as _hp  # noqa: E402
+
+R.check(
+    "the host probe is classified: NOT_A_TEST, and not on INERT",
+    "host_probe.py" in _closure.NOT_A_TEST and not _closure.is_inert("tests/host_probe.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+R.check(
+    "the host probe's work is the recorded work (one round's checksum)",
+    _hp.work(1) == 4288780,
+    f"got {_hp.work(1)}: a changed probe is a changed unit -- re-derive "
+    "PROBE_REFERENCE_S and re-record critical_path_minutes with it",
+)
+_HP_JOBS = ("fast", "arch-instrument", "coverage", "closures")
+_hp_bad = []
+for _job in _HP_JOBS:
+    _txt = _workflow_job(_TESTS_YML, _job)
+    _steps = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP) + r" \(python ([^)]+)\)\n"
+                        r"(?:        if: [^\n]*\n)?        run: python3 tests/host_probe\.py\n", _txt)
+    _pins = re.findall(r'python-version: "([0-9.]+)"', _txt)
+    _matrix = re.findall(r'python-version: \[([^\]]*)\]', _txt)
+    _pys = _pins or [v.strip().strip('"') for m in _matrix for v in m.split(",")]
+    _named = [_pys[0] if s == "${{ matrix.python-version }}" and len(_pys) == 1 else s for s in _steps]
+    if len(_named) != 1 or len(set(_pys)) != 1 or _named[0] != _pys[0] \
+            or _named[0] not in _cir.PROBE_REFERENCE_S:
+        _hp_bad.append(f"{_job}: probe steps {_steps}, python {_pys}")
+R.check(
+    "every heavy tests job runs the host probe once, named for the python it "
+    "installs, with a reference the ratchet prices it by",
+    not _hp_bad and all(v > 0 for v in _cir.PROBE_REFERENCE_S.values()),
+    "; ".join(_hp_bad) or f"PROBE_REFERENCE_S {_cir.PROBE_REFERENCE_S}",
+)
+# The null control: the same rule over a job with no probe step refuses.
+_hp_null = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP), _workflow_job(_TESTS_YML, "ci-ratchet"))
+R.check(
+    "and the probe rule finds no step where none runs (ci-ratchet, its null control)",
+    _hp_null == [],
+    f"{_hp_null}",
+)
+
 R.check(
     "the CI ratchet is wired into a push-to-main job that never --records",
     "github.event_name == 'push'" in _CIR_JOB

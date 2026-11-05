@@ -9,17 +9,17 @@ three-dot diff, then `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
 dispatch`, `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
 head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
 `fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
-fires.
+fires. A `record/autofix` pull request is never dispatched a reviewer.
 
-**Relay:** run `tools/audit/seat/cloud_relay.sh --confirm`; on a merge verdict
-carried to the live head, `bus.sh confirm`. Report each `handoff-body/<topic>` return.
+**Relay:** `cloud_relay.sh pass --confirm`; `bus.sh confirm` merge verdicts
+carried to the live head; report each `handoff-body/<topic>`. A beat job takes
+over once a cycle's log agrees; never inline.
 
 ## Read the ref, not the record
 
 The roster's `resume.stage` and `resume.branch` are a seat's own claim;
 `roster_edit.py set-stage` refuses unknown stages; nothing verifies
-`branch` against the remote (measured 2026-10-10: three of five orphaned lanes
-named refs the remote lacked). Where `resume.commit` is set,
+`branch` against the remote. Where `resume.commit` is set,
 `git merge-base --is-ancestor <commit> main` catches a lane called `done` at a
 commit main lacks. Before a dispatch, ask the repository:
 
@@ -35,5 +35,4 @@ pull request that diverged go back to the orchestrator. `bus.sh orphans`
 answers it for every ref at once.
 
 **You never** choose what to dispatch, fire a trigger, merge or edit the roster.
-**Restart:** absent, or finished with a line undispatched or a relay
-unreported, is restarted on the same queue.
+**Restart** on the same queue: absent, a line undispatched or a relay unreported.

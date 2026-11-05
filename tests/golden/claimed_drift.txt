@@ -34,6 +34,14 @@
 # drift fails, and so does a claim nothing matched), and it expires with the
 # `claims-for:` stamp below.
 #
+# A claim may also be a SHAPE line, `shape: <leaf paths> <from> -> <to>`,
+# keyed on the move instead of the fixture: it excuses exactly the leaves
+# that move that way, in whichever fixtures move on the host, and nothing else
+# in them. It is for drift of one direction whose fixture SET is the host's
+# (#996); a fixed name list for such drift goes STALE or UNCLAIMED on some
+# runner. In every other respect it is a claim: checked both ways, expiring
+# with the stamp. Grammar and refusals: "Shape claims" in env_drift.py.
+#
 # A MAY-DRIFT entry is a comment line, `# may-drift: <name> -- <reason>`. It
 # asserts nothing about plan keys: the fixture moved here, or it did not, and
 # either is fine for schedules, trajectories and other basin-sensitive fields.
@@ -59,6 +67,13 @@
 # v7.1.1: factory reset, ceiling probe, SAV comfort, away-mode and learner fixes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
+#
+shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
+coord_all_features  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_dhw  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_grid_fee  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_minimal  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -733,3 +748,13 @@
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+# R10-COP-GATE-D: the plan carries the band it was solved on and the model
+# status sensor publishes which electrical maximum the plan used, so every
+# coord capture gains `data.pump_max_power` and, under
+# `sensors.model_status.extra_state_attributes`, `pump_max_power`,
+# `pump_max_power_reason` and `pump_max_power_source`. Those four leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# origin/main, one environment). Claimed rather than re-recorded, as
+# R10-HOUSE-GRADE's key was: the committed files were patched in those four
+# paths alone, each null because a coord fixture holds no plan.

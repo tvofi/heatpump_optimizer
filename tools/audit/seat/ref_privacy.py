@@ -3,6 +3,7 @@
 
     python3 -I tools/audit/seat/ref_privacy.py slug <path> [--root NAME=DIR]...
     python3 -I tools/audit/seat/ref_privacy.py path <path>      (~/-relative for a posted text)
+    python3 -I tools/audit/seat/ref_privacy.py body-lines <file> (rc 1: the lines a post would refuse)
     python3 -I tools/audit/seat/ref_privacy.py guard --ref <ref> [--message <text>]...
                                                      [--commits <rev> [--over <base>] [-C <dir>]]
     python3 -I tools/audit/seat/ref_privacy.py scrub [--write] <file>...  (this host's spans, in place)
@@ -304,6 +305,18 @@ def body_refusal(text: str, ident: Identity | None = None) -> str | None:
     return f"{', '.join(why)} in the body" if why else None
 
 
+def body_lines(text: str, ident: Identity | None = None) -> list[str]:
+    """`line <n>: <why>` for each line body_refusal refuses, or the whole body's
+    refusal when no one line carries it; [] when the body would post (P76: a
+    verdict refused at post for its line 15 cost a full re-review)."""
+    ident = ident or Identity.of_host()
+    whole = body_refusal(text, ident)
+    if whole is None:
+        return []
+    bad = [f"line {i}: {w}" for i, ln in enumerate(text.split("\n"), 1) if (w := body_refusal(ln, ident))]
+    return bad or [whole]
+
+
 def home_relative(path: str, home: str | None = None) -> str:
     """A local path as a posted text names it: `~/<rest>` under the home
     directory (as written or resolved), else unchanged. A reader resolves `~`
@@ -388,6 +401,8 @@ PUSHERS = {
                                     "pull request's own branch"),
     ".github/workflows/nightly.yml": ("republishes", "on a runner, constant-message bot commits onto "
                                       "record/autofix or main (nightly kills), moved out of tests.yml"),
+    "tools/audit/seat/closeout.py": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
+                                     "the live ref writes are prune_refs.py's, which is guarded"),
     "tools/pr/app_approve.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository"),
     "tools/pr/app_comment.sh": ("fixture", "its pushes are the self-test's, into a temp bare repository; "
                                 "the carry it tests only fetches"),
@@ -1076,6 +1091,14 @@ def self_test() -> int:
     ok("scrub rewrites the cloud home only as a whole path",
        scrub(cite + " " + under("root", "x"), rid) == cite + " ~/x", scrub(cite + " " + under("root", "x"), rid))
 
+    # body_lines (P76): a verdict body is judged line by line, as its post would judge it.
+    vbody = "Fix review: merge x\n\nbus-nonce: n\n" + "\n" * 12 + "- see " + fake_home + "/ev/log\n"
+    ok("body_lines names the line of a host path below the first line (P76)",
+       body_lines(vbody, fid) == ["line 16: home-directory, account-name in the body"], repr(body_lines(vbody, fid)))
+    ok("body_lines passes the same body with the path written ~/... (null control)",
+       body_lines(vbody.replace(fake_home, "~"), fid) == [])
+    ok("body_lines still names a host path on the first line",
+       body_lines("Fix review: blocked x h: " + fake_home + "/x\n", fid) == ["line 1: home-directory, account-name in the body"])
     print(f"ref_privacy self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 
@@ -1098,6 +1121,10 @@ def main(argv: list[str]) -> int:
                     Path(f).write_text(new, encoding="utf-8", errors="surrogateescape")
         print(f"ref_privacy scrub: {changed} of {len(paths)} file(s) {'rewritten' if write else 'would change'}")
         return 0
+    if argv[:1] == ["body-lines"] and len(argv) == 2:
+        bad = body_lines(Path(argv[1]).read_text(encoding="utf-8", errors="surrogateescape"))
+        print("; ".join(bad)) if bad else None
+        return 1 if bad else 0
     if argv[:1] == ["path"] and len(argv) == 2:
         print(home_relative(argv[1]))
         return 0

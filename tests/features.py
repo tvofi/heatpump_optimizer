@@ -25002,6 +25002,26 @@ R.check(
     "an inverter runs most efficiently slow",
 )
 R.check(
+    "a target the plan calls off asks the map for nothing (D8-s1-01)",
+    _fm.recommend(0.07, 20.0, 120.0) is None
+    and not _fm.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm.recommend(0.11, 20.0, 120.0) is not None,
+    "0.07 kW is under MIN_RUNNING_DRAW_KW: the plan runs no pump on that step, "
+    "so no frequency is recommended and no exhaustion is reported; 0.11 kW, "
+    "a step it runs, still gets an answer (the null)",
+)
+_fm_low = FrequencyMap()
+for _ in range(FREQ_MIN_SAMPLES + 1):
+    _fm_low.observe(25.0, 0.06, 20.0, 120.0)  # the one bucket predicts 0.06 kW
+R.check(
+    "evidence below a target the plan calls off is not exhaustion (D8-s1-01)",
+    not _fm_low.evidence_exhausted(0.07, 20.0, 120.0)
+    and _fm_low.evidence_exhausted(0.11, 20.0, 120.0),
+    "the map's only bucket reaches 0.06 kW, under both targets: 0.07 kW is "
+    "an off step, so the owner's gate answers False; 0.11 kW, a step the plan "
+    "runs, is beyond that bucket's reach and reads True (the null)",
+)
+R.check(
     "above every bucket's reach the answer is TRUE flat out, and says so",
     _fm.recommend(50.0, 20.0, 120.0) == 120.0
     and _fm.evidence_exhausted(50.0, 20.0, 120.0)
@@ -30150,6 +30170,71 @@ R.check(
     "a real high-heat-loss step still says weather pre-heating",
     _reasons_hl[5] == _R_PREHEAT,
     f"{_reasons_hl}",
+)
+
+# Live defect (tvofi, 2026-10-30): the heat-loss factor the classifier reads
+# carried the learned `house_heat_loss_scale`, so a house that learned a scale
+# above 1.1 had nearly every heating step called weather pre-heating under a
+# flat forecast. Driven through `optimize`, which builds the factor: the label
+# must follow the forecast's wind and rain, never the learned level. The factor
+# reads wind and rain only (outdoor temperature enters the solve as the loss's
+# temperature difference), so the forecast's spell is a windy one.
+_pw_n = 48
+_pw_storm = np.zeros(_pw_n)
+_pw_storm[12:30] = 12.0  # 12 m/s: factor 1 + 0.03 * 12 = 1.36 on steps 12-29
+
+
+def _pw_reasons(scale, wind):
+    _p = _dc_replace(ThermalParameters(), house_heat_loss_scale=scale)
+    return _PvOpt(ThermalModel(_p), _PvOptCfg()).optimize(inputs=solve_inputs(
+        initial_state=ThermalState(room_temperature=20.5, outdoor_temperature=2.0),
+        prices=np.full(_pw_n, 1.5), outdoor_temps=np.full(_pw_n, 2.0), wind_speeds=wind,
+        start_time=datetime(2026, 1, 10, tzinfo=timezone.utc),
+    )).space_reasons
+
+
+_pw_flat = {s: _pw_reasons(s, np.zeros(_pw_n)) for s in (1.0, 1.24)}
+_pw_windy = {s: _pw_reasons(s, _pw_storm) for s in (1.0, 1.24)}
+R.check(
+    "a learned heat-loss scale of 1.24 under a flat forecast labels no step "
+    "weather pre-heating, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.24] and len(_pw_flat[1.24]) == _pw_n
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.24]),
+    f"{_pw_flat[1.24]}",
+)
+R.check(
+    "a forecast wind spell still labels weather pre-heating, at scale 1.0 and "
+    "1.24, and only on the spell's steps",
+    all(
+        _R_PREHEAT in _pw_windy[s]
+        and all(12 <= i < 30 for i, r in enumerate(_pw_windy[s]) if r == _R_PREHEAT)
+        for s in (1.0, 1.24)
+    ),
+    f"{_pw_windy}",
+)
+R.check(
+    "null control: scale 1.0 under a flat forecast labels no step weather "
+    "pre-heating either, and the plan does heat",
+    _R_PREHEAT not in _pw_flat[1.0]
+    and any(r not in (_R_COAST, _R_IDLE) for r in _pw_flat[1.0]),
+    f"{_pw_flat[1.0]}",
+)
+
+# The builder's two floors: a zero nameplate still yields the weather's share
+# (not a flat 0 that hides every spell), and a zero scale divides by no zero.
+from heatpump_optimizer.optimizer import _weather_loss_factors as _pw_factors  # noqa: E402
+
+_pw_w = np.array([0.0, 10.0])
+_pw_zero_u, _pw_zero_s = (
+    _pw_factors(ThermalModel(_dc_replace(ThermalParameters(), **kw)), _pw_w, np.zeros(2), 2)
+    for kw in ({"heat_loss_coefficient": 0.0}, {"house_heat_loss_scale": 0.0})
+)
+R.check(
+    "the weather loss factor reads the wind at a zero nameplate, and a zero "
+    "learned scale yields finite factors",
+    np.allclose(_pw_zero_u, [1.0, 1.0 + 10.0 * ThermalParameters().wind_sensitivity])
+    and np.all(np.isfinite(_pw_zero_s)),
+    f"zero nameplate {_pw_zero_u}, zero scale {_pw_zero_s}",
 )
 
 # Ranking is unchanged: the specific reasons still outrank the fall-through.
@@ -36454,12 +36539,14 @@ R.check(
     _ah_got == _ah_rows,
     f"got {_ah_got}",
 )
+from heatpump_optimizer import optimizer as _ah_opt  # noqa: E402
 from heatpump_optimizer import sensor as _ah_sensor  # noqa: E402
 import inspect as _ah_inspect  # noqa: E402
-# The slot merge and the DHW schedule sensor read the same running rule
-# (D8-s1-01's secondary arm): each step of ``_ah_steps`` the plan calls off
-# must sit in no slot, and the schedule sensor counts no period from a raw
-# draw. Null control: the steps the plan runs keep their slot.
+# The slot merge, the reason classifiers and the DHW schedule sensor read the
+# same running rule (D8-s1-01's secondary arm): each step of ``_ah_steps`` the
+# plan calls off must sit in no slot and carry an idle reason, and the
+# schedule sensor counts no period from a raw draw. Null control: the steps
+# the plan runs keep their slot and their reason.
 _ah_steps = [(2.0, 0.0), (0.07, 0.0), (0.0, 0.07), (0.07, 0.07), (0.04, 2.0), (0.06, 0.03)]
 _ah_sp = [s for s, _ in _ah_steps]
 _ah_dw = [d for _, d in _ah_steps]
@@ -36479,6 +36566,22 @@ R.check(
         [False, False, False, True, True, False],
     ],
     f"got {_ah_in_slot}",
+)
+_ah_space_why = _ah_opt.classify_space_steps(
+    np.array(_ah_sp), np.array([1.0] * 6), np.full(7, 21.0), np.full(6, 19.0),
+    np.ones(6), None, 6, other=np.array(_ah_dw),
+)
+_ah_dhw_why = _ah_opt.classify_dhw_steps(
+    np.array(_ah_dw), np.zeros(6, dtype=bool), np.zeros(6), None, 6,
+    idle=_ah_opt.IdleContext(other=np.array(_ah_sp)),
+)
+_ah_idle = {_ah_opt.REASON_IDLE, _ah_opt.REASON_IDLE_COASTING, _ah_opt.REASON_IDLE_DEARER,
+            _ah_opt.REASON_IDLE_SOLAR, _ah_opt.REASON_IDLE_FUSE, _ah_opt.REASON_IDLE_OTHER}
+R.check(
+    "a step the plan runs no pump at is idle to the reason classifiers (D8-s1-01)",
+    [c not in _ah_idle for c in _ah_space_why] == [True, False, False, True, False, False]
+    and [c not in _ah_idle for c in _ah_dhw_why] == [False, False, False, True, True, False],
+    f"space {_ah_space_why} dhw {_ah_dhw_why}",
 )
 _ah_sched = _ah_sensor.DHWScheduleSensor.__new__(_ah_sensor.DHWScheduleSensor)
 _ah_sched.coordinator = type("C", (), {"data": {"dhw_schedule": [{"dhw_power": 0.07}]}})()
@@ -45484,6 +45587,26 @@ R.check(
     f"{_t2_buf_valve._buffer_cooling_rate:.4f} -- a pump-off interval is the "
     "house drawing on the tank, and reading that as standby loss prices "
     "storage off the table",
+)
+
+# -- a step the plan calls off heats no tank (D8-s1-01, #2238 sweep P2) --
+def _t2_buf_heating_after(power_kw):
+    c = _t2_coord()
+    c._current_action = {"power": power_kw}
+    dt_util.freeze(_T2_BASE)
+    try:
+        _asyncio.run(c._async_learn_buffer_cooling(48.0))
+    finally:
+        dt_util.freeze(None)
+    return c._buffer_heating_since_sample
+
+
+R.check(
+    "the buffer learner reads heating from the plan's running rule",
+    _t2_buf_heating_after(0.07) is False and _t2_buf_heating_after(0.5) is True,
+    f"0.07 kW -> {_t2_buf_heating_after(0.07)}, 0.5 kW -> "
+    f"{_t2_buf_heating_after(0.5)}: a 0.07 kW action is a step the plan runs "
+    "no pump at, so the interval is a quiet one",
 )
 
 # -- the six sample-quality guards ---------------------------------------
@@ -57128,17 +57251,28 @@ R.check(
     _p8s_watch(2.0, 45.0) == [True],
     f"got {_p8s_watch(2.0, 45.0)}",
 )
+from heatpump_optimizer.thermal_model import MIN_RUNNING_DRAW_KW  # noqa: E402
+
 # The two bounds are exclusive at the floor and inclusive at the minimum on
-# purpose: `_commanded_power() > 0.05` is the map's own no-delivery floor
-# (`FrequencyMap.recommend` answers None at `target_kw <= 0.05`), and a reading
-# exactly at the entity's minimum is in the compressor's running range. A
-# flipped bound is visible only at those two inputs, and no other driver feeds
-# one: D7-s2-01's two `CMP_BOUND` sites survive every driver the mutation table
-# drives (`pin-killed` measured it), and this check is their killer.
+# purpose: the floor is the plan's own running rule (`planned_draw_runs`, a
+# step runs above `MIN_RUNNING_DRAW_KW`, the same rule `FrequencyMap.recommend`
+# reads), and a reading exactly at the entity's minimum is in the compressor's
+# running range. A flipped bound is visible only at those two inputs, and no
+# other driver feeds one: D7-s2-01's `CMP_BOUND` site on the minimum survives
+# every driver the mutation table drives (`pin-killed` measured it), and this
+# check is its killer.
 R.check(
     "the watchdog's two bounds: the floor is exclusive, the minimum inclusive",
-    _p8s_watch(0.05, 45.0) == [False] and _p8s_watch(2.0, 20.0) == [True],
-    f"floor -> {_p8s_watch(0.05, 45.0)}, minimum -> {_p8s_watch(2.0, 20.0)}",
+    _p8s_watch(MIN_RUNNING_DRAW_KW, 45.0) == [False]
+    and _p8s_watch(2.0, 20.0) == [True],
+    f"floor -> {_p8s_watch(MIN_RUNNING_DRAW_KW, 45.0)}, "
+    f"minimum -> {_p8s_watch(2.0, 20.0)}",
+)
+R.check(
+    "a step the plan calls off is not watched (D8-s1-01, #2238 sweep P2)",
+    _p8s_watch(0.07, 45.0) == [False],
+    f"0.07 kW commanded -> {_p8s_watch(0.07, 45.0)}: the plan runs no pump "
+    "there, so a 0 Hz reading is a pump at rest, not a write path ignored",
 )
 
 # --- One store capacity, read raw wherever it is read (round 7, D2-03) -----
@@ -74789,6 +74923,20 @@ R.check(
     and _he_noelec._measured_cop.refusal == _HE_UNALIGNED,
     f"{_he_noelec_ref} {_he_noelec._measured_cop.refusal}",
 )
+# R10-COP-GATE part D carry 1: the published surfaces render that refusal and
+# never a COP gate pass over it (null: the known-COP span publishes its COP and
+# no refusal).
+_he_noelec_view = _he_noelec._learning_view()
+_he_known_view = _he_known._learning_view()
+R.check(
+    "carry 1: a counter install with no electric counter publishes unaligned_meters "
+    "and no measured COP; the aligned span publishes its COP",
+    _he_noelec_view["cop_refusal"] == _HE_UNALIGNED and _he_noelec_view["measured_cop"] is None
+    and _he_known_view["measured_cop"] == _he_known._measured_cop.cop
+    and _he_known_view["cop_refusal"] != _HE_UNALIGNED,
+    f"{_he_noelec_view['cop_refusal']} {_he_noelec_view['measured_cop']} "
+    f"{_he_known_view['measured_cop']} {_he_known_view['cop_refusal']}",
+)
 
 # #2854 round 4: the install the brief promises -- the heat counter and the
 # electric energy counter, no power entity -- folds its span's COP too. The
@@ -76314,6 +76462,306 @@ R.check(
     f"late {len(_cp_pump_late.ceiling)} window {len(_cp_pump_late.samples)}",
 )
 
+# -- R10-COP-GATE part D: the learned top reaching the plan -------------------
+# ``draw_range.solve_band`` rules the band a solve books, once per solve; the
+# coordinator stamps it on the plan; ``pump_arbiter._band_kw`` maps the plan's
+# steps by the stamp and an experiment's by the hub. Synthetic pump: a 3.0 kW
+# real maximum behind a configured (1.0, 5.0).
+import json as _cpd_json  # noqa: E402
+import time as _cpd_time  # noqa: E402
+from dataclasses import replace as _cpd_replace  # noqa: E402
+from pathlib import Path as _CpdPath  # noqa: E402
+
+_CPD_CAP = _CpNS(plan_writes_power=lambda: False)
+_CPD_ECHO = _CpNS(plan_writes_power=lambda: True)
+
+
+def _cpd_band(values, now_s=_CP_NOW, lo=1.0, hi=5.0, cap=_CPD_CAP, newest_s=_CP_NOW):
+    return _cp_dr.solve_band(_cp_store(values, newest_s), _cp_params(lo, hi), cap, now_s)
+
+
+_cpd_eleven = _cpd_band([3.0] * 11)
+_cpd_twelve = _cpd_band([3.0] * 12)
+_cpd_lapsed = _cpd_band([3.0] * 12, now_s=_CP_NOW + 46 * 86400.0)
+_cpd_ahead = _cpd_band([3.0] * 12, now_s=_CP_NOW - 3600.0)
+_cpd_agree = _cpd_band([4.5] * 12)
+_cpd_above = _cpd_band([6.0] * 12)
+_cpd_echo = _cpd_band([3.0] * 12, cap=_CPD_ECHO)
+_cpd_lowmin = _cpd_band([3.0] * 12, lo=3.5)
+_cpd_edge = _cpd_band([4.25] * 12)
+_cpd_rows = lambda b: (b.source, b.reason, b.max_kw, b.min_kw)  # noqa: E731
+R.check(
+    "part D's rule table: eleven samples, a lapsed store, a top within 15 %, a top above "
+    "the configured one and a plan-writes-power install book the configured (1.0, 5.0) "
+    "with their reasons; twelve samples at 3.0 kW book the learned 3.0",
+    _cpd_rows(_cpd_eleven) == ("configured", "awaiting_probe", 5.0, 1.0)
+    and _cpd_eleven.samples == 11
+    and _cpd_rows(_cpd_twelve) == ("ceiling_probe", "measured_below_configured", 3.0, 1.0)
+    and _cpd_twelve.since_s == _CP_NOW
+    and _cpd_rows(_cpd_lapsed) == ("configured", "lapsed", 5.0, 1.0)
+    and _cpd_rows(_cpd_ahead) == ("configured", "lapsed", 5.0, 1.0)
+    and _cpd_rows(_cpd_agree) == ("configured", "not_below_configured", 5.0, 1.0)
+    and _cpd_agree.learned_max_kw == 4.5
+    and _cpd_rows(_cpd_above) == ("configured", "not_below_configured", 5.0, 1.0)
+    and _cpd_rows(_cpd_echo) == ("configured", "plan_writes_power", 5.0, 1.0),
+    f"{[_cpd_rows(b) for b in (_cpd_eleven, _cpd_twelve, _cpd_lapsed, _cpd_agree, _cpd_above, _cpd_echo)]}",
+)
+R.check(
+    "part D: the 15 % edge is exclusive (4.25 of 5.0 keeps the configured top), and the "
+    "bottom never exceeds the top (a configured 3.5 kW minimum under a learned 3.0 books 3.0)",
+    _cpd_rows(_cpd_edge) == ("configured", "not_below_configured", 5.0, 1.0)
+    and _cpd_band([4.2] * 12).max_kw == 4.2
+    and _cpd_rows(_cpd_lowmin) == ("ceiling_probe", "measured_below_configured", 3.0, 3.0),
+    f"{_cpd_rows(_cpd_edge)} {_cpd_rows(_cpd_lowmin)}",
+)
+_cpd_d = _cpd_twelve.as_dict()
+R.check(
+    "part D: the stamp carries the configured and planned tops, the source and the reason",
+    {k: _cpd_d[k] for k in ("configured_max_kw", "planned_max_kw", "planned_min_kw", "source", "reason")}
+    == {"configured_max_kw": 5.0, "planned_max_kw": 3.0, "planned_min_kw": 1.0,
+        "source": "ceiling_probe", "reason": "measured_below_configured"},
+    f"{_cpd_d}",
+)
+# Item D3: the solve copy's floors survive the replaced top.
+from heatpump_optimizer.thermal_model import ThermalParameters as _CpdTP  # noqa: E402
+_cpd_tp = _cpd_replace(_CpdTP(min_electrical_power=1.0, max_electrical_power=5.0), max_electrical_power=3.0, min_electrical_power=1.0)
+R.check(
+    "item D3: ``replace`` with the learned top keeps a valid ThermalParameters, min <= max",
+    _cpd_tp.max_electrical_power == 3.0 and _cpd_tp.min_electrical_power <= _cpd_tp.max_electrical_power,
+    f"{_cpd_tp.min_electrical_power} {_cpd_tp.max_electrical_power}",
+)
+
+
+def _cpd_arbitrate(action, power_schedule, band):
+    """``_cp_arbitrate`` with the plan stamped with ``band`` (a dict, or {})."""
+    c = _CpArb(action, power_schedule)
+    c._optimization_result.solve_band = band
+    _cp_aio.run(_cp_pa.apply(c, _CP_T0 + timedelta(minutes=1)))
+    flow = [x["value"] for d, s, x in c.hass.services.calls
+            if d == "number" and (x or {}).get("entity_id") == "number.water_set"]
+    return flow[-1] if flow else None
+
+
+_CPD_LEARNED = _cpd_twelve.as_dict()
+_CPD_CFG = _cpd_eleven.as_dict()
+_cpd_top_learned = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), _CPD_LEARNED)
+_cpd_top_cfg = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), _CPD_CFG)
+_cpd_top_none = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), {})
+R.check(
+    "invariant 2: a 3.0 kW plan step solved on the learned (1.0, 3.0) writes the 55 degC "
+    "ceiling; the same step stamped configured, or unstamped, writes the configured band's level",
+    _cpd_top_learned == 55.0 and _cpd_top_cfg == _cpd_top_none and _cpd_top_cfg < 55.0,
+    f"learned {_cpd_top_learned} configured {_cpd_top_cfg} unstamped {_cpd_top_none}",
+)
+_cpd_probe_learned = _cpd_arbitrate({**_CP_SID, "power": 5.0}, (3.0,), _CPD_LEARNED)
+_cpd_fit_learned = _cpd_arbitrate({**_CP_SID, "power": 1.5}, (3.0,), _CPD_LEARNED)
+_cpd_fit_cfg = _cpd_arbitrate({**_CP_SID, "power": 1.5}, (3.0,), {})
+R.check(
+    "item D5: on a plan stamped with the learned band, the probe's configured 5.0 kW step "
+    "still writes the heat level, and the fit's sized 1.5 kW step maps on the hub's band",
+    _cpd_probe_learned == 55.0 and _cpd_fit_learned == _cpd_fit_cfg == _cp_fit[1],
+    f"probe {_cpd_probe_learned} fit {_cpd_fit_learned} vs {_cpd_fit_cfg}",
+)
+
+# The coordinator: the solve copy books the ruling, the hub never does.
+_cpd_c = _cp_coord(**_CP_PROBE_CFG)
+_cpd_hub = _cp_cmod._ctx_of(_cpd_c)._thermal_params
+_cpd_hub_max = float(_cpd_hub.max_electrical_power)
+_cpd_c._accuracy.draw = _cp_store([0.5 * _cpd_hub_max] * 12, _cpd_time.time())
+_cpd_band_c = _cp_cmod._solve_band(_cpd_c._accuracy.draw, _cpd_hub, _cp_cmod._ctx_of(_cpd_c)._config)
+_cpd_cfg_c, _cpd_params_c, _cpd_state_c = _cpd_c._solve_hubs(8, banded=False, band=_cpd_band_c)
+_cpd_c._accuracy.draw = _cp_store([0.5 * _cpd_hub_max] * 11, _cpd_time.time())
+_cpd_band_11 = _cp_cmod._solve_band(_cpd_c._accuracy.draw, _cpd_hub, _cp_cmod._ctx_of(_cpd_c)._config)
+_cpd_params_11 = _cpd_c._solve_hubs(8, banded=False, band=_cpd_band_11)[1]
+R.check(
+    "invariants 1 and 3(iv): twelve store samples at half the hub's maximum put the learned "
+    "top in the solve copy and never in the hub; eleven leave the copy on the hub's figures",
+    _cpd_band_c.source == "ceiling_probe"
+    and _cpd_params_c.max_electrical_power == _cpd_band_c.max_kw == 0.5 * _cpd_hub_max
+    and _cpd_hub.max_electrical_power == _cpd_hub_max
+    and _cpd_band_11.source == "configured"
+    and _cpd_params_11.max_electrical_power == _cpd_hub_max
+    and _cpd_params_11.min_electrical_power == _cpd_hub.min_electrical_power,
+    f"{_cpd_band_c} copy {_cpd_params_c.max_electrical_power} hub {_cpd_hub.max_electrical_power}",
+)
+# ``_band_fields`` itself, fed bands whose figures differ from the hub's: a
+# configured band books nothing (the copy keeps the hub's figures byte for
+# byte), the learned band books its own top and bottom (null control).
+_cpd_bf_cfg = _cp_cmod.draw_range.SolveBand(5.0, 9.0, 2.0, "configured", "awaiting_probe", None, 0, None)
+_cpd_bf_probe = _cp_cmod.draw_range.SolveBand(5.0, 3.0, 1.0, "ceiling_probe", "measured_below_configured", 3.0, 12, None)
+R.check(
+    "_band_fields: a configured band returns no fields; a ceiling_probe band returns its "
+    "max and min as the solve copy's electrical power range",
+    _cp_cmod._band_fields(_cpd_bf_cfg) == {}
+    and _cp_cmod._band_fields(_cpd_bf_probe) == {"max_electrical_power": 3.0, "min_electrical_power": 1.0},
+    f"{_cp_cmod._band_fields(_cpd_bf_cfg)} {_cp_cmod._band_fields(_cpd_bf_probe)}",
+)
+# Invariant 3 through the live cycle: the plan is stamped with the band it
+# was solved on, and the arbiter and the payload read the stamp until the next
+# solve, whatever the store does in between.
+_r9f13_dt.freeze(_R9F13_NOW)  # the rig's price series is anchored here
+_, _, _cpd_live = _r9f13_make("cpd_stamp", dict(_CP_PROBE_CFG))
+_cpd_live_hub = _cp_cmod._ctx_of(_cpd_live)._thermal_params
+_cpd_live_top = 0.5 * float(_cpd_live_hub.max_electrical_power)
+_cpd_now_s = _cp_cmod.dt_util.now().timestamp()
+_cpd_live._accuracy.draw = _cp_store([_cpd_live_top] * 11, _cpd_now_s - 3600.0)
+
+
+def _cpd_solve(coord):
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _r9f13_inline):
+        return _r9f13_aio.run(coord.async_run_optimization())
+
+
+_cpd_r1 = _cpd_solve(_cpd_live)
+_cpd_stamp1 = dict(_cpd_live._optimization_result.solve_band)
+_cpd_live._accuracy.draw.observe_ceiling(_cpd_live_top, _cpd_now_s - 60.0)  # the twelfth
+_cpd_band_after_fold = _cp_pa._band_kw(_cpd_live.arbiter_inputs())
+_cpd_view_after_fold = _cpd_live._learning_view().get("pump_max_power")
+_cpd_r2 = _cpd_solve(_cpd_live)
+_cpd_stamp2 = dict(_cpd_live._optimization_result.solve_band)
+_cpd_plan_max = max(_cpd_live._optimization_result.power_schedule)
+_cpd_live._accuracy.draw.ceiling.clear()  # the store lapses or drops, no solve
+_cpd_band_after_drop = _cp_pa._band_kw(_cpd_live.arbiter_inputs())
+_r9f13_dt.freeze(None)
+R.check(
+    "invariant 3 (i, ii, v): solved on eleven samples the plan is stamped configured; the "
+    "twelfth folded without a solve leaves the arbiter's band and the published reason on "
+    "that stamp; the next solve books the learned top and stamps it; a store dropped "
+    "without a solve keeps the stamped learned band",
+    _cpd_r1 is None and _cpd_r2 is None
+    and (_cpd_stamp1.get("source"), _cpd_stamp1.get("reason")) == ("configured", "awaiting_probe")
+    and _cpd_band_after_fold == (_cpd_stamp1.get("planned_min_kw"), _cpd_stamp1.get("planned_max_kw"))
+    and (_cpd_view_after_fold or {}).get("source") == "configured"
+    and _cpd_stamp2.get("source") == "ceiling_probe"
+    and abs(_cpd_stamp2.get("planned_max_kw", 0.0) - _cpd_live_top) < 1e-3
+    and _cpd_plan_max <= _cpd_live_top + 1e-6
+    and _cpd_band_after_drop == (_cpd_stamp2.get("planned_min_kw"), _cpd_stamp2.get("planned_max_kw"))
+    and float(_cpd_live_hub.max_electrical_power) == 2.0 * _cpd_live_top,
+    f"r {_cpd_r1} {_cpd_r2} stamp1 {_cpd_stamp1.get('reason')} fold-band {_cpd_band_after_fold} "
+    f"stamp2 {_cpd_stamp2.get('source')} {_cpd_stamp2.get('planned_max_kw')} plan-max {_cpd_plan_max} "
+    f"drop-band {_cpd_band_after_drop}",
+)
+# The what-if (async_simulate, base None) passes no band, so ``_solve_hubs``
+# rules its own: with a learned store it books the learned top the live plan
+# stamps, not the configured one (null: no store, 5.0 against 5.0 in both).
+def _cpd_whatif_tops(n_samples):
+    _r9f13_dt.freeze(_R9F13_NOW)
+    _, _, c = _r9f13_make(f"cpd_whatif{n_samples}", dict(_CP_PROBE_CFG))
+    hub_max = float(_cp_cmod._ctx_of(c)._thermal_params.max_electrical_power)
+    if n_samples:
+        c._accuracy.draw = _cp_store([0.5 * hub_max] * n_samples, _cp_cmod.dt_util.now().timestamp() - 60.0)
+    seen = []
+
+    async def _rec(hass, optimizer, inputs):
+        seen.append(float(optimizer.model.params.max_electrical_power))
+        return await _r9f13_inline(hass, optimizer, inputs)
+
+    with _r9f13_mock.patch.object(_r9f13_cmod, "_await_optimize", _rec):
+        _r9f13_aio.run(c.async_run_optimization())
+        live = list(seen)
+        seen.clear()
+        _r9f13_aio.run(c.async_simulate({"target_temp": 21.5}))
+        sim = list(seen)
+    _r9f13_dt.freeze(None)
+    return hub_max, live, sim
+
+
+_cpd_wi_hub, _cpd_wi_live, _cpd_wi_sim = _cpd_whatif_tops(12)
+_cpd_wi0_hub, _cpd_wi0_live, _cpd_wi0_sim = _cpd_whatif_tops(0)
+R.check(
+    "part D what-if: with twelve store samples at half the hub's maximum the what-if solve "
+    "books the learned top the live solve books, not the configured one; with no store both "
+    "book the configured top",
+    bool(_cpd_wi_live) and bool(_cpd_wi_sim)
+    and _cpd_wi_live[-1] == _cpd_wi_sim[-1] == 0.5 * _cpd_wi_hub
+    and bool(_cpd_wi0_live) and bool(_cpd_wi0_sim)
+    and _cpd_wi0_live[-1] == _cpd_wi0_sim[-1] == _cpd_wi0_hub,
+    f"learned live {_cpd_wi_live} what-if {_cpd_wi_sim} hub {_cpd_wi_hub}; "
+    f"null live {_cpd_wi0_live} what-if {_cpd_wi0_sim} hub {_cpd_wi0_hub}",
+)
+_cpd_c._optimization_result = None
+_cpd_none_view = _cpd_c._learning_view().get("pump_max_power", "absent")
+_cpd_c._optimization_result = _CpNS(solve_band=_cpd_band_c.as_dict())
+_cpd_stamped_view = _cpd_c._learning_view().get("pump_max_power")
+R.check(
+    "part D publish: the learning view carries the live plan's stamp, None with no plan",
+    _cpd_none_view is None and _cpd_stamped_view == _cpd_band_c.as_dict(),
+    f"{_cpd_none_view} {_cpd_stamped_view}",
+)
+# The two ``or`` fallbacks on a missing stamp: an empty stamp publishes None,
+# and the arbiter maps a plan whose stamp is None (never solved on a band) on
+# the configured band without raising.
+_cpd_c._optimization_result = _CpNS(solve_band={})
+_cpd_empty_view = _cpd_c._learning_view().get("pump_max_power", "absent")
+try:
+    _cpd_top_nostamp = _cpd_arbitrate({"mode": "eco", "power": 3.0}, (3.0,), None)
+    _cpd_nostamp_err = None
+except AttributeError as _e:
+    _cpd_top_nostamp, _cpd_nostamp_err = None, _e
+R.check(
+    "part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp "
+    "(None) writes what the configured band writes and does not raise",
+    _cpd_empty_view is None and _cpd_nostamp_err is None and _cpd_top_nostamp == _cpd_top_none,
+    f"view {_cpd_empty_view} arbiter {_cpd_top_nostamp} vs {_cpd_top_none} err {_cpd_nostamp_err}",
+)
+_cpd_status = _CpStatus.__new__(_CpStatus)
+_cpd_status._data = lambda: {"pump_max_power": _CPD_LEARNED}
+_cpd_attrs = _CpStatus.extra_state_attributes.fget(_cpd_status)
+_cpd_status._data = lambda: {}
+_cpd_attrs_none = _CpStatus.extra_state_attributes.fget(_cpd_status)
+R.check(
+    "part D publish: the model status sensor names the configured and planned tops and "
+    "publishes source and reason as top-level codes; no plan publishes None",
+    (_cpd_attrs.get("pump_max_power") or {}).get("configured_max_kw") == 5.0
+    and (_cpd_attrs.get("pump_max_power") or {}).get("planned_max_kw") == 3.0
+    and _cpd_attrs.get("pump_max_power_source") == "ceiling_probe"
+    and _cpd_attrs.get("pump_max_power_reason") == "measured_below_configured"
+    and all(k in _cpd_attrs_none for k in ("pump_max_power", "pump_max_power_source", "pump_max_power_reason"))
+    and (_cpd_attrs_none["pump_max_power"], _cpd_attrs_none["pump_max_power_source"],
+         _cpd_attrs_none["pump_max_power_reason"]) == (None, None, None),
+    f"{_cpd_attrs.get('pump_max_power')} {_cpd_attrs_none.get('pump_max_power')}",
+)
+# Item D6: the previous plan handed to the next solve as a start is clipped
+# to that solve's top, so a band narrowed at the twelfth sample scores no
+# candidate step above it (null: a plan inside the band is handed unchanged).
+from heatpump_optimizer.optimizer import HeatPumpOptimizer as _CpdOpt, OptimizationConfig as _CpdOC  # noqa: E402
+from heatpump_optimizer.thermal_model import ThermalModel as _CpdTM  # noqa: E402
+_cpd_opt = _CpdOpt(_CpdTM(_CpdTP(min_electrical_power=1.0, max_electrical_power=3.0)), _CpdOC())
+_cpd_opt._prev_shipped_plan = np.array([5.0, 4.0, 2.0, 0.0])
+_cpd_warm = _cpd_opt._warm_start_starts(4)[0]
+_cpd_opt._prev_shipped_plan = np.array([3.0, 2.5, 1.0, 0.0])
+_cpd_warm_null = _cpd_opt._warm_start_starts(4)[0]
+R.check(
+    "item D6: a warm start from a (1.0, 5.0) plan into a (1.0, 3.0) solve holds no step "
+    "above 3.0; a plan inside the band is handed unchanged",
+    list(_cpd_warm) == [3.0, 3.0, 2.0, 0.0] and list(_cpd_warm_null) == [3.0, 2.5, 1.0, 0.0],
+    f"{list(_cpd_warm)} {list(_cpd_warm_null)}",
+)
+# Carry 6: every source and reason code has its user string in strings.json,
+# en and sv, under the entity's state_attributes, so no raw code is shown.
+_cpd_codes = {
+    "pump_max_power_source": {"configured", "ceiling_probe"},
+    "pump_max_power_reason": {"plan_writes_power", "awaiting_probe", "lapsed",
+                              "not_below_configured", "measured_below_configured"},
+}
+_cpd_tr_missing = []
+for _cpd_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+    _cpd_tr = _cpd_json.loads((_CpdPath(__file__).resolve().parents[1] / "custom_components/heatpump_optimizer" / _cpd_name).read_text())
+    _cpd_attrs_tr = _cpd_tr["entity"]["sensor"]["learning_model_status"].get("state_attributes", {})
+    for _cpd_attr, _cpd_vals in _cpd_codes.items():
+        _cpd_states = _cpd_attrs_tr.get(_cpd_attr, {}).get("state", {})
+        _cpd_tr_missing += [f"{_cpd_name}:{_cpd_attr}.{v}" for v in sorted(_cpd_vals) if not _cpd_states.get(v)]
+R.check(
+    "carry 6: each pump_max_power source and reason code has its user string in "
+    "strings.json, en and sv (null: the rule table's codes are the set checked)",
+    not _cpd_tr_missing
+    and {b.reason for b in (_cpd_eleven, _cpd_twelve, _cpd_lapsed, _cpd_agree, _cpd_echo)}
+    == _cpd_codes["pump_max_power_reason"]
+    and {b.source for b in (_cpd_eleven, _cpd_twelve)} == _cpd_codes["pump_max_power_source"],
+    f"missing {_cpd_tr_missing}",
+)
+
+
 # #2808: the outcome is recorded. The bulky view stays unrecorded; a compact
 # outcome row beside it is recorded, so a refusal has a history.
 _cp_status = _CpStatus.__new__(_CpStatus)
@@ -76726,6 +77174,96 @@ R.check(
     "(the plan is still the pre-reload one)",
     9.0 <= (_ap_first.get("plan_age_minutes") or 0) <= 11.0,
     str(_ap_first.get("plan_age_minutes")),
+)
+
+
+R.section("R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches")
+
+# #2365: _share and the decision log take the step width from plan_step's
+# owner. Drive the production symbols with the width patched to 30 minutes.
+_rp2_coord = _PaCoord(("Heating + DHW",), duties="b")
+_rp2_plan = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[3.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp = _PaNS(mode=_PA_AUTO, disinfecting=False, plan=_rp2_plan)
+
+
+def _rp2_share(minutes_in):
+    return _pa._share(_rp2_coord, _rp2_inp, "both", _PA_T0 + timedelta(minutes=minutes_in))
+
+
+_rp2_real = (_rp2_share(5.9), _rp2_share(6.1), _pa.ArbiterState().log.maxlen)
+_rp2_saved = _pa.PLAN_STEP_MINUTES
+_pa.PLAN_STEP_MINUTES = 30
+try:
+    _rp2_wide = (_rp2_share(11.9), _rp2_share(12.1), _pa.ArbiterState().log.maxlen)
+finally:
+    _pa.PLAN_STEP_MINUTES = _rp2_saved
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a "
+    "30-minute step (6 of a 15-minute one) and the log holds a day of steps",
+    _rp2_wide == ("dhw", "space", 48),
+    f"{_rp2_wide}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365 null control: at the real 15-minute width the split "
+    "is minute 6 and the log holds 96 steps",
+    _rp2_real == ("dhw", "space", 96),
+    f"{_rp2_real}",
+)
+
+# The strict < of the short-remainder guard: a 2:1 hot-water share leaves exactly
+# SPLIT_MIN_MINUTES for the heating, which is still long enough to be its own share.
+_rp2_edge = _PaNS(
+    timestamps=[_PA_T0], power_schedule=[1.0], dhw_power_schedule=[2.0],
+    optimal_setpoints=[21.0],
+)
+_rp2_inp.plan = _rp2_edge
+_rp2_boundary = (_rp2_share(9.9), _rp2_share(10.1))
+R.check(
+    "R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still "
+    "a heating share (the guard is a strict <)",
+    _rp2_boundary == ("dhw", "space"),
+    f"{_rp2_boundary}",
+)
+
+# #2351 carry 1: the production async_shutdown calls forget_held(hass), so a
+# reloaded entry warns a hass-owned held condition again.
+_rp3 = Coord(_FakeHass(), _FakeEntry(data=_LC_DATA))
+
+
+def _rp3_run(shutdown):
+    capture = _LogCapture()
+    logger = _logging.getLogger("heatpump_optimizer")
+    real_level = logger.level
+    logger.addHandler(capture)
+    logger.setLevel(_logging.DEBUG)
+    try:
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+        if shutdown:
+            _asyncio.run(_rp3.async_shutdown())
+        _coord_mod.log_held(_rp3.hass, "rp3_condition", True, "Probe %s", "hass-owned")
+    finally:
+        logger.removeHandler(capture)
+        logger.setLevel(real_level)
+        _coord_mod.forget_held(_rp3.hass)
+    return [lv for lv, msg in capture.records if "Probe hass-owned" in msg]
+
+
+_rp3_cycle = _rp3_run(True)
+_rp3_null = _rp3_run(False)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch "
+    "(WARNING twice across a shutdown)",
+    _rp3_cycle == [_logging.WARNING, _logging.WARNING],
+    f"{_rp3_cycle}",
+)
+R.check(
+    "R10-PROD-RESIDUE-PINS #2351 null control: without the shutdown the second call "
+    "stays at DEBUG",
+    _rp3_null == [_logging.WARNING, _logging.DEBUG],
+    f"{_rp3_null}",
 )
 
 
