@@ -155,6 +155,14 @@
    "tools/audit/archscore/planted/redteam/45_shape_private_copy.py",
    "tools/audit/archscore/planted/redteam/46_card_rule_respelled.py",
    "tools/audit/archscore/planted/redteam/47_card_template_respelled.py",
+   "tools/audit/archscore/planted/redteam/48_footprint_packed_unpack.py",
+   "tools/audit/archscore/planted/redteam/49_footprint_packed_nested.py",
+   "tools/audit/archscore/planted/redteam/50_footprint_packed_for_literal.py",
+   "tools/audit/archscore/planted/redteam/51_footprint_packed_walrus.py",
+   "tools/audit/archscore/planted/redteam/52_footprint_packed_set_display.py",
+   "tools/audit/archscore/planted/redteam/53_footprint_ifexp_chain.py",
+   "tools/audit/archscore/planted/redteam/54_footprint_ifexp_body_chain.py",
+   "tools/audit/archscore/planted/redteam/55_footprint_boolop_control.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -1814,6 +1822,14 @@
    "tools/audit/archscore/planted/redteam/45_shape_private_copy.py",
    "tools/audit/archscore/planted/redteam/46_card_rule_respelled.py",
    "tools/audit/archscore/planted/redteam/47_card_template_respelled.py",
+   "tools/audit/archscore/planted/redteam/48_footprint_packed_unpack.py",
+   "tools/audit/archscore/planted/redteam/49_footprint_packed_nested.py",
+   "tools/audit/archscore/planted/redteam/50_footprint_packed_for_literal.py",
+   "tools/audit/archscore/planted/redteam/51_footprint_packed_walrus.py",
+   "tools/audit/archscore/planted/redteam/52_footprint_packed_set_display.py",
+   "tools/audit/archscore/planted/redteam/53_footprint_ifexp_chain.py",
+   "tools/audit/archscore/planted/redteam/54_footprint_ifexp_body_chain.py",
+   "tools/audit/archscore/planted/redteam/55_footprint_boolop_control.py",
    "tools/audit/archscore/planted/redteam/rt_lib.py",
    "tools/audit/archscore/score.py",
    "tools/audit/archscore/vector.py",
@@ -4831,11 +4847,11 @@
   },
   "tests/arch_score_head.py": {
    "rc": 0,
-   "seconds": 85.9
+   "seconds": 88.0
   },
   "tests/backtest.py": {
    "rc": 0,
-   "seconds": 157.3
+   "seconds": 151.6
   },
   "tests/block_duty.py": {
    "rc": 0,
@@ -4847,7 +4863,7 @@
   },
   "tests/card.mjs": {
    "rc": 0,
-   "seconds": 161.9
+   "seconds": 166.0
   },
   "tests/card_drift.mjs": {
    "rc": 0,
@@ -4875,7 +4891,7 @@
   },
   "tests/edge.py": {
    "rc": 0,
-   "seconds": 25.0
+   "seconds": 55.0
   },
   "tests/entities.py": {
    "rc": 0,
@@ -4907,7 +4923,7 @@
   },
   "tests/ha_contract.py": {
    "rc": 0,
-   "seconds": 0.5
+   "seconds": 0.2
   },
   "tests/harness_headers.py": {
    "rc": 0,
@@ -4915,7 +4931,7 @@
   },
   "tests/layout.py": {
    "rc": 0,
-   "seconds": 17.3
+   "seconds": 13.2
   },
   "tests/manual_plan.py": {
    "rc": 0,
@@ -4931,11 +4947,11 @@
   },
   "tests/optimality.py": {
    "rc": 0,
-   "seconds": 93.0
+   "seconds": 291.9
   },
   "tests/plan_view.py": {
    "rc": 0,
-   "seconds": 1.9
+   "seconds": 2.3
   },
   "tests/solar_alignment.py": {
    "rc": 0,
@@ -4943,7 +4959,7 @@
   },
   "tests/stress.py": {
    "rc": 0,
-   "seconds": 936.3
+   "seconds": 1060.0
   },
   "tests/structure.py": {
    "rc": 0,
@@ -4955,7 +4971,7 @@
   },
   "tests/validate.py": {
    "rc": 0,
-   "seconds": 54.2
+   "seconds": 23.2
   },
   "tests/wood_advisor.py": {
    "rc": 0,

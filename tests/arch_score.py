@@ -56,7 +56,7 @@ from harness import Results  # noqa: E402
 from throwaway_git import throwaway_git_init  # noqa: E402
 
 from archscore import calibrate, gate, score, vector  # noqa: E402
-from archscore.metrics import card  # noqa: E402
+from archscore.metrics import card, footprint  # noqa: E402
 
 FROZEN_WEIGHTS = "2891a874ad476d7d761743ae7c47bae9779e150190aaf65f9a82e06ddd867978"
 
@@ -438,6 +438,52 @@ def main() -> int:
                 f"{[(r['id'], r['verdict']) for r in known]}; recorded {sorted(recorded['KNOWN-OPEN'])}")
         R.check("the rename null reads NULL",
                 next(r for r in rows if r["id"] == "rt_00_null_rename")["verdict"] == "NULL")
+
+    # coord_footprint (counter C25): a packed statement reads as the plain ones it spells.
+    def _n(src: str) -> int:
+        return footprint.logic_stmts(ast.parse(src))
+
+    packed_plain = [
+        ("a, b, c = (f(x) for x in xs)", "a = f(xs[0])\nb = f(xs[1])\nc = f(xs[2])"),
+        ("a, b = f(x), g(y)", "a = f(x)\nb = g(y)"),
+        ("a = b = f(x)", "a = f(x)\nb = f(x)"),
+        ("a, b = x.p, x.q", "a = x.p\nb = x.q"),
+        ("a = b = x.p", "a = x.p\nb = x.p"),
+        ("f(x), g(y)", "f(x)\ng(y)"),
+        ("f(x + 1), g(y + 1)", "f(x + 1)\ng(y + 1)"),
+        ("with p() as a, q() as b:\n    pass", "with p() as a:\n    with q() as b:\n        pass"),
+        ("import os, sys", "import os\nimport sys"),
+        ("del a, b", "del a\ndel b"),
+        ("a, (b, c) = f(x + 1), (g(y + 1), h(z + 1))", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)"),
+        ("(a, b), c = (f(x + 1), g(y + 1)), h(z + 1)", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)"),
+        ("f(x + 1), (g(y + 1), h(z + 1))", "f(x + 1)\ng(y + 1)\nh(z + 1)"),
+        ("for a, b, c in [(f(x + 1), g(y + 1), h(z + 1),)]:\n    pass", "a = f(x + 1)\nb = g(y + 1)\nc = h(z + 1)\npass"),
+        ("{f(x + 1), g(y + 1)}", "f(x + 1)\ng(y + 1)"),
+        ("{1: f(x + 1), 2: g(y + 1)}", "f(x + 1)\ng(y + 1)"),
+        ("(a := f(x + 1), b := g(y + 1))", "a = f(x + 1)\nb = g(y + 1)"),
+        ("repr((a := f(x + 1), b := g(y + 1)))", "a = f(x + 1)\nb = g(y + 1)\nrepr((a, b))"),
+        ("c = (a := f(x + 1)) + (b := g(y + 1))", "a = f(x + 1)\nb = g(y + 1)\nc = a + b"),
+        ("a = f(x + 1) if p else g(y + 1) if q else h(z + 1)",
+         "if p:\n    a = f(x + 1)\nelif q:\n    a = g(y + 1)\nelse:\n    a = h(z + 1)"),
+        # the chain nested in the BODY arm is the same tree (attempt 54), and so is one in both arms
+        ("a = (f(x + 1) if q else g(y + 1)) if p else h(z + 1)",
+         "if p:\n    if q:\n        a = f(x + 1)\n    else:\n        a = g(y + 1)\nelse:\n    a = h(z + 1)"),
+        ("a = (f(x + 1) if q else g(y + 1)) if p else (h(z + 1) if r else k(w + 1))",
+         "if p:\n    if q:\n        a = f(x + 1)\n    else:\n        a = g(y + 1)\n"
+         "else:\n    if r:\n        a = h(z + 1)\n    else:\n        a = k(w + 1)"),
+        # the star takes the rest: it binds one name, not one per surplus value
+        ("a, *b = f(x + 1), g(y + 1), h(z + 1)", "a = f(x + 1)\nb = [g(y + 1), h(z + 1)]"),
+        ("*a, b = f(x + 1), g(y + 1), h(z + 1)", "a = [f(x + 1), g(y + 1)]\nb = h(z + 1)"),
+    ]
+    R.check("coord_footprint reads a packed statement as the plain statements it spells (every packing shape)",
+            all(_n(pk) == _n(pl) for pk, pl in packed_plain),
+            f"{[(pk, _n(pk), _n(pl)) for pk, pl in packed_plain if _n(pk) != _n(pl)]}")
+    R.check("coord_footprint control: an unpacked body and a single destructuring read one statement each",
+            _n("a = f(x + 1)") == 1 and _n("a, b = pair") == 2 and _n("a = x.p") == 0
+            # a display bound to ONE target is one statement, whatever it holds (the #3218 review: not one per element)
+            and _n("x = [1, 2, 3]") == 1 and _n("cur = (f(x + 1), g(y + 1), h(z + 1), k(w + 1))") == 1
+            and _n("a = f(x + 1) if p else g(y + 1)") == 1 and _n("for x in (1, 2, 3):\n    pass") == 2,
+            f"{_n('a = f(x + 1)')} {_n('a, b = pair')} {_n('a = x.p')} {_n('x = [1, 2, 3]')}")
 
     # The check can fail: a moved case must not read as it did.
     good = next(c for c in collected if c["id"] == "d979110c")

@@ -4,7 +4,7 @@
 # -- the author identity decision 0011 built this tool for, with the body's
 # contract check FIRST so nothing reaches the remote until the body passes.
 #
-#   tools/pr/app_push.sh [--dry-run] [--recarry|--row-only] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
+#   tools/pr/app_push.sh [--dry-run] [--recarry|--row-only|--reuse] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]
 #   tools/pr/app_push.sh --branch-only <owner/repo> <worktree> batch/<name>
 #   tools/pr/app_push.sh --self-test
 #
@@ -122,6 +122,29 @@
 # Anything else runs prepr exactly as without the flag. It writes no note of
 # its own; one `app_push: ROW-ONLY:` line names the path taken and why, and
 # the push must still be the HEAD the verdict judged.
+#
+# --reuse is open_pr.sh's first push and update_pr.sh's code push (P386, owner
+# directive 2026-11-04: a fixer's prepr is not repeated at open or update). It
+# runs prepr under PREPR_SKIP_CODE=<C> -- no heavy slot, the steps keyed to the
+# code alone dropped, the steps keyed to main, the body or the merge kept, with
+# tests/structure.py and ci predict on HEAD merged with main -- and then
+# `row_only_checks`, only when every one of these holds, each read here and
+# failing closed:
+#   (a) the branch is fix/<topic>, and the tip of origin's handoff-body/<topic>
+#       carries exactly one `Prepr: <C> <T>` trailer, body_push.sh's copy of
+#       prepr.sh's receipt of a passing full run;
+#   (b) C's tree is T, so the run it records was over this code;
+#   (c) C is in HEAD, and C merges cleanly with the live head (when a pull
+#       request is open) and then with the origin/main commit HEAD holds, which
+#       is on the freshly fetched main's first-parent chain -- no resolution;
+#   (d) HEAD's tree is that clean merge's, or it plus this pull request's own
+#       delivery row and nothing else;
+#   (e) no commit outside C, the live head and main but that one row commit.
+# Not keyed to main standing still under a closure, which fired on 0 of 4 code
+# opens (s6-batch95.md#P346): main's commits passed on main, CI gates the merged
+# head. Anything else runs the full prepr exactly as without the flag. One
+# `app_push: REUSE:` line names the path taken and why, and the push must still
+# be the HEAD the verdict judged.
 set -uo pipefail
 
 # pr_args.sh's reap: a stopped pusher ends the whole tree it started, and prepr
@@ -233,6 +256,64 @@ j = b.find("\n\n", i) if i >= 0 else -1
 sys.exit(not (j > i and prefix(live, b[i:j]).rstrip("\n") == b.rstrip("\n")))' "$body" "$(dirname -- "$0")" 2>/dev/null \
     || { _rv_no "the body file is not the live pull-request body under one new \`## Head\` note"; return 1; }
   _rv_no "HEAD ${RV_HEAD:0:8} is the live head ${live:0:8} plus one commit adding or editing only $row, one open row for #$num, and the body is the live one under one new \`## Head\` note"
+}
+
+# The --reuse verdict: (a) to (e) of the header, in that order, the first
+# failure named; recarry_verdict's shape. It reads HEAD ONCE and leaves RV_HEAD,
+# RV_C (the receipted code sha), RV_TITLE (the live title, else empty) and RV_WHY
+# set, and prints RV_WHY. The merges it computes are unreferenced commits.
+reuse_verdict() { # worktree listing branch -> RV_*; rc 0 = the receipt replaces prepr's code steps
+  local wt=$1 listing=$2 br=$3 topic tip tr c t live="" num="" mb x y mt d xs n row=""
+  RV_C="" RV_TITLE="" RV_HEAD=$(git -C "$wt" rev-parse HEAD 2>/dev/null) || RV_HEAD=""
+  _rv_no() { RV_WHY=$*; echo "$*"; }
+  [[ $RV_HEAD =~ ^[0-9a-f]{40}$ ]] || { _rv_no "HEAD does not read back"; return 1; }
+  topic=${br#fix/}
+  [ "$topic" != "$br" ] && [ -n "$topic" ] || { _rv_no "$br is not fix/<topic>, so no handoff-body ref holds its receipt"; return 1; }
+  # open_pr.sh names the branch fix/<topic>-pr when the seat holds fix/<topic>; the
+  # trailer, not the name, decides, so a wrong ref only fails (b) to (e).
+  tip=$(git -C "$wt" ls-remote origin "refs/heads/handoff-body/$topic" 2>/dev/null | awk 'NF { print $1; exit }')
+  if [ -z "$tip" ] && [ "${topic%-pr}" != "$topic" ]; then
+    topic=${topic%-pr}; tip=$(git -C "$wt" ls-remote origin "refs/heads/handoff-body/$topic" 2>/dev/null | awk 'NF { print $1; exit }')
+  fi
+  [[ $tip =~ ^[0-9a-f]{40}$ ]] || { _rv_no "origin holds no handoff-body/$topic, so no receipt"; return 1; }
+  git -C "$wt" fetch -q origin "refs/heads/handoff-body/$topic" 2>/dev/null || { _rv_no "handoff-body/$topic could not be fetched"; return 1; }
+  tr=$(git -C "$wt" log -1 --format='%(trailers:key=Prepr,valueonly)' "$tip" 2>/dev/null | sed '/^[[:space:]]*$/d')
+  [ "$(printf '%s\n' "$tr" | grep -c .)" = 1 ] && read -r c t <<<"$tr" && [[ $c =~ ^[0-9a-f]{40}$ && $t =~ ^[0-9a-f]{40}$ ]] \
+    || { _rv_no "handoff-body/$topic's tip ${tip:0:8} carries no one \`Prepr: <sha> <tree>\` trailer, so no receipt"; return 1; }
+  [ "$(git -C "$wt" rev-parse "$c^{tree}" 2>/dev/null)" = "$t" ] \
+    || { _rv_no "the receipt's tree ${t:0:8} is not code ${c:0:8}'s tree, so the run it records was not over this code"; return 1; }
+  git -C "$wt" merge-base --is-ancestor "$c" "$RV_HEAD" 2>/dev/null \
+    || { _rv_no "the receipted code ${c:0:8} is not in HEAD ${RV_HEAD:0:8}"; return 1; }
+  read -r live num RV_TITLE < <(printf '%s' "$listing" | python3 -c 'import sys, json
+l = json.load(sys.stdin)
+if not l: print("none")
+else: d = l[0]; print(d["head"]["sha"], int(d["number"]), " ".join(str(d.get("title") or "").split()))' 2>/dev/null)
+  if [ "$live" = none ]; then live=""
+  else
+    [[ $live =~ ^[0-9a-f]{40}$ ]] || { _rv_no "the open-pull-request listing names no live head that reads back"; return 1; }
+    . "$(dirname -- "$0")/../audit/seat/delivery_row.sh" || { _rv_no "delivery_row.sh did not load, so the row's path is unknown"; return 1; }
+    row=$ROW_DIR/$num.md
+  fi
+  git -C "$wt" fetch -q origin main 2>/dev/null || { _rv_no "origin/main could not be fetched"; return 1; }
+  mb=$(git -C "$wt" merge-base "$RV_HEAD" refs/remotes/origin/main 2>/dev/null) || { _rv_no "HEAD has no merge base with origin/main"; return 1; }
+  git -C "$wt" rev-list --first-parent refs/remotes/origin/main 2>/dev/null | grep -x "$mb" >/dev/null \
+    || { _rv_no "the main HEAD holds, ${mb:0:8}, is not on the freshly fetched origin/main's first-parent chain"; return 1; }
+  x=$c
+  for y in $live $mb; do
+    mt=$(git -C "$wt" merge-tree --write-tree "$x" "$y" 2>/dev/null) \
+      || { _rv_no "code ${c:0:8} does not merge cleanly with ${y:0:8}; a resolution goes through the full prepr"; return 1; }
+    x=$(git -C "$wt" -c user.name=app_push -c user.email=app_push@invalid commit-tree "$mt" -p "$x" -p "$y" -m "app_push: reuse verdict merge" 2>/dev/null) \
+      || { _rv_no "the clean merge could not be written"; return 1; }
+  done
+  d=$(git -C "$wt" diff --no-renames --name-status "$x" "$RV_HEAD" 2>/dev/null) || { _rv_no "the diff against the clean merge could not be read"; return 1; }
+  [ -z "$d" ] || { [ -n "$row" ] && { [ "$d" = "$(printf 'A\t%s' "$row")" ] || [ "$d" = "$(printf 'M\t%s' "$row")" ]; }; } \
+    || { _rv_no "HEAD's tree is not the clean merge of code ${c:0:8}${live:+, the live head ${live:0:8}} and main's ${mb:0:8}${row:+ plus $row} (git diff --name-status: $(printf '%s' "$d" | tr '\t' ' ' | paste -sd';' -))"; return 1; }
+  xs=$(git -C "$wt" rev-list --no-merges "$RV_HEAD" --not "$c" $live "$mb" 2>/dev/null) || { _rv_no "HEAD's own commits could not be listed"; return 1; }
+  n=$(printf '%s' "$xs" | grep -c .)
+  [ "$n" = 0 ] || { [ "$n" = 1 ] && [ -n "$row" ] && [ "$(git -C "$wt" diff-tree --no-commit-id --no-renames --name-only -r "$xs" 2>/dev/null)" = "$row" ]; } \
+    || { _rv_no "HEAD carries $n commit(s) beyond code ${c:0:8}, the live head and main, not only this pull request's own row"; return 1; }
+  RV_C=$c
+  _rv_no "HEAD ${RV_HEAD:0:8} is the clean merge of the receipted code ${c:0:8} (tree ${t:0:8})${live:+, the live head ${live:0:8}} and main's ${mb:0:8}${row:+, plus at most its own row}"
 }
 
 # What --row-only runs in prepr's place: two of the body checks pr-contract runs,
@@ -381,10 +462,11 @@ judge_commits() { # worktree branch head -> rc 0 when ref_privacy's guard passes
 }
 
 push_and_open() {
-  local dry=0 bonly=0 recarry=0 rowonly=0
+  local dry=0 bonly=0 recarry=0 rowonly=0 reuse=0 reused=0
   [ "${1:-}" = "--dry-run" ] && { dry=1; shift; }
   [ "${1:-}" = "--recarry" ] && { recarry=1; shift; }
   [ "${1:-}" = "--row-only" ] && { rowonly=1; shift; }
+  [ "${1:-}" = "--reuse" ] && { reuse=1; shift; }
   if [ "${1:-}" = "--branch-only" ]; then
     bonly=1; shift
     [ $# -eq 3 ] || die "usage: app_push.sh --branch-only <owner/repo> <worktree> batch/<name>"
@@ -394,7 +476,8 @@ push_and_open() {
   [ "$recarry$bonly" != 11 ] || die "--recarry and --branch-only do not combine: a batch/ branch has no pull request to recarry"
   [ "$recarry$rowonly" != 11 ] || die "--recarry and --row-only do not combine: a recarry's head is a merge, a row's is one commit"
   [ "$rowonly$bonly" != 11 ] || die "--row-only and --branch-only do not combine: a batch/ branch has no pull request to row"
-  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry|--row-only] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
+  [ "$reuse" = 0 ] || [ "$recarry$rowonly$bonly" = 000 ] || die "--reuse combines with none of --recarry, --row-only and --branch-only: each is its own verdict"
+  [ $# -ge 4 ] || die "usage: app_push.sh [--dry-run] [--recarry|--row-only|--reuse] <owner/repo> <worktree> <branch> <body.md> [issue-numbers...]"
   local repo=$1 wt=$2 br=$3 body=$4
   shift 4
   [[ $repo =~ ^[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+$ ]] || die "repo '$repo' is not owner/repo"
@@ -460,6 +543,13 @@ push_and_open() {
     if [ "$skip" = 1 ]; then echo "app_push: ROW-ONLY: prepr SKIPPED: $RV_WHY"; else echo "app_push: ROW-ONLY: prepr RUNS: $RV_WHY"; fi
     [ -n "$RV_HEAD" ] || die "--row-only: HEAD in $wt does not read back"
   fi
+  local RV_C=""
+  if [ "$reuse" = 1 ]; then
+    flag=reuse
+    reuse_verdict "$wt" "$listing" "$br" >/dev/null && reused=1
+    if [ "$reused" = 1 ]; then echo "app_push: REUSE: prepr's code steps SKIPPED, no heavy slot: $RV_WHY"; else echo "app_push: REUSE: full prepr RUNS: $RV_WHY"; fi
+    [ -n "$RV_HEAD" ] || die "--reuse: HEAD in $wt does not read back"
+  fi
 
   # THE #678 ORDERING: the body passes BEFORE anything is minted. prepr.sh
   # derives its diff from the worktree it runs in, so it runs with the
@@ -470,13 +560,16 @@ push_and_open() {
   prepr="$(cd "$(dirname -- "$0")" && pwd)/prepr.sh"
   [ -f "$prepr" ] || die "no prepr.sh beside this script at $prepr"
   if [ "$bonly" = 0 ] && [ "$skip" = 0 ]; then
-    ( cd "$wt" && bash "$prepr" "$body" "$@" ) & prepr_pid=$!
+    # shellcheck disable=SC2030,SC2031 # the receipt's sha reaches prepr's environment alone
+    ( cd "$wt" && if [ "$reused" = 1 ]; then export PREPR_SKIP_CODE=$RV_C; fi && bash "$prepr" "$body" "$@" ) & prepr_pid=$!
     wait "$prepr_pid" || prepr_rc=$?
     [ "$prepr_rc" = 0 ] \
       || die "the body did not pass tools/pr/prepr.sh, so NOTHING was minted, pushed or posted; repair it and run this again"
   fi
   [ "$rowonly$skip" != 11 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "$RV_TITLE" \
     || die "--row-only: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
+  [ "$reused" = 0 ] || row_only_checks "$wt" "$body" "$RV_HEAD" "${RV_TITLE:-$(git -C "$wt" log -1 --format=%s)}" \
+    || die "--reuse: the body contract (policy_lint.mjs --pr-body) or the carry check (carry_audit.py) refused $body, so NOTHING was minted, pushed or posted"
 
   # Only a committed tip is pushed: HEAD is the branch's tip, and the tree is
   # clean. A dirty worktree would push a sha whose tree the body never
@@ -488,7 +581,7 @@ push_and_open() {
   [ "$head" = "$tip" ] || die "worktree HEAD ($head) is not the committed tip of '$br' ($tip); commit or check out first"
   [ -z "$(git -C "$wt" status --porcelain 2>/dev/null)" ] \
     || die "worktree $wt is dirty; only a committed tip is pushed -- commit or clean it first"
-  [ "$recarry$rowonly" = 00 ] || [ "$head" = "$RV_HEAD" ] \
+  [ "$recarry$rowonly$reuse" = 000 ] || [ "$head" = "$RV_HEAD" ] \
     || die "--$flag: HEAD moved to $head after the verdict judged $RV_HEAD; nothing was minted or pushed"
   local subject; subject=$(git -C "$wt" log -1 --format=%s) || die "could not read the tip commit's subject"
   judge_commits "$wt" "$br" "$head" \
@@ -603,7 +696,7 @@ printf '## Head\n\n`%s`\n\n## Mutation proof\n\nm\n\n## Null control\n\nn\n\n## 
 # so a stopped app_push can be judged by what survives it.
 cat > "$W/tool/prepr.sh" <<'STUB'
 #!/bin/bash
-printf 'prepr %s\n' "$*" >> "$STUB/log"
+printf 'prepr %s%s\n' "${PREPR_SKIP_CODE:+PREPR_SKIP_CODE=$PREPR_SKIP_CODE }" "$*" >> "$STUB/log"
 [ -f "$STUB/prepr-fails" ] && { echo "prepr: REFUSE" >&2; exit 1; }
 if [ -f "$STUB/prepr-tree" ]; then
   echo $$ >> "$STUB/pids"
@@ -1253,6 +1346,86 @@ st "$(cat "$W/rclosed/get-n" 2>/dev/null)$(settles rclosed)" 10 "zero retries, z
 st "$(grep -c '^app_push: PUSHED ' "$W/rclosed/out")" 0 "and no success line"
 # the budget itself: 4 reads = the first read plus 3 retries, settling 5s/15s/45s.
 st "$(grep -c '^RB_TRIES=${APP_PUSH_READBACK_TRIES:-4}$' "$SELF")$(grep -c '^RB_SLEEP=${APP_PUSH_READBACK_SLEEP:-5}$' "$SELF")" 11 "the default budget is a first read plus 3 retries, settling 5s/15s/45s (~65s of settles)"
+
+# --reuse (P386), through the stubs: the stub origin holds no handoff-body ref,
+# so no receipt, and the full prepr runs (fixture arm (b), end to end); and the
+# flag combines with no other verdict's.
+mkcase unorcpt
+run unorcpt --reuse o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 0 "--reuse with no receipt on origin pushes after the full prepr"
+st "$(calls unorcpt 'prepr ')$(grep -c '^prepr PREPR_SKIP_CODE=' "$W/unorcpt/log")" 10 "and that prepr ran once, with no PREPR_SKIP_CODE: the fail-closed arm (b)"
+st "$(grep -c '^app_push: REUSE: full prepr RUNS: origin holds no handoff-body/stub-x, so no receipt$' "$W/unorcpt/out")" 1 "one REUSE line names the full path and why"
+mkcase ucombo
+run ucombo --row-only --reuse o/r "$W/tool-wt" "$BR" "$W/body.md"; st $? 1 "REFUSE: --reuse with --row-only"
+st "$(wc -l < "$W/ucombo/log" | tr -d ' ')" 0 "before any prepr, gh, git, openssl or curl call"
+
+# --reuse, real git: the production reuse_verdict, extracted from this file, over
+# a bare origin whose handoff-body/t carries prepr's receipt as body_push.sh
+# writes it. The ruling's fixture arms (a), (b), (c) and (f) are the verdict's;
+# (d) and (e) are prepr.sh's merged_steps, in its own self-test.
+eval "$(sed -n '/^reuse_verdict() {/,/^}/p' "$SELF")"
+. "$(dirname -- "$SELF")/../audit/seat/delivery_row.sh" || { echo "FAIL delivery_row.sh did not load"; exit 1; }
+U="$W/reuse"; mkdir -p "$U"
+throwaway_git_init "$U/origin.git" -q --bare -b main && throwaway_git_clone -q "$U/origin.git" "$U/wt" >/dev/null 2>&1 \
+  && (cd "$U/wt" && printf 'a\n' > a && rgit add a && rgit commit -qm base && rgit tag B && rgit push -q origin HEAD:main \
+      && rgit checkout -q -b fix/t && printf 'code\n' > c && printf 'a2\n' > a && rgit add c a && rgit commit -qm code && rgit tag C \
+      && rgit checkout -q main && printf 'm\n' > m && rgit add m && rgit commit -qm main2 && rgit push -q origin main \
+      && rgit checkout -q fix/t && rgit merge -q --no-edit origin/main)
+uc=$(git -C "$U/wt" rev-parse C); ut=$(git -C "$U/wt" rev-parse 'C^{tree}')
+ubody() { # [trailer line] -> handoff-body/t on origin, one commit carrying it
+  local m; m=$(printf 'body: t\n\nCode: %s%s' "$uc" "${1:+$(printf '\n%s' "$1")}")
+  rgit -C "$U/wt" push -q -f origin "$(git -C "$U/wt" commit-tree "$(git -C "$U/wt" mktree </dev/null)" -m "$m"):refs/heads/handoff-body/t"
+}
+ulist() { python3 -c 'import json, sys; print(json.dumps([{"number": 7, "title": "t", "head": {"sha": sys.argv[1]}, "body": "b"}]))' "$1"; }
+ubody "Prepr: $uc $ut"
+reuse_verdict "$U/wt" "[]" fix/t > "$U/why"; st "$?$RV_C" "0$uc" "real git (a): an open whose head is the receipted code merged cleanly with main reuses the receipt, RV_C the code ($(cat "$U/why"))"
+(cd "$U/wt" && mkdir -p "$ROW_DIR" && printf '| #7 |\n' > "$ROW_DIR/7.md" && rgit add "$ROW_DIR/7.md" && rgit commit -qm row)
+st "$(reuse_verdict "$U/wt" "$(ulist "$uc")" fix/t >/dev/null; echo $?)" 0 "real git (a): an update to that live head, merged with main, plus its own row, reuses it"
+(cd "$U/wt" && printf 'x\n' > x && rgit add x && rgit commit -qm extra)
+st "$(reuse_verdict "$U/wt" "$(ulist "$uc")" fix/t | grep -c 'is not the clean merge of code')" 1 "real git: one more file past the row runs the full prepr"
+(cd "$U/wt" && rgit reset -q --hard HEAD~2)
+# (e) alone: two commits past the clean merge that net to no tree change, so the
+# tree check passes and only the commit count sees subjects nothing checked
+# (fix review of #3221, plant F9); the head reset under them reuses again.
+(cd "$U/wt" && printf 'x\n' > tx && rgit add tx && rgit commit -qm "neutral one" && rgit rm -q tx && rgit commit -qm "neutral two")
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "^HEAD carries 2 commit(s) beyond code ${uc:0:8}, the live head and main, not only this pull request's own row$")" 1 "real git (e): two tree-neutral commits past the clean merge run the full prepr"
+(cd "$U/wt" && rgit reset -q --hard HEAD~2)
+st "$(reuse_verdict "$U/wt" "[]" fix/t >/dev/null; echo $?)" 0 "real git: the clean merge without them reuses (the (e) arm's null control)"
+ubody ""
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "carries no one .Prepr: <sha> <tree>. trailer, so no receipt$")" 1 "real git (b): a body with no receipt runs the full prepr (null control)"
+ubody "Prepr: $(git -C "$U/wt" rev-parse B) $(git -C "$U/wt" rev-parse 'B^{tree}')"
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c 'is not the clean merge of code')" 1 "real git (b): a receipt naming another sha, an ancestor whose own tree matches, runs the full prepr"
+rgit -C "$U/wt" push -q origin :refs/heads/handoff-body/t
+st "$(reuse_verdict "$U/wt" "[]" fix/t)" "origin holds no handoff-body/t, so no receipt" "real git (b): no handoff-body ref runs the full prepr"
+ubody "Prepr: $uc $(git -C "$U/wt" rev-parse 'B^{tree}')"
+st "$(reuse_verdict "$U/wt" "[]" fix/t)" "the receipt's tree $(git -C "$U/wt" rev-parse --short=8 'B^{tree}') is not code ${uc:0:8}'s tree, so the run it records was not over this code" "real git (f): a tree differing from the trailer's runs the full prepr"
+ubody "Prepr: $uc $ut"
+st "$(reuse_verdict "$U/wt" "[]" fix/t >/dev/null; echo $?)" 0 "real git: the same receipt restored reuses again (the (f) arm's null control)"
+st "$(reuse_verdict "$U/wt" "[]" fix/t-pr >/dev/null; echo $?)" 0 "real git: open_pr.sh's fix/<topic>-pr branch finds handoff-body/<topic>"
+ubody "$(printf 'Prepr: %s %s\nPrepr: %s %s' "$uc" "$ut" "$uc" "$ut")"
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "carries no one .Prepr: <sha> <tree>. trailer, so no receipt$")" 1 "real git (a): two Prepr: trailers, though each is the receipt, run the full prepr"
+ubody "Prepr: $uc $ut"
+(cd "$U/wt" && rgit checkout -q main && printf 'a3\n' > a && rgit add a && rgit commit -qm conflicting && rgit push -q origin main \
+  && rgit checkout -q fix/t && rgit reset -q --hard C && rgit merge -q --no-edit origin/main; printf 'resolved\n' > a && rgit add a && rgit commit -qm resolved)
+st "$(reuse_verdict "$U/wt" "[]" fix/t)" "code ${uc:0:8} does not merge cleanly with $(git -C "$U/wt" rev-parse --short=8 origin/main); a resolution goes through the full prepr" "real git (c): a conflict resolved in the merge runs the full prepr"
+# (c)'s first-parent arm: HEAD holds a side commit main merged, not main's own
+# first-parent history; the earlier reusing rows are its null control.
+(cd "$U/wt" && rgit checkout -q -b side origin/main~1 && printf 'sd\n' > sd && rgit add sd && rgit commit -qm side \
+  && rgit checkout -q main && rgit reset -q --hard origin/main && rgit merge -q --no-ff --no-edit side && rgit push -q origin main \
+  && rgit checkout -q fix/t && rgit reset -q --hard C && rgit merge -q --no-edit side)
+st "$(reuse_verdict "$U/wt" "[]" fix/t | grep -c "^the main HEAD holds, $(git -C "$U/wt" rev-parse --short=8 side), is not on the freshly fetched origin/main's first-parent chain$")" 1 "real git (c): HEAD holding a main commit off main's first-parent chain runs the full prepr"
+
+# --reuse wiring past a reusing verdict: a copy whose reuse_verdict is replaced by
+# one that reuses, so prepr runs under PREPR_SKIP_CODE and row_only_checks follow it.
+sed '/^reuse_verdict() {/,/^}/c\
+function reuse_verdict { RV_HEAD=$(git -C "$1" rev-parse HEAD); RV_C=$RV_HEAD; RV_TITLE=""; RV_WHY="stub reuse"; echo "$RV_WHY"; }' "$SELF" > "$W/tool/app_push_reuse.sh"
+rucase() { mkcase "$1"; cp "$W/body.md" "$W/$1/body.md"; ( export STUB="$W/$1" PATH="$W/bin:$PATH" TMPDIR="$W/$1/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/$1/body.md" > "$W/$1/out" 2> "$W/$1/err" ); }
+rucase ureused; st $? 0 "--reuse, the verdict reusing: pushed"
+st "$(grep -c "^prepr PREPR_SKIP_CODE=$SHA " "$W/ureused/log")$(grep -c '^node tools/policy/policy_lint.mjs --pr-body ' "$W/ureused/log")$(grep -c '^carry_audit check --body ' "$W/ureused/log")" 111 "and prepr ran under PREPR_SKIP_CODE, then the body contract and the carry check"
+mkcase ufail; : > "$W/ufail/node-fails"; cp "$W/body.md" "$W/ufail/body.md"
+( export STUB="$W/ufail" PATH="$W/bin:$PATH" TMPDIR="$W/ufail/tmp" HPO_IDENTITY_DIR="$W/id"
+  bash "$W/tool/app_push_reuse.sh" --reuse o/r "$W/tool-wt" "$BR" "$W/ufail/body.md" > "$W/ufail/out" 2> "$W/ufail/err" ); st $? 1 "--reuse, the verdict reusing: a body the contract refuses refuses after the reduced prepr"
+st "$(grep -c '^git .*push' "$W/ufail/log")$(calls ufail curl)" 00 "and nothing was minted or pushed"
 
 echo "app_push self-test: $N checks, $FAILS failed"
 [ "$FAILS" -eq 0 ]
