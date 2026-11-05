@@ -56,7 +56,6 @@ SEAT_NAME=seat
 SEAT_EMAIL=seat@users.noreply.github.com
 # RUNNER_TEMP (D): a governance job's `run:` steps read it; a seat replaying one
 # has none. It is exported, not created: the replay does `mkdir -p "$RUNNER_TEMP"`.
-RUNNER_TEMP_DIR=/tmp/hpo-runner-temp
 SELF=$(readlink -f "${BASH_SOURCE[0]}")
 . "$(dirname "$SELF")/../../../tests/throwaway_git.sh" # the one way a script builds a throwaway repository
 
@@ -68,7 +67,7 @@ export HPO_TYPING_PYTHON="$2/venv-ha/bin/python"
 export OPENBLAS_CORETYPE=$CORETYPE
 export GIT_AUTHOR_NAME="$SEAT_NAME" GIT_AUTHOR_EMAIL="$SEAT_EMAIL"
 export GIT_COMMITTER_NAME="$SEAT_NAME" GIT_COMMITTER_EMAIL="$SEAT_EMAIL"
-export RUNNER_TEMP="$RUNNER_TEMP_DIR"
+export RUNNER_TEMP="$2/runner-temp"
 EOF
 }
 
@@ -79,7 +78,7 @@ variables() { # prefix: the environment variables a seat's shell needs
   printf '%s\n' "PATH=$1/venv-ci/bin:$rest" \
     "HPO_TYPING_PYTHON=$1/venv-ha/bin/python" "OPENBLAS_CORETYPE=$CORETYPE" \
     "GIT_AUTHOR_NAME=$SEAT_NAME" "GIT_AUTHOR_EMAIL=$SEAT_EMAIL" "GIT_COMMITTER_NAME=$SEAT_NAME" "GIT_COMMITTER_EMAIL=$SEAT_EMAIL" \
-    "RUNNER_TEMP=$RUNNER_TEMP_DIR"
+    "RUNNER_TEMP=$1/runner-temp"
 }
 
 check() { # prefix
@@ -142,10 +141,10 @@ self_test() (
   [ "$out" = "$P/venv-ci/bin:$base" ]; expect "the profile sourced twice puts venv-ci/bin on PATH once" $?
   out=$(run BASH_ENV="$W/profile.sh" bash -c 'PATH="$1:$PATH" bash -c python3' _ "$W/stub")
   [ "$out" = stub ]; expect "under BASH_ENV a nested bash keeps a stub its caller put ahead of the venv (#2452)" $?
-  [ "$(printf '%s\n' "${vars[@]}" | grep -c '^RUNNER_TEMP=/tmp/hpo-runner-temp$')" = 1 ]  # never-empty: vars is the seven-line output of variables, asserted above
+  [ "$(printf '%s\n' "${vars[@]}" | grep -cxF "RUNNER_TEMP=$P/runner-temp")" = 1 ]  # never-empty: vars is the seven-line output of variables, asserted above
   expect "variables prints RUNNER_TEMP" $?
   out=$(run bash -c '. "$1"; echo "$RUNNER_TEMP"' _ "$W/profile.sh")
-  [ "$out" = /tmp/hpo-runner-temp ]; expect "the profile exports RUNNER_TEMP" $?
+  [ "$out" = "$P/runner-temp" ]; expect "the profile exports RUNNER_TEMP" $?
   n=$(printf '%s\n' "${vars[@]}" | grep -c '^GIT_\(AUTHOR\|COMMITTER\)_\(NAME\|EMAIL\)=')  # never-empty: vars is the seven-line output of variables, asserted above
   [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
   out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")
