@@ -62713,11 +62713,15 @@ def _f21_ms_no_continuation(objective, starts, bounds, *a, **kw):
 
 
 def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
-    # The two-zone cell's tank starts at 30 C: from 25 C the plain solve now
-    # reaches the storage basin unaided (R10-BUFFER-STORE's tank-aware
-    # reference moved the baseline-anchored seeds: j 110.154 with and without
-    # the continuation, against 110.437 / 110.560 before), so that cell no
-    # longer separates the continuation; from 30 C it does again.
+    # The two-zone cell's tank starts at 35 C. The seeds anchor on the
+    # reference, so each reference change moves which start temperature the
+    # plain solve reaches the storage basin from unaided: R10-BUFFER-STORE's
+    # moved it off 25 C, and R10-HOTFIX-SAV-ESTIMATE's valved reference made
+    # 30 C a cliff, where the continuation's gain is zero on one OpenBLAS
+    # kernel class and positive on another. At 35 C the gain is positive on
+    # each of four kernel classes measured (OPENBLAS_CORETYPE Haswell,
+    # Sandybridge, SkylakeX, Prescott; SkylakeX reproduces CI's figures), and
+    # the shipped objective is the same basin on each.
     cfg = _f21_house(
         two_zone=two_zone, dhw=False, buffer_tank_volume=750.0,
         buffer_max_temperature=70.0, mixing_valve_mode="manual",
@@ -62736,7 +62740,7 @@ def _f21_storage_solve(two_zone, seed=None, l1=None, continuation=True):
     state = _f21_State(
         room_temperature=20.0, upper_floor_temperature=20.0,
         lower_floor_temperature=20.0, slab_temperature=21.0,
-        buffer_tank_temperature=30.0 if two_zone else 25.0,
+        buffer_tank_temperature=35.0 if two_zone else 25.0,
         outdoor_temperature=float(out[0]),
     )
     inputs = solve_inputs(
