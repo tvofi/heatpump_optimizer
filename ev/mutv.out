@@ -1,0 +1,10 @@
+base gate: budget_raise_gate self-test: 274 checks, 0 failed
+base train: merge_train self-test: 443 checks, 0 failed
+MV1 check_body shape-only:
+  FAIL e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so: got (0, False), want (1, True)
+budget_raise_gate self-test: 274 checks, 1 failed
+MV2 train shape-only:
+  FAIL a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate refuses it (the train reads budget_raise_gate.justified, its measured figure)
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+  ok   a script that crashed before its summary prints the ENDED BEFORE line, not FAILED

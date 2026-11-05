@@ -1,0 +1,51 @@
+Fix review: blocked 81ee61752cff8ba51d41546f540e50ff1c950fac body-stale: the code is sound and every figure re-derives, but the body's `## Head` says main had not moved and no merge was needed (this head merges main 8b49d50b0 via 4404f5e74), and `## Red checks` is read at 6b416a18 on base 8bf45e5dc, not at this head on base 8b49d50b0
+
+bus-nonce: 75d4a60d40fe785178756e78c4b44e51
+
+## Block
+
+Round 5 (delta) of PR #3223, R10-RAISE-GATE-SHIM. This is a fix-review round past the fourth, so `fixer.md` owes a re-cut, but the repair is a body-only edit and does not move the head. Every code claim holds at 81ee61752cff8ba51d41546f540e50ff1c950fac (see `## Evidence`). The brief requires the body to be re-taken against the head. Two sections were not:
+
+1. `## Head` states: "`origin/main` is `8bf45e5dc…` … and equals the merge base … so main had not moved and no merge was needed." At this head that is false. The merge base is `8b49d50b0a4c3eebee0edeb6ec98aa365e3d004f` (`git merge-base origin/main HEAD`). The head's first parent `4404f5e74` is "Merge remote-tracking branch 'origin/main'" with second parent `8b49d50b0`, which is 4 commits past `8bf45e5dc`. The body never names that merge. Its resolution delta (`git diff 88d809f84 81ee61752`) is main's own three files: `.github/workflows/tests.yml`, `tests/ci_budgets.json` and `dev/programme/delivery/3228.md`. None of them is this PR's.
+2. `## Red checks` says it was "Read … at the PR head `6b416a18`, base `8bf45e5dc`" and that the repair commits "are retaken then". It was not retaken. At this head, `get_check_runs` returns 39 runs on one page. The concluded reds are `governance / delivery-status` (job 127449840312) and `tests / nightly-status` (job 127449839999). The body cites jobs 127322514659 and 127322514282 of the old head. It also lists `governance / instrument-self-tests` as concluded red, which is a different head's run. At this head that check concluded **cancelled** at its 30-minute limit (job 127449840281), and the body does not name that run. The causes it gives still hold, but the job ids and the base SHA are another head's.
+
+Repair, body only: (1) in `## Head`, name the `4404f5e74` merge of main `8b49d50b0` and drop "no merge was needed"; (2) retake `## Red checks` at 81ee6175 on base 8b49d50b0 with this head's job ids, including the cancelled `instrument-self-tests` 127449840281. A re-verdict needs only the body and the post-edit `pr-contract` run.
+
+## Findings
+
+- Residual, declared and reproduced: an `exec -a '<python> <tree>/tools/pr/gh_comment.py'` parent passes the guard. Offline row "residual (declared)" reached the stub. Carry: R10-RAISE-GATE-SHIM
+- Follow-up: `governance / instrument-self-tests` concluded `failure` at 6b416a18 and `cancelled` at 81ee6175 (30-minute limit), with every visible self-test passing. The cause is not established from either log. This diff adds 4 s of local self-test time to the lane. The body owes it under `## Red checks`. Carry: R10-RAISE-GATE-SHIM
+
+## Evidence
+
+- Head reviewed: 81ee61752cff8ba51d41546f540e50ff1c950fac (ev/HEAD.txt), from a detached worktree. `review_carry.py 6b416a18 81ee6175` prints FRESH-REVIEW: the branch's own commits 8a34e2cfe, ff9f2e4a1, 977d4e15e and 725410a6b changed it, so they were re-reviewed here.
+- Role drift: `git diff <merge-base>...origin/main -- dev/governance/roles/` touches fix-review.md and judge.md. I followed main's fix-review.md.
+- Offline arm (ev/offline-proof.txt). The setup was a stub `gh` that appends its argv and exits 0, run under `env -i` with an empty HOME. `env | grep -i token` printed nothing, and the stub recorded the probe `--version`. The shim was installed by the tree's own `seat_venv.sh --install-shims`, which baked `gcpy` to the worktree's gh_comment.py. No control wrote to GitHub. The kill word is built from fragments in ev/controls.sh and logged as `<KILL>`. The id is fixture-mandate-0000. No evidence file holds the whole word.
+- RESULT controls at head: 62 rows, 0 mismatches (ev/controls-head.txt):
+  - 48 refusal rows are refused with an empty stub log. They include the planted raw `gh api` POST of the kill pairing, all the earlier spellings, and the three repairs' case rows: `ISSUES/201/comments`, `issues/201/COMMENTS`, mixed case and `%49SSUES`.
+  - The other spellings: leading or trailing slash, a full URL, `0201`, `%32%30%31`, `202/../201`, a double slash, a query or anchor, `--method`, `-XPOST`, `--method=post`, PATCH of a comment by id, a graphql mutation in upper or lower case, graphql read from a file or `--input`, `--input` to 201, a method-override header, and an unknown api flag.
+  - The `issue` and `pr` forms: `issue comment 201` with `--repo` first, last or `=`-joined; a #201 URL; `#201`; `0201`; a URL with a trailing slash; a real flag cluster `-wb`; `--`; two targets; `issue close` with `--comment` or `-c`; `issue edit 201`; `issue reopen 201 -c`; `pr comment 201`; and `pr comment` on a pull/201 URL.
+  - Deny by default: a leading `-R` flag, an unlisted issue verb, an unlisted subcommand, `alias set` and `extension exec` are all refused. Two spoof rows are refused too: a shell that names gh_comment.py, and `python -c` with gh_comment.py as an argument.
+  - 14 pass rows reach the stub with their argv. 12 are null controls: GET of #201, POSTs to 202 and 2011, `ISSUES/202/COMMENTS`, `issue comment 202` (also with an attached `-bx`), `issue view 201`, `pr view 5`, `workflow list`, a labels POST, an Accept-header read and a graphql query. The 13th is the normal comment through `python gh_comment.py post --repo o/r --issue 201`, whose stub log reads `api /repos/o/r/issues/201/comments --method POST --input <tmp>`. The 14th is the declared `exec -a` residual.
+- RESULT self-tests at head (ev/selftests.txt): `gh_calls self-test: 195 checks, 0 failed`, `seat_venv self-test: 27 checks, 0 failed` and `queue_pre_flight self-test: 45 checks, 0 failed`; budget_raise_gate 274/0 and merge_train 443/0. All five equal the body's figures where it states one.
+- RESULT mutants, each in a copy tree with the same offline stub:
+  - M1, the `norm()` lower-casing line deleted: `gh_calls self-test: 195 checks, 4 failed`. These are the 4 rows the body names. The control table shows 4 mismatches: ISSUES, COMMENTS, mixed case and `%49SSUES` all reach the stub (ev/controls-M1-no-lowercase.txt).
+  - M2, predicate `[ -n "$ok" ] || {` changed to `true || {`: 195 checks, 67 failed, the body's figure. Every one of the table's 48 refusal rows mismatches (ev/controls-M2-predicate-true.txt).
+  - M3, the installer's bake line changed to `:`: `seat_venv self-test: 27 checks, 1 failed` (`--install-shims bakes the tree's gh_comment.py path…`). The placeholder survives in the installed copy, and the normal gh_comment.py post is refused (ev/controls-M3-no-bake.txt). This mutant is killed, so the round-3 survivor is closed.
+  - MV1, the value check removed from `check_body` (shape only): budget_raise_gate 274 checks, 1 failed. MV2, the train reads `justification` instead of `justified`: merge_train fails the "dS the scorer did not measure" row (ev/mutv.out).
+- RESULT dS value arm (files only, ev/dsarm.out). The input is #3045's `## Raise justification`, planted with its round-1 figure `dS +0.0012 IMPROVES`, against the measured `dS +0.0000 NULL` from verdict 0ec244aa.
+  - `justified` and `check_body` (with a raise) refuse the plant with "claims dS +0.0012 IMPROVES, but … measures dS +0.0000 NULL".
+  - A body quoting the measured value passes.
+  - Null controls: shape-only `justification()` accepts the plant, and `check_body` on a diff that raises nothing accepts it.
+- No-literal sentence: `git diff <merge-base>...HEAD | grep '^+' | grep -ci revok` gives 0. Across all 8 touched files, the whole-word count is equal at base and head. The only pre-existing occurrences are merge_train.py (4), queue_pre_flight.py (2) and budget_raise_gate.py (17), none of them added. The added lines' only mandate id is fixture-mandate-0000.
+- Existing guards not weakened: the shim's logging half is unchanged. The `--input` mutant row was re-keyed (`--raw-field|--input) skip`), not deleted. gh_comment.py's own guard is untouched.
+- Merge: `git merge-tree --write-tree origin/main HEAD` (origin/main 2dc960f4a) exits 0 with tree 1f99588b1 and no conflicts (ev/mt.out).
+- Untouched: VERSION, the manifest, RELEASE_NOTES.md, tests/structure.py, every `*_budgets.json`, and both claim files (byte-identical to origin/main). `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED.
+- Carries: the roster `handoff/audit-r10-roster` at 02853819d holds 6 carries for R10-RAISE-GATE-SHIM. The body's 870f6b21 is the group's Carry 3 and aae60647 its Carry 4, as the body says.
+- Concluded reds at this head, both inherited and outside the diff:
+  - `governance / delivery-status`, job 127449840312, PINNED 8b49d50b0: "DELIVERY STATUS OVERDUE — 10 rowed, 12 pending, 19 overdue". Every overdue row is another PR's (#3208 … #3192). The log says "NOT a required context".
+  - `tests / nightly-status`, job 127449839999: scheduled run 41943946464, head 499162c, failing job `slow`. Not required.
+- CI: `merge_train.py classify 81ee6175 --pr 3223`: exit 0, `GREEN 81ee61752cff8ba51d41546f540e50ff1c950fac pending: none red: none` (ev/classify-final.txt; WAIT from 18:59 to 19:12, ev/classify-log.txt). All 55 check runs (one page of 100) are concluded. `gate` (127471301083, 127469910512) and `pr-contract` (127470835767, 127469367351) are green, and both started after the last red concluded. `governance / instrument-self-tests` (job 127449840281) concluded **cancelled**: it started 18:35:08, logged `##[error]The operation was canceled.` at 19:05:19, and its last step was `ci_predict self-test: 0 failed`. No failing step appears in the log. This diff's own self-test in that lane went from 84 checks in 2 s at base 8b49d50b0 to 195 checks in 6 s at the head (ev/timing.out), which does not account for a 30-minute cancel.
+- Figures I could not re-derive:
+  - The body's Carry 3 durations (31 jobs; 19/28/48 s) are the round-3 seat's. I did not re-read them. This head's budget-raise-gate job 127449840132 ran 18:35:08 to 18:35:35, 27 s.
+  - The body's `prepr.sh` receipt at 88d809f8 was not re-run (CI's heavy runs are cited, not re-run).
