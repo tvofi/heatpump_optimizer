@@ -24,16 +24,19 @@ Unmodified tree: CI printed GREW 23.574 (run 42038071453). Ratchet refusal contr
 
 ## Raise justification
 
+Payments tried: a concurrent ratchet-job fetch (paid, insufficient alone), a closures lane rebalance (none exists), a fourth CI lane (refused), a closures job split (not verifiable without CI iterations); detail below.
+Architecture score: dS +0.0000 NULL
+
 Payments tried, in order:
 1. Real path cut, paid: the ratchet job's two independent network steps (metrics artifacts 24-40 s, push runs 22-40 s, measured per run) now run side by side in one step with per-pid `wait`; the chain's tail job is that job. Models to 23.236 (above), about 0.3 min, insufficient to count on.
 2. Rebalance closures lanes: none, already balanced to 0.1 s.
 3. A fourth CI lane: refused, the 3-lane cap is the owner's standing rule.
 4. Splitting `closures` into shards: `tests / closures` is a required context whose check needs every recording; not verifiable without CI iterations; not attempted.
-Architecture score: dS +0.0000 NULL for the diff (score.py --diff). Re-record: `critical_path_minutes` 21.983 -> 23.574, the value CI printed, never a headroom; band 1.3 unchanged. `tests/ci_budgets.json` is a `*_budgets.json` raise, under mandate 6624093439.
+Re-record: `critical_path_minutes` 21.983 -> 23.574, the value CI printed, never a headroom; band 1.3 unchanged. `tests/ci_budgets.json` is a `*_budgets.json` raise, under mandate 6624093439.
 
 ## Red checks
 
-`tests / ci-ratchet` on 8bf45e5dc (run 42038071453): GREW critical_path_minutes 23.574, the subject of this PR. No other concluded red read from this seat (Actions API; runs 42038071453 job list).
+`tests / ci-ratchet` on 8bf45e5dc (run 42038071453): GREW critical_path_minutes 23.574, the subject of this PR. `budget-raise-gate` (on this PR, red until tvofi approves at the head): the raise is deliberate, the cheaper detector is the ratchet itself; no cheaper one exists for a budget raise, its standing cost is the owner's approving review. No other concluded red read from this seat (Actions API; runs 42038071453 job list).
 
 ## Forward-carry
 
