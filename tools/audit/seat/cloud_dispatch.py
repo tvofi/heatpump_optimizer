@@ -1057,6 +1057,10 @@ def self_test() -> int:
     check("the fixer and the probe pin the seat's noreply identity in the setup line, no other role does (null)",
           all((ident in t.splitlines()[1]) == (r in COMMITTING_ROLES) for r, t in prompts.items())
           and set(COMMITTING_ROLES) == {"fixer", "probe"})
+    sh = (Path(__file__).with_name("cloud-setup.sh")).read_text()
+    shid = [(m.group(1), m.group(2)) for m in [re.search(r"^SEAT_NAME=(\S+)\nSEAT_EMAIL=(\S+)$", sh, re.M)] if m]
+    check("cloud-setup.sh exports the same SEAT_NAME/SEAT_EMAIL as this module",
+          shid == [(SEAT_NAME, SEAT_EMAIL)])
     for role, ref in (("fixer", "dispatch/fixer-t-1"), ("reviewer", "dispatch/reviewer-rev-7")):
         a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
                  nonce="abc123" if role == "reviewer" else "")
