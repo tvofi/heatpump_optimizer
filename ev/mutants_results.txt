@@ -1,0 +1,72 @@
+RESULT mutant ledger.py:309 CLAMP_DROP new=`self.observe_meta_mean(when, STEADY_COP_META, (float(steady_cop)))` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: a step COP of zero converts the stored heat at the 1e-3 floor, not by a division by zero  ["ZeroDivisionError('division by zero')"]
+RESULT mutant optimizer.py:485 GUARD_OFF new=`if False:` rc=1 5 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length None)  [[50442.0, 25926.0, 43210.0] want [8642.0, 25926.0, 43210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 4)  [[150442.0, 325926.0, 543210.0] want [108642.0, 325926.0, 543210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 3)  [[50442.0, 25926.0, 43210.0] want [8642.0, 25926.0, 43210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 2)  [[50442.0, 25926.0, 43210.0] want [8642.0, 25926.0, 43210.0]]
+RESULT mutant optimizer.py:488 GUARD_OFF new=`if False:` rc=1 3 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 4)  [[480042.0, 300126.0, 500210.0] want [100042.0, 300126.0, 500210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 4)  [[488642.0, 325926.0, 543210.0] want [108642.0, 325926.0, 543210.0]]
+RESULT mutant optimizer.py:497 GUARD_OFF new=`if False:` rc=1 5 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length None)  [[42.0, 126.0, 210.0] want [8642.0, 25926.0, 43210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 4)  [[100042.0, 300126.0, 500210.0] want [108642.0, 325926.0, 543210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 3)  [[42.0, 126.0, 210.0] want [8642.0, 25926.0, 43210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 2)  [[42.0, 126.0, 210.0] want [8642.0, 25926.0, 43210.0]]
+RESULT mutant optimizer.py:500 GUARD_OFF new=`if False:` rc=1 3 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 4)  [[42.0, 126.0, 210.0] want [100042.0, 300126.0, 500210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 4)  [[8642.0, 25926.0, 43210.0] want [108642.0, 325926.0, 543210.0]]
+RESULT mutant optimizer.py:515 GUARD_OFF new=`if False:` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the baseline is booked on the steps it covers and no further  [[{'stored_kw_th': 42.0, 'comfort_kw': 0.04999999999999982, 'steady_cop': 2.0}, {'stored_kw_th': 126.0, 'comfort_kw': -0.1499999999999
+RESULT mutant optimizer.py:454 BOOLOP new=`buffer_temps if buffer_temps is not None or len(buffer_temps) > h.n_steps` rc=1 he last forecast, marked stale.
+Traceback (most recent call last):
+  File "/root/rv/mut/t6/tests/features.py", line 42881, in <module>
+    _got_c = [x["comfort_kw"] for x in _sw_run(False, None, None, outdoor=_out)]
+              ~^^^^^^^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length None)  [TypeError("object of type 'NoneType' has no len()") want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 3)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 2)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length None)  [TypeError("object of type 'NoneType' has no len()") want [8642.0, 25926.0, 43210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 3)  [IndexError('list index out of range') want [8642.0, 25926.0, 43210.0]]
+RESULT mutant optimizer.py:493 CLAMP_DROP new=`cop = (compute_cop(out, humidity=hums[i]))` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: a COP below the floor settles at the floor, and one above it is kept  ["ZeroDivisionError('division by zero')"]
+RESULT mutant optimizer.py:515 CMP_BOUND new=`if i <= n_base:` rc=1 he last forecast, marked stale.
+Traceback (most recent call last):
+  File "/root/rv/mut/t8/tests/features.py", line 42881, in <module>
+    _got_c = [x["comfort_kw"] for x in _sw_run(False, None, None, outdoor=_out)]
+              ~^^^^^^^^^^^^^^
+TypeError: string indices must be integers, not 'str'
+
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length None)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 4)  [IndexError('list index out of range') want [100042.0, 300126.0, 500210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 3)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 2)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length None)  [IndexError('list index out of range') want [8642.0, 25926.0, 43210.0]]
+RESULT mutant optimizer.py:454 CMP_BOUND new=`buffer_temps if buffer_temps is not None and len(buffer_temps) >= h.n_steps` rc=1 3 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=False, buffer length 3)  [IndexError('list index out of range') want [42.0, 126.0, 210.0]]
+       FAIL R10-SAV-COMFORT: the settlement schedule sets exactly the state fields the plan carries (two_zone=True, buffer length 3)  [IndexError('list index out of range') want [8642.0, 25926.0, 43210.0]]
+RESULT mutant optimizer.py:512 CLAMP_DROP new=`"comfort_kw": ((d_t) - max(d_d, 0.0)) / cop,` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the comfort shortfall floors each demand at zero (outdoor 20.2)  [[-0.16999999999999993, -0.16999999999999993, -0.55] want [0.0, 0.0, -0.38]]
+RESULT mutant optimizer.py:512 CLAMP_DROP new=`"comfort_kw": (max(d_t, 0.0) - (d_d)) / cop,` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the comfort shortfall floors each demand at zero (outdoor 20.2)  [[0.21999999999999992, 0.019999999999999907, -0.3800000000000001] want [0.0, 0.0, -0.38]]
+RESULT mutant optimizer.py:468 EXTRA_M2 new=`zone = rooms` rc=1 1 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+RESULT mutant ledger.py:429 PROOF new=`baseline_sek = self.line(key, "savings_baseline")["sek"] * scale` rc=1 2 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']
+       FAIL R10-SAV-COMFORT: the month row settles the plan's stored-heat change at the row's metered kWh price  [{'month': '2026-01', 'baseline_sek': 20.0, 'actual_sek': 15.0, 'savings_sek': 5.0, 'savings_pct': 25.0, 'estima
+RESULT mutant None:0 NULL new=`` rc=1 1 of 4810 FEATURE CHECKS FAILED
+       FAIL and the path that proceeds still stamps a resolvable recorded_at (#363)  [recorded_at = 'unknown']

@@ -1,0 +1,58 @@
+{"file": "custom_components/heatpump_optimizer/ledger.py", "line": 429, "kind": "PROOF", "old": "            baseline_sek = self.line(key, \"savings_baseline\")[\"sek\"] * scale + stored_sek", "new": "            baseline_sek = self.line(key, \"savings_baseline\")[\"sek\"] * scale"}
+ be on
+Could not turn_off the disinfection switch switch.pump_disinfection: switch unavailable
+Could not turn_on the disinfection switch switch.pump_disinfection: switch unavailable
+DHW anti-legionella boost has been commanded for 12 h without completing; recording what it achieved
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+Disinfection switch switch.pump_disinfection has been unreadable for 30 min; the optimizer can no longer turn it off, and it may still be on
+The disinfection switch switch.pump_disinfection did not read back off after turn_off
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+DHW anti-legionella cycle ran with no usable tank reading; it cannot be confirmed and will be retried within a day
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Error fetching weather forecast: weather integration down. Plans continue on the last forecast, marked stale.
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 21.4 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 40.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 55.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating + DHW (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 53.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: the pump does not hold a write, select.pump_mode: Heating (set by the optimizer: DHW); retrying
+Pump duty: the pump does not hold a write, number.dhw_set: 40.0 (set by the optimizer: 48.0); retrying
+Pump duty: the pump does not hold a write, number.water_set: 53.0 (set by the optimizer: 25.0); retrying
+Pump duty: writing DHW to select.pump_mode failed: pump offline
+Pump duty: writing 48.0 to number.dhw_set failed: pump offline
+Pump duty: writing 25.0 to number.water_set failed: pump offline
+Pump duty: the pump does not hold a write, select.pump_mode: DHW (Hot Water) (set by the optimizer: heat); retrying
+Pump duty: the pump does not hold a write, number.water_set: 25.0 (set by the optimizer: 55.0); retrying
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: number.water_set is declared an indoor set-point but its minimum is 25.0 degC; set its unit to Flow temperature. Not writing it.
+Pump duty: the pump does not hold a write, switch.pump_night_mode: False (set by the optimizer: True); retrying
+No electricity price data available; skipping optimization until prices can be fetched
+heatpump_optimizer_pa151_pump_duty: stored instant 2027-07-06T12:00:00+00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00+00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_test_entry_pump_duty: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_dhw_legionella: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 12:00:00
+heatpump_optimizer_test_entry_boost: stored instant 2026-06-01T18:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T14:00:00+02:00 is ahead of the clock; bounded to 2026-06-01 16:00:00+02:00
+heatpump_optimizer_f32_lead: stored instant 2027-07-06T12:00:00 is ahead of the clock; bounded to 2026-06-01 14:00:00
+/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/root/rv/mut/t13/tests/features.py:76994: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  _ap_unload()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback

@@ -1,0 +1,17 @@
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/ledger.py:309 CLAMP_DROP: self.observe_meta_mean(when, STEADY_COP_META, max(float(stea
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:454 BOOLOP: buffer_temps if buffer_temps is not None and len(buffer_temp
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:454 CMP_BOUND: buffer_temps if buffer_temps is not None and len(buffer_temp
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:485 GUARD_OFF: if two_zone:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:488 GUARD_OFF: if bufs is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:493 CLAMP_DROP: cop = max(compute_cop(out, humidity=hums[i]), 1e-3)
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:497 GUARD_OFF: if two_zone:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:500 GUARD_OFF: if bufs is not None:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:512 CLAMP_DROP*2: "comfort_kw": (max(d_t, 0.0) - max(d_d, 0.0)) / cop,
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:515 CMP_BOUND: if i < n_base:
+PREDICT tests / mutation ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:515 GUARD_OFF: if i < n_base:
+CI PREDICT: 11 unpinned site(s) the diff adds -- a warning; the body owes each a line under ## Unpinned sites
+CI PREDICT: no closures, fast, governance or instrument red predicted against 499162c89d0f (a data-file read is not seen)
+
+real	0m8.175s
+user	0m7.719s
+sys	0m0.519s

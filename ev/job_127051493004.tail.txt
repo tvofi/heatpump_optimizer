@@ -1,0 +1,60 @@
+2026-11-05T04:39:15.2297922Z includeif.gitdir:/github/workspace/.git.path
+2026-11-05T04:39:15.2298294Z includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T04:39:15.2303157Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+2026-11-05T04:39:15.2323016Z /home/runner/work/_temp/git-credentials-9399e02a-6454-499f-8d38-0fff59f199ca.config
+2026-11-05T04:39:15.2330542Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-9399e02a\-6454\-499f\-8d38\-0fff59f199ca\.config
+2026-11-05T04:39:15.2358933Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+2026-11-05T04:39:15.2378170Z /home/runner/work/_temp/git-credentials-9399e02a-6454-499f-8d38-0fff59f199ca.config
+2026-11-05T04:39:15.2384709Z [command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-9399e02a\-6454\-499f\-8d38\-0fff59f199ca\.config
+2026-11-05T04:39:15.2412369Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+2026-11-05T04:39:15.2431332Z /github/runner_temp/git-credentials-9399e02a-6454-499f-8d38-0fff59f199ca.config
+2026-11-05T04:39:15.2437244Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-9399e02a\-6454\-499f\-8d38\-0fff59f199ca\.config
+2026-11-05T04:39:15.2471802Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-05T04:39:15.2493009Z /github/runner_temp/git-credentials-9399e02a-6454-499f-8d38-0fff59f199ca.config
+2026-11-05T04:39:15.2498865Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-9399e02a\-6454\-499f\-8d38\-0fff59f199ca\.config
+2026-11-05T04:39:15.2527379Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T04:39:15.2765551Z Removing credentials config '/home/runner/work/_temp/git-credentials-9399e02a-6454-499f-8d38-0fff59f199ca.config'
+2026-11-05T04:39:15.2776283Z ##[endgroup]
+2026-11-05T04:39:15.2992300Z ##[group]Run set -euo pipefail
+2026-11-05T04:39:15.2992656Z [36;1mset -euo pipefail[0m
+2026-11-05T04:39:15.2992932Z [36;1mif [ -z "$PINNED" ] && [ -n "${INPUT_BASE:-}" ]; then[0m
+2026-11-05T04:39:15.2993324Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-05T04:39:15.2993751Z [36;1m  PINNED=$(git rev-parse "refs/remotes/origin/$INPUT_BASE")[0m
+2026-11-05T04:39:15.2994029Z [36;1mfi[0m
+2026-11-05T04:39:15.2994203Z [36;1mif [ -n "$PINNED" ]; then[0m
+2026-11-05T04:39:15.2994443Z [36;1m  git checkout "$PINNED" -- 'tools/ci/*.py'[0m
+2026-11-05T04:39:15.2994704Z [36;1m  echo "programs restored from $PINNED"[0m
+2026-11-05T04:39:15.2994942Z [36;1mfi[0m
+2026-11-05T04:39:15.3041358Z shell: /usr/bin/bash -e {0}
+2026-11-05T04:39:15.3041589Z env:
+2026-11-05T04:39:15.3041793Z   PINNED: 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+2026-11-05T04:39:15.3042045Z   INPUT_BASE: 
+2026-11-05T04:39:15.3042215Z ##[endgroup]
+2026-11-05T04:39:15.3834455Z programs restored from 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+2026-11-05T04:39:15.3872130Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-05T04:39:15.3872602Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-05T04:39:15.3916930Z shell: /usr/bin/bash -e {0}
+2026-11-05T04:39:15.3917146Z env:
+2026-11-05T04:39:15.3919175Z   GH_TOKEN: ***
+2026-11-05T04:39:15.3919357Z   PR: 3195
+2026-11-05T04:39:15.3919518Z   BASE: main
+2026-11-05T04:39:15.3919678Z   KIND: code
+2026-11-05T04:39:15.3919835Z ##[endgroup]
+2026-11-05T04:39:20.4453092Z FAIL tests / mutation: failure (this run)
+2026-11-05T04:39:20.4570812Z ##[error]Process completed with exit code 1.
+2026-11-05T04:39:20.4690624Z Post job cleanup.
+2026-11-05T04:39:20.5346942Z [command]/usr/bin/git version
+2026-11-05T04:39:20.5380142Z git version 2.56.0
+2026-11-05T04:39:20.5407394Z Temporarily overriding HOME='/home/runner/work/_temp/47423f38-1850-493d-a2eb-442aeb291f61' before making global git config changes
+2026-11-05T04:39:20.5408369Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-05T04:39:20.5412089Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-05T04:39:20.5437886Z Removing SSH command configuration
+2026-11-05T04:39:20.5442654Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-05T04:39:20.5470019Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-05T04:39:20.5707370Z Removing HTTP extra header
+2026-11-05T04:39:20.5711414Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-05T04:39:20.5738272Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-05T04:39:20.5968343Z Removing includeIf entries pointing to credentials config files
+2026-11-05T04:39:20.5972567Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-05T04:39:20.5999645Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-05T04:39:20.6394186Z Cleaning up orphan processes
