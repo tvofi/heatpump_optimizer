@@ -822,7 +822,7 @@ class QuarantiningStore(Store[_StorePayload]):
             await asyncio.shield(self._reading)
 
 
-class LedgerStore(QuarantiningStore):
+class LedgerStore(QuarantiningStore[_StorePayload]):
     """The money store; v2 stamps what a v1 document holds as the old basis."""
 
     async def _async_migrate_func(
