@@ -67,8 +67,22 @@
 # v7.1.1: factory reset, ceiling probe, SAV comfort, away-mode and learner fixes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
-shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
 #
+shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
+coord_all_features  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_dhw  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_grid_fee  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_minimal  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+valve_storage  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: booked by the steady demand: its kWh rises, its price paid falls, with no 6 kW first-step transient
+valve_storage_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: as valve_storage, the same reference
+valve_storage_small_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN, predicted_savings and savings_percentage DOWN with it: spread by steady demand; the plan does not move
+valve_storage_flat_prices  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP with the reference's kWh (its tank starts held, not on the measured charge); plan leaves move, the reference seeds the solve's starts
+valve_storage_low_target  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP as flat_prices; plan lands in another basin (seeded starts), objective +0.24 %
+valve_upper_direct_slab  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the held tank buys the direct slab's need
+wood_coil  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood tank, no fire, no coil
+wood_two_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood; it reads the plain valve_storage reference
+wood_two_tank_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: as wood_two_tank
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -94,11 +108,16 @@ shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-S
 # one was restored.
 #
 #
-# may-drift: valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
-# may-drift: valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-HOTFIX-SAV-ESTIMATE suspends valve_storage_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-HOTFIX-SAV-ESTIMATE suspends wood_two_tank's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-HOTFIX-SAV-ESTIMATE suspends wood_two_tank_smart_write's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_two_tank_smart_write -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-HOTFIX-SAV-ESTIMATE suspends wood_coil's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) wood_coil -- machine-sensitive; the DHW plan can reach it, per local optimum
+# (R10-HOTFIX-SAV-ESTIMATE suspends valve_upper_direct_slab's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_upper_direct_slab -- machine-sensitive; the DHW plan can reach it, per local optimum
 # may-drift: winter_two_zone_no_dhw -- #1208 polish-every-candidate, owner
 # ruling #1208 comment 208bed25 (option (a)): the move's margin is inside the
 # noise band (objective rel -1.3365e-03, predicted_cost rel +8.39e-03),
@@ -183,7 +202,8 @@ shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-S
 # byte-identical on the dev box), runner-conditional for the same reason;
 # judged keys still fail. Remove when drift lanes are pinned or the polish
 # improvement scale leaves 5e-5-2e-2.
-# may-drift: valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
+# (R10-HOTFIX-SAV-ESTIMATE suspends valve_storage's may-drift entry for its claim below; restore it,
+#  verbatim, when the stamp empties the list) valve_storage -- #1207 keep-gate (2e-2 -> 2e-5), widened to
 # the runner's union by the owner's ruling (i) on the options recorded in
 # #1207 comment 1ec15c8 (2026-09-20): 625 leaves moved on the CI
 # x86_64/py3.14 runner only (as recorded on that comment; byte-identical
@@ -743,3 +763,21 @@ shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-S
 # valve_storage_low_target, whose plan leaves move too: the reference's energy
 # anchors three of the space solve's starts, so a valved plan can land in
 # another basin. Unvalved fixtures do not move.
+# R10-COP-GATE-D: the plan carries the band it was solved on and the model
+# status sensor publishes which electrical maximum the plan used, so every
+# coord capture gains `data.pump_max_power` and, under
+# `sensors.model_status.extra_state_attributes`, `pump_max_power`,
+# `pump_max_power_reason` and `pump_max_power_source`. Those four leaves are
+# the whole diff in each fixture, each "present on one side only" and ADDED at
+# this head (the direction); no other leaf moves (tests/env_drift.py --all
+# origin/main, one environment). Claimed rather than re-recorded, as
+# R10-HOUSE-GRADE's key was: the committed files were patched in those four
+# paths alone, each null because a coord fixture holds no plan.
+# R10-HOTFIX-SAV-ESTIMATE: the reference has no wood on any house and holds its tank behind a
+# valve, booked by the steady demand (owner ruling, 2026-11-04). Measured with
+# env_drift --all against the merge base in one environment: exactly the nine
+# fixtures claimed move, every one valved or wood; every unvalved fixture is
+# byte-identical, which is the null. The objective is unchanged and the reference
+# is never optimised, but its kWh seeds the space solve's starts, so plans move
+# in basin only: the objective falls on four of the eight solved plans compared
+# and rises on three, by at most 0.25, and one is unchanged.

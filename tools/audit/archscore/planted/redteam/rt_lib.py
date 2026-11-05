@@ -59,3 +59,29 @@ def insert_after_line(path: Path, lineno: int, text: str) -> None:
     lines = path.read_text().splitlines(keepends=True)
     lines.insert(lineno, text)
     path.write_text("".join(lines))
+
+
+def coordinator_runs(src: str, pred, independent: bool = True) -> list[list[ast.stmt]]:
+    """Runs of two or more adjacent statements of the coordinator class that ``pred`` accepts (and, when
+    ``independent``, that read nothing an earlier statement of the run binds): the sites a packing attempt rewrites."""
+    cls = next(n for n in ast.parse(src).body if isinstance(n, ast.ClassDef) and n.name == "HeatPumpOptimizerCoordinator")
+
+    def names(e):
+        return {n.id for n in ast.walk(e) if isinstance(n, ast.Name)}
+
+    out = []
+    for fn in ast.walk(cls):
+        if not isinstance(fn, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        for body in [fn.body] + [b for n in ast.walk(fn) for b in (getattr(n, "body", None), getattr(n, "orelse", None)) if isinstance(b, list)]:
+            run: list[ast.stmt] = []
+            for s in body + [None]:
+                if s is not None and pred(s) and not (independent and names(s) & {n for r in run for n in names(r)}
+                                                      and isinstance(s, ast.Assign)):
+                    run.append(s)
+                    continue
+                if len(run) >= 2:
+                    out.append(run)
+                run = [s] if s is not None and pred(s) else []
+    seen: set[int] = set()
+    return [r for r in out if not (id(r[0]) in seen or seen.add(id(r[0])))]

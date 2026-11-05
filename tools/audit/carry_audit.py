@@ -41,7 +41,8 @@ starts an item without a bullet. A FINDING item:
            lines and the attribution line never are.
 
 A DESTINATION (`Dests.check`):
-  GROUP      a group of the newest roster (`roster_lib`), not done; with no
+  GROUP      a group of the newest roster (`roster_lib`), not done or absorbed (a refusal
+             lists the live groups after-edged on `check --pr-group G` as valid targets); with no
              --roster-ref, also one open on the round's roster branch
              (`roster_lib.round_ref`), printed NOTE ... resolved on <ref>;
              a checkout lacking origin/main reads the roster there instead of
@@ -52,7 +53,12 @@ A DESTINATION (`Dests.check`):
              carries N; with `gh` reads (`pr`, `sweep`) it must also be open;
   O<n>       a brief `O<n>-*.md` (or exactly `O<n>-name.md`) in --briefs-dir
              or $HPO_BRIEFS_DIR; with neither (CI) it passes, printed UNVERIFIED;
-  dismissed: a reason of two words or more.
+  FOLDS      a body saying `Closes #N` answers each `Fold (x): <ask>` line of the issue
+             with `Fold (x): built`, `Fold (x): Carry: <dest>` or `Fold (x): dismissed:
+             <reason>`; FOLD-UNANSWERED names the letter (`check --issue-folds-file`
+             reads issue texts offline; an unfetchable issue passes with a NOTE).
+  dismissed: a reason of two words or more; `Carry: <GROUP> | dismissed: <reason>`
+             is the dismissal alone, GROUP a pointer valid when any group of the roster.
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
 that names its id -- `Carry: R10-X (item 1a2b3c4d)`; every refusal prints it.
 Every marker naming an item adds its destinations, and each must hold.
@@ -112,8 +118,9 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 # An explicit none: the template's `none` or `n/a: <reason>`. A `none` that goes
 # on to record something is not one (#2341's "recorded rather than propagated").
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
-# Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
-TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
+# Not a finding wherever it sits: attribution, the bus trailer and its review
+# trailers (`bus-nonce:`, `Round: <n>`), raw RESULT lines.
+TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|bus-nonce:|Round:\s*\d|Evidence:|RESULT\b)", re.I)
 # A verdict's `## Evidence` section, and every section of a merge verdict but a
 # findings section, is read by its structure alone (P308, P314): a check's
 # state or a measurement there says "not blocking" or "deferred" as often as a
@@ -332,6 +339,10 @@ def seg_dests(seg: str) -> list[str]:
     dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
     if dm:
         return ["dismissed:" + dm.group(1)]
+    # `Carry: <GROUP> | dismissed: <reason>`: the group is a pointer, not a destination
+    pm = re.match(r"([^\s|,;]+)\s*[|;,]\s*[`*_]*dismissed\s*:\s*(.*)", rest, re.I)
+    if pm and GROUP_TOK.match(pm.group(1).strip("`*_().:")):
+        return [f"dismissed({pm.group(1).strip('`*_().:')}):{pm.group(2)}"]
     found = []
     for tok in re.split(r"[,;|/]\s*|\s+and\s+|\s+", rest):
         tok = tok.strip("`*_().:")
@@ -352,7 +363,9 @@ class Dests:
     a carry to a group open there as in the tree before the group reaches main."""
 
     def __init__(self, roster: dict, carry_issues: set[int], briefs_dir: str | None = None,
-                 issue_state=None, round_roster: tuple[str, dict] | None = None) -> None:
+                 issue_state=None, round_roster: tuple[str, dict] | None = None,
+                 pr_group: str | None = None) -> None:
+        self.pr_group = pr_group  # the pull request's own group: its live after-edged consumers are the targets
         self.groups = roster_lib.groups_of(roster)
         self.round_ref, self.round_groups = ((round_roster[0], roster_lib.groups_of(round_roster[1]))
                                              if round_roster else (None, {}))
@@ -375,8 +388,11 @@ class Dests:
 
     def check(self, tok: str) -> tuple[bool, str]:
         """(valid, note) for one destination token."""
-        if tok.startswith("dismissed:"):
-            reason = tok.split(":", 1)[1].strip()
+        if tok.startswith(("dismissed:", "dismissed(")):
+            ptr, reason = re.fullmatch(r"dismissed(?:\((.*?)\))?:(.*)", tok, re.S).groups()
+            reason = reason.strip()
+            if ptr and ptr not in self.groups and ptr not in self.round_groups:
+                return False, f"{ptr} is not a group of the roster{f' or of {self.round_ref}' if self.round_ref else ''}"
             if len(re.findall(r"[A-Za-z0-9]{2,}", reason)) < 2:
                 return False, "`dismissed:` needs a reason of two words or more"
             return True, ""
@@ -399,11 +415,33 @@ class Dests:
         g, r = self.groups.get(tok), self.round_groups.get(tok)
         if g is None and r is None:
             return False, f"{tok} is not a group of the roster{f' or of {self.round_ref}' if self.round_ref else ''}"
-        if g is not None and roster_lib.is_open(g):
+        if g is not None and self.live(g):
             return True, ""
-        if r is not None and roster_lib.is_open(r):
+        if r is not None and self.live(r):
             return True, f"{tok} resolved on {self.round_ref}"
-        return False, f"{tok} is done (resume.stage {((g or r).get('resume') or {}).get('stage')})"
+        stage = ((g or r).get("resume") or {}).get("stage")
+        return False, (f"{tok} is {'done' if stage in roster_lib.DONE_STAGES else stage} (resume.stage {stage}); "
+                       f"valid targets: {self.consumers()}")
+
+    @staticmethod
+    def live(group: dict) -> bool:
+        """A group that can still take a carry: not done, not absorbed."""
+        return (group.get("resume") or {}).get("stage") not in roster_lib.CARRY_CLOSED
+
+    def consumers(self) -> str:
+        """The live groups after-edged on the pull request's group, for a refusal to print."""
+        if not self.pr_group:
+            return "unknown (no --pr-group)"
+        live = [n for n, g in self.groups.items() if self.live(g) and self.pr_group in (g.get("after") or [])]
+        return f"{', '.join(live)} (live, after {self.pr_group})" if live else f"none live after {self.pr_group}"
+
+
+def pr_group_of(dests: "Dests", branch: str) -> str | None:
+    """The roster group a pull request's head branch answers for: `roster_lib.group_for_branch`,
+    then once more without a trailing `-pr` (a fix branch drifts from its group by that suffix)."""
+    roster = {"groups": list(dests.groups.values())}
+    return (roster_lib.group_for_branch(roster, branch)
+            or roster_lib.group_for_branch(roster, branch[:-3] if branch.endswith("-pr") else ""))
 
 
 def issue_numbers(group: dict) -> list[int]:
@@ -449,7 +487,7 @@ def carry_issues(repo, ref: str | None = None) -> set[int]:
 
 
 def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None = None,
-               issue_state=None, extra_ref: str | None = None) -> Dests:
+               issue_state=None, extra_ref: str | None = None, pr_group: str | None = None) -> Dests:
     round_roster = None
     git = roster_lib.git_in(str(repo))
     if ref:
@@ -482,7 +520,7 @@ def load_dests(repo: Path = ROOT, ref: str | None = None, briefs_dir: str | None
     # carry files join the set, read with one local ls-tree; an unreadable ref adds nothing.
     if extra_ref:
         carry |= carry_issues(repo, extra_ref)  # mut:extra
-    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster)
+    return Dests(roster, carry, briefs_dir or os.environ.get("HPO_BRIEFS_DIR"), issue_state, round_roster, pr_group)
 
 
 # ---------------------------------------------------------------- the audit
@@ -596,6 +634,41 @@ def report(res: dict, label: str = "") -> int:
     return 1 if (u or b) else 0
 
 
+FOLD_LINE = re.compile(r"^\s*(?:[-*+]\s+)?(?:\*\*)?Fold \(([a-z])\):\s*(.*)$", re.M)
+# prepr.sh's INTENDED_JQ and preflight.sh's CLOSING_REF: the nine GitHub closing keywords, four reference shapes.
+CLOSES = re.compile(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+"
+                    r"(?:https?://[^ ]*/issues/|[A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+#|GH-|#)(\d+)", re.I)
+
+
+def fold_answered(ans: str) -> bool:
+    """Whether the text after `Fold (x):` is `built`, `Carry: <dest>` or `dismissed: <reason>`."""
+    ans = ans.strip().strip("`*_").strip()
+    if re.fullmatch(r"built\W*", ans, re.I):
+        return True
+    if re.match(r"carry\s*:", ans, re.I):
+        return bool(seg_dests("Carry:" + ans.split(":", 1)[1]))
+    return bool(re.match(r"dismissed\s*:\s*\S", ans, re.I))
+
+
+def fold_problems(body: str, issue_text) -> "tuple[list[str], list[str]]":
+    """(unanswered folds, notes) of a body that says `Closes #N`. An issue's owner
+    folds are its `Fold (x): <ask>` lines; the body answers each on a line of its own,
+    outside fences. `issue_text(n)` is the issue's text or None (unfetchable: the
+    close passes with a note, so a network miss never blocks a merge)."""
+    # fences and HTML comments render as no answer, so neither counts as one
+    text = "\n".join(re.sub(r"```.*?```|~~~.*?~~~|<!--.*?-->", "", body, flags=re.S).split("\n"))
+    answered = {m.group(1) for m in FOLD_LINE.finditer(text) if fold_answered(m.group(2))}
+    problems, notes = [], []
+    for n in dict.fromkeys(int(x) for x in CLOSES.findall(text)):
+        it = issue_text(n)
+        if it is None:
+            notes.append(f"#{n} not fetched: its folds are not checked")
+            continue
+        problems += [f"#{n} fold ({k}) is unanswered: {ask.strip()[:90]!r}"
+                     for k, ask in FOLD_LINE.findall(it) if k not in answered]
+    return problems, notes
+
+
 # ------------------------------------------------------------------- reads
 def gh_json(path: str, paginate: bool = False):
     argv = ["gh", "api", *(["--paginate", "--slurp"] if paginate else []), path]
@@ -616,6 +689,34 @@ def gh_issue_state(repo: str):
             cache[n] = gh_json(f"repos/{repo}/issues/{n}").get("state")
         return cache[n]
     return state
+
+
+def gh_issue_text(repo: str):
+    """n -> the issue's body, or None when `gh` cannot read it."""
+    def text(n: int) -> str | None:
+        try:
+            return gh_json(f"repos/{repo}/issues/{n}").get("body") or ""
+        except (SystemExit, ValueError):
+            return None
+    return text
+
+
+def folds_rc(body: str, repo: str, folds_file: str | None) -> int:
+    """Print the unanswered folds of <body>'s closes (`--issue-folds-file` JSON
+    `{"<n>": "<issue text>"}` offline, else `gh`); 1 when any."""
+    if not CLOSES.search(body):
+        return 0
+    if folds_file:
+        data = json.loads(Path(folds_file).read_text(encoding="utf-8"))
+        reader = lambda n: data.get(str(n))  # noqa: E731
+    else:
+        reader = gh_issue_text(repo)
+    problems, notes = fold_problems(body, reader)
+    for x in notes:
+        print(f"NOTE fold {x}")
+    for x in problems:
+        print(f"FOLD-UNANSWERED {x}")
+    return 1 if problems else 0
 
 
 def issue_reader(repo: str, path: str | None = None):
@@ -774,6 +875,12 @@ def main(argv: list[str]) -> int:
     c = sub.add_parser("check")
     c.add_argument("--body", required=True)
     c.add_argument("--comments")
+    c.add_argument("--issue-folds-file", help="JSON {\"<n>\": \"<issue text>\"}: the issues a `Closes #N` "
+                   "reads offline, instead of gh")
+    c.add_argument("--branch", help="the pull request's head branch, resolved to its group (pr-contract.yml "
+                   "passes it: the workflow cannot name the group itself)")
+    c.add_argument("--pr-group", help="the pull request's roster group: a closed destination's refusal "
+                   "lists the live groups after-edged on it")
     for name in ("landed", "land-ops"):
         x = sub.add_parser(name)
         x.add_argument("--body", required=True)
@@ -799,10 +906,13 @@ def main(argv: list[str]) -> int:
         if a.cmd == "check":
             body = Path(a.body).read_text()
             comments = json.loads(Path(a.comments).read_text()) if a.comments else []
+            fold_rc = folds_rc(body, a.repo, a.issue_folds_file)
             if not finding_rows(body, comments)[0]:
-                return report({"rows": []})  # nothing to route: the roster is not read
-            dests = load_dests(Path(a.git_dir), ref, a.briefs_dir)
-            return report(audit(body, comments, dests))
+                return report({"rows": []}) | fold_rc  # nothing to route: the roster is not read
+            dests = load_dests(Path(a.git_dir), ref, a.briefs_dir, pr_group=a.pr_group)
+            if not dests.pr_group and a.branch:
+                dests.pr_group = pr_group_of(dests, a.branch)  # mut:branch
+            return report(audit(body, comments, dests)) | fold_rc
         if a.cmd in ("landed", "land-ops"):
             # rc 0 every carry landed, 1 one is missing (CARRY-MISSING lines), 3 the roster unreadable
             try:
@@ -960,6 +1070,99 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
+    # THE FOLD GRAMMAR: a body that closes an issue answers each `Fold (x): <ask>` line of it.
+    folds = ("Intro, with a fold (f): lowercase prose is not a fold.\n- Fold (a): do x\nFold (b): do y\n"
+             "**Fold (c):** do z\nFold (d): do w\nFold (e): do v\n")
+    full = ("Closes #7\n\n- Fold (a): built\nFold (b): Carry: R10-LIVE\nFold (c): dismissed: host load, not a defect\n"
+            "Fold (d): built\nFold (e): Carry: R10-LIVE\n")
+    def fp(body, text=folds):
+        return fold_problems(body, lambda n: text if n == 7 else None)[0]
+    got = fp("Closes #7\n\nFold (a): built\nFold (b): built\nFold (c): built\nFold (d): built\n")
+    check("a close answering only (a)-(d) is refused naming (e)", len(got) == 1 and "(e)" in got[0] and "#7" in got[0])
+    check("... all five answered, one each as built / Carry: / dismissed: is accepted (null control)", fp(full) == [])
+    check("... the same with the (e) answer line deleted is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE\n", ""))] == [True])
+    check("... `Fold (e): dismissed:` with no reason is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "Fold (e): dismissed:"))] == [True])
+    check("... `Fold (e): Carry:` naming nothing is refused naming (e)",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "Fold (e): Carry:"))] == [True])
+    check("... an answer inside a code fence is no answer",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "```\nFold (e): built\n```"))] == [True])
+    check("... an answer inside an HTML comment is no answer",
+          [("(e)" in x) for x in fp(full.replace("Fold (e): Carry: R10-LIVE", "<!--\nFold (e): built\n-->"))] == [True])
+    check("an issue with no `Fold (x):` line is accepted unchanged (null control)",
+          fp("Closes #7\n", "Please fix this; a fold (a): in prose.\n") == [])
+    check("a body that does not close the issue owes no fold answer (null control)",
+          fp("Refs #7\n\nnothing\n") == [])
+    # The closing set is prepr.sh's INTENDED_JQ: nine keywords, four reference shapes. One arm each.
+    for form in ("Close #7", "Closes #7", "Closed #7", "Fix #7", "Fixes #7", "Fixed #7", "Resolve #7",
+                 "Resolves #7", "Resolved #7", "closes: #7", "Fixes https://github.com/o/r/issues/7",
+                 "Fixes o/r#7", "Resolves GH-7"):
+        check(f"`{form}` closes the issue, so its unanswered fold is refused",
+              len(fp(form + "\n\nFold (a): built\n")) == 4)
+    check("`Mentions #7` and `Fixing #7` close nothing (null control)",
+          fp("Mentions #7\nFixing #7\nunfixes #7\n") == [])
+    nf, nn = fold_problems("Closes #8\n", lambda n: None)
+    check("an issue that cannot be fetched fails open with a printed note", nf == [] and len(nn) == 1 and "#8" in nn[0])
+    # A closed destination (done, absorbed) is refused, and the refusal lists the live groups
+    # after-edged on the pull request's own group as the valid targets.
+    def gr(name, stage, after=()):
+        return {"group": name, "after": list(after), "resume": {"stage": stage}}
+    Dcl = Dests({"groups": [gr("R10-PR", "in-progress"), gr("R10-GONE", "done"), gr("R10-ABS", "absorbed"),
+                            gr("R10-CONS", "not-started", ["R10-PR"]), gr("R10-DEAD", "done", ["R10-PR"]),
+                            gr("R10-OTHER", "not-started", ["R10-LIVE"]), gr("R10-NS", "not-started")]},
+                set(), None, pr_group="R10-PR")
+    for g in ("R10-GONE", "R10-ABS"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
+        msg = r["rows"][0]["bad"][0] if r["b"] == 1 else ""
+        check(f"a closed group ({g}) is refused naming it and listing the live after-edged consumers",
+              g in msg and "R10-CONS" in msg and "R10-OTHER" not in msg and "R10-DEAD" not in msg
+              and "R10-NS" not in msg)
+    for g in ("R10-CONS", "R10-NS"):
+        r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
+        check(f"a live group ({g}) is accepted with no note (null control)",
+              r["u"] == 0 and r["b"] == 0 and r["rows"][0]["notes"] == [g])
+    for br, want in (("fix/r10-pr", "R10-PR"), ("fix/r10-pr-pr", "R10-PR"), ("fix/r10-nothing", None)):
+        check(f"branch {br} resolves to the PR group {want} (the workflow passes --branch, not --pr-group)",
+              pr_group_of(Dcl, br) == want)
+    # THE CLI WIRING, end to end: `check --body` is what pr-contract.yml runs.
+    def cli(body: str, *extra: str, folds: "dict | None" = None) -> "tuple[int, str]":
+        real, loaded = globals()["load_dests"], []
+        Dcl.pr_group = None  # main() sets it from --branch; each call starts without one
+        globals()["load_dests"] = lambda *a, **k: loaded.append(k) or Dcl
+        buf = io.StringIO()
+        with tempfile.TemporaryDirectory() as td:
+            args = ["check", "--body", str(Path(td, "b.md"))]
+            Path(td, "b.md").write_text(body)
+            if folds is not None:
+                Path(td, "f.json").write_text(json.dumps(folds))
+                args += ["--issue-folds-file", str(Path(td, "f.json"))]
+            try:
+                with contextlib.redirect_stdout(buf):
+                    rc = main(args + list(extra))
+            finally:
+                globals()["load_dests"] = real
+        return rc, buf.getvalue()
+    fold_issue = {"7": "Fold (a): do x\n"}
+    rc, out = cli("Closes #7\n", folds=fold_issue)
+    check("check --body refuses a close with an unanswered fold (rc 1, FOLD-UNANSWERED)",
+          rc == 1 and "FOLD-UNANSWERED" in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-CONS\nCloses #7\n", folds=fold_issue)
+    check("... also when the body has a routed finding, which sends it down the roster path",
+          rc == 1 and "FOLD-UNANSWERED" in out and "1 routed" in out)
+    rc, out = cli("Closes #7\n\nFold (a): built\n", folds=fold_issue)
+    check("check --body accepts the same close once the fold is answered (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n", "--branch", "fix/r10-pr")
+    check("check --branch resolves the PR group, so a closed destination lists its valid targets",
+          rc == 1 and "valid targets: unknown" not in out and "R10-CONS" in out)
+    rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n")
+    check("check without --branch cannot name the valid targets (null control)", rc == 1 and "valid targets: unknown" in out)
+    r = run(plant.rstrip() + " Carry: R10-OVER\n")
+    check("a closed group with no PR group known is still refused, saying so",
+          r["b"] == 1 and "R10-OVER is done (resume.stage done)" in r["rows"][0]["bad"][0])
+    r = run(plant.rstrip() + " Carry: R10-INVENTED | dismissed: two words\n")
+    check("a dismissal pointer that is no group names it as not a group",
+          r["b"] == 1 and "R10-INVENTED is not a group" in r["rows"][0]["bad"][0])
     # THE DONE TRANSITION (R10-RCA-ROSTER-SYNC-ORPHANS): `orphaned` is the
     # `--issues` test asked of a closing group, on the roster the write leaves.
     def closed(gid: str, extra=()) -> dict:
@@ -1042,6 +1245,13 @@ def _self_test() -> int:
     git("update-ref", "-d", "refs/remotes/" + rnd[0])
     r = run(plant.rstrip() + " Carry: R10-BRANCH\n", d=load_dests(Path(gtmp.name)))
     check("... and a clone without that ref refuses it (null control)", r["b"] == 1)
+    # body_patch passes --roster-ref <fetched round branch>: that ref, not the tree's roster, is read.
+    rp.write_text(json.dumps({"groups": roster["groups"] + [{"group": "R10-WTONLY", "resume": {"stage": "not-started"}}]}))
+    r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name), "origin/main"))
+    check("a group only in the worktree roster is refused when --roster-ref names a ref lacking it", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-WTONLY\n", d=load_dests(Path(gtmp.name)))
+    check("... and passes with no --roster-ref, the tree's roster read (null control)", r["b"] == 0)
+    rp.write_text(json.dumps(roster))
     # P98 arm (b2): a tree behind origin/main reads the roster at origin/main.
     main_only = {"groups": roster["groups"] + [{"group": "R10-MAINONLY", "resume": {"stage": "not-started"}}]}
     rp.write_text(json.dumps(main_only))
@@ -1228,6 +1438,13 @@ def _self_test() -> int:
          rc + f"Carry: R10-LIVE (item {fid})\n- `fast`: Carry: R10-INVENTED (item {fid})\n", "bad"),
         ("an item's own marker and a reference to it: each destination must hold",
          P + f" Carry: R10-LIVE\n\n## Red checks\n\n- Carry: R10-INVENTED (item {pid})\n", "bad"),
+        ("`Carry: <done group> | dismissed: <reason>` routes: the group is a pointer, live or done",
+         P + " Carry: R10-OVER | dismissed: two words\n", "routed"),
+        ("... a live group as the pointer routes too", P + " Carry: R10-LIVE | dismissed: two words\n", "routed"),
+        ("... a done group alone is still a bad destination (null control)", P + " Carry: R10-OVER\n", "bad"),
+        ("... a pointer that is no group of the roster is refused",
+         P + " Carry: R10-INVENTED | dismissed: two words\n", "bad"),
+        ("... a one-word reason after a pointer is refused", P + " Carry: R10-OVER | dismissed: moot\n", "bad"),
         ("a bolded `dismissed:` reads", P + " Carry: **dismissed: host load**\n", "routed"),
         ("`Dismissed:` reads in any case", P + " Carry: Dismissed: host load, not a defect\n", "routed"),
         ("`and` separates destinations", P + " Carry: R10-LIVE and #999\n", "bad"),
@@ -1334,7 +1551,18 @@ def _self_test() -> int:
                       [("section", U)])
                      for w in ("Owed", "Instrument findings", "Out of scope", "Follow-up", "Carry forward")]
     item_grammar += [(f"TRAILER reads {w!r}", head + f"## Friction\n\n{w}\n", (), [])
-                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a")]
+                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a",
+                               "Round: 3", "bus-nonce: abc123")]
+    item_grammar += [
+        (f"a review trailer {w!r} under the Evidence heading is no finding", head,
+         verdict_of("merge", f"## Evidence\n\n- {w}\n"), [])
+        for w in ("Round: 3", "bus-nonce: abc123")]
+    item_grammar += [
+        ("a finding line under the Evidence heading still reads as one after the trailer words (null control)",
+         head, verdict_of("merge", "## Evidence\n\n- Round: 3\n- Residual: the census misses one.\n"),
+         [("lead", U)]),
+        ("`Round:` with no number is not a trailer (null control)",
+         head + "## Friction\n\nRound: the guard misses a ref.\n", (), [("section", U)])]
     item_grammar += [
         ("`#2404` opening a line is no heading",
          head + "## Friction\n\n- a: unclear: x\n#2404's review found it. Carry: R10-LIVE\n", (), [("section", R_)]),

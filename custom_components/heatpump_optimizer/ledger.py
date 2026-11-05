@@ -65,6 +65,38 @@ SPOT_PRICE_META = "spot_price"
 #: 2026-10-24): the baseline runs at the power levels the pump recorded.
 SAVINGS_PLAN_LINE = "savings_plan"
 
+#: Which reference a month's savings lines were booked against. Stamped on the
+#: month's first booking; a month's totals cannot be rebooked, so a row whose
+#: stamp is not ``REFERENCE_BASIS`` keeps its two columns and states no saving.
+REFERENCE_BASIS_META = "reference_basis"
+
+#: The reference in force: a heat-pump thermostat with no wood tank and no fire,
+#: its horizon spread by steady demand. Bump when the booked reference changes.
+REFERENCE_BASIS = 1
+
+#: What ``migrate_ledger_v1`` stamps: every month a v1 store booked savings in predates it.
+OLD_REFERENCE_BASIS = 0
+
+#: The plan's stored-heat change over the settled intervals, kWh_th (its
+#: ``sek`` stays 0). The row converts it once, at the month's mean steady COP
+#: (``STEADY_COP_META``), and prices it once, at its own metered kWh price:
+#: an interval's own COP or price would cancel the timing saving of a store
+#: charged warm or cheap and drawn cold or dear (owner ruling, 2026-11-04).
+SAVINGS_STORED_LINE = "savings_stored"
+
+#: The steady COP of the settled intervals, folded per interval.
+STEADY_COP_META = "steady_cop"
+
+#: The plan step's readings a pending snapshot carries for the savings
+#: settlement (``optimizer.get_current_action``), each named as
+#: ``add_savings_settlement``'s keyword.
+SETTLEMENT_KEYS = ("baseline_kw", "stored_kw_th", "comfort_kw", "steady_cop")
+
+#: The steady thermostat at the comfort target less at the room the plan
+#: delivered, priced per interval as the baseline is: the comfort shortfall
+#: the row publishes beside its saving.
+SAVINGS_COMFORT_LINE = "savings_comfort"
+
 #: Below this many modelled kWh a month the plan commanded almost nothing:
 #: a meter-over-model ratio over it measures the meter's own residue, not
 #: the plan's power levels, so the thermostat stays at modelled power.
@@ -115,14 +147,33 @@ def coverage_factor(meta: Mapping[str, Any], now: datetime) -> float:
 
 
 def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
-    """Same clip as optimizer._savings_percentage, but None when the baseline is ~0.
+    """The saving over the baseline, in percent; None when the baseline is ~0.
 
-    The optimizer helper returns 0.0 in that case; the published row must omit
-    the percentage instead of claiming 0 %.
+    Unclipped: the row publishes both amounts beside it, so -100 beside a saving
+    six times its baseline states what the row's own figures refute. The plan's
+    clip (``optimizer._savings_percentage``) guards a near-zero baseline, which
+    this answers by omitting the figure.
     """
     if baseline_sek <= 0.01:
         return None
-    return float(np.clip(savings_sek / baseline_sek * 100.0, -100.0, 100.0))
+    return savings_sek / baseline_sek * 100.0
+
+
+def migrate_ledger_v1(stored: dict[str, Any]) -> dict[str, Any]:
+    """A v1 ledger document at v2: every month it booked savings in is on the old basis.
+
+    A month with no ``savings_baseline`` line booked against no reference, so it
+    stays unstamped and its first savings booking stamps the reference then in
+    force. Only a meta entry is added; no line, so no total, is rewritten.
+    """
+    ledger = stored.get("ledger")
+    months = ledger.get("months") if isinstance(ledger, dict) else None
+    for month in months.values() if isinstance(months, dict) else ():
+        meta = month.get("meta") if isinstance(month, dict) else None
+        lines = month.get("lines") if isinstance(month, dict) else None
+        if isinstance(meta, dict) and isinstance(lines, dict) and "savings_baseline" in lines:
+            meta.setdefault(REFERENCE_BASIS_META, {"sum": float(OLD_REFERENCE_BASIS), "count": 1})
+    return stored
 
 
 def _leaf(raw: Any) -> float:
@@ -223,16 +274,26 @@ class MonthlyLedger:
         actual_kwh: float,
         dt: float,
     ) -> None:
-        """Sample spot for the month mean, then book savings if baseline exists.
+        """Sample spot for the month mean, then book savings from a settled
+        interval's pending snapshot if it carries a baseline.
 
         The interval's hours fold into the month's coverage first, priced or
         not: the open month's estimate scales by how much of the month was
-        settled, not by the calendar day (#2255 item 2).
+        settled, not by the calendar day (#2255 item 2). Both savings sides
+        are priced at spot plus the interval's per-kWh grid fee: a thermostat
+        that drew other kWh would have paid the fee on those, and the bill the
+        row is set against carries the fee line (#2255 item 5). A missing fee
+        prices at spot alone, as the bill does.
         """
         if dt > 0:
             self.observe_meta_mean(when, SETTLED_HOURS_META, dt)
         self.observe_meta_mean(when, SPOT_PRICE_META, spot)
-        self.settle_interval_savings(when, pending, actual_kwh, spot, dt)
+        fee = pending.get("grid_fee")
+        fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
+        self.add_savings_settlement(
+            when, actual_kwh=actual_kwh, spot=spot + fee_per_kwh, dt=dt,
+            planned_kw=pending.get("power"), **{key: pending.get(key) for key in SETTLEMENT_KEYS},
+        )
 
     def add_savings_settlement(
         self,
@@ -243,6 +304,9 @@ class MonthlyLedger:
         spot: float,
         dt: float,
         planned_kw: float | None = None,
+        stored_kw_th: float | None = None,
+        comfort_kw: float | None = None,
+        steady_cop: float | None = None,
     ) -> None:
         """Book the savings lines, or none.
 
@@ -251,12 +315,16 @@ class MonthlyLedger:
         ``actual_kwh`` is already energy (spot + the resistive lines), not kW.
         ``planned_kw``, the plan's modelled draw, books the plan line; a
         month whose savings lines began without it never gains one, which
-        would calibrate a share of its thermostat only.
+        would calibrate a share of its thermostat only. The plan step's
+        ``stored_kw_th`` (with its ``steady_cop``) and ``comfort_kw`` book theirs.
         """
         if baseline_kw is None or not all(np.isfinite(v) for v in (baseline_kw, actual_kwh, spot, dt)):
             return
-        lines = self._month(month_key(when))["lines"]
+        month = self._month(month_key(when))
+        lines = month["lines"]
         calibrated = SAVINGS_PLAN_LINE in lines or "savings_baseline" not in lines
+        if "savings_baseline" not in lines:
+            month["meta"].setdefault(REFERENCE_BASIS_META, {"sum": float(REFERENCE_BASIS), "count": 1})
         base_kwh = float(baseline_kw) * float(dt)
         self.add(
             when, "savings_baseline", kwh=base_kwh, sek=base_kwh * float(spot)
@@ -270,32 +338,11 @@ class MonthlyLedger:
         if calibrated and planned_kw is not None and np.isfinite(planned_kw):
             plan_kwh = float(planned_kw) * float(dt)
             self.add(when, SAVINGS_PLAN_LINE, kwh=plan_kwh, sek=plan_kwh * float(spot))
-
-    def settle_interval_savings(
-        self,
-        when: datetime,
-        pending: dict[str, float | None],
-        actual_kwh: float,
-        spot: float,
-        dt: float,
-    ) -> None:
-        """Book savings from a settled interval's pending snapshot.
-
-        Both sides are priced at spot plus the interval's per-kWh grid fee:
-        a thermostat that drew other kWh would have paid the fee on those,
-        and the bill the row is set against carries the fee line (#2255
-        item 5). A missing fee prices at spot alone, as the bill does.
-        """
-        fee = pending.get("grid_fee")
-        fee_per_kwh = float(fee) if isinstance(fee, (int, float)) and math.isfinite(fee) else 0.0
-        self.add_savings_settlement(
-            when,
-            baseline_kw=pending.get("baseline_kw"),
-            actual_kwh=actual_kwh,
-            spot=spot + fee_per_kwh,
-            dt=dt,
-            planned_kw=pending.get("power"),
-        )
+        if stored_kw_th is not None and steady_cop is not None and np.isfinite(steady_cop):
+            self.add(when, SAVINGS_STORED_LINE, kwh=float(stored_kw_th) * float(dt), sek=0.0)
+            self.observe_meta_mean(when, STEADY_COP_META, max(float(steady_cop), 1e-3))
+        if comfort_kw is not None:
+            self.add(when, SAVINGS_COMFORT_LINE, kwh=comfort_kw * dt, sek=comfort_kw * dt * spot)
 
     # -- reading ------------------------------------------------------------
 
@@ -382,7 +429,7 @@ class MonthlyLedger:
             return None
         return self.line(month, "savings_actual")["kwh"] / plan_kwh
 
-    def savings_months(self, now: datetime) -> list[SavingsMonth]:
+    def savings_months(self, now: datetime, *, wood_configured: bool = False) -> list[SavingsMonth]:
         """Published rows: months that booked savings_baseline, oldest first.
 
         One basis for every cell: the intervals a plan covered, priced at
@@ -392,11 +439,17 @@ class MonthlyLedger:
         are the pump's recorded ones and a model that under-reads the meter
         is not booked as a loss; ``savings_sek`` is the one less the other.
         At one flat price the saving is the volume difference alone. The
+        reference has no wood, so wood's heat counts in the saving and firewood's
+        cost nowhere; the plan's stored-heat change settles into ``baseline_sek``
+        (owner rulings, 2026-11-04; ``SAVINGS_STORED_LINE``); ``comfort_sek``, in
+        the saving and published beside it, scales as the thermostat does. The
         lines no thermostat prices (capacity, wear, uncovered intervals)
         are in neither column: the receipt states them.
 
         The open month is an estimate: every figure is scaled by
-        ``coverage_factor``.
+        ``coverage_factor``. A month booked against another reference
+        (``REFERENCE_BASIS_META``) states its two columns and no saving. With
+        wood configured the calibration only raises the thermostat.
         """
         open_key = month_key(now)
         rows: list[SavingsMonth] = []
@@ -405,26 +458,38 @@ class MonthlyLedger:
             if "savings_baseline" not in lines:
                 continue
             calibration = self.meter_calibration(key)
-            baseline_sek = self.line(key, "savings_baseline")["sek"] * (
-                1.0 if calibration is None else calibration
-            )
-            actual_sek = self.line(key, "savings_actual")["sek"]
+            if wood_configured and calibration is not None:
+                # A meter under the plan is what a fire the plan did not foresee
+                # looks like; scaling down by it would cancel wood's heat from
+                # the saving. Only an under-read model is corrected here.
+                calibration = max(1.0, calibration)
+            scale = 1.0 if calibration is None else calibration
+            actual, cop = self.line(key, "savings_actual"), self.meta_mean(key, STEADY_COP_META)
+            stored_sek = 0.0 if cop is None or actual["kwh"] <= 0 else scale * (
+                self.line(key, SAVINGS_STORED_LINE)["kwh"] / cop * actual["sek"] / actual["kwh"])
+            comfort_sek = self.line(key, SAVINGS_COMFORT_LINE)["sek"] * scale
+            baseline_sek = self.line(key, "savings_baseline")["sek"] * scale + stored_sek
+            actual_sek = actual["sek"]
             estimated = key == open_key
             if estimated:
                 factor = coverage_factor(self.months[key].get("meta") or {}, now)
-                baseline_sek *= factor
-                actual_sek *= factor
+                baseline_sek, actual_sek, stored_sek, comfort_sek = (
+                    v * factor for v in (baseline_sek, actual_sek, stored_sek, comfort_sek))
             baseline_sek, actual_sek = round(baseline_sek, 2), round(actual_sek, 2)
             saved = round(baseline_sek - actual_sek, 2)
+            old_basis = self.meta_mean(key, REFERENCE_BASIS_META) != REFERENCE_BASIS
             rows.append(
                 {
                     "month": key,
                     "baseline_sek": baseline_sek,
                     "actual_sek": actual_sek,
-                    "savings_sek": saved,
-                    "savings_pct": savings_pct(baseline_sek, saved),
+                    "savings_sek": None if old_basis else saved,
+                    "savings_pct": None if old_basis else savings_pct(baseline_sek, saved),
+                    "old_basis": old_basis,
                     "estimated": estimated,
                     "meter_calibration": None if calibration is None else round(calibration, 3),
+                    "stored_heat_sek": round(stored_sek, 2),
+                    "comfort_sek": round(comfort_sek, 2),
                 }
             )
         return rows
