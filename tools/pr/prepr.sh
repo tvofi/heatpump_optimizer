@@ -4077,7 +4077,7 @@ fi
 PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
 
 if [ -n "$REUSE" ]; then
-  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, brief_lint, field coverage, agreement lane, register check"
+  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, machinery ratchet, brief_lint, field coverage, agreement lane, register check"
 else
 # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
 # The lease is generic: it orders waiters by an integer and never decides who
