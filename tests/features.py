@@ -43487,6 +43487,71 @@ R.check(
     repr((_hz_held.buffer_tank_temperature, _hz_spread)),
 )
 
+# Behind a valve the reference spreads its energy by steady demand, and on a
+# small pump in a cold night with a sunny day that spread asks more than the
+# pump has (measured 1.23x on this house). The solve's seed from it is clamped,
+# so every start the space solve is handed lies inside its bounds.
+from heatpump_optimizer import optimizer as _hz_omod
+
+_hz_n = 96
+_hz_hours = np.arange(_hz_n) * 0.25
+_hz_day = (_hz_hours > 9) & (_hz_hours < 15)
+_hz_cpar = _HbParams.from_config(_hb_house(two_zone=False, dhw=False, heat_pump_max_power=3.0))
+_hz_cpar.dhw_enabled = False
+_hz_cpar.mixing_valve_mode = "manual"
+_hz_copt = _HbOpt(_HbModel(_hz_cpar), _HbCfg(
+    horizon_hours=24, time_step_minutes=15, target_temp=21.0, min_temp=17.0, max_temp=23.0,
+))
+_hz_seen = []
+_hz_orig_ms = _hz_omod._multi_start_minimize
+
+
+def _hz_spy_ms(objective, starts, bounds, **kw):
+    _hz_seen.append(max(
+        float(np.max(np.asarray(s, float) - np.array([hi for _, hi in bounds])))
+        for s in starts
+    ))
+    _hz_seen.append(-min(float(np.min(np.asarray(s, float))) for s in starts))
+    return _hz_orig_ms(objective, starts, bounds, **kw)
+
+
+_hz_baselines = []
+_hz_orig_bp = _HbOpt._compute_baseline_power
+
+
+def _hz_spy_bp(self, *a, **kw):
+    out = _hz_orig_bp(self, *a, **kw)
+    _hz_baselines.append(float(np.max(out[0])))
+    return out
+
+
+_hz_omod._multi_start_minimize = _hz_spy_ms
+_HbOpt._compute_baseline_power = _hz_spy_bp
+try:
+    _hz_copt.optimize(inputs=solve_inputs(
+        initial_state=_HbState(
+            room_temperature=21.0, slab_temperature=22.0, outdoor_temperature=-25.0,
+            upper_floor_temperature=21.0, lower_floor_temperature=21.0,
+            buffer_tank_temperature=40.0,
+        ),
+        prices=_hb_prices("winter_extreme", _hb_t0),
+        outdoor_temps=np.full(_hz_n, -25.0) + np.where(_hz_day, 8.0, 0.0),
+        wind_speeds=np.zeros(_hz_n), precipitation=np.zeros(_hz_n),
+        solar_radiation=np.where(_hz_day, 400.0, 0.0), start_time=_hb_t0,
+    ))
+finally:
+    _hz_omod._multi_start_minimize = _hz_orig_ms
+    _HbOpt._compute_baseline_power = _hz_orig_bp
+_hz_pmax = float(_hz_cpar.max_electrical_power)
+R.check(
+    "behind a valve, a reference spread past the pump seeds the space solve "
+    "only inside its bounds",
+    bool(_hz_seen) and max(_hz_seen) <= 1e-12
+    and max(_hz_baselines, default=0.0) > _hz_pmax,
+    f"worst excess over a bound {max(_hz_seen, default=None)!r}, "
+    f"reference peak {max(_hz_baselines, default=None)!r} kW against {_hz_pmax!r}",
+)
+
 # The start's settlement, at its limits (#2255, #2492). A pre-heated start
 # (24 C room, above the 21 C cap the end settlement uses) carries heat the plan
 # coasts on inside the horizon, so it is debited -- but by no more than that
