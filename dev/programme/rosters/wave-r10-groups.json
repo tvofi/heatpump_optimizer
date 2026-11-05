@@ -16181,9 +16181,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-tick-levels",
-    "commit": null,
+    "commit": "6777ec33337b256d29ea145d98da413dbf076a2a",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s11 replan fold | set-files files ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/ledger.py', 'tools/audit/seat/owed_unactioned.py', 'dev/governance/roles/standing-dispatch.md', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/open_driver.py', 'dev/audit/config/bugclasses.json', 'tools/audit/seat/pr_cap.py'] -> ['tools/audit/seat/orchestrator_tick.py', 'tools/audit/seat/ledger.py', 'tools/audit/seat/owed_unactioned.py', 'dev/governance/roles/standing-dispatch.md', 'tools/audit/seat/cloud_relay.sh', 'tools/audit/seat/roster_sync.py', 'tools/audit/seat/open_driver.py', 'dev/audit/config/bugclasses.json', 'tools/audit/seat/pr_cap.py', 'tools/audit/seat/cloud_dispatch.py'] (cite origin/main@b3cd16288)",
