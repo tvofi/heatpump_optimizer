@@ -1,0 +1,4 @@
+RESULT blind unvalved: step 0 [1.517, 1.517, 1.517, 1.517] spread 0.000 -> SOUND (the metric's verdict)
+RESULT blind valve-charged: step 0 [1.546, 1.546, 1.546, 1.546] spread 0.000 -> SOUND (the metric's verdict)
+RESULT blind wood-hot: step 0 [0.0, 0.0, 0.0, 0.0] spread 0.000 -> SOUND (the metric's verdict)
+rc=0
