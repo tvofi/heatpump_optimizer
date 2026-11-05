@@ -1,4 +1,4 @@
-R10-MACHINERY-RATCHETS part 2 (the orchestrator opens this under group R10-MACHINERY-RATCHETS). **Merges after part 1b** (`handoff/r10-machinery-ratchets-p1b`), whose commit this head contains. Part 1, the `policy_lint.mjs` config exclusion, is already on main.
+R10-MACHINERY-RATCHETS part 2 (the orchestrator opens this under group R10-MACHINERY-RATCHETS). Part 1b is on main, and so is part 1, the `policy_lint.mjs` config exclusion.
 
 This part adds the machinery ratchet, `tools/audit/machinery_ratchet.py`. It applies a counting rule that classes each merge in a sliding window as production, machinery or record. It has two capped metrics, `nonproduction_merges` and `churn_per_kilo_product_lines`, each with a band, recorded in `dev/governance/config/machinery_budgets.json`. It also takes a right-first-time exemption, which requires evidence. The rest of the part:
 - `budget_raise_gate.py` gains the file's SCHEMA entry.
@@ -7,16 +7,17 @@ This part adds the machinery ratchet, `tools/audit/machinery_ratchet.py`. It app
 - The instrument doc and the `ratchet-budgets.md` and `proposal-triage.md` policy text are updated.
 - The script is classified in `closure.py`, `closures.json`, `entities.py` and `layout.json`.
 - The in-tree mutant harness is `dev/audit/harnesses/r10_machinery_ratchet_mutants.py`.
+- `field_coverage.mjs`'s entry for the script was registered by part 1b; this part drops its `pending` key, so it is strict here.
 
-The `field_coverage.mjs` DECLARED entry for the script rides part 1b with `pending` set. This part drops that key, so the entry turns strict here.
+This repair (after the blocking review of 10bc3fe8) fixes two CI reds and pins the exemption-entry guards: the harness's inlined `repo_root` is now byte-identical to `tools/audit/repo_root.py`, and the self-test gains rows for a `bool` `before` and for each missing entry key.
 
 ## Head
 
-ee19e1f5b5d5d206906c8c9b502aac594c132916
+`1e9c43f0d01842bb02486abbefd764da11fba273` is the final head. It merges origin/main `c0b082bc4877` (main had moved since the previous head) and adds the repair commit. The `prepr.sh` run below was on this head against that main tip.
 
 ## Mutation proof
 
-`python3 dev/audit/harnesses/r10_machinery_ratchet_mutants.py`: the control is `unmutated: rc=0`, and the run ends with `RESULT 16 mutants: 16 killed, 0 survived, 0 stale`. Killing checks per mutant:
+`python3 dev/audit/harnesses/r10_machinery_ratchet_mutants.py`: the control is `unmutated: rc=0`, and the run ends with `RESULT 18 mutants: 18 killed, 0 survived, 0 stale`. Killing checks per mutant:
 - `product-prefix`: a path under blueprints/ is product.
 - `production-gt-0`: 2 production merges in 6 give 4 nonproduction.
 - `record-all-paths`: a merge touching a record path and a tools path is machinery.
@@ -31,25 +32,25 @@ ee19e1f5b5d5d206906c8c9b502aac594c132916
 - `no-rename-detection`: null control: a pure move across the boundary leaves M1 and M2 identical.
 - `no-whitespace-ignore`: a whitespace-only reformat of product code costs 0 product lines.
 - `rename-charged-to-source`: a rename's lines are charged to its destination.
+- `bool-before-accepted` (new): exemption: a bool `before` is not a number and refuses.
+- `entry-key-missing-ok` (new): killed by the missing-key rows. With `if missing:` replaced by `if False:`, the next line raises KeyError `'pr'`, so the self-test fails.
 - `gain-measured-as-cost`: exemption: 11% right-first-time (a gain) passes.
-
-The field_coverage mechanism's mutant is part 1b's.
 
 ## Null control
 
 - The harness's unmutated copy passes its self-test (rc=0) before any kill is counted.
-- Graded by origin/main's own `field_coverage.mjs`, this tree is `REFUSED registry: \`pinned tools/audit/machinery_ratchet.py\` is unregistered`: the predicted policy-docs red below. Graded by part 1b's copy, the same tree is `FIELD COVERAGE ok`, dead=0, refused=0.
+- `exemption: an int before of the same value passes (null control)`: `pr_case("ex-int", entry(9, 1, 0))` exits 0, where the bool `before` of the same value exits 1, so the bool row refuses because of the type and not because of the numbers.
+- `tests/harness_headers.py` was run red before the repair (`1 of 112 HARNESS HEADER CHECKS FAILED`) and green after (`ALL 112 HARNESS HEADER CHECKS PASSED`).
 
 ## Figures
 
-- `python3 tools/audit/machinery_ratchet.py --self-test`: machinery_ratchet self-test: 45 checks, 0 failed.
-- `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: Architecture score: dS +0.0000 NULL.
-- `python3 tools/audit/machinery_ratchet.py --check`: both metrics `ok` within cap + band. This figure comes from a sliding window: the instrument prints it, and it changes as main moves.
-- `node tools/policy/field_coverage.mjs --only registry`: FIELD COVERAGE ok.
-- `node tools/policy/field_coverage.mjs --self-test`: FIELD COVERAGE SELF-TEST ok.
+- `python3 tools/audit/machinery_ratchet.py --self-test`: machinery_ratchet self-test: 54 checks, 0 failed.
+- `PYTHONPATH=tests/hastub python3 tests/harness_headers.py`: ALL 112 HARNESS HEADER CHECKS PASSED.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
-- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D`: MODE: FULL, because the diff touches gate files; CI runs the full suite.
-- `PYTHONPATH=tests/hastub python3 tools/pr/ci_predict.py --base origin/main`: no closures, fast, governance or instrument red predicted.
+- `tools/pr/prepr.sh` on the head above, against origin/main `c0b082bc4877`: rc=0, `ci predict` reports no red predicted. Main had not moved when it was run.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D`: the diff touches gate files, so the gate cannot scope it; CI runs the full suite.
+- `python3 tools/audit/machinery_ratchet.py --check`: both metrics within cap + band. The window slides, so the instrument prints the figure and it is not quoted here.
+- The environment's numpy 2.5.4 and scipy 1.18.1 match `tests/requirements-ci.txt`. Nothing here is a golden.
 
 ## Unpinned sites
 
@@ -57,8 +58,10 @@ The ratchet's predicates are `tools/` sites. Mutation-autofix's lane does not mu
 
 ## Red checks
 
-- `governance / policy-docs` (predicted while part 1b is not on main): CI grades `field_coverage.mjs` with the base's copy. Main's copy does not declare `pinned tools/audit/machinery_ratchet.py`, which this part pins in governance.yml, so it refuses the file as unregistered. The head is not at fault. Part 1b (`handoff/r10-machinery-ratchets-p1b`) registers the file in a `pending` form that main accepts, and this red clears once part 1b is on main and this head is re-run. Cheaper detector: prepr's `ci predict` step runs the base's grader copy, and it found the red here (`PREDICT governance / policy-docs GRADER field_coverage.mjs REFUSED by the base's copy`). The standalone `ci_predict.py --base origin/main` that `body_push.sh` runs does not see it, as its own line says (`a data-file read is not seen`). No further detector is worth building. The predictor already catches this ordering before the handoff, and part 1b's `pending` key is the reusable countermeasure.
-- `budget-raise-gate` (red until tvofi approves at the head): the gate reads `dev/governance/config/machinery_budgets.json`, a new file, as 8 raises from None, including `window_merges` and both caps with their bands. It cannot sign a new pinned value as routine, so this red is the owner's approval being owed. It is not a defect. No cheaper detector exists: the gate exists to hold a new cap for the owner, and prepr's body check names it before the handoff.
+- `budget-raise-gate / budget-raise-gate`: red until the owner approves at the head. The gate reads `dev/governance/config/machinery_budgets.json`, a new file, as raises from None (`window_merges` and both caps with their bands), and cannot sign a new pinned value as routine. So the red is the owner's approval being owed, per `ratchet-budgets.md` and `fixer.md`'s rule that a raise needs the owner's explicit confirmation. These are the only new caps this PR records, and no other budget is raised. No cheaper detector exists: the gate exists to hold a new cap for the owner, and prepr's body check names it before the handoff.
+- `tests / fast (3.14)`: was red on `tests/harness_headers.py` (`differ=['dev/audit/harnesses/r10_machinery_ratchet_mutants.py']`) because the inlined `repo_root` dropped the helper's `from pathlib import Path` line. Repaired in this head by copying the helper verbatim; the check is green locally. The cheaper detector is that check itself, which `tests/README.md` lists in the fast tier and which was not part of the scoped run last time, as the diff was FULL.
+- `tests / nightly-status`: main-owned. The contract names this diff as touching what it reads (`.github/workflows/governance.yml` and `tests.yml`). The red is not caused by this diff's content; it reports the nightly lane's state on main. The cheaper detector is `ci_predict.py`, which prepr runs and which predicts none; no further detector is worth building, as `nightly-status` reads the nightly run's conclusion and nothing in a PR diff changes that.
+- `governance / policy-docs` went green when part 1b reached main. It is not expected red at this head.
 
 ## Forward-carry
 
@@ -71,10 +74,9 @@ none
 ## Raise justification
 
 This is not a raise of an existing cap. The file is new, and the gate reads each of its values as a raise from None. The caps sit at the window's measurement, recorded by the previous seat and re-recorded after each merge of main. Each cap is graded against cap + band, and `--check` reads both metrics within cap + band at this head.
-- Payments tried: none apply. There is no existing cap to stay under, and nothing in the diff can be moved, shared or deleted to lower a cap that does not yet exist on main. The approval sought is the owner's, and it owes no section. This section is here because prepr's body check asks for it.
+- Payments tried: none apply. There is no existing cap to stay under, and nothing in the diff can be moved, shared or deleted to lower a cap that does not yet exist on main. The approval sought is the owner's.
 - Architecture score: dS +0.0000 NULL
 
 ## Approval
 
 Awaiting the owner's approving review. This diff touches policy (`dev/governance/rules/ratchet-budgets.md`, its generated `.claude/rules/` and `.cursor/rules/` copies, and `dev/governance/roles/proposal-triage.md`), and it adds new caps in `machinery_budgets.json`.
-
