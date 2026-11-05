@@ -1,0 +1,12 @@
+== instrument a45cf7f509477596e8024ad2293073f83f04d3e3 spelling packed
+Architecture score: dS +0.0042 IMPROVES
+  coord_footprint 2381 -> 2374  +0.0042
+== instrument a45cf7f509477596e8024ad2293073f83f04d3e3 spelling plain
+Architecture score: dS +0.0030 IMPROVES
+  coord_footprint 2381 -> 2376  +0.0030
+== instrument 0a13dd1a9c053948311df30953557ddb6b341120 spelling packed
+Architecture score: dS +0.0006 IMPROVES
+  coord_footprint 2483 -> 2482  +0.0006
+== instrument 0a13dd1a9c053948311df30953557ddb6b341120 spelling plain
+Architecture score: dS +0.0029 IMPROVES
+  coord_footprint 2483 -> 2478  +0.0029
