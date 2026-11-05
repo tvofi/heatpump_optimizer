@@ -284,7 +284,13 @@ case ${1:-} in
     done
     # The gh shim (P284) is installed as `gh`; it logs the call, then execs the
     # real gh found further along PATH. Read the log with gh_calls.py --top.
-    cp "$ROOT/tools/audit/seat/shims/seat-gh" "$dest/gh" && chmod 755 "$dest/gh"
+    # The comment guard names the tree's gh_comment.py by real path: bake it into the copy.
+    gcpy=$ROOT/tools/pr/gh_comment.py
+    [ -f "$gcpy" ] || die "no $gcpy for the gh shim's comment guard"
+    while IFS= read -r l; do
+      [ "$l" = 'gcpy=@HPO_GH_COMMENT@' ] && l="gcpy=$(printf '%q' "$gcpy")"
+      printf '%s\n' "$l"
+    done < "$ROOT/tools/audit/seat/shims/seat-gh" > "$dest/gh" && chmod 755 "$dest/gh"
     printf 'seat_venv: shims installed in %s; they run %s/bin/python3\n' "$dest" "$VENV"
     "$dest/python3" -c 'import sys; print("seat_venv: shim resolves to", sys.executable)' \
       || die "the installed shim does not start; build the venv first"
