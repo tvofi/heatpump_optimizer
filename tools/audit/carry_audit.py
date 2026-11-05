@@ -112,8 +112,9 @@ CARRY_SECTIONS = ("forward-carry", "friction")
 # An explicit none: the template's `none` or `n/a: <reason>`. A `none` that goes
 # on to record something is not one (#2341's "recorded rather than propagated").
 NONE_ITEM = re.compile(r"^\W*(?:none|n/a)\W*$|^\W*n/a\s*:", re.I)
-# Not a finding wherever it sits: attribution, the bus trailer, raw RESULT lines.
-TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|Evidence:|RESULT\b)", re.I)
+# Not a finding wherever it sits: attribution, the bus trailer and its review
+# trailers (`bus-nonce:`, `Round: <n>`), raw RESULT lines.
+TRAILER = re.compile(r"^\W*(?:\U0001f916|Co-Authored-By|bus:|bus-nonce:|Round:\s*\d|Evidence:|RESULT\b)", re.I)
 # A verdict's `## Evidence` section, and every section of a merge verdict but a
 # findings section, is read by its structure alone (P308, P314): a check's
 # state or a measurement there says "not blocking" or "deferred" as often as a
@@ -1334,7 +1335,18 @@ def _self_test() -> int:
                       [("section", U)])
                      for w in ("Owed", "Instrument findings", "Out of scope", "Follow-up", "Carry forward")]
     item_grammar += [(f"TRAILER reads {w!r}", head + f"## Friction\n\n{w}\n", (), [])
-                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a")]
+                     for w in ("Co-Authored-By: x", "bus: verdict/1 at abc", "Evidence: ev/x", "RESULT x=1", "n/a",
+                               "Round: 3", "bus-nonce: abc123")]
+    item_grammar += [
+        (f"a review trailer {w!r} under the Evidence heading is no finding", head,
+         verdict_of("merge", f"## Evidence\n\n- {w}\n"), [])
+        for w in ("Round: 3", "bus-nonce: abc123")]
+    item_grammar += [
+        ("a finding line under the Evidence heading still reads as one after the trailer words (null control)",
+         head, verdict_of("merge", "## Evidence\n\n- Round: 3\n- Residual: the census misses one.\n"),
+         [("lead", U)]),
+        ("`Round:` with no number is not a trailer (null control)",
+         head + "## Friction\n\nRound: the guard misses a ref.\n", (), [("section", U)])]
     item_grammar += [
         ("`#2404` opening a line is no heading",
          head + "## Friction\n\n- a: unclear: x\n#2404's review found it. Carry: R10-LIVE\n", (), [("section", R_)]),
