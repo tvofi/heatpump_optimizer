@@ -16838,7 +16838,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From PR 3170, body item 42008ca4: the free-slot race in tests/gate_lock.py stays open after that PR. A delay-only plant turned the one-winner check red in 8 of 10 runs at 5ee2be2d; the fix must turn that plant green. Re-measure at your merge base."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started"
