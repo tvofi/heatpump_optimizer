@@ -1,42 +1,42 @@
 # Review packet #3198
-head: 25e478a7fe7315710064e953bea1f0de3ace607e
-base: 6125b263d94e7ea8c43d31eb483869f8d8c83019
+head: d0423d4f296a9b990a33cc8ce0065df02fa85ce3
+base: cd0dd16910898553bb85a95bf718840b131b1a82
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=127080212795 neutral
-arch-score / arch-score id=127079887798 success
-arm id=127079712181 skipped
-budget-raise-gate / budget-raise-gate id=127079887794 success
-cancel-superseded id=127079717319 success
-codeql / Analyze (actions) id=127079887809 success
-codeql / Analyze (javascript-typescript) id=127079887931 success
-codeql / Analyze (python) id=127079887739 in_progress
-governance / delivery-status id=127079888159 failure
-governance / delivery-status-publish id=127079890107 skipped
-governance / env-matrix id=127079887826 success
-governance / instrument-self-tests id=127079887833 in_progress
-governance / policy-docs id=127079887818 success
-governance / record id=127079889450 skipped
-governance / wave-script id=127079887757 success
-hassfest / hassfest id=127079887837 success
-kernel-points id=127079889419 skipped
-prelude id=127079717623 success
-refresh id=127079717575 success
-tests / arch-instrument id=127080097901 success
-tests / briefs id=127079887951 success
-tests / browser id=127080097838 success
-tests / closure-scope id=127079887825 success
-tests / closures id=127080097724 in_progress
-tests / coverage id=127080097749 in_progress
-tests / fast (3.14) id=127080097853 in_progress
-tests / mutation id=127079887780 in_progress
-tests / nightly-ha id=127080098966 skipped
-tests / nightly-status id=127079887914 failure
-tests / replay id=127080097682 in_progress
-tests / typing id=127080097720 success
-validate / validate-hacs id=127079887651 success
+CodeQL id=127180655494 neutral
+arch-score / arch-score id=127180119241 success
+arm id=127179855828 skipped
+budget-raise-gate / budget-raise-gate id=127180119499 success
+cancel-superseded id=127179857727 success
+codeql / Analyze (actions) id=127180119653 success
+codeql / Analyze (javascript-typescript) id=127180119545 success
+codeql / Analyze (python) id=127180119509 in_progress
+governance / delivery-status id=127180119691 failure
+governance / delivery-status-publish id=127180121342 skipped
+governance / env-matrix id=127180119342 in_progress
+governance / instrument-self-tests id=127180119414 in_progress
+governance / policy-docs id=127180119507 success
+governance / record id=127180122096 skipped
+governance / wave-script id=127180119357 success
+hassfest / hassfest id=127180119406 success
+kernel-points id=127180121421 skipped
+prelude id=127179857917 in_progress
+refresh id=127179857805 success
+tests / arch-instrument id=127180766949 success
+tests / briefs id=127180119434 success
+tests / browser id=127180767164 in_progress
+tests / closure-scope id=127180119441 success
+tests / closures id=127180767086 in_progress
+tests / coverage id=127180767207 in_progress
+tests / fast (3.14) id=127180767052 in_progress
+tests / mutation id=127180119390 in_progress
+tests / nightly-ha id=127180769233 skipped
+tests / nightly-status id=127180119459 failure
+tests / replay id=127180767210 in_progress
+tests / typing id=127180767436 success
+validate / validate-hacs id=127180119396 success
 
 ## Refusals
 none
@@ -74,8 +74,12 @@ ok         GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/
              python3 runs an inline script rather than a file
   ok         bash tools/audit/seat/cloud-setup.sh
              `tools/audit/seat/cloud-setup.sh` is in the tree at this head
+  ok         node tests/card_browser.mjs
+             `tests/card_browser.mjs` is in the tree at this head
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh
+             `tests/run.sh` is in the tree at this head
 
-FIGURES: 12 resolved, 1 not verified, 0 refused
+FIGURES: 14 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -546,7 +550,7 @@ index ee5c77f96..cef4c9248 100644
      @staticmethod
      def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index b337f865f..d591f32e4 100644
+index d43c447d1..f3d03a5a4 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
 @@ -216,6 +216,7 @@ from .external_heat import (
@@ -557,7 +561,7 @@ index b337f865f..d591f32e4 100644
  from . import battery as battery_view
  from . import comfort_band
  from . import draw_range
-@@ -3118,17 +3119,44 @@ def envelope_score(
+@@ -3119,17 +3120,44 @@ def envelope_score(
      return grade, None, drivers
  
  
@@ -606,7 +610,7 @@ index b337f865f..d591f32e4 100644
  
  
  def operation_reason(score_day: Mapping[str, Any]) -> str:
-@@ -3139,33 +3167,41 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
+@@ -3140,33 +3168,41 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
  
  def compose_scores(
      envelope: tuple[float | None, str | None, list[dict[str, Any]]],
@@ -662,7 +666,7 @@ index b337f865f..d591f32e4 100644
  
  
  def _entity_price_source(config: Mapping[str, Any]) -> bool:
-@@ -5094,6 +5130,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -5099,6 +5135,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              return COP_REFUSED_NO_POWER
          heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
          if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, room_air=heat_kw is None and not heat_energy.meter_of(self).counter):
@@ -670,7 +674,7 @@ index b337f865f..d591f32e4 100644
              return COP_REFUSED_FROZEN
  
          commanded = self._commanded_power()
-@@ -8115,7 +8152,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -8120,7 +8157,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
              # operation sample, never the loop.
              try:
                  # A day-less book is the free-day close's #908 streak alone.
@@ -679,7 +683,7 @@ index b337f865f..d591f32e4 100644
                  numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
                  cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                  if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
-@@ -8125,6 +8162,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -8130,6 +8167,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
          score = stored.get("operation_score")
          if isinstance(score, (int, float)) and np.isfinite(score):
              self._operation_score = float(np.clip(score, 0.0, 100.0))
@@ -688,7 +692,7 @@ index b337f865f..d591f32e4 100644
          price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
              "ledger", {"price_tiles": {name: part}}))
  
-@@ -8143,6 +8182,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
+@@ -8148,6 +8187,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                      "month_reports": self._month_reports,
                      "score_day": self._score_day,
                      "operation_score": self._operation_score,
@@ -873,10 +877,10 @@ index 000000000..ef46e5d1e
 +    """The drivers to persist beside ``grade``: none without one."""
 +    return dict(drivers) if grade is not None else {}
 diff --git a/custom_components/heatpump_optimizer/payload.py b/custom_components/heatpump_optimizer/payload.py
-index aba9b11ad..e2af2eb88 100644
+index 02f7a2bf2..5fc880714 100644
 --- a/custom_components/heatpump_optimizer/payload.py
 +++ b/custom_components/heatpump_optimizer/payload.py
-@@ -277,9 +277,14 @@ class Scores(TypedDict, total=False):
+@@ -289,9 +289,14 @@ class Scores(TypedDict, total=False):
      envelope: float | None
      #: One code per score that is None, and only for those (#2258).
      reasons: dict[str, str]
@@ -908,7 +912,7 @@ index 835b23ba4..7e87dec28 100644
          "fuse_advisor/candidate_fuse_a": Domain("real", _POS),
          "fuse_advisor/candidate_kw": Domain("real", _POS), "fuse_advisor/feasible": _FLAG,
 diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
-index 8f094f78a..dedcb151e 100644
+index 8f094f78a..1512d0e6c 100644
 --- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
 +++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
 @@ -843,13 +843,16 @@ const STRINGS = {
@@ -948,8 +952,8 @@ index 8f094f78a..dedcb151e 100644
 +    "score.driver_typical_operation": "bought at the day's flat mean price",
 +    // What an ungraded heat pump waits on (`machine_evidence`).
 +    "score.evidence_bands": "samples per outdoor band, {required} needed: {bands}",
-+    "score.evidence_band": "{lo} to {hi} °C {n}",
-+    "score.evidence_band_dhw": "{lo} to {hi} °C hot water {n}",
++    "score.evidence_band": "{lo} to {hi} °C: {n} samples",
++    "score.evidence_band_dhw": "{lo} to {hi} °C hot water: {n} samples",
 +    "score.evidence_empty": "no COP samples yet",
 +    "score.evidence_frozen": "{n} refused while learning was frozen",
      "score.label_machine": "Heat pump",
@@ -989,8 +993,8 @@ index 8f094f78a..dedcb151e 100644
 +    "score.driver_typical_machine": "som sin egen COP-historik",
 +    "score.driver_typical_operation": "köpt till dagens platta medelpris",
 +    "score.evidence_bands": "prov per utomhusband, {required} krävs: {bands}",
-+    "score.evidence_band": "{lo} till {hi} °C {n}",
-+    "score.evidence_band_dhw": "{lo} till {hi} °C varmvatten {n}",
++    "score.evidence_band": "{lo} till {hi} °C: {n} prov",
++    "score.evidence_band_dhw": "{lo} till {hi} °C varmvatten: {n} prov",
 +    "score.evidence_empty": "inga COP-prov ännu",
 +    "score.evidence_frozen": "{n} avvisade medan inlärningen var fryst",
      "score.label_machine": "Värmepumpen",
@@ -1036,7 +1040,7 @@ index 8f094f78a..dedcb151e 100644
      const t1 = side === "left" ? x - 3 : x + 3;
      out.push(
        `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
-@@ -8878,23 +8923,40 @@ function scoreParts(plan) {
+@@ -8878,23 +8923,41 @@ function scoreParts(plan) {
      const value = readNumber(attrs[key]);
      return { key, label: L(`score.label_${key}`), value,
        reason: value === null ? scoreReasonText(reasons[key]) : null,
@@ -1073,10 +1077,11 @@ index 8f094f78a..dedcb151e 100644
 + * fullest 3 °C outdoor bands' samples against the requirement, and the
 + * intervals a learner freeze refused; nothing when none was published. */
 +function machineEvidence(ev) {
++  const signed = (v) => String(Number(v)).replace("-", "−");
 +  if (!ev || !Array.isArray(ev.bands)) return "";
 +  const bands = ev.bands.slice(0, 4).map((b) => L(
 +    b.hot_water ? "score.evidence_band_dhw" : "score.evidence_band",
-+    { lo: b.outdoor_c, hi: Number(b.outdoor_c) + 3, n: b.samples }));
++    { lo: signed(b.outdoor_c), hi: signed(Number(b.outdoor_c) + 3), n: b.samples }));
 +  const parts = [bands.length
 +    ? L("score.evidence_bands", { required: ev.required, bands: bands.join(", ") })
 +    : L("score.evidence_empty")];
@@ -1085,7 +1090,7 @@ index 8f094f78a..dedcb151e 100644
  }
  
  /** The words for a score's no-grade code; an unknown code is no evidence. */
-@@ -8918,7 +8980,7 @@ function scoreBreakdownHtml(plan) {
+@@ -8918,7 +8981,7 @@ function scoreBreakdownHtml(plan) {
            : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
        const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
        return (
@@ -1094,7 +1099,7 @@ index 8f094f78a..dedcb151e 100644
          `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
          `${bar}${value}</div>` +
          (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
-@@ -8930,6 +8992,18 @@ function scoreBreakdownHtml(plan) {
+@@ -8930,6 +8993,18 @@ function scoreBreakdownHtml(plan) {
    return `<div class="score-breakdown">${rows}</div>`;
  }
  
@@ -1113,7 +1118,7 @@ index 8f094f78a..dedcb151e 100644
  /** The currency a savings figure is denominated in: the sensor's own
   * declared unit through `currency()` (R7-D4-03, #1456), so both savings
   * surfaces and the price axis resolve in one chain.
-@@ -9016,14 +9090,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
+@@ -9016,14 +9091,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
      // -- an owner staring at 5/100 wants to know where the 95 went
      // before deciding anything.
      const parts = scoreParts(plan);
@@ -1235,7 +1240,7 @@ index 347cba965..6961b1c08 100644
  because the failure mode of this integration is a *plausible* plan: a detector
  that never fires, or a watchdog that lets a flatline through, produces output
 diff --git a/tests/card.mjs b/tests/card.mjs
-index bd09965b7..addc0046b 100644
+index bd09965b7..e91580e40 100644
 --- a/tests/card.mjs
 +++ b/tests/card.mjs
 @@ -5694,8 +5694,8 @@ function ctxL(card, key) {
@@ -1249,7 +1254,7 @@ index bd09965b7..addc0046b 100644
      (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
    check("an unmeasured part shows no-evidence, never 0/100",
      /sb-na">— No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
-@@ -5794,6 +5794,74 @@ function ctxL(card, key) {
+@@ -5794,6 +5794,84 @@ function ctxL(card, key) {
      /House: 50\/100 \(typical for its type and era\)/.test(typicalHouse.title || ""),
      typicalHouse.title);
  
@@ -1312,9 +1317,19 @@ index bd09965b7..addc0046b 100644
 +    machine_evidence: { required: 20, refused_frozen: 2, bands: [
 +      { outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] } }));
 +  check("R10-GRADE-DRIVERS: an ungraded heat pump shows samples per outdoor band against the requirement, and freeze refusals",
-+    /Heat pump: — Not enough COP data yet to watch the heat pump\. \(samples per outdoor band, 20 needed: -3 to 0 °C 12, 0 to 3 °C hot water 5; 2 refused while learning was frozen\)/.test(waiting.title || "")
++    /Heat pump: — Not enough COP data yet to watch the heat pump\. \(samples per outdoor band, 20 needed: −3 to 0 °C: 12 samples, 0 to 3 °C hot water: 5 samples; 2 refused while learning was frozen\)/.test(waiting.title || "")
 +    && /data-part="machine"[^>]*>[\s\S]*?sb-drivers">samples per outdoor band, 20 needed/.test(waiting.open)
 +    && /A band is watched once it holds 20 samples/.test(rowTitle(waiting, "machine")), waiting.title);
++  check("R10-GRADE-DRIVERS: a negative evidence band uses the card's minus sign and its count carries a unit, in sv as well",
++    !/(^|[ ,])-\d/.test((waiting.title || "").split("(").slice(-1)[0])
++    && /−3 to 0 °C: 12 samples/.test(waiting.title || "")
++    && (() => {
++      vm.runInContext('setLanguage("sv")', ctx);
++      try {
++        return /−3 till 0 °C: 12 prov, 0 till 3 °C varmvatten: 5 prov/.test(
++          fn("machineEvidence")({ required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] }));
++      } finally { vm.runInContext('setLanguage("en")', ctx); }
++    })(), waiting.title);
 +  check("R10-GRADE-DRIVERS: every breakdown row's hover carries its metric and its current reasons",
 +    [driving, waiting, noDrive].every((s) => ["envelope", "machine", "operation"].every((k) => {
 +      const t = rowTitle(s, k);
@@ -1325,10 +1340,40 @@ index bd09965b7..addc0046b 100644
    // each code the coordinator can publish for it -- the headline, the hover
    // and the breakdown say one number or one reason, never both and never a
 diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
-index 50c6ef82b..9eade190c 100644
+index 50c6ef82b..03db34616 100644
 --- a/tests/card_browser.mjs
 +++ b/tests/card_browser.mjs
-@@ -1182,6 +1182,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
+@@ -140,10 +140,20 @@ function gridStates(plan) {
+   const statStates = () => ({
+     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
+-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
++    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 0 }] } },
+     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
+       lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+   });
++  // A graded heat pump carries `cop_shortfall` and no evidence (an ungraded
++  // one carries evidence and no driver), so the pump's two renderings need
++  // two states: this is the graded one, beside `statStates`' ungraded one.
++  const statStatesGradedPump = () => {
++    const st = statStates();
++    const id = "sensor.heat_pump_optimizer_optimization_score";
++    st[id] = { state: "74", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
++      machine_drivers: [{ code: "cop_shortfall", points: -40.0 }], operation_drivers: [{ code: "cheap_hours", points: 30.4 }] } };
++    return st;
++  };
+   const shared = () => {
+     const st = planStates(plan);
+     const heating = new Set(st[DEFAULT_SPACE].attributes.forecast.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+@@ -217,6 +227,7 @@ function gridStates(plan) {
+     S("no_plan", { states: {} }),
+     S("no_plan_expanded", { states: {}, steps: [["open"]] }),
+     S("score_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "score"]] }),
++    S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
+     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
+     S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
+     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
+@@ -1182,6 +1193,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
        const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
        try {
          await page.goto("http://hpo.test/");
@@ -1340,7 +1385,7 @@ index 50c6ef82b..9eade190c 100644
          await page.addScriptTag({ content: `(${instrument.toString()})();` });
          await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {
 diff --git a/tests/closures.json b/tests/closures.json
-index ee4efaa73..2ad53fa1c 100644
+index 2123d6b8b..42d6a12d6 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
 @@ -199,6 +199,7 @@
@@ -1423,7 +1468,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -1922,6 +1932,7 @@
+@@ -1924,6 +1934,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1431,7 +1476,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2111,6 +2122,7 @@
+@@ -2113,6 +2124,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1439,7 +1484,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2256,6 +2268,7 @@
+@@ -2258,6 +2270,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1447,7 +1492,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2393,6 +2406,7 @@
+@@ -2395,6 +2408,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1455,7 +1500,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2575,6 +2589,7 @@
+@@ -2577,6 +2591,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1463,7 +1508,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2737,6 +2752,7 @@
+@@ -2739,6 +2754,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1471,7 +1516,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3119,6 +3135,7 @@
+@@ -3121,6 +3137,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1479,7 +1524,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3282,6 +3299,7 @@
+@@ -3284,6 +3301,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1487,7 +1532,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3379,6 +3397,7 @@
+@@ -3381,6 +3399,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1495,7 +1540,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3522,6 +3541,7 @@
+@@ -3524,6 +3543,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1503,7 +1548,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3611,6 +3631,7 @@
+@@ -3613,6 +3633,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1511,7 +1556,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3730,6 +3751,7 @@
+@@ -3732,6 +3753,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1519,7 +1564,7 @@ index ee4efaa73..2ad53fa1c 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -4851,7 +4873,7 @@
+@@ -4855,7 +4877,7 @@
    },
    "tests/config_flow_steps.py": {
     "rc": 0,
@@ -1528,7 +1573,7 @@ index ee4efaa73..2ad53fa1c 100644
    },
    "tests/debug_collect.py": {
     "rc": 0,
-@@ -4915,7 +4937,7 @@
+@@ -4919,7 +4941,7 @@
    },
    "tests/manual_plan.py": {
     "rc": 0,
@@ -1588,10 +1633,10 @@ index 87c1fc9a5..77385907c 100644
  arch_score_head.py/entities.py and deployment_shape.py/entities.py
  (96 shared production files each), doc_claims.py/harness_headers.py
 diff --git a/tests/features.py b/tests/features.py
-index 59415d86e..b94378101 100644
+index 4da43fcc5..59741229c 100644
 --- a/tests/features.py
 +++ b/tests/features.py
-@@ -23690,6 +23690,142 @@ R.check(
+@@ -23781,6 +23781,142 @@ R.check(
      },
      f"{_fresh6}",
  )
@@ -1734,7 +1779,7 @@ index 59415d86e..b94378101 100644
  _ce._operation_score = None
  _ce._cop_baseline.clear()
  _ce._thermal_params.heat_loss_coefficient = 6.0 * _ce_mid
-@@ -77238,4 +77374,86 @@ R.check(
+@@ -77582,4 +77718,86 @@ R.check(
  )
  
  
@@ -2461,13 +2506,13 @@ index f6089b082..000000000
 -  "verdict": "equivalent"
 -}
 diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
-index 98bc6e02c..6bb3700b1 100644
+index 92a272f7c..60ba27d8c 100644
 --- a/tests/structure_budgets.json
 +++ b/tests/structure_budgets.json
 @@ -1,5 +1,5 @@
  {
-- "class_excess_loc": 17618,
-+ "class_excess_loc": 17614,
+- "class_excess_loc": 17617,
++ "class_excess_loc": 17613,
   "const_modules_over_50": 3,
   "coordinator_attrs": 141,
   "coordinator_multiassigned_attrs": 108,
@@ -2475,8 +2520,8 @@ index 98bc6e02c..6bb3700b1 100644
   "functions_cc_over_25": 8,
   "import_cycle_modules": 0,
   "max_cc": 44,
-- "max_class_loc": 7960,
-+ "max_class_loc": 7956,
+- "max_class_loc": 7959,
++ "max_class_loc": 7955,
   "max_method_loc": 373,
   "methods_over_150": 15,
   "methods_over_200": 8,

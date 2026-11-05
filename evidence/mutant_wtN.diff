@@ -1,0 +1,47 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index 1512d0e6c..49d00d828 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -4594,7 +4594,7 @@ function cardStyleBlock(darkMode) {
+         border: 1px solid var(--hpo-divider, #e0e0e0);
+         border-radius: 6px;
+       }
+-      .sb-row { display: flex; flex-direction: column; gap: 1px; }
++      .sb-row { display: flex; flex-direction: column; gap: 1px; overflow: hidden; height: 3.5em; }
+       .sb-head {
+         display: flex; align-items: center; gap: 8px; font-size: 0.82em;
+       }
+diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
+index 03db34616..9eade190c 100644
+--- a/tests/card_browser.mjs
++++ b/tests/card_browser.mjs
+@@ -140,20 +140,10 @@ function gridStates(plan) {
+   const statStates = () => ({
+     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
+     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
+-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 0 }] } },
++    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
+       lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
+   });
+-  // A graded heat pump carries `cop_shortfall` and no evidence (an ungraded
+-  // one carries evidence and no driver), so the pump's two renderings need
+-  // two states: this is the graded one, beside `statStates`' ungraded one.
+-  const statStatesGradedPump = () => {
+-    const st = statStates();
+-    const id = "sensor.heat_pump_optimizer_optimization_score";
+-    st[id] = { state: "74", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
+-      machine_drivers: [{ code: "cop_shortfall", points: -40.0 }], operation_drivers: [{ code: "cheap_hours", points: 30.4 }] } };
+-    return st;
+-  };
+   const shared = () => {
+     const st = planStates(plan);
+     const heating = new Set(st[DEFAULT_SPACE].attributes.forecast.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
+@@ -227,7 +217,6 @@ function gridStates(plan) {
+     S("no_plan", { states: {} }),
+     S("no_plan_expanded", { states: {}, steps: [["open"]] }),
+     S("score_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "score"]] }),
+-    S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
+     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
+     S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
+     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),

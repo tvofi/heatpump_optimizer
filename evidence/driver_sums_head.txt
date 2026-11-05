@@ -1,4 +1,0 @@
-RESULT operation_folds=30591 raw_max_gap=1.42e-14 published_max_gap=0.100 published_gaps_over_0.05=7907
-RESULT machine_max_gap=0.00e+00
-RESULT empty_with_no_grade=True reasons={'envelope': 'a', 'machine': 'cop_watch_learning', 'operation': 'b', 'overall': 'first_scored_day'}
-RESULT perturbation seeded_grade=42 published= [{'code': 'cheap_hours', 'points': 0.0}, {'code': 'dear_hours', 'points': 0.0}, {'code': 'earlier_days', 'points': 42.0}]  sum_without_earlier_days= 0.0
