@@ -134,6 +134,14 @@ on:
         description: "Force every heavy lane to run, ignoring recorded green proofs (R9-CI-SKIP)"
         type: string
         default: ""
+      machinery:
+        description: "The prelude's: 'false' on a pull request whose every changed file is product idles the machinery lanes (R10-CI-SLIM C7(a)); anything else runs them"
+        type: string
+        default: ""
+      pins:
+        description: "The prelude's: 'false' when this push's own delta touches no product file, so mutation-pins has nothing new to measure (R10-CI-SLIM C7(c)); anything else measures"
+        type: string
+        default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
     secrets:
       CLOSURES_PUSH_TOKEN:
@@ -448,20 +456,24 @@ jobs:
             echo "A recorded green run of fast and this job at this exact base and diff"
             echo "stands in for this rerun; every step below is skipped and this job reports success."
           fi
+          if [ "${{ inputs.machinery }}" = "false" ]; then
+            echo "Every changed file is product (prelude.machinery, R10-CI-SLIM C7(a)): this"
+            echo "machinery lane stands down, every step below is skipped and this job reports success."
+          fi
 
       # Full history: the scoped plan diffs against the merge base.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
         with:
           fetch-depth: 0
 
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
         with:
           python-version: "3.14"
 
       - name: Install pinned test dependencies
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -469,13 +481,13 @@ jobs:
 
       # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.14)
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
         run: python3 tests/host_probe.py
 
       # The scope `fast` takes: the prelude's, diffed from the merge base with
       # the PR's base (origin/main on a dispatch naming none); full on push.
       - name: Run the architecture-score pair
-        if: needs.closure-scope.outputs.fast_skip != 'skip'
+        if: needs.closure-scope.outputs.fast_skip != 'skip' && inputs.machinery != 'false'
         env:
           RUN_PART: arch
           GATE_SCOPE: ${{ inputs.gate_scope == 'auto' && 'auto' || 'full' }}
@@ -1128,6 +1140,7 @@ jobs:
       && github.event_name == 'pull_request'
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
+      && inputs.pins != 'false'
     runs-on: ubuntu-latest
     # The step's 340 plus this runner's checkout, pip install and upload
     # (R9-CI-1 round 2: the budget the step hands the base program is 260).
@@ -2006,6 +2019,11 @@ jobs:
                            || github.event_name == 'merge_group'
                            || github.event_name == 'workflow_dispatch')
                          && needs.closure-scope.outputs.case == 'skip' }}
+      # R10-CI-SLIM C7(a): 'true' on a pull request whose every changed file is
+      # product (prelude.machinery): the recording and its check stand down and
+      # the job reports success; the push the merge makes records in full
+      # (CLAUDE.md rule 1). The no-copies scan below still runs.
+      MACHINERY_IDLE: ${{ github.event_name == 'pull_request' && inputs.machinery == 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -2029,12 +2047,12 @@ jobs:
       # scope -- full or scoped -- every one of these steps runs exactly as it
       # did before the fast lane existed.
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
-        if: env.DOCS_ONLY_FAST != 'true'
+        if: env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         with:
           node-version: "22"
 
       - name: Install pinned test dependencies
-        if: env.DOCS_ONLY_FAST != 'true'
+        if: env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         run: >-
           pip install --require-hashes
           --build-constraint tests/requirements-build.txt
@@ -2042,13 +2060,13 @@ jobs:
 
       # The runner's speed probe: see the `fast` job's.
       - name: Probe the runner's speed (python 3.13)
-        if: env.DOCS_ONLY_FAST != 'true'
+        if: env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         run: python3 tests/host_probe.py
 
       - name: Install strace
         # node has no audit hook, so tests/card.mjs is recorded by tracing
         # its opens instead.
-        if: env.DOCS_ONLY_FAST != 'true'
+        if: env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         run: sudo apt-get update && sudo apt-get install -y strace
 
       # THE FAST ARM. `closure-scope` already derived `skip` for this diff;
@@ -2119,7 +2137,7 @@ jobs:
         id: proof_consume
         if: >-
           github.event_name == 'push' && github.ref == 'refs/heads/main'
-          && env.DOCS_ONLY_FAST != 'true'
+          && env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
@@ -2161,7 +2179,7 @@ jobs:
         # from before the fast lane on every diff that reaches it, except
         # that a consumed proof (C2) already put the recordings on disk.
         if: >-
-          env.DOCS_ONLY_FAST != 'true' && env.PROOF_CONSUMED != 'true'
+          env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true' && env.PROOF_CONSUMED != 'true'
         env:
           OMP_NUM_THREADS: "1"
           OPENBLAS_NUM_THREADS: "1"
@@ -2203,7 +2221,7 @@ jobs:
 
       - name: Fail if tests/closures.json under-approximates
         # Full arm only, with the recordings the re-record step above made.
-        if: env.DOCS_ONLY_FAST != 'true'
+        if: env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         env:
           PYTHONPATH: tests/hastub
           SCOPE_CASE: ${{ needs.closure-scope.outputs.case }}
@@ -2242,7 +2260,7 @@ jobs:
       - name: Write the recordings' tree hash
         if: >-
           always() && github.event_name == 'workflow_dispatch'
-          && env.DOCS_ONLY_FAST != 'true'
+          && env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         run: |
           TREE=$(git rev-parse 'HEAD^{tree}')
           echo "CLOSURES_TREE=$TREE" >> "$GITHUB_ENV"
@@ -2258,7 +2276,7 @@ jobs:
         if: >-
           always() && (github.event_name == 'pull_request'
                        || github.event_name == 'workflow_dispatch')
-          && env.DOCS_ONLY_FAST != 'true'
+          && env.DOCS_ONLY_FAST != 'true' && env.MACHINERY_IDLE != 'true'
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
         with:
           name: ${{ github.event_name == 'pull_request' && 'closure-recordings' || format('closure-recordings-tree-{0}', env.CLOSURES_TREE) }}
@@ -2911,11 +2929,13 @@ jobs:
   # unpinned and `mutation` stays red on it for a human.
   mutation-autofix:
     needs: [mutation, mutation-pins]
+    # R10-CI-SLIM C7(c): no measurement at this head (prelude.pins_due), nothing to apply.
     if: >-
       !cancelled()
       && github.event_name == 'pull_request'
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
+      && inputs.pins != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

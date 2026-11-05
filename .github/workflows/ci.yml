@@ -87,6 +87,10 @@ jobs:
       gate_scope: ${{ steps.derive.outputs.scope }}
       legs: ${{ steps.derive.outputs.legs }}
       workset: ${{ steps.derive.outputs.workset }}
+      # R10-CI-SLIM C7(a): 'false' idles the machinery lanes (prelude.machinery).
+      machinery: ${{ steps.derive.outputs.machinery }}
+      # R10-CI-SLIM C7(c): 'false' when this push's own delta touches no product file.
+      pins: ${{ steps.derive.outputs.pins }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -183,6 +187,8 @@ jobs:
       head: ${{ needs.prelude.outputs.head }}
       recheck: ${{ inputs.recheck }}
       no-skip: ${{ inputs.no-skip }}
+      machinery: ${{ needs.prelude.outputs.machinery }}
+      pins: ${{ needs.prelude.outputs.pins }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -207,6 +213,7 @@ jobs:
     uses: ./.github/workflows/governance.yml
     with:
       base: ${{ needs.prelude.outputs.base }}
+      machinery: ${{ needs.prelude.outputs.machinery }}
     permissions:
       contents: read
       pull-requests: read

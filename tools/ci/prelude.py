@@ -59,6 +59,14 @@ BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-
 # code run's gate judges the LATEST body.
 EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
 STARTED = ("in_progress", "completed")
+# R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
+# closures' recording, governance / env-matrix, governance /
+# instrument-self-tests) stand down on a pull request whose every changed file
+# is product: under custom_components/, or a test script tests/closures.json
+# measures. Anything else -- tools/, .github/, dev/, tests infrastructure, a
+# new or unmeasured script, a doc -- runs them, and every push runs them.
+PRODUCT_PREFIXES = ("custom_components/",)
+CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
     "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
@@ -84,7 +92,7 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
     inputs = ev.get("inputs") or {}
     q = _QUEUE_PR.search(mg.get("head_ref") or "")
     return {
-        "event_name": event_name, "action": ev.get("action", ""),
+        "event_name": event_name, "action": ev.get("action", ""), "before": ev.get("before") or "",
         "changes_base": bool((ev.get("changes") or {}).get("base")),
         "label": (ev.get("label") or {}).get("name", ""),
         "labels": [x.get("name") for x in pr.get("labels") or []],
@@ -225,6 +233,37 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
+def _product(closures_json: Path):
+    """The predicate `f is product`, or None when the script table is unreadable."""
+    try:
+        scripts = set(json.loads(closures_json.read_text())["closures"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return lambda f: f.startswith(PRODUCT_PREFIXES) or f in scripts
+
+
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
+    """Whether the machinery lanes run: False only for a non-empty changed list
+    that is all product (C7(a)); an unreadable script table runs them."""
+    files = [f for f in (changed or []) if f.strip()]
+    is_product = _product(closures_json)
+    return not files or is_product is None or not all(map(is_product, files))
+
+
+def pins_due(since_last_head: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
+    """R10-CI-SLIM card C7(c): whether `mutation-pins` measures at this head. It
+    measures the diff's unpinned production sites, so a push whose own delta
+    (the previous head to this one) touches no product file -- mutation-autofix's
+    pin commit, a body-only or tooling fix-up -- has nothing new to measure, and
+    the sites still unpinned were measured at the head before. A delta that
+    touches the package or a measured test script (a test written to kill a
+    survivor) measures again. No delta (opened, reopened, a force-push the diff
+    cannot read) measures."""
+    files = [f for f in (since_last_head or []) if f.strip()]
+    is_product = _product(closures_json)
+    return not files or is_product is None or any(map(is_product, files))
+
+
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
     """The unfinished code run at this head for `pr` whose `pr-contract` has not
     started, or None. Its pr-contract will read the body after this edit, and its
@@ -285,6 +324,14 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     ref, proven = ("" if ctx.get("input_pr") else ctx.get("ref", "")), None
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
+    out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
+    since = None
+    if ev == "pull_request" and ctx.get("action") == "synchronize" and ctx.get("before"):
+        try:
+            since = codeql_scope.changed_files(ctx["before"], ctx["head"])
+        except Exception:                      # unreadable delta: measure (fail closed)
+            since = None
+    out["pins"] = "true" if pins_due(since) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
@@ -454,6 +501,39 @@ def self_test() -> int:
           ("arch-score budget-raise-gate pr-contract", [POLL_S]))
     check("C3: a review run never defers (only an edit does)",
           outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
+    # C7(a): the machinery lanes stand down only on an all-product pull request.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        cj = Path(td) / "closures.json"
+        cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
+        cc = "custom_components/heatpump_optimizer/coordinator.py"
+        check("C7a: a product-only diff (package + a measured script) idles the machinery lanes",
+              machinery([cc, "tests/fast_case.py"], cj), False)
+        for f in ("tools/ci/gate.py", ".github/workflows/ci.yml", "dev/programme/HANDOVER.md", "tests/closure.py",
+                  "tests/new_script.py", "README.md", "tests/closures.json"):
+            check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
+        check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
+        check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
+    out, why = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                       ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
+    check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
+    check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
+    with tempfile.TemporaryDirectory() as td:
+        cj = Path(td) / "closures.json"
+        cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
+        check("C7c: a pin commit's delta (the ledger only) measures nothing again",
+              pins_due(["tests/mutation_budgets.json"], cj), False)
+        check("C7c: a tooling or body-record delta measures nothing again",
+              pins_due(["tools/ci/gate.py", "dev/programme/delivery/1.md"], cj), False)
+        check("C7c: a delta touching the package measures (null control)",
+              pins_due(["tests/mutation_budgets.json", "custom_components/heatpump_optimizer/x.py"], cj), True)
+        check("C7c: a delta adding a test to a measured script measures (a survivor may now die)",
+              pins_due(["tests/fast_case.py"], cj), True)
+        check("C7c: no readable delta measures (opened, reopened, force-push)", pins_due(None, cj), True)
+        check("C7c: an unreadable script table measures", pins_due(["tools/x.py"], Path(td) / "none.json"), True)
+    check("C7c: a push or an opened pull request measures (no delta read)",
+          (outputs(ctx("push"), None, g(live))[0]["pins"],
+           outputs(ctx("pull_request", action="opened", pull_request=pr), ["x"], g(live))[0]["pins"]), ("true", "true"))
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
