@@ -327,6 +327,8 @@ const STRINGS = {
     "savings.col_savings": "Savings",
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
+    "savings.old_basis": "old basis",
+    "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
     "savings.empty": "No settled savings months yet.",
     "receipt.closed": "{month} \u00b7 closed",
     "receipt.saved": "Saved {amount} {unit} ({pct}) against a plain thermostat",
@@ -1165,6 +1167,8 @@ const STRINGS = {
     "savings.col_savings": "Sparande",
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
+    "savings.old_basis": "gammalt underlag",
+    "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
     "receipt.closed": "{month} \u00b7 avslutad",
     "receipt.saved": "Sparade {amount} {unit} ({pct}) mot en vanlig termostat",
@@ -14872,8 +14876,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const est = row.estimated
         ? ` <span class="savings-est">${esc(L("savings.estimated"))}</span>`
         : "";
+      const old = row.old_basis
+        ? ` <span class="savings-est savings-old">${esc(L("savings.old_basis"))}</span>`
+        : "";
       return `<tr class="${row.estimated ? "estimated" : ""}">
-        <td>${esc(String(row.month || ""))}${est}</td>
+        <td>${esc(String(row.month || ""))}${est}${old}</td>
         <td class="num">${money(row.baseline_sek)}</td>
         <td class="num">${money(row.actual_sek)}</td>
         <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
@@ -14884,6 +14891,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
+    const fuel = this.plan.woodFuel();
+    const woodNote = fuel && fuel.show_whatif
+      ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
+      : "";
     return `${top}<table class="savings-table">
       <thead><tr>
         <th>${esc(L("savings.col_month"))}</th>
@@ -14893,7 +14904,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
-    </table>`;
+    </table>${woodNote}`;
   }
 
   // The sensor advisor page's renderer and wiring live at module level

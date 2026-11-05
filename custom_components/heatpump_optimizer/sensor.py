@@ -2044,7 +2044,22 @@ class ModelStatusSensor(HeatPumpOptimizerSensorBase):
             "system_identification": data.get("system_identification"),
             "system_identification_outcome": _sysid_outcome(data.get("system_identification")),
             "learner_progress": data.get("learner_progress"),
+            **_pump_max_power(data.get("pump_max_power")),
         }
+
+
+def _pump_max_power(band: Any) -> dict[str, Any]:
+    """Which electrical maximum the live plan booked, and why (R10-COP-GATE
+    part D). ``source`` and ``reason`` are top-level codes, so the entity's
+    ``state_attributes`` translations render them; the evidence rides the
+    ``pump_max_power`` row. No plan publishes all three as ``None``."""
+    b = _mapping(band)
+    row = {k: b.get(k) for k in ("configured_max_kw", "planned_max_kw", "learned_max_kw", "samples", "since_s")}
+    return {
+        "pump_max_power": row if b else None,
+        "pump_max_power_source": b.get("source"),
+        "pump_max_power_reason": b.get("reason"),
+    }
 
 
 def _sysid_outcome(view: Any) -> dict[str, Any] | None:
