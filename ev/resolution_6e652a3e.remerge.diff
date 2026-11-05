@@ -1,0 +1,36 @@
+6e652a3ea59b66b9d4daa0c49abf2b843bff67b2 Merge remote-tracking branch 'origin/main' into work/r10-handoff-path-p1
+
+diff --git a/tools/pr/prepr.sh b/tools/pr/prepr.sh
+remerge CONFLICT (content): Merge conflict in tools/pr/prepr.sh
+index 7ee0e2606..c208d4f96 100755
+--- a/tools/pr/prepr.sh
++++ b/tools/pr/prepr.sh
+@@ -4033,14 +4033,6 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+   fi
+ fi
+ 
+-<<<<<<< 91a75ed8d (Merge remote-tracking branch 'origin/main' into work/r10-handoff-path-p1)
+-# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
+-PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
+-
+-if [ -n "$REUSE" ]; then
+-  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, brief_lint, field coverage, agreement lane, register check"
+-else
+-=======
+ # --- 1a3. the body's `## Head` names this head, BEFORE the heavy steps (P208).
+ # Step 7 stays: the head can move during the run (`update_pr.sh`/`open_pr.sh`
+ # merge main before pushing). The arm is `head_arm`, the existing body check.
+@@ -4053,7 +4045,12 @@ if [ -n "${1:-}" ] && [ "${1:-}" != "--self-test" ] && [ -f "$1" ]; then
+   fi
+ fi
+ 
+->>>>>>> c0b082bc4 (Merge pull request #3181 from tvofi/fix/r10-ci-runner-fixes)
++# One interpreter resolution per run, shared by steps 6a and 6c (`recorder_python`).
++PREPR_RECORDER_CACHE=/tmp/prepr-recpy.$$; : > "$PREPR_RECORDER_CACHE"  # not exported: the nested --self-test must resolve afresh
++
++if [ -n "$REUSE" ]; then
++  say skip "code-keyed steps" "PREPR_SKIP_CODE: heavy slot, gate mode, policy_lint, mutants, rules_sync, fragments, hooks, codeowners_gap, brief_lint, field coverage, agreement lane, register check"
++else
+ # --- 1b0. the gate-lease priority of this branch's group (tvofi, 2026-10-20).
+ # The lease is generic: it orders waiters by an integer and never decides who
+ # deserves one. This step supplies the integer from tools/pr/gate_priority.py,

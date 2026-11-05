@@ -1,0 +1,15 @@
+2026-11-05T05:58:13.2497422Z [36;1mfi[0m
+2026-11-05T05:58:13.2538506Z shell: /usr/bin/bash -e {0}
+2026-11-05T05:58:13.2538648Z env:
+2026-11-05T05:58:13.2538800Z   PR_HEAD: 20d5aab00a01cb3bf3738e1e78a13273089bc523
+2026-11-05T05:58:13.2539000Z   PR_BASE: 8364e62460f61d68be8073cd1b65e8079aa350a7
+2026-11-05T05:58:13.2540709Z   GH_TOKEN: ***
+2026-11-05T05:58:13.2540838Z ##[endgroup]
+2026-11-05T05:58:21.1018063Z   record   red-history           15 commit(s) between origin/main and this head, every failure conclusion across them: governance / delivery-status, governance / instrument-self-tests, tests / nightly-status
+2026-11-05T05:58:21.1018997Z 
+2026-11-05T05:58:21.1019117Z /tmp/pr-body.md
+2026-11-05T05:58:21.1019726Z   ERROR   [pr-body] /tmp/pr-body.md: check `governance / instrument-self-tests` is red and `## Red checks` does not name it. Name the failure and answer it: the cheaper detector and its standing cost, or the finding that none exists.
+2026-11-05T05:58:21.1020191Z 
+2026-11-05T05:58:21.1020300Z PR-BODY: 1 error(s) in /tmp/pr-body.md
+2026-11-05T05:58:21.1082396Z ##[error]Process completed with exit code 1.
+2026-11-05T05:58:21.1121264Z ##[group]Run if test -f .claude/workflows/figure_lint.mjs; then node .claude/workflows/figure_lint.mjs --pr-body /tmp/pr-body.md; else node tools/policy/figure_lint.mjs --pr-body /tmp/pr-body.md; fi
