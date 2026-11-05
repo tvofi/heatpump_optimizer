@@ -52,7 +52,8 @@ A DESTINATION (`Dests.check`):
              carries N; with `gh` reads (`pr`, `sweep`) it must also be open;
   O<n>       a brief `O<n>-*.md` (or exactly `O<n>-name.md`) in --briefs-dir
              or $HPO_BRIEFS_DIR; with neither (CI) it passes, printed UNVERIFIED;
-  dismissed: a reason of two words or more.
+  dismissed: a reason of two words or more; `Carry: <GROUP> | dismissed: <reason>`
+             is the dismissal alone, GROUP a pointer valid when any group of the roster.
 An item is also routed by a `Carry:` elsewhere in the body or a later verdict
 that names its id -- `Carry: R10-X (item 1a2b3c4d)`; every refusal prints it.
 Every marker naming an item adds its destinations, and each must hold.
@@ -333,6 +334,10 @@ def seg_dests(seg: str) -> list[str]:
     dm = re.match(r"dismissed\s*:\s*(.*)", rest, re.I)
     if dm:
         return ["dismissed:" + dm.group(1)]
+    # `Carry: <GROUP> | dismissed: <reason>`: the group is a pointer, not a destination
+    pm = re.match(r"([^\s|,;]+)\s*[|;,]\s*[`*_]*dismissed\s*:\s*(.*)", rest, re.I)
+    if pm and GROUP_TOK.match(pm.group(1).strip("`*_().:")):
+        return [f"dismissed({pm.group(1).strip('`*_().:')}):{pm.group(2)}"]
     found = []
     for tok in re.split(r"[,;|/]\s*|\s+and\s+|\s+", rest):
         tok = tok.strip("`*_().:")
@@ -376,8 +381,11 @@ class Dests:
 
     def check(self, tok: str) -> tuple[bool, str]:
         """(valid, note) for one destination token."""
-        if tok.startswith("dismissed:"):
-            reason = tok.split(":", 1)[1].strip()
+        if tok.startswith(("dismissed:", "dismissed(")):
+            ptr, reason = re.fullmatch(r"dismissed(?:\((.*?)\))?:(.*)", tok, re.S).groups()
+            reason = reason.strip()
+            if ptr and ptr not in self.groups and ptr not in self.round_groups:
+                return False, f"{ptr} is not a group of the roster{f' or of {self.round_ref}' if self.round_ref else ''}"
             if len(re.findall(r"[A-Za-z0-9]{2,}", reason)) < 2:
                 return False, "`dismissed:` needs a reason of two words or more"
             return True, ""
@@ -961,6 +969,9 @@ def _self_test() -> int:
     check("dismissed with a reason is a destination", r["u"] == 0 and r["b"] == 0)
     r = run(plant.rstrip() + " Carry: dismissed:\n")
     check("a bare dismissed is refused", r["b"] == 1)
+    r = run(plant.rstrip() + " Carry: R10-INVENTED | dismissed: two words\n")
+    check("a dismissal pointer that is no group names it as not a group",
+          r["b"] == 1 and "R10-INVENTED is not a group" in r["rows"][0]["bad"][0])
     # THE DONE TRANSITION (R10-RCA-ROSTER-SYNC-ORPHANS): `orphaned` is the
     # `--issues` test asked of a closing group, on the roster the write leaves.
     def closed(gid: str, extra=()) -> dict:
@@ -1229,6 +1240,13 @@ def _self_test() -> int:
          rc + f"Carry: R10-LIVE (item {fid})\n- `fast`: Carry: R10-INVENTED (item {fid})\n", "bad"),
         ("an item's own marker and a reference to it: each destination must hold",
          P + f" Carry: R10-LIVE\n\n## Red checks\n\n- Carry: R10-INVENTED (item {pid})\n", "bad"),
+        ("`Carry: <done group> | dismissed: <reason>` routes: the group is a pointer, live or done",
+         P + " Carry: R10-OVER | dismissed: two words\n", "routed"),
+        ("... a live group as the pointer routes too", P + " Carry: R10-LIVE | dismissed: two words\n", "routed"),
+        ("... a done group alone is still a bad destination (null control)", P + " Carry: R10-OVER\n", "bad"),
+        ("... a pointer that is no group of the roster is refused",
+         P + " Carry: R10-INVENTED | dismissed: two words\n", "bad"),
+        ("... a one-word reason after a pointer is refused", P + " Carry: R10-OVER | dismissed: moot\n", "bad"),
         ("a bolded `dismissed:` reads", P + " Carry: **dismissed: host load**\n", "routed"),
         ("`Dismissed:` reads in any case", P + " Carry: Dismissed: host load, not a defect\n", "routed"),
         ("`and` separates destinations", P + " Carry: R10-LIVE and #999\n", "bad"),
