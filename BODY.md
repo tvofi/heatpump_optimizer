@@ -11,7 +11,9 @@ What changed:
 
 ## Head
 
-b256f36d285247b1cf22fd60d039c70fc01f165c. The change over the reviewed content (1017865aefe429ec5399dd9d4a86ac88178f09f5, the f-3198-r3 repair) is a merge of origin/main with the claim-file conflict resolved: `tests/golden/claimed_drift.txt` keeps BOTH claim lines for `coord_all_features`, `coord_dhw`, `coord_grid_fee`, `coord_minimal` and `coord_two_zone` (main's R10-COP-GATE-D and this branch's R10-GRADE-DRIVERS, each with its own direction; `claims-for:` unchanged, no golden re-recorded). The code is a fast-forward of 1017865a: two merge commits, the first of origin/main at 78a2be77c, the second of origin/main at 6125b263d (tools/audit instruments only; no scored file), then a commit that added the PR body file by mistake and one that removed it (the head tree equals that of 932dbd954). `tests/structure_budgets.json` was resolved by the ledger driver (`max_class_loc` 7975 + both deltas = 7956, `class_excess_loc` 17614); `python3 tests/structure.py` prints STRUCTURE RATCHET PASSED, no budget raised.
+Dismissed review finding (not a forward-carry: it has no destination file): the fix review observed that rounded drivers do not always sum to the rounded grade (up to 0.1). Carry: dismissed: per-item rounding of an exact sum is the house grade's existing convention (`envelope_drivers` since #2816), invisible at the card's whole-point display.
+
+e9742808d0f8ea882063b62d2a6ac17c1d41eb28. Repair round 4 over the reviewed head 25e478a7fe7315710064e953bea1f0de3ace607e: merges origin/main at dad3178d6c81cfe2bb410e7045de28f686a6f845, then three commits, then a merge of origin/fix/r10-grade-drivers at 49608a692 (the bot's main merges and #3185): the evidence-band wording fix (card and `tests/card.mjs`), the P9 grid's score fixture, and a no-tree-change merge of the stale `handoff-wip` history. the last merge is of origin/main at e57dfbbe05caf1b4716bc1a8089d8335653080cd (fetched 2026-11-05T09:10Z), and `origin/main` had not moved when `prepr.sh` ran, so the `prepr.sh` run below describes this tree. Claim files are byte-identical to the reviewed head (`git diff 25e478a7 HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt` is empty apart from main's own newer lines merged in); `score_open` was already claimed, and the added state `score_open_graded_pump` exists only in `card_browser.mjs`, which `card_drift.mjs` does not read, so no second fixture moves.
 
 ## Mutation proof
 
@@ -25,6 +27,11 @@ Each mutant was applied to one production site in a copy of the tree at 7649fad'
 - A1 card `valueAxis` label thinning: the tree with the storage reset and without the thinning (71a59dc) is the mutant. `tests/card_browser.mjs` turns red on `P9 grid: no two text runs share ink`, with every pair at `wood_lane/375` (text "0" x "1", "1" x "2", "2" x "3"). With the thinning, the same grid run is green and the dumped overlap list is empty.
 
 Failing test first: the head's `tests/card.mjs` run against the base's card turns red on all 7 new `R10-GRADE-DRIVERS` checks and on `each row carries its plain-language explanation`, which now pins the new metric wording. The new `tests/features.py` block imports `SCORE_REFERENCE` and `driving_grade`, neither of which exists at the base.
+
+Repair round 4 mutants:
+
+- E1 card `machineEvidence`: the unrepaired text (ASCII hyphen, bare count) is the mutant: with the card at the previous head and the new `tests/card.mjs`, `2 CARD CHECK(S) FAILED`, on `an ungraded heat pump shows samples per outdoor band against the requirement, and freeze refusals` and `a negative evidence band uses the card's minus sign and its count carries a unit, in sv as well`. With the repair: `ALL CARD CHECKS PASSED`.
+- B1 `tests/card_browser.mjs`: the mutant `.sb-row { overflow: hidden; max-height: 2.2em; }` added to the card's CSS turns `P9 grid: no text is clipped where its ancestor cannot scroll to it` red, naming the three `sb-drivers` lines (the House, Heat pump and Driving drivers) with 8.8, 51.8 and 8.8 px clipped. Null control: the unmutated head reads `ALL BROWSER CHECKS PASSED`. Two weaker mutants stayed green and are recorded as non-findings: a 263-character unbroken driver label (the card wraps it) and `.sb-drivers { overflow:hidden; white-space:nowrap; width:6em }` (the grid's clip check starts at the run element's parent, so a clip on the text's own element is outside its reach).
 
 ## Null control
 
@@ -46,32 +53,23 @@ Failing test first: the head's `tests/card.mjs` run against the base's card turn
 - `PYTHONPATH=tests/hastub python3 tests/entities.py` at 1017865aefe429ec5399dd9d4a86ac88178f09f5: `ALL 2616 ENTITY CHECKS PASSED`; `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4807 FEATURE CHECKS PASSED`.
 - Toolchain: `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` prints `2.5.4 1.18.1`, equal to `tests/requirements-ci.txt` (`numpy==2.5.4`, `scipy==1.18.1`) after `bash tools/audit/seat/cloud-setup.sh`; `--check` reads OK. CI stays the authority for goldens, and none was re-recorded here.
 
+- Repair round 4, at the head above: `node tests/card_browser.mjs` reads `P9 grid: 333 cells, 21308 text runs, 1040 box-intersecting pairs inked` (324 + 9 cells for the added `score_open_graded_pump` state across 3 viewports, 2 languages, light and dark -- rule: the grid's own cell count) and `ALL BROWSER CHECKS PASSED`, with no shared ink, AA contrast and no clipping. `score_open` now renders the reviewer's fixture (a graded house with two drivers, an ungraded pump with four bands and 7 freeze refusals, a Driving row with `cheap_hours`, `dear_hours`, `earlier_days`), and `score_open_graded_pump` a graded pump with `cop_shortfall`, so every new label string is rendered and measured, en and sv, light and dark, phone, tablet and desktop. Indicative only: CI's browser job decides.
+- `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh`: `MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, then `30 TEST SCRIPT(S) PASSED; 4 SCOPED OUT AND NOT RUN`, rc=0. `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`; no budget raised.
+
 ## Architecture score
 
 `python3 tools/audit/archscore/score.py --diff c3a279e3252a8b57bb00b5a677318cd4fe20387f`: `dS +0.0036 IMPROVES`, `coord_footprint 2381 -> 2375`; no other metric moves. An earlier cut of this branch read `shared_inplace_writes 3 -> 4` (a collaborator writing into the coordinator's day book) and `coord_footprint 2381 -> 2390` (every `driving_grade` function was handed the coordinator); `tally` now returns a new book and only `held()` sees the coordinator.
 
 ## Red checks
 
-The final head has no check run yet: it is a new commit that no PR has had CI on. The concluded reds of the PR's last head b1406090, over both check-run pages (87 runs, the latest of each name), and what each means for this head:
+This head has no check run yet (a new commit, no PR run has reached it). The concluded reds the PR's current head 49608a692 (a `ci: merge main` bot commit over 25e478a7), over all 70 check runs of both pages, and what each means here:
 
-- `tests / fast (3.14)`: `tests/entities.py` refused the selection-cost note in `tests/deployment_shape.py`; repaired in 1017865a, and `PYTHONPATH=tests/hastub python3 tests/entities.py` passes in this head's scoped gate (`ALL 2622 ENTITY CHECKS PASSED`).
-- `tests / mutation` (3239 unpinned sites against the ratchet base): `PYTHONPATH=tests/hastub python3 tests/mutation_table.py --pin-killed --base origin/main` at the first merge reads `PIN KILLED: nothing to pin` (0 new unpinned sites; 3170 unpinned of 6784 against 3174 at the base), the killed_by rows being in this diff.
-- `pr-contract / pr-contract` and `gate`: followed `tests / mutation`; not independent.
-- `tests / nightly-status`: grades `main`, not this diff (`defect-root-cause.md`). Inherited, red on the base's ancestry; this diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`.
-- `tests / replay` (`synthetic-dhw-only.json cycle_cost cpu_ratio`): runner noise on the budget, inherited, #3174 re-centres it; this diff adds only score publishing.
-- `tests / mutation-autofix`: skipped on a bot head; its survivors were the 2 sites pinned in 1017865a.
-- `codeql / Analyze (python)` and `tests / closures`: success.
+- `tests / closures`: `prepr.sh` step 7 reads it as red at the PR head, and the run list I read afterwards shows it `success` in run 41991584454 and `in_progress` in 41991540101 (the bot's re-attempt after its closure re-record). I could not read a concluded log of the red attempt, so I do not state its cause; the diff carries no closure-affecting file beyond `tests/card.mjs` and `tests/card_browser.mjs`, and `tests/closures.json` was merged by the ledger driver from the PR head. Cheaper detector: `python3 tests/closure.py select` (the scoped gate) ran green here at this head; the standing cost is the CI re-derivation `closures-autofix` repairs on Linux, which a seat may not run off Linux (`gate-scoping.md`).
+- `governance / delivery-status`: `DELIVERY STATUS OVERDUE`, all rows of other merged PRs (#3174, #3091, #3089, #3192, ...). Inherited: red on the base's ancestry (main e57dfbbe0 (79f765e6b at the PR head's merge)), a job that states it is not a required context. This diff writes no delivery row.
+- `tests / nightly-status`: grades `main`, not this diff (`defect-root-cause.md`). Inherited: red on the base's ancestry, main 79f765e6b, check `tests / nightly-status`; the log says it is not a required context. This diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`.
+- `gate` (06:18Z and 06:19Z at the earlier head 25e478a7): cancelled when a PR-edit run cancelled the code run; the re-attempt concluded green. Not a defect.
 
-Verified locally at this head: `GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh` (`MODE: SCOPED -- 28 script(s) run, 5 scoped out.`, rc=0, including `env_drift.py`, `golden.py`, `features.py`, `card.mjs`); `bash tools/pr/prepr.sh` rc=0 after the second merge, with main unmoved since (6125b263d at `git fetch`, 2026-11-05). Toolchain numpy 2.5.4, scipy 1.18.1, equal to `tests/requirements-ci.txt`; CI remains the authority for goldens.
-
-## Unpinned sites`. Cheaper detector: `prepr.sh` step 6d lists the unpinned sites a committed diff adds; it exists and runs locally, and `mutation_table.py --pin-killed` is the repair, so no new countermeasure is owed.
-- `pr-contract / pr-contract` and `gate`: red because the body at that head listed 32 sites as pinned by `mutation-autofix` while the autofix lane had been skipped on the bot-authored head (`tests / mutation-autofix` conclusion `failure` in the earlier run, `skipped` in the latest); both read the unpinned count and follow `tests / mutation`, so they close with it. Not independent reds.
-- `tests / nightly-status` (earlier run, failure; `skipped` in the latest): grades `main`, not this diff (`defect-root-cause.md`); this diff touches none of `ci.yml`, `tests.yml`, `nightly.yml`, `governance.yml`, the plan or `HANDOVER.md`. Main-inherited.
-- `tests / replay` (`synthetic-dhw-only.json cycle_cost cpu_ratio 2.384 over its budget 2.173`, red in an earlier run, `skipped`/`success` in the latest): runner noise, inherited; #3174 re-centres the budget and is open. Not caused by this diff's code: `synthetic-dhw-only` runs the optimizer cycle and this diff adds only score publishing.
-- `codeql / Analyze (python)`: `success` in both runs at this head (completed 2026-11-05T00:03Z and 00:20Z); the cancelled run named in the dispatch brief was an earlier infrastructure cancellation, superseded.
-- `tests / closures`: `success` in both runs.
-
-`tests / mutation-autofix` (earlier run, failure at 01:05Z): it named the survivors it could not pin; they are the 2 sites below, now killed.
+Every earlier red of the earlier heads (`tests / fast (3.14)`, `tests / mutation`, `pr-contract`, `tests / replay`, `tests / mutation-autofix`) concluded green at 25e478a7; none is open on this page. The finding of the fix review (the section's spliced fragment) is repaired by this retake.
 
 ## Unpinned sites
 
