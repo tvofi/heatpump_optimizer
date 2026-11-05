@@ -533,9 +533,9 @@ def _role_claims(entry: Json, conf: frozenset[str] | None) -> Iterable[tuple[obj
             if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):
                 continue
             if conf is not None:
-                value = _entry_shape(str(key), value)  # the one predicate ``sanitise`` applies
-                if value is _DROP:
-                    continue
+                # the one predicate ``sanitise`` applies; a _DROP it returns is no str,
+                # so the consumer's id test passes it over
+                value = _entry_shape(str(key), value)
             role = re.sub(r"_entit(y|ies)$", "", str(key))
             if not isinstance(value, list):
                 yield value, role
