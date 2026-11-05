@@ -1,2 +1,0 @@
-P1-no-merged-steps | 504 passed, 0 failed 
-P2-no-dirty-check |   FAIL receipt: a dirty tree writes none (got b0e99a55500752467424cbb8cde225fde8103c70 7b648a915fab03cd58f9b58d9e7b41998a5e866d, wanted ) 503 passed, 1 failed 

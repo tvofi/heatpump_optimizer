@@ -1,5 +1,0 @@
-P3-no-early-rm | 504 passed, 0 failed 
-P4-skipcode-writes |   FAIL receipt: a PREPR_SKIP_CODE run (app_push --reuse) writes none (got 3e24444363507db0c51b8e381a12c39aca35c899 7b648a915fab03cd58f9b58d9e7b41998a5e866d, wanted ) 503 passed, 1 failed 
-P5-no-rc-check |   FAIL receipt: a refused run writes none (got 2dffcbd48bf85cdaeef5f056b9445ee5a88c80d3 7b648a915fab03cd58f9b58d9e7b41998a5e866d, wanted ) 503 passed, 1 failed 
-P6-trailer-any-sha | 504 passed, 0 failed 
-P7-predict-not-merged |   FAIL (e) under PREPR_SKIP_CODE a ci predict red on the merged main is refused (got 0, wanted 1)   FAIL and passes once main is green again (the (e) arm's null control) (got 0, wanted 1) 502 passed, 2 failed 

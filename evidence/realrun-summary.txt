@@ -1,6 +1,0 @@
-start HEAD=794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 02:20:08
-mid-run commit 397d7e3933d0f43229065cd0515954158ed4b434 02:23:08
-prepr rc=1 end 02:23:08
-PRE-PR: 794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 001 rc=1; full log: /tmp/prepr-log.ATSYEngj (PREPR_VERBOSE=1 prints it on stdout)
-receipt file: none
-measured start HEAD=794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 ; HEAD now=397d7e3933d0f43229065cd0515954158ed4b434

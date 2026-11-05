@@ -1,5 +1,0 @@
-  ok   body_push: a receipt whose tree is not the head's gives none
-  ok   (a) a PREPR_SKIP_CODE run takes no heavy slot and drops the code-keyed steps
-
-504 passed, 0 failed
-rc=0

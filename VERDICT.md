@@ -1,64 +1,73 @@
-Fix review: blocked 794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 mutation-vacuous: merged_steps call in prepr.sh main flow deleted, prepr self-test 504 passed 0 failed
+Fix review: blocked 20d5aab00a01cb3bf3738e1e78a13273089bc523 root-cause-detectable: governance / instrument-self-tests
 
-bus-nonce: 33fa557d147d0c98b1e4a968418e7d0a
-
-Round: first fix review of #3221 (R10-HANDOFF-PATH part 1, P386), measured at head 794fe6a76d5d24cd10cf0756d1c1a8bf4b0fc957 from a detached worktree; the head was re-read at the end and had not moved.
+bus-nonce: 3b5bbd75cbe15952821ac03c940ad9fa
 
 ## Block
 
-Two defects. Each lets a receipt skip a check that the body says still runs.
+This is round 2, a delta round after the block of 794fe6a7.
 
-1. **mutation-vacuous: the call that runs the merged-tree checks is unpinned.** Delete the one main-flow line `merged_steps "${1:-}" "$UNPINNED_SITES"` in tools/pr/prepr.sh. `bash tools/pr/prepr.sh --self-test` still reads `504 passed, 0 failed` (ev/mutants-prepr.part1.txt, P1). Under `PREPR_SKIP_CODE` that line is the only ci predict and the only `tests/structure.py` on HEAD merged with main: step 6d's predict is behind `if [ -z "$REUSE" ]`. Without it, a reuse run checks neither, and no test notices. The self-test drives the `merged_steps` function directly (arms (d) and (e)). The `(a)` arm runs a real `PREPR_SKIP_CODE` prepr but asserts only that the code-keyed steps are absent, never that `merged structure` and `ci predict` are present. The body's own mutant edits inside the function, which is why it was killed. Repair: in the `(a)` arm's real run, assert that both `merged structure` and `ci predict` lines appear. Then the deleted call fails a check.
-2. **A receipt names the HEAD at the run's end, not the HEAD it measured.** `receipt_write` writes `git rev-parse HEAD` after the run, and nothing in the main flow pins the HEAD the run started on. Demonstrated end to end (ev/realrun2-summary.txt, ev/realrun2.sh):
-   - A real `PREPR_SKIP_CLOSURES=1 bash tools/pr/prepr.sh <body>` started at `1acf58eb7c1f` (02:32:46), with this PR's own handoff body.
-   - At 02:36:46 a commit of new code (`fba41aea801e`) landed in the worktree, and the body's `## Head` was pointed at it.
-   - The run ended `rc=0` and wrote `receipt fba41aea801e written`.
-   - `body_push.sh` would carry that receipt as `Prepr: fba41aea… <its tree>`, and `app_push.sh --reuse` would then drop the code-keyed steps for code that the steps run before 02:36 never saw.
-   
-   This is the brief's "head that moved after the receipt", moved during the run instead. The function-level form is ev/midrun-receipt.txt (ev/midrun.sh). Without the body edit, step 7's `## Head` check refuses, and so does the early `## Head` arm (ev/realrun-summary.txt). So the hole needs code and body to change mid-run, which is a seat working while its prepr runs. Repair: capture `HEAD` (and its tree) where the main flow starts, and have `receipt_write` refuse when either differs at the end. Add a self-test row for it.
+1. **The diff turns `governance / instrument-self-tests` red, and the body does not name it.** The failing step is `bash tools/audit/seat/pr_args.sh --self-test`, which the job runs for open_pr.sh, pr_args.sh and update_pr.sh. It gives `pr_args self-test: 172 checks, 19 failed` in CI (job 127067016573). I reproduced the same 19 FAIL rows locally at 20d5aab0 (rc=1, 287 s). At base 8364e624 it gives `172 checks, 0 failed` (rc=0, 209 s), and the base commit's own `instrument-self-tests` run is green (127049851918).
+   - The failing rows are the ones keyed to the push flags this diff changes in open_pr.sh and update_pr.sh, for example:
+     - `open_pr: its row push passes --row-only, and its code push does not`
+     - `null control: a new code sha is merged and pushed through the full prepr, main still unmerged`
+     - `null control: a code sha the head lacks is merged and never asks for --row-only, so its push runs the full prepr`
+     - the `mut:oprowonly`, `mut:rowclose`, `mut:oplock` and `mut:bodyonly` mutant rows.
+   - The code push now passes `--reuse` (open_pr.sh p1, and update_pr.sh `RO=--reuse`), and pr_args.sh's fixtures were not updated for it. The diff edits open_pr.sh and update_pr.sh without running their own self-test: the body's Figures name only prepr.sh and app_push.sh.
+   - `## Red checks` says `none` and describes acd20e42, not the PR head. `pr-contract` refuses it (127078917945, started 05:58, after instrument-self-tests concluded at 05:52): ``check `governance / instrument-self-tests` is red and `## Red checks` does not name it``.
+   - A cheaper detector existed before the handoff: `bash tools/audit/seat/pr_args.sh --self-test`, about 5 min locally, run on the two edited seat scripts. That makes this `root-cause-detectable`.
+   - The repair is to update pr_args.sh's fixtures to the new `--reuse` contract, or fix the wiring they catch, keep both null controls meaningful, and answer the red in the body.
+
+2. **mutation-vacuous on reuse_verdict's condition (e).** The mutant replaces `[ "$n" = 0 ] ||` with `true ||` on tools/pr/app_push.sh line 313. It survives `app_push.sh --self-test` (`225 checks, 0 failed`) and all 15 rows of my planted-receipt harness.
+   - (e) is load-bearing. In my plant F9, HEAD is the clean merge of C and main plus two commits that net to no tree change. At the head (e) refuses it: `HEAD carries 2 commit(s) beyond code ...`. Under the mutant it is REUSED (`ev/plant_F9.*`).
+   - The body justifies dropping `agreement lane` by "the only new [first-parent subjects] are the open's or update's automatic merge and the row", which only (e) enforces. A surviving (e) therefore lets a reuse skip a check on subjects the body says cannot exist. (d) does not cover this, because the tree is identical.
+   - The repair is one real-git row, with F9's shape, in app_push.sh's reuse block.
 
 ## Findings
 
-- Follow-up: surviving mutant: in `reuse_verdict`, remove the first-parent-chain check of (c) (`rev-list --first-parent … | grep -x "$mb"` replaced by `true`). `app_push.sh --self-test` stays at `219 checks, 0 failed`; only this reviewer's planted R6 (HEAD holds a main commit off main's first-parent chain) kills it (ev/mutants-app_push.txt, M2b). Carry: R10-HANDOFF-PATH
-- Follow-up: surviving mutant: the trailer-count test `= 1` relaxed to `-ge 1`. The self-test stays at 219/0; only planted R7 (two `Prepr:` trailers) kills it (M5). Carry: R10-HANDOFF-PATH
-- Follow-up: surviving mutant: under `--reuse`, `row_only_checks` after prepr removed (`[ "$reused" = 0 ] || row_only_checks` replaced by `true || …`). The self-test stays at 219/0 (M6). The live-title body contract and carry check the header promises under reuse are unpinned. Carry: R10-HANDOFF-PATH
-- Follow-up: surviving mutant: the main flow's early `rm -f "$(receipt_file)"` removed. The self-test stays at 504/0 (P3). The body's claim that "a failing run leaves none" is unpinned; the `--body-check` row deletes the receipt itself before it runs. Carry: R10-HANDOFF-PATH
-- Follow-up: surviving mutant: in body_push.sh `prepr_trailer`, the sha comparison `[ "$s" = "$2" ]` weakened to `[ -n "$s" ]`. The self-test stays at 504/0 (P6), because the tree comparison masks it in the only row. Downstream, `reuse_verdict`'s is-ancestor and tree-diff arms would still refuse a mismatched sha, so this is a test gap, not a hole. Carry: R10-HANDOFF-PATH
-- Out of scope: the receipt is an unsigned self-attestation. A hand-written `Prepr: <C> <tree(C)>` trailer on handoff-body/<topic>, with no prepr run behind it, is accepted (planted R8 → REUSE). Likewise a seat may set `PREPR_SKIP_CODE` by hand. Carry: dismissed: P386 rules that the fixer's prepr is trusted; the body says so under Alternatives; CI gates the merged head, and PREPR_SKIP_* knobs were already seat-settable
+- The diff breaks pr_args.sh's self-test (19 of 172 rows), so instrument-self-tests is red on 20d5aab0. Carry: R10-HANDOFF-PATH
+- `## Red checks` does not answer the red instrument-self-tests at the PR head, and pr-contract refuses the body. Carry: R10-HANDOFF-PATH
+- Surviving mutant on reuse_verdict (e) (app_push.sh:313 `[ "$n" = 0 ] ||` -> `true ||`). No row pins the tree-neutral extra-commit case. Carry: R10-HANDOFF-PATH
+- Surviving mutant A6 (app_push.sh:564 `if [ "$reused" = 1 ]` -> `if true`). Carry: dismissed: equivalent mutant -- RV_C is set only on a reusing verdict, so the export is PREPR_SKIP_CODE="" and REUSE stays empty
 
 ## Evidence
 
-- RESULT: `bash tools/pr/app_push.sh --self-test` at the head: `app_push self-test: 219 checks, 0 failed` (ev/app_push-selftest.txt). Matches the body.
-- RESULT: `bash tools/pr/prepr.sh --self-test` at the head: `504 passed, 0 failed` (ev/prepr-selftest.tail.txt). Matches the body.
-- RESULT: the body's two mutants re-checked in kind:
-  - M3, the tree-diff arm (d) removed: self-test 2 failed. M7, the verdict forced to reuse: 3 failed.
-  - P7, ci predict never run in `merged_steps`: 2 failed. P2, the dirty check removed: 1 failed. P4, `PREPR_SKIP_CODE` writes a receipt: 1 failed. P5, the rc check removed: 1 failed.
-  - All killed. All mutants were restored, and `git status --short` was empty after each batch.
-- RESULT: equivalent mutants. M1 (the is-ancestor check of (c) removed) and M4 (the commit count of (e) removed) survive both the self-test and the planted harness. Read as subsumed: when C is not in HEAD, or HEAD carries extra commits, either the tree diff (d) differs, or the trees are identical and reuse is sound.
-- RESULT: planted receipts, this reviewer's own harness (ev/plant.sh) against the production `reuse_verdict` extracted from the head (ev/planted-receipts.txt). Each verdict is as expected:
-  - null genuine receipt → REUSE
-  - R1, a trailer naming a sibling head with its own matching tree → FULL
-  - R2, the head moved after the receipt (a new commit, then main merged) → FULL
-  - R3, the code rebased onto a new base with the old-base receipt kept → FULL
-  - R4, a forged tree → FULL
-  - R5, an evil merge carrying extra content → FULL
-  - R6, an off-first-parent main commit → FULL
-  - R7, two trailers → FULL
-  - R8, an unbacked hand trailer → REUSE (the trust boundary, Findings)
-- RESULT: no weakening for a PR with no receipt. With no trailer, every arm falls to the full prepr with no `PREPR_SKIP_CODE`. This is the stub run in the self-test and planted R1/R4/R7. update_pr.sh's former empty `RO` becomes `--reuse`, which falls back to the full prepr. In a full run, `merged_steps` adds `tests/structure.py` on the merged tree, so it only adds checks. Every `take_slot` call (lines 4155, 4209, 4278, 4358, 4401) sits inside a `REUSE`-skipped group or the `elif` closures arm, and no function defined in a skipped group is called after it.
-- RESULT: the merge resolution kept both sides. `git diff origin/main 794fe6a7 -- tools/pr/prepr.sh` removes only the moved `PREPR_RECORDER_CACHE` lines, which are re-added before the gate. Main's `8f6f0ea2f`, `18481fd52` and `1584530f3` (lazy `take_slot`, `closures_owes_slot` fixture, early `## Head` arm) are intact.
-- RESULT: merge with main is clean. `git merge-tree --write-tree origin/main <head>` gives rc=0 at main 499162c8, and again at main 7c274274 after main moved (ev/merge-tree.txt). No claim file is in conflict.
-- RESULT: figures re-derived at the head (ev/figures.txt):
-  - `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`
-  - `STRUCTURE RATCHET PASSED`
-  - The three-dot diff of the claim files, VERSION and RELEASE_NOTES.md is empty, and no manifest is touched.
-  - The handoff body's trailer `Prepr: 1acf58eb… 09585b95…` matches `1acf58eb^{tree}`.
-  - Not re-derived: the body's 27 s kept-step wall time, measured at 91a75ed8.
-- RESULT: the body carries all seven template headings of .github/PULL_REQUEST_TEMPLATE.md.
-- CI at this head: `merge_train.py classify` exit 1, `RED 794fe6a7… pending: none red: gate` (ev/classify-final.txt).
-  - The red `gate` is `cancelled`, not failed: job 127007801588 in run 41953678981, cancelled at 02:24:51 alongside that run's prelude and cancel-superseded. `pr-contract` was skipped in the same run.
-  - The other workflow run (41952980694) has `tests / mutation`, `arch-score`, `closure-scope`, `policy-docs`, `wave-script`, `budget-raise-gate`, hassfest, validate-hacs and two codeql analyses green.
-  - `governance / delivery-status` is red on OVERDUE rows #3089 and #3192 only (not this PR's row; not a required context). `tests / nightly-status` is red; its inputs are not reached by this diff.
-  - This head has no completed gate, so the body's `## Red checks: none` could not be checked against a finished gate run.
-- Real-run 1 (ev/realrun-summary.txt) refused on the early `## Head` arm before any mid-run commit, because the handoff body names the code head `1acf58eb`, not the row head `794fe6a7`. It was inconclusive for block 2 and was re-run at `1acf58eb` as real-run 2.
-- Process: a container restart interrupted real-run 2 and the mutants P3–P7, and both were re-run from scratch. handoff-wip was not pushed, because the seat's instructions allow only the probe ref.
+- Head measured: 20d5aab00a01cb3bf3738e1e78a13273089bc523 (ev/HEAD.txt). It merges 794fe6a7 with acd20e42, and its tree equals acd20e42's tree (`git diff --stat 20d5aab0 acd20e42` is empty). The code delta since the blocked head is 7ad8eff5 and d30e0846; the other commits are clean merges of main (remerge-diff is empty for 1acf58eb, c058f0d9, e830261a, acd20e42 and 20d5aab0).
+- Roles diff `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the contract read is current.
+- Merge with main: `git merge-tree --write-tree origin/main 20d5aab0` (origin/main 6125b263) exits 0 with tree 894471d4, a clean merge.
+- Resolution 6e652a3e (the conflict in tools/pr/prepr.sh) kept both sides. `git diff c0b082bc 6e652a3e -- tools/pr/prepr.sh` has the same +/- line set as `git diff af941ad4 91a75ed8 -- tools/pr/prepr.sh` (SAME-CHANGESET), so the resolution is main plus exactly the branch's own changeset. Main's step 1a3, the lazy take_slot and the closures_owes_slot fixture are kept (ev/resolution_6e652a3e.remerge.diff, ev/branchside.diff, ev/afterres.diff).
+- The previous round's mutant P1 is KILLED. It deletes the main flow's `merged_steps "${1:-}" "$UNPINNED_SITES"` line (ev/mutant_P1.diff). Under it, `prepr.sh --self-test` gives `508 passed, 1 failed` with `FAIL (a) and runs tests/structure.py and ci predict on HEAD merged with main, once each (got 00, wanted 11)` (ev/prepr_selftest.mutant_P1.log). Null control: unmutated, `509 passed, 0 failed` (ev/prepr_selftest.head.log).
+- `app_push.sh --self-test` at the head gives `225 checks, 0 failed` (ev/app_push_selftest.head.log). The body's 509 and 225 are re-derived.
+- My mutants on reuse_verdict (ev/app_mutants.sh, ev/app_mutants.txt): A1 (b) tree check is killed by the self-test and by plant F1b. A2 (c) ancestor check is killed. A3 (c) clean merge is killed. A4 (d) tree equality is killed by 2 rows. A5 (e) SURVIVES. A6 is equivalent.
+- Planted receipts (ev/plant_rv.sh, my own harness against the production reuse_verdict). The 15 rows are:
+  - nulls: an open (NULL) and an update over the live head (NULL2), both reused;
+  - F1 a trailer naming another head;
+  - F1b HEAD's sha with C's tree;
+  - F2 an extra code commit after the receipt;
+  - F2b new code below the merge;
+  - F3 a receipt from a different base (patch re-cut on main);
+  - F3b the old-base sha with the new tree;
+  - F4 an evil merge;
+  - F5a to F5c malformed trailers;
+  - F6 the receipt on a non-tip commit;
+  - F7 a row commit plus another file;
+  - F8 another PR's row.
+
+  All 15 PASS at 20d5aab0 and at 794fe6a7 (ev/plant_rv.head.txt, ev/plant_rv.794fe6a7.txt). Every forged or stale receipt is refused fail-closed.
+- A receipt never skips the merged-tree checks. `merged_steps` runs outside every REUSE block, and P1 shows that the self-test pins the call.
+- No weakening for a PR without a receipt. With PREPR_SKIP_CODE empty, every new `if [ -n "$REUSE" ]` block takes its else branch, which holds the original steps. The only removed lines in tools/ are moved or split lines (the recorder cache moved up; `rm -f "$COPY_PATHS"` split from the cache removal). Full runs gain `merged structure`. update_pr.sh's `--reuse` on a failing verdict runs the full prepr. `bash -n` passes on all five scripts.
+- Figures at the head (ev/figures.txt): `STRUCTURE RATCHET PASSED`; `MODE: SCOPED -- 0 script(s) run, 33 scoped out.`; claims, VERSION, notes and manifest untouched (rc=0).
+- The body has all 7 template headings (Head, Mutation proof, Null control, Figures, Red checks, Forward-carry, Friction).
+- CI: `merge_train.py classify` final `RED 20d5aab0... pending: none red: gate` (ev/classify.log, ev/classify.out). These are the head's non-green runs (ev/nongreen_checks.txt):
+  - gate x3 and pr-contract x3, failing on the body's red-checks answer;
+  - instrument-self-tests, caused by the diff (Block 1);
+  - delivery-status, whose OVERDUE rows are #3174, #3091, #3089 and #3192, not this PR's open row;
+  - nightly-status, which this diff does not reach.
+
+  Neither delivery-status nor nightly-status is this PR's (fix-review.md 11).
+- I did not re-take the body's kept-step wall time under PREPR_SKIP_CODE (27 s); the body also says it was not re-taken.
+
+## Friction
+
+- The brief says to pass `--reviewed-head 794fe6a7...` to review_packet.py render, but at this tree it has no such option (`unrecognized arguments`). I rendered without it; the delta was reviewed by hand from 794fe6a7.
+- The brief's "push handoff-wip at each milestone" conflicts with "push nothing else" and "never write to any branch except your return refs". I pushed only the probe ref.
+- The frugal routing hook refused inline file reads mid-review, so the template heading check went through a scout agent.
