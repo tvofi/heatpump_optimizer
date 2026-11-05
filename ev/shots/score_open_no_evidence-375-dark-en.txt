@@ -1,0 +1,63 @@
+Heat pump plan
+Heating now
+Price now
+0.95SEK/kWh
+Planned heating
+41.5kWh
+Plan cost
+31.06SEK
+Projected savings
+12.34 SEK (8%)
+vs. unoptimized heating
+Optimization score
+82/100
+House
+62/100
+learned heat loss vs configured +15
+House: the envelope's heat loss in W/K, corrected for thermal mass, against what is typical for the configured house type and building era. 50 is typical for that type and era; above is tighter, below leakier. Never 0 — that is only for no data.
+Heat pump
+— Not enough COP data yet to watch the heat pump.
+no COP samples yet
+Heat pump: the measured COP — heat delivered per kWh of electricity — in each 3 °C outdoor band, against the pump's own history in that band. 100 is matching its history; each point below is a lasting COP shortfall (see the COP health diagnostics). A band is watched once it holds 20 samples; no grade yet means no band does — not a zero.
+Driving
+60/100
+energy bought below the day's mean price +70
+Driving: whether the plan buys at the cheap hours. Each day's energy is priced against that day's flat mean spot price — buying 20% below flat scores 100, at or above flat scores 0 — and the grade averages recent days. No grade means no priced day scored yet — not a zero.
+Most heating is placed in the cheapest hours.
+Electricity price
+DHW heating
+Space heating
+Actioned power
+Outdoor temperature
+DHW tank temperature
+House temperature
+Solar irradiance
+
+Dashed: the model's expected error, which widens further ahead. Absent until there is enough history.
+
+−
++
+↺
+08:00 AM
+12:00 PM
+04:00 PM
+08:00 PM
+12:00 AM
+04:00 AM
+0
+2
+SEK/kWh
+0
+2
+4
+6
+kW
+-20
+0
+20
+40
+60
+°C
+now
+Hot water
+Heating
