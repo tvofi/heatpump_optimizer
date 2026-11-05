@@ -52,7 +52,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-GATE-STALE-JOBS (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SAV-ESTIMATE (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-SAV-WOOD-MEASURED (stage absorbed): no branch pushed yet, so nothing to fetch
-- R10-FLY-REPLAY-MASK (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-FLY-REPLAY-MASK (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RCA-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-ARCHSCORE-STMT-PACKING (stage in-progress): no branch pushed yet, so nothing to fetch
 
