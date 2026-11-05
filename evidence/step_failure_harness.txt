@@ -1,0 +1,5 @@
+gather_rc=0 runs_rc=0 -> step rc=0 
+gather_rc=3 runs_rc=0 -> step rc=1 
+gather_rc=0 runs_rc=4 -> step rc=1 
+gather_rc=5 runs_rc=6 -> step rc=1 
+mutant(no wait) gather=0 runs=4 -> rc=0 (real step rc=1: mutant survives harness? killed if rc!=0)
