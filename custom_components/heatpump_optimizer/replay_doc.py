@@ -524,20 +524,22 @@ def state_rows(records: Iterable[tuple[Any, Any, Any, Any]]) -> list[list[Any]]:
 
 def _role_claims(entry: Json, conf: frozenset[str] | None) -> Iterable[tuple[object, str]]:
     """``(value, role)`` for every entry value that may name an id, options before
-    data, keys in order: with ``conf`` only the keys ``sanitise`` keeps, and a
-    list counting only its ids, so the roles agree with those ``_unmasked``
+    data, keys in order: with ``conf`` only the keys ``sanitise`` keeps, each
+    through ``_entry_shape`` as ``sanitise`` shapes it, so the roles agree with those ``_unmasked``
     re-derives from the sanitised entry, where a dropped key or item is gone."""
     for section in ("options", "data"):
         block = entry.get(section)
         for key, value in sorted(block.items() if isinstance(block, dict) else ()):
             if conf is not None and (key not in conf or SECRET_KEY.search(str(key))):
                 continue
+            if conf is not None:
+                value = _entry_shape(str(key), value)  # the one predicate ``sanitise`` applies
+                if value is _DROP:
+                    continue
             role = re.sub(r"_entit(y|ies)$", "", str(key))
             if not isinstance(value, list):
                 yield value, role
                 continue
-            if conf is not None:
-                value = [v for v in value if isinstance(v, str) and ENTITY_ID.match(v)]
             for i, item in enumerate(value, start=1):
                 yield item, f"{role}_n{i}"
 
