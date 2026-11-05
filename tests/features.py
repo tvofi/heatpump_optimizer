@@ -41556,15 +41556,28 @@ import time as _wt_time  # noqa: E402
 
 _wt_timeout_cls = getattr(_g511_coord, "ProcessWorkerTimeout", None)
 _wt_saved = (_g511_coord.PROCESS_REPLY_TIMEOUT_S, _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S)
-_g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
 try:
+    # Spawns and first imports run under the real deadline: only the
+    # measured call gets the short one, so a slow host cannot fail a check
+    # by starting a worker.
     _wt_pid_before = _g511_coord._run_in_process(_os.getpid, ())
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+    # Null control first, on the warm worker: a reply inside the deadline is
+    # untouched by it.
+    _wt_ok_err, _wt_ok_out = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (0.05,))
+    _wt_ok_pid = _g511_coord._run_in_process(_os.getpid, ())
+    R.check(
+        "null control: a job that answers in time returns and keeps its worker",
+        _wt_ok_err is None and _wt_ok_out is None and _wt_ok_pid == _wt_pid_before,
+        f"raised {_wt_ok_err!r}; pid {_wt_pid_before} -> {_wt_ok_pid}",
+    )
     _wt_t0 = _wt_time.monotonic()
     _wt_err, _wt_out = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (30,))
     _wt_elapsed = _wt_time.monotonic() - _wt_t0
     _wt_lock_free = _g511_coord._PROCESS_LOCK.acquire(blocking=False)
     if _wt_lock_free:
         _g511_coord._PROCESS_LOCK.release()
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
     _wt_pid_after = _g511_coord._run_in_process(_os.getpid, ())
     R.check(
         "a worker that gives no reply within the deadline raises ProcessWorkerTimeout",
@@ -41577,17 +41590,20 @@ try:
         _wt_lock_free and _wt_pid_after not in (_wt_pid_before, _g3_parent),
         f"lock_free={_wt_lock_free} before={_wt_pid_before} after={_wt_pid_after}",
     )
-    # Null control: a reply inside the deadline is untouched by it.
-    _wt_ok_err, _wt_ok_out = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (0.05,))
-    _wt_ok_pid = _g511_coord._run_in_process(_os.getpid, ())
-    R.check(
-        "null control: a job that answers in time returns and keeps its worker",
-        _wt_ok_err is None and _wt_ok_out is None and _wt_ok_pid == _wt_pid_after,
-        f"raised {_wt_ok_err!r}; pid {_wt_pid_after} -> {_wt_ok_pid}",
-    )
 
     # ``_await_optimize`` must not rerun the timed-out job in process: the
-    # same job would hold an executor thread just as long.
+    # same job would hold an executor thread just as long. Warm the child's
+    # imports of the harness under the real deadline first.
+    _g524_solve(_g524_harness.SleepyOptimizer(0))
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = 5.0
+    _wt_fast_err, _wt_fast_plan, _wt_fast_hass, _ = _g524_solve(_g524_harness.SleepyOptimizer(0.05))
+    R.check(
+        "null control: a solve inside the deadline returns its plan through the worker",
+        _wt_fast_err is None and isinstance(_wt_fast_plan, tuple)
+        and _wt_fast_plan[0] == "slept" and _wt_fast_plan[1] != _g3_parent
+        and _wt_fast_hass.jobs == [_g511_coord._run_in_process],
+        f"raised {_wt_fast_err!r}; returned {_wt_fast_plan!r}",
+    )
     _wt_raised, _wt_plan, _wt_hass, _wt_warned = _g524_solve(_g524_harness.SleepyOptimizer(30))
     R.check(
         "_await_optimize keeps the last plan on a timeout: translated UpdateFailed, no in-process solve",
@@ -41599,14 +41615,7 @@ try:
         f"raised {_wt_raised!r}; returned {_wt_plan!r}; jobs={_wt_hass.jobs!r} "
         f"issues={_wt_hass.issues!r}",
     )
-    _wt_fast_err, _wt_fast_plan, _wt_fast_hass, _ = _g524_solve(_g524_harness.SleepyOptimizer(0.05))
-    R.check(
-        "null control: a solve inside the deadline returns its plan through the worker",
-        _wt_fast_err is None and isinstance(_wt_fast_plan, tuple)
-        and _wt_fast_plan[0] == "slept" and _wt_fast_plan[1] != _g3_parent
-        and _wt_fast_hass.jobs == [_g511_coord._run_in_process],
-        f"raised {_wt_fast_err!r}; returned {_wt_fast_plan!r}",
-    )
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
 
     # The stop path: a lock held past the kill must not hold the stop.
     _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S = 0.2
