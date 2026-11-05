@@ -1,0 +1,5 @@
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+
+card_drift: 1 state(s) moved and claimed, 44 identical

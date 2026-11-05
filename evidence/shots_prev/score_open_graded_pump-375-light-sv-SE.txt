@@ -1,0 +1,66 @@
+Värmepumpsplan
+Värmer nu
+Pris nu
+0.95SEK/kWh
+Planerad uppvärmning
+41.5kWh
+Plankostnad
+31.06SEK
+Beräknad besparing
+12.34 SEK (8 %)
+jämfört med ooptimerad drift
+Optimeringsbetyg
+74/100
+Huset
+62/100
+inlärd värmeförlust mot inställd +15
+Huset: klimatskalets värmeförlust i W/K, korrigerad för värmetröghet, mot det typiska för den inställda hustypen och byggperioden. 50 är typiskt för den typen och perioden; över är tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.
+Värmepumpen
+60/100
+COP under sin egen historik −40
+Värmepumpen: uppmätt COP — levererad värme per kWh el — i varje utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är som historiken; varje poäng under är ett bestående COP-underskott (se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; inget betyg ännu betyder att inget band har det — inte noll.
+Körningen
+80/100
+energi köpt under dagens medelpris +30
+Körningen: om planen köper på de billiga timmarna. Varje dags energi prissätts mot dagens platta medelspotpris — 20 % under platt ger 100, på eller över platt ger 0 — och betyget är ett medel av de senaste dagarna. Inget betyg betyder att ingen dag med pris bedömts ännu — inte noll.
+Most heating is placed in the cheapest hours.
+Elpris
+Varmvattenberedning
+Uppvärmning
+Utförd effekt
+Utetemperatur
+Varmvattentankens temperatur
+Innetemperatur
+Solinstrålning
+
+Streckat: modellens förväntade fel, som växer längre fram i tiden. Visas först när det finns tillräckligt med historik.
+
+−
++
+↺
+06:00
+09:00
+12:00
+15:00
+18:00
+21:00
+00:00
+03:00
+06:00
+0
+2
+SEK/kWh
+0
+2
+4
+6
+kW
+-20
+0
+20
+40
+60
+°C
+nu
+Varmvatten
+Värme

@@ -1,42 +1,42 @@
 # Review packet #3198
-head: d0423d4f296a9b990a33cc8ce0065df02fa85ce3
-base: cd0dd16910898553bb85a95bf718840b131b1a82
+head: 91822840c47600724d9ec14b95f8c80ccfc364ae
+base: b707d89329c746c870d07e0b1725e644874078dc
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=127180655494 neutral
-arch-score / arch-score id=127180119241 success
-arm id=127179855828 skipped
-budget-raise-gate / budget-raise-gate id=127180119499 success
-cancel-superseded id=127179857727 success
-codeql / Analyze (actions) id=127180119653 success
-codeql / Analyze (javascript-typescript) id=127180119545 success
-codeql / Analyze (python) id=127180119509 in_progress
-governance / delivery-status id=127180119691 failure
-governance / delivery-status-publish id=127180121342 skipped
-governance / env-matrix id=127180119342 in_progress
-governance / instrument-self-tests id=127180119414 in_progress
-governance / policy-docs id=127180119507 success
-governance / record id=127180122096 skipped
-governance / wave-script id=127180119357 success
-hassfest / hassfest id=127180119406 success
-kernel-points id=127180121421 skipped
-prelude id=127179857917 in_progress
-refresh id=127179857805 success
-tests / arch-instrument id=127180766949 success
-tests / briefs id=127180119434 success
-tests / browser id=127180767164 in_progress
-tests / closure-scope id=127180119441 success
-tests / closures id=127180767086 in_progress
-tests / coverage id=127180767207 in_progress
-tests / fast (3.14) id=127180767052 in_progress
-tests / mutation id=127180119390 in_progress
-tests / nightly-ha id=127180769233 skipped
-tests / nightly-status id=127180119459 failure
-tests / replay id=127180767210 in_progress
-tests / typing id=127180767436 success
-validate / validate-hacs id=127180119396 success
+CodeQL id=127279489714 neutral
+arch-score / arch-score id=127279057791 success
+arm id=127278759400 skipped
+budget-raise-gate / budget-raise-gate id=127279057770 success
+cancel-superseded id=127279612371 success
+codeql / Analyze (actions) id=127279058032 success
+codeql / Analyze (javascript-typescript) id=127279057826 success
+codeql / Analyze (python) id=127279057901 in_progress
+governance / delivery-status id=127279057877 failure
+governance / delivery-status-publish id=127279060171 skipped
+governance / env-matrix id=127279057950 in_progress
+governance / instrument-self-tests id=127279057857 in_progress
+governance / policy-docs id=127279057944 success
+governance / record id=127279059761 skipped
+governance / wave-script id=127279057975 success
+hassfest / hassfest id=127279058029 success
+kernel-points id=127279059856 skipped
+prelude id=127279612790 in_progress
+refresh id=127279612819 success
+tests / arch-instrument id=127279302482 success
+tests / briefs id=127279057890 success
+tests / browser id=127279302358 success
+tests / closure-scope id=127279057828 success
+tests / closures id=127279302616 in_progress
+tests / coverage id=127279302263 in_progress
+tests / fast (3.14) id=127279302281 in_progress
+tests / mutation id=127279057852 in_progress
+tests / nightly-ha id=127279307198 skipped
+tests / nightly-status id=127279058189 failure
+tests / replay id=127279302536 in_progress
+tests / typing id=127279302285 success
+validate / validate-hacs id=127279057925 success
 
 ## Refusals
 none
@@ -45,7 +45,10 @@ none
 none
 
 ## carry_audit at the head
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+NOTE stale tree: b707d89329c746c870d07e0b1725e644874078dc lacks origin/main 8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc; roster read at origin/main
+NOTE body item 7c609975: R10-WHY-NOW-WIDGET
+NOTE body item 624432b1: dismissed:cosmetic; P9 overlap, clip and contrast pass, and a no-break space between number and unit is a card-wide copy convention, not this PR's
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
 ok         GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh
@@ -74,12 +77,20 @@ ok         GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/
              python3 runs an inline script rather than a file
   ok         bash tools/audit/seat/cloud-setup.sh
              `tools/audit/seat/cloud-setup.sh` is in the tree at this head
-  ok         node tests/card_browser.mjs
+  ok         PYTHONPATH=tests/hastub python3 tests/plan_view.py
+             `tests/plan_view.py` is in the tree at this head
+  ok         PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs
              `tests/card_browser.mjs` is in the tree at this head
-  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) bash tests/run.sh
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=0ae75bf3146566bffca4490464dcc8d6d45c29ab HPO_GATE_LOCK_LABEL=fixer ./tests/run.sh
              `tests/run.sh` is in the tree at this head
+  ok         tests/stress.py
+             `tests/stress.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         node tests/card_drift.mjs 0ae75bf3
+             `tests/card_drift.mjs` is in the tree at this head
 
-FIGURES: 14 resolved, 1 not verified, 0 refused
+FIGURES: 18 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -1340,15 +1351,15 @@ index bd09965b7..e91580e40 100644
    // each code the coordinator can publish for it -- the headline, the hover
    // and the breakdown say one number or one reason, never both and never a
 diff --git a/tests/card_browser.mjs b/tests/card_browser.mjs
-index 50c6ef82b..03db34616 100644
+index 50c6ef82b..6f452090d 100644
 --- a/tests/card_browser.mjs
 +++ b/tests/card_browser.mjs
-@@ -140,10 +140,20 @@ function gridStates(plan) {
+@@ -140,10 +140,39 @@ function gridStates(plan) {
    const statStates = () => ({
      "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
      "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
 -    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
-+    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 0 }] } },
++    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 2.4 }] } },
      "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
        lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
    });
@@ -1362,18 +1373,39 @@ index 50c6ef82b..03db34616 100644
 +      machine_drivers: [{ code: "cop_shortfall", points: -40.0 }], operation_drivers: [{ code: "cheap_hours", points: 30.4 }] } };
 +    return st;
 +  };
++  // The "typical" lines: a graded pump and a graded Driving row whose drivers
++  // all round to nothing read `driver_typical_machine` / `_operation`, and
++  // an ungraded pump with no band yet reads `evidence_empty`. Neither fits
++  // `statStates` (whose drivers move the grade), so each gets its own state.
++  const statStatesTypical = () => {
++    const st = statStates();
++    const id = "sensor.heat_pump_optimizer_optimization_score";
++    st[id] = { state: "70", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
++      machine_drivers: [], operation_drivers: [{ code: "cheap_hours", points: 0 }] } };
++    return st;
++  };
++  const statStatesNoEvidence = () => {
++    const st = statStates();
++    const id = "sensor.heat_pump_optimizer_optimization_score";
++    st[id] = { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" },
++      envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }], machine_drivers: [], machine_evidence: { required: 20, bands: [] },
++      operation_drivers: [{ code: "cheap_hours", points: 70.4 }] } };
++    return st;
++  };
    const shared = () => {
      const st = planStates(plan);
      const heating = new Set(st[DEFAULT_SPACE].attributes.forecast.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
-@@ -217,6 +227,7 @@ function gridStates(plan) {
+@@ -217,6 +246,9 @@ function gridStates(plan) {
      S("no_plan", { states: {} }),
      S("no_plan_expanded", { states: {}, steps: [["open"]] }),
      S("score_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "score"]] }),
++    S("score_open_typical", { states: { ...planStates(plan), ...statStatesTypical() }, steps: [["stat", "score"]] }),
++    S("score_open_no_evidence", { states: { ...planStates(plan), ...statStatesNoEvidence() }, steps: [["stat", "score"]] }),
 +    S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
      S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
      S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
      S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
-@@ -1182,6 +1193,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
+@@ -1182,6 +1214,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
        const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
        try {
          await page.goto("http://hpo.test/");
@@ -1385,10 +1417,10 @@ index 50c6ef82b..03db34616 100644
          await page.addScriptTag({ content: `(${instrument.toString()})();` });
          await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {
 diff --git a/tests/closures.json b/tests/closures.json
-index 2123d6b8b..42d6a12d6 100644
+index a71e44811..41162c069 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -199,6 +199,7 @@
+@@ -207,6 +207,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1396,7 +1428,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -350,6 +351,7 @@
+@@ -358,6 +359,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1404,7 +1436,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -446,6 +448,7 @@
+@@ -454,6 +456,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1412,7 +1444,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -542,6 +545,7 @@
+@@ -550,6 +553,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1420,7 +1452,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -651,6 +655,7 @@
+@@ -659,6 +663,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1428,7 +1460,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -763,6 +768,7 @@
+@@ -771,6 +776,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1436,7 +1468,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -890,6 +896,7 @@
+@@ -898,6 +904,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1444,7 +1476,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -1008,6 +1015,7 @@
+@@ -1016,6 +1023,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1452,7 +1484,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -1137,6 +1145,7 @@
+@@ -1145,6 +1153,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1460,7 +1492,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -1431,6 +1440,7 @@
+@@ -1439,6 +1448,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1468,7 +1500,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -1924,6 +1934,7 @@
+@@ -1940,6 +1950,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1476,7 +1508,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2113,6 +2124,7 @@
+@@ -2129,6 +2140,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1484,7 +1516,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2258,6 +2270,7 @@
+@@ -2274,6 +2286,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1492,7 +1524,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2395,6 +2408,7 @@
+@@ -2411,6 +2424,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1500,7 +1532,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2577,6 +2591,7 @@
+@@ -2593,6 +2607,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1508,7 +1540,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -2739,6 +2754,7 @@
+@@ -2755,6 +2770,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1516,7 +1548,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3121,6 +3137,7 @@
+@@ -3137,6 +3153,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1524,7 +1556,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3284,6 +3301,7 @@
+@@ -3300,6 +3317,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1532,7 +1564,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3381,6 +3399,7 @@
+@@ -3397,6 +3415,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1540,7 +1572,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3524,6 +3543,7 @@
+@@ -3540,6 +3559,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1548,7 +1580,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3613,6 +3633,7 @@
+@@ -3629,6 +3649,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1556,7 +1588,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -3732,6 +3753,7 @@
+@@ -3748,6 +3769,7 @@
     "custom_components/heatpump_optimizer/disinfection.py",
     "custom_components/heatpump_optimizer/draw_range.py",
     "custom_components/heatpump_optimizer/drift.py",
@@ -1564,7 +1596,7 @@ index 2123d6b8b..42d6a12d6 100644
     "custom_components/heatpump_optimizer/early_cutoff.py",
     "custom_components/heatpump_optimizer/entity.py",
     "custom_components/heatpump_optimizer/entry_config.py",
-@@ -4855,7 +4877,7 @@
+@@ -4873,7 +4895,7 @@
    },
    "tests/config_flow_steps.py": {
     "rc": 0,
@@ -1573,7 +1605,7 @@ index 2123d6b8b..42d6a12d6 100644
    },
    "tests/debug_collect.py": {
     "rc": 0,
-@@ -4919,7 +4941,7 @@
+@@ -4937,7 +4959,7 @@
    },
    "tests/manual_plan.py": {
     "rc": 0,
