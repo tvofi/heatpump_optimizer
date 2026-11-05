@@ -21,13 +21,14 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-ARCH-SHAPES-CLASSIFIER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
-- R10-LEARNED-STORE-LOAD (stage in-progress, branch `handoff/r10-learned-store-load`): `git fetch origin handoff/r10-learned-store-load && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-LEARNED-STORE-LOAD (stage carries-open, branch `handoff/r10-learned-store-load`): `git fetch origin handoff/r10-learned-store-load && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-STANDING-CONTRACTS (stage in-progress, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-DELIVERED-GUARD (stage absorbed, branch `handoff/r10-fly-relay-delivered-guard`): `git fetch origin handoff/r10-fly-relay-delivered-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-GRADE-DRIVERS (stage in-progress, branch `handoff/r10-grade-drivers`): `git fetch origin handoff/r10-grade-drivers && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-PRICING (stage carries-open, branch `handoff/r10-partload-pricing`): `git fetch origin handoff/r10-partload-pricing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TWO-ZONE-HHL (stage carries-open, branch `handoff/r10-two-zone-hhl`): `git fetch origin handoff/r10-two-zone-hhl && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-SEAT-IDENTITY-GUARDS (stage in-progress, branch `handoff/r10-seat-identity-guards`): `git fetch origin handoff/r10-seat-identity-guards && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-HANDOFF-ARM (stage absorbed, branch `handoff/r10-relay-handoff-arm`): `git fetch origin handoff/r10-relay-handoff-arm && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OPENER-REUSE (stage absorbed, branch `handoff/r10-opener-reuse`): `git fetch origin handoff/r10-opener-reuse && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-OPS-2 (stage absorbed, branch `handoff/r10-roster-ops-2`): `git fetch origin handoff/r10-roster-ops-2 && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -38,6 +39,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TICK-GROUP-LINES (stage absorbed, branch `handoff/r10-tick-group-lines`): `git fetch origin handoff/r10-tick-group-lines && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage in-progress, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-RAISE-GATE-SHIM (stage in-progress, branch `handoff/r10-raise-gate-shim`): `git fetch origin handoff/r10-raise-gate-shim && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LIVE-BUNDLE-READS (stage carries-open, branch `handoff/r10-live-bundle-reads`): `git fetch origin handoff/r10-live-bundle-reads && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PROD-RESIDUE-PINS (stage carries-open, branch `handoff/r10-prod-residue-pins`): `git fetch origin handoff/r10-prod-residue-pins && git worktree add --detach $SEAT/wt FETCH_HEAD`
