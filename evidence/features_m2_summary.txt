@@ -1,0 +1,3 @@
+  FAIL part D publish: an empty stamp publishes None; an arbiter pass on a plan with no stamp (None) writes what the configured band writes and does not raise  [view {} arbiter 45 vs 45 err None]
+1 of 4807 FEATURE CHECKS FAILED
+rc=1

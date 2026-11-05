@@ -1,0 +1,68 @@
+126921140559 CodeQL completed success 2026-11-04T22:53:04Z 2026-11-04T22:53:07Z
+126912170493 arch-score / arch-score completed success 2026-11-04T22:41:46Z 2026-11-04T22:42:49Z
+126929454603 arch-score completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937545522 arch-score completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126911150805 arm completed skipped 2026-11-04T22:32:48Z 2026-11-04T22:32:47Z
+126912170422 budget-raise-gate / budget-raise-gate completed success 2026-11-04T22:41:35Z 2026-11-04T22:41:58Z
+126929455962 budget-raise-gate completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937546469 budget-raise-gate completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126911164635 cancel-superseded completed success 2026-11-04T22:40:00Z 2026-11-04T22:40:40Z
+126911178129 cancel-superseded completed success 2026-11-04T22:41:09Z 2026-11-04T22:41:33Z
+126916510808 cancel-superseded completed success 2026-11-04T22:53:22Z 2026-11-04T22:53:55Z
+126912170615 codeql / Analyze (actions) completed success 2026-11-04T22:57:01Z 2026-11-04T22:57:58Z
+126912170526 codeql / Analyze (javascript-typescript) completed success 2026-11-04T22:51:58Z 2026-11-04T22:53:15Z
+126912170381 codeql / Analyze (python) completed success 2026-11-04T22:43:26Z 2026-11-04T23:22:43Z
+126929455141 codeql completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937545875 codeql completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126929456191 gate completed cancelled 2026-11-04T23:10:28Z 2026-11-04T23:10:27Z
+126937547118 gate completed cancelled 2026-11-04T23:28:08Z 2026-11-04T23:28:08Z
+126956006184 gate completed success 2026-11-05T00:14:14Z 2026-11-05T00:14:42Z
+126912170527 governance / delivery-status completed success 2026-11-04T22:49:43Z 2026-11-04T22:50:11Z
+126912173464 governance / delivery-status-publish completed skipped 2026-11-04T22:34:48Z 2026-11-04T22:34:48Z
+126912170384 governance / env-matrix completed success 2026-11-04T22:48:38Z 2026-11-04T22:55:27Z
+126912170532 governance / instrument-self-tests completed success 2026-11-04T22:51:06Z 2026-11-04T23:20:27Z
+126912170327 governance / policy-docs completed success 2026-11-04T22:47:17Z 2026-11-04T22:51:14Z
+126912173338 governance / record completed skipped 2026-11-04T22:34:48Z 2026-11-04T22:34:48Z
+126912170236 governance / wave-script completed success 2026-11-04T22:48:06Z 2026-11-04T22:48:39Z
+126929456081 governance completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937545880 governance completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126912170354 hassfest / hassfest completed success 2026-11-04T22:42:51Z 2026-11-04T22:43:08Z
+126929455688 hassfest completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937546192 hassfest completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126912171935 kernel-points completed skipped 2026-11-04T22:34:48Z 2026-11-04T22:34:48Z
+126929454707 kernel-points completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937545997 kernel-points completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126949871392 pr-contract / pr-contract completed success 2026-11-05T00:10:02Z 2026-11-05T00:10:57Z
+126929456592 pr-contract completed skipped 2026-11-04T23:10:28Z 2026-11-04T23:10:27Z
+126937546017 pr-contract completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:08Z
+126911177915 prelude completed cancelled 2026-11-04T22:45:18Z 2026-11-04T23:28:07Z
+126916511507 prelude completed cancelled 2026-11-04T22:58:57Z 2026-11-04T23:10:27Z
+126911164227 prelude completed success 2026-11-04T22:34:21Z 2026-11-04T22:34:48Z
+126911164653 refresh completed success 2026-11-04T22:38:55Z 2026-11-04T22:39:25Z
+126911178111 refresh completed success 2026-11-04T22:45:17Z 2026-11-04T22:45:51Z
+126916510519 refresh completed success 2026-11-04T22:52:19Z 2026-11-04T22:52:52Z
+126922404570 tests / arch-instrument completed success 2026-11-04T23:20:30Z 2026-11-04T23:52:21Z
+126912170359 tests / briefs completed success 2026-11-04T22:52:29Z 2026-11-04T22:53:17Z
+126922404227 tests / browser completed success 2026-11-04T22:59:39Z 2026-11-04T23:03:42Z
+126947382724 tests / ci-ratchet completed skipped 2026-11-04T23:50:35Z 2026-11-04T23:50:35Z
+126940298504 tests / claims-autofix completed skipped 2026-11-04T23:34:14Z 2026-11-04T23:34:13Z
+126912170525 tests / closure-scope completed success 2026-11-04T22:55:18Z 2026-11-04T22:55:42Z
+126922404502 tests / closures completed success 2026-11-04T23:10:30Z 2026-11-04T23:44:37Z
+126944807649 tests / closures-autofix completed skipped 2026-11-04T23:44:37Z 2026-11-04T23:44:37Z
+126922404428 tests / coverage completed success 2026-11-04T23:19:03Z 2026-11-04T23:50:35Z
+126947380962 tests / coverage-ratchet completed success 2026-11-04T23:53:08Z 2026-11-04T23:53:20Z
+126922404463 tests / fast (3.14) completed success 2026-11-04T23:14:56Z 2026-11-04T23:34:13Z
+126947381025 tests / graders-head-copy completed success 2026-11-04T23:55:40Z 2026-11-04T23:56:03Z
+126948117825 tests / lane-proofs completed success 2026-11-04T23:56:23Z 2026-11-04T23:56:31Z
+126912170453 tests / mutation completed success 2026-11-04T22:54:00Z 2026-11-04T23:46:14Z
+126945522330 tests / mutation-autofix completed skipped 2026-11-04T23:46:14Z 2026-11-04T23:46:14Z
+126945522164 tests / mutation-pins completed skipped 2026-11-04T23:46:14Z 2026-11-04T23:46:14Z
+126922407362 tests / nightly-ha completed skipped 2026-11-04T22:55:42Z 2026-11-04T22:55:42Z
+126912170467 tests / nightly-status completed failure 2026-11-04T22:58:01Z 2026-11-04T22:58:14Z
+126922404500 tests / replay completed success 2026-11-04T23:20:27Z 2026-11-04T23:36:27Z
+126922404454 tests / typing completed success 2026-11-04T23:01:07Z 2026-11-04T23:02:16Z
+126929455850 tests completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937546312 tests completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
+126912170295 validate / validate-hacs completed success 2026-11-04T22:40:09Z 2026-11-04T22:40:50Z
+126929455259 validate completed skipped 2026-11-04T23:10:27Z 2026-11-04T23:10:27Z
+126937545373 validate completed skipped 2026-11-04T23:28:08Z 2026-11-04T23:28:07Z
