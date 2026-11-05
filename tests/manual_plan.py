@@ -1546,14 +1546,14 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
 
     integ._plan_handovers(hass)[entry.entry_id] = payload
-    integ._handover_stamps(hass)[entry.entry_id] = dt_util.now() - timedelta(days=7)
+    integ._handover_stamps(hass)[entry.entry_id] = dt_util.as_local(dt_util.utcnow() - timedelta(days=7))
     R.check(
         "a seven-day stamp is dropped",
         integ._take_fresh_handover(hass, entry.entry_id, interval) is None,
     )
 
     integ._plan_handovers(hass)[entry.entry_id] = payload
-    integ._handover_stamps(hass)[entry.entry_id] = dt_util.now() - timedelta(minutes=1)
+    integ._handover_stamps(hass)[entry.entry_id] = dt_util.as_local(dt_util.utcnow() - timedelta(minutes=1))
     R.check(
         "a one-minute stamp is still handed over",
         integ._take_fresh_handover(hass, entry.entry_id, interval) is payload,
@@ -1583,7 +1583,7 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
     integ._plan_handovers(expired_hass)[expired_entry.entry_id] = payload
     integ._handover_stamps(expired_hass)[expired_entry.entry_id] = (
-        dt_util.now() - timedelta(days=7)
+        dt_util.as_local(dt_util.utcnow() - timedelta(days=7))
     )
     asyncio.run(ha_setup_entry(integ, expired_hass, expired_entry))
     R.check(
@@ -1599,7 +1599,7 @@ def test_reload_handover_expiry(R: Results) -> None:
     )
     integ._plan_handovers(fresh_hass)[fresh_entry.entry_id] = payload
     integ._handover_stamps(fresh_hass)[fresh_entry.entry_id] = (
-        dt_util.now() - timedelta(minutes=1)
+        dt_util.as_local(dt_util.utcnow() - timedelta(minutes=1))
     )
     asyncio.run(ha_setup_entry(integ, fresh_hass, fresh_entry))
     # #924 re-cut: the first refresh now RUNS through the base class, so it
@@ -1625,7 +1625,7 @@ def test_reload_handover_republish_ages(R: Results) -> None:
     unload. The light refresh must recompute both from ``last_optimization``.
     """
     R.section("#774 — handover republish ages")
-    last = dt_util.now() - timedelta(minutes=120)
+    last = dt_util.as_local(dt_util.utcnow() - timedelta(minutes=120))
     payload = {
         "mode": "auto",
         "sentinel": "frozen-age",

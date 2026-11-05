@@ -914,7 +914,7 @@ async def _mode_source_after_outage(night):
             "sensor.mode",
             FakeState(
                 "heating + hot water",
-                last_updated=dt_util.now() - timedelta(minutes=3),
+                last_updated=dt_util.as_local(dt_util.utcnow() - timedelta(minutes=3)),
                 last_reported=dt_util.now(),
             ),
         )

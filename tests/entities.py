@@ -4571,7 +4571,7 @@ if _EntryConfig is not None:
                         lower_floor_temperature=20.0, slab_temperature=27.0,
                         outdoor_temperature=-5.0)
         c._last_house_sample = prev
-        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+        c._last_house_sample_time = dt_util.as_local(dt_util.utcnow() - timedelta(hours=0.5))
         c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
                                        lower_floor_temperature=19.9)
         c._current_action = {"power": 2.0}
@@ -8512,7 +8512,7 @@ def _gap_series_payload(house_kw, *, peak_tariff: bool = True):
     coord._measured_house_power = house_kw
     coord._track_realised_peak()
     coord._pending_prediction = {
-        "when": dt_util.now() - timedelta(minutes=30),
+        "when": dt_util.as_local(dt_util.utcnow() - timedelta(minutes=30)),
         "power": 2.0,
         "space_power": 2.0,
         "dhw_power": 0.0,

@@ -18081,7 +18081,7 @@ R.check(
     not _cb._outage_recovery_active(dt_util.now()),
 )
 _payload = _asyncio.run(_ca._energy_store.async_load())
-_payload["last_tick"] = (dt_util.now() - timedelta(hours=3)).isoformat()
+_payload["last_tick"] = (dt_util.as_local(dt_util.utcnow() - timedelta(hours=3))).isoformat()
 _asyncio.run(_ca._energy_store.async_save(_payload))
 _cc = _t2_coord(outage_recovery_enabled=True)
 _asyncio.run(_cc._async_load_energy_totals())
@@ -18968,7 +18968,7 @@ def _stale_plan_coord(stale: bool):
         room_temp_trajectory=[21.0] * (n + 1),
         slab_temp_trajectory=[22.0] * (n + 1),
         timestamps=[
-            dt_util.now() + timedelta(minutes=15 * i) for i in range(n)
+            dt_util.as_local(dt_util.utcnow() + timedelta(minutes=15 * i)) for i in range(n)
         ],
         prices=[1.0] * n,
         predicted_cost=10.0,
@@ -18993,9 +18993,9 @@ def _stale_plan_coord(stale: bool):
         "displace_value": 0.5,
     }
     coord._mode = _MODE_AUTO
-    coord._last_optimization = dt_util.now() - timedelta(
+    coord._last_optimization = dt_util.as_local(dt_util.utcnow() - timedelta(
         minutes=400 if stale else 0
-    )
+    ))
     if coord._plan_is_stale() is not stale:
         raise AssertionError("probe: the staleness precondition did not hold")
     _asyncio.run(coord._async_drive_pumps())
@@ -19182,7 +19182,7 @@ _c47 = _t2_coord(dhw_tank_volume=300.0)
 _c47._thermal_params.dhw_enabled = True
 _c47._thermal_params.dhw_elastic_legionella_enabled = True
 _c47._thermal_params.dhw_legionella_enabled = True
-_c47._legionella.last_cycle = dt_util.now() - timedelta(days=5)
+_c47._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() - timedelta(days=5))
 _c47._prices = [{"total": 1.0}] * 24
 R.check(
     "elastic opted in with a fresh prior sets NO ceiling",
@@ -22013,7 +22013,7 @@ R.check(
 _nf_smp = _t2_coord()
 _nf_smp._current_state.solar_radiation = 640.0
 _nf_smp._pending_prediction = {
-    "when": dt_util.now() - timedelta(minutes=30),
+    "when": dt_util.as_local(dt_util.utcnow() - timedelta(minutes=30)),
     "predicted_temp": 20.5, "power": 2.0, "solar": 120.0, "outdoor": -2.0,
 }
 _nf_smp.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -26603,15 +26603,15 @@ R.check(
 
 from homeassistant.util import dt as _g_dt
 
-_g_coord._last_optimization = _g_dt.now() - timedelta(minutes=60)
+_g_coord._last_optimization = _g_dt.as_local(_g_dt.utcnow() - timedelta(minutes=60))
 R.check(
     "an hour-old plan is not yet stale (90-minute floor)",
     not _g_coord._plan_is_stale()
     and abs(_g_coord._plan_age_minutes() - 60.0) < 1.0,
 )
-_g_coord._last_optimization = _g_dt.now() - timedelta(
+_g_coord._last_optimization = _g_dt.as_local(_g_dt.utcnow() - timedelta(
     minutes=_G_STALE_FLOOR + 10
-)
+))
 R.check(
     "past three missed cycles the plan is stale",
     _g_coord._plan_is_stale(),
@@ -26619,7 +26619,7 @@ R.check(
 _g_slow = HeatPumpOptimizerCoordinator(
     FakeHass(), FakeEntry(data={**_LC_DATA, "optimization_interval": 60})
 )
-_g_slow._last_optimization = _g_dt.now() - timedelta(minutes=100)
+_g_slow._last_optimization = _g_dt.as_local(_g_dt.utcnow() - timedelta(minutes=100))
 R.check(
     "the threshold scales with the configured update interval",
     not _g_slow._plan_is_stale(),
@@ -26650,7 +26650,7 @@ R.check(
     _g_pub == ["scheduled_update"],
     f"published {_g_pub}",
 )
-_g_coord._last_optimization = _g_dt.now() - timedelta(days=1)
+_g_coord._last_optimization = _g_dt.as_local(_g_dt.utcnow() - timedelta(days=1))
 _g_coord._mode = "boost"
 _asyncio.run(_g_coord._apply_action())
 R.check(
@@ -28275,7 +28275,7 @@ R.check(
 R.section("Free heat skips the accuracy sample (D7-05)")
 
 _xh_pending = {
-    "when": dt_util.now() - timedelta(minutes=30),
+    "when": dt_util.as_local(dt_util.utcnow() - timedelta(minutes=30)),
     "predicted_temp": 20.5,
     "power_kw": 2.0,
     "space_power": 2.0,
@@ -35602,7 +35602,7 @@ def _lg_coord(*, days_since=20.0, enabled=True, dhw=True):
     c._thermal_params.dhw_enabled = dhw
     c._thermal_params.dhw_legionella_enabled = enabled
     c._thermal_params.dhw_legionella_interval_days = 7.0
-    c._legionella.last_cycle = dt_util.now() - timedelta(days=days_since)
+    c._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() - timedelta(days=days_since))
     return c
 
 
@@ -37500,7 +37500,7 @@ R.check(
     "7 d, 7 d + 1 h, 13 d on a 7-day interval",
 )
 _lgx_8d = _lg_coord()
-_lgx_8d._legionella.last_cycle = dt_util.now() - timedelta(days=8, hours=1)
+_lgx_8d._legionella.last_cycle = dt_util.as_local(dt_util.utcnow() - timedelta(days=8, hours=1))
 _lgx_8d_overdue = _lg_overdue(_lgx_8d)
 R.check(
     "…and the guard raises it one day past a 7-day interval",
@@ -44648,7 +44648,7 @@ R.check(
 # -- the away override: the only writer of that store ----------------------
 _t1_away_on = _t1_coord()
 _asyncio.run(
-    _t1_away_on.async_set_away(True, dt_util.now() + timedelta(hours=6))
+    _t1_away_on.async_set_away(True, dt_util.as_local(dt_util.utcnow() + timedelta(hours=6)))
 )
 R.check(
     "setting away with a future return stores the override and its parsed instant",
@@ -44663,7 +44663,7 @@ R.check(
 # string `_parse_return_time` has to re-interpret on every read, and the
 # expiry sweep three lines below would compare against None.
 _t1_away_str = _t1_coord()
-_t1_away_target = (dt_util.now() + timedelta(hours=3)).replace(microsecond=0)
+_t1_away_target = (dt_util.as_local(dt_util.utcnow() + timedelta(hours=3))).replace(microsecond=0)
 _t1_away_posted = _t1_away_target.strftime("%Y-%m-%d %H:%M:%S")
 _asyncio.run(_t1_away_str.async_set_away(True, _t1_away_posted))
 _t1_away_stored = _t1_away_str._away_state.override_return_iso
@@ -44679,7 +44679,7 @@ R.check(
 )
 
 _t1_away_off = _t1_coord()
-_asyncio.run(_t1_away_off.async_set_away(True, dt_util.now() + timedelta(hours=6)))
+_asyncio.run(_t1_away_off.async_set_away(True, dt_util.as_local(dt_util.utcnow() + timedelta(hours=6))))
 _asyncio.run(_t1_away_off.async_set_away(False))
 R.check(
     "clearing away drops the return time with it, so a later enable starts clean",
@@ -44691,7 +44691,7 @@ R.check(
 
 _t1_away_past = _t1_coord()
 _asyncio.run(
-    _t1_away_past.async_set_away(True, dt_util.now() - timedelta(minutes=1))
+    _t1_away_past.async_set_away(True, dt_util.as_local(dt_util.utcnow() - timedelta(minutes=1)))
 )
 R.check(
     "a return time already in the past expires the override on the spot",
@@ -44701,7 +44701,7 @@ R.check(
 )
 
 _t1_away_keep = _t1_coord()
-_asyncio.run(_t1_away_keep.async_set_away(True, dt_util.now() + timedelta(hours=4)))
+_asyncio.run(_t1_away_keep.async_set_away(True, dt_util.as_local(dt_util.utcnow() + timedelta(hours=4))))
 _t1_away_kept = _t1_away_keep._away_state.override_return_iso
 _asyncio.run(_t1_away_keep.async_set_away(True))
 R.check(
@@ -46410,7 +46410,7 @@ def _t2_house(
     _t2_count_saves(c)
     previous = replace(_T2_HOUSE_STATE, outdoor_temperature=outdoor)
     c._last_house_sample = previous
-    c._last_house_sample_time = dt_util.now() - timedelta(hours=hours)
+    c._last_house_sample_time = dt_util.as_local(dt_util.utcnow() - timedelta(hours=hours))
     c._current_state = replace(
         previous,
         room_temperature=observed,
@@ -46845,7 +46845,7 @@ R.check(
 _t2_lf_ten = _t2_house(two_zone=True, lower=19.9)
 for _t2_lf_i in range(10):
     _t2_lf_ten._last_house_sample = replace(_T2_HOUSE_STATE)
-    _t2_lf_ten._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+    _t2_lf_ten._last_house_sample_time = dt_util.as_local(dt_util.utcnow() - timedelta(hours=0.5))
     _asyncio.run(_t2_lf_ten._async_learn_lower_floor_loss(_t2_lf_ten._close_fabric_interval()))
 R.check(
     "ten accepted lower floor samples reach the store exactly once",
@@ -52387,8 +52387,8 @@ R.check(
     "that looks wired and does nothing",
 )
 _g8_b_pub = _g8_boost.BoostState()
-_g8_b_pub.until[_g8_boost.CHANNEL_SPACE] = dt_util.now() + timedelta(hours=1)
-_g8_b_pub.until[_g8_boost.CHANNEL_DHW] = dt_util.now() - timedelta(hours=1)
+_g8_b_pub.until[_g8_boost.CHANNEL_SPACE] = dt_util.as_local(dt_util.utcnow() + timedelta(hours=1))
+_g8_b_pub.until[_g8_boost.CHANNEL_DHW] = dt_util.as_local(dt_util.utcnow() - timedelta(hours=1))
 _g8_b_view = _g8_b_pub.as_dict()
 R.check(
     "the published view expires a stale channel rather than advertising it",
@@ -52453,7 +52453,7 @@ try:
     _G8BoostStore.raise_save = True
     _g8_bp_coord = _G8BoostCoord()
     _g8_boost.held_for(_g8_bp_coord).until[_g8_boost.CHANNEL_DHW] = (
-        dt_util.now() + timedelta(hours=1))
+        dt_util.as_local(dt_util.utcnow() + timedelta(hours=1)))
     _g8_bp_err = _t6_call(_asyncio.run, _g8_boost.persist(_g8_bp_coord))
     _g8_bp_saved = list(_G8BoostStore.saved)
     _G8BoostStore.raise_save = False
@@ -52465,8 +52465,8 @@ try:
     _G8BoostStore.raise_load = False
 
     _G8BoostStore.payload = {
-        "dhw": {"until": (dt_util.now() + timedelta(hours=1)).isoformat()},
-        "space": {"until": (dt_util.now() - timedelta(hours=1)).isoformat()},
+        "dhw": {"until": (dt_util.as_local(dt_util.utcnow() + timedelta(hours=1))).isoformat()},
+        "space": {"until": (dt_util.as_local(dt_util.utcnow() - timedelta(hours=1))).isoformat()},
         "bogus": "not a mapping",
     }
     _g8_bl_coord = _G8BoostCoord()
@@ -55960,7 +55960,7 @@ R.check(
 # The DHW_LEGIONELLA_BOOST_MAX_HOURS bound closes a boost still commanded.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
-_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+_g5_c._legionella.boost_started = dt_util.as_local(dt_util.utcnow() - timedelta(hours=_G5_MAX_H + 0.1))
 _g5_tick(_g5_c, _LG_REASON)
 R.check(
     "the boost bound closes the window and turns the switch OFF once",
@@ -56386,7 +56386,7 @@ R.check(
 # cycle after it, and the switch stays off until the plan moves on.
 _g5_c = _g5_control()
 _g5_tick(_g5_c, _LG_REASON)
-_g5_c._legionella.boost_started = dt_util.now() - timedelta(hours=_G5_MAX_H + 0.1)
+_g5_c._legionella.boost_started = dt_util.as_local(dt_util.utcnow() - timedelta(hours=_G5_MAX_H + 0.1))
 _g5_tick(_g5_c, _LG_REASON)
 _g5_r = _g5_restart(_g5_c, **_G5_CONTROL_CFG)
 _g5_tick(_g5_r, _LG_REASON)
@@ -65439,7 +65439,7 @@ def _r9egb9_borrow_arm(borrower, kind):
             call = _f25_partial(
                 coord._maybe_refresh_price_tile, _solve_record_now(coord))
         else:
-            coord._fuse_advisor_at = _r9egb9_dt.now() - timedelta(days=8)
+            coord._fuse_advisor_at = _r9egb9_dt.as_local(_r9egb9_dt.utcnow() - timedelta(days=8))
             call = _f25_partial(
                 coord._maybe_run_fuse_advisor, _solve_record_now(coord))
         out = {"U0": _r9egb9_ov(u0)}
@@ -66456,7 +66456,7 @@ R.check(
 )
 _r9egb1_o = _solve_coord()
 _r9egb1_o._thermal_params.dhw_enabled = True
-_r9egb1_o._outage_dhw_until = dt_util.now() + timedelta(hours=2)
+_r9egb1_o._outage_dhw_until = dt_util.as_local(dt_util.utcnow() + timedelta(hours=2))
 _r9egb1_o_floor = float(_r9egb1_o._thermal_params.dhw_min_temp)
 
 
@@ -66875,7 +66875,7 @@ R.check(
 # switch can land inside the resolve. Its write must survive the publish.
 _lc_away = _r9egb1_coord(away=True)
 _lc_away._away_state.override_return_iso = (
-    _r9egb1_cmod.dt_util.now() + timedelta(hours=6)).isoformat()
+    _r9egb1_cmod.dt_util.as_local(dt_util.utcnow() + timedelta(hours=6))).isoformat()
 _lc_real_off_loop = _r9egb1_cmod._await_off_loop
 _lc_jobs = []
 
@@ -70761,7 +70761,7 @@ class _EcCoord(_PaCoord):
         super().__init__(_PA_TUYA, duties=duties)
         self.hass = _EcHass({
             switch or _EC_SW: FakeState(
-                "on", last_updated=_ec_dt.now() - timedelta(minutes=on_minutes)),
+                "on", last_updated=_ec_dt.as_local(_ec_dt.utcnow() - timedelta(minutes=on_minutes))),
             _EC_ROOM: FakeState("21.0", unit="°C"),
         })
         self._config = {
@@ -70893,7 +70893,7 @@ R.check(
     f"{_ec.state_for(_ec_young).last_held}",
 )
 _ec_late = _EcCoord()
-_ec_late.arm(_ec_dt.now() - timedelta(minutes=25))
+_ec_late.arm(_ec_dt.as_local(_ec_dt.utcnow() - timedelta(minutes=25)))
 _ec_late.room(22.0)
 R.check(
     "with less than MIN_OFF to the next cycle the pump is not cut",
@@ -70971,7 +70971,7 @@ R.check(
 )
 _ec_boost = _EcCoord()
 _ec_boost_mod.held_for(_ec_boost).until[_ec_boost_mod.CHANNEL_DHW] = (
-    _ec_dt.now() + timedelta(hours=1))
+    _ec_dt.as_local(_ec_dt.utcnow() + timedelta(hours=1)))
 _ec_boost.arm()
 _ec_boost.room(25.0)
 R.check("a hot-water boost is never cut", _ec_boost.offs() == [])
@@ -70994,7 +70994,7 @@ R.check(
     and _ec.allow_on(_ec.state_for(_ec_hold), False, _ec_cut_t + timedelta(minutes=1)) is False,
 )
 _ec_boost_mod.held_for(_ec_hold).until[_ec_boost_mod.CHANNEL_SPACE] = (
-    _ec_dt.now() + timedelta(hours=1))
+    _ec_dt.as_local(_ec_dt.utcnow() + timedelta(hours=1)))
 R.check(
     "a boost set by that refresh is let through at once",
     _ec.allow_on(_ec.state_for(_ec_hold), True, _ec_cut_t + timedelta(minutes=1)) is True,
@@ -71877,7 +71877,7 @@ _fd_stale_interval = _fd_stale.effective_config.optimization_interval
 
 
 def _fd_stale_run():
-    _fd_stale._last_optimization = _fd_dt.now() - timedelta(minutes=400)
+    _fd_stale._last_optimization = _fd_dt.as_local(_fd_dt.utcnow() - timedelta(minutes=400))
     for _ in range(4):
         # Production cadence: the next cycle runs one solve interval later
         # (the stamp is fixed, so the age grows) and that cycle's failed
@@ -73248,10 +73248,10 @@ async def _al_reload(switch):
     old = _al_coord(hass)
     await hass.restores[0]
     published = old._build_data_dict()
-    published["last_optimization"] = dt_util.now() - timedelta(minutes=14)
+    published["last_optimization"] = dt_util.as_local(dt_util.utcnow() - timedelta(minutes=14))
     if switch:
         await old.async_set_away(active=True, return_time=(
-            dt_util.now() + timedelta(hours=24)).isoformat(), refresh=False)
+            dt_util.as_local(dt_util.utcnow() + timedelta(hours=24))).isoformat(), refresh=False)
     new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
     first = await new._async_update_data()
     await new._resolve_away()
@@ -73263,7 +73263,7 @@ async def _al_resolve_first(return_in_h):
     """A stored override, and a resolve before the restore's task has run a step."""
     _al_disk.clear()
     _al_disk.update(active=True, migrated_helpers=True, return_time=(
-        dt_util.now() + timedelta(hours=return_in_h)).isoformat())
+        dt_util.as_local(dt_util.utcnow() + timedelta(hours=return_in_h))).isoformat())
     coord = _al_coord(_LsRestoreHass())
     await coord._resolve_away()
     return _al_bands(coord), coord._away_state.override_active
@@ -73861,7 +73861,7 @@ def _cv_dhw(latch):
 
     async def learn():
         await learner.async_learn_dynamics(50.0)
-        learner.last_sample_time = dt_util.now() - timedelta(minutes=30)
+        learner.last_sample_time = dt_util.as_local(dt_util.utcnow() - timedelta(minutes=30))
         return await learner.async_learn_dynamics(49.8)
 
     return c._dhw_probe_temperature(), _asyncio.run(learn())
@@ -73887,7 +73887,7 @@ def _cv_room_air(latch):
     d = _t2_coord(heat_pump_power_entity="sensor.hp_power")
     d._vent_cusum.tripped = latch
     d._measured_power = 2.0
-    d._pending_prediction = {"when": dt_util.now() - timedelta(minutes=30), "power": 2.0,
+    d._pending_prediction = {"when": dt_util.as_local(dt_util.utcnow() - timedelta(minutes=30)), "power": 2.0,
                              "price": None, "predicted_temp": None, "outdoor": None,
                              "split": (2.0, 0.0)}
     seen, real = [], _cv_dr.fold
@@ -77156,8 +77156,8 @@ async def _ap_handover():
     old = _al_coord(hass)
     await hass.restores[0]
     published = old._build_data_dict()
-    published["last_optimization"] = dt_util.now() - timedelta(minutes=10)
-    published["next_optimization"] = dt_util.now() + timedelta(minutes=20)
+    published["last_optimization"] = dt_util.as_local(dt_util.utcnow() - timedelta(minutes=10))
+    published["next_optimization"] = dt_util.as_local(dt_util.utcnow() + timedelta(minutes=20))
     new = _al_coord(hass, skip_first_solve=True, reload_handover=published)
     t0 = dt_util.now()
     return published, await new._async_update_data(), t0
