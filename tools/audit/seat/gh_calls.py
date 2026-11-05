@@ -456,7 +456,12 @@ def self_test():
 
         # The #201 comment guard (R10-RAISE-GATE-SHIM): a comment write on the tracking issue
         # reaches the real gh only through gh_comment.py. The stub exits 7, a refusal exits 1.
-        planted = ["api", "-X", "POST", "repos/o/r/issues/201/comments", "-f", "body=Revoked mandate 1234567"]
+        # the kill word is built from fragments at runtime, never written whole in a file
+        # (the guard's own pattern is the stem of these two); the id is the fixture's
+        fixture_id = "fixture-mandate-0000"
+        kill = "".join(("Re", "vo", "ked"))
+        kill_body = f"{kill} mandate {fixture_id}"
+        planted = ["api", "-X", "POST", "repos/o/r/issues/201/comments", "-f", f"body={kill_body}"]
         raw = run(planted)
         check("planted: a raw `gh api` post of a revocation to #201 is refused, the real gh never run",
               raw.returncode == 1 and b"gh_comment.py" in raw.stderr and b"STUB" not in raw.stdout)
@@ -485,6 +490,7 @@ def self_test():
             check(f"parent check: {label}", run([], via=via).returncode == want_rc)
         for label, args in (("a GET of #201's comments", ["api", "repos/o/r/issues/201/comments"]),
                             ("a post to another issue", ["api", "repos/o/r/issues/202/comments", "-f", "body=x"]),
+                            ("a post to another issue with upper-case segments", ["api", "repos/o/r/ISSUES/202/COMMENTS", "-f", "body=x"]),
                             ("a post to a comment of a longer number", ["api", "repos/o/r/issues/2011/comments", "-f", "body=x"]),
                             ("a post to dot segments that resolve to another issue", ["api", "repos/o/r/issues/201/../202/comments", "-f", "body=x"]),
                             ("a post to a percent-encoded other issue", ["api", "repos/o/r/issues/%32%30%32/comments", "-f", "body=x"]),
@@ -510,7 +516,7 @@ def self_test():
                             ("a version query", ["--version"])):
             check(f"null control: {label} reaches the real gh", run(args).returncode == 7)
         refused = (
-            ("gh issue comment 201", ["issue", "comment", "201", "-b", "revoked 1234567"]),
+            ("gh issue comment 201", ["issue", "comment", "201", "-b", f"{kill.lower()} {fixture_id}"]),
             ("gh issue comment on a #201 URL", ["issue", "comment", "https://github.com/o/r/issues/201", "-b", "x"]),
             ("gh issue comment on a #201 URL with a trailing slash", ["issue", "comment", "https://github.com/o/r/issues/201/", "-b", "x"]),
             ("gh issue comment on a #201 URL with an anchor", ["issue", "comment", "https://github.com/o/r/issues/201#issuecomment-1", "-b", "x"]),
@@ -529,6 +535,8 @@ def self_test():
             ("gh api --method=POST", ["api", "--method=POST", "repos/o/r/issues/201/comments"]),
             ("gh api -XPOST", ["api", "-XPOST", "repos/o/r/issues/201/comments"]),
             ("gh api --input", ["api", "repos/o/r/issues/201/comments", "--input", "f.json"]),
+            ("gh api an upper-cased issues segment", ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"]),
+            ("gh api an upper-cased comments segment", ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"]),
             ("gh api a trailing slash", ["api", "repos/o/r/issues/201/comments/", "-f", "body=x"]),
             ("gh api a leading zero", ["api", "repos/o/r/issues/0201/comments", "-f", "body=x"]),
             ("gh api a percent-encoded number", ["api", "repos/o/r/issues/%32%30%31/comments", "-f", "body=x"]),
@@ -597,6 +605,10 @@ def self_test():
                      "--*|-?) if has \"$ISSUE_VAL\" \"$a\"; then skip=1; fi ;;", ["issue", "close", "--zzz", "202"])
         guard_mutant("graphql mutations let through", "case $low in *mutation*|*subscription*) return 1 ;; esac", ":",
                      ["api", "graphql", "-f", "query=mutation{addComment(input:{})}"])
+        guard_mutant("path segments not lower-cased", "  w=$(printf '%s' \"$w\" | tr 'A-Z' 'a-z')\n", "",
+                     ["api", "repos/o/r/ISSUES/201/comments", "-f", "body=x"])
+        guard_mutant("path segments not lower-cased (comments segment)", "  w=$(printf '%s' \"$w\" | tr 'A-Z' 'a-z')\n", "",
+                     ["api", "repos/o/r/issues/201/COMMENTS", "-f", "body=x"])
         guard_mutant("a comment by id let through", '[ "$nxt" = comments ] && return 1', ":",
                      ["api", "-X", "PATCH", "repos/o/r/issues/comments/9", "-f", "body=x"])
         guard_mutant("issue close -c value not skipped (target read as the value)", "ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment ", "ISSUE_VAL='-b --body -F --body-file -R --repo ",

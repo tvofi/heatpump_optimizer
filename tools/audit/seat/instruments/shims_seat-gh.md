@@ -23,7 +23,7 @@
   the document holds no `mutation`/`subscription` and is not read from a file; gh command groups with no
   issue-comment surface; everything else (an unknown subcommand, an alias, an extension, a leading flag
   but `--version`/`--help`) is refused. The number is read after dropping leading zeros, trailing
-  slashes, query, anchor, one %-decoding and dot segments.
+  slashes, query, anchor, one %-decoding, dot segments and upper-case letters (path segments are matched in lower case).
   Residual, by design (Carry: R10-RAISE-GATE-SHIM): the caller test reads `ps` args, which a caller
   writes, so `exec -a 'python3 <tree>/tools/pr/gh_comment.py' ...` passes as the poster. That is
   deliberate evasion, not a seat's habit, and has no fix in a ps-based parent check.
