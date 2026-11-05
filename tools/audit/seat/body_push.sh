@@ -12,6 +12,19 @@
 set -euo pipefail
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
 REF=handoff-body/$TOPIC
+# The receipt (P386): prepr.sh's last passing full run in this checkout wrote
+# `<sha> <tree>` to hpo-prepr-receipt in its git dir. When that sha is the code
+# head this body describes and that tree is the head's, the body commit carries
+# it as a `Prepr: <sha> <tree>` trailer, which app_push.sh --reuse reads so the
+# run is not repeated at open or update. Anything else carries none.
+prepr_trailer() { # checkout root, code head -> `Prepr: <sha> <tree>`, or nothing
+  local f s t
+  f=$(git -C "$1" rev-parse --absolute-git-dir 2>/dev/null)/hpo-prepr-receipt
+  [ -f "$f" ] && read -r s t _ < "$f" || return 0
+  [[ $s =~ ^[0-9a-f]{40}$ && $t =~ ^[0-9a-f]{40}$ ]] || return 0
+  [ "$s" = "$2" ] && [ "$t" = "$(git -C "$1" rev-parse "$2^{tree}" 2>/dev/null)" ] || return 0
+  printf 'Prepr: %s %s' "$s" "$t"
+}
 [ -f "$BODY" ] || { echo "body_push: no body at $BODY" >&2; exit 2; }
 [ -z "$NOTE" ] || [ -f "$NOTE" ] || { echo "body_push: no note at $NOTE" >&2; exit 2; }
 # The handoff gate (dev/audit/rca/R10-HANDOFF-PREPR-BOUNCE.md, M2): the static
@@ -113,6 +126,12 @@ rm -f "${TMPDIR:-/tmp}/body_push.$$"
 # naming the handoff it applies (V147). A result body names none.
 MSG="body: $TOPIC"
 [ -z "$HREF" ] || MSG=$(printf 'body: %s\n\nCode: %s' "$TOPIC" "$HREF")
+PT=""; [ -z "$HREF" ] || PT=$(prepr_trailer "$ROOT" "$HREF")
+if [ -n "$PT" ]; then
+  MSG=$(printf '%s\n%s' "$MSG" "$PT"); echo "body_push: $PT (prepr's receipt at this code head)"
+elif [ -n "$HREF" ]; then
+  echo "body_push: no Prepr: trailer -- no receipt of a passing full prepr.sh run at ${HREF:0:12} in this checkout, so the open runs the full prepr"
+fi
 # shellcheck disable=SC2086 # $P is empty or exactly "-p <sha>"
 C=$(git commit-tree "$TREE" $P -m "$MSG")
 # The topic names the ref and the message: refuse one that names this host
