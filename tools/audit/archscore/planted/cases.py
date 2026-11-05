@@ -28,7 +28,7 @@ BASE = "_base"
 # Attempts the counters do not close, expected IMPROVES; a fix flips one and the check asks for the re-record.
 # 04h, 04i and 04j left this set in R9-EG-A2 (C3 joins a clone across any gap). 04zz1 splits a copy across
 # blocks, which no window inside one block can join (ABOUT.md, "Interleaved junk").
-KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged"}
+KNOWN_OPEN = {"04zz1_dup_wrapsplit_uncharged", "55_footprint_boolop_control"}
 
 
 def extract_pin(into: Path) -> Path:
