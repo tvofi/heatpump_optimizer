@@ -1,0 +1,3 @@
+/home/user/rev/log-127408110624.txt:2026-11-05T17:21:15.0300620Z DELIVERY STATUS OVERDUE — 10 rowed, 12 pending, 17 overdue (overdue at 12 commits)
+/home/user/rev/log-127408110624.txt:2026-11-05T17:21:15.0323070Z This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches
+/home/user/rev/log-127408111130.txt:2026-11-05T17:20:56.0749340Z NIGHTLY FAILED: slow failed last night.

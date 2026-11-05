@@ -1,17 +1,13 @@
-== M1 shim refusal disabled
-gh_calls self-test: 190 checks, 65 failed
-FAIL planted raw gh api POST kill pairing #201: want refused got passed rc=0 stub='api -X POST repos/tvofi/heatpump_optimizer/issues/201/comments -f body=<W>\\ mandate\\ f'
-RESULT controls: 6/38 as expected
-== M2 merge_train reads shape only
-  FAIL a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate refuses it (the train reads budget_raise_gate.justified, its measured figure)
-merge_train self-test: 443 checks, 1 failed
-== M3 check_body shape only
-  FAIL e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so: got (0, False), want (1, True)
-budget_raise_gate self-test: 274 checks, 1 failed
-== M4 --check-body passes no scorer
-  FAIL e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so: got (0, False), want (1, True)
-budget_raise_gate self-test: 274 checks, 1 failed
-== M5 installer does not bake gcpy
-seat_venv self-test: 25 checks, 0 failed
-gh_calls self-test: 190 checks, 0 failed
-== M6 api path case: no mutant (gap)
+Mutants at head 4404f5e7435b5a574204a5f51c004a364f7817df, each in a copy of the tree (/home/user/mutwt), offline stub gh:
+MUTANT deny-default-arm-passes (`*) return 1` -> 0): gh_calls self-test: 190 checks, 4 failed | harness TOTAL: 53 ok, 8 mismatch
+MUTANT comments-by-id-passes: gh_calls self-test: 190 checks, 3 failed | harness TOTAL: 56 ok, 5 mismatch
+MUTANT graphql-mutation-passes: gh_calls self-test: 190 checks, 2 failed | harness TOTAL: 56 ok, 5 mismatch
+MUTANT issues-201-comments-passes: gh_calls self-test: 190 checks, 20 failed | harness TOTAL: 41 ok, 20 mismatch
+MUTANT refusal-exit-removed: gh_calls self-test: 190 checks, 65 failed | harness TOTAL: 15 ok, 46 mismatch
+MUTANT seat_venv.sh --install-shims bake line replaced by `:` (SURVIVES):
+  seat_venv self-test: 25 checks, 0 failed ; gh_calls self-test: 190 checks, 0 failed
+  (unmutated: seat_venv self-test: 25 checks, 0 failed)
+Lower-casing mutant: not runnable -- the head has no lower-casing of path segments to mutate out (norm() keeps case; `issues)`/`comments`/`graphql` matched case-sensitively).
+Residual check, forking spoof: exec -a 'python3 <tree>/tools/pr/gh_comment.py' bash -c 'gh api repos/o/r/issues/201/comments -f body=x; true' -> rc=0 stub-lines=1 (declared residual reproduces)
+Self-tests at head: gh_calls 190/0; queue_pre_flight 45/0; merge_train 443/0; budget_raise_gate 274/0; structure.py STRUCTURE RATCHET PASSED
+dS files-only arm: planted (+0.0012 IMPROVES vs measured +0.0000 NULL) -> justified() False; measured body -> True; null control justification(planted) shape-only -> True
