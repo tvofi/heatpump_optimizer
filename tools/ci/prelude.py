@@ -52,6 +52,13 @@ CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
+# An edit run beside an unfinished code run whose pr-contract has not started
+# (R10-CI-SLIM card C3, option A): it judges these two against the live body at
+# once and holds no runner waiting; `pr-contract`, which reads the body off the
+# API when it starts and needs every unit first, is the code run's, so the
+# code run's gate judges the LATEST body.
+EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
+STARTED = ("in_progress", "completed")
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
     "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
@@ -218,6 +225,24 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
+def defer_to(ctx: dict, pr: str, get) -> "int | None":
+    """The unfinished code run at this head for `pr` whose `pr-contract` has not
+    started, or None. Its pr-contract will read the body after this edit, and its
+    gate is listed only after that, so it is the later verdict at this head."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"head_sha": ctx["head"], "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        raise ghapi.ApiError(f"runs at {ctx['head'][:12]}", st, "")
+    for r in sorted(doc.get("workflow_runs", []), key=lambda r: r["id"]):
+        t = parse_title(r.get("display_title") or "")
+        if r["id"] == ctx["run_id"] or r["status"] not in UNFINISHED or t is None or t[:2] != ("code", pr):
+            continue
+        contract = run_jobs(get, ctx["repo"], r["id"]).get("pr-contract / pr-contract")
+        if contract is None or contract[0] not in STARTED:
+            return r["id"]
+    return None
+
+
 def _codeql_scope():
     sys.path.insert(0, str(HERE.parent / "pr"))
     import codeql_scope
@@ -263,6 +288,13 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
+    if not why and kind == "edit":
+        try:
+            if defer_to(ctx, pr, get) is not None:
+                out["workset"] = " ".join(sorted(EDIT_UNDER_CODE))
+                return out, ""
+        except ghapi.ApiError as e:
+            return out, str(e)
     if not why and kind != "code":
         why = wait_sources(ctx, get, sleep)
     return out, why
@@ -373,6 +405,55 @@ def self_test() -> int:
     get, _ = timeline([run(1, "code", "queued")])
     w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
     check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
+    # C3 (option A): an edit run beside a code run that has not started its
+    # pr-contract exits at once with the body units less pr-contract; beside one
+    # whose pr-contract has started, or a finished one, it waits as before.
+    ectx = ctx("pull_request", action="edited", pull_request=pr)       # run 50
+    in_units = [{"name": "prelude", "status": "completed", "conclusion": "success"},
+                {"name": "tests / fast (3.14)", "status": "in_progress", "conclusion": None}]
+    contract = lambda st: in_units + [{"name": "pr-contract / pr-contract", "status": st, "conclusion": None}]  # noqa: E731
+
+    def edit_out(*frames):
+        get, naps = timeline(*frames)
+
+        def nap(s):                         # bounded: a wait the frames never end is a failed check, not a hang
+            naps.append(s)
+            if len(naps) > 5:
+                raise TimeoutError("waited past the frames")
+
+        def run_it():
+            try:
+                return outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
+                               else get(path, params), nap)
+            except TimeoutError as e:
+                return {"workset": f"UNBOUNDED: {e}"}, ""
+        return run_it, naps
+    f, naps = edit_out([run(40, "code", "in_progress", in_units)])
+    check("C3: beside a code run in its units, the edit run exits at once without pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate", ""), []))
+    f, naps = edit_out([run(40, "code", "queued", [])])
+    check("C3: beside a queued code run (nothing listed), it exits at once", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate", []))
+    f, naps = edit_out([run(40, "code", "in_progress", contract("queued"))])
+    check("C3: a queued pr-contract has not read the body: exits at once", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate", []))
+    f, naps = edit_out([run(40, "code", "in_progress", contract("in_progress"))],
+                       [run(40, "code", "in_progress", done("code"))])
+    check("C3: beside a started pr-contract (it may have read the old body) the edit run waits and owns pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", ""), [POLL_S]))
+    f, naps = edit_out([run(40, "code", "completed", done("code"))])
+    check("C3: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
+          ("arch-score budget-raise-gate pr-contract", []))
+    other = title("code", "8", "main", "M")
+    f, naps = edit_out([{**run(40, "code", "in_progress", in_units), "display_title": other}],
+                       [{**run(40, "code", "in_progress", done("code")), "display_title": other}])
+    check("C3: a code run for another PR at this head is no deferral; it is waited on (null control)",
+          (f()[0]["workset"], naps), ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
+    check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: a review run never defers (only an edit does)",
+          outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))

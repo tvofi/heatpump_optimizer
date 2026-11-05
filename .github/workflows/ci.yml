@@ -341,4 +341,7 @@ jobs:
           PR: ${{ needs.prelude.outputs.pr }}
           BASE: ${{ needs.prelude.outputs.base }}
           KIND: ${{ needs.prelude.outputs.kind }}
+          # What the prelude ran here: an edit run beside an unfinished code run
+          # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
+          WORKSET: ${{ needs.prelude.outputs.workset }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
