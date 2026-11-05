@@ -1,33 +1,76 @@
-Fix review: blocked 5aae1e12ea1dea099edc87f94a914a33eabd1baf class-open: worktree_gc.sh class C orphaned-seat rm -rf (tools/audit/worktree_gc.sh:833) deletes a detached orphan seat whose HEAD moved after the read
+Fix review: merge 31e0bab01a714bf949cb99efce04dab19c44563b
 
-bus-nonce: 07a1b8ac17ae9e677e741f74c416669f
+bus-nonce: 66ccbf7352f24fb43b6ce3529110ba2a
 
-## Block
+## Summary
 
-The class this PR names ("a delete with no lease removes something that moved after the read, so a commit or tip made after the read is lost") is closed at every site in the diff's leased list (prune_refs push arm, closeout branches and worktrees, worktree_gc class A branch, worktree_gc remove_worktree for classes A and B). It is not closed at a sibling shape that the body's own enumeration rule returns: worktree_gc.sh class C, the orphaned-seat removal `rm -rf "$seat_real"` (tools/audit/worktree_gc.sh:833).
+This is the fifth fix review of #3085 (R10-CLOSEOUT-CLEANUP) and round 9 of the repair seat. The coordinator ruled it the last round. I measured head 31e0bab01a714bf949cb99efce04dab19c44563b from a detached worktree at that SHA. Its tree a85e770d is identical to 5a8fd981, the merge of handoff 7f80e2dc with origin/main 499162c8.
 
-The body disposes of that match as "rm -rf of a seat scratch directory (dispose_seat_dir, classes A, B and C, after a successful removal only) ... no ref is involved, so these are out of class". For class C both halves are false. Class C does not call dispose_seat_dir and follows no removal: it reads the orphan's HEAD (`ohead=$(git -C "$seat_real/wt" rev-parse HEAD)`, :806) or its branch's unpushed count (:801), runs the age and nested-worktree checks, and then `rm -rf`s the whole seat with no lease (:833). The orphan's `wt` holds a ref, its own HEAD, whenever it is a git checkout this repository does not register: a separate clone, or a worktree of another checkout under a shared seats root. A commit a seat makes there after the read is deleted with the tree.
+The class C orphaned-seat `rm -rf` is now leased. The reviewer's class C harness reads race lost=0 and null 0 at the head, and lost=1 at 5aae1e12 and at a45cf7f5. My own attached-orphan variant gives the same result. The hoist changes no class A, B or C outcome except the one intended. All 28 mutants are killed. This review found no code defect, so no split is named.
 
-This review's harness (reviewer-built, see Evidence: a one-shape variant of the round-3 finder's wtgc-detached-race.sh) shows it on real git at this head: race `RESULT race=1 orphan-detached-moved-head-lost=1`, null `RESULT race=0 orphan-detached-moved-head-lost=0`, and the same at the base a45cf7f5. That is the round-3 finding's result on a sibling shape. The PR also edits class C (it adds the `unpushed` keep at :801), so the site is in the diff's seam, not only in the enumeration.
-
-Round: this is the fourth fix review (blocked at 7f95f908, 35f06361, b195da47, now 5aae1e12) and the eighth repair round, past the three-round rule. One sound defect remains, and it is a single site in the same seam. I recommend a **split**, not another re-cut. Land the leased removals as they stand. Route the class C orphan removal to its own group under #2505, with this harness as its failing test and null control. Its fix is to lease the orphan's own HEAD at `ohead`/the branch tip read (`git -C <wt> update-ref --no-deref -d HEAD <read>`) before `rm -rf`, or to keep any orphan whose HEAD cannot be leased. The PR body must then dispose of :833 as split, not as out of class. A re-cut is equally small (one site, one self-test arm, one mutant), so either route is open to the orchestrator. Under either route, the body's class-C disposition has to be corrected.
-
-## Findings
-
-- Class-open: worktree_gc.sh class C orphaned-seat `rm -rf "$seat_real"` (:833) is unleased against the HEAD/branch read at :801/:806. A seat commit made after the read is lost (`RESULT race=1 orphan-detached-moved-head-lost=1` at 5aae1e12 and at a45cf7f5, null 0). The body's disposition of it ("dispose_seat_dir ... after a successful removal only ... no ref is involved") is factually wrong for class C. Carry: #2505
-- Body `## Red checks` reads the check runs of b195da47 ("The PR head is still b195da47"), not this head 5aae1e12. At this head `tests / nightly-status` (job 126948422077) concluded failure. The body's answer for the same check at b195da47 (main's inherited nightly red) is likely the same cause, but it was not re-read at this head. `gate` concluded `cancelled` (job 126956249906, run 41937591278), and merge_train classify reads that as RED. Owed by this PR's own next head's body, not a later stage. Carry: dismissed: answered in this PR's next body, not carried
+CI on this head is RED. Every red comes from a cancellation or is main's; none is an assertion this diff causes. See Evidence; the gate needs a re-run before the merge train can merge.
 
 ## Evidence
 
-- Head reviewed: 5aae1e12ea1dea099edc87f94a914a33eabd1baf (ev/HEAD.txt), detached checkout. PR base a45cf7f5, merge base with origin/main a45cf7f5. dev/governance/roles/ shows no diff from merge base to origin/main d91e464a for fix-review.md (only nudge.md moved).
-- Merge with origin/main d91e464a: `git merge-tree --write-tree origin/main HEAD` exit 0, no conflict, no claim driver invoked.
-- Hot-file overlap with #3089: dev/audit/harnesses/r10_seat_selftests_mutants.py differs head-vs-origin/main only by this PR's +34 lines. #3089's cloud_relay-50..57 content is present on both sides.
-- Round-3 finder harness (origin/verdict/3085:evidence/wtgc-detached-race.sh), widened by the body's one-condition sed to fire on the head's `-C <wt> update-ref`. At head: race `RESULT race=1 detached-moved-head-lost=0` with `FAILED to remove worktree ... its HEAD is no longer <sha>, kept`; null `RESULT race=0 detached-moved-head-lost=0`. At c3a279e3 and at a45cf7f5: race `=1`, null `=0`. Body figures re-derived. Class B is closed. (ev/selftests-and-figures.out)
-- Round-2 finder harness (sha1 0fe381af81201c7b2d86a7b0ed28e14a5b5cf748) at head: race `RESULT race=1 moved-tip-deleted-unpushed=0`, null `RESULT race=0 moved-tip-deleted-unpushed=0`. Class A is closed. Re-derived.
-- Self-tests at head: `worktree_gc self-test: 100 checks, 0 failed`, `closeout self-test: 28 checks, 0 failed`, `SELF-TEST PASS (74 checks)`, `STRUCTURE RATCHET PASSED`, `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` All match the body.
-- Class C harness (reviewer-built, mine, not the finder's): ev/wtgc-classC-orphan-race.sh, output ev/classC-race.out. It is the same fixture shape as the round-3 harness, except that seats/seat-a/wt is a separate clone detached at a merged sha, and the git stub commits right after the class-C `-C <wt> rev-parse HEAD` read. At head: race lost=1, null lost=0 with the seat removed. At a45cf7f5: race lost=1, null 0.
-- Body class rule (its grep) over worktree_gc.sh returns :636 (dispose_seat_dir), :673/:678 (remove_worktree lease, rm -rf after lease), :727 (class A branch lease), :833 (class C orphan rm -rf, unleased), :884 (class D venv, no ref). Only :833 is mis-disposed. closeout.py's step_local walks registered worktrees only (lease at :281). Its orch-scratch rmtree (:320) holds no seat worktree in this read.
-- Fixer's mutants re-run by this review at 5aae1e12 (ev/mutants.out): null control M0 `0 seat step(s) red`. All 27 named mutants are KILLED (closeout-1..4, prune_refs-1..10, worktree_gc-1..5, cloud_relay-50..57), `RESULT survivors=0`, rc 0. The per-mutant failure counts match the body (worktree_gc-5 is 17 failed of 100, closeout-4 is 2 of 28). No mutant covers class C's orphan removal, and none could, because that site has no lease to remove.
-- CI at this head (check-runs API, one page of 50, total_count 50): merge_train classify exit 1, `RED ... pending: none red: gate`. `gate` (126956249906) conclusion `cancelled` in run 41937591278, beside a cancelled prelude/refresh in that run. `tests / nightly-status` failure. `tests / mutation` success. `arch-score`, `budget-raise-gate`, `policy-docs`, `delivery-status`, `env-matrix`, `closure-scope`, `wave-script`, `briefs`, `hassfest`, `validate-hacs` and `codeql / Analyze (actions)` success. `instrument-self-tests` was in_progress, and tests fast/typing/closures/coverage/browser/arch-instrument and codeql python/js were queued at read time. The verdict does not turn on CI: the block is a measured class-open.
-- VERSION, manifest version and RELEASE_NOTES heading: not in the diff (12-file stat: governance.yml, mutants harness, delivery/3085.md, closures.json, INSTRUMENTS.md, closeout.py, three instrument docs, prune_refs.py, ref_privacy.py, worktree_gc.sh). No claim file in the diff.
-- Head SHA in body `## Head` = 5aae1e12, the head measured.
+- Round: fifth review (rounds 1-4 were reviews; this is round 9 of the repair seat). fix-review.md is current: `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty.
+- Head: 31e0bab0 = merge(5aae1e12, 5a8fd981). `git rev-parse 5a8fd981^{tree} 31e0bab0^{tree}` gives a85e770d for both. The body's `## Head` names 31e0bab0.
+- Merge with current origin/main 7c274274: `git merge-tree --write-tree origin/main 31e0bab0` exits 0. `LEDGER-MERGE: resolved tests/closures.json`, and no claim-file conflict (ev/merge-tree.txt).
+- Re-cut diff (5aae1e12..7f80e2dc, non-merge commits b1320783 and 7f80e2dc): 3 files, +50 -6, as the brief states (ev/recut.diff).
+- Reviewer's class C harness: ev/wtgc-classC-orphan-race.sh, from probe/rev-3085-07a1b8ac, sha1 d297bfe672021d02e28fc5bfbb5b68d39ad23221, run unchanged (ev/classC-race.txt):
+  - head: `RESULT race=1 orphan-detached-moved-head-lost=0`, with `FAILED to remove .../seat-a: its HEAD is no longer <read sha>, kept` and the seat wt present. Null: `RESULT race=0 ...lost=0`, seat removed.
+  - 5aae1e12: race `lost=1`, null `lost=0`.
+  - a45cf7f5: race `lost=1`, null `lost=0`.
+  - mutant worktree_gc-6 on the head: race `lost=1`, null `lost=0`.
+- Reviewer-built harness, disclosed as mine: ev/wtgc-classC-attached-race.sh. It is an ATTACHED orphan on branch fix/x with a gh stub that reads the PR as MERGED, and the seat commits right after `unpushed_of`'s rev-list, which is the last read before the lease (ev/classC-attached-race.txt):
+  - head: race `lost=0` (lease refused, seat kept), null `lost=0` (removed).
+  - 5aae1e12: race `lost=1`, null 0.
+  - mutant 6: race `lost=1`, null 0.
+  - The body's git 2.43 claim holds on real git: a stale old value on a symbolic HEAD is refused (`is at X but expected Y`), and a fresh one deletes .git/HEAD while refs/heads/main stays.
+- Hoist judged against old code, case by case:
+  - abbrev-ref fails (no git, or a broken gitfile): wt_branch is empty, ohead is empty, and the seat is removed unleased as before (the pruned class).
+  - Unborn branch: abbrev-ref returns rc 128 and prints `HEAD`. Old code keeps it as `unmerged-head`. New code reaches `head_is_merged_ancestor ""`, which is false, so it also keeps it as `unmerged-head`. No change.
+  - Attached or detached with HEAD unresolvable after a good abbrev-ref: new code keeps it as `unreadable-head`. Old code kept it as `unpushed` (`unpushed_of` prints `?`) or as `unmerged-head`. Only the label changes.
+  - Every other case reaches the same branch and detached decisions, and the removal now takes the lease first. Classes A and B are untouched by these commits.
+- Self-tests at the head (ev/selftests.txt):
+  - `worktree_gc self-test: 105 checks, 0 failed`
+  - `closeout self-test: 28 checks, 0 failed`
+  - `SELF-TEST PASS (74 checks)`
+- Named mutant worktree_gc-6, applied by hand (ev/mutant6-selftest.txt): `105 checks, 3 failed`. The three rows are exactly the body's: the class C lease row, "orphan with a merged branch: removed" and "null control: the unmoved detached orphan in the same run is removed". The restored null gives `105 checks, 0 failed`. As the body discloses, the stub kills the mutant through its lease-argument row, and real git kills it through the moved-HEAD race (above).
+- Reviewer's own extra mutants:
+  - Dropping the lease block is KILLED: 3 failed, including "the orphaned seat whose HEAD moved is kept".
+  - Leasing only the detached arm is KILLED: 1 failed.
+  - Dropping the `unreadable-head` keep SURVIVES (0 failed). This is an equivalent mutant: with ohead empty, the attached arm is still kept as `unpushed` (`?`) and the detached arm as `unmerged-head`, so the seat never reaches the rm -rf except through a race between two git reads. The keep is defensive and redundant, and the body claims no test for it. This is not a defect.
+- Mutant driver, the body's exact 28-id command run at the head (ev/mutants.txt): `M0: 0 seat step(s) red`, all 28 KILLED, `RESULT survivors=0`, rc 0. Every per-mutant count matches the body: worktree_gc-1..6 failed 5, 2, 2, 3, 17 and 3 of 105; closeout-1..4 failed 6, 5, 1 and 2 of 28.
+- Class sweep, the body's grep over worktree_gc.sh and closeout.py less comments and self-test sections (ev/class-sweep.txt). Production sites at the head, which were :636, :673/:678, :727, :833 and :884 at 5aae1e12. Each body disposition is TRUE:
+  - :662 `dispose_seat_dir` rm -rf: callers are :759 and :788, classes A and B only, each after `remove_worktree ... || return 0`. Out of class.
+  - :699/:704 `remove_worktree` lease, then rm -rf: closed.
+  - :753 class A leased branch delete: closed.
+  - :869/:873 class C lease, then rm -rf: closed (this round).
+  - :924 class D venv: out of class.
+  - closeout.py :265 and :283 are leased. :320-321 is the `--orch-root` sweep, disposed with its stated limit. :618 and :711 lie inside `self_test()` (:442-:719).
+  - The sweep returns no other site.
+- Cheap checks at the head:
+  - `STRUCTURE RATCHET PASSED`.
+  - `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
+  - Claim files are byte-identical to the merge base.
+  - VERSION, manifest and RELEASE_NOTES.md are not in the three-dot diff (ev/three-dot-files.txt).
+  - Scoped scripts: `ALL 2616 ENTITY CHECKS PASSED` and `ALL 112 HARNESS HEADER CHECKS PASSED` (ev/scoped-scripts.txt).
+  - Re-read before return: `refs/pull/3085/head` is 31e0bab01a714bf949cb99efce04dab19c44563b.
+- CI at this head, all 68 check runs read (ev/check-runs.tsv). `merge_train.py classify` gives `RED 31e0bab0... pending: none red: gate` (rc 1, ev/ci-classify.txt). The concluded non-green runs:
+  - `gate` 127035819504, failure: `FAIL tests / fast (3.14): cancelled (run 41957409301)`; `tests / closures` and `codeql / Analyze (python)` were also cancelled (ev/gate-failure.txt).
+  - CI code run 41957409301 was cancelled from outside at 03:42Z, and every in-flight job stopped in the same second: fast, closures, coverage, instrument-self-tests, codeql, lane-proofs, ratchets and autofixes. No assertion failed. The jobs that completed are success: mutation, typing, policy-docs, wave-script, env-matrix, closure-scope, hassfest and hacs. The two earlier `gate` runs were cancelled (127032284460, 127034469391).
+  - `tests / nightly-status` 127019738795, failure. The log reads `NIGHTLY FAILED: record-autofix failed in the last verification dispatch`, dispatched run 41912550258, head 62f94f3. It is main's nightly and pinned at 499162c8. This diff does not reach what it reads.
+  - `governance / delivery-status` 127019738698, failure: `OVERDUE ... 4 overdue`, on main's rows #3174, #3091, #3089 and #3192. Row #3085 is not among them, so it is not this PR's.
+  - `CodeQL` is neutral.
+- The body's `## Red checks` names `gate`, `tests / nightly-status` and `governance / delivery-status` by exact name, and answers each as a cancellation, main's nightly and main's rows. The trigger is answered. Its details were read at 5aae1e12, not at this head; see Findings.
+- Forward-carry: the body routes the prune_refs archive-tag re-plan block to #2727 (`Carry: #2727`). carry_audit counts it as routed. #2727's body and comments do not yet state it; see Findings.
+- Figures I could not re-derive: none of the code figures. The body's prepr.sh run and its counts (486 self-tests, FIGURES and CARRY-AUDIT lines) were not re-run, since that run belongs to the fixer and is heavy. The packet's own figure_lint and carry_audit at the head agree: `FIGURES: 12 resolved, 4 not verified, 0 refused`, and 1 routed carry.
+
+## Findings
+
+- The body's `## Red checks` still reads "The PR head is still 5aae1e12" and quotes that head's runs. At 31e0bab0, `gate` failed on the cancelled CI code run 41957409301. `tests / nightly-status` now fails for a different cause: record-autofix in dispatch 41912550258, not the `slow` lane the body cites. `governance / delivery-status` is red on main's overdue rows, where the body says `success` for 5aae1e12. The body must be re-read at this head, and CI code re-run to GREEN, before the merge train merges. This is the orchestrator's body update, not a code change. Carry: dismissed: answered in this PR's body by the orchestrator before merge, not a later stage
+- The prune_refs `archive/<name>` tag that blocks a re-plan after a lease refusal (the body's `## Forward-carry`) is routed to #2727 only through the body's `Carry: #2727` line. #2727's own body and comments do not state it yet. The orchestrator should write it into #2727, or into the group's roster carry, with its control, before this group is set done. Carry: #2727
+
+## Friction
+
+- The exported harness takes `<worktree_gc.sh>` but `cd`s into its temp repo, so a relative path reads as rc 127 (missing script) and still prints `lost=0`. My first run fell into this and had to be re-run with absolute paths. A harness that prints a passing RESULT when its target is missing would mislead a careless reader; it should check `gc rc` itself.

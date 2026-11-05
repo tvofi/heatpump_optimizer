@@ -1,0 +1,91 @@
+== job 127019738698
+Uses: tvofi/heatpump_optimizer/.github/workflows/governance.yml@refs/pull/3085/merge (1ddc2ad44a69e9353f6d0ba4de99559149dd492e)
+Complete job name: governance / delivery-status
+[command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/* +1ddc2ad44a69e9353f6d0ba4de99559149dd492e:refs/remotes/pull/3085/merge
+ * [new branch]          dispatch/fixer-r10-fly-nightly-hb -> origin/dispatch/fixer-r10-fly-nightly-hb
+ * [new branch]          dispatch/fixer-r10-nightly-absent-new -> origin/dispatch/fixer-r10-nightly-absent-new
+ * [new branch]          dispatch/fixer-r10-nightly-slow-rolling -> origin/dispatch/fixer-r10-nightly-slow-rolling
+ * [new branch]          dispatch/reviewer-rev-3085  -> origin/dispatch/reviewer-rev-3085
+ * [new branch]          handoff-body/r10-fly-nightly-hb -> origin/handoff-body/r10-fly-nightly-hb
+ * [new branch]          handoff-body/r10-nightly-slow-rolling -> origin/handoff-body/r10-nightly-slow-rolling
+ * [new branch]          handoff/r10-fly-nightly-hb  -> origin/handoff/r10-fly-nightly-hb
+ * [new branch]          handoff/r10-nightly-slow-rolling -> origin/handoff/r10-nightly-slow-rolling
+ * [new branch]          probe/rev-3085-07a1b8ac     -> origin/probe/rev-3085-07a1b8ac
+ * [new branch]          probe/rev-3085-09ce08fe     -> origin/probe/rev-3085-09ce08fe
+ * [new branch]          probe/rev-3085-c1b9ef58     -> origin/probe/rev-3085-c1b9ef58
+ * [new branch]          probe/rev-3085-f0e4e8db     -> origin/probe/rev-3085-f0e4e8db
+ * [new branch]          review/3085                 -> origin/review/3085
+ * [new branch]          verdict/3085                -> origin/verdict/3085
+ * [new branch]          wip-sync/ext-upd-fix-r10-fly-nightly-hb-f8130bfa -> origin/wip-sync/ext-upd-fix-r10-fly-nightly-hb-f8130bfa
+ * [new branch]          wip-sync/ext-upd-fix-r10-nightly-absent-new-608074fa -> origin/wip-sync/ext-upd-fix-r10-nightly-absent-new-608074fa
+ * [new branch]          wip-sync/ext-upd-fix-r10-nightly-pyspy-retry-158b8ca9 -> origin/wip-sync/ext-upd-fix-r10-nightly-pyspy-retry-158b8ca9
+ * [new tag]             archive/handoff-body/r10-nightly-absent-new -> archive/handoff-body/r10-nightly-absent-new
+ * [new tag]             archive/handoff-body/r10-nightly-pyspy-retry -> archive/handoff-body/r10-nightly-pyspy-retry
+ * [new tag]             archive/handoff-body/r10-prepr-unpinned-red -> archive/handoff-body/r10-prepr-unpinned-red
+ * [new tag]             archive/handoff-body/r10-rca-nightly-pyspy -> archive/handoff-body/r10-rca-nightly-pyspy
+ * [new tag]             archive/handoff-body/r9-nightly-bdr -> archive/handoff-body/r9-nightly-bdr
+== job 127019738795
+Uses: tvofi/heatpump_optimizer/.github/workflows/tests.yml@refs/pull/3085/merge (1ddc2ad44a69e9353f6d0ba4de99559149dd492e)
+  pr: 3085
+Complete job name: tests / nightly-status
+[command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules --depth=1 origin +1ddc2ad44a69e9353f6d0ba4de99559149dd492e:refs/remotes/pull/3085/merge
+ * [new ref]         1ddc2ad44a69e9353f6d0ba4de99559149dd492e -> pull/3085/merge
+[command]/usr/bin/git checkout --progress --force refs/remotes/pull/3085/merge
+Note: switching to 'refs/remotes/pull/3085/merge'.
+##[group]Run set -euo pipefail
+[36;1mset -euo pipefail[0m
+[36;1mgit cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"[0m
+[36;1mgit checkout "$PINNED" -- \[0m
+[36;1m  'tests/nightly_status.py'[0m
+[36;1mtest "$(git hash-object tests/nightly_status.py)" = "$(git rev-parse "$PINNED:tests/nightly_status.py")"[0m
+[36;1mpython -I -S tests/nightly_status.py[0m
+  PINNED: 499162c89d0f4f8369e16e6e41fb3a620bc1ecb0
+NIGHTLY FAILED: record-autofix failed in the last verification dispatch.
+  dispatched run 41912550258, 2026-11-04T21:04:09+00:00, head 62f94f3, run conclusion 'failure'
+  (run 41943946464 is still in flight; this verdict is the last CONCLUDED one, which is what 'the last nightly' means here)
+  failing jobs:
+    record-autofix  failure  https://github.com/tvofi/heatpump_optimizer/actions/runs/41912550258/job/126863629337
+This check is NOT one of the required contexts on `main-protect`; a red here does not block a merge. The nightly lanes can fail for reasons outside this repository (a registry outage, a Home Assistant release), which is why they are unrequired and why this must stay unrequired too.
+    gh workflow run nightly.yml --ref main
+and name that run id under `## Red checks` in your pull-request body. A concluded dispatch on the default branch is read as the nightly here, so the check goes green on the fix rather than on the next cron.
+##[error]Process completed with exit code 1.
+  pending  #3202 086a59d 10 commit(s) since — triage: batch 117, P379 DEFER, P380 REJECT, P381 ACCEPT
+  overdue  #3174 62f94f3 12 commit(s) since — R10-REPLAY-COST-BUDGET: replay cost budget
+  overdue  #3091 ce7a6ba 13 commit(s) since — record: #3048 pre-flight waiver note; drop the answered 
+  overdue  #3089 2a9cd34 14 commit(s) since — R10-FLOW-BODY-ONLY: a handoff updates only with the body
+  overdue  #3192 d4e584e 15 commit(s) since — R10-MACHINERY-RATCHETS: grader registration first
+This check is NOT a required context and a red here blocks no merge. Pending is the ordinary state: the protocol writes rows in batches, and only OVERDUE means a batch has stopped being drained.
+##[error]Process completed with exit code 1.
+Post job cleanup.
+[command]/usr/bin/git version
+git version 2.56.0
+Temporarily overriding HOME='/home/runner/work/_temp/f8aa189f-dbe5-4484-9090-c1c1bbd7396d' before making global git config changes
+Adding repository directory to the temporary git global config as a safe directory
+[command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+Removing SSH command configuration
+[command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+Removing HTTP extra header
+[command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+[command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+includeif.gitdir:/github/workspace/.git.path
+includeif.gitdir:/github/workspace/.git/worktrees/*.path
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path
+/home/runner/work/_temp/git-credentials-a42897af-9119-48f6-b434-e76da3cdf41a.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path \/home\/runner\/work\/_temp\/git\-credentials\-a42897af\-9119\-48f6\-b434\-e76da3cdf41a\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path
+/home/runner/work/_temp/git-credentials-a42897af-9119-48f6-b434-e76da3cdf41a.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path \/home\/runner\/work\/_temp\/git\-credentials\-a42897af\-9119\-48f6\-b434\-e76da3cdf41a\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git.path
+/github/runner_temp/git-credentials-a42897af-9119-48f6-b434-e76da3cdf41a.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-a42897af\-9119\-48f6\-b434\-e76da3cdf41a\.config
+[command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+/github/runner_temp/git-credentials-a42897af-9119-48f6-b434-e76da3cdf41a.config
+[command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-a42897af\-9119\-48f6\-b434\-e76da3cdf41a\.config
+[command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+Removing credentials config '/home/runner/work/_temp/git-credentials-a42897af-9119-48f6-b434-e76da3cdf41a.config'
+Cleaning up orphan processes

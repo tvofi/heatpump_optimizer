@@ -1,0 +1,5 @@
+ok   and so is a repo without owner/repo shape
+ok   refused before any git or gh call
+worktree_gc self-test: 105 checks, 0 failed
+closeout self-test: 28 checks, 0 failed
+SELF-TEST PASS (74 checks)
