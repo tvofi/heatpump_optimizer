@@ -1,0 +1,2 @@
+api /repos/o/r/issues/201/comments --method POST --input /tmp/gh_comment_3vw4wk9l.json
+api /repos/o/r/issues/comments/1

@@ -1,0 +1,7 @@
+offline: env -i HOME=<empty> PATH=<shim>:<stub>:/opt/hpo/venv-ci/bin:/usr/bin:/bin ; `env -i ... env | grep -i token` rc=1 (none)
+gh_comment.py post --repo o/r --issue 201 --body-file body.txt   rc=0; stub argv: api /repos/o/r/issues/201/comments --method POST --input <tmp>.json ; then api /repos/o/r/issues/comments/1 (read-back)
+gh_comment.py ... --dry-run   rc=0, stub lines 0
+python3 -X gh_comment.py -c '<subprocess gh api -X POST .../issues/201/comments -f body=x>'   rc=0 stublines=1  (BYPASS: -X value read as the script word)
+python3 <any dir>/gh_comment.py (a different file of that basename)   rc=0 stublines=1  (basename-only parent check)
+python3 -c '<same>'   rc=1 stublines=0 (refused)
+bash -c 'gh api -X POST .../issues/201/comments -f body=x'   refused, stublines=0

@@ -1,0 +1,43 @@
+== refusals (shim dir /tmp/tmp.O6mozvpCUE/off/shim)
+OK expect=refuse rc=1 stublines=0 :: planted-kill
+OK expect=refuse rc=1 stublines=0 :: field-only
+OK expect=refuse rc=1 stublines=0 :: flags-first
+OK expect=refuse rc=1 stublines=0 :: leading-slash
+OK expect=refuse rc=1 stublines=0 :: full-url
+OK expect=refuse rc=1 stublines=0 :: placeholder
+OK expect=refuse rc=1 stublines=0 :: querystring
+OK expect=refuse rc=1 stublines=0 :: method-sep
+OK expect=refuse rc=1 stublines=0 :: method-eq
+OK expect=refuse rc=1 stublines=0 :: XPOST
+OK expect=refuse rc=1 stublines=0 :: X-lower
+OK expect=refuse rc=1 stublines=0 :: input
+OK expect=refuse rc=1 stublines=0 :: field-eq
+OK expect=refuse rc=1 stublines=0 :: raw-field
+OK expect=refuse rc=1 stublines=0 :: F-attached
+OK expect=refuse rc=1 stublines=0 :: issue-201
+OK expect=refuse rc=1 stublines=0 :: issue-repo-after
+OK expect=refuse rc=1 stublines=0 :: issue-repo-before
+OK expect=refuse rc=1 stublines=0 :: issue-R-before
+OK expect=refuse rc=1 stublines=0 :: issue-hash
+OK expect=refuse rc=1 stublines=0 :: issue-url
+OK expect=refuse rc=1 stublines=0 :: issue-url-anchor
+== bypass probes (expect refuse)
+FAIL expect=refuse rc=0 stublines=1 :: api-trailing-slash
+FAIL expect=refuse rc=0 stublines=1 :: issue-url-trailing-slash
+FAIL expect=refuse rc=0 stublines=1 :: issue-long-body-before
+OK expect=refuse rc=1 stublines=0 :: issue-body-eq-ok
+FAIL expect=refuse rc=0 stublines=1 :: issue-body-file-before
+FAIL expect=refuse rc=0 stublines=1 :: api-leading-zero
+FAIL expect=refuse rc=0 stublines=1 :: issue-leading-zero
+FAIL expect=refuse rc=0 stublines=1 :: api-pct
+FAIL expect=refuse rc=0 stublines=1 :: graphql-declared-residual
+FAIL expect=refuse rc=0 stublines=1 :: pr-comment-201
+== null controls (expect pass)
+OK expect=pass rc=0 stublines=1 :: get-201
+OK expect=pass rc=0 stublines=1 :: get-201-explicit
+OK expect=pass rc=0 stublines=1 :: post-202
+OK expect=pass rc=0 stublines=1 :: post-202b
+OK expect=pass rc=0 stublines=1 :: post-2011
+OK expect=pass rc=0 stublines=1 :: issue-202
+OK expect=pass rc=0 stublines=1 :: issue-view-201
+OK expect=pass rc=0 stublines=1 :: patch-residual
