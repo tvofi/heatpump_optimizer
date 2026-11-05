@@ -1,6 +1,0 @@
-PROBE valve-at-curve wood=None: booked 1.352 mean 5.802
-PROBE valve-charged wood=None: booked 1.384 mean 5.805
-PROBE wood-warm wood=30.0: booked 0.000 mean 5.510
-PROBE wood-warm wood=5.0: booked 1.354 mean 5.803
-PROBE wood-hot wood=60.0: booked 0.000 mean 4.153
-PROBE wood-hot wood=5.0: booked 1.374 mean 5.804
