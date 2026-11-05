@@ -138,6 +138,7 @@
   "_learner_snapshot_payloads": "learning",
   "_learning_frozen": "learning",
   "_learning_view": "learning",
+  "_load_scalar_learners": "learning",
   "_load_t4b_learners": "learning",
   "_manual_pins": "core",
   "_manual_plan_state": "core",

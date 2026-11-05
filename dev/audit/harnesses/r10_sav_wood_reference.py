@@ -27,7 +27,7 @@ firewood's cost is not counted. ``wood-unforeseen`` meters under the plan: with
 wood configured the row's calibration only raises the reference (floor 1.0), and
 the arm prints what the uncalibrated row reads beside it.
 
-    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py [--quick] [arm ...]
+    PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py [--quick] [--no-settlement] [arm ...]
 """
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ from profiles import DT, house, prices, solve_inputs, weather
 from heatpump_optimizer.ledger import MonthlyLedger
 from heatpump_optimizer.optimizer import (
     HeatPumpOptimizer, OptimizationConfig, _floor_demand_at_target, _reference_cop,
-    _thermostat_held_state,
+    _settlement_at, _thermostat_held_state,
 )
 from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries,
@@ -50,6 +50,9 @@ START = datetime(2026, 1, 15, 0, 0)
 #: Intervals between solves; the reference is booked per interval regardless.
 REPLAN = 4
 DAYS = 1.0 if "--quick" in sys.argv else 2.0
+#: The null control for R10-SAV-COMFORT's stored-heat settlement: book the
+#: baseline and power alone, as before the plan step carried its readings.
+NO_SETTLEMENT = "--no-settlement" in sys.argv
 VALVE_CFG = {
     "mixing_valve_mode": "manual", "mixing_valve_target": 21.0, "buffer_tank_volume": 750.0,
     "buffer_max_temperature": 56.0, "heat_pump_max_power": 4.0,
@@ -123,8 +126,11 @@ def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", me
             float(out[k]), flow_temp=state.buffer_tank_temperature
         )
         meter = power * DT * (1.0 if metered is None else metered(now))
+        # The production snapshot: the plan step's settlement readings (stored
+        # heat, comfort, steady COP), the baseline re-read from THIS state.
+        step = {} if NO_SETTLEMENT else dict(_settlement_at(plan, k % REPLAN))
         led.observe_spot_and_settle_savings(
-            now, float(pr[k]), {"baseline_kw": booked, "power": power}, meter, DT
+            now, float(pr[k]), {**step, "baseline_kw": booked, "power": power}, meter, DT
         )
         led.add(now, "spot", kwh=meter, sek=meter * float(pr[k]))
         states.append((state, series))
@@ -135,6 +141,8 @@ def closed_loop(wood: bool, burn_kw, wood0, buf0: float, price: str = "flat", me
         rooms.append(state.room_temperature)
     row = led.savings_months(datetime(2026, 2, 1), wood_configured=wood)[0]
     print(f"  row: baseline {row['baseline_sek']} actual {row['actual_sek']} saved {row['savings_sek']} pct {row['savings_pct']}")
+    print(f"  row: stored_heat_sek {row['stored_heat_sek']} comfort_sek {row['comfort_sek']}"
+          f"{' (--no-settlement)' if NO_SETTLEMENT else ''}")
     # The month row's meter calibration, read off: what it does to the percent.
     raw = led.line("2026-01", "savings_baseline")["sek"]
     print(f"  calibration {row['meter_calibration']}; uncalibrated baseline {raw:.2f}, pct {(raw - row['actual_sek']) / raw * 100.0 if raw > 0 else float('nan'):.2f}")
@@ -225,7 +233,7 @@ OWED = {
 
 
 def main(argv: list[str]) -> int:
-    names = [a for a in argv if a != "--quick"] or list(ARMS)
+    names = [a for a in argv if a not in ("--quick", "--no-settlement")] or list(ARMS)
     failed = []
     for name in names:
         print(name)

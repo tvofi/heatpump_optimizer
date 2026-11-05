@@ -40,11 +40,44 @@ Alternatives (fixer step 17):
 
 Root cause: the defect reached a release. The separate seat's record merged with #3216 (`dev/audit/rca/R10-RCA-SAV-ESTIMATE.md`).
 
+Round 3 (merge repair, origin/main cd0dd1691 then 0ae75bf31). The merge train skipped the reviewed head 6f8dfe831 on a content conflict in `ledger.py` with #3195 (R10-SAV-COMFORT part 3, e57dfbbe), which settles the plan's stored heat into the month row. The conflict is resolved by merge, not by a re-cut, and `MonthlyLedger.savings_months` now does both:
+
+1. **Settling against the meter (this hotfix).** On a wood-configured house the calibration is floored at 1.0 before anything is scaled: a meter under the plan is a fire and is never scaled down.
+2. **The stored-heat settlement (#3195).** The plan's stored-heat change converts at the month's mean steady COP and prices at the row's metered kWh price. It is added to `baseline_sek`, and `comfort_sek` is published beside the saving.
+
+All three terms (the thermostat line, the stored line and the comfort line) ride the one floored `scale`, which is what "scaled as the thermostat is" means. The row keeps both sets of keys: the hotfix's `old_basis` (and its dash on an old-basis month) and #3195's `stored_heat_sek` and `comfort_sek`.
+
+The combination moved three things, each repaired in 5dc4cd6e0:
+- `R10-SAV-COMFORT null control: an interval without either reading settles nothing` compared the whole row to a literal dict that predates `old_basis`. It now expects `"old_basis": False`; no other key or value changed.
+- `class_excess_loc` read 17590 against a budget of 17589. The cause was the merged docstring stating both owner rulings. It is paid by rewording the docstring one line shorter, with no budget change.
+- `dev/audit/harnesses/r10_sav_wood_reference.py` booked only `baseline_kw` and `power`, so the stored-heat settlement never reached its row (`stored_sek` is 0 when no `steady_cop` is booked). It now books the plan step's own readings (`_settlement_at`) as production's pending snapshot does, and `--no-settlement` is its null control.
+
+The second main merge (0ae75bf31, #3219: `replay_doc.py`, `debugger.py`, `tests/replay.py`, `tools/replay/export.py` and its mutation records) merged without conflict.
+
+The step ref `handoff-wip/r10-hotfix-sav-estimate` still held the previous return's body commit f6e53f982, which is not an ancestor of the merged head. Deleting it was refused in this container, so this round's step pushes went on top of it as a body-only merge commit, as the previous return's did. `handoff/` carries the code head alone.
+
+**Is the owner-reported estimate still fixed with #3195 in? Yes.** The fixer's harness reads `first: SOUND`, `valve-flat: SOUND` and `valve-vary: SOUND` at the merged head. At origin/main without the hotfix it reads `first: DEFECT` and crashes on `valve-flat`. The finder's census reads 0 cells out of band at the merged head against 4 at origin/main. #3195's stored-heat term moves the flat row from +4.18 % to +0.56 %, closer to the 0 a flat price should read. The null control (`--no-settlement`) reproduces the previous figures exactly (`## Figures`).
+
 ## Head
 
-`b97962fefef3792d26d81be6e57a5410c3b80692`. It is the PR head 481153bd6 (the round-1 code head a9f8cb2b5, the main merge 62c40213c, the delivery row 6dcd1abb8 and the bot's `ci: pin killed mutants`), plus a merge of origin/main 8ddab3178, three repair commits (e76b0d7dc typing, bf628b2ec migration and floor pin, 539995fa5 R9-F2.1 P3), a merge of origin/main 78a2be77c (#3167, #3205: `tests/replay.py`, `tools/ci/gate.py`, nothing this diff reads), 70f0c46f5, which deletes the stale pin (a ledger file only), and a merge of origin/main 6125b263d (#3085 and the nightly's `ci: record nightly kills`: `tools/audit/`, `tests/closures.json` and `tests/mutation_ledger/` records, with no file under `custom_components/` and no suite script). Merge base `6125b263d94e7ea8c43d31eb483869f8d8c83019`. Every figure below was measured at 893f4940d unless its line names another, with `OPENBLAS_CORETYPE=Haswell` (the setting `tools/audit/seat/cloud-setup.sh` exports). The head differs from 893f4940d by that deleted ledger file and by main's 6125b263d delta. Neither reaches a script this gate ran on production or on suite code, so the gate was not re-run for them. `tools/pr/prepr.sh` (its mutants, CI prediction and self-tests included) and `python3 tests/structure.py` were re-run at this head, and the scope is unchanged (`MODE: SCOPED -- 30 script(s) run, 3 scoped out` against the new merge base). `git merge-tree --write-tree origin/main HEAD` reports no conflict at origin/main 6125b263d (`date -u` 2026-11-05 05:45). Main had not moved past it at the final `tools/pr/prepr.sh` run.
+`a1a7b2a6bf2b4539d32d18578c7057db3c83cf3e`. It is the PR head 6f8dfe831 (the reviewed 1d114ed62 merged with an older main), plus:
+- 67e54f8d2, the merge of origin/main cd0dd1691, resolving `ledger.py` (above);
+- 5dc4cd6e0, the three repairs the combination needed;
+- 5a0fef27b, the merge of origin/main 0ae75bf31 (#3219), with no conflict;
+- a1a7b2a6b, the merge of the bot's 359caf94c (`ci: pin killed mutants`, eight `tests/mutation_ledger/killed_by/` records only), which `mutation-autofix` pushed to the PR branch at 10:07Z while this round ran. It merged with no conflict, and it is not re-measured: no script reads those records but the mutation lane.
+
+Merge base `0ae75bf3146566bffca4490464dcc8d6d45c29ab`, the tip of origin/main at `date -u` 2026-11-05 10:40. The two harnesses' both-end runs were taken at 67e54f8d2 (the original harness) and at 5dc4cd6e0's tree (the extended harness). The final head differs from them only by #3219's replay files, which neither harness imports. Every other figure under `## Figures` is from the final head. `tools/pr/prepr.sh`, body check included, ran once at this head, against this base.
 
 ## Mutation proof
+
+Round 3 covers the merge resolution. Each mutant ran the full `PYTHONPATH=tests/hastub python3 tests/features.py` in a worktree at 5a0fef27b with one line changed; the null is the unmutated head (`ALL 4855 FEATURE CHECKS PASSED`, rc 0).
+
+| mutant | checks that go red |
+|---|---|
+| delete the wood calibration floor in `savings_months` (`calibration = max(1.0, calibration)` becomes `pass`) | `with wood configured a meter under the plan earns its saving: the calibration does not cancel it` (`{1.0: 50.0, 0.5: 50.0, 0.25: 50.0}`), `with wood configured a model that under-reads the meter is still corrected, and the row publishes what it applied`. That is 2 of 4855, rc 1. |
+| drop `+ stored_sek` from `baseline_sek` in `savings_months` (main's side lost) | `R10-SAV-COMFORT: the month row settles the plan's stored-heat change at the row's metered kWh price` (baseline 20.0 against 15.0). That is 1 of 4855, rc 1. |
+
+Each side of the resolution is held by its own side's checks, so neither was taken wholesale.
 
 Round 2, measured at this head's tree. Each mutant ran on a copy of `custom_components/`, the check's section being sliced out of `tests/features.py`. The null is an unmutated copy with a comment-only change.
 
@@ -74,6 +107,8 @@ Round 1, measured at a9f8cb2b by slice. The reviewer re-ran the floor, wood-shar
 
 ## Null control
 
+Round 3: the extended harness with `--no-settlement` books what it booked before (baseline and power only). It reads byte-for-byte the figures the reviewer verified at 1d114ed62: valve-flat pct +4.18, valve-vary +28.50, `stored_heat_sek 0.0 comfort_sek 0.0` on every arm. So the moves under `## Figures` are #3195's stored and comfort terms and nothing else. The harness's own kWh split (`residual: reference less comfort, plus stored`) is identical with and without the flag on every arm, which confirms that the flag changes only what the ledger is handed. At origin/main without the hotfix, the same original harness reads `first: DEFECT` (step0/mean 0.000 or 2.292 to 4.589, `BAD` on every install).
+
 The floor pin's null: on the unmutated tree the replay lands on the reference's end state exactly (gap 0.0 C on room and slab, both days), and the swinging day books a positive 30.37 kWh, so the replay is driven by non-zero power and the check is not vacuous.
 
 The typing null: the tree before e76b0d7dc reads +2 `type-arg` (above). The migration null: the tree before bf628b2ec stamps the unbooked month as the old basis (above). The old-basis month that did book savings stays old at both ends (`a v1 ledger migrates to v2: every month on the old basis, every line as stored` passes before and after).
@@ -81,8 +116,43 @@ The typing null: the tree before e76b0d7dc reads +2 `type-arg` (above). The migr
 R9-F2.1 P3's null is origin/main 78a2be77c, the tree without this diff, run through the same probe. At 30 C it reads gain +0.010889 under Haswell (j_plain 109.578998 against 109.589887) and +0.631408 under SkylakeX. At 35 C it reads +0.730147 (Haswell) and +0.623440 (SkylakeX).
 
 Round 1's null: the merge base 2a9cd3476, on the finder's harness over the owner's export, reads step 0 over horizon mean 0.00 in every snapshot with the tanks as measured, and the code head reads 1.00 (ratios only, from round 1's run; this host has no export). The plain house is the change's null: after the floor, every fixture with no valve is byte-identical to the merge base (`NO STALE FIXTURE`, below).
-
 ## Figures
+
+Env: `PYTHONPATH=tests/hastub:tests:custom_components` for the harnesses, and `PYTHONPATH=tests/hastub` for the suite scripts. Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` prints `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. Harness copies were run from scratch, so each worktree measured the same file.
+
+Round 3, the owner-reported estimate at both ends:
+- Original fixer's harness `dev/audit/harnesses/r10_sav_wood_reference.py` (sha1 0f98bbb397a62d65a07448e934e0e100e49359da, as at 1d114ed62), default arms.
+  - At origin/main cd0dd1691, which lacks the hotfix: `first: DEFECT`, then `TypeError: MonthlyLedger.savings_months() got an unexpected keyword argument 'wood_configured'` on `valve-flat`, rc 1.
+  - At 67e54f8d2: `first: SOUND`, `valve-flat: SOUND` (pct +4.18, residual -3.90 %), `valve-vary: SOUND` (pct +28.50, residual -8.02 %), rc 0. These equal the reviewer's figures at 1d114ed62, because this harness books no stored-heat readings.
+- Finder's census `dev/audit/harnesses/r10_rca_sav_estimate.py` (default arms):
+  - At origin/main cd0dd1691: `census: 6 of 6 cells ran, 4 out of band: valve-at-curve valve-charged wood-warm wood-hot`, rc 1.
+  - At 67e54f8d2: `census: 6 of 6 cells ran, 0 out of band: -`, rc 0.
+- Extended harness (sha1 23f17afe540f2cc82f7f5d5e1f4d4fe51b36d736, the file at this head), run at 5dc4cd6e0's tree. Two days for each arm. The rule is the harness's own: `flat |pct| < 10.0`. Wood arms are measured, not asserted.
+
+| arm | row pct, with #3195's settlement | `--no-settlement` (null) | stored_heat_sek | comfort_sek | baseline / actual SEK |
+|---|---|---|---|---|---|
+| valve-flat (SOUND) | +0.56 | +4.18 | -6.32 | 5.50 | 167.15 / 166.22 |
+| valve-vary (SOUND) | +25.26 | +28.50 | -9.09 | 7.11 | 200.64 / 149.95 |
+| wood-cold | +0.47 | +4.24 | -6.57 | 5.49 | 166.90 / 166.12 |
+| wood-stale | +4.07 | +7.20 | -5.66 | 5.60 | 167.82 / 160.99 |
+| wood-coast | +19.34 | +22.40 | -6.58 | 4.93 | 166.89 / 134.62 |
+| wood-fire | +37.37 | +38.54 | -3.23 | 5.65 | 170.24 / 106.62 |
+| wood-unforeseen | +40.42 | +42.82 | -6.99 | 5.53 | 166.49 / 99.20 |
+| wood-full | +92.99 | +92.61 | +9.32 | 2.18 | 182.80 / 12.82 |
+
+`first: SOUND` and `arms run 3, defect 0`, rc 0, both with and without the flag. The owner's report was a baseline/actual of 0.14. On the flat valved arm the ratio is 167.15 / 166.22 = 1.006, and the plain row stays positive on every arm. On the valved arms the stored term is negative, because the plan drew the store down over two days. That lowers the reference by what the plan did not buy, so the saving shrinks rather than inflates. On wood-full the plan charged the store from wood, and the term is positive.
+
+Round 3, the suite at 5a0fef27b:
+- `PYTHONPATH=tests/hastub python3 tests/features.py`: `ALL 4855 FEATURE CHECKS PASSED`, rc 0. At 67e54f8d2, before the repair, it read `1 of 4855 FEATURE CHECKS FAILED` (the `old_basis` null-control dict).
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: `ALL 2631 ENTITY CHECKS PASSED`, rc 0.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. At 67e54f8d2 it read `FAIL class_excess_loc 17590 > 17589 (+1)`. No budget file differs from the PR's own: `tests/structure_budgets.json` sits below origin/main's (class_excess_loc 17589 against 17617).
+- `PYTHONPATH=tests/hastub python3 tests/typing_ruler.py`: `ALL 9 typing-ruler checks PASSED`, `ALL 12 typing-ruler source checks PASSED`. The `--mypy` run needs `.venv-typing`, which this container does not have, so it was not run. CI's `tests / typing` judges it; the merge adds no annotation.
+- Gate scope: `python3 tests/closure.py select --diff 0ae75bf3146566bffca4490464dcc8d6d45c29ab` prints `MODE: SCOPED -- 30 script(s) run, 3 scoped out.` The full scoped `tests/run.sh` was not re-run here. Of what it names, features, entities, structure and typing_ruler ran (above); the rest is left to CI.
+- `python3 tools/audit/archscore/score.py --diff 0ae75bf3146566bffca4490464dcc8d6d45c29ab`: `Architecture score: dS +0.0000 NULL`.
+- Claim files: `git diff --quiet origin/main HEAD -- tests/golden/card_claimed_drift.txt` exits 0, so the file is byte-identical. `tests/golden/claimed_drift.txt` differs from origin/main only in lines carrying `R10-HOTFIX-SAV-ESTIMATE` and that claim's comment block. It was resolved by the `claimnotes` driver, with no hand edit. `claims-for: 7.1.1` equals `VERSION`.
+- Seam rule for the resolution: `git grep -n "savings_months(" -- custom_components`. Every caller reads the one method resolved here, so no second row builder carries either rule.
+
+Rounds 1 and 2, quoted at their own heads and not re-run in round 3 unless named above:
 
 Env for each harness line: `PYTHONPATH=tests/hastub:tests:custom_components OPENBLAS_CORETYPE=Haswell`. `--quick` is one day, otherwise two. Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` prints OK. `python3 -c 'import numpy,scipy;print(numpy.__version__,scipy.__version__)'` prints `2.5.4 1.18.1`, which equals `tests/requirements-ci.txt`.
 
@@ -109,46 +179,45 @@ Env for each harness line: `PYTHONPATH=tests/hastub:tests:custom_components OPEN
 
 ## Architecture score
 
-`python3 tools/audit/archscore/score.py --diff 78a2be77c6d5f8eda3a44b23d3011ecc87eff366`: `Architecture score: dS +0.0000 NULL`. No budget rises.
+`Architecture score: dS +0.0000 NULL` against 0ae75bf31. No budget rises.
 
 ## Unpinned sites
 
-- `custom_components/heatpump_optimizer/ledger.py:154 GUARD_OFF`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/ledger.py:292 GUARD_OFF`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/ledger.py:446 BOOLOP`: mutation-autofix (its lane mutates `custom_components/`).
+The sites `tools/pr/prepr.sh` step 6d lists at this head; each is a `custom_components/` site that `tests / mutation-autofix` pins.
+
 - `custom_components/heatpump_optimizer/ledger.py:75 CONST`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/notifier.py:102 BOOLOP`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:396 CONST`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:401 RETURN_DEL`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:411 CMP_BOUND`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:411 GUARD_OFF`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:455 CMP_BOUND`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:4627 CLAMP_DROP`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:5396 BOOLOP`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/optimizer.py:5407 CMP_BOUND`: mutation-autofix (its lane mutates `custom_components/`).
+- `custom_components/heatpump_optimizer/optimizer.py:4772 CLAMP_DROP`: mutation-autofix (its lane mutates `custom_components/`).
+- `custom_components/heatpump_optimizer/optimizer.py:536 CONST`: mutation-autofix (its lane mutates `custom_components/`).
+- `custom_components/heatpump_optimizer/optimizer.py:5541 BOOLOP`: mutation-autofix (its lane mutates `custom_components/`).
+- `custom_components/heatpump_optimizer/optimizer.py:5552 CMP_BOUND`: mutation-autofix (its lane mutates `custom_components/`).
+- `custom_components/heatpump_optimizer/optimizer.py:595 CMP_BOUND`: mutation-autofix (its lane mutates `custom_components/`).
 - `custom_components/heatpump_optimizer/store.py:831 BOOLOP`: mutation-autofix (its lane mutates `custom_components/`).
 - `custom_components/heatpump_optimizer/store.py:833 RETURN_DEL`: mutation-autofix (its lane mutates `custom_components/`).
-- `custom_components/heatpump_optimizer/thermal_model.py:1921 RETURN_DEL`: mutation-autofix (its lane mutates `custom_components/`).
 
-The bot's 481153bd6 pinned 16 killed sites, and one of them (`ledger.py:migrate_ledger_v1 GUARD_OFF d32e5365`) pinned the guard that bf628b2ec rewrote. Its file is deleted by hand in 70f0c46f5, as `tools/pr/ci_predict.py` instructs, and `mutation-autofix` pins the rewritten guard afresh (`ledger.py:154` above).
+The bot's 481153bd6 pinned the guard on `migrate_ledger_v1` that bf628b2ec rewrote, and its file was deleted by hand in 70f0c46f5. The bot's 359caf94c pinned eight more on 6f8dfe831, the other eight of round 3's first list.
 
 ## Red checks
 
-Concluded reds on the PR head 481153bd6, the final head on the remote before this handoff, by check-run name, across every check-run page:
+Concluded reds on the PR head on the remote, 359caf94c (the bot's pin commit on 6f8dfe831), read with `filter=all` from one check-run page of 41 runs: `gate` and `tests / mutation`. Those on 6f8dfe831 (58 runs) are listed after them. The final head has run no CI; this handoff moves the PR to it.
 
-- `tests / mutation`: ADDED UNPINNED sites only (27 `ADDED UNPINNED` lines, no survivor). The diff removes the pinned sites of the deleted wood and coil block, and adds the sites listed under `## Unpinned sites`, which `tests / mutation-autofix` pins. Cheaper detector: `tools/pr/prepr.sh` step 6d, already standing, which lists them before the handoff.
-- `tests / mutation-autofix`: the pin lane, which pushed 481153bd6 (`ci: pin killed mutants`). Named per `ci-autofix.md`. It is not a defect, and it needs no detector.
-- `tests / typing`: `errors did not grow [recorded 0, measured 2 (+2)]`, both `type-arg`. Repaired by e76b0d7dc. Cheaper detector: `.venv-typing/bin/python tests/typing_ruler.py --mypy`, already standing; CI's typing job ran 80 s on 481153bd6. Round 1 did not run it locally, and this round did (`## Figures`).
-- `tests / fast (3.14)`: red on run 41964618801 and green on run 41964928277, both at the same merge ref c3992a14 (481153bd6 merged with main 662b29669). The API returns only the last 5000 log lines, which end at `1 TEST SCRIPT(S) FAILED`, and this host's proxy refuses the full log blob, so the failing script is not named here. One tree that is red on one runner and green on another matches the R9-F2.1 P3 kernel-class cliff (`## Figures`), which this round repairs. CI at the final head decides. Cheaper detector: running the pin under each `OPENBLAS_CORETYPE` (the kernel scan in `## Figures`). It does not stand in the tree, and on this host it costs a few minutes per class for that one section.
-- `gate` and `pr-contract / pr-contract`: the graders. `gate` read the reds above, and `pr-contract / pr-contract` read the unnamed reds in the round-1 body. Both are answered by this repair and this body.
-- `governance / delivery-status`: inherited. It is red on the base's ancestry at 8ddab3178 / 78a2be77c, because OVERDUE flags fall on other rows (#3206 among them). This diff touches only its own row, `dev/programme/delivery/3220.md`.
-- `tests / nightly-status`: inherited. It reads the nightly record on main at 78a2be77c, and this diff touches nothing in that check's closure.
+- `gate` (359caf94c, and twice on 6f8dfe831): the grader, reading the `tests / mutation` red below. It is answered by naming that red.
+- `tests / mutation-autofix` (6f8dfe831, 10:08Z): the pin lane, which pushed 359caf94c, named per `ci-autofix.md`.
+
+- `tests / mutation` (359caf94c and 6f8dfe831): the ADDED UNPINNED sites of this diff, which `tests / mutation-autofix` pins and `tools/pr/prepr.sh` step 6d lists beforehand (`## Unpinned sites`). It is not a defect, and the cheaper detector already stands.
+- `governance / delivery-status` (6f8dfe831): inherited. It is a governance read of the delivery rows; this diff touches only its own row, `dev/programme/delivery/3220.md`, which the merge did not change. Its OVERDUE flags fall on other PRs' rows, as round 2 measured on its base; this round did not re-read the job log.
+- `tests / nightly-status` (6f8dfe831): inherited. It reads the nightly record on main; this diff touches nothing in that check's closure.
+
+- `tests / fast (3.14)`: not red on 6f8dfe831 or 359caf94c. It is named here because the round-2 figures quoted under `## Figures` cite its red on run 41964618801 at the merge ref c3992a14, which the R9-F2.1 P3 re-pin (539995fa5) repaired. The cheaper detector is the per-`OPENBLAS_CORETYPE` scan quoted there, which is not standing.
+- `tests / replay`: not red on 6f8dfe831 or 359caf94c. It is named because the round-2 figures quoted under `## Figures` cite its red on run 41964618801 at c3992a14: `synthetic-dhw-only.json: cycle_cost` and its three doubled-cost arms refused a runner whose `ref_ms` lay in no band of `COST_RUNNER_CLASSES`. That is the runner's class, not this diff, and no cheaper detector exists: a new runner class shows itself only on a run that lands on one.
+- `tests / typing`: red on the round-1 head 481153bd6 in this head's ancestry (`errors did not grow [recorded 0, measured 2 (+2)]`, both `type-arg`). It was repaired by e76b0d7dc and is green on 6f8dfe831 and 359caf94c. The cheaper detector is `tests/typing_ruler.py --mypy` in `.venv-typing`, which already stands; this container has no `.venv-typing`, so round 3 ran the source ruler only (`## Figures`).
+- `pr-contract / pr-contract`: red on 481153bd6 in this head's ancestry, reading the round-1 body's unnamed reds. Round 2's body answered it; this body is the grader's input again.
+
+No check went red because of the merge resolution; the head carrying it has not run CI yet. The features and structure reds that the resolution produced locally (`## Figures`) were repaired before the handoff. Their cheaper detector is the one used here, `features.py` and `structure.py` run at the merged head, which already stands.
 
 ## Forward-carry
 
-- Empty replay: `debug.manifest.replay` in the owner's export is empty, with the text `refusing to write: 1 entity id(s) not masked to a role or a hashed id`, so this fix could not replay the owner's house. Owner of the fix: `replay_doc.py`. Carry: R10-FLY-REPLAY-MASK
-- Open finding, unattributed residual: after comfort and stored heat, the valved arms leave -3.90 % (flat) and -8.02 % (varying), and the wood-cold and wood-stale arms -3.22 % and -3.42 %. This is inside `FLAT_BAND_PCT` where that band applies, but it is not zero. The reference's COP is the lower one (1.820 against the plan's 1.910), which pushes the other way, so COP does not explain it. It is not attributed here, and it belongs with the month row's settling of stored heat. Carry: R10-SAV-COMFORT
-- Open finding: `_apportion_by_steady_demand` has no pump cap. Energy is conserved, but a few demand steps can take a high power, the largest seen being 4.98 of 6.0 kW on `summer/2z/space/wood-two-tank`. It stays under the cap where measured. Carry: R10-SAV-COMFORT
+- Open finding, unattributed residual: with the stored term now in the row, the harness's residual is unchanged at -3.90 % (flat) and -8.02 % (varying), and -3.57 % on wood-cold and -3.61 % on wood-stale. This is not zero. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
+- Open finding: `_apportion_by_steady_demand` has no pump cap, unchanged from round 2. Carry: R10-SAV-COMFORT (roster `dev/programme/rosters/wave-r10-groups.json`)
 
 ## Friction
 
