@@ -434,7 +434,7 @@ def _settlement_schedule(
 
     The comfort shortfall is the steady thermostat at the step's comfort
     target less at the room the plan delivered (the slab-fed zone, at
-    the step's midpoint), through ``_floor_demand_at_target``: what the
+    the step's midpoint), through ``_floor_demand_terms``: what the
     plan saved by delivering less comfort than the schedule. Published
     beside the saving, never netted out of it.
 
@@ -490,9 +490,7 @@ def _settlement_schedule(
     before = stored(state)
     for i in range(h.n_steps):
         out = outs[i]
-        cop = compute_cop(out, humidity=hums[i])
-        if cop < 1e-3:
-            cop = 1e-3
+        cop = max(compute_cop(out, humidity=hums[i]), 1e-3)
         j = i + 1
         state.room_temperature = rooms[j]
         state.slab_temperature = slabs[j]
@@ -511,14 +509,11 @@ def _settlement_schedule(
         d_d = u * (delivered - out) - ga - gb
         step: CurrentAction = {
             "stored_kw_th": (after - before) / dt,
-            "comfort_kw": (
-                (d_t if d_t > 0.0 else 0.0) - (d_d if d_d > 0.0 else 0.0)
-            ) / cop,
+            "comfort_kw": (max(d_t, 0.0) - max(d_d, 0.0)) / cop,
             "steady_cop": cop,
         }
         if i < n_base:
             step["baseline_kw"] = baseline[i]
-        before = after
         schedule.append(step)
         before = after
     return schedule

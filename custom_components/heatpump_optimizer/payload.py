@@ -166,7 +166,7 @@ class CurrentAction(TypedDict, total=False):
     baseline_kw: float
     # The step's stored-heat change (kW_th), comfort shortfall (kW_e) and
     # steady COP, for the month row's settlement
-    # (``OptimizationResult.stored_heat_schedule``).
+    # (``OptimizationResult.settlement_schedule``).
     stored_kw_th: float
     comfort_kw: float
     steady_cop: float
