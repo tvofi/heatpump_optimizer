@@ -1385,5 +1385,17 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "NULL"
+ },
+ "rt_54_footprint_ifexp_body_chain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_55_footprint_boolop_control": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
  }
 }
