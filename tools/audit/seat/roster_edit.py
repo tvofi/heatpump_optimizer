@@ -2244,6 +2244,9 @@ def _self_test() -> int:
     check("set-stage absorbed --into an unknown group is refused",
           refuses("names no group", "set-stage", "R9-WX", "absorbed",
                   into="R9-NOPE", branch=W))
+    check("set-stage absorbed --into itself is refused",
+          refuses("into itself", "set-stage", "R9-WX", "absorbed",
+                  into="R9-WX", branch=W))
     check("set-stage absorbed --into a done group is refused",
           refuses("not a live group", "set-stage", "R9-WX", "absorbed",
                   into="R9-WD", branch=W))

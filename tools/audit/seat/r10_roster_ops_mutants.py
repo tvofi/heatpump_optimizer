@@ -253,7 +253,7 @@ PLANTS.update({
     "W1": ('LABEL = r"P(?:\\d+|-[A-Q])\\b"', 'LABEL = r"P\\d+\\b"'),
     "W2": ('    if json_file.startswith("@"):\n        json_file = json_file[1:]\n', ""),
     "W3": ('        if (g.get("resume") or {}).get("stage") != "not-started":\n            continue\n', ""),
-    "W4": ('    if clash and not (reason or "").strip():\n', "    if False:\n"),
+    "W4": ('    if clash and not (reason or "").strip():\n', "    if clash and reason is None:\n"),
     "W5": ('if not _is_index(f)}', "}"),
     "W6": ("    if stage in roster_lib.CARRY_CLOSED:\n        into = resume.get",
            "    if False:\n        into = resume.get"),
