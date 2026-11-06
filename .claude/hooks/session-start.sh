@@ -200,6 +200,8 @@ if [ "${1:-}" = "--self-test" ]; then
   # set must be that output plus one `role pack:` line, and nothing else.
   unset_out=$(env -u HPO_SEAT_ROLE bash "$0" </dev/null)
   set_out=$(HPO_SEAT_ROLE=fixer bash "$0" </dev/null)
+  if [ "$unset_out" = "$(report)" ]; then pass=$((pass+1)); printf '  ok   %s\n' "unset, the hook prints the clone-fact report and not a byte more"
+  else fail=$((fail+1)); printf '  FAIL %s\n' "unset, the hook prints the clone-fact report and not a byte more"; fi
   ans "$(printf '%s\n' "$unset_out" | grep -c '^role pack:')" "0" "unset, no role pack line is printed"
   ans "$set_out" "$unset_out
 role pack:      " "set, the output is the unset output plus one role pack line"
