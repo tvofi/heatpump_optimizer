@@ -268,6 +268,18 @@ STUB
     "$ROOT/tools/audit/seat/cloud-setup.sh"
   expect "cloud-setup.sh is still the oracle for that pins call" $?
 
+  # --install-shims bakes the tree's gh_comment.py path into the installed gh shim's
+  # `gcpy=` line; without it every sanctioned post to the tracker is refused. The source
+  # shim carries the placeholder (null control); the installed copy carries the path and
+  # no placeholder. The installer's own trailing interpreter probe may fail here: only
+  # the written copy is read.
+  grep -qxF 'gcpy=@HPO_GH_COMMENT@' "$ROOT/tools/audit/seat/shims/seat-gh"
+  expect "the source gh shim carries the gcpy placeholder (null control)" $?
+  HPO_STATE_DIR=$W bash "$ROOT/tools/audit/seat/seat_venv.sh" --install-shims "$W/inst" >/dev/null 2>&1
+  grep -qxF "gcpy=$(printf '%q' "$ROOT/tools/pr/gh_comment.py")" "$W/inst/gh" \
+    && ! grep -qF '@HPO_GH_COMMENT@' "$W/inst/gh"
+  expect "--install-shims bakes the tree's gh_comment.py path into the installed gh shim" $?
+
   rm -rf "$W"
   printf 'seat_venv self-test: %s checks, %s failed\n' "$((pass + fail))" "$fail"
   [ "$fail" = 0 ]
@@ -284,7 +296,13 @@ case ${1:-} in
     done
     # The gh shim (P284) is installed as `gh`; it logs the call, then execs the
     # real gh found further along PATH. Read the log with gh_calls.py --top.
-    cp "$ROOT/tools/audit/seat/shims/seat-gh" "$dest/gh" && chmod 755 "$dest/gh"
+    # The comment guard names the tree's gh_comment.py by real path: bake it into the copy.
+    gcpy=$ROOT/tools/pr/gh_comment.py
+    [ -f "$gcpy" ] || die "no $gcpy for the gh shim's comment guard"
+    while IFS= read -r l; do
+      [ "$l" = 'gcpy=@HPO_GH_COMMENT@' ] && l="gcpy=$(printf '%q' "$gcpy")"
+      printf '%s\n' "$l"
+    done < "$ROOT/tools/audit/seat/shims/seat-gh" > "$dest/gh" && chmod 755 "$dest/gh"
     printf 'seat_venv: shims installed in %s; they run %s/bin/python3\n' "$dest" "$VENV"
     "$dest/python3" -c 'import sys; print("seat_venv: shim resolves to", sys.executable)' \
       || die "the installed shim does not start; build the venv first"
