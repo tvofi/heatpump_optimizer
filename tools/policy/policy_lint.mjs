@@ -2816,7 +2816,22 @@ const FRICTION_THRESHOLD = 3
 const FRICTION_FAMILIES = [
   { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives'] },
   { name: 'environment', members: ['environment', 'seat-environment'] },
+  // One obligation under three class words (#2437, R10-RCA-FRICTION-RESIDUE
+  // section 5): the root-cause check the fix reviewer enforces, split by what
+  // went wrong with the body's answer. Measured v7.0.4..origin/main: 5, 6 and
+  // 12 pull requests under the three words.
+  { name: 'root-cause', members: ['root-cause-unanswered', 'root-cause-detectable', 'root-cause-unrecorded'] },
 ]
+
+// THE DERIVED FAMILY (#2436, R10-RCA-FRICTION-RESIDUE section 4). The reviewer
+// may write any class word and the wave routes an untaught one to `other`, so
+// the obligation's unit is the spelling and a spelling that moves never reaches
+// the threshold. This family is every VERDICT histogram key that
+// VERDICT_CLASSES does not teach, other than the passing verdict, computed at
+// read time so no list of words can go stale. It is additive like the declared
+// families: the #2410 subtraction applies, every taught row prints
+// byte-identically, and a window with no untaught word prints no row.
+export const UNTAUGHT_FAMILY = 'other (untaught)'
 
 // The fold itself, pure over any histogram cell map (the verdict classes or
 // the friction rule ids): one row per declared family with at least one member
@@ -2832,9 +2847,15 @@ const FRICTION_FAMILIES = [
 // occasions filed twice, and the 2 left were below the threshold. `filed`
 // names the members that filed, `union` is the count before they are taken
 // out, so the table can show both.
-function statsFamilies(hist) {
+function statsFamilies(hist, derived = null) {
   const out = []
-  for (const { name, members } of FRICTION_FAMILIES) {
+  const declared = [...FRICTION_FAMILIES]
+  if (derived?.taught?.length) {
+    const taught = new Set(derived.taught)
+    const members = [...hist.keys()].filter((k) => !taught.has(k) && k !== derived.passing)
+    declared.push({ name: UNTAUGHT_FAMILY, members })
+  }
+  for (const { name, members } of declared) {
     const cells = members.map((m) => hist.get(m)).filter(Boolean)
     if (!cells.length) continue
     const filed = members.filter((m) => (hist.get(m)?.prs.size ?? 0) >= FRICTION_THRESHOLD)
@@ -3174,7 +3195,7 @@ export function statsFindings({ prs, fetched, fetchError, classes, blocks = bloc
   // message shape is the one `friction_issues.mjs`'s WOULD_OPEN_RE parses:
   // kind, count, threshold.
   for (const [kind, hist] of [['verdict family', verdicts], ['friction family', friction]]) {
-    for (const fam of statsFamilies(hist)) {
+    for (const fam of statsFamilies(hist, kind === 'verdict family' && blocks ? { taught: blocks, passing } : null)) {
       const n = fam.prs.size
       if (n < FRICTION_THRESHOLD) continue
       out.push({
@@ -6150,6 +6171,38 @@ function assertAcceptance(derived) {
       }
     }
     pins += 1
+    // THE DERIVED AND THE ROOT-CAUSE FAMILIES (#2436, #2437), driven over
+    // synthetic histograms: three untaught words on one pull request each fire
+    // `other (untaught)` at 3 while no word reaches 3 alone; a taught word and
+    // the passing verdict are not members (null control: every taught row stays
+    // out, a window with no untaught word prints no row); a word that files on
+    // its own is subtracted (#2410); and the three root-cause words fold to one
+    // family that a taught-only window never prints.
+    {
+      const mk = (rows) => {
+        const h = new Map()
+        for (const [k, prs] of rows) for (const pr of prs) bump(h, k, pr)
+        return h
+      }
+      const d = { taught: ['harness', 'other', 'class-open'], passing: 'merge' }
+      const fam = (h, name) => statsFamilies(h, d).find((f) => f.name === name)
+      const split = mk([['body-stale', [1]], ['figure-wrong', [2]], ['claim-drift', [3]], ['harness', [4, 5, 6, 7]], ['merge', [8, 9, 10]]])
+      const u = fam(split, UNTAUGHT_FAMILY)
+      const taughtOnly = mk([['harness', [1, 2, 3]], ['other', [4]], ['merge', [5]]])
+      const filedAlone = mk([['ci-red', [1, 2, 3]], ['body-stale', [4]]])
+      const f = fam(filedAlone, UNTAUGHT_FAMILY)
+      const rcFam = fam(mk([['root-cause-unanswered', [1]], ['root-cause-detectable', [2]], ['root-cause-unrecorded', [3]]]), 'root-cause')
+      if (
+        !u || u.prs.size !== 3 || u.union !== 3 || fam(taughtOnly, UNTAUGHT_FAMILY) ||
+        !f || f.prs.size !== 1 || f.union !== 4 || f.filed.join() !== 'ci-red' ||
+        statsFamilies(split).some((x) => x.name === UNTAUGHT_FAMILY) ||
+        !rcFam || rcFam.prs.size !== 3 || fam(taughtOnly, 'root-cause')
+      ) {
+        console.log('\nFIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; taught and passing words out; a word filing alone subtracted; no derived list given -> no row; root-cause 1+1+1 -> 3)')
+        rc = 1
+      }
+    }
+    pins += 1
     // A family that contains the passing verdict would open rework as
     // friction -- the one class the histogram withholds from its own row. The
     // declared set must never do it, and the pin is here so the next declared
@@ -7467,7 +7520,7 @@ function cmdStats(since, cacheFile) {
     // over BOTH maps (FRICTION_FAMILIES: mutation's siblings are verdict
     // classes, environment's are friction rule ids). A window with no family
     // member prints none, and stays byte-identical to the pre-fold counter.
-    const families = { 'verdict class': statsFamilies(verdicts), rework: [], 'friction rule id': statsFamilies(friction) }
+    const families = { 'verdict class': statsFamilies(verdicts, blocks ? { taught: blocks, passing: passingVerdict() } : null), rework: [], 'friction rule id': statsFamilies(friction) }
     for (const [label, hist] of [['verdict class', verdicts], ['rework', rework], ['friction rule id', friction]]) {
       console.log(`\n${label} (PRs / entries):`)
       const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)
