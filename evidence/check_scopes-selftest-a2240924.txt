@@ -1,4 +1,4 @@
-ref=b36679ceaa65a08a67a84f0d934c93aa15f7c7f3 seats=48
+ref=a2240924bdbcb582a5d77898268c6ab45baeca54 seats=48
 ok D0 mode=cells seats=3 universe=3 [s1:3f/21821loc, s2:3f/21821loc, s3:3f/21821loc]
 FAIL D1 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
    owned twice ('custom_components/heatpump_optimizer/__init__.py', 'M1', None) by ['s1', 's2']

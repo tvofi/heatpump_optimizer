@@ -1,0 +1,6 @@
+NOTE body item ca8bd126: R10-REPLAY-COST-2
+NOTE body item 52315937: R10-REPLAY-COST-2
+NOTE review 0 item 1729f1a7: R10-REPLAY-COST-2
+NOTE review 0 item 29b2a760: R10-REPLAY-COST-2
+NOTE review 0 item 94232a67: R10-HOTFIX-GATE-BUSY-DEFER
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)

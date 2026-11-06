@@ -1,4 +1,4 @@
-ref=4512d770d6fab83a43b953bbcfe95db5a61c891a seats=48
+ref=a2240924bdbcb582a5d77898268c6ab45baeca54 seats=48
 ok D0 mode=cells seats=3 universe=3 [s1:3f/21821loc, s2:3f/21821loc, s3:3f/21821loc]
 ok D1 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
 ok D2 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
@@ -15,7 +15,5 @@ ok D12 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/
 ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
 ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
 ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
-FAIL coverage tracked=9100 in_universe=1416 excluded=7683 unclassified=1
-   in no universe and not excluded: tests/replay_cost_draws.tsv
+ok coverage tracked=9103 in_universe=1416 excluded=7687 unclassified=0
 ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
-rc=1
