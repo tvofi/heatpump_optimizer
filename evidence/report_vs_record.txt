@@ -1,0 +1,9 @@
+ok  governance / instrument-self-tests ('10.7', '1328', '9') ('10.7', '1328', '9')
+ok  tests / arch-instrument ('5.4', '779', '0') ('5.4', '779', '0')
+ok  governance / env-matrix ('2.8', '346', '1') ('2.8', '346', '1')
+ok  governance / policy-docs ('1.5', '192', '2') ('1.5', '192', '2')
+ok  arch-score / arch-score ('0.9', '82', '2') ('0.9', '82', '2')
+ok  governance / wave-script ('0.8', '93', '0') ('0.8', '93', '0')
+ok  tests / briefs ('0.7', '89', '1') ('0.7', '89', '1')
+ok  tests / graders-head-copy ('0.3', '84', '0') ('0.3', '84', '0')
+rows 8, mismatches 0

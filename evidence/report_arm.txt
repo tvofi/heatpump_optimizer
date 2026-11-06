@@ -1,15 +1,49 @@
-Traceback (most recent call last):
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 325, in <module>
-    sys.exit(main(sys.argv[1:]))
-             ~~~~^^^^^^^^^^^^^^
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 319, in main
-    {"ci-cost": arm_ci_cost, "ci-fails": arm_ci_fails, "nightly": arm_nightly, "report": arm_report,
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     "git": arm_git, "tokens": arm_tokens, "roster": arm_roster}[arm](*rest)
-     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 188, in arm_report
-    c, f = json.load(open(cost)), json.load(open(fails))
-                                            ~~~~^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.VveaBKgHYi/fails.json'
-rc=1
-14618
+RESULT report: cost window 2026-11-04T22:06:00Z..2026-11-05T07:05:00Z, 221 runs, 309.7 runner h; benefit window 2026-10-28T00:00:00Z..2026-11-05T07:30:00Z, 232 merged, 5 % is 11.6
+lane | share % | mean s | runs | PRs red | PRs caught (upper bound) | sole | inherited red runs | main red runs
+codeql / Analyze (python) | 13.9 | 1716 | 90 | 0 | 0 | 0 | 0 | 0
+prelude | 11.9 | 602 | 221 | 3 | 3 | 3 | 0 | 0
+governance / instrument-self-tests | 10.7 | 1328 | 90 | 26 | 9 | 7 | 19 | 1
+tests / closures | 9.7 | 1386 | 78 | 11 | 10 | 3 | 0 | 0
+tests / coverage | 9.0 | 1297 | 77 | 1 | 0 | 0 | 0 | 1
+tests / fast (3.14) | 7.8 | 1116 | 78 | 24 | 22 | 6 | 0 | 0
+tests / arch-instrument | 5.4 | 779 | 78 | 0 | 0 | 0 | 0 | 0
+tests / mutation | 3.0 | 374 | 90 | 23 | 22 | 14 | 0 | 0
+governance / env-matrix | 2.8 | 346 | 90 | 1 | 1 | 0 | 0 | 0
+tests / mutation-pins (1) | 2.7 | 3704 | 8 | 0 | 0 | 0 | 0 | 0
+tests / mutation-pins (2) | 1.9 | 4147 | 5 | 0 | 0 | 0 | 0 | 0
+tests / mutation-pins (3) | 1.7 | 3804 | 5 | 0 | 0 | 0 | 0 | 0
+tests / browser | 1.7 | 239 | 78 | 0 | 0 | 0 | 0 | 0
+governance / policy-docs | 1.5 | 192 | 90 | 5 | 2 | 2 | 0 | 0
+refresh | 1.5 | 87 | 194 | 0 | 0 | 0 | 0 | 0
+tests / replay | 1.2 | 737 | 18 | 9 | 9 | 7 | 0 | 0
+cancel-superseded | 1.2 | 81 | 163 | 0 | 0 | 0 | 0 | 0
+gate | 1.1 | 105 | 119 | 70 | 12 | 0 | 202 | 53
+tests / mutation-pins (4) | 1.1 | 3970 | 3 | 0 | 0 | 0 | 0 | 0
+codeql / Analyze (javascript-typescript) | 0.9 | 112 | 90 | 0 | 0 | 0 | 0 | 0
+arch-score / arch-score | 0.9 | 82 | 123 | 2 | 2 | 2 | 0 | 0
+governance / wave-script | 0.8 | 93 | 90 | 0 | 0 | 0 | 0 | 0
+tests / briefs | 0.7 | 89 | 90 | 1 | 1 | 1 | 0 | 0
+tests / mutation-pins (6) | 0.7 | 3667 | 2 | 0 | 0 | 0 | 0 | 0
+codeql / Analyze (actions) | 0.6 | 78 | 90 | 0 | 0 | 0 | 0 | 0
+governance / delivery-status | 0.6 | 111 | 63 | 29 | 23 | 0 | 0 | 0
+budget-raise-gate / budget-raise-gate | 0.6 | 52 | 134 | 4 | 4 | 4 | 0 | 0
+tests / typing | 0.6 | 82 | 78 | 4 | 2 | 0 | 0 | 0
+tests / closure-scope | 0.6 | 86 | 73 | 0 | 0 | 0 | 0 | 0
+tests / mutation-pins (7) | 0.5 | 2539 | 2 | 0 | 0 | 0 | 0 | 0
+tests / mutation-pins (5) | 0.4 | 2459 | 2 | 0 | 0 | 0 | 0 | 0
+validate / validate-hacs | 0.4 | 54 | 90 | 0 | 0 | 0 | 0 | 0
+hassfest / hassfest | 0.4 | 51 | 90 | 0 | 0 | 0 | 0 | 0
+pr-contract / pr-contract | 0.4 | 50 | 91 | 71 | 64 | 0 | 0 | 0
+tests / nightly-status | 0.4 | 66 | 63 | 81 | 74 | 0 | 0 | 0
+tests / graders-head-copy | 0.3 | 84 | 40 | 0 | 0 | 0 | 0 | 0
+tests / ci-ratchet | 0.1 | 87 | 17 | 0 | 0 | 0 | 0 | 52
+governance / delivery-status-publish | 0.1 | 73 | 17 | 0 | 0 | 0 | 0 | 0
+governance / record | 0.1 | 56 | 17 | 0 | 0 | 0 | 0 | 1
+tests / coverage-ratchet | 0.1 | 10 | 64 | 2 | 1 | 0 | 0 | 1
+tests / mutation-autofix | 0.0 | 52 | 6 | 11 | 10 | 0 | 0 | 0
+tests / lane-proofs | 0.0 | 6 | 39 | 0 | 0 | 0 | 0 | 0
+tests / closures-autofix | 0.0 | 26 | 3 | 7 | 7 | 0 | 0 | 0
+tests / claims-autofix | 0.0 | 36 | 2 | 0 | 0 | 0 | 0 | 0
+tests / nightly-ha (2025.2.0) | 0.0 | 0 | 0 | 1 | 1 | 0 | 0 | 0
+tests / nightly-ha (stable) | 0.0 | 0 | 0 | 1 | 1 | 0 | 0 | 0
+rc=0

@@ -1,19 +1,6 @@
-ERR repos/tvofi/heatpump_optimizer/actions/runs/40974653991/jobs?per_page=100&page=1 Get "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/40974653991/jobs?per_page=100&page=1": read tcp 127.0.0.1:47916->127.0.0.1:35341: read: 
-Traceback (most recent call last):
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 325, in <module>
-    sys.exit(main(sys.argv[1:]))
-             ~~~~^^^^^^^^^^^^^^
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 319, in main
-    {"ci-cost": arm_ci_cost, "ci-fails": arm_ci_fails, "nightly": arm_nightly, "report": arm_report,
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-     "git": arm_git, "tokens": arm_tokens, "roster": arm_roster}[arm](*rest)
-     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
-  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 160, in arm_ci_fails
-    r = subprocess.run(["gh", "pr", "list", "--repo", REPO, "--state", "merged", "--limit", "1000",
-                        "--search", f"merged:{a}..{b}", "--json", "headRefName"],
-                       capture_output=True, text=True, check=True)
-  File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/subprocess.py", line 578, in run
-    raise CalledProcessError(retcode, process.args,
-                             output=stdout, stderr=stderr)
-subprocess.CalledProcessError: Command '['gh', 'pr', 'list', '--repo', 'tvofi/heatpump_optimizer', '--state', 'merged', '--limit', '1000', '--search', 'merged:2026-10-28T00:00:00Z..2026-11-05T07:30:00Z', '--json', 'headRefName']' returned non-zero exit status 1.
-rc=1
+ERR repos/tvofi/heatpump_optimizer/actions/runs/40928714389/jobs?per_page=100&page=1 gh: Server Error (HTTP 502)
+
+ERR repos/tvofi/heatpump_optimizer/actions/runs/41389413359/jobs?per_page=100&page=1 gh: Server Error (HTTP 502)
+
+RESULT ci-fails 2026-10-28T00:00:00Z..2026-11-05T07:30:00Z: 423 failed pull-request runs, 55 failed push runs, 262 pull requests merged
+rc=0

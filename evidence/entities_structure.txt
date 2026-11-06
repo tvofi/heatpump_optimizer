@@ -1,0 +1,10 @@
+  File "/tmp/tmp.2xVHCkLBXU/wt/tests/entities.py", line 40, in <module>
+    from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
+ModuleNotFoundError: No module named 'layout'
+rc=0
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+rc=0
