@@ -1,20 +1,16 @@
-Fix review: blocked 9e2f045e6c6d8de6c76c403d25f5555fea8c1e4d ci-red-cancelled: PR #3209 was closed unmerged at 2026-11-04T22:51:11Z and the head's gate runs were cancelled, so classify exits 1 (RED) with no failing check of the diff's own
+Fix review: merge 195ef4432452bd359922578e910b1bde4e3deb24
 
-bus-nonce: fe57f1b0fb77097ad99b4d2ae36c0b42
+bus-nonce: ec2078fcbf2b8020a4901870141d76e3
 
-Round 1. Head measured: 9e2f045e6c6d8de6c76c403d25f5555fea8c1e4d (still the PR head at close).
-
-## Block
-`merge_train.py classify 9e2f045e6c6d8de6c76c403d25f5555fea8c1e4d --pr 3209` exited 1 (`RED ... red: gate`). The red checks are `gate` x2, `budget-raise-gate` and `arch-score`, all `cancelled`, plus `tests / nightly-status` `failure`. The PR is `state: closed`, `merged: false`, closed_at 22:51:11Z, so the cancellations follow the close. nightly-status grades main and the diff (a triage file and a delivery row) touches nothing it reads, so it owes no answer. The content below is sound; if the PR is reopened and the gate reruns green, this block lifts and the content findings are the whole review.
+CI-only re-check, round 2 (round 1 blocked 9e2f045e6c6d8de6c76c403d25f5555fea8c1e4d on cancelled runs only). Content not re-reviewed.
 
 ## Evidence
-- Diff is two new files (`dev/programme/triage/s6-batch119.md`, `dev/programme/delivery/3209.md`), three-dot against the merge base. `git merge-tree --write-tree origin/main` exit 0, no conflict (ev/merge-tree.txt).
-- carry_audit at the head: 0 findings. figure_lint: 1 command not verified (a `git diff --stat` it does not flag-check), 0 refused.
-- Verdict grammar vs proposal-triage.md: one `## P383` entry with Verdict, Source, Instances, Cost, Binding; ACCEPT names both destinations and carry text citing `triage: dev/programme/triage/s6-batch119.md#P383`. The cost names the `--budgets` position (neither file is policy, so no row), and the entry says so.
-- ACCEPT destinations exist in `origin/handoff/audit-r10-roster`: R10-CLOSEOUT-CLEANUP (stage in-progress, PR 3085) and R10-FLY-STANDING-CONTRACTS (in-progress, PR 3197). Neither is at `resume.stage: done`.
-- Code citations re-derived: `tools/audit/worktree_gc.sh` is 701 lines on origin/main and at d1e7dbbbb; at 5e6d43ae1 `cwd_inside()` is at line 545 and its call `cwd_inside "$real"` at line 752; `merge_pr.sh` line 301 at d1e7dbbbb reads `bash tools/audit/worktree_gc.sh $R 2>&1 | tail -1`; `beatd.py` line 336 at fe2077441 is the `subprocess.Popen(... cwd=cwd ...)`; `beatd.jobs.json` there has 9 `"orch"` lines. All cited commits resolve.
-- Not re-derivable here (session-local logs, transcripts, host `lsof`/`stat` fixtures, the held-worktree reproduction, timings, inode values, 387 processes, 104 min): not verified, and the entry's own Instances list them as session facts.
+- review_carry 9e2f045e6 -> 195ef4432452bd359922578e910b1bde4e3deb24: CARRY (one branch-only commit, a main merge, no resolution).
+- classify 195ef4432452bd359922578e910b1bde4e3deb24 --pr 3209: GREEN, pending none, red none (rc 0).
+- All check-run pages listed (ev/check-runs.tsv): the fresh gate run (2026-11-06T00:33Z) has gate, arch-score, budget-raise-gate, pr-contract success. The 2026-11-04T22:5x cancellations belong to the old head and are superseded; no cancelled or pending run remains on this head.
+- Two failures remain, both grading main and not this diff: tests / nightly-status (exit 1, run 23:57Z) and governance / delivery-status (DELIVERY STATUS OVERDUE on other rows #3205/#3206; log says not a required context). The diff only adds a triage file and a delivery row, touching nothing they read, so no answer is owed.
+- PR body ## Head names 195ef4432452bd359922578e910b1bde4e3deb24. merge-tree with origin/main: ev/merge-tree.txt.
 
 ## Findings
-- Follow-up: the entry cites `s7/triage-queue-s7.txt` and P382 in `s6-batch118.md` (#3204); neither is in origin/main (no `s6-batch118.md`, no queue file in the tree), so "highest ruled is P382" and "no unruled line" cannot be checked from the tree, and P383 collides if #3204 renumbers. Carry: dismissed: record-only; the orchestrator renumbers P383 at merge if #3204 lands first, and the PR is closed
-- Follow-up: the entry's carries require the held-worktree reproduction (class B holder keeps; mutant restoring the `onremote` condition fails arm a); a fixer in R10-CLOSEOUT-CLEANUP should re-run it at its own base, since the table is a snapshot. Carry: R10-CLOSEOUT-CLEANUP
+- Follow-up: P383 may need renumbering if #3204 (P382, s6-batch118) lands first. Carry: dismissed: record-only; orchestrator renumbers at merge
+- Follow-up: the held-worktree reproduction in the P383 entry should be re-run at its own base by the fixer. Carry: R10-CLOSEOUT-CLEANUP
