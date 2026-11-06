@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.dhw_windows_active BOOLOP 60a0c95b",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        return bool(self.dhw_schedule_enabled and self.dhw_windows)",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`return bool(self.dhw_schedule_enabled or self.dhw_windows)`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

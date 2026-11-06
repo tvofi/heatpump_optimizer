@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:ThermalParameters.two_tank_modelled RETURN_DEL 2ce9ee1d",
-  "killed_by": "tests/guard_pins.py",
-  "old": "        return self.topology_layout == TOPOLOGY_TWO_TANK_4WAY",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/guard_pins.py from rc=0 failed=0 to rc=1 failed=1."
-}

@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/external_heat.py:ExternalHeatDetector._collect_evidence RETURN_DEL 76938769",
-  "killed_by": "tests/features.py",
-  "old": "        return evidence",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=10."
-}

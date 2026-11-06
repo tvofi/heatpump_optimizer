@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/sensor.py:SensorGapAdvisorSensor.extra_state_attributes BOOLOP 12225cd4",
-  "killed_by": "tests/env_drift.py",
-  "old": "        top = next((g for g in gaps if g.get(\"empty\") and g.get(\"sek_per_month\")), None)",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`top = next((g for g in gaps if g.get(\"empty\") or g.get(\"sek_per_month\")), None)`) took tests/env_drift.py from rc=0 failed=0 to rc=1 failed=10."
-}
