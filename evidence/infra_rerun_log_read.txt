@@ -1,0 +1,31 @@
+            if code or att.strip() != "1":
+                continue
+            code, raw = self.run(["gh", "api", "--paginate", "--jq", ".jobs[]",
+                                  f"repos/{self.repo}/actions/runs/{rid}/jobs?filter=latest&per_page=100"])
+            try:
+                failed = [j for j in (json.loads(x) for x in raw.splitlines() if x.strip())
+                          if j.get("conclusion") == "failure"] if code == 0 else []
+            except ValueError:
+                failed = []
+            logs = {}
+            for j in failed:
+                c, text = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{j.get('id')}/logs"])
+                logs[j.get("id")] = None if c else text
+            got = infra_due(1, failed, logs)
+            if got is None:
+                continue
+    suites = gate_suites(runs)
+    if not suites or any(run_state(c) == "pending" for c in suites):
+        return False
+    reds = [c for c in suites if run_state(c) == "red"]
+    for c in reds:
+        code, log = train.run(["gh", "api", "--allow-escape-sequences",
+                               f"repos/{train.repo}/actions/jobs/{c.get('id')}/logs"])
+        out = gate_outcome(log) if code == 0 else None
+        for c in runs:
+            if c.get("name") in red and c.get("conclusion") not in GREEN:
+                # gh refuses a log carrying terminal escapes -- every Actions log
+                # does -- unless told to pass them (measured on the R9-RO-12 proof).
+                log = self.run(["gh", "api", "--allow-escape-sequences",
+                                f"repos/{self.repo}/actions/jobs/{c['id']}/logs"])[1]
+                scripts |= set(FAILED_SCRIPT.findall(log))
