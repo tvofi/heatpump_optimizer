@@ -598,28 +598,15 @@ def mask_active(tariff: CapacityTariff) -> bool:
     )
 
 
-def window_factors(
-    tariff: CapacityTariff,
-    start_time: datetime | None,
-    n_windows: int,
-    dt_hours: float,
-) -> np.ndarray | None:
-    """Billing factor per metering window over the horizon, or None.
+def _window_starts(
+    start_time: datetime, window: int, n_windows: int
+) -> list[datetime]:
+    """Each metering window's real local start, from the slot of ``start_time``.
 
-    None when no mask is configured — the fast path, and the proof of
-    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
-    Windows are keyed by the aligned start instant the horizon's *real* clock
-    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
-    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
-    the realised tracker cannot disagree about which hour a window bills under.
-    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
-    wall clock instead, and on the two DST days a year it disagreed from the
-    transition onwards. The walk below is the load-bearing part, and the
-    divides-the-hour qualifier on it is not decoration; see there.
+    The one walk ``window_factors`` (billing factors) and ``plan_window_days``
+    (distinct-day labels) both date windows by, so a window's factor and its
+    day are read at the same real instant (#1512).
     """
-    if start_time is None or n_windows <= 0 or not mask_active(tariff):
-        return None
-    window = max(1, int(tariff.window_minutes))
     slot0 = _window_slot(start_time, window)
     # Walk the windows in UTC and convert back — ``drift.utc_step_starts``'
     # rule, and for its reason (#243, #777). ``timedelta`` on an aware datetime
@@ -631,7 +618,7 @@ def window_factors(
     # ``_window_slot``'s ``fold``, which is what picks the real pass to start
     # from, and ``astimezone`` honours it.
     #
-    # WHY THE DOCSTRING SAYS "divides the hour" — the condition is DIVISIBILITY,
+    # WHY ``window_factors`` SAYS "divides the hour" — the condition is DIVISIBILITY,
     # not size. A DST transition shifts the wall-clock offset by 60 minutes, so
     # a window length that divides 60 falls on the same ``_window_slot`` wall
     # grid on both sides of the shift and the walk reconciles the two ends
@@ -661,12 +648,34 @@ def window_factors(
     # both transitions.
     tz = slot0.tzinfo
     base = slot0 if tz is None else slot0.astimezone(timezone.utc)
-    starts = [base + timedelta(minutes=window * i) for i in range(n_windows)]
+    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
+    return [s if tz is None else s.astimezone(tz) for s in starts]
+
+
+def window_factors(
+    tariff: CapacityTariff,
+    start_time: datetime | None,
+    n_windows: int,
+    dt_hours: float,
+) -> np.ndarray | None:
+    """Billing factor per metering window over the horizon, or None.
+
+    None when no mask is configured — the fast path, and the proof of
+    inertness: ``peak_cost`` with ``None`` runs the exact pre-#13 arithmetic.
+    Windows are keyed by the aligned start instant the horizon's *real* clock
+    reaches, matching how ``PeakTracker.observe`` attributes a live window, so
+    for every ``window_minutes`` that DIVIDES the hour the plan's cost term and
+    the realised tracker cannot disagree about which hour a window bills under.
+    Sharing ``sample_factor`` is not what buys that — until #777 this walked the
+    wall clock instead, and on the two DST days a year it disagreed from the
+    transition onwards. The walk below is the load-bearing part, and the
+    divides-the-hour qualifier on it is not decoration; see there.
+    """
+    if start_time is None or n_windows <= 0 or not mask_active(tariff):
+        return None
+    window = max(1, int(tariff.window_minutes))
     return np.asarray(
-        [
-            tariff.sample_factor(s if tz is None else s.astimezone(tz))
-            for s in starts
-        ],
+        [tariff.sample_factor(s) for s in _window_starts(start_time, window, n_windows)],
         dtype=float,
     )
 
@@ -680,13 +689,8 @@ def plan_window_days(
     ``start_time`` falls in, in UTC, converted back -- so a window is dated by
     the real start the meter dates it by, across both DST transitions.
     """
-    window = int(window_minutes)
-    slot0 = _window_slot(start_time, window)
-    tz = slot0.tzinfo
-    base = slot0 if tz is None else slot0.astimezone(timezone.utc)
-    starts = [base + timedelta(minutes=window * i) for i in range(int(n_windows))]
     return np.asarray(
-        [(s if tz is None else s.astimezone(tz)).toordinal() for s in starts],
+        [s.toordinal() for s in _window_starts(start_time, int(window_minutes), n_windows)],
         dtype=np.int64,
     )
 

@@ -2495,4 +2495,25 @@ R.check(
     f"{_c2238_gated}",
 )
 
+# P9: each window's real local start -- the billing factors and the day labels
+# are both read off tariff._window_starts.
+_c2238_noon = datetime(2030, 1, 15, 12, 0, tzinfo=STHLM)
+_c2238_autumn = datetime(2026, 10, 24, 21, 0, tzinfo=STHLM)
+_c2238_mask = CapacityTariff(
+    enabled=True, window_minutes=60, peak_hours=((7.0, 20.0),), offpeak_factor=0.0
+)
+with _c2238_mock.patch.object(
+    _c2238_tmod, "_window_starts", create=True,
+    side_effect=lambda _s, _w, n: [_c2238_noon] * int(n),
+):
+    _c2238_p9_f = window_factors(_c2238_mask, _c2238_autumn, 6, 0.25)
+    _c2238_p9_d = _c2238_tmod.plan_window_days(6, 60, _c2238_autumn)
+R.check(
+    "R10-CLONE-2238 P9: window_factors and plan_window_days both walk the "
+    "windows through _window_starts",
+    _c2238_p9_f is not None and list(_c2238_p9_f) == [1.0] * 6
+    and list(_c2238_p9_d) == [_c2238_noon.toordinal()] * 6,
+    f"factors {_c2238_p9_f}, days {_c2238_p9_d}",
+)
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

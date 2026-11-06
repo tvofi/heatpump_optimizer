@@ -4166,6 +4166,11 @@ def _p2_registry(sources):
                  ast.Call, r"^round\(window_minutes / max\(dt_hours",
                  lambda n: getattr(n.func, "id", None) == "round"),
              owners=["tariff.py::_window_partition"], dispositions={}),
+        dict(fact="window_starts_walk", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
+                 lambda n: isinstance(n.test, ast.Compare)),
+             owners=["tariff.py::_window_starts"], dispositions={}),
     ]
 
 
