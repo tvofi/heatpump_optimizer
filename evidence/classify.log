@@ -1,0 +1,21 @@
+07:48:24 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+FINAL rc=1
+07:49:42 open=4 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:51:14 open=4 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:52:46 open=4 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:54:18 open=4 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:55:51 open=3 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:57:23 open=3 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+07:58:55 open=3 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:00:27 open=2 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:01:59 open=2 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:03:32 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:05:04 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:06:36 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:08:09 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:09:41 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:11:13 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:12:46 open=1 rc=1 RED 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: gate
+08:14:18 open=1 rc=3 WAIT 40019c52e481653979ba934604c0b220c6d5ea37 pending: gate red: none
+08:15:50 open=0 rc=0 GREEN 40019c52e481653979ba934604c0b220c6d5ea37 pending: none red: none
+FINAL2 rc=0
