@@ -2711,7 +2711,7 @@ def _self_test() -> int:
             rc_, err_ = refusal(op_, "R9-A", extra_)
             check(f"lane: {op_} without the marker is refused, naming the queue runner",
                   rc_ == 2 and "roster_queue.py" in err_ and "R9-A" in err_, (rc_, err_[-120:]))
-        check("lane: a refused structural op writes nothing (no branch moved)",
+        check("lane: lane_refusal names a structural op called without the marker",
               lane_refusal("append-carry", "G") is not None)
         check("lane: set-stage, append-group and set-resume stay directly callable (null)",
               all(lane_refusal(o, "G") is None
