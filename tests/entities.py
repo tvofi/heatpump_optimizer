@@ -41332,6 +41332,10 @@ for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
         if not (isinstance(_uxh_c, ast.Call) and isinstance(_uxh_c.func, ast.Attribute)
                 and _uxh_c.func.attr in _UXH_READS and _uxh_c.args):
             continue
+        # ``os.read(fd, n)`` is the descriptor read (the worker reply frame),
+        # never an InputReader: keyed by its receiver, not just the method name.
+        if isinstance(_uxh_c.func.value, ast.Name) and _uxh_c.func.value.id == "os":
+            continue
         _uxh_arg = _uxh_c.args[0]
         # `const.CONF_X` is the name `CONF_X`; any other shape is listed.
         _uxh_a = _uxh_arg.attr if isinstance(_uxh_arg, ast.Attribute) else getattr(_uxh_arg, "id", ast.dump(_uxh_arg))
