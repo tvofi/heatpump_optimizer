@@ -323,6 +323,7 @@ MUTANTS = [
     # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
     # handoff refusals and body_push's call of them; body_push-1/2 are graded by
     # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-own", "review_packet.py", "    this_pr, note = own_pr(open_prs, topic, is_ancestor)  # mut:ownpr", "    this_pr, note = 0, None"),
     ("review_packet-1", "review_packet.py",
      "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
     ("review_packet-2", "review_packet.py",
