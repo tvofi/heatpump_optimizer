@@ -53,7 +53,7 @@ def in_flight(roster: dict) -> list:
     out = []
     for g, gr in roster_lib.groups_of(roster).items():
         stage = (gr.get("resume") or {}).get("stage") or NOT_STARTED
-        if stage not in roster_lib.DONE_STAGES and stage != NOT_STARTED:
+        if stage not in roster_lib.CLOSED_STAGES and stage != NOT_STARTED:
             out.append((g, gr))
     return out
 
@@ -273,8 +273,11 @@ def _self_test() -> int:
           f"{len(failed)} failed")
     for f in failed:
         print("FAIL", f)
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     return 1 if failed else 0
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(roster_lib.run_refusing("handover_prompt", main))

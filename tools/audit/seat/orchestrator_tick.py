@@ -2181,9 +2181,16 @@ class Tick:
                                      f"{sha[:12]} is not in origin/main's "
                                      "history -- re-derive the resume",
                                   flag=True)
-            # owner-gated age
-            gated = [g for gid, g in groups.items()
-                     if gid in open_g and g.get("owner_gate")]
+            # owner-gated age: the gate's class is roster_lib's (`gate_kind`);
+            # a covered gate is informational, only an owner gate flags and
+            # costs the issues read
+            kinds = {gid: rl.gate_kind(g.get("owner_gate")) for gid, g in groups.items()
+                     if gid in open_g}
+            covered = [gid for gid, k in kinds.items() if k == "covered"]
+            gated = [groups[gid] for gid, k in kinds.items() if k == "owner"]
+            if covered:
+                self.line(S, f"{len(covered)} group(s) with an owner gate the "
+                             "mandate in force covers (informational)")
             if gated:
                 issues = sorted(i for g in gated for i in (g.get("issues") or []))
                 age = ""
@@ -2780,6 +2787,29 @@ def self_test() -> int:
             ("REPLAN: a queued PR not OPEN is to prune; an OPEN one is not",
              any("#2379 not OPEN" in x["text"] for x in t_rp.findings)
              and not any("#2394 not OPEN" in x["text"] for x in t_rp.findings)),
+        ])
+        total, failed = total + a, failed + f
+        def gated_tick(gate):
+            ro = {"groups": [{"group": "G-OWN", "issues": [7], "owner_gate": gate,
+                              "resume": {"stage": "not-started"}},
+                             {"group": "G-NONE", "resume": {"stage": "not-started"}}]}
+            rf = tmp / f"gate-{abs(hash(gate))}.json"
+            rf.write_text(json.dumps(ro))
+            tg = tick(prs=[], queue=str(q16), roster=str(rf),
+                      states={p: ("closed", H2) for p in (2379, 2394, 2416)})
+            tg.replan()
+            return tg
+        tg_cov = gated_tick("code-owned: .claude/hooks/ (mandate 6329234399)")
+        tg_own = gated_tick("owner decision after the probe")
+        a, f = check("REPLAN owner gates: only a decision not yet taken flags", [
+            ("a mandate-covered gate prints one informational line, no flag",
+             any("1 group(s) with an owner gate" in l["text"] and not l["flag"]
+                 for l in tg_cov.sections["REPLAN"])
+             and not any("blocked on owner" in x["text"] for x in tg_cov.findings)),
+            ("a covered gate costs no issues read",
+             not any("issues/7" in " ".join(c) for c in tg_cov._gh.calls)),
+            ("an owner gate is flagged blocked on owner",
+             any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),

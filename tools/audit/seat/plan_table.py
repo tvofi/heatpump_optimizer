@@ -277,6 +277,9 @@ def _self_test() -> int:
     print(f"plan_table self-test: {n_checks[0]} checks, {len(failed)} failed")
     for f in failed:
         print("FAIL", f)
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     return 1 if failed else 0
 
 
@@ -323,4 +326,4 @@ def main(argv=None) -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(roster_lib.run_refusing("plan_table", main))
