@@ -126,7 +126,7 @@ none. The final head named under `## Head` has not run CI yet: it reaches CI whe
 ## Forward-carry
 
 - The floor's cost on a wood house whose model reads the meter high (the +25.00 % reference at `m` 0.8) changes no later stage's method. It follows from two owner rulings as built and is stated in `docs/how-it-works.md`. Changing it is the owner's call. Carry: dismissed: owner ruling territory, stated for the owner in docs/how-it-works.md and this body
-- The class rule for "where the integration states the saving" must follow the value through the event to its shipped consumers (`blueprints/`, `docs/`), not stop at `custom_components`. The review found this, and it is built and dispositioned here (rule R). It changes no later stage's brief beyond this PR. Carry: R10-HOTFIX-SAV-ESTIMATE
+- The class rule for "where the integration states the saving" must follow the value through the event to its shipped consumers (`blueprints/`, `docs/`), not stop at `custom_components`. The review found this, and it is built and dispositioned here (rule R). It changes no later stage's brief beyond this PR. Carry: dismissed: built and dispositioned in this PR (rule R in the body), so no later stage owes it
 
 ## Friction
 
