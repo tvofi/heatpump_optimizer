@@ -69,6 +69,9 @@ a checkout main has moved past is a lint the tree no longer runs. An edit
 whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
+Structural ops (wire-issue, unwire-issue, edit-brief, append-carry, set-after,
+drop-carry) run only through roster_queue.py, which sets HPO_ROSTER_LANE.
+
 Ops (all group ids must exist, except append-group which must not):
   set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
                over a pending carry is written `carries-open` and printed

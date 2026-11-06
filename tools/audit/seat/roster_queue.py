@@ -599,6 +599,17 @@ def _self_test():
            rc2 == 1 and r2[0] == f"roster: set-stage G pushed {sha[:9]}"
            and r2[1] == "roster: set-stage H FAILED FileNotFoundError: clone vanished"
            and len(r2) == 2)
+        # carry 13(2): a pass cut short (the drain's timeout) keeps every mark already written
+        q2.write_text("1 set-stage G done\n2 set-stage H done\n3 set-stage I done\n")
+        (t / "rep2").write_text("")
+        subprocess.run = boom
+        try:
+            run_queue(argparse.Namespace(**{**vars(a2), "mark": True}), python=sys.executable)
+        finally:
+            subprocess.run = real_sh
+        ck("run --mark: a pass that dies mid-queue keeps the marks already written, later lines stay unmarked",
+           q2.read_text().split("\n")[:3] == ["#done 1 set-stage G done", "2 set-stage H done",
+                                              "3 set-stage I done"], q2.read_text())
         (t / "rep3").write_text("roster: set-stage G byte-identical\n")
         a3 = argparse.Namespace(**{**vars(a2), "report": str(t / "rep3"),
                                    "lint_clone": str(t / "no-such-clone")})
