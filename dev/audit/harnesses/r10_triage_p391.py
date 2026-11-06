@@ -36,6 +36,10 @@ import subprocess
 import sys
 import time
 
+# The first-parent merge-subject grammar is record_burst_replay's, read not restated.
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from record_burst_replay import MERGE_RE  # noqa: E402
+
 REPO = "tvofi/heatpump_optimizer"
 INHERIT_S = 12 * 3600
 # Lanes that report main's state rather than the pull request's code.
@@ -73,7 +77,8 @@ CACHE = os.environ.get("P391_CACHE") or os.path.expanduser("~/.cache/hpo-p391")
 
 def api(path: str):
     global _calls
-    key = os.path.join(CACHE, re.sub(r"[^A-Za-z0-9._-]", "_", path) + ".json")
+    safe = "".join(c if c.isascii() and (c.isalnum() or c in "._-") else "_" for c in path)
+    key = os.path.join(CACHE, safe + ".json")
     if os.path.exists(key):
         return json.load(open(key))
     if _calls % CHECK_EVERY == 0:
@@ -236,7 +241,7 @@ def arm_git(ref, a, b):
               "ci: drop inherited claims"):
         print(f"RESULT git {ref} {a}..{b}: {sum(s.startswith(p) for s in subj)} commits '{p}'")
     fp = log("--first-parent")
-    nums = {m for s in fp for m in re.findall(r"Merge pull request #(\d+)", s)}
+    nums = {m.group(1) for s in fp if (m := MERGE_RE.match(s))}
     print(f"RESULT git {ref} {a}..{b}: {len(nums)} 'Merge pull request #N' on the first parent")
 
 
