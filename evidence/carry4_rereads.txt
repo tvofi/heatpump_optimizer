@@ -1,0 +1,6 @@
+125160076828: loop_cpu_ratio': 0.1339, 'timed': 7, 'traced': 8, 'ref_ms': 30.434061999999983, 'loop_ref_ms':
+125160076828: loop_cpu_ratio=0.1894
+125097530406: loop_cpu_ratio': 0.1418, 'timed': 7, 'traced': 8, 'ref_ms': 46.33620099999991, 'loop_ref_ms': 
+125097530406: loop_cpu_ratio=0.2005
+125316010511: loop_cpu_ratio': 0.1433, 'timed': 7, 'traced': 8, 'ref_ms': 46.723868999947626, 'loop_ref_ms':
+125316010511: loop_cpu_ratio=0.2027
