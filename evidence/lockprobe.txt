@@ -1,0 +1,2 @@
+empty-pid lock: ACQUIRED rc=0 after 8 ms
+live-pid lock (null control): rc=124, still waiting at 3 s
