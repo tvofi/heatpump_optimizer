@@ -1,0 +1,42 @@
+done     R10-996-RUNNER-CLAIMS            aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=3 | 
+done     R10-AGREEMENT-BOOTSTRAP          aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=1 | 
+done     R10-ARCHSCORE-SPELLINGS          aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=0 | 
+done     R10-AUDIT-COVERAGE-ENDGAME       aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=8 | 
+done     R10-BASH-KILL-HOOK               aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=2 | 
+done     R10-BEAT-JOB-TABLE               798c71eae subj='roster_edit set-stage R10-BEAT-JOB-TABLE (tools/au' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-BEAT-JOB-TABLE (tools/audit/seat/roster_edit.py)
+done     R10-CEILING-PROBE                aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=6 | 
+done     R10-CLOUD-POOL                   6307b8eae subj='roster_edit set-stage R10-CLOUD-POOL (tools/audit/' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-CLOUD-POOL (tools/audit/seat/roster_edit.py)
+done     R10-FACTORY-RESET                aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=3 | 
+done     R10-FLY-BUS-BASH32               aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=1 | 
+done     R10-FLY-CARRY-DOC-CONTEXT        aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=5 | 
+done     R10-FLY-CLOSURE-MAJOR            aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-FLOW-TOOLKIT-MODEL'] moved_live=['R10-FLOW-TOOLKIT-MODEL'] ncarry=2 | 
+done     R10-FLY-GH-CALL-LOG              aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=0 | 
+done     R10-FLY-RAISE-REVIEWABLE         aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-DISPATCH-AT-HANDOFF'] moved_live=['R10-DISPATCH-AT-HANDOFF'] ncarry=2 | 
+absorbed R10-FLY-RELAY-DELIVERED-GUARD    aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-RELAY-SWEEP'] moved_live=['R10-RELAY-SWEEP'] ncarry=1 | 
+done     R10-FLY-RELAY-REVIEW-FF          aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-BODY-CONTRACT', 'R10-DISPATCH-AT-HANDOFF', 'R10-RELAY-SWEEP'] moved_live=['R10-BODY-CONTRACT', 'R10-DISPATCH-AT-HANDOFF', 'R10-RELAY-SWEEP'] ncarry=21 | 
+done     R10-FLY-SEAT-WAITERS             561291300 subj='roster_edit set-stage R10-FLY-SEAT-WAITERS (tools/' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-FLY-SEAT-WAITERS (tools/audit/seat/roster_edit.py)
+done     R10-FLY-STAMP-CHECK-NOTES        dff969d7b subj='roster_edit set-stage R10-FLY-STAMP-CHECK-NOTES (t' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-FLY-STAMP-CHECK-NOTES (tools/audit/seat/roster_edit.py)
+done     R10-GRADE-DRIVERS                b160b6b89 subj='roster_edit set-stage R10-GRADE-DRIVERS (tools/aud' prs=[] moved_to=[] moved_live=[] ncarry=6 | roster_edit set-stage R10-GRADE-DRIVERS (tools/audit/seat/roster_edit.py)
+done     R10-HB-PLATFORM-RULE             cf1d7bf64 subj='roster_edit set-stage R10-HB-PLATFORM-RULE (tools/' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-HB-PLATFORM-RULE (tools/audit/seat/roster_edit.py)
+done     R10-HOTFIX-AWAY-PRESENCE         996b66ec0 subj='roster_edit set-stage R10-HOTFIX-AWAY-PRESENCE (to' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-HOTFIX-AWAY-PRESENCE (tools/audit/seat/roster_edit.py)
+done     R10-LEARNED-STORE-LOAD           57950ed42 subj='roster_edit set-stage R10-LEARNED-STORE-LOAD (tool' prs=[] moved_to=[] moved_live=[] ncarry=1 | roster_edit set-stage R10-LEARNED-STORE-LOAD (tools/audit/seat/roster_edit.py)
+done     R10-MERGE-BOT-REFUSAL-TEXT       f743a9122 subj='roster_edit set-stage R10-MERGE-BOT-REFUSAL-TEXT (' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-MERGE-BOT-REFUSAL-TEXT (tools/audit/seat/roster_edit.py)
+done     R10-MUTANT-RUN-DRIVER            aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=2 | 
+absorbed R10-OPENER-REUSE                 aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-HANDOFF-PATH'] moved_live=['R10-HANDOFF-PATH'] ncarry=10 | 
+done     R10-ORCH-REVIEW-PACKET           aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-DISPATCH-AT-HANDOFF'] moved_live=['R10-DISPATCH-AT-HANDOFF'] ncarry=13 | 
+absorbed R10-ORCH-ROSTER-SCHEMA           aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-ROSTER-READ-SWEEP', 'R10-ROSTER-WRITE-SWEEP'] moved_live=['R10-ROSTER-READ-SWEEP', 'R10-ROSTER-WRITE-SWEEP'] ncarry=15 | 
+done     R10-PLAN-REAL-DURATIONS          aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=[] moved_live=[] ncarry=0 | 
+absorbed R10-RELAY-HANDOFF-ARM            aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-HANDOFF-PATH', 'R10-RELAY-SWEEP'] moved_live=['R10-HANDOFF-PATH', 'R10-RELAY-SWEEP'] ncarry=7 | 
+done     R10-REPLAY-REAL-DAY              aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-CARRY-RESIDUE'] moved_live=['R10-CARRY-RESIDUE'] ncarry=8 | 
+absorbed R10-ROSTER-LIB-SCHEMA            aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-ROSTER-READ-SWEEP'] moved_live=['R10-ROSTER-READ-SWEEP'] ncarry=4 | 
+absorbed R10-ROSTER-OPS-2                 aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-ROSTER-WRITE-SWEEP'] moved_live=['R10-ROSTER-WRITE-SWEEP'] ncarry=13 | 
+absorbed R10-ROSTER-QUEUE                 aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-ROSTER-WRITE-SWEEP'] moved_live=['R10-ROSTER-WRITE-SWEEP'] ncarry=5 | 
+done     R10-SEAT-IDENTITY-GUARDS         b51fed3f7 subj='roster_edit set-stage R10-SEAT-IDENTITY-GUARDS (to' prs=[] moved_to=[] moved_live=[] ncarry=7 | roster_edit set-stage R10-SEAT-IDENTITY-GUARDS (tools/audit/seat/roster_edit.py)
+absorbed R10-SEAT-SINGLE-WRITER           aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-FLY-STANDING-CONTRACTS'] moved_live=['R10-FLY-STANDING-CONTRACTS'] ncarry=2 | 
+done     R10-TICK-DRIVERS-2               a1f110776 subj='roster_edit set-stage R10-TICK-DRIVERS-2 (tools/au' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-TICK-DRIVERS-2 (tools/audit/seat/roster_edit.py)
+absorbed R10-TICK-GROUP-LINES             aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-TICK-LEVELS'] moved_live=['R10-TICK-LEVELS'] ncarry=4 | 
+absorbed R10-TICK-PR-BUCKETS              aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-TICK-LEVELS'] moved_live=['R10-TICK-LEVELS'] ncarry=9 | 
+done     R10-TRAIN-OVERLAP-GRADE          aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-TRAIN-MERGE-LOOP'] moved_live=['R10-TRAIN-MERGE-LOOP'] ncarry=6 | 
+done     R10-TRAIN-POSTMERGE              34c6022a0 subj='roster_edit set-stage R10-TRAIN-POSTMERGE (tools/a' prs=[] moved_to=[] moved_live=[] ncarry=0 | roster_edit set-stage R10-TRAIN-POSTMERGE (tools/audit/seat/roster_edit.py)
+done     R10-TWO-ZONE-HHL                 26d7e3f94 subj='roster_edit set-stage R10-TWO-ZONE-HHL (tools/audi' prs=[] moved_to=[] moved_live=[] ncarry=2 | roster_edit set-stage R10-TWO-ZONE-HHL (tools/audit/seat/roster_edit.py)
+done     R10-UX-HEALTH                    aa6b12a8e subj='roster: s11 verified replan, 517 ops: folds, false' prs=[] moved_to=['R10-GRADE-DRIVERS'] moved_live=[] ncarry=20 | 
