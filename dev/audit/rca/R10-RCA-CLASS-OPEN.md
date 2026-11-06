@@ -131,6 +131,6 @@ size named in the body; a spelling the reviewer finds is added to it."
 - The removal rate is unknown; so is the fixer-side cost.
 - The shape split (guard vs production) is by first-line text read, not a
   mechanical classifier; a re-count by another reader may differ by a PR or
-  two. The totals (32 / 56 / 24) are the histogram's.
+  two. The totals (32 / 56 / 23) are the histogram's.
 - Whether the twofold rate rise has a cause beyond more guard PRs in the
   round is not established.
