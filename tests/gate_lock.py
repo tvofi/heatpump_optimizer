@@ -66,6 +66,7 @@ import contextlib
 import fcntl
 import json
 import os
+import shutil
 import signal
 import subprocess
 import sys
@@ -357,7 +358,7 @@ def _orphaned(lock_dir: Path, owner: Owner) -> bool:
     return flock_available(lock_dir)
 
 
-def _steal(owner_path: Path, seen: Owner) -> None:
+def _steal(owner_path: Path, seen: Owner | None) -> None:
     """Remove a dead owner by rename, so one of two stealers wins and a fresh
     owner written in between is put back rather than deleted. Takes the owner
     file, not the lock dir, so the single lease's ``owner`` and a pooled
@@ -376,7 +377,10 @@ def _steal(owner_path: Path, seen: Owner) -> None:
             (lock_dir / HOLDING_NAME).unlink(missing_ok=True)
     except (OSError, ValueError):
         pass
-    grave.unlink(missing_ok=True)
+    if grave.is_dir():  # a hand-made directory at the slot path is broken too
+        shutil.rmtree(grave, ignore_errors=True)
+    else:
+        grave.unlink(missing_ok=True)
 
 
 def _ticket_tmp(lock_dir: Path, label: str, priority: int, queued_at: datetime) -> Path:
@@ -707,11 +711,21 @@ def _free_slot(pool: Path, slots: int) -> int | None:
     """
     for i in range(slots):
         path = _slot_path(pool, i)
-        owner = _read_at(path)
+        # One read decides absent against broken. A second look (`is_file`) after a
+        # None read let a rival create the slot in between, and the unlink below
+        # then deleted its live owner: two takers held the one slot.
+        try:
+            text: str | None = path.read_text()
+        except FileNotFoundError:
+            return i  # absent: the O_EXCL-style create (`Owner.create`) arbitrates
+        except OSError:
+            text = None
+        try:
+            owner = None if text is None else parse_owner(text)
+        except ValueError:
+            owner = None
         if owner is None:
-            if not path.is_file():
-                return i
-            path.unlink(missing_ok=True)  # unparseable: no live holder to lose
+            _steal(path, None)  # unparseable: no live holder to lose; a fresh owner is put back
             return i
         if _orphaned(pool, owner) or (owner.expired and owner.pid is None):
             _steal(path, owner)
@@ -1819,8 +1833,136 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
         t.join(20)
         return torn[0] == 0, f"torn reads={torn[0]} of 4000 rewrites"
 
-    cases = [
-        ("priority: an urgent waiter takes before an older normal one, after its ticket rewrite",
+    def delayed_read(d: Path, got: list[str]) -> tuple[bool, str]:
+        # The free-slot step reads a slot, sees nothing, then acts. A rival that
+        # creates the slot in that gap (the delay-only plant, made exact: it fires
+        # right after the missing read) must keep it: `_free_slot` once looked a
+        # second time (`is_file`), saw the rival's file and unlinked it, so both
+        # held the one slot.
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        path = g._slot_path(pool, 0)
+        real_read, real_at, fired = Path.read_text, g._read_at, [False]
+
+        def rival() -> None:
+            if not fired[0]:
+                fired[0] = True
+                g._new_owner("rival", 60, os.getpid()).create(path)
+
+        def slow(self, *a, **k):
+            try:
+                return real_read(self, *a, **k)
+            except FileNotFoundError:
+                if self == path:
+                    rival()
+                raise
+
+        def slow_at(p):
+            owner = real_at(p)
+            if owner is None and p == path:
+                rival()
+            return owner
+
+        Path.read_text, g._read_at = slow, slow_at
+        try:
+            g._free_slot(pool, 1)
+        finally:
+            Path.read_text, g._read_at = real_read, real_at
+        kept = real_at(path)
+        mine = g._new_owner("b", 60, os.getpid()).create(path)
+        ok = fired[0] and kept is not None and kept.label == "rival" and not mine
+        return ok, f"fired={fired[0]} kept={kept.label if kept else None} second_create={mine}"
+
+    def _broken_slot(d: Path):
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        path = g._slot_path(pool, 0)
+        path.write_text("garbage\n")
+        return pool, path
+
+    def _hooked_free(pool: Path, path: Path, after_read=None, after_rename=None):
+        # Deterministic plants at the broken-slot path's two windows: right after
+        # the slot is read, and right after _steal renames it aside.
+        real_read, real_rename, fired = Path.read_text, os.rename, []
+
+        def rt(self, *a, **k):
+            text = real_read(self, *a, **k)
+            if self == path and after_read and "r" not in fired:
+                fired.append("r")
+                after_read()
+            return text
+
+        def rn(src, dst, *a, **k):
+            r = real_rename(src, dst, *a, **k)
+            if Path(src) == path and after_rename and "n" not in fired:
+                fired.append("n")
+                after_rename()
+            return r
+
+        Path.read_text, g.os.rename = rt, rn
+        try:
+            free = g._free_slot(pool, 1)
+        finally:
+            Path.read_text, g.os.rename = real_read, real_rename
+        return free, fired
+
+    def broken_reclaimed(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A garbage slot is freed (the reap removes it) and a following create
+        # wins, so take_slot returns instead of looping on one corrupt slot.
+        pool, path = _broken_slot(d)
+        free, _ = _hooked_free(pool, path)
+        gone = not path.exists()
+        # create, not take_slot: take_slot retries a lost create forever, which
+        # would turn a missing reap into a hang rather than a red case.
+        won = g._new_owner("t", 60, os.getpid()).create(path)
+        return (free == 0 and gone and won, f"free={free} reaped={gone} create_won={won}")
+
+    def broken_put_back(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A valid owner that lands between the broken read and the reap survives.
+        pool, path = _broken_slot(d)
+
+        def lands() -> None:
+            path.unlink()
+            g._new_owner("C", 60, os.getpid()).create(path)
+
+        free, fired = _hooked_free(pool, path, after_read=lands)
+        kept = g._read_at(path)
+        ok = fired == ["r"] and kept is not None and kept.label == "C"
+        return ok, f"fired={fired} free={free} kept={kept.label if kept else None}"
+
+    def broken_rename_gap(d: Path, got: list[str]) -> tuple[bool, str]:
+        # Pins the residual: a fourth taker creating inside _steal's rename ->
+        # put-back gap leaves exactly one owner file (the rival's), no stale-*
+        # grave and no torn slot. Rename-aside is the only atomic claim POSIX
+        # gives, so the displaced owner cannot be kept; the pin is the bound.
+        pool, path = _broken_slot(d)
+
+        def lands() -> None:
+            path.unlink()
+            g._new_owner("C", 60, os.getpid()).create(path)
+
+        def rival() -> None:
+            g._new_owner("D", 60, os.getpid()).create(path)
+
+        _hooked_free(pool, path, after_read=lands, after_rename=rival)
+        kept = g._read_at(path)
+        graves = list(pool.glob("stale-*"))
+        return (kept is not None and kept.label == "D" and not graves,
+                f"owner={kept.label if kept else None} graves={len(graves)}")
+
+    def directory_slot(d: Path, got: list[str]) -> tuple[bool, str]:
+        # A directory at the slot path is reclaimed like any broken slot; the
+        # reap must not raise out of take_slot.
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        path = g._slot_path(pool, 0)
+        path.mkdir()
+        free = g._free_slot(pool, 1)
+        won = g._new_owner("t", 60, os.getpid()).create(path)
+        return (free == 0 and won and path.is_file(),
+                f"free={free} create_won={won} is_file={path.is_file()}")
+
+    cases = [        ("priority: an urgent waiter takes before an older normal one, after its ticket rewrite",
          priority_first),
         ("priority: a ticket rewrite keeps its priority and its arrival stamp", rewrite_keeps),
         ("priority: aging promotes a normal waiter past a later urgent one, and only past the window",
@@ -1836,6 +1978,16 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
          torn_create),
         ("concurrency control: a slot being renewed is never read as empty by a waiter",
          torn_write),
+        ("concurrency control: a delay after a missing-slot read cannot let two waiters hold the slot",
+         delayed_read),
+        ("concurrency control: a garbage slot is reaped and a following create wins",
+         broken_reclaimed),
+        ("concurrency control: a valid owner landing after the broken read survives the reap",
+         broken_put_back),
+        ("concurrency control: a rival in the reap's rename gap leaves one owner and no grave",
+         broken_rename_gap),
+        ("concurrency control: a directory at the slot path is reclaimed, not raised",
+         directory_slot),
     ]
     out: list[tuple[str, bool, str]] = []
     try:
