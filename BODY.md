@@ -1,4 +1,4 @@
-Roster-reader predicates for R10-ROSTER-READ-SWEEP, carries 1-4: `absorbed` is a closed stage for the open set and after-edges, a destination check that names `absorbed_into`, a `gate_kind` classifier the tick calls, and one shared REFUSED line for a missing roster ref. Carries 5-8 are not landed here (see Forward-carry); #2733 and #2505 stay open for the remaining carries.
+Roster-reader predicates for R10-ROSTER-READ-SWEEP, carries 1-4: `absorbed` is a closed stage for the open set and after-edges, a destination check that names `absorbed_into`, a `gate_kind` classifier the tick calls, and one shared REFUSED line for a missing roster ref. Carries 5-8 are not landed here (see Forward-carry); #2733 and #2505 stay open for the remaining carries, which stay owed by this group and unchanged in its roster brief; this diff produced no new finding for a later stage.
 
 
 Design: `DONE_STAGES` keeps meaning "merged" (flow_metrics, merge_throughput, size_durations key on it); the new `CLOSED_STAGES` is the open-set boundary and `CARRY_CLOSED` is the same object, so the write-time and review-time stage sets are one definition. `absorbed` stays a disposition, so `roster_sync` still never rewrites it. `replan.is_done` now calls `roster_lib.is_open`, because carry 1's control needs the schedule to drop the groups.
@@ -36,7 +36,7 @@ none
 
 ## Forward-carry
 
-none: carries 5-8 of the brief stay owed by this group and are unchanged in its roster brief; this diff produced no new finding for a later stage.
+none
 
 ## Friction
 
