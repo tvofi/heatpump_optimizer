@@ -140,6 +140,40 @@ jobs:
           fi
           echo "${GITHUB_SHA} is on main"
 
+      # A TAG ITS TREE DOES NOT STAMP STOPS HERE (R10-HOTFIX-STAMP-BASE).
+      # v7.1.2 was tagged by hand at a tree whose VERSION read 7.1.1 and was
+      # published with neither its manifest version nor its own notes
+      # section. A stamp moves all three to the tag's name in one commit, so
+      # a release refuses unless VERSION, the manifest version and a
+      # `## <tag>` heading in RELEASE_NOTES.md all name this tag. Every
+      # problem is printed before the step fails. tools/release/stamp.py's
+      # self-test runs this step's own text against a stamped and an
+      # unstamped tree.
+      - name: Refuse a tag whose tree does not carry its version
+        run: |
+          set -euo pipefail
+          problems=0
+          version="$(tr -d '[:space:]' < VERSION)"
+          if [ "v${version}" != "${TAG}" ]; then
+            echo "::error::VERSION reads ${version}, not the tag ${TAG}" >&2
+            problems=1
+          fi
+          manifest="$(python3 -c 'import json, sys; print(json.load(open(sys.argv[1])).get("version"))' \
+            custom_components/heatpump_optimizer/manifest.json)"
+          if [ "v${manifest}" != "${TAG}" ]; then
+            echo "::error::the manifest version reads ${manifest}, not the tag ${TAG}" >&2
+            problems=1
+          fi
+          if ! grep -Fqx "## ${TAG}" RELEASE_NOTES.md; then
+            echo "::error::RELEASE_NOTES.md has no '## ${TAG}' section" >&2
+            problems=1
+          fi
+          if [ "${problems}" -ne 0 ]; then
+            echo "refusing to release ${TAG}: its tree is not a stamp of it" >&2
+            exit 1
+          fi
+          echo "${TAG}: VERSION, manifest and notes agree"
+
       - name: Extract the tag's section from RELEASE_NOTES.md
         run: |
           awk -v tag="${TAG}" '
@@ -215,12 +249,23 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           set -euo pipefail
-          if ! gh release view "${TAG}" --json assets --jq '.assets[].name' \
-              | grep -Fqx "${ASSET}"; then
-            echo "::error::release ${TAG} does not carry ${ASSET}; left as a draft, not published" >&2
-            exit 1
-          fi
-          gh release edit "${TAG}" --draft=false
+          # Read back a bounded number of times: one read raced the upload
+          # GitHub had acknowledged but did not list yet. The bound is
+          # RELEASE_READBACK_ATTEMPTS in tools/release/stamp.py, whose
+          # self-test drives this step against a stub gh.
+          attempts=5
+          for attempt in $(seq 1 "${attempts}"); do
+            if gh release view "${TAG}" --json assets --jq '.assets[].name' \
+                | grep -Fqx "${ASSET}"; then
+              gh release edit "${TAG}" --draft=false
+              exit 0
+            fi
+            if [ "${attempt}" -lt "${attempts}" ]; then
+              sleep 10
+            fi
+          done
+          echo "::error::release ${TAG} does not carry ${ASSET} after ${attempts} reads; left as a draft, not published" >&2
+          exit 1
 
       - name: Digest the tag's tree
         run: |
