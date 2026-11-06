@@ -1,0 +1,20 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index a29ffba6f..e96cdfa89 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -515,7 +515,6 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+   git ls-remote origin 'refs/heads/verdict/*' > "$state/cloud-vrefs.$$" \
+     || { echo "cloud_relay: could not list verdict refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-vrefs.$$"; return 0; }
+   : > "$state/cloud-level-update.$$"; : > "$state/cloud-level-held.$$"; : > "$state/cloud-level-stale.$$"; : > "$state/cloud-level-bodyonly.$$"
+-  handoff_level
+   while IFS=$'\t' read -r pr br head; do
+     [ -n "$pr" ] || continue
+     topic=${br#fix/}; topic=${topic%-pr}
+@@ -618,6 +617,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+   level_set handoff-update "$state/cloud-level-update.$$"
+   level_set handoff-held "$state/cloud-level-held.$$"
+   level_set handoff-body-stale "$state/cloud-level-stale.$$"
++  handoff_level
+   level_set handoff-body-unapplied "$state/cloud-level-bodyonly.$$"
+   rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"
+ }
