@@ -1,6 +1,0 @@
-== main beat_jobs
-beat_jobs self-test: 107 checks, 0 failed
-== main review_strength
-review_strength self-test: 116 checks, 0 failed
-== main beatd
-beatd self-test: 119 checks, 0 failed

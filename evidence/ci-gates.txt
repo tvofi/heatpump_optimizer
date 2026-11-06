@@ -1,8 +1,0 @@
-Head 79cf40f4751210c7868d8178b87dc97a69fa28ae, read 2026-11-06 ~13:00Z (GitHub Actions API via MCP).
-Three CI runs at this head:
-- run 42210933658 (tests workflow): all jobs concluded; its gate job 127880611389 concluded success at 12:00:58Z.
-- run 42210933789: gate job 127869785809 concluded failure at 11:34:01Z: "FAIL run(s) [42210933658] at this head are still being judged; their gate decides" (judged while 42210933658 was still running). Not re-run since.
-- run 42211895323 (refresh): gate 127873029114 failure 11:42:08Z ("[42210933658] still being judged"); re-run attempt 2, gate 127880974302 failure 12:01:45Z: "FAIL run(s) [42210933789] at this head are still being judged; their gate decides".
-merge_train.py classify, polled every ~90 s from 11:37Z to 12:57Z (ev/classify_log.txt) and once more at ~13:00Z: RED ... pending: none red: gate, rc=1.
-pr-contract: skipped in every run at this head.
-Every non-gate check at this head concluded success or skipped (tests/fast, coverage, closures, instrument-self-tests, mutation, typing, browser, arch-score, budget-raise-gate, delivery-status, policy-docs, CodeQL, hassfest, validate-hacs ...).
