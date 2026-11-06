@@ -357,7 +357,7 @@ def _orphaned(lock_dir: Path, owner: Owner) -> bool:
     return flock_available(lock_dir)
 
 
-def _steal(owner_path: Path, seen: Owner) -> None:
+def _steal(owner_path: Path, seen: Owner | None) -> None:
     """Remove a dead owner by rename, so one of two stealers wins and a fresh
     owner written in between is put back rather than deleted. Takes the owner
     file, not the lock dir, so the single lease's ``owner`` and a pooled
@@ -707,11 +707,21 @@ def _free_slot(pool: Path, slots: int) -> int | None:
     """
     for i in range(slots):
         path = _slot_path(pool, i)
-        owner = _read_at(path)
+        # One read decides absent against broken. A second look (`is_file`) after a
+        # None read let a rival create the slot in between, and the unlink below
+        # then deleted its live owner: two takers held the one slot.
+        try:
+            text: str | None = path.read_text()
+        except FileNotFoundError:
+            return i  # absent: the O_EXCL-style create (`Owner.create`) arbitrates
+        except OSError:
+            text = None
+        try:
+            owner = None if text is None else parse_owner(text)
+        except ValueError:
+            owner = None
         if owner is None:
-            if not path.is_file():
-                return i
-            path.unlink(missing_ok=True)  # unparseable: no live holder to lose
+            _steal(path, None)  # unparseable: no live holder to lose; a fresh owner is put back
             return i
         if _orphaned(pool, owner) or (owner.expired and owner.pid is None):
             _steal(path, owner)
@@ -1819,6 +1829,46 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
         t.join(20)
         return torn[0] == 0, f"torn reads={torn[0]} of 4000 rewrites"
 
+    def delayed_read(d: Path, got: list[str]) -> tuple[bool, str]:
+        # The free-slot step reads a slot, sees nothing, then acts. A rival that
+        # creates the slot in that gap (the delay-only plant, made exact: it fires
+        # right after the missing read) must keep it: `_free_slot` once looked a
+        # second time (`is_file`), saw the rival's file and unlinked it, so both
+        # held the one slot.
+        pool = g.pool_dir(d)
+        g._ensure_lock_dir(pool)
+        path = g._slot_path(pool, 0)
+        real_read, real_at, fired = Path.read_text, g._read_at, [False]
+
+        def rival() -> None:
+            if not fired[0]:
+                fired[0] = True
+                g._new_owner("rival", 60, os.getpid()).create(path)
+
+        def slow(self, *a, **k):
+            try:
+                return real_read(self, *a, **k)
+            except FileNotFoundError:
+                if self == path:
+                    rival()
+                raise
+
+        def slow_at(p):
+            owner = real_at(p)
+            if owner is None and p == path:
+                rival()
+            return owner
+
+        Path.read_text, g._read_at = slow, slow_at
+        try:
+            g._free_slot(pool, 1)
+        finally:
+            Path.read_text, g._read_at = real_read, real_at
+        kept = real_at(path)
+        mine = g._new_owner("b", 60, os.getpid()).create(path)
+        ok = fired[0] and kept is not None and kept.label == "rival" and not mine
+        return ok, f"fired={fired[0]} kept={kept.label if kept else None} second_create={mine}"
+
     cases = [
         ("priority: an urgent waiter takes before an older normal one, after its ticket rewrite",
          priority_first),
@@ -1836,6 +1886,8 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
          torn_create),
         ("concurrency control: a slot being renewed is never read as empty by a waiter",
          torn_write),
+        ("concurrency control: a delay after a missing-slot read cannot let two waiters hold the slot",
+         delayed_read),
     ]
     out: list[tuple[str, bool, str]] = []
     try:
