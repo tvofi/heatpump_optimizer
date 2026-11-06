@@ -1,0 +1,24 @@
+R10-BEAT-JOB-TABLE carry lost=11 drop-carry-ops=11
+R10-CLOUD-POOL carry lost=5 drop-carry-ops=6
+R10-FLOW-TOOLKIT-MODEL carry lost=19 drop-carry-ops=20
+R10-FLY-CARRY-DOC-CONTEXT issues lost=1 drop-carry-ops=1  <-- SILENT?
+   - 3077
+R10-FLY-CLOSURE-MAJOR carry lost=1 drop-carry-ops=1
+R10-FLY-GH-READ-RETRY carry lost=1 drop-carry-ops=1
+R10-FLY-STAMP-CHECK-NOTES carry lost=1 drop-carry-ops=1
+R10-FLY-TRAIN-DEFAULTS carry lost=1 drop-carry-ops=1
+R10-HB-PLATFORM-RULE carry lost=3 drop-carry-ops=3
+R10-LEDGER-RESIDUE carry lost=2 drop-carry-ops=2
+R10-MERGE-BOT-REFUSAL-TEXT carry lost=1 drop-carry-ops=1
+R10-RELAY-HANDOFF-ARM carry lost=2 drop-carry-ops=2
+R10-ROSTER-LIB-SCHEMA carry lost=5 drop-carry-ops=5
+R10-ROSTER-QUEUE carry lost=1 drop-carry-ops=1
+R10-TICK-DRIVERS-2 carry lost=4 drop-carry-ops=4
+R10-TICK-GROUP-LINES carry lost=6 drop-carry-ops=6
+R10-TRAIN-MERGE-LOOP carry lost=1 drop-carry-ops=2
+R10-TRAIN-OVERLAP-GRADE carry lost=15 drop-carry-ops=21
+R10-TRAIN-POSTMERGE carry lost=4 drop-carry-ops=6
+total lost 84 silent groups ['R10-FLY-CARRY-DOC-CONTEXT']
+null control: unchanged groups 204 e.g. R10-FAHRENHEIT lost=0 drop-ops 0
+drop-carry commits examined; dropped texts 167
+main carries lost without a matching drop-carry op: 0
