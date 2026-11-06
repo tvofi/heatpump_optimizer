@@ -1,0 +1,22 @@
+#2429 6502326884 2026-10-29T16:26:05Z https://github.com/tvofi/heatpump_optimizer/issues/2429#issuecomment-6502326884
+Reopened: my close comment above was wrong. #2896's record (`dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md`, section 11) states the countermeasure for this key is drafted, not landed. tvofi approved the drafted countermeasures on 2026-10-29 ("All of these are approved."). This issue now closes when that change lands; its roster group is named in the group's carry.
+
+---
+#2436 6502327979 2026-10-29T16:26:08Z https://github.com/tvofi/heatpump_optimizer/issues/2436#issuecomment-6502327979
+Reopened: my close comment above was wrong. #2896's record (`dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md`, section 11) states the countermeasure for this key is drafted, not landed. tvofi approved the drafted countermeasures on 2026-10-29 ("All of these are approved."). This issue now closes when that change lands; its roster group is named in the group's carry.
+
+---
+#2437 6502329201 2026-10-29T16:26:11Z https://github.com/tvofi/heatpump_optimizer/issues/2437#issuecomment-6502329201
+Reopened: my close comment above was wrong. #2896's record (`dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md`, section 11) states the countermeasure for this key is drafted, not landed. tvofi approved the drafted countermeasures on 2026-10-29 ("All of these are approved."). This issue now closes when that change lands; its roster group is named in the group's carry.
+
+---
+review hpo-approver[bot] APPROVED 2026-10-29T08:42:54Z https://github.com/tvofi/heatpump_optimizer/pull/2896#pullrequestreview-5694955975
+Approved by `hpo-approver` at `318c9380d3267c141882c82d590949869ee1487a` on the verdict https://github.com/tvofi/heatpump_optimizer/pull/2896#issuecomment-6481984937 (`Fix review: merge 318c9380d3267c141882c82d590949869ee1487a`), via `tools/pr/app_approve.sh`.
+---
+{"message":"Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead.","documentation_url":"https://docs.anthropic.com/en/docs/claude-code/github-actions"}gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)
+
+
+tvofi 2026-10-29T16:26:14Z https://github.com/tvofi/heatpump_optimizer/issues/2438#issuecomment-6502330324
+Reopened: my close comment above was wrong. #2896's record (`dev/audit/rca/R10-RCA-FRICTION-RESIDUE.md`, section 11) states the countermeasure for this key is drafted, not landed. tvofi approved the drafted countermeasures on 2026-10-29 ("All of these are approved."). This issue now closes when that change lands; its roster group is named in the group's carry.
+
+---
