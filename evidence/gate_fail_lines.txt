@@ -1,3 +1,0 @@
-== 128162705998: [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m FAIL run(s) [42296180631] at this head are still being judged; their gate decides ##[error]Process completed with exit code 1. 
-== 128164588196: [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m FAIL run(s) [42296180631] at this head are still being judged; their gate decides ##[error]Process completed with exit code 1. 
-== 128176687653: [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m FAIL run(s) [42296722698] at this head are still being judged; their gate decides ##[error]Process completed with exit code 1. 

@@ -1,17 +1,6 @@
-== m_pickle on v7.1.2
-RESULT unbounded_sites=4
-== m_zeroarg on v7.1.2
-SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
-RESULT unbounded_sites=4
-== m_with on v7.1.2
-SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
-RESULT unbounded_sites=4
-== m_timeout_kw on v7.1.2
-SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
-RESULT unbounded_sites=4
-== bounded end: --scan on a planted file with timeouts
-SITE x.py:3 b: .acquire() with no timeout: l.acquire()
-SITE x.py:3 b: .wait() with no timeout: p.wait()
-SITE x.py:3 b: select.select with no timeout: select.select([], [], [])
-SITE x.py:3 b: subprocess.run with no timeout: subprocess.run(['x'])
+== mutant pickle-off scan v7.1.2
+SITE coordinator.py:1841 _shutdown_process_pool: .wait() with no timeout: worker.wait()
+SITE coordinator.py:1850 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+SITE coordinator.py:1900 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+SITE coordinator.py:1923 _run_in_process: .wait() with no timeout: worker.wait()
 RESULT unbounded_sites=4
