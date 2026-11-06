@@ -1,8 +1,12 @@
 R10-RELAY-SWEEP: the relay's residue in `tools/audit/seat/cloud_relay.sh`, one owning seam (carries 0-8; part of #201). Levels are written before the serial update loops, a body-only handoff prints a level line, a handoff ahead of its body is held, the relay holder leaves the loop's process group, a delivered verdict is not replayed, and a case-colliding `ev/` is refused early.
 
+## Carries
+
+Carry 0: levels written before the serial update loops, exit 75 and body-sha keying, the body-only path kept a function; bash 3.2 empty-array guards in the self-test. Carry 1: the body-only path stays a function the beat job can call unchanged; the handoff-body ledger disposition is not written, as ledger.py has no beat job at this base. Carry 2: both levels are written before the update loop; the tick prints GAP when no-PR OWED lines have no .level file. Carry 3: handoff-body-unapplied is a registered KIND, printed once per pass; a body older than the head prints nothing. Carry 4: the two-REFUSE stub kills M2, the stderr replay row kills M5, and the guides state the grammar, the Code trailer and handoff-body-stale. Carry 5: the relay holder calls setpgid; tick_loop's self-test sends TERM to the group. Carry 6: relay() skips a probe whose tree review/<pr> already carries, with the RCA at dev/audit/rca/R10-RELAY-REPLAY.md; the state dir and ledger path are printed per pass. Carry 7: HELD-BODY holds a handoff whose body does not name its tip, and the hold file reports MERGED or CLOSED lines as handoff-hold-stale. Carry 8: relay() and bus.sh refuse case-colliding ev/ names, and fix-review.md states the unique-name rule.
+
 ## Head
 
-1aabe264a9288492a83a85cd46bc9a14824e7b70 (the wip tip 46ea96ca5 merged with origin/main b36679cea; merge, never rebase).
+021a9e9f29e92108d4a7d254c7c96b6b4212a88e (the wip tip 46ea96ca5 merged with origin/main 817c2b169; merge, never rebase). The relay and tick_loop self-tests were re-run at this head.
 
 ## Mutation proof
 
