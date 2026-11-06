@@ -1,3 +1,2 @@
-NOTE stale tree: e836876f3dadc368a414ccc2b19126e78507f7d0 lacks origin/main b36679ceaa65a08a67a84f0d934c93aa15f7c7f3; roster read at origin/main
 CARRY-LANDED: 0 missing
 rc=0

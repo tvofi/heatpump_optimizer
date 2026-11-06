@@ -1,107 +1,99 @@
 # Review packet #3242
-head: e836876f3dadc368a414ccc2b19126e78507f7d0
-base: dc0a170b671814be196a54b1c71e29449f54d6d7
+head: f7e3ed1a8aefc03ccc49bf72cb326bea5f207767
+base: 862affd07d2ce3430c200d4f09aa6e16934b5c4d
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=127914113924 success
-arch-score / arch-score id=127916320525 in_progress
-arm id=127913746132 skipped
-budget-raise-gate / budget-raise-gate id=127916320441 success
-cancel-superseded id=127916060247 success
-codeql id=127916322994 skipped
-codeql / Analyze (actions) id=127914037824 success
-codeql / Analyze (javascript-typescript) id=127914037829 success
-codeql / Analyze (python) id=127914037825 success
-gate id=127914521599 failure
-governance id=127916323099 skipped
-governance / delivery-status id=127914038180 success
-governance / delivery-status-publish id=127914039785 skipped
-governance / env-matrix id=127914037851 in_progress
-governance / instrument-self-tests id=127914038015 in_progress
-governance / policy-docs id=127914037921 success
-governance / record id=127914040231 skipped
-governance / wave-script id=127914037808 success
-hassfest id=127916323066 skipped
-hassfest / hassfest id=127914037841 success
-kernel-points id=127916323239 skipped
-pr-contract id=127914522906 skipped
-prelude id=127916060292 success
-refresh id=127916060097 success
-tests id=127916322613 skipped
-tests / arch-instrument id=127914358738 success
-tests / briefs id=127914037792 success
-tests / browser id=127914358731 success
-tests / closure-scope id=127914037778 success
-tests / closures id=127914358742 in_progress
-tests / coverage id=127914358630 in_progress
-tests / fast (3.14) id=127914358927 in_progress
-tests / mutation id=127914037843 success
-tests / mutation-autofix id=127914381256 skipped
-tests / mutation-pins id=127914380327 skipped
-tests / nightly-ha id=127914361454 skipped
-tests / nightly-status id=127914037845 success
-tests / replay id=127914361432 skipped
-tests / typing id=127914358659 success
-validate id=127916323559 skipped
-validate / validate-hacs id=127914037866 success
+## Gate digest: green
+CodeQL id=128050040256 success
+arch-score / arch-score id=128086484713 success
+arm id=128048775051 skipped
+budget-raise-gate / budget-raise-gate id=128086565123 success
+cancel-superseded id=128086483977 success
+codeql id=128086526966 skipped
+codeql / Analyze (actions) id=128068507814 success
+codeql / Analyze (javascript-typescript) id=128068507088 success
+codeql / Analyze (python) id=128068509464 success
+gate id=128086483664 success
+governance id=128086485216 skipped
+governance / delivery-status id=128068507251 success
+governance / delivery-status-publish id=128068507252 skipped
+governance / env-matrix id=128068506278 success
+governance / instrument-self-tests id=128068504029 success
+governance / policy-docs id=128068507487 success
+governance / record id=128068506015 skipped
+governance / wave-script id=128068507368 success
+hassfest id=128086485001 skipped
+hassfest / hassfest id=128068506822 success
+kernel-points id=128086485263 skipped
+pr-contract id=128086485633 skipped
+pr-contract / pr-contract id=128083535758 success
+prelude id=128086484485 success
+refresh id=128086531530 success
+tests id=128086485575 skipped
+tests / arch-instrument id=128068507782 success
+tests / briefs id=128068507032 success
+tests / browser id=128068507968 success
+tests / ci-ratchet id=128068511746 skipped
+tests / claims-autofix id=128068511330 skipped
+tests / closure-scope id=128068505921 success
+tests / closures id=128068508416 success
+tests / closures-autofix id=128068512638 skipped
+tests / coverage id=128068509364 success
+tests / coverage-ratchet id=128068510842 success
+tests / fast (3.14) id=128068508681 success
+tests / graders-head-copy id=128068511023 success
+tests / lane-proofs id=128068511648 success
+tests / mutation id=128068505914 success
+tests / mutation-autofix id=128068509789 skipped
+tests / mutation-pins id=128068509769 skipped
+tests / nightly-ha id=128068508839 skipped
+tests / nightly-status id=128068507208 success
+tests / replay id=128068508539 skipped
+tests / typing id=128068508749 success
+validate id=128086485089 skipped
+validate / validate-hacs id=128068507440 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at e836876f3dadc368a414ccc2b19126e78507f7d0
+none
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
 
 ## carry_audit at the head
-NOTE body item f4bc638f: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 4ad4deef: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item ab60238f: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 4666b0c0: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 33309336: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 2ef37305: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 89f15d70: R10-TRAIN-MERGE-LOOP-2: R10-TRAIN-MERGE-LOOP-2 resolved on origin/handoff/audit-r10-roster
-NOTE body item 50baacb3: dismissed:session plugin outside this repository
-NOTE body item bcf7fdeb: dismissed:orchestrator payload wording, not a tree rule
-CARRY-AUDIT: 9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item c1d09f7c: R10-TRAIN-MERGE-LOOP-2
+NOTE body item fca343fb: R10-TRAIN-MERGE-LOOP-2
+NOTE body item 6293df3a: R10-TRAIN-MERGE-LOOP-2
+NOTE body item 6ac8ab66: R10-TRAIN-MERGE-LOOP-2
+NOTE body item 3ed6930b: R10-TRAIN-MERGE-LOOP-2
+NOTE body item 3ca63558: R10-TRAIN-MERGE-LOOP-2
+NOTE body item 75076207: R10-TRAIN-MERGE-LOOP-2
+NOTE body item f353ac9a: dismissed:session plugin outside this repository
+CARRY-AUDIT: 8 finding item(s): 8 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-unverified gh --version
-             `gh` with no subcommand word to resolve
-  ok         gh api repos/tvofi/heatpump_optimizer/actions/jobs/127775984978/logs
-             gh api: every long flag accepted
-  ok         python3 tools/audit/seat/merge_train.py job-log 127775984978 tvofi/heatpump_optimizer | wc -c
-             `tools/audit/seat/merge_train.py` is in the tree at this head
-  ok         python3 tools/audit/seat/merge_train.py job-log 1 tvofi/heatpump_optimizer
-             `tools/audit/seat/merge_train.py` is in the tree at this head
-  unverified git grep -n -E 'actions/jobs/[^ ]*/logs' HEAD -- '*.py' '*.sh'
-             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  unverified git grep -n -E 'run view[^|]*--log' HEAD -- '*.py' '*.sh'
-             `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         gh run view --job N --log
-             gh run view: every long flag accepted
-  ok         python3 tools/audit/seat/merge_train.py --self-test
-             `tools/audit/seat/merge_train.py` is in the tree at this head
-  ok         python3 tools/audit/seat/probe_bridge.py --self-test
-             `tools/audit/seat/probe_bridge.py` is in the tree at this head
+ok         PYTHONPATH=tests/hastub python3 tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  unverified git diff $(git merge-base origin/main HEAD)...HEAD -- dev/audit/harnesses tools/audit/seat | grep -E '^\+.*parents\['
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git diff dc0a170b6...e836876f3dadc368a414ccc2b19126e78507f7d0
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         python3 dev/audit/harnesses/ci_script_seconds.py --selftest
              `dev/audit/harnesses/ci_script_seconds.py` is in the tree at this head
-  ok         bash tools/audit/seat/failure_logs.sh --self-test
-             `tools/audit/seat/failure_logs.sh` is in the tree at this head
+  unverified sh -n critpath_fetch.sh
+             `critpath_fetch.sh` does not look like a path in this tree
+  ok         python3 tools/audit/seat/merge_train.py --self-test
+             `tools/audit/seat/merge_train.py` is in the tree at this head
   ok         bash tools/audit/seat/train.sh --self-test
              `tools/audit/seat/train.sh` is in the tree at this head
-  ok         python3 tools/audit/seat/r10_ledger_mutants.py --self-test
-             `tools/audit/seat/r10_ledger_mutants.py` is in the tree at this head
-  unverified bash -n
-             bash with no script argument
-  ok         python3 dev/audit/harnesses/r10_seat_selftests_mutants.py M0
-             `dev/audit/harnesses/r10_seat_selftests_mutants.py` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
   ok         tests/env_drift.py --claims-only origin/main
              `tests/env_drift.py` is in the tree at this head
   ok         tests/closure.py selftest
@@ -113,7 +105,7 @@ unverified gh --version
   unverified git diff origin/main...HEAD --stat -- tests/golden VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 18 resolved, 5 not verified, 0 refused
+FIGURES: 12 resolved, 4 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -125,26 +117,65 @@ not run
 none
 
 ## Three-dot diff
+diff --git a/.claude/workflows/web-stamp.js b/.claude/workflows/web-stamp.js
+index b358ca329..f17641723 100644
+--- a/.claude/workflows/web-stamp.js
++++ b/.claude/workflows/web-stamp.js
+@@ -138,12 +138,29 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
+ const { repo, bump = 'patch', title, wave, session = 'claude-web', merged = [] } = args ?? {}
+ if (!repo || !title) throw new Error('args.repo and args.title are required')
+ 
++// Carry 15 (record PRs ride the stamp): a pull request whose every changed path
++// is a record is HELD-FOR-STAMP by merge_train's queue, add and sweep. This step,
++// before the stamp agent, lands every held record in one train, so the notes and
++// the tag carry them. Not a fragment: only this launcher runs it.
++const recordsPrompt = (repo) => `In ${repo}: if test -f
++~/.zcode/stamp-deploy.key fails, return {landed: false, reason: "no deploy key
++in this runtime; hand the stamp to a local orchestrator"} and change nothing.
++Else run python3 tools/audit/seat/merge_train.py sweep --stamp --repo ${repo}
++from the repository root. Its last line SWEEP HELD or SWEEP REFUSED returns
++{landed: false, reason: <that line>}. On SWEEP DONE with no pull request
++handed to add, return {landed: true, handed: 0}. Otherwise wait for the train
++to close -- the rc file in its state dir (merge_train under $HPO_STATE_DIR,
++else ~/.local/state/hpo) rewritten after the sweep -- and return {landed: rc
++is 0, handed: <n>, reason: <train.log's last line>}.`
++
+ phase('Stamp')
+ const lastSha = merged.filter((m) => m?.sha).map((m) => m.sha).pop()
+ if (lastSha) {
+   const gate = await agent(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
+   if (!gate?.green) { log(`main is not green at ${lastSha}; not stamping`); return { gate } }
+ }
++const records = await agent(recordsPrompt(repo), { model: 'sonnet', label: 'records', phase: 'Stamp', schema: { type: 'object', required: ['landed'] } })
++if (!records?.landed) { log(`held records not landed: ${records?.reason ?? 'records agent returned null'}; not stamping`); return { records } }
+ const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
+ if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
+ 
 diff --git a/dev/audit/harnesses/ci_script_seconds.py b/dev/audit/harnesses/ci_script_seconds.py
-index 973b9cfc4..e87120043 100644
+index 973b9cfc4..1b5947c36 100644
 --- a/dev/audit/harnesses/ci_script_seconds.py
 +++ b/dev/audit/harnesses/ci_script_seconds.py
-@@ -22,6 +22,7 @@ import json
- import re
- import subprocess
- import sys
-+from pathlib import Path
- 
- REPO = "tvofi/heatpump_optimizer"
- WORKFLOWS = ("Tests", "CI")        # the push runs of `Tests` end at the cut-over, `CI`'s begin
-@@ -39,6 +40,14 @@ def selftest() -> int:
+@@ -39,6 +39,27 @@ def selftest() -> int:
      return 0 if got == want else 1
  
  
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
 +def job_log(repo: str, job_id) -> "str | None":
 +    """merge_train.job_log, the one Actions job-log reader (gh's escape flag
 +    where gh knows it); None when unreadable."""
-+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
++    sys.path.insert(0, str(repo_root(__file__) / "tools" / "audit" / "seat"))
 +    import merge_train
 +    return merge_train.job_log(None, repo, job_id)
 +
@@ -152,7 +183,7 @@ index 973b9cfc4..e87120043 100644
  def gh(*args: str) -> str:
      return subprocess.run(["gh", *args, "-R", REPO], check=True,
                            capture_output=True, text=True).stdout
-@@ -62,7 +71,9 @@ def main() -> int:
+@@ -62,7 +83,9 @@ def main() -> int:
              jobs = json.loads(gh("run", "view", str(run["databaseId"]),
                                   "--json", "jobs"))["jobs"]
              fast = next(j for j in jobs if is_fast(j["name"]))
@@ -164,19 +195,35 @@ index 973b9cfc4..e87120043 100644
              failed += 1
              print(f"{head} UNREADABLE")
 diff --git a/dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh b/dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh
-index 914b2f197..5cd0b8b3d 100644
+index 914b2f197..a97753ae8 100644
 --- a/dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh
 +++ b/dev/audit/harnesses/r10_ci_layout_p1/critpath_fetch.sh
-@@ -8,6 +8,8 @@
+@@ -8,6 +8,24 @@
  # other log reader; the CASES format is the contract.
  set -u
  D=$1; C=$2; R=repos/tvofi/heatpump_optimizer
++repo_root() {
++  local d="$1"
++  if [ -f "$d" ]; then
++    d=$(dirname "$d")
++  fi
++  d=$(cd "$d" && pwd) || return 1
++  while [ "$d" != "/" ]; do
++    if [ -f "$d/custom_components/heatpump_optimizer/manifest.json" ]; then
++      printf '%s\n' "$d"
++      return 0
++    fi
++    d=$(dirname "$d")
++  done
++  printf 'no repository root above %s\n' "$1" >&2
++  return 1
++}
 +# Job logs are read by merge_train.job_log, the one reader (gh's escape flag where gh knows it).
-+SEAT=$(cd "$(dirname "$0")/../../../../tools/audit/seat" && pwd)
++SEAT="$(repo_root "$0")/tools/audit/seat" || exit 2
  mkdir -p "$D"; : > "$C"
  for p in 1 2; do
    gh api "$R/actions/workflows/tests.yml/runs?event=pull_request&status=completed&per_page=100&page=$p" \
-@@ -31,6 +33,6 @@ print(J["closure-scope"]["id"] if ok else "")
+@@ -31,6 +49,6 @@ print(J["closure-scope"]["id"] if ok else "")
  PY
  )
    [ -n "$jid" ] || continue
@@ -185,10 +232,10 @@ index 914b2f197..5cd0b8b3d 100644
    printf '%s\t%s\t%s\n' "$id" "$jid" "${case_word:-UNKNOWN}" >> "$C"
  done < "$D/ids.txt"
 diff --git a/dev/audit/harnesses/r10_gate_stale_jobs/scan.py b/dev/audit/harnesses/r10_gate_stale_jobs/scan.py
-index 4a3c1dc0e..9ec4d83f3 100644
+index 4a3c1dc0e..0824fc709 100644
 --- a/dev/audit/harnesses/r10_gate_stale_jobs/scan.py
 +++ b/dev/audit/harnesses/r10_gate_stale_jobs/scan.py
-@@ -29,7 +29,16 @@ def api(path, *extra):
+@@ -29,7 +29,28 @@ def api(path, *extra):
      if n >= max_calls:
          stop.set()
      p = subprocess.run(["gh", "api", *extra, path], capture_output=True, text=True, errors="replace")
@@ -196,17 +243,29 @@ index 4a3c1dc0e..9ec4d83f3 100644
 +    return p.returncode, p.stdout if p.returncode == 0 else p.stdout + p.stderr
 +
 +
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
 +def job_log(job_id) -> "str | None":
 +    """A job's log through merge_train.job_log, the one reader (gh's escape flag
 +    where gh knows it), each gh call counted by `api`; None when unreadable."""
-+    from pathlib import Path
-+    sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tools" / "audit" / "seat"))
++    sys.path.insert(0, str(repo_root(__file__) / "tools" / "audit" / "seat"))
 +    import merge_train
 +    return merge_train.job_log(lambda argv, **_k: api(argv[-1], *argv[2:-1]), R, job_id)
  
  
  def quota():
-@@ -78,8 +87,8 @@ def one(row):
+@@ -78,8 +99,8 @@ def one(row):
      for g in jobs:
          if g["name"] != "gate" or g["conclusion"] != "failure":
              continue
@@ -218,7 +277,7 @@ index 4a3c1dc0e..9ec4d83f3 100644
              continue
          at, why = reasons(log)
 diff --git a/dev/audit/harnesses/r10_replay_loopnorm.py b/dev/audit/harnesses/r10_replay_loopnorm.py
-index 420cfc835..dd2357ec2 100644
+index 420cfc835..1671e0017 100644
 --- a/dev/audit/harnesses/r10_replay_loopnorm.py
 +++ b/dev/audit/harnesses/r10_replay_loopnorm.py
 @@ -67,6 +67,25 @@ def _gh(*args: str) -> str:
@@ -229,7 +288,7 @@ index 420cfc835..dd2357ec2 100644
 +    """A job's log through merge_train.job_log, the one reader (gh's escape flag
 +    where gh knows it); an unread log raises CalledProcessError with gh's stderr,
 +    as `_gh` does, so a 404 still reads as no reading."""
-+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
++    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
 +    import merge_train
 +    err: list[str] = []
 +
@@ -373,7 +432,7 @@ index bf8c5f01a..9cc361a1a 100755
               "$name" "$crid" "$concl" "$jid"; continue; }
    fi
 diff --git a/tools/audit/seat/instruments/merge_train.py.md b/tools/audit/seat/instruments/merge_train.py.md
-index f1b9cafcd..71f4f2fff 100644
+index f1b9cafcd..eb750a3af 100644
 --- a/tools/audit/seat/instruments/merge_train.py.md
 +++ b/tools/audit/seat/instruments/merge_train.py.md
 @@ -30,6 +30,16 @@
@@ -383,9 +442,9 @@ index f1b9cafcd..71f4f2fff 100644
 +  A record pull request (`record_pr`: every changed path a delivery row,
 +  carry, plan, triage batch, the handover or a roster) is logged
 +  `HELD-FOR-STAMP` and queued for nobody, by `queue`, `add` and `sweep`
-+  alike; under `--stamp` they are admitted, so the stamp seat's
-+  `queue --stamp` before the tag merges every held record in one batch
-+  (tvofi 2026-11-01). The record/autofix branch stays `--bot-prs`'s.
++  alike; under `--stamp` they are admitted, so the stamp step of
++  `.claude/workflows/web-stamp.js` runs `sweep --stamp` before the tag and
++  one train merges every held record in one batch (tvofi 2026-11-01). The record/autofix branch stays `--bot-prs`'s.
 +  An `add` that starts a train starts it over every ready pull request
 +  (`Train.ready_batch`: the sweep's queue, else `build_queue`), one batch;
 +  a train over one pull request starts only when it is the one ready
@@ -411,7 +470,7 @@ index f1b9cafcd..71f4f2fff 100644
    proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
    and workflow, claim, grader, budget or conflicting entries go serial. When:
 diff --git a/tools/audit/seat/instruments/train.sh.md b/tools/audit/seat/instruments/train.sh.md
-index 1c6b320b9..d4cfdd765 100644
+index 1c6b320b9..87e557ed3 100644
 --- a/tools/audit/seat/instruments/train.sh.md
 +++ b/tools/audit/seat/instruments/train.sh.md
 @@ -25,7 +25,10 @@
@@ -421,13 +480,13 @@ index 1c6b320b9..d4cfdd765 100644
 -  batch) or, with none live, starts one with those flags. When: whenever a
 +  batch) or, with none live, starts one with those flags over every ready
 +  pull request (`merge_train.py queue`'s, carry 14); a record pull request is
-+  `HELD-FOR-STAMP`, rc 0 (the stamp seat loads them: `merge_train.py queue
-+  --stamp`, then `train.sh --queue`). When: whenever a
++  `HELD-FOR-STAMP`, rc 0 (the stamp seat loads them in one batch: `merge_train.py sweep
++  --stamp`, the stamp step of `.claude/workflows/web-stamp.js`). When: whenever a
    merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
    `Train.admit_add` (shape, open, base, carry, row, budget-raise, policy),
    and `one-train` beside a train.sh still closing; a pull request already
 diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
-index f3044585e..1b418f358 100644
+index f3044585e..3361fce26 100644
 --- a/tools/audit/seat/merge_train.py
 +++ b/tools/audit/seat/merge_train.py
 @@ -496,20 +496,41 @@ def approval_owed(train: "Train", pr: int, head: str, runs, required) -> "str |
@@ -800,7 +859,7 @@ index f3044585e..1b418f358 100644
              return (rcs or {}).get(item["pr"], 0)
          t = Train("o/r", state, None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
          led = state / "ledger"
-@@ -4969,8 +5105,84 @@ def _queue_self_test(check) -> None:
+@@ -4969,8 +5105,122 @@ def _queue_self_test(check) -> None:
              (led / "events.tsv").write_text("".join("\t".join(r) + "\n" for r in events))
          return sweep(t, ["train.sh"], add=add, ledger_log=str(led / "cloud-relay.log")), lines, calls, added
  
@@ -877,6 +936,44 @@ index f3044585e..1b418f358 100644
 +    check("carry 15: record_pr is every path a record and at least one; an empty list is not a record",
 +          record_pr(rec_paths) and not record_pr([]) and not record_pr(rec_paths + ["tools/x.py"]))
 +
++    # Carry 15 at the stamp's launch: the stamp seat's one command (web-stamp.js's
++    # stamp step: `merge_train.py sweep --stamp`) over SEVERAL held records starts
++    # ONE train whose first batch is every one of them; the same sweep without
++    # --stamp starts nothing (null control: the records stay HELD-FOR-STAMP).
++    def stamp_launch(stamp):
++        wr = world()
++        for p_ in wr["prs"]:
++            p_["files"] = rec_files
++        run_l, _ = fake(wr)
++        with tempfile.TemporaryDirectory() as d:
++            launched, sl = [], []
++
++            def launch(argv, state):
++                launched.append(sorted(int(e["pr"]) for e in json.loads(
++                    Path(argv[argv.index("--queue") + 1]).read_text())))
++                (Path(d) / QUEUE_OPEN).write_text(f"{os.getpid()}\n")  # the started train is live
++                return os.getpid(), ""
++            tl = Train("o/r", Path(d), None, "", (), 1, run=run_l, sleep=lambda s: None, log=sl.append,
++                       stamp=stamp)
++            tl.admit_add = lambda item: None
++            led = Path(d) / "ledger"
++            led.mkdir()
++            rc_ = sweep(tl, ["train.sh"], ledger_log=str(led / "cloud-relay.log"),
++                        add=lambda t_, item, argv, ready=None: train_add(t_, item, argv, launch=launch, settle=0,
++                                                                         ready=ready))
++            return rc_, launched, sl
++    rc_sl, launched_sl, sl_sl = stamp_launch(True)
++    rc_nl, launched_nl, sl_nl = stamp_launch(False)
++    check("carry 15 at the stamp: `sweep --stamp` over three held records (#11 #12 #15, every path a record) "
++          "starts ONE train whose first batch is all three; without --stamp it starts none and each is "
++          "HELD-FOR-STAMP (null control)",
++          rc_sl == 0 and launched_sl == [[11, 12, 15]]
++          and rc_nl == 0 and launched_nl == []
++          and sorted(x.split(":")[0] for x in sl_nl if x.startswith("HELD-FOR-STAMP"))
++          == ["HELD-FOR-STAMP #11", "HELD-FOR-STAMP #12", "HELD-FOR-STAMP #15"])
++    if not (rc_sl == 0 and launched_sl == [[11, 12, 15]]):
++        print("    DEBUG", rc_sl, launched_sl, sl_sl[-6:], rc_nl, launched_nl, sl_nl[-6:])
++
      st = Path(tempfile.mkdtemp(dir=tmp.name))
 -    rc, lines, calls, added = swept(world(), st)
 +    wq = world()
@@ -886,7 +983,7 @@ index f3044585e..1b418f358 100644
      check("sweep: every admitted head is handed to add, oldest first, with the started train's argv",
            rc == 0 and [p for p, _ in added] == [11, 12, 15] and all(a == ["train.sh"] for _, a in added)
            and lines[-1] == "SWEEP DONE: 3 admitted, 3 handed to add, 0 swept before at that head, 0 refused by admit_add")
-@@ -5015,7 +5227,8 @@ def _queue_self_test(check) -> None:
+@@ -5015,7 +5265,8 @@ def _queue_self_test(check) -> None:
          run, _ = fake(w)
          lines = []
          t = Train("o/r", state, None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
@@ -896,7 +993,7 @@ index f3044585e..1b418f358 100644
                       ledger_log=str(state / "ledger" / "cloud-relay.log")), lines
      sleepers: list = []
      starts: list = []
-@@ -5031,15 +5244,15 @@ def _queue_self_test(check) -> None:
+@@ -5031,15 +5282,15 @@ def _queue_self_test(check) -> None:
          st = Path(tempfile.mkdtemp(dir=tmp.name))
          rc, lines = live(two, st, launch)
          queued = json.loads(Path(starts[0][starts[0].index("--queue") + 1]).read_text()) if starts else []
@@ -918,7 +1015,7 @@ index f3044585e..1b418f358 100644
          st = Path(tempfile.mkdtemp(dir=tmp.name))
          busy = subprocess.Popen(["sleep", "60"])
          sleepers.append(busy)
-@@ -5609,6 +5822,17 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
+@@ -5609,6 +5860,17 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
            "for a green gate; True for the raise-only suites (the control)",
            gate_raise_only(lt, running) is False and gate_raise_only(lt, [cr(GATE), *shape3045[1:]]) is False
            and gate_raise_only(lt, suites) is True)
@@ -936,7 +1033,7 @@ index f3044585e..1b418f358 100644
      rc, out = owed_cli(shape3045, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
                         diff_fail=True)
      check("#3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1",
-@@ -5739,12 +5963,19 @@ def _infra_self_test(check) -> None:
+@@ -5739,12 +6001,19 @@ def _infra_self_test(check) -> None:
      # main_green, in both arms, over a world of that run.
      url = f"https://github.com/o/r/actions/runs/{rid}/job/{gid}"
  
@@ -957,7 +1054,7 @@ index f3044585e..1b418f358 100644
              if "check-runs" in a:
                  return 0, "\n".join(json.dumps(c) for c in w["runs"])
              if "-X" in argv:
-@@ -5791,6 +6022,35 @@ def _infra_self_test(check) -> None:
+@@ -5791,6 +6060,35 @@ def _infra_self_test(check) -> None:
      lines, stop = act(w, run, ts("23:43"), overlap=False)
      check("V142 blocking: the re-run that clears main lets the wait pass (no stop), one re-run",
            w["posts"] == [rerun] and stop == "")
@@ -993,7 +1090,7 @@ index f3044585e..1b418f358 100644
      w, run = world(glog=gate_log(pair[0], "tests / browser: SKIPPED (this run)"))
      lines, stop = act(w, run, ts("23:43"), overlap=False)
      check("V142 blocking null: a gate that does not qualify is not re-run and main stops red as today",
-@@ -6756,16 +7016,70 @@ def _batch_self_test(check) -> None:
+@@ -6756,16 +7054,70 @@ def _batch_self_test(check) -> None:
                  sys.modules["queue_pre_flight"] = real_pf
          rec = queue_seen_read(Path(d))
      check("P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] "
@@ -1067,7 +1164,7 @@ index f3044585e..1b418f358 100644
      def live_add(w, n):  # the REAL train_add against the live train's state dir, admit_add passed
          al: list[str] = []
          ta = Train("o/r", w["state"], None, "", (), 1, run=stub(w), log=al.append)
-@@ -7373,6 +7687,9 @@ def _parser() -> argparse.ArgumentParser:
+@@ -7373,6 +7725,9 @@ def _parser() -> argparse.ArgumentParser:
                         help="write the queue: every open non-record pull request whose newest posted verdict, "
                              "verdict/<pr>'s tip, is merge at its head or carries to it, oldest first")
      q.add_argument("out", help="the queue file to write ('-': stdout)")
@@ -1077,7 +1174,7 @@ index f3044585e..1b418f358 100644
      ad = sub.add_parser("add", parents=[common, train_opts],
                          help="load one verdicted pull request into the state dir's live train (its next "
                               "batch), or start that train; the train.sh flags follow `--`")
-@@ -7387,6 +7704,8 @@ def _parser() -> argparse.ArgumentParser:
+@@ -7387,6 +7742,8 @@ def _parser() -> argparse.ArgumentParser:
      ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
      ad.add_argument("--priority", action="store_true",
                      help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
@@ -1086,7 +1183,7 @@ index f3044585e..1b418f358 100644
      ad.add_argument("--auto", action="store_true",
                      help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                           "as the sweep's is: bus.sh's post calls this")
-@@ -7395,6 +7714,7 @@ def _parser() -> argparse.ArgumentParser:
+@@ -7395,6 +7752,7 @@ def _parser() -> argparse.ArgumentParser:
                               "head, unless the ledger holds an open train-stop; a started train is a bare "
                               "train.sh launch, which runs RECOMMENDED")
      sw.add_argument("--mandate", help="passed to the started train; omit to never approve a code-owned head")
@@ -1094,7 +1191,7 @@ index f3044585e..1b418f358 100644
      sw.add_argument("--state-dir", default=train_opts.get_default("state_dir"))
      w = sub.add_parser("wait-ci", parents=[common])
      w.add_argument("sha")
-@@ -7423,6 +7743,13 @@ def main(argv: list[str]) -> int:
+@@ -7423,6 +7781,13 @@ def main(argv: list[str]) -> int:
          sys.stdout.reconfigure(line_buffering=True)
      if argv[:1] == ["--self-test"]:
          return _self_test()
@@ -1108,7 +1205,7 @@ index f3044585e..1b418f358 100644
      stop_on_signal()
      rest: list[str] = []
      if argv[:1] == ["add"] and "--" in argv:  # the train.sh flags a started train gets
-@@ -7432,7 +7759,7 @@ def main(argv: list[str]) -> int:
+@@ -7432,7 +7797,7 @@ def main(argv: list[str]) -> int:
          if a.auto and rest:
              print("REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both")
              return 2
@@ -1117,7 +1214,7 @@ index f3044585e..1b418f358 100644
          if a.front and a.remove:
              print("REFUSE add: --front and --remove are two edits; give one")
              return 2
-@@ -7474,11 +7801,11 @@ def main(argv: list[str]) -> int:
+@@ -7474,11 +7839,11 @@ def main(argv: list[str]) -> int:
          print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
          return {"green": 0, "red": 1, "wait": 3}[state]
      if a.cmd == "sweep":
