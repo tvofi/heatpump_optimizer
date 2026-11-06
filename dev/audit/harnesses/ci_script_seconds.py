@@ -22,6 +22,7 @@ import json
 import re
 import subprocess
 import sys
+from pathlib import Path
 
 REPO = "tvofi/heatpump_optimizer"
 WORKFLOWS = ("Tests", "CI")        # the push runs of `Tests` end at the cut-over, `CI`'s begin
@@ -37,6 +38,14 @@ def selftest() -> int:
     want = [True, True, False, False]
     print(f"SELFTEST is_fast got={got} want={want} {'ok' if got == want else 'FAIL'}")
     return 0 if got == want else 1
+
+
+def job_log(repo: str, job_id) -> "str | None":
+    """merge_train.job_log, the one Actions job-log reader (gh's escape flag
+    where gh knows it); None when unreadable."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
+    import merge_train
+    return merge_train.job_log(None, repo, job_id)
 
 
 def gh(*args: str) -> str:
@@ -62,7 +71,9 @@ def main() -> int:
             jobs = json.loads(gh("run", "view", str(run["databaseId"]),
                                  "--json", "jobs"))["jobs"]
             fast = next(j for j in jobs if is_fast(j["name"]))
-            log = gh("run", "view", "--job", str(fast["databaseId"]), "--log")
+            log = job_log(REPO, fast["databaseId"])
+            if log is None:
+                raise StopIteration
         except (subprocess.CalledProcessError, StopIteration):
             failed += 1
             print(f"{head} UNREADABLE")

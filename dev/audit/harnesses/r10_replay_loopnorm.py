@@ -67,6 +67,25 @@ def _gh(*args: str) -> str:
                           check=True).stdout
 
 
+def _job_log(job: str) -> str:
+    """A job's log through merge_train.job_log, the one reader (gh's escape flag
+    where gh knows it); an unread log raises CalledProcessError with gh's stderr,
+    as `_gh` does, so a 404 still reads as no reading."""
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
+    import merge_train
+    err: list[str] = []
+
+    def run(argv, **_k):
+        p = subprocess.run(argv, capture_output=True, text=True)
+        if p.returncode:
+            err.append(p.stderr)
+        return p.returncode, p.stdout if p.returncode == 0 else p.stdout + p.stderr
+    log = merge_train.job_log(run, REPO, job)
+    if log is None:
+        raise subprocess.CalledProcessError(1, "merge_train.job_log", stderr=err[-1] if err else "")
+    return log
+
+
 def nightly_rows() -> list[dict]:
     """One row per timed slow lane's clean cost line (tests.yml, then nightly.yml), on main.
 
@@ -103,8 +122,7 @@ def nightly_rows() -> list[dict]:
                 if not job:      # a run with no slow lane: not a read failure
                     no_job += 1
                     continue
-                log = _gh("api", "--allow-escape-sequences",
-                          f"repos/{REPO}/actions/jobs/{job}/logs")
+                log = _job_log(job)
             except subprocess.CalledProcessError as err:
                 # A cancelled or superseded job has no log: the API answers
                 # 404. That is a run with no reading, not a failed read.

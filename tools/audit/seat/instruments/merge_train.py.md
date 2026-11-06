@@ -30,6 +30,16 @@
   `verdict/<pr>`'s posted tip and is `merge` at its head or carries to it
   (`app_approve.sh --carry`), oldest first, one `QUEUE`/`LEFT` line each;
   budget and policy heads are queued for the batch's own serial route.
+  A record pull request (`record_pr`: every changed path a delivery row,
+  carry, plan, triage batch, the handover or a roster) is logged
+  `HELD-FOR-STAMP` and queued for nobody, by `queue`, `add` and `sweep`
+  alike; under `--stamp` they are admitted, so the stamp seat's
+  `queue --stamp` before the tag merges every held record in one batch
+  (tvofi 2026-11-01). The record/autofix branch stays `--bot-prs`'s.
+  An `add` that starts a train starts it over every ready pull request
+  (`Train.ready_batch`: the sweep's queue, else `build_queue`), one batch;
+  a train over one pull request starts only when it is the one ready
+  (tvofi 2026-11-01, batch by default).
   `add`'s admission (`Train.admit_add`) reads the same posted verdict
   first, as its `verdict` rule, and fills an absent comment id from it.
   bus.sh's post loads the train the moment it posts a merge verdict
@@ -37,8 +47,14 @@
   `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
   default): unless the ledger holds an open train-stop, it `add`s each head
   `queue` admits that no sweep added at that head, into the live train's
-  next batch or a `train.sh --bot-prs --approval-carry --pre-flight` it
-  starts when none is live, never a second.
+  next batch or a bare `train.sh` launch it starts when none is live, never
+  a second.
+  A train launched through `train.sh` runs the recommended flags by default:
+  `RECOMMENDED` in this file is their one definition (`--overlap`,
+  `--approval-carry`, `--skip-bad`, `--free-holders`, `--bot-prs`,
+  `--pre-flight`), each off with `train.sh --no-<flag>`. The flags this page
+  names say what each does; a caller launching through `train.sh` passes none
+  of them by hand.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:

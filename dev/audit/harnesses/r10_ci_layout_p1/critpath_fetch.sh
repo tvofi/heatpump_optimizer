@@ -8,6 +8,8 @@
 # other log reader; the CASES format is the contract.
 set -u
 D=$1; C=$2; R=repos/tvofi/heatpump_optimizer
+# Job logs are read by merge_train.job_log, the one reader (gh's escape flag where gh knows it).
+SEAT=$(cd "$(dirname "$0")/../../../../tools/audit/seat" && pwd)
 mkdir -p "$D"; : > "$C"
 for p in 1 2; do
   gh api "$R/actions/workflows/tests.yml/runs?event=pull_request&status=completed&per_page=100&page=$p" \
@@ -31,6 +33,6 @@ print(J["closure-scope"]["id"] if ok else "")
 PY
 )
   [ -n "$jid" ] || continue
-  case_word=$(gh api "$R/actions/jobs/$jid/logs" 2>/dev/null | grep -o -E 'CASE: [A-Z]+' | head -1 | cut -d' ' -f2)
+  case_word=$(python3 "$SEAT/merge_train.py" job-log "$jid" "${R#repos/}" 2>/dev/null | grep -o -E 'CASE: [A-Z]+' | head -1 | cut -d' ' -f2)
   printf '%s\t%s\t%s\n' "$id" "$jid" "${case_word:-UNKNOWN}" >> "$C"
 done < "$D/ids.txt"
