@@ -1,0 +1,3 @@
+RESULT roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a: 129 batch files, 387 entries: ACCEPT 235, DEFER 95, REJECT 56, OWNER 1
+RESULT roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a: 247 carries cite triage: on an open group 67, implemented 60, moved 58, on a closed group 57, dismissed 5
+RESULT roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a: machinery_budgets.json exemptions 0

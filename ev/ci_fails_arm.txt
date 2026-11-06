@@ -1,0 +1,6 @@
+ERR repos/tvofi/heatpump_optimizer/actions/runs/40928714389/jobs?per_page=100&page=1 gh: Server Error (HTTP 502)
+
+ERR repos/tvofi/heatpump_optimizer/actions/runs/41389413359/jobs?per_page=100&page=1 gh: Server Error (HTTP 502)
+
+RESULT ci-fails 2026-10-28T00:00:00Z..2026-11-05T07:30:00Z: 423 failed pull-request runs, 55 failed push runs, 262 pull requests merged
+rc=0
