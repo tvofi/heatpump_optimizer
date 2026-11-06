@@ -67,6 +67,13 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
+    Q1-Q7  roster_queue.py's own self-test: the plain shlex.split line grammar
+           (a trailing comment reaches the editor, Q1), the run-start snapshot
+           written over a line appended since (Q2), a flag folded into the
+           value (Q3), a held line released with its batch file absent (Q4),
+           marking the wrong line (Q5), `all` run without --mark (Q6) and no
+           lint-clone self-heal in `loop` (Q7).
+
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
     python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
@@ -87,6 +94,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 TARGET = "tools/audit/seat/roster_edit.py"
 DROP = '    del g["carry"][_carry_index(g, index, match, "drop-carry")]\n'
+RQ = "tools/audit/seat/roster_queue.py"
 LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                     "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
 _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
@@ -269,6 +277,16 @@ PLANTS.update({
     "W14": ('    if not into:\n        raise Refuse(f"set-stage: {group} absorbed needs',
             '    if False:\n        raise Refuse(f"set-stage: {group} absorbed needs'),
     "W15": (LIB, "    if phase != tail:  # handoff", "    if False:  # handoff"),
+    "Q1": (RQ, "    t = _split(ln)\n", "    t = shlex.split(ln)\n"),
+    "Q2": (RQ, '            mark_line(a.queue, ln, "done" if ok else "refused")\n',
+           '            Path(a.queue).write_text("\\n".join((("#done " if ok else "#refused ") + x) if x == ln else x for x in qlines))\n'),
+    "Q3": (RQ, 'return t[0], t[1], (rest[0] if rest else ""), rest[1:]',
+           'return t[0], t[1], " ".join(rest), []'),
+    "Q4": (RQ, "        if files and all(_git(", "        if True or all(_git("),
+    "Q5": (RQ, "        if x == old:\n", "        if x.strip() == old.strip() or True:\n"),
+    "Q6": (RQ, "    if allq and not mark:\n", "    if False:\n"),
+    "Q7": (RQ, "    if Path(a.lint_clone).is_dir():\n        return False\n",
+           "    if True:\n        return False\n"),
 })
 
 

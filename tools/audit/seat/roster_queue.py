@@ -29,6 +29,8 @@ touched after each report line. Blind spot, stated: only append-carry with an
 from __future__ import annotations
 
 import argparse
+import contextlib
+import io
 import json
 import os
 import re
@@ -74,10 +76,48 @@ def readback(sha, grp, fn, cwd=None, rel=ROSTER_REL):
             f"last120={last[:120]!r} len={len(last)}/{len(want)}"), bool(hit)
 
 
+def readback_text(sha, grp, text, cwd=None, rel=ROSTER_REL):
+    """True when the first 60 characters of an inline carry are inside a carry
+    entry of `grp` in the roster at `sha` (the LANDED test of the old loops)."""
+    s = _git("show", f"{sha}:{rel}", cwd=cwd)
+    if s.returncode:
+        raise RuntimeError(f"no {rel} at {sha}: {s.stderr.strip()[-120:]}")
+    g = next(_walk(json.loads(s.stdout), grp), None)
+    if g is None:
+        raise RuntimeError(f"group {grp} not in the roster at {sha}")
+    want = text.strip()[:60]
+    return any(want in x for x in g["carry"])
+
+
+def _split(ln):
+    """Shell words of `ln`, ending at an unquoted word that begins with `#`
+    (shell semantics: `@/p/b#1.txt` and `s6-batch8.md#P70` keep their `#`, a
+    quoted `'a # b'` is one word). Not shlex's comments=True, which cuts a `#`
+    in the middle of a word (P300). Words are split by the one lexer, then
+    each dequoted; a line it cannot dequote falls back to plain shlex.split."""
+    try:
+        lex = shlex.shlex(ln, posix=False)
+        lex.whitespace_split, lex.commenters = True, ""
+        out = []
+        for tok in lex:
+            if tok.startswith("#"):
+                break
+            out.append("".join(shlex.split(tok)))
+        return out
+    except ValueError:
+        return shlex.split(ln)
+
+
 def parse_line(ln):
+    """`(op, group, value, flags)` of one queue line, or None for a blank or
+    `#` line. THE ONE FLAG GRAMMAR, shared by `run`, `--batch` and `loop`: the
+    first token after the group is the value unless it is a flag, and every
+    `--flag value` after it reaches roster_edit as a flag, never folded into
+    the value (`set-stage G done --at-sha S` once wrote stage "done --at-sha
+    S", 2026-10-27)."""
     if not ln.strip() or ln.lstrip().startswith("#"):
         return None
-    t = shlex.split(ln)
+    t = _split(ln)
     if t and t[0][0].isdigit():
         t = t[1:]
     if len(t) < 2:
@@ -88,6 +128,31 @@ def parse_line(ln):
     if rest and rest[0].startswith("--"):
         return t[0], t[1], "", rest
     return t[0], t[1], (rest[0] if rest else ""), rest[1:]
+
+
+def mark_line(queue, ln, tag):
+    """Rewrite the first unmarked line equal to `ln` as `#<tag> <ln>`. The
+    queue is re-read at write time, so a line another writer appended since
+    the run began is kept, and replaced through a temp file in the same
+    directory by os.replace, so a reader never sees a half-written queue."""
+    return replace_line(queue, ln, f"#{tag} {ln}")
+
+
+def replace_line(queue, old, new):
+    """Replace the first line equal to `old` by `new` (the queue re-read now)."""
+    q = Path(queue)
+    lines = q.read_text().split("\n")
+    for i, x in enumerate(lines):
+        if x == old:
+            lines[i] = new
+            break
+    else:
+        return False
+    fd, tmp = tempfile.mkstemp(dir=q.parent, prefix=q.name + ".")
+    with os.fdopen(fd, "w") as f:
+        f.write("\n".join(lines))
+    os.replace(tmp, q)
+    return True
 
 
 def run_queue(a, python=None):
@@ -117,17 +182,85 @@ def run_queue(a, python=None):
             rep(msg)
             return 2
     sh("git", "fetch", "-q", "origin")  # fetch only: the edit checkout is never moved
-    lines = Path(a.queue).read_text().split("\n")[a.first - 1:a.last]
+    mark = getattr(a, "mark", False)
+    allq = str(a.first) == "all"
+    if allq and not mark:
+        print("roster: `all` needs --mark (a cursor-less run must mark what it applied)",
+              file=sys.stderr)
+        return 2
+    qlines = Path(a.queue).read_text().split("\n")
+    lines = qlines if allq else qlines[int(a.first) - 1:int(a.last)]
+    if getattr(a, "batch", False):
+        return _run_batch(a, sh, rep, py, editor, lines, mark)
     for ln in lines:
         p = parse_line(ln)
         if not p:
             continue
         op, g, arg, extra = p
         try:
-            _run_op(a, sh, rep, py, editor, op, g, arg, extra)
+            ok = _run_op(a, sh, rep, py, editor, op, g, arg, extra)
         except Exception as e:  # noqa: BLE001 - every op attempted writes one line
             rep(f"roster: {op} {g} FAILED {type(e).__name__}: {e}"[:400].replace("\n", " "))
             return 1
+        if mark:
+            mark_line(a.queue, ln, "done" if ok else "refused")
+    return 0
+
+
+def _run_batch(a, sh, rep, py, editor, lines, mark):
+    """`run --batch`: every applicable line through roster_edit's own parser and
+    checks, ONE lint and ONE push (0.36 s a line against 1-3 min). A refused
+    op is rolled back and skipped. Any batch-level failure (a lint refusal, a
+    gate refusal of the joint text, a lost race) falls back to the single-op
+    path for every line, so a bad line never strands the others."""
+    sys.path.insert(0, str(Path(a.edit_checkout, "tools/audit/seat")))
+    import roster_edit as re_
+    items = []
+    for ln in lines:
+        p = parse_line(ln)
+        if p:
+            items.append((ln, p))
+    if not items:
+        return 0
+    common = ["--checkout", a.edit_checkout, "--worktree", a.worktree,
+              "--lint-cwd", a.lint_clone]
+    if a.branch:
+        common += ["--branch", a.branch]
+    try:
+        edits = []
+        for _, (op, g, arg, extra) in items:
+            with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
+                args, value, rest = re_.parse_op(
+                    [op, g] + ([arg] if arg else []) + extra + common)
+            edits.append(re_.make_edit(args, value, rest))
+        edit, results = re_.batch_edit(edits)
+        _git("fetch", "-q", "origin", cwd=a.lint_clone)
+        _git("checkout", "-q", "--detach", "origin/main", cwd=a.lint_clone)
+        re_.fetch_origin(a.edit_checkout)
+        ref, branch = re_.roster_target(a.edit_checkout, None, a.branch, None)
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rc = re_.write_roster(a.edit_checkout, ref, branch, a.worktree, None,
+                                  f"roster_edit batch of {len(items)} ({re_.SELF})",
+                                  True, a.lint_clone, "batch", edit)
+        m = re.search(r"pushed \S+ at ([0-9a-f]+)", buf.getvalue())
+        if rc != 0 or not (m or not any(r is None for r in results)):
+            raise RuntimeError(f"batch rc={rc}")
+    except SystemExit as e:  # argparse refused a line: that is a batch-level failure
+        rc, m, results = 1, None, None
+    except Exception as e:  # noqa: BLE001
+        rc, m, results = 1, None, None
+    if results is None:
+        rep("roster: batch fell back to the single-op path")
+        b = argparse.Namespace(**{**vars(a), "batch": False})
+        return run_queue(b, python=py)
+    for (ln, (op, g, arg, extra)), why in zip(items, results):
+        if why is None:
+            rep(f"roster: {op} {g} pushed {(m.group(1)[:9] if m else 'no-change')}")
+        else:
+            rep(f"roster: {op} {g} refused rc=2 {why[:300]}")
+        if mark:
+            mark_line(a.queue, ln, "done" if why is None else "refused")
     return 0
 
 
@@ -151,24 +284,87 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
                     rb = " | readback: " + readback(m.group(1), g, arg[1:], cwd=a.worktree)[0]
                 except Exception as e:  # noqa: BLE001 - reported, not hidden
                     rb = f" | readback: FAILED {str(e)[-200:]}"
+            if op == "append-carry" and arg and not arg.startswith("@"):
+                try:
+                    hit = readback_text(m.group(1), g, arg, cwd=a.worktree)
+                    rb = " | readback: " + ("LANDED" if hit else "FAILED not-landed")
+                except Exception as e:  # noqa: BLE001
+                    rb = f" | readback: FAILED {str(e)[-200:]}"
             rep(f"roster: {op} {g} pushed {m.group(1)[:9]}{rb}")
-            return
+            return "FAILED" not in rb
         if attempt < 4 and (MOVED in out or ("failed to push" in out and "lint gate: TOTAL: 0" in out)):
             sh("git", "worktree", "remove", "--force", a.worktree)
             continue
         rep(f"roster: {op} {g} refused rc={r.returncode} " + " | ".join(out.strip().split("\n")[-3:])[:400])
-        return
+        return False
+
+
+HELD = "#held "
+BATCH_FILE_RE = re.compile(r"dev/programme/[A-Za-z0-9_./-]+\.md")
+
+
+def heal_clone(a):
+    """Provision a missing --lint-clone from the edit checkout's origin: the
+    `loop` self-heal. `run` still refuses a missing clone by name (#3020)."""
+    if Path(a.lint_clone).is_dir():
+        return False
+    url = _git("remote", "get-url", "origin", cwd=a.edit_checkout).stdout.strip()
+    r = _git("clone", "-q", url, a.lint_clone)
+    if r.returncode:
+        raise RuntimeError(f"lint clone self-heal failed: {r.stderr.strip()[-200:]}")
+    return True
+
+
+def loop_queue(a, once=False, sleep=None, python=None):
+    """`loop --every N`: heal the lint clone, apply every unmarked line with
+    marking, wait N seconds, repeat. The same runner and line grammar as `run`."""
+    import time
+    sleep = sleep or time.sleep
+    while True:
+        heal_clone(a)
+        run_queue(argparse.Namespace(**{**vars(a), "first": "all", "last": None,
+                                        "mark": True}), python=python)
+        if once:
+            return 0
+        sleep(a.every)
+
+
+def release_held(queue, checkout):
+    """`#held append-carry` lines whose batch file (a dev/programme/... .md path
+    in the line) exists on origin/main lose the `#held ` prefix and run next
+    pass. Returns (released, still_held) line lists."""
+    _git("fetch", "-q", "origin", "main", cwd=checkout)
+    released, held = [], []
+    for ln in Path(queue).read_text().split("\n"):
+        if not ln.startswith(HELD + "append-carry"):
+            continue
+        files = BATCH_FILE_RE.findall(ln)
+        if files and all(_git("cat-file", "-e", f"origin/main:{f}", cwd=checkout).returncode == 0
+                         for f in files):
+            if replace_line(queue, ln, ln[len(HELD):]):
+                released.append(ln)
+        else:
+            held.append(ln)
+    return released, held
+
+
+def unwired(roster, open_issues):
+    """Open issue numbers no roster group lists (carry_audit's ISSUE-UNLISTED)."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+    import carry_audit
+    return [x for x in carry_audit.roster_report(roster, {}, set(open_issues))
+            if x.startswith("ISSUE-UNLISTED")]
 
 
 def _self_test():
     fails = []
     n = [0]
 
-    def ck(name, ok):
+    def ck(name, ok, got=""):
         n[0] += 1
         if not ok:
             fails.append(name)
-            print("  FAIL", name)
+            print("FAIL", name, f"(got: {got})" if got != "" else "")
 
     ck("parse: numbered", parse_line("7 set-stage G done") == ("set-stage", "G", "done", []))
     ck("parse: blank/comment", parse_line("") is None and parse_line("# x") is None)
@@ -267,6 +463,119 @@ def _self_test():
         ck("run: a missing --lint-clone is refused by name, rc 2, before any op",
            rc3 == 2 and "--lint-clone" in r3[-1] and "no-such-clone" in r3[-1]
            and len(r3) == 2 and not (t / "no-such-clone").exists())
+
+    # --- R10-ROSTER-WRITE-SWEEP: comment grammar, flags, marking, batch, loop
+    ck("parse: a trailing ` # comment` is dropped (carry 11)",
+       parse_line("set-stage G done # #2955 merged aced2589") == ("set-stage", "G", "done", []))
+    ck("parse: a # inside a word is kept (null)",
+       parse_line("append-carry G @/p/b#1.txt") == ("append-carry", "G", "@/p/b#1.txt", []))
+    ck("parse: an unquoted drop-carry --match keeps its #P (null)",
+       parse_line("drop-carry G --match s6-batch8.md#P70")
+       == ("drop-carry", "G", "", ["--match", "s6-batch8.md#P70"]))
+    ck("parse: a quoted 'a # b' stays one argument (null)",
+       parse_line("append-carry G 'a # b' # note") == ("append-carry", "G", "a # b", []))
+    ck("parse: set-stage keeps --at-sha a flag, not part of the value (carry 14)",
+       parse_line("set-stage G done --at-sha abc1234")
+       == ("set-stage", "G", "done", ["--at-sha", "abc1234"]))
+    with tempfile.TemporaryDirectory() as t2:
+        t = Path(t2)
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_init, throwaway_git_clone
+        repo = t / "repo"
+        env = throwaway_git_init(repo, "-q", "-b", "main")
+        (repo / "dev/programme/triage").mkdir(parents=True)
+        (repo / "dev/programme/triage/b.md").write_text("batch\n")
+        (repo / ROSTER_REL).parent.mkdir(parents=True, exist_ok=True)
+        (repo / ROSTER_REL).write_text(json.dumps({"groups": [{"group": "G", "carry": ["hello carry"], "issues": [5]}]}))
+        _git("add", "-A", cwd=repo, env=env)
+        _git("commit", "-qm", "r", cwd=repo, env=env)
+        sha = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
+        clone = t / "clone"
+        throwaway_git_clone(repo, clone, "-q")
+        stub = t / "stub2.py"
+        stub.write_text(
+            "import sys,pathlib\n"
+            f"q=pathlib.Path({str(t / 'q.txt')!r}); app=pathlib.Path({str(t / 'append')!r})\n"
+            "if app.exists():\n"
+            "    app.unlink(); q.write_text(q.read_text()+'\\n9 set-stage LATE done')\n"
+            "if 'BAD' in sys.argv: print('REFUSED: no group'); sys.exit(2)\n"
+            f"print('pushed handoff/x at {sha}')\n")
+        base = argparse.Namespace(first=1, last=4, queue=str(t / "q.txt"), report=str(t / "rep"),
+                                  edit_checkout=str(clone), worktree=str(clone),
+                                  lint_clone=str(clone), alive=None, branch=None,
+                                  editor=str(stub))
+        body = "1 set-stage G done # why\n2 set-stage BAD done\n# a note\n3 set-stage H done"
+
+        def fresh(text=body):
+            (t / "q.txt").write_text(text)
+            (t / "rep").write_text("")
+        fresh()
+        before = (t / "q.txt").read_bytes()
+        run_queue(base, python=sys.executable)
+        ck("run: without --mark the queue is byte-identical (null)",
+           (t / "q.txt").read_bytes() == before)
+        fresh()
+        (t / "append").write_text("")
+        run_queue(argparse.Namespace(**{**vars(base), "mark": True}), python=sys.executable)
+        got = (t / "q.txt").read_text().split("\n")
+        ck("run --mark: a pushed op is `#done`, a refused op `#refused`",
+           got[0] == "#done 1 set-stage G done # why" and got[1] == "#refused 2 set-stage BAD done"
+           and got[3] == "#done 3 set-stage H done", got)
+        ck("run --mark: a line appended after the run's first read survives",
+           got[-1] == "9 set-stage LATE done" and got[2] == "# a note", got)
+        fresh()
+        rc = run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None}),
+                       python=sys.executable)
+        ck("run all without --mark is refused, nothing applied (rc 2)",
+           rc == 2 and (t / "q.txt").read_bytes() == body.encode())
+        fresh()
+        run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None, "mark": True}),
+                  python=sys.executable)
+        ck("run all --mark applies every unmarked op line, no cursor",
+           (t / "q.txt").read_text().split("\n")[3].startswith("#done 3 set-stage H"))
+        run_queue(argparse.Namespace(**{**vars(base), "first": "all", "last": None, "mark": True}),
+                  python=sys.executable)
+        ck("a marked line is never applied again", (t / "rep").read_text().count("\n") == 3)
+        # inline append-carry readback (LANDED test, first 60 chars)
+        ck("readback_text: the carry's first 60 chars are found",
+           readback_text(sha, "G", "hello carry", cwd=clone))
+        ck("readback_text: an absent carry is not landed (null)",
+           not readback_text(sha, "G", "never written", cwd=clone))
+        # --batch: a line the batch cannot parse falls back to the single path
+        fresh("1 bogus-op G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
+                  python=sys.executable)
+        rr = (t / "rep").read_text().split("\n")
+        ck("run --batch: a batch-level failure falls back to the single-op path",
+           rr[0] == "roster: batch fell back to the single-op path"
+           and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
+        fresh("1 set-stage G done\n")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
+                  python=sys.executable)
+        ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
+           (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
+        # release-held: a held carry waits for its batch file on origin/main
+        (t / "q.txt").write_text(
+            "#held append-carry G 'x dev/programme/triage/b.md#P1'\n"
+            "#held append-carry G 'y dev/programme/triage/absent.md#P2'\n")
+        rel, held = release_held(str(t / "q.txt"), str(clone))
+        q2 = (t / "q.txt").read_text().split("\n")
+        ck("release-held: a held line whose batch file exists is released",
+           len(rel) == 1 and q2[0].startswith("append-carry G"), q2)
+        ck("release-held: a held line whose batch file is absent stays held (null)",
+           len(held) == 1 and q2[1].startswith("#held "), q2)
+        # unwired sweep
+        ros = {"groups": [{"group": "G", "issues": [5], "resume": {"stage": "not-started"}}]}
+        ck("unwired: an open issue no group lists is reported",
+           unwired(ros, [5, 9]) == ["ISSUE-UNLISTED #9"])
+        ck("unwired: every open issue listed reports nothing (null)", unwired(ros, [5]) == [])
+        # loop: heals a missing lint clone, then applies and marks
+        fresh("1 set-stage G done\n")
+        lc = t / "healed"
+        run_a = argparse.Namespace(**{**vars(base), "lint_clone": str(lc), "every": 1})
+        loop_queue(run_a, once=True, python=sys.executable)
+        ck("loop: a missing lint clone is re-provisioned from origin, then the pass runs",
+           (lc / ".git").exists() and (t / "q.txt").read_text().startswith("#done 1 set-stage G done"))
     print(f"roster_queue self-test: {n[0]} checks, {len(fails)} failed")
     return 1 if fails else 0
 
@@ -279,20 +588,58 @@ def main(argv=None):
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = p.add_subparsers(dest="cmd", required=True)
     r = sub.add_parser("run")
-    r.add_argument("first", type=int)
-    r.add_argument("last", type=int)
-    for k in ("queue", "report", "edit-checkout", "worktree", "lint-clone"):
-        r.add_argument("--" + k, required=True)
-    r.add_argument("--alive")
-    r.add_argument("--branch")
-    r.add_argument("--editor")
+    r.add_argument("first", help="1-based first line, or `all` (needs --mark)")
+    r.add_argument("last", nargs="?", type=int)
+    r.add_argument("--mark", action="store_true",
+                   help="rewrite each applied line as `#done <line>` (pushed) "
+                        "or `#refused <line>`")
+    r.add_argument("--batch", action="store_true",
+                   help="all lines in one worktree: one lint, one push")
+    lp = sub.add_parser("loop")
+    for sp in (r, lp):
+        for k in ("queue", "report", "edit-checkout", "worktree", "lint-clone"):
+            sp.add_argument("--" + k, required=True)
+        sp.add_argument("--alive")
+        sp.add_argument("--branch")
+        sp.add_argument("--editor")
+    lp.add_argument("--every", type=int, default=300)
+    lp.add_argument("--batch", action="store_true")
+    rh = sub.add_parser("release-held")
+    rh.add_argument("--queue", required=True)
+    rh.add_argument("--edit-checkout", required=True)
+    uw = sub.add_parser("unwired")
+    uw.add_argument("--edit-checkout", required=True)
+    uw.add_argument("--ref", default="origin/main")
+    uw.add_argument("--open-issues", required=True,
+                    help="JSON list of open issue numbers (or gh issue objects)")
     b = sub.add_parser("readback")
     b.add_argument("sha")
     b.add_argument("group")
     b.add_argument("file")
     a = p.parse_args(argv)
     if a.cmd == "run":
+        if a.first != "all" and (a.last is None or not a.first.isdigit()):
+            p.error("run needs FIRST LAST, or `all` with --mark")
         return run_queue(a)
+    if a.cmd == "loop":
+        return loop_queue(a)
+    if a.cmd == "release-held":
+        released, held = release_held(a.queue, a.edit_checkout)
+        for ln in released:
+            print("RELEASED", ln[len(HELD):][:100])
+        for ln in held:
+            print("held    ", ln[len(HELD):][:100])
+        return 0
+    if a.cmd == "unwired":
+        s_ = _git("show", f"{a.ref}:{ROSTER_REL}", cwd=a.edit_checkout)
+        if s_.returncode:
+            print(f"no {ROSTER_REL} at {a.ref}", file=sys.stderr)
+            return 2
+        nums = [x if isinstance(x, int) else x.get("number")
+                for x in json.loads(Path(a.open_issues).read_text())]
+        out = unwired(json.loads(s_.stdout), [n for n in nums if isinstance(n, int)])
+        print("\n".join(out) or "no unwired open issue")
+        return 1 if out else 0
     line, ok = readback(a.sha, a.group, a.file)
     print(line)
     return 0 if ok else 1
