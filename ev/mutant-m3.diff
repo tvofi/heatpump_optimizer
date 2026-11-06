@@ -1,0 +1,14 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 22c73853b..8caa9fe02 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2209,8 +2209,7 @@ async def _await_optimize(
+     except ProcessWorkerTimeout as err:
+         # Held, not per cycle: a worker that keeps timing out warns once and
+         # says "Resolved" on the first solve it carries again (R10 N-log-flood).
+-        log_held(hass, f"process_worker_timeout:{entry_id}", True,
+-                 "%s; keeping the last plan, a fresh worker starts next cycle", err)
++        _LOGGER.warning("%s; keeping the last plan, a fresh worker starts next cycle", err)
+         _raise_update_failed(
+             "process_worker_timeout", f"{err}; the last plan stays in effect", err,
+             minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
