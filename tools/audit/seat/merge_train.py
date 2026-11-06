@@ -1157,6 +1157,62 @@ def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
         raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
 
 
+APPROVER_BOT = "hpo-approver[bot]"
+WAIT_GATES = (GATE, RAISE_GATE)
+
+
+def post_approval_wait(t: "Train", pr: int, head: str, poll: float, budget_s: float) -> int:
+    """`add --wait-post-approval`: block until <head> may be added. Polls every
+    <poll> s (t.sleep) for the approver App's `Fix review: merge <head>` comment
+    and its APPROVED review at <head>; `refs/pull/<pr>/head` must still be
+    <head> (else `HEAD MOVED, not adding`, rc 1); then every `gate` /
+    RAISE_GATE run started at or after the approval's submitted_at must have
+    completed -- a run that started before it does not count, and none yet is
+    a wait. Red (failure/cancelled) -> `GATE RED AFTER APPROVAL`, rc 2. Green:
+    `gh pr ready` on a draft, rc 0. <budget_s> spent (t.clock) -> `WAIT BUDGET
+    SPENT`, rc 3."""
+    start = t.clock()
+    while True:
+        code, ref = t.run(["gh", "api", f"repos/{t.repo}/git/ref/pull/{pr}/head", "--jq", ".object.sha"])
+        if code == 0 and ref.strip() != head:
+            t.log(f"HEAD MOVED, not adding #{pr}: refs/pull/{pr}/head is {ref.strip()[:12]}, not {head[:12]}")
+            return 1
+        why = "the ref could not be read" if code else ""
+        if not why:
+            try:
+                revs = t._reviews(pr, "the post-approval wait")
+            except Stop as s:
+                revs, why = [], s.why
+            at = max((r.get("submitted_at") or "" for r in revs if (r.get("user") or {}).get("login") == APPROVER_BOT
+                      and r.get("state") == "APPROVED" and r.get("commit_id") == head), default="")
+            code, raw = t.run(["gh", "api", "--paginate", "--slurp", f"repos/{t.repo}/issues/{pr}/comments?per_page=100"])
+            try:
+                said = code == 0 and any((c.get("user") or {}).get("login") == APPROVER_BOT
+                                         and (c.get("body") or "").startswith(f"Fix review: merge {head}")
+                                         for page in json.loads(raw) for c in page)
+            except (ValueError, TypeError):
+                said = False
+            runs = t._check_runs(head) or []
+            mine = [c for c in runs if c.get("name") in WAIT_GATES and at and (c.get("started_at") or "") >= at]
+            if not (at and said):
+                why = why or "no approval review and verdict comment at the head yet"
+            elif any(c.get("status") == "completed" and c.get("conclusion") in ("failure", "cancelled") for c in mine):
+                t.log(f"GATE RED AFTER APPROVAL, not adding #{pr}")
+                return 2
+            elif not mine or any(c.get("status") != "completed" for c in mine):
+                why = "the gate re-run after the approval has not completed"
+            else:
+                if is_draft(t, pr) and t.run(["gh", "pr", "ready", str(pr), "--repo", t.repo])[0]:
+                    t.log(f"gh pr ready #{pr} failed, not adding")
+                    return 2
+                return 0
+        if t.clock() - start >= budget_s:
+            t.log(f"WAIT BUDGET SPENT for #{pr}: {why}; not adding")
+            return 3
+        t.log(f"WAIT #{pr}: {why}")
+        t.sleep(poll)
+
+
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
               settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
@@ -7737,6 +7793,7 @@ def _add_self_test(check) -> None:
             p.wait()
         tmp.cleanup()
     _spool_edit_self_test(check, stub, H)
+    _post_approval_self_test(check)
 
 
 def _spool_edit_self_test(check, stub, H: str) -> None:
@@ -7913,6 +7970,67 @@ def _spool_edit_self_test(check, stub, H: str) -> None:
         tmp.cleanup()
 
 
+def _post_approval_self_test(check) -> None:
+    """`add --wait-post-approval`: a fake gh, a fake clock; sleeping advances it."""
+    H, OLD, AT, NEW = "a" * 40, "2026-01-01T10:00:00Z", "2026-01-01T11:00:00Z", "2026-01-01T11:05:00Z"
+
+    def wait(runs_by_poll, ref=H, budget=10000.0):
+        clk, slept = [0.0], []
+
+        def run(argv, **kw):
+            j = " ".join(argv)
+            if "git/ref/pull" in j:
+                return 0, ref
+            if "/reviews" in j:
+                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
+                                       "submitted_at": AT}]])
+            if "/comments" in j:
+                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: merge {H}\nn"}]])
+            if "check-runs" in j:
+                rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
+                return 0, "\n".join(json.dumps(r) for r in rs)
+            if "isDraft" in j:
+                return 0, "false"
+            return 0, ""
+
+        def sleep(s):
+            slept.append(s)
+            clk[0] += s
+        lines: list = []
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleep, log=lines.append, clock=lambda: clk[0])
+        return post_approval_wait(t, 7, H, 240, budget), slept, lines
+
+    def cr(at, status="completed", conclusion="success", name="gate"):
+        return {"name": name, "started_at": at, "status": status, "conclusion": conclusion}
+    old_green = cr(OLD)
+    rc, slept, _ = wait([[old_green, cr(NEW, "in_progress", None)], [old_green, cr(NEW)]])
+    check("post-approval wait: a gate run green BEFORE the approval plus one in progress after it waits "
+          "(slept), then adds when the new run completes", rc == 0 and len(slept) == 1)
+    rc, slept, _ = wait([[old_green]])
+    check("post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)",
+          rc == 3 and bool(slept))
+    rc, slept, lines = wait([[old_green]], ref="b" * 40)
+    check("post-approval wait: a moved head exits 1 (HEAD MOVED), nothing slept",
+          rc == 1 and not slept and "HEAD MOVED" in lines[-1])
+    for conc in ("failure", "cancelled"):
+        rc, _, lines = wait([[cr(NEW, conclusion=conc, name=RAISE_GATE)]])
+        check(f"post-approval wait: a post-approval {conc} exits 2 (GATE RED AFTER APPROVAL)",
+              rc == 2 and "GATE RED AFTER APPROVAL" in lines[-1])
+    rc, slept, lines = wait([[cr(NEW, "in_progress", None)]], budget=500)
+    check("post-approval wait: past the budget it stops, rc 3, WAIT BUDGET SPENT",
+          rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and len(slept) == 3)
+    import io
+    seen: list = []
+    real = globals()["train_add"]
+    globals()["train_add"] = lambda t_, item, argv, **kw: seen.append(item) or 0
+    try:
+        with contextlib.redirect_stdout(io.StringIO()):
+            rc = main(["add", "7", H, "--state-dir", ".", "--repo", "o/r", "--auto"])
+    finally:
+        globals()["train_add"] = real
+    check("post-approval wait null: without the flag add never waits, it adds", rc == 0 and len(seen) == 1)
+
+
 def _parser() -> argparse.ArgumentParser:
     """The CLI parser, built apart from `main` so the self-test can pin the
     defaults a caller actually gets: both new flags off without the flag."""
@@ -7986,6 +8104,11 @@ def _parser() -> argparse.ArgumentParser:
                     help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
     ad.add_argument("--stamp", action="store_true",
                     help="a stamp's add: a record pull request is added, not HELD-FOR-STAMP (carry 15)")
+    ad.add_argument("--wait-post-approval", action="store_true",
+                    help="first wait for the approver's verdict and approval at <verdict> and the gate re-run "
+                         "after it (rc 1 head moved, 2 red, 3 budget spent); then add")
+    ad.add_argument("--poll", type=float, default=240, help="--wait-post-approval: seconds between reads")
+    ad.add_argument("--budget-hours", type=float, default=3, help="--wait-post-approval: give up after this")
     ad.add_argument("--auto", action="store_true",
                     help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                          "as the sweep's is: bus.sh's post calls this")
@@ -8045,6 +8168,10 @@ def main(argv: list[str]) -> int:
             return 2
         if a.remove:
             return spool_edit(t, a.pr, "remove")
+        if a.wait_post_approval and a.verdict:
+            rc = post_approval_wait(t, a.pr, a.verdict, a.poll, a.budget_hours * 3600)
+            if rc:
+                return rc
         if a.verdict is None:
             if a.front:
                 return spool_edit(t, a.pr, "front")
