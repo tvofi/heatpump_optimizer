@@ -17517,6 +17517,44 @@
     "stage": "not-started"
    },
    "brief": "Owner ruling tvofi 2026-11-06 (coordinator, via the dispatch seat): lower priority than #3232. Main's own CodeQL python job runs at 28 to 44.5 minutes against its 45-minute cap, so any growth of tests/features.py or tests/entities.py can cancel it (#3232 did: its new 364-line module-level try/finally block pushed the Python extraction of tests/features.py to 2211 s against entities.py's 378 s, ratio 5.85, where normal is 2.0 to 2.45; #3232 itself is reshaped by f-3232-reshape, topic r10-ext-3226). Cure the cause, not the cap: move the large module-level code of tests/features.py and tests/entities.py into functions called once (nested module-level try/finally is what the extractor is slow on), with no behaviour change, and do not raise the cap or exclude files from the scan. Measure first, at your merge base, the CodeQL python log line 'Extracted file ... in N ms' for features.py and entities.py on the last main runs, and again after the change on a CI run at your head; report the job duration before and after and a null control (an unchanged file's extraction time does not move). All feature and entity checks must still pass with the same counts; re-run the mutants of any block you move. Coordinate with #3232: take its merged shape as the base if it has merged, otherwise leave its blocks to f-3232-reshape."
+  },
+  {
+   "group": "R10-COMBI-TANK",
+   "lane": "PR",
+   "kind": "production",
+   "issues": [
+    3225
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "L",
+   "wave": 6,
+   "files": [],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "design review first (owner ruling tvofi 2026-11-06)",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "design",
+    "branch": "design/r10-combi-tank",
+    "note": "size L is provisional; the design sets the final size and owning seam"
+   },
+   "brief": "Owner ruling (tvofi 2026-11-06), quoted: \"Have a seat pre study the design for 3225 with the target of efficient and robust integration in the ongoing round, after design review fold the fix in a suitable place in the plan.\" Issue #3225 (outside user Bankaifan): no way to model a combi tank where the space-heating buffer and DHW are the same water. Setup: alpha innotec LWDV 91-1/3 (Luxtronik) with an MFS 600 S multifunction tank, 572 l of heating water charged for both space heating and DHW, DHW made on demand through an internal exchanger (39 l / 7.5 m2), no separate DHW tank, zoned returns (DHW return 765 mm, heating return 400 mm), ONE probe in use at 1250 mm, both buffer_tank_temp_entity and dhw_temp_entity point at it; datasheet standing loss 3100 Wh/24 h; current config topology_layout single_tank_valve, mixing_valve_mode smart_write. Read the whole issue body and its comment. DESIGN ONLY, never production code, note at design/r10-combi-tank. Cover: how the existing topologies and the DHW/buffer model represent or fail to represent a shared tank; the minimal sound change (a new topology against a parameterisation of an existing one); sensor handling with a single probe; effects on the solver, the comfort guard and the DHW trajectory seed (R10-BUFFER-STORE carry 1, the open-loop tank seed: this design may be its natural owner); the test fixtures to add; a size estimate and the owning seam. Target: efficient and robust integration in the ongoing round."
   }
  ]
 }
