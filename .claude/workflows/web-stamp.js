@@ -114,17 +114,7 @@ const stampPrompt = (repo, bump, title) => `In ${repo}: if test -f
 and change nothing. Else git fetch origin --tags; git worktree add --detach
 /home/user/wt/stamp origin/main (if the path exists, reuse it and git reset
 --hard origin/main). If git tag --points-at HEAD is non-empty, return
-{stamped: false, reason: "already stamped"} and change nothing. Then land the
-record pull requests the train holds HELD-FOR-STAMP (carry 15: a pull request
-whose every changed path is a record merges only in a stamp's batch) in one
-batch before the tag: run python3 tools/audit/seat/merge_train.py sweep --stamp
---repo ${repo}. Its last line SWEEP HELD or SWEEP REFUSED returns {stamped:
-false, reason: <that line>} and changes nothing. On SWEEP DONE with any pull
-request handed to add, wait for the train to close -- the rc file in its state
-dir (merge_train under $HPO_STATE_DIR, else ~/.local/state/hpo) rewritten after
-the sweep -- and on an rc other than 0 return {stamped: false, reason: "record
-train rc <rc>: <train.log's last line>"}; then git fetch origin and git reset
---hard origin/main, so the notes and the tag carry the records. Otherwise
+{stamped: false, reason: "already stamped"} and change nothing. Otherwise
 write the RELEASE_NOTES.md section "## v<next ${bump}>" at the top of the
 file: a "### <subsection>" per PR merged since the last tag, written from its
 body (git log <last-tag>..HEAD --format=%s lists them; read each body with
@@ -148,12 +138,29 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 const { repo, bump = 'patch', title, wave, session = 'claude-web', merged = [] } = args ?? {}
 if (!repo || !title) throw new Error('args.repo and args.title are required')
 
+// Carry 15 (record PRs ride the stamp): a pull request whose every changed path
+// is a record is HELD-FOR-STAMP by merge_train's queue, add and sweep. This step,
+// before the stamp agent, lands every held record in one train, so the notes and
+// the tag carry them. Not a fragment: only this launcher runs it.
+const recordsPrompt = (repo) => `In ${repo}: if test -f
+~/.zcode/stamp-deploy.key fails, return {landed: false, reason: "no deploy key
+in this runtime; hand the stamp to a local orchestrator"} and change nothing.
+Else run python3 tools/audit/seat/merge_train.py sweep --stamp --repo ${repo}
+from the repository root. Its last line SWEEP HELD or SWEEP REFUSED returns
+{landed: false, reason: <that line>}. On SWEEP DONE with no pull request
+handed to add, return {landed: true, handed: 0}. Otherwise wait for the train
+to close -- the rc file in its state dir (merge_train under $HPO_STATE_DIR,
+else ~/.local/state/hpo) rewritten after the sweep -- and return {landed: rc
+is 0, handed: <n>, reason: <train.log's last line>}.`
+
 phase('Stamp')
 const lastSha = merged.filter((m) => m?.sha).map((m) => m.sha).pop()
 if (lastSha) {
   const gate = await agent(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
   if (!gate?.green) { log(`main is not green at ${lastSha}; not stamping`); return { gate } }
 }
+const records = await agent(recordsPrompt(repo), { model: 'sonnet', label: 'records', phase: 'Stamp', schema: { type: 'object', required: ['landed'] } })
+if (!records?.landed) { log(`held records not landed: ${records?.reason ?? 'records agent returned null'}; not stamping`); return { records } }
 const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
 if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
 
