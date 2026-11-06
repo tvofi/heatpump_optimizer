@@ -512,6 +512,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
 # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
 # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
 dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
+  local force="" fixing=""
   local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
   shift 3 2>/dev/null || shift $#
   while [ $# -gt 0 ]; do
@@ -519,6 +520,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
       --reviewed-head) [[ ${2:-} =~ ^[0-9a-f]{40}$ ]] || die "dispatch: --reviewed-head takes a 40-hex commit"; rh=$2; shift 2 ;;
       --nonce) [[ ${2:-} =~ ^[0-9a-f]{32}$ ]] || die "dispatch: --nonce takes a 32-hex nonce"; n=$2; shift 2 ;;
       --model) [[ ${2:-} =~ ^[A-Za-z0-9._-]+$ ]] || die "dispatch: --model takes one token"; m=$2; shift 2 ;;
+      --force) force=1; shift ;;
       --past-three) [ -n "${2:-}" ] && [ "${2#--}" = "$2" ] || die "dispatch: --past-three needs a reason"; p3=$2; shift 2 ;;
       --harness|--harness-file) [ -n "${2:-}" ] && [ -z "$hk" ] || die "dispatch: $1 takes one path, once"; hk=$1; hv=$2; shift 2 ;;
       *) die "dispatch: unknown argument '$1'" ;;
@@ -595,6 +597,29 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
         "") printf 'bus: review-carry: %s has no verdict, so a fresh review is owed\n' "$rh" >&2 ;;
         *) printf 'bus: review-carry: %s was %s, so a fresh review is owed\n' "$rh" "$v" >&2 ;;
       esac
+    fi
+  fi
+  # A SECOND REVIEWER AT A MERGE-VERDICT HEAD (card 3, 2026-11-01): a head that already holds a
+  # merge verdict has its review; --nonce re-records a mint and is no new dispatch.
+  if [ -z "$n" ]; then
+    v=$(verdict_at "$pr" "$h") || die "dispatch: cannot read verdict/$pr to learn whether $h already holds a verdict"
+    [ "$v" != merge ] || die "dispatch: #$pr's head $h already holds a merge verdict, so no second reviewer is dispatched"  # mut:mergehead
+  fi
+  # THE AUTOFIX HOLD (P344): a bot job that can still push a commit (mutation-autofix,
+  # closures-autofix, claims-autofix queued or in progress) moves the head under the reviewer, so
+  # the dispatch waits (rc 3). A completed job, red or green, is no commit coming. --force
+  # overrides with one ledger line. The check-runs are read once; HPO_BUS_CHECKS replaces the read.
+  if [ -z "$n" ]; then
+    fixing=$(${HPO_BUS_CHECKS:-${HPO_BUS_GH:-gh} api "repos/$REPO/commits/$h/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'} 2>/dev/null \
+             | grep -E '^(mutation|closures|claims)-autofix$' | sort -u | paste -sd, -) || fixing=""
+    if [ -n "$fixing" ]; then  # mut:autofixhold
+      if [ -n "$force" ]; then
+        printf '%s dispatch --force #%s %s over %s\n' "$(date -u +%FT%TZ)" "$pr" "$h" "$fixing" >> "$S/dispatch-force" 2>/dev/null || :
+        printf 'bus: --force: dispatching over the autofix job(s) %s\n' "$fixing" >&2
+      else
+        printf 'bus: HOLD: #%s head %s: autofix job(s) %s still queued or running and may move the head; dispatch again once they conclude (--force overrides)\n' "$pr" "$h" "$fixing" >&2
+        exit 3
+      fi
     fi
   fi
   why=$(three_rounds "$pr" "$p3") || die "dispatch: $why"
@@ -889,7 +914,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 31; do
+  for n in 7 9 12 21 22 24 30 31 32; do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1604,6 +1629,31 @@ B
   # #2310: a blocked verdict (the grammar that carries free text) whose first line names a host path is refused by
   # append_commit's guard, and review/7 does not move; the same verdict with a
   # clean tail is its null control and proposes.
+  # CARD 3: a head holding a merge verdict takes no second reviewer; a head with none does (null
+  # control), and the autofix hold (P344) is exercised on the same pull request.
+  N30=$(run dispatch 30 "$h1" cmsg_S | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N30" > "$W/m30.md"
+  seat push-verdict 30 "$W/m30.md" "$W/ev1" >/dev/null
+  HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 30 "$(tip review/30)" >/dev/null
+  out=$(run dispatch 30 "$h1" cmsg_S2); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
+  expect "a second reviewer at a head holding a merge verdict is refused, recording nothing" $?
+  out=$(run dispatch 30 "$h2" cmsg_S3); rc=$?
+  [ $rc = 0 ]; expect "null control: a head with no verdict dispatches (the first dispatch at a head is accepted)" $?
+  printf 'mutation-autofix\nprelude\n' > "$W/checks-in"; printf '#!/bin/bash\ncat "%s/checks-in"\n' "$W" > "$W/checks"
+  nd=$(grep -c . "$W/state/dispatched")
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 31 "$h1" cmsg_A); rc=$?
+  [ $rc = 3 ] && echo "$out" | grep -q "HOLD.*mutation-autofix" && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
+  expect "a dispatch is held (rc 3, naming the job) while mutation-autofix is queued or running, recording nothing (P344)" $?
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 31 "$h1" cmsg_A --force); rc=$?
+  [ $rc = 0 ] && [ -s "$W/state/dispatch-force" ]; expect "--force dispatches over the hold and writes one ledger line (P344)" $?
+  printf 'prelude\n' > "$W/checks-in"
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 32 "$h1" cmsg_A); rc=$?
+  [ $rc = 0 ]; expect "null control: no autofix job in flight dispatches (a completed one is never listed) (P344)" $?
+
+  # The block below re-dispatches at $h1 many times; its merge verdict is retired first (the
+  # refusal of a second reviewer at a merge-verdict head is exercised on pull request 30 below).
+  git -C "$W/seat" push -q origin :refs/heads/verdict/7
   r7=$(tip review/7)
   NL=$(run dispatch 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
