@@ -1212,6 +1212,14 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
   [ $rc != 0 ] && echo "$out" | grep -q "^BUS refused 7 $r1: this signed verdict was already posted on #7 (a replay)" \
     && [ "$(tip verdict/7)" = "$v1" ] && [ "$(calls)" = 1 ]
   expect "a second confirm of a posted tree is refused and verdict/<pr> stays at the first commit" $?
+  # P354: a confirm waits on a live holder of the pull request's lock; a dead holder's is taken over.
+  sleep 30 & cl=$!; mkdir -p "$W/state/confirm.7.lock"; echo "$cl" > "$W/state/confirm.7.lock/pid"
+  run confirm 7 "$r1" >/dev/null 2>&1 & cw=$!; sleep 3
+  kill -0 "$cw" 2>/dev/null && [ "$(tip verdict/7)" = "$v1" ]; expect "a confirm under a live holder's lock waits and moves nothing (P354)" $?
+  kill "$cw" "$cl" 2>/dev/null; wait "$cw" "$cl" 2>/dev/null
+  rm -rf "$W/state/confirm.7.lock"; mkdir -p "$W/state/confirm.7.lock"; echo 999999 > "$W/state/confirm.7.lock/pid"
+  out=$(run confirm 7 "$r1"); rc=$?
+  [ "$rc" = 1 ] && echo "$out" | grep -q "(a replay)" && [ ! -d "$W/state/confirm.7.lock" ]; expect "null control: a dead holder's lock is taken over and released (P354)" $?
 
   # A signed verdict copied to another pull request, or re-used over another tree.
   git -C "$W/seat" fetch -q origin verdict/7
