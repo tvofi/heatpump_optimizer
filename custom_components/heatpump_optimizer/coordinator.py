@@ -26,6 +26,7 @@ import subprocess
 import sys
 import threading
 import time
+from types import SimpleNamespace
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -1929,45 +1930,63 @@ def _reply_ready(stream: Any, timeout_s: float) -> bool:
         return bool(selector.select(timeout_s))
 
 
-class _FrameReader:
+def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
     """``pickle.load``'s file over the reply pipe, every read under one deadline.
 
     Reads the raw descriptor, never the buffered stream, whose held bytes a
     selector cannot see. It has no ``peek``, so the unpickler asks for
     exactly the bytes it consumes and nothing past the frame is taken.
     """
+    deadline = time.monotonic() + timeout_s
 
-    def __init__(self, fd: int, timeout_s: float) -> None:
-        self._fd = fd
-        self._timeout_s = timeout_s
-        self._deadline = time.monotonic() + timeout_s
-
-    def read(self, size: int) -> bytes:
-        """Up to ``size`` bytes, fewer only at end of stream."""
+    def read(size: int) -> bytes:
         chunks: list[bytes] = []
         while size > 0:
-            left_s = max(0.0, self._deadline - time.monotonic())
-            if not _reply_ready(self._fd, left_s):
+            if not _reply_ready(fd, max(0.0, deadline - time.monotonic())):
                 raise ProcessWorkerTimeout(
                     f"process worker stopped mid-reply: the frame did not "
-                    f"arrive within {self._timeout_s:g} s"
+                    f"arrive within {timeout_s:g} s"
                 )
-            chunk = os.read(self._fd, min(size, 1 << 20))
+            chunk = os.read(fd, min(size, 1 << 20))
             if not chunk:
                 break  # end of stream: the unpickler reports the short frame
             chunks.append(chunk)
             size -= len(chunk)
         return b"".join(chunks)
 
-    def readline(self) -> bytes:
-        """One line; only text pickle opcodes ask, and the worker sends none."""
+    def readline() -> bytes:
+        # Only text opcodes ask, and the worker's binary protocol sends none.
         line = b""
-        while not line.endswith(b"\n"):
-            byte = self.read(1)
-            if not byte:
-                break
+        while not line.endswith(b"\n") and (byte := read(1)):
             line += byte
         return line
+
+    return SimpleNamespace(read=read, readline=readline)
+
+
+def _read_reply(stdout: Any) -> Any:
+    """The worker's ``(status, payload)``, its wait and its frame each bounded.
+
+    The worker serialises its whole reply before writing it
+    (``process_worker._dump``), so a readable pipe means the job is done.
+    Waiting for that with a deadline instead of blocking in ``pickle.load``
+    matters because a worker alive but silent never raises, and holding
+    ``_PROCESS_LOCK`` in that read wedged every later solve, every reload and
+    the stop path until a restart. The frame then has its own deadline, so a
+    writer stopped mid-reply (SIGSTOP, a stalled host) cannot hold it either.
+    A stream with no descriptor (an in-memory one) has nothing to wait on
+    and is read directly; the worker's pipe always has one.
+    """
+    try:
+        fd = stdout.fileno()
+    except (AttributeError, OSError, ValueError):
+        return pickle.load(stdout)
+    timeout = PROCESS_REPLY_TIMEOUT_S
+    if not _reply_ready(stdout, timeout):
+        raise ProcessWorkerTimeout(
+            f"process worker gave no reply within {timeout:g} s"
+        )
+    return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
 
 
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
@@ -2000,31 +2019,8 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
             stdin.write(job)
             stdin.flush()
-            # The worker serialises its whole reply before writing it
-            # (``process_worker._dump``), so a readable pipe means the job is
-            # done. Wait for that with a deadline instead of blocking in
-            # ``pickle.load``: a worker that is alive but silent never raises,
-            # and holding ``_PROCESS_LOCK`` in that read wedged every later
-            # solve, every reload and the stop path until a restart. The
-            # frame itself is read under its own deadline, so a writer
-            # stopped mid-reply cannot hold the lock either.
-            # A stream with no descriptor (an in-memory one) has nothing to
-            # wait on and is read as before; the worker's pipe always has one.
-            try:  # a real descriptor is never negative; a stream without one raises
-                stdout.fileno()
-                has_fd = True
-            except (AttributeError, OSError, ValueError):
-                has_fd = False
-            timeout = PROCESS_REPLY_TIMEOUT_S
             try:
-                if has_fd and not _reply_ready(stdout, timeout):
-                    raise ProcessWorkerTimeout(
-                        f"process worker gave no reply within {timeout:g} s"
-                    )
-                status, payload = pickle.load(
-                    _FrameReader(stdout.fileno(), _REPLY_FRAME_TIMEOUT_S)
-                    if has_fd else stdout
-                )
+                status, payload = _read_reply(stdout)
             except ProcessWorkerTimeout:
                 _PROCESS_WORKER = None
                 # Bounded too: a child the kill does not end at once (one
