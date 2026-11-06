@@ -1,52 +1,21 @@
-CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-planted-defect-audit, at head b88684a218923f85de66f1e8fb1833e31a76a154. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-planted-defect-audit, at head f6a299d30092bcc5e63a6d1b9e904a7df33459c4. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
 Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name seat && git config user.email seat@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
-Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch b88684a218923f85de66f1e8fb1833e31a76a154 for the base you were given.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch f6a299d30092bcc5e63a6d1b9e904a7df33459c4 for the base you were given.
 Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-planted-defect-audit before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-planted-defect-audit, whose move updates the pull request. Before the handoff, when origin/main has moved since your last `tools/pr/prepr.sh` run, `git merge origin/main`, rerun `tools/pr/prepr.sh` (the body check included) and fix what it refuses; hand off only on a clean run (an unmoved main needs no second run: say so in the body). Then push the code to refs/heads/handoff/r10-planted-defect-audit, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-planted-defect-audit <body.md>`, which pushes refs/heads/handoff-body/r10-planted-defect-audit; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-planted-defect-audit`. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
 Never write to any branch except your return refs and refs/heads/handoff-wip/r10-planted-defect-audit and refs/heads/handoff-wip/r10-planted-defect-audit-body. Never work around a hook or a refusal; report it in your result instead.
 
 Brief (snapshotted when this payload was rendered):
-tvofi 2026-11-01: dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block. A review-strength guardrail trip (`review_strength.py --guardrail` printing would-trip) dispatches the planted-defect audit it names, keyed by arm and cut, never twice for the same line, nothing for ok or insufficient; the guardrail still sets no exit code and blocks nothing. The ruling on the R10-FLY-YIELD-GUARD entry in dev/programme/carries/carry-201.json is made; the owner gate is cleared and this group is dispatchable. Stranded on R10-ORCH-DISPATCH-REG and R10-ORCH-BEATD, both done. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on this ruling no longer waits: the ruling is made.
+INTERIM TOOLCHAIN: this environment's cached venvs are behind the locks (numpy, scipy, homeassistant, measured 2026-11-04). Before any measurement or golden run: `bash tools/audit/seat/cloud-setup.sh` and then `bash tools/audit/seat/cloud-setup.sh --check`. Medium effort.
 
-After: none
+Fixers return only by refs, handoff/<topic> and body_push.sh; open no PR, post no comment; no Claude footers; no host paths.
+CLOUD FIXER (sonnet, medium effort), REPAIR round 2 for PR #3240 (R10-PLANTED-DEFECT-AUDIT), topic r10-planted-defect-audit, branch fix/r10-planted-defect-audit. The first fixer was a cloud seat that cannot be resumed: you resume from refs/heads/fix/r10-planted-defect-audit at f6a299d30092bcc5e63a6d1b9e904a7df33459c4 (PR head; your handoff base handoff/r10-planted-defect-audit 0bfec38f). Fetch it, merge origin/main (merge, never rebase). Follow dev/governance/roles/fixer.md in full.
+THE REVIEW: `git fetch origin refs/heads/probe/rev-3240-bd1ba3ae` and `refs/heads/verdict/3240`; read VERDICT.md and ev/ (blocked at f6a299d3, over-fire). The owner's ruling is that round 10 defers no defect: build both findings, re-deriving each by your own run first.
+FINDING 1: the audit-dispatch cut key slides with every new verdict, so one sustained trip dispatches once per sliding cut (37 audits for model:sonnet in 5.4 days). Build: dispatch ONCE per sustained trip of an arm, not once per sliding cut; the memory key must not move while the arm stays tripped (key on the arm and the trip, with the reviewer's ev/sweep.sh as the finder's harness at both ends: it must show one dispatch across the hourly sweep, red at the head, green after). Failing test first, a mutant (re-key by the sliding span) shown red, a null control (a trip that clears and trips again dispatches again).
+FINDING 2: one failed review_strength run leaves `audit-dispatch: UNREADABLE` in the digest until the next new trip, because `audit_dispatch` writes the job file only on UNREADABLE or on a new dispatch. Build: an UNREADABLE that clears on the next good run, as roster_drain clears its HOLD-STALE line on an idle pass. Drive it with the reviewer's ev/stale_probe.py (trip, fail, recover-same-cut, recover-ok, ok-again) as the finder's harness; failing test first, a mutant (skip the clearing write) shown red, a null control (a still-failing run stays UNREADABLE).
+ALSO: the surviving mutant `unclassified_kept` (dropping the `" unclassified " not in ln` filter from `arms` leaves the self-test green): add the case whose only GUARDRAIL line is the unclassified one and expects UNREADABLE.
+BODY: re-take the WHOLE body from .github/PULL_REQUEST_TEMPLATE.md; re-take the mutation table from scratch at the final head (every row a mutant, its command, red at the mutant, green on the null control); `## Head` names the FINAL handoff code sha; `## Red checks` names every concluded red of the final head across all check-run pages with class and answer. Every Forward-carry item needs a destination path in its text AND a `Carry:` line. Before the handoff run `HPO_ALLOW_STALE_TOOLS=1 bash tools/pr/prepr.sh --body-check <body.md>` and `python3 tools/audit/carry_audit.py check --body <body.md> --branch fix/r10-planted-defect-audit`. At most one check-runs read every 4 minutes; use git ls-remote for refs.
+Run the scoped gate (key on the MODE line), tests/structure.py, tests/entities.py and every self-test of a script you touched (beat_jobs, review_strength, beatd). Golden fixtures: claims only, never re-recorded. Never touch VERSION, the manifest version or the RELEASE_NOTES heading; claim files byte-identical to origin/main unless a claim is justified; no budget raise. Push PR-BODY.md to handoff-wip before body_push and read it back. Return by refs: handoff/r10-planted-defect-audit then body_push.sh; open no PR; git identity hpo-fixer with the noreply address.
+RESTART NOTE: push handoff-wip after every green step, and never end a turn on a background job without a Monitor armed.
 
-Carry 0: STRANDED CARRY 13 (carry-strand audit, orchestrator s9, 2026-10-31)
 
-Source: group R10-ORCH-DISPATCH-REG, index 9; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.
-Owner-ordered: yes.
-
-Why stranded: owner-gated: #2865 item [9]; carry-201.json R10-FLY-YIELD-GUARD entry has no ruling; mirrors BEATD [29]/[33].
-
-Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item (1)) and the tick-seat retirement re-routed from BEATD carry 10 (carry[22]); one owner of the beatd job table. Alternative the orchestrator may take: reopen R10-ORCH-BEATD (set-stage carries-open), which holds the approved design for arms (b) and (c).
-
-Original text, verbatim:
-From #2765 (R10-FLY-YIELD-GUARD, round-1 fix review review/2765): a review-strength guardrail trip names a planted-defect audit that nothing dispatches. `review_strength.py --guardrail` prints `would-trip: audit the last reviews with a planted defect` and stays report-only under owner ruling R13; low incidence is also what a scarce supply of defects produces, and only a defect of a known class planted in a reviewed head, scored caught or missed, separates weak review from scarce defects. Dispatching that audit is this group's work (the dispatch half of standing-dispatch.md becomes a beat job owned by this group's registry). Precondition, not opportunity: the dispatch is built behind the owner's ruling on whether a trip dispatches at all (dev/programme/carries/carry-201.json, the R10-FLY-YIELD-GUARD entry); until the owner rules, a trip dispatches nothing and changes no exit code. Control, once built: a `would-trip` arm line dispatches one audit seat per tripped arm, keyed arm and cut, and a repeat of the same line dispatches none; the null control is an `ok` or `insufficient` arm line, which dispatches nothing. Re-measure at your merge base: `python3 -I tools/audit/seat/review_strength.py --self-test` (every check ok), then `--fetch --window X=2026-10-01T00:00Z..<now> --guardrail` and read which arms trip on the live bus; the trip state is a snapshot of the bus at its fetch.
-
-Carry: R10-ORCH-LEDGER
-
-Carry 1: STRANDED CARRY 48 (carry-strand audit, orchestrator s9, 2026-10-31)
-
-Source: group R10-ORCH-BEATD, index 29; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.
-Owner-ordered: no.
-
-Why stranded: owner-gated: #2865 item [9] "Not built: behind the owner's ruling in dev/programme/carries/carry-201.json (the R10-FLY-YIELD-GUARD entry), which has not been made"; no live owner.
-
-Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item (1)) and the tick-seat retirement re-routed from BEATD carry 10 (carry[22]); one owner of the beatd job table. Alternative the orchestrator may take: reopen R10-ORCH-BEATD (set-stage carries-open), which holds the approved design for arms (b) and (c).
-
-Original text, verbatim:
-From R10-ORCH-DISPATCH-REG (handoff de66f00b): **A guardrail trip dispatches a planted-defect audit.** Not built: behind the owner's ruling in `dev/programme/carries/carry-201.json` (the R10-FLY-YIELD-GUARD entry), which has not been made. The precondition holds at this head: the live `--guardrail` run under Figures prints `would-trip` on the `local` arm and exits 0 at both base and head, and this PR adds no dispatch on it. The dispatching job is the beat's dispatch half ([5]). Control to carry: a `would-trip` arm line dispatches one audit seat per tripped arm, keyed arm and cut, and a repeat of the same line dispatches none; an `ok` or `insufficient` line dispatches nothing.
-
-Carry: R10-ORCH-LEDGER
-
-Carry 2: STRANDED CARRY 50 (carry-strand audit, orchestrator s9, 2026-10-31)
-
-Source: group R10-ORCH-BEATD, index 33; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.
-Owner-ordered: no.
-
-Why stranded: owner-gated: #2865 item [9] "Not built: behind the owner's ruling in dev/programme/carries/carry-201.json (the R10-FLY-YIELD-GUARD entry), which has not been made"; no live owner.
-
-Fold into: R10-ORCH-LEDGER (live). It holds the beat jobs by K17 (carry[1] item (1)) and the tick-seat retirement re-routed from BEATD carry 10 (carry[22]); one owner of the beatd job table. Alternative the orchestrator may take: reopen R10-ORCH-BEATD (set-stage carries-open), which holds the approved design for arms (b) and (c).
-
-Original text, verbatim:
-**R10-ORCH-BEATD: carry [9], the planted-defect audit dispatch,** behind the owner's ruling in `dev/programme/carries/carry-201.json`; the control is as written in carry [9] above. Carry: R10-ORCH-BEATD
-
-Carry: R10-ORCH-LEDGER
+TIME: you have hours, not minutes. A gate, prepr or recording may run an hour: wait with Monitor windows of up to 60 min and re-arm them. Never end the session waiting on a choice: take the option that keeps coverage and the architecture sound, say so in the body, and go on. Push handoff-wip at each milestone, so your liveness can be read. If truly blocked, push BLOCKED.md on handoff-wip naming the question.
