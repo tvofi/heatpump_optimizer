@@ -15469,7 +15469,7 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): arm (2) pins async_shutdown's forget_held call site from tests, it does not edit coordinator.py; a fix that needs a coordinator.py edit stops and reports before editing. [implemented: 5a04096d17112c49211dea236c300667f95d97be]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-prod-residue-pins",
     "commit": "5a04096d17112c49211dea236c300667f95d97be",
     "last_step": null,
