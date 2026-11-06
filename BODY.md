@@ -1,37 +1,50 @@
-Closes the R10-GATE-LEASE-TOCTOU free-slot race carried from PR 3170 (body item 42008ca4). `_free_slot` read a slot with `_read_at`, and on None looked again with `is_file()`; a rival that created the slot between the two reads was seen as present, and the unparseable-slot branch unlinked its fresh owner, so two takers held one slot. Now one `read_text` decides absent (`FileNotFoundError`, return the index; `Owner.create`'s hard-link arbitrates) against broken, and a broken slot is reaped through `_steal(path, None)`, which renames it aside and puts back any valid owner that landed meanwhile. The race is closed in production code; no test wait was widened.
+Closes the R10-GATE-LEASE-TOCTOU free-slot race carried from PR 3170 (item 42008ca4). `_free_slot` looked a second time (`is_file`) after a missing read, and its unparseable-slot branch unlinked a rival's fresh owner, so two takers held one slot. One `read_text` now decides absent (`FileNotFoundError`, return the index; `Owner.create`'s hard-link arbitrates) against broken, and a broken slot is reaped through `_steal(path, None)`. Repair round 2 (verdict/3243, blocked at 3cbcbd5d: mutation-vacuous) adds the acceptance cases that pin the reap and its put-back, and one production change: `_steal` removes a directory-valued grave (`shutil.rmtree`) instead of raising `IsADirectoryError` out of `take_slot`.
 
-Alternatives that lost: a lock around `_free_slot` (the pool takes no flock by design, only the single lease does); a retry loop on the test side (hides the race).
+Alternatives that lost: a lock around `_free_slot` (the pool takes no flock by design); a retry loop on the test side (hides the race); an inode re-check before the rename (narrows, does not close, and adds a second look of the kind this PR removes).
 
 Carry 0: the free-slot race left open by PR 3170 (item 42008ca4), closed by this diff.
-Carry 1: the gate-lease `_free_slot` `is_file` time-of-check/time-of-use race, closed by this diff; its delay-only plant is the precondition control, made exact in `delayed_read`.
+Carry 1: the gate-lease `_free_slot` `is_file` time-of-check/time-of-use race, closed by this diff; its delay-only plant is the null control above, made exact in `delayed_read`.
 Carry 2: the group's own roster carry (`Carry: R10-GATE-LEASE-TOCTOU`), discharged by this pull request.
 
 ## Head
 
-635bbc61854c49ca0f1488819cfa34be9dbf6b9e, merge base b88684a218923f85de66f1e8fb1833e31a76a154. origin/main had not moved since that base when the last `prepr.sh` ran, so no second run was owed.
+`af5302867a664bdd89c76bdb8fd463c297210d3d`, merge base `dc0a170b671814be196a54b1c71e29449f54d6d7` = origin/main at `date -u` 2026-11-06 (unmoved since the merge; `git merge-base HEAD origin/main` prints it), so one `prepr.sh` run covers this head: `PRE-PR: af5302867a66... rc=0`.
 
 ## Mutation proof
 
-The new acceptance case `delayed_read` fires a rival create right after the slot's missing read, the delay-only plant made exact. With the production hunk reverted to the merge base's `_read_at` / `is_file` / unlink form, three runs of `python3 tests/gate_lock.py --accept` each printed `FAIL concurrency control: a delay after a missing-slot read cannot let two waiters hold the slot [fired=True kept=None second_create=True]` and `1 of 42 ... FAILED`. Restored: three of three runs `ALL 42 gate lock acceptance checks PASSED`.
+Every row: mutate `tests/gate_lock.py`, run `PYTHONPATH=tests/hastub python3 tests/gate_lock.py --accept`, restore. Null control row: unmutated head.
+
+| mutant | change | result |
+|---|---|---|
+| null | none | `ALL 46 gate lock acceptance checks PASSED` |
+| M1 | merge base's `_read_at` / `is_file` / unlink form of `_free_slot` | `4 of 46 FAILED`: `delayed_read`, `broken_put_back`, `broken_rename_gap`, `directory_slot` |
+| M3 | `_steal(path, None)` reverted to `path.unlink(missing_ok=True)` | `3 of 46 FAILED`: put-back (`kept=None`), rename gap, directory |
+| M4 | the `_steal(path, None)` line deleted (reviewer M4) | `3 of 46 FAILED`: `broken_reclaimed` (`reaped=False create_won=False`), rename gap, directory |
+| M6 | `shutil.rmtree` directory branch disabled | `1 of 46 FAILED`: `directory_slot` (`IsADirectoryError`) |
+| M7 | put-back `os.link(grave, owner_path)` removed | `1 of 46 FAILED`: `broken_put_back` (`kept=None`) |
+
+The M4 and directory cases use `_free_slot` plus `create`, not `take_slot`: `take_slot` retries a lost create forever, so with the reap deleted the first version of these cases hung (`timeout` rc=124) instead of going red. The final cases fail fast (rc=1, measured above). Reviewer M2 and M5 are not rebuilt: M2 (second read, reap via `_steal`) is near-equivalent because `_steal` puts back the rival; M5 (FileNotFoundError as broken) is equivalent because `_steal` returns on a missing path and the create arbitrates.
 
 ## Null control
 
-The unmodified tree is the mutant above: the rival's slot is unlinked (`kept=None`) and a second create succeeds. A first plant that only slept 30 ms after the read and ran `one_winner` stayed green on the baseline in 3 of 3 runs, so it was replaced by the exact rival-create plant; the 8-of-10 figure in the brief is the prior review's, not re-measured here.
+Finder's delay-only plant (`gl_toctou.py`, 30 ms after a slot's missing read, 20 runs of `one_winner`) and the reviewer's head-point variant (`gl_toctou_head.py`), run from worktrees at origin/main `dc0a170b` and at this head: `widened-TOCTOU wt=main red 5 of 20`, `head-point wt=main red 3 of 20`, `widened-TOCTOU wt=head red 0 of 20`, `head-point wt=head red 0 of 20`. The baseline reds are the plant's null control (a plant that never reddens the baseline proves nothing); the rate is box-dependent (reviewer measured 2 of 20). The acceptance cases are deterministic hooks rather than delays: the new cases fire at the read and at the rename of the slot path.
 
 ## Figures
 
-- Mutation and fix runs: `python3 tests/gate_lock.py --accept` with `PYTHONPATH=tests/hastub`.
-- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED`, naming `tests/doc_claims.py` and `tests/entities.py`; `doc_claims.py` passed (`ALL 296 checks PASSED`).
-- Structure: `python3 tests/structure.py` ended `STRUCTURE RATCHET PASSED`.
-- Seam enumeration for the class "check a slot, then act on a second look": `grep -n "is_file" tests/gate_lock.py` after the fix returns only `_read_at`'s own use, which feeds single-owner reads (`read_owner`, `_slot_of`, `_held_slots`), none of which acts on a second look.
+- Acceptance: `PYTHONPATH=tests/hastub python3 tests/gate_lock.py --accept` printed `ALL 46 gate lock acceptance checks PASSED` at the head.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` printed `MODE: SCOPED`, running `tests/doc_claims.py` (`ALL 296 checks PASSED`) and `tests/entities.py` (`ALL 2637 ENTITY CHECKS PASSED`); `python3 tests/structure.py` ended `STRUCTURE RATCHET PASSED`.
+- Seam enumeration for "check a slot, then act on a second look": `grep -n is_file tests/gate_lock.py` returns `_read_at`'s own use plus `_steal`'s `grave.is_dir()` (a read of the private grave, not of the shared slot): the shared-slot class is one seam.
+- Windows pinned (reviewer's plants W1-W5 as hooks): read-then-valid-owner (`broken_put_back`), rename-gap rival (`broken_rename_gap`), absent-then-rival (`delayed_read`), garbage (`broken_reclaimed`), directory (`directory_slot`).
+- `HPO_ALLOW_STALE_TOOLS=1 bash tools/pr/prepr.sh` rc=0 at the head; claim files byte-identical to origin/main; no VERSION, manifest or notes edit.
 
 ## Red checks
 
-none
+At the previous head `3cbcbd5d`, `gate` jobs 127794397203 and 127797085107 concluded failure with the placeholder `FAIL run(s) [42188289030] at this head are still being judged; their gate decides`, written while run 42188289030 was in progress. Class: a gate read before its run concluded. Cheaper detector: none; the placeholder is the gate's own interim state and the run's conclusion supersedes it. This head has no concluded checks yet (its CI starts when the handoff moves the PR head); none of its reds is known.
 
 ## Forward-carry
 
-none
+- The `_steal` rename -> link-back gap (reviewer plant W3), reachable from the broken-slot path, is not closable here: a POSIX rename-aside is the only atomic claim, and the put-back happens after the slot path is empty, so a rival's `create` there wins by hard-link arbitration. Measured by `broken_rename_gap` (rival D inside the gap): exactly one owner remains (`owner=D`), no `stale-*` grave, no torn slot; the displaced owner C loses the slot silently. Pinned in `tests/gate_lock.py` so the bound cannot widen. Needs a broken slot file, a valid owner replacing it and a third taker inside microseconds, none writable by any in-tree writer. Carry: dismissed: no atomic compare-and-remove exists; bound pinned by broken_rename_gap in tests/gate_lock.py
+- Reviewer M2 and M5 near-equivalent mutants, recorded under Mutation proof. Carry: dismissed: put-back and create arbitration make both harmless; see Mutation proof
 
 ## Friction
 
