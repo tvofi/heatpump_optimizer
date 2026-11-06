@@ -1,7 +1,0 @@
-== rev rerun 8af5fa58b79233127ce01d81bd94b6c1d48271cf
-PROBE judging(A) as B's prelude reads it: False
-PROBE A's gate beside B-in-prelude: verdict='FAIL run(s) [42193153511] at this head are still being judged; their gate decides' naps=0 held_s=0
-gate self-test: 65 checks, 0 failed
-PROBE judging(A) as B's prelude reads it: False
-PERTURB(B gate in_progress) A's gate beside B-in-prelude: verdict='PASS' naps=0 held_s=0
-gate self-test: 65 checks, 0 failed

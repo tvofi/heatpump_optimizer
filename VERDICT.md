@@ -1,42 +1,59 @@
-Fix review: blocked 8af5fa58b79233127ce01d81bd94b6c1d48271cf mutation-vacuous: judge() C3 all-to-any mutant restores the 720 s prelude/gate wait and no self-test case is red
+Fix review: merge 2a0d228c8f6e3d5af516f48f786fe3cb3acea4e6
 
-bus-nonce: f805b9e82d28b4358f381573a9f7f1dd
+bus-nonce: b31a181df54fd3a9da0768ce7a782aa1
 
 ## Round
 
-This is round 2 of fix review for R10-HOTFIX-GATE-BUSY-DEFER (PR #3246), critical path. I measured at head 8af5fa58b79233127ce01d81bd94b6c1d48271cf from a detached worktree. Merge base 5421413b54ba1044b8e91e1afd88b41acfc7a753 equals origin/main at review. The roles diff since the merge base is empty. Under the three-round rule, a further block goes to round 3, the last before a re-cut is owed.
-
-## Block
-
-Claim: the re-cut's C3 rule is that a deferring gate waits only when EVERY run it waits on has started its gate (`not all(started(r) ... if r["id"] in waiting)`). The body's mutant table says the self-test pins it (M20, M21, M22). It does not pin the `all`. My own mutant M24 changes `and not all(` to `and not any(` in judge(). The deferring gate then waits whenever ANY waited run has started. That re-opens round 1's prelude/gate cycle whenever a later run in its prelude sits beside an earlier started gate. `gate.py --self-test` stays `65 checks, 0 failed` under it. Carry: dismissed: the blocked defect itself, owed by this PR's re-cut
-
-Evidence (reviewer's own probe, disclosed as mine and not the finder's harness): ev/probe_mixed.py, a variant of round 1's ev/probe_snippet.py, inserted the same way into a scratch copy of gate.py's self-test. The scene: A = the deferring edit gate (lo); E = an earlier deferring edit run with its gate in_progress; B = a later edit run still in its prelude; C = the code run, completed. Output is in ev/probe_mixed.txt:
-- head: `FAIL run(s) [42192000000, 42193153511] ...`, naps=0, held_s=0.
-- head with M24: the same verdict, naps=12, held_s=720. B's wait_sources waits on A (judging(A) is False), A waits on B, and only GATE_WAIT_MAX_S breaks it. This is the exact round-1 defect.
-- My planted mutants (ev/my_mutants.txt): M20-mine (the started condition deleted) is red on 1 case. M22-mine (c0c60886's code-run predicate) is red on 2 cases, both `prelude/gate cycle:`. M23-mine (started() accepts `waiting`) is red on 2 cases. M24-mine (`all` to `any`) is red on 0 cases, and survives.
-
-Perturbation: the mixed scene differs from the in-tree `prelude/gate cycle: a deferring gate beside a later edit run still in its prelude publishes at once` case only by the added earlier started gate E. Without E, M24 is killed, because `any` over {B} equals `all` over {B}.
-
-Owed (not prescribed): add the mixed scene as a self-test case, and the all-to-any mutant to r10_ci_gate_core.py's MUTANTS, shown red by that named case. A push also gives the head a fresh code run whose gate judges after the edit runs (see the CI finding). Carry: dismissed: owed by this PR's re-cut under the Block
+This is round 3 of 3 of the fix review for R10-HOTFIX-GATE-BUSY-DEFER (PR #3246), on the critical path. I measured at head 2a0d228c8f6e3d5af516f48f786fe3cb3acea4e6 from detached worktrees at the head, at 8af5fa58 (the null control) and at the merge base b36679ce. The roles diff since the merge base is empty. Round 2 blocked as `mutation-vacuous`: the M24 mutant (`all` to `any` in judge()'s C3 rule) survived. That block is now settled.
 
 ## Findings
 
-- Follow-up: the required `gate` is RED at this head. `merge_train.py classify 8af5fa58... --pr 3246` gives rc 1: `RED 8af5fa58... pending: none red: gate` (ev/classify_final.txt). The code run 42217217301's gate 127907245280 succeeded at 13:03:34Z after its `pr-contract / pr-contract` 127906937350 succeeded. Attempt 2 of the two edit runs then published red at 13:04:30Z: gate 127907648432 (run 42217406703, `FAIL run(s) [42217218226] ...`) and gate 127907644986 (run 42217218226, `FAIL run(s) [42217406703] ...`). Both had `programs restored from 5421413b...` (ev/gates_1304.txt), so this is main's mutual deferral, the defect this PR fixes, reproducing live. The diff did not cause it. The attempt-1 reds 127891515500 and 127890801445 are C3 deferrals to that code run. The body's `## Red checks` answers the c0c60886 reds but none of these four at 8af5fa58. Step 11 cannot be judged yet, because no `pr-contract` run started after the last red (13:04:33Z). The re-cut body owes their names and answers. Carry: dismissed: owed by this PR's re-cut under the Block
-- Out of scope: the code run 42217217301 concluded `cancelled`. Its `governance / instrument-self-tests` (127890366334) hit the 30-minute job limit at 12:53:39Z, while in ci_predict's self-test (ev/instr_selftests_tail.txt). Main's own push run at the merge base, 42214947262, timed out the same job (12:05:33Z to 12:35:45Z, cancelled). At 7e8939d3 the job took 29m17s (ev/main_instr.txt). So it is main's own budget, not this diff, which adds only seconds of gate.py self-test. Main's red is visible to the orchestrator directly. Carry: dismissed: main's own red at 5421413b (run 42214947262), not this PR's to settle
+- Follow-up: the required `gate` reads RED at this head. `merge_train.py classify 2a0d228c... --pr 3246` gives rc 1, `RED ... pending: none red: gate` (ev/classify_log.txt). All three workflow runs have concluded (ev/runs.tsv).
+  - Code run 42229011444's gate (127953498222) printed `PASS` at 14:40:36Z.
+  - Attempt 2 of the two edit runs then published red at 14:41:36-37Z: 127953951344 (run 42229013617, `FAIL run(s) [42229718965] ...`) and 127953961800 (run 42229718965, `FAIL run(s) [42229013617] ...`).
+  - Both jobs printed `programs restored from b36679ce...` (ev/gates_1441.txt). The gate job judges with main's pinned tools/ci/*.py, so this is main's mutual deferral, the defect this PR fixes, reproducing live. The diff did not cause it.
+  - The attempt-1 reds, 127931745088 and 127936670895, are C3 at-once deferrals to that code run.
+  - The body's `## Red checks` answers exactly this shape: a `gate` red reading `programs restored from <base>` with a mutual `FAIL run(s)` deferral.
+  - Clearing the required context so the PR can merge is the orchestrator's call (re-run or override), because main's gate cannot judge this mutual pair until this fix lands.
+
+  Carry: dismissed: main's pinned defect that this PR fixes; the body answers it and the merge mechanics are the orchestrator's
+- Out of scope: in code run 42229011444, `governance / instrument-self-tests` (127930702784) was cancelled at the 30-minute limit (13:56:59Z to 14:27:16Z), so the run concluded `cancelled`. The body names this check as MAIN-WIDE: main's push run 42214947262 timed out on the same job. The body carries it in R10-PROCESS-SLIM. This diff adds about one second of gate.py self-test. Carry: dismissed: main-wide job budget, carried by the body to R10-PROCESS-SLIM, not this PR's to settle
 
 ## Evidence
 
-- Round-1 probe (the brief's finder harness for this block): ev/probe_snippet.py from probe/rev-3246-4b5d5ad4, run at three SHAs (ev/probe_r2.txt; the head re-run after the mutant harness had finished, ev/probe_r2_rerun.txt). Base 5421413b: naps=0, held_s=0. c0c60886: naps=12, held_s=720. Head: naps=0, held_s=0. The verdict is `FAIL run(s) [42193153511] ...` at all three, and judging(A) is False at all three. The scene now holds at 0 s.
-- The finding's own perturbation (ev/probe_perturb.py, B's gate in_progress): head and c0c60886 give `PASS` with naps=0. Base gives `FAIL run(s) [42193153511]`, main's defect. The claimed behaviour is restored.
-- gate.py --self-test: base `57 checks, 0 failed`, head `65 checks, 0 failed`. prelude.py --self-test: `62 checks, 0 failed` at both (ev/selftest.*.txt).
-- r10_ci_gate_core.py mutants at head: `RESULT mutants=22 survivors=0` (ev/mutants.rev.txt). M17-M22 are KILLED by the self-test (rc 1) with replay rc 0, which matches the body's table. M24 is mine and not in it.
-- replay: `gate_replay2.py ... IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt`. sim: `gate_sim.py ... IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt` (ev/replay.rev.txt, ev/sim.rev.txt). Settle item (3), the self-correction a83b95f9 and the 3c66c9b3/b0bccab4 revert: the final head reads IDENTICAL, as claimed.
-- r10_gate_defer_race.py, run on a `git archive` export per SHA (ev/race.{base,c0c,rev}.txt, rc 0 at all three). The new `prelude` scenario reads `UNDECIDED-RED 1 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 300 s` at base and head (RESIDUAL-RED 0), and `UNDECIDED-RED 2 MASKED 0 DEADLOCK yes CYCLE 1 gate-wait 1500 s` at c0c60886. Its DEADLOCK line covers the prelude-phase cycle. The six earlier scenarios are unchanged across all three and match the body's figures.
-- Settle item (1): busy() waits only on non-judging runs and leaves out later started gates. So a deferring gate's started waited runs are earlier non-judging runs: deferring ones, which recurse downward in id, or ones whose listing lags, which a re-read clears, as the docstring says. Under `all` no cycle forms. A gate listed `waiting` is not read as started: M19 and my M23 are both killed.
-- Settle item (2), null controls: `C3: a deferring edit gate beside a busy code run publishes the deferral at once` stays green (M21 kills it), and the busy-defer cases are unchanged and green.
-- Settle item (4): #3243 is already merged (origin/main 5421413b is its merge), and the body states the order. Disjoint files.
-- `git merge-tree --write-tree origin/main 8af5fa58...` exits 0 with tree 410748b5, no conflict.
-- tests/structure.py: `STRUCTURE RATCHET PASSED`. tests/entities.py: `ALL 2637 ENTITY CHECKS PASSED`. closure select: `MODE: FULL`, reason `tools/ci/gate.py changes the gate itself` (ev/ratchets.txt). CI owes the full suite. The gate job judges with tools/ci/*.py pinned from the base, so this PR's gate.py runs only in its self-test and harnesses until merged.
-- Three-dot diff: tools/ci/gate.py, both r10 harnesses, and dev/programme/delivery/3246.md (the delivery row is present). custom_components/, VERSION and RELEASE_NOTES.md: 0 paths.
-- Body corrections owed from round 1 are made: the second window now reads 10:07:45.87Z to 10:07:54.86Z, and the reds 127870749756 and 127870741795 are named and answered as main's pinned defect.
-- Head check: the PR head is 8af5fa58b79233127ce01d81bd94b6c1d48271cf, the head measured, as the body's `## Head` states. Forward-carry: the body says none.
+- Round-2 block re-measured with the finder's harness for that block. That harness is the round-2 reviewer's `ev/probe_mixed.py` (from probe/rev-3246-f805b9e8). I inserted it before the `done_edit` line of a scratch copy of gate.py's self-test (ev/insert_probe.py) and ran it on a `git archive` export of tools/ and .github/ at each SHA (ev/probe_mixed_r3.txt):
+  - head: verdict `FAIL run(s) [42192000000, 42193153511] ...`, naps=0, held_s=0, `66 checks, 0 failed`.
+  - head with M24: the probe gives naps=12 and held_s=720, and the self-test reads `66 checks, 1 failed`. The one red case is `prelude/gate cycle: a deferring gate beside an earlier started gate and a later edit run in its prelude publishes at once`, which got 12 × 60 s naps where it wanted none.
+  - 8af5fa58 (null control): naps=0 unmutated. With M24, naps=12 and held_s=720, yet the self-test reads `65 checks, 0 failed`, so the mutant survives without the new case, as round 2 found.
+  - base b36679ce: naps=0, `57 checks, 0 failed`.
+- The mutant table, taken from scratch in a clean worktree at the head with `python3 -I dev/audit/harnesses/r10_ci_gate_core.py mutants`, prints `RESULT mutants=23 survivors=0`, rc 0 (ev/mutants.head.txt). M24 is listed and KILLED (self-test rc 1, replay rc 0), red on the named case above. M17-M22 are KILLED, each red on the cases the body's table names, and I checked every row against the arm's `red:` lines.
+- M20-M23 stay killed:
+  - M20 and M22 are the in-table rows above.
+  - M21 is KILLED on 4 cases, including the C3 null.
+  - M23 is my own plant: `started()` also accepts `waiting`. It is red on 2 named cases, `busy-defer null (R3-2 EARLY) ...` and `prelude/gate cycle: ... gate listed `waiting` (R3-2) ...`, giving `66 checks, 2 failed` (ev/m23.head.txt).
+- Null controls:
+  - The two earlier `prelude/gate cycle:` cases and the C3 at-once case stay green at the head, and under M24 only the new case goes red.
+  - `prelude.py --self-test` reads `62 checks, 0 failed` (ev/checks.head.txt).
+- replay: `gate_replay2.py over tools/ci/gate.py: rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt`. sim: `gate_sim.py ... IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt` (ev/replay.head.txt, ev/sim.head.txt).
+- Race harness on a `git archive HEAD tools/ci tools/pr` export: rc 0 (ev/race.head.txt).
+  - All seven scenarios read the same at the head and at 8af5fa58 (ev/race.r2.txt).
+  - `prelude: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 300 s`, then `RESIDUAL-RED 0`. The six other scenarios read UNDECIDED-RED 0, DEADLOCK no and CYCLE 0. This matches the body.
+- This round changes no production line. `git diff 8af5fa58 HEAD -- tools/ci/gate.py` has one hunk, at `self_test()` line 571. The body's statement holds.
+- Tree identity:
+  - The head's tree 45f7fca4 equals ea6d8de7's tree.
+  - `git diff --quiet 4710b715 HEAD` exits 0, so the body's figures taken at 4710b715 apply to this head.
+  - The head's parents are 8af5fa58 and ea6d8de7.
+- The body's `## Head` names 2a0d228c..., the head measured. I re-read the branch at verdict time and it is still 2a0d228c....
+- `git merge-tree --write-tree origin/main(33e60b5b) HEAD` exits 0 with tree 9fa3151d, so there is no conflict and no claim files are involved.
+- Three-dot diff: tools/ci/gate.py, the r10_ci_gate_core.py and r10_gate_defer_race.py harnesses, and dev/programme/delivery/3246.md (the delivery row is present). custom_components/, VERSION and RELEASE_NOTES.md: 0 paths.
+- `tests/structure.py`: `STRUCTURE RATCHET PASSED`. `tests/entities.py`: `ALL 2637 ENTITY CHECKS PASSED`. `closure.py select`: `MODE: FULL`, reason `tools/ci/gate.py changes the gate itself` (ev/checks.head.txt). CI owes the full suite. The full suite's code-run jobs concluded success except the main-wide instrument-self-tests cancel above.
+- Step 11:
+  - The reds at this head are the two pairs of gate deferrals and the instrument-self-tests cancel (ev/gate_checks.tsv).
+  - The body names both checks and answers each as main's: the pinned mutual deferral, and the main-wide 30-minute timeout.
+  - `pr-contract / pr-contract` 127953134975 succeeded at 14:40:05Z, after the cancel (14:27:16Z). It checked this body.
+  - No `pr-contract` run started after the gate reds at 14:41:37Z. The body's answer to them is the generic `gate` red clause, and I matched each log against it myself (ev/gates_1441.txt).
+- Settle items from earlier rounds hold unchanged:
+  - The self-correction a83b95f9 and the 3c66c9b3/b0bccab4 revert leave replay and sim IDENTICAL.
+  - The merge order against #3243 is moot, because #3243 is already on main.
+  - The forward-carry is `none`.
+- Carry-audit self-check: `carry_audit.py check` was run on the body and this verdict before return; its output is in ev/carry_audit.txt.

@@ -1,5 +1,0 @@
-== 42214947262
-codeql / Analyze (python)	cancelled	2026-11-06T12:05:33Z	2026-11-06T12:50:43Z
-governance / instrument-self-tests	cancelled	2026-11-06T12:05:33Z	2026-11-06T12:35:45Z
-== 42209244348
-governance / instrument-self-tests	success	2026-11-06T11:18:55Z	2026-11-06T11:48:12Z
