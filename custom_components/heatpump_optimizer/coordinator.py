@@ -1198,6 +1198,18 @@ def _accuracy_freeze_allows_sample(reason: str | None) -> bool:
     return reason is None or reason == boost.FREEZE_REASON
 
 
+def _planned_split(pending: dict[str, Any]) -> tuple[float, float]:
+    """An interval's planned (space, dhw) kW; an absent channel planned 0.
+
+    The one reading of the plan's split: the energy settlement books by it
+    and the diagnosis record apportions the meter by it, so the two agree.
+    """
+    return (
+        float(pending.get("space_power") or 0.0),
+        float(pending.get("dhw_power") or 0.0),
+    )
+
+
 def _settle_interval_diag(
     coord: Any, sample: AccuracySample, pending: dict[str, Any],
     elapsed: float, now: datetime,
@@ -1215,9 +1227,7 @@ def _settle_interval_diag(
     if diag is None or sample.actual_temp is None:
         return
     ctx = getattr(coord, "_ctx", coord)
-    a = heat_energy.meter_of(coord).attribution(
-        (float(pending.get("space_power") or 0.0), float(pending.get("dhw_power") or 0.0))
-    )
+    a = heat_energy.meter_of(coord).attribution(_planned_split(pending))
     share = draw_range.space_share(a.space, a.dhw)
     coord._last_interval_record = {
         "when": now.isoformat(timespec="seconds"),
@@ -10150,8 +10160,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # its priced lines and spot sample out rather than booking 0.0.
         known_price = pending.get("price")
         price = float("nan") if known_price is None else float(known_price)
-        planned_space = float(pending.get("space_power") or 0.0)
-        planned_dhw = float(pending.get("dhw_power") or 0.0)
+        planned_space, planned_dhw = _planned_split(pending)
         planned_total = planned_space + planned_dhw
 
         when = pending.get("when") or dt_util.now()

@@ -4122,6 +4122,13 @@ def _p2_registry(sources):
                      "frequency pair's own predicate decides the two "
                      "frequency questions the gate cannot express",
              }),
+        # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
+        # each routed through one owner in the module that held both copies.
+        dict(fact="planned_split", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"\.get\('(space|dhw)_power'\) or 0\.0\)$",
+                 lambda n: getattr(n.func, "id", None) == "float"),
+             owners=["coordinator.py::_planned_split"], dispositions={}),
     ]
 
 

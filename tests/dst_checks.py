@@ -2463,4 +2463,12 @@ R.check(
 )
 
 
+# R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
+# owner to a sentinel and drives every production caller that decided the fact
+# on its own copy; a caller that re-inlines its copy never reaches the sentinel.
+from unittest import mock as _c2238_mock  # noqa: E402
+from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
+from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
+
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

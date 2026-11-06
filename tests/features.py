@@ -78347,4 +78347,40 @@ R.check(
 )
 
 
+# R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
+# owner to a sentinel answer and drives EVERY production caller that decided
+# the fact on its own copy; a caller that re-inlines its copy reads the input
+# and not the sentinel, so the check fails.
+from unittest import mock as _c2238_mock  # noqa: E402
+from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
+
+# P1: an interval's planned (space, dhw) split -- the ledger's reason lines and
+# the diagnosis record's apportionment of the meter.
+_c2238_pending = {
+    "price": 2.5, "spot_price": 2.0, "grid_fee": 0.5,
+    "space_power": 1.5, "dhw_power": 0.5, "when": _T6,
+    "space_reason": "cheap_price", "dhw_reason": "dhw_preheat",
+    "diag": {"state": {}, "planned": {}},
+}
+_c2238_p1 = _t2_coord()
+with _c2238_mock.patch.object(_c2238_cmod, "_planned_split", create=True, return_value=(1.0, 1.0)):
+    _c2238_p1._accumulate_energy(
+        AccuracySample(when=_T6, actual_power_kw=2.0), 1.0, dict(_c2238_pending)
+    )
+    _c2238_cmod._settle_interval_diag(
+        _c2238_p1,
+        AccuracySample(when=_T6, actual_power_kw=2.0, actual_temp=20.0),
+        dict(_c2238_pending), 1.0, _T6,
+    )
+_c2238_p1_space = _c2238_p1._ledger.line("2026-03", "reason:cheap_price")["kwh"]
+_c2238_p1_diag = (_c2238_p1._last_interval_record or {}).get("realised", {})
+R.check(
+    "R10-CLONE-2238 P1: the ledger split and the diagnosis apportionment both "
+    "read the planned split from _planned_split",
+    abs(_c2238_p1_space - 1.0) < 1e-9
+    and abs((_c2238_p1_diag.get("electrical_power") or 0.0) - 1.0) < 1e-9,
+    f"ledger space kWh {_c2238_p1_space}, diag {_c2238_p1_diag}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
