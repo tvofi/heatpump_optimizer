@@ -1,0 +1,17 @@
+merge-base dc0a170b671814be196a54b1c71e29449f54d6d7 origin/main dc0a170b671814be196a54b1c71e29449f54d6d7
+419b3928e163c396d4e87c76764b0071f00cd185
+merge-tree rc=0
+ .github/workflows/release.yml  |  57 +++++++++++--
+ dev/programme/delivery/3236.md |   1 +
+ tools/release/stamp.py         | 188 +++++++++++++++++++++++++++++++++++++++--
+ 3 files changed, 231 insertions(+), 15 deletions(-)
+byte-identical
+0
+roles diff lines: 0
+footer/trailer hits in branch commits: 0
+4b032053eeab3e5aa8c207ae555bf45e1c8fd49d	refs/heads/fix/r10-hotfix-stamp-base
+4b032053eeab3e5aa8c207ae555bf45e1c8fd49d	refs/pull/3236/head
+d99cadb1235a5e40e250466e656c41c7ce88e641	refs/tags/v7.1.0
+78dd34354e8300bdff2f660db9cc778ab4a9e4d7	refs/tags/v7.1.1
+b8e823699981866383f1afa54ce708ded3419316	refs/tags/v7.1.2
+02976881de6526f1e7705965a6a3da6e13ae8472	refs/tags/v7.1.3

@@ -1,0 +1,11 @@
+########## scoped gate ##########
+  MODE: SCOPED -- 3 script(s) run, 30 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+doc_claims rc=0 ALL 296 checks PASSED
+entities rc=0 ALL 2632 ENTITY CHECKS PASSED
+harness_headers rc=0 ALL 112 HARNESS HEADER CHECKS PASSED
+structure rc=0 STRUCTURE RATCHET PASSED
+layout rc=0 layout self-test: ok
+claims hygiene: dc0a170b671814be196a54b1c71e29449f54d6d7 ok
+ALL 118 closure shrink pins PASSED
+Architecture score: dS +0.0000 NULL

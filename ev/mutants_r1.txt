@@ -1,0 +1,32 @@
+NULL unmutated: exit 0, 0 FAIL
+MUTANT bump_base returns VERSION only: exit 1, 1 FAIL KILLED
+    FAIL bump base: a hand tag above VERSION is the base, so the next patch is 7.1.3
+MUTANT bump_base drops TAG_RE filter: exit 1, 0 FAIL KILLED
+    tb: ValueError: invalid literal for int() with base 10: '15-rc1'
+MUTANT last_stamped_tag = newest tag by date (ignores tree VERSION): exit 1, 1 FAIL KILLED
+    FAIL last stamp: a tag whose tree VERSION is not its name is skipped
+MUTANT last_stamped_tag drops TAG_RE filter: exit 1, 1 FAIL KILLED
+    FAIL last stamp: non-release and VERSION-less tags are skipped, none is None
+MUTANT main(): last_tag = newest tag: exit 1, 2 FAIL KILLED
+    FAIL flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
+    FAIL last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag
+MUTANT main(): next from VERSION (base = current): exit 1, 1 FAIL KILLED
+    FAIL bump base: main() reads it after the tag fetch and bumps from it
+MUTANT main(): bump base computed before the tag fetch: exit 1, 1 FAIL KILLED
+    FAIL bump base: main() reads it after the tag fetch and bumps from it
+MUTANT release.yml: tree step drops VERSION test: exit 1, 1 FAIL KILLED
+    FAIL release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)
+MUTANT release.yml: tree step drops manifest test: exit 1, 1 FAIL KILLED
+    FAIL release tree: a manifest that disagrees refuses
+MUTANT release.yml: tree step drops notes test: exit 1, 1 FAIL KILLED
+    FAIL release tree: notes without the tag's own section refuse
+MUTANT release.yml: tree step grep not exact-line (-Fq): exit 1, 1 FAIL KILLED
+    FAIL release tree: notes without the tag's own section refuse
+MUTANT release.yml: readback attempts=1: exit 1, 2 FAIL KILLED
+    FAIL release publish: an asset read back on the third read is published
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+MUTANT release.yml: readback never fails after loop (exit 0): exit 1, 1 FAIL KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+MUTANT release.yml: unbounded readback (while true): exit 1, 1 FAIL KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+NULL restored: exit 0, 0 FAIL
