@@ -16714,7 +16714,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From r10-hotfix-sav-estimate, body item 31ee5e06: Empty replay: `debug.manifest.replay` in the owner's export is empty, with the text `refusing to write: 1 entity id(s) not masked to a role or a hashed id`, so this fix could not replay the owner's house. Owner of the fix: `replay_doc.py`. Carry: R10-FLY-REPLAY-MASK (items 31ee5e06)"
+    "From r10-hotfix-sav-estimate, body item 31ee5e06: Empty replay: `debug.manifest.replay` in the owner's export is empty, with the text `refusing to write: 1 entity id(s) not masked to a role or a hashed id`, so this fix could not replay the owner's house. Owner of the fix: `replay_doc.py`. Carry: R10-FLY-REPLAY-MASK (items 31ee5e06) [implemented: 0ae75bf3146566bffca4490464dcc8d6d45c29ab]"
    ],
    "architect_note": "",
    "resume": {
