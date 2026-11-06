@@ -840,6 +840,27 @@ class PeakBilling:
     distinct_days: bool = True
 
 
+def billed_windows(
+    windows: np.ndarray, window_factors: np.ndarray | None
+) -> np.ndarray:
+    """Window means at their billed-equivalent factor (#13).
+
+    The factors align with the last axis, so a 1-D plan and a [B, n] batch
+    share it; a window past the factors bills at 1, and no factors (or none
+    at all) leaves the means unscaled. A masked-out window (factor 0) can
+    never exceed any threshold, which is "contributes nothing" exactly. The
+    optimizer's published ``peak_kw`` and both peak charges read this one
+    answer, so they cannot disagree about a window past the factors.
+    """
+    if window_factors is None or not window_factors.size:
+        return windows
+    n = windows.shape[-1]
+    factors = window_factors[:n]
+    if factors.size < n:
+        factors = np.concatenate([factors, np.ones(n - factors.size)])
+    return windows * factors
+
+
 def _peak_excess(
     total_power_kw: np.ndarray,
     baseline_load_kw: np.ndarray,
@@ -864,18 +885,9 @@ def _peak_excess(
     if house.size == 0:
         return None
     windows = metering_windows(house, bill.window_minutes, bill.dt_hours, bill.offset_steps)
-    window_factors = bill.window_factors
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13): each window's average counts at its
-        # hour's factor, against a threshold the tracker keeps in the same
-        # billed-equivalent terms. A masked-out window (factor 0) can never
-        # exceed any threshold, which is "contributes nothing" exactly.
-        factors = window_factors[: windows.size]
-        if factors.size < windows.size:
-            factors = np.concatenate(
-                [factors, np.ones(windows.size - factors.size)]
-            )
-        windows = windows * factors
+    # Billed-equivalent kW (#13): each window's average counts at its hour's
+    # factor, against a threshold the tracker keeps in the same terms.
+    windows = billed_windows(windows, bill.window_factors)
     excess = np.maximum(0.0, windows - bill.threshold_kw)
     if not np.any(excess > 0):
         return None
@@ -1160,15 +1172,7 @@ def peak_cost_batch(
     windows = _window_means_batch(
         houses, bill.window_minutes, bill.dt_hours, bill.offset_steps
     )
-    window_factors = bill.window_factors
-    if window_factors is not None and window_factors.size:
-        # Billed-equivalent kW (#13); see ``peak_cost``.
-        factors = window_factors[: windows.shape[1]]
-        if factors.size < windows.shape[1]:
-            factors = np.concatenate(
-                [factors, np.ones(windows.shape[1] - factors.size)]
-            )
-        windows = windows * factors
+    windows = billed_windows(windows, bill.window_factors)  # #13; see ``peak_cost``
     excess = np.maximum(0.0, windows - bill.threshold_kw)
     out = np.zeros(n_rows)
     above = np.flatnonzero(np.any(excess > 0, axis=1))

@@ -114,6 +114,7 @@ from .thermal_model import (
 from .tariff import (
     CapacityTariff,
     PeakBilling,
+    billed_windows,
     metering_windows,
     peak_cost,
     peak_cost_batch,
@@ -4932,10 +4933,9 @@ class HeatPumpOptimizer:
             windows = metering_windows(
                 house, bill.window_minutes, dt, offset_steps
             )
-            f = factors[: windows.size]
-            if f.size < windows.size:
-                f = np.concatenate([f, np.ones(windows.size - f.size)])
-            peak_kw = float(np.max(windows * f)) if windows.size else 0.0
+            peak_kw = (
+                float(np.max(billed_windows(windows, factors))) if windows.size else 0.0
+            )
         return {
             "peak_kw": round(peak_kw, 3),
             "peak_cost": round(peak_cost(total_power, baseline_load, bill), 3),

@@ -4139,6 +4139,11 @@ def _p2_registry(sources):
                  lambda n: isinstance(n.op, ast.And)),
              owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
              dispositions={}),
+        dict(fact="billed_window_pad", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"^np\.ones\(.+ - \w+\.size\)$",
+                 lambda n: getattr(n.func, "attr", None) == "ones"),
+             owners=["tariff.py::billed_windows"], dispositions={}),
     ]
 
 
