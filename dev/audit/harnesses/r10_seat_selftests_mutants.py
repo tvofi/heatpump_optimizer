@@ -589,8 +589,9 @@ MUTANTS = [
     ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
     # #3245's countermeasure: the STEP REPLAY arm selects, and its base control excuses only a shared red.
     ("ci_predict-3", "tools/pr/ci_predict.py",
-     'hit = {n: r for n, r in head.items() if any(c in r for c in changed)}', 'hit = {}'),
+     'hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}', 'hit = {}'),
     ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
+    ("ci_predict-5", "tools/pr/ci_predict.py", '        if any(n in text for n in names):\n', '        if False:\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
@@ -646,11 +647,11 @@ STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
 # S08 (handoff_push.sh's delivery_row dispatch) retired with the row push (#3245, card C5).
 WRAPPERS = [
     ("S12", "open_pr.sh",
-     'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
-     'exit $r; }'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
+     'exit 0; }'),
     ("S27", "update_pr.sh",
-     '[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
-     '[ "${1:-}" = --self-test ] && { r=0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
+     'exit 0; }'),
 ]
 
 
