@@ -4,7 +4,7 @@ Alternatives that lost: a lock around `_free_slot` (the pool takes no flock by d
 
 ## Head
 
-Measured at the code head pushed to `handoff/r10-gate-lease-toctou` (the commit titled "gate_lock: read a slot once ..."), merge base b88684a218923f85de66f1e8fb1833e31a76a154. origin/main had not moved since that base when the last `prepr.sh` ran, so no second run was owed.
+635bbc61854c49ca0f1488819cfa34be9dbf6b9e, merge base b88684a218923f85de66f1e8fb1833e31a76a154. origin/main had not moved since that base when the last `prepr.sh` ran, so no second run was owed.
 
 ## Mutation proof
 
