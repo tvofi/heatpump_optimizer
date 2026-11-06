@@ -1,0 +1,7 @@
+== reviewer mutant L_import_sha_dropped at c8c50b9f814c8d959b57d064ef1d7712b3564821
+ tools/audit/seat/ledger.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+ledger self-test: 85 checks, 0 failed
+orchestrator_tick self-test: 274 checks, 0 failed
+cloud_relay self-test: 332 checks, 0 failed
+r10_ledger_mutants self-test: 146 checks, 0 failed
