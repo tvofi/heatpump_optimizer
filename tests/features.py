@@ -78499,4 +78499,33 @@ R.check(
     f"days {None if _c2238_p5_d is None else len(_c2238_p5_d)}",
 )
 
+# P7: the tracker's ranked (kW, day) record -- a restore and a window close
+# both store it through PeakTracker._keep_ranked.
+_c2238_kept: list[int] = []
+
+
+def _c2238_keep(self, ranked):
+    _c2238_kept.append(len(ranked))
+    self.peaks, self.peak_days = [42.0], ["sentinel"]
+
+
+with _c2238_mock.patch.object(PeakTracker, "_keep_ranked", _c2238_keep, create=True):
+    _c2238_p7 = PeakTracker.from_dict({
+        "month": "2026-10", "peaks": [5.0], "peak_days": ["2026-10-01"],
+        "window_key": "2026-10-02T12:00:00+02:00|60", "window_sum": 9.0,
+        "window_samples": 1, "window_factor": 1.0, "window_wsum": 9.0,
+        "window_weight": 1.0,
+    })
+    _c2238_p7_restored = list(_c2238_p7.peaks)
+    _c2238_p7.peaks, _c2238_p7.peak_days = [1.0], ["2026-10-01"]
+    _c2238_p7._close_window(CapacityTariff(enabled=True, window_minutes=60))
+R.check(
+    "R10-CLONE-2238 P7: from_dict and _close_window both store the ranked "
+    "record through PeakTracker._keep_ranked",
+    _c2238_kept == [1, 2] and _c2238_p7_restored == [42.0]
+    and _c2238_p7.peaks == [42.0] and _c2238_p7.peak_days == ["sentinel"],
+    f"calls {_c2238_kept}, restored {_c2238_p7_restored}, closed "
+    f"{_c2238_p7.peaks} {_c2238_p7.peak_days}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))

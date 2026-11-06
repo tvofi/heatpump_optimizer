@@ -4156,6 +4156,11 @@ def _p2_registry(sources):
                  lambda n: isinstance(n.targets[0], ast.Subscript)),
              owners=["sensor.py::_WaitsForEvidenceMixin._evidence_attributes"],
              dispositions={}),
+        dict(fact="ranked_peak_lists", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.ListComp, r"^\[(kw|day) for (kw, _|_, day) in ranked\]$",
+                 lambda n: True),
+             owners=["tariff.py::PeakTracker._keep_ranked"], dispositions={}),
     ]
 
 

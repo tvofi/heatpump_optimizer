@@ -329,6 +329,10 @@ class PeakTracker:
         # Keep a little more than the billed count so that a later correction
         # (a retracted sample) does not lose the runner-up.
         del ranked[max(tariff.peaks_averaged * 2, 6):]
+        self._keep_ranked(ranked)
+
+    def _keep_ranked(self, ranked: list[tuple[float, str]]) -> None:
+        """Store a ranked (kW, day) record as the parallel peak lists."""
         self.peaks = [kw for kw, _ in ranked]
         self.peak_days = [day for _, day in ranked]
 
@@ -409,9 +413,7 @@ class PeakTracker:
         if not isinstance(data, dict):
             return tracker
         tracker.month = str(data.get("month", ""))
-        ranked = _stored_peaks(data.get("peaks"), data.get("peak_days"))
-        tracker.peaks = [kw for kw, _ in ranked]
-        tracker.peak_days = [day for _, day in ranked]
+        tracker._keep_ranked(_stored_peaks(data.get("peaks"), data.get("peak_days")))
         tracker.closed_month = str(data.get("closed_month", ""))
         tracker.closed_peaks = [
             kw for kw, _ in _stored_peaks(data.get("closed_peaks"), None)
