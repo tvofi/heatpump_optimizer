@@ -21,7 +21,7 @@ import logging
 import math
 import os
 import pickle
-import select
+import selectors
 import subprocess
 import sys
 import threading
@@ -1908,6 +1908,19 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
     )
 
 
+def _reply_ready(stream: Any, timeout_s: float) -> bool:
+    """Whether ``stream`` turns readable within ``timeout_s``.
+
+    A selector, never ``select.select``: that refuses any descriptor at or
+    above FD_SETSIZE (1024), and Home Assistant raises its own soft fd limit
+    past it, so a worker respawned into a full fd table read as a transport
+    fault and every solve fell back in process.
+    """
+    with selectors.DefaultSelector() as selector:
+        selector.register(stream, selectors.EVENT_READ)
+        return bool(selector.select(timeout_s))
+
+
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
 
@@ -1951,7 +1964,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             except (AttributeError, OSError, ValueError):
                 has_fd = False
             timeout = PROCESS_REPLY_TIMEOUT_S
-            if has_fd and not select.select([stdout], [], [], timeout)[0]:
+            if has_fd and not _reply_ready(stdout, timeout):
                 _PROCESS_WORKER = None
                 # Bounded too: a child the kill does not end at once (one
                 # stuck in the kernel) must not turn this into the same
@@ -2009,12 +2022,24 @@ async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: An
 
     The process worker first; a worker that cannot carry the job degrades to
     the executor, the #511 trade -- a GIL-holding thread, never the loop.
+    A job that outran the reply deadline is not rerun there: the same job
+    would hold an executor thread and a core with no deadline at all. It
+    raises to the caller, which skips its job this cycle (the replay and the
+    sensor advisor) or fails the cycle through ``_note_solve_failure`` (away
+    recovery, sysid); the warning is held per job until one completes.
     """
+    name = fn.__qualname__
+    key = f"off_loop_timeout:{name}"
     try:
-        return await _await_process(hass, fn, *args)
+        result = await _await_process(hass, fn, *args)
+    except ProcessWorkerTimeout as err:
+        log_held(hass, key, True, "%s; %s skipped this cycle", err, name)
+        raise
     except ProcessWorkerUnavailable as err:
         _LOGGER.debug("Process worker unusable (%s); using the executor", err)
         return await hass.async_add_executor_job(fn, *args)
+    log_held(hass, key, False)
+    return result
 
 
 async def _sysid_step_off_loop(
@@ -2180,7 +2205,10 @@ async def _await_optimize(
     try:
         result = await _await_process(hass, optimize_in_process, optimizer, inputs)
     except ProcessWorkerTimeout as err:
-        _LOGGER.warning("%s; keeping the last plan, a fresh worker starts next cycle", err)
+        # Held, not per cycle: a worker that keeps timing out warns once and
+        # says "Resolved" on the first solve it carries again (R10 N-log-flood).
+        log_held(hass, f"process_worker_timeout:{entry_id}", True,
+                 "%s; keeping the last plan, a fresh worker starts next cycle", err)
         _raise_update_failed(
             "process_worker_timeout", f"{err}; the last plan stays in effect", err,
             minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
@@ -2197,6 +2225,7 @@ async def _await_optimize(
             optimize_in_process, optimizer, inputs
         )
     _clear_worker_fallback(hass, entry_id)
+    log_held(hass, f"process_worker_timeout:{entry_id}", False)
     return result
 
 
