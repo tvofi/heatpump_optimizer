@@ -1,0 +1,15 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 325, in <module>
+    sys.exit(main(sys.argv[1:]))
+             ~~~~^^^^^^^^^^^^^^
+  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 319, in main
+    {"ci-cost": arm_ci_cost, "ci-fails": arm_ci_fails, "nightly": arm_nightly, "report": arm_report,
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+     "git": arm_git, "tokens": arm_tokens, "roster": arm_roster}[arm](*rest)
+     ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^
+  File "/tmp/tmp.VveaBKgHYi/wt/c/dev/audit/harnesses/r10_triage_p391.py", line 188, in arm_report
+    c, f = json.load(open(cost)), json.load(open(fails))
+                                            ~~~~^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/tmp.VveaBKgHYi/fails.json'
+rc=1
+14618
