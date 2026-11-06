@@ -1,0 +1,32 @@
+Fix review: blocked 2fa354bf13087a63c4a42682b65f2b60ef3b92e3 mutation-vacuous: check --body's fold-destination wiring survives the self-test
+
+bus-nonce: ac1fe3b551bbb5becd9d54ca6f10b3db
+
+Round: 1
+
+## Block
+
+The body's carry 3 says a `Fold (x): Carry:` answer "is checked against the roster in `check --body` and in `pr`", and names only the `pr` wiring as unpinned. The `check --body` wiring is unpinned as well, and `check --body` is the path pr-contract runs. Two one-line mutants of production lines this PR adds each switch the refusal off, and `python3 -I tools/audit/carry_audit.py --self-test` still prints `388 checks, 0 failed` (ev/mutants-wiring.txt):
+- A, `tools/audit/carry_audit.py:929`: `folds_rc(body, a.repo, a.issue_folds_file, dests)` changed to `folds_rc(body, a.repo, a.issue_folds_file)`.
+- B, `tools/audit/carry_audit.py:927`: `if FOLD_LINE.search(body):` changed to `if False:`.
+Under each mutant the real CLI (`check --body` on `Closes #7` / `Fold (a): Carry: R10-INVENTED`, with an issue-folds file holding `Fold (a): x`) exits 0. Unmutated, it exits 1 with `FOLD-UNANSWERED fold (a) answer `Carry: R10-INVENTED` is refused: R10-INVENTED is not a group of the roster`. The body's mutant `for m in ():` kills `fold_problems`'s loop, but not the CLI line that feeds it. The self-test already has the harness the cure needs: `cli()` in `_self_test` drives `main(["check", "--body", ...])` with `--issue-folds-file` and a stubbed `load_dests`. The cure is one arm there: `Fold (a): Carry: R10-INVENTED` refused with rc 1, and `Fold (a): Carry: R10-CONS` accepted as the null control. Both mutants must then go red. Also correct the figure in Findings below.
+
+## Findings
+
+- Surviving mutants A and B on the `check --body` fold-destination wiring (`tools/audit/carry_audit.py:927`, `:929`), as given under Block. Claim: the self-test pins `check --body`'s roster read of a fold answer. Evidence: ev/mutants-wiring.txt. Harness: `python3 -I tools/audit/carry_audit.py --self-test` plus the CLI on a planted body. Metric: the failed-check count and the CLI's rc. Perturbation: each mutant moves the CLI's rc from 1 to 0 and leaves the self-test count at 0 failed. Carry: R10-BODY-CONTRACT
+- The body's `## Figures` says the self-test "at the merge base ... printed 366 checks" and names that base as cb48d97e2. Re-measured, it prints `carry_audit self-test: 364 checks, 0 failed` at the actual merge base 57958d6a4, at cb48d97e2 and at 4b7e1770b (the base of code head 95a5cca4). The diff adds 24 arms (5 spellings x 2, 1 uppercase answer, 4 null spellings, 4 roster-destination arms, 2 owner-comment arms, 2 separator arms, 1 Round arm), and 364 + 24 = 388, which matches the head. The 366 is wrong, and the named base is not this PR's merge base. Following fixer.md step 3 ("name the instrument, never the number"), the body should state the instrument rather than a count. Carry: R10-BODY-CONTRACT
+- The `pr` subcommand's fold wiring (`carry_audit.py:956`) is unpinned, as the body itself declares in carry 3. It is recorded here so that the cure for the Block also covers it, either with a stubbed `read_pr`/`gh_json` arm or with a recorded reason. Carry: R10-BODY-CONTRACT
+
+## Evidence
+
+- Head measured: 2fa354bf13087a63c4a42682b65f2b60ef3b92e3, which is the PR head at review time and the head named in `## Head`. Merge base with origin/main is 57958d6a44c4f489384705ba64e8f65a8507f6b7. `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
+- CI: `merge_train.py classify 2fa354bf... --pr 3260` printed `GREEN 2fa354bf13087a63c4a42682b65f2b60ef3b92e3 pending: none red: none` with rc 0 (ev/classify.txt). Live check runs: 68 on one page, none failure, cancelled or timed out, so `## Red checks: none` agrees with the head. pr-contract / pr-contract was green at 20:24Z, after every workflow concluded.
+- Merge: `git merge-tree --write-tree origin/main 2fa354bf...` rc 0 against origin/main 9cbd7dd0d (ev/merge-tree.txt). There is no conflict.
+- Protected files: VERSION, manifest.json, RELEASE_NOTES.md, both claim files and every `*_budgets.json` are byte-identical to the merge base. `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. The delivery row dev/programme/delivery/3260.md is in the three-dot diff.
+- Mutants killed (self-test red, file restored after each): the Round trailer back to `Round:\s*\d` (1 red); the separator back to `[|;,]` (2 red); the owner filter removed (1 red); `for m in ():` (2 red); the answered-set `.lower()` removed (1 red); the issue-side `k.lower()` removed (1 red); FOLD_LINE back to the old form (4 red). brief_lint.mjs with the default roster dir pointed at a missing path: `LEGACY-CONTROL VACUOUS: a carry file at #2999, covered by a live group, is accepted with the default roster`.
+- Mutant surviving, not blocking: in `rosterIssues()`, dropping the `workflowFiles(ROSTER_FILE_RE)` union from the no-argument default leaves `node tools/policy/brief_lint.mjs` at rc 0. The union keeps the base's previous source and adds nothing the rosters directory lacks at this head, so this is dead weight rather than a defect. Carry: dismissed: evidence, not a finding
+- `rosterIssues()` with no argument returns 1 at the merge base and 62 at the head. node tools/policy/brief_lint.mjs exits rc 0 at the head and prints `LEGACY-CONTROL ok`. LEGACY_CONTROL_FILES has 14 members, equal to LEGACY_CONTROL_CAP.
+- Carry 1795 moved: the four entries in R9-UX-6's carry list keep the file's from, effect, brief, control and remeasure text, and R9-UX-6 is live (resume `handoff`, issues [1795]). The edit went directly into wave-r9-groups.json, which the body discloses.
+- The nine #3227 carries (roster R10-BODY-CONTRACT carries 17-26) are each answered in the body: built (2, 6, 7, 8, 9), routed `Carry: R10-BODY-CONTRACT` with a reason (1, 3, 5), or dismissed with a reason (4: 3221 is an ancestor of the base). For carry 1 (card 7), the body re-measured the preconditions and asks the owner for a one-sentence ruling.
+- tests/entities.py with ` --branch "$HEAD_REF"` deleted from pr-contract.yml: exactly `1 of 2638 ENTITY CHECKS FAILED`, the failure being `pr-contract's carry step passes ...` (ev/entities_mut.txt), so the pin kills the mutant. The workflow was restored in its own worktree.
+- No finder's harness is named, because this group is a carry group. The harnesses are the self-tests named above, and I built none of my own beyond the planted CLI bodies (ev/b.out, ev/b.mut.out).
