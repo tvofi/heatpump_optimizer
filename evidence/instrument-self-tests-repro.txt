@@ -1,2 +1,0 @@
-RESULT governance.yml:719-720 step at base: delivery_row-grep rc=0 handoff_push-grep rc=0
-RESULT governance.yml:719-720 step at head: delivery_row-grep rc=1 handoff_push-grep rc=0

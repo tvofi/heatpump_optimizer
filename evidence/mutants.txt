@@ -1,0 +1,8 @@
+== bus-1 bus.sh: KILLED rc=1 | bus self-test: 138 checks, 8 failed
+== bus-2 bus.sh: KILLED rc=1 | bus self-test: 138 checks, 5 failed
+== bus-7 bus.sh: KILLED rc=1 | bus self-test: 138 checks, 1 failed
+== bus-10 bus.sh: KILLED rc=1 | bus self-test: 138 checks, 1 failed
+== ci_predict-3 tools/pr/ci_predict.py: KILLED rc=1 | ci_predict self-test: 2 failed
+== ci_predict-4 tools/pr/ci_predict.py: KILLED rc=1 | ci_predict self-test: 1 failed
+RESULT survivors=0
+rc=0
