@@ -1,34 +1,33 @@
-Triage batch 122 records one ruling, P387, on the root-cause seat's meter band for the published savings row, under the owner's ruling that the reference assumes no wood.
-
-- **P387: ACCEPT narrowed.** The band's ceiling is rejected, because wood can raise booked over metered without limit (`wood-full` 7.70, sound). The floor is accepted as a new group, R10-SAV-METER-FLOOR, because wood cannot lower that ratio and the floor fires on November's 0.188. It catches 1 of the 3 measured instances, and the ruling says so. The arm table is corrected to the fix seat's re-take at `39143c38f`; the ratios did not change.
-- **A finding for the hotfix, now answered:** calibration cancelled metered kWh on the published row, so heat the plan did not foresee earned no saving. The fix's wood floor answers it on wood-configured rows.
-
-No product behaviour changes: the diff is one markdown file under `dev/programme/triage/`. The new group and the two carries are held for the orchestrator to route through `roster_edit.py`.
+Repairs the P387 ruling of triage batch 122 after the review block "figures-uncited": the ruling read four commits that exist on no ref of origin. The text is restated against pushed refs only (origin/main `750a6001a`, `d8eeae8f8`, the roster ref `7cfdd9cc1`); every figure is re-taken with its command or struck. Two files change: `dev/programme/triage/s6-batch122.md` and `dev/programme/delivery/3212.md` (unchanged text-wise). No production code, budget, claim or roster file. The three carries (R10-SAV-METER-FLOOR, R10-RCA-SAV-ESTIMATE, R10-HOTFIX-SAV-ESTIMATE) are the ruling's own Binding items, unchanged in destination; landing them on the roster branch is the orchestrator's step.
 
 ## Head
 
-`99a6db4a827bebdb295845462db8b513ce2e0707`; the one file is the whole diff against `783d8dc72811ab75ae4ffca367456f44896f47d3`.
+c9ee4e291c483398bdca49bbfc1118ebd77f8adf
 
 ## Mutation proof
 
-This file's only consumer is the triage gate in `tools/audit/seat/roster_edit.py`, through `ruling_verdict` and `triage_refusal`.
-- On the committed file, `ruling_verdict` reads P387 `ACCEPT`, and the three cited texts are not refused.
-- With the verdict flipped to DEFER, the carry text is refused: `is not an ACCEPT ruling (DEFER)`.
+n/a: a triage record changes no production line; there is no fix to break.
 
 ## Null control
 
-- P388 reads `None`: no such entry.
-- With the file absent, the carry text is refused: `the triage ruling dev/programme/triage/s6-batch122.md is not on the roster branch or origin/main`.
+The earlier ruling cited four commits that `git cat-file -t` reports as "Not a valid object name". The null for the re-taken arm table is the flat-price arm `valve-flat`, whose row is 0.47 %, so a saving has no source but volume and the ratio stays inside 0.5 to 2.0 (1.09). `grep -n '4fff42664\|39143c38f\|e1ee044cc\|77af298ef' dev/programme/triage/s6-batch122.md` prints nothing.
 
 ## Figures
 
-- `git diff --stat 783d8dc72811ab75ae4ffca367456f44896f47d3...99a6db4a827bebdb295845462db8b513ce2e0707`: 1 file changed, 96 insertions(+).
-- The ruling's figures are cited beside their sources in its `Instances:`. Those read from the fix seat are not re-run here, and the group's acceptance re-measures them.
-- No capped file is touched; the diff is one markdown file.
+- Arm table (R = booked reference 72.28 kWh over the printed plan kWh; 1.07, 1.09, 1.08, 1.14, 1.73, 1.78, 1.78, 8.25): `PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py --quick <arm>`, run on a `git archive` export of origin/main `750a6001ae4d09c84858b53f94c22f4e5ca0623a`, eight arms. Only `wood-full` is above 2.0; none is below 0.5.
+- Wood floor: `git show origin/main:custom_components/heatpump_optimizer/ledger.py | sed -n 458,466p` shows `calibration = max(1.0, calibration)` under `if wood_configured and calibration is not None:`; coordinator passes it at `coordinator.py:7903`.
+- Roster: `git grep -n '"group": "R10-SAV-METER-FLOOR"' origin/handoff/audit-r10-roster` reads `dev/programme/rosters/wave-r10-groups.json:17024` at `7cfdd9cc1`.
+- RCA ratios 3.30 and 0.18 and cost 6.8 h: `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md` at `d8eeae8f8`, lines 38, 162, 217, 273.
+- Struck as unreproducible: the owner-export ratio for 2026-10, "1 of 3" and "1 of 6" instances, the 1.1 h per release benefit, the marker line counts, the 50.0 / 75 / 87.5 % calibration drive. The ACCEPT stands on the class-barrier duty and the owner's rulings.
+- Lints: `node tools/policy/brief_lint.mjs` prints `0 error(s), 0 warning(s)` on every section; `bash tools/pr/prepr.sh` at this head with this body: rc=0.
+- origin/main moved to `c679f4b69` after the first run; it is merged at this head and prepr re-run with this body.
 
 ## Red checks
 
-- `tests / ci-ratchet` and `tests / nightly-status` read red in this ref's ancestry, at the base `783d8dc72`, whose `gate` also failed. Neither comes from this diff, which is one markdown file under `dev/programme/triage/` that neither check reads. No cheaper detector is owed here: the red is the base's, and this ref has no pull request and no checks of its own.
+Read from the job logs of PR #3212 at its previous head f02530f49 (the new head has no runs yet):
+- `governance / delivery-status` (job 127616990319): "DELIVERY STATUS OVERDUE -- 10 rowed, 12 pending, 21 overdue"; the log says it is not a required context. Repo state (other PRs' delivery rows), not this diff.
+- `tests / nightly-status` (job 127616990292): "NIGHTLY FAILED: slow failed last night", scheduled run 41943946464 at head 499162c; unrequired, a lane outside this diff. Repo state.
+Not compared with main's head check-runs page by page; the cause read is from the logs above.
 
 ## Forward-carry
 
