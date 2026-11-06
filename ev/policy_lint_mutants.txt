@@ -1,0 +1,10 @@
+KILLED  rc=1 M1 passing-verdict exclusion removed :: FIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; 
+KILLED  rc=1 M2 root-cause-unrecorded dropped from family :: FIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; 
+KILLED  rc=1 M3 taught words admitted to derived family :: FIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; 
+KILLED  rc=1 M4 derived family disabled :: FIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; 
+SURVIVED rc=0 M5 statsFindings passes no derived list :: 
+SURVIVED rc=0 M6 cmdStats passes no derived list :: 
+SURVIVED rc=0 M7 mutation-unpinned dropped :: 
+SURVIVED rc=0 M8 all three new mutation spellings dropped :: 
+KILLED  rc=1 M9 root-cause family deleted :: FIXTURE VACUOUS: the derived `other (untaught)` or the declared `root-cause` family did not fold as pinned (3 untaught words on 3 PRs -> 3; 
+restored True
