@@ -1,0 +1,2 @@
+blocked verdict, head X not in dispatch record : ['REVIEW OWED: #9 cb8d7b749b6d']
+blocked verdict, head X in dispatch record     : ['CARRY: #9 cb8d7b749b6d']
