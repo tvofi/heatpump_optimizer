@@ -1,0 +1,6 @@
+mutant M-completed (reviewer's): bus.sh:613 select(.status != "completed") -> select(true), at 520550cebe311fad3d4f529c5267561ffe7e227c
+  ok   and dispatches once the group's carries name the pull request (P310, the null control)
+  ok   watch --once under a live watcher's lock refuses and names its pid (P102)
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 141 checks, 0 failed
+rc=0
