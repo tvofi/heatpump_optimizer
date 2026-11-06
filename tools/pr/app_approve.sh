@@ -1667,7 +1667,7 @@ st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the
 # kept reachable on refs/test/* so a fetch by sha can serve them. A file:// URL,
 # since a plain path clones by copying every object.
 g push -q origin "$V:refs/test/v" "$H_MERGE:refs/test/h"
-git clone -q --single-branch --branch main "file://$W/remote.git" "$W/bare_clone" >/dev/null 2>&1
+throwaway_git_clone -q --single-branch --branch main "file://$W/remote.git" "$W/bare_clone" >/dev/null 2>&1
 carried_bare() { ( cd "$W/bare_clone" && bash "$SELF" --carry "$1" "$2" origin/main ) > "$W/carry.out" 2>&1; }
 st "$(git -C "$W/bare_clone" cat-file -e "$V^{commit}" 2>/dev/null && echo present || echo absent)" absent "the fresh clone lacks the verdict commit"
 carried_bare "$V" "$H_MERGE"; st $? 0 "CARRY: V and the head absent from the checkout are fetched, then judged"

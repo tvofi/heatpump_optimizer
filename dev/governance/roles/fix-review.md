@@ -5,7 +5,7 @@ the PR's head SHA. You check that the numbers are real, not that the code looks 
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
 Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`.
-**Block only on code, tests and harness** (card C5, tvofi 2026-11-05): paperwork (a stale body, a carry's route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`, resolved at merge; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a concluded red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+**Block only on code, tests and harness** (card C5, tvofi 2026-11-05): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -48,11 +48,11 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     the commit's `check-runs` API), not the body's account, and never a
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
-    or the finding that none exists. Both pass; silence is the note
-    `Note: root-cause-detectable: <check>` where a cheaper detector
-    could have shown the red before the handoff (name it),
-    `Note: root-cause-unrecorded: <check>` where that check is the
-    cheapest, `root-cause-unanswered` only if you cannot tell.
+    or the finding that none exists. Both pass; silence is a `Note:` line, never
+    a block (C5), naming root-cause-detectable where a cheaper detector could
+    have shown the red before the handoff (name it), `root-cause-unrecorded`
+    where that check is the cheapest, `root-cause-unanswered` if you cannot
+    tell. The wave routes an old `blocked <sha> root-cause-detectable: <check>`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
     **A red `nightly-status` is not this pull request's**
@@ -80,8 +80,8 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     to any later head whose own diff is unchanged** (card C4, tvofi 2026-11-05;
     #1667, 2026-10-27): `tools/audit/seat/review_carry.py <verdicted> <new>`
     prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
-    claim files unioned, the branch's own diff equal to the reviewed one), and
-    `bus.sh dispatch` then refuses a second reviewer. A red CI never carries.
+    claim files unioned, the branch's own diff equal to the reviewed one),
+    and `bus.sh dispatch` refuses a second reviewer. A red never carries.
     Else a main merge is its **resolution delta**, alone yours; a head whose
     own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
