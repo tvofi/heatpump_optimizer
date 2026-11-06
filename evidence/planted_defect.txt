@@ -1,0 +1,6 @@
+== 84a7c456f planted:  1 file changed, 1 insertion(+), 1 deletion(-)
+tests/solar_alignment.py rc=1 6 fail-lines; 5 CHECK(S) FAILED
+codeql legs {'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} machinery False pins_due True
+== 750a6001a planted:  1 file changed, 1 insertion(+), 1 deletion(-)
+tests/solar_alignment.py rc=1 6 fail-lines; 5 CHECK(S) FAILED
+codeql legs {'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} machinery n/a (no rule) pins_due n/a (always)
