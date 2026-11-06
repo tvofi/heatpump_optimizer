@@ -1,0 +1,81 @@
+128110118264	validate	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110118264
+128110115038	cancel-superseded	completed	success	2026-11-06T18:47:21Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110115038
+128110107767	arch-score / arch-score	completed	success	2026-11-06T18:50:03Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110107767
+128110089172	governance	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110089172
+128110071659	hassfest	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110071659
+128110070531	codeql	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110070531
+128110042325	tests	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110042325
+128110042163	pr-contract	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110042163
+128110042024	budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T18:49:04Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110042024
+128110041920	refresh	completed	success	2026-11-06T18:47:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110041920
+128110041506	kernel-points	completed	skipped	2026-11-06T19:36:31Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110041506
+128110040678	prelude	completed	success	2026-11-06T18:47:57Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110040678
+128110040055	gate	completed	success	2026-11-06T19:37:02Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273770234/job/128110040055
+128109551685	tests	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109551685
+128109537092	prelude	completed	success	2026-11-06T18:55:00Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109537092
+128109487518	pr-contract	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109487518
+128109486955	gate	completed	success	2026-11-06T19:36:06Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109486955
+128109486171	arch-score / arch-score	completed	success	2026-11-06T18:56:03Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109486171
+128109485926	budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T18:55:30Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109485926
+128109485366	codeql	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109485366
+128109484717	governance	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109484717
+128109484667	kernel-points	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109484667
+128109484487	validate	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109484487
+128109484273	hassfest	completed	skipped	2026-11-06T19:35:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109484273
+128109483953	cancel-superseded	completed	success	2026-11-06T18:55:14Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109483953
+128109483369	refresh	completed	success	2026-11-06T18:55:11Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42274763766/job/128109483369
+128108675215	gate	completed	success	2026-11-06T19:34:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128108675215
+128108266936	pr-contract / pr-contract	completed	success	2026-11-06T19:33:53Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128108266936
+128107863743	tests / mutation	completed	success	2026-11-06T18:49:24Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107863743
+128107863566	codeql / Analyze (javascript-typescript)	completed	success	2026-11-06T18:48:13Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107863566
+128107862917	tests / briefs	completed	success	2026-11-06T18:48:45Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107862917
+128107859633	prelude	completed	success	2026-11-06T18:47:18Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107859633
+128107852802	governance / record	completed	skipped	2026-11-06T18:47:18Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107852802
+128107847761	governance / delivery-status	completed	success	2026-11-06T18:48:00Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107847761
+128107840787	validate / validate-hacs	completed	success	2026-11-06T18:48:10Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107840787
+128107839938	governance / wave-script	completed	success	2026-11-06T18:49:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107839938
+128107836344	budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T18:47:55Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107836344
+128107831139	tests / nightly-status	completed	failure	2026-11-06T18:56:57Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107831139
+128107787735	pr-contract / pr-contract	completed	success	2026-11-06T19:27:51Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107787735
+128107787412	tests / closures-autofix	completed	skipped	2026-11-06T19:10:55Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107787412
+128107787157	tests / coverage-ratchet	completed	success	2026-11-06T19:13:34Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107787157
+128107787017	tests / lane-proofs	completed	success	2026-11-06T19:13:26Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107787017
+128107786802	tests / graders-head-copy	completed	success	2026-11-06T19:18:03Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786802
+128107786654	tests / coverage	completed	success	2026-11-06T19:13:18Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786654
+128107786533	tests / typing	completed	success	2026-11-06T18:51:22Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786533
+128107786510	tests / ci-ratchet	completed	skipped	2026-11-06T19:13:19Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786510
+128107786436	tests / closures	completed	success	2026-11-06T19:10:55Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786436
+128107786072	tests / arch-instrument	completed	success	2026-11-06T18:50:17Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107786072
+128107785990	tests / nightly-ha	completed	skipped	2026-11-06T18:48:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785990
+128107785945	tests / claims-autofix	completed	skipped	2026-11-06T19:08:25Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785945
+128107785869	tests / replay	completed	skipped	2026-11-06T18:48:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785869
+128107785855	tests / mutation-autofix	completed	skipped	2026-11-06T18:49:24Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785855
+128107785783	tests / fast (3.14)	completed	success	2026-11-06T19:08:25Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785783
+128107785653	tests / browser	completed	success	2026-11-06T18:54:13Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785653
+128107785600	tests / mutation-pins	completed	skipped	2026-11-06T18:49:24Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785600
+128107785394	gate	completed	success	2026-11-06T19:35:05Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785394
+128107785090	codeql / Analyze (actions)	completed	success	2026-11-06T18:48:37Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107785090
+128107784857	codeql / Analyze (python)	completed	success	2026-11-06T18:48:04Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784857
+128107784848	tests / closure-scope	completed	success	2026-11-06T18:48:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784848
+128107784824	hassfest / hassfest	completed	success	2026-11-06T18:48:35Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784824
+128107784763	governance / delivery-status-publish	completed	skipped	2026-11-06T18:47:18Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784763
+128107784710	governance / instrument-self-tests	completed	cancelled	2026-11-06T19:27:02Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784710
+128107784617	kernel-points	completed	skipped	2026-11-06T19:32:08Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784617
+128107784576	governance / policy-docs	completed	success	2026-11-06T18:49:40Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784576
+128107784540	arch-score / arch-score	completed	success	2026-11-06T18:49:00Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784540
+128107784435	governance / env-matrix	completed	success	2026-11-06T19:01:10Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107784435
+128107783894	refresh	completed	success	2026-11-06T18:47:23Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107783894
+128107783300	cancel-superseded	completed	success	2026-11-06T18:47:25Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769718/job/128107783300
+128107651065	tests	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107651065
+128107651031	kernel-points	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107651031
+128107650964	codeql	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107650964
+128107650595	hassfest	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107650595
+128107650401	validate	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107650401
+128107650111	governance	completed	skipped	2026-11-06T19:31:52Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107650111
+128107648176	arch-score / arch-score	completed	success	2026-11-06T19:33:06Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107648176
+128107648142	budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T19:32:23Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107648142
+128107406331	refresh	completed	success	2026-11-06T19:32:08Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107406331
+128107406189	cancel-superseded	completed	success	2026-11-06T19:32:01Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107406189
+128107406164	prelude	completed	success	2026-11-06T19:31:51Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42280352538/job/128107406164
+128085291628	CodeQL	completed	success	2026-11-06T18:47:57Z	https://github.com/tvofi/heatpump_optimizer/runs/128085291628
+128084812064	arm	completed	skipped	2026-11-06T18:46:48Z	https://github.com/tvofi/heatpump_optimizer/actions/runs/42273769285/job/128084812064

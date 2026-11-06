@@ -1,8 +1,0 @@
-Reviewed head 69aa9cd37c7cb86d5868f643fd19e1a19e93ca5c (merge base b36679ceaa65a08a67a84f0d934c93aa15f7c7f3).
-Gate red 127961819996 (run 42228015210, concluded failure 15:02:10Z) log tail:
-  FAIL run(s) [42238219377] at this head are still being judged; their gate decides
-Policy-lint with the deleted words restored ("and report its output to be confirmed"):
-  ERROR [budgets] tools/audit/briefs/fix-review.md: about 2455 tokens across its lines exceeds its cap of 2451 tokens (files_tokens).
-Live replay control is reviewer-built (mut/replay.sh logic): for each origin probe/rev-* ref, the
-verdict_tree-equivalent tree (VERDICT.md + evidence/) is looked up in review/<pr>'s history.
-bash 3.2: building GNU bash 3.2.57 from source was refused by this session's permission classifier; not run.
