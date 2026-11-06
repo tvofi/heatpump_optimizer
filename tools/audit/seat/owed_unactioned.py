@@ -16,7 +16,7 @@ two handoffs routed to the opener at 10:55Z stood 8 h.
 
 WHAT IT DOES. It reads the tick board's owed family -- every `-> ` line that
 starts `OWED`, `REVIEW OWED:`, `DISPATCH:`, `OWNER FLAG:`, `DESIGN-BUILD:`,
-`MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:`, `UNLEVELLED:` or `REVIEW STALLED:` -- and keys each on its obligation: the
+`MERGE-READY:`, `BLOCKED-UNFIXED:`, `APPROVAL-OWED:`, `UNLEVELLED:`, `REVIEW STALLED:` or `RECORD-OWED:` -- and keys each on its obligation: the
 handoff topic, or `#<pr>`. A verdict level (`MERGE-READY: #N <head8>`) carries
 its head8 as the id, so an acknowledgement covers one head and a new head
 re-raises. `APPROVAL-OWED:` means queue the PR for the train, which posts the
@@ -87,6 +87,9 @@ def key_of(line: str) -> "tuple[str, list[str]]":
     if m:
         return m.group(1), [m.group(2)]
     m = re.match(r"REVIEW STALLED: (#\d+) ([0-9a-f]{8}) \d+m$", body)  # the minutes grow each sweep: not in the key
+    if m:
+        return m.group(1), [m.group(2)]
+    m = re.match(r"RECORD-OWED: (#\d+) ([0-9a-f]{12}) \d+m$", body)  # the minutes grow, as above
     if m:
         return m.group(1), [m.group(2)]
     m = re.match(r"UNLEVELLED: (#\d+) ([0-9a-f]{8}) \S+$", body)
@@ -384,6 +387,13 @@ def self_test() -> int:
             rcn, on = go(tick(v0 + dt.timedelta(minutes=30), moved), lack, state=st)
             check(f"{name}: a new head8 re-raises", rcn == 1 and f"{key}  sweeps=4" in on
                   and f" {key} 9e8d7c6b ttl=1" in on)
+        # RECORD-OWED keys #<N> on its head12; its minutes grow each sweep and are not in the key
+        rw = "-> RECORD-OWED: #3235 5d4c3b2a1f0e 41m"
+        w0 = t0 + dt.timedelta(hours=6)
+        go(tick(w0, rw), state="lv-record.json")
+        rcw, ow = go(tick(w0 + dt.timedelta(minutes=10), rw.replace("41m", "51m")), state="lv-record.json")
+        check("RECORD-OWED: keyed #3235 on its head12, unactioned on the second sweep as its minutes grow",
+              rcw == 1 and "#3235  sweeps=2" in ow and " #3235 5d4c3b2a1f0e ttl=1" in ow)
         _, kv = board(tick(t0, review, mr))
         check("REVIEW OWED and MERGE-READY on one pull request are one key",
               set(kv) == {"#2896"} and kv["#2896"]["shas"] == ["5f3a5dd615b5", "5f3a5dd6"])
