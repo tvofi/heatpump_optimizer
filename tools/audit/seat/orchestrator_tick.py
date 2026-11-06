@@ -754,7 +754,11 @@ class Tick:
         elif dispatched is not None:
             rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
             for text in lg.review_owed(prs, self._readback, dispatched, self._carries,
-                                       getattr(rr, "RECORD_BRANCH", None)):
+                                       getattr(rr, "RECORD_BRANCH", None),
+                                       lg.git_recarry(self.checkout or ".", "origin/main")):
+                self.line(S, text, flag=not text.startswith("CARRY:"))
+            now = getattr(self, "now", None) or datetime.datetime.now(datetime.timezone.utc)
+            for text in lg.record_owed(prs, now):
                 self.line(S, text, flag=True)
 
     # ------------------------------------------------------- OWED buckets

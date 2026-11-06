@@ -101,7 +101,7 @@ ROOT = Path(__file__).resolve().parents[3]
 KINDS = {
     "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
     "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived",
-    "design-build": "derived", "review-owed": "derived",
+    "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
     "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
     "seat-no-return": "derived",
     "fixer-round": "derived", "recut": "derived", "train-parked": "derived", "dirty": "derived",
@@ -618,12 +618,17 @@ def design_builds(verdicts: dict, designs: dict, stage_of, disp: dict) -> list[s
     return out
 
 
-def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_branch=None) -> list[str]:
+def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_branch=None,
+                recarry=None) -> list[str]:
     """`REVIEW OWED: #N <head12>` per open non-draft PR whose comments were
     read, no verdict names its head, no dispatch record is at that head, and
     -- with `carries(verdict_head, head)` -- the newest verdict is not a merge
     that carries to the head (the train's predicate, app_approve_carries). A PR whose
-    `headRefName` is `skip_branch` (the record branch, passed in) is never owed one."""
+    `headRefName` is `skip_branch` (the record branch, passed in) is never owed one.
+    With `recarry(prior, head, n)` (git_recarry): a head that differs from a
+    verdicted or dispatched head of the PR only by clean merges of main, or
+    only by the PR's own delivery row, prints `CARRY: #N <head12>` instead
+    (P90; the ancestor-recarry test of standing-tick.md)."""
     out = []
     for pr in sorted(prs, key=lambda p: p["number"]):
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -636,7 +641,71 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
         last = lines[-1] if lines else ""
         if carries and last.startswith("Fix review: merge ") and carries(verdict_head(last), head):
             continue
+        priors = [h for h in (verdict_head(l) for l in lines) if h] + sorted(h for k, h in dispatched if k == str(n))
+        if recarry and any(recarry(h, head, n) for h in dict.fromkeys(priors)):
+            out.append(f"CARRY: #{n} {head[:12]}")
+            continue
         out.append(f"REVIEW OWED: #{n} {head[:12]}")
+    return out
+
+
+def git_recarry(cwd: str, main: str, env=None):
+    """recarry(prior, head, n) -> True when every first-parent commit of
+    prior..head is a merge with no conflict-resolution edit whose second parent
+    is in `main`, or a commit touching only `dev/programme/delivery/<n>.md`, and
+    `prior` is an ancestor of `head`. Any git failure is False, so the PR stays owed."""
+    def g(*a):
+        r = subprocess.run(["git", "-C", cwd, *a], env=env, capture_output=True, text=True)
+        return r.stdout if r.returncode == 0 else None
+
+    def recarry(prior: str, head: str, n) -> bool:
+        if not (is_sha(prior) and is_sha(head)) or prior == head:
+            return False
+        if subprocess.run(["git", "-C", cwd, "merge-base", "--is-ancestor", prior, head],
+                          env=env, capture_output=True).returncode != 0:
+            return False
+        revs = g("rev-list", "--first-parent", f"{prior}..{head}")
+        if not revs or not revs.split():
+            return False
+        for c in revs.split():
+            parents = (g("rev-list", "--parents", "-n1", c) or "").split()[1:]
+            if len(parents) > 1:
+                resolved = g("diff-tree", "--cc", "-r", "--no-commit-id", c)
+                if resolved is None or resolved.strip() or any(
+                        subprocess.run(["git", "-C", cwd, "merge-base", "--is-ancestor", p, main],
+                                       env=env, capture_output=True).returncode != 0 for p in parents[1:]):
+                    return False
+            else:
+                files = g("diff-tree", "--no-commit-id", "--name-only", "-r", c)
+                if files is None or set(files.split()) != {f"dev/programme/delivery/{n}.md"}:
+                    return False
+        return True
+    return recarry
+
+
+RECORD_OWED_MINUTES = 30
+
+
+def record_owed(prs: list, now: datetime.datetime, record_prefix: str = "record/",
+                minutes: int = RECORD_OWED_MINUTES) -> list[str]:
+    """`RECORD-OWED: #N <head12> <age>m` per open non-draft PR on a `record/`
+    branch (the record and autofix pull requests) that is APPROVED and has been
+    open `minutes` or more (P33). Keyed PR and head by the line, closed by the PR's
+    merge or close, because the open-PR list the tick already fetched no longer
+    holds it."""
+    out = []
+    for pr in sorted(prs, key=lambda p: p["number"]):
+        head = pr.get("headRefOid") or ""
+        if pr.get("isDraft") or not head or not (pr.get("headRefName") or "").startswith(record_prefix) \
+                or (pr.get("reviewDecision") or "").upper() != "APPROVED":
+            continue
+        try:
+            made = datetime.datetime.fromisoformat((pr.get("createdAt") or "").replace("Z", "+00:00"))
+        except ValueError:
+            continue
+        age = (now - made).total_seconds() / 60
+        if age >= minutes:
+            out.append(f"RECORD-OWED: #{pr['number']} {head[:12]} {int(age)}m")
     return out
 
 
@@ -894,6 +963,49 @@ def self_test() -> int:
         rb["5"].append(f"Fix review: blocked {vh} harness: y")
         check("a newest verdict that is blocked carries nothing", [l.split()[2] for l in
               review_owed(crs, rb, set(), carrier)] == ["#5", "#6"])
+        # ---- CARRY (P90): the head moved past its verdict by a main merge, or by its own row only
+        cg("checkout", "-q", "main")
+        mh = cput("main2.txt", "main moves again")
+        cg("checkout", "-q", "fix")
+        cg("reset", "-q", "--hard", vh)
+        cg("merge", "-q", "--no-edit", "main")
+        merged_head = cg("rev-parse", "HEAD")
+        (cw / "dev/programme/delivery").mkdir(parents=True, exist_ok=True)
+        row_head = cput("dev/programme/delivery/7.md", "its own row")
+        both_head = cput("other.txt", "row plus another file")
+        recarry = git_recarry(str(cw), "main", throwaway_git_env())
+        rb2 = {"7": [f"Fix review: merge {vh}"]}
+        pr7 = lambda h: [{"number": 7, "headRefOid": h}]
+        check("a head that is a verdicted head plus one main merge prints CARRY",
+              review_owed(pr7(merged_head), rb2, set(), None, None, recarry) == [f"CARRY: #7 {merged_head[:12]}"])
+        check("null control: the same head without the recarry test is REVIEW OWED",
+              review_owed(pr7(merged_head), rb2, set()) == [f"REVIEW OWED: #7 {merged_head[:12]}"])
+        check("a head plus only its own delivery row prints CARRY",
+              review_owed(pr7(row_head), rb2, set(), None, None, recarry) == [f"CARRY: #7 {row_head[:12]}"])
+        check("a head plus its row and another file prints REVIEW OWED (null)",
+              review_owed(pr7(both_head), rb2, set(), None, None, recarry) == [f"REVIEW OWED: #7 {both_head[:12]}"])
+        check("a code commit on top of a main merge prints REVIEW OWED (null)",
+              review_owed(pr7(own_head), {"7": [f"Fix review: merge {carried_head}"]}, set(), None, None, recarry)
+              == [f"REVIEW OWED: #7 {own_head[:12]}"])
+        cg("checkout", "-q", "-b", "side", vh)
+        sib = cput("sib.txt", "a sibling the head never contained")
+        cg("checkout", "-q", "fix")
+        check("null control: a prior that is no ancestor of the head carries nothing",
+              review_owed(pr7(row_head), {"7": [f"Fix review: merge {sib}"]}, set(), None, None, recarry)
+              == [f"REVIEW OWED: #7 {row_head[:12]}"])
+        check("a dispatched head is a prior too",
+              review_owed(pr7(merged_head), {"7": []}, {("7", vh)}, None, None, recarry) == [f"CARRY: #7 {merged_head[:12]}"])
+        # ---- RECORD-OWED (P33): an approved record PR open 30 minutes
+        t0 = datetime.datetime(2026, 1, 1, 12, 0, tzinfo=datetime.timezone.utc)
+        mk = lambda n, mins, **kw: {"number": n, "headRefOid": A, "headRefName": "record/autofix",
+                                    "reviewDecision": "APPROVED",
+                                    "createdAt": (t0 - datetime.timedelta(minutes=mins)).isoformat(), **kw}
+        ro_ = record_owed([mk(1, 31), mk(2, 29), mk(3, 31, reviewDecision="REVIEW_REQUIRED"),
+                           mk(4, 31, headRefName="fix/x"), mk(5, 31, isDraft=True)], t0)
+        check("an approved record PR open 31 minutes opens an entry; 29, unapproved, off-branch and draft do not",
+              ro_ == [f"RECORD-OWED: #1 {A[:12]} 31m"])
+        check("a merged or closed record PR is absent from the open list, so it closes the entry",
+              record_owed([mk(2, 29)], t0) == [] and record_owed([], t0) == [])
         # ---- covered, the level, the exit codes, over a throwaway origin
         env = throwaway_git_env()
         o, w = D / "o.git", D / "w"
