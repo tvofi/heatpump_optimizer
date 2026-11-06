@@ -1,0 +1,5 @@
+RESULT ref_privacy self-test wt(6289321a8) rc=0 ref_privacy self-test: 109 checks, 1 failed
+  FAIL body_push refuses a handoff head authored by a runner default, and writes no body ref: rc=1 b8eb4755340353e41cfbd50715faa6d5cfc26905 commit	refs/heads/handoff-body/r10-clean
+ "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha b755f745d4074509c9b40a9fed78e45744b1c5bd; it names none\n"
+RESULT ref_privacy self-test base(b36679cea) rc=0 ref_privacy self-test: 109 checks, 0 failed
+RESULT ref_privacy self-test main(817c2b169) rc=0 ref_privacy self-test: 109 checks, 0 failed

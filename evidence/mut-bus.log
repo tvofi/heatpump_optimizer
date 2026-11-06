@@ -1,5 +1,0 @@
-== bus-1 bus.sh: KILLED rc=1 | bus self-test: 136 checks, 8 failed
-== bus-2 bus.sh: KILLED rc=1 | bus self-test: 136 checks, 5 failed
-== bus-7 bus.sh: KILLED rc=1 | bus self-test: 136 checks, 1 failed
-RESULT survivors=0
-rc=0

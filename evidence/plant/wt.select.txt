@@ -1,7 +1,7 @@
 ########## scoped gate ##########
   MODE: SCOPED -- 22 script(s) run, 11 scoped out.
   changed files (1), measured against the recorded closures in tests/closures.json:
-      custom_components/heatpump_optimizer/boost.py
+      custom_components/heatpump_optimizer/grid_fee.py
 
       RUN   tests/arch_score_head.py
       RUN   tests/block_duty.py
@@ -42,3 +42,4 @@
   closure. The claim is re-checked by the FULL unscoped suite that runs
   on every push to main, so a wrong closure turns main red within one
   gate. Set GATE_SCOPE=full to run everything here and now.
+select rc=0

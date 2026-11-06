@@ -120,6 +120,8 @@
   ok   card C8: WAIT with a cheap check still in flight refuses and names it
   ok   null control (card C8): WAIT with only a non-cheap check in flight dispatches
   ok   card C8: an unreadable check-run read at WAIT refuses, never read as concluded
+  ok   card C8: every cheap check's ci.yml caller needs only prelude, so its run exists at WAIT (none of:)
+  ok   null control (card C8): pr-contract, which needs every unit, and an absent job are not cheap callers
   ok   P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line
   ok   an unreadable classification refuses the dispatch, never green
   ok   dispatch takes one finder's harness, never two
@@ -134,4 +136,4 @@
   ok   and dispatches once the group's carries name the pull request (P310, the null control)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 136 checks, 0 failed
+bus self-test: 138 checks, 0 failed
