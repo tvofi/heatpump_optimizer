@@ -16608,7 +16608,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Owner ruling tvofi 2026-11-04: the reference assumes no wood at all and actuals stay metered, so wood and fire timing count in the saving, with a disclaimer on houses with wood that it includes wood heat and excludes firewood cost. This replaces the dash on two-tank houses; old-basis rows keep the dash. R10-SAV-WOOD-MEASURED is withdrawn."
+    "Owner ruling tvofi 2026-11-04: the reference assumes no wood at all and actuals stay metered, so wood and fire timing count in the saving, with a disclaimer on houses with wood that it includes wood heat and excludes firewood cost. This replaces the dash on two-tank houses; old-basis rows keep the dash. R10-SAV-WOOD-MEASURED is withdrawn.",
+    "the wood floor is on main (`ledger.py` lines 461 to 465 at `750a6001a`: `calibration = max(1.0, calibration)` when wood is configured), and it answers the finding that calibration cancels wood's unforeseen heat from the saving. What is open: no measured size of that heat on a real wood house (the `wood-unforeseen` arm's plant equals its model), so the body of the next savings pull request states it unmeasured rather than as a number. Whether the two owner rulings (2026-10-24 calibration, 2026-11-04 no wood) hold together on wood houses is answered by the floor as built: calibration may only raise the reference there."
    ],
    "architect_note": "",
    "resume": {
