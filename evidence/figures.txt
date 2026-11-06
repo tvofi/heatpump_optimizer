@@ -1,0 +1,18 @@
+## archscore
+Architecture score: dS +0.0000 NULL
+## env_drift claims-only
+claims hygiene: 8a39977cba2f9f0c798647e8fe1b793e4fcdf106 ok
+rc=0
+## main delta c679f4b69..8a39977cb on touched/gate files
+ tests/closures.json | 26 ++++++++++++++++++++++++--
+ 1 file changed, 24 insertions(+), 2 deletions(-)
+(end)
+## main delta 8a39977cb..origin/main on same
+ tests/closures.json | 4 ++++
+ tests/entities.py   | 2 +-
+ 2 files changed, 5 insertions(+), 1 deletion(-)
+(end)
+## closure selftest
+ALL 118 closure shrink pins PASSED
+## commit messages
+no footers
