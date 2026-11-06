@@ -223,13 +223,13 @@ MUTANTS = [
      ''),
     ("M15 unreadable title", '                bad.append(f"run {r[\'id\']}: unreadable title {r[\'title\']!r}")\n', ''),
     ("M16 B3 on push", 'extra=PUSH_ONLY),', 'extra=None),'),
-    # r10-gate-busy-defer: a running gate is judging (prelude.judging), and C3's at-once bound.
-    ("M17 judging: a running gate not judging", '    if jobs.get("gate", ("",))[0] == "in_progress":\n        return True\n',
-     '', PRELUDE),
-    ("M18 judging: a listed gate judging (R3-2 EARLY)", 'if jobs.get("gate", ("",))[0] == "in_progress":',
-     'if "gate" in jobs:', PRELUDE),
-    ("M19 judging: a completed gate judging (R3-2)", 'if jobs.get("gate", ("",))[0] == "in_progress":',
-     'if jobs.get("gate", ("",))[0] in ("in_progress", "completed"):', PRELUDE),
+    # r10-gate-busy-defer: the tie-break between two started gates at one head, and C3's at-once bound.
+    ("M17 busy tie-break deleted",
+     '\n                  and not (r["id"] > ctx["run_id"] and (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED))',
+     ')'),
+    ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and (r.get', 'r["id"] < ctx["run_id"] and (r.get'),
+    ("M19 busy tie-break on a listed gate (R3-2 EARLY)", '(r.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
+     '"gate" in (r.get("jobs") or {})'),
     ("M20 C3 at once beside any run", ' and any(\n                (parse_title(r["title"]) or ("code",))[0] == "code"'
      ' for r in api["runs_at_head"] if r["id"] in waiting)', ''),
 ]

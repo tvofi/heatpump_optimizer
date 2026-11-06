@@ -187,17 +187,8 @@ def judging(run: dict) -> bool:
     """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
     `gate` is listed, no listed prelude or unit job is unfinished, and every name
     its own title's workset owes is listed and completed (`tests /
-    closure-scope` aside when it names no PR). A gate `in_progress` is judging
-    whatever else is listed: ci.yml's `gate` needs `prelude` and `pr-contract`,
-    which needs every unit, so it runs only once all have ended; a deferring edit
-    run lists its skipped `pr-contract` under the caller's bare name and never the
-    `pr-contract / pr-contract` its title owes (C3), and read busy it was waited
-    on by a later run's prelude while its gate waited on that run (#3246). A gate
-    merely listed (`waiting` from the run's start, R3-2), or `completed` beside
-    an owed job not listed, still takes the owed-jobs rule below."""
+    closure-scope` aside when it names no PR)."""
     jobs = run.get("jobs") or {}
-    if jobs.get("gate", ("",))[0] == "in_progress":
-        return True
     if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
                                      if k == "prelude" or k.split(" / ")[0] in UNITS):
         return False
