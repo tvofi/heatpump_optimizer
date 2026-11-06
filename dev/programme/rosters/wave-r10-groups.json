@@ -9470,7 +9470,7 @@
     "From #2612 (body, item 3dda57ce), routed by routing audit 1 (2026-10-24): its destination R10-BRIEFS-FOLD is done and did not implement it (`git grep _CERT_CELLS origin/main -- dev/governance/dimensions/` is empty; tests/optimality.py:655 still space-only). **D0/D14 detector (from sweep-P4, re-confirmed by `p4_seams.py` at head).** `_solve_space`'s DHW seed set is unguarded, because `tests/optimality.py`'s `_CERT_CELLS` holds space-only cells. The D0 brief should tell its detector seat to add DHW cells to `_CERT_CELLS` before reading a seed gap as closed. [implemented: 862affd07d2ce3430c200d4f09aa6e16934b5c4d]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-briefs-fold-d0",
     "pr": 3247,
     "commit": "862affd07d2ce3430c200d4f09aa6e16934b5c4d"
