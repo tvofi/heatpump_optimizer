@@ -17,6 +17,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SAV-COMFORT (stage carries-open, branch `fix/r10-sav-comfort`): `git fetch origin fix/r10-sav-comfort && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-ROSTER-SCHEMA (stage absorbed, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-POLICY-ROLE-PACK (stage in-progress, branch `handoff/r10-policy-role-pack`): `git fetch origin handoff/r10-policy-role-pack && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-BRIEFS-FOLD-D0 (stage in-progress, branch `handoff/r10-briefs-fold-d0`): `git fetch origin handoff/r10-briefs-fold-d0 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARCH-SHAPES-CLASSIFIER (stage carries-open): no branch pushed yet, so nothing to fetch
@@ -24,6 +25,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-STANDING-CONTRACTS (stage carries-open, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-DELIVERED-GUARD (stage absorbed, branch `handoff/r10-fly-relay-delivered-guard`): `git fetch origin handoff/r10-fly-relay-delivered-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FRICTION-RECORDS (stage in-progress, branch `handoff/r10-friction-records`): `git fetch origin handoff/r10-friction-records && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-PRICING (stage carries-open, branch `handoff/r10-partload-pricing`): `git fetch origin handoff/r10-partload-pricing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-HANDOFF-ARM (stage absorbed, branch `handoff/r10-relay-handoff-arm`): `git fetch origin handoff/r10-relay-handoff-arm && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -36,7 +38,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TICK-PR-BUCKETS (stage absorbed, branch `handoff/r10-tick-pr-buckets`): `git fetch origin handoff/r10-tick-pr-buckets && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-GROUP-LINES (stage absorbed, branch `handoff/r10-tick-group-lines`): `git fetch origin handoff/r10-tick-group-lines && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-LEDGER-RESIDUE (stage in-progress, branch `handoff/r10-ledger-residue`): `git fetch origin handoff/r10-ledger-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-PLANTED-DEFECT-AUDIT (stage in-progress, branch `handoff/r10-planted-defect-audit`): `git fetch origin handoff/r10-planted-defect-audit && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-PLANTED-DEFECT-AUDIT (stage carries-open, branch `handoff/r10-planted-defect-audit`): `git fetch origin handoff/r10-planted-defect-audit && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-MERGE-LOOP (stage in-progress, branch `handoff/r10-train-merge-loop`): `git fetch origin handoff/r10-train-merge-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage carries-open, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
