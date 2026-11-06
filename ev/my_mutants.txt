@@ -1,0 +1,13 @@
+== M20-mine C3 started-condition deleted
+FAIL busy-defer: the higher deferring edit gate waits on the lower (an edit run, not C3's code run), then judges, never a red deferral: got ('FAIL run(s) [42192623509] at this head are still being judged; their gate decides', []), want ('PASS', [60])
+gate self-test: 65 checks, 1 failed
+== M22-mine c0c60886 code-run predicate
+FAIL prelude/gate cycle: a deferring gate beside a later edit run still in its prelude publishes at once: got ('FAIL run(s) [42193153511] at this head are still being judged; their gate decides', [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60]), want ('FAIL run(s) [42193153511] at this head are still being judged; their gate decides', [])
+FAIL prelude/gate cycle: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) publishes at once: got ('FAIL run(s) [42193153511] at this head are still being judged; their gate decides', [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60]), want ('FAIL run(s) [42193153511] at this head are still being judged; their gate decides', [])
+gate self-test: 65 checks, 2 failed
+== M23-mine started() accepts waiting
+FAIL busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is still deferred to: got [], want [42193153511]
+FAIL prelude/gate cycle: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) publishes at once: got ('PASS', []), want ('FAIL run(s) [42193153511] at this head are still being judged; their gate decides', [])
+gate self-test: 65 checks, 2 failed
+== M24-mine C3 any() instead of all()
+gate self-test: 65 checks, 0 failed
