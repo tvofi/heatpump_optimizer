@@ -9213,12 +9213,13 @@
     "R10-FLOW-AUTOTRAIN forward-carry item 1 (PR body at b3dceb5ca): nudge.md step 3 says to leave budget-file and policy-path heads out of the queue and direct-merge them (step 7). The pitch queues them for the batch's serial route instead, where `--pre-flight` parks a budget raise or policy head the owner has not approved at that head. Step 3's hand procedure, which names `merge_train.py run` (serial, no admission routing), now disagrees with the mechanism it describes. The orchestrator or R10-POLICY-ROLE-PACK should bring step 3 into line, or rule that the builder filters them. Control: diff nudge.md step 3 against `Train.admit_verdict` and `sweep_template.md` item (3); no contradiction remains. Not yet in that group's roster carry: this seat writes no roster. Carry: R10-POLICY-ROLE-PACK"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-policy-role-pack",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "owner card 1 recommendation (b), 2026-10-24"
+    "note": "owner card 1 recommendation (b), 2026-10-24",
+    "pr": 3256
    },
    "brief": "Per-role policy pack from the SessionStart hook (owner ruling tvofi 2026-10-24, recommendation (b) of the token pre-study). Today every seat opens by re-reading CLAUDE.md, its role contract and tools/audit/seat/INSTRUMENTS.md with tool calls, which re-sends the same text in each seat's context. Change: a new module under tools/policy renders, for a named role (fixer, fix-review, designer, design-review, root-cause, verifier, judge, and the finder's COMMON.md), one pack made of the verbatim text of CLAUDE.md, that role's contract under dev/governance/roles/, the rules under dev/governance/rules/ whose paths: globs the role's files match, and only the INSTRUMENTS.md entries for the instruments the role's contract names. The in-tree SessionStart hook .claude/hooks/session-start.sh prints the pack when the role environment variable is set, after its existing clone-fact lines, and prints nothing extra when it is unset, so the main session and every other clone are unchanged. cloud_dispatch.py (R10-FLOW-DESIGN-STAGES) sets the variable in the cloud payload for each role it renders; a seat launched without it reads the files as today. Measure first: the tokens a fixer, a reviewer and a designer spend on the policy re-read at the base, from the local session transcripts (the token section of R10-FLOW-BOARD is the reader if it has landed; otherwise count the Read results of those files in a sample of seat transcripts); the change is justified by that number falling, with the pack's own size beside it. Controls: the pack for a role contains every line of its contract (byte-equal), and a file removed from the role's list fails the check; with the variable unset the hook output is byte-equal to today's; a pack never exceeds the policy files' current text (it is a subset); each rule has a mutant. Open point, not decided here: Agent-tool subagents launched inside a local session may not run SessionStart at all. Measure that at the base. If they do not, the local seat brief carries the pack path instead, and say so in the handoff rather than claiming the saving for local seats."
   },
@@ -13549,12 +13550,13 @@
     "STRANDED CARRY 24 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-FLOW-JIDOKA, index 21; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: #2853 Forward-carry: \"Carry 22, the gate-scoping friction measurement. Not taken\"; #2835 open.\n\nFold into: R10-PREPR-CAP (live). Owner of tools/pr/prepr.sh among live groups (the only other is R10-FLY-NO-FOOTERS); PR #3051 is open, so this rides its next PR, not #3051.\n\nOriginal text, verbatim:\nMeasure first (#2835, main ruling under mandate 6329234399, 2026-10-26): recurring friction on .claude/rules/gate-scoping.md across 6 distinct PRs over v7.0.4..main. Name the 6 PRs and the rule hit each made (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, with a token), then decide whether the keying rule or the gate changes. Fix the cause in this group or record a decision not to, with the numbers. Part of #2835.\n\nCarry: R10-PREPR-CAP"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-friction-records",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-LEDGER-SAMPLE, R10-FRICTION-REGRESSION, R10-ORCH-LEDGER"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-LEDGER-SAMPLE, R10-FRICTION-REGRESSION, R10-ORCH-LEDGER",
+    "pr": 3255
    },
    "brief": "Root-cause records for the recurring-friction keys R10-FRICTION-REGRESSION left owed (its PR #3000 landed the #2860 record only), plus two record items stranded on done groups. One root-cause seat, one pull request, one record per key under dev/audit/rca/, each with its named cause, process state, cost test with numbers, and a countermeasure or a recorded refusal (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md). Records already present for some keys (R10-RCA-MUTATION-SURVIVOR.md, R10-FRICTION-GATE-SCOPING.md, R10-RCA-FIXER-MD-KEY.md, R10-RCA-FRICTION-CLAIM-FALSE.md) are judged for sufficiency first, not rewritten. The body carries one Closes line per issue it answers, because a multi-issue Closes line closes only the first; the group's fixes list is empty until the orchestrator wires it. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -14630,9 +14632,9 @@
     "From r10-planted-defect-audit (PR #3240), fix review round 2, verdict/3240 (probe/rev-3240-768e2f86, ev/stale-probe.txt): DISPATCH lines never leave the job file. After a trip clears, the line is kept (`recover-ok` and `ok-again`), and each new episode appends another. The fold stamps only new lines, so the orchestrator is not re-woken, but `digest.txt` keeps a done audit as an actionable line indefinitely and grows by one line per episode (measured: 3 episodes in 5.4 days). Fix: expire a DISPATCH line by age, or when its arm clears, matching the roster-drain HOLD-STALE precedent, with a self-test case, a mutant (expiry removed, case red) and a null control. Carry: R10-PLANTED-DEFECT-AUDIT"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-planted-defect-audit",
-    "commit": null,
+    "commit": "a2240924bdbcb582a5d77898268c6ab45baeca54",
     "last_step": null,
     "next_step": "dispatch a fixer: tvofi 2026-11-01 ruled dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block; owner gate cleared",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER; owner ruled 2026-11-01, gate cleared",
