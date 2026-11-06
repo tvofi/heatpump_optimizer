@@ -39,6 +39,8 @@ set -uo pipefail
 R=${FAILURE_LOGS_REPO:-tvofi/heatpump_optimizer}
 PACE=${FAILURE_LOGS_PACE:-1}
 api() { sleep "$PACE"; gh api "$@"; }
+# Job logs are read by merge_train.job_log (`job-log`), the one reader.
+joblog() { sleep "$PACE"; python3 "$(dirname "$0")/merge_train.py" job-log "$1" "$R"; }
 
 self_test() {
   passed=0; failed=0
@@ -146,7 +148,7 @@ while IFS=$'\t' read -r name concl crid url; do
   safe=$(printf '%s' "$name" | sed 's# / #-#g' | tr -c 'A-Za-z0-9._-' '-')
   f="$OUT/$safe-$jid.log"
   if [ ! -s "$f" ]; then
-    api --allow-escape-sequences "repos/$R/actions/jobs/$jid/logs" > "$f" 2>/dev/null \
+    joblog "$jid" > "$f" 2>/dev/null \
       || { rm -f "$f"; printf '%s\t%s\t%s\tNO-LOG\tjob %s (log not served)\n' \
              "$name" "$crid" "$concl" "$jid"; continue; }
   fi

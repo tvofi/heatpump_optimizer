@@ -33,7 +33,6 @@ print(J["closure-scope"]["id"] if ok else "")
 PY
 )
   [ -n "$jid" ] || continue
-  case_word=$(python3 -c 'import sys; sys.path.insert(0, sys.argv[1]); import merge_train as m; sys.stdout.write(m.job_log(None, sys.argv[2], sys.argv[3]) or "")' \
-      "$SEAT" "${R#repos/}" "$jid" 2>/dev/null | grep -o -E 'CASE: [A-Z]+' | head -1 | cut -d' ' -f2)
+  case_word=$(python3 "$SEAT/merge_train.py" job-log "$jid" "${R#repos/}" 2>/dev/null | grep -o -E 'CASE: [A-Z]+' | head -1 | cut -d' ' -f2)
   printf '%s\t%s\t%s\n' "$id" "$jid" "${case_word:-UNKNOWN}" >> "$C"
 done < "$D/ids.txt"

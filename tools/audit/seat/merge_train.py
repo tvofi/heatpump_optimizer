@@ -506,9 +506,11 @@ def job_log(run, repo: str, job_id) -> "str | None":
     """The one reader of an Actions job's log (a check run's id is its job's
     id): `gh api <ESCAPES_FLAG>`, and on a gh that does not know the flag the
     same read without it. None when the read fails, so no caller judges an
-    unread log. Every job-log read in this module, probe_bridge.py,
-    ci_script_seconds.py and critpath_fetch.sh goes through here; `run` None
-    is the train's own subprocess runner."""
+    unread log. `run` None is the train's own subprocess runner; a shell
+    caller reads it as `merge_train.py job-log <job id> <owner/repo>`. Every
+    Actions job-log read in the tree goes through here (`git grep -nE
+    'actions/jobs/[^ ]*/logs' -- '*.py' '*.sh'` names this module, fixtures
+    and the mutant harness alone)."""
     run = run or Train._run
     path = f"repos/{repo}/actions/jobs/{job_id}/logs"
     code, text = run(["gh", "api", ESCAPES_FLAG, path])
@@ -7741,6 +7743,13 @@ def main(argv: list[str]) -> int:
         sys.stdout.reconfigure(line_buffering=True)
     if argv[:1] == ["--self-test"]:
         return _self_test()
+    if argv[:1] == ["job-log"]:  # `job-log <job id> <owner/repo>`: job_log for a shell caller
+        if len(argv) != 3:
+            print("usage: merge_train.py job-log <job id> <owner/repo>", file=sys.stderr)
+            return 2
+        text = job_log(None, argv[2], argv[1])
+        sys.stdout.write(text or "")
+        return 0 if text is not None else 1
     stop_on_signal()
     rest: list[str] = []
     if argv[:1] == ["add"] and "--" in argv:  # the train.sh flags a started train gets

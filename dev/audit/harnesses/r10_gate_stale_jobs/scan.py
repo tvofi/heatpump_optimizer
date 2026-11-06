@@ -29,7 +29,16 @@ def api(path, *extra):
     if n >= max_calls:
         stop.set()
     p = subprocess.run(["gh", "api", *extra, path], capture_output=True, text=True, errors="replace")
-    return p.returncode, p.stdout
+    return p.returncode, p.stdout if p.returncode == 0 else p.stdout + p.stderr
+
+
+def job_log(job_id) -> "str | None":
+    """A job's log through merge_train.job_log, the one reader (gh's escape flag
+    where gh knows it), each gh call counted by `api`; None when unreadable."""
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tools" / "audit" / "seat"))
+    import merge_train
+    return merge_train.job_log(lambda argv, **_k: api(argv[-1], *argv[2:-1]), R, job_id)
 
 
 def quota():
@@ -78,8 +87,8 @@ def one(row):
     for g in jobs:
         if g["name"] != "gate" or g["conclusion"] != "failure":
             continue
-        rc, log = api(f"repos/{R}/actions/jobs/{g['id']}/logs", "--allow-escape-sequences")
-        if rc:
+        log = job_log(g["id"])
+        if log is None:
             res.append({"run": rid, "job": g["id"], "error": "log read"})
             continue
         at, why = reasons(log)
