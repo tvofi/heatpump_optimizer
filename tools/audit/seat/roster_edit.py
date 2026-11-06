@@ -69,6 +69,9 @@ a checkout main has moved past is a lint the tree no longer runs. An edit
 whose brief text the linter refuses is refused at the same gate, before
 anything reaches GitHub.
 
+Structural ops (wire-issue, unwire-issue, edit-brief, append-carry, set-after,
+drop-carry) run only through roster_queue.py, which sets HPO_ROSTER_LANE.
+
 Ops (all group ids must exist, except append-group which must not):
   set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
                over a pending carry is written `carries-open` and printed
@@ -1281,6 +1284,26 @@ def batch_edit(edits):
     return edit, results
 
 
+# The roster seat's lane (P215): the queue runner sets LANE_ENV in the child's
+# environment; the structural ops refuse any caller that does not carry it.
+LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
+STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
+                  "set-after", "drop-carry")
+
+
+def lane_refusal(op, group):
+    """The refusal text for a structural op called outside the roster queue
+    runner, else None. set-stage, append-group and set-resume stay directly
+    callable (nudge.md and sweep_template.md run them by hand). A caller that
+    sets the variable by hand is out of scope: the guard stops a caller that
+    does not know the lane, not one that forges it."""
+    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:
+        return (f"{op} {group} is the roster seat's lane: queue it and run "
+                f"tools/audit/seat/roster_queue.py (it sets {LANE_ENV}); "
+                f"nothing written")
+    return None
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -1290,9 +1313,21 @@ def main(argv=None) -> int:
         sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
         from throwaway_git import throwaway_git_environ
         with throwaway_git_environ():
-            return _self_test()
+            # the fixtures call the ops directly as the queue runner would
+            keep = os.environ.get(LANE_ENV)
+            os.environ[LANE_ENV] = LANE_VALUE
+            try:
+                return _self_test()
+            finally:
+                if keep is None:
+                    os.environ.pop(LANE_ENV, None)
+                else:
+                    os.environ[LANE_ENV] = keep
     a, value, rest = parse_op(argv)
     try:
+        why = lane_refusal(a.op, a.group)
+        if why:
+            raise Refuse(why)
         fetch_origin(a.checkout)
         ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
                                     a.roster_path)
@@ -2670,6 +2705,31 @@ def _self_test() -> int:
           got[0] == "ok" and got[1] == 2, got)
 
     shutil.rmtree(tmp, ignore_errors=True)
+    # --- the roster seat's lane (P215): structural ops need the queue runner's marker
+    saved_lane = os.environ.pop(LANE_ENV, None)
+    try:
+        for op_, extra_ in (("append-carry", "lane text"), ("drop-carry", "0"),
+                            ("wire-issue", "1"), ("unwire-issue", "1"),
+                            ("set-after", "[]"), ("edit-brief", "b")):
+            rc_, err_ = refusal(op_, "R9-A", extra_)
+            check(f"lane: {op_} without the marker is refused, naming the queue runner",
+                  rc_ == 2 and "roster_queue.py" in err_ and "R9-A" in err_, (rc_, err_[-120:]))
+        check("lane: lane_refusal names a structural op called without the marker",
+              lane_refusal("append-carry", "G") is not None)
+        check("lane: set-stage, append-group and set-resume stay directly callable (null)",
+              all(lane_refusal(o, "G") is None
+                  for o in ("set-stage", "append-group", "set-resume", "mark-carry")))
+        os.environ[LANE_ENV] = LANE_VALUE
+        check("lane: the same structural op with the marker is accepted (null)",
+              lane_refusal("append-carry", "G") is None)
+        os.environ[LANE_ENV] = "something-else"
+        check("lane: a marker with another value is not the lane",
+              lane_refusal("drop-carry", "G") is not None)
+    finally:
+        if saved_lane is None:
+            os.environ.pop(LANE_ENV, None)
+        else:
+            os.environ[LANE_ENV] = saved_lane
     print(f"roster_edit self-test: {passed} checks, "
           f"{len(failed)} failed")
     for f in failed:

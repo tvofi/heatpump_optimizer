@@ -8,7 +8,15 @@
     python3 -I tools/audit/seat/roster_queue.py loop [--every 300] ...
     python3 -I tools/audit/seat/roster_queue.py release-held --queue Q --edit-checkout DIR
     python3 -I tools/audit/seat/roster_queue.py unwired --edit-checkout DIR --open-issues FILE [--ref REF]
+    python3 -I tools/audit/seat/roster_queue.py show --edit-checkout DIR [--ref REF] [--stage S] [GROUP]
+    python3 -I tools/audit/seat/roster_queue.py diff --edit-checkout DIR REF_A REF_B
     python3 -I tools/audit/seat/roster_queue.py --self-test
+
+`show` and `diff` are read-only (`git show` of the roster at a ref, nothing
+written, nothing fetched): one line per group or every field of one group, and
+what changed between two refs (added, removed and changed groups and fields,
+carry entries by text; rc 1 when the refs differ, as diff's). They replace the
+scratch copies a seat rebuilds to read the roster.
 
 `run` applies queue lines FIRST..LAST (1-based; blank and `#` lines skipped, a
 leading line number dropped). Each line is `<op> <group> [arg] [--flag value ...]`, passed to
@@ -19,8 +27,9 @@ the runner lints from `--lint-clone`, a checkout it owns, fetched and detached
 at `origin/main` before every attempt, and retries up to four times when the
 refusal is that main moved or the push lost a race with a clean lint
 (the roster worktree is removed between attempts). It never moves
-`--edit-checkout` (the orchestrator's), which only supplies the tool and the
-roster. A refusal is reported, never forced.
+`--edit-checkout` (the orchestrator's), which only supplies the roster and the
+shims; the editor is `--editor` or the roster_edit.py beside this script, the
+same file for `run` and `run --batch` (`resolve_editor`). A refusal is reported, never forced.
 
 LINE GRAMMAR (one parser for `run`, `--batch` and `loop`): an unquoted word that
 begins with `#` ends the line (a `#` inside a word, or a quoted `'a # b'`,
@@ -49,6 +58,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib.util
 import io
 import json
 import os
@@ -61,6 +71,30 @@ from pathlib import Path
 
 ROSTER_REL = "dev/programme/rosters/wave-r10-groups.json"
 MOVED = "not origin/main"
+SEAT_DIR = Path(__file__).resolve().parent
+
+
+def resolve_editor(a):
+    """THE editor, resolved once for `run` and `run --batch` alike: the
+    `--editor` the caller passed, else the roster_edit.py beside this script.
+    Never a file under --edit-checkout, which supplies the roster and the shims
+    only, so a single-op run and a batch can never execute two versions, and
+    the self-test's throwaway clone (no roster_edit.py) needs none."""
+    return str(a.editor or SEAT_DIR / "roster_edit.py")
+
+
+def load_editor(path):
+    """The editor at `path` as a module, for the batch path (the single-op path
+    runs the same file as a subprocess). Raises when it is not a roster_edit."""
+    if "def batch_edit" not in Path(path).read_text():
+        raise RuntimeError(f"{path} is not a roster_edit.py (no batch_edit)")  # run nothing
+    spec = importlib.util.spec_from_file_location("roster_edit_batch", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    for need in ("parse_op", "make_edit", "batch_edit", "write_roster"):
+        if not hasattr(mod, need):
+            raise RuntimeError(f"{path} has no {need}: not a roster_edit.py")
+    return mod
 
 
 def _git(*a, cwd=None, env=None):
@@ -176,10 +210,11 @@ def replace_line(queue, old, new):
 
 def run_queue(a, python=None):
     env = dict(os.environ)
+    env["HPO_ROSTER_LANE"] = "queue-runner"  # roster_edit.LANE_ENV: structural ops need it
     shims = Path(a.edit_checkout, "tools/audit/seat/shims")
     if shims.is_dir():
         env["PATH"] = f"{shims}:{env['PATH']}"
-    editor = a.editor or str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))
+    editor = resolve_editor(a)
     py = python or "seat-python3"
 
     def sh(*c):
@@ -232,8 +267,6 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     op is rolled back and skipped. Any batch-level failure (a lint refusal, a
     gate refusal of the joint text, a lost race) falls back to the single-op
     path for every line, so a bad line never strands the others."""
-    sys.path.insert(0, str(Path(a.edit_checkout, "tools/audit/seat")))
-    import roster_edit as re_
     items = []
     for ln in lines:
         p = parse_line(ln)
@@ -246,6 +279,7 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     if a.branch:
         common += ["--branch", a.branch]
     try:
+        re_ = load_editor(editor)
         edits = []
         for _, (op, g, arg, extra) in items:
             with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
@@ -376,6 +410,93 @@ def unwired(roster, open_issues):
             if x.startswith("ISSUE-UNLISTED")]
 
 
+def roster_at(ref, cwd, rel=ROSTER_REL):
+    """The roster JSON at `ref`, read with `git show` only (read-only; carry 8)."""
+    s = _git("show", f"{ref}:{rel}", cwd=cwd)
+    if s.returncode:
+        raise RuntimeError(f"no {rel} at {ref}: {s.stderr.strip()[-120:]}")
+    return json.loads(s.stdout)
+
+
+def _groups(roster):
+    return {g["group"]: g for g in roster.get("groups", [])
+            if isinstance(g, dict) and "group" in g}
+
+
+def _short(v, n=70):
+    t = json.dumps(v, sort_keys=True) if not isinstance(v, str) else v
+    return t if len(t) <= n else t[:n - 1] + "~"
+
+
+def show_roster(roster, group=None, stage=None):
+    """Lines for `show`: one line per group (`GROUP stage pr=N after=K carries=N`,
+    optionally only one `resume.stage`), or every field of one group, its carry
+    entries numbered and the brief cut to 100 characters. None when `group`
+    names no group."""
+    gs = _groups(roster)
+    if group is not None:
+        g = gs.get(group)
+        if g is None:
+            return None
+        out = [f"{group}"]
+        for k, v in g.items():
+            if k == "resume" and isinstance(v, dict):
+                out += [f"  resume.{rk}: {_short(rv, 100)}" for rk, rv in v.items()]
+            elif k == "carry":
+                out.append(f"  carry: {len(v)} entries")
+                out += [f"    [{i}] {_short(c, 100)}" for i, c in enumerate(v)]
+            elif k == "brief":
+                out.append(f"  brief: {len(v)} chars: {_short(v, 100)}")
+            else:
+                out.append(f"  {k}: {_short(v, 100)}")
+        return out
+    out = []
+    for name, g in gs.items():
+        r = g.get("resume") or {}
+        if stage and r.get("stage") != stage:
+            continue
+        out.append(f"{name} {r.get('stage')} pr={r.get('pr')} after={len(g.get('after') or [])} "
+                   f"carries={len(g.get('carry') or [])}")
+    return out
+
+
+def diff_rosters(a, b):
+    """Lines describing what changed from roster `a` to `b`: `+ G` an added
+    group, `- G` a removed one, `~ G field: old -> new` a changed field
+    (`resume.<key>` for the resume dict), `~ G carry +<text>` / `-<text>` per
+    carry entry added or removed, `~ G brief` with the two lengths. Empty when
+    the rosters hold the same groups, field for field."""
+    ga, gb = _groups(a), _groups(b)
+    out = [f"- {g}" for g in ga if g not in gb] + [f"+ {g}" for g in gb if g not in ga]
+    for g in ga:
+        if g not in gb:
+            continue
+        x, y = ga[g], gb[g]
+        flat = lambda d: {**{k: v for k, v in d.items() if k != "resume"},  # noqa: E731
+                          **{f"resume.{k}": v for k, v in (d.get("resume") or {}).items()}}
+        fx, fy = flat(x), flat(y)
+        for k in dict.fromkeys([*fx, *fy]):
+            if fx.get(k) == fy.get(k):
+                continue
+            if k == "carry":
+                ca, cb = fx.get(k) or [], fy.get(k) or []
+                out += [f"~ {g} carry -{_short(c, 90)}" for c in ca if c not in cb]
+                out += [f"~ {g} carry +{_short(c, 90)}" for c in cb if c not in ca]
+            elif k == "brief":
+                out.append(f"~ {g} brief {len(fx.get(k) or '')} -> {len(fy.get(k) or '')} chars")
+            else:
+                out.append(f"~ {g} {k}: {_short(fx.get(k))} -> {_short(fy.get(k))}")
+    return out
+
+
+def _raises(f):
+    try:
+        f()
+    except Exception:  # noqa: BLE001
+        return True
+    return False
+
+
 def _self_test():
     fails = []
     n = [0]
@@ -423,6 +544,7 @@ def _self_test():
             f"c=pathlib.Path({str(t / 'calls')!r}); m=pathlib.Path({str(t / 'mode')!r})\n"
             "c.write_text(c.read_text()+' '.join(sys.argv[2:5])+'\\n')\n"
             f"pathlib.Path({str(t / 'argv')!r}).open('a').write(' '.join(sys.argv[1:])+'\\n')\n"
+            f"import os; pathlib.Path({str(t / 'lane')!r}).write_text(os.environ.get('HPO_ROSTER_LANE', 'absent'))\n"
             "if 'BAD' in sys.argv: print('REFUSED: unknown group'); sys.exit(2)\n"
             "if m.read_text()=='moved1':\n"
             "    m.write_text('ok'); print('--lint-cwd x is not origin/main'); sys.exit(3)\n"
@@ -445,6 +567,8 @@ def _self_test():
         ck("run: drop-carry --match reaches the editor as a flag, not a value",
            len(dl) == 1 and dl[0].startswith("drop-carry G --match x.py:1-2 --checkout ")
            and rep[3] == f"roster: drop-carry G pushed {sha[:9]}")
+        ck("run: the child editor carries the roster lane marker (roster_edit.LANE_ENV)",
+           (t / "lane").read_text() == "queue-runner")
         ck("run: alive touched", (t / "alive").exists())
         # P315 / #3020: a failing op writes its own FAILED line and stops the run;
         # a missing lint clone is refused by name, rc 2, before any op.
@@ -475,6 +599,17 @@ def _self_test():
            rc2 == 1 and r2[0] == f"roster: set-stage G pushed {sha[:9]}"
            and r2[1] == "roster: set-stage H FAILED FileNotFoundError: clone vanished"
            and len(r2) == 2)
+        # carry 13(2): a pass cut short (the drain's timeout) keeps every mark already written
+        q2.write_text("1 set-stage G done\n2 set-stage H done\n3 set-stage I done\n")
+        (t / "rep2").write_text("")
+        subprocess.run = boom
+        try:
+            run_queue(argparse.Namespace(**{**vars(a2), "mark": True}), python=sys.executable)
+        finally:
+            subprocess.run = real_sh
+        ck("run --mark: a pass that dies mid-queue keeps the marks already written, later lines stay unmarked",
+           q2.read_text().split("\n")[:3] == ["#done 1 set-stage G done", "2 set-stage H done",
+                                              "3 set-stage I done"], q2.read_text())
         (t / "rep3").write_text("roster: set-stage G byte-identical\n")
         a3 = argparse.Namespace(**{**vars(a2), "report": str(t / "rep3"),
                                    "lint_clone": str(t / "no-such-clone")})
@@ -569,9 +704,34 @@ def _self_test():
         ck("run --batch: a batch-level failure falls back to the single-op path",
            rr[0] == "roster: batch fell back to the single-op path"
            and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
+        # ONE editor for both paths (resolve_editor), named by what each path ran
+        seen = []
+        real_load = load_editor
+
+        def spy(path):
+            seen.append(path)
+            return real_load(path)
+        globals()["load_editor"] = spy
         fresh("1 set-stage G done\n")
         run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
                   python=sys.executable)
+        globals()["load_editor"] = real_load
+        ck("run --batch loads the passed --editor, and its fallback runs that same file",
+           seen == [str(stub)] and (t / "rep").read_text().split("\n")[1]
+           == f"roster: set-stage G pushed {sha[:9]}", seen)
+        ck("resolve_editor: no --editor is the roster_edit.py beside this script, never the edit checkout",
+           resolve_editor(argparse.Namespace(editor=None, edit_checkout=str(clone)))
+           == str(Path(__file__).resolve().parent / "roster_edit.py")
+           and not (clone / "tools/audit/seat/roster_edit.py").exists())
+        marker = t / "ran"
+        ghost = t / "ghost.py"
+        ghost.write_text(f"open({str(marker)!r}, 'w').write('x')\n")
+        ck("load_editor: a file that is no roster_edit is refused unexecuted",
+           _raises(lambda: load_editor(str(ghost))) and not marker.exists())
+        fresh("1 set-stage G done\n")
+        real_ed = str(Path(__file__).resolve().parent / "roster_edit.py")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True,
+                                        "editor": real_ed}), python=sys.executable)
         ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
            (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
         # release-held: a held carry waits for its batch file on origin/main
@@ -589,6 +749,48 @@ def _self_test():
         ck("unwired: an open issue no group lists is reported",
            unwired(ros, [5, 9]) == ["ISSUE-UNLISTED #9"])
         ck("unwired: every open issue listed reports nothing (null)", unwired(ros, [5]) == [])
+        # show / diff (carry 8): read-only, over `git show` of two refs
+        base_r = json.loads(_git("show", f"{sha}:{ROSTER_REL}", cwd=repo).stdout)
+        new_r = json.loads(json.dumps(base_r))
+        new_r["groups"][0]["carry"].append("second carry")
+        new_r["groups"][0]["resume"] = {"stage": "done", "pr": 7}
+        new_r["groups"].append({"group": "H", "carry": [], "resume": {"stage": "not-started"}})
+        (repo / ROSTER_REL).write_text(json.dumps(new_r))
+        _git("commit", "-qam", "r2", cwd=repo, env=env)
+        sha2 = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
+        before = (repo / ROSTER_REL).read_bytes()
+        d = diff_rosters(roster_at(sha, repo), roster_at(sha2, repo))
+        ck("diff: an added group, a changed resume field and an added carry are each one line",
+           d[0] == "+ H" and "~ G carry +second carry" in d
+           and "~ G resume.stage: null -> done" in d, d)
+        ck("diff: a removed group is `- G`",
+           diff_rosters(roster_at(sha2, repo), roster_at(sha, repo))[0] == "- H"
+           and "~ G carry -second carry" in diff_rosters(roster_at(sha2, repo), roster_at(sha, repo)))
+        ck("diff: the same ref twice is empty (null)",
+           diff_rosters(roster_at(sha2, repo), roster_at(sha2, repo)) == [])
+        ck("diff: a carry entry replaced by another is one - and one +, not unchanged (count alone is blind)",
+           sorted(x[:11] for x in diff_rosters({"groups": [{"group": "G", "carry": ["a"]}]},
+                                               {"groups": [{"group": "G", "carry": ["b"]}]}))
+           == ["~ G carry +", "~ G carry -"])
+        ck("show: one line per group, the stage and pr in it",
+           show_roster(roster_at(sha2, repo))
+           == ["G done pr=7 after=0 carries=2", "H not-started pr=None after=0 carries=0"])
+        ck("show --stage keeps only that stage (null: no filter lists both)",
+           show_roster(roster_at(sha2, repo), stage="done") == ["G done pr=7 after=0 carries=2"])
+        one = show_roster(roster_at(sha2, repo), "G")
+        ck("show G: every field, carries numbered, the brief absent here",
+           one[0] == "G" and "  resume.pr: 7" in one and "    [1] second carry" in one
+           and "  issues: [5]" in one, one)
+        ck("show: an unknown group is None, which the CLI makes rc 2",
+           show_roster(roster_at(sha2, repo), "NOPE") is None
+           and main(["show", "--edit-checkout", str(repo), "--ref", sha2, "NOPE"]) == 2)
+        ck("diff CLI: rc 1 when the refs differ, 0 when not, 2 for a missing ref",
+           main(["diff", "--edit-checkout", str(repo), sha, sha2]) == 1
+           and main(["diff", "--edit-checkout", str(repo), sha2, sha2]) == 0
+           and main(["diff", "--edit-checkout", str(repo), sha, "nosuchref"]) == 2)
+        ck("show and diff write nothing: the working tree and the index are as they were",
+           (repo / ROSTER_REL).read_bytes() == before
+           and _git("status", "--porcelain", cwd=repo, env=env).stdout == "")
         # loop: heals a missing lint clone, then applies and marks
         fresh("1 set-stage G done\n")
         lc = t / "healed"
@@ -632,6 +834,15 @@ def main(argv=None):
     uw.add_argument("--ref", default="origin/main")
     uw.add_argument("--open-issues", required=True,
                     help="JSON list of open issue numbers (or gh issue objects)")
+    sh_ = sub.add_parser("show")
+    sh_.add_argument("--edit-checkout", required=True)
+    sh_.add_argument("--ref", default="origin/main")
+    sh_.add_argument("--stage", help="only groups whose resume.stage is this")
+    sh_.add_argument("group", nargs="?")
+    df = sub.add_parser("diff")
+    df.add_argument("--edit-checkout", required=True)
+    df.add_argument("ref_a")
+    df.add_argument("ref_b")
     b = sub.add_parser("readback")
     b.add_argument("sha")
     b.add_argument("group")
@@ -660,6 +871,21 @@ def main(argv=None):
         out = unwired(json.loads(s_.stdout), [n for n in nums if isinstance(n, int)])
         print("\n".join(out) or "no unwired open issue")
         return 1 if out else 0
+    if a.cmd in ("show", "diff"):
+        try:
+            if a.cmd == "show":
+                lines = show_roster(roster_at(a.ref, a.edit_checkout), a.group, a.stage)
+                if lines is None:
+                    print(f"no group {a.group} in the roster at {a.ref}", file=sys.stderr)
+                    return 2
+            else:
+                lines = diff_rosters(roster_at(a.ref_a, a.edit_checkout),
+                                     roster_at(a.ref_b, a.edit_checkout))
+        except RuntimeError as e:
+            print(e, file=sys.stderr)
+            return 2
+        print("\n".join(lines) or ("no difference" if a.cmd == "diff" else "no group"))
+        return 1 if (a.cmd == "diff" and lines) else 0
     line, ok = readback(a.sha, a.group, a.file)
     print(line)
     return 0 if ok else 1
