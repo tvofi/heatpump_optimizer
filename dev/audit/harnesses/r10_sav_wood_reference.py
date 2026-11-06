@@ -26,6 +26,23 @@ so a positive row on these arms is wood's heat, expected, and the card says so:
 firewood's cost is not counted. ``wood-unforeseen`` meters under the plan: with
 wood configured the row's calibration only raises the reference (floor 1.0), and
 the arm prints what the uncalibrated row reads beside it.
+Its meter is a stated multiplier, not the plant's: it measures the floor's
+arithmetic, not the size of the heat.
+
+``wood-plant`` measures that size (R10-SAV-WOOD-HEAT). The fire is in the plant
+only (``FIRE_KW`` x ``FIRE_START_H``, ``FIRE_HOURS`` long, never forecast); the
+plant pump tracks the plan's own buffer trajectory over each ``REPLAN`` hold, so
+it draws less once wood carries the draw, and the meter reads
+``METER_OVER_MODEL`` m times what it drew (m: the model's own meter error,
+which the calibration exists to correct). The figure is the applied
+calibration's error against the true m, the fire's share being that error less
+the no-fire run's: ``RESULT wood_plant_error_m<m>`` with its spread over the
+grid. Controls: no fire, and flat prices (the row is volume only); the
+perturbation is the largest fire with the pump blind to it (meter = plan),
+whose error from the heat must read zero. What it cannot show: a real pump's
+control loop, a fire's coupling on a real house, or the coordinator's
+per-interval re-plan (the hold is ``REPLAN`` intervals, a wider window for the
+meter to leave the plan than production's one).
 
     PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py [--quick] [--no-settlement] [arm ...]
 """
