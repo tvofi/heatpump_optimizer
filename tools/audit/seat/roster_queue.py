@@ -4,6 +4,10 @@
     python3 -I tools/audit/seat/roster_queue.py run FIRST LAST --queue Q --report R \
         --edit-checkout DIR --worktree WT --lint-clone LC [--alive FILE] [--branch B]
     python3 -I tools/audit/seat/roster_queue.py readback SHA GROUP TEXTFILE
+    python3 -I tools/audit/seat/roster_queue.py run all --mark ... [--batch]
+    python3 -I tools/audit/seat/roster_queue.py loop [--every 300] ...
+    python3 -I tools/audit/seat/roster_queue.py release-held --queue Q --edit-checkout DIR
+    python3 -I tools/audit/seat/roster_queue.py unwired --edit-checkout DIR --open-issues FILE [--ref REF]
     python3 -I tools/audit/seat/roster_queue.py --self-test
 
 `run` applies queue lines FIRST..LAST (1-based; blank and `#` lines skipped, a
@@ -17,6 +21,21 @@ refusal is that main moved or the push lost a race with a clean lint
 (the roster worktree is removed between attempts). It never moves
 `--edit-checkout` (the orchestrator's), which only supplies the tool and the
 roster. A refusal is reported, never forced.
+
+LINE GRAMMAR (one parser for `run`, `--batch` and `loop`): an unquoted word that
+begins with `#` ends the line (a `#` inside a word, or a quoted `'a # b'`,
+stays); the first token after the group is the value unless it is a flag, and
+`--flag value` pairs reach roster_edit as flags. `--mark` rewrites each applied
+line in place as `#done <line>` (pushed, read-back not FAILED) or `#refused
+<line>`, re-reading the queue at write time and replacing it atomically, so a
+line appended meanwhile survives; `all` (with --mark) is every unmarked op line;
+`#` lines (`#done`, `#refused`, `#held`, `#note`) are never applied. `--batch`
+parses every line with roster_edit.parse_op, applies them in ONE worktree and
+pushes once (a refused op is rolled back and skipped; any batch-level failure
+falls back to the single-op path). `loop` re-provisions a missing --lint-clone,
+then runs `all --mark` every --every seconds. `release-held` frees `#held
+append-carry` lines whose batch file is on origin/main; `unwired` lists open
+issues no roster group lists (carry_audit's ISSUE-UNLISTED).
 
 Every `append-carry <group> @file` is read back from the pushed commit: the
 roster JSON at that SHA must hold the file's text exactly as one carry entry.
