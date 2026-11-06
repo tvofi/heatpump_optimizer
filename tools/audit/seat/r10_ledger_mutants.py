@@ -60,6 +60,7 @@ PLANTS = {
     "L31_merged_last_listed": (LEDGER, "merged[f[0]] = max(merged.get(f[0], 0), int(when))", "merged[f[0]] = int(when)"),
     "L32_dispose_home_silent": (LEDGER, "            if home.resolve() != Path(default_log()).parent.resolve():", "            if False:"),
     "L33_imported_verdict_unclosable": (LEDGER, "(text in lines or (named and verdict_head(text) is None) if", "(text in lines if"),
+    "L35_import_sha_dropped": (LEDGER, 'kind, when, sha = "verdict-unposted", f[1], f[3] if is_sha(f[3]) else "-"', 'kind, when, sha = "verdict-unposted", f[1], "-"'),
     "L34_backlog_escalates": (LEDGER, '        if last_open is not None and int(kv["ct"]) <= last_open:', '        if False:'),
     "B4_orphans_merged_pr_ignored": (BUS, '      if [ "$mt" -ge "$ct" ]; then mrg=$((mrg + 1)); continue; fi', '      if false; then mrg=$((mrg + 1)); continue; fi'),
     "R6_merged_unread_clears": (RELAY, '"$state/cloud-merged.$$" \\\n    || { echo "cloud_relay: could not list merged PRs',
