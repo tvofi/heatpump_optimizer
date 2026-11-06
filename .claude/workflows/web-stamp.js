@@ -138,12 +138,29 @@ reason: <its message>}. Return {stamped: true, version, tag_sha}.`
 const { repo, bump = 'patch', title, wave, session = 'claude-web', merged = [] } = args ?? {}
 if (!repo || !title) throw new Error('args.repo and args.title are required')
 
+// Carry 15 (record PRs ride the stamp): a pull request whose every changed path
+// is a record is HELD-FOR-STAMP by merge_train's queue, add and sweep. This step,
+// before the stamp agent, lands every held record in one train, so the notes and
+// the tag carry them. Not a fragment: only this launcher runs it.
+const recordsPrompt = (repo) => `In ${repo}: if test -f
+~/.zcode/stamp-deploy.key fails, return {landed: false, reason: "no deploy key
+in this runtime; hand the stamp to a local orchestrator"} and change nothing.
+Else run python3 tools/audit/seat/merge_train.py sweep --stamp --repo ${repo}
+from the repository root. Its last line SWEEP HELD or SWEEP REFUSED returns
+{landed: false, reason: <that line>}. On SWEEP DONE with no pull request
+handed to add, return {landed: true, handed: 0}. Otherwise wait for the train
+to close -- the rc file in its state dir (merge_train under $HPO_STATE_DIR,
+else ~/.local/state/hpo) rewritten after the sweep -- and return {landed: rc
+is 0, handed: <n>, reason: <train.log's last line>}.`
+
 phase('Stamp')
 const lastSha = merged.filter((m) => m?.sha).map((m) => m.sha).pop()
 if (lastSha) {
   const gate = await agent(waitMainPrompt(lastSha), { model: 'sonnet', label: 'main gate', phase: 'Stamp', schema: { type: 'object', required: ['green'] } })
   if (!gate?.green) { log(`main is not green at ${lastSha}; not stamping`); return { gate } }
 }
+const records = await agent(recordsPrompt(repo), { model: 'sonnet', label: 'records', phase: 'Stamp', schema: { type: 'object', required: ['landed'] } })
+if (!records?.landed) { log(`held records not landed: ${records?.reason ?? 'records agent returned null'}; not stamping`); return { records } }
 const stamp = await agent(stampPrompt(repo, bump, title), { model: 'opus', effort: 'high', label: 'stamp', phase: 'Stamp', schema: { type: 'object', required: ['stamped'] } })
 if (!stamp?.stamped) log(`not stamped: ${stamp?.reason ?? 'stamp agent returned null'}`)
 
