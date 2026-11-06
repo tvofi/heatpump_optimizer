@@ -19,10 +19,10 @@
 # function update_pr.sh's ensure_row also calls (its header says why).
 # The arguments are checked before anything runs and every other stop reports
 # itself (pr_args.sh: a body sha passed as the code sha once stopped this script
-# silently). --self-test runs delivery_row.sh's self-test, then pr_args.sh's.
+# silently). --self-test runs delivery_row.sh's self-test; pr_args.sh's runs once, in its own
+# governance step (#3245 carry 2: run here and in update_pr.sh too it cost the job 6.6 of its 30 min).
 . "$(dirname -- "$0")/delivery_row.sh"; . "$(dirname -- "$0")/pr_args.sh"
-[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
-  bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }
+[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }
 PR_NAME=open_pr; pr_trap; unset GIT_AUTHOR_NAME; SEAT=$(cd "$(dirname -- "$0")" && pwd)
 pr_exit_trap  # every exit, a stop signal's included, ends the tree this run started
 PRT=$(cd "$(dirname -- "$0")/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it

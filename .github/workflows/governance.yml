@@ -265,14 +265,13 @@ jobs:
     # request whose every changed file is product (prelude.machinery).
     if: inputs.machinery != 'false'
     runs-on: ubuntu-latest
-    # 20, not 10: the seat self-tests below add about four minutes run
-    # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
-    # and update_pr.sh), beside the job's three. 30, not 20: beatd.py's
-    # self-test is sleep-bound; with its mutants run serially this job took
-    # 26 min at #2916's ad1ba9adb. They now run four at a time
-    # (MUTANT_WORKERS), the self-test about 4.5 min, so the job is about
-    # 21 min of 30 (#2873's, without it, ran 16.5).
-    timeout-minutes: 30
+    # Measured (#3245 carry 2): job 127760826703 ran every step green and was
+    # cancelled at 30:03 of 30; its dearest steps were prepr's self-test 5:36,
+    # beatd's 4:35 and pr_args.sh's 3:20, which open_pr.sh and update_pr.sh ran
+    # twice more (6:38). They now run only delivery_row.sh's, so that run is
+    # about 23.5 min; one runner ran the same steps 1.35x slower than another
+    # (prepr's 4:08 against 5:36), so 40 keeps that spread with headroom.
+    timeout-minutes: 40
     env:
       HPO_JOB_GRADES: nothing
     steps:
@@ -739,13 +738,12 @@ jobs:
           python3 -I tools/audit/seat/moved_paths.py --self-test | tee "$RUNNER_TEMP/moved-paths-self-test.txt"
           grep -Eq '^moved_paths self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/moved-paths-self-test.txt"
 
-      - name: Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+      - name: Show the PR opener (delivery_row.sh's self-test) refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash tools/audit/seat/open_pr.sh --self-test | tee "$RUNNER_TEMP/open-pr-self-test.txt"
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/open-pr-self-test.txt"
 
       - name: Show the plan table refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -960,13 +958,12 @@ jobs:
           python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
           grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
 
-      - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+      - name: Show the PR updater (delivery_row.sh's self-test) refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash tools/audit/seat/update_pr.sh --self-test | tee "$RUNNER_TEMP/update-pr-self-test.txt"
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
-          grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
 
       - name: Show the offline spy refusing its own fixtures
         if: ${{ !cancelled() }}
