@@ -1,0 +1,12 @@
+== merge-tree vs origin/main
+9cbd7dd0d7a66163b5b593dfe55f1d8b220785de
+b5083c84f9558f0daff72359c827299ce28e21b8
+rc=0
+== untouched: VERSION manifest RELEASE_NOTES custom_components
+0
+== budgets diff
+0
+== closure select
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no changed files could be determined
