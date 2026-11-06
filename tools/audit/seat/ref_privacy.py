@@ -161,9 +161,9 @@ _REF_CHARS = re.compile(r"^[A-Za-z0-9._/-]+$")
 _SLUG_UNSAFE = re.compile(r"[^A-Za-z0-9_]+")
 
 
-#: Homes that name no person: the no-home placeholder (Debian's `nobody`,
-#: `HOME=/nonexistent`) and a public account's own (`/root`, `/home/runner`,
-#: `/home/user`), the cloud seat's. A seat on one has no host identity to hide.
+#: Homes that name no person: the no-home placeholder (Debian's `nobody`) and
+#: a public account's own, the cloud seat's. A seat on one has no host identity
+#: to hide; `_public_home` is the predicate.
 NO_HOMES = frozenset({"/nonexistent", "/"})
 
 
