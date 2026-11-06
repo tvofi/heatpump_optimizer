@@ -1,0 +1,5 @@
+job 127676643712 tests / nightly-status at head 33a345901352189f67afe91df1db27970b25aa46, PINNED c679f4b692f4
+NIGHTLY FAILED: slow failed 1 night ago.
+  scheduled run 41943946464, 2026-11-05T00:47:36+00:00, head 499162c, run conclusion 'failure'
+  failing jobs: slow failure https://github.com/tvofi/heatpump_optimizer/actions/runs/41943946464/job/126971378040
+##[error]Process completed with exit code 1.

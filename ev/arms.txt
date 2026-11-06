@@ -1,0 +1,82 @@
+=== valve-vary
+valve-vary
+  row: baseline 96.11 actual 67.43 saved 28.68 pct 29.840807408178126
+  row: stored_heat_sek -8.75 comfort_sek 2.82
+  calibration 1.0; uncalibrated baseline 104.86, pct 35.70
+  plan kWh 67.47 at COP 1.834; booked reference 72.28 at COP 1.820; gap +4.82; mean room 19.05 C against 21.00
+  comfort term +2.35 kWh_e (the reference's warmer house); stored term -8.78 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 61.15 kWh against plan 67.47: -10.33 %
+  winter_typical: pct 29.840807408178126, residual -10.33 % (rule: flat |pct| < 10.0; vary pct above flat by the timing saving, printed)
+valve-vary: SOUND
+arms run 1, defect 0: -
+=== valve-flat
+valve-flat
+  row: baseline 80.19 actual 79.81 saved 0.38 pct 0.47387454794862205
+  row: stored_heat_sek -6.54 comfort_sek 2.39
+  calibration 1.0; uncalibrated baseline 86.74, pct 7.99
+  plan kWh 66.51 at COP 1.925; booked reference 72.28 at COP 1.820; gap +5.78; mean room 18.68 C against 21.00
+  comfort term +2.83 kWh_e (the reference's warmer house); stored term -5.21 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 64.24 kWh against plan 66.51: -3.52 %
+  flat: pct 0.47387454794862205, residual -3.52 % (rule: flat |pct| < 10.0; vary pct above flat by the timing saving, printed)
+valve-flat: SOUND
+arms run 1, defect 0: -
+=== wood-cold
+wood-cold
+  row: baseline 80.53 actual 80.26 saved 0.27 pct 0.33527877809511986
+  row: stored_heat_sek -6.2 comfort_sek 2.39
+  calibration 1.0; uncalibrated baseline 86.74, pct 7.47
+  plan kWh 66.89 at COP 1.923; booked reference 72.28 at COP 1.820; gap +5.39; mean room 18.69 C against 21.00
+  comfort term +2.83 kWh_e (the reference's warmer house); stored term -4.65 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 64.80 kWh against plan 66.89: -3.22 %
+wood-cold: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+=== wood-stale
+wood-stale
+  row: baseline 81.6 actual 76.02 saved 5.58 pct 6.838235294117648
+  row: stored_heat_sek -5.14 comfort_sek 2.38
+  calibration 1.0; uncalibrated baseline 86.74, pct 12.36
+  plan kWh 63.35 at COP 1.930; booked reference 72.28 at COP 1.820; gap +8.93; mean room 18.67 C against 21.00
+  comfort term +2.83 kWh_e (the reference's warmer house); stored term -8.20 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 61.25 kWh against plan 63.35: -3.42 %
+wood-stale: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+=== wood-coast
+wood-coast
+  row: baseline 81.47 actual 50.12 saved 31.35 pct 38.48042224131583
+  row: stored_heat_sek -5.27 comfort_sek 1.89
+  calibration 1.0; uncalibrated baseline 86.74, pct 42.22
+  plan kWh 41.76 at COP 2.023; booked reference 72.28 at COP 1.820; gap +30.52; mean room 19.02 C against 21.00
+  comfort term +2.39 kWh_e (the reference's warmer house); stored term -28.00 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 41.89 kWh against plan 41.76: +0.31 %
+wood-coast: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+=== wood-unforeseen
+wood-unforeseen
+  row: baseline 81.33 actual 44.15 saved 37.18 pct 45.71498831919341
+  row: stored_heat_sek -5.41 comfort_sek 2.4
+  calibration 1.0; uncalibrated baseline 86.74, pct 49.10
+  plan kWh 40.63 at COP 1.851; booked reference 72.28 at COP 1.820; gap +31.65; mean room 18.66 C against 21.00
+  comfort term +2.85 kWh_e (the reference's warmer house); stored term -8.53 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 60.89 kWh against plan 40.63: +33.28 %
+wood-unforeseen: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+=== wood-fire
+wood-fire
+  row: baseline 84.68 actual 48.84 saved 35.84 pct 42.32404345772319
+  row: stored_heat_sek -2.06 comfort_sek 2.42
+  calibration 1.0; uncalibrated baseline 86.74, pct 43.69
+  plan kWh 40.70 at COP 1.852; booked reference 72.28 at COP 1.820; gap +31.58; mean room 18.63 C against 21.00
+  comfort term +2.88 kWh_e (the reference's warmer house); stored term -8.31 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 61.09 kWh against plan 40.70: +33.38 %
+wood-fire: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
+=== wood-full
+wood-full
+  row: baseline 95.88 actual 10.51 saved 85.37 pct 89.0383813099708
+  row: stored_heat_sek 9.15 comfort_sek 1.02
+  calibration 1.0; uncalibrated baseline 86.74, pct 87.88
+  plan kWh 8.76 at COP 1.944; booked reference 72.28 at COP 1.820; gap +63.52; mean room 19.75 C against 21.00
+  comfort term +1.55 kWh_e (the reference's warmer house); stored term +6.37 kWh_e (the plan's store change)
+  residual: reference less comfort, plus stored, 77.09 kWh against plan 8.76: +88.64 %
+wood-full: measured, not asserted (the saving includes wood's heat; firewood not counted)
+arms run 1, defect 0: -
