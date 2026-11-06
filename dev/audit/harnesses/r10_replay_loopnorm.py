@@ -71,7 +71,7 @@ def _job_log(job: str) -> str:
     """A job's log through merge_train.job_log, the one reader (gh's escape flag
     where gh knows it); an unread log raises CalledProcessError with gh's stderr,
     as `_gh` does, so a 404 still reads as no reading."""
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
+    sys.path.insert(0, str(ROOT / "tools" / "audit" / "seat"))
     import merge_train
     err: list[str] = []
 
