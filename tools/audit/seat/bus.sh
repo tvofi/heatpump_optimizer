@@ -501,6 +501,26 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
   return 1
 }
 
+autofix_inflight() { # head -> prints the autofix bot jobs of the head that are not completed; rc 1 when the read failed
+  local raw err t=1 tries=${HPO_BUS_READ_TRIES:-4} out
+  err=$(mktemp "${TMPDIR:-/tmp}/bus-checks.XXXXXX") || return 1
+  while :; do
+    # --paginate: a head can carry more than one page of 100 check-runs. Every page is JSON the
+    # filter reads; the same classifier the Python instruments use (gh_read.py) decides whether a
+    # failure is worth another read, and a failure no later read can ride out refuses at once.
+    if raw=$(${HPO_BUS_CHECKS:-${HPO_BUS_GH:-gh} api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100"} 2>"$err") \
+       && out=$(printf '%s' "$raw" | jq -r '.check_runs[] | select(.status != "completed") | .name' 2>>"$err"); then  # mut:completedfilter
+      rm -f "$err"
+      printf '%s\n' "$out" | grep -E '^(mutation|closures|claims)-autofix$' | sort -u | paste -sd, -
+      return 0
+    fi
+    if [ "$t" -ge "$tries" ] || ! python3 -I "$ROOT/tools/audit/seat/gh_read.py" --classify < "$err"; then
+      sed 's/^/bus: check-runs read: /' "$err" >&2; rm -f "$err"; return 1
+    fi
+    t=$((t + 1)); sleep "${HPO_BUS_READ_SLEEP:-5}"
+  done
+}
+
 # THE WORKER REGISTRY is $S/dispatched, one line per dispatch, `<pr> <head> <reviewer> <nonce>
 # <utc> <model|->` (lines before R10-ORCH-DISPATCH-REG stop at the nonce). Every reader keys on
 # the first four fields. `--nonce` re-records a nonce minted earlier at the same pr and head --
@@ -608,10 +628,10 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
   # THE AUTOFIX HOLD (P344): a bot job that can still push a commit (mutation-autofix,
   # closures-autofix, claims-autofix queued or in progress) moves the head under the reviewer, so
   # the dispatch waits (rc 3). A completed job, red or green, is no commit coming. --force
-  # overrides with one ledger line. The check-runs are read once; HPO_BUS_CHECKS replaces the read.
+  # overrides with one ledger line. The check-runs are read once (autofix_inflight); HPO_BUS_CHECKS
+  # replaces the `gh api` call and prints the raw check-run JSON, so the status filter below runs.
   if [ -z "$n" ]; then
-    fixing=$(${HPO_BUS_CHECKS:-${HPO_BUS_GH:-gh} api "repos/$REPO/commits/$h/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'} 2>/dev/null \
-             | grep -E '^(mutation|closures|claims)-autofix$' | sort -u | paste -sd, -) || fixing=""
+    fixing=$(autofix_inflight "$h") || printf 'bus: the check-runs of %s could not be read, so the autofix hold was NOT checked and this dispatch proceeds without it\n' "$h" >&2
     if [ -n "$fixing" ]; then  # mut:autofixhold
       if [ -n "$force" ]; then
         printf '%s dispatch --force #%s %s over %s\n' "$(date -u +%FT%TZ)" "$pr" "$h" "$fixing" >> "$S/dispatch-force" 2>/dev/null || :
@@ -665,18 +685,23 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
 }
 
 confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr>, then posts it
-  local lk holder rc
+  local lk holder rc blank=0
   numeric "${1:-}" || die "confirm: the pull request '${1:-}' is not a number"
   # One confirm per pull request at a time, across the replay pre-check, append_commit and
   # post_verdict (P354): the lock holds the pid and a dead holder's is taken over (watch.lock).
   mkdir -p "$S" || die "confirm: cannot create $S"
   lk=$S/confirm.$1.lock
+  # A lock taken by mkdir has no pid for a moment: an EMPTY pid file is a holder still writing it,
+  # live for a bounded settle (HPO_BUS_PID_SETTLE polls of 0.2 s, 2 s by default), and only then
+  # a holder that died between its mkdir and its write.
   until mkdir "$lk" 2>/dev/null; do
     holder=$(cat "$lk/pid" 2>/dev/null)
-    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock
-      sleep 1
+    if [ -z "$holder" ] && [ "$blank" -lt "${HPO_BUS_PID_SETTLE:-10}" ]; then  # mut:pidsettle
+      blank=$((blank + 1)); sleep 0.2
+    elif [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock
+      blank=0; sleep 1
     else
-      rm -rf "$lk"
+      rm -rf "$lk"; blank=0
     fi
   done
   printf '%s\n' "$$" > "$lk/pid"
@@ -914,7 +939,7 @@ self_test() {
   # 7, 9, 12, 21, 22 and 24 (21-24 are the FETCHHEAD/poster arms' pull
   # requests); h2 (a child) inherits them; norow is the base, with none.
   mkdir -p "$W/seat/$ROW_DIR"
-  for n in 7 9 12 21 22 24 30 31 32; do
+  for n in 7 9 12 21 22 24 30 31 32 33 34; do
     printf -- '- [#%s](https://github.com/o/r/pull/%s) — **open**\n' "$n" "$n" > "$W/seat/$ROW_DIR/$n.md"
   done
   git -C "$W/seat" -c user.name=t -c user.email=t@t add -A
@@ -1640,16 +1665,65 @@ B
   expect "a second reviewer at a head holding a merge verdict is refused, recording nothing" $?
   out=$(run dispatch 30 "$h2" cmsg_S3); rc=$?
   [ $rc = 0 ]; expect "null control: a head with no verdict dispatches (the first dispatch at a head is accepted)" $?
-  printf 'mutation-autofix\nprelude\n' > "$W/checks-in"; printf '#!/bin/bash\ncat "%s/checks-in"\n' "$W" > "$W/checks"
+  # The stub stands in for `gh api` and prints the API's own JSON, so bus.sh's status filter runs:
+  # $W/checks-in holds `name status` lines, rendered to {"check_runs":[{name,status}...]}.
+  chk() { # name-status pairs... -> a check-runs response on $W/checks-in's stub
+    printf '#!/bin/bash\nif [ -n "${BUS_TEST_CHECKS_FAIL:-}" ]; then echo "gh: Not Found (HTTP 404)" >&2; exit 1; fi\njq -Rn \x27{check_runs: [inputs | split(" ") | {name: .[0], status: .[1]}]}\x27 < "%s/checks-in"\n' "$W" > "$W/checks"
+  }
+  chk
   nd=$(grep -c . "$W/state/dispatched")
+  printf 'mutation-autofix in_progress\nprelude completed\n' > "$W/checks-in"
   out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 31 "$h1" cmsg_A); rc=$?
   [ $rc = 3 ] && echo "$out" | grep -q "HOLD.*mutation-autofix" && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
-  expect "a dispatch is held (rc 3, naming the job) while mutation-autofix is queued or running, recording nothing (P344)" $?
+  expect "a dispatch is held (rc 3, naming the job) while mutation-autofix is in progress, recording nothing (P344)" $?
+  printf 'closures-autofix queued\n' > "$W/checks-in"
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 31 "$h1" cmsg_A); rc=$?
+  [ $rc = 3 ] && echo "$out" | grep -q "HOLD.*closures-autofix"; expect "a queued closures-autofix holds the dispatch too (P344)" $?
   out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 31 "$h1" cmsg_A --force); rc=$?
   [ $rc = 0 ] && [ -s "$W/state/dispatch-force" ]; expect "--force dispatches over the hold and writes one ledger line (P344)" $?
-  printf 'prelude\n' > "$W/checks-in"
+  printf 'mutation-autofix completed\nclosures-autofix completed\nclaims-autofix completed\nprelude completed\n' > "$W/checks-in"
   out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 32 "$h1" cmsg_A); rc=$?
-  [ $rc = 0 ]; expect "null control: no autofix job in flight dispatches (a completed one is never listed) (P344)" $?
+  [ $rc = 0 ]; expect "all autofix jobs completed dispatches (P344)" $?
+  printf 'claims-autofix completed\nprelude completed\n' > "$W/checks-in"
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 32 "$h2" cmsg_A); rc=$?
+  [ $rc = 0 ]; expect "a red completed autofix job is no commit coming: it dispatches (P344)" $?
+  printf 'prelude completed\n' > "$W/checks-in"
+  out=$(HPO_BUS_CHECKS="bash $W/checks" run dispatch 32 "$h1" cmsg_A2); rc=$?
+  [ $rc = 0 ]; expect "null control: no autofix job at all dispatches (P344)" $?
+  # A failed read says so: it neither holds nor passes in silence (a 404 is no read a retry rides out).
+  out=$(BUS_TEST_CHECKS_FAIL=1 HPO_BUS_CHECKS="bash $W/checks" run dispatch 32 "$h2" cmsg_A3); rc=$?
+  [ $rc = 0 ] && echo "$out" | grep -q "could not be read, so the autofix hold was NOT checked" && echo "$out" | grep -q "check-runs read: gh: Not Found"
+  expect "a failed check-runs read is reported on a line, not swallowed (P344)" $?
+  # P374 arm (b), #3173: a confirm whose poster refused leaves verdict/<pr> at its signed commit; a
+  # second review commit with the SAME tree, confirmed, appends nothing and posts at that commit.
+  N33=$(run dispatch 33 "$h1" cmsg_T | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h1" "$N33" > "$W/t33.md"
+  seat push-verdict 33 "$W/t33.md" "$W/ev1" >/dev/null
+  rt1=$(tip review/33)
+  BUS_TEST_POSTER_FAIL=1 run confirm 33 "$rt1" >/dev/null
+  vt1=$(tip verdict/33)
+  rt2=$(git -C "$W/seat" commit-tree "$rt1^{tree}" -p "$rt1" -m "second review commit, same tree" | tee "$W/rt2" )
+  git -C "$W/seat" push -q origin "$rt2:refs/heads/review/33"
+  out=$(run confirm 33 "$rt2"); rc=$?
+  [ "$(tip verdict/33)" = "$vt1" ] && echo "$out" | grep -q "^BUS posted 33 $vt1 "
+  expect "a confirm on a second review commit of the same tree leaves verdict/<pr> at the first signed commit and posts there (P374)" $?
+  # P354: two concurrent confirms of one commit produce one verdict commit and one post.
+  N34=$(run dispatch 34 "$h1" cmsg_U | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h1" "$N34" > "$W/t34.md"
+  seat push-verdict 34 "$W/t34.md" "$W/ev1" >/dev/null
+  rt=$(tip review/34); c0=$(calls)
+  run confirm 34 "$rt" > "$W/cc1" & cp1=$!
+  run confirm 34 "$rt" > "$W/cc2" & cp2=$!
+  wait "$cp1" "$cp2"
+  [ "$(git -C "$W/origin.git" rev-list --count "verdict/34")" = 1 ] && [ "$(( $(calls) - c0 ))" = 1 ] \
+    && [ "$(cat "$W/cc1" "$W/cc2" | grep -c '^BUS posted 34 ')" = 1 ]
+  expect "two concurrent confirms produce one verdict commit and one post (P354)" $?
+  # An empty pid file is a holder still writing it: it waits out the settle, then is taken over.
+  mkdir -p "$W/state/confirm.7.lock"; : > "$W/state/confirm.7.lock/pid"
+  run confirm 7 "$r1" >/dev/null 2>&1 & cw=$!; sleep 1
+  kill -0 "$cw" 2>/dev/null && [ -d "$W/state/confirm.7.lock" ]; expect "a lock whose pid is not yet written is a live holder inside the settle (P354)" $?
+  wait "$cw" 2>/dev/null
+  [ ! -d "$W/state/confirm.7.lock" ]; expect "null control: an empty pid left past the settle is a dead holder's, taken over (P354)" $?
 
   # The block below re-dispatches at $h1 many times; its merge verdict is retired first (the
   # refusal of a second reviewer at a merge-verdict head is exercised on pull request 30 below).
