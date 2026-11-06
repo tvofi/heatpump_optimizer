@@ -462,20 +462,47 @@ def cases(bj) -> dict[str, bool]:
     bj.audit_dispatch(c)
     res["audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"] = (
         files(c) == before and files(c).get("new.stamp") == stamp)
-    rs["text"] = "\n".join([trip.format(a="all"), trip.format(a="local").replace("11-01T02", "11-02T02"), okl, tail]) + "\n"
+    slid = trip.format(a="all").replace("11-01T02", "11-02T02")
+    rs["text"] = "\n".join([slid, trip.format(a="local"), okl, tail]) + "\n"
     bj.audit_dispatch(c)
-    res["audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more"] = (
-        digest(c).splitlines() == ["DISPATCH: planted-defect-audit arm=local cut=10-20T01:00Z..11-02T02:00Z"])
+    res["audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none"] = (
+        digest(c).splitlines() == ["DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z",
+                                   "DISPATCH: planted-defect-audit arm=local cut=10-20T01:00Z..11-01T02:00Z"])
+    rs["text"] = "\n".join([okl.replace("cloud", "all"), trip.format(a="local"), tail]) + "\n"
+    bj.audit_dispatch(c)
+    rs["text"] = "\n".join([slid, tail]) + "\n"
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a trip that clears and trips again dispatches again"] = (
+        digest(c).splitlines()[-1] == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-02T02:00Z")
     rs["text"] = "\n".join([okl, insuf, tail]) + "\n"
     c, _ = fresh(answers={"review_strength.py": lambda a: (0, rs["text"], "")})
     bj.audit_dispatch(c)
     res["audit-dispatch null: only ok and insufficient arm lines write no job, no digest, no memory"] = (
         not digest(c) and not (c.digest / "jobs" / "audit-dispatch").exists()
         and not (c.digest / "state" / "audit-dispatch.json").exists())
-    c, _ = fresh(answers={"review_strength.py": (2, trip.format(a="all") + "\n", "boom")})
+    fail = {"v": (2, trip.format(a="all") + "\n", "boom")}
+    c, _ = fresh(answers={"review_strength.py": lambda a: fail["v"]})
     bj.audit_dispatch(c)
     res["audit-dispatch: a failed run is UNREADABLE, never a dispatch"] = (
         digest(c) == "audit-dispatch: UNREADABLE review_strength boom\n")
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a still-failing run stays UNREADABLE"] = (
+        digest(c) == "audit-dispatch: UNREADABLE review_strength boom\n")
+    fail["v"] = (0, okl + "\n", "")
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a good run after a failed one clears UNREADABLE"] = not digest(c)
+    fail["v"] = (0, trip.format(a="all") + "\n", "")
+    bj.audit_dispatch(c)
+    fail["v"] = (2, "", "boom")
+    bj.audit_dispatch(c)
+    fail["v"] = (0, trip.format(a="all") + "\n", "")
+    bj.audit_dispatch(c)
+    res["audit-dispatch: recovering on the same trip clears UNREADABLE and keeps the DISPATCH line"] = (
+        digest(c) == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z\n")
+    c, _ = fresh(answers={"review_strength.py": (0, tail + "\n", "")})
+    bj.audit_dispatch(c)
+    res["audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"] = (
+        digest(c).startswith("audit-dispatch: UNREADABLE"))
 
     # fold
     c, _ = fresh()
@@ -611,8 +638,17 @@ MUTANTS = {
                            "audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none"),
     "audit_no_memory": ('        if m and f"{m[1]} {m[2]}" not in sent:', '        if m:',
                         "audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"),
-    "audit_key_arm_only": ('sent.append(f"{m[1]} {m[2]}")', 'sent.append(f"{m[1]}")',
-                           "audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more"),
+    "audit_no_memory": ('        if m and arm not in tripped:', '        if m:',
+                        "audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"),
+    "audit_key_by_span": ('        if m and arm not in tripped:\n            tripped.append(arm)',
+                          '        if m and f"{arm} {m[2]}" not in tripped:\n            tripped.append(f"{arm} {m[2]}")',
+                          "audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none"),
+    "audit_trip_never_clears": ("        elif not m and arm in tripped:", "        elif False:",
+                                "audit-dispatch null: a trip that clears and trips again dispatches again"),
+    "audit_no_clearing_write": ('    write_job(ctx, "audit-dispatch", kept + new)', '    if new:\n        write_job(ctx, "audit-dispatch", kept + new)',
+                                "audit-dispatch: a good run after a failed one clears UNREADABLE"),
+    "audit_unclassified_kept": (' and " unclassified " not in ln]', ']',
+                                "audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"),
     "audit_rc_ignored": ("    if rc != 0 or not arms:", "    if not arms:",
                          "audit-dispatch: a failed run is UNREADABLE, never a dispatch"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
