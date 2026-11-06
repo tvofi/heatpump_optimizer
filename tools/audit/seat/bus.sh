@@ -201,12 +201,18 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
 #: THE CHEAP CHECKS (card C8): a dispatch waits for these to conclude at the head, and no other check.
 #: Check-run names as GitHub reports them, `<caller job> / <called job>` for a reusable workflow
 #: (the form tools/policy/fixtures/required-contexts.json's gate_required lists).
+#: Each caller job in ci.yml needs only `prelude`: a job that needs another unit (pr-contract
+#: needs every one) has no check run while the head is WAIT, so it would never gate a dispatch
+#: (cheap_caller_ok; the self-test reads ci.yml for every entry).
 CHEAP_CHECKS=(
   "tests / mutation"         # .github/workflows/tests.yml job `mutation`, called as `tests` by ci.yml
   "tests / typing"           # .github/workflows/tests.yml job `typing`
-  "pr-contract / pr-contract" # .github/workflows/pr-contract.yml job `pr-contract`, called as `pr-contract` by ci.yml
   "governance / policy-docs" # .github/workflows/governance.yml job `policy-docs`, called as `governance` by ci.yml
 )
+cheap_caller_ok() { # check-run name, ci.yml -> rc 0 when its caller job needs only prelude
+  awk -v j="${1%% / *}:" '$0 == "  " j { f = 1; next } f && /^  [^ ]/ { exit } f && /^    needs:/ { print $2; exit }' "$2" \
+    | grep -qx prelude
+}
 pending_checks() { # head -> the names of the head's check runs not yet completed, one per line; rc 1 unreadable
   if [ -n "${HPO_BUS_PENDING:-}" ]; then ${HPO_BUS_PENDING} "$1"
   else gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'
@@ -573,7 +579,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     3) # THE CHEAP CHECKS (card C8): a head still in flight dispatches once the sub-10-minute checks concluded.
        pend=$(pending_checks "$h") || die "dispatch: cannot read the check runs of #$pr's head $h (an unread head is never read as concluded), so no reviewer is dispatched"
        cheap=
-       for name in "${CHEAP_CHECKS[@]}"; do  # never-empty: CHEAP_CHECKS is the literal four-entry array above
+       for name in "${CHEAP_CHECKS[@]}"; do  # never-empty: CHEAP_CHECKS is the literal three-entry array above
          ! grep -qxF -- "$name" <<< "$pend" || cheap+="${cheap:+, }$name"
        done
        [ -z "$cheap" ] || die "dispatch: #$pr's head $h has cheap checks still running ($cheap) -- the review starts once they conclude (card C8)" ;;
@@ -1698,6 +1704,12 @@ B
   out=$(BUS_CLASSIFY_RC=3 BUS_PENDING_RC=1 dhid 7 "$h1" cmsg_K); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "cannot read the check runs" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
   expect "card C8: an unreadable check-run read at WAIT refuses, never read as concluded" $?
+  ci="$(cd "$(dirname -- "$0")/../../.." && pwd)/.github/workflows/ci.yml" bad=
+  for name in "${CHEAP_CHECKS[@]}"; do cheap_caller_ok "$name" "$ci" || bad="$bad $name"; done
+  [ -f "$ci" ] && [ -z "$bad" ]
+  expect "card C8: every cheap check's ci.yml caller needs only prelude, so its run exists at WAIT (none of:$bad)" $?
+  ! cheap_caller_ok "pr-contract / pr-contract" "$ci" && ! cheap_caller_ok "nosuchjob / x" "$ci"
+  expect "null control (card C8): pr-contract, which needs every unit, and an absent job are not cheap callers" $?
   n=$((n + 1))
   out=$(BUS_CLASSIFY_RC=4 dhid 7 "$h1" cmsg_K 2>&1); rc=$?
   [ $rc = 0 ] && echo "$out" | grep -q '^bus: APPROVAL-OWED '"$h1"' 1 budget raise' \
