@@ -1,0 +1,5 @@
+MUTANT R5_wrong_key base=HEAD file=custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js matches=1
+  node tests/card.mjs: rc=1
+      FAIL  the receipt's saving on a wood house says it includes wood's heat, not firewood's cost (en, sv); none without wood
+    1 CARD CHECK(S) FAILED
+  PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs: rc=0
