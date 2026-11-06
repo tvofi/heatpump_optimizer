@@ -1,0 +1,22 @@
+## patch-id #3224 vs head's first three
+9f2a529790894cb7c085bf59ae375e8521e0cbbe 0000000000000000000000000000000000000000
+9f2a529790894cb7c085bf59ae375e8521e0cbbe 0000000000000000000000000000000000000000
+## authors
+1fe34a84f Bankaifan <noreply@users.noreply.github.com> | test(golden): re-record config_flow for the water_heater DHW set-point selector
+ec44ee191 Bankaifan <noreply@users.noreply.github.com> | test: water_heater implements set_temperature in the #1526 service table
+d1153ae86 Bankaifan <noreply@users.noreply.github.com> | feat(inputs): accept a water_heater entity as the DHW set-point
+a1fc6edb0 Bankaifan | test(golden): re-record config_flow for the water_heater DHW set-point selector
+ecab18006 Bankaifan | test: water_heater implements set_temperature in the #1526 service table
+17c604e5f Bankaifan | feat(inputs): accept a water_heater entity as the DHW set-point
+## handoff b3bb708c vs dispatch 4dc59c59 (three-dot)
+--- two-dot b3bb708c..4dc59c59 (names)
+parents of 4dc59c59:
+bd0ee867e49bf6f0af414efcf2aa29ae775ac926 b3bb708c05a3bfb54797cb62f0cedf6a48c8d763
+## round-3 test-only commit f7ed411fc
+f7ed411fc hpo-fixer test: pin the degF water_heater range and clamp (kills the _ATTRIBUTE_TARGET_DOMAINS mutant)
+
+ tests/features.py | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)
+## repair delta since blocked head bd0ee867 (three-dot over prod+tests)
+ tests/features.py | 20 ++++++++++++++++++++
+ 1 file changed, 20 insertions(+)

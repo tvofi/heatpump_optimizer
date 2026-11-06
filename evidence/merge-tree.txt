@@ -1,9 +1,13 @@
-== origin/main 785c2b604
-rc=0
-== pr/3220 e70dfd645
-rc=0
-== pr/3198 3f188f896
-rc=0
+== origin/main c679f4b692f483959769ec5b5147aa4d624c45f4
+85ecc5bac7ea1160d8c38a33bc42e27cd6263b87
+exit=0
+== pr3220 e70dfd6458ab567a654886ffdcf1cb6f0abc47b9
+85ecc5bac7ea1160d8c38a33bc42e27cd6263b87
+exit=0
+== pr3198 a96762c018226119e8ae21d8377195a4a27f8b33
 MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
-== pr/3226 ba704972f
-rc=0
+949152cbaa944972795cbffed24e26ff13ee8676
+exit=0
+== pr3226 ba704972f6494d4e6af520095e940b049d9afed3
+e35cbaa726cbf973e6140088a6a1d58d66095224
+exit=0
