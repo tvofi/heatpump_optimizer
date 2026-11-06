@@ -44,4 +44,4 @@ none
 
 ## Friction
 
-The previous round's `PR-BODY.md` sat on the step ref and came in through a merge; `tests/entities.py` refuses an unclassified tracked file, so it was removed again.
+none
