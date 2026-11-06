@@ -86,7 +86,20 @@ def stage(repo: Path, out: Path, run=git, ident=None) -> tuple[int, str]:
     return 0, f"plan_public: round {n} {state_docs.PLAN_PAGE} from origin/{st.ref} -> {PLAN_DIR}/index.html"
 
 
-def self_test() -> int:
+#: (old, new, the check that must fail). Each old string appears once in this file.
+MUTANTS = {
+    "string_order": ("    rounds = [int(m[1]) for r", "    rounds = [m[1] for r",
+                     "the newest round is the highest N, by number, never by string order (10 > 9)"),
+    "leak_published": ("    why = refusal(text, ident)\n", "    why = None\n",
+                       "refused, rc 1 and nothing written: a page naming a home directory"),
+    "attribution_published": (" + ref_privacy.attribution(text)\n", "\n",
+                              "refused, rc 1 and nothing written: a page carrying a tool's attribution"),
+    "absent_refused_red": ('        return 2, f"plan_public: NOTHING TO PUBLISH: no {state_docs', '        return 1, f"plan_public: NOTHING TO PUBLISH: no {state_docs',
+                           "nothing to publish, rc 2 and nothing written: no PLAN.html at the newest ref (an older round's is never taken)"),
+}
+
+
+def self_test(mutants: bool = True) -> int:
     fails: list[str] = []
 
     def check(name: str, ok: bool) -> None:
@@ -137,6 +150,27 @@ def self_test() -> int:
                   rc == 1 and "REFUSED" in msg and not (out / "plan").exists())
     check("PLAN_URL is under the Pages site and ends in the staged directory",
           PLAN_URL.startswith(PAGES_URL) and PLAN_URL.endswith(f"/{PLAN_DIR}/"))
+    if mutants:
+        import importlib.util
+        # the code under mutation sits above the table, which spells every old string again
+        code, mark, rest = Path(__file__).read_text().partition("#: (old, new, the check")
+        for mid, (old, new, case) in MUTANTS.items():
+            if code.count(old) != 1:
+                check(f"mutant {mid} applies (old string x{code.count(old)})", False)
+                continue
+            with tempfile.TemporaryDirectory() as d:
+                mp = Path(d) / "plan_public.py"
+                mp.write_text(code.replace(old, new) + mark + rest)
+                spec = importlib.util.spec_from_file_location(f"pp_mutant_{mid}", mp)
+                mod = importlib.util.module_from_spec(spec)
+                spec.loader.exec_module(mod)
+                out = __import__("io").StringIO()
+                saved, sys.stdout = sys.stdout, out
+                try:
+                    mod.self_test(mutants=False)
+                finally:
+                    sys.stdout = saved
+            check(f"mutant {mid} killed by: {case}", f"FAIL {case}" in out.getvalue())
     if fails:
         print(f"{len(fails)} self-test check(s) failed: " + ", ".join(fails))
         return 1
