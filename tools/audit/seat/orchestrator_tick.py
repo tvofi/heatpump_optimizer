@@ -4627,6 +4627,56 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        # ---- CARRY and RECORD-OWED through the tick's own call (R10-CARRY-RESIDUE): a real
+        # checkout whose origin/main the tick's git_recarry reads. #80's head is its merge verdict's
+        # head plus one clean main merge; #81 is an approved record PR open 40 minutes.
+        tgc = _module("throwaway_git_carry", "tests/throwaway_git.py")
+        with tempfile.TemporaryDirectory() as d:
+            env = tgc.throwaway_git_init(d, "-q", "-b", "main")
+
+            def cgit(*argv):
+                return subprocess.run(["git", *argv], cwd=d, env=env, capture_output=True, text=True).stdout.strip()
+
+            def cput(name: str, msg: str) -> str:
+                (Path(d) / name).write_text(msg + "\n")
+                cgit("add", "-A")
+                cgit("commit", "-qm", msg)
+                return cgit("rev-parse", "HEAD")
+
+            cput("base.txt", "base")
+            cgit("checkout", "-qb", "fix")
+            cvh = cput("fix.txt", "the reviewed fix")
+            cgit("checkout", "-q", "main")
+            cput("main.txt", "main moves on")
+            cgit("checkout", "-q", "fix")
+            cgit("merge", "-q", "--no-edit", "main")
+            cmh = cgit("rev-parse", "HEAD")
+            cgit("update-ref", "refs/remotes/origin/main", "main")
+            ca_board = [pr_obj(80, cmh), dict(pr_obj(81, h(81), branch="record/autofix", rd="APPROVED"),
+                                               createdAt=iso(NOW - datetime.timedelta(minutes=40)))]
+
+            def ca_run(verdict: str) -> list:
+                extra = [(("issues/80/comments?per_page=100",), 0, json.dumps([[vc(22, verdict)]])),
+                         (("issues/81/comments?per_page=100",), 0, json.dumps([[]]))]
+                t_ca = tick(prs=ca_board, gh_extra=extra, bus_state=str(tmp / "bus-ro"), checkout=d)
+                t_ca._git.on(("ls-remote",), out="")
+                t_ca._carries = lambda v, hd: False  # the train's predicate stays out: this row is git_recarry's
+                t_ca.verdict_levels("PRS", ca_board)
+                return t_ca.sections.get("PRS", [])
+
+            ca, cb = ca_run(f"Fix review: merge {cvh}"), ca_run(f"Fix review: blocked {cvh} mutation-vacuous: x")
+        a, f = check("CARRY and RECORD-OWED", [
+            ("a verdicted head plus one main merge prints CARRY, unflagged, and no REVIEW OWED",
+             {"flag": False, "text": f"CARRY: #80 {cmh[:12]}"} in ca
+             and not any(x["text"].startswith("REVIEW OWED: #80") for x in ca)),
+            ("null control: the same head after a blocked verdict is REVIEW OWED, flagged, and no CARRY",
+             {"flag": True, "text": f"REVIEW OWED: #80 {cmh[:12]}"} in cb
+             and not any(x["text"].startswith("CARRY") for x in cb)),
+            ("an approved record PR open 40 minutes prints RECORD-OWED, flagged",
+             {"flag": True, "text": f"RECORD-OWED: #81 {h(81)[:12]} 40m"} in ca),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- DESIGN-BUILD (the RCA's section 5.5) ----
         A40, B40 = "a" * 40, "b" * 40
         rlm = _module("roster_lib_db", "tools/audit/seat/roster_lib.py")

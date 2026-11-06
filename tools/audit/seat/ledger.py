@@ -626,9 +626,11 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
     that carries to the head (the train's predicate, app_approve_carries). A PR whose
     `headRefName` is `skip_branch` (the record branch, passed in) is never owed one.
     With `recarry(prior, head, n)` (git_recarry): a head that differs from a
-    verdicted or dispatched head of the PR only by clean merges of main, or
-    only by the PR's own delivery row, prints `CARRY: #N <head12>` instead
-    (P90; the ancestor-recarry test of standing-tick.md)."""
+    head of a `merge` verdict, or a dispatched head, of the PR only by clean
+    merges of main, or only by the PR's own delivery row, prints
+    `CARRY: #N <head12>` instead (P90; the ancestor-recarry test of
+    standing-tick.md). A blocked verdict's head is no prior: only a merge
+    verdict carries (fix-review.md step 12)."""
     out = []
     for pr in sorted(prs, key=lambda p: p["number"]):
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -641,7 +643,7 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
         last = lines[-1] if lines else ""
         if carries and last.startswith("Fix review: merge ") and carries(verdict_head(last), head):
             continue
-        priors = [h for h in (verdict_head(l) for l in lines) if h] + sorted(h for k, h in dispatched if k == str(n))
+        priors = [h for h in (verdict_head(l) for l in lines if l.startswith("Fix review: merge ")) if h] + sorted(h for k, h in dispatched if k == str(n))
         if recarry and any(recarry(h, head, n) for h in dict.fromkeys(priors)):
             out.append(f"CARRY: #{n} {head[:12]}")
             continue
@@ -995,15 +997,40 @@ def self_test() -> int:
               == [f"REVIEW OWED: #7 {row_head[:12]}"])
         check("a dispatched head is a prior too",
               review_owed(pr7(merged_head), {"7": []}, {("7", vh)}, None, None, recarry) == [f"CARRY: #7 {merged_head[:12]}"])
+        check("null control: a blocked verdict's head is no prior, whatever its class",
+              [review_owed(pr7(merged_head), {"7": [f"Fix review: blocked {vh} {why}"]}, set(), None, None, recarry)
+               for why in ("mutation-vacuous: x", "root-cause-unanswered: y")]
+              == [[f"REVIEW OWED: #7 {merged_head[:12]}"]] * 2)
+        # a merge of main whose conflict was resolved by hand carries an edit no review saw
+        cg("checkout", "-q", "-b", "conf", vh)
+        cvh = cput("conflict.txt", "the branch's side")
+        cg("checkout", "-q", "main")
+        cput("conflict.txt", "main's side")
+        cg("checkout", "-q", "conf")
+        cg("merge", "-q", "--no-edit", "main")
+        conf_head = cput("conflict.txt", "a hand resolution neither side wrote")
+        check("a main merge with a hand-resolved conflict prints REVIEW OWED",
+              len(cg("rev-list", "--parents", "-n1", conf_head).split()) == 3
+              and review_owed(pr7(conf_head), {"7": [f"Fix review: merge {cvh}"]}, set(), None, None, recarry)
+              == [f"REVIEW OWED: #7 {conf_head[:12]}"])
+        # a clean merge of a branch that is not main brings code no review saw
+        cg("checkout", "-q", "-b", "topic", vh)
+        cput("topic.txt", "a side branch main never took")
+        cg("checkout", "-q", "-b", "fix3", vh)
+        cg("merge", "-q", "--no-ff", "--no-edit", "topic")
+        side_head = cg("rev-parse", "HEAD")
+        check("a clean merge of a side branch prints REVIEW OWED",
+              len(cg("rev-list", "--parents", "-n1", side_head).split()) == 3
+              and review_owed(pr7(side_head), rb2, set(), None, None, recarry) == [f"REVIEW OWED: #7 {side_head[:12]}"])
         # ---- RECORD-OWED (P33): an approved record PR open 30 minutes
         t0 = datetime.datetime(2026, 1, 1, 12, 0, tzinfo=datetime.timezone.utc)
         mk = lambda n, mins, **kw: {"number": n, "headRefOid": A, "headRefName": "record/autofix",
                                     "reviewDecision": "APPROVED",
                                     "createdAt": (t0 - datetime.timedelta(minutes=mins)).isoformat(), **kw}
         ro_ = record_owed([mk(1, 31), mk(2, 29), mk(3, 31, reviewDecision="REVIEW_REQUIRED"),
-                           mk(4, 31, headRefName="fix/x"), mk(5, 31, isDraft=True)], t0)
-        check("an approved record PR open 31 minutes opens an entry; 29, unapproved, off-branch and draft do not",
-              ro_ == [f"RECORD-OWED: #1 {A[:12]} 31m"])
+                           mk(4, 31, headRefName="fix/x"), mk(5, 31, isDraft=True), mk(6, 30)], t0)
+        check("an approved record PR open 31 or exactly 30 minutes opens an entry; 29, unapproved, off-branch "
+              "and draft do not", ro_ == [f"RECORD-OWED: #1 {A[:12]} 31m", f"RECORD-OWED: #6 {A[:12]} 30m"])
         check("a merged or closed record PR is absent from the open list, so it closes the entry",
               record_owed([mk(2, 29)], t0) == [] and record_owed([], t0) == [])
         # ---- covered, the level, the exit codes, over a throwaway origin
