@@ -165,8 +165,13 @@ BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
 BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
 
 
-PROPOSAL_RE = re.compile(r"\b(?:triage|proposal)\s+P\d+\b", re.I)
-RULING_CITE_RE = re.compile(r"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#(P\d+)\b")
+#: A proposal label is `P<digits>` or, from session s4, `P-<A..Q>` (carry 0,
+#: #2670): the citation grammar below names both, or a lettered label could be
+#: neither refused uncited nor cited.
+LABEL = r"P(?:\d+|-[A-Q])\b"
+PROPOSAL_RE = re.compile(rf"\b(?:triage|proposal)\s+{LABEL}", re.I)
+RULING_CITE_RE = re.compile(
+    rf"\btriage:\s*(dev/programme/triage/[A-Za-z0-9_.-]+\.md)#({LABEL})")
 VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
 
 
@@ -1465,7 +1470,9 @@ def _self_test() -> int:
         "Verdict: ACCEPT -> R9-B (carry)\nSource: sweep\n\n"
         "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
         "## P3: no verdict line\nSource: sweep\n\n"
-        "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n", encoding="utf-8")
+        "## P4: a later watcher\nVerdict: DEFER\nSource: sweep\n\n"
+        "## P-C: a lettered proposal\nVerdict: ACCEPT -> R9-B (carry)\n\n"
+        "## P-D: a lettered reject\nVerdict: REJECT\n", encoding="utf-8")
     run(["git", "-C", str(seed), "add", "-A"])
     run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture triage ruling"])
     run(["git", "-C", str(seed), "push", "-q", str(origin), "main:refs/heads/main"])
@@ -1488,6 +1495,23 @@ def _self_test() -> int:
     check("triage gate: a citation to a missing batch is refused, proposal named or not",
           refuses("not on the roster branch", "append-carry", "R9-B",
                   "plain text. triage: dev/programme/triage/nope.md#P1"))
+    # Carry 0 (#2670): session s4 labelled later proposals with letters
+    # (`P-A`..`P-Q`); the numbered-only grammar never fired on them.
+    lettered = "Triage P-C (s4): fold a lettered proposal."
+    check("triage gate: a lettered label citing no ruling is refused",
+          refuses("cites no triage ruling", "append-carry", "R9-B", lettered)
+          and lettered not in branch_roster()["groups"][1]["carry"])
+    check("triage gate: a lettered label citing its ACCEPT ruling lands",
+          edit("append-carry", "R9-B", lettered + f" triage: {ruling}#P-C") == 0
+          and lettered + f" triage: {ruling}#P-C" in branch_roster()["groups"][1]["carry"])
+    check("triage gate: a lettered label citing a REJECT ruling is refused",
+          refuses("REJECT", "append-carry", "R9-B",
+                  f"proposal P-D: a thing. triage: {ruling}#P-D"))
+    check("triage gate: a lettered label citing no such entry is refused",
+          refuses("no such entry", "append-carry", "R9-B",
+                  f"proposal P-E: a thing. triage: {ruling}#P-E"))
+    check("triage gate null control: a hyphenated word that is no label lands",
+          edit("append-carry", "R9-B", "the P-value of a triage Pareto plot") == 0)
     check("triage gate: a new group's brief is judged",
           refuses("cites no triage ruling", "edit-brief", "R9-A", "brief from proposal P4"))
     check("triage gate: text naming no proposal passes untouched",
@@ -1501,6 +1525,8 @@ def _self_test() -> int:
     check("triage gate fixture restored",
           edit("drop-carry", "R9-B", None, match="orphan discharge") == 0
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
+          and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
+          and edit("drop-carry", "R9-B", None, match="P-value") == 0
           and branch_roster()["groups"][1]["carry"] == [])
 
     # set-resume: the resume free-text fields a session restarts from, through
