@@ -1,0 +1,6 @@
+fallback n= 5 clean 2.417-3.069  forced window (3.069, 4.833]  rule 3.852  committed 4.167  max/budget 73.7%  budget/max x1.358
+ref24    n=14 clean 2.414-3.597  forced window (3.597, 4.828]  rule 4.168  committed 4.167  max/budget 86.3%  budget/max x1.158
+ref30    n=18 clean 2.728-2.903  forced window (2.903, 5.455]  rule 3.979  committed 3.934  max/budget 73.8%  budget/max x1.355
+ref46    n=40 clean 2.275-2.476  forced window (2.476, 4.549]  rule 3.356  committed 3.357  max/budget 73.8%  budget/max x1.356
+ref53    n= 1 clean 2.256-2.256  forced window (2.256, 4.512]  rule 3.19  committed 2.081  max/budget 108.4%  budget/max x0.923  <-- committed budget OUTSIDE the forced window
+ref24 committed table: 10 readings 2.414-3.597 rule 4.167; old budget 3.630 holds max 3.597: True; 2*min 4.828 >= 3.630: True
