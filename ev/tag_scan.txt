@@ -1,0 +1,20 @@
+v2.3.0-beta.1 calls=0 all=0
+v6.3.15 calls=2 all=4
+   SITE coordinator.py:801 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:821 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:829 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+   SITE process_worker.py:25 run_worker: pickle.load of a stream: pickle.load(stdin)
+v6.4.0 calls=3 all=5
+   SITE coordinator.py:798 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:811 _shutdown_process_pool: .wait() with no timeout: worker.wait()
+   SITE coordinator.py:845 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:853 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+   SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
+v7.0.5 calls=4 all=6
+   SITE coordinator.py:1701 _shutdown_process_pool: .wait() with no timeout: worker.wait()
+   SITE coordinator.py:1710 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:1760 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
+   SITE coordinator.py:1769 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+   SITE coordinator.py:1783 _run_in_process: .wait() with no timeout: worker.wait()
+   SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
+DONE

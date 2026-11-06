@@ -1,0 +1,16 @@
+# at merge base 198b8f7ed: dev/audit/rounds/round9/leads.json lines 786-797
+  {
+   "raised_by": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+   "symbol": "ThermalModel._stability_substeps",
+   "why": "closed by D1-s2-02 (runaway wind-driven substeps)"
+  },
+  {
+   "raised_by": "D1-s2",
+   "file": "custom_components/heatpump_optimizer/optimizer.py",
+   "symbol": "HeatPumpOptimizer.optimize",
+   "why": "closed by D1-s2-02 (non-physical finite forecast accepted); owner-side D1-s4 guard scope"
+  },
+# RCA text at head:
+67:`ThermalModel._stability_substeps`, owner D1-s4) was not built.
+211:2. **The substep cap lead** (round 9 leads.json, D1-s4): it bounds a runaway

@@ -1,0 +1,17 @@
+== m_pickle on v7.1.2
+RESULT unbounded_sites=4
+== m_zeroarg on v7.1.2
+SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+RESULT unbounded_sites=4
+== m_with on v7.1.2
+SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+RESULT unbounded_sites=4
+== m_timeout_kw on v7.1.2
+SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(stdout)
+RESULT unbounded_sites=4
+== bounded end: --scan on a planted file with timeouts
+SITE x.py:3 b: .acquire() with no timeout: l.acquire()
+SITE x.py:3 b: .wait() with no timeout: p.wait()
+SITE x.py:3 b: select.select with no timeout: select.select([], [], [])
+SITE x.py:3 b: subprocess.run with no timeout: subprocess.run(['x'])
+RESULT unbounded_sites=4

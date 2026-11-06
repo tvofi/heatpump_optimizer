@@ -1,0 +1,17 @@
+== fold_ledger
+fold_ledger: 48 classes, 755 instances, 121 in-tree judge survivors (rounds [8, 10]), 134 rca entries
+fold_ledger: 0 violation(s)
+rc=0
+== structure
+
+STRUCTURE RATCHET PASSED
+== policy_lint
+
+FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+budgets rc=0
+== budgets diff
+(empty=untouched)
+== merge-tree
+f133f63e1ce966397fb1152f97b0e450f77cbc23
+mt rc=0
+28482eceeb6b9809e44b12d80fc994282cc21645

@@ -1,0 +1,13 @@
+TOTAL: 0 error(s) across 50 policy file(s)
+== perturb: drop barrier_refusal
+removed True
+fold_ledger: 48 classes, 755 instances, 121 in-tree judge survivors (rounds [8, 10]), 134 rca entries
+UNRECORDED-BARRIER: N-reap-lock has an rca in dev/audit/rca and no barrier or barrier_refusal, while tests/features.py name it
+fold_ledger: 1 violation(s)
+== closures key
+in inert_reads tests/harness_headers.py
+1480:    # for a human three times on #1987 (dev/audit/rca/R9-RCA-stress-recording.md).
+2969:    row = "dev/programme/delivery/99999.md"
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
