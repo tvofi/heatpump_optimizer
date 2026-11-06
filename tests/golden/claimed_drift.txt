@@ -88,6 +88,7 @@ valve_upper_direct_slab  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the held t
 wood_coil  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood tank, no fire, no coil
 wood_two_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood; it reads the plain valve_storage reference
 wood_two_tank_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: as wood_two_tank
+config_flow  # R10-EXT-3224: dhw_setpoint_entity selector filter gains water_heater (2 leaves, nothing else moves)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -786,3 +787,7 @@ wood_two_tank_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: as wood_
 # is never optimised, but its kWh seeds the space solve's starts, so plans move
 # in basin only: the objective falls on four of the eight solved plans compared
 # and rises on three, by at most 0.25, and one is unchanged.
+# R10-EXT-3224: the DHW set-point selector admits water_heater, so config_flow
+# changes exactly two leaves (the plain and the seeded render of
+# dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
+# it, so every other fixture is byte-identical. Re-recorded in the committed file.
