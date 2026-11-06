@@ -11,8 +11,9 @@
   `HOLD-STALE` after 24 h), `plan-beat` (`replan.py` then `state_docs.py
   --push --mirror --plan`), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
-  --board` pass, its refusals and `STUCK` forwarded) and `head-watch`
-  (`HEAD-MOVED` events). Each writes only actionable lines to
+  --board` pass, its refusals and `STUCK` forwarded) `head-watch`
+  (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
+  arm=<arm> cut=<span>` line per `would-trip` guardrail arm and cut, never twice). Each writes only actionable lines to
   `S/digest/jobs/<row>`; `fold` concatenates them into `S/digest/digest.txt`,
   diffs `new.txt` and `gone.txt`, and touches `new.stamp` only on a new line,
   so the orchestrator's one wake reads `new.stamp` and `events.txt`. A null

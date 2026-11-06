@@ -444,6 +444,39 @@ def cases(bj) -> dict[str, bool]:
     bj.head_watch(c)
     res["head-watch: an unreadable API is UNREADABLE"] = digest(c) == "head-watch: UNREADABLE gh rc=1\n"
 
+    # audit-dispatch
+    trip = ("GUARDRAIL {a} last 20 PRs (first verdict 10-20T01:00Z..11-01T02:00Z): incidence 0/20; "
+            "P(X<=0|20,0.28) = 0.0007 -> would-trip: audit the last reviews with a planted defect (report-only)")
+    okl = "GUARDRAIL cloud last 20 PRs (first verdict 10-20T01:00Z..11-01T02:00Z): incidence 7/20; P(X<=7|20,0.28) = 0.7 -> ok (report-only)"
+    insuf = "GUARDRAIL local insufficient: 19 reviewed PRs < N=20"
+    tail = "GUARDRAIL unclassified block words (neither real nor taught): a, b"
+    rs = {"text": "\n".join([trip.format(a="all"), okl, insuf, tail]) + "\n"}
+    c, f = fresh(answers={"review_strength.py": lambda a: (0, rs["text"], "")})
+    pre = "planted-defect-audit" not in digest(c)
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none"] = (
+        pre and digest(c) == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z\n"
+        and "--guardrail" in f.calls[0] and "--fetch" in f.calls[0])
+    stamp = files(c).get("new.stamp")
+    before = files(c)
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"] = (
+        files(c) == before and files(c).get("new.stamp") == stamp)
+    rs["text"] = "\n".join([trip.format(a="all"), trip.format(a="local").replace("11-01T02", "11-02T02"), okl, tail]) + "\n"
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more"] = (
+        digest(c).splitlines() == ["DISPATCH: planted-defect-audit arm=local cut=10-20T01:00Z..11-02T02:00Z"])
+    rs["text"] = "\n".join([okl, insuf, tail]) + "\n"
+    c, _ = fresh(answers={"review_strength.py": lambda a: (0, rs["text"], "")})
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: only ok and insufficient arm lines write no job, no digest, no memory"] = (
+        not digest(c) and not (c.digest / "jobs" / "audit-dispatch").exists()
+        and not (c.digest / "state" / "audit-dispatch.json").exists())
+    c, _ = fresh(answers={"review_strength.py": (2, trip.format(a="all") + "\n", "boom")})
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a failed run is UNREADABLE, never a dispatch"] = (
+        digest(c) == "audit-dispatch: UNREADABLE review_strength boom\n")
+
     # fold
     c, _ = fresh()
     bj.write_job(c, "pulse", ["PULSE a STOPPED x"])
@@ -574,6 +607,14 @@ MUTANTS = {
     "head_closed_kept": ('    text = "".join(f"{n}\\t{heads[n]}\\n" for n in sorted(heads, key=int))',
                          '    text = "".join(f"{n}\\t{v}\\n" for n, v in sorted({**old, **heads}.items(), key=lambda kv: int(kv[0])))',
                          "head-watch: a closed pull request leaves heads.tsv"),
+    "audit_trip_any_arm": ('.* -> would-trip\\b")', '.* -> (?:would-trip|ok)\\b")',
+                           "audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none"),
+    "audit_no_memory": ('        if m and f"{m[1]} {m[2]}" not in sent:', '        if m:',
+                        "audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"),
+    "audit_key_arm_only": ('sent.append(f"{m[1]} {m[2]}")', 'sent.append(f"{m[1]}")',
+                           "audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more"),
+    "audit_rc_ignored": ("    if rc != 0 or not arms:", "    if not arms:",
+                         "audit-dispatch: a failed run is UNREADABLE, never a dispatch"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
                             "fold: a duplicated line is one more line, new.txt and a new stamp"),

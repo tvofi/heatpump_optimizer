@@ -66,6 +66,12 @@ ROWS (the job table's `interval_s` in brackets):
                      `NEEDS-TITLE`, `STARVED` and `STUCK` lines, STUCK also
                      to events.txt.
   head-watch [120]   open pull-request heads from the API against heads.tsv.
+  audit-dispatch [1800] review_strength.py `--fetch --guardrail`; each arm line
+                     that reads `would-trip` gives one `DISPATCH: planted-defect-audit
+                     arm=<arm> cut=<first..last verdict>` line, once per (arm, cut)
+                     (owner ruling tvofi 2026-11-01: P0 0.28, ALPHA 0.05, never blocks).
+                     `ok` and `insufficient` lines give nothing; the guardrail's exit
+                     code is not read as a verdict, only a failed run is UNREADABLE.
 No row runs `git checkout`, `reset`, `pull` or `merge`; main is read as
 `git -C <repo> cat-file -e origin/main:<path>`. No row touches a seat's alive
 file. Every row exits 0 once its lines are written: the digest is the signal,
@@ -87,7 +93,7 @@ import time
 from pathlib import Path
 
 ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "pulse",
-        "cancel-sweep", "disk", "opener", "head-watch")
+        "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch")
 HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: The board's actionable family (carry 20's list), keyed on the texts
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
@@ -436,9 +442,36 @@ def head_watch(ctx: Ctx) -> None:
     write_job(ctx, "head-watch", [])
 
 
+GUARD_WINDOW_S = 60 * 24 * 3600  # the bus window handed to --guardrail; the arms cut on the last N PRs, not on this
+TRIP = re.compile(r"^GUARDRAIL (\S+) last \d+ PRs \(first verdict (\S+\.\.\S+)\):.* -> would-trip\b")
+
+
+def audit_dispatch(ctx: Ctx) -> None:
+    """One audit DISPATCH line per tripped arm and cut; a repeat of the same arm line gives none."""
+    fmt = "%Y-%m-%dT%H:%MZ"
+    until = time.strftime(fmt, time.gmtime(ctx.now))
+    since = time.strftime(fmt, time.gmtime(ctx.now - GUARD_WINDOW_S))
+    rc, out, err = ctx.py("tools/audit/seat/review_strength.py", "--repo", str(ctx.repo), "--fetch",
+                          "--window", f"X={since}..{until}", "--guardrail")
+    arms = [ln for ln in out.splitlines() if ln.startswith("GUARDRAIL ") and " unclassified " not in ln]
+    if rc != 0 or not arms:
+        why = (err.strip().splitlines() or [f"rc={rc}, no arm line"])[-1]
+        return write_job(ctx, "audit-dispatch", [f"audit-dispatch: UNREADABLE review_strength {why}"])
+    sent = ctx.memory("audit-dispatch.json", [])
+    new = []
+    for ln in arms:
+        m = TRIP.match(ln)
+        if m and f"{m[1]} {m[2]}" not in sent:
+            sent.append(f"{m[1]} {m[2]}")
+            new.append(f"DISPATCH: planted-defect-audit arm={m[1]} cut={m[2]}")
+    ctx.remember("audit-dispatch.json", sent, [])
+    if new:  # a pass that dispatched nothing keeps the last pass's lines, as roster-drain does
+        write_job(ctx, "audit-dispatch", new)
+
+
 RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
        "plan-beat": plan_beat, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
-       "opener": opener, "head-watch": head_watch}
+       "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch}
 
 
 def main(argv: list[str]) -> int:
