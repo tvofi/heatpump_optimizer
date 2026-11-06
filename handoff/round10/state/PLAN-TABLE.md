@@ -445,7 +445,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-CI-SLIM | C | 1 | done | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-PROCESS-SLIM | C | 1 | not-started | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-SAV-METER-FLOOR | C | 3 | not-started | - | opus/opus | - | A month row states no saving when its booked savings_baseline kWh over its savings_actual kWh is below a floor constant in ledger.py, starting at 0.5, on row... |  |
-| R10-HOTFIX-STAMP-BASE | C | 1 | in-progress | - | opus/opus | - | A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with VERSION 7.1.1 (the ruleset was disabled for the push, 2026-11-02 21:07:36Z to... |  |
+| R10-HOTFIX-STAMP-BASE | C | 1 | in-progress | - | opus/opus | - | A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with the file VERSION still reading 7.1.1 then (the ruleset was disabled for the pu... |  |
 
 ## ETA
 
