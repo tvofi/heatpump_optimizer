@@ -571,6 +571,17 @@ def self_test() -> int:
         get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", hi_jobs)], me=lo, mine=deferred)
         check(f"prelude/gate cycle: a deferring gate beside a later edit run {label} publishes at once",
               (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("FAIL " + deferral([hi]), []))
+    # #3246 round 2: the same scene with an EARLIER deferring edit run whose gate has
+    # started beside hi. C3 waits only when ALL waited runs have started their gate;
+    # read as ANY, lo waits on hi while hi's prelude waits on lo (the 720 s cycle).
+    early_gate = 42192000000
+    get, naps, nap, now = scene([coded, run(early_gate, "edit", "in_progress",
+                                            deferred + [{"name": "gate", "status": "in_progress",
+                                                         "conclusion": None, "id": 9}]),
+                                 run(hi, "edit", "in_progress", in_prelude)], me=lo, mine=deferred)
+    check("prelude/gate cycle: a deferring gate beside an earlier started gate and a later edit run in its "
+          "prelude publishes at once", (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps),
+          ("FAIL " + deferral([early_gate, hi]), []))
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])

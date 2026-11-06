@@ -233,6 +233,9 @@ MUTANTS = [
     ("M21 C3 waits beside any run", 'deferring(kind, pr, claim) and not all(', 'deferring(kind, pr, claim) and not True and all('),
     ("M22 C3 at once only beside a code run (c0c60886)", 'not all(\n                started(r) for r in api["runs_at_head"]',
      'any(\n                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"]'),
+    # #3246 round 2: C3 waits only when ALL waited runs have started their gate; ANY re-opens the cycle.
+    ("M24 C3 waits beside any started run (all to any)", 'deferring(kind, pr, claim) and not all(',
+     'deferring(kind, pr, claim) and not any('),
 ]
 
 
@@ -241,13 +244,14 @@ def mutants_arm() -> int:
         print("mutants: gate.py or prelude.py has uncommitted edits; the restore would erase them")
         return 2
 
-    def verdicts() -> tuple[int, int]:
-        st = subprocess.run([sys.executable, "-I", str(GATE), "--self-test"], capture_output=True).returncode
+    def verdicts() -> tuple[int, int, list[str]]:
+        p = subprocess.run([sys.executable, "-I", str(GATE), "--self-test"], capture_output=True, text=True)
         rp = subprocess.run([sys.executable, __file__, "replay"], capture_output=True).returncode
-        return st, rp
-    base = verdicts()
+        red = [ln[5:].split(": got ", 1)[0] for ln in p.stdout.splitlines() if ln.startswith("FAIL ")]
+        return p.returncode, rp, red
+    *base, _ = verdicts()
     print(f"mutants: unmutated self-test rc {base[0]}, replay rc {base[1]}")
-    if base != (0, 0):
+    if base != [0, 0]:
         return 1
     survived = 0
     for name, old, new, *where in MUTANTS:
@@ -260,12 +264,14 @@ def mutants_arm() -> int:
             continue
         target.write_text(text.replace(old, new))
         try:
-            st, rp = verdicts()
+            st, rp, red = verdicts()
         finally:
             target.write_bytes(orig)
         killed = st or rp
         survived += not killed
         print(f"  {name}: {'KILLED' if killed else 'SURVIVED'} (self-test rc {st}, replay rc {rp})")
+        for case in red:
+            print(f"    red: {case}")
     print(f"RESULT mutants={len(MUTANTS)} survivors={survived}")
     return 1 if survived else 0
 
