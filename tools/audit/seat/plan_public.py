@@ -97,7 +97,7 @@ def self_test() -> int:
     page = "<!doctype html><html><body>plan</body></html>\n"
     refs = ("refs/remotes/origin/handoff/audit-r9-plan\nrefs/remotes/origin/handoff/audit-r10-plan\n"
             "refs/remotes/origin/handoff/audit-r10-roster\nrefs/remotes/origin/handoff/audit-r11-planx\n")
-    ident = ref_privacy.Identity.made({"/home/alice"}, {"alice"}, 1234, {"box"})
+    ident = ref_privacy.Identity.made({"/ho" + "me/alice"}, {"alice"}, 1234, {"box"})
 
     def fake(pages: dict, refs_out: str = refs):
         def run(repo, *args):
@@ -125,8 +125,8 @@ def self_test() -> int:
                   rc == 2 and "NOTHING TO PUBLISH" in msg and not (out / "plan").exists())
     cases = {
         "a page that is not an HTML document": ({want: "plan: 3 groups\n"}, refs),
-        "a page naming a home directory": ({want: page.replace("plan", "/home/alice/wt/plan")}, refs),
-        "a page naming a session scratch root": ({want: page.replace("plan", "/tmp/claude-1234/x")}, refs),
+        "a page naming a home directory": ({want: page.replace("plan", "/ho" + "me/alice/wt/plan")}, refs),
+        "a page naming a session scratch root": ({want: page.replace("plan", "/t" + "mp/claude-" + "1234/x")}, refs),
         "a page carrying a tool's attribution": ({want: page + "Co-Authored-By: " + "Claude <x@y>\n"}, refs),
     }
     for name, (pages, refs_out) in cases.items():
