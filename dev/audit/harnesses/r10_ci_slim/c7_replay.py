@@ -22,8 +22,13 @@ costs completed_at - started_at.
   (b) codeql_scope.decide(leg, "pull_request", diff) skip where the run
       analyzed: codeql / Analyze (leg) priced at its shortest instance.
   (c) prelude.pins_due(delta) false, delta = git diff P...H with P the head of
-      the same PR's previous code run in the sample (none: due): every
-      tests / mutation-pins shard and tests / mutation-autofix at 0.
+      the same PR's previous code run in the sample (none: due), counted only
+      where a code run of that PR at P concluded the pins measurement
+      (prelude.pins_measured) on the jobs that had COMPLETED by this run's
+      created_at -- a job finishing later is unfinished when this run's prelude
+      reads it, as production reads it: every tests / mutation-pins shard and
+      tests / mutation-autofix at 0. A tree without pins_measured (round 2's
+      rule) takes the delta from P whatever P's runs concluded.
 Push and dispatch runs are unchanged by construction (each rule reads a pull
 request only) and are counted in the total only.
 """
@@ -103,7 +108,9 @@ def main(argv) -> int:
                 floor[j["name"]] = min(floor.get(j["name"], m), m)
     code = sorted((r for r in runs if r["event"] == "pull_request"
                    and (pre.parse_title(r["title"]) or ("",))[0] == "code"), key=lambda r: r["created_at"])
+    pins_measured = getattr(pre, "pins_measured", None)
     seen_head: dict[str, str] = {}
+    at_head: dict[tuple, list] = {}       # (pr, head) -> that PR's code runs at head, in created order
     kept: dict[str, set] = {}             # product PRs whose lanes ran, and the files that kept them
     saved = {"a": 0.0, "b": 0.0, "c": 0.0}
     before = {"a": 0.0, "b": 0.0, "c": 0.0}
@@ -115,6 +122,7 @@ def main(argv) -> int:
         files = diff(base, head) if base else None
         prev = seen_head.get(pr)
         seen_head[pr] = head
+        at_head.setdefault((pr, head), []).append(r)
         n["runs"] += 1
         jobs = r["jobs"]
         for j in jobs:
@@ -147,7 +155,15 @@ def main(argv) -> int:
                         if s > 0:
                             n["b_legs"] += 1
                         saved["b"] += s
-        delta = diff(prev, head) if prev and prev != head else None
+        t0 = ts(r["created_at"])
+
+        def as_of(run):
+            return {j["name"]: ("completed", j.get("conclusion")) if ts(j.get("completed_at")) is not None
+                    and ts(j["completed_at"]) <= t0 else ("in_progress", None) for j in run["jobs"]}
+        concluded = pins_measured is None or any(pins_measured(as_of(q)) for q in at_head.get((pr, prev), ()))
+        if prev and prev != head and not concluded:
+            n["c_unmeasured"] = n.get("c_unmeasured", 0) + 1
+        delta = diff(prev, head) if prev and prev != head and concluded else None
         if delta is not None and not pins_due(delta):
             pins = [j for j in jobs if j["name"].startswith(("tests / mutation-pins", "tests / mutation-autofix"))]
             if any(minutes(j) > 0 for j in pins):
@@ -163,6 +179,8 @@ def main(argv) -> int:
     print(f"(a) product pull requests (diff reaches custom_components/) that kept the machinery lanes: {len(kept)}; "
           f"files that kept them, by top two path parts: "
           f"{sorted({k for v in kept.values() for k in v})}")
+    print(f"(c) runs whose previous head had not concluded its pins measurement (delta not taken, measures): "
+          f"{n.get('c_unmeasured', 0)}")
     s = sum(saved.values())
     print(f"together: saving {s:.0f} of {total:.0f} job-minutes ({100 * s / total:.1f}%)")
     return 0
