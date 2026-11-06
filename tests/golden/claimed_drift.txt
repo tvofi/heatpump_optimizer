@@ -763,3 +763,8 @@
 # changes exactly two leaves (the plain and the seeded render of
 # dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
 # it, so every other fixture is byte-identical. Re-recorded in the committed file.
+coord_all_features # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
+coord_dhw # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
+coord_grid_fee # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
+coord_minimal # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
+coord_two_zone # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
