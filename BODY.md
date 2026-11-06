@@ -31,9 +31,7 @@ Not compared with main's head check-runs page by page; the cause read is from th
 
 ## Forward-carry
 
-- The meter floor lands in the roster `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-SAV-METER-FLOOR
-- Part 2 of the countermeasure and the bugclasses text land in `dev/audit/rca/R10-RCA-SAV-ESTIMATE.md`. Carry: R10-RCA-SAV-ESTIMATE
-- The unmeasured size of unforeseen wood heat is restated in `dev/programme/triage/s6-batch122.md`. Carry: R10-HOTFIX-SAV-ESTIMATE
+none. The three carries (R10-SAV-METER-FLOOR, R10-RCA-SAV-ESTIMATE, R10-HOTFIX-SAV-ESTIMATE) are the ruling's own Binding items in `dev/programme/triage/s6-batch122.md`, unchanged in destination; this repair writes no roster file, so landing them on the roster branch is the orchestrator's step.
 
 ## Friction
 
