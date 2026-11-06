@@ -41959,7 +41959,7 @@ try:
             and _wt_timeout_cls is not None and not isinstance(_wt_cap_err, _wt_timeout_cls)
             and "exceeds 1000000 bytes" in str(_wt_cap_err) and _wt_cap_out is None
             and _wt_cap_s < 0.5 and _wt_cap_free and _g511_coord._PROCESS_WORKER is None,
-            f"raised {_wt_cap_err!r} after {_wt_cap_s:.2f} s; returned {_wt_cap_out!r}; "
+            f"raised {_wt_cap_err!r} after {_wt_cap_s:.2f} s; returned {len(_wt_cap_out or b'')} bytes; "
             f"lock_free={_wt_cap_free} worker={_g511_coord._PROCESS_WORKER!r}",
         )
     finally:
