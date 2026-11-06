@@ -1,0 +1,6 @@
+== head
+PROBE-MIXED A beside E(started, earlier) and B(prelude): verdict='FAIL run(s) [42192000000, 42193153511] at this head are still being judged; their gate decides' naps=0 held_s=0
+gate self-test: 65 checks, 0 failed
+== M24
+PROBE-MIXED A beside E(started, earlier) and B(prelude): verdict='FAIL run(s) [42192000000, 42193153511] at this head are still being judged; their gate decides' naps=12 held_s=720
+gate self-test: 65 checks, 0 failed
