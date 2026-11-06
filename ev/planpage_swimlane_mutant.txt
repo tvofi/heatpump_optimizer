@@ -1,0 +1,4 @@
+1
+mutant swimlanes drop `and r["start"]`:
+plan_page self-test: 27 checks, 1 failed
+FAIL the fixture arms ran to the end (got: TypeError: strptime() argument 1 must be str, not None)

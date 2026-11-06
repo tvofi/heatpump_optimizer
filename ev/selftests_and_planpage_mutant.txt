@@ -1,0 +1,21 @@
+head unmutated:
+plan_page self-test: 67 checks, 0 failed
+1
+mutant merged->done:
+plan_page self-test: 67 checks, 8 failed
+FAIL held: a disposition stage is its own class, naming the group it went to (got: ('done', 'folded into another group (no merge of its own)', 'merged'))
+FAIL defect 1: every row's status is the roster's own stage (got: {'R9-DONE-BR': 'done', 'R9-DONE-NONE': 'done', 'R9-DONE-SHA': 'done', 'R9-HELD': 'done', 'R9-LIVE': 'live', 'R9-PART': 'partial', 'R9-READY': 'ready', 'R9-BLOCK': 'blocked'})
+FAIL defect 5: an absorbed group is not rendered done or delivered (got: {'g': 'R9-HELD', 'lane': 'Core model', 'st': 'done', 'label': 'folded into another group (no merge of its own)', 'pr': 'merged', 'tier': None, 'why': '', 'issues': [], 'blk': [], 'desc': 'Does R9-HELD.', 'crit': False, 'wave': None, 'start': None, 'finish': None})
+FAIL rows carry the done class (got: 4)
+FAIL the summary strip counts done (got: )
+FAIL rows carry the held class (got: 0)
+FAIL the summary strip counts held (got: )
+FAIL an absorbed group is held, unscheduled, and has no bar or tier (got: )
+plan_table self-test: 26 checks, 0 failed
+handover_prompt self-test: 17 checks, 0 failed
+resume_doc self-test: 15 checks, 0 failed
+roster_lib self-test: 64 checks, 0 failed
+orchestrator_tick self-test: 275 checks, 0 failed
+carry_audit self-test: 365 checks, 0 failed
+base:
+plan_page self-test: 66 checks, 0 failed
