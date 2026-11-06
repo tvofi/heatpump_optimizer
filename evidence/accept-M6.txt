@@ -27,25 +27,25 @@
   ok   waiter blocked after same-label return
 
 -- the queue
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:04.970453+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:04.970453+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:04.970453+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:06.678521+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:45:58.343706+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:45:58.343706+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:45:58.343706+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:46:00.057308+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:07.381622+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:46:00.761631+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   FIFO: three waiters take in arrival order, no one jumps
   ok   renew is refused while a ticket waits; the holder re-queues behind
   ok   a dead or expired ticket is skipped, a live one behind it is not
   ok   null control: with no live waiter renew extends and a take succeeds
 
 -- priority
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:07.885640+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:07.885640+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 08:39:08.492033+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-06 08:39:08.693742+00:00)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-06 08:39:08.693742+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 08:39:09.097788+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 08:39:09.097788+00:00)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:46:01.270932+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:46:01.270932+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 10:46:01.881340+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 10:46:02.085101+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 10:46:02.085101+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 10:46:02.491712+00:00)gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 10:46:02.491712+00:00)
+
   ok   priority: an urgent waiter takes before an older normal one, after its ticket rewrite
   ok   priority: a ticket rewrite keeps its priority and its arrival stamp
   ok   priority: aging promotes a normal waiter past a later urgent one, and only past the window
@@ -56,9 +56,13 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 08:39:09.097788+0
   ok   concurrency control: a rival taking while a slot is being created cannot also hold it
   ok   concurrency control: a slot being renewed is never read as empty by a waiter
   ok   concurrency control: a delay after a missing-slot read cannot let two waiters hold the slot
+  ok   concurrency control: a garbage slot is reaped and a following create wins
+  ok   concurrency control: a valid owner landing after the broken read survives the reap
+  ok   concurrency control: a rival in the reap's rename gap leaves one owner and no grave
+  FAIL concurrency control: a directory at the slot path is reclaimed, not raised  [raised IsADirectoryError(21, 'Is a directory')]
 
 -- heavy-slot holds
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 08:37:10.689932+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 10:44:04.272896+00:00)
   ok   a live holder keeps its slot past its lease, and a fifth taker is blocked
   ok   a slot whose named process is gone is stolen at once (null control)
   ok   a legacy slot with no pid is freed on expiry; a fresh one is respected
@@ -68,7 +72,7 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 08:37:10.689932+0
   ok   a take, a renewal and a marker leave no staging file in the pool
 
 -- wait bound and lapsed lease
-gate_lock: waiting for the lease held by holder until 2026-11-06 08:39:11.942920+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by holder until 2026-11-06 10:46:04.784323+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: seat's lease lapsed; taking it again
 gate_lock: seat's lease lapsed; taking it again
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
@@ -81,5 +85,4 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ok   a bounded give-up on re-queue keeps the witness; the next wrap queues again
   ok   a label that never held one is still refused
 
-ALL 42 gate lock acceptance checks PASSED
-rc=0
+1 of 46 gate lock acceptance checks FAILED

@@ -1,0 +1,10 @@
+RESULT D1 empty-dir wt=head free=0 create=True graves=0
+RESULT D2 nonempty-dir wt=head free=0 create=True graves=0
+RESULT D3 symlink-to-dir wt=head free=0 target_intact=True create=True graves=['stale(link)']
+RESULT D4 dir-replaced-by-owner wt=head fired=True free=0 owner=C graves=0
+RESULT D5 orphan-file-steal wt=head free=0 gone=True graves=0
+RESULT D1 empty-dir wt=main free=0 create=False graves=0
+RESULT D2 nonempty-dir wt=main free=0 create=False graves=0
+RESULT D3 symlink-to-dir wt=main free=0 target_intact=True create=False graves=[]
+RESULT D4 dir-replaced-by-owner wt=main fired=False free=0 owner=None graves=0
+RESULT D5 orphan-file-steal wt=main free=0 gone=True graves=0

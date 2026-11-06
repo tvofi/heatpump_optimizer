@@ -1,0 +1,7 @@
+NOTE body item 0807c742: dismissed:no atomic compare-and-remove exists; bound pinned by broken_rename_gap in tests/gate_lock.py
+NOTE body item 5c48dd39: dismissed:put-back and create arbitration make both harmless; see Mutation proof
+NOTE review 0 item 02d7f81c: dismissed:no atomic compare-and-remove exists on POSIX; bound pinned by broken_rename_gap in tests/gate_lock.py
+NOTE review 0 item d5d91a80: dismissed:only a hand-made symlink reaches it; harmless leak, no data loss; noted for the next touch of _steal
+NOTE review 0 item 3fb10c52: dismissed:near-equivalent; put-back keeps the rival's owner and the create arbitrates
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+rc=0

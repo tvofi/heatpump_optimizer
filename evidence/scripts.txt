@@ -1,0 +1,23 @@
+== head
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+      tests/gate_lock.py
+      RUN   tests/doc_claims.py
+      RUN   tests/entities.py
+      SKIP  tests/arch_score.py  (closure: 166 files, no changed file is in its measured closure)
+      SKIP  tests/arch_score_head.py  (closure: 128 files, no changed file is in its measured closure)
+      SKIP  tests/backtest.py  (closure: 36 files, no changed file is in its measured closure)
+      SKIP  tests/block_duty.py  (closure: 95 files, no changed file is in its measured closure)
+      SKIP  tests/boost_drift_replay.py  (closure: 94 files, no changed file is in its measured closure)
+      SKIP  tests/config_flow_steps.py  (closure: 130 files, no changed file is in its measured closure)
+ModuleNotFoundError: No module named 'homeassistant'
+STRUCTURE RATCHET PASSED
+ALL 296 checks PASSED
+== main
+  MODE: FULL -- every test script runs, nothing is scoped out.
+ModuleNotFoundError: No module named 'homeassistant'
+STRUCTURE RATCHET PASSED
+ALL 296 checks PASSED
+== head entities
+ALL 2637 ENTITY CHECKS PASSED
+== main entities
+ALL 2632 ENTITY CHECKS PASSED
