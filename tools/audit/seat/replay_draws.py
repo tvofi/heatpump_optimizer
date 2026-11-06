@@ -16,8 +16,10 @@ draws is re-derived by running it, not by reading a body.
 ``fetch`` lists the runs (newest first), each run's jobs on every page and
 every attempt, and downloads each concluded job's log once into ``DIR``,
 retrying a page the API answers 5xx; a page that still fails is printed by
-name, never skipped silently. ``window`` prints the replay jobs of the ``N``
-most recent ci.yml runs created up to ``--until``, one per line. ``grade``
+name, never skipped silently. ``window`` grades, at this tree, the synthetic
+clean draw of every replay job of the ``N`` most recent ci.yml runs created
+up to ``--until``, one per line, and exits 1 iff one offends or is missing
+from the committed draw set. ``grade``
 grades one job of ``tests/replay_cost_draws.tsv`` exactly as the lane does
 (``replay.job_cost``) and exits 1 iff a clean run offends or a doubled arm is
 not over budget: ``--ruler`` moves the job's ruler (a draw moved across a
@@ -210,10 +212,34 @@ def main(argv: list[str] | None = None) -> int:
                   key=lambda r: r["created"], reverse=True)[:args.runs]
     ids = {str(r["id"]) for r in runs}
     print(f"window: {len(runs)} ci.yml runs {runs[-1]['created']} .. {runs[0]['created']}")
-    for r in rows(args.cache):
-        if r["run"] in ids and r["arm"] == "clean" and r["fixture"] == "synthetic-dhw-only.json":
-            print(f"{r['job']}\t{r['run']}\t{r['created']}\t{r['ref_ms']}\t{r['cpu_ratio']}")
-    return 0
+    jobs = sorted({r["job"] for r in rows(args.cache) if r["run"] in ids
+                   and r["arm"] == "clean" and r["fixture"] == "synthetic-dhw-only.json"})
+    return window_grade(jobs)
+
+
+def window_grade(jobs: list) -> int:
+    """Grade each window job's ``tests / replay`` draw as the lane does at this
+    tree, one line per job, then the per-class and offender counts."""
+    root = Path(__file__).resolve().parents[3]
+    sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
+    import replay
+    draws = replay.cost_draws()
+    missing = [j for j in jobs if (str(j), "synthetic-dhw-only.json") not in draws]
+    rulers = replay.draw_rulers(draws)
+    classes: dict[str, int] = {}
+    bad = 0
+    for j in map(str, jobs):
+        if j in missing:
+            continue
+        got = replay.job_cost("synthetic-dhw-only.json",
+                              draws[(j, "synthetic-dhw-only.json")]["clean"], {}, rulers[j])
+        classes[str(got["class"])] = classes.get(str(got["class"]), 0) + 1
+        bad += bool(got["clean"])
+        print(f"{j}\truler {got['ruler']:.4g}\tclass {got['class']}\t"
+              f"{'; '.join(got['clean']) or 'passes'}")
+    print(f"window jobs {len(jobs)}, not in {replay.COST_DRAWS.name}: {missing}; "
+          f"by class {classes}; clean offending {bad}")
+    return 1 if bad or missing else 0
 
 
 if __name__ == "__main__":
