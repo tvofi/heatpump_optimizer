@@ -1,6 +1,6 @@
 {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:_frame_reader.read GUARD_OFF fb715113",
-  "killed_by": "tests/features.py",
+  "killed_by": "tests/worker_timeout.py",
   "old": "            if left_s <= 0 or not _reply_ready(fd, left_s):",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/worker_timeout.py from rc=0 failed=0 to rc=1 failed=2."
 }
