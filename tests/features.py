@@ -78537,7 +78537,7 @@ _c2238_house = np.arange(8.0)
 with _c2238_mock.patch.object(
     _c2238_tmod, "_window_partition", create=True, side_effect=lambda *_a: (2, 1),
 ):
-    _c2238_p8_s = metering_windows(_c2238_house, 60, 0.25, 0)
+    _c2238_p8_s = _c2238_tmod.metering_windows(_c2238_house, 60, 0.25, 0)
     _c2238_p8_b = _c2238_tmod._window_means_batch(_c2238_house[None, :], 60, 0.25, 0)
 R.check(
     "R10-CLONE-2238 P8: metering_windows and _window_means_batch both "
