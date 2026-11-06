@@ -1,0 +1,18 @@
+== head 5b39c4111ca5ae464a607490c42d70c638af24a3
+carry_audit self-test: 392 checks, 0 failed
+== base 28482eceeb6b9809e44b12d80fc994282cc21645
+carry_audit self-test: 364 checks, 0 failed
+== mutant A
+FAIL check --body refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)
+carry_audit self-test: 392 checks, 1 failed
+== mutant B
+FAIL check --body refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)
+carry_audit self-test: 392 checks, 1 failed
+== mutant C
+FAIL pr refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)
+carry_audit self-test: 392 checks, 1 failed
+== mutant C2
+FAIL pr refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)
+carry_audit self-test: 392 checks, 1 failed
+== mutant D
+carry_audit self-test: 392 checks, 0 failed

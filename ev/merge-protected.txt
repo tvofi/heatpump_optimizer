@@ -1,0 +1,45 @@
+== roles diff base...main
+== merge-tree origin/main 80016a71f567d936450d8708abcbb79d9e8071d7
+LEDGER-MERGE: resolved tests/closures.json
+  closures.tests/entities.py: merged as a set (552 entries)
+  re-run the gate that owns this file before pushing
+271dc5c0a223ad492f6bdf937085fa30f3dff679
+rc=0
+== protected files diff
+(empty=untouched)
+== changes since round-1 head 2fa354bf (non-merge)
+ .claude/workflows/web-stamp.js                     |  17 +
+ dev/audit/harnesses/ci_script_seconds.py           |  25 +-
+ .../harnesses/r10_ci_layout_p1/critpath_fetch.sh   |  20 +-
+ dev/audit/harnesses/r10_gate_stale_jobs/scan.py    |  27 +-
+ dev/audit/harnesses/r10_replay_loopnorm.py         |  22 +-
+ dev/audit/harnesses/r10_roster_push_race.sh        |   2 +-
+ dev/audit/harnesses/r10_seat_selftests_mutants.py  |  43 +-
+ dev/audit/harnesses/r10_tick_which_roster.py       |   3 +-
+ dev/programme/delivery/3242.md                     |   1 +
+ dev/programme/delivery/3248.md                     |   1 +
+ dev/programme/delivery/3253.md                     |   1 +
+ ...or._tibber_start_reauth.GUARD_OFF.75e9fa1a.json |   6 +
+ tools/audit/carry_audit.py                         |  26 +
+ tools/audit/seat/autofix_statuses.sh               |   8 +-
+ tools/audit/seat/bus.sh                            |  34 +-
+ tools/audit/seat/carry_fold.py                     |   2 +
+ tools/audit/seat/failure_logs.sh                   |   4 +-
+ tools/audit/seat/instruments/merge_train.py.md     |  20 +-
+ tools/audit/seat/instruments/roster_edit.py.md     |   7 +
+ tools/audit/seat/instruments/roster_queue.py.md    |   5 +
+ tools/audit/seat/instruments/train.sh.md           |   5 +-
+ tools/audit/seat/ledger.py                         |  80 ++-
+ tools/audit/seat/merge_train.py                    | 461 +++++++++++++--
+ tools/audit/seat/orchestrator_tick.py              |  35 +-
+ tools/audit/seat/probe_bridge.py                   |  17 +-
+ tools/audit/seat/r10_ledger_mutants.py             |  11 +-
+ tools/audit/seat/r10_roster_ops_mutants.py         |  86 ++-
+ tools/audit/seat/roster_edit.py                    | 611 +++++++++++++++++---
+ tools/audit/seat/roster_lib.py                     |  22 +-
+ tools/audit/seat/roster_queue.py                   | 627 ++++++++++++++++++++-
+ 30 files changed, 2044 insertions(+), 185 deletions(-)
+== review_carry
+  804fc0419  carry_audit self-test: pin check --body and pr fold-destination wiring
+  5b39c4111  Merge commit '804fc041947b08cd180f2f0d8e1308096a75f8aa' into fix/r10-body-contract-p2
+review_carry: FRESH-REVIEW
