@@ -1,0 +1,21 @@
+NULL unmutated: exit 0, 0 FAIL, 0.6s
+MUTANT flush call moved above the last_stamped_tag anchor: exit 1, 1 FAIL, 0.6s KILLED
+    FAIL flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
+MUTANT flush pin: anchor replaced by old newest-tag form: exit 1, 2 FAIL, 0.5s KILLED
+    FAIL flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
+    FAIL last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag
+MUTANT release.yml: unbounded readback: exit 1, 1 FAIL, 10.4s KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+MUTANT release.yml: tree step never ends: exit 1, 4 FAIL, 40.4s KILLED
+    FAIL release tree: a stamped tree releases (v7.1.1 at 7.1.1)
+    FAIL release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)
+    FAIL release tree: a manifest that disagrees refuses
+    FAIL release tree: notes without the tag's own section refuse
+MUTANT _run_step: no timeout + unbounded readback: exit HUNG, 0 FAIL, 120.1s KILLED
+MUTANT _run_step: kill only bash (proc.kill, not killpg) + unbounded readback: exit 1, 1 FAIL, 10.5s KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+MUTANT _run_step: timeout returns 1 (not None) + unbounded readback: exit 1, 1 FAIL, 10.5s KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+MUTANT RELEASE_READBACK_ATTEMPTS=4 (constant disagrees with yml): exit 1, 1 FAIL, 0.6s KILLED
+    FAIL release publish: an asset never read back fails after 4 reads, unpublished
+NULL restored: exit 0, 0 FAIL
