@@ -1,0 +1,6 @@
+NOTE stale tree: 051732fbc1ab948fe8d24c0127a54b5c89029346 lacks origin/main b36679ceaa65a08a67a84f0d934c93aa15f7c7f3; roster read at origin/main
+NOTE review 0 item 15dfc7d1: dismissed:the owner's call at the required policy review of this PR; no later stage changes
+NOTE review 0 item e645b3ac: dismissed:cosmetic body error, the carried text is right and the body is not policy
+NOTE review 0 item c8855e66: dismissed:instrument scope question outside this group's two carries and files; it belongs to a D11 governance seat to weigh against brief-citations.md's stated scope, and this PR changes no stage that depends on it
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
+rc=0
