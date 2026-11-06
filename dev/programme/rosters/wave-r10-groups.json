@@ -17002,7 +17002,9 @@
    "after": [
     "R10-CI-SLIM"
    ],
-   "carry": [],
+   "carry": [
+    "A repair handoff's body keeps `## Head` naming the previous handoff, so update_pr is handed a body whose Head is not the handoff's own code sha: seen on #3230 (fee2c572), #3212 (99a6db4a) and the #3231 rounds. Make body_push.sh or update_pr.sh rewrite `## Head` to the handoff's own code sha (or refuse at body_push time), with a test that drives both the stale and the fresh case. Evidence: the update logs /Users/timmalmstrom/hpo-orch/r10s6/s12/seat-dispatch/upd-3212.out (mkupd echo: body-head 99a6db4a against handoff code c9ee4e29), upd-3230.out and upd-3231.out."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started"
