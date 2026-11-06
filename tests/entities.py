@@ -36107,7 +36107,7 @@ R.check(
 )
 
 # Wired, against the YAML: the measuring job holds no write grant and runs the
-# drain with a date seed; the pushing job runs no driver, applies through
+# drain with the run's seed; the pushing job runs no driver, applies through
 # `apply_drained` with the measured head's diff, checks the write set, pushes
 # only to main under the writer's subject, and is graded by `drain_report`.
 _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
@@ -36120,7 +36120,7 @@ _ML_MISSING = [w for w, job in (
     ("pattern: mutation-ledger-*", _ml_push),
     ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
     ("if: always() && matrix.shard == 1", _ml_meas),
-    ('--seed "$(date -u +%Y%m%d)"', _ml_meas),
+    ('--seed "${{ github.run_id }}"', _ml_meas),
     ("github.event_name != 'push'", _ml_meas),
     ("needs.mutation-ledger.result == 'success'", _ml_push),
     ("m.apply_drained(pins, head, changed)", _ml_push),
@@ -38735,6 +38735,56 @@ R.check(
     f"serial={_MUT_BG2_OUT[0]!r} split={_MUT_BG2_OUT[1]!r}"
     if _MUT_BG2_OUT else f"drive_pin_pool="
                          f"{'absent' if _mut_pin is None else 'present'}",
+)
+
+# A pair `reach_skip` frees costs no run, so admission must not charge it
+# (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): the drain's 06 Nov shards closed
+# their pools 16-80 minutes before --budget-minutes with 185 of 320 drawn
+# sites unstarted, charging each mutant the sweep of drivers its traced
+# baselines never ran. The fixture of the check above plus a 1000 s driver
+# every mutant's trace frees: charged, it closes the pool before the first
+# mutant; freed, the schedules measure what the 40 s driver alone allows,
+# and the freed driver never runs. A predicate freeing nothing is the null
+# control: both schedules close at once, as charging everything would.
+def _mut_rf_run(schedule, workers, free):
+    _MUT_BG2_T[0] = 0.0
+    ran: list = []
+    pool = [dict(m, drivers=["tests/a.py", "tests/big.py"])
+            for m in _MUT_BG2_POOL]
+
+    def drive(w, m, s):
+        ran.append((m["line"], s))
+        _MUT_BG2_T[0] += {"tests/a.py": 40, "tests/big.py": 1000}[s] / workers
+        return False
+
+    try:
+        out = schedule(pool, workers, {"tests/a.py": 40, "tests/big.py": 1000},
+                       drive, deadline=100, clock=lambda: _MUT_BG2_T[0],
+                       free=free)
+    except TypeError as exc:
+        return repr(exc)
+    return [v for _, v in out], sorted(ran)
+
+
+_mut_rf_big = lambda m, s: s == "tests/big.py"  # noqa: E731
+_MUT_RF_OUT = ((_mut_rf_run(_mut.drive_pool, 1, _mut_rf_big),
+                _mut_rf_run(_mut_pin, 4, _mut_rf_big),
+                _mut_rf_run(_mut.drive_pool, 1, lambda m, s: False),
+                _mut_rf_run(_mut_pin, 4, lambda m, s: False))
+               if _mut_pin is not None else None)
+R.check(
+    "budget admission charges no pair reach_skip frees, in both schedules, "
+    "and main() hands the schedule its reach predicate",
+    _MUT_RF_OUT is not None
+    and _MUT_RF_OUT[0] == (["LIVES", "LIVES", "SKIP-BUDGET", "SKIP-BUDGET"],
+                           [(0, "tests/a.py"), (1, "tests/a.py")])
+    and _MUT_RF_OUT[1] == (["LIVES"] * 4,
+                           [(i, "tests/a.py") for i in range(4)])
+    and _MUT_RF_OUT[2] == (["SKIP-BUDGET"] * 4, [])
+    and _MUT_RF_OUT[3] == (["SKIP-BUDGET"] * 4, [])
+    and "free=reach_free)" in _MUT_BODY,
+    f"{_MUT_RF_OUT!r}" if _MUT_RF_OUT else
+    f"drive_pin_pool={'absent' if _mut_pin is None else 'present'}",
 )
 # R9-CI-1: #2025's pin step started none of 56 sites (run 37663843895). The
 # split charged every admitted mutant its EXCLUSIVE tail up front -- stress.py
