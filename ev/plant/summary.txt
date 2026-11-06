@@ -1,0 +1,3 @@
+RESULT plant wt config_flow_steps rc=0
+RESULT plant main config_flow_steps rc=0
+RESULT plant selection identical head vs main

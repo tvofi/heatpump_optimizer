@@ -1,0 +1,13 @@
+RESULT selftest handoff_push rc=0 grep=pass
+RESULT selftest body_push rc=0 grep=pass
+RESULT selftest postmerge rc=0 grep=pass
+RESULT selftest merge_train rc=0 grep=pass
+RESULT selftest ci_predict rc=0 grep=pass
+RESULT selftest bus rc=0 grep=pass
+RESULT selftest app_approve rc=0 grep=pass
+RESULT selftest open_pr rc=0 grep=pass
+RESULT selftest update_pr rc=0 grep=pass
+RESULT selftest structure rc=0 grep=pass
+RESULT selftest entities rc=0 grep=pass
+RESULT selftest rules_sync rc=0 grep=pass
+RESULT selftest policy_lint rc=0 grep=pass

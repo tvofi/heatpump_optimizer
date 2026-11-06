@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/grid_fee.py b/custom_components/heatpump_optimizer/grid_fee.py
+index 23f7de5a0..9854ae2b9 100644
+--- a/custom_components/heatpump_optimizer/grid_fee.py
++++ b/custom_components/heatpump_optimizer/grid_fee.py
+@@ -78,7 +78,7 @@ def fee_bound(currency: Any = None) -> float:
+ 
+     Ten is a SEK-sized number: a real 20 HUF/kWh fee sat above it.
+     """
+-    return IMPLAUSIBLE_FEE_SEK_PER_KWH * money_scale(currency)
++    return -1.0
+ 
+ #: The config flow's error keys for a rules text, translated in
+ #: strings.json under ``options.error``. Named here, next to the verdict
