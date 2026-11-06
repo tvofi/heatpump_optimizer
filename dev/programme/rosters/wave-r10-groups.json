@@ -14584,7 +14584,7 @@
     "Issue #2721 residual (orchestrator routing 2026-10-29, owner request): #2920 (R10-FLY-ORPHANS-REWRITTEN, merged) left `bus.sh orphans` reading only refs over the git protocol with no PR listing, so a merged handoff whose files main has since moved on from still reads ORPHAN there (3 of the 6 landed cases at #2920's measurement); the relay's level closes all 6. This group owns the handoff level, so it owns the residual: either give `bus.sh orphans` the level's merged-PR answer or record why the two may differ. Re-measure at your merge base. Closes #2721 when delivered. [implemented: af56818b577edf11561b6386a64aff961063d60d]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-ledger-residue",
     "commit": "af56818b577edf11561b6386a64aff961063d60d",
     "last_step": null,
