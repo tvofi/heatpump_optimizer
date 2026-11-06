@@ -1,0 +1,37 @@
+CLEAN NOT PASSING:
+  127635406711 pull 2026-11-06 ref_ms  20.45 loop_ref  78.49 FALLBACK cpu 3.296 loop 0.0967 kib 1929 -> REFUSED-no-budget
+  127019165648 pull 2026-11-05 ref_ms  20.54 loop_ref  74.86 FALLBACK cpu 3.402 loop 0.1249 kib 1929 -> REFUSED-no-budget
+  127191893386 pull 2026-11-05 ref_ms  21.58 loop_ref  79.54 FALLBACK cpu 3.479 loop 0.1331 kib 1930 -> REFUSED-no-budget
+  127224941881 pull 2026-11-05 ref_ms  21.58 loop_ref  79.54 FALLBACK cpu 3.479 loop 0.1331 kib 1930 -> REFUSED-no-budget
+  127279302536 pull 2026-11-05 ref_ms  21.86 loop_ref  80.52 FALLBACK cpu 3.383 loop 0.1231 kib 1930 -> REFUSED-no-budget
+  127042207792 pull 2026-11-05 ref_ms  22.00 loop_ref  80.83 FALLBACK cpu 3.579 loop 0.1293 kib 1936 -> REFUSED-no-budget
+  127562699131 pull 2026-11-05 ref_ms  22.28 loop_ref  82.46 FALLBACK cpu 3.597 loop 0.1239 kib 1934 -> REFUSED-no-budget
+  125038704635 work 2026-11-02 ref_ms  22.29 loop_ref  79.92 FALLBACK cpu 1.959 loop 0.1217 kib 1929 -> REFUSED-no-budget
+  126403921052 sche 2026-11-04 ref_ms  22.36 loop_ref  84.29 FALLBACK cpu 3.382 loop 0.1162 kib 1933 -> REFUSED-no-budget
+  127628215788 pull 2026-11-06 ref_ms  27.26 loop_ref 100.71 FALLBACK cpu 2.687 loop 0.1178 kib 1929 -> REFUSED-no-budget
+  125000687320 pull 2026-11-01 ref_ms  28.01 loop_ref  98.76 FALLBACK cpu 1.892 loop 0.114 kib 1932 -> REFUSED-no-budget
+  125008866961 work 2026-11-01 ref_ms  32.34 loop_ref 133.45 ref30    cpu 1.776 loop 0.0888 kib 1928 -> RED cpu_ratio 1.776: budget 3.934 cannot see a 2x cycle; re-record 2.512
+  124920331674 pull 2026-11-01 ref_ms  32.62 loop_ref 131.42 ref30    cpu 1.793 loop 0.0933 kib 1932 -> RED cpu_ratio 1.793: budget 3.934 cannot see a 2x cycle; re-record 2.536
+  124914706691 pull 2026-11-01 ref_ms  32.83 loop_ref 134.43 FALLBACK cpu 1.761 loop 0.0897 kib 1932 -> REFUSED-no-budget
+  124944189425 pull 2026-11-01 ref_ms  33.19 loop_ref 117.68 FALLBACK cpu 1.938 loop 0.1183 kib 1933 -> REFUSED-no-budget
+  124948874573 pull 2026-11-01 ref_ms  33.53 loop_ref 133.65 FALLBACK cpu 1.877 loop 0.1029 kib 1933 -> REFUSED-no-budget
+  124969150454 pull 2026-11-01 ref_ms  33.53 loop_ref 133.65 FALLBACK cpu 1.877 loop 0.1029 kib 1933 -> REFUSED-no-budget
+  126588166343 pull 2026-11-04 ref_ms  34.61 loop_ref 154.38 FALLBACK cpu 3.069 loop 0.1005 kib 1928 -> REFUSED-no-budget
+  126713994281 pull 2026-11-04 ref_ms  34.61 loop_ref 154.38 FALLBACK cpu 3.069 loop 0.1005 kib 1928 -> REFUSED-no-budget
+  127612105577 pull 2026-11-05 ref_ms  37.73 loop_ref 140.55 FALLBACK cpu 2.474 loop 0.1062 kib 1930 -> REFUSED-no-budget
+  127091245300 pull 2026-11-05 ref_ms  37.80 loop_ref 135.18 FALLBACK cpu 2.417 loop 0.1079 kib 1933 -> REFUSED-no-budget
+  126600478623 pull 2026-11-04 ref_ms  39.74 loop_ref 176.59 FALLBACK cpu 2.759 loop 0.0848 kib 1932 -> REFUSED-no-budget
+  126971378040 sche 2026-11-05 ref_ms  40.10 loop_ref 172.27 FALLBACK cpu 2.881 loop 0.0937 kib 1929 -> REFUSED-no-budget
+  127310664875 pull 2026-11-05 ref_ms  46.96 loop_ref 279.78 ref46    cpu 2.476 loop 0.0594 kib 1930 -> RED loop_cpu_ratio 0.0594: budget 0.1278 cannot see a 2x cycle; re-record 0.084
+  127046649273 pull 2026-11-05 ref_ms  50.94 loop_ref 159.47 ref53    cpu 2.256 loop 0.1046 kib 1930 -> RED cpu_ratio 2.256 over its budget 2.081
+PLANTS SURVIVING ON CLEAN-PASSING DRAWS:
+  cpu_ratiox1.5: 3
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref30@31.37 cpu 2.615 loop 0.1154 (2026-11-02)
+  loop_cpu_ratiox1.5: 5
+     ref24@23.24 cpu 2.616 loop 0.118 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.94 cpu 2.635 loop 0.1194 (2026-11-05)
+     ref46@47.52 cpu 2.326 loop 0.0822 (2026-11-04)
