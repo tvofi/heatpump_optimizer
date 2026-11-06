@@ -6,11 +6,11 @@ The classification: `tests/replay_cost_draws.tsv` is added to D3's universe, bes
 
 ## Head
 
-8de8ada94587281c7c0efec290862266ae73d87c
+824c2b6416fdc27d43c64554721a6731d58b8c92
 
 ## Mutation proof
 
-The change is a data classification, so the mutant is reverting it. With the line removed from `dev/audit/config/scopes.json`, `python3 -I tools/audit/check_scopes.py --repo .` prints `FAIL coverage tracked=9105 in_universe=1417 excluded=7687 unclassified=1` naming `tests/replay_cost_draws.tsv`, and `--self-test` prints `SELF-TEST FAILED` with `the default verdict passes the live scopes` and `the default invocation exits 0 on the live scopes` False. With the line, both pass (below).
+The change is a data classification, so the mutant is reverting it. With the line removed from `dev/audit/config/scopes.json`, `python3 -I tools/audit/check_scopes.py --repo .` prints `FAIL coverage tracked=9106 in_universe=1417 excluded=7688 unclassified=1` naming `tests/replay_cost_draws.tsv`, and `--self-test` prints `SELF-TEST FAILED` with `the default verdict passes the live scopes` and `the default invocation exits 0 on the live scopes` False. With the line, both pass (below).
 
 ## Null control
 
@@ -18,12 +18,12 @@ The unmodified tree (this branch merged with origin/main, before the one-line ed
 
 ## Figures
 
-- `python3 -I tools/audit/check_scopes.py --repo .` at the base (merged tree before the edit): `FAIL coverage tracked=9105 in_universe=1417 excluded=7687 unclassified=1`. At head 8de8ada9: `ok coverage tracked=9105 in_universe=1418 excluded=7687 unclassified=0`.
+- `python3 -I tools/audit/check_scopes.py --repo .` at the base (merged tree before the edit): `FAIL coverage tracked=9106 in_universe=1417 excluded=7688 unclassified=1`. At head 824c2b64: `ok coverage tracked=9106 in_universe=1418 excluded=7688 unclassified=0`.
 - `python3 -I tools/audit/check_scopes.py --self-test --repo .` at the base: `SELF-TEST FAILED` (two arms False, as above). At head: `SELF-TEST passed (every perturbed scope refused)`.
 - `PYTHONPATH=tests/hastub python3 tests/replay.py` at head: `ALL 197 replay checks PASSED`.
 - `PYTHONPATH=tests/hastub python3 tools/audit/seat/replay_draws.py grade --job 127046649273` at head: clean passes, cpu doubled `cpu_ratio 4.444 over its budget 3.342`, loop doubled `loop_cpu_ratio 0.2063 over its budget 0.1527`, memory doubled `peak_kib 3861 over its budget 2686`; rc 0. With `--ruler 51.5` the doubled arms are refused on ref53's 2.076.
 - Draw set at head: 565 runs, 116 jobs (`tests/replay_cost_draws.tsv`, counted with a csv reader).
-- `bash tools/pr/prepr.sh` at head 8de8ada9, origin/main 33e60b5b already merged: `PRE-PR: 8de8ada94587 ... rc=0`.
+- `bash tools/pr/prepr.sh` at head 824c2b64, origin/main a2240924 already merged: `PRE-PR: 824c2b6416fd ... rc=0`.
 
 ## Red checks
 
