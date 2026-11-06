@@ -12,7 +12,7 @@ n/a: a triage record changes no production line; there is no fix to break.
 
 ## Null control
 
-The earlier ruling cited commits that `git cat-file -t` reports as "Not a valid object name". The null for the re-taken arm table is the flat-price arm `valve-flat`, whose row is 0.47 %, so a saving has no source but volume and the ratio stays inside 0.5 to 2.0 (1.09). `grep -c '4fff42664\|39143c38f\|e1ee044cc\|77af298ef' dev/programme/triage/s6-batch122.md` prints 0.
+The earlier ruling cited commits that `git cat-file -t` reports as "Not a valid object name". The null for the re-taken arm table is the flat-price arm `valve-flat`, whose row is 0.47 %, so a saving has no source but volume and the ratio stays inside 0.5 to 2.0 (1.09). The ruling file names none of the withdrawn commits: the review seat's `ev/cat-file.txt` finds every SHA the ruling cites on origin.
 
 ## Figures
 
