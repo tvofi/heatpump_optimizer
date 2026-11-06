@@ -1144,7 +1144,7 @@ def self_test() -> int:
             (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
                 json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
             (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
-            return subprocess.run(["bash", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
+            return subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
                                   env={**os.environ, "TAG": tag},
                                   capture_output=True, text=True).returncode
     check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
@@ -1170,7 +1170,7 @@ def self_test() -> int:
             (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
             for stub in ("gh", "sleep"):
                 (b / stub).chmod(0o755)
-            rc = subprocess.run(["bash", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
+            rc = subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
                                 env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
                                      "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
                                 capture_output=True, text=True).returncode
