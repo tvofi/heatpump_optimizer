@@ -586,11 +586,13 @@ def step_replay_self_test(root: Path) -> int:
     """`step_replay_preds` over a scratch repo: a summary line the head stops
     printing, its null control, and a step red at both ends."""
     import tempfile
+    sys.path.insert(0, str(root / "tests"))
+    from throwaway_git import throwaway_git_init
     bad = 0
     with tempfile.TemporaryDirectory() as d:
         t = Path(d)
-        g = lambda *a: subprocess.run(["git", "-C", str(t), *a], capture_output=True, text=True)
-        g("init", "-q")
+        env = throwaway_git_init(t, "-q", "-b", "main")
+        g = lambda *a: subprocess.run(["git", *a], cwd=t, env=env, capture_output=True, text=True)
         (t / ".github" / "workflows").mkdir(parents=True)
         (t / "tools").mkdir()
         step = ("      - name: {n}\n        run: |\n          set -o pipefail\n"
