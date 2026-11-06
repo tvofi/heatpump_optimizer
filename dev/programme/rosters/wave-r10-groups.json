@@ -15237,12 +15237,14 @@
     "From PR 3223 (r10-raise-gate-shim), body item 870f6b21: Carry: R10-RAISE-GATE-SHIM (c) measured, no change needed: the `budget-raise-gate / budget-raise-gate` job (timeout 5 min, `.github/workflows/budget-raise-gate.yml`) over the 40 most recent `ci.yml` runs (31 completed jobs on pull_request, pull_request_review and workflow_dispatch): min 19 s, median 28 s, max 48 s; headroom against 300 s is at least 252 s. This PR's own head: 25 s (127322514552) and 29 s (127348404149). Not claimed as the mandated path: none of these is known to be a raise diff run, so the scorer's cost on a raise stays unmeasured; the first raise PR's body should read its job duration. (items 870f6b21)",
     "From PR 3223 (r10-raise-gate-shim), body item aae60647: Carry: R10-RAISE-GATE-SHIM, residual, `exec -a` argv0 spoofing: the parent check reads `ps` args, which the caller writes, so `exec -a 'python3 <tree>/tools/pr/gh_comment.py' bash -c 'gh api ...'` passes as the poster. Deliberate evasion, no fix in a ps-based check; recorded in the instrument note `instruments/shims_seat-gh.md`. (items aae60647)",
     "From PR 3223, body item e70400f3: Residual, by design: the caller test reads `ps` args, which a caller writes, so an `exec -a` spoof of the parent (a process naming `gh_comment.py` as its own argv) passes the guard. The shim is a guard against a seat's habit, not an adversary (declared in the shim and the instrument note). Carry: R10-RAISE-GATE-SHIM (items e70400f3)",
-    "From PR 3223, body item 35c84a90: `score_check` accepts a `## Raise justification` that quotes a wrong figure beside the measured one (predates this PR). Carry: R10-RAISE-GATE-SHIM (items 35c84a90)"
+    "From PR 3223, body item 35c84a90: `score_check` accepts a `## Raise justification` that quotes a wrong figure beside the measured one (predates this PR). Carry: R10-RAISE-GATE-SHIM (items 35c84a90)",
+    "Residual, by design: the caller test reads `ps` args, which a caller writes, so an `exec -a` spoof of the parent (a process naming `gh_comment.py` as its own argv) passes the guard. The shim is a guard against a seat's habit, not an adversary (declared in the shim and the instrument note). Carry: R10-RAISE-GATE-SHIM",
+    "`score_check` accepts a `## Raise justification` that quotes a wrong figure beside the measured one (predates this PR). Carry: R10-RAISE-GATE-SHIM"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-raise-gate-shim",
-    "commit": null,
+    "commit": "5915e30b4e5e88b69e1c22297285ac10ca8d057b",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-MANDATE-REVOKE-GUARD",
