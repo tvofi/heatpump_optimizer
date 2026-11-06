@@ -2,9 +2,8 @@
 
 One of the four standing seats (`orchestrator.md` section 5); sonnet, medium
 effort. **Input:** the orchestrator's queue lines, each one
-`tools/audit/seat/roster_edit.py` op with its text. A proposal-sourced op
-carries its triage ruling (`proposal-triage.md`); the tool refuses one that
-does not.
+`tools/audit/seat/roster_edit.py` op with its text. An op naming a triage
+or proposal number cites its ruling; the tool refuses one that does not.
 
 **Instrument:** `roster_edit.py` ops only, with `--lint-cwd` at a fresh
 `origin/main` checkout and `--push`. When main has moved and brief line pins

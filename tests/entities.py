@@ -28015,22 +28015,6 @@ R.check(
     "without bound, and a body-REPLACING version deletes the 2.6 kB of "
     "tracking text that is the reason anyone opens #201 at all",
 )
-_DS_JOB = _workflow_job(
-    Path(".github/workflows/governance.yml").read_text(), "delivery-status")
-R.check(
-    "the ledger is wired into a job that runs on pull requests",
-    "github.event_name == 'pull_request'" in _DS_JOB
-    and "tests/delivery_status.py" in _DS_JOB,
-    f"pull_request={'pull_request' in _DS_JOB}, "
-    f"invoked={'tests/delivery_status.py' in _DS_JOB}",
-)
-R.check(
-    "and the pull-request lane passes no --since that would pin its answer",
-    "--since" not in _DS_JOB,
-    "`--since` names the window, so a job passing a fixed one would report the "
-    "same closed window for ever -- the always-green knob "
-    "`nightly_status.py`'s `--run` is pinned against",
-)
 # The permission widening, checked as a PROPERTY rather than as its instance:
 # the whole set of jobs in governance.yml that override the workflow's
 # `contents: read` floor. A job-level block REPLACES the floor for that job and
@@ -28046,19 +28030,16 @@ R.check(
 # both files: the blast radius did not change because a job changed file.
 _DS_GOV = Path(".github/workflows/governance.yml").read_text()
 _PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
-_DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
 _DS_OVERRIDES = sorted(
     _m.group(1) for _wf_text in (_DS_GOV, _PC_WF) for _m in re.finditer(
         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
         _wf_text, re.M | re.S)
 )
 R.check(
-    "exactly three governance jobs override the workflow's read-only floor",
-    _DS_OVERRIDES == ["delivery-status-publish", "pr-contract", "record"],
+    "exactly two governance jobs override the workflow's read-only floor",
+    _DS_OVERRIDES == ["pr-contract", "record"],
     f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
-    "for rather than land, and the reporting lane is deliberately NOT one: "
-    "`delivery-status` runs on pull requests with no widening at all, because "
-    "it only reads the tree it is already checked out in",
+    "for rather than land (card C5 deleted the publishing lane)",
 )
 # EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
 # Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
@@ -28069,7 +28050,7 @@ R.check(
 # walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
 # budgets. The guard is read off the registered job and evaluated over literals;
 # the plant is the unguarded text, the null controls are the arms that must run.
-_RW_GOV_WRITERS = ("record", "delivery-status-publish")
+_RW_GOV_WRITERS = ("record",)
 _RW_OLD_RECORD_IF = (
     "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
 _RW_PR_BRANCH = "refs/heads/claude/some-pr"
@@ -28882,48 +28863,6 @@ R.check(
     "deliberately -- a job would over-write the handover every beat",
 )
 
-# THE JOB'S WIRING, over nightly.yml's record-autofix block read WITHOUT its
-# comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
-# a grant would accept the sentence that explains the grant. Pinned: main
-# only, its own environment, the `ci:` commit subject the loop guard keys on,
-# the guarded `git add docs/delivery` write set (the rows commit, and the
-# self-row commit after NUM exists), the re-derive loop, the
-# #201 comment, and the report step that reddens a beat owed and not landed.
-# The record push's one force is a LEASE anchored on the tip the same try
-# fetched (a re-run's sibling commit made the fast-forward-only push of run
-# 37261904851, attempt 06:14, refuse forever), so every push line carries
-# `--force-with-lease=refs/heads/record/autofix:<expected>` and nothing else
-# that forces. The null controls strip the subject, the ref guard and the
-# lease's anchor and must each fail.
-_RAF_JOB_RAW = _workflow_job(_NIGHTLY_YML, "record-autofix")
-_RAF_JOB = "\n".join(
-    _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
-_RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
-_RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
-# The write set's directory is the generator's own row path, not a second
-# spelling: the job staged `docs/delivery` after the rows moved to
-# `dev/programme/delivery`, so `git add` matched nothing, every beat read
-# "nothing-owed", and `record` stayed red on main.
-_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
-                         if "_rr" in globals() else "?")
-
-
-# The one review the job posts is the approver App's, and only behind the
-# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
-# sits after the guard's call at the live head, and the POST carries the
-# approver token, never the author's -- an author cannot approve its own pull
-# request, and a review ahead of the guard would approve what it never read.
-_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
-
-
-def _raf_review_gated(job: str) -> bool:
-    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
-    g = job.find(_RAF_GUARD)
-    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
-                     r'[^\n]*pulls/\$NUM/reviews"', job)
-    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
-
-
 # The `--require-green` call must survive the step's shell, and so must every
 # exit a step means to read. GitHub runs a `run:` block under errexit -- the
 # default shell is `bash -e {0}`, `shell: bash` is `bash --noprofile --norc
@@ -29055,19 +28994,13 @@ with tempfile.TemporaryDirectory() as _ex_td:
         {"name": "bash", "shell": "bash", "run": "x\nrc=$?\n"},
         {"name": "default", "run": "x\nrc=$?\n"}]}}}))
     _EX_SHELL_ARM = _ex_scan(Path(_ex_td))
-    # The live batch gate, its condition unwrapped back to the defect's form.
-    _ex_wf.joinpath("a.yml").write_text(_NIGHTLY_YML.replace(
-        "batch=0\n", "", 1).replace(" || batch=$?", "\n            batch=$?", 1))
-    _EX_PLANT = _ex_scan(Path(_ex_td))
 R.check(
     "and the errexit check reads the shapes, not one call (null controls)",
     not _EX_CASES_BAD and _EX_EMPTY == (0, 0, [])
-    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2)
-    and len(_EX_PLANT[2]) == 1 and "record-autofix" in _EX_PLANT[2][0],
+    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2),
     f"cases wrong={_EX_CASES_BAD} empty tree={_EX_EMPTY} (a green over no "
     f"block is a skip) shell arm={_EX_SHELL_ARM[:2]}+{len(_EX_SHELL_ARM[2])} "
-    f"hits (`shell: python` is not errexit) live batch gate unwrapped="
-    f"{_EX_PLANT[2]}",
+    f"hits (`shell: python` is not errexit)",
 )
 
 
@@ -29153,415 +29086,6 @@ R.check(
 )
 
 
-# The merge is the beat's own, pinned to the head the guard judged (#2029
-# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
-# the guard's `--require-green` call, and never GitHub's auto-merge, which
-# merges later on a head nobody judged.
-def _raf_merge_pinned(job: str) -> bool:
-    g = job.find("guard --require-green")
-    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
-    return (0 < g < put
-            and "if guard --require-green" in job
-            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
-            and "AutoMerge" not in job)
-
-
-# THE BATCH (tvofi, 2026-10-24/25): the gate sits between the plan and the
-# apply, reads the workflow's own event (a push batches; the nightly and a
-# dispatch flush), its wait is the green `batching` status, and nothing but its
-# two exits decides. record_row.py's `batch_due` is driven both ways by its
-# --self-test; this pins that the job asks it, with the event.
-_RAF_BATCH = '--batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT"'
-
-
-def _raf_batch_gated(job: str) -> bool:
-    gate, apply_ = job.find(_RAF_BATCH), job.find("--apply --plan-file")
-    return (0 < job.find("--plan --merges-file") < gate < apply_
-            and job.count("EVENT: ${{ github.event_name }}") == 2
-            and 'if [ "$batch" = 4 ]; then status="batching"; break; fi' in job
-            and "pushed|nothing-owed|held|batching) exit 0 ;;" in job)
-
-
-def _raf_job_ok(job: str) -> bool:
-    """The wiring record-autofix owes, read over non-comment lines."""
-    adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
-    pushes = re.findall(r"(?m)^\s*(push .*)$", job)
-    return (
-        bool(job)
-        and "github.ref == 'refs/heads/main'" in job
-        and "environment: record-writer" in job
-        and job.count('git commit -q -m "ci: record delivery rows"') == 2
-        and adds == [_RAF_ADD, _RAF_ADD]
-        and job.find("--write-self-row") > job.find("NUM=$(")
-        and "docs/HANDOVER.md" not in job
-        and "for try in 1 2 3" in job
-        and "issues/201/comments" in job
-        and "if: always()" in job
-        and pushes
-        and all(_RAF_LEASE in p for p in pushes)
-        and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
-                    for p in pushes)
-        and "--automerge-check --hold" in job
-        and _raf_batch_gated(job)
-        and _raf_review_gated(job)
-        and _raf_merge_pinned(job))
-
-
-R.check(
-    "nightly.yml's record-autofix job: main-only, its own environment, "
-    "loop-guarded ci: subject, guarded write set",
-    _raf_job_ok(_RAF_JOB),
-    f"job present={_RAF_JOB != ''}, ref guard="
-    f"{'github.ref == ' in _RAF_JOB}, env="
-    f"{'environment: record-writer' in _RAF_JOB}, adds="
-    f"{[a.strip() for a in _RAF_ADDS]}, "
-    "handover mentioned="
-    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
-    "gate after the generator's own guard -- a `git add -A` would commit a "
-    "write the guard refused -- a moved main is re-derived by the fetch/"
-    "reset loop, and the record push replaces only the tip the same try "
-    "fetched, under the lease anchored on it",
-)
-R.check(
-    "and the pin reads the job's own lines, not its name (null controls)",
-    not _raf_job_ok(_RAF_JOB.replace(
-        "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(
-        'git commit -q -m "ci: record delivery rows"', "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(
-        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
-    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
-    and not _raf_job_ok(_RAF_JOB.replace(
-        "if guard --require-green", "guard --require-green", 1))
-    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1))
-    and not _raf_job_ok(_RAF_JOB.replace(' --event "$EVENT"', '', 1))
-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_BATCH, "--row-numbers", 1)),
-    "stripping the ref guard, the ci: subject, the guarded add, or the "
-    "lease's anchor -- or replacing the lease with an unanchored "
-    "--force-with-lease or a bare --force, or dropping the self-row write "
-    "that runs only after NUM is known, or dropping the automerge guard "
-    "ahead of the review, or posting it with the author's token, or the "
-    "merge's green gate or its sha pin, or unwrapping the `--require-green` "
-    "call so `bash -e` aborts the step before its `case`, or dropping the "
-    "batch gate or the event it reads -- must "
-    "each turn the pin red -- "
-    "or the pin matched a comment, not the wiring",
-)
-# The batch gate must survive the step's shell, the `--require-green` trap
-# again: GitHub runs a `run:` block under `bash -e`, so a BARE `record_row.py
-# --batch-due` followed by `batch=$?` ended the STEP with the gate's own exit 4
-# ("batching", by design below the floor) before `batch=$?` ran, and every push
-# below BATCH_FLOOR_ROWS turned record-autofix red with no `RECORD AUTOFIX:`
-# line (job 121376503388, exit 4). The string pin above read the wiring and
-# record_row.py's self-test its exit codes; neither ran the YAML's lines under
-# `-e`. This runs them: the gate's lines cut from the real job, inside a one-try
-# loop, under the runner's `-eo pipefail` and the step's own `-u`, with
-# `python3` stubbed to exit 0, 4, 1 and 2. 0 must reach the apply, 4 must end
-# `batching`, any other nonzero `skip-batch-gate`, and the step must finish.
-def _raf_batch_outcomes(job: str) -> dict[int, str]:
-    lines = job.split("\n")
-    at = next((i for i, l in enumerate(lines) if _RAF_BATCH in l), -1)
-    end = next((i for i in range(max(at, 0), len(lines))
-                if "skip-batch-gate" in lines[i]), -1)
-    # From the `fi` closing the step before it, so the gate's own setup runs.
-    start = next((i for i in range(at, -1, -1) if lines[i].strip() == "fi"), -1)
-    if at < 1 or end < 0 or start < 0:
-        return {}
-    gate = "\n".join(lines[start + 1:end + 1])
-    script = ('set -uo pipefail\npython3() { return "$STUB_RC"; }\n'
-              'status=none\nfor try in 1; do\n' + gate +
-              '\nstatus="apply"; break\ndone\necho "RECORD AUTOFIX: $status"\n')
-    out = {}
-    for rc in (0, 4, 1, 2):
-        run = subprocess.run(
-            ["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
-            capture_output=True, text=True, timeout=30,
-            env={"PATH": os.environ.get("PATH", ""), "STUB_RC": str(rc),
-                 "RUNNER_TEMP": "/nonexistent", "EVENT": "push"})
-        m = re.search(r"RECORD AUTOFIX: (\S+)", run.stdout)
-        out[rc] = (m.group(1) if run.returncode == 0 and m
-                   else f"died:{run.returncode}")
-    return out
-
-
-_RAF_BATCH_WANT = {0: "apply", 4: "batching", 1: "skip-batch-gate",
-                   2: "skip-batch-gate"}
-_RAF_BATCH_GOT = _raf_batch_outcomes(_RAF_JOB_RAW)
-R.check(
-    "nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 "
-    "applies, 4 batches, any other nonzero skips, and the step finishes",
-    _RAF_BATCH_GOT == _RAF_BATCH_WANT,
-    f"got {_RAF_BATCH_GOT}, want {_RAF_BATCH_WANT}; a bare call before "
-    "`batch=$?` lets `-e` end the step with the gate's own exit",
-)
-R.check(
-    "and the run reads the job's own lines (null control: the bare call "
-    "dies under `-e`)",
-    _raf_batch_outcomes(re.sub(
-        r" \|\| batch=\$\?", "\n              batch=$?", _RAF_JOB_RAW)
-    ).get(4) == "died:4",
-    "re-baring the gate call must kill the step with exit 4 -- or the check "
-    "ran a shell that is not the runner's",
-)
-# The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
-# API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open
-# record pull request and the create POST was refused 422 "A pull request
-# already exists" (run 37343172583, PR #1970 open). Every lookup's filter is
-# the owner form, the owner coming from github.repository_owner.
-_RAF_HEADS = re.findall(r"pulls\?head=([^&\"\s]+)", _RAF_JOB)
-
-
-def _raf_lookup_ok(job: str) -> bool:
-    heads = re.findall(r"pulls\?head=([^&\"\s]+)", job)
-    return (bool(heads)
-            and all(h == "${OWNER}:record/autofix" for h in heads)
-            and "OWNER: ${{ github.repository_owner }}" in job)
-
-
-R.check(
-    "nightly.yml's record-autofix finds its own open pull request by "
-    "head=<owner>:record/autofix",
-    _raf_lookup_ok(_RAF_JOB),
-    f"head filters={_RAF_HEADS}, owner env="
-    f"{'OWNER: ${{ github.repository_owner }}' in _RAF_JOB}; the pulls "
-    "endpoint's head filter is `user:ref-name`, and an `<owner>/<repo>:` "
-    "filter matches nothing, so the job POSTs a duplicate and is refused",
-)
-R.check(
-    "and the lookup pin refuses the repository-form filter (null control)",
-    not _raf_lookup_ok(_RAF_JOB.replace(
-        "head=${OWNER}:record/autofix", "head=$REPO:record/autofix"))
-    and not _raf_lookup_ok(_RAF_JOB.replace(
-        "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
-    "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
-    "the repository's full name, must each turn the lookup pin red",
-)
-# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
-# while it is live and deletes it at its closing line, and this beat's
-# automerge step must not merge a record pull request while that ref is
-# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
-# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
-# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
-# stubbed API: the status it prints and the calls it makes are what prove the
-# skip happens after the guard and the approver App's review and before the
-# merge (V118: a hold ahead of the review left #2856 unreviewed while trains
-# ran back to back, since the train's --bot-prs sweep merges on the guard
-# alone), so a check placed elsewhere (or an inverted age comparison) cannot
-# pass. The bound is read from the step, never carried.
-_HOLD_STEP = next((s for s in ((_yaml.safe_load(_NIGHTLY_YML) or {}).get("jobs") or {})
-                   .get("record-autofix", {}).get("steps") or []
-                   if str(s.get("id") or "") == "automerge"), {})
-_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
-_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
-_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
-_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
-_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
-                         Path("tools/audit/seat/merge_train.py").read_text())
-
-
-def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 1,
-                       approver: str = "", calls: "list | None" = None, green_rc: int = 1,
-                       reviews: str = "[]", run: str = "") -> "tuple[str, bool]":
-    """The automerge step's `status=` and whether it warned "unreadable" over a
-    stubbed API whose train-hold read answers (code, body); every other read is
-    the minimum the step needs.
-
-    The record-row guard is a stub that refuses, so an arm that did NOT skip
-    reaches it and reports `refused`: a missing or unreached skip is visible
-    in the status, not inferred from an absence. `GET /commits/<ref>` answers
-    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
-    live 2026-10-20), never 404 -- an absent hold must be silent, or every
-    beat with no train running logs a warning.
-
-    `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
-    default, so the hold's own arms read as before), 4 the pitch's wait.
-    `guard_rc` is the first guard's exit (the refusing default; 0 passes it,
-    and the green wait after it refuses unless `green_rc` is 0), `approver` the
-    approver App's token, `reviews` the pull request's reviews read, `run` a
-    step text in place of the step's own (a mutant), and `calls`, when given,
-    receives every curl argv the step ran."""
-    with tempfile.TemporaryDirectory() as td:
-        t = Path(td)
-        (t / "tools" / "audit" / "seat").mkdir(parents=True)
-        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
-            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else "
-            f"{green_rc} if '--require-green' in sys.argv else {guard_rc})\n")
-        answers = t / "answers.json"
-        answers.write_text(json.dumps({
-            "hold": {"code": code, "body": body},
-            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
-            "reviews": {"code": 200, "body": reviews},
-            "other": {"code": 404, "body": "{}"}}))
-        bin_ = t / "bin"
-        bin_.mkdir()
-        (bin_ / "curl").write_text(
-            "#!" + sys.executable + "\n"
-            "import json, sys\n"
-            f"ans = json.load(open({str(answers)!r}))\n"
-            "a = sys.argv[1:]\n"
-            f"open({str(t / 'calls.log')!r}, 'a').write(json.dumps(a) + '\\n')\n"
-            "url = a[-1]\n"
-            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
-            "       else 'reviews' if '/reviews' in url\n"
-            "       else 'pulls' if '/pulls/' in url else 'other')\n"
-            "code, body = ans[key]['code'], ans[key]['body']\n"
-            "if '-o' in a:\n"
-            "    p = a[a.index('-o') + 1]\n"
-            "    if p != '/dev/null':\n"
-            "        open(p, 'w').write(body)\n"
-            "    if '-w' in a:\n"
-            "        sys.stdout.write(str(code))\n"
-            "else:\n"
-            "    sys.stdout.write(body)\n")
-        (bin_ / "curl").chmod(0o755)
-        out = t / "out"
-        out.write_text("")
-        p = subprocess.run([*_GHA_RUN, run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
-                           env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
-                                              REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
-                                              EVENT="push"))
-        if calls is not None and (t / "calls.log").exists():
-            calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
-        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
-        warned = "unreadable" in (p.stdout + p.stderr)
-        return (found[-1] if found else ""), warned
-
-
-def _hold_when(offset_s: int) -> str:
-    """A commit read whose committer date is now + offset_s seconds."""
-    at = datetime.now(UTC) + timedelta(seconds=offset_s)
-    return json.dumps({"commit": {"committer": {
-        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
-
-
-def _hold_calls(code: int, body: str, **kw) -> "tuple[str, bool, bool, bool]":
-    """(status, approver review posted, a review dismissed, merge called) for one
-    run of the automerge step with the approver App's token present."""
-    calls: list = []
-    st, _ = _train_hold_status(code, body, approver="ap0", calls=calls, **kw)
-    return (st,
-            any("POST" in c and "Authorization: Bearer ap0" in c
-                and c[-1].endswith("/pulls/42/reviews") for c in calls),
-            any("PUT" in c and c[-1].endswith("/dismissals") for c in calls),
-            any(c[-1].endswith("/merge") for c in calls))
-
-
-# A bot approval at an older head, so a refusal has one to dismiss.
-_HOLD_OLD_REVIEW = json.dumps([{"id": 7, "state": "APPROVED", "commit_id": "b" * 40,
-                                "user": {"login": "hpo-approver[bot]"}}])
-_HELD = _hold_calls(200, _hold_when(-60), guard_rc=0)
-_HELD_REFUSED = _hold_calls(200, _hold_when(-60), reviews=_HOLD_OLD_REVIEW)
-R.check(
-    "nightly.yml's automerge reviews a record pull request the guard passes "
-    "under a live merge train hold, then skips the merge (executed, issue "
-    "#2302, V118)",
-    _HOLD_BOUND > 0 and _HELD == ("skip-train-hold", True, False, False),
-    f"bound={_HOLD_BOUND}, (status, reviewed, dismissed, merged)={_HELD!r}; the "
-    "train's --bot-prs sweep merges on the guard alone and leaves the review "
-    "to this beat, so a hold ahead of the review starves it (#2856)",
-)
-R.check(
-    "and under a live hold a head the guard refuses is refused, its approver "
-    "App approvals dismissed and no review posted",
-    _HELD_REFUSED == ("refused", False, True, False),
-    f"(status, reviewed, dismissed, merged)={_HELD_REFUSED!r}",
-)
-# The mutant: the hold block moved back ahead of the head read, the guard and
-# the review -- the order #2856 deadlocked under. Built from the step's own
-# text, so it tracks the block; a mutant that cannot be built is red.
-_HOLD_A = _HOLD_RUN.find("# THE TRAIN HOLD (")
-_HOLD_B = _HOLD_RUN.find("# THE PITCH (")
-_HOLD_H = _HOLD_RUN.find("HEAD=$(pr_field")
-_HOLD_MUT_OK = -1 < _HOLD_H < _HOLD_A < _HOLD_B
-_HOLD_A, _HOLD_B, _HOLD_H = (_HOLD_RUN.rfind("\n", 0, i) + 1 for i in (_HOLD_A, _HOLD_B, _HOLD_H))
-_HOLD_MUT = (_HOLD_RUN[:_HOLD_H] + _HOLD_RUN[_HOLD_A:_HOLD_B] + _HOLD_RUN[_HOLD_H:_HOLD_A]
-             + _HOLD_RUN[_HOLD_B:])
-_HELD_MUT = _hold_calls(200, _hold_when(-60), guard_rc=0, run=_HOLD_MUT) if _HOLD_MUT_OK else None
-R.check(
-    "and the hold moved back ahead of the review leaves the held head "
-    "unreviewed, so the reviewed-under-a-live-hold check sees it (mutant)",
-    _HOLD_MUT_OK and _HELD_MUT == ("skip-train-hold", False, False, False),
-    f"order ok={_HOLD_MUT_OK}, mutant (status, reviewed, dismissed, merged)={_HELD_MUT!r}",
-)
-R.check(
-    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
-    "one (the API's own 422) and an unreadable one do not skip -- and only the "
-    "unreadable ones warn (null controls)",
-    _HOLD_BOUND > 0
-    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0)
-    == ("refused", False)
-    and _train_hold_status(200, _hold_when(3600), guard_rc=0) == ("refused", False)
-    and _train_hold_status(422, "{}", guard_rc=0) == ("refused", False)
-    and _train_hold_status(404, "{}", guard_rc=0) == ("refused", False)
-    and _train_hold_status(500, "{}", guard_rc=0) == ("refused", True)
-    and _train_hold_status(200, "{}", guard_rc=0) == ("refused", True),
-    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
-    "date ahead of the reading clock is unknowable, never young (#775); the "
-    "commits endpoint answers 422 for an absent ref, so that arm must be "
-    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
-    "behaviour, which is the safe failure. The guard passes, so the hold is "
-    "read; the green wait, stubbed to refuse, reports `refused`",
-)
-_HOLD_NONE = _hold_calls(422, "{}", guard_rc=0, green_rc=0)
-_HOLD_STALE = _hold_calls(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0, green_rc=0)
-R.check(
-    "and with no hold, or a stale one, a passing head is reviewed, passes the "
-    "pitch and merges as before (null control)",
-    _HOLD_NONE == ("merged", True, False, True)
-    and _HOLD_STALE == ("merged", True, False, True),
-    f"absent: {_HOLD_NONE!r}; stale: {_HOLD_STALE!r}",
-)
-# THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
-# stub: record_row.py's `--pitch-check` answering 4 skips the merge with
-# status skip-pitch AFTER the guard and the approver App's review, so the
-# train's --bot-prs sweep -- which merges on record_row.py's guard alone and
-# posts no review -- finds a head main's ruleset accepts (directive [7]:
-# record pull requests ride trains rather than race them). 0 proceeds to the
-# green wait; a crashed check is no pitch; a refused head never waits; a live
-# train answers before the pitch, so the hold arm is unchanged by it. The decision itself
-# (a young record merge waits, a stale backlog proceeds) is record_row.py's
-# `pitch_wait`, driven both ways by its --self-test.
-_PITCH_CALLS: list = []
-_PITCH_ST = _train_hold_status(422, "{}", pitch_rc=4, guard_rc=0, approver="ap0",
-                               calls=_PITCH_CALLS)
-_PITCH_REVIEWED = any("POST" in c and "Authorization: Bearer ap0" in c
-                      and c[-1].endswith("/pulls/42/reviews") for c in _PITCH_CALLS)
-_PITCH_MERGED = any(c[-1].endswith("/merge") for c in _PITCH_CALLS)
-R.check(
-    "nightly.yml's automerge waits the pitch when record_row.py says so, after "
-    "the guard, the approver App's review and the train hold, before the merge "
-    "(executed)",
-    _PITCH_ST == ("skip-pitch", False) and _PITCH_REVIEWED and not _PITCH_MERGED
-    and _train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)
-    == ("skip-train-hold", False),
-    f"pitch 4 -> {_PITCH_ST!r}, reviewed={_PITCH_REVIEWED}, merged={_PITCH_MERGED}; "
-    f"a live hold with pitch 4 -> "
-    f"{_train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)!r}",
-)
-R.check(
-    "and no pitch, or a pitch check that crashed, reaches the green wait; a "
-    "head the guard refuses never waits the pitch (null controls)",
-    _train_hold_status(422, "{}", pitch_rc=0, guard_rc=0) == ("refused", False)
-    and _train_hold_status(422, "{}", pitch_rc=1, guard_rc=0) == ("refused", False)
-    and _train_hold_status(422, "{}", pitch_rc=4, guard_rc=1) == ("refused", False),
-    "a pitch that never says wait must leave the pre-fix path: the green "
-    "wait runs and, stubbed to refuse, reports `refused`; and the guard "
-    "answers before the pitch",
-)
-R.check(
-    "the beat's hold ref and the train's hold ref name the same branch",
-    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
-    and "/commits/$HOLD_REF" in _HOLD_RUN
-    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
-    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
-    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
-)
 # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
 # the #1721 RCA). A job that restores its check source from the base grades a
 # pull request with the base's copy, so a changed grader first runs on main,
@@ -29662,7 +29186,7 @@ steps:
     run: |
       set -euo pipefail
       python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
-      for g in coverage_ratchet delivery_status; do
+      for g in coverage_ratchet; do
         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
           echo "$g=true" >> "$GITHUB_OUTPUT"
           echo "tests/$g.py changed: its own copy runs below"
@@ -29710,47 +29234,6 @@ steps:
     run: |
       python3 tests/coverage_ratchet.py \
         --coverage "$RUNNER_TEMP/coverage/coverage.json"
-
-  - name: The pull request's delivery_status.py, as `delivery-status` runs it
-    if: always() && steps.changed.outputs.delivery_status == 'true'
-    run: |
-      git fetch --no-tags --quiet origin main
-      # A non-zero exit shared with the base copy on this tree is that
-      # copy's own. Exit with the pull request's code only when the two
-      # differ, and exit 1 when this copy prints OVERDUE and the base
-      # copy does not: both of those exits are 1, so the codes alone
-      # cannot separate them.
-      head_copy="$RUNNER_TEMP/delivery_status.head.py"
-      cp tests/delivery_status.py "$head_copy"
-      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
-      base_rc=$?
-      set -e
-      cp "$head_copy" tests/delivery_status.py
-      set +e
-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
-      head_rc=$?
-      set -e
-      cat "$RUNNER_TEMP/delivery_status.base.out"
-      echo "----- head copy -----"
-      cat "$RUNNER_TEMP/delivery_status.head.out"
-      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
-      head_overdue=0
-      base_overdue=0
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
-        head_overdue=1
-      fi
-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
-        base_overdue=1
-      fi
-      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
-        exit 1
-      fi
-      if [ "$head_rc" -ne "$base_rc" ]; then
-        exit "$head_rc"
-      fi
-      exit 0
 
   - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
@@ -29928,97 +29411,6 @@ R.check(
 )
 
 
-def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
-              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
-    """Run the delivery_status step under bash -e with stub git and python.
-
-    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
-    code for whichever copy the step has in tests/delivery_status.py, so the
-    step's own comparison is what the return code measures.
-    """
-    with tempfile.TemporaryDirectory() as td:
-        root = Path(td)
-        (root / "tests").mkdir()
-        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
-        (root / "rt").mkdir()
-        bindir = root / "bin"
-        bindir.mkdir()
-        (bindir / "git").write_text(
-            "#!/bin/sh\n"
-            "case \"$1\" in\n"
-            "  fetch) exit 0 ;;\n"
-            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
-            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
-            "esac\n")
-        (bindir / "python").write_text(
-            "#!/bin/sh\n"
-            "f=$(cat tests/delivery_status.py)\n"
-            "case \"$f\" in\n"
-            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
-            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
-            "esac\n"
-            "case \"$f\" in\n"
-            f"  HEAD*) exit {head_rc} ;;\n"
-            f"  BASE*) exit {base_rc} ;;\n"
-            "  *) echo unreadable copy >&2; exit 9 ;;\n"
-            "esac\n")
-        os.chmod(bindir / "git", 0o700)
-        os.chmod(bindir / "python", 0o700)
-        _pt_ds_rc.modes = (
-            (bindir / "git").stat().st_mode & 0o777,
-            (bindir / "python").stat().st_mode & 0o777,
-        )
-        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
-        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
-                              capture_output=True, text=True)
-        return proc.returncode
-
-
-_PT_DS_RUN = next(
-    str(_s.get("run") or "")
-    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
-    if "tests/delivery_status.py" in str(_s.get("run") or ""))
-_PT_DS_CASES = {
-    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
-    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
-    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
-    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
-    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
-    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
-    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
-}
-R.check(
-    "the delivery_status stubs are owner-executable and neither group nor world accessible",
-    _pt_ds_rc.modes == (0o700, 0o700),
-    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
-)
-_PT_DS_DROP_EXIT = (
-    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
-_PT_DS_DROP_OVERDUE = (
-    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
-    '  exit 1\nfi\n')
-_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
-_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
-_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
-R.check(
-    "graders-head-copy's delivery_status step is red only when this copy's "
-    "exit differs from the base copy's, or this copy alone prints OVERDUE",
-    _PT_DS_CASES == {
-        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
-        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
-    }
-    and _PT_DS_SAME != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
-    and _PT_DS_ZERO != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
-    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
-    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
-    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
-    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
-    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
-    f"OVERDUE line makes a head-only OVERDUE green "
-    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
-)
 # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
 # section as `none` whenever the token stood at its START -- no end anchor, no
 # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
@@ -30535,53 +29927,6 @@ R.check(
     "and its bot identity, messages and paths are the ones the autofix jobs commit",
     _AH_CONST is not None and not _AH_DRIFT,
     f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
-)
-_DS_PUB_PERMS = re.search(
-    r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
-R.check(
-    "and the publishing lane's grant is the one write it uses",
-    bool(_DS_PUB_PERMS)
-    and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
-        ["contents:", "read", "issues:", "write"]),
-    f"delivery-status-publish permissions: "
-    f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
-    "`issues: write` edits #201's region and `contents: read` restates the "
-    "floor a job-level block replaces; the lane writes nothing else",
-)
-# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
-# to main, the push re-ran this lane, and the ledger moves on every push, so a
-# new ledger PR opened 14-22 s after each merge -- nine of eleven. The lane is
-# at a fixed point only while nothing it writes can land on main, which is
-# pinned on the wiring, over NON-COMMENT lines: no push, no PR write, no
-# machine token anywhere in the workflows (decision 0009 step 3b's only
-# consumer went with the PR), and no workflow that an issue-body edit starts.
-def _code_lines(text: str) -> str:
-    return "\n".join(
-        _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
-
-
-_DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
-_DS_WRITES = [_t for _t in (r"(?<![\w'])push\s", r"/pulls", r"gh pr ",
-                            r"git commit") if re.search(_t, _DS_PUB_CODE)]
-_SA_FILES = {
-    _f.name: _code_lines(_f.read_text())
-    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
-_SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
-_ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
-                    # Keyed inside `on:` alone: a top-level `permissions:`
-                    # block's `issues: read` starts nothing.
-                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
-R.check(
-    "the publishing lane writes nothing that lands on main, so its own "
-    "write cannot re-run it",
-    not _DS_WRITES and not _SA_REFS and not _ISSUE_TRIGGERED
-    and "persist-credentials: false" in _DS_PUB_CODE
-    and "#201's region is already current" in _DS_PUB_CODE,
-    f"writes in the lane: {_DS_WRITES}; workflows naming SEAT_AUTHOR_TOKEN: "
-    f"{_SA_REFS}; workflows an issue edit starts: {_ISSUE_TRIGGERED}. Each "
-    "must be empty: a commit, push or PR the lane makes lands on main as a "
-    "push that runs the lane again, and the ledger's `commits_after` moves "
-    "on every push, so no ledger it lands is ever the ledger it regenerates",
 )
 # #959 (option B): the `record` job -- already one of the three overrides for
 # its read grant -- WIDENED that grant with `issues: write` so its filing step
@@ -32651,15 +31996,6 @@ R.check(
     f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
 )
 R.check(
-    "the publishing lane runs on main alone, never on a pull request",
-    "github.event_name == 'push'" in _DS_PUB_JOB
-    and "refs/heads/main" in _DS_PUB_JOB
-    and "pull_request" not in _DS_PUB_JOB,
-    "a write-scoped job reachable from a pull request is a write-scoped job "
-    "reachable from a fork, and the ledger it publishes is about `main`'s "
-    "history rather than about any branch",
-)
-R.check(
     "the ledger script is classified: NOT_A_TEST, and not on INERT",
     "delivery_status.py" in _closure.NOT_A_TEST
     and not _closure.is_inert("tests/delivery_status.py"),
@@ -33631,8 +32967,8 @@ _REC_REFUSAL = _REC_JOB.split(
     "- name: Every merged pull request has a disposition")[1].split(
         "\n      - name:")[0]
 R.check(
-    "the disposition refusal can set the record job's conclusion",
-    "continue-on-error" not in _REC_REFUSAL,
+    "the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)",
+    "continue-on-error: true" in _REC_REFUSAL,
     f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
     "true` on this step is #958's split: the step fails and the job concludes "
     "success, so a merged pull request with no disposition is reported and stays "
@@ -36169,7 +35505,7 @@ except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red ch
     _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
 R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
-    not _REACH and _NIGHTLY_EVENTS == ["push", "schedule", "workflow_dispatch"],
+    not _REACH and _NIGHTLY_EVENTS == ["schedule", "workflow_dispatch"],
     f"events={_NIGHTLY_EVENTS}; (event, ref, measured, pushed, push alone) wrong: {_REACH}",
 )
 _CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
@@ -41169,29 +40505,6 @@ R.check(
 # here; and the burst replay counts demand as record + enumerate + rest.
 import subprocess as _sp_o1
 import tempfile as _tf_o1
-_O1_NA = _workflow_job(Path(".github/workflows/nightly.yml").read_text(), "record-autofix")
-_O1_STEPS = _O1_NA.split("\n      - ")
-_O1_I = next((i for i, s in enumerate(_O1_STEPS)
-              if s.startswith("name: Enumerate the window's merges")), None)
-
-
-def _o1_m0(step: str, word: str) -> bool:
-    return ("gh api rate_limit" in step and f"RATE_LIMIT enumerate {word}:" in step
-            and "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in step and "|| true" in step)
-
-
-R.check(
-    "Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()",
-    _O1_I is not None and 0 < _O1_I < len(_O1_STEPS) - 1
-    and _o1_m0(_O1_STEPS[_O1_I - 1], "before") and _o1_m0(_O1_STEPS[_O1_I + 1], "after")
-    and "if: always()" in _O1_STEPS[_O1_I + 1]
-    and not _o1_m0(_O1_STEPS[_O1_I - 1], "after"),
-    "record-autofix's \"Enumerate the window's merges\" reads 1 call a merge on "
-    "GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its "
-    "spend is inferred by splitting interval deltas by step time "
-    "(ratelimit-recur.md section 1.2). The after reading must print when the "
-    "enumeration fails closed, so it carries always()",
-)
 _O1_REC = _workflow_job(Path(".github/workflows/governance.yml").read_text(), "record")
 _O1_RSTEPS = _O1_REC.split("\n      - ")
 _O1_GATE = "steps.window.outputs.report == 'true'"

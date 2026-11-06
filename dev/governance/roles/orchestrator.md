@@ -110,10 +110,10 @@ whenever you merge.
   `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
   `standing-roster.md`. You send queue lines and act on their reports; the
   sweep restarts any that is absent or stopped with work owed.
-- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
-  tooling or instrument proposal from the sweep, a seat's result or a verdict.
-  Where a mandate lets you act on a recommendation absent the owner, that means
-  sending it to triage; an ACCEPT reaches the roster citing its ruling.
+- **A proposal is ruled directly, by the owner or by you**: a process,
+  tooling or instrument proposal from the sweep, a seat's result or a verdict
+  is wired in only when its measured benefit clearly outweighs its cost; there
+  is no standing triage seat (card C6, tvofi 2026-11-05).
 - **Establish the work is not already done or in flight.** One
   `list_pull_requests` over the open set, and the issue's comments: a seat
   was dispatched to fix what an open pull request fixed.
@@ -190,8 +190,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
 
 ## 9. The record, and the one living handover
 
-`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
-frozen by the handoff costs a record pull request; that is the price, not zero.
+`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #201 line and roster `resume`,
+no per-PR row (card C5); a verdict's paperwork notes are yours to resolve at that merge.
 **The handover is one file and it is not optional** (`writing-for-agents.md`).
 
 Failure shapes already produced, all yours:
@@ -228,7 +228,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
 - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
-  <head>` names miss the branch's own diff bar its delivery row,
+  <head>` names miss the branch's own diff,
   or keep its patch (L6); else a resolution delta for the same reviewer.
 - CI green at the verdicted head, landed onto a green `main` by
   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
