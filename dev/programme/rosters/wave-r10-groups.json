@@ -17555,6 +17555,44 @@
     "note": "size L is provisional; the design sets the final size and owning seam"
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted: \"Have a seat pre study the design for 3225 with the target of efficient and robust integration in the ongoing round, after design review fold the fix in a suitable place in the plan.\" Issue #3225 (outside user Bankaifan): no way to model a combi tank where the space-heating buffer and DHW are the same water. Setup: alpha innotec LWDV 91-1/3 (Luxtronik) with an MFS 600 S multifunction tank, 572 l of heating water charged for both space heating and DHW, DHW made on demand through an internal exchanger (39 l / 7.5 m2), no separate DHW tank, zoned returns (DHW return 765 mm, heating return 400 mm), ONE probe in use at 1250 mm, both buffer_tank_temp_entity and dhw_temp_entity point at it; datasheet standing loss 3100 Wh/24 h; current config topology_layout single_tank_valve, mixing_valve_mode smart_write. Read the whole issue body and its comment. DESIGN ONLY, never production code, note at design/r10-combi-tank. Cover: how the existing topologies and the DHW/buffer model represent or fail to represent a shared tank; the minimal sound change (a new topology against a parameterisation of an existing one); sensor handling with a single probe; effects on the solver, the comfort guard and the DHW trajectory seed (R10-BUFFER-STORE carry 1, the open-loop tank seed: this design may be its natural owner); the test fixtures to add; a size estimate and the owning seam. Target: efficient and robust integration in the ongoing round."
+  },
+  {
+   "group": "R10-OUTSIDE-INTAKE",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "wave": 6,
+   "files": [
+    "tools/audit/seat/state_docs.py",
+    "dev/governance/roles/orchestrator.md",
+    "dev/governance/roles/standing-dispatch.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy and developer docs: merges only on tvofi's approving review (owner ruling 2026-11-06)",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Owner ruling (tvofi 2026-11-06), quoted verbatim, and cite it verbatim in the body: \"the plan html for an ongoing round should be made publically available from a suitable place in the developer documentation on the repo. During future audit rounds, issues, PRs or other posts from outside users should be regularly checked, triaged/designed and planned. Fold this shape into the repo machinery. When the plan html is done, and any outside submission is on the roster, the plan HTML should be linked in an answer to the outside submission.\" Owner approval of the policy is given in principle by this ruling, but the PR merges only on tvofi's approving review (it changes policy and developer docs). SCOPE. (1) A public plan page: the round's plan HTML, which state_docs.py already renders as PLAN.html onto a state ref, is published at a stable public URL. Prefer GitHub Pages from that ref, or a committed path under the developer docs, whichever is sound; the fixer chooses and states why. It is linked from the developer documentation (dev/programme/README or the head of the handover), not from user docs, refreshes at each sweep, and contains no host paths or secrets (check against the no-host-paths rule). (2) Outside-submission intake as machinery, not prose: an instrument under tools/ with a --self-test lists issues, PRs, comments and discussions by authors outside our accounts (tvofi plus the app and bot identities) since a cursor. The sweep calls it each pass and prints OUTSIDE lines owed that turn, like UNHELD. Each submission must reach a disposition: triage or design, then a roster group or carry, or a recorded refusal. Stage it in the role contracts: orchestrator.md section 5 and standing-dispatch, as a short obligation. Today's cases are the fixtures: #3224 (adopted via #3231), #3226 (adopted via #3232) and #3225 (design R10-COMBI-TANK). (3) The answer step: once a submission is on the roster and the public plan page exists, post a reply linking the plan page via gh_comment.py with read-back. The instrument tracks which submissions are already answered, so none is answered twice. Follow the repo's rules for new instruments (tools/audit/seat/ inventory, tests/closure classification, structure budgets, writing-for-agents.md)."
   }
  ]
 }
