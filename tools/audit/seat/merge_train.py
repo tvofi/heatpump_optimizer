@@ -4932,6 +4932,8 @@ def _queue_self_test(check) -> None:
             a = " ".join(argv)
             if argv[:3] == ["gh", "pr", "list"]:
                 return w.get("list", (0, json.dumps(w["prs"])))
+            if argv[:3] == ["git", "fetch", "-q"] and w.get("fetch_fail"):  # same_tree_posting's fetch
+                return 128, f"fatal: couldn't find remote ref {argv[-1]}"
             if argv[:3] == ["git", "merge-base", "--is-ancestor"]:  # same_tree_posting's reads
                 return (0, "") if (argv[3], argv[4]) in w.get("anc", ()) else (1, "")
             if argv[:2] == ["git", "rev-parse"] and argv[2].endswith("^{tree}"):
@@ -4995,6 +4997,10 @@ def _queue_self_test(check) -> None:
     check("queue: null controls -- a tip whose tree differs (#18's case), and a same-tree commit that does not descend "
           "from the commented sha, still wait",
           isinstance(diff, str) and "not verdict/18's tip" in diff and isinstance(nonanc, str) and "not verdict/18's tip" in nonanc)
+    unfetched = posted_for(t_new, anc={(hx("7"), t_new)}, trees={hx("7"): "T1", t_new: "T1"}, fetch_fail=True)
+    check("queue: null control -- the same same-tree descendant waits when `git fetch origin verdict/<n>` fails "
+          "(the commented sha's objects are not known to be here)",
+          isinstance(unfetched, str) and "not verdict/18's tip" in unfetched)
     check("queue: a merge comment under another login is no verdict, though it carries the App's id (#19)",
           "not posted" in left.get(19, ""))
     check("queue: a merge comment under the App's login and another id is no verdict (#20)",
@@ -6873,17 +6879,26 @@ def _batch_self_test(check) -> None:
 
     # Carries 3/18: a pre-flight park at the SAME verdict rejoins once its cause is
     # cured (the add re-runs the pre-flight) and is refused, spooling nothing, while it holds.
-    def pf_add(pr, cls, status):
+    def pf_add(pr, cls, status, step="findings", why="1 unrouted", at=V7, drain=False):
+        """`add` of <pr> at verdict <at> against a live train whose record says it
+        was skipped [<cls>] at V7; the re-run pre-flight answers <status> at
+        <step>. <drain>: the live train then drains its spool (queue_take)."""
         with tempfile.TemporaryDirectory() as d:
-            st, pl2 = Path(d), []
+            st, pl2, pf_calls = Path(d), [], []
             tq = Train("o/r", st, None, "", (), 1, run=lambda *a, **k: (0, ""), log=pl2.append)
             tq.admit_add = lambda item: None
-            tq.preflight_entry = lambda item: (status, "findings", "1 unrouted") if status != "PASS" else ("PASS", "", "")
+            tq.preflight_entry = lambda item: (pf_calls.append(item["pr"]),
+                                               (status, step, why) if status != "PASS" else ("PASS", "", ""))[1]
             (st / QUEUE_OPEN).write_text(f"{os.getpid()}\n")
             tq._seen = {str(pr): {"verdict": V7, "state": "skipped", **({"class": cls} if cls else {})}}
             queue_seen_write(st, tq._seen)
-            rc = train_add(tq, {"pr": pr, "verdict": V7}, ["true"], launch=lambda *a: (0, "no"))
-            return rc, pl2, spool_read(st)[0]
+            rc = train_add(tq, {"pr": pr, "verdict": at}, ["true"], launch=lambda *a: (0, "no"))
+            spool = spool_read(st)[0]
+            if not drain:
+                return rc, pl2, spool
+            bs = [[{"pr": 1, "verdict": V7}]]
+            tq._queue = {"batches": bs, "next": 1, "closed": False}
+            return rc, pl2, spool, tq.queue_take(bs, 1), bs, pf_calls
     rc_ok, say_ok, sp_ok = pf_add(7, PREFLIGHT_PARK, "PASS")
     rc_bad, say_bad, sp_bad = pf_add(7, PREFLIGHT_PARK, "PARK")
     rc_ci, say_ci, sp_ci = pf_add(8, None, "PASS")
@@ -6892,6 +6907,29 @@ def _batch_self_test(check) -> None:
           rc_ok == 0 and say_ok[0].startswith("ADDED #7") and [e["pr"] for e in sp_ok] == [7]
           and rc_bad == 1 and say_bad[0].startswith("ADD REFUSED #7 findings: 1 unrouted") and sp_bad == []
           and rc_ci == 0 and say_ci[0].startswith("ALREADY #8:") and sp_ci == [])
+    # Carry 19's other arms: a `policy` park, the drain, and a park at a new verdict.
+    rc_pol, say_pol, sp_pol = pf_add(9, PREFLIGHT_PARK, "PASS", step="policy")
+    rc_polx, say_polx, sp_polx = pf_add(9, PREFLIGHT_PARK, "PARK", step="policy", why="owner approval missing")
+    check("carry 19: a cured `policy` park rejoins at the same verdict (ADDED, spooled); uncured it is "
+          "ADD REFUSED rc 1 naming the step and why, with no spool line (control)",
+          rc_pol == 0 and say_pol[0].startswith("ADDED #9") and [e["pr"] for e in sp_pol] == [9]
+          and rc_polx == 1 and say_polx[0].startswith("ADD REFUSED #9 policy: owner approval missing")
+          and sp_polx == [])
+    drained_to = {}
+    for step in ("policy", "findings"):
+        rc_d, say_d, _sp, more_d, bs_d, _c = pf_add(9, PREFLIGHT_PARK, "PASS", step=step, drain=True)
+        drained_to[step] = (rc_d, more_d, [int(e["pr"]) for e in bs_d[-1]],
+                            "ADDED #9: batch 2 of this train" in say_d, any(x.startswith("ALREADY #9") for x in say_d))
+    check("carry 19: a cured `policy` park and a cured `findings` park, once added, reach the next batch through "
+          "the drain (queue_take: batch 2, never ALREADY), the add and the drain on the one predicate",
+          drained_to == {k: (0, True, [9], True, False) for k in ("policy", "findings")})
+    V9 = "9" * 40
+    rc_new, say_new, sp_new, more_new, bs_new, calls_new = pf_add(9, PREFLIGHT_PARK, "PARK", at=V9, drain=True)
+    check("carry 19 null: a park re-added at a NEW verdict behaves as today -- admitted with no pre-flight re-read "
+          "at the add, spooled at the new verdict, drained into the next batch",
+          rc_new == 0 and say_new[0].startswith("ADDED #9") and calls_new == []
+          and [(e["pr"], e["verdict"]) for e in sp_new] == [(9, V9)] and more_new
+          and [int(e["pr"]) for e in bs_new[-1]] == [9])
 
     def live_add(w, n):  # the REAL train_add against the live train's state dir, admit_add passed
         al: list[str] = []
