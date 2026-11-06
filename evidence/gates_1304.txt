@@ -1,0 +1,14 @@
+== 127907648432
+2026-11-06T13:04:26.2064601Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-06T13:04:26.2066343Z [36;1m  echo "programs restored from $PINNED"[0m
+2026-11-06T13:04:26.2388672Z programs restored from 5421413b54ba1044b8e91e1afd88b41acfc7a753
+2026-11-06T13:04:26.2492550Z   KIND: edit
+2026-11-06T13:04:26.2492762Z   WORKSET: arch-score budget-raise-gate
+2026-11-06T13:04:30.8765840Z FAIL run(s) [42217218226] at this head are still being judged; their gate decides
+== 127907644986
+2026-11-06T13:04:25.5819699Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-06T13:04:25.5821592Z [36;1m  echo "programs restored from $PINNED"[0m
+2026-11-06T13:04:25.7546873Z programs restored from 5421413b54ba1044b8e91e1afd88b41acfc7a753
+2026-11-06T13:04:25.7717610Z   KIND: edit
+2026-11-06T13:04:25.7717828Z   WORKSET: arch-score budget-raise-gate
+2026-11-06T13:04:30.7489145Z FAIL run(s) [42217406703] at this head are still being judged; their gate decides

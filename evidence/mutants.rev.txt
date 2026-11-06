@@ -17,7 +17,8 @@ mutants: unmutated self-test rc 0, replay rc 0
   M16 B3 on push: KILLED (self-test rc 1, replay rc 0)
   M17 busy tie-break deleted: KILLED (self-test rc 1, replay rc 0)
   M18 busy tie-break id inverted: KILLED (self-test rc 1, replay rc 0)
-  M19 busy tie-break on a listed gate (R3-2 EARLY): KILLED (self-test rc 1, replay rc 0)
+  M19 a listed gate read as started (R3-2 EARLY): KILLED (self-test rc 1, replay rc 0)
   M20 C3 at once beside any run: KILLED (self-test rc 1, replay rc 0)
-RESULT mutants=20 survivors=0
-rc=0
+  M21 C3 waits beside any run: KILLED (self-test rc 1, replay rc 0)
+  M22 C3 at once only beside a code run (c0c60886): KILLED (self-test rc 1, replay rc 0)
+RESULT mutants=22 survivors=0

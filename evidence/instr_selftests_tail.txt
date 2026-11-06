@@ -1,0 +1,8 @@
+2026-11-06T12:53:37.4067832Z /github/runner_temp/git-credentials-02219bea-83d1-4c32-9dc0-9ee0d4f9aa1c.config
+2026-11-06T12:53:37.4077933Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git.path \/github\/runner_temp\/git\-credentials\-02219bea\-83d1\-4c32\-9dc0\-9ee0d4f9aa1c
+2026-11-06T12:53:37.4121209Z [command]/usr/bin/git config --local --get-all includeif.gitdir:/github/workspace/.git/worktrees/*.path
+2026-11-06T12:53:37.4152511Z /github/runner_temp/git-credentials-02219bea-83d1-4c32-9dc0-9ee0d4f9aa1c.config
+2026-11-06T12:53:37.4159963Z [command]/usr/bin/git config --local --unset includeif.gitdir:/github/workspace/.git/worktrees/*.path \/github\/runner_temp\/git\-credentials\-02219bea\-83d1\-4c32\-9dc0\-
+2026-11-06T12:53:37.4200128Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-06T12:53:37.4504453Z Removing credentials config '/home/runner/work/_temp/git-credentials-02219bea-83d1-4c32-9dc0-9ee0d4f9aa1c.config'
+2026-11-06T12:53:37.4675395Z Cleaning up orphan processes
