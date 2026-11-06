@@ -455,12 +455,14 @@ def guard(root: Path, manifest: dict, base: str, rev: str | None = None) -> list
         if head is None:
             continue
         was = text[f"{base}:{src}"] if st != "A" else ""
+        # Keyed on the stripped line: a block re-indented into a function
+        # keeps the base's citation, it does not add one.
         old = {}
-        for k in stale_lines(was or "", now):
-            old[k] = old.get(k, 0) + 1
+        for o, line in stale_lines(was or "", now):
+            old[(o, line.strip())] = old.get((o, line.strip()), 0) + 1
         for o, line in stale_lines(head, now):
-            if old.get((o, line)):
-                old[(o, line)] -= 1
+            if old.get((o, line.strip())):
+                old[(o, line.strip())] -= 1
             else:
                 found.append(f"new-reference: {path} cites retired path {o}: {line.strip()[:120]}")
     if fresh:
@@ -527,6 +529,11 @@ def guard_self_test() -> int:
         ("the citation under a historical prefix", {"arch/r.md": cites}, (), {}),
         ("an old citation kept while the file changes", {"docs/b.md": "run old/gone.sh here\nmore\n"}, (), {}),
         ("a second copy of an old citation", {"docs/b.md": "run old/gone.sh here\n" * 2}, (), {"new-reference": 1}),
+        # A block moved into a function re-indents its lines: the citation is
+        # the one the base held, not a new one (R10-HOTFIX-CODEQL-HEADROOM).
+        ("an old citation re-indented", {"docs/b.md": "    run old/gone.sh here\n"}, (), {}),
+        ("a re-indented second copy of an old citation",
+         {"docs/b.md": "run old/gone.sh here\n    run old/gone.sh here\n"}, (), {"new-reference": 1}),
         ("a file renamed with its old citation", {"docs/d.md": "run old/gone.sh here\n"}, ("docs/b.md",), {}),
         ("a citation of a planned path", {"docs/a.md": "see old/wip.sh\n"}, (), {}),
         ("a nested file sharing a retired top-level name", {"docs/a.md": "pkg/gone.txt is fine\n"}, (), {}),
