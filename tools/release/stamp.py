@@ -175,9 +175,9 @@ TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 RELEASE_TREE_STEP = "Refuse a tag whose tree does not carry its version"
 RELEASE_PUBLISH_STEP = "Publish the release once its asset is on it"
 RELEASE_READBACK_ATTEMPTS = 5
-# The self-test's bound on one run of the publish step against its stub gh,
-# whose sleep returns at once: the shipped step exits 1 after 5 reads in
-# under 0.05 s, so a step still running at this bound loops without one.
+# The self-test's bound on one run of a release.yml step. Against the stub
+# gh, whose sleep returns at once, the shipped publish step exits 1 after 5
+# reads in under 0.05 s, so a step still running at this bound has no bound.
 RELEASE_STEP_TIMEOUT_S = 10
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below). A
@@ -1148,9 +1148,12 @@ def self_test() -> int:
             (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
                 json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
             (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
-            return subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
-                                  env={**os.environ, "TAG": tag},
-                                  capture_output=True, text=True).returncode
+            try:
+                return subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
+                                      env={**os.environ, "TAG": tag}, capture_output=True, text=True,
+                                      timeout=RELEASE_STEP_TIMEOUT_S).returncode
+            except subprocess.TimeoutExpired:
+                return None  # a step that does not end is a FAIL, never a hung self-test
     check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
           _tree_check("v7.1.1", "7.1.1", "7.1.1", "## v7.1.1") == 0)
     check("release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)",
