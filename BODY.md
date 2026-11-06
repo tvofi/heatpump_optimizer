@@ -66,6 +66,8 @@ Owed, not yet given. The diff touches policy: `dev/governance/roles/nudge.md` (`
   - `tests/structure.py`, the architecture score and `prepr.sh`.
 - The cloud environment exports `GIT_AUTHOR_*`/`GIT_COMMITTER_*` as `seat`. The branch's own commits were re-authored as `hpo-fixer` before the second merge, with the tree unchanged (`git diff --quiet e4c841444374 5918f3f522fa && echo TREE IDENTICAL` printed `TREE IDENTICAL`).
 
+- Step refs left behind: deleting `handoff-wip/r10-policy-role-pack` (e4c84144, pre-rewrite) and `handoff-wip/r10-policy-role-pack-body` (a body `body_push.sh` refused and kept) was refused at the remote. Five delete pushes, with backoff, each ended `send-pack: unexpected disconnect`, while ordinary pushes from the same container succeeded. Neither ref is this head; the orchestrator can delete both.
+
 ## Mutation proof
 
 Run from a detached worktree at the head. Each mutant edits one predicate, then runs `python3 -I tools/policy/role_pack.py --self-test` and `bash .claude/hooks/session-start.sh --self-test`, then restores the file. 10 of 10 mutants were killed. The first FAIL line of each:
