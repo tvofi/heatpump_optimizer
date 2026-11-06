@@ -1061,6 +1061,36 @@ def controls() -> list[tuple[str, bool, str]]:
                 and any(ln.startswith("WARNING runner class unknown") for ln in lines)
                 and not any(ln.startswith("WARNING") for ln in banded["lines"]),
                 f"fallback {fb}; lines {lines}"))
+    # The lane itself (``grade_ran``, what main() runs) on the block's draw,
+    # job 127046649273 (run 41966183843): clean passes in its job's class and
+    # every doubled arm is refused. Moved over the ref53 border it is red, and
+    # moved under every band it prints the fallback notice (a dropped print is
+    # named) and still refuses each doubled arm.
+    def lane(job: str, to: float | None) -> tuple[int, str]:
+        import contextlib
+        import io
+        from harness import Results
+        runs = draws[(job, syn)]
+        r = draw_rulers(draws)[job][0]
+        cost = {k: {**c, "ref_ms": c["ref_ms"] * (to / r if to else 1.0),
+                    "injected_ratio": 1.0} for k, c in runs.items()}
+        ran = [(Path(syn), {"cost": cost["clean"], "cycles": 1, "entities": 1,
+                            "results": {"cycle_cost": []}, "counts": {}},
+                {k: {"cost": c} for k, c in cost.items() if k != "clean"})]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rep = Results("control")
+            grade_ran(rep, ran)
+        return rep.failures, buf.getvalue()
+
+    held, over, under = (lane("127046649273", None), lane("127046649273", border + 1.0),
+                         lane("127046649273", lo_all / 2))
+    res.append(("control:cycle_cost:lane_prints_notice",
+                held[0] == 0 and "WARNING" not in held[1] and over[0] > 0
+                and under[0] == 0 and "WARNING runner class unknown" in under[1],
+                f"failures held {held[0]}, over the ref53 border {over[0]}, unbanded "
+                f"{under[0]}; unbanded notice printed "
+                f"{'WARNING runner class unknown' in under[1]}"))
     pair("cycle_cost:arms_skipped_never_everywhere",
          arms_skip_offenders({"a.json", "b.json"}, {"a.json", "b.json"}),
          arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
@@ -2885,6 +2915,41 @@ def kernel_verdicts(runs: dict[str, dict | None]) -> list[tuple[str, bool, str]]
     ]
 
 
+def grade_ran(R, ran: list[tuple[Path, dict, dict[str, dict]]]) -> None:
+    """Grade every fixture the lane replayed on the job's rulers (``job_cost``):
+    print each one's grading lines, the loud fallback notice included, and
+    check its clean run within budget and each doubled arm over it. The
+    ``cycle_cost:lane_prints_notice`` control drives it with an unbanded ruler."""
+    rulers = job_rulers([r["cost"] for _, out, hots in ran for r in (out, *hots.values())]) \
+        if ran else (float("nan"), float("nan"))
+    for path, out, hots in ran:
+        R.section(f"graded {path.name}")
+        graded = job_cost(path.name, out["cost"], {k: h["cost"] for k, h in hots.items()},
+                          rulers)
+        for line in graded["lines"]:
+            print(f"  {line}")
+        out["results"]["cycle_cost"] += graded["clean"]
+        out["counts"]["cycle_cost"] = len(out["results"]["cycle_cost"])
+        R.check(f"{path.name}: at least one cycle and one entity",
+                out["cycles"] > 0 and out["entities"] > 0, str(out["cycles"]))
+        for name, offenders in out["results"].items():
+            R.check(f"{path.name}: {name}", not offenders,
+                    f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
+        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
+                          ("loop", "loop_cpu_ratio")):
+            if kind not in hots:
+                continue
+            hot, offenders = hots[kind], graded["arms"][kind]
+            fired = [o for o in offenders if o.startswith(f"{key} ") and "over its budget" in o]
+            R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
+                    f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
+                    + " | ".join(offenders[:3]))
+            if kind != "memory":
+                short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
+                R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
+                        not short, " | ".join(short))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--fixture", action="append", type=Path)
@@ -2943,34 +3008,7 @@ def main(argv: list[str] | None = None) -> int:
                     print(f"  {kind} doubled: cost {hot['cost']}")
                     hots[kind] = hot
         ran.append((path, out, hots))
-    rulers = job_rulers([r["cost"] for _, out, hots in ran for r in (out, *hots.values())]) \
-        if ran else (float("nan"), float("nan"))
-    for path, out, hots in ran:
-        R.section(f"graded {path.name}")
-        graded = job_cost(path.name, out["cost"], {k: h["cost"] for k, h in hots.items()},
-                          rulers)
-        for line in graded["lines"]:
-            print(f"  {line}")
-        out["results"]["cycle_cost"] += graded["clean"]
-        out["counts"]["cycle_cost"] = len(out["results"]["cycle_cost"])
-        R.check(f"{path.name}: at least one cycle and one entity",
-                out["cycles"] > 0 and out["entities"] > 0, str(out["cycles"]))
-        for name, offenders in out["results"].items():
-            R.check(f"{path.name}: {name}", not offenders,
-                    f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
-        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
-                          ("loop", "loop_cpu_ratio")):
-            if kind not in hots:
-                continue
-            hot, offenders = hots[kind], graded["arms"][kind]
-            fired = [o for o in offenders if o.startswith(f"{key} ") and "over its budget" in o]
-            R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
-                    f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
-                    + " | ".join(offenders[:3]))
-            if kind != "memory":
-                short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
-                R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
-                        not short, " | ".join(short))
+    grade_ran(R, ran)
     # The arms prove the instrument sees a doubling: the skip list names only
     # committed fixtures and leaves at least one to them, so the full lane
     # (nightly, and every pull request that reaches it) always runs them.
