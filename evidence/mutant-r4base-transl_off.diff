@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index 8d774f6a6..ec23520f5 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -1266,7 +1266,7 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
+             # call failed, so it says so in the shape the other services use,
+             # not as the worker's own RuntimeError.
+             failed[entry_id] = str(err)
+-    if failed:
++    if False:
+         entry_ids = ", ".join(failed)
+         error = next(iter(failed.values()))
+         raise HomeAssistantError(

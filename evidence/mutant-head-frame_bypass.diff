@@ -1,12 +1,13 @@
 diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
-index f43e1bf7e..1d55096ca 100644
+index 7bcdcea16..8e4b8b958 100644
 --- a/custom_components/heatpump_optimizer/coordinator.py
 +++ b/custom_components/heatpump_optimizer/coordinator.py
-@@ -1992,6 +1992,7 @@ def _read_reply(stdout: Any) -> Any:
-     return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
+@@ -2004,7 +2004,7 @@ def _read_reply(stdout: Any) -> Any:
+         raise ProcessWorkerTimeout(
+             f"process worker gave no reply within {timeout:g} s"
+         )
+-    return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
++    return pickle.load(stdout)
  
  
-+# no-op control mutant
  def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
-     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
- 
