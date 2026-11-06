@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-06T03:29:15+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-06T04:01:55+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -8,10 +8,10 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 6 / 24.0 |
 | fly-ins closed | 5 | 11 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 1 / 0 / 5 | 16 / 2 / 0 / 11 |
-| first-pass fix-review yield | 0/2 (0.00) | 2/11 (0.18) |
-| blocked-class mix | beyond-card:1, mutation-vacuous:1 | beyond-card:1, body-stale:2, carry-missing:1, ci-red:4, class-open:5, harness:2, mutation-vacuous:2, pr-contract-red:1, ratchet-grown:1, regression:1, root-cause-detectable:1, root-cause-unrecorded:1 |
-| lead time per size (h, n/p50/max) | none | M n=6 p50=19.94 max=93.08; S n=10 p50=12.27 max=70.37 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 5 | 15 / 2 / 0 / 11 |
+| first-pass fix-review yield | 0/3 (0.00) | 2/11 (0.18) |
+| blocked-class mix | beyond-card:1, class-open:3, figures-uncited:1, mutation-vacuous:1 | beyond-card:1, body-stale:2, carry-missing:1, ci-red:4, class-open:8, figures-uncited:1, harness:2, mutation-vacuous:1, pr-contract-red:1, ratchet-grown:1, regression:1, root-cause-detectable:1, root-cause-unrecorded:1 |
+| lead time per size (h, n/p50/max) | none | M n=5 p50=23.14 max=93.08; S n=10 p50=12.27 max=70.37 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
