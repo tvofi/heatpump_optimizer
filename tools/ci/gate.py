@@ -35,13 +35,17 @@ verdict it then publishes is the one every gate at the head computes from the
 same finished sources, so a red source stays red and no wait masks it. The
 waits are acyclic: a gate waits only on runs that are not yet `judging`, and
 nothing waits on a judging run (prelude.wait_sources), so two gates that
-start together each find the other judging on a re-read. Only past the
+start together each find the other judging on a re-read. Two runs whose
+gates are both listed are broken by id (`busy`): the lower decides, the higher
+waits on it, so a run that judging() misreads (a deferring edit run never lists
+its title's pr-contract) cannot make two gates defer to each other. Only past the
 bound, a run still busy after GATE_WAIT_MAX_S, does the gate FAIL deferring,
 for gate-sweep.yml to re-judge. One gate never waits (R10-CI-SLIM card C3): an
 edit run's whose prelude left `pr-contract` to an unfinished code run at this
 head (prelude.defer_to, `deferring` here). It publishes the deferral at once:
 that code run's gate is listed only after its pr-contract has read the latest
-body, so it is the later verdict here, and the sweep re-judges this one.
+body, so it is the later verdict here, and the sweep re-judges this one. A
+deferring gate that waits on no code run waits like any other.
 """
 from __future__ import annotations
 
@@ -99,9 +103,16 @@ def gate_required() -> list[str]:
 
 
 def busy(ctx: dict, runs_at_head: list[dict]) -> list:
-    """The OTHER runs at this head still adding a source: unfinished, not held, not judging."""
+    """The OTHER runs at this head still adding a source: unfinished, not held, not
+    judging, and not a LATER run whose `gate` is listed. A listed gate has run
+    every unit it needs (ci.yml's `needs`), yet judging() can still read it busy:
+    a deferring edit run never lists the `pr-contract / pr-contract` its title
+    owes (C3). Two such gates then each deferred to the other and none judged
+    (#3241 at 95c7e604, runs 42192623509 and 42193153511). The tie-break: the
+    lower id decides, the higher waits on it, so the waits stay acyclic."""
     return sorted(r["id"] for r in runs_at_head
-                  if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r))
+                  if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r)
+                  and not (r["id"] > ctx["run_id"] and "gate" in (r.get("jobs") or {})))
 
 
 def deferral(ids: list) -> str:
@@ -260,7 +271,8 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
         bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
-        if why == [deferral(waiting)] and deferring(kind, pr, claim):
+        if why == [deferral(waiting)] and deferring(kind, pr, claim) and any(
+                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"] if r["id"] in waiting):
             bound = 0                           # C3: that busy code run's gate is the later verdict; hold no runner
         if ok or now() - t0 + POLL_S > bound:
             break
@@ -505,6 +517,34 @@ def self_test() -> int:
     verdict(ectx, get, nap, now, {"kind": "edit", "pr": "7"})
     check("... null control: the same gate with the full edit workset waits on it, bounded, as before",
           (bool(naps), sum(naps) <= GATE_WAIT_MAX_S), (True, True))
+    # r10-gate-busy-defer: #3241 head 95c7e604, attempt 2 -- two deferring edit
+    # runs, each gate listed, each read the other as busy (its pr-contract never
+    # listed), so both published the deferral and no gate judged.
+    lo, hi = 42192623509, 42193153511
+    at_gate = deferred + [{"name": "gate", "status": "in_progress", "conclusion": None, "id": 9}]
+    pair = [{"id": i, "title": title("edit", "7", "main", "M"), "status": "in_progress",
+             "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for i in (lo, hi)]
+    check("busy-defer: of two gates at one head the lower id defers to none, the higher to the lower",
+          (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
+    coded = run(99, "code", "completed", owed("code")[:-1] + [{"name": "gate", "status": "completed",
+                                                                "conclusion": "success", "id": 9}])
+    get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", at_gate)], me=lo, mine=deferred)
+    check("busy-defer: the lower deferring edit gate judges at once beside the higher one",
+          (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("PASS", []))
+    get, naps, nap, now = scene([coded, run(lo, "edit", "in_progress", at_gate)],
+                                [coded, run(lo, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
+                                                                          "conclusion": "success", "id": 9}])],
+                                me=hi, mine=deferred)
+    check("busy-defer: the higher deferring edit gate waits on the lower (an edit run, not C3's code run), "
+          "then judges, never a red deferral", (verdict({**ectx, "run_id": hi}, get, nap, now, eclaim3), naps),
+          ("PASS", [POLL_S]))
+    early = [{"id": lo, "title": title("code", "7", "main", "M"), "status": "in_progress",
+              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in owed("code", gate=False, state="in_progress")}}]
+    check("busy-defer null: a genuinely earlier run still adding sources is still deferred to",
+          busy({**ctx, "run_id": hi}, early), [lo])
+    late_busy = [{**early[0], "id": hi}]
+    check("busy-defer null: a later run whose gate is not listed is still deferred to (no gate yet: it adds sources)",
+          busy({**ctx, "run_id": lo}, late_busy), [hi])
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])
