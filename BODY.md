@@ -41,16 +41,19 @@ The unmodified tree: at the merge base the same self-test has none of the fold-s
 
 ## Forward-carry
 
-How each of the nine carries was answered:
-1. Card 7 (every body figure from a generated block): re-measured, preconditions still absent (`tools/policy/figure_lint.mjs` executes none of a body's commands; no workflow edits a body on synchronize). Needs the owner's one-sentence ruling: may `pr-contract` run PR-authored figure commands. Not built; destination `tools/policy/figure_lint.mjs` and `.github/PULL_REQUEST_TEMPLATE.md` once ruled. Carry: R10-BODY-CONTRACT
-2. A1 (`rosterIssues()` default): built; the carry file for #1795 moved into live group R9-UX-6's carry list (`dev/programme/rosters/wave-r9-groups.json`) and the file deleted; edited directly in the roster file, which the owner may prefer to re-apply through the roster seat. Carry: dismissed: answered in this pull request
-3. Fold grammar scope: built, owner comments read, a `Fold (x): Carry:` answer checked against the roster in `check --body` and in `pr`, both now pinned by self-test arms (`tools/audit/carry_audit.py`). Carry: dismissed: built and pinned in this pull request
-4. `body_push.sh` hot file: PR 3221 merged; this diff touches neither `tools/audit/seat/body_push.sh` nor `body_patch.sh`. Carry: dismissed: 3221 merged, this diff touches neither file
-5. Carry control lint narrowing: pin built (`LEGACY_CONTROL_CAP` in `tools/policy/brief_lint.mjs`); the remaining files carry unresolvable cites, mostly under `dev/archive/carries`, and repairing them rewrites other groups' recorded controls. Carry: R10-BODY-CONTRACT
-6. Fold spellings: built. Carry: dismissed: answered in this pull request
-7. Dismissal pointer: narrowed to the documented `|`. Carry: dismissed: answered in this pull request
-8. `Round:` trailer: built. Carry: dismissed: answered in this pull request
-9. `--branch "$HEAD_REF"` pin: built in `tests/entities.py`. Carry: dismissed: answered in this pull request
+The roster entry lists 39 carries (the round roster ref `origin/handoff/audit-r10-roster`; the count is a function of that ref, taken now). The nine this PR owns are answered first; the rest map onto them or are not touched.
+
+1. Card 7 (every body figure from a generated block; roster carries 2, 11, 17, 27, 37): re-measured, the preconditions are still absent (`tools/policy/figure_lint.mjs` executes none of a body's commands; no workflow edits a body on synchronize). Needs the owner's one-sentence ruling: may `pr-contract` run PR-authored figure commands. Not built; destination `tools/policy/figure_lint.mjs` and `.github/PULL_REQUEST_TEMPLATE.md` once ruled. Carry: R10-BODY-CONTRACT
+2. A1 (`rosterIssues()` default; roster carries 8, 12, 18, 28): built; the carry file for #1795 moved into live group R9-UX-6's carry list (`dev/programme/rosters/wave-r9-groups.json`) and the file deleted; edited directly in the roster file, which the owner may prefer to re-apply through the roster seat. Carry: dismissed: answered in this pull request
+3. Fold grammar scope (roster carries 5, 13, 19, 29, 38): built, owner comments read, a `Fold (x): Carry:` answer checked against the roster in `check --body` and in `pr`, both now pinned by self-test arms in `tools/audit/carry_audit.py` (this round closes carry 38's "not driven by a self-test arm"). Carry: dismissed: built and pinned in this pull request
+4. `body_push.sh` hot file (roster carries 14, 20, 30): PR 3221 merged; this diff touches neither `tools/audit/seat/body_push.sh` nor `body_patch.sh`. Carry: dismissed: 3221 merged, this diff touches neither file
+5. Carry control lint narrowing (roster carries 15, 21, 31, 39): pin built (`LEGACY_CONTROL_CAP` in `tools/policy/brief_lint.mjs`); the remaining files carry unresolvable cites, mostly under `dev/archive/carries`, and repairing them rewrites other groups' recorded controls. Carry: R10-BODY-CONTRACT
+6. Fold spellings (roster carries 22, 32): built. Carry: dismissed: answered in this pull request
+7. Dismissal pointer (roster carries 23, 33): narrowed to the documented `|`. Carry: dismissed: answered in this pull request
+8. `Round:` trailer (roster carries 4, 24, 34): built. Carry: dismissed: answered in this pull request
+9. `--branch "$HEAD_REF"` pin (roster carries 25, 35): built in `tests/entities.py`. Carry: dismissed: answered in this pull request
+
+Remaining roster carries, each named: Carry 16, Carry 26 and Carry 36 are the `rosterIssues()` collision flag, answered with item 2 (the collision is flagged by `assertLegacyControl`). Carry 1 (`body_patch.sh` without `--roster-ref`), Carry 3 (`trackedFiles()` at the head), Carry 6 (carry-missing predictor), Carry 7 (`seg_dests` dismissal of a done group), Carry 9 and Carry 10 (`body_push.sh` refused-body ref) predate this part and this diff touches none of `tools/audit/seat/body_patch.sh`, `tools/audit/seat/body_push.sh` or `roster_lib.py`; they stay on the roster entry. Carry: R10-BODY-CONTRACT
 
 ## Friction
 
