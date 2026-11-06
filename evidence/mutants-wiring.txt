@@ -1,0 +1,23 @@
+== head 2fa354bf13087a63c4a42682b65f2b60ef3b92e3
+carry_audit self-test: 388 checks, 0 failed
+== base 57958d6a4 self-test count:
+57958d6a44c4f489384705ba64e8f65a8507f6b7
+carry_audit self-test: 364 checks, 0 failed
+== cb48d97e2 (body's named base) and 4b7e1770b: 364 each (re-run above in session)
+== mutant A: 'fold_rc = folds_rc(body, a.repo, a.issue_folds_file, dests)' -> 'fold_rc = folds_rc(body, a.repo, a.issue_folds_file)'
+ tools/audit/carry_audit.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+carry_audit self-test: 388 checks, 0 failed
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+cli rc=0
+== mutant B: 'if FOLD_LINE.search(body):  # a fold' -> 'if False:  # a fold'
+ tools/audit/carry_audit.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+carry_audit self-test: 388 checks, 0 failed
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+cli rc=0
+== unmutated CLI on Fold (a): Carry: R10-INVENTED
+FOLD-UNANSWERED fold (a) answer `Carry: R10-INVENTED` is refused: R10-INVENTED is not a group of the roster
+CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+cli rc=1
+(status above: empty = restored)
