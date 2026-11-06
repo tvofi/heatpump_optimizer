@@ -289,8 +289,8 @@ PLANTS.update({
     "Q6": (RQ, "    if allq and not mark:\n", "    if False:\n"),
     "Q7": (RQ, "    if Path(a.lint_clone).is_dir():\n        return False\n",
            "    if True:\n        return False\n"),
-    "Q8": (RQ, '    return str(a.editor or SEAT_DIR / "roster_edit.py")\n',
-           '    return str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))\n'),
+    "Q8": (RQ, "        re_ = load_editor(editor)\n",
+           '        re_ = load_editor(str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py")))\n'),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
 })
