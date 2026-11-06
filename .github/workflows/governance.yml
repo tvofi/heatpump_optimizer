@@ -37,6 +37,10 @@ on:
       base:
         type: string
         default: ""
+      machinery:
+        description: "The prelude's: 'false' on a pull request whose every changed file is product idles the machinery lanes (R10-CI-SLIM C7(a)); anything else runs them"
+        type: string
+        default: ""
   # 07:00 UTC on Mondays. The `record` job below is the only one that needs a
   # clock: a merge with no disposition is not detectable from any one pull
   # request, so nothing on the `pull_request` path can ever find it, and a
@@ -257,6 +261,9 @@ jobs:
   # request carries, never the pull request. A red here is still a red check
   # at the head, which `pr-contract` makes the body answer.
   instrument-self-tests:
+    # R10-CI-SLIM C7(a): not a required name, so it skips whole on a pull
+    # request whose every changed file is product (prelude.machinery).
+    if: inputs.machinery != 'false'
     runs-on: ubuntu-latest
     # 20, not 10: the seat self-tests below add about four minutes run
     # serially on a seat (pr_args.sh's runs three times, through open_pr.sh
@@ -568,6 +575,10 @@ jobs:
           set -o pipefail
           bash tools/audit/seat/body_patch.sh --self-test | tee "$RUNNER_TEMP/body-patch-self-test.txt"
           grep -Eq '^body_patch self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-patch-self-test.txt"
+          bash tools/audit/seat/body_push.sh --self-test | tee "$RUNNER_TEMP/body-push-self-test.txt"
+          grep -Eq '^body_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/body-push-self-test.txt"
+          python3 -I tools/audit/seat/carry_fold.py --self-test | tee "$RUNNER_TEMP/carry-fold-self-test.txt"
+          grep -Eq '^carry_fold self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/carry-fold-self-test.txt"
 
       # The self-tests outside tools/audit/seat/ (#2444's forward-carry). The
       # wiring check above counts every tools/ file now, so each of these has
@@ -943,6 +954,12 @@ jobs:
           set -o pipefail
           python3 -I tools/audit/seat/beatd.py --self-test | tee "$RUNNER_TEMP/beatd-self-test.txt"
           grep -Eq '^beatd self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beatd-self-test.txt"
+      - name: Show the beat's job rows refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/beat_jobs.py --self-test | tee "$RUNNER_TEMP/beat-jobs-self-test.txt"
+          grep -Eq '^beat_jobs self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/beat-jobs-self-test.txt"
 
       - name: Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
         if: ${{ !cancelled() }}
@@ -1121,8 +1138,13 @@ jobs:
   env-matrix:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    # R10-CI-SLIM C7(a): a required name, so it stands down at the step level on
+    # a pull request whose every changed file is product and reports success.
+    env:
+      MACHINERY_IDLE: ${{ inputs.machinery == 'false' }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        if: env.MACHINERY_IDLE != 'true'
         with:
           # The matrix derives its baseline from origin/main and grafts a
           # shallow shape from HEAD~1; both need real history.
@@ -1130,6 +1152,7 @@ jobs:
           fetch-tags: true
 
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        if: env.MACHINERY_IDLE != 'true'
         with:
           node-version: "22"
 
@@ -1139,6 +1162,7 @@ jobs:
       # fail-closed matrix that cannot find its baseline is permanently red CI.
       # Fetch it explicitly so the refusal only ever means what it says.
       - name: Put origin/main where the matrix looks for it
+        if: env.MACHINERY_IDLE != 'true'
         run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
 
       # Pinned as `policy-docs` is (decision 0013), and then COMMITTED: the
@@ -1146,6 +1170,7 @@ jobs:
       # left in the working tree would never reach the shapes it builds. The
       # commit is local to this runner and never pushed.
       - name: Restore the check source from the base commit
+        if: env.MACHINERY_IDLE != 'true'
         env:
           PINNED: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || (inputs.base && format('origin/{0}', inputs.base)) || github.sha }}
         run: |
@@ -1217,6 +1242,7 @@ jobs:
       # row refuses: correctly, because that is not the environment a real run
       # is in. First measured the other way -- this job's own run at 23cc6e0.
       - name: Require each declared environment shape to produce its declared outcome
+        if: env.MACHINERY_IDLE != 'true'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: if test -f .claude/workflows/policy_lint_envmatrix.mjs; then node .claude/workflows/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; else node tools/policy/policy_lint_envmatrix.mjs "$PWD" "${RUNNER_TEMP}/envmatrix" "$(git rev-parse HEAD)"; fi

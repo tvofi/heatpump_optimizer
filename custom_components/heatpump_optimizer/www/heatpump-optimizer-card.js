@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.1";
+const CARD_VERSION = "7.1.3";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -327,6 +327,8 @@ const STRINGS = {
     "savings.col_savings": "Savings",
     "savings.col_pct": "%",
     "savings.estimated": "estimated",
+    "savings.old_basis": "old basis",
+    "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
     "savings.empty": "No settled savings months yet.",
     "receipt.closed": "{month} \u00b7 closed",
     "receipt.saved": "Saved {amount} {unit} ({pct}) against a plain thermostat",
@@ -843,13 +845,16 @@ const STRINGS = {
       "era. 50 is typical for that type and era; above is tighter, below " +
       "leakier. Never 0 — that is only for no data.",
     "score.part_machine":
-      "Machine: the heat pump's observed efficiency against its own " +
-      "baseline. Low points at the pump drawing more electricity than its " +
-      "history says it should — see the COP health diagnostics.",
+      "Heat pump: the measured COP — heat delivered per kWh of electricity " +
+      "— in each 3 °C outdoor band, against the pump's own history in that " +
+      "band. 100 is matching its history; each point below is a lasting " +
+      "COP shortfall (see the COP health diagnostics). A band is watched " +
+      "once it holds 20 samples; no grade yet means no band does — not a zero.",
     "score.part_operation":
-      "Driving: whether the plan buys at the cheap hours. Yesterday's " +
-      "energy replayed against the day's flat average price — buying 20% " +
-      "below flat scores 100, buying at or above flat scores 0.",
+      "Driving: whether the plan buys at the cheap hours. Each day's " +
+      "energy is priced against that day's flat mean spot price — buying " +
+      "20% below flat scores 100, at or above flat scores 0 — and the grade " +
+      "averages recent days. No grade means no priced day scored yet — not a zero.",
     "score.no_evidence": "No evidence yet — not a zero.",
     // Why a score has no grade: one line per code the coordinator
     // publishes in the score sensor's `reasons` (#2258).
@@ -871,6 +876,20 @@ const STRINGS = {
     "score.driver_learned_heat_loss": "learned heat loss vs configured",
     "score.driver_thermal_mass": "thermal-mass correction",
     "score.driver_typical": "typical for its type and era",
+    // The heat-pump and Driving grades' drivers (`machine_drivers`,
+    // `operation_drivers`), and their lines when none moves a point.
+    "score.driver_cop_shortfall": "COP below its own history",
+    "score.driver_cheap_hours": "energy bought below the day's mean price",
+    "score.driver_dear_hours": "energy bought above the day's mean price",
+    "score.driver_earlier_days": "days scored before these drivers were kept",
+    "score.driver_typical_machine": "matches its own COP history",
+    "score.driver_typical_operation": "bought at the day's flat mean price",
+    // What an ungraded heat pump waits on (`machine_evidence`).
+    "score.evidence_bands": "samples per outdoor band, {required} needed: {bands}",
+    "score.evidence_band": "{lo} to {hi} °C: {n} samples",
+    "score.evidence_band_dhw": "{lo} to {hi} °C hot water: {n} samples",
+    "score.evidence_empty": "no COP samples yet",
+    "score.evidence_frozen": "{n} refused while learning was frozen",
     "score.label_machine": "Heat pump",
     "score.label_operation": "Driving",
     // The percent is a template because the spacing is orthographic:
@@ -1165,6 +1184,8 @@ const STRINGS = {
     "savings.col_savings": "Sparande",
     "savings.col_pct": "%",
     "savings.estimated": "uppskattat",
+    "savings.old_basis": "gammalt underlag",
+    "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
     "savings.empty": "Inga avräknade sparandemånader ännu.",
     "receipt.closed": "{month} \u00b7 avslutad",
     "receipt.saved": "Sparade {amount} {unit} ({pct}) mot en vanlig termostat",
@@ -1651,13 +1672,16 @@ const STRINGS = {
       "byggperioden. 50 är typiskt för den typen och perioden; över är " +
       "tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
     "score.part_machine":
-      "Maskinen: värmepumpens uppmätta effektivitet mot sitt eget " +
-      "baslinjevärde. Lågt pekar på att pumpen drar mer el än sitt eget " +
-      "historik säger — se COP-hälsodiagnostiken.",
+      "Värmepumpen: uppmätt COP — levererad värme per kWh el — i varje " +
+      "utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är " +
+      "som historiken; varje poäng under är ett bestående COP-underskott " +
+      "(se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; " +
+      "inget betyg ännu betyder att inget band har det — inte noll.",
     "score.part_operation":
-      "Körningen: om planen köper på de billiga timmarna. Gårdagens " +
-      "energi omspelad mot dagens platta medelpris — 20% under platt " +
-      "ger 100, på eller över platt ger 0.",
+      "Körningen: om planen köper på de billiga timmarna. Varje dags " +
+      "energi prissätts mot dagens platta medelspotpris — 20 % under platt " +
+      "ger 100, på eller över platt ger 0 — och betyget är ett medel av de " +
+      "senaste dagarna. Inget betyg betyder att ingen dag med pris bedömts ännu — inte noll.",
     "score.no_evidence": "Inget underlag ännu — inte noll.",
     "score.reason_no_house_model":
       "Ingen husmodell: värmetröghet eller värmeförlust saknas i inställningarna.",
@@ -1674,6 +1698,17 @@ const STRINGS = {
     "score.driver_learned_heat_loss": "inlärd värmeförlust mot inställd",
     "score.driver_thermal_mass": "korrigering för värmetröghet",
     "score.driver_typical": "typiskt för sin typ och period",
+    "score.driver_cop_shortfall": "COP under sin egen historik",
+    "score.driver_cheap_hours": "energi köpt under dagens medelpris",
+    "score.driver_dear_hours": "energi köpt över dagens medelpris",
+    "score.driver_earlier_days": "dagar bedömda innan dessa drivare sparades",
+    "score.driver_typical_machine": "som sin egen COP-historik",
+    "score.driver_typical_operation": "köpt till dagens platta medelpris",
+    "score.evidence_bands": "prov per utomhusband, {required} krävs: {bands}",
+    "score.evidence_band": "{lo} till {hi} °C: {n} prov",
+    "score.evidence_band_dhw": "{lo} till {hi} °C varmvatten: {n} prov",
+    "score.evidence_empty": "inga COP-prov ännu",
+    "score.evidence_frozen": "{n} avvisade medan inlärningen var fryst",
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
@@ -7841,6 +7876,11 @@ function valueGrid(axis, plotL, plotR, scaleY, axisName) {
   return out.join("");
 }
 
+// The vertical room a value label's digits need, in em: the chart's sans
+// face sets digits about 0.72 em tall, so 0.8 em clears them by a hair
+// and keeps every label that never touched its neighbour (`valueAxis`).
+const VALUE_LABEL_CLEAR_EM = 0.8;
+
 function valueAxis(
   axis, xBase, plotT, plotB, plotH, side, inset, scaleY, axisName, unit,
   font, titleAnchor
@@ -7850,13 +7890,22 @@ function valueAxis(
   const x = side === "left" ? xBase - inset : xBase + inset;
   const anchor = side === "left" ? "end" : "start";
   const tx = side === "left" ? x - 5 : x + 5;
+  // Labelled as often as the panel's height allows, like `timeAxis`: a
+  // label whose digits would reach the last one drawn is dropped and its
+  // tick mark kept. The tick count is fixed before the panels are sized, so
+  // a short panel -- one squeezed by the wood lane at 375 px -- would
+  // otherwise stack its labels into one another (#2841).
+  let lastLabelY = null;
   for (const tick of axis.ticks) {
     const y = scaleY(tick, axisName);
-    out.push(
-      `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
-          fmtTick(tick)
-        )}</text>`
-    );
+    if (lastLabelY === null || Math.abs(y - lastLabelY) >= size * VALUE_LABEL_CLEAR_EM) {
+      lastLabelY = y;
+      out.push(
+        `<text x="${tx}" y="${y + size / 3}" font-size="${size}" text-anchor="${anchor}" fill="var(--secondary-text-color,#888)">${esc(
+            fmtTick(tick)
+          )}</text>`
+      );
+    }
     const t1 = side === "left" ? x - 3 : x + 3;
     out.push(
       `<line x1="${x}" y1="${y}" x2="${t1}" y2="${y}" stroke="var(--secondary-text-color,#aaa)" stroke-width="0.75"/>`
@@ -8878,23 +8927,41 @@ function scoreParts(plan) {
     const value = readNumber(attrs[key]);
     return { key, label: L(`score.label_${key}`), value,
       reason: value === null ? scoreReasonText(reasons[key]) : null,
-      drivers: value !== null ? scoreDrivers(key, attrs[`${key}_drivers`]) : "" };
+      drivers: value !== null ? scoreDrivers(key, attrs[`${key}_drivers`])
+        : key === "machine" ? machineEvidence(attrs.machine_evidence) : "" };
   });
 }
 
-/** What moves a sub-score off 50 (#2816): each driver the coordinator
- * published (`envelope_drivers`, `machine_drivers`) with its signed whole
- * points, or "typical" when none moves it a point -- so every shown grade
- * carries at least one reason. A part with no drivers published has none to
- * show; an unknown code is skipped rather than shown raw. */
+/** What moves a sub-score off its reference (#2816): each driver the
+ * coordinator published (`<part>_drivers`) with its signed whole points, or
+ * the part's "typical" line when none moves it a point -- so every shown
+ * grade carries at least one reason. A part with no drivers published has
+ * none to show; an unknown code is skipped rather than shown raw. */
 function scoreDrivers(part, drivers) {
   if (part !== "envelope" && !Array.isArray(drivers)) return "";
   const shown = (Array.isArray(drivers) ? drivers : [])
     .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
     .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
     .filter((d) => d.pts !== 0)
-    .map((d) => `${L(`score.driver_${d.code}`)}${d.pts ? ` ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}` : ""}`);
-  return shown.length ? shown.join("; ") : L("score.driver_typical");
+    .map((d) => `${L(`score.driver_${d.code}`)} ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}`);
+  return shown.length ? shown.join("; ")
+    : L(part === "envelope" ? "score.driver_typical" : `score.driver_typical_${part}`);
+}
+
+/** What an ungraded heat pump waits on (`machine_evidence`): the four
+ * fullest 3 °C outdoor bands' samples against the requirement, and the
+ * intervals a learner freeze refused; nothing when none was published. */
+function machineEvidence(ev) {
+  const signed = (v) => String(Number(v)).replace("-", "−");
+  if (!ev || !Array.isArray(ev.bands)) return "";
+  const bands = ev.bands.slice(0, 4).map((b) => L(
+    b.hot_water ? "score.evidence_band_dhw" : "score.evidence_band",
+    { lo: signed(b.outdoor_c), hi: signed(Number(b.outdoor_c) + 3), n: b.samples }));
+  const parts = [bands.length
+    ? L("score.evidence_bands", { required: ev.required, bands: bands.join(", ") })
+    : L("score.evidence_empty")];
+  if (Number(ev.refused_frozen) > 0) parts.push(L("score.evidence_frozen", { n: ev.refused_frozen }));
+  return parts.join("; ");
 }
 
 /** The words for a score's no-grade code; an unknown code is no evidence. */
@@ -8918,7 +8985,7 @@ function scoreBreakdownHtml(plan) {
           : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
       const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
       return (
-        `<div class="sb-row" data-part="${p.key}">` +
+        `<div class="sb-row" data-part="${p.key}" title="${esc(scoreRowTitle(p))}">` +
         `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
         `${bar}${value}</div>` +
         (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
@@ -8928,6 +8995,18 @@ function scoreBreakdownHtml(plan) {
     })
     .join("");
   return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** One sub-score's hover: its grade or reason, its drivers or what it
+ * waits on, and its metric in plain words -- the headline's line for it. */
+function scoreRowTitle(p) {
+  return `${scoreLine(p)}\n${L(`score.part_${p.key}`)}`;
+}
+
+/** A sub-score in one line: its name, grade or reason, and its drivers. */
+function scoreLine(p) {
+  const value = p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`;
+  return `${p.label}: ${value}${p.drivers ? ` (${p.drivers})` : ""}`;
 }
 
 /** The currency a savings figure is denominated in: the sensor's own
@@ -9016,14 +9095,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
     // -- an owner staring at 5/100 wants to know where the 95 went
     // before deciding anything.
     const parts = scoreParts(plan);
-    const breakdown = parts
-      .map(
-        (p) =>
-          `${p.label}: ${
-              p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`
-            }${p.drivers ? ` (${p.drivers})` : ""}`
-      )
-      .join(" · ");
+    const breakdown = parts.map(scoreLine).join(" · ");
     items.push({
       cls: "score",
       title:
@@ -14872,8 +14944,11 @@ class HeatpumpOptimizerCard extends HTMLElement {
       const est = row.estimated
         ? ` <span class="savings-est">${esc(L("savings.estimated"))}</span>`
         : "";
+      const old = row.old_basis
+        ? ` <span class="savings-est savings-old">${esc(L("savings.old_basis"))}</span>`
+        : "";
       return `<tr class="${row.estimated ? "estimated" : ""}">
-        <td>${esc(String(row.month || ""))}${est}</td>
+        <td>${esc(String(row.month || ""))}${est}${old}</td>
         <td class="num">${money(row.baseline_sek)}</td>
         <td class="num">${money(row.actual_sek)}</td>
         <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
@@ -14884,6 +14959,10 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
+    const fuel = this.plan.woodFuel();
+    const woodNote = fuel && fuel.show_whatif
+      ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
+      : "";
     return `${top}<table class="savings-table">
       <thead><tr>
         <th>${esc(L("savings.col_month"))}</th>
@@ -14893,7 +14972,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
         <th class="num">${esc(L("savings.col_pct"))}</th>
       </tr></thead>
       <tbody>${rows.map(tr).join("")}</tbody>
-    </table>`;
+    </table>${woodNote}`;
   }
 
   // The sensor advisor page's renderer and wiring live at module level

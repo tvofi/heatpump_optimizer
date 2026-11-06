@@ -106,8 +106,8 @@ from .thermal_model import (
     delivered_heat_kw,
     project_planned_levels,
     valve_charge_demand,
+    valve_hold_temperature,
     weather_or_calm,
-    wood_share,
     power_for_heat_per_cop_kw,
     added_power_for_heat_per_cop_kw,
 )
@@ -363,6 +363,28 @@ def _baseline_targets(
     return targets.tolist()
 
 
+def _floor_demand_terms(
+    model: ThermalModel,
+    outdoor_temp: float,
+    wind_speed: float,
+    precipitation: float,
+    solar_radiation: float,
+) -> tuple[float, float, float]:
+    """``(u, a, b)`` with the slab-fed zone's demand at ``T`` = ``u*(T-out) - a - b``."""
+    p = model.params
+    if not p.two_zone_enabled:
+        u_eff = model.effective_heat_loss_coefficient(
+            p.heat_loss_coefficient, wind_speed, precipitation
+        )
+        return u_eff, p.internal_gains, model.compute_solar_gain(solar_radiation)
+    u_lower = model.effective_heat_loss_coefficient(
+        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    )
+    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
+    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
+    return u_lower, q_solar_lower, q_int_lower
+
+
 def _floor_demand_at_target(
     model: ThermalModel,
     target: float,
@@ -377,19 +399,159 @@ def _floor_demand_at_target(
     exchange is zero with both floors at ``target`` (the two-zone demand adds
     the exchange at the actual temperatures).
     """
-    p = model.params
-    if not p.two_zone_enabled:
-        u_eff = model.effective_heat_loss_coefficient(
-            p.heat_loss_coefficient, wind_speed, precipitation
-        )
-        q_solar = model.compute_solar_gain(solar_radiation)
-        return u_eff * (target - outdoor_temp) - p.internal_gains - q_solar
-    u_lower = model.effective_heat_loss_coefficient(
-        p.lower_floor_heat_loss_learned, wind_speed * 0.5, precipitation * 0.5
+    u, a, b = _floor_demand_terms(
+        model, outdoor_temp, wind_speed, precipitation, solar_radiation
     )
-    _, q_solar_lower = model.solar_gain_per_zone(solar_radiation)
-    q_int_lower = p.internal_gains * (1.0 - p.upper_floor_area_ratio)
-    return u_lower * (target - outdoor_temp) - q_solar_lower - q_int_lower
+    return u * (target - outdoor_temp) - a - b
+
+
+def _settlement_schedule(
+    opt: "HeatPumpOptimizer",
+    h: "_Horizon",
+    trajectories: tuple[Any, ...],
+    buffer_temps: np.ndarray | None,
+    baseline_power: np.ndarray | None,
+) -> list[CurrentAction]:
+    """Per step, the savings settlement's readings: the thermostat's
+    ``baseline_kw``, the store's heat change ``stored_kw_th``, the comfort
+    shortfall ``comfort_kw`` (kW_e) and the ``steady_cop``.
+
+    The month row settles the house's stored heat (owner ruling,
+    2026-11-04): heat the plan drew from the house is heat it did not
+    buy, and a thermostat held at the target draws none. Each step books
+    its own change of ``_stored_thermal_energy``, so the steps telescope
+    to the store's change over the row. Uncapped, unlike the horizon's
+    settlement: each plan's caps follow its own mean outdoor, and a cap
+    that moves between plans breaks the telescope (a slab charged above
+    one plan's cap and drawn under the next one's books only the draw).
+    Passive heat telescopes out the same way. The wood tank, whose
+    trajectory the result does not carry per boundary, stays at its start
+    temperature here and books nothing.
+
+    Thermal, converted by the row at one COP (``ledger.savings_months``):
+    at each step's own COP a store charged in a warm hour and drawn in a
+    cold one would book the COP-timing saving back as a draw.
+
+    The comfort shortfall is the steady thermostat at the step's comfort
+    target less at the room the plan delivered (the slab-fed zone, at
+    the step's midpoint), through ``_floor_demand_terms``: what the
+    plan saved by delivering less comfort than the schedule. Published
+    beside the saving, never netted out of it.
+
+    The comfort shortfall converts at the step's steady COP, the one the
+    thermostat's steady demand is bought at.
+    """
+    room_temps, slab_temps, upper_temps, lower_temps = trajectories
+    model = opt.model
+    p = model.params
+    two_zone = p.two_zone_enabled
+    hums = (
+        [None] * h.n_steps if h.humidity is None
+        else np.asarray(h.humidity, dtype=float).tolist()
+    )
+    targets = _baseline_targets(h.comfort_targets, h.n_steps, opt.config.target_temp)
+    buffer = (
+        buffer_temps if buffer_temps is not None and len(buffer_temps) > h.n_steps
+        else None
+    )
+
+    state = replace(h.initial_state)
+
+    def _l(x: Any) -> list[Any]:
+        return list(np.asarray(x, dtype=float).tolist())
+
+    rooms = _l(room_temps)
+    slabs = _l(slab_temps)
+    if two_zone:
+        uppers = _l(upper_temps)
+        lowers = _l(lower_temps)
+        zone = lowers
+    else:
+        zone = rooms
+    bufs = _l(buffer) if buffer is not None else None
+    outs = _l(h.outdoor_temps)
+    winds = _l(h.wind_speeds)
+    precs = _l(h.precipitation)
+    suns = _l(h.solar_radiation)
+    baseline = _baseline_power_list(baseline_power)
+    schedule: list[CurrentAction] = []
+    stored = opt._stored_thermal_energy
+    compute_cop = model.compute_cop
+    dt = h.dt
+    n_base = len(baseline)
+
+    state.room_temperature = rooms[0]
+    state.slab_temperature = slabs[0]
+    if two_zone:
+        state.upper_floor_temperature = uppers[0]
+        state.lower_floor_temperature = lowers[0]
+    if bufs is not None:
+        state.buffer_tank_temperature = bufs[0]
+    before = stored(state)
+    for i in range(h.n_steps):
+        out = outs[i]
+        cop = max(compute_cop(out, humidity=hums[i]), 1e-3)
+        j = i + 1
+        state.room_temperature = rooms[j]
+        state.slab_temperature = slabs[j]
+        if two_zone:
+            state.upper_floor_temperature = uppers[j]
+            state.lower_floor_temperature = lowers[j]
+        if bufs is not None:
+            state.buffer_tank_temperature = bufs[j]
+        after = stored(state)
+        wind = winds[i]
+        prec = precs[i]
+        sun = suns[i]
+        delivered = 0.5 * (zone[i] + zone[j])
+        u, ga, gb = _floor_demand_terms(model, out, wind, prec, sun)
+        d_t = u * (targets[i] - out) - ga - gb
+        d_d = u * (delivered - out) - ga - gb
+        step: CurrentAction = {
+            "stored_kw_th": (after - before) / dt,
+            "comfort_kw": (max(d_t, 0.0) - max(d_d, 0.0)) / cop,
+            "steady_cop": cop,
+        }
+        if i < n_base:
+            step["baseline_kw"] = baseline[i]
+        schedule.append(step)
+        before = after
+    return schedule
+
+
+def _settlement_at(result: "OptimizationResult", i: int) -> CurrentAction:
+    """Step ``i``'s savings settlement readings, for the current action.
+
+    A result built without the schedule (by hand, or restored from before it
+    existed) still carries its thermostat baseline.
+    """
+    if i < len(result.settlement_schedule):
+        return result.settlement_schedule[i]
+    if i < len(result.baseline_power_schedule):
+        return {"baseline_kw": float(result.baseline_power_schedule[i])}
+    return {}
+
+
+#: The wood side of a reference that has none: colder than any zone it could feed.
+_NO_WOOD_TANK_C = 0.0
+
+
+def _sharing_wood_side(reference: ThermalState, plan: ThermalState) -> ThermalState:
+    """The reference with the plan's wood side: heat wood left, or brought, is no store to settle."""
+    return replace(reference, wood_tank_temperature=plan.wood_tank_temperature)
+
+
+def _wood_covered_share(model: ThermalModel, state: ThermalState, reference_kwh: float, target: float) -> float:
+    """The share of the reference's kWh the plan's measured wood tank could cover.
+
+    The reference has no wood and the plan's house does, so its starts anchor on
+    what that house buys. Starts only: it decides nothing the reference reports.
+    """
+    p = model.params
+    if not p.two_tank_modelled or state.wood_tank_temperature is None or reference_kwh <= 0.0:
+        return 0.0
+    usable_kwh_th = p.wood_tank_thermal_mass * max(0.0, state.wood_tank_temperature - target)
+    return min(1.0, usable_kwh_th / p.cop_nominal_floored / reference_kwh)
 
 
 def _thermostat_held_state(
@@ -399,8 +561,9 @@ def _thermostat_held_state(
 
     The zones at ``target`` and the slab at the temperature that delivers the
     step's demand -- the cascade's own slab target with no pull-back -- so the
-    first step draws the steady holding power. Tanks and every other field
-    stay as measured; the thermostat does not own them.
+    first step draws the steady holding power. Behind a valve its tank sits at
+    the temperature that delivers the need, whatever the plan left in the
+    measured one. Every other field stays as measured.
     """
     if not len(weather.outdoor_temps):
         return state
@@ -410,13 +573,32 @@ def _thermostat_held_state(
         model, target, float(weather.outdoor_temps[0]), float(weather.wind_speeds[0]),
         float(weather.precipitation[0]), float(weather.solar_radiation[0]),
     )
-    return replace(
+    held = replace(
         state,
         room_temperature=target,
         upper_floor_temperature=target,
         lower_floor_temperature=target,
         slab_temperature=target + max(0.0, q_floor) / model.params.slab_heat_transfer_floored,
     )
+    p = model.params
+    if not mixing_valve.is_throttling(p.mixing_valve_mode):
+        return held
+    wind, rain = float(weather.wind_speeds[0]), float(weather.precipitation[0])
+    outdoor = float(weather.outdoor_temps[0])
+    zoned = _thermostat_demand_two_zone if p.two_zone_enabled else _thermostat_demand_single
+    need = zoned(
+        model, held, target, outdoor, wind, rain, float(weather.solar_radiation[0]),
+        0.25, p.slab_heat_transfer_floored,
+    )
+    held.buffer_tank_temperature = (
+        valve_hold_temperature(model, held, need, outdoor, wind, rain)
+        if need > 0.0 else held.buffer_tank_temperature
+    )
+    if p.two_tank_modelled:
+        # The reference has no wood: below every zone the valve takes nothing
+        # from this side (``wood_share`` 0), so the step is the plain valve's.
+        held.wood_tank_temperature = _NO_WOOD_TANK_C
+    return held
 
 
 def _thermostat_demand_single(
@@ -1728,6 +1910,10 @@ class OptimizationResult:
     # Thermostat-baseline electrical kW per step (space + DHW). Settlement
     # reads the current step; must be a pickle-safe list for the process route.
     baseline_power_schedule: list[float] = field(default_factory=list)
+    # Per step, the savings settlement's readings, keyed as the ledger's
+    # ``SETTLEMENT_KEYS``; the current action carries the step's
+    # (R10-SAV-COMFORT; ``_settlement_schedule``, ``_settlement_at``).
+    settlement_schedule: list[CurrentAction] = field(default_factory=list)
     dhw_temp_trajectory: list[float] = field(default_factory=list)
     dhw_heating_cost: float = 0.0
 
@@ -2918,6 +3104,7 @@ class HeatPumpOptimizer:
                 dhw_power.tolist() if dhw_power is not None else []
             ),
             baseline_power_schedule=_baseline_power_list(baseline_power),
+            settlement_schedule=_settlement_schedule(self, h, trajectories, buffer_temps, baseline_power),
             dhw_temp_trajectory=(
                 dhw_temps.tolist() if dhw_temps is not None else []
             ),
@@ -4575,11 +4762,14 @@ class HeatPumpOptimizer:
         baseline_power, baseline_end = self._compute_baseline_power(
             weather, initial_state, dt, comfort_targets,
         )
-        baseline_energy = float(np.sum(baseline_power) * dt)
+        seed_power = baseline_power * (1.0 - _wood_covered_share(
+            self.model, initial_state, float(np.sum(baseline_power) * dt), self.config.target_temp,
+        ))
+        baseline_energy = float(np.sum(seed_power) * dt)
         starts = [
             initial_power,
             _price_ranked_start(prices, baseline_energy, p_max, dt),
-            np.clip(baseline_power, 0.0, p_max),
+            np.clip(seed_power, 0.0, p_max),
             _price_ranked_start(
                 prices,
                 baseline_energy * _LOW_ENERGY_START_FRACTION,
@@ -4676,7 +4866,7 @@ class HeatPumpOptimizer:
             valve_targets=h.valve_targets, humidity=h.humidity,
         )
         deferred_cost = self._settle_horizon(
-            h, weather, comfort_targets, baseline_end, optimized_end, baseline_cost,
+            h, weather, comfort_targets, _sharing_wood_side(baseline_end, optimized_end), optimized_end, baseline_cost,
         )
         savings = baseline_cost - predicted_cost - deferred_cost
 
@@ -4933,12 +5123,10 @@ class HeatPumpOptimizer:
         # schedules.
         achieved_objective = float(objective(optimal_space, optimal_dhw))
 
-        # Baseline cost; its house owns the plan's refill coil and draws. The
-        # reference holds the comfort schedule, not the comfort the plan
+        # Baseline cost. The reference holds the comfort schedule, not the comfort the plan
         # delivered (#2255): the baseline must not move with the plan's start.
         baseline_power, baseline_end = self._compute_baseline_power(
             weather, initial_state, dt, comfort_targets,
-            coil_draws=dhw_draw_rates, coil_dhw_temp=dhw_setpoint,
         )
         baseline_dhw, baseline_cost, predicted_cost, dhw_cost = (
             planner._baseline_dhw_economics(
@@ -4958,7 +5146,7 @@ class HeatPumpOptimizer:
         # the horizon. Outside a demand window that is the idle minimum, so a
         # cold tank at midnight is not treated as borrowed heat.
         deferred_cost = self._settle_horizon(
-            h, weather, comfort_targets, baseline_end, optimized_end,
+            h, weather, comfort_targets, _sharing_wood_side(baseline_end, optimized_end), optimized_end,
             float(energy_cost_of(baseline_power)),
             dhw_caps=self._settlement_caps(
                 outdoor_temps, dhw_cap=float(dhw_floor_temps[-1]), humidity=h.humidity
@@ -5258,8 +5446,6 @@ class HeatPumpOptimizer:
         initial_state: ThermalState,
         dt: float,
         comfort_targets: np.ndarray | None = None,
-        coil_draws: np.ndarray | None = None,
-        coil_dhw_temp: float = 0.0,
     ) -> tuple[np.ndarray, ThermalState]:
         """Simulate a conventional thermostat following the comfort schedule.
 
@@ -5284,17 +5470,19 @@ class HeatPumpOptimizer:
         running all along never inherits the optimiser's coasted or
         pre-heated house, whose recovery transient the settlement booked.
 
+        The reference has no wood: no wood tank, no fire, no refill coil, on
+        every house (owner ruling, 2026-11-04). The actual stays metered, so
+        wood's heat counts in the saving, and firewood's cost is not counted;
+        the card says so where wood is configured.
+
         Returns the power schedule and the final state, the latter so the
         caller can account for the thermal energy left stored at the end of the
-        horizon. ``coil_draws`` (the hot-water path's raw draws) runs the
-        wood-tank refill coil on that state each step, from a tank at
-        ``coil_dhw_temp``, as the plan's own trajectory does.
+        horizon.
         """
         outdoor_temps = weather.outdoor_temps
         wind_speeds = weather.wind_speeds
         precipitation = weather.precipitation
         solar_radiation = weather.solar_radiation
-        external_heat_kw = weather.external_heat_kw
         humidity = weather.humidity
         # The thermostat runs the same heat-loss physics as the plan, so its
         # weather is the horizon's: the series the loss multiplies are
@@ -5304,64 +5492,20 @@ class HeatPumpOptimizer:
         assert solar_radiation is not None
         n_steps = len(outdoor_temps)
         p = self.model.params
-        if not p.dhw_coil_active:
-            coil_draws = None
 
         baseline_power = np.zeros(n_steps)
         # Read once, not per step: the loop below runs to the horizon's end.
         targets = _baseline_targets(comfort_targets, n_steps, self.config.target_temp)
         hums = [None] * n_steps if humidity is None else np.asarray(humidity, float).tolist()
-        two_tank, k_slab = p.two_tank_modelled, p.slab_heat_transfer_floored
+        k_slab = p.slab_heat_transfer_floored
         state = _thermostat_held_state(self.model, initial_state, weather, targets[0])
 
         for i in range(n_steps):
             target = targets[i]
-            required_thermal = _thermostat_demand(
+            required_thermal = max(0.0, _thermostat_demand(
                 self.model, state, target, outdoor_temps[i], wind_speeds[i],
                 precipitation[i], solar_radiation[i], dt, k_slab,
-            )
-
-            # A thermostat's house receives a furnace burn too, and its
-            # sensor sees the warmth: the reference backs off by the free
-            # heat, or the burn would be booked as optimizer savings.
-            ext_i = (
-                float(external_heat_kw[i])
-                if external_heat_kw is not None and i < len(external_heat_kw)
-                else 0.0
-            )
-            if two_tank and state.wood_tank_temperature is not None:
-                # With the wood tank modelled, the 4-way valve covers part
-                # of the draw from the wood side; the reference backs its
-                # electric demand off by that share, computed with the SAME
-                # wood_share law the plan's physics uses so the two cannot
-                # drift. Subtracting ext_i afterwards as well is deliberate
-                # double counting in the conservative direction: the
-                # baseline can only get cheaper, so reported savings are
-                # understated, never inflated.
-                u_up = self.model.effective_heat_loss_coefficient(
-                    p.upper_floor_heat_loss, wind_speeds[i], precipitation[i]
-                )
-                u_lo = self.model.effective_heat_loss_coefficient(
-                    p.lower_floor_heat_loss_learned,
-                    wind_speeds[i] * 0.5, precipitation[i] * 0.5,
-                )
-                design_power = p.max_electrical_power * p.cop_nominal_floored
-                flow_set = mixing_valve.flow_setpoint(
-                    target_temp=p.mixing_valve_target or p.comfort_ceiling,
-                    outdoor_temp=float(outdoor_temps[i]),
-                    heat_loss_coefficient=u_up + u_lo,
-                    emitter_ua=design_power / p.emitter_design_delta_t_floored,
-                )
-                w_i = wood_share(
-                    state.wood_tank_temperature,
-                    state.buffer_tank_temperature,
-                    flow_set,
-                    min(
-                        state.upper_floor_temperature, state.slab_temperature
-                    ),
-                )
-                required_thermal *= 1.0 - w_i
-            required_thermal = max(0.0, required_thermal - ext_i)
+            ))
 
             hum_i = hums[i]
             cop = _reference_cop(self.model, state, outdoor_temps[i], hum_i)
@@ -5376,14 +5520,36 @@ class HeatPumpOptimizer:
             state = self.model.simulate_step(
                 state, power, outdoor_temps[i],
                 wind_speeds[i], precipitation[i], solar_radiation[i], dt,
-                external_heat_kw=ext_i, humidity=hum_i,
+                humidity=hum_i,
             )
-            if coil_draws is not None:
-                self.model.apply_dhw_coil(
-                    state, float(coil_draws[i]), coil_dhw_temp, dt
-                )
 
+        if mixing_valve.is_throttling(p.mixing_valve_mode):
+            baseline_power = self._apportion_by_steady_demand(baseline_power, weather, targets)
         return baseline_power, state
+
+    def _apportion_by_steady_demand(
+        self, simulated: np.ndarray, weather: WeatherSeries, targets: list[float]
+    ) -> np.ndarray:
+        """The simulated horizon's energy, spread by the steady demand per step.
+
+        Behind a valve the first steps are the stores' transient, not the
+        thermostat's power: a tank above the curve zeroes them, one below it
+        overshoots. The settlement books step 0 of a plan re-made every
+        interval, so it would book only the transient. The simulation decides
+        how much the horizon draws; the demand decides when.
+        """
+        assert weather.wind_speeds is not None and weather.precipitation is not None
+        assert weather.solar_radiation is not None
+        steady = np.array([
+            max(0.0, _floor_demand_at_target(
+                self.model, targets[i], float(weather.outdoor_temps[i]),
+                float(weather.wind_speeds[i]), float(weather.precipitation[i]),
+                float(weather.solar_radiation[i]),
+            ))
+            for i in range(len(simulated))
+        ])
+        total = float(np.sum(steady))
+        return simulated if total <= 0.0 else steady * (float(np.sum(simulated)) / total)
 
     def _settle_horizon(
         self,
@@ -5434,10 +5600,10 @@ class HeatPumpOptimizer:
         heat the thermostat buys plus the end's credit (``end_cost`` below 0),
         never more -- a summer house's passive warmth displaced nothing.
         """
-        held = _thermostat_held_state(
+        held = _sharing_wood_side(_thermostat_held_state(
             self.model, initial_state, weather,
             _baseline_target(comfort_targets, 0, self.config.target_temp),
-        )
+        ), initial_state)
         capped = self._deferred_energy_cost(
             held, initial_state, prices, outdoor_temps, caps=caps, humidity=humidity,
         )
@@ -5747,8 +5913,7 @@ class HeatPumpOptimizer:
             dhw_power = result.dhw_power_schedule[i]
             action["dhw_power"] = round(dhw_power, 2)
             action["dhw_heating_active"] = dhw_power > 0.1
-        if result.baseline_power_schedule and i < len(result.baseline_power_schedule):
-            action["baseline_kw"] = float(result.baseline_power_schedule[i])
+        action.update(_settlement_at(result, i))
         if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):
             action["dhw_temperature"] = round(result.dhw_temp_trajectory[i], 1)
         if result.predictive_info.get("dhw_target_temperature") is not None:

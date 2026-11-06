@@ -87,7 +87,7 @@ from .payload import (
     SpacePlan,
     ThermalView,
 )
-from .store import QuarantiningStore, admitted, load_mapping
+from .store import LedgerStore, QuarantiningStore, admitted, load_mapping
 from .entry_config import EntryConfig, factory_settings, undo_point, undone_settings
 from homeassistant.util import dt as dt_util
 
@@ -216,6 +216,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import boost
+from . import driving_grade
 from . import battery as battery_view
 from . import comfort_band
 from . import draw_range
@@ -289,6 +290,7 @@ from .currency import declared_currency, resolve_currency
 from .drift import utc_shift
 from .drift import Cusum, stored_instant, utc_step_starts
 from .ledger import (
+    SETTLEMENT_KEYS,
     MonthlyLedger,
     explain_metered,
     freeze_month_report,
@@ -542,8 +544,8 @@ def _comparable_ts(raw: Any, reference: datetime) -> datetime | None:
     """Parse an entry timestamp so it can be ordered against the step grid.
 
     A naive timestamp against an aware grid is taken as UTC, matching
-    ``_get_current_price``; an aware one against a naive grid keeps its own
-    wall clock.
+    ``_get_current_price``; an aware one against a naive grid is read as the
+    configured zone's wall clock (UTC unless the zone is set).
 
     Module level, not a coordinator method: it reads nothing off ``self``
     and never did, and the class it sat in is the one the decomposition
@@ -3118,17 +3120,44 @@ def envelope_score(
     return grade, None, drivers
 
 
+#: Each grade's reference, where its drivers sum to zero (#2816): the house
+#: at typical for its type and era, the pump at its own COP history, and
+#: driving at buying flat at the day's mean price.
+SCORE_REFERENCE: dict[str, float] = {
+    "envelope": 50.0, "machine": 100.0, "operation": driving_grade.REFERENCE}
+
+
 def machine_score(
     baseline: Mapping[Any, Any], cusum_stat: float
-) -> tuple[float | None, str | None]:
-    """The heat pump grade (#65) and, when it is None, the code saying why.
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The heat pump grade (#65), the code saying why it is None, and its drivers.
 
     100 while the COP watch (#12) accumulates no shortfall; the grade falls
     as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    Its one driver, ``cop_shortfall``, is the grade's distance below 100,
+    the pump matching its own COP history (``SCORE_REFERENCE``).
     """
     if not _watched_cop_buckets(baseline):
-        return None, "cop_watch_learning"
-    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+        return None, "cop_watch_learning", []
+    grade = (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0
+    return grade, None, [{"code": "cop_shortfall", "points": grade - SCORE_REFERENCE["machine"]}]
+
+
+def machine_evidence(baseline: Mapping[Any, Any], frozen_refusals: int) -> dict[str, Any]:
+    """What the heat pump grade waits on: samples per 3 degC outdoor band.
+
+    Each COP baseline bucket against ``COP_BASELINE_MIN_SAMPLES`` (one bucket
+    at it starts the watch, ``_watched_cop_buckets``), most samples first,
+    and the intervals a learner freeze refused since start.
+    """
+    bands = [
+        {"outdoor_c": 3 * band, "hot_water": curve is True, "samples": int(entry[1])}
+        for (band, curve), entry in baseline.items()
+        if np.isfinite(entry[1])
+    ]
+    bands.sort(key=lambda b: (-b["samples"], b["outdoor_c"]))
+    return {"required": COP_BASELINE_MIN_SAMPLES, "bands": bands,
+            "refused_frozen": int(frozen_refusals)}
 
 
 def operation_reason(score_day: Mapping[str, Any]) -> str:
@@ -3139,33 +3168,41 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
 
 def compose_scores(
     envelope: tuple[float | None, str | None, list[dict[str, Any]]],
-    machine: tuple[float | None, str | None],
-    operation: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None, list[dict[str, Any]]],
+    operation: tuple[float | None, str | None, list[dict[str, Any]]],
+    machine_waits_on: dict[str, Any] | None = None,
 ) -> Scores:
-    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why, drivers).
 
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none. The house grade's
-    drivers ride ``envelope_drivers`` (#2816).
+    code in ``reasons`` (#2258), and a grade carries none. Each part's
+    drivers ride ``<part>_drivers`` (#2816), signed points summing to the
+    grade minus the part's ``SCORE_REFERENCE``, and are empty with no grade;
+    a heat pump with none says what it waits on in ``machine_evidence``.
     """
-    house = envelope[:2]
-    parts = {"envelope": house, "machine": machine, "operation": operation}
-    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
-    available = [g for g, _why in (machine, operation) if g is not None]
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: part[1] for key, part in parts.items() if part[1] is not None}
+    available = [part[0] for part in (machine, operation) if part[0] is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
-    return {
-        "envelope": None if house[0] is None else round(house[0], 1),
+    def drivers(part: tuple[Any, Any, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        return [{"code": d["code"], "points": round(d["points"], 1)} for d in part[2]]
+
+    scores: Scores = {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
-        "envelope_drivers": [
-            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
-        ],
+        "envelope_drivers": drivers(envelope),
+        "machine_drivers": drivers(machine),
+        "operation_drivers": drivers(operation),
     }
+    if machine[0] is None and machine_waits_on is not None:
+        scores["machine_evidence"] = machine_waits_on
+    return scores
 
 
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
@@ -3662,7 +3699,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # offending value, cleared unconditionally (setpoint_check.ConfigNotices).
         self._config_notices = setpoint_check.ConfigNotices()
         self._ledger = MonthlyLedger()
-        self._ledger_store: QuarantiningStore[dict[str, Any]] = QuarantiningStore(
+        self._ledger_store: LedgerStore[dict[str, Any]] = LedgerStore(
             hass,
             LEDGER_STORE_VERSION,
             f"{DOMAIN}_{entry.entry_id}_ledger",
@@ -4358,21 +4395,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             _LOGGER.debug("Could not load learned thermal parameters: %s", err)
             return
 
-        if (n := _stored_learner(stored, "buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate)) is not None:
-            self._buffer_cooling_samples = n
-        if (n := _stored_learner(stored, "house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale)) is not None:
-            self._house_heat_loss_samples = n
-        if (n := _stored_learner(stored, "lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio)) is not None:
-            self._lower_floor_loss_samples = n
-
-        # Re-anchored before anything solves; gated write: `updated_at` defeats the hash skip.
-        _had_anchor = all(k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
-        _reanchored = self._reanchor_house_heat_loss_scale(stored)
-        if _reanchored or not _had_anchor:
-            await self._async_save_thermal_learning()
-
-        if (n := _stored_learner(stored, _COP_STORE_KEY, "cop_samples", self._apply_cop_scale)) is not None:
-            self._cop_samples = n
+        self._load_scalar_learners(stored)
+        # Re-anchored before anything solves; gated write, last: `updated_at` defeats the hash skip.
+        save = self._reanchor_house_heat_loss_scale(stored) or not all(
+            k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
         self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop"))
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
@@ -4418,6 +4444,21 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 "back to control to re-arm it"
             )
         self._load_t4b_learners(stored)
+        # Last: the store's read fence is every save's and restore's load barrier only while nothing between
+        # the read and here awaits; mid-load, this save wrote the COP and T4b defaults (R10-LEARNED-STORE-LOAD).
+        if save:
+            await self._async_save_thermal_learning()
+
+    def _load_scalar_learners(self, stored: Mapping[str, Any]) -> None:
+        """The four scalar learners and their sample counts: the store loader's and the snapshot restore's one parser."""
+        n = [_stored_learner(stored, key, samples, apply) for key, samples, apply in (
+            ("buffer_cooling_rate", "buffer_cooling_samples", self._apply_buffer_cooling_rate),
+            ("house_heat_loss_scale", "house_heat_loss_samples", self._apply_house_heat_loss_scale),
+            ("lower_floor_loss_ratio", "lower_floor_loss_samples", self._apply_lower_floor_loss_ratio),
+            (_COP_STORE_KEY, "cop_samples", self._apply_cop_scale))]
+        cur = (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples, self._cop_samples)
+        (self._buffer_cooling_samples, self._house_heat_loss_samples, self._lower_floor_loss_samples,
+         self._cop_samples) = (c if v is None else v for v, c in zip(n, cur))
 
     def _load_t4b_learners(self, stored: dict[str, Any]) -> None:
         """Parse the T4b learners' additive keys (#17 #36 #53 #2).
@@ -5094,6 +5135,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_NO_POWER
         heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, room_air=heat_kw is None and not heat_energy.meter_of(self).counter):
+            self._measured_cop.frozen_refusals += 1  # machine_evidence's tally
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
@@ -7895,7 +7937,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "peak_month": self._peak_tracker.month,
             "pv_enabled": _ctx_of(self)._config.pv_enabled,
             "pv": self._pv_summary,
-            "savings_months": self._ledger.savings_months(dt_util.now()),
+            "savings_months": self._ledger.savings_months(dt_util.now(), wood_configured=wood_furnace_on(_ctx_of(self)._config)),
             "receipts": [self._month_reports[k] for k in sorted(self._month_reports)],
             "plan_replay": self._accuracy.replay(dt_util.now()),
         }
@@ -8115,7 +8157,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # operation sample, never the loop.
             try:
                 # A day-less book is the free-day close's #908 streak alone.
-                keys = ("kwh", "sek", "spot_sum", "spot_h") if "day" in day else ()
+                keys = ("kwh", "sek", "spot_sum", "spot_h", *driving_grade.book_keys(day)) if "day" in day else ()
                 numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
                 cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                 if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
@@ -8125,6 +8167,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
+        driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
+            "ledger", {"operation_drivers": drivers}))
         price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
             "ledger", {"price_tiles": {name: part}}))
 
@@ -8143,6 +8187,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "month_reports": self._month_reports,
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
+                    "operation_drivers": driving_grade.as_stored(driving_grade.held(self), self._operation_score),
                     "fuse_advisor": dict(self._fuse_advisor),
                     "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
@@ -9375,14 +9420,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         thermal = learners.get("thermal_learning")
         if isinstance(thermal, dict):
             if (tracker := getattr(self, "_accuracy", None)) is not None: tracker.restart_evidence(dt_util.now())  # #1936
-            for setter, key in (
-                (self._apply_buffer_cooling_rate, "buffer_cooling_rate"),
-                (self._apply_house_heat_loss_scale, "house_heat_loss_scale"),
-                (self._apply_lower_floor_loss_ratio, "lower_floor_loss_ratio"),
-                (self._apply_cop_scale, _COP_STORE_KEY),
-            ):
-                if (value := finite_float(thermal.get(key))) is not None:
-                    setter(value)
+            self._load_scalar_learners(thermal)  # the loader's parser: sample counts roll back too
             # T4b learners roll back through the same parser the store
             # loader uses, cleared first so a restore is a restore, not a
             # merge with the drifted state it replaces — ALL of them: a
@@ -9537,8 +9575,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
     async def async_restore_learned_snapshot(self) -> bool:
         """The one-click rollback service. True when a snapshot applied."""
         # ls-r1: every store the restore rewrites is read first, or a startup
-        # read still in flight lands on top of the restored learner.
-        for store in _restored_stores(self):
+        # read still in flight lands on top of the restored learner; and the
+        # ring it restores from, or a restore right after setup finds it
+        # empty (R10-LEARNED-STORE-LOAD).
+        for store in (*_restored_stores(self), self._snapshot_store):
             await store.async_wait_for_read()
         snap = self._snapshot_ring.undo_target()
         if snap is None:
@@ -9938,7 +9978,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "solar": ctx._current_state.solar_radiation,  # #2223, the sample's
             # T6 #52: the assumptions this interval starts under, for the
             # diagnosis re-run when it settles.
-            "diag": self._capture_diagnosis_inputs(), "baseline_kw": self._current_action.get("baseline_kw"),
+            "diag": self._capture_diagnosis_inputs(), **{k: self._current_action.get(k) for k in SETTLEMENT_KEYS},
         }
     def _dhw_probe_temperature(self) -> float | None:
         """The tank's MEASURED temperature, or ``None`` when there is none.
@@ -10375,14 +10415,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             book.update(
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
-        if spot_known and np.isfinite(sek):  # #2229: an unpriced kWh pays nothing
-            book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, kwh)
-            book["sek"] = finite_float(book.get("sek"), 0.0) + sek
-        if spot_known and np.isfinite(spot) and elapsed_hours > 0:
-            book["spot_sum"] = (
-                finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
-            )
-            book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
+        if spot_known:  # #2229: an unpriced kWh pays nothing
+            self._score_day = driving_grade.tally(book, kwh, sek, spot, elapsed_hours)
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -10410,12 +10444,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if streak >= SCORE_FREE_SPAN_RESET:
                 self._operation_score = None
         else:
-            paid_mean = finite_float(book.get("sek"), 0.0) / kwh
-            saved_fraction = 1.0 - paid_mean / mean_spot
-            sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
-            if self._operation_score is not None:
-                sample = (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
-            self._operation_score = sample
+            drivers = driving_grade.held(self)
+            self._operation_score = driving_grade.fold(drivers, self._operation_score, book, mean_spot)
         self._schedule_ledger_save()
 
     def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
@@ -10431,7 +10461,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
-            (operation, None if operation is not None else operation_reason(self._score_day)),
+            (operation, None if operation is not None else operation_reason(self._score_day),
+             driving_grade.published(driving_grade.held(self), operation)),
+            machine_evidence(self._cop_baseline, self._measured_cop.frozen_refusals),
         )
 
     def _narrative_view(self) -> Narrative:

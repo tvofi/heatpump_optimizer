@@ -98,6 +98,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`review_strength.py`](instruments/review_strength.py.md) — real-catch blocks per reviewed PR, incidence and first-pass share from the `review/*` bus and its `archive/review/*` tags, over git only (no REST), per window and per stratum
 - [`roster_edit.py`](instruments/roster_edit.py.md) — the safe roster edit
 - [`roster_lib.py`](instruments/roster_lib.py.md) — shared roster parsing and wave logic (depth, critical path, open groups, the branch-to-group lookup)
+- [`carry_fold.py`](instruments/carry_fold.py.md) — the orchestrator's pre-merge writer for a body's `Carry: <GROUP>` items, asserting each id landed after the fold
 - [`roster_sync.py`](instruments/roster_sync.py.md) — derives the factual half of a roster group's `resume` from pull-request state
 - [`roster_queue.py`](instruments/roster_queue.py.md) — the standing roster seat's queue runner
 - [`seat_venv.sh`](instruments/seat_venv.sh.md) — builds the seat interpreter venvs reproducibly and installs the `shims/`
@@ -105,6 +106,7 @@ sweep's standing-seat liveness step keep them alive.
 - [`tick_loop.sh`](instruments/tick_loop.sh.md) — the tick's driver loop (tvofi approved, 2026-10-18)
 - [`heartbeat.sh`](instruments/heartbeat.sh.md) — the andon
 - [`beatd.py`](instruments/beatd.py.md) — the one supervised beat (R10-ORCH-BEATD arm (a))
+- [`beat_jobs.py`](instruments/beat_jobs.py.md) — the rows of `beatd.jobs.json`: each beat job's predicate, writing only actionable lines to one digest the orchestrator's one wake reads
 - [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
 - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
 - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round

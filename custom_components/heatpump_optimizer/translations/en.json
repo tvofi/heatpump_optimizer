@@ -746,7 +746,7 @@
               "dhw_idle_min_temperature": "How cold the tank is allowed to get outside those periods. Lower saves more. The default is roughly room temperature, meaning no energy is spent at all.",
               "dhw_min_temperature": "The temperature the tank is guaranteed to reach during the periods above. Around 45 °C is enough for a normal shower.",
               "dhw_setpoint": "An upper limit on charging, not a target. The tank is only filled this high when storing extra cheap heat pays off. It is never heated to this just for the sake of it.",
-              "dhw_setpoint_entity": "Optional. The number, helper or climate entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
+              "dhw_setpoint_entity": "Optional. The number, helper, climate or water_heater entity that is the pump's own hot-water set-point. When it sits below the disinfection temperature or the hot-water minimum you configured here, a repair card offers to raise it to that figure."
             }
           },
           "legionella": {

@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.1
+# claims-for: 7.1.3
 #
-# v7.1.1: factory reset, ceiling probe, SAV comfort, away-mode and learner fixes. The stamp empties the list; the
+# v7.1.3: savings estimate, DHW set-point input, part-load pricing and learner fixes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
