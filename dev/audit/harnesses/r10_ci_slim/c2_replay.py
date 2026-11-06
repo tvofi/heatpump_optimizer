@@ -13,7 +13,6 @@ import json
 import sys
 from pathlib import Path
 
-from pathlib import Path
 tree = Path(sys.argv[1]); runs = Path(sys.argv[2])
 sys.path.insert(0, str(tree / "tests"))
 spec = importlib.util.spec_from_file_location("cr", tree / "tests" / "ci_ratchet.py"); cr = importlib.util.module_from_spec(spec); spec.loader.exec_module(cr)
