@@ -1,8 +1,0 @@
-== main dc0a170b671814be196a54b1c71e29449f54d6d7
-########## scoped gate ##########
-  MODE: FULL -- every test script runs, nothing is scoped out.
-  reason: no changed files could be determined
-  ok   derive_closures.sh writes its own metrics row and hands its child none
-entities rc=0
-STRUCTURE RATCHET PASSED
-ALL 296 checks PASSED
