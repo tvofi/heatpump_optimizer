@@ -175,6 +175,10 @@ TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 RELEASE_TREE_STEP = "Refuse a tag whose tree does not carry its version"
 RELEASE_PUBLISH_STEP = "Publish the release once its asset is on it"
 RELEASE_READBACK_ATTEMPTS = 5
+# The self-test's bound on one run of the publish step against its stub gh,
+# whose sleep returns at once: the shipped step exits 1 after 5 reads in
+# under 0.05 s, so a step still running at this bound loops without one.
+RELEASE_STEP_TIMEOUT_S = 10
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below). A
 # subject there has taken two shapes, so both are matched, and a deploy-key
@@ -1170,10 +1174,14 @@ def self_test() -> int:
             (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
             for stub in ("gh", "sleep"):
                 (b / stub).chmod(0o755)
-            rc = subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
-                                env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
-                                     "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
-                                capture_output=True, text=True).returncode
+            try:
+                rc = subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
+                                    env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
+                                         "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
+                                    capture_output=True, text=True,
+                                    timeout=RELEASE_STEP_TIMEOUT_S).returncode
+            except subprocess.TimeoutExpired:
+                rc = None  # an unbounded read-back is a FAIL here, not a hung self-test
             reads = int((b / "reads").read_text()) if (b / "reads").exists() else 0
             return rc, reads, (b / "published").exists()
     check("release publish: an asset read back on the third read is published",
@@ -1926,7 +1934,8 @@ def self_test() -> int:
           and _calls2 == [("flush", "pre1234")] and _notes2 == _nt)
     check("flush: main runs it after rule 3 and before rule 4, and a dry run's deferral "
           "reaches rule 5 only as that deferral",
-          _main_src.find("last_tag = \"v\"") < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
+          -1 < _main_src.find("last_tag = last_stamped_tag(tags, tag_version)")
+          < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
           < _main_src.find("body = notes_section(NOTES.read_text(), nxt)")
           and "allow_rowless=args.allow_rowless or bool(deferred)" in _main_src)
     _gates = iter([(False, "no completed ci.yml push run's gate for HEAD yet"),
