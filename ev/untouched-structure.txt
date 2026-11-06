@@ -1,0 +1,111 @@
+### 1. git diff --name-only
+dev/audit/harnesses/r10_roster_push_race.sh
+dev/audit/harnesses/r10_tick_which_roster.py
+dev/programme/delivery/3253.md
+tools/audit/seat/carry_fold.py
+tools/audit/seat/instruments/roster_edit.py.md
+tools/audit/seat/instruments/roster_queue.py.md
+tools/audit/seat/r10_roster_ops_mutants.py
+tools/audit/seat/roster_edit.py
+tools/audit/seat/roster_lib.py
+tools/audit/seat/roster_queue.py
+### 2. git diff --stat
+[stat exit=0]
+### 3. delivery 3253
+diff --git a/dev/programme/delivery/3253.md b/dev/programme/delivery/3253.md
+new file mode 100644
+index 000000000..c07763c6b
+--- /dev/null
++++ b/dev/programme/delivery/3253.md
+@@ -0,0 +1 @@
++- [#3253](https://github.com/tvofi/heatpump_optimizer/pull/3253) — **open**, R10-ROSTER-WRITE-SWEEP: the roster write path's residue in roster_edit.py and roster_queue.py (R10-ROSTER-WRITE-SWEEP)
+### 4a. structure.py
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+rc=0
+### 4b. closure select
+      SKIP  tests/typing_ruler.py  (closure: 88 files, no changed file is in its measured closure)
+      SKIP  tests/validate.py  (closure: 34 files, no changed file is in its measured closure)
+      SKIP  tests/wood_advisor.py  (closure: 98 files, no changed file is in its measured closure)
+
+  A skipped script is a claim that no changed file is in its measured
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  on every push to main, so a wrong closure turns main red within one
+  gate. Set GATE_SCOPE=full to run everything here and now.
+### 5. roster_edit grep
+1289:# The roster seat's lane (P215): the queue runner sets LANE_ENV in the child's
+1291:LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
+1296:def lane_refusal(op, group):
+1302:    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:
+1304:                f"tools/audit/seat/roster_queue.py (it sets {LANE_ENV}); "
+1319:            keep = os.environ.get(LANE_ENV)
+1320:            os.environ[LANE_ENV] = LANE_VALUE
+1325:                    os.environ.pop(LANE_ENV, None)
+1327:                    os.environ[LANE_ENV] = keep
+1330:        why = lane_refusal(a.op, a.group)
+2711:    saved_lane = os.environ.pop(LANE_ENV, None)
+2719:        check("lane: lane_refusal names a structural op called without the marker",
+2720:              lane_refusal("append-carry", "G") is not None)
+2722:              all(lane_refusal(o, "G") is None
+2724:        os.environ[LANE_ENV] = LANE_VALUE
+2726:              lane_refusal("append-carry", "G") is None)
+2727:        os.environ[LANE_ENV] = "something-else"
+2729:              lane_refusal("drop-carry", "G") is not None)
+2732:            os.environ.pop(LANE_ENV, None)
+2734:            os.environ[LANE_ENV] = saved_lane
+---
+1267:def batch_edit(edits):
+1268-    """One `edit(roster, rel)` for write_roster that applies several parsed
+1269-    ops (make_edit callbacks) in order, so a batch costs one lint and one
+1270-    push (roster_queue.py run --batch). An op that refuses is rolled back and
+1271-    skipped, its reason in `results[i]` (None: applied); the batch writes when
+1272-    any applied. Re-run on a push race, `results` is rewritten each time."""
+1273-    results = [None] * len(edits)
+1274-
+1275-    def edit(roster, rel) -> bool:
+1276-        for i, one in enumerate(edits):
+1277-            snap = copy.deepcopy(roster)
+1278-            try:
+1279-                one(roster, rel)
+1280-                results[i] = None
+1281-            except Refuse as e:
+1282-                roster.clear()
+1283-                roster.update(snap)
+1284-                results[i] = str(e)
+1285-        return any(r is None for r in results)
+1286-    return edit, results
+1287-
+1288-
+1289-# The roster seat's lane (P215): the queue runner sets LANE_ENV in the child's
+1290-# environment; the structural ops refuse any caller that does not carry it.
+1291-LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
+1292-STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
+1293-                  "set-after", "drop-carry")
+1294-
+1295-
+1296-def lane_refusal(op, group):
+1297-    """The refusal text for a structural op called outside the roster queue
+### extra checks (read-only)
+HEAD: ecbba06860aa197bfa9a6fe5d982512f2c2b71d8
+ M tools/audit/seat/roster_edit.py
+--- batch_edit line now:
+1265:def batch_edit(edits):
+--- git diff:
+diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
+index df8cccd8e..9ff6061bf 100644
+--- a/tools/audit/seat/roster_edit.py
++++ b/tools/audit/seat/roster_edit.py
+@@ -509,7 +509,7 @@ def op_drop_carry(roster, group, index=None, match=None):
+     group that already carries a list (all 91 live ones do) is therefore
+     byte-restored by append-then-drop of the appended entry."""
+     g = _need(roster, group)
+-    del g["carry"][_carry_index(g, index, match, "drop-carry")]
++    del g["carry"][_carry_index(g, index, match, "drop-carry") - 1]
+ 
+ 
+ def _carry_index(g, index, match, op):
+--- SCOPED mode line:
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.

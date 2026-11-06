@@ -1,0 +1,444 @@
+RESULT mutant=A1 rc=1 fails=1
+    FAIL set-after unknown after-group refused
+RESULT mutant=A2 rc=1 fails=1
+    FAIL set-after self-edge refused
+RESULT mutant=A3 rc=1 fails=1
+    FAIL set-after duplicate edge refused
+RESULT mutant=A4 rc=1 fails=3
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+    FAIL refused set-after moved nothing
+RESULT mutant=A5 rc=1 fails=2
+    FAIL set-after direct cycle refused
+    FAIL set-after indirect cycle refused
+RESULT mutant=A6 rc=1 fails=1
+    FAIL set-after unknown group refused
+RESULT mutant=A7 rc=1 fails=2
+    FAIL no-op set-after reports no change and commits nothing
+    FAIL no-op set-after is byte-identical
+RESULT mutant=C1 rc=1 fails=1
+    FAIL drop-carry with no carry refused
+RESULT mutant=C2 rc=1 fails=5
+    FAIL drop-carry absent match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+RESULT mutant=C3 rc=1 fails=6
+    FAIL drop-carry ambiguous match refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C4 rc=1 fails=4
+    FAIL drop-carry negative index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=C5 rc=1 fails=6
+    FAIL drop-carry non-integer index refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C6 rc=1 fails=0
+    crash tail:
+          and branch_roster()["groups"][1]["carry"] == [])
+              ~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^
+      KeyError: 'carry'
+RESULT mutant=C7 rc=1 fails=9
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=C8 rc=1 fails=1
+    FAIL drop-carry unknown group refused
+RESULT mutant=P1 rc=1 fails=4
+    FAIL drop-carry index and --match together refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+RESULT mutant=P2 rc=1 fails=1
+    FAIL drop-carry neither index nor --match refused
+RESULT mutant=P3 rc=1 fails=4
+    FAIL set-after names no op flag
+    FAIL --match on another op refused
+    FAIL refused drop-carry moved nothing
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=D1 rc=1 fails=3
+    FAIL dump round-trips the canonical bytes
+    FAIL no-op set-resume is byte-identical
+    FAIL no-op set-after is byte-identical
+RESULT mutant=T1 rc=1 fails=12
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a lettered label citing no ruling is refused
+    FAIL triage gate: a new group's brief is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T2 rc=1 fails=13
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate: a lettered label citing a REJECT ruling is refused
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T3 rc=1 fails=1
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+RESULT mutant=T4 rc=1 fails=19
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate: a cited entry the batch lacks is refused
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+    FAIL triage gate: a lettered label citing no ruling is refused
+    FAIL triage gate: a lettered label citing a REJECT ruling is refused
+    FAIL triage gate: a lettered label citing no such entry is refused
+    FAIL triage gate: a new group's brief is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=T5 rc=1 fails=20
+    FAIL triage gate: a proposal-sourced carry citing no ruling is refused
+    FAIL triage gate: a REJECT ruling is refused
+    FAIL triage gate: a DEFER ruling is refused: only an ACCEPT is routed
+    FAIL triage gate: an entry with no verdict line is refused
+    FAIL triage gate: a cited entry the batch lacks is refused
+    FAIL triage gate: a citation to a missing batch is refused, proposal named or not
+    FAIL triage gate: a lettered label citing no ruling is refused
+    FAIL triage gate: a lettered label citing a REJECT ruling is refused
+    FAIL triage gate: a lettered label citing no such entry is refused
+    FAIL added_texts: only what the write adds is judged
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+    FAIL append-carry naming a host path is refused with the scrub hint (carry 7)
+RESULT mutant=S1 rc=1 fails=1
+    FAIL set-stage refuses an unclassified stage
+RESULT mutant=S2 rc=1 fails=1
+    FAIL set-resume --field stage refuses an unclassified stage
+RESULT mutant=S3 rc=1 fails=1
+    FAIL append-group refuses an unclassified stage
+RESULT mutant=S4 rc=1 fails=1
+    FAIL append-group refuses a size the duration model lacks
+RESULT mutant=S5 rc=1 fails=3
+    FAIL set-stage refuses an unclassified stage
+    FAIL append-group refuses an unclassified stage
+    FAIL set-resume --field stage refuses an unclassified stage
+RESULT mutant=S6 rc=1 fails=7
+    FAIL append-group refuses a size the duration model lacks
+    FAIL set-size refuses a size the durations model lacks, naming it
+    FAIL set-size refuses an empty size
+    FAIL set-size refuses a cite whose ref lacks the sha
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+RESULT mutant=S7 rc=1 fails=2
+    FAIL append-group refuses a size the duration model lacks
+    FAIL append-group accepts a modelled size (null control)
+RESULT mutant=K1 rc=1 fails=2
+    FAIL mark-carry refuses a carry already marked
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K2 rc=1 fails=2
+    FAIL mark-carry refuses an unknown mark
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K3 rc=1 fails=6
+    FAIL mark-carry refuses implemented without a sha
+    FAIL mark-carry refuses moved to no group
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+RESULT mutant=K4 rc=1 fails=10
+    FAIL mark-carry refuses moved to no group
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+    FAIL mark-carry refuses moved to a done group
+    FAIL mark-carry refuses moved to a rca-done group
+    FAIL mark-carry refuses moved to a absorbed group
+    FAIL mark-carry refuses a value holding ']'
+    FAIL mark-carry moved to an open group lands (null control)
+RESULT mutant=K5 rc=1 fails=4
+    FAIL mark-carry refuses moved to itself
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+    FAIL set-stage done over a pending carry writes carries-open and says so
+RESULT mutant=K6 rc=1 fails=2
+    FAIL mark-carry refuses dismissed with no reason
+    FAIL refused mark-carry moved nothing
+RESULT mutant=K7 rc=1 fails=2
+    FAIL set-stage done over a pending carry writes carries-open and says so
+    FAIL a carry after the cut-over is pending beside a legacy one
+RESULT mutant=K8 rc=1 fails=4
+    FAIL a legacy carry alone leaves set-stage done as done (null control)
+    FAIL a carry after the cut-over is pending beside a legacy one
+    FAIL set-stage refuses an unreadable cut-over and writes nothing
+    FAIL set-resume refuses an unreadable cut-over and writes nothing
+RESULT mutant=K9 rc=1 fails=1
+    FAIL set-resume --field stage done reads the same rule
+RESULT mutant=K10 rc=1 fails=5
+    FAIL mark-carry refuses moved to a done group
+    FAIL mark-carry refuses moved to a rca-done group
+    FAIL mark-carry refuses moved to a absorbed group
+    FAIL mark-carry refuses a value holding ']'
+    FAIL mark-carry moved to an open group lands (null control)
+RESULT mutant=K11 rc=1 fails=2
+    FAIL mark-carry refuses a value holding ']'
+    FAIL mark-carry moved to an open group lands (null control)
+RESULT mutant=K12 rc=1 fails=2
+    FAIL set-stage refuses an unreadable cut-over and writes nothing
+    FAIL set-resume refuses an unreadable cut-over and writes nothing
+RESULT mutant=L1 rc=1 fails=5
+    FAIL pending: unmarked and not legacy is pending; each of the three marks discharges a carry
+    FAIL pending: with no cut-over every unmarked carry is pending
+    FAIL closing: done with a pending carry is written carries-open
+    FAIL closing (null): done with every carry marked or legacy stays done
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L2 rc=1 fails=4
+    FAIL pending: unmarked and not legacy is pending; each of the three marks discharges a carry
+    FAIL closing: done with a pending carry is written carries-open
+    FAIL closing (null): done with every carry marked or legacy stays done
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L3 rc=1 fails=1
+    FAIL legacy: a carry on a closed group at the cut-over is legacy; an open group's carry at the cut-over is not
+RESULT mutant=L4 rc=1 fails=1
+    FAIL stranded: a pending carry on a done or absorbed group, never on an open one
+RESULT mutant=L5 rc=1 fails=1
+    FAIL closing: done with a pending carry is written carries-open
+RESULT mutant=L6 rc=1 fails=1
+    FAIL a mark is read only at the end of the carry, in its own grammar
+RESULT mutant=Y1 rc=1 fails=1
+    FAIL a merge over a pending carry writes carries-open, with its commit
+RESULT mutant=Y2 rc=1 fails=2
+    FAIL an unreadable cut-over refuses sync --apply rc 2, naming it
+    FAIL and the unreadable cut-over wrote nothing (got: refs/heads/handoff/audit-r9-roster
+RESULT mutant=Y3 rc=1 fails=2
+    FAIL sync --apply writes done over a group whose only carry is legacy (the write path reads the cut-over)
+    FAIL the write path's projection reads the cut-over: the group is written done, the carry not appended, nothing stranded
+RESULT mutant=Y4 rc=1 fails=4
+    FAIL a legacy-only group owning an orphan open issue is held, the hold reading the cut-over
+    FAIL sync --apply writes done over a group whose only carry is legacy (the write path reads the cut-over)
+    FAIL the dry run's projection reads the cut-over: a same-pass Carry: to a legacy-only group it closes is refused, not planned
+    FAIL the write path's projection reads the cut-over: the group is written done, the carry not appended, nothing stranded
+RESULT mutant=Y5 rc=1 fails=1
+    FAIL the dry run's projection reads the cut-over: a same-pass Carry: to a legacy-only group it closes is refused, not planned
+RESULT mutant=Y6 rc=1 fails=1
+    FAIL the write path's projection reads the cut-over: the group is written done, the carry not appended, nothing stranded
+RESULT mutant=R1 rc=1 fails=1
+    FAIL roster: an open issue listed only by done groups is reported with them
+RESULT mutant=R2 rc=1 fails=1
+    FAIL roster: an open issue no group lists is reported
+RESULT mutant=R3 rc=1 fails=1
+    FAIL roster (null): an issue a live group lists, in issues or fixes, and #201 are not reported
+RESULT mutant=R4 rc=1 fails=1
+    FAIL roster: a carry on an absorbed group is STRANDED and names absorbed_into
+RESULT mutant=R5 rc=1 fails=1
+    FAIL roster: open_issues reads gh's JSON, numbers or objects, and drops pull requests
+RESULT mutant=H1 rc=1 fails=2
+    FAIL set-stage done holds a group owning an open issue nothing else owns
+    FAIL ... and so does set-resume --field stage, with any closed stage
+RESULT mutant=H2 rc=1 fails=1
+    FAIL ... and so does set-resume --field stage, with any closed stage
+RESULT mutant=Z1 rc=1 fails=6
+    FAIL set-size refuses a size the durations model lacks, naming it
+    FAIL set-size refuses an empty size
+    FAIL set-size refuses a cite whose ref lacks the sha
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+RESULT mutant=Z2 rc=1 fails=5
+    FAIL set-size refuses a cite whose ref lacks the sha
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+    FAIL ... recording the old size and the cite in resume.note
+RESULT mutant=Z3 rc=1 fails=4
+    FAIL set-size with a valid cite lands
+    FAIL set-size to the current size is byte-identical (null control)
+    FAIL set-size without a cite lands (the cite is optional)
+    FAIL set-size from a recorded size names the old one
+RESULT mutant=Z4 rc=1 fails=1
+    FAIL set-size to the current size is byte-identical (null control)
+RESULT mutant=Z5 rc=1 fails=8
+    FAIL set-files --add refuses a path not in the tree at origin/main
+    FAIL ... even one a branch outside origin/main adds, when uncited
+    FAIL set-files with nothing to write refused
+    FAIL set-files refuses a cite whose ref lacks the sha
+    FAIL set-files refuses a cite whose sha exists but main does not hold it
+    FAIL set-files --add lands a path in the tree
+    FAIL set-files --add accepts a path the cited ref adds
+    FAIL ... and takes a comma list, refusing a path not in the tree
+RESULT mutant=Z6 rc=1 fails=10
+    FAIL set-files --add lands a path in the tree
+    FAIL set-files --add of a path already held is byte-identical (null control)
+    FAIL set-files --add accepts a path the cited ref adds
+    FAIL set-files --set-hot lands a files basename
+    FAIL ... recording the old value in resume.note, other fields untouched
+    FAIL set-files --set-hot with the current value is byte-identical (null control)
+    FAIL set-files --set-hot accepts a token another group already holds
+    FAIL set-files --set-hot - clears the field, keeping the key
+    FAIL set-files --set-files replaces files whole, `-` for none
+    FAIL ... and takes a comma list, refusing a path not in the tree
+RESULT mutant=Z7 rc=1 fails=4
+    FAIL set-files --set-hot lands a files basename
+    FAIL set-files --set-hot with the current value is byte-identical (null control)
+    FAIL set-files --set-hot accepts a token another group already holds
+    FAIL set-files --set-hot - clears the field, keeping the key
+RESULT mutant=Z8 rc=1 fails=1
+    FAIL set-files --set-hot refuses a path that is neither a files basename nor a known token
+RESULT mutant=Z9 rc=1 fails=2
+    FAIL set-files refuses a cite whose ref lacks the sha
+    FAIL set-files refuses a cite whose sha exists but main does not hold it
+RESULT mutant=Z10 rc=1 fails=1
+    FAIL set-files unknown group refused
+RESULT mutant=Z11 rc=1 fails=5
+    FAIL set-size refuses a cite whose ref lacks the sha
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+    FAIL ... recording the old size and the cite in resume.note
+RESULT mutant=Z12 rc=1 fails=4
+    FAIL ... and touches no other field
+    FAIL set-files --add of a path already held is byte-identical (null control)
+    FAIL set-files --set-hot with the current value is byte-identical (null control)
+    FAIL set-files --set-hot - on an already-empty field is byte-identical (null control)
+RESULT mutant=R11 rc=1 fails=5
+    FAIL set-size refuses a cite whose sha exists but main does not hold it
+    FAIL set-size refuses a cite whose ref does not exist
+    FAIL set-size refuses a cite that is not <ref>@<sha>
+    FAIL ... recording the old size and the cite in resume.note
+    FAIL set-files refuses a cite whose sha exists but main does not hold it
+RESULT mutant=W1 rc=1 fails=12
+    FAIL triage gate: a lettered label citing no ruling is refused
+    FAIL triage gate: a lettered label citing a REJECT ruling is refused
+    FAIL triage gate: a lettered label citing no such entry is refused
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=W2 rc=1 fails=3
+    FAIL append-group @file lands (carry 6)
+    FAIL append-group overlapping a not-started group refuses, naming both (carry 5)
+    FAIL append-group --reason admits the overlap and records it
+RESULT mutant=W3 rc=1 fails=2
+    FAIL overlap with an in-progress group passes (null control)
+    FAIL overlap with a done group passes (null control)
+RESULT mutant=W4 rc=1 fails=1
+    FAIL an empty --reason does not admit the overlap
+RESULT mutant=W5 rc=1 fails=1
+    FAIL overlap on the index file alone passes (null control)
+RESULT mutant=W6 rc=1 fails=3
+    FAIL append-carry to a done group refuses and writes nothing (carry 3)
+    FAIL append-carry to an absorbed group names absorbed_into
+    FAIL append-carry to an absorbed group with no host still refuses
+RESULT mutant=W7 rc=1 fails=1
+    FAIL append-carry to a group with resume.pr appends and WARNs
+RESULT mutant=W8 rc=1 fails=1
+    FAIL append-carry to an absorbed group names absorbed_into
+RESULT mutant=W9 rc=1 fails=2
+    FAIL set-resume --field pr round-trips an integer (carry 4)
+    FAIL set-resume --field pr refuses a non-number
+RESULT mutant=W10 rc=1 fails=2
+    FAIL set-stage done clears a note naming owed work and says so (carry 2)
+    FAIL set-stage done keeps a note that owes nothing (null control)
+RESULT mutant=W11 rc=1 fails=4
+    FAIL append-carry naming a host path is refused with the scrub hint (carry 7)
+    FAIL edit-brief naming a host path is refused with the scrub hint (carry 7)
+    FAIL set-resume naming a host path is refused with the scrub hint (carry 7)
+    FAIL append-group naming a host path is refused with the scrub hint (carry 7)
+RESULT mutant=W12 rc=1 fails=1
+    FAIL set-stage absorbed --into a done group is refused
+RESULT mutant=W13 rc=1 fails=1
+    FAIL set-stage absorbed --into itself is refused
+RESULT mutant=W14 rc=1 fails=1
+    FAIL set-stage absorbed without --into is refused (carry 16)
+RESULT mutant=W15 rc=1 fails=1
+    FAIL group_for_branch: handoff/<group>-p2 resolves to the group
+RESULT mutant=Q1 rc=1 fails=2
+    FAIL parse: a trailing ` # comment` is dropped (carry 11) 
+    FAIL parse: a quoted 'a # b' stays one argument (null) 
+RESULT mutant=Q2 rc=1 fails=3
+    FAIL run --mark: a pushed op is `#done`, a refused op `#refused`
+    FAIL run --mark: a line appended after the run's first read survives
+    FAIL a marked line is never applied again 
+RESULT mutant=Q3 rc=1 fails=1
+    FAIL parse: set-stage keeps --at-sha a flag, not part of the value (carry 14) 
+RESULT mutant=Q4 rc=1 fails=2
+    FAIL release-held: a held line whose batch file exists is released
+    FAIL release-held: a held line whose batch file is absent stays held (null)
+RESULT mutant=Q5 rc=1 fails=3
+    FAIL run --mark: a pushed op is `#done`, a refused op `#refused`
+    FAIL run all --mark applies every unmarked op line, no cursor 
+    FAIL a marked line is never applied again 
+RESULT mutant=Q6 rc=1 fails=1
+    FAIL run all without --mark is refused, nothing applied (rc 2) 
+RESULT mutant=Q7 rc=1 fails=1
+    FAIL loop: a missing lint clone is re-provisioned from origin, then the pass runs 
+RESULT mutant=Q8 rc=1 fails=2
+    FAIL run --batch loads the passed --editor, and its fallback runs that same file
+    FAIL run --batch: a batch whose every op is refused reports each refused, no fallback 
+RESULT mutant=Q10 rc=1 fails=1
+    FAIL diff: a removed group is `- G` 
+RESULT mutant=Q11 rc=1 fails=3
+    FAIL diff: an added group, a changed resume field and an added carry are each one line
+    FAIL diff: a removed group is `- G` 
+    FAIL diff: a carry entry replaced by another is one - and one +, not unchanged (count alone is blind) 
+RESULT mutant=Q12 rc=1 fails=1
+    FAIL show --stage keeps only that stage (null: no filter lists both) 
+RESULT mutant=W16 rc=1 fails=8
+    FAIL lane: append-carry without the marker is refused, naming the queue runner
+    FAIL lane: drop-carry without the marker is refused, naming the queue runner
+    FAIL lane: wire-issue without the marker is refused, naming the queue runner
+    FAIL lane: unwire-issue without the marker is refused, naming the queue runner
+    FAIL lane: set-after without the marker is refused, naming the queue runner
+    FAIL lane: edit-brief without the marker is refused, naming the queue runner
+    FAIL lane: lane_refusal names a structural op called without the marker
+    FAIL lane: a marker with another value is not the lane
+RESULT mutant=W17 rc=1 fails=1
+    FAIL lane: set-stage, append-group and set-resume stay directly callable (null)
+RESULT mutant=Q13 rc=1 fails=1
+    FAIL run: the child editor carries the roster lane marker (roster_edit.LANE_ENV) 
+RESULT mutant=Q9 rc=1 fails=1
+    FAIL load_editor: a file that is no roster_edit is refused unexecuted 
+plants: 105, without a FAIL line: ['C6']
+rc=1

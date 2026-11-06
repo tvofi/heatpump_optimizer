@@ -1,0 +1,16 @@
+head roster_queue rc=0 52 checks, 0 failed
+head roster_edit rc=0 242 checks, 0 failed
+head roster_lib rc=0 63 checks, 0 failed
+head r10_roster_ops_mutants rc=0 321 checks, 0 failed
+head carry_fold rc=0 6 checks, 0 failed
+base roster_queue rc=0 17 checks, 0 failed
+base roster_edit rc=0 191 checks, 0 failed
+base roster_lib rc=0 60 checks, 0 failed
+base r10_roster_ops_mutants rc=0 231 checks, 0 failed
+base carry_fold rc=0 6 checks, 0 failed
+oldbase roster_queue rc=0 17 checks, 0 failed
+oldbase roster_edit rc=0 191 checks, 0 failed
+oldbase roster_lib rc=0 60 checks, 0 failed
+oldbase r10_roster_ops_mutants rc=0 231 checks, 0 failed
+oldbase carry_fold rc=0 6 checks, 0 failed
+DONE
