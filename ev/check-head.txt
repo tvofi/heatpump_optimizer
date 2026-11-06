@@ -1,0 +1,2 @@
+PR-CHECK PASS {'superseded': 'PASSED', 'nothing newer': 'FAILED', 'newer slow failed': 'FAILED', 'newer slow pending': 'FAILED', 'in-flight older': 'FAILED'}
+PROBES PASS
