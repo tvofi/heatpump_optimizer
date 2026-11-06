@@ -747,6 +747,71 @@ def topic_evidence(group: dict, evidence: dict) -> str | None:
     return None
 
 
+def substantive(diff: str) -> bool:
+    """True when a unified diff changes a line that is neither blank nor a
+    `#` comment: a comment-only or whitespace-only change ships no behaviour."""
+    for line in diff.splitlines():
+        if line[:1] in "+-" and not line.startswith(("+++", "---")):
+            body = line[1:].strip()
+            if body and not body.startswith("#"):
+                return True
+    return False
+
+
+def production_groups_since(commits: list, G: dict) -> list:
+    """Production groups with a substantive `custom_components` change since
+    the last tag, once each however many pull requests they took.
+    `commits`: [{"subject": str, "diff": unified diff of custom_components}],
+    a group named by the longest roster group name in the subject."""
+    out: dict = {}
+    for c in commits:
+        named = [n for n in G if n in c["subject"]]
+        n = max(named, key=len) if named else None
+        if n and roster_lane(G[n]) in PRODUCTION and substantive(c.get("diff") or ""):
+            out[n] = True
+    return list(out)
+
+
+def git_commits_since_tag(repo: str) -> list:
+    """The `production_groups_since` input from git: first-parent commits
+    since the last tag, each with its custom_components diff."""
+    tag = _git(repo, "describe", "--tags", "--abbrev=0")
+    if tag.returncode != 0:
+        raise PlanError("--since-tag: the repository has no tag")
+    log = _git(repo, "log", "--first-parent", "--format=%H%x1f%s", f"{tag.stdout.strip()}..HEAD")
+    out = []
+    for line in log.stdout.splitlines():
+        sha, _, subject = line.partition("\x1f")
+        diff = _git(repo, "show", "--format=", "-U0", sha, "--", "custom_components").stdout
+        out.append({"subject": subject, "diff": diff})
+    return out
+
+
+def measure_sizes_hours(rows: list, since: str, until: str, percentile: float = 75) -> dict:
+    """{size: hours}: the percentile, per size, of each done group's hours from
+    its first pull-request commit to its last merge, over the groups whose last
+    merge falls in [since, until]. `rows`: one per pull request,
+    {"group", "size", "first_commit", "merged"} (ISO 8601 UTC). Pure."""
+    def when(s: str) -> dt.datetime:
+        return dt.datetime.strptime(s.replace("Z", "")[:19], "%Y-%m-%dT%H:%M:%S")
+    per: dict = {}
+    for r in rows:
+        a, b = per.setdefault(r["group"], [when(r["first_commit"]), when(r["merged"]), r["size"]])[:2]
+        per[r["group"]][0], per[r["group"]][1] = min(a, when(r["first_commit"])), max(b, when(r["merged"]))
+    lo, hi = when(since), when(until)
+    by_size: dict = {}
+    for first, last, size in per.values():
+        if lo <= last <= hi:
+            by_size.setdefault(size, []).append((last - first).total_seconds() / 3600)
+    out = {}
+    for size, xs in by_size.items():
+        xs.sort()
+        k = (len(xs) - 1) * percentile / 100.0
+        f, c = math.floor(k), math.ceil(k)
+        out[size] = round(xs[f] + (xs[c] - xs[f]) * (k - f), 1)
+    return out
+
+
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
                roster_path: str = "", *, round_n: int, since_tag: list | None = None,
@@ -847,7 +912,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     stamps: list = []
     # Production groups already merged since the last tag count toward the
     # next patch stamp, once each however many pull requests they took.
-    credit = [n for n in (since_tag or []) if n in G]
+    credit = [n for n in dict.fromkeys(since_tag or []) if n in G and lane[n] in PRODUCTION]
     carry: list = list(credit)
     stamp_by_group: dict = {}
     patch = 0
@@ -1013,7 +1078,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
         post_dur[n] = max(1, int(round(h * 60)))
     post_start: dict = {}
     post_end: dict = {}
-    for n in topo_order(deps_post):
+    for n in topo_order({n: [a for a in deps_post[n] if a in post] for n in post}):
         ready_at = max([stamps[-1]["at"]] + [post_end[a] for a in deps_post[n] if a in post_end]
                        + [merged_t[a] for a in deps_post[n] if a in merged_t])
         post_start[n] = ready_at
@@ -1950,6 +2015,163 @@ def selftest() -> int:
     expect("--check refuses a plan recording no round",
            any("round close" in b for b in bad), str(bad))
 
+    # ---- the round-10 flow-toolkit carries: one arm each, with a null control
+    def fx(n, size="S", kind="defect", lane="Core model", stage="not-started",
+           after=(), **kw):
+        return {"group": n, "size": size, "lane": lane, "kind": kind,
+                "after": list(after), "resume": {"stage": stage, **kw.pop("res", {})}, **kw}
+
+    def sched(p, drop=()):
+        return json.dumps({"g": {n: v for n, v in p["groups"].items() if n not in drop},
+                           "w": p["waves"], "s": p["stamps"], "b": p["batches"]},
+                          sort_keys=True)
+
+    def mk(groups, **kw):
+        c = kw.pop("caps_", dict(caps, stamp_every=DEFAULT_CAPS["stamp_every"]))
+        return build_plan({"groups": groups}, kw.pop("dur", durations), c, start,
+                          "v1.0.0", round_n=FIXTURE_ROUND, **kw)
+
+    # 1. absorbed counts as done (carry 2)
+    base_g = [fx("R10-A"), fx("R10-B", after=["R10-A"])]
+    ab = mk(base_g + [fx("R10-AB", stage="absorbed", res={"note": "absorbed into R10-A"})])
+    expect("absorbed: the group is done, names its absorber, is not scheduled",
+           ab["groups"]["R10-AB"]["done"] and ab["groups"]["R10-AB"]["start"] is None
+           and ab["groups"]["R10-AB"]["absorbed_into"] == "R10-A"
+           and ab["absorbed"]["R10-AB"] == {"into": "R10-A", "advisory": None}, str(ab["absorbed"]))
+    nb = mk(base_g + [fx("R10-AB", stage="absorbed", res={"note": "folded away"})])
+    expect("absorbed: a note naming no group records the ADVISORY, never a refusal",
+           nb["absorbed"]["R10-AB"]["into"] is None
+           and nb["absorbed"]["R10-AB"]["advisory"].startswith("ADVISORY: R10-AB"), str(nb["absorbed"]))
+    expect("absorbed (null): the roster minus the absorbed group reproduces the schedule",
+           sched(ab, drop=("R10-AB",)) == sched(mk(base_g)), "schedules differ")
+
+    # 2. post-closure groups (carries 10, 11)
+    cat = fx("R10-CATALOG-PR", kind="owner-step", lane="Docs", after=["R10-B"],
+             res={"next_step": "after the round-close stamp"})
+    pc = mk(base_g + [cat])
+    p0 = mk(base_g)
+    close_at = pc["stamps"][-1]["at"]
+    expect("post-closure: the owner step starts at or after the closing stamp, flagged",
+           pc["groups"]["R10-CATALOG-PR"].get("post_closure") is True
+           and pc["groups"]["R10-CATALOG-PR"]["start"] >= close_at
+           and pc["summary"]["post_closure"] == ["R10-CATALOG-PR"], str(pc["groups"]["R10-CATALOG-PR"]))
+    expect("post-closure: in no stamp's carries and outside summary.closure",
+           all("R10-CATALOG-PR" not in s["carries"] for s in pc["stamps"])
+           and pc["summary"]["closure"] == p0["summary"]["closure"]
+           and pc["stamps"] == p0["stamps"], str(pc["stamps"]))
+    expect("post-closure (null): a production group with no stamp dependency is in the "
+           "closing stamp's carries",
+           pc["stamps"][-1]["carries"] == ["R10-A", "R10-B"], str(pc["stamps"][-1]))
+    expect("post-closure: the plan passes --check", check_plan(pc) == [], str(check_plan(pc)))
+
+    # 3. overflow start (carry 8): a critical-path group starts past a full cap
+    ov = mk([fx("L1", stage="in-progress"), fx("L2", stage="in-progress"), fx("X3", "L"),
+             fx("CP1", "XL"), fx("CP2", after=["CP1"])], caps_=dict(caps, slots=2))
+    expect("overflow: a ready critical-path group starts at t=0, flagged exempt",
+           ov["groups"]["CP1"]["start"] == iso(start, 0) and ov["groups"]["CP1"].get("exempt") is True
+           and check_plan(ov) == [], str({n: g["start"] for n, g in ov["groups"].items()}))
+    expect("overflow (null): the non-critical group past the cap waits and is not exempt",
+           any(g["start"] > iso(start, 0) and not g.get("exempt")
+               for n, g in ov["groups"].items() if n == "X3"), "none waited")
+
+    # 4. stamp cadence counts groups, not pull requests (carry 9)
+    cad = [fx("P1", stage="done"), fx("P2", stage="done"), fx("Q1"), fx("Q2")]
+    ck = mk(cad, since_tag=["P1", "P1", "P2"])    # P1 took two pull requests
+    expect("cadence: the patch stamp lands at the 3rd GROUP, carrying it, not the 3rd PR",
+           [s["carries"] for s in ck["stamps"]] == [["P1", "P2", "Q1"], ["Q2"]]
+           and ck["summary"]["production_since_tag"] == 2, str(ck["stamps"]))
+    expect("cadence (null): no credit leaves two groups and no patch stamp",
+           [s["carries"] for s in mk(cad)["stamps"]] == [["Q1", "Q2"]], "")
+    G4 = groups_of({"groups": [fx("R10-X"), fx("R10-Y"), fx("R10-Z"), fx("R10-W", kind="instrument")]})
+    code, note = "+x = 1\n-x = 0\n", "+# a new note\n-\n+   \n"
+    got = production_groups_since([
+        {"subject": "R10-X (#1)", "diff": code}, {"subject": "R10-X part 2 (#2)", "diff": code},
+        {"subject": "R10-Y (#3)", "diff": note}, {"subject": "R10-Z (#4)", "diff": code},
+        {"subject": "R10-W (#5)", "diff": code}], G4)
+    expect("cadence: production groups since the tag, once each; comment-only and "
+           "instrument groups do not count", got == ["R10-X", "R10-Z"], str(got))
+
+    # 5. evidence liveness (carries 0, 3)
+    wip = [fx("W", stage="in-progress"), fx("O")]
+    nev = mk(wip, evidence={"refs": set(), "prs": []})
+    lev = mk(wip, evidence={"refs": {"handoff/w"}, "prs": []})
+    expect("evidence: an in-progress group with no ref is pending",
+           nev["groups"]["W"]["live"] is False and nev["generated"]["demoted_live"] == ["W"],
+           str(nev["groups"]["W"]))
+    expect("evidence (null): with a handoff ref it is live",
+           lev["groups"]["W"]["live"] is True and lev["generated"]["demoted_live"] == [],
+           str(lev["groups"]["W"]))
+    def strip_g(p):
+        q = json.loads(json.dumps(p))
+        q["generated"].pop("liveness"), q["generated"].pop("demoted_live")
+        return json.dumps(q, sort_keys=True)
+    expect("evidence (null): no-evidence reproduces the stage-word plan byte-for-byte",
+           strip_g(mk(wip)) == strip_g(lev) and mk(wip) == mk(wip, evidence=None), "plans differ")
+    one = dict(caps, slots=1)
+    held = [fx("H", "L", stage="carries-open", carry=["c"] * 3), fx("F", "XL")]
+    hp = mk(held, caps_=one, evidence={"refs": set(), "prs": [{"headRefName": "fixer/h"}]})
+    hn = mk(held, caps_=one, evidence={"refs": set(), "prs": []})
+    expect("evidence: a carries-open group with an open PR starts at t=0 as live",
+           hp["groups"]["H"]["start"] == iso(start, 0) and hp["groups"]["H"]["live"] is True,
+           str(hp["groups"]["H"]))
+    expect("evidence (null): the same group with no PR waits behind the full slot",
+           hn["groups"]["H"]["live"] is False, str(hn["groups"]["H"]))
+    pr_ = mk([fx("N", "M")], evidence={"refs": set(), "prs": [{"headRefName": "fixer/n"}]})
+    expect("evidence: an open PR credits the live fraction (0.7 x 4 h)",
+           pr_["groups"]["N"]["duration_minutes"] == 168, str(pr_["groups"]["N"]))
+    ds = mk([fx("F", "XL"), fx("D", "M")], caps_=one,
+            evidence={"refs": {"design/d"}, "prs": []})
+    expect("evidence: a design-only group starts at t=0 at its full duration, no credit",
+           ds["groups"]["D"]["start"] == iso(start, 0) and ds["groups"]["D"]["live"] is False
+           and ds["groups"]["D"]["duration_minutes"] == 240
+           and ds["groups"]["D"].get("design_only") is True, str(ds["groups"]["D"]))
+
+    # 6. the binding chain beside the critical path
+    bind = mk([fx("C", "L"), fx("BA"), fx("BB", after=["BA"])], caps_=one)
+    bw = mk([fx("C", "L"), fx("BA"), fx("BB", after=["BA"])])
+    expect("binding: the slot-delayed predecessor is a link, with the critical-path slack",
+           bind["critical_path"] == ["C"] and bind["binding"]["chain"] == ["BA", "BB"]
+           and bind["groups"]["BA"]["start"] > iso(start, 0)
+           and bind["binding"]["critical_path_slack_hours"] > 0
+           and "uncalibrated" in bind["binding"]["slot_sensitivity"], str(bind["binding"]))
+    expect("binding (null): with a slot for each the chain is the critical path",
+           bw["binding"]["chain"] == bw["critical_path"], str(bw["binding"]))
+
+    # 7. inflow
+    infl = [fx("A"), fx("B", after=["A"])]
+    i0 = mk(infl, dur=dict(durations, inflow_groups_per_hour=0))
+    expect("inflow: 0 reproduces the plan byte-for-byte, no arrivals",
+           i0 == mk(infl) and "expected_arrivals" not in i0["summary"], "")
+    i4 = mk(infl, dur=dict(durations, inflow_groups_per_hour=0.4))
+    want = round(0.4 * i4["summary"]["wall_hours"], 2)
+    expect("inflow: above 0 adds expected_arrivals and changes nothing scheduled",
+           abs(i4["summary"]["expected_arrivals"]["groups"] - want) <= 0.01
+           and sched(i4) == sched(mk(infl)), str(i4["summary"].get("expected_arrivals")))
+
+    # 8. --measure-sizes: first PR commit to last merge, per size, in a window
+    def pr(g, size, hours, parts=1, end="2026-10-20T00:00:00Z"):
+        last = dt.datetime.strptime(end[:19], "%Y-%m-%dT%H:%M:%S")
+        first = last - dt.timedelta(hours=hours)
+        f = lambda d: d.strftime("%Y-%m-%dT%H:%M:%SZ")
+        if parts == 1:
+            return [{"group": g, "size": size, "first_commit": f(first), "merged": f(last)}]
+        mid = first + dt.timedelta(hours=hours / 2)
+        return [{"group": g, "size": size, "first_commit": f(first), "merged": f(mid)},
+                {"group": g, "size": size, "first_commit": f(mid - dt.timedelta(hours=1)),
+                 "merged": f(last)}]
+    rows = []
+    for size, vals in (("S", (9, 10, 12, 13.1, 20)), ("M", (5, 8, 9, 11.4, 30)),
+                       ("L", (10, 15, 18, 20.1, 40))):
+        for i, v in enumerate(vals):
+            rows += pr(f"{size}{i}", size, v, parts=2 if i == 3 else 1)
+    rows += pr("OLD", "S", 99, end="2026-09-01T00:00:00Z")
+    win = ("2026-10-12T00:00:00Z", "2026-11-01T00:00:00Z")
+    expect("measure-sizes (null): a fixture window re-derives S 13.1, M 11.4, L 20.1",
+           measure_sizes_hours(rows, *win) == {"S": 13.1, "M": 11.4, "L": 20.1},
+           str(measure_sizes_hours(rows, *win)))
+    expect("measure-sizes: a window that holds nothing measures nothing",
+           measure_sizes_hours(rows, "2027-01-01T00:00:00Z", "2027-02-01T00:00:00Z") == {}, "")
+
     gate = gate_minutes(durations)
     want_gate = 50.0 + 22.0 + 27.0 * (1.0 + 0.04)
     expect("the gate price includes the cancelled-leg rerun",
@@ -2019,8 +2241,60 @@ def selftest() -> int:
              _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
              _m('sav = (-savings[n] if n in savings ', 'else float("inf"))'), "sav = (0.0)"),
             ("cp-first-in-tier",
-             _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
-             _m("(t, 0 if n in crit ", "else 1, sav,"), "(t, 0, sav,"),
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m("n = pick(sorted(x for x in ready ", "if x in crit), t)"),
+             "n = pick(sorted(x for x in ready if False), t)"),
+            ("overflow-exempt",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "exempt.add(n)", "pass"),
+            ("absorbed-done",
+             _m("DONE_STAGES ", '= ("done", "rca-done", "absorbed")'),
+             '"rca-done", "absorbed")', '"rca-done")'),
+            ("absorbed-advisory",
+             _m("def absorbers(G: ", "dict) -> dict:"),
+             _m('out[n] = (into, None if into else', ''), 'out[n] = (into, None if True else'),
+            ("post-closure-excluded",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "open_ = open_all - post", "open_ = open_all"),
+            ("post-closure-after-stamp",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             'max([stamps[-1]["at"]] + [', "max([0] + ["),
+            ("stamp-credit-groups",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "dict.fromkeys(since_tag or [])", "(since_tag or [])"),
+            ("comment-only-diff",
+             _m("def substantive(diff: ", "str) -> bool:"),
+             'not body.startswith("#")', "True"),
+            ("since-tag-once",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "return list(out)", "return [n for n in out] + list(out)"),
+            ("evidence-design-uncredited",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "live = (live - demoted) | ev_live\n", "live = (live - demoted) | ev_live | ev_design\n"),
+            ("evidence-demotes",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "demoted = {n for n in live if topic_evidence", "demoted = {n for n in set() if topic_evidence"),
+            ("evidence-pr-live",
+             _m("def topic_evidence(group: ", "dict, evidence: dict) -> str | None:"),
+             'return "pr"', 'return "work"'),
+            ("binding-start",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "node = max(merged_t, key=", "node = min(merged_t, key="),
+            ("binding-slack",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "closure / 60.0 - cp_hours", "0.0"),
+            ("inflow-zero",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "if inflow > 0:", "if inflow >= 0:"),
+            ("inflow-rate",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             "n_exp = inflow * closure / 60.0", "n_exp = 1.0"),
+            ("measure-last-merge",
+             _m("def measure_sizes_hours(rows: ", "list, since: str, until: str,"),
+             "max(b, when(r", "min(b, when(r"),
+            ("measure-window",
+             _m("def measure_sizes_hours(rows: ", "list, since: str, until: str,"),
+             "if lo <= last <= hi:", "if True:"),
             ("height-tiebreak",
              _m("def dispatch_key(n: str, ", "tier: dict, crit: set,"),
              _m("sav, -height[n], ", "-dur_min[n], n)"), "sav, n)"),
@@ -2275,6 +2549,18 @@ def parse_args(argv=None):
     p.add_argument("--sizes-csv", default=None, help="--measure-sizes: write the raw rows here")
     p.add_argument("--prs-cache", default=None, help="--measure-sizes: read or write the fetch")
     p.add_argument("--out-durations", default=None)
+    p.add_argument("--sizes-input", default=None,
+                   help="--measure-sizes: a saved JSON list of pull-request rows "
+                        "(group, size, first_commit, merged) measured offline")
+    p.add_argument("--sizes-since", default="2026-10-12T00:00:00Z")
+    p.add_argument("--sizes-until", default="2999-01-01T00:00:00Z")
+    p.add_argument("--live-refs", default=None,
+                   help="a saved `git ls-remote --heads` listing: liveness by evidence")
+    p.add_argument("--in-flight", default=None,
+                   help="JSON list of open pull requests (number, headRefOid, headRefName, isDraft)")
+    p.add_argument("--since-tag", action="store_true",
+                   help="credit the stamp cadence with production groups merged since the last tag "
+                        "(comment-only diffs ignored)")
     p.add_argument("--repo-owner", default="tvofi/heatpump_optimizer")
     p.add_argument("--merges", type=int, default=30)
     p.add_argument("--slots", type=int, default=None,
@@ -2294,6 +2580,17 @@ def main(argv=None) -> int:
 
     here = Path(__file__).resolve().parent
     durations_path = Path(args.durations) if args.durations else here / "durations.json"
+
+    if args.measure_sizes and args.sizes_input:
+        rows = json.loads(Path(args.sizes_input).read_text(encoding="utf-8"))
+        got = measure_sizes_hours(rows, args.sizes_since, args.sizes_until)
+        print(f"measured sizes {got}")
+        if args.out_durations:
+            target = Path(args.out_durations)
+            old = json.loads(target.read_text(encoding="utf-8")) if target.is_file() else {}
+            target.write_text(json.dumps({**old, "sizes_hours": got}, indent=1, sort_keys=True)
+                              + "\n", encoding="utf-8")
+        return 0
 
     if args.measure_sizes:
         sys.path.insert(0, str(Path(__file__).resolve().parent))
@@ -2365,8 +2662,18 @@ def main(argv=None) -> int:
         round_n = roster_lib.roster_round(src)
     except roster_lib.RosterNotFound as exc:
         raise PlanError(f"no round for the round-close stamp: {exc}") from exc
+    evidence = None
+    if args.live_refs or args.in_flight:
+        evidence = {
+            "refs": (parse_live_refs(Path(args.live_refs).read_text(encoding="utf-8"))
+                     if args.live_refs else set()),
+            "prs": (json.loads(Path(args.in_flight).read_text(encoding="utf-8"))
+                    if args.in_flight else []),
+        }
+    since_tag = (production_groups_since(git_commits_since_tag(args.repo), groups_of(roster))
+                 if args.since_tag else None)
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n)
+                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
@@ -2393,6 +2700,19 @@ def print_waves(plan: dict) -> None:
           f"| inherited coordinator {len(ic.get('groups') or [])}/{ic.get('cap')} "
           f"({len(g.get('inherited_dependency_violations') or [])} inherited "
           f"dependency inversion(s))")
+    for n, a in (plan.get("absorbed") or {}).items():
+        print(f"absorbed: {n} -> {a['into'] or '?'}" + (f"  {a['advisory']}" if a["advisory"] else ""))
+    if s.get("post_closure"):
+        print(f"post-closure (after the round-close stamp, in no stamp): "
+              f"{', '.join(s['post_closure'])} until {s['post_closure_finish']}")
+    b = plan.get("binding") or {}
+    print(f"binding chain: {' -> '.join(b.get('chain') or [])} | critical path "
+          f"{b.get('critical_path_hours')} h, slack {b.get('critical_path_slack_hours')} h | "
+          f"slot sensitivity {b.get('slot_sensitivity')}")
+    print(f"production groups since the last tag: {s.get('production_since_tag', 0)}")
+    if s.get("expected_arrivals"):
+        print(f"expected arrivals: {s['expected_arrivals']['groups']} groups, "
+              f"{s['expected_arrivals']['work_hours']} work-hours")
 
 
 if __name__ == "__main__":
