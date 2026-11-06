@@ -1,0 +1,6 @@
+R3a_newest_is_oldest: rc=1 fails=0 [] | ledger self-test: 91 checks, 2 failed
+R3b_any_merge_line_prior: rc=1 fails=0 [] | ledger self-test: 91 checks, 1 failed
+R3c_drop_newest_exclusion: rc=1 fails=0 [] | ledger self-test: 91 checks, 1 failed
+R3d_exclude_only_blocked: rc=0 fails=0 [] | ledger self-test: 91 checks, 0 failed
+R3e_no_recarry_short_circuit: rc=1 fails=0 [] | ledger self-test: 91 checks, 5 failed
+null (restored): 0 ledger self-test: 91 checks, 0 failed

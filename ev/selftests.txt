@@ -1,0 +1,18 @@
+== wt-base dc0a170b6
+ledger rc=0 ledger self-test: 77 checks, 0 failed
+orchestrator_tick rc=0 orchestrator_tick self-test: 272 checks, 0 failed
+owed_unactioned rc=0 owed_unactioned self-test: 46 checks, 0 failed
+beat_jobs rc=0 beat_jobs self-test: 107 checks, 0 failed
+r10_ledger_mutants rc=0 r10_ledger_mutants self-test: 135 checks, 0 failed
+== wt-head de1a371e2
+ledger rc=0 ledger self-test: 91 checks, 0 failed
+orchestrator_tick rc=0 orchestrator_tick self-test: 275 checks, 0 failed
+owed_unactioned rc=0 owed_unactioned self-test: 47 checks, 0 failed
+beat_jobs rc=0 beat_jobs self-test: 107 checks, 0 failed
+r10_ledger_mutants rc=0 r10_ledger_mutants self-test: 180 checks, 0 failed
+== wt-main b36679cea
+ledger rc=0 ledger self-test: 77 checks, 0 failed
+orchestrator_tick rc=0 orchestrator_tick self-test: 272 checks, 0 failed
+owed_unactioned rc=0 owed_unactioned self-test: 46 checks, 0 failed
+beat_jobs rc=0 beat_jobs self-test: 107 checks, 0 failed
+r10_ledger_mutants rc=0 r10_ledger_mutants self-test: 135 checks, 0 failed
