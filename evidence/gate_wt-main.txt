@@ -1,0 +1,18 @@
+== wt-main b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no changed files could be determined
+select rc=0
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+structure rc=0
+
+ALL 2637 ENTITY CHECKS PASSED
+entities rc=0
+
+ALL 162 DEBUG COLLECT CHECKS PASSED
+debug_collect rc=0
+
+ALL 296 checks PASSED
+doc_claims rc=0

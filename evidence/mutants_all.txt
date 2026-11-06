@@ -13,8 +13,10 @@ RESULT mutant=L4_added_lines_unchecked rc=1 fails=7
     FAIL null control: a tip committed after its topic's merge stays owed
     FAIL the code ref's topic carries the opener attempt at that tip
     FAIL level CLI: owed lines on stdout, rc 1, the counts on stderr
-RESULT mutant=L5_no_ancestry_close rc=1 fails=1
+RESULT mutant=L5_no_ancestry_close rc=1 fails=3
     FAIL landed: a tip inside main reads ancestor, not merges-only
+    FAIL a TERMed opener records started then unopened on its handoff ref
+    FAIL null control: an opener that ends records opened,PR=<n>
 RESULT mutant=L6_no_content_close rc=1 fails=4
     FAIL landed: the re-applied hunk is content (reverse-apply cannot: forward applies too)
     FAIL the level owes the uncovered topic once, at its code ref, and the body-only ref
@@ -157,8 +159,9 @@ RESULT mutant=C7_beat_family_no_record rc=1 fails=1
     FAIL every family literal is one the board's printers print
 RESULT mutant=C8_owed_family_no_record rc=1 fails=1
     FAIL RECORD-OWED: keyed #3235 on its head12, unactioned on the second sweep as its minutes grow
-RESULT mutant=C9_blocked_prior_carries rc=1 fails=1
+RESULT mutant=C9_blocked_prior_carries rc=1 fails=2
     FAIL null control: a blocked verdict's head is no prior, whatever its class
+    FAIL a blocked verdict's head in the dispatch record is no prior
 RESULT mutant=C10_record_owed_unkeyed rc=1 fails=1
     FAIL RECORD-OWED: keyed #3235 on its head12, unactioned on the second sweep as its minutes grow
 RESULT mutant=C11_recarry_no_ancestor rc=1 fails=1
@@ -170,5 +173,7 @@ RESULT mutant=C13_record_owed_unapproved rc=1 fails=1
     FAIL an approved record PR open 31 or exactly 30 minutes opens an entry; 29, unapproved, off-branch and draft do not
 RESULT mutant=C14_dispatched_not_prior rc=1 fails=1
     FAIL a dispatched head is a prior too
-plants: 62, without a FAIL line: none
+RESULT mutant=C15_blocked_dispatched_prior rc=1 fails=1
+    FAIL a blocked verdict's head in the dispatch record is no prior
+plants: 63, without a FAIL line: none
 rc=0
