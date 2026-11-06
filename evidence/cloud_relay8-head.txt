@@ -1,0 +1,2 @@
+== cloud_relay-8 cloud_relay.sh: KILLED rc=1 | ledger: dispose wrote to /tmp/cloud_relay_st.wbqsEw, not the default home; the tick reads /tmp/cloud_relay_st.wbqsEw/state
+RESULT survivors=0
