@@ -163,15 +163,15 @@ PLANTS = {
     "K6": ('    if kind == "dismissed" and not arg:\n', "    if False:  # K6\n"),
     "K7": ('["stage"] = _closing(g, stage, legacy, "set-stage")\n',
            '["stage"] = stage  # K7\n'),
-    "K8": ("                    legacy = roster_lib.read_legacy(a.worktree, rel)\n",
-           "                    legacy = {}  # K8\n"),
+    "K8": ("                legacy = roster_lib.read_legacy(a.worktree, rel)\n",
+           "                legacy = {}  # K8\n"),
     "K9": ('        value = _closing(g, value, legacy, "set-resume")\n',
            "        pass  # K9\n"),
     "K10": ("        if stage in roster_lib.CARRY_CLOSED:\n",
             "        if False:  # K10\n"),
     "K11": ('    if "]" in arg:\n', "    if False:  # K11\n"),
     "K12": ('raise Refuse(f"the carry cut-over is unreadable, so no "\n'
-            '                                 f"stage is written: {e}")',
+            '                             f"stage is written: {e}")',
             "legacy = {}  # K12"),
     "L1": (LIB, "            if carry_mark(c) is None and c not in held]\n",
            "            if c not in held]  # L1\n"),
@@ -211,8 +211,8 @@ PLANTS = {
            '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
     "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
            "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
-    "H2": ('            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
-           '            if a.op == "set-stage":  # H2\n'),
+    "H2": ('        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):\n',
+           '        if a.op == "set-stage":  # H2\n'),
 }
 
 
