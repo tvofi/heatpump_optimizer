@@ -587,6 +587,8 @@ const SHARED_GRAMMARS = {
   "[0-9a-f]{40}": "not-a-concept:the full commit-SHA shape, policy_lint.mjs's head check and ci_probe.py's probe-push guard",
   "DERIVED=\\$\\(.*?\\)": "identical:coverage_tree.sh's DERIVED line extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
   "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
+  // R10-HOTFIX-SAV-ESTIMATE: the blueprint's receipt reuses the card's wood note.
+  '"savings\\.wood_note": "([^"]+)"': "identical:the card's en savings.wood_note extractor, entities.py's blueprint receipt pin and the render harness r10_sav_receipt_render.py",
 }
 
 const isGovernanceCode = (f) => /\.(py|mjs|js|cjs)$/.test(f)
