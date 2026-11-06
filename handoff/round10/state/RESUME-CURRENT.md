@@ -64,7 +64,6 @@ Open groups whose after-edges are all done (or absent); wave-ordered:
 - R10-PLANTED-DEFECT-AUDIT (wave 1, 0 satisfied edge(s))
 - R10-POLICY-ROLE-PACK (wave 1, 2 satisfied edge(s))
 - R10-PR-CONTRACT-OUTSIDE (wave 1, 0 satisfied edge(s))
-- R10-PREPR-CAP (wave 1, 0 satisfied edge(s))
 - R10-PROCESS-SLIM (wave 1, 1 satisfied edge(s))
 - R10-RAISE-GATE-SHIM (wave 1, 0 satisfied edge(s))
 - R10-RCA-PROCESS-WORKER-HANG (wave 1, 0 satisfied edge(s))
