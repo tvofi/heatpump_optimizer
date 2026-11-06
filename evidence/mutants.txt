@@ -1,0 +1,13 @@
+RESULT M1 drop ancestor test: KILLED rc=1 ['  FAIL null control: a prior that is no ancestor of the head carries nothing']
+RESULT M2 any single-parent commit carries (drop row-only arm): KILLED rc=1 ['  FAIL a head plus its row and another file prints REVIEW OWED (null)', '  FAIL a code commit on top of a main merge prints REVIEW OWED (null)']
+RESULT M3 drop conflict-resolution check: SURVIVED rc=0 []
+RESULT M4 drop second-parent-in-main check: SURVIVED rc=0 []
+RESULT M5 record_owed boundary >= to >: SURVIVED rc=0 []
+RESULT M6 record_owed ignores approval: KILLED rc=1 ['  FAIL an approved record PR open 31 minutes opens an entry; 29, unapproved, off-branch and draft do not']
+RESULT M7 call site drops recarry: SURVIVED rc=0 []
+RESULT M8 call site flags CARRY lines: SURVIVED rc=0 []
+RESULT M9 call site drops record_owed: SURVIVED rc=0 []
+RESULT M10 beat_jobs FAMILY drops RECORD-OWED: SURVIVED rc=0 []
+RESULT M11 owed_unactioned FAMILY drops RECORD-OWED: SURVIVED rc=0 []
+RESULT M12 recarry for dispatched only by verdict (drop dispatched priors): KILLED rc=1 ['  FAIL a dispatched head is a prior too']
+worktree clean after restore: True
