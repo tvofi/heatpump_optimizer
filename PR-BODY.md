@@ -58,7 +58,7 @@ The raises against main are the synthetic loop 0.1278 to 0.1527 and ref24's 3.63
 
 ## Head
 
-648309ec2a744506f6ac495f8ab6ff8eedabdcaa
+130769e1db383e4c6e98b01c4a90b31173693cb7
 
 ## Mutation proof
 
@@ -105,7 +105,8 @@ The `--ruler` and `--clean-from` runs above are the instrument's own null: the s
 - Class seams (fixer step 8). The rule is "every CI draw graded on a budget its population holds", enumerated by `control:cycle_cost:draws` over all 116 jobs, each clean run and each doubled arm. At round 2's head it returns 2 seams, 127046649273 (border) and 127310664875 (loop ruler), and at this head none (`offenders []`). Both seams are closed in this diff; its null names both moved jobs.
 - `tests / nightly-status` cause: `PYTHONPATH=tests/hastub python3 tools/audit/seat/replay_draws.py grade --job 126971378040`. This is the 2026-11-05 nightly `slow` job, refused on main as unbanded ref_ms 40.1 and owner `loop_cpu_ratio 0.1232: budget 0.249 cannot see a 2x cycle`. Here it reads ref40 and owner, clean passes, every arm is refused, rc=0.
 - Local lane: `PYTHONPATH=tests/hastub python3 tests/replay.py` on this box prints `ALL 197 replay checks PASSED`, rc=0, at job ruler 28.82 (class ref28).
-- Structure: `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir D` prints `MODE: SCOPED -- 3 script(s) run, 30 scoped out.` (debug_collect.py, entities.py, features.py), against origin/main 7e8939d38 (fetched 2026-11-06). With `PYTHONPATH=tests/hastub`: `python3 tests/debug_collect.py` prints `ALL 162 DEBUG COLLECT CHECKS PASSED`; `python3 tests/entities.py` prints `ALL 2635 ENTITY CHECKS PASSED`; `python3 tests/features.py` prints `ALL 4876 FEATURE CHECKS PASSED`; `python3 tests/env_drift.py --claims-only` at the merge base prints `claims hygiene: ... ok`; `python3 tests/closure.py selftest` prints `ALL 118 closure shrink pins PASSED`.
+
 - Toolchain: `bash tools/audit/seat/cloud-setup.sh --check` prints `cloud-setup check: OK`.
 
 ## Red checks
