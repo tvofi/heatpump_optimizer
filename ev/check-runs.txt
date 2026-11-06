@@ -1,0 +1,7 @@
+get_check_runs PR 3240 head 79cf40f4751210c7868d8178b87dc97a69fa28ae, read ~14:22Z: total_count 68, all status=completed; conclusions: success or skipped only (0 failure, 0 cancelled, 0 timed_out, 0 action_required).
+gate jobs:
+  127880611389 run 42210933658 success 12:00:29Z-12:00:58Z
+  127938952647 run 42210933789 success 14:12:35Z-14:13:09Z  (rerun of the early-judged 127869785809)
+  127939980463 run 42211895323 success 14:13:34Z-14:14:03Z
+budget-raise-gate: 127869257696, 127938952607, 127939981525 all success
+pr-contract / pr-contract 127880355785 success
