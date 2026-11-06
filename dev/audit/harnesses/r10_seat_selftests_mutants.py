@@ -589,8 +589,9 @@ MUTANTS = [
     ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
     # #3245's countermeasure: the STEP REPLAY arm selects, and its base control excuses only a shared red.
     ("ci_predict-3", "tools/pr/ci_predict.py",
-     'hit = {n: r for n, r in head.items() if any(c in r for c in changed)}', 'hit = {}'),
+     'hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}', 'hit = {}'),
     ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
+    ("ci_predict-5", "tools/pr/ci_predict.py", '        if any(n in text for n in names):\n', '        if False:\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
