@@ -17442,6 +17442,43 @@
     "stage": "not-started"
    },
    "brief": "Owner ruling tvofi 2026-11-06: the nightly red does not block merges or stamps, but a fixer is owed. `tests / nightly-status` reads red on main and PRs with 'NIGHTLY FAILED: slow failed in the last verification dispatch'. Read the nightly lane's last report and .github/workflows/nightly.yml, find why the status grades main red (the slow lane failed in scheduled runs 41555367389, 41749544997, 41943946464 and dispatch 42235215315; later dispatches 42242870295, 42247578523 and schedule 42139479636 are green), fix the lane or the grading, and prove the red-to-green flip with a null control. Cite f-3245-nightly's (handoff/r10-process-slim) main-wide cause if its handoff holds one; do not duplicate it."
+  },
+  {
+   "group": "R10-RCA-PROCESS-WORKER-HANG",
+   "lane": "CP",
+   "kind": "rca",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "rca",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/r10-process-worker-hang.md",
+    "dev/audit/bugclasses.json"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Root cause (trigger 1: reached v7.1.2) of the process worker reply wait in coordinator.py _run_in_process: pickle.load with no deadline under _PROCESS_LOCK hung optimisation about 70 minutes on a live Raspberry Pi 4 and blocked HA shutdown (evidence: outside PR #3226 body; our fix is #3232, topic r10-ext-3226). Owed: the named cause incl. why the worker went silent if establishable, process state a-d with evidence (why no audit round found it: D1, D3, D9, D15; do #511 fallback tests cover only a dead worker, never an alive-but-silent one), a cost test with numbers, a countermeasure or recorded refusal (candidates: a check for blocking IPC reads with no deadline; a harness double that hangs). Runs beside #3232, never inside it."
   }
  ]
 }
