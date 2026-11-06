@@ -551,23 +551,14 @@ def self_test() -> int:
     check("busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is "
           "still deferred to", busy({**ctx, "run_id": lo}, late_waiting), [hi])
     # #3246 review: the same deferring gate (lo) beside a LATER edit run (hi) still
-    # in its prelude, the code run done. hi's prelude must not wait on lo's running
-    # gate while lo's gate waits on hi: a cycle only GATE_WAIT_MAX_S broke.
-    from prelude import wait_sources
-
-    def waited(f):
-        try:
-            return f()
-        except TimeoutError as e:
-            return f"UNBOUNDED: {e}"
-    get, naps, nap, now = scene([coded, run(lo, "edit", "in_progress", at_gate),
-                                 run(hi, "edit", "in_progress", in_prelude)], me=hi)
-    check("prelude/gate cycle: a later edit run's prelude does not wait on a deferring run whose gate runs",
-          (waited(lambda: wait_sources({**ectx, "run_id": hi}, get, nap, now)), naps), ("", []))
-    get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", in_prelude)],
-                                [coded, run(hi, "edit", "in_progress", owed("edit"))], me=lo, mine=deferred)
-    check("prelude/gate cycle: so the deferring gate waits on that prelude, bounded, and judges once its gate runs",
-          (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("PASS", [POLL_S]))
+    # in its prelude, the code run done. hi's prelude waits on lo (judging() reads
+    # a deferring run busy), so lo's gate must not wait on hi: it publishes at once.
+    for label, hi_jobs in (("still in its prelude", in_prelude),
+                           ("in its prelude, gate listed `waiting` (R3-2)",
+                            in_prelude + [{"name": "gate", "status": "waiting", "conclusion": None, "id": 9}])):
+        get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", hi_jobs)], me=lo, mine=deferred)
+        check(f"prelude/gate cycle: a deferring gate beside a later edit run {label} publishes at once",
+              (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("FAIL " + deferral([hi]), []))
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])
