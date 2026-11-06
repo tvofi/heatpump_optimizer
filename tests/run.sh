@@ -536,6 +536,9 @@ lane_units() {
   # merge aborted every sibling at the first shrink. Cheap, no recording.
   run_always "$PYTHON" tests/closure.py selftest
   run "$PYTHON" tests/features.py
+  # The solve worker's reply deadline and frame bound (#3232): its own
+  # script so CodeQL's extraction of features.py stays inside its job limit.
+  run "$PYTHON" tests/worker_timeout.py
   run "$PYTHON" tests/entities.py
   # The block-switch mutants, without features.py's solves (R9-SW-5). A
   # selectable script left out of every lane fails the gate twice: unwired
