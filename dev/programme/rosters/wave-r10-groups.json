@@ -16041,7 +16041,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From r10-ext-3226, body item 5831fe5b: The frame-read bound: `_read_reply` unpickles through `_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S)` (60 s), so a worker that stops mid-reply no longer holds the lock. No live roster group fits a process-worker transport fix (R10-LOOP-CPU is done); the only live group that owns `coordinator.py` is R10-CLONE-2238, so it is the nearest owner, and the destination file is `custom_components/heatpump_optimizer/coordinator.py` (checks and mutation pins in `tests/features.py`). Carry: R10-CLONE-2238 (items 5831fe5b)"
+    "From r10-ext-3226, body item 5831fe5b: The frame-read bound: `_read_reply` unpickles through `_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S)` (60 s), so a worker that stops mid-reply no longer holds the lock. No live roster group fits a process-worker transport fix (R10-LOOP-CPU is done); the only live group that owns `coordinator.py` is R10-CLONE-2238, so it is the nearest owner, and the destination file is `custom_components/heatpump_optimizer/coordinator.py` (checks and mutation pins in `tests/features.py`). Carry: R10-CLONE-2238 (items 5831fe5b)",
+    "From r10-ext-3226, body item 4233c20f: The diagnose-service translation: `handle_diagnose_interval` in `services.py` turns `ProcessWorkerUnavailable`, including `ProcessWorkerTimeout`, into `HomeAssistantError` with `translation_key=\"diagnose_interval_failed\"`. No live roster group lists `services.py` (R10-SERVICES-GUARD is done); destination file `custom_components/heatpump_optimizer/services.py`, with `strings.json`, `en.json` and `sv.json`, and R10-CLONE-2238 is named only because the audit needs a live group. Carry: R10-CLONE-2238 (items 4233c20f)"
    ],
    "architect_note": "",
    "resume": {
