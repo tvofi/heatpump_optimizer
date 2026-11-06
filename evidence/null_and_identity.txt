@@ -1,0 +1,20 @@
+== null control: private /home/<name> host still refused (head)
+homes ('/home/alice',)
+['home-directory', 'account-name', 'host-path']
+[]
+== cloud-setup: does the self-test make a commit and read its author?
+51:# The seat identity (P320): an author in the environment overrides `git config`,
+53:# (Claude <noreply@anthropic.com>) then cannot author a seat's commit. The values
+68:export GIT_AUTHOR_NAME="$SEAT_NAME" GIT_AUTHOR_EMAIL="$SEAT_EMAIL"
+80:    "GIT_AUTHOR_NAME=$SEAT_NAME" "GIT_AUTHOR_EMAIL=$SEAT_EMAIL" "GIT_COMMITTER_NAME=$SEAT_NAME" "GIT_COMMITTER_EMAIL=$SEAT_EMAIL" \
+149:  [ "$n" = 4 ]; expect "variables prints the four GIT_AUTHOR/COMMITTER exports" $?
+150:  out=$(run bash -c '. "$1"; echo "$GIT_AUTHOR_NAME $GIT_AUTHOR_EMAIL $GIT_COMMITTER_NAME $GIT_COMMITTER_EMAIL"' _ "$W/profile.sh")
+154:  run git -C "$W/r" commit -q --allow-empty -m x
+157:  expect "control: without the exports the config identity authors the commit" $?
+158:  run "${vars[@]}" git -C "$W/r" commit -q --allow-empty -m y  # never-empty: vars is the seven-line output of variables, asserted above
+161:  expect "a commit made under the exports is authored and committed as the seat even with a conflicting user.name in config" $?
+== live env commit under the sourced profile (this seat)
+GIT_COMMITTER_NAME=seat
+GIT_AUTHOR_EMAIL=seat@users.noreply.github.com
+GIT_COMMITTER_EMAIL=seat@users.noreply.github.com
+GIT_AUTHOR_NAME=seat

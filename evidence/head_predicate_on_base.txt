@@ -1,0 +1,4 @@
+-- head predicate on base lines HOME=/root
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 80 line(s) added since 4b7e1770ba81 judged, 0 refused
+-- head predicate on base lines HOME=/nonexistent
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 80 line(s) added since 4b7e1770ba81 judged, 0 refused
