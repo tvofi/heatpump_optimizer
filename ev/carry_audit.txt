@@ -1,0 +1,3 @@
+NOTE stale tree: 9fe148a8339b43f607052b1a6c22c55ada526e03 lacks origin/main 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6; roster read at origin/main
+NOTE review 0 item 17757b3a: dismissed:wording of the PR's own body, no figure false for the range it cites; the orchestrator's body script can refresh it at merge (R10-TRIAGE-S6 is done, so it is no target)
+CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
