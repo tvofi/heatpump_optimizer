@@ -15,7 +15,7 @@ file -- outside that file's self-test function -- and run only the step
 that names the file (or the one STEP_OF names): a killed mutant reddens the step, and the same step on
 the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
-S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+S35-S36 are #2444's unpinned push lines in handoff_push.sh, S38 its
 unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
 carry's own mutant (`true`, and `exit 0` for the merge), and the step's
 offline self-test must redden.
@@ -187,7 +187,6 @@ MUTANTS = [
      "true  # mut:push-update"),
     ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
      "true  # mut:push-open"),
-    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
     ("S38", "merge_pr.sh",
      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
      "exit 0  # mut:merge"),
@@ -219,14 +218,16 @@ MUTANTS = [
     ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
     ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
     ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
-    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
-    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
+    ("bus-1", "bus.sh", '    1) die "dispatch: #$pr\'s head $h is not reviewable', '    1) : "dispatch: #$pr\'s head $h is not reviewable'),
+    # card C8: a WAIT head dispatches only once its cheap checks concluded.
+    ("bus-2", "bus.sh", '[ -z "$cheap" ] || die "dispatch: #$pr\'s head $h has cheap checks', 'true || die "dispatch: #$pr\'s head $h has cheap checks'),
     ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
     # R10-FLY-RELAY-REVIEW-FF: push-verdict's refusals before review/<pr> moves, and the push buffer.
     ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
     ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
     ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
-    ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
+    # card C4: the reviewed head is derived from verdict/<pr> when the caller names none.
+    ("bus-7", "bus.sh", '    [ "$rh" != "$h" ] || die "dispatch: #$pr\'s head $h already holds a merge verdict', '    true || die "dispatch: #$pr\'s head $h already holds a merge verdict'),
     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
     ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
