@@ -62,9 +62,12 @@ has a floor and no cap; `dhw_planner.py`'s `linprog(..., method="highs")`
 passes no `time_limit`. Round 9 demonstrated one route to an unbounded solve
 (D1-s2-02: one forecast row at wind 1e12 m/s ran a solve past 60 s against
 3.45 s healthy). Its fix bounds the forecast rows (`_FORECAST_FIELD_RANGE`,
-wind 0-100 m/s, before v7.1.2); the lead that would bound the substep count
-whatever the input (`dev/audit/rounds/round9/leads.json`, symbol
-`ThermalModel._stability_substeps`, owner D1-s4) was not built.
+wind 0-100 m/s, before v7.1.2). Round 9's `leads.json` lists
+`ThermalModel._stability_substeps` as raised by D1-s2 and "closed by D1-s2-02
+(runaway wind-driven substeps)": the record treats it as covered by
+`_FORECAST_FIELD_RANGE`, not as an open lead. The substep count itself stays
+uncapped (`max(1, ...)`, no upper bound), so a non-physical input that passes
+the forecast bound could lengthen the solve; that is not measured here.
 
 **Unknowable from the evidence:** which job ran (solve, diagnosis, sysid,
 recovery, sensor advisor), on which inputs, and why it did not finish. The
@@ -208,10 +211,11 @@ healthy reply.
    #3232 merges, as a `tests/entities.py` arm over `--scan`'s sites with a
    reasoned registry keyed on (file, function, call). Otherwise, record the
    refusal.
-2. **The substep cap lead** (round 9 leads.json, D1-s4): it bounds a runaway
-   solve whatever the input. It is the remaining code-side candidate for why
-   the worker computed for about 55 minutes. It is a D1/D2 finding for round
-   11, not this seat's.
+2. **An unmeasured candidate this seat did not carry**: the uncapped
+   `_stability_substeps` count (round 9 `leads.json`: raised by D1-s2, closed
+   by D1-s2-02 as covered by `_FORECAST_FIELD_RANGE`). No run here shows an
+   input inside the forecast bound that makes the count long enough to
+   matter, so it is recorded as a candidate and assigned to no stage.
 
 ## Figures
 

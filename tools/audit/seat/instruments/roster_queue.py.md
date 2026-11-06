@@ -10,3 +10,8 @@
   to replay a range. Refusal: a refused op is reported as `refused rc=N`, never
   forced; `append-carry @file` reports FAILED when the read-back cannot find the
   text. `--self-test` drives it offline over a stub editor and a scratch repo.
+  The editor is `--editor` or the `roster_edit.py` beside the script, one file for
+  `run` and `run --batch` (`resolve_editor`); the runner sets `HPO_ROSTER_LANE` in
+  the editor's environment, which `roster_edit.py` requires for its structural ops.
+  `show [GROUP] [--ref R] [--stage S]` and `diff REF_A REF_B` read the roster at a
+  ref with `git show` and write nothing (`diff` exits 1 when the refs differ).
