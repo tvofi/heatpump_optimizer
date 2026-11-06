@@ -1119,16 +1119,7 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                  "nothing of this edit reached origin")
 
 
-def main(argv=None) -> int:
-    if argv is None:
-        argv = sys.argv[1:]
-    if "--self-test" in argv:
-        # Every git call in the self-test, the runner's and the ops' under
-        # test, runs in a throwaway repository: all of them take the env.
-        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
-        from throwaway_git import throwaway_git_environ
-        with throwaway_git_environ():
-            return _self_test()
+def build_parser():
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                   "edit-brief", "append-carry", "set-resume",
@@ -1174,6 +1165,13 @@ def main(argv=None) -> int:
     p.add_argument("--issue-state",
                    help="JSON object issue -> open|closed: the states the done "
                         "hold reads instead of gh (no network)")
+    return p
+
+
+def parse_op(argv):
+    """The parsed `argv` of one op: (args, value, rest). The one
+    grammar `main` and a batch (roster_queue.py run --batch) share."""
+    p = build_parser()
     a = p.parse_intermixed_args(argv)
     rest = list(a.rest)
     if a.op == "mark-carry" and a.match is not None and a.value is not None:
@@ -1217,6 +1215,60 @@ def main(argv=None) -> int:
         p.error(f"{a.op} --field is one of {', '.join(WIRE_FIELDS)}")
     if a.op not in ("set-resume", "wire-issue", "unwire-issue") and a.field:
         p.error("--field is a set-resume / wire-issue / unwire-issue flag")
+    return a, value, rest
+
+
+def make_edit(a, value, rest):
+    """The `edit(roster, rel)` callback of one parsed op, for write_roster."""
+    def edit(roster, rel) -> bool:
+        sizes = ()
+        if a.op == "append-group":
+            # The size vocabulary comes from the tree the roster lands in,
+            # not from this tool's: an XS appended while durations.json
+            # lacked it is the second half of this class.
+            try:
+                sizes = roster_lib.sizes(
+                    roster_lib.read_durations(a.worktree))
+            except roster_lib.SchemaError as e:
+                raise Refuse(str(e))
+        if a.op in ("set-size", "set-files"):
+            apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
+            return True
+        legacy = None
+        if a.op in ("set-stage", "set-resume"):
+            try:
+                legacy = roster_lib.read_legacy(a.worktree, rel)
+            except roster_lib.RosterNotFound as e:
+                raise Refuse(f"the carry cut-over is unreadable, so no "
+                             f"stage is written: {e}")
+        apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
+                 rel, sizes, legacy, rest, a.into, a.reason)
+        if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
+            try:
+                held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
+                    roster.get("repo") or carry_audit.REPO, a.issue_state))
+            except (ValueError, SystemExit) as e:  # carry_audit's refusals
+                raise Refuse(f"the done hold cannot read issue state: {e}")
+            if held:
+                print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
+                      f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
+                      "live owner; wire each to its next owner or close it, then "
+                      "set the stage again", file=sys.stderr)
+        return True
+    return edit
+
+
+def main(argv=None) -> int:
+    if argv is None:
+        argv = sys.argv[1:]
+    if "--self-test" in argv:
+        # Every git call in the self-test, the runner's and the ops' under
+        # test, runs in a throwaway repository: all of them take the env.
+        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
+        from throwaway_git import throwaway_git_environ
+        with throwaway_git_environ():
+            return _self_test()
+    a, value, rest = parse_op(argv)
     try:
         fetch_origin(a.checkout)
         ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
@@ -1225,41 +1277,7 @@ def main(argv=None) -> int:
         why = ref_privacy.refusal(branch, (("the message", msg),))
         if why:
             raise Refuse(f"{why} would publish this host (#2310); nothing written")
-        def edit(roster, rel) -> bool:
-            sizes = ()
-            if a.op == "append-group":
-                # The size vocabulary comes from the tree the roster lands in,
-                # not from this tool's: an XS appended while durations.json
-                # lacked it is the second half of this class.
-                try:
-                    sizes = roster_lib.sizes(
-                        roster_lib.read_durations(a.worktree))
-                except roster_lib.SchemaError as e:
-                    raise Refuse(str(e))
-            if a.op in ("set-size", "set-files"):
-                apply_files_op(roster, a, value, rel, a.checkout, a.worktree)
-                return True
-            legacy = None
-            if a.op in ("set-stage", "set-resume"):
-                try:
-                    legacy = roster_lib.read_legacy(a.worktree, rel)
-                except roster_lib.RosterNotFound as e:
-                    raise Refuse(f"the carry cut-over is unreadable, so no "
-                                 f"stage is written: {e}")
-            apply_op(roster, a.op, a.group, value, a.field, a.at_sha, a.match,
-                     rel, sizes, legacy, rest, a.into, a.reason)
-            if a.op == "set-stage" or (a.op == "set-resume" and a.field == "stage"):
-                try:
-                    held = hold_done(roster, a.group, a.worktree, carry_audit.issue_reader(
-                        roster.get("repo") or carry_audit.REPO, a.issue_state))
-                except (ValueError, SystemExit) as e:  # carry_audit's refusals
-                    raise Refuse(f"the done hold cannot read issue state: {e}")
-                if held:
-                    print(f"roster_edit: HELD {a.group} at {HOLD_STAGE}, not {value}: "
-                          f"it owns open {', '.join(f'#{n}' for n in held)} with no other "
-                          "live owner; wire each to its next owner or close it, then "
-                          "set the stage again", file=sys.stderr)
-            return True
+        edit = make_edit(a, value, rest)
         return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                             msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
     except Refuse as e:
