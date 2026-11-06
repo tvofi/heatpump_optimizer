@@ -54,9 +54,8 @@ At the PR head `99cf3c2537c0199d966aff7b1c5fd86bcc8f663c`, read across the one c
 
 ## Forward-carry
 
-Carries 6-9 are not in this diff and stay in `dev/programme/rosters/wave-r10-groups.json` on `R10-ROSTER-READ-SWEEP`'s own open roster entry. Carry: R10-ROSTER-READ-SWEEP
+`none`. Carries 6-9 are already on the open roster entry in `dev/programme/rosters/wave-r10-groups.json`; this round found nothing new that changes how a later stage works.
 
 ## Friction
 
 - brief-citations: stale: carry 2 asked for a review-time check that `carry_audit.Dests.live` already performed through `CARRY_CLOSED`; only the `absorbed_into` naming was missing. Carry: dismissed: landed in this PR
-- ci-autofix: unenforced: no check runs an instrument's plant anchors when a production file they name changes; two anchors stranded in one PR and only a reviewer found them. Carry: R10-ROSTER-READ-SWEEP
