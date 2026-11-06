@@ -1,0 +1,9 @@
+
+TOTAL: 0 error(s) across 1 file(s)
+
+STRUCTURE RATCHET PASSED
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:13825: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1057 line(s) added since dc0a170b6718 judged, 1 refused
+rc=0
+    python3 -I tools/audit/seat/ref_privacy.py --check [--ref <commit>]
+    python3 -I tools/audit/seat/ref_privacy.py --self-test
