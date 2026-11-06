@@ -1,0 +1,9 @@
+tools/audit/seat/roster_lib.py rc=0 :: roster_lib self-test: 64 checks, 0 failed
+tools/audit/carry_audit.py rc=0 :: carry_audit self-test: 365 checks, 0 failed
+tools/audit/seat/plan_table.py rc=0 :: plan_table self-test: 26 checks, 0 failed
+tools/audit/seat/resume_doc.py rc=0 :: resume_doc self-test: 15 checks, 0 failed
+tools/audit/seat/handover_prompt.py rc=0 :: handover_prompt self-test: 16 checks, 0 failed
+tools/audit/seat/orchestrator_tick.py rc=0 :: orchestrator_tick self-test: 275 checks, 0 failed
+tools/plan/replan.py rc=2 :: replan.py: error: unrecognized arguments: --selftest
+tools/audit/seat/roster_edit.py rc=0 :: roster_edit self-test: 191 checks, 0 failed
+tools/audit/seat/roster_sync.py rc=0 :: roster_sync self-test: 95 checks, 0 failed
