@@ -22,7 +22,6 @@ import json
 import re
 import subprocess
 import sys
-from pathlib import Path
 
 REPO = "tvofi/heatpump_optimizer"
 WORKFLOWS = ("Tests", "CI")        # the push runs of `Tests` end at the cut-over, `CI`'s begin
@@ -40,10 +39,23 @@ def selftest() -> int:
     return 0 if got == want else 1
 
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 def job_log(repo: str, job_id) -> "str | None":
     """merge_train.job_log, the one Actions job-log reader (gh's escape flag
     where gh knows it); None when unreadable."""
-    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tools" / "audit" / "seat"))
+    sys.path.insert(0, str(repo_root(__file__) / "tools" / "audit" / "seat"))
     import merge_train
     return merge_train.job_log(None, repo, job_id)
 

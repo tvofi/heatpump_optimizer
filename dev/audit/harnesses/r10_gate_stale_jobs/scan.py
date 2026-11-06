@@ -32,11 +32,23 @@ def api(path, *extra):
     return p.returncode, p.stdout if p.returncode == 0 else p.stdout + p.stderr
 
 
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
 def job_log(job_id) -> "str | None":
     """A job's log through merge_train.job_log, the one reader (gh's escape flag
     where gh knows it), each gh call counted by `api`; None when unreadable."""
-    from pathlib import Path
-    sys.path.insert(0, str(Path(__file__).resolve().parents[4] / "tools" / "audit" / "seat"))
+    sys.path.insert(0, str(repo_root(__file__) / "tools" / "audit" / "seat"))
     import merge_train
     return merge_train.job_log(lambda argv, **_k: api(argv[-1], *argv[2:-1]), R, job_id)
 
