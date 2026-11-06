@@ -41,7 +41,7 @@ The unmodified tree: at the merge base the same self-test has none of the fold-s
 
 ## Forward-carry
 
-The roster entry lists 39 carries (the round roster ref `origin/handoff/audit-r10-roster`; the count is a function of that ref, taken now). The nine this PR owns are answered first; the rest map onto them or are not touched.
+The roster entry lists 39 carries (the round roster ref `origin/handoff/audit-r10-roster`; the count is a function of that ref, taken now). The nine this PR owns are answered first; the rest map onto them or are not touched. Carry: dismissed: orientation only, each carry is answered below
 
 1. Card 7 (every body figure from a generated block; roster carries 2, 11, 17, 27, 37): re-measured, the preconditions are still absent (`tools/policy/figure_lint.mjs` executes none of a body's commands; no workflow edits a body on synchronize). Needs the owner's one-sentence ruling: may `pr-contract` run PR-authored figure commands. Not built; destination `tools/policy/figure_lint.mjs` and `.github/PULL_REQUEST_TEMPLATE.md` once ruled. Carry: R10-BODY-CONTRACT
 2. A1 (`rosterIssues()` default; roster carries 8, 12, 18, 28): built; the carry file for #1795 moved into live group R9-UX-6's carry list (`dev/programme/rosters/wave-r9-groups.json`) and the file deleted; edited directly in the roster file, which the owner may prefer to re-apply through the roster seat. Carry: dismissed: answered in this pull request
