@@ -18,6 +18,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-GH-READ-RETRY (stage carries-open, branch `handoff/r10-fly-gh-read-retry`): `git fetch origin handoff/r10-fly-gh-read-retry && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ORCH-ROSTER-SCHEMA (stage absorbed, branch `handoff/r10-roster-schema`): `git fetch origin handoff/r10-roster-schema && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLOSEOUT-CLEANUP (stage carries-open, branch `handoff/r10-closeout-cleanup`): `git fetch origin handoff/r10-closeout-cleanup && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-BRIEFS-FOLD-D0 (stage in-progress, branch `handoff/r10-briefs-fold-d0`): `git fetch origin handoff/r10-briefs-fold-d0 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ARCH-SHAPES-CLASSIFIER (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-ADVISOR-WHATIF (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
@@ -34,6 +35,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-CI-RUNNER-FIXES (stage carries-open, branch `handoff/r10-ci-runner-fixes`): `git fetch origin handoff/r10-ci-runner-fixes && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-PR-BUCKETS (stage absorbed, branch `handoff/r10-tick-pr-buckets`): `git fetch origin handoff/r10-tick-pr-buckets && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-GROUP-LINES (stage absorbed, branch `handoff/r10-tick-group-lines`): `git fetch origin handoff/r10-tick-group-lines && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-LEDGER-RESIDUE (stage in-progress, branch `handoff/r10-ledger-residue`): `git fetch origin handoff/r10-ledger-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PLANTED-DEFECT-AUDIT (stage in-progress, branch `handoff/r10-planted-defect-audit`): `git fetch origin handoff/r10-planted-defect-audit && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TRAIN-MERGE-LOOP (stage in-progress, branch `handoff/r10-train-merge-loop`): `git fetch origin handoff/r10-train-merge-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
