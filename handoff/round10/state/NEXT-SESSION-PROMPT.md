@@ -54,6 +54,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-HOTFIX-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-SAV-WOOD-MEASURED (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-RCA-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
+- R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PR-CONTRACT-OUTSIDE (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-REF-PRIVACY-CLOUD (stage in-progress): no branch pushed yet, so nothing to fetch

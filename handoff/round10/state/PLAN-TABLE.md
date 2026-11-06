@@ -438,7 +438,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-REPLAY-MASK | CP | 1 | done | - | sonnet/opus | - | Found on the owner's live diagnostics export of 2026-11-04 (v7.1.1): the replay section is empty, because custom_components/heatpump_optimizer/replay_doc.py... |  |
 | R10-RCA-SAV-ESTIMATE | CP | 2 | carries-open | - | opus/opus | - | Root cause of the savings row defect behind R10-HOTFIX-SAV-ESTIMATE: state (c), audit class barrier owed, census harness that must land with or after the fix. |  |
 | R10-FLY-ARCHSCORE-STMT-PACKING | F | 1 | done | - | sonnet/opus | - | From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one... |  |
-| R10-FLY-CLOUD-FRUGAL-OFF | CP | 1 | not-started | - | haiku/sonnet | - | Owner ruling tvofi 2026-11-04: "Turn it off in the cloud", the frugal plugin inline-search guard. |  |
+| R10-FLY-CLOUD-FRUGAL-OFF | CP | 1 | refused | - | haiku/sonnet | - | Owner ruling tvofi 2026-11-04: "Turn it off in the cloud", the frugal plugin inline-search guard. |  |
 | R10-HOTFIX-CI-CRITPATH-5 | CP | 1 | done | - | sonnet/opus | - | Main tests / ci-ratchet is red on the critical path metric after PR 3201 merged at a45cf7f5. |  |
 | R10-GATE-LEASE-TOCTOU | C | 1 | done | - | sonnet/opus | - | The free-slot step in tests/gate_lock.py checks that a slot file exists and then acts on it, so a slot freed between the two reads lets two takers win. |  |
 | R10-FLY-RELAY-HOLD | CP | 1 | done | - | sonnet/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
