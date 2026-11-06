@@ -105,15 +105,8 @@ Architecture score: dS +0.0000 NULL
 
 ## Forward-carry
 
-- Follow-up (verdict): `CHEAP_CHECKS`' `pr-contract / pr-contract` entry could never gate a dispatch; built in this PR in `tools/audit/seat/bus.sh` (entry dropped, every caller pinned to `needs: prelude`).
+The verdict's three follow-ups (`CHEAP_CHECKS`' vacuous entry, the shortstat figure, `dev/README.md`'s Record step) are built in this PR (repair section above) and carry nothing forward.
 
-  Carry: R10-PROCESS-SLIM
-- Follow-up (verdict): the opening shortstat figure did not re-derive; re-taken with its command in this PR body's opening paragraph, which `tools/audit/seat/body_push.sh` pushes to `handoff-body/r10-process-slim`.
-
-  Carry: R10-PROCESS-SLIM
-- Follow-up (verdict): `dev/README.md`'s Record step described the deleted record-autofix job; corrected in `dev/README.md` in this PR.
-
-  Carry: R10-PROCESS-SLIM
 - Residual (verdict): `tests/entities.py`'s errexit-scan check loses its live-workflow plant arm with the record-autofix job; the synthetic arms in `tests/entities.py` still pin the scan.
 
   Carry: dismissed: the job the plant read is deleted, and a new live plant needs another errexit-shaped workflow step, which is not this group's scope.
