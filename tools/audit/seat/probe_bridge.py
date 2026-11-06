@@ -46,7 +46,6 @@ import argparse
 import json
 import re
 import statistics
-import subprocess
 import sys
 from pathlib import Path
 
@@ -163,11 +162,15 @@ def disagreement(derived: dict, tree: dict) -> list[str]:
             or abs(derived[py] - tree[py]) > ROUNDING]
 
 
-def gh(path: str) -> str:
-    p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
-    if p.returncode:
-        raise SystemExit(f"probe_bridge: gh api {path} failed: {p.stderr.strip()[:300]}")
-    return p.stdout
+def job_log(repo: str, job_id) -> str:
+    """One Actions job's log through merge_train.job_log, the one reader that
+    passes gh's escape-sequence flag where gh knows it."""
+    sys.path.insert(0, str(Path(__file__).resolve().parent))
+    import merge_train
+    text = merge_train.job_log(None, repo, job_id)
+    if text is None:
+        raise SystemExit(f"probe_bridge: the log of job {job_id} could not be read")
+    return text
 
 
 def self_test() -> int:
@@ -253,7 +256,7 @@ def main(argv: list[str]) -> int:
         cr.gather_runs(f, repo=a.repo, window=a.last)
         runs = [r for r in json.loads(f.read_text())["workflow_runs"] if r.get("status") == "completed"]
     ref, unit = references(json.loads((HARNESS / "fast_scripts.json").read_text()))
-    got = bridge(runs, lambda j: log_seconds(gh(f"repos/{a.repo}/actions/jobs/{j['id']}/logs")), ref, unit)
+    got = bridge(runs, lambda j: log_seconds(job_log(a.repo, j["id"])), ref, unit)
     print(f"probe_bridge: {got['runs']} probed fast (3.14) push runs; PROBE_REFERENCE_S implied "
           f"3.14 {got['3.14']} (runs {got['spread'][0]}..{got['spread'][1]}), 3.13 {got.get('3.13')}; "
           f"in the tree {cr.PROBE_REFERENCE_S}")
