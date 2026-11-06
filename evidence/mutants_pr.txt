@@ -1,0 +1,15 @@
+== merge_train-42 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 2 failed
+== merge_train-43 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-44 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 2 failed
+== merge_train-45 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-46 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 3 failed
+== merge_train-47 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-48 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 4 failed
+== merge_train-49 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 5 failed
+== merge_train-50 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-51 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-52 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 3 failed
+== merge_train-53 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-54 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+== merge_train-55 merge_train.py: KILLED rc=1 | merge_train self-test: 464 checks, 1 failed
+RESULT survivors=0
