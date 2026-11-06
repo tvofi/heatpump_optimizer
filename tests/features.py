@@ -41873,6 +41873,11 @@ try:
         _wt_frame_saved == 60.0,
         f"_REPLY_FRAME_TIMEOUT_S = {_wt_frame_saved!r}",
     )
+    R.check(
+        "the reply frame size cap stays at its 256 MiB design value",
+        _g511_coord._REPLY_FRAME_MAX_BYTES == 256 * 1024 * 1024,
+        f"_REPLY_FRAME_MAX_BYTES = {_g511_coord._REPLY_FRAME_MAX_BYTES!r}",
+    )
     _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
     _g511_coord._run_in_process(_os.getpid, ())  # warm a worker under the real deadline
     _wt_big_t0 = _wt_time.monotonic()
@@ -41926,6 +41931,37 @@ try:
             and _wt_eof_s < 0.5,
             f"raised {_wt_eof_err!r} after {_wt_eof_s:.2f} s",
         )
+        # The frame's size is bounded as well as its time: the worker's bytes
+        # are not trusted, so a reply past the cap is a transport fault that
+        # reaps the worker mid-frame and frees the lock (#3232 round 4).
+        _wt_cap_saved = _g511_coord._REPLY_FRAME_MAX_BYTES
+        _g511_coord._REPLY_FRAME_MAX_BYTES = 1_000_000
+        try:
+            _wt_cap_ok_err, _wt_cap_ok = _g511_submit(
+                _g511_coord._run_in_process, bytes, (900_000,))
+            _wt_cap_t0 = _wt_time.monotonic()
+            _wt_cap_err, _wt_cap_out = _g511_submit(
+                _g511_coord._run_in_process, bytes, (2_000_000,))
+            _wt_cap_s = _wt_time.monotonic() - _wt_cap_t0
+        finally:
+            _g511_coord._REPLY_FRAME_MAX_BYTES = _wt_cap_saved
+        _wt_cap_free = _g511_coord._PROCESS_LOCK.acquire(blocking=False)
+        if _wt_cap_free:
+            _g511_coord._PROCESS_LOCK.release()
+        R.check(
+            "null control: a reply under the frame size cap returns whole",
+            _wt_cap_ok_err is None and _wt_cap_ok == bytes(900_000),
+            f"raised {_wt_cap_ok_err!r}; {len(_wt_cap_ok or b'')} bytes",
+        )
+        R.check(
+            "a reply frame past its size cap is a transport fault: the worker is reaped and the lock freed",
+            isinstance(_wt_cap_err, _g511_coord.ProcessWorkerUnavailable)
+            and _wt_timeout_cls is not None and not isinstance(_wt_cap_err, _wt_timeout_cls)
+            and "exceeds 1000000 bytes" in str(_wt_cap_err) and _wt_cap_out is None
+            and _wt_cap_s < 0.5 and _wt_cap_free and _g511_coord._PROCESS_WORKER is None,
+            f"raised {_wt_cap_err!r} after {_wt_cap_s:.2f} s; returned {len(_wt_cap_out or b'')} bytes; "
+            f"lock_free={_wt_cap_free} worker={_g511_coord._PROCESS_WORKER!r}",
+        )
     finally:
         _g511_coord._REPLY_FRAME_TIMEOUT_S = _wt_frame_saved
     _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
@@ -41948,6 +41984,30 @@ try:
         "the frame reader's readline returns one line, the rest stays unread, and it stops at end of stream",
         (_wt_rl_line, _wt_rl_rest, _wt_rl_tail) == (b"ab\n", b"cd", b""),
         f"line={_wt_rl_line!r} rest={_wt_rl_rest!r} tail={_wt_rl_tail!r}",
+    )
+
+    # A declared length past the cap is refused before it is read or
+    # allocated: on an empty pipe the reader raises at once, not at its
+    # deadline, and a length exactly at the cap is still waited on.
+    _wt_dl_r, _wt_dl_w = _os.pipe()
+    _wt_dl = []
+    try:
+        for _wt_dl_size in (_g511_coord._REPLY_FRAME_MAX_BYTES + 1,
+                            _g511_coord._REPLY_FRAME_MAX_BYTES):
+            _wt_dl_t0 = _wt_time.monotonic()
+            try:
+                _g511_coord._frame_reader(_wt_dl_r, 0.3).read(_wt_dl_size)
+                _wt_dl.append(("returned", 0.0))
+            except Exception as _wt_dl_exc:  # noqa: BLE001 - the class is the result
+                _wt_dl.append((type(_wt_dl_exc).__name__, _wt_time.monotonic() - _wt_dl_t0))
+    finally:
+        _os.close(_wt_dl_r)
+        _os.close(_wt_dl_w)
+    R.check(
+        "the frame reader refuses a declared length past its cap at once, and waits on one at it",
+        len(_wt_dl) == 2 and _wt_dl[0][0] == "ValueError" and _wt_dl[0][1] < 0.1
+        and _wt_dl[1][0] == "ProcessWorkerTimeout" and _wt_dl[1][1] >= 0.25,
+        f"results={_wt_dl!r}",
     )
 
     # A worker whose pipe lands at a descriptor >= FD_SETSIZE (1024) -- Home
