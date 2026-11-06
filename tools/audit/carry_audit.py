@@ -1208,6 +1208,32 @@ def _self_test() -> int:
           rc == 1 and "FOLD-UNANSWERED" in out and "1 routed" in out)
     rc, out = cli("Closes #7\n\nFold (a): built\n", folds=fold_issue)
     check("check --body accepts the same close once the fold is answered (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
+    # the fold answer's destination is read against the roster on the CLI line that feeds
+    # fold_problems (the `dests` handed to folds_rc, and the FOLD_LINE test guarding the read)
+    rc, out = cli("Closes #7\n\nFold (a): Carry: R10-INVENTED\n", folds=fold_issue)
+    check("check --body refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)",
+          rc == 1 and "FOLD-UNANSWERED" in out and "R10-INVENTED is not a group" in out)
+    rc, out = cli("Closes #7\n\nFold (a): Carry: R10-CONS\n", folds=fold_issue)
+    check("... and accepts one answered with a live group (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
+    # `pr` reads the same fold answer on the same roster, with gh stubbed
+    def pr_cli(body: str) -> "tuple[int, str]":
+        names = ("read_pr", "load_dests", "gh_issue_state", "gh_issue_text")
+        real = {k: globals()[k] for k in names}
+        globals().update(read_pr=lambda n, repo, d: (body, []), load_dests=lambda *a, **k: Dcl,
+                         gh_issue_state=lambda repo: (lambda n: "open"),
+                         gh_issue_text=lambda repo: (lambda n: "Fold (a): do x\n"))
+        buf = io.StringIO()
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["pr", "7"])
+        finally:
+            globals().update(real)
+        return rc, buf.getvalue()
+    rc, out = pr_cli("Closes #7\n\nFold (a): Carry: R10-INVENTED\n")
+    check("pr refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)",
+          rc == 1 and "R10-INVENTED is not a group" in out)
+    rc, out = pr_cli("Closes #7\n\nFold (a): Carry: R10-CONS\n")
+    check("... and accepts one answered with a live group (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
     rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n", "--branch", "fix/r10-pr")
     check("check --branch resolves the PR group, so a closed destination lists its valid targets",
           rc == 1 and "valid targets: unknown" not in out and "R10-CONS" in out)
