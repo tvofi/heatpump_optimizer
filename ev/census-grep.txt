@@ -1,0 +1,12 @@
+rolepack_grep_rc=1
+27
+48:from __future__ import annotations
+50:import argparse
+51:import fnmatch
+52:import re
+53:import sys
+54:from pathlib import Path
+46:or `-`, so `push.sh` does not match inside `app_push.sh`.
+272:    t(named_entries("run seat/bus.sh", "- [`push.sh`](instruments/p) -- x\n"
+275:    t(named_entries("app_push.sh", "- [`push.sh`](instruments/p) -- x\n") == [],
+276:      "`push.sh` is not named by `app_push.sh`")

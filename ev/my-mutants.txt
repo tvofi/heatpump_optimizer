@@ -1,0 +1,16 @@
+ .claude/hooks/session-start.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M1 hook line removed
+  FAIL set, the output is the unset output plus one role pack line (got: shallow clone:  false
+  FAIL set, exactly one role pack line (got: 0)
+  FAIL set, one line more than unset, and no other (got: 7)
+  FAIL the pack the line names checks clean as the fixer's (got: role_pack: REFUSE /home/user/heatpump_optimizer/.git/worktrees/tmp.6O7mHVG9uK/role-pack-fixer.md: No such file or directory)
+  FAIL an unknown role prints a REFUSE line and still starts (got: toolchain:      OK -- the environment's variables put venv-ci's python3 first)
+19 passed, 5 failed
+ tools/policy/role_pack.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== M2 byte-equality off
+  FAIL mutant refused by its rule -- one contract line paraphrased: not refused
+34 passed, 1 failed
+ok   fixer: 42744 chars, 6 blocks
+rc=0

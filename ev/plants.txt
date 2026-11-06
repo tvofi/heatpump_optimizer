@@ -1,0 +1,26 @@
+== clean
+ok   fixer: 42744 chars, 6 blocks
+rc=0
+== paraphrase
+FAIL fixer: 42744 chars, 6 blocks
+     dev/governance/roles/fixer.md: not byte-equal to the file
+rc=1
+== missing
+FAIL fixer: 39051 chars, 5 blocks
+     dev/governance/rules/brief-citations.md: in the role's plan, absent from the pack
+rc=1
+== outofplan
+FAIL fixer: 57156 chars, 7 blocks
+     CLAUDE.md: framed, but not in the role's plan
+rc=1
+== stray
+FAIL fixer: 42769 chars, 6 blocks
+     a line outside every frame: 'a sentence of paraphrase'
+rc=1
+== oversized
+FAIL fixer: 63646 chars, 7 blocks
+     the framed text (62384 chars) exceeds the files it frames (55676)
+rc=1
+== dup_rule
+ok   fixer: 46236 chars, 7 blocks
+rc=0

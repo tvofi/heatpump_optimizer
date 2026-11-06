@@ -1,0 +1,8 @@
+base_rc=0
+head_rc=0
+BYTE-EQUAL
+327 /root/o-base.txt
+7a8
+> role pack:      .git/role-pack-fixer.md -- 42898 bytes: your dev/governance/roles/ contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim; read it once in place of those files
+role pack:      REFUSE -- role_pack: REFUSE role must be one of fixer, fix-review, designer, design-review, root-cause, verifier, judge, finder (got 'planner'); read your contract and INSTRUMENTS.md as before
+EMPTY-EQ-UNSET

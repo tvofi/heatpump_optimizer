@@ -1,0 +1,9 @@
+17:51:54 rc=3 WAIT 9c8ca4f7acfae4366671942a34afa978e722643e pending: gate red: none
+17:53:26 rc=3 WAIT 9c8ca4f7acfae4366671942a34afa978e722643e pending: gate red: none
+17:54:58 rc=1 RED 9c8ca4f7acfae4366671942a34afa978e722643e pending: none red: gate
+DONE 1
+restart
+17:55:24 rc=3 WAIT 9c8ca4f7acfae4366671942a34afa978e722643e pending: gate red: none
+17:56:56 rc=3 WAIT 9c8ca4f7acfae4366671942a34afa978e722643e pending: gate red: none
+17:58:28 rc=0 GREEN 9c8ca4f7acfae4366671942a34afa978e722643e pending: none red: none
+DONE 0
