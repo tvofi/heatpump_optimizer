@@ -1,0 +1,79 @@
+== word-diff base -> head (D0.md)
+diff --git a/dev/governance/dimensions/D0.md b/dev/governance/dimensions/D0.md
+index 9f240326d..d47e07168 100644
+--- a/dev/governance/dimensions/D0.md
++++ b/dev/governance/dimensions/D0.md
+@@ -2,8 +2,7 @@
+
+Owner's brief: *"Price optimality. Specifically hunt for sub-optimal planning."*
+
+Read `COMMON.md` first.[-This brief says what to measure and how; the contract-]
+[-there says what counts.-]
+
+## What you are hunting
+
+@@ -13,8 +12,6 @@ feasibility no worse. Sub-optimality has three known homes: the seeding and
+multi-start (which basin the starts land in), the budget (iterations, function
+evaluations, tolerance), and structure the solver cannot see (bang-bang
+schedules, the DHW/space decomposition, the terminal credit, horizon effects).
+[-You are not asked whether the objective is the right objective — that is D2 —-]
+[-but whether the solver minimises the one it has.-]
+
+## Method
+
+@@ -27,7 +24,7 @@ but whether the solver minimises the one it has.
+2. **Challengers**, cheapest first: more L-BFGS-B starts (structured seeds:
+   bang-bang at several energy fractions, greedy-cheapest-hours, the
+   thermostat baseline, the previous cell's plan); larger `maxiter` and
+   `maxfun`;[-tighter `ftol`;-] a different `eps`; warm-starting L-BFGS-B from
+   the best challenger; a global method (`scipy.optimize.differential_evolution`
+   or a dynamic program on a coarsened grid) as an outer bound on the same
+   objective. Report the gap between production and the best feasible
+@@ -43,24 +40,26 @@ but whether the solver minimises the one it has.
+   finding that is out of dimension is carried per `finding-propagation.md`.
+6. **MPC masking**: for every cell with a gap, does the step-0 action differ?
+   If re-planning at the next step reaches the same trajectory, the gap is
+   not realised.[-Simulate the receding horizon over a day for the cells that-]
+[-   matter (`tests/rolling.py:run_rolling` shape).-]
+7. **Decomposition**: does iterating DHW ↔ space more than once change cost?
+   Does the terminal credit change the plan the way its docstring claims?
+
+## Reuse
+
+`tests/optimality.py` (`setup`,[-`evaluate`,-] the patch idiom), `tests/golden.py:make`
+and `SCENARIOS`, `tests/backtest.py:score` and its strategies,
+`tests/stress.py:build_case`, `tests/profiles.py`.
+
+## Traps
+
+[-- Timing under the fan-out is provisional; function-evaluation counts and-]
+[-  iteration counts are your evidence.-]
+- The batched gradient serves some bound shapes and not others; a race
+  must use the same `jac` path production would (capture it).
+- [-`_MULTI_START_SOLVES` and-]{+A stop-tolerance change is refused on money (#1293), the winner-only polish+}
+{+  too (#2612: non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse). A+}
+{+  challenger that tightens+} the [-pre-refinement scoring decide which-]
+[-  candidates get refined-]{+stop duplicates #1293 unless it shows realised+}
+{+  closed-loop money that does not fall on a flat price, in+}
+{+  `r10_solver_winner_polish.py`'s shape. Re-measure+} at [-all; count what-]{+your merge base.+}
+{+- `_solve_space`'s DHW seed set+} is [-discarded.-]{+unguarded: `_CERT_CELLS` holds space-only+}
+{+  cells, so add DHW cells there before reading a seed gap as closed.+}
+- Report SEK/day only beside the flat-price arm and the bill share; a 1 %
+  gap on a 60 SEK day is a finding, a 1 % gap on a 2 SEK summer day is not.
+
+== head lines not present verbatim in base
+Read `COMMON.md` first.
+   `maxfun`; a different `eps`; warm-starting L-BFGS-B from
+   not realised.
+`tests/optimality.py` (`setup`, the patch idiom), `tests/golden.py:make`
+- A stop-tolerance change is refused on money (#1293), the winner-only polish
+  too (#2612: non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse). A
+  challenger that tightens the stop duplicates #1293 unless it shows realised
+  closed-loop money that does not fall on a flat price, in
+  `r10_solver_winner_polish.py`'s shape. Re-measure at your merge base.
+- `_solve_space`'s DHW seed set is unguarded: `_CERT_CELLS` holds space-only
+  cells, so add DHW cells there before reading a seed gap as closed.
+== wc
+  66 /tmp/tmp.vDGzWZ1RpQ/base.md
+  65 /tmp/tmp.vDGzWZ1RpQ/head.md
+ 131 total
