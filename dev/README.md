@@ -116,9 +116,9 @@ train → merge → record → stamp. The order is the orchestrator's contract,
    fixer's. A head that moved under the review is a blocked verdict.
 5. **Train and merge.** `tools/audit/seat/merge_train.py` lands verdicted pull
    requests in order at a pitch, and stops at the first refusal.
-6. **Record.** The pull request's row is `dev/programme/delivery/<N>.md`, written
-   at each merge, not at session end; `tools/audit/seat/record_row.py` drives
-   the record-autofix job that rows a merge no branch rowed.
+6. **Record.** The record is the pull-request list and #201:
+   `tools/audit/seat/postmerge.py` posts one #201 line per merge, and no
+   per-PR row is written (`dev/governance/rules/delivery-status-tracking.md`).
 7. **Stamp.** `tools/release/stamp.py` assigns the version after the merge. A
    branch never touches `VERSION`, the manifest version, or the
    `RELEASE_NOTES.md` heading.

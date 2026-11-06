@@ -711,12 +711,11 @@ jobs:
           python3 -I tools/audit/seat/mutant_run.py --self-test | tee "$RUNNER_TEMP/mutant-run-self-test.txt"
           grep -Eq '^mutant_run self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/mutant-run-self-test.txt"
 
-      - name: Show the handoff push and its row writer refusing their own fixtures
+      - name: Show the handoff push refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
           set -o pipefail
           bash tools/audit/seat/handoff_push.sh --self-test | tee "$RUNNER_TEMP/handoff-push-self-test.txt"
-          grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
           grep -Eq '^handoff_push self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/handoff-push-self-test.txt"
 
       - name: Show the handover prompt refusing its own fixtures
