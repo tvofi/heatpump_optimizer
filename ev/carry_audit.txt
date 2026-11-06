@@ -1,0 +1,5 @@
+NOTE body item 5a56edc5: dismissed:drafted for the owner, nothing in this tree consumes it until approved.
+NOTE body item 9871b246: dismissed:the cost number that would reverse the refusal is not produced by any group.
+NOTE body item 16a28f20: dismissed:one instance does not make a class.
+NOTE body item e64e5c55: dismissed:paid in this change.
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
