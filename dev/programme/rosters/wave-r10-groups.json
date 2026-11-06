@@ -15056,12 +15056,13 @@
     "From triage P374 (orchestrator s10, 2026-11-02; #3173 deadlock fixed by hand at 13:49Z): `append_commit` in `tools/audit/seat/bus.sh` appends a commit whose tree equals the tip's. On #3173 the reviewer ran `push-verdict` twice on one verdict (`review/3173` got 2eab795f, then an empty-diff e6899918 seven seconds later). Each review head was confirmed, and the second confirm passed the `posted-signed` replay guard in `confirm()` because the first had not yet posted. It appended dba76851 on top of the posted f9aafd42 with the same tree, and `post_verdict` then refused it as a replay. The posted commit was left one behind the tip, so `merge_train.py`'s deliberate check (\"the newest posted verdict ... is not verdict/<n>'s tip\") refused the add and nothing could merge the pull request. Change: in `append_commit`, once the remote has answered the tip, compare the tip's tree with the tree to be written. If they are equal, write and push nothing, and print the existing `<family>/<pr> <tip>` line with rc 0, so that `push-verdict` and `confirm` are idempotent on a repeated verdict. A same-tree append can only repeat a verdict: `post_verdict` treats \"<pr> <tree>\" as what was signed, and each round's nonce makes its tree distinct. Leave `merge_train.py`'s verdict-tip check unchanged; do not loosen it to compare trees. Fixture arms in bus.sh's self-test: (a) `push-verdict` run twice with the same verdict and evidence leaves `review/<pr>` with one new commit; (b) `confirm` on a second review commit whose tree equals the first's leaves `verdict/<pr>`'s tip at the first, posted commit; (c) the null control: a verdict with a new nonce, and therefore a new tree, still appends. Mutation: removing the tree comparison must fail arms (a) and (b); add the site to `dev/audit/harnesses/r10_seat_selftests_mutants.py`. triage: dev/programme/triage/s6-batch115.md#P374"
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-dispatch-at-handoff",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
-    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET"
+    "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET",
+    "pr": 3249
    },
    "brief": "The reviewer-dispatch residue of R10-ORCH-REVIEW-PACKET (its open #3061 stops on it for the orchestrator): dispatch the reviewer at the handoff ref with its policy text, hold a dispatch while an autofix bot job can still move the head, and refuse a dispatch whose packet shows a carry, figure or moved-head red, naming it. The owner's 2026-10-24 ruling stands: dispatch never waits for CI. Runs after R10-ORCH-REVIEW-PACKET. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -16105,12 +16106,13 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-roster-write-sweep",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s11 replan fold"
+    "note": "s11 replan fold",
+    "pr": 3253
    },
    "brief": "The roster write path's residue, one owning seam: tools/audit/seat/roster_edit.py and tools/audit/seat/roster_queue.py (fold of R10-ROSTER-OPS-2 part 2, R10-ROSTER-QUEUE and the write-op carries of R10-ORCH-ROSTER-SCHEMA; s11 replan). Build each carry below, in order, each with its own failing test first; carries restating one defect are one fix. Split at the measured part capacity if the diff passes about 400 production lines. Part of #201."
   },
@@ -16163,12 +16165,13 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-roster-read-sweep",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s11 replan fold"
+    "note": "s11 replan fold",
+    "pr": 3250
    },
    "brief": "The roster library's predicates and the routing invariants' residue, one owning seam: tools/audit/seat/roster_lib.py with its reader tools/audit/carry_audit.py (fold of R10-ROSTER-LIB-SCHEMA and the invariant carries of R10-ORCH-ROSTER-SCHEMA; s11 replan). Closes #2733 and #2505 when its last carry lands. Part of #201."
   },
@@ -16361,12 +16364,13 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-relay-sweep",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s11 replan fold"
+    "note": "s11 replan fold",
+    "pr": 3252
    },
    "brief": "The relay's residue, one owning seam: tools/audit/seat/cloud_relay.sh (fold of R10-RELAY-HANDOFF-ARM, R10-FLY-RELAY-DELIVERED-GUARD and the last open carry of R10-FLY-RELAY-REVIEW-FF; s11 replan). Part of #201."
   },
@@ -17111,8 +17115,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3236
+    "stage": "done",
+    "pr": 3236,
+    "commit": "33e60b5b71b67610bd02fdea238b882e9a97007b"
    },
    "brief": "A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with the file VERSION still reading 7.1.1 then (the ruleset was disabled for the push, 2026-11-02 21:07:36Z to 21:08:07Z), published 21:16Z with 19 downloads, so stamp.py bumped from that 7.1.1 and Rule 3 refused the existing tag, and the window, rule 4 and the disposition gate read a tag that is not a stamp. Keep v7.1.2; nothing is deleted. (1) tools/release/stamp.py: add two pure functions: a base-bump function of (current VERSION, tag list) returning the greater of VERSION and the highest TAG_RE v* tag, and a last-stamped-tag function of the tag list returning the newest tag whose tree VERSION equals its name. (2) main() feeds the base-bump result into next_version, computed after Rule 1's fetch --tags; window_log_args, rule4_problem and disposition_gate use the last-stamped-tag result; Rule 3's exists-refusal stays as a backstop. (3) Pin in self_test: the base bump of '7.1.1' with ['v7.1.1','v7.1.2'] is '7.1.2' (so the next version is 7.1.3); the null case ['v7.1.1'] gives '7.1.1'; non-release tags (v6.2.15-rc1) are ignored; the last-stamped-tag function skips a tag whose tree VERSION differs from its name; and a source-order pin on main() (the bump base is computed after the tag fetch and before next_version). Each pin fails first on the unrepaired code, with a mutation proof and a null control. (4) .github/workflows/release.yml: before the 'Create the GitHub release' step add a step that refuses unless v$(cat VERSION) equals the tag, the manifest version matches, and RELEASE_NOTES.md has a '## <tag>' section. Prove it with v7.1.2's tree as the failing case and the stamp-era tags (v7.1.0, v7.1.1) as the null control. (5) Add a short retry to the publish step's asset read-back, which raced the upload. Critical path: this blocks the v7.1.3 stamp. Never touch VERSION, the manifest version or the RELEASE_NOTES heading in the branch. Source: the root-cause seat's findings, relayed by the orchestrator."
   },
@@ -17189,7 +17194,8 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3251
    },
    "brief": "ref_privacy flags a false-positive host path on a cloud seat. On a cloud runner (uid 0, HOME=/root) tools/audit/seat/ref_privacy.py --check refuses a roster line as home-directory, and with HOME=/nonexistent refuses three lines instead (account-name for the passwd name root, and the token 0 in \"(0-based)\"); review_packet.py render then refuses host-path and writes no packet. Fix the predicate so a cloud runner's own paths are classified correctly without widening what a real host path gets past. Failing test first, with the cloud-seat string as the fixture. Add a null control: a genuine /Users/<name> path still refuses. Mutation proof on the new branch. Source: the verdict on #3239 at 6a8964e8."
   },
