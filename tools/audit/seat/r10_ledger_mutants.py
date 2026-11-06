@@ -111,7 +111,7 @@ PLANTS = {
     "C6_tick_no_record_owed": (TICK, "for text in lg.record_owed(prs, now):", "for text in []:"),
     "C7_beat_family_no_record": (BEAT, "|RECORD-OWED:|", "|"),
     "C8_owed_family_no_record": (OWED_U, "|RECORD-OWED:|", "|"),
-    "C9_blocked_prior_carries": (LEDGER, 'for l in lines if l.startswith("Fix review: merge ")) if h]', "for l in lines) if h]"),
+    "C9_blocked_prior_carries": (LEDGER, 'for h, l in newest.items() if l.startswith("Fix review: merge ")]', "for h, l in newest.items()]"),
     "C10_record_owed_unkeyed": (OWED_U, '    m = re.match(r"RECORD-OWED: (#\\d+) ([0-9a-f]{12}) \\d+m$", body)',
                                 '    m = None'),
     "C11_recarry_no_ancestor": (LEDGER, '        if subprocess.run(["git", "-C", cwd, "merge-base", "--is-ancestor", prior, head],',
@@ -120,7 +120,8 @@ PLANTS = {
                                "if files is None:"),
     "C13_record_owed_unapproved": (LEDGER, '                or (pr.get("reviewDecision") or "").upper() != "APPROVED":',
                                    "                or False:"),
-    "C14_dispatched_not_prior": (LEDGER, " + sorted(h for k, h in dispatched if k == str(n))", ""),
+    "C14_dispatched_not_prior": (LEDGER, " \\\n            + sorted(h for k, h in dispatched if k == str(n) and h not in newest)", ""),
+    "C15_blocked_dispatched_prior": (LEDGER, "if k == str(n) and h not in newest)", "if k == str(n))"),
 }
 
 
