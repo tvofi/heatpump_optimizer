@@ -4662,6 +4662,26 @@
       "doc": [
         "dev/audit/rca/R10-RCA-FRICTION-REGRESSION.md"
       ]
+    },
+    "R10-RCA-SAV-ESTIMATE": {
+      "class": "N-unmetered-reference",
+      "level": "class",
+      "subject": "the savings estimate books a tank-decided first step: the month row read a loss the plan's own figure contradicts, on the third owner report in three weeks (v7.0.4, v7.1.1)",
+      "trigger": "1 (release) + class: per_round",
+      "date": "2026-11-04",
+      "status": "proposed",
+      "parts_missing": [
+        "the census's pass at the fix's head",
+        "wiring the census as a tests/ script",
+        "the meter band"
+      ],
+      "process_state": "(c) step 6 ran and recorded 12/12 SOUND on the fixer's metric and population: the spread of step 0 across room and slab starts reads SOUND on a constant zero, no savings harness names a valve or a wood tank, and #2887's valved arm reads the horizon sum while the ledger books step 0",
+      "countermeasure": "proposed barrier: census of installs and tank states booked through get_current_action (red at v7.0.4, v7.1.1 and main), plus a meter band on the published row; at most 2.1 h/release against 6.8 h/release",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md",
+      "doc": [
+        "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5120,6 +5140,47 @@
       "per_round": true,
       "cross_round": true,
       "barriered_any": true,
+      "class_rca_on_record": true
+    }
+  },
+  "N-unmetered-reference": {
+    "kind": "production",
+    "mechanism": "A figure published from a modelled counterfactual is checked only on fixtures its author chose and never against the meter reading of the same interval, so a reference wrong by a factor publishes as a saving or a loss",
+    "rounds": [
+      10
+    ],
+    "instances": [
+      "R10 #2255-item1",
+      "R10 #2463",
+      "R10 #2492-meter",
+      "R10 #2887-reference",
+      "R10 wood-share-step0",
+      "R10 valve-charge-step0"
+    ],
+    "per_round": {
+      "R10": 6
+    },
+    "total": 6,
+    "max_per_round": 6,
+    "detector": "PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census",
+    "detector_idea": "The census of installs and tank states as a tests/ script once the fix lands, plus a meter band on the published row (dev/audit/rca/R10-RCA-SAV-ESTIMATE.md)",
+    "barrier": null,
+    "status": "detector",
+    "nearest_existing": "P11",
+    "mechanism_difference": "P11's oracle is a double for an external system that the implementer wrote; here the external reading exists, the meter on the same interval, and nothing compares the reference with it, so a harness measuring the reference against itself reads sound",
+    "minted": "R10",
+    "aliases": [
+      "new: a savings reference no meter reads"
+    ],
+    "rca": [
+      "R10-RCA-SAV-ESTIMATE"
+    ],
+    "rca_planned": [],
+    "non_round_note": "PR #2 and PR #32 fixed inflated savings before the register's rounds; listed, not counted",
+    "trigger": {
+      "per_round": true,
+      "cross_round": true,
+      "barriered_any": false,
       "class_rca_on_record": true
     }
   }

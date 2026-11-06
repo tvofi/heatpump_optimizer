@@ -268,7 +268,14 @@
     "envelope": null,
     "envelope_drivers": [],
     "machine": null,
+    "machine_drivers": [],
+    "machine_evidence": {
+     "bands": [],
+     "refused_frozen": 0,
+     "required": 20
+    },
     "operation": null,
+    "operation_drivers": [],
     "overall": null,
     "reasons": {
      "envelope": "heat_loss_learning",
@@ -465,6 +472,7 @@
   "problem_messages": [],
   "projected_peak_cost": 0.0,
   "projected_peak_kw": 0.0,
+  "pump_max_power": null,
   "pv": {},
   "pv_enabled": false,
   "pv_self_consumed_kwh": 0.0,
@@ -1936,6 +1944,9 @@
      "ratio": 1.0,
      "samples": 0
     },
+    "pump_max_power": null,
+    "pump_max_power_reason": null,
+    "pump_max_power_source": null,
     "solar_aperture": {
      "needed": 30,
      "samples": 0,
@@ -2009,7 +2020,14 @@
     "envelope": null,
     "envelope_drivers": [],
     "machine": null,
+    "machine_drivers": [],
+    "machine_evidence": {
+     "bands": [],
+     "refused_frozen": 0,
+     "required": 20
+    },
     "operation": null,
+    "operation_drivers": [],
     "overall": null,
     "price_tiles": {},
     "reasons": {

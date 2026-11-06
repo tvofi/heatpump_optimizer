@@ -52,6 +52,24 @@ CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
+# An edit run beside an unfinished code run whose pr-contract has not started
+# (R10-CI-SLIM card C3, option A): it judges these two against the live body at
+# once and holds no runner waiting; `pr-contract`, which reads the body off the
+# API when it starts and needs every unit first, is the code run's, so the
+# code run's gate judges the LATEST body.
+EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
+STARTED = ("in_progress", "completed")
+# R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
+# closures' recording, governance / env-matrix, governance /
+# instrument-self-tests) stand down on a pull request whose every changed file
+# is product: the package, its docs, a test script tests/closures.json
+# measures, or the data those scripts read (golden fixtures, mutation-ledger
+# pins). Anything else -- tools/, .github/, dev/, policy, tests
+# infrastructure, a new or unmeasured script, an unknown root file -- runs
+# them, and every push runs them.
+PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
+PRODUCT_FILES = frozenset({"README.md"})
+CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
     "tests": ("fast (3.14)", "arch-instrument", "browser", "briefs", "typing", "mutation", "closures",
@@ -77,7 +95,7 @@ def context(event_name: str, ev: dict, env: dict) -> dict:
     inputs = ev.get("inputs") or {}
     q = _QUEUE_PR.search(mg.get("head_ref") or "")
     return {
-        "event_name": event_name, "action": ev.get("action", ""),
+        "event_name": event_name, "action": ev.get("action", ""), "before": ev.get("before") or "",
         "changes_base": bool((ev.get("changes") or {}).get("base")),
         "label": (ev.get("label") or {}).get("name", ""),
         "labels": [x.get("name") for x in pr.get("labels") or []],
@@ -218,6 +236,42 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
+def _product(closures_json: Path):
+    """The predicate `f is product` (C7(a)'s list above), or None when the
+    script table is unreadable."""
+    try:
+        scripts = set(json.loads(closures_json.read_text())["closures"])
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
+    return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
+
+
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
+    """Whether the machinery lanes run: False only for a non-empty changed list
+    that is all product (C7(a)); an unreadable script table runs them."""
+    files = [f for f in (changed or []) if f.strip()]
+    is_product = _product(closures_json)
+    return not files or is_product is None or not all(map(is_product, files))
+
+
+def defer_to(ctx: dict, pr: str, get) -> "int | None":
+    """The unfinished code run at this head for `pr` whose `pr-contract` has not
+    started, or None. Its pr-contract will read the body after this edit, and its
+    gate is listed only after that, so it is the later verdict at this head."""
+    st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
+                     {"head_sha": ctx["head"], "per_page": 100})
+    if st != 200 or not isinstance(doc, dict):
+        raise ghapi.ApiError(f"runs at {ctx['head'][:12]}", st, "")
+    for r in sorted(doc.get("workflow_runs", []), key=lambda r: r["id"]):
+        t = parse_title(r.get("display_title") or "")
+        if r["id"] == ctx["run_id"] or r["status"] not in UNFINISHED or t is None or t[:2] != ("code", pr):
+            continue
+        contract = run_jobs(get, ctx["repo"], r["id"]).get("pr-contract / pr-contract")
+        if contract is None or contract[0] not in STARTED:
+            return r["id"]
+    return None
+
+
 def _codeql_scope():
     sys.path.insert(0, str(HERE.parent / "pr"))
     import codeql_scope
@@ -260,9 +314,17 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     ref, proven = ("" if ctx.get("input_pr") else ctx.get("ref", "")), None
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
+    out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
+    if not why and kind == "edit":
+        try:
+            if defer_to(ctx, pr, get) is not None:
+                out["workset"] = " ".join(sorted(EDIT_UNDER_CODE))
+                return out, ""
+        except ghapi.ApiError as e:
+            return out, str(e)
     if not why and kind != "code":
         why = wait_sources(ctx, get, sleep)
     return out, why
@@ -373,6 +435,76 @@ def self_test() -> int:
     get, _ = timeline([run(1, "code", "queued")])
     w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
     check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
+    # C3 (option A): an edit run beside a code run that has not started its
+    # pr-contract exits at once with the body units less pr-contract; beside one
+    # whose pr-contract has started, or a finished one, it waits as before.
+    ectx = ctx("pull_request", action="edited", pull_request=pr)       # run 50
+    in_units = [{"name": "prelude", "status": "completed", "conclusion": "success"},
+                {"name": "tests / fast (3.14)", "status": "in_progress", "conclusion": None}]
+    contract = lambda st: in_units + [{"name": "pr-contract / pr-contract", "status": st, "conclusion": None}]  # noqa: E731
+
+    def edit_out(*frames):
+        get, naps = timeline(*frames)
+
+        def nap(s):                         # bounded: a wait the frames never end is a failed check, not a hang
+            naps.append(s)
+            if len(naps) > 5:
+                raise TimeoutError("waited past the frames")
+
+        def run_it():
+            try:
+                return outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
+                               else get(path, params), nap)
+            except TimeoutError as e:
+                return {"workset": f"UNBOUNDED: {e}"}, ""
+        return run_it, naps
+    f, naps = edit_out([run(40, "code", "in_progress", in_units)])
+    check("C3: beside a code run in its units, the edit run exits at once without pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate", ""), []))
+    f, naps = edit_out([run(40, "code", "queued", [])])
+    check("C3: beside a queued code run (nothing listed), it exits at once", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate", []))
+    f, naps = edit_out([run(40, "code", "in_progress", contract("queued"))])
+    check("C3: a queued pr-contract has not read the body: exits at once", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate", []))
+    f, naps = edit_out([run(40, "code", "in_progress", contract("in_progress"))],
+                       [run(40, "code", "in_progress", done("code"))])
+    check("C3: beside a started pr-contract (it may have read the old body) the edit run waits and owns pr-contract",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", ""), [POLL_S]))
+    f, naps = edit_out([run(40, "code", "completed", done("code"))])
+    check("C3: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
+          ("arch-score budget-raise-gate pr-contract", []))
+    other = title("code", "8", "main", "M")
+    f, naps = edit_out([{**run(40, "code", "in_progress", in_units), "display_title": other}],
+                       [{**run(40, "code", "in_progress", done("code")), "display_title": other}])
+    check("C3: a code run for another PR at this head is no deferral; it is waited on (null control)",
+          (f()[0]["workset"], naps), ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
+    check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
+          ("arch-score budget-raise-gate pr-contract", [POLL_S]))
+    check("C3: a review run never defers (only an edit does)",
+          outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
+    # C7(a): the machinery lanes stand down only on an all-product pull request.
+    import tempfile
+    with tempfile.TemporaryDirectory() as td:
+        cj = Path(td) / "closures.json"
+        cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
+        cc = "custom_components/heatpump_optimizer/coordinator.py"
+        check("C7a: a product-only diff (package + a measured script) idles the machinery lanes",
+              machinery([cc, "tests/fast_case.py"], cj), False)
+        check("C7a: ... and so do its docs, golden fixtures and ledger pins",
+              machinery([cc, "docs/how-it-works.md", "README.md", "tests/golden/x.json",
+                         "tests/mutation_ledger/a.json"], cj), False)
+        for f in ("tools/ci/gate.py", ".github/workflows/ci.yml", "dev/programme/HANDOVER.md", "tests/closure.py",
+                  "tests/new_script.py", "tests/closures.json", "tests/structure_budgets.json", "CLAUDE.md",
+                  ".claude/settings.json", "pyproject.toml"):
+            check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
+        check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
+        check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
+    out, why = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                       ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
+    check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
+    check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))

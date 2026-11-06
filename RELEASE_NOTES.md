@@ -1,3 +1,24 @@
+## v7.1.3
+
+**Patch stamp: 84 merges since v7.1.1.** v7.1.2 was never stamped, so this window opens at v7.1.1 and carries v7.1.2's contents. The user-visible part is the savings estimate and a handful of pricing and learner fixes, plus a contributed DHW set-point input. The rest of the window is the round-10 engineering and audit machinery.
+
+User-visible changes:
+
+- Savings: the month row settles stored heat (#3195), and settles against the meter (#3220).
+- DHW set-point: a water_heater entity is accepted as the set-point input (#3231, outside contribution).
+- Compressor part-load pricing (#3182), COP gate part D (#3193).
+- Overbook residual (#3183), two-zone heat-loss (#3196), learned-store load (#3185).
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (52): #3054, #3055, #3065, #3077, #3078, #3085, #3089, #3090, #3147, #3149, #3150, #3151, #3153, #3160, #3163, #3164, #3165, #3167, #3168, #3169, #3170, #3173, #3174, #3175, #3179, #3180, #3181, #3184, #3186, #3189, #3191, #3192, #3194, #3197, #3198, #3199, #3200, #3201, #3205, #3206, #3208, #3216, #3217, #3218, #3219, #3221, #3222, #3223, #3227, #3228, #3229, #3230.
+- Triage rulings (16): #3154, #3157, #3158, #3159, #3161, #3171, #3172, #3177, #3202, #3203, #3204, #3209, #3210, #3211, #3213, #3214.
+- Record and bot merges (8): #3091, #3155, #3162, #3176, #3178, #3207, #3215, #3233.
+
+## v7.1.2
+
+**Unstamped release.** v7.1.2 was a hand tag of b8e82369, published 2026-11-02, never stamped: its manifest and VERSION read 7.1.1. Its contents are included in v7.1.3.
+
 ## v7.1.1
 
 **Patch stamp: 107 merges since v7.1.0.** Users were waiting on a set of fixes: a factory reset, the ceiling probe, and a run of away-mode and learner corrections. The rest of the window is the round-10 engineering and audit machinery.

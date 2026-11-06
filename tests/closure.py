@@ -172,6 +172,11 @@ NOT_A_TEST = {
     # its --record guard and its null control, so a change to how it
     # classifies selects that script.
     "ci_ratchet.py",
+    # The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4): a step of each
+    # heavy CI job, timed by the Actions API, never a test of this suite.
+    # NOT_A_TEST and NOT inert: `tests/entities.py` imports it to pin its
+    # fixed work and the workflow steps that name it.
+    "host_probe.py",
     # The #996 instance counter: the record seat runs it by hand against
     # the issue thread via `gh`, which this suite has neither the network
     # nor the token for, and its verdict is about the record rather than
@@ -895,6 +900,13 @@ INERT_EXCEPT = (
     # it, so the committed closure never listed the file and CI's closures job
     # named it -- INERT READS UNDER-APPROXIMATED, run 40548660478.
     "tools/audit/merge_throughput.py",
+    # R10-MACHINERY-RATCHETS: tests/entities.py loads machinery_ratchet.py
+    # and reads the budgets file it grades through the program's own reader,
+    # so both are reads entities.py performs. Same route as the two above:
+    # they leave their INERT prefixes, so an edit to either selects
+    # tests/entities.py instead of skipping it.
+    "tools/audit/machinery_ratchet.py",
+    "dev/governance/config/machinery_budgets.json",
     # #2883 round 3: `roster_lib.blob_at` lists a path's tree entry with
     # `git ls-tree ... -- <path>`, and its self-test, which tests/entities.py
     # runs, passes these two roster paths on that command line, so
@@ -2874,7 +2886,7 @@ RENAME_SITES = (".github/workflows/*.yml", "tests/*.py", "tests/*.sh",
                 ".claude/hooks/*.sh", ".claude/hooks/*.mjs")
 _DIFF_CALL = re.compile(r"""git diff|["']diff["']\s*,""")
 #: A `--name-only` diff that cannot meet a rename, or is one on purpose.
-_RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null", "--cached",
+_RENAME_EXEMPT = ("--no-renames", "hash-object -t tree /dev/null",
                   "rename-null-control")
 #: (file, text the line must contain, reason). Exact and per file.
 RENAME_ALLOW = (
@@ -2980,18 +2992,25 @@ def _selftest_renames(pin) -> None:
             '// git diff --name-only in a comment\n'  # rename-null-control
             'const a = git("diff", "--name-only", `${b}...HEAD`);\n'  # rename-null-control
             'const b = git("diff", "--no-renames", "--name-only", "HEAD");\n')
+        (Path(td) / "tests" / "c.sh").write_text(
+            'git diff --cached --name-only > files.txt\n'  # rename-null-control
+            'n=$(git diff --cached --no-renames --name-only | wc -l)\n')
         (Path(td) / "tests" / "z.sh").write_text(
             'git diff \\\n  --name-only "$B"...HEAD\n'  # rename-null-control
             'git diff \\\n  --no-renames --name-only HEAD\n')
         bad_m, _ = rename_sites(Path(td))
         (Path(td) / "tests" / "y.mjs").unlink()
         (Path(td) / "tests" / "z.sh").unlink()
+        (Path(td) / "tests" / "c.sh").unlink()
         bad_t, stale_t = rename_sites(Path(td))
     pin("the census reads .mjs: it refuses the porcelain JS diff, not its twin or the comment",
         [b for b in bad_m if b.startswith("tests/y.mjs:")] == ['tests/y.mjs:2: const a = git("diff", "--name-only", `${b}...HEAD`);'],  # rename-null-control
         str(bad_m))
     pin("the census joins a backslash continuation: it refuses the split porcelain diff at its first line",
         [b for b in bad_m if b.startswith("tests/z.sh:")] == ['tests/z.sh:1: git diff --name-only "$B"...HEAD'],  # rename-null-control
+        str(bad_m))
+    pin("the census refuses a planted --cached name-only diff that builds a list, not its --no-renames twin",
+        [b for b in bad_m if b.startswith("tests/c.sh:")] == ['tests/c.sh:1: git diff --cached --name-only > files.txt'],  # rename-null-control
         str(bad_m))
     pin("the census refuses a planted rename-detecting diff, and only it",
         bad_t == ['tests/x.py:1: a = run(["git", "diff", "--name-only", "b...h"])'], str(bad_t))  # rename-null-control
