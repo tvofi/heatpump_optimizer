@@ -1705,7 +1705,7 @@ B
   [ $rc != 0 ] && echo "$out" | grep -q "cannot read the check runs" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
   expect "card C8: an unreadable check-run read at WAIT refuses, never read as concluded" $?
   ci="$(cd "$(dirname -- "$0")/../../.." && pwd)/.github/workflows/ci.yml" bad=
-  for name in "${CHEAP_CHECKS[@]}"; do cheap_caller_ok "$name" "$ci" || bad="$bad $name"; done
+  for name in "${CHEAP_CHECKS[@]}"; do cheap_caller_ok "$name" "$ci" || bad="$bad $name"; done  # never-empty: CHEAP_CHECKS is the literal three-entry array above
   [ -f "$ci" ] && [ -z "$bad" ]
   expect "card C8: every cheap check's ci.yml caller needs only prelude, so its run exists at WAIT (none of:$bad)" $?
   ! cheap_caller_ok "pr-contract / pr-contract" "$ci" && ! cheap_caller_ok "nosuchjob / x" "$ci"
