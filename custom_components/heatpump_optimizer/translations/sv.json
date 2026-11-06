@@ -749,7 +749,7 @@
               "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
               "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 °C räcker för en vanlig dusch.",
               "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
-              "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
+              "dhw_setpoint_entity": "Valfritt. Number-, helper-, climate- eller water_heater-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
             }
           },
           "legionella": {

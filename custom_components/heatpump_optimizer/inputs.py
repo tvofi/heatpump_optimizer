@@ -448,16 +448,23 @@ SETPOINT_SERVICES = {
     "climate": ("set_temperature", "temperature"),
     "number": ("set_value", "value"),
     "input_number": ("set_value", "value"),
+    "water_heater": ("set_temperature", "temperature"),
 }
 #: The attributes a set-point entity states its range in: a climate entity's
-#: ``min_temp``/``max_temp``, every other domain's ``min``/``max``.
-_RANGE_KEYS = {"climate": ("min_temp", "max_temp")}
+#: and a water heater's ``min_temp``/``max_temp``, every other domain's
+#: ``min``/``max``.
+_RANGE_KEYS = {"climate": ("min_temp", "max_temp"), "water_heater": ("min_temp", "max_temp")}
 _NUMBER_RANGE_KEYS = ("min", "max")
 
 
 def _instance_unit(hass: Any) -> Any:
     units = getattr(getattr(hass, "config", None), "units", None)
     return getattr(units, "temperature_unit", None)
+
+
+#: Domains whose target is the ``temperature`` attribute in the instance's
+#: unit system, not the state: climate and water_heater.
+_ATTRIBUTE_TARGET_DOMAINS = ("climate", "water_heater")
 
 
 def setpoint_unit(hass: Any, entity_id: str, state: Any) -> Any:
@@ -468,7 +475,7 @@ def setpoint_unit(hass: Any, entity_id: str, state: Any) -> Any:
     attribute happens to be present (D12-s3-01). Any other entity declares
     its own.
     """
-    if entity_id.split(".", 1)[0] == "climate":
+    if entity_id.split(".", 1)[0] in _ATTRIBUTE_TARGET_DOMAINS:
         return _instance_unit(hass)
     return state_unit(state)
 
@@ -522,7 +529,7 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
 #: (tvofi, 2026-10-19).
 DEFAULT_SETPOINT_STEP = 1.0
 #: The attribute a set-point entity states its step in, per domain.
-_STEP_KEYS = {"climate": "target_temp_step"}
+_STEP_KEYS = {"climate": "target_temp_step", "water_heater": "target_temp_step"}
 _NUMBER_STEP_KEY = "step"
 _ROUNDINGS: dict[str, Callable[[float], int]] = {
     "nearest": round, "up": math.ceil, "down": math.floor,
