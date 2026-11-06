@@ -40776,6 +40776,62 @@ R.check(
     f"copy-all: {_PG_NULL_STAGE}; no-op guard: {_PG_NULL_GUARD}",
 )
 
+# The round's plan page (R10-OUTSIDE-INTAKE): three steps, pinned by RUNNING
+# the two that move files and by their order. The page is staged from the
+# dispatched ref's tree BEFORE the release is checked out (a tag older than
+# plan_public.py could not stage it), the release checkout is skipped on a tag
+# push and takes the newest `v*` tag by version, never by string order, and
+# the page reaches `_site/plan/` only when a page was staged.
+_PG_PLAN = ("Stage the round's plan page", "Check out the release", "Add the round's plan page")
+
+
+def _pg_plan_defects(text: str) -> "list[str]":
+    doc = _yaml.safe_load(text) or {}
+    steps = [s or {} for j in (doc.get("jobs") or {}).values() for s in ((j or {}).get("steps") or [])]
+    idx = {s.get("name"): i for i, s in enumerate(steps)}
+    if any(n not in idx for n in (*_PG_PLAN, _PG_STAGE, _PG_GUARD)):
+        return [f"a plan step is missing: {[n for n in _PG_PLAN if n not in idx]}"]
+    out: "list[str]" = []
+    st, co, add = (steps[idx[n]] for n in _PG_PLAN)
+    if not idx[_PG_PLAN[0]] < idx[_PG_PLAN[1]] < idx[_PG_STAGE] < idx[_PG_PLAN[2]] < idx[_PG_GUARD]:
+        out.append("plan steps out of order: stage the page, check out the release, "
+                   "stage the site, add the page, then the guard")
+    if "tools/audit/seat/plan_public.py stage" not in str(st.get("run", "")):
+        out.append("the plan page is not staged by plan_public.py")
+    if "ref_type != 'tag'" not in str(co.get("if", "")):
+        out.append("the release checkout is not skipped on a tag push")
+    with tempfile.TemporaryDirectory() as tmp:
+        repo = Path(tmp) / "repo"
+        repo.mkdir()
+        git = ["git", "-c", "user.name=t", "-c", "user.email=t@t"]
+        env = throwaway_git_init(repo, "-q")
+        for tag in ("v1.9.0", "v1.10.0", "x9"):
+            (repo / "f").write_text(tag)
+            subprocess.run(git + ["add", "f"], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["commit", "-qm", tag], cwd=repo, check=True, env=env)
+            subprocess.run(git + ["tag", tag], cwd=repo, check=True, env=env)
+        rc = _pg_run(str(co.get("run", "")), repo)
+        if rc != 0 or (repo / "f").read_text() != "v1.10.0":
+            out.append(f"the release checkout took {(repo / 'f').read_text()!r} (rc={rc}), not v1.10.0")
+        (repo / "_site").mkdir()
+        if _pg_run(str(add.get("run", "")), repo) != 0 or (repo / "_site" / "plan").exists():
+            out.append("with no staged page, the add step put something at _site/plan")
+        page = Path(tmp) / "plan-site" / "plan" / "index.html"
+        page.parent.mkdir(parents=True)
+        page.write_text("<!doctype html>plan")
+        if _pg_run(str(add.get("run", "")), repo) != 0 or not (repo / "_site/plan/index.html").is_file():
+            out.append("a staged page did not reach _site/plan/index.html")
+    return out
+
+
+_PG_PLAN_GOT = _pg_plan_defects(_PG_WF.read_text()) if _PG_WF.is_file() else ["no pages.yml"]
+R.check(
+    "the Pages workflow stages the round's plan page before it checks out the newest release, "
+    "and adds it under plan/ only when one was staged",
+    not _PG_PLAN_GOT,
+    "; ".join(_PG_PLAN_GOT[:4]),
+)
+
 # Classified as its siblings are (the `_NON_GATE_WORKFLOWS` loop above): this
 # script reads it, so an edit to it selects this script; it sets no gate
 # variable and runs no gate script, so it never forces FULL.

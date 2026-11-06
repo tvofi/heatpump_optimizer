@@ -9,11 +9,12 @@
   `S/roster-drain.queue`, each exact line marked done, a refusal never
   retried, `hold <tree-path> <op>` released once main carries the path and
   `HOLD-STALE` after 24 h), `plan-beat` (`replan.py` then `state_docs.py
-  --push --mirror --plan`), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
+  --push --mirror --plan`, then a `pages.yml` dispatch after a state push that
+  landed, so `plan_public.py` republishes the public page), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
   --board` pass, its refusals and `STUCK` forwarded) `head-watch`
   (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
-  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run). Each writes only actionable lines to
+  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run) and `outside-intake` (`outside_intake.py list` from the overlay's `intake_since`, with a cursor under `state/`: its `OUTSIDE` lines). Each writes only actionable lines to
   `S/digest/jobs/<row>`; `fold` concatenates them into `S/digest/digest.txt`,
   diffs `new.txt` and `gone.txt`, and touches `new.stamp` only on a new line,
   so the orchestrator's one wake reads `new.stamp` and `events.txt`. A null
