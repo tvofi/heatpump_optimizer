@@ -107,6 +107,12 @@ def gate_required() -> list[str]:
     return sorted({n for names in REQUIRED.values() for n in names})
 
 
+def started(run: dict) -> bool:
+    """Whether the run's `gate` job has started: listed `in_progress` or `completed`,
+    never merely listed (GitHub lists it `waiting` from the run's start, R3-2)."""
+    return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED
+
+
 def busy(ctx: dict, runs_at_head: list[dict]) -> list:
     """The OTHER runs at this head still adding a source: unfinished, not held, not
     judging, and not a LATER run whose `gate` has started. A started gate has run
@@ -119,7 +125,7 @@ def busy(ctx: dict, runs_at_head: list[dict]) -> list:
     lower id decides, the higher waits on it, so the waits stay acyclic."""
     return sorted(r["id"] for r in runs_at_head
                   if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r)
-                  and not (r["id"] > ctx["run_id"] and (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED))
+                  and not (r["id"] > ctx["run_id"] and started(r)))
 
 
 def deferral(ids: list) -> str:
@@ -279,7 +285,7 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         waiting = busy(ctx, api["runs_at_head"])
         bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
         if why == [deferral(waiting)] and deferring(kind, pr, claim) and not all(
-                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED for r in api["runs_at_head"] if r["id"] in waiting):
+                started(r) for r in api["runs_at_head"] if r["id"] in waiting):
             bound = 0                           # C3: a waited run's gate is the later verdict; hold no runner
         if ok or now() - t0 + POLL_S > bound:
             break

@@ -223,18 +223,14 @@ MUTANTS = [
      ''),
     ("M15 unreadable title", '                bad.append(f"run {r[\'id\']}: unreadable title {r[\'title\']!r}")\n', ''),
     ("M16 B3 on push", 'extra=PUSH_ONLY),', 'extra=None),'),
-    # r10-gate-busy-defer: the tie-break between two started gates at one head, and C3's at-once bound.
-    ("M17 busy tie-break deleted",
-     '\n                  and not (r["id"] > ctx["run_id"] and (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED))',
-     ')'),
-    ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and (r.get', 'r["id"] < ctx["run_id"] and (r.get'),
-    ("M19 busy tie-break on a listed gate (R3-2 EARLY)", '(r.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
-     '"gate" in (r.get("jobs") or {})'),
-    ("M20 C3 at once beside any run", ' and not all(\n                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED'
-     ' for r in api["runs_at_head"] if r["id"] in waiting)', ''),
+    # r10-gate-busy-defer: the tie-break between two started gates at one head, and C3's at-once bound
+    # beside any run whose gate has not started (#3246 review).
+    ("M17 busy tie-break deleted", '\n                  and not (r["id"] > ctx["run_id"] and started(r)))', ')'),
+    ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and started(r)', 'r["id"] < ctx["run_id"] and started(r)'),
+    ("M19 a listed gate read as started (R3-2 EARLY)", 'return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
+     'return "gate" in (run.get("jobs") or {})'),
+    ("M20 C3 at once beside any run", ' and not all(\n                started(r) for r in api["runs_at_head"] if r["id"] in waiting)', ''),
     ("M21 C3 waits beside any run", 'deferring(kind, pr, claim) and not all(', 'deferring(kind, pr, claim) and not True and all('),
-    ("M22 C3 waits beside a listed gate (R3-2 EARLY)", ' and not all(\n                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
-     ' and not all(\n                "gate" in (r.get("jobs") or {})'),
 ]
 
 
