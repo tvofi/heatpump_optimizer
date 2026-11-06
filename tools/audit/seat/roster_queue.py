@@ -8,7 +8,15 @@
     python3 -I tools/audit/seat/roster_queue.py loop [--every 300] ...
     python3 -I tools/audit/seat/roster_queue.py release-held --queue Q --edit-checkout DIR
     python3 -I tools/audit/seat/roster_queue.py unwired --edit-checkout DIR --open-issues FILE [--ref REF]
+    python3 -I tools/audit/seat/roster_queue.py show --edit-checkout DIR [--ref REF] [--stage S] [GROUP]
+    python3 -I tools/audit/seat/roster_queue.py diff --edit-checkout DIR REF_A REF_B
     python3 -I tools/audit/seat/roster_queue.py --self-test
+
+`show` and `diff` are read-only (`git show` of the roster at a ref, nothing
+written, nothing fetched): one line per group or every field of one group, and
+what changed between two refs (added, removed and changed groups and fields,
+carry entries by text; rc 1 when the refs differ, as diff's). They replace the
+scratch copies a seat rebuilds to read the roster.
 
 `run` applies queue lines FIRST..LAST (1-based; blank and `#` lines skipped, a
 leading line number dropped). Each line is `<op> <group> [arg] [--flag value ...]`, passed to
@@ -401,6 +409,85 @@ def unwired(roster, open_issues):
             if x.startswith("ISSUE-UNLISTED")]
 
 
+def roster_at(ref, cwd, rel=ROSTER_REL):
+    """The roster JSON at `ref`, read with `git show` only (read-only; carry 8)."""
+    s = _git("show", f"{ref}:{rel}", cwd=cwd)
+    if s.returncode:
+        raise RuntimeError(f"no {rel} at {ref}: {s.stderr.strip()[-120:]}")
+    return json.loads(s.stdout)
+
+
+def _groups(roster):
+    return {g["group"]: g for g in roster.get("groups", [])
+            if isinstance(g, dict) and "group" in g}
+
+
+def _short(v, n=70):
+    t = json.dumps(v, sort_keys=True) if not isinstance(v, str) else v
+    return t if len(t) <= n else t[:n - 1] + "~"
+
+
+def show_roster(roster, group=None, stage=None):
+    """Lines for `show`: one line per group (`GROUP stage pr=N after=K carries=N`,
+    optionally only one `resume.stage`), or every field of one group, its carry
+    entries numbered and the brief cut to 100 characters. None when `group`
+    names no group."""
+    gs = _groups(roster)
+    if group is not None:
+        g = gs.get(group)
+        if g is None:
+            return None
+        out = [f"{group}"]
+        for k, v in g.items():
+            if k == "resume" and isinstance(v, dict):
+                out += [f"  resume.{rk}: {_short(rv, 100)}" for rk, rv in v.items()]
+            elif k == "carry":
+                out.append(f"  carry: {len(v)} entries")
+                out += [f"    [{i}] {_short(c, 100)}" for i, c in enumerate(v)]
+            elif k == "brief":
+                out.append(f"  brief: {len(v)} chars: {_short(v, 100)}")
+            else:
+                out.append(f"  {k}: {_short(v, 100)}")
+        return out
+    out = []
+    for name, g in gs.items():
+        r = g.get("resume") or {}
+        if stage and r.get("stage") != stage:
+            continue
+        out.append(f"{name} {r.get('stage')} pr={r.get('pr')} after={len(g.get('after') or [])} "
+                   f"carries={len(g.get('carry') or [])}")
+    return out
+
+
+def diff_rosters(a, b):
+    """Lines describing what changed from roster `a` to `b`: `+ G` an added
+    group, `- G` a removed one, `~ G field: old -> new` a changed field
+    (`resume.<key>` for the resume dict), `~ G carry +<text>` / `-<text>` per
+    carry entry added or removed, `~ G brief` with the two lengths. Empty when
+    the rosters hold the same groups, field for field."""
+    ga, gb = _groups(a), _groups(b)
+    out = [f"- {g}" for g in ga if g not in gb] + [f"+ {g}" for g in gb if g not in ga]
+    for g in ga:
+        if g not in gb:
+            continue
+        x, y = ga[g], gb[g]
+        flat = lambda d: {**{k: v for k, v in d.items() if k != "resume"},  # noqa: E731
+                          **{f"resume.{k}": v for k, v in (d.get("resume") or {}).items()}}
+        fx, fy = flat(x), flat(y)
+        for k in dict.fromkeys([*fx, *fy]):
+            if fx.get(k) == fy.get(k):
+                continue
+            if k == "carry":
+                ca, cb = fx.get(k) or [], fy.get(k) or []
+                out += [f"~ {g} carry -{_short(c, 90)}" for c in ca if c not in cb]
+                out += [f"~ {g} carry +{_short(c, 90)}" for c in cb if c not in ca]
+            elif k == "brief":
+                out.append(f"~ {g} brief {len(fx.get(k) or '')} -> {len(fy.get(k) or '')} chars")
+            else:
+                out.append(f"~ {g} {k}: {_short(fx.get(k))} -> {_short(fy.get(k))}")
+    return out
+
+
 def _raises(f):
     try:
         f()
@@ -647,6 +734,48 @@ def _self_test():
         ck("unwired: an open issue no group lists is reported",
            unwired(ros, [5, 9]) == ["ISSUE-UNLISTED #9"])
         ck("unwired: every open issue listed reports nothing (null)", unwired(ros, [5]) == [])
+        # show / diff (carry 8): read-only, over `git show` of two refs
+        base_r = json.loads(_git("show", f"{sha}:{ROSTER_REL}", cwd=repo).stdout)
+        new_r = json.loads(json.dumps(base_r))
+        new_r["groups"][0]["carry"].append("second carry")
+        new_r["groups"][0]["resume"] = {"stage": "done", "pr": 7}
+        new_r["groups"].append({"group": "H", "carry": [], "resume": {"stage": "not-started"}})
+        (repo / ROSTER_REL).write_text(json.dumps(new_r))
+        _git("commit", "-qam", "r2", cwd=repo, env=env)
+        sha2 = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
+        before = (repo / ROSTER_REL).read_bytes()
+        d = diff_rosters(roster_at(sha, repo), roster_at(sha2, repo))
+        ck("diff: an added group, a changed resume field and an added carry are each one line",
+           d[0] == "+ H" and "~ G carry +second carry" in d
+           and "~ G resume.stage: null -> done" in d, d)
+        ck("diff: a removed group is `- G`",
+           diff_rosters(roster_at(sha2, repo), roster_at(sha, repo))[0] == "- H"
+           and "~ G carry -second carry" in diff_rosters(roster_at(sha2, repo), roster_at(sha, repo)))
+        ck("diff: the same ref twice is empty (null)",
+           diff_rosters(roster_at(sha2, repo), roster_at(sha2, repo)) == [])
+        ck("diff: a carry entry replaced by another is one - and one +, not unchanged (count alone is blind)",
+           sorted(x[:11] for x in diff_rosters({"groups": [{"group": "G", "carry": ["a"]}]},
+                                               {"groups": [{"group": "G", "carry": ["b"]}]}))
+           == ["~ G carry +", "~ G carry -"])
+        ck("show: one line per group, the stage and pr in it",
+           show_roster(roster_at(sha2, repo))
+           == ["G done pr=7 after=0 carries=2", "H not-started pr=None after=0 carries=0"])
+        ck("show --stage keeps only that stage (null: no filter lists both)",
+           show_roster(roster_at(sha2, repo), stage="done") == ["G done pr=7 after=0 carries=2"])
+        one = show_roster(roster_at(sha2, repo), "G")
+        ck("show G: every field, carries numbered, the brief absent here",
+           one[0] == "G" and "  resume.pr: 7" in one and "    [1] second carry" in one
+           and "  issues: [5]" in one, one)
+        ck("show: an unknown group is None, which the CLI makes rc 2",
+           show_roster(roster_at(sha2, repo), "NOPE") is None
+           and main(["show", "--edit-checkout", str(repo), "--ref", sha2, "NOPE"]) == 2)
+        ck("diff CLI: rc 1 when the refs differ, 0 when not, 2 for a missing ref",
+           main(["diff", "--edit-checkout", str(repo), sha, sha2]) == 1
+           and main(["diff", "--edit-checkout", str(repo), sha2, sha2]) == 0
+           and main(["diff", "--edit-checkout", str(repo), sha, "nosuchref"]) == 2)
+        ck("show and diff write nothing: the working tree and the index are as they were",
+           (repo / ROSTER_REL).read_bytes() == before
+           and _git("status", "--porcelain", cwd=repo, env=env).stdout == "")
         # loop: heals a missing lint clone, then applies and marks
         fresh("1 set-stage G done\n")
         lc = t / "healed"
@@ -690,6 +819,15 @@ def main(argv=None):
     uw.add_argument("--ref", default="origin/main")
     uw.add_argument("--open-issues", required=True,
                     help="JSON list of open issue numbers (or gh issue objects)")
+    sh_ = sub.add_parser("show")
+    sh_.add_argument("--edit-checkout", required=True)
+    sh_.add_argument("--ref", default="origin/main")
+    sh_.add_argument("--stage", help="only groups whose resume.stage is this")
+    sh_.add_argument("group", nargs="?")
+    df = sub.add_parser("diff")
+    df.add_argument("--edit-checkout", required=True)
+    df.add_argument("ref_a")
+    df.add_argument("ref_b")
     b = sub.add_parser("readback")
     b.add_argument("sha")
     b.add_argument("group")
@@ -718,6 +856,21 @@ def main(argv=None):
         out = unwired(json.loads(s_.stdout), [n for n in nums if isinstance(n, int)])
         print("\n".join(out) or "no unwired open issue")
         return 1 if out else 0
+    if a.cmd in ("show", "diff"):
+        try:
+            if a.cmd == "show":
+                lines = show_roster(roster_at(a.ref, a.edit_checkout), a.group, a.stage)
+                if lines is None:
+                    print(f"no group {a.group} in the roster at {a.ref}", file=sys.stderr)
+                    return 2
+            else:
+                lines = diff_rosters(roster_at(a.ref_a, a.edit_checkout),
+                                     roster_at(a.ref_b, a.edit_checkout))
+        except RuntimeError as e:
+            print(e, file=sys.stderr)
+            return 2
+        print("\n".join(lines) or ("no difference" if a.cmd == "diff" else "no group"))
+        return 1 if (a.cmd == "diff" and lines) else 0
     line, ok = readback(a.sha, a.group, a.file)
     print(line)
     return 0 if ok else 1

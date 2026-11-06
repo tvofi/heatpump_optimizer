@@ -67,14 +67,16 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
-    Q1-Q9  roster_queue.py's own self-test: the plain shlex.split line grammar
+    Q1-Q12 roster_queue.py's own self-test: the plain shlex.split line grammar
            (a trailing comment reaches the editor, Q1), the run-start snapshot
            written over a line appended since (Q2), a flag folded into the
            value (Q3), a held line released with its batch file absent (Q4),
            marking the wrong line (Q5), `all` run without --mark (Q6) and no
            lint-clone self-heal in `loop` (Q7), the batch path resolving its
            editor from the edit checkout, not the one `run` executes (Q8),
-           and a file that is no roster_edit executed by the batch loader (Q9).
+           a file that is no roster_edit executed by the batch loader (Q9), and
+           the read-only `diff` blind to removed groups (Q10), to a replaced
+           carry of equal count (Q11), and `show --stage` unfiltered (Q12).
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -291,6 +293,13 @@ PLANTS.update({
            "    if True:\n        return False\n"),
     "Q8": (RQ, "        re_ = load_editor(editor)\n",
            '        re_ = load_editor(str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py")))\n'),
+    "Q10": (RQ, "    out = [f\"- {g}\" for g in ga if g not in gb] + ",
+            "    out = [] + "),
+    "Q11": (RQ, "                out += [f\"~ {g} carry -{_short(c, 90)}\" for c in ca if c not in cb]\n"
+                "                out += [f\"~ {g} carry +{_short(c, 90)}\" for c in cb if c not in ca]\n",
+            "                if len(ca) != len(cb):\n"
+            "                    out.append(f\"~ {g} carry +{len(cb) - len(ca)}\")\n"),
+    "Q12": (RQ, "        if stage and r.get(\"stage\") != stage:\n", "        if False:\n"),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
 })
