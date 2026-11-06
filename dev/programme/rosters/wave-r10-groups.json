@@ -17271,6 +17271,44 @@
     "stage": "not-started"
    },
    "brief": "tools/ci/gate.py busy() lets two gate jobs at one head each defer to the other, so no gate judges. Two edit-run gates started within one second at one head each list the other's run as unfinished and not judging, and both fail in step \"Judge this head\" with \"run(s) at this head are still being judged; their gate decides\". Fix: a deterministic tie-break so exactly one of the concurrent gate runs at a head decides, without leaving a head with no judging gate and without a gate judging before a source that is still adding results. Failing test first, reproducing the two-run deferral from runs 42193153511 and 42192623509 (gate jobs 127833303340 and 127833295321); a mutant of the tie-break shown red by a named case; a null control: a single run at a head still judges, and a genuinely earlier unfinished run still defers. Say in the body which merges first against #3243 (R10-GATE-LEASE-TOCTOU). Source: #3239 round-1 verdict Red checks; reproduced on #3241 and #3236."
+  },
+  {
+   "group": "R10-CARRY-RESIDUE-2",
+   "lane": "IN",
+   "kind": "fix",
+   "class": "instrument",
+   "severity": "medium",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 2,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-CARRY-RESIDUE"
+   ],
+   "files": [],
+   "carry": [
+    "From the #3241 round-2 fix review (verdict/3241 3f4f6f63, reviewer finding 'Follow-up'), routed here by the round-3 minimal re-cut ruling of 2026-11-06: the body leaves `dev/governance/roles/standing-tick.md` unedited \"for the owner\", although that file states the ancestor-recarry test that the new `CARRY:` line implements. The brief allows no deferral, and a policy edit needs the owner's approval before merging, not before drafting (CLAUDE.md). So the repair round should draft the line naming `CARRY:` in this PR and surface it for the owner's review, or the body should record the owner's refusal. Carry: R10-CARRY-RESIDUE"
+   ],
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Part 2 of R10-CARRY-RESIDUE (#3241), split off by the three-round rule (round 3 is a minimal re-cut that builds only the review_owed blocked-head finding). This group builds what the re-cut routes here: the standing-tick.md policy line naming the `CARRY:` tick line (drafted for the owner's approving review before merging), and anything else the round-3 body routes here with a `Carry: R10-CARRY-RESIDUE-2` line. Each item gets its failing test first, mutation proof and null control where code is involved; defer none; after #3241 merges; files as for R10-CARRY-RESIDUE (set `files` in the body)."
   }
  ]
 }
