@@ -1,5 +1,15 @@
 R10-POLICY-ROLE-PACK (#2717, owner ruling tvofi 2026-10-24, recommendation (b)). Adds a per-role policy pack, the SessionStart line that names it, and the `nudge.md` step 3 carry. It is a partial delivery of #2717, so this pull request does not close the issue: `cloud_dispatch.py` cannot set the role variable (see Departures), and that residual stays carried on #2717.
 
+**This is a POLICY pull request: it merges only on the owner's approving review at its head** (see Approval).
+
+**Repair of the red at 9478bca5.** `governance / instrument-self-tests` failed: `pr_args self-test: 174 checks, 1 failed`, on the check "the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps" (`tools/audit/seat/pr_args.sh`, function `pr_pushers`).
+
+- Cause, measured: the census rule `PR_PUSHER_RULE='(^|[^A-Za-z0-9_])(app_)?push\.sh'` returns `tools/policy/role_pack.py`, and `PR_PUSHERS` gives it no entry. At 9478bca5, `bash -c '. tools/audit/seat/pr_args.sh; pr_pushers' | grep -v '^ok'` printed `OPEN tools/policy/role_pack.py: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS`. The same census at `origin/main` printed no `OPEN` line.
+- The matching lines are 46, 272 and 275 of `role_pack.py`: the docstring's "so `push.sh` does not match inside `app_push.sh`" and the `named_entries` self-test, which uses the two names as sample instrument names.
+- `role_pack.py` is a non-pusher. It imports only `argparse`, `fnmatch`, `re`, `sys` and `pathlib`. `grep -nE 'subprocess|os\.system|Popen|exec' tools/policy/role_pack.py` exits 1 (no line matches). The positive control for the pattern is the same `grep -cE` on `tools/audit/seat/merge_train.py`, the census's `runner-py`, which counts 27 matching lines.
+- The fix gives it the census's existing disposition for a file that names a pusher and runs none: one `mention:` entry in `PR_PUSHERS`, beside the ten `mention` siblings (`head_note.py`, `gh_read.py` and others). The rule itself is unchanged, so the census still refuses every new file that names a pusher.
+- Departure from the brief: the brief suggested "a rule that recognises a real push site rather than any mention". Not taken. A push site has no syntactic shape across `.sh`, `.py` and `.mjs` (an argv built from a variable), so a narrower rule would let a new runner pass undispositioned. That is the weakening the brief forbids. The census is deliberately over-inclusive, and every mention is dispositioned by hand.
+
 What lands:
 
 - `tools/policy/role_pack.py`: renders one role's pack (`fixer`, `fix-review`, `designer`, `design-review`, `root-cause`, `verifier`, `judge`, and `finder` for `COMMON.md`). A pack holds three things, each framed and byte-equal to its file:
@@ -7,8 +17,9 @@ What lands:
   - every rule under `dev/governance/rules/` whose `paths:` globs match the contract or `INSTRUMENTS.md`, derived at each render and never listed;
   - the `INSTRUMENTS.md` entry lines whose instrument the contract names as a whole token.
 - `role_pack.py check`: refuses a paraphrased line, a block that is missing, outside the role's plan or required but absent, a line outside every frame, and a pack larger than the files it frames. `sizes` prints the figures below. `--self-test` runs every role plus one mutant per rule. Each mutant must be refused by its own rule's message, so a mutant that some other rule catches does not count.
-- `.claude/hooks/session-start.sh`: when `HPO_SEAT_ROLE` names a role, the hook writes the pack to `git rev-parse --git-path role-pack-<role>.md` and prints one `role pack:` line after the seven clone-fact lines. When the variable is unset, its output is byte-equal to the base hook's. Its `--self-test`, which `policy_lint.mjs --hooks` runs in CI, adds seven arms: unset equals `report()` exactly; set is that output plus exactly one line; the named file checks clean; an unknown role prints a REFUSE line and the session still starts; `role_pack.py --self-test` passes.
+- `.claude/hooks/session-start.sh`: when `HPO_SEAT_ROLE` names a role, the hook writes the pack to `git rev-parse --git-path role-pack-<role>.md` and prints one `role pack:` line after the clone-fact lines. When the variable is unset, its output is byte-equal to the base hook's. Its `--self-test`, which `policy_lint.mjs --hooks` runs in CI, adds seven arms: unset equals `report()` exactly; set is that output plus exactly one line; the named file checks clean; an unknown role prints a REFUSE line and the session still starts; `role_pack.py --self-test` passes.
 - The `INSTRUMENTS.md` entry with its `instruments/role_pack.py.md` page, and a line in `governance.yml`'s `instrument-self-tests`, which `selftest_wiring.py --check` requires.
+- `tools/audit/seat/pr_args.sh`: the `PR_PUSHERS` entry for `tools/policy/role_pack.py` (the repair above).
 - `dev/governance/roles/nudge.md` steps 3 and 7 (Carry 4), covered under Forward-carry.
 
 Brief carries, in the review packet's 1-based numbering (the payload's 0-based `Carry <i>` is `Carry <i+1>` here):
@@ -34,16 +45,16 @@ Departures from the brief, each measured, with the alternatives and why each los
    - Alternative: split the pack below the cap. Lost, because the cap applies to the hook's whole stdout and there is one hook.
    - Alternative: `additionalContext` JSON. Lost, because the cap is applied to raw stdout before any JSON parsing.
 2. **CLAUDE.md is not in the pack.** The harness injects CLAUDE.md into every Claude Code session, and this hook is Claude Code's.
-   - In this seat's own transcript, CLAUDE.md arrived as a 14,693-character system-reminder before any hook output, and no tool result re-read it.
-   - Carrying it would put the same 14,358 characters in context twice. The rendered header says it was left out and why.
+   - In the first fixer's transcript, CLAUDE.md arrived as a system-reminder before any hook output, and no tool result re-read it.
+   - Carrying it would put the same text in context twice. The rendered header says it was left out and why.
 3. **`cloud_dispatch.py` does not set the variable.** The cloud payload has no per-session environment field. `cloud_dispatch.py`'s own self-test pins `session_context` to exactly `{allowed_tools, model, sources}` (its check "the ccr carries environment_id, session_context and one user event").
    - Inventing a field risks a payload the runner rejects.
    - The cloud environment's variables are per environment, not per seat.
    - So cloud seats get no pack from this pull request; the residual is carried below.
    - Alternative: rewrite the Role lines in the cloud prompt to `role_pack.py render`. Not taken, because it is no saving for the cloud fixer, which reads through Bash: see Figures, `read_set(Bash)` against `pack`.
-4. **Agent-tool subagents run no SessionStart hook**, measured at the base:
-   - This session's transcript holds 4 SessionStart hook attachments (3 `hook_success`, 1 `hook_non_blocking_error`).
-   - The transcript of a `frugal:scout` subagent it launched holds 0, and no "shallow clone:" line.
+4. **Agent-tool subagents run no SessionStart hook**, measured at the base by the first fixer:
+   - Its session's transcript held 4 SessionStart hook attachments.
+   - The transcript of a `frugal:scout` subagent it launched held 0, and no "shallow clone:" line.
    - So the hook's saving is not claimed for local Agent-tool seats. A local seat brief must name `python3 tools/policy/role_pack.py render <role> --out <path>` itself.
 
 Whether this needs the owner: `.github/CODEOWNERS` gives `/.claude/hooks/` and `/dev/governance/roles/` to `@tvofi`. `policy_lint.mjs`'s `POLICY_GLOBS` holds the roles directory (`nudge.md` is policy) but not `.claude/hooks/` or `tools/policy/`. The roster's `owner_gate` is "mandated approval under 6329234399".
@@ -54,23 +65,25 @@ Owed, not yet given. The diff touches policy: `dev/governance/roles/nudge.md` (`
 
 ## Head
 
-452394cb23d1a5c9f3fd1cd802ba0b684ecb98f0, merge base b36679ceaa65a08a67a84f0d934c93aa15f7c7f3 (= `origin/main` at the time of measurement, 2026-11-06T13:40Z).
+842987e20a4ebcfd508bdc41b77ffbfff5efb29d. It descends from the PR head 9478bca58c43bc4067e6e5599491cd03c03e1cf8 by two commits:
 
-- `main` moved twice during the work, from 7e8939d38 to 5421413b5 (#3243: `tests/gate_lock.py`, a delivery row) and then to b36679ce (#3238: a triage record, its harness, `tests/closures.json`). Neither touches a file of this diff. Each was merged, and `git merge-tree` reported each clean.
-- Re-taken at this head:
-  - the mutation proof, 10 of 10 killed;
-  - the unset byte-equality against `origin/main`'s hook;
-  - `role_pack.py sizes`, `--self-test` and `check`;
-  - the hook's self-test;
-  - the gate scope, `tests/entities.py` and `tests/harness_headers.py`;
-  - `tests/structure.py`, the architecture score and `prepr.sh`.
-- The cloud environment exports `GIT_AUTHOR_*`/`GIT_COMMITTER_*` as `seat`. The branch's own commits were re-authored as `hpo-fixer` before the second merge, with the tree unchanged (`git diff --quiet e4c841444374 5918f3f522fa && echo TREE IDENTICAL` printed `TREE IDENTICAL`).
+- the repair commit, `pr_args: disposition tools/policy/role_pack.py in the pusher census as a mention`;
+- a merge of `origin/main` at 30638cf0c8a7114019682f87051a4a282d2981ff, stamped 2026-11-06 (UTC), which `git merge-tree --write-tree origin/main HEAD` reported clean. Main's delta is 14 files: delivery rows, `carry-201.json` and the `beat_jobs` instrument. None is a file of this diff. `git grep -nE '(^|[^A-Za-z0-9_])(app_)?push\.sh' origin/main -- tools/audit/seat/beat_jobs.py tools/audit/seat/beat_jobs_selftest.py` exited 1 (no match), so main's delta adds no census seam.
 
-- Step refs left behind: deleting `handoff-wip/r10-policy-role-pack` (e4c84144, pre-rewrite) and `handoff-wip/r10-policy-role-pack-body` (a body `body_push.sh` refused and kept) was refused at the remote. Five delete pushes, with backoff, each ended `send-pack: unexpected disconnect`, while ordinary pushes from the same container succeeded. Neither ref is this head; the orchestrator can delete both.
+Every figure below was re-taken at 842987e2.
+
+`tools/pr/prepr.sh` ran clean on 842987e2 (`PRE-PR: 842987e2... rc=0`). `origin/main` was still 30638cf0 when the code was pushed, so no second run was owed.
+
+- Step ref not moved: `handoff-wip/r10-policy-role-pack` still holds the first fixer's pre-rewrite e4c841444, which is not an ancestor of the PR head. A fast-forward push to it was refused, and this seat does not force-push, so no step was pushed there. The first body already reported that its delete failed. The final delete after this handoff is attempted, and the result is reported by the seat.
 
 ## Mutation proof
 
-Run from a detached worktree at the head. Each mutant edits one predicate, then runs `python3 -I tools/policy/role_pack.py --self-test` and `bash .claude/hooks/session-start.sh --self-test`, then restores the file. 10 of 10 mutants were killed. The first FAIL line of each:
+The repair, from a detached worktree at the repair commit with its one production line deleted (`sed -i '\#^tools/policy/role_pack.py mention:#d' tools/audit/seat/pr_args.sh`):
+
+- `pr_pushers` printed `OPEN tools/policy/role_pack.py: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS` and exited 1.
+- `bash tools/audit/seat/pr_args.sh --self-test` printed `FAIL the pusher census: the rule returns exactly the dispositioned paths, and every runner reaps` and `pr_args self-test: 174 checks, 1 failed`. That is CI's red at 9478bca5, check for check. Restored, it is `174 checks, 0 failed`.
+
+The pack, from the first fixer's run at 452394cb (none of those files changed since). Each mutant edits one predicate, then runs `python3 -I tools/policy/role_pack.py --self-test` and `bash .claude/hooks/session-start.sh --self-test`, then restores the file. 10 of 10 mutants were killed. The first FAIL line of each:
 
 - `check` byte-equality (`elif text != source` -> `elif False`): `FAIL mutant refused by its rule -- one contract line paraphrased: not refused`
 - `check` required file (`if rel not in got_paths` -> `if False`): `FAIL mutant refused by its rule -- INSTRUMENTS.md dropped from the role's list: not refused`
@@ -83,29 +96,26 @@ Run from a detached worktree at the head. Each mutant edits one predicate, then 
 - hook prints the line when set (call -> `:`): `FAIL set, the output is the unset output plus one role pack line`
 - hook unset output gains a line (`report; echo extra`): `FAIL unset, the hook prints the clone-fact report and not a byte more`
 
-The last mutant survived the first version of the hook self-test. That version compared the set run only with the unset run, so a line added to both runs passed. Commit 3 added the exact comparison with `report()`. Restored, both self-tests are green: `35 passed, 0 failed` and `24 passed, 0 failed`.
-
 ## Null control
 
-- Unset, the base hook against the head hook: `git show origin/main:.claude/hooks/session-start.sh > base-hook.sh`. Both are run with `CLAUDE_PROJECT_DIR` set to the worktree and `env -u HPO_SEAT_ROLE`, then `cmp base.out head.out && echo BYTE-EQUAL` printed `UNSET: BYTE-EQUAL (7 lines)`. The same head with `HPO_SEAT_ROLE=fixer` differs from the base output, as it must (8 lines), so the comparison can see a difference.
-- `role_pack.py check` with no argument checks every role's rendered pack clean. That is the null control for every mutant above.
-- `tests/entities.py`: at the first merge base 7e8939d38 it read `ALL 2632 ENTITY CHECKS PASSED`, and at this head it reads `ALL 2637 ENTITY CHECKS PASSED` (#3243 added checks). The FAIL lines that differ between runs are fixtures or timing that the summary does not count: `a8:register_once`'s fixture names, and `hb:positive_control`'s 600 ms spin reading.
+- The census is not weakened. At 842987e2, the self-test's census arms all pass, including "a new script that runs app_push.sh is refused as undispositioned", "a runner without pr_exit_trap is refused", and the arm "null control: the same runner without its branch lock needs no push lock". A rule that had been narrowed would fail the first of these.
+- The census at `origin/main` (`pr_pushers "" origin/main`) printed no `OPEN` line, so the red was this diff's, not main's.
+- At 842987e2, `pr_pushers` exits 0 and prints no `OPEN` line. Its `ok` lines and `PR_PUSHERS`'s non-empty lines are equal in number, which is the self-test's own equality.
+- Unset, the base hook against the head hook: byte-equal (first fixer, 452394cb; the hook is unchanged since). The hook's self-test at 842987e2 holds the same assertion: `24 passed, 0 failed`.
+- `role_pack.py check` with no argument checks every role's rendered pack clean at 842987e2. That is the null control for every pack mutant above.
 
 ## Figures
 
+- The pusher census, the class rule that enumerates this red's seams: `bash -c '. tools/audit/seat/pr_args.sh; pr_pushers'`. Every path `PR_PUSHER_RULE` returns under `tools/` gets a disposition. At 842987e2 it prints no `OPEN` line, so every returned seam is dispositioned. `tools/policy/role_pack.py` is closed in this diff, and the rest were already guarded by their `PR_PUSHERS` entries.
+- `bash tools/audit/seat/pr_args.sh --self-test`: `pr_args self-test: 174 checks, 0 failed`.
 - The pack against the read set it replaces, in characters (`python3 -I tools/policy/role_pack.py sizes`). The rule: `read_set(Read)` is the contract, plus the rules a Read of it loads, plus the whole `INSTRUMENTS.md`. `read_set(Bash)` is the contract plus `INSTRUMENTS.md`, because a Bash read loads no rule. `pack` is the rendered pack. Tokens are not counted; characters are the unit.
   - Against a Read-tool opening, the pack is smaller for every role: fixer 42,744 against 55,676; judge 22,824 against 36,737. The saving is `INSTRUMENTS.md` less the entries a contract names (fixer 8, fix-review 3, judge 1, the rest 0), less the frames.
-  - Against a Bash opening, the pack is larger: fixer 42,744 against 36,004. The pack carries the four rules (19,672 characters) that a seat bound by them would otherwise not have in context.
+  - Against a Bash opening, the pack is larger: fixer 42,744 against 36,004. The pack carries the rules that a seat bound by them would otherwise not have in context.
   - So the tokens fall only for a seat that opens with the Read tool. This pull request claims nothing for the rest.
 - The pack's own size per role: `python3 -I tools/policy/role_pack.py check`. Every pack is over the 10,000-character hook cap, which is departure 1.
-- The policy re-read at the base, from local transcripts. There is no token reader: R10-FLOW-BOARD's `merge_throughput.py flow` has no token section, by `grep -n "token\|transcript" tools/audit/merge_throughput.py`, which printed nothing. The sample is this session, n=1, a cloud fixer:
-  - one Bash tool result of `fixer.md`, 20,807 characters;
-  - one Bash tool result carrying the hook and the head of `INSTRUMENTS.md`, 17,996 characters;
-  - CLAUDE.md loaded by the harness, 14,693 characters, and not re-read.
-  - No reviewer or designer transcript exists in this container. Those two numbers are not measured here.
-- The rules a contract's read loads (`role_pack.py plan`, through `sizes`): `brief-citations.md`, `defect-root-cause.md`, `finding-propagation.md` and `writing-for-agents.md`. All four match `dev/governance/**`. No rule glob matches `tools/audit/seat/INSTRUMENTS.md`.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. It runs `tests/entities.py` and `tests/harness_headers.py`; both pass at the head (`ALL 2637 ENTITY CHECKS PASSED`, `ALL 112 HARNESS HEADER CHECKS PASSED`).
-- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`.
+- `python3 -I tools/policy/role_pack.py --self-test`: `35 passed, 0 failed`. `bash .claude/hooks/session-start.sh --self-test`: `24 passed, 0 failed`.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` printed `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. It runs `tests/entities.py` and `tests/harness_headers.py`; both pass at 842987e2: `PYTHONPATH=tests/hastub python3 tests/entities.py` printed `ALL 2637 ENTITY CHECKS PASSED`, and `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` printed `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` at 842987e2.
 - `node tools/policy/policy_lint.mjs`: `TOTAL: 0 error(s) across 50 policy file(s)`.
 - `python3 -I tools/audit/seat/selftest_wiring.py --check`: `118 self-testing, 118 wired, 0 unwired` and `0 index gap(s)`.
 - `node tools/policy/rules_sync.mjs --check`: `RULES-SYNC ok`.
@@ -117,9 +127,15 @@ The last mutant survived the first version of the hook self-test. That version c
 
 ## Red checks
 
-- No CI check has run on this head yet.
-- Locally, `tests/entities.py`'s check "the template arm turns the acceptance red ... (and the real template keeps it green)" went red at an intermediate head. The cause was the first `nudge.md` wording, about 35 tokens over its `files_tokens` cap, so the full `policy_lint.mjs` exited 1.
-- The cheaper detector exists: `node tools/policy/policy_lint.mjs` names the cap in one line, and `prepr.sh` runs it. I ran `entities.py` first. The overrun was paid by cutting the wording (commit bba1d9528), not by a raise.
+CI has not run on 842987e2. These are the concluded reds of the previous head, 9478bca5, across all of its check runs (68, one page):
+
+- `governance / instrument-self-tests` (127946437283): failure, the pusher census, repaired in this diff.
+  - Class: a new file named a pusher, and the census was not run before the handoff.
+  - The cheaper detector exists: `bash -c '. tools/audit/seat/pr_args.sh; pr_pushers'` runs in under a second and names the file. Its standing cost is nil; it was not run because nothing that a fixer runs on a `tools/policy/` diff calls it. The first fixer's prepr did not run it, and `tools/policy/` is INERT, so no scoped gate script selects it.
+  - This job may also cancel at its 30-minute job timeout. That is main-wide, not this diff, and is cured by R10-PROCESS-SLIM #3245. The cheaper detector is the job's own duration on main.
+- `codeql / Analyze (python)` (127946437423): cancelled at its job limit. It is runner-side, not this diff: the diff adds one Python file, and `codeql / Analyze (javascript-typescript)` and `codeql / Analyze (actions)` passed. No cheaper detector exists for a runner-side time limit.
+- `pr-contract / pr-contract` (127970407299): failure. The body's `## Red checks` did not name `governance / instrument-self-tests`. This body is re-taken whole from `.github/PULL_REQUEST_TEMPLATE.md` and names every red. The cheaper detector is `tools/pr/prepr.sh --body-check`, run on this body before the handoff.
+- `gate` (127970744270, 127950388315, 127948146507): failure, the aggregate of the reds above. It has no cause of its own.
 
 ## Forward-carry
 
@@ -127,7 +143,6 @@ The last mutant survived the first version of the hook self-test. That version c
   - step 3 says they stay in, `Train.admit` routes them serial, and `--pre-flight` parks one the owner has not approved at that head (`Train.raise_hold`, `Train.policy_gate`);
   - step 3's hand command carries `--bot-prs --pre-flight`;
   - step 7 direct-merges what `--pre-flight` parked.
-  - Control: step 3 now says what `sweep_template.md` item (3) says ("A budget-file or policy head goes the batch's serial route, where `--pre-flight` parks ..."). `admit_verdict` routes nothing: it only refuses the record branch, an unreadable head and a verdict that does not carry, which step 3's "Leave out a `record:` pull request" matches. No contradiction remains.
   - Carry: dismissed: closed in this diff (nudge.md steps 3 and 7)
 - The cloud seats get no pack from this pull request. A cloud trigger's payload has no per-session environment field, so `HPO_SEAT_ROLE` can reach a cloud seat only through an environment per role (an overlay `environment_id` per role) or a runner field the tree does not yet know. That choice is the orchestrator's, with the owner. Carry: #2717
 - Agent-tool subagents run no SessionStart hook (departure 4), so a local seat's brief names `python3 tools/policy/role_pack.py render <role> --out <path>` and the seat reads that file once. That changes how the orchestrator writes a local seat brief. Carry: #2717
