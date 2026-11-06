@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_price_entity_state RETURN_DEL aedc4f4e",
-  "killed_by": "tests/features.py",
-  "old": "    return hass.states.get(entity_id)",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=1."
-}

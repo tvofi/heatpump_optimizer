@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/thermal_model.py:channel_heating_draw RETURN_DEL 1c7be7ad",
-  "killed_by": "tests/features.py",
-  "old": "    return np.where(channel_heating_steps(channel, other_kw), channel, 0.0)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
-}

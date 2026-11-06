@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_widen_to_fit GUARD_OFF 994e9389",
-  "killed_by": "tests/entities.py",
-  "old": "        if fitted_low is not None and number_value < fitted_low:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=1."
-}
