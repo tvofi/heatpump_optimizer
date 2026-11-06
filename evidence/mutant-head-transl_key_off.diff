@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/services.py b/custom_components/heatpump_optimizer/services.py
+index 8d774f6a6..af9d31843 100644
+--- a/custom_components/heatpump_optimizer/services.py
++++ b/custom_components/heatpump_optimizer/services.py
+@@ -1272,7 +1272,6 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
+         raise HomeAssistantError(
+             f"The interval diagnosis could not run for {entry_ids}: {error}",
+             translation_domain=DOMAIN,
+-            translation_key="diagnose_interval_failed",
+             translation_placeholders={"entry_ids": entry_ids, "error": error},
+         )
+     return {"diagnosis": reports}

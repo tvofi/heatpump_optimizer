@@ -1,0 +1,29 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7bcdcea16..549f2ed4b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1950,11 +1950,7 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
+         # Refused on the size asked for, before ``os.read`` allocates it: a
+         # frame's declared lengths come from the worker and are not trusted.
+         # Not a timeout, so the transport route reaps the worker mid-frame.
+-        if size > left_bytes:
+-            raise ValueError(
+-                f"reply frame exceeds {_REPLY_FRAME_MAX_BYTES} bytes"
+-            )
+-        left_bytes -= size
++        _asked = size
+         chunks: list[bytes] = []
+         while size > 0:
+             # Checked here, not left to the wait: a descriptor at end of
+@@ -1970,6 +1966,11 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
+                 break  # end of stream: the unpickler reports the short frame
+             chunks.append(chunk)
+             size -= len(chunk)
++        if _asked > left_bytes:
++            raise ValueError(
++                f"reply frame exceeds {_REPLY_FRAME_MAX_BYTES} bytes"
++            )
++        left_bytes -= _asked
+         return b"".join(chunks)
+ 
+     def readline() -> bytes:

@@ -1,0 +1,13 @@
+diff --git a/tests/entities.py b/tests/entities.py
+index 59180c087..57fdb69e6 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -41334,8 +41334,6 @@ for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
+             continue
+         # ``os.read(fd, n)`` is the descriptor read (the worker reply frame),
+         # never an InputReader: keyed by its receiver, not just the method name.
+-        if isinstance(_uxh_c.func.value, ast.Name) and _uxh_c.func.value.id == "os":
+-            continue
+         _uxh_arg = _uxh_c.args[0]
+         # `const.CONF_X` is the name `CONF_X`; any other shape is listed.
+         _uxh_a = _uxh_arg.attr if isinstance(_uxh_arg, ast.Attribute) else getattr(_uxh_arg, "id", ast.dump(_uxh_arg))
