@@ -133,6 +133,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -1140,6 +1141,22 @@ def self_test() -> int:
     # THE RELEASE WORKFLOW'S TREE CHECK AND ITS READ-BACK, driven from the YAML
     # text itself: the step's own `run:` block is cut out of release.yml and
     # run under bash, never a copy of its logic.
+    def _run_step(step: str, cwd, env: dict) -> int | None:
+        """Exit of release.yml step `step` under `bash -e -c` (GitHub's step
+        shell), or None when it is still running at RELEASE_STEP_TIMEOUT_S:
+        a step that does not end is a FAIL, never a hung self-test. It runs in
+        its own process group, killed whole at the bound, so no stub it started
+        outlives it in the temporary directory."""
+        proc = subprocess.Popen(["bash", "-e", "-c", release_step_script(step)], cwd=cwd, env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                start_new_session=True)
+        try:
+            return proc.wait(timeout=RELEASE_STEP_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            return None
+
     def _tree_check(tag: str, version: str, manifest: str, heading: str) -> int:
         with tempfile.TemporaryDirectory() as tree:
             t = pathlib.Path(tree)
@@ -1148,12 +1165,7 @@ def self_test() -> int:
             (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
                 json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
             (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
-            try:
-                return subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
-                                      env={**os.environ, "TAG": tag}, capture_output=True, text=True,
-                                      timeout=RELEASE_STEP_TIMEOUT_S).returncode
-            except subprocess.TimeoutExpired:
-                return None  # a step that does not end is a FAIL, never a hung self-test
+            return _run_step(RELEASE_TREE_STEP, t, {**os.environ, "TAG": tag})
     check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
           _tree_check("v7.1.1", "7.1.1", "7.1.1", "## v7.1.1") == 0)
     check("release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)",
@@ -1177,15 +1189,11 @@ def self_test() -> int:
             (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
             for stub in ("gh", "sleep"):
                 (b / stub).chmod(0o755)
-            try:
-                rc = subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
-                                    env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
-                                         "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
-                                    capture_output=True, text=True,
-                                    timeout=RELEASE_STEP_TIMEOUT_S).returncode
-            except subprocess.TimeoutExpired:
-                rc = None  # an unbounded read-back is a FAIL here, not a hung self-test
-            reads = int((b / "reads").read_text()) if (b / "reads").exists() else 0
+            rc = _run_step(RELEASE_PUBLISH_STEP, d, {**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
+                                                    "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"})
+            # A step killed at the bound can leave the stub mid-write: an empty count.
+            _n = (b / "reads").read_text().strip() if (b / "reads").exists() else "0"
+            reads = int(_n) if _n.isdigit() else -1
             return rc, reads, (b / "published").exists()
     check("release publish: an asset read back on the third read is published",
           _publish_step(3) == (0, 3, True))
