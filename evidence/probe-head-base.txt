@@ -1,0 +1,15 @@
+head: RESULT fd ok child=1746 stdout_fd=1106 slow=ProcessWorkerTimeout after 0.5s
+head: RESULT loopblocked worker state at t=2.05s while loop blocked: gone; outcome=ProcessWorkerTimeout after 2.1s
+head: RESULT leak 10 timeouts in 2.1s fds 7->5 children=['1801 R'] threads=1 lock_free=True
+head: RESULT interrupt raised=KeyboardInterrupt lock_free=True
+base: RESULT fd ok child=1827 stdout_fd=1106 slow=returned after 5.0s
+base: RESULT loopblocked worker state at t=2.05s while loop blocked: S; outcome=returned after 30.0s
+base: RESULT leak 10 timeouts in 50.0s fds 7->7 children=['1904 S', '1940 R'] threads=1 lock_free=True
+base: AttributeError: module 'custom_components.heatpump_optimizer.coordinator' has no attribute '_reply_ready'
+head: RESULT bigreply 1000000 bytes ok=True in 0.00s (pipe buffer 65536)
+head: RESULT bigreply 50000000 bytes ok=True in 0.56s (pipe buffer 65536)
+base: RESULT bigreply 1000000 bytes ok=True in 0.00s (pipe buffer 65536)
+base: RESULT bigreply 50000000 bytes ok=True in 0.10s (pipe buffer 65536)
+m1 (_reply_ready on select.select): RESULT fd FAIL ProcessWorkerUnavailable: process worker exited rc=None: filedescriptor out of range in select()
+m5 (deadline moved to the loop: asyncio.wait_for, selector wait unbounded): RESULT loopblocked worker state at t=2.05s while loop blocked: S; outcome=ProcessWorkerTimeout after 2.1s  (worker NOT reaped; the 30 s job keeps the executor thread and _PROCESS_LOCK)
+note: the 'R' child in the leak lines is the ps process itself (filter bug in my probe); head leaves no worker, base leaves the live worker in S.

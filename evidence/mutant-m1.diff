@@ -1,0 +1,14 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 22c73853b..0aedab459 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1919,7 +1919,8 @@ def _reply_ready(stream: Any, timeout_s: float) -> bool:
+     """
+     with selectors.DefaultSelector() as selector:
+         selector.register(stream, selectors.EVENT_READ)
+-        return bool(selector.select(timeout_s))
++        import select as _s
++        return bool(_s.select([stream], [], [], timeout_s)[0])
+ 
+ 
+ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
