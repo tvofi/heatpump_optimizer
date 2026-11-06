@@ -17308,7 +17308,8 @@
    ],
    "files": [],
    "carry": [
-    "From the #3241 round-2 fix review (verdict/3241 3f4f6f63, reviewer finding 'Follow-up'), routed here by the round-3 minimal re-cut ruling of 2026-11-06: the body leaves `dev/governance/roles/standing-tick.md` unedited \"for the owner\", although that file states the ancestor-recarry test that the new `CARRY:` line implements. The brief allows no deferral, and a policy edit needs the owner's approval before merging, not before drafting (CLAUDE.md). So the repair round should draft the line naming `CARRY:` in this PR and surface it for the owner's review, or the body should record the owner's refusal. Carry: R10-CARRY-RESIDUE"
+    "From the #3241 round-2 fix review (verdict/3241 3f4f6f63, reviewer finding 'Follow-up'), routed here by the round-3 minimal re-cut ruling of 2026-11-06: the body leaves `dev/governance/roles/standing-tick.md` unedited \"for the owner\", although that file states the ancestor-recarry test that the new `CARRY:` line implements. The brief allows no deferral, and a policy edit needs the owner's approval before merging, not before drafting (CLAUDE.md). So the repair round should draft the line naming `CARRY:` in this PR and surface it for the owner's review, or the body should record the owner's refusal. Carry: R10-CARRY-RESIDUE",
+    "From the #3234 re-cut (r10-replay-cost-budget-r2) dispatch, found by the dispatch seat: carry_audit landed/land-ops accept a group brief's #PR source token as a match, so --pr <n> hides every missing carry; repro: --pr '#3234' gives 0 missing vs --topic gives 7. Destination tools/audit/carry_audit.py landed() (the srcs keys are tested against group_text, which holds the brief); body_push's CARRY-LANDED gate and the fixer's land-ops run disagree on the same body. Carry: R10-CARRY-RESIDUE-2"
    ],
    "resume": {
     "stage": "not-started"
