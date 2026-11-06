@@ -93,8 +93,8 @@ jobs:
         run: |
           set -uo pipefail
           git fetch --no-tags --quiet origin '+refs/heads/handoff/audit-r*-plan:refs/remotes/origin/handoff/audit-r*-plan' || exit 1
-          python3 -I tools/audit/seat/plan_public.py stage --out "$RUNNER_TEMP/plan-site"
-          rc=$?
+          rc=0
+          python3 -I tools/audit/seat/plan_public.py stage --out "$RUNNER_TEMP/plan-site" || rc=$?
           if [ "$rc" -eq 2 ]; then
             echo "::warning title=No plan page::no round's plan page to publish; the site deploys without one"
           elif [ "$rc" -ne 0 ]; then

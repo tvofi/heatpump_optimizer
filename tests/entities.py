@@ -40816,6 +40816,22 @@ def _pg_plan_defects(text: str) -> "list[str]":
         (repo / "_site").mkdir()
         if _pg_run(str(add.get("run", "")), repo) != 0 or (repo / "_site" / "plan").exists():
             out.append("with no staged page, the add step put something at _site/plan")
+        # The stage step under the runner's own `-eo pipefail`, over a stub
+        # python3 and git: no page to publish (rc 2) warns and passes, a
+        # refused page (rc 1) is red.
+        stub = Path(tmp) / "bin"
+        stub.mkdir()
+        (stub / "git").write_text("#!/bin/sh\nexit 0\n")
+        for want_rc, py_rc in ((0, 2), (1, 1), (0, 0)):
+            (stub / "python3").write_text(f"#!/bin/sh\nexit {py_rc}\n")
+            for f in stub.iterdir():
+                f.chmod(0o755)
+            env = dict(os.environ, RUNNER_TEMP=tmp, GITHUB_OUTPUT=os.devnull, GITHUB_STEP_SUMMARY=os.devnull,
+                       PATH=f"{stub}{os.pathsep}{os.environ.get('PATH', '')}")
+            rc = subprocess.run(["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", str(st.get("run", ""))],
+                                cwd=repo, env=env, capture_output=True, text=True).returncode
+            if (rc != 0) != bool(want_rc):
+                out.append(f"the plan stage step exits {rc} when plan_public.py exits {py_rc}")
         page = Path(tmp) / "plan-site" / "plan" / "index.html"
         page.parent.mkdir(parents=True)
         page.write_text("<!doctype html>plan")
