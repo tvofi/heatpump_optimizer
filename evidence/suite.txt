@@ -1,0 +1,7 @@
+
+STRUCTURE RATCHET PASSED
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+brief_lint rc=0
+CONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out
+LEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption
