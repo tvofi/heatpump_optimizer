@@ -13,7 +13,7 @@
   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
   --board` pass, its refusals and `STUCK` forwarded) `head-watch`
   (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
-  arm=<arm> cut=<span>` line per `would-trip` guardrail arm and cut, never twice). Each writes only actionable lines to
+  arm=<arm> cut=<span>` line per sustained `would-trip` of a guardrail arm, never twice while the arm stays tripped; a failed run's `UNREADABLE` clears on the next readable run). Each writes only actionable lines to
   `S/digest/jobs/<row>`; `fold` concatenates them into `S/digest/digest.txt`,
   diffs `new.txt` and `gone.txt`, and touches `new.stamp` only on a new line,
   so the orchestrator's one wake reads `new.stamp` and `events.txt`. A null
