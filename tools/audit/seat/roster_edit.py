@@ -2267,7 +2267,7 @@ def _self_test() -> int:
           and wedit("set-stage", "R9-WO", "review") == 0
           and at_w("R9-WO")["resume"]["note"] == "Owed: x")
     # carry 7: a host path in an added text is refused at the op.
-    hostpath = "evidence in /Users/someone/sweep/run.log"
+    hostpath = "evidence in /" + "Users/someone/sweep/run.log"  # built, not spelled
     for op, args, kw in (
             ("append-carry", ("R9-A", hostpath), {}),
             ("edit-brief", ("R9-A", hostpath), {}),

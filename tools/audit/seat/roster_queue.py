@@ -323,12 +323,13 @@ BATCH_FILE_RE = re.compile(r"dev/programme/[A-Za-z0-9_./-]+\.md")
 
 
 def heal_clone(a):
-    """Provision a missing --lint-clone from the edit checkout's origin: the
-    `loop` self-heal. `run` still refuses a missing clone by name (#3020)."""
+    """Provision a missing --lint-clone as a detached worktree of the edit
+    checkout at origin/main: the `loop` self-heal. `run` still refuses a missing
+    clone by name (#3020). The edit checkout's branches and files are untouched."""
     if Path(a.lint_clone).is_dir():
         return False
-    url = _git("remote", "get-url", "origin", cwd=a.edit_checkout).stdout.strip()
-    r = _git("clone", "-q", url, a.lint_clone)
+    r = _git("worktree", "add", "-q", "--detach", a.lint_clone, "origin/main",
+             cwd=a.edit_checkout)
     if r.returncode:
         raise RuntimeError(f"lint clone self-heal failed: {r.stderr.strip()[-200:]}")
     return True
