@@ -1516,6 +1516,29 @@ class Train:
         except ValueError:
             return None
 
+    def gate_deferred(self, h: str, red: "list[str]") -> "list[int]":
+        """The ids of the other workflow runs at <h> still unfinished when the
+        only red is GATE, else []. An edit run's gate fails by design while a
+        code run at the same head is unfinished ("still being judged; their
+        gate decides", gate.py `deferral`), and that run's own gate check-run
+        does not exist until every unit finishes (ci.yml: gate needs
+        pr-contract, which needs every unit), so the check-runs alone show a
+        final red. The sibling is read from actions/runs?head_sha, never from
+        check-run presence. A failed or unparseable read is [] (the red
+        stands, today's skip); `wait_ci`'s polls bound the wait."""
+        if red != [GATE]:
+            return []
+        code, o = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[] | [.id, .status] | @tsv",
+                            f"repos/{self.repo}/actions/runs?head_sha={h}&per_page=100"])
+        if code:
+            return []
+        out = []
+        for ln in o.splitlines():
+            rid, _, st = ln.partition("\t")
+            if rid.strip().isdigit() and st.strip() not in ("completed", "action_required", ""):
+                out.append(int(rid))
+        return sorted(out)
+
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -1540,13 +1563,24 @@ class Train:
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
+        graced = False
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
                 _, pending, red = classify(last, only)
                 if not pending:
-                    return red
+                    sib = self.gate_deferred(h, red)
+                    if sib:
+                        graced = True
+                    elif graced and red == [GATE]:
+                        # the deciding run finished: gate.py re-runs the deferring gates
+                        # (its rerun cascade), which lists a beat later -- one more poll
+                        graced = False
+                    else:
+                        return red
+                    if sib:
+                        self.log(f"wait: gate red at {h[:8]} is a deferral while run(s) {sib} at this head are unfinished; waiting")
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
                 return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
@@ -4899,6 +4933,7 @@ def _self_test() -> int:
     _stop_self_test(check)
     _read_retry_self_test(check)
     _review_settle_self_test(check)
+    _gate_race_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
@@ -5347,6 +5382,63 @@ def _queue_self_test(check) -> None:
                                          auto_train_argv("o/r", tmp.name, None))
           and rc3 == 2 and len(seen_argv) == 2)
     tmp.cleanup()
+
+
+def _gate_race_self_test(check) -> None:
+    """The train gate race (2026-11-06, #3248's scene): the edit run's gate
+    failed at 14:55:47Z by design (gate.py `deferral`) while the code run
+    42237558473 was unfinished, its gate check-run listed only at 15:25:55Z.
+    `wait_ci` must wait while a sibling run at the head is unfinished and
+    still return a red gate once none is."""
+    H = "e" * 40
+    edit_gate = {"name": "gate", "status": "completed", "conclusion": "failure", "started_at": "2026-11-06T14:55:00Z",
+                 "id": 1, "check_suite": {"id": 11}}
+    code_gate = {"name": "gate", "status": "completed", "conclusion": "success", "started_at": "2026-11-06T15:25:00Z",
+                 "id": 2, "check_suite": {"id": 22}}
+
+    def world(checks, sibs):
+        calls: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            calls.append(a)
+            if "check-runs" in a:
+                cur = checks[min(len(calls_cr), len(checks) - 1)]
+                calls_cr.append(1)
+                return 0, "\n".join(json.dumps(c) for c in cur)
+            if "actions/runs?head_sha=" in a:
+                cur = sibs[min(len(calls_sb), len(sibs) - 1)]
+                calls_sb.append(1)
+                return (cur if isinstance(cur, tuple) else (0, cur))
+            return 0, ""
+        calls_cr: list = []
+        calls_sb: list = []
+        return run, calls, calls_sb
+
+    def wait(checks, sibs, polls=4):
+        run, calls, calls_sb = world(checks, sibs)
+        with tempfile.TemporaryDirectory() as d:
+            t = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None, polls=polls)
+            return t.wait_ci(H, only=[GATE]), calls_sb
+    busy = "42237558473\tin_progress\n42237558635\tcompleted\n"
+    done = "42237558473\tcompleted\n42237558635\tcompleted\n"
+    rerun_green = dict(edit_gate, conclusion="success", started_at="2026-11-06T15:26:00Z")
+    red, _ = wait([[edit_gate], [edit_gate], [rerun_green, code_gate]], [busy, done, done], polls=5)
+    check("a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, "
+          "not returned red (the #3248 scene)", red == [])
+    red, _ = wait([[edit_gate]], [busy], polls=3)
+    check("a sibling run that never finishes ends as TIMEOUT, bounded by the polls", red == ["TIMEOUT"])
+    red, sb = wait([[edit_gate]], [done])
+    check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
+          red == [GATE] and len(sb) == 1)
+    red, sb = wait([[edit_gate]], [(1, "boom")])
+    check("an unreadable runs listing leaves the red standing (today's skip)", red == [GATE] and len(sb) == 1)
+    unit = {"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}
+    run, calls, sb = world([[unit]], [busy])
+    with tempfile.TemporaryDirectory() as d:
+        r = Train("o/r", Path(d), None, "", (), 1, run=run, sleep=lambda s: None, log=lambda s: None,
+                  polls=3).wait_ci(H, only=["fast"])
+    check("a failed unit beside an unfinished sibling is final: only the gate defers", r == ["fast"] and not sb)
 
 
 def _review_settle_self_test(check) -> None:
