@@ -1959,8 +1959,9 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             # solve, every reload and the stop path until a restart.
             # A stream with no descriptor (an in-memory one) has nothing to
             # wait on and is read as before; the worker's pipe always has one.
-            try:
-                has_fd = stdout.fileno() >= 0
+            try:  # a real descriptor is never negative; a stream without one raises
+                stdout.fileno()
+                has_fd = True
             except (AttributeError, OSError, ValueError):
                 has_fd = False
             timeout = PROCESS_REPLY_TIMEOUT_S

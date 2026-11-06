@@ -41559,6 +41559,22 @@ import time as _wt_time  # noqa: E402
 
 _wt_timeout_cls = getattr(_g511_coord, "ProcessWorkerTimeout", None)
 _wt_saved = (_g511_coord.PROCESS_REPLY_TIMEOUT_S, _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S)
+# Design-value pins: every timing check below shortens these, so none of
+# them reads the shipped values. The reply deadline is the band its comment
+# derives -- at least 4x the 426 s slowest solve measured, at most half an
+# hour so a hung worker is reaped well inside the ~55-minute hang it bounds.
+# The stop path's lock wait is the 5 s bookkeeping bound, far inside Home
+# Assistant's 30 s close stage; a longer one buys the swap nothing.
+R.check(
+    "the reply deadline sits in its derived band: 4 x 426 s <= deadline <= 30 min",
+    4 * 426 <= _wt_saved[0] <= 30 * 60,
+    f"PROCESS_REPLY_TIMEOUT_S = {_wt_saved[0]!r}",
+)
+R.check(
+    "the stop path's lock wait and the timed-out reap stay at the 5 s design bound",
+    _wt_saved[1] == 5.0,
+    f"_SHUTDOWN_LOCK_TIMEOUT_S = {_wt_saved[1]!r}",
+)
 try:
     # Spawns and first imports run under the real deadline: only the
     # measured call gets the short one, so a slow host cannot fail a check
