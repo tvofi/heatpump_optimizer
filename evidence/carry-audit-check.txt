@@ -1,0 +1,7 @@
+NOTE body item 25c5c507: dismissed(R10-ROSTER-WRITE-SWEEP):the drain script is not in the tree and `run --mark` writes each mark as its op pushes, pinned by the arm "a pass that dies mid-queue keeps the marks already written".
+NOTE body item fc72c233: R10-CARRY-RESIDUE-2
+NOTE body item 4070ec7b: R10-CARRY-RESIDUE-2
+NOTE body item 932dc7f6: R10-CARRY-RESIDUE-2
+NOTE body item cf8fb3f5: R10-CARRY-RESIDUE-2
+NOTE review 0 item 72c38365: R10-CARRY-RESIDUE-2
+CARRY-AUDIT: 6 finding item(s): 6 routed, 0 unrouted, 0 bad destination(s)

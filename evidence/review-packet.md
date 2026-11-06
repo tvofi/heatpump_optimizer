@@ -1,81 +1,94 @@
 # Review packet #3253
-head: 21be201ce8cc097c87d95e81e42d036786a539dc
-base: b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+head: ecbba06860aa197bfa9a6fe5d982512f2c2b71d8
+base: 30638cf0c8a7114019682f87051a4a282d2981ff
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=127927383107 success
-arch-score / arch-score id=127927308656 success
-arm id=127927107522 skipped
-budget-raise-gate / budget-raise-gate id=127927308665 success
-cancel-superseded id=127927059161 success
-codeql id=127927310713 skipped
-codeql / Analyze (actions) id=127927294816 success
-codeql / Analyze (javascript-typescript) id=127927294826 success
-codeql / Analyze (python) id=127927294896 success
-gate id=127928051522 failure
-governance id=127927311284 skipped
-governance / delivery-status id=127927295142 success
-governance / delivery-status-publish id=127927298153 skipped
-governance / env-matrix id=127927295182 in_progress
-governance / instrument-self-tests id=127927294958 in_progress
-governance / policy-docs id=127927294981 success
-governance / record id=127927297716 skipped
-governance / wave-script id=127927295121 success
-hassfest id=127927310927 skipped
-hassfest / hassfest id=127927294806 success
-kernel-points id=127927310498 skipped
-pr-contract id=127928053549 skipped
-prelude id=127927059625 success
-refresh id=127927059759 success
-tests id=127927311066 skipped
-tests / arch-instrument id=127927544041 success
-tests / briefs id=127927294893 success
-tests / browser id=127927544124 in_progress
-tests / closure-scope id=127927294945 success
-tests / closures id=127927543951 in_progress
-tests / coverage id=127927543965 in_progress
-tests / fast (3.14) id=127927544151 in_progress
-tests / mutation id=127927295022 success
-tests / mutation-autofix id=127927771793 skipped
-tests / mutation-pins id=127927771241 skipped
-tests / nightly-ha id=127927546881 skipped
-tests / nightly-status id=127927295052 success
-tests / replay id=127927546061 skipped
-tests / typing id=127927543969 success
-validate id=127927310402 skipped
-validate / validate-hacs id=127927294720 success
+## Gate digest: green
+CodeQL id=128052243868 success
+arch-score / arch-score id=128079650198 success
+arm id=128050351658 skipped
+budget-raise-gate / budget-raise-gate id=128079623066 success
+cancel-superseded id=128079641341 success
+codeql id=128079567163 skipped
+codeql / Analyze (actions) id=128063479791 success
+codeql / Analyze (javascript-typescript) id=128063480083 success
+codeql / Analyze (python) id=128063480611 success
+gate id=128079567019 success
+governance id=128079568613 skipped
+governance / delivery-status id=128063479572 success
+governance / delivery-status-publish id=128063480382 skipped
+governance / env-matrix id=128063480033 success
+governance / instrument-self-tests id=128063477119 success
+governance / policy-docs id=128063478851 success
+governance / record id=128063478784 skipped
+governance / wave-script id=128063480535 success
+hassfest id=128079641101 skipped
+hassfest / hassfest id=128063478569 success
+kernel-points id=128079614168 skipped
+pr-contract id=128079569861 skipped
+pr-contract / pr-contract id=128078711265 success
+prelude id=128079568241 success
+refresh id=128079566902 success
+tests id=128079568108 skipped
+tests / arch-instrument id=128063484936 success
+tests / briefs id=128063480013 success
+tests / browser id=128063485916 success
+tests / ci-ratchet id=128075128154 skipped
+tests / claims-autofix id=128069878077 skipped
+tests / closure-scope id=128063480497 success
+tests / closures id=128063483428 success
+tests / closures-autofix id=128072060823 skipped
+tests / coverage id=128063482995 success
+tests / coverage-ratchet id=128075125823 success
+tests / fast (3.14) id=128063483592 success
+tests / graders-head-copy id=128075125922 success
+tests / lane-proofs id=128075126097 success
+tests / mutation id=128063478622 success
+tests / mutation-autofix id=128063487660 skipped
+tests / mutation-pins id=128063485547 skipped
+tests / nightly-ha id=128063486610 skipped
+tests / nightly-status id=128063479340 success
+tests / replay id=128063486389 skipped
+tests / typing id=128063485262 success
+validate id=128079568386 skipped
+validate / validate-hacs id=128063479233 success
 
 ## Refusals
-red-unanswered: concluded red check `gate` is not named in ## Red checks
-required-red: required context `gate` concluded failure at 21be201ce8cc097c87d95e81e42d036786a539dc
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 25c5c507: dismissed(R10-ROSTER-WRITE-SWEEP):the drain script is not in the tree and `run --mark` writes each mark as its op pushes, pinned by the arm "a pass that dies mid-queue keeps the marks already written".
+NOTE body item fc72c233: R10-CARRY-RESIDUE-2
+NOTE body item 4070ec7b: R10-CARRY-RESIDUE-2
+NOTE body item 932dc7f6: R10-CARRY-RESIDUE-2
+NOTE body item cf8fb3f5: R10-CARRY-RESIDUE-2
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 tools/audit/seat/roster_edit.py --self-test
-             `tools/audit/seat/roster_edit.py` is in the tree at this head
-  ok         python3 tools/audit/seat/roster_queue.py --self-test
+ok         python3 -I tools/audit/seat/roster_queue.py --self-test
              `tools/audit/seat/roster_queue.py` is in the tree at this head
-  ok         python3 tools/audit/seat/roster_lib.py --self-test
+  ok         python3 -I tools/audit/seat/roster_edit.py --self-test
+             `tools/audit/seat/roster_edit.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/roster_lib.py --self-test
              `tools/audit/seat/roster_lib.py` is in the tree at this head
-  ok         python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
+  ok         python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test
              `tools/audit/seat/r10_roster_ops_mutants.py` is in the tree at this head
+  ok         python3 -I tools/audit/seat/carry_fold.py --self-test
+             `tools/audit/seat/carry_fold.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         bash tools/pr/prepr.sh
-             `tools/pr/prepr.sh` is in the tree at this head
-  ok         python3 tests/closure.py select
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
 
-FIGURES: 8 resolved, 0 not verified, 0 refused
+FIGURES: 9 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -87,6 +100,40 @@ not run
 none
 
 ## Three-dot diff
+diff --git a/dev/audit/harnesses/r10_roster_push_race.sh b/dev/audit/harnesses/r10_roster_push_race.sh
+index dfa637431..01c75b1fb 100755
+--- a/dev/audit/harnesses/r10_roster_push_race.sh
++++ b/dev/audit/harnesses/r10_roster_push_race.sh
+@@ -49,7 +49,7 @@ throwaway_git_clone -q "$T/origin.git" "$T/drvB"
+ CHK_B=$T/drvB
+ [ "$MODE" = shared ] && CHK_B=$T/drvA
+ edit() { # checkout worktree op group value
+-  "$PY" "$TREE/tools/audit/seat/roster_edit.py" "$3" "$4" "$5" --checkout "$1" \
++  HPO_ROSTER_LANE=queue-runner "$PY" "$TREE/tools/audit/seat/roster_edit.py" "$3" "$4" "$5" --checkout "$1" \
+     --roster-ref main --branch handoff/roster --worktree "$2" --lint-cwd "$T/seed" --push
+ }
+ # the branch exists first: both racers then share its tip as their parent
+diff --git a/dev/audit/harnesses/r10_tick_which_roster.py b/dev/audit/harnesses/r10_tick_which_roster.py
+index c3f683801..5fc175ae4 100644
+--- a/dev/audit/harnesses/r10_tick_which_roster.py
++++ b/dev/audit/harnesses/r10_tick_which_roster.py
+@@ -37,6 +37,7 @@ from __future__ import annotations
+ 
+ import argparse
+ import json
++import os
+ import re
+ import shutil
+ import subprocess
+@@ -115,7 +116,7 @@ def main() -> int:
+                         "wire-issue", group, a.issue, "--checkout", str(drv),
+                         "--roster-ref", ref, "--branch", branch,
+                         "--worktree", str(tmp / wt), "--lint-cwd", str(drv),
+-                        *extra])
++                        *extra], env={**os.environ, "HPO_ROSTER_LANE": "queue-runner"})
+                 touched = sh(["git", "-C", str(tmp / wt), "diff", "--name-only",
+                               f"origin/{ref}", "HEAD"]).stdout.split() \
+                     if (tmp / wt).exists() else []
 diff --git a/dev/programme/delivery/3253.md b/dev/programme/delivery/3253.md
 new file mode 100644
 index 000000000..c07763c6b
@@ -94,11 +141,59 @@ index 000000000..c07763c6b
 +++ b/dev/programme/delivery/3253.md
 @@ -0,0 +1 @@
 +- [#3253](https://github.com/tvofi/heatpump_optimizer/pull/3253) — **open**, R10-ROSTER-WRITE-SWEEP: the roster write path's residue in roster_edit.py and roster_queue.py (R10-ROSTER-WRITE-SWEEP)
+diff --git a/tools/audit/seat/carry_fold.py b/tools/audit/seat/carry_fold.py
+index cc2630497..0f1cdc251 100755
+--- a/tools/audit/seat/carry_fold.py
++++ b/tools/audit/seat/carry_fold.py
+@@ -22,6 +22,7 @@ before it and `roster_edit.py` refuses an exact repeat, so the two never double-
+ from __future__ import annotations
+ 
+ import argparse
++import os
+ import shlex
+ import sys
+ from pathlib import Path
+@@ -82,6 +83,7 @@ def main(argv=None) -> int:
+ 
+     def apply(op: str) -> int:
+         parts = shlex.split(op)
++        os.environ[roster_edit.LANE_ENV] = roster_edit.LANE_VALUE  # this tool is the lane
+         return roster_edit.main(parts + ["--worktree", a.worktree, "--checkout", a.checkout,
+                                          "--branch", branch, "--push"])
+ 
+diff --git a/tools/audit/seat/instruments/roster_edit.py.md b/tools/audit/seat/instruments/roster_edit.py.md
+index d191c3f42..f134c1ec2 100644
+--- a/tools/audit/seat/instruments/roster_edit.py.md
++++ b/tools/audit/seat/instruments/roster_edit.py.md
+@@ -35,3 +35,10 @@
+   the same `--checkout` can reset. A push lost to a rival re-applies the op
+   on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
+   `--worktree` whose HEAD is on no origin ref is not reused.
++
++  Lane: `wire-issue`, `unwire-issue`, `edit-brief`, `append-carry`, `set-after` and
++  `drop-carry` refuse a caller without `HPO_ROSTER_LANE=queue-runner` in its
++  environment (`lane_refusal`), which `roster_queue.py` sets, naming the runner and
++  the group before anything is read or written. `set-stage`, `append-group`,
++  `set-resume` and `mark-carry` stay directly callable. Setting the variable by
++  hand forges the lane and is out of scope.
+diff --git a/tools/audit/seat/instruments/roster_queue.py.md b/tools/audit/seat/instruments/roster_queue.py.md
+index e95251fa1..0ce7d246e 100644
+--- a/tools/audit/seat/instruments/roster_queue.py.md
++++ b/tools/audit/seat/instruments/roster_queue.py.md
+@@ -10,3 +10,8 @@
+   to replay a range. Refusal: a refused op is reported as `refused rc=N`, never
+   forced; `append-carry @file` reports FAILED when the read-back cannot find the
+   text. `--self-test` drives it offline over a stub editor and a scratch repo.
++  The editor is `--editor` or the `roster_edit.py` beside the script, one file for
++  `run` and `run --batch` (`resolve_editor`); the runner sets `HPO_ROSTER_LANE` in
++  the editor's environment, which `roster_edit.py` requires for its structural ops.
++  `show [GROUP] [--ref R] [--stage S]` and `diff REF_A REF_B` read the roster at a
++  ref with `git show` and write nothing (`diff` exits 1 when the refs differ).
 diff --git a/tools/audit/seat/r10_roster_ops_mutants.py b/tools/audit/seat/r10_roster_ops_mutants.py
-index bb277a710..c9d74537f 100644
+index bb277a710..da409eb1b 100644
 --- a/tools/audit/seat/r10_roster_ops_mutants.py
 +++ b/tools/audit/seat/r10_roster_ops_mutants.py
-@@ -57,6 +57,23 @@ Plants, one per refusal of the two ops and per round-trip property:
+@@ -57,6 +57,31 @@ Plants, one per refusal of the two ops and per round-trip property:
           though its group would orphan an open issue (H1), and the
           set-resume --field stage door left unheld (H2).
  
@@ -112,17 +207,25 @@ index bb277a710..c9d74537f 100644
 +           naming no live group (W12, W13) or needing none (W14), and a phase
 +           branch unresolved in roster_lib.group_for_branch (W15).
 +
-+    Q1-Q7  roster_queue.py's own self-test: the plain shlex.split line grammar
++    W16-W17 the lane marker on structural ops (carry 15): the guard dropped
++           (W16) and set-stage wrongly made structural (W17); Q13 is the
++           queue runner not setting it.
++
++    Q1-Q12 roster_queue.py's own self-test: the plain shlex.split line grammar
 +           (a trailing comment reaches the editor, Q1), the run-start snapshot
 +           written over a line appended since (Q2), a flag folded into the
 +           value (Q3), a held line released with its batch file absent (Q4),
 +           marking the wrong line (Q5), `all` run without --mark (Q6) and no
-+           lint-clone self-heal in `loop` (Q7).
++           lint-clone self-heal in `loop` (Q7), the batch path resolving its
++           editor from the edit checkout, not the one `run` executes (Q8),
++           a file that is no roster_edit executed by the batch loader (Q9), and
++           the read-only `diff` blind to removed groups (Q10), to a replaced
++           carry of equal count (Q11), and `show --stage` unfiltered (Q12).
 +
      python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
      python3 tools/audit/seat/r10_roster_ops_mutants.py --null
      python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
-@@ -77,6 +94,7 @@ from pathlib import Path
+@@ -77,6 +102,7 @@ from pathlib import Path
  ROOT = Path(__file__).resolve().parents[3]
  TARGET = "tools/audit/seat/roster_edit.py"
  DROP = '    del g["carry"][_carry_index(g, index, match, "drop-carry")]\n'
@@ -130,7 +233,7 @@ index bb277a710..c9d74537f 100644
  LIB, SYNC, AUDIT = ("tools/audit/seat/roster_lib.py",
                      "tools/audit/seat/roster_sync.py", "tools/audit/carry_audit.py")
  _MARK_LINE = next((ln for ln in (ROOT / LIB).read_text().splitlines()
-@@ -134,8 +152,8 @@ PLANTS = {
+@@ -134,8 +160,8 @@ PLANTS = {
             "    if True:  # S5\n        return None\n"),
      "S6": ("    if size is None or size in sizes:\n        return None\n",
             "    if True:  # S6\n        return None\n"),
@@ -141,7 +244,7 @@ index bb277a710..c9d74537f 100644
      "K1": ('    if roster_lib.carry_mark(g["carry"][i]):\n', "    if False:  # K1\n"),
      "K2": ("    if kind not in roster_lib.CARRY_MARKS:\n", "    if False:  # K2\n"),
      "K3": ('    if kind == "implemented" and not SHA_RE.match(arg):\n',
-@@ -145,15 +163,15 @@ PLANTS = {
+@@ -145,15 +171,15 @@ PLANTS = {
      "K6": ('    if kind == "dismissed" and not arg:\n', "    if False:  # K6\n"),
      "K7": ('["stage"] = _closing(g, stage, legacy, "set-stage")\n',
             '["stage"] = stage  # K7\n'),
@@ -160,7 +263,7 @@ index bb277a710..c9d74537f 100644
              "legacy = {}  # K12"),
      "L1": (LIB, "            if carry_mark(c) is None and c not in held]\n",
             "            if c not in held]  # L1\n"),
-@@ -193,8 +211,8 @@ PLANTS = {
+@@ -193,8 +219,8 @@ PLANTS = {
             '        elif isinstance(x, dict) and isinstance(x.get("number"), int):  # R5\n'),
      "H1": ("    if held:\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n",
             "    if False:  # H1\n        g[\"resume\"][\"stage\"] = HOLD_STAGE\n"),
@@ -171,7 +274,7 @@ index bb277a710..c9d74537f 100644
  }
  
  
-@@ -240,6 +258,35 @@ PLANTS.update({
+@@ -240,6 +266,50 @@ PLANTS.update({
      "R11": ('                    and _git_ok(checkout, "merge-base", "--is-ancestor",\n'
              '                                sha, cand):\n',
              '                    and True:  # R11\n'),
@@ -204,11 +307,35 @@ index bb277a710..c9d74537f 100644
 +    "Q6": (RQ, "    if allq and not mark:\n", "    if False:\n"),
 +    "Q7": (RQ, "    if Path(a.lint_clone).is_dir():\n        return False\n",
 +           "    if True:\n        return False\n"),
++    "Q8": (RQ, "        re_ = load_editor(editor)\n",
++           '        re_ = load_editor(str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py")))\n'),
++    "Q10": (RQ, "    out = [f\"- {g}\" for g in ga if g not in gb] + ",
++            "    out = [] + "),
++    "Q11": (RQ, "                out += [f\"~ {g} carry -{_short(c, 90)}\" for c in ca if c not in cb]\n"
++                "                out += [f\"~ {g} carry +{_short(c, 90)}\" for c in cb if c not in ca]\n",
++            "                if len(ca) != len(cb):\n"
++            "                    out.append(f\"~ {g} carry +{len(cb) - len(ca)}\")\n"),
++    "Q12": (RQ, "        if stage and r.get(\"stage\") != stage:\n", "        if False:\n"),
++    "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
++            "    if False:\n"),
++    "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
++    "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
++    "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
++           '    if False:\n'),
  })
  
  
+@@ -252,7 +322,7 @@ def parts(name):
+ 
+ 
+ def target_self_test(target=TARGET):
+-    r = subprocess.run([sys.executable, target, "--self-test"], cwd=ROOT,
++    r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
+                        capture_output=True, text=True)
+     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
+     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]
 diff --git a/tools/audit/seat/roster_edit.py b/tools/audit/seat/roster_edit.py
-index babb86301..86bd9fdfb 100644
+index babb86301..df8cccd8e 100644
 --- a/tools/audit/seat/roster_edit.py
 +++ b/tools/audit/seat/roster_edit.py
 @@ -4,10 +4,11 @@
@@ -225,7 +352,17 @@ index babb86301..86bd9fdfb 100644
      python3 tools/audit/seat/roster_edit.py set-after   <group> <G1,G2,... | ->
      python3 tools/audit/seat/roster_edit.py drop-carry  <group> <index | --match TEXT>
      python3 tools/audit/seat/roster_edit.py mark-carry  <group> <index | --match TEXT>
-@@ -85,9 +86,19 @@ Ops (all group ids must exist, except append-group which must not):
+@@ -68,6 +69,9 @@ a checkout main has moved past is a lint the tree no longer runs. An edit
+ whose brief text the linter refuses is refused at the same gate, before
+ anything reaches GitHub.
+ 
++Structural ops (wire-issue, unwire-issue, edit-brief, append-carry, set-after,
++drop-carry) run only through roster_queue.py, which sets HPO_ROSTER_LANE.
++
+ Ops (all group ids must exist, except append-group which must not):
+   set-stage    sets resume.stage (and resume.commit with --at-sha); `done`
+                over a pending carry is written `carries-open` and printed
+@@ -85,9 +89,19 @@ Ops (all group ids must exist, except append-group which must not):
    unwire-issue removes an integer from `issues` (default) or, with
                 `--field fixes`, from `fixes`; refuses when it is not there;
    append-group inserts a validated new group (group/lane/after/brief needed,
@@ -247,7 +384,7 @@ index babb86301..86bd9fdfb 100644
    set-resume   sets one resume field -- the free-text state a session
                 restarts from. stage and branch are non-null: an empty value
                 is refused. commit demands a sha. An empty value for commit,
-@@ -95,6 +106,11 @@ Ops (all group ids must exist, except append-group which must not):
+@@ -95,6 +109,11 @@ Ops (all group ids must exist, except append-group which must not):
    set-after    replaces the group's after-edges whole (`-` for none),
                 refusing an unknown group, a self-edge, a repeated edge and
                 a cycle in the resulting after-graph;
@@ -259,7 +396,7 @@ index babb86301..86bd9fdfb 100644
  THE TRIAGE GATE (decision 0015). Every process, tooling or instrument proposal
  passes dev/governance/roles/proposal-triage.md before it reaches the roster, so
  the write path refuses roster text a proposal sourced that cites no ACCEPT
-@@ -139,6 +155,7 @@ from __future__ import annotations
+@@ -139,6 +158,7 @@ from __future__ import annotations
  
  import argparse
  import contextlib
@@ -267,7 +404,7 @@ index babb86301..86bd9fdfb 100644
  import io
  import json
  import os
-@@ -165,8 +182,13 @@ BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
+@@ -165,8 +185,13 @@ BRIEF_LINT_OLD = ".claude/workflows/brief_lint.mjs"
  BRIEF_LINT_NEW = "tools/policy/brief_lint.mjs"
  
  
@@ -283,7 +420,7 @@ index babb86301..86bd9fdfb 100644
  VERDICT_LINE_RE = re.compile(r"^Verdict:\s*(ACCEPT|REJECT|DEFER)\b", re.M)
  
  
-@@ -188,8 +210,12 @@ def run(cmd, cwd=None):
+@@ -188,8 +213,12 @@ def run(cmd, cwd=None):
  
  
  # ----------------------------------------------------------------- ops
@@ -297,7 +434,7 @@ index babb86301..86bd9fdfb 100644
      if not isinstance(stage, str) or not stage.strip():
          raise Refuse("stage must be a non-empty string")
      why = _stage_why(stage, rel, group)
-@@ -198,18 +224,41 @@ def op_set_stage(roster, group, stage, at_sha, rel="", legacy=None):
+@@ -198,18 +227,41 @@ def op_set_stage(roster, group, stage, at_sha, rel="", legacy=None):
      if at_sha and not SHA_RE.match(at_sha):
          raise Refuse(f"--at-sha is not a sha: {at_sha!r}")
      g.setdefault("resume", {})["stage"] = _closing(g, stage, legacy, "set-stage")
@@ -340,7 +477,7 @@ index babb86301..86bd9fdfb 100644
  
  
  def op_set_resume(roster, group, field, value, rel="", legacy=None):
-@@ -230,12 +279,30 @@ def op_set_resume(roster, group, field, value, rel="", legacy=None):
+@@ -230,12 +282,30 @@ def op_set_resume(roster, group, field, value, rel="", legacy=None):
              raise Refuse(why)
      if field == "commit" and not SHA_RE.match(value):
          raise Refuse(f"--field commit needs a sha: {value!r}")
@@ -371,7 +508,7 @@ index babb86301..86bd9fdfb 100644
  def _closing(g, stage, legacy, op):
      """The stage `op` writes for `stage`: roster_lib.closing_stage, the one
      rule roster_sync's merge applies too. A downgrade is printed with the
-@@ -286,7 +353,33 @@ def op_unwire_issue(roster, group, issue, field="issues"):
+@@ -286,7 +356,33 @@ def op_unwire_issue(roster, group, issue, field="issues"):
      g[field] = [i for i in held if i != n]
  
  
@@ -406,7 +543,7 @@ index babb86301..86bd9fdfb 100644
      try:
          new = json.loads(Path(json_file).read_text(encoding="utf-8"))
      except (OSError, ValueError) as e:
-@@ -314,10 +407,21 @@ def op_append_group(roster, json_file, rel="", sizes=()):
+@@ -314,10 +410,21 @@ def op_append_group(roster, json_file, rel="", sizes=()):
      bad = [a for a in after if a not in known]
      if bad:
          raise Refuse(f"append-group: {gid} after names no group: {bad}")
@@ -428,7 +565,7 @@ index babb86301..86bd9fdfb 100644
      roster.setdefault("groups", []).append(new)
  
  
-@@ -327,6 +431,16 @@ def op_edit_brief(roster, group, text):
+@@ -327,6 +434,16 @@ def op_edit_brief(roster, group, text):
  
  def op_append_carry(roster, group, text):
      g = _need(roster, group)
@@ -445,7 +582,7 @@ index babb86301..86bd9fdfb 100644
      entry = _text(text)
      carry = g.setdefault("carry", [])
      if entry in carry:
-@@ -453,7 +567,7 @@ def op_mark_carry(roster, group, index, match, kind, arg):
+@@ -453,7 +570,7 @@ def op_mark_carry(roster, group, index, match, kind, arg):
  
  
  def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
@@ -454,7 +591,7 @@ index babb86301..86bd9fdfb 100644
      """One op on a loaded roster -- re-run on each attempt of a push race,
      so the edit is applied to the tip it is pushed onto. `rel` is the roster's
      path and `sizes` the duration model's vocabulary, for a refusal to name
-@@ -461,13 +575,13 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
+@@ -461,13 +578,13 @@ def apply_op(roster, op, group, value, field, at_sha, match=None, rel="",
      roster's cut-over carries (roster_lib.read_legacy), which a stage write
      reads; `rest` is mark-carry's `<kind> <value...>`."""
      if op == "set-stage":
@@ -470,7 +607,7 @@ index babb86301..86bd9fdfb 100644
      elif op == "edit-brief":
          op_edit_brief(roster, group, value)
      elif op == "set-resume":
-@@ -701,6 +815,32 @@ def added_texts(before, after):
+@@ -701,6 +818,32 @@ def added_texts(before, after):
      return [x for x in out if isinstance(x, str) and x]
  
  
@@ -503,7 +640,7 @@ index babb86301..86bd9fdfb 100644
  def ruling_verdict(src, pid):
      """The `Verdict:` of the `## <pid>:` entry in a triage batch file: ACCEPT,
      REJECT or DEFER; None when no such entry; "unreadable" when it has no
-@@ -932,6 +1072,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
+@@ -932,6 +1075,9 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                               ruling_reader(worktree, checkout))
          if why:
              raise Refuse(f"triage gate: {why}; nothing written")
@@ -513,7 +650,7 @@ index babb86301..86bd9fdfb 100644
          path.write_text(dump(roster), encoding="utf-8")
          if not run(["git", "-C", str(worktree), "status", "--porcelain"]).strip():
              print(f"no change: {label} wrote the roster's own bytes "
-@@ -977,16 +1120,7 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
+@@ -977,16 +1123,7 @@ def write_roster(checkout, ref, branch, worktree, roster_path, msg, push,
                   "nothing of this edit reached origin")
  
  
@@ -531,7 +668,7 @@ index babb86301..86bd9fdfb 100644
      p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
      p.add_argument("op", choices=("set-stage", "wire-issue", "unwire-issue", "append-group",
                                    "edit-brief", "append-carry", "set-resume",
-@@ -1001,6 +1135,9 @@ def main(argv=None) -> int:
+@@ -1001,6 +1138,9 @@ def main(argv=None) -> int:
      p.add_argument("--field", choices=RESUME_FIELDS + WIRE_FIELDS,
                     help="set-resume: which resume field to write; "
                          "unwire-issue: issues (default) or fixes")
@@ -541,7 +678,7 @@ index babb86301..86bd9fdfb 100644
      p.add_argument("--value", dest="value_opt",
                     help="the value, for when a positional value does not fit")
      p.add_argument("--match",
-@@ -1029,6 +1166,13 @@ def main(argv=None) -> int:
+@@ -1029,6 +1169,13 @@ def main(argv=None) -> int:
      p.add_argument("--issue-state",
                     help="JSON object issue -> open|closed: the states the done "
                          "hold reads instead of gh (no network)")
@@ -555,7 +692,7 @@ index babb86301..86bd9fdfb 100644
      a = p.parse_intermixed_args(argv)
      rest = list(a.rest)
      if a.op == "mark-carry" and a.match is not None and a.value is not None:
-@@ -1050,6 +1194,10 @@ def main(argv=None) -> int:
+@@ -1050,6 +1197,10 @@ def main(argv=None) -> int:
          p.error(f"{a.op} needs an index or --match")
      if a.op == "set-files" and value is not None:
          p.error("set-files takes --add, --set-files or --set-hot, no value")
@@ -566,7 +703,7 @@ index babb86301..86bd9fdfb 100644
      if a.op not in ("set-size", "set-files") and a.cite:
          p.error("--cite is a set-size / set-files flag")
      if a.op != "set-files" and (a.add or a.set_files is not None
-@@ -1068,6 +1216,82 @@ def main(argv=None) -> int:
+@@ -1068,7 +1219,115 @@ def main(argv=None) -> int:
          p.error(f"{a.op} --field is one of {', '.join(WIRE_FIELDS)}")
      if a.op not in ("set-resume", "wire-issue", "unwire-issue") and a.field:
          p.error("--field is a set-resume / wire-issue / unwire-issue flag")
@@ -635,6 +772,26 @@ index babb86301..86bd9fdfb 100644
 +    return edit, results
 +
 +
++# The roster seat's lane (P215): the queue runner sets LANE_ENV in the child's
++# environment; the structural ops refuse any caller that does not carry it.
++LANE_ENV, LANE_VALUE = "HPO_ROSTER_LANE", "queue-runner"
++STRUCTURAL_OPS = ("wire-issue", "unwire-issue", "edit-brief", "append-carry",
++                  "set-after", "drop-carry")
++
++
++def lane_refusal(op, group):
++    """The refusal text for a structural op called outside the roster queue
++    runner, else None. set-stage, append-group and set-resume stay directly
++    callable (nudge.md and sweep_template.md run them by hand). A caller that
++    sets the variable by hand is out of scope: the guard stops a caller that
++    does not know the lane, not one that forges it."""
++    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:
++        return (f"{op} {group} is the roster seat's lane: queue it and run "
++                f"tools/audit/seat/roster_queue.py (it sets {LANE_ENV}); "
++                f"nothing written")
++    return None
++
++
 +def main(argv=None) -> int:
 +    if argv is None:
 +        argv = sys.argv[1:]
@@ -644,12 +801,25 @@ index babb86301..86bd9fdfb 100644
 +        sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "tests"))
 +        from throwaway_git import throwaway_git_environ
 +        with throwaway_git_environ():
-+            return _self_test()
++            # the fixtures call the ops directly as the queue runner would
++            keep = os.environ.get(LANE_ENV)
++            os.environ[LANE_ENV] = LANE_VALUE
++            try:
++                return _self_test()
++            finally:
++                if keep is None:
++                    os.environ.pop(LANE_ENV, None)
++                else:
++                    os.environ[LANE_ENV] = keep
 +    a, value, rest = parse_op(argv)
      try:
++        why = lane_refusal(a.op, a.group)
++        if why:
++            raise Refuse(why)
          fetch_origin(a.checkout)
          ref, branch = roster_target(a.checkout, a.roster_ref, a.branch,
-@@ -1076,41 +1300,7 @@ def main(argv=None) -> int:
+                                     a.roster_path)
+@@ -1076,41 +1335,7 @@ def main(argv=None) -> int:
          why = ref_privacy.refusal(branch, (("the message", msg),))
          if why:
              raise Refuse(f"{why} would publish this host (#2310); nothing written")
@@ -692,7 +862,7 @@ index babb86301..86bd9fdfb 100644
          return write_roster(a.checkout, ref, branch, a.worktree, a.roster_path,
                              msg, a.push, a.lint_cwd, f"{a.op} {a.group}", edit)
      except Refuse as e:
-@@ -1251,7 +1441,7 @@ def _self_test() -> int:
+@@ -1251,7 +1476,7 @@ def _self_test() -> int:
  
      def edit(op, group, value, push=True, branch="edit-1", lint_cwd=None,
               at_sha=None, field=None, value_opt=None, match=None, wt="wt",
@@ -701,7 +871,7 @@ index babb86301..86bd9fdfb 100644
          args = [op, group, "--issue-state", str(ISSUES[issues])]
          if value is not None:
              args += [value]
-@@ -1264,6 +1454,10 @@ def _self_test() -> int:
+@@ -1264,6 +1489,10 @@ def _self_test() -> int:
              args += ["--value", value_opt]
          if at_sha:
              args += ["--at-sha", at_sha]
@@ -712,7 +882,7 @@ index babb86301..86bd9fdfb 100644
          try:
              return main(args
                          + ["--checkout", str(drv), "--roster-ref", "main",
-@@ -1448,6 +1642,8 @@ def _self_test() -> int:
+@@ -1448,6 +1677,8 @@ def _self_test() -> int:
      check("edit-brief rc",
            edit("edit-brief", "R9-B", "rewritten brief") == 0
            and branch_roster()["groups"][1]["brief"] == "rewritten brief")
@@ -721,7 +891,7 @@ index babb86301..86bd9fdfb 100644
      check("append-carry rc",
            edit("append-carry", "R9-A", "carry text one") == 0
            and branch_roster()["groups"][0]["carry"] == ["carry text one"])
-@@ -1465,7 +1661,9 @@ def _self_test() -> int:
+@@ -1465,7 +1696,9 @@ def _self_test() -> int:
          "Verdict: ACCEPT -> R9-B (carry)\nSource: sweep\n\n"
          "## P2: a second watcher\nVerdict: REJECT\nBinding: standing CPU\n\n"
          "## P3: no verdict line\nSource: sweep\n\n"
@@ -732,7 +902,7 @@ index babb86301..86bd9fdfb 100644
      run(["git", "-C", str(seed), "add", "-A"])
      run(["git", "-C", str(seed), "commit", "-q", "-m", "fixture triage ruling"])
      run(["git", "-C", str(seed), "push", "-q", str(origin), "main:refs/heads/main"])
-@@ -1488,6 +1686,23 @@ def _self_test() -> int:
+@@ -1488,6 +1721,23 @@ def _self_test() -> int:
      check("triage gate: a citation to a missing batch is refused, proposal named or not",
            refuses("not on the roster branch", "append-carry", "R9-B",
                    "plain text. triage: dev/programme/triage/nope.md#P1"))
@@ -756,7 +926,7 @@ index babb86301..86bd9fdfb 100644
      check("triage gate: a new group's brief is judged",
            refuses("cites no triage ruling", "edit-brief", "R9-A", "brief from proposal P4"))
      check("triage gate: text naming no proposal passes untouched",
-@@ -1501,6 +1716,8 @@ def _self_test() -> int:
+@@ -1501,6 +1751,8 @@ def _self_test() -> int:
      check("triage gate fixture restored",
            edit("drop-carry", "R9-B", None, match="orphan discharge") == 0
            and edit("drop-carry", "R9-B", None, match="no proposal") == 0
@@ -765,7 +935,7 @@ index babb86301..86bd9fdfb 100644
            and branch_roster()["groups"][1]["carry"] == [])
  
      # set-resume: the resume free-text fields a session restarts from, through
-@@ -1867,10 +2084,12 @@ def _self_test() -> int:
+@@ -1867,10 +2119,12 @@ def _self_test() -> int:
      # `]` that would end carry_mark's grammar early (review X7, X8). R9-A is
      # put in each closed stage in turn; each refusal leaves the branch where it
      # was, and the null controls -- an open destination, a plain value -- land.
@@ -779,7 +949,7 @@ index babb86301..86bd9fdfb 100644
          t1 = tip("mark-1")
          rc, out = mark("3", "moved", "R9-A")
          check(f"mark-carry refuses moved to a {closed} group",
-@@ -1892,32 +2111,39 @@ def _self_test() -> int:
+@@ -1892,32 +2146,39 @@ def _self_test() -> int:
            (rc, out[-300:]))
      # The cut-over: a carry on a closed group at the cut-over commit is legacy
      # and never pending; one appended after it is.
@@ -830,7 +1000,7 @@ index babb86301..86bd9fdfb 100644
                                          **kw))
              check(f"{op} refuses an unreadable cut-over and writes nothing",
                    rc == 2 and "the carry cut-over is unreadable" in out
-@@ -1926,6 +2152,189 @@ def _self_test() -> int:
+@@ -1926,6 +2187,189 @@ def _self_test() -> int:
          roster_lib.CARRY_CUTOVER.clear()
          roster_lib.CARRY_CUTOVER.update(saved)
  
@@ -1020,6 +1190,38 @@ index babb86301..86bd9fdfb 100644
      # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
      # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump
      # that does not reproduce them rewrites every line of the file on ANY edit
+@@ -2261,6 +2705,31 @@ def _self_test() -> int:
+           got[0] == "ok" and got[1] == 2, got)
+ 
+     shutil.rmtree(tmp, ignore_errors=True)
++    # --- the roster seat's lane (P215): structural ops need the queue runner's marker
++    saved_lane = os.environ.pop(LANE_ENV, None)
++    try:
++        for op_, extra_ in (("append-carry", "lane text"), ("drop-carry", "0"),
++                            ("wire-issue", "1"), ("unwire-issue", "1"),
++                            ("set-after", "[]"), ("edit-brief", "b")):
++            rc_, err_ = refusal(op_, "R9-A", extra_)
++            check(f"lane: {op_} without the marker is refused, naming the queue runner",
++                  rc_ == 2 and "roster_queue.py" in err_ and "R9-A" in err_, (rc_, err_[-120:]))
++        check("lane: lane_refusal names a structural op called without the marker",
++              lane_refusal("append-carry", "G") is not None)
++        check("lane: set-stage, append-group and set-resume stay directly callable (null)",
++              all(lane_refusal(o, "G") is None
++                  for o in ("set-stage", "append-group", "set-resume", "mark-carry")))
++        os.environ[LANE_ENV] = LANE_VALUE
++        check("lane: the same structural op with the marker is accepted (null)",
++              lane_refusal("append-carry", "G") is None)
++        os.environ[LANE_ENV] = "something-else"
++        check("lane: a marker with another value is not the lane",
++              lane_refusal("drop-carry", "G") is not None)
++    finally:
++        if saved_lane is None:
++            os.environ.pop(LANE_ENV, None)
++        else:
++            os.environ[LANE_ENV] = saved_lane
+     print(f"roster_edit self-test: {passed} checks, "
+           f"{len(failed)} failed")
+     for f in failed:
 diff --git a/tools/audit/seat/roster_lib.py b/tools/audit/seat/roster_lib.py
 index e520976b2..502d4af5b 100644
 --- a/tools/audit/seat/roster_lib.py
@@ -1068,10 +1270,10 @@ index e520976b2..502d4af5b 100644
                critical_path_groups(str(repo), "HEAD") is None)
          check("critical_path_read: a ref publishing no file is (set(), ''), a "
 diff --git a/tools/audit/seat/roster_queue.py b/tools/audit/seat/roster_queue.py
-index df5667aed..2abf98aab 100644
+index df5667aed..2dc796f52 100644
 --- a/tools/audit/seat/roster_queue.py
 +++ b/tools/audit/seat/roster_queue.py
-@@ -4,6 +4,10 @@
+@@ -4,8 +4,20 @@
      python3 -I tools/audit/seat/roster_queue.py run FIRST LAST --queue Q --report R \
          --edit-checkout DIR --worktree WT --lint-clone LC [--alive FILE] [--branch B]
      python3 -I tools/audit/seat/roster_queue.py readback SHA GROUP TEXTFILE
@@ -1079,13 +1281,29 @@ index df5667aed..2abf98aab 100644
 +    python3 -I tools/audit/seat/roster_queue.py loop [--every 300] ...
 +    python3 -I tools/audit/seat/roster_queue.py release-held --queue Q --edit-checkout DIR
 +    python3 -I tools/audit/seat/roster_queue.py unwired --edit-checkout DIR --open-issues FILE [--ref REF]
++    python3 -I tools/audit/seat/roster_queue.py show --edit-checkout DIR [--ref REF] [--stage S] [GROUP]
++    python3 -I tools/audit/seat/roster_queue.py diff --edit-checkout DIR REF_A REF_B
      python3 -I tools/audit/seat/roster_queue.py --self-test
  
++`show` and `diff` are read-only (`git show` of the roster at a ref, nothing
++written, nothing fetched): one line per group or every field of one group, and
++what changed between two refs (added, removed and changed groups and fields,
++carry entries by text; rc 1 when the refs differ, as diff's). They replace the
++scratch copies a seat rebuilds to read the roster.
++
  `run` applies queue lines FIRST..LAST (1-based; blank and `#` lines skipped, a
-@@ -18,6 +22,21 @@ refusal is that main moved or the push lost a race with a clean lint
- `--edit-checkout` (the orchestrator's), which only supplies the tool and the
- roster. A refusal is reported, never forced.
- 
+ leading line number dropped). Each line is `<op> <group> [arg] [--flag value ...]`, passed to
+ `roster_edit.py` with `--push`. WHY IT EXISTS: the lint gate refuses a push
+@@ -15,8 +27,24 @@ the runner lints from `--lint-clone`, a checkout it owns, fetched and detached
+ at `origin/main` before every attempt, and retries up to four times when the
+ refusal is that main moved or the push lost a race with a clean lint
+ (the roster worktree is removed between attempts). It never moves
+-`--edit-checkout` (the orchestrator's), which only supplies the tool and the
+-roster. A refusal is reported, never forced.
++`--edit-checkout` (the orchestrator's), which only supplies the roster and the
++shims; the editor is `--editor` or the roster_edit.py beside this script, the
++same file for `run` and `run --batch` (`resolve_editor`). A refusal is reported, never forced.
++
 +LINE GRAMMAR (one parser for `run`, `--batch` and `loop`): an unquoted word that
 +begins with `#` ends the line (a `#` inside a word, or a quoted `'a # b'`,
 +stays); the first token after the group is the value unless it is a flag, and
@@ -1100,20 +1318,51 @@ index df5667aed..2abf98aab 100644
 +then runs `all --mark` every --every seconds. `release-held` frees `#held
 +append-carry` lines whose batch file is on origin/main; `unwired` lists open
 +issues no roster group lists (carry_audit's ISSUE-UNLISTED).
-+
+ 
  Every `append-carry <group> @file` is read back from the pushed commit: the
  roster JSON at that SHA must hold the file's text exactly as one carry entry.
- `readback` prints the figures; the report line says FAILED when none match.
-@@ -29,6 +48,8 @@ touched after each report line. Blind spot, stated: only append-carry with an
+@@ -29,6 +57,9 @@ touched after each report line. Blind spot, stated: only append-carry with an
  from __future__ import annotations
  
  import argparse
 +import contextlib
++import importlib.util
 +import io
  import json
  import os
  import re
-@@ -74,10 +95,48 @@ def readback(sha, grp, fn, cwd=None, rel=ROSTER_REL):
+@@ -40,6 +71,30 @@ from pathlib import Path
+ 
+ ROSTER_REL = "dev/programme/rosters/wave-r10-groups.json"
+ MOVED = "not origin/main"
++SEAT_DIR = Path(__file__).resolve().parent
++
++
++def resolve_editor(a):
++    """THE editor, resolved once for `run` and `run --batch` alike: the
++    `--editor` the caller passed, else the roster_edit.py beside this script.
++    Never a file under --edit-checkout, which supplies the roster and the shims
++    only, so a single-op run and a batch can never execute two versions, and
++    the self-test's throwaway clone (no roster_edit.py) needs none."""
++    return str(a.editor or SEAT_DIR / "roster_edit.py")
++
++
++def load_editor(path):
++    """The editor at `path` as a module, for the batch path (the single-op path
++    runs the same file as a subprocess). Raises when it is not a roster_edit."""
++    if "def batch_edit" not in Path(path).read_text():
++        raise RuntimeError(f"{path} is not a roster_edit.py (no batch_edit)")  # run nothing
++    spec = importlib.util.spec_from_file_location("roster_edit_batch", path)
++    mod = importlib.util.module_from_spec(spec)
++    spec.loader.exec_module(mod)
++    for need in ("parse_op", "make_edit", "batch_edit", "write_roster"):
++        if not hasattr(mod, need):
++            raise RuntimeError(f"{path} has no {need}: not a roster_edit.py")
++    return mod
+ 
+ 
+ def _git(*a, cwd=None, env=None):
+@@ -74,10 +129,48 @@ def readback(sha, grp, fn, cwd=None, rel=ROSTER_REL):
              f"last120={last[:120]!r} len={len(last)}/{len(want)}"), bool(hit)
  
  
@@ -1163,7 +1412,7 @@ index df5667aed..2abf98aab 100644
      if t and t[0][0].isdigit():
          t = t[1:]
      if len(t) < 2:
-@@ -90,6 +149,31 @@ def parse_line(ln):
+@@ -90,12 +183,38 @@ def parse_line(ln):
      return t[0], t[1], (rest[0] if rest else ""), rest[1:]
  
  
@@ -1194,8 +1443,16 @@ index df5667aed..2abf98aab 100644
 +
  def run_queue(a, python=None):
      env = dict(os.environ)
++    env["HPO_ROSTER_LANE"] = "queue-runner"  # roster_edit.LANE_ENV: structural ops need it
      shims = Path(a.edit_checkout, "tools/audit/seat/shims")
-@@ -117,17 +201,85 @@ def run_queue(a, python=None):
+     if shims.is_dir():
+         env["PATH"] = f"{shims}:{env['PATH']}"
+-    editor = a.editor or str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))
++    editor = resolve_editor(a)
+     py = python or "seat-python3"
+ 
+     def sh(*c):
+@@ -117,17 +236,84 @@ def run_queue(a, python=None):
              rep(msg)
              return 2
      sh("git", "fetch", "-q", "origin")  # fetch only: the edit checkout is never moved
@@ -1232,8 +1489,6 @@ index df5667aed..2abf98aab 100644
 +    op is rolled back and skipped. Any batch-level failure (a lint refusal, a
 +    gate refusal of the joint text, a lost race) falls back to the single-op
 +    path for every line, so a bad line never strands the others."""
-+    sys.path.insert(0, str(Path(a.edit_checkout, "tools/audit/seat")))
-+    import roster_edit as re_
 +    items = []
 +    for ln in lines:
 +        p = parse_line(ln)
@@ -1246,6 +1501,7 @@ index df5667aed..2abf98aab 100644
 +    if a.branch:
 +        common += ["--branch", a.branch]
 +    try:
++        re_ = load_editor(editor)
 +        edits = []
 +        for _, (op, g, arg, extra) in items:
 +            with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
@@ -1283,7 +1539,7 @@ index df5667aed..2abf98aab 100644
      return 0
  
  
-@@ -151,24 +303,88 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
+@@ -151,24 +337,175 @@ def _run_op(a, sh, rep, py, editor, op, g, arg, extra):
                      rb = " | readback: " + readback(m.group(1), g, arg[1:], cwd=a.worktree)[0]
                  except Exception as e:  # noqa: BLE001 - reported, not hidden
                      rb = f" | readback: FAILED {str(e)[-200:]}"
@@ -1360,6 +1616,93 @@ index df5667aed..2abf98aab 100644
 +    import carry_audit
 +    return [x for x in carry_audit.roster_report(roster, {}, set(open_issues))
 +            if x.startswith("ISSUE-UNLISTED")]
++
++
++def roster_at(ref, cwd, rel=ROSTER_REL):
++    """The roster JSON at `ref`, read with `git show` only (read-only; carry 8)."""
++    s = _git("show", f"{ref}:{rel}", cwd=cwd)
++    if s.returncode:
++        raise RuntimeError(f"no {rel} at {ref}: {s.stderr.strip()[-120:]}")
++    return json.loads(s.stdout)
++
++
++def _groups(roster):
++    return {g["group"]: g for g in roster.get("groups", [])
++            if isinstance(g, dict) and "group" in g}
++
++
++def _short(v, n=70):
++    t = json.dumps(v, sort_keys=True) if not isinstance(v, str) else v
++    return t if len(t) <= n else t[:n - 1] + "~"
++
++
++def show_roster(roster, group=None, stage=None):
++    """Lines for `show`: one line per group (`GROUP stage pr=N after=K carries=N`,
++    optionally only one `resume.stage`), or every field of one group, its carry
++    entries numbered and the brief cut to 100 characters. None when `group`
++    names no group."""
++    gs = _groups(roster)
++    if group is not None:
++        g = gs.get(group)
++        if g is None:
++            return None
++        out = [f"{group}"]
++        for k, v in g.items():
++            if k == "resume" and isinstance(v, dict):
++                out += [f"  resume.{rk}: {_short(rv, 100)}" for rk, rv in v.items()]
++            elif k == "carry":
++                out.append(f"  carry: {len(v)} entries")
++                out += [f"    [{i}] {_short(c, 100)}" for i, c in enumerate(v)]
++            elif k == "brief":
++                out.append(f"  brief: {len(v)} chars: {_short(v, 100)}")
++            else:
++                out.append(f"  {k}: {_short(v, 100)}")
++        return out
++    out = []
++    for name, g in gs.items():
++        r = g.get("resume") or {}
++        if stage and r.get("stage") != stage:
++            continue
++        out.append(f"{name} {r.get('stage')} pr={r.get('pr')} after={len(g.get('after') or [])} "
++                   f"carries={len(g.get('carry') or [])}")
++    return out
++
++
++def diff_rosters(a, b):
++    """Lines describing what changed from roster `a` to `b`: `+ G` an added
++    group, `- G` a removed one, `~ G field: old -> new` a changed field
++    (`resume.<key>` for the resume dict), `~ G carry +<text>` / `-<text>` per
++    carry entry added or removed, `~ G brief` with the two lengths. Empty when
++    the rosters hold the same groups, field for field."""
++    ga, gb = _groups(a), _groups(b)
++    out = [f"- {g}" for g in ga if g not in gb] + [f"+ {g}" for g in gb if g not in ga]
++    for g in ga:
++        if g not in gb:
++            continue
++        x, y = ga[g], gb[g]
++        flat = lambda d: {**{k: v for k, v in d.items() if k != "resume"},  # noqa: E731
++                          **{f"resume.{k}": v for k, v in (d.get("resume") or {}).items()}}
++        fx, fy = flat(x), flat(y)
++        for k in dict.fromkeys([*fx, *fy]):
++            if fx.get(k) == fy.get(k):
++                continue
++            if k == "carry":
++                ca, cb = fx.get(k) or [], fy.get(k) or []
++                out += [f"~ {g} carry -{_short(c, 90)}" for c in ca if c not in cb]
++                out += [f"~ {g} carry +{_short(c, 90)}" for c in cb if c not in ca]
++            elif k == "brief":
++                out.append(f"~ {g} brief {len(fx.get(k) or '')} -> {len(fy.get(k) or '')} chars")
++            else:
++                out.append(f"~ {g} {k}: {_short(fx.get(k))} -> {_short(fy.get(k))}")
++    return out
++
++
++def _raises(f):
++    try:
++        f()
++    except Exception:  # noqa: BLE001
++        return True
++    return False
  
  
  def _self_test():
@@ -1376,7 +1719,42 @@ index df5667aed..2abf98aab 100644
  
      ck("parse: numbered", parse_line("7 set-stage G done") == ("set-stage", "G", "done", []))
      ck("parse: blank/comment", parse_line("") is None and parse_line("# x") is None)
-@@ -267,6 +483,119 @@ def _self_test():
+@@ -207,6 +544,7 @@ def _self_test():
+             f"c=pathlib.Path({str(t / 'calls')!r}); m=pathlib.Path({str(t / 'mode')!r})\n"
+             "c.write_text(c.read_text()+' '.join(sys.argv[2:5])+'\\n')\n"
+             f"pathlib.Path({str(t / 'argv')!r}).open('a').write(' '.join(sys.argv[1:])+'\\n')\n"
++            f"import os; pathlib.Path({str(t / 'lane')!r}).write_text(os.environ.get('HPO_ROSTER_LANE', 'absent'))\n"
+             "if 'BAD' in sys.argv: print('REFUSED: unknown group'); sys.exit(2)\n"
+             "if m.read_text()=='moved1':\n"
+             "    m.write_text('ok'); print('--lint-cwd x is not origin/main'); sys.exit(3)\n"
+@@ -229,6 +567,8 @@ def _self_test():
+         ck("run: drop-carry --match reaches the editor as a flag, not a value",
+            len(dl) == 1 and dl[0].startswith("drop-carry G --match x.py:1-2 --checkout ")
+            and rep[3] == f"roster: drop-carry G pushed {sha[:9]}")
++        ck("run: the child editor carries the roster lane marker (roster_edit.LANE_ENV)",
++           (t / "lane").read_text() == "queue-runner")
+         ck("run: alive touched", (t / "alive").exists())
+         # P315 / #3020: a failing op writes its own FAILED line and stops the run;
+         # a missing lint clone is refused by name, rc 2, before any op.
+@@ -259,6 +599,17 @@ def _self_test():
+            rc2 == 1 and r2[0] == f"roster: set-stage G pushed {sha[:9]}"
+            and r2[1] == "roster: set-stage H FAILED FileNotFoundError: clone vanished"
+            and len(r2) == 2)
++        # carry 13(2): a pass cut short (the drain's timeout) keeps every mark already written
++        q2.write_text("1 set-stage G done\n2 set-stage H done\n3 set-stage I done\n")
++        (t / "rep2").write_text("")
++        subprocess.run = boom
++        try:
++            run_queue(argparse.Namespace(**{**vars(a2), "mark": True}), python=sys.executable)
++        finally:
++            subprocess.run = real_sh
++        ck("run --mark: a pass that dies mid-queue keeps the marks already written, later lines stay unmarked",
++           q2.read_text().split("\n")[:3] == ["#done 1 set-stage G done", "2 set-stage H done",
++                                              "3 set-stage I done"], q2.read_text())
+         (t / "rep3").write_text("roster: set-stage G byte-identical\n")
+         a3 = argparse.Namespace(**{**vars(a2), "report": str(t / "rep3"),
+                                    "lint_clone": str(t / "no-such-clone")})
+@@ -267,6 +618,186 @@ def _self_test():
          ck("run: a missing --lint-clone is refused by name, rc 2, before any op",
             rc3 == 2 and "--lint-clone" in r3[-1] and "no-such-clone" in r3[-1]
             and len(r3) == 2 and not (t / "no-such-clone").exists())
@@ -1466,9 +1844,34 @@ index df5667aed..2abf98aab 100644
 +        ck("run --batch: a batch-level failure falls back to the single-op path",
 +           rr[0] == "roster: batch fell back to the single-op path"
 +           and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
++        # ONE editor for both paths (resolve_editor), named by what each path ran
++        seen = []
++        real_load = load_editor
++
++        def spy(path):
++            seen.append(path)
++            return real_load(path)
++        globals()["load_editor"] = spy
 +        fresh("1 set-stage G done\n")
 +        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
 +                  python=sys.executable)
++        globals()["load_editor"] = real_load
++        ck("run --batch loads the passed --editor, and its fallback runs that same file",
++           seen == [str(stub)] and (t / "rep").read_text().split("\n")[1]
++           == f"roster: set-stage G pushed {sha[:9]}", seen)
++        ck("resolve_editor: no --editor is the roster_edit.py beside this script, never the edit checkout",
++           resolve_editor(argparse.Namespace(editor=None, edit_checkout=str(clone)))
++           == str(Path(__file__).resolve().parent / "roster_edit.py")
++           and not (clone / "tools/audit/seat/roster_edit.py").exists())
++        marker = t / "ran"
++        ghost = t / "ghost.py"
++        ghost.write_text(f"open({str(marker)!r}, 'w').write('x')\n")
++        ck("load_editor: a file that is no roster_edit is refused unexecuted",
++           _raises(lambda: load_editor(str(ghost))) and not marker.exists())
++        fresh("1 set-stage G done\n")
++        real_ed = str(Path(__file__).resolve().parent / "roster_edit.py")
++        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True,
++                                        "editor": real_ed}), python=sys.executable)
 +        ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
 +           (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
 +        # release-held: a held carry waits for its batch file on origin/main
@@ -1486,6 +1889,48 @@ index df5667aed..2abf98aab 100644
 +        ck("unwired: an open issue no group lists is reported",
 +           unwired(ros, [5, 9]) == ["ISSUE-UNLISTED #9"])
 +        ck("unwired: every open issue listed reports nothing (null)", unwired(ros, [5]) == [])
++        # show / diff (carry 8): read-only, over `git show` of two refs
++        base_r = json.loads(_git("show", f"{sha}:{ROSTER_REL}", cwd=repo).stdout)
++        new_r = json.loads(json.dumps(base_r))
++        new_r["groups"][0]["carry"].append("second carry")
++        new_r["groups"][0]["resume"] = {"stage": "done", "pr": 7}
++        new_r["groups"].append({"group": "H", "carry": [], "resume": {"stage": "not-started"}})
++        (repo / ROSTER_REL).write_text(json.dumps(new_r))
++        _git("commit", "-qam", "r2", cwd=repo, env=env)
++        sha2 = _git("rev-parse", "HEAD", cwd=repo, env=env).stdout.strip()
++        before = (repo / ROSTER_REL).read_bytes()
++        d = diff_rosters(roster_at(sha, repo), roster_at(sha2, repo))
++        ck("diff: an added group, a changed resume field and an added carry are each one line",
++           d[0] == "+ H" and "~ G carry +second carry" in d
++           and "~ G resume.stage: null -> done" in d, d)
++        ck("diff: a removed group is `- G`",
++           diff_rosters(roster_at(sha2, repo), roster_at(sha, repo))[0] == "- H"
++           and "~ G carry -second carry" in diff_rosters(roster_at(sha2, repo), roster_at(sha, repo)))
++        ck("diff: the same ref twice is empty (null)",
++           diff_rosters(roster_at(sha2, repo), roster_at(sha2, repo)) == [])
++        ck("diff: a carry entry replaced by another is one - and one +, not unchanged (count alone is blind)",
++           sorted(x[:11] for x in diff_rosters({"groups": [{"group": "G", "carry": ["a"]}]},
++                                               {"groups": [{"group": "G", "carry": ["b"]}]}))
++           == ["~ G carry +", "~ G carry -"])
++        ck("show: one line per group, the stage and pr in it",
++           show_roster(roster_at(sha2, repo))
++           == ["G done pr=7 after=0 carries=2", "H not-started pr=None after=0 carries=0"])
++        ck("show --stage keeps only that stage (null: no filter lists both)",
++           show_roster(roster_at(sha2, repo), stage="done") == ["G done pr=7 after=0 carries=2"])
++        one = show_roster(roster_at(sha2, repo), "G")
++        ck("show G: every field, carries numbered, the brief absent here",
++           one[0] == "G" and "  resume.pr: 7" in one and "    [1] second carry" in one
++           and "  issues: [5]" in one, one)
++        ck("show: an unknown group is None, which the CLI makes rc 2",
++           show_roster(roster_at(sha2, repo), "NOPE") is None
++           and main(["show", "--edit-checkout", str(repo), "--ref", sha2, "NOPE"]) == 2)
++        ck("diff CLI: rc 1 when the refs differ, 0 when not, 2 for a missing ref",
++           main(["diff", "--edit-checkout", str(repo), sha, sha2]) == 1
++           and main(["diff", "--edit-checkout", str(repo), sha2, sha2]) == 0
++           and main(["diff", "--edit-checkout", str(repo), sha, "nosuchref"]) == 2)
++        ck("show and diff write nothing: the working tree and the index are as they were",
++           (repo / ROSTER_REL).read_bytes() == before
++           and _git("status", "--porcelain", cwd=repo, env=env).stdout == "")
 +        # loop: heals a missing lint clone, then applies and marks
 +        fresh("1 set-stage G done\n")
 +        lc = t / "healed"
@@ -1496,7 +1941,7 @@ index df5667aed..2abf98aab 100644
      print(f"roster_queue self-test: {n[0]} checks, {len(fails)} failed")
      return 1 if fails else 0
  
-@@ -279,20 +608,58 @@ def main(argv=None):
+@@ -279,20 +810,82 @@ def main(argv=None):
      p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
      sub = p.add_subparsers(dest="cmd", required=True)
      r = sub.add_parser("run")
@@ -1531,6 +1976,15 @@ index df5667aed..2abf98aab 100644
 +    uw.add_argument("--ref", default="origin/main")
 +    uw.add_argument("--open-issues", required=True,
 +                    help="JSON list of open issue numbers (or gh issue objects)")
++    sh_ = sub.add_parser("show")
++    sh_.add_argument("--edit-checkout", required=True)
++    sh_.add_argument("--ref", default="origin/main")
++    sh_.add_argument("--stage", help="only groups whose resume.stage is this")
++    sh_.add_argument("group", nargs="?")
++    df = sub.add_parser("diff")
++    df.add_argument("--edit-checkout", required=True)
++    df.add_argument("ref_a")
++    df.add_argument("ref_b")
      b = sub.add_parser("readback")
      b.add_argument("sha")
      b.add_argument("group")
@@ -1559,6 +2013,21 @@ index df5667aed..2abf98aab 100644
 +        out = unwired(json.loads(s_.stdout), [n for n in nums if isinstance(n, int)])
 +        print("\n".join(out) or "no unwired open issue")
 +        return 1 if out else 0
++    if a.cmd in ("show", "diff"):
++        try:
++            if a.cmd == "show":
++                lines = show_roster(roster_at(a.ref, a.edit_checkout), a.group, a.stage)
++                if lines is None:
++                    print(f"no group {a.group} in the roster at {a.ref}", file=sys.stderr)
++                    return 2
++            else:
++                lines = diff_rosters(roster_at(a.ref_a, a.edit_checkout),
++                                     roster_at(a.ref_b, a.edit_checkout))
++        except RuntimeError as e:
++            print(e, file=sys.stderr)
++            return 2
++        print("\n".join(lines) or ("no difference" if a.cmd == "diff" else "no group"))
++        return 1 if (a.cmd == "diff" and lines) else 0
      line, ok = readback(a.sha, a.group, a.file)
      print(line)
      return 0 if ok else 1
