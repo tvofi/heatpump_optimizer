@@ -655,7 +655,7 @@ ACCURACY_STORE_VERSION: Final = 1
 ENERGY_STORE_VERSION: Final = 1
 # One version per store (#1740): a bump migrates the store it names, no other.
 SNAPSHOT_STORE_VERSION: Final = 1
-LEDGER_STORE_VERSION: Final = 1
+LEDGER_STORE_VERSION: Final = 2
 
 
 # Service for the card's what-if simulator (item 21).
