@@ -1,5 +1,11 @@
 Partial delivery of R10-DISPATCH-AT-HANDOFF, carries numbered 1 to 16 as `review_packet.py handoff` counts them: Carry 3, Carry 6 (second-reviewer part), Carry 10, Carry 14, Carry 15 and Carry 16 in `bus.sh` and `review_packet.py`. The rest are not built here; Forward-carry lists each.
 
+Not built here, for want of time in this seat (each stays in the roster entry of R10-DISPATCH-AT-HANDOFF):
+- Carry 1 and Carry 2 (dispatch at the handoff ref) wait on the owner's policy text for `fix-review.md` and `standing-dispatch.md`.
+- Carry 4 (refuse on a carry_audit, figure_lint or moved-head red in the packet): `review_packet.py` already refuses on carry_audit and head-note; figure_lint is only rendered. The owner's 2026-10-24 ruling stands: dispatch never waits for CI.
+- Carry 5 (brief lines in `cloud_dispatch.py`), the `review_carry.py` patch-id half of Carry 6, Carry 7 (hold on a pending required context or an unanswered red; it amends the 2026-10-24 ruling, so the owner approves the policy text at the merge), Carry 9 (model routing).
+- Carry 11 (dependabot delivery row), Carry 12 (dependabot body patch), Carry 13 (pending-ci drafts).
+
 ## Head
 
 2d83d4e36a00ccab8aae41cd30e9d729789d2434
@@ -33,11 +39,7 @@ none
 
 Built: Carry 3 (P344 autofix hold), the second-reviewer-at-a-merge-verdict-head half of Carry 6, Carry 10 (blocked-verdict carry; already in the tree before this branch, `verdict_at`), Carry 14 (P368), Carry 15 (P354), Carry 16 (P374). The three-round refusal of Carry 8 and the concluded-red refusal of Carry 7 were already in `three_rounds` and the `classify` call; this branch adds no new text for them. Carry: dismissed: built in this diff or already in the tree
 
-Not built, for want of time in this seat; each stays in the roster entry of R10-DISPATCH-AT-HANDOFF, which must not be closed on this merge:
-- Carry 1 and Carry 2 (dispatch at the handoff ref) wait on the owner's policy text for `fix-review.md` and `standing-dispatch.md`. Carry: R10-DISPATCH-AT-HANDOFF
-- Carry 4 (refuse on a carry_audit, figure_lint or moved-head red in the packet): `review_packet.py` already refuses on carry_audit and head-note; figure_lint is only rendered. The owner's 2026-10-24 ruling stands: dispatch never waits for CI. Carry: R10-DISPATCH-AT-HANDOFF
-- Carry 5 (brief lines in `cloud_dispatch.py`), the `review_carry.py` patch-id half of Carry 6, Carry 7 (hold on a pending required context or an unanswered red; it amends the 2026-10-24 ruling, so the owner approves the policy text at the merge), Carry 9 (model routing). Carry: R10-DISPATCH-AT-HANDOFF
-- Carry 11 (dependabot delivery row), Carry 12 (dependabot body patch), Carry 13 (pending-ci drafts). Carry: R10-DISPATCH-AT-HANDOFF
+No new finding is carried: the unbuilt carries stay verbatim in the roster entry, which must not be closed on this merge.
 
 ## Friction
 
