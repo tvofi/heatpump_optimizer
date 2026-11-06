@@ -47,6 +47,7 @@ have a contract: `dev/governance/roles/standing-tick.md` (the tick board),
 sweep's standing-seat liveness step keep them alive.
 
 - [`features_block.py`](instruments/features_block.py.md) — runs one block of `tests/features.py`, or the script through a marker
+- [`wrap_module_tries.py`](instruments/wrap_module_tries.py.md) — moves each module-scope statement holding a `try` in a giant test script into a function called once, the remedy for `tests/entities.py`'s module-scope try guard
 - [`mutant_run.py`](instruments/mutant_run.py.md) — applies spec mutants or the diff's added lines one at a time to a git-archive copy and prints KILLED or SURVIVED
 - [`body_push.sh`](instruments/body_push.sh.md) — publishes a handoff's BODY.md on the orphan ref `handoff-body/<topic>` (plus RESUME.md), parentless first commit, fast-forwards after
 - [`body_patch.sh`](instruments/body_patch.sh.md) — repairs an open pull request's BODY, or any pull request's TITLE (`--title`), without moving its head
