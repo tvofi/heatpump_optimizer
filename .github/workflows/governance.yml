@@ -1086,6 +1086,20 @@ jobs:
           python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
           grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
 
+      - name: Show the sweep runner and its Gantt, verdict-audit and roster-drain parts refusing their own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/sweep_gantt.py --self-test | tee "$RUNNER_TEMP/sweep-gantt-self-test.txt"
+          grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
+          python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
+          python3 -I tools/audit/seat/roster_drain.py --self-test | tee "$RUNNER_TEMP/roster-drain-self-test.txt"
+          grep -Eq '^roster_drain self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-drain-self-test.txt"
+          bash tools/audit/seat/sweep_runner.sh --self-test | tee "$RUNNER_TEMP/sweep-runner-self-test.txt"
+          grep -Eq '^sweep_runner self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-runner-self-test.txt"
+          python3 -I tools/audit/seat/sweep_runner_selftest.py --self-test | grep -Eq '^sweep_runner self-test: [1-9][0-9]* checks, 0 failed$'
+
       - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
