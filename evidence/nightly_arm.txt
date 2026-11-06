@@ -1,0 +1,19 @@
+  2026-11-05T00:47:36Z schedule failure 17.2 h
+  2026-11-04T21:04:09Z workflow_dispatch failure 17.0 h
+  2026-11-04T05:17:43Z schedule failure 17.0 h
+  2026-11-03T00:47:41Z schedule failure 17.6 h
+  2026-11-02T01:00:26Z workflow_dispatch success 14.8 h
+  2026-11-02T00:50:17Z schedule success 16.1 h
+  2026-11-01T23:04:04Z workflow_dispatch success 14.4 h
+  2026-11-01T02:22:49Z schedule success 6.6 h
+  2026-10-31T02:21:28Z schedule success 7.1 h
+  2026-10-30T14:46:38Z workflow_dispatch success 7.2 h
+  2026-10-30T14:16:16Z workflow_dispatch success 7.6 h
+  2026-10-30T02:26:05Z schedule success 5.6 h
+  2026-10-30T00:13:40Z workflow_dispatch failure 7.5 h
+  2026-10-29T20:22:48Z workflow_dispatch failure 5.7 h
+  2026-10-29T07:30:21Z workflow_dispatch failure 8.1 h
+  2026-10-29T02:25:38Z schedule failure 6.8 h
+RESULT nightly 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z push: 244 runs, 3.8 runner h
+RESULT nightly 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z schedule or dispatch: 16 runs, 176.2 runner h
+rc=0

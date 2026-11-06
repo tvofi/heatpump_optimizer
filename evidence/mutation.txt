@@ -1,4 +1,0 @@
-head P391 DEFER
-head P392 DEFER
-head P393 None
-mutant P391->ACCEPT ACCEPT
