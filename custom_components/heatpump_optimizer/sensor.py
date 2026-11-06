@@ -403,6 +403,22 @@ class _WaitsForEvidenceMixin(_SensorMixinBase):
     def available(self) -> bool:
         return bool(super().available and self._waiting_for is None)
 
+    def _evidence_attributes(
+        self, block: str, report_key: str | None = None
+    ) -> dict[str, Any]:
+        """The payload ``block``, ``waiting_for``, and at most one ``insight`` report.
+
+        The report rides on the sensor whose evidence it explains, and only
+        when one exists; ``report_key`` None publishes none.
+        """
+        data = self._data()
+        attrs = dict(data.get(block, {}) or {})
+        attrs["waiting_for"] = self._waiting_for
+        report = (data.get("insight") or {}).get(report_key) if report_key else None
+        if report:
+            attrs[report_key] = report
+        return attrs
+
 
 # ---------------------------------------------------------------------------
 # Original sensors (maintained for backward compatibility)
@@ -1911,16 +1927,9 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("accuracy", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
         # T6 #52: the last interval's residual, attributed input by input —
         # accuracy's "how wrong" gets its "why" on the same sensor.
-        report = ((self._data()).get("insight") or {}).get(
-            "last_diagnosis"
-        )
-        if report:
-            attrs["last_diagnosis"] = report
-        return attrs
+        return self._evidence_attributes("accuracy", "last_diagnosis")
 
 
 class PredictedIndoorTempSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
@@ -2407,18 +2416,9 @@ class ContractComparisonSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict(
-            (self._data()).get("contract_comparison", {}) or {}
-        )
-        attrs["waiting_for"] = self._waiting_for
         # T6 #40: the latest frozen month's itemised receipt rides on the
         # month-money sensor — the receipt is that comparison, settled.
-        report = ((self._data()).get("insight") or {}).get(
-            "monthly_report"
-        )
-        if report:
-            attrs["monthly_report"] = report
-        return attrs
+        return self._evidence_attributes("contract_comparison", "monthly_report")
 
 
 class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
@@ -2802,9 +2802,7 @@ class FrequencyAdvisorSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("freq_control", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
-        return attrs
+        return self._evidence_attributes("freq_control")
 
 
 #: The price of a consumed kWh the Sensor-Gap Advisor assumes when the
