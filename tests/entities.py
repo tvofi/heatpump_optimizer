@@ -974,27 +974,30 @@ import contextlib as _d7_contextlib  # noqa: E402
 import io as _d7_io  # noqa: E402
 import env_drift as _ed_d7  # noqa: E402
 
-try:
-    with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
-        _D7_DRIFT = (
-            _ed_d7.judge_drift({"s": {"a": [1, 2]}}, {"s": {"a": [1, 2]}},
-                               {}, {}, "base")[0],
-            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
-                               {}, {}, "base")[0],
-            _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
-                               {"s": ["why"]}, {}, "base")[:2],
-            _ed_d7.judge_drift({}, {"s": {"a": 1}}, {}, {}, "base")[0],
+def _module_block_977():
+    global _D7_DRIFT, _D7_STRESS, _d7_cap, _d7_exc, _d7_tab
+    try:
+        with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+            _D7_DRIFT = (
+                _ed_d7.judge_drift({"s": {"a": [1, 2]}}, {"s": {"a": [1, 2]}},
+                                   {}, {}, "base")[0],
+                _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                                   {}, {}, "base")[0],
+                _ed_d7.judge_drift({"s": {"a": [1, 3]}}, {"s": {"a": [1, 2]}},
+                                   {"s": ["why"]}, {}, "base")[:2],
+                _ed_d7.judge_drift({}, {"s": {"a": 1}}, {}, {}, "base")[0],
+            )
+        _d7_tab = {"x": {"ratio": 2.0}}
+        _d7_cap = _stress_mod.scenario_budget("x", _d7_tab)
+        _D7_STRESS = (
+            _d7_cap,
+            _stress_mod.scenario_verdict("x", _d7_cap + 0.5, _d7_tab)[0] is not None,
+            _stress_mod.scenario_verdict("x", _d7_cap, _d7_tab)[0],
+            _stress_mod.scenario_verdict("y", 99.0, _d7_tab),
         )
-    _d7_tab = {"x": {"ratio": 2.0}}
-    _d7_cap = _stress_mod.scenario_budget("x", _d7_tab)
-    _D7_STRESS = (
-        _d7_cap,
-        _stress_mod.scenario_verdict("x", _d7_cap + 0.5, _d7_tab)[0] is not None,
-        _stress_mod.scenario_verdict("x", _d7_cap, _d7_tab)[0],
-        _stress_mod.scenario_verdict("y", 99.0, _d7_tab),
-    )
-except Exception as _d7_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _D7_DRIFT = _D7_STRESS = (f"{type(_d7_exc).__name__}: {_d7_exc}",)
+    except Exception as _d7_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _D7_DRIFT = _D7_STRESS = (f"{type(_d7_exc).__name__}: {_d7_exc}",)
+_module_block_977()
 R.check(
     "env_drift's drift verdict is importable and judges a moved leaf (R9 D7-s1-02)",
     _D7_DRIFT == (0, 1, (0, ["s"]), 1),
@@ -2467,29 +2470,32 @@ R.check(
 # Before the first update, coordinator.data is None.
 empty = FakeCoordinator(None)
 crashed = []
-for cls in (
-    sensor.MeasuredPowerSensor,
-    sensor.ObservedCOPSensor,
-    sensor.SpaceEnergySensor,
-    sensor.TotalCostSensor,
-    sensor.PredictionAccuracySensor,
-    sensor.MonthlyPeakSensor,
-    sensor.PVSurplusSensor,
-    sensor.ThermalBatterySensor,
-    sensor.ThermalBatteryEnergySensor,
-    sensor.ComfortWeightSensor,
-    sensor.PlanNarrativeSensor,
-    sensor.OptimizationScoreSensor,
-    sensor.CompressorStartsSensor,
-    sensor.ContractComparisonSensor,
-    sensor.FrequencyAdvisorSensor,
-):
-    try:
-        entity = cls(empty, ENTRY)
-        entity.native_value
-        entity.extra_state_attributes
-    except Exception as err:  # noqa: BLE001 - that is what is being tested
-        crashed.append(f"{cls.__name__}: {err}")
+def _module_block_2470():
+    global cls, entity, err
+    for cls in (
+        sensor.MeasuredPowerSensor,
+        sensor.ObservedCOPSensor,
+        sensor.SpaceEnergySensor,
+        sensor.TotalCostSensor,
+        sensor.PredictionAccuracySensor,
+        sensor.MonthlyPeakSensor,
+        sensor.PVSurplusSensor,
+        sensor.ThermalBatterySensor,
+        sensor.ThermalBatteryEnergySensor,
+        sensor.ComfortWeightSensor,
+        sensor.PlanNarrativeSensor,
+        sensor.OptimizationScoreSensor,
+        sensor.CompressorStartsSensor,
+        sensor.ContractComparisonSensor,
+        sensor.FrequencyAdvisorSensor,
+    ):
+        try:
+            entity = cls(empty, ENTRY)
+            entity.native_value
+            entity.extra_state_attributes
+        except Exception as err:  # noqa: BLE001 - that is what is being tested
+            crashed.append(f"{cls.__name__}: {err}")
+_module_block_2470()
 R.check(
     "no sensor crashes before the first update",
     not crashed,
@@ -2682,11 +2688,14 @@ R.check(
     and _ctx._opt_config is _blind_coord._opt_config,
 )
 _action_ok = False
-if _ctx is not None:
-    try:
-        _ctx.hass = object()
-    except FrozenInstanceError:
-        _action_ok = True
+def _module_block_2685():
+    global _action_ok
+    if _ctx is not None:
+        try:
+            _ctx.hass = object()
+        except FrozenInstanceError:
+            _action_ok = True
+_module_block_2685()
 R.check("CoordinatorContext rejects writes (frozen)", _action_ok)
 _blind_coord._current_action["s0_probe"] = True
 R.check(
@@ -3605,10 +3614,13 @@ def _p2_conf(e):
     return None
 
 
-try:
-    from heatpump_optimizer.entry_config import EntryConfig as _EntryConfig
-except ImportError:
-    _EntryConfig = None
+def _module_block_3608():
+    global _EntryConfig
+    try:
+        from heatpump_optimizer.entry_config import EntryConfig as _EntryConfig
+    except ImportError:
+        _EntryConfig = None
+_module_block_3608()
 #: A parsed entry field read is the same read as ``.get`` of its stored key
 #: (#1745): field name -> the CONF_ name whose value it is.
 _P2_TYPED_READS = {
@@ -4438,253 +4450,256 @@ R.check(
     _ec_good == _ec_stored and _ec_stored != _ec_default, f"got {_ec_good!r}",
 )
 
-if _EntryConfig is not None:
-    _ec_parses = []
-    _ec_parse = _EntryConfig.from_mapping.__func__
+def _module_block_4441():
+    global _EC_RELAX, _EcNS, _EcState, _ec_capacity, _ec_cfg, _ec_coord, _ec_copies, _ec_copy, _ec_copy_err, _ec_counting, _ec_entry, _ec_fields, _ec_fuse, _ec_gates, _ec_keys, _ec_lower_floor_samples, _ec_nf, _ec_no_refresh, _ec_np, _ec_ok, _ec_orig, _ec_parse, _ec_parsed, _ec_parses, _ec_pickle, _ec_qbefore, _ec_qcfg, _ec_qcoord, _ec_qentry, _ec_qerr, _ec_rain, _ec_refusals, _ec_replace, _ec_setitem, _ec_silent, _ec_silent_caps, _ec_start, _ec_tank, _ec_tz, _ec_unstable, _ec_want, _ec_weight, _ec_widening, _ec_write, _ec_wrong, bad, c, err, f, k, n, v
+    if _EntryConfig is not None:
+        _ec_parses = []
+        _ec_parse = _EntryConfig.from_mapping.__func__
 
-    def _ec_counting(cls, merged):
-        if not isinstance(merged, _EntryConfig):
-            _ec_parses.append(1)
-        return _ec_parse(cls, merged)
+        def _ec_counting(cls, merged):
+            if not isinstance(merged, _EntryConfig):
+                _ec_parses.append(1)
+            return _ec_parse(cls, merged)
 
-    _EntryConfig.from_mapping = classmethod(_ec_counting)
-    try:
-        _ec_entry, _ec_coord = _ec_build(
-            {const.CONF_PV_ENABLED: True}, options={const.CONF_TARGET_TEMP: 22.5})
-    finally:
-        _EntryConfig.from_mapping = classmethod(_ec_parse)
-    _ec_cfg = _ec_coord._ctx._config
-    from operator import setitem as _ec_setitem
-    _ec_refusals = []
-    for _ec_write in (
-        lambda: setattr(_ec_cfg, "pv_enabled", False),
-        lambda: _ec_setitem(_ec_cfg, const.CONF_PV_ENABLED, False),
-        lambda: _ec_setitem(_ec_cfg.raw, const.CONF_PV_ENABLED, False),
-    ):
+        _EntryConfig.from_mapping = classmethod(_ec_counting)
         try:
-            _ec_write()
-        except (FrozenInstanceError, TypeError):
-            _ec_refusals.append(True)
-    R.check(
-        "the coordinator parses its entry once, into one EntryConfig",
-        type(_ec_cfg) is _EntryConfig and len(_ec_parses) == 1,
-        f"type={type(_ec_cfg).__name__} parses={len(_ec_parses)}",
-    )
-    R.check(
-        "the parsed configuration is frozen: a field, an item and the raw mapping refuse a write",
-        len(_ec_refusals) == 3 and _ec_cfg.pv_enabled is True, f"refused {len(_ec_refusals)} of 3",
-    )
-    R.check(
-        "it is still the merged entry (options over data), which the no-op-save reload skip compares",
-        _ec_coord.effective_config == {**_ec_entry.data, **_ec_entry.options}
-        and _ec_cfg.target_temperature == 22.5,
-        f"{dict(_ec_cfg)!r}",
-    )
-    _ec_fields = [f for f in fields(_EntryConfig) if f.metadata]
-    _ec_keys = {v for n, v in vars(const).items() if n.startswith("CONF_") and isinstance(v, str)}
-    R.check(
-        "every declared field is named for a stored key",
-        bool(_ec_fields) and {f.name for f in _ec_fields} <= _ec_keys,
-        f"not a key: {sorted({f.name for f in _ec_fields} - _ec_keys)}",
-    )
-    _ec_unstable = [
-        f.name for f in _ec_fields
-        if (lambda got: type(got) is not type(f.default) or got != f.default)(
-            getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name))
-    ]
-    R.check(
-        "every declared default survives its own key's parse, type included",
-        not _ec_unstable, f"{_ec_unstable}",
-    )
+            _ec_entry, _ec_coord = _ec_build(
+                {const.CONF_PV_ENABLED: True}, options={const.CONF_TARGET_TEMP: 22.5})
+        finally:
+            _EntryConfig.from_mapping = classmethod(_ec_parse)
+        _ec_cfg = _ec_coord._ctx._config
+        from operator import setitem as _ec_setitem
+        _ec_refusals = []
+        for _ec_write in (
+            lambda: setattr(_ec_cfg, "pv_enabled", False),
+            lambda: _ec_setitem(_ec_cfg, const.CONF_PV_ENABLED, False),
+            lambda: _ec_setitem(_ec_cfg.raw, const.CONF_PV_ENABLED, False),
+        ):
+            try:
+                _ec_write()
+            except (FrozenInstanceError, TypeError):
+                _ec_refusals.append(True)
+        R.check(
+            "the coordinator parses its entry once, into one EntryConfig",
+            type(_ec_cfg) is _EntryConfig and len(_ec_parses) == 1,
+            f"type={type(_ec_cfg).__name__} parses={len(_ec_parses)}",
+        )
+        R.check(
+            "the parsed configuration is frozen: a field, an item and the raw mapping refuse a write",
+            len(_ec_refusals) == 3 and _ec_cfg.pv_enabled is True, f"refused {len(_ec_refusals)} of 3",
+        )
+        R.check(
+            "it is still the merged entry (options over data), which the no-op-save reload skip compares",
+            _ec_coord.effective_config == {**_ec_entry.data, **_ec_entry.options}
+            and _ec_cfg.target_temperature == 22.5,
+            f"{dict(_ec_cfg)!r}",
+        )
+        _ec_fields = [f for f in fields(_EntryConfig) if f.metadata]
+        _ec_keys = {v for n, v in vars(const).items() if n.startswith("CONF_") and isinstance(v, str)}
+        R.check(
+            "every declared field is named for a stored key",
+            bool(_ec_fields) and {f.name for f in _ec_fields} <= _ec_keys,
+            f"not a key: {sorted({f.name for f in _ec_fields} - _ec_keys)}",
+        )
+        _ec_unstable = [
+            f.name for f in _ec_fields
+            if (lambda got: type(got) is not type(f.default) or got != f.default)(
+                getattr(_EntryConfig.from_mapping({f.name: f.default}), f.name))
+        ]
+        R.check(
+            "every declared default survives its own key's parse, type included",
+            not _ec_unstable, f"{_ec_unstable}",
+        )
 
-    # A non-finite stored number is refused like text, and a stored tank
-    # volume of 0 is an unset field (a zero tank would divide the DHW model
-    # by zero), each falling to the one declared default.
-    _ec_nf = [
-        _EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: bad}).comfort_weight
-        for bad in (float("nan"), float("inf"), "-inf")
-    ]
-    _ec_tank = _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 0}).dhw_tank_volume
-    _ec_ok = (_EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: 7.5}).comfort_weight,
-              _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 150}).dhw_tank_volume)
-    R.check(
-        "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 "
-        "reads the default volume; null control: 7.5 and 150 pass through",
-        _ec_nf == [const.DEFAULT_COMFORT_WEIGHT] * 3
-        and _ec_tank == const.DEFAULT_DHW_TANK_VOLUME and _ec_ok == (7.5, 150.0)
-        and const.DEFAULT_DHW_TANK_VOLUME != 0,
-        f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
-    )
+        # A non-finite stored number is refused like text, and a stored tank
+        # volume of 0 is an unset field (a zero tank would divide the DHW model
+        # by zero), each falling to the one declared default.
+        _ec_nf = [
+            _EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: bad}).comfort_weight
+            for bad in (float("nan"), float("inf"), "-inf")
+        ]
+        _ec_tank = _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 0}).dhw_tank_volume
+        _ec_ok = (_EntryConfig.from_mapping({const.CONF_COMFORT_WEIGHT: 7.5}).comfort_weight,
+                  _EntryConfig.from_mapping({const.CONF_DHW_TANK_VOLUME: 150}).dhw_tank_volume)
+        R.check(
+            "a stored NaN or infinity reads the declared default, and a stored tank volume of 0 "
+            "reads the default volume; null control: 7.5 and 150 pass through",
+            _ec_nf == [const.DEFAULT_COMFORT_WEIGHT] * 3
+            and _ec_tank == const.DEFAULT_DHW_TANK_VOLUME and _ec_ok == (7.5, 150.0)
+            and const.DEFAULT_DHW_TANK_VOLUME != 0,
+            f"non-finite={_ec_nf} tank={_ec_tank} ok={_ec_ok}",
+        )
 
-    # A parsed configuration rides inside state that is deep-copied (the boost
-    # drift replay forks its replay state) or pickled; the read-only view of
-    # the stored values cannot be, so EntryConfig copies by value (#1745).
-    import copy as _ec_copy
-    import pickle as _ec_pickle
-    _ec_orig = _EntryConfig.from_mapping({
-        const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
-        const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
-    })
-    _ec_copies, _ec_copy_err = [], None
-    try:
-        _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
-    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
-        _ec_copy_err = f"{type(err).__name__}: {err}"
-    R.check(
-        "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
-        "its parsed fields kept, its stored values still read-only",
-        _ec_copy_err is None and len(_ec_copies) == 2
-        and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
-                and c.pv_enabled is True and c.quiet_off_windows == ""
-                and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
-        f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
-    )
-    # The fuse's continuous capacity is the configuration's, not the
-    # coordinator's: amps x phases x 230 V, None with no fuse configured.
-    _ec_fuse = (
-        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
-        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
-        _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
-    )
-    R.check(
-        "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
-        abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
-        f"{_ec_fuse}",
-    )
-
-    # The gates that read a parsed switch or slot, each driven on both arms
-    # (#2025's eight mutation survivors: the drives that ran never reached
-    # the arm the gate closes).
-    from dataclasses import replace as _ec_replace
-    from datetime import timezone as _ec_tz
-    import numpy as _ec_np
-    from heatpump_optimizer import silent_mode as _ec_silent
-    from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
-    from heatpump_optimizer.thermal_model import ThermalState as _EcState
-    from types import SimpleNamespace as _EcNS
-
-    def _ec_lower_floor_samples(sensor):
-        """One replayable two-zone interval; the lower-floor learner's samples after it."""
-        _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
-                          const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
-        prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
-                        lower_floor_temperature=20.0, slab_temperature=27.0,
-                        outdoor_temperature=-5.0)
-        c._last_house_sample = prev
-        c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
-        c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
-                                       lower_floor_temperature=19.9)
-        c._current_action = {"power": 2.0}
-        asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
-        return c._lower_floor_loss_samples
-
-    def _ec_widening(tripped):
-        _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
-        c._vent_cusum.tripped = tripped
-        return c._floor_widening()
-
-    def _ec_rain(flag):
-        """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
-        _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
-        c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
-        c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
-        c._apply_open_meteo = lambda solar, *a: solar
-        c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
-                                        snowfall_for=lambda *a: 1.0)
-        c._update_snow_memory = lambda *a: False
-        fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
-        return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
-
-    def _ec_weight(on):
-        _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
-        c._comfort_learner.learned_weight = 9.0
-        return c._comfort_weight()
-
-    def _ec_capacity(on):
-        """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
-        from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
-        _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
-        c._capacity_envelope = {-2: [1.0, _min]}
-        capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
-        p_max = float(c._ctx._thermal_params.max_electrical_power)
-        c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
-        c._fold_capacity_envelope(3.0)
-        return capped, len(c._capacity_envelope)
-
-    def _ec_silent_caps(fraction):
+        # A parsed configuration rides inside state that is deep-copied (the boost
+        # drift replay forks its replay state) or pickled; the read-only view of
+        # the stored values cannot be, so EntryConfig copies by value (#1745).
+        import copy as _ec_copy
+        import pickle as _ec_pickle
+        _ec_orig = _EntryConfig.from_mapping({
+            const.CONF_COMFORT_WEIGHT: "7", const.CONF_PV_ENABLED: True,
+            const.CONF_QUIET_OFF_WINDOWS: None, "unparsed_extra": [1, 2],
+        })
+        _ec_copies, _ec_copy_err = [], None
         try:
-            return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
-                                             const.CONF_SILENT_MODE_FRACTION: fraction},
-                                      _ec_start, 96, 0.25, 6.0) is not None
-        except Exception as err:  # noqa: BLE001 - a raise is the failure measured
-            return type(err).__name__
+            _ec_copies = [_ec_copy.deepcopy(_ec_orig), _ec_pickle.loads(_ec_pickle.dumps(_ec_orig))]
+        except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+            _ec_copy_err = f"{type(err).__name__}: {err}"
+        R.check(
+            "an EntryConfig survives deepcopy and a pickle round trip: equal, still an EntryConfig, "
+            "its parsed fields kept, its stored values still read-only",
+            _ec_copy_err is None and len(_ec_copies) == 2
+            and all(type(c) is _EntryConfig and c == _ec_orig and c.comfort_weight == 7.0
+                    and c.pv_enabled is True and c.quiet_off_windows == ""
+                    and type(c.raw).__name__ == "mappingproxy" for c in _ec_copies),
+            f"error={_ec_copy_err} copies={[type(c).__name__ for c in _ec_copies]}",
+        )
+        # The fuse's continuous capacity is the configuration's, not the
+        # coordinator's: amps x phases x 230 V, None with no fuse configured.
+        _ec_fuse = (
+            _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 20, const.CONF_MAIN_FUSE_PHASES: 3}).fuse_kw(),
+            _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_A: 0}).fuse_kw(),
+            _EntryConfig.from_mapping({const.CONF_MAIN_FUSE_PHASES: 1}).fuse_kw_at(16),
+        )
+        R.check(
+            "the configured fuse is 20 A x 3 phases = 13.8 kW, no fuse is None, and 16 A on one phase is 3.68 kW",
+            abs(_ec_fuse[0] - 13.8) < 1e-9 and _ec_fuse[1] is None and abs(_ec_fuse[2] - 3.68) < 1e-9,
+            f"{_ec_fuse}",
+        )
 
-    _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
-    _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
-    _ec_gates = {
-        "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
-                                                             _ec_lower_floor_samples("sensor.lower")),
-        "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
-        "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
-        "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
-        "a parsed configuration is returned as it is": (
-            _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
-        "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
-        "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
-    }
-    _ec_want = {
-        "lower floor learns only from a configured sensor": (0, 1),
-        "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
-        "rain weighting needs the switch on": (2.0, 0.5714),
-        "learning off plans with the configured weight": (5.0, 9.0),
-        "a parsed configuration is returned as it is": (True, True),
-        "an unreadable silent fraction caps nothing": (False, True),
-        "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
-    }
-    _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
-    R.check(
-        "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
-        + "; ".join(_ec_want),
-        not _ec_wrong, f"{_ec_wrong}",
-    )
+        # The gates that read a parsed switch or slot, each driven on both arms
+        # (#2025's eight mutation survivors: the drives that ran never reached
+        # the arm the gate closes).
+        from dataclasses import replace as _ec_replace
+        from datetime import timezone as _ec_tz
+        import numpy as _ec_np
+        from heatpump_optimizer import silent_mode as _ec_silent
+        from heatpump_optimizer.coordinator import OPEN_WINDOW_RELAX_C as _EC_RELAX
+        from heatpump_optimizer.thermal_model import ThermalState as _EcState
+        from types import SimpleNamespace as _EcNS
 
-    # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
-    # slot are parsed fields, a blank or None spec reading "" (unset) and an
-    # empty slot None. A set_thermal_parameters call carrying a spec applies
-    # live, as on main: the coordinator swaps in a new parse with the keys
-    # folded in, never writing into the frozen one, and that parse equals the
-    # entry after the options write, so the update listener skips the reload.
-    _ec_qentry, _ec_qcoord = _ec_build({
-        const.CONF_QUIET_OFF_WINDOWS: None,
-        const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
-    })
+        def _ec_lower_floor_samples(sensor):
+            """One replayable two-zone interval; the lower-floor learner's samples after it."""
+            _, c = _ec_build({"upper_floor_thermal_mass": 3.0, "lower_floor_thermal_mass": 8.0,
+                              const.CONF_LOWER_FLOOR_TEMP_ENTITY: sensor})
+            prev = _EcState(room_temperature=21.0, upper_floor_temperature=21.0,
+                            lower_floor_temperature=20.0, slab_temperature=27.0,
+                            outdoor_temperature=-5.0)
+            c._last_house_sample = prev
+            c._last_house_sample_time = dt_util.now() - timedelta(hours=0.5)
+            c._current_state = _ec_replace(prev, room_temperature=20.9, upper_floor_temperature=20.9,
+                                           lower_floor_temperature=19.9)
+            c._current_action = {"power": 2.0}
+            asyncio.run(c._async_learn_lower_floor_loss(c._close_fabric_interval()))
+            return c._lower_floor_loss_samples
 
-    async def _ec_no_refresh():
-        return None
+        def _ec_widening(tripped):
+            _, c = _ec_build({const.CONF_OPEN_WINDOW_RELAX_ENABLED: True})
+            c._vent_cusum.tripped = tripped
+            return c._floor_widening()
 
-    _ec_qcoord.async_request_refresh = _ec_no_refresh
-    _ec_qbefore = _ec_qcoord._ctx._config
-    try:
-        asyncio.run(_ec_qcoord.async_update_thermal_params(
-            {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
-        _ec_qerr = None
-    except Exception as err:  # noqa: BLE001 - the refusal is the measurement
-        _ec_qerr = f"{type(err).__name__}: {err}"
-    _ec_qcfg = _ec_qcoord._ctx._config
-    R.check(
-        "a stored None quiet spec reads unset, and a quiet window set by the service applies "
-        "live through a new parse that equals the saved entry (no reload), the old parse untouched",
-        _ec_qerr is None
-        and _ec_qbefore.quiet_off_windows == "" and _ec_qbefore.quiet_silent_windows == ""
-        and _ec_qbefore.heat_pump_capacity_limited_entity is None
-        and _ec_qcfg is not _ec_qbefore and type(_ec_qcfg) is _EntryConfig
-        and _ec_qcfg.quiet_silent_windows == "22:00-06:00"
-        and _ec_qcoord.configured_quiet_windows()["quiet_silent_windows_spec"] == "22:00-06:00"
-        and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00"
-        and _ec_qcoord.effective_config == {**_ec_qentry.data, **_ec_qentry.options},
-        f"error={_ec_qerr} live={_ec_qcfg.quiet_silent_windows!r} "
-        f"options={dict(_ec_qentry.options or {})!r}",
-    )
+        def _ec_rain(flag):
+            """The first step's precipitation the optimizer sees, 2 mm with 1 cm of snow in it."""
+            _, c = _ec_build({const.CONF_PRECIP_TYPE_ENABLED: flag})
+            c._price_series = lambda n, m, o: (_ec_np.ones(n), _ec_np.ones(n, dtype=bool), _ec_np.zeros(n))
+            c._weather_series = lambda n, m, o: ([0.0] * n, [0.0] * n, [2.0] * n, [0.0] * n, [50.0] * n)
+            c._apply_open_meteo = lambda solar, *a: solar
+            c._open_meteo = _EcNS(available=True, humidity_for=lambda *a: None,
+                                            snowfall_for=lambda *a: 1.0)
+            c._update_snow_memory = lambda *a: False
+            fa = c._forecast_arrays(datetime(2026, 1, 5, tzinfo=_ec_tz.utc))
+            return round(float(_ec_np.asarray(fa.precipitation)[0]), 4)
+
+        def _ec_weight(on):
+            _, c = _ec_build({const.CONF_COMFORT_LEARNING_ENABLED: on, const.CONF_COMFORT_WEIGHT: 5.0})
+            c._comfort_learner.learned_weight = 9.0
+            return c._comfort_weight()
+
+        def _ec_capacity(on):
+            """The capacity curve: (a learned bucket caps the plan, a full-power interval folds)."""
+            from heatpump_optimizer.coordinator import CAPACITY_MIN_SAMPLES as _min
+            _, c = _ec_build({const.CONF_CAPACITY_CURVE_ENABLED: on})
+            c._capacity_envelope = {-2: [1.0, _min]}
+            capped = c._capacity_caps(_ec_np.array([-5.0, -4.0])) is not None
+            p_max = float(c._ctx._thermal_params.max_electrical_power)
+            c._measured_power, c._commanded_power, c._capacity_envelope = p_max, lambda: p_max, {}
+            c._fold_capacity_envelope(3.0)
+            return capped, len(c._capacity_envelope)
+
+        def _ec_silent_caps(fraction):
+            try:
+                return _ec_silent.compose(None, {const.CONF_SILENT_MODE_WINDOWS: "22:00-06:00",
+                                                 const.CONF_SILENT_MODE_FRACTION: fraction},
+                                          _ec_start, 96, 0.25, 6.0) is not None
+            except Exception as err:  # noqa: BLE001 - a raise is the failure measured
+                return type(err).__name__
+
+        _ec_start = datetime(2026, 1, 5, tzinfo=_ec_tz.utc)
+        _ec_parsed = _EntryConfig.from_mapping({const.CONF_PV_ENABLED: True})
+        _ec_gates = {
+            "lower floor learns only from a configured sensor": (_ec_lower_floor_samples(None),
+                                                                 _ec_lower_floor_samples("sensor.lower")),
+            "open-window relax needs the detector tripped": (_ec_widening(False), _ec_widening(True)),
+            "rain weighting needs the switch on": (_ec_rain(False), _ec_rain(True)),
+            "learning off plans with the configured weight": (_ec_weight(False), _ec_weight(True)),
+            "a parsed configuration is returned as it is": (
+                _EntryConfig.from_mapping(_ec_parsed) is _ec_parsed, True),
+            "an unreadable silent fraction caps nothing": (_ec_silent_caps("abc"), _ec_silent_caps(0.5)),
+            "the capacity curve caps and learns only when switched on": (_ec_capacity(False), _ec_capacity(True)),
+        }
+        _ec_want = {
+            "lower floor learns only from a configured sensor": (0, 1),
+            "open-window relax needs the detector tripped": ((), (_EC_RELAX,)),
+            "rain weighting needs the switch on": (2.0, 0.5714),
+            "learning off plans with the configured weight": (5.0, 9.0),
+            "a parsed configuration is returned as it is": (True, True),
+            "an unreadable silent fraction caps nothing": (False, True),
+            "the capacity curve caps and learns only when switched on": ((False, 0), (True, 1)),
+        }
+        _ec_wrong = {k: v for k, v in _ec_gates.items() if v != _ec_want[k]}
+        R.check(
+            "each parsed gate closes on its off arm and opens on its on arm (the on arm is the null control): "
+            + "; ".join(_ec_want),
+            not _ec_wrong, f"{_ec_wrong}",
+        )
+
+        # R9-SW-1 (#1910) merged in: the quiet specs and the capacity-limited
+        # slot are parsed fields, a blank or None spec reading "" (unset) and an
+        # empty slot None. A set_thermal_parameters call carrying a spec applies
+        # live, as on main: the coordinator swaps in a new parse with the keys
+        # folded in, never writing into the frozen one, and that parse equals the
+        # entry after the options write, so the update listener skips the reload.
+        _ec_qentry, _ec_qcoord = _ec_build({
+            const.CONF_QUIET_OFF_WINDOWS: None,
+            const.CONF_HEAT_PUMP_CAPACITY_LIMITED_ENTITY: "",
+        })
+
+        async def _ec_no_refresh():
+            return None
+
+        _ec_qcoord.async_request_refresh = _ec_no_refresh
+        _ec_qbefore = _ec_qcoord._ctx._config
+        try:
+            asyncio.run(_ec_qcoord.async_update_thermal_params(
+                {const.CONF_QUIET_SILENT_WINDOWS: "22:00-06:00"}))
+            _ec_qerr = None
+        except Exception as err:  # noqa: BLE001 - the refusal is the measurement
+            _ec_qerr = f"{type(err).__name__}: {err}"
+        _ec_qcfg = _ec_qcoord._ctx._config
+        R.check(
+            "a stored None quiet spec reads unset, and a quiet window set by the service applies "
+            "live through a new parse that equals the saved entry (no reload), the old parse untouched",
+            _ec_qerr is None
+            and _ec_qbefore.quiet_off_windows == "" and _ec_qbefore.quiet_silent_windows == ""
+            and _ec_qbefore.heat_pump_capacity_limited_entity is None
+            and _ec_qcfg is not _ec_qbefore and type(_ec_qcfg) is _EntryConfig
+            and _ec_qcfg.quiet_silent_windows == "22:00-06:00"
+            and _ec_qcoord.configured_quiet_windows()["quiet_silent_windows_spec"] == "22:00-06:00"
+            and _ec_qentry.options.get(const.CONF_QUIET_SILENT_WINDOWS) == "22:00-06:00"
+            and _ec_qcoord.effective_config == {**_ec_qentry.data, **_ec_qentry.options},
+            f"error={_ec_qerr} live={_ec_qcfg.quiet_silent_windows!r} "
+            f"options={dict(_ec_qentry.options or {})!r}",
+        )
+_module_block_4441()
 
 
 # The barrier: no reader in a migrated module takes a key off a mapping.
@@ -5344,11 +5359,14 @@ _d801_blind_hass, _d801_blind_entry, _d801_blind_coord = _d801_coordinator(
     _FLOW_CONFIG
 )
 dt_util.freeze(_D801_START)
-try:
-    asyncio.run(_d801_blind_coord._update_current_state())
-    _d801_blind_data = _d801_blind_coord._build_data_dict()
-finally:
-    dt_util.freeze(None)
+def _module_block_5347():
+    global _d801_blind_data
+    try:
+        asyncio.run(_d801_blind_coord._update_current_state())
+        _d801_blind_data = _d801_blind_coord._build_data_dict()
+    finally:
+        dt_util.freeze(None)
+_module_block_5347()
 _d801_blind_coord.data = _d801_blind_data
 _d801_blind = _d801_blind_coord
 _d801_climate = _climate_platform.HeatPumpOptimizerClimate(_d801_blind, ENTRY)
@@ -5479,19 +5497,22 @@ _d801_stale_hass, _d801_stale_entry, _d801_stale_coord = _d801_coordinator(
 )
 _d801_stale_hass.states.set("sensor.ret", FakeState("27.5"))
 dt_util.freeze(_D801_START)
-try:
-    asyncio.run(_d801_stale_coord._update_current_state())
-    # Older than every INPUT_MAX_AGE_MINUTES limit, relative to the FROZEN
-    # clock: `_STALE_WHEN` is anchored to the wall clock and would read as
-    # the future here, which is fresh.
-    _d801_stale_hass.states.set(
-        "sensor.ret",
-        FakeState("27.5", last_updated=_D801_START - timedelta(hours=10)),
-    )
-    asyncio.run(_d801_stale_coord._update_current_state())
-    _d801_stale_data = _d801_stale_coord._build_data_dict()
-finally:
-    dt_util.freeze(None)
+def _module_block_5482():
+    global _d801_stale_data
+    try:
+        asyncio.run(_d801_stale_coord._update_current_state())
+        # Older than every INPUT_MAX_AGE_MINUTES limit, relative to the FROZEN
+        # clock: `_STALE_WHEN` is anchored to the wall clock and would read as
+        # the future here, which is fresh.
+        _d801_stale_hass.states.set(
+            "sensor.ret",
+            FakeState("27.5", last_updated=_D801_START - timedelta(hours=10)),
+        )
+        asyncio.run(_d801_stale_coord._update_current_state())
+        _d801_stale_data = _d801_stale_coord._build_data_dict()
+    finally:
+        dt_util.freeze(None)
+_module_block_5482()
 R.check(
     "a stale floor return still publishes its last number in the payload",
     _d801_stale_data.get("floor_return_temperature") == 27.5,
@@ -5536,11 +5557,14 @@ _d801_probed_hass, _d801_probed_entry, _d801_probed_coord = _d801_coordinator(
 for _entity_id, _value in _D801_LIVE.items():
     _d801_probed_hass.states.set(_entity_id, FakeState(str(_value)))
 dt_util.freeze(_D801_START)
-try:
-    asyncio.run(_d801_probed_coord._update_current_state())
-    _d801_probed = _d801_probed_coord._build_data_dict()
-finally:
-    dt_util.freeze(None)
+def _module_block_5539():
+    global _d801_probed
+    try:
+        asyncio.run(_d801_probed_coord._update_current_state())
+        _d801_probed = _d801_probed_coord._build_data_dict()
+    finally:
+        dt_util.freeze(None)
+_module_block_5539()
 _d801_probed_fake = FakeCoordinator(_d801_probed)
 _d801_probed_climate = _climate_platform.HeatPumpOptimizerClimate(
     _d801_probed_fake, ENTRY
@@ -5593,11 +5617,14 @@ _d801_indoor_only_hass, _d801_indoor_only_entry, _d801_indoor_only_coord = (
 )
 _d801_indoor_only_hass.states.set("sensor.indoor", FakeState("21.4"))
 dt_util.freeze(_D801_START)
-try:
-    asyncio.run(_d801_indoor_only_coord._update_current_state())
-    _d801_indoor_only = _d801_indoor_only_coord._build_data_dict()
-finally:
-    dt_util.freeze(None)
+def _module_block_5596():
+    global _d801_indoor_only
+    try:
+        asyncio.run(_d801_indoor_only_coord._update_current_state())
+        _d801_indoor_only = _d801_indoor_only_coord._build_data_dict()
+    finally:
+        dt_util.freeze(None)
+_module_block_5596()
 _d801_indoor_only_fake = FakeCoordinator(_d801_indoor_only)
 R.check(
     "an install with only an indoor thermometer keeps its thermal battery",
@@ -7146,61 +7173,64 @@ _solve_config = {
     const.CONF_TARGET_TEMP: 21.0,
 }
 dt_util.freeze(_solve_now)
-try:
-    _solve_hass = FakeHass()
-    for _eid, _state in {
-        "sensor.indoor": FakeState("17.0"),
-        "sensor.outdoor": FakeState("8.0"),
-        "sensor.humidity": FakeState("65.0", last_updated=_solve_now),
-    }.items():
-        _solve_hass.states.set(_eid, _state)
-    _solve_coord = HeatPumpOptimizerCoordinator(
-        _solve_hass, FakeEntry(data=_solve_config)
-    )
-    _solve_coord._prices = [
-        {
-            "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
-            "starts_at": (_solve_start + timedelta(hours=h)).isoformat(),
-            "level": "NORMAL",
-        }
-        for h in range(48)
-    ]
-    _solve_coord._weather_forecast = [
-        {
-            "datetime": (_solve_start + timedelta(hours=h)).isoformat(),
-            "temperature": -10.0,
-            "wind_speed": 3.0,
-            "precipitation": 0.0,
-            "humidity": 85.0,
-        }
-        for h in range(48)
-    ]
-    _solve_calls = []
-    _solve_series = _solve_coord._mold_floor_series
+def _module_block_7149():
+    global _eid, _record_solve_series, _solve_attrs, _solve_calls, _solve_coord, _solve_entity, _solve_hass, _solve_is_on, _solve_once, _solve_series, _solve_used, _state, _thermometer_floor, floors, h, outdoor
+    try:
+        _solve_hass = FakeHass()
+        for _eid, _state in {
+            "sensor.indoor": FakeState("17.0"),
+            "sensor.outdoor": FakeState("8.0"),
+            "sensor.humidity": FakeState("65.0", last_updated=_solve_now),
+        }.items():
+            _solve_hass.states.set(_eid, _state)
+        _solve_coord = HeatPumpOptimizerCoordinator(
+            _solve_hass, FakeEntry(data=_solve_config)
+        )
+        _solve_coord._prices = [
+            {
+                "total": round(0.6 + 0.5 * (h % 12) / 12.0, 4),
+                "starts_at": (_solve_start + timedelta(hours=h)).isoformat(),
+                "level": "NORMAL",
+            }
+            for h in range(48)
+        ]
+        _solve_coord._weather_forecast = [
+            {
+                "datetime": (_solve_start + timedelta(hours=h)).isoformat(),
+                "temperature": -10.0,
+                "wind_speed": 3.0,
+                "precipitation": 0.0,
+                "humidity": 85.0,
+            }
+            for h in range(48)
+        ]
+        _solve_calls = []
+        _solve_series = _solve_coord._mold_floor_series
 
-    def _record_solve_series(outdoor, target_cap=None):
-        floors = _solve_series(outdoor, target_cap)
-        _solve_calls.append((_np_breach.asarray(outdoor, dtype=float), floors))
-        return floors
+        def _record_solve_series(outdoor, target_cap=None):
+            floors = _solve_series(outdoor, target_cap)
+            _solve_calls.append((_np_breach.asarray(outdoor, dtype=float), floors))
+            return floors
 
-    _solve_coord._mold_floor_series = _record_solve_series
+        _solve_coord._mold_floor_series = _record_solve_series
 
-    async def _solve_once():
-        await _solve_coord._update_current_state()
-        await _solve_coord.async_run_optimization()
-        _solve_coord.data = _solve_coord._build_data_dict()
+        async def _solve_once():
+            await _solve_coord._update_current_state()
+            await _solve_coord.async_run_optimization()
+            _solve_coord.data = _solve_coord._build_data_dict()
 
-    asyncio.run(_solve_once())
-    _solve_used = [floors for outdoor, floors in _solve_calls if len(outdoor) > 1]
-    _solve_calls.clear()
-    _solve_entity = binary_sensor.MoldFloorBreachBinarySensor(
-        _solve_coord, FakeEntry(data=_solve_config)
-    )
-    _solve_attrs = _solve_entity.extra_state_attributes
-    _solve_is_on = _solve_entity.is_on
-    _thermometer_floor = _solve_series(_np_breach.array([8.0]))
-finally:
-    dt_util.freeze(None)
+        asyncio.run(_solve_once())
+        _solve_used = [floors for outdoor, floors in _solve_calls if len(outdoor) > 1]
+        _solve_calls.clear()
+        _solve_entity = binary_sensor.MoldFloorBreachBinarySensor(
+            _solve_coord, FakeEntry(data=_solve_config)
+        )
+        _solve_attrs = _solve_entity.extra_state_attributes
+        _solve_is_on = _solve_entity.is_on
+        _thermometer_floor = _solve_series(_np_breach.array([8.0]))
+    finally:
+        dt_util.freeze(None)
+_module_block_7149()
 _solve_forecast = (_solve_coord.data.get("space_plan") or {}).get("forecast") or []
 _solve_index = next(
     (
@@ -7240,19 +7270,22 @@ R.check(
 )
 
 b_crashed = []
-for entity in (
-    binary_sensor.InputHealthBinarySensor(empty, ENTRY),
-    binary_sensor.ExternalHeatBinarySensor(empty, ENTRY),
-    binary_sensor.AwayModeBinarySensor(empty, ENTRY),
-    binary_sensor.VentilationBinarySensor(empty, ENTRY),
-    binary_sensor.MoldFloorBreachBinarySensor(empty, ENTRY),
-    binary_sensor.WoodCheaperBinarySensor(empty, ENTRY),
-):
-    try:
-        entity.is_on
-        entity.extra_state_attributes
-    except Exception as err:  # noqa: BLE001
-        b_crashed.append(str(err))
+def _module_block_7243():
+    global entity, err
+    for entity in (
+        binary_sensor.InputHealthBinarySensor(empty, ENTRY),
+        binary_sensor.ExternalHeatBinarySensor(empty, ENTRY),
+        binary_sensor.AwayModeBinarySensor(empty, ENTRY),
+        binary_sensor.VentilationBinarySensor(empty, ENTRY),
+        binary_sensor.MoldFloorBreachBinarySensor(empty, ENTRY),
+        binary_sensor.WoodCheaperBinarySensor(empty, ENTRY),
+    ):
+        try:
+            entity.is_on
+            entity.extra_state_attributes
+        except Exception as err:  # noqa: BLE001
+            b_crashed.append(str(err))
+_module_block_7243()
 R.check("no binary sensor crashes before the first update", not b_crashed, "; ".join(b_crashed))
 
 
@@ -8049,10 +8082,13 @@ _np_empty = _NpCoord(
     ),
 )
 _np_empty_err = None
-try:
-    asyncio.run(_np_empty._fetch_tibber_prices())
-except Exception as _np_empty_exc:  # noqa: BLE001
-    _np_empty_err = _np_empty_exc
+def _module_block_8052():
+    global _np_empty_err, _np_empty_exc
+    try:
+        asyncio.run(_np_empty._fetch_tibber_prices())
+    except Exception as _np_empty_exc:  # noqa: BLE001
+        _np_empty_err = _np_empty_exc
+_module_block_8052()
 R.check(
     "an empty entity source raises UpdateFailed and does not start reauth",
     type(_np_empty_err).__name__ == "UpdateFailed"
@@ -8225,15 +8261,18 @@ R.check(
 )
 _gap_c0 = None
 _gap_c0_error = None
-try:
-    _gap_c0 = topology.peak_miss_sek(
-        _gap_house, _gap_hp, price_per_kw=90.0, window_minutes=60,
-        dt_hours=0.25, count=0,
-    )
-except ZeroDivisionError as _exc:
-    # Rebind: the ``as`` name is unbound when the except block ends, and the
-    # check below -- not a traceback -- is where the failure must be named.
-    _gap_c0_error = _exc
+def _module_block_8228():
+    global _exc, _gap_c0, _gap_c0_error
+    try:
+        _gap_c0 = topology.peak_miss_sek(
+            _gap_house, _gap_hp, price_per_kw=90.0, window_minutes=60,
+            dt_hours=0.25, count=0,
+        )
+    except ZeroDivisionError as _exc:
+        # Rebind: the ``as`` name is unbound when the except block ends, and the
+        # check below -- not a traceback -- is where the failure must be named.
+        _gap_c0_error = _exc
+_module_block_8228()
 R.check(
     "count=0 spreads the miss over one month instead of dividing by zero",
     _gap_c0_error is None and _gap_c0 == 3.0 * _gap_peak,
@@ -8593,11 +8632,14 @@ R.check(
 # D4-s2-81: the coordinator and the sensor hand the install's language to the
 # topology; each wiring line is pinned by a Swedish hass (null control: English).
 _series_coord.hass.config.language = "sv"
-try:
-    _sv_setup = _series_coord.describe_setup()
-    _sv_gaps = _series_gap_sensor._gaps()
-finally:
-    del _series_coord.hass.config.language
+def _module_block_8596():
+    global _sv_gaps, _sv_setup
+    try:
+        _sv_setup = _series_coord.describe_setup()
+        _sv_gaps = _series_gap_sensor._gaps()
+    finally:
+        del _series_coord.hass.config.language
+_module_block_8596()
 _en_setup = _series_coord.describe_setup()
 _sv_slot = {s["key"]: s["label"] for s in _sv_setup["slots"]}
 R.check(
@@ -8835,14 +8877,17 @@ R.check(
 _adv_cached = _adv_cycle({"heat_pump_power_series": [3.0, None, "x", 3.0]}, _adv_two_zone)
 _adv_real_rank, _adv_reads = topology.rank_sensor_advisor, []
 topology.rank_sensor_advisor = lambda *a, **k: _adv_reads.append(1)
-try:
-    _adv_read_attrs = [
-        cls(FakeCoordinator(_adv_cached, _config=dict(_adv_two_zone)), ENTRY)
-        .extra_state_attributes.get("sensor_advisor")
-        for cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor)
-    ]
-finally:
-    topology.rank_sensor_advisor = _adv_real_rank
+def _module_block_8838():
+    global _adv_read_attrs, cls
+    try:
+        _adv_read_attrs = [
+            cls(FakeCoordinator(_adv_cached, _config=dict(_adv_two_zone)), ENTRY)
+            .extra_state_attributes.get("sensor_advisor")
+            for cls in (sensor.SpaceHeatingPlanSensor, sensor.DHWHeatingPlanSensor)
+        ]
+    finally:
+        topology.rank_sensor_advisor = _adv_real_rank
+_module_block_8838()
 R.check(
     "D9-s2-01: both plan sensors publish the cycle's cached ranking without "
     "re-ranking it, and the cycle drops the series' holes as the sensor did",
@@ -9506,39 +9551,42 @@ _roundtrips = 0
 _entry_for_sweep = FakeEntry(data={const.CONF_TIBBER_TOKEN: "t"})
 _sweep_flow = options(_entry_for_sweep)
 _sweep_flow.hass = FakeHass()
-for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
-    _stored = _derived(*_case)
-    _entry_for_sweep.options = dict(_stored)
-    _thermal_schema = _drive(_sweep_flow.async_step_thermal_model(None))["data_schema"]
-    _zones_schema = _drive(
-        _sweep_flow.async_step_thermal_model_zones(None)
-    )["data_schema"]
-    _roundtrips += 1
-    try:
-        _accepted = {
-            **config_flow._flatten_section_input(
-                _thermal_schema(_submission(_thermal_schema))
-            ),
-            **config_flow._flatten_section_input(
-                _zones_schema(_submission(_zones_schema))
-            ),
+def _module_block_9509():
+    global _accepted, _case, _hidden, _key, _roundtrips, _stored, _thermal_schema, _value, _zones_schema, err, row
+    for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
+        _stored = _derived(*_case)
+        _entry_for_sweep.options = dict(_stored)
+        _thermal_schema = _drive(_sweep_flow.async_step_thermal_model(None))["data_schema"]
+        _zones_schema = _drive(
+            _sweep_flow.async_step_thermal_model_zones(None)
+        )["data_schema"]
+        _roundtrips += 1
+        try:
+            _accepted = {
+                **config_flow._flatten_section_input(
+                    _thermal_schema(_submission(_thermal_schema))
+                ),
+                **config_flow._flatten_section_input(
+                    _zones_schema(_submission(_zones_schema))
+                ),
+            }
+        except Exception as err:  # noqa: BLE001 - any rejection is the bug
+            _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
+            continue
+        # A row its ``when`` hides for this house is not on the page to submit
+        # (R10-TWO-ZONE-HHL: the whole-house heat loss on two zones); keyed on
+        # the registry's own predicate, so only a row the page hides is skipped.
+        _hidden = {
+            row.key for row in config_flow._OPTION_FIELDS
+            if row.step in ("thermal_model", "thermal_model_zones")
+            and row.when is not None and not row.when(_stored)
         }
-    except Exception as err:  # noqa: BLE001 - any rejection is the bug
-        _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
-        continue
-    # A row its ``when`` hides for this house is not on the page to submit
-    # (R10-TWO-ZONE-HHL: the whole-house heat loss on two zones); keyed on
-    # the registry's own predicate, so only a row the page hides is skipped.
-    _hidden = {
-        row.key for row in config_flow._OPTION_FIELDS
-        if row.step in ("thermal_model", "thermal_model_zones")
-        and row.when is not None and not row.when(_stored)
-    }
-    for _key, _value in _stored.items():
-        if _key not in _hidden and _accepted.get(_key) != _value:
-            _unsubmittable.append(
-                f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
-            )
+        for _key, _value in _stored.items():
+            if _key not in _hidden and _accepted.get(_key) != _value:
+                _unsubmittable.append(
+                    f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
+                )
+_module_block_9509()
 R.check(
     f"any house the questionnaire can describe can still save the expert page "
     f"({_roundtrips:,} round trips)",
@@ -9559,12 +9607,15 @@ _edit_form = asyncio.run(_edit_flow.async_step_thermal_model(None))
 _edit_payload = _submission(
     _edit_form["data_schema"], **{const.CONF_HOUSE_THERMAL_MASS: 4.5}
 )
-try:
-    _edit_valid = _edit_form["data_schema"](_edit_payload)
-    _edit_error = ""
-except Exception as err:  # noqa: BLE001
-    _edit_valid = None
-    _edit_error = f"{type(err).__name__}: {err}"
+def _module_block_9562():
+    global _edit_error, _edit_valid, err
+    try:
+        _edit_valid = _edit_form["data_schema"](_edit_payload)
+        _edit_error = ""
+    except Exception as err:  # noqa: BLE001
+        _edit_valid = None
+        _edit_error = f"{type(err).__name__}: {err}"
+_module_block_9562()
 R.check(
     "an expert edit sticks on a radiator house (slab mass 0.16, page floor was 1)",
     _edit_valid is not None
@@ -9614,36 +9665,39 @@ _FULL_CONFIG = {
     **_reported,
 }
 _rejected = []
-for _step in options._MENU_LABELS:
-    _rt_flow = options(FakeEntry(data=dict(_FULL_CONFIG)))
-    _rt_flow.hass = FakeHass()
-    _rt_form = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(None))
-    _rt_schema = _rt_form.get("data_schema")
-    if _rt_schema is None:
-        continue
-    try:
-        _rt_valid = _rt_schema(_submission(_rt_schema))
-    except Exception as err:  # noqa: BLE001
-        _rejected.append(f"{_step}: {type(err).__name__}: {err}")
-        continue
-    _rt_result = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(_rt_valid))
-    if _rt_result.get("type") == "form" and _rt_result.get("step_id") == _step and not _rt_result.get("errors"):
-        # The two-submit pre-fill page (#1067 G7): its preview's submit saves.
-        _rt_schema = _rt_result["data_schema"]
-        _rt_result = asyncio.run(
-            getattr(_rt_flow, f"async_step_{_step}")(_rt_schema(_submission(_rt_schema)))
-        )
-    if _rt_result.get("type") not in ("create_entry", "menu"):
-        _rejected.append(f"{_step}: submit returned {_rt_result.get('type')}")
-    elif _rt_result.get("type") == "menu" and not _rt_result.get("menu_options"):
-        # A menu hand-back must actually be the menu; anything else is a
-        # page that lost its way home (#100's prerequisite).
-        _rejected.append(f"{_step}: menu without menu_options")
-    elif (
-        _rt_result.get("type") == "create_entry"
-        and not isinstance(_rt_result.get("data"), dict)
-    ):
-        _rejected.append(f"{_step}: save without data")
+def _module_block_9617():
+    global _rt_flow, _rt_form, _rt_result, _rt_schema, _rt_valid, _step, err
+    for _step in options._MENU_LABELS:
+        _rt_flow = options(FakeEntry(data=dict(_FULL_CONFIG)))
+        _rt_flow.hass = FakeHass()
+        _rt_form = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(None))
+        _rt_schema = _rt_form.get("data_schema")
+        if _rt_schema is None:
+            continue
+        try:
+            _rt_valid = _rt_schema(_submission(_rt_schema))
+        except Exception as err:  # noqa: BLE001
+            _rejected.append(f"{_step}: {type(err).__name__}: {err}")
+            continue
+        _rt_result = asyncio.run(getattr(_rt_flow, f"async_step_{_step}")(_rt_valid))
+        if _rt_result.get("type") == "form" and _rt_result.get("step_id") == _step and not _rt_result.get("errors"):
+            # The two-submit pre-fill page (#1067 G7): its preview's submit saves.
+            _rt_schema = _rt_result["data_schema"]
+            _rt_result = asyncio.run(
+                getattr(_rt_flow, f"async_step_{_step}")(_rt_schema(_submission(_rt_schema)))
+            )
+        if _rt_result.get("type") not in ("create_entry", "menu"):
+            _rejected.append(f"{_step}: submit returned {_rt_result.get('type')}")
+        elif _rt_result.get("type") == "menu" and not _rt_result.get("menu_options"):
+            # A menu hand-back must actually be the menu; anything else is a
+            # page that lost its way home (#100's prerequisite).
+            _rejected.append(f"{_step}: menu without menu_options")
+        elif (
+            _rt_result.get("type") == "create_entry"
+            and not isinstance(_rt_result.get("data"), dict)
+        ):
+            _rejected.append(f"{_step}: save without data")
+_module_block_9617()
 R.check(
     "every options page accepts the values it displays, on a full configuration",
     not _rejected,
@@ -9653,21 +9707,24 @@ R.check(
 # The same, for the pages of the initial setup flow. A default outside its own
 # range breaks first-run setup, which nobody can work around.
 _setup_rejected = []
-for _step in ("temperature", "building_describe", "building_extras", "thermal",
-              "zones", "dhw", "weather_sensitivity", "setup_overview"):
-    _sflow = config_flow.HeatPumpOptimizerConfigFlow()
-    _sflow.hass = FakeHass()
-    if not hasattr(_sflow, f"async_step_{_step}"):
-        _setup_rejected.append(f"{_step}: no handler")
-        continue
-    _sform = asyncio.run(getattr(_sflow, f"async_step_{_step}")(None))
-    _sschema = _sform.get("data_schema")
-    if _sschema is None:
-        continue
-    try:
-        _sschema(_submission(_sschema))
-    except Exception as err:  # noqa: BLE001
-        _setup_rejected.append(f"{_step}: {type(err).__name__}: {err}")
+def _module_block_9656():
+    global _sflow, _sform, _sschema, _step, err
+    for _step in ("temperature", "building_describe", "building_extras", "thermal",
+                  "zones", "dhw", "weather_sensitivity", "setup_overview"):
+        _sflow = config_flow.HeatPumpOptimizerConfigFlow()
+        _sflow.hass = FakeHass()
+        if not hasattr(_sflow, f"async_step_{_step}"):
+            _setup_rejected.append(f"{_step}: no handler")
+            continue
+        _sform = asyncio.run(getattr(_sflow, f"async_step_{_step}")(None))
+        _sschema = _sform.get("data_schema")
+        if _sschema is None:
+            continue
+        try:
+            _sschema(_submission(_sschema))
+        except Exception as err:  # noqa: BLE001
+            _setup_rejected.append(f"{_step}: {type(err).__name__}: {err}")
+_module_block_9656()
 R.check(
     "every setup page accepts the values it displays",
     not _setup_rejected,
@@ -9735,14 +9792,17 @@ _service_written = options(
 _service_written.hass = FakeHass()
 _sw_form = asyncio.run(_service_written.async_step_comfort(None))
 _sw_bounds = _bounds(_sw_form["data_schema"])
-try:
-    _sw_valid = config_flow._flatten_section_input(
-        _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
-    )
-    _sw_error = ""
-except Exception as err:  # noqa: BLE001
-    _sw_valid = None
-    _sw_error = f"{type(err).__name__}: {err}"
+def _module_block_9738():
+    global _sw_error, _sw_valid, err
+    try:
+        _sw_valid = config_flow._flatten_section_input(
+            _sw_form["data_schema"](_submission(_sw_form["data_schema"]))
+        )
+        _sw_error = ""
+    except Exception as err:  # noqa: BLE001
+        _sw_valid = None
+        _sw_error = f"{type(err).__name__}: {err}"
+_module_block_9738()
 R.check(
     "a comfort value stored by apply_schedule can still be shown and saved",
     _sw_valid is not None
@@ -10288,15 +10348,18 @@ for _row in config_flow._OPTION_FIELDS:
              str(getattr(_k, "schema", _k)))
         )
 _setup_render_errors = []
-for _name, _handler in sorted(vars(config_flow.HeatPumpOptimizerConfigFlow).items()):
-    if not _name.startswith("async_step_") or _name == "async_step_reconfigure":
-        continue
-    _lflow = config_flow.HeatPumpOptimizerConfigFlow()
-    _lflow.hass = FakeHass()
-    try:
-        _collect_flow_form("config", asyncio.run(_handler(_lflow, None)))
-    except Exception as err:  # noqa: BLE001 - reported below, never swallowed
-        _setup_render_errors.append(f"{_name}: {type(err).__name__}: {err}")
+def _module_block_10291():
+    global _handler, _lflow, _name, err
+    for _name, _handler in sorted(vars(config_flow.HeatPumpOptimizerConfigFlow).items()):
+        if not _name.startswith("async_step_") or _name == "async_step_reconfigure":
+            continue
+        _lflow = config_flow.HeatPumpOptimizerConfigFlow()
+        _lflow.hass = FakeHass()
+        try:
+            _collect_flow_form("config", asyncio.run(_handler(_lflow, None)))
+        except Exception as err:  # noqa: BLE001 - reported below, never swallowed
+            _setup_render_errors.append(f"{_name}: {type(err).__name__}: {err}")
+_module_block_10291()
 _lrc_hass = FakeHass()
 _lrc_entry = FakeEntry(entry_id="labels")
 _lrc_hass.config_entries.entries = [_lrc_entry]
@@ -10306,11 +10369,14 @@ _lrc_flow.context = {
     "source": config_flow.config_entries.SOURCE_RECONFIGURE,
     "entry_id": "labels",
 }
-try:
-    _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_reconfigure(None)))
-    _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_user_sensors(None)))
-except Exception as err:  # noqa: BLE001 - reported below, never swallowed
-    _setup_render_errors.append(f"reconfigure: {type(err).__name__}: {err}")
+def _module_block_10309():
+    global err
+    try:
+        _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_reconfigure(None)))
+        _collect_flow_form("config", asyncio.run(_lrc_flow.async_step_user_sensors(None)))
+    except Exception as err:  # noqa: BLE001 - reported below, never swallowed
+        _setup_render_errors.append(f"reconfigure: {type(err).__name__}: {err}")
+_module_block_10309()
 R.check(
     "every setup handler renders for the label walk",
     not _setup_render_errors,
@@ -10701,11 +10767,14 @@ async def _refuse(temp):
 
 _reject.async_set_target_temperature = _refuse
 _reject_clim = climate_mod.HeatPumpOptimizerClimate(_reject, clim._entry)
-try:
-    asyncio.run(_reject_clim.async_set_temperature(temperature=30.0))
-    _reject_raised = False
-except ServiceValidationError:
-    _reject_raised = True
+def _module_block_10704():
+    global _reject_raised
+    try:
+        asyncio.run(_reject_clim.async_set_temperature(temperature=30.0))
+        _reject_raised = False
+    except ServiceValidationError:
+        _reject_raised = True
+_module_block_10704()
 R.check(
     "a refused setpoint trains nothing",
     _reject_raised and not [p for p in _reject.pressed if p.startswith("override")],
@@ -11012,11 +11081,14 @@ async def _raise_publish(reason=None):
 _pub_fails.async_publish_current_action = _raise_publish
 _pub_fails_clim = climate_mod.HeatPumpOptimizerClimate(_pub_fails, clim._entry)
 _pub_fails_clim.hass = EagerHass()  # runs the refresh, then the publish
-try:
-    asyncio.run(_pub_fails_clim.async_turn_on())
-    _publish_failure_raised = False
-except OSError:
-    _publish_failure_raised = True
+def _module_block_11015():
+    global _publish_failure_raised
+    try:
+        asyncio.run(_pub_fails_clim.async_turn_on())
+        _publish_failure_raised = False
+    except OSError:
+        _publish_failure_raised = True
+_module_block_11015()
 R.check(
     "a failed ECL110 publish is caught, not propagated, and the mode change still lands",
     not _publish_failure_raised and _pub_fails.mode_calls == [const.MODE_AUTO],
@@ -11172,27 +11244,29 @@ async def _boost_persist_recorder(coord):
 
 _boost_persist_real = _boost_mod.persist
 _boost_mod.persist = _boost_persist_recorder
-try:
-    asyncio.run(dhw_boost_sw.async_turn_on())
-    R.check(
-        "turning DHW boost on holds and persists the DHW channel",
-        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["dhw"])],
-        str(_boost_persisted),
-    )
-    asyncio.run(space_boost_sw.async_turn_on())
-    R.check(
-        "turning space boost on holds and persists the space channel",
-        _boost_persisted[-1:] == [(space_boost_sw.coordinator, ["dhw", "space"])],
-        str(_boost_persisted),
-    )
-    asyncio.run(dhw_boost_sw.async_turn_off())
-    R.check(
-        "turning DHW boost off releases and persists the DHW channel",
-        _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["space"])],
-        str(_boost_persisted),
-    )
-finally:
-    _boost_mod.persist = _boost_persist_real
+def _module_block_11175():
+    try:
+        asyncio.run(dhw_boost_sw.async_turn_on())
+        R.check(
+            "turning DHW boost on holds and persists the DHW channel",
+            _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["dhw"])],
+            str(_boost_persisted),
+        )
+        asyncio.run(space_boost_sw.async_turn_on())
+        R.check(
+            "turning space boost on holds and persists the space channel",
+            _boost_persisted[-1:] == [(space_boost_sw.coordinator, ["dhw", "space"])],
+            str(_boost_persisted),
+        )
+        asyncio.run(dhw_boost_sw.async_turn_off())
+        R.check(
+            "turning DHW boost off releases and persists the DHW channel",
+            _boost_persisted[-1:] == [(dhw_boost_sw.coordinator, ["space"])],
+            str(_boost_persisted),
+        )
+    finally:
+        _boost_mod.persist = _boost_persist_real
+_module_block_11175()
 
 dhw_block_sw = next(
     s for s in switches
@@ -11232,33 +11306,35 @@ async def _block_persist_recorder(coord):
 
 
 _boost_mod.persist = _block_persist_recorder
-try:
-    asyncio.run(dhw_block_sw.async_turn_on())
-    R.check(
-        "turning Block DHW on holds the block channel and not the boost",
-        _block_persisted[-1:] == [([], ["dhw"])],
-        str(_block_persisted),
-    )
-    asyncio.run(dhw_boost_sw.async_turn_on())
-    R.check(
-        "a later DHW boost press clears the DHW block",
-        _block_persisted[-1:] == [(["dhw"], [])],
-        str(_block_persisted),
-    )
-    asyncio.run(dhw_block_sw.async_turn_on())
-    R.check(
-        "a later Block DHW press clears the DHW boost",
-        _block_persisted[-1:] == [([], ["dhw"])],
-        str(_block_persisted),
-    )
-    asyncio.run(dhw_block_sw.async_turn_off())
-    R.check(
-        "turning Block DHW off releases the block channel",
-        _block_persisted[-1:] == [([], [])],
-        str(_block_persisted),
-    )
-finally:
-    _boost_mod.persist = _boost_persist_real
+def _module_block_11235():
+    try:
+        asyncio.run(dhw_block_sw.async_turn_on())
+        R.check(
+            "turning Block DHW on holds the block channel and not the boost",
+            _block_persisted[-1:] == [([], ["dhw"])],
+            str(_block_persisted),
+        )
+        asyncio.run(dhw_boost_sw.async_turn_on())
+        R.check(
+            "a later DHW boost press clears the DHW block",
+            _block_persisted[-1:] == [(["dhw"], [])],
+            str(_block_persisted),
+        )
+        asyncio.run(dhw_block_sw.async_turn_on())
+        R.check(
+            "a later Block DHW press clears the DHW boost",
+            _block_persisted[-1:] == [([], ["dhw"])],
+            str(_block_persisted),
+        )
+        asyncio.run(dhw_block_sw.async_turn_off())
+        R.check(
+            "turning Block DHW off releases the block channel",
+            _block_persisted[-1:] == [([], [])],
+            str(_block_persisted),
+        )
+    finally:
+        _boost_mod.persist = _boost_persist_real
+_module_block_11235()
 
 # --- #195 tranche 2: switch.py's remaining branches -------------------------------
 # Before the first refresh the switch reads the coordinator's live mode, which
@@ -13221,14 +13297,17 @@ for _stat_suffix in (
 # pre-#1227 suffixes. Read the card's own map, so deleting a legacy entry
 # fails here rather than silently stripping headline stats from upgrades.
 _card_legacy = {}
-try:
-    _card_src = (
-        pathlib.Path(__file__).resolve().parent.parent
-        / "custom_components" / "heatpump_optimizer" / "www"
-        / "heatpump-optimizer-card.js"
-    ).read_text()
-except OSError:
-    _card_src = ""
+def _module_block_13224():
+    global _card_src
+    try:
+        _card_src = (
+            pathlib.Path(__file__).resolve().parent.parent
+            / "custom_components" / "heatpump_optimizer" / "www"
+            / "heatpump-optimizer-card.js"
+        ).read_text()
+    except OSError:
+        _card_src = ""
+_module_block_13224()
 _legacy_block = re.search(
     r"const LEGACY_STAT_SUFFIXES = \{(.*?)\};", _card_src, re.S
 )
@@ -13612,12 +13691,15 @@ R.check(
     _ic_exists,
     str(_ic_path),
 )
-try:
-    _icons = json.loads(_ic_path.read_text()) if _ic_exists else {}
-    R.check("icons.json parses as JSON", True)
-except json.JSONDecodeError as _err:
-    _icons = {}
-    R.check("icons.json parses as JSON", False, str(_err))
+def _module_block_13615():
+    global _err, _icons
+    try:
+        _icons = json.loads(_ic_path.read_text()) if _ic_exists else {}
+        R.check("icons.json parses as JSON", True)
+    except json.JSONDecodeError as _err:
+        _icons = {}
+        R.check("icons.json parses as JSON", False, str(_err))
+_module_block_13615()
 
 # The shape hassfest's icons validator and HA's icon-translation loader read:
 # ``{"entity": {platform: {translation_key: {"default": "mdi:..."}}}}``, with
@@ -13834,94 +13916,97 @@ def _run_past_user_sensors(flow, credentials, sensors=None):
 
 _real_validate_token = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _accept_any_token
-try:
-    _dup_hass = FakeHass()
-    _dup_first = _fresh_flow()
-    _dup_first.hass = _dup_hass
-    _dup_first_result = _run_past_user_sensors(
-        _dup_first, _first_credentials, _first_sensors
-    )
-    R.check(
-        "the first flow with these answers offers finish-setup-now",
-        _dup_first_result.get("type") == "menu"
-        and _dup_first_result.get("step_id") == "finish_setup"
-        and tuple(_dup_first_result.get("menu_options", {}))
-        == ("quick_setup", "temperature", "finish_now"),
-        str(_dup_first_result)[:160],
-    )
-    R.check(
-        "and carries the plant identity as its unique id",
-        _dup_first.unique_id == _first_identity,
-        f"flow unique_id {_dup_first.unique_id!r}",
-    )
-    _overview = asyncio.run(_dup_first.async_step_finish_now(None))
-    R.check(
-        "finish-setup-now after the second screen shows the setup overview",
-        _overview.get("type") == "form"
-        and _overview.get("step_id") == "setup_overview"
-        and bool(_overview.get("description_placeholders", {}).get("setup_summary")),
-        str(_overview)[:160],
-    )
-    _create = getattr(_dup_first, "async_step_setup_overview", None)
-    if _create is None:
-        _early_entry = {}
+def _module_block_13837():
+    global _continue_form, _create, _dup_first, _dup_first_result, _dup_hass, _dup_other, _dup_other_result, _dup_second, _early_entry, _overview
+    try:
+        _dup_hass = FakeHass()
+        _dup_first = _fresh_flow()
+        _dup_first.hass = _dup_hass
+        _dup_first_result = _run_past_user_sensors(
+            _dup_first, _first_credentials, _first_sensors
+        )
         R.check(
-            "confirming the overview creates the entry",
-            False,
-            "async_step_setup_overview missing",
+            "the first flow with these answers offers finish-setup-now",
+            _dup_first_result.get("type") == "menu"
+            and _dup_first_result.get("step_id") == "finish_setup"
+            and tuple(_dup_first_result.get("menu_options", {}))
+            == ("quick_setup", "temperature", "finish_now"),
+            str(_dup_first_result)[:160],
         )
-    else:
-        _early_entry = asyncio.run(_create({}))
         R.check(
-            "confirming the overview creates the entry",
-            _early_entry.get("type") == "create_entry"
-            and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
-            == _first_credentials[const.CONF_TIBBER_TOKEN]
-            and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
-            str(_early_entry)[:160],
+            "and carries the plant identity as its unique id",
+            _dup_first.unique_id == _first_identity,
+            f"flow unique_id {_dup_first.unique_id!r}",
         )
-    # What the flow manager does when that flow finishes: an entry that holds
-    # the flow's unique id.
-    _dup_hass.config_entries.entries.append(
-        FakeEntry(
-            data=dict(_first_screen),
-            entry_id="first_pump",
-            unique_id=_dup_first.unique_id,
+        _overview = asyncio.run(_dup_first.async_step_finish_now(None))
+        R.check(
+            "finish-setup-now after the second screen shows the setup overview",
+            _overview.get("type") == "form"
+            and _overview.get("step_id") == "setup_overview"
+            and bool(_overview.get("description_placeholders", {}).get("setup_summary")),
+            str(_overview)[:160],
         )
-    )
-    _dup_second = _fresh_flow()
-    _dup_second.hass = _dup_hass
-    R.check(
-        "the same answers a second time abort as already configured",
-        _run_past_user_sensors(_dup_second, _first_credentials, _first_sensors)
-        == {"type": "abort", "reason": "already_configured"},
-    )
-    _dup_other = _fresh_flow()
-    _dup_other.hass = _dup_hass
-    _dup_other_result = _run_past_user_sensors(
-        _dup_other,
-        _first_credentials,
-        {**_first_sensors, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
-    )
-    R.check(
-        "a second heat pump on the same Tibber account proceeds",
-        _dup_other_result.get("type") == "menu"
-        and _dup_other_result.get("step_id") == "finish_setup",
-        str(_dup_other_result)[:160],
-    )
-    _continue_form = asyncio.run(_dup_other.async_step_temperature(None))
-    R.check(
-        "continuing setup after the menu lands on temperature",
-        _continue_form.get("type") == "form"
-        and _continue_form.get("step_id") == "temperature",
-        str(_continue_form)[:160],
-    )
-    R.check(
-        "the abort reason has a string to show",
-        "already_configured" in strings["config"]["abort"],
-    )
-finally:
-    config_flow.validate_tibber_token = _real_validate_token
+        _create = getattr(_dup_first, "async_step_setup_overview", None)
+        if _create is None:
+            _early_entry = {}
+            R.check(
+                "confirming the overview creates the entry",
+                False,
+                "async_step_setup_overview missing",
+            )
+        else:
+            _early_entry = asyncio.run(_create({}))
+            R.check(
+                "confirming the overview creates the entry",
+                _early_entry.get("type") == "create_entry"
+                and _early_entry.get("data", {}).get(const.CONF_TIBBER_TOKEN)
+                == _first_credentials[const.CONF_TIBBER_TOKEN]
+                and const.CONF_TARGET_TEMP not in _early_entry.get("data", {}),
+                str(_early_entry)[:160],
+            )
+        # What the flow manager does when that flow finishes: an entry that holds
+        # the flow's unique id.
+        _dup_hass.config_entries.entries.append(
+            FakeEntry(
+                data=dict(_first_screen),
+                entry_id="first_pump",
+                unique_id=_dup_first.unique_id,
+            )
+        )
+        _dup_second = _fresh_flow()
+        _dup_second.hass = _dup_hass
+        R.check(
+            "the same answers a second time abort as already configured",
+            _run_past_user_sensors(_dup_second, _first_credentials, _first_sensors)
+            == {"type": "abort", "reason": "already_configured"},
+        )
+        _dup_other = _fresh_flow()
+        _dup_other.hass = _dup_hass
+        _dup_other_result = _run_past_user_sensors(
+            _dup_other,
+            _first_credentials,
+            {**_first_sensors, const.CONF_HEAT_PUMP_SWITCH_ENTITY: "switch.pump_b"},
+        )
+        R.check(
+            "a second heat pump on the same Tibber account proceeds",
+            _dup_other_result.get("type") == "menu"
+            and _dup_other_result.get("step_id") == "finish_setup",
+            str(_dup_other_result)[:160],
+        )
+        _continue_form = asyncio.run(_dup_other.async_step_temperature(None))
+        R.check(
+            "continuing setup after the menu lands on temperature",
+            _continue_form.get("type") == "form"
+            and _continue_form.get("step_id") == "temperature",
+            str(_continue_form)[:160],
+        )
+        R.check(
+            "the abort reason has a string to show",
+            "already_configured" in strings["config"]["abort"],
+        )
+    finally:
+        config_flow.validate_tibber_token = _real_validate_token
+_module_block_13837()
 
 
 _user_form = asyncio.run(_fresh_flow().async_step_user(None))
@@ -14900,13 +14985,16 @@ R.check(
     dict(_reg_hass.services.async_services().get(const.DOMAIN, {}))
     == _reg_after_setup,
 )
-try:
-    asyncio.run(
-        _reg_hass.services.async_call(const.DOMAIN, const.SERVICE_RUN_OPTIMIZATION, {})
-    )
-    _no_entry_outcome = "returned normally"
-except ServiceValidationError as err:
-    _no_entry_outcome = f"refused: {err}"
+def _module_block_14903():
+    global _no_entry_outcome, err
+    try:
+        asyncio.run(
+            _reg_hass.services.async_call(const.DOMAIN, const.SERVICE_RUN_OPTIMIZATION, {})
+        )
+        _no_entry_outcome = "returned normally"
+    except ServiceValidationError as err:
+        _no_entry_outcome = f"refused: {err}"
+_module_block_14903()
 R.check(
     "a call with no loaded entry is refused, naming the reason",
     _no_entry_outcome.startswith("refused") and "loaded" in _no_entry_outcome,
@@ -15314,10 +15402,13 @@ R.check(
 )
 _ux5_set_before = _svc_entry.options.get(const.CONF_DHW_SETPOINT)
 _ux5_set_refused = None
-try:
-    _svc_call(const.SERVICE_APPLY_SCHEDULE, {"dhw_setpoint": 46.0})
-except ServiceValidationError as err:
-    _ux5_set_refused = str(err)
+def _module_block_15317():
+    global _ux5_set_refused, err
+    try:
+        _svc_call(const.SERVICE_APPLY_SCHEDULE, {"dhw_setpoint": 46.0})
+    except ServiceValidationError as err:
+        _ux5_set_refused = str(err)
+_module_block_15317()
 R.check(
     "apply_schedule refuses a setpoint that leaves no deadband under the stored minimum",
     _ux5_set_refused is not None
@@ -15338,10 +15429,13 @@ _svc_entry.options.pop(const.CONF_TARGET_TEMP, None)
 # effective pair, per entry.
 _band_before = _svc_entry.options.get(const.CONF_COMFORT_TEMP_DAY)
 _band_rejected = None
-try:
-    _svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 18.0})
-except ServiceValidationError as err:
-    _band_rejected = str(err)
+def _module_block_15341():
+    global _band_rejected, err
+    try:
+        _svc_call(const.SERVICE_APPLY_SCHEDULE, {"comfort_temp_day": 18.0})
+    except ServiceValidationError as err:
+        _band_rejected = str(err)
+_module_block_15341()
 R.check(
     "apply_schedule refuses a daytime temperature below the stored night one",
     _band_rejected is not None and "night" in _band_rejected.lower(),
@@ -15434,12 +15528,15 @@ R.check(
     ],
 )
 _window_rejected = None
-try:
-    _svc_call(
-        const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 20, "day_end_hour": 8}
-    )
-except ServiceValidationError as err:
-    _window_rejected = str(err)
+def _module_block_15437():
+    global _window_rejected, err
+    try:
+        _svc_call(
+            const.SERVICE_APPLY_SCHEDULE, {"day_start_hour": 20, "day_end_hour": 8}
+        )
+    except ServiceValidationError as err:
+        _window_rejected = str(err)
+_module_block_15437()
 R.check(
     "the empty-day-window rule survived the move into the shared rules",
     _window_rejected is not None and "daytime period" in _window_rejected,
@@ -15452,10 +15549,13 @@ R.check(
 # target above the ceiling by construction.
 _target_before = _svc_coord._opt_config.target_temp
 _target_rejected = None
-try:
-    asyncio.run(_svc_coord.async_set_target_temperature(26.0))
-except ServiceValidationError as err:
-    _target_rejected = str(err)
+def _module_block_15455():
+    global _target_rejected, err
+    try:
+        asyncio.run(_svc_coord.async_set_target_temperature(26.0))
+    except ServiceValidationError as err:
+        _target_rejected = str(err)
+_module_block_15455()
 R.check(
     "the climate entity cannot store a target above the comfort ceiling",
     _target_rejected is not None and "23" in _target_rejected,
@@ -16242,10 +16342,13 @@ def _gl_run_sh_wait_unrun() -> dict[str, tuple[bool, str]]:
     }
 
 
-try:
-    _gl_wu = _gl_run_sh_wait_unrun()
-except Exception as _gl_exc:  # a crash is these checks' red, not the script's
-    _gl_wu = {k: (False, f"raised {_gl_exc!r}") for k in ("map", "word")}
+def _module_block_16245():
+    global _gl_exc, _gl_wu, k
+    try:
+        _gl_wu = _gl_run_sh_wait_unrun()
+    except Exception as _gl_exc:  # a crash is these checks' red, not the script's
+        _gl_wu = {k: (False, f"raised {_gl_exc!r}") for k in ("map", "word")}
+_module_block_16245()
 R.check("run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)",
         *_gl_wu["map"])
 R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
@@ -16315,10 +16418,13 @@ def _gl_flock_wrap_label() -> tuple[bool, str]:
                 f"order={order} holder_after={holder and holder.label}")
 
 
-try:
-    _gl_ok, _gl_detail = _gl_flock_wrap_label()
-except Exception as _gl_exc:  # a crash is this check's red, not the script's
-    _gl_ok, _gl_detail = False, f"raised {_gl_exc!r}"
+def _module_block_16318():
+    global _gl_detail, _gl_exc, _gl_ok
+    try:
+        _gl_ok, _gl_detail = _gl_flock_wrap_label()
+    except Exception as _gl_exc:  # a crash is this check's red, not the script's
+        _gl_ok, _gl_detail = False, f"raised {_gl_exc!r}"
+_module_block_16318()
 R.check("a seat label never taken fails at once; a held one re-queues behind a waiter",
         _gl_ok, _gl_detail)
 
@@ -16582,10 +16688,13 @@ R.check(
     "(null control)",
     *_ed_add_builds_and_unregisters(),
 )
-try:
-    _ed_names_ok, _ed_names_detail = _ed_worktree_names_differ_per_process()
-except Exception as _ed_exc:  # a crash is this check's red, not the script's
-    _ed_names_ok, _ed_names_detail = False, f"raised {_ed_exc!r}"
+def _module_block_16585():
+    global _ed_exc, _ed_names_detail, _ed_names_ok
+    try:
+        _ed_names_ok, _ed_names_detail = _ed_worktree_names_differ_per_process()
+    except Exception as _ed_exc:  # a crash is this check's red, not the script's
+        _ed_names_ok, _ed_names_detail = False, f"raised {_ed_exc!r}"
+_module_block_16585()
 R.check(
     "concurrent gate instances name distinct baseline worktrees (#2119)",
     _ed_names_ok,
@@ -17053,10 +17162,13 @@ _nightly_saved = _nightly.KNOWN_BLOCKING
 _nightly.KNOWN_BLOCKING = frozenset(
     _nightly.BLOCKING_CALL.findall(_NIGHTLY_REPORT_SLEEP)
 )
-try:
-    _nightly_stale, _ = _nightly_scan(_NIGHTLY_CLEAN)
-finally:
-    _nightly.KNOWN_BLOCKING = _nightly_saved
+def _module_block_17056():
+    global _, _nightly_stale
+    try:
+        _nightly_stale, _ = _nightly_scan(_NIGHTLY_CLEAN)
+    finally:
+        _nightly.KNOWN_BLOCKING = _nightly_saved
+_module_block_17056()
 R.check(
     "a pinned offender the run did not produce fails the nightly",
     "log:blocking_pin_not_stale" in _nightly_stale,
@@ -17297,16 +17409,22 @@ R.check(
 
 from homeassistant.helpers.json import json_bytes as _ha_json_bytes
 
-try:
-    _ha_json_bytes({"k": float("inf")})
-    _ha_json_inf = "accepted"
-except Exception:
-    _ha_json_inf = "refused"
-try:
-    _nightly.json_bytes_ha({"k": float("inf")})
-    _jb_ha_inf = "accepted"
-except Exception:
-    _jb_ha_inf = "refused"
+def _module_block_17300():
+    global _ha_json_inf
+    try:
+        _ha_json_bytes({"k": float("inf")})
+        _ha_json_inf = "accepted"
+    except Exception:
+        _ha_json_inf = "refused"
+_module_block_17300()
+def _module_block_17305():
+    global _jb_ha_inf
+    try:
+        _nightly.json_bytes_ha({"k": float("inf")})
+        _jb_ha_inf = "accepted"
+    except Exception:
+        _jb_ha_inf = "refused"
+_module_block_17305()
 _a3_orjson_src = _inspect.getsource(_nightly.json_bytes_ha)
 _a3_orjson_check_src = _inspect.getsource(_nightly.check_a3_orjson)
 R.check(
@@ -17340,13 +17458,15 @@ R.check(
 _saved_json_bytes_ha = _nightly.json_bytes_ha
 _nightly.json_bytes_ha = lambda obj: b"{}"
 _a3_orjson_noop = _nightly.Checks()
-try:
-    _nightly.check_a3_orjson(
-        _a3_orjson_noop,
-        [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
-    )
-finally:
-    _nightly.json_bytes_ha = _saved_json_bytes_ha
+def _module_block_17343():
+    try:
+        _nightly.check_a3_orjson(
+            _a3_orjson_noop,
+            [("sensor.x", {"state": "1", "attributes": {"k": float("inf")}})],
+        )
+    finally:
+        _nightly.json_bytes_ha = _saved_json_bytes_ha
+_module_block_17343()
 R.check(
     "json_bytes_ha returning b\"{}\" leaves a3:orjson green on an orjson-illegal payload",
     "a3:orjson" not in _a3_orjson_noop.failures()
@@ -17839,11 +17959,14 @@ _a5_comfort_cur = {
 }
 _a5_comfort_schema = config_flow._page_schema("comfort", _a5_comfort_cur, FakeHass())
 _a5_comfort_posted = _nightly.option_resubmit("comfort", _a5_comfort_cur)
-try:
-    _a5_comfort_schema(_a5_comfort_posted)
-    _a5_comfort_err = ""
-except Exception as _a5_comfort_exc:  # noqa: BLE001 - the A5 failure is any raise
-    _a5_comfort_err = f"{type(_a5_comfort_exc).__name__}: {_a5_comfort_exc}"
+def _module_block_17842():
+    global _a5_comfort_err, _a5_comfort_exc
+    try:
+        _a5_comfort_schema(_a5_comfort_posted)
+        _a5_comfort_err = ""
+    except Exception as _a5_comfort_exc:  # noqa: BLE001 - the A5 failure is any raise
+        _a5_comfort_err = f"{type(_a5_comfort_exc).__name__}: {_a5_comfort_exc}"
+_module_block_17842()
 R.check(
     "option_resubmit posts the sectioned shape the comfort schema validates",
     not _a5_comfort_err,
@@ -17858,11 +17981,14 @@ _a5_entities_schema = config_flow._page_schema(
     "entities", _a5_entities_cur, FakeHass()
 )
 _a5_entities_posted = _nightly.option_resubmit("entities", _a5_entities_cur)
-try:
-    _a5_entities_schema(_a5_entities_posted)
-    _a5_entities_err = ""
-except Exception as _a5_entities_exc:  # noqa: BLE001 - the A5 failure is any raise
-    _a5_entities_err = f"{type(_a5_entities_exc).__name__}: {_a5_entities_exc}"
+def _module_block_17861():
+    global _a5_entities_err, _a5_entities_exc
+    try:
+        _a5_entities_schema(_a5_entities_posted)
+        _a5_entities_err = ""
+    except Exception as _a5_entities_exc:  # noqa: BLE001 - the A5 failure is any raise
+        _a5_entities_err = f"{type(_a5_entities_exc).__name__}: {_a5_entities_exc}"
+_module_block_17861()
 R.check(
     "option_resubmit nests weather_entity under the credentials section",
     isinstance(_a5_entities_posted.get("credentials"), dict)
@@ -19066,15 +19192,18 @@ R.check(
 import typing as _rd_typing  # noqa: E402
 
 _rd_hint_failures = []
-for _rd_entry_point in (
-    integration.async_setup_entry,
-    integration.async_update_options,
-    integration.async_unload_entry,
-):
-    try:
-        _rd_typing.get_type_hints(_rd_entry_point)
-    except Exception as exc:  # noqa: BLE001 - the failure text is the point
-        _rd_hint_failures.append(f"{_rd_entry_point.__name__}: {exc!r}")
+def _module_block_19069():
+    global _rd_entry_point, exc
+    for _rd_entry_point in (
+        integration.async_setup_entry,
+        integration.async_update_options,
+        integration.async_unload_entry,
+    ):
+        try:
+            _rd_typing.get_type_hints(_rd_entry_point)
+        except Exception as exc:  # noqa: BLE001 - the failure text is the point
+            _rd_hint_failures.append(f"{_rd_entry_point.__name__}: {exc!r}")
+_module_block_19069()
 R.check(
     "get_type_hints resolves all three entry points' annotations",
     not _rd_hint_failures,
@@ -19101,10 +19230,12 @@ def _a14_spy(name, package=None):
 
 integration.__dict__.pop("HeatPumpOptimizerCoordinator", None)
 integration.importlib.import_module = _a14_spy
-try:
-    getattr(integration, "HeatPumpOptimizerCoordinator")
-finally:
-    integration.importlib.import_module = _a14_import
+def _module_block_19104():
+    try:
+        getattr(integration, "HeatPumpOptimizerCoordinator")
+    finally:
+        integration.importlib.import_module = _a14_import
+_module_block_19104()
 R.check(
     "__getattr__ does not import_module a sibling already in sys.modules",
     ".coordinator" not in _a14_mod_names,
@@ -19821,13 +19952,16 @@ R.check(
 # red check, not a truncated run.
 _CIG_PATH = _closure.ROOT / "tools" / "ci" / "gate.py"
 import importlib.util as _cig_util
-try:
-    _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
-    _cig = _cig_util.module_from_spec(_cig_spec)
-    _cig_spec.loader.exec_module(_cig)
-    _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
-except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
-    _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
+def _module_block_19824():
+    global _cig, _cig_err, _cig_exc, _cig_required, _cig_spec, k, v
+    try:
+        _cig_spec = _cig_util.spec_from_file_location("hpo_ci_gate", _CIG_PATH)
+        _cig = _cig_util.module_from_spec(_cig_spec)
+        _cig_spec.loader.exec_module(_cig)
+        _cig_required, _cig_err = {k: tuple(v) for k, v in _cig.REQUIRED.items()}, ""
+    except Exception as _cig_exc:  # noqa: BLE001 -- see stamp.py's load above
+        _cig_required, _cig_err = {}, f"{type(_cig_exc).__name__}: {_cig_exc}"
+_module_block_19824()
 _CIG_FIXTURE = json.loads((_closure.ROOT / "tools" / "policy" / "fixtures"
                            / "required-contexts.json").read_text())
 
@@ -20569,16 +20703,19 @@ _rs_root = str(_closure.ROOT)
 (_rs_dir / "r.json").write_text(json.dumps(
     {"files": ["tests/deployment_shape.py"], "how": "audithook+sys.modules"}))
 _RS_INERT = None
-try:
-    _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
-    _RS_INERT_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace", inert=True))
-    _closure._union_strace(_rs_dir / "r.json", _rs_dir / "r.strace")
-    _RS_REC = json.loads((_rs_dir / "r.json").read_text())
-    _RS_GOT = (_RS_SEEN, _RS_REC["files"], _RS_REC["how"],
-               (_rs_dir / "r.strace").exists())
-    _RS_INERT = (_RS_INERT_SEEN, _RS_REC.get("inert_reads"))
-except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
+def _module_block_20572():
+    global _RS_GOT, _RS_INERT, _RS_INERT_SEEN, _RS_REC, _RS_SEEN, _rs_exc
+    try:
+        _RS_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace"))
+        _RS_INERT_SEEN = sorted(_closure.strace_files(_rs_dir / "r.strace", inert=True))
+        _closure._union_strace(_rs_dir / "r.json", _rs_dir / "r.strace")
+        _RS_REC = json.loads((_rs_dir / "r.json").read_text())
+        _RS_GOT = (_RS_SEEN, _RS_REC["files"], _RS_REC["how"],
+                   (_rs_dir / "r.strace").exists())
+        _RS_INERT = (_RS_INERT_SEEN, _RS_REC.get("inert_reads"))
+    except Exception as _rs_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _RS_GOT = (f"{type(_rs_exc).__name__}: {_rs_exc}",)
+_module_block_20572()
 _rs_shutil.rmtree(_rs_dir, ignore_errors=True)
 _RS_SRC = _inspect.getsource(_closure.record)
 R.check(
@@ -20613,47 +20750,50 @@ import subprocess as _ir_sp  # noqa: E402
 
 _ir_dir = Path(_tempfile.mkdtemp(prefix="closure-inert-"))
 _ir_real = json.loads(_closure.CLOSURES.read_text())
-try:
-    # C1: a Python script run by the recorder's own audit hook, no strace.
-    (_ir_dir / "probe.py").write_text(
-        "from pathlib import Path\nPath('LICENSE').read_text()\n")
-    _ir_sp.run([sys.executable, str(_closure.ROOT / "tests/closure.py"), "--exec-record",
-                str(_ir_dir / "probe.py"), str(_ir_dir / "probe.out")],
-               cwd=_closure.ROOT, check=True, capture_output=True)
-    _IR_HOOK = json.loads((_ir_dir / "probe.out").read_text())
-    # C3: the fold, directly and through a --partial merge on a copy of the table.
-    _IR_TABLE = {"tests/old.py": ["x"], "tests/layout.py": ["x"]}
-    _closure._fold_inert_reads(_IR_TABLE, {
-        "tests/layout.py": {"inert_reads": []},
-        "tests/harness_headers.py": {"inert_reads": ["LICENSE", "tests/nope.txt"]}})
-    _IR_FOLD = _IR_TABLE
-    (_ir_dir / "rec").mkdir()
-    (_ir_dir / "rec" / "layout.py.json").write_text(json.dumps({
-        "script": "tests/layout.py", "rc": 0, "seconds": 0.1, "how": "audithook",
-        "files": _ir_real["closures"]["tests/layout.py"], "inert_reads": ["LICENSE"]}))
-    (_ir_dir / "closures.json").write_text(json.dumps(_ir_real))
-    _IR_RC = _closure.merge(_ir_dir / "rec", _ir_dir / "closures.json", partial=True)
-    _IR_MERGED = json.loads((_ir_dir / "closures.json").read_text()).get(
-        "inert_reads", {}).get("tests/layout.py")
-    # C4: check() against a committed table that lacks the read, then one that has it.
-    _saved_closures = _closure.CLOSURES
-    _closure.CLOSURES = _ir_dir / "closures.json"
+def _module_block_20616():
+    global _IR_CHECK_LISTED, _IR_CHECK_MISSING, _IR_FOLD, _IR_GOT, _IR_HOOK, _IR_MERGED, _IR_RC, _IR_TABLE, _ir_exc, _ir_t, _saved_closures
     try:
-        _ir_t = json.loads(_closure.CLOSURES.read_text())
-        _ir_t["inert_reads"] = {}
-        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
-        with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
-            _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
-        _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
-        _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
-        with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
-            _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
-    finally:
-        _closure.CLOSURES = _saved_closures
-    _IR_GOT = (_IR_HOOK.get("inert_reads"), _IR_FOLD, _IR_RC, _IR_MERGED,
-               _IR_CHECK_MISSING, _IR_CHECK_LISTED)
-except Exception as _ir_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _IR_GOT = (f"{type(_ir_exc).__name__}: {_ir_exc}",)
+        # C1: a Python script run by the recorder's own audit hook, no strace.
+        (_ir_dir / "probe.py").write_text(
+            "from pathlib import Path\nPath('LICENSE').read_text()\n")
+        _ir_sp.run([sys.executable, str(_closure.ROOT / "tests/closure.py"), "--exec-record",
+                    str(_ir_dir / "probe.py"), str(_ir_dir / "probe.out")],
+                   cwd=_closure.ROOT, check=True, capture_output=True)
+        _IR_HOOK = json.loads((_ir_dir / "probe.out").read_text())
+        # C3: the fold, directly and through a --partial merge on a copy of the table.
+        _IR_TABLE = {"tests/old.py": ["x"], "tests/layout.py": ["x"]}
+        _closure._fold_inert_reads(_IR_TABLE, {
+            "tests/layout.py": {"inert_reads": []},
+            "tests/harness_headers.py": {"inert_reads": ["LICENSE", "tests/nope.txt"]}})
+        _IR_FOLD = _IR_TABLE
+        (_ir_dir / "rec").mkdir()
+        (_ir_dir / "rec" / "layout.py.json").write_text(json.dumps({
+            "script": "tests/layout.py", "rc": 0, "seconds": 0.1, "how": "audithook",
+            "files": _ir_real["closures"]["tests/layout.py"], "inert_reads": ["LICENSE"]}))
+        (_ir_dir / "closures.json").write_text(json.dumps(_ir_real))
+        _IR_RC = _closure.merge(_ir_dir / "rec", _ir_dir / "closures.json", partial=True)
+        _IR_MERGED = json.loads((_ir_dir / "closures.json").read_text()).get(
+            "inert_reads", {}).get("tests/layout.py")
+        # C4: check() against a committed table that lacks the read, then one that has it.
+        _saved_closures = _closure.CLOSURES
+        _closure.CLOSURES = _ir_dir / "closures.json"
+        try:
+            _ir_t = json.loads(_closure.CLOSURES.read_text())
+            _ir_t["inert_reads"] = {}
+            _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
+            with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+                _IR_CHECK_MISSING = _closure.check(_ir_dir / "rec", partial=True)
+            _ir_t["inert_reads"] = {"tests/layout.py": ["LICENSE"]}
+            _closure.CLOSURES.write_text(_closure.canonical_text(_ir_t))
+            with _d7_contextlib.redirect_stdout(_d7_io.StringIO()):
+                _IR_CHECK_LISTED = _closure.check(_ir_dir / "rec", partial=True)
+        finally:
+            _closure.CLOSURES = _saved_closures
+        _IR_GOT = (_IR_HOOK.get("inert_reads"), _IR_FOLD, _IR_RC, _IR_MERGED,
+                   _IR_CHECK_MISSING, _IR_CHECK_LISTED)
+    except Exception as _ir_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _IR_GOT = (f"{type(_ir_exc).__name__}: {_ir_exc}",)
+_module_block_20616()
 _rs_shutil.rmtree(_ir_dir, ignore_errors=True)
 R.check(
     "inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, "
@@ -20889,53 +21029,59 @@ R.check(
 )
 # Apply: a recording that names one extra file is the UNDER-SCOPED case.
 # Merge it, then check must pass, and the committed list must grow.
-with _tempfile.TemporaryDirectory() as _af_td:
-    _af_root = Path(_af_td)
-    _af_script = "tests/open_meteo.py"
-    _af_committed = {
-        "closures": {_af_script: [_af_script, "tests/harness.py"]},
-        "recorded": {},
-    }
-    _af_closures = _af_root / "closures.json"
-    _af_closures.write_text(json.dumps(_af_committed))
-    _af_rec_dir = _af_root / "rec"
-    _af_rec_dir.mkdir()
-    (_af_rec_dir / "open_meteo.json").write_text(json.dumps({
-        "script": _af_script, "rc": 0,
-        "files": [_af_script, "tests/harness.py", "tests/run.sh"],
-    }))
-    _af_orig, _closure.CLOSURES = _closure.CLOSURES, _af_closures
-    try:
-        _af_status = _closure.apply_under_scoped_recordings(
-            _af_rec_dir, partial=True)
-        _af_after = json.loads(_af_closures.read_text())["closures"][_af_script]
-    finally:
-        _closure.CLOSURES = _af_orig
+def _module_block_20892():
+    global _af_after, _af_closures, _af_committed, _af_orig, _af_rec_dir, _af_root, _af_script, _af_status, _af_td
+    with _tempfile.TemporaryDirectory() as _af_td:
+        _af_root = Path(_af_td)
+        _af_script = "tests/open_meteo.py"
+        _af_committed = {
+            "closures": {_af_script: [_af_script, "tests/harness.py"]},
+            "recorded": {},
+        }
+        _af_closures = _af_root / "closures.json"
+        _af_closures.write_text(json.dumps(_af_committed))
+        _af_rec_dir = _af_root / "rec"
+        _af_rec_dir.mkdir()
+        (_af_rec_dir / "open_meteo.json").write_text(json.dumps({
+            "script": _af_script, "rc": 0,
+            "files": [_af_script, "tests/harness.py", "tests/run.sh"],
+        }))
+        _af_orig, _closure.CLOSURES = _closure.CLOSURES, _af_closures
+        try:
+            _af_status = _closure.apply_under_scoped_recordings(
+                _af_rec_dir, partial=True)
+            _af_after = json.loads(_af_closures.read_text())["closures"][_af_script]
+        finally:
+            _closure.CLOSURES = _af_orig
+_module_block_20892()
 R.check(
     "UNDER-SCOPED recordings merge into the committed closure",
     _af_status == "changed" and "tests/run.sh" in _af_after,
     f"status={_af_status} files={_af_after}",
 )
-with _tempfile.TemporaryDirectory() as _af2_td:
-    _af2_root = Path(_af2_td)
-    _af2_script = "tests/open_meteo.py"
-    # In the layout (write_closures' text): a table out of it is a check
-    # failure of its own (R9-CI-2b), which this loop guard is not about.
-    _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
-    _af2_closures = _af2_root / "closures.json"
-    _af2_closures.write_text(_closure.canonical_text(
-        {"closures": {_af2_script: _af2_list}, "recorded": {}}))
-    _af2_rec = _af2_root / "rec"
-    _af2_rec.mkdir()
-    (_af2_rec / "open_meteo.json").write_text(json.dumps({
-        "script": _af2_script, "rc": 0, "files": _af2_list,
-    }))
-    _af2_orig, _closure.CLOSURES = _closure.CLOSURES, _af2_closures
-    try:
-        _af2_status = _closure.apply_under_scoped_recordings(
-            _af2_rec, partial=True)
-    finally:
-        _closure.CLOSURES = _af2_orig
+def _module_block_20919():
+    global _af2_closures, _af2_list, _af2_orig, _af2_rec, _af2_root, _af2_script, _af2_status, _af2_td
+    with _tempfile.TemporaryDirectory() as _af2_td:
+        _af2_root = Path(_af2_td)
+        _af2_script = "tests/open_meteo.py"
+        # In the layout (write_closures' text): a table out of it is a check
+        # failure of its own (R9-CI-2b), which this loop guard is not about.
+        _af2_list = sorted([_af2_script, "tests/harness.py", "tests/run.sh"])
+        _af2_closures = _af2_root / "closures.json"
+        _af2_closures.write_text(_closure.canonical_text(
+            {"closures": {_af2_script: _af2_list}, "recorded": {}}))
+        _af2_rec = _af2_root / "rec"
+        _af2_rec.mkdir()
+        (_af2_rec / "open_meteo.json").write_text(json.dumps({
+            "script": _af2_script, "rc": 0, "files": _af2_list,
+        }))
+        _af2_orig, _closure.CLOSURES = _closure.CLOSURES, _af2_closures
+        try:
+            _af2_status = _closure.apply_under_scoped_recordings(
+                _af2_rec, partial=True)
+        finally:
+            _closure.CLOSURES = _af2_orig
+_module_block_20919()
 R.check(
     "a recording that matches the committed list is not an autofix",
     _af2_status == "skip-clean",
@@ -21002,25 +21148,28 @@ R.check(
     f"status={_af3_status}: open_meteo.py under-approximates and its own "
     "recording stopped early -- a human is waiting for a commit no step will push",
 )
-with _tempfile.TemporaryDirectory() as _af3u_td:
-    _af3u_path = Path(_af3u_td) / "closures.json"
-    _af3u_path.write_text(json.dumps({"closures": {
-        "tests/open_meteo.py": ["tests/open_meteo.py"],
-        "tests/frontend.py": ["tests/frontend.py"]}, "recorded": {}}))
-    _af3u_rec = Path(_af3u_td) / "rec"
-    _af3u_rec.mkdir()
-    for _i, _r in enumerate([
-            {"script": "tests/open_meteo.py", "rc": 0,
-             "files": ["tests/open_meteo.py", "tests/harness.py"]},
-            {"script": "tests/frontend.py", "rc": 1,
-             "files": ["tests/frontend.py"]}]):
-        (_af3u_rec / f"{_i}.json").write_text(json.dumps(_r))
-    _af3u_orig, _closure.CLOSURES = _closure.CLOSURES, _af3u_path
-    try:
-        _af3u_status = _closure.apply_under_scoped_recordings(_af3u_rec)
-    finally:
-        _closure.CLOSURES = _af3u_orig
-    _af3u_after = json.loads(_af3u_path.read_text())["closures"]
+def _module_block_21005():
+    global _af3u_after, _af3u_orig, _af3u_path, _af3u_rec, _af3u_status, _af3u_td, _i, _r
+    with _tempfile.TemporaryDirectory() as _af3u_td:
+        _af3u_path = Path(_af3u_td) / "closures.json"
+        _af3u_path.write_text(json.dumps({"closures": {
+            "tests/open_meteo.py": ["tests/open_meteo.py"],
+            "tests/frontend.py": ["tests/frontend.py"]}, "recorded": {}}))
+        _af3u_rec = Path(_af3u_td) / "rec"
+        _af3u_rec.mkdir()
+        for _i, _r in enumerate([
+                {"script": "tests/open_meteo.py", "rc": 0,
+                 "files": ["tests/open_meteo.py", "tests/harness.py"]},
+                {"script": "tests/frontend.py", "rc": 1,
+                 "files": ["tests/frontend.py"]}]):
+            (_af3u_rec / f"{_i}.json").write_text(json.dumps(_r))
+        _af3u_orig, _closure.CLOSURES = _closure.CLOSURES, _af3u_path
+        try:
+            _af3u_status = _closure.apply_under_scoped_recordings(_af3u_rec)
+        finally:
+            _closure.CLOSURES = _af3u_orig
+        _af3u_after = json.loads(_af3u_path.read_text())["closures"]
+_module_block_21005()
 R.check(
     "a failed recording of an UNRELATED script no longer blocks the repair; "
     "its own truncated trace is left out of the merge",
@@ -21216,24 +21365,27 @@ R.check(
     and _af8["absent"] == ("skip-not-under-scoped", True),
     f"{_af8}: a green closures job owes nothing",
 )
-with _tempfile.TemporaryDirectory() as _af4_td:
-    _af4_root = Path(_af4_td)
-    _af4_closures = _af4_root / "closures.json"
-    _af4_before = json.dumps({
-        "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
-        "recorded": {},
-    })
-    _af4_closures.write_text(_af4_before)
-    _af4_rec = _af4_root / "rec"
-    _af4_rec.mkdir()
-    (_af4_rec / "bad.json").write_text("{")
-    _af4_orig, _closure.CLOSURES = _closure.CLOSURES, _af4_closures
-    try:
-        _af4_status = _closure.apply_under_scoped_recordings(
-            _af4_rec, partial=True)
-        _af4_after = _af4_closures.read_text()
-    finally:
-        _closure.CLOSURES = _af4_orig
+def _module_block_21219():
+    global _af4_after, _af4_before, _af4_closures, _af4_orig, _af4_rec, _af4_root, _af4_status, _af4_td
+    with _tempfile.TemporaryDirectory() as _af4_td:
+        _af4_root = Path(_af4_td)
+        _af4_closures = _af4_root / "closures.json"
+        _af4_before = json.dumps({
+            "closures": {"tests/open_meteo.py": ["tests/open_meteo.py"]},
+            "recorded": {},
+        })
+        _af4_closures.write_text(_af4_before)
+        _af4_rec = _af4_root / "rec"
+        _af4_rec.mkdir()
+        (_af4_rec / "bad.json").write_text("{")
+        _af4_orig, _closure.CLOSURES = _closure.CLOSURES, _af4_closures
+        try:
+            _af4_status = _closure.apply_under_scoped_recordings(
+                _af4_rec, partial=True)
+            _af4_after = _af4_closures.read_text()
+        finally:
+            _closure.CLOSURES = _af4_orig
+_module_block_21219()
 R.check(
     "unreadable recordings do not rewrite closures.json",
     _af4_status == "skip-merge-failed" and _af4_after == _af4_before,
@@ -21897,11 +22049,13 @@ def _bc_spy(files, base=None):
 
 _closure.select = _bc_spy
 sys.argv = ["closure.py", "select", "--files", _CJ, "--diff", _BC_ANC or "HEAD", "--json"]
-try:
-    with _bc_contextlib.redirect_stdout(_bc_io.StringIO()):
-        _closure.main()
-finally:
-    _closure.select, sys.argv = _bc_select, _bc_argv
+def _module_block_21900():
+    try:
+        with _bc_contextlib.redirect_stdout(_bc_io.StringIO()):
+            _closure.main()
+    finally:
+        _closure.select, sys.argv = _bc_select, _bc_argv
+_module_block_21900()
 R.check(
     "a closures.json change is measured against the merge base's table, not HEAD's",
     _BC_ANC is not None
@@ -22026,16 +22180,19 @@ R.check(
 # The precondition that makes dropping the roster test safe: `affected` never
 # returns `scoped` on a tree where a selectable script has no closure, so the
 # scoped path cannot run where that test would have fired.
-with _tempfile.TemporaryDirectory() as _td:
-    _short = Path(_td) / "closures.json"
-    _short.write_text(json.dumps({"closures": {
-        k: v for k, v in _committed.items() if k != "tests/open_meteo.py"}}))
-    _real = _closure.CLOSURES
-    try:
-        _closure.CLOSURES = _short
-        _A_SHORT = _closure.affected(["custom_components/heatpump_optimizer/optimizer.py"])
-    finally:
-        _closure.CLOSURES = _real
+def _module_block_22029():
+    global _A_SHORT, _real, _short, _td, k, v
+    with _tempfile.TemporaryDirectory() as _td:
+        _short = Path(_td) / "closures.json"
+        _short.write_text(json.dumps({"closures": {
+            k: v for k, v in _committed.items() if k != "tests/open_meteo.py"}}))
+        _real = _closure.CLOSURES
+        try:
+            _closure.CLOSURES = _short
+            _A_SHORT = _closure.affected(["custom_components/heatpump_optimizer/optimizer.py"])
+        finally:
+            _closure.CLOSURES = _real
+_module_block_22029()
 R.check(
     "a selectable script with no closure forces the full re-derivation",
     _A_SHORT["case"] == "full" and "open_meteo" in _A_SHORT["reason"],
@@ -23413,17 +23570,20 @@ R.check(
 import contextlib as _lm_contextlib  # noqa: E402
 import importlib.util as _lm_util  # noqa: E402
 import io as _lm_io  # noqa: E402
-try:
-    _lm_spec = _lm_util.spec_from_file_location(
-        "hpo_ledger_merge", _closure.ROOT / "tools" / "merge" / "ledger_merge.py")
-    _lm = _lm_util.module_from_spec(_lm_spec)
-    _lm_spec.loader.exec_module(_lm)
-    with _lm_contextlib.redirect_stdout(_lm_io.StringIO()) as _lm_out, \
-            _lm_contextlib.redirect_stderr(_lm_io.StringIO()):
-        _lm_ok = _lm.self_test() == 0
-    _lm_detail = _lm_out.getvalue()
-except Exception as _lm_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
-    _lm_ok, _lm_detail = False, f"{type(_lm_exc).__name__}: {_lm_exc}"
+def _module_block_23416():
+    global _lm, _lm_detail, _lm_exc, _lm_ok, _lm_out, _lm_spec
+    try:
+        _lm_spec = _lm_util.spec_from_file_location(
+            "hpo_ledger_merge", _closure.ROOT / "tools" / "merge" / "ledger_merge.py")
+        _lm = _lm_util.module_from_spec(_lm_spec)
+        _lm_spec.loader.exec_module(_lm)
+        with _lm_contextlib.redirect_stdout(_lm_io.StringIO()) as _lm_out, \
+                _lm_contextlib.redirect_stderr(_lm_io.StringIO()):
+            _lm_ok = _lm.self_test() == 0
+        _lm_detail = _lm_out.getvalue()
+    except Exception as _lm_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+        _lm_ok, _lm_detail = False, f"{type(_lm_exc).__name__}: {_lm_exc}"
+_module_block_23416()
 R.check(
     "tools/merge/ledger_merge.py --self-test passes",
     _lm_ok,
@@ -24538,25 +24698,28 @@ import io as _stamp_io
 # broadly here is deliberate: turning any failure mode into one red `R.check`
 # is strictly safer than letting any of them turn into a partial run.
 _STAMP_PATH = _closure.ROOT / "tools" / "release" / "stamp.py"
-try:
-    _stamp_spec = _importlib_util.spec_from_file_location(
-        "hpo_release_stamp", _STAMP_PATH
-    )
-    _stamp = _importlib_util.module_from_spec(_stamp_spec)
-    _stamp_spec.loader.exec_module(_stamp)
-    with _stamp_contextlib.redirect_stdout(_stamp_io.StringIO()) as _stamp_out:
-        _stamp_rc = _stamp.self_test()
-    _stamp_ok = _stamp_rc == 0
-    _stamp_detail = (
-        "run `python tools/release/stamp.py --self-test` by hand for the "
-        "failing check names:\n" + _stamp_out.getvalue()
-    )
-except Exception as _stamp_exc:  # noqa: BLE001 -- see comment above
-    _stamp_ok = False
-    _stamp_detail = (
-        f"tools/release/stamp.py raised loading or running --self-test: "
-        f"{type(_stamp_exc).__name__}: {_stamp_exc}"
-    )
+def _module_block_24541():
+    global _stamp, _stamp_detail, _stamp_exc, _stamp_ok, _stamp_out, _stamp_rc, _stamp_spec
+    try:
+        _stamp_spec = _importlib_util.spec_from_file_location(
+            "hpo_release_stamp", _STAMP_PATH
+        )
+        _stamp = _importlib_util.module_from_spec(_stamp_spec)
+        _stamp_spec.loader.exec_module(_stamp)
+        with _stamp_contextlib.redirect_stdout(_stamp_io.StringIO()) as _stamp_out:
+            _stamp_rc = _stamp.self_test()
+        _stamp_ok = _stamp_rc == 0
+        _stamp_detail = (
+            "run `python tools/release/stamp.py --self-test` by hand for the "
+            "failing check names:\n" + _stamp_out.getvalue()
+        )
+    except Exception as _stamp_exc:  # noqa: BLE001 -- see comment above
+        _stamp_ok = False
+        _stamp_detail = (
+            f"tools/release/stamp.py raised loading or running --self-test: "
+            f"{type(_stamp_exc).__name__}: {_stamp_exc}"
+        )
+_module_block_24541()
 R.check(
     "tools/release/stamp.py's --self-test passes",
     _stamp_ok,
@@ -24570,33 +24733,36 @@ R.check(
 # write set stamp.py stages must be the guard's `STAMP_WRITES`, and the claim
 # files `rewrite_claims` produces must pass the guard as a push to main sees
 # them, deleting a claim neither file's author could have written.
-try:
-    _stc_writes = {
-        str(Path(p).relative_to(_stamp.ROOT))
-        for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
-                  _stamp.NOTES, *_stamp.CLAIM_FILES, *_stamp.REGISTER_FILES)
-    }
-    _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
-    _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
-    _stc_decl, _stc_claims = _env_drift._parse_claims(_stc_after)
-    _stc_verdict = _env_drift.claims_hygiene_verdict(
-        sorted(_stc_writes), _stc_claims, _stc_claims,
-        _env_drift._parse_claims(_stc_before)[1], {}, "HEAD^1",
-        stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl, 1),
-    )
-    _stc_ok = (
-        _stc_writes == set(_env_drift.STAMP_WRITES)
-        and _stc_deleted == 1
-        and _stc_verdict is None
-    )
-    _stc_detail = (
-        f"stamp.py writes {sorted(_stc_writes)}, the guard expects "
-        f"{sorted(_env_drift.STAMP_WRITES)}; deleted={_stc_deleted}; "
-        f"verdict={_stc_verdict!r}"
-    )
-except Exception as _stc_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _stc_ok = False
-    _stc_detail = f"{type(_stc_exc).__name__}: {_stc_exc}"
+def _module_block_24573():
+    global _stc_after, _stc_before, _stc_claims, _stc_decl, _stc_deleted, _stc_detail, _stc_exc, _stc_ok, _stc_old, _stc_verdict, _stc_writes, p
+    try:
+        _stc_writes = {
+            str(Path(p).relative_to(_stamp.ROOT))
+            for p in (_stamp.VERSION_FILE, _stamp.MANIFEST, _stamp.CARD_JS,
+                      _stamp.NOTES, *_stamp.CLAIM_FILES, *_stamp.REGISTER_FILES)
+        }
+        _stc_before = "# claims-for: 6.5.1\n#\n# old reason\n#\n\nconfig_flow  # a lane's claim\n"
+        _stc_after, _stc_old, _stc_deleted = _stamp.rewrite_claims(_stc_before, "6.6.0", "t")
+        _stc_decl, _stc_claims = _env_drift._parse_claims(_stc_after)
+        _stc_verdict = _env_drift.claims_hygiene_verdict(
+            sorted(_stc_writes), _stc_claims, _stc_claims,
+            _env_drift._parse_claims(_stc_before)[1], {}, "HEAD^1",
+            stamp=("6.6.0", _stc_old, _stc_decl, _stc_decl, 1),
+        )
+        _stc_ok = (
+            _stc_writes == set(_env_drift.STAMP_WRITES)
+            and _stc_deleted == 1
+            and _stc_verdict is None
+        )
+        _stc_detail = (
+            f"stamp.py writes {sorted(_stc_writes)}, the guard expects "
+            f"{sorted(_env_drift.STAMP_WRITES)}; deleted={_stc_deleted}; "
+            f"verdict={_stc_verdict!r}"
+        )
+    except Exception as _stc_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _stc_ok = False
+        _stc_detail = f"{type(_stc_exc).__name__}: {_stc_exc}"
+_module_block_24573()
 R.check(
     "a claim file stamp.py rewrites passes env_drift's claims guard on the "
     "push to main, and both agree on the files a stamp writes",
@@ -24611,28 +24777,31 @@ R.check(
 # claim is live, and a name cannot be both). Pinned here, a branch that
 # suspends an entry in a form `restore_suspended` cannot read goes red on
 # its own pull request instead of on the next stamp.
-try:
-    _stcov_version = Path("VERSION").read_text().strip()
-    _stcov_next = _stamp.bump(_stcov_version, "patch")
-    _stcov_after, _, _ = _stamp.rewrite_claims(
-        Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
-    _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
-    # env_drift's own reader, on the stamped text, not a second parser.
-    with tempfile.TemporaryDirectory() as _stcov_dir:
-        _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
-        _stcov_path.parent.mkdir(parents=True)
-        _stcov_path.write_text(_stcov_after)
-        _stcov_md = _env_drift._may_drift(_stcov_dir)
-    _stcov_problem = (
-        _env_drift.may_drift_coverage_error(
-            _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
-        or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
-    )
-    _stcov_ok = _stcov_problem is None and not _stcov_claims
-    _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
-except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _stcov_ok = False
-    _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
+def _module_block_24614():
+    global _, _stcov_after, _stcov_claims, _stcov_decl, _stcov_detail, _stcov_dir, _stcov_exc, _stcov_md, _stcov_next, _stcov_ok, _stcov_path, _stcov_problem, _stcov_version
+    try:
+        _stcov_version = Path("VERSION").read_text().strip()
+        _stcov_next = _stamp.bump(_stcov_version, "patch")
+        _stcov_after, _, _ = _stamp.rewrite_claims(
+            Path(_env_drift.CLAIM_FILE).read_text(), _stcov_next, "t")
+        _stcov_decl, _stcov_claims = _env_drift._parse_claims(_stcov_after)
+        # env_drift's own reader, on the stamped text, not a second parser.
+        with tempfile.TemporaryDirectory() as _stcov_dir:
+            _stcov_path = Path(_stcov_dir) / _env_drift.CLAIM_FILE
+            _stcov_path.parent.mkdir(parents=True)
+            _stcov_path.write_text(_stcov_after)
+            _stcov_md = _env_drift._may_drift(_stcov_dir)
+        _stcov_problem = (
+            _env_drift.may_drift_coverage_error(
+                _stcov_md, _stcov_claims, _stcov_decl, _stcov_next)
+            or _env_drift.may_drift_error(_stcov_md, _stcov_claims)
+        )
+        _stcov_ok = _stcov_problem is None and not _stcov_claims
+        _stcov_detail = f"claims={sorted(_stcov_claims)} problem={_stcov_problem!r}"
+    except Exception as _stcov_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _stcov_ok = False
+        _stcov_detail = f"{type(_stcov_exc).__name__}: {_stcov_exc}"
+_module_block_24614()
 R.check(
     "the claim file stamp.py would write from this tree covers every allowed "
     "may-drift name -- each suspended entry restored with the claims deleted",
@@ -25030,12 +25199,15 @@ class _GoodToken:
 
 _ra_flow_validate = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _GoodToken()
-try:
-    _ra_out = asyncio.run(
-        _ra_flow.async_step_reauth_confirm({_CONF_TOKEN: "new-token"})
-    )
-finally:
-    config_flow.validate_tibber_token = _ra_flow_validate
+def _module_block_25033():
+    global _ra_out
+    try:
+        _ra_out = asyncio.run(
+            _ra_flow.async_step_reauth_confirm({_CONF_TOKEN: "new-token"})
+        )
+    finally:
+        config_flow.validate_tibber_token = _ra_flow_validate
+_module_block_25033()
 R.check(
     "a valid token is written through and the entry reloads",
     _ra_out.get("reason") == "reauth_successful"
@@ -25065,11 +25237,14 @@ def _ce_spy(self, *args, **kwargs):
 
 
 _ce_uc.DataUpdateCoordinator.__init__ = _ce_spy
-try:
-    _ce_entry = FakeEntry(data=dict(_CRED_DATA))
-    integration.HeatPumpOptimizerCoordinator(FakeHass(), _ce_entry)
-finally:
-    _ce_uc.DataUpdateCoordinator.__init__ = _ce_orig
+def _module_block_25068():
+    global _ce_entry
+    try:
+        _ce_entry = FakeEntry(data=dict(_CRED_DATA))
+        integration.HeatPumpOptimizerCoordinator(FakeHass(), _ce_entry)
+    finally:
+        _ce_uc.DataUpdateCoordinator.__init__ = _ce_orig
+_module_block_25068()
 R.check(
     "super().__init__ is passed config_entry=entry",
     bool(_ce_calls) and _ce_calls[0].get("config_entry") is _ce_entry,
@@ -25170,12 +25345,15 @@ def _run_reconfigure(flow, answers):
 
 _rc_real_validate = config_flow.validate_tibber_token
 config_flow.validate_tibber_token = _accept_any_token
-try:
-    _rc_flow_open = _rc_flow()
-    _rc_form = asyncio.run(_rc_flow_open.async_step_reconfigure(None))
-    _rc_sensors_form = asyncio.run(_rc_flow_open.async_step_user_sensors(None))
-finally:
-    config_flow.validate_tibber_token = _rc_real_validate
+def _module_block_25173():
+    global _rc_flow_open, _rc_form, _rc_sensors_form
+    try:
+        _rc_flow_open = _rc_flow()
+        _rc_form = asyncio.run(_rc_flow_open.async_step_reconfigure(None))
+        _rc_sensors_form = asyncio.run(_rc_flow_open.async_step_user_sensors(None))
+    finally:
+        config_flow.validate_tibber_token = _rc_real_validate
+_module_block_25173()
 
 R.check(
     "reconfigure reopens the first screen rather than a fresh wizard",
@@ -25691,10 +25869,13 @@ R.check(
 # pins below it keep the move honest.
 R.section("Entity base classes (D10-08)")
 
-try:
-    from heatpump_optimizer import entity as _entity_mod  # noqa: E402
-except ImportError:  # the pre-#298 tree
-    _entity_mod = None
+def _module_block_25694():
+    global _entity_mod
+    try:
+        from heatpump_optimizer import entity as _entity_mod  # noqa: E402
+    except ImportError:  # the pre-#298 tree
+        _entity_mod = None
+_module_block_25694()
 
 _shared_base = getattr(_entity_mod, "HeatPumpOptimizerEntity", None)
 R.check(
@@ -25958,15 +26139,18 @@ for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
 # Assistant actually reads. ``.state`` is the stub's transcription of
 # sensor/__init__.py, so this fails exactly where a real install would.
 _enum_state_errors = []
-for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
-    for _s in _states:
-        try:
-            _got = _cls(_mk(_s), ENTRY).state
-        except ValueError as _err:
-            _enum_state_errors.append(f"{_key}={_s}: {_err}")
-            continue
-        if _got != _s:
-            _enum_state_errors.append(f"{_key}={_s} rendered as {_got!r}")
+def _module_block_25961():
+    global _cls, _err, _got, _key, _mk, _s, _states
+    for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
+        for _s in _states:
+            try:
+                _got = _cls(_mk(_s), ENTRY).state
+            except ValueError as _err:
+                _enum_state_errors.append(f"{_key}={_s}: {_err}")
+                continue
+            if _got != _s:
+                _enum_state_errors.append(f"{_key}={_s} rendered as {_got!r}")
+_module_block_25961()
 R.check(
     "every declared state survives Home Assistant's own enum validation",
     not _enum_state_errors,
@@ -25977,11 +26161,14 @@ R.check(
 # check that supplies the value it then asserts is this repository's most
 # repeated defect. A state outside the options must raise.
 _control_raised = []
-for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
-    try:
-        _cls(_mk("a_state_no_producer_emits"), ENTRY).state
-    except ValueError:
-        _control_raised.append(_key)
+def _module_block_25980():
+    global _cls, _key, _mk, _states
+    for _key, (_cls, _states, _mk) in _ENUM_SENSORS.items():
+        try:
+            _cls(_mk("a_state_no_producer_emits"), ENTRY).state
+        except ValueError:
+            _control_raised.append(_key)
+_module_block_25980()
 R.check(
     "and an undeclared state raises, so the check above can fail",
     sorted(_control_raised) == sorted(_ENUM_SENSORS),
@@ -27001,10 +27188,13 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
 
 
-try:
-    _NS_SCHEDULE_ONLY = _ns_nightly_lanes(_NIGHTLY_YML)
-except Exception as _ns_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
-    _NS_SCHEDULE_ONLY = [f"{type(_ns_exc).__name__}: {_ns_exc}"]
+def _module_block_27004():
+    global _NS_SCHEDULE_ONLY, _ns_exc
+    try:
+        _NS_SCHEDULE_ONLY = _ns_nightly_lanes(_NIGHTLY_YML)
+    except Exception as _ns_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+        _NS_SCHEDULE_ONLY = [f"{type(_ns_exc).__name__}: {_ns_exc}"]
+_module_block_27004()
 _NS_TESTS_CRON = re.findall(r"^  schedule:", _TESTS_YML.split("\njobs:", 1)[0], re.M)
 R.check(
     "the reporter watches exactly the lanes a pull request cannot see",
@@ -27294,21 +27484,24 @@ R.check(
 # word for "the nightly FAILED", and the truth was "this could not look", which
 # is what exit 2 exists for. Three call sites read a run's clock; all three.
 _ns_noclock = []
-for _label, _call in (
-    ("pick_runs", lambda: _nstatus.pick_runs([{"id": 5, "status": "completed"}])),
-    ("verdict/concluded", lambda: _nstatus.verdict(
-        {"id": 5, "conclusion": "success"}, None, _NS_LIVE, _NS_NOW)),
-    ("verdict/in_flight", lambda: _nstatus.verdict(
-        None, {"id": 5, "status": "in_progress"}, [], _NS_NOW)),
-):
-    try:
-        _call()
-    except _nstatus.Unreadable:
-        pass
-    except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
-        _ns_noclock.append(f"{_label} raised {type(_exc).__name__}")
-    else:
-        _ns_noclock.append(f"{_label} returned a verdict")
+def _module_block_27297():
+    global _call, _exc, _label
+    for _label, _call in (
+        ("pick_runs", lambda: _nstatus.pick_runs([{"id": 5, "status": "completed"}])),
+        ("verdict/concluded", lambda: _nstatus.verdict(
+            {"id": 5, "conclusion": "success"}, None, _NS_LIVE, _NS_NOW)),
+        ("verdict/in_flight", lambda: _nstatus.verdict(
+            None, {"id": 5, "status": "in_progress"}, [], _NS_NOW)),
+    ):
+        try:
+            _call()
+        except _nstatus.Unreadable:
+            pass
+        except Exception as _exc:  # noqa: BLE001 -- the point is what class it is
+            _ns_noclock.append(f"{_label} raised {type(_exc).__name__}")
+        else:
+            _ns_noclock.append(f"{_label} returned a verdict")
+_module_block_27297()
 R.check(
     "a run carrying no created_at is UNREADABLE, not a KeyError and not a "
     "verdict",
@@ -27329,23 +27522,26 @@ R.check(
 # `_get` is the one collaborator, stubbed; `_jobs` itself is the production
 # function under test.
 _ns_paging_real_get = _nstatus._get
-try:
-    _nstatus._get = lambda _u, _t: {
-        "total_count": 140,
-        "jobs": [_ns_job(f"j{_i}", "success") for _i in range(100)]}
+def _module_block_27332():
+    global _exc, _ns_truncated, _ns_whole
     try:
-        _nstatus._jobs("o/r", 1, None)
-    except _nstatus.Unreadable as _exc:
-        _ns_truncated = "140" in str(_exc) and "100" in str(_exc)
-    else:
-        _ns_truncated = False
-    # The null control: a page that DOES carry every job is read, not refused.
-    # Without this the check above passes on a `_jobs` that refuses everything.
-    _nstatus._get = lambda _u, _t: {"total_count": len(_NS_LIVE),
-                                    "jobs": _NS_LIVE}
-    _ns_whole = _nstatus._jobs("o/r", 1, None) == _NS_LIVE
-finally:
-    _nstatus._get = _ns_paging_real_get
+        _nstatus._get = lambda _u, _t: {
+            "total_count": 140,
+            "jobs": [_ns_job(f"j{_i}", "success") for _i in range(100)]}
+        try:
+            _nstatus._jobs("o/r", 1, None)
+        except _nstatus.Unreadable as _exc:
+            _ns_truncated = "140" in str(_exc) and "100" in str(_exc)
+        else:
+            _ns_truncated = False
+        # The null control: a page that DOES carry every job is read, not refused.
+        # Without this the check above passes on a `_jobs` that refuses everything.
+        _nstatus._get = lambda _u, _t: {"total_count": len(_NS_LIVE),
+                                        "jobs": _NS_LIVE}
+        _ns_whole = _nstatus._jobs("o/r", 1, None) == _NS_LIVE
+    finally:
+        _nstatus._get = _ns_paging_real_get
+_module_block_27332()
 R.check(
     "a jobs page that does not carry every job of the run is UNREADABLE, not a "
     "partial answer",
@@ -27724,17 +27920,20 @@ _DS_TITLE_WINDOW = [
     _ds_commit("ccccccc", "v6.7.16: stamp", parents=1),
 ]
 _ds_title_merges, _ds_title_blind = _ds.collect(_DS_TITLE_WINDOW)
-try:
-    _ds_from_body = _ds.subject_number(
-        "record: delivery rows for #1969 (autofix)",
-        "Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
-    )
-    _ds_from_fixes = _ds.subject_number(
-        "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
-        "Fixes #1935\n",
-    )
-except TypeError:
-    _ds_from_body = _ds_from_fixes = None
+def _module_block_27727():
+    global _ds_from_body, _ds_from_fixes
+    try:
+        _ds_from_body = _ds.subject_number(
+            "record: delivery rows for #1969 (autofix)",
+            "Merge pull request #1970, head 0747ae968e1e0df39316f3ea6d5640e29bc6966d.\n",
+        )
+        _ds_from_fixes = _ds.subject_number(
+            "fix(R9-DIAG-1F): freeze the interval learners during boost-space windows",
+            "Fixes #1935\n",
+        )
+    except TypeError:
+        _ds_from_body = _ds_from_fixes = None
+_module_block_27727()
 R.check(
     "a title-subject merge is numbered from a body Merge pull request line",
     [m["number"] for m in _ds_title_merges] == [1970]
@@ -27805,23 +28004,26 @@ _DS_DIRECT = [
      "files": ["tools/policy/counts.mjs"]},
 ]
 _ds_allow = getattr(_ds, "direct_pushes", lambda t: {})("- 618d014: merged by hand before the PR flow; rows in #1999\n")
-try:
-    _DS_D = tuple(
-        (sorted(b.get("disposition") or "-" for b in blind),
-         _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
-        for m, blind in (
-            _ds.collect(_DS_DIRECT[:1]),
-            _ds.collect(_DS_DIRECT, allow=_ds_allow),
-            _ds.collect(_DS_DIRECT),
-            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
-            _ds.collect([dict(_DS_DIRECT[0], files=None)]),
-            _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
-                "- 1234567: a disposition for another commit\n")),
-            _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
-            _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
-        ))
-except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+def _module_block_27808():
+    global _DS_D, _ds_exc
+    try:
+        _DS_D = tuple(
+            (sorted(b.get("disposition") or "-" for b in blind),
+             _ds.classify(m, _DS_ROWED, unattributed=blind)["verdict"])
+            for m, blind in (
+                _ds.collect(_DS_DIRECT[:1]),
+                _ds.collect(_DS_DIRECT, allow=_ds_allow),
+                _ds.collect(_DS_DIRECT),
+                _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS, "tests/run.sh"])]),
+                _ds.collect([dict(_DS_DIRECT[0], files=None)]),
+                _ds.collect(_DS_DIRECT[1:], allow=getattr(_ds, "direct_pushes", lambda t: {})(
+                    "- 1234567: a disposition for another commit\n")),
+                _ds.collect([dict(_DS_DIRECT[0], files=[getattr(_ds, "DIRECT_PUSHES", "")])]),
+                _ds.collect([dict(_DS_DIRECT[0], files=[_DS_ROWS + ".bak"])]),
+            ))
+    except Exception as _ds_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _DS_D = (f"{type(_ds_exc).__name__}: {_ds_exc}",)
+_module_block_27808()
 R.check(
     "a direct-push merge commit is dispositioned -- record-only by its files, "
     "anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)",
@@ -28536,34 +28738,37 @@ R.check(
 # mutant line by that marker at the line's end.
 import importlib.util as _ba_util  # noqa: E402
 
-try:
-    _ba_spec = _ba_util.spec_from_file_location(
-        "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
-    _ba = _ba_util.module_from_spec(_ba_spec)
-    _ba_spec.loader.exec_module(_ba)
-    _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
-    _ba_head = "#!/bin/bash\nset -uo pipefail\n"
-    # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
-    _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
-    _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
-    _ba_rows = (
-        (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
-        (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
-        (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
-         "an allow-marked never-empty site passes (null)"),
-        (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
-         "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
-        (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
-        (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
-         "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
-        (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
-         "a never-empty reason after a mut marker is refused in a set -u file too"),
-        (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
-         "a reason on the line above keeps the mut marker last (control)"),
-        (_ba.self_test.__call__() == 0, "its own self-test passes"),
-    )
-except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
-    _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+def _module_block_28539():
+    global _ba, _ba_base, _ba_exc, _ba_fixed, _ba_head, _ba_hits, _ba_rows, _ba_spec
+    try:
+        _ba_spec = _ba_util.spec_from_file_location(
+            "hpo_bare_array", _closure.ROOT / "tools" / "audit" / "seat" / "bare_array.py")
+        _ba = _ba_util.module_from_spec(_ba_spec)
+        _ba_spec.loader.exec_module(_ba)
+        _ba_hits = _ba.scan("HEAD")  # git show reads blobs: no file under tools/ is opened, so none joins this script's closure
+        _ba_head = "#!/bin/bash\nset -uo pipefail\n"
+        # bus.sh orphans at the base (3759d49a5): the unguarded call that died.
+        _ba_base = _ba_head + 'x | python3 -I ledger.py landed "${arms[@]}" "$main" $fix_heads\n'
+        _ba_fixed = _ba_head + 'x | python3 -I ledger.py landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads\n'
+        _ba_rows = (
+            (len(_ba.sites(_ba_base)) == 1, "the base bus.sh call is refused"),
+            (_ba.sites(_ba_fixed) == [], "the guarded form passes (control)"),
+            (_ba.sites(_ba_head + 'f "${a[@]}"  # never-empty: literal list\n') == [],
+             "an allow-marked never-empty site passes (null)"),
+            (len(_ba.sites('set -e\nf "${a[@]}"\n')) == 1,
+             "a file without set -u is judged too (a sourced library runs under its caller's -u)"),
+            (_ba.sites('set -e\nf ${a[@]+"${a[@]}"}\n') == [], "the guarded form passes without set -u (null)"),
+            (len(_ba.sites('f x  # mut:m  # never-empty: why\n')) == 1,
+             "a never-empty reason after a mut marker is refused (it unanchors the mutant)"),
+            (len(_ba.sites(_ba_head + 'f x  # mut:m  # never-empty: why\n')) == 1,
+             "a never-empty reason after a mut marker is refused in a set -u file too"),
+            (_ba.sites(_ba_head + '# never-empty: why\nf "${a[@]}"  # mut:m\n') == [],
+             "a reason on the line above keeps the mut marker last (control)"),
+            (_ba.self_test.__call__() == 0, "its own self-test passes"),
+        )
+    except Exception as _ba_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+        _ba_hits, _ba_rows = [f"{type(_ba_exc).__name__}: {_ba_exc}"], ()
+_module_block_28539()
 R.check(
     "no tracked tools/**/*.sh script expands a bare \"${array[@]}\"",
     not _ba_hits,
@@ -28590,18 +28795,21 @@ import importlib.util as _rr_util  # noqa: E402
 import contextlib as _rr_cx  # noqa: E402
 import io as _rr_io  # noqa: E402
 
-try:
-    _rr_spec = _rr_util.spec_from_file_location(
-        "hpo_record_row",
-        _closure.ROOT / "tools" / "audit" / "seat" / "record_row.py")
-    _rr = _rr_util.module_from_spec(_rr_spec)
-    _rr_spec.loader.exec_module(_rr)
-    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rr_out, \
-            _rr_cx.redirect_stderr(_rr_io.StringIO()):
-        _rr_ok = _rr.self_test() == 0
-    _rr_detail = _rr_out.getvalue()
-except Exception as _rr_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
-    _rr_ok, _rr_detail = False, f"{type(_rr_exc).__name__}: {_rr_exc}"
+def _module_block_28593():
+    global _rr, _rr_detail, _rr_exc, _rr_ok, _rr_out, _rr_spec
+    try:
+        _rr_spec = _rr_util.spec_from_file_location(
+            "hpo_record_row",
+            _closure.ROOT / "tools" / "audit" / "seat" / "record_row.py")
+        _rr = _rr_util.module_from_spec(_rr_spec)
+        _rr_spec.loader.exec_module(_rr)
+        with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rr_out, \
+                _rr_cx.redirect_stderr(_rr_io.StringIO()):
+            _rr_ok = _rr.self_test() == 0
+        _rr_detail = _rr_out.getvalue()
+    except Exception as _rr_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+        _rr_ok, _rr_detail = False, f"{type(_rr_exc).__name__}: {_rr_exc}"
+_module_block_28593()
 R.check(
     "tools/audit/seat/record_row.py --self-test passes",
     _rr_ok,
@@ -28614,24 +28822,27 @@ R.check(
 # prevent (#1948). Equality on the NORMALIZED tail, never a prefix, so
 # `fix/r9-fr-1` cannot answer for R9-FR-10 -- the one mismatch a startswith
 # rule produces, and the control this arm drives beside the matches.
-try:
-    _rl_spec = _rr_util.spec_from_file_location(
-        "hpo_roster_lib",
-        _closure.ROOT / "tools" / "audit" / "seat" / "roster_lib.py")
-    _rl = _rr_util.module_from_spec(_rl_spec)
-    _rl_spec.loader.exec_module(_rl)
-    _rl_roster = {"groups": [
-        {"group": "R9-FR-4", "resume": {"branch": "handoff/r9-fr-4"}},
-        {"group": "R9-WEB-5", "resume": {"branch": "handoff/r9-web-5"}},
-        {"group": "R9-FR-10", "resume": {}},
-    ]}
-    _rl_got = [
-        _rl.group_for_branch(_rl_roster, b) for b in
-        ("handoff/r9-fr-4", "fix/r9-fr-4", "fix/r9-fr-10",
-         "claude/beautiful-khorana-48e0a0", "policy/0013", "fix/r9-fr-1")]
-    _rl_ok = True
-except Exception as _rl_exc:  # noqa: BLE001
-    _rl_ok, _rl_got = False, [f"{type(_rl_exc).__name__}: {_rl_exc}"]
+def _module_block_28617():
+    global _rl, _rl_exc, _rl_got, _rl_ok, _rl_roster, _rl_spec, b
+    try:
+        _rl_spec = _rr_util.spec_from_file_location(
+            "hpo_roster_lib",
+            _closure.ROOT / "tools" / "audit" / "seat" / "roster_lib.py")
+        _rl = _rr_util.module_from_spec(_rl_spec)
+        _rl_spec.loader.exec_module(_rl)
+        _rl_roster = {"groups": [
+            {"group": "R9-FR-4", "resume": {"branch": "handoff/r9-fr-4"}},
+            {"group": "R9-WEB-5", "resume": {"branch": "handoff/r9-web-5"}},
+            {"group": "R9-FR-10", "resume": {}},
+        ]}
+        _rl_got = [
+            _rl.group_for_branch(_rl_roster, b) for b in
+            ("handoff/r9-fr-4", "fix/r9-fr-4", "fix/r9-fr-10",
+             "claude/beautiful-khorana-48e0a0", "policy/0013", "fix/r9-fr-1")]
+        _rl_ok = True
+    except Exception as _rl_exc:  # noqa: BLE001
+        _rl_ok, _rl_got = False, [f"{type(_rl_exc).__name__}: {_rl_exc}"]
+_module_block_28617()
 R.check(
     "a merged pull request's branch answers for its roster group, and only its group",
     _rl_ok and _rl_got == ["R9-FR-4", "R9-FR-4", "R9-FR-10", None, None, None],
@@ -28649,12 +28860,15 @@ R.check(
 # round 10's landed beside it. Its self-test is run here for the reason the
 # state-doc block below gives: under the INERT `tools/audit/` prefix an edit
 # would otherwise select no script.
-try:
-    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rlw_out:
-        _rlw_ok = _rl._self_test() == 0
-    _rlw_detail = _rlw_out.getvalue()
-except Exception as _rlw_exc:  # noqa: BLE001 -- a crash is one red check
-    _rlw_ok, _rlw_detail = False, f"{type(_rlw_exc).__name__}: {_rlw_exc}"
+def _module_block_28652():
+    global _rlw_detail, _rlw_exc, _rlw_ok, _rlw_out
+    try:
+        with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _rlw_out:
+            _rlw_ok = _rl._self_test() == 0
+        _rlw_detail = _rlw_out.getvalue()
+    except Exception as _rlw_exc:  # noqa: BLE001 -- a crash is one red check
+        _rlw_ok, _rlw_detail = False, f"{type(_rlw_exc).__name__}: {_rlw_exc}"
+_module_block_28652()
 R.check(
     "tools/audit/seat/roster_lib.py --self-test passes: the newest roster, "
     "the override, the loud refusal",
@@ -28681,18 +28895,21 @@ R.check(
 # `_rr_cx`/`_rr_io` are the record_row block's redirect helpers, one block up.
 import importlib.util as _sd_util  # noqa: E402
 
-try:
-    _sd_spec = _sd_util.spec_from_file_location(
-        "hpo_state_docs",
-        _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
-    _sd = _sd_util.module_from_spec(_sd_spec)
-    _sd_spec.loader.exec_module(_sd)
-    with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
-            _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
-        _sd_ok = _sd.run_self_test() == 0
-    _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
-except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
-    _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+def _module_block_28684():
+    global _sd, _sd_detail, _sd_err, _sd_exc, _sd_ok, _sd_out, _sd_spec
+    try:
+        _sd_spec = _sd_util.spec_from_file_location(
+            "hpo_state_docs",
+            _closure.ROOT / "tools" / "audit" / "seat" / "state_docs.py")
+        _sd = _sd_util.module_from_spec(_sd_spec)
+        _sd_spec.loader.exec_module(_sd)
+        with _rr_cx.redirect_stdout(_rr_io.StringIO()) as _sd_out, \
+                _rr_cx.redirect_stderr(_rr_io.StringIO()) as _sd_err:
+            _sd_ok = _sd.run_self_test() == 0
+        _sd_detail = _sd_out.getvalue() + _sd_err.getvalue()
+    except Exception as _sd_exc:  # noqa: BLE001 -- a crash is one red check, not a partial run
+        _sd_ok, _sd_detail = False, f"{type(_sd_exc).__name__}: {_sd_exc}"
+_module_block_28684()
 R.check(
     "tools/audit/seat/state_docs.py --self-test passes, beat arms included",
     _sd_ok,
@@ -28744,25 +28961,28 @@ R.check(
 # `docs/delivery/<N>.md` -- the guard refuses the plan, the handover, and any
 # path that is not a row file, and each generated file is exactly one line so
 # it can neither split nor trail a table.
-with _ds_tf.TemporaryDirectory() as _raf_tmp2:
-    _raf_guard = []
-    # Each bad path carries a WELL-FORMED anchored line, so only the path
-    # guard can refuse it -- the M1 mutation proof showed a line-shape refusal
-    # here reads exactly like a passing path guard.
-    _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
-    for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
-                 "dev/programme/delivery/2052.md.bak", "dev/programme/delivery/sub/2052.md"):
-        try:
-            _rr.write_rows([{"number": 2052, "path": _bad,
-                             "line": _raf_line}], Path(_raf_tmp2))
-            _raf_guard.append(f"{_bad}=ACCEPTED")
-        except _rr.Refuse:
-            _raf_guard.append(f"{_bad}=refused")
-    _rr.write_rows([{"number": 2052, "path": "dev/programme/delivery/2052.md",
-                     "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
-                   Path(_raf_tmp2))
-    _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
-    _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
+def _module_block_28747():
+    global _bad, _raf_guard, _raf_line, _raf_text, _raf_tmp2, _raf_want
+    with _ds_tf.TemporaryDirectory() as _raf_tmp2:
+        _raf_guard = []
+        # Each bad path carries a WELL-FORMED anchored line, so only the path
+        # guard can refuse it -- the M1 mutation proof showed a line-shape refusal
+        # here reads exactly like a passing path guard.
+        _raf_line = _rr.row_line(2052, "fix: one", "a" * 40, None)
+        for _bad in ("docs/plan-2026-09-open-issues.md", "docs/HANDOVER.md",
+                     "dev/programme/delivery/2052.md.bak", "dev/programme/delivery/sub/2052.md"):
+            try:
+                _rr.write_rows([{"number": 2052, "path": _bad,
+                                 "line": _raf_line}], Path(_raf_tmp2))
+                _raf_guard.append(f"{_bad}=ACCEPTED")
+            except _rr.Refuse:
+                _raf_guard.append(f"{_bad}=refused")
+        _rr.write_rows([{"number": 2052, "path": "dev/programme/delivery/2052.md",
+                         "line": _rr.row_line(2052, "fix: one", "a" * 40, None)}],
+                       Path(_raf_tmp2))
+        _raf_text = (Path(_raf_tmp2) / "dev/programme/delivery/2052.md").read_text()
+        _raf_want = _rr.row_line(2052, "fix: one", "a" * 40, None) + "\n"
+_module_block_28747()
 R.check(
     "the generator's write set is dev/programme/delivery/<N>.md and nothing else",
     all(g.endswith("=refused") for g in _raf_guard)
@@ -31877,10 +32097,13 @@ _STATS_JS = (
 _STATS_OUT = subprocess.run(
     ["node", "--input-type=module", "-e", _STATS_JS],
     capture_output=True, text=True).stdout or "null"
-try:
-    _STATS_DEGRADED = json.loads(_STATS_OUT)
-except ValueError:
-    _STATS_DEGRADED = None
+def _module_block_31880():
+    global _STATS_DEGRADED
+    try:
+        _STATS_DEGRADED = json.loads(_STATS_OUT)
+    except ValueError:
+        _STATS_DEGRADED = None
+_module_block_31880()
 R.check(
     "a verdict histogram whose block-class grammar is unreadable withholds "
     "the proposal and says why",
@@ -32688,127 +32911,133 @@ R.check(
 # sibling with the whole suite green (#1303 round-1 block). Both clauses there
 # are now driven with NO argument and through `main()`'s own call, so what is
 # pinned is the read the instrument actually performs.
-try:
-    _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
-    _CFR = json.loads(_CFR_ARTIFACT.read_text())
-    _CFR_EXCL = _CFR.get("excluded_jobs") or {}
-    # The quote the record entry's citation has to carry, read out of the
-    # workflow rather than typed twice: whatever the `record` job's own report
-    # step says about why its red is by design, the citation has to be quoting.
-    _CFR_QUOTE = ("REFUSED fails this job (D11-04): a rowless merge is the "
-                  "batch interval")
-    _CFR_RECORD_JOB = _workflow_job(
-        (_closure.ROOT / ".github/workflows/governance.yml").read_text(), "record")
-    _CFR_ARTIFACT_OK = bool(
-        _CFR_EXCL
-        and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
-                for v in _CFR_EXCL.values())
-        and "record" in _CFR_EXCL
-        and _CFR_QUOTE in _CFR_EXCL["record"]["citation"]
-        and _CFR_QUOTE in _CFR_RECORD_JOB
-    )
-    _cfr_artifact_detail = (
-        f"excluded_jobs={sorted(_CFR_EXCL)}; the record entry cites the "
-        f"workflow's own words: "
-        f"{_CFR_QUOTE in (_CFR_EXCL.get('record') or {}).get('citation', '')}, "
-        f"and the workflow says them: {_CFR_QUOTE in _CFR_RECORD_JOB}"
-    )
-except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
-    # The artifact and the read are independent properties: a broken read reds
-    # its own check below, not this one.
-    _CFR_ARTIFACT_OK = False
-    _CFR_EXCL = {}
-    _cfr_artifact_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+def _module_block_32691():
+    global _CFR, _CFR_ARTIFACT, _CFR_ARTIFACT_OK, _CFR_EXCL, _CFR_QUOTE, _CFR_RECORD_JOB, _cfr_artifact_detail, _cfr_exc
+    try:
+        _CFR_ARTIFACT = _closure.ROOT / "dev/governance/config/cfr_exclusions.json"
+        _CFR = json.loads(_CFR_ARTIFACT.read_text())
+        _CFR_EXCL = _CFR.get("excluded_jobs") or {}
+        # The quote the record entry's citation has to carry, read out of the
+        # workflow rather than typed twice: whatever the `record` job's own report
+        # step says about why its red is by design, the citation has to be quoting.
+        _CFR_QUOTE = ("REFUSED fails this job (D11-04): a rowless merge is the "
+                      "batch interval")
+        _CFR_RECORD_JOB = _workflow_job(
+            (_closure.ROOT / ".github/workflows/governance.yml").read_text(), "record")
+        _CFR_ARTIFACT_OK = bool(
+            _CFR_EXCL
+            and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
+                    for v in _CFR_EXCL.values())
+            and "record" in _CFR_EXCL
+            and _CFR_QUOTE in _CFR_EXCL["record"]["citation"]
+            and _CFR_QUOTE in _CFR_RECORD_JOB
+        )
+        _cfr_artifact_detail = (
+            f"excluded_jobs={sorted(_CFR_EXCL)}; the record entry cites the "
+            f"workflow's own words: "
+            f"{_CFR_QUOTE in (_CFR_EXCL.get('record') or {}).get('citation', '')}, "
+            f"and the workflow says them: {_CFR_QUOTE in _CFR_RECORD_JOB}"
+        )
+    except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
+        # The artifact and the read are independent properties: a broken read reds
+        # its own check below, not this one.
+        _CFR_ARTIFACT_OK = False
+        _CFR_EXCL = {}
+        _cfr_artifact_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+_module_block_32691()
 
 # The instrument's READ -- step 11, "a check pins the artifact it READS". In
 # its own try so a resolution that moves reds the check named for it and not
 # the artifact check above, which pins a different property.
-try:
-    import contextlib as _cfr_ctx
-    import importlib.util as _cfr_util
-    import io as _cfr_io
-    import os as _cfr_os
-    _CFR_INSTR = _closure.ROOT / "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py"
-    _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
-    _cfr = _cfr_util.module_from_spec(_cfr_spec)
-    _cfr_spec.loader.exec_module(_cfr)
-    _cfr_src = _CFR_INSTR.read_text()
-    # (1) THE DEFAULT, driven with NO argument. `main()` reads its exclusions
-    # as `excl = load_exclusions()`, and the banner as `exclusions_path()`,
-    # both argument-free -- so it is that resolution, not one a caller supplies,
-    # that decides what the instrument reads. The first pass supplied both
-    # (`exclusions_path(root="/repo")`, `load_exclusions(".claude/...")`), so
-    # neither default was exercised: a one-token change to `exclusions_path()`'s
-    # default root moved the read beside the harness with every check green
-    # (review, #1303). These two pin the default path and the map it returns.
-    _cfr_default_path = Path(_cfr_os.path.realpath(_cfr.exclusions_path()))
-    _cfr_default_map = _cfr.load_exclusions()
-    # (2) THE CALL SITE, driven rather than grepped. "A check pins the artifact
-    # it READS", so the read `main()` performs is observed, not inferred from
-    # one spelling in the source: the first pass's grep for
-    # `join(HERE, "cfr_exclusions.json")` was evaded by
-    # `load_exclusions(HERE + "/cfr_exclusions.json")` and by the default-root
-    # edit above, each leaving the whole suite green while `cfr_excluded` came
-    # from a copy beside the harness. So `main()` is run with its exclusion
-    # read wrapped: `git` is patched to stop it at the first git call -- after
-    # the read, before any output -- and every `load_exclusions` call it makes
-    # is recorded with its arguments and its returned map. What `main()` reads
-    # must be argument-free (still the default) and equal to the tree's map.
-    _cfr_stop = type("_CfrStop", (Exception,), {})
-    _cfr_reads = []
-    _cfr_real_load = _cfr.load_exclusions
-    _cfr_real_git = _cfr.git
-
-    def _cfr_spy(*args, **kwargs):
-        value = _cfr_real_load(*args, **kwargs)
-        _cfr_reads.append((args, kwargs, dict(value)))
-        return value
-
-    def _cfr_git_stop(*args, **kwargs):
-        raise _cfr_stop()
-
-    _cfr.load_exclusions = _cfr_spy
-    _cfr.git = _cfr_git_stop
+def _module_block_32726():
+    global _CFR_INSTR, _CFR_INSTR_OK, _cfr, _cfr_call_desc, _cfr_ctx, _cfr_default_map, _cfr_default_path, _cfr_exc, _cfr_git_stop, _cfr_instr_detail, _cfr_io, _cfr_main_exc, _cfr_main_ok, _cfr_os, _cfr_reads, _cfr_real_git, _cfr_real_load, _cfr_spec, _cfr_spy, _cfr_src, _cfr_stop, _cfr_util, _r
     try:
-        with _cfr_ctx.redirect_stdout(_cfr_io.StringIO()):
-            _cfr.main()
-    except _cfr_stop:
-        pass  # the read happened; the git-derived tail is not under test here
-    except BaseException as _cfr_main_exc:  # noqa: BLE001 -- recorded, not raised
-        _cfr_reads.append(("raised", type(_cfr_main_exc).__name__,
-                           str(_cfr_main_exc)))
-    finally:
-        _cfr.load_exclusions = _cfr_real_load
-        _cfr.git = _cfr_real_git
-    _cfr_main_ok = bool(_cfr_reads) and all(
-        isinstance(_r, tuple) and len(_r) == 3 and _r[0] == () and _r[1] == {}
-        and isinstance(_r[2], dict) and _r[2] == _CFR_EXCL
-        for _r in _cfr_reads
-    )
-    _CFR_INSTR_OK = bool(
-        _cfr.EXCLUSION_ARTIFACT == "dev/governance/config/cfr_exclusions.json"
-        and _cfr_default_path
-        == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
-        and _cfr_default_map == _CFR_EXCL
-        and _cfr_main_ok
-        # The literal the first pass grepped, kept as a belt: the driven
-        # clauses above are the buckle.
-        and 'join(HERE, "cfr_exclusions.json")' not in _cfr_src
-    )
-    _cfr_call_desc = [
-        (list(_r[0]), sorted(_r[1]),
-         sorted(_r[2]) if isinstance(_r[2], dict) else _r[2])
-        for _r in _cfr_reads
-    ]
-    _cfr_instr_detail = (
-        f"the instrument's no-argument default resolves "
-        f"{_cfr_os.path.relpath(str(_cfr_default_path), str(_closure.ROOT))!r}, "
-        f"and main()'s exclusion read(s), by argument and keys, are "
-        f"{_cfr_call_desc}"
-    )
-except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _CFR_INSTR_OK = False
-    _cfr_instr_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+        import contextlib as _cfr_ctx
+        import importlib.util as _cfr_util
+        import io as _cfr_io
+        import os as _cfr_os
+        _CFR_INSTR = _closure.ROOT / "dev/audit/rounds/round5/D13/seat-a/dora_cfr.py"
+        _cfr_spec = _cfr_util.spec_from_file_location("hpo_d13_cfr", str(_CFR_INSTR))
+        _cfr = _cfr_util.module_from_spec(_cfr_spec)
+        _cfr_spec.loader.exec_module(_cfr)
+        _cfr_src = _CFR_INSTR.read_text()
+        # (1) THE DEFAULT, driven with NO argument. `main()` reads its exclusions
+        # as `excl = load_exclusions()`, and the banner as `exclusions_path()`,
+        # both argument-free -- so it is that resolution, not one a caller supplies,
+        # that decides what the instrument reads. The first pass supplied both
+        # (`exclusions_path(root="/repo")`, `load_exclusions(".claude/...")`), so
+        # neither default was exercised: a one-token change to `exclusions_path()`'s
+        # default root moved the read beside the harness with every check green
+        # (review, #1303). These two pin the default path and the map it returns.
+        _cfr_default_path = Path(_cfr_os.path.realpath(_cfr.exclusions_path()))
+        _cfr_default_map = _cfr.load_exclusions()
+        # (2) THE CALL SITE, driven rather than grepped. "A check pins the artifact
+        # it READS", so the read `main()` performs is observed, not inferred from
+        # one spelling in the source: the first pass's grep for
+        # `join(HERE, "cfr_exclusions.json")` was evaded by
+        # `load_exclusions(HERE + "/cfr_exclusions.json")` and by the default-root
+        # edit above, each leaving the whole suite green while `cfr_excluded` came
+        # from a copy beside the harness. So `main()` is run with its exclusion
+        # read wrapped: `git` is patched to stop it at the first git call -- after
+        # the read, before any output -- and every `load_exclusions` call it makes
+        # is recorded with its arguments and its returned map. What `main()` reads
+        # must be argument-free (still the default) and equal to the tree's map.
+        _cfr_stop = type("_CfrStop", (Exception,), {})
+        _cfr_reads = []
+        _cfr_real_load = _cfr.load_exclusions
+        _cfr_real_git = _cfr.git
+
+        def _cfr_spy(*args, **kwargs):
+            value = _cfr_real_load(*args, **kwargs)
+            _cfr_reads.append((args, kwargs, dict(value)))
+            return value
+
+        def _cfr_git_stop(*args, **kwargs):
+            raise _cfr_stop()
+
+        _cfr.load_exclusions = _cfr_spy
+        _cfr.git = _cfr_git_stop
+        try:
+            with _cfr_ctx.redirect_stdout(_cfr_io.StringIO()):
+                _cfr.main()
+        except _cfr_stop:
+            pass  # the read happened; the git-derived tail is not under test here
+        except BaseException as _cfr_main_exc:  # noqa: BLE001 -- recorded, not raised
+            _cfr_reads.append(("raised", type(_cfr_main_exc).__name__,
+                               str(_cfr_main_exc)))
+        finally:
+            _cfr.load_exclusions = _cfr_real_load
+            _cfr.git = _cfr_real_git
+        _cfr_main_ok = bool(_cfr_reads) and all(
+            isinstance(_r, tuple) and len(_r) == 3 and _r[0] == () and _r[1] == {}
+            and isinstance(_r[2], dict) and _r[2] == _CFR_EXCL
+            for _r in _cfr_reads
+        )
+        _CFR_INSTR_OK = bool(
+            _cfr.EXCLUSION_ARTIFACT == "dev/governance/config/cfr_exclusions.json"
+            and _cfr_default_path
+            == Path(_cfr_os.path.realpath(str(_CFR_ARTIFACT)))
+            and _cfr_default_map == _CFR_EXCL
+            and _cfr_main_ok
+            # The literal the first pass grepped, kept as a belt: the driven
+            # clauses above are the buckle.
+            and 'join(HERE, "cfr_exclusions.json")' not in _cfr_src
+        )
+        _cfr_call_desc = [
+            (list(_r[0]), sorted(_r[1]),
+             sorted(_r[2]) if isinstance(_r[2], dict) else _r[2])
+            for _r in _cfr_reads
+        ]
+        _cfr_instr_detail = (
+            f"the instrument's no-argument default resolves "
+            f"{_cfr_os.path.relpath(str(_cfr_default_path), str(_closure.ROOT))!r}, "
+            f"and main()'s exclusion read(s), by argument and keys, are "
+            f"{_cfr_call_desc}"
+        )
+    except Exception as _cfr_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _CFR_INSTR_OK = False
+        _cfr_instr_detail = f"{type(_cfr_exc).__name__}: {_cfr_exc}"
+_module_block_32726()
 
 _CFR_DETAIL = _cfr_artifact_detail + "; " + _cfr_instr_detail
 R.check(
@@ -32872,37 +33101,40 @@ _D13_WINDOW_SIGS = (
     ((True, False, False, True), 2),
     ((True, True, False, False), 2),
 )
-try:
-    import importlib.util as _d13_util
-    _D13_INSTR = _closure.ROOT / "dev/audit/rounds/round4/D11/dora_keys.py"
-    _d13_spec = _d13_util.spec_from_file_location(
-        "hpo_d13_keys", str(_D13_INSTR))
-    _d13 = _d13_util.module_from_spec(_d13_spec)
-    _d13_spec.loader.exec_module(_d13)
-    _d13_merge, _d13_head, _d13_pr = {}, {}, 0
-    for _sig, _count in _D13_WINDOW_SIGS:
-        for _ in range(_count):
-            _d13_pr += 1
-            _d13_merge[_d13_pr] = {
-                n for n, on in zip(("record", "fast (3.14)"), _sig[:2]) if on}
-            _d13_head[_d13_pr] = {
-                n for n, on in zip(
-                    ("nightly-status", "delivery-status"), _sig[2:]) if on}
-    _d13_rates = _d13.cfr_keyings(
-        _d13_merge, _d13_head, set(_CFR_EXCL), _d13_pr)
-    _D13_KEYINGS_OK = bool(
-        _d13_pr == 67
-        and _d13_rates["merge_keyed"] == 0.09
-        and _d13_rates["head_keyed"] == 0.134
-        # The null control the finding turns on: the exclusion moves the
-        # merge keying and leaves the head keying where it already was.
-        and _d13_rates["head_unexcluded"] == _d13_rates["head_keyed"]
-        and _d13_rates["merge_unexcluded"] > _d13_rates["merge_keyed"]
-    )
-    _d13_detail = f"cfr_keyings on the recorded 67-merge window: {_d13_rates}"
-except Exception as _d13_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _D13_KEYINGS_OK = False
-    _d13_detail = f"{type(_d13_exc).__name__}: {_d13_exc}"
+def _module_block_32875():
+    global _, _D13_INSTR, _D13_KEYINGS_OK, _count, _d13, _d13_detail, _d13_exc, _d13_head, _d13_merge, _d13_pr, _d13_rates, _d13_spec, _d13_util, _sig, n, on
+    try:
+        import importlib.util as _d13_util
+        _D13_INSTR = _closure.ROOT / "dev/audit/rounds/round4/D11/dora_keys.py"
+        _d13_spec = _d13_util.spec_from_file_location(
+            "hpo_d13_keys", str(_D13_INSTR))
+        _d13 = _d13_util.module_from_spec(_d13_spec)
+        _d13_spec.loader.exec_module(_d13)
+        _d13_merge, _d13_head, _d13_pr = {}, {}, 0
+        for _sig, _count in _D13_WINDOW_SIGS:
+            for _ in range(_count):
+                _d13_pr += 1
+                _d13_merge[_d13_pr] = {
+                    n for n, on in zip(("record", "fast (3.14)"), _sig[:2]) if on}
+                _d13_head[_d13_pr] = {
+                    n for n, on in zip(
+                        ("nightly-status", "delivery-status"), _sig[2:]) if on}
+        _d13_rates = _d13.cfr_keyings(
+            _d13_merge, _d13_head, set(_CFR_EXCL), _d13_pr)
+        _D13_KEYINGS_OK = bool(
+            _d13_pr == 67
+            and _d13_rates["merge_keyed"] == 0.09
+            and _d13_rates["head_keyed"] == 0.134
+            # The null control the finding turns on: the exclusion moves the
+            # merge keying and leaves the head keying where it already was.
+            and _d13_rates["head_unexcluded"] == _d13_rates["head_keyed"]
+            and _d13_rates["merge_unexcluded"] > _d13_rates["merge_keyed"]
+        )
+        _d13_detail = f"cfr_keyings on the recorded 67-merge window: {_d13_rates}"
+    except Exception as _d13_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _D13_KEYINGS_OK = False
+        _d13_detail = f"{type(_d13_exc).__name__}: {_d13_exc}"
+_module_block_32875()
 R.check(
     "the change-failure instrument reports the merge-keyed AND the PR-head-keyed "
     "rate (#1407)",
@@ -32955,47 +33187,50 @@ _D13_06_NAMES = {
     "fast (3.14)": [0.032, 0.0], "policy-docs": [0.065, 0.0],
     "delivery-status": [0.0, 0.129],
 }
-try:
-    _d13b_merge, _d13b_head, _d13b_pr = {}, {}, 0
-    for _mfail, _hfail, _count in _D13_06_WINDOW:
-        for _ in range(_count):
-            _d13b_pr += 1
-            _d13b_merge[_d13b_pr] = set(_mfail)
-            _d13b_head[_d13b_pr] = set(_hfail)
-    _d13b_sum = sum(_c for _m, _h, _c in _D13_06_WINDOW)
-    _d13b_by = _d13.cfr_by_name(_d13b_merge, _d13b_head, _d13b_pr)
-    _d13b_rates = _d13.cfr_keyings(
-        _d13b_merge, _d13b_head, set(_CFR_EXCL), _d13b_pr)
-    # The perturbation the finding turns on: ONE name added in memory to the
-    # exclusion list moves the merge-keyed rate (0.226 -> 0.129) and leaves the
-    # head-keyed rate exactly where it was -- the arithmetic statement that
-    # `mutation` is a merge-surface red and not a head-surface one. Nothing is
-    # written to the artifact: widening the list is the exclusion owner's call.
-    _d13b_dropped = _d13.cfr_keyings(
-        _d13b_merge, _d13b_head, set(_CFR_EXCL) | {"mutation"}, _d13b_pr)
-    _D13_06_OK = bool(
-        _d13b_pr == 31 == _d13b_sum
-        and _d13b_by == _D13_06_NAMES
-        # Set equality is the absence control as well as the value one: the
-        # map's keys come only from the two maps' VALUES, so a name failing at
-        # neither surface is ABSENT rather than a zero row -- the wrong shape, a
-        # vocabulary carried in from somewhere else with zeros filled in, adds a
-        # key here and fails this arm without moving any rate.
-        and set(_d13b_by) == set(_D13_06_NAMES)
-        and _d13b_rates["merge_keyed"] == 0.226
-        and _d13b_rates["head_keyed"] == 0.129
-        and _d13b_rates["merge_unexcluded"] == 0.968
-        and _d13b_rates["head_unexcluded"] == 0.129
-        and _d13b_dropped["merge_keyed"] == 0.129
-        and _d13b_dropped["head_keyed"] == _d13b_rates["head_keyed"]
-    )
-    _d13_06_detail = (
-        f"cfr_by_name on the round-7 window's 31 merges: {_d13b_by}; both keyings "
-        f"{_d13b_rates}; with `mutation` dropped in memory {_d13b_dropped}"
-    )
-except Exception as _d13b_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _D13_06_OK = False
-    _d13_06_detail = f"{type(_d13b_exc).__name__}: {_d13b_exc}"
+def _module_block_32958():
+    global _, _D13_06_OK, _count, _d13_06_detail, _d13b_by, _d13b_dropped, _d13b_exc, _d13b_head, _d13b_merge, _d13b_pr, _d13b_rates, _d13b_sum, _hfail, _mfail
+    try:
+        _d13b_merge, _d13b_head, _d13b_pr = {}, {}, 0
+        for _mfail, _hfail, _count in _D13_06_WINDOW:
+            for _ in range(_count):
+                _d13b_pr += 1
+                _d13b_merge[_d13b_pr] = set(_mfail)
+                _d13b_head[_d13b_pr] = set(_hfail)
+        _d13b_sum = sum(_c for _m, _h, _c in _D13_06_WINDOW)
+        _d13b_by = _d13.cfr_by_name(_d13b_merge, _d13b_head, _d13b_pr)
+        _d13b_rates = _d13.cfr_keyings(
+            _d13b_merge, _d13b_head, set(_CFR_EXCL), _d13b_pr)
+        # The perturbation the finding turns on: ONE name added in memory to the
+        # exclusion list moves the merge-keyed rate (0.226 -> 0.129) and leaves the
+        # head-keyed rate exactly where it was -- the arithmetic statement that
+        # `mutation` is a merge-surface red and not a head-surface one. Nothing is
+        # written to the artifact: widening the list is the exclusion owner's call.
+        _d13b_dropped = _d13.cfr_keyings(
+            _d13b_merge, _d13b_head, set(_CFR_EXCL) | {"mutation"}, _d13b_pr)
+        _D13_06_OK = bool(
+            _d13b_pr == 31 == _d13b_sum
+            and _d13b_by == _D13_06_NAMES
+            # Set equality is the absence control as well as the value one: the
+            # map's keys come only from the two maps' VALUES, so a name failing at
+            # neither surface is ABSENT rather than a zero row -- the wrong shape, a
+            # vocabulary carried in from somewhere else with zeros filled in, adds a
+            # key here and fails this arm without moving any rate.
+            and set(_d13b_by) == set(_D13_06_NAMES)
+            and _d13b_rates["merge_keyed"] == 0.226
+            and _d13b_rates["head_keyed"] == 0.129
+            and _d13b_rates["merge_unexcluded"] == 0.968
+            and _d13b_rates["head_unexcluded"] == 0.129
+            and _d13b_dropped["merge_keyed"] == 0.129
+            and _d13b_dropped["head_keyed"] == _d13b_rates["head_keyed"]
+        )
+        _d13_06_detail = (
+            f"cfr_by_name on the round-7 window's 31 merges: {_d13b_by}; both keyings "
+            f"{_d13b_rates}; with `mutation` dropped in memory {_d13b_dropped}"
+        )
+    except Exception as _d13b_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _D13_06_OK = False
+        _d13_06_detail = f"{type(_d13b_exc).__name__}: {_d13b_exc}"
+_module_block_32958()
 R.check(
     "the change-failure instrument publishes the rate per check-run NAME at both "
     "keyings, so the name that separates them is visible (#1476)",
@@ -33015,31 +33250,34 @@ R.check(
 # cannot drift into a quote nothing in the tree supports -- and the exclusion map
 # itself is asserted UNCHANGED, because recording a refusal to widen the list is
 # not a widening.
-try:
-    _cfr_now = json.loads(
-        (_closure.ROOT / "dev/governance/config/cfr_exclusions.json").read_text())
-    _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
-    _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
-    _MUT_QUOTE = "unpinned site(s)"
-    _MUT_SRC = (_closure.ROOT / "tests/mutation_table.py").read_text()
-    _CFR_NOT_EXCL_OK = bool(
-        isinstance(_CFR_NOT_EXCL, dict)
-        and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
-                for v in _CFR_NOT_EXCL.values())
-        and "mutation" in _CFR_NOT_EXCL
-        and _MUT_QUOTE in _CFR_NOT_EXCL["mutation"]["citation"]
-        and _MUT_QUOTE in _MUT_SRC
-        and "mutation" not in _CFR_EXCL_NOW
-    )
-    _cfr_not_excl_detail = (
-        f"not_excluded={sorted(_CFR_NOT_EXCL)}; excluded_jobs="
-        f"{sorted(_CFR_EXCL_NOW)}; the mutation entry cites the lane's own "
-        f"words: {_MUT_QUOTE in (_CFR_NOT_EXCL.get('mutation') or {}).get('citation', '')}, "
-        f"and tests/mutation_table.py says them: {_MUT_QUOTE in _MUT_SRC}"
-    )
-except Exception as _cfr_ne_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _CFR_NOT_EXCL_OK = False
-    _cfr_not_excl_detail = f"{type(_cfr_ne_exc).__name__}: {_cfr_ne_exc}"
+def _module_block_33018():
+    global _CFR_EXCL_NOW, _CFR_NOT_EXCL, _CFR_NOT_EXCL_OK, _MUT_QUOTE, _MUT_SRC, _cfr_ne_exc, _cfr_not_excl_detail, _cfr_now
+    try:
+        _cfr_now = json.loads(
+            (_closure.ROOT / "dev/governance/config/cfr_exclusions.json").read_text())
+        _CFR_NOT_EXCL = _cfr_now.get("not_excluded") or {}
+        _CFR_EXCL_NOW = _cfr_now.get("excluded_jobs") or {}
+        _MUT_QUOTE = "unpinned site(s)"
+        _MUT_SRC = (_closure.ROOT / "tests/mutation_table.py").read_text()
+        _CFR_NOT_EXCL_OK = bool(
+            isinstance(_CFR_NOT_EXCL, dict)
+            and all(isinstance(v, dict) and v.get("reason") and v.get("citation")
+                    for v in _CFR_NOT_EXCL.values())
+            and "mutation" in _CFR_NOT_EXCL
+            and _MUT_QUOTE in _CFR_NOT_EXCL["mutation"]["citation"]
+            and _MUT_QUOTE in _MUT_SRC
+            and "mutation" not in _CFR_EXCL_NOW
+        )
+        _cfr_not_excl_detail = (
+            f"not_excluded={sorted(_CFR_NOT_EXCL)}; excluded_jobs="
+            f"{sorted(_CFR_EXCL_NOW)}; the mutation entry cites the lane's own "
+            f"words: {_MUT_QUOTE in (_CFR_NOT_EXCL.get('mutation') or {}).get('citation', '')}, "
+            f"and tests/mutation_table.py says them: {_MUT_QUOTE in _MUT_SRC}"
+        )
+    except Exception as _cfr_ne_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _CFR_NOT_EXCL_OK = False
+        _cfr_not_excl_detail = f"{type(_cfr_ne_exc).__name__}: {_cfr_ne_exc}"
+_module_block_33018()
 R.check(
     "and the exclusion artifact records `mutation` as deliberately NOT excluded, "
     "with a reason and a citation the tree carries (#1476)",
@@ -34891,11 +35129,14 @@ def _mut_apply(mutant: dict) -> str:
 
 
 _MUT_UNPARSEABLE = []
-for _m in _MUT_GOT:
-    try:
-        ast.parse(_mut_apply(_m))
-    except SyntaxError:
-        _MUT_UNPARSEABLE.append(f"{_m['kind']}:{_m['line']}")
+def _module_block_34894():
+    global _m
+    for _m in _MUT_GOT:
+        try:
+            ast.parse(_mut_apply(_m))
+        except SyntaxError:
+            _MUT_UNPARSEABLE.append(f"{_m['kind']}:{_m['line']}")
+_module_block_34894()
 R.check(
     "and every mutant it generates leaves the module parseable",
     not _MUT_UNPARSEABLE,
@@ -35054,12 +35295,15 @@ R.check(
 # refused, an at-or-below count is not, and an unreadable base is REFUSED --
 # a ratchet with nothing to compare against must not go green by skipping.
 _REFUSE = getattr(_mut, "ratchet_refusal", None)
-try:
-    _MUT_RATCHET = (
-        _REFUSE(None, _MUT_GOT), _REFUSE(0, _MUT_GOT),
-        _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
-except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
+def _module_block_35057():
+    global _MUT_RATCHET, _mut_r_exc
+    try:
+        _MUT_RATCHET = (
+            _REFUSE(None, _MUT_GOT), _REFUSE(0, _MUT_GOT),
+            _REFUSE(len(_MUT_GOT), _MUT_GOT), _REFUSE(len(_MUT_GOT) + 5, _MUT_GOT))
+    except Exception as _mut_r_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _MUT_RATCHET = (f"{type(_mut_r_exc).__name__}: {_mut_r_exc}",)
+_module_block_35057()
 R.check(
     "ratchet_refusal refuses growth over the base count, and an unreadable base",
     _MUT_RATCHET == (1, 1, None, None),
@@ -35087,26 +35331,29 @@ _au_mv = _au("p/new.py", "g", "        if b:")
 _au_ret = _au("p/f.py", "g", "    return None", "RETURN_DEL")
 _au_ret2 = _au("p/new.py", "h", "    return None", "RETURN_DEL")
 _au_moved = ({"p/f.py"}, {"p/new.py"})
-try:
-    _AU_GOT = tuple(
-        [x["old"].strip() for x in _ADD(*args)] for args in (
-            ([_au_a, _au_c], [_au_a, _au_b]),                  # the trade
-            ([_au_a, _au_b], [_au_a, _au_b]),                  # null: no change
-            ([_au_a, dict(_au_b, old="        if b:",
-                          anchor="p/f.py:k GUARD_OFF 0")], [_au_a, _au_b]),
-            ([_au_a, _au_mv], [_au_a, _au_b], _au_moved),      # moved across files
-            ([_au_a, _au_mv], [_au_a, _au_b]),                 # no diff sides given
-            ([_au_a, _au_mv], [_au_a, _au_b], ({"p/x.py"}, {"p/new.py"})),
-            ([_au_a, dict(_au_mv, anchor="p/new.py:h GUARD_OFF 0")],
-             [_au_a, _au_b], _au_moved),                       # another def
-            ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
-            ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
-            ([_au("p/f.py", "h", "    if b:"), _au_mv],          # twins: h stays,
-             [_au("p/f.py", "h", "    if b:"), _au_b], _au_moved),  # g's moves
-        ))
-    _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
-except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _AU_GOT, _AU_COUNT = (f"{type(_au_exc).__name__}: {_au_exc}",), None
+def _module_block_35090():
+    global _AU_COUNT, _AU_GOT, _au_exc
+    try:
+        _AU_GOT = tuple(
+            [x["old"].strip() for x in _ADD(*args)] for args in (
+                ([_au_a, _au_c], [_au_a, _au_b]),                  # the trade
+                ([_au_a, _au_b], [_au_a, _au_b]),                  # null: no change
+                ([_au_a, dict(_au_b, old="        if b:",
+                              anchor="p/f.py:k GUARD_OFF 0")], [_au_a, _au_b]),
+                ([_au_a, _au_mv], [_au_a, _au_b], _au_moved),      # moved across files
+                ([_au_a, _au_mv], [_au_a, _au_b]),                 # no diff sides given
+                ([_au_a, _au_mv], [_au_a, _au_b], ({"p/x.py"}, {"p/new.py"})),
+                ([_au_a, dict(_au_mv, anchor="p/new.py:h GUARD_OFF 0")],
+                 [_au_a, _au_b], _au_moved),                       # another def
+                ([_au_a, _au_b, _au_ret2], [_au_a, _au_b, _au_ret], _au_moved),
+                ([_au_a, _au_mv, _au_c], [_au_a, _au_b], _au_moved),
+                ([_au("p/f.py", "h", "    if b:"), _au_mv],          # twins: h stays,
+                 [_au("p/f.py", "h", "    if b:"), _au_b], _au_moved),  # g's moves
+            ))
+        _AU_COUNT = _REFUSE(2, [_au_a, _au_c])
+    except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _AU_GOT, _AU_COUNT = (f"{type(_au_exc).__name__}: {_au_exc}",), None
+_module_block_35090()
 R.check(
     "added_unpinned refuses a site traded in at an unchanged count, and keeps "
     "a re-indented or moved site the base's (#1646, #1748)",
@@ -35126,13 +35373,16 @@ R.check(
 # re-indents the old site adds nothing.
 _au_r = _au("p/o.py", "_seed", "    return out", "RETURN_DEL")
 _au_new = dict(_au("p/o.py", "_padded", "    return out", "RETURN_DEL"), line=10)
-try:
-    _AU_TWIN = tuple(
-        [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
-        for head in ([_au_new, dict(_au_r, line=40)],
-                     [dict(_au_r, line=40, old="        return out")]))
-except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+def _module_block_35129():
+    global _AU_TWIN, _au_exc
+    try:
+        _AU_TWIN = tuple(
+            [(x["anchor"].split(" ")[0], x["line"]) for x in _ADD(head, [_au_r])]
+            for head in ([_au_new, dict(_au_r, line=40)],
+                         [dict(_au_r, line=40, old="        return out")]))
+    except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _AU_TWIN = (f"{type(_au_exc).__name__}: {_au_exc}",)
+_module_block_35129()
 R.check(
     "added_unpinned charges a twin line to the def that gained it, not to the "
     "def that already had it (R9-RO-9a)",
@@ -35152,11 +35402,14 @@ with tempfile.TemporaryDirectory() as _au_d:
                      "    return 0\n")
     _au_cmp = [s for s in _mut.candidates(_au_p) if s["kind"] == "CMP_BOUND"]
 _AU_KEYS = getattr(_mut, "added_keys", lambda s: [])
-try:
-    _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
-             [k for k, _ in _AU_KEYS(_au_cmp[:1])])
-except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+def _module_block_35155():
+    global _, _AU_K, _au_exc, k
+    try:
+        _AU_K = ([k for k, _ in _AU_KEYS(_au_cmp)],
+                 [k for k, _ in _AU_KEYS(_au_cmp[:1])])
+    except Exception as _au_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _AU_K = (f"{type(_au_exc).__name__}: {_au_exc}",)
+_module_block_35155()
 R.check(
     "added_keys gives a line with three comparison mutants one key carrying "
     "its multiplicity, and a single mutant a bare key (R9-RO-9a)",
@@ -35191,14 +35444,17 @@ def _wi_compiles(m: dict) -> bool:
     "    z = np.clip(x, 0.0, 1.0)\n    w = math.fmin(x, y)\n"
     "    if (x and\n            y):\n        return 5\n"
     "    return z + w\n")
-try:
-    _WI_GOT = sorted((_m["line"], _m["kind"], _m["new"].strip())
-                     for _m in _mut.candidates(_WI_DIR / "w.py")
-                     if _m["kind"] in ("GUARD_OFF", "CLAMP_DROP"))
-    _WI_PARSE = all(
-        _wi_compiles(_m) for _m in _mut.candidates(_WI_DIR / "w.py"))
-except Exception as _wi_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _WI_GOT, _WI_PARSE = [f"{type(_wi_exc).__name__}: {_wi_exc}"], False
+def _module_block_35194():
+    global _WI_GOT, _WI_PARSE, _wi_exc
+    try:
+        _WI_GOT = sorted((_m["line"], _m["kind"], _m["new"].strip())
+                         for _m in _mut.candidates(_WI_DIR / "w.py")
+                         if _m["kind"] in ("GUARD_OFF", "CLAMP_DROP"))
+        _WI_PARSE = all(
+            _wi_compiles(_m) for _m in _mut.candidates(_WI_DIR / "w.py"))
+    except Exception as _wi_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _WI_GOT, _WI_PARSE = [f"{type(_wi_exc).__name__}: {_wi_exc}"], False
+_module_block_35194()
 _mut_shutil.rmtree(_WI_DIR, ignore_errors=True)
 R.check(
     "the inventory sees elif, else-carrying, commented and numpy/math guard "
@@ -35235,23 +35491,26 @@ R.check(
 # ledger. Driven: a ledger disposing every synthetic site still covers every
 # one after three lines are inserted above them all; the null control edits
 # ONE pinned line's text, and exactly that disposition drops out.
-try:
-    _MUT_ALL = {"survivor_triage": {}, "killed_by": {
-        _s["anchor"]: {"killed_by": "tests/x.py", "old": _s["old"]}
-        for _s in _MUT_INV}}
-    _MUT_FILE.write_text("# a\n# b\n\n" + _MUT_SRC)
-    _MUT_SHIFTED = _INV([_MUT_FILE])
-    _MUT_FILE.write_text(_MUT_SRC.replace("    if flag:", "    if flag :"))
-    _MUT_EDITED = _INV([_MUT_FILE])
-    _MUT_SHIFT = (
-        all(_a["line"] == _b["line"] + 3
-            for _a, _b in zip(_MUT_SHIFTED, _MUT_INV)),
-        len(_UNPIN(_MUT_ALL, _MUT_SHIFTED)), _COMP(_MUT_ALL, _MUT_SHIFTED),
-        len(_UNPIN(_MUT_ALL, _MUT_EDITED)), len(_COMP(_MUT_ALL, _MUT_EDITED)))
-except Exception as _mut_s_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
-finally:
-    _MUT_FILE.write_text(_MUT_SRC)
+def _module_block_35238():
+    global _MUT_ALL, _MUT_EDITED, _MUT_SHIFT, _MUT_SHIFTED, _mut_s_exc, _s
+    try:
+        _MUT_ALL = {"survivor_triage": {}, "killed_by": {
+            _s["anchor"]: {"killed_by": "tests/x.py", "old": _s["old"]}
+            for _s in _MUT_INV}}
+        _MUT_FILE.write_text("# a\n# b\n\n" + _MUT_SRC)
+        _MUT_SHIFTED = _INV([_MUT_FILE])
+        _MUT_FILE.write_text(_MUT_SRC.replace("    if flag:", "    if flag :"))
+        _MUT_EDITED = _INV([_MUT_FILE])
+        _MUT_SHIFT = (
+            all(_a["line"] == _b["line"] + 3
+                for _a, _b in zip(_MUT_SHIFTED, _MUT_INV)),
+            len(_UNPIN(_MUT_ALL, _MUT_SHIFTED)), _COMP(_MUT_ALL, _MUT_SHIFTED),
+            len(_UNPIN(_MUT_ALL, _MUT_EDITED)), len(_COMP(_MUT_ALL, _MUT_EDITED)))
+    except Exception as _mut_s_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _MUT_SHIFT = (f"{type(_mut_s_exc).__name__}: {_mut_s_exc}",)
+    finally:
+        _MUT_FILE.write_text(_MUT_SRC)
+_module_block_35238()
 R.check(
     "a line shift keeps every disposition; an edit to the pinned text drops it",
     _MUT_SHIFT == (True, 0, [], 1, 1),
@@ -35266,34 +35525,37 @@ R.check(
 # sorts, drops the count, and reports (keeps) a retired key naming no site.
 _FORM = getattr(_mut, "ledger_form_problems", None)
 _NORM = getattr(_mut, "normalize", None)
-try:
-    # The synthetic sites re-homed under the package, as the real ledger's are.
-    _MUT_PKG_INV = _mut.anchor_sites(_MUT_SRC, [
-        dict(_m, file=_mut.PKG + "sample.py") for _m in _MUT_GOT])
-    _MUT_A, _MUT_B = _MUT_PKG_INV[0], _MUT_PKG_INV[-1]
-    _MUT_LEG = {"unpinned_sites": 7, "survivor_triage": {}, "killed_by": {
-        _mut.triage_key(_MUT_B): {"killed_by": "tests/x.py",
-                                  "old": _MUT_B["old"]},
-        _mut.triage_key(_MUT_A): {"killed_by": "tests/x.py",
-                                  "old": _MUT_A["old"]},
-        "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
-            "killed_by": "tests/x.py", "old": "    if x:"}}}
-    _MUT_FIXED, _MUT_UNMAPPED = _NORM(_MUT_LEG, _MUT_PKG_INV)
-    _MUT_CANON = {"survivor_triage": {}, "killed_by": dict(sorted({
-        _MUT_A["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_A["old"]},
-        _MUT_B["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_B["old"]},
-    }.items()))}
-    _MUT_UNSORTED = {"survivor_triage": {}, "killed_by": dict(
-        reversed(list(_MUT_CANON["killed_by"].items())))}
-    _MUT_FORM = (
-        len(_FORM(_MUT_LEG)), len(_FORM(_MUT_UNSORTED)),
-        _FORM(_MUT_CANON), _FORM(_MB),
-        "unpinned_sites" in _MUT_FIXED,
-        list(_MUT_FIXED["killed_by"]) == sorted(_MUT_FIXED["killed_by"])
-        and set(_MUT_CANON["killed_by"]) <= set(_MUT_FIXED["killed_by"]),
-        len(_MUT_UNMAPPED))
-except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
+def _module_block_35269():
+    global _MUT_A, _MUT_B, _MUT_CANON, _MUT_FIXED, _MUT_FORM, _MUT_LEG, _MUT_PKG_INV, _MUT_UNMAPPED, _MUT_UNSORTED, _m, _mut_f_exc
+    try:
+        # The synthetic sites re-homed under the package, as the real ledger's are.
+        _MUT_PKG_INV = _mut.anchor_sites(_MUT_SRC, [
+            dict(_m, file=_mut.PKG + "sample.py") for _m in _MUT_GOT])
+        _MUT_A, _MUT_B = _MUT_PKG_INV[0], _MUT_PKG_INV[-1]
+        _MUT_LEG = {"unpinned_sites": 7, "survivor_triage": {}, "killed_by": {
+            _mut.triage_key(_MUT_B): {"killed_by": "tests/x.py",
+                                      "old": _MUT_B["old"]},
+            _mut.triage_key(_MUT_A): {"killed_by": "tests/x.py",
+                                      "old": _MUT_A["old"]},
+            "custom_components/heatpump_optimizer/gone.py:1 GUARD_OFF": {
+                "killed_by": "tests/x.py", "old": "    if x:"}}}
+        _MUT_FIXED, _MUT_UNMAPPED = _NORM(_MUT_LEG, _MUT_PKG_INV)
+        _MUT_CANON = {"survivor_triage": {}, "killed_by": dict(sorted({
+            _MUT_A["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_A["old"]},
+            _MUT_B["anchor"]: {"killed_by": "tests/x.py", "old": _MUT_B["old"]},
+        }.items()))}
+        _MUT_UNSORTED = {"survivor_triage": {}, "killed_by": dict(
+            reversed(list(_MUT_CANON["killed_by"].items())))}
+        _MUT_FORM = (
+            len(_FORM(_MUT_LEG)), len(_FORM(_MUT_UNSORTED)),
+            _FORM(_MUT_CANON), _FORM(_MB),
+            "unpinned_sites" in _MUT_FIXED,
+            list(_MUT_FIXED["killed_by"]) == sorted(_MUT_FIXED["killed_by"])
+            and set(_MUT_CANON["killed_by"]) <= set(_MUT_FIXED["killed_by"]),
+            len(_MUT_UNMAPPED))
+    except Exception as _mut_f_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _MUT_FORM = (f"{type(_mut_f_exc).__name__}: {_mut_f_exc}",)
+_module_block_35269()
 R.check(
     "the ledger's canonical form is enforced, and --normalize reaches it",
     _MUT_FORM == (3, 1, [], [], False, True, 1),
@@ -35309,30 +35571,33 @@ R.check(
 _MUT_ORD_SRC = (
     "def f(a):\n    if a:\n        a = 1\n    if a:\n        a = 2\n"
     "    return a\n\n\ndef g(a):\n    if a:\n        a = 3\n    return a\n")
-try:
-    _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
-        _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC))]
-    _MUT_ORD = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
-                _mut.anchor_sites(_MUT_ORD_SRC, _MUT_ORD_GOT)}
-    _MUT_ORD_SRC2 = _MUT_ORD_SRC.replace(
-        "        a = 3\n", "        a = 3\n    if a:\n        a = 4\n")
-    _MUT_ORD2 = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
-                 _mut.anchor_sites(_MUT_ORD_SRC2, [
-                     dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
-                         _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC2))])}
-    _MUT_ORD_F = [_MUT_ORD[(2, "GUARD_OFF")], _MUT_ORD[(4, "GUARD_OFF")]]
-    _MUT_ORD_OK = (
-        len(set(_MUT_ORD.values())) == len(_MUT_ORD)
-        and not _MUT_ORD_F[0].endswith("#2")
-        and _MUT_ORD_F[1] == _MUT_ORD_F[0] + "#2"
-        and ":g GUARD_OFF " in _MUT_ORD[(10, "GUARD_OFF")]
-        and "#" not in _MUT_ORD[(10, "GUARD_OFF")]
-        and _MUT_ORD2[(12, "GUARD_OFF")] == _MUT_ORD[(10, "GUARD_OFF")] + "#2"
-        and [_MUT_ORD2[(2, "GUARD_OFF")], _MUT_ORD2[(4, "GUARD_OFF")]]
-        == _MUT_ORD_F)
-    _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
-except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
+def _module_block_35312():
+    global _MUT_ORD, _MUT_ORD2, _MUT_ORD_F, _MUT_ORD_GOT, _MUT_ORD_OK, _MUT_ORD_SRC2, _m, _mut_o_exc, _mut_ord_detail
+    try:
+        _MUT_ORD_GOT = [dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+            _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC))]
+        _MUT_ORD = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                    _mut.anchor_sites(_MUT_ORD_SRC, _MUT_ORD_GOT)}
+        _MUT_ORD_SRC2 = _MUT_ORD_SRC.replace(
+            "        a = 3\n", "        a = 3\n    if a:\n        a = 4\n")
+        _MUT_ORD2 = {(_m["line"], _m["kind"]): _m["anchor"] for _m in
+                     _mut.anchor_sites(_MUT_ORD_SRC2, [
+                         dict(_m, file=_mut.PKG + "ord.py") for _m in _mut.candidates(
+                             _mut_write(_MUT_DIR / "ord.py", _MUT_ORD_SRC2))])}
+        _MUT_ORD_F = [_MUT_ORD[(2, "GUARD_OFF")], _MUT_ORD[(4, "GUARD_OFF")]]
+        _MUT_ORD_OK = (
+            len(set(_MUT_ORD.values())) == len(_MUT_ORD)
+            and not _MUT_ORD_F[0].endswith("#2")
+            and _MUT_ORD_F[1] == _MUT_ORD_F[0] + "#2"
+            and ":g GUARD_OFF " in _MUT_ORD[(10, "GUARD_OFF")]
+            and "#" not in _MUT_ORD[(10, "GUARD_OFF")]
+            and _MUT_ORD2[(12, "GUARD_OFF")] == _MUT_ORD[(10, "GUARD_OFF")] + "#2"
+            and [_MUT_ORD2[(2, "GUARD_OFF")], _MUT_ORD2[(4, "GUARD_OFF")]]
+            == _MUT_ORD_F)
+        _mut_ord_detail = f"f -> {_MUT_ORD_F}; g -> {_MUT_ORD[(10, 'GUARD_OFF')]}"
+    except Exception as _mut_o_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _MUT_ORD_OK, _mut_ord_detail = False, f"{type(_mut_o_exc).__name__}: {_mut_o_exc}"
+_module_block_35312()
 R.check(
     "an anchor's ordinal counts identical lines within one def, and only there",
     _MUT_ORD_OK,
@@ -35360,50 +35625,53 @@ def _mut_git(root: Path, *args: str) -> str:
 
 _MUT_B_SAVED = (_mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS,
                 _os.environ.pop("GOLDEN_REF", None))
-try:
-    _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
-    _mb_pkg = _mb_root / _mut.PKG
-    _mb_pkg.mkdir(parents=True)
-    (_mb_root / "tests").mkdir()
-    _MB_A = "def f(x):\n    if x:\n        x = 1\n    return x\n\n\ndef g(y):\n    if y:\n        y = 2\n    return y\n"
-    (_mb_pkg / "a.py").write_text(_MB_A)
-    (_mb_pkg / "b.py").write_text("def h(w):\n    if w:\n        w = 3\n    return w\n")
-    (_mb_pkg / "gone.py").write_text("def k(v):\n    if v:\n        v = 4\n    return v\n")
-    (_mb_root / "tests/mutation_budgets.json").write_text(json.dumps({
-        "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
-            _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
-                                            "old": "    if x:"}}}))
-    throwaway_git_init(_mb_root, "-q")
-    _mut_git(_mb_root, "add", "-A")
-    _mut_git(_mb_root, "commit", "-qm", "A")
-    _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
-    (_mb_root / "README").write_text("b\n")
-    _mut_git(_mb_root, "add", "-A")
-    _mut_git(_mb_root, "commit", "-qm", "B")
-    _MB_SHA_B = _mut_git(_mb_root, "rev-parse", "HEAD")
-    _mut.ROOT, _mut.PRODUCTION = _mb_root, _mb_pkg
-    _mut.BUDGETS = _mb_root / "tests/mutation_budgets.json"
-    (_mb_pkg / "a.py").write_text(_MB_A.replace(
-        "def f(x):\n",
-        "def f(x):\n    if z:\n        x = 0\n    if q:\n        x = 5\n"))
-    (_mb_pkg / "gone.py").unlink()
-    _mb_sites = _mut.inventory()
-    _MUT_BASE = (
-        _mut.base_unpinned("HEAD", _mb_sites),
-        _mut.base_unpinned(_MB_SHA_A, _mb_sites),
-        _mut.base_unpinned("no-such-ref", _mb_sites),
-        _mut.base_unpinned(None, _mb_sites),
-        _mut._rev(_mb_root, _mut.ratchet_base("changed", "HEAD")) == _MB_SHA_A,
-        _mut._rev(_mb_root, _mut.ratchet_base("changed", _MB_SHA_A)) == _MB_SHA_A,
-        _mut._rev(_mb_root, _mut.ratchet_base("full", "HEAD")) == _MB_SHA_A,
-        len(_mb_sites))
-except Exception as _mut_b_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _MUT_BASE = (f"{type(_mut_b_exc).__name__}: {_mut_b_exc}",)
-finally:
-    _mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS = _MUT_B_SAVED[:3]
-    if _MUT_B_SAVED[3] is not None:
-        _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
-    _mut_shutil.rmtree(_mb_root, ignore_errors=True)
+def _module_block_35363():
+    global _MB_A, _MB_SHA_A, _MB_SHA_B, _MUT_BASE, _mb_pkg, _mb_root, _mb_sites, _mut_b_exc
+    try:
+        _mb_root = Path(_tempfile.mkdtemp(prefix="mutation-base-"))
+        _mb_pkg = _mb_root / _mut.PKG
+        _mb_pkg.mkdir(parents=True)
+        (_mb_root / "tests").mkdir()
+        _MB_A = "def f(x):\n    if x:\n        x = 1\n    return x\n\n\ndef g(y):\n    if y:\n        y = 2\n    return y\n"
+        (_mb_pkg / "a.py").write_text(_MB_A)
+        (_mb_pkg / "b.py").write_text("def h(w):\n    if w:\n        w = 3\n    return w\n")
+        (_mb_pkg / "gone.py").write_text("def k(v):\n    if v:\n        v = 4\n    return v\n")
+        (_mb_root / "tests/mutation_budgets.json").write_text(json.dumps({
+            "unpinned_sites": 3, "survivor_triage": {}, "killed_by": {
+                _mut.PKG + "a.py:2 GUARD_OFF": {"killed_by": "tests/x.py",
+                                                "old": "    if x:"}}}))
+        throwaway_git_init(_mb_root, "-q")
+        _mut_git(_mb_root, "add", "-A")
+        _mut_git(_mb_root, "commit", "-qm", "A")
+        _MB_SHA_A = _mut_git(_mb_root, "rev-parse", "HEAD")
+        (_mb_root / "README").write_text("b\n")
+        _mut_git(_mb_root, "add", "-A")
+        _mut_git(_mb_root, "commit", "-qm", "B")
+        _MB_SHA_B = _mut_git(_mb_root, "rev-parse", "HEAD")
+        _mut.ROOT, _mut.PRODUCTION = _mb_root, _mb_pkg
+        _mut.BUDGETS = _mb_root / "tests/mutation_budgets.json"
+        (_mb_pkg / "a.py").write_text(_MB_A.replace(
+            "def f(x):\n",
+            "def f(x):\n    if z:\n        x = 0\n    if q:\n        x = 5\n"))
+        (_mb_pkg / "gone.py").unlink()
+        _mb_sites = _mut.inventory()
+        _MUT_BASE = (
+            _mut.base_unpinned("HEAD", _mb_sites),
+            _mut.base_unpinned(_MB_SHA_A, _mb_sites),
+            _mut.base_unpinned("no-such-ref", _mb_sites),
+            _mut.base_unpinned(None, _mb_sites),
+            _mut._rev(_mb_root, _mut.ratchet_base("changed", "HEAD")) == _MB_SHA_A,
+            _mut._rev(_mb_root, _mut.ratchet_base("changed", _MB_SHA_A)) == _MB_SHA_A,
+            _mut._rev(_mb_root, _mut.ratchet_base("full", "HEAD")) == _MB_SHA_A,
+            len(_mb_sites))
+    except Exception as _mut_b_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _MUT_BASE = (f"{type(_mut_b_exc).__name__}: {_mut_b_exc}",)
+    finally:
+        _mut.ROOT, _mut.PRODUCTION, _mut.BUDGETS = _MUT_B_SAVED[:3]
+        if _MUT_B_SAVED[3] is not None:
+            _os.environ["GOLDEN_REF"] = _MUT_B_SAVED[3]
+        _mut_shutil.rmtree(_mb_root, ignore_errors=True)
+_module_block_35363()
 R.check(
     "base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent",
     _MUT_BASE == (7, 7, None, None, True, True, True, 8),
@@ -35453,16 +35721,19 @@ _PIN_NEW = getattr(_mut, "new_unpinned", None)
 _PIN_ENTRY = getattr(_mut, "pin_entry", None)
 _pin_a = {"anchor": "f.py:g GUARD_OFF aaaa", "old": "    if a:"}
 _pin_b = {"anchor": "f.py:g GUARD_OFF bbbb", "old": "    if b:"}
-try:
-    _PIN_GOT = (
-        [x["anchor"] for x in _PIN_NEW([_pin_a, _pin_b], [_pin_a])],
-        _PIN_NEW([_pin_a], [_pin_a]),
-        _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
-                   "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
-                   _mut.ScriptRun(0, 0, 1.0, "")),
-    )
-except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+def _module_block_35456():
+    global _PIN_GOT, _pin_exc, x
+    try:
+        _PIN_GOT = (
+            [x["anchor"] for x in _PIN_NEW([_pin_a, _pin_b], [_pin_a])],
+            _PIN_NEW([_pin_a], [_pin_a]),
+            _PIN_ENTRY(dict(_pin_b, kind="GUARD_OFF", new="    if False:"),
+                       "tests/x.py", _mut.ScriptRun(1, 3, 1.0, ""),
+                       _mut.ScriptRun(0, 0, 1.0, "")),
+        )
+    except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _PIN_GOT = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+_module_block_35456()
 R.check(
     "--pin-killed drives only the sites the diff added and records the measured kill",
     len(_PIN_GOT) == 3
@@ -35478,14 +35749,17 @@ R.check(
 # then the same file, and their add/add merges under git's default merge on
 # GitHub too; the base is in git's history already. Pins of two different
 # mutants still differ (the null control).
-try:
-    _pin_row = lambda site, failed: _mut.row_text(site["anchor"], _PIN_ENTRY(  # noqa: E731
-        dict(site, kind="GUARD_OFF", new="    if False:"), "tests/x.py",
-        _mut.ScriptRun(1, failed, 1.0, ""), _mut.ScriptRun(0, 0, 1.0, "")))
-    _PIN_BYTES = (_pin_row(_pin_b, 3), _pin_row(dict(_pin_b), 3),
-                  _pin_row(_pin_a, 3))
-except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _PIN_BYTES = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+def _module_block_35481():
+    global _PIN_BYTES, _pin_exc, _pin_row
+    try:
+        _pin_row = lambda site, failed: _mut.row_text(site["anchor"], _PIN_ENTRY(  # noqa: E731
+            dict(site, kind="GUARD_OFF", new="    if False:"), "tests/x.py",
+            _mut.ScriptRun(1, failed, 1.0, ""), _mut.ScriptRun(0, 0, 1.0, "")))
+        _PIN_BYTES = (_pin_row(_pin_b, 3), _pin_row(dict(_pin_b), 3),
+                      _pin_row(_pin_a, 3))
+    except Exception as _pin_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _PIN_BYTES = (f"{type(_pin_exc).__name__}: {_pin_exc}",)
+_module_block_35481()
 R.check(
     "two pins of one mutant are byte-identical whatever base measured them, "
     "and pins of different mutants differ (P-L)",
@@ -35523,21 +35797,24 @@ _pr_u1 = _pr_site("f.py:g CLAMP_DROP u", 6, "a")
 _PR_SITES = [_pr_k, _pr_l, _pr_s, _pr_m1, _pr_m2, _pr_b1, _pr_b2, _pr_u1,
              _pr_site("f.py:g CLAMP_DROP u", 6, "b")]
 _KB = "killed by tests/x.py"
-try:
-    _PR_ALL = _PR(
-        [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
-         (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
-        {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
-        _pr_base, _PR_SITES)
-    _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
-                    _pr_base, [_pr_k])
-    # A verdict that claims a kill with no kept run is not a kill.
-    _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k])
-    _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
-               sorted(_PR_NORUN[0]), _PR_NORUN[2],
-               _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
-except Exception as _pr_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _PR_GOT = (f"{type(_pr_exc).__name__}: {_pr_exc}",)
+def _module_block_35526():
+    global _PR_ALL, _PR_CLEAN, _PR_GOT, _PR_NORUN, _pr_exc, m
+    try:
+        _PR_ALL = _PR(
+            [(_pr_k, _KB), (_pr_l, "LIVES"), (_pr_s, "SKIP-MOVED"), (_pr_m1, _KB),
+             (_pr_m2, "LIVES"), (_pr_b1, _KB), (_pr_b2, _KB), (_pr_u1, _KB)],
+            {(id(m), "tests/x.py"): _pr_kill for m in (_pr_k, _pr_m1, _pr_b1, _pr_b2, _pr_u1)},
+            _pr_base, _PR_SITES)
+        _PR_CLEAN = _PR([(_pr_k, _KB)], {(id(_pr_k), "tests/x.py"): _pr_kill},
+                        _pr_base, [_pr_k])
+        # A verdict that claims a kill with no kept run is not a kill.
+        _PR_NORUN = _PR([(_pr_k, _KB)], {}, _pr_base, [_pr_k])
+        _PR_GOT = (sorted(_PR_ALL[0]), _PR_ALL[2], sorted(_PR_CLEAN[0]), _PR_CLEAN[2],
+                   sorted(_PR_NORUN[0]), _PR_NORUN[2],
+                   _PR_ALL[0].get("f.py:g CLAMP_DROP k", {}).get("killed_by"))
+    except Exception as _pr_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _PR_GOT = (f"{type(_pr_exc).__name__}: {_pr_exc}",)
+_module_block_35526()
 R.check(
     "--pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left",
     _PR_GOT == (["f.py:g CLAMP_DROP b", "f.py:g CLAMP_DROP k"], 1,
@@ -35555,44 +35832,47 @@ _AP_DIR = Path(_tempfile.mkdtemp(prefix="hpo-apply-pins-"))
 _AP_SAVED = (_mut.BUDGETS, _mut.inventory)
 _ap_b = dict(_pin_b, kind="GUARD_OFF", new="    if False:", file="f.py", line=4)
 _ap_c = dict(_ap_b, anchor="a.py:g GUARD_OFF cccc", old="    if c:", file="a.py", line=9)
-try:
-    (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
-    _mut.BUDGETS = _AP_DIR / "ledger.json"
-    _mut.inventory = lambda *_a: [_ap_b, _ap_c]
-    _ap_pins = _AP_DIR / "pins"
-    _ap_pins.mkdir()
-    _AP_GOT = [_mut.apply_pins(str(_ap_pins), "H1")]
-    for _ap_status in ("skip-nothing-killed", "skip-no-base-program"):
-        (_ap_pins / "status").write_text(_ap_status + "\n")
+def _module_block_35558():
+    global _AP_GOT, _ap_before, _ap_exc, _ap_kb, _ap_pins, _ap_status
+    try:
+        (_AP_DIR / "ledger.json").write_text(_AP_SAVED[0].read_text())
+        _mut.BUDGETS = _AP_DIR / "ledger.json"
+        _mut.inventory = lambda *_a: [_ap_b, _ap_c]
+        _ap_pins = _AP_DIR / "pins"
+        _ap_pins.mkdir()
+        _AP_GOT = [_mut.apply_pins(str(_ap_pins), "H1")]
+        for _ap_status in ("skip-nothing-killed", "skip-no-base-program"):
+            (_ap_pins / "status").write_text(_ap_status + "\n")
+            _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+        (_ap_pins / "status").write_text("measured\n")
+        (_ap_pins / "pins.json").write_text("{not json")
+        (_ap_pins / "head").write_text("H1\n")
         _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
-    (_ap_pins / "status").write_text("measured\n")
-    (_ap_pins / "pins.json").write_text("{not json")
-    (_ap_pins / "head").write_text("H1\n")
-    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
-    (_ap_pins / "pins.json").write_text(json.dumps({
-        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
-        _ap_c["anchor"]: {"old": "    if c:", "reason": "no killed_by"},
-        "gone.py:h GUARD_OFF cccc": {"killed_by": "tests/x.py", "old": "x"}}))
-    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
-    # `a.py` sorts before every ledger key, so only `normalize` puts it in order.
-    (_ap_pins / "pins.json").write_text(json.dumps({
-        _ap_c["anchor"]: {"killed_by": "tests/y.py", "old": "    if c:",
-                          "reason": "measured"},
-        _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
-                          "reason": "measured"}}))
-    _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
-    _ap_before = json.dumps(_mut.load_budgets())
-    _AP_GOT += [json.dumps(_mut.load_budgets()) == _ap_before,
-                _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
-    _ap_kb = _mut.load_budgets().get("killed_by", {})
-    _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
-                _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
-                list(_ap_kb) == sorted(_ap_kb)]
-except Exception as _ap_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _AP_GOT = [f"{type(_ap_exc).__name__}: {_ap_exc}"]
-finally:
-    _mut.BUDGETS, _mut.inventory = _AP_SAVED
-    _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
+        (_ap_pins / "pins.json").write_text(json.dumps({
+            _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if STALE:"},
+            _ap_c["anchor"]: {"old": "    if c:", "reason": "no killed_by"},
+            "gone.py:h GUARD_OFF cccc": {"killed_by": "tests/x.py", "old": "x"}}))
+        _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H1"))
+        # `a.py` sorts before every ledger key, so only `normalize` puts it in order.
+        (_ap_pins / "pins.json").write_text(json.dumps({
+            _ap_c["anchor"]: {"killed_by": "tests/y.py", "old": "    if c:",
+                              "reason": "measured"},
+            _ap_b["anchor"]: {"killed_by": "tests/x.py", "old": "    if b:",
+                              "reason": "measured"}}))
+        _AP_GOT.append(_mut.apply_pins(str(_ap_pins), "H2"))
+        _ap_before = json.dumps(_mut.load_budgets())
+        _AP_GOT += [json.dumps(_mut.load_budgets()) == _ap_before,
+                    _mut.apply_pins(str(_ap_pins), "H1"), _mut.apply_pins(str(_ap_pins), "H1")]
+        _ap_kb = _mut.load_budgets().get("killed_by", {})
+        _AP_GOT += [_ap_kb.get(_ap_b["anchor"], {}).get("killed_by"),
+                    _ap_kb.get(_ap_c["anchor"], {}).get("killed_by"),
+                    list(_ap_kb) == sorted(_ap_kb)]
+    except Exception as _ap_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _AP_GOT = [f"{type(_ap_exc).__name__}: {_ap_exc}"]
+    finally:
+        _mut.BUDGETS, _mut.inventory = _AP_SAVED
+        _mut_shutil.rmtree(_AP_DIR, ignore_errors=True)
+_module_block_35558()
 R.check(
     "mutation-autofix applies only a measured pin whose anchor, text and head this tree still has",
     _AP_GOT == ["skip-no-measurement", "skip-nothing-killed", "skip-no-base-program",
@@ -35614,39 +35894,42 @@ _ll_row = {"killed_by": "tests/x.py", "old": "    if a:"}
 _ll_led = {"max_survivor_fraction": {}, "survivor_triage": {},
            "killed_by": {_ll_a: _ll_row, _ll_a + "#2": _ll_row, _ll_c: _ll_row}}
 _LL_GOT: dict = {}
-try:
-    _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
-               "-c", "commit.gpgsign=false"]
-    _ll_env = throwaway_git_init(_LL_DIR, "-q")
-    (_LL_DIR / "tests").mkdir()
-    _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
-    _mut.write_budgets(_ll_led)
-    _ll_d = _mut.ledger_dir()
-    _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
-    _LL_GOT["clean"] = _mut.layout_problems()
-    subprocess.run([*_ll_git, "add", "-A"], check=True, env=_ll_env)
-    subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True, env=_ll_env)
-    _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
-    _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
-    _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
-    _LL_GOT["deleted"] = _mut.load_budgets()["killed_by"] == _ll_gone
-    _ll_p = _ll_d / "killed_by" / "a.py" / "f.GUARD_OFF.0123abcd.json"
-    _ll_q = _ll_p.with_name("g.GUARD_OFF.0123abcd.json")
-    _ll_p.rename(_ll_q)
-    _LL_GOT["misplaced"] = len(_mut.layout_problems())
-    _ll_q.rename(_ll_p)
-    _ll_p.write_text(_ll_p.read_text().replace("\n  ", "\n    "))
-    _LL_GOT["noncanonical"] = len(_mut.layout_problems())
-    _ll_y, _ll_z = dict(_ll_row, killed_by="tests/y.py"), dict(_ll_row, killed_by="tests/z.py")
-    _LL_GOT["clash"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
-                                  {"killed_by": {_ll_a: _ll_z}})[1]
-    _LL_GOT["carried"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
-                                    {"killed_by": {_ll_a: _ll_row}})
-except Exception as _ll_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _LL_GOT["error"] = f"{type(_ll_exc).__name__}: {_ll_exc}"
-finally:
-    _mut.BUDGETS, _mut.ROOT = _LL_SAVED
-    _mut_shutil.rmtree(_LL_DIR, ignore_errors=True)
+def _module_block_35617():
+    global _ll_d, _ll_env, _ll_exc, _ll_git, _ll_gone, _ll_p, _ll_q, _ll_y, _ll_z
+    try:
+        _ll_git = ["git", "-C", str(_LL_DIR), "-c", "user.name=t", "-c", "user.email=t@t",
+                   "-c", "commit.gpgsign=false"]
+        _ll_env = throwaway_git_init(_LL_DIR, "-q")
+        (_LL_DIR / "tests").mkdir()
+        _mut.ROOT, _mut.BUDGETS = _LL_DIR, _LL_DIR / "tests" / "mutation_budgets.json"
+        _mut.write_budgets(_ll_led)
+        _ll_d = _mut.ledger_dir()
+        _LL_GOT["ordinal"] = len(list(_ll_d.rglob("*.json")))
+        _LL_GOT["clean"] = _mut.layout_problems()
+        subprocess.run([*_ll_git, "add", "-A"], check=True, env=_ll_env)
+        subprocess.run([*_ll_git, "commit", "-qm", "rows"], check=True, env=_ll_env)
+        _LL_GOT["at_ref"] = _mut.load_budgets_at("HEAD")["killed_by"] == _ll_led["killed_by"]
+        _ll_gone = {_ll_a: _ll_row, _ll_c: _ll_row}
+        _mut.write_budgets(dict(_ll_led, killed_by=_ll_gone))
+        _LL_GOT["deleted"] = _mut.load_budgets()["killed_by"] == _ll_gone
+        _ll_p = _ll_d / "killed_by" / "a.py" / "f.GUARD_OFF.0123abcd.json"
+        _ll_q = _ll_p.with_name("g.GUARD_OFF.0123abcd.json")
+        _ll_p.rename(_ll_q)
+        _LL_GOT["misplaced"] = len(_mut.layout_problems())
+        _ll_q.rename(_ll_p)
+        _ll_p.write_text(_ll_p.read_text().replace("\n  ", "\n    "))
+        _LL_GOT["noncanonical"] = len(_mut.layout_problems())
+        _ll_y, _ll_z = dict(_ll_row, killed_by="tests/y.py"), dict(_ll_row, killed_by="tests/z.py")
+        _LL_GOT["clash"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                      {"killed_by": {_ll_a: _ll_z}})[1]
+        _LL_GOT["carried"] = _mut.carry({"killed_by": {_ll_a: _ll_row}}, {"killed_by": {_ll_a: _ll_y}},
+                                        {"killed_by": {_ll_a: _ll_row}})
+    except Exception as _ll_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _LL_GOT["error"] = f"{type(_ll_exc).__name__}: {_ll_exc}"
+    finally:
+        _mut.BUDGETS, _mut.ROOT = _LL_SAVED
+        _mut_shutil.rmtree(_LL_DIR, ignore_errors=True)
+_module_block_35617()
 R.check(
     "the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read",
     _LL_GOT.get("ordinal") == 3 and _LL_GOT.get("clean") == [] and _LL_GOT.get("at_ref") is True,
@@ -35851,27 +36134,30 @@ _DP_Y, _DP_Z = _dp_site("p.py:g CLAMP_DROP y", "p.py", 2), _dp_site("q.py:g CLAM
 _DP_UN = [_DP_X1, _DP_X2, _DP_Y, _DP_Z]
 _DP_CL = {"tests/x.py": ["p.py"]}
 _DP_ROT = [_dp_site(f"p.py:g CLAMP_DROP r{i}", "p.py", 10 + i) for i in range(4)]
-try:
-    _dp_anchors = lambda pool: sorted({s["anchor"] for s in pool})  # noqa: E731
-    _dp_whole = lambda pool: all(  # noqa: E731
-        sum(1 for s in pool if s["anchor"] == a) == sum(1 for s in _DP_UN if s["anchor"] == a)
-        for a in _dp_anchors(pool))
-    _DP_POOLS = [_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], seed, 3) for seed in range(8)]
-    _DP_GOT = [
-        all(_dp_whole(p) and len(p) <= 3 for p in _DP_POOLS),
-        sorted({a for p in _DP_POOLS for a in _dp_anchors(p)}),
-        _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3)
-        == _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3),
-        _dp_anchors(_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 1, 1)),
-        _mut.drain_pool(_DP_UN, _DP_CL, ["tests/other.py"], 1, 40),
-        {tuple(s["drivers"]) for s in _DP_POOLS[0]},
-        # Four one-site anchors under a cap of one: the seed alone picks the
-        # slice, so eight seeds must not all pick the same anchor.
-        len({tuple(s["anchor"] for s in _mut.drain_pool(_DP_ROT, _DP_CL, ["tests/x.py"], seed, 1))
-             for seed in range(8)}) > 1,
-    ]
-except Exception as _dp_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _DP_GOT = [f"{type(_dp_exc).__name__}: {_dp_exc}"]
+def _module_block_35854():
+    global _DP_GOT, _DP_POOLS, _dp_anchors, _dp_exc, _dp_whole, a, p, s, seed
+    try:
+        _dp_anchors = lambda pool: sorted({s["anchor"] for s in pool})  # noqa: E731
+        _dp_whole = lambda pool: all(  # noqa: E731
+            sum(1 for s in pool if s["anchor"] == a) == sum(1 for s in _DP_UN if s["anchor"] == a)
+            for a in _dp_anchors(pool))
+        _DP_POOLS = [_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], seed, 3) for seed in range(8)]
+        _DP_GOT = [
+            all(_dp_whole(p) and len(p) <= 3 for p in _DP_POOLS),
+            sorted({a for p in _DP_POOLS for a in _dp_anchors(p)}),
+            _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3)
+            == _mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 5, 3),
+            _dp_anchors(_mut.drain_pool(_DP_UN, _DP_CL, ["tests/x.py"], 1, 1)),
+            _mut.drain_pool(_DP_UN, _DP_CL, ["tests/other.py"], 1, 40),
+            {tuple(s["drivers"]) for s in _DP_POOLS[0]},
+            # Four one-site anchors under a cap of one: the seed alone picks the
+            # slice, so eight seeds must not all pick the same anchor.
+            len({tuple(s["anchor"] for s in _mut.drain_pool(_DP_ROT, _DP_CL, ["tests/x.py"], seed, 1))
+                 for seed in range(8)}) > 1,
+        ]
+    except Exception as _dp_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _DP_GOT = [f"{type(_dp_exc).__name__}: {_dp_exc}"]
+_module_block_35854()
 R.check(
     "--drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed",
     _DP_GOT == [True, ["p.py:g CLAMP_DROP x", "p.py:g CLAMP_DROP y"], True,
@@ -35890,39 +36176,42 @@ R.check(
 # one shard's list would pass the pin check above and drop the others'.
 _SH_UN = [_dp_site(f"p.py:g CLAMP_DROP s{i}", "p.py", 20 + i) for i in range(9)]
 _SH_UN += [_dp_site("p.py:g CLAMP_DROP s0", "p.py", 40)]  # a twin: one anchor, two sites
-try:
-    _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
-    _sh_key = lambda p: sorted((s["anchor"], s["line"]) for s in p)  # noqa: E731
-    # cap 2 a shard over 3 shards draws 6 of the 10 sites, so the seed matters
-    _sh_parts = [_mut.drain_pool(*_sh_args, 7, 2, (k, 3)) for k in range(1, 4)]
-    _sh_whole = _mut.drain_pool(*_sh_args, 7, 6)
-    _sh_flat = [x for p in _sh_parts for x in _sh_key(p)]
-    _sh_other = _mut.drain_pool(*_sh_args, 8, 6)
-    with _tempfile.TemporaryDirectory() as _sd_td:
-        _sd_root = Path(_sd_td) / "shards"
-        for _k, _surv in ((1, ["a:1", "b:2"]), (2, ["b:2", "c:3"]), (3, []), (4, ["d:4"])):
-            _d = _sd_root / f"mutation-ledger-{_k}"
-            _d.mkdir(parents=True)
-            (_d / "status").write_text("measured\n" if _k < 4 else "skip-nothing-killed\n")
-            (_d / "pins.json").write_text(json.dumps({f"p:{_k}": {"killed_by": "t"}} if _k < 4 else {}))
-            (_d / "head").write_text("h\n")
-            (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
-        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "m"))
-        _sd_got = (Path(_sd_td) / "m" / "survivors.txt").read_text().split()
-        # a pin merge (no survivors.txt anywhere) leaves none behind
-        for _d in _sd_root.iterdir():
-            (_d / "survivors.txt").unlink()
-        _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "n"))
-        _sd_none = (Path(_sd_td) / "n" / "survivors.txt").exists()
-    _SH_GOT = [
-        sorted(_sh_flat) == _sh_key(_sh_whole) and len(_sh_flat) == len(set(_sh_flat)) > 0,
-        all(not ({s["anchor"] for s in a} & {s["anchor"] for s in b})
-            for i, a in enumerate(_sh_parts) for b in _sh_parts[i + 1:]),
-        _sh_key(_sh_whole) != _sh_key(_sh_other),
-        _sd_got, _sd_none,
-    ]
-except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
+def _module_block_35893():
+    global _SH_GOT, _d, _k, _sd_got, _sd_none, _sd_root, _sd_td, _sh_args, _sh_exc, _sh_flat, _sh_key, _sh_other, _sh_parts, _sh_whole, _surv, k, p, x
+    try:
+        _sh_args = (_SH_UN, _DP_CL, ["tests/x.py"])
+        _sh_key = lambda p: sorted((s["anchor"], s["line"]) for s in p)  # noqa: E731
+        # cap 2 a shard over 3 shards draws 6 of the 10 sites, so the seed matters
+        _sh_parts = [_mut.drain_pool(*_sh_args, 7, 2, (k, 3)) for k in range(1, 4)]
+        _sh_whole = _mut.drain_pool(*_sh_args, 7, 6)
+        _sh_flat = [x for p in _sh_parts for x in _sh_key(p)]
+        _sh_other = _mut.drain_pool(*_sh_args, 8, 6)
+        with _tempfile.TemporaryDirectory() as _sd_td:
+            _sd_root = Path(_sd_td) / "shards"
+            for _k, _surv in ((1, ["a:1", "b:2"]), (2, ["b:2", "c:3"]), (3, []), (4, ["d:4"])):
+                _d = _sd_root / f"mutation-ledger-{_k}"
+                _d.mkdir(parents=True)
+                (_d / "status").write_text("measured\n" if _k < 4 else "skip-nothing-killed\n")
+                (_d / "pins.json").write_text(json.dumps({f"p:{_k}": {"killed_by": "t"}} if _k < 4 else {}))
+                (_d / "head").write_text("h\n")
+                (_d / "survivors.txt").write_text("".join(f"{x}\n" for x in _surv))
+            _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "m"))
+            _sd_got = (Path(_sd_td) / "m" / "survivors.txt").read_text().split()
+            # a pin merge (no survivors.txt anywhere) leaves none behind
+            for _d in _sd_root.iterdir():
+                (_d / "survivors.txt").unlink()
+            _mut.merge_pin_shards(str(_sd_root), str(Path(_sd_td) / "n"))
+            _sd_none = (Path(_sd_td) / "n" / "survivors.txt").exists()
+        _SH_GOT = [
+            sorted(_sh_flat) == _sh_key(_sh_whole) and len(_sh_flat) == len(set(_sh_flat)) > 0,
+            all(not ({s["anchor"] for s in a} & {s["anchor"] for s in b})
+                for i, a in enumerate(_sh_parts) for b in _sh_parts[i + 1:]),
+            _sh_key(_sh_whole) != _sh_key(_sh_other),
+            _sd_got, _sd_none,
+        ]
+    except Exception as _sh_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _SH_GOT = [f"{type(_sh_exc).__name__}: {_sh_exc}"]
+_module_block_35893()
 R.check(
     "--drain --shard K/N: the shards are disjoint whole-anchor slices whose union is "
     "the unsharded slice at N times the cap; the merge unions the survivors",
@@ -35954,36 +36243,39 @@ def _ad_kb() -> list[str]:
                   if k in _ad_pins)
 
 
-try:
-    _mut.BUDGETS = _AD_DIR / "ledger.json"
-    _mut.inventory = lambda *_a: [_ap_b, _ap_c]
-    _mut.load_closures = lambda: {"tests/x.py": ["f.py"], "tests/y.py": ["a.py", "tests/lib/"]}
-    _ad_m, _ad_e = _AD_DIR / "measured", _AD_DIR / "empty"
-    _ad_fresh()
-    # `--drain` with nothing drivable writes its status alone (no pins, no head).
-    (_ad_d := _AD_DIR / "undrivable").mkdir()
-    (_ad_d / "status").write_text("skip-nothing-drivable\n")
-    _AD_GOT = [_mut.write_drain(_ad_m, _ad_pins, "H1", ["f.py:9 GUARD_OFF"]),
-               (_ad_m / "survivors.txt").read_text(),
-               _mut.write_drain(_ad_e, {}, "H1", []),
-               _mut.apply_drained(str(_ad_e), "H1", []),
-               _mut.apply_drained(str(_AD_DIR / "absent"), "H1", []),
-               _mut.apply_drained(str(_ad_d), "H1", []),
-               _mut.apply_drained(str(_ad_m), "H1", None), _ad_kb(),
-               _mut.apply_drained(str(_ad_m), "H1", None)]
-    _ad_fresh()
-    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", None), _ad_kb(),
-                _mut.apply_drained(str(_ad_m), "H2", ["f.py"]), _ad_kb()]
-    _ad_fresh()
-    _mut.load_closures = lambda: {"tests/x.py": ["a.py"], "tests/y.py": ["a.py", "tests/lib/"]}
-    _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
-                _mut.stale_pins(_ad_pins, _mut.load_closures()),
-                _mut.stale_pins({"k": {"old": "x"}}, {})]
-except Exception as _ad_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _AD_GOT = [f"{type(_ad_exc).__name__}: {_ad_exc}"]
-finally:
-    _mut.BUDGETS, _mut.inventory, _mut.load_closures = _AD_SAVED
-    _mut_shutil.rmtree(_AD_DIR, ignore_errors=True)
+def _module_block_35957():
+    global _AD_GOT, _ad_d, _ad_e, _ad_exc, _ad_m
+    try:
+        _mut.BUDGETS = _AD_DIR / "ledger.json"
+        _mut.inventory = lambda *_a: [_ap_b, _ap_c]
+        _mut.load_closures = lambda: {"tests/x.py": ["f.py"], "tests/y.py": ["a.py", "tests/lib/"]}
+        _ad_m, _ad_e = _AD_DIR / "measured", _AD_DIR / "empty"
+        _ad_fresh()
+        # `--drain` with nothing drivable writes its status alone (no pins, no head).
+        (_ad_d := _AD_DIR / "undrivable").mkdir()
+        (_ad_d / "status").write_text("skip-nothing-drivable\n")
+        _AD_GOT = [_mut.write_drain(_ad_m, _ad_pins, "H1", ["f.py:9 GUARD_OFF"]),
+                   (_ad_m / "survivors.txt").read_text(),
+                   _mut.write_drain(_ad_e, {}, "H1", []),
+                   _mut.apply_drained(str(_ad_e), "H1", []),
+                   _mut.apply_drained(str(_AD_DIR / "absent"), "H1", []),
+                   _mut.apply_drained(str(_ad_d), "H1", []),
+                   _mut.apply_drained(str(_ad_m), "H1", None), _ad_kb(),
+                   _mut.apply_drained(str(_ad_m), "H1", None)]
+        _ad_fresh()
+        _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", None), _ad_kb(),
+                    _mut.apply_drained(str(_ad_m), "H2", ["f.py"]), _ad_kb()]
+        _ad_fresh()
+        _mut.load_closures = lambda: {"tests/x.py": ["a.py"], "tests/y.py": ["a.py", "tests/lib/"]}
+        _AD_GOT += [_mut.apply_drained(str(_ad_m), "H2", ["README.md"]), _ad_kb(),
+                    _mut.stale_pins(_ad_pins, _mut.load_closures()),
+                    _mut.stale_pins({"k": {"old": "x"}}, {})]
+    except Exception as _ad_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _AD_GOT = [f"{type(_ad_exc).__name__}: {_ad_exc}"]
+    finally:
+        _mut.BUDGETS, _mut.inventory, _mut.load_closures = _AD_SAVED
+        _mut_shutil.rmtree(_AD_DIR, ignore_errors=True)
+_module_block_35957()
 _AD_BOTH = sorted(_ad_pins)
 R.check(
     "mutation-ledger-push applies a drained slice once, and on a moved main only "
@@ -36030,30 +36322,33 @@ def _hm_apply(pins: dict, sites: list[dict], closures: dict,
     return got, sorted(k for k in _mut.load_budgets().get("killed_by", {}) if k in pins)
 
 
-try:
-    _mut.BUDGETS = _HM_DIR / "ledger.json"
-    _hm_sites = [_hm_site(i, f"    if s{i}:") for i in range(42)]
-    _hm_pins = {s["anchor"]: {"killed_by": _HM_KILLERS[i % 2], "old": s["old"],
-                              "reason": "m"} for i, s in enumerate(_hm_sites)}
-    _hm_mods = [s["file"] for s in _hm_sites]
-    _hm_cl = {k: [*_hm_mods, "tests/lib/"] for k in _HM_KILLERS}
-    _hm_changed = [*_HM_KILLERS, *_hm_mods, "tests/lib/z.py"]
-    _hm_39 = dict(list(_hm_pins.items())[:39])
-    _HM_GOT = [_hm_apply(_hm_39, _hm_sites, _hm_cl, _hm_changed)]
-    # p0's line changed at the head; p39's killer left the closures; p40's
-    # killer no longer reaches p40.py; p41 stays the positive arm beside them.
-    _hm_head = [_hm_site(0, "    if s0 and edited:"), *_hm_sites[1:]]
-    _hm_ctl = dict(_hm_pins)
-    _hm_ctl[_hm_sites[39]["anchor"]] = dict(_hm_ctl[_hm_sites[39]["anchor"]],
-                                            killed_by="tests/gone.py")
-    _hm_k40 = _hm_pins[_hm_sites[40]["anchor"]]["killed_by"]
-    _hm_cl2 = dict(_hm_cl, **{_hm_k40: [m for m in _hm_cl[_hm_k40] if m != _hm_mods[40]]})
-    _HM_GOT.append(_hm_apply(_hm_ctl, _hm_head, _hm_cl2, _hm_changed))
-except Exception as _hm_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _HM_GOT = [f"{type(_hm_exc).__name__}: {_hm_exc}"]
-finally:
-    _mut.BUDGETS, _mut.inventory, _mut.load_closures = _HM_SAVED
-    _mut_shutil.rmtree(_HM_DIR, ignore_errors=True)
+def _module_block_36033():
+    global _HM_GOT, _hm_39, _hm_changed, _hm_cl, _hm_cl2, _hm_ctl, _hm_exc, _hm_head, _hm_k40, _hm_mods, _hm_pins, _hm_sites, i, k, m, s
+    try:
+        _mut.BUDGETS = _HM_DIR / "ledger.json"
+        _hm_sites = [_hm_site(i, f"    if s{i}:") for i in range(42)]
+        _hm_pins = {s["anchor"]: {"killed_by": _HM_KILLERS[i % 2], "old": s["old"],
+                                  "reason": "m"} for i, s in enumerate(_hm_sites)}
+        _hm_mods = [s["file"] for s in _hm_sites]
+        _hm_cl = {k: [*_hm_mods, "tests/lib/"] for k in _HM_KILLERS}
+        _hm_changed = [*_HM_KILLERS, *_hm_mods, "tests/lib/z.py"]
+        _hm_39 = dict(list(_hm_pins.items())[:39])
+        _HM_GOT = [_hm_apply(_hm_39, _hm_sites, _hm_cl, _hm_changed)]
+        # p0's line changed at the head; p39's killer left the closures; p40's
+        # killer no longer reaches p40.py; p41 stays the positive arm beside them.
+        _hm_head = [_hm_site(0, "    if s0 and edited:"), *_hm_sites[1:]]
+        _hm_ctl = dict(_hm_pins)
+        _hm_ctl[_hm_sites[39]["anchor"]] = dict(_hm_ctl[_hm_sites[39]["anchor"]],
+                                                killed_by="tests/gone.py")
+        _hm_k40 = _hm_pins[_hm_sites[40]["anchor"]]["killed_by"]
+        _hm_cl2 = dict(_hm_cl, **{_hm_k40: [m for m in _hm_cl[_hm_k40] if m != _hm_mods[40]]})
+        _HM_GOT.append(_hm_apply(_hm_ctl, _hm_head, _hm_cl2, _hm_changed))
+    except Exception as _hm_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _HM_GOT = [f"{type(_hm_exc).__name__}: {_hm_exc}"]
+    finally:
+        _mut.BUDGETS, _mut.inventory, _mut.load_closures = _HM_SAVED
+        _mut_shutil.rmtree(_HM_DIR, ignore_errors=True)
+_module_block_36033()
 _HM_WANT = [("changed", sorted(_hm_39)),
             ("changed", sorted(k for k in _hm_pins if k not in {
                 _hm_sites[i]["anchor"] for i in (0, 39, 40)}))]
@@ -36153,20 +36448,23 @@ R.check(
 _NIGHTLY_ON = (_yaml.safe_load(_NIGHTLY_YML) or {})
 _NIGHTLY_EVENTS = sorted(_NIGHTLY_ON.get("on", _NIGHTLY_ON.get(True)) or {})
 _REACH: list = []
-try:
-    for _rv in _NIGHTLY_EVENTS:
-        for _rr in ("refs/heads/main", "refs/heads/fix/x"):
-            _rx = {"github.event_name": _rv, "github.ref": _rr}
-            _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
-            _r_push = _gh_eval(_gh_if(_ml_push), {
-                **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
-            _r_alone = _gh_eval(_gh_if(_ml_push), {
-                **_rx, "needs.mutation-ledger.result": "success"})
-            _r_want = _rr == "refs/heads/main" and _rv in ("schedule", "workflow_dispatch")
-            if (_r_meas, _r_push) != (_r_want, _r_want) or (_r_alone and not _r_want):
-                _REACH.append((_rv, _rr, _r_meas, _r_push, _r_alone))
-except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
-    _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
+def _module_block_36156():
+    global _REACH, _r_alone, _r_exc, _r_meas, _r_push, _r_want, _rr, _rv, _rx
+    try:
+        for _rv in _NIGHTLY_EVENTS:
+            for _rr in ("refs/heads/main", "refs/heads/fix/x"):
+                _rx = {"github.event_name": _rv, "github.ref": _rr}
+                _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
+                _r_push = _gh_eval(_gh_if(_ml_push), {
+                    **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
+                _r_alone = _gh_eval(_gh_if(_ml_push), {
+                    **_rx, "needs.mutation-ledger.result": "success"})
+                _r_want = _rr == "refs/heads/main" and _rv in ("schedule", "workflow_dispatch")
+                if (_r_meas, _r_push) != (_r_want, _r_want) or (_r_alone and not _r_want):
+                    _REACH.append((_rv, _rr, _r_meas, _r_push, _r_alone))
+    except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+        _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
+_module_block_36156()
 R.check(
     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
     not _REACH and _NIGHTLY_EVENTS == ["push", "schedule", "workflow_dispatch"],
@@ -36199,20 +36497,23 @@ R.check(
 _NHA_IF = _gh_if(_workflow_job(_TESTS_YML, "nightly-ha"))
 _NHA_NIGHT_IF = _gh_if(_workflow_job(_NIGHTLY_YML, "nightly-ha"))
 _NHA_REACH: list = []
-try:
-    for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
-        for _nf in ("true", "false", ""):
-            _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
-                                       "needs.closure-scope.outputs.nightly_ha": _nf})
-            # nightly.yml lists push, schedule and dispatch alone.
-            _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
-                _NHA_NIGHT_IF, {"github.event_name": _nv})
-            _nwant = _nv == "pull_request" and _nf == "true"
-            _nwant_n = _nv in ("schedule", "workflow_dispatch")
-            if (_ngot, _ngot_n) != (_nwant, _nwant_n):
-                _NHA_REACH.append((_nv, _nf, _ngot, _ngot_n))
-except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
-    _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+def _module_block_36202():
+    global _NHA_REACH, _n_exc, _nf, _ngot, _ngot_n, _nv, _nwant, _nwant_n
+    try:
+        for _nv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+            for _nf in ("true", "false", ""):
+                _ngot = _gh_eval(_NHA_IF, {"github.event_name": _nv,
+                                           "needs.closure-scope.outputs.nightly_ha": _nf})
+                # nightly.yml lists push, schedule and dispatch alone.
+                _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
+                    _NHA_NIGHT_IF, {"github.event_name": _nv})
+                _nwant = _nv == "pull_request" and _nf == "true"
+                _nwant_n = _nv in ("schedule", "workflow_dispatch")
+                if (_ngot, _ngot_n) != (_nwant, _nwant_n):
+                    _NHA_REACH.append((_nv, _nf, _ngot, _ngot_n))
+    except Exception as _n_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+        _NHA_REACH = [f"{type(_n_exc).__name__}: {_n_exc}"]
+_module_block_36202()
 _NHA_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
 R.check(
     "nightly-ha runs on schedule, on dispatch, and on a pull request whose diff "
@@ -36253,17 +36554,20 @@ def _nha_copy(src, dst, *args, **kwargs):
     return _nha_copy2(src, dst, *args, **kwargs)
 
 
-try:
-    _nha_on[0] = True
-    _nightly.shutil.copy2 = _nha_copy
-    _nightly._stage(_nha_tmp)
-except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
-    _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
-finally:
-    _nha_on[0] = False
-    _nightly.shutil.copy2 = _nha_copy2
-    import shutil as _nha_shutil
-    _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+def _module_block_36256():
+    global _n_exc, _nha_shutil
+    try:
+        _nha_on[0] = True
+        _nightly.shutil.copy2 = _nha_copy
+        _nightly._stage(_nha_tmp)
+    except Exception as _n_exc:  # noqa: BLE001 -- a stage that cannot run is one red check
+        _nha_reads.add(f"<stage raised {type(_n_exc).__name__}: {_n_exc}>")
+    finally:
+        _nha_on[0] = False
+        _nightly.shutil.copy2 = _nha_copy2
+        import shutil as _nha_shutil
+        _nha_shutil.rmtree(_nha_tmp, ignore_errors=True)
+_module_block_36256()
 _NHA_DRIVER_READS = sorted(f for f in _nha_reads if not f.startswith("custom_components/"))
 _NHA_UNCOVERED = [f for f in _NHA_DRIVER_READS
                   if not any(f == s or f.startswith(s.rstrip("/") + "/") for s in _NHA_SPECS)]
@@ -36315,41 +36619,44 @@ def _pp_row(name: str, text: str, subject: str) -> None:
     _pp_git("commit", "-q", "-m", subject)
 
 
-try:
-    throwaway_git_init(_PP_DIR, "-q", "-b", "main")
-    (_PP_DIR / "a.txt").write_text("a\n")
-    _pp_row("old.json", "{}\n", "base")
-    _pp_main = _pp_git("rev-parse", "HEAD")
-    _pp_git("update-ref", "refs/remotes/origin/main", _pp_main)
-    _pp_row("new.json", "{}\n", _mut.DRAIN_SUBJECT)
-    _PP_GOT = [_mut.drain_push_problems(str(_PP_DIR)),
-               _mut.drain_changed(_pp_main, "HEAD", str(_PP_DIR)),
-               _mut.drain_changed("0" * 40, "HEAD", str(_PP_DIR)),
-               _mut.drain_changed("", "HEAD", str(_PP_DIR))]
-    _pp_git("reset", "-q", "--hard", _pp_main)
-    (_PP_DIR / "a.txt").write_text("branch\n")
-    _pp_git("commit", "-q", "-am", "branch work")
-    _pp_row("new.json", "{}\n", _mut.DRAIN_SUBJECT)
-    _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
-    _pp_git("reset", "-q", "--hard", _pp_main)
-    _pp_row("new.json", "{}\n", "ci: something else")
-    _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
-    _pp_git("reset", "-q", "--hard", _pp_main)
-    _pp_row("old.json", "{\"x\": 1}\n", _mut.DRAIN_SUBJECT)
-    _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
-    # A merge on main's tip under the writer's subject, whose other parent
-    # adds only rows: parent, subject and diff all pass; only the count of
-    # commits sent catches the side commit riding along.
-    _pp_git("checkout", "-q", "-B", "side", _pp_main)
-    _pp_row("side.json", "{}\n", _mut.DRAIN_SUBJECT)
-    _pp_side = _pp_git("rev-parse", "HEAD")
-    _pp_git("checkout", "-q", "-B", "main", _pp_main)
-    _pp_git("merge", "-q", "--no-ff", "-m", _mut.DRAIN_SUBJECT, _pp_side)
-    _PP_GOT.append(_mut.drain_push_problems(str(_PP_DIR)))
-except Exception as _pp_exc:  # noqa: BLE001 -- one red check, never a partial run
-    _PP_GOT = [f"{type(_pp_exc).__name__}: {_pp_exc}"]
-finally:
-    _mut_shutil.rmtree(_PP_DIR, ignore_errors=True)
+def _module_block_36318():
+    global _PP_GOT, _pp_exc, _pp_main, _pp_side
+    try:
+        throwaway_git_init(_PP_DIR, "-q", "-b", "main")
+        (_PP_DIR / "a.txt").write_text("a\n")
+        _pp_row("old.json", "{}\n", "base")
+        _pp_main = _pp_git("rev-parse", "HEAD")
+        _pp_git("update-ref", "refs/remotes/origin/main", _pp_main)
+        _pp_row("new.json", "{}\n", _mut.DRAIN_SUBJECT)
+        _PP_GOT = [_mut.drain_push_problems(str(_PP_DIR)),
+                   _mut.drain_changed(_pp_main, "HEAD", str(_PP_DIR)),
+                   _mut.drain_changed("0" * 40, "HEAD", str(_PP_DIR)),
+                   _mut.drain_changed("", "HEAD", str(_PP_DIR))]
+        _pp_git("reset", "-q", "--hard", _pp_main)
+        (_PP_DIR / "a.txt").write_text("branch\n")
+        _pp_git("commit", "-q", "-am", "branch work")
+        _pp_row("new.json", "{}\n", _mut.DRAIN_SUBJECT)
+        _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
+        _pp_git("reset", "-q", "--hard", _pp_main)
+        _pp_row("new.json", "{}\n", "ci: something else")
+        _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
+        _pp_git("reset", "-q", "--hard", _pp_main)
+        _pp_row("old.json", "{\"x\": 1}\n", _mut.DRAIN_SUBJECT)
+        _PP_GOT.append(len(_mut.drain_push_problems(str(_PP_DIR))) > 0)
+        # A merge on main's tip under the writer's subject, whose other parent
+        # adds only rows: parent, subject and diff all pass; only the count of
+        # commits sent catches the side commit riding along.
+        _pp_git("checkout", "-q", "-B", "side", _pp_main)
+        _pp_row("side.json", "{}\n", _mut.DRAIN_SUBJECT)
+        _pp_side = _pp_git("rev-parse", "HEAD")
+        _pp_git("checkout", "-q", "-B", "main", _pp_main)
+        _pp_git("merge", "-q", "--no-ff", "-m", _mut.DRAIN_SUBJECT, _pp_side)
+        _PP_GOT.append(_mut.drain_push_problems(str(_PP_DIR)))
+    except Exception as _pp_exc:  # noqa: BLE001 -- one red check, never a partial run
+        _PP_GOT = [f"{type(_pp_exc).__name__}: {_pp_exc}"]
+    finally:
+        _mut_shutil.rmtree(_PP_DIR, ignore_errors=True)
+_module_block_36318()
 _pp_push = _ml_push.find("push origin HEAD:refs/heads/main")
 R.check(
     "mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed",
@@ -37687,15 +37994,18 @@ R.check(
 # mutant survives every shared driver, once, and before that mutant's run.
 _MUT_S_LOG: list = []
 _MUT_S_OUTS: list = [[], []]
-try:
-    _MUT_S_OUTS = [_mut_pool(
-        _MUT_X_POOL[:n], 3, {"tests/a.py": 1, "tests/b.py": 2},
-        lambda w, m, s, n=n: (_MUT_S_LOG.append((n, "drive", m["line"], s)),
-                              m["line"] == 0 and s == "tests/a.py")[1],
-        settle=lambda s, n=n: _MUT_S_LOG.append((n, "settle", s)))
-        for n in (1, 3)]
-except TypeError:
-    pass
+def _module_block_37690():
+    global _MUT_S_OUTS, n
+    try:
+        _MUT_S_OUTS = [_mut_pool(
+            _MUT_X_POOL[:n], 3, {"tests/a.py": 1, "tests/b.py": 2},
+            lambda w, m, s, n=n: (_MUT_S_LOG.append((n, "drive", m["line"], s)),
+                                  m["line"] == 0 and s == "tests/a.py")[1],
+            settle=lambda s, n=n: _MUT_S_LOG.append((n, "settle", s)))
+            for n in (1, 3)]
+    except TypeError:
+        pass
+_module_block_37690()
 R.check(
     "a deferred stress.py baseline runs only once a mutant survives every "
     "shared driver, once, before that mutant's stress.py run",
@@ -38025,11 +38335,14 @@ _MUT_T_RUN = _mut.run_script("slow.py", _MUT_T_DIR, 1)
 _MUT_T_JUDGE = _mut.LazyBaselines({"slow.py": _MUT_T_GREEN}, lambda w, s: None)
 _MUT_T_SITE = {"file": "x.py", "line": 1, "kind": "GUARD_OFF", "anchor": "x.py:a",
                "old": "if a:", "new": "if False:", "drivers": ["slow.py"]}
-try:
-    _MUT_T_OUT = _mut_pool([_MUT_T_SITE], 1, {"slow.py": 0.6},
-                           lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
-except TypeError:
-    _MUT_T_OUT = []
+def _module_block_38028():
+    global _MUT_T_OUT
+    try:
+        _MUT_T_OUT = _mut_pool([_MUT_T_SITE], 1, {"slow.py": 0.6},
+                               lambda w, m, s: _MUT_T_JUDGE.killed(w, s, _MUT_T_RUN))
+    except TypeError:
+        _MUT_T_OUT = []
+_module_block_38028()
 _MUT_T_PINS = (_mut.pin_results(_MUT_T_OUT, {}, {}, [_MUT_T_SITE])[0]
                if _MUT_T_OUT else None)
 R.check(
@@ -39397,17 +39710,19 @@ _mut_shutil.rmtree(_MUTL_DIR, ignore_errors=True)
 # alone like the baseline's.
 _MUT_X_SPANS.clear()
 _MUT_N_OUT: dict = {}
-if _mut_baselines is not None:
-    try:
-        _mut_baselines(
-            ["tests/a.py", "tests/b.py", "tests/stress.py"], 3,
-            lambda w, s: (_mut_x_span(("base", s)),
-                          _mut.ScriptRun(0, 0, 0.0))[1],
-            null_run=lambda w, s: (_mut_x_span(("null", s)),
-                                   _mut.ScriptRun(1, 1, 0.0))[1],
-            null_out=_MUT_N_OUT)
-    except TypeError:
-        pass
+def _module_block_39400():
+    if _mut_baselines is not None:
+        try:
+            _mut_baselines(
+                ["tests/a.py", "tests/b.py", "tests/stress.py"], 3,
+                lambda w, s: (_mut_x_span(("base", s)),
+                              _mut.ScriptRun(0, 0, 0.0))[1],
+                null_run=lambda w, s: (_mut_x_span(("null", s)),
+                                       _mut.ScriptRun(1, 1, 0.0))[1],
+                null_out=_MUT_N_OUT)
+        except TypeError:
+            pass
+_module_block_39400()
 R.check(
     "the null control runs under every driver in the baseline phase, and its "
     "stress.py run shares the runner with nothing",
@@ -39849,15 +40164,18 @@ R.check(
 _RP_JOB = _workflow_job(_TESTS_YML, "replay")
 _RP_SCOPE = _workflow_job(_TESTS_YML, "closure-scope")
 _RP_REACH: list = []
-try:
-    for _rv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
-        for _rf in ("true", "false", ""):
-            _rgot = _gh_eval(_gh_if(_RP_JOB), {"github.event_name": _rv,
-                                               "needs.closure-scope.outputs.replay": _rf})
-            if _rgot != (_rv == "pull_request" and _rf == "true"):
-                _RP_REACH.append((_rv, _rf, _rgot))
-except Exception as _rp_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
-    _RP_REACH = [f"{type(_rp_exc).__name__}: {_rp_exc}"]
+def _module_block_39852():
+    global _RP_REACH, _rf, _rgot, _rp_exc, _rv
+    try:
+        for _rv in ("schedule", "workflow_dispatch", "push", "pull_request", "merge_group"):
+            for _rf in ("true", "false", ""):
+                _rgot = _gh_eval(_gh_if(_RP_JOB), {"github.event_name": _rv,
+                                                   "needs.closure-scope.outputs.replay": _rf})
+                if _rgot != (_rv == "pull_request" and _rf == "true"):
+                    _RP_REACH.append((_rv, _rf, _rgot))
+    except Exception as _rp_exc:  # noqa: BLE001 -- an unparsable `if:` is one red check
+        _RP_REACH = [f"{type(_rp_exc).__name__}: {_rp_exc}"]
+_module_block_39852()
 R.check(
     "the timed replay runs on a pull request whose diff reaches it, and on "
     "nothing else in tests.yml (nightly runs it in full)",
@@ -40032,10 +40350,13 @@ def _jb_run() -> dict:
                 ("200", "209", "±5 %"), ("200", "211", "+-5%"))]}
 
 
-try:
-    _JB = _jb_run()
-except Exception as _jb_exc:  # a crash reports as a failure, never as a skipped block
-    _JB = {"rows": {}, "after": None, "md": "", "error": repr(_jb_exc)}
+def _module_block_40035():
+    global _JB, _jb_exc
+    try:
+        _JB = _jb_run()
+    except Exception as _jb_exc:  # a crash reports as a failure, never as a skipped block
+        _JB = {"rows": {}, "after": None, "md": "", "error": repr(_jb_exc)}
+_module_block_40035()
 _jbr = _JB["rows"]
 R.check(
     "judge_batch: a harness whose perturbation moves in the stated direction is "
@@ -40914,11 +41235,14 @@ import importlib.util as _egb3_ilu
 _egb3_spec = _egb3_ilu.spec_from_file_location(
     "payload_standalone", _egb3_pkg / "payload.py")
 _egb3_mod = _egb3_ilu.module_from_spec(_egb3_spec)
-try:
-    _egb3_spec.loader.exec_module(_egb3_mod)
-    _egb3_standalone = "Payload" in vars(_egb3_mod)
-except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
-    _egb3_standalone = repr(_egb3_err)
+def _module_block_40917():
+    global _egb3_err, _egb3_standalone
+    try:
+        _egb3_spec.loader.exec_module(_egb3_mod)
+        _egb3_standalone = "Payload" in vars(_egb3_mod)
+    except Exception as _egb3_err:  # noqa: BLE001 - the failure IS the finding
+        _egb3_standalone = repr(_egb3_err)
+_module_block_40917()
 R.check(
     "EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only",
     _egb3_standalone is True,
@@ -41401,6 +41725,66 @@ R.check(
     "and refuses a key it does not read",
     _MR_GOT == ("read", "refused"),
     f"(tracked file, file plus an unread key) -> {_MR_GOT}",
+)
+
+
+# CodeQL's Python extractor is slow on a `try` that runs at module scope: a
+# 364-line module-level try/finally added to tests/features.py (#3232) took
+# that file's extraction from 817-1389 s to 2146-2211 s and cancelled the
+# 45-minute `codeql / Analyze (python)` job (R10-HOTFIX-CODEQL-HEADROOM). A
+# script past _GIANT_SCRIPT_LINES therefore runs each such statement inside a
+# function called once, declaring `global` every name it binds.
+_GIANT_SCRIPT_LINES = 20_000
+
+
+def _module_scope_try_lines(source: str) -> list[int]:
+    """Line of each `try` executed in module scope (not inside a def, class or lambda)."""
+    scopes = (ast.FunctionDef, ast.AsyncFunctionDef, ast.ClassDef, ast.Lambda)
+    found: list[int] = []
+    stack = [ast.parse(source)]
+    while stack:
+        for child in ast.iter_child_nodes(stack.pop()):
+            if isinstance(child, scopes):
+                continue
+            if isinstance(child, (ast.Try, ast.TryStar)):
+                found.append(child.lineno)
+            stack.append(child)
+    return sorted(found)
+
+
+def _giant_script_tries() -> dict[str, list[int]]:
+    tests_dir = Path(__file__).resolve().parent
+    giants = {}
+    for script in sorted(tests_dir.glob("*.py")):
+        text = script.read_text()
+        if text.count("\n") > _GIANT_SCRIPT_LINES:
+            giants[script.name] = _module_scope_try_lines(text)
+    return giants
+
+
+_GIANT_TRIES = _giant_script_tries()
+R.check(
+    "no test script past _GIANT_SCRIPT_LINES runs a try at module scope "
+    "(CodeQL extraction cost)",
+    {"entities.py", "features.py"} <= set(_GIANT_TRIES)
+    and not any(_GIANT_TRIES.values()),
+    f"module-scope try lines -> { {k: v[:5] for k, v in _GIANT_TRIES.items()} }",
+)
+# The predicate's own null control: it must see a try at module scope, in a
+# loop or `with` there, and must not see one inside a def or a class.
+_MST_PROBE = (
+    _module_scope_try_lines("try:\n    a = 1\nfinally:\n    pass\n"),
+    _module_scope_try_lines("for i in []:\n    with x:\n        try:\n            pass\n"
+                            "        except E:\n            pass\n"),
+    _module_scope_try_lines("def f():\n    try:\n        pass\n    finally:\n        pass\n"
+                            "class C:\n    def g(self):\n        try:\n            pass\n"
+                            "        finally:\n            pass\n"),
+)
+R.check(
+    "the module-scope try detector sees a top-level and a nested try, "
+    "and none inside a def or class",
+    _MST_PROBE == ([1], [3], []),
+    f"(top-level, nested in for/with, inside def/class) -> {_MST_PROBE}",
 )
 
 
