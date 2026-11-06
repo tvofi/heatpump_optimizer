@@ -143,14 +143,6 @@ HREF=$(git ls-remote origin "refs/heads/handoff/$TOPIC") || { echo "body_push: c
 HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
-  # A body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
-  HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
-  case $HEADSEC in *"$HREF"*) ;; *)
-    NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
-    echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
-    keep_refused
-    exit 1 ;;
-  esac
   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
   # The identity refusal at the handoff (P274): the code head's commits over main are judged
   # as the opener would judge them (its guard and the author-identity guard), so a commit authored by a
@@ -159,6 +151,15 @@ if [ -n "$HREF" ]; then
     echo "body_push: a commit of handoff/$TOPIC fails the push guard (above); re-author it, push the code again, then the body" >&2
     exit 1
   }
+  # After the identity guard, which outranks it (ref_privacy's self-test pins that order):
+  # a body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
+  HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
+  case $HEADSEC in *"$HREF"*) ;; *)
+    NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
+    echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
+    keep_refused
+    exit 1 ;;
+  esac
   # The `mutation` red an unpinned site makes is derived, so it is written into
   # `## Red checks` before the lint, not refused at the open (P67).
   (cd "$ROOT" && bash "$HERE/../../pr/prepr.sh" --fill-red "$ABS")

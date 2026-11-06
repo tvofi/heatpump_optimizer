@@ -509,11 +509,10 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
 # graded on those lines, which no local path read: #3245 removed handoff_push.sh's
 # delivery_row line and governance.yml still grepped it, red after the handoff.
 INSTRUMENT_WF, INSTRUMENT_JOB = ".github/workflows/governance.yml", "instrument-self-tests"
-_GREPS_SELF_TEST = re.compile(r"grep -E?q?E? '\^[A-Za-z0-9_.\-]+ self-test:")
 
 
 def instrument_steps(root: Path) -> dict[str, str]:
-    """{step name: run text} of instrument-self-tests' self-test-grepping steps.
+    """{step name: run text} of every instrument-self-tests step that runs a command.
     Read as text, not YAML: governance's runner python has no yaml module, and
     every step there is `- name:` then a `run: |` block (or a one-line `run:`)."""
     p = root / INSTRUMENT_WF
@@ -530,9 +529,24 @@ def instrument_steps(root: Path) -> dict[str, str]:
         m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
         one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
         run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
-        if _GREPS_SELF_TEST.search(run):
+        if run.strip():
             out[name.strip()] = run
     return out
+
+
+def names_changed(root: Path, run: str, changed: set[str]) -> bool:
+    """A step's run text names a changed file, or names a tool whose own text
+    names a changed script by file name: ref_privacy.py's self-test drives
+    body_push.sh, and #3245's head reddened that step without the step naming it."""
+    if any(c in run for c in changed):
+        return True
+    names = {Path(c).name for c in changed if c.endswith((".py", ".sh", ".mjs"))}
+    for tool in set(re.findall(r"(?:tools|tests|dev)/[\w./-]+\.(?:py|sh|mjs)", run)):
+        p = root / tool
+        text = p.read_text(errors="replace") if p.is_file() else ""
+        if any(n in text for n in names):
+            return True
+    return False
 
 
 def replay_step(tree: Path, run: str) -> int:
@@ -557,7 +571,7 @@ def step_replay_preds(root: Path, base: str, changed: set[str],
     an unset variable: red at both ends) is a note left to CI, never the branch's."""
     import tempfile
     head = instrument_steps(root)
-    hit = {n: r for n, r in head.items() if any(c in r for c in changed)}
+    hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}
     reds = {n: rc for n, r in hit.items() if (rc := replay_step(root, r))}
     if not reds:
         return []
@@ -599,14 +613,18 @@ def step_replay_self_test(root: Path) -> int:
                 "          bash tools/{n}.sh --self-test | tee \"$RUNNER_TEMP/{n}.txt\"\n"
                 "          grep -Eq '^{n} self-test: [1-9][0-9]* checks, 0 failed$' \"$RUNNER_TEMP/{n}.txt\"\n")
         (t / INSTRUMENT_WF).write_text(f"jobs:\n  {INSTRUMENT_JOB}:\n    steps:\n"
-                                       + step.format(n="a") + step.format(n="b"))
+                                       + step.format(n="a") + step.format(n="b")
+                                       + "      - name: c\n        run: bash tools/c.sh\n")
+        # c's step names only c.sh, whose text drives a.sh (ref_privacy.py over body_push.sh).
+        (t / "tools" / "c.sh").write_text("bash tools/a.sh --self-test | grep -q '^a self-test:'\n")
         ok = "echo '{n} self-test: 3 checks, 0 failed'\n"
         (t / "tools" / "a.sh").write_text(ok.format(n="a"))
         (t / "tools" / "b.sh").write_text("exit 127\n")
         g("add", "-A")
         g("-c", "user.name=t", "-c", "user.email=t@t", "commit", "-qm", "base")
         base = g("rev-parse", "HEAD").stdout.strip()
-        cases = (("a summary line the head stops printing is predicted red", "echo nothing\n", {"tools/a.sh"}, 1),
+        cases = (("a summary line the head stops printing is predicted red, in a's step and in c's, "
+                  "whose tool names a.sh", "echo nothing\n", {"tools/a.sh"}, 2),
                  ("null control: the head still printing it is not", ok.format(n="a") + "# edited\n", {"tools/a.sh"}, 0),
                  ("null control: a step the diff names no file of is not replayed", "echo nothing\n", set(), 0))
         for label, text, changed, want in cases:
