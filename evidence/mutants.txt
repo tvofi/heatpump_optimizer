@@ -1,0 +1,40 @@
+  FAIL audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none
+  FAIL audit-dispatch null: only ok and insufficient arm lines write no job, no digest, no memory
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  FAIL mutant audit_trip_any_arm: its site appears 0 times
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 3 failed
+audit_trip_any_arm rc=1
+  FAIL audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  FAIL audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  FAIL mutant audit_no_memory: its site appears 0 times
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 3 failed
+audit_no_memory rc=1
+  FAIL audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  FAIL audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  FAIL mutant audit_key_arm_only: its site appears 0 times
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 3 failed
+audit_key_arm_only rc=1
+  FAIL audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  FAIL mutant audit_rc_ignored: its site appears 0 times
+beat_jobs self-test: 116 checks, 2 failed
+audit_rc_ignored rc=1
+  FAIL audit-dispatch: a second arm, or the same arm at a new cut, dispatches once more
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  FAIL mutant audit_no_memory killed by: audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 2 failed
+remember_after_write_drop rc=1
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 0 failed
+unclassified_kept rc=0
+  FAIL audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte
+  ok   audit-dispatch: a failed run is UNREADABLE, never a dispatch
+  ok   mutant audit_rc_ignored killed by: audit-dispatch: a failed run is UNREADABLE, never a dispatch
+beat_jobs self-test: 116 checks, 1 failed
+write_always rc=1

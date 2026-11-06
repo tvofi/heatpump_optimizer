@@ -1,0 +1,5 @@
+RESULT after trip: digest='DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z\n' memory='["all 10-20T01:00Z..11-01T02:00Z"]'
+RESULT after fail: digest='audit-dispatch: UNREADABLE review_strength boom\n' memory='["all 10-20T01:00Z..11-01T02:00Z"]'
+RESULT after recover-same-cut: digest='audit-dispatch: UNREADABLE review_strength boom\n' memory='["all 10-20T01:00Z..11-01T02:00Z"]'
+RESULT after recover-ok: digest='audit-dispatch: UNREADABLE review_strength boom\n' memory='["all 10-20T01:00Z..11-01T02:00Z"]'
+RESULT after ok-again: digest='audit-dispatch: UNREADABLE review_strength boom\n' memory='["all 10-20T01:00Z..11-01T02:00Z"]'
