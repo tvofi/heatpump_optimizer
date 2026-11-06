@@ -1,0 +1,23 @@
+Fix review: blocked 33a345901352189f67afe91df1db27970b25aa46 figures-uncited: the PR body still carries the withdrawn figures and the unresolvable `39143c38f`, and contradicts the ruling file; the roster carries still hold the withdrawn text
+
+bus-nonce: f16841b16fddc75f45f1431cdf1c82ea
+
+Round 3 of this PR (re-check of the round-2 block `f02530f4`). The ruling file is repaired; the PR body and the roster carries are not.
+
+## Block
+- The ruling file now resolves. Every SHA it cites (`750a6001a` = main, `d8eeae8f8`, `7cfdd9cc1`) is a commit on origin; `4fff42664`, `39143c38f`, `e1ee044cc`, `77af298ef` appear nowhere in it (ev/cat-file.txt). "The figures are the seat's" is gone.
+- The PR body was not updated and says the opposite. It still reads "The arm table is corrected to the fix seat's re-take at `39143c38f`; the ratios did not change", gives `wood-full` 7.70 where the ruling prints 8.25, says the floor "catches 1 of the 3 measured instances" (struck in the ruling), and "Those read from the fix seat are not re-run here". `39143c38f` is "Not a valid object name" on origin (ev/cat-file.txt). A reader of the body gets the withdrawn figures at an unresolvable commit, so check (2) fails on the body.
+- `## Red checks` is stale: it says this ref "has no pull request and no checks of its own" and names `ci-ratchet`, which is not a check of this head. The head has checks (ev/checks.txt): `tests / nightly-status` concluded failure at this head; `tests / fast`, `closures`, `browser`, `governance / env-matrix`, `instrument-self-tests` were still in progress when read. The body must name `nightly-status` (not this diff's, which reads neither) and answer any further red once the run concludes. Its `## Head` also names `99a6db4a…` and `783d8dc7…` as the diff, with "96 insertions", where the three-dot diff at this head is 2 files, 99 insertions (delivery row plus ruling).
+- To clear: rewrite the body's Instances/Figures/Red checks/Head to say what the ruling says (8.25, no instance count, figures re-taken at `750a6001a`), drop `39143c38f`, and name the head's concluded reds.
+
+## Findings
+- Residual: the roster carries on R10-HOTFIX-SAV-ESTIMATE still hold the withdrawn text ("at the work-in-progress commit `4fff42664`, metered at half the plan reads the same 50.0 %", an unresolvable commit), pointing at the ruling "at 8439f738e". The ruling's restated carry (wood floor on main, `ledger.py` 461-465 at `750a6001a`) is not what the roster carries. R10-RCA-SAV-ESTIMATE's carry was not checked word for word. Whoever routes the ruling's carry through `roster_edit.py` replaces the hotfix carry with the ruling's text. Carry: R10-SAV-METER-FLOOR
+- Residual: R10-SAV-METER-FLOOR is in the roster (dev/programme/rosters/wave-r10-groups.json:17026 at the roster head, :17024 at `7cfdd9cc1`; ruling cites the latter, correct): kind fix, size S, lane C, files ledger/payload/notifier, hot_files ledger, resume not-started, brief present. Its `after` is a superset of the ruling's (adds R10-SAV-COMFORT, R10-GRADE-DRIVERS, for payload.py/ledger.py sharing; sound). Its brief tail does not carry the `triage:` pointer the ruling's text ends with; routing should add it. Carry: R10-SAV-METER-FLOOR
+- The floor's benefit is no longer quantified in the ruling (1.1 h and 1 of 3 struck), so the R10-RCA-SAV-ESTIMATE carry owes no benefit figure; the ruling's carry text stands. Carry: dismissed: ruling withdrew the figure and carries no number to propagate
+
+## Evidence
+- Head reviewed: 33a345901352189f67afe91df1db27970b25aa46 (ev/HEAD.txt). Merges with origin/main `c679f4b69`: merge-tree rc 0, no conflict (ev/merge-tree.txt).
+- Arm table re-run by this seat from `git archive 750a6001a`, `--quick <arm>` for all eight (ev/arms.txt): plan kWh 67.47, 66.51, 63.35, 41.76, 40.63, 40.70, 8.76 and wood-cold 66.89 (read from section), booked reference 72.28 every arm; `valve-vary` pct 29.84 SOUND, `valve-flat` 0.47 SOUND. R = 72.28/plan reproduces the ruling (1.07, 1.09, 1.14, 1.73, 1.78, 1.78, 8.25). The ruling's wood-arm "harness row %" column was not in the tail I kept; not re-derived. No arm is below 0.5 and only `wood-full` above 2.0, as the ruling says.
+- Calibration drive: struck in the ruling; the wood floor is on main at `ledger.py` (the ruling's lines 461-465 at `750a6001a`), not re-driven.
+- classify at read time: see ev/classify.txt (WAIT, gate pending). Because the block is content, the verdict does not wait for the run to finish. delivery row `dev/programme/delivery/3212.md` is in the three-dot diff; ruling verdict grammar and ACCEPT destination present.
+- No mutation applies: the diff is markdown.
