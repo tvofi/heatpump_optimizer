@@ -36,7 +36,7 @@ same finished sources, so a red source stays red and no wait masks it. The
 waits are acyclic: a gate waits only on runs that are not yet `judging`, and
 nothing waits on a judging run (prelude.wait_sources), so two gates that
 start together each find the other judging on a re-read. Two runs whose
-gates are both listed are broken by id (`busy`): the lower decides, the higher
+gates have both started are broken by id (`busy`): the lower decides, the higher
 waits on it, so a run that judging() misreads (a deferring edit run never lists
 its title's pr-contract) cannot make two gates defer to each other. Only past the
 bound, a run still busy after GATE_WAIT_MAX_S, does the gate FAIL deferring,
@@ -60,7 +60,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
+from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
                      run_jobs, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
@@ -104,15 +104,17 @@ def gate_required() -> list[str]:
 
 def busy(ctx: dict, runs_at_head: list[dict]) -> list:
     """The OTHER runs at this head still adding a source: unfinished, not held, not
-    judging, and not a LATER run whose `gate` is listed. A listed gate has run
-    every unit it needs (ci.yml's `needs`), yet judging() can still read it busy:
+    judging, and not a LATER run whose `gate` has started. A started gate has run
+    every unit it needs (ci.yml's `needs`; a merely listed one has not: GitHub
+    lists it `waiting` from the run's start, R3-2), yet judging() can still read
+    it busy:
     a deferring edit run never lists the `pr-contract / pr-contract` its title
     owes (C3). Two such gates then each deferred to the other and none judged
     (#3241 at 95c7e604, runs 42192623509 and 42193153511). The tie-break: the
     lower id decides, the higher waits on it, so the waits stay acyclic."""
     return sorted(r["id"] for r in runs_at_head
                   if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r)
-                  and not (r["id"] > ctx["run_id"] and "gate" in (r.get("jobs") or {})))
+                  and not (r["id"] > ctx["run_id"] and (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED))
 
 
 def deferral(ids: list) -> str:
@@ -524,7 +526,7 @@ def self_test() -> int:
     at_gate = deferred + [{"name": "gate", "status": "in_progress", "conclusion": None, "id": 9}]
     pair = [{"id": i, "title": title("edit", "7", "main", "M"), "status": "in_progress",
              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for i in (lo, hi)]
-    check("busy-defer: of two gates at one head the lower id defers to none, the higher to the lower",
+    check("busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower",
           (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
     coded = run(99, "code", "completed", owed("code")[:-1] + [{"name": "gate", "status": "completed",
                                                                 "conclusion": "success", "id": 9}])
@@ -545,6 +547,9 @@ def self_test() -> int:
     late_busy = [{**early[0], "id": hi}]
     check("busy-defer null: a later run whose gate is not listed is still deferred to (no gate yet: it adds sources)",
           busy({**ctx, "run_id": lo}, late_busy), [hi])
+    late_waiting = [{**early[0], "id": hi, "jobs": {**early[0]["jobs"], "gate": ("waiting", None)}}]
+    check("busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is "
+          "still deferred to", busy({**ctx, "run_id": lo}, late_waiting), [hi])
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])
