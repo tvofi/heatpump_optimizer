@@ -16896,7 +16896,8 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3243
    },
    "brief": "The free-slot step in tests/gate_lock.py checks that a slot file exists and then acts on it, so a slot freed between the two reads lets two takers win. Found by the final fix review of PR 3170, not fixed there. Precondition control: a delay-only plant, a 30 ms sleep after the read returns nothing for a slot path with no logic changed, turned the one-winner check red in 8 of 10 runs at that head; the plant is the delay script in the verdict evidence on the review/3170 ref, and the fix must turn it green. Re-measure at your merge base. Close the race in production code, never by widening the test's wait."
   },
@@ -17013,7 +17014,8 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3245
    },
    "group": "R10-PROCESS-SLIM",
    "lane": "C",
