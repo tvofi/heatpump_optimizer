@@ -85,7 +85,7 @@ Each mutant replaced one line in place, ran the named check and was restored (`g
 - Scope: `python3 tests/closure.py select --diff b0135d07d --workdir D` reads `MODE: FULL -- every test script runs, nothing is scoped out`, so the suite is CI's.
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED.
 - `git diff b0135d07d...HEAD -- tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md` is empty.
-- `bash tools/pr/prepr.sh` on the committed 4056a2c5e reads `PRE-PR: 4056a2c5e21f9cef42974437c51d7e4c62826e74 ... rc=0`. Its body check (`--body-check PR-BODY.md`) reads `PR-BODY: 0 error(s)` and `CARRY-AUDIT: 0 finding item(s)`. main then moved to c679f4b69. It was merged, and prepr.sh was re-run with this body at the head (`## Head`).
+- `bash tools/pr/prepr.sh` on the committed 4056a2c5e reads `PRE-PR: 4056a2c5e21f9cef42974437c51d7e4c62826e74 ... rc=0`. Its body check (`--body-check PR-BODY.md`) reads `PR-BODY: 0 error(s)` and `CARRY-AUDIT: 0 finding item(s)`. main then moved to c679f4b69. It was merged, and `bash tools/pr/prepr.sh PR-BODY.md` was re-run with this body at the head. It reads `PRE-PR: 0440dfb4761f8dd11ab9f9c3791c4331b9238e0a 00000000000000000000000000000000 rc=0`. origin/main was still c679f4b69 after that run.
 
 ## Architecture score
 
@@ -108,8 +108,13 @@ The concluded reds of the PR head 84a7c456f2a682f76e285921c26d4b05044391e6. All 
 - `gate` (jobs 127667663510, 127668840956): it follows the required budget-raise-gate red. The review read its log as `FAIL budget-raise-gate / budget-raise-gate: failure (run 42145816190)`, its one reason.
 - `tests / nightly-status` (job 127655012336): `NIGHTLY FAILED: slow failed 1 night ago`, scheduled run 41943946464, 2026-11-05T00:47Z, head 499162c on main (`python -I -S tests/nightly_status.py`, local, same output class). The cause is main's `slow` lane, outside this diff, and the nightly owner holds it. The job and `tests/nightly_status.py` are outside this diff. This seat dispatched no nightly, because it may write no ref outside its return refs.
 
-An earlier commit of this branch was also red on one check, `prepr.sh`'s ancestry read:
-- `governance / delivery-status` (job 127578682473, at the round-1 head 53e21a9b4). It listed overdue delivery rows of other PRs (#3174, #3091, #3089, #3192 among them) and printed `This check is NOT a required context`. It grades main's ledger, not this diff.
+Earlier commits of this branch were also red, as `prepr.sh`'s ancestry read lists. Round 1's head 53e21a9b4 was red on these, each fixed in round 2 and green at 84a7c456f:
+- `tests / fast (3.14)` (job 127578956992): `1 of 112 HARNESS HEADER CHECKS FAILED`, from `FAIL every inlined walk matches the canonical helper and no depth root remains [FAIL depth seams: ...parents[4]]`. A defect of this branch, fixed in 37474e097 (the canonical `repo_root` walk in the three harnesses). At 84a7c456f it is green (job 127655219932). Cheaper detector: harness_headers' depth-seam scan, about 1 s, which `prepr.sh` does not run. That is a contract change, so it is the owner's, and it is named here, not made.
+- `tests / closures` (job 127578956756): `INERT READS UNDER-APPROXIMATED` for the four new harnesses `tests/harness_headers.py` opens. Fixed in 1066ed961 by `./tests/derive_closures.sh --single tests/harness_headers.py` on Linux. Green at 84a7c456f (job 127655219952). Cheaper detector: `tools/pr/ci_predict.py`, which predicts this red in `prepr.sh` step 6d. Round 1's handoff did not repair it. This round adds no new tracked file, and the scoped gate passes.
+- `tests / closures-autofix` (job 127589755936): this follows from the closures red, because the bot does not re-record an under-approximation. Fixed by the same commit, so no new detector is owed.
+- `governance / delivery-status` (job 127578682473), below.
+
+- `governance / delivery-status` (job 127578682473, at 53e21a9b4). It listed overdue delivery rows of other PRs (#3174, #3091, #3089, #3192 among them) and printed `This check is NOT a required context`. It grades main's ledger, not this diff.
 - At 84a7c456f the same check is green (job 127655012666).
 - At this head, `python -I -S tests/delivery_status.py --check` reads `DELIVERY STATUS OK — 46 rowed, 5 pending, 0 overdue (overdue at 12 commits)`, rc=0.
 - A `yaml.safe_load` comparison of `jobs.delivery-status` in governance.yml at origin/main c679f4b69 and at this head reads IDENTICAL.
