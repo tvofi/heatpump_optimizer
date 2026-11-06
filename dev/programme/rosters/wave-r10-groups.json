@@ -17681,6 +17681,28 @@
     "stage": "not-started"
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted verbatim, cite it in the body: \"There should already be tracked sweep templates/scripts for these, update them if needed\". Read the instruments guide first (tools/audit/seat/ inventory). Fold the 2026-11-06 out-of-tree sweep changes into the tracked sweep instruments under tools/audit/seat/ (sweep_render.py, its template, and any tracked sweep runner). The changes, to be diffed against the orchestrator's out-of-tree sweep-runner directory (the orchestrator state dir s9/sweep-runner; the dispatch seat names no host path in the body): (a) Gantt inputs: handoffs live only if committed within 12 h, and fires filtered to 12 h, passed as --fired; (b) the verdict audit (UNHELD lines every second pass), from the out-of-tree verdict audit script in that directory; (c) the plan republish emit; (d) the manual roster-drain path. Each change must come with a self-test. If a tracked counterpart does not exist, say so in the body rather than inventing one. No host paths or secrets in anything committed."
+  },
+  {
+   "group": "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
+   "size": "S",
+   "after": [],
+   "files": [
+    ".github/workflows/nightly.yml",
+    "tests/mutation_table.py"
+   ],
+   "brief": "Owner request 2026-11-06 ~22:42Z (tvofi): measure from the last scheduled nightly's mutation-ledger shard logs (run 42139479636, jobs 127635902545, 127635902861, 127635902894, 127635902936, and mutation-nightly 127635903188) where the drawn mutants go -- killed and pinned, survived, timed out or unstarted against --budget-minutes, already pinned or triaged, skipped -- per shard, with the enumerator command for every figure. Then make the sound changes that raise pinned mutants per night (shard count, --jobs, --max, driver cost such as the slowest killing script, --budget-minutes within the job timeout, draw de-duplication against existing pins), each justified by the measured breakdown and its null control; the owner allows a time-budget raise if the measurement needs it. Fix it architecturally, keep the ratchet and survivor triage manual (ci-autofix.md). Measure the before and after pins-per-night on a workflow_dispatch nightly.",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus"
+   },
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null,
+    "note": "overlap admitted (R10-HOTFIX-NIGHTLY-STATUS): distinct seam: nightly.yml mutation-ledger drain jobs and tests/mutation_table.py draw; R10-HOTFIX-NIGHTLY-STATUS owns the nightly_status grader only (its fixer is already fired)"
+   }
   }
  ]
 }
