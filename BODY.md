@@ -8,7 +8,10 @@ Carry map (roster entry `R10-ROSTER-READ-SWEEP`, `carry` list, 1-based index):
 - Carry 3 (review-time destination check names `absorbed_into`): landed.
 - Carry 4 (`gate_kind` classifier the tick calls): landed.
 - Carry 5 (the RosterNotFound traceback in plan_table, resume_doc, handover_prompt): landed in this diff, via the shared `roster_lib.run_refusing`. The first body listed it as out of the diff; that was wrong.
-- Carries 6, 7, 8, 9: not landed; they stay on the open roster entry (carry 6 the routing audit's disposed-key mechanism, 7 and 8 routed to R10-ORCH-ROSTER-SCHEMA, 9 the invariant-3 tick line and the issue-arm dispositions).
+- Carry 6 (the routing audit's disposed-key mechanism): not landed; it stays on the open roster entry.
+- Carry 7 (#2875 unowned): not landed; routed to R10-ORCH-ROSTER-SCHEMA by its own text.
+- Carry 8 (#2855's key): not landed; routed to R10-ORCH-ROSTER-SCHEMA by its own text.
+- Carry 9 (the invariant-3 tick line and the issue-arm dispositions): not landed; it stays on the open roster entry.
 
 ## Head
 
