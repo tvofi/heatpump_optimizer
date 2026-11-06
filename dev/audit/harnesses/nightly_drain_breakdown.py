@@ -34,7 +34,6 @@ import re
 import sys
 from datetime import datetime, timedelta
 
-_STAMP = re.compile(r"^(\d{4}-\d\d-\d\dT\d\d:\d\d:\d\d)\.\d+Z (.*)$")
 _HEAD = re.compile(r"DRAIN SHARD (\d+)/(\d+) -- (\d+) of (\d+) unpinned")
 _BUDGET = re.compile(r"--budget-minutes (\d+)")
 _ROW = re.compile(r"^  (pinned|UNPINNED|NOT RUN) +(\S+ [A-Z_]+) -- (.*)$")
@@ -43,10 +42,14 @@ _ROW = re.compile(r"^  (pinned|UNPINNED|NOT RUN) +(\S+ [A-Z_]+) -- (.*)$")
 def _lines(path: str):
     with open(path, encoding="utf-8", errors="replace") as fh:
         for raw in fh:
-            raw = raw.lstrip("\ufeff").rstrip("\n")
-            m = _STAMP.match(raw)
-            if m:
-                yield datetime.fromisoformat(m.group(1)), m.group(2)
+            stamp, _, text = raw.lstrip("\ufeff").rstrip("\n").partition(" ")
+            # The runner stamps each line `YYYY-MM-DDTHH:MM:SS.fffffffZ`; the
+            # seconds are the resolution this rule needs.
+            try:
+                when = datetime.fromisoformat(stamp[:19])
+            except ValueError:
+                continue
+            yield when, text
 
 
 def shard(path: str) -> dict:
