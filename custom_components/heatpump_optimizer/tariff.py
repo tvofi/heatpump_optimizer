@@ -533,6 +533,19 @@ def _stored_peaks(peaks: Any, days: Any) -> list[tuple[float, str]]:
     return ranked
 
 
+def _window_partition(
+    window_minutes: int, dt_hours: float, offset_steps: int
+) -> tuple[int, int]:
+    """The metering-window partition of a step grid: (steps per window, head steps).
+
+    The clocks' property, never a row's, so the scalar ``metering_windows`` and
+    its batch twin ``_window_means_batch`` cannot partition a plan differently.
+    ``head_steps`` is how many steps the leading partial window holds.
+    """
+    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    return per_window, int(offset_steps) % per_window
+
+
 def metering_windows(
     house_power_kw: np.ndarray,
     window_minutes: int,
@@ -556,11 +569,10 @@ def metering_windows(
     house = np.asarray(house_power_kw, dtype=float)
     if house.size == 0:
         return house
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    per_window, head_steps = _window_partition(window_minutes, dt_hours, offset_steps)
     if per_window <= 1:
         return house
 
-    head_steps = int(offset_steps) % per_window
     head = house[:head_steps]
     rest = house[head_steps:]
 
@@ -1088,10 +1100,9 @@ def _window_means_batch(
     n = houses.shape[1]
     if n == 0:
         return houses
-    per_window = max(1, int(round(window_minutes / max(dt_hours * 60.0, 1e-6))))
+    per_window, head_steps = _window_partition(window_minutes, dt_hours, offset_steps)
     if per_window <= 1:
         return houses
-    head_steps = int(offset_steps) % per_window
     pieces: list[np.ndarray] = []
     if head_steps:
         pieces.append(

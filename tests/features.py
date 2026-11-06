@@ -78528,4 +78528,21 @@ R.check(
     f"{_c2238_p7.peaks} {_c2238_p7.peak_days}",
 )
 
+# P8: the metering-window partition -- the scalar windows and the batch twin
+# both partition through tariff._window_partition.
+_c2238_house = np.arange(8.0)
+with _c2238_mock.patch.object(
+    _c2238_tmod, "_window_partition", create=True, side_effect=lambda *_a: (2, 1),
+):
+    _c2238_p8_s = metering_windows(_c2238_house, 60, 0.25, 0)
+    _c2238_p8_b = _c2238_tmod._window_means_batch(_c2238_house[None, :], 60, 0.25, 0)
+R.check(
+    "R10-CLONE-2238 P8: metering_windows and _window_means_batch both "
+    "partition through _window_partition",
+    _c2238_p8_s.size == 5 and _c2238_p8_b.shape == (1, 5)
+    and np.allclose(_c2238_p8_s, _c2238_p8_b[0]),
+    f"scalar {_c2238_p8_s}, batch {_c2238_p8_b}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))

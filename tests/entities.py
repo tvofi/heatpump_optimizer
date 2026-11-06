@@ -4161,6 +4161,11 @@ def _p2_registry(sources):
                  ast.ListComp, r"^\[(kw|day) for (kw, _|_, day) in ranked\]$",
                  lambda n: True),
              owners=["tariff.py::PeakTracker._keep_ranked"], dispositions={}),
+        dict(fact="window_partition", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"^round\(window_minutes / max\(dt_hours",
+                 lambda n: getattr(n.func, "id", None) == "round"),
+             owners=["tariff.py::_window_partition"], dispositions={}),
     ]
 
 
