@@ -44,7 +44,7 @@ Find a live `tools/audit/seat/merge_train.py` and read its log. A live process h
 
 Load a train on the hourly pitch, with `--bot-prs`, when no train is running and fewer than four preprs are running. One verdicted pull request is still a train. The record pull request merges inside the pitch, not between pitches. Verdicted means the newest posted fix review is merge for this 40-hex head, or `tools/pr/app_approve.sh` carry says the verdict carries. The train waits for CI in its own ci step, so do not wait for it. Order the queue by creation time, oldest first. Each entry carries the pull request number, the 40-hex the merge verdict names, the comment id (the comment must cite an absolute evidence path), and the issues the body intends to close.
 
-Leave out of the queue a `record:` pull request, which `--bot-prs` merges. A change to a `*_budgets.json` file or to a policy path as `policy_lint.mjs --corpus-filter` defines it stays in: the train routes it serial (`Train.admit`, by `merge_fastpath.py`'s class), and `--pre-flight` parks one whose budget raise or policy head the owner has not approved at that head (`Train.raise_hold`, `Train.policy_gate`); a parked one is step 7's. Never pass `--allow-red`.
+Leave out a `record:` pull request, which `--bot-prs` merges. A `*_budgets.json` or policy-path head stays in: the train routes it serial, and `--pre-flight` parks one the owner has not approved at that head (`Train.raise_hold`, `Train.policy_gate`) for step 7. Never pass `--allow-red`.
 
 The command is detached, because a background waiter dies at two hours:
 
@@ -66,7 +66,7 @@ A `record:` pull request needs no fix review and no reviewer. The nightly record
 
 ## 7. Direct merge, when no train is running
 
-Direct-merge only what the train's `--pre-flight` parked (step 3): a budgets-file or policy-path pull request whose mandate review is already on that head. Ready means required checks are success or skipped, GitHub reports it mergeable, and the newest posted fix review is merge for this head or carries. Oldest first. Anything the queue takes waits for the pitch.
+Direct-merge only what `--pre-flight` parked: a budgets-file or policy-path pull request whose mandate review is already on that head. Ready means required checks are success or skipped, GitHub reports it mergeable, and the newest posted fix review is merge for this head or carries. Oldest first. Anything the queue takes waits for the pitch.
 
 ## 8. Prepr slots
 
