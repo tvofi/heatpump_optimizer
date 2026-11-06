@@ -67,12 +67,14 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
-    Q1-Q7  roster_queue.py's own self-test: the plain shlex.split line grammar
+    Q1-Q9  roster_queue.py's own self-test: the plain shlex.split line grammar
            (a trailing comment reaches the editor, Q1), the run-start snapshot
            written over a line appended since (Q2), a flag folded into the
            value (Q3), a held line released with its batch file absent (Q4),
            marking the wrong line (Q5), `all` run without --mark (Q6) and no
-           lint-clone self-heal in `loop` (Q7).
+           lint-clone self-heal in `loop` (Q7), the batch path resolving its
+           editor from the edit checkout, not the one `run` executes (Q8),
+           and a file that is no roster_edit executed by the batch loader (Q9).
 
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
@@ -287,6 +289,10 @@ PLANTS.update({
     "Q6": (RQ, "    if allq and not mark:\n", "    if False:\n"),
     "Q7": (RQ, "    if Path(a.lint_clone).is_dir():\n        return False\n",
            "    if True:\n        return False\n"),
+    "Q8": (RQ, '    return str(a.editor or SEAT_DIR / "roster_edit.py")\n',
+           '    return str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))\n'),
+    "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
+           '    if False:\n'),
 })
 
 
@@ -299,7 +305,7 @@ def parts(name):
 
 
 def target_self_test(target=TARGET):
-    r = subprocess.run([sys.executable, target, "--self-test"], cwd=ROOT,
+    r = subprocess.run([sys.executable, "-I", target, "--self-test"], cwd=ROOT,
                        capture_output=True, text=True)
     fails = [ln for ln in r.stdout.splitlines() if ln.startswith("FAIL ")]
     return r.returncode, fails, (r.stdout + r.stderr).strip().splitlines()[-3:]

@@ -19,8 +19,9 @@ the runner lints from `--lint-clone`, a checkout it owns, fetched and detached
 at `origin/main` before every attempt, and retries up to four times when the
 refusal is that main moved or the push lost a race with a clean lint
 (the roster worktree is removed between attempts). It never moves
-`--edit-checkout` (the orchestrator's), which only supplies the tool and the
-roster. A refusal is reported, never forced.
+`--edit-checkout` (the orchestrator's), which only supplies the roster and the
+shims; the editor is `--editor` or the roster_edit.py beside this script, the
+same file for `run` and `run --batch` (`resolve_editor`). A refusal is reported, never forced.
 
 LINE GRAMMAR (one parser for `run`, `--batch` and `loop`): an unquoted word that
 begins with `#` ends the line (a `#` inside a word, or a quoted `'a # b'`,
@@ -49,6 +50,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import importlib.util
 import io
 import json
 import os
@@ -61,6 +63,30 @@ from pathlib import Path
 
 ROSTER_REL = "dev/programme/rosters/wave-r10-groups.json"
 MOVED = "not origin/main"
+SEAT_DIR = Path(__file__).resolve().parent
+
+
+def resolve_editor(a):
+    """THE editor, resolved once for `run` and `run --batch` alike: the
+    `--editor` the caller passed, else the roster_edit.py beside this script.
+    Never a file under --edit-checkout, which supplies the roster and the shims
+    only, so a single-op run and a batch can never execute two versions, and
+    the self-test's throwaway clone (no roster_edit.py) needs none."""
+    return str(a.editor or SEAT_DIR / "roster_edit.py")
+
+
+def load_editor(path):
+    """The editor at `path` as a module, for the batch path (the single-op path
+    runs the same file as a subprocess). Raises when it is not a roster_edit."""
+    if "def batch_edit" not in Path(path).read_text():
+        raise RuntimeError(f"{path} is not a roster_edit.py (no batch_edit)")  # run nothing
+    spec = importlib.util.spec_from_file_location("roster_edit_batch", path)
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    for need in ("parse_op", "make_edit", "batch_edit", "write_roster"):
+        if not hasattr(mod, need):
+            raise RuntimeError(f"{path} has no {need}: not a roster_edit.py")
+    return mod
 
 
 def _git(*a, cwd=None, env=None):
@@ -179,7 +205,7 @@ def run_queue(a, python=None):
     shims = Path(a.edit_checkout, "tools/audit/seat/shims")
     if shims.is_dir():
         env["PATH"] = f"{shims}:{env['PATH']}"
-    editor = a.editor or str(Path(a.edit_checkout, "tools/audit/seat/roster_edit.py"))
+    editor = resolve_editor(a)
     py = python or "seat-python3"
 
     def sh(*c):
@@ -232,8 +258,6 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     op is rolled back and skipped. Any batch-level failure (a lint refusal, a
     gate refusal of the joint text, a lost race) falls back to the single-op
     path for every line, so a bad line never strands the others."""
-    sys.path.insert(0, str(Path(a.edit_checkout, "tools/audit/seat")))
-    import roster_edit as re_
     items = []
     for ln in lines:
         p = parse_line(ln)
@@ -246,6 +270,7 @@ def _run_batch(a, sh, rep, py, editor, lines, mark):
     if a.branch:
         common += ["--branch", a.branch]
     try:
+        re_ = load_editor(editor)
         edits = []
         for _, (op, g, arg, extra) in items:
             with contextlib.redirect_stderr(io.StringIO()):  # argparse's usage noise
@@ -374,6 +399,14 @@ def unwired(roster, open_issues):
     import carry_audit
     return [x for x in carry_audit.roster_report(roster, {}, set(open_issues))
             if x.startswith("ISSUE-UNLISTED")]
+
+
+def _raises(f):
+    try:
+        f()
+    except Exception:  # noqa: BLE001
+        return True
+    return False
 
 
 def _self_test():
@@ -569,9 +602,34 @@ def _self_test():
         ck("run --batch: a batch-level failure falls back to the single-op path",
            rr[0] == "roster: batch fell back to the single-op path"
            and rr[1] == f"roster: bogus-op G pushed {sha[:9]}", rr)
+        # ONE editor for both paths (resolve_editor), named by what each path ran
+        seen = []
+        real_load = load_editor
+
+        def spy(path):
+            seen.append(path)
+            return real_load(path)
+        globals()["load_editor"] = spy
         fresh("1 set-stage G done\n")
         run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
                   python=sys.executable)
+        globals()["load_editor"] = real_load
+        ck("run --batch loads the passed --editor, and its fallback runs that same file",
+           seen == [str(stub)] and (t / "rep").read_text().split("\n")[1]
+           == f"roster: set-stage G pushed {sha[:9]}", seen)
+        ck("resolve_editor: no --editor is the roster_edit.py beside this script, never the edit checkout",
+           resolve_editor(argparse.Namespace(editor=None, edit_checkout=str(clone)))
+           == str(Path(__file__).resolve().parent / "roster_edit.py")
+           and not (clone / "tools/audit/seat/roster_edit.py").exists())
+        marker = t / "ran"
+        ghost = t / "ghost.py"
+        ghost.write_text(f"open({str(marker)!r}, 'w').write('x')\n")
+        ck("load_editor: a file that is no roster_edit is refused unexecuted",
+           _raises(lambda: load_editor(str(ghost))) and not marker.exists())
+        fresh("1 set-stage G done\n")
+        real_ed = str(Path(__file__).resolve().parent / "roster_edit.py")
+        run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True,
+                                        "editor": real_ed}), python=sys.executable)
         ck("run --batch: a batch whose every op is refused reports each refused, no fallback",
            (t / "rep").read_text().startswith("roster: set-stage G refused rc=2"))
         # release-held: a held carry waits for its batch file on origin/main
