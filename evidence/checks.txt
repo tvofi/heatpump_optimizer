@@ -1,8 +1,1 @@
-fatal: Not a valid object name 4fff42664
-d8eeae8f8e51bee189ef133f8babdb91e5c3d916	refs/heads/handoff/r10-rca-sav-estimate
-88697cf19c7848a4ab5e97114c29d87c51f389c9	refs/heads/wip/r10-hotfix-sav-estimate
-merge-tree rc=0
-51	9	custom_components/heatpump_optimizer/ledger.py
-6	0	custom_components/heatpump_optimizer/notifier.py
-3	1	custom_components/heatpump_optimizer/payload.py
-14	2	custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+nightly-status failure; fast/closures/browser/env-matrix/instrument-self-tests in_progress at 02:46Z (head 33a345901352189f67afe91df1db27970b25aa46)
