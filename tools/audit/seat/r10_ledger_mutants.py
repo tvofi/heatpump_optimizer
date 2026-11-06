@@ -34,7 +34,7 @@ PLANTS = {
     # the ledger: event closers, the level's closers, aging, refusals, stores
     "L1_readback_no_close": (LEDGER, '                how = "read-back"', "                how = None"),
     "L2_moved_head_kept": (LEDGER, 'else "superseded" if sha != "-" and live[subj] != sha else None)', "else None)"),
-    "L3_any_verdict_posts": (LEDGER, '(text in lines if kind == "verdict-unposted"',
+    "L3_any_verdict_posts": (LEDGER, '(text in lines or (named and verdict_head(text) is None) if kind == "verdict-unposted"',
                              '(bool(lines) if kind == "verdict-unposted"'),
     "L4_added_lines_unchecked": (LEDGER, "if not add <= have or rem & have:", "if rem & have:"),
     "L5_no_ancestry_close": (LEDGER, '''        if rc == 0 and out.strip() == "0":
@@ -94,8 +94,8 @@ PLANTS = {
     "T2_no_reads_fold": (TICK, 'lg.fold(rows, getattr(self, "_live", None), getattr(self, "_readback", None))', "lg.fold(rows)"),
     "T3_review_owed_silent": (TICK, '                                       getattr(rr, "RECORD_BRANCH", None)):\n                self.line(S, text, flag=True)',
                               '                                       getattr(rr, "RECORD_BRANCH", None)):\n                pass'),
-    "T4_no_escalation": (TICK, "                                aging, group_of):\n            self.line(S, text, flag=True)",
-                         "                                aging, group_of):\n            pass"),
+    "T4_no_escalation": (TICK, "                                aging, group_of, last_open):\n            self.line(S, text, flag=True)",
+                         "                                aging, group_of, last_open):\n            pass"),
     "T5_no_design_build": (TICK, "        self.design_builds(S, rl, roster)\n", ""),
     "T6_unreadable_silent": (TICK, '            self.unreadable(S, "obligations ledger", str(e)[:100])\n            return\n        if not rows',
                              "            return\n        if not rows"),

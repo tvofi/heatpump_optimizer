@@ -74,7 +74,11 @@ threshold, oldest first, naming the roster group and the repair; an OWNER FLAG
 at the second. The thresholds are policy (tvofi's); the switch is
 HPO_LEDGER_AGING = `<dispatch_h>,<owner_h>` or `off`, defaulting to the
 owner's ruling of 2026-10-21 (4 h, 12 h). A tip stamped ahead of the clock has
-no age (fixer.md step 16): it escalates nothing.
+no age (fixer.md step 16): it escalates nothing. Only an arrival after the
+newest fix/ or handoff/ pull-request opening ages (the tick passes it; the
+standing backlog would otherwise hold the alarm up for ever); an unread
+opening keys on age alone. `dispose` into a home other than the default says
+so on stderr: the tick reads the default.
 
 EXIT CODES (`board`, `level`, `disposed`). 0: nothing owed (not disposed).
 1: obligations exist (disposed), the finding, with `board`'s summary line.
