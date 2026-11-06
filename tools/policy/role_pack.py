@@ -3,7 +3,8 @@
 contract's reads load, and the INSTRUMENTS.md entries the contract names.
 
     python3 tools/policy/role_pack.py render <role> [--out FILE]
-    python3 tools/policy/role_pack.py check [<role> ...]
+    python3 tools/policy/role_pack.py check [<role> ...] [--pack FILE]
+    python3 tools/policy/role_pack.py sizes
     python3 tools/policy/role_pack.py --self-test
 
 WHY. A seat opens by reading its contract under dev/governance/roles/ and
@@ -233,6 +234,23 @@ def check(role: str, pack: str, root: Path = ROOT) -> list[str]:
     return errs
 
 
+def sizes(root: Path = ROOT) -> list[str]:
+    """Per role, in characters: the read set a pack replaces -- the contract,
+    the rules a Read of it loads and the whole INSTRUMENTS.md -- beside the pack.
+    A seat that reads its contract through Bash loads no rule, so its read set
+    is the contract and INSTRUMENTS.md alone: the third column."""
+    whole = len(_read(root, INSTRUMENTS))
+    out = ["role read_set(Read) read_set(Bash) pack pack-read_set(Read) entries"]
+    for role in ROLE_CONTRACT:
+        blocks = plan(role, root)
+        contract = len(blocks[0][2])
+        rules = sum(len(t) for r, _, t in blocks if r.startswith(RULES_DIR))
+        pack = len(render(role, root))
+        out.append(f"{role} {contract + rules + whole} {contract + whole} {pack} "
+                   f"{pack - contract - rules - whole} {len(blocks[-1][2].splitlines())}")
+    return out
+
+
 def self_test() -> int:
     """Every role's pack checks clean, and each rule refuses its own mutant."""
     passed = failed = 0
@@ -316,6 +334,7 @@ def main(argv: list[str]) -> int:
     r = sub.add_parser("render")
     r.add_argument("role")
     r.add_argument("--out")
+    sub.add_parser("sizes")
     c = sub.add_parser("check")
     c.add_argument("roles", nargs="*")
     c.add_argument("--pack", help="check this file as the pack of the one role named")
@@ -327,6 +346,9 @@ def main(argv: list[str]) -> int:
                 Path(a.out).write_text(pack, encoding="utf-8")
             else:
                 sys.stdout.write(pack)
+            return 0
+        if a.cmd == "sizes":
+            print("\n".join(sizes()))
             return 0
         if a.pack and len(a.roles) != 1:
             raise Refusal("--pack checks one file, so name exactly one role")
