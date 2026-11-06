@@ -133,6 +133,7 @@ import pathlib
 import re
 import shlex
 import shutil
+import signal
 import stat
 import subprocess
 import sys
@@ -175,6 +176,10 @@ TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
 RELEASE_TREE_STEP = "Refuse a tag whose tree does not carry its version"
 RELEASE_PUBLISH_STEP = "Publish the release once its asset is on it"
 RELEASE_READBACK_ATTEMPTS = 5
+# The self-test's bound on one run of a release.yml step. Against the stub
+# gh, whose sleep returns at once, the shipped publish step exits 1 after 5
+# reads in under 0.05 s, so a step still running at this bound has no bound.
+RELEASE_STEP_TIMEOUT_S = 10
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below). A
 # subject there has taken two shapes, so both are matched, and a deploy-key
@@ -1136,6 +1141,22 @@ def self_test() -> int:
     # THE RELEASE WORKFLOW'S TREE CHECK AND ITS READ-BACK, driven from the YAML
     # text itself: the step's own `run:` block is cut out of release.yml and
     # run under bash, never a copy of its logic.
+    def _run_step(step: str, cwd, env: dict) -> int | None:
+        """Exit of release.yml step `step` under `bash -e -c` (GitHub's step
+        shell), or None when it is still running at RELEASE_STEP_TIMEOUT_S:
+        a step that does not end is a FAIL, never a hung self-test. It runs in
+        its own process group, killed whole at the bound, so no stub it started
+        outlives it in the temporary directory."""
+        proc = subprocess.Popen(["bash", "-e", "-c", release_step_script(step)], cwd=cwd, env=env,
+                                stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                start_new_session=True)
+        try:
+            return proc.wait(timeout=RELEASE_STEP_TIMEOUT_S)
+        except subprocess.TimeoutExpired:
+            os.killpg(proc.pid, signal.SIGKILL)
+            proc.wait()
+            return None
+
     def _tree_check(tag: str, version: str, manifest: str, heading: str) -> int:
         with tempfile.TemporaryDirectory() as tree:
             t = pathlib.Path(tree)
@@ -1144,9 +1165,7 @@ def self_test() -> int:
             (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
                 json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
             (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
-            return subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
-                                  env={**os.environ, "TAG": tag},
-                                  capture_output=True, text=True).returncode
+            return _run_step(RELEASE_TREE_STEP, t, {**os.environ, "TAG": tag})
     check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
           _tree_check("v7.1.1", "7.1.1", "7.1.1", "## v7.1.1") == 0)
     check("release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)",
@@ -1170,11 +1189,11 @@ def self_test() -> int:
             (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
             for stub in ("gh", "sleep"):
                 (b / stub).chmod(0o755)
-            rc = subprocess.run(["bash", "-e", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
-                                env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
-                                     "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
-                                capture_output=True, text=True).returncode
-            reads = int((b / "reads").read_text()) if (b / "reads").exists() else 0
+            rc = _run_step(RELEASE_PUBLISH_STEP, d, {**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
+                                                    "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"})
+            # A step killed at the bound can leave the stub mid-write: an empty count.
+            _n = (b / "reads").read_text().strip() if (b / "reads").exists() else "0"
+            reads = int(_n) if _n.isdigit() else -1
             return rc, reads, (b / "published").exists()
     check("release publish: an asset read back on the third read is published",
           _publish_step(3) == (0, 3, True))
@@ -1926,7 +1945,8 @@ def self_test() -> int:
           and _calls2 == [("flush", "pre1234")] and _notes2 == _nt)
     check("flush: main runs it after rule 3 and before rule 4, and a dry run's deferral "
           "reaches rule 5 only as that deferral",
-          _main_src.find("last_tag = \"v\"") < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
+          -1 < _main_src.find("last_tag = last_stamped_tag(tags, tag_version)")
+          < _main_src.find("flush_before_tag(args, last_tag, nxt, head)")
           < _main_src.find("body = notes_section(NOTES.read_text(), nxt)")
           and "allow_rowless=args.allow_rowless or bool(deferred)" in _main_src)
     _gates = iter([(False, "no completed ci.yml push run's gate for HEAD yet"),
