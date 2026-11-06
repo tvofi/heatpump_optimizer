@@ -1,0 +1,68 @@
+CodeQL	completed	success	2026-11-06T07:30:33Z	2026-11-06T07:30:36Z	127771381471
+arch-score / arch-score	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:31:27Z	127771322581
+arch-score / arch-score	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:31:39Z	127771317220
+arch-score / arch-score	completed	success	2026-11-06T07:31:32Z	2026-11-06T07:32:21Z	127771713934
+arm	completed	skipped	2026-11-06T07:29:54Z	2026-11-06T07:29:53Z	127771144546
+budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:51Z	127771317084
+budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:30:55Z	127771322473
+budget-raise-gate / budget-raise-gate	completed	success	2026-11-06T07:31:32Z	2026-11-06T07:31:53Z	127771714045
+cancel-superseded	completed	success	2026-11-06T07:29:56Z	2026-11-06T07:30:07Z	127771143658
+cancel-superseded	completed	success	2026-11-06T07:29:57Z	2026-11-06T07:30:05Z	127771151120
+cancel-superseded	completed	success	2026-11-06T07:30:58Z	2026-11-06T07:31:06Z	127771515020
+codeql	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324039
+codeql	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771716215
+codeql / Analyze (actions)	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:41Z	127771316811
+codeql / Analyze (javascript-typescript)	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:30:43Z	127771316795
+codeql / Analyze (python)	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:42Z	127771316750
+gate	completed	failure	2026-11-06T07:31:30Z	2026-11-06T07:31:59Z	127771703222
+gate	completed	failure	2026-11-06T07:32:24Z	2026-11-06T07:32:55Z	127772016712
+gate	completed	failure	2026-11-06T07:59:10Z	2026-11-06T07:59:40Z	127781394257
+governance	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324629
+governance	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771715750
+governance / delivery-status	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:47Z	127771317141
+governance / delivery-status-publish	completed	skipped	2026-11-06T07:30:23Z	2026-11-06T07:30:23Z	127771318612
+governance / env-matrix	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:35:45Z	127771316970
+governance / instrument-self-tests	completed	failure	2026-11-06T07:30:26Z	2026-11-06T07:58:36Z	127771317138
+governance / policy-docs	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:31:19Z	127771317058
+governance / record	completed	skipped	2026-11-06T07:30:23Z	2026-11-06T07:30:22Z	127771319218
+governance / wave-script	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:31:10Z	127771317139
+hassfest	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324959
+hassfest	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771715433
+hassfest / hassfest	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:44Z	127771316630
+kernel-points	completed	skipped	2026-11-06T07:30:23Z	2026-11-06T07:30:22Z	127771318150
+kernel-points	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324027
+kernel-points	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771716112
+pr-contract	completed	skipped	2026-11-06T07:31:28Z	2026-11-06T07:31:28Z	127771704162
+pr-contract	completed	skipped	2026-11-06T07:32:21Z	2026-11-06T07:32:21Z	127772017676
+pr-contract / pr-contract	completed	failure	2026-11-06T07:58:39Z	2026-11-06T07:59:07Z	127781214963
+prelude	completed	success	2026-11-06T07:29:56Z	2026-11-06T07:30:22Z	127771143741
+prelude	completed	success	2026-11-06T07:29:57Z	2026-11-06T07:30:23Z	127771150109
+prelude	completed	success	2026-11-06T07:30:58Z	2026-11-06T07:31:29Z	127771514567
+refresh	completed	success	2026-11-06T07:29:56Z	2026-11-06T07:30:29Z	127771143362
+refresh	completed	success	2026-11-06T07:29:57Z	2026-11-06T07:30:26Z	127771150394
+refresh	completed	success	2026-11-06T07:30:58Z	2026-11-06T07:31:29Z	127771514895
+tests	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324613
+tests	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771715027
+tests / arch-instrument	completed	success	2026-11-06T07:31:03Z	2026-11-06T07:32:26Z	127771539620
+tests / briefs	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:31:03Z	127771316855
+tests / browser	completed	success	2026-11-06T07:31:02Z	2026-11-06T07:35:33Z	127771539644
+tests / ci-ratchet	completed	skipped	2026-11-06T07:49:04Z	2026-11-06T07:49:04Z	127777850354
+tests / claims-autofix	completed	skipped	2026-11-06T07:42:12Z	2026-11-06T07:42:12Z	127775454263
+tests / closure-scope	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:31:00Z	127771316894
+tests / closures	completed	success	2026-11-06T07:31:03Z	2026-11-06T07:49:04Z	127771539857
+tests / closures-autofix	completed	skipped	2026-11-06T07:49:04Z	2026-11-06T07:49:04Z	127777850362
+tests / coverage	completed	success	2026-11-06T07:31:02Z	2026-11-06T07:43:35Z	127771539687
+tests / coverage-ratchet	completed	success	2026-11-06T07:43:39Z	2026-11-06T07:43:48Z	127775936966
+tests / fast (3.14)	completed	success	2026-11-06T07:31:02Z	2026-11-06T07:42:12Z	127771539755
+tests / graders-head-copy	completed	success	2026-11-06T07:43:39Z	2026-11-06T07:44:07Z	127775937193
+tests / lane-proofs	completed	success	2026-11-06T07:43:39Z	2026-11-06T07:43:45Z	127775937065
+tests / mutation	completed	success	2026-11-06T07:30:26Z	2026-11-06T07:31:04Z	127771316885
+tests / mutation-autofix	completed	skipped	2026-11-06T07:31:05Z	2026-11-06T07:31:05Z	127771568790
+tests / mutation-pins	completed	skipped	2026-11-06T07:31:05Z	2026-11-06T07:31:04Z	127771568693
+tests / nightly-ha	completed	skipped	2026-11-06T07:31:00Z	2026-11-06T07:31:00Z	127771541250
+tests / nightly-status	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:30:35Z	127771316773
+tests / replay	completed	skipped	2026-11-06T07:31:00Z	2026-11-06T07:31:00Z	127771542032
+tests / typing	completed	success	2026-11-06T07:31:02Z	2026-11-06T07:32:23Z	127771539737
+validate	completed	skipped	2026-11-06T07:30:24Z	2026-11-06T07:30:23Z	127771324297
+validate	completed	skipped	2026-11-06T07:31:30Z	2026-11-06T07:31:29Z	127771715805
+validate / validate-hacs	completed	success	2026-11-06T07:30:25Z	2026-11-06T07:31:00Z	127771316830
