@@ -810,6 +810,11 @@ _SHUTDOWN_LOCK_TIMEOUT_S = 5.0
 # bounds a writer stopped mid-frame (SIGSTOP, a stalled host). Module global,
 # read at call time, so a test can shorten it.
 _REPLY_FRAME_TIMEOUT_S = 60.0
+# The most the reply frame may carry, counted on what the unpickler asks for.
+# The bytes come from the worker, so a frame's declared lengths are bounded
+# before they are allocated. Module global, read at call time, so a test can
+# shorten it.
+_REPLY_FRAME_MAX_BYTES = 256 * 1024 * 1024
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
@@ -1938,8 +1943,18 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
     exactly the bytes it consumes and nothing past the frame is taken.
     """
     deadline = time.monotonic() + timeout_s
+    left_bytes = _REPLY_FRAME_MAX_BYTES
 
     def read(size: int) -> bytes:
+        nonlocal left_bytes
+        # Refused on the size asked for, before ``os.read`` allocates it: a
+        # frame's declared lengths come from the worker and are not trusted.
+        # Not a timeout, so the transport route reaps the worker mid-frame.
+        if size > left_bytes:
+            raise ValueError(
+                f"reply frame exceeds {_REPLY_FRAME_MAX_BYTES} bytes"
+            )
+        left_bytes -= size
         chunks: list[bytes] = []
         while size > 0:
             # Checked here, not left to the wait: a descriptor at end of
