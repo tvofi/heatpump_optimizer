@@ -37,8 +37,14 @@
   `sweep` is the slow backstop (`tick_loop.sh --sweep`, every 1800 s by
   default): unless the ledger holds an open train-stop, it `add`s each head
   `queue` admits that no sweep added at that head, into the live train's
-  next batch or a `train.sh --bot-prs --approval-carry --pre-flight` it
-  starts when none is live, never a second.
+  next batch or a bare `train.sh` launch it starts when none is live, never
+  a second.
+  A train launched through `train.sh` runs the recommended flags by default:
+  `RECOMMENDED` in this file is their one definition (`--overlap`,
+  `--approval-carry`, `--skip-bad`, `--free-holders`, `--bot-prs`,
+  `--pre-flight`), each off with `train.sh --no-<flag>`. The flags this page
+  names say what each does; a caller launching through `train.sh` passes none
+  of them by hand.
   `batch` merges the queue without re-merging main: the entries' merges are
   proved together on `batch/<tag>-<n>` (B), a lone entry merges unproved (D),
   and workflow, claim, grader, budget or conflicting entries go serial. When:

@@ -496,20 +496,39 @@ def approval_owed(train: "Train", pr: int, head: str, runs, required) -> "str | 
 RAISE_REASON = re.compile(rf"^{re.escape(RAISE_GATE)}: failure \((?:this run|run \d+)\)$")
 
 
+#: The flag gh needs to pass an Actions log's terminal escapes (measured on the
+#: R9-RO-12 proof), and gh 2.89's refusal of it as an unknown flag (measured on
+#: the #3242 review seat, which reads the same log without it).
+ESCAPES_FLAG = "--allow-escape-sequences"
+
+
+def job_log(run, repo: str, job_id) -> "str | None":
+    """The one reader of an Actions job's log (a check run's id is its job's
+    id): `gh api <ESCAPES_FLAG>`, and on a gh that does not know the flag the
+    same read without it. None when the read fails, so no caller judges an
+    unread log. Every job-log read in this module, probe_bridge.py,
+    ci_script_seconds.py and critpath_fetch.sh goes through here; `run` None
+    is the train's own subprocess runner."""
+    run = run or Train._run
+    path = f"repos/{repo}/actions/jobs/{job_id}/logs"
+    code, text = run(["gh", "api", ESCAPES_FLAG, path])
+    if code and f"unknown flag: {ESCAPES_FLAG}" in text:
+        code, text = run(["gh", "api", path])
+    return None if code else text
+
+
 def gate_raise_only(train: "Train", runs) -> bool:
     """True when at least one gate suite is red, none is still running, and
     every red one's log (`gate_outcome`, gate.py's own FAIL reasons) lists
     RAISE_REASON alone. An unread log, a gate step that never ran or a
-    RATE-LIMITED gate is False. A check run's id is its Actions job's id; gh
-    refuses an Actions log unless told to pass its terminal escapes."""
+    RATE-LIMITED gate is False. The logs are read by `job_log`."""
     suites = gate_suites(runs)
     if not suites or any(run_state(c) == "pending" for c in suites):
         return False
     reds = [c for c in suites if run_state(c) == "red"]
     for c in reds:
-        code, log = train.run(["gh", "api", "--allow-escape-sequences",
-                               f"repos/{train.repo}/actions/jobs/{c.get('id')}/logs"])
-        out = gate_outcome(log) if code == 0 else None
+        log = job_log(train.run, train.repo, c.get("id"))
+        out = gate_outcome(log) if log is not None else None
         if not out or out[0] != "fail" or not out[1] or not all(RAISE_REASON.match(x) for x in out[1]):
             return False
     return bool(reds)
@@ -2724,11 +2743,7 @@ class Train:
         scripts: set[str] = set()
         for c in runs:
             if c.get("name") in red and c.get("conclusion") not in GREEN:
-                # gh refuses a log carrying terminal escapes -- every Actions log
-                # does -- unless told to pass them (measured on the R9-RO-12 proof).
-                log = self.run(["gh", "api", "--allow-escape-sequences",
-                                f"repos/{self.repo}/actions/jobs/{c['id']}/logs"])[1]
-                scripts |= set(FAILED_SCRIPT.findall(log))
+                scripts |= set(FAILED_SCRIPT.findall(job_log(self.run, self.repo, c["id"]) or ""))
         if not scripts:
             return None
         unit = _fastpath().closure.unit_of
@@ -2991,10 +3006,7 @@ class Train:
                           if j.get("conclusion") == "failure"] if code == 0 else []
             except ValueError:
                 failed = []
-            logs = {}
-            for j in failed:
-                c, text = self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{j.get('id')}/logs"])
-                logs[j.get("id")] = None if c else text
+            logs = {j.get("id"): job_log(self.run, self.repo, j.get("id")) for j in failed}
             got = infra_due(1, failed, logs)
             if got is None:
                 continue
@@ -5796,12 +5808,19 @@ def _infra_self_test(check) -> None:
     # main_green, in both arms, over a world of that run.
     url = f"https://github.com/o/r/actions/runs/{rid}/job/{gid}"
 
-    def world(attempt="1", glog=logs[gid], clears=False):
+    def world(attempt="1", glog=logs[gid], clears=False, gh=""):
+        """`gh` is the job-log flag behaviour: "needs" refuses a log without
+        --allow-escape-sequences, "lacks" (gh 2.89, measured) refuses the flag
+        as unknown, "" accepts either."""
         w = {"runs": [{"name": GATE, "status": "completed", "conclusion": "failure", "started_at": "1",
                        "id": 5, "details_url": url, "check_suite": {"id": 1}}], "posts": []}
 
         def run(argv, cwd=ROOT, stdin=None):
             a = " ".join(argv)
+            if "/logs" in a and gh == "needs" and "--allow-escape-sequences" not in argv:
+                return 1, "the response contains terminal escape sequences; pass --allow-escape-sequences"
+            if gh == "lacks" and "--allow-escape-sequences" in argv:
+                return 1, "unknown flag: --allow-escape-sequences\n\nUsage:  gh api <endpoint> [flags]"
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in w["runs"])
             if "-X" in argv:
@@ -5848,6 +5867,35 @@ def _infra_self_test(check) -> None:
     lines, stop = act(w, run, ts("23:43"), overlap=False)
     check("V142 blocking: the re-run that clears main lets the wait pass (no stop), one re-run",
           w["posts"] == [rerun] and stop == "")
+    for flag in ("needs", "lacks"):
+        w, run = world(gh=flag)
+        lines, _ = act(w, run, ts("23:43"))
+        check(f"carry 2: infra_rerun reads its job logs through job_log, so a gh that {flag} "
+              "--allow-escape-sequences still re-runs the stamp's run once, logged INFRA-RERUN",
+              w["posts"] == [rerun] and any(x.startswith(f"INFRA-RERUN gate run {rid} attempt 1 (") for x in lines))
+    def gh_logs(behaviour: str, calls: list):
+        def run(argv, cwd=ROOT, stdin=None):
+            calls.append(argv)
+            flagged = ESCAPES_FLAG in argv
+            if behaviour == "lacks" and flagged:
+                return 1, f"unknown flag: {ESCAPES_FLAG}"
+            if behaviour == "needs" and not flagged:
+                return 1, "the response contains terminal escape sequences"
+            if behaviour == "gone":
+                return 1, "HTTP 410: logs expired"
+            return 0, "LOG"
+        return run
+    got = {}
+    for b in ("needs", "lacks", "gone"):
+        calls: list = []
+        got[b] = (job_log(gh_logs(b, calls), "o/r", 7), [ESCAPES_FLAG in c for c in calls])
+    check("carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and "
+          "returns None for a read that fails otherwise (one call, no retry)",
+          got == {"needs": ("LOG", [True]), "lacks": ("LOG", [True, False]), "gone": (None, [True])})
+    w, run = world(gh="needs", glog=gate_log("tests / fast: failure (this run)", pair[1]))
+    lines, _ = act(w, run, ts("23:43"))
+    check("carry 2 null: through the same reader, a gate red on a non-infra job is never re-run",
+          w["posts"] == [] and not any(x.startswith("INFRA") for x in lines))
     w, run = world(glog=gate_log(pair[0], "tests / browser: SKIPPED (this run)"))
     lines, stop = act(w, run, ts("23:43"), overlap=False)
     check("V142 blocking null: a gate that does not qualify is not re-run and main stops red as today",
