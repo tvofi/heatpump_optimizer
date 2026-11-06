@@ -1,0 +1,6 @@
+35 failure Show the self-tests outside tools/audit/seat/ refusing their own fixtures
+85 skipped Refuse a throwaway git repository built without the shared helper
+86 skipped Show the merge train refusing its own fixtures
+87 skipped Show the carry check and the queue pre-flight refusing their own fixtures
+88 skipped Show the train launcher refusing its own fixtures
+205 skipped Post Run actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
