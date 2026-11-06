@@ -1,0 +1,6 @@
+2026-11-06T13:24:47Z
+WAIT e836876f3dadc368a414ccc2b19126e78507f7d0 pending: gate red: none
+rc=3
+2026-11-06T13:26:19Z
+RED e836876f3dadc368a414ccc2b19126e78507f7d0 pending: none red: gate
+rc=1
