@@ -1,0 +1,19 @@
+== bus-1 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 5 failed
+== bus-2 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 3 failed
+== bus-3 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-4 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 2 failed
+== bus-5 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-6 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-7 bus.sh: KILLED rc=1 | 'git <command> [<revision>...] -- [<file>...]'
+== bus-8 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-9 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-10 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 3 failed
+== bus-11 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-12 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-13 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 3 failed
+== bus-14 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 2 failed
+== bus-15 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== bus-16 bus.sh: KILLED rc=1 | bus self-test: 149 checks, 1 failed
+== review_packet-own review_packet.py: KILLED rc=1 | review_packet self-test: 69 checks, 2 failed
+RESULT survivors=0
+rc=0
