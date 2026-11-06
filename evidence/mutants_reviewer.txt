@@ -1,0 +1,18 @@
+R1-joblog-returns-failure-text: rc=1 ['merge_train self-test: 464 checks, 1 failed']
+    FAIL carry 2: job_log passes the flag first, reads without it only where gh does not know the flag, and returns None for a read that fails otherwise (
+R2-ready_batch-no-dedupe: rc=1 ['merge_train self-test: 464 checks, 4 failed']
+    FAIL carry 14: three ready pull requests and no live train -> `add` starts ONE train whose first batch is all three (STARTED over #11 #12 #15)
+    FAIL carry 14 null: exactly one ready (the add's own) -> a batch of one
+    FAIL carry 14: with no queue handed in, the add reads build_queue itself (the fixture's #11 #12 #15)
+R3-readd-ignores-verdict: rc=1 ['merge_train self-test: 464 checks, 1 failed']
+    FAIL carry 19 null: a park re-added at a NEW verdict behaves as today -- admitted with no pre-flight re-read at the add, spooled at the new verdict, d
+R4-held-fail-closed: rc=1 ['merge_train self-test: 464 checks, 1 failed']
+    FAIL carry 14: an unreadable queue at the start still starts the add's entry, logged BATCH-READ
+R5-record_pr-empty-is-record: rc=1 ['merge_train self-test: 464 checks, 22 failed']
+    FAIL P189 HOLDER arm: an entry skipped [HOLDER] and re-added at the SAME verdict is ADDED by `add` and by the drain (batch 2), and a ci-skipped one at
+    FAIL carries 3/18: a cured pre-flight park rejoins at the same verdict (ADDED, spooled); the uncured one is ADD REFUSED rc 1 with no spool line; a ci 
+    FAIL carry 19: a cured `policy` park rejoins at the same verdict (ADDED, spooled); uncured it is ADD REFUSED rc 1 naming the step and why, with no spo
+R6-batchread-raises: rc=1 ['Stop: queue: the open pull requests could not be read: ']
+R7-preflight-class-none: rc=1 ['merge_train self-test: 464 checks, 1 failed']
+    FAIL P189 HOLDER arm, pre-flight: a PARK at `recarry` (the worktree holder) is recorded skipped [HOLDER] with its verdict, so a same-verdict re-add is
+restored True
