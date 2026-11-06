@@ -449,7 +449,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-PR-CONTRACT-OUTSIDE | C | 1 | absorbed | - | opus/opus | - | RETIRED: owner ruling 2026-11-06: outside fixes merge via our own PR with acknowledgement. |  |
 | R10-REF-PRIVACY-CLOUD | IN | 1 | in-progress | - | sonnet/opus | - | ref_privacy flags a false-positive host path on a cloud seat. |  |
 | R10-TRAIN-MERGE-LOOP-2 | IN | 2 | not-started | - | sonnet/opus | - | Part 2 of R10-TRAIN-MERGE-LOOP (#3242), split off by the owner-side ruling of 2026-11-06 to keep part 1 reviewable (three-round rule). |  |
-| R10-HOTFIX-GATE-BUSY-DEFER | IN | 1 | not-started | - | opus/opus | - | tools/ci/gate.py busy() lets two gate jobs at one head each defer to the other, so no gate judges. |  |
+| R10-HOTFIX-GATE-BUSY-DEFER | IN | 1 | in-progress | - | opus/opus | - | tools/ci/gate.py busy() lets two gate jobs at one head each defer to the other, so no gate judges. |  |
 | R10-CARRY-RESIDUE-2 | IN | 2 | not-started | - | sonnet/opus | - | Part 2 of R10-CARRY-RESIDUE (#3241), split off by the three-round rule (round 3 is a minimal re-cut that builds only the review_owed blocked-head finding). |  |
 | R10-REPLAY-COST-2 | RP | 2 | not-started | - | sonnet/opus | - | Part 2 of R10-REPLAY-COST-BUDGET (#3234, minimal re-cut under the three-round rule, fixer.md): the round-3 review's findings other than the ref46/ref53 border. |  |
 | R10-HOTFIX-NIGHTLY-STATUS | CP | 1 | not-started | - | sonnet/opus | - | Owner ruling tvofi 2026-11-06: the nightly red does not block merges or stamps, but a fixer is owed. |  |
