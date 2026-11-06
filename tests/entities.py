@@ -28222,7 +28222,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base"],
+    == ["base", "machinery"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -41331,6 +41331,10 @@ for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
     for _uxh_c in ast.walk(_uxh_tree):
         if not (isinstance(_uxh_c, ast.Call) and isinstance(_uxh_c.func, ast.Attribute)
                 and _uxh_c.func.attr in _UXH_READS and _uxh_c.args):
+            continue
+        # ``os.read(fd, n)`` is the descriptor read (the worker reply frame),
+        # never an InputReader: keyed by its receiver, not just the method name.
+        if isinstance(_uxh_c.func.value, ast.Name) and _uxh_c.func.value.id == "os":
             continue
         _uxh_arg = _uxh_c.args[0]
         # `const.CONF_X` is the name `CONF_X`; any other shape is listed.

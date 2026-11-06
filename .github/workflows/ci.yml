@@ -87,6 +87,8 @@ jobs:
       gate_scope: ${{ steps.derive.outputs.scope }}
       legs: ${{ steps.derive.outputs.legs }}
       workset: ${{ steps.derive.outputs.workset }}
+      # R10-CI-SLIM C7(a): 'false' idles the machinery lanes (prelude.machinery).
+      machinery: ${{ steps.derive.outputs.machinery }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -183,6 +185,7 @@ jobs:
       head: ${{ needs.prelude.outputs.head }}
       recheck: ${{ inputs.recheck }}
       no-skip: ${{ inputs.no-skip }}
+      machinery: ${{ needs.prelude.outputs.machinery }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
@@ -207,6 +210,7 @@ jobs:
     uses: ./.github/workflows/governance.yml
     with:
       base: ${{ needs.prelude.outputs.base }}
+      machinery: ${{ needs.prelude.outputs.machinery }}
     permissions:
       contents: read
       pull-requests: read
@@ -341,4 +345,7 @@ jobs:
           PR: ${{ needs.prelude.outputs.pr }}
           BASE: ${{ needs.prelude.outputs.base }}
           KIND: ${{ needs.prelude.outputs.kind }}
+          # What the prelude ran here: an edit run beside an unfinished code run
+          # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
+          WORKSET: ${{ needs.prelude.outputs.workset }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
