@@ -230,6 +230,8 @@ MUTANTS = [
     ("bus-7", "bus.sh", '    [ "$rh" != "$h" ] || die "dispatch: #$pr\'s head $h already holds a merge verdict', '    true || die "dispatch: #$pr\'s head $h already holds a merge verdict'),
     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
     ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+    # #3245 repair 2 (card C8): a cheap check whose ci.yml caller needs more than prelude.
+    ("bus-10", "bus.sh", '  "tests / typing"  ', '  "pr-contract / pr-contract"\n  "tests / typing"  '),
     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
     ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
@@ -315,8 +317,8 @@ MUTANTS = [
      "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE\n",
      "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE_MOVED\n"),
     ("prepr-12", "tools/pr/ci_predict.py",
-     '"under-scoped", "inert-siblings", "left-inert", "mutation")',
-     '"under-scoped", "inert-siblings", "left-inert")'),
+     '"left-inert", "mutation", "self-test-reads",',
+     '"left-inert", "self-test-reads",'),
     # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
     # handoff refusals and body_push's call of them; body_push-1/2 are graded by
     # prepr's self-test (STEP_OF), which drives body_push.
@@ -585,6 +587,10 @@ MUTANTS = [
     ("ci_predict-1", "tools/pr/ci_predict.py", 'for r in res["rows"] if r["status"] != "routed"]',
      'for r in res["rows"] if False]'),
     ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
+    # #3245's countermeasure: the STEP REPLAY arm selects, and its base control excuses only a shared red.
+    ("ci_predict-3", "tools/pr/ci_predict.py",
+     'hit = {n: r for n, r in head.items() if any(c in r for c in changed)}', 'hit = {}'),
+    ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
@@ -637,12 +643,8 @@ STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
-# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
-# the mutant drops the delivery_row dispatch, so that tally is never printed.
+# S08 (handoff_push.sh's delivery_row dispatch) retired with the row push (#3245, card C5).
 WRAPPERS = [
-    ("S08", "handoff_push.sh",
-     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
-     'r=0; :'),
     ("S12", "open_pr.sh",
      'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
      'exit $r; }'),
