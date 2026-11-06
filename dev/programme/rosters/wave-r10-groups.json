@@ -16796,7 +16796,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "`finding-propagation.md`: stale: review comment 6633403670, item a2e21972 (archscore `coord_footprint` counts a packed generator tuple-unpack as one statement) named #2259, which #3179 closed legitimately and whose part 2 covered card-rule spellings, not statement packing; the live destination is the new group. Carry: R10-FLY-ARCHSCORE-STMT-PACKING (item a2e21972, supersedes #2259)"
+    "`finding-propagation.md`: stale: review comment 6633403670, item a2e21972 (archscore `coord_footprint` counts a packed generator tuple-unpack as one statement) named #2259, which #3179 closed legitimately and whose part 2 covered card-rule spellings, not statement packing; the live destination is the new group. Carry: R10-FLY-ARCHSCORE-STMT-PACKING (item a2e21972, supersedes #2259) [implemented: 7af0c2a7902c6d3d0f253d8bb6227c98c9e8d16a]"
    ],
    "architect_note": "",
    "resume": {
