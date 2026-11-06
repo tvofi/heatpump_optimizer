@@ -1558,6 +1558,19 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("factory_reset", "Reset to factory defaults", _ADVANCED),
 )
 
+
+def _single_zone(config: Mapping[str, Any]) -> bool:
+    """Whether the model runs one zone, the only one reading the whole-house loss.
+
+    On two zones every reader takes the zones' loss instead
+    (``ThermalParameters.house_heat_loss_base``, ``sysid.HousePlant.of_params``),
+    so the thermal page does not offer the whole-house figure there
+    (R10-TWO-ZONE-HHL). The model's own resolution of the mode, so an "auto"
+    entry follows the zone keys exactly as the solve does.
+    """
+    return not ThermalParameters.from_config(config).two_zone_enabled
+
+
 #: Every field the options flow presents, in the order each page renders them.
 _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     # -- entities
@@ -1651,7 +1664,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("hot_water", CONF_DHW_MIN_TEMP, DEFAULT_DHW_MIN_TEMP, _number(35, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_IDLE_MIN_TEMP, DEFAULT_DHW_IDLE_MIN_TEMP, _number(10, 55, 1, '°C', slider=True), group="temperatures"),
     _F("hot_water", CONF_DHW_SETPOINT, DEFAULT_DHW_SETPOINT, _number(40, 65, 1, '°C', slider=True), group="temperatures"),
-    _F("hot_water", CONF_DHW_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate']), group="temperatures"),
+    _F("hot_water", CONF_DHW_SETPOINT_ENTITY, _STORED, _entity_of(['number', 'input_number', 'climate', 'water_heater']), group="temperatures"),
     _F("hot_water", CONF_DHW_LEGIONELLA_ENABLED, DEFAULT_DHW_LEGIONELLA_ENABLED, selector.BooleanSelector(), group="legionella"),
     _F("hot_water", CONF_DHW_LEGIONELLA_TEMP, DEFAULT_DHW_LEGIONELLA_TEMP, _number(55, 70, 1, '°C', slider=True), group="legionella"),
     _F("hot_water", CONF_DHW_LEGIONELLA_INTERVAL_DAYS, DEFAULT_DHW_LEGIONELLA_INTERVAL_DAYS, _number(1, 30, 1, 'days', slider=True), group="legionella"),
@@ -1700,7 +1713,7 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("building", CONF_SPACE_PUMP_ENTITY, _STORED, _entity_of(['switch', 'input_boolean']), group="circulation"),
     # -- thermal_model
     _F("thermal_model", CONF_HOUSE_THERMAL_MASS, _SUGGESTED, _number(*RANGE_HOUSE_THERMAL_MASS, 0.5, 'kWh/°C')),
-    _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C')),
+    _F("thermal_model", CONF_HOUSE_HEAT_LOSS_COEFFICIENT, _SUGGESTED, _number(*RANGE_HOUSE_HEAT_LOSS, 0.01, 'kW/°C'), when=_single_zone),
     _F("thermal_model", CONF_SLAB_THERMAL_MASS, _SUGGESTED, _number(*RANGE_SLAB_THERMAL_MASS, 0.5, 'kWh/°C')),
     _F("thermal_model", CONF_SLAB_HEAT_TRANSFER, _SUGGESTED, _number(*RANGE_SLAB_HEAT_TRANSFER, 0.1, 'kW/°C')),
     _F("thermal_model", CONF_HEAT_PUMP_COP_NOMINAL, _SUGGESTED, _number(1.5, 6.0, 0.1)),

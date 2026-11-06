@@ -4090,29 +4090,18 @@ def _p2_registry(sources):
                  "narrative.py::build":
                      "an energy display floor in kWh per narrative line, not a power",
                  "optimizer.py::classify_space_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "optimizer.py::classify_dhw_steps":
-                     "distinct finding: R10-ARCH-SHAPES-CLASSIFIER, the reason "
-                     "classifiers' idle line on the raw draw; its running-rule "
-                     "arm moves golden fixtures host-conditionally (#996)",
+                     "the owner module's idle line, compared against "
+                     "channel_heating_draw (zero on every step the plan does "
+                     "not run), so a declared-off step is idle here",
                  "accuracy.py::delivered_ratio":
                      "a ratio's denominator floor on a sample's predicted and "
                      "measured power: below it the ratio is noise, whatever the plan says",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._async_learn_buffer_cooling":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_async_learn_buffer_cooling.heating (the commanded action's power)",
-                 "coordinator.py::HeatPumpOptimizerCoordinator._observe_frequency":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "_observe_frequency.watch_active (the commanded power)",
                  "freq_control.py::FrequencyMap.observe":
                      "the frequency map's own no-evidence floor on a METERED draw",
-                 "freq_control.py::FrequencyMap.recommend":
-                     "distinct finding: #2238 P2 sweep instance FrequencyMap.recommend",
-                 "freq_control.py::FrequencyMap.evidence_exhausted":
-                     "distinct finding: #2238 P2 sweep instance "
-                     "FrequencyMap.evidence_exhausted",
              }),
         # D7-s2-01 (R10-FREQ-DEFROST): a defrost interval is not the
         # compressor's own evidence -- the meter reads the cycle the pump runs
@@ -9537,8 +9526,16 @@ for _case in _matrix(_EXTREME_AREAS, (0.1, 0.5, 0.9)):
     except Exception as err:  # noqa: BLE001 - any rejection is the bug
         _unsubmittable.append(f"{_case}: {type(err).__name__}: {err}")
         continue
+    # A row its ``when`` hides for this house is not on the page to submit
+    # (R10-TWO-ZONE-HHL: the whole-house heat loss on two zones); keyed on
+    # the registry's own predicate, so only a row the page hides is skipped.
+    _hidden = {
+        row.key for row in config_flow._OPTION_FIELDS
+        if row.step in ("thermal_model", "thermal_model_zones")
+        and row.when is not None and not row.when(_stored)
+    }
     for _key, _value in _stored.items():
-        if _accepted.get(_key) != _value:
+        if _key not in _hidden and _accepted.get(_key) != _value:
             _unsubmittable.append(
                 f"{_case}: {_key} came back {_accepted.get(_key)!r}, stored {_value!r}"
             )
@@ -10032,10 +10029,41 @@ base_keys = all_keys(strings)
 for name, data in files.items():
     diff = base_keys ^ all_keys(data)
     R.check(
-        f"{name}.json matches strings.json exactly",
+        f"{name}.json has exactly strings.json's keys",
         not diff,
         ", ".join(sorted(diff)[:6]),
     )
+
+
+def leaf_values(data, prefix=""):
+    """``{dotted path: leaf}`` for every non-dict leaf."""
+    out = {}
+    for key, value in data.items():
+        path = f"{prefix}.{key}" if prefix else key
+        out.update(leaf_values(value, path) if isinstance(value, dict) else {path: value})
+    return out
+
+
+# Carry 0 (R10-COP-GATE-D): Home Assistant serves translations/en.json, so the
+# English text shipped is en.json's, not strings.json's. The key check above
+# read "exactly" while comparing keys only, and en.json's pump_duty_mode text
+# went stale beside an edited source. en.json is a copy of strings.json leaf
+# for leaf; sv.json is a translation, so only its keys are pinned.
+def en_value_drift(source, en):
+    """The dotted paths where en's leaf differs from the source's."""
+    a, b = leaf_values(source), leaf_values(en)
+    return sorted(k for k in a.keys() & b.keys() if a[k] != b[k])
+
+
+_en_drift = en_value_drift(strings, files["en"])
+R.check(
+    "en.json equals strings.json leaf for leaf (null: a source compared with itself "
+    "drifts nowhere, and one edited leaf is found)",
+    not _en_drift
+    and en_value_drift(strings, strings) == []
+    and en_value_drift({"a": {"b": "x"}}, {"a": {"b": "y"}}) == ["a.b"],
+    ", ".join(_en_drift[:6]),
+)
 
 # D4-s2-03 (N-escape): a translation leaf written with two backslashes before
 # a \u escape (\\u00b0 in the JSON source) survives json.loads as the six
@@ -12484,7 +12512,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
     }),
     "ModelStatusSensor": frozenset({
         "capacity_envelope", "cop", "heat_loss", "heat_loss_w_per_k",
-        "internal_gains_kw", "learner_progress", "lower_floor", "solar_aperture",
+        "internal_gains_kw", "learner_progress", "lower_floor", "pump_max_power",
+        "pump_max_power_reason", "pump_max_power_source", "solar_aperture",
         "system_identification", "system_identification_outcome", "tank_cooling"
     }),
     "MonthlyPeakSensor": frozenset({
@@ -16221,6 +16250,32 @@ R.check("run.sh records a wait past its bound as #skip, named unrun, and a run w
         *_gl_wu["map"])
 R.check("run.sh's lane console prints SKIP, not ok, for a script that waited past its bound",
         *_gl_wu["word"])
+
+
+def _gl_ended_before_summary() -> tuple[bool, str]:
+    """run.sh names a non-zero script that never reached a summary line apart
+    from one that failed a check: the function and its pattern are lifted from
+    run.sh and driven on a crash log and a failed-check log."""
+    import re as _re2
+    import subprocess as _sp
+    src = (_closure.ROOT / "tests/run.sh").read_text()
+    pat = _re2.search(r"^SUMMARY_LINE=.*$", src, _re2.M)
+    fn = _re2.search(r"^ended_before_summary\(\) \{.*?^\}", src, _re2.M | _re2.S)
+    if not (pat and fn):
+        return False, "run.sh defines no SUMMARY_LINE / ended_before_summary"
+    with _tempfile.TemporaryDirectory() as tds:
+        crash, failed = Path(tds) / "crash.log", Path(tds) / "failed.log"
+        crash.write_text("sampling...\nTraceback (most recent call last):\nOSError\n")
+        failed.write_text("  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")
+        out = []
+        for log in (crash, failed):
+            r = _sp.run(["bash", "-e", "-c", f'{pat.group(0)}\n{fn.group(0)}\nended_before_summary "$1"', "x", str(log)])
+            out.append(r.returncode)
+    return out == [0, 1], f"rc crash/failed-check = {out} (want [0, 1])"
+
+
+R.check("run.sh names a script ended before its summary apart from a failed check (R10 carry)",
+        *_gl_ended_before_summary())
 
 
 def _gl_flock_wrap_label() -> tuple[bool, str]:
@@ -28167,7 +28222,7 @@ R.check(
     "governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)",
     _bp_undeclared(_BP_CI, _BP_CALLEES["governance.yml"]) == []
     and _bp_undeclared(_BP_CI, re.sub(r"\n    inputs:\n(?:      .*\n)+", "\n", _BP_CALLEES["governance.yml"], count=1))
-    == ["base"],
+    == ["base", "machinery"],
     f"undeclared: {_bp_undeclared(_BP_CI, _BP_CALLEES['governance.yml'])}",
 )
 # THE BODY IS READ FROM THE API AT RUN TIME, NEVER FROM THE EVENT PAYLOAD.
@@ -29621,6 +29676,7 @@ steps:
           '.claude/workflows/*.py' \
           '.claude/workflows/vendor' \
           'tools/audit/*.sh' \
+          'tools/audit/machinery_ratchet.py' \
           'tools/audit/record-predicate' \
           'tools/audit/round6/D11/fix/codeowners_gap.py' \
           'tools/policy/*.mjs' \
@@ -36566,6 +36622,54 @@ R.check(
     "a file that is neither in a closure nor on a list forces the FULL suite",
 )
 _CIR_JOB = _workflow_job(_TESTS_YML, "ci-ratchet")
+# The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4). critical_path_minutes
+# prices each heavy job over its own runner's probe step, read off the
+# Actions API by the step's NAME and priced by the interpreter that name
+# carries, so the pin is on the coupling: every heavy job carries the step,
+# under the python its own setup-python installs, with a reference the
+# ratchet knows -- a step renamed, or run under another python, falls back
+# to the host-draw price silently. And the probe's work is fixed: one round
+# of it, checksummed here (the full run refuses on its own CHECKSUM in CI).
+import host_probe as _hp  # noqa: E402
+
+R.check(
+    "the host probe is classified: NOT_A_TEST, and not on INERT",
+    "host_probe.py" in _closure.NOT_A_TEST and not _closure.is_inert("tests/host_probe.py"),
+    "a file that is neither in a closure nor on a list forces the FULL suite",
+)
+R.check(
+    "the host probe's work is the recorded work (one round's checksum)",
+    _hp.work(1) == 4288780,
+    f"got {_hp.work(1)}: a changed probe is a changed unit -- re-derive "
+    "PROBE_REFERENCE_S and re-record critical_path_minutes with it",
+)
+_HP_JOBS = ("fast", "arch-instrument", "coverage", "closures")
+_hp_bad = []
+for _job in _HP_JOBS:
+    _txt = _workflow_job(_TESTS_YML, _job)
+    _steps = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP) + r" \(python ([^)]+)\)\n"
+                        r"(?:        if: [^\n]*\n)?        run: python3 tests/host_probe\.py\n", _txt)
+    _pins = re.findall(r'python-version: "([0-9.]+)"', _txt)
+    _matrix = re.findall(r'python-version: \[([^\]]*)\]', _txt)
+    _pys = _pins or [v.strip().strip('"') for m in _matrix for v in m.split(",")]
+    _named = [_pys[0] if s == "${{ matrix.python-version }}" and len(_pys) == 1 else s for s in _steps]
+    if len(_named) != 1 or len(set(_pys)) != 1 or _named[0] != _pys[0] \
+            or _named[0] not in _cir.PROBE_REFERENCE_S:
+        _hp_bad.append(f"{_job}: probe steps {_steps}, python {_pys}")
+R.check(
+    "every heavy tests job runs the host probe once, named for the python it "
+    "installs, with a reference the ratchet prices it by",
+    not _hp_bad and all(v > 0 for v in _cir.PROBE_REFERENCE_S.values()),
+    "; ".join(_hp_bad) or f"PROBE_REFERENCE_S {_cir.PROBE_REFERENCE_S}",
+)
+# The null control: the same rule over a job with no probe step refuses.
+_hp_null = re.findall(r"- name: " + re.escape(_cir.PROBE_STEP), _workflow_job(_TESTS_YML, "ci-ratchet"))
+R.check(
+    "and the probe rule finds no step where none runs (ci-ratchet, its null control)",
+    _hp_null == [],
+    f"{_hp_null}",
+)
+
 R.check(
     "the CI ratchet is wired into a push-to-main job that never --records",
     "github.event_name == 'push'" in _CIR_JOB
@@ -36865,13 +36969,17 @@ R.check(
 )
 
 
-def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
+def _coverage_revalidation(
+    floor_fails: bool, late: bool = False, wait_s: int = 300
+) -> tuple[dict, dict, str, dict, list, str]:
     """coverage_tree.sh's reuse plan and floor re-validation under a stub
     interpreter: the first script is reused, the rest measured, and the stub
     grader reports a floor FAIL when asked to. Returns (non-reused metric
     rows per script, executions per script, the stage's output, and per
     ledger -- out/scripts.tsv and out/per/provenance.tsv -- the rows each
-    script holds and how many of them say `reused`)."""
+    script holds and how many of them say `reused`), then the scripts the
+    stage recorded as `nodata` and the one script that, when ``late``, left a
+    descendant writing its coverage data two seconds after it returned."""
     with _tempfile.TemporaryDirectory() as td:
         d = Path(td)
         stub = d / "py"
@@ -36880,7 +36988,10 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
             'case "$1" in\n'
             "  -c) exit 0 ;;\n"
             "  -m) for a; do [ \"$prev\" = -o ] && echo '{}' > \"$a\"; "
-            'prev="$a"; done; exit 0 ;;\n'
+            'case "$a" in --rcfile=*) rcf="${a#--rcfile=}";; esac; '
+            'prev="$a"; done\n'
+            '    [ "$3" = combine ] && : > "$(sed -n \'s/^data_file = //p\' "$rcf")"\n'
+            "    exit 0 ;;\n"
             "  tests/closure.py)\n"
             '    [ "$2" = coverage-split ] || exit 0\n'
             "    n=0; while read -r s; do [ -n \"$s\" ] || continue\n"
@@ -36889,15 +37000,23 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
             "  tests/coverage_ratchet.py)\n"
             '    [ -n "$CTR_FLOOR_FAIL" ] && echo "  FAIL every module >= 95.0 %"'
             "\n    exit 0 ;;\n"
-            '  *) echo "$1" >> "$CTR_RAN"; exit 0 ;;\n'
+            '  *) echo "$1" >> "$CTR_RAN"\n'
+            '    if [ -n "$CTR_LATE" ] && mkdir "$CTR_LATE/once" 2> /dev/null; then\n'
+            '      echo "$1" > "$CTR_LATE/who"\n'
+            '      df=$(sed -n \'s/^data_file = //p\' "$COVERAGE_PROCESS_START")\n'
+            '      ( sleep 2; echo late > "$df.late" ) < /dev/null > /dev/null 2>&1 &\n'
+            '    fi\n'
+            '    exit 0 ;;\n'
             "esac\n")
         stub.chmod(0o755)
         (d / "reuse").mkdir()
         (d / "work").mkdir()
+        (d / "late").mkdir()
         env = {**_os.environ, "PYTHON": str(stub), "W5P_WORK": str(d / "work"),
                "W5P_SCOPE": str(d / "scope.json"), "W5P_REUSE": str(d / "reuse"),
                "W5P_LANES": "1", "HPO_CI_METRICS": str(d / "m.tsv"),
-               "CTR_RAN": str(d / "ran"),
+               "CTR_RAN": str(d / "ran"), "W5P_DESCENDANT_WAIT": str(wait_s),
+               "CTR_LATE": str(d / "late") if late else "",
                "CTR_FLOOR_FAIL": "1" if floor_fails else ""}
         res = _subprocess.run(["bash", "tools/coverage/coverage_tree.sh", "fast"],
                               env=env, capture_output=True, text=True,
@@ -36913,6 +37032,9 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
                      if (d / "ran").is_file() else []):
             name = Path(line).stem
             ran[name] = ran.get(name, 0) + 1
+        nodata = sorted(p.name for p in (d / "work/out/per").glob("*.nodata"))
+        who = (Path((d / "late/who").read_text().strip()).stem
+               if (d / "late/who").is_file() else "")
         ledgers: dict = {}
         for rel in ("out/scripts.tsv", "out/per/provenance.tsv"):
             f = d / "work" / rel
@@ -36924,11 +37046,12 @@ def _coverage_revalidation(floor_fails: bool) -> tuple[dict, dict, str, dict]:
                 per[r[0]] = per.get(r[0], 0) + 1
             ledgers[Path(rel).name] = {
                 "rows": per, "reused": sum(1 for r in rows if r[1:2] == ["reused"])}
-    return runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers
+    return (runs, ran, res.stdout[-400:] + res.stderr[-400:], ledgers, nodata,
+            who)
 
 
-_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS = _coverage_revalidation(floor_fails=True)
-_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS = _coverage_revalidation(floor_fails=False)
+_CRV_RUNS, _CRV_RAN, _CRV_OUT, _CRV_LEDGERS, _, _ = _coverage_revalidation(floor_fails=True)
+_CRV_NULL_RUNS, _CRV_NULL_RAN, _, _CRV_NULL_LEDGERS, _, _ = _coverage_revalidation(floor_fails=False)
 R.check(
     "the coverage floor re-validation re-measures only the scripts it reused",
     len(_CRV_RUNS) >= 2 and set(_CRV_RUNS.values()) == {1}
@@ -36959,6 +37082,24 @@ R.check(
     f"floor FAIL: {_CRV_LEDGERS} (want each of {sorted(_CRV_RAN)} once, 0 "
     f"reused); floor met: {_CRV_NULL_LEDGERS} (want the same scripts once, 1 "
     "reused, the null control)",
+)
+
+# A measured script whose descendant writes its coverage data after the script
+# returned (#2632: features.py left 740 live workers). The stage waits for the
+# descendant, so the script is recorded as measured, not `nodata`. Null: with
+# no late writer no script reads `nodata` for that reason; planted defect: a
+# wait bound shorter than the late write must refuse, naming the script, never
+# record the missing data as `nodata` in silence.
+_CRV_LATE = _coverage_revalidation(floor_fails=False, late=True)
+_CRV_LATE_REFUSED = _coverage_revalidation(floor_fails=False, late=True, wait_s=0)
+R.check(
+    "a measured script's late-writing descendant is waited for, not recorded as nodata",
+    bool(_CRV_LATE[5]) and f"{_CRV_LATE[5]}.nodata" not in _CRV_LATE[4]
+    and "left descendants still running" not in _CRV_LATE[2]
+    and "left descendants still running" in _CRV_LATE_REFUSED[2]
+    and f"{_CRV_LATE_REFUSED[5]}.nodata" not in _CRV_LATE_REFUSED[4],
+    f"waiting: late script {_CRV_LATE[5]!r}, nodata {_CRV_LATE[4]}; bound 0: "
+    f"{_CRV_LATE_REFUSED[2]!r}",
 )
 
 # The recorded budget is the every-script-measured-once count: the closures
@@ -41220,6 +41361,46 @@ R.check(
     len(_uxh_keys) >= 20 and not _uxh_odd and _uxh_keys <= _UXH_FIELDS,
     f"{len(_uxh_keys)} keys; not options fields: {sorted(_uxh_keys - _UXH_FIELDS)}; "
     f"reads keyed some other way: {_uxh_odd}",
+)
+
+
+
+# --- the machinery ratchet's budgets file (R10-MACHINERY-RATCHETS) -----------
+#
+# tools/audit/machinery_ratchet.py grades main's merge window against
+# dev/governance/config/machinery_budgets.json. This reads the TRACKED file
+# through the program's own reader (fixer.md step 11: pin the artifact the
+# check reads), then probes a key the reader does not name: a reader that
+# stopped refusing unread keys would let a cap be added that measures nothing.
+def _load_machinery_ratchet():
+    import importlib.util
+
+    spec = importlib.util.spec_from_file_location(
+        "hpo_machinery_ratchet", Path("tools/audit/machinery_ratchet.py"))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+_MR = _load_machinery_ratchet()
+_MR_TEXT = Path(_MR.BUDGETS).read_text()
+
+
+def _mr_reads(text: str) -> str:
+    try:
+        _MR.load_budgets(text)
+        return "read"
+    except _MR.Refusal as e:
+        return f"refused: {e}"
+
+
+_MR_GOT = (_mr_reads(_MR_TEXT),
+           _mr_reads(json.dumps({**json.loads(_MR_TEXT), "open_groups": 1}))[:7])
+R.check(
+    "the machinery ratchet reads every key of the tracked machinery_budgets.json, "
+    "and refuses a key it does not read",
+    _MR_GOT == ("read", "refused"),
+    f"(tracked file, file plus an unread key) -> {_MR_GOT}",
 )
 
 

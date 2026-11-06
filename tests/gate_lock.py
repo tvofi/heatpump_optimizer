@@ -1739,7 +1739,7 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
         g.WAIT_POLL_SECS = 0.05
         pool = g.pool_dir(d)
         g.take_slot("holder", lock_dir=d, slots=1, lease_seconds=60, wait=False)
-        inside, overlaps, guard = [0], [0], threading.Lock()
+        inside, overlaps, entered, guard = [0], [0], [0], threading.Lock()
 
         def one(who: str) -> None:
             g.take_slot(who, lock_dir=d, slots=1, lease_seconds=60)
@@ -1747,7 +1747,17 @@ def _priority_cases(g) -> list[tuple[str, bool, str]]:
                 if inside[0]:
                     overlaps[0] += 1
                 inside[0] += 1
-            time.sleep(0.15)
+                entered[0] += 1
+                first_in = entered[0] == 1
+            if first_in:
+                # Hold until the other waiter is provably polling the held slot:
+                # its ticket exists and a poll has rewritten it since. A fixed
+                # sleep is a window a loaded runner can outlast (the loser then
+                # enters after the winner left and the overlap goes unseen).
+                other = "b" if who == "a" else "a"
+                seen = ticket_text(pool, other)
+                if seen:
+                    rewritten(pool, other, seen)
             with guard:
                 inside[0] -= 1
             got.append(who)

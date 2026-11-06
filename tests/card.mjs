@@ -5694,8 +5694,8 @@ function ctxL(card, key) {
     !clickOpenedDialog);
   check("each row carries its plain-language explanation",
     /corrected for thermal mass/.test(openDump) &&
-    /against its own\s+baseline/.test(openDump) &&
-    /buying at or above flat scores 0/.test(openDump),
+    /against the pump's own history/.test(openDump) &&
+    /at or above flat scores 0/.test(openDump),
     (openDump.match(/score-breakdown[\s\S]{0,900}/) || [""])[0]);
   check("an unmeasured part shows no-evidence, never 0/100",
     /sb-na">— No evidence yet/.test(openDump) && !/sb-na">0\/100/.test(openDump));
@@ -5793,6 +5793,84 @@ function ctxL(card, key) {
   check("#2816: a house no driver moves a point reads typical, with a reason all the same",
     /House: 50\/100 \(typical for its type and era\)/.test(typicalHouse.title || ""),
     typicalHouse.title);
+
+  // R10-GRADE-DRIVERS: the heat-pump and Driving grades carry the house
+  // grade's driver interface, and every score hover -- the headline's and each
+  // breakdown row's -- carries both the metric and its current reasons.
+  const EN = fn("STRINGS.en");
+  const esc0 = fn("esc");
+  const opDrivers = (dear) => [{ code: "cheap_hours", points: 70.4 },
+    { code: "dear_hours", points: dear }, { code: "earlier_days", points: 0.0 }];
+  const rowTitle = (s, key) => ((s.open.match(new RegExp(`data-part="${key}" title="([^"]*)"`)) || [null, ""])[1]);
+  const driving = surfaces(withScore("62", {
+    envelope: null, machine: 75, operation: 61.8, overall: 68,
+    reasons: { envelope: "heat_loss_learning" },
+    machine_drivers: [{ code: "cop_shortfall", points: -25.0 }],
+    operation_drivers: opDrivers(-8.6) }));
+  check("R10-GRADE-DRIVERS: the Driving hover lists each driver with its sign and weight, and the metric",
+    /Driving: 62\/100 \(energy bought below the day's mean price \+70; energy bought above the day's mean price −9\)/.test(driving.title || "")
+    && driving.title.includes(EN["score.part_operation"])
+    && /energy bought above the day's mean price −9/.test(rowTitle(driving, "operation")),
+    driving.title);
+  check("R10-GRADE-DRIVERS: the heat-pump hover names its shortfall against its own history",
+    /Heat pump: 75\/100 \(COP below its own history −25\)/.test(driving.title || "")
+    && driving.title.includes(EN["score.part_machine"]), driving.title);
+  const flipped = surfaces(withScore("62", {
+    envelope: null, machine: 75, operation: 61.8, overall: 68,
+    reasons: { envelope: "heat_loss_learning" },
+    machine_drivers: [{ code: "cop_shortfall", points: -25.0 }],
+    operation_drivers: opDrivers(8.6) }));
+  check("R10-GRADE-DRIVERS perturbation: a driver's flipped sign flips its direction mark",
+    /energy bought above the day's mean price \+9\)/.test(flipped.title || "")
+    && !/energy bought above the day's mean price −9/.test(flipped.title || ""), flipped.title);
+  const flat = surfaces(withScore("40", {
+    envelope: 35.2, machine: null, operation: 0, overall: 0,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "learned_heat_loss", points: -14.8 }],
+    operation_drivers: [{ code: "cheap_hours", points: 0.0 }, { code: "dear_hours", points: 0.0 },
+      { code: "earlier_days", points: 0.0 }] }));
+  const flatNoOp = surfaces(withScore("40", {
+    envelope: 35.2, machine: null, operation: 0, overall: 0,
+    reasons: { machine: "cop_watch_learning" },
+    envelope_drivers: [{ code: "learned_heat_loss", points: -14.8 }] }));
+  check("R10-GRADE-DRIVERS null control: all-zero Driving drivers show the metric and no reason rows, House unchanged",
+    /Driving: 0\/100 \(bought at the day's flat mean price\)/.test(flat.title || "")
+    && !/energy bought/.test(flat.title || "")
+    && flat.title.includes(EN["score.part_operation"])
+    && rowTitle(flat, "envelope") === rowTitle(flatNoOp, "envelope")
+    && /House: 35\/100 \(learned heat loss vs configured −15\)/.test(flat.title || ""), flat.title);
+  const noDrive = surfaces(withScore("60", {
+    envelope: null, machine: 60, operation: null, overall: 60,
+    reasons: { envelope: "heat_loss_learning", operation: "no_scored_day" },
+    machine_drivers: [{ code: "cop_shortfall", points: -40.0 }] }));
+  check("R10-GRADE-DRIVERS: an ungraded Driving row says why and what no grade means",
+    /Driving: — Waiting for the first scored day\./.test(noDrive.title || "")
+    && /No grade means no priced day scored yet/.test(rowTitle(noDrive, "operation")), noDrive.title);
+  const waiting = surfaces(withScore("60", {
+    envelope: null, machine: null, operation: 60, overall: 60,
+    reasons: { envelope: "heat_loss_learning", machine: "cop_watch_learning" },
+    machine_drivers: [], operation_drivers: opDrivers(-10.4),
+    machine_evidence: { required: 20, refused_frozen: 2, bands: [
+      { outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] } }));
+  check("R10-GRADE-DRIVERS: an ungraded heat pump shows samples per outdoor band against the requirement, and freeze refusals",
+    /Heat pump: — Not enough COP data yet to watch the heat pump\. \(samples per outdoor band, 20 needed: −3 to 0 °C: 12 samples, 0 to 3 °C hot water: 5 samples; 2 refused while learning was frozen\)/.test(waiting.title || "")
+    && /data-part="machine"[^>]*>[\s\S]*?sb-drivers">samples per outdoor band, 20 needed/.test(waiting.open)
+    && /A band is watched once it holds 20 samples/.test(rowTitle(waiting, "machine")), waiting.title);
+  check("R10-GRADE-DRIVERS: a negative evidence band uses the card's minus sign and its count carries a unit, in sv as well",
+    !/(^|[ ,])-\d/.test((waiting.title || "").split("(").slice(-1)[0])
+    && /−3 to 0 °C: 12 samples/.test(waiting.title || "")
+    && (() => {
+      vm.runInContext('setLanguage("sv")', ctx);
+      try {
+        return /−3 till 0 °C: 12 prov, 0 till 3 °C varmvatten: 5 prov/.test(
+          fn("machineEvidence")({ required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }] }));
+      } finally { vm.runInContext('setLanguage("en")', ctx); }
+    })(), waiting.title);
+  check("R10-GRADE-DRIVERS: every breakdown row's hover carries its metric and its current reasons",
+    [driving, waiting, noDrive].every((s) => ["envelope", "machine", "operation"].every((k) => {
+      const t = rowTitle(s, k);
+      return t.includes(esc0(EN[`score.part_${k}`])) && /\((?:[^)]+)\)|— /.test(t.split("\n")[0]);
+    })), JSON.stringify([driving, waiting, noDrive].map((s) => ["envelope", "machine", "operation"].map((k) => rowTitle(s, k)))));
 
   // One message everywhere: for every score input -- a grade, or null with
   // each code the coordinator can publish for it -- the headline, the hover
@@ -10226,6 +10304,18 @@ const STOCK_THEMES = {
     };
   };
 
+  // R10-HOTFIX-SAV-ESTIMATE: an old-basis month states no saving, and says why.
+  {
+    const held = tableOf([
+      { month: "2026-09", baseline_sek: 1779.92, actual_sek: 344.81, savings_sek: null, savings_pct: null, old_basis: true },
+    ], "old-basis-savings");
+    const text = held.cells.map((c) => c.text);
+    check("an old-basis month draws both columns, a dash for saving and percent, and the note",
+      text[1] === "1779.92" && text[2] === "344.81" && text[3] === "—" && text[4] === "—"
+        && text[0].includes("old basis"),
+      JSON.stringify(text));
+  }
+
   const { dump, table, cells, heads } = tableOf(months, "c3-savings");
   // "Numeric" by position, not by a regex over the rendered text: the month
   // column reads as digits too ("2025-11") and must NOT be right-aligned.
@@ -10842,19 +10932,30 @@ const STOCK_THEMES = {
     // stretch between the old live edge and the chunk's end is a hole
     // that no NEW chunk index ever covers (indices only extend forward).
     // Only refetching the stale chunk fills it.
-    const { c } = mkCard(realisticHistory(FROZEN + 6 * HOUR));
-    c.view.panBy(-10 * HOUR);
-    await flushHistory();
+    //
+    // The clock is this block's own, six hours into a chunk of the UTC-epoch
+    // grid the chunks and the fixture's write rhythm both run on. FROZEN is
+    // a naive plan time read in the host's zone, so it lands anywhere on that
+    // grid: under America/New_York it sat an hour short of the chunk's end,
+    // in a silent hour, and the stretch held nothing to refetch. Under UTC
+    // the two clocks are the same instant.
     const CH = 12 * HOUR;
-    const b = (Math.floor(FROZEN / CH) + 1) * CH; // the chunk's own end
-    const before = ((c.histSource.log || {}).room || [])
-      .filter((p) => p.t > FROZEN && p.t < b).length;
-    c.histSource.ensure(FROZEN - HOUR, FROZEN + 13 * HOUR);
-    await flushHistory();
-    const after = ((c.histSource.log || {}).room || [])
-      .filter((p) => p.t > FROZEN && p.t < b).length;
-    check("a stale live-edge chunk is fetched again, filling the seam hole",
-      before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+    const seamNow = Math.floor(FROZEN / CH) * CH + 6 * HOUR;
+    ctx.Date = frozenDateClass(RealDate, seamNow);
+    try {
+      const { c } = mkCard(realisticHistory(seamNow + 6 * HOUR));
+      c.view.panBy(-10 * HOUR);
+      await flushHistory();
+      const b = (Math.floor(seamNow / CH) + 1) * CH; // the chunk's own end
+      const before = ((c.histSource.log || {}).room || [])
+        .filter((p) => p.t > seamNow && p.t < b).length;
+      c.histSource.ensure(seamNow - HOUR, seamNow + 13 * HOUR);
+      await flushHistory();
+      const after = ((c.histSource.log || {}).room || [])
+        .filter((p) => p.t > seamNow && p.t < b).length;
+      check("a stale live-edge chunk is fetched again, filling the seam hole",
+        before === 0 && after > 0, `${before} -> ${after} points in the seam stretch`);
+    } finally { ctx.Date = FrozenDate; }
   }
 
   // ---- carry-in (#1643, F6.2): pin what #1643's own mutation run left

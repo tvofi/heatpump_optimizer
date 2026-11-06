@@ -54,6 +54,7 @@ EVENT_MANUAL_PLAN_RELEASED = f"{DOMAIN}_manual_plan_released"
 EVENT_DATA: dict[str, tuple[str, ...]] = {
     EVENT_MONTHLY_RECEIPT: (
         "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
+        "saving_old_basis", "saving_includes_wood",
     ),
     EVENT_COMFORT_AT_RISK: (
         "entry_id", "predicted_min_c", "at", "floor_c",
@@ -95,6 +96,11 @@ def _monthly_receipt(data: Payload) -> Detected:
         "saving_sek": saving.get("savings_sek") if saving else None,
         "saving_pct": saving.get("savings_pct") if saving else None,
         "currency": data.get("currency"),
+        # What the card states beside the figure: a month on a retired reference
+        # has no saving, and with wood configured the saving includes its heat
+        # and not its cost.
+        "saving_old_basis": bool(saving and saving.get("old_basis")),
+        "saving_includes_wood": bool((data.get("wood_fuel") or {}).get("show_whatif")),
     })}
 
 

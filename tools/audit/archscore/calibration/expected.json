@@ -304,7 +304,7 @@
   "admissible": true,
   "label": "GOOD",
   "set": "planted",
-  "verdict": "NULL"
+  "verdict": "IMPROVES"
  },
  "a1_G3_move_cluster_with_state": {
   "admissible": true,
@@ -1343,5 +1343,59 @@
   "label": "GAME",
   "set": "redteam",
   "verdict": "WORSENS"
+ },
+ "rt_47_card_template_respelled": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_48_footprint_packed_unpack": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_49_footprint_packed_nested": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_50_footprint_packed_for_literal": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_51_footprint_packed_walrus": {
+  "admissible": false,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "WORSENS"
+ },
+ "rt_52_footprint_packed_set_display": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_53_footprint_ifexp_chain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_54_footprint_ifexp_body_chain": {
+  "admissible": true,
+  "label": "GAME",
+  "set": "redteam",
+  "verdict": "NULL"
+ },
+ "rt_55_footprint_boolop_control": {
+  "admissible": true,
+  "label": "KNOWN-OPEN",
+  "set": "redteam",
+  "verdict": "IMPROVES"
  }
 }

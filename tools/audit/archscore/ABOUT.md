@@ -63,7 +63,8 @@ reads IMPROVES. The attempt is `planted/redteam/<NN>_*.py` and its case id is `r
 | C21 a local, or a module constant (own, imported by name, or read through a module binding `m.X`), bound once to a spec reads as it | a selector's bound hoisted into a local (43), into module constants (42b, #2373 review), or into another module's constants read as `_c.X` (42d, #2373 round-2 review) | 43, 42b, 42d |
 | C22 a card function's own names are numbered by first use and its no-op and empty statements dropped (`metrics/card.py`) | the card's copied functions given renamed locals (44); windows split by `void <n>;` (44b, #2373 review) or by a lone `;` (44c, #2373 round-2 review) | 44, 44b, 44c |
 | C23 `shape_copies` (gate-only): a function's own names are numbered, numbers, strings and `mod.X` abstracted as the clone window does (`metrics/shapes.py`) | a below-window rule copied with every name changed (`a3_shape_copies_control`); a private helper copied into its importer (also refused by `duplication_copies`) | 45 |
-| C24 `card_rule_copies` (gate-only): a one-statement card rule -- a run of an `&&`/`||` chain testing one value, its values (a name with its member path) numbered and its strings kept -- spelled at a second site (`metrics/card.rule_copies`) | a rule spelled once more inline below the 20-token window: `== null` written out as `x === null \|\| x === undefined` (46); the #2401 review's three respelled card_shapes rules read card_clone_copies 108 -> 108 | 46 |
+| C24 `card_rule_copies` (gate-only): a one-statement card rule -- a run of an `&&`/`||` chain testing one value, its values (a name with its member path) numbered and its strings kept -- spelled at a second site (`metrics/card.rule_copies`); a template literal's run of two or more `${..}` formatting one value (its root name, members as spelled) with the text between them is a rule the same way, and a markup template -- its own text opens or closes a tag -- is none | a rule spelled once more inline below the 20-token window: `== null` written out as `x === null \|\| x === undefined` (46); the #2401 review's three respelled card_shapes rules read card_clone_copies 108 -> 108; the Setup diagram's edge key `${e[0]}>${e[1]}` written out again instead of read from its binding (47) | 46, 47 |
+| C25 `coord_footprint` counts the statements a statement packs (`footprint._units`): a tuple target (`a, b, c = (f(x) for x in xs)`), a tuple value (`a, b = f(), g()`), a chain (`a = b = f()`), a bare tuple expression, several `with` items, several `import` names, a multi-target `del`; a tuple pair of plumbing (`a, b = x.p, x.q`) or a chain of aliases is plumbing, as the plain spelling is; nested pairs are paired recursively (`a, (b, c) = e1, (e2, e3)` is three); a bare set or dict display counts its elements; a `for` target unpacking a literal display counts its pairs; each walrus beyond the statement's own counts one; a conditional-expression tree of two or more `if`s, followed through the body arm as well as the orelse, reads as the if/elif/else it spells; a starred target binds its names and the star takes the rest; a display bound to ONE target is ONE statement | packing plain statements into one AST statement to lower the footprint (the #3185 review, a2e21972: 6 of the 7 statements behind its movement were one packed generator unpack) | 48, 49, 50, 51, 52, 53, 54 |
 
 Attempt 09 deletes a working feature. No structural counter exists: only the behaviour suite sees it,
 and a score is only meaningful for a change whose suite stays green and whose check count does not
@@ -106,6 +107,46 @@ perturbation moves one, and the corpus vectors re-measured for `untyped_payload_
 are byte-identical (`calibrate.py --measure-corpus --only-metric untyped_payload_keys,family_orphan_overrides`).
 `ARCHSCORE_ABLATE=C14`, `C1b` or `C6b` reopens its own attempt (it reads IMPROVES) and leaves the other two closed.
 The cases need the pin to hold no instance, so `controls.py`'s `on` names the case an arm is applied on top of.
+
+### What R10-FLY-ARCHSCORE-STMT-PACKING moved (C25)
+
+`coord_footprint` charged a packed statement once, whatever it bound. C25 reads each as the plain statements it spells, so
+the untouched tree reads higher (the stored corpus re-measured with `calibrate.py --measure-corpus --only-metric footprint`)
+and a packed change reads as its plain one. No corpus verdict moved. One planted verdict did:
+`a1_G2_dedupe` (GOOD) reads IMPROVES, not NULL, because the replay block it removes holds `wind_speed, precipitation =
+self._current_weather()`, a packed unpack the old count read as one statement. Siblings enumerated: the shapes in the C25 row;
+`for a, b in x` and a lone destructuring `a, b = pair` are one operation on one value, and read by arity (`pair` is two),
+as the plain `a = pair[0]` would. `ARCHSCORE_ABLATE=C25` reopens attempts 48-54 (each reads IMPROVES; deleting `_units` fails
+five of the checks in `tests/arch_score.py`).
+
+Round 1 review of the first cut found it open at the for-target (a loop over a one-element literal), at nested pairs, and
+over-counting: a single target bound to a display was charged once per element (`x = [1, 2, 3]` read 3). The rule now is that a
+real unpack (tuple target against a tuple value or a non-display value) is charged per name, and a display bound to one target
+is one statement. On #3185 (cc67aa45 against d7582ed4) the base instrument read packed +0.0042 / plain +0.0030; this one reads
+packed +0.0069 / plain +0.0075 (footprint 2513 -> 2501 against 2500), the same within one statement.
+
+Dispositions: a lone `a = x if p else y` reads one (the idiom; an `if/else` respelled as it is a bounded 3 -> 1, not a class);
+a chain of two or more reads as its if/elif/else (attempt 53). A `for x in (1, 2, 3)` with one target reads one: its body is
+written once. A walrus in a header (`if (a := f()):`) counts one beyond the `if`. Calibration: attempts 49-53; the 51 walrus
+attempt reads WORSENS (inadmissible: its `repr(...)` wrapper is a new logic statement), which no packed spelling beats.
+
+Round 2 review (c8204eb8): the conditional tree was followed through `orelse` only, so `(a if q else b) if p else c` read one
+against the five of its nested if/else (attempt 54, IMPROVES +0.0022 before the repair, NULL after); a starred target
+(`a, *b = e1, e2, e3`) read one more than its plain spelling. Both are fixed in `footprint._chain` and `_bound`.
+Remaining shapes, each disposed (attempt 55 is the one recorded open):
+
+- `for a, b in [(e1, e2), (e3, e4)]: s(a, b)` and its `async for` twin read the pairs plus the body, which is written once, so
+  they read above the unrolled calls. Over-counts, the safe direction: the loop is charged for the values it binds, which the
+  loop spelling of a lookup table does not save (attempt 50 pins the one-element form that was the hole).
+- `x = p and A or B` (a `BoolOp` used as control flow) is the respelling of a lone `x = A if p else B`, which is disposed above as the
+  idiom: an if/else of three statements reads one in either spelling, bounded, not a class. Planted as attempt 55 over every
+  single-name if/else of the coordinator, it reads IMPROVES (admissible) and is recorded KNOWN-OPEN (`planted/cases.py`
+  `KNOWN_OPEN`), so a class fix flips it and `tests/arch_score.py` refuses until it is re-recorded. A chain of such terms
+  (`p and A or q and B or C`) is not closed either. Not counted: `a or b` and `a and b` are idioms and no structural test
+  separates control flow from them. The behaviour differs when `A` is falsy, which the suite sees and the score does not.
+- `[fn(x + 1) for fn in (f, g)]` (a comprehension used as a loop over a literal) reads one against two unrolled calls; the same
+  idiom argument, and not planted: a comprehension is also a mapping, and the unrolled spelling it replaces is a loop body
+  written once. Disposition: open by design, bounded by one statement per literal element.
 
 ### What R10-STRUCTURE-BLIND moved (D7-s1-01, D7-s3-01)
 
