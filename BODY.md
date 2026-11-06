@@ -1,13 +1,13 @@
-Roster-reader predicates for R10-ROSTER-READ-SWEEP: `absorbed` is a closed stage for the open set and after-edges, a destination check that names `absorbed_into`, a `gate_kind` classifier the tick calls, and one shared REFUSED line for a missing roster ref (roster carries 1-5). Repair round 2 (fix-review round 1 blocked, instrument-broken): the rewrite of `CARRY_CLOSED` in `roster_lib.py` broke two mutant plants that anchored on its old spelling, and left one changed line in `handover_prompt.in_flight` with no pin. This round re-anchors both plants, pins that line, and corrects the body's carry map. #2733 and #2505 stay open.
+Roster-reader predicates for R10-ROSTER-READ-SWEEP: `absorbed` is a closed stage for the open set and after-edges, a destination check that names `absorbed_into`, a `gate_kind` classifier the tick calls, and one shared REFUSED line for a missing roster ref (roster carries 1-5). Repair round 3 (head red on `governance / instrument-self-tests`): `roster_lib.is_open` now treats `absorbed` as closed, and `plan_page.build_rows` read that same predicate as "merged", so an absorbed group rendered as a done, delivered row (`folded into another group`, PR `merged`) and the `plan_page` self-test printed `66 checks, 7 failed`. This round renders merged only for `DONE_STAGES`; an absorbed group stays a `held` row naming its destination, and, being closed work the planner does not schedule (replan drops it), has no bar, tier or ETA. Two fixture checks that ranged over every not-merged row now range over the groups the plan schedules (`plan["groups"][g]["done"]` is false); that is a changed expectation, stated here, not hidden: before this PR an absorbed group was open and scheduled, and this PR deliberately made it closed. A new check pins the absorbed row itself.
 
-Design: `DONE_STAGES` keeps meaning "merged" (flow_metrics, merge_throughput, size_durations key on it); the new `CLOSED_STAGES` is the open-set boundary and `CARRY_CLOSED` is the same object, so the write-time and review-time stage sets are one definition. `absorbed` stays a disposition, so `roster_sync` still never rewrites it.
+Design: `DONE_STAGES` keeps meaning "merged"; `CLOSED_STAGES` is the open-set boundary and `CARRY_CLOSED` is the same object. `absorbed` stays a disposition, so `roster_sync` never rewrites it. Readers of roster stages checked under `python3 -I` at this head: plan_page, plan_table, handover_prompt, flow_metrics, merge_throughput, size_durations, replan, resume_doc, roster_lib, carry_audit, orchestrator_tick; only plan_page was wrong.
 
-Carry map (roster entry `R10-ROSTER-READ-SWEEP`, `carry` list, 1-based index):
-- Carry 1 (absorbed counted as open): landed in this diff (`roster_lib.is_open`, depth and after-edge readers). Deviation, stated: carry 1's text routes "tools/plan/replan.py's side of the absorbed stage" to R10-FLOW-TOOLKIT-MODEL, yet this diff changes `replan.is_done` to call `roster_lib.is_open`. I did it here because carry 2's control (replan must drop exactly the absorbed groups from the schedule) cannot read true otherwise, and the change is one call into the roster library's own predicate, not a second definition. R10-FLOW-TOOLKIT-MODEL keeps whatever else replan.py owes; it no longer owes this line.
-- Carry 2 (absorbed terminal, refuse a Carry: to it): landed (`CLOSED_STAGES`, `carry_audit` reading it). Departure from its text, "treat absorbed as terminal in DONE_STAGES": `DONE_STAGES` stays "merged" and `CLOSED_STAGES` carries the terminal set, because the flow readers keyed on `DONE_STAGES` must not count a fold as a merge.
+Carry map (roster entry `R10-ROSTER-READ-SWEEP`, `carry` list, 1-based):
+- Carry 1 (absorbed counted as open): landed in this diff (`roster_lib.is_open`, depth and after-edge readers). Deviation, stated: carry 1's text routes "tools/plan/replan.py's side of the absorbed stage" to R10-FLOW-TOOLKIT-MODEL, yet this diff changes `replan.is_done` to call `roster_lib.is_open`, one call into the roster library's own predicate; R10-FLOW-TOOLKIT-MODEL no longer owes that line. This round's `plan_page` fix is the reader side of the same carry.
+- Carry 2 (absorbed terminal, refuse a Carry: to it): landed (`CLOSED_STAGES`, `carry_audit` reading it). Departure from its text: `DONE_STAGES` stays "merged" and `CLOSED_STAGES` carries the terminal set, so a fold is never counted as a merge.
 - Carry 3 (review-time destination check names `absorbed_into`): landed.
 - Carry 4 (`gate_kind` classifier the tick calls): landed.
-- Carry 5 (the RosterNotFound traceback in plan_table, resume_doc, handover_prompt): landed in this diff, via the shared `roster_lib.run_refusing`. The first body listed it as out of the diff; that was wrong.
+- Carry 5 (the RosterNotFound traceback in plan_table, resume_doc, handover_prompt): landed, via the shared `roster_lib.run_refusing`.
 - Carry 6 (the routing audit's disposed-key mechanism): not landed; it stays on the open roster entry.
 - Carry 7 (#2875 unowned): not landed; routed to R10-ORCH-ROSTER-SCHEMA by its own text.
 - Carry 8 (#2855's key): not landed; routed to R10-ORCH-ROSTER-SCHEMA by its own text.
@@ -15,42 +15,28 @@ Carry map (roster entry `R10-ROSTER-READ-SWEEP`, `carry` list, 1-based index):
 
 ## Head
 
-Measured at the final handoff code `2f1a93ea74df7b9d43b5e0f15088ad01041ba94f`. `origin/main` was `33e60b5b71b67610bd02fdea238b882e9a97007b` when I merged it into the PR head `99cf3c2537c0199d966aff7b1c5fd86bcc8f663c` and ran `tools/pr/prepr.sh` (stamped `date -u` 2026-11-06). Main has moved since the last review, so the prepr run is the second one, not skipped.
+`a5e19561f85b806f4eff04f39311a56f56d55233`, the final handoff code: repair commit `866221f0b` plus `origin/main` `30638cf0c8a7114019682f87051a4a282d2981ff` merged in. The PR head it repairs is `a4a11b3f05629130d4b35154725a24628bb108ae`. Main moved after the last prepr of the previous round, so prepr was rerun at this head (`PRE-PR: a5e19561f85b... rc=0`). The `handoff-wip` step ref holds an earlier, equivalent attempt authored as `seat` that the remote would not let me delete; the handoff does not descend from it.
 
 ## Mutation proof
 
-Each mutant applied to one predicate, its self-test run, then reverted; the unmutated self-test is the control.
-- Round 1, carried unchanged and re-run by the reviewer: `roster_lib.is_open` reading `DONE_STAGES` (roster_lib 2 fails, replan 2 fails); `gate_kind` final `covered` to `owner` (roster_lib 1, tick 2); `gate_kind` owner branch to `covered` (roster_lib 1, tick 1); `carry_audit` dropping the `absorbed_into` text (1); `run_refusing(...)` replaced by `main()` in each of plan_table, resume_doc, handover_prompt (each 1 fail).
-- New this round, the surviving mutant: `handover_prompt.in_flight` reading `roster_lib.DONE_STAGES` (the base spelling) is plant `S09b` in `dev/audit/harnesses/r10_seat_selftests_mutants.py`. Before the new check it left `handover_prompt.py --self-test` at `16 checks, 0 failed` (the reviewer's measurement, probe mutant `handover-in_flight-DONE`). The new check "absorbed group is not in flight and has no pickup" (fixture group `R9-D` at stage `absorbed`) turns it red: `S09b handover_prompt.py: KILLED rc=1`.
-- Re-anchored plants: `S09` (same harness, anchor now `if stage not in roster_lib.CLOSED_STAGES and stage != NOT_STARTED:`) is `KILLED rc=1`; `L4` (`tools/audit/seat/r10_roster_ops_mutants.py`, anchor now `CARRY_CLOSED = CLOSED_STAGES`, mutated to `CARRY_CLOSED = DONE_STAGES`) prints `RESULT mutant=L4 rc=1 fails=2` in the full plant run. The `S09` and `S09b` run prints `RESULT survivors=0`.
+`tools/audit/seat/plan_page.py` line `if g in merged:` reverted to `if g in done:` (the failing reader): `python3 -I tools/audit/seat/plan_page.py --self-test` prints `67 checks, 8 failed`. The PR head before the fix printed `66 checks, 7 failed`, among them `held: a disposition stage is its own class, naming the group it went to`, `defect 1: every row's status is the roster's own stage`, `defect 5: an absorbed group is not rendered done or delivered`.
 
 ## Null control
 
-- Anchors at the unrepaired PR head: `roster_lib.py` had 0 occurrences of the old L4 anchor (1 at the base), and `r10_roster_ops_mutants.py --self-test` printed `231 checks, 1 failed` (`FAIL L4: anchor occurs once in tools/audit/seat/roster_lib.py`), the full plant run stopped at L4 with rc 2; S09's old anchor had 0 occurrences at the PR head (1 at the base), `NOT RUN`. At this head each re-anchored plant's anchor occurs once (Figures).
-- The new handover_prompt check on the unmutated tree: `handover_prompt self-test: 17 checks, 0 failed` (16 before, 17 now: one added).
-- Carry 4 at the base: `resume_doc.py`, `handover_prompt.py` and `plan_table.py` with `--roster-ref origin/no-such-ref-xyz` each exit rc 1 with a Traceback; at the head each exits rc 2 with one `REFUSED` line.
-- Carry 1: the open set read `DONE_STAGES` only; a group at `absorbed` counted open and held its dependants' after-edges. The reviewer's replan over roster a631ce6ec2c0 scheduled 69 groups (13 absorbed) at the base and 56 at the head, dropping exactly the 13.
-- Carry 3 and 2: a group with no gate is in neither the covered nor the owner line; an open destination passes.
-- Output against the live ref is not byte-identical, by design: `plan_table.py` and `handover_prompt.py` no longer list `absorbed` groups as open.
+Unmutated head: `plan_page self-test: 67 checks, 0 failed` (66 plus the one new check `an absorbed group is held, unscheduled, and has no bar or tier`). Base `origin/main` 30638cf0c: `66 checks, 0 failed`, so the base fixture's absorbed-is-open expectations held there and only the two range-narrowed checks changed here.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/r10_roster_ops_mutants.py` (full plant run at head): `plants: 75, without a FAIL line: ['C6']`, rc 1 from that line, and no plant printed `NOT RUN` (`grep -c "NOT RUN"` on its output printed 0); the base run printed the same 75 and the same `['C6']` (reviewer's ev/ops-harness-base-tail.txt), so C6 is inherited, not new.
-- `python3 -I tools/audit/seat/r10_roster_ops_mutants.py --self-test`: `231 checks, 0 failed` (the base prints the same 231).
-- `python3 dev/audit/harnesses/r10_seat_selftests_mutants.py S09 S09b`: both KILLED, `RESULT survivors=0`.
-- `grep -c 'CARRY_CLOSED = CLOSED_STAGES' tools/audit/seat/roster_lib.py` prints 1; `grep -c 'if stage not in roster_lib.CLOSED_STAGES and stage != NOT_STARTED:' tools/audit/seat/handover_prompt.py` prints 1.
-- Self-tests at the head, each `--self-test`: roster_lib 64, plan_table 26, resume_doc 15, handover_prompt 17, orchestrator_tick 275, roster_edit 191, roster_sync 95, r10_roster_ops_mutants 231, carry_audit 365 checks, all 0 failed; `tools/plan/replan.py --self-test` prints `self-test: 0 failed`.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; `scope.run` is `tests/entities.py`, which prints `ALL 2637 ENTITY CHECKS PASSED` (run with `PYTHONPATH=tests/hastub`). The `run_always` lines pass: `tests/env_drift.py --claims-only`, `tests/closure.py selftest`, `tests/layout.py`, `tests/harness_headers.py`.
-- `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`; no budget file is in the diff.
-- Class enumeration (fixer step 8, the plant anchors a rewrite can strand): the instrument is `r10_roster_ops_mutants.py` and `r10_seat_selftests_mutants.py` themselves, each of which refuses or prints `NOT RUN` on a missing anchor; both ran clean at this head, so the two stranded anchors the review found are the only ones.
+- `python3 -I tools/audit/seat/plan_page.py --self-test`: 67 checks, 0 failed (head); 66, 0 failed (base); 66, 7 failed (PR head a4a11b3f0).
+- Other instruments at this head, each `python3 -I <tool> --self-test`: plan_table 26, handover_prompt 17, flow_metrics 16, resume_doc 15, roster_lib 64, carry_audit 365, orchestrator_tick 275, all 0 failed; `tools/plan/replan.py`, `tools/plan/size_durations.py` and `tools/audit/merge_throughput.py` print `0 failed` / `ok`.
+- `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`; `tests/entities.py` prints `ALL 2637 ENTITY CHECKS PASSED`; `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+- `bash tools/pr/prepr.sh` at this head: `PRE-PR: a5e19561f85b806f4eff04f39311a56f56d55233 000000000000000000000000 rc=0`.
 
 ## Red checks
 
-At the PR head `99cf3c2537c0199d966aff7b1c5fd86bcc8f663c`, read across the one check-run page (55 runs, `total_count` 55), four concluded red:
-- `governance / instrument-self-tests` (job 127919930623): this PR's own instrument break (the stranded L4 anchor, `r10_roster_ops_mutants.py --self-test` 1 failed). Class: a change to a constant whose spelling an in-tree instrument anchors on, found by CI. Cheaper detector: `prepr.sh` does not run the instrument self-tests; the fix review found it by running that self-test. Repaired here (0 failed). Standing cost of a detector: running the self-test of every instrument that names a changed file; I did not build one, and record that none exists today for plants anchored on production text.
-- `gate` (jobs 127920529181 and 127931993971): the `FAIL run(s) ... are still being judged; their gate decides` deferral, which the sweep re-runs; it was red because of the instrument-self-tests run above, so it follows it.
-- `pr-contract / pr-contract` (job 127931123955): the body's `## Red checks` read `none` while the runs above were red (`red-unanswered`). Answered here.
-- The first `gate` (job 127920529181) was the earlier deferral at the first run of the same head.
+At PR head `a4a11b3f05629130d4b35154725a24628bb108ae`, all check-run pages read (`total_count` 68, one page of 100; page 2 empty), three concluded red:
+- `governance / instrument-self-tests` (check-run 127982288611): `plan_page self-test: 66 checks, 7 failed`, this PR's own break (above). Class: a shared predicate widened to include `absorbed` with a reader of it left unchecked. Cheaper detector: run every instrument self-test the diff's imports reach, under `python3 -I`, before the handoff (done here; standing cost one run of about a dozen self-tests, seconds each). `prepr.sh` does not run them, which is the gap; I did not build the detector in this repair. No 30-minute-timeout cancel of this job occurred at this head (main-wide, cure R10-PROCESS-SLIM #3245).
+- `gate` (check-runs 128001855738 and 128001831663): `FAIL run(s) ... at this head are still being judged; their gate decides`, the deferral on the red above; it follows `instrument-self-tests` and has no cause of its own.
 
 ## Forward-carry
 
@@ -58,4 +44,4 @@ none
 
 ## Friction
 
-- brief-citations: stale: carry 2 asked for a review-time check that `carry_audit.Dests.live` already performed through `CARRY_CLOSED`; only the `absorbed_into` naming was missing. Carry: dismissed: landed in this PR
+none
