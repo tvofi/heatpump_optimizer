@@ -9,12 +9,12 @@
 | cost | `python3 -I dev/audit/harnesses/r10_triage_p391.py ci-cost 2026-11-04T22:06:00Z 2026-11-05T07:05:00Z cost.json` | 221 completed CI runs, 309.7 runner h, 84.1 min a run |
 | benefit | `python3 -I dev/audit/harnesses/r10_triage_p391.py ci-fails 2026-10-28T00:00:00Z 2026-11-05T07:30:00Z fails.json` | 423 failed pull-request runs, 55 failed push runs, 262 pull requests merged over 232 branches |
 | lanes | `python3 -I dev/audit/harnesses/r10_triage_p391.py report cost.json fails.json` | the per-lane table below; 5 % of 232 branches is 11.6 |
-
-The `ci-fails` arm reads REST only (`search/issues` for merged_at inside the window, `pulls/<n>` for head refs), so a cloud seat re-derives it; "262 merged" is merged_at, against 263 first-parent merges by commit date in the git arm, and 232 is the distinct head refs of those 262.
 | nightly | `python3 -I dev/audit/harnesses/r10_triage_p391.py nightly 2026-10-29T00:00:00Z 2026-11-05T07:30:00Z` | 16 scheduled or dispatched runs, 176.2 runner h; 244 push runs, 3.8 h |
 | git | `python3 -I dev/audit/harnesses/r10_triage_p391.py git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z 2026-11-05T07:30:00Z` | commit counts by subject prefix; 229 merges on main's first parent |
 | roster | `python3 -I dev/audit/harnesses/r10_triage_p391.py roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a` | verdicts, triage-cited carries, `exemptions` |
 | tokens | `python3 -I dev/audit/harnesses/r10_triage_p391.py tokens 2026-10-01T00:00:00Z` | this host's transcripts only: **another seat cannot re-run it**, and a later run reads more sessions |
+
+The `ci-fails` arm reads REST only (`search/issues` for merged_at inside the window, `pulls/<n>` for head refs), so a cloud seat re-derives it; "262 merged" is merged_at, against 263 first-parent merges by commit date in the git arm, and 232 is the distinct head refs of those 262.
 
 The cost window is 9 hours of runs, not a week, and a share counts waiting inside a job. "Caught" counts branches whose lane went red, then a later green run or a merge. A red within 12 h of the same lane red on main is left out. **"Caught" is an upper bound on right-first-time:** later green proves no defect, a scope change also clears a red, and no failure log was read. Branches, not pull requests, are the unit, because a record branch is reused across pull requests.
 
