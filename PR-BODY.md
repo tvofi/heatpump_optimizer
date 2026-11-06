@@ -25,11 +25,13 @@ content approved by tvofi in chat 2026-11-05 (cards C2-C9 accepted; C4, C5, C8 a
 
 ## Head
 
-a467ccbfac9c1dffea0f1c2453c07313c98656fc, cut from origin/main 24547e39a7af4ab9ebf9cad3c2d1aaefb8adef37 (#3230, R10-CI-SLIM, merged), with origin/main dc0a170b671814be196a54b1c71e29449f54d6d7 merged in. Every self-test, entities, structure, lint and mutant figure below was re-taken at c3b057258e8791b564b258ab5cd4ba3fcdb17678 (origin/main 9315526f8 merged); the last merge, of dc0a170b6, adds only `dev/programme/delivery/3237.md` and `dev/programme/triage/s6-batch125.md`, which no figure reads. `tools/pr/prepr.sh` ran clean (rc 0) at this head; main had not moved after it.
+497da8adcea968cd9cfd530c5eb9f8ab960256cf, cut from origin/main 24547e39a7af4ab9ebf9cad3c2d1aaefb8adef37 (#3230, R10-CI-SLIM, merged), with origin/main dc0a170b671814be196a54b1c71e29449f54d6d7 merged in (the last merge adds only `dev/programme/delivery/3237.md` and `dev/programme/triage/s6-batch125.md`). Every figure below was taken at this head or at c3b057258e8791b564b258ab5cd4ba3fcdb17678 (origin/main 9315526f8 merged) where it names no file changed since; `tools/pr/prepr.sh` ran clean at this head.
 
 ## Mutation proof
 
 Each production line deleted or neutralised, the named self-test run, restored:
+
+- Carry 1 (`body_push.sh` head-stale): the `## Head` comparison forced to pass: `bash tools/audit/seat/body_push.sh --self-test` 35 checks, 2 failed ("REFUSE head-stale: a stale ## Head is refused, naming both shas", "... and nothing is pushed to handoff-body/t").
 
 - `app_approve.sh carry()` rc distinction neutralised (fetch kept): `bash tools/pr/app_approve.sh --self-test` 2 failed, "saying it cannot read the ancestry", "and not calling it a non-ancestor". Fetch removed (rc kept): 3 failed, "CARRY: V and the head absent from the checkout are fetched, then judged", "printing CARRY: yes", "naming the ancestry".
 - `release_worktrees` registered-check forced true: `python3 tools/audit/seat/merge_train.py --self-test` fails the collected-worktree arm.
@@ -53,6 +55,7 @@ Each production line deleted or neutralised, the named self-test run, restored:
 - `bash tools/audit/seat/bus.sh --self-test`: 136 checks, 0 failed; 13 failed with the new arms before the change.
 - `python3 tools/audit/seat/postmerge.py --self-test`: 15 checks, 0 failed; the new arm failed before the fix (17 checks, 1 failed).
 - `bash tools/audit/seat/handoff_push.sh --self-test`: 6 checks, 0 failed.
+- `bash tools/audit/seat/body_push.sh --self-test`: 35 checks, 0 failed; the two new arms failed without the check.
 - `PYTHONPATH=tests/hastub python3 tests/entities.py`: ALL 2609 ENTITY CHECKS PASSED (2632 at the base: the removed pins graded the three deleted jobs and the deleted tests.yml step).
 - `python3 tests/structure.py`: STRUCTURE RATCHET PASSED. `node tools/policy/policy_lint.mjs`: 0 errors across 49 policy files; `node tools/policy/rules_sync.mjs --check` ok.
 - `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>`: `MODE: FULL` (nightly.yml and governance.yml change the gate); CI runs the suite.
@@ -78,6 +81,10 @@ Architecture score: dS +0.0000 NULL
 ## Forward-carry
 
 none
+
+## Carries
+
+- Carry 1 (the roster's carry on R10-PROCESS-SLIM: a repair body's `## Head` named the previous handoff, seen on #3230, #3212 and #3231): `tools/audit/seat/body_push.sh` now refuses `head-stale` when `## Head` does not name `handoff/<topic>`'s code sha, keeps the refused body at `handoff-wip/<topic>-body`, and pushes nothing. Refuse over rewrite: a Head is a claim about the tree measured, and a rewrite would make a stale body claim a head it never measured. Stale arm and fresh null arm in its self-test.
 
 ## Friction
 
