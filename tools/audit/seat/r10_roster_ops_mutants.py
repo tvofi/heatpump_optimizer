@@ -161,7 +161,7 @@ PLANTS = {
            "            if carry_mark(c) is None]  # L2\n"),
     "L3": (LIB, '            if (g.get("resume") or {}).get("stage") in CARRY_CLOSED}\n',
            "            }  # L3\n"),
-    "L4": (LIB, 'CARRY_CLOSED = DONE_STAGES + ("absorbed",)\n',
+    "L4": (LIB, 'CARRY_CLOSED = CLOSED_STAGES\n',
            "CARRY_CLOSED = DONE_STAGES  # L4\n"),
     "L5": (LIB, '    return ("carries-open" if pending else "done"), pending\n',
            '    return "done", pending  # L5\n'),
