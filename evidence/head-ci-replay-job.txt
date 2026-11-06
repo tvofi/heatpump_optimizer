@@ -1,9 +1,0 @@
-2026-11-06T02:04:25.6094271Z   16 cycles over 82 entities in 597.9 s; cost {'cpu_ratio': 236.8429, 'peak_kib': 2723.9, 'loop_cpu_ratio': 0.1355, 'timed': 7, 'traced': 8, 'ref_ms': 30.803031999994346, 'loop_ref_ms': 133.35062099999993}
-2026-11-06T02:04:25.6101769Z   48 cycles over 82 entities in 14.2 s; cost {'cpu_ratio': 2.9908, 'peak_kib': 1929.1, 'loop_cpu_ratio': 0.0961, 'timed': 23, 'traced': 24, 'ref_ms': 30.471652000000127, 'loop_ref_ms': 133.86693599999865}
-2026-11-06T02:04:25.6107491Z   cpu doubled: cost {'cpu_ratio': 5.9089, 'peak_kib': 1927.6, 'loop_cpu_ratio': 0.7739, 'injected_ratio': 1.0, 'timed': 23, 'traced': 24, 'ref_ms': 30.948147000000038, 'loop_ref_ms': 135.25544200000007}
-2026-11-06T02:04:25.6108391Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle cpu
-2026-11-06T02:04:25.6110747Z   memory doubled: cost {'cpu_ratio': 3.0058, 'peak_kib': 3858.7, 'loop_cpu_ratio': 0.0971, 'timed': 23, 'traced': 24, 'ref_ms': 30.48923800000003, 'loop_ref_ms': 134.7439539999993}
-2026-11-06T02:04:25.6111569Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle memory
-2026-11-06T02:04:25.6113185Z   loop doubled: cost {'cpu_ratio': 3.3603, 'peak_kib': 1928.5, 'loop_cpu_ratio': 0.1951, 'injected_ratio': 1.0001, 'timed': 23, 'traced': 24, 'ref_ms': 31.023177999999874, 'loop_ref_ms': 134.69118699999962}
-2026-11-06T02:04:25.6114072Z   ok   synthetic-dhw-only.json: cycle_cost sees a doubled cycle loop
-2026-11-06T02:04:25.6116456Z ALL 195 replay checks PASSED

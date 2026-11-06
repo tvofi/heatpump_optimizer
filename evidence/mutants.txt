@@ -1,8 +1,0 @@
-MUTANT fallback->refusal: failing=['control:cycle_cost:runner_class_fallback'] err=
-MUTANT fallback max->min: failing=['control:cycle_cost:runner_class_fallback', 'control:cycle_cost:fallback_budget'] err=
-MUTANT notice always None: failing=['control:cycle_cost:runner_class_fallback'] err=
-MUTANT isfinite dropped: failing=['control:cycle_cost:runner_class_fallback'] err=
-MUTANT band lo<= -> <: failing=[] err=
-MUTANT ref24 cpu back 3.630: failing=[] err=
-MUTANT ref24 band back 22.64: failing=[] err=
-MUTANT notice print dropped: failing=[] err=
