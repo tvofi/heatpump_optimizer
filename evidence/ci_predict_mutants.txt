@@ -1,8 +1,0 @@
-BASELINE rc=0 65.4s mutant-rows: ['ok   a planted target edited so its anchor is gone is predicted red', 'ok   null control: a diff touching no planted target runs no driver (the anchor is gone, no red)']
-KILLED  rc=1 N1 driver selection always runs :: ['FAIL null control: a diff touching no planted target runs no driver (the anchor is gone, no red)']
-KILLED  rc=1 N2 red not reported :: ['FAIL a planted target edited so its anchor is gone is predicted red']
-SURVIVED rc=0 N3 driver itself not a target :: []
-SURVIVED rc=0 N4 arm unregistered in predict :: []
-SURVIVED rc=0 N5 arm dropped from ARMS :: []
-KILLED  rc=1 N6 no drivers found :: ['FAIL a planted target edited so its anchor is gone is predicted red']
-restored True

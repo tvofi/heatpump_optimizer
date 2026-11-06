@@ -1,9 +1,0 @@
-roster_ops rc=0 1.096718838 s
-stamp_round rc=0 .191071121 s
-ledger rc=0 .712481712 s
-mandate_guard rc=0 .100691180 s
-intact, orchestrator_tick changed -> []
-README changed -> []
-planted (anchors doubled), tick changed -> [('instrument', 'SEAT MUTANT SELF-TEST r10_ledger_mutants.py: FAIL T1_unkinded_printed: anchor occurs once in tools/audit/seat/orchestrator_tick.py')]
-planted, README changed -> []
-restored
