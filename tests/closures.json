@@ -3932,6 +3932,7 @@
    "dev/audit/harnesses/d1_s3_02_queued_apply.py",
    "dev/audit/harnesses/d6_page_anchors.py",
    "dev/audit/harnesses/d907_kernel_band.py",
+   "dev/audit/harnesses/drain_admission_probe.py",
    "dev/audit/harnesses/draw_range_evidence.py",
    "dev/audit/harnesses/dual_path.py",
    "dev/audit/harnesses/early_cutoff_closed_loop.py",
