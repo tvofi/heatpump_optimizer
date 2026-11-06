@@ -49,7 +49,7 @@ throwaway_git_clone -q "$T/origin.git" "$T/drvB"
 CHK_B=$T/drvB
 [ "$MODE" = shared ] && CHK_B=$T/drvA
 edit() { # checkout worktree op group value
-  "$PY" "$TREE/tools/audit/seat/roster_edit.py" "$3" "$4" "$5" --checkout "$1" \
+  HPO_ROSTER_LANE=queue-runner "$PY" "$TREE/tools/audit/seat/roster_edit.py" "$3" "$4" "$5" --checkout "$1" \
     --roster-ref main --branch handoff/roster --worktree "$2" --lint-cwd "$T/seed" --push
 }
 # the branch exists first: both racers then share its tip as their parent
