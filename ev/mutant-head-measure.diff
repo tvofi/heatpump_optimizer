@@ -1,0 +1,22 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7bcdcea16..07038184b 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2004,7 +2004,16 @@ def _read_reply(stdout: Any) -> Any:
+         raise ProcessWorkerTimeout(
+             f"process worker gave no reply within {timeout:g} s"
+         )
+-    return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
++    _r = _frame_reader(fd, _REPLY_FRAME_TIMEOUT_S)
++    _n = [0]
++    def _rd(k):
++        b = _r.read(k)
++        _n[0] += len(b)
++        return b
++    _o = pickle.load(SimpleNamespace(read=_rd, readline=_r.readline))
++    with open("/tmp/mut/sizes.log", "a") as _f:
++        _f.write(f"{_n[0]}\n")
++    return _o
+ 
+ 
+ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:

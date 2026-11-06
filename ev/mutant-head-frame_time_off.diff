@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7bcdcea16..e02416944 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1960,7 +1960,7 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
+             # Checked here, not left to the wait: a descriptor at end of
+             # stream always reads as ready, so the wait alone never expires.
+             left_s = deadline - time.monotonic()
+-            if left_s <= 0 or not _reply_ready(fd, left_s):
++            if False:
+                 raise ProcessWorkerTimeout(
+                     f"process worker stopped mid-reply: the frame did not "
+                     f"arrive within {timeout_s:g} s"
