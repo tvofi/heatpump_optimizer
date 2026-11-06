@@ -1748,12 +1748,16 @@ def _self_test() -> int:
                                   {"group": "N", "brief": "nb", "carry": ["nc"]}]})
           == ["new", "nb", "nc"])
     # Leave R9-B's carry as the drop-carry arms below expect it: empty.
-    check("triage gate fixture restored",
-          edit("drop-carry", "R9-B", None, match="orphan discharge") == 0
-          and edit("drop-carry", "R9-B", None, match="no proposal") == 0
-          and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
-          and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1].get("carry") == [])
+    def _fixture_restored():
+        try:  # a drop-carry that crashes on a mutated op is a failed arm, not a crash
+            return (edit("drop-carry", "R9-B", None, match="orphan discharge") == 0
+                    and edit("drop-carry", "R9-B", None, match="no proposal") == 0
+                    and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
+                    and edit("drop-carry", "R9-B", None, match="P-value") == 0
+                    and branch_roster()["groups"][1].get("carry") == [])
+        except (KeyError, TypeError):
+            return False
+    check("triage gate fixture restored", _fixture_restored())
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
