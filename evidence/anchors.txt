@@ -1,0 +1,4 @@
+S09/S09b anchor count in handover_prompt.py at c94edc5614b94f042dbb9a1196aa594be294534f:
+1
+L4 anchor count in roster_lib.py:
+1

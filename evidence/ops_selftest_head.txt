@@ -1,0 +1,5 @@
+  ok   a survivor prints fails=0 and no tail
+  ok   no names selects every plant
+  ok   a named plant is kept
+  ok   an unknown plant is returned for refusal
+r10_roster_ops_mutants self-test: 231 checks, 0 failed
