@@ -19,9 +19,9 @@
 #
 # The state names are the ones `node tests/card_drift.mjs --list` prints.
 #
-# claims-for: 7.1.1
+# claims-for: 7.1.3
 #
-# v7.1.1: factory reset, ceiling probe, SAV comfort, away-mode and learner fixes. The stamp empties the list; the
+# v7.1.3: savings estimate, DHW set-point input, part-load pricing and learner fixes. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 
@@ -772,4 +772,3 @@
 # not only the house's when it has drivers (the owner's hover spec, carry 14);
 # it is the state that renders the score with its hover. The other 43 states
 # were rendered and stayed identical.
-score_open  # R10-GRADE-DRIVERS: each breakdown row gains a hover with its grade or reason, its drivers or evidence and its metric; the heat-pump and Driving metric texts are rewritten in plain words
