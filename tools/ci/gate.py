@@ -49,8 +49,9 @@ same holds beside any run whose gate has not started: judging() reads a
 deferring run busy, so such a run may sit in prelude.wait_sources waiting on
 this one, a cycle only GATE_WAIT_MAX_S would break (#3246 review). A deferring
 gate waits only when every run it waits on has started its gate: busy() leaves
-out a LATER started gate, so each is an earlier run, which waits on no later
-one, and the waits run down in id.
+out a LATER started gate, so each is an earlier run, and one busy() still names
+is not judging, so a deferring run (it waits only so, down in id) or one whose
+listing lags its own owed jobs, which a re-read clears.
 """
 from __future__ import annotations
 
