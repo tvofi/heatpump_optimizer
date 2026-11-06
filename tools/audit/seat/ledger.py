@@ -1001,6 +1001,18 @@ def self_test() -> int:
               [review_owed(pr7(merged_head), {"7": [f"Fix review: blocked {vh} {why}"]}, set(), None, None, recarry)
                for why in ("mutation-vacuous: x", "root-cause-unanswered: y")]
               == [[f"REVIEW OWED: #7 {merged_head[:12]}"]] * 2)
+        # bus.sh records every dispatch and refuses a verdict with none at its head,
+        # so a blocked verdict's head is always in the dispatch record too
+        check("a blocked verdict's head in the dispatch record is no prior",
+              [review_owed(pr7(merged_head), {"7": rb}, {("7", vh)}, None, None, recarry)
+               for rb in ([f"Fix review: blocked {vh} root-cause-unanswered: y"],
+                          [f"Fix review: merge {vh}", f"Fix review: blocked {vh} mutation-vacuous: x"])]
+              == [[f"REVIEW OWED: #7 {merged_head[:12]}"]] * 2)
+        check("null control: a dispatched head whose newest verdict is a merge still carries",
+              [review_owed(pr7(merged_head), {"7": rb}, {("7", vh)}, None, None, recarry)
+               for rb in ([f"Fix review: merge {vh}"],
+                          [f"Fix review: blocked {vh} mutation-vacuous: x", f"Fix review: merge {vh}"])]
+              == [[f"CARRY: #7 {merged_head[:12]}"]] * 2)
         # a merge of main whose conflict was resolved by hand carries an edit no review saw
         cg("checkout", "-q", "-b", "conf", vh)
         cvh = cput("conflict.txt", "the branch's side")
