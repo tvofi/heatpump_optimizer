@@ -1,4 +1,4 @@
-Closes #2721. Residue of R10-ORCH-LEDGER (#2671): five carries, each with its control. origin/main at 7e8939d38ced (unmoved since the last `tools/pr/prepr.sh` run, so no second run), measured 2026-11-06.
+Delivers the #2721 residual (not a closing keyword: the roster group does not list the issue, so `preflight` refuses `Closes`; the orchestrator closes it on delivery). Residue of R10-ORCH-LEDGER (#2671): five carries, each with its control. origin/main at 7e8939d38ced (unmoved since the last `tools/pr/prepr.sh` run, so no second run), measured 2026-11-06.
 
 - Carry 0 (`cloud_relay-8` plant): no change owed at this base. The plant's pattern occurs once and the mutant is KILLED (`survivors=0`); the carry described the #2671 head, not main.
 - Carry 1: an imported `verdict-unposted` now keeps the sha its journal line names (`ledger._import_log`), and `fold` closes it on a read-back naming that sha (the native row still closes on its first line). A sha-less import stays owed; `ledger.py close verdict-unposted <pr> -` is its closer.
