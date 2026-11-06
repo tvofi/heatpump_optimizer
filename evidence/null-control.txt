@@ -1,0 +1,22 @@
+== wt c42b84004af3e7e62c8fca65da9d64ae6015f0bb
+  File "/tmp/claude-0/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+entities rc=1
+250
+structure rc=0
+tools/audit/briefs/D0.md                          66   66      908   926 
+
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+brief_lint rc=0
+== wtmain 5421413b54ba1044b8e91e1afd88b41acfc7a753
+  File "/tmp/claude-0/wtmain/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+entities rc=1
+250
+structure rc=0
+tools/audit/briefs/D0.md                          66   66      926   926 
+
+TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
+brief_lint rc=0

@@ -1,0 +1,10 @@
+RED c42b84004af3e7e62c8fca65da9d64ae6015f0bb pending: none red: gate
+rc=1 12:25:03
+WAIT c42b84004af3e7e62c8fca65da9d64ae6015f0bb pending: gate red: none
+rc=3 12:26:20
+RED c42b84004af3e7e62c8fca65da9d64ae6015f0bb pending: none red: gate
+rc=1 12:27:37
+RED c42b84004af3e7e62c8fca65da9d64ae6015f0bb pending: none red: gate
+rc=1 12:28:54
+RED c42b84004af3e7e62c8fca65da9d64ae6015f0bb pending: none red: gate
+rc=1 12:30:10
