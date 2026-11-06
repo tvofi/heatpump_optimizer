@@ -441,10 +441,10 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-FLY-ARCHSCORE-STMT-PACKING | F | 1 | carries-open | - | sonnet/opus | - | From the review of PR 3185 (comment 6633403670, item a2e21972): the architecture score's coordinator footprint counts a packed generator tuple-unpack as one... |  |
 | R10-FLY-CLOUD-FRUGAL-OFF | CP | 1 | not-started | - | haiku/sonnet | - | Owner ruling tvofi 2026-11-04: "Turn it off in the cloud", the frugal plugin inline-search guard. |  |
 | R10-HOTFIX-CI-CRITPATH-5 | CP | 1 | done | - | sonnet/opus | - | Main tests / ci-ratchet is red on the critical path metric after PR 3201 merged at a45cf7f5. |  |
-| R10-GATE-LEASE-TOCTOU | C | 1 | not-started | - | sonnet/opus | - | The free-slot step in tests/gate_lock.py checks that a slot file exists and then acts on it, so a slot freed between the two reads lets two takers win. |  |
+| R10-GATE-LEASE-TOCTOU | C | 1 | in-progress | - | sonnet/opus | - | The free-slot step in tests/gate_lock.py checks that a slot file exists and then acts on it, so a slot freed between the two reads lets two takers win. |  |
 | R10-FLY-RELAY-HOLD | CP | 1 | done | - | sonnet/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-CI-SLIM | C | 1 | done | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
-| R10-PROCESS-SLIM | C | 1 | not-started | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
+| R10-PROCESS-SLIM | C | 1 | in-progress | - | opus/opus | - | OWNER RULING (tvofi, in chat, 2026-11-05, verbatim picks): cards C2, C3, C4, C5, C6, C7, C8, C9 of the slip study are ACCEPTED. |  |
 | R10-SAV-METER-FLOOR | C | 3 | not-started | - | opus/opus | - | A month row states no saving when its booked savings_baseline kWh over its savings_actual kWh is below a floor constant in ledger.py, starting at 0.5, on row... |  |
 | R10-HOTFIX-STAMP-BASE | C | 1 | in-progress | - | opus/opus | - | A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with the file VERSION still reading 7.1.1 then (the ruleset was disabled for the pu... |  |
 | R10-PR-CONTRACT-OUTSIDE | C | 1 | absorbed | - | opus/opus | - | RETIRED: owner ruling 2026-11-06: outside fixes merge via our own PR with acknowledgement. |  |
