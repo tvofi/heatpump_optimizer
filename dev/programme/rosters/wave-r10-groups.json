@@ -15308,7 +15308,7 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): this group is planned off the coordinator.py cap; no carry or brief seam names coordinator.py. A fix that needs a coordinator.py edit stops and reports before editing, and is then re-queued behind the coordinator cap. [implemented: d1e7dbbbbe3339de86f4651fdbd97d00a12716b2]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-live-bundle-reads",
     "commit": "d1e7dbbbbe3339de86f4651fdbd97d00a12716b2",
     "last_step": null,
