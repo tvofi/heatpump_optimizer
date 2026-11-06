@@ -1,6 +1,16 @@
 R10-RELAY-SWEEP: the relay's residue in `tools/audit/seat/cloud_relay.sh`, folded from R10-RELAY-HANDOFF-ARM, R10-FLY-RELAY-DELIVERED-GUARD and the last carry of R10-FLY-RELAY-REVIEW-FF. Part of #201.
 
-Carries landed: relay levels written before the serial update loop plus the tick's GAP line (2); a level line for a body-only handoff left unapplied, kind registered in `ledger.py` (3); `REFUSE` last-line and update-output replay pinned, guides updated (4); the relay holder in its own process group (5); the delivered guard and the RCA note `dev/audit/rca/R10-RELAY-REPLAY.md` (6); HELD-BODY and stale hold lines (7); case-insensitive evidence collisions refused early in `relay()` and in `bus.sh` push-verdict and unpack, and the reviewer-contract line in `fix-review.md` (8). Carry 1: the body-only path stays a function the beat's job can call; the unapplied kind is a DERIVED `ledger.py` kind, so the ledger holds its disposition. No `bugclasses.json` exists in the tree, so the RCA is not cited there.
+Carries, by number:
+
+- Carry 0: exit 75 and body-sha keying for a failed update, the level written before the serial loop, the unapplied body-only line, the two relay mutants (Carry 4), the bash 3.2 empty-array guard in `bus.sh` orphans, and the holder's process group (Carry 5); the body-only path stays a function the beat's job can call.
+- Carry 1: the body-only path is unchanged as a callable function; the unapplied kind is a DERIVED `ledger.py` kind, so `ledger.py` holds its disposition.
+- Carry 2: both levels are written before the serial update loop, and `orchestrator_tick.py` prints a GAP line when no-PR OWED lines exist without a `.level` file.
+- Carry 3: a body-only handoff left unapplied owes one `handoff-body-unapplied` level line, registered in `ledger.py` KINDS; a body tip older than the head prints nothing (null control).
+- Carry 4: M2 (last REFUSE line) and M5 (update output replay) are pinned by self-test rows, and the instrument guides `cloud_relay.sh.md` and `body_push.sh.md` carry the new grammar.
+- Carry 5: `tick_loop.sh` starts the relay holder with `os.setpgid(0, 0)`; a self-test sends TERM to the loop's group and asserts the relay still writes its rc.
+- Carry 6: `relay()` skips a probe whose tree `review/<pr>` already carries and prints the state dir and ledger path once per pass; RCA note `dev/audit/rca/R10-RELAY-REPLAY.md`. No `bugclasses.json` exists in the tree, so it is not cited there.
+- Carry 7: HELD-BODY holds an update whose body does not name the tip's first 8 characters; hold-file lines for PRs not open are owed as `handoff-hold-stale`.
+- Carry 8: evidence names colliding case-insensitively are refused early in `relay()` (rc 2, naming both files) and in `bus.sh` push-verdict and unpack; `fix-review.md` tells reviewers evidence names must be case-unique.
 
 ## Head
 
