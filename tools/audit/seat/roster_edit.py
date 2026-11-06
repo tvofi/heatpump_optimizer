@@ -1753,7 +1753,7 @@ def _self_test() -> int:
           and edit("drop-carry", "R9-B", None, match="no proposal") == 0
           and edit("drop-carry", "R9-B", None, match="lettered proposal") == 0
           and edit("drop-carry", "R9-B", None, match="P-value") == 0
-          and branch_roster()["groups"][1]["carry"] == [])
+          and branch_roster()["groups"][1].get("carry") == [])
 
     # set-resume: the resume free-text fields a session restarts from, through
     # the same load/modify/dump flow -- never a string splice.
