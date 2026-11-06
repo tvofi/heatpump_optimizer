@@ -1,37 +1,60 @@
-Fix review: blocked 6e048afc6d857f65b62108e0648543dd611bd433 mutation-vacuous: dropping the off-loop timeout warning or its recovery (log_held off_loop_timeout) leaves every check green
+Fix review: blocked bba5b4d4d7ac37f339850de36b1ca24573f8c821 mutation-vacuous: measure (the frame size cap's running count, coordinator.py:1957 `left_bytes -= size`, deleted) survives all 4902 feature checks
 
-bus-nonce: e3ffee93bf03b42feca3f39531bbb0a2
-
-Round 2 (re-check of the round-1 block 985c64df). Measured head 6e048afc6d857f65b62108e0648543dd611bd433 (tree c11ea7441, identical to c9614abb7's, which the body's figures name). Role file unchanged since the merge base (`git diff merge-base...origin/main -- dev/governance/roles/` empty).
+bus-nonce: cc3bfb99f232e5aa4e460ab2399b3ede
 
 ## Block
 
-Repair 3 of the body says `_await_off_loop` "holds a per-job warning (`log_held(hass, "off_loop_timeout:<qualname>", ...)`, cleared when that job next completes)". No check pins either half:
-- m4, the `log_held(hass, key, True, ...)` line in the `except ProcessWorkerTimeout` clause deleted (the re-raise kept): `ALL 4888 FEATURE CHECKS PASSED` (ev/features-m4.log, ev/mutant-m4.diff).
-- m6, the clearing `log_held(hass, key, False)` before `return result` deleted: `ALL 4888 FEATURE CHECKS PASSED` (ev/features-m6.log, ev/mutant-m6.diff).
+- This is round 5 of #3232, a slim replacement for p-3232-r4, which went idle with no verdict. From the fourth round on, `fixer.md` owes a re-cut.
+- **The problem.** `_REPLY_FRAME_MAX_BYTES` is described as "the most the reply frame may carry". The only thing that makes it a bound on the **frame** is `left_bytes -= size` at `custom_components/heatpump_optimizer/coordinator.py:1957`. Without that line it only bounds each single `read()`.
+- **The mutant.** I deleted that one line (mutant `measure`, `ev/mutant-m_measure.diff`) and ran `PYTHONPATH=tests/hastub python3 tests/features.py` at the head. Result: `ALL 4902 FEATURE CHECKS PASSED`, rc=0 (`ev/features-m_measure.tail.txt`). It survives.
+- **It is not equivalent.** I wrote a direct probe, `ev/probe_measure.py`, which is my own instrument, not the finder's. It shortens the cap to 1,000,000 bytes and feeds the real `_frame_reader` a protocol-5 reply holding two 600 kB byte strings, 1,200,044 bytes in all:
+  - at the head: `refused: reply frame exceeds 1000000 bytes`;
+  - under the mutant: `frame of 1200044 bytes ACCEPTED over cap 1000000`;
+  - at base 9a54629e (null control, which has no cap): ACCEPTED.
 
-Without that warning an off-loop timeout is invisible at default log level: the replay (`_replay_interval`) and the sensor advisor (`_with_sensor_advisor`) catch it with `except Exception` and log only at DEBUG, so a worker reaped after 30 minutes on those jobs leaves no WARNING at all. The mutation table draws no mutant for a bare call statement, so its "8 sites, 0 unpinned" is true by its own definition and does not cover these two lines; the R10 N-log-flood barrier counts unlatched WARNINGs, so it cannot see a deleted one either. This is the brief's item (b) ("the held message reaches the log through the route, mutant: drop it, red") failing for the off-loop route. The `_await_optimize` route passes it (m3, m7 below).
-Repair: one check in the worker read timeout section. Run `_await_off_loop` past a short deadline twice, then once within it, with a sink on `log_held`'s logger. Require [WARNING, INFO "Resolved"] and the job name in the message. m4 and m6 must then each turn it red.
+  So the mutant really reopens what the owner's SECURITY ruling asked to close, an unbounded total reply, through many reads that each stay under the cap. Not one check sees it.
+- **Why CI's mutation lane missed it.** The lane is green, and no ledger row covers line 1957. The 20 `killed_by` rows and 1 `survivor_triage` row this PR adds include none for it. As far as the ledger shows, the mutation operators have no deletion of an augmented assignment, so `tests / mutation` never drew this mutant.
+- **Repair, in scope for a re-cut.** Add one check to `tests/worker_deadlines.py`: a frame whose individual reads each fit under a shortened cap, but whose total exceeds it, is refused with `ValueError` and the worker is reaped. Then pin this mutant by hand, as a `killed_by` row for the site or the operator's equivalent.
 
 ## Findings
 
-- Residual: once the reply pipe turns readable, `pickle.load(stdout)` still has no bound. A worker that stops partway through writing its already-serialised reply (SIGSTOP, or the host stalling mid-write) would hold `_PROCESS_LOCK` again. Measured: a 50 MB reply, about 760 x the 64 KiB pipe buffer, round-trips under a 5 s deadline in 0.56 s at the head (0.10 s at base). The claim "a readable pipe means the job is done" therefore holds for every writer that keeps running. The only failure left needs a writer that stops after it has started writing. Carry: dismissed: needs a writer stopped mid-frame after full serialisation, not reachable by the hang this PR bounds; measured clean at 50 MB
-- Note: `async_diagnose_interval` calls `_await_process` directly, so a diagnosis timeout reaches the service caller as an untranslated `ProcessWorkerTimeout`, which is a `RuntimeError`. `ProcessWorkerUnavailable` already reached that caller the same way at base, and before this PR the same call could hang without limit. The class is closed: `_await_process` has exactly three callers (`_await_off_loop`, `_await_optimize`, `async_diagnose_interval`), and all three were judged here. Carry: dismissed: pre-existing untranslated shape for the whole ProcessWorkerUnavailable family on the diagnose service, not widened by this diff
+- Instrument gap: `tests/mutation_table.py` draws no mutant that deletes an augmented assignment (`x -= n`), so a running-count bound like `left_bytes` can be unpinned while the mutation lane stays green. The block above repairs this one instance. The operator gap is a class beyond this PR, and only the orchestrator can route it to a roster group, since this seat cannot write the roster. Carry: dismissed: instrument class outside this PR's diff; the orchestrator routes it to the mutation-tooling owner or refuses it
+
+## SECURITY
+
+I read the whole three-dot diff (`git diff $(git merge-base origin/main HEAD)...HEAD`, 34 files) line by line. One line per item:
+
+1. **pickle / deserialisation.** Only the integration's own child writes the pipe. `_ensure_worker` spawns it from the installed package, and the parent picks the job (`fn, args`). The parent already ran `pickle.load` on the worker's reply at base. The diff adds no new deserialisation: `_frame_reader` feeds the same `pickle.load` under a time bound and a size bound, and the descriptor-less branch is the base behaviour. The new error paths raise before or instead of loading, never after a partial load is used. The size bound is checked before `os.read` allocates. Earlier rounds killed `check_after_read`, and I did not re-run it. Its cumulative half is unpinned: see Block. CLEAR apart from the Block.
+2. **Subprocess and pipe handling.**
+   - `selectors.DefaultSelector` on the raw descriptor fixes the FD_SETSIZE limit; the check at fd 1119 passes at the head.
+   - The reply timeout kills the worker and reaps it with `wait(timeout=5)`. An exception there is swallowed so it cannot mask the timeout, and the handle is cleared, so the next job spawns fresh. No zombie can outlive the wait except one stuck in the kernel, which the comment names.
+   - The stop path takes `_PROCESS_LOCK.acquire(timeout=5)` inside `try/finally`, so it is released on every path. On a timeout it skips only the handle swap.
+   - No signals are installed. CLEAR.
+3. **Paths, network, secrets.** None introduced. The only path use is `tests/worker_deadlines.py` inserting the repository root into `sys.path` and opening `os.devnull`, both in a test. CLEAR.
+4. **.github, CI, workflow, hook or tool edits.** None. The diff touches `tests/closure.py` (`NOT_A_TEST` += `worker_deadlines.py`), `tests/closures.json` (+2 entries), `tests/run.sh` (two skip-list entries) and `tests/entities.py`. The `entities.py` change is a census exclusion keyed on receiver `os`, and r4 measured its planted defect as refused. No workflow permission change. CLEAR.
+5. **Dependencies and imports.** Standard library only: `selectors`, `time` and `types.SimpleNamespace` in `coordinator.py`. `services.py` imports `ProcessWorkerUnavailable` from its own package. No requirement or manifest change. CLEAR.
+6. **Code run on the host.**
+   - Test code spawns only the integration's own worker, through `_run_in_process`. It raises `RLIMIT_NOFILE` to at most 1200, within the hard limit, and restores it in `finally`. It opens 1100 `/dev/null` fds and closes them in `finally`.
+   - `harness.split_reply` writes a fixed pickle and calls `os._exit` in the child.
+   - No string reaches a shell. No `eval`, `exec` or `subprocess` with `shell=True` is added. CLEAR.
+7. **Translation strings.** `diagnose_interval_failed` and `process_worker_timeout` in strings.json, en.json and sv.json are plain text with `{entry_ids}`, `{error}` and `{minutes}` placeholders only. The `_ET_KEYS` pins in features.py match them. No markup, and no format spec beyond named placeholders. `error` is `str(err)` of the integration's own exception. CLEAR.
+8. **CodeQL ground** (injection, traversal, unsafe subprocess/eval/pickle, secrets, workflow permissions). Covered by items 1–7. CodeQL itself concluded success at this head (`codeql / Analyze (python)` id=128172511407, `CodeQL` id=128146651316).
+9. **Attribution.**
+   - The body's `## Acknowledgements` names @Bankaifan and #3226 as the origin. That suffices without a SECURITY.md entry, because the body is the record a reader of this PR meets.
+   - All four contributor commits are in the head with author `Bankaifan`: 61cec72ac, 010534bbc, dd4416f1a and 5088d3688.
 
 ## Evidence
 
-- RESULT re-author: patch-id of the three-dot diff of #3226 (head ba704972f) = 374d81b62985683137ea82b99325c6988289a9aa = patch-id of 61cec72ac^..5088d3688 on this branch. All four commits are authored by Bankaifan. Their messages differ from the originals only by the removed Co-Authored-By and Claude-Session trailers (ev/msgdiff.txt). The seat commits carry no such trailers.
-- RESULT features head: ALL 4888 FEATURE CHECKS PASSED, rc=0. Null control at base 8a39977cb: ALL 4876 FEATURE CHECKS PASSED. That is +12 checks, as the body states.
-- RESULT entities head: ALL 2632 ENTITY CHECKS PASSED, including `ok R10 N-log-flood barrier`; base: ALL 2632 PASSED. Planted defect m3 (the `_await_optimize` log_held replaced by `_LOGGER.warning`): `1 of 2632 ENTITY CHECKS FAILED`, `mismatch {('coordinator.py', '_await_optimize'): (1, 0)}`.
-- RESULT structure: STRUCTURE RATCHET PASSED at the head and at base.
-- RESULT (a) fd >= 1024: the committed check passes at the head. m1 (`_reply_ready` on `select.select`): `1 of 4888 FEATURE CHECKS FAILED`, `warm raised ProcessWorkerUnavailable('... filedescriptor out of range in select()'); stdout fd=-1`. With my own probe (ev/probe.py, my instrument, not the finder's; #3226 commits no harness), 1100 extra fds were held. Head: `RESULT fd ok child=1746 stdout_fd=1106 slow=ProcessWorkerTimeout after 0.5s`. m1: `RESULT fd FAIL ProcessWorkerUnavailable: process worker exited rc=None: filedescriptor out of range in select()`. Base: `stdout_fd=1106 slow=returned after 5.0s` (base has no deadline).
-- RESULT (b) log_held route, `_await_optimize`: m3 `1 of 4888 FAILED` (`latch records=[]`). m7, the clearing `log_held(..., False)` dropped: `1 of 4888 FAILED` (only the WARNING, no recovery). Off-loop route: m4 and m6 both green, see Block.
-- RESULT (c) off-loop deadline with the loop blocked: probe mode `loopblocked` uses a real asyncio loop and a real ThreadPoolExecutor, with the loop blocked by a 2 s synchronous sleep and a 0.5 s deadline. Head: `worker state at t=2.05s while loop blocked: gone; outcome=ProcessWorkerTimeout`, so the deadline fired in the executor thread and reaped the worker while the loop was blocked. Base: `S; outcome=returned after 30.0s`. Mutant m5 moves the deadline onto the loop (`asyncio.wait_for` around `_await_process`, selector wait unbounded). Probe on m5: `worker state ... S`, so the worker is not reaped and the 30 s job keeps the thread and the lock. Committed suite on m5: `6 of 4888 FEATURE CHECKS FAILED` (timeout, lock and fresh worker, `_await_optimize` UpdateFailed, latch, off-loop raise, fd check).
-- RESULT m2 (the `except ProcessWorkerTimeout` clause of `_await_off_loop` deleted): `1 of 4888 FAILED`, `raised None after 30.5 s; jobs=[_run_in_process, sleep]`. This matches the body.
-- RESULT leak: probe mode `leak` ran 10 timeouts at a 0.2 s deadline. Head: `10 timeouts in 2.1s fds 7->5`, no worker child left, lock free. Base: 50.0 s (no deadline). In my probe's child list, the `R` row is `ps` itself.
-- RESULT lock on BaseException: probe mode `interrupt` raised `KeyboardInterrupt` inside `_reply_ready`. Head: `raised=KeyboardInterrupt lock_free=True`, because the lock is a `with`.
-- Body figures re-derived: 4888/4876, 2632 entities, structure pass, m1/m2/m3 failing checks and their texts, and the probe fd figure 1106. Not re-derived: `MODE: SCOPED -- 26 script(s) run, 7 scoped out` and the mutation-table pin runs (CI's `tests / mutation` concluded success at this head, cited and not re-run). The 1800 s deadline rests on the contributor's one-install recorder data (median 18 s, max 426 s), which cannot be re-derived in tree; the design-value check pins 1704 <= deadline <= 1800.
-- RESULT merge: `git merge-tree --write-tree origin/main(24547e39a) 6e048afc6d857f65b62108e0648543dd611bd433` rc=0. Against #3220 head e70dfd645: rc=0. Against #3198 head a96762c01: rc=0 (ev/merge-tree-*.txt).
-- Claim files, VERSION, manifest and RELEASE_NOTES.md: not in the three-dot diff.
-- CI at this head: `merge_train.py classify` -> rc=1 `RED 6e048afc6d857f65b62108e0648543dd611bd433 pending: none red: gate`. Every check-run page was read. The only non-success, non-skipped checks are `gate` x3 and `codeql / Analyze (python)`, which was cancelled. The gate log reads `FAIL codeql / Analyze (python): cancelled (run 42170673519)`. The CodeQL job log (ev/codeql-python.log) runs 05:50 -> 06:35, reaches `database finalize` at 06:15, and ends `##[error]The operation was canceled.` at about 45 min. That is a job-time cancel in the analyzer, not a result about this diff, and it needs a re-run. `tests / fast`, `mutation`, `coverage`, `replay`, `closures`, `arch-instrument` and `instrument-self-tests` all concluded success. Carry: dismissed: evidence, not a finding
-- Toolchain: cloud-setup.sh --check OK (venv-ci python3).
+- Head: bba5b4d4d7ac37f339850de36b1ca24573f8c821 (`ev/HEAD.txt`).
+  - Still the PR head when this verdict was written: the PR read through the GitHub API gives head sha bba5b4d4.
+  - The roles directory is unchanged against origin/main, so the contract I applied is current.
+- CI: `merge_train.py classify bba5b4d4d7ac37f339850de36b1ca24573f8c821 --pr 3232` exited 0 and printed `GREEN bba5b4d4d7ac37f339850de36b1ca24573f8c821 pending: none red: none` (`ev/classify.log`, `ev/classify.rcs`). With no red check, step 11 owes nothing.
+- Merge: `git merge-tree --write-tree origin/main bba5b4d4` against origin/main 28482ecee exited 0, with no conflict (`ev/merge-tree-main.txt`).
+- VERSION, the manifest, RELEASE_NOTES.md, `tests/golden` and `.github` are untouched in the three-dot diff.
+- RESULT deadline_none at the head. I replaced `_reply_ready(stdout, timeout)` with `_reply_ready(stdout, None)` in `_read_reply` (`ev/mutant-m_deadline_none.diff`). Result: `7 of 4902 FEATURE CHECKS FAILED`, rc=1, **killed**. The failing check texts are in `ev/features-m_deadline_none.fails.txt`, for example "a worker that gives no reply within the deadline raises ProcessWorkerTimeout [raised None after 30.0 s; returned None]" and "a worker pipe at fd >= 1024 answers in time and still times out as a timeout".
+- RESULT measure at the head. I deleted `left_bytes -= size`. Result: `ALL 4902 FEATURE CHECKS PASSED`, rc=0, **survives** (see Block). Direct probe: `ev/probe-measure.txt`.
+- RESULT r4base null at 9a54629e, unmodified: `ALL 4898 FEATURE CHECKS PASSED`, rc=0.
+- RESULT r4base none at 9a54629e, a comment-only edit before `_run_in_process` (`ev/mutant-b_none.diff`): `ALL 4898 FEATURE CHECKS PASSED`, rc=0. The no-op survives, as a null control must.
+- The figures checked here match the body: `tests/features.py` has 78361 lines, `tests/worker_deadlines.py` 532.
+- I take these as given from p-3232-r4 and did not re-run them, as the brief directs: 4902 checks at the head and 4876 on main; entities 2637 at both ends; the earlier mutants m4, m6, guard_off, frame_time_off, frame_bypass, check_after_read, transl_off and transl_key_off all killed; null_comment survives; CodeQL extraction 1266709 ms for features.py and 642655 ms for entities.py; the largest real reply 22,913 bytes.
+- Disclosure: the brief named the mutants `measure` and `deadline_none` but not their edits, and r4's runmut.sh was never pushed. The definitions above are mine (`ev/mutate.py`), and each run wrote its own log, keyed on its own `RESULTLINE`.
