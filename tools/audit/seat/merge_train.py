@@ -1225,6 +1225,34 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
+GIT_TRIES = 3
+#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
+GIT_TRANSIENT = re.compile(
+    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
+    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
+    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
+#: A refusal or a rejected update: never retried, whatever else the output says.
+GIT_REFUSED = re.compile(
+    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
+    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
+
+
+def git_transient(output: str) -> bool:
+    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
+    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
+
+
+def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
+    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
+    while the failure is git_transient; a rejection or a success answers at once."""
+    for n in range(1, GIT_TRIES + 1):
+        code, o = run(argv, **kw)
+        if not code or n == GIT_TRIES or not git_transient(o):
+            return code, o
+        log(f"merge_train: {' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
+        sleep(5 * 3 ** (n - 1))
+
+
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -1299,6 +1327,8 @@ class Train:
         failure with the attempt count. Train 8 stopped on one unretried read
         of a head commit. Every other call, and every write, is `run`'s alone."""
         def retried(argv, **kw):
+            if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
+                return run_git_retry(run, argv, self.sleep, self.log, **kw)
             if not gh_read.is_read(argv):
                 return run(argv, **kw)
 
@@ -4956,6 +4986,7 @@ def _self_test() -> int:
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
     _read_retry_self_test(check)
+    _git_retry_self_test(check)
     _review_settle_self_test(check)
     _gate_race_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
@@ -5525,6 +5556,40 @@ def _review_settle_self_test(check) -> None:
           and why(runs=[("77", "completed", 60)], reviews=[])[1] is False)
     got = why(runs=[("77", "completed", 60)], reviews=[appr], rollup="FAILURE")
     check("P331 (2) null: a required context red parks, never waits", got[1] is False and "red" in got[0])
+
+
+def _git_retry_self_test(check) -> None:
+    """R10 carry 7: git fetch/push ride out git's own transient stderr, and nothing else."""
+    for s in ("fatal: unable to access 'u': The requested URL returned error: 503", "error: RPC failed; HTTP 502 curl 22",
+              "error: RPC failed; HTTP 500", "fatal: the remote end hung up unexpectedly", "error: RPC failed; HTTP 504",
+              "fatal: unexpected disconnect while reading sideband packet", "fatal: early EOF",
+              "Connection reset by peer", "Could not resolve host: github.com", "Failed to connect to github.com",
+              "Operation timed out", "GnuTLS recv error (-54)", "OpenSSL SSL_ERROR_SYSCALL", "returned error: 502",
+              "fatal: unable to access 'u': Connection timed out"):
+        check(f"git transient: {s[:50]}", git_transient(s))
+    for s in (" ! [rejected] main -> main (non-fast-forward)", "Permission denied (publickey)", "Authentication failed",
+              "returned error: 403", "returned error: 404", "fatal: couldn't find remote ref x",
+              "remote: error: protected branch hook declined", "! [rejected] (stale info)", "! [remote rejected] x",
+              "RPC failed; HTTP 502 but remote rejected"):
+        check(f"git not transient: {s[:50]}", not git_transient(s))
+
+    def go(outs):
+        calls, sleeps = [], []
+
+        def run(argv, **kw):
+            calls.append(argv)
+            return outs.pop(0) if len(outs) > 1 else outs[0]
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=sleeps.append, log=lambda s: None)
+        return t.run(["git", "fetch", "-q", "origin", "main"]), len(calls), sleeps
+    bad = (1, "error: RPC failed; HTTP 502")
+    r, n, sl = go([bad, (0, "")])
+    check("git retry: a 502 then success -> success after 2 calls, settling 5 s", r[0] == 0 and n == 2 and sl == [5])
+    r, n, sl = go([(1, "! [rejected] main -> main (non-fast-forward)")])
+    check("git retry null: a rejection is 1 call, no settle", r[0] == 1 and n == 1 and sl == [])
+    r, n, sl = go([bad])
+    check("git retry: permanent failure returns the failure after 3 calls", r == bad and n == 3 and sl == [5, 15])
+    r, n, sl = go([(0, "")])
+    check("git retry null: a success is 1 call", r[0] == 0 and n == 1)
 
 
 def _read_retry_self_test(check) -> None:
