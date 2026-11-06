@@ -5741,7 +5741,7 @@ class HeatPumpOptimizer:
             action["dhw_power"] = round(dhw_power, 2)
             action["dhw_heating_active"] = dhw_power > 0.1
         if result.baseline_power_schedule and i < len(result.baseline_power_schedule):
-            action["baseline_kw"] = float(result.baseline_power_schedule[i])
+            action["baseline_kw"] = float(np.mean(result.baseline_power_schedule[i:]))
         if result.dhw_temp_trajectory and i < len(result.dhw_temp_trajectory):
             action["dhw_temperature"] = round(result.dhw_temp_trajectory[i], 1)
         if result.predictive_info.get("dhw_target_temperature") is not None:
