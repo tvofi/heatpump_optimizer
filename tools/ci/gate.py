@@ -44,8 +44,13 @@ for gate-sweep.yml to re-judge. One gate never waits (R10-CI-SLIM card C3): an
 edit run's whose prelude left `pr-contract` to an unfinished code run at this
 head (prelude.defer_to, `deferring` here). It publishes the deferral at once:
 that code run's gate is listed only after its pr-contract has read the latest
-body, so it is the later verdict here, and the sweep re-judges this one. A
-deferring gate that waits on no code run waits like any other.
+body, so it is the later verdict here, and the sweep re-judges this one. The
+same holds beside any run whose gate has not started: judging() reads a
+deferring run busy, so such a run may sit in prelude.wait_sources waiting on
+this one, a cycle only GATE_WAIT_MAX_S would break (#3246 review). A deferring
+gate waits only when every run it waits on has started its gate: busy() leaves
+out a LATER started gate, so each is an earlier run, which waits on no later
+one, and the waits run down in id.
 """
 from __future__ import annotations
 
@@ -273,9 +278,9 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
         bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
-        if why == [deferral(waiting)] and deferring(kind, pr, claim) and any(
-                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"] if r["id"] in waiting):
-            bound = 0                           # C3: that busy code run's gate is the later verdict; hold no runner
+        if why == [deferral(waiting)] and deferring(kind, pr, claim) and not all(
+                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED for r in api["runs_at_head"] if r["id"] in waiting):
+            bound = 0                           # C3: a waited run's gate is the later verdict; hold no runner
         if ok or now() - t0 + POLL_S > bound:
             break
         if why != [deferral(waiting)]:

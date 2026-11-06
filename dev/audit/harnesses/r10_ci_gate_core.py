@@ -230,8 +230,11 @@ MUTANTS = [
     ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and (r.get', 'r["id"] < ctx["run_id"] and (r.get'),
     ("M19 busy tie-break on a listed gate (R3-2 EARLY)", '(r.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
      '"gate" in (r.get("jobs") or {})'),
-    ("M20 C3 at once beside any run", ' and any(\n                (parse_title(r["title"]) or ("code",))[0] == "code"'
+    ("M20 C3 at once beside any run", ' and not all(\n                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED'
      ' for r in api["runs_at_head"] if r["id"] in waiting)', ''),
+    ("M21 C3 waits beside any run", 'deferring(kind, pr, claim) and not all(', 'deferring(kind, pr, claim) and not True and all('),
+    ("M22 C3 waits beside a listed gate (R3-2 EARLY)", ' and not all(\n                (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
+     ' and not all(\n                "gate" in (r.get("jobs") or {})'),
 ]
 
 
