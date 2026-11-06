@@ -5178,6 +5178,44 @@ def _queue_self_test(check) -> None:
     check("carry 15: record_pr is every path a record and at least one; an empty list is not a record",
           record_pr(rec_paths) and not record_pr([]) and not record_pr(rec_paths + ["tools/x.py"]))
 
+    # Carry 15 at the stamp's launch: the stamp seat's one command (web-stamp.js's
+    # stamp step: `merge_train.py sweep --stamp`) over SEVERAL held records starts
+    # ONE train whose first batch is every one of them; the same sweep without
+    # --stamp starts nothing (null control: the records stay HELD-FOR-STAMP).
+    def stamp_launch(stamp):
+        wr = world()
+        for p_ in wr["prs"]:
+            p_["files"] = rec_files
+        run_l, _ = fake(wr)
+        with tempfile.TemporaryDirectory() as d:
+            launched, sl = [], []
+
+            def launch(argv, state):
+                launched.append(sorted(int(e["pr"]) for e in json.loads(
+                    Path(argv[argv.index("--queue") + 1]).read_text())))
+                (Path(d) / QUEUE_OPEN).write_text(f"{os.getpid()}\n")  # the started train is live
+                return os.getpid(), ""
+            tl = Train("o/r", Path(d), None, "", (), 1, run=run_l, sleep=lambda s: None, log=sl.append,
+                       stamp=stamp)
+            tl.admit_add = lambda item: None
+            led = Path(d) / "ledger"
+            led.mkdir()
+            rc_ = sweep(tl, ["train.sh"], ledger_log=str(led / "cloud-relay.log"),
+                        add=lambda t_, item, argv, ready=None: train_add(t_, item, argv, launch=launch, settle=0,
+                                                                         ready=ready))
+            return rc_, launched, sl
+    rc_sl, launched_sl, sl_sl = stamp_launch(True)
+    rc_nl, launched_nl, sl_nl = stamp_launch(False)
+    check("carry 15 at the stamp: `sweep --stamp` over three held records (#11 #12 #15, every path a record) "
+          "starts ONE train whose first batch is all three; without --stamp it starts none and each is "
+          "HELD-FOR-STAMP (null control)",
+          rc_sl == 0 and launched_sl == [[11, 12, 15]]
+          and rc_nl == 0 and launched_nl == []
+          and sorted(x.split(":")[0] for x in sl_nl if x.startswith("HELD-FOR-STAMP"))
+          == ["HELD-FOR-STAMP #11", "HELD-FOR-STAMP #12", "HELD-FOR-STAMP #15"])
+    if not (rc_sl == 0 and launched_sl == [[11, 12, 15]]):
+        print("    DEBUG", rc_sl, launched_sl, sl_sl[-6:], rc_nl, launched_nl, sl_nl[-6:])
+
     st = Path(tempfile.mkdtemp(dir=tmp.name))
     wq = world()
     rc, lines, calls, added = swept(wq, st)

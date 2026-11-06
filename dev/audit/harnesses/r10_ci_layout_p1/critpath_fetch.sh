@@ -8,8 +8,24 @@
 # other log reader; the CASES format is the contract.
 set -u
 D=$1; C=$2; R=repos/tvofi/heatpump_optimizer
+repo_root() {
+  local d="$1"
+  if [ -f "$d" ]; then
+    d=$(dirname "$d")
+  fi
+  d=$(cd "$d" && pwd) || return 1
+  while [ "$d" != "/" ]; do
+    if [ -f "$d/custom_components/heatpump_optimizer/manifest.json" ]; then
+      printf '%s\n' "$d"
+      return 0
+    fi
+    d=$(dirname "$d")
+  done
+  printf 'no repository root above %s\n' "$1" >&2
+  return 1
+}
 # Job logs are read by merge_train.job_log, the one reader (gh's escape flag where gh knows it).
-SEAT=$(cd "$(dirname "$0")/../../../../tools/audit/seat" && pwd)
+SEAT="$(repo_root "$0")/tools/audit/seat" || exit 2
 mkdir -p "$D"; : > "$C"
 for p in 1 2; do
   gh api "$R/actions/workflows/tests.yml/runs?event=pull_request&status=completed&per_page=100&page=$p" \
