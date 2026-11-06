@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 4973c108d..6575aafcb 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -475,7 +475,7 @@ def setpoint_unit(hass: Any, entity_id: str, state: Any) -> Any:
+     attribute happens to be present (D12-s3-01). Any other entity declares
+     its own.
+     """
+-    if entity_id.split(".", 1)[0] in _ATTRIBUTE_TARGET_DOMAINS:
++    if False:
+         return _instance_unit(hass)
+     return state_unit(state)
+ 

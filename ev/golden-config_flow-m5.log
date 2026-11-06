@@ -1,0 +1,14 @@
+=== Golden characterization ===
+
+  GOLDEN_MODE=strict (set)   GOLDEN_REF=origin/main (unset, defaulting to the fork point)
+
+  DIFF config_flow
+         _seeded.hot_water.temperatures.fields.dhw_setpoint_entity.config.filter: "[{'domain': ['number', 'input_number', 'climate', 'water_heater']}]" -> "[{'domain': ['number', 'input_number', 'climate']}]"
+         hot_water.temperatures.fields.dhw_setpoint_entity.config.filter: "[{'domain': ['number', 'input_number', 'climate', 'water_heater']}]" -> "[{'domain': ['number', 'input_number', 'climate']}]"
+
+1 of 1 GOLDEN SCENARIOS CHANGED
+
+Read the diffs before re-recording. A change here is either a bug
+or a deliberate behaviour change that should be justified in the
+commit message; `--record` is meant to be a decision, not a reflex.
+rc=1
