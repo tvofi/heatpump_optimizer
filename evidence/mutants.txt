@@ -1,0 +1,6 @@
+MUTANT tests/ci_ratchet.py [if key in REPORT_ONLY: -> if False:]: ci-ratchet self-test: 65 checks, 2 failed
+MUTANT tools/ci/gate.py [            bound = 0  ->             pass #]: gate self-test: 57 checks, 1 failed
+MUTANT tools/ci/prelude.py [if defer_to(ctx, pr, get) is not None: -> if False:]: prelude self-test: 70 checks, 3 failed
+MUTANT tools/pr/codeql_scope.py [if not any(f.startswith(ANALYZED_PREFIXES) for f in files): -> if False:]: codeql_scope self-test: 94 checks, 2 failed
+MUTANT tools/ci/prelude.py [    return not files or can_kill is None or any(map(can_kill, files)) ->     return True]: prelude self-test: 70 checks, 2 failed
+MUTANT tools/ci/prelude.py [    return not files or is_product is None or not all(map(is_product, files)) ->     return True]: prelude self-test: 70 checks, 3 failed
