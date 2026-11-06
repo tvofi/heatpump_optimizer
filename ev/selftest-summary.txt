@@ -1,0 +1,8 @@
+RESULT selftest roster_edit head rc=0 0 FAIL lines; roster_edit self-test: 232 checks, 0 failed
+RESULT selftest roster_edit base rc=0 0 FAIL lines; roster_edit self-test: 191 checks, 0 failed
+RESULT selftest roster_queue head rc=0 0 FAIL lines; roster_queue self-test: 37 checks, 0 failed
+RESULT selftest roster_queue base rc=0 0 FAIL lines; roster_queue self-test: 17 checks, 0 failed
+RESULT selftest roster_lib head rc=0 0 FAIL lines; roster_lib self-test: 63 checks, 0 failed
+RESULT selftest roster_lib base rc=0 0 FAIL lines; roster_lib self-test: 60 checks, 0 failed
+RESULT selftest r10_roster_ops_mutants head rc=0 0 FAIL lines; r10_roster_ops_mutants self-test: 297 checks, 0 failed
+RESULT selftest r10_roster_ops_mutants base rc=0 0 FAIL lines; r10_roster_ops_mutants self-test: 231 checks, 0 failed
