@@ -1,0 +1,10 @@
+--38
+| 2026-11 (v7.1.x) | 0.18 |
+--162
+| `valve_charge_demand` at step 0 | this report, v7.1.0 onward | 0.18 |
+--217
+- **Right side: 6.8 h per release.**
+--270
+publishes no percentage outside a band, saying why instead. `METER_BAND` is 0.5 to
+--273
+- **On the defect:** `ledger` reads 2026-09 at 3.30 and 2026-11 at 0.18, both `OUT

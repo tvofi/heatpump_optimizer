@@ -1,0 +1,9 @@
+            if "savings_baseline" not in lines:
+                continue
+            calibration = self.meter_calibration(key)
+            if wood_configured and calibration is not None:
+                # A meter under the plan is what a fire the plan did not foresee
+                # looks like; scaling down by it would cancel wood's heat from
+                # the saving. Only an under-read model is corrected here.
+                calibration = max(1.0, calibration)
+            scale = 1.0 if calibration is None else calibration
