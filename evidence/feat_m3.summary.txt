@@ -1,0 +1,6 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  FAIL the stop path returns within its lock timeout while the lock is held  [_shutdown_process_pool took 9.95 s with the lock held]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4864 FEATURE CHECKS FAILED
+rc=1
