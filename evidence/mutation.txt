@@ -1,0 +1,6 @@
+RESULT verdict P390: ACCEPT
+RESULT verdict P391: None
+RESULT committed refusal: None
+RESULT mutant DEFER refusal: dev/programme/triage/s6-batch125.md#P390 is not an ACCEPT ruling (DEFER)
+RESULT mutant verdict-line-dropped: dev/programme/triage/s6-batch125.md#P390 is not an ACCEPT ruling (unreadable)
+RESULT null absent file: the triage ruling dev/programme/triage/s6-batch125.md is not on the roster branch or origin/main

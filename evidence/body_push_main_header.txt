@@ -1,0 +1,22 @@
+#!/bin/bash
+# body_push.sh <topic> <body.md> [note.md]
+# Publishes a handoff's transport on the orphan ref handoff-body/<topic>, so it
+# never enters the code head's ancestry (`prepr.sh` step 1a refuses that).
+# Each call appends one commit whose tree is BODY.md, plus RESUME.md when a note
+# is given. The first commit has no parent, so the ref shares no history with
+# the code; later ones are fast-forwards, so a re-bodied handoff needs neither a
+# force-push nor a `-vN` branch. A fetch that fails for any reason but a missing
+# ref leaves a parentless commit the push then refuses as a non-fast-forward,
+# never a rewrite. `handoff_push.sh` reads BODY.md from the ref's tip.
+# Plain variables, no arrays: macOS /bin/bash 3.2 rejects an empty array under -u.
+set -euo pipefail
+if [ "${1:-}" = "--self-test" ]; then
+  # A local bare origin, stub predictor / lint / packet / landing, the real ref_privacy guard. Each
+  # refusal path must keep the body on handoff-wip/t-body and still exit 1; each `# mut:keep` call is
+  # then deleted from a copy and the same arms must fail.
+  set +e; SELF=$(cd "$(dirname "$0")" && pwd)/$(basename "$0"); SH=$(dirname "$SELF")
+  W=$(mktemp -d) || exit 2; trap 'rm -rf "$W"' EXIT
+  FAILS=0; N=0; st() { N=$((N + 1)); if [ "$1" = "$2" ]; then echo "ok   $3"; else echo "FAIL $3 (got '$1', want '$2')"; FAILS=$((FAILS + 1)); fi; }
+  # shellcheck source=../../../tests/throwaway_git.sh
+8a2492ab595d1bfecd966089adc04f39bef7a4f6 2026-11-05 04:53:33 +0000 body_push: a refusal after the body exists keeps it on handoff-wip/<topic>-body; a successful push drops the keep
+8a2492ab5 is an ancestor of 9fe148a8339b43f607052b1a6c22c55ada526e03
