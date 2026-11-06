@@ -160,8 +160,10 @@ all untaught words at once; the two words that are *obligation-specific*
 one row for every untaught word and the obligation here has a name.
 
 **Countermeasure (landed):** `FRICTION_FAMILIES.mutation` gains
-`mutation-unpinned`, `unpinned-site`, `mutation-survivors`. Demonstration: the
-family residual 1 -> 6; controls: every other row prints byte-identically
+`mutation-unpinned`, `unpinned-site`, `mutation-survivors`. Demonstration, measured
+with `--stats --since v7.0.4` before and after: the `mutation (family)` row
+1 PR / 2 entries (of 41) -> **6 PRs / 7 entries (of 46)**, over threshold, one
+would-open line; controls: every other row prints byte-identically
 (`policy_lint.mjs` acceptance: 267 pins, 0 errors), and the family-pinning
 fixture windows (`friction-families.json`) carry no new word. It is a
 tooling edit to a declared list; per `ratchet-budgets.md` it adds no policy
