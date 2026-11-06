@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-06T23:59:00+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-07T00:40:05+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -9,15 +9,15 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 | roster groups closed vs takt | 0 / 1.0 | 13 / 24.0 |
 | fly-ins closed | 1 | 10 |
 | main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 11 / 5 / 2 / 10 |
-| first-pass fix-review yield | 0/1 (0.00) | 6/28 (0.21) |
-| blocked-class mix | citation-false:1, mutation-vacuous:1, policy-unapproved:1 | beyond-card:1, carry-unanswered:1, ci-red:5, citation-false:1, class-open:6, figures-uncited:2, instrument-broken:1, mutation-vacuous:11, over-fire:1, owner-ruling-contradicted:1, owner-words:2, policy-unapproved:2, regression:1, root-cause-detectable:1, selftest-red:1, wait-cycle:1 |
+| first-pass fix-review yield | 0/2 (0.00) | 6/30 (0.20) |
+| blocked-class mix | ci-red:1, mutation-vacuous:2, policy-unapproved:1 | beyond-card:1, carry-unanswered:1, ci-red:6, citation-false:1, class-open:6, figures-uncited:2, instrument-broken:1, mutation-vacuous:13, over-fire:1, owner-ruling-contradicted:1, owner-words:2, policy-unapproved:2, regression:1, root-cause-detectable:1, selftest-red:1, wait-cycle:1 |
 | lead time per size (h, n/p50/max) | none | M n=5 p50=10.12 max=45.63; S n=6 p50=7.74 max=19.10 |
 
 ### WIP by flow lane (snapshot at the window's end)
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 58 | 5 | 2 |
+| 1 | 59 | 5 | 2 |
 
 ## Rules
 
