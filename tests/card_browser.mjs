@@ -140,10 +140,39 @@ function gridStates(plan) {
   const statStates = () => ({
     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 2.4 }] } },
     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
       lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
   });
+  // A graded heat pump carries `cop_shortfall` and no evidence (an ungraded
+  // one carries evidence and no driver), so the pump's two renderings need
+  // two states: this is the graded one, beside `statStates`' ungraded one.
+  const statStatesGradedPump = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "74", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
+      machine_drivers: [{ code: "cop_shortfall", points: -40.0 }], operation_drivers: [{ code: "cheap_hours", points: 30.4 }] } };
+    return st;
+  };
+  // The "typical" lines: a graded pump and a graded Driving row whose drivers
+  // all round to nothing read `driver_typical_machine` / `_operation`, and
+  // an ungraded pump with no band yet reads `evidence_empty`. Neither fits
+  // `statStates` (whose drivers move the grade), so each gets its own state.
+  const statStatesTypical = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "70", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
+      machine_drivers: [], operation_drivers: [{ code: "cheap_hours", points: 0 }] } };
+    return st;
+  };
+  const statStatesNoEvidence = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" },
+      envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }], machine_drivers: [], machine_evidence: { required: 20, bands: [] },
+      operation_drivers: [{ code: "cheap_hours", points: 70.4 }] } };
+    return st;
+  };
   const shared = () => {
     const st = planStates(plan);
     const heating = new Set(st[DEFAULT_SPACE].attributes.forecast.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
@@ -217,6 +246,9 @@ function gridStates(plan) {
     S("no_plan", { states: {} }),
     S("no_plan_expanded", { states: {}, steps: [["open"]] }),
     S("score_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "score"]] }),
+    S("score_open_typical", { states: { ...planStates(plan), ...statStatesTypical() }, steps: [["stat", "score"]] }),
+    S("score_open_no_evidence", { states: { ...planStates(plan), ...statStatesNoEvidence() }, steps: [["stat", "score"]] }),
+    S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
     S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
@@ -1186,6 +1218,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
       const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
       try {
         await page.goto("http://hpo.test/");
+        // Each state starts from empty storage: one context serves the whole
+        // cell, so a choice an earlier state persists (hidden_series's chips)
+        // would otherwise hold for every later one (#2841).
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
         await page.addScriptTag({ content: cardSrc });
         await page.addScriptTag({ content: `(${instrument.toString()})();` });
         await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {

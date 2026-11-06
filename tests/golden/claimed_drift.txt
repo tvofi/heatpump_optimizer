@@ -70,10 +70,15 @@
 #
 shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
 coord_all_features  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_all_features  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_dhw  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_dhw  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_grid_fee  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_grid_fee  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_minimal  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_minimal  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_two_zone  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 valve_storage  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: booked by the steady demand: its kWh rises, its price paid falls, with no 6 kW first-step transient
 valve_storage_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: as valve_storage, the same reference
 valve_storage_small_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN, predicted_savings and savings_percentage DOWN with it: spread by steady demand; the plan does not move
@@ -83,6 +88,7 @@ valve_upper_direct_slab  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the held t
 wood_coil  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood tank, no fire, no coil
 wood_two_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: the reference has no wood; it reads the plain valve_storage reference
 wood_two_tank_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: as wood_two_tank
+config_flow  # R10-EXT-3224: dhw_setpoint_entity selector filter gains water_heater (2 leaves, nothing else moves)
 # may-drift: flat_prices -- #1208 polish-every-candidate, owner ruling #1208 comment 208bed25
 # (option (a)): the move's margin is inside the noise band (objective rel
 # -1.2171e-03, deterministic on one box), so which runner sees it move is the
@@ -781,3 +787,7 @@ wood_two_tank_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost UP: as wood_
 # is never optimised, but its kWh seeds the space solve's starts, so plans move
 # in basin only: the objective falls on four of the eight solved plans compared
 # and rises on three, by at most 0.25, and one is unchanged.
+# R10-EXT-3224: the DHW set-point selector admits water_heater, so config_flow
+# changes exactly two leaves (the plain and the seeded render of
+# dhw_setpoint_entity.config.filter gain the water_heater domain); no plan reads
+# it, so every other fixture is byte-identical. Re-recorded in the committed file.

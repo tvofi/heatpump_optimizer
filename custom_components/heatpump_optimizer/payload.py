@@ -291,9 +291,14 @@ class Scores(TypedDict, total=False):
     envelope: float | None
     #: One code per score that is None, and only for those (#2258).
     reasons: dict[str, str]
-    #: What moves the house grade off 50: ``code`` and signed ``points``,
-    #: summing to ``envelope - 50`` (#2816).
+    #: What moves each grade off its ``coordinator.SCORE_REFERENCE``: ``code``
+    #: and signed ``points`` summing to the grade minus it (#2816); empty with
+    #: no grade.
     envelope_drivers: list[dict[str, Any]]
+    machine_drivers: list[dict[str, Any]]
+    operation_drivers: list[dict[str, Any]]
+    #: What an ungraded heat pump waits on (``coordinator.machine_evidence``).
+    machine_evidence: dict[str, Any]
 
 
 class CompressorStarts(TypedDict, total=False):

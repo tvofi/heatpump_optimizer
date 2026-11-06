@@ -21,7 +21,7 @@ import logging
 import math
 import os
 import pickle
-import select
+import selectors
 import subprocess
 import sys
 import threading
@@ -217,6 +217,7 @@ from .external_heat import (
 )
 from . import away as away_mode
 from . import boost
+from . import driving_grade
 from . import battery as battery_view
 from . import comfort_band
 from . import draw_range
@@ -1908,6 +1909,19 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
     )
 
 
+def _reply_ready(stream: Any, timeout_s: float) -> bool:
+    """Whether ``stream`` turns readable within ``timeout_s``.
+
+    A selector, never ``select.select``: that refuses any descriptor at or
+    above FD_SETSIZE (1024), and Home Assistant raises its own soft fd limit
+    past it, so a worker respawned into a full fd table read as a transport
+    fault and every solve fell back in process.
+    """
+    with selectors.DefaultSelector() as selector:
+        selector.register(stream, selectors.EVENT_READ)
+        return bool(selector.select(timeout_s))
+
+
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
 
@@ -1946,12 +1960,13 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             # solve, every reload and the stop path until a restart.
             # A stream with no descriptor (an in-memory one) has nothing to
             # wait on and is read as before; the worker's pipe always has one.
-            try:
-                has_fd = stdout.fileno() >= 0
+            try:  # a real descriptor is never negative; a stream without one raises
+                stdout.fileno()
+                has_fd = True
             except (AttributeError, OSError, ValueError):
                 has_fd = False
             timeout = PROCESS_REPLY_TIMEOUT_S
-            if has_fd and not select.select([stdout], [], [], timeout)[0]:
+            if has_fd and not _reply_ready(stdout, timeout):
                 _PROCESS_WORKER = None
                 # Bounded too: a child the kill does not end at once (one
                 # stuck in the kernel) must not turn this into the same
@@ -2009,12 +2024,24 @@ async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: An
 
     The process worker first; a worker that cannot carry the job degrades to
     the executor, the #511 trade -- a GIL-holding thread, never the loop.
+    A job that outran the reply deadline is not rerun there: the same job
+    would hold an executor thread and a core with no deadline at all. It
+    raises to the caller, which skips its job this cycle (the replay and the
+    sensor advisor) or fails the cycle through ``_note_solve_failure`` (away
+    recovery, sysid); the warning is held per job until one completes.
     """
+    name = fn.__qualname__
+    key = f"off_loop_timeout:{name}"
     try:
-        return await _await_process(hass, fn, *args)
+        result = await _await_process(hass, fn, *args)
+    except ProcessWorkerTimeout as err:
+        log_held(hass, key, True, "%s; %s skipped this cycle", err, name)
+        raise
     except ProcessWorkerUnavailable as err:
         _LOGGER.debug("Process worker unusable (%s); using the executor", err)
         return await hass.async_add_executor_job(fn, *args)
+    log_held(hass, key, False)
+    return result
 
 
 async def _sysid_step_off_loop(
@@ -2180,7 +2207,10 @@ async def _await_optimize(
     try:
         result = await _await_process(hass, optimize_in_process, optimizer, inputs)
     except ProcessWorkerTimeout as err:
-        _LOGGER.warning("%s; keeping the last plan, a fresh worker starts next cycle", err)
+        # Held, not per cycle: a worker that keeps timing out warns once and
+        # says "Resolved" on the first solve it carries again (R10 N-log-flood).
+        log_held(hass, f"process_worker_timeout:{entry_id}", True,
+                 "%s; keeping the last plan, a fresh worker starts next cycle", err)
         _raise_update_failed(
             "process_worker_timeout", f"{err}; the last plan stays in effect", err,
             minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
@@ -2197,6 +2227,7 @@ async def _await_optimize(
             optimize_in_process, optimizer, inputs
         )
     _clear_worker_fallback(hass, entry_id)
+    log_held(hass, f"process_worker_timeout:{entry_id}", False)
     return result
 
 
@@ -3182,17 +3213,44 @@ def envelope_score(
     return grade, None, drivers
 
 
+#: Each grade's reference, where its drivers sum to zero (#2816): the house
+#: at typical for its type and era, the pump at its own COP history, and
+#: driving at buying flat at the day's mean price.
+SCORE_REFERENCE: dict[str, float] = {
+    "envelope": 50.0, "machine": 100.0, "operation": driving_grade.REFERENCE}
+
+
 def machine_score(
     baseline: Mapping[Any, Any], cusum_stat: float
-) -> tuple[float | None, str | None]:
-    """The heat pump grade (#65) and, when it is None, the code saying why.
+) -> tuple[float | None, str | None, list[dict[str, Any]]]:
+    """The heat pump grade (#65), the code saying why it is None, and its drivers.
 
     100 while the COP watch (#12) accumulates no shortfall; the grade falls
     as the Cusum climbs toward its alarm. No watched bucket is no evidence.
+    Its one driver, ``cop_shortfall``, is the grade's distance below 100,
+    the pump matching its own COP history (``SCORE_REFERENCE``).
     """
     if not _watched_cop_buckets(baseline):
-        return None, "cop_watch_learning"
-    return (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0, None
+        return None, "cop_watch_learning", []
+    grade = (1.0 - float(np.clip(cusum_stat / COP_HEALTH_THRESHOLD, 0.0, 1.0))) * 100.0
+    return grade, None, [{"code": "cop_shortfall", "points": grade - SCORE_REFERENCE["machine"]}]
+
+
+def machine_evidence(baseline: Mapping[Any, Any], frozen_refusals: int) -> dict[str, Any]:
+    """What the heat pump grade waits on: samples per 3 degC outdoor band.
+
+    Each COP baseline bucket against ``COP_BASELINE_MIN_SAMPLES`` (one bucket
+    at it starts the watch, ``_watched_cop_buckets``), most samples first,
+    and the intervals a learner freeze refused since start.
+    """
+    bands = [
+        {"outdoor_c": 3 * band, "hot_water": curve is True, "samples": int(entry[1])}
+        for (band, curve), entry in baseline.items()
+        if np.isfinite(entry[1])
+    ]
+    bands.sort(key=lambda b: (-b["samples"], b["outdoor_c"]))
+    return {"required": COP_BASELINE_MIN_SAMPLES, "bands": bands,
+            "refused_frozen": int(frozen_refusals)}
 
 
 def operation_reason(score_day: Mapping[str, Any]) -> str:
@@ -3203,33 +3261,41 @@ def operation_reason(score_day: Mapping[str, Any]) -> str:
 
 def compose_scores(
     envelope: tuple[float | None, str | None, list[dict[str, Any]]],
-    machine: tuple[float | None, str | None],
-    operation: tuple[float | None, str | None],
+    machine: tuple[float | None, str | None, list[dict[str, Any]]],
+    operation: tuple[float | None, str | None, list[dict[str, Any]]],
+    machine_waits_on: dict[str, Any] | None = None,
 ) -> Scores:
-    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why).
+    """#65: envelope, machine and operation on one 0-100 scale, each a (grade, why, drivers).
 
     Envelope is the house; it stays in the breakdown. Overall is machine and
     operation only -- averaging the house in is how a DHW-only cheap-hour plan
     reads as 5/100. None is no evidence and is never 0: each None carries one
-    code in ``reasons`` (#2258), and a grade carries none. The house grade's
-    drivers ride ``envelope_drivers`` (#2816).
+    code in ``reasons`` (#2258), and a grade carries none. Each part's
+    drivers ride ``<part>_drivers`` (#2816), signed points summing to the
+    grade minus the part's ``SCORE_REFERENCE``, and are empty with no grade;
+    a heat pump with none says what it waits on in ``machine_evidence``.
     """
-    house = envelope[:2]
-    parts = {"envelope": house, "machine": machine, "operation": operation}
-    reasons = {key: why for key, (_grade, why) in parts.items() if why is not None}
-    available = [g for g, _why in (machine, operation) if g is not None]
+    parts = {"envelope": envelope, "machine": machine, "operation": operation}
+    reasons = {key: part[1] for key, part in parts.items() if part[1] is not None}
+    available = [part[0] for part in (machine, operation) if part[0] is not None]
     if not available:
         reasons["overall"] = "first_scored_day"
-    return {
-        "envelope": None if house[0] is None else round(house[0], 1),
+    def drivers(part: tuple[Any, Any, list[dict[str, Any]]]) -> list[dict[str, Any]]:
+        return [{"code": d["code"], "points": round(d["points"], 1)} for d in part[2]]
+
+    scores: Scores = {
+        "envelope": None if envelope[0] is None else round(envelope[0], 1),
         "machine": None if machine[0] is None else round(machine[0], 1),
         "operation": None if operation[0] is None else round(operation[0], 1),
         "overall": round(float(np.mean(available)), 1) if available else None,
         "reasons": reasons,
-        "envelope_drivers": [
-            {"code": d["code"], "points": round(d["points"], 1)} for d in envelope[2]
-        ],
+        "envelope_drivers": drivers(envelope),
+        "machine_drivers": drivers(machine),
+        "operation_drivers": drivers(operation),
     }
+    if machine[0] is None and machine_waits_on is not None:
+        scores["machine_evidence"] = machine_waits_on
+    return scores
 
 
 def _entity_price_source(config: Mapping[str, Any]) -> bool:
@@ -5162,6 +5228,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_NO_POWER
         heat_kw = self._flow_bias.heat_output_kw  # read first: an open window moves no measured heat
         if self._learning_frozen(CONF_POWER_ENTITY, CONF_OUTDOOR_TEMP_ENTITY, CONF_THERMAL_POWER_ENTITY, room_air=heat_kw is None and not heat_energy.meter_of(self).counter):
+            self._measured_cop.frozen_refusals += 1  # machine_evidence's tally
             return COP_REFUSED_FROZEN
 
         commanded = self._commanded_power()
@@ -8183,7 +8250,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # operation sample, never the loop.
             try:
                 # A day-less book is the free-day close's #908 streak alone.
-                keys = ("kwh", "sek", "spot_sum", "spot_h") if "day" in day else ()
+                keys = ("kwh", "sek", "spot_sum", "spot_h", *driving_grade.book_keys(day)) if "day" in day else ()
                 numbers = {key: float(day.get(key, 0.0)) for key in (*keys, "free_streak")}
                 cleaned = {"day": str(day["day"]), **numbers} if keys else numbers
                 if admitted("ledger", {"score_day": cleaned}):  # finite, and in its domain
@@ -8193,6 +8260,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         score = stored.get("operation_score")
         if isinstance(score, (int, float)) and np.isfinite(score):
             self._operation_score = float(np.clip(score, 0.0, 100.0))
+        driving_grade.restore(driving_grade.held(self), stored.get("operation_drivers"), lambda drivers: admitted(
+            "ledger", {"operation_drivers": drivers}))
         price_tiles.restore(price_tiles.book(self), stored.get("price_tiles"), lambda name, part: admitted(
             "ledger", {"price_tiles": {name: part}}))
 
@@ -8211,6 +8280,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                     "month_reports": self._month_reports,
                     "score_day": self._score_day,
                     "operation_score": self._operation_score,
+                    "operation_drivers": driving_grade.as_stored(driving_grade.held(self), self._operation_score),
                     "fuse_advisor": dict(self._fuse_advisor),
                     "price_tiles": price_tiles.book(self),
                     "fuse_advisor_at": (
@@ -10438,14 +10508,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             book.update(
                 {"day": day, "kwh": 0.0, "sek": 0.0, "spot_sum": 0.0, "spot_h": 0.0}
             )
-        if spot_known and np.isfinite(sek):  # #2229: an unpriced kWh pays nothing
-            book["kwh"] = finite_float(book.get("kwh"), 0.0) + max(0.0, kwh)
-            book["sek"] = finite_float(book.get("sek"), 0.0) + sek
-        if spot_known and np.isfinite(spot) and elapsed_hours > 0:
-            book["spot_sum"] = (
-                finite_float(book.get("spot_sum"), 0.0) + spot * elapsed_hours
-            )
-            book["spot_h"] = finite_float(book.get("spot_h"), 0.0) + elapsed_hours
+        if spot_known:  # #2229: an unpriced kWh pays nothing
+            self._score_day = driving_grade.tally(book, kwh, sek, spot, elapsed_hours)
 
     def _close_score_day(self) -> None:
         """Replay yesterday against its own realised prices, fold the score.
@@ -10473,12 +10537,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             if streak >= SCORE_FREE_SPAN_RESET:
                 self._operation_score = None
         else:
-            paid_mean = finite_float(book.get("sek"), 0.0) / kwh
-            saved_fraction = 1.0 - paid_mean / mean_spot
-            sample = float(np.clip(saved_fraction / 0.2, 0.0, 1.0)) * 100.0
-            if self._operation_score is not None:
-                sample = (1.0 - SCORE_ALPHA) * self._operation_score + SCORE_ALPHA * sample
-            self._operation_score = sample
+            drivers = driving_grade.held(self)
+            self._operation_score = driving_grade.fold(drivers, self._operation_score, book, mean_spot)
         self._schedule_ledger_save()
 
     def _scores_view(self, advice: Mapping[str, Any]) -> Scores:
@@ -10494,7 +10554,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 getattr(self, "_ctx", self)._config,
             ),
             machine_score(self._cop_baseline, self._cop_health_cusum.stat),
-            (operation, None if operation is not None else operation_reason(self._score_day)),
+            (operation, None if operation is not None else operation_reason(self._score_day),
+             driving_grade.published(driving_grade.held(self), operation)),
+            machine_evidence(self._cop_baseline, self._measured_cop.frozen_refusals),
         )
 
     def _narrative_view(self) -> Narrative:
