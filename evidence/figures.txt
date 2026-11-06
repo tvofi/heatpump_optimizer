@@ -1,0 +1,9 @@
+roster ref 1f11980fa7cfbe23767975b332ea4bb52dfb336d
+groups 1
+carries 42
+== closure select
+  MODE: FULL -- every test script runs, nothing is scoped out.
+39 From r10-body-contract-p2, body item fc638024: 5. Carry control lint narrowing: built the pin only: `LEGACY_CONTROL_CAP`, every member must still lint red without the exemption (a repaired file must leave the set), and the #1795 file left the set when consumed
+40 From #3260, body item 62b6e444: 1. Card 7 (every body figure from a generated block; roster Carry 2, Carry 11, Carry 17, Carry 27, Carry 37): re-measured, the preconditions are still absent (`tools/policy/figure_lint.mjs` executes none of a body's commands; no
+41 From #3260, body item 106e7c34: 5. Carry control lint narrowing (roster Carry 15, Carry 21, Carry 31, Carry 39): pin built (`LEGACY_CONTROL_CAP` in `tools/policy/brief_lint.mjs`); the remaining files carry unresolvable cites, mostly under `dev/archive/carries`
+42 From #3260, body item 7d9e145f: Remaining roster carries, each named: Carry 16, Carry 26 and Carry 36 are the `rosterIssues()` collision flag, answered with item 2 (the collision is flagged by `assertLegacyControl`). Carry 1 (`body_patch.sh` without `--roster-

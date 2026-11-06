@@ -1,76 +1,73 @@
 # Review packet #3260
-head: 2fa354bf13087a63c4a42682b65f2b60ef3b92e3
-base: 57958d6a44c4f489384705ba64e8f65a8507f6b7
+head: 5b39c4111ca5ae464a607490c42d70c638af24a3
+base: 28482eceeb6b9809e44b12d80fc994282cc21645
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=128115265369 success
-arch-score / arch-score id=128136394100 success
-arm id=128114978429 skipped
-budget-raise-gate / budget-raise-gate id=128136394171 success
-cancel-superseded id=128136463141 success
-codeql id=128136460124 skipped
-codeql / Analyze (actions) id=128115174200 success
-codeql / Analyze (javascript-typescript) id=128115174001 success
-codeql / Analyze (python) id=128115174107 success
-gate id=128136393265 success
-governance id=128136393988 skipped
-governance / delivery-status id=128115174104 success
-governance / delivery-status-publish id=128115176458 skipped
-governance / env-matrix id=128115173897 success
-governance / instrument-self-tests id=128115173927 success
-governance / policy-docs id=128115173857 success
-governance / record id=128115176414 skipped
-governance / wave-script id=128115173896 success
-hassfest id=128136393549 skipped
-hassfest / hassfest id=128115173708 success
-kernel-points id=128136393120 skipped
-pr-contract id=128136393923 skipped
-pr-contract / pr-contract id=128133936508 success
-prelude id=128136392809 success
-refresh id=128136453415 success
-tests id=128136394197 skipped
-tests / arch-instrument id=128115469155 success
-tests / briefs id=128115173796 success
-tests / browser id=128115468876 success
-tests / ci-ratchet id=128132784407 skipped
-tests / claims-autofix id=128132785619 skipped
-tests / closure-scope id=128115173799 success
-tests / closures id=128115468948 success
-tests / closures-autofix id=128128931352 skipped
-tests / coverage id=128115469004 success
-tests / coverage-ratchet id=128131535044 success
-tests / fast (3.14) id=128115468785 success
-tests / graders-head-copy id=128131535226 success
-tests / lane-proofs id=128132782502 success
-tests / mutation id=128115173759 success
-tests / mutation-autofix id=128115541438 skipped
-tests / mutation-pins id=128115540209 skipped
-tests / nightly-ha id=128115471374 skipped
-tests / nightly-status id=128115173754 success
-tests / replay id=128115471120 skipped
-tests / typing id=128115468946 success
-validate id=128136450268 skipped
-validate / validate-hacs id=128115173935 success
+## Gate digest: red
+CodeQL id=128212114147 success
+arch-score / arch-score id=128221319145 success
+arm id=128211850677 skipped
+budget-raise-gate / budget-raise-gate id=128221374698 success
+cancel-superseded id=128221360613 success
+codeql id=128221369175 skipped
+codeql / Analyze (actions) id=128212038474 success
+codeql / Analyze (javascript-typescript) id=128212038535 success
+codeql / Analyze (python) id=128212038432 success
+gate id=128221318581 failure
+governance id=128221356562 skipped
+governance / delivery-status id=128212038552 success
+governance / delivery-status-publish id=128212039990 skipped
+governance / env-matrix id=128212038529 success
+governance / instrument-self-tests id=128212038492 success
+governance / policy-docs id=128212038427 success
+governance / record id=128212041180 skipped
+governance / wave-script id=128212038506 success
+hassfest id=128221368392 skipped
+hassfest / hassfest id=128212038305 success
+kernel-points id=128221318552 skipped
+pr-contract id=128221320012 skipped
+prelude id=128221366967 success
+refresh id=128221362364 success
+tests id=128221369844 skipped
+tests / arch-instrument id=128212268014 in_progress
+tests / briefs id=128212038396 success
+tests / browser id=128212267929 success
+tests / closure-scope id=128212038499 success
+tests / closures id=128212267935 success
+tests / closures-autofix id=128220511633 skipped
+tests / coverage id=128212267900 in_progress
+tests / fast (3.14) id=128212267891 in_progress
+tests / mutation id=128212038407 success
+tests / mutation-autofix id=128212372572 skipped
+tests / mutation-pins id=128212371815 skipped
+tests / nightly-ha id=128212269559 skipped
+tests / nightly-status id=128212038354 success
+tests / replay id=128212269419 skipped
+tests / typing id=128212268015 success
+validate id=128221319575 skipped
+validate / validate-hacs id=128212038387 success
 
 ## Refusals
-none
+red-unanswered: concluded red check `gate` is not named in ## Red checks
+required-red: required context `gate` concluded failure at 5b39c4111ca5ae464a607490c42d70c638af24a3
 
 ## Advisories
 none
 
 ## carry_audit at the head
-NOTE body item 3c841c6e: R10-BODY-CONTRACT
-NOTE body item e864aeaf: dismissed:answered in this pull request
-NOTE body item d0151982: R10-BODY-CONTRACT
-NOTE body item 09bfec67: dismissed:3221 merged, this diff touches neither file
-NOTE body item fc638024: R10-BODY-CONTRACT
-NOTE body item dfd357a3: dismissed:answered in this pull request
-NOTE body item 08b8a94e: dismissed:answered in this pull request
-NOTE body item 13e77865: dismissed:answered in this pull request
-NOTE body item 3d725eca: dismissed:answered in this pull request
-CARRY-AUDIT: 9 finding item(s): 9 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 728df1bf: dismissed:orientation only, each carry is answered below
+NOTE body item 62b6e444: R10-BODY-CONTRACT
+NOTE body item a223202b: dismissed:answered in this pull request
+NOTE body item 939f3156: dismissed:built and pinned in this pull request
+NOTE body item b9ffbdde: dismissed:3221 merged, this diff touches neither file
+NOTE body item 106e7c34: R10-BODY-CONTRACT
+NOTE body item 1d9246db: dismissed:answered in this pull request
+NOTE body item 134797fc: dismissed:answered in this pull request
+NOTE body item 5b54efca: dismissed:answered in this pull request
+NOTE body item d46d43b2: dismissed:answered in this pull request
+NOTE body item 7d9e145f: R10-BODY-CONTRACT
+CARRY-AUDIT: 11 finding item(s): 11 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
 ok         python3 -I tools/audit/carry_audit.py --self-test
@@ -81,10 +78,10 @@ ok         python3 -I tools/audit/carry_audit.py --self-test
              node runs an inline script rather than a file
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         python3 -I tools/audit/seat/tmp_paths.py --check
-             `tools/audit/seat/tmp_paths.py` is in the tree at this head
-  ok         bash tools/pr/prepr.sh
-             `tools/pr/prepr.sh` is in the tree at this head
+  ok         python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
   unverified git grep -n FOLD_LINE tools/
              `git grep` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
@@ -213,7 +210,7 @@ index 1a257bf95..d26dc8b0e 100644
  _PC_LIST_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("List the red checks")), -1)
  R.check(
 diff --git a/tools/audit/carry_audit.py b/tools/audit/carry_audit.py
-index 150a1b4be..64a951aeb 100644
+index 150a1b4be..d465594e7 100644
 --- a/tools/audit/carry_audit.py
 +++ b/tools/audit/carry_audit.py
 @@ -120,7 +120,7 @@ CARRY_SECTIONS = ("forward-carry", "friction")
@@ -385,7 +382,40 @@ index 150a1b4be..64a951aeb 100644
      check("an issue with no `Fold (x):` line is accepted unchanged (null control)",
            fp("Closes #7\n", "Please fix this; a fold (a): in prose.\n") == [])
      check("a body that does not close the issue owes no fold answer (null control)",
-@@ -1445,6 +1501,9 @@ def _self_test() -> int:
+@@ -1152,6 +1208,32 @@ def _self_test() -> int:
+           rc == 1 and "FOLD-UNANSWERED" in out and "1 routed" in out)
+     rc, out = cli("Closes #7\n\nFold (a): built\n", folds=fold_issue)
+     check("check --body accepts the same close once the fold is answered (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
++    # the fold answer's destination is read against the roster on the CLI line that feeds
++    # fold_problems (the `dests` handed to folds_rc, and the FOLD_LINE test guarding the read)
++    rc, out = cli("Closes #7\n\nFold (a): Carry: R10-INVENTED\n", folds=fold_issue)
++    check("check --body refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)",
++          rc == 1 and "FOLD-UNANSWERED" in out and "R10-INVENTED is not a group" in out)
++    rc, out = cli("Closes #7\n\nFold (a): Carry: R10-CONS\n", folds=fold_issue)
++    check("... and accepts one answered with a live group (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
++    # `pr` reads the same fold answer on the same roster, with gh stubbed
++    def pr_cli(body: str) -> "tuple[int, str]":
++        names = ("read_pr", "load_dests", "gh_issue_state", "gh_issue_text")
++        real = {k: globals()[k] for k in names}
++        globals().update(read_pr=lambda n, repo, d: (body, []), load_dests=lambda *a, **k: Dcl,
++                         gh_issue_state=lambda repo: (lambda n: "open"),
++                         gh_issue_text=lambda repo: (lambda n: "Fold (a): do x\n"))
++        buf = io.StringIO()
++        try:
++            with contextlib.redirect_stdout(buf):
++                rc = main(["pr", "7"])
++        finally:
++            globals().update(real)
++        return rc, buf.getvalue()
++    rc, out = pr_cli("Closes #7\n\nFold (a): Carry: R10-INVENTED\n")
++    check("pr refuses a fold answered `Carry:` a group the roster lacks (rc 1, FOLD-UNANSWERED)",
++          rc == 1 and "R10-INVENTED is not a group" in out)
++    rc, out = pr_cli("Closes #7\n\nFold (a): Carry: R10-CONS\n")
++    check("... and accepts one answered with a live group (null control)", rc == 0 and "FOLD-UNANSWERED" not in out)
+     rc, out = cli(plant.rstrip() + " Carry: R10-GONE\n", "--branch", "fix/r10-pr")
+     check("check --branch resolves the PR group, so a closed destination lists its valid targets",
+           rc == 1 and "valid targets: unknown" not in out and "R10-CONS" in out)
+@@ -1445,6 +1527,9 @@ def _self_test() -> int:
          ("... a pointer that is no group of the roster is refused",
           P + " Carry: R10-INVENTED | dismissed: two words\n", "bad"),
          ("... a one-word reason after a pointer is refused", P + " Carry: R10-OVER | dismissed: moot\n", "bad"),
@@ -395,7 +425,7 @@ index 150a1b4be..64a951aeb 100644
          ("a bolded `dismissed:` reads", P + " Carry: **dismissed: host load**\n", "routed"),
          ("`Dismissed:` reads in any case", P + " Carry: Dismissed: host load, not a defect\n", "routed"),
          ("`and` separates destinations", P + " Carry: R10-LIVE and #999\n", "bad"),
-@@ -1561,6 +1620,8 @@ def _self_test() -> int:
+@@ -1561,6 +1646,8 @@ def _self_test() -> int:
          ("a finding line under the Evidence heading still reads as one after the trailer words (null control)",
           head, verdict_of("merge", "## Evidence\n\n- Round: 3\n- Residual: the census misses one.\n"),
           [("lead", U)]),
