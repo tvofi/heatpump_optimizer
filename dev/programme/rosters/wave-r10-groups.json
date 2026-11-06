@@ -17265,7 +17265,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From the #3239 round-1 fix review (verdict/3239 6a8964e8): tools/ci/gate.py busy(): two gate jobs started within one second at one head (one per edit run) each list the other's run as unfinished and not judging, and both fail with \"still being judged; their gate decides\"; no gate ever judges the head. Liveness defect in the gate predicate; it explains the 2026-11-06 morning gate reds. Fix: one of the two must judge (a deterministic tiebreak, e.g. the lower run id judges while the higher defers, or a deferral that excludes a sibling that is itself deferring). Failing test first: two concurrent gate invocations at one head must produce exactly one judgement."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started"
