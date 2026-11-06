@@ -28,3 +28,7 @@ none
 ## Friction
 
 none
+
+## Approval
+
+Pending: D0.md is policy, so the owner's approving review at this head is required before merge (CLAUDE.md, "Where the policy is"). No approval is claimed here.
