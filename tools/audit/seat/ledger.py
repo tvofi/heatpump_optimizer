@@ -575,8 +575,14 @@ def parse_aging(value: "str | None"):
     return a, b
 
 
-def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[str]:
-    """DISPATCH lines, oldest first, then OWNER FLAG lines, one per topic."""
+def escalate(level_rows: list, now: datetime.datetime, aging, group_of,
+             last_open: "float | None" = None) -> list[str]:
+    """DISPATCH lines, oldest first, then OWNER FLAG lines, one per topic.
+    `last_open` is the epoch of the newest pull-request opening of a fix/ or
+    handoff/ branch: a tip committed at or before it is the standing backlog,
+    which an age-only threshold would flag for ever, and escalates nothing;
+    only an arrival after the last opening ages (as pulse.py's opener rule
+    does). None (the opening unread) keys on age alone: it over-owes."""
     if aging is None:
         return []
     by: dict[str, dict] = {}
@@ -591,6 +597,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
     for t, refs in by.items():
         ref, sha, kv = refs.get("code") or refs["body"]
         if not kv.get("ct", "").isdigit():
+            continue
+        if last_open is not None and int(kv["ct"]) <= last_open:
             continue
         age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
         repair = ("no code ref" if "code" not in refs
@@ -883,6 +891,15 @@ def self_test() -> int:
               == ["R10-OLD"])
         check("null control: a young tip and a tip ahead of the clock escalate nothing",
               not any("/new " in x or "/fut " in x for x in es))
+        after_old = escalate(lv, now, parse_aging(None), dict().get, ts(20))
+        check("a tip committed before the last opening is backlog and escalates nothing; a later arrival still ages (carry 2)",
+              [x.split()[2] for x in after_old] == ["refs/heads/handoff/mid"]
+              and len(escalate(lv, now, parse_aging("0.5,40"), dict().get, ts(20))) == 2)
+        check("null control: the opening unread (None) keys on age alone, as before",
+              escalate(lv, now, parse_aging(None), dict().get, None)
+              == escalate(lv, now, parse_aging(None), dict().get))
+        check("a tip committed exactly at the last opening is backlog",
+              not escalate(lv[:1], now, parse_aging(None), dict().get, ts(30)))
         check("the switch off escalates nothing", escalate(lv, now, parse_aging("off"), dict().get) == [])
         check("a malformed switch is refused", refuses(lambda: parse_aging("4")) == "Refused"
               and refuses(lambda: parse_aging("12,4")) == "Refused")
