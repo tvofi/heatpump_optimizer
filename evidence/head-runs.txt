@@ -1,0 +1,37 @@
+head 47810de38785ec8563d97c89d5c6dfdb822c6288
+FAIL closed: RateLimited: repos/o/r/actions/runs/100: rate limited until 1 (limit)
+ok  1 the plant: a code run lists the python-only alert
+ok  2 null: the same run without the plant lists nothing
+ok  3 carried: an edit run takes S from the code run and lists the same alert
+ok  4 a leg that stood down uploaded nothing: not waited for, not read
+ok  5 case 7: an analysis id answering 404 FAILs closed
+ok  6 no finished codeql unit at this head for an edit run FAILs
+ok  7 a code run of another base is no source
+ok  8 an uploaded leg with no analysis at the bound FAILs
+ok  9 a leg whose analysis lands late is waited for at the 60 s poll, then listed
+ok  10 the poll is the 60 s floor
+ok  11 a dispatch source is read at refs/heads/<its branch>, and not found at the merge ref (null)
+ok  12 main: a rate limit FAILs closed, rc 1
+code-scanning alert 7 (py/code-injection)
+ok  13 null: main on the plant exits 0
+ok  14 an edit run whose code run's codeql unit is still running waits at the 60 s poll, then lists (#2675) (got ['code-scanning alert 7 (py/code-injection)'], slept [60, 60])
+ok  15 the FAIL line is on stderr, where the job log shows it, and stdout (the alert file) is empty (stdout '')
+ok  16 a refusal of the wait itself is on stderr too, stdout empty (stdout '')
+ok  17 WAIT_MAX_S bounds steps 1 and 4 together, not each (waited 600 s: 'FAIL no analysis at refs/pull/77/merge with commit_sha m1 for leg(s) python after 600 s')
+ok  18 own run: a lagging step row is polled at the 60 s poll, then the leg is read, not dropped (got ['code-scanning alert 7 (py/code-injection)'], slept [60, 60])
+ok  19 own run: a step row still lagging at the bound FAILs, never passes ("FAIL this run's codeql jobs were not listed finished after 600 s")
+ok  20 null: a settled stand-down (step skipped) is not waited for
+codescan_wait self-test: 20 checks, 0 failed
+--- gate self-test at head
+gate self-test: 57 checks, 0 failed
+--- finder harness at head
+ok   want PASS got PASS                                                       waited  300 s  41870314676 proof: mutation/closures stale >=285 s
+ok   want FAIL got FAIL tests / mutation: failure (this run)                  waited  180 s  41870522291 main: real red hidden, stale 171 s
+ok   want PASS got PASS                                                       waited  720 s  41876634563 prelude stale, 704 s
+ok   want PASS got PASS                                                       waited  180 s  41863133083 prelude stale, 134 s
+ok   want FAIL got FAIL prelude: failure                                      waited  360 s  41094975103 prelude really failed, stale 357 s
+ok   want PASS got PASS                                                       waited   60 s  41289450679 pr-contract absent, 20 s
+ok   want FAIL got FAIL tests / closures: PENDING (this run)                  waited  720 s  past the bound: stale 800 s
+ok   want PASS got PASS                                                       waited    0 s  null: fresh listing
+ok   want FAIL got FAIL tests / closures: failure (this run)                  waited    0 s  null: real red, fresh listing
+mismatches 0 of 9

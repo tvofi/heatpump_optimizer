@@ -1,0 +1,19 @@
+== M1 body mutant: if settled(jobs) -> if True
+BAD 18 own run: a lagging step row is polled at the 60 s poll, then the leg is read, not dropped (got [], slept [])
+BAD 19 own run: a step row still lagging at the bound FAILs, never passes ([])
+codescan_wait self-test: 20 checks, 2 failed
+== M2 base behaviour restored: own-run single read
+BAD 18 own run: a lagging step row is polled at the 60 s poll, then the leg is read, not dropped (got [], slept [])
+BAD 19 own run: a step row still lagging at the bound FAILs, never passes ([])
+codescan_wait self-test: 20 checks, 2 failed
+== M3 exhausted bound returns instead of FAIL
+BAD 19 own run: a step row still lagging at the bound FAILs, never passes ([])
+codescan_wait self-test: 20 checks, 1 failed
+== M4 settled ignores the step row
+BAD 18 own run: a lagging step row is polled at the 60 s poll, then the leg is read, not dropped (got [], slept [])
+BAD 19 own run: a step row still lagging at the bound FAILs, never passes ([])
+codescan_wait self-test: 20 checks, 2 failed
+== M5 job-level skipped/cancelled exemption removed (SURVIVES)
+codescan_wait self-test: 20 checks, 0 failed
+== M6 job status check dropped (SURVIVES)
+codescan_wait self-test: 20 checks, 0 failed
