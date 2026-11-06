@@ -17361,7 +17361,8 @@
     "From r10-replay-cost-budget-r2, body item 891a0e97: The ref24 raise as the centring rule's value, with no control pinning each class budget to the rule over the readings; destination tests/replay.py (the `cycle_cost:class_rule` control now pins the tables to `derive_cost_classes`; whether that closes it is for the carry). Carry: R10-REPLAY-COST-2 (items 891a0e97)",
     "From r10-replay-cost-budget-r2, body item c0776f1c: `fallback_budget`'s docstring (\"the largest class budget measured for each keyed metric\") versus its code, which keeps COST_BUDGETS' loop figure; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items c0776f1c)",
     "From r10-replay-cost-budget-r2, body item c3fe7e15: The stale comment above `COST_CLASS_BUDGETS` (\"69-72 %\"); destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items c3fe7e15)",
-    "From r10-replay-cost-budget-r2, body item 9887c6e7: Three surviving mutants of the earlier head (band edges `<=` to `<`, ref24 edge back at 22.64, dropped `print(out['notice'])`); not re-run against 130769e1; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items 9887c6e7)"
+    "From r10-replay-cost-budget-r2, body item 9887c6e7: Three surviving mutants of the earlier head (band edges `<=` to `<`, ref24 edge back at 22.64, dropped `print(out['notice'])`); not re-run against 130769e1; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items 9887c6e7)",
+    "From r10-replay-cost-budget-r2, body item 21bb12c3: The AWAY_COVERED pin and the export.py credential-refusal pin are built, not carried: `ok control:away:covered_names_are_committed`, `ok AWAY_COVERED names committed fixtures`, `ok recorder:unsupported_scheme_refusal_prints_none_of_the_url`; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items 21bb12c3)"
    ],
    "resume": {
     "stage": "not-started"
