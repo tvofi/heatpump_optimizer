@@ -870,10 +870,10 @@ def self_test() -> int:
         oi3, _ = fold(iv, live={"24": C}, readback={"24": [f"Fix review: merge {A}"]})
         check("null control: a read-back of another sha leaves the imported row open",
               "24" in {s for _, s, *_ in oi3})
-        (D / "imp").mkdir()
-        ilog = str(D / "imp" / "cloud-relay.log")
+        (D / "implog").mkdir()
+        ilog = str(D / "implog" / "cloud-relay.log")
         Path(ilog).write_text(f"OWED 2026-10-18T19:00:00Z 30 {C} bus.sh confirm failed; run it by hand\n")
-        ir = events(D / "imp", ilog)
+        ir = events(D / "implog", ilog)
         oq, cq = fold(ir, live={"30": C}, readback={"30": [f"Fix review: merge {C}"]})
         check("a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)",
               ir[0][4] == C and not oq and cq["read-back"] == 1)
