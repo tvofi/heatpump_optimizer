@@ -1,0 +1,24 @@
+base ledger.py rc=0
+base entities.py rc=1
+base structure.py rc=0
+base doc_claims.py rc=0
+base beat_jobs.py rc=0
+base owed_unactioned.py rc=0
+base orchestrator_tick.py rc=0
+head ledger.py rc=0
+head entities.py rc=1
+head structure.py rc=0
+head doc_claims.py rc=0
+head beat_jobs.py rc=0
+head owed_unactioned.py rc=0
+head orchestrator_tick.py rc=0
+closure rc=0
+base entities(hastub) rc=124
+head entities(hastub) rc=124
+base entities-full rc=0
+head entities-full rc=0
+base r10_ledger_mutants rc=0
+r10_ledger_mutants self-test: 135 checks, 0 failed
+head r10_ledger_mutants rc=1
+  FAIL T3_review_owed_silent: anchor occurs once in tools/audit/seat/orchestrator_tick.py
+r10_ledger_mutants self-test: 135 checks, 1 failed
