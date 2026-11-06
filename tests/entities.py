@@ -2367,6 +2367,21 @@ R.check(
     f"populated={sorted(k for k in _DHW_BLOCK_KEYS if k in _no_dhw_plan_attrs)} "
     "-- the payload carried all five; the gate must keep them off the entity",
 )
+# R10-WHY-NOW-WIDGET: the space-plan sensor is the why-now carrier: it
+# publishes the payload's `why_now` as is, the DHW plan never does, and the
+# key is absent when the payload has none (the card's "no data").
+_WHY_NOW = {"t": "2026-02-01T05:00:00+00:00", "drivers": [
+    {"code": "price_rank", "direction": "run", "weight": 100.0}]}
+_why_data = {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN,
+             "dhw_plan": _LIVE_SPACE_PLAN, "why_now": _WHY_NOW}
+R.check(
+    "R10-WHY-NOW-WIDGET: the space plan publishes why_now; the DHW plan does not; none without one",
+    sensor.SpaceHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes.get("why_now") == _WHY_NOW
+    and "why_now" not in sensor.DHWHeatingPlanSensor(FakeCoordinator(_why_data), ENTRY).extra_state_attributes
+    and "why_now" not in sensor.SpaceHeatingPlanSensor(
+        FakeCoordinator({**_NO_DHW_DATA, "space_plan": _LIVE_SPACE_PLAN}), ENTRY).extra_state_attributes,
+    "the space-plan sensor's attribute block is the card's only why_now source",
+)
 _no_dhw_on_attrs = sensor.SpaceHeatingPlanSensor(
     FakeCoordinator(
         {**_NO_DHW_DATA, "dhw_enabled": True, "space_plan": _LIVE_SPACE_PLAN}
