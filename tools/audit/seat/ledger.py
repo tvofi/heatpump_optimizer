@@ -629,8 +629,10 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
     head of a `merge` verdict, or a dispatched head, of the PR only by clean
     merges of main, or only by the PR's own delivery row, prints
     `CARRY: #N <head12>` instead (P90; the ancestor-recarry test of
-    standing-tick.md). A blocked verdict's head is no prior: only a merge
-    verdict carries (fix-review.md step 12)."""
+    standing-tick.md). A head is a prior only while its newest verdict is a
+    merge, or it is dispatched with no verdict yet: a blocked verdict's head is
+    no prior, though bus.sh's dispatch record holds it too (only a merge
+    verdict carries; fix-review.md step 12)."""
     out = []
     for pr in sorted(prs, key=lambda p: p["number"]):
         n, head = pr["number"], pr.get("headRefOid") or ""
@@ -643,7 +645,9 @@ def review_owed(prs: list, readback: dict, dispatched: set, carries=None, skip_b
         last = lines[-1] if lines else ""
         if carries and last.startswith("Fix review: merge ") and carries(verdict_head(last), head):
             continue
-        priors = [h for h in (verdict_head(l) for l in lines if l.startswith("Fix review: merge ")) if h] + sorted(h for k, h in dispatched if k == str(n))
+        newest = {h: l for l in lines if (h := verdict_head(l))}  # the newest verdict at each head
+        priors = [h for h, l in newest.items() if l.startswith("Fix review: merge ")] \
+            + sorted(h for k, h in dispatched if k == str(n) and h not in newest)
         if recarry and any(recarry(h, head, n) for h in dict.fromkeys(priors)):
             out.append(f"CARRY: #{n} {head[:12]}")
             continue
