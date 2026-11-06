@@ -4697,7 +4697,7 @@
         "owner decision on a per-PR static arm over silent_peer_waits.py --scan, buildable only after #3232 merges"
       ],
       "process_state": "(c) round 9's D1 seat read this lock and read (D1-s2-05) with a stop-latency unit against a finite solve, its check's double ends the read on kill, D1 step 5 injects exceptions a silent peer never raises, and the #511 checks drive only a failing worker",
-      "countermeasure": "D1.md method step 7: every synchronous wait on a peer driven by one that stays alive and silent, instrument dev/audit/harnesses/silent_peer_waits.py (drive reads 0 at v7.1.2 and main, 1 with ProcessWorkerTimeout at 2.00 s at #3232's head under the deadline perturbation; --answer null control 1 on every tree); about 58 s/release against about 475 s/release",
+      "countermeasure": "D1.md method step 5 (Guards, waits): every wait on a peer driven by one that stays alive and silent, instrument dev/audit/harnesses/silent_peer_waits.py (drive reads 0 at v7.1.2 and main, 1 with ProcessWorkerTimeout at 2.00 s at #3232's head under the deadline perturbation; --answer null control 1 on every tree); about 58 s/release against about 475 s/release",
       "landed": null,
       "in_tree_home": "dev/audit/rca/r10-process-worker-hang.md",
       "doc": [

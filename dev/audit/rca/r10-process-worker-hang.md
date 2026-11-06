@@ -17,8 +17,9 @@ fix is #3232 (group R10-EXT-3226, re-authored from the outside pull request
   and filed D1-s2-05 against the stop path; its unit (stop latency against a
   solve that ends) and the D1 method (exception injection) never put a live,
   silent peer on the other end of the read.
-- **Countermeasure:** D1's method step 7 (liveness against a silent peer),
-  with `dev/audit/harnesses/silent_peer_waits.py` as its instrument. The
+- **Countermeasure:** D1's method step 5 now also drives every wait on a
+  peer with a live, silent one; its instrument is
+  `dev/audit/harnesses/silent_peer_waits.py`. The
   per-PR static arm passes the arithmetic on one instance but is not built
   here: `## Needs tvofi`.
 
@@ -162,7 +163,7 @@ Unit: wall-clock seconds per release.
   release tags (the scan above), so 1/158 = 0.0063 per release. In the 54 tags
   after v6.3.15 no further one was added. Expected: 75,000 x 0.0063 = about
   475 s per release.
-- **D1 step 7**, recurring: one scan (median 0.67 s over 5 runs, a standalone
+- **D1 step 5's wait arm**, recurring: one scan (median 0.67 s over 5 runs, a standalone
   process) and three drives (about 21 s at `--cap 6`) per D1 round, plus about
   15 minutes to disposition six sites. Taking ten rounds over the 158 tags
   (an upper bound: rounds 1-2 predate some of these tags) gives 0.063 rounds
@@ -172,17 +173,21 @@ Unit: wall-clock seconds per release.
   the runs from below, so at least 68 s per release, plus about 600 s of
   disposition review for each by-design site (three in 55 tags: about 33 s
   per release): about 100 s per release. Against 475 s it passes. Against
-  what step 7 leaves, it is the window between a site landing and the next D1
+  what step 5's wait arm leaves, it is the window between a site landing and the next D1
   round: 8542e51cb landed 32 days before round 9 began. On one instance, the
   margin is within the estimate's error.
 
-## Countermeasure: D1 method step 7
+## Countermeasure: D1 method step 5, waits
 
-`dev/governance/dimensions/D1.md` gains step 7: every synchronous wait on
-another party is driven by a peer that stays alive and never answers. The call
-must return within a stated deadline, free what it holds, and leave the stop
-path able to complete. `--scan` enumerates the sites for disposition, `--drive`
-is the process-worker arm, and `--answer` is its null control. It changes the
+`dev/governance/dimensions/D1.md` step 5 ("Guards, waits") now also drives
+every wait on a peer (pipe, child, lock) with a peer that stays alive and
+silent: the wait must time out and free what it holds. `--scan` enumerates the
+sites for disposition, `--drive` is the process-worker arm, and `--answer` is
+its null control.
+
+The brief sat at its line and token caps (`policy_lint.mjs`'s `[budgets]`). The
+arm is paid for by tightening step 5's own wording and step 6's #1090
+sentence, so no cap moved. It changes the
 unit that missed the defect (state (c)), not the instruction's force. It is
 policy, so it merges only on the owner's approving review.
 
