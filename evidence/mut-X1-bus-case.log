@@ -3,7 +3,7 @@
   ok   push-verdict refuses a verdict with no nonce line
   ok   push-verdict refuses evidence that names no head
   ok   push-verdict refuses a verdict with no evidence directory
-  ok   push-verdict refuses evidence names that differ only by case, naming both
+  FAIL push-verdict refuses evidence names that differ only by case, naming both
   ok   push-verdict lets distinct evidence names past the case check (null control)
   ok   push-verdict refuses a non-numeric pull request
   ok   no refused push left a review ref
@@ -67,6 +67,8 @@
   ok   watch refuses a raw ref outside the grammar and posts nothing
   ok   a refused verdict is not retried on the next pass
   ok   watch refuses a raw proposal whose only naming file is VERDICT.md
+  FAIL unpack refuses a proposal whose evidence names differ only by case, naming both (read side)
+  ok   unpack lets distinct evidence names past the case check (null control, read side)
   ok   a poster refusal is reported and not recorded as posted
   ok   a merge verdict the poster refused adds nothing to the train
   ok   post retries a refused verdict by hand
@@ -132,4 +134,4 @@
   ok   and dispatches once the group's carries name the pull request (P310, the null control)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 134 checks, 0 failed
+bus self-test: 136 checks, 2 failed

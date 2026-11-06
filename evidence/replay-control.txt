@@ -1,4 +1,0 @@
-reviewer-built instrument, live origin 2026-11-06T15:04:56Z
-    849 CARRIED
-     12 NOREVIEW
-      5 NOTCARRIED
