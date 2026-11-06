@@ -1,0 +1,20 @@
+2026-11-06T10:07:47.3089899Z   WORKSET: arch-score budget-raise-gate
+2026-11-06T10:07:47.3090354Z ##[endgroup]
+2026-11-06T10:07:55.9127203Z FAIL run(s) [42192623509] at this head are still being judged; their gate decides
+2026-11-06T10:07:55.9271153Z ##[error]Process completed with exit code 1.
+2026-11-06T10:07:55.9432392Z Post job cleanup.
+2026-11-06T10:07:56.0286843Z [command]/usr/bin/git version
+2026-11-06T10:07:56.0329416Z git version 2.56.0
+2026-11-06T10:07:56.0396130Z Temporarily overriding HOME='/home/runner/work/_temp/4bb630a0-02f4-4804-a1fe-eeeb1b0cec76' before making global git config changes
+2026-11-06T10:07:56.0397401Z Adding repository directory to the temporary git global config as a safe directory
+2026-11-06T10:07:56.0402046Z [command]/usr/bin/git config --global --add safe.directory /home/runner/work/heatpump_optimizer/heatpump_optimizer
+2026-11-06T10:07:56.0434809Z Removing SSH command configuration
+2026-11-06T10:07:56.0440569Z [command]/usr/bin/git config --local --name-only --get-regexp core\.sshCommand
+2026-11-06T10:07:56.0476164Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'core\.sshCommand' && git config --local --unset-all 'core.sshCommand' || :"
+2026-11-06T10:07:56.0763709Z Removing HTTP extra header
+2026-11-06T10:07:56.0769551Z [command]/usr/bin/git config --local --name-only --get-regexp http\.https\:\/\/github\.com\/\.extraheader
+2026-11-06T10:07:56.0808109Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-06T10:07:56.1088207Z Removing includeIf entries pointing to credentials config files
+2026-11-06T10:07:56.1095151Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-06T10:07:56.1128764Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-06T10:07:56.1571481Z Cleaning up orphan processes
