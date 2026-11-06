@@ -1,0 +1,3 @@
+rows 565 cols ['job', 'run', 'event', 'created', 'jobname', 'fixture', 'arm', 'ref_ms']
+job distinct 116
+jobname distinct 2

@@ -1,4 +1,4 @@
-ref=7e8939d38cedb2976acc80a4ad7875cb545bd588 seats=48
+ref=83579e22d740ba1fbfd74e394267b0263004bfb6 seats=48
 ok D0 mode=cells seats=3 universe=3 [s1:3f/21821loc, s2:3f/21821loc, s3:3f/21821loc]
 ok D1 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
 ok D2 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
@@ -10,11 +10,11 @@ ok D7 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/6
 ok D8 mode=cells seats=3 universe=6 [s1:6f/4653loc, s2:6f/4653loc, s3:6f/4653loc]
 ok D9 mode=cells seats=3 universe=86 [s1:86f/83176loc, s2:86f/83176loc, s3:86f/83176loc]
 ok D10 mode=cells seats=3 universe=103 [s1:103f/83176loc, s2:103f/83176loc, s3:103f/83176loc]
-ok D11 mode=cells seats=3 universe=1179 [s1:1179f/0loc, s2:1179f/0loc, s3:1179f/0loc]
+ok D11 mode=cells seats=3 universe=1181 [s1:1181f/0loc, s2:1181f/0loc, s3:1181f/0loc]
 ok D12 mode=cells seats=3 universe=85 [s1:85f/67683loc, s2:85f/67683loc, s3:85f/67683loc]
 ok D13 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
 ok D14 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
 ok D15 mode=cells seats=3 universe=1 [s1:1f/0loc, s2:1f/0loc, s3:1f/0loc]
-ok coverage tracked=9097 in_universe=1415 excluded=7682 unclassified=0
+FAIL coverage tracked=9106 in_universe=1417 excluded=7688 unclassified=1
+   in no universe and not excluded: tests/replay_cost_draws.tsv
 ok harness citations: 0 harness(es) implementing a brief's rule the brief does not cite
-rc=0
