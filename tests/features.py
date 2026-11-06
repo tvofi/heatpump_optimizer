@@ -41683,6 +41683,7 @@ try:
     # with the deadline, not read as a transport fault (select.select refuses
     # such a descriptor; the #3232 review's regression).
     import resource as _wt_resource  # noqa: E402
+    import gc as _wt_gc  # noqa: E402
 
     _wt_soft, _wt_hard = _wt_resource.getrlimit(_wt_resource.RLIMIT_NOFILE)
     _wt_fds = []
@@ -41694,9 +41695,12 @@ try:
             _wt_resource.setrlimit(_wt_resource.RLIMIT_NOFILE, (
                 _wt_want if _wt_hard == _wt_resource.RLIM_INFINITY else min(_wt_want, _wt_hard),
                 _wt_hard))
+        # Reap first, then fill: the old worker's pipes freed after the fill
+        # would hand the respawn low descriptors again.
+        _g511_coord._shutdown_process_pool()
+        _wt_gc.collect()
         while len(_wt_fds) < 1100:
             _wt_fds.append(_os.open(_os.devnull, _os.O_RDONLY))
-        _g511_coord._shutdown_process_pool()  # the next spawn takes high fds
         _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
         _wt_hi_warm, _ = _g511_submit(_g511_coord._run_in_process, _os.getpid, ())
         if _g511_coord._PROCESS_WORKER is not None:
