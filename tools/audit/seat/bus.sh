@@ -573,7 +573,7 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
     3) # THE CHEAP CHECKS (card C8): a head still in flight dispatches once the sub-10-minute checks concluded.
        pend=$(pending_checks "$h") || die "dispatch: cannot read the check runs of #$pr's head $h (an unread head is never read as concluded), so no reviewer is dispatched"
        cheap=
-       for name in "${CHEAP_CHECKS[@]}"; do
+       for name in "${CHEAP_CHECKS[@]}"; do  # never-empty: CHEAP_CHECKS is the literal four-entry array above
          ! grep -qxF -- "$name" <<< "$pend" || cheap+="${cheap:+, }$name"
        done
        [ -z "$cheap" ] || die "dispatch: #$pr's head $h has cheap checks still running ($cheap) -- the review starts once they conclude (card C8)" ;;
