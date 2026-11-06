@@ -1,0 +1,6 @@
+merge-base b88684a218923f85de66f1e8fb1833e31a76a154
+git log --since=2026-10-29 --format=%s b88684a218923f85de66f1e8fb1833e31a76a154 | grep -c '^ci: pin killed' => 27
+git log --since=2026-10-29 --format=%s b88684a218923f85de66f1e8fb1833e31a76a154 | grep -c '^ci: record delivery' => 52
+git log --since=2026-10-29 --format=%s b88684a218923f85de66f1e8fb1833e31a76a154 | grep -c '^ci: record nightly' => 14
+git log --since=2026-10-29 --format=%s b88684a218923f85de66f1e8fb1833e31a76a154 | grep -c '^ci: re-record closures' => 7
+git log --first-parent --since=2026-10-29 --format=%s b88684a218923f85de66f1e8fb1833e31a76a154 | grep -oE '#[0-9]+' | sort -u | wc -l => 239
