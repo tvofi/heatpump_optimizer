@@ -12362,6 +12362,34 @@ R.check(
     == _ATTR_RICH["savings_months"],
     repr(_ready_sav.native_value),
 )
+# R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so on
+# a house with wood configured the entity's saving says it includes wood's heat
+# and not firewood's cost, by the receipt event's one definition. The null
+# controls: no wood_fuel at all, and wood not configured, both state False.
+from heatpump_optimizer.notifier import _monthly_receipt as _sav_receipt  # noqa: E402
+
+
+def _sav_wood(fuel):
+    data = {k: v for k, v in _ATTR_RICH.items() if k != "wood_fuel"}
+    if fuel is not None:
+        data["wood_fuel"] = fuel
+    attrs = sensor.MonthlySavingsSensor(FakeCoordinator(data), ENTRY).extra_state_attributes
+    month = data["savings_months"][0]["month"]
+    event = _sav_receipt({**data, "insight": {"monthly_report": {"month": month}}})
+    return attrs.get("saving_includes_wood"), event["receipt"].data["saving_includes_wood"]
+
+
+_sav_wood_cases = (
+    _sav_wood({"ready": True, "show_whatif": True}),
+    _sav_wood({"ready": False, "show_whatif": False}),
+    _sav_wood(None),
+)
+R.check(
+    "MonthlySavingsSensor states that a wood house's saving includes wood's heat, as the receipt event does; "
+    "False without wood",
+    _sav_wood_cases == ((True, True), (False, False), (False, False)),
+    repr(_sav_wood_cases),
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -12521,7 +12549,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
     "MonthlySavingsSensor": frozenset(
-        {"plan_replay", "receipts", "savings_months", "waiting_for"}
+        {"plan_replay", "receipts", "saving_includes_wood", "savings_months",
+         "waiting_for"}
     ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",

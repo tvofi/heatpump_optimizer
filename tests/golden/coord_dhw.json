@@ -2110,6 +2110,7 @@
    "extra_state_attributes": {
     "plan_replay": null,
     "receipts": [],
+    "saving_includes_wood": false,
     "savings_months": [],
     "waiting_for": "settled_savings_month"
    },
