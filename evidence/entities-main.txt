@@ -1432,3 +1432,1722 @@ lease class: dispatched=36 (floor 30) lease=['tests/stress.py', 'tests/harness_h
   ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
 gate_lock: waiting for the lease held by h until 2026-11-06 02:33:48.967362+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by h until 2026-11-06 02:33:48.967362+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:48.967362+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:50.677019+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:51.381399+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+  ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
+  ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
+  ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
+  ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:51.887701+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:51.887701+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 02:33:52.496083+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 02:33:52.698742+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 02:33:52.698742+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 02:33:53.103977+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 02:33:53.103977+00:00)
+  ok   gate lease priority: priority: an urgent waiter takes before an older normal one, after its ticket rewrite
+  ok   gate lease priority: priority: a ticket rewrite keeps its priority and its arrival stamp
+  ok   gate lease priority: priority: aging promotes a normal waiter past a later urgent one, and only past the window
+  ok   gate lease priority: priority: malformed, absent and out-of-range values are 0 or clamped, never a crash
+  ok   gate lease priority: priority: a waiting tenant still refuses renew, and queues ahead after the release
+  ok   gate lease priority: priority: the heavy-slot pool orders by the same rule
+  ok   gate lease priority: concurrency control: two waiters released in one poll, exactly one holds the slot
+  ok   gate lease priority: concurrency control: a rival taking while a slot is being created cannot also hold it
+  ok   gate lease priority: concurrency control: a slot being renewed is never read as empty by a waiter
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 02:31:54.385005+00:00)
+  ok   heavy-slot hold: a live holder keeps its slot past its lease, and a fifth taker is blocked
+  ok   heavy-slot hold: a slot whose named process is gone is stolen at once (null control)
+  ok   heavy-slot hold: a legacy slot with no pid is freed on expiry; a fresh one is respected
+  ok   heavy-slot hold: a taker queues behind a live past-lease holder and takes the slot when it frees
+  ok   heavy-slot hold: slot-status counts past-lease holders and unleased runs, and prunes a dead marker
+  ok   heavy-slot hold: an unleased marker being rewritten is never lost to a polling slot-status
+  ok   heavy-slot hold: a take, a renewal and a marker leave no staging file in the pool
+  ok   the lease has one winner, a dead gate is stolen, a live one is not, and run.sh runs unleased
+  ok   the heavy-slot pool admits exactly `slots`, reuses a freed slot, and a one-slot pool refuses a second
+  ok   a heavy slot whose owner process is gone is reclaimed; a live owner's is not (#2267)
+  ok   run.sh's lane_stress waits for the lease and its other scripts do not
+  ok   run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)
+  ok   run.sh's lane console prints SKIP, not ok, for a script that waited past its bound
+  ok   run.sh names a script ended before its summary apart from a failed check (R10 carry)
+gate_lock: waiting for the lease held by seat until 2026-11-06 02:34:13.784714+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
+gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
+  ok   a seat label never taken fails at once; a held one re-queues behind a waiter
+  ok   an expired same-label take rewrites the lease
+  ok   same-label return clears holding
+  ok   the drift capture's closure excludes the bundled card
+  ok   and still covers every python file of the integration
+  ok   a card-only change does not select the drift capture
+  ok   and lists the card's payload producer before the card (#1146)
+  ok   an integration python change still does
+  ok   the widening rule itself leaves the card out
+  ok   while still widening to the rest of the integration
+  ok   the widening rule leaves the quality-scale register out too
+  baseline worktree add failed on baseline-24039-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-24039-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+  ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+  ok   concurrent gate instances name distinct baseline worktrees (#2119)
+  ok   the deployment-shape lane's closure is the whole tracked package, so any production diff selects it (#1218)
+  ok   and the lane's docstring records those measured numbers as the selection-cost note (#1218)
+  ok   the overlap predicate counts equal sets, skips empty ones and holds the 0.80 boundary (#1218)
+  ok   every tracked file is either measured or deliberately classified
+  ok   exactly one handover, with no date in its name
+  ok   the handover names the commit it reflects
+  ok   and that commit is reachable from HEAD
+  ok   and reachable from origin/main, so a squash cannot orphan it
+  ok   probe  [a measurement]
+  ok   the nightly lane keeps a check's detail when the check PASSES
+  ok   the nightly A4 check lets an in-flight CancelledError propagate past a failed recovery
+  ok   the nightly A4 check lets an in-flight KeyboardInterrupt propagate past a failed recovery
+  ok   a Home Assistant loop-protection report fails the nightly
+  ok   a pinned offender the run did not produce fails the nightly
+  ok   the nightly's loose anchor claims a real report blaming this package
+  ok   and does not claim another integration's report
+  ok   and another integration's blocking call fails nothing here
+  ok   a report this lane cannot parse fails it instead of emptying the pin
+  ok   a clean log still passes the blocking ratchet
+  ok   a clean log without a probe window fails the positive control
+  ok   and a passing check still says what it measured
+  ok   every check the outer half emits is declared in OUTSIDE_CHECKS
+  ok   and the lane demands that roster of itself
+  ok   and that demand is satisfiable, not simply always-red
+  ok   and it demands the roster on a run that already failed
+  ok   A3 named escapes are unique E-identifiers counted at this merge base
+  ok   the nightly demands A3 published-state checks by name
+  ok   A3 is not merged with A4
+  ok   the A3 roster is derived from collect() over PLATFORM_LIST, not a second literal
+  ok   the committed A3 roster is the entity_id set collect() produces
+  ok   a3:roster  [82 registered, 82 in the committed collect() roster; missing=[]; extra=[]]
+  ok   a3:roster passes when HA's registry matches collect()
+  FAIL a3:roster  [1 registered, 82 in the committed collect() roster; missing=['binary_sensor.heat_pump_optimizer_away_mode', 'binary_sensor.heat_pump_optimizer_external_heat_source', 'binary_sensor.heat_pump_optimizer_input_problem', 'binary_sensor.heat_pump_optimizer_mold_floor_breach', 'binary_sensor.heat_pump_optimizer_open_window_detected', 'binary_sensor.heat_pump_optimizer_wood_cheaper', 'button.heat_pump_optimizer_diagnose_last_interval', 'button.heat_pump_optimizer_learning_finalize_debug', 'button.heat_pump_optimizer_learning_reset_comfort_weight', 'button.heat_pump_optimizer_learning_reset_heat_loss', 'button.heat_pump_optimizer_learning_run_system_identification', 'button.heat_pump_optimizer_optimize_now', 'climate.heat_pump_optimizer', 'datetime.heat_pump_optimizer_away_return', 'sensor.heat_pump_optimizer_buffer_tank_temperature_model', 'sensor.heat_pump_optimizer_compressor_frequency_advisor', 'sensor.heat_pump_optimizer_compressor_starts', 'sensor.heat_pump_optimizer_cost_baseline', 'sensor.heat_pump_optimizer_cost_contract_comparison', 'sensor.heat_pump_optimizer_cost_current_electricity_price', 'sensor.heat_pump_optimizer_cost_monthly_peak_power', 'sensor.heat_pump_optimizer_cost_power_headroom', 'sensor.heat_pump_optimizer_cost_predicted', 'sensor.heat_pump_optimizer_cost_total_heating', 'sensor.heat_pump_optimizer_dhw_cost', 'sensor.heat_pump_optimizer_dhw_energy', 'sensor.heat_pump_optimizer_dhw_heating_cost', 'sensor.heat_pump_optimizer_dhw_heating_schedule', 'sensor.heat_pump_optimizer_dhw_heavy_day_demand', 'sensor.heat_pump_optimizer_dhw_mixed_water', 'sensor.heat_pump_optimizer_dhw_setpoint_advisor', 'sensor.heat_pump_optimizer_dhw_temperature', 'sensor.heat_pump_optimizer_ecl110_displace', 'sensor.heat_pump_optimizer_ecl110_effective_displace', 'sensor.heat_pump_optimizer_floor_heating_return_temperature', 'sensor.heat_pump_optimizer_heat_pump_action', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer', 'sensor.heat_pump_optimizer_indoor_temperature_predicted', 'sensor.heat_pump_optimizer_last_optimization', 'sensor.heat_pump_optimizer_learning_comfort_weight', 'sensor.heat_pump_optimizer_learning_estimated_cop', 'sensor.heat_pump_optimizer_learning_model_status', 'sensor.heat_pump_optimizer_learning_observed_cop', 'sensor.heat_pump_optimizer_lower_floor_temperature', 'sensor.heat_pump_optimizer_measured_power', 'sensor.heat_pump_optimizer_model_restart_advisor', 'sensor.heat_pump_optimizer_next_optimization', 'sensor.heat_pump_optimizer_optimal_setpoint', 'sensor.heat_pump_optimizer_optimization_mode', 'sensor.heat_pump_optimizer_optimization_schedule', 'sensor.heat_pump_optimizer_optimization_schedule_steps', 'sensor.heat_pump_optimizer_optimization_status', 'sensor.heat_pump_optimizer_outdoor_temperature_optimizer', 'sensor.heat_pump_optimizer_plan_dhw_heating', 'sensor.heat_pump_optimizer_plan_monthly_savings', 'sensor.heat_pump_optimizer_plan_narrative', 'sensor.heat_pump_optimizer_plan_optimization_score', 'sensor.heat_pump_optimizer_plan_predicted_savings', 'sensor.heat_pump_optimizer_plan_savings_percentage', 'sensor.heat_pump_optimizer_plan_space_heating', 'sensor.heat_pump_optimizer_prediction_accuracy', 'sensor.heat_pump_optimizer_predictive_optimization_insight', 'sensor.heat_pump_optimizer_recommended_power', 'sensor.heat_pump_optimizer_sensor_gap_advisor', 'sensor.heat_pump_optimizer_slab_temperature_estimated', 'sensor.heat_pump_optimizer_solar_heat_gain', 'sensor.heat_pump_optimizer_solar_irradiance', 'sensor.heat_pump_optimizer_solar_surplus_forecast', 'sensor.heat_pump_optimizer_space_heating_cost', 'sensor.heat_pump_optimizer_space_heating_energy', 'sensor.heat_pump_optimizer_thermal_battery_charge', 'sensor.heat_pump_optimizer_thermal_battery_energy', 'sensor.heat_pump_optimizer_total_energy', 'sensor.heat_pump_optimizer_upper_floor_temperature', 'sensor.heat_pump_optimizer_valve_target_recommendation', 'sensor.heat_pump_optimizer_wood_burn_advisor', 'switch.heat_pump_optimizer_away', 'switch.heat_pump_optimizer_block_dhw', 'switch.heat_pump_optimizer_block_space', 'switch.heat_pump_optimizer_boost_space', 'switch.heat_pump_optimizer_dhw_boost', 'switch.heat_pump_optimizer_optimizer_active']; extra=['sensor.not_ours']]
+  ok   a3:roster fails when the registered ids are not collect()'s set
+  ok   a3:orjson serialises through Home Assistant's json_bytes
+  ok   a3:orjson  [0 failed HA json_bytes]
+  FAIL a3:orjson  [1 failed HA json_bytes; first: ['sensor.x:ValueError:orjson rejects non-finite floats']]
+  ok   a3:orjson fails a payload orjson rejects, and passes a finite one
+  ok   a3:orjson  [0 failed HA json_bytes]
+  ok   json_bytes_ha returning b"{}" leaves a3:orjson green on an orjson-illegal payload
+  FAIL a3:finite  [1 non-finite; ['sensor.x.attributes.k=nan']]
+  ok   a3:finite  [0 non-finite]
+  ok   a3:finite fails a non-finite attribute and passes a finite one
+  ok   a3:device_class_state_class reads DEVICE_CLASS_STATE_CLASSES
+  FAIL a3:device_class_state_class  [1 forbidden pair(s): ['sensor.x:energy+measurement']]
+  ok   a3:device_class_state_class  [0 forbidden pair(s)]
+  ok   a3:device_class_state_class fails a pair the HA table forbids
+  ok   a3:no_constructor_defaults  [0 constructor default(s) published as available]
+  FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer:temperature=21.0']]
+  FAIL a3:no_constructor_defaults  [1 constructor default(s) published as available: ['climate.heat_pump_optimizer.current_temperature=21.0']]
+  FAIL a3:no_constructor_defaults  [3 constructor default(s) published as available: ['sensor.heat_pump_optimizer_dhw_temperature:temperature=55.0', "sensor.heat_pump_optimizer_dhw_mixed_water:available volume_storage='270.0'", 'climate.heat_pump_optimizer.dhw_temperature=55.0']]
+  FAIL a3:no_constructor_defaults  [empty sweep: no published states were judged]
+  ok   a3:no_constructor_defaults fails an empty sweep
+  ok   a3:no_constructor_defaults passes unavailable records
+  ok   a3:no_constructor_defaults fails available indoor at the constructor default
+  ok   a3:no_constructor_defaults fails climate current_temperature at the constructor default
+  ok   a3:no_constructor_defaults fails an available ThermalState default
+  ok   A3(e) numeric defaults are read from the ThermalState constructor fields
+  ok   A3(e) is a second seed, not collapsed into the thermometer boot
+  ok   and a passing A3 check still keeps its detail
+  ok   A4 named escapes are the §4 A4 row, listed
+  ok   the nightly demands A4 fault-injection checks by name
+  ok   A4 breaks the price source; it does not poke last_update_success
+  ok   a4:failed  [last_update_success=False]
+  FAIL a4:failed  [last_update_success=True]
+  ok   a4:failed fails when last_update_success stayed True
+  ok   a4:unavailable  [2 unavailable]
+  FAIL a4:unavailable  [0 still published: []]
+  FAIL a4:unavailable  [1 still published: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  ok   a4:unavailable fails an empty sweep and a leftover available state
+  ok   a4:buttons  [1 button(s) unavailable]
+  FAIL a4:buttons  [clickable after fail: ['button.heat_pump_optimizer_run_optimization']]
+  FAIL a4:buttons  [no button entity in the enabled roster]
+  ok   a4:buttons fails a clickable button and a roster with no button
+  ok   a4:no_stale  [2 pre-break value(s) gone]
+  FAIL a4:no_stale  [stale: ['sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  FAIL a4:no_stale  [no available value before the break]
+  ok   a4:no_stale fails a leftover pre-break value and an empty before-set
+  ok   a4:recovered  [recovered 2 after last_update_success=True]
+  FAIL a4:recovered  [last_update_success=True stuck=['button.heat_pump_optimizer_run_optimization', 'sensor.heat_pump_optimizer_indoor_temperature_optimizer']]
+  FAIL a4:recovered  [last_update_success=False stuck=none-published-before]
+  ok   a4:recovered fails a stuck entity and a coordinator that stayed failed
+  ok   and passing A4 checks still keep their detail
+  ok   the nightly demands A10 privacy checks by name
+  ok   A10 is not merged with A4
+  ok   A10's location rule is the issue's two-decimal bound
+  ok   a10:no_credential  [no demanded token in payload]
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  FAIL a10:no_credential  [token(s) in payload: secret-token]
+  ok   a10:no_credential fails a payload that still carries the token
+  FAIL a10:no_precise_location  [1 coordinate(s) beyond 2 dp; ['config.solar.latitude=59.331234 (6 dp)']]
+  ok   a10:no_precise_location fails a coordinate beyond two decimals
+  ok   and a passing A10 check still keeps its detail
+  ok   A5/A8/A9 named escapes are unique E-identifiers
+  ok   the nightly demands A5/A8/A9 checks by name
+  ok   A5/A8/A9 are not merged with A4
+  ok   A5 walks _OPTION_PAGES plus the two menus, not a carried 23
+  ok   A8's catalog is services.yaml's keys, not a carried 11
+  ok   a5:pages_ok  [26 step(s) save-or-menu]
+  FAIL a5:pages_ok  [raised=['learning:KeyError'] missing=['init', 'advanced', 'setup_overview', 'comfort', 'hot_water', 'tuning'] extra=[] not-save-or-menu=['learning:raise']]
+  ok   a5:pages_ok fails a raise or a short walk, and passes a complete save-or-menu walk
+  ok   option_resubmit posts the sectioned shape the comfort schema validates
+  ok   option_resubmit nests weather_entity under the credentials section
+  ok   option_resubmit posts the sectioned shape the entities schema validates
+  ok   modbus_prefill resubmits twice: one submit opens the preview, two save
+  ok   a5:byte_unchanged  [65B identical]
+  FAIL a5:byte_unchanged  [stored bytes moved: before=65B after=7B; added=[] changed=[] dropped=['external_heat_entity']]
+  ok   a5:byte_unchanged fails the #542 wipe and ignores a new None optional
+  FAIL a5:byte_unchanged  [stored bytes moved: before=39B after=36B; added=['fresh'] changed=["moved: 'before'->'after'"] dropped=['gone']]
+  ok   a5:byte_unchanged names the keys that moved, in all three directions
+  ok   the probe marker is emitted as a log record, not appended to the log file
+  ok   a5:service_examples  [10 example(s) accepted]
+  FAIL a5:service_examples  [1 example(s) rejected: ["set_mode: MultipleInvalid: value must be one of ['auto', 'boost', 'comfort', 'economy', 'off'] for dictionary value @ data['mode']"]]
+  ok   a5:service_examples fails a rejected example and passes the registered catalog
+  ok   a5:service_bounds  [94 bound(s) accepted]
+  FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
+  ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
+  ok   a8:register_once  [15 registered after two entries; catalog 15; extra=[]; missing=[]]
+  FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['assign_entity__dup', 'set_away__dup', 'set_thermal_parameters__dup']; missing=[]]
+  ok   a8:register_once fails a doubled catalog and passes the yaml set
+  ok   a8:deregister  [15 registered after unload; catalog 15; extra=[]; missing=[]]
+  FAIL a8:deregister  [0 registered after unload; catalog 15; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
+  FAIL a8:deregister  [16 registered after unload; catalog 15; extra=['leftover']; missing=[]]
+  ok   a8:deregister fails an empty catalog and leftover names, and passes the yaml set
+  ok   a8:already_configured  [duplicate setup aborted as 'already_configured']
+  FAIL a8:already_configured  [duplicate setup aborted as None]
+  ok   a8:already_configured fails a missing abort and passes already_configured
+  ok   A8's ConfigEntry construction names discovery_keys and subentries_data
+  ok   A8 surfaces InvalidData.schema_errors instead of the path-only message
+  ok   A8 sensors payload nests indoor under indoor; omits weather_entity
+  ok   the nightly seed stores every concrete option-field default
+  ok   a no-op options walk does not persist computed defaults the seed never stored
+  ok   an already-stored or edited computed value is not dropped on save
+  ok   a no-op write keeps the stored type so effective JSON does not move
+  ok   a select that retypes a stored digit string keeps the stored type
+  ok   a full no-op options walk leaves stored effective bytes unchanged
+  ok   _save_or_menu omits unstored computed defaults before persist
+  ok   a9:reload_loaded  [5 of 5 reload(s) loaded (need 5)]
+  FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  ok   a9:reload_loaded fails a short or not-loaded series
+  ok   a9:roster_unchanged  [1 id(s) unchanged]
+  FAIL a9:roster_unchanged  [before=1 after=2 only_before=[] only_after=['sensor.b']]
+  ok   a9:roster_unchanged fails a grown roster
+  ok   a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=1/4/1]
+  FAIL a9:no_growth  [ceiling tasks=1 listeners=4 stop=1; max t/l/s=3/4/3]
+  ok   a9:no_growth  [ceiling tasks=0 listeners=0 stop=0; max t/l/s=0/0/0]
+  ok   a9:no_growth fails the #540 neutered series and passes the shipped dip
+  ok   A9's growth ceiling is the first sample, not a hard zero
+  ok   and passing A5/A8/A9 checks still keep their detail
+
+-- Nightly A15 loop-stall heartbeat (#1758)
+  ok   the nightly demands the heartbeat checks by name
+  ok   stop() ends the tick chain: no tick lands after it
+  ok   the heartbeat measures a CPU stall it did not cause and dumps the frame
+  ok   and on an idle loop it ticks, reports no such gap and dumps nothing
+  ok   a stall past hang_after calls on_hang once, from the watching thread
+  ok   every heartbeat save changes the value, and the burst ends changed
+  ok   the heartbeat boot is two-zone + DHW by the model's own reading; the A3-A13 seed has no DHW
+  ok   a heartbeat save posts the changed key in its section with the after-save choice
+  ok   hb:changed_save  [max gap 999.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 1000.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want True)]
+  ok   hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=False (want False)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want False)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 0 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  ok   hb:changed_save  [max gap 10.0 ms over 1 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True)]
+  FAIL hb:changed_save  [max gap 10.0 ms over 50 tick(s), bound 1000 ms; 0 dump(s); reloaded=True (want True); raised KeyError: x]
+  ok   hb scenario passes under the freeze bound and fails at it, on a reload mismatch, on no ticks, and on a raise
+  ok   hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 599.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: False; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 1 of 1 (at most 3)]
+  ok   hb:positive_control passes at the spin, and fails just under it, without the spin's frame, or without the sampler's own rc=0 section naming it
+  ok   hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 500.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 2 of 2 (at most 3)]
+  ok   hb:positive_control passes on any one try that reads all three, and never on three readings split across tries
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18505, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmp7vpof8v9/py-spy', '24039']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18505, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18507, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18507, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18508, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmp721xa1fz/py-spy', '24039']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18508, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmp721xa1fz/py-spy', '24039']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18508, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18509, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler rc=1:
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18509, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (active+gil)
+  ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
+  ok   hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18510, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpdikjezii/py-spy', '24039']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18510, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpdikjezii/py-spy', '24039']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18510, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpdikjezii/py-spy', '24039']' timed out after 0.5 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 745.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 202 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18511, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18511, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18511, in <module>
+  ..   hb:positive_control|   File "/root/wmain/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/root/wmain/tests/nightly_ha.py", line 1915, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  FAIL hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ok   hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
+  ok   and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted
+  ok   the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins
+  ok   the control survives two hung samples, answering on try 3: HB_CONTROL_TRIES is at least 3
+  ok   null control: py-spy that never answers, or never names the spin, still fails hb:positive_control after the last try
+  ok   the real heartbeat boot runs the retried control
+  ok   the control's retry is bounded: each sample cut short of the old 30 s, each spin held at most one sample's timeout, under the hang bound
+  ok   the real lane cuts the sampler at SAMPLE_TIMEOUT_S, and the whole control, every try hung, is bounded under 22 s
+  ok   the stall sampler is the interpreter's own unwinder where it ships one, staged or not; else the staged py-spy, nonblocking; else none
+  ok   the stdlib sample of a real spinning process reads as the spin to the control, and of the same process outside it does not
+  ok   the heartbeat container may ptrace itself for py-spy; the A3-A13 one may not
+  ok   the real heartbeat run is staged with py-spy and launched with SYS_PTRACE
+  ok   every heartbeat scenario dwells before it settles, and py-spy never pauses the loop
+  ok   the host's py-spy is staged executable beside the driver, and none is staged without one
+  ok   a third run's checks reach the one merged marker
+
+-- Nightly leftover A6/A11/A12/A13
+  ok   the nightly demands A6/A11/A12/A13 checks by name
+  ok   A6/A11/A12/A13 are not merged with A4
+  ok   a6:list  [corrupt payload dropped]
+  FAIL a6:list  [raised=True applied=False]
+  FAIL a6:list  [raised=False applied=True]
+  ok   a6:loaded  [entry loaded after corrupt stores]
+  FAIL a6:loaded  [entry down after corrupt stores]
+  ok   a6:list fails a raise or an applied corrupt payload, and a6:loaded fails a down entry
+  ok   A6 stages four corrupt stores, not a carried anecdote
+  ok   a11:invalid  [service raised]
+  FAIL a11:invalid  [service no-op]
+  ok   a11:invalid fails a silent no-op and passes a raise
+  ok   a12:migrates  [after=7 expected=7]
+  FAIL a12:migrates  [after=1 expected=7]
+  ok   a12:migrates fails an unstamped older version and passes the current stamp
+  ok   A12 seeds an older schema version than CONFIG_ENTRY_VERSION
+  ok   a13:currency  [coordinator='EUR' instance='EUR']
+  FAIL a13:currency  [coordinator='SEK' instance='EUR']
+  ok   a13:currency fails a hardcoded SEK on an EUR instance
+  ok   A13's instance currency is not the SEK fallback
+  ok   write_corrupt_stores emits one HA store file per A6 case
+  ok   A6 writes corrupt stores at boot; A11 runs before A8 unload
+  ok   A12 and A13 run on the loaded entry, not after A8 unload
+  ok   the nightly demands the blocking positive control by name
+  ok   the blocking positive control is not A4 and not #587
+  ok   a real report inside the probe window satisfies the positive control
+  ok   an empty probe window fails the positive control and keeps the pin green
+  ok   a leading-phrase reword inside the window fails the positive control
+  ok   a report before the window fails the pin and not the control by itself
+  ok   a report after END stays in the pin half
+  ok   an unwindowed second stream stays in the pin (a3e log must not hide)
+  ok   A4's UpdateFailed traceback is not log:no_integration_traceback
+  ok   HeatPumpOptimizerConfigEntry is bound on the package, not via _lazy
+  ok   the entry alias is parametrised over the coordinator for the checker
+  ok   the runtime entry alias stays bare, so get_type_hints resolves it
+  ok   no coordinator import executes at package import
+  ok   the imported package binds the alias to the ConfigEntry class
+  ok   get_type_hints resolves all three entry points' annotations
+  ok   _async_lazy offloads import_module itself, not the _lazy wrapper
+  ok   __getattr__ does not import_module a sibling already in sys.modules
+  ok   the blocking probe calls _lazy so a cached sibling still trips the detector
+  ok   the orchestrator pre-flight refuses an undeclared closing keyword
+  ok   the pre-flight refuses a conclusion echoed after ';'
+  ok   and it refuses the four commonest reference forms, not only #N
+  ok   and passes a declared one, so it is not simply always-red
+  ok   one closing keyword naming several issues refuses, since GitHub closes only the first
+  ok   and a second reference in a LATER clause is not refused (the scope's own null control)
+  ok   and two keywords pass, so it is not simply always-red
+  ok   a transcript pasted in a fenced block refuses, backticks or not
+  ok   while the same shape quoted inline in prose stays advisory
+  ok   the pre-flight names a policy file main moved and this branch did not touch
+  ok   and reports a policy file it authored as authored, not as stale
+  ok   and does not mention a policy file only this branch touched
+  ok   and stays silent on a branch that authors a policy edit (null control)
+  ok   and on a checkout level with origin/main (second null control)
+  ok   the mirror-age proxy is silent on a fresh fetch of a day-old tip
+  ok   and fires where the ref itself has not moved in this clone for a day
+  ok   and says it could not compare where policy_lint.mjs predates the mode
+  ok   and compares in the moved layout, policy_lint.mjs under tools/policy/
+  ok   repairs.py is imported so the dynamically loaded platform is classified
+  ok   setpoint_check.evaluate is the consistency detector
+  ok   the documentation link is the one the manifest publishes
+  ok   a repair notice raised through the helper carries the documentation link
+  ok   an explicit documentation link is not overwritten
+  ok   a hand-run QA script does not drag the whole suite in
+  ok   but changing how the closures are derived still runs everything
+  ok   changing the portable node recorder invalidates every closure
+  ok   node recording works without strace
+  ok   the portable node recorder sees repo files the script opened
+closure: updated 1 closure(s) in /tmp/tmpvj93cy05/closures.json
+  tests/card.mjs                4 files
+  ok   a Darwin node re-record unions instead of replacing
+  ok   the gate's own workflow is a gate file
+  ok   hassfest.yml is not a gate file, and is classified
+  ok   validate.yml is not a gate file, and is classified
+  ok   codeql.yml is not a gate file, and is classified
+  ok   pr-contract.yml is not a gate file, and is classified
+  ok   budget-raise-gate.yml is not a gate file, and is classified
+  ok   marketplace.yml is not a gate file, and is classified
+  ok   governance.yml is read by the gate, so it is scoped rather than inert or full
+  ok   release.yml is read by the gate, so it is scoped rather than inert or full
+  ok   no directory prefix in GATE_FILES can swallow a non-gate workflow
+  ok   tools/ci/gate.py's REQUIRED union equals required-contexts.json's gate_required, and contexts is gate alone (P2b)
+  ok   forgery: exactly one job, ci.yml's `gate`, can report `gate`; no workflow grants checks: write or statuses: write; and every workflow declares its top-level permissions
+  ok   the CI umbrella: DESIGN-P2's triggers with labeled and merge_group, a run-name equal to prelude.title, one run per group, every unit called by its stem exactly when the prelude's workset names it, and a `gate` no event can skip, judging on the prelude's outputs (U0c)
+  ok   gate-sweep.yml: on CI's completion, no concurrency, main's program on the trigger's run id alone, its outcome read from the output's word (SWEEP-DONE / SKIP / SWEEP done, RATE-LIMITED and anything else red), never from the exit code (U0c)
+  ok   a stand-in on PATH wins in a bash -c under a BASH_ENV that re-prepends a toolchain (#2835)
+  ok   the lane-skip decision's self-test passes, teeth included
+  ok   lane_skip.py is a gate file and never selectable
+  ok   lane_skip runs on a planted defect inside a selected closure and skips only on the identical base
+  ok   a change to a non-gate workflow costs the gate its readers, never FULL
+  ok   and no non-gate workflow forces the FULL suite, whatever else it does
+  ok   marketplace.yml runs CI's own hassfest and validate units weekly and on dispatch, read-only, a red never hidden (#2965 C5)
+  ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
+  ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
+closure: updated 1 closure(s) in /tmp/closure-inert-0w5woal3/closures.json
+  tests/layout.py               3 files
+  ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
+  ok   a docs-only change still costs the closures check nothing
+  ok   a changed recorded inert read re-derives every script that reads it
+  ok   a NEW file under a recorded inert-read tree re-derives its reader (#2109)
+  ok   a new tree inside the discovery breadth selects its reader
+  ok   prose outside every recorded reach still skips (the bound's other edge)
+  ok   an inert file no recording reaches still skips (null control)
+  ok   a root-level inert read does not select scripts for root siblings
+  ok   a quality_scale.yaml edit selects this script, not a skip (#951)
+  ok   manufactured case: table presence outranks INERT regardless of which file it is
+  ok   no file is both INERT and inside a recorded closure
+  ok   a gate file re-derives everything, as it does for selection
+  ok   a file in no recorded closure re-derives everything, wherever it lives
+  ok   an empty diff re-derives everything rather than nothing
+  ok   a failed same-repo PR closures job may autofix
+  ok   autofix does not run on a push to main
+  ok   autofix does not run on a fork PR
+  ok   autofix does not run when closures passed
+  ok   autofix does not loop on its own commit
+  ok   UNDER-SCOPED recordings merge into the committed closure
+  ok   a recording that matches the committed list is not an autofix
+  ok   a failed recording OF the under-scoped script reddens, not skips
+closures-autofix: left out 1 failed recording(s) of script(s) the check did not name: tests/frontend.py
+  ok   a failed recording of an UNRELATED script no longer blocks the repair; its own truncated trace is left out of the merge
+  ok   a failed recording of a driven child refuses its driver's repair; the same pair recorded cleanly repairs
+  ok   an INERT READS under-approximation is merged by the bot; its script's own failed recording still refuses
+  ok   a failed recording with nothing under-scoped stays quiet
+closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/replay/only-on-main.json
+  ok   a recording naming a path the autofix tree lacks still repairs the under-scoped script (#1569)
+  ok   and a recorded directory is kept for NOT A FILE, not dropped (#365, #1569)
+  ok   a pinned classifier that disagrees with the closures job's UNDER-SCOPED reddens (#1846)
+  ok   a closures check that failed without UNDER-SCOPED reddens naming the owed manual repair (#1864 INERT READS)
+  ok   and stays quiet only when the closures check passed, or no check.txt exists
+  ok   unreadable recordings do not rewrite closures.json
+  ok   a driven child's recording repairs its driver's closure (R9-F10.9)
+  ok   a merge that still fails check is restored, not pushed
+  ok   a GITHUB_TOKEN autofix push must retrigger Tests
+  ok   a PAT autofix push must not also dispatch
+  ok   no retrigger when autofix did not push
+  ok   claims autofix may run after a closures autofix commit
+  ok   a closures autofix that attempted a repair and failed reddens its job
+  ok   a merge that changed no bytes between a failing and a passing check reddens
+  ok   the ordinary closures autofix no-ops stay quiet
+  ok   an unrecognised status or job reddens rather than passing by default
+  ok   every status claims-autofix can return stays quiet
+  ok   every status the two apply functions return is classified here
+  ok   the closures job tees its check to check.txt beside the recordings
+  ok   closure-scope also runs on the workflow_dispatch arm (a1)
+  ok   the dispatch diff is derived in-job and fails closed to full
+  ok   the nightly-ha decision stays a pull-request decision on dispatch
+  ok   the docs-only fast lane covers the dispatch arm's skip case
+  ok   the dispatch arm's scoped derivation goes through the lane runner
+  ok   the closures job's FULL arm is lane-planned over the derived script set
+  ok   a regrown lane line escapes no guard form: '( rec tests/stress.py ) &'
+  ok   a regrown lane line escapes no guard form: 'HASTUB_TZ=Europe/Stockholm rec tests/dst_checks.py'
+  ok   closures-autofix reports its status to a human
+  ok   closures-autofix reports even when the repair step failed or was skipped
+  ok   closures-autofix reports after it has pushed, not before
+  ok   claims-autofix reports its status to a human
+  ok   claims-autofix reports even when the repair step failed or was skipped
+  ok   claims-autofix reports after it has pushed, not before
+  ok   mutation-autofix reports its status to a human
+  ok   mutation-autofix reports even when the repair step failed or was skipped
+  ok   mutation-autofix reports after it has pushed, not before
+  ok   closures-autofix dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context
+  ok   closures-autofix dispatches from the push step only
+  ok   claims-autofix dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context
+  ok   claims-autofix dispatches from the push step only
+  ok   mutation-autofix dispatches the one umbrella, ci.yml (-f pr -f base), whose callees own every required context
+  ok   mutation-autofix dispatches from the push step only
+  ok   codeql.yml is a callee: workflow_call alone, no schedule and no other trigger
+  ok   dependabot_contract.mjs reads .github/dependabot.yml's entries as YAML does
+  ok   every ecosystem .github/dependabot.yml configures maps to manifests in dependabot_contract.mjs
+  ok   codeql.yml's analyze cap clears the python leg's measured worst case
+  ok   codeql.yml carries the D-5 extracted-files check, on push, after the analysis
+  ok   codeql.yml ignores only files the JS parser refuses (each pattern matches, none parses)
+  ok   codeql.yml: a skipped leg uploads main's analysis of its category; every leg analyzes or uploads
+  ok   codeql.yml has no scope job and no cancel-superseded job (the prelude and ci.yml own them)
+  ok   ci.yml's prelude restores codeql_scope.py and tests/closure.py, and a batch/ proof restores them from its merge base with main
+  ok   both nightly-ha arms check out, then run the shared composite action on their matrix image
+  ok   nightly-ha installs the dependencies its host-side driver imports
+  ok   nightly-ha installs the py-spy the A15 heartbeat stages (#1758)
+  ok   nightly-ha re-asks the floor-names snapshot in the floor's own image
+  ok   a change to a subprocess-driven script re-derives its driver and itself
+  ok   the recorder measures the table as a dependency, never the instrument
+  ok   a closures.json change runs the scripts whose entry moved, either way
+  ok   a closures.json change is measured against the merge base's table, not HEAD's
+  ok   the NOT RUN block lists what did not run, and only that (R9-F10.9)
+  ok   a diff inside one closure re-derives one entry, not eighteen
+  ok   a scoped re-derive pulls in the producer of anything it selects
+  ok   and lists the producer before the consumer that reads its output (#1146)
+  ok   the files the workflow reads carry the plan the predicate made
+  ok   a one-script re-derive is refused unless it says it is partial
+  ok   and is accepted when it does
+  ok   but a partial check still fails on a closure that under-approximates
+  ok   a selectable script with no closure forces the full re-derivation
+  ok   VERSION holds a plain X.Y.Z release number
+  ok   manifest.json carries the release version
+  ok   RELEASE_NOTES.md opens with this release
+  ok   the drift claim file is stamped for this release
+  ok   the card declares a valid CARD_VERSION
+  ok   CARD_VERSION does not run ahead of VERSION
+  ok   the D6 register records the live VERSION (the stamp re-records it)
+  ok   a claim file stamped for another release is rejected
+  ok   an unstamped claim file is rejected, prose mention and all
+  ok   a claims-for: value that is not a version is rejected, tree and all
+  ok   a claims-for: value that is not a version is named as malformed
+  ok   a claim file stamped for this release is accepted
+  ok   the stamp parses as a declaration, not as a claimed scenario
+  ok   a claim list identical to the baseline's is refused as inherited
+  ok   an inherited claim list names the ref it was inherited from
+  ok   claiming nothing, or claiming something else, is not inheritance
+  ok   a claim map carries every line a scenario has, not just the last
+  ok   a fresh claim added beside an inherited line is not an inherited list
+  ok   and the inherited-claims autofix leaves it alone
+  ok   the #996 arm separates a stale claim this branch wrote from one it inherited line for line
+  ok   a baseline with no claim file cannot have written any of them
+  ok   the fail-fast message names the class, the judge of record, the decision tree and the retry loop it forbids
+  ok   the fail-fast message hands the seat the shape claim the #996 grammar decision landed at its reopen threshold
+  ok   a stale shape claim gets its own message, not the per-fixture runner-conditional tree
+  ok   the fail-fast message shows the instance marker only inside prose, never at column 0
+  ok   main() wires the fail-fast arm: it asks the discriminator and prints the named signature
+  ok   one shape claim holds on every recorded host reading of the parked classifier arm: macOS, cloud and both runner readings
+  ok   the same readings under the cloud's per-fixture claim list are not green on every host (the #996 dilemma; the null of the check above)
+  ok   a drift outside the claimed shape is refused: a value leaf, the reverse pair, another reason pair, another leaf path, a move inside the to-set, a non-string from
+  ok   an explicit from-set excuses only its own values: the cloud reading's scheduled -> idle_coasting leaf stays unclaimed under a cheap_price claim
+  ok   an unchanged tree with the shape claim present matches nothing, so the claim reads stale (null control)
+  ok   a may-drift fixture moving in the shape is evidence the shape occurred on this host: the claim is live, and the fixture stays may-drift
+  ok   a shape line that does not parse to one direction over named leaves refuses the run (fail closed)
+  ok   a `*` inside a key path matches within that key and never crosses a '.'
+  ok   `[*]` is one index: space_reasons[*] matches space_reasons[12] and neither space_reasons_x[0] nor space_reasons[0].k
+  ok   a shape line with a token after its to-set is refused, not read up to the to-set
+  ok   main() refuses a malformed shape line before any capture, in both the --claims-only and the capture paths
+  ok   the counter reads a fixture thread: two recorded instances, and quotes, indented pastes or mid-line mentions record none
+  ok   the re-open verdict is silent below the threshold and fires the owner's line at three and beyond
+  ok   the counter's CLI reads a fixture thread: exit 0 with the count at two, exit 2 and the re-open line at three
+  ok   a solver-only three-dot can move a solver golden and not a card state, and the card the reverse
+  ok   a solver-only branch that leaves main's card claims exactly as found is not refused for them
+  ok   null control: a branch that CAN move a card state is still refused an inherited card list
+  ok   a solver-only branch that DELETED main's card claims is refused
+  ok   a solver-only branch with an inherited SOLVER list is still refused
+  ok   a three-dot that can move neither keeps the record-PR rule and message
+  ok   a release stamp that empties a baseline claim it did not write passes
+  ok   a claim deletion with VERSION unchanged, moving backwards, or unreadable at the baseline is refused
+  ok   a VERSION bump that ADDS a claim, or deletes only some, is refused
+  ok   a VERSION bump whose solver claims-for is not the new VERSION is refused
+  ok   a VERSION bump whose card claims-for is not the new VERSION is refused
+  ok   a stamp-shaped commit with two parents (a pull request's merge ref, or its merge into main) or none (a graft root) is refused
+  ok   a stamp is recognised only on main's ref inside Actions, and outside Actions as before
+  ok   a VERSION bump that also touches a file stamp.py never writes is refused
+  ok   inherited claim lines are dropped and may-drift is kept
+  ok   a rewritten reason is not an inherited-claims autofix
+  ok   an empty list is not an inherited-claims autofix
+  ok   both inherited claim files are emptied in one apply
+  ok   two branches' notes both survive a claim-file merge
+  ok   a merged claim file keeps its stamp, its header and its may-drift lines
+  ok   a comment-only merge claims nothing it was not given
+  ok   claims both sides added on different scenarios are both kept
+  ok   a scenario both sides rewrote is refused, not unioned
+  ok   a claim one side deleted and the other left alone stays deleted
+  ok   a claim one side deleted and the other rewrote is refused
+  ok   a claim main deleted and this branch left alone stays deleted
+  ok   a claim both sides added identically resolves, kept once
+  ok   claims both sides changed under different claims-for stamps are refused
+  ok   claims both sides changed under one stamp both bumped resolve per scenario
+  ok   the inherited-claims guard cannot catch a unioned claim list
+  ok   a claim list only one side touched is carried, not refused
+  ok   merging a file with itself returns it byte-identical
+  ok   a may-drift line added on one side survives the merge
+  ok   a may-drift line one side suspended stays suspended through the merge
+  ok   a may-drift line this branch suspended beside a reworded neighbour stays suspended
+  ok   a may-drift line main suspended beside a reworded neighbour stays suspended
+  ok   a may-drift line deleted against rewritten is refused and named
+  ok   a may-drift line rewritten both ways is refused and named
+  ok   a stamp this branch bumped beside an adjacent note is the one stamp kept
+  ok   a stamp main bumped beside an adjacent note is the one stamp kept
+  ok   a stamp both sides bumped differently is refused and named
+  ok   git resolves a real two-branch note conflict through the driver
+  ok   and it leaves a conflict for a scenario both sides rewrote
+  ok   git resolves claims both sides added on different scenarios
+  ok   the merge verification passes the file the merge actually produced
+  ok   the merge verification catches a lost stamp, a lost may-drift line, a smuggled claim and surviving markers
+  ok   the merge verification catches a suspended may-drift line put back
+  ok   .gitattributes routes both claim files to the merge driver
+  ok   a .gitattributes that routes only one claim file is refused
+  ok   tools/merge/ledger_merge.py --self-test passes
+  ok   #493-shaped roster-only still scopes card_drift and env_drift out
+  ok   roster-only #493 with copied card claims is refused
+  ok   empty claims on a roster-only three-dot pass
+  ok   a claim-bearing change that touches solver fixtures is not a record-PR violation
+  ok   a claim-bearing change that touches the card is not a record-PR violation
+  ok   a claim-bearing change to the capture code is not a record-PR violation
+  ok   a test file that is NOT a capture source still cannot justify a claim
+  ok   run.sh always runs env_drift.py --claims-only through run_always
+  ok   run_always never consults in_scope
+  ok   a roster-only three-dot that leaves the baseline's card claims alone passes
+  ok   a roster-only three-dot that DELETES the baseline's card claims is refused
+  ok   the merge-tree checkout's list is the baseline's, so without CLAIM_HEAD the inherited check fires
+  ok   CLAIM_HEAD reads the branch's own empty list, so a no-drift branch over a claiming main passes
+  ok   CLAIM_HEAD pointing at an edited file that kept the list still fires the inherited check (the real-defect arm)
+  ok   CLAIM_HEAD pointing at a byte-identical file is the no-claim state (R9-F10.8)
+  ok   a claim-untouching branch whose head and fork agree passes though ref moved
+  ok   check_claims_hygiene passes a release stamp and refuses the same deletion without the VERSION bump
+  ok   check_claims_hygiene refuses the same stamp forged as a merged pull request
+  ok   check_claims_hygiene refuses the same one-parent stamp on a branch dispatch
+  ok   the autofix refuses a three-dot that moves nothing claimable, and writes nothing
+  ok   the autofix still empties an inherited card list on a branch that moved the card
+  ok   the autofix leaves an inherited CARD list alone on a branch that moved only solver files, and writes nothing
+  ok   a branch that only merged a claiming main passes claims hygiene
+  ok   the autofix leaves a claim file the branch never edited byte-identical
+  ok   an untouched claim file is not an inherited-claims rewrite
+  ok   lines a branch inherited excuse no drift and go stale for nobody
+  ok   a claim line written beside an inherited one is the branch's own
+  DRIFT wood_coil: 1 leaves moved vs b88d65b14a5e58fd1b6d4693d220dd04e5b4c6bd
+         wood_coil.v: 1 vs 2
+  ok   a carried claim line does not excuse a moved fixture
+  ok   main() judges drift and staleness with excusing_claims, not the raw file
+  CLAIMED wood_coil: 1 leaves moved (F6.4: another lane's claim; this lane moves it too)
+         wood_coil.v: 1 vs 2
+  ok   a claim line the branch wrote excuses its moved fixture
+  ok   the autofix judges an untouched file against the fork point, not main's tip
+  ok   a branch that edited the claim file and kept main's list is still inherited
+  ok   a stale claim is not judged on a branch that moves nothing claimable
+  ok   and it IS judged on a branch that moved a fixture (null control)
+  ok   check_claims_hygiene accepts empty claims on a roster-only three-dot
+  ok   an unanswerable three-dot still judges staleness, rather than quietly passing
+  ok   a comparison ref with no merge base is refused, not read as no claim owed
+  ok   and the same fixture still answers an ordinary comparison (null control)
+  ok   check_claims_hygiene accepts a real claim-bearing PR that moves solver fixtures
+  ok   the same solver PR that also EMPTIED the baseline's card list is refused for the card file
+  ok   a stamp that leaves claims behind is refused
+  ok   the stamped-with-claims message names both versions and the fixture
+  ok   a stamp claiming nothing is accepted
+  ok   a branch behind the baseline's version may still claim its own drift
+  ok   a malformed version is left to the rule that owns it
+  ok   may-drift accepts the fixtures the gate calls non-reproducible
+  ok   may-drift also accepts the owner-sanctioned #1208 movers and nothing else
+  ok   may-drift also accepts the #1207 directive's movers and nothing else
+  ok   and refuses every fixture whose floats DO travel
+  ok   the refusal names both the stray entry and the category's real scope
+  ok   a scenario cannot be claimed and may-drift at once
+  ok   an empty may-drift list is always fine
+  ok   this tree's may-drift entries parse, with reasons, and every allowed name is may-drift or claimed for this VERSION
+  ok   and the relaxed rule still refuses a sensitive fixture that is neither may-drift nor claimed, or claimed only for another VERSION
+  ok   and none of them leaks into the claim list
+  ok   this tree's own claim file passes the scope check
+  ok   env_drift itself refuses an allowed name that is neither may-drift nor claimed for this VERSION, and the null control holds
+  ok   env_drift's coverage rule counts only a claim for this VERSION
+  ok   and env_drift runs the coverage rule in both CLI paths, --claims-only included -- the path the stamp's self-check execs on the post-stamp tree
+  ok   may-drift judged keys are exactly the forecast and baseline fields
+  ok   may_drift_judged_diffs keeps baseline_cost and drops plan schedules
+  ok   may_drift_exempt_diffs is the complement on mixed diffs
+  ok   tools/release/stamp.py's --self-test passes
+  ok   a claim file stamp.py rewrites passes env_drift's claims guard on the push to main, and both agree on the files a stamp writes
+  ok   the claim file stamp.py would write from this tree covers every allowed may-drift name -- each suspended entry restored with the claims deleted
+  ok   stamp.py is no longer INERT: closure.py must classify it
+  ok   narrowing INERT leaves every non-audit tools/ file in the must-classify set
+  ok   the pull-request note names the gate lease and the seat instruments
+  ok   the committed table records stamp.py in tests/entities.py's own closure
+  ok   a change to stamp.py selects tests/entities.py
+
+-- Committed-fixture staleness (#347)
+  ok   a key the committed fixture lacks is structural staleness
+  ok   and so is a key the fixture has that the code no longer produces
+  ok   and so is a leaf whose JSON type changed
+  ok   a float that moved with the solver basin is not staleness
+  ok   nor is an integer that flipped with it
+  ok   nor is a boolean schedule that flipped
+  ok   nor is a plan-derived list whose LENGTH moved
+  ok   nor is a schedule this basin never populated at all
+  ok   a payload with a float anywhere is not exact-comparable
+  ok   the config-flow fixture is float-free, so the exact level covers it
+  ok   and a solver fixture is not, so the exact level leaves it alone
+  ok   a real fixture with every float, int and bool moved is not stale
+  ok   and every one of those moves is still counted for the nightly
+  ok   while the same payload with one key added IS stale
+  ok   the exact level catches a string-valued move the structure cannot see
+  ok   the gate fails on the float-free fixture's string move
+  ok   and on the fixture that grew a key
+  ok   and on a captured scenario with no committed fixture at all
+  ok   but NOT on the solver fixture whose floats merely moved
+  ok   which is still reported, because a nightly can act on it
+  ok   and the gate's verdict counts only what it fails on
+  ok   and the verdict NAMES every stale fixture
+  ok   and says how many, how to re-record, and which need care
+
+-- Reauthentication (D10-08)
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+  ok   a refused token starts the reauth flow once, not per cycle
+Tibber refused the configured token; reauthentication is required (Home Assistant will offer it under Repairs)
+  ok   recovery re-arms the flow for a future revocation
+  ok   the reauth flow opens a confirm form asking for the token
+  ok   a valid token is written through and the entry reloads
+
+-- Coordinator config_entry (R3-D10-04)
+  ok   super().__init__ is passed config_entry=entry
+
+-- Reconfigure (D10-14)
+  ok   an entry for this handler reports reconfigure support the way HA 2024.6 discovers it
+  ok   the config flow carries the reconfigure step
+  ok   reconfigure reopens the first screen rather than a fresh wizard
+  ok   the reopened screen is prefilled with this entry's answers
+  ok   the reopened sensor step carries this entry's picks
+  ok   a slot this entry leaves empty is not invented
+  ok   re-submitting this entry's own identity updates it instead of aborting
+  ok   the entry reloads on the new answers
+  ok   a rename is written through, title and all
+  ok   a slot the user cleared is dropped, not silently kept
+  ok   and the entry's unique id follows the picks, as a delete-and-recreate would
+  ok   reconfiguring into another entry's plant is refused
+  ok   the reconfigure success abort has a string to show
+
+-- Diagnostics (D10-12)
+  ok   the Tibber token never leaves the instance
+  ok   no precise coordinate leaves the instance, from data or from options
+  ok   the coordinate survives as a coarse cell rather than as a hole
+  ok   the documented coordinate precision is one decimal place
+  ok   the coarsening reaches a coordinate nested below the top level
+  ok   the live config's coordinate, from options, is coarsened too
+  ok   a coordinate that is not a number is redacted rather than published
+  ok   a non-coordinate member of the location dict is left alone
+  ok   the installation name the user typed never leaves the instance
+  ok   the entity ids and the MQTT topic survive redaction
+  ok   the diagnostics config is the live config, with options laid over setup data
+  ok   the setup data is kept beside it, with the keys options override named
+  ok   an option equal to its setup value is not named as overriding it
+  ok   the setup data is redacted like the live config
+  ok   the payload is plain JSON and names the coordinator's state
+  ok   the learner summaries are present
+  ok   the coordinator snapshot carries the live counter values, not None placeholders
+  ok   a coordinator without the view reports None fields and no learner keys
+  ok   UX-7: the bundle carries the last diagnosis, the input states and the learning view
+  ok   UX-7: the plan summary counts steps and slots and carries the totals, not the series
+  ok   UX-7: no person or calendar id leaves the instance, from the entry or an input problem
+  ok   UX-7: the over-redaction control -- an ordinary sensor id survives beside them
+  ok   UX-7: a coordinator that has not published yet still downloads, with empty sections
+  ok   a learner without a callable summary is omitted; one that raises reports unavailable
+
+-- Entity base classes (D10-08)
+  ok   entity.py exists and defines HeatPumpOptimizerEntity
+  ok   the shared base is a CoordinatorEntity declaring the plumbing exactly once
+  ok   the sensor platform imports the shared base from .entity
+  ok   the binary_sensor platform imports the shared base from .entity
+  ok   the button platform imports the shared base from .entity
+  ok   the climate platform imports the shared base from .entity
+  ok   the switch platform imports the shared base from .entity
+  ok   the datetime platform imports the shared base from .entity
+  ok   no CoordinatorEntity base classes remain in the platform files
+  ok   sensor.HeatPumpOptimizerSensorBase still exists and builds on the shared base
+  ok   binary_sensor._OptimizerBinarySensorBase still exists and builds on the shared base
+  ok   button._OptimizerButtonBase still exists and builds on the shared base
+  ok   climate.HeatPumpOptimizerClimate still exists and builds on the shared base
+  ok   switch.OptimizerEnableSwitch still exists and builds on the shared base
+  ok   datetime.AwayReturnDateTime still exists and builds on the shared base
+  ok   an entity from sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from binary_sensor keeps has_entity_name and the coordinator's device_info
+  ok   an entity from climate keeps has_entity_name and the coordinator's device_info
+  ok   an entity from switch keeps has_entity_name and the coordinator's device_info
+  ok   an entity from button keeps has_entity_name and the coordinator's device_info
+  ok   an entity from datetime keeps has_entity_name and the coordinator's device_info
+
+-- #284 singular schedule and plan states
+  ok   one DHW heating step is a period, not periods (#284)
+  ok   two DHW heating periods keep the plural (#284)
+  ok   one plan slot is a slot, not slots (#284)
+  ok   two plan slots keep the plural (#284)
+  ok   DHW Heating Schedule's period count is DHW Heating Plan's slot count (#1644)
+  ok   and a schedule with no plan dict has no period count: unknown, not a count from raw draws (#1644, D8-s1-01)
+
+-- #558 D3 enumerated sensor states
+  ok   optimization_mode declares the enum device class
+  ok   optimization_mode declares exactly its measured states as options
+  ok   optimization_mode carries no unit of measurement
+  ok   optimization_mode carries no state class
+  ok   heat_pump_action declares the enum device class
+  ok   heat_pump_action declares exactly its measured states as options
+  ok   heat_pump_action carries no unit of measurement
+  ok   heat_pump_action carries no state class
+  ok   plan_narrative declares the enum device class
+  ok   plan_narrative declares exactly its measured states as options
+  ok   plan_narrative carries no unit of measurement
+  ok   plan_narrative carries no state class
+  ok   every declared state survives Home Assistant's own enum validation
+  ok   and an undeclared state raises, so the check above can fail
+  ok   a None native_value is unknown, not an enum violation
+  ok   the mode options are OPERATION_MODES plus the no-data fallback
+  ok   the action options cover every mode its producers actually write
+  ok   and declares nothing beyond them but the no-data fallback
+  ok   every optimizer REASON_ constant has a narrative template
+  ok   every enum option is a legal Home Assistant translation key
+  ok   every enum option has an English and a translated Swedish state name
+  ok   OptimizationStatusSensor stays bare: it embeds SciPy and exception text
+  ok   PredictiveInsightSensor stays bare: it emits 'no forecast', which is not a slug
+  ok   no icons.json state key falls outside its sensor's enum options (#558 D4)
+  ok   and the unbounded status strings really are unbounded
+
+-- #558 D4 icon state translations
+  ok   every enum option has its own icon
+  ok   only the enum sensors carry a state section
+  ok   and no state icon merely repeats its own default
+  ok   and each state section actually distinguishes states
+  ok   production raises repair notices only through the helper that adds the docs link
+  ok   no bound coordinator method is handed to a thread (P12, #1529)
+  ok   the P12 barrier refuses the pre-fix diagnose hand-off and passes its nulls
+  ok   no live hub is handed to a thread or the process worker (#1736)
+  ok   the hub barrier refuses a live hub in every hand-off and passes its copies
+  ok   the derived producer set covers the four D3 named by hand
+  ok   and the action options cover every mode the derived producers write
+  ok   which is the same answer the named scan gave, so neither is doing it alone
+
+-- #558 D5 service translations
+  ok   every service and field is named and described in all three catalogues
+  ok   and services.yaml keeps structure only, not text
+  ok   the Swedish service text is actually translated
+  ok   the documented services are exactly the registered ones
+  ok   every translation string is a legal format string for hassfest
+
+-- #558 D6 numeric schedule companion
+  ok   the deprecated sensor still publishes exactly what it shipped
+  ok   including the ungrammatical '1 steps', which is shipped and so is frozen
+  ok   the companion publishes the step count as an integer
+  ok   and separates no-data from an empty schedule, which the sentence cannot
+  ok   the two sensors describe the same schedule
+  ok   the companion records no long-term statistics
+  ok   and stays diagnostic, beside the sensor it replaces
+  ok   the deprecated sensor says so, and names its replacement
+  ok   and it is still registered, because removing it is the breaking change D6 was reshaped to avoid
+  ok   every job driving a history-reading script checks out the history
+  ok   the nightly reporter is wired into a job that runs on pull requests
+  ok   and passes it no argument that would pin its answer
+  ok   exactly six jobs in tests.yml override the workflow's read-only floor (cancel-superseded, `actions: write`, is ci.yml's since the umbrella)
+  ok   no nightly.yml job overrides that workflow's read-only floor
+  ok   and the nightly reporter's own widening is read-only
+  ok   the reporter watches exactly the lanes a pull request cannot see
+  ok   and the derivation drops a lane that also runs on push and adds one that runs on the schedule (null control)
+  ok   the reporter separates failed, passed, still-running and never-ran
+  ok   no run, a stale run and a run whose lanes were skipped are all ABSENT
+  ok   an unrecognised job conclusion is reported, not waved through
+  ok   a newer in-flight run annotates the verdict and does not become it
+  ok   and every state says in the report that it blocks nothing
+  ok   the reporter is classified: NOT_A_TEST, and not on INERT
+  ok   run.sh's two script-accounting exclusion lists name the same scripts
+  ok   every script run.sh skips is one closure.py already refuses to select
+  ok   and a script closure.py will not select is either skipped by run.sh or run by it
+  ok   a run whose OWN conclusion is not a passing one is FAILED, whatever its jobs say
+  ok   and the same jobs under a passing run conclusion are still PASSED
+  ok   and when no job failed the report names the run's conclusion as the evidence
+  ok   pick_runs picks the newest concluded and newest in-flight by created_at, not by listing order
+  ok   a run carrying no created_at is UNREADABLE, not a KeyError and not a verdict
+  ok   a jobs page that does not carry every job of the run is UNREADABLE, not a partial answer
+  ok   a stale first listing is corroborated before the nightly is called ABSENT, and a nightly every listing agrees is old stays ABSENT
+  ok   the staleness boundary is the one the constant's comment defends
+  ok   a workflow younger than its first cron slot reads NEW and green, the same one 26 h on with no run reads ABSENT, and a disabled one names its state
+  ok   the reporter's schedule period is the nightly cron's: daily
+  ok   the workflow's record is read once when no run exists, and never otherwise
+  ok   a rowless merge is PENDING until the threshold, and OVERDUE at it
+  ok   an EMPTY window is its own verdict and is not reported as a pass
+  ok   a record-class merge's open self-row rows it; an ordinary merge's open row does not (null control)
+  ok   a row file rows its own pull request and no other
+  ok   both merge-subject conventions are collected, and neither direct push is
+  ok   a merge commit's title comes from its body, not from the branch it names
+  ok   a subject that only MENTIONS a pull request is not taken as being it
+  ok   a title-subject merge is numbered from a body Merge pull request line
+  ok   an unattributable merge is UNCHECKED, loudly, and never EMPTY
+  ok   a direct-push merge commit is dispositioned -- record-only by its files, anything else by a tracked line naming its sha -- or stays UNCHECKED (R9-RO-9a)
+  ok   a release stamp alone is EMPTY, not UNCHECKED -- the guard keys on parents
+  ok   the OVERDUE alarm is reachable from a first-parent LOG, not only from hand-built entries
+  ok   the ledger and the record lane pick the window with the same tag filter
+  ok   --check raises OVERDUE and UNCHECKED, and passes OK and EMPTY
+  ok   --require-rows refuses a PENDING window, and every red --check raises
+  ok   a disposition is matched on the whole number, in both spellings
+  ok   the #201 region is replaced in place, and the issue's own text survives
+  ok   the ledger is wired into a job that runs on pull requests
+  ok   and the pull-request lane passes no --since that would pin its answer
+  ok   exactly three governance jobs override the workflow's read-only floor
+  ok   plant: record's pre-U4-resume `if:` reaches a dispatch at a PR branch
+  ok   record (issues: write) runs at main only: push, schedule, dispatch there
+  ok   record holds a write grant and is unreachable from a PR branch
+  ok   delivery-status-publish holds a write grant and is unreachable from a PR branch
+  ok   and the contract lane's widening is the one read it needs
+  ok   the class is non-empty: base restores in governance and tests jobs gate requires
+  ok   a dispatch naming a PR restores every gate-required grader from the base, never the head
+  ok   plant: the same callees with no base passed grade the head on a dispatch
+  ok   and on a pull_request and a push every such restore reads the event's own commit
+  ok   governance.yml declares every `with:` key its ci.yml caller passes (GitHub refuses the run otherwise)
+  ok   the contract lane reads the body off the API at run time, not the payload
+  ok   the contract lane passes the head's red checks to the body check
+  ok   the red filter lists a red non-required job and neither `gate` nor the contract's own name (plant and null)
+  ok   the contract lane waits for code scanning before listing reds, fail-closed, with the base's program
+  ok   the red-check listing stays fail-closed (pipefail guard, jq filter, output pinned)
+  ok   and a listing with the guard and the RED filter stripped is not (null control)
+  ok   the body check holds a token, so red-history is read rather than skipped
+  ok   and the same step with its token removed is not (null control)
+  ok   the preflight step derives and passes the intended list and its refusal gates
+  ok   and the same step re-adding the swallow is not (null control)
+  ok   the contract lane refuses a version edit on every pull request
+  ok   the instrument self-test job runs both App identity self-tests
+  ok   and a job with the poster's step removed is not (null control)
+bare_array self-test: ok
+  ok   no tracked tools/**/*.sh script expands a bare "${array[@]}"
+  ok   bare_array: the base bus.sh call is refused
+  ok   bare_array: the guarded form passes (control)
+  ok   bare_array: an allow-marked never-empty site passes (null)
+  ok   bare_array: a file without set -u is judged too (a sourced library runs under its caller's -u)
+  ok   bare_array: the guarded form passes without set -u (null)
+  ok   bare_array: a never-empty reason after a mut marker is refused (it unanchors the mutant)
+  ok   bare_array: a never-empty reason after a mut marker is refused in a set -u file too
+  ok   bare_array: a reason on the line above keeps the mut marker last (control)
+  ok   bare_array: its own self-test passes
+  ok   tools/audit/seat/record_row.py --self-test passes
+  ok   a merged pull request's branch answers for its roster group, and only its group
+  ok   tools/audit/seat/roster_lib.py --self-test passes: the newest roster, the override, the loud refusal
+  ok   tools/audit/seat/state_docs.py --self-test passes, beat arms included
+  ok   the generator's row is read by the tree's own row reader, and a table-row shape is not
+  ok   the generator's write set is dev/programme/delivery/<N>.md and nothing else
+  ok   a pull request whose row already exists plans and writes nothing
+  ok   the generated record body passes policy_lint --pr-body and figure_lint
+  ok   and the generated prose closes nothing and never emits a table row
+  ok   the record beat's sections: head named, red named, approval kept manual, handover untouched
+  ok   no errexit `run:` block reads `$?` after a bare producer (the unit is every workflow and composite action, R10-RCA-HOTFIX-BATCH-ERREXIT A)
+  ok   and the errexit check reads the shapes, not one call (null controls)
+  ok   every `bash -c` / `sh -c` a check runs carries errexit, as GitHub's step shell does, unless it runs no workflow step (countermeasure B)
+  ok   nightly.yml's record-autofix job: main-only, its own environment, loop-guarded ci: subject, guarded write set
+  ok   and the pin reads the job's own lines, not its name (null controls)
+  ok   nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 applies, 4 batches, any other nonzero skips, and the step finishes
+  ok   and the run reads the job's own lines (null control: the bare call dies under `-e`)
+  ok   nightly.yml's record-autofix finds its own open pull request by head=<owner>:record/autofix
+  ok   and the lookup pin refuses the repository-form filter (null control)
+  ok   nightly.yml's automerge reviews a record pull request the guard passes under a live merge train hold, then skips the merge (executed, issue #2302, V118)
+  ok   and under a live hold a head the guard refuses is refused, its approver App approvals dismissed and no review posted
+  ok   and the hold moved back ahead of the review leaves the held head unreviewed, so the reviewed-under-a-live-hold check sees it (mutant)
+  ok   and a hold at the bound, one dated ahead of the runner's clock, an absent one (the API's own 422) and an unreadable one do not skip -- and only the unreadable ones warn (null controls)
+  ok   and with no hold, or a stale one, a passing head is reviewed, passes the pitch and merges as before (null control)
+  ok   nightly.yml's automerge waits the pitch when record_row.py says so, after the guard, the approver App's review and the train hold, before the merge (executed)
+  ok   and no pitch, or a pitch check that crashed, reaches the green wait; a head the guard refuses never waits the pitch (null controls)
+  ok   the beat's hold ref and the train's hold ref name the same branch
+  ok   every pinned grader given a token runs its own copy under the Actions token on the pull request
+  ok   and the arm fires on exactly the pathspec policy-docs restores from the base
+  ok   and any edit to the arm's job, or to what reaches it, disarms it (null control)
+  ok   and the arm's trigger fires on a restored path and only there
+  ok   and a trigger whose firing branch writes false is refused (null control)
+  ok   the delivery_status stubs are owner-executable and neither group nor world accessible
+  ok   graders-head-copy's delivery_status step is red only when this copy's exit differs from the base copy's, or this copy alone prints OVERDUE
+  ok   a `## Friction` opening with `none` that then carries a malformed entry is refused
+  ok   frictionEntries reads the entries after a leading `none`, not an empty section
+  ok   and `none` alone stays zero entries while a stray entry is refused (null controls)
+  ok   policy_lint: a reusable-workflow caller job `pr-contract` (`uses:`) is not a definition of the contract job, so ci.yml's caller cannot make the wiring pin vacuous
+  ok   and the real job, steps using actions included, still defines it; another job does not; the tree has exactly one definer (null controls)
+  ok   a trailer block pasted under `none` is not friction: only the attribution arm refuses it
+  ok   a real entry followed by a trailer block keeps exactly its own entry
+  ok   and the drop buys no amnesty: junk still refuses, trailer words mid-evidence still parse (null controls)
+  ok   the friction id grammar admits a leading dot, so a repo-relative path parses (#1305)
+  ok   and the leading dot buys no amnesty: `none` is zero entries and a line naming no rule still yields no id (null controls)
+  ok   pr-contract accepts #1107's autofix commits on top of the head the body names
+  ok   pr-contract accepts the merge-main bot's automatic `ci: merge main`, and a bot commit on it (R9-CI-2b)
+  ok   and a body naming the real head passes with no autofix line (null control)
+  ok   and refuses every chain that is not purely the bot's own repair
+  ok   and its bot identity, messages and paths are the ones the autofix jobs commit
+  ok   and the publishing lane's grant is the one write it uses
+  ok   the publishing lane writes nothing that lands on main, so its own write cannot re-run it
+  ok   the cron lane's grant is its two reads plus the one owner-approved write
+  ok   the friction filer is the record lane's deliberate filing arm and the informational lanes stay suppressed
+  ok   no step of the record job is skipped by the disposition refusal's failure
+  ok   the record job's summary names every step of its own record
+  ok   the record summary's verdict is not the exit code alone
+  ok   the governance-cost GOV set names only jobs the workflow files define, and every job of every governance workflow file
+  ok   and the split survives: the code gate's own jobs are not governance (null control)
+  ok   a body edit starts a run of the contract job and the budget gate, and of no other job
+  ok   and #1484's shape -- `edited` listed, a second job guarded -- is refused (null control)
+  ok   no required context can be re-reported as skipped by a body edit
+  ok   and #1484's guard reads as skipping under that event (null control)
+  ok   a superseded long-job pull-request run is cancelled; pr-contract same-SHA twins are not
+  ok   and a group keyed on the ref, cancelling everything, is refused (null control)
+  ok   ci.yml's cancel-superseded cancels a superseded older SHA, from the base's program, on a non-bot same-repo pull_request run only
+  ok   and a run at the live SHA is never cancelled, a gate attempt at this head among them (null control)
+  ok   pr-contract is a workflow_call callee with no event and no concurrency group of its own
+  ok   and a pr-contract.yml that lists pull_request, or declares a concurrency group, is refused (null control)
+  ok   and the cancelling block, a serialised one, or an unrouted `edited` file is refused (null control)
+  ok   no job-level `if` leads with `always()`: a cancelled run stops (CI cancel)
+  ok   and a leading `always()` is refused, `!cancelled()` is not (null control)
+  ok   every required context runs on a merge-queue entry (process review item 2)
+  ok   and tests.yml without merge_group is refused for each context it produces (null control)
+  ok   every required unit tests.yml produces runs on an autofix or batch-proof dispatch, read through ci.yml (B9)
+  ok   and a producer still gated on the old recheck-gate output is refused (null control)
+  ok   and an umbrella that does not list workflow_dispatch is refused for each unit tests.yml produces (null control)
+  ok   no tests / * job gate.py requires carries a job-level skip `if:` (U5)
+  ok   RUN_PART=fast skips the arch pair by name and RUN_PART=arch runs only it; dropping the fast skip is refused (U5, null control)
+  ok   the coverage job reuses only an entry main's push run saved, keyed on the runner's OS
+  ok   the budget-raise gate is one unguarded called job that declares the umbrella's inputs and grades with the base's copy of its program
+  ok   and the same file with its restore removed is refused (null control)
+  ok   every `with:` key the umbrella's budget-raise-gate caller passes is declared by the called workflow
+  ok   and the callee with one input declaration deleted is refused (null control)
+  ok   no job holding a write grant on pull_request runs the pull request's own program or leaves its token on disk (D11-s1-03)
+  ok   and the same ci.yml and tests.yml with their restores and token hygiene undone are refused on each of the three autofix jobs (a workflow_call callee of a pull_request workflow) and on ci.yml's cancel-superseded and refresh jobs (null control)
+  ok   and codeql.yml's D-5 step is exempt only by its `if:` and the base restore: without both the step is refused (null control)
+  ok   and a callee that no pull_request workflow calls is not read: tests.yml alone, undone, is refused nowhere (null control for the callee rule)
+  ok   and a report run from the working tree after the push step's pull is refused on each of the three autofix jobs, though the program was restored (null control)
+  ok   and an indented `import a, b` names both modules (null control: the finder's reader missed mutation_table this way)
+  ok   every base-restoring step names each file it restores at the path tests/layout.json moves it to, listed so that a PINNED holding either path restores and one holding neither fails
+  ok   and the pathspec matcher selects what `git ls-files` selects on every restore it reads (its precondition)
+  ok   and on a planted tree the predicate passes the listed form and refuses an old path alone, a direct checkout of a path the base lacks, and a listing not checked out next (null controls)
+  ok   merge-main dispatches ci.yml once per pushed branch with -f pr and -f base, guards its job on main's ref, and reads four-field pushed.txt lines (U10)
+  ok   and each of a missing ref guard, a second dispatch, a dispatch without pr/base and a two-field reader is refused (null control)
+  ok   the stats histogram reads the wave script's VERDICT_CLASSES as its block-class set
+  ok   and an unreadable grammar yields null rather than a guessed class set (null control)
+  ok   a verdict histogram whose block-class grammar is unreadable withholds the proposal and says why
+  ok   a blocked verdict whose shape the wave refuses is outside the grammar, not folded into `other` (#1304)
+  ok   and the bare blocked verdict still routes to `other` (null control)
+  ok   the stats histogram names the population it saw beside the window's merge count, so a merge carrying no verdict is visible rather than absorbed (#1406)
+  ok   and the coverage line tracks the histogram rather than a constant (null control)
+  ok   the stats histogram classifies exactly the grammar the wave script's own VERDICT_RE parses, over `Fix review:` FIRST LINES (#1472)
+  ok   and it classifies a comment BODY exactly as the wave script's own `parseVerdict` reads it, both readers driven (#1480)
+  ok   and the two shapes the extractions disagreed on are closed in their own directions (#1480)
+  ok   a verdict posted as a pull-request review is counted, and the census names the endpoint it arrived on (#1471)
+  ok   and the same verdict posted as an issue comment, and a window with no reviews at all, are the null controls (#1471)
+  ok   the window reader asks the reviews endpoint and joins what it answers into its map (#1471)
+  ok   and it asks whether or not the window posted a review, with the body and comment reads as the ledger's null control (#1471)
+  ok   the --sunset mode prints the marker census its zero is a zero of, beside the corpus count (#1469)
+  ok   the rework key is the class the wave teaches, so the histogram cannot key a word no reviewer is told to write (#1405)
+  ok   the stats histogram counts a rework round on a moved head on its own rework row, keyed on the class the wave defines for it and the passing verdict hides (#1405; #2221)
+  ok   and the rework count tracks the window rather than a constant (null control; the finder's own perturbation)
+  ok   and the passing row is left exactly as it was, and the verdict row the wave's `head-moved` word keys holds no rework round, so the rework row adds a figure rather than moving one (#1405; #2221)
+  ok   and a verdict naming the same head twice, or a first line the grammar refuses, is not rework (null control)
+  ok   the rework row counts a re-verification of a head that moved after a `merge` verdict, once per round, and not a repair or a repeat (#1549)
+  ok   the verdict table's `head-moved` row holds only the verdicts whose class word a reviewer wrote, and its rows partition the parsable verdicts (#2221)
+  ok   and the rework row is the rounds line's re-verification part, one object rather than a second count of it (#2221)
+  ok   and every round after a merge's first is split by the verdict before it: re-verification, repair, repeat (#1549)
+  ok   and the split tracks the verdict before the round rather than a constant (null control: #3's block rewritten as a merge)
+  ok   the stats mode prints the one-round yield beside the first-verdict yield, each named for its rule (#1549)
+  ok   and the one-round yield moves with the window (null control: #3 flipped to a first `merge` raises the first-verdict yield only)
+  ok   the stats mode splits the merges carrying no parsable verdict by the title's type, so an exempt record merge and an unreviewed fix are two rows (#2220)
+  ok   and the split tracks the titles rather than a constant (perturbation: #3 retitled `record`; null control: every fetched merge carries a verdict)
+  ok   a moved policy file named at its live path and at its canonical spelling reaches one friction key, the canonical path (#2221)
+  ok   and an id naming no policy file keeps its own spelling (null control)
+  ok   the publishing lane runs on main alone, never on a pull request
+  ok   the ledger script is classified: NOT_A_TEST, and not on INERT
+  ok   the by-design-red exclusion list is in-tree, with a reason per job and a citation that resolves (#1303)
+  ok   and the CFR instrument reads that registered artifact, not a copy beside itself (#1303)
+  ok   and the list excludes only what it names (null control)
+  ok   the change-failure instrument reports the merge-keyed AND the PR-head-keyed rate (#1407)
+  ok   the change-failure instrument publishes the rate per check-run NAME at both keyings, so the name that separates them is visible (#1476)
+  ok   and the exclusion artifact records `mutation` as deliberately NOT excluded, with a reason and a citation the tree carries (#1476)
+<unknown>:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  cited  dev/audit/rounds/round4/D11/dora_keys.py by dev/governance/dimensions/D13.md, dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round4/D12/units.py by dev/governance/roles/COMMON.md: runs
+  cited  dev/audit/rounds/round5/D11/seat-b/corpus_churn.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round5/D13/seat-a/dora_cfr.py by dev/programme/carries/carry-201.json: runs
+  cited  dev/audit/rounds/round6/D11/fix/codeowners_gap.py by dev/programme/carries/carry-201.json: runs
+  ok   every program live policy or a carry's remeasure tells a seat to run, under a historical prefix, loads and resolves the paths it opens (#2227)
+<unknown>:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+<unknown>:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ok   the cited-program arm: a cited harness that runs passes, a planted opened stale path and a planted unloadable citation are refused, a stale path a program only holds is not (null controls, perturbation)
+  ok   the cited-program arm follows a path literal through every open shape the two fix reviews planted and the binding family beside them -- an alias, a join, a pathlib / read through .read_text() or .open(), an f-string prefix, a dict or list subscript, a tuple unpack, an annotated assignment, a for target, a walrus, +=, a parameter or lambda default, a with ... as target, a self.x attribute, and a name bound through a global or nonlocal declaration -- the shapes it already caught stay caught, and a literal the program only HOLDS is still not an open
+<unknown>:914: SyntaxWarning: "\;" is an invalid escape sequence. Such sequences will not work in the future. Did you mean "\\;"? A raw string is also an option.
+  ok   no cited program binds a path literal to an attribute or a class-body name at all -- so the attribute-bound-in-one-scope-opened-in-another shape (`self.x` set in one method and opened in another, a class-body name opened through its owner) that the name-only resolver cannot follow has 0 live sites today, and the census catches each planted variant
+  ok   every carry and every policy file this arm reads for citations selects this script, so a broken citation added to one is refused on the pull request and not on the next merge to main (#2312, F2)
+  ok   the disposition refusal can set the record job's conclusion
+  ok   the ruleset reader's answer moves when a rule it does not require moves
+  ok   and it stays stable when nothing about the ruleset moved (null control)
+  ok   the template arm turns the acceptance red on a template that fails its own contract (and the real template keeps it green)
+  ok   `policy-docs` restores its graders from the base commit before it grades
+  ok   the release lane's grant is the owner-approved attestation grant and nothing more
+  ok   the attested subject is the tag's tree, not an artefact that does not exist
+  ok   hacs.json names the release asset release.yml uploads, with zip_release
+  ok   the hacs.json asset reader refuses a filename release.yml does not upload
+  ok   the release ZIP holds the integration folder at its root, and its check refuses a hacs.json naming another file
+  ok   the release is a draft carrying the asset until a later step reads the asset back and publishes it
+  ok   the reach tracer reads a clean run's row: an executed line is reached, one no process executed is never, and a SIGKILLed child's line counts
+  ok   and every way the row can be blind refuses the skip: a source read, a non-Python child (through subprocess or a bare os.posix_spawn), a Python child without the tracer's environment or its PYTHONPATH (started, never recorded), and a red run, which returns no row at all
+  ok   and a Popen child started through os.posix_spawn reads the same clean row
+  ok   and a forked child's executed line counts, the row still clean
+  ok   and no row, a red run's row or an instruction-less line drives the pair
+  ok   the coverage ratchet is wired into a job that runs on pull requests
+  ok   and no CI job passes either instrument --record
+  ok   the pull-request lane scopes to what the diff tested, the nightly does not
+  ok   and the scoped lane checks out the history its own diff needs
+  ok   the coverage floor sits at or below its ceiling
+  ok   the pragma cap is not slack: no exemption is pre-authorised
+  ok   both mutation caps are saturable fractions that hold their last measurement
+  ok   the mutation budget defers on no lane the workflow already defines
+  ok   and it refuses the deferral, not the lane's name
+  ok   the kill rule finds a failure count buried under trailing output
+  ok   and reads no failure out of a clean run
+  ok   a structure run that only IMPROVED a metric is not a kill
+  ok   and a structure run that BREACHED a budget still is
+  ok   a status is a kill for no driver unless the output names a failing check
+  ok   the structure ratchet refuses a non-finite or malformed cap by name
+  ok   every grader's copy of the barrier is the original, character for character
+  ok   the mutation table refuses a non-finite or malformed survivor cap
+  ok   the coverage ratchet refuses a non-finite or malformed floor or cap
+  ok   and main() runs it before comparing anything
+  ok   the stress budget table refuses a non-finite or malformed recorded cost
+  ok   and load_budget_table refuses such a table instead of returning it
+  ok   an env_drift refusal before capture is not a kill (#1521)
+  ok   and its drift verdict, its stale fixtures and a crash still are
+  ok   every driver's failing-check form reads as its count
+  ok   a driver printing no failing-check form the rule reads is reported
+  ok   any uncaught exception on a red run is a kill, whatever its class
+  ok   the null control is scored over every driver, never the first kill only
+  ok   the null control edits a whole-line comment and nothing else
+  ok   a comment line past sixty characters, by indent or by its own text, is still the null control; a pool with no comment line still refuses
+  ok   a run whose null control did not survive is refused
+  ok   the drift cache key takes exactly the tree variables a capture reads
+  ok   and the derivation sees a new read, a prefix read and nothing else
+  ok   a variable no capture reads leaves the key; one it reads moves it
+  ok   every operator fires on a module written to carry one of each
+  ok   and every mutant it generates leaves the module parseable
+  ok   the sole statement of a block is never deleted
+  ok   CMP_BOUND moves each ordering bound by one, one mutant per operator
+  ok   a comparison spanning more than one line yields no CMP_BOUND site (C7)
+  ok   and, priced and ruled in (tvofi 2026-10-02), it is in the ratcheted inventory
+  ok   --list counts a CMP_BOUND anchor unpinned until the ledger covers it
+  ok   cap_problems refuses a cap that cannot fail, and passes a saturable one
+  ok   inventory() is deterministic and returns the full candidate set
+  ok   unpinned_sites counts a site unpinned until it carries a disposition
+  ok   ratchet_refusal refuses growth over the base count, and an unreadable base
+  ok   added_unpinned refuses a site traded in at an unchanged count, and keeps a re-indented or moved site the base's (#1646, #1748)
+  ok   added_unpinned charges a twin line to the def that gained it, not to the def that already had it (R9-RO-9a)
+  ok   added_keys gives a line with three comparison mutants one key carrying its multiplicity, and a single mutant a bare key (R9-RO-9a)
+  ok   the inventory sees elif, else-carrying, commented and numpy/math guard shapes, and not a multi-line test (R9 D14-s5-02)
+  ok   completeness_problems refuses a stale mark and an empty inventory
+  ok   a line shift keeps every disposition; an edit to the pinned text drops it
+  ok   the ledger's canonical form is enforced, and --normalize reaches it
+  ok   an anchor's ordinal counts identical lines within one def, and only there
+  ok   base_unpinned counts the base exactly, and ratchet_base leaves HEAD for its parent
+  ok   the mutation budget commits no unpinned-site count; the base supplies it
+  ok   the ledger pre-pass runs in the driver before the sampled pool (#1412)
+  ok   --pin-killed drives only the sites the diff added and records the measured kill
+  ok   two pins of one mutant are byte-identical whatever base measured them, and pins of different mutants differ (P-L)
+  ok   --pin-killed is wired: new sites from the base's own unpinned list, a pin only from a recorded kill run
+  ok   --pin-killed pins an anchor only when every site under it was killed, and exits 1 with any left
+  ok   mutation-autofix applies only a measured pin whose anchor, text and head this tree still has
+  ok   the row ledger: one path per anchor and ordinal, a clean layout passes, and a ref's rows are read
+  ok   the row ledger: a deleted row leaves the disk, and a misplaced or non-canonical row is refused
+  ok   the row ledger: --carry-rows refuses a row both sides changed differently, and carries one only the branch changed
+  ok   mutation's measure step grades a run by its own summary, not by the ledger diff
+  ok   mutation-autofix stays quiet exactly on a repair made or none owed
+  ok   mutation-autofix is red on an applied measurement that left a site alive, naming each; green on `0 left unpinned`; quiet on skip-head-moved
+  ok   the survivors are written by each pin shard, merged as a union, read by mutation-autofix and graded by its report step
+  ok   a pin drive whose baseline refused returns before its results are reported as survivors
+  ok   every status mutation-autofix's two functions return is classified
+  ok   mutation's measure step runs the base's tool, hidden, and grades by measurement()
+  ok   mutation-autofix runs only after a failed mutation lane on a same-repo pull request
+  ok   --drain drives whole drivable anchors under the cap, fixed per seed, moved by the seed
+  ok   --drain --shard K/N: the shards are disjoint whole-anchor slices whose union is the unsharded slice at N times the cap; the merge unions the survivors
+  ok   mutation-ledger-push applies a drained slice once, and on a moved main only the pins whose killer still reaches the mutated module
+  ok   mutation-ledger-push lands a drained slice on a main whose merges touched every killer's closure, and drops only the pins whose site or driver the head lost
+MUTATION LEDGER: changed -- nothing owed
+MUTATION LEDGER: skip-unchanged -- nothing owed
+MUTATION LEDGER: skip-nothing-killed -- nothing owed
+MUTATION LEDGER: skip-nothing-drivable -- nothing owed
+MUTATION LEDGER: (no status) -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-measurement -- a measured slice did not reach main
+MUTATION LEDGER: skip-head-moved -- a measured slice did not reach main
+MUTATION LEDGER: skip-write-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-push-refused -- a measured slice did not reach main
+MUTATION LEDGER: skip-fetch-failed -- a measured slice did not reach main
+MUTATION LEDGER: skip-apply-crashed -- a measured slice did not reach main
+MUTATION LEDGER: skip-commit-set -- a measured slice did not reach main
+MUTATION LEDGER: skip-no-writer -- a measured slice did not reach main
+MUTATION LEDGER: measured -- a measured slice did not reach main
+  ok   the ledger writer may only add killed_by rows, and its job reddens a slice that did not land
+  ok   --drain is wired: its slice from drain_pool, its pins written out, the ledger here untouched
+  ok   mutation-ledger measures without a write grant and mutation-ledger-push writes only rows
+  ok   a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both
+  ok   one schedule cron, nightly.yml's; required lanes share that run (#1930 (d))
+  ok   nightly-ha runs on schedule, on dispatch, and on a pull request whose diff touches its driver's reads, and on nothing else
+  ok   every file nightly-ha's driver stages from outside the package is a path whose change runs nightly-ha on the pull request
+  ok   the ledger writer's secrets are read by mutation-ledger-push alone, in the ledger environment
+  ok   mutation-ledger-push sends one row commit on main's tip, and its diff of the measured head fails closed
+  ok   the ledger writer's token and auth header are masked before their first use
+  ok   a mutant is driven only by the scripts whose closure reaches its file
+  ok   the default driver list can reach tests/manual_plan.py's module (#1225)
+  ok   and the default list still drives nothing into a file no closure reaches
+  ok   the driver net is the recorded gate set minus named exclusions (#1211)
+  ok   the differential golden step is drivable as the gate drives it (#1211)
+  ok   the ref-driven pair skips by the gate's own rule, not a vacuous run (#1211)
+  ok   and ref-driven drivers get run.sh's own resolution (#1211)
+  ok   a survivor triaged equivalent is off the fraction; an unmarked one stays (#1217)
+  ok   survivor_gaps unpacks equivalent beside gaps (#1885)
+  ok   and only an `equivalent` verdict applies, pinned line text and all (#1217)
+  ok   a triage entry without a verdict, reason or line pin is refused (#1217)
+  ok   the recorded triage marks the D3-07 equivalent, verdict and reason (#1217)
+  ok   and every mark still names a mutant this tree generates, pin and all (#1217)
+  ok   both instruments are classified: NOT_A_TEST, and not on INERT
+  ok   the CI ratchet is classified: NOT_A_TEST, and not on INERT
+  ok   the host probe is classified: NOT_A_TEST, and not on INERT
+  ok   the host probe's work is the recorded work (one round's checksum)
+  ok   every heavy tests job runs the host probe once, named for the python it installs, with a reference the ratchet prices it by
+  ok   and the probe rule finds no step where none runs (ci-ratchet, its null control)
+  ok   the CI ratchet is wired into a push-to-main job that never --records
+  ok   the CI ratchet refuses a non-finite, mistyped or unknown budget row
+  ok   the CI ratchet's main() refuses a script-run count above its budget
+  ok   and main() passes the committed table at its own recorded count (the null control)
+  ok   a derived metric with no budget row is a growth, not a pass
+ci-ratchet: not counted: 3 row(s) carried by another lane's artifact (a child that inherited HPO_CI_METRICS)
+  ok   the CI ratchet counts a lane's rows only from that lane's own artifact
+  ok   the CI ratchet's window parser refuses an empty artifacts response by naming the fetch (a failed fetch is not an empty window)
+  ok   and a good response still yields the same window (the null control)
+ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+ci-ratchet: ci-metrics-fast artifacts fetch attempt 2/4 failed: gh exited 1 after 0 byte(s): gh: HTTP 502
+  ok   the CI ratchet retries the artifacts list and uses the retry's window
+ci-ratchet: skipping expired artifact 12 (ci-metrics-closures): gh: Artifact has expired (HTTP 404)
+  ok   a 404 on one artifact's zip is skipped, and the rest of the window lives
+  ok   the ci-ratchet job runs the gather and its self-test from the module
+  ok   and the inline artifacts fetch that swallowed its own failure is gone
+  ok   every HPO_CI_METRICS emitter keeps the file from the children it runs
+  ok   derive_closures.sh writes its own metrics row and hands its child none
+  ok   the CI ratchet counts no `reused` coverage row as a script run
+  ok   the coverage floor re-validation re-measures only the scripts it reused
+  ok   after a floor-FAIL re-validation each coverage ledger holds one row per script and no `reused` row
+  ok   a measured script's late-writing descendant is waited for, not recorded as nodata
+  ok   one script run past the every-script-once budget turns the CI ratchet red, and the budget is that count
+  ok   the architecture-score pair runs in lane_golden and not in lane_units
+  ok   arch-instrument takes fast's scope from the same input, and each runs its own RUN_PART
+  ok   the CPU-bounded harness check runs alone: in lane_stress after stress.py, in no parallel lane
+  ok   derive_closures.sh takes a heavy slot standalone and joins one it is inside (#2267)
+  ok   the C1 composition stays removed at its source (W1): no carrier names a C1 token
+  ok   and the pattern finds the composition where it lived (null control)
+  ok   every workflow pins each actions/* action at one canonical commit
+  ok   a red baseline on the pull-request scope is INCONCLUSIVE, not a failure
+  ok   and it names the red script, because the report is useless without it
+  ok   and it names each red CHECK, not only the script that carries it (#1134)
+  ok   a red script whose output has no FAIL line still names its reason
+  ok   the nightly scope still refuses with exit 1 on the same baseline
+  ok   a green baseline takes no verdict at either scope; the table proceeds
+  ok   run_script returns the stdout whose FAIL line names the red check (#1134)
+  ok   and a passing run yields no failing check name
+  ok   off CI a mutant's stress.py run waits for the gate lease; on a CI runner it runs at once (null control)
+  ok   the baseline drives its drivers over every worker tree at once
+  ok   and the ref-driven shared drivers start first, stress.py last and alone
+  ok   the stress.py baseline shares the runner with no other driver
+  ok   the harness_headers.py baseline shares the runner with no other driver, and only stress.py takes the gate lease
+  ok   a mutant's stress.py run shares the runner with no other driver, and only a mutant no shared driver killed pays for one
+  ok   a deferred stress.py baseline runs only once a mutant survives every shared driver, once, before that mutant's stress.py run
+  ok   a changed-scope run defers stress.py's baseline, the nightly never does, and main() takes its deferral from that rule
+  ok   the full scope drops the EXCLUSIVE pair out of its net, the changed scope drops nothing, and main() takes the drop from that rule
+  ok   a healthy full-scope run still drives every other driver on every file it reached, and the drop costs the pair alone
+  ok   the census names every disposition the drop leaves unverified, and nothing it does not
+  ok   and the clause names each deferred driver, its reason and the count, where a scope that defers nothing prints nothing
+  ok   a changed-scope run makes every shared, non-ref driver lazy; the nightly none, and main() takes its lazy set from that rule
+  ok   env_drift stays eager: recorded seconds time the stub, not CI --all (#1930 (b))
+  ok   a lazy driver's green run settles nothing; its first red runs settle its baseline once and are judged kills against it
+  ok   a lazy baseline or null control that refuses stops the table: no kill, the refusal's status kept, and no later driver settled
+  ok   a mutant's drivers sweep in the ledger's kill-rate order, every one kept
+  ok   an idle worker helps drive a survivor's remaining drivers
+  ok   a mutant is not LIVES while a helper's driver is still running
+  ok   every verdict is the serial sweep's: killed iff a driver kills it, LIVES only after every driver ran once
+  ok   a mutant whose driver only overran its timeout is not killed, not LIVES, and never pinned (R9-F10.12)
+  ok   and a null control whose driver timed out still refuses the run
+  ok   a driver's timeout scales from its own measured seconds over the fixed floor, and main() times every baseline, null and mutant run with it
+  ok   RCA-1565: the baseline bound covers the MEASURED pool cost with the scale's margin, not TIMEOUT_SCALE x a band-stale solo recording
+  ok   RCA-1565 null control: a healthy driver's bound still covers its pool cost, the seed never lowers a bound, and env_drift stays floor-bound (not scaled)
+  ok   RCA-1565: the pool measurement round-trips through pool_seconds.json, and an absent/unreadable/malformed file seeds nothing (fail-soft, never a smaller bound)
+  ok   RCA-1565: a baseline that TIMED OUT against a green committed recording names the stale recording and the bound, not 'fix the suite first'
+  ok   RCA-1565 null control: a real red baseline (a failing check, not a timeout) still says 'fix the suite first' and names the check
+  ok   RCA-1565 wired in the driver: main() takes --pool-seconds, seeds the bound with it, records each pool baseline, and persists from the finally
+  ok   RCA-1565 wired in the workflow: both nightly lanes pass --pool-seconds, and mutation-ledger persists on an if: always() cache save in the measuring job, never in the success-gated push job
+  ok   a budget too small for its pool starts mutants only while they fit, names the rest SKIP-BUDGET, and reserves the EXCLUSIVE runs it owes
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+
+MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not started for --budget-minutes
+  NOT RUN x.py:1 CONST -- not started: it would have overrun --budget-minutes
+  ok   a run the budget let evaluate no mutant is refused; one that evaluated some, or skipped none for the budget, is not
+  ok   a budget refusal names a tail-cut site as one that survived every shared driver, a never-started one as not started, and a tail-cut-only run as no verdict measured -- all refused, none PASSED
+  ok   mutation-nightly, mutation-ledger and the pin step each pass a budget
+  ok   a budget cut falls on an anchor boundary, so no anchor is split and no killed twin is listed for a human verdict
+  ok   a mutant whose driver timed out runs no further driver
+  ok   a twin granted with its anchor is started even after a dearer site between them closes the pool
+  ok   the drain lists no site of an anchor the budget split
+  ok   a timed-out mutant releases the EXCLUSIVE run it reserved
+  ok   a run whose mutants all timed out or went unstarted is refused by cause, and a partial PASSED counts the timed-out ones
+  ok   the pin drive holds four (mutant, driver) runs in flight at once -- the split exists, and is not drive_pool's one-mutant-at-a-time schedule
+  ok   the split's verdicts and pins are byte-identical to the serial schedule's, the named killer included
+  ok   under the split a timed-out driver is never a kill: the mutant runs nothing further, reads SKIP-TIMED-OUT, and pins nothing
+  ok   the split's budget admission divides the outstanding work by the workers, measuring a pool the serial estimate closes after two
+  ok   the split admits a mutant on its shared work and charges the EXCLUSIVE tail only to a survivor that reaches it; a lazy driver costs one run
+  ok   the pin shards are disjoint, cover the pool and keep an anchor's twins together; their merge is measured when any shard measured, one shard too
+  ok   a shard whose files hold no whole-line comment inherits the whole pool's null control: null_for reads the pre-split pool, and main() wires it that way
+  ok   the pin shard count scales with the diff's new sites, five a shard, capped at twelve, and sizes the matrix the shards run
+  ok   and a plan step without always(), or a pin job still reading the old plan job, is refused (null control)
+  ok   the pin summary counts budget cuts, exclusive-tail cuts and timeouts apart from survivors, and names a survivor's remedy only when one survived
+  ok   main() routes the pin-measurement phase through the split and every other mode through drive_pool
+  ok   a site holding a survivor_triage mark is recognised as triaged; a moved line, an unmarked site and an empty triage are not (R9-F10.13)
+  ok   the nightly reports a pin its script did not kill, and never reads a site the budget, a timeout or another driver left unrun as re-verified (R9-F10.13)
+  ok   a triage-marked site is driven by every driver but the one that judges the marks, and left out when that is its only driver; an unmarked site keeps it (R9-F10.13)
+  ok   a pinned site's killer is driven first however dear it is; an unpinned site and a stale pin keep the cost order (R9-F10.13)
+  ok   --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)
+  ok   a re-driven pin is not reproduced by a driver that only sees the row the mutant made stale: the row is hidden from the mutant's tree, and a code check still kills it (R10 mutation-anchor)
+  ok   invalidated_rows names exactly the rows pinned to a rewritten line, the ledger without them agrees with the rewritten file, and an unpinned line names none (R10 mutation-anchor)
+  ok   mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)
+  ok   a changed-scope pool draws only sites on lines the diff modified
+  ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
+  ok   and --scope full still draws from every site
+  ok   the null control is drawn from a file of the line-scoped pool, on a line the diff never touched
+  ok   and an empty pool passes before a null control is sought
+  ok   the null run's tree differs from the baseline tree on exactly the null comment's line, and main() drives it through null_edit
+  ok   the null control runs under every driver in the baseline phase, and its stress.py run shares the runner with nothing
+  ok   every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)
+  ok   null control: a bare read, direct or through a local, is refused
+  ok   const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, not a bare MIN_POWER shorthand
+  ok   optimizer.py names the real min_electrical_power attribute at all (the symbol the comment should point readers at)
+  ok   and optimizer.py's baseline comment itself uses the real name
+  ok   every dependency install in every workflow is hash-pinned (#1548)
+  ok   hash-pin barrier arm: the finder's version-pinned install -> 1 refusal(s)
+  ok   hash-pin barrier arm: a bare package spec beside the flags -> 1 refusal(s)
+  ok   hash-pin barrier arm: a lock generated at run time -> 1 refusal(s)
+  ok   hash-pin barrier arm: an install with no build constraint -> 1 refusal(s)
+  ok   hash-pin barrier arm: a continued npm install and npx -> 2 refusal(s)
+  ok   hash-pin barrier arm: the hashed installs this workflow uses -> 0 refusal(s)
+  ok   hash-pin barrier arm: a hashed install narrowed by --no-deps -> 0 refusal(s)
+  ok   hash-pin barrier arm: an install named only in a comment -> 0 refusal(s)
+  ok   hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+reading the recorder: SQLite database /tmp/tmpev1_12lw/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8gnaa231/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpfddz9ukr/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpa0v0lxzv/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1r9utm3b/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmplgla95iz/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_0prvzlv/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpus6yoi45/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp7o9ipp_x/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpl49b5fyb/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi3xperg0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmptdg65fqh/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpndbr33gt/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpozxnc9c5/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpbc1ohk31/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8b5z6l1o/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpvmkxe4xj/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp0oqmfjje/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpov4za1uo/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmprztukjwx/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_d10qho9/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp4f6_bczg/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpq6zjfc68/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpr91gaqk9/home-assistant_v2.db
+left out: entity id(s) under 1 entry key(s) this integration does not read (legacy_probe_entity)
+reading the recorder: SQLite database /tmp/tmpbpbazpdt/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpfh40_apc/home-assistant_v2.db
+  ok   replay control:finite
+  ok   replay control:unit
+  ok   replay control:no_default
+  ok   replay control:no_default:setpoint_value_on_a_reading
+  ok   replay control:no_default:setpoint_at_an_unconfigured_default
+  ok   replay control:no_default:setpoint_keys_are_published_config
+  ok   replay control:agreement:attribute
+  ok   replay control:agreement:plan
+  ok   replay control:agreement:power
+  ok   replay control:agreement:climate
+  ok   replay control:not_frozen
+  ok   replay control:not_frozen:one_value_beside_zeros
+  ok   replay control:cycle_cost:cpu
+  ok   replay control:cycle_cost:memory
+  ok   replay control:cycle_cost:loose_budget
+  ok   replay control:cycle_cost:unrecorded
+  ok   replay control:cycle_cost:loop_thread
+  ok   replay control:cycle_cost:loop_normaliser
+  ok   replay control:cycle_cost:cpu_normaliser
+  ok   replay control:cycle_cost:class_budgets
+  ok   replay control:cycle_cost:runner_class_unknown
+  ok   replay control:cycle_cost:arms_skipped_never_everywhere
+  ok   replay control:cycle_cost:arms_skipped_committed_only
+  ok   replay control:away:covered_names_are_committed
+  ok   replay control:cycle_cost:short_doubling
+  ok   replay control:cycle_cost:unmetered_doubling
+  ok   replay control:away:view
+  ok   replay control:away:override
+  ok   replay control:away:floor
+  ok   replay control:away:replayed
+  ok   replay control:away:coverage_needs_a_command
+  ok   replay control:away:coverage_needs_a_commanded_cycle
+  ok   replay control:cycle_cost:coverage
+  ok   replay sanitised:owner-2026-10-30-away.json
+  ok   replay a10_location:owner-2026-10-30-away.json
+  ok   replay away_coverage:owner-2026-10-30-away.json
+  ok   replay sanitised:synthetic-dhw-only.json
+  ok   replay a10_location:synthetic-dhw-only.json
+  ok   replay away_coverage:synthetic-dhw-only.json
+  ok   replay control:sanitiser_refuses
+  ok   replay control:sanitise_clears
+  ok   replay leak_probe:capital_Latitude:export_drops
+  ok   replay leak_probe:capital_Latitude:check_refuses
+  ok   replay leak_probe:lat_lon_short:export_drops
+  ok   replay leak_probe:lat_lon_short:check_refuses
+  ok   replay leak_probe:coord_list:export_drops
+  ok   replay leak_probe:coord_list:check_refuses
+  ok   replay leak_probe:coord_string:export_drops
+  ok   replay leak_probe:coord_string:check_refuses
+  ok   replay leak_probe:basic_auth_url:export_drops
+  ok   replay leak_probe:basic_auth_url:check_refuses
+  ok   replay leak_probe:apikey_query:export_drops
+  ok   replay leak_probe:apikey_query:check_refuses
+  ok   replay leak_probe:pin_code:export_drops
+  ok   replay leak_probe:pin_code:check_refuses
+  ok   replay leak_probe:psk:export_drops
+  ok   replay leak_probe:psk:check_refuses
+  ok   replay leak_probe:email:export_drops
+  ok   replay leak_probe:email:check_refuses
+  ok   replay leak_probe:serial_mac:export_drops
+  ok   replay leak_probe:serial_mac:check_refuses
+  ok   replay leak_probe:entry_address:export_drops
+  ok   replay leak_probe:entry_address:check_refuses
+  ok   replay leak_probe:entry_url_in_allowed_key:export_drops
+  ok   replay leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   replay leak_probe:state_address:export_drops
+  ok   replay leak_probe:state_address:check_refuses
+  ok   replay leak_probe:n1_options_dict:export_drops
+  ok   replay leak_probe:n1_options_dict:check_refuses
+  ok   replay leak_probe:n2_currency_name:export_drops
+  ok   replay leak_probe:n2_currency_name:check_refuses
+  ok   replay leak_probe:n3_options_address:export_drops
+  ok   replay leak_probe:n3_options_address:check_refuses
+  ok   replay leak_probe:n4_token_in_series:export_drops
+  ok   replay leak_probe:n4_token_in_series:check_refuses
+  ok   replay leak_probe:state_n10_host_path:export_drops
+  ok   replay leak_probe:state_n10_host_path:check_refuses
+  ok   replay leak_probe:n11_host_path_unit:export_drops
+  ok   replay leak_probe:n11_host_path_unit:check_refuses
+  ok   replay leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   replay leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   replay leak_probe:n14_mac_no_colons:export_drops
+  ok   replay leak_probe:n14_mac_no_colons:check_refuses
+  ok   replay leak_probe:state_street_number:export_drops
+  ok   replay leak_probe:state_street_number:check_refuses
+  ok   replay leak_probe:entry_free_text:export_drops
+  ok   replay leak_probe:entry_free_text:check_refuses
+  ok   replay tibber_price:one_home_picked
+  ok   replay tibber_price:none_refused
+  ok   replay tibber_price:two_homes_refused
+  ok   replay tibber_price:flag_overrides_two
+  ok   replay tibber_price:flag_overrides_one
+  ok   replay tibber_price:entry_names_one
+  ok   replay tibber_price:disabled_skipped
+  ok   replay tibber_price:unrecorded_skipped
+  ok   replay tibber_price:unavailable_skipped
+  ok   replay tibber_price:entity_source_untouched
+  ok   replay recorder:db_url_whole_day_read
+  ok   replay recorder:db_url_read_only_session_selects_only
+  ok   replay recorder:db_url_secret_resolved
+  ok   replay recorder:db_url_credentials_never_printed
+  ok   replay recorder:db_url_connect_refusal_names_no_credential
+  ok   replay recorder:open_line_names_kind_and_db_path
+  ok   replay recorder:open_line_url_branch_carries_no_url_value
+  ok   replay recorder:open_recorder_line:default
+  ok   replay recorder:open_recorder_line:db_path
+  ok   replay recorder:open_recorder_line:mysql_url
+  ok   replay recorder:open_recorder_line:sqlite_url
+  ok   replay recorder:open_recorder_lines_carry_no_url_value
+  ok   replay recorder:unsupported_scheme_refusal_prints_none_of_the_url
+  ok   replay recorder:db_url_flag_read
+  ok   replay recorder:sqlite_db_url_named_by_kind_not_path
+  ok   replay recorder:db_url_driver_missing_refused_by_name
+  ok   replay recorder:stale_sqlite_near_empty_day_refused
+  ok   replay recorder:db_url_emptied_window_refused_naming_inputs_and_recorder
+  ok   replay recorder:sqlite_db_url_refusal_names_kind_not_path
+  ok   replay recorder:retired_key_left_out
+  ok   replay recorder:read_key_unrecorded_refused
+  ok   replay recorder:url_from_configuration:inline_quoted
+  ok   replay recorder:url_from_configuration:inline_plain
+  ok   replay recorder:url_from_configuration:secret
+  ok   replay recorder:url_from_configuration:include
+  ok   replay recorder:url_from_configuration:nested_key_ignored
+  ok   replay recorder:url_from_configuration:no_db_url
+  ok   replay recorder:url_from_configuration:no_file
+  ok   replay mask:entry_entities_renamed_to_their_role
+  ok   replay mask:published_ids_hashed
+  ok   replay mask:street_in_entity_ids_and_names_absent_from_export
+  ok   replay mask:check_refuses_unmapped_id_naming_class_not_token
+  ok   replay mask:check_refuses_address_text_naming_class_not_token
+  ok   replay mask:seal_refuses_unmapped_id_naming_class_not_token
+  ok   replay mask:check_refuses_a_document_with_its_times_nulled
+  ok   replay mask:null_committed_fixture_passes_the_check
+  ok   replay mask:id_as_any_dict_key_renamed_and_refused_unrenamed
+  ok   replay mask:id_only_as_a_list_item_refused
+  ok   replay mask:id_only_as_a_states_key_refused
+  ok   replay mask:entities_list_ids_take_their_numbered_role
+  ok   replay mask:a_payload_that_is_no_document_has_no_violation
+  ok   replay mask:id_under_key_off_the_allowlist_seals_masked
+  ok   replay mask:id_under_list_beside_a_non_id_seals_masked
+  ok   replay mask:id_in_list_under_a_kept_key_beside_a_non_id_seals_masked
+  ok   replay mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked
+  ok   replay mask:build_export_passes_conf_to_document
+  ok   replay mask:debugger_replay_document_passes_conf_to_document
+  ok   replay mask:clean_export_writes_a_non_empty_replay
+  ok   replay mask:planted_unmasked_id_still_refused
+  ok   replay leak_copy:bool_under_a_credential_key_is_no_credential
+  ok   replay leak_copy:copy_inside_a_list_dropped
+  ok   replay leak_copy:string_copy_in_attribute_dropped
+  ok   replay leak_copy:number_copy_refused_naming_its_place_not_its_value
+  ok   replay leak_copy:null_number_inside_a_longer_one_sealed
+  ok   replay leak_copy:dropped_text_inside_timestamps_keeps_them
+  ok   replay leak_copy:credential_text_inside_timestamps_keeps_them
+  ok   replay leak_copy:state_words_under_a_credential_key_not_searched
+  ok   replay cut_day:every_cycle_instant_reads_as_the_whole_export
+  ok   replay cut_day:price_series_kept_to_the_export_end
+  ok   replay cut_day:no_published_entity_kept
+  ok   replay cut_day:away_command_from_the_paired_switch_restart_skipped
+  ok   replay cut_day:reload_is_every_published_entity_gone_and_no_input
+  ok   replay cut_day:null_restart_with_inputs_gone_is_no_reload
+  ok   replay cut_day:null_day_without_a_command_has_none
+  ok   replay cut_day:two_paired_switches_refused
+  ok   replay synthetic_reproduces
+  ok   the nightly slow job runs the replay lane as its own step
+  ok   the nightly slow job is the unique scripts, not a second full suite (#1930 (c))
+  ok   replay reach: the rule reads the lane's own COST_FILES
+  ok   replay reach: every cost file, the optimizer, the lane and a fixture run the timed lane; nothing beside them does
+  ok   replay reach: a lane source naming no COST_FILES runs the lane, never skips it
+  ok   the timed replay runs on a pull request whose diff reaches it, and on nothing else in tests.yml (nightly runs it in full)
+  ok   P10: on a replayed day no model kernel runs on the event loop or an executor thread; every one runs in the process worker
+  ok   P10: with the process route unusable the kernels land on the executor (the #511 trade, counted), never on the loop
+  ok   P10: an armed system identification sizes, gates and fits its night in the process worker, never on the loop
+  ok   P10: an away override's recovery estimate simulates the ramp in the process worker, never on the loop (D14-s1-01)
+  ok   P10: the space-heating learners replay the elapsed interval in the process worker, never on the loop
+
+-- The debugger harness: ingest, store seed, week generator
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+  ok   debug ingest: schema, stores, accuracy, bias, planted leak
+  ok   debug ingest: --corrupt accuracy is refused by the loader
+  ok   debug ingest: planted credential is the null control
+  ok   debug ingest: a download wrapped as HA writes it ingests like the bare bundle
+  ok   debug ingest: read_download keeps the wrapper the harnesses measure
+  ok   debug ingest: rows repeating the newest sample and covering half the store re-derive the bias
+  ok   debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived
+  ok   debug ingest: rows sharing no sample with the store fail bias-rederived (not vacuous)
+  ok   debug replay: store keys remap onto FakeEntry's test_entry
+  ok   debug replay: seeded energy document is on the stub disk
+  ok   debug replay: a key outside DOMAINS is not seeded
+  ok   debug replay: trim_replay shortens the window and keeps states
+  ok   debug replay: trim_replay carries sparse export attributes forward
+  ok   debug generator: schema id is hpo-debug/1
+  ok   debug generator: extend_fixture(1) keeps the committed window
+  ok   debug generator: extend_fixture(2) doubles state rows and shifts end
+  ok   debug generator: --out default is empty so the CLI mkdtemps
+
+-- Round 9: the judge's batch re-runner
+  ok   judge_batch: a harness whose perturbation moves in the stated direction is reproduced and not void, measured under the gate lease
+  ok   judge_batch: the null control -- a harness whose perturbation does not move is void (judge.md step 2), and one that moves the wrong way is void too
+  ok   judge_batch: no perturbation command is left to the judge by hand, never passed; a number outside the header's tolerance is not reproduced
+  ok   judge_batch: every row carries the harness's load1 and thread_factor, one table row per finding, and the lease is released after the batch
+  ok   judge_batch: to_zero means reaching zero -- 3 -> 1 moves the wrong way and is void; a thread_factor over 1.05 is flagged for a re-take, 1.00 is not
+  ok   judge_batch: a judge_batch override that is not an object is ignored and flagged on its own row, and the batch goes on
+  ok   judge_batch: absolute and relative tolerances hold inside the bound and fail outside it (±0.5: 10.4 yes, 10.6 no; ±5 %: 209 yes, 211 no)
+  ok   judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint shards whose union is the input
+  ok   judge_batch: a perturbation that edits a tracked file is flagged on its row and put back, so the next finding reads the tree it would read alone, and the tree is clean after the batch
+  ok   judge_batch: an edit the command STAGED is restored from HEAD, not from the index it staged, and a new EMPTY file (and its new directory) is noticed and removed; the row says restored only when the re-snapshot agrees
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+  ok   EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options
+  ok   EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins (the scan's null control)
+  ok   EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file
+  ok   EG-B2: every coordinator view the surfaces read is a read-only property
+  ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
+  ok   EG-B6: no collaborator module reaches a coordinator private member; its inputs arrive as explicit parameters or a published view (#1739)
+  ok   EG-B6: the collaborator reach scan names a planted reach of each spelling and none of their published twins (the scan's null control)
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
+  ok   the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file
+  ok   and a staging that copies docs/ wholesale, or a guard that refuses nothing, is refused (null controls)
+  ok   pages.yml is not a gate file, and is classified
+  ok   and a deploy outside the github-pages environment, or a build job that inherits the deploy grant, is refused (null controls)
+  ok   and an `if:` calling any status function is refused, one planted spelling each (null controls)
+  ok   EG-B3b: every view the assembler merges returns a slice Payload inherits
+  ok   EG-B3b: _build_data_dict returns Payload and casts nothing
+  ok   EG-B3b: every payload key an entity reads is declared in Payload
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+  ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+  ok   Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()
+  ok   the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report
+  ok   the window step reports on the schedule, a dispatch and the stamp, never an ordinary push
+  ok   record_burst_replay counts demand as record + enumerate + rest, never the record job alone
+  ok   every InputReader key is an options-flow entity field, so the Health card has its label
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+
+ALL 2632 ENTITY CHECKS PASSED
+rc=0
