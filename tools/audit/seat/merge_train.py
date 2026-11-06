@@ -2325,7 +2325,12 @@ class Train:
         own worktree holding a branch (train-b5, #2290: PARKed by
         ~/hpo-orch/train-b5/wt/2290). Never forced: one with changes stays,
         logged NOT released; a queue entry's own `worktree` is never touched."""
+        lc, listed = self.run(["git", "worktree", "list", "--porcelain"])
+        reg = {str(Path(ln[9:]).resolve()) for ln in listed.splitlines() if ln.startswith("worktree ")}
         for wt in self.made_wts:
+            if lc == 0 and str(Path(wt).resolve()) not in reg and not Path(wt).exists():
+                self.log(f"released {wt} (already collected)")  # worktree_gc.sh took it with the merged branch
+                continue
             code, o = self.run(["git", "worktree", "remove", str(wt)])
             self.log(f"released {wt}" if code == 0 else
                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
@@ -4633,11 +4638,42 @@ def _self_test() -> int:
     # The train releases the recarry worktrees it made (train-b5 left wt/2290
     # holding the branch, and the next pre-flight PARKed the entry on it).
     own = {k: v for k, v in item.items() if k != "worktree"}
-    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)])
+    def listing(base_run):  # the recarry worktree is registered with git, as in life
+        added: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            if argv[:3] == ["git", "worktree", "add"]:
+                added.append(argv[-2])
+            if argv[:3] == ["git", "worktree", "list"]:
+                return 0, "".join(f"worktree {x}\n\n" for x in added)
+            return base_run(argv, cwd=cwd, stdin=stdin)
+        return run
+    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)], wrap=listing)
     removed = [c for c in calls if c[:3] == ["git", "worktree", "remove"]]
     check("a recarry worktree the train made under its state dir is removed at the run's end, never forced",
           rc == 0 and len(removed) == 1 and removed[0][3].endswith("/wt/7") and "--force" not in removed[0]
           and any(ln.startswith("released ") for ln in lines))
+    def release(listed, wt, remove_rc=0):
+        out, calls_ = [], []
+
+        def rrun(argv, cwd=ROOT, stdin=None):
+            calls_.append(argv)
+            if argv[:3] == ["git", "worktree", "list"]:
+                return 0, "".join(f"worktree {x}\nHEAD {'a' * 40}\n\n" for x in listed)
+            return (remove_rc, "fatal: x is not a working tree") if argv[:3] == ["git", "worktree", "remove"] else (0, "")
+        t = Train("o/r", Path("/nonexistent-state"), None, "the orchestrator", ("nightly-status",), 1,
+                  run=rrun, sleep=lambda s: None, log=out.append)
+        t.made_wts = [Path(wt)]
+        t.release_worktrees()
+        return out, [c for c in calls_ if c[:3] == ["git", "worktree", "remove"]]
+    out, rm = release(["/nonexistent-main"], "/nonexistent-state/wt/7")
+    check("a recarry worktree worktree_gc.sh already collected (unlisted, absent) is not removed again",
+          rm == [] and any("already collected" in ln for ln in out) and not any("NOT released" in ln for ln in out))
+    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7")
+    check("... while one still registered is removed (null control)", len(rm) == 1 and out == ["released /nonexistent-state/wt/7"])
+    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7", remove_rc=128)
+    check("... and a failed remove of a registered one still logs NOT released (null control)",
+          len(rm) == 1 and any("NOT released" in ln for ln in out))
     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
     check("... and a queue entry's own worktree is never touched (null control)",
           rc == 0 and not any(c[:3] == ["git", "worktree", "remove"] for c in calls))
@@ -6539,13 +6575,10 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
-    check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
-          "the same --automerge-check ... --head ... --require-green guard",
+    # card C5 retired the record beat (nightly.yml record-autofix)
+    check("record_row.py takes every option the bot sweep passes",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
-                                       "--head", "--pr", "--repo"))
-          and "--automerge-check --repo \"$REPO\" --pr \"$NUM\" --head \"$HEAD\"" in beat
-          and "guard --require-green" in beat)
+                                       "--head", "--pr", "--repo")))
     rplain = _parser().parse_args(["run", "q.json"])
     rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
     check("--approval-carry is a run flag too, and off by default",

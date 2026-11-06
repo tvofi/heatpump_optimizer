@@ -4,7 +4,8 @@ You review one fix PR adversarially, fresh, from a worktree at
 the PR's head SHA. You check that the numbers are real, not that the code looks right.
 **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
 Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`.
+**Block only on code, tests and harness** (card C5, tvofi 2026-11-05): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
 Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
 
 1. Re-run the mutation proof: delete the production line(s) the PR names,
@@ -41,26 +42,21 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     where a finding changing a later stage was written; open it (a roster
     carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
     its control as a precondition (`finding-propagation.md`). One only
-    in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
+    in this PR's comments is `Note: carry-missing: not carried to <stage>`.
 11. **A red check owes an answer** (`defect-root-cause.md`'s second
     trigger). Read the PR's own checks (`get_check_runs`, or
     the commit's `check-runs` API), not the body's account, and never a
     listing that shows one run per check. For each gate check that went red,
     the body names it and answers: the cheaper detector with its standing cost,
-    or the finding that none exists. Both pass; silence is
-    `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
-    could have shown the red before the handoff (name it),
-    `blocked <sha> root-cause-unrecorded: <check>` where that check is the
-    cheapest, `root-cause-unanswered` only if you cannot tell; each posted
-    only once the head's workflows all concluded and a `pr-contract` run started after
-    the last to conclude red, else the push-time run, checked the body (tvofi,
-    2026-10-08); green, that run is the evidence, never re-derived; while it
-    refuses, wait or hand back unverdicted, saying so.
+    or the finding that none exists. Both pass; silence is a `Note:` line, never
+    a block (C5), naming root-cause-detectable where a cheaper detector could
+    have shown the red before the handoff (name it), `root-cause-unrecorded`
+    where that check is the cheapest, `root-cause-unanswered` if you cannot
+    tell. The wave routes an old `blocked <sha> root-cause-detectable: <check>`.
     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
-    **A red `nightly-status` or `delivery-status` is not this pull request's**
-    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
-    merged row turns `delivery-status` OVERDUE.
+    **A red `nightly-status` is not this pull request's**
+    unless its diff reaches what it reads (`defect-root-cause.md`).
 
     **The head's runs are not the range's** (#1144). The body check prints
     `record`/`skip red-history` for the range; `skip` means every earlier head
@@ -80,14 +76,14 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
     verdict, and check it is still the head when you post it; if it moved, say
     which of your numbers survive and which you re-took.
 
-    The handoff makes the head yours, so one that moved under you is a broken
-    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`.
-
-    **A `merge` verdict attaches to the head its first line names and carries**
-    (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
-    <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
-    (L6), not `head-moved`; a red CI never carries.
-    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
+    **A `merge` verdict attaches to the head its first line names and carries
+    to any later head whose own diff is unchanged** (card C4, tvofi 2026-11-05;
+    #1667, 2026-10-27): `tools/audit/seat/review_carry.py <verdicted> <new>`
+    prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
+    claim files unioned, the branch's own diff equal to the reviewed one),
+    and `bus.sh dispatch` refuses a second reviewer. A red never carries.
+    Else a main merge is its **resolution delta**, alone yours; a head whose
+    own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
 
 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run

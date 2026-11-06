@@ -15,7 +15,7 @@ file -- outside that file's self-test function -- and run only the step
 that names the file (or the one STEP_OF names): a killed mutant reddens the step, and the same step on
 the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
 PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
-S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
+S35-S36 are #2444's unpinned push lines in handoff_push.sh, S38 its
 unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
 carry's own mutant (`true`, and `exit 0` for the merge), and the step's
 offline self-test must redden.
@@ -187,7 +187,6 @@ MUTANTS = [
      "true  # mut:push-update"),
     ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
      "true  # mut:push-open"),
-    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
     ("S38", "merge_pr.sh",
      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
      "exit 0  # mut:merge"),
@@ -219,16 +218,20 @@ MUTANTS = [
     ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
     ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
     ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
-    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
-    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
+    ("bus-1", "bus.sh", '    1) die "dispatch: #$pr\'s head $h is not reviewable', '    1) : "dispatch: #$pr\'s head $h is not reviewable'),
+    # card C8: a WAIT head dispatches only once its cheap checks concluded.
+    ("bus-2", "bus.sh", '[ -z "$cheap" ] || die "dispatch: #$pr\'s head $h has cheap checks', 'true || die "dispatch: #$pr\'s head $h has cheap checks'),
     ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
     # R10-FLY-RELAY-REVIEW-FF: push-verdict's refusals before review/<pr> moves, and the push buffer.
     ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
     ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
     ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
-    ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
+    # card C4: the reviewed head is derived from verdict/<pr> when the caller names none.
+    ("bus-7", "bus.sh", '    [ "$rh" != "$h" ] || die "dispatch: #$pr\'s head $h already holds a merge verdict', '    true || die "dispatch: #$pr\'s head $h already holds a merge verdict'),
     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
     ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+    # #3245 repair 2 (card C8): a cheap check whose ci.yml caller needs more than prelude.
+    ("bus-10", "bus.sh", '  "tests / typing"  ', '  "pr-contract / pr-contract"\n  "tests / typing"  '),
     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
     ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
@@ -314,8 +317,8 @@ MUTANTS = [
      "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE\n",
      "CLAIMS_INPUTS='README.md\nDISCLAIMER.md\nLICENSE\nNOTICE_MOVED\n"),
     ("prepr-12", "tools/pr/ci_predict.py",
-     '"under-scoped", "inert-siblings", "left-inert", "mutation")',
-     '"under-scoped", "inert-siblings", "left-inert")'),
+     '"left-inert", "mutation", "self-test-reads",',
+     '"left-inert", "self-test-reads",'),
     # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
     # handoff refusals and body_push's call of them; body_push-1/2 are graded by
     # prepr's self-test (STEP_OF), which drives body_push.
@@ -584,6 +587,11 @@ MUTANTS = [
     ("ci_predict-1", "tools/pr/ci_predict.py", 'for r in res["rows"] if r["status"] != "routed"]',
      'for r in res["rows"] if False]'),
     ("ci_predict-2", "tools/pr/ci_predict.py", '"closures": "tests / closures",', '"closures": "closures",'),
+    # #3245's countermeasure: the STEP REPLAY arm selects, and its base control excuses only a shared red.
+    ("ci_predict-3", "tools/pr/ci_predict.py",
+     'hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}', 'hit = {}'),
+    ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
+    ("ci_predict-5", "tools/pr/ci_predict.py", '        if any(n in text for n in names):\n', '        if False:\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
@@ -636,18 +644,14 @@ STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
-# S08's wrapper now runs both tallies (delivery_row.sh's and its own pushes):
-# the mutant drops the delivery_row dispatch, so that tally is never printed.
+# S08 (handoff_push.sh's delivery_row dispatch) retired with the row push (#3245, card C5).
 WRAPPERS = [
-    ("S08", "handoff_push.sh",
-     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
-     'r=0; :'),
     ("S12", "open_pr.sh",
-     'bash "$(dirname -- "$0")/pr_args.sh" --self-test || exit 1; exit $r; }',
-     'exit $r; }'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
+     'exit 0; }'),
     ("S27", "update_pr.sh",
-     '[ "${1:-}" = --self-test ] && { bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?',
-     '[ "${1:-}" = --self-test ] && { r=0'),
+     'bash "$(dirname -- "$0")/delivery_row.sh" --self-test; exit $?; }',
+     'exit 0; }'),
 ]
 
 
