@@ -99,7 +99,9 @@
 #     A handoff already contained in its PR, or with no body ref, does nothing;
 #     a topic whose update failed is noted in `<ledger>.handoff-failed` by
 #     `<topic> <code-sha>` and retried only when handoff/<topic> moves, owed
-#     meanwhile as `OWED <utc> handoff-update <ref> <sha>` in <log>.level. The
+#     meanwhile as `OWED <utc> handoff-update <ref> <sha> <why>` in <log>.level, <why>
+#     kept in `<ledger>.handoff-failed.why`; a body whose `Code:` trailer names
+#     another head is `handoff-body-stale` (retried). The
 #     `handoff-no-pr` lines there are `ledger.py level`'s fold of every
 #     handoff/* and handoff-body/* ref: owed unless its topic has an open PR,
 #     it is disposed at its sha, or main already carries the change (`ledger.py
@@ -128,8 +130,15 @@
 #     <log>.level; `<state>/cloud-handoff-release` (the hold grammar, the
 #     orchestrator's) releases a listed PR from the freeze, never from the
 #     hold. review_freeze below says why each case is what it is.
+#     HELD-BODY: `cloud_relay: HELD-BODY #<pr> <tip8>`: the handoff is ahead of a
+#     body that does not name its first 8 chars; retried next pass. Levels
+#     `handoff-body-unapplied` (BODY-ONLY line) and `handoff-hold-stale` (hold line
+#     whose PR is not open) are published before the serial loops.
 #   probe arm: the --watch pass above (probe/rev-* -> relay -> confirm; other
 #     probe refs OWED until disposed).
+#   relay() refuses (rc 2, naming both) ev/ names differing only in case, and
+#     pushes nothing when review/<pr> already carries the probe's tree (delivered
+#     guard: recorded). Each pass prints `state dir <dir>, ledger ..., log ...`.
 #   stuck and no-return arms: level lines only (THE STUCK ANDON, THE NO-RETURN LINE below).
 #   confirm arm (--confirm): the ledger is written before confirm runs, so a
 #     confirm that failed, a relay by a script without the confirm, or one by a
@@ -848,6 +857,45 @@ EOF
   chk "without --confirm, relay logs nothing" 0 relay 7 $n $h
   chk "and the log stayed empty" 0 test ! -s "$LOG"
   chk "but the ledger owes its posting: a relayed verdict is owed until it is read back" 0 owes "verdict-unposted 7 $h "
+  # DELIVERED GUARD (carry 6) and case-colliding ev/ names (carry 8)
+  mkf() { # mkf <pr> <content> <ev file>...: a probe ref whose ev/ holds those files, all with that content
+    local f p=$1 body=$2; shift 2
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q
+    for f in "$@"; do mkdir -p "$t/pr/$(dirname "$f")"; echo "$body" > "$t/pr/$f"; done
+    printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h" "$n" > "$t/pr/verdict.md"
+    git -C "$t/pr" add -A; git -C "$t/pr" commit -qm "verdict $p $h"
+    git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/probe/rev-$p-${n:0:8}"; }
+  pushes() { [ -f "$t/pushed" ] && wc -l < "$t/pushed" | tr -d ' ' || echo 0; }
+  rm -f "$t/pushed" "$t/state/cloud-relayed"; HPO_RELAY_PUSH=$stub
+  mkf 31 first ev/e; out=$(relay 31 $n $h 2>&1); chk "a new tree is pushed (stub called)" 0 test "$(pushes)" = 1
+  : > "$t/state/cloud-relayed"; mkf 31 first ev/e; P31=$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-31-${n:0:8})
+  out=$(relay 31 $n $h 2>&1); rc=$?
+  chk "a tree review/31 already carries relays rc 0 with an emptied ledger" 0 test "$rc" = 0
+  chk "and does not call the push stub again" 0 test "$(pushes)" = 1
+  chk "and records ref sha in the ledger" 0 grep -qxF "refs/heads/probe/rev-31-${n:0:8} $P31" "$t/state/cloud-relayed"
+  chk "and says 'already carries'" 0 grep -q "already carries" <<< "$out"
+  mkf 31 second ev/e; out=$(relay 31 $n $h 2>&1); rc=$?
+  chk "a different tree (different ev content) is pushed (null control)" 0 test "$rc $(pushes)" = "0 2"
+  chk "and does not say 'already carries'" 1 grep -q "already carries" <<< "$out"
+  for v in one two three four five; do mkf 32 $v ev/e; relay 32 $n $h >/dev/null 2>&1; done
+  : > "$t/state/cloud-relayed"; before=$(pushes); mkf 32 one ev/e; out=$(relay 32 $n $h 2>&1); rc=$?
+  chk "the oldest of many review commits is still found (pipefail-safe): skipped" 0 test "$rc $(pushes)" = "0 $before"
+  chk "and says so" 0 grep -q "already carries" <<< "$out"
+  : > "$t/state/cloud-relayed"; before=$(pushes); GIT_COMMITTER_DATE="@4000000000 +0000" mkf 32 three ev/e; out=$(relay 32 $n $h 2>&1)
+  chk "the guard does not depend on the review commit being newer than the probe" 0 test "$(pushes)" = "$before"
+  PS=$t/state/pass.log; out=$( (handoff_arm() { :; }; probe_arm() { :; }; stuck_arm() { :; }; noreturn_arm() { :; }; CONFIRM= LOG=$PS; pass) 2>&1 )
+  chk "a pass prints its state dir, ledger and log once" 0 test "$(grep -cxF "cloud_relay: state dir $t/state, ledger $t/state/cloud-relayed, log $PS" <<< "$out")" = 1
+  out=$( (handoff_arm() { :; }; probe_arm() { :; }; stuck_arm() { :; }; noreturn_arm() { :; }; CONFIRM= LOG=$PS; pass; pass) 2>&1 )
+  chk "and once per pass (two passes, two lines)" 0 test "$(grep -c '^cloud_relay: state dir ' <<< "$out")" = 2
+  # ev/ names differing only in case (carry 8): refused by name, nothing pushed
+  rm -f "$t/pushed"
+  mkf 41 x ev/HEAD.txt ev/head.txt; out=$(relay 41 $n $h 2>&1); rc=$?
+  chk "ev/HEAD.txt and ev/head.txt are refused rc 2" 0 test "$rc" = 2
+  chk "naming both files" 0 grep -Eq "HEAD.txt and ev/head.txt|head.txt and ev/HEAD.txt" <<< "$out"
+  chk "with nothing pushed" 0 test ! -s "$t/pushed"
+  mkf 41 x ev/A ev/a/x; out=$(relay 41 $n $h 2>&1); rc=$?
+  chk "a file ev/A and a directory ev/a/x are refused rc 2" 0 test "$rc $(pushes)" = "2 0"
+  mkf 41 x ev/head.txt ev/other.txt; chk "distinct names relay (null control)" 0 relay 41 $n $h
   # the watch pass
   HPO_RELAY_PUSH=$stub; rm -f "$t/pushed" "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused"
   export HPO_BUS_STATE=$t/bus; mkdir -p "$t/bus"

@@ -261,6 +261,12 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
   return 1
 }
 
+# Names that differ only by case collide on a case-insensitive checkout (ancestors count: file
+# `a` against dir `A/x`). Prints "<one> and <other>" for the first pair, rc 0; rc 1 if none.
+case_collision() { # dir
+  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }')
+}
+
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
   local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
   numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
@@ -273,6 +279,7 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
   [ -n "$ev" ] && [ -d "$ev" ] || die "push-verdict: no evidence directory (a verdict cites one; fix-review.md)"
   grep -rqF -- "$hsha" "$ev" \
     || die "push-verdict: no file under $ev names the head $hsha"
+  why=$(case_collision "$ev") && die "push-verdict: evidence names collide case-insensitively under $ev: $why; rename one"
   [ -z "$(find "$ev" -type f -size +50M 2>/dev/null)" ] \
     || die "push-verdict: a file under $ev is over 50 MB; cite it by path instead"
   # Verify the nonce against the dispatcher's record before proposing: a
@@ -355,7 +362,7 @@ kind_of() { # ref name -> "<kind> <name>"
 }
 
 unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS refused, rc 1
-  local fam=$1 want=${3:-} why=""
+  local fam=$1 want=${3:-} why="" cc
   pr=$2
   numeric "$pr" || { printf 'BUS refused %s: %s/%s is not a pull-request number\n' "$pr" "$fam" "$pr"; return 1; }
   if ! git fetch -q "$REMOTE" "+refs/heads/$fam/$pr:refs/hpo-bus/$fam/$pr" 2>/dev/null; then
@@ -375,6 +382,7 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
     elif ! grep -rqF -- "$hsha" "$d/evidence" 2>/dev/null; then why="no file under evidence/ names the head $hsha"
     fi
   fi
+  if [ -z "$why" ] && cc=$(case_collision "$d/evidence" 2>/dev/null); then why="evidence/ names collide case-insensitively: $cc"; fi
   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
 }
 
@@ -954,6 +962,12 @@ P
   [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
   out=$(seat push-verdict 7 "$W/merge0.md"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
+  mkdir -p "$W/evcc" "$W/evok" && echo "$h1" > "$W/evcc/HEAD.txt" && echo "$h1" > "$W/evcc/head.txt" \
+    && echo "$h1" > "$W/evok/HEAD.txt" && echo "$h1" > "$W/evok/other.txt"
+  out=$(seat push-verdict 7 "$W/merge0.md" "$W/evcc"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "collide case-insensitively.*HEAD.txt and head.txt"; expect "push-verdict refuses evidence names that differ only by case, naming both" $?
+  out=$(seat push-verdict 7 "$W/merge0.md" "$W/evok"); rc=$?
+  ! echo "$out" | grep -q "collide case-insensitively"; expect "push-verdict lets distinct evidence names past the case check (null control)" $?
   out=$(seat push-verdict 7x "$W/merge0.md" "$W/ev1"); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
   git -C "$W/seat" ls-remote --exit-code origin 'refs/heads/review/*' >/dev/null 2>&1
