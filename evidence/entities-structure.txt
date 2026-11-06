@@ -1,3 +1,2 @@
-head (rev, f6a299d3): tests/entities.py: ALL 2632 ENTITY CHECKS PASSED rc=0; tests/structure.py: STRUCTURE RATCHET PASSED rc=0
-base (origin/main): tests/entities.py: ALL 2632 ENTITY CHECKS PASSED rc=0; tests/structure.py: STRUCTURE RATCHET PASSED rc=0
-(run by a delegated worker; transcribed)
+ALL 2632 ENTITY CHECKS PASSED
+STRUCTURE RATCHET PASSED

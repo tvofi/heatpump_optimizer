@@ -1,0 +1,10 @@
+merge-base dc0a170b671814be196a54b1c71e29449f54d6d7 origin/main 7e8939d38cedb2976acc80a4ad7875cb545bd588
+ dev/programme/carries/carry-201.json         |  2 +-
+ dev/programme/delivery/3240.md               |  1 +
+ tools/audit/seat/beat_jobs.py                | 44 +++++++++++++++-
+ tools/audit/seat/beat_jobs_selftest.py       | 77 ++++++++++++++++++++++++++++
+ tools/audit/seat/beatd.jobs.json             | 20 ++++++++
+ tools/audit/seat/instruments/beat_jobs.py.md |  5 +-
+ 6 files changed, 144 insertions(+), 5 deletions(-)
+-- protected paths touched:
+-- end
