@@ -30,7 +30,6 @@ if [ "${1:-}" = "--self-test" ]; then
   printf 'import os, sys\nsys.exit(1 if os.path.exists(os.environ["FLAGS"] + "/pred") else 0)\n' > "$W/repo/tools/pr/ci_predict.py"
   ( cd "$W/repo" && throwaway_git_env && echo a > a && git add . && git commit -qm code && git remote add origin "$W/o.git" \
     && git push -q origin HEAD:refs/heads/main && git fetch -q origin && git push -q origin HEAD:refs/heads/handoff/t ) >/dev/null 2>&1
-  printf 'the body\n' > "$W/body.md"
   # A hook that refuses any push to handoff-wip/, installed for the failed-keep arm only.
   printf '#!/bin/sh\nwhile read o n r; do case $r in refs/heads/handoff-wip/*) exit 1;; esac; done\n' > "$W/hook"; chmod +x "$W/hook"
   run() { # copy -> rc ; FLAGS names the refusal switches, out in $W/out
@@ -40,11 +39,12 @@ if [ "${1:-}" = "--self-test" ]; then
   drop() { git -C "$W/o.git" update-ref -d refs/heads/handoff-wip/t-body 2>/dev/null; rm -rf "$W/flags"; mkdir -p "$W/flags"; }
   drop
   CODE=$(git -C "$W/repo" rev-parse HEAD)
+  printf '## Head\n\n%s\n\n## Other\n\nthe body\n' "$CODE" > "$W/body.md"; BODYTXT=$(cat "$W/body.md")
   for arm in pred lint packet landed; do
     drop; : > "$W/flags/$arm"; run t; rc=$?
     st "$rc" 1 "REFUSE $arm: exit code unchanged"
     k=$(keepsha)
-    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "the body" "... and the refused body is kept at handoff-wip/t-body"
+    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "$BODYTXT" "... and the refused body is kept at handoff-wip/t-body"
     st "$(grep -c "^body_push: refused body kept at handoff-wip/t-body $k\$" "$W/out")" 1 "... and the keep line names the ref and sha"
     st "$(git -C "$W/o.git" rev-list --count "$k" 2>/dev/null)" 1 "... as a parentless commit"
     st "$(git -C "$W/repo" merge-base --is-ancestor "$k" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the kept body is not in the code head's ancestry"
@@ -60,9 +60,16 @@ if [ "${1:-}" = "--self-test" ]; then
   drop; : > "$W/flags/lint"; run t; st "$(keepsha | grep -c .)" 1 "a refusal is kept before the healthy run"
   rm -rf "$W/flags"; mkdir -p "$W/flags"; run t; rc=$?
   st "$rc" 0 "the healthy run pushes"
-  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
+  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "$BODYTXT" "... to handoff-body/t"
   st "$(keepsha)" none "... and the keep ref is gone"
   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
+  # head-stale: a body whose ## Head names another sha is refused and nothing is pushed; the fresh one (null) passes.
+  OTHER=$(printf '%040d' 7); drop; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t
+  printf '## Head\n\n%s\n\n## Other\n\n%s\n' "$OTHER" "$CODE" > "$W/body.md"; run t; rc=$?
+  st "$rc$(grep -c "^body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $CODE; it names $OTHER\$" "$W/out")" 11 "REFUSE head-stale: a stale ## Head is refused, naming both shas"
+  st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and nothing is pushed to handoff-body/t"
+  printf '## Head\n\n%s\n' "$CODE" > "$W/body.md"; drop; run t; rc=$?
+  st "$rc$(grep -c head-stale "$W/out")" 00 "(null) a ## Head naming the code sha passes the head check"
   echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
 fi
 TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
@@ -136,6 +143,14 @@ HREF=$(git ls-remote origin "refs/heads/handoff/$TOPIC") || { echo "body_push: c
 HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
 if [ -n "$HREF" ]; then
   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
+  # A body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
+  HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
+  case $HEADSEC in *"$HREF"*) ;; *)
+    NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
+    echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
+    keep_refused
+    exit 1 ;;
+  esac
   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
   # The identity refusal at the handoff (P274): the code head's commits over main are judged
   # as the opener would judge them (its guard and the author-identity guard), so a commit authored by a
