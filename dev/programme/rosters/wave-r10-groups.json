@@ -17314,6 +17314,53 @@
     "stage": "not-started"
    },
    "brief": "Part 2 of R10-CARRY-RESIDUE (#3241), split off by the three-round rule (round 3 is a minimal re-cut that builds only the review_owed blocked-head finding). This group builds what the re-cut routes here: the standing-tick.md policy line naming the `CARRY:` tick line (drafted for the owner's approving review before merging), and anything else the round-3 body routes here with a `Carry: R10-CARRY-RESIDUE-2` line. Each item gets its failing test first, mutation proof and null control where code is involved; defer none; after #3241 merges; files as for R10-CARRY-RESIDUE (set `files` in the body)."
+  },
+  {
+   "group": "R10-REPLAY-COST-2",
+   "lane": "RP",
+   "kind": "fix",
+   "class": "instrument",
+   "severity": "low",
+   "size": "M",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "wave": 6,
+   "hot_files": [],
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "architect_note": "",
+   "effort": "medium",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "after": [
+    "R10-REPLAY-COST-BUDGET"
+   ],
+   "files": [
+    "tests/replay.py",
+    "tests/replay_cost_draws.tsv",
+    "tools/audit/seat/replay_draws.py"
+   ],
+   "carry": [
+    "From the #3234 round-3 review (verdict/3234, blocked at 009edde6): the loop-ruler outlier. Job 127310664875 (run 42046303116, PR 3198, 2026-11-05) read clean loop_cpu_ratio 0.0594 with loop_ref_ms 279.78, against 131-176 on every other ref46 draw; the lane refused it ('loop_cpu_ratio 0.0594: budget 0.1278 cannot see a 2x cycle'), reproducing at that head and on main. Settle it: either grade the outlier with a rule the draws force, or record why it stays red. Control: the draw passes clean and its doubled arm stays red.",
+    "From the #3234 round-3 review (verdict/3234): the body's window figures did not reproduce (78 synthetic-clean replay jobs in the 800 most recent ci.yml runs to the end of 2026-11-05, not 51; by class ref24 14, ref30 18, ref46 40, ref53 1, unbanded 5; main refuses 13 in-window draws, not 8). Re-derive the table with job ids committed or cited, in tests/replay_cost_draws.tsv or the body.",
+    "From the #3234 round-3 review (verdict/3234): the ref24 raise from 3.630 to 4.167 is the centring rule's value, not one the draws force (every ref24 reading is at most 3.597; twice the minimum is 4.828, so 3.630 already held every clean draw and refused every doubled one). State the rule as the reason, not headroom, and pin each class budget to the rule over COST_CLASS_READINGS with a control; nothing ties the literal to the rule today. It costs 1.5x detection on four banded ref24 draws (2.495-2.635 x 1.5 = 3.74-3.95, red under 3.630, passing under 4.167).",
+    "From the #3234 round-3 review (verdict/3234): fallback_budget's docstring says 'the largest class budget measured for each keyed metric', but for loop_cpu_ratio it returns COST_BUDGETS' 0.1278 not ref24's 0.1813, because a metric already in COST_BUDGETS is excluded from the max. A ref24-population runner (CI loop up to 0.1331) drawing an unbanded ruler of 25.6-28.7 would be graded on 0.1278 and go red. Change the docstring or the code and say which; control with that draw.",
+    "From the #3234 round-3 review (verdict/3234): the comment above COST_CLASS_BUDGETS still reads 'every reading 69-72 % of its class's budget', but for ref24 the readings are now 58-86 %. Correct it. Also the AWAY_COVERED pin and the export.py credential-refusal pin already run at the head (ok control:away:covered_names_are_committed, ok AWAY_COVERED names committed fixtures, ok recorder:unsupported_scheme_refusal_prints_none_of_the_url): the body should say built and name the checks, with nothing routed to a nonexistent round.",
+    "From the #3234 round-3 review (verdict/3234): three mutants survive replay.controls(): band edges lo <= x <= hi changed to <; the ref24 band edge set back to 22.64 (masked because the fallback also yields 4.167); and the print(out['notice']) line in main() dropped, so no control proves the lane prints the WARNING. Add a control killing each, mutation table from scratch at the head."
+   ],
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Part 2 of R10-REPLAY-COST-BUDGET (#3234, minimal re-cut under the three-round rule, fixer.md): the round-3 review's findings other than the ref46/ref53 border. Each carry names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count."
   }
  ]
 }
