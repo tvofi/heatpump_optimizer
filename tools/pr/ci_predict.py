@@ -605,6 +605,16 @@ def step_replay_self_test(root: Path) -> int:
         good = got == 0 and len(notes) == 1
         print(f"  {'ok  ' if good else 'FAIL'} a step red at the base too is a note, not this branch's red")
         bad += not good
+    g = globals()
+    real = g["step_replay_preds"]
+    g["step_replay_preds"] = lambda *_a: [("instrument", "STEP REPLAY sentinel")]
+    try:
+        _, preds, _ = predict(root, "HEAD", only="step-replay")
+    finally:
+        g["step_replay_preds"] = real
+    good = ("instrument", "STEP REPLAY sentinel") in preds
+    print(f"  {'ok  ' if good else 'FAIL'} predict reaches the step-replay arm by name (its call site, not only its helper)")
+    bad += not good
     return bad
 
 
