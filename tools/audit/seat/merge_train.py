@@ -778,6 +778,13 @@ class Stop(Exception):
 # "Base branch was modified", the GraphQL "is not up to date" family).
 BASE_MOVED = re.compile(r"base branch was modified|not up to date|head branch is behind|is behind the base", re.I)
 HOLDER = "HOLDER"                    # the recarry's branch is checked out in another worktree
+def runs_approved(listing: str) -> bool:
+    """True when a head's pull_request runs listing (status<TAB>conclusion
+    lines) has at least one run and none still held action_required."""
+    rows = [ln.split("\t") for ln in listing.splitlines() if ln.strip()]
+    return bool(rows) and not any("action_required" in r for r in rows)
+
+
 BOT_HEAD = "BOT-HEAD"                # a GITHUB_TOKEN push is the head: its pull_request runs are held
 STALE_VERDICT_CARRY = "STALE-VERDICT-CARRY"  # the verdict sha no longer carries: the branch moved post-verdict
 ROW_MISSING = "ROW-MISSING"          # no delivery row in the three-dot diff
@@ -1327,8 +1334,9 @@ class Train:
     # 2026-10-09 no such run was created at all (63084989/#2066 and
     # a9ba0b88/#2070: 4 dispatched runs each, the same 5 of the 17 required
     # contexts of main-protect-checks absent). The autofix job's approve step
-    # approves the held runs, fail-soft while its secrets are absent; this
-    # train does not read whether it did, so it still refuses such a tip.
+    # approves the held runs, fail-soft while its secrets are absent; bot_tip
+    # reads the head's pull_request runs and refuses only while none exists or
+    # one is still held action_required (an unreadable listing refuses too).
     # Dispatch cannot write those contexts: governance.yml answers
     # workflow_dispatch, but pr-contract.yml and budget-raise-gate.yml take
     # pull_request/merge_group only. An App push is a follow-up that does, and
@@ -1345,7 +1353,12 @@ class Train:
         if code or "\t" not in o:
             raise Stop("ci", f"the head commit at {h[:8]} could not be read: {o.strip()[-160:]}")
         who, _, subject = o.strip().partition("\t")
-        return subject if who in ("github-actions", "github-actions[bot]") else None
+        if who not in ("github-actions", "github-actions[bot]"):
+            return None
+        code, o = self.run(["gh", "api", "--paginate", "--jq",
+                            '.workflow_runs[] | [.status, (.conclusion // "")] | @tsv',
+                            f"repos/{self.repo}/actions/runs?head_sha={h}&event=pull_request&per_page=100"])
+        return subject if code or not runs_approved(o) else None
 
     def bot_refusal(self, pr: int, h: str, subject: str) -> Stop:
         return Stop("ci", f"#{pr} head {h[:8]} is a GITHUB_TOKEN push (github-actions[bot]: "
@@ -3739,6 +3752,8 @@ def _self_test() -> int:
                 if reads <= world.get("pending_reads", 0):
                     runs = [dict(c, status="in_progress") for c in runs]
                 return 0, "\n".join(json.dumps(c) for c in runs)
+            if argv[:2] == ["gh", "api"] and "event=pull_request" in a:  # bot_tip's runs read, post-jq
+                return world.get("bot_runs", (0, ""))
             if argv[:2] == ["gh", "api"] and "/commits/" in a:  # bot_tip's read, post-jq
                 sha = a.split("/commits/")[1].split()[0].split("?")[0].split("/")[0]
                 subj = world.get("bot_tips", {}).get(sha)
@@ -4664,6 +4679,15 @@ def _self_test() -> int:
           "and the train goes on at the new head (null control for the refusal above)",
           rc == 0 and merged(calls) and any("recarry" in ln for ln in lines)
           and any(c[:3] == ["gh", "pr", "merge"] and c[-1] == H1 for c in calls))
+    for what, runs, merges in (("approved (completed/success)", (0, "completed\tsuccess\n"), True),
+                               ("still held action_required", (0, "completed\taction_required\n"), False),
+                               ("held, status form", (0, "action_required\t\n"), False),
+                               ("absent (no pull_request run)", (0, ""), False),
+                               ("unreadable listing", (1, "gh: HTTP 502"), False)):
+        rc, lines, calls = go({"bot_tips": {H0: BOT}, "bot_runs": runs})
+        check(f"carry 3: a bot head whose pull_request runs are {what} is "
+              + ("merged" if merges else "refused with the BOT-HEAD line"),
+              (rc == 0 and merged(calls)) if merges else (rc == 1 and "[BOT-HEAD]" in lines[-1] and not merged(calls)))
     # The route the stubs cannot see: the real remerge_main.sh pushes with --recarry.
     rm = (ROOT / TOOLS["remerge_main"][0]).read_text()
     check("remerge_main.sh pushes the recarry with app_push.sh --recarry and passes its RECARRY line on",
