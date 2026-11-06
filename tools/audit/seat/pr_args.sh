@@ -1473,12 +1473,12 @@ GH
   # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
   # deleted the log, so a prepr refusal named neither its failing arm nor its log.
   rmstub() { printf '#!/bin/bash\n%s\n' "$1" > "$t/rmm/tools/pr/app_push.sh"; }
-  rmstub 'echo "app_push: REFUSE: prepr step self-test"; echo "  FAIL arm-x (got 1, wanted 0)"; echo "PRE-PR: self-test deadbeef rc=1; full log: /tmp/prepr-log.zz (PREPR_VERBOSE=1 prints it on stdout)"; exit 1'
+  rmstub 'echo "app_push: REFUSE: prepr step self-test"; echo "  FAIL arm-x (got 1, wanted 0)"; echo "PRE-PR: self-test deadbeef rc=1; full log: prepr-log.zz (PREPR_VERBOSE=1 prints it on stdout)"; exit 1'
   rm -f "$t/body.md.push.log"; rmrun - rc
-  grep -qF "REFUSE: prepr step self-test" "$t/out" && grep -qF "FAIL arm-x (got 1, wanted 0)" "$t/out" && grep -qF "full log: /tmp/prepr-log.zz" "$t/out" \
+  grep -qF "REFUSE: prepr step self-test" "$t/out" && grep -qF "FAIL arm-x (got 1, wanted 0)" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" \
     && grep -qxF "remerge: push log kept: $t/body.md.push.log" "$t/out" && [ -f "$t/body.md.push.log" ]
   ck "remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit" $?
-  rmrun remergegrep rc; ! { grep -qF "FAIL arm-x" "$t/out" && grep -qF "full log: /tmp/prepr-log.zz" "$t/out" && [ -f "$t/body.md.push.log" ]; }
+  rmrun remergegrep rc; ! { grep -qF "FAIL arm-x" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" && [ -f "$t/body.md.push.log" ]; }
   ck "  mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost" $?
   rmstub 'echo "app_push: PUSHED abc"; exit 0'; rm -f "$t/body.md.push.log"; rmrun - rc
   grep -qF "PUSHED abc" "$t/out" && ! grep -qF "push log kept" "$t/out" && [ ! -e "$t/body.md.push.log" ]
