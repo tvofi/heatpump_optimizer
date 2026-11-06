@@ -1,3 +1,0 @@
-RESULT prior verdict=merge                                   -> ['CARRY: #9 5f05f59b7875']
-RESULT prior verdict=blocked  mutation-vacuous: x            -> ['CARRY: #9 5f05f59b7875']
-RESULT prior verdict=blocked  root-cause-unanswered: gate    -> ['CARRY: #9 5f05f59b7875']

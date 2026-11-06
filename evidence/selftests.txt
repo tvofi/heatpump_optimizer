@@ -1,0 +1,10 @@
+base ledger:   ok   level CLI: a failed fetch is rc 2 and prints no level (unknown is not 'nothing owed') ledger self-test: 77 checks, 0 failed 
+base orchestrator_tick: orchestrator_tick self-test: 272 checks, 0 failed 
+base owed_unactioned: owed_unactioned self-test: 46 checks, 0 failed 
+base beat_jobs:   ok   mutant cancel_failure_dropped killed by: cancel-sweep: a failure reaches the digest beat_jobs self-test: 107 checks, 0 failed 
+base r10_ledger_mutants: r10_ledger_mutants self-test: 135 checks, 0 failed 
+head ledger:   ok   level CLI: a failed fetch is rc 2 and prints no level (unknown is not 'nothing owed') ledger self-test: 89 checks, 0 failed 
+head orchestrator_tick: orchestrator_tick self-test: 275 checks, 0 failed 
+head owed_unactioned: owed_unactioned self-test: 47 checks, 0 failed 
+head beat_jobs:   ok   mutant cancel_failure_dropped killed by: cancel-sweep: a failure reaches the digest beat_jobs self-test: 107 checks, 0 failed 
+head r10_ledger_mutants: r10_ledger_mutants self-test: 177 checks, 0 failed 
