@@ -327,6 +327,13 @@ append_commit() { # family pr tree message -> pushes one commit on <family>/<pr>
     # from here on FETCH_HEAD belongs to whatever else is fetching.
     git fetch -q "$REMOTE" "refs/heads/$fam/$pr" \
       || { printf 'bus: REFUSE: could not fetch %s/%s\n' "$fam" "$pr" >&2; return 1; }
+    # A same-tree append can only repeat a verdict (post_verdict signs "<pr> <tree>"; each round's
+    # nonce makes its tree distinct), and it would leave the posted commit one behind the tip
+    # (P374, #3173): answer the existing tip, write and push nothing.
+    if [ "$(git rev-parse "$tip^{tree}" 2>/dev/null)" = "$tree" ]; then  # mut:sametree
+      printf '%s/%s %s\n' "$fam" "$pr" "$tip"
+      return 0
+    fi
     parent="-p $tip"
   fi
   # shellcheck disable=SC2086 # $parent is empty or exactly "-p <sha>"
@@ -633,6 +640,27 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] 
 }
 
 confirm() { # pr review-commit -> signs the reviewer's proposal onto verdict/<pr>, then posts it
+  local lk holder rc
+  numeric "${1:-}" || die "confirm: the pull request '${1:-}' is not a number"
+  # One confirm per pull request at a time, across the replay pre-check, append_commit and
+  # post_verdict (P354): the lock holds the pid and a dead holder's is taken over (watch.lock).
+  mkdir -p "$S" || die "confirm: cannot create $S"
+  lk=$S/confirm.$1.lock
+  until mkdir "$lk" 2>/dev/null; do
+    holder=$(cat "$lk/pid" 2>/dev/null)
+    if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock
+      sleep 1
+    else
+      rm -rf "$lk"
+    fi
+  done
+  printf '%s\n' "$$" > "$lk/pid"
+  confirm_locked "$@"; rc=$?
+  rm -rf "$lk"
+  return $rc
+}
+
+confirm_locked() { # pr review-commit -> confirm's body, run under its per-pull-request lock
   local pr c d first hsha thread key tree sig msg line v model
   numeric "${1:-}" || die "confirm: the pull request '${1:-}' is not a number"
   [[ ${2:-} =~ ^[0-9a-f]{40}$ ]] || die "confirm: '${2:-}' is not a 40-hex review commit"
@@ -1353,6 +1381,19 @@ B
   [ "$(tip review/22)" = "$want" ] && [ "$(tip 'review/22^{tree}')" = "$wanttree" ] \
     && [ "$(tip review/22^)" = "$g1" ]
   expect "an ordinary append with no intervening fetch is the same commit object as before" $?
+
+  # P374: a verdict pushed twice appends once. The same verdict and evidence build one tree, and a
+  # same-tree commit left the posted commit one behind the tip (#3173). Null control: the next
+  # round's verdict (new nonce, new tree) still appends.
+  g2=$(tip review/22)
+  out=$(seat push-verdict 22 "$W/ff2-22.md" "$W/ev2"); rc=$?
+  [ $rc = 0 ] && [ "$(tip review/22)" = "$g2" ] && [ "$out" = "review/22 $g2" ]
+  expect "a repeated push-verdict of one verdict appends nothing and prints the existing tip (P374)" $?
+  N3e=$(run dispatch 22 "$h2" cmsg_F | sed -n 's/^bus-nonce: //p')
+  printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N3e" > "$W/ff3-22.md"
+  seat push-verdict 22 "$W/ff3-22.md" "$W/ev2" >/dev/null
+  [ "$(tip review/22)" != "$g2" ] && [ "$(tip review/22^)" = "$g2" ]
+  expect "null control: a verdict with a new nonce, so a new tree, still appends (P374)" $?
 
   # A COPY OF THE SCRIPT OUTSIDE A CHECKOUT REFUSES BEFORE ANY PUSH (#2074).
   # ROOT is three levels above the file, so a copy parked in a throwaway
