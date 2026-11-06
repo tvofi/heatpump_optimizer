@@ -1,0 +1,8 @@
+FAIL C7c: the previous head's pins were CANCELLED (cancel-superseded): this head measures: got 'false', want 'true'
+FAIL C7c: the previous head's pins succeeded but its autofix FAILED: this head measures: got 'false', want 'true'
+FAIL C7c: the previous head's mutation failed and its pins are still RUNNING: this head measures: got 'false', want 'true'
+FAIL C7c: the previous head itself skipped pins on a failed mutation (no measurement to inherit): measures: got 'false', want 'true'
+FAIL C7c: one pins shard of several cancelled: measures: got 'false', want 'true'
+FAIL C7c: the runs listing at the previous head fails to read: measures: got 'false', want 'true'
+FAIL C7c: no code run at the previous head: measures: got 'false', want 'true'
+prelude self-test: 81 checks, 7 failed

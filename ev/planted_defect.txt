@@ -1,0 +1,6 @@
+156:            total += v * seconds
+== head 6ef53d8a0 planted: 1 file changed, 1 insertion(+), 1 deletion(-)
+{'actions': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the actions extractor'), 'javascript-typescript': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the javascript-typescript extractor'), 'python': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the python extractor')} machinery False pins_due False 
+156:            total += v * seconds
+== main 5d75a576f planted: 1 file changed, 1 insertion(+), 1 deletion(-)
+{'actions': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the actions extractor'), 'javascript-typescript': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the javascript-typescript extractor'), 'python': ('analyze', 'custom_components/heatpump_optimizer/open_meteo.py (.py) may be read by the python extractor')} machinery n/a (no rule) 

@@ -1,0 +1,12 @@
+== job 127702835684
+RAISE tests/ci_budgets.json: critical_path_minutes_band: removed at 1.3 (a removed cap is no cap)
+RESULT budget_raises=1 count
+REFUSED: no decisive review by tvofi (id 70032254) on this pull request
+== job 127702835577
+NIGHTLY FAILED: slow failed 1 night ago.
+head gate: RAISE tests/ci_budgets.json: critical_path_minutes_band: 1.3 -> None (a pinned value the gate cannot sign as routine)
+head gate: RESULT budget_raises=1 count
+head gate: REFUSED: no decisive review by tvofi (id 70032254) on this pull request
+main gate: RAISE tests/ci_budgets.json: critical_path_minutes_band: removed at 1.3 (a removed cap is no cap)
+main gate: RESULT budget_raises=1 count
+main gate: REFUSED: no decisive review by tvofi (id 70032254) on this pull request

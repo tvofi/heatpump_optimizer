@@ -1,0 +1,47 @@
+== parents
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1 84a7c456f2a682f76e285921c26d4b05044391e6 0440dfb4761f8dd11ab9f9c3791c4331b9238e0a Merge commit '0440dfb4761f8dd11ab9f9c3791c4331b9238e0a' into fix/r10-ci-slim
+6ef53d8a0 Merge commit '0440dfb4761f8dd11ab9f9c3791c4331b9238e0a' into fix/r10-ci-slim
+== diff 0440dfb4..head
+== merge-tree
+15a97a7077eaefbf8a3edd3acb9fcc8094a28796
+rc=0
+5d75a576f2aaf4861b05244a6e8244a49506f10f
+== claims/version three-dot
+(end)
+== budgets
+diff --git a/tests/ci_budgets.json b/tests/ci_budgets.json
+index e33362102..82c10dd68 100644
+--- a/tests/ci_budgets.json
++++ b/tests/ci_budgets.json
+@@ -25,8 +25,7 @@
+  "archscore.untyped_payload_keys": 0,
+  "archscore.unused_boundary_imports": 0,
+  "critical_path_minutes": 23.574,
+- "critical_path_minutes_band": 1.3,
+- "reason": "critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
++ "reason": "critical_path_minutes made report-only and critical_path_minutes_band deleted (R10-CI-SLIM card C2, owner ruling 2026-11-05): the ratchet prints it against this reference and never grades it; no value re-recorded. Previous reason: critical_path_minutes re-recorded 21.983 -> 23.574, the value CI printed at 8bf45e5dc (run 42038071453; also 23.351 at 788e8ceed, 23.43 at 7af0c2a79, 23.574 at b707d8932). No job's work grew in the diff: the 0ae75bf31 window already read at the band edge (23.287 against 21.983+1.3=23.283 when replayed from its job timings), and the chain prelude -> tests / closures -> tests / ci-ratchet is priced on `closures` at a 1318 s probed median (1191..1455 over the window) with ci-ratchet at 77 s. The same change runs the ratchet job's two independent fetches concurrently (a real cut of the chain's tail). Band 1.3 unchanged. Previous reason: critical_path_minutes re-recorded at 21.983 under a new statistic (R10-HOTFIX-CI-CRITPATH-3): main went red from 8f286293b, a diff of seven delivery-row .md files, at GREW 40.817 on 34.267+1.3. No job's work grew and no runner queue moved it: each heavy tests lane draws hosted runners of different speed on the same work (per-script ratios 1.6-2.9, one reference solve 45.0 ms against 18.8 ms), so the median of per-run critical paths read the host draw. The metric is now window_work_minutes over the newest 16 push runs: every job priced at its fastest success run in the window (a run under a third of the job's window median did other work and never prices it), summed along each run's own critical chain, the longest kept. 21.983 is critical_path_minutes(stat=record) over the 40 completed ci.yml push runs 41363452534..41577822624 (dev/audit/harnesses/r10_hotfix_ci_critpath_3/runs.json), the largest of its 25 sixteen-run windows (19.967..21.983). critical_path_minutes_band stays 1.3: the most any window read past the record of every window before it is 0.55 (replay.py beside that runs.json); every other row is unchanged and at zero tolerance (previous reason: band added at 1.3, R10-HOTFIX-CI-CRITPATH-2, owner ruling 2026-10-31 under mandate 6329234399).",
+  "recorded_at": "8bf45e5dcedd3fbeb6842c5bfc7545ba5c8176fc",
+  "script_runs_full_case_pr": 68,
+  "script_runs_per_push": 54
+tests/ci_budgets.json
+tests/coverage_budgets.json
+tests/mutation_budgets.json
+tests/stress_budgets.json
+tests/structure_budgets.json
+tests/typing_budgets.json
+ tests/ci_budgets.json | 3 +--
+ 1 file changed, 1 insertion(+), 2 deletions(-)
+== pins yaml
+mutation IDENTICAL
+mutation-pins IDENTICAL
+mutation-autofix IDENTICAL
+tests.yml on differs
+== grep
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/c7_replay.py:9:has no prelude.machinery or pins_due, and its decide analyzes any .py, s
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/c7_replay.py:24:  (c) prelude.pins_due(delta) false, delta = git diff P...H with P the 
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/c7_replay.py:32:      pins_due (round 3 dropped C7(c), whose sound rule saved 0 here) s
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/c7_replay.py:101:    pins_due = getattr(pre, "pins_due", lambda f: True)
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/c7_replay.py:168:        if delta is not None and not pins_due(delta):
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/gate_satisfiable.py:93:    """R10-CI-SLIM round 3 (C7(c) dropped): the pins measurement
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/gate_satisfiable.py:95:    job-level `if:` may read a caller input -- round 2's `inputs
+6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1:dev/audit/harnesses/r10_ci_slim/gate_satisfiable.py:158:    doc["jobs"]["mutation-pins"]["if"] = f"({doc['jobs']['mutat

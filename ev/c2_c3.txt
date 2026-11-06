@@ -1,0 +1,14 @@
+== edit_runs head
+edit runs (/tmp/tmp.2yJ3Erlxpo/head/tools/ci/prelude.py): 127 runs, 117 deferred; job-minutes 4438 -> 660 (prelude 3769 -> 64, pr-contract before 77); saving 3778 of 28055 ci.yml job-minutes (13.5%); prelude floor 0.45 min
+null control (code runs through the same predicate): 156 runs, 20 deferred; job-minutes 23354 -> 23341 (prelude 134 -> 133, pr-contract before 57); saving 13 of 28055 ci.yml job-minutes (0.0%); prelude floor 0.45 min
+== edit_runs base prelude (null control)
+edit runs (../base/tools/ci/prelude.py): 127 runs, 0 deferred; job-minutes 4438 -> 4438 (prelude 3769 -> 3769, pr-contract before 77); saving 0 of 28055 ci.yml job-minutes (0.0%); prelude floor 0.45 min
+null control (code runs through the same predicate): 156 runs, 0 deferred; job-minutes 23354 -> 23354 (prelude 134 -> 134, pr-contract before 57); saving 0 of 28055 ci.yml job-minutes (0.0%); prelude floor 0.45 min
+== c2 head
+ recorded window: grew=0; info  critical_path_minutes: 29.067 (reference 23.574; report-only, never graded); ok    script_runs_per_push: 54 (budget 54)
+ planted cp growth +10: grew=0; info  critical_path_minutes: 39.067 (reference 23.574; report-only, never graded); ok    script_runs_per_push: 54 (budget 54)
+ planted counter growth (script_runs_per_push +1): grew=1; info  critical_path_minutes: 29.067 (reference 23.574; report-only, never graded); GREW  script_runs_per_push: 55 (budget 54)
+== c2 base
+base recorded window: grew=1; GREW  critical_path_minutes: 29.067 (budget 23.574, band 1.3); ok    script_runs_per_push: 54 (budget 54)
+base planted cp growth +10: grew=1; GREW  critical_path_minutes: 39.067 (budget 23.574, band 1.3); ok    script_runs_per_push: 54 (budget 54)
+base planted counter growth (script_runs_per_push +1): grew=2; GREW  critical_path_minutes: 29.067 (budget 23.574, band 1.3); GREW  script_runs_per_push: 55 (budget 54)
