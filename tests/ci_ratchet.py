@@ -52,15 +52,13 @@ THE METRICS, each an answer to a named cost:
                   largest value any PUSH_WINDOW consecutive runs of a wider
                   window read (`--gather-runs FILE --window 40`), the
                   statistic's own window-to-window spread.
-  critical_path_minutes_band   not a metric: the minutes past its budget
-                  that critical_path_minutes may read before it is GREW.
-                  Sized at 1.3 for the retired median (05c0d6d5d read 34.467
-                  on a 34.267 budget); kept under the window-work statistic,
-                  whose need is how far a window reads past the record of
-                  every window before it (0.55 over 40 runs, measured by
-                  dev/audit/harnesses/r10_hotfix_ci_critpath_3/replay.py).
-                  It never applies to a counter, a re-record carries it
-                  over, and widening it is a raise.
+                  REPORT-ONLY (R10-CI-SLIM card C2, owner ruling 2026-11-05):
+                  printed beside its recorded reference on every push and
+                  never graded, so its growth never fails the job. Four
+                  redefinitions (#2839..#3228) did not stop it reading the
+                  hosted runners' draw; its band row is deleted with it. The
+                  recorded value stays the reference orchestrator_tick.py's
+                  ETA check reads.
 
 WHAT IS DELIBERATELY NOT HERE, so nobody re-adds it wrongly:
 
@@ -114,13 +112,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 BUDGETS = ROOT / "tests" / "ci_budgets.json"
 METADATA_KEYS = {"recorded_at", "reason"}
-# The timing metric's tolerance band (R10-HOTFIX-CI-CRITPATH-2): a bound, not a
-# graded metric. critical_path_minutes is GREW only past budget + band; every
-# other row, the integer counters included, stays at zero tolerance. Sized
-# from the measured spread of the graded statistic (an 8-run median) about
-# its window's median on unchanged work -- never padded; widening it is a
-# raise (tools/policy/budget_raise_gate.py types it MAX).
-BAND_KEYS = {"critical_path_minutes_band": "critical_path_minutes"}
+# Rows printed against their recorded reference and never graded (R10-CI-SLIM
+# card C2): a growth here is reported, never a failure. Every other row stays
+# graded at zero tolerance.
+REPORT_ONLY = frozenset({"critical_path_minutes"})
 
 LANES = ("closures", "coverage")
 
@@ -396,10 +391,6 @@ def budget_problems(table: dict) -> list[str]:
             continue
         if not _finite_number(value):
             problems.append(f"{key}={value!r} is not a finite number")
-            continue
-        if key in BAND_KEYS:
-            if not 0 <= value <= 10:
-                problems.append(f"{key}={value!r} is outside 0..10 minutes")
             continue
         if key.startswith("archscore."):
             if not isinstance(value, int) or value < 0:
@@ -823,33 +814,30 @@ def derive(metrics_dir: Path, runs_json: Path | None,
 
 
 def record_table(budgets: dict, derived: dict, head: str, reason: str) -> dict:
-    """The table `--record` writes: every derived metric, stamped. A band is a
-    bound sized from measured noise, not a derived value: a re-record carries
-    it over unchanged."""
-    return {**{k: v for k, v in derived.items()},
-            **{k: budgets[k] for k in BAND_KEYS if k in budgets},
-            "recorded_at": head, "reason": reason}
+    """The table `--record` writes: every derived metric, stamped."""
+    return {**derived, "recorded_at": head, "reason": reason}
 
 
 def compare(budgets: dict, derived: dict) -> tuple[list[str], int]:
     grew = []
     lines = []
-    bands = {BAND_KEYS[k]: budgets[k] for k in BAND_KEYS if k in budgets}
-    for key in sorted(set(budgets) - METADATA_KEYS - set(BAND_KEYS)):
+    for key in sorted(set(budgets) - METADATA_KEYS):
         budget = budgets[key]
-        band = bands.get(key, 0)
         if key not in derived:
             lines.append(f"  ?     {key}: not derived this run "
                          "(missing input); not graded")
             continue
         cur = derived[key]
-        over = cur > budget + band
+        if key in REPORT_ONLY:
+            lines.append(f"  info  {key}: {cur} (reference {budget}; "
+                         "report-only, never graded)")
+            continue
+        over = cur > budget
         mark = "GREW" if over else "ok"
         if over:
             grew.append(key)
-        within = f", band {band}" if band else ""
-        lines.append(f"  {mark:<5} {key}: {cur} (budget {budget}{within})")
-    for key in sorted(set(derived) - set(budgets)):
+        lines.append(f"  {mark:<5} {key}: {cur} (budget {budget})")
+    for key in sorted(set(derived) - set(budgets) - REPORT_ONLY):
         grew.append(key)
         lines.append(f"  GREW  {key}: {derived[key]} (no budget row; a new "
                      "metric starts unrecorded -- record it or remove it)")
@@ -1432,35 +1420,37 @@ def self_test() -> int:
        and g_dag0 is not None and abs(g_dag0 - 21.5) < 0.01,
        msg or msg2 or f"{g_dag}, {g_dag0}")
 
-    # The timing band (R10-HOTFIX-CI-CRITPATH-2): critical_path_minutes is
-    # graded against its budget plus critical_path_minutes_band, and nothing
-    # else is -- the integer counters stay at zero tolerance.
-    bt = {"recorded_at": "x", "critical_path_minutes": 34.267,
-          "critical_path_minutes_band": 1.3, "script_runs_per_push": 54}
-    _, g_noise = compare(bt, {"critical_path_minutes": 34.467, "script_runs_per_push": 54})
-    _, g_edge = compare(bt, {"critical_path_minutes": 35.567, "script_runs_per_push": 54})
-    _, g_grow = compare(bt, {"critical_path_minutes": 35.568, "script_runs_per_push": 54})
-    _, g_count = compare(bt, {"critical_path_minutes": 34.0, "script_runs_per_push": 55})
-    _, g_noband = compare({k: v for k, v in bt.items() if k != "critical_path_minutes_band"},
-                          {"critical_path_minutes": 34.467, "script_runs_per_push": 54})
-    ck("the observed noise (34.467 on a 34.267 budget) passes inside the 1.3 band",
-       g_noise == 0, f"grew {g_noise}")
-    ck("a median at budget + band exactly passes", g_edge == 0, f"grew {g_edge}")
-    ck("a median one thousandth past budget + band is growth", g_grow == 1, f"grew {g_grow}")
-    ck("the band never applies to a counter (54 -> 55 is growth with a band present)",
-       g_count == 1, f"grew {g_count}")
-    ck("no band row is zero tolerance (34.467 on 34.267 is growth)", g_noband == 1,
-       f"grew {g_noband}")
-    ck("a band row is a known, non-negative bound and not a graded metric",
+    # Report-only (R10-CI-SLIM card C2): critical_path_minutes is printed
+    # against its reference and never graded; every other row stays graded at
+    # zero tolerance, which a planted counter and a planted archscore growth
+    # show beside it.
+    bt = {"recorded_at": "x", "critical_path_minutes": 23.574,
+          "script_runs_per_push": 54, "archscore.dead_members": 1}
+    ok_cp = {"critical_path_minutes": 23.574, "script_runs_per_push": 54,
+             "archscore.dead_members": 1}
+    l_cp, g_cp = compare(bt, {**ok_cp, "critical_path_minutes": 99.0})
+    _, g_count = compare(bt, {**ok_cp, "script_runs_per_push": 55})
+    _, g_arch = compare(bt, {**ok_cp, "archscore.dead_members": 2})
+    _, g_both = compare(bt, {**ok_cp, "critical_path_minutes": 99.0,
+                              "script_runs_per_push": 55})
+    _, g_norow = compare({k: v for k, v in bt.items() if k != "critical_path_minutes"},
+                         {**ok_cp, "critical_path_minutes": 99.0})
+    ck("critical_path_minutes growth (23.574 -> 99.0) is printed, never graded",
+       g_cp == 0 and any(x.startswith("  info  critical_path_minutes: 99.0")
+                         for x in l_cp), f"grew {g_cp}: {l_cp}")
+    ck("a counter growth (54 -> 55) beside it still fails", g_count == 1, f"grew {g_count}")
+    ck("an archscore growth (1 -> 2) beside it still fails", g_arch == 1, f"grew {g_arch}")
+    ck("both planted: only the graded row counts", g_both == 1, f"grew {g_both}")
+    ck("an unrecorded report-only row is not a new metric", g_norow == 0, f"grew {g_norow}")
+    ck("the retired band row is not a row this ratchet knows",
        budget_problems(bt) == []
-       and budget_problems({**bt, "critical_path_minutes_band": -0.1}) != []
-       and budget_problems({**bt, "critical_path_minutes_band": float("nan")}) != [],
+       and budget_problems({**bt, "critical_path_minutes_band": 1.3}) != [],
        f"{budget_problems(bt)}")
     rt = record_table(bt, {"critical_path_minutes": 35.317, "script_runs_per_push": 53},
                       "h" * 40, "r")
-    ck("--record carries the band over unchanged and re-records every derived metric",
-       rt == {"critical_path_minutes": 35.317, "critical_path_minutes_band": 1.3,
-              "script_runs_per_push": 53, "recorded_at": "h" * 40, "reason": "r"},
+    ck("--record re-records every derived metric, the reference included",
+       rt == {"critical_path_minutes": 35.317, "script_runs_per_push": 53,
+              "recorded_at": "h" * 40, "reason": "r"},
        f"{rt}")
 
     print(f"ci-ratchet self-test: {passed + failed} checks, {failed} failed")
