@@ -1,0 +1,15 @@
+== plants at head a101717e588108b4520bb935f59a22fdab31f85f
+RESULT mutant=L35_import_sha_dropped rc=1 fails=1
+    FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
+RESULT mutant=L33_imported_verdict_unclosable rc=1 fails=2
+    FAIL an imported verdict-unposted closes on a read-back naming its sha (carry 1)
+    FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
+RESULT mutant=L32_dispose_home_silent rc=1 fails=1
+    FAIL dispose into a non-default home names it on stderr and still writes (carry 3)
+RESULT mutant=L34_backlog_escalates rc=1 fails=2
+    FAIL a tip committed before the last opening is backlog and escalates nothing; a later arrival still ages (carry 2)
+    FAIL a tip committed exactly at the last opening is backlog
+RESULT mutant=B4_orphans_merged_pr_ignored rc=1 fails=1
+    FAIL a handoff whose pull request merged at or after its tip is merged-pr, not ORPHAN
+plants: 5, without a FAIL line: none
+rc=0

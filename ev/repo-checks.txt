@@ -1,0 +1,19 @@
+== merge-tree origin/main(33e60b5b71b67610bd02fdea238b882e9a97007b) HEAD
+1445a630e7da00862654774bf36f05f236e176fa
+rc=0
+== three-dot names
+dev/programme/delivery/3248.md
+tools/audit/seat/bus.sh
+tools/audit/seat/ledger.py
+tools/audit/seat/orchestrator_tick.py
+tools/audit/seat/r10_ledger_mutants.py
+== protected paths/budgets
+0
+== delivery row
++++ b/dev/programme/delivery/3248.md
+@@ -0,0 +1 @@
++- [#3248](https://github.com/tvofi/heatpump_optimizer/pull/3248) — **open**, R10-LEDGER-RESIDUE: the obligations ledger residue of R10-ORCH-LEDGER (R10-LEDGER-RESIDUE)
+== base self-test counts
+ledger self-test: 77 checks, 0 failed
+r10_ledger_mutants self-test: 135 checks, 0 failed
+== carry_audit

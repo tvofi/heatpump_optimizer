@@ -1,0 +1,16 @@
+== reviewer mutant L_import_sha_dropped (round-1 finder mutant) at a101717e588108b4520bb935f59a22fdab31f85f
+occurrences: 1
+ tools/audit/seat/ledger.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
+ledger self-test: 87 checks, 1 failed
+orchestrator_tick self-test: 274 checks, 0 failed
+cloud_relay self-test: 332 checks, 0 failed
+== null control: merge base b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+0
+290:                kind, when, sha = "verdict-unposted", f[1], "-"
+ledger self-test: 77 checks, 0 failed
+0
+-- head's new self-test grafted onto the base's _import_log (base line restored in head file):
+  FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
+ledger self-test: 87 checks, 1 failed
