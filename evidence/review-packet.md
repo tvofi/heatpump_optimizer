@@ -1,0 +1,3321 @@
+# Review packet #3245
+head: 481c7750755be454af93ce8bd8b12f336ed23bac
+base: dc0a170b671814be196a54b1c71e29449f54d6d7
+
+Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
+
+## Gate digest: red
+CodeQL id=127825195447 neutral
+arch-score / arch-score id=127824881483 success
+arm id=127824716787 skipped
+budget-raise-gate / budget-raise-gate id=127824881355 failure
+cancel-superseded id=127824659358 success
+codeql id=127824883836 skipped
+codeql / Analyze (actions) id=127824863762 success
+codeql / Analyze (javascript-typescript) id=127824863716 success
+codeql / Analyze (python) id=127824863754 in_progress
+gate id=127825442500 failure
+governance id=127824883700 skipped
+governance / env-matrix id=127824863766 in_progress
+governance / instrument-self-tests id=127824863756 in_progress
+governance / policy-docs id=127824863725 success
+governance / record id=127824865445 skipped
+governance / wave-script id=127824863833 success
+hassfest id=127824882697 skipped
+hassfest / hassfest id=127824863659 success
+kernel-points id=127824883413 skipped
+pr-contract id=127825444059 skipped
+prelude id=127824658929 success
+refresh id=127824659312 success
+tests id=127824883609 skipped
+tests / arch-instrument id=127825124934 in_progress
+tests / briefs id=127824863783 success
+tests / browser id=127825124938 in_progress
+tests / closure-scope id=127824863824 success
+tests / closures id=127825124818 in_progress
+tests / coverage id=127825124943 in_progress
+tests / fast (3.14) id=127825124832 in_progress
+tests / mutation id=127824863741 success
+tests / mutation-autofix id=127825250612 skipped
+tests / mutation-pins id=127825249946 skipped
+tests / nightly-ha id=127825127582 skipped
+tests / nightly-status id=127824863820 success
+tests / replay id=127825126925 skipped
+tests / typing id=127825124952 success
+validate id=127824883643 skipped
+validate / validate-hacs id=127824863696 success
+
+## Refusals
+red-unanswered: concluded red check `budget-raise-gate / budget-raise-gate` is not named in ## Red checks
+required-red: required context `gate` concluded failure at 481c7750755be454af93ce8bd8b12f336ed23bac
+
+## Advisories
+hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
+
+## carry_audit at the head
+NOTE body item 69c43935: dismissed:unmeasured, and deleting a live train path is beyond the cards' scope.
+NOTE body item 18a471fe: dismissed:the card's risk line accepts review starting early, never merge at red.
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+
+## figure_lint at the head
+ok         bash tools/pr/app_approve.sh --self-test
+             `tools/pr/app_approve.sh` is in the tree at this head
+  ok         python3 tools/audit/seat/merge_train.py --self-test
+             `tools/audit/seat/merge_train.py` is in the tree at this head
+  ok         bash tools/audit/seat/bus.sh --self-test
+             `tools/audit/seat/bus.sh` is in the tree at this head
+  ok         python3 tools/audit/seat/postmerge.py --self-test
+             `tools/audit/seat/postmerge.py` is in the tree at this head
+  ok         bash tools/audit/seat/handoff_push.sh --self-test
+             `tools/audit/seat/handoff_push.sh` is in the tree at this head
+  ok         bash tools/audit/seat/body_push.sh --self-test
+             `tools/audit/seat/body_push.sh` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         node tools/policy/policy_lint.mjs
+             `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         node tools/policy/rules_sync.mjs --check
+             `tools/policy/rules_sync.mjs` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir <dir>
+             `tests/closure.py` is in the tree at this head
+
+FIGURES: 11 resolved, 0 not verified, 0 refused
+
+## Finder's harness: none named
+### at the base
+not run
+### at the head
+not run
+
+## Mutation-ledger diff
+none
+
+## Three-dot diff
+diff --git a/.claude/rules/defect-root-cause.md b/.claude/rules/defect-root-cause.md
+index 854ae7e17..6acb79c65 100644
+--- a/.claude/rules/defect-root-cause.md
++++ b/.claude/rules/defect-root-cause.md
+@@ -126,9 +126,9 @@ or the recorded refusal, and that path.
+ 
+ ## Enforcement
+ 
+-The second trigger is the one with an observable moment, and it is enforced
+-there. The moment is **a check that went red on a commit in the branch**; the
+-checker is the **fix reviewer**, before returning `merge`.
++The second trigger is the one with an observable moment. The moment is **a
++check that went red on a commit in the branch**; the checker is the **fix
++reviewer**, before returning `merge`.
+ 
+ The fixer whose branch turned a check red names that check in the PR body, and
+ answers the trigger's question there: the cheaper detector and its standing
+@@ -136,15 +136,15 @@ cost, or the recorded finding that none exists. Both answers are legitimate —
+ the worked examples above are one of each — so the cost of a check that does not
+ qualify is one line, which is what keeps the obligation from being argued away.
+ 
+-The reviewer reads the PR's checks, not the body's account; a red check the body
+-does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
++The reviewer reads the PR's checks, not the body's account; an unanswered red is
++the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
++still red takes no merge verdict (card C8).
+ 
+-**`tests / nightly-status` and `governance / delivery-status` grade `main`**, so a body owes them no
+-answer **unless its diff touches what they read**: their scripts, `ci.yml`, `tests.yml`,
+-`nightly.yml`, `governance.yml`, the plan, `HANDOVER.md` or a row it did not add (`policy_lint.mjs`, from the base). Otherwise their red is
++**`tests / nightly-status` grades `main`**, so a body owes it no
++answer **unless its diff touches what it reads**: its scripts, `ci.yml`, `tests.yml`,
++`nightly.yml`, `governance.yml`, the plan or `HANDOVER.md` (`policy_lint.mjs`, from the base). Otherwise its red is
+ the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
+-default branch (its red report carries the call; `web-fragments.md` maps it), or
+-drain the overdue rows. A cause outside this repository is named with its owner.
++default branch (its red report carries the call; `web-fragments.md` maps it). A cause outside this repository is named with its owner.
+ 
+ The first trigger — the defect reached a released version — has no moment
+ cheaper than the issue itself, so it is carried by the **Root cause** section
+diff --git a/.claude/rules/delivery-status-tracking.md b/.claude/rules/delivery-status-tracking.md
+index 1ee41b30d..3cb64bd46 100644
+--- a/.claude/rules/delivery-status-tracking.md
++++ b/.claude/rules/delivery-status-tracking.md
+@@ -8,28 +8,18 @@ paths:
+ ---
+ # Programme tracking discipline
+ 
+-After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — update tracking in the **same session** or an **immediate record PR**:
++After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — tracking is updated **at that merge**, never batched to session end, where an abort loses it:
+ 
+-1. **The Delivery-status record** — the plan's frozen table plus one `dev/programme/delivery/<N>.md` per PR; authoritative vs wave body; if they disagree, fix it first.
++1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches); the rows already merged stay as history, read by nothing that gates.
+ 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
+ 3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
+-4. **Every PR the programme has opened**, not only the ones a roster predicted. Hotfixes, instrument repairs, harness lanes, policy, and anything found *in passing* have no wave: give each **its own row and section**, never a wave it does not belong to.
+-5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work. At each record, grep the plan for every open issue's number.
++4. **Every PR the programme has opened**, not only the ones a roster predicted, is read from the pull-request list; hotfixes, instrument repairs and anything found *in passing* are never filed under a wave they do not belong to.
++5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work.
+ 
+ ## Status stays true, not just present
+ 
+ - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
+-- A row's **status word is reconciled by nothing**: `record_row.py`'s `has_row`
+-  and `write_rows` skip a row that already exists, so the `**open**` line
+-  written when a pull request opened is never upgraded, and
+-  `tests/delivery_status.py` classifies on the row's *presence*, not its word.
+-  Measured 2026-10-10 at main `23d354970`: 100 rows in
+-  `dev/programme/delivery/` read `**open**` for a pull request GitHub reports
+-  MERGED, and 15 of 15 merges in the ledger's own window were among them while
+-  `--check` printed OK and exited 0. So a row is a claim, not a reading: until a
+-  row's word is graded, read the API, not the word -- and the repository, not
+-  the record, which is what `bus.sh orphans` reads.
+-- A PR's **body describes its current head**, not the head it was opened at.
+-- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `dev/programme/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed. The `record-autofix` beat's own merges with no review seat where `record_row.py --automerge-check` passes at its head; else it is reviewed.
++- A PR's **body describes its current head**, not the head it was opened at; a stale body is a reviewer's note the orchestrator resolves at merge, not a block (card C5).
++- An owner's ask in a verdict or a body goes into the roster at the merge (`roster_edit.py`), so a non-blocking carry note cannot drop it.
+ 
+ Do **not** wait for a stamp to truth the record. Measure from `origin/main`, merged pull requests and closed issues; never invent.
+diff --git a/.claude/rules/finding-propagation.md b/.claude/rules/finding-propagation.md
+index 34a387732..c7419f168 100644
+--- a/.claude/rules/finding-propagation.md
++++ b/.claude/rules/finding-propagation.md
+@@ -1,5 +1,5 @@
+ ---
+-description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
++description: A finding that changes how a later stage must work goes into that stage's own brief by the producing PR's merge
+ paths:
+   - "dev/governance/**"
+   - ".claude/workflows/*.json"
+@@ -9,7 +9,7 @@ paths:
+ # Forward-carrying a finding
+ 
+ **A finding that changes how a later stage must work is written into that
+-stage's own brief before the PR that produced it merges.**
++stage's own brief by the time the PR that produced it merges.**
+ 
+ ## When it applies
+ 
+@@ -79,7 +79,7 @@ it is usually the newer.
+ 
+ ## Enforcement
+ 
+-The producing PR does not merge until the carry is **in the tree**; a carry to
++The carry is **in the tree** by the producing PR's merge (card C5); a carry to
+ the round's roster, once on its branch `handoff/audit-r<N>-roster` (tvofi,
+ 2026-10-18), which lands on main at each stamp and before branch cleanup
+ and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
+diff --git a/.claude/workflows/web-fix-wave.js b/.claude/workflows/web-fix-wave.js
+index d5300a99c..ce23f26fa 100644
+--- a/.claude/workflows/web-fix-wave.js
++++ b/.claude/workflows/web-fix-wave.js
+@@ -314,7 +314,7 @@ Return {pr, head_sha, summary} where pr is the PR NUMBER as an integer. If you c
+ 
+ const reviewerPrompt = (g, fix, round) => `You are the adversarial fix reviewer for PR #${fix.pr} (group ${g.group}, head ${fix.head_sha}), in a fresh context. ${GH_READ} ${GH_WRITE} ${WT_REVIEW(g.group + '-' + round, fix.head_sha)}
+ Read dev/governance/roles/fix-review.md and follow it. You are not checking that the code looks right; four implementations on this project looked right and were wrong, one worse than its bug. Check that the numbers are real: re-run the mutation proof the body names and confirm those checks fail; measure with the FINDER's harness rather than the fixer's, at ${fork} and at ${fix.head_sha}, printing your own RESULT lines; re-run every null control and both-ends check the body claims; run env_drift.py --all (and card_drift.mjs for card changes) against the merge base and confirm every moved fixture is claimed, every claim moved, and no may-drift fixture is claimed; run python3 tests/structure.py against origin/main's budgets and require any loosened metric to be named and argued in the body; confirm VERSION, the manifest and the notes heading are untouched; attack the fix at other topologies, other price profiles and the zero-evidence install; confirm the head SHA in the body is the head you measured. ${GATE}
+-Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. When the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists, use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff (name it after the check), root-cause-unrecorded if the cheapest detector is the check that went red, and root-cause-unanswered only when you cannot tell -- each dispatches the root-cause seat rather than another repair round. Post it only once the head's workflows all concluded and a pr-contract run started after the last to conclude red, else the push-time run, checked the body (fix-review.md step 11); while it refuses, wait or hand back unverdicted, saying so. Return {verdict, comment} where comment's first line is that same line.`
++Post your verdict as a PR comment whose FIRST LINE is exactly "Fix review: merge ${fix.head_sha}" or "Fix review: blocked ${fix.head_sha} <class>: <why>", where <class> is one of ${VERDICT_CLASSES.join(', ')}; your RESULT lines follow it. The class is read by a script, so a blocked verdict without one is unreadable and is treated as blocked with no route to a repair. Block only on code, tests and harness (card C5): when the fix itself is sound but the branch turned a check red and the body does not name the cheaper detector or record that none exists, or a forward-carry is not landed, return merge with a "Note: <class>: <why>" line after the first line, which the orchestrator resolves at merge -- use root-cause-detectable if a detector cheaper than that check could have shown the red before the handoff (name it after the check), root-cause-unrecorded if the cheapest detector is the check that went red, root-cause-unanswered only when you cannot tell, and carry-missing for a carry; a note on custom_components/ is a block. Never return merge at a head with a concluded red (card C8). Return {verdict, comment} where comment's first line is that same line.`
+ 
+ // The root-cause seat: its own context, beside the fix and never inside it, per
+ // dev/governance/roles/root-cause.md. Until now the contracts named it and no
+diff --git a/.cursor/rules/defect-root-cause.mdc b/.cursor/rules/defect-root-cause.mdc
+index eee480838..3904dbe7e 100644
+--- a/.cursor/rules/defect-root-cause.mdc
++++ b/.cursor/rules/defect-root-cause.mdc
+@@ -123,9 +123,9 @@ or the recorded refusal, and that path.
+ 
+ ## Enforcement
+ 
+-The second trigger is the one with an observable moment, and it is enforced
+-there. The moment is **a check that went red on a commit in the branch**; the
+-checker is the **fix reviewer**, before returning `merge`.
++The second trigger is the one with an observable moment. The moment is **a
++check that went red on a commit in the branch**; the checker is the **fix
++reviewer**, before returning `merge`.
+ 
+ The fixer whose branch turned a check red names that check in the PR body, and
+ answers the trigger's question there: the cheaper detector and its standing
+@@ -133,15 +133,15 @@ cost, or the recorded finding that none exists. Both answers are legitimate —
+ the worked examples above are one of each — so the cost of a check that does not
+ qualify is one line, which is what keeps the obligation from being argued away.
+ 
+-The reviewer reads the PR's checks, not the body's account; a red check the body
+-does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
++The reviewer reads the PR's checks, not the body's account; an unanswered red is
++the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
++still red takes no merge verdict (card C8).
+ 
+-**`tests / nightly-status` and `governance / delivery-status` grade `main`**, so a body owes them no
+-answer **unless its diff touches what they read**: their scripts, `ci.yml`, `tests.yml`,
+-`nightly.yml`, `governance.yml`, the plan, `HANDOVER.md` or a row it did not add (`policy_lint.mjs`, from the base). Otherwise their red is
++**`tests / nightly-status` grades `main`**, so a body owes it no
++answer **unless its diff touches what it reads**: its scripts, `ci.yml`, `tests.yml`,
++`nightly.yml`, `governance.yml`, the plan or `HANDOVER.md` (`policy_lint.mjs`, from the base). Otherwise its red is
+ the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
+-default branch (its red report carries the call; `web-fragments.md` maps it), or
+-drain the overdue rows. A cause outside this repository is named with its owner.
++default branch (its red report carries the call; `web-fragments.md` maps it). A cause outside this repository is named with its owner.
+ 
+ The first trigger — the defect reached a released version — has no moment
+ cheaper than the issue itself, so it is carried by the **Root cause** section
+diff --git a/.cursor/rules/delivery-status-tracking.mdc b/.cursor/rules/delivery-status-tracking.mdc
+index e31cb4c5e..752e8701f 100644
+--- a/.cursor/rules/delivery-status-tracking.mdc
++++ b/.cursor/rules/delivery-status-tracking.mdc
+@@ -5,28 +5,18 @@ alwaysApply: true
+ ---
+ # Programme tracking discipline
+ 
+-After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — update tracking in the **same session** or an **immediate record PR**:
++After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — tracking is updated **at that merge**, never batched to session end, where an abort loses it:
+ 
+-1. **The Delivery-status record** — the plan's frozen table plus one `dev/programme/delivery/<N>.md` per PR; authoritative vs wave body; if they disagree, fix it first.
++1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches); the rows already merged stay as history, read by nothing that gates.
+ 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
+ 3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
+-4. **Every PR the programme has opened**, not only the ones a roster predicted. Hotfixes, instrument repairs, harness lanes, policy, and anything found *in passing* have no wave: give each **its own row and section**, never a wave it does not belong to.
+-5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work. At each record, grep the plan for every open issue's number.
++4. **Every PR the programme has opened**, not only the ones a roster predicted, is read from the pull-request list; hotfixes, instrument repairs and anything found *in passing* are never filed under a wave they do not belong to.
++5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work.
+ 
+ ## Status stays true, not just present
+ 
+ - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
+-- A row's **status word is reconciled by nothing**: `record_row.py`'s `has_row`
+-  and `write_rows` skip a row that already exists, so the `**open**` line
+-  written when a pull request opened is never upgraded, and
+-  `tests/delivery_status.py` classifies on the row's *presence*, not its word.
+-  Measured 2026-10-10 at main `23d354970`: 100 rows in
+-  `dev/programme/delivery/` read `**open**` for a pull request GitHub reports
+-  MERGED, and 15 of 15 merges in the ledger's own window were among them while
+-  `--check` printed OK and exited 0. So a row is a claim, not a reading: until a
+-  row's word is graded, read the API, not the word -- and the repository, not
+-  the record, which is what `bus.sh orphans` reads.
+-- A PR's **body describes its current head**, not the head it was opened at.
+-- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `dev/programme/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed. The `record-autofix` beat's own merges with no review seat where `record_row.py --automerge-check` passes at its head; else it is reviewed.
++- A PR's **body describes its current head**, not the head it was opened at; a stale body is a reviewer's note the orchestrator resolves at merge, not a block (card C5).
++- An owner's ask in a verdict or a body goes into the roster at the merge (`roster_edit.py`), so a non-blocking carry note cannot drop it.
+ 
+ Do **not** wait for a stamp to truth the record. Measure from `origin/main`, merged pull requests and closed issues; never invent.
+diff --git a/.cursor/rules/finding-propagation.mdc b/.cursor/rules/finding-propagation.mdc
+index 5ba6a0139..2f8692f5b 100644
+--- a/.cursor/rules/finding-propagation.mdc
++++ b/.cursor/rules/finding-propagation.mdc
+@@ -1,12 +1,12 @@
+ ---
+-description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
++description: A finding that changes how a later stage must work goes into that stage's own brief by the producing PR's merge
+ globs: dev/governance/**,.claude/workflows/*.json,dev/programme/rosters/*.json,dev/programme/carries/*.json
+ alwaysApply: true
+ ---
+ # Forward-carrying a finding
+ 
+ **A finding that changes how a later stage must work is written into that
+-stage's own brief before the PR that produced it merges.**
++stage's own brief by the time the PR that produced it merges.**
+ 
+ ## When it applies
+ 
+@@ -76,7 +76,7 @@ it is usually the newer.
+ 
+ ## Enforcement
+ 
+-The producing PR does not merge until the carry is **in the tree**; a carry to
++The carry is **in the tree** by the producing PR's merge (card C5); a carry to
+ the round's roster, once on its branch `handoff/audit-r<N>-roster` (tvofi,
+ 2026-10-18), which lands on main at each stamp and before branch cleanup
+ and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
+diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
+index a3b2ce4db..a735e4e9c 100644
+--- a/.github/workflows/governance.yml
++++ b/.github/workflows/governance.yml
+@@ -25,7 +25,7 @@ name: Governance
+ # Inside a called workflow `github.event_name` and `github.event` are the
+ # caller's, so every job's `if:` and every `github.event.pull_request.*`
+ # expression below reads the umbrella's event unchanged; the push guards on
+-# `record` and `delivery-status-publish` are the same text they were.
++# `record` is the same text they were.
+ #
+ # The umbrella's pull_request types carry no `edited`, which the header above
+ # explained for this file's own list (#1514): a body edit starts nothing here.
+@@ -1438,7 +1438,7 @@ jobs:
+       # not this file's judgement: #201 comment 5670207248 item 4 approves
+       # `issues: write` on this one job. It is declared on the job that uses it
+       # rather than the workflow floor precisely so no other lane inherits it:
+-      # `policy-docs`, `env-matrix`, `wave-script` and `delivery-status` keep
++      # `policy-docs`, `env-matrix` and `wave-script` keep
+       # the read-only floor, `pr-contract` (its own file) keeps what it holds,
+       # and the set of overriding jobs is pinned in tests/entities.py as the
+       # blast radius.
+@@ -1518,6 +1518,8 @@ jobs:
+       # here cannot block an unrelated merge.
+       - name: Every merged pull request has a disposition
+         id: refusal
++        # card C5 (tvofi 2026-11-05): the record no longer grades main; the verdict stays in the summary
++        continue-on-error: true
+         env:
+           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+         run: |
+@@ -1677,162 +1679,3 @@ jobs:
+             echo "the record protocol promises, cleared by the next \`record:\` beat writing"
+             echo "the row. The job is not a required context and must not become one."
+           } | tee /dev/stderr >> "$GITHUB_STEP_SUMMARY"
+-
+-  # `main`'s CURRENT `record` conclusion, reported as a red check on every pull
+-  # request. #713's construction (`nightly-status`, `tests/nightly_status.py`)
+-  # pointed at `record` instead of the nightly, because #533 and this are the
+-  # same shape: a conclusion that lands on a commit nobody re-reads.
+-  #
+-  # WHY IT IS NEEDED WHILE `record` ABOVE IS CORRECT. `record`'s `if:` is right
+-  # and the job above says why. The defect, when this job shipped, was that
+-  # `record` -- then one of the required contexts the `main-protect` ruleset's
+-  # endpoint returned, and since dropped from them by #884 -- reported
+-  # `skipped` on the only event a seat reads it at: every other required
+-  # context `success` and `record` alone `skipped` at #734's head `b63470b`.
+-  # The live set is the required checks that endpoint returns, never a count
+-  # from here. So the disposition rule is enforced only after a
+-  # merge and the red lands on whoever pushes next: seven red-`main` events in
+-  # the five days to 2026-09-10, the last of them #734 merging with no row nine
+-  # hours after #708 landed the protocol saying the row precedes the merge.
+-  # This does not prevent that merge. It converts "`main` is red and nobody
+-  # looks" into "every open pull request says so". Root cause on #541 comment
+-  # 5622000848; its home for the record is #678, where (c) is already recorded
+-  # for the identical cause on a different surface.
+-  #
+-  # It must NOT be added to `main-protect`'s required contexts. That is a
+-  # ruleset change and a separate owner decision, and requiring it would make
+-  # one lane's unfixed red refuse every unrelated merge in the repository -- for
+-  # a condition the pull request's author did not cause and usually cannot fix.
+-  # The report says so on every run, green as well as red.
+-  #
+-  # Pull requests only. A lane reporting on `main`'s own state must not be able
+-  # to turn `main` red: that would put the reporter inside the thing it reports
+-  # on, and one unfixed row would redden every subsequent push.
+-  # The delivery ledger, which replaced `record-status`'s predicate. See
+-  # `tests/delivery_status.py` for the measurement that motivated it: `record`
+-  # concluded `failure` on 28 of main's last 40 commits, in six streaks each
+-  # ended by a `record:` leftover-row commit, because it asked whether every
+-  # merge has a row RIGHT NOW while the protocol promises a row SOON, in a
+-  # batch. This asks what the protocol actually promises.
+-  #
+-  # On a pull request it reports and does not gate: `--check` is passed so a
+-  # genuinely stalled batch is red, and pending merges are printed by name,
+-  # which is the part a seat can act on and which a tick never was.
+-  #
+-  # `--since` is deliberately not passed: the window is the last release tag,
+-  # and a fixed one would report the same closed window for ever.
+-  # `tests/entities.py` pins that absence, the way it pins `nightly_status.py`
+-  # taking no `--run`.
+-  delivery-status:
+-    if: github.event_name == 'pull_request'
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 5
+-    steps:
+-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+-        with:
+-          # The window is `<last tag>..origin/main`, so the tags and main's
+-          # history both have to be here. A shallow clone would silently
+-          # report an empty window, which is the vacuous green this check
+-          # names as its own failure mode.
+-          fetch-depth: 0
+-
+-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+-        with:
+-          python-version: "3.13"
+-
+-      # No `pip install`, the same reason `record-status` had none: a reporter
+-      # whose job is to notice that something went dark must not be breakable
+-      # by the dependency set, and it costs seconds beside a forty-minute gate.
+-      # PINNED (decision 0013): restored from the base, checked byte-identical
+-      # to the base's object, and run under `-I -S`, all in this one step.
+-      # Nothing before it in this job runs the pull request's code: after
+-      # anything that did, the job would be the pull request's (it could
+-      # overwrite the file, put a shim on `$GITHUB_PATH`, set `BASH_ENV`
+-      # through `$GITHUB_ENV`, or use the runner's sudo). This file is
+-      # @tvofi's, so that review keeps it true; `codeowners_gap.py --check` is
+-      # a lint that refuses the forms known to break it. The pull
+-      # request's own copy runs in `tests.yml`'s `graders-head-copy`, which is
+-      # not required.
+-      - name: Report what is pending and what is overdue a row
+-        env:
+-          PINNED: ${{ github.event.pull_request.base.sha }}
+-        run: |
+-          set -euo pipefail
+-          git cat-file -e "$PINNED^{commit}" 2>/dev/null || git fetch -q --no-tags --depth=1 origin "$PINNED"
+-          git checkout "$PINNED" -- \
+-            'tests/delivery_status.py' \
+-            'tests/layout.py'
+-          test "$(git hash-object tests/delivery_status.py)" = "$(git rev-parse "$PINNED:tests/delivery_status.py")"
+-          git fetch --no-tags --quiet origin main
+-          python -I -S tests/delivery_status.py --check
+-
+-  # #201's region, regenerated on every push to main. The ledger itself needs
+-  # no publishing to be findable WITHOUT credentials: `tests/delivery_status.py`
+-  # builds it from git alone, so any clone answers
+-  # `python3 tests/delivery_status.py --emit <path>`, and #201's body carries
+-  # the same content in a delimited region so the issue's own text survives.
+-  #
+-  # THE LANE WRITES NOTHING THAT LANDS ON MAIN, and that is its fixed point.
+-  # The ledger lists every merge in the window with `commits_after`, so it
+-  # moves on EVERY push to main. #1011's Option 2 landed it through a
+-  # `ci/delivery-ledger` PR, and merging that PR was itself a push to main
+-  # that moved the ledger again: nine of the eleven ledger PRs were opened
+-  # 14-22 s after the previous one merged, each a merge with no row, main
+-  # churn, and an open PR that decision 0009 step 6's quiet moment never got
+-  # (#201 root cause of 2026-09-17). An issue-body edit fires no workflow in
+-  # this repository, so one push yields at most one edit and nothing else.
+-  # The JSON goes to the job summary; `tests/entities.py` pins that no step
+-  # pushes, opens a PR or holds SEAT_AUTHOR_TOKEN.
+-  delivery-status-publish:
+-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 5
+-    # `issues: write` edits #201's region; `contents: read` restates the
+-    # workflow floor a job-level block replaces, for the checkout.
+-    permissions:
+-      contents: read
+-      issues: write
+-    # Ledger finding (b) (#201, W4D-G6): pushes to main arrive in bursts, and
+-    # two runs' read-modify-write of #201's body must not interleave. Each run
+-    # regenerates wholesale from its own push, so the newer supersedes the
+-    # older outright and cancel-in-progress loses nothing.
+-    concurrency:
+-      group: delivery-status-publish
+-      cancel-in-progress: true
+-    steps:
+-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+-        with:
+-          fetch-depth: 0
+-          persist-credentials: false
+-
+-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+-        with:
+-          python-version: "3.13"
+-
+-      - name: Regenerate the ledger and put it in #201's region
+-        env:
+-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+-        run: |
+-          python tests/delivery_status.py --emit "$RUNNER_TEMP/ledger.json"
+-          { echo '```json'; cat "$RUNNER_TEMP/ledger.json"; echo '```'; } \
+-            >> "$GITHUB_STEP_SUMMARY"
+-          python tests/delivery_status.py \
+-            --from "$RUNNER_TEMP/ledger.json" --markdown > "$RUNNER_TEMP/region.md"
+-          python - <<'PY'
+-          import os, pathlib, subprocess, sys
+-          sys.path.insert(0, "tests")
+-          import delivery_status as ds
+-          body = subprocess.run(
+-              ["gh", "issue", "view", "201", "--json", "body", "--jq", ".body"],
+-              capture_output=True, text=True, check=True).stdout.rstrip("\n")
+-          region = pathlib.Path(os.environ["RUNNER_TEMP"], "region.md").read_text()
+-          updated = ds.splice(body, region.rstrip("\n"))
+-          if updated == body:
+-              print("#201's region is already current")
+-          else:
+-              pathlib.Path(os.environ["RUNNER_TEMP"], "body.md").write_text(updated)
+-              subprocess.run(
+-                  ["gh", "issue", "edit", "201", "--body-file",
+-                   os.environ["RUNNER_TEMP"] + "/body.md"], check=True)
+-              print("#201's region updated")
+-          PY
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+index f54c83be8..42cff1502 100644
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -9,26 +9,21 @@ name: Nightly
+ #   instrument over the whole package, and the stock drain with its push.
+ # * slow -- what a push to main's `fast` does not already run.
+ # * nightly-ha -- real Home Assistant; tests.yml keeps its pull-request arm.
+-# * record-autofix -- the record beat on every push to main, the nightly and
+-#   a dispatch. It is the only job the push trigger exists for (owner ruling
+-#   D-1): a delivery-row beat's failure no longer reads as main's code
+-#   verdict on the Tests push run.
++# (card C5, tvofi 2026-11-05: record-autofix and the push trigger it alone
++# needed are deleted; the PR list and #201 at merge time are the record.)
+ #
+ # `tests/nightly_status.py` reads this workflow's last concluded schedule or
+-# main dispatch, on every pull request; every job but record-autofix is in its
++# main dispatch, on every pull request; every job is in its
+ # REQUIRED_LANES, which tests/entities.py derives from the `if:`s below. After
+ # a red, verify with `gh workflow run nightly.yml --ref main`.
+ 
+ on:
+-  push:
+-    branches:
+-      - main
+   workflow_dispatch:
+   schedule:
+     - cron: "37 0 * * *"
+ 
+-# Every job inherits this read-only floor; the ledger push and the record beat
+-# write through App installation tokens from their own environments.
++# Every job inherits this read-only floor; the ledger push writes through an
++# App installation token from its own environment.
+ permissions:
+   contents: read
+ 
+@@ -531,648 +526,3 @@ jobs:
+       - uses: ./.github/actions/nightly-ha
+         with:
+           image: ${{ matrix.image }}
+-
+-  # record-autofix — the record beat for rowless merges, mechanical (R9-FR-10,
+-  # issue #1952, owner-approved 2026-10-04). `record` (governance.yml) reddens
+-  # on main after every rowless merge, and clearing it was fully manual: a seat
+-  # wrote dev/programme/delivery/<N>.md from API facts and opened the record pull
+-  # request by hand — five such rows were owed in one day (2026-10-04). This
+-  # job is that beat: it enumerates the window's merges through the REST API
+-  # (the commit-to-pull-request map `record` itself reads), plans the rows the
+-  # checked-out tree still lacks, writes them behind the generator's guarded
+-  # write set (dev/programme/delivery/<N>.md and NOTHING else — the plan's
+-  # Delivery-status table and the handover are a seat's dispositions, never
+-  # this job's), commits under the `ci:` subject the loop guard keys on, pushes
+-  # the record branch, and opens or updates the record pull request as the
+-  # hpo-author App with a generated body, then posts its #201 coordination
+-  # comment. The pull request number exists only after that open or lookup.
+-  # The same write set then gains dev/programme/delivery/<that number>.md. The line
+-  # anchors the number and carries no merge SHA: the SHA does not exist until
+-  # the merge. The next run finds the row and stops at nothing-owed. A real
+-  # unrowed merge is still a row; skipping the beat is not.
+-  #
+-  # THE REVIEW IS A PREDICATE (tvofi, 2026-10-07, superseding the manual
+-  # review #1952 kept): a record pull request the automerge guard passes is
+-  # approved by the approver App and merged by the author App, pinned to the
+-  # head the guard judged, once its required checks pass there; while one is
+-  # open and passing the beat holds it rather than rebuilding it -- the
+-  # rebuild on every main merge is what staled each review and left
+-  # delivery-status OVERDUE on main. One the guard refuses has the approver
+-  # App's approvals dismissed and keeps the manual review. KEPT MANUAL, deliberately: the living handover's updated-for line
+-  # -- tied to merges that change owed work, not every beat, which this job
+-  # would over-write; the job never touches that file. tests/entities.py pins
+-  # both: the review only behind the guard, and the handover untouched.
+-  #
+-  # TRIGGERS. Push to main and the nightly — the events `record` runs on. The
+-  # job asks the same question `record` does (which merges in the window still
+-  # lack a disposition), so "the record check is red on main" is answered by
+-  # the job's own enumeration rather than by a second workflow's conclusion:
+-  # nothing owed is the ordinary green, and a beat owed and not landed reddens
+-  # the report below.
+-  #
+-  # IDENTITY AND SECRETS. The pull request must be authored by the hpo-author
+-  # App (decision 0011; pr-contract refuses any other author), so the token is
+-  # an installation token of the hpo-author App, minted per run exactly as
+-  # mutation-ledger-push mints its ledger-writer: the PEM and App ID come from
+-  # the main-only `record-writer` environment as HPO_RECORD_PEM and
+-  # HPO_RECORD_APPID — the hpo-author App's own credentials, which the
+-  # orchestrator box otherwise alone holds (~/.zcode/hpo-author.*). Absent
+-  # secrets are fail-closed only when a beat was owed: skip-no-writer reddens
+-  # the report, the mutation-ledger-push precedent, because a red here means
+-  # "no bot commit" while a rowless merge stands on main.
+-  record-autofix:
+-    if: >-
+-      !cancelled() && github.ref == 'refs/heads/main'
+-      && (github.event_name == 'push'
+-          || github.event_name == 'schedule'
+-          || github.event_name == 'workflow_dispatch')
+-    environment: record-writer
+-    runs-on: ubuntu-latest
+-    timeout-minutes: 10
+-    # No permissions block, deliberately, so the workflow's read-only floor is
+-    # what GITHUB_TOKEN holds: the enumeration reads public-repo pull-request
+-    # data, and every write -- branch push, pull request, #201 comment --
+-    # rides the App installation token minted below, never GITHUB_TOKEN. The
+-    # four-jobs floor pin in tests/entities.py stays at four, where a fifth
+-    # override has to be argued for rather than land.
+-    steps:
+-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+-        with:
+-          ref: main
+-          fetch-depth: 0
+-          # The window is `<last v* tag>..main`; the record job's own checkout
+-          # says why the tags must come along (a non-release tag otherwise
+-          # answers `git describe` and yields an empty window).
+-          fetch-tags: true
+-          # D11-s1-03: the write is the App token's, below; the checkout left
+-          # no credential on disk.
+-          persist-credentials: false
+-
+-      - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+-        with:
+-          python-version: "3.13"
+-
+-      # THE ENUMERATE'S SPEND, READ (dev/audit/rca/ratelimit-recur.md, the
+-      # second M0 pair). The step below reads one call a merge of the window
+-      # on GITHUB_TOKEN, the bucket every required check shares, and the
+-      # governance record job's two readings could only infer its share by
+-      # splitting their interval by step time. These two print it: the
+-      # bucket before the enumeration and after it, as the record job's
+-      # `RATE_LIMIT before:`/`after:` lines do. `rate_limit` is not counted
+-      # against the limit; a log line, never a gate (`|| true`).
+-      - name: GITHUB_TOKEN rate limit before the enumeration
+-        env:
+-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+-        run: |
+-          gh api rate_limit --jq '"RATE_LIMIT enumerate before: \(.resources.core)"' || true
+-
+-      - name: Enumerate the window's merges
+-        id: enumerate
+-        env:
+-          REPO: ${{ github.repository }}
+-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+-        run: |
+-          set -euo pipefail
+-          # --match 'v*': the record job's "Choose the window" step carries the
+-          # same flag for the same reason (archive-rosters-2026-09).
+-          SINCE=$(git describe --tags --abbrev=0 --match 'v*' 2>/dev/null || echo "")
+-          # Fail-closed: an enumeration that could not read the window reddens
+-          # this job; it must never read as an empty one.
+-          python3 -I tools/audit/seat/record_row.py \
+-            --enumerate --repo "$REPO" --since "$SINCE" \
+-            > "$RUNNER_TEMP/merges.json"
+-
+-      # The after reading prints when the enumeration fails closed too: a
+-      # window that could not be read spent calls all the same.
+-      - name: GITHUB_TOKEN rate limit after the enumeration
+-        if: always()
+-        env:
+-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+-        run: |
+-          gh api rate_limit --jq '"RATE_LIMIT enumerate after: \(.resources.core)"' || true
+-
+-      # Two installation tokens from one minting routine. The author App's
+-      # writes the rows, the pull request and the #201 comment, and merges
+-      # its own pull request, so the merge is the App's and its push to main
+-      # fires main's workflows (a GITHUB_TOKEN merge would not).
+-      # The approver App's, minted only when HPO_APPROVER_PEM/APPID are set in
+-      # this main-only environment, is the one non-author identity decision
+-      # 0011 lets approve a pull request no code owner owns; it posts at most
+-      # one review, and the job's last token step revokes both.
+-      - name: Mint the record-writer App token
+-        id: mint
+-        env:
+-          REPO: ${{ github.repository }}
+-          RECORD_PEM: ${{ secrets.HPO_RECORD_PEM }}
+-          RECORD_APPID: ${{ secrets.HPO_RECORD_APPID }}
+-          APPROVER_PEM: ${{ secrets.HPO_APPROVER_PEM }}
+-          APPROVER_APPID: ${{ secrets.HPO_APPROVER_APPID }}
+-        run: |
+-          { set +x; } 2>/dev/null  # the PEMs, JWTs and tokens are never traced
+-          umask 077
+-          API=https://api.github.com
+-          ACCEPT='Accept: application/vnd.github+json'
+-          key="$RUNNER_TEMP/hpo-app.pem"
+-          jwt_h="$RUNNER_TEMP/hpo-app-jwt.h"
+-          trap 'rm -f "$key" "$jwt_h"' EXIT
+-          trap 'exit 130' INT TERM HUP
+-          b64() { openssl base64 -A | tr '+/' '-_' | tr -d '='; }
+-          mint() { # mint LABEL PEM APPID PERMISSIONS-JSON; prints the token
+-            printf '%s\n' "$2" > "$key"
+-            now=$(date +%s)
+-            h=$(printf '{"alg":"RS256","typ":"JWT"}' | b64)
+-            p=$(printf '{"iat":%d,"exp":%d,"iss":"%s"}' $((now - 60)) $((now + 540)) "$3" | b64)
+-            s=$(printf '%s.%s' "$h" "$p" | openssl dgst -sha256 -sign "$key" -binary | b64) && [ -n "$s" ] || {
+-              echo "::warning::signing the $1 App JWT failed" >&2; return 1; }
+-            printf 'Authorization: Bearer %s.%s.%s\n' "$h" "$p" "$s" > "$jwt_h"
+-            inst=$(curl -fsS -H @"$jwt_h" -H "$ACCEPT" "$API/repos/$REPO/installation" \
+-              | python3 -I -c 'import sys,json; print(int(json.load(sys.stdin)["id"]))') || {
+-              echo "::warning::the $1 App has no installation on $REPO, or its JWT was refused" >&2; return 1; }
+-            curl -fsS -X POST -H @"$jwt_h" -H "$ACCEPT" -d "{\"permissions\":$4}" \
+-              "$API/app/installations/$inst/access_tokens" \
+-              | python3 -I -c 'import sys,json; print(json.load(sys.stdin)["token"])'
+-          }
+-          if [ -z "$RECORD_PEM" ] || [ -z "$RECORD_APPID" ]; then
+-            echo "::notice::HPO_RECORD_PEM or HPO_RECORD_APPID is not set in the record-writer environment; the beat, if owed, cannot land (fail-closed: the report step reddens skip-no-writer)"
+-            exit 0
+-          fi
+-          tok=$(mint record-writer "$RECORD_PEM" "$RECORD_APPID" \
+-            '{"contents":"write","pull_requests":"write","issues":"write"}') && [ -n "$tok" ] || {
+-            echo "::warning::minting the record-writer App installation token failed"
+-            exit 1
+-          }
+-          echo "::add-mask::$tok"
+-          echo "token=$tok" >> "$GITHUB_OUTPUT"
+-          if [ -z "$APPROVER_PEM" ] || [ -z "$APPROVER_APPID" ]; then
+-            echo "::notice::HPO_APPROVER_PEM or HPO_APPROVER_APPID is not set in the record-writer environment; the record pull request is not approved here (skip-no-approver) and keeps the manual path"
+-            exit 0
+-          fi
+-          atok=$(mint approver "$APPROVER_PEM" "$APPROVER_APPID" '{"pull_requests":"write"}') && [ -n "$atok" ] || {
+-            echo "::warning::minting the approver App installation token failed; the record pull request keeps the manual path"
+-            exit 0
+-          }
+-          echo "::add-mask::$atok"
+-          echo "approver_token=$atok" >> "$GITHUB_OUTPUT"
+-
+-      # Apply, check the write set, commit and push, re-applied onto a main
+-      # that moved under the push (three tries). Every try re-plans against
+-      # the freshly fetched tree, so a row that landed on main between
+-      # enumeration and apply drops out of the plan instead of conflicting.
+-      # The one force on this branch is a LEASE, never a bare --force: the
+-      # record branch is job-owned (generated rows and nothing else), and a
+-      # re-run after a later step failed re-plans the same main into a
+-      # SIBLING commit -- same parent, fresh committer timestamp -- which a
+-      # fast-forward-only push refuses forever (run 37261904851, attempt
+-      # 06:14: three `! [rejected] ... (non-fast-forward)`). The push
+-      # anchors --force-with-lease on the tip this very try fetched, so the
+-      # only tip it ever replaces is the one it observed -- the job's own
+-      # stale sibling -- while a remote that moved after that fetch, to a
+-      # job commit or a foreign one alike, refuses as stale info; an
+-      # unreadable fetch leaves the expectation empty, which refuses
+-      # anywhere the branch already exists. The roster is fail-soft: a ref
+-      # it cannot be read from rows every merge in the neutral phrasing a
+-      # seat edits at approval.
+-      - name: Write the rows and push the record branch
+-        id: record
+-        env:
+-          TOKEN: ${{ steps.mint.outputs.token }}
+-          REPO: ${{ github.repository }}
+-          OWNER: ${{ github.repository_owner }}
+-          EVENT: ${{ github.event_name }}
+-          # The beat reads the roster from `main`: the newest
+-          # `dev/programme/rosters/wave-r<N>-groups.json`, resolved by
+-          # `roster_lib.roster_path` (the round compares as an integer).
+-          # That directory, not `.claude/workflows/`, keeps frozen rosters
+-          # out of the live-roster scans (`briefs`, `wave-script`), which assert
+-          # web-fix-wave's stage vocabulary the round-9 orchestrator never used.
+-          # RECORD_ROSTER_REF is unset; this default is the whole of it.
+-          ROSTER_REF: ${{ vars.RECORD_ROSTER_REF || 'main' }}
+-        run: |
+-          set -uo pipefail
+-          status="skip-unknown"
+-          if [ -z "$TOKEN" ]; then
+-            status="skip-no-writer"
+-          else
+-            AUTH=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+-            echo "::add-mask::$AUTH"
+-            # Contrast for the PR step's length line: the SAME attempt's
+-            # token drives this basic-auth push successfully, so a length
+-            # that agrees here and there pins the value as live in both
+-            # steps. A length, never a value.
+-            echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+-            git config user.name "hpo-author[bot]"
+-            git config user.email "hpo-author[bot]@users.noreply.github.com"
+-            # The explicit refspec, so the roster is readable at
+-            # origin/<ROSTER_REF> below (a bare fetch lands it on FETCH_HEAD
+-            # only). Fail-soft: an unreadable roster rows in the neutral
+-            # phrasing a seat edits at approval.
+-            git fetch -q origin "+refs/heads/$ROSTER_REF:refs/remotes/origin/$ROSTER_REF" || \
+-              echo "::warning::the roster ref $ROSTER_REF is unreadable; rows land in the neutral phrasing"
+-            # THE HOLD (tvofi, 2026-10-07). Rebuilding the record branch on
+-            # every main merge restarted its checks and staled its review,
+-            # so it never merged and delivery-status went OVERDUE on main.
+-            # An open record pull request the automerge guard passes at its
+-            # live head -- row-only, generated from API facts, no conflict,
+-            # no required check failed -- is left alone: it merges, and the
+-            # beat its merge fires rows what landed meanwhile. One the guard
+-            # refuses is rebuilt as before.
+-            OPEN_PR=$(GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+-              --find-open --repo "$REPO" --owner "$OWNER") || OPEN_PR=0
+-            if [ "$OPEN_PR" != 0 ] && GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+-                 --automerge-check --hold --repo "$REPO" --pr "$OPEN_PR"; then
+-              status="held"
+-              echo "pr=$OPEN_PR" >> "$GITHUB_OUTPUT"
+-            fi
+-            for try in 1 2 3; do
+-              [ "$status" = held ] && break
+-              git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+-                fetch -q origin main && git reset -q --hard origin/main || { status="skip-fetch-failed"; break; }
+-              # The job's own previous run may have left its rows commit on
+-              # record/autofix; fetch that tip, per try, so the lease below
+-              # is anchored on the freshest observation. Fail-soft with no
+-              # annotation: absent (the ordinary state between beats) and
+-              # unreadable both leave the expectation empty, and the empty
+-              # lease then requires the branch not to exist -- so a branch
+-              # that is present but was not observed refuses, fail-closed.
+-              git fetch -q origin "+refs/heads/record/autofix:refs/remotes/origin/record/autofix" || true
+-              python3 -I tools/audit/seat/record_row.py \
+-                --plan --merges-file "$RUNNER_TEMP/merges.json" \
+-                --roster-ref "origin/$ROSTER_REF" \
+-                > "$RUNNER_TEMP/plan.json" || { status="skip-plan"; break; }
+-              if [ -z "$(python3 -I tools/audit/seat/record_row.py --row-numbers --plan-file "$RUNNER_TEMP/plan.json")" ]; then
+-                status="nothing-owed"
+-                break
+-              fi
+-              # THE BATCH (tvofi, 2026-10-24/25): a push opens or updates the
+-              # record pull request only for a batch -- BATCH_FLOOR_ROWS owed,
+-              # or the oldest owed merge BATCH_AGE_COMMITS first-parent
+-              # commits old, a margin under delivery_status's
+-              # STALE_AFTER_COMMITS -- and the nightly and a dispatch flush at
+-              # any count. Waiting is green; a gate that crashed is not.
+-              # The `|| batch=$?` is load-bearing: the step runs under `bash -e`,
+-              # and a bare call ending 4 would end the step there.
+-              batch=0
+-              python3 -I tools/audit/seat/record_row.py \
+-                --batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT" || batch=$?
+-              if [ "$batch" = 4 ]; then status="batching"; break; fi
+-              if [ "$batch" != 0 ]; then status="skip-batch-gate"; break; fi
+-              python3 -I tools/audit/seat/record_row.py \
+-                --apply --plan-file "$RUNNER_TEMP/plan.json" || { status="skip-apply"; break; }
+-              git add dev/programme/delivery
+-              if git diff --cached --quiet; then status="nothing-owed"; break; fi
+-              git commit -q -m "ci: record delivery rows" || { status="nothing-owed"; break; }
+-              expect=$(git rev-parse -q --verify refs/remotes/origin/record/autofix || :)
+-              if git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $AUTH" \
+-                   push --force-with-lease=refs/heads/record/autofix:"$expect" \
+-                   origin HEAD:refs/heads/record/autofix; then
+-                status="pushed"
+-                break
+-              fi
+-              status="skip-push-refused"  # main or the record tip moved under the push; loop re-derives
+-            done
+-          fi
+-          echo "RECORD AUTOFIX: $status"
+-          echo "status=$status" >> "$GITHUB_OUTPUT"
+-
+-      - name: Open or update the record pull request
+-        id: pr
+-        if: steps.record.outputs.status == 'pushed'
+-        env:
+-          REPO: ${{ github.repository }}
+-          OWNER: ${{ github.repository_owner }}
+-          TOKEN: ${{ steps.mint.outputs.token }}
+-          BASE_SHA: ${{ github.sha }}
+-        run: |
+-          set -euo pipefail
+-          # The header carries its NAME, not just its value: run 37281783211
+-          # self-reported the 401 as `{"message": "Requires authentication"}`
+-          # -- GitHub saw no Authorization header at all -- because curl
+-          # SILENTLY DROPS an -H argument without a colon (measured:
+-          # `curl -H "Bearer <token>"` sends no header, `curl -H
+-          # "Authorization: Bearer <token>"` sends it), and every 401 before
+-          # it, run 37261904851 included, was the same nameless header. The
+-          # lengths below pin this in the log without ever printing a value:
+-          # TOKEN and AUTH are both non-empty here, and the request still
+-          # carried no header -- an empty-variable explanation is refuted by
+-          # the same run that prints them.
+-          AUTH=$(printf 'Authorization: Bearer %s' "$TOKEN")
+-          echo "::add-mask::$TOKEN"
+-          echo "TOKEN len=${#TOKEN} AUTH len=${#AUTH}"
+-          API=https://api.github.com
+-          ACCEPT='Accept: application/vnd.github+json'
+-          # The self-row push leases on the rows commit this step's parent
+-          # already pushed. AUTH is the bearer header; BASIC is the push.
+-          BASIC=$(printf 'x-access-token:%s' "$TOKEN" | base64 -w0)
+-          echo "::add-mask::$BASIC"
+-          # Every write below reports its own evidence: URL, HTTP status and,
+-          # on any non-2xx, the response body -- deliberately without curl's
+-          # -f, which discarded all three. This is what turned the 401s from
+-          # run 37261904851 (attempts 06:08 and 06:17, `curl: (22) ... 401`
+-          # and nothing else) into run 37281783211's self-describing refusal
+-          # and so into the header fix above. The token stays masked and the
+-          # Authorization header value is never printed, so a future red
+-          # self-explains without leaking the credential. The body file is
+-          # shared, so no call runs inside a command substitution (a subshell
+-          # would swallow the diagnostics).
+-          curl_json() { # curl_json LABEL METHOD DATA_FILE URL; body lands in $RUNNER_TEMP/resp.json
+-            label=$1 method=$2 data=$3 url=$4
+-            code=$(curl -sS -o "$RUNNER_TEMP/resp.json" -w '%{http_code}' \
+-              -X "$method" -H "$AUTH" -H "$ACCEPT" -d @"$data" "$url") || {
+-              echo "::error::$label: transport failure against $url"
+-              return 1
+-            }
+-            case "$code" in
+-              2*) echo "$label: $method $url -> HTTP $code" ;;
+-              *)
+-                echo "::error::$label: $method $url returned HTTP $code; response body follows"
+-                cat "$RUNNER_TEMP/resp.json"
+-                return 1
+-                ;;
+-            esac
+-          }
+-          # The payload the pull request carries: title, body. The generator
+-          # refuses a body with a closing keyword before an issue number, so
+-          # the generation is the guard, not this step's prose. POST /pulls
+-          # also REQUIRES head and base -- a title-and-body payload is
+-          # refused 422 "Invalid request ... weren't supplied" (verified
+-          # from the orchestrator's box; the CI 401s masked it) -- so the
+-          # create payload adds them: head is the branch the lookup below
+-          # keys on, base is main. PATCH takes title and body only.
+-          # The python is indented with the run block: YAML strips that
+-          # common indent, and a further indent would be a Python error.
+-          write_payload() {
+-            python3 -I - "$1" "$BASE_SHA" <<'PY' > /dev/null
+-          import json, os, subprocess, sys
+-          head, base = sys.argv[1], sys.argv[2]
+-          plan = os.environ["RUNNER_TEMP"] + "/plan.json"
+-          row = "tools/audit/seat/record_row.py"
+-          def gen(*flags):
+-              return subprocess.run(["python3", "-I", row, *flags], check=True,
+-                                    capture_output=True, text=True).stdout
+-          title = gen("--print-title", "--plan-file", plan).strip()
+-          body = gen("--print-body", "--plan-file", plan,
+-                     "--head", head, "--base", base)
+-          json.dump({"title": title, "body": body},
+-                    open(os.environ["RUNNER_TEMP"] + "/payload.json", "w"))
+-          json.dump({"title": title, "body": body,
+-                     "head": "record/autofix", "base": "main"},
+-                    open(os.environ["RUNNER_TEMP"] + "/create.json", "w"))
+-          PY
+-          }
+-          # Open or update: the beat's own open pull request from a previous
+-          # unmerged beat is updated in place (fresh rows commit, regenerated
+-          # body naming the new head), never duplicated. The head filter is
+-          # `<owner>:<branch>`: `<owner>/<repo>:<branch>` answers [] and sent
+-          # run 37343172583 to a create the API refused 422.
+-          NUM=$(curl -fsS -H "$AUTH" -H "$ACCEPT" \
+-            "$API/repos/$REPO/pulls?head=${OWNER}:record/autofix&state=open" \
+-            | python3 -I -c 'import sys,json; a=json.load(sys.stdin); print(a[0]["number"] if a else "")')
+-          if [ -z "$NUM" ]; then
+-            write_payload "$(git rev-parse HEAD)"
+-            curl_json "record-pr open" POST \
+-              "$RUNNER_TEMP/create.json" "$API/repos/$REPO/pulls"
+-            NUM=$(python3 -I -c 'import json,os; print(json.load(open(os.environ["RUNNER_TEMP"]+"/resp.json"))["number"])')
+-          fi
+-          # NUM exists only now. The rows commit does not contain this pull
+-          # request's row. The merge SHA does not exist yet, so the line
+-          # anchors the number and says open. The lease is the rows commit
+-          # the previous step pushed, which is HEAD until this commit.
+-          PARENT=$(git rev-parse HEAD)
+-          python3 -I tools/audit/seat/record_row.py \
+-            --write-self-row --pr "$NUM" --root .
+-          git add dev/programme/delivery
+-          if ! git diff --cached --quiet; then
+-            git commit -q -m "ci: record delivery rows"
+-            git -c "http.https://github.com/.extraheader=AUTHORIZATION: basic $BASIC" \
+-              push --force-with-lease=refs/heads/record/autofix:"$PARENT" \
+-              origin HEAD:refs/heads/record/autofix
+-          fi
+-          write_payload "$(git rev-parse HEAD)"
+-          curl_json "record-pr update" PATCH \
+-            "$RUNNER_TEMP/payload.json" "$API/repos/$REPO/pulls/$NUM"
+-          # The beat's #201 coordination comment, naming the pull request it
+-          # opened (delivery-status-tracking item 3); one per beat.
+-          python3 -I tools/audit/seat/record_row.py \
+-            --print-comment --plan-file "$RUNNER_TEMP/plan.json" --pr "$NUM" \
+-            > "$RUNNER_TEMP/comment.md"
+-          python3 -I -c 'import json,os; print(json.dumps({"body": open(os.environ["RUNNER_TEMP"]+"/comment.md").read()}))' \
+-            > "$RUNNER_TEMP/comment.json"
+-          curl_json "record-pr comment" POST \
+-            "$RUNNER_TEMP/comment.json" "$API/repos/$REPO/issues/201/comments"
+-          echo "pr=$NUM" >> "$GITHUB_OUTPUT"
+-
+-      # THE MERGE IS A PREDICATE (tvofi, 2026-10-07). A record pull request
+-      # the guard passes merges with no review seat: `record_row.py
+-      # --automerge-check` re-generates every row from the API's facts at the
+-      # live head and refuses anything else -- another file, a non-canonical
+-      # path, an edited or deleted row, an unmerged or mis-cited pull
+-      # request, another author. On a pass the approver App reviews that
+-      # exact commit; once every required context has passed AT that commit,
+-      # the author App merges it with `sha` set to it, so a head that moved
+-      # after the guard read it makes the merge fail closed (#2029 review,
+-      # round 1: no auto-merge, which merged later on a head nobody judged).
+-      # While checks run, the next beat (a main push, or the nightly) retries.
+-      # On a refusal the approver App's approvals are dismissed, so a refused
+-      # head cannot be hand-merged on the bot's word. Every outcome here is
+-      # green; the report step reddens a beat that did not land.
+-      - name: Approve and merge a row-only record pull request
+-        id: automerge
+-        if: steps.record.outputs.status == 'pushed' || steps.record.outputs.status == 'held'
+-        env:
+-          REPO: ${{ github.repository }}
+-          TOKEN: ${{ steps.mint.outputs.token }}
+-          APPROVER: ${{ steps.mint.outputs.approver_token }}
+-          NUM: ${{ steps.pr.outputs.pr || steps.record.outputs.pr }}
+-          EVENT: ${{ github.event_name }}
+-        run: |
+-          set -uo pipefail
+-          { set +x; } 2>/dev/null
+-          echo "::add-mask::$TOKEN"
+-          [ -z "$APPROVER" ] || echo "::add-mask::$APPROVER"
+-          API=https://api.github.com
+-          ACCEPT='Accept: application/vnd.github+json'
+-          AUTH="Authorization: Bearer $TOKEN"
+-          say() { echo "AUTOMERGE: $1"; echo "status=$1" >> "$GITHUB_OUTPUT"; }
+-          pr_field() {
+-            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM" \
+-              | python3 -I -c "import sys,json; d=json.load(sys.stdin); print($1)"
+-          }
+-          guard() {
+-            GH_TOKEN="$TOKEN" python3 -I tools/audit/seat/record_row.py \
+-              --automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD" "$@"
+-          }
+-          dismiss_bot() {
+-            curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+-              | python3 -I -c 'import sys,json; [print(r["id"]) for r in json.load(sys.stdin) if r.get("state") == "APPROVED" and (r.get("user") or {}).get("login") == "hpo-approver[bot]"]' \
+-              | while read -r rid; do
+-                  curl -fsS -o /dev/null -X PUT -H "$AUTH" -H "$ACCEPT" \
+-                    -d '{"message":"The automerge guard refused this head; its review is manual.","event":"DISMISS"}' \
+-                    "$API/repos/$REPO/pulls/$NUM/reviews/$rid/dismissals" \
+-                    || echo "::warning::dismissing the approver App's review $rid on #$NUM failed"
+-                done
+-          }
+-          HEAD=$(pr_field 'd["head"]["sha"]') || {
+-            echo "::warning::record pull request #$NUM is unreadable"; say skip-unread; exit 0; }
+-          if ! guard; then
+-            echo "::warning::the automerge guard refused #$NUM at $HEAD; it keeps the manual review"
+-            dismiss_bot; say refused; exit 0
+-          fi
+-          if [ -n "$APPROVER" ]; then
+-            # One approving review per head: a held beat sees the same head again.
+-            have=$(curl -fsS -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/pulls/$NUM/reviews?per_page=100" \
+-              | python3 -I -c 'import sys,json; h=sys.argv[1]; print(any(r.get("state")=="APPROVED" and r.get("commit_id")==h and (r.get("user") or {}).get("login")=="hpo-approver[bot]" for r in json.load(sys.stdin)))' "$HEAD") \
+-              || { say skip-unread; exit 0; }
+-            if [ "$have" != True ]; then
+-              python3 -I -c 'import json,sys; print(json.dumps({"commit_id": sys.argv[1], "event": "APPROVE", "body": "Automerge guard: row-only record pull request at " + sys.argv[1] + "; tools/audit/seat/record_row.py --automerge-check passed (tvofi, 2026-10-07)."}))' "$HEAD" \
+-                > "$RUNNER_TEMP/review.json"
+-              curl -fsS -o /dev/null -X POST -H "Authorization: Bearer $APPROVER" -H "$ACCEPT" \
+-                -d @"$RUNNER_TEMP/review.json" "$API/repos/$REPO/pulls/$NUM/reviews" || {
+-                echo "::warning::the approver App's review on #$NUM was refused"; say skip-review-refused; exit 0; }
+-            fi
+-          fi
+-          # THE TRAIN HOLD (R10-TRAIN-HOLD, issue #2302). A merge train
+-          # merges pull requests itself, and a record pull request landing
+-          # from this beat while it waits on CI moves main under it: #2291,
+-          # #2295 and #2299 each merged mid-train on 2026-10-15 and stopped
+-          # or re-carried #2284 and #2290. CI cannot see the train's local
+-          # pidfile, so tools/audit/seat/merge_train.py publishes
+-          # refs/heads/train-hold while a real run is live and deletes it at
+-          # its closing line (hold_refresh/hold_release). The ref points at a
+-          # commit made at publication, whose committer date is the age here:
+-          # younger than HOLD_MAX_AGE_S is a live train, so the pull request
+-          # is not merged here; at or past it the hold is stale (a
+-          # crashed train moved nothing, so no rows went overdue) and this
+-          # beat proceeds. The train refreshes the ref on every queue item,
+-          # every recarry and before every CI-wait sleep, so the longest gap
+-          # between refreshes is ONE PHASE -- a recarry (5-15 min inside
+-          # app_push's prepr) or a poll (min(POLL_SECONDS, HEARTBEAT_SECONDS)
+-          # = 240 s), never a whole wait or a whole batch. HOLD_MAX_AGE_S=3600
+-          # is above the longest such phase by more than 3x. A date ahead of
+-          # this runner's clock is unknowable, never young (#775); an absent
+-          # ref leaves the pre-fix behaviour. GET /commits/<ref> answers 422
+-          # "No commit found for SHA" for an absent ref (measured live
+-          # 2026-10-20), not 404, so both arms are the silent absence; any
+-          # other code is logged. record_row.py's own --automerge-check is
+-          # untouched. AFTER the guard and the approver App's review, before
+-          # the pitch and the merge (V118): only a merge moves main, and the
+-          # train's --bot-prs sweep merges on the guard alone and leaves the
+-          # review to this beat, so a hold ahead of the review left a record
+-          # pull request unreviewed while trains ran back to back (#2856,
+-          # about 3 h). A held beat still dismisses on a refusal and posts
+-          # the one approving review per head; it never merges.
+-          HOLD_REF=train-hold
+-          HOLD_MAX_AGE_S=3600
+-          hold_code=$(curl -sS -o "$RUNNER_TEMP/train-hold.json" -w '%{http_code}' \
+-            -H "$AUTH" -H "$ACCEPT" "$API/repos/$REPO/commits/$HOLD_REF") || hold_code=000
+-          if [ "$hold_code" = 200 ]; then
+-            hold_age=$(python3 -I - "$RUNNER_TEMP/train-hold.json" <<'PY'
+-          import json, sys
+-          from datetime import datetime, timezone
+-          at = json.load(open(sys.argv[1]))["commit"]["committer"]["date"]
+-          print(int((datetime.now(timezone.utc)
+-                     - datetime.fromisoformat(at.replace("Z", "+00:00"))).total_seconds()))
+-          PY
+-            ) || hold_age=unreadable
+-            case "$hold_age" in
+-              *[!0-9-]*|'')
+-                echo "::warning::the train hold's age is unreadable ($hold_age); treated as absent" ;;
+-              *)
+-                if [ "$hold_age" -lt 0 ]; then
+-                  echo "::warning::the train hold's committer date is ahead of this runner's clock; age unknowable, treated as stale"
+-                elif [ "$hold_age" -lt "$HOLD_MAX_AGE_S" ]; then
+-                  echo "::notice::a merge train is live (hold ${hold_age}s old); #$NUM waits for a later beat"
+-                  say skip-train-hold; exit 0
+-                else
+-                  echo "::warning::the train hold is ${hold_age}s old (bound ${HOLD_MAX_AGE_S}s); treated as stale"
+-                fi ;;
+-            esac
+-          elif [ "$hold_code" != 404 ] && [ "$hold_code" != 422 ]; then
+-            echo "::warning::the train hold is unreadable (HTTP $hold_code); treated as absent"
+-          fi
+-          # THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6). A record merge
+-          # moves main under every open head, so a push beat leaves the pull
+-          # request for the train's --bot-prs sweep while the last record
+-          # merge on main is younger than record_row.py's PITCH_S -- unless
+-          # the oldest owed merge is two pitches or BATCH_AGE_COMMITS commits
+-          # old, the bounded staleness that keeps one row per merge true. The
+-          # nightly and a dispatch never pitch. Behind the train hold, so a
+-          # live train still answers first; after the guard and the approval,
+-          # so a pitched head is one the guard passed and the approver App
+-          # reviewed: the sweep merges it on the guard alone and posts no
+-          # review, and main's ruleset wants one. A pitch check that fails is
+-          # no pitch, the pre-fix behaviour.
+-          if python3 -I tools/audit/seat/record_row.py --pitch-check \
+-               --merges-file "$RUNNER_TEMP/merges.json" --event "$EVENT"; then
+-            :
+-          else
+-            pitch=$?
+-            if [ "$pitch" = 4 ]; then
+-              echo "::notice::#$NUM waits the pitch for the train's sweep or a later beat"
+-              say skip-pitch; exit 0
+-            fi
+-            echo "::warning::the pitch check exited $pitch; no pitch applied"
+-          fi
+-          # A CONDITION, not a bare `guard --require-green; rc=$?`: this step
+-          # runs under `bash -e` (GitHub's `run:` default), so a bare call
+-          # would end the STEP with the guard's own exit -- 3 while a required
+-          # check still runs, 1 on a refusal -- before the `case` below turns
+-          # either into `say ...; exit 0`. Every outcome here is green; the
+-          # report step reddens a beat that did not land. `-e` exempts a
+-          # condition, so the exit reaches the case.
+-          if guard --require-green; then rc=0; else rc=$?; fi
+-          case "$rc" in
+-            0) ;;
+-            3) say approved-pending; exit 0 ;;
+-            *) dismiss_bot; say refused; exit 0 ;;
+-          esac
+-          python3 -I -c 'import json,sys; print(json.dumps({"sha": sys.argv[1], "merge_method": "merge"}))' "$HEAD" \
+-            > "$RUNNER_TEMP/merge.json"
+-          code=$(curl -sS -o "$RUNNER_TEMP/merge-resp.json" -w '%{http_code}' -X PUT -H "$AUTH" -H "$ACCEPT" \
+-            -d @"$RUNNER_TEMP/merge.json" "$API/repos/$REPO/pulls/$NUM/merge") || code=000
+-          if [ "$code" = 200 ]; then
+-            say merged
+-          else
+-            echo "::warning::merging #$NUM at $HEAD returned HTTP $code; response follows"
+-            cat "$RUNNER_TEMP/merge-resp.json" || true
+-            say skip-merge-refused
+-          fi
+-
+-      # Both installation tokens die with the beat, on every path through it:
+-      # the approver's is minted whenever its secrets exist, including beats
+-      # where the step above never runs (#2029 review, round 1).
+-      - name: Revoke the App installation tokens
+-        if: always()
+-        env:
+-          TOKEN: ${{ steps.mint.outputs.token }}
+-          APPROVER: ${{ steps.mint.outputs.approver_token }}
+-        run: |
+-          { set +x; } 2>/dev/null
+-          for t in "$APPROVER" "$TOKEN"; do
+-            [ -z "$t" ] || curl -sS -o /dev/null -X DELETE -H "Authorization: Bearer $t" \
+-              -H 'Accept: application/vnd.github+json' https://api.github.com/installation/token \
+-              || echo "::warning::revoking an installation token failed; it expires within the hour"
+-          done
+-
+-      # As in mutation-ledger-push and the other autofix lanes (#523): the
+-      # status reaches the run, and a beat owed and not landed reddens this
+-      # job — a red here means "no bot commit" while a rowless merge stands
+-      # on main. nothing-owed is the protocol's ordinary green.
+-      - name: Report whether the beat landed
+-        if: always()
+-        env:
+-          STATUS: ${{ steps.record.outputs.status }}
+-        run: |
+-          echo "### record-autofix" >> "$GITHUB_STEP_SUMMARY"
+-          echo "" >> "$GITHUB_STEP_SUMMARY"
+-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+-          echo "status: $STATUS" >> "$GITHUB_STEP_SUMMARY"
+-          echo '```' >> "$GITHUB_STEP_SUMMARY"
+-          case "$STATUS" in
+-            pushed|nothing-owed|held|batching) exit 0 ;;
+-            "")
+-              echo "::error::the record step did not run; a beat owed cannot be distinguished from one skipped"
+-              exit 1 ;;
+-            *)
+-              echo "::error::a record beat was owed (or the window could not be read) and did not land: $STATUS"
+-              exit 1 ;;
+-          esac
+diff --git a/.github/workflows/tests.yml b/.github/workflows/tests.yml
+index d04be1000..fe000bae1 100644
+--- a/.github/workflows/tests.yml
++++ b/.github/workflows/tests.yml
+@@ -1447,9 +1447,8 @@ jobs:
+           python -I -S tests/nightly_status.py
+ 
+   # THE PULL REQUEST'S OWN COPY OF EACH PINNED GRADER (decision 0013, amended
+-  # 2026-09-24). `coverage-ratchet`, `nightly-status` and governance.yml's
+-  # `delivery-status` restore their grader from the base, so a pull request
+-  # that changes one is graded by the old copy there. This job runs the new
++  # 2026-09-24). `coverage-ratchet` and `nightly-status` restore their grader from the
++  # base, so a pull request that changes one is graded by the old copy there. This job runs the new
+   # copy the way that job does, so a changed grader still shows red or green
+   # on the pull request that changes it. It is not a required context, and
+   # `HPO_JOB_GRADES: nothing` tells `codeowners_gap.py` it grades nothing. Its
+@@ -1499,7 +1498,7 @@ jobs:
+         run: |
+           set -euo pipefail
+           python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+-          for g in coverage_ratchet delivery_status; do
++          for g in coverage_ratchet; do
+             if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
+               echo "$g=true" >> "$GITHUB_OUTPUT"
+               echo "tests/$g.py changed: its own copy runs below"
+@@ -1553,47 +1552,6 @@ jobs:
+           python3 tests/coverage_ratchet.py \
+             --coverage "$RUNNER_TEMP/coverage/coverage.json"
+ 
+-      - name: The pull request's delivery_status.py, as `delivery-status` runs it
+-        if: always() && steps.changed.outputs.delivery_status == 'true'
+-        run: |
+-          git fetch --no-tags --quiet origin main
+-          # A non-zero exit shared with the base copy on this tree is that
+-          # copy's own. Exit with the pull request's code only when the two
+-          # differ, and exit 1 when this copy prints OVERDUE and the base
+-          # copy does not: both of those exits are 1, so the codes alone
+-          # cannot separate them.
+-          head_copy="$RUNNER_TEMP/delivery_status.head.py"
+-          cp tests/delivery_status.py "$head_copy"
+-          git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+-          set +e
+-          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+-          base_rc=$?
+-          set -e
+-          cp "$head_copy" tests/delivery_status.py
+-          set +e
+-          python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+-          head_rc=$?
+-          set -e
+-          cat "$RUNNER_TEMP/delivery_status.base.out"
+-          echo "----- head copy -----"
+-          cat "$RUNNER_TEMP/delivery_status.head.out"
+-          echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+-          head_overdue=0
+-          base_overdue=0
+-          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+-            head_overdue=1
+-          fi
+-          if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+-            base_overdue=1
+-          fi
+-          if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+-            exit 1
+-          fi
+-          if [ "$head_rc" -ne "$base_rc" ]; then
+-            exit "$head_rc"
+-          fi
+-          exit 0
+-
+       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+         if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+         with:
+diff --git a/CLAUDE.md b/CLAUDE.md
+index 060c9542b..975269e59 100644
+--- a/CLAUDE.md
++++ b/CLAUDE.md
+@@ -88,8 +88,8 @@ binds the seat to this file.
+ | `claim-files.md` | the `claimnotes` merge driver and its refusal; a branch that claims nothing leaves both claim files byte-identical; a `DIRTY` pull request does not go red, it cannot run |
+ | `comment-readback.md` | post an issue or pull-request comment by running `gh_comment.py`, and read back what landed — a read-back leaves an artifact another seat reads, which a warning about the flag does not |
+ | `defect-root-cause.md` | a defect that reached a release, or turned a PR red on a check a cheaper detector could have run, owes a cause, a process state and a countermeasure or a recorded refusal |
+-| `delivery-status-tracking.md` | a PR's row as `dev/programme/delivery/<N>.md`, roster `resume`, and one #201 comment per state change — at each merge, not at session end; the record outranks any wave body |
+-| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief before the producing pull request merges — a PR comment records it, it does not propagate it |
++| `delivery-status-tracking.md` | the record is the pull-request list and one #201 line per merge, plus roster `resume` and every open issue's disposition — at each merge, not at session end; no per-PR row |
++| `finding-propagation.md` | a finding that changes how a later stage must work goes into that stage's own brief, landed at the latest at the producing pull request's merge — a PR comment records it, it does not propagate it |
+ | `gate-scoping.md` | how to run the scoped gate, the `gate_lock.py` lease, and never a full `derive_closures.sh` off Linux — that path replaced the Linux recordings and cost one lane most of its closure |
+ | `ratchet-budgets.md` | three one-sided caps, because the floor prices a session that opens nothing and a split lowers it without deleting a line; re-record it only alongside a flat corpus and flat role caps |
+ | `writing-for-agents.md` | what a sentence in the development record must carry to stay; `README.md` and the rest of `docs/` are outside it; and the one living handover, durable in the tree against volatile on #201 |
+@@ -113,12 +113,11 @@ Under `dev/governance/roles/`.
+ |---|---|
+ | `orchestrator.md` | dispatches, merges, holds the freeze, records, stamps; turn `nudge.md`. |
+ | `fixer.md` | owns one architecturally sound fix: failing test first, mutation proof, the finder's harness at both ends, a null control for every quantified claim; steps 2–8 re-execute after any rebase or merge, and the handoff to review freezes the branch |
+-| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; a head that moved under the review is a blocked verdict |
++| `fix-review.md` | reviews one fix adversarially, from a detached worktree at the head SHA, with the **finder's** harness and never the fixer's; blocks on code, tests and harness, paperwork is a note; a verdict carries while the PR's own diff is unchanged |
+ | `designer.md` | designs an L or XL group with no approved design before its fixer, pipelined behind its last predecessor: the architect note at `design/<group>`, never production code |
+ | `design-review.md` | reviews that note at its handoff SHA; only `Design review: approve` dispatches the fixer; a third `revise` sends the designer to re-cut |
+ | `architect-planner.md` | P3 from round 11: triages verified findings, groups by owning seam, plans moves to the archscore target |
+ | `plan-review.md` | attacks that plan; only `Plan review: approve` sends it to the owner |
+-| `proposal-triage.md` | gates a process or tooling proposal on cost/benefit first |
+ | `standing-tick.md` | reports only owed or new tick-board items |
+ | `standing-merge.md` | runs merges, critical path first, never choosing them |
+ | `standing-dispatch.md` | dispatches reviewers, relays and confirms verdicts |
+@@ -208,6 +207,6 @@ that far, established in its own seat beside the fix and never inside it. The
+ two triggers, the four process states, the cost test, when recording that no
+ countermeasure is worth building is a legitimate result, and the demonstration a
+ check-shaped countermeasure owes are in `defect-root-cause.md` and
+-`root-cause.md`. Only the red-check trigger is enforced: the fixer names the
+-check in the pull-request body and answers it there, and the fix reviewer
+-returns `blocked` on one the body left unanswered.
++`root-cause.md`. The fixer names a red check in the pull-request body and
++answers it there; an unanswered one is a reviewer's note resolved at merge (card
++C5).
+diff --git a/dev/audit/harnesses/r10_seat_selftests_mutants.py b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+index e63e3c1fd..4e8fbdf7a 100644
+--- a/dev/audit/harnesses/r10_seat_selftests_mutants.py
++++ b/dev/audit/harnesses/r10_seat_selftests_mutants.py
+@@ -15,7 +15,7 @@ file -- outside that file's self-test function -- and run only the step
+ that names the file (or the one STEP_OF names): a killed mutant reddens the step, and the same step on
+ the unmutated file must pass first (NOT RUN otherwise). S04U is S04 run with
+ PYTHONUNBUFFERED=1 in the step's environment, as a Linux container sets it.
+-S35-S37 are #2444's three unpinned push lines in handoff_push.sh, S38 its
++S35-S36 are #2444's unpinned push lines in handoff_push.sh, S38 its
+ unpinned `gh pr merge` line in merge_pr.sh: each line is replaced by the
+ carry's own mutant (`true`, and `exit 0` for the merge), and the step's
+ offline self-test must redden.
+@@ -187,7 +187,6 @@ MUTANTS = [
+      "true  # mut:push-update"),
+     ("S36", "handoff_push.sh", "push_app 2 > /dev/null; out=$PUSH_OUT  # mut:push-open",
+      "true  # mut:push-open"),
+-    ("S37", "handoff_push.sh", "push_app 1  # mut:push-row", "true  # mut:push-row"),
+     ("S38", "merge_pr.sh",
+      "gh pr merge $PR --merge --match-head-commit $S || exit 1  # mut:merge",
+      "exit 0  # mut:merge"),
+@@ -219,14 +218,16 @@ MUTANTS = [
+     ("merge_train-31", "merge_train.py", "            if self.wall() < due:", "            if False:"),
+     ("merge_train-32", "merge_train.py", "all(m and m.group(1) in infra for m in named)", "all(m for m in named)"),
+     ("merge_train-33", "merge_train.py", "    if epochs:\n        return float(", "    if False:\n        return float("),
+-    ("bus-1", "bus.sh", "    0|3) ;;\n", "    0|1|3) ;;\n"),
+-    ("bus-2", "bus.sh", "    0|3) ;;\n", "    0) ;;\n"),
++    ("bus-1", "bus.sh", '    1) die "dispatch: #$pr\'s head $h is not reviewable', '    1) : "dispatch: #$pr\'s head $h is not reviewable'),
++    # card C8: a WAIT head dispatches only once its cheap checks concluded.
++    ("bus-2", "bus.sh", '[ -z "$cheap" ] || die "dispatch: #$pr\'s head $h has cheap checks', 'true || die "dispatch: #$pr\'s head $h has cheap checks'),
+     ("bus-3", "bus.sh", '    *) die "dispatch: cannot classify', '    *) : "dispatch: cannot classify'),
+     # R10-FLY-RELAY-REVIEW-FF: push-verdict's refusals before review/<pr> moves, and the push buffer.
+     ("bus-4", "bus.sh", '  why=$(carry_gate "$v") || die "push-verdict: $why"\n', ''),
+     ("bus-5", "bus.sh", '  why=$(python3 -I "$ROOT/tools/audit/seat/ref_privacy.py" body-lines "$v") \\\n', '  why=$(true) \\\n'),
+     ("bus-6", "bus.sh", 'git -c http.postBuffer=524288000 push -q "$REMOTE"', 'git push -q "$REMOTE"'),
+-    ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
++    # card C4: the reviewed head is derived from verdict/<pr> when the caller names none.
++    ("bus-7", "bus.sh", '    [ "$rh" != "$h" ] || die "dispatch: #$pr\'s head $h already holds a merge verdict', '    true || die "dispatch: #$pr\'s head $h already holds a merge verdict'),
+     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
+     ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
+diff --git a/dev/governance/config/policy_budgets.json b/dev/governance/config/policy_budgets.json
+index 60e213864..4f642cbbf 100644
+--- a/dev/governance/config/policy_budgets.json
++++ b/dev/governance/config/policy_budgets.json
+@@ -81,7 +81,6 @@
+     "dev/governance/roles/architect-planner.md": 85,
+     "dev/governance/roles/standing-merge.md": 37,
+     "dev/governance/roles/standing-dispatch.md": 39,
+-    "dev/governance/roles/proposal-triage.md": 36,
+     "dev/governance/roles/standing-roster.md": 27,
+     "dev/governance/roles/standing-tick.md": 26,
+     "dev/governance/roles/plan-review.md": 24
+@@ -135,7 +134,6 @@
+     "dev/governance/roles/architect-planner.md": 1261,
+     "dev/governance/roles/standing-merge.md": 507,
+     "dev/governance/roles/standing-dispatch.md": 509,
+-    "dev/governance/roles/proposal-triage.md": 489,
+     "dev/governance/roles/standing-roster.md": 368,
+     "dev/governance/roles/standing-tick.md": 330,
+     "dev/governance/roles/plan-review.md": 304
+diff --git a/dev/governance/dimensions/D11.md b/dev/governance/dimensions/D11.md
+index 4cc83f3e0..fea51a969 100644
+--- a/dev/governance/dimensions/D11.md
++++ b/dev/governance/dimensions/D11.md
+@@ -74,7 +74,7 @@ produced, and leave its cost and DORA's four keys to `D13.md`.
+    mechanical should be mechanical and wired into the machinery. This means
+    reusable instrument before policy, only policy if no robust script could
+    be built at a reasonable cost (tokens, time, complexity)"*. A finding
+-   goes to `proposal-triage.md` as a mechanisation proposal, costed in its
++   goes to the orchestrator as a mechanisation proposal, costed in its
+    terms and D13's; a non-finding records why none could be built at that
+    cost.
+ 
+diff --git a/dev/governance/roles/fix-review.md b/dev/governance/roles/fix-review.md
+index 0e272a7c0..6f0b6b9cd 100644
+--- a/dev/governance/roles/fix-review.md
++++ b/dev/governance/roles/fix-review.md
+@@ -4,7 +4,8 @@ You review one fix PR adversarially, fresh, from a worktree at
+ the PR's head SHA. You check that the numbers are real, not that the code looks right.
+ **Its copy of this contract is frozen with the tree, so can be old**; start from the dispatch's `review-packet:`, whose check digest is as rendered: re-read live checks before a verdict.
+ Before step 1: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/`; empty is current.
+-Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`. It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
++Before the handoff freezes the branch (`fixer.md`), prepare against the merge base only: steps 2, 12 govern after. Publish with `tools/audit/seat/bus.sh push-verdict <pr> <verdict file> <evidence dir>` (a file there names the head) and report its output to be confirmed; a cloud seat, with no `push-verdict`, commits `cloud_relay.sh`'s verdict file and `ev/` in one commit, subject `verdict <pr> <head40>`, to a fresh repository and pushes `probe/rev-<pr>-<nonce first 8>`. First line: `Fix review: merge <head40>` or `Fix review: blocked <head40> <class>: <reason>`, class `[a-z-]+` (a script routes on it), then your brief's `bus-nonce: <nonce>`.
++**Block only on code, tests and harness** (card C5, tvofi 2026-11-05): paperwork (a stale body, a carry route, a figure, a root-cause answer) is a `Note: <class>: <text>` line under `merge`; one on `custom_components/` blocks. `bus.sh post` refuses `merge` at a red (C8). It posts as `hpo-approver` (0013), never the author App (#1233) or the owner's review.
+ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between rounds through refs, never mid-review, by ~150 k tokens.
+ 
+ 1. Re-run the mutation proof: delete the production line(s) the PR names,
+@@ -41,26 +42,21 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+     where a finding changing a later stage was written; open it (a roster
+     carry at the body's `handoff/audit-r<N>-roster` SHA) and confirm it states
+     its control as a precondition (`finding-propagation.md`). One only
+-    in this PR's comments is `blocked <sha> carry-missing: not carried to <stage>`.
++    in this PR's comments is `Note: carry-missing: not carried to <stage>`.
+ 11. **A red check owes an answer** (`defect-root-cause.md`'s second
+     trigger). Read the PR's own checks (`get_check_runs`, or
+     the commit's `check-runs` API), not the body's account, and never a
+     listing that shows one run per check. For each gate check that went red,
+     the body names it and answers: the cheaper detector with its standing cost,
+-    or the finding that none exists. Both pass; silence is
+-    `blocked <sha> root-cause-detectable: <check>` where a cheaper detector
+-    could have shown the red before the handoff (name it),
+-    `blocked <sha> root-cause-unrecorded: <check>` where that check is the
+-    cheapest, `root-cause-unanswered` only if you cannot tell; each posted
+-    only once the head's workflows all concluded and a `pr-contract` run started after
+-    the last to conclude red, else the push-time run, checked the body (tvofi,
+-    2026-10-08); green, that run is the evidence, never re-derived; while it
+-    refuses, wait or hand back unverdicted, saying so.
++    or the finding that none exists. Both pass; silence is a `Note:` line, never
++    a block (C5), naming root-cause-detectable where a cheaper detector could
++    have shown the red before the handoff (name it), `root-cause-unrecorded`
++    where that check is the cheapest, `root-cause-unanswered` if you cannot
++    tell. The wave routes an old `blocked <sha> root-cause-detectable: <check>`.
+     `UNDER-SCOPED` and `INHERITED CLAIMS` are answered by naming them
+     (`ci-autofix.md`). You check that the trigger was answered, not the answer (`root-cause.md`'s).
+-    **A red `nightly-status` or `delivery-status` is not this pull request's**
+-    unless its diff reaches what they read (`defect-root-cause.md`); deleting a
+-    merged row turns `delivery-status` OVERDUE.
++    **A red `nightly-status` is not this pull request's**
++    unless its diff reaches what it reads (`defect-root-cause.md`).
+ 
+     **The head's runs are not the range's** (#1144). The body check prints
+     `record`/`skip red-history` for the range; `skip` means every earlier head
+@@ -80,14 +76,14 @@ Long jobs and CI waits follow `fixer.md`'s preamble; rotate context between roun
+     verdict, and check it is still the head when you post it; if it moved, say
+     which of your numbers survive and which you re-took.
+ 
+-    The handoff makes the head yours, so one that moved under you is a broken
+-    rule: `blocked <sha> head-moved: measured <sha>, head is <other>`.
+-
+-    **A `merge` verdict attaches to the head its first line names and carries**
+-    (#1667; tvofi 2026-10-27) while `tools/audit/seat/review_carry.py
+-    <verdicted> <new>` prints `CARRY`: the PR's patch is the one reviewed
+-    (L6), not `head-moved`; a red CI never carries.
+-    Else a main merge is its **resolution delta**, alone yours; any other move is re-reviewed.
++    **A `merge` verdict attaches to the head its first line names and carries
++    to any later head whose own diff is unchanged** (card C4, tvofi 2026-11-05;
++    #1667, 2026-10-27): `tools/audit/seat/review_carry.py <verdicted> <new>`
++    prints `CARRY` (`app_approve.sh --carry`: main merges git resolved itself,
++    claim files unioned, the branch's own diff equal to the reviewed one),
++    and `bus.sh dispatch` refuses a second reviewer. A red never carries.
++    Else a main merge is its **resolution delta**, alone yours; a head whose
++    own diff moved under you is `blocked <sha> head-moved: measured <sha>, head is <other>`.
+ 
+ 13. **A conflict is a measurement, not a status field.** `mergeStateStatus:
+     DIRTY` is GitHub's, computed where the `claimnotes` driver cannot run
+diff --git a/dev/governance/roles/fixer.md b/dev/governance/roles/fixer.md
+index 8f7fae7e1..2414861cf 100644
+--- a/dev/governance/roles/fixer.md
++++ b/dev/governance/roles/fixer.md
+@@ -289,8 +289,8 @@ never a bare assertion; the reviewer judges them (`fix-review.md` step 14).
+ 
+ ## Before you hand off: carry what you found forward
+ 
+-Your PR does not merge until any finding that **changes how a later stage must
+-work** is in that stage's own brief — `finding-propagation.md` states the test,
++Put any finding that **changes how a later stage must work** in that
++stage's own brief — `finding-propagation.md` states the test,
+ what to write and where it goes, and a comment on this PR discharges none of it.
+ Name the destination in your PR body — which brief, contract, carry file or
+ roster received it — so the reviewer checks the destination rather than takes
+diff --git a/dev/governance/roles/orchestrator.md b/dev/governance/roles/orchestrator.md
+index 0248c8586..5d7329878 100644
+--- a/dev/governance/roles/orchestrator.md
++++ b/dev/governance/roles/orchestrator.md
+@@ -110,10 +110,10 @@ whenever you merge.
+   `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
+   `standing-roster.md`. You send queue lines and act on their reports; the
+   sweep restarts any that is absent or stopped with work owed.
+-- **A proposal goes to `proposal-triage.md` before it is routed**: a process,
+-  tooling or instrument proposal from the sweep, a seat's result or a verdict.
+-  Where a mandate lets you act on a recommendation absent the owner, that means
+-  sending it to triage; an ACCEPT reaches the roster citing its ruling.
++- **A proposal is ruled directly, by the owner or by you**: a process,
++  tooling or instrument proposal from the sweep, a seat's result or a verdict
++  is wired in only when its measured benefit clearly outweighs its cost; there
++  is no standing triage seat (card C6, tvofi 2026-11-05).
+ - **Establish the work is not already done or in flight.** One
+   `list_pull_requests` over the open set, and the issue's comments: a seat
+   was dispatched to fix what an open pull request fixed.
+@@ -190,8 +190,8 @@ established fact, with nothing gating it. A real finding you must not touch goes
+ 
+ ## 9. The record, and the one living handover
+ 
+-`delivery-status-tracking.mdc`, at **each merge** and not at session end. A merge whose own pull request is
+-frozen by the handoff costs a record pull request; that is the price, not zero.
++`delivery-status-tracking.mdc`, at **each merge**: `postmerge.py`'s #201 line and roster `resume`,
++no per-PR row (card C5); a verdict's paperwork notes are yours to resolve at that merge.
+ **The handover is one file and it is not optional** (`writing-for-agents.md`).
+ 
+ Failure shapes already produced, all yours:
+@@ -228,7 +228,7 @@ Through the roster seat, on `standing-roster.md`'s terms.
+ - A `merge` verdict from a reviewer that measured **this** head, or a **carry**,
+   with no reviewer turn (tvofi, 2026-10-01): `tools/pr/app_approve.sh --carry
+   <verdict> <head>` reports carried, the files `git diff --name-only <verdict>
+-  <head>` names miss the branch's own diff bar its delivery row,
++  <head>` names miss the branch's own diff,
+   or keep its patch (L6); else a resolution delta for the same reviewer.
+ - CI green at the verdicted head, landed onto a green `main` by
+   `tools/audit/seat/merge_train.py batch` (tvofi, 2026-10-07), the only bypass:
+diff --git a/dev/governance/roles/proposal-triage.md b/dev/governance/roles/proposal-triage.md
+deleted file mode 100644
+index baf91a31a..000000000
+--- a/dev/governance/roles/proposal-triage.md
++++ /dev/null
+@@ -1,34 +0,0 @@
+-# The proposal-triage seat's contract
+-
+-Every process, tooling or instrument proposal passes this cost/benefit gate
+-before any implementation (owner ruling, tvofi 2026-10-22; decision 0015).
+-Proposals come from the orchestrator's sweep, its Proposals line, a seat's
+-result and a verdict's optimisation note. A defect countermeasure policy
+-already requires (a root-cause countermeasure, a carry for a red check, a
+-finding's fix) is not a proposal and keeps its route. One opus seat at
+-medium effort: rulings are checked against code.
+-
+-**The bar is "clearly".** A proposal is wired in only when its measured
+-benefit clearly outweighs everything it adds: wall-clock or seat time on the
+-critical path; tokens (seat model x effort x expected runs); GitHub API calls;
+-standing CPU on the Pi-class target or CI runners; code and policy
+-complexity (lines, new files and checks, hot files touched, review rounds);
+-and maintenance surface. An even or marginal trade is REJECT; an unmeasured
+-benefit is DEFER, never ACCEPT. An ACCEPT on the >10% exemption
+-(`ratchet-budgets.md`) says so; its PR records it.
+-
+-**Verdicts:** ACCEPT names a destination (a roster group and carry
+-text, or a new group and brief); DEFER, what would change it or the owning
+-group; REJECT, the binding cost.
+-
+-**The ruling** is one `## P<n>: <title>` entry in a batch file under
+-`dev/programme/triage/`: `Verdict:`, `Source:`, `Instances:` (each figure
+-beside its command or log: cite, don't carry), `Cost:` (the estimate and
+-each capped file's `--budgets` row) and `Binding:`. An ACCEPT runs its rule
+-on each instance, result beside it. Git and local logs before the API.
+-
+-**You do not** implement, edit the roster or merge. The orchestrator routes an
+-ACCEPT through `tools/audit/seat/roster_edit.py`, whose text cites the ruling
+-as `triage: dev/programme/triage/<file>.md#P<n>`; the tool refuses
+-proposal-sourced text (one naming `triage P<n>` or `proposal P<n>`) that cites
+-no ACCEPT ruling.
+diff --git a/dev/governance/roles/standing-dispatch.md b/dev/governance/roles/standing-dispatch.md
+index 35ca31403..b32c1127e 100644
+--- a/dev/governance/roles/standing-dispatch.md
++++ b/dev/governance/roles/standing-dispatch.md
+@@ -4,9 +4,8 @@ One of the four standing seats (`orchestrator.md` section 5); haiku, low
+ effort. **Input:** the orchestrator's queue lines, each a pull request, head
+ and role to dispatch or a relay to run; critical-path items first.
+ 
+-**Dispatch**, per line: check the delivery row is in the PR's
+-three-dot diff, then `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
+-dispatch`, `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
++**Dispatch**, per line: `tools/pr/approve_held_runs.sh`, `tools/audit/seat/bus.sh
++dispatch` (cards C4, C8 refuse there), `tools/audit/seat/cloud_dispatch.py --role reviewer` at the printed
+ head and nonce, and the `dispatch/reviewer-rev-<pr>` publish. Report
+ `fire-owed <ref>`: a subagent cannot call RemoteTrigger; the orchestrator
+ fires. A `record/autofix` pull request is never dispatched a reviewer.
+diff --git a/dev/governance/roles/standing-roster.md b/dev/governance/roles/standing-roster.md
+index 5d251bef4..0aea9952d 100644
+--- a/dev/governance/roles/standing-roster.md
++++ b/dev/governance/roles/standing-roster.md
+@@ -2,9 +2,8 @@
+ 
+ One of the four standing seats (`orchestrator.md` section 5); sonnet, medium
+ effort. **Input:** the orchestrator's queue lines, each one
+-`tools/audit/seat/roster_edit.py` op with its text. A proposal-sourced op
+-carries its triage ruling (`proposal-triage.md`); the tool refuses one that
+-does not.
++`tools/audit/seat/roster_edit.py` op with its text. An op naming a triage
++or proposal number cites its ruling; the tool refuses one that does not.
+ 
+ **Instrument:** `roster_edit.py` ops only, with `--lint-cwd` at a fresh
+ `origin/main` checkout and `--push`. When main has moved and brief line pins
+diff --git a/dev/governance/rules/defect-root-cause.md b/dev/governance/rules/defect-root-cause.md
+index 854ae7e17..6acb79c65 100644
+--- a/dev/governance/rules/defect-root-cause.md
++++ b/dev/governance/rules/defect-root-cause.md
+@@ -126,9 +126,9 @@ or the recorded refusal, and that path.
+ 
+ ## Enforcement
+ 
+-The second trigger is the one with an observable moment, and it is enforced
+-there. The moment is **a check that went red on a commit in the branch**; the
+-checker is the **fix reviewer**, before returning `merge`.
++The second trigger is the one with an observable moment. The moment is **a
++check that went red on a commit in the branch**; the checker is the **fix
++reviewer**, before returning `merge`.
+ 
+ The fixer whose branch turned a check red names that check in the PR body, and
+ answers the trigger's question there: the cheaper detector and its standing
+@@ -136,15 +136,15 @@ cost, or the recorded finding that none exists. Both answers are legitimate —
+ the worked examples above are one of each — so the cost of a check that does not
+ qualify is one line, which is what keeps the obligation from being argued away.
+ 
+-The reviewer reads the PR's checks, not the body's account; a red check the body
+-does not answer is **`blocked: root-cause trigger unanswered for <check>`**.
++The reviewer reads the PR's checks, not the body's account; an unanswered red is
++the note `root-cause-unanswered: <check>`, resolved at merge (card C5); a head
++still red takes no merge verdict (card C8).
+ 
+-**`tests / nightly-status` and `governance / delivery-status` grade `main`**, so a body owes them no
+-answer **unless its diff touches what they read**: their scripts, `ci.yml`, `tests.yml`,
+-`nightly.yml`, `governance.yml`, the plan, `HANDOVER.md` or a row it did not add (`policy_lint.mjs`, from the base). Otherwise their red is
++**`tests / nightly-status` grades `main`**, so a body owes it no
++answer **unless its diff touches what it reads**: its scripts, `ci.yml`, `tests.yml`,
++`nightly.yml`, `governance.yml`, the plan or `HANDOVER.md` (`policy_lint.mjs`, from the base). Otherwise its red is
+ the orchestrator's on `main`: fix the nightly lane and dispatch Nightly on the
+-default branch (its red report carries the call; `web-fragments.md` maps it), or
+-drain the overdue rows. A cause outside this repository is named with its owner.
++default branch (its red report carries the call; `web-fragments.md` maps it). A cause outside this repository is named with its owner.
+ 
+ The first trigger — the defect reached a released version — has no moment
+ cheaper than the issue itself, so it is carried by the **Root cause** section
+diff --git a/dev/governance/rules/delivery-status-tracking.md b/dev/governance/rules/delivery-status-tracking.md
+index 1ee41b30d..3cb64bd46 100644
+--- a/dev/governance/rules/delivery-status-tracking.md
++++ b/dev/governance/rules/delivery-status-tracking.md
+@@ -8,28 +8,18 @@ paths:
+ ---
+ # Programme tracking discipline
+ 
+-After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — update tracking in the **same session** or an **immediate record PR**:
++After each programme merge — wave group, tooling the plan tracks, or a closed tracked issue — tracking is updated **at that merge**, never batched to session end, where an abort loses it:
+ 
+-1. **The Delivery-status record** — the plan's frozen table plus one `dev/programme/delivery/<N>.md` per PR; authoritative vs wave body; if they disagree, fix it first.
++1. **The record is the pull-request list and #201**: `tools/audit/seat/postmerge.py` posts one #201 line per merge from its fixed template. There is no per-PR `dev/programme/delivery/<N>.md` row and no record pull request (card C5, tvofi 2026-11-05: the rows and the `governance / delivery-status` grader produced more blocked rounds than catches); the rows already merged stay as history, read by nothing that gates.
+ 2. **`.claude/workflows/wave-*-groups.json` `resume` fields** — match measured `origin/main` (merged PR SHAs, open PR heads).
+ 3. **GitHub issue #201** — before each PR, merge or release, coordinate here; not a heartbeat.
+-4. **Every PR the programme has opened**, not only the ones a roster predicted. Hotfixes, instrument repairs, harness lanes, policy, and anything found *in passing* have no wave: give each **its own row and section**, never a wave it does not belong to.
+-5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work. At each record, grep the plan for every open issue's number.
++4. **Every PR the programme has opened**, not only the ones a roster predicted, is read from the pull-request list; hotfixes, instrument repairs and anything found *in passing* are never filed under a wave they do not belong to.
++5. **Every open issue**, with a disposition: **scheduled** into a wave or group, **deferred** with a reason, or **refused** with a reason. **"Not mentioned" is not a disposition**: an issue absent from the plan is unscheduled work.
+ 
+ ## Status stays true, not just present
+ 
+ - An issue **delivered** is closed naming the PR and the release that carried it, with its residuals recorded rather than swept.
+-- A row's **status word is reconciled by nothing**: `record_row.py`'s `has_row`
+-  and `write_rows` skip a row that already exists, so the `**open**` line
+-  written when a pull request opened is never upgraded, and
+-  `tests/delivery_status.py` classifies on the row's *presence*, not its word.
+-  Measured 2026-10-10 at main `23d354970`: 100 rows in
+-  `dev/programme/delivery/` read `**open**` for a pull request GitHub reports
+-  MERGED, and 15 of 15 merges in the ledger's own window were among them while
+-  `--check` printed OK and exited 0. So a row is a claim, not a reading: until a
+-  row's word is graded, read the API, not the word -- and the repository, not
+-  the record, which is what `bus.sh orphans` reads.
+-- A PR's **body describes its current head**, not the head it was opened at.
+-- **Continuously means at each merge**, not at session end; batching to the end is how an abort loses it. A pull request's **own** row, `dev/programme/delivery/<N>.md`, is a line `- [#N](…/pull/N)` and its state, written by the orchestrator (`tools/audit/seat/handoff_push.sh`); a fixer writes none. Never at the table's end: it conflicts every open branch, and past the freeze `policy_lint` refuses it. A record pull request is for merges no branch rowed. The `record-autofix` beat's own merges with no review seat where `record_row.py --automerge-check` passes at its head; else it is reviewed.
++- A PR's **body describes its current head**, not the head it was opened at; a stale body is a reviewer's note the orchestrator resolves at merge, not a block (card C5).
++- An owner's ask in a verdict or a body goes into the roster at the merge (`roster_edit.py`), so a non-blocking carry note cannot drop it.
+ 
+ Do **not** wait for a stamp to truth the record. Measure from `origin/main`, merged pull requests and closed issues; never invent.
+diff --git a/dev/governance/rules/finding-propagation.md b/dev/governance/rules/finding-propagation.md
+index 34a387732..c7419f168 100644
+--- a/dev/governance/rules/finding-propagation.md
++++ b/dev/governance/rules/finding-propagation.md
+@@ -1,5 +1,5 @@
+ ---
+-description: A finding that changes how a later stage must work goes into that stage's own brief before the PR that produced it merges
++description: A finding that changes how a later stage must work goes into that stage's own brief by the producing PR's merge
+ paths:
+   - "dev/governance/**"
+   - ".claude/workflows/*.json"
+@@ -9,7 +9,7 @@ paths:
+ # Forward-carrying a finding
+ 
+ **A finding that changes how a later stage must work is written into that
+-stage's own brief before the PR that produced it merges.**
++stage's own brief by the time the PR that produced it merges.**
+ 
+ ## When it applies
+ 
+@@ -79,7 +79,7 @@ it is usually the newer.
+ 
+ ## Enforcement
+ 
+-The producing PR does not merge until the carry is **in the tree**; a carry to
++The carry is **in the tree** by the producing PR's merge (card C5); a carry to
+ the round's roster, once on its branch `handoff/audit-r<N>-roster` (tvofi,
+ 2026-10-18), which lands on main at each stamp and before branch cleanup
+ and stays while `git diff origin/main...<branch> -- dev/programme/rosters/`
+diff --git a/dev/programme/delivery/3245.md b/dev/programme/delivery/3245.md
+new file mode 100644
+index 000000000..622c29618
+--- /dev/null
++++ b/dev/programme/delivery/3245.md
+@@ -0,0 +1 @@
++- [#3245](https://github.com/tvofi/heatpump_optimizer/pull/3245) — **open**, R10-PROCESS-SLIM: slip cards C4, C5, C8 and C6 (a), plus the merge train post-merge docs step and carry-ancestry park (R10-PROCESS-SLIM)
+diff --git a/tests/closures.json b/tests/closures.json
+index de003de01..e5c908528 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1563,7 +1563,6 @@
+    "dev/governance/roles/nudge.md",
+    "dev/governance/roles/orchestrator.md",
+    "dev/governance/roles/plan-review.md",
+-   "dev/governance/roles/proposal-triage.md",
+    "dev/governance/roles/root-cause.md",
+    "dev/governance/roles/standing-dispatch.md",
+    "dev/governance/roles/standing-merge.md",
+diff --git a/tests/entities.py b/tests/entities.py
+index 1a257bf95..49fc75b1d 100644
+--- a/tests/entities.py
++++ b/tests/entities.py
+@@ -28015,22 +28015,6 @@ R.check(
+     "without bound, and a body-REPLACING version deletes the 2.6 kB of "
+     "tracking text that is the reason anyone opens #201 at all",
+ )
+-_DS_JOB = _workflow_job(
+-    Path(".github/workflows/governance.yml").read_text(), "delivery-status")
+-R.check(
+-    "the ledger is wired into a job that runs on pull requests",
+-    "github.event_name == 'pull_request'" in _DS_JOB
+-    and "tests/delivery_status.py" in _DS_JOB,
+-    f"pull_request={'pull_request' in _DS_JOB}, "
+-    f"invoked={'tests/delivery_status.py' in _DS_JOB}",
+-)
+-R.check(
+-    "and the pull-request lane passes no --since that would pin its answer",
+-    "--since" not in _DS_JOB,
+-    "`--since` names the window, so a job passing a fixed one would report the "
+-    "same closed window for ever -- the always-green knob "
+-    "`nightly_status.py`'s `--run` is pinned against",
+-)
+ # The permission widening, checked as a PROPERTY rather than as its instance:
+ # the whole set of jobs in governance.yml that override the workflow's
+ # `contents: read` floor. A job-level block REPLACES the floor for that job and
+@@ -28046,19 +28030,16 @@ R.check(
+ # both files: the blast radius did not change because a job changed file.
+ _DS_GOV = Path(".github/workflows/governance.yml").read_text()
+ _PC_WF = Path(".github/workflows/pr-contract.yml").read_text()
+-_DS_PUB_JOB = _workflow_job(_DS_GOV, "delivery-status-publish")
+ _DS_OVERRIDES = sorted(
+     _m.group(1) for _wf_text in (_DS_GOV, _PC_WF) for _m in re.finditer(
+         r"^  ([A-Za-z][\w-]*):\n(?:(?!^  [A-Za-z]).)*?^    permissions:",
+         _wf_text, re.M | re.S)
+ )
+ R.check(
+-    "exactly three governance jobs override the workflow's read-only floor",
+-    _DS_OVERRIDES == ["delivery-status-publish", "pr-contract", "record"],
++    "exactly two governance jobs override the workflow's read-only floor",
++    _DS_OVERRIDES == ["pr-contract", "record"],
+     f"jobs with a permissions block: {_DS_OVERRIDES}. A fourth has to be argued "
+-    "for rather than land, and the reporting lane is deliberately NOT one: "
+-    "`delivery-status` runs on pull requests with no widening at all, because "
+-    "it only reads the tree it is already checked out in",
++    "for rather than land (card C5 deleted the publishing lane)",
+ )
+ # EVERY GOVERNANCE JOB HOLDING A WRITE GRANT RUNS ONLY AT main (U4 resume).
+ # Inside the umbrella `ci.yml`, a `workflow_dispatch` at a PR branch (autofix
+@@ -28069,7 +28050,7 @@ R.check(
+ # walked the whole `<tag>..origin/main` window on the GITHUB_TOKEN bucket #2629
+ # budgets. The guard is read off the registered job and evaluated over literals;
+ # the plant is the unguarded text, the null controls are the arms that must run.
+-_RW_GOV_WRITERS = ("record", "delivery-status-publish")
++_RW_GOV_WRITERS = ("record",)
+ _RW_OLD_RECORD_IF = (
+     "github.event_name != 'pull_request' && github.event_name != 'merge_group'")
+ _RW_PR_BRANCH = "refs/heads/claude/some-pr"
+@@ -28882,48 +28863,6 @@ R.check(
+     "deliberately -- a job would over-write the handover every beat",
+ )
+ 
+-# THE JOB'S WIRING, over nightly.yml's record-autofix block read WITHOUT its
+-# comment lines, the `_IST_JOB` shape: a pin that cannot tell a comment from
+-# a grant would accept the sentence that explains the grant. Pinned: main
+-# only, its own environment, the `ci:` commit subject the loop guard keys on,
+-# the guarded `git add docs/delivery` write set (the rows commit, and the
+-# self-row commit after NUM exists), the re-derive loop, the
+-# #201 comment, and the report step that reddens a beat owed and not landed.
+-# The record push's one force is a LEASE anchored on the tip the same try
+-# fetched (a re-run's sibling commit made the fast-forward-only push of run
+-# 37261904851, attempt 06:14, refuse forever), so every push line carries
+-# `--force-with-lease=refs/heads/record/autofix:<expected>` and nothing else
+-# that forces. The null controls strip the subject, the ref guard and the
+-# lease's anchor and must each fail.
+-_RAF_JOB_RAW = _workflow_job(_NIGHTLY_YML, "record-autofix")
+-_RAF_JOB = "\n".join(
+-    _l for _l in _RAF_JOB_RAW.split("\n") if not _l.lstrip().startswith("#"))
+-_RAF_ADDS = re.findall(r"(?m)^\s*git add .*$", _RAF_JOB)
+-_RAF_LEASE = "--force-with-lease=refs/heads/record/autofix:"
+-# The write set's directory is the generator's own row path, not a second
+-# spelling: the job staged `docs/delivery` after the rows moved to
+-# `dev/programme/delivery`, so `git add` matched nothing, every beat read
+-# "nothing-owed", and `record` stayed red on main.
+-_RAF_ADD = "git add " + (_rr.row_path(1).rsplit("/", 1)[0]
+-                         if "_rr" in globals() else "?")
+-
+-
+-# The one review the job posts is the approver App's, and only behind the
+-# automerge guard (tvofi, 2026-10-07): every reviews endpoint the job names
+-# sits after the guard's call at the live head, and the POST carries the
+-# approver token, never the author's -- an author cannot approve its own pull
+-# request, and a review ahead of the guard would approve what it never read.
+-_RAF_GUARD = '--automerge-check --repo "$REPO" --pr "$NUM" --head "$HEAD"'
+-
+-
+-def _raf_review_gated(job: str) -> bool:
+-    hits = [m.start() for m in re.finditer(r"pulls/[^\s\"]*/reviews", job)]
+-    g = job.find(_RAF_GUARD)
+-    post = re.search(r'-X POST -H "Authorization: Bearer \$APPROVER"[^\n]*\n'
+-                     r'[^\n]*pulls/\$NUM/reviews"', job)
+-    return bool(hits) and g > 0 and all(h > g for h in hits) and bool(post)
+-
+-
+ # The `--require-green` call must survive the step's shell, and so must every
+ # exit a step means to read. GitHub runs a `run:` block under errexit -- the
+ # default shell is `bash -e {0}`, `shell: bash` is `bash --noprofile --norc
+@@ -29055,19 +28994,13 @@ with tempfile.TemporaryDirectory() as _ex_td:
+         {"name": "bash", "shell": "bash", "run": "x\nrc=$?\n"},
+         {"name": "default", "run": "x\nrc=$?\n"}]}}}))
+     _EX_SHELL_ARM = _ex_scan(Path(_ex_td))
+-    # The live batch gate, its condition unwrapped back to the defect's form.
+-    _ex_wf.joinpath("a.yml").write_text(_NIGHTLY_YML.replace(
+-        "batch=0\n", "", 1).replace(" || batch=$?", "\n            batch=$?", 1))
+-    _EX_PLANT = _ex_scan(Path(_ex_td))
+ R.check(
+     "and the errexit check reads the shapes, not one call (null controls)",
+     not _EX_CASES_BAD and _EX_EMPTY == (0, 0, [])
+-    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2)
+-    and len(_EX_PLANT[2]) == 1 and "record-autofix" in _EX_PLANT[2][0],
++    and (_EX_SHELL_ARM[0], len(_EX_SHELL_ARM[2])) == (2, 2),
+     f"cases wrong={_EX_CASES_BAD} empty tree={_EX_EMPTY} (a green over no "
+     f"block is a skip) shell arm={_EX_SHELL_ARM[:2]}+{len(_EX_SHELL_ARM[2])} "
+-    f"hits (`shell: python` is not errexit) live batch gate unwrapped="
+-    f"{_EX_PLANT[2]}",
++    f"hits (`shell: python` is not errexit)",
+ )
+ 
+ 
+@@ -29153,415 +29086,6 @@ R.check(
+ )
+ 
+ 
+-# The merge is the beat's own, pinned to the head the guard judged (#2029
+-# review, round 1): a `PUT .../merge` whose payload carries that `sha`, after
+-# the guard's `--require-green` call, and never GitHub's auto-merge, which
+-# merges later on a head nobody judged.
+-def _raf_merge_pinned(job: str) -> bool:
+-    g = job.find("guard --require-green")
+-    put = job.find('"$API/repos/$REPO/pulls/$NUM/merge"')
+-    return (0 < g < put
+-            and "if guard --require-green" in job
+-            and '{"sha": sys.argv[1], "merge_method": "merge"}' in job
+-            and "AutoMerge" not in job)
+-
+-
+-# THE BATCH (tvofi, 2026-10-24/25): the gate sits between the plan and the
+-# apply, reads the workflow's own event (a push batches; the nightly and a
+-# dispatch flush), its wait is the green `batching` status, and nothing but its
+-# two exits decides. record_row.py's `batch_due` is driven both ways by its
+-# --self-test; this pins that the job asks it, with the event.
+-_RAF_BATCH = '--batch-due --plan-file "$RUNNER_TEMP/plan.json" --event "$EVENT"'
+-
+-
+-def _raf_batch_gated(job: str) -> bool:
+-    gate, apply_ = job.find(_RAF_BATCH), job.find("--apply --plan-file")
+-    return (0 < job.find("--plan --merges-file") < gate < apply_
+-            and job.count("EVENT: ${{ github.event_name }}") == 2
+-            and 'if [ "$batch" = 4 ]; then status="batching"; break; fi' in job
+-            and "pushed|nothing-owed|held|batching) exit 0 ;;" in job)
+-
+-
+-def _raf_job_ok(job: str) -> bool:
+-    """The wiring record-autofix owes, read over non-comment lines."""
+-    adds = [a.strip() for a in re.findall(r"(?m)^\s*(git add .*)$", job)]
+-    pushes = re.findall(r"(?m)^\s*(push .*)$", job)
+-    return (
+-        bool(job)
+-        and "github.ref == 'refs/heads/main'" in job
+-        and "environment: record-writer" in job
+-        and job.count('git commit -q -m "ci: record delivery rows"') == 2
+-        and adds == [_RAF_ADD, _RAF_ADD]
+-        and job.find("--write-self-row") > job.find("NUM=$(")
+-        and "docs/HANDOVER.md" not in job
+-        and "for try in 1 2 3" in job
+-        and "issues/201/comments" in job
+-        and "if: always()" in job
+-        and pushes
+-        and all(_RAF_LEASE in p for p in pushes)
+-        and not any(re.search(r"--force|-f\b", p.replace(_RAF_LEASE, ""))
+-                    for p in pushes)
+-        and "--automerge-check --hold" in job
+-        and _raf_batch_gated(job)
+-        and _raf_review_gated(job)
+-        and _raf_merge_pinned(job))
+-
+-
+-R.check(
+-    "nightly.yml's record-autofix job: main-only, its own environment, "
+-    "loop-guarded ci: subject, guarded write set",
+-    _raf_job_ok(_RAF_JOB),
+-    f"job present={_RAF_JOB != ''}, ref guard="
+-    f"{'github.ref == ' in _RAF_JOB}, env="
+-    f"{'environment: record-writer' in _RAF_JOB}, adds="
+-    f"{[a.strip() for a in _RAF_ADDS]}, "
+-    "handover mentioned="
+-    f"{'docs/HANDOVER.md' in _RAF_JOB}; the git add is the write set's last "
+-    "gate after the generator's own guard -- a `git add -A` would commit a "
+-    "write the guard refused -- a moved main is re-derived by the fetch/"
+-    "reset loop, and the record push replaces only the tip the same try "
+-    "fetched, under the lease anchored on it",
+-)
+-R.check(
+-    "and the pin reads the job's own lines, not its name (null controls)",
+-    not _raf_job_ok(_RAF_JOB.replace(
+-        "github.ref == 'refs/heads/main'", "github.ref == 'never'", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(
+-        'git commit -q -m "ci: record delivery rows"', "", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_ADD, "git add -A", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force-with-lease ", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "--force ", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_LEASE, "", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace("--write-self-row", "--apply", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_GUARD, "--self-test", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(
+-        'Bearer $APPROVER" -H "$ACCEPT" \\', 'Bearer $TOKEN" -H "$ACCEPT" \\', 1))
+-    and not _raf_job_ok(_RAF_JOB.replace("guard --require-green", "true", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(
+-        "if guard --require-green", "guard --require-green", 1))
+-    and not _raf_job_ok(_RAF_JOB.replace('{"sha": sys.argv[1], ', '{', 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(' --event "$EVENT"', '', 1))
+-    and not _raf_job_ok(_RAF_JOB.replace(_RAF_BATCH, "--row-numbers", 1)),
+-    "stripping the ref guard, the ci: subject, the guarded add, or the "
+-    "lease's anchor -- or replacing the lease with an unanchored "
+-    "--force-with-lease or a bare --force, or dropping the self-row write "
+-    "that runs only after NUM is known, or dropping the automerge guard "
+-    "ahead of the review, or posting it with the author's token, or the "
+-    "merge's green gate or its sha pin, or unwrapping the `--require-green` "
+-    "call so `bash -e` aborts the step before its `case`, or dropping the "
+-    "batch gate or the event it reads -- must "
+-    "each turn the pin red -- "
+-    "or the pin matched a comment, not the wiring",
+-)
+-# The batch gate must survive the step's shell, the `--require-green` trap
+-# again: GitHub runs a `run:` block under `bash -e`, so a BARE `record_row.py
+-# --batch-due` followed by `batch=$?` ended the STEP with the gate's own exit 4
+-# ("batching", by design below the floor) before `batch=$?` ran, and every push
+-# below BATCH_FLOOR_ROWS turned record-autofix red with no `RECORD AUTOFIX:`
+-# line (job 121376503388, exit 4). The string pin above read the wiring and
+-# record_row.py's self-test its exit codes; neither ran the YAML's lines under
+-# `-e`. This runs them: the gate's lines cut from the real job, inside a one-try
+-# loop, under the runner's `-eo pipefail` and the step's own `-u`, with
+-# `python3` stubbed to exit 0, 4, 1 and 2. 0 must reach the apply, 4 must end
+-# `batching`, any other nonzero `skip-batch-gate`, and the step must finish.
+-def _raf_batch_outcomes(job: str) -> dict[int, str]:
+-    lines = job.split("\n")
+-    at = next((i for i, l in enumerate(lines) if _RAF_BATCH in l), -1)
+-    end = next((i for i in range(max(at, 0), len(lines))
+-                if "skip-batch-gate" in lines[i]), -1)
+-    # From the `fi` closing the step before it, so the gate's own setup runs.
+-    start = next((i for i in range(at, -1, -1) if lines[i].strip() == "fi"), -1)
+-    if at < 1 or end < 0 or start < 0:
+-        return {}
+-    gate = "\n".join(lines[start + 1:end + 1])
+-    script = ('set -uo pipefail\npython3() { return "$STUB_RC"; }\n'
+-              'status=none\nfor try in 1; do\n' + gate +
+-              '\nstatus="apply"; break\ndone\necho "RECORD AUTOFIX: $status"\n')
+-    out = {}
+-    for rc in (0, 4, 1, 2):
+-        run = subprocess.run(
+-            ["bash", "--noprofile", "--norc", "-eo", "pipefail", "-c", script],
+-            capture_output=True, text=True, timeout=30,
+-            env={"PATH": os.environ.get("PATH", ""), "STUB_RC": str(rc),
+-                 "RUNNER_TEMP": "/nonexistent", "EVENT": "push"})
+-        m = re.search(r"RECORD AUTOFIX: (\S+)", run.stdout)
+-        out[rc] = (m.group(1) if run.returncode == 0 and m
+-                   else f"died:{run.returncode}")
+-    return out
+-
+-
+-_RAF_BATCH_WANT = {0: "apply", 4: "batching", 1: "skip-batch-gate",
+-                   2: "skip-batch-gate"}
+-_RAF_BATCH_GOT = _raf_batch_outcomes(_RAF_JOB_RAW)
+-R.check(
+-    "nightly.yml's batch gate, run under the runner's `bash -e`: exit 0 "
+-    "applies, 4 batches, any other nonzero skips, and the step finishes",
+-    _RAF_BATCH_GOT == _RAF_BATCH_WANT,
+-    f"got {_RAF_BATCH_GOT}, want {_RAF_BATCH_WANT}; a bare call before "
+-    "`batch=$?` lets `-e` end the step with the gate's own exit",
+-)
+-R.check(
+-    "and the run reads the job's own lines (null control: the bare call "
+-    "dies under `-e`)",
+-    _raf_batch_outcomes(re.sub(
+-        r" \|\| batch=\$\?", "\n              batch=$?", _RAF_JOB_RAW)
+-    ).get(4) == "died:4",
+-    "re-baring the gate call must kill the step with exit 4 -- or the check "
+-    "ran a shell that is not the runner's",
+-)
+-# The open-or-update lookup keys GET /pulls on `head=<owner>:<branch>`; the
+-# API answers [] for `<owner>/<repo>:<branch>`, so the lookup missed the open
+-# record pull request and the create POST was refused 422 "A pull request
+-# already exists" (run 37343172583, PR #1970 open). Every lookup's filter is
+-# the owner form, the owner coming from github.repository_owner.
+-_RAF_HEADS = re.findall(r"pulls\?head=([^&\"\s]+)", _RAF_JOB)
+-
+-
+-def _raf_lookup_ok(job: str) -> bool:
+-    heads = re.findall(r"pulls\?head=([^&\"\s]+)", job)
+-    return (bool(heads)
+-            and all(h == "${OWNER}:record/autofix" for h in heads)
+-            and "OWNER: ${{ github.repository_owner }}" in job)
+-
+-
+-R.check(
+-    "nightly.yml's record-autofix finds its own open pull request by "
+-    "head=<owner>:record/autofix",
+-    _raf_lookup_ok(_RAF_JOB),
+-    f"head filters={_RAF_HEADS}, owner env="
+-    f"{'OWNER: ${{ github.repository_owner }}' in _RAF_JOB}; the pulls "
+-    "endpoint's head filter is `user:ref-name`, and an `<owner>/<repo>:` "
+-    "filter matches nothing, so the job POSTs a duplicate and is refused",
+-)
+-R.check(
+-    "and the lookup pin refuses the repository-form filter (null control)",
+-    not _raf_lookup_ok(_RAF_JOB.replace(
+-        "head=${OWNER}:record/autofix", "head=$REPO:record/autofix"))
+-    and not _raf_lookup_ok(_RAF_JOB.replace(
+-        "OWNER: ${{ github.repository_owner }}", "OWNER: ${{ github.repository }}")),
+-    "the `$REPO:` filter run 37343172583 refused on, or an OWNER bound to "
+-    "the repository's full name, must each turn the lookup pin red",
+-)
+-# THE TRAIN HOLD (issue #2302). The merge train publishes refs/heads/train-hold
+-# while it is live and deletes it at its closing line, and this beat's
+-# automerge step must not merge a record pull request while that ref is
+-# younger than the step's bound: the beat auto-merged mid-train on 2026-10-15
+-# (#2291, #2295, #2299), moving main under #2284 and #2290, which CI cannot
+-# see because the train's pidfile is local. THE STEP IS EXECUTED, over a
+-# stubbed API: the status it prints and the calls it makes are what prove the
+-# skip happens after the guard and the approver App's review and before the
+-# merge (V118: a hold ahead of the review left #2856 unreviewed while trains
+-# ran back to back, since the train's --bot-prs sweep merges on the guard
+-# alone), so a check placed elsewhere (or an inverted age comparison) cannot
+-# pass. The bound is read from the step, never carried.
+-_HOLD_STEP = next((s for s in ((_yaml.safe_load(_NIGHTLY_YML) or {}).get("jobs") or {})
+-                   .get("record-autofix", {}).get("steps") or []
+-                   if str(s.get("id") or "") == "automerge"), {})
+-_HOLD_RUN = str(_HOLD_STEP.get("run") or "")
+-_HOLD_BOUND_M = re.search(r"(?m)^\s*HOLD_MAX_AGE_S=(\d+)\s*$", _HOLD_RUN)
+-_HOLD_BOUND = int(_HOLD_BOUND_M.group(1)) if _HOLD_BOUND_M else 0
+-_HOLD_REF_M = re.search(r"(?m)^\s*HOLD_REF=(\S+)\s*$", _HOLD_RUN)
+-_MT_HOLD_REF = re.search(r'(?m)^HOLD_REF = "refs/heads/([\w.-]+)"',
+-                         Path("tools/audit/seat/merge_train.py").read_text())
+-
+-
+-def _train_hold_status(code: int, body: str, pitch_rc: int = 0, guard_rc: int = 1,
+-                       approver: str = "", calls: "list | None" = None, green_rc: int = 1,
+-                       reviews: str = "[]", run: str = "") -> "tuple[str, bool]":
+-    """The automerge step's `status=` and whether it warned "unreadable" over a
+-    stubbed API whose train-hold read answers (code, body); every other read is
+-    the minimum the step needs.
+-
+-    The record-row guard is a stub that refuses, so an arm that did NOT skip
+-    reaches it and reports `refused`: a missing or unreached skip is visible
+-    in the status, not inferred from an absence. `GET /commits/<ref>` answers
+-    **422** `No commit found for SHA: <ref>` when the ref is absent (measured
+-    live 2026-10-20), never 404 -- an absent hold must be silent, or every
+-    beat with no train running logs a warning.
+-
+-    `pitch_rc` is what the stub answers `--pitch-check` with: 0 no pitch (the
+-    default, so the hold's own arms read as before), 4 the pitch's wait.
+-    `guard_rc` is the first guard's exit (the refusing default; 0 passes it,
+-    and the green wait after it refuses unless `green_rc` is 0), `approver` the
+-    approver App's token, `reviews` the pull request's reviews read, `run` a
+-    step text in place of the step's own (a mutant), and `calls`, when given,
+-    receives every curl argv the step ran."""
+-    with tempfile.TemporaryDirectory() as td:
+-        t = Path(td)
+-        (t / "tools" / "audit" / "seat").mkdir(parents=True)
+-        (t / "tools" / "audit" / "seat" / "record_row.py").write_text(
+-            f"import sys\nsys.exit({pitch_rc} if '--pitch-check' in sys.argv else "
+-            f"{green_rc} if '--require-green' in sys.argv else {guard_rc})\n")
+-        answers = t / "answers.json"
+-        answers.write_text(json.dumps({
+-            "hold": {"code": code, "body": body},
+-            "pulls": {"code": 200, "body": json.dumps({"head": {"sha": "a" * 40}})},
+-            "reviews": {"code": 200, "body": reviews},
+-            "other": {"code": 404, "body": "{}"}}))
+-        bin_ = t / "bin"
+-        bin_.mkdir()
+-        (bin_ / "curl").write_text(
+-            "#!" + sys.executable + "\n"
+-            "import json, sys\n"
+-            f"ans = json.load(open({str(answers)!r}))\n"
+-            "a = sys.argv[1:]\n"
+-            f"open({str(t / 'calls.log')!r}, 'a').write(json.dumps(a) + '\\n')\n"
+-            "url = a[-1]\n"
+-            "key = ('hold' if '/commits/' in url and url.rstrip('/').endswith('train-hold')\n"
+-            "       else 'reviews' if '/reviews' in url\n"
+-            "       else 'pulls' if '/pulls/' in url else 'other')\n"
+-            "code, body = ans[key]['code'], ans[key]['body']\n"
+-            "if '-o' in a:\n"
+-            "    p = a[a.index('-o') + 1]\n"
+-            "    if p != '/dev/null':\n"
+-            "        open(p, 'w').write(body)\n"
+-            "    if '-w' in a:\n"
+-            "        sys.stdout.write(str(code))\n"
+-            "else:\n"
+-            "    sys.stdout.write(body)\n")
+-        (bin_ / "curl").chmod(0o755)
+-        out = t / "out"
+-        out.write_text("")
+-        p = subprocess.run([*_GHA_RUN, run or _HOLD_RUN], cwd=t, capture_output=True, text=True,
+-                           env=_stub_path_env(bin_, RUNNER_TEMP=str(t), GITHUB_OUTPUT=str(out),
+-                                              REPO="o/r", TOKEN="t0k", APPROVER=approver, NUM="42",
+-                                              EVENT="push"))
+-        if calls is not None and (t / "calls.log").exists():
+-            calls.extend(json.loads(x) for x in (t / "calls.log").read_text().splitlines())
+-        found = re.findall(r"(?m)^status=(\S+)$", out.read_text())
+-        warned = "unreadable" in (p.stdout + p.stderr)
+-        return (found[-1] if found else ""), warned
+-
+-
+-def _hold_when(offset_s: int) -> str:
+-    """A commit read whose committer date is now + offset_s seconds."""
+-    at = datetime.now(UTC) + timedelta(seconds=offset_s)
+-    return json.dumps({"commit": {"committer": {
+-        "date": at.strftime("%Y-%m-%dT%H:%M:%SZ")}}})
+-
+-
+-def _hold_calls(code: int, body: str, **kw) -> "tuple[str, bool, bool, bool]":
+-    """(status, approver review posted, a review dismissed, merge called) for one
+-    run of the automerge step with the approver App's token present."""
+-    calls: list = []
+-    st, _ = _train_hold_status(code, body, approver="ap0", calls=calls, **kw)
+-    return (st,
+-            any("POST" in c and "Authorization: Bearer ap0" in c
+-                and c[-1].endswith("/pulls/42/reviews") for c in calls),
+-            any("PUT" in c and c[-1].endswith("/dismissals") for c in calls),
+-            any(c[-1].endswith("/merge") for c in calls))
+-
+-
+-# A bot approval at an older head, so a refusal has one to dismiss.
+-_HOLD_OLD_REVIEW = json.dumps([{"id": 7, "state": "APPROVED", "commit_id": "b" * 40,
+-                                "user": {"login": "hpo-approver[bot]"}}])
+-_HELD = _hold_calls(200, _hold_when(-60), guard_rc=0)
+-_HELD_REFUSED = _hold_calls(200, _hold_when(-60), reviews=_HOLD_OLD_REVIEW)
+-R.check(
+-    "nightly.yml's automerge reviews a record pull request the guard passes "
+-    "under a live merge train hold, then skips the merge (executed, issue "
+-    "#2302, V118)",
+-    _HOLD_BOUND > 0 and _HELD == ("skip-train-hold", True, False, False),
+-    f"bound={_HOLD_BOUND}, (status, reviewed, dismissed, merged)={_HELD!r}; the "
+-    "train's --bot-prs sweep merges on the guard alone and leaves the review "
+-    "to this beat, so a hold ahead of the review starves it (#2856)",
+-)
+-R.check(
+-    "and under a live hold a head the guard refuses is refused, its approver "
+-    "App approvals dismissed and no review posted",
+-    _HELD_REFUSED == ("refused", False, True, False),
+-    f"(status, reviewed, dismissed, merged)={_HELD_REFUSED!r}",
+-)
+-# The mutant: the hold block moved back ahead of the head read, the guard and
+-# the review -- the order #2856 deadlocked under. Built from the step's own
+-# text, so it tracks the block; a mutant that cannot be built is red.
+-_HOLD_A = _HOLD_RUN.find("# THE TRAIN HOLD (")
+-_HOLD_B = _HOLD_RUN.find("# THE PITCH (")
+-_HOLD_H = _HOLD_RUN.find("HEAD=$(pr_field")
+-_HOLD_MUT_OK = -1 < _HOLD_H < _HOLD_A < _HOLD_B
+-_HOLD_A, _HOLD_B, _HOLD_H = (_HOLD_RUN.rfind("\n", 0, i) + 1 for i in (_HOLD_A, _HOLD_B, _HOLD_H))
+-_HOLD_MUT = (_HOLD_RUN[:_HOLD_H] + _HOLD_RUN[_HOLD_A:_HOLD_B] + _HOLD_RUN[_HOLD_H:_HOLD_A]
+-             + _HOLD_RUN[_HOLD_B:])
+-_HELD_MUT = _hold_calls(200, _hold_when(-60), guard_rc=0, run=_HOLD_MUT) if _HOLD_MUT_OK else None
+-R.check(
+-    "and the hold moved back ahead of the review leaves the held head "
+-    "unreviewed, so the reviewed-under-a-live-hold check sees it (mutant)",
+-    _HOLD_MUT_OK and _HELD_MUT == ("skip-train-hold", False, False, False),
+-    f"order ok={_HOLD_MUT_OK}, mutant (status, reviewed, dismissed, merged)={_HELD_MUT!r}",
+-)
+-R.check(
+-    "and a hold at the bound, one dated ahead of the runner's clock, an absent "
+-    "one (the API's own 422) and an unreadable one do not skip -- and only the "
+-    "unreadable ones warn (null controls)",
+-    _HOLD_BOUND > 0
+-    and _train_hold_status(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0)
+-    == ("refused", False)
+-    and _train_hold_status(200, _hold_when(3600), guard_rc=0) == ("refused", False)
+-    and _train_hold_status(422, "{}", guard_rc=0) == ("refused", False)
+-    and _train_hold_status(404, "{}", guard_rc=0) == ("refused", False)
+-    and _train_hold_status(500, "{}", guard_rc=0) == ("refused", True)
+-    and _train_hold_status(200, "{}", guard_rc=0) == ("refused", True),
+-    "a stale hold is a crashed train (no merges, so no rows go overdue); a "
+-    "date ahead of the reading clock is unknowable, never young (#775); the "
+-    "commits endpoint answers 422 for an absent ref, so that arm must be "
+-    "silent or every idle beat warns; an unreadable hold leaves the pre-fix "
+-    "behaviour, which is the safe failure. The guard passes, so the hold is "
+-    "read; the green wait, stubbed to refuse, reports `refused`",
+-)
+-_HOLD_NONE = _hold_calls(422, "{}", guard_rc=0, green_rc=0)
+-_HOLD_STALE = _hold_calls(200, _hold_when(-(_HOLD_BOUND + 60)), guard_rc=0, green_rc=0)
+-R.check(
+-    "and with no hold, or a stale one, a passing head is reviewed, passes the "
+-    "pitch and merges as before (null control)",
+-    _HOLD_NONE == ("merged", True, False, True)
+-    and _HOLD_STALE == ("merged", True, False, True),
+-    f"absent: {_HOLD_NONE!r}; stale: {_HOLD_STALE!r}",
+-)
+-# THE PITCH (R10-FLOW-RECORD-PITCH, Lean study K6), executed over the same
+-# stub: record_row.py's `--pitch-check` answering 4 skips the merge with
+-# status skip-pitch AFTER the guard and the approver App's review, so the
+-# train's --bot-prs sweep -- which merges on record_row.py's guard alone and
+-# posts no review -- finds a head main's ruleset accepts (directive [7]:
+-# record pull requests ride trains rather than race them). 0 proceeds to the
+-# green wait; a crashed check is no pitch; a refused head never waits; a live
+-# train answers before the pitch, so the hold arm is unchanged by it. The decision itself
+-# (a young record merge waits, a stale backlog proceeds) is record_row.py's
+-# `pitch_wait`, driven both ways by its --self-test.
+-_PITCH_CALLS: list = []
+-_PITCH_ST = _train_hold_status(422, "{}", pitch_rc=4, guard_rc=0, approver="ap0",
+-                               calls=_PITCH_CALLS)
+-_PITCH_REVIEWED = any("POST" in c and "Authorization: Bearer ap0" in c
+-                      and c[-1].endswith("/pulls/42/reviews") for c in _PITCH_CALLS)
+-_PITCH_MERGED = any(c[-1].endswith("/merge") for c in _PITCH_CALLS)
+-R.check(
+-    "nightly.yml's automerge waits the pitch when record_row.py says so, after "
+-    "the guard, the approver App's review and the train hold, before the merge "
+-    "(executed)",
+-    _PITCH_ST == ("skip-pitch", False) and _PITCH_REVIEWED and not _PITCH_MERGED
+-    and _train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)
+-    == ("skip-train-hold", False),
+-    f"pitch 4 -> {_PITCH_ST!r}, reviewed={_PITCH_REVIEWED}, merged={_PITCH_MERGED}; "
+-    f"a live hold with pitch 4 -> "
+-    f"{_train_hold_status(200, _hold_when(-60), pitch_rc=4, guard_rc=0)!r}",
+-)
+-R.check(
+-    "and no pitch, or a pitch check that crashed, reaches the green wait; a "
+-    "head the guard refuses never waits the pitch (null controls)",
+-    _train_hold_status(422, "{}", pitch_rc=0, guard_rc=0) == ("refused", False)
+-    and _train_hold_status(422, "{}", pitch_rc=1, guard_rc=0) == ("refused", False)
+-    and _train_hold_status(422, "{}", pitch_rc=4, guard_rc=1) == ("refused", False),
+-    "a pitch that never says wait must leave the pre-fix path: the green "
+-    "wait runs and, stubbed to refuse, reports `refused`; and the guard "
+-    "answers before the pitch",
+-)
+-R.check(
+-    "the beat's hold ref and the train's hold ref name the same branch",
+-    bool(_HOLD_REF_M) and bool(_MT_HOLD_REF)
+-    and "/commits/$HOLD_REF" in _HOLD_RUN
+-    and _HOLD_REF_M.group(1) == _MT_HOLD_REF.group(1),
+-    f"beat={_HOLD_REF_M.group(1) if _HOLD_REF_M else None}, "
+-    f"train={_MT_HOLD_REF.group(1) if _MT_HOLD_REF else None}",
+-)
+ # A PINNED GRADER GIVEN A TOKEN RUNS ITS OWN COPY ON THE PULL REQUEST (#1757,
+ # the #1721 RCA). A job that restores its check source from the base grades a
+ # pull request with the base's copy, so a changed grader first runs on main,
+@@ -29662,7 +29186,7 @@ steps:
+     run: |
+       set -euo pipefail
+       python tests/closure.py changed --base "$BASE" --head "$HEAD" > "$RUNNER_TEMP/changed.txt"
+-      for g in coverage_ratchet delivery_status; do
++      for g in coverage_ratchet; do
+         if grep -qx "tests/$g.py" "$RUNNER_TEMP/changed.txt"; then
+           echo "$g=true" >> "$GITHUB_OUTPUT"
+           echo "tests/$g.py changed: its own copy runs below"
+@@ -29711,47 +29235,6 @@ steps:
+       python3 tests/coverage_ratchet.py \
+         --coverage "$RUNNER_TEMP/coverage/coverage.json"
+ 
+-  - name: The pull request's delivery_status.py, as `delivery-status` runs it
+-    if: always() && steps.changed.outputs.delivery_status == 'true'
+-    run: |
+-      git fetch --no-tags --quiet origin main
+-      # A non-zero exit shared with the base copy on this tree is that
+-      # copy's own. Exit with the pull request's code only when the two
+-      # differ, and exit 1 when this copy prints OVERDUE and the base
+-      # copy does not: both of those exits are 1, so the codes alone
+-      # cannot separate them.
+-      head_copy="$RUNNER_TEMP/delivery_status.head.py"
+-      cp tests/delivery_status.py "$head_copy"
+-      git show origin/main:tests/delivery_status.py > tests/delivery_status.py
+-      set +e
+-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.base.out"
+-      base_rc=$?
+-      set -e
+-      cp "$head_copy" tests/delivery_status.py
+-      set +e
+-      python tests/delivery_status.py --check > "$RUNNER_TEMP/delivery_status.head.out"
+-      head_rc=$?
+-      set -e
+-      cat "$RUNNER_TEMP/delivery_status.base.out"
+-      echo "----- head copy -----"
+-      cat "$RUNNER_TEMP/delivery_status.head.out"
+-      echo "delivery_status --check head_rc=$head_rc base_rc=$base_rc"
+-      head_overdue=0
+-      base_overdue=0
+-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.head.out"; then
+-        head_overdue=1
+-      fi
+-      if grep -q '^DELIVERY STATUS OVERDUE' "$RUNNER_TEMP/delivery_status.base.out"; then
+-        base_overdue=1
+-      fi
+-      if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then
+-        exit 1
+-      fi
+-      if [ "$head_rc" -ne "$base_rc" ]; then
+-        exit "$head_rc"
+-      fi
+-      exit 0
+-
+   - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+     if: ${{ !cancelled() && steps.changed.outputs.governance == 'true' }}
+     with:
+@@ -29928,97 +29411,6 @@ R.check(
+ )
+ 
+ 
+-def _pt_ds_rc(script: str, head_rc: int, base_rc: int,
+-              head_verdict: str = "UNCHECKED", base_verdict: str = "UNCHECKED") -> int:
+-    """Run the delivery_status step under bash -e with stub git and python.
+-
+-    The stub python prints `DELIVERY STATUS <verdict>` and exits with the
+-    code for whichever copy the step has in tests/delivery_status.py, so the
+-    step's own comparison is what the return code measures.
+-    """
+-    with tempfile.TemporaryDirectory() as td:
+-        root = Path(td)
+-        (root / "tests").mkdir()
+-        (root / "tests" / "delivery_status.py").write_text(f"HEAD {head_verdict}\n")
+-        (root / "rt").mkdir()
+-        bindir = root / "bin"
+-        bindir.mkdir()
+-        (bindir / "git").write_text(
+-            "#!/bin/sh\n"
+-            "case \"$1\" in\n"
+-            "  fetch) exit 0 ;;\n"
+-            f"  show) printf 'BASE {base_verdict}\\n' ;;\n"
+-            "  *) echo unexpected git \"$1\" >&2; exit 9 ;;\n"
+-            "esac\n")
+-        (bindir / "python").write_text(
+-            "#!/bin/sh\n"
+-            "f=$(cat tests/delivery_status.py)\n"
+-            "case \"$f\" in\n"
+-            "  *OVERDUE*) echo 'DELIVERY STATUS OVERDUE — x' ;;\n"
+-            "  *) echo 'DELIVERY STATUS UNCHECKED — x' ;;\n"
+-            "esac\n"
+-            "case \"$f\" in\n"
+-            f"  HEAD*) exit {head_rc} ;;\n"
+-            f"  BASE*) exit {base_rc} ;;\n"
+-            "  *) echo unreadable copy >&2; exit 9 ;;\n"
+-            "esac\n")
+-        os.chmod(bindir / "git", 0o700)
+-        os.chmod(bindir / "python", 0o700)
+-        _pt_ds_rc.modes = (
+-            (bindir / "git").stat().st_mode & 0o777,
+-            (bindir / "python").stat().st_mode & 0o777,
+-        )
+-        env = _stub_path_env(bindir, RUNNER_TEMP=str(root / "rt"))
+-        proc = subprocess.run(["bash", "-e", "-c", script], cwd=root, env=env,
+-                              capture_output=True, text=True)
+-        return proc.returncode
+-
+-
+-_PT_DS_RUN = next(
+-    str(_s.get("run") or "")
+-    for _s in _PT_DOCS["tests.yml"]["jobs"]["graders-head-copy"]["steps"]
+-    if "tests/delivery_status.py" in str(_s.get("run") or ""))
+-_PT_DS_CASES = {
+-    "shared-1": _pt_ds_rc(_PT_DS_RUN, 1, 1),
+-    "head-only": _pt_ds_rc(_PT_DS_RUN, 1, 0),
+-    "base-only": _pt_ds_rc(_PT_DS_RUN, 0, 1),
+-    "shared-0": _pt_ds_rc(_PT_DS_RUN, 0, 0),
+-    "head-crash": _pt_ds_rc(_PT_DS_RUN, 2, 1),
+-    "head-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "UNCHECKED"),
+-    "shared-overdue": _pt_ds_rc(_PT_DS_RUN, 1, 1, "OVERDUE", "OVERDUE"),
+-}
+-R.check(
+-    "the delivery_status stubs are owner-executable and neither group nor world accessible",
+-    _pt_ds_rc.modes == (0o700, 0o700),
+-    "modes=" + ",".join(oct(m) for m in _pt_ds_rc.modes),
+-)
+-_PT_DS_DROP_EXIT = (
+-    'if [ "$head_rc" -ne "$base_rc" ]; then\n  exit "$head_rc"\nfi\nexit 0')
+-_PT_DS_DROP_OVERDUE = (
+-    'if [ "$head_overdue" -eq 1 ] && [ "$base_overdue" -eq 0 ]; then\n'
+-    '  exit 1\nfi\n')
+-_PT_DS_SAME = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, 'exit "$head_rc"\n')
+-_PT_DS_ZERO = _PT_DS_RUN.replace(_PT_DS_DROP_EXIT, "exit 0\n")
+-_PT_DS_NO_OVERDUE = _PT_DS_RUN.replace(_PT_DS_DROP_OVERDUE, "")
+-R.check(
+-    "graders-head-copy's delivery_status step is red only when this copy's "
+-    "exit differs from the base copy's, or this copy alone prints OVERDUE",
+-    _PT_DS_CASES == {
+-        "shared-1": 0, "head-only": 1, "base-only": 0, "shared-0": 0,
+-        "head-crash": 2, "head-overdue": 1, "shared-overdue": 0,
+-    }
+-    and _PT_DS_SAME != _PT_DS_RUN
+-    and _pt_ds_rc(_PT_DS_SAME, 1, 1) == 1
+-    and _PT_DS_ZERO != _PT_DS_RUN
+-    and _pt_ds_rc(_PT_DS_ZERO, 1, 0) == 0
+-    and _PT_DS_NO_OVERDUE != _PT_DS_RUN
+-    and _pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, "OVERDUE", "UNCHECKED") == 0,
+-    f"cases={_PT_DS_CASES}; dropping the exit comparison makes a shared 1 "
+-    f"red ({_pt_ds_rc(_PT_DS_SAME, 1, 1)}), exiting 0 always makes a "
+-    f"head-only 1 green ({_pt_ds_rc(_PT_DS_ZERO, 1, 0)}), and dropping the "
+-    f"OVERDUE line makes a head-only OVERDUE green "
+-    f"({_pt_ds_rc(_PT_DS_NO_OVERDUE, 1, 1, 'OVERDUE', 'UNCHECKED')})",
+-)
+ # `## Friction` AND A DECLARATION THAT IS NOT THE WHOLE SECTION. `isNone` read a
+ # section as `none` whenever the token stood at its START -- no end anchor, no
+ # `m` flag -- so `frictionEntries` tested that against the WHOLE multi-line
+@@ -30536,53 +29928,6 @@ R.check(
+     _AH_CONST is not None and not _AH_DRIFT,
+     f"disagreeing jobs: {_AH_DRIFT}; constants: {_AH_CONST}",
+ )
+-_DS_PUB_PERMS = re.search(
+-    r"^    permissions:\n((?:^      .*\n)+)", _DS_PUB_JOB, re.M)
+-R.check(
+-    "and the publishing lane's grant is the one write it uses",
+-    bool(_DS_PUB_PERMS)
+-    and sorted(_DS_PUB_PERMS.group(1).split()) == sorted(
+-        ["contents:", "read", "issues:", "write"]),
+-    f"delivery-status-publish permissions: "
+-    f"{_DS_PUB_PERMS.group(1).split() if _DS_PUB_PERMS else None} -- "
+-    "`issues: write` edits #201's region and `contents: read` restates the "
+-    "floor a job-level block replaces; the lane writes nothing else",
+-)
+-# THE FIXED POINT (#201 root cause, 2026-09-17). Merging a ledger PR was a push
+-# to main, the push re-ran this lane, and the ledger moves on every push, so a
+-# new ledger PR opened 14-22 s after each merge -- nine of eleven. The lane is
+-# at a fixed point only while nothing it writes can land on main, which is
+-# pinned on the wiring, over NON-COMMENT lines: no push, no PR write, no
+-# machine token anywhere in the workflows (decision 0009 step 3b's only
+-# consumer went with the PR), and no workflow that an issue-body edit starts.
+-def _code_lines(text: str) -> str:
+-    return "\n".join(
+-        _l for _l in text.split("\n") if not _l.lstrip().startswith("#"))
+-
+-
+-_DS_PUB_CODE = _code_lines(_DS_PUB_JOB)
+-_DS_WRITES = [_t for _t in (r"(?<![\w'])push\s", r"/pulls", r"gh pr ",
+-                            r"git commit") if re.search(_t, _DS_PUB_CODE)]
+-_SA_FILES = {
+-    _f.name: _code_lines(_f.read_text())
+-    for _f in sorted(Path(".github/workflows").glob("*.y*ml"))}
+-_SA_REFS = [_n for _n, _t in _SA_FILES.items() if "SEAT_AUTHOR_TOKEN" in _t]
+-_ISSUE_TRIGGERED = [_n for _n, _t in _SA_FILES.items()
+-                    # Keyed inside `on:` alone: a top-level `permissions:`
+-                    # block's `issues: read` starts nothing.
+-                    if re.search(r"^on:[ \t]*\n(?:(?:[ \t].*|#.*)?\n)*?  (issues|issue_comment):", _t, re.M)]
+-R.check(
+-    "the publishing lane writes nothing that lands on main, so its own "
+-    "write cannot re-run it",
+-    not _DS_WRITES and not _SA_REFS and not _ISSUE_TRIGGERED
+-    and "persist-credentials: false" in _DS_PUB_CODE
+-    and "#201's region is already current" in _DS_PUB_CODE,
+-    f"writes in the lane: {_DS_WRITES}; workflows naming SEAT_AUTHOR_TOKEN: "
+-    f"{_SA_REFS}; workflows an issue edit starts: {_ISSUE_TRIGGERED}. Each "
+-    "must be empty: a commit, push or PR the lane makes lands on main as a "
+-    "push that runs the lane again, and the ledger's `commits_after` moves "
+-    "on every push, so no ledger it lands is ever the ledger it regenerates",
+-)
+ # #959 (option B): the `record` job -- already one of the three overrides for
+ # its read grant -- WIDENED that grant with `issues: write` so its filing step
+ # can open and edit the recurring-friction issues its own histogram names. Not
+@@ -32650,15 +31995,6 @@ R.check(
+     _FK_KEY.get("not-a-policy-file.md") == "not-a-policy-file.md",
+     f"key={_FK_KEY.get('not-a-policy-file.md')!r}",
+ )
+-R.check(
+-    "the publishing lane runs on main alone, never on a pull request",
+-    "github.event_name == 'push'" in _DS_PUB_JOB
+-    and "refs/heads/main" in _DS_PUB_JOB
+-    and "pull_request" not in _DS_PUB_JOB,
+-    "a write-scoped job reachable from a pull request is a write-scoped job "
+-    "reachable from a fork, and the ledger it publishes is about `main`'s "
+-    "history rather than about any branch",
+-)
+ R.check(
+     "the ledger script is classified: NOT_A_TEST, and not on INERT",
+     "delivery_status.py" in _closure.NOT_A_TEST
+@@ -33631,8 +32967,8 @@ _REC_REFUSAL = _REC_JOB.split(
+     "- name: Every merged pull request has a disposition")[1].split(
+         "\n      - name:")[0]
+ R.check(
+-    "the disposition refusal can set the record job's conclusion",
+-    "continue-on-error" not in _REC_REFUSAL,
++    "the disposition refusal is report-only and cannot set the record job's conclusion (card C5, tvofi 2026-11-05)",
++    "continue-on-error: true" in _REC_REFUSAL,
+     f"the refusing step is {_REC_REFUSAL.strip()[:220]!r}. `continue-on-error: "
+     "true` on this step is #958's split: the step fails and the job concludes "
+     "success, so a merged pull request with no disposition is reported and stays "
+@@ -36169,7 +35505,7 @@ except Exception as _r_exc:  # noqa: BLE001 -- an unparsable `if:` is one red ch
+     _REACH = [f"{type(_r_exc).__name__}: {_r_exc}"]
+ R.check(
+     "a branch-ref dispatch reaches neither mutation-ledger nor mutation-ledger-push; main's schedule and dispatch reach both",
+-    not _REACH and _NIGHTLY_EVENTS == ["push", "schedule", "workflow_dispatch"],
++    not _REACH and _NIGHTLY_EVENTS == ["schedule", "workflow_dispatch"],
+     f"events={_NIGHTLY_EVENTS}; (event, ref, measured, pushed, push alone) wrong: {_REACH}",
+ )
+ _CRONS = re.findall(r'cron: "([^"]+)"', _NIGHTLY_YML.split("\njobs:", 1)[0])
+@@ -41169,29 +40505,6 @@ R.check(
+ # here; and the burst replay counts demand as record + enumerate + rest.
+ import subprocess as _sp_o1
+ import tempfile as _tf_o1
+-_O1_NA = _workflow_job(Path(".github/workflows/nightly.yml").read_text(), "record-autofix")
+-_O1_STEPS = _O1_NA.split("\n      - ")
+-_O1_I = next((i for i, s in enumerate(_O1_STEPS)
+-              if s.startswith("name: Enumerate the window's merges")), None)
+-
+-
+-def _o1_m0(step: str, word: str) -> bool:
+-    return ("gh api rate_limit" in step and f"RATE_LIMIT enumerate {word}:" in step
+-            and "GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}" in step and "|| true" in step)
+-
+-
+-R.check(
+-    "Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()",
+-    _O1_I is not None and 0 < _O1_I < len(_O1_STEPS) - 1
+-    and _o1_m0(_O1_STEPS[_O1_I - 1], "before") and _o1_m0(_O1_STEPS[_O1_I + 1], "after")
+-    and "if: always()" in _O1_STEPS[_O1_I + 1]
+-    and not _o1_m0(_O1_STEPS[_O1_I - 1], "after"),
+-    "record-autofix's \"Enumerate the window's merges\" reads 1 call a merge on "
+-    "GITHUB_TOKEN; without a `gh api rate_limit` reading on each side of it, its "
+-    "spend is inferred by splitting interval deltas by step time "
+-    "(ratelimit-recur.md section 1.2). The after reading must print when the "
+-    "enumeration fails closed, so it carries always()",
+-)
+ _O1_REC = _workflow_job(Path(".github/workflows/governance.yml").read_text(), "record")
+ _O1_RSTEPS = _O1_REC.split("\n      - ")
+ _O1_GATE = "steps.window.outputs.report == 'true'"
+diff --git a/tools/audit/round4/D11/governance_cost.py b/tools/audit/round4/D11/governance_cost.py
+index aa11c3f93..c60a1e91c 100644
+--- a/tools/audit/round4/D11/governance_cost.py
++++ b/tools/audit/round4/D11/governance_cost.py
+@@ -7,8 +7,7 @@ METRIC, over the same window as merge_census.py (2026-09-09T09:37:08Z ..
+                                 runs whose names are governance jobs
+                                 (every job in .github/workflows/governance.yml
+                                 -- policy-docs, env-matrix, wave-script,
+-                                pr-contract, record, delivery-status,
+-                                delivery-status-publish -- plus `briefs` in
++                                pr-contract, record -- plus `briefs` in
+                                 tests.yml) at the merged head. Median and mean.
+   gate_seconds_per_merge        the same sum over every other non-skipped check
+                                 run at that head -- the code gate.
+@@ -61,7 +60,7 @@ import d11lib as L  # noqa: E402
+ # workflows are gone, `gate-sweep.yml`'s job replaces them, and a check run is
+ # named `<unit> / <job>` (`bare` strips the unit), so GOV stays keyed by job id.
+ GOV = {"policy-docs", "env-matrix", "wave-script", "pr-contract", "record",
+-       "delivery-status", "delivery-status-publish", "briefs",
++       "briefs",
+        "instrument-self-tests", "budget-raise-gate", "sweep"}
+ W0 = os.environ.get("D11_WINDOW_START", "2026-09-09T09:37:08Z")
+ W1 = os.environ.get("D11_WINDOW_END", L.BASELINE_UTC)
+diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
+index e12dbe55b..ac9b7bbb1 100644
+--- a/tools/audit/seat/INSTRUMENTS.md
++++ b/tools/audit/seat/INSTRUMENTS.md
+@@ -110,7 +110,7 @@ sweep's standing-seat liveness step keep them alive.
+ - [`beatd_shims/git`](instruments/beatd_shims_git.md) — the beat jobs' `git`, reached only through the `PATH` `beatd.py` builds
+ - [`train.sh`](instruments/train.sh.md) — one invocation shape for `merge_train.py batch`
+ - [`state_docs.py`](instruments/state_docs.py.md) — one call regenerates the four state docs (`plan_table.py`, `merge_throughput.py flow`, `resume_doc.py`, `handover_prompt.py`), commits exactly their outputs to the orphan ref `handoff/audit-r<N>-plan` at `handoff/round<N>/state/`, N the roster's round
+-- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage, the state docs and main's suite state; a failed step is printed OWED and opens the ledger's `postmerge-owed`
++- [`postmerge.py`](instruments/postmerge.py.md) — after a merge: the #201 line, the roster stage and main's suite state (the state docs are the plan-beat's); a failed step is printed OWED and opens the ledger's `postmerge-owed`
+ - [`record_beat.py`](instruments/record_beat.py.md) — one merged pull request's #201 record line from a fixed template, the full merge sha, read back byte-identical
+ - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
+ - [`sweep_render.py`](instruments/sweep_render.py.md) — renders the orchestrator sweep from `sweep_template.md` and a session's JSON overlay (stdout or `--out`)
+diff --git a/tools/audit/seat/body_push.sh b/tools/audit/seat/body_push.sh
+index 40099f3d2..75a785344 100644
+--- a/tools/audit/seat/body_push.sh
++++ b/tools/audit/seat/body_push.sh
+@@ -30,7 +30,6 @@ if [ "${1:-}" = "--self-test" ]; then
+   printf 'import os, sys\nsys.exit(1 if os.path.exists(os.environ["FLAGS"] + "/pred") else 0)\n' > "$W/repo/tools/pr/ci_predict.py"
+   ( cd "$W/repo" && throwaway_git_env && echo a > a && git add . && git commit -qm code && git remote add origin "$W/o.git" \
+     && git push -q origin HEAD:refs/heads/main && git fetch -q origin && git push -q origin HEAD:refs/heads/handoff/t ) >/dev/null 2>&1
+-  printf 'the body\n' > "$W/body.md"
+   # A hook that refuses any push to handoff-wip/, installed for the failed-keep arm only.
+   printf '#!/bin/sh\nwhile read o n r; do case $r in refs/heads/handoff-wip/*) exit 1;; esac; done\n' > "$W/hook"; chmod +x "$W/hook"
+   run() { # copy -> rc ; FLAGS names the refusal switches, out in $W/out
+@@ -40,11 +39,12 @@ if [ "${1:-}" = "--self-test" ]; then
+   drop() { git -C "$W/o.git" update-ref -d refs/heads/handoff-wip/t-body 2>/dev/null; rm -rf "$W/flags"; mkdir -p "$W/flags"; }
+   drop
+   CODE=$(git -C "$W/repo" rev-parse HEAD)
++  printf '## Head\n\n%s\n\n## Other\n\nthe body\n' "$CODE" > "$W/body.md"; BODYTXT=$(cat "$W/body.md")
+   for arm in pred lint packet landed; do
+     drop; : > "$W/flags/$arm"; run t; rc=$?
+     st "$rc" 1 "REFUSE $arm: exit code unchanged"
+     k=$(keepsha)
+-    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "the body" "... and the refused body is kept at handoff-wip/t-body"
++    st "$(git -C "$W/o.git" show "$k:BODY.md" 2>/dev/null)" "$BODYTXT" "... and the refused body is kept at handoff-wip/t-body"
+     st "$(grep -c "^body_push: refused body kept at handoff-wip/t-body $k\$" "$W/out")" 1 "... and the keep line names the ref and sha"
+     st "$(git -C "$W/o.git" rev-list --count "$k" 2>/dev/null)" 1 "... as a parentless commit"
+     st "$(git -C "$W/repo" merge-base --is-ancestor "$k" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the kept body is not in the code head's ancestry"
+@@ -60,9 +60,16 @@ if [ "${1:-}" = "--self-test" ]; then
+   drop; : > "$W/flags/lint"; run t; st "$(keepsha | grep -c .)" 1 "a refusal is kept before the healthy run"
+   rm -rf "$W/flags"; mkdir -p "$W/flags"; run t; rc=$?
+   st "$rc" 0 "the healthy run pushes"
+-  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "the body" "... to handoff-body/t"
++  st "$(git -C "$W/o.git" show handoff-body/t:BODY.md 2>/dev/null)" "$BODYTXT" "... to handoff-body/t"
+   st "$(keepsha)" none "... and the keep ref is gone"
+   st "$(git -C "$W/repo" merge-base --is-ancestor "$(git -C "$W/o.git" rev-parse handoff-body/t)" "$CODE" 2>/dev/null; echo $?)" 1 "(null) the published body is not in the code head's ancestry"
++  # head-stale: a body whose ## Head names another sha is refused and nothing is pushed; the fresh one (null) passes.
++  OTHER=$(printf '%040d' 7); drop; git -C "$W/o.git" update-ref -d refs/heads/handoff-body/t
++  printf '## Head\n\n%s\n\n## Other\n\n%s\n' "$OTHER" "$CODE" > "$W/body.md"; run t; rc=$?
++  st "$rc$(grep -c "^body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $CODE; it names $OTHER\$" "$W/out")" 11 "REFUSE head-stale: a stale ## Head is refused, naming both shas"
++  st "$(git -C "$W/o.git" rev-parse -q --verify refs/heads/handoff-body/t 2>/dev/null || echo none)" none "... and nothing is pushed to handoff-body/t"
++  printf '## Head\n\n%s\n' "$CODE" > "$W/body.md"; drop; run t; rc=$?
++  st "$rc$(grep -c head-stale "$W/out")" 00 "(null) a ## Head naming the code sha passes the head check"
+   echo "body_push self-test: $N checks, $FAILS failed"; [ "$FAILS" = 0 ]; exit $?
+ fi
+ TOPIC=${1:?topic}; BODY=${2:?body file}; NOTE=${3:-}
+@@ -136,6 +143,14 @@ HREF=$(git ls-remote origin "refs/heads/handoff/$TOPIC") || { echo "body_push: c
+ HREF=$(printf '%s\n' "$HREF" | awk 'NF { print $1; exit }')
+ if [ -n "$HREF" ]; then
+   [ "$HREF" = "$(git -C "$ROOT" rev-parse HEAD)" ] || { echo "body_push: handoff/$TOPIC is at ${HREF:0:12}, this checkout at $(git -C "$ROOT" rev-parse --short=12 HEAD); push the code, then the body" >&2; exit 1; }
++  # A body's ## Head is a claim about what was measured: refused, never rewritten, when it does not name this code sha.
++  HEADSEC=$(awk '/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f' "$BODY")
++  case $HEADSEC in *"$HREF"*) ;; *)
++    NAMED=$(printf '%s\n' "$HEADSEC" | grep -oE '[0-9a-f]{40}' | head -1 || true)
++    echo "body_push: REFUSE head-stale: ## Head does not name the handoff's code sha $HREF; it names ${NAMED:-none}" >&2
++    keep_refused
++    exit 1 ;;
++  esac
+   ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")
+   # The identity refusal at the handoff (P274): the code head's commits over main are judged
+   # as the opener would judge them (its guard and the author-identity guard), so a commit authored by a
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index bb14786a4..42d0b70f3 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -148,7 +148,7 @@ ROOT=$(cd "$(dirname -- "$0")/../../.." && pwd)
+ REMOTE=${HPO_BUS_REMOTE:-origin}
+ REPO=${HPO_BUS_REPO:-tvofi/heatpump_optimizer}
+ #: A pull request's own delivery row (`dev/programme/delivery/<N>.md`,
+-#: delivery-status-tracking.md). `dispatch` reads it off the head.
++#: delivery-status-tracking.md). `dispatch` no longer reads it (card C5); delivery_row.sh's self-test pins it here.
+ ROW_DIR=dev/programme/delivery
+ POSTER=${HPO_BUS_POSTER:-}
+ if [ -z "$POSTER" ]; then
+@@ -198,11 +198,19 @@ dispatch_binding() { # verdict-file pr head -> 0 when the nonce binds to (pr, he
+   [ "$rh" = "$3" ] || { printf 'nonce %s was dispatched at head %s, not the head %s this verdict names; mint a fresh dispatch at this head with bus.sh dispatch %s %s <reviewer>' "$n" "$rh" "$3" "$2" "$3"; return 1; }
+   return 0
+ }
+-bot_only() { # head -> rc 0 when the commits in <remote>/main..head are all, and at least one, dependabot[bot]'s
+-  local a
+-  git fetch -q "$REMOTE" main 2>/dev/null
+-  a=$(git log --format=%an "$REMOTE/main..$1" 2>/dev/null) || return 1
+-  [ -n "$a" ] && [ -z "$(grep -vxF 'dependabot[bot]' <<< "$a")" ]  # mut:botonly
++#: THE CHEAP CHECKS (card C8): a dispatch waits for these to conclude at the head, and no other check.
++#: Check-run names as GitHub reports them, `<caller job> / <called job>` for a reusable workflow
++#: (the form tools/policy/fixtures/required-contexts.json's gate_required lists).
++CHEAP_CHECKS=(
++  "tests / mutation"         # .github/workflows/tests.yml job `mutation`, called as `tests` by ci.yml
++  "tests / typing"           # .github/workflows/tests.yml job `typing`
++  "pr-contract / pr-contract" # .github/workflows/pr-contract.yml job `pr-contract`, called as `pr-contract` by ci.yml
++  "governance / policy-docs" # .github/workflows/governance.yml job `policy-docs`, called as `governance` by ci.yml
++)
++pending_checks() { # head -> the names of the head's check runs not yet completed, one per line; rc 1 unreadable
++  if [ -n "${HPO_BUS_PENDING:-}" ]; then ${HPO_BUS_PENDING} "$1"
++  else gh api --paginate "repos/$REPO/commits/$1/check-runs?per_page=100" --jq '.check_runs[] | select(.status != "completed") | .name'
++  fi
+ }
+ numeric() { case $1 in ''|*[!0-9]*) return 1 ;; esac; return 0; }
+ approver_key() { # -> the hpo-approver App's private key on this machine, or a non-zero exit
+@@ -395,7 +403,7 @@ review_status() { # pr [want] -> prints BUS undispatched|unconfirmed|refused; al
+ }
+ 
+ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned line; rc 0 posted
+-  local pr c d first hsha body who sig
++  local pr c d first hsha body who sig cls rc
+   unpack verdict "$1" "${2:-}" || return 1
+   if grep -qx "$pr $c" "$S/posted" 2>/dev/null; then
+     printf 'BUS refused %s %s: already posted\n' "$pr" "$c"; return 1
+@@ -408,6 +416,20 @@ post_verdict() { # pr [expected sha] -> prints one BUS posted|refused|unsigned l
+   # review of PROC-4), or re-encode its signature line (round 3). What is
+   # signed is "<pr> <tree>", so each tree posts once per pull request whatever
+   # commit or encoding carries it; each round's nonce makes its tree distinct.
++  # THE MERGE VERDICT'S HEAD (card C8): refused at a head with a concluded red; only `classify` RED
++  # (rc 1) refuses a merge verdict that reached a clean answer, an unreadable one refuses too.
++  case $first in
++    "Fix review: merge "*)
++      hsha=$(verdict_sha "$first") || hsha=
++      cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$hsha" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
++      case $rc in
++        0|3|4) ;;
++        1) printf 'BUS refused %s %s: a merge verdict at %s whose head has a concluded red (%s) (card C8)\n' "$pr" "$c" "$hsha" \
++             "$(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')"; return 1 ;;
++        *) printf 'BUS refused %s %s: cannot classify %s, so a merge verdict there is not posted (card C8): %s\n' "$pr" "$c" "$hsha" \
++             "$(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)"; return 1 ;;
++      esac ;;
++  esac
+   sig=$(git rev-parse "$c^{tree}")
+   if grep -qxF -- "$pr $sig" "$S/posted-signed" 2>/dev/null; then
+     printf 'BUS refused %s %s: this signed verdict was already posted on #%s (a replay)\n' "$pr" "$c" "$pr"; return 1
+@@ -477,6 +499,12 @@ verdict_at() { # pr sha -> the latest verdict word naming <sha> on verdict/<pr>
+   printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: \([a-z]*\) $2\( .*\)\{0,1\}\$/\1/p" | head -n 1
+ }
+ 
++last_merge_verdict() { # pr -> the sha of verdict/<pr>'s latest `Fix review: merge <sha>`, or nothing; rc 1 unreadable
++  local subj
++  subj=$(verdict_log "$1") || return 1
++  printf '%s\n' "$subj" | sed -n "s/^verdict: #$1 Fix review: merge \([0-9a-f]\{40\}\)\( .*\)\{0,1\}\$/\1/p" | head -n 1
++}
++
+ # THE THREE-ROUND RULE (fixer.md, "Past three rounds"). Each round's verdict stays in
+ # verdict/<pr>'s history, so its blocked commits are the rounds already reviewed. After three,
+ # a dispatch needs the body's `## Re-cut` note (read only then, through $HPO_BUS_GH) or
+@@ -505,7 +533,7 @@ three_rounds() { # pr past-three-reason -> 0 to dispatch; else why
+ # names it only once `check` reads that head in it. --harness/--harness-file is the finder's.
+ # HPO_BUS_PACKER replaces the renderer (the self-test's stub).
+ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M] [--past-three <reason>] [--harness P|--harness-file F] -> records, closes, prints the packet and nonce lines
+-  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" row why rh="" carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
++  local pr=${1:-} h=${2:-} r=${3:-} n="" m=- p3="" why rh="" pend cheap name carry v rc hk="" hv="" pk prc=0 pmsg="" pkline="" cls
+   shift 3 2>/dev/null || shift $#
+   while [ $# -gt 0 ]; do
+     case $1 in
+@@ -520,27 +548,11 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
+   numeric "$pr" || die "dispatch: the pull request '$pr' is not a number"
+   [[ $h =~ ^[0-9a-f]{40}$ ]] || die "dispatch: '$h' is not a 40-hex head"
+   [[ $r =~ ^[A-Za-z0-9_-]+$ ]] || die "dispatch: name the reviewer's thread or session as one token"
+-  # THE ORDERING (#1990 class E). The row is the orchestrator's
+-  # (delivery-status-tracking.md) and lands before the review. A row written
+-  # after the verdict moves the head off the one the reviewer measured, and the
+-  # carry refuses a commit of the branch's own, so it costs a re-review. This
+-  # dispatch is the only way to start that review (a verdict posts only against
+-  # a dispatch's nonce, below), so the head must carry its own row here. Fetch
+-  # the head first when it is not local.
+-  row=$ROW_DIR/$pr.md
++  # The head must be readable here; fetch it first when it is not local. (The per-PR delivery row
++  # it once had to carry is retired, card C5.)
+   git cat-file -e "$h^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$h" 2>/dev/null
+   git cat-file -e "$h^{commit}" 2>/dev/null \
+     || die "dispatch: the head $h is not readable in this checkout; fetch it, then dispatch"
+-  # A head whose every commit over main is dependabot[bot]'s (P100) takes no row commit: one moves
+-  # it off the bot's head and reddens pr-contract against dependabot_contract.mjs (#2773, #2678).
+-  # Its row is the orchestrator's on main, so it is read at origin/main; any other head reads its own.
+-  if bot_only "$h"; then
+-    git cat-file -e "$REMOTE/main:$row" 2>/dev/null \
+-      || die "dispatch: #$pr's head $h is dependabot[bot]'s alone and $REMOTE/main carries no $row; land the row on main (a commit on the bot's head reddens pr-contract), then dispatch"
+-  else
+-    git cat-file -e "$h:$row" 2>/dev/null \
+-      || die "dispatch: #$pr's head $h carries no $row; the row lands before the review (delivery-status-tracking.md) -- write it and re-push, then dispatch"
+-  fi
+   # THE CARRY LANDING (CARRY 0, P310): a body item routed `Carry: <GROUP>` whose group's brief
+   # and carries hold neither its id nor this pull request is refused here, before a reviewer
+   # blocks on it (14 of 21 carry-missing blocks after #2838), with the roster ops that land it.
+@@ -557,7 +569,14 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
+   # replaces the command (the self-tests' stub).
+   cls=$(${HPO_BUS_CLASSIFY:-python3 "$ROOT/tools/audit/seat/merge_train.py"} classify "$h" --repo "$REPO" --pr "$pr" 2>&1); rc=$?
+   case $rc in
+-    0|3) ;;
++    0) ;;
++    3) # THE CHEAP CHECKS (card C8): a head still in flight dispatches once the sub-10-minute checks concluded.
++       pend=$(pending_checks "$h") || die "dispatch: cannot read the check runs of #$pr's head $h (an unread head is never read as concluded), so no reviewer is dispatched"
++       cheap=
++       for name in "${CHEAP_CHECKS[@]}"; do  # never-empty: CHEAP_CHECKS is the literal four-entry array above
++         ! grep -qxF -- "$name" <<< "$pend" || cheap+="${cheap:+, }$name"
++       done
++       [ -z "$cheap" ] || die "dispatch: #$pr's head $h has cheap checks still running ($cheap) -- the review starts once they conclude (card C8)" ;;
+     4) printf 'bus: %s\n' "$(printf '%s\n' "$cls" | grep '^APPROVAL-OWED ' | tail -n 1)" >&2 ;;
+     1) die "dispatch: #$pr's head $h is not reviewable: a required context's latest run there concluded failure ($(printf '%s\n' "$cls" | sed -n 's/^RED .* red: //p')) -- repair the head, then dispatch" ;;
+     *) die "dispatch: cannot classify #$pr's head $h, so no reviewer is dispatched (an unread head is never green): $(printf '%s\n' "$cls" | grep -v '^[[:space:]]*$' | tail -n 1)" ;;
+@@ -575,6 +594,11 @@ dispatch() { # pr head reviewer [--reviewed-head <sha>] [--nonce N] [--model M]
+   # unreadable verdict ref refuses, never read as either.
+   # --nonce mints nothing (a relay-minted nonce re-recorded for the seat
+   # fired with it), so it is left alone.
++  # Card C4: with no --reviewed-head the latest merge verdict on verdict/<pr> is the reviewed head.
++  if [ -z "$rh" ] && [ -z "$n" ]; then
++    rh=$(last_merge_verdict "$pr") || die "dispatch: cannot read verdict/$pr to learn whether #$pr already holds a merge verdict, so no reviewer is dispatched"
++    [ "$rh" != "$h" ] || die "dispatch: #$pr's head $h already holds a merge verdict -- no second reviewer (card C4)"
++  fi
+   if [ -n "$rh" ] && [ -z "$n" ]; then
+     git cat-file -e "$rh^{commit}" 2>/dev/null || git fetch -q "$REMOTE" "$rh" 2>/dev/null
+     carry=$(python3 -I "$ROOT/tools/audit/seat/review_carry.py" "$rh" "$h" \
+@@ -908,6 +932,8 @@ esac
+ exit "${BUS_CLASSIFY_RC:-0}"
+ P
+   export BUS_TEST_CLASSIFIES=$W/classifies
++  # The in-flight check-run reader stub (HPO_BUS_PENDING): the names in $BUS_PENDING, one per line; rc BUS_PENDING_RC.
++  printf '%s\n' 'printf "%b" "${BUS_PENDING:-}"' 'exit "${BUS_PENDING_RC:-0}"' > "$W/pending"
+   export BUS_TEST_CALLS=$W/calls BUS_TEST_LAST=$W/last
+   : > "$W/calls"
+   # BUS_ID picks the identity directory: $W/ap holds the approver's key (the
+@@ -922,7 +948,7 @@ P
+   RH=$HOME
+   run() { (cd "$W/seat" && HPO_BUS_STATE=$W/state HPO_BUS_POSTER=$W/poster HPO_BUS_REPO=o/r \
+            HPO_BUS_LEDGER=$W/ledger/cloud-relay.log HPO_BUS_GH="bash $W/ghstub" HPO_BUS_PACKER="bash $W/packer" \
+-           HPO_BUS_CLASSIFY="bash $W/classifier" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
++           HPO_BUS_CLASSIFY="bash $W/classifier" HPO_BUS_PENDING="bash $W/pending" HPO_STATE_DIR=${HPO_STATE_DIR:-$RH/.local/state/hpo} HOME=$W \
+            HPO_IDENTITY_DIR=${BUS_ID:-$W/ap} bash "$ROOT/tools/audit/seat/bus.sh" "$@") 2>&1; }
+   seat() { BUS_ID=$W/noid run "$@"; }
+   calls() { grep -c . "$W/calls"; }
+@@ -1012,37 +1038,16 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+   out=$(run dispatch 7 "$h1" cmsg_Q3 --nonce "$N1b"); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "belongs to pull request #12" && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ]
+   expect "dispatch --nonce refuses a nonce minted for another pull request, and records nothing" $?
+-  # #1990 class E, the ordering. A row written after the verdict moves the head
+-  # off the one the reviewer measured and costs a re-review (the carry refuses a
+-  # branch-own commit). dispatch reads the head's own delivery row, so a head
+-  # without one is refused and the row cannot land late. `norow` is the base,
+-  # with no rows; h1 is the null control, the same pull request with its row.
++  # Card C4: once verdict/<pr> holds a merge verdict at the head, a dispatch there is refused. The
++  # arms below that need a fresh dispatch for such a pull request set the verdict ref aside for it.
++  dhid() { local t; t=$(tip "verdict/$1" 2>/dev/null) && git -C "$W/seat" push -q origin ":refs/heads/verdict/$1"
++           run dispatch "$@"; local rc=$?
++           [ -z "$t" ] || git -C "$W/seat" push -q origin "$t:refs/heads/verdict/$1"; return $rc; }
++  # Card C5: the per-PR delivery row is retired, so a head without one dispatches. `norow` is the base.
+   out=$(run dispatch 7 "$norow" cmsg_Z); rc=$?
+-  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/7.md"
+-  expect "dispatch refuses a head with no delivery row (the ordering, #1990 class E)" $?
+-  out=$(run dispatch 7 "$h1" cmsg_Z2); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+-  expect "dispatch accepts the same pull request once its row is on the head (null control)" $?
+-  # P100: a dependabot-only head reads its row on origin/main; any other head reads its own.
++  expect "dispatch no longer requires the head to carry a delivery row (card C5)" $?
+   mb0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1); git -C "$W/seat" fetch -q origin main
+-  bot() { GIT_AUTHOR_NAME=${3:-dependabot[bot]} git -C "$W/seat" \
+-            commit-tree "$(git -C "$W/seat" rev-parse "$1^{tree}")" -p "$1" -m "$2"; }
+-  hb=$(bot "$mb0" "bump x")
+-  out=$(run dispatch 41 "$hb" cmsg_B0); rc=$?
+-  [ $rc != 0 ] && echo "$out" | grep -q "dependabot\[bot\]'s alone and origin/main carries no $ROW_DIR/41.md"
+-  expect "null control: a dependabot-only head with its row nowhere is refused (P100)" $?
+-  rb41=$(printf -- '- [#41](https://github.com/o/r/pull/41) — **open**\n' | git -C "$W/seat" hash-object -w --stdin)
+-  rt41=$(git -C "$W/seat" ls-tree "$mb0" | grep -v "	dev$"; printf '040000 tree %s\tdev\n' "$(printf '040000 tree %s\tprogramme\n' "$(printf '040000 tree %s\tdelivery\n' "$(printf '100644 blob %s\t41.md\n' "$rb41" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)" | git -C "$W/seat" mktree)")
+-  m41=$(printf '%s\n' "$rt41" | git -C "$W/seat" mktree); m41=$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$m41" -p "$mb0" -m "row 41")
+-  git -C "$W/seat" push -q origin "$m41:refs/heads/main"; hb=$(bot "$m41" "bump y")
+-  out=$(run dispatch 41 "$hb" cmsg_B1); rc=$?
+-  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+-  expect "a dependabot-only head with its row on origin/main is dispatched (P100)" $?
+-  hb=$(bot "$(bot "$mb0" "a hand fix" t)" "bump z")  # cut before the row landed on main
+-  out=$(run dispatch 41 "$hb" cmsg_B2); rc=$?
+-  [ $rc != 0 ] && echo "$out" | grep -q "carries no $ROW_DIR/41.md"
+-  expect "a head with one non-bot commit and its row only on origin/main is refused (P100)" $?
+-  git -C "$W/seat" push -q -f origin "$mb0:refs/heads/main"; git -C "$W/seat" fetch -q origin main
+   # THE REVIEW CARRY (R10-REVIEW-CARRY; tvofi, 2026-10-27). A fresh nonce over a
+   # head whose range against the named reviewed head is clean starts a second
+   # reviewer for a proof that did not move. `hm` is a merge-only move (main
+@@ -1084,6 +1089,19 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+   out=$(seat dispatch 31 "$hm" cmsg_C4 --reviewed-head "$h1"); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+   expect "P348: the latest verdict naming the reviewed head decides -- blocked then merge refuses, a blocked verdict at another head aside (#2962)" $?
++  # Card C4: no --reviewed-head derives it from verdict/<pr>'s latest merge verdict.
++  n=$(grep -c . "$W/state/dispatched")
++  out=$(seat dispatch 31 "$hm" cmsg_D1); rc=$?
++  [ $rc != 0 ] && echo "$out" | grep -q "review_carry: CARRY" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
++  expect "card C4: a dispatch without --reviewed-head derives it from the latest merge verdict and refuses a clean carry" $?
++  out=$(seat dispatch 31 "$h1" cmsg_D2); rc=$?
++  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict -- no second reviewer (card C4)" && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
++  expect "card C4: a second reviewer at the head that already holds a merge verdict is refused" $?
++  git -C "$W/seat" push -q origin :refs/heads/verdict/31; vc blocked "$h1" "metric-gamed: planted"
++  out=$(seat dispatch 31 "$hm" cmsg_D3); rc=$?
++  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
++  expect "null control (card C4): a pull request whose only verdict is blocked dispatches without --reviewed-head" $?
++  vc merge "$h1"
+   git -C "$W/seat" push -q origin :refs/heads/verdict/31
+   out=$(seat dispatch 31 "$hm" cmsg_C5 --reviewed-head "$h1"); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -qF "review-carry: $h1 has no verdict, so a fresh review is owed" \
+@@ -1202,7 +1220,7 @@ bus-nonce: $N1b" ] && [ "$(grep -c " $N1b " "$W/state/dispatched")" = 2 ] \
+   out=$(seat push-verdict 7 "$W/stale.md" "$W/ev2"); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "was dispatched at head $h1" && [ "$(tip review/7)" = "$r1" ]
+   expect "round 1's nonce does not count at another head" $?
+-  N2=$(run dispatch 7 "$h2" cmsg_R | sed -n 's/^bus-nonce: //p')
++  N2=$(dhid 7 "$h2" cmsg_R | sed -n 's/^bus-nonce: //p')
+   printf 'Fix review: blocked %s harness: class-open x\n\nbus-nonce: %s\n' "$h2" "$N2" > "$W/blocked.md"
+   out=$(seat push-verdict 7 "$W/blocked.md" "$W/ev2")
+   r2=$(tip review/7)
+@@ -1258,6 +1276,13 @@ B
+   out=$(seat push-verdict 9 "$W/merge9.md" "$W/ev1")
+   r9=$(tip review/9)
+   : > "$W/train-argv"
++  out=$(BUS_CLASSIFY_RC=1 run confirm 9 "$r9"); c9=$(calls)
++  echo "$out" | grep -q "^BUS refused 9 .*: a merge verdict at $h1 whose head has a concluded red (tests / fast gate) (card C8)" \
++    && ! grep -q "^9 " "$W/state/posted" && [ "$(calls)" = "$c9" ] && ! grep -q "^BUS posted" <<<"$out"
++  expect "card C8: a merge verdict at a head classify calls RED is refused, recorded nowhere and posts nothing (the arm below is its GREEN null control)" $?
++  out=$(BUS_CLASSIFY_RC=2 run confirm 9 "$r9")
++  echo "$out" | grep -q "^BUS refused 9 .*cannot classify" && ! grep -q "^9 " "$W/state/posted"
++  expect "card C8: an unreadable classification refuses a merge verdict" $?
+   out=$(BUS_TEST_POSTER_FAIL=1 HPO_BUS_TRAIN_STATE=$W/train HPO_BUS_TRAIN_CMD="bash $W/addstub" run confirm 9 "$r9")
+   echo "$out" | grep -q "^BUS refused 9 .*the poster refused" && ! grep -q "^9 " "$W/state/posted"
+   expect "a poster refusal is reported and not recorded as posted" $?
+@@ -1556,7 +1581,7 @@ B
+   # append_commit's guard, and review/7 does not move; the same verdict with a
+   # clean tail is its null control and proposes.
+   r7=$(tip review/7)
+-  NL=$(run dispatch 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
++  NL=$(dhid 7 "$h1" cmsg_L | sed -n 's/^bus-nonce: //p')
+   printf 'Fix review: blocked %s harness: /%s/exampleuser/x\n\nbus-nonce: %s\n' "$h1" Users "$NL" > "$W/merge-leak.md"
+   out=$(seat push-verdict 7 "$W/merge-leak.md" "$W/ev1" 2>&1); rc=$?
+   [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "would publish this host (#2310)"
+@@ -1576,7 +1601,7 @@ B
+   m0=$(git -C "$W/seat" ls-remote origin refs/heads/main | cut -f1)
+   git -C "$W/seat" push -q origin "$(git -C "$W/seat" -c user.name=t -c user.email=t@t commit-tree "$rt" -p "$m0" -m roster):refs/heads/main"
+   git -C "$W/seat" fetch -q origin main
+-  NG=$(run dispatch 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
++  NG=$(dhid 7 "$h1" cmsg_G | sed -n 's/^bus-nonce: //p')
+   vg() { printf 'Fix review: merge %s\n\nbus-nonce: %s\n\n## Findings\n\n- %s\n' "$h1" "$NG" "$1" > "$W/vg.md"; seat push-verdict 7 "$W/vg.md" "$W/ev1" 2>&1; }
+   out=$(vg "A defect in x is left in place, not blocking."); rc=$?
+   [ $rc != 0 ] && [ "$(tip review/7)" = "$r7" ] && echo "$out" | grep -q "1 finding item(s) with no valid Carry: (carry_audit.py); first: UNROUTED review push-verdict item [0-9a-f]\{8\} (## Findings)"
+@@ -1633,45 +1658,56 @@ B
+   # THE REVIEW PACKET: dispatch names the packet rendered at its head and passes the
+   # finder's harness through; a REFUSED head records nothing; a seat that cannot render
+   # one dispatches anyway, names no packet, and says why (#2870).
+-  out=$(run dispatch 7 "$h1" cmsg_P --harness dev/audit/harnesses/x.py); rc=$?
++  out=$(dhid 7 "$h1" cmsg_P --harness dev/audit/harnesses/x.py); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -qx "review-packet: ~/state/packets/7-$h1.md" \
+     && tail -n 1 "$W/packs" | grep -q "^render|--pr|7|--head|$h1|--out|$W/state/packets/7-$h1.md|--harness|dev/audit/harnesses/x.py|\$"
+   expect "dispatch renders the packet at its head with the finder's harness and names its path" $?
+   n=$(grep -c . "$W/state/dispatched")
+-  out=$(BUS_PACK_REFUSE=1 run dispatch 7 "$h1" cmsg_P); rc=$?
++  out=$(BUS_PACK_REFUSE=1 dhid 7 "$h1" cmsg_P); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "REFUSE head-note: planted" && echo "$out" | grep -q "review packet refused" \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ]
+   expect "a refused packet refuses the dispatch, names the signal, and records nothing" $?
+-  out=$(BUS_PACK_HEAD=$h2 run dispatch 7 "$h1" cmsg_P); rc=$?
++  out=$(BUS_PACK_HEAD=$h2 dhid 7 "$h1" cmsg_P); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- .*does not name the head $h1" \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+   expect "a packet naming another head dispatches, names no packet, and says why" $?
+-  out=$(BUS_PACK_UNAVAILABLE=1 run dispatch 7 "$h1" cmsg_P); rc=$?
++  out=$(BUS_PACK_UNAVAILABLE=1 dhid 7 "$h1" cmsg_P); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q "^review-packet: unavailable -- review_packet: UNAVAILABLE: planted: no gh$" \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+   expect "a renderer this seat cannot run dispatches, names no packet, and says why" $?
+   # THE REVIEWABLE HEAD (K15 (d)): the classifier's RED refuses and records nothing;
+   # its GREEN and WAIT dispatch (the null controls); an unreadable answer refuses.
+   n=$(grep -c . "$W/state/dispatched")
+-  out=$(BUS_CLASSIFY_RC=1 run dispatch 7 "$h1" cmsg_K); rc=$?
++  out=$(BUS_CLASSIFY_RC=1 dhid 7 "$h1" cmsg_K); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "is not reviewable: .*(tests / fast gate)" \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$n" ] && tail -n 1 "$W/classifies" | grep -qx "classify|$h1|--repo|o/r|--pr|7|"
+   expect "a head whose required context concluded failure (classify RED) is not dispatched, and nothing is recorded" $?
+-  out=$(BUS_CLASSIFY_RC=0 run dispatch 7 "$h1" cmsg_K); rc=$?
++  out=$(BUS_CLASSIFY_RC=0 dhid 7 "$h1" cmsg_K); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 1))" ]
+   expect "null control: the same dispatch at a GREEN-classified head mints and records" $?
+-  out=$(BUS_CLASSIFY_RC=3 run dispatch 7 "$h1" cmsg_K); rc=$?
++  out=$(BUS_CLASSIFY_RC=3 dhid 7 "$h1" cmsg_K); rc=$?
+   [ $rc = 0 ] && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
+   expect "a head still in flight (classify WAIT) is reviewable and dispatches" $?
+-  out=$(BUS_CLASSIFY_RC=4 run dispatch 7 "$h1" cmsg_K 2>&1); rc=$?
++  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING='tests / mutation\ntests / fast\n' dhid 7 "$h1" cmsg_K); rc=$?
++  [ $rc != 0 ] && echo "$out" | grep -q "has cheap checks still running (tests / mutation) -- the review starts once they conclude (card C8)" \
++    && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 2))" ]
++  expect "card C8: WAIT with a cheap check still in flight refuses and names it" $?
++  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING='tests / fast\ntests / mutation-extra\n' dhid 7 "$h1" cmsg_K); rc=$?
++  [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
++  expect "null control (card C8): WAIT with only a non-cheap check in flight dispatches" $?
++  out=$(BUS_CLASSIFY_RC=3 BUS_PENDING_RC=1 dhid 7 "$h1" cmsg_K); rc=$?
++  [ $rc != 0 ] && echo "$out" | grep -q "cannot read the check runs" && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
++  expect "card C8: an unreadable check-run read at WAIT refuses, never read as concluded" $?
++  n=$((n + 1))
++  out=$(BUS_CLASSIFY_RC=4 dhid 7 "$h1" cmsg_K 2>&1); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q '^bus: APPROVAL-OWED '"$h1"' 1 budget raise' \
+     && echo "$out" | grep -q '^bus-nonce: ' && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+   expect "P345: a raise whose only red is its owed approval (classify --pr APPROVAL-OWED) dispatches, records, and prints the line" $?
+-  out=$(BUS_CLASSIFY_RC=2 run dispatch 7 "$h1" cmsg_K); rc=$?
++  out=$(BUS_CLASSIFY_RC=2 dhid 7 "$h1" cmsg_K); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "cannot classify .*never green): REFUSE proof" \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$((n + 3))" ]
+   expect "an unreadable classification refuses the dispatch, never green" $?
+-  out=$(run dispatch 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
++  out=$(dhid 7 "$h1" cmsg_P --harness a --harness-file b); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "takes one path, once"; expect "dispatch takes one finder's harness, never two" $?
+   out=$(python3 -I "$ROOT/tools/audit/seat/review_packet.py" --self-test 2>&1) \
+     && echo "$out" | grep -q '^review_packet self-test: [1-9][0-9]* checks, 0 failed$'
+@@ -1714,13 +1750,13 @@ B
+     git -C "$W/seat" fetch -q origin main; }
+   lroster '[]'; printf '## Forward-carry\n\n- The census misses the store seam. Carry: R10-LIVE\n' > "$W/body31"
+   nd=$(grep -c . "$W/state/dispatched")
+-  out=$(run dispatch 7 "$h1" cmsg_L1); rc=$?
++  out=$(dhid 7 "$h1" cmsg_L1); rc=$?
+   [ $rc != 0 ] && echo "$out" | grep -q "^CARRY-MISSING R10-LIVE body item [0-9a-f]\{8\}: not in its brief or carries" \
+     && echo "$out" | grep -q "^  roster op: python3 tools/audit/seat/roster_edit.py append-carry R10-LIVE 'From #7, body item " \
+     && [ "$(grep -c . "$W/state/dispatched")" = "$nd" ]
+   expect "dispatch refuses a body carry its group does not hold, printing the roster op, recording nothing (CARRY 0)" $?
+   lroster '["From #7: the store seam."]'
+-  out=$(run dispatch 7 "$h1" cmsg_L2); rc=$?
++  out=$(dhid 7 "$h1" cmsg_L2); rc=$?
+   [ $rc = 0 ] && echo "$out" | grep -q '^bus-nonce: '
+   expect "and dispatches once the group's carries name the pull request (P310, the null control)" $?
+   printf '## Summary\nround four, repaired\n' > "$W/body31"
+diff --git a/tools/audit/seat/handoff_push.sh b/tools/audit/seat/handoff_push.sh
+index 230dab601..3460a067f 100644
+--- a/tools/audit/seat/handoff_push.sh
++++ b/tools/audit/seat/handoff_push.sh
+@@ -1,24 +1,20 @@
+ #!/bin/bash
+ # handoff_push.sh <handoff-topic> <code-sha-full> "<title>" [merge-main]
+ # DRAFT=1 (default) turns the PR into a draft; merge_pr.sh marks it ready. Pushes a handoff branch's code head as the hpo-author App with the handoff body,
+-# retitles the PR, adds the PR's own delivery row, fixes ## Head, and re-pushes. The orchestrator writes that
+-# row here because it is the seat that learns N (dev/governance/rules/delivery-status-tracking.md).
++# retitles the PR and fixes ## Head. No delivery row is written (card C5, tvofi 2026-11-05).
+ # Round 9 opened and updated PRs with open_pr.sh and update_pr.sh, its successors; this stays while
+ # dev/programme/HANDOVER.md names it.
+-# --self-test runs delivery_row.sh's self-test and this script's own offline
+-# one: the three push calls are driven over a scratch origin with a stub
+-# app_push, so a push line replaced by `true` reddens it (#2444).
++# --self-test runs this script's own offline one: the push calls are driven
++# over a scratch origin with a stub app_push, so a push line replaced by `true`
++# reddens it (#2444).
+ set -uo pipefail
+ SEAT=$(cd "$(dirname -- "$0")" && pwd); PRT=$(cd "$SEAT/../../pr" && pwd)  # head_note.py: each ## Head note goes under the heading, not a quote of it
+-# The row is written and committed by delivery_row.sh (commit_row, ensure_row), the one
+-# writer open_pr.sh and update_pr.sh also source; its self-test is this script's.
+-. "$(dirname -- "$0")/delivery_row.sh"
+ 
+-# The three push calls' own fixtures (#2444's fourth forward-carry). A scratch
++# The two push calls' own fixtures (#2444's fourth forward-carry). A scratch
+ # origin carries handoff/g (open) and handoff/h (update, with fix/h on origin);
+-# the clone holds this script, the row writer and head_note.py, and its
++# the clone holds this script and head_note.py, and its
+ # tools/pr/app_push.sh is a stub that records every call. The open path must
+-# push twice -- the pull request, then its row -- and the update path once.
++# push once, as does the update path.
+ # This self-test copies THIS file into the clone, so the mutant proof is a
+ # push line replaced by `true` in the real file: the null control then finds
+ # a call missing and the step exits 1.
+@@ -46,7 +42,7 @@ handoff_push_self_test() (
+     && git -C "$o" update-ref refs/heads/handoff-body/t "$body" \
+     && throwaway_git_clone -q "$o" "$m" \
+     && mkdir -p "$m/tools/audit/seat" "$m/tools/pr" "$t/bin" \
+-    && cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
++    && cp "$src/handoff_push.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/" \
+     && cp "$src/../../pr/head_note.py" "$m/tools/pr/head_note.py" \
+     && printf '#!/bin/bash\n[ "$(git -C "$2" rev-parse HEAD)" = "$(git -C "$2" rev-parse --verify "refs/heads/$3")" ] || { echo "app_push: REFUSE: HEAD is not the committed tip of $3"; exit 1; }\nprintf "%%s\\n" "$*" >> "$PUSH_LOG"\necho "PUSHED pull request #42"\n' > "$m/tools/pr/app_push.sh" \
+     && chmod +x "$m/tools/pr/app_push.sh" \
+@@ -64,7 +60,7 @@ handoff_push_self_test() (
+       git -C "$m" worktree remove --force "$w" 2>/dev/null
+     done
+     git -C "$m" branch -D "fix/$topic" >/dev/null 2>&1
+-    cp "$src/handoff_push.sh" "$src/delivery_row.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/"
++    cp "$src/handoff_push.sh" "$src/pr_args.sh" "$src/ref_privacy.py" "$m/tools/audit/seat/"
+     [ "$topic" = h ] && git -C "$m" worktree add -q -b fix/h "$wr/fix-h" origin/fix/h
+     [ "$exists" = "$t/pr-exists" ] && : > "$exists"
+     : > "$t/push"
+@@ -74,11 +70,11 @@ handoff_push_self_test() (
+     echo $? > "$t/rc"
+   }
+   run open
+-  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 2 ] \
++  [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
+     && grep -q 'RESULT pr=42 head=' "$t/out"
+-  ck "null control: the open path pushes the pull request, then its row" $?
++  ck "null control: the open path pushes the pull request once" $?
+   ! git -C "$t/wt$i/fix-g" symbolic-ref -q HEAD >/dev/null 2>&1 && [ -d "$t/wt$i/fix-g" ]
+-  ck "the open path leaves its worktree detached at the row's pushed head (P64)" $?
++  ck "the open path leaves its worktree detached at the pushed head (P64)" $?
+   run update
+   [ "$(cat "$t/rc")" = 0 ] && [ "$(wc -l < "$t/push" | tr -d ' ')" = 1 ] \
+     && grep -q 'RESULT pr=42' "$t/out"
+@@ -105,9 +101,7 @@ handoff_push_self_test() (
+ )
+ 
+ if [ "${1:-}" = --self-test ]; then
+-  bash "$(dirname -- "$0")/delivery_row.sh" --self-test; r=$?
+-  handoff_push_self_test; h=$?
+-  [ "$r" = 0 ] && [ "$h" = 0 ]; exit $?
++  handoff_push_self_test; exit $?
+ fi
+ # A stopped run ends the whole tree it started (R10-PUSHER-REAP): pr_args.sh's EXIT
+ # trap reaps it, and each push runs asynchronously (push_app) so an INT does not wait behind it.
+@@ -179,14 +173,11 @@ echo "intended closes: ${ISSUES:-none}"
+ if [ -d "$WT" ] && gh pr view "$BR" --json number >/dev/null 2>&1; then  # update an open PR to a new code head
+   N=$(gh pr view "$BR" --json number --jq .number)
+   ( cd "$WT" && git fetch -q origin "$BR" && git checkout -q --force -B "$BR" "origin/$BR" && GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com git merge --no-edit -q "$CODE" && git fetch -q origin main && git merge --no-edit -q origin/main && { python3 tests/env_drift.py --drop-inherited "$(git rev-parse origin/main)" >/dev/null 2>&1; git diff --quiet || git commit -qam "claims: drop the claims main already carries after the main merge"; } ) || { echo "MERGE of $CODE (or main) into $BR failed"; exit 1; }
+-  # A previous head with no row (a refused second push below) gains it here, or it never would.
+-  _added=$(ensure_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")") || { echo "ROW commit for #$N failed"; exit 1; }
+   H=$(git -C "$WT" rev-parse HEAD)
+-  PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" "$_added" <<'E3'
++  PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" <<'E3'
+ import sys; from head_note import prefix
+-p,H,C,N,A=sys.argv[1:6]; s=open(p).read()
+-how="then adds one commit containing only its own row" if A else "which carried its own row"
+-s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head, %s `dev/programme/delivery/%s.md`. The PR tree is that code head plus the row.\n\n"%(H,C,how,N))
++p,H,C=sys.argv[1:4]; s=open(p).read()
++s=prefix(s,"`%s` merges the authored code head `%s` into this PR's previous head.\n\n"%(H,C))
+ open(p,'w').write(s)
+ E3
+   push_app 2  # mut:push-update
+@@ -214,15 +205,6 @@ echo "$out" | cut -c1-200
+ N=$(echo "$out" | grep -oE 'pull request #[0-9]+' | head -1 | grep -oE '[0-9]+'); [ -n "$N" ] || exit 1
+ gh pr edit $N --title "$TITLE" >/dev/null
+ [ -n "${DRAFT:-1}" ] && gh pr ready $N --undo >/dev/null 2>&1
+-export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
+-commit_row "$WT" "$N" "$(row_line "$N" $R "$TITLE")" >/dev/null || exit 1
+ H=$(git -C "$WT" rev-parse HEAD)
+-PYTHONPATH="$PRT" python3 - "$B" "$H" "$CODE" "$N" <<'E'
+-import sys; from head_note import prefix
+-p,H,C,N=sys.argv[1:5]; s=open(p).read()
+-s=prefix(s,"`%s` adds one commit to the previous head, containing only this PR's own row, `dev/programme/delivery/%s.md`. The authored code head is `%s`.\n\n"%(H,N,C))
+-open(p,'w').write(s)
+-E
+-push_app 1  # mut:push-row
+ case $PUSH_OUT in *PUSHED*) pr_release_wt "$WT" "$BR" "$H" ;; esac  # mut:hprelease
+ echo "RESULT pr=$N head=$H"
+diff --git a/tools/audit/seat/instruments/body_push.sh.md b/tools/audit/seat/instruments/body_push.sh.md
+index 8f8531856..3e4434cda 100644
+--- a/tools/audit/seat/instruments/body_push.sh.md
++++ b/tools/audit/seat/instruments/body_push.sh.md
+@@ -18,3 +18,4 @@
+   handoff arm reads it: a body naming another head is held as
+   `handoff-body-stale`, and a body naming a tip the PR head already holds is
+   applied body-only (`update_pr.sh` with code `-`).
++- Refuses `head-stale` (exit 1, body kept at `handoff-wip/<topic>-body`) when the body's `## Head` does not name `handoff/<topic>`'s code sha: a repair body kept the previous handoff's head (#3212, #3230, #3231; R10-PROCESS-SLIM carry 1).
+diff --git a/tools/audit/seat/instruments/postmerge.py.md b/tools/audit/seat/instruments/postmerge.py.md
+index eee7a838c..bf4ca742f 100644
+--- a/tools/audit/seat/instruments/postmerge.py.md
++++ b/tools/audit/seat/instruments/postmerge.py.md
+@@ -3,7 +3,8 @@
+ - `postmerge.py` — the bookkeeping after a merge, run by `merge_pr.sh` and
+   by the train's landing: the #201 line (`record_beat.py`), the roster stage
+   (`roster_sync.py --apply`; a refusal prints `set-stage owed <group> <merge sha>`),
+-  `state_docs.py --push`, and main's suite state (`merge_train.py classify --main`).
++  and main's suite state (`merge_train.py classify --main`); the state docs are
++  the `plan-beat`'s alone (`beat_jobs.py`), never a second writer here.
+   When: automatically after each merge; by hand with `--retry` once an OWED
+   cause is gone, which closes the ledger event on a clean run. Refusals: a step
+   that fails is printed `OWED <step>: <why>`, opens `postmerge-owed` for the pull
+diff --git a/tools/audit/seat/merge_train.py b/tools/audit/seat/merge_train.py
+index f3044585e..0c2a3fdb0 100644
+--- a/tools/audit/seat/merge_train.py
++++ b/tools/audit/seat/merge_train.py
+@@ -2325,7 +2325,12 @@ class Train:
+         own worktree holding a branch (train-b5, #2290: PARKed by
+         ~/hpo-orch/train-b5/wt/2290). Never forced: one with changes stays,
+         logged NOT released; a queue entry's own `worktree` is never touched."""
++        lc, listed = self.run(["git", "worktree", "list", "--porcelain"])
++        reg = {str(Path(ln[9:]).resolve()) for ln in listed.splitlines() if ln.startswith("worktree ")}
+         for wt in self.made_wts:
++            if lc == 0 and str(Path(wt).resolve()) not in reg and not Path(wt).exists():
++                self.log(f"released {wt} (already collected)")  # worktree_gc.sh took it with the merged branch
++                continue
+             code, o = self.run(["git", "worktree", "remove", str(wt)])
+             self.log(f"released {wt}" if code == 0 else
+                      f"NOT released {wt} (rc={code}: {o.strip()[-160:]}); remove it by hand")
+@@ -4633,11 +4638,42 @@ def _self_test() -> int:
+     # The train releases the recarry worktrees it made (train-b5 left wt/2290
+     # holding the branch, and the next pre-flight PARKed the entry on it).
+     own = {k: v for k, v in item.items() if k != "worktree"}
+-    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)])
++    def listing(base_run):  # the recarry worktree is registered with git, as in life
++        added: list = []
++
++        def run(argv, cwd=ROOT, stdin=None):
++            if argv[:3] == ["git", "worktree", "add"]:
++                added.append(argv[-2])
++            if argv[:3] == ["git", "worktree", "list"]:
++                return 0, "".join(f"worktree {x}\n\n" for x in added)
++            return base_run(argv, cwd=cwd, stdin=stdin)
++        return run
++    rc, lines, calls = go({"contains": [False], "heads": [H0, H1]}, q=[dict(own)], wrap=listing)
+     removed = [c for c in calls if c[:3] == ["git", "worktree", "remove"]]
+     check("a recarry worktree the train made under its state dir is removed at the run's end, never forced",
+           rc == 0 and len(removed) == 1 and removed[0][3].endswith("/wt/7") and "--force" not in removed[0]
+           and any(ln.startswith("released ") for ln in lines))
++    def release(listed, wt, remove_rc=0):
++        out, calls_ = [], []
++
++        def rrun(argv, cwd=ROOT, stdin=None):
++            calls_.append(argv)
++            if argv[:3] == ["git", "worktree", "list"]:
++                return 0, "".join(f"worktree {x}\nHEAD {'a' * 40}\n\n" for x in listed)
++            return (remove_rc, "fatal: x is not a working tree") if argv[:3] == ["git", "worktree", "remove"] else (0, "")
++        t = Train("o/r", Path("/nonexistent-state"), None, "the orchestrator", ("nightly-status",), 1,
++                  run=rrun, sleep=lambda s: None, log=out.append)
++        t.made_wts = [Path(wt)]
++        t.release_worktrees()
++        return out, [c for c in calls_ if c[:3] == ["git", "worktree", "remove"]]
++    out, rm = release(["/nonexistent-main"], "/nonexistent-state/wt/7")
++    check("a recarry worktree worktree_gc.sh already collected (unlisted, absent) is not removed again",
++          rm == [] and any("already collected" in ln for ln in out) and not any("NOT released" in ln for ln in out))
++    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7")
++    check("... while one still registered is removed (null control)", len(rm) == 1 and out == ["released /nonexistent-state/wt/7"])
++    out, rm = release(["/nonexistent-state/wt/7"], "/nonexistent-state/wt/7", remove_rc=128)
++    check("... and a failed remove of a registered one still logs NOT released (null control)",
++          len(rm) == 1 and any("NOT released" in ln for ln in out))
+     rc, lines, calls = go({"contains": [False], "heads": [H0, H1]})
+     check("... and a queue entry's own worktree is never touched (null control)",
+           rc == 0 and not any(c[:3] == ["git", "worktree", "remove"] for c in calls))
+@@ -6539,13 +6575,10 @@ def _batch_self_test(check) -> None:
+     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
+     # the one the record beat runs; these read the real tree.
+     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
+-    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
+-    check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
+-          "the same --automerge-check ... --head ... --require-green guard",
++    # card C5 retired the record beat (nightly.yml record-autofix)
++    check("record_row.py takes every option the bot sweep passes",
+           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
+-                                       "--head", "--pr", "--repo"))
+-          and "--automerge-check --repo \"$REPO\" --pr \"$NUM\" --head \"$HEAD\"" in beat
+-          and "guard --require-green" in beat)
++                                       "--head", "--pr", "--repo")))
+     rplain = _parser().parse_args(["run", "q.json"])
+     rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
+     check("--approval-carry is a run flag too, and off by default",
+diff --git a/tools/audit/seat/postmerge.py b/tools/audit/seat/postmerge.py
+index f3116863a..386c54b16 100644
+--- a/tools/audit/seat/postmerge.py
++++ b/tools/audit/seat/postmerge.py
+@@ -14,11 +14,13 @@ the merge is confirmed. It runs, in order, and a failure in any is printed as
+            merged pull request. A refused sync prints `set-stage owed <GROUP>
+            <merge sha>`, the group resolved from the roster (`record_beat.
+            resolve_group`) or `no-group <merge sha>`, never guessed.
+-  docs     `state_docs.py --push`.
+   main     `merge_train.py classify <merge sha> --main`: main's own suite
+            state, the one rule the train and the sweep read (no third). RED or
+            unreadable is owed; WAIT (the push's checks still running) is not.
+ 
++The state docs are the plan-beat's alone (beat_jobs.py `plan-beat`): a second
++writer here raced it and its rejected push printed `OWED docs: rc 2: hi`.
++
+ An owed step is opened in the ledger as the event `postmerge-owed`
+ (`ledger.py open postmerge-owed <pr> <merge-sha40> <why>`); `--retry` after a
+ fully clean run closes it (`ledger.py close postmerge-owed ... <how>`), the
+@@ -45,7 +47,6 @@ def steps(pr: int, repo: str, state_dir: Path, sha: str, group: str) -> "list[tu
+     seat = str(SEAT)
+     return [
+         ("stage", [*PY, f"{seat}/roster_sync.py", "--repo", repo, "--apply"], True),
+-        ("docs", [*PY, f"{seat}/state_docs.py", "--repo", repo, "--push"], True),
+         ("main", [*PY, f"{seat}/merge_train.py", "classify", sha, "--repo", repo, "--main"], False),
+     ]
+ 
+@@ -134,7 +135,7 @@ def self_test() -> int:
+                                       "closingIssuesReferences": [{"number": 5}]})
+             if "rev-parse" in j:
+                 return 0, full + "\n"
+-            for key in ("gh_comment.py", "roster_sync.py", "state_docs.py", "classify", "ledger.py"):
++            for key in ("gh_comment.py", "roster_sync.py", "classify", "ledger.py"):
+                 if key in j:
+                     return rc.get(key, 0), f"{key} said" + (" REFUSED" if rc.get(key) else "")
+             return 0, ""
+@@ -149,23 +150,23 @@ def self_test() -> int:
+ 
+     code, lines, log = go()
+     check("a clean run owes nothing, exits 0 and says so", code == 0 and lines[-1].endswith("nothing owed"), lines)
+-    check("a clean run runs the comment, the sync, the docs push and the main read, once each",
+-          [sum(k in c for c in log) for k in ("gh_comment.py post", "roster_sync.py", "state_docs.py",
+-                                              "merge_train.py classify")] == [1, 1, 1, 1], log)
++    check("a clean run runs the comment, the sync and the main read, once each",
++          [sum(k in c for c in log) for k in ("gh_comment.py post", "roster_sync.py",
++                                              "merge_train.py classify")] == [1, 1, 1], log)
++    check("postmerge runs no state_docs.py (the plan-beat owns the state docs)",
++          not any("state_docs.py" in c for c in log), log)
+     code, lines, log = go(dry=True)
+     check("the dry run prints the exact comment and every command, runs none, exits 0",
+           code == 0 and lines[0] == f"DRY-RUN comment: Merged #7 {full} (R10-X). Closed issues: #5. Leaves #201 open."
+-          and [l.split(":")[0] for l in lines[1:5]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN docs",
+-                                                         "DRY-RUN main"]
+-          and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "state_docs", "classify", "ledger")),
++          and [l.split(":")[0] for l in lines[1:4]] == ["DRY-RUN command", "DRY-RUN stage", "DRY-RUN main"]
++          and not any(k in c for c in log for k in ("gh_comment", "roster_sync", "classify", "ledger")),
+           lines)
+-    for key, step in (("gh_comment.py", "record"), ("roster_sync.py", "stage"), ("state_docs.py", "docs"),
+-                      ("classify", "main")):
++    for key, step in (("gh_comment.py", "record"), ("roster_sync.py", "stage"), ("classify", "main")):
+         code, lines, log = go({key: 1})
+         owed = [l for l in lines if l.startswith("OWED ")]
+         check(f"a refused {step} step prints OWED {step}, exits non-zero, after the other steps ran",
+               code == 1 and len(owed) == 1 and owed[0].startswith(f"OWED {step}:")
+-              and sum("state_docs.py" in c or "gh_comment" in c for c in log) >= 2, lines)
++              and sum("roster_sync.py" in c or "gh_comment" in c for c in log) >= 2, lines)
+         check(f"... and opens postmerge-owed for the pull request and the full merge sha ({step})",
+               any(f"ledger.py open postmerge-owed 7 {full} " in c for c in log), log)
+     code, lines, _ = go({"roster_sync.py": 1})
+diff --git a/tools/pr/app_approve.sh b/tools/pr/app_approve.sh
+index 75a4ab62e..a8c263637 100755
+--- a/tools/pr/app_approve.sh
++++ b/tools/pr/app_approve.sh
+@@ -279,8 +279,19 @@ driver_wrote() {
+ 
+ # carry <verdict sha> <head sha> <main ref>: prints the reason; 0 only on a carry.
+ carry() {
+-  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb
+-  git merge-base --is-ancestor "$v" "$h" 2>/dev/null || { echo "$v is not an ancestor of $h"; return 1; }
++  local v=$1 h=$2 main=$3 c ps ae subj p mv mh t x y b ba bt e cp got want own="" botc="" drv lb ob anc
++  # rc 1 is a measured non-ancestor, rc 128 a missing object: reading both as
++  # "not an ancestor" parked a verdict that did carry (the merge train's #3198
++  # park, a checkout without the objects). Fetch what is absent, then tell them apart.
++  for ob in "$v" "$h"; do
++    git cat-file -e "$ob^{commit}" 2>/dev/null || git fetch -q --no-tags origin "$ob" >/dev/null 2>&1 || :
++  done
++  git merge-base --is-ancestor "$v" "$h" 2>/dev/null; anc=$?
++  [ "$anc" -eq 0 ] || {
++    if [ "$anc" -eq 1 ]; then echo "$v is not an ancestor of $h"
++    else echo "cannot read the ancestry of $v and $h (git merge-base rc=$anc: an object is missing after a fetch from origin); not judged"; fi
++    return 1
++  }
+   # Read at main, never at a head: a branch that gave a file a driver would
+   # otherwise take it out of the comparisons itself.
+   # A read loop and a guarded expansion, not `mapfile`: macOS ships bash 3.2,
+@@ -1650,6 +1661,22 @@ st $? 0 "CARRY: a bot commit that only ADDS a fresh row is still new bot content
+ ( cd "$W/clone" && bash "$SELF" --carry "$V_PINMOD" "$H_PINGLOB" origin/main ) > "$W/carry.out" 2>&1
+ st $? 1 "NO CARRY: a path named '*' is not a wildcard, it is one added file"
+ st "$(grep -c "the branch's own diff differs" "$W/carry.out")" 1 "refused by the branch's own comparison, literal pathspec holding"
++# A checkout that lacks the objects (the merge train's #3198 park): the carry
++# fetches V and the head by sha from origin before it judges the ancestry. The
++# clone is single-branch, so V and the head are on origin but not in it; they are
++# kept reachable on refs/test/* so a fetch by sha can serve them. A file:// URL,
++# since a plain path clones by copying every object.
++g push -q origin "$V:refs/test/v" "$H_MERGE:refs/test/h"
++throwaway_git_clone -q --single-branch --branch main "file://$W/remote.git" "$W/bare_clone" >/dev/null 2>&1
++carried_bare() { ( cd "$W/bare_clone" && bash "$SELF" --carry "$1" "$2" origin/main ) > "$W/carry.out" 2>&1; }
++st "$(git -C "$W/bare_clone" cat-file -e "$V^{commit}" 2>/dev/null && echo present || echo absent)" absent "the fresh clone lacks the verdict commit"
++carried_bare "$V" "$H_MERGE"; st $? 0 "CARRY: V and the head absent from the checkout are fetched, then judged"
++st "$(grep -c '^CARRY: yes' "$W/carry.out")" 1 "printing CARRY: yes"
++carried_bare "$M1" "$V"; st $? 1 "NO CARRY: a true non-ancestor still reads as one (null control)"
++st "$(grep -c "is not an ancestor of" "$W/carry.out")" 1 "naming the ancestry"
++carried_bare 0123456789012345678901234567890123456789 "$H_MERGE"; st $? 1 "NO CARRY: an object origin does not have is not judged"
++st "$(grep -c "cannot read the ancestry" "$W/carry.out")" 1 "saying it cannot read the ancestry"
++st "$(grep -c "is not an ancestor of" "$W/carry.out")" 0 "and not calling it a non-ancestor"
+ # The relocation (fix review of 97df6851): a hand resolution moves the
+ # branch's change from charge() to discharge(), whose three lines of context
+ # are the same, and the header-free comparison alone reads the two as equal.
+
+## Before you return the verdict (P275)
+Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;
+an evidence line flagged by its wording takes `Carry: dismissed: evidence, not a finding`. Return the verdict only at rc 0.

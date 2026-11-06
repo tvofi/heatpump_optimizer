@@ -1,0 +1,12 @@
+app_approve rc=0 ok   REFUSE: a carried verdict whose evidence names neither head app_approve self-test: 324 checks, 0 failed 
+merge_train rc=0   ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused merge_train self-test: 446 checks, 0 failed 
+postmerge rc=0 postmerge self-test: 15 checks, 0 failed 
+handoff_push rc=0   ok   a code head carrying a co-author trailer is refused, and nothing is pushed handoff_push self-test: 6 checks, 0 failed 
+body_push rc=0 ok   (null) a ## Head naming the code sha passes the head check body_push self-test: 35 checks, 0 failed 
+bus rc=1   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock bus self-test: 136 checks, 8 failed 
+structure rc=0  STRUCTURE RATCHET PASSED 
+policy_lint rc=0  FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/ 
+rules_sync rc=0  RULES-SYNC ok: every generated rule is the generated form of its source 
+wave_script rc=0  220 passed, 0 failed 
+entities rc=0  ALL 2609 ENTITY CHECKS PASSED 
+DONE
