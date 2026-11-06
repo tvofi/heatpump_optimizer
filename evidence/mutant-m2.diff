@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 4973c108d..8fb952354 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -453,7 +453,7 @@ SETPOINT_SERVICES = {
+ #: The attributes a set-point entity states its range in: a climate entity's
+ #: and a water heater's ``min_temp``/``max_temp``, every other domain's
+ #: ``min``/``max``.
+-_RANGE_KEYS = {"climate": ("min_temp", "max_temp"), "water_heater": ("min_temp", "max_temp")}
++_RANGE_KEYS = {"climate": ("min_temp", "max_temp")}
+ _NUMBER_RANGE_KEYS = ("min", "max")
+ 
+ 

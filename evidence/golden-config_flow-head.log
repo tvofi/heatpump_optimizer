@@ -1,0 +1,8 @@
+=== Golden characterization ===
+
+  GOLDEN_MODE=strict (set)   GOLDEN_REF=origin/main (unset, defaulting to the fork point)
+
+  ok   config_flow
+
+ALL 1 GOLDEN SCENARIOS UNCHANGED
+rc=0

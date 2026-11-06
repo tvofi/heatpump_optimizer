@@ -1,0 +1,16 @@
+== main
+RESULT unit=°C state=heat_pump read=62.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unit=°C state=off read=62.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unit=°C state=eco read=62.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unit=°F state=heat_pump read=60.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unit=°F state=off read=60.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unit=°F state=eco read=60.0 range=(None, None) step=1.0 q50.2=50.0 write52.3=False calls=[]
+RESULT unavailable read= None
+== head
+RESULT unit=°C state=heat_pump read=62.0 range=(30.0, 65.0) step=0.5 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 52.5})]
+RESULT unit=°C state=off read=62.0 range=(30.0, 65.0) step=0.5 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 52.5})]
+RESULT unit=°C state=eco read=62.0 range=(30.0, 65.0) step=0.5 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 52.5})]
+RESULT unit=°F state=heat_pump read=60.0 range=(30.0, 65.0) step=1.0 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 126})]
+RESULT unit=°F state=off read=60.0 range=(30.0, 65.0) step=1.0 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 126})]
+RESULT unit=°F state=eco read=60.0 range=(30.0, 65.0) step=1.0 q50.2=50.0 write52.3=True calls=[('water_heater', 'set_temperature', {'entity_id': 'water_heater.dhw', 'temperature': 126})]
+RESULT unavailable read= None
