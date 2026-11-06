@@ -1601,6 +1601,15 @@ class SpaceHeatingPlanSensor(_PlanSensorBase):
             coordinator, entry, "space_heating_plan", "plan_space_heating"
         )
 
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """The plan's attributes, and the current step's why-now drivers
+        (R10-WHY-NOW-WIDGET): absent while the plan has none, the card's
+        "no data"."""
+        attrs = super().extra_state_attributes
+        why_now = self._data().get("why_now")
+        return {**attrs, "why_now": why_now} if why_now else attrs
+
 
 class DHWHeatingPlanSensor(_DHWEntityMixin, _PlanSensorBase):
     """Planned DHW heating slots for the full optimization horizon."""
