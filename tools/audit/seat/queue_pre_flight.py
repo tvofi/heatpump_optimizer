@@ -452,6 +452,9 @@ def _self_test() -> int:
     check("a policy head whose mandate was revoked PARKS, named as revoked",
           go({**POL, "reviews": [owner_review(H0, NOW)], "mandate": mandate(NOW),
               "thread": [revoke()]})[:2] == ("PARK", "policy"))
+    # The train judges a mandated raise's body against the gate's measured score (a scorer
+    # run on a worktree); the world here answers with the one line JUSTIFIED_BODY names.
+    mt.Train._measured_score = lambda self, g, h: "Architecture score: dS +0.4000 IMPROVES"
     BUD = {"files": ["tests/structure_budgets.json", ROW], "budgets": mt.RAISE_FIXTURE,
            "pr_body": mt.JUSTIFIED_BODY}
     check("a budget raise whose owner approval cites an in-force mandate, its body justified, passes",

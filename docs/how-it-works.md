@@ -882,8 +882,10 @@ point of the split is that a fire cannot make the heat pump's modelled
 efficiency look worse — a single-tank model would charge the modelled COP
 for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
-a burn. Heat still in the wood tank at day's end counts in the savings
-settlement and the thermal-battery view, up to 95 °C. Without the probe, or
+a burn. Heat still in the wood tank at day's end counts in the thermal-battery
+view, up to 95 °C. The savings reference has no wood at all, so wood's heat
+counts in the saving and firewood's cost is not counted; the savings page says
+so where wood is configured. Without the probe, or
 while it is stale, the wood tank is not a store of its own: the model keeps the
 one buffer tank, and a burn is the bounded free heat described above.
 
