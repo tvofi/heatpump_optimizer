@@ -27286,6 +27286,44 @@ R.check(
     "11 and 12, i.e. a two-night-old run reported as last night's",
 )
 
+# --- a failure a newer in-flight run has already answered (2026-11-06) -------
+#
+# Dispatch 42235215315 (14:35Z) concluded `failure` on `slow`; 42242870295 and
+# 42247578523 passed `slow` while their 3.5 h mutation lanes ran on, and the
+# check kept naming the stale failure. Null controls: the same failure with
+# nothing newer, with a newer `slow` failed or still pending, or with a newer
+# run that is OLDER, must all stay red.
+_ns_bad = _ns_run(21, "2026-09-10T02:17:00Z", conclusion="failure")
+_ns_badjobs = [j if j["name"] != "slow" else _ns_job("slow", "failure")
+               for j in _NS_LIVE]
+_ns_newer = _ns_run(22, "2026-09-10T08:00:00Z", "in_progress", None)
+_ns_older = _ns_run(20, "2026-09-09T08:00:00Z", "in_progress", None)
+_ns_green = [_ns_job("slow", "success"), _ns_job("mutation-nightly", None)]
+_ns_cases = {
+    "superseded": _nstatus.verdict(_ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+                                   in_flight_jobs=_ns_green)[0],
+    "nothing newer": _nstatus.verdict(_ns_bad, None, _ns_badjobs, _NS_NOW)[0],
+    "newer slow failed": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", "failure")])[0],
+    "newer slow pending": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", None)])[0],
+    "in-flight older": _nstatus.verdict(
+        _ns_bad, _ns_older, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=_ns_green)[0],
+}
+R.check(
+    "a failed lane is superseded only by a NEWER in-flight run that "
+    "concluded the same job green; every other arm stays FAILED",
+    _ns_cases == {"superseded": _nstatus.PASSED,
+                  "nothing newer": _nstatus.FAILED,
+                  "newer slow failed": _nstatus.FAILED,
+                  "newer slow pending": _nstatus.FAILED,
+                  "in-flight older": _nstatus.FAILED},
+    f"states {_ns_cases}",
+)
+
 # --- a run with no clock is "could not look", not a crash and not a verdict --
 #
 # `parse_ts(r["created_at"])` raised KeyError straight through `main`'s
