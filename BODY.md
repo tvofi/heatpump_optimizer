@@ -13,7 +13,7 @@ Awaiting the owner's approving review. The diff changes `dev/governance/dimensio
 
 ## Head
 
-`5c246022a` (branch head, three commits on origin/main `9cbd7dd0d`). origin/main had not moved when this body was written, so `prepr.sh` was not rerun after a merge.
+`5dbff79de` is the head this was measured at: a merge of origin/main `198b8f7ed` (#3242) into `5c246022a`, the RCA's three commits on `9cbd7dd0d`, with no conflict. `prepr.sh` ran clean at `5c246022a` and again at `5dbff79de`. The scoped gate was re-run at `5dbff79de` (`## Figures`). The drive and scan figures were taken on the trees they name, which this merge does not change.
 
 ## Mutation proof
 
@@ -33,7 +33,7 @@ This diff adds no production code, so the proofs break the instrument and the fi
 - Site table: `python3 dev/audit/harnesses/silent_peer_waits.py --scan custom_components/heatpump_optimizer`, from a checkout of each tree. Per tag, the same rule runs over `git archive <tag> custom_components` for every tag in `git tag -l 'v*'`.
 - Merge commits per release: `git log --merges --oneline v6.3.15..v7.1.4 | wc -l`, over `git tag -l 'v*' --sort=v:refname | awk '/^v6.3.15$/{f=1} f' | wc -l`.
 - First tags: `git tag -l 'v*' --contains 8542e51cb --sort=v:refname | head -1` and the same for `1c4d70fdd`.
-- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` and names `tests/entities.py`. The run was `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`: `ALL 2637 ENTITY CHECKS PASSED`, `5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN` at `5c246022a`. A disclosed self-correction: the first run, at `a65397f3c`, read `1 of 2637 ENTITY CHECKS FAILED`. The failing check was the policy acceptance (`the template arm turns ... the real template keeps it green`). My first draft of the D1 change, a new step 7, took the brief over its `[budgets]` caps and named the RCA document from a policy file; `5c246022a` folds the change into step 5. `node tools/policy/policy_lint.mjs` now reads `TOTAL: 0 error(s) across 50 policy file(s)`.
+- Scoped gate: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` and names `tests/entities.py`. The run was `GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh`: `ALL 2637 ENTITY CHECKS PASSED`, `5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN` at `5c246022a`. After the main merge, the same command printed `5 TEST SCRIPT(S) PASSED; 30 SCOPED OUT AND NOT RUN` at `5dbff79de`, and `tools/pr/prepr.sh` printed `PRE-PR: 5dbff79de... rc=0`. A disclosed self-correction: the first run, at `a65397f3c`, read `1 of 2637 ENTITY CHECKS FAILED`. The failing check was the policy acceptance (`the template arm turns ... the real template keeps it green`). My first draft of the D1 change, a new step 7, took the brief over its `[budgets]` caps and named the RCA document from a policy file; `5c246022a` folds the change into step 5. `node tools/policy/policy_lint.mjs` now reads `TOTAL: 0 error(s) across 50 policy file(s)`.
 - `STRUCTURE RATCHET PASSED`: `python3 tests/structure.py`.
 - `fold_ledger: 0 violation(s)`: `python3 tools/audit/fold_ledger.py check`.
 - Policy budgets within cap: `node tools/policy/policy_lint.mjs --budgets` (exit 0).
