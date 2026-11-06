@@ -4586,6 +4586,21 @@ def self_test() -> int:
         ])
         total, failed = total + a, failed + f
 
+        gap_text = f"OWED 2026-10-21T07:35:00Z handoff-no-pr refs/heads/handoff/t0 {'c' * 40}\n"
+        gap_no_level, _ = owed_lines(gap_text)
+        gap_no_lines, _ = owed_lines(o1 + "\n")
+        gap_with_level, _ = owed_lines(gap_text, gap_text)
+        a, f = check("relay GAP", [
+            ("a relay log holding a handoff-no-pr OWED line and no .level file prints GAP, flagged, with the count",
+             any(l["text"].startswith("GAP: ") and "holds 1 handoff-no-pr OWED line(s)" in l["text"] and l["flag"]
+                 for l in gap_no_level)),
+            ("null control: no .level file and no handoff-no-pr line prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_no_lines)),
+            ("null control: the same log with its .level file published prints no GAP",
+             not any(l["text"].startswith("GAP:") for l in gap_with_level)),
+        ])
+        total, failed = total + a, failed + f
+
         # ---- REVIEW OWED (fold s4) ----
         (tmp / "bus-ro").mkdir()
         (tmp / "bus-ro" / "dispatched").write_text(f"{61} {h(61)} thread {'0' * 32}\n")
