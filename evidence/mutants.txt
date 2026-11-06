@@ -1,0 +1,23 @@
+mutants: unmutated self-test rc 0, replay rc 0
+  M1 prelude conclusion: KILLED (self-test rc 1, replay rc 1)
+  M2 prelude cross-check: KILLED (self-test rc 1, replay rc 1)
+  M3 attempt cap: KILLED (self-test rc 1, replay rc 1)
+  M4 unnamed dispatch at a PR head: KILLED (self-test rc 1, replay rc 1)
+  M5 fork PR (R3-4): KILLED (self-test rc 1, replay rc 1)
+  M6 live base: KILLED (self-test rc 0, replay rc 1)
+  M7 defer rule: KILLED (self-test rc 1, replay rc 1)
+  M8 judging: listed gate: KILLED (self-test rc 0, replay rc 1)
+  M9 judging: owed jobs (R3-2): KILLED (self-test rc 1, replay rc 0)
+  M10 skipped is not success: KILLED (self-test rc 1, replay rc 1)
+  M11 source must judge the live base: KILLED (self-test rc 0, replay rc 1)
+  M12 own unit always counts: KILLED (self-test rc 1, replay rc 0)
+  M13 D-2 arch-score: KILLED (self-test rc 1, replay rc 1)
+  M14 held run is no source: KILLED (self-test rc 1, replay rc 0)
+  M15 unreadable title: KILLED (self-test rc 0, replay rc 1)
+  M16 B3 on push: KILLED (self-test rc 1, replay rc 0)
+  M17 busy tie-break deleted: KILLED (self-test rc 1, replay rc 0)
+  M18 busy tie-break id inverted: KILLED (self-test rc 1, replay rc 0)
+  M19 busy tie-break on a listed gate (R3-2 EARLY): KILLED (self-test rc 1, replay rc 0)
+  M20 C3 at once beside any run: KILLED (self-test rc 1, replay rc 0)
+RESULT mutants=20 survivors=0
+rc=0
