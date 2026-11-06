@@ -4133,6 +4133,12 @@ def _p2_registry(sources):
              match=_p2_match_node(
                  ast.Compare, r"HOUSE_LOSS_MAX_RESIDUAL", lambda n: True),
              owners=["coordinator.py::_loss_residual_rejected"], dispositions={}),
+        dict(fact="sensor_trajectory", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
+                 lambda n: isinstance(n.op, ast.And)),
+             owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
+             dispositions={}),
     ]
 
 

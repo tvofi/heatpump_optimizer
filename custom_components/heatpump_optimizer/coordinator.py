@@ -10081,12 +10081,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Filed first, so a plan with no room trajectory to promise about
         # (the early return below) does not also silence the tank's record.
         self._file_dhw_lead_predictions(result, solve_time, dt_h)
-        trajectory = (
-            result.upper_temp_trajectory
-            if ctx._thermal_params.two_zone_enabled
-            and result.upper_temp_trajectory
-            else result.room_temp_trajectory
-        )
+        trajectory = result.sensor_trajectory(ctx._thermal_params.two_zone_enabled)
         if not trajectory:
             return
         self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
@@ -10130,12 +10125,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
             ),
         )
-        trajectory = (
-            result.upper_temp_trajectory
-            if ctx._thermal_params.two_zone_enabled
-            and result.upper_temp_trajectory
-            else result.room_temp_trajectory
-        )
+        trajectory = result.sensor_trajectory(ctx._thermal_params.two_zone_enabled)
         idx = min(steps, len(trajectory) - 1)
         return float(trajectory[idx])
     # ==================================================================

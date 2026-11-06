@@ -88,6 +88,8 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext
 from heatpump_optimizer.optimizer import _Horizon
+from heatpump_optimizer.optimizer import OptimizationResult as _OptResult
+import types as _types_mod
 
 
 def _owned_params(params):
@@ -8196,8 +8198,11 @@ class _PredGate:
         self._thermal_model = ThermalModel(self._thermal_params)
 
         class _Res:
+            from heatpump_optimizer.optimizer import OptimizationResult as _O
             room_temp_trajectory = [21.0, 21.4, 21.8]
             upper_temp_trajectory = []
+            # The production selection, as _predicted_next_room_temp is above.
+            sensor_trajectory = _O.sensor_trajectory
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -22123,6 +22128,10 @@ def _nf_settled(sun):
     coord._optimization_result = SimpleNamespace(
         room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
     )
+    # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+    coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
+        _OptResult.sensor_trajectory, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -22562,6 +22571,10 @@ _fake_plan = _NS(
     power_schedule=[0.5] * 96,
     dhw_power_schedule=[0.0] * 96,
     prices=[2.0] * 96,
+)
+# The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+_fake_plan.sensor_trajectory = _types_mod.MethodType(
+    _OptResult.sensor_trajectory, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -78382,5 +78395,62 @@ R.check(
     f"ledger space kWh {_c2238_p1_space}, diag {_c2238_p1_diag}",
 )
 
+
+# P3: the trajectory the indoor sensor reads -- the coordinator's next-room
+# prediction and lead buckets, the optimizer's breach report and its
+# safety-release scan all select it through OptimizationResult.sensor_trajectory.
+from heatpump_optimizer import optimizer as _c2238_omod  # noqa: E402
+from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _c2238_auto  # noqa: E402
+
+_C2238_SENTINEL_C = 10.0
+
+
+def _c2238_traj(_self, _two_zone):
+    return [_C2238_SENTINEL_C] * 400
+
+
+def _c2238_result(n):
+    return _BrRes(
+        power_schedule=[0.0] * n, room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1), timestamps=[], prices=[1.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0,
+        savings_percentage=0.0, optimal_setpoints=[21.0] * n, status="optimal",
+        dhw_power_schedule=[0.0] * n,
+    )
+
+
+_c2238_p3 = _t2_coord()
+_c2238_p3._mode = _c2238_auto
+_c2238_p3._optimization_result = _c2238_result(3)
+_c2238_p3._file_dhw_lead_predictions = lambda *_a, **_k: None
+_c2238_leads: list[float] = []
+_c2238_p3._accuracy.note_promise = lambda *_a, **_k: None
+_c2238_p3._accuracy.note_lead_prediction = lambda _w, _l, v: _c2238_leads.append(v)
+_c2238_p3_opt = _MbOpt(ThermalModel(_br_params), _MbCfg(horizon_hours=1))
+_c2238_p3_opt._dhw_requirement = None
+_c2238_p3_br = _c2238_result(3)
+with _c2238_mock.patch.object(
+    _c2238_omod.OptimizationResult, "sensor_trajectory", _c2238_traj, create=True
+):
+    _c2238_p3_next = _c2238_p3._predicted_next_room_temp()
+    _c2238_p3._file_lead_predictions(_c2238_result(3), _T6)
+    _c2238_p3_opt._publish_breach_reports(
+        _c2238_p3_br, np.array([1.0, 1.0, 1.0]), False, False, 3,
+        np.array([21.0, 21.0, 21.0]),
+    )
+    _c2238_p3_rel = _c2238_p3_opt._safety_release_steps(
+        _c2238_result(3), np.full(3, 18.0), np.zeros(3), None
+    )
+R.check(
+    "R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and "
+    "the safety release all read OptimizationResult.sensor_trajectory",
+    _c2238_p3_next == _C2238_SENTINEL_C
+    and bool(_c2238_leads) and set(_c2238_leads) == {_C2238_SENTINEL_C}
+    and _c2238_p3_br.predictive_info.get("power_cap_breach_c") == 21.0 - _C2238_SENTINEL_C
+    and _c2238_p3_rel[0] == [0, 1, 2],
+    f"next {_c2238_p3_next}, leads {_c2238_leads}, breach "
+    f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
+)
 
 sys.exit(R.close("FEATURE CHECKS"))

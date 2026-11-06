@@ -1976,6 +1976,17 @@ class OptimizationResult:
     #: The arbiter maps the plan's steps by it (R10-COP-GATE part D).
     solve_band: dict[str, Any] = field(default_factory=dict)
 
+    def sensor_trajectory(self, two_zone: bool) -> list[float]:
+        """The trajectory the indoor sensor reads (#2238 P3's one owner).
+
+        In two-zone mode the sensor sits on the upper floor, so its
+        trajectory is the upper one when the plan carries it; otherwise the
+        room's.
+        """
+        if two_zone and self.upper_temp_trajectory:
+            return self.upper_temp_trajectory
+        return self.room_temp_trajectory
+
 
 @dataclass
 class OptimizationConfig:
@@ -4101,10 +4112,7 @@ class HeatPumpOptimizer:
             power_caps_extra, space_blocked, off_steps, n_steps
         ):
             trajectory = np.asarray(
-                result.upper_temp_trajectory
-                if self.model.params.two_zone_enabled
-                and result.upper_temp_trajectory
-                else result.room_temp_trajectory,
+                result.sensor_trajectory(self.model.params.two_zone_enabled),
                 dtype=float,
             )
             # Trajectories carry n+1 entries with index 0 the *initial*
@@ -4474,12 +4482,7 @@ class HeatPumpOptimizer:
 
         release_space: list[int] = []
         if space_pins is not None:
-            two_zone = self.model.params.two_zone_enabled
-            room = (
-                result.upper_temp_trajectory
-                if two_zone and result.upper_temp_trajectory
-                else result.room_temp_trajectory
-            )
+            room = result.sensor_trajectory(self.model.params.two_zone_enabled)
             for i in range(len(result.power_schedule)):
                 temp = room[i + 1] if i + 1 < len(room) else room[-1]
                 floor = (
