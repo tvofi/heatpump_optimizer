@@ -67,6 +67,10 @@ Plants, one per refusal of the two ops and per round-trip property:
            naming no live group (W12, W13) or needing none (W14), and a phase
            branch unresolved in roster_lib.group_for_branch (W15).
 
+    W16-W17 the lane marker on structural ops (carry 15): the guard dropped
+           (W16) and set-stage wrongly made structural (W17); Q13 is the
+           queue runner not setting it.
+
     Q1-Q12 roster_queue.py's own self-test: the plain shlex.split line grammar
            (a trailing comment reaches the editor, Q1), the run-start snapshot
            written over a line appended since (Q2), a flag folded into the
@@ -300,6 +304,10 @@ PLANTS.update({
             "                if len(ca) != len(cb):\n"
             "                    out.append(f\"~ {g} carry +{len(cb) - len(ca)}\")\n"),
     "Q12": (RQ, "        if stage and r.get(\"stage\") != stage:\n", "        if False:\n"),
+    "W16": ("    if op in STRUCTURAL_OPS and os.environ.get(LANE_ENV) != LANE_VALUE:\n",
+            "    if False:\n"),
+    "W17": ('STRUCTURAL_OPS = ("wire-issue",', 'STRUCTURAL_OPS = ("set-stage", "wire-issue",'),
+    "Q13": (RQ, '    env["HPO_ROSTER_LANE"] = "queue-runner"', '    env["HPO_ROSTER_LANE"] = "x"'),
     "Q9": (RQ, '    if "def batch_edit" not in Path(path).read_text():\n',
            '    if False:\n'),
 })

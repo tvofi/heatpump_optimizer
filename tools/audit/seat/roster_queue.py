@@ -210,6 +210,7 @@ def replace_line(queue, old, new):
 
 def run_queue(a, python=None):
     env = dict(os.environ)
+    env["HPO_ROSTER_LANE"] = "queue-runner"  # roster_edit.LANE_ENV: structural ops need it
     shims = Path(a.edit_checkout, "tools/audit/seat/shims")
     if shims.is_dir():
         env["PATH"] = f"{shims}:{env['PATH']}"
@@ -543,6 +544,7 @@ def _self_test():
             f"c=pathlib.Path({str(t / 'calls')!r}); m=pathlib.Path({str(t / 'mode')!r})\n"
             "c.write_text(c.read_text()+' '.join(sys.argv[2:5])+'\\n')\n"
             f"pathlib.Path({str(t / 'argv')!r}).open('a').write(' '.join(sys.argv[1:])+'\\n')\n"
+            f"import os; pathlib.Path({str(t / 'lane')!r}).write_text(os.environ.get('HPO_ROSTER_LANE', 'absent'))\n"
             "if 'BAD' in sys.argv: print('REFUSED: unknown group'); sys.exit(2)\n"
             "if m.read_text()=='moved1':\n"
             "    m.write_text('ok'); print('--lint-cwd x is not origin/main'); sys.exit(3)\n"
@@ -565,6 +567,8 @@ def _self_test():
         ck("run: drop-carry --match reaches the editor as a flag, not a value",
            len(dl) == 1 and dl[0].startswith("drop-carry G --match x.py:1-2 --checkout ")
            and rep[3] == f"roster: drop-carry G pushed {sha[:9]}")
+        ck("run: the child editor carries the roster lane marker (roster_edit.LANE_ENV)",
+           (t / "lane").read_text() == "queue-runner")
         ck("run: alive touched", (t / "alive").exists())
         # P315 / #3020: a failing op writes its own FAILED line and stops the run;
         # a missing lint clone is refused by name, rc 2, before any op.
