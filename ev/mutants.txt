@@ -1,0 +1,10 @@
+== M1 rc=1
+1 of 42 gate lock acceptance checks FAILED
+== M2 rc=0
+ALL 42 gate lock acceptance checks PASSED
+== M3 rc=0
+ALL 42 gate lock acceptance checks PASSED
+== M4 rc=0
+ALL 42 gate lock acceptance checks PASSED
+== M5 rc=0
+ALL 42 gate lock acceptance checks PASSED
