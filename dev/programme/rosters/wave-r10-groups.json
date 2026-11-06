@@ -14808,9 +14808,9 @@
     "Widens carry 3 and sets its form. Same-verdict re-adds refused after a pre-flight park in `train/current.log`: `policy` on PR 3000, PR 3059, PR 3051, PR 3065 at `1ac45d87` and PR 3200; `findings` on PR 3074. In `train_add`, when the skip of the entry is a pre-flight park at this verdict, run `queue_pre_flight.PreFlight.entry` under the same construction `Train.preflight` uses: PASS admits it, and anything else logs an `ADD REFUSED` line naming the pull request, step and why, rc 1, never ADDED. Do not add these parks to `READMIT_SAME_VERDICT` alone: `admit_add` has no `findings` rule. Record the park so `already_held` can tell it from a `ci` or `merge` skip, which stay held at the same verdict, and keep `train_add` and the drain on the one predicate (`s6-batch32.md#P189`), so the drain does not drop what the add admitted. Arms: a cured `policy` park and a cured `findings` park each rejoin at the same verdict and reach the next batch; the same parks uncured are refused, with no spool line (control); a `SKIP ci` at the same verdict stays ALREADY (null); a park at a new verdict behaves as today. Mutant: dropping the re-read fails the uncured arm. triage: dev/programme/triage/s6-batch123.md#P388 at 8439f738e"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-train-merge-loop",
-    "commit": null,
+    "commit": "198b8f7ed21fdd10dc3407aa95b92f906b6bb27a",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-TRAIN-DEFAULTS, R10-TRAIN-OVERLAP-GRADE",
@@ -16120,9 +16120,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-roster-write-sweep",
-    "commit": null,
+    "commit": "28482eceeb6b9809e44b12d80fc994282cc21645",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s11 replan fold",
@@ -17263,7 +17263,9 @@
     "From r10-train-merge-loop, body item 4666b0c0: Carry 8, \"Re-routed by triage: dev/programme/triage/s6-batch102.md#P359 \u2026 STRANDED CARRY 32\": split to part 2 for the same three reasons. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json` (handoff/audit-r10-roster), where the group is queued, not yet written. Carry: R10-TRAIN-MERGE-LOOP-2 (items 4666b0c0)",
     "From r10-train-merge-loop, body item 33309336: Carry 9, \"Re-routed by triage: dev/programme/triage/s6-batch102.md#P359 \u2026 STRANDED CARRY 60\": split to part 2 for the same three reasons. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json` (handoff/audit-r10-roster), where the group is queued, not yet written. Carry: R10-TRAIN-MERGE-LOOP-2 (items 33309336)",
     "From r10-train-merge-loop, body item 2ef37305: Carry 16, \"From triage: dev/programme/triage/s6-batch98.md#P353 (merge seat, #3052 recarry refused by prepr\": split to part 2 for the same three reasons. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json` (handoff/audit-r10-roster), where the group is queued, not yet written. Carry: R10-TRAIN-MERGE-LOOP-2 (items 2ef37305)",
-    "merge_train.py reads the edit run's planned \"still being judged\" gate deferral as a final red, because the code run's gate check-run does not exist until all its units finish (ci.yml:313 gate needs pr-contract; ci.yml:265 pr-contract needs every unit). latest_runs (merge_train.py:376-377) sees only the edit gate; classify (:454-456) counts it red; wait_ci returns it (:1486-1488); at_head stops \"red at the head\" (:2078). Cost 2026-11-06: 13 skips across 6 PRs (#3234 #3236 #3241 #3246 #3248 #3249) of 19 train invocations, ~30 min CI plus a seat rerun each. #3246 (busy()) does not fix it: its null control keeps the deferral when the later gate is unlisted. Countermeasure: wait_ci treats a failed gate as pending while another CI run at the same head is in progress (from actions/runs?head_sha, not check-run presence), bounded by polls. Failing test first: the #3248 scene (edit run 42237558635 gate failed 14:55:47Z, code run 42237558473 gate green 15:25:55Z). Null control: a red gate with no unfinished sibling run still skips. Process state (d): gate.py C3 deferral (fa921fd59, 11-05) post-dates the classifier (e23062763, 10-21). Source: orchestrator root-cause seat 2026-11-06 18:4xZ. Hotfix priority: dispatch the moment R10-TRAIN-MERGE-LOOP (#3242) merges."
+    "merge_train.py reads the edit run's planned \"still being judged\" gate deferral as a final red, because the code run's gate check-run does not exist until all its units finish (ci.yml:313 gate needs pr-contract; ci.yml:265 pr-contract needs every unit). latest_runs (merge_train.py:376-377) sees only the edit gate; classify (:454-456) counts it red; wait_ci returns it (:1486-1488); at_head stops \"red at the head\" (:2078). Cost 2026-11-06: 13 skips across 6 PRs (#3234 #3236 #3241 #3246 #3248 #3249) of 19 train invocations, ~30 min CI plus a seat rerun each. #3246 (busy()) does not fix it: its null control keeps the deferral when the later gate is unlisted. Countermeasure: wait_ci treats a failed gate as pending while another CI run at the same head is in progress (from actions/runs?head_sha, not check-run presence), bounded by polls. Failing test first: the #3248 scene (edit run 42237558635 gate failed 14:55:47Z, code run 42237558473 gate green 15:25:55Z). Null control: a red gate with no unfinished sibling run still skips. Process state (d): gate.py C3 deferral (fa921fd59, 11-05) post-dates the classifier (e23062763, 10-21). Source: orchestrator root-cause seat 2026-11-06 18:4xZ. Hotfix priority: dispatch the moment R10-TRAIN-MERGE-LOOP (#3242) merges.",
+    "Carry 3, \"From #2394 (R10-CI-AUTOFIX-INERT-ROUTE) body friction `merge-train-bot-tip`\": split to part 2 by the owner side's ruling. The reasons are scope, keeping part 1 reviewable, and the three-round rule. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-TRAIN-MERGE-LOOP-2",
+    "Carry 17, \"From #2639 (body, item bb2965c2), routed by routing audit 1\": split to part 2 for the same three reasons. It lands in the group's brief in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-TRAIN-MERGE-LOOP-2"
    ],
    "resume": {
     "stage": "not-started"
@@ -17348,7 +17350,11 @@
     "From 3253 (r10-roster-write-sweep), body item fc72c233: Roster DATA edits these ops enable, which write the roster branch this seat may not write. Each carries its control as a precondition. Carry: R10-CARRY-RESIDUE-2 (item: carry 4, `set-resume --field pr` for every done group lacking `resume.pr`, starting R10-FLOW-RECORD-PITCH = 2836; precondition: the count of done groups lacking `pr` is measured at the roster seat's own base, and a group's `pr` is read from `dev/programme/delivery/<N>.md`, never guessed). (items fc72c233)",
     "From 3253 (r10-roster-write-sweep), body item 4070ec7b: Carry: R10-CARRY-RESIDUE-2 (item: carry 9, one `edit-brief` per live group whose brief still names `the seat pushes refs only, through tools/audit/seat/handoff_push.sh`; precondition: a python count of that phrase over live groups' briefs is the control, and reads 0 afterwards; 64 groups carry it in total at the review's base, 1 live). (items 4070ec7b)",
     "From 3253 (r10-roster-write-sweep), body item 932dc7f6: Carry: R10-CARRY-RESIDUE-2 (item: carry 16 data, `set-stage <G> absorbed --into <host>` for the ten folded groups of the carry and for the 13 absorbed groups with no host; precondition: afterwards `carry_audit.py roster` reports each group's carries as REROUTED to its host, and the lint refusing an absorbed group with no `absorbed_into` is built only after those data edits land, because it would fail the roster as it stands: 13 of 13 lack the field today). (items 932dc7f6)",
-    "From 3253 (r10-roster-write-sweep), body item cf8fb3f5: Carry: R10-CARRY-RESIDUE-2 (item: plant C6 killed by a crash, not by a FAIL line, as above). (items cf8fb3f5)"
+    "From 3253 (r10-roster-write-sweep), body item cf8fb3f5: Carry: R10-CARRY-RESIDUE-2 (item: plant C6 killed by a crash, not by a FAIL line, as above). (items cf8fb3f5)",
+    "Roster DATA edits these ops enable, which write the roster branch this seat may not write. Each carries its control as a precondition. Carry: R10-CARRY-RESIDUE-2 (item: carry 4, `set-resume --field pr` for every done group lacking `resume.pr`, starting R10-FLOW-RECORD-PITCH = 2836; precondition: the count of done groups lacking `pr` is measured at the roster seat's own base, and a group's `pr` is read from `dev/programme/delivery/<N>.md`, never guessed).",
+    "Carry: R10-CARRY-RESIDUE-2 (item: carry 9, one `edit-brief` per live group whose brief still names `the seat pushes refs only, through tools/audit/seat/handoff_push.sh`; precondition: a python count of that phrase over live groups' briefs is the control, and reads 0 afterwards; 64 groups carry it in total at the review's base, 1 live).",
+    "Carry: R10-CARRY-RESIDUE-2 (item: carry 16 data, `set-stage <G> absorbed --into <host>` for the ten folded groups of the carry and for the 13 absorbed groups with no host; precondition: afterwards `carry_audit.py roster` reports each group's carries as REROUTED to its host, and the lint refusing an absorbed group with no `absorbed_into` is built only after those data edits land, because it would fail the roster as it stands: 13 of 13 lack the field today).",
+    "Carry: R10-CARRY-RESIDUE-2 (item: plant C6 killed by a crash, not by a FAIL line, as above)."
    ],
    "resume": {
     "stage": "not-started"
@@ -17479,7 +17485,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3261
    },
    "brief": "Root cause (trigger 1: reached v7.1.2) of the process worker reply wait in coordinator.py _run_in_process: pickle.load with no deadline under _PROCESS_LOCK hung optimisation about 70 minutes on a live Raspberry Pi 4 and blocked HA shutdown (evidence: outside PR #3226 body; our fix is #3232, topic r10-ext-3226). Owed: the named cause incl. why the worker went silent if establishable, process state a-d with evidence (why no audit round found it: D1, D3, D9, D15; do #511 fallback tests cover only a dead worker, never an alive-but-silent one), a cost test with numbers, a countermeasure or recorded refusal (candidates: a check for blocking IPC reads with no deadline; a harness double that hangs). Runs beside #3232, never inside it."
   },
