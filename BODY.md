@@ -1,40 +1,41 @@
-Part of #201. R10-RELAY-SWEEP: the relay's residue on one seam, tools/audit/seat/cloud_relay.sh (fold of R10-RELAY-HANDOFF-ARM, R10-FLY-RELAY-DELIVERED-GUARD and the open carry of R10-FLY-RELAY-REVIEW-FF).
+R10-RELAY-SWEEP: the relay's residue in `tools/audit/seat/cloud_relay.sh`, folded from R10-RELAY-HANDOFF-ARM, R10-FLY-RELAY-DELIVERED-GUARD and the last carry of R10-FLY-RELAY-REVIEW-FF. Part of #201.
 
-Carry 0: the body-only path stays inside handoff_arm, unchanged for the beat's job; exit 75 and body-sha keying kept.
-Carry 1: no code change; the ledger disposition for the handoff-body ref is not written (the handoff-no-pr fold already rides a body ref on its code ref).
-Carry 2: both levels are published before the serial loops (handoff_level before the update loop, probe levels before the relay loop); the tick prints a GAP line when the log has no-PR OWED lines but no .level file.
-Carry 3: a body-only handoff left unapplied while its body tip is newer than the head's commit prints BODY-ONLY and owes a handoff-body-unapplied level line (registered in ledger.py KINDS).
-Carry 4: the M2 and M5 rows exist in the self-test (second REFUSE line wins; the replayed update output); the guide text is updated.
-Carry 5: RELAY_HOLDER starts in its own process group (setpgid), with a group-TERM row in tick_loop.sh's self-test.
-Carry 6: delivered guard in relay(), the per-pass state-dir line, and the RCA note dev/audit/rca/R10-RELAY-REPLAY.md.
-Carry 7: HELD-BODY before an update whose body does not name the tip's first 8 characters; hold-file lines for PRs no longer open are owed as handoff-hold-stale.
-Carry 8: case-collision refusal in relay(), bus.sh push-verdict and unpack, and one sentence in fix-review.md.
-Carry 9: the packet lint counts the nine carries 1-9; the brief numbers them 0-8, so this is Carry 8 above (the case-collision carry): nothing further is owed.
+Carries, by number:
 
-Decisions taken without the owner: carry 1's ledger disposition for the handoff-body ref is not written (the handoff-no-pr fold already rides a body ref on its code ref); carry 6's 'committed after the probe' condition had no historical case and is dropped, not synthesised.
+- Carry 0: exit 75 and body-sha keying for a failed update, the level written before the serial loop, the unapplied body-only line, the two relay mutants (Carry 4), the bash 3.2 empty-array guard in `bus.sh` orphans, and the holder's process group (Carry 5); the body-only path stays a function the beat's job can call.
+- Carry 1: the body-only path is unchanged as a callable function; the unapplied kind is a DERIVED `ledger.py` kind, so `ledger.py` holds its disposition.
+- Carry 2: both levels are written before the serial update loop, and `orchestrator_tick.py` prints a GAP line when no-PR OWED lines exist without a `.level` file.
+- Carry 3: a body-only handoff left unapplied owes one `handoff-body-unapplied` level line, registered in `ledger.py` KINDS; a body tip older than the head prints nothing (null control).
+- Carry 4: M2 (last REFUSE line) and M5 (update output replay) are pinned by self-test rows, and the instrument guides `cloud_relay.sh.md` and `body_push.sh.md` carry the new grammar.
+- Carry 5: `tick_loop.sh` starts the relay holder with `os.setpgid(0, 0)`; a self-test sends TERM to the loop's group and asserts the relay still writes its rc.
+- Carry 6: `relay()` skips a probe whose tree `review/<pr>` already carries and prints the state dir and ledger path once per pass; RCA note `dev/audit/rca/R10-RELAY-REPLAY.md`. No `bugclasses.json` exists in the tree, so it is not cited there.
+- Carry 7: HELD-BODY holds an update whose body does not name the tip's first 8 characters; hold-file lines for PRs not open are owed as `handoff-hold-stale`.
+- Carry 8: evidence names colliding case-insensitively are refused early in `relay()` (rc 2, naming both files) and in `bus.sh` push-verdict and unpack; `fix-review.md` tells reviewers evidence names must be case-unique.
+- Carry 9: the roster's ninth entry (index 8 of nine) is the case-insensitive evidence collision, landed as Carry 8 above; the review packet counts entries from 1, so it asks for a ninth name.
 
 ## Head
 
-e9d6ec457171f2b297e6043295f8d9185fd89cd5
+46ea96ca5f527cb0bcfdcdcf06e146124766b334 (HEAD merged with origin/main at 5421413b5).
 
 ## Mutation proof
 
-Predicate mutants, each run against the owning self-test: `tolower(q)` to `q` in cloud_relay.sh turns 4 rows red (the ev/HEAD.txt vs ev/head.txt refusal, naming both files, nothing pushed, the ev/A vs ev/a/x refusal); `tolower` to identity in bus.sh case_collision turns its refusal row red; removing `os.setpgid(0, 0)` from RELAY_HOLDER in tick_loop.sh turns the new group-TERM row red (27 checks, 1 failed).
+Mutants of `tools/audit/seat/cloud_relay.sh`, each run with `bash tools/audit/seat/cloud_relay.sh --self-test` (baseline: 367 checks, 0 failed):
+- M2 `tail -n 1` to `head -n 1`: 2 red, "a failed update's handoff-update line ends in the last of its REFUSE lines" and "and not retried on the next pass, which keeps its reason".
+- M5 delete the `cat "$bd/update.out" >&2` replay: 1 red, "and the update's whole output reaches the relay's stderr".
+- HELD-BODY: the body check replaced by `false`: 2 red, "a handoff ahead of its PR whose body names the old tip prints HELD-BODY once per pass" and "and runs no update and owes one handoff-held line with why BODY".
+- Case compare `tolower(q)` to `q`: 4 red, including "ev/HEAD.txt and ev/head.txt are refused rc 2" and "a file ev/A and a directory ev/a/x are refused rc 2".
 
 ## Null control
 
-The tree at origin/main: cloud_relay.sh --self-test 332 checks, 0 failed; the same replay of a delivered tree pushes it again (no guard). Null rows in the self-test: distinct ev/ names relay; a new tree is pushed; a body committed before the head prints nothing; a body naming the new tip updates; a relay finishing inside HPO_TICK_RELAY_WAIT is reaped as before.
+The null rows ride in the same self-tests: a body naming the new tip updates; a body tip older than the head prints no line; distinct evidence names relay; a hold line for an open PR is not stale; a delivered tree is skipped and a new tree is pushed. Control for the 6 failures of `prepr.sh --self-test` seen on a seat shell: the same self-test passes (rc 0, 0 FAIL) on origin/main and on this tree with the four GIT_AUTHOR/GIT_COMMITTER variables unset, so they came from the session environment.
 
 ## Figures
 
-- cloud_relay.sh self-test, 367 checks, 0 failed: `PYTHONPATH=tests/hastub bash tools/audit/seat/cloud_relay.sh --self-test`
-- bus.sh self-test, 134 checks, 0 failed: `bash tools/audit/seat/bus.sh --self-test`
-- tick_loop.sh self-test, 27 checks, 0 failed: `bash tools/audit/seat/tick_loop.sh --self-test`
-- structure ratchet: `python3 tests/structure.py` printed STRUCTURE RATCHET PASSED
-- `tools/pr/prepr.sh` ran clean at the head above with origin/main merged in (rc=0); main had moved since the first run, so it was rerun after the merge.
-- Scoped gate: `python3 tests/closure.py select` was not run beyond prepr's own gate-mode line (MODE: SCOPED).
-
-Not run here: the replay control (93 of 93 against 2) needs the 14:09Z origin and an empty ledger, which this container lacks; the self-test rows (i)-(iii) stand for it. Not derived: tests/entities.py needs homeassistant, which is absent here; prepr's closures step ran clean.
+- `bash tools/audit/seat/cloud_relay.sh --self-test`: 367 checks, 0 failed (instrument: its own summary line).
+- `bash tools/audit/seat/bus.sh --self-test`: 134 checks, 0 failed.
+- `bash tools/audit/seat/tick_loop.sh --self-test`: 27 checks, 0 failed.
+- `bash tools/pr/prepr.sh --self-test`: rc 0, with the identity variables unset.
+- `python3 tests/entities.py` with the identity variables unset: exit 0.
 
 ## Red checks
 
@@ -50,4 +51,4 @@ none
 
 ## Approval
 
-Pending. This diff adds one sentence to dev/governance/roles/fix-review.md (evidence names under ev/ must differ beyond case), which is policy. No owner approval has been given; the owner's approving review at the head is required before this merges.
+Pending: this diff touches `dev/governance/roles/fix-review.md` (the case-unique evidence-name rule for reviewers and a wording trim that keeps it at its token cap), which is policy. It needs the owner's approving review at the head before it merges; none has been given.
