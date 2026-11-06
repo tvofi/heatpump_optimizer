@@ -14,6 +14,8 @@
 | roster | `python3 -I dev/audit/harnesses/r10_triage_p391.py roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a` | verdicts, triage-cited carries, `exemptions` |
 | tokens | `python3 -I dev/audit/harnesses/r10_triage_p391.py tokens 2026-10-01T00:00:00Z` | this host's transcripts only: **another seat cannot re-run it**, and a later run reads more sessions |
 
+The `ci-fails` arm reads REST only (`search/issues` for merged_at inside the window, `pulls/<n>` for head refs), so a cloud seat re-derives it; "262 merged" is merged_at, against 263 first-parent merges by commit date in the git arm, and 232 is the distinct head refs of those 262.
+
 The cost window is 9 hours of runs, not a week, and a share counts waiting inside a job. "Caught" counts branches whose lane went red, then a later green run or a merge. A red within 12 h of the same lane red on main is left out. **"Caught" is an upper bound on right-first-time:** later green proves no defect, a scope change also clears a red, and no failure log was read. Branches, not pull requests, are the unit, because a record branch is reused across pull requests.
 
 ## P391: the non-production CI lanes
@@ -96,8 +98,9 @@ Instances:
 Cost: removing the seat frees at most 7 to 12 % of local tokens, less whatever moves to the orchestrator; that is not measured either.
 
 Binding: proposed, for the owner through the orchestrator, smallest first:
-1. **From P391, apply the bar at the door.** A queue line with no measured figure gets a one-line DEFER, with no investigation. This seat's own change; it needs no decision.
-2. **Measure before deciding:** one week of that form against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
-3. **Or remove it now:** the orchestrator applies the one-line cost test itself.
+1. **Measure before deciding:** one week of the proposed one-line-DEFER form below (if the owner adopts it by policy pull request) against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
+2. **Or remove it now:** the orchestrator applies the one-line cost test itself.
+
+Proposal for `proposal-triage` (not adopted here): a queue line with no measured figure gets a one-line DEFER without investigation. It changes the ruling form that `dev/governance/roles/proposal-triage.md` requires, so it is policy; it needs the owner's approval and a policy pull request, and this record adopts nothing. Destination: `dev/governance/roles/proposal-triage.md` (the ruling form), if proposal-triage accepts it.
 
 An owner directive keeps its route: P386 needed no cost test on whether, only on form.
