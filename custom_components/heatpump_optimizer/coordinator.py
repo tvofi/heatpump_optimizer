@@ -1942,7 +1942,10 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
     def read(size: int) -> bytes:
         chunks: list[bytes] = []
         while size > 0:
-            if not _reply_ready(fd, max(0.0, deadline - time.monotonic())):
+            # Checked here, not left to the wait: a descriptor at end of
+            # stream always reads as ready, so the wait alone never expires.
+            left_s = deadline - time.monotonic()
+            if left_s <= 0 or not _reply_ready(fd, left_s):
                 raise ProcessWorkerTimeout(
                     f"process worker stopped mid-reply: the frame did not "
                     f"arrive within {timeout_s:g} s"
