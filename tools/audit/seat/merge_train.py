@@ -794,6 +794,23 @@ POLICY_RED = ("FAILURE", "CANCELLED", "TIMED_OUT", "ACTION_REQUIRED", "STARTUP_F
 #: `train_add` re-runs the pre-flight at the add (`Train.preflight_entry`) and
 #: refuses while the cause holds, the drain's batch pre-flight does the same.
 PREFLIGHT_PARK = "PRE-FLIGHT"
+
+#: Carry 15 (tvofi 2026-11-01, production-share ruling): a record pull request
+#: merges only in a stamp's batch, never singly. Record = every changed path is
+#: stamp.py's record class (`record_class_paths`: delivery rows, carries, plans)
+#: or one of the programme's own records below (triage batches, the handover,
+#: the round's rosters). The record/autofix branch is not judged here: it stays
+#: `--bot-prs`'s, behind record_row.py's guard.
+PROGRAMME_RECORD = re.compile(r"^dev/programme/(?:triage/[^/]+\.md|HANDOVER\.md|rosters/[^/]+\.json)$")
+HELD_FOR_STAMP = "a record pull request (every changed path is a record) merges only in a stamp's batch"
+
+
+def record_pr(paths: "list[str]") -> bool:
+    """True when there is at least one path and every one is a record (carry 15)."""
+    sys.path.insert(0, str(ROOT / "tools/release"))
+    import stamp
+    paths = [p for p in paths if p]
+    return bool(paths) and all(stamp.record_class_paths([p]) or PROGRAMME_RECORD.match(p) for p in paths)
 READMIT_SAME_VERDICT = (HOLDER, BRANCH_POLICY, PREFLIGHT_PARK)
 
 
@@ -1113,7 +1130,7 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
 
 
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
-              settle: float = ADD_SETTLE_SECONDS, front: bool = False) -> int:
+              settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
     or start that train. Under QUEUE_LOCK, in order: a pull request already in
     the live train's running or later batches, or already spooled, is a no-op
@@ -1128,8 +1145,15 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
     waited out, never raced: one train per state dir. rc 2: no train could start.
     <front> (`add --front`, P112): the entry goes FIRST in the next batch -- a
     spooled one is moved there (`spool_edit`), a new one is spooled or queued
-    first -- and the spool order is printed read back."""
+    first -- and the spool order is printed read back.
+    Carry 15: a record pull request outside a `--stamp` add is HELD-FOR-STAMP,
+    rc 0, nothing added. Carry 14: a started train's first batch is every
+    ready pull request (`Train.ready_batch`; <ready>, the sweep's queue)."""
     pr = item.get("pr")
+    stamp_why = t.held_for_stamp(int(pr)) if str(pr).isdigit() else None
+    if stamp_why:
+        t.log(f"HELD-FOR-STAMP #{pr}: {stamp_why}; nothing added")
+        return 0
     with queue_lock(t.state):
         live = read_pid(t.state / QUEUE_OPEN)
         live = live if pid_alive(live) else None
@@ -1174,7 +1198,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 2
         # P312 here too: the first batch is the leftovers plus the entry in drain_order,
         # the order queue_take drains a live spool in; a fronted entry leads its tier.
-        queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start
+        others = t.ready_batch(ready, {int(e["pr"]) for e in spooled} | {entry["pr"]})
+        queue = t.drain_order([entry] + spooled + others if front else spooled + [entry] + others)  # mut:start
         qf = t.state / f"add-queue-{time.strftime('%Y%m%d-%H%M%S', time.gmtime())}-{pr}.json"
         qf.write_text(json.dumps(queue, indent=2) + "\n")
         (t.state / QUEUE_SPOOL).unlink(missing_ok=True)
@@ -1199,7 +1224,7 @@ class Train:
                  approval_carry: bool = False, main_moved_tries: int = 0,
                  bot_prs: bool = False, pre_flight: bool = False,
                  free_holders: bool = False, critical=None,
-                 clock: "callable" = time.monotonic, wall: "callable" = time.time) -> None:
+                 clock: "callable" = time.monotonic, wall: "callable" = time.time, stamp: bool = False) -> None:
         self.repo, self.state, self.mandate, self.role = repo, state, mandate, role
         if base != "main" and not base.startswith("batch/"):
             raise ValueError(f"--base {base}: main, or a batch/ rehearsal base")
@@ -1207,6 +1232,9 @@ class Train:
         # there reaches main, so the verdict, row, policy and approval reads --
         # which grade a merge into main -- are not made (`batch`).
         self.base, self.real = base, base == "main"
+        # Carry 15: a stamp's queue (`--stamp`) admits the record pull requests
+        # every other queue holds HELD-FOR-STAMP.
+        self.stamp = stamp
         self.ignore, self.min_runs, self.polls, self.merge_tries = ignore, min_runs, polls, merge_tries
         self.run = run or self._run
         self.sleep, self.log, self.clock = sleep, log, clock
@@ -2493,6 +2521,31 @@ class Train:
         return keep
 
     # ------------------------------------------------------ the queue builder
+    def held_for_stamp(self, n: int) -> "str | None":
+        """Carry 15 at `add`: why <n> waits for the stamp (HELD_FOR_STAMP), else
+        None -- under `--stamp`, for a production pull request, and for a file
+        list that could not be read (the fail-open direction: a record merged
+        singly costs one gate run; a production PR held would wait a stamp)."""
+        if self.stamp:
+            return None
+        code, o = self.run(["gh", "pr", "view", str(n), "--repo", self.repo, "--json", "files",
+                            "--jq", ".files[].path"])
+        return HELD_FOR_STAMP if code == 0 and record_pr(o.split()) else None
+
+    def ready_batch(self, ready: "list[dict] | None", have: "set[int]") -> "list[dict]":
+        """Carry 14 (tvofi 2026-11-01: batch by default): when an `add` starts a
+        train, every other ready verdicted pull request (`build_queue`, or the
+        sweep's own <ready>) joins its first batch, so one ready PR alone is the
+        only single-PR start. <have>: the add's entry and the spooled leftovers.
+        An unreadable queue starts over what the add holds, logged BATCH-READ."""
+        if ready is None:
+            try:
+                ready = self.build_queue()
+            except Stop as s:
+                self.log(f"BATCH-READ {s.step}: {s.why}; the train starts over what the add holds")
+                return []
+        return [dict(e) for e in ready if int(e["pr"]) not in have]
+
     def build_queue(self) -> list[dict]:
         """`queue`: the train's queue, written from what is already machine-read
         (R10-FLOW-AUTOTRAIN) instead of assembled by hand in an agent's turn.
@@ -2501,11 +2554,13 @@ class Train:
         <why>`. Files are not read: a budget, policy or workflow head is
         queued like any other and goes to the serial route the batch's own
         admission applies (`file_class`, `raise_hold`, the policy gate), so
-        the builder holds no second copy of those rules. An unreadable pull
+        the builder holds no second copy of those rules. A record pull request
+        (`record_pr`, from the list's own files) is HELD-FOR-STAMP outside a
+        `--stamp` queue (carry 15). An unreadable pull
         request list, approver identity or bus listing stops it: a queue built
         on a read that failed is a queue nobody read."""
         code, o = self.run(["gh", "pr", "list", "--repo", self.repo, "--state", "open", "--limit", "200",
-                            "--json", "number,headRefOid,headRefName"])
+                            "--json", "number,headRefOid,headRefName,files"])
         try:
             prs = json.loads(o) if code == 0 else None
         except ValueError:
@@ -2531,6 +2586,9 @@ class Train:
             got = self.admit_verdict(pr, tips.get(int(pr.get("number") or 0)), allow)
             if isinstance(got, str):
                 self.log(f"LEFT #{pr.get('number')}: {got}")
+                continue
+            if not self.stamp and record_pr([f.get("path", "") for f in pr.get("files") or ()]):
+                self.log(f"HELD-FOR-STAMP #{got['pr']}: {HELD_FOR_STAMP}")
                 continue
             self.log(f"QUEUE #{got['pr']} verdict {got['verdict'][:12]} comment {got['verdict_comment']}"
                      + ("" if got["verdict"] == pr["headRefOid"] else f", carried to {pr['headRefOid'][:12]}"))
@@ -3535,7 +3593,7 @@ def sweep(t: Train, train_argv: "list[str]", add=train_add, ledger_log: "str | N
             t.log(f"SWEPT #{pr} at {str(head)[:12]} before; not added again")
             again += 1
             continue
-        rc = add(t, dict(e), train_argv)
+        rc = add(t, dict(e), train_argv, ready=queue)
         if rc == 2:
             t.log(f"SWEEP REFUSED start: #{pr}'s add started no train")
             return 2
@@ -5034,8 +5092,9 @@ def _queue_self_test(check) -> None:
         run, calls = fake(w)
         lines, added = [], []
 
-        def add(t, item, argv):
+        def add(t, item, argv, ready=None):
             added.append((item["pr"], argv))
+            w.setdefault("ready_seen", []).append([e["pr"] for e in ready or ()])
             return (rcs or {}).get(item["pr"], 0)
         t = Train("o/r", state, None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
         led = state / "ledger"
@@ -5044,8 +5103,84 @@ def _queue_self_test(check) -> None:
             (led / "events.tsv").write_text("".join("\t".join(r) + "\n" for r in events))
         return sweep(t, ["train.sh"], add=add, ledger_log=str(led / "cloud-relay.log")), lines, calls, added
 
+    # Carry 14 (batch by default): an `add` that starts a train starts it over every
+    # ready pull request -- one train, one batch -- and over the entry alone only
+    # when it is the one ready. The sweep hands its own queue in (no second read).
+    def started(ready, pr=12, read=None):
+        with tempfile.TemporaryDirectory() as d:
+            launched, sl = [], []
+
+            def launch(argv, state):
+                launched.append(json.loads(Path(argv[argv.index("--queue") + 1]).read_text()))
+                return 4242, ""
+            ts_ = Train("o/r", Path(d), None, "", (), 1, run=read or (lambda *a, **k: (0, "")), log=sl.append)
+            ts_.admit_add = lambda item: None
+            rc_ = train_add(ts_, {"pr": pr, "verdict": hx(str(pr % 10))}, ["train.sh"], launch=launch, settle=0,
+                            ready=ready)
+            return rc_, [[int(e["pr"]) for e in q] for q in launched], sl
+    three = [{"pr": n, "verdict": hx(str(n % 10)), "verdict_comment": str(1000 + n)} for n in (11, 12, 15)]
+    rc3, launched3, sl3 = started(three)
+    check("carry 14: three ready pull requests and no live train -> `add` starts ONE train whose first batch is "
+          "all three (STARTED over #11 #12 #15)",
+          rc3 == 0 and len(launched3) == 1 and sorted(launched3[0]) == [11, 12, 15]
+          and any(x.startswith("STARTED train.sh pid 4242 over") and all(f"#{n}" in x for n in (11, 12, 15))
+                  for x in sl3))
+    rc1, launched1, _ = started([three[1]])
+    check("carry 14 null: exactly one ready (the add's own) -> a batch of one", rc1 == 0 and launched1 == [[12]])
+    rcr, launchedr, slr = started(None, read=lambda *a, **k: (1, "HTTP 502"))
+    check("carry 14: an unreadable queue at the start still starts the add's entry, logged BATCH-READ",
+          rcr == 0 and launchedr == [[12]] and any(x.startswith("BATCH-READ queue:") for x in slr))
+    rcq, launchedq, _ = started(None, read=fake(world())[0])
+    check("carry 14: with no queue handed in, the add reads build_queue itself (the fixture's #11 #12 #15)",
+          rcq == 0 and len(launchedq) == 1 and sorted(launchedq[0]) == [11, 12, 15])
+
+    # Carry 15 (record PRs ride the stamp): a record pull request is HELD-FOR-STAMP
+    # outside a stamp's queue and add; a production one is not; at the stamp every
+    # held record joins one queue, so one batch.
+    rec_files = [{"path": "dev/programme/delivery/12.md"}, {"path": "dev/programme/triage/s6-batch1.md"}]
+    def recw():
+        wr = world()
+        for p_ in wr["prs"]:
+            p_["files"] = rec_files if p_["number"] in (12, 15) else [{"path": "tools/x.py"}, rec_files[0]]
+        return wr
+    held_lines = build(recw())[1]
+    q_plain = build(recw())[0]
+    run_s, _ = fake(recw())
+    ts_s = Train("o/r", Path(tempfile.mkdtemp(dir=tmp.name)), None, "", (), 1, run=run_s, log=lambda m: None,
+                 stamp=True)
+    q_stamp = ts_s.build_queue()
+    check("carry 15: outside a stamp, the record pull requests (#12, #15: every path a record) are HELD-FOR-STAMP "
+          "and queued for nobody; the production one (#11, a record row beside code) is queued (null control)",
+          [e["pr"] for e in q_plain] == [11]
+          and [x.split(":")[0] for x in held_lines if x.startswith("HELD-FOR-STAMP")]
+          == ["HELD-FOR-STAMP #12", "HELD-FOR-STAMP #15"])
+    check("carry 15: a stamp's queue (--stamp) holds nothing: every held record joins the one queue the stamp's "
+          "train merges as one batch", [e["pr"] for e in q_stamp] == [11, 12, 15])
+
+    def stamp_add(paths, stamp):
+        with tempfile.TemporaryDirectory() as d:
+            sl, launched = [], []
+            tr = Train("o/r", Path(d), None, "", (), 1, log=sl.append, stamp=stamp,
+                       run=lambda argv, cwd=ROOT, stdin=None: (0, "\n".join(paths)) if "files" in argv else (0, ""))
+            tr.admit_add = lambda item: None
+            rc_ = train_add(tr, {"pr": 31, "verdict": hx("3")}, ["train.sh"], settle=0, ready=[],
+                            launch=lambda argv, st: (launched.append(argv), (77, ""))[1])
+            return rc_, sl, len(launched)
+    rec_paths = ["dev/programme/delivery/31.md", "dev/programme/HANDOVER.md"]
+    check("carry 15 at add: a record pull request added between stamps is HELD-FOR-STAMP, rc 0, nothing started; "
+          "a production one starts its train (null); under --stamp the record starts it",
+          stamp_add(rec_paths, False)[::2] == (0, 0)
+          and stamp_add(rec_paths, False)[1][0].startswith("HELD-FOR-STAMP #31:")
+          and stamp_add(["custom_components/x.py", rec_paths[0]], False)[::2] == (0, 1)
+          and stamp_add(rec_paths, True)[::2] == (0, 1))
+    check("carry 15: record_pr is every path a record and at least one; an empty list is not a record",
+          record_pr(rec_paths) and not record_pr([]) and not record_pr(rec_paths + ["tools/x.py"]))
+
     st = Path(tempfile.mkdtemp(dir=tmp.name))
-    rc, lines, calls, added = swept(world(), st)
+    wq = world()
+    rc, lines, calls, added = swept(wq, st)
+    check("carry 14: the sweep hands add its own queue, so a started train batches without a second read",
+          wq.get("ready_seen") == [[11, 12, 15]] * 3)
     check("sweep: every admitted head is handed to add, oldest first, with the started train's argv",
           rc == 0 and [p for p, _ in added] == [11, 12, 15] and all(a == ["train.sh"] for _, a in added)
           and lines[-1] == "SWEEP DONE: 3 admitted, 3 handed to add, 0 swept before at that head, 0 refused by admit_add")
@@ -5090,7 +5225,8 @@ def _queue_self_test(check) -> None:
         run, _ = fake(w)
         lines = []
         t = Train("o/r", state, None, "", (), 1, run=run, sleep=lambda s: None, log=lines.append)
-        return sweep(t, ["train.sh"], add=lambda t, e, argv: train_add(t, e, argv, launch=launch, settle=0.3),
+        return sweep(t, ["train.sh"], add=lambda t, e, argv, ready=None: train_add(t, e, argv, launch=launch, settle=0.3,
+                                                                   ready=ready),
                      ledger_log=str(state / "ledger" / "cloud-relay.log")), lines
     sleepers: list = []
     starts: list = []
@@ -5106,15 +5242,15 @@ def _queue_self_test(check) -> None:
         st = Path(tempfile.mkdtemp(dir=tmp.name))
         rc, lines = live(two, st, launch)
         queued = json.loads(Path(starts[0][starts[0].index("--queue") + 1]).read_text()) if starts else []
-        check("sweep, no train live: ONE train starts over the first missed head, the second joins its next "
-              "batch (spooled) -- never a second train",
-              rc == 0 and len(starts) == 1 and [e["pr"] for e in queued] == [11]
-              and [e["pr"] for e in spool_read(st)[0]] == [12]
+        check("sweep, no train live: ONE train starts over BOTH missed heads in its first batch (carry 14: batch "
+              "by default); the second add finds #12 pending in it, ALREADY -- never a second train",
+              rc == 0 and len(starts) == 1 and [e["pr"] for e in queued] == [11, 12]
+              and spool_read(st)[0] == []
               and any(ln.startswith("STARTED train.sh") for ln in lines)
-              and any(ln.startswith("ADDED #12 to the live train") for ln in lines))
+              and any(ln.startswith("ALREADY #12:") for ln in lines))
         rc, lines = live(two, st, launch)
         check("sweep, a train live: the next pass adds nothing and starts nothing (exactly once)",
-              rc == 0 and len(starts) == 1 and len(spool_read(st)[0]) == 1)
+              rc == 0 and len(starts) == 1 and spool_read(st)[0] == [])
         st = Path(tempfile.mkdtemp(dir=tmp.name))
         busy = subprocess.Popen(["sleep", "60"])
         sleepers.append(busy)
@@ -7538,6 +7674,9 @@ def _parser() -> argparse.ArgumentParser:
                        help="write the queue: every open non-record pull request whose newest posted verdict, "
                             "verdict/<pr>'s tip, is merge at its head or carries to it, oldest first")
     q.add_argument("out", help="the queue file to write ('-': stdout)")
+    q.add_argument("--stamp", action="store_true",
+                   help="a stamp's queue: the record pull requests every other queue holds HELD-FOR-STAMP "
+                        "join it, so they merge in one batch before the tag (carry 15)")
     ad = sub.add_parser("add", parents=[common, train_opts],
                         help="load one verdicted pull request into the state dir's live train (its next "
                              "batch), or start that train; the train.sh flags follow `--`")
@@ -7552,6 +7691,8 @@ def _parser() -> argparse.ArgumentParser:
     ad.add_argument("--verdict-comment", help="the verdict comment's id, quoted in a mandate approval")
     ad.add_argument("--priority", action="store_true",
                     help="HOTFIX: the spool's drain puts this entry before critical-path and arrival order (P312)")
+    ad.add_argument("--stamp", action="store_true",
+                    help="a stamp's add: a record pull request is added, not HELD-FOR-STAMP (carry 15)")
     ad.add_argument("--auto", action="store_true",
                     help="a started train is a bare train.sh launch (RECOMMENDED by default) with --mandate, "
                          "as the sweep's is: bus.sh's post calls this")
@@ -7560,6 +7701,7 @@ def _parser() -> argparse.ArgumentParser:
                              "head, unless the ledger holds an open train-stop; a started train is a bare "
                              "train.sh launch, which runs RECOMMENDED")
     sw.add_argument("--mandate", help="passed to the started train; omit to never approve a code-owned head")
+    sw.add_argument("--stamp", action="store_true", help="a stamp's sweep: record pull requests are added too")
     sw.add_argument("--state-dir", default=train_opts.get_default("state_dir"))
     w = sub.add_parser("wait-ci", parents=[common])
     w.add_argument("sha")
@@ -7597,7 +7739,7 @@ def main(argv: list[str]) -> int:
         if a.auto and rest:
             print("REFUSE add: --auto is the started train's flags; give it or `-- <train.sh flags>`, not both")
             return 2
-        t = Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, (), a.min_runs)
+        t = Train(a.repo, Path(a.state_dir), a.mandate, a.approver_role, (), a.min_runs, stamp=a.stamp)
         if a.front and a.remove:
             print("REFUSE add: --front and --remove are two edits; give one")
             return 2
@@ -7639,11 +7781,11 @@ def main(argv: list[str]) -> int:
         print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
         return {"green": 0, "red": 1, "wait": 3}[state]
     if a.cmd == "sweep":
-        t = Train(a.repo, Path(a.state_dir), a.mandate, "", (), a.min_runs)
+        t = Train(a.repo, Path(a.state_dir), a.mandate, "", (), a.min_runs, stamp=a.stamp)
         return sweep(t, auto_train_argv(a.repo, a.state_dir, a.mandate))
     if a.cmd == "queue":
         to_stdout = a.out == "-"  # the queue alone on stdout, its lines on stderr
-        t = Train(a.repo, Path("."), None, "", (), a.min_runs,
+        t = Train(a.repo, Path("."), None, "", (), a.min_runs, stamp=a.stamp,
                   log=(lambda m: print(m, file=sys.stderr)) if to_stdout else print)
         try:
             queue = t.build_queue()
