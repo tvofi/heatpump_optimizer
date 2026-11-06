@@ -17405,6 +17405,43 @@
     "stage": "not-started"
    },
    "brief": "Part 2 of R10-REPLAY-COST-BUDGET (#3234, minimal re-cut under the three-round rule, fixer.md): the round-3 review's findings other than the ref46/ref53 border. Each carry names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count."
+  },
+  {
+   "group": "R10-HOTFIX-NIGHTLY-STATUS",
+   "lane": "CP",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tests/nightly_status.py",
+    ".github/workflows/nightly.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Owner ruling tvofi 2026-11-06: the nightly red does not block merges or stamps, but a fixer is owed. `tests / nightly-status` reads red on main and PRs with 'NIGHTLY FAILED: slow failed in the last verification dispatch'. Read the nightly lane's last report and .github/workflows/nightly.yml, find why the status grades main red (the slow lane failed in scheduled runs 41555367389, 41749544997, 41943946464 and dispatch 42235215315; later dispatches 42242870295, 42247578523 and schedule 42139479636 are green), fix the lane or the grading, and prove the red-to-green flip with a null control. Cite f-3245-nightly's (handoff/r10-process-slim) main-wide cause if its handoff holds one; do not duplicate it."
   }
  ]
 }
