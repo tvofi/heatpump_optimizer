@@ -7,7 +7,8 @@ MUTANT last_stamped_tag = newest tag by date (ignores tree VERSION): exit 1, 1 F
     FAIL last stamp: a tag whose tree VERSION is not its name is skipped
 MUTANT last_stamped_tag drops TAG_RE filter: exit 1, 1 FAIL KILLED
     FAIL last stamp: non-release and VERSION-less tags are skipped, none is None
-MUTANT main(): last_tag = newest tag: exit 1, 1 FAIL KILLED
+MUTANT main(): last_tag = newest tag: exit 1, 2 FAIL KILLED
+    FAIL flush: main runs it after rule 3 and before rule 4, and a dry run's deferral reaches rule 5 only as that deferral
     FAIL last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag
 MUTANT main(): next from VERSION (base = current): exit 1, 1 FAIL KILLED
     FAIL bump base: main() reads it after the tag fetch and bumps from it
@@ -26,5 +27,6 @@ MUTANT release.yml: readback attempts=1: exit 1, 2 FAIL KILLED
     FAIL release publish: an asset never read back fails after 5 reads, unpublished
 MUTANT release.yml: readback never fails after loop (exit 0): exit 1, 1 FAIL KILLED
     FAIL release publish: an asset never read back fails after 5 reads, unpublished
-NULL restored exit 0
-MUTANT release.yml: unbounded readback (while true): self-test did not return within the driver's window; the run was killed at 600 s with the step looping (no per-call timeout in _publish_step). Detected only as a hang.
+MUTANT release.yml: unbounded readback (while true): exit 1, 1 FAIL KILLED
+    FAIL release publish: an asset never read back fails after 5 reads, unpublished
+NULL restored: exit 0, 0 FAIL

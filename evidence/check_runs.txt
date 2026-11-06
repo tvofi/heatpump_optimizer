@@ -1,0 +1,2 @@
+68 check-runs, 1 page, conclusions:
+success 39 / skipped 29 (none failure/cancelled/timed_out/neutral/action_required); read via get_check_runs perPage=100 at review time

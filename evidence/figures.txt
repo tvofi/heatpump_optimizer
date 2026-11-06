@@ -1,18 +1,18 @@
-## archscore
-Architecture score: dS +0.0000 NULL
-## env_drift claims-only
-claims hygiene: 8a39977cba2f9f0c798647e8fe1b793e4fcdf106 ok
-rc=0
-## main delta c679f4b69..8a39977cb on touched/gate files
- tests/closures.json | 26 ++++++++++++++++++++++++--
- 1 file changed, 24 insertions(+), 2 deletions(-)
-(end)
-## main delta 8a39977cb..origin/main on same
+== git diff --stat c679f4b69 dc0a170b6 -- <4 paths>
+ tests/closures.json | 30 ++++++++++++++++++++++++++++--
+ tests/entities.py   |  2 +-
+ 2 files changed, 29 insertions(+), 3 deletions(-)
+== git diff --stat 8a39977cb dc0a170b6 -- <4 paths>
  tests/closures.json | 4 ++++
  tests/entities.py   | 2 +-
  2 files changed, 5 insertions(+), 1 deletion(-)
-(end)
-## closure selftest
-ALL 118 closure shrink pins PASSED
-## commit messages
-no footers
+== git diff --stat b88684a21 dc0a170b6 -- <4 paths>
+== git diff --stat 9315526f8 dc0a170b6 -- <4 paths>
+== parents
+0375c5019442ab96646462a2fb17e4129418c791 67d943bc3defbff49c6ac4ebc0600c6e28f45dc3 dc0a170b671814be196a54b1c71e29449f54d6d7
+4b032053eeab3e5aa8c207ae555bf45e1c8fd49d ee63326c8524a170c8d813402aaf02a85d5826b0 0375c5019442ab96646462a2fb17e4129418c791
+67d943bc3defbff49c6ac4ebc0600c6e28f45dc3 68d9a47baa19d84d9f03ad523548d80e57ff5270 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6
+== tree 0375c5019 vs head
+== sha1 of round1 instruments as published
+c3522e2df95b73915bc25201c4aeabbf31ab42c1  -
+d02a136f94ced6844cbc0aa59d38a7b96de98456  -

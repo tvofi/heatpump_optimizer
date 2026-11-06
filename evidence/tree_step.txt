@@ -5,6 +5,7 @@ publish step keys: {'env': {'GH_TOKEN': '${{ github.token }}'}}
 REAL v7.1.0 0 v7.1.0: VERSION, manifest and notes agree
 REAL v7.1.1 0 v7.1.1: VERSION, manifest and notes agree
 REAL v7.1.2 1 ::error::VERSION reads 7.1.1, not the tag v7.1.2 | ::error::the manifest version reads 7.1.1, not the tag v7.1.2 | ::error::RELEASE_NOTES.md has no '## v7.1.2' section | refusing to release v7.1.2: its tree is not a stamp of it
+REAL v7.1.3 0 v7.1.3: VERSION, manifest and notes agree
 PLANT ok v7.1.3 0 v7.1.3: VERSION, manifest and notes agree
 PLANT notes lack section 1 ::error::RELEASE_NOTES.md has no '## v7.1.3' section | refusing to release v7.1.3: its tree is not a stamp of it
 PLANT notes heading with suffix '## v7.1.3 (date)' 1 ::error::RELEASE_NOTES.md has no '## v7.1.3' section | refusing to release v7.1.3: its tree is not a stamp of it

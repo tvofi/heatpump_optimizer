@@ -19,7 +19,7 @@ print("publish step keys:", {k: v for k, v in pub.items() if k not in ("name", "
 def run_in(d, tag):
     p = subprocess.run(["bash", "-e", "-c", script], cwd=d, env={**os.environ, "TAG": tag}, capture_output=True, text=True)
     return p.returncode, (p.stdout + p.stderr).strip().replace("\n", " | ")
-for tag in ["v7.1.0", "v7.1.1", "v7.1.2"]:
+for tag in ["v7.1.0", "v7.1.1", "v7.1.2", "v7.1.3"]:
     with tempfile.TemporaryDirectory() as d:
         subprocess.run(f"git archive {tag} VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json | tar -x -C {d}", shell=True, check=True)
         print("REAL", tag, *run_in(d, tag))
