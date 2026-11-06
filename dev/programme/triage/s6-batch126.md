@@ -96,8 +96,9 @@ Instances:
 Cost: removing the seat frees at most 7 to 12 % of local tokens, less whatever moves to the orchestrator; that is not measured either.
 
 Binding: proposed, for the owner through the orchestrator, smallest first:
-1. **From P391, apply the bar at the door.** A queue line with no measured figure gets a one-line DEFER, with no investigation. This seat's own change; it needs no decision.
-2. **Measure before deciding:** one week of that form against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
-3. **Or remove it now:** the orchestrator applies the one-line cost test itself.
+1. **Measure before deciding:** one week of the proposed one-line-DEFER form below (if the owner adopts it by policy pull request) against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
+2. **Or remove it now:** the orchestrator applies the one-line cost test itself.
+
+Proposal for `proposal-triage` (not adopted here): a queue line with no measured figure gets a one-line DEFER without investigation. It changes the ruling form that `dev/governance/roles/proposal-triage.md` requires, so it is policy; it needs the owner's approval and a policy pull request, and this record adopts nothing. Destination: `dev/governance/roles/proposal-triage.md` (the ruling form), if proposal-triage accepts it.
 
 An owner directive keeps its route: P386 needed no cost test on whether, only on form.

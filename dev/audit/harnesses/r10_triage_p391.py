@@ -18,7 +18,11 @@ Every REST read is cached on disk by path (P391_CACHE), and an arm waits for
 the reset rather than take the shared core budget under FLOOR. FROM and TO are UTC ISO instants (2026-10-28T00:00:00Z). The API arms read
 `gh api` (the Actions runs and jobs, and the pull-request search); the git arm
 reads only the local clone at REF; `tokens` reads this host's session
-transcripts and so cannot be re-run by another seat. A share is runner seconds
+transcripts and so cannot be re-run by another seat. `ci-fails` is REST-only (search/issues for the merged
+pull requests by merged_at, then pulls/<n> for each head ref), so a cloud seat
+re-derives it; "merged" there is merged_at inside the window, not a first-parent
+merge by commit date, and it counts head refs, so a branch merged twice counts twice.
+A share is runner seconds
 (job end less start, skipped jobs excluded) over the cost window's total.
 "PRs" counts pull requests whose branch had the lane red, then a later green
 CI run or a merge, with a red within 12 h of the same lane red on main left
@@ -35,6 +39,7 @@ import re
 import subprocess
 import sys
 import time
+import urllib.parse
 
 # The first-parent merge-subject grammar is record_burst_replay's, read not restated.
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -85,7 +90,7 @@ def api(path: str):
         headroom()
     _calls += 1
     for _ in range(4):
-        r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        r = subprocess.run(["gh", "api", "-X", "GET", path], capture_output=True, text=True)
         if r.returncode == 0:
             os.makedirs(CACHE, exist_ok=True)
             with open(key + ".tmp", "w") as f:
@@ -161,11 +166,18 @@ def arm_ci_fails(a, b, out):
                 res["green"].setdefault(r["head_branch"], []).append([r["head_sha"], r["run_started_at"]])
     for r_id, r in res["fail"].items():
         r["failed"] = [j["name"] for j in jobs(r_id) if j["conclusion"] in ("failure", "timed_out")]
-    # GraphQL, not one REST read per pull request: its budget is separate.
-    r = subprocess.run(["gh", "pr", "list", "--repo", REPO, "--state", "merged", "--limit", "1000",
-                        "--search", f"merged:{a}..{b}", "--json", "headRefName"],
-                       capture_output=True, text=True, check=True)
-    pulls = [x["headRefName"] for x in json.loads(r.stdout)]
+    # REST only: GraphQL (`gh pr list --search`) is refused (403) from cloud seats, so a
+    # cloud reviewer could not re-derive this arm. search/issues pages give the merged
+    # pull requests (merged_at inside FROM..TO, 100 a page), pulls/<n> gives each head ref.
+    pulls, page = [], 1
+    while True:
+        q = urllib.parse.quote(f"repo:{REPO} is:pr is:merged merged:{a}..{b}")
+        got = api(f"search/issues?q={q}&per_page=100&page={page}")["items"]
+        for it in got:
+            pulls.append(api(f"repos/{REPO}/pulls/{it['number']}")["head"]["ref"])
+        if len(got) < 100:
+            break
+        page += 1
     res["merged"] = pulls
     json.dump(res, open(out, "w"))
     print(f"RESULT ci-fails {a}..{b}: {sum(r['event'] == 'pull_request' for r in res['fail'].values())} failed "
