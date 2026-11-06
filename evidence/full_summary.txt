@@ -1,8 +1,0 @@
-rc=0 python3 tests/structure.py
-rc=0 python3 tests/entities.py
-rc=0 python3 tests/features.py
-rc=0 python3 tests/plan_view.py
-rc=0 node tests/card.mjs
-rc=0 env PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs
-rc=0 python3 tests/env_drift.py --claims-only
-rc=0 node tests/card_drift.mjs

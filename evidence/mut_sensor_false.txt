@@ -1012,6 +1012,7 @@ Failed to publish ECL110 displace command: mqtt unreachable
   ok   MonthlySavingsSensor is unavailable before any booked month
   ok   MonthlySavingsSensor names settled_savings_month while empty
   ok   MonthlySavingsSensor state is the open month's estimated savings_sek
+  FAIL MonthlySavingsSensor states that a wood house's saving includes wood's heat, as the receipt event does; False without wood  [((False, True), (False, False), (False, False))]
   ok   every class that publishes attributes is in the pinned roster (#373)
   ok   AwayModeBinarySensor publishes exactly its pinned attribute keys (#373)
   ok   ComfortWeightSensor publishes exactly its pinned attribute keys (#373)
@@ -1359,7 +1360,7 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   an entry's setup hands its coordinator to the entry as runtime_data
   ok   an entry's setup defers the first solve to one entry background task, which Home Assistant cancels at unload
   ok   an entry's setup registers nothing and replaces no handler
-/home/user/wt-head/tests/harness.py:575: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+/tmp/claude-0/wt/tests/harness.py:575: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
   callback()
 RuntimeWarning: Enable tracemalloc to get the object allocation traceback
   ok   every service is still registered after the last entry unloads
@@ -1425,28 +1426,28 @@ No forecast data returned for weather.home. Plans continue on the last forecast,
   ok   a live agent between commands keeps the lock
   ok   a crashed hold lets take('successor') steal
   ok   a lease whose named owner process is gone is stolen (#1143)
-gate_lock: waiting for the lease held by other until 2026-11-06 09:03:02.877272+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by other until 2026-11-06 16:41:34.091691+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   run.sh leases a FULL or stress run itself, for the scripts that measure alone, and a second one waits
   ok   the heavy-slot capacity is the cap unless the owner raises it (#2267)
 lease class: dispatched=36 (floor 30) lease=['tests/stress.py', 'tests/harness_headers.py'] slot=12 none=22 unleased_but_heavy=[]
   ok   every script run.sh dispatches through `leased` is classified, and none heavy is left unleased (#2341)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:03.473862+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:03.473862+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:03.473862+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:04.980372+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:34.721686+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:34.721686+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:34.721686+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:36.433684+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:05.683120+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:37.138288+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   gate lease queue: FIFO: three waiters take in arrival order, no one jumps
   ok   gate lease queue: renew is refused while a ticket waits; the holder re-queues behind
   ok   gate lease queue: a dead or expired ticket is skipped, a live one behind it is not
   ok   gate lease queue: null control: with no live waiter renew extends and a take succeeds
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:06.188662+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:06.188662+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for the lease held by h until 2026-11-06 09:03:06.793904+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-06 09:03:06.995683+00:00)
-gate_lock: waiting for a heavy slot (0:h until 2026-11-06 09:03:06.995683+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 09:03:07.399261+00:00)
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 09:03:07.399261+00:00)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:37.645753+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:37.645753+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by h until 2026-11-06 16:41:38.255653+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 16:41:38.459158+00:00)
+gate_lock: waiting for a heavy slot (0:h until 2026-11-06 16:41:38.459158+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 16:41:38.866316+00:00)
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 16:41:38.866316+00:00)
   ok   gate lease priority: priority: an urgent waiter takes before an older normal one, after its ticket rewrite
   ok   gate lease priority: priority: a ticket rewrite keeps its priority and its arrival stamp
   ok   gate lease priority: priority: aging promotes a normal waiter past a later urgent one, and only past the window
@@ -1456,7 +1457,12 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 09:03:07.399261+0
   ok   gate lease priority: concurrency control: two waiters released in one poll, exactly one holds the slot
   ok   gate lease priority: concurrency control: a rival taking while a slot is being created cannot also hold it
   ok   gate lease priority: concurrency control: a slot being renewed is never read as empty by a waiter
-gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 09:01:13.676710+00:00)
+  ok   gate lease priority: concurrency control: a delay after a missing-slot read cannot let two waiters hold the slot
+  ok   gate lease priority: concurrency control: a garbage slot is reaped and a following create wins
+  ok   gate lease priority: concurrency control: a valid owner landing after the broken read survives the reap
+  ok   gate lease priority: concurrency control: a rival in the reap's rename gap leaves one owner and no grave
+  ok   gate lease priority: concurrency control: a directory at the slot path is reclaimed, not raised
+gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 16:39:40.503016+00:00)
   ok   heavy-slot hold: a live holder keeps its slot past its lease, and a fifth taker is blocked
   ok   heavy-slot hold: a slot whose named process is gone is stolen at once (null control)
   ok   heavy-slot hold: a legacy slot with no pid is freed on expiry; a fresh one is respected
@@ -1471,7 +1477,7 @@ gate_lock: waiting for a heavy slot (0:holder until 2026-11-06 09:01:13.676710+0
   ok   run.sh records a wait past its bound as #skip, named unrun, and a run within it by its rc (P206)
   ok   run.sh's lane console prints SKIP, not ok, for a script that waited past its bound
   ok   run.sh names a script ended before its summary apart from a failed check (R10 carry)
-gate_lock: waiting for the lease held by seat until 2026-11-06 09:03:33.803337+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
+gate_lock: waiting for the lease held by seat until 2026-11-06 16:42:00.440133+00:00 (yours? export HPO_GATE_LOCK_LABEL with that label)
 gate_lock: renew refused: w waits for the lease. Finish the current stress.py run, release, and take again: you queue behind it; seat re-queues
 gate_lock: waiting for the lease held by w, at the head of the queue (yours? export HPO_GATE_LOCK_LABEL with that label)
   ok   a seat label never taken fails at once; a held one re-queues behind a waiter
@@ -1485,8 +1491,8 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ok   the widening rule itself leaves the card out
   ok   while still widening to the rest of the integration
   ok   the widening rule leaves the quality-scale register out too
-  baseline worktree add failed on baseline-1415-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
-  baseline worktree add failed on baseline-1415-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-15602-1 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
+  baseline worktree add failed on baseline-15602-2 (exit 128): fatal: invalid reference: 0000000000000000000000000000000000000000
   ok   a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
   ok   a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
   ok   concurrent gate instances name distinct baseline worktrees (#2119)
@@ -1608,7 +1614,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   FAIL a5:service_bounds  [1 bound(s) rejected: ["set_thermal_parameters: MultipleInvalid: value must be at least 0.01 for dictionary value @ data['house_thermal_mass']"]]
   ok   a5:service_bounds fails an out-of-range bound and passes the yaml edges
   ok   a8:register_once  [15 registered after two entries; catalog 15; extra=[]; missing=[]]
-  FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['assign_entity__dup', 'run_optimization__dup', 'set_mode__dup']; missing=[]]
+  FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_topology__dup', 'clear_manual_plan__dup', 'diagnose_interval__dup']; missing=[]]
   ok   a8:register_once fails a doubled catalog and passes the yaml set
   ok   a8:deregister  [15 registered after unload; catalog 15; extra=[]; missing=[]]
   FAIL a8:deregister  [0 registered after unload; catalog 15; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimization', 'set_away', 'set_mode', 'set_thermal_parameters', 'simulate_plan']]
@@ -1668,190 +1674,190 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   FAIL hb:positive_control  [a 600 ms spin read as 500.0 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
   FAIL hb:positive_control  [a 600 ms spin read as 600.0 ms; dump names the spin: True; sampler rc=0 names it: False; try 2 of 2 (at most 3)]
   ok   hb:positive_control passes on any one try that reads all three, and never on three readings split across tries
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18505, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18534, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpq75wr5mn/py-spy', '1415']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 207 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18505, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpq0zw2aqq/py-spy', '15602']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18534, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 600.3 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 207 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18507, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ok   hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18536, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (idle)
-  ..   hb:positive_control| stall >= 205 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18507, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18536, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 207 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18508, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18537, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpzzgnkoaw/py-spy', '1415']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 208 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18508, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmptpzzjd10/py-spy', '15602']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18537, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpzzgnkoaw/py-spy', '1415']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 208 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18508, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmptpzzjd10/py-spy', '15602']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18537, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 602.8 ms; dump names the spin: True; sampler rc=0 names it: True; try 3 of 3 (at most 3)]
-  ..   hb:positive_control| stall >= 206 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18509, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18538, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=1:
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ..   hb:positive_control| stall >= 213 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18509, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18538, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (active+gil)
   ..   hb:positive_control|     _hb_spin (nightly_ha.py:1)
-  ok   hb:positive_control  [a 600 ms spin read as 603.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
-  ..   hb:positive_control| stall >= 204 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18510, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpephb4d_a/py-spy', '1415']' timed out after 0.5 seconds
+  ok   hb:positive_control  [a 600 ms spin read as 600.4 ms; dump names the spin: True; sampler rc=0 names it: True; try 2 of 2 (at most 3)]
   ..   hb:positive_control| stall >= 206 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18510, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18539, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpephb4d_a/py-spy', '1415']' timed out after 0.5 seconds
-  ..   hb:positive_control| stall >= 206 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18510, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
-  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1915, in _hb_spin
-  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpephb4d_a/py-spy', '1415']' timed out after 0.5 seconds
-  FAIL hb:positive_control  [a 600 ms spin read as 719.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpkgua3lj9/py-spy', '15602']' timed out after 0.5 seconds
   ..   hb:positive_control| stall >= 203 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18511, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18539, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1915, in _hb_spin
-  ..   hb:positive_control| sampler rc=0:
-  ..   hb:positive_control| Thread 1 (idle)
-  ..   hb:positive_control| stall >= 208 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18511, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpkgua3lj9/py-spy', '15602']' timed out after 0.5 seconds
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18539, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
-  ..   hb:positive_control| sampler rc=0:
-  ..   hb:positive_control| Thread 1 (idle)
-  ..   hb:positive_control| stall >= 205 ms; loop thread:
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18511, in <module>
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/entities.py", line 18496, in _hb_spy_run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler did not run: TimeoutExpired: Command '['/tmp/tmpkgua3lj9/py-spy', '15602']' timed out after 0.5 seconds
+  FAIL hb:positive_control  [a 600 ms spin read as 753.1 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18540, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
   ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
-  ..   hb:positive_control|   File "/home/user/wt-head/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
   ..   hb:positive_control| sampler rc=0:
   ..   hb:positive_control| Thread 1 (idle)
-  FAIL hb:positive_control  [a 600 ms spin read as 600.2 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
+  ..   hb:positive_control| stall >= 204 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18540, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  ..   hb:positive_control| stall >= 203 ms; loop thread:
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18540, in <module>
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/entities.py", line 18525, in _hb_spy_run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 205, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/runners.py", line 128, in run
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 707, in run_until_complete
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 678, in run_forever
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/base_events.py", line 2057, in _run_once
+  ..   hb:positive_control|   File "/opt/hpo/python/cpython-3.14.7-linux-x86_64-gnu/lib/python3.14/asyncio/events.py", line 94, in _run
+  ..   hb:positive_control|   File "/tmp/claude-0/wt/tests/nightly_ha.py", line 1912, in _hb_spin
+  ..   hb:positive_control| sampler rc=0:
+  ..   hb:positive_control| Thread 1 (idle)
+  FAIL hb:positive_control  [a 600 ms spin read as 600.5 ms; dump names the spin: True; sampler rc=0 names it: False; try 3 of 3 (at most 3)]
   ok   hb:positive_control survives one hung py-spy sample: a fresh spin answers on try 2, the hang cut at the sample's timeout with the spin held across it
   ok   and a try whose sample misses the spin, or names it at rc!=0, is retried, not accepted
   ok   the control rests between tries: two tries with a 1 s rest take at least the rest plus both spins
@@ -1938,7 +1944,7 @@ gate_lock: waiting for the lease held by w, at the head of the queue (yours? exp
   ok   changing the portable node recorder invalidates every closure
   ok   node recording works without strace
   ok   the portable node recorder sees repo files the script opened
-closure: updated 1 closure(s) in /tmp/tmp70r3lcip/closures.json
+closure: updated 1 closure(s) in /tmp/tmpjvkexwzy/closures.json
   tests/card.mjs                4 files
   ok   a Darwin node re-record unions instead of replacing
   ok   the gate's own workflow is a gate file
@@ -1964,7 +1970,7 @@ closure: updated 1 closure(s) in /tmp/tmp70r3lcip/closures.json
   ok   marketplace.yml runs CI's own hassfest and validate units weekly and on dispatch, read-only, a red never hidden (#2965 C5)
   ok   the closure recorder unions a traced child's repo reads into the record (R9 D14-s5-01)
   ok   the recorder files a traced Python child's INERT reads apart from the closure (R9-F10.9d): LICENSE is in inert_reads and in no file list
-closure: updated 1 closure(s) in /tmp/closure-inert-zy7ebher/closures.json
+closure: updated 1 closure(s) in /tmp/closure-inert-i7k8o98l/closures.json
   tests/layout.py               3 files
   ok   inert_reads: the audit-hook record files LICENSE, the fold writes and clears per script, a --partial merge writes it, and check refuses a table missing it (R9-F10.9d)
   ok   a docs-only change still costs the closures check nothing
@@ -2179,7 +2185,7 @@ closures-autofix: dropped 1 recorded path(s) this tree does not have: tests/repl
   ok   an untouched claim file is not an inherited-claims rewrite
   ok   lines a branch inherited excuse no drift and go stale for nobody
   ok   a claim line written beside an inherited one is the branch's own
-  DRIFT wood_coil: 1 leaves moved vs f981762bea20aa3163468b027ce17ccc4e1efa26
+  DRIFT wood_coil: 1 leaves moved vs aec06ee8ff46220f6c6d651e4c1183911298f5f8
          wood_coil.v: 1 vs 2
   ok   a carried claim line does not excuse a moved fixture
   ok   main() judges drift and staleness with excusing_claims, not the raw file
@@ -2884,33 +2890,33 @@ MUTATION TABLE REFUSED -- nothing was measured: 0 mutant(s) timed out, 1 not sta
 -- The replay lane: controls, sanitiser, fixture, wiring
   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
   ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
-reading the recorder: SQLite database /tmp/tmp2waijut8/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp31crss7g/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmptn9o439o/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpuln2pay7/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp7o1esh6w/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp88t1h_tl/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpetav0yj9/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpnvnib0gb/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp5h4qlh4p/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpihfi56e5/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_3fbf2wo/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpnm4wly45/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpw4pzxyeu/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpek32u4jn/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmprx2tz4cp/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmph82syvs3/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp_fsslm6n/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmptc8ia3jh/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpf3ydcslw/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpyhh6e_n_/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmpkjjvilxo/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp0xd_vn8d/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp3of4fghq/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp980cg6b8/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp92xli9y2/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpw2ydfiu0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp13jgiwl0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_jqbkrpq/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpw_ekqd9r/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp7swjlf4z/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp_03p8ld9/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpo2lkp6cu/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp8hq3cbzk/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpla5d5kyl/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpqgs87_u0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1mzwjbl0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp3l5b4oxv/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1b5g7q21/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpntsenwtj/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpkusumqry/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpm35y144h/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpzmux4viw/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpzm9hyjc0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpusyl8jem/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpycp642dm/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpzvksocu8/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmic9i4au/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp1uv56qin/home-assistant_v2.db
 left out: entity id(s) under 1 entry key(s) this integration does not read (legacy_probe_entity)
-reading the recorder: SQLite database /tmp/tmpd81bycf9/home-assistant_v2.db
-reading the recorder: SQLite database /tmp/tmp4hdyxrbd/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi13h_jav/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpqj5o1q23/home-assistant_v2.db
   ok   replay control:finite
   ok   replay control:unit
   ok   replay control:no_default
@@ -3149,4 +3155,4 @@ Accuracy store: ignoring non-list 'samples' field (str); the other learned field
   ok   every InputReader key is an options-flow entity field, so the Health card has its label
   ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
 
-ALL 2632 ENTITY CHECKS PASSED
+1 of 2638 ENTITY CHECKS FAILED

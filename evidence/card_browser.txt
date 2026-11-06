@@ -29,8 +29,7 @@
   ok    and the walk really measured the dialog's text
   ok    an old-basis row draws its two columns, a dash for saving and percent, and the note
   ok    and a new-basis row beside it states its saving, its unclipped percent and its bar
-  FAIL  a house with wood configured carries the disclaimer, painted within a phone's width
-        ["",0]
+  ok    a house with wood configured carries the disclaimer, painted within a phone's width
   ok    a house with no wood configured carries none
   ok    axis unit labels carry no ink on the svg's top row
   ok    axis unit labels do not ink-collide with their top tick
@@ -59,7 +58,7 @@
   ok    R8 D4-01 and no control reorders Tab with a positive tabindex
   ok    R8 D4-01 and the walk reached the controls of every view
   P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)
-  P9 grid: 360 cells, 22677 text runs, 1110 box-intersecting pairs inked, 105 colour rules, 250.9 s
+  P9 grid: 360 cells, 22686 text runs, 1110 box-intersecting pairs inked, 105 colour rules, 247.0 s
   ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
   ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
   ok    P9 grid: every visible text run clears WCAG AA against what is under it
@@ -94,4 +93,4 @@
   ok    R9-UX-8 narrative at 640 px: 6 rows in 1 column(s), numbers whole and flush right
   ok    R9-UX-8 narrative at 1280 px: 6 rows in 2 column(s), numbers whole and flush right
 
-1 BROWSER CHECK(S) FAILED
+ALL BROWSER CHECKS PASSED

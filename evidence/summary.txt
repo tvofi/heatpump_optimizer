@@ -1,0 +1,17 @@
+structure rc=0
+entities rc=0
+card rc=0
+card_browser rc=0
+claims rc=0
+ custom_components/heatpump_optimizer/sensor.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT sensor->False entities rc=1
+MUT sensor->True entities rc=1
+ custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT receipt note empty card rc=1
+ custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT card wood=true card rc=1
+features rc=0
+DONE
