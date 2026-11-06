@@ -17547,7 +17547,9 @@
    "owner_gate": "design review first (owner ruling tvofi 2026-11-06)",
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Owner ruling (tvofi, 11-06): this group also fixes the known no-probe buffer bug. Found by the R10-COMBI-TANK designer (design/r10-combi-tank f9ede213, \"Notes for the fixer\"): in coordinator.py _update_current_state (about :6565-6567 at 198b8f7e), buffer_tank_temperature with no buffer probe configured is never advanced: there is no else branch, so the plan seeds from a frozen value. Same class as R9 D12-s1-01 (DHW open-loop seed). Fix with the same seed helper the design adds (combi_tank_seed / the open-loop plan value), so an unprobed buffer is seeded from the previous plan's buffer trajectory. Control: a probed buffer is unchanged byte-for-byte. Failing test first: with no buffer probe, the seed after one cycle must equal the open-loop trajectory value, not the stale initial. The design note must cover it; mutation-pin the else branch."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "design",
