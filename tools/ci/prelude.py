@@ -69,9 +69,6 @@ STARTED = ("in_progress", "completed")
 # them, and every push runs them.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
-# C7(c): what can change whether a mutant dies -- the package, a measured test
-# script, a golden fixture it compares against. A pin, a doc or a record cannot.
-KILL_PREFIXES = ("custom_components/", "tests/golden/")
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
@@ -239,14 +236,14 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
-def _product(closures_json: Path, prefixes=PRODUCT_PREFIXES, files=PRODUCT_FILES):
-    """The predicate `f is under prefixes, in files, or a measured script`, or
-    None when the script table is unreadable."""
+def _product(closures_json: Path):
+    """The predicate `f is product` (C7(a)'s list above), or None when the
+    script table is unreadable."""
     try:
         scripts = set(json.loads(closures_json.read_text())["closures"])
     except (OSError, ValueError, KeyError, TypeError):
         return None
-    return lambda f: f.startswith(prefixes) or f in files or f in scripts
+    return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
 def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
@@ -255,20 +252,6 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) 
     files = [f for f in (changed or []) if f.strip()]
     is_product = _product(closures_json)
     return not files or is_product is None or not all(map(is_product, files))
-
-
-def pins_due(since_last_head: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
-    """R10-CI-SLIM card C7(c): whether `mutation-pins` measures at this head. It
-    measures the diff's unpinned production sites, so a push whose own delta
-    (the previous head to this one) touches nothing that can change a kill -- mutation-autofix's
-    pin commit, a body-only or tooling fix-up -- has nothing new to measure, and
-    the sites still unpinned were measured at the head before. A delta that
-    touches the package, a golden fixture or a measured test script (a test written to kill a
-    survivor) measures again. No delta (opened, reopened, a force-push the diff
-    cannot read) measures."""
-    files = [f for f in (since_last_head or []) if f.strip()]
-    can_kill = _product(closures_json, KILL_PREFIXES, frozenset())
-    return not files or can_kill is None or any(map(can_kill, files))
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -332,13 +315,6 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
-    since = None
-    if ev == "pull_request" and ctx.get("action") == "synchronize" and ctx.get("before"):
-        try:
-            since = codeql_scope.changed_files(ctx["before"], ctx["head"])
-        except Exception:                      # unreadable delta: measure (fail closed)
-            since = None
-    out["pins"] = "true" if pins_due(since) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
@@ -529,24 +505,6 @@ def self_test() -> int:
                        ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
     check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
-    with tempfile.TemporaryDirectory() as td:
-        cj = Path(td) / "closures.json"
-        cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
-        check("C7c: a pin commit's delta (the ledger only) measures nothing again",
-              pins_due(["tests/mutation_budgets.json", "tests/mutation_ledger/a.json"], cj), False)
-        check("C7c: a delta to a golden fixture measures (a kill compares against it)",
-              pins_due(["tests/golden/x.json"], cj), True)
-        check("C7c: a tooling or body-record delta measures nothing again",
-              pins_due(["tools/ci/gate.py", "dev/programme/delivery/1.md"], cj), False)
-        check("C7c: a delta touching the package measures (null control)",
-              pins_due(["tests/mutation_budgets.json", "custom_components/heatpump_optimizer/x.py"], cj), True)
-        check("C7c: a delta adding a test to a measured script measures (a survivor may now die)",
-              pins_due(["tests/fast_case.py"], cj), True)
-        check("C7c: no readable delta measures (opened, reopened, force-push)", pins_due(None, cj), True)
-        check("C7c: an unreadable script table measures", pins_due(["tools/x.py"], Path(td) / "none.json"), True)
-    check("C7c: a push or an opened pull request measures (no delta read)",
-          (outputs(ctx("push"), None, g(live))[0]["pins"],
-           outputs(ctx("pull_request", action="opened", pull_request=pr), ["x"], g(live))[0]["pins"]), ("true", "true"))
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))
