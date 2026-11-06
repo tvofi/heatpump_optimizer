@@ -55,6 +55,17 @@ On unmodified `main` (`e57dfbbe0`): `_run_in_process(time.sleep, (8,))` blocked 
 
 Environment caveat: CPython 3.14.6 with `tests/requirements-ci.txt` hash-pinned; `seat_venv.sh` asks for 3.14.7, which `uv` could not fetch here, so the mypy census and the full `GATE_SCOPE=auto ./tests/run.sh` were **not** run.
 
+## Unpinned sites
+
+Six sites in `custom_components/heatpump_optimizer/coordinator.py` are added by the contributor's change and carry no pin yet. Mutation was not measured on this seat's macOS box (the env_drift baseline is red there; only Linux measures), so no site is claimed killed. Disposition for all six: `mutation-autofix` pins each one the contributor's tests kill after the push; a survivor is the reviewer's triage, not a pin.
+
+- `custom_components/heatpump_optimizer/coordinator.py:798 CONST` is `PROCESS_REPLY_TIMEOUT_S = 1800.0`, the reply deadline.
+- `custom_components/heatpump_optimizer/coordinator.py:803 CONST` is `_SHUTDOWN_LOCK_TIMEOUT_S = 5.0`, the stop path's lock wait.
+- `custom_components/heatpump_optimizer/coordinator.py:1877 GUARD_OFF` is the `_PROCESS_LOCK.acquire(timeout=...)` guard on the stop path.
+- `custom_components/heatpump_optimizer/coordinator.py:1950 CMP_BOUND` is `has_fd = stdout.fileno() >= 0`.
+- `custom_components/heatpump_optimizer/coordinator.py:1954 BOOLOP` is the `has_fd and not select.select(...)` condition.
+- `custom_components/heatpump_optimizer/coordinator.py:1954 GUARD_OFF` is the same line's guard.
+
 ## Red checks
 
 none: no check has concluded on this pull request yet (it was just opened); the reviewer reads every check-run of the head. The contributor's earlier note about `pr-contract` refusing the original author does not apply to this seat-authored pull request.
