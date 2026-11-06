@@ -1,0 +1,9 @@
+== origin/main 785c2b604
+rc=0
+== pr/3220 e70dfd645
+rc=0
+== pr/3198 3f188f896
+rc=0
+MERGE-CLAIM: resolved tests/golden/claimed_drift.txt
+== pr/3226 ba704972f
+rc=0

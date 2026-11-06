@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/inputs.py b/custom_components/heatpump_optimizer/inputs.py
+index 4973c108d..6ead82c5c 100644
+--- a/custom_components/heatpump_optimizer/inputs.py
++++ b/custom_components/heatpump_optimizer/inputs.py
+@@ -529,7 +529,7 @@ def setpoint_range_c(hass: Any, entity_id: str | None) -> tuple[float | None, fl
+ #: (tvofi, 2026-10-19).
+ DEFAULT_SETPOINT_STEP = 1.0
+ #: The attribute a set-point entity states its step in, per domain.
+-_STEP_KEYS = {"climate": "target_temp_step", "water_heater": "target_temp_step"}
++_STEP_KEYS = {"climate": "target_temp_step"}
+ _NUMBER_STEP_KEY = "step"
+ _ROUNDINGS: dict[str, Callable[[float], int]] = {
+     "nearest": round, "up": math.ceil, "down": math.floor,
