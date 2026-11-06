@@ -39,13 +39,16 @@ done
 IFS=$ifs
 [ -n "$real" ] || { echo "gh shim: no real gh on PATH" >&2; exit 127; }
 
-sub=; verb=; skip=0
+sub=; verb=; third=; skip=0
 for a in "$@"; do
-  if [ $skip = 1 ]; then skip=0; continue; fi
+  if [ $skip = 1 ]; then
+    skip=0; continue
+  fi
   case $a in
-    -X|-H|-f|-F|-q|-t|-p|-R|-B|-b|--method|--header|--field|--raw-field|--input|--jq|--template|--hostname|--cache|--preview|--repo) skip=1 ;;
+    -f|-F|--field|--raw-field|--input) skip=1 ;;
+    -X|--method|-H|-q|-t|-p|-R|-B|-b|--body|--body-file|--header|--jq|--template|--hostname|--cache|--preview|--repo) skip=1 ;;
     -*) ;;
-    *) if [ -z "$sub" ]; then sub=$a; else verb=$a; break; fi ;;
+    *) if [ -z "$sub" ]; then sub=$a; elif [ -z "$verb" ]; then verb=$a; else third=$a; break; fi ;;
   esac
 done
 case $sub in
@@ -116,5 +119,224 @@ esac
   # umask governs creation only: a log an earlier shim wrote 0644 is made owner-only here
   chmod 600 "$log"
 ) 2>/dev/null || true
+
+# The #201 comment guard (R10-RAISE-GATE-SHIM; tools/pr/gh_comment.py's mandate_guard
+# lives in that script alone, so a raw post bypassed it). DENY BY DEFAULT: a call that could
+# write a comment on the tracking issue is refused unless the caller is python running the
+# tree's own gh_comment.py (by real path); it is let through only when it is on an explicit
+# list of calls that cannot. The list is gh's own command table, not a list of spellings:
+#   - no subcommand, or --version/--help alone: pass; any other leading flag: refused;
+#   - `issue`: view/list/status/create pass; comment, close, reopen, edit, delete, lock,
+#     unlock, pin, unpin, transfer and develop pass only with exactly one target that reads as
+#     a plain number other than the tracker, under gh's own flag table (an unknown flag, or a
+#     short-flag cluster, is refused: it could be a value that moves the target); any other
+#     verb is refused;
+#   - `pr`: refused when any word reads as the tracker's number (a PR cannot be the issue,
+#     so this is belt and braces); otherwise passes;
+#   - `api`: a call with no body field, no --input, no method but GET and no header but
+#     Accept is a read and passes (flags read by gh api's own table, an unknown one refused);
+#     a write is refused at issues/<tracker>/comments, at an unreadable path, at
+#     issues/comments/<id> (a comment by id names no issue), and at graphql unless the
+#     document has no `mutation` or `subscription` and is not read from a file or --input;
+#   - the command groups with no issue-comment surface (workflow, release, run, repo, label,
+#     auth, secret, variable, cache, config, gist, ssh-key, gpg-key, codespace, project,
+#     ruleset, org, search, browse, status, completion, help, version, attestation) pass;
+#   - everything else is refused: an unknown subcommand, a gh alias, an extension.
+# The number is read after dropping leading zeros, a trailing slash, a query or anchor, one
+# %-decoding and `.`/`..`/empty path segments, matched in lower case. Residual, by design: the caller test reads
+# `ps` args, which a caller writes (`exec -a`), so a deliberate spoof of the parent passes
+# (Carry: R10-RAISE-GATE-SHIM); the shim is a guard against a seat's habit, not an adversary.
+tracker=201
+# gh_comment.py's own path: seat_venv.sh --install-shims bakes the tree's into the next
+# line; a shim run from its place in the tree derives it; anywhere else it stays empty,
+# and then no caller passes.
+gcpy=@HPO_GH_COMMENT@
+case $gcpy in @*) case $0 in */tools/audit/seat/shims/*) gcpy=${0%/tools/audit/seat/shims/*}/tools/pr/gh_comment.py ;; *) gcpy= ;; esac ;; esac
+
+# num <word>: the decimal number a word names, leading zeros dropped, or ? when it is not
+# one plain number (a URL counts only as .../issues/<n> or .../pull/<n>)
+num() {
+  local w=$1 n p
+  case $w in *\\*) printf '?'; return ;; esac
+  w=${w%%[#?]*}; w=${w#\#}
+  case $w in *%*) w=$(printf '%b' "${w//%/\\x}"); case $w in *[%#?\\]*) printf '?'; return ;; esac ;; esac
+  while [ "${w%/}" != "$w" ]; do w=${w%/}; done
+  case $w in
+    */*) n=${w##*/}; p=${w%/*}; case ${p##*/} in issues|pull) ;; *) printf '?'; return ;; esac ;;
+    *) n=$w ;;
+  esac
+  case $n in ''|*[!0-9]*) printf '?'; return ;; esac
+  n=${n#"${n%%[!0]*}"}
+  printf '%s' "${n:-0}"
+}
+# norm <path>: the path's segments after %-decoding, dropping a URL's scheme and host, a query
+# or anchor, and `.`/`..`/empty segments, and lower-casing every letter (a path segment is
+# matched in lower case: `ISSUES/201/COMMENTS` is the tracker's), into NSEG; 1 when it cannot be read
+norm() {
+  local w=$1 IFS=/ seg
+  local -a segs
+  NSEG=()
+  case $w in *\\*|*$'\n'*) return 1 ;; esac
+  w=${w%%[#?]*}
+  case $w in *%*) w=$(printf '%b' "${w//%/\\x}"); case $w in *[%#?\\]*|*$'\n'*) return 1 ;; esac ;; esac
+  case $w in *://*) w=${w#*://}; w=${w#*/} ;; esac
+  w=$(printf '%s' "$w" | tr 'A-Z' 'a-z')
+  set -f; read -r -a segs <<< "$w"; set +f
+  for seg in "${segs[@]}"; do
+    case $seg in
+      ''|.) ;;
+      ..) [ "${#NSEG[@]}" -gt 0 ] && NSEG=("${NSEG[@]:0:$((${#NSEG[@]} - 1))}") ;;
+      *) NSEG+=("$seg") ;;
+    esac
+  done
+  return 0
+}
+# has <list> <word>: 0 when the space-separated list holds the word
+has() { case " $1 " in *" $2 "*) return 0 ;; esac; return 1; }
+# rp <file>: the physical path of an existing regular file that is not a symlink, else nothing
+rp() {
+  local p=$1 d
+  case $p in /*) ;; *) p=$PWD/$p ;; esac
+  { [ -f "$p" ] && [ ! -L "$p" ]; } || return 1
+  d=$(cd "${p%/*}" 2>/dev/null && pwd -P) || return 1
+  printf '%s/%s' "$d" "${p##*/}"
+}
+
+ISSUE_VAL='-b --body -F --body-file -R --repo -c --comment -r --reason -t --title -a --assignee --add-assignee --remove-assignee -l --label --add-label --remove-label -m --milestone -p --project --add-project --remove-project -T --template -d --duplicate-of'
+ISSUE_BOOL='-w --web -e --editor --edit-last --create-if-none --delete-last --yes --remove-milestone -h --help'
+issue_gate() {
+  local a skip=0 t verb bad=
+  local -a pos=()
+  shift
+  for a in "$@"; do
+    if [ $skip = 1 ]; then skip=0; continue; fi
+    case $a in
+      --) bad=1 ;;
+      --*=*) has "$ISSUE_VAL" "${a%%=*}" || bad=1 ;;
+      --*|-?) if has "$ISSUE_VAL" "$a"; then skip=1; elif ! has "$ISSUE_BOOL" "$a"; then bad=1; fi ;;
+      -*) has "$ISSUE_VAL" "${a:0:2}" || bad=1 ;;
+      *) pos+=("$a") ;;
+    esac
+  done
+  verb=${pos[0]:-}
+  case $verb in
+    ''|view|list|status|create) return 0 ;;
+    comment|close|reopen|edit|delete|lock|unlock|pin|unpin|transfer|develop)
+      [ -z "$bad" ] && [ "${#pos[@]}" -eq 2 ] || return 1
+      t=$(num "${pos[1]}"); [ "$t" != '?' ] && [ "$t" != "$tracker" ] ;;
+    *) return 1 ;;
+  esac
+}
+pr_gate() {
+  local a
+  shift
+  for a in "$@"; do
+    case $a in -*) ;; *) [ "$(num "$a")" = "$tracker" ] && return 1 ;; esac
+  done
+  return 0
+}
+API_VAL='-q --jq -t --template -p --preview --hostname --cache'
+API_BOOL='--paginate --slurp -i --include --silent --verbose -h --help'
+api_gate() {
+  local a skip= path= meth= write= fields= unread= k t nxt low
+  local -a pos=()
+  shift
+  for a in "$@"; do
+    if [ -n "$skip" ]; then
+      case $skip in
+        m) meth=$a ;;
+        f) write=1; fields="$fields $a"; case $a in *=@*) unread=1 ;; esac ;;
+        i) write=1; unread=1 ;;
+        h) case $a in [Aa]ccept:*) ;; *) write=1 ;; esac ;;
+      esac
+      skip=; continue
+    fi
+    case $a in
+      -X|--method) skip=m ;;
+      -X?*) meth=${a#-X} ;;
+      --method=*) meth=${a#*=} ;;
+      -f|-F|--field|--raw-field) skip=f ;;
+      -f?*|-F?*) a=${a#-?}; write=1; fields="$fields $a"; case $a in *=@*) unread=1 ;; esac ;;
+      --field=*|--raw-field=*) a=${a#*=}; write=1; fields="$fields $a"; case $a in *=@*) unread=1 ;; esac ;;
+      --input) skip=i ;;
+      --input=*) write=1; unread=1 ;;
+      -H|--header) skip=h ;;
+      --header=*) case ${a#*=} in [Aa]ccept:*) ;; *) write=1 ;; esac ;;
+      -H?*) case ${a#-H} in [Aa]ccept:*) ;; *) write=1 ;; esac ;;
+      --*=*) has "$API_VAL" "${a%%=*}" || return 1 ;;
+      --*|-?) if has "$API_VAL" "$a"; then skip=v; elif ! has "$API_BOOL" "$a"; then return 1; fi ;;
+      -*) has "$API_VAL" "${a:0:2}" || return 1 ;;
+      *) pos+=("$a") ;;
+    esac
+  done
+  [ "${#pos[@]}" -le 1 ] || return 1
+  path=${pos[0]:-}
+  if [ -z "$write" ]; then
+    case ${meth:-GET} in GET|get) return 0 ;; esac
+  fi
+  norm "$path" || return 1
+  low=$(printf '%s' "$fields" | tr 'A-Z' 'a-z')
+  k=0
+  while [ "$k" -lt "${#NSEG[@]}" ]; do
+    case ${NSEG[$k]} in
+      graphql)
+        [ -z "$unread" ] || return 1
+        case $low in *mutation*|*subscription*) return 1 ;; esac ;;
+      issues)
+        nxt=${NSEG[$((k + 1))]:-}
+        [ "$nxt" = comments ] && return 1
+        if [ "${NSEG[$((k + 2))]:-}" = comments ]; then
+          t=$(num "$nxt"); { [ "$t" != '?' ] && [ "$t" != "$tracker" ]; } || return 1
+        fi ;;
+    esac
+    k=$((k + 1))
+  done
+  return 0
+}
+gate() {
+  case ${1-} in
+    '') return 0 ;;
+    --version|--help|-h) [ $# -eq 1 ] ;;
+    -*) return 1 ;;
+    api) api_gate "$@" ;;
+    issue) issue_gate "$@" ;;
+    pr) pr_gate "$@" ;;
+    workflow|release|run|repo|label|auth|secret|variable|cache|config|gist|ssh-key|gpg-key|codespace|project|ruleset|org|search|browse|status|completion|help|version|attestation) return 0 ;;
+    *) return 1 ;;
+  esac
+}
+gate "$@" || hit=1
+if [ -n "${hit:-}" ]; then
+  gcp=$(ps -o args= -p "$PPID" </dev/null 2>/dev/null | tr -c '[:print:]' ' ')
+  set -f; read -r -a gw <<< "$gcp"; set +f
+  ok=
+  # python's own option table (as the parent field above reads it): the script is the first
+  # word that is not an option nor an option's value; -c, -m and any option unknown end it
+  case ${gw[0]##*/} in python|python[0-9]*)
+    i=1 script=
+    while [ "$i" -lt "${#gw[@]}" ]; do
+      w=${gw[$i]}
+      case $w in
+        --*) break ;;
+        -?*)
+          j=1
+          while [ "$j" -lt "${#w}" ]; do
+            case ${w:$j:1} in
+              [bBdEhiIOqPRSuvVx]) ;;
+              [WX]) [ "$((j + 1))" -eq "${#w}" ] && i=$((i + 1)); break ;;
+              *) break 2 ;;
+            esac
+            j=$((j + 1))
+          done ;;
+        *) script=$w; break ;;
+      esac
+      i=$((i + 1))
+    done
+    if [ -n "$script" ] && [ -n "$gcpy" ]; then
+      a=$(rp "$script") && b=$(rp "$gcpy") && [ "$a" = "$b" ] && ok=1
+    fi ;;
+  esac
+  [ -n "$ok" ] || { echo "gh shim: a comment write on #$tracker goes through tools/pr/gh_comment.py (its mandate guard refuses a post that voids a mandate); refused" >&2; exit 1; }
+fi
 
 exec "$real" "$@"
