@@ -1225,6 +1225,8 @@ def mutant_self_test(root: Path) -> int:
              "x = 1\n", {"tools/audit/seat/owner.py"}, 1),
             ("the same target with its anchor intact is predicted green",
              "ANCHOR\n", {"tools/audit/seat/owner.py"}, 0),
+            ("a diff touching only the driver runs it: the driver is its own target",
+             "x = 1\n", {"tools/audit/seat/r10_x_mutants.py"}, 1),
             ("null control: a diff touching no planted target runs no driver (the anchor is gone, no red)",
              "x = 1\n", {"tools/audit/seat/other.py"}, 0),
         ]
