@@ -289,10 +289,34 @@
   ok   Q7: anchor occurs once in tools/audit/seat/roster_queue.py
   ok   Q7: the plant changes the text
   ok   Q7: the mutant parses
+  ok   Q8: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q8: the plant changes the text
+  ok   Q8: the mutant parses
+  ok   Q10: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q10: the plant changes the text
+  ok   Q10: the mutant parses
+  ok   Q11: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q11: the plant changes the text
+  ok   Q11: the mutant parses
+  ok   Q12: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q12: the plant changes the text
+  ok   Q12: the mutant parses
+  ok   W16: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W16: the plant changes the text
+  ok   W16: the mutant parses
+  ok   W17: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W17: the plant changes the text
+  ok   W17: the mutant parses
+  ok   Q13: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q13: the plant changes the text
+  ok   Q13: the mutant parses
+  ok   Q9: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q9: the plant changes the text
+  ok   Q9: the mutant parses
   ok   a killed plant prints its tally and drops the (got:) suffix
   ok   a crash with no FAIL line prints its tail
   ok   a survivor prints fails=0 and no tail
   ok   no names selects every plant
   ok   a named plant is kept
   ok   an unknown plant is returned for refusal
-r10_roster_ops_mutants self-test: 297 checks, 0 failed
+r10_roster_ops_mutants self-test: 321 checks, 0 failed
