@@ -274,6 +274,9 @@ MUTANTS = [
     ("merge_train-42", "merge_train.py",
      "queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start",
      "queue = [entry] + spooled if front else spooled + [entry]  # mut:start"),
+    ("merge_train-43", "merge_train.py", "return bool(tree) and tree == self.tree(tip)", "return bool(tree)"),
+    ("merge_train-44", "merge_train.py", "                status, step, pf_why = t.preflight_entry(item)\n",
+     '                status, step, pf_why = "PASS", "", ""\n'),
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
