@@ -1,0 +1,36 @@
+== cross-refs to cut text at head (dev/ tools/ tests/ .claude/ CLAUDE.md)
+-- contract there says what counts
+-- right objective
+-- minimises the one it has
+-- run_rolling
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/audit/README.md:94:| Closed-loop days | `tests/rolling.py:run_rolling(...)` | `learn=True` drives the real coordinator's learner; `SLOW=1` only |
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/audit/harnesses/r10_solver_winner_polish.py:23:realised one-day closed-loop cost (``tests/rolling.py:run_rolling``, exec'd up
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/audit/harnesses/r10_solver_winner_polish.py:56:run_rolling = _G["run_rolling"]
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/audit/harnesses/r10_solver_winner_polish.py:92:    """The first solve's shipped objective under ``fn``: run_rolling's day 1."""
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/audit/harnesses/r10_solver_winner_polish.py:102:        hist = run_rolling(days=1, dhw=dh, two_zone=tz, plant_error=1.0,
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/programme/register/audit-2026-09.md:602:| D6-04 | low | The "6.7 → 0 degree-hours" reference run quoted in README:486-487 and how-it-works.md:1237-1238 does not reproduce: `tests/rolling.py`'s own `run_rolling` gives 9.634 → 0.044 deterministically (two runs bit-identical); the figures are a comment (`rolling.py:452-453`), not an assertion (which is only `breach_learned < breach_plain`). Null (plant_error 1.0): 0 → 0. Machine-dependent, so the fixture machine may give a third pair | new | reported |
+051732fbc1ab948fe8d24c0127a54b5c89029346:tests/rolling.py:67:def run_rolling(
+051732fbc1ab948fe8d24c0127a54b5c89029346:tests/rolling.py:282:base = run_rolling()
+-- Simulate the receding horizon
+-- Timing under the fan-out
+-- iteration counts are your evidence
+-- _MULTI_START_SOLVES
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/programme/plan-2026-09-open-issues.md:168:| triage B2 | solver, suite, browser and timing judges | #304 #258 re-scoped; #242 weakened to a structural zero; **#291 closed** (keep `_MULTI_START_SOLVES=4`); **#232 scoped** (smooth top-k alone → W3-G1) | — | **done** |
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/programme/register/audit-2026-09.md:187:| D0-02 | low | `_MULTI_START_SOLVES=2` discards one of three candidates by raw pre-refinement score; refines below the shipped result in 5/10 profiles; clean impact marginal (≤0.105 SEK/day) | issue #186 |
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/programme/register/audit-2026-09.md:1251:| D0-01 | medium | the space solve refines only its four pre-scored candidates, so 8 structured bang-bang seeds plus a raised `_MULTI_START_SOLVES` lower the objective by a median 0.0615 % (max 11.1729 %) over 64 heating cells — **objective-only, and the deferred round-5 #1294 change exactly** | weakened → low |
+051732fbc1ab948fe8d24c0127a54b5c89029346:dev/programme/register/audit-2026-09.md:1252:| D0-02 | low | `_MULTI_START_SOLVES` is 4 while the seam is handed 5 candidates in 80 of 80 cells (the #1295 warm start), and the constant's comment still reads "The candidates number four, so this is the whole list" | verified |
+-- tighter `ftol`
+== symbols cited by added traps at head
+051732fbc1ab948fe8d24c0127a54b5c89029346:tests/optimality.py:655:_CERT_CELLS = (
+051732fbc1ab948fe8d24c0127a54b5c89029346:tests/optimality.py:838:for _tz, _pp, _wp in _CERT_CELLS:
+051732fbc1ab948fe8d24c0127a54b5c89029346:custom_components/heatpump_optimizer/optimizer.py:4162:    def _solve_space(
+dev/audit/harnesses/r10_solver_winner_polish.py
+== run_rolling live?
+051732fbc1ab948fe8d24c0127a54b5c89029346:tests/rolling.py:67:def run_rolling(
+== merge-tree vs origin/main b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+53e16b2d1898af20995f4347d3a4932c43fcc8d8
+rc=0
+== untouched
+(empty = untouched)
+== budgets json in diff
+(none)

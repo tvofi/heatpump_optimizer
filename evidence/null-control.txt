@@ -1,22 +1,50 @@
-== wt c42b84004af3e7e62c8fca65da9d64ae6015f0bb
-  File "/tmp/claude-0/wt/tests/harness.py", line 25, in <module>
+#### at 051732fbc1ab948fe8d24c0127a54b5c89029346
+-- tests/structure.py
+rc=0
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+-- tests/entities.py
+rc=1
+  File "/tmp/tmp.vDGzWZ1RpQ/wt-051732fb/tests/harness.py", line 25, in <module>
     from homeassistant.config_entries import ConfigEntryState
 ModuleNotFoundError: No module named 'homeassistant'
-entities rc=1
-250
-structure rc=0
-tools/audit/briefs/D0.md                          66   66      908   926 
+-- brief_lint
+rc=0
 
 TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
-brief_lint rc=0
-== wtmain 5421413b54ba1044b8e91e1afd88b41acfc7a753
-  File "/tmp/claude-0/wtmain/tests/harness.py", line 25, in <module>
+-- policy_lint --budgets (D0 row)
+rc=0
+23:tools/audit/briefs/D0.md                          65   66      907   926 
+-- policy_lint
+rc=0
+
+FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+-- rules_sync --check
+rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source
+#### at b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+-- tests/structure.py
+rc=0
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+-- tests/entities.py
+rc=1
+  File "/tmp/tmp.vDGzWZ1RpQ/wt-b36679ce/tests/harness.py", line 25, in <module>
     from homeassistant.config_entries import ConfigEntryState
 ModuleNotFoundError: No module named 'homeassistant'
-entities rc=1
-250
-structure rc=0
-tools/audit/briefs/D0.md                          66   66      926   926 
+-- brief_lint
+rc=0
 
 TREEREV ok: treeListing lists the named revision (adds and deletes), differs from the checkout, and throws on an unresolvable one
-brief_lint rc=0
+-- policy_lint --budgets (D0 row)
+rc=0
+22:tools/audit/briefs/D0.md                          66   66      926   926 
+-- policy_lint
+rc=0
+
+FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+-- rules_sync --check
+rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source

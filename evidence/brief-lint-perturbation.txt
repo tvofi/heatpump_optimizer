@@ -1,0 +1,6 @@
+== perturbation: plant dead backticked symbol in D0.md Traps, run brief_lint
+55:- `_NO_SUCH_SYMBOL_XYZ` decides it. The batched gradient serves some bound shapes and not others; a race
+rc=0
+  -- 0 error(s), 0 warning(s)
+  -- 0 error(s), 0 warning(s)
+  -- 0 error(s), 0 warning(s)

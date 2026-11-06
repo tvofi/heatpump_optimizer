@@ -1,110 +1,69 @@
 diff --git a/dev/governance/dimensions/D0.md b/dev/governance/dimensions/D0.md
-index 9f240326d..7d0b3ab23 100644
+index 9f240326d..d47e07168 100644
 --- a/dev/governance/dimensions/D0.md
 +++ b/dev/governance/dimensions/D0.md
-@@ -2,65 +2,65 @@
+@@ -2,8 +2,7 @@
  
  Owner's brief: *"Price optimality. Specifically hunt for sub-optimal planning."*
  
 -Read `COMMON.md` first. This brief says what to measure and how; the contract
 -there says what counts.
-+Read `COMMON.md` first: it says what counts.
++Read `COMMON.md` first.
  
  ## What you are hunting
  
- Plans the shipped solver returns that a better search finds strictly cheaper
- on the **same objective, bounds and inputs**, with comfort and hot-water
--feasibility no worse. Sub-optimality has three known homes: the seeding and
--multi-start (which basin the starts land in), the budget (iterations, function
--evaluations, tolerance), and structure the solver cannot see (bang-bang
--schedules, the DHW/space decomposition, the terminal credit, horizon effects).
+@@ -13,8 +12,6 @@ feasibility no worse. Sub-optimality has three known homes: the seeding and
+ multi-start (which basin the starts land in), the budget (iterations, function
+ evaluations, tolerance), and structure the solver cannot see (bang-bang
+ schedules, the DHW/space decomposition, the terminal credit, horizon effects).
 -You are not asked whether the objective is the right objective — that is D2 —
 -but whether the solver minimises the one it has.
-+feasibility no worse. Three known homes: seeding and multi-start (which basin
-+the starts land in), the budget (iterations, evaluations, tolerance), and
-+structure the solver cannot see (bang-bang schedules, the DHW/space
-+decomposition, the terminal credit, horizon effects).
-+Whether the objective is the right one is D2's; you ask whether the solver
-+minimises the one it has.
  
  ## Method
  
- 1. **Capture harness.** `mock.patch.object(optimizer_module, "_multi_start_minimize", ...)`
-    (the idiom in `tests/optimality.py`) to record every call's objective,
-    candidates, bounds, args, `maxiter` and result, then race challengers
--   against the exact recorded objective. Score every plan with the production
--   objective, never with energy price alone: a challenger that is cheaper on
--   energy and worse on comfort pull or cycling is not cheaper.
-+   against it. Score every plan with the production objective, never energy
-+   price alone: cheaper energy with worse comfort pull or cycling is not cheaper.
+@@ -27,7 +24,7 @@ but whether the solver minimises the one it has.
  2. **Challengers**, cheapest first: more L-BFGS-B starts (structured seeds:
     bang-bang at several energy fractions, greedy-cheapest-hours, the
     thermostat baseline, the previous cell's plan); larger `maxiter` and
 -   `maxfun`; tighter `ftol`; a different `eps`; warm-starting L-BFGS-B from
--   the best challenger; a global method (`scipy.optimize.differential_evolution`
--   or a dynamic program on a coarsened grid) as an outer bound on the same
--   objective. Report the gap between production and the best feasible
--   challenger, and the gap to the outer bound.
-+   `maxfun`; a different `eps`; warm-starting from the best challenger; a
-+   global method (`scipy.optimize.differential_evolution` or a coarse-grid
-+   dynamic program) as an outer bound on the same objective. Report the gap
-+   from production to the best feasible challenger and to the outer bound.
- 3. **Feasibility parity** before any "cheaper" verdict: per-step comfort floor
-    and ceiling, DHW availability in windows, power bounds, manual pins.
--4. **The grid**: every price profile × weather profile in `tests/profiles.py`
--   (8 × 5), topologies single/two-zone, DHW on/off, valve storage, wood,
--   horizon 6/24/48 h, and the coordinator captures. Report per cell; the
--   aggregate needs leave-one-out and the most-favourable-cell drop.
-+4. **The grid**: every price × weather profile in `tests/profiles.py`,
-+   single/two-zone, DHW on/off, valve storage, wood, horizon 6/24/48 h, and
-+   the coordinator captures. Report per cell; the aggregate needs
-+   leave-one-out and the most-favourable-cell drop.
- 5. **Null control**: the same race at `profiles.prices("flat")`. A gap that
-    survives flat prices is not price optimality; name what it is. A real
++   `maxfun`; a different `eps`; warm-starting L-BFGS-B from
+    the best challenger; a global method (`scipy.optimize.differential_evolution`
+    or a dynamic program on a coarsened grid) as an outer bound on the same
+    objective. Report the gap between production and the best feasible
+@@ -43,24 +40,26 @@ but whether the solver minimises the one it has.
     finding that is out of dimension is carried per `finding-propagation.md`.
--6. **MPC masking**: for every cell with a gap, does the step-0 action differ?
--   If re-planning at the next step reaches the same trajectory, the gap is
+ 6. **MPC masking**: for every cell with a gap, does the step-0 action differ?
+    If re-planning at the next step reaches the same trajectory, the gap is
 -   not realised. Simulate the receding horizon over a day for the cells that
 -   matter (`tests/rolling.py:run_rolling` shape).
--7. **Decomposition**: does iterating DHW ↔ space more than once change cost?
--   Does the terminal credit change the plan the way its docstring claims?
-+6. **MPC masking**: per gap cell, does the step-0 action differ? If
-+   re-planning reaches the same trajectory the gap is not realised; simulate
-+   a day's receding horizon (`tests/rolling.py:run_rolling` shape).
-+7. **Decomposition**: does iterating DHW ↔ space again change cost? Does the
-+   terminal credit act as its docstring claims?
++   not realised.
+ 7. **Decomposition**: does iterating DHW ↔ space more than once change cost?
+    Does the terminal credit change the plan the way its docstring claims?
  
  ## Reuse
  
 -`tests/optimality.py` (`setup`, `evaluate`, the patch idiom), `tests/golden.py:make`
--and `SCENARIOS`, `tests/backtest.py:score` and its strategies,
--`tests/stress.py:build_case`, `tests/profiles.py`.
-+`tests/optimality.py` (`setup`, `evaluate`), `tests/golden.py:make`,
-+`SCENARIOS`, `tests/backtest.py:score`, `tests/stress.py:build_case`.
++`tests/optimality.py` (`setup`, the patch idiom), `tests/golden.py:make`
+ and `SCENARIOS`, `tests/backtest.py:score` and its strategies,
+ `tests/stress.py:build_case`, `tests/profiles.py`.
  
  ## Traps
  
 -- Timing under the fan-out is provisional; function-evaluation counts and
 -  iteration counts are your evidence.
--- The batched gradient serves some bound shapes and not others; a race
--  must use the same `jac` path production would (capture it).
+ - The batched gradient serves some bound shapes and not others; a race
+   must use the same `jac` path production would (capture it).
 -- `_MULTI_START_SOLVES` and the pre-refinement scoring decide which
 -  candidates get refined at all; count what is discarded.
--- Report SEK/day only beside the flat-price arm and the bill share; a 1 %
--  gap on a 60 SEK day is a finding, a 1 % gap on a 2 SEK summer day is not.
-+- Timing under the fan-out is provisional; count evaluations and iterations.
-+- A tighter stop (`ftol`, on all runs or only the winner) is refused on money
-+  (#1293; #2612: non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse).
-+  Show realised closed-loop money that does not fall on flat, in
-+  `r10_solver_winner_polish.py`'s shape, or it duplicates #1293.
-+- `_solve_space`'s DHW seeds are unguarded: `_CERT_CELLS` holds space-only
++- A stop-tolerance change is refused on money (#1293), the winner-only polish
++  too (#2612: non-flat +0.15 %, flat null -0.79 %, 1 of 6 cells worse). A
++  challenger that tightens the stop duplicates #1293 unless it shows realised
++  closed-loop money that does not fall on a flat price, in
++  `r10_solver_winner_polish.py`'s shape. Re-measure at your merge base.
++- `_solve_space`'s DHW seed set is unguarded: `_CERT_CELLS` holds space-only
 +  cells, so add DHW cells there before reading a seed gap as closed.
-+- The batched gradient serves some bound shapes only: race with the `jac`
-+  path production uses (capture it).
-+- `_MULTI_START_SOLVES` and pre-refinement scoring decide which candidates
-+  get refined; count what is discarded.
-+- Report SEK/day beside the flat-price arm and the bill share: 1 % of a 60 SEK
-+  day is a finding, of a 2 SEK summer day not.
+ - Report SEK/day only beside the flat-price arm and the bill share; a 1 %
+   gap on a 60 SEK day is a finding, a 1 % gap on a 2 SEK summer day is not.
 diff --git a/dev/programme/delivery/3247.md b/dev/programme/delivery/3247.md
 new file mode 100644
 index 000000000..cf39b2ee0
