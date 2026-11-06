@@ -1,0 +1,31 @@
+== merge-tree vs origin/main 33e60b5b71b67610bd02fdea238b882e9a97007b
+9fa3151dff8676f8f476f17d8ee4e3a861894b8c
+rc=0
+== tree identity
+45f7fca420a56fc17f6221d2a6b033b5e16075ee
+45f7fca420a56fc17f6221d2a6b033b5e16075ee
+commit
+diff4710 rc=0
+== parents
+8af5fa58b79233127ce01d81bd94b6c1d48271cf ea6d8de7ee27344285fdab6a628c4db0337d1307
+== 3dot files
+ dev/audit/harnesses/r10_ci_gate_core.py    | 28 +++++++--
+ dev/audit/harnesses/r10_gate_defer_race.py | 62 ++++++++++++++++----
+ dev/programme/delivery/3246.md             |  1 +
+ tools/ci/gate.py                           | 91 +++++++++++++++++++++++++++---
+ 4 files changed, 158 insertions(+), 24 deletions(-)
+0
+== r2..head files
+ dev/audit/harnesses/r10_triage_p391.py  | 342 ++++++++++++++++++++++++++++++++
+ tests/closures.json                     |   1 +
+ tools/ci/gate.py                        |  11 +
+ 4 files changed, 366 insertions(+), 6 deletions(-)
+== structure
+STRUCTURE RATCHET PASSED
+ALL 2637 ENTITY CHECKS PASSED
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/gate.py changes the gate itself, so every closure is suspect
+== prelude self-test
+prelude self-test: 62 checks, 0 failed
+gate self-test: 66 checks, 0 failed

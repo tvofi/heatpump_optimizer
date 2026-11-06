@@ -1,0 +1,4 @@
+== M23-mine started() accepts waiting, at head
+FAIL busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is still deferred to: got [], want [42193153511]
+FAIL prelude/gate cycle: a deferring gate beside a later edit run in its prelude, gate listed `waiting` (R3-2) publishes at once: got ('PASS', []), want ('FAIL run(s) [42193153511] at this head are st
+gate self-test: 66 checks, 2 failed
