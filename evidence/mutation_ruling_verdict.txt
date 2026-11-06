@@ -1,0 +1,7 @@
+head {'P391': 'DEFER', 'P392': 'DEFER', 'P393': None}
+  carry P391 -> dev/programme/triage/s6-batch126.md#P391 is not an ACCEPT ruling (DEFER)
+  carry P392 -> dev/programme/triage/s6-batch126.md#P392 is not an ACCEPT ruling (DEFER)
+mutant P391->ACCEPT {'P391': 'ACCEPT', 'P392': 'DEFER', 'P393': None}
+  carry P391 -> None
+  carry P392 -> dev/programme/triage/s6-batch126.md#P392 is not an ACCEPT ruling (DEFER)
+absent -> the triage ruling dev/programme/triage/s6-batch126.md is not on the roster branch or origin/main

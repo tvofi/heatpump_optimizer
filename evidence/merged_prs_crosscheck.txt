@@ -1,0 +1,2 @@
+REST search merged PRs 2026-10-28T00:00:00Z..2026-11-05T07:30:00Z: 262
+git first-parent PR merges on main by commit date in window: 263 over 233 distinct branches
