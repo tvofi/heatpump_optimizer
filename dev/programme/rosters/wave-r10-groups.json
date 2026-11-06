@@ -17180,7 +17180,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From the #3239 round-1 fix review (verdict/3239 6a8964e8): ref_privacy.py --check on a cloud seat (uid 0, HOME=/root) refuses a roster line as home-directory, the very false positive the line records as [implemented: d1cab99a1] on R10-FLOW-BODY-ONLY; with HOME=/nonexistent it refuses 3 lines instead (account-name for the passwd name root, and the token 0 in \"(0-based)\"). review_packet.py render then refuses host-path and writes no packet, and the scrub dry-run reports 1 of 1 file would change. The check must not treat /root, the passwd name root or a bare 0 as a host identity on a seat whose uid is 0."
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started"
