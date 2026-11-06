@@ -1,0 +1,3 @@
+roster: --lint-clone /tmp/tmp5fg2910x/no-such-clone is not a directory; no op attempted, provision it
+roster: `all` needs --mark (a cursor-less run must mark what it applied)
+roster_queue self-test: 37 checks, 0 failed

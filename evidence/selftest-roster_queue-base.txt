@@ -1,0 +1,2 @@
+roster: --lint-clone /tmp/tmp9tcyphc7/no-such-clone is not a directory; no op attempted, provision it
+roster_queue self-test: 17 checks, 0 failed
