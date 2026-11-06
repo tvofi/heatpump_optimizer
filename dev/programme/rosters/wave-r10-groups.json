@@ -17710,6 +17710,26 @@
     "branch": null,
     "note": "overlap admitted (R10-HOTFIX-NIGHTLY-STATUS): distinct seam: nightly.yml mutation-ledger drain jobs and tests/mutation_table.py draw; R10-HOTFIX-NIGHTLY-STATUS owns the nightly_status grader only (its fixer is already fired)"
    }
+  },
+  {
+   "group": "R10-HOTFIX-SELFTEST-TIMEOUT",
+   "size": "S",
+   "after": [],
+   "files": [
+    ".github/workflows/governance.yml"
+   ],
+   "brief": "Orchestrator, 2026-11-06 ~23:45Z, measured on main: governance / instrument-self-tests (.github/workflows/governance.yml job instrument-self-tests, timeout-minutes 30) took 29m45s, 29m19s, 29m44s and 28m39s on its last four successful main runs (42297617709, 42291959742, 42278712414, 42271471389). Two of the last six main runs were cancelled at the 30-minute timeout (42280756390 and 42307872956), and each cancel stalled the single-entry merge train by one full main-CI wait. Enumerator: `gh run view <id> --json jobs` filtered to that job's startedAt and completedAt. Fix it architecturally, not by only raising the timeout. Measure where the job's wall time goes, per self-test step, with each step's seconds, then make the sound change: run the self-tests in parallel (matrix shards or concurrent steps with per-step logs), cut a slow self-test's cost, or both, so the job keeps at least 30% headroom under its timeout. A timeout raise is allowed only beside a measured speed-up, and must be justified in the body. Null control: every self-test step still runs and still greps its `checks, 0 failed` line, and selftest_wiring.py --check still passes, so the shard split drops no step. Before and after: the job's wall time on a probe run, with run ids.",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus"
+   },
+   "lane": "IN",
+   "issues": [],
+   "fixes": [],
+   "resume": {
+    "stage": "not-started",
+    "branch": null
+   }
   }
  ]
 }
