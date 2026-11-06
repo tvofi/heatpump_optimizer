@@ -41988,12 +41988,12 @@ try:
 
     # A declared length past the cap is refused before it is read or
     # allocated: on an empty pipe the reader raises at once, not at its
-    # deadline, and a length one byte under the cap is still waited on.
+    # deadline, and a length exactly at the cap is still waited on.
     _wt_dl_r, _wt_dl_w = _os.pipe()
     _wt_dl = []
     try:
         for _wt_dl_size in (_g511_coord._REPLY_FRAME_MAX_BYTES + 1,
-                            _g511_coord._REPLY_FRAME_MAX_BYTES - 1):
+                            _g511_coord._REPLY_FRAME_MAX_BYTES):
             _wt_dl_t0 = _wt_time.monotonic()
             try:
                 _g511_coord._frame_reader(_wt_dl_r, 0.3).read(_wt_dl_size)
@@ -42004,7 +42004,7 @@ try:
         _os.close(_wt_dl_r)
         _os.close(_wt_dl_w)
     R.check(
-        "the frame reader refuses a declared length past its cap at once, and waits on one under it",
+        "the frame reader refuses a declared length past its cap at once, and waits on one at it",
         len(_wt_dl) == 2 and _wt_dl[0][0] == "ValueError" and _wt_dl[0][1] < 0.1
         and _wt_dl[1][0] == "ProcessWorkerTimeout" and _wt_dl[1][1] >= 0.25,
         f"results={_wt_dl!r}",
