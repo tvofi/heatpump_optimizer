@@ -73,13 +73,11 @@ every unrelated `fast` failure): its summary line is its only signal.
 
 Those subjects are loop guards. The job dispatches `ci.yml -f pr -f base` once;
 a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the required `gate` and the `tests / *` units are ABSENT at a bot head
-until approved: all three jobs approve them, fail-soft without their
+until approved: all three jobs approve them (kept until M-3), fail-soft without their
 secrets, when an App push or body edit cures it. Absent is not green (`orchestrator.md` section 11).
 
-When `mutation-autofix` goes red, run `--pin-killed` yourself. If `mutation-pins` has not
-concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and the body says
-`unmeasured`; a body says `pinned` only when `--pin-killed` ran on this head. A pin commit
-stales the body's `## Red checks` `mutation` line. Do not automate survivor triage,
+When `mutation-autofix` goes red, run `--pin-killed` yourself. Until `mutation-pins` concludes the body says `unmeasured`;
+`pinned` only if `--pin-killed` ran on this head. A pin stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
 golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
 not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
 
