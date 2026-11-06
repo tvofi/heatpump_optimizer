@@ -37,7 +37,7 @@ child from ``inspect.getfile``.
 
 COST OF THE SHAPE (#1218, round-5 D3-08). Materialising the shape copies the
 tracked package file by file (``_materialise``, below), and the gate's tracer
-records every read, so this lane's recorded closure is the package: all 102
+records every read, so this lane's recorded closure is the package: all 103
 files under ``custom_components/heatpump_optimizer/``, Python and non-Python
 alike (78 until R9 F2.5's ``batchmath.py``, 79 until R9 UI-1's six brand
 images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
@@ -46,7 +46,7 @@ images, 85 until R9 EG-B5's ``dhw_planner.py``, 86 until R9-EG-B3a's
 R9-EG-B11's ``entry_config.py``, 91 until R9-UX-9's ``flow_meter.py``, 92
 until the live power clamp's ``draw_range.py``, 93 until the live-fix wave's
 ``early_cutoff.py``, 94 until R10-FAHRENHEIT's ``issues.py``, 95 until
-R10-N-log-flood's ``log_latch.py``, 96 until R10-PUMP-MODEL's ``plan_step.py``, 97 until R10-DIAG-REPLAY's ``replay_doc.py``, 98 until R10-ADVISOR's ``price_tiles.py``, 99 until R10-LEARNER-ETA's ``learner_progress.py``, 100 until R10-HEAT-METER's ``heat_energy.py``, 101 until R10-ADVISOR-WHATIF's ``plan_slots.py``) -- one of the three closures in ``tests/closures.json`` that reach
+R10-N-log-flood's ``log_latch.py``, 96 until R10-PUMP-MODEL's ``plan_step.py``, 97 until R10-DIAG-REPLAY's ``replay_doc.py``, 98 until R10-ADVISOR's ``price_tiles.py``, 99 until R10-LEARNER-ETA's ``learner_progress.py``, 100 until R10-HEAT-METER's ``heat_energy.py``, 101 until R10-ADVISOR-WHATIF's ``plan_slots.py``, 102 until R10-GRADE-DRIVERS's ``driving_grade.py``) -- one of the three closures in ``tests/closures.json`` that reach
 every production file; the second is ``tests/arch_score_head.py``'s
 (R9-EG-A1), which measures today's tree with the architecture score and so
 must read all of it, and the third is ``tests/entities.py``'s (round 9),
@@ -54,8 +54,8 @@ which drives the CI ratchet's archscore measurement and so opens the package
 the way this lane's recorder does. A diff touching any production file
 therefore selects this lane. That is a selection cost, not a
 duplicate-assertion one: the same
-recording finds 134 of the 528 script pairs (33 choose 2) sharing 0.80 or more
-of their production-module closure, all 134 among the 406 pairs whose two
+recording finds 144 of the 528 script pairs (33 choose 2) sharing 0.80 or more
+of their production-module closure, all 144 among the 406 pairs whose two
 scripts each have a non-empty production closure (``tests/arch_score.py``,
 ``tests/ha_contract.py``, ``tests/layout.py`` and ``tests/md_tables.mjs`` have none;
 ``tests/harness_headers.py`` joined the comparable set, and ten pairs, when
@@ -74,7 +74,15 @@ pins (#2819) grew guard_pins.py's closure to coordinator.py and sensor.py,
 adding its 9 pairs at >= 0.80 and moving the count from 122 to 131;
 R10-WOOD-NOTIFY's wood_advisor.py closure gained binary_sensor.py, lifting
 its pairs with finite_boundary.py, structure.py and typing_ruler.py from
-0.798 to 0.81 and the count from 131 to 134).
+0.798 to 0.81 and the count from 131 to 134; R10-GRADE-DRIVERS's
+driving_grade.py re-recorded every closure that imports the coordinator,
+putting block_duty.py and boost_drift_replay.py each with finite_boundary.py
+and structure.py, plan_view.py with both, and card.mjs with features.py at
+the 0.80 floor, and the count from 134 to 141; the bot's closure re-record
+then added driving_grade.py to typing_ruler.py's closure, which had been
+recorded without it, putting block_duty.py, boost_drift_replay.py and
+plan_view.py each with typing_ruler.py at the 0.80 floor, and the count from
+141 to 144).
 Eighteen of the pairs sit at exactly 1.00 -- arch_score_head.py/deployment_shape.py,
 arch_score_head.py/entities.py and deployment_shape.py/entities.py
 (96 shared production files each), doc_claims.py/harness_headers.py

@@ -70,10 +70,15 @@
 #
 shape: space_reasons[*]|dhw_reasons[*] * -> 'idle_coasting'|'idle'  # R10-ARCH-SHAPES-CLASSIFIER (D8-s1-01): the reason classifiers read each channel's draw only on the steps the plan runs the pump at, so a share on a step the plan calls off is idle; which fixtures carry such a step is the host's basin (#996)
 coord_all_features  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_all_features  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_dhw  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_dhw  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_grid_fee  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_grid_fee  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_minimal  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_minimal  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 coord_two_zone  # R10-COP-GATE-D: four pump_max_power keys added (null), nothing else moves
+coord_two_zone  # R10-GRADE-DRIVERS, additions only: the scores gain machine_drivers and operation_drivers (empty with no grade) and, for the ungraded heat pump, machine_evidence (samples per outdoor band against the requirement, freeze refusals); no value moved
 valve_storage  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: booked by the steady demand: its kWh rises, its price paid falls, with no 6 kW first-step transient
 valve_storage_smart_write  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN: as valve_storage, the same reference
 valve_storage_small_tank  # R10-HOTFIX-SAV-ESTIMATE: baseline_cost DOWN, predicted_savings and savings_percentage DOWN with it: spread by steady demand; the plan does not move
