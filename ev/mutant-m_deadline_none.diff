@@ -1,0 +1,13 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7bcdcea16..64ece9d2f 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2000,7 +2000,7 @@ def _read_reply(stdout: Any) -> Any:
+     except (AttributeError, OSError, ValueError):
+         return pickle.load(stdout)
+     timeout = PROCESS_REPLY_TIMEOUT_S
+-    if not _reply_ready(stdout, timeout):
++    if not _reply_ready(stdout, None):
+         raise ProcessWorkerTimeout(
+             f"process worker gave no reply within {timeout:g} s"
+         )
