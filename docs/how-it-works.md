@@ -884,8 +884,9 @@ for water the pump never made — and cannot eat the buffer's
 safe-temperature headroom, so the plan keeps charging cheap hours right through
 a burn. Heat still in the wood tank at day's end counts in the thermal-battery
 view, up to 95 °C. The savings reference has no wood at all, so wood's heat
-counts in the saving and firewood's cost is not counted; the savings page says
-so where wood is configured. The reference is scaled to the meter, and on a
+counts in the saving and firewood's cost is not counted; the savings page, the
+Plan Monthly Savings sensor and the notifications blueprint's monthly receipt
+say so where wood is configured. The reference is scaled to the meter, and on a
 wood house that scale only raises it, so a meter that falls under the plan
 during a fire cannot cancel wood's heat. A fire the plan did not foresee moves
 the meter off the plan only until the next re-plan reads the warmer tank. In a
