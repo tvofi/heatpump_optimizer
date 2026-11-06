@@ -353,6 +353,16 @@ MUTANTS = [
     # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
     ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
     ("body_push-4", "tools/audit/seat/body_push.sh", '  if [ "$lrc" = 1 ]; then  # mut:landed', '  if false; then'),
+    # #3245 round 2's block: the identity guard outranks head-stale. body_push-5 drops the
+    # guard; body_push-6 re-plants the reviewed head's order (a ## Head check before the
+    # guard). Both are graded by ref_privacy's self-test (STEP_OF), whose fixture body names no ## Head.
+    ("body_push-5", "tools/audit/seat/body_push.sh",
+     '  python3 -I "$HERE/ref_privacy.py" guard --ref "handoff/$TOPIC"',
+     '  true || python3 -I "$HERE/ref_privacy.py" guard --ref "handoff/$TOPIC"'),
+    ("body_push-6", "tools/audit/seat/body_push.sh",
+     '  ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")\n',
+     '  ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")\n'
+     '  case $(awk \'/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f\' "$BODY") in *"$HREF"*) ;; *) exit 1 ;; esac\n'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -641,6 +651,7 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
            "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
+           "body_push-5": "tools/audit/seat/ref_privacy.py", "body_push-6": "tools/audit/seat/ref_privacy.py",
            "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
