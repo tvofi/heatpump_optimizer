@@ -16040,7 +16040,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From r10-ext-3226, body item 5831fe5b: The frame-read bound: `_read_reply` unpickles through `_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S)` (60 s), so a worker that stops mid-reply no longer holds the lock. No live roster group fits a process-worker transport fix (R10-LOOP-CPU is done); the only live group that owns `coordinator.py` is R10-CLONE-2238, so it is the nearest owner, and the destination file is `custom_components/heatpump_optimizer/coordinator.py` (checks and mutation pins in `tests/features.py`). Carry: R10-CLONE-2238 (items 5831fe5b)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
