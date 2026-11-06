@@ -1,0 +1,31 @@
+  ok   an unknown role is refused
+
+35 passed, 0 failed
+rc=0
+ok   fixer: 42744 chars, 6 blocks
+ok   fix-review: 30968 chars, 6 blocks
+ok   designer: 24375 chars, 6 blocks
+ok   design-review: 24013 chars, 6 blocks
+ok   root-cause: 24857 chars, 6 blocks
+ok   verifier: 23296 chars, 6 blocks
+ok   judge: 22824 chars, 6 blocks
+ok   finder: 27225 chars, 6 blocks
+role read_set(Read) read_set(Bash) pack pack-read_set(Read) entries
+fixer 55676 36004 42744 -12932 8
+fix-review 44620 24948 30968 -13652 3
+designer 38379 18707 24375 -14004 0
+design-review 37977 18305 24013 -13964 0
+root-cause 38845 19173 24857 -13988 0
+verifier 37300 17628 23296 -14004 0
+judge 36737 17065 22824 -13913 1
+finder 41245 21573 27225 -14020 0
+  ok   role_pack.py's self-test passes: every role clean, every rule's mutant refused
+
+24 passed, 0 failed
+  ok   pr_cap.py --self-test: its tally says 0 failed
+pr_args self-test: 174 checks, 0 failed
+census_rc=0
+STRUCTURE RATCHET PASSED
+claims-diff-done
+b57ca06c03e7116425a45e1d493629970cd33bd1
+mt_rc=0
