@@ -1,0 +1,12 @@
+gate self-test: 57 checks, 0 failed
+prelude self-test: 62 checks, 0 failed
+gate_replay2.py over tools/ci/gate.py: rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_replay2.txt
+gate_sim.py over tools/ci/gate.py: rc 0; output IDENTICAL to 1371a0a6:measure/rev/gate_sim.txt
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+  t= 1283s run 40119473870 (waited 0 s): PASS
+  t= 1337s run 40119473491 (waited 600 s): PASS
+editcode: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 600 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 0
+  t=  650s run 100 (waited 0 s): PASS
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
