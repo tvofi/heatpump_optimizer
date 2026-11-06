@@ -196,6 +196,7 @@ def _fixture_roster() -> dict:
         g("R9-A", "L1", [], "done"),
         g("R9-B", "L1", ["R9-A"], "in-review"),
         g("R9-C", "L2", [], "not-started"),
+        g("R9-D", "L2", [], "absorbed"),
     ]}
 
 
@@ -225,6 +226,11 @@ def _self_test() -> int:
           and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
     check("not-started group has no pickup", "handoff/r9-c" not in text)
     check("done group has no pickup", "handoff/r9-a" not in text)
+    # an absorbed group is closed (roster_lib.CLOSED_STAGES), not in flight.
+    check("absorbed group is not in flight and has no pickup",
+          "handoff/r9-d" not in text
+          and [g for g, _ in in_flight(roster)] == ["R9-B"],
+          [g for g, _ in in_flight(roster)])
     # an in-flight group with no branch pushed yet, or no note file, names
     # neither (#201 comment 6310616463: `git fetch origin None`).
     bare = _fixture_roster()
