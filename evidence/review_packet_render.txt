@@ -1,6 +1,0 @@
-review_packet: REFUSE red-unanswered: concluded red check `gate` is not named in ## Red checks
-review_packet: REFUSE required-red: required context `gate` concluded failure at 82f1d76ffef5e2fa920e50c0b004621daf5130ef
-review_packet: REFUSE host-path: dev/programme/rosters/wave-r10-groups.json:13825: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
-wc: /root/review-packet.md: No such file or directory
-
-[exited with code 1]

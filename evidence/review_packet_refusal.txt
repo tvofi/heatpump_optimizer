@@ -1,0 +1,5 @@
+dc0a170b671814be196a54b1c71e29449f54d6d7 Fri Nov 6 09:05:26 2026 +0100
+review_packet: REFUSE host-path: dev/programme/rosters/wave-r10-groups.json:13825: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+wc: $HOME/review-packet.md: No such file or directory
+
+[exited with code 1]
