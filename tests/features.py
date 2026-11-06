@@ -41618,6 +41618,103 @@ try:
         f"raised {_wt_raised!r}; returned {_wt_plan!r}; jobs={_wt_hass.jobs!r} "
         f"issues={_wt_hass.issues!r}",
     )
+
+    # A timeout repeated every cycle warns ONCE, then says "Resolved" on the
+    # first solve the worker carries again (R10 N-log-flood: log_held).
+    _wt_latch_sink = _G511LogSink()
+    _wt_latch_sink.setLevel(_g511_logging.INFO)
+    _wt_latch_log = _g511_logging.getLogger(_g511_coord.log_held.__module__)
+    _wt_latch_log.addHandler(_wt_latch_sink)
+    _wt_latch_level = _wt_latch_log.level
+    _wt_latch_log.setLevel(_g511_logging.INFO)
+    _wt_one_hass = _G511Hass()
+    try:
+        for _wt_n in range(2):
+            try:
+                _asyncio.run(_g511_coord._await_optimize(
+                    _wt_one_hass, _g524_harness.SleepyOptimizer(30), "STATE"))
+            except Exception:  # noqa: BLE001 - the UpdateFailed is checked above
+                pass
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
+        _asyncio.run(_g511_coord._await_optimize(
+            _wt_one_hass, _g524_harness.SleepyOptimizer(0), "STATE"))
+    finally:
+        _wt_latch_log.removeHandler(_wt_latch_sink)
+        _wt_latch_log.setLevel(_wt_latch_level)
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+    _wt_latch_msgs = [(r.levelno, r.getMessage()) for r in _wt_latch_sink.records
+                      if "process worker" in r.getMessage() or "process_worker" in r.getMessage()
+                      or "Resolved" in r.getMessage()]
+    R.check(
+        "two timeouts in a row warn once, and the next solve logs the recovery",
+        [lv for lv, _ in _wt_latch_msgs] == [_g511_logging.WARNING, _g511_logging.INFO],
+        f"latch records={_wt_latch_msgs!r}",
+    )
+
+    # ``_await_off_loop`` (replay, recovery, sysid, advisor) must not rerun a
+    # timed-out job on the executor, where it would run with no deadline.
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
+    _g511_coord._run_in_process(_os.getpid, ())  # warm the fresh worker
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+    _wt_ol_ok_hass = _G511Hass()
+    _wt_ol_ok = _asyncio.run(_g511_coord._await_off_loop(_wt_ol_ok_hass, _os.getpid))
+    R.check(
+        "null control: an off-loop job inside the deadline returns through the worker",
+        _wt_ol_ok not in (None, _g3_parent) and _wt_ol_ok_hass.jobs == [_g511_coord._run_in_process],
+        f"returned {_wt_ol_ok!r}; jobs={_wt_ol_ok_hass.jobs!r}",
+    )
+    _wt_ol_hass = _G511Hass()
+    _wt_t2 = _wt_time.monotonic()
+    try:
+        _asyncio.run(_g511_coord._await_off_loop(_wt_ol_hass, _wt_time.sleep, 30))
+        _wt_ol_err = None
+    except Exception as _wt_e:  # noqa: BLE001
+        _wt_ol_err = _wt_e
+    _wt_ol_s = _wt_time.monotonic() - _wt_t2
+    R.check(
+        "_await_off_loop raises a timeout to its caller instead of rerunning it on the executor",
+        _wt_timeout_cls is not None and isinstance(_wt_ol_err, _wt_timeout_cls)
+        and _wt_ol_hass.jobs == [_g511_coord._run_in_process] and _wt_ol_s < 10,
+        f"raised {_wt_ol_err!r} after {_wt_ol_s:.1f} s; jobs={_wt_ol_hass.jobs!r}",
+    )
+
+    # A worker whose pipe lands at a descriptor >= FD_SETSIZE (1024) -- Home
+    # Assistant raises its soft fd limit past it -- must still be waited on
+    # with the deadline, not read as a transport fault (select.select refuses
+    # such a descriptor; the #3232 review's regression).
+    import resource as _wt_resource  # noqa: E402
+
+    _wt_soft, _wt_hard = _wt_resource.getrlimit(_wt_resource.RLIMIT_NOFILE)
+    _wt_fds = []
+    _wt_hi_fd = -1
+    _wt_hi_ok = _wt_hi_err = _wt_hi_warm = None
+    try:
+        _wt_want = 1200
+        if _wt_soft != _wt_resource.RLIM_INFINITY and _wt_soft < _wt_want:
+            _wt_resource.setrlimit(_wt_resource.RLIMIT_NOFILE, (
+                _wt_want if _wt_hard == _wt_resource.RLIM_INFINITY else min(_wt_want, _wt_hard),
+                _wt_hard))
+        while len(_wt_fds) < 1100:
+            _wt_fds.append(_os.open(_os.devnull, _os.O_RDONLY))
+        _g511_coord._shutdown_process_pool()  # the next spawn takes high fds
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
+        _wt_hi_warm, _ = _g511_submit(_g511_coord._run_in_process, _os.getpid, ())
+        if _g511_coord._PROCESS_WORKER is not None:
+            _wt_hi_fd = _g511_coord._PROCESS_WORKER.stdout.fileno()
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+        _wt_hi_ok, _ = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (0.05,))
+        _wt_hi_err, _ = _g511_submit(_g511_coord._run_in_process, _wt_time.sleep, (30,))
+    finally:
+        for _wt_fd in _wt_fds:
+            _os.close(_wt_fd)
+        _g511_coord._shutdown_process_pool()
+        _wt_resource.setrlimit(_wt_resource.RLIMIT_NOFILE, (_wt_soft, _wt_hard))
+    R.check(
+        "a worker pipe at fd >= 1024 answers in time and still times out as a timeout",
+        _wt_hi_warm is None and _wt_hi_fd >= 1024 and _wt_hi_ok is None
+        and _wt_timeout_cls is not None and type(_wt_hi_err) is _wt_timeout_cls,
+        f"warm raised {_wt_hi_warm!r}; stdout fd={_wt_hi_fd}; fast job raised {_wt_hi_ok!r}; slow job raised {_wt_hi_err!r}",
+    )
     _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
 
     # The stop path: a lock held past the kill must not hold the stop.
