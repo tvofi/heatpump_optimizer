@@ -204,6 +204,31 @@ def is_done(group: dict) -> bool:
     return (group.get("resume") or {}).get("stage") in ("done", "rca-done")
 
 
+_LEARNER_NAMES = ("R10-VENT-DETECTOR", "R10-NIGHT-FOLDS", "R10-TRUST-RELATIVE",
+                  "R10-RATIO-ANCHOR", "R10-RATIO-SITES", "R10-LEARNER-ETA",
+                  "R10-HEAT-METER", "R10-COP-GATE")
+_UX_NAMES = ("R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-DEEPLINK-CENSUS")
+
+#: Paths that are instruments, CI or records, never the integration (tvofi
+#: 2026-11-06: the plan placed instrument and CI fixes in the core lane).
+_NON_PRODUCT_PREFIXES = ("tools/", "tests/", ".github/", ".claude/", "dev/", "docs/")
+_NON_PRODUCT_FILES = ("CLAUDE.md", "AGENTS.md", "README.md", "RELEASE_NOTES.md")
+
+
+def _owned_lane(group: dict) -> str | None:
+    """Instruments (or Docs, for a doc group) when every file the group owns
+    is an instrument, CI or record path; None when it owns no file, a bare
+    filename, or any file outside those paths (the integration stays core)."""
+    files = list(group.get("files") or []) + list(group.get("hot_files") or [])
+    if not files or not all(f.startswith(_NON_PRODUCT_PREFIXES) or f in _NON_PRODUCT_FILES
+                            for f in files):
+        return None
+    user_docs = (any(f.startswith("docs/") or f == "README.md" for f in files)
+                 and all(f.startswith(("docs/", "tests/")) or f in _NON_PRODUCT_FILES
+                         for f in files))
+    return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
+
+
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
@@ -221,6 +246,10 @@ def roster_lane(group: dict) -> str:
         return "Instruments"
     if "REPLAY" in g:
         return "Replay"
+    owned = _owned_lane(group)
+    if owned and g not in _LEARNER_NAMES and not (
+            k == "owner" or g in _UX_NAMES):
+        return owned
     if g in ("R10-VENT-DETECTOR", "R10-NIGHT-FOLDS", "R10-TRUST-RELATIVE",
              "R10-RATIO-ANCHOR", "R10-RATIO-SITES", "R10-LEARNER-ETA",
              "R10-HEAT-METER", "R10-COP-GATE"):
@@ -1296,6 +1325,34 @@ def selftest() -> int:
         print(f"{'ok  ' if cond else 'FAIL'} {name}{'' if cond else ': ' + detail}")
         if not cond:
             failures.append(name)
+
+    # The lane follows the files a group owns (tvofi 2026-11-06): a group whose
+    # every file is an instrument or CI path is not core-model work, whatever
+    # its name; a group touching the integration stays in the core lane.
+    def _lane(files, kind="fix", name="X-LANE-PROBE"):
+        return roster_lane({"group": name, "kind": kind, "files": files})
+
+    expect("lane: a CI-only group is Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]) == "Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]))
+    expect("lane: a tests-and-tools group is Instruments",
+           _lane(["tests/ci_ratchet.py", "tests/ci_budgets.json"]) == "Instruments")
+    expect("lane: a docs-only doc group is Docs",
+           _lane(["dev/audit/README.md", "CLAUDE.md"], kind="doc") == "Docs")
+    expect("lane: a user-docs group is Docs",
+           _lane(["README.md", "docs/setup.md", "tests/doc_claims.py"],
+                 kind="feature") == "Docs")
+    expect("lane null control: docs plus a tool is Instruments, not Docs",
+           _lane(["docs/setup.md", "tools/x.py"], kind="feature") == "Instruments")
+    expect("lane null control: a core-model group stays Core model",
+           _lane(["custom_components/heatpump_optimizer/optimizer.py"]) == "Core model")
+    expect("lane null control: a mixed group stays Core model",
+           _lane(["tools/audit/seat/x.py",
+                  "custom_components/heatpump_optimizer/ledger.py"]) == "Core model")
+    expect("lane null control: a group with no files stays Core model",
+           _lane([]) == "Core model")
+    expect("lane null control: a bare filename is not proof of an instrument",
+           _lane(["coordinator.py"]) == "Core model")
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
