@@ -17150,6 +17150,42 @@
     "stage": "absorbed"
    },
    "brief": "RETIRED: owner ruling 2026-11-06: outside fixes merge via our own PR with acknowledgement. Nothing to build. Original brief follows for the record. Owner ruling tvofi 2026-11-06: outside contributors' pull requests are reviewed rather than re-authored, with extra care on code security (mandate 6624093439). Today pr-contract refuses any author but the hpo-author App (decision 0011), and the bus refuses to dispatch a review for a head that carries no delivery row, which an outside head cannot carry unless a maintainer pushes one to the fork. Make the contract admit an outside-author pull request: pr-contract accepts an author who is neither the App nor the owner when the pull request is cross-repository, and still requires the full gate, an opus fix review whose brief holds a SECURITY section (pickle and deserialisation of replies, subprocess and pipe handling, any path, network or secret use, any .github or CI edit, any dependency change, anything that runs code on the host), and the code-owner approval rule; held fork runs are approved by hpo-runs only after the security read of the diff. Decide, and record in the template docs, how an outside head gets its delivery row: either the bus dispatch reads the row from the base-branch record for a cross-repository pull request, or the maintainer pushes the row commit to the fork branch. Control: an outside-author pull request fixture is admitted and an App-less same-repository one is still refused; remove the new admit rule and the first fixture is refused. Update .github/PULL_REQUEST_TEMPLATE.md with the outside-author section. These paths are code-owned: the mandate covers the approval."
+  },
+  {
+   "group": "R10-REF-PRIVACY-CLOUD",
+   "lane": "IN",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/ref_privacy.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "ref_privacy flags a false-positive host path on a cloud seat. On a cloud runner (uid 0, HOME=/root) tools/audit/seat/ref_privacy.py --check refuses a roster line as home-directory, and with HOME=/nonexistent refuses three lines instead (account-name for the passwd name root, and the token 0 in \"(0-based)\"); review_packet.py render then refuses host-path and writes no packet. Fix the predicate so a cloud runner's own paths are classified correctly without widening what a real host path gets past. Failing test first, with the cloud-seat string as the fixture. Add a null control: a genuine /Users/<name> path still refuses. Mutation proof on the new branch. Source: the verdict on #3239 at 6a8964e8."
   }
  ]
 }
