@@ -1,0 +1,33 @@
+CLEAN NOT PASSING:
+  125038704635 work 2026-11-02 ref_ms  22.29 loop_ref  79.92 ref24    cpu 1.959 loop 0.1217 kib 1929 -> RED cpu_ratio 1.959: budget 4.167 cannot see a 2x cycle; re-record 2.77
+  125000687320 pull 2026-11-01 ref_ms  28.01 loop_ref  98.76 FALLBACK cpu 1.892 loop 0.114 kib 1932 -> RED cpu_ratio 1.892: budget 4.167 cannot see a 2x cycle; re-record 2.676
+  125008866961 work 2026-11-01 ref_ms  32.34 loop_ref 133.45 ref30    cpu 1.776 loop 0.0888 kib 1928 -> RED cpu_ratio 1.776: budget 3.934 cannot see a 2x cycle; re-record 2.512
+  124920331674 pull 2026-11-01 ref_ms  32.62 loop_ref 131.42 ref30    cpu 1.793 loop 0.0933 kib 1932 -> RED cpu_ratio 1.793: budget 3.934 cannot see a 2x cycle; re-record 2.536
+  124914706691 pull 2026-11-01 ref_ms  32.83 loop_ref 134.43 FALLBACK cpu 1.761 loop 0.0897 kib 1932 -> RED cpu_ratio 1.761: budget 4.167 cannot see a 2x cycle; re-record 2.49
+  124944189425 pull 2026-11-01 ref_ms  33.19 loop_ref 117.68 FALLBACK cpu 1.938 loop 0.1183 kib 1933 -> RED cpu_ratio 1.938: budget 4.167 cannot see a 2x cycle; re-record 2.741
+  124948874573 pull 2026-11-01 ref_ms  33.53 loop_ref 133.65 FALLBACK cpu 1.877 loop 0.1029 kib 1933 -> RED cpu_ratio 1.877: budget 4.167 cannot see a 2x cycle; re-record 2.654
+  124969150454 pull 2026-11-01 ref_ms  33.53 loop_ref 133.65 FALLBACK cpu 1.877 loop 0.1029 kib 1933 -> RED cpu_ratio 1.877: budget 4.167 cannot see a 2x cycle; re-record 2.654
+  127310664875 pull 2026-11-05 ref_ms  46.96 loop_ref 279.78 ref46    cpu 2.476 loop 0.0594 kib 1930 -> RED loop_cpu_ratio 0.0594: budget 0.1278 cannot see a 2x cycle; re-record 0.084
+  127046649273 pull 2026-11-05 ref_ms  50.94 loop_ref 159.47 ref53    cpu 2.256 loop 0.1046 kib 1930 -> RED cpu_ratio 2.256 over its budget 2.081
+PLANTS SURVIVING ON CLEAN-PASSING DRAWS:
+  cpu_ratiox1.5: 11
+     ref24@23.24 cpu 2.616 loop 0.118 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.68 cpu 2.495 loop 0.1225 (2026-11-04)
+     ref24@23.83 cpu 2.567 loop 0.1282 (2026-11-02)
+     ref24@23.94 cpu 2.635 loop 0.1194 (2026-11-05)
+     FALLBACK@27.26 cpu 2.687 loop 0.1178 (2026-11-06)
+     ref30@31.37 cpu 2.615 loop 0.1154 (2026-11-02)
+     FALLBACK@37.73 cpu 2.474 loop 0.1062 (2026-11-05)
+     FALLBACK@37.80 cpu 2.417 loop 0.1079 (2026-11-05)
+     FALLBACK@39.74 cpu 2.759 loop 0.0848 (2026-11-04)
+  loop_cpu_ratiox1.5: 8
+     ref24@20.45 cpu 3.296 loop 0.0967 (2026-11-06)
+     ref24@22.36 cpu 3.382 loop 0.1162 (2026-11-04)
+     ref24@23.24 cpu 2.616 loop 0.118 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.24 cpu 2.414 loop 0.1109 (2026-11-05)
+     ref24@23.94 cpu 2.635 loop 0.1194 (2026-11-05)
+     FALLBACK@39.74 cpu 2.759 loop 0.0848 (2026-11-04)
+     ref46@47.52 cpu 2.326 loop 0.0822 (2026-11-04)

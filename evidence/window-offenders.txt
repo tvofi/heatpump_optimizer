@@ -1,0 +1,18 @@
+owner fixture clean cpu_ratio in window: n=78 224.3-269.8 (budget 337.8, floor 168.9)
+wt: 2 of 78 in-window synthetic clean draws offend cycle_cost
+  127046649273 ref_ms 50.94: cpu_ratio 2.256 over its budget 2.081
+  127310664875 ref_ms 46.96: loop_cpu_ratio 0.0594: budget 0.1278 cannot see a 2x cycle; re-record 0.084
+wmain: 13 of 78 in-window synthetic clean draws offend cycle_cost
+  126588166343 ref_ms 34.61: runner class unknown: ref_ms 34.61 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  126713994281 ref_ms 34.61: runner class unknown: ref_ms 34.61 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  126600478623 ref_ms 39.74: runner class unknown: ref_ms 39.74 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127019165648 ref_ms 20.54: runner class unknown: ref_ms 20.54 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127042207792 ref_ms 22.00: runner class unknown: ref_ms 22 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.99
+  127046649273 ref_ms 50.94: cpu_ratio 2.256 over its budget 2.081
+  127091245300 ref_ms 37.80: runner class unknown: ref_ms 37.8 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42.
+  127191893386 ref_ms 21.58: runner class unknown: ref_ms 21.58 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127224941881 ref_ms 21.58: runner class unknown: ref_ms 21.58 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127279302536 ref_ms 21.86: runner class unknown: ref_ms 21.86 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127310664875 ref_ms 46.96: loop_cpu_ratio 0.0594: budget 0.1278 cannot see a 2x cycle; re-record 0.084
+  127562699131 ref_ms 22.28: runner class unknown: ref_ms 22.28 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
+  127612105577 ref_ms 37.73: runner class unknown: ref_ms 37.73 lies in no band of COST_RUNNER_CLASSES [(22.64, 25.53), (28.72, 32.69), (42
