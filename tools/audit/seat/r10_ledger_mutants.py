@@ -61,6 +61,7 @@ PLANTS = {
     "L32_dispose_home_silent": (LEDGER, "            if home.resolve() != Path(default_log()).parent.resolve():", "            if False:"),
     "L33_imported_verdict_unclosable": (LEDGER, "(text in lines or (named and verdict_head(text) is None) if", "(text in lines if"),
     "L34_backlog_escalates": (LEDGER, '        if last_open is not None and int(kv["ct"]) <= last_open:', '        if False:'),
+    "B4_orphans_merged_pr_ignored": (BUS, '      if [ "$mt" -ge "$ct" ]; then mrg=$((mrg + 1)); continue; fi', '      if false; then mrg=$((mrg + 1)); continue; fi'),
     "R6_merged_unread_clears": (RELAY, '"$state/cloud-merged.$$" \\\n    || { echo "cloud_relay: could not list merged PRs',
                                 '"$state/cloud-merged.$$" \\\n    || true || { echo "cloud_relay: could not list merged PRs'),
     "B1_orphans_merges_stranded": (BUS, "    case $why in ancestor|merges-only) anc=", "    case $why in ancestor) anc="),
