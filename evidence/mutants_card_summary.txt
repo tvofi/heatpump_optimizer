@@ -1,0 +1,4 @@
+NULL: tests/entities.py rc=0; tests/card.mjs rc=0
+R8-card-receipt-invert: tests/card.mjs rc=1; tests/card_browser.mjs rc=0
+R9-card-wood-present: tests/card.mjs rc=0; tests/card_browser.mjs rc=1
+R10-card-receipt-not-passed: tests/card.mjs rc=1; tests/card_browser.mjs rc=0

@@ -58,7 +58,7 @@
   ok    R8 D4-01 and no control reorders Tab with a positive tabindex
   ok    R8 D4-01 and the walk reached the controls of every view
   P9 grid MODE: FULL (HPO_BROWSER_SCOPE=full)
-  P9 grid: 360 cells, 22686 text runs, 1110 box-intersecting pairs inked, 105 colour rules, 247.0 s
+  P9 grid: 360 cells, 22686 text runs, 1110 box-intersecting pairs inked, 105 colour rules, 255.2 s
   ok    P9 grid: every cell mounted and every driver step found its target (the grid measured what it names)
   ok    P9 grid: every card rule that sets a colour is rendered in some cell (no unmeasured colour)
   ok    P9 grid: every visible text run clears WCAG AA against what is under it

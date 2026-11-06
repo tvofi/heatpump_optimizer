@@ -1,0 +1,27 @@
+diff --git a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+index c1a852288..1a60c1684 100644
+--- a/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
++++ b/custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+@@ -14931,7 +14931,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
+     // the page states, the receipt's and the table's, says so (owner ruling,
+     // 2026-11-04).
+     const fuel = this.plan.woodFuel();
+-    const wood = !!(fuel && fuel.show_whatif);
++    const wood = !!fuel;
+     const drawn = `${receiptHtml(st, rows, cur, wood)}${replayHtml(st, cur)}`;
+     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
+     const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
+
+=== python3 tests/plan_view.py && node tests/card.mjs rc=1
+
+--- tail
+  File "/tmp/claude-0/mwt-R9-card-wood-present/tests/plan_view.py", line 8, in <module>
+    from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
+  File "/tmp/claude-0/mwt-R9-card-wood-present/custom_components/heatpump_optimizer/__init__.py", line 23, in <module>
+    from homeassistant.config_entries import ConfigEntry
+ModuleNotFoundError: No module named 'homeassistant'
+
+=== node tests/card_browser.mjs rc=1
+FAIL: plan payload /tmp/plandata-838736e2301c.json not found — run tests/plan_view.py first
+--- tail
+FAIL: plan payload /tmp/plandata-838736e2301c.json not found — run tests/plan_view.py first

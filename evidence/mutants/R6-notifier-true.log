@@ -1,0 +1,26 @@
+diff --git a/custom_components/heatpump_optimizer/notifier.py b/custom_components/heatpump_optimizer/notifier.py
+index a8febd212..81a9068ee 100644
+--- a/custom_components/heatpump_optimizer/notifier.py
++++ b/custom_components/heatpump_optimizer/notifier.py
+@@ -101,7 +101,7 @@ def _monthly_receipt(data: Payload) -> Detected:
+         # has no saving, and with wood configured the saving includes its heat
+         # and not its cost.
+         "saving_old_basis": bool(saving and saving.get("old_basis")),
+-        "saving_includes_wood": saving_includes_wood(data),
++        "saving_includes_wood": True,
+     })}
+ 
+ 
+
+=== PYTHONPATH=tests/hastub python3 tests/features.py rc=1
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  FAIL the receipt event carries what the card states: no saving on the old basis, the percent unclipped, wood stated  [({'month': '2026-09', 'total_sek': 1.0, 'saving_sek': None, 'saving_pct': None, 'currency': 'SEK', 'saving_old_basis': True, 'saving_includes_wood': True}, {'month': '2026-09', 'total_sek': 1.0, 'saving_sek': -600.0, 'saving_pct': -300.0, 'currency': 'SEK', 'saving_old_basis': False, 'saving_includes_wood': True})]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4877 FEATURE CHECKS FAILED
+--- tail
+/opt/hpo/venv-ci/lib/python3.14/site-packages/numpy/_core/fromnumeric.py:3862: RuntimeWarning: Mean of empty slice
+  return _methods._mean(a, axis=axis, dtype=dtype,
+/tmp/claude-0/mwt-R6-notifier-true/tests/features.py:78108: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
+  _ap_unload()
+RuntimeWarning: Enable tracemalloc to get the object allocation traceback
