@@ -1266,6 +1266,27 @@ B
   out=$(run watch --once --post)
   echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
   expect "watch refuses a raw proposal whose only naming file is VERDICT.md" $?
+  # The read side of the case check (unpack): a review/<pr> commit whose evidence/ holds HEAD.txt
+  # and head.txt is refused on read, not only on push-verdict; distinct names are the null control.
+  rawev() { # names... : VERDICT.md from stdin, evidence/<each name> naming $h1
+    local b e tr n ents=""
+    b=$(git -C "$W/seat" hash-object -w --stdin)
+    e=$(printf 'measured at %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
+    for n in "$@"; do ents="$ents$(printf '100644 blob %s\t%s\n' "$e" "$n")"$'\n'; done
+    e=$(printf '%s' "$ents" | git -C "$W/seat" mktree)
+    tr=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' "$b" "$e" | git -C "$W/seat" mktree)
+    git -C "$W/seat" commit-tree "$tr" -m x
+  }
+  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt head.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/40"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and head.txt"
+  expect "unpack refuses a proposal whose evidence names differ only by case, naming both (read side)" $?
+  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt other.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/41"
+  out=$(run watch --once --post)
+  ! echo "$out" | grep -q "^BUS refused 41 .*collide case-insensitively" && echo "$out" | grep -q "^BUS undispatched 41 $t"
+  expect "unpack lets distinct evidence names past the case check (null control, read side)" $?
 
   N9=$(run dispatch 9 "$h1" cmsg_S | sed -n 's/^bus-nonce: //p')
   printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N9" > "$W/merge9.md"
