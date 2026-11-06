@@ -29,6 +29,8 @@ Push handoff-wip at every green step so liveness can be read; if truly blocked p
 
 IDENTITY AND PATHS: use repo-relative paths only; no host paths in any file, commit or body.
 
+ADDENDUM (supersedes the "build ALL, carry none" line above for the BODY only): the next review of this PR is a fourth round, which the bus refuses unless the body is re-cut. So the body you push must carry a `## Re-cut` section (first heading) saying it replaces the earlier body, that nothing in it is carried from that body, and that its scope is only the round-3 blocked finding (mutation-vacuous: the `log_held` off_loop_timeout warning and its clearing pinned by no check; mutants m4 and m6). Build item (1) fully, with the failing-check text for m4 and m6 and the null control. Items (2), (3) and (4): keep what feaafef5 already holds and is green, build nothing new beyond it, and move every one not already built to `## Forward-carry` with one `Carry: <GROUP>` line each (use a real roster group from `git show origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`; if none fits, name the destination file and say so, never drop one). Re-derive every figure at the final head by your own command; no figure carried from the older body. `tools/pr/prepr.sh --body-check` and `carry_audit.py check` must pass. Note the roster-landing step: carries a fixer cannot land are landed by the dispatch seat, so list each carry's text in the body exactly.
+
 Before any commit run: git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com. Never commit as 'seat'.
 
 
