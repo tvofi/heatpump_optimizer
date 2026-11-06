@@ -1,0 +1,298 @@
+  ok   A1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A1: the plant changes the text
+  ok   A1: the mutant parses
+  ok   A2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A2: the plant changes the text
+  ok   A2: the mutant parses
+  ok   A3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A3: the plant changes the text
+  ok   A3: the mutant parses
+  ok   A4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A4: the plant changes the text
+  ok   A4: the mutant parses
+  ok   A5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A5: the plant changes the text
+  ok   A5: the mutant parses
+  ok   A6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A6: the plant changes the text
+  ok   A6: the mutant parses
+  ok   A7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   A7: the plant changes the text
+  ok   A7: the mutant parses
+  ok   C1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C1: the plant changes the text
+  ok   C1: the mutant parses
+  ok   C2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C2: the plant changes the text
+  ok   C2: the mutant parses
+  ok   C3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C3: the plant changes the text
+  ok   C3: the mutant parses
+  ok   C4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C4: the plant changes the text
+  ok   C4: the mutant parses
+  ok   C5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C5: the plant changes the text
+  ok   C5: the mutant parses
+  ok   C6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C6: the plant changes the text
+  ok   C6: the mutant parses
+  ok   C7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C7: the plant changes the text
+  ok   C7: the mutant parses
+  ok   C8: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   C8: the plant changes the text
+  ok   C8: the mutant parses
+  ok   P1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P1: the plant changes the text
+  ok   P1: the mutant parses
+  ok   P2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P2: the plant changes the text
+  ok   P2: the mutant parses
+  ok   P3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   P3: the plant changes the text
+  ok   P3: the mutant parses
+  ok   D1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   D1: the plant changes the text
+  ok   D1: the mutant parses
+  ok   T1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   T1: the plant changes the text
+  ok   T1: the mutant parses
+  ok   T2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   T2: the plant changes the text
+  ok   T2: the mutant parses
+  ok   T3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   T3: the plant changes the text
+  ok   T3: the mutant parses
+  ok   T4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   T4: the plant changes the text
+  ok   T4: the mutant parses
+  ok   T5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   T5: the plant changes the text
+  ok   T5: the mutant parses
+  ok   S1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S1: the plant changes the text
+  ok   S1: the mutant parses
+  ok   S2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S2: the plant changes the text
+  ok   S2: the mutant parses
+  ok   S3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S3: the plant changes the text
+  ok   S3: the mutant parses
+  ok   S4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S4: the plant changes the text
+  ok   S4: the mutant parses
+  ok   S5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S5: the plant changes the text
+  ok   S5: the mutant parses
+  ok   S6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S6: the plant changes the text
+  ok   S6: the mutant parses
+  ok   S7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   S7: the plant changes the text
+  ok   S7: the mutant parses
+  ok   K1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K1: the plant changes the text
+  ok   K1: the mutant parses
+  ok   K2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K2: the plant changes the text
+  ok   K2: the mutant parses
+  ok   K3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K3: the plant changes the text
+  ok   K3: the mutant parses
+  ok   K4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K4: the plant changes the text
+  ok   K4: the mutant parses
+  ok   K5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K5: the plant changes the text
+  ok   K5: the mutant parses
+  ok   K6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K6: the plant changes the text
+  ok   K6: the mutant parses
+  ok   K7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K7: the plant changes the text
+  ok   K7: the mutant parses
+  ok   K8: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K8: the plant changes the text
+  ok   K8: the mutant parses
+  ok   K9: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K9: the plant changes the text
+  ok   K9: the mutant parses
+  ok   K10: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K10: the plant changes the text
+  ok   K10: the mutant parses
+  ok   K11: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K11: the plant changes the text
+  ok   K11: the mutant parses
+  ok   K12: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   K12: the plant changes the text
+  ok   K12: the mutant parses
+  ok   L1: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L1: the plant changes the text
+  ok   L1: the mutant parses
+  ok   L2: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L2: the plant changes the text
+  ok   L2: the mutant parses
+  ok   L3: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L3: the plant changes the text
+  ok   L3: the mutant parses
+  ok   L4: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L4: the plant changes the text
+  ok   L4: the mutant parses
+  ok   L5: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L5: the plant changes the text
+  ok   L5: the mutant parses
+  ok   L6: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   L6: the plant changes the text
+  ok   L6: the mutant parses
+  ok   Y1: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y1: the plant changes the text
+  ok   Y1: the mutant parses
+  ok   Y2: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y2: the plant changes the text
+  ok   Y2: the mutant parses
+  ok   Y3: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y3: the plant changes the text
+  ok   Y3: the mutant parses
+  ok   Y4: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y4: the plant changes the text
+  ok   Y4: the mutant parses
+  ok   Y5: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y5: the plant changes the text
+  ok   Y5: the mutant parses
+  ok   Y6: anchor occurs once in tools/audit/seat/roster_sync.py
+  ok   Y6: the plant changes the text
+  ok   Y6: the mutant parses
+  ok   R1: anchor occurs once in tools/audit/carry_audit.py
+  ok   R1: the plant changes the text
+  ok   R1: the mutant parses
+  ok   R2: anchor occurs once in tools/audit/carry_audit.py
+  ok   R2: the plant changes the text
+  ok   R2: the mutant parses
+  ok   R3: anchor occurs once in tools/audit/carry_audit.py
+  ok   R3: the plant changes the text
+  ok   R3: the mutant parses
+  ok   R4: anchor occurs once in tools/audit/carry_audit.py
+  ok   R4: the plant changes the text
+  ok   R4: the mutant parses
+  ok   R5: anchor occurs once in tools/audit/carry_audit.py
+  ok   R5: the plant changes the text
+  ok   R5: the mutant parses
+  ok   H1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   H1: the plant changes the text
+  ok   H1: the mutant parses
+  ok   H2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   H2: the plant changes the text
+  ok   H2: the mutant parses
+  ok   Z1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z1: the plant changes the text
+  ok   Z1: the mutant parses
+  ok   Z2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z2: the plant changes the text
+  ok   Z2: the mutant parses
+  ok   Z3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z3: the plant changes the text
+  ok   Z3: the mutant parses
+  ok   Z4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z4: the plant changes the text
+  ok   Z4: the mutant parses
+  ok   Z5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z5: the plant changes the text
+  ok   Z5: the mutant parses
+  ok   Z6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z6: the plant changes the text
+  ok   Z6: the mutant parses
+  ok   Z7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z7: the plant changes the text
+  ok   Z7: the mutant parses
+  ok   Z8: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z8: the plant changes the text
+  ok   Z8: the mutant parses
+  ok   Z9: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z9: the plant changes the text
+  ok   Z9: the mutant parses
+  ok   Z10: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z10: the plant changes the text
+  ok   Z10: the mutant parses
+  ok   Z11: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z11: the plant changes the text
+  ok   Z11: the mutant parses
+  ok   Z12: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   Z12: the plant changes the text
+  ok   Z12: the mutant parses
+  ok   R11: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   R11: the plant changes the text
+  ok   R11: the mutant parses
+  ok   W1: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W1: the plant changes the text
+  ok   W1: the mutant parses
+  ok   W2: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W2: the plant changes the text
+  ok   W2: the mutant parses
+  ok   W3: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W3: the plant changes the text
+  ok   W3: the mutant parses
+  ok   W4: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W4: the plant changes the text
+  ok   W4: the mutant parses
+  ok   W5: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W5: the plant changes the text
+  ok   W5: the mutant parses
+  ok   W6: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W6: the plant changes the text
+  ok   W6: the mutant parses
+  ok   W7: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W7: the plant changes the text
+  ok   W7: the mutant parses
+  ok   W8: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W8: the plant changes the text
+  ok   W8: the mutant parses
+  ok   W9: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W9: the plant changes the text
+  ok   W9: the mutant parses
+  ok   W10: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W10: the plant changes the text
+  ok   W10: the mutant parses
+  ok   W11: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W11: the plant changes the text
+  ok   W11: the mutant parses
+  ok   W12: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W12: the plant changes the text
+  ok   W12: the mutant parses
+  ok   W13: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W13: the plant changes the text
+  ok   W13: the mutant parses
+  ok   W14: anchor occurs once in tools/audit/seat/roster_edit.py
+  ok   W14: the plant changes the text
+  ok   W14: the mutant parses
+  ok   W15: anchor occurs once in tools/audit/seat/roster_lib.py
+  ok   W15: the plant changes the text
+  ok   W15: the mutant parses
+  ok   Q1: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q1: the plant changes the text
+  ok   Q1: the mutant parses
+  ok   Q2: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q2: the plant changes the text
+  ok   Q2: the mutant parses
+  ok   Q3: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q3: the plant changes the text
+  ok   Q3: the mutant parses
+  ok   Q4: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q4: the plant changes the text
+  ok   Q4: the mutant parses
+  ok   Q5: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q5: the plant changes the text
+  ok   Q5: the mutant parses
+  ok   Q6: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q6: the plant changes the text
+  ok   Q6: the mutant parses
+  ok   Q7: anchor occurs once in tools/audit/seat/roster_queue.py
+  ok   Q7: the plant changes the text
+  ok   Q7: the mutant parses
+  ok   a killed plant prints its tally and drops the (got:) suffix
+  ok   a crash with no FAIL line prints its tail
+  ok   a survivor prints fails=0 and no tail
+  ok   no names selects every plant
+  ok   a named plant is kept
+  ok   an unknown plant is returned for refusal
+r10_roster_ops_mutants self-test: 297 checks, 0 failed

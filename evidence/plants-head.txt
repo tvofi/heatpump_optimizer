@@ -1,0 +1,86 @@
+RESULT mutant=W1 rc=1 fails=12
+    FAIL triage gate: a lettered label citing no ruling is refused
+    FAIL triage gate: a lettered label citing a REJECT ruling is refused
+    FAIL triage gate: a lettered label citing no such entry is refused
+    FAIL triage gate fixture restored
+    FAIL drop-carry with no carry refused
+    FAIL drop-carry fixture carries three
+    FAIL drop-carry index past the end refused
+    FAIL refused drop-carry moved nothing
+    FAIL drop-carry by index drops that entry
+    FAIL drop-carry by match drops that entry
+    FAIL drop-carry of the last entry leaves the key empty
+    FAIL append-carry then drop-carry is byte-identical
+RESULT mutant=W2 rc=1 fails=3
+    FAIL append-group @file lands (carry 6)
+    FAIL append-group overlapping a not-started group refuses, naming both (carry 5)
+    FAIL append-group --reason admits the overlap and records it
+RESULT mutant=W3 rc=1 fails=2
+    FAIL overlap with an in-progress group passes (null control)
+    FAIL overlap with a done group passes (null control)
+RESULT mutant=W4 rc=1 fails=1
+    FAIL an empty --reason does not admit the overlap
+RESULT mutant=W5 rc=1 fails=1
+    FAIL overlap on the index file alone passes (null control)
+RESULT mutant=W6 rc=1 fails=3
+    FAIL append-carry to a done group refuses and writes nothing (carry 3)
+    FAIL append-carry to an absorbed group names absorbed_into
+    FAIL append-carry to an absorbed group with no host still refuses
+RESULT mutant=W7 rc=1 fails=1
+    FAIL append-carry to a group with resume.pr appends and WARNs
+RESULT mutant=W8 rc=1 fails=1
+    FAIL append-carry to an absorbed group names absorbed_into
+RESULT mutant=W9 rc=1 fails=2
+    FAIL set-resume --field pr round-trips an integer (carry 4)
+    FAIL set-resume --field pr refuses a non-number
+RESULT mutant=W10 rc=1 fails=2
+    FAIL set-stage done clears a note naming owed work and says so (carry 2)
+    FAIL set-stage done keeps a note that owes nothing (null control)
+RESULT mutant=W11 rc=1 fails=4
+    FAIL append-carry naming a host path is refused with the scrub hint (carry 7)
+    FAIL edit-brief naming a host path is refused with the scrub hint (carry 7)
+    FAIL set-resume naming a host path is refused with the scrub hint (carry 7)
+    FAIL append-group naming a host path is refused with the scrub hint (carry 7)
+RESULT mutant=W12 rc=1 fails=1
+    FAIL set-stage absorbed --into a done group is refused
+RESULT mutant=W13 rc=1 fails=1
+    FAIL set-stage absorbed --into itself is refused
+RESULT mutant=W14 rc=1 fails=1
+    FAIL set-stage absorbed without --into is refused (carry 16)
+RESULT mutant=W15 rc=1 fails=1
+    FAIL group_for_branch: handoff/<group>-p2 resolves to the group
+RESULT mutant=Q1 rc=1 fails=2
+    FAIL parse: a trailing ` # comment` is dropped (carry 11) 
+    FAIL parse: a quoted 'a # b' stays one argument (null) 
+RESULT mutant=Q2 rc=1 fails=3
+    FAIL run --mark: a pushed op is `#done`, a refused op `#refused`
+    FAIL run --mark: a line appended after the run's first read survives
+    FAIL a marked line is never applied again 
+RESULT mutant=Q3 rc=1 fails=1
+    FAIL parse: set-stage keeps --at-sha a flag, not part of the value (carry 14) 
+RESULT mutant=Q4 rc=1 fails=2
+    FAIL release-held: a held line whose batch file exists is released
+    FAIL release-held: a held line whose batch file is absent stays held (null)
+RESULT mutant=Q5 rc=1 fails=3
+    FAIL run --mark: a pushed op is `#done`, a refused op `#refused`
+    FAIL run all --mark applies every unmarked op line, no cursor 
+    FAIL a marked line is never applied again 
+RESULT mutant=Q6 rc=1 fails=1
+    FAIL run all without --mark is refused, nothing applied (rc 2) 
+RESULT mutant=Q7 rc=1 fails=1
+    FAIL loop: a missing lint clone is re-provisioned from origin, then the pass runs 
+RESULT mutant=S7 rc=1 fails=2
+    FAIL append-group refuses a size the duration model lacks
+    FAIL append-group accepts a modelled size (null control)
+RESULT mutant=K8 rc=1 fails=4
+    FAIL a legacy carry alone leaves set-stage done as done (null control)
+    FAIL a carry after the cut-over is pending beside a legacy one
+    FAIL set-stage refuses an unreadable cut-over and writes nothing
+    FAIL set-resume refuses an unreadable cut-over and writes nothing
+RESULT mutant=K12 rc=1 fails=2
+    FAIL set-stage refuses an unreadable cut-over and writes nothing
+    FAIL set-resume refuses an unreadable cut-over and writes nothing
+RESULT mutant=H2 rc=1 fails=1
+    FAIL ... and so does set-resume --field stage, with any closed stage
+plants: 26, without a FAIL line: none
+rc=0

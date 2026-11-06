@@ -1,0 +1,18 @@
+roster: --lint-clone /tmp/tmp0_ex3b11/no-such-clone is not a directory; no op attempted, provision it
+roster: `all` needs --mark (a cursor-less run must mark what it applied)
+Traceback (most recent call last):
+  File "/home/user/heatpump_optimizer/tools/audit/seat/roster_queue.py", line 669, in <module>
+    sys.exit(main())
+             ~~~~^^
+  File "/home/user/heatpump_optimizer/tools/audit/seat/roster_queue.py", line 607, in main
+    return _self_test()
+  File "/home/user/heatpump_optimizer/tools/audit/seat/roster_queue.py", line 566, in _self_test
+    run_queue(argparse.Namespace(**{**vars(base), "first": 1, "last": 1, "batch": True}),
+    ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+              python=sys.executable)
+              ^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/user/heatpump_optimizer/tools/audit/seat/roster_queue.py", line 213, in run_queue
+    return _run_batch(a, sh, rep, py, editor, lines, mark)
+  File "/home/user/heatpump_optimizer/tools/audit/seat/roster_queue.py", line 236, in _run_batch
+    import roster_edit as re_
+ModuleNotFoundError: No module named 'roster_edit'
