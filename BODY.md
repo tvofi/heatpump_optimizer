@@ -13,7 +13,7 @@ The diff is four files against the merge base: `dev/audit/harnesses/r10_triage_p
 
 ## Head
 
-`b4fe630d386949b1a638d8901423f88e99311178`
+`1eaa5ed53c84c691be20a7eb6fadf408ae163f9b`
 
 ## Mutation proof
 
@@ -25,7 +25,8 @@ P393 reads `None`. With the file absent, a carry citing it is refused as not on 
 
 ## Figures
 
-- `git diff --stat b88684a218923f85de66f1e8fb1833e31a76a154...b4fe630d386949b1a638d8901423f88e99311178`: 3 files changed, 429 insertions(+) (the code; the delivery row is the PR's own).
+- `git diff --stat b88684a218923f85de66f1e8fb1833e31a76a154...<head>`: 3 files changed, 434 insertions(+) (the code; the delivery row is the PR's own).
+- Agreement lane repair (`AGREEMENT REFUSED unregistered=2`): the harness restated two grammars. It now imports `MERGE_RE` from `dev/audit/harnesses/record_burst_replay.py` for the merge-subject count, and its cache key is built by a character test instead of the regex `[^A-Za-z0-9._-]` that `tools/audit/seat/ref_privacy.py` also wrote (that one is a different mapping, `-` in a self-test; sharing it would have changed cache keys). Nothing is registered. Null controls: the key function is equal to the old regex on non-ASCII input (`KEY-SAME`), and the git arm's six RESULT lines are byte-identical old against new (`diff` exit 0). Now `agreement.mjs` prints `RESULT divergent=0 unregistered=0 dead=0 refused=0`. The API arms were not re-run: no cache exists on this host and none was spent; their figures are cited at `41c5e7bc8`, whose API-reading code is unchanged.
 - Every ruling figure is printed by the harness arm the ruling names, at `41c5e7bc8`.
 - No capped file is touched.
 
