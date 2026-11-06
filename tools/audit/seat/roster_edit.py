@@ -155,6 +155,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import copy
 import io
 import json
 import os
@@ -1258,6 +1259,28 @@ def make_edit(a, value, rest):
     return edit
 
 
+def batch_edit(edits):
+    """One `edit(roster, rel)` for write_roster that applies several parsed
+    ops (make_edit callbacks) in order, so a batch costs one lint and one
+    push (roster_queue.py run --batch). An op that refuses is rolled back and
+    skipped, its reason in `results[i]` (None: applied); the batch writes when
+    any applied. Re-run on a push race, `results` is rewritten each time."""
+    results = [None] * len(edits)
+
+    def edit(roster, rel) -> bool:
+        for i, one in enumerate(edits):
+            snap = copy.deepcopy(roster)
+            try:
+                one(roster, rel)
+                results[i] = None
+            except Refuse as e:
+                roster.clear()
+                roster.update(snap)
+                results[i] = str(e)
+        return any(r is None for r in results)
+    return edit, results
+
+
 def main(argv=None) -> int:
     if argv is None:
         argv = sys.argv[1:]
@@ -2278,6 +2301,39 @@ def _self_test() -> int:
     check("a later open stage drops the stale absorbed_into",
           wedit("set-stage", "R9-WX", "in-progress") == 0
           and "absorbed_into" not in at_w("R9-WX")["resume"])
+
+    # run --batch (carry 13): a batch of one is byte-identical to the single
+    # path; a refused op is skipped and rolled back; one push carries the rest.
+    def batch_bytes(branch, ops):
+        edits = []
+        for op in ops:
+            a, v, r = parse_op(op + ["--checkout", str(drv), "--worktree",
+                                      str(Path(tmp, "wtb")), "--issue-state",
+                                      str(ISSUES["closed"])])
+            edits.append(make_edit(a, v, r))
+        bedit, results = batch_edit(edits)
+        rc = write_roster(str(drv), "main", branch, str(Path(tmp, "wtb")), None,
+                          "batch", True, str(seed), "batch", bedit)
+        pushed = run(["git", "-C", str(origin), "branch", "--list", branch]).strip()
+        return rc, results, (json.dumps(branch_roster(branch), sort_keys=True)
+                             if pushed else None)
+
+    rc1, res1, one = batch_bytes("batch-1", [["wire-issue", "R9-A", "41"]])
+    check("batch of one lands and reports it applied", rc1 == 0 and res1 == [None])
+    check("run via the single-op path first (control)",
+          edit("wire-issue", "R9-A", "41", branch="single-1") == 0)
+    check("a batch of one is byte-identical to the single-op path",
+          one == json.dumps(branch_roster("single-1"), sort_keys=True))
+    rc2, res2, two = batch_bytes("batch-2", [["wire-issue", "R9-A", "41"],
+                                              ["set-stage", "R9-ZZ", "done"],
+                                              ["wire-issue", "R9-A", "42"]])
+    got = branch_roster("batch-2")["groups"][0]["issues"]
+    check("a batch skips a refused op and applies the others in one push",
+          rc2 == 0 and res2[0] is None and res2[1] and "R9-ZZ" in res2[1]
+          and res2[2] is None and got == [10, 41, 42], (res2, got))
+    check("a batch of only refused ops writes nothing",
+          batch_bytes("batch-3", [["set-stage", "R9-ZZ", "done"]])[0] == 0
+          and batch_bytes("batch-3", [["set-stage", "R9-ZZ", "done"]])[2] is None)
 
     # THE ROUND-TRIP REGRESSION. The roster's canonical bytes are indent=1,
     # ASCII-escaped, no trailing newline (the file at the fixplan ref). A dump
