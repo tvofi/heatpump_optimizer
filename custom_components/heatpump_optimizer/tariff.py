@@ -876,7 +876,8 @@ def billed_windows(
     factors = window_factors[:n]
     if factors.size < n:
         factors = np.concatenate([factors, np.ones(n - factors.size)])
-    return windows * factors
+    billed: np.ndarray = windows * factors
+    return billed
 
 
 def _peak_excess(

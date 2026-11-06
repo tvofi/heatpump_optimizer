@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Mapping, TypedDict
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -404,7 +404,9 @@ class _WaitsForEvidenceMixin(_SensorMixinBase):
         return bool(super().available and self._waiting_for is None)
 
     def _evidence_attributes(
-        self, block: str, report_key: str | None = None
+        self,
+        block: Literal["accuracy", "contract_comparison", "freq_control"],
+        report_key: Literal["last_diagnosis", "monthly_report"] | None = None,
     ) -> dict[str, Any]:
         """The payload ``block``, ``waiting_for``, and at most one ``insight`` report.
 
@@ -414,9 +416,10 @@ class _WaitsForEvidenceMixin(_SensorMixinBase):
         data = self._data()
         attrs = dict(data.get(block, {}) or {})
         attrs["waiting_for"] = self._waiting_for
-        report = (data.get("insight") or {}).get(report_key) if report_key else None
-        if report:
-            attrs[report_key] = report
+        if report_key is not None:
+            report = (data.get("insight") or {}).get(report_key)
+            if report:
+                attrs[report_key] = report
         return attrs
 
 
