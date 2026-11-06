@@ -16540,7 +16540,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "main red: critical_path_minutes 29.067 over 21.983 after #3180; see fixer brief. Carry: R10-HOTFIX-CI-CRITPATH-4"
+    "main red: critical_path_minutes 29.067 over 21.983 after #3180; see fixer brief. Carry: R10-HOTFIX-CI-CRITPATH-4 [implemented: f76f55901fb783d3fc1452a69bde0b647eb67d03]"
    ],
    "architect_note": "",
    "resume": {
