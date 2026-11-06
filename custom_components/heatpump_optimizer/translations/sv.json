@@ -457,6 +457,9 @@
     "simulate_plan_invalid_windows": {
       "message": "Ogiltiga varmvattentider \"{windows}\": {error}"
     },
+    "diagnose_interval_failed": {
+      "message": "Intervalldiagnosen kunde inte köras för {entry_ids}: {error}"
+    },
     "simulate_plan_failed": {
       "message": "Simuleringen kunde inte köras för {entry_ids}: {error}"
     },

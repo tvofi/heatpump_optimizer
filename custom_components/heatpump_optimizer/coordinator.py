@@ -25,6 +25,7 @@ import selectors
 import subprocess
 import sys
 import threading
+import time
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -802,6 +803,12 @@ PROCESS_REPLY_TIMEOUT_S = 1800.0
 # is only bookkeeping, and neither a read the kill did not break nor a child
 # slow to die may hold a solve or Home Assistant's shutdown hostage.
 _SHUTDOWN_LOCK_TIMEOUT_S = 5.0
+# How long the reply frame may take to arrive once its first byte has. The
+# worker serialises its whole reply before writing it, so the frame then flows
+# at pipe speed (a 50 MB reply round-trips in about half a second); this only
+# bounds a writer stopped mid-frame (SIGSTOP, a stalled host). Module global,
+# read at call time, so a test can shorten it.
+_REPLY_FRAME_TIMEOUT_S = 60.0
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
@@ -1922,6 +1929,47 @@ def _reply_ready(stream: Any, timeout_s: float) -> bool:
         return bool(selector.select(timeout_s))
 
 
+class _FrameReader:
+    """``pickle.load``'s file over the reply pipe, every read under one deadline.
+
+    Reads the raw descriptor, never the buffered stream, whose held bytes a
+    selector cannot see. It has no ``peek``, so the unpickler asks for
+    exactly the bytes it consumes and nothing past the frame is taken.
+    """
+
+    def __init__(self, fd: int, timeout_s: float) -> None:
+        self._fd = fd
+        self._timeout_s = timeout_s
+        self._deadline = time.monotonic() + timeout_s
+
+    def read(self, size: int) -> bytes:
+        """Up to ``size`` bytes, fewer only at end of stream."""
+        chunks: list[bytes] = []
+        while size > 0:
+            left_s = max(0.0, self._deadline - time.monotonic())
+            if not _reply_ready(self._fd, left_s):
+                raise ProcessWorkerTimeout(
+                    f"process worker stopped mid-reply: the frame did not "
+                    f"arrive within {self._timeout_s:g} s"
+                )
+            chunk = os.read(self._fd, min(size, 1 << 20))
+            if not chunk:
+                break  # end of stream: the unpickler reports the short frame
+            chunks.append(chunk)
+            size -= len(chunk)
+        return b"".join(chunks)
+
+    def readline(self) -> bytes:
+        """One line; only text pickle opcodes ask, and the worker sends none."""
+        line = b""
+        while not line.endswith(b"\n"):
+            byte = self.read(1)
+            if not byte:
+                break
+            line += byte
+        return line
+
+
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
     """Run ``fn(*args)`` in the process worker. ``fn`` must be picklable.
 
@@ -1957,7 +2005,9 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             # done. Wait for that with a deadline instead of blocking in
             # ``pickle.load``: a worker that is alive but silent never raises,
             # and holding ``_PROCESS_LOCK`` in that read wedged every later
-            # solve, every reload and the stop path until a restart.
+            # solve, every reload and the stop path until a restart. The
+            # frame itself is read under its own deadline, so a writer
+            # stopped mid-reply cannot hold the lock either.
             # A stream with no descriptor (an in-memory one) has nothing to
             # wait on and is read as before; the worker's pipe always has one.
             try:  # a real descriptor is never negative; a stream without one raises
@@ -1966,7 +2016,16 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
             except (AttributeError, OSError, ValueError):
                 has_fd = False
             timeout = PROCESS_REPLY_TIMEOUT_S
-            if has_fd and not _reply_ready(stdout, timeout):
+            try:
+                if has_fd and not _reply_ready(stdout, timeout):
+                    raise ProcessWorkerTimeout(
+                        f"process worker gave no reply within {timeout:g} s"
+                    )
+                status, payload = pickle.load(
+                    _FrameReader(stdout.fileno(), _REPLY_FRAME_TIMEOUT_S)
+                    if has_fd else stdout
+                )
+            except ProcessWorkerTimeout:
                 _PROCESS_WORKER = None
                 # Bounded too: a child the kill does not end at once (one
                 # stuck in the kernel) must not turn this into the same
@@ -1976,10 +2035,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                     worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)
                 except Exception:  # noqa: BLE001 - must not mask the timeout
                     pass
-                raise ProcessWorkerTimeout(
-                    f"process worker gave no reply within {timeout:g} s"
-                )
-            status, payload = pickle.load(stdout)
+                raise
         except ProcessWorkerUnavailable:
             # Already the class the fallback route catches; rewrapping it
             # would bury the pipes/load-err cause under a generic one.

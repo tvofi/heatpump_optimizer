@@ -38905,6 +38905,7 @@ _ET_KEYS = {
     "simulate_plan_no_prices": {"entry_ids"},
     "simulate_plan_invalid_windows": {"error", "windows"},
     "simulate_plan_failed": {"error", "entry_ids"},
+    "diagnose_interval_failed": {"error", "entry_ids"},
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "restore_learned_snapshot_no_refit": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
@@ -41830,6 +41831,91 @@ try:
         f"raised {_wt_ol_err!r} after {_wt_ol_s:.1f} s; jobs={_wt_ol_hass.jobs!r}",
     )
 
+    # The off-loop route holds its timeout warning per job as well: without
+    # it a timeout there is invisible at the default log level, because the
+    # replay and the sensor advisor catch it and log at DEBUG. Two timeouts of
+    # one job warn once, naming the job; its next completion logs "Resolved".
+    _wt_olw_sink = _G511LogSink()
+    _wt_olw_sink.setLevel(_g511_logging.INFO)
+    _wt_olw_log = _g511_logging.getLogger(_g511_coord.log_held.__module__)
+    _wt_olw_log.addHandler(_wt_olw_sink)
+    _wt_olw_level = _wt_olw_log.level
+    _wt_olw_log.setLevel(_g511_logging.INFO)
+    _wt_olw_hass = _G511Hass()
+    try:
+        for _wt_n in range(2):
+            try:
+                _asyncio.run(_g511_coord._await_off_loop(_wt_olw_hass, _wt_time.sleep, 30))
+            except Exception:  # noqa: BLE001 - the raise is checked above
+                pass
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
+        _asyncio.run(_g511_coord._await_off_loop(_wt_olw_hass, _wt_time.sleep, 0))
+    finally:
+        _wt_olw_log.removeHandler(_wt_olw_sink)
+        _wt_olw_log.setLevel(_wt_olw_level)
+        _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+    _wt_olw_msgs = [(r.levelno, r.getMessage()) for r in _wt_olw_sink.records
+                    if "sleep" in r.getMessage()]
+    R.check(
+        "two off-loop timeouts of one job warn once, naming it, and its next completion logs the recovery",
+        [lv for lv, _ in _wt_olw_msgs] == [_g511_logging.WARNING, _g511_logging.INFO]
+        and "Resolved" in _wt_olw_msgs[1][1]
+        and all("off loop timeout:sleep" in m or "sleep skipped" in m for _, m in _wt_olw_msgs),
+        f"latch records={_wt_olw_msgs!r}",
+    )
+
+    # The reply frame is read under its own deadline: a worker stopped
+    # mid-write after serialising its reply (SIGSTOP, a stalled host) must
+    # not hold ``pickle.load`` and the lock (#3232 round 3).
+    _wt_frame_saved = _g511_coord._REPLY_FRAME_TIMEOUT_S
+    R.check(
+        "the reply frame deadline stays at its 60 s design value",
+        _wt_frame_saved == 60.0,
+        f"_REPLY_FRAME_TIMEOUT_S = {_wt_frame_saved!r}",
+    )
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = _wt_saved[0]
+    _g511_coord._run_in_process(_os.getpid, ())  # warm a worker under the real deadline
+    _wt_big_t0 = _wt_time.monotonic()
+    _wt_big_err, _wt_big = _g511_submit(_g511_coord._run_in_process, bytes, (50_000_000,))
+    _wt_big_s = _wt_time.monotonic() - _wt_big_t0
+    R.check(
+        "null control: a 50 MB reply arrives whole through the frame reader, inside its deadline",
+        _wt_big_err is None and isinstance(_wt_big, bytes) and len(_wt_big) == 50_000_000
+        and _wt_big_s < _wt_frame_saved,
+        f"raised {_wt_big_err!r}; {len(_wt_big or b'')} bytes in {_wt_big_s:.2f} s",
+    )
+    _wt_big = None
+    _g511_coord._REPLY_FRAME_TIMEOUT_S = 0.5
+    try:
+        _wt_split_ok_err, _wt_split_ok = _g511_submit(
+            _g511_coord._run_in_process, _g524_harness.split_reply, (0.05,))
+        R.check(
+            "null control: a reply frame written in two halves inside the frame deadline returns",
+            _wt_split_ok_err is None and _wt_split_ok == "split",
+            f"raised {_wt_split_ok_err!r}; returned {_wt_split_ok!r}",
+        )
+        _g511_coord._shutdown_process_pool()  # that child exited after its frame
+        _g511_coord._run_in_process(_os.getpid, ())  # warm a fresh one
+        _wt_split_t0 = _wt_time.monotonic()
+        _wt_split_err, _wt_split_out = _g511_submit(
+            _g511_coord._run_in_process, _g524_harness.split_reply, (30,))
+        _wt_split_s = _wt_time.monotonic() - _wt_split_t0
+        _wt_split_free = _g511_coord._PROCESS_LOCK.acquire(blocking=False)
+        if _wt_split_free:
+            _g511_coord._PROCESS_LOCK.release()
+        R.check(
+            "a worker stopped mid-reply raises ProcessWorkerTimeout, is reaped and frees the lock",
+            _wt_timeout_cls is not None and isinstance(_wt_split_err, _wt_timeout_cls)
+            and "mid-reply" in str(_wt_split_err) and _wt_split_out is None
+            and _wt_split_s < 10 and _wt_split_free
+            and _g511_coord._PROCESS_WORKER is None,
+            f"raised {_wt_split_err!r} after {_wt_split_s:.1f} s; returned {_wt_split_out!r}; "
+            f"lock_free={_wt_split_free} worker={_g511_coord._PROCESS_WORKER!r}",
+        )
+    finally:
+        _g511_coord._REPLY_FRAME_TIMEOUT_S = _wt_frame_saved
+    _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+
     # A worker whose pipe lands at a descriptor >= FD_SETSIZE (1024) -- Home
     # Assistant raises its soft fd limit past it -- must still be waited on
     # with the deadline, not read as a transport fault (select.select refuses
@@ -41897,6 +41983,58 @@ try:
     )
 finally:
     _g511_coord.PROCESS_REPLY_TIMEOUT_S, _g511_coord._SHUTDOWN_LOCK_TIMEOUT_S = _wt_saved
+
+# The diagnose service calls ``_await_process`` directly: a worker timeout or
+# an unusable worker reaches its caller as the service-failed shape the other
+# services raise, not as the worker's own RuntimeError (#3232 round 3).
+from heatpump_optimizer import services as _wt_svc  # noqa: E402
+from homeassistant.exceptions import HomeAssistantError as _wt_HAE  # noqa: E402
+
+_wt_svc_coord_mod = sys.modules[_wt_svc.__name__.rsplit(".", 1)[0] + ".coordinator"]
+
+
+class _WtDiagCoord:
+    def __init__(self, outcome):
+        self.outcome = outcome
+
+    async def async_diagnose_interval(self):
+        if isinstance(self.outcome, BaseException):
+            raise self.outcome
+        return self.outcome
+
+
+def _wt_diagnose(outcome):
+    saved = _wt_svc._manual_targets
+    _wt_svc._manual_targets = lambda hass, target: [("e1", _WtDiagCoord(outcome))]
+    try:
+        return None, _asyncio.run(_wt_svc.handle_diagnose_interval(
+            None, SimpleNamespace(data={})))
+    except Exception as err:  # noqa: BLE001 - the error IS the measurement
+        return err, None
+    finally:
+        _wt_svc._manual_targets = saved
+
+
+_wt_dg_ok_err, _wt_dg_ok = _wt_diagnose({"residual": 0.1})
+R.check(
+    "null control: a diagnosis that runs is returned by the service",
+    _wt_dg_ok_err is None and _wt_dg_ok == {"diagnosis": {"e1": {"residual": 0.1}}},
+    f"raised {_wt_dg_ok_err!r}; returned {_wt_dg_ok!r}",
+)
+for _wt_dg_exc in (
+    _wt_svc_coord_mod.ProcessWorkerTimeout("process worker gave no reply within 1800 s"),
+    _wt_svc_coord_mod.ProcessWorkerUnavailable("process worker cannot start: boom"),
+):
+    _wt_dg_err, _ = _wt_diagnose(_wt_dg_exc)
+    R.check(
+        f"a diagnosis failing with {type(_wt_dg_exc).__name__} reaches the service caller translated",
+        isinstance(_wt_dg_err, _wt_HAE)
+        and not isinstance(_wt_dg_err, _wt_svc_coord_mod.ProcessWorkerUnavailable)
+        and getattr(_wt_dg_err, "translation_key", None) == "diagnose_interval_failed"
+        and getattr(_wt_dg_err, "translation_placeholders", None)
+        == {"entry_ids": "e1", "error": str(_wt_dg_exc)},
+        f"raised {_wt_dg_err!r}",
+    )
 
 # ---------------------------------------------------------------------------
 R.section("#525 — nothing blocking runs on Home Assistant's event loop")

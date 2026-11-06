@@ -457,6 +457,9 @@
     "simulate_plan_invalid_windows": {
       "message": "Invalid hot water windows \"{windows}\": {error}"
     },
+    "diagnose_interval_failed": {
+      "message": "The interval diagnosis could not run for {entry_ids}: {error}"
+    },
     "simulate_plan_failed": {
       "message": "The what-if simulation could not run for {entry_ids}: {error}"
     },
