@@ -617,9 +617,18 @@ def selftest_model() -> int:
            {n: G[n]["start"] for n in G})
     expect("a started group says why it starts: its fixer is working",
            G["L0"]["start_reason"] == "started: its fixer is working", G["L0"]["start_reason"])
-    expect("a planned group waits while started groups fill the cap, and names it",
-           G["NEW"]["start"] > iso(start, 0) and G["NEW"]["start_reason"].startswith("slot cap 2"),
+    # NEW heads DEP's chain, so it is on the critical path: it starts at once
+    # on an overflow slot, exempt from the cap (carry 8). A group off the path
+    # still waits (the null control below).
+    expect("a critical-path group starts past a full cap, flagged exempt",
+           G["NEW"]["start"] == iso(start, 0) and G["NEW"].get("exempt") is True,
            G["NEW"])
+    off = {"groups": many["groups"] + [grp("OFF")]}
+    poff = build_plan(off, M, caps1, start, "v1.0.0", round_n=2)
+    expect("null: a non-critical group in the same position still waits, and names it",
+           poff["groups"]["OFF"]["start"] > iso(start, 0)
+           and poff["groups"]["OFF"]["start_reason"].startswith("slot cap 2"),
+           poff["groups"]["OFF"])
     expect("a started group waits only for its unmerged after-group, and names it",
            G["DEP"]["start"] == G["NEW"]["finish"]
            and G["DEP"]["start_reason"].startswith("started: its fixer is working; after NEW"),
@@ -628,6 +637,7 @@ def selftest_model() -> int:
            check_plan(pm))
     bad = json.loads(json.dumps(pm))
     bad["groups"]["NEW"]["start"] = iso(start, 0)
+    bad["groups"]["NEW"].pop("exempt", None)
     expect("a PLANNED dispatch into a full cap is still refused",
            any(b.startswith("in flight: NEW dispatched") for b in check_plan(bad)),
            check_plan(bad))
@@ -1873,6 +1883,7 @@ def selftest() -> int:
     prod = {"groups": [
         {"group": f"P{i}", "size": "S", "lane": "Core model", "kind": "defect",
          "after": [], "resume": {"stage": "not-started"}} for i in range(6)]}
+    caps = dict(caps, stamp_every=5)
     p6 = build_plan(prod, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     pat = [s for s in p6["stamps"] if s["kind"] == "patch"]
     expect("five production merges cut one patch stamp",
@@ -2062,7 +2073,7 @@ def selftest() -> int:
              "if size not in sizes:", "if False:"),
             ("stamp-cadence",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("if len(carry) >= ", "every:"), "if False:"),
+             _m("while len(carry) >= ", "every:"), "while False:"),
             ("round-close-version",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              _m("stamps.append({\"version\": closing, ", "\"at\": closure + closure_lead,"),
@@ -2079,8 +2090,8 @@ def selftest() -> int:
              _m("if s[\"kind\"] not in (\"patch\", ", "\"minor\", ROUND_CLOSE)]")),
             ("round-n-required",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("roster_path: str = \"\", *, ", "round_n: int) -> dict:"),
-             _m("roster_path: str = \"\", *, ", "round_n: int = 10) -> dict:")),
+             _m("roster_path: str = \"\", *, ", "round_n: int, since_tag"),
+             _m("roster_path: str = \"\", *, ", "round_n: int = 10, since_tag")),
             ("round-from-roster",
              _m("def main(argv=", "None) -> int:"),
              _m("round_n = roster_lib.roster_round(", "src)"), "round_n = 99"),
