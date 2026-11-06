@@ -1,0 +1,30 @@
+added ['R10-CARRY-RESIDUE-2', 'R10-HOTFIX-GATE-BUSY-DEFER', 'R10-REF-PRIVACY-CLOUD', 'R10-REPLAY-COST-2', 'R10-TRAIN-MERGE-LOOP-2']
+removed []
+CHANGED R10-BRIEFS-FOLD-D0 ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-briefs-fold-d0'} -> {'stage': 'carries-open', 'branch': 'handoff/r10-briefs-fold-d0', 'pr': 3247, 'commit': '862affd07d2ce3430c200d4f09aa6e16934b5c4d'}
+CHANGED R10-CLONE-2238 ['carry']
+   carries lost: [] gained 2
+CHANGED R10-DISPATCH-AT-HANDOFF ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-dispatch-at-handoff', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once its after-groups are done', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-dispatch-at-handoff', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once its after-groups are done', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET', 'pr': 3249}
+CHANGED R10-FRICTION-RECORDS ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-friction-records', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-LEDGER-SAMPLE, R10-FRICTION-REGRESSION, R10-ORCH-LEDGER'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-friction-records', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-FLY-LEDGER-SAMPLE, R10-FRICTION-REGRESSION, R10-ORCH-LEDGER', 'pr': 3255}
+CHANGED R10-GATE-LEASE-TOCTOU ['resume']
+   resume {'stage': 'not-started'} -> {'stage': 'carries-open', 'pr': 3243, 'commit': '5421413b54ba1044b8e91e1afd88b41acfc7a753'}
+CHANGED R10-HOTFIX-STAMP-BASE ['resume']
+   resume {'stage': 'in-progress', 'pr': 3236} -> {'stage': 'done', 'pr': 3236, 'commit': '33e60b5b71b67610bd02fdea238b882e9a97007b'}
+CHANGED R10-LEDGER-RESIDUE ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-ledger-residue', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-ledger-residue', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER', 'pr': 3248}
+CHANGED R10-PLANTED-DEFECT-AUDIT ['carry', 'resume']
+   carries lost: [] gained 3
+   resume {'stage': 'in-progress', 'branch': 'handoff/r10-planted-defect-audit', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer: tvofi 2026-11-01 ruled dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block; owner gate cleared', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER; owner ruled 2026-11-01, gate cleared', 'pr': 3240} -> {'stage': 'carries-open', 'branch': 'handoff/r10-planted-defect-audit', 'commit': 'a2240924bdbcb582a5d77898268c6ab45baeca54', 'last_step': None, 'next_step': 'dispatch a fixer: tvofi 2026-11-01 ruled dispatch one planted-defect audit per tripped arm, adopt P0=0.28/ALPHA=0.05, never block; owner gate cleared', 'note': 's9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-LEDGER; owner ruled 2026-11-01, gate cleared', 'pr': 3240}
+CHANGED R10-POLICY-ROLE-PACK ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-policy-role-pack', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'owner card 1 recommendation (b), 2026-10-24'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-policy-role-pack', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer once every after group is done', 'note': 'owner card 1 recommendation (b), 2026-10-24', 'pr': 3256}
+CHANGED R10-PROCESS-SLIM ['carry', 'resume']
+   carries lost: [] gained 1
+   resume {'stage': 'not-started'} -> {'stage': 'in-progress', 'pr': 3245}
+CHANGED R10-RELAY-SWEEP ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-relay-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-relay-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold', 'pr': 3252}
+CHANGED R10-ROSTER-READ-SWEEP ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-roster-read-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-roster-read-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold', 'pr': 3250}
+CHANGED R10-ROSTER-WRITE-SWEEP ['resume']
+   resume {'stage': 'not-started', 'branch': 'handoff/r10-roster-write-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold'} -> {'stage': 'in-progress', 'branch': 'handoff/r10-roster-write-sweep', 'commit': None, 'last_step': None, 'next_step': 'dispatch a fixer', 'note': 's11 replan fold', 'pr': 3253}
