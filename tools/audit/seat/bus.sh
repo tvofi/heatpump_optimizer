@@ -803,7 +803,7 @@ watch() {
 orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--exclude-topic T]... -> one ORPHAN line each, rc 1 when any stranded
   local ns=refs/hpo-orphans LF=$'\n' min_age=2 no_body=0 no_ancestry=0 no_content=0 excl=$'\n'
   local t ref tip main fix_nl fix_heads bodies_nl landed_nl why hit arms
-  local reported=0 superseded=0 nb=0 named=0 anc=0 young=0
+  local reported=0 superseded=0 nb=0 named=0 anc=0 young=0 mrg=0 mt merged_nl
   local ct now age_s age_t word dn H bt
   while [ $# -gt 0 ]; do
     case $1 in
@@ -843,6 +843,17 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   landed_nl=$LF"$(git for-each-ref --format='%(objectname)' "$ns/handoff/" \
     | python3 -I "$ROOT/tools/audit/seat/ledger.py" landed ${arms[@]+"${arms[@]}"} "$main" $fix_heads)"$LF \
     || die "orphans: ledger.py landed could not classify the handoff tips"
+  # MERGED, the level's last arm (R10-LEDGER-RESIDUE, #2721): a pull request of the topic merged at or
+  # after the tip's commit time delivered it, and main has since moved the files on, which no ref test
+  # sees. The listing is the relay's (`gh pr list --state merged`; $HPO_BUS_MERGED stubs it, printing
+  # `<head>\t<epoch>`). An unread listing says so on stderr and the run goes on without the arm: that
+  # can only add ORPHAN lines, never hide one.
+  merged_nl=$LF"$( { if [ -n "${HPO_BUS_MERGED:-}" ]; then $HPO_BUS_MERGED
+      else ${HPO_BUS_GH:-gh} pr list -R "$REPO" --state merged --limit 200 --json headRefName,mergedAt \
+        -q '.[] | [.headRefName, (.mergedAt | fromdateiso8601)] | @tsv'; fi; } 2>/dev/null \
+    | awk -F'\t' 'NF == 2 && $2 ~ /^[0-9]+$/ { t = $1; sub(/^fix\//, "", t); sub(/-pr$/, "", t)
+                  if ($2 > m[t]) m[t] = $2 } END { for (t in m) print t " " m[t] }')"$LF
+  case $merged_nl in *" "[0-9]*) ;; *) echo "orphans: merged pull requests unread; a merged handoff reads ORPHAN here" >&2 ;; esac
   now=$(date +%s)
   # A while-read over a heredoc, not a pipe: the counters survive the loop.
   while read -r ref tip; do
@@ -878,6 +889,11 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
       printf 'ORPHAN %s %s unknown-age uncovered=? repair=review\n' "$t" "$tip"
       reported=$((reported + 1)); continue
     fi
+    mt=${merged_nl#*"$LF$t "}
+    if [ "$mt" != "$merged_nl" ]; then
+      mt=${mt%%"$LF"*}
+      if [ "$mt" -ge "$ct" ]; then mrg=$((mrg + 1)); continue; fi
+    fi
     age_s=$((now - ct)); [ "$age_s" -lt 0 ] && age_s=0
     if [ "$((age_s / 3600))" -lt "$min_age" ]; then young=$((young + 1)); continue; fi
     age_t=$((age_s / 360))
@@ -911,8 +927,8 @@ orphans() { # [--min-age-h N] [--no-body] [--no-ancestry] [--no-content] [--excl
   done <<EOF
 $(git for-each-ref --format='%(refname) %(objectname)' "$ns/handoff/")
 EOF
-  printf 'orphans: %s stranded, %s superseded; skipped no-body=%s named=%s ancestor=%s young=%s; %s main %s\n' \
-    "$reported" "$superseded" "$nb" "$named" "$anc" "$young" "$REMOTE" "${main:0:7}"
+  printf 'orphans: %s stranded, %s superseded; skipped no-body=%s named=%s ancestor=%s young=%s merged-pr=%s; %s main %s\n' \
+    "$reported" "$superseded" "$nb" "$named" "$anc" "$young" "$mrg" "$REMOTE" "${main:0:7}"
   [ "$reported" = 0 ]
 }
 
@@ -1509,6 +1525,18 @@ B
   out=$(run orphans --min-age-h 0); rc=$?
   echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ]
   expect "orphans reports an owed handoff with no pull request as repair=opener, exit 1" $?
+  # The level's merged-pull-request arm (#2721): a pull request of the topic merged at or after the tip's
+  # commit time delivered it; one merged before it (a re-handoff committed later) leaves it owed.
+  mrg_after=$(( $(date +%s) + 100 ))
+  out=$(HPO_BUS_MERGED="printf fix/orph1\\t$mrg_after\\n" run orphans --min-age-h 0); rc=$?
+  ! echo "$out" | grep -q "^ORPHAN orph1 " && [ $rc = 0 ] && echo "$out" | grep -q "merged-pr=1"
+  expect "a handoff whose pull request merged at or after its tip is merged-pr, not ORPHAN" $?
+  out=$(HPO_BUS_MERGED="printf fix/orph1\\t1\\n" run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ] && echo "$out" | grep -q "merged-pr=0"
+  expect "null control: a pull request merged before the tip leaves it ORPHAN" $?
+  out=$(HPO_BUS_MERGED="printf nothing" run orphans --min-age-h 0); rc=$?
+  echo "$out" | grep -qx "ORPHAN orph1 $o1 .* repair=opener" && [ $rc = 1 ] && echo "$out" | grep -q "merged pull requests unread"
+  expect "null control: an unread listing says so and the refs-only answer stands" $?
   # Null control 1: the same ref inside the age window is in flight, not an orphan.
   out=$(run orphans); rc=$?
   ! echo "$out" | grep -q "^ORPHAN orph1 " && [ $rc = 0 ] && echo "$out" | grep -q "young="
