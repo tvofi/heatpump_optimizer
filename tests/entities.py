@@ -28334,7 +28334,7 @@ _PC_CARRY = next((_b for _b in _PC_STEPS if _b.startswith("Every finding the bod
 
 
 def _pc_carry_names_branch(step: str) -> bool:
-    return ('check --body /tmp/pr-body.md --branch "$HEAD_REF"' in step
+    return ('carry_audit.py check --body' in step and ' --branch "$HEAD_REF"' in step
             and "HEAD_REF: ${{ github.event.pull_request.head.ref }}" in step)
 
 
