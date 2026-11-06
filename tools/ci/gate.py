@@ -44,8 +44,14 @@ for gate-sweep.yml to re-judge. One gate never waits (R10-CI-SLIM card C3): an
 edit run's whose prelude left `pr-contract` to an unfinished code run at this
 head (prelude.defer_to, `deferring` here). It publishes the deferral at once:
 that code run's gate is listed only after its pr-contract has read the latest
-body, so it is the later verdict here, and the sweep re-judges this one. A
-deferring gate that waits on no code run waits like any other.
+body, so it is the later verdict here, and the sweep re-judges this one. The
+same holds beside any run whose gate has not started: judging() reads a
+deferring run busy, so such a run may sit in prelude.wait_sources waiting on
+this one, a cycle only GATE_WAIT_MAX_S would break (#3246 review). A deferring
+gate waits only when every run it waits on has started its gate: busy() leaves
+out a LATER started gate, so each is an earlier run, and one busy() still names
+is not judging, so a deferring run (it waits only so, down in id) or one whose
+listing lags its own owed jobs, which a re-read clears.
 """
 from __future__ import annotations
 
@@ -102,6 +108,12 @@ def gate_required() -> list[str]:
     return sorted({n for names in REQUIRED.values() for n in names})
 
 
+def started(run: dict) -> bool:
+    """Whether the run's `gate` job has started: listed `in_progress` or `completed`,
+    never merely listed (GitHub lists it `waiting` from the run's start, R3-2)."""
+    return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED
+
+
 def busy(ctx: dict, runs_at_head: list[dict]) -> list:
     """The OTHER runs at this head still adding a source: unfinished, not held, not
     judging, and not a LATER run whose `gate` has started. A started gate has run
@@ -114,7 +126,7 @@ def busy(ctx: dict, runs_at_head: list[dict]) -> list:
     lower id decides, the higher waits on it, so the waits stay acyclic."""
     return sorted(r["id"] for r in runs_at_head
                   if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r)
-                  and not (r["id"] > ctx["run_id"] and (r.get("jobs") or {}).get("gate", ("",))[0] in STARTED))
+                  and not (r["id"] > ctx["run_id"] and started(r)))
 
 
 def deferral(ids: list) -> str:
@@ -273,9 +285,9 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
         bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
-        if why == [deferral(waiting)] and deferring(kind, pr, claim) and any(
-                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"] if r["id"] in waiting):
-            bound = 0                           # C3: that busy code run's gate is the later verdict; hold no runner
+        if why == [deferral(waiting)] and deferring(kind, pr, claim) and not all(
+                started(r) for r in api["runs_at_head"] if r["id"] in waiting):
+            bound = 0                           # C3: a waited run's gate is the later verdict; hold no runner
         if ok or now() - t0 + POLL_S > bound:
             break
         if why != [deferral(waiting)]:
@@ -550,6 +562,15 @@ def self_test() -> int:
     late_waiting = [{**early[0], "id": hi, "jobs": {**early[0]["jobs"], "gate": ("waiting", None)}}]
     check("busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is "
           "still deferred to", busy({**ctx, "run_id": lo}, late_waiting), [hi])
+    # #3246 review: the same deferring gate (lo) beside a LATER edit run (hi) still
+    # in its prelude, the code run done. hi's prelude waits on lo (judging() reads
+    # a deferring run busy), so lo's gate must not wait on hi: it publishes at once.
+    for label, hi_jobs in (("still in its prelude", in_prelude),
+                           ("in its prelude, gate listed `waiting` (R3-2)",
+                            in_prelude + [{"name": "gate", "status": "waiting", "conclusion": None, "id": 9}])):
+        get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", hi_jobs)], me=lo, mine=deferred)
+        check(f"prelude/gate cycle: a deferring gate beside a later edit run {label} publishes at once",
+              (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("FAIL " + deferral([hi]), []))
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])
