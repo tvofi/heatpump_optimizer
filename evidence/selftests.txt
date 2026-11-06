@@ -1,0 +1,32 @@
+== tools/audit/seat/outside_intake.py --self-test
+ok   mutant unreadable_swallowed killed by: list: a failed read is UNREADABLE, never a clean board
+ok   mutant discussion_answered killed by: discussions: an outside discussion is listed, and answering one is refused (by hand)
+outside_intake self-test: all checks passed
+rc=0
+== tools/audit/seat/plan_public.py --self-test
+ok   mutant attribution_published killed by: refused, rc 1 and nothing written: a page carrying a tool's attribution
+ok   mutant absent_refused_red killed by: nothing to publish, rc 2 and nothing written: no PLAN.html at the newest ref (an older round's is never taken)
+plan_public self-test: all checks passed
+rc=0
+== tools/audit/seat/beat_jobs.py --self-test
+  ok   mutant need_accepts_empty killed by: a row whose overlay key is empty says so, and runs nothing
+  ok   mutant fold_new_kept_stale killed by: fold: a fold that added nothing empties new.txt, and leaves the stamp
+beat_jobs self-test: 136 checks, 0 failed
+rc=0
+== tools/audit/seat/beatd.py --self-test
+rc=124
+== tools/audit/seat/sweep_render.py --self-test
+  ok   a cited instrument that is not in the tree is refused
+  ok   a cited instrument that exists passes, arguments and all (null control)
+sweep_render self-test: 34 checks, 0 failed
+rc=0
+== tools/audit/seat/selftest_wiring.py --check
+selftest_wiring: 119 self-testing, 119 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+== tools/audit/seat/ref_privacy.py --check
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1083 line(s) added since 28482eceeb6b judged, 0 refused
+rc=0
+== tools/audit/seat/tmp_paths.py --check
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 28482eceeb6b
+rc=0
