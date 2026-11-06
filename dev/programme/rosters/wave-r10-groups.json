@@ -17359,7 +17359,8 @@
     "From r10-replay-cost-budget-r2, body item 98a0cb68: Loop-ruler outlier: job 127310664875 (run 42046303116, PR 3198) read clean `loop_cpu_ratio 0.0594` at `loop_ref_ms 279.78` (others 131-176) and the lane refused it, `budget 0.1278 cannot see a 2x cycle`; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items 98a0cb68)",
     "From r10-replay-cost-budget-r2, body item c7b463d2: The earlier body's window figures (51 jobs, 8 main offenders) do not reproduce: the verdict re-derives 78 jobs, 13 main offenders; the committed draw set and its window grading are in tests/replay.py with `tools/audit/seat/replay_draws.py window`, to be re-run on a listed window with job ids cited. Carry: R10-REPLAY-COST-2 (items c7b463d2)",
     "From r10-replay-cost-budget-r2, body item 891a0e97: The ref24 raise as the centring rule's value, with no control pinning each class budget to the rule over the readings; destination tests/replay.py (the `cycle_cost:class_rule` control now pins the tables to `derive_cost_classes`; whether that closes it is for the carry). Carry: R10-REPLAY-COST-2 (items 891a0e97)",
-    "From r10-replay-cost-budget-r2, body item c0776f1c: `fallback_budget`'s docstring (\"the largest class budget measured for each keyed metric\") versus its code, which keeps COST_BUDGETS' loop figure; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items c0776f1c)"
+    "From r10-replay-cost-budget-r2, body item c0776f1c: `fallback_budget`'s docstring (\"the largest class budget measured for each keyed metric\") versus its code, which keeps COST_BUDGETS' loop figure; destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items c0776f1c)",
+    "From r10-replay-cost-budget-r2, body item c3fe7e15: The stale comment above `COST_CLASS_BUDGETS` (\"69-72 %\"); destination tests/replay.py. Carry: R10-REPLAY-COST-2 (items c3fe7e15)"
    ],
    "resume": {
     "stage": "not-started"
