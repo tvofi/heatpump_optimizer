@@ -228,8 +228,27 @@ relay() {
   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
+  # Names under ev/ that differ only in case: a case-insensitive filesystem (the orchestrator's
+  # macOS) unpacks one over the other, and push-verdict then refuses "no file names the head" --
+  # a cause that reads as a missing file (PR 3061). Refused here by name, on the first tick line.
+  # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
+  local dup; dup=$(git -c core.quotepath=off ls-tree -r --name-only "$sha" -- ev | awk '{
+    n = split($0, p, "/"); q = ""
+    for (i = 1; i <= n; i++) { q = (i == 1 ? p[i] : q "/" p[i]); k = tolower(q)
+      if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }')
+  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
   local out sha2 wt tip tries=0
   wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
+  # DELIVERED GUARD (R10-RELAY-REPLAY): a ledger that is not the one that recorded this probe (a
+  # loop restarted without HPO_STATE_DIR read the stale default) made every probe look unseen, and
+  # 93 were replayed as 92 commits on 56 review refs. Whether review/<pr> already carries this
+  # verdict's tree is asked of the remote, so correctness does not depend on which ledger is read.
+  # The tree list goes to a file: a pipe into an early-exiting reader breaks under pipefail.
+  if tip=$(review_tip "$pr") && [ -n "$tip" ] && git log --format=%T "$tip" > "$d/rtrees" 2>/dev/null && grep -qxF "$wt" "$d/rtrees"; then
+    mkdir -p "$state" && echo "$ref $sha" >> "$led"
+    echo "cloud_relay: review/$pr already carries this verdict's tree (tip ${tip:0:12}); $ref $sha recorded as relayed, nothing pushed"
+    return 0
+  fi
   # A push refused non-fast-forward (review/<pr> moved since push-verdict read its tip) is
   # re-applied: push-verdict reads the fresh tip again and appends the same verdict there,
   # never forcing. A fresh tip that already carries this verdict's tree is not re-applied.
@@ -276,7 +295,9 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
   led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
   # a failed listing leaves the level as it was: unknown is not "nothing owed"
   git ls-remote origin 'refs/heads/probe/*' > "${TMPDIR:-/tmp}/cloud_relay_ls.$$" || { echo "cloud_relay: ls-remote failed; will retry" >&2; rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"; return 0; }
-  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"; : > "$state/cloud-level-refused.$$"
+  mkdir -p "$state"; : > "$state/cloud-level-probe.$$"; : > "$state/cloud-level-refused.$$"; : > "$state/cloud-torelay.$$"
+  # The levels are published before the serial relay loop, which is slow (a fetch and a push per ref):
+  # written only at its end they were missing for a whole pass (2026-10-22, R10-RELAY-SWEEP carry 2).
   while read -r sha ref; do
     [ -n "$ref" ] || continue
     case $ref in refs/heads/probe/rev-*) ;;
@@ -288,6 +309,12 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
       [ -z "$why" ] || disposed "$ref" "$sha" || level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"
       continue
     fi
+    echo "$sha $ref" >> "$state/cloud-torelay.$$"
+  done < "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
+  cp "$state/cloud-level-probe.$$" "$state/cloud-level-probe.$$.k"; cp "$state/cloud-level-refused.$$" "$state/cloud-level-refused.$$.k"
+  level_set probe-ref "$state/cloud-level-probe.$$.k"; level_set probe-refused "$state/cloud-level-refused.$$.k"
+  while read -r sha ref; do
+    [ -n "$ref" ] || continue
     k=${ref#refs/heads/probe/rev-}; pr=${k%%-*}; n8=${k#*-}
     rec=$(awk -v p="$pr" -v n="$n8" '$1 == p && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
     if [ -z "$rec" ]; then echo "$(date -u +%FT%TZ) cloud_relay: $ref $sha has no dispatch record in $bus; leaving it" >&2; continue; fi
@@ -303,8 +330,8 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
       echo "$ref $sha" >> "$led.refused"; echo "$ref $sha $why" >> "$led.refused-why"
       level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo "cloud_relay: REFUSED $ref $sha $why"
     else echo "cloud_relay: relay of $ref $sha failed (rc=$rc, try $n of $max); the next pass retries: $why" >&2; fi
-  done < "${TMPDIR:-/tmp}/cloud_relay_ls.$$"
-  rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$" "$state/cloud-relay-err.$$"
+  done < "$state/cloud-torelay.$$"
+  rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$" "$state/cloud-relay-err.$$" "$state/cloud-torelay.$$"
   level_set probe-ref "$state/cloud-level-probe.$$"; level_set probe-refused "$state/cloud-level-refused.$$"
 }
 
@@ -432,6 +459,30 @@ tools_level() { # <state>: prints the levelled tree's seat directory, or why not
     || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not check out origin/main"; return 2; }  # mut:toolslevel
   echo "$tw/tools/audit/seat"
 }
+body_only_owed() { # <pr> <topic> <body sha> <head> <why>: a body-only handoff left unapplied is owed while its body tip is newer than the head's commit
+  local bt ht; git fetch -q origin "refs/heads/handoff-body/$2" 2>/dev/null
+  bt=$(git log -1 --format=%ct "$3" 2>/dev/null) && ht=$(git log -1 --format=%ct "$4" 2>/dev/null) && [ "$bt" -gt "$ht" ] || return 1
+  echo "cloud_relay: BODY-ONLY #$1 handoff-body/$2 ${3:0:12} is newer than head ${4:0:12} and not applied: $5"
+  level_line handoff-body-unapplied "refs/heads/handoff-body/$2" "$3" "#$1 $5" >> "$state/cloud-level-bodyonly.$$"
+}
+handoff_level() { # the handoff-no-pr and hold-stale levels, derived from this pass's listings (called before the serial update loop)
+  local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} l
+  # a hold-file line whose PR is no longer open (merged or closed) is stale: it holds nothing and is never expired
+  : > "$state/cloud-level-holdstale.$$"
+  for l in $held_prs; do
+    grep -qxF "$l" <<< "$(cut -f1 "$state/cloud-prs.$$")" || level_line handoff-hold-stale "$(hold_file)" "#$l" "PR #$l is not open; remove the line" >> "$state/cloud-level-holdstale.$$"
+  done
+  level_set handoff-hold-stale "$state/cloud-level-holdstale.$$"
+  cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
+  { if [ -n "${HPO_RELAY_MERGED:-}" ]; then "$HPO_RELAY_MERGED"
+    else gh pr list -R "$repo" --state merged --limit 200 --json headRefName,mergedAt \
+      -q '.[] | [.headRefName, .mergedAt] | @tsv'; fi; } > "$state/cloud-merged.$$" \
+    || { echo "cloud_relay: could not list merged PRs; the handoff level stays as it was" >&2; return 0; }
+  awk -F'\t' 'NF == 2 { t = $1; sub(/^fix\//, "", t); sub(/-pr$/, "", t); print t " merged=" $2 }' "$state/cloud-merged.$$" >> "$state/cloud-topics.$$"
+  ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
+  case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
+    *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
+}
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
   local bf bonly key seed=""
@@ -454,7 +505,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
   git ls-remote origin 'refs/heads/verdict/*' > "$state/cloud-vrefs.$$" \
     || { echo "cloud_relay: could not list verdict refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-vrefs.$$"; return 0; }
-  : > "$state/cloud-level-update.$$"; : > "$state/cloud-level-held.$$"; : > "$state/cloud-level-stale.$$"
+  : > "$state/cloud-level-update.$$"; : > "$state/cloud-level-held.$$"; : > "$state/cloud-level-stale.$$"; : > "$state/cloud-level-bodyonly.$$"
+  handoff_level
   while IFS=$'\t' read -r pr br head; do
     [ -n "$pr" ] || continue
     topic=${br#fix/}; topic=${topic%-pr}
@@ -469,7 +521,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       grep -qxF "$topic $bs" "$bf" && continue
       [ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }
       bonly=1; fi
-    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; continue; fi
+    if grep -qxF "$pr" <<< "$held_prs"; then echo "cloud_relay: HELD #$pr $hs"; [ -z "$bonly" ] || body_only_owed "$pr" "$topic" "$bs" "$head" "held by the hold file" || :; continue; fi
     # a body-only move leaves the head under review where it is, so no review freezes it
     if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
       echo "cloud_relay: HELD-${why%% *} #$pr $hs${why#"${why%% *}"} (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
@@ -498,7 +550,16 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     fi
     # A body-only move is made with the body pushed for this head: one with no `Code:` line, which
     # predates the trailer, is recorded as applied and left alone, as before this arm existed.
-    if [ -n "$bonly" ] && [ -z "$code" ]; then echo "$topic $bs" >> "$bf"; rm -rf "$bd"; continue; fi
+    if [ -n "$bonly" ] && [ -z "$code" ]; then
+      # owed (and not recorded) while the body is newer than the head: its return must not be skipped in silence (P288)
+      body_only_owed "$pr" "$topic" "$bs" "$head" "its body carries no Code: trailer" || echo "$topic $bs" >> "$bf"
+      rm -rf "$bd"; continue; fi
+    # HELD-BODY: a code push precedes its body push, so a handoff ahead of its own body is partial work.
+    # The body must name the tip (its first 8 characters), else the update waits for the next pass.
+    if [ -z "$bonly" ] && ! grep -qF "${hs:0:8}" "$body"; then
+      echo "cloud_relay: HELD-BODY #$pr ${hs:0:8}"
+      level_line handoff-held "refs/heads/handoff/$topic" "$hs" "#$pr BODY" >> "$state/cloud-level-held.$$"; rm -rf "$bd"; continue
+    fi
     iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
     if [ -n "$bonly" ]; then echo "$(date -u +%FT%TZ) cloud_relay: handoff-body/$topic $bs is new for #$pr $head; body-only"
     else echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"; fi
@@ -548,19 +609,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
   level_set handoff-update "$state/cloud-level-update.$$"
   level_set handoff-held "$state/cloud-level-held.$$"
   level_set handoff-body-stale "$state/cloud-level-stale.$$"
-  # a handoff or handoff-body ref whose topic has no open PR is OWED on every pass until disposed
-  cut -f2 "$state/cloud-prs.$$" | sed -e 's,^fix/,,' -e 's,-pr$,,' > "$state/cloud-topics.$$"
-  # and the merged ones, `<topic> merged=<utc>`: a merge closes a handoff committed by then (RCA section 5.1)
-  { if [ -n "${HPO_RELAY_MERGED:-}" ]; then "$HPO_RELAY_MERGED"
-    else gh pr list -R "$repo" --state merged --limit 200 --json headRefName,mergedAt \
-      -q '.[] | [.headRefName, .mergedAt] | @tsv'; fi; } > "$state/cloud-merged.$$" \
-    || { echo "cloud_relay: could not list merged PRs; the handoff level stays as it was" >&2
-         rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"; return 0; }
-  awk -F'\t' 'NF == 2 { t = $1; sub(/^fix\//, "", t); sub(/-pr$/, "", t); print t " merged=" $2 }' "$state/cloud-merged.$$" >> "$state/cloud-topics.$$"
-  # The level is ledger.py's fold (rc 0 none owed, 1 owed, 2 unreadable: the level stays as it was).
-  ledger level "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" > "$state/cloud-level-handoff.$$"
-  case $? in 0|1) level_set handoff-no-pr "$state/cloud-level-handoff.$$";;
-    *) echo "cloud_relay: the ledger could not derive the handoff level; it stays as it was" >&2; rm -f "$state/cloud-level-handoff.$$";; esac
+  level_set handoff-body-unapplied "$state/cloud-level-bodyonly.$$"
   rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"
 }
 
@@ -650,7 +699,9 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
     --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
     *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
   case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
-  while :; do handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
+  while :; do
+    echo "cloud_relay: state dir ${HPO_STATE_DIR:-$HOME/.local/state/hpo}, ledger ${HPO_STATE_DIR:-$HOME/.local/state/hpo}/cloud-relayed, log $(relay_log)"
+    handoff_arm; probe_arm; [ -z "${CONFIRM:-}" ] || confirm_arm; stuck_arm; noreturn_arm; [ -z "$loop" ] && return 0; sleep "$every"; done
 }
 
 self_test() {
@@ -874,7 +925,7 @@ EOF
   unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
   prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
   hc() { git -C "$t/pr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
-  mkref() { git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/$1"; }
+  mkref() { git -C "$t/o.git" fetch -qf "$t/pr" "HEAD:refs/heads/$1"; [ "$1" = handoff/topic-a ] && [ -f "$t/b/BODY.md" ] && mkref2; return 0; }
   rm -rf "$t/m"; throwaway_git_init "$t/m" -q; git -C "$t/m" -c user.name=t -c user.email=t@t commit -q --allow-empty -m main
   git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"
   rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
@@ -892,7 +943,10 @@ EOF
   chk "a handoff with no body ref does nothing" 0 test ! -e "$t/updated"
   # a handoff ahead of its PR fires the arm
   rm -rf "$t/b"; throwaway_git_init "$t/b" -q; printf 'Part of #201\n\nCloses #77 and fixes #78.\n' > "$t/b/BODY.md"
-  git -C "$t/b" add BODY.md; git -C "$t/b" -c user.name=t -c user.email=t@t commit -qm body; mkref2() { git -C "$t/o.git" fetch -qf "$t/b" "HEAD:refs/heads/handoff-body/topic-a"; }; mkref2
+  git -C "$t/b" add BODY.md; git -C "$t/b" -c user.name=t -c user.email=t@t commit -qm body; mkref2() { # the body names the handoff tip it is pushed against (HELD-BODY otherwise)
+    { grep -v '^Code head: ' "$t/b/BODY.md"; echo "Code head: $(git -C "$t/o.git" rev-parse refs/heads/handoff/topic-a)"; } > "$t/b/BODY.new"; mv "$t/b/BODY.new" "$t/b/BODY.md"
+    git -C "$t/b" diff --quiet || git -C "$t/b" -c user.name=t -c user.email=t@t commit -qa --amend --no-edit
+    git -C "$t/o.git" fetch -qf "$t/b" "HEAD:refs/heads/handoff-body/topic-a"; }; mkref2
   handoff_arm >/dev/null 2>&1
   chk "a handoff ahead of its PR runs update_pr with branch and code sha" 0 grep -q "^fix/topic-a-pr $HS " "$t/updated"
   chk "the issues come from the body's closing keywords" 0 grep -q " 77 78 *$" "$t/updated"
@@ -1150,7 +1204,7 @@ EOF
   chk "and runs no update and owes handoff-held" 0 test "$([ -e "$t/hupdated" ] && echo ran)-$(grep -c "handoff-held refs/heads/handoff/topic-a $HS3 #41 VERDICT\$" "$LOG.level")" = -1
   git -C "$t/o.git" update-ref refs/heads/handoff/topic-a "$HS2"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41
   git -C "$t/pr" reset -q --hard "$PRH"; mv "$t/bus/dispatched.bo" "$t/bus/dispatched"; rm -f "$t/hupdated"
-  rm -f "$t/hupdated"; bodyc; handoff_arm >/dev/null 2>&1
+  rm -f "$t/hupdated"; GIT_COMMITTER_DATE="@1000000000 +0000" bodyc; handoff_arm >/dev/null 2>&1  # a body not newer than the head's commit
   chk "a contained body with no Code: line runs nothing, and is recorded applied" 0 test ! -e "$t/hupdated" -a "$(tail -n 1 "$BF")" = "topic-a $(bsha)"
   bodyc "$HS"; ho=$(handoff_arm 2>&1)
   chk "a contained body naming another code head runs nothing and is owed stale" 0 test ! -e "$t/hupdated" -a "$(grep -c "handoff-body-stale refs/heads/handoff/topic-a $HS2 body names ${HS:0:12}\$" "$LOG.level")" = 1
@@ -1208,6 +1262,71 @@ EOF
   mv "$t/dispositions.tsv" "$t/disp.bak"; mkdir "$t/dispositions.tsv"; handoff_arm >/dev/null 2>&1
   chk "an unreadable ledger leaves the handoff level as it was (rc 2 is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
   rmdir "$t/dispositions.tsv"; mv "$t/disp.bak" "$t/dispositions.tsv"
+  # HELD-BODY, BODY-ONLY, a stale hold line, and the levels published before a slow update or relay.
+  # topic-h: head A (PR 51); handoff tip B ahead of it, then C (the head, holding B). Dates are fixed.
+  hx=$t/hx; hbd=$t/hbd; hprs=$t/hprs.sh; hslow=$t/hslow.sh; hid=(-c user.name=t -c user.email=t@t)
+  hxc() { GIT_COMMITTER_DATE="@$2 +0000" git -C "$hx" "${hid[@]}" commit -q --allow-empty -m "$1"; git -C "$hx" rev-parse HEAD; }
+  hbc() { GIT_COMMITTER_DATE="@$1 +0000" git -C "$hbd" "${hid[@]}" commit -q --allow-empty -m "body $1 ${2-}" ${2:+-m "Code: $2"}
+    git -C "$t/o.git" fetch -qf "$hbd" HEAD:refs/heads/handoff-body/topic-h; }
+  hlv() { grep -c "$1" "$LV"; }
+  rm -rf "$hx" "$hbd"; throwaway_git_init "$hx" -q; throwaway_git_init "$hbd" -q
+  HA=$(hxc a 1700000000); git -C "$t/o.git" fetch -qf "$hx" HEAD:refs/heads/fix/topic-h-pr
+  HB=$(hxc b 1700000100); git -C "$t/o.git" fetch -qf "$hx" HEAD:refs/heads/handoff/topic-h
+  printf '#!/bin/sh\nprintf "51\\tfix/topic-h-pr\\t%%s\\n" "$HX_HEAD"\n' > "$hprs"; chmod +x "$hprs"; export HX_HEAD=$HA
+  printf 'Code head: %s\n' "${HA:0:8}" > "$hbd/BODY.md"; git -C "$hbd" add BODY.md; hbc 1700000150 >/dev/null
+  rm -f "$t/hupdated" "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why" "$hf"; : > "$LOG"; rm -f "$LV"; HPO_RELAY_UPDATE=$hu
+  ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+  chk "a handoff ahead of its PR whose body names the old tip prints HELD-BODY once per pass" 0 test "$(grep -c "^cloud_relay: HELD-BODY #51 ${HB:0:8}\$" <<< "$ho")" = 1
+  chk "and runs no update and owes one handoff-held line with why BODY" 0 test "$([ -e "$t/hupdated" ] && echo ran)-$(hlv "handoff-held refs/heads/handoff/topic-h $HB #51 BODY\$")" = -1
+  printf 'Code head: %s\n' "${HB:0:8}" > "$hbd/BODY.md"; git -C "$hbd" add BODY.md; hbc 1700000160 >/dev/null
+  ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+  chk "once the body names the new tip the update runs (null control)" 0 grep -q "^fix/topic-h-pr $HB\$" "$t/hupdated"
+  chk "and prints no HELD-BODY and owes no handoff-held (null control)" 0 test "$(grep -c HELD-BODY <<< "$ho")-$(hlv handoff-held)" = 0-0
+  # carry 3: the head holds the handoff tip (C is B's child) and a body with no Code: line is newer than it
+  HC=$(hxc c 1700000200); git -C "$t/o.git" fetch -qf "$hx" HEAD:refs/heads/fix/topic-h-pr; export HX_HEAD=$HC
+  rm -f "$t/hupdated"; hbc 1700000300 >/dev/null
+  ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1); HPO_RELAY_PRS=$hprs handoff_arm >/dev/null 2>&1
+  chk "a body-only handoff with a body newer than the head prints BODY-ONLY once per pass" 0 test "$(grep -c "^cloud_relay: BODY-ONLY #51 " <<< "$ho")" = 1
+  chk "runs nothing and owes exactly one handoff-body-unapplied line after two passes" 0 test "$([ -e "$t/hupdated" ] && echo ran)-$(hlv "handoff-body-unapplied refs/heads/handoff-body/topic-h ")" = -1
+  hbc 1700000150 >/dev/null; ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+  chk "null control: a body committed before the head's commit prints no BODY-ONLY" 1 grep -q BODY-ONLY <<< "$ho"
+  chk "and owes no handoff-body-unapplied" 0 test "$(hlv handoff-body-unapplied)" = 0
+  printf '51\n' > "$hf"; hbc 1700000310 >/dev/null; ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+  chk "held by the hold file, a newer body-only body prints HELD and BODY-ONLY once each" 0 test "$(grep -c "^cloud_relay: HELD #51 " <<< "$ho")-$(grep -c "^cloud_relay: BODY-ONLY #51 .*held by the hold file" <<< "$ho")" = 1-1
+  chk "and owes one handoff-body-unapplied line" 0 test "$(hlv "handoff-body-unapplied .*#51 held by the hold file")" = 1
+  hbc 1700000150 >/dev/null; ho=$(HPO_RELAY_PRS=$hprs handoff_arm 2>&1)
+  chk "null control: held, with a body older than the head, prints no BODY-ONLY and owes nothing" 0 test "$(grep -c BODY-ONLY <<< "$ho")-$(hlv handoff-body-unapplied)" = 0-0
+  # a hold-file line for a PR that is not open is stale; one for an open PR is not
+  printf '51\n99\n' > "$hf"; HPO_RELAY_PRS=$hprs handoff_arm >/dev/null 2>&1
+  chk "a hold line for a PR not among the open PRs owes handoff-hold-stale" 0 test "$(hlv "handoff-hold-stale [^ ]* #99 ")" = 1
+  chk "a hold line for an open PR does not (null control)" 0 test "$(hlv "handoff-hold-stale [^ ]* #51 ")" = 0
+  rm -f "$hf"; HPO_RELAY_PRS=$hprs handoff_arm >/dev/null 2>&1
+  chk "and the stale line is gone with the hold line" 0 test "$(hlv handoff-hold-stale)" = 0
+  # carry 2: the levels are published before the slow serial loop. The update stub blocks until released.
+  git -C "$t/o.git" update-ref refs/heads/handoff/topic-h "$HB"; git -C "$t/o.git" update-ref refs/heads/handoff/topic-o "$HB"
+  export HX_HEAD=$HA; git -C "$t/o.git" update-ref refs/heads/fix/topic-h-pr "$HA"
+  printf 'Code head: %s\n' "${HB:0:8}" > "$hbd/BODY.md"; git -C "$hbd" add BODY.md; hbc 1700000320 >/dev/null
+  printf '#!/bin/sh\necho "$1" > "%s/slow.started"\nwhile [ ! -e "%s/slow.go" ]; do sleep 0.1; done\n' "$t" "$t" > "$hslow"; chmod +x "$hslow"
+  rm -f "$t/slow.started" "$t/slow.go" "$LV"; HPO_RELAY_UPDATE=$hslow HPO_RELAY_PRS=$hprs handoff_arm >/dev/null 2>&1 & hp=$!
+  for _ in $(seq 100); do [ -e "$t/slow.started" ] && break; sleep 0.1; done
+  chk "while the update runs, the handoff-no-pr line for an orphan handoff ref is already on the level" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-o $HB " "$LV"
+  chk "and the run is in flight (the stub has started)" 0 test -e "$t/slow.started"
+  : > "$t/slow.go"; wait "$hp"; rm -f "$t/slow.go" "$t/slow.started"
+  git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-o
+  # probe_arm: the probe-ref level (a non-rev probe ref) is published before a slow relay push
+  cp "$t/bus/dispatched" "$t/bus/dispatched.h"; rm -f "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.tries" "$LV"
+  mk 5 $h $h $n; printf '5 %s thread %s\n' "$h" "$n" >> "$t/bus/dispatched"
+  git -C "$t/o.git" update-ref refs/heads/probe/odd "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-5-${n:0:8})"
+  printf '#!/bin/sh\necho "$1" > "%s/slow.started"\nwhile [ ! -e "%s/slow.go" ]; do sleep 0.1; done\nexec "%s" "$@"\n' "$t" "$t" "$stub" > "$hslow"
+  HPO_RELAY_PUSH=$hslow probe_arm >/dev/null 2>&1 & hp=$!
+  for _ in $(seq 100); do [ -e "$t/slow.started" ] && break; sleep 0.1; done
+  chk "while the relay push runs, the probe-ref line is already on the level" 0 grep -q "probe-ref refs/heads/probe/odd " "$LV"
+  chk "and the push is in flight" 0 test -e "$t/slow.started"
+  : > "$t/slow.go"; wait "$hp"; rm -f "$t/slow.go" "$t/slow.started"
+  mv "$t/bus/dispatched.h" "$t/bus/dispatched"; rm -f "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused" "$t/state/cloud-relayed.tries"
+  git -C "$t/o.git" update-ref -d refs/heads/probe/odd; git -C "$t/o.git" update-ref -d refs/heads/probe/rev-5-${n:0:8}
+  for r in fix/topic-h-pr handoff/topic-h handoff-body/topic-h; do git -C "$t/o.git" update-ref -d refs/heads/$r; done
+  unset HX_HEAD; HPO_RELAY_UPDATE=$hu; rm -f "$t/hupdated" "$hf"
   git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b; : > "$LOG"
   chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
   HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
@@ -1353,7 +1472,7 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
     done
     cp "$LOG.level" "$t/stuck.level"
     # one more pass with every lock released: a released lock is never reported
-    stuck_free=$(stuckrun)
+    stuck_free=$(stuckrun | grep -v "^cloud_relay: state dir ")
   }
   stuckpass
   chk "a held branch lock aged 901 s by its recorded start is STUCK, naming branch, run pid and age" \

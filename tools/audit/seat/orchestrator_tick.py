@@ -1030,6 +1030,15 @@ class Tick:
                 level = [r.strip() for r in fh if r.startswith("OWED ")]
         except FileNotFoundError:
             level = []
+            try:
+                with open(self.relay_log, encoding="utf-8", errors="replace") as fh:
+                    n = sum(1 for r in fh if r.startswith("OWED ") and " handoff-no-pr " in r)
+            except OSError:
+                n = 0
+            if n > 0:
+                self.line(S, f"GAP: {self.relay_log} holds {n} handoff-no-pr OWED line(s) but "
+                             f"{self.relay_log}.level does not exist: the relay has not published its level",
+                          flag=True)
         except OSError as e:
             level = []
             self.unreadable(S, "cloud-relay level", str(e)[:100])

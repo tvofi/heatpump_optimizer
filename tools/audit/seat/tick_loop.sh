@@ -62,6 +62,7 @@ HERE=$(cd "$(dirname -- "$0")" && pwd)
 # <out>.relay.rc. Only this process holds the lock fd, so it frees on the holder's
 # exit however that comes. 76: a finished relay's rc is not yet reaped; start none.
 RELAY_HOLDER='import fcntl, os, subprocess, sys, time
+os.setpgid(0, 0)  # own process group: a group signal to the stopped loop leaves an in-flight relay to write its rc
 r = sys.argv[1]
 f = open(r + ".lock", "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
