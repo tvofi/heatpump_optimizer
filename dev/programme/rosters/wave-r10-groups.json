@@ -16959,8 +16959,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3230
+    "stage": "done",
+    "pr": 3230,
+    "commit": "24547e39a7af4ab9ebf9cad3c2d1aaefb8adef37"
    },
    "group": "R10-CI-SLIM",
    "lane": "C",
@@ -17101,7 +17102,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3236
    },
    "brief": "A hand-made tag poisons the stamp: v7.1.2 was tagged by hand at b8e823699 with VERSION 7.1.1 (the ruleset was disabled for the push, 2026-11-02 21:07:36Z to 21:08:07Z), published 21:16Z with 19 downloads, so stamp.py bumped from VERSION 7.1.1 and Rule 3 refused the existing tag, and the window, rule 4 and the disposition gate read a tag that is not a stamp. Keep v7.1.2; nothing is deleted. (1) tools/release/stamp.py: add two pure functions: a base-bump function of (current VERSION, tag list) returning the greater of VERSION and the highest TAG_RE v* tag, and a last-stamped-tag function of the tag list returning the newest tag whose tree VERSION equals its name. (2) main() feeds the base-bump result into next_version, computed after Rule 1's fetch --tags; window_log_args, rule4_problem and disposition_gate use the last-stamped-tag result; Rule 3's exists-refusal stays as a backstop. (3) Pin in self_test: the base bump of '7.1.1' with ['v7.1.1','v7.1.2'] is '7.1.2' (so the next version is 7.1.3); the null case ['v7.1.1'] gives '7.1.1'; non-release tags (v6.2.15-rc1) are ignored; the last-stamped-tag function skips a tag whose tree VERSION differs from its name; and a source-order pin on main() (the bump base is computed after the tag fetch and before next_version). Each pin fails first on the unrepaired code, with a mutation proof and a null control. (4) .github/workflows/release.yml: before the 'Create the GitHub release' step add a step that refuses unless v$(cat VERSION) equals the tag, the manifest version matches, and RELEASE_NOTES.md has a '## <tag>' section. Prove it with v7.1.2's tree as the failing case and the stamp-era tags (v7.1.0, v7.1.1) as the null control. (5) Add a short retry to the publish step's asset read-back, which raced the upload. Critical path: this blocks the v7.1.3 stamp. Never touch VERSION, the manifest version or the RELEASE_NOTES heading in the branch. Source: the root-cause seat's findings, relayed by the orchestrator."
   }
