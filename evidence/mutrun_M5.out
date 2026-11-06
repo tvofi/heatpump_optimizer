@@ -1,5 +1,0 @@
-MUTANT M5 base=HEAD file=custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js matches=1
-  node tests/card.mjs: rc=0
-  PLAYWRIGHT_BROWSERS_PATH=/opt/pw-browsers node tests/card_browser.mjs: rc=1
-      FAIL  a house with wood configured carries the disclaimer, painted within a phone's width
-    1 BROWSER CHECK(S) FAILED

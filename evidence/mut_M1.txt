@@ -1,8 +1,0 @@
-MUTANT M1 base=HEAD file=custom_components/heatpump_optimizer/ledger.py matches=1
-  python3 tests/features.py: rc=1
-      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
-      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
-      FAIL with wood configured a meter under the plan earns its saving: the calibration does not cancel it  [{1.0: 50.0, 0.5: 50.0, 0.25: 50.0}]
-      FAIL with wood configured a model that under-reads the meter is still corrected, and the row publishes what it applied  [{'month': '2026-02', 'baseline_sek': 72.0, 'actual_sek': 36.0, 'savings_sek': 36.0, 'savings_pct': 50.0, 'old_basis': False, 'estimated': False, 'meter_calibration': 1.5, 'store
-      FAIL the coordinator publishes the wood floor from the house's configuration, and no floor without wood  [(50.0, 50.0)]
-      ok   a pump command that FAILED is not remembered as done
