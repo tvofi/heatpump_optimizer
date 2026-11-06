@@ -1313,8 +1313,8 @@ EOF
   # HELD-BODY, BODY-ONLY, a stale hold line, and the levels published before a slow update or relay.
   # topic-h: head A (PR 51); handoff tip B ahead of it, then C (the head, holding B). Dates are fixed.
   hx=$t/hx; hbd=$t/hbd; hprs=$t/hprs.sh; hslow=$t/hslow.sh; hid=(-c user.name=t -c user.email=t@t)
-  hxc() { GIT_COMMITTER_DATE="@$2 +0000" git -C "$hx" "${hid[@]}" commit -q --allow-empty -m "$1"; git -C "$hx" rev-parse HEAD; }
-  hbc() { GIT_COMMITTER_DATE="@$1 +0000" git -C "$hbd" "${hid[@]}" commit -q --allow-empty -m "body $1 ${2-}" ${2:+-m "Code: $2"}
+  hxc() { GIT_COMMITTER_DATE="@$2 +0000" git -C "$hx" "${hid[@]}" commit -q --allow-empty -m "$1"; git -C "$hx" rev-parse HEAD; }  # never-empty: hid is assigned three words on line 1315
+  hbc() { GIT_COMMITTER_DATE="@$1 +0000" git -C "$hbd" "${hid[@]}" commit -q --allow-empty -m "body $1 ${2-}" ${2:+-m "Code: $2"}  # never-empty: hid is assigned three words on line 1315
     git -C "$t/o.git" fetch -qf "$hbd" HEAD:refs/heads/handoff-body/topic-h; }
   hlv() { grep -c "$1" "$LV"; }
   rm -rf "$hx" "$hbd"; throwaway_git_init "$hx" -q; throwaway_git_init "$hbd" -q
