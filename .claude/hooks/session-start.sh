@@ -122,6 +122,21 @@ report() {
   printf 'toolchain:      %s\n' "$(toolchain)"
 }
 
+role_pack() { # the `role pack:` line, printed only when HPO_SEAT_ROLE is set
+  # tools/policy/role_pack.py says why the pack is a file and not this stdout.
+  local role=$1 out err
+  out=$(git rev-parse --git-path "role-pack-$role.md" 2>/dev/null) || out=
+  if [ -z "$out" ]; then
+    printf 'role pack:      REFUSE -- no git directory to write it in; read your contract and INSTRUMENTS.md as before\n'; return
+  fi
+  if err=$(python3 -I tools/policy/role_pack.py render "$role" --out "$out" 2>&1 </dev/null); then
+    printf 'role pack:      %s -- %s chars: your dev/governance/roles/ contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim; read it once in place of those files\n' \
+      "$out" "$(wc -c < "$out" | tr -d ' ')"
+  else
+    printf 'role pack:      REFUSE -- %s; read your contract and INSTRUMENTS.md as before\n' "$(printf '%s' "$err" | tail -1)"
+  fi
+}
+
 if [ "${1:-}" = "--env-lines" ]; then
   env_lines; exit 0
 fi
@@ -180,10 +195,25 @@ if [ "${1:-}" = "--self-test" ]; then
   else
     fail=$((fail+1)); printf '  FAIL %s\n' "the claimnotes merge driver is configured after a run"
   fi
+  # THE ROLE PACK (tools/policy/role_pack.py). Unset, the hook prints exactly
+  # what it printed before the pack existed: the same run with the variable
+  # set must be that output plus one `role pack:` line, and nothing else.
+  unset_out=$(env -u HPO_SEAT_ROLE bash "$0" </dev/null)
+  set_out=$(HPO_SEAT_ROLE=fixer bash "$0" </dev/null)
+  ans "$(printf '%s\n' "$unset_out" | grep -c '^role pack:')" "0" "unset, no role pack line is printed"
+  ans "$set_out" "$unset_out
+role pack:      " "set, the output is the unset output plus one role pack line"
+  ans "$(printf '%s\n' "$set_out" | grep -c '^role pack:')" "1" "set, exactly one role pack line"
+  ans "$(printf '%s\n' "$set_out" | wc -l | tr -d ' ')" "$(( $(printf '%s\n' "$unset_out" | wc -l) + 1 ))" "set, one line more than unset, and no other"
+  P=$(git rev-parse --git-path role-pack-fixer.md)
+  ans "$(python3 -I tools/policy/role_pack.py check fixer --pack "$P" 2>&1 | head -1)" "ok   fixer:" "the pack the line names checks clean as the fixer's"
+  ans "$(HPO_SEAT_ROLE=planner bash "$0" </dev/null | tail -1)" "role pack:      REFUSE -- " "an unknown role prints a REFUSE line and still starts"
+  ans "$(python3 -I tools/policy/role_pack.py --self-test 2>&1 | tail -1 | sed -n 's/^[1-9][0-9]* passed, \([0-9]*\) failed$/\1/p')" "0" "role_pack.py's self-test passes: every role clean, every rule's mutant refused"
   printf '\n%s passed, %s failed\n' "$pass" "$fail"
   [ "$fail" -eq 0 ] || exit 2
   exit 0
 fi
 
 report
+[ -n "${HPO_SEAT_ROLE:-}" ] && role_pack "$HPO_SEAT_ROLE"
 exit 0
