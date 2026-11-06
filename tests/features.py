@@ -72326,6 +72326,26 @@ R.check(
     f"{_df_wh_seen}",
 )
 
+# The same slot in a degF instance: min_temp/max_temp are read in the
+# instance's unit and converted, so the range and the arbiter's clamp ceiling
+# are the degC figures, not the raw 86/149 -- the domain has to be an
+# attribute-target one for the unit to be applied at all.
+_df_wh_f = _df_wh(temperature=140.0, min_temp=86.0, max_temp=149.0)
+_df_wh_f_hass = _df_hass({"water_heater.dhw": _df_wh_f}, _DF)
+_df_wh_f_seen = {
+    "range": inputs_mod.setpoint_range_c(_df_wh_f_hass, "water_heater.dhw"),
+    "clamp above max": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 70.0),
+    "clamp below min": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 20.0),
+}
+R.check(
+    "a water_heater DHW set-point on a degF instance reads its range in "
+    "degC and is clamped to it",
+    _df_wh_f_seen == {
+        "range": (30.0, 65.0), "clamp above max": 65.0, "clamp below min": 30.0,
+    },
+    f"{_df_wh_f_seen}",
+)
+
 
 # An unconfigured set-point slot is ``None`` (or empty), and Home Assistant's
 # StateMachine.get does ``self._states_data.get(entity_id) or
