@@ -1,0 +1,24 @@
+84c84
+< - **R10-HANDOFF-PATH carry 8 owns the rest of that key:** `(topic, handoff sha, body sha)`, so a body
+---
+> - **R10-HANDOFF-PATH carry 9 owns the rest of that key:** `(topic, handoff sha, body sha)`, so a body
+102c102
+<   never kept (15 rows of 94, carry 8's "unrecoverable").
+---
+>   never kept (15 rows of 94, carry 9's "unrecoverable").
+123c123
+< - About 10 lines in `handoff_arm` of `tools/audit/seat/cloud_relay.sh`, beside carry 8's edit to the same
+---
+> - About 10 lines in `handoff_arm` of `tools/audit/seat/cloud_relay.sh`, beside carry 9's edit to the same
+133c133
+<   arm, and R10-HANDOFF-PATH carry 5 names the driver, so the relay's half is on nobody's list
+---
+>   arm, and R10-HANDOFF-PATH carry 6 names the driver, so the relay's half is on nobody's list
+143,144c143,146
+<   relay had refused it. In `handoff_arm`, with carry 8's reason kept: a refusal whose step is `unpinned
+<   sites`, `carry` or another body-content step stays recorded until the body ref moves (carry 8's key). Any
+---
+>   relay had refused it. In `handoff_arm`, with carry 9's reason kept: a refusal whose step is `unpinned
+>   sites`, `carry` or another body-content step stays recorded until the body ref moves (carry 9's key). This narrows carry 9's
+>   sentence "Only content refusals (prepr REFUSE) stay recorded failed" by splitting body-content refusals
+>   from retryable steps; it adds no second rule. Any

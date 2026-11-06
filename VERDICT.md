@@ -1,20 +1,18 @@
-Fix review: blocked 1570415e53f8ca862d146d23b59299771f8218ae citation-wrong: carry numbers 5 and 8 on R10-HANDOFF-PATH do not match the roster
+Fix review: merge 93f6ce5c391c49e0853dde6cf96430fe265f798f
 
-bus-nonce: 310f4a1d81e1a6de9b3ad929406466e0
+bus-nonce: 7166a6d725268ec89bb69ad3e0a24f0f
 
-## Block
-Round 1. P385 cites two carries of R10-HANDOFF-PATH by number, at the roster branch it names (`37843c16d`, and the live tip `bb2f7a1d9` numbers them the same; 11 carries at both):
-- "carry 8 owns the rest of that key: (topic, handoff sha, body sha)", "carry 8's key", "carry 8's reason kept", "carry 8's 'unrecoverable'". Carry 8 is the P362 `pr_tools_fresh` / STALE CHECKOUT carry. The key text and the "unrecoverable" count (28 entries) are in **carry 9**.
-- "R10-HANDOFF-PATH carry 5 names the driver". Carry 5 is the #3052 `max_class_loc` merge carry. The driver (`driver4.py`, seen2.txt) is **carry 6** (also 11).
-The "carry 8's key" wording is inside the "Carry text for R10-HANDOFF-PATH" block, which roster_edit.py will paste into the roster, so the wrong number would land in a durable carry that points a fixer at the P362 carry. Fix: carry 9 for the key, carry 6 for the driver (and check 11), then re-push.
-
-Also state, once corrected: carry 9 already says "Only content refusals (prepr REFUSE) stay recorded failed"; the new text should say it narrows that sentence by splitting body-content from retryable steps, so a fixer does not read two rules.
+Delta review of record PR 3210 (ruling text only), 1570415e to the head. Round 1 blocked on citation-wrong; that is now repaired.
 
 ## Evidence
-- Head measured: 1570415e53f8ca862d146d23b59299771f8218ae; docs-only diff (triage entry + delivery row), no production code, no mutation proof owed.
-- Verified against the tree: train.sh 484 lines, lines 403-406 and 446-451 read only the HPO_STATE_DIR default; shims/seat-python3 line 28 tries $STATE then default; update_pr.sh line 36 venv path; cloud_relay.sh 478-483 key skip, line 480 grep; open_driver.py line 11 quote; R10-HANDOFF-PATH exists, stage not-started, after empty. P375/P376 are taken on main (s6-batch115.md), P383 only on handoff/triage-s12-batch119, P384/P385 free everywhere.
-- Verdict grammar, ACCEPT destination and the ACCEPT rule run are present; capped-file --budgets statements are present; roles dir unchanged vs main.
-- Not re-derivable here: all session-local figures (transcript refusal counts, driver4/relay logs, the 22-of-45 table, minutes); the host has no ~/.local/state/hpo/venv-ci. The arithmetic inside the tables is consistent (22+23=45; 2+3+1=6; 18+36=54; 5+31=36).
-- figure_lint: 1 not verified (a quoted git diff --stat in the checker's own text), 0 refused. carry_audit: 0 findings.
-- merge-tree origin/main vs head: clean (rc 0). Delivery row present.
-- CI at this head: classify printed WAIT (pending, gate red: none) at review time; the block is on content, not CI.
+- Roster read: origin/handoff/audit-r10-roster at ed1e31e1a0c78ab449ea8373bc81ec8f5febf865, dev/programme/rosters/wave-r10-groups.json; R10-HANDOFF-PATH holds 16 carries.
+- Carry 9 is the P22 text: key (topic, handoff sha, body sha), "Only content refusals (prepr REFUSE) stay recorded failed", "28 permanent ... unrecoverable for all 28". The head cites carry 9 at lines 84, 102, 123, 143 and 144, all right.
+- Carry 6 is the driver4.py / seen2.txt text. The head cites carry 6 at line 133, right. Carry 8 is pr_tools_fresh and carry 5 is the structure.py/#3052 text, so the old numbers were wrong. Carry 11 is stem(), unrelated to the driver, and is not cited.
+- The delta (ev/delta-1570415e-to-head.diff) changes only these citations plus the narrowing sentence. Nothing else in the file moved.
+- Paste block (lines 140 to 150 of the head file) uses carry 9 throughout and carries no stray number. The roster's own carry 13 already holds the same text with carry 9.
+- Narrowing sentence present at head lines 144 to 146: it narrows carry 9's "Only content refusals (prepr REFUSE) stay recorded failed" by splitting body-content refusals from retryable steps, and says it adds no second rule. It does not contradict carry 9: carry 9's content refusals stay recorded until the body ref moves, and only the non-content refusals gain a retry.
+- Other figures and ids (P384/P385 numbering, 94 failed rows, 22 of 45, R10-TRIAGE-S6 delivery row) are untouched by the delta and still resolve; carry_audit at the head: 0 findings. figure_lint: 1 resolved, 1 not verified (a generic git diff --stat line), 0 refused.
+- Merge with origin/main (785c2b604b...): git merge-tree --write-tree rc 0, clean (ev/merge-tree.txt).
+- CI, all check-run pages: merge_train.py classify exits 0, "GREEN 93f6ce5c391c49e0853dde6cf96430fe265f798f pending: none red: none".
+- Two concluded-red checks I read: governance / delivery-status (job log: "DELIVERY STATUS OVERDUE - 10 rowed, 12 pending, 21 overdue", listing other PRs #3220, #3229, #3227 and others as pending rows) and tests / nightly-status (log: slow lane failed on the 2026-11-05 scheduled run 41943946464, head 499162c, and says it is not a required context). Neither concerns this PR's files and neither is required, so classify does not count them.
+- This merge verdict approves ruling text only.
