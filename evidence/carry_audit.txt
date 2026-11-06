@@ -1,3 +1,5 @@
-NOTE stale tree: 3ccb4fd7698e9a2eaea83f0bcd8f69b9c67885ba lacks origin/main dc0a170b671814be196a54b1c71e29449f54d6d7; roster read at origin/main
-NOTE body item 4466317b: dismissed:no live roster group follows R10-TRIAGE-S6 (carry_audit: "none live after R10-TRIAGE-S6") and no later stage depends on this arm; it is advisory for this PR's own repair round, which the block reopens
-CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
+NOTE stale tree: 21dbeb61c28f18aea98b45eebc290e30d991461a lacks origin/main 5421413b54ba1044b8e91e1afd88b41acfc7a753; roster read at origin/main
+NOTE #3238 body item fa28d36c: dismissed:fixed in this PR, the arm in `dev/audit/harnesses/r10_triage_p391.py` is REST.
+NOTE #3238 body item 20d7aba5: dismissed:a policy change needs the owner's approval in its own policy pull request; the ruling records it as a proposal and no roster group follows R10-TRIAGE-S6.
+NOTE #3238 review 6683498006 item 4466317b: dismissed:no live roster group follows R10-TRIAGE-S6 (carry_audit: "none live after R10-TRIAGE-S6") and no later stage depends on this arm; it is advisory for this PR's own repair round, which the block reopens
+CARRY-AUDIT #3238: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

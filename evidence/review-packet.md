@@ -1,71 +1,71 @@
 # Review packet #3238
-head: 3ccb4fd7698e9a2eaea83f0bcd8f69b9c67885ba
-base: b88684a218923f85de66f1e8fb1833e31a76a154
+head: 21dbeb61c28f18aea98b45eebc290e30d991461a
+base: 7e8939d38cedb2976acc80a4ad7875cb545bd588
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=127840975186 success
-arch-score / arch-score id=127840898321 success
-arm id=127840744428 skipped
-budget-raise-gate / budget-raise-gate id=127840898303 success
-cancel-superseded id=127840673252 success
-codeql id=127840888587 skipped
-codeql / Analyze (actions) id=127840898075 success
-codeql / Analyze (javascript-typescript) id=127840898254 success
-codeql / Analyze (python) id=127840898120 success
-gate id=127841334502 failure
-governance id=127840888416 skipped
-governance / delivery-status id=127840898374 success
-governance / delivery-status-publish id=127840900589 skipped
-governance / env-matrix id=127840898328 in_progress
-governance / instrument-self-tests id=127840898320 in_progress
-governance / policy-docs id=127840898183 success
-governance / record id=127840900440 skipped
-governance / wave-script id=127840898309 success
-hassfest id=127840888142 skipped
-hassfest / hassfest id=127840898099 success
-kernel-points id=127840899798 skipped
-pr-contract id=127841335792 skipped
-prelude id=127840673179 success
-refresh id=127840672809 success
-tests id=127840887632 skipped
-tests / arch-instrument id=127841096713 success
-tests / briefs id=127840898121 success
-tests / browser id=127841096724 in_progress
-tests / closure-scope id=127840898224 success
-tests / closures id=127841096814 in_progress
-tests / coverage id=127841096899 in_progress
-tests / fast (3.14) id=127841096917 in_progress
-tests / mutation id=127840898091 success
-tests / mutation-autofix id=127841265277 skipped
-tests / mutation-pins id=127841264617 skipped
-tests / nightly-ha id=127841099079 skipped
-tests / nightly-status id=127840898029 success
-tests / replay id=127841098665 skipped
-tests / typing id=127841096839 success
-validate id=127840887703 skipped
-validate / validate-hacs id=127840898162 success
+CodeQL id=127886547174 success
+arch-score / arch-score id=127886969821 success
+arm id=127886263719 skipped
+budget-raise-gate / budget-raise-gate id=127886969804 success
+cancel-superseded id=127886722841 success
+codeql id=127886971702 skipped
+codeql / Analyze (actions) id=127886463870 success
+codeql / Analyze (javascript-typescript) id=127886463885 success
+codeql / Analyze (python) id=127886463691 success
+gate id=127887583305 failure
+governance id=127886971744 skipped
+governance / delivery-status id=127886463777 success
+governance / delivery-status-publish id=127886465809 skipped
+governance / env-matrix id=127886463778 success
+governance / instrument-self-tests id=127886463675 in_progress
+governance / policy-docs id=127886463785 success
+governance / record id=127886466204 skipped
+governance / wave-script id=127886463741 success
+hassfest id=127886972220 skipped
+hassfest / hassfest id=127886463849 success
+kernel-points id=127886972457 skipped
+pr-contract id=127887585388 skipped
+prelude id=127886723443 success
+refresh id=127886723205 success
+tests id=127886971671 skipped
+tests / arch-instrument id=127886702889 success
+tests / briefs id=127886463678 success
+tests / browser id=127886702915 success
+tests / closure-scope id=127886463746 success
+tests / closures id=127886703000 in_progress
+tests / coverage id=127886703266 in_progress
+tests / fast (3.14) id=127886702817 in_progress
+tests / mutation id=127886464005 success
+tests / mutation-autofix id=127886703425 skipped
+tests / mutation-pins id=127886703533 skipped
+tests / nightly-ha id=127886704641 skipped
+tests / nightly-status id=127886463925 success
+tests / replay id=127886704539 skipped
+tests / typing id=127886702928 success
+validate id=127886971689 skipped
+validate / validate-hacs id=127886463714 success
 
 ## Refusals
 red-unanswered: concluded red check `gate` is not named in ## Red checks
-required-red: required context `gate` concluded failure at 3ccb4fd7698e9a2eaea83f0bcd8f69b9c67885ba
+required-red: required context `gate` concluded failure at 21dbeb61c28f18aea98b45eebc290e30d991461a
 
 ## Advisories
 none
 
 ## carry_audit at the head
-CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item fa28d36c: dismissed:fixed in this PR, the arm in `dev/audit/harnesses/r10_triage_p391.py` is REST.
+NOTE body item 20d7aba5: dismissed:a policy change needs the owner's approval in its own policy pull request; the ruling records it as a proposal and no roster group follows R10-TRIAGE-S6.
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-unverified git diff --stat b88684a218923f85de66f1e8fb1833e31a76a154...<head>
+unverified git diff --stat $(git merge-base origin/main HEAD)...HEAD
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         dev/audit/harnesses/record_burst_replay.py
-             `dev/audit/harnesses/record_burst_replay.py` is in the tree at this head
-  ok         tools/audit/seat/ref_privacy.py
-             `tools/audit/seat/ref_privacy.py` is in the tree at this head
+  ok         tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
 
-FIGURES: 2 resolved, 1 not verified, 0 refused
+FIGURES: 1 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -79,10 +79,10 @@ none
 ## Three-dot diff
 diff --git a/dev/audit/harnesses/r10_triage_p391.py b/dev/audit/harnesses/r10_triage_p391.py
 new file mode 100644
-index 000000000..88abd736f
+index 000000000..e48fa1514
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_triage_p391.py
-@@ -0,0 +1,330 @@
+@@ -0,0 +1,342 @@
 +#!/usr/bin/env python3
 +"""Triage batch 126 (P391, P392): the measurements behind the existing-set ruling.
 +
@@ -103,7 +103,11 @@ index 000000000..88abd736f
 +the reset rather than take the shared core budget under FLOOR. FROM and TO are UTC ISO instants (2026-10-28T00:00:00Z). The API arms read
 +`gh api` (the Actions runs and jobs, and the pull-request search); the git arm
 +reads only the local clone at REF; `tokens` reads this host's session
-+transcripts and so cannot be re-run by another seat. A share is runner seconds
++transcripts and so cannot be re-run by another seat. `ci-fails` is REST-only (search/issues for the merged
++pull requests by merged_at, then pulls/<n> for each head ref), so a cloud seat
++re-derives it; "merged" there is merged_at inside the window, not a first-parent
++merge by commit date, and it counts head refs, so a branch merged twice counts twice.
++A share is runner seconds
 +(job end less start, skipped jobs excluded) over the cost window's total.
 +"PRs" counts pull requests whose branch had the lane red, then a later green
 +CI run or a merge, with a red within 12 h of the same lane red on main left
@@ -120,6 +124,7 @@ index 000000000..88abd736f
 +import subprocess
 +import sys
 +import time
++import urllib.parse
 +
 +# The first-parent merge-subject grammar is record_burst_replay's, read not restated.
 +sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -170,7 +175,7 @@ index 000000000..88abd736f
 +        headroom()
 +    _calls += 1
 +    for _ in range(4):
-+        r = subprocess.run(["gh", "api", path], capture_output=True, text=True)
++        r = subprocess.run(["gh", "api", "-X", "GET", path], capture_output=True, text=True)
 +        if r.returncode == 0:
 +            os.makedirs(CACHE, exist_ok=True)
 +            with open(key + ".tmp", "w") as f:
@@ -246,11 +251,18 @@ index 000000000..88abd736f
 +                res["green"].setdefault(r["head_branch"], []).append([r["head_sha"], r["run_started_at"]])
 +    for r_id, r in res["fail"].items():
 +        r["failed"] = [j["name"] for j in jobs(r_id) if j["conclusion"] in ("failure", "timed_out")]
-+    # GraphQL, not one REST read per pull request: its budget is separate.
-+    r = subprocess.run(["gh", "pr", "list", "--repo", REPO, "--state", "merged", "--limit", "1000",
-+                        "--search", f"merged:{a}..{b}", "--json", "headRefName"],
-+                       capture_output=True, text=True, check=True)
-+    pulls = [x["headRefName"] for x in json.loads(r.stdout)]
++    # REST only: GraphQL (`gh pr list --search`) is refused (403) from cloud seats, so a
++    # cloud reviewer could not re-derive this arm. search/issues pages give the merged
++    # pull requests (merged_at inside FROM..TO, 100 a page), pulls/<n> gives each head ref.
++    pulls, page = [], 1
++    while True:
++        q = urllib.parse.quote(f"repo:{REPO} is:pr is:merged merged:{a}..{b}")
++        got = api(f"search/issues?q={q}&per_page=100&page={page}")["items"]
++        for it in got:
++            pulls.append(api(f"repos/{REPO}/pulls/{it['number']}")["head"]["ref"])
++        if len(got) < 100:
++            break
++        page += 1
 +    res["merged"] = pulls
 +    json.dump(res, open(out, "w"))
 +    print(f"RESULT ci-fails {a}..{b}: {sum(r['event'] == 'pull_request' for r in res['fail'].values())} failed "
@@ -422,10 +434,10 @@ index 000000000..66fec7266
 +- [#3238](https://github.com/tvofi/heatpump_optimizer/pull/3238) — **open**, triage: batch 126, P391 and P392 DEFER (R10-TRIAGE-S6)
 diff --git a/dev/programme/triage/s6-batch126.md b/dev/programme/triage/s6-batch126.md
 new file mode 100644
-index 000000000..ff58e1205
+index 000000000..b8bdb4feb
 --- /dev/null
 +++ b/dev/programme/triage/s6-batch126.md
-@@ -0,0 +1,103 @@
+@@ -0,0 +1,106 @@
 +# Proposal triage, session s12, batch 126 (P391, P392): the existing set under the 5 % and 10 % rules
 +
 +**The bar.** Owner, relayed by the orchestrator: "the non production CIs and the triage seat should fulfil the cost benefit analysis, the "5 percent rule" for existing ones and 10 percent rule for new ones". Working reading, the orchestrator's: a measured improvement in CI time, programme completion time, right-first-time or token usage, each figure with its command. New: over 10 %. Existing: at least 5 %, or a candidate for removal. Unmeasured does not pass. It applies to every ruling from P391. Removing anything is a proposal to the orchestrator; nothing here is an action.
@@ -441,6 +453,8 @@ index 000000000..ff58e1205
 +| git | `python3 -I dev/audit/harnesses/r10_triage_p391.py git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z 2026-11-05T07:30:00Z` | commit counts by subject prefix; 229 merges on main's first parent |
 +| roster | `python3 -I dev/audit/harnesses/r10_triage_p391.py roster f85b3b4d56eed0b57f5b3b1f46471f8ae323113a` | verdicts, triage-cited carries, `exemptions` |
 +| tokens | `python3 -I dev/audit/harnesses/r10_triage_p391.py tokens 2026-10-01T00:00:00Z` | this host's transcripts only: **another seat cannot re-run it**, and a later run reads more sessions |
++
++The `ci-fails` arm reads REST only (`search/issues` for merged_at inside the window, `pulls/<n>` for head refs), so a cloud seat re-derives it; "262 merged" is merged_at, against 263 first-parent merges by commit date in the git arm, and 232 is the distinct head refs of those 262.
 +
 +The cost window is 9 hours of runs, not a week, and a share counts waiting inside a job. "Caught" counts branches whose lane went red, then a later green run or a merge. A red within 12 h of the same lane red on main is left out. **"Caught" is an upper bound on right-first-time:** later green proves no defect, a scope change also clears a red, and no failure log was read. Branches, not pull requests, are the unit, because a record branch is reused across pull requests.
 +
@@ -524,9 +538,10 @@ index 000000000..ff58e1205
 +Cost: removing the seat frees at most 7 to 12 % of local tokens, less whatever moves to the orchestrator; that is not measured either.
 +
 +Binding: proposed, for the owner through the orchestrator, smallest first:
-+1. **From P391, apply the bar at the door.** A queue line with no measured figure gets a one-line DEFER, with no investigation. This seat's own change; it needs no decision.
-+2. **Measure before deciding:** one week of that form against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
-+3. **Or remove it now:** the orchestrator applies the one-line cost test itself.
++1. **Measure before deciding:** one week of the proposed one-line-DEFER form below (if the owner adopts it by policy pull request) against the week before, on tokens per ruling and on blocked verdicts of the groups that received carries. Under 5 % on both, remove the seat.
++2. **Or remove it now:** the orchestrator applies the one-line cost test itself.
++
++Proposal for `proposal-triage` (not adopted here): a queue line with no measured figure gets a one-line DEFER without investigation. It changes the ruling form that `dev/governance/roles/proposal-triage.md` requires, so it is policy; it needs the owner's approval and a policy pull request, and this record adopts nothing. Destination: `dev/governance/roles/proposal-triage.md` (the ruling form), if proposal-triage accepts it.
 +
 +An owner directive keeps its route: P386 needed no cost test on whether, only on form.
 diff --git a/tests/closures.json b/tests/closures.json

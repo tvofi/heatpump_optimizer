@@ -1,6 +1,0 @@
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 29 commits 'ci: pin killed'
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 52 commits 'ci: record delivery'
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 13 commits 'ci: record nightly'
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 7 commits 'ci: re-record closures'
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 0 commits 'ci: drop inherited claims'
-RESULT git 9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6 2026-10-29T00:00:00Z..2026-11-05T07:30:00Z: 229 'Merge pull request #N' on the first parent

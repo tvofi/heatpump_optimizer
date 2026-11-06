@@ -1,5 +1,0 @@
-ci: pin killed all-history-in-window: 29  committer-date
-ci: record delivery all-history-in-window: 52  committer-date
-ci: record nightly all-history-in-window: 13  committer-date
-ci: re-record closures all-history-in-window: 7  committer-date
-merges first-parent: 229
