@@ -1,0 +1,3 @@
+RESULT wt: refused: reply frame exceeds 1000000 bytes
+RESULT m_measure: frame of 1200044 bytes ACCEPTED over cap 1000000
+RESULT base: frame of 1200044 bytes ACCEPTED over cap 1000000

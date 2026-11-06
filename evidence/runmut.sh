@@ -1,4 +1,4 @@
-W=$(cat ~/W)
-for m in "$@"; do
-  (cd $W/$m && PYTHONPATH=tests/hastub timeout 3600 python3 tests/features.py > $W/ev/features-$m.log 2>&1; echo "rc=$?" >> $W/ev/features-$m.log)
-done
+# each run writes its OWN log; the last line is "RESULTLINE <name> rc=<n>"
+W=/tmp/tmp.DAQU6SMXEC
+d=$1
+(cd $W/$d && PYTHONPATH=tests/hastub timeout 5400 python3 tests/features.py > $W/ev/features-$d.log 2>&1; echo "RESULTLINE $d rc=$?" >> $W/ev/features-$d.log)

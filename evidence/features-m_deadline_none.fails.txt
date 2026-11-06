@@ -1,0 +1,7 @@
+  FAIL a worker that gives no reply within the deadline raises ProcessWorkerTimeout  [raised None after 30.0 s; returned None]
+  FAIL and it frees the lock and the next job gets a fresh worker  [lock_free=True before=2823 after=2823]
+  FAIL _await_optimize keeps the last plan on a timeout: translated UpdateFailed, no in-process solve  [raised None; returned ('slept', 2823, 'STATE'); jobs=[<function _run_in_process at 0x7f8fb7b77740>] issues=[]]
+  FAIL two timeouts in a row warn once, and the next solve logs the recovery  [latch records=[]]
+  FAIL _await_off_loop raises a timeout to its caller instead of rerunning it on the executor  [raised None after 30.0 s; jobs=[<function _run_in_process at 0x7f8fb7b77740>]]
+  FAIL two off-loop timeouts of one job warn once, naming it, and its next completion logs the recovery  [latch records=[]]
+  FAIL a worker pipe at fd >= 1024 answers in time and still times out as a timeout  [warm raised None; stdout fd=1119; fast job raised None; slow job raised None]
