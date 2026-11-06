@@ -2813,8 +2813,11 @@ const FRICTION_THRESHOLD = 3
 // actually split. The mutation family's last four words are #2561 section 5's
 // measured synonyms of the mutation obligation (v7.0.0..df6ca4bc: test-vacuous
 // on 2 pull requests, the other three on 1 each).
+// The last three mutation members are v7.0.4..7e8939d38's spellings of the same
+// obligation: mutation-unpinned 2 pull requests, unpinned-site 2, mutation-survivors
+// 1, five that no other member holds (R10-RCA-MUTATION-VACUOUS.md, #2942).
 const FRICTION_FAMILIES = [
-  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives'] },
+  { name: 'mutation', members: ['mutation', 'mutation-vacuous', 'mutation-survivor', 'test-vacuous', 'vacuous-test', 'vacuous-check', 'mutant-survives', 'mutation-unpinned', 'unpinned-site', 'mutation-survivors'] },
   { name: 'environment', members: ['environment', 'seat-environment'] },
   // One obligation under three class words (#2437, R10-RCA-FRICTION-RESIDUE
   // section 5): the root-cause check the fix reviewer enforces, split by what
