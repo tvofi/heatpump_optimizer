@@ -57,6 +57,16 @@ Plants, one per refusal of the two ops and per round-trip property:
          though its group would orphan an open issue (H1), and the
          set-resume --field stage door left unheld (H2).
 
+    W1-W15 the write-sweep arms (R10-ROSTER-WRITE-SWEEP): the lettered
+           proposal label unmatched (W1), append-group's `@` strip dropped
+           (W2), the overlap test skipping the not-started stage (W3), the
+           --reason escape always open (W4), the index exemption dropped (W5),
+           append-carry's closing refusal (W6), the open-PR WARN (W7) and the
+           absorbed_into naming (W8) lost, set-resume's pr field (W9), a stale
+           note kept (W10), the privacy gate not called (W11), absorbed --into
+           naming no live group (W12, W13) or needing none (W14), and a phase
+           branch unresolved in roster_lib.group_for_branch (W15).
+
     python3 tools/audit/seat/r10_roster_ops_mutants.py [plant ...]
     python3 tools/audit/seat/r10_roster_ops_mutants.py --null
     python3 tools/audit/seat/r10_roster_ops_mutants.py --self-test
@@ -134,8 +144,8 @@ PLANTS = {
            "    if True:  # S5\n        return None\n"),
     "S6": ("    if size is None or size in sizes:\n        return None\n",
            "    if True:  # S6\n        return None\n"),
-    "S7": ("        op_append_group(roster, value, rel, sizes)\n",
-           "        op_append_group(roster, value)  # S7\n"),
+    "S7": ("        op_append_group(roster, value, rel, sizes, reason)\n",
+           "        op_append_group(roster, value, reason=reason)  # S7\n"),
     "K1": ('    if roster_lib.carry_mark(g["carry"][i]):\n', "    if False:  # K1\n"),
     "K2": ("    if kind not in roster_lib.CARRY_MARKS:\n", "    if False:  # K2\n"),
     "K3": ('    if kind == "implemented" and not SHA_RE.match(arg):\n',
@@ -240,6 +250,25 @@ PLANTS.update({
     "R11": ('                    and _git_ok(checkout, "merge-base", "--is-ancestor",\n'
             '                                sha, cand):\n',
             '                    and True:  # R11\n'),
+    "W1": ('LABEL = r"P(?:\\d+|-[A-Q])\\b"', 'LABEL = r"P\\d+\\b"'),
+    "W2": ('    if json_file.startswith("@"):\n        json_file = json_file[1:]\n', ""),
+    "W3": ('        if (g.get("resume") or {}).get("stage") != "not-started":\n            continue\n', ""),
+    "W4": ('    if clash and not (reason or "").strip():\n', "    if False:\n"),
+    "W5": ('if not _is_index(f)}', "}"),
+    "W6": ("    if stage in roster_lib.CARRY_CLOSED:\n        into = resume.get",
+           "    if False:\n        into = resume.get"),
+    "W7": ('    if resume.get("pr"):\n        print(f"WARN', '    if False:\n        print(f"WARN'),
+    "W8": ('if stage == "absorbed" and into else', "if False else"),
+    "W9": ('"note", "pr")', '"note")'),
+    "W10": ("            and OWED_NOTE_RE.search(note):\n", "            and not OWED_NOTE_RE.search(note):\n"),
+    "W11": ('        why = privacy_refusal(added_texts(before, roster) + added_resume(before, roster))\n'
+            '        if why:\n            raise Refuse(f"privacy gate: {why}; nothing written")\n', ""),
+    "W12": ('    if hstage in roster_lib.CARRY_CLOSED:\n', "    if False:\n"),
+    "W13": ('    if into == group:\n        raise Refuse(f"set-stage: {group} cannot be absorbed',
+            '    if False:\n        raise Refuse(f"set-stage: {group} cannot be absorbed'),
+    "W14": ('    if not into:\n        raise Refuse(f"set-stage: {group} absorbed needs',
+            '    if False:\n        raise Refuse(f"set-stage: {group} absorbed needs'),
+    "W15": (LIB, "    if phase != tail:  # handoff", "    if False:  # handoff"),
 })
 
 
