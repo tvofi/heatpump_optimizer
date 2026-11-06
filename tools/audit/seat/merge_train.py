@@ -5820,6 +5820,17 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "for a green gate; True for the raise-only suites (the control)",
           gate_raise_only(lt, running) is False and gate_raise_only(lt, [cr(GATE), *shape3045[1:]]) is False
           and gate_raise_only(lt, suites) is True)
+    def lt_gh(behaviour):  # carry 2: gate_raise_only reads through job_log, under either gh
+        def run(argv, **_k):
+            if behaviour == "needs" and ESCAPES_FLAG not in argv:
+                return 1, "the response contains terminal escape sequences"
+            if behaviour == "lacks" and ESCAPES_FLAG in argv:
+                return 1, f"unknown flag: {ESCAPES_FLAG}"
+            return 0, RAISE_LOG
+        return type("lt_gh", (), {"repo": "o/r", "run": staticmethod(run)})
+    check("carry 2: gate_raise_only reads the raise-only suites under a gh that needs the escape flag and under "
+          "one that lacks it (job_log), so both are owed",
+          gate_raise_only(lt_gh("needs"), suites) is True and gate_raise_only(lt_gh("lacks"), suites) is True)
     rc, out = owed_cli(shape3045, BUDGET_F, RAISE_FIXTURE, None, False, "## Summary\n", "--pr", "3045",
                        diff_fail=True)
     check("#3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1",
