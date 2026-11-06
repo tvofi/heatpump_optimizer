@@ -1,2 +1,0 @@
-carry_audit check rc=0: CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
-head re-read at post: 520550cebe311fad3d4f529c5267561ffe7e227c refs/pull/3249/head

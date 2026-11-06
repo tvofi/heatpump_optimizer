@@ -1,6 +1,0 @@
-== bus-10 bus.sh: NOT RUN, the step is red unmutated | bus self-test: 141 checks, 1 failed
-== bus-11 bus.sh: NOT RUN, the step is red unmutated | bus self-test: 141 checks, 1 failed
-== bus-12 bus.sh: NOT RUN, the step is red unmutated | bus self-test: 141 checks, 1 failed
-== bus-13 bus.sh: NOT RUN, the step is red unmutated | bus self-test: 141 checks, 1 failed
-== review_packet-own review_packet.py: KILLED rc=1 | review_packet self-test: 69 checks, 2 failed
-RESULT survivors=4
