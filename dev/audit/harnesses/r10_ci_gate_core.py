@@ -231,6 +231,8 @@ MUTANTS = [
      'return "gate" in (run.get("jobs") or {})'),
     ("M20 C3 at once beside any run", ' and not all(\n                started(r) for r in api["runs_at_head"] if r["id"] in waiting)', ''),
     ("M21 C3 waits beside any run", 'deferring(kind, pr, claim) and not all(', 'deferring(kind, pr, claim) and not True and all('),
+    ("M22 C3 at once only beside a code run (c0c60886)", 'not all(\n                started(r) for r in api["runs_at_head"]',
+     'any(\n                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"]'),
 ]
 
 
