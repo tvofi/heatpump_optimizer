@@ -2853,7 +2853,7 @@
      },
      "dhw_setpoint_entity": {
       "config": {
-       "filter": "[{'domain': ['number', 'input_number', 'climate']}]"
+       "filter": "[{'domain': ['number', 'input_number', 'climate', 'water_heater']}]"
       },
       "default": "'sensor.seed_dhw_setpoint_entity'",
       "required": "Optional",
@@ -5378,7 +5378,7 @@
     },
     "dhw_setpoint_entity": {
      "config": {
-      "filter": "[{'domain': ['number', 'input_number', 'climate']}]"
+      "filter": "[{'domain': ['number', 'input_number', 'climate', 'water_heater']}]"
      },
      "default": null,
      "required": "Optional",

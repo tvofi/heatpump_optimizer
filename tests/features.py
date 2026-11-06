@@ -23781,6 +23781,142 @@ R.check(
     },
     f"{_fresh6}",
 )
+
+# --- R10-GRADE-DRIVERS: the heat-pump and Driving grades publish drivers in
+# the house grade's shape (#2816): signed points summing to the grade minus
+# the part's reference, empty with no grade.
+from heatpump_optimizer.coordinator import SCORE_REFERENCE as _gd_ref  # noqa: E402
+from heatpump_optimizer import driving_grade as _gd_mod  # noqa: E402
+R.check(
+    "R10-GRADE-DRIVERS: an ungraded heat pump says what it waits on -- samples "
+    "per outdoor band against the requirement, and freeze refusals -- and no "
+    "part publishes a driver without a grade",
+    _fresh6["machine_drivers"] == [] and _fresh6["operation_drivers"] == []
+    and _fresh6["machine_evidence"] == {"required": 20, "bands": [], "refused_frozen": 0},
+    f"{_fresh6}",
+)
+_gd_m = _t2_coord()
+_gd_m._cop_baseline[(-1, False)] = [3.1, 12]
+_gd_m._cop_baseline[(0, True)] = [2.4, 5]
+_gd_m._measured_power = 1.0
+_gd_m._learning_frozen = lambda *a, **k: True
+_gd_codes = [_gd_m._fold_measured_cop(None), _gd_m._fold_measured_cop(None)]
+del _gd_m._learning_frozen
+_gd_m._measured_power = None
+_gd_codes.append(_gd_m._fold_measured_cop(None))  # refused, but not by a freeze
+_gd_wait = _gd_m._scores_view(_rs_advice(_gd_m))
+R.check(
+    "R10-GRADE-DRIVERS: the heat pump's evidence lists each band's samples, most "
+    "first, and counts only the intervals a freeze refused",
+    _gd_wait["machine"] is None
+    and _gd_wait["machine_evidence"] == {"required": 20, "bands": [
+        {"outdoor_c": -3, "hot_water": False, "samples": 12},
+        {"outdoor_c": 0, "hot_water": True, "samples": 5}], "refused_frozen": 2}
+    and _gd_codes[:2] == ["learners_frozen"] * 2 and _gd_codes[2] != "learners_frozen",
+    f"{_gd_wait} {_gd_codes}",
+)
+_gd_m._cop_baseline[(-1, False)] = [3.1, 20]
+_gd_full = _gd_m._scores_view(_rs_advice(_gd_m))
+_gd_m._cop_health_cusum.stat = 0.2
+_gd_short = _gd_m._scores_view(_rs_advice(_gd_m))
+R.check(
+    "R10-GRADE-DRIVERS: a graded heat pump drops its evidence and carries one "
+    "driver, its distance below its own COP history: none at 100, and a Cusum "
+    "a quarter of the way to its alarm takes 25 points",
+    "machine_evidence" not in _gd_full
+    and _gd_full["machine"] == 100.0
+    and _gd_full["machine_drivers"] == [{"code": "cop_shortfall", "points": 0.0}]
+    and _gd_short["machine"] == 75.0
+    and _gd_short["machine_drivers"] == [{"code": "cop_shortfall", "points": -25.0}]
+    and _gd_ref["machine"] == 100.0,
+    f"{_gd_full['machine_drivers']} / {_gd_short}",
+)
+
+
+def _gd_day(coord, d, spots, kwh_at):
+    for h in range(24):
+        k = kwh_at.get(h, 0.0)
+        coord._fold_score_sample(
+            _jun908 + timedelta(days=d, hours=h), k, k * spots[h], spots[h], 1.0, True
+        )
+
+
+_gd_spots = {h: (0.24 if h in (2, 3, 4) else 0.40 if h == 18 else 0.30) for h in range(24)}
+_gd_o = _t2_coord()
+_gd_day(_gd_o, 0, _gd_spots, {2: 1.0, 3: 1.0, 18: 0.5})
+_gd_o._close_score_day()
+_gd_one = _gd_o._scores_view(_rs_advice(_gd_o))["operation_drivers"]
+_gd_pts = {d["code"]: d["points"] for d in _gd_one}
+for _d in range(1, 6):
+    _gd_day(_gd_o, _d, _gd_spots, {2: 1.0, 3: 1.0, 18: 0.5})
+_gd_o._close_score_day()
+_gd_s6 = _gd_o._scores_view(_rs_advice(_gd_o))
+R.check(
+    "R10-GRADE-DRIVERS: the Driving grade's drivers split it exactly -- energy "
+    "bought under the day's mean pushes it up, energy bought over pulls it "
+    "down -- and keep summing to it through the EMA",
+    _gd_pts["cheap_hours"] > 0 > _gd_pts["dear_hours"]
+    and abs(_gd_pts["earlier_days"]) < 0.05
+    and abs(sum(_gd_pts.values()) - _gd_o._operation_score) < 0.25
+    and abs(sum(d["points"] for d in _gd_s6["operation_drivers"]) - _gd_s6["operation"]) < 0.25
+    and _gd_ref["operation"] == 0.0,
+    f"{_gd_one} / {_gd_s6}",
+)
+_gd_flat = _t2_coord()
+_gd_day(_gd_flat, 0, _gd_spots, {h: 0.2 for h in range(24)})
+_gd_flat._close_score_day()
+_gd_flat_s = _gd_flat._scores_view(_rs_advice(_gd_flat))
+R.check(
+    "R10-GRADE-DRIVERS null control: buying flat through the day scores 0 and "
+    "no driver moves it a point",
+    _gd_flat_s["operation"] == 0.0
+    and all(abs(d["points"]) < 0.05 for d in _gd_flat_s["operation_drivers"]),
+    f"{_gd_flat_s}",
+)
+_gd_r = _t2_coord()
+_gd_saved = {}
+
+
+async def _gd_save(data):
+    _gd_saved.update(data)
+
+
+async def _gd_wait_read():
+    return None
+
+
+_gd_o._ledger_store.async_save = _gd_save
+_gd_o._ledger_store.async_wait_for_read = _gd_wait_read
+_asyncio.run(_gd_o._async_save_ledger())
+
+
+async def _gd_load(_p=_gd_saved):
+    return _p
+
+
+_gd_r._ledger_store.async_load = _gd_load
+_asyncio.run(_gd_r._async_load_ledger())
+_gd_up = _t2_coord()
+
+
+async def _gd_load_old(_p={"ledger": {"months": {}}, "operation_score": 55.0}):
+    return _p
+
+
+_gd_up._ledger_store.async_load = _gd_load_old
+_asyncio.run(_gd_up._async_load_ledger())
+_gd_up_s = _gd_up._scores_view(_rs_advice(_gd_up))
+R.check(
+    "R10-GRADE-DRIVERS: the Driving drivers ride the store across a restart, and "
+    "a grade stored before they were kept reads as earlier days, never as a "
+    "driver it did not measure",
+    _gd_mod.held(_gd_r) == _gd_mod.held(_gd_o) != {}
+    and _gd_r._scores_view(_rs_advice(_gd_r))["operation_drivers"] == _gd_s6["operation_drivers"]
+    and _gd_up_s["operation_drivers"] == [
+        {"code": "cheap_hours", "points": 0.0}, {"code": "dear_hours", "points": 0.0},
+        {"code": "earlier_days", "points": 55.0}],
+    f"{_gd_saved.get('operation_drivers')} / {_gd_up_s['operation_drivers']}",
+)
 _ce._operation_score = None
 _ce._cop_baseline.clear()
 _ce._thermal_params.heat_loss_coefficient = 6.0 * _ce_mid
@@ -61852,6 +61988,8 @@ _P6_IMPLEMENTS = {
     "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
     "number": {"set_value"},
     "input_number": {"set_value", "increment", "decrement"},
+    "water_heater": {"turn_on", "turn_off", "set_temperature", "set_operation_mode",
+                     "set_away_mode"},
     "select": {"select_option", "select_first", "select_last", "select_next",
                "select_previous"},
     "input_select": {"select_option", "select_first", "select_last", "select_next",
@@ -72291,6 +72429,60 @@ R.check(
 )
 
 
+# A water_heater DHW slot (Luxtronik's domestic_water, for one) carries its
+# target as the ``temperature`` attribute, its range as min_temp/max_temp and
+# its step as target_temp_step, all in the instance's unit -- the climate
+# shape -- while its state is an operation mode, never a number. It is read,
+# clamped and written through set_temperature on its own 0.5-degree step.
+def _df_wh(**extra):
+    return FakeState("heat_pump", attributes={
+        "temperature": 62.0, "min_temp": 30.0, "max_temp": 65.0,
+        "target_temp_step": 0.5, **extra})
+
+
+_df_wh_hass = _df_hass({"water_heater.dhw": _df_wh()}, _DC)
+_df_wh_seen = {
+    "read": inputs_mod.read_setpoint(_df_wh_hass, "water_heater.dhw"),
+    "range": inputs_mod.setpoint_range_c(_df_wh_hass, "water_heater.dhw"),
+    "step": inputs_mod.setpoint_step(_df_wh_hass, "water_heater.dhw"),
+    "write 52.3": _df_write("dhw_setpoint", "water_heater.dhw", _df_wh(), _DC, 52.3),
+    "write 50 degC on degF": _df_write("dhw_setpoint", "water_heater.dhw", _df_wh(
+        temperature=140.0, min_temp=86.0, max_temp=149.0), _DF, 50.0),
+    "clamp above max": _df_dhw_command("water_heater.dhw", _df_wh(), _DC, 70.0),
+    "clamp below min": _df_dhw_command("water_heater.dhw", _df_wh(), _DC, 20.0),
+}
+R.check(
+    "a water_heater DHW set-point is read from its temperature attribute, "
+    "clamped to min_temp/max_temp and written on its target_temp_step",
+    _df_wh_seen == {
+        "read": 62.0, "range": (30.0, 65.0), "step": 0.5,
+        "write 52.3": 52.5, "write 50 degC on degF": 122.0,
+        "clamp above max": 65.0, "clamp below min": 30.0,
+    },
+    f"{_df_wh_seen}",
+)
+
+# The same slot in a degF instance: min_temp/max_temp are read in the
+# instance's unit and converted, so the range and the arbiter's clamp ceiling
+# are the degC figures, not the raw 86/149 -- the domain has to be an
+# attribute-target one for the unit to be applied at all.
+_df_wh_f = _df_wh(temperature=140.0, min_temp=86.0, max_temp=149.0)
+_df_wh_f_hass = _df_hass({"water_heater.dhw": _df_wh_f}, _DF)
+_df_wh_f_seen = {
+    "range": inputs_mod.setpoint_range_c(_df_wh_f_hass, "water_heater.dhw"),
+    "clamp above max": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 70.0),
+    "clamp below min": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 20.0),
+}
+R.check(
+    "a water_heater DHW set-point on a degF instance reads its range in "
+    "degC and is clamped to it",
+    _df_wh_f_seen == {
+        "range": (30.0, 65.0), "clamp above max": 65.0, "clamp below min": 30.0,
+    },
+    f"{_df_wh_f_seen}",
+)
+
+
 # An unconfigured set-point slot is ``None`` (or empty), and Home Assistant's
 # StateMachine.get does ``self._states_data.get(entity_id) or
 # self._states_data.get(entity_id.lower())`` (2026.9.3), so it RAISES on None
@@ -78070,6 +78262,88 @@ R.check(
     "stays at DEBUG",
     _rp3_null == [_logging.WARNING, _logging.DEBUG],
     f"{_rp3_null}",
+)
+
+
+# R10-GRADE-DRIVERS: value checks on the boundaries of the driver arithmetic.
+from heatpump_optimizer.const import SCORE_ALPHA as _DG_ALPHA  # noqa: E402
+
+_dg_nan = float("nan")
+_dg_zero_h = _gd_mod.tally({}, 1.0, 5.0, 1.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: a zero-hour interval books no spot time",
+    "spot_sum" not in _dg_zero_h and "spot_h" not in _dg_zero_h,
+    f"{_dg_zero_h}",
+)
+_dg_nan_spot = _gd_mod.tally({}, 1.0, 5.0, _dg_nan, 1.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: a non-finite spot books no spot time",
+    "spot_sum" not in _dg_nan_spot and "spot_h" not in _dg_nan_spot,
+    f"{_dg_nan_spot}",
+)
+_dg_first = _gd_mod.tally({}, 1.0, 5.0, 2.0, 1.0)
+R.check(
+    "R10-GRADE-DRIVERS tally: the first interval is at the running mean, not below it",
+    "kwh_lo" not in _dg_first and _dg_first["spot_h"] == 1.0,
+    f"{_dg_first}",
+)
+_dg_empty = _gd_mod.day_drivers({}, 2.0, 50.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: an empty book splits a positive sample into zeros",
+    _dg_empty == {"cheap_hours": 0.0, "dear_hours": 0.0},
+    f"{_dg_empty}",
+)
+_dg_book = {"kwh": 2.0, "sek": 2.0, "kwh_lo": 1.0, "sek_lo": 0.5}
+_dg_neg = _gd_mod.day_drivers(_dg_book, 1.0, -10.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a negative sample leaves both drivers at 0",
+    _dg_neg == {"cheap_hours": 0.0, "dear_hours": 0.0},
+    f"{_dg_neg}",
+)
+_dg_zero = _gd_mod.day_drivers(_dg_book, 1.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a zero sample leaves both drivers at 0",
+    all(v == 0.0 for v in _dg_zero.values()),
+    f"{_dg_zero}",
+)
+_dg_negzero = _gd_mod.day_drivers(_dg_book, 2.0, -0.0)
+_dg_zero2 = _gd_mod.day_drivers(_dg_book, 2.0, 0.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a negative-zero sample books the same zeros as a zero one, sign included",
+    {k: repr(v) for k, v in _dg_negzero.items()} == {k: repr(v) for k, v in _dg_zero2.items()}
+    and all(v > 0.0 for v in _gd_mod.day_drivers(_dg_book, 2.0, 5.0).values()),
+    f"{_dg_negzero} vs {_dg_zero2}",
+)
+_dg_neg_total = _gd_mod.day_drivers({"kwh": 1.0, "sek": 2.0}, 1.0, 50.0)
+R.check(
+    "R10-GRADE-DRIVERS day_drivers: a day that saved nothing scales to 0",
+    all(v == 0.0 for v in _dg_neg_total.values()),
+    f"{_dg_neg_total}",
+)
+_dg_d: dict[str, float] = {}
+_dg_seed = _gd_mod.fold(_dg_d, None, _dg_book, 1.0)
+_dg_d2 = dict(_dg_d)
+_dg_next = _gd_mod.fold(_dg_d2, 40.0, _dg_book, 1.0)
+_dg_blend = (1 - _DG_ALPHA) * 40.0 + _DG_ALPHA * _dg_seed
+R.check(
+    "R10-GRADE-DRIVERS fold: None seeds the grade, a held grade blends by SCORE_ALPHA",
+    abs(_dg_next - _dg_blend) < 1e-9
+    and abs(_dg_seed - sum(_dg_d.values())) < 1e-9
+    and abs(sum(_dg_d2.values()) - _DG_ALPHA * _dg_seed) < 1e-9,
+    f"{_dg_seed} {_dg_next} {_dg_d} {_dg_d2}",
+)
+_dg_held: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held, 5, lambda _s: True)
+_dg_held_b: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held_b, {"cheap_hours": 9.0}, lambda _s: False)
+_dg_held_c: dict[str, float] = {"cheap_hours": 1.0}
+_gd_mod.restore(_dg_held_c, {"cheap_hours": 9.0}, lambda _s: True)
+R.check(
+    "R10-GRADE-DRIVERS restore: adopts only a mapping the store admitted",
+    _dg_held == {"cheap_hours": 1.0}
+    and _dg_held_b == {"cheap_hours": 1.0}
+    and _dg_held_c == {"cheap_hours": 9.0},
+    f"{_dg_held} {_dg_held_b} {_dg_held_c}",
 )
 
 

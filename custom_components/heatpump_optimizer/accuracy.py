@@ -871,6 +871,9 @@ class MeasuredCop:
     dhw_temp: float | None = None
     refusal: str | None = None
     at: datetime | None = None
+    #: Intervals a learner freeze refused since start (not persisted): the
+    #: heat-pump grade's no-grade evidence (``coordinator.machine_evidence``).
+    frozen_refusals: int = 0
 
     @staticmethod
     def judge_floor(asked_kw: float, drawn_kw: float, params: Any) -> str | None:
