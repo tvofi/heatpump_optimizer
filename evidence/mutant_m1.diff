@@ -1,4 +1,0 @@
-1954c1954
-<             if has_fd and not select.select([stdout], [], [], timeout)[0]:
----
->             if has_fd and not select.select([stdout], [], [], None)[0]:

@@ -1,2 +1,0 @@
-RESULT select.select fd 1103 ValueError filedescriptor out of range in select()
-RESULT selectors EpollSelector fd 1103 True

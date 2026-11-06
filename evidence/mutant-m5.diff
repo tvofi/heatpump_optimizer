@@ -1,0 +1,25 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 22c73853b..918a4af8e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1966,7 +1966,7 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
+             except (AttributeError, OSError, ValueError):
+                 has_fd = False
+             timeout = PROCESS_REPLY_TIMEOUT_S
+-            if has_fd and not _reply_ready(stdout, timeout):
++            if has_fd and not _reply_ready(stdout, None):
+                 _PROCESS_WORKER = None
+                 # Bounded too: a child the kill does not end at once (one
+                 # stuck in the kernel) must not turn this into the same
+@@ -2033,7 +2033,10 @@ async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: An
+     name = fn.__qualname__
+     key = f"off_loop_timeout:{name}"
+     try:
+-        result = await _await_process(hass, fn, *args)
++        try:
++            result = await asyncio.wait_for(_await_process(hass, fn, *args), PROCESS_REPLY_TIMEOUT_S)
++        except TimeoutError as _e:
++            raise ProcessWorkerTimeout('loop deadline') from _e
+     except ProcessWorkerTimeout as err:
+         log_held(hass, key, True, "%s; %s skipped this cycle", err, name)
+         raise

@@ -1,4 +1,0 @@
-1877c1877
-<     if not _PROCESS_LOCK.acquire(timeout=_SHUTDOWN_LOCK_TIMEOUT_S):
----
->     if not _PROCESS_LOCK.acquire():

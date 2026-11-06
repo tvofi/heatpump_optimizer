@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 22c73853b..e2dfc64d1 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -2040,7 +2040,6 @@ async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: An
+     except ProcessWorkerUnavailable as err:
+         _LOGGER.debug("Process worker unusable (%s); using the executor", err)
+         return await hass.async_add_executor_job(fn, *args)
+-    log_held(hass, key, False)
+     return result
+ 
+ 
