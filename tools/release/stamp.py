@@ -32,10 +32,14 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      with its reason, never an exception: rule 2 is a refusal, and a
      refusal that crashes instead cannot be overridden.
   3. The next version is greater than VERSION and than every existing tag, and
-     its tag exists neither locally nor on origin; a round close's version is
-     `next_version`'s, refused as above before the tags are read.
+     its tag exists neither locally nor on origin: the bump starts from the
+     highest of VERSION and the fetched tags (`bump_base`), so a tag cut by
+     hand above VERSION is stepped past. A round close's version is
+     `next_version`'s, refused as above before the tags are read, and
+     recomputed from that base once they are.
   4. RELEASE_NOTES.md opens with a '## v<next>' section whose body mentions
-     every PR merged since the last tag -- a stamp covers everything
+     every PR merged since the last stamped tag (`last_stamped_tag`: the
+     newest whose tree's VERSION is its name) -- a stamp covers everything
      unstamped, whoever merged it. The merges are read off main's own
      --first-parent line, in both subject shapes main has produced
      ('Merge pull request #N from ...' and a trailing '(#N)'), and from a
@@ -47,7 +51,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
   5. (rule "rows") Every merged pull request in the window this tag is about to
      close has a disposition -- `record`'s own predicate, re-applied before the
      tag moves the anchor past it. The window is the one rule 4 reads
-     (`<last v* tag>..HEAD`, first-parent) and the instrument is
+     (`<last stamped tag>..HEAD`, first-parent) and the instrument is
      `tests/delivery_status.py --require-rows`, which answers it from git alone
      so a stamp needs no token. This is the countermeasure to #1301 (D11-02):
      the deploy-key tag push is `main-protect-checks`'s only bypass, so a stamp was the
@@ -165,6 +169,12 @@ REGISTER_FILES = (REGISTER_DIR / "claims.json", REGISTER_DIR / "claims.md")
 # stub a stamp's checkout cannot be assumed to import.
 REGISTER_PYTHONPATH = "tests/hastub"
 TAG_RE = re.compile(r"^v(\d+)\.(\d+)\.(\d+)$")
+# release.yml's steps the self-test drives by name, and the publish step's
+# read-back bound: GitHub lists a just-uploaded asset a moment after the upload
+# returns, so one read raced it.
+RELEASE_TREE_STEP = "Refuse a tag whose tree does not carry its version"
+RELEASE_PUBLISH_STEP = "Publish the release once its asset is on it"
+RELEASE_READBACK_ATTEMPTS = 5
 # Rule 4's population: the pull requests merged into main since the last tag.
 # It is read off main's OWN first-parent line (window_log_args below). A
 # subject there has taken two shapes, so both are matched, and a deploy-key
@@ -334,6 +344,54 @@ def next_version(current: str, part: str | None, round_close: int | None,
     if part is None:
         return None, "one of --bump patch|minor or --round-close <round> is required"
     return bump(current, part), None
+
+
+def bump_base(current: str, tags: list[str]) -> str:
+    """The version a bump starts from: VERSION, or the highest release tag
+    when one stands above it. A tag cut by hand at a tree whose VERSION was
+    never moved (v7.1.2 at VERSION 7.1.1) leaves VERSION behind the tags, and
+    a bump from VERSION alone proposes that existing tag, which rule 3 then
+    refuses; from here the next stamp steps past it. `tags` is every tag name
+    read, release-shaped or not: TAG_RE drops the rest, so a v6.2.15-rc1
+    moves nothing."""
+    tops = [version_tuple(t) for t in tags if TAG_RE.match(t)]
+    return ".".join(map(str, max([version_tuple(current), *tops])))
+
+
+def last_stamped_tag(tags: list[str], version_at) -> str | None:
+    """The newest release tag a stamp made: the newest whose own tree's
+    VERSION equals its name. Rules 4 and 5 and the flush read their window
+    from it. A hand tag over a tree it did not stamp (v7.1.2 at VERSION
+    7.1.1) carries no notes section and no disposition pass of its own, so a
+    window anchored there would drop the merges the hand tag passed over.
+    `version_at(tag)` returns that tree's VERSION text, or None where it has
+    none (`tag_version` reads it through git); it is called newest first and
+    only until a tag matches."""
+    for tag in sorted((t for t in tags if TAG_RE.match(t)), key=version_tuple, reverse=True):
+        if (version_at(tag) or "").strip() == tag[1:]:
+            return tag
+    return None
+
+
+def tag_version(tag: str) -> str | None:
+    """The VERSION file of `tag`'s tree, or None where it has none (git show
+    fails and prints nothing to stdout)."""
+    return sh("git", "show", f"{tag}:VERSION", check=False) or None
+
+
+def release_step_script(name: str, workflow: Path | None = None) -> str:
+    """The bash text of release.yml's step `name`: its `run: |` block,
+    dedented. The self-test and the PR's tree proof run this, so what they
+    drive is the workflow's own text."""
+    lines = (workflow or ROOT / ".github" / "workflows" / "release.yml").read_text().splitlines()
+    at = lines.index(f"      - name: {name}")
+    run_at = next(i for i in range(at + 1, len(lines)) if lines[i].strip() == "run: |")
+    body = []
+    for line in lines[run_at + 1:]:
+        if line.strip() and not line.startswith(" " * 10):
+            break
+        body.append(line[10:])
+    return "\n".join(body).rstrip("\n") + "\n"
 
 
 def roster_round_at(root: Path) -> int | None:
@@ -1053,6 +1111,79 @@ def self_test() -> int:
         check("card: missing constant refuses", True)
     check("notes: #16 is not covered by #165", not re.search(r"#16(?!\d)", "fixed in #165"))
     check("tags: pre-release tags are ignored", not TAG_RE.match("v6.2.15-rc1") and bool(TAG_RE.match("v6.2.15")))
+
+    # THE BUMP BASE AND THE LAST STAMP (R10-HOTFIX-STAMP-BASE). v7.1.2 was
+    # tagged by hand at a tree whose VERSION reads 7.1.1: a bump from VERSION
+    # alone proposed v7.1.2 again, which rule 3 refuses, and a window anchored
+    # on the newest v* tag started at a commit no stamp made.
+    check("bump base: a hand tag above VERSION is the base, so the next patch is 7.1.3",
+          bump_base("7.1.1", ["v7.1.1", "v7.1.2"]) == "7.1.2"
+          and next_version(bump_base("7.1.1", ["v7.1.1", "v7.1.2"]), "patch", None, None)
+          == ("7.1.3", None))
+    check("bump base: no tag above VERSION leaves VERSION the base",
+          bump_base("7.1.1", ["v7.1.1"]) == "7.1.1" and bump_base("7.1.1", []) == "7.1.1")
+    check("bump base: a non-release tag is ignored",
+          bump_base("6.2.14", ["v6.2.14", "v6.2.15-rc1"]) == "6.2.14")
+    _trees = {"v7.1.0": "7.1.0\n", "v7.1.1": "7.1.1\n", "v7.1.2": "7.1.1\n",
+              "v7.1.3-rc1": "7.1.3-rc1\n"}
+    check("last stamp: a tag whose tree VERSION is not its name is skipped",
+          last_stamped_tag(["v7.1.0", "v7.1.1", "v7.1.2"], _trees.get) == "v7.1.1")
+    check("last stamp: a newest tag its tree stamps is the last stamp",
+          last_stamped_tag(["v7.1.0", "v7.1.1"], _trees.get) == "v7.1.1")
+    check("last stamp: non-release and VERSION-less tags are skipped, none is None",
+          last_stamped_tag(["v7.1.3-rc1", "v9.9.9"], _trees.get) is None)
+
+    # THE RELEASE WORKFLOW'S TREE CHECK AND ITS READ-BACK, driven from the YAML
+    # text itself: the step's own `run:` block is cut out of release.yml and
+    # run under bash, never a copy of its logic.
+    def _tree_check(tag: str, version: str, manifest: str, heading: str) -> int:
+        with tempfile.TemporaryDirectory() as tree:
+            t = pathlib.Path(tree)
+            (t / "VERSION").write_text(version + "\n")
+            (t / "custom_components" / "heatpump_optimizer").mkdir(parents=True)
+            (t / "custom_components" / "heatpump_optimizer" / "manifest.json").write_text(
+                json.dumps({"domain": "heatpump_optimizer", "version": manifest}))
+            (t / "RELEASE_NOTES.md").write_text(f"# Notes\n\n{heading}\n\nShipped.\n")
+            return subprocess.run(["bash", "-c", release_step_script(RELEASE_TREE_STEP)], cwd=t,
+                                  env={**os.environ, "TAG": tag},
+                                  capture_output=True, text=True).returncode
+    check("release tree: a stamped tree releases (v7.1.1 at 7.1.1)",
+          _tree_check("v7.1.1", "7.1.1", "7.1.1", "## v7.1.1") == 0)
+    check("release tree: a tag over another VERSION refuses (v7.1.2 at 7.1.1)",
+          _tree_check("v7.1.2", "7.1.1", "7.1.2", "## v7.1.2") == 1)
+    check("release tree: a manifest that disagrees refuses",
+          _tree_check("v7.1.2", "7.1.2", "7.1.1", "## v7.1.2") == 1)
+    check("release tree: notes without the tag's own section refuse",
+          _tree_check("v7.1.2", "7.1.2", "7.1.2", "## v7.1.20") == 1)
+
+    def _publish_step(found_on: int) -> tuple[int, int, bool]:
+        """(exit, asset reads, published) of the publish step against a stub
+        gh whose release carries the asset from read `found_on` on (0: never)."""
+        with tempfile.TemporaryDirectory() as d:
+            b = pathlib.Path(d)
+            (b / "gh").write_text(
+                "#!/bin/bash\n"
+                f'if [ "$2" = view ]; then n=$(( $(cat {d}/reads 2>/dev/null || echo 0) + 1 ));'
+                f' echo $n > {d}/reads;'
+                f' [ {found_on} -gt 0 ] && [ $n -ge {found_on} ] && echo "$ASSET"; exit 0; fi\n'
+                f'if [ "$2" = edit ]; then touch {d}/published; fi\n')
+            (b / "sleep").write_text("#!/bin/bash\nexit 0\n")
+            for stub in ("gh", "sleep"):
+                (b / stub).chmod(0o755)
+            rc = subprocess.run(["bash", "-c", release_step_script(RELEASE_PUBLISH_STEP)], cwd=d,
+                                env={**os.environ, "PATH": f"{d}:{os.environ['PATH']}",
+                                     "TAG": "v7.1.3", "ASSET": "heatpump_optimizer.zip"},
+                                capture_output=True, text=True).returncode
+            reads = int((b / "reads").read_text()) if (b / "reads").exists() else 0
+            return rc, reads, (b / "published").exists()
+    check("release publish: an asset read back on the third read is published",
+          _publish_step(3) == (0, 3, True))
+    check("release publish: an asset on the first read is published at once",
+          _publish_step(1) == (0, 1, True))
+    _never = _publish_step(0)
+    check(f"release publish: an asset never read back fails after {RELEASE_READBACK_ATTEMPTS} "
+          "reads, unpublished",
+          _never == (1, RELEASE_READBACK_ATTEMPTS, False))
 
     # Rule 2's evidence, on both paths. gh is not installed everywhere a
     # release is taken from, and rule 2 used to call it before --allow-red
@@ -1808,6 +1939,16 @@ def self_test() -> int:
           and wait_gate("new5678", gate=lambda h: (False, "ci.yml push run's gate for HEAD "
                                                           "concluded ['failure']"),
                         sleep=lambda s: 1 / 0, clock=lambda: 0)[0] is False)
+    _fetch_at = _main_src.find('sh("git", "fetch", "origin", "--quiet", "--tags")')
+    _base_at = _main_src.find("base = bump_base(current, tags + remote)")
+    _next_at = _main_src.find("nxt, why = next_version(base, ")
+    check("bump base: main() reads it after the tag fetch and bumps from it",
+          -1 < _fetch_at < _base_at < _next_at)
+    _r3 = _main_src[_main_src.index("# Rule 3: the next version is new"):]
+    _r3 = _r3[:_r3.index("# Rule \"flush\"")]
+    check("last stamp: main() anchors rules flush, 4 and 5 on the last stamped tag",
+          "last_tag = last_stamped_tag(tags, tag_version)" in _r3
+          and "last_tag = \"v\" +" not in _r3)
     check("round close: main takes the version from next_version, the round from the roster",
           "next_version(current, args.bump, args.round_close," in _main_src
           and "roster_round_at(ROOT)" in _main_src)
@@ -2483,8 +2624,8 @@ def main() -> int:
     # round the roster or VERSION contradicts, refuses at once (decision 0016).
     # Rule 1 then proves this checkout -- its VERSION and roster -- is origin/main.
     current = VERSION_FILE.read_text().strip()
-    nxt, why = next_version(current, args.bump, args.round_close,
-                            roster_round_at(ROOT) if args.round_close is not None else None)
+    roster_round = roster_round_at(ROOT) if args.round_close is not None else None
+    nxt, why = next_version(current, args.bump, args.round_close, roster_round)
     if nxt is None:
         raise Refuse(3, why + "; nothing was written")
 
@@ -2506,16 +2647,25 @@ def main() -> int:
             raise Refuse(2, why + " (wait, or --allow-red with the cause understood)")
         print(f"WARNING: stamping a main whose gate is not green: {why}")
 
-    # Rule 3: the next version is new, and above every tag.
+    # Rule 3: the next version is new, and above every tag. The bump starts
+    # from the highest of VERSION and the tags just fetched (`bump_base`), so
+    # a hand tag above VERSION is stepped past rather than proposed again;
+    # the exists and above-every-tag refusals stay as the backstop.
     tags = [t for t in sh("git", "tag", "--list").split() if TAG_RE.match(t)]
     remote = [t for t in (l.split("refs/tags/")[1] for l in sh("git", "ls-remote", "--tags", "origin").splitlines()
                             if "refs/tags/v" in l and not l.endswith("^{}")) if TAG_RE.match(t)]
+    base = bump_base(current, tags + remote)
+    nxt, why = next_version(base, args.bump, args.round_close, roster_round)
+    if nxt is None:
+        raise Refuse(3, why + "; nothing was written")
     if f"v{nxt}" in tags or f"v{nxt}" in remote:
         raise Refuse(3, f"tag v{nxt} already exists")
     top = max((version_tuple(t) for t in tags + remote), default=(0, 0, 0))
     if version_tuple(nxt) <= top:
         raise Refuse(3, f"next version {nxt} is not above the highest tag {'.'.join(map(str, top))}")
-    last_tag = "v" + ".".join(map(str, top)) if top != (0, 0, 0) else None
+    # Rules "flush", 4 and 5 read the window from the last STAMP, not the
+    # newest tag: a hand tag passed over merges no notes section covered.
+    last_tag = last_stamped_tag(tags, tag_version)
 
     # Rule "flush": a window owing a row the batching record beat holds back
     # is flushed before rule 4 reads it (`flush_before_tag`).
