@@ -1,5 +1,0 @@
-5 From #3052's red, 2026-11-01 (root-cause trigger, red check a cheaper detector could have run). A clean `ci: merge main` merge re-recorded max_class_loc but kep
-6 Opener driver (s9 seat-opener/driver4.py) records (topic, sha) in seen2.txt at START, so a failed open/update is never retried: 7 handoffs stranded 1-16 h on 20
-8 From triage P362 (orchestrator s10, 2026-11-01T18:19:37Z: a false STALE CHECKOUT refusal on #3047). tools/audit/seat/pr_args.sh `pr_tools_fresh` resolves its to
-9 P22 (assessor decision, s4, mandate 6329234399): update_pr.sh exits 75 (not 1) for 'branch checked out elsewhere' (l.42) and worktree-in-use, as for its lock, s
-bb2f7a1d9dac57f0fa819a3cc5d6f15010b15337
