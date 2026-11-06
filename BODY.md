@@ -1,38 +1,34 @@
-Round-10 roster, the batch after #2899, at the roster tip `69b1ac245586953cf8e94408a6d3f00cdce79c5f` on `handoff/audit-r10-roster`. Part of #201. It closes nothing by keyword and leaves #201 open.
+Round-10 roster record: the roster ops and the triage rulings they cite, at the tip `174417fa378846e2e876156984c3f39333ebd3ba` of `handoff/audit-r10-roster`. Part of #201. It closes nothing by keyword and leaves #201 open.
 
-The change is roster state only: one file, `dev/programme/rosters/wave-r10-groups.json`, which moves 196 lines in and 38 out against `08c0818cdb058d15c0c59e0b339c3111af9bbbb2`, the merge base with `origin/main` (`eab04d0ebf8c45667099b668ab0d8bf976d5f99a`). The branch has 40 commits over that base, none a merge: 30 `roster_edit.py` ops (15 `append-carry`, 11 `set-stage`, 3 `append-group`, 1 `wire-issue`) and 10 `roster_sync.py` derivations that move stages from pull requests.
+The change is roster state plus the triage rulings the roster's carries cite: 8 files. `dev/programme/rosters/wave-r10-groups.json` moves 2518 lines in and 983 out against the merge base `c3a279e3252a8b57bb00b5a677318cd4fe20387f`; `dev/programme/triage/s6-batch119.md` to `s6-batch125.md` add 163, 151, 124, 96, 42, 13 and 35 lines. The branch has 1229 non-merge commits over that base (plus 2 merges of main): 537 `append-carry`, 164 `drop-carry`, 130 `set-stage`, 92 `append-group`, 57 `wire-issue`, 54 `set-resume`, 42 `set-after`, 20 `edit-brief`, 17 `mark-carry`, 5 `set-files` ops, 99 `roster_sync` derivations, and 12 `roster:` and `record:` commits.
 
-Three groups are added, 212 to 215, none removed: `R10-TRIAGE-S6`, `R10-FRICTION-FIXER-MD` and `R10-FRICTION-CLAIM-FALSE`. Twenty-five existing groups change. Seven reach `done` (`R10-RCA-HEADMOVED`, `R10-FLOW-BOARD`, `R10-FLOW-JIDOKA`, `R10-FLOW-ROSTER-FREEZE`, `R10-IMMERSION-LATCH`, `R10-HOUSE-GRADE`, `R10-DEPENDABOT-SETUPTOOLS`); `R10-ORCH-BEATD` moves to `in-progress`; `R10-ORCH-ROSTER-SCHEMA` is reopened from `done` to `carries-open` and takes its carries; the other sixteen change a carry, an issue wire or another field with no stage change.
-
-`R10-RCA-FRICTION-RESIDUE`'s `fixes` (`[2410, 2593, 2597, 2660, 2784]`) are already on `origin/main` and this diff does not touch them, so a `Closes` on #2896 does not wait on this pull request.
+Groups go from 302 on `origin/main` to 336: 34 are added and none removed, and 98 existing groups change. 55 groups change stage: 32 reach `done`, 13 reach `carries-open` and 10 `absorbed`. No production or test code is touched.
 
 ## Head
 
-The head is `69b1ac245586953cf8e94408a6d3f00cdce79c5f`, the tip of `handoff/audit-r10-roster`. Every figure below was measured on a detached worktree at that commit against `origin/main` at `eab04d0ebf8c45667099b668ab0d8bf976d5f99a`. The three-dot diff carries only this branch's commits. `git merge-tree --write-tree eab04d0eb 69b1ac245` prints the tree `60d8fe780f38788b6a14dbfc6349ee8098006f79` and no conflict.
+`174417fa378846e2e876156984c3f39333ebd3ba`, the tip of `handoff/audit-r10-roster`: 174417fa3 plus one commit, `record: host paths scrubbed`, the mechanical `ref_privacy.py scrub --write` of three host-path spans in the roster. Every figure below was measured on a detached worktree at that commit against `origin/main` at `b88684a218923f85de66f1e8fb1833e31a76a154`. Read the diff three-dot: a two-dot diff shows main's own newer commits.
 
 ## Mutation proof
 
-n/a: roster state only; no production or test code.
+n/a: roster state and markdown rulings only; no production or test code.
 
 ## Null control
 
-Unmodified, `origin/main` carries 212 groups and the roster instruments pass on it. The roster blob there is `b00ab3ef00e7e9f4f9b205e523772429f6e6f222`, and at this head it is `508e010f27debb68bc4633bd382e1b920bfa5060`. A script that keys both trees' groups by `group` prints `212 215 3 0 25` (counts, added, removed, groups whose body differs); the diff touches no other file.
-
-At this head `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` exits 0 and prints `TOTAL: 0 error(s) across 1 file(s)`, and `python3 tests/structure.py` prints `STRUCTURE RATCHET PASSED`.
+`origin/main` carries 302 groups and the roster instruments pass on it; its roster blob is `8a4dcc3fd3861d4ad32c0c658090d318c64d2db9`. At this head the blob is `4a69e90f60e371277d21cccee07ad5f27b9929c2`. A script keying both trees' groups prints `302 336 34 0 98` (counts, added, removed, changed). The control that proves the lint reads: before this head, `node tools/policy/brief_lint.mjs` on `origin/main`'s roster exits 0, and at this head exits 0 as well with `TOTAL: 0 error(s) across 1 file(s)`.
 
 ## Figures
 
-- `git rev-parse eab04d0eb:dev/programme/rosters/wave-r10-groups.json` -- `b00ab3ef00e7e9f4f9b205e523772429f6e6f222`; `git rev-parse 69b1ac245:dev/programme/rosters/wave-r10-groups.json` -- `508e010f27debb68bc4633bd382e1b920bfa5060`.
-- `git rev-list --count 08c0818cd..69b1ac245` -- 40; `git rev-list --count --no-merges 08c0818cd..69b1ac245` -- 40.
-- `git diff --numstat eab04d0eb...69b1ac245` -- `196 38 dev/programme/rosters/wave-r10-groups.json`, the only row.
-- `git merge-tree --write-tree eab04d0eb 69b1ac245` -- tree `60d8fe780f38788b6a14dbfc6349ee8098006f79`, no conflict.
-- `python3 -c 'import json,subprocess as s,sys;f="dev/programme/rosters/wave-r10-groups.json";g=lambda r:{x["group"]:x for x in json.loads(s.check_output(["git","show",r+":"+f]))["groups"]};a,b=g(sys.argv[1]),g(sys.argv[2]);print(len(a),len(b),len(set(b)-set(a)),len(set(a)-set(b)),sum(a[k]!=b[k] for k in a if k in b))' eab04d0eb 69b1ac245` -- `212 215 3 0 25`.
-- `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` -- `TOTAL: 0 error(s) across 1 file(s)` at `69b1ac245`.
-- `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED` at `69b1ac245`.
+- `git merge-base origin/main 174417fa3` -- `c3a279e3252a8b57bb00b5a677318cd4fe20387f`; `git rev-list --count c3a279e32..174417fa3` -- 1231, of which `--no-merges` 1229.
+- `git diff --numstat origin/main...174417fa3` -- the roster `2518 983`; triage `163 0`, `151 0`, `124 0`, `96 0`, `42 0`, `13 0`, `35 0`; 8 files, 3142 insertions, 983 deletions.
+- `git merge-tree --write-tree origin/main 174417fa3` -- tree `ee8841628ea50a734c506d05656503cdaacf331a`, no conflict.
+- The group counts above come from `python3` keying `json.loads(git show <ref>:dev/programme/rosters/wave-r10-groups.json)["groups"]` by `group`; stage changes 55 (32 done, 13 carries-open, 10 absorbed) from the same keying on `resume.stage`.
+- `node tools/policy/brief_lint.mjs dev/programme/rosters/wave-r10-groups.json` -- `TOTAL: 0 error(s) across 1 file(s)` at `174417fa3`.
+- `python3 tests/structure.py` -- `STRUCTURE RATCHET PASSED` at `174417fa3`.
+- Overlap: `s6-batch124.md` and `s6-batch125.md` here are byte-identical to the blobs on `handoff/triage-s12-batch124` and `handoff/triage-s12-batch125` (`2decff42c`, `38e165713`). `s6-batch122.md` here is `90a9d0c45`, while `handoff/triage-s12-batch122` (#3212) carries `762260c83`; whichever merges second needs the other's version.
 
 ## Red checks
 
-none
+none yet: no check has run on this pull request when the body was written.
 
 ## Forward-carry
 
