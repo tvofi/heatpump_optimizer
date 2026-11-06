@@ -7,12 +7,13 @@ machinery-only and a mixed diff, from the check-run names.
 THE RULE. For every name gate.REQUIRED can hold, the job that reports it (its
 unit's workflow file: the job whose key, or whose `name:` up to " (", is the
 name up to " (") must not carry a job-level `if:` that reads the prelude's
-`machinery` or `pins` input: such a job could end SKIPPED, and gate.gate reads
+`machinery` input: such a job could end SKIPPED, and gate.gate reads
 a SKIPPED source as a failure. A stand-down is step-level, so the job reports
-success. Each name the slimming idles WHOLE (instrument-self-tests,
-mutation-pins, mutation-autofix) must be outside REQUIRED.
+success. Each name the slimming idles WHOLE (instrument-self-tests), and
+mutation-pins and mutation-autofix, which skip whenever `tests / mutation`
+passes, must be outside REQUIRED.
 
-Then, per diff, the prelude's own outputs (prelude.machinery, prelude.pins_due,
+Then, per diff, the prelude's own outputs (prelude.machinery,
 codeql_scope.decide over the same changed list, the tree's tests/closures.json)
 are printed, and gate.gate judges a run whose every required name is listed
 `completed/success` -- what a step-level stand-down and a CodeQL stand-in
@@ -57,7 +58,7 @@ UNIT_FILE = {"tests": "tests.yml", "codeql": "codeql.yml", "governance": "govern
              "hassfest": "hassfest.yml", "validate": "validate.yml", "arch-score": "arch-score.yml",
              "budget-raise-gate": "budget-raise-gate.yml", "pr-contract": "pr-contract.yml"}
 IDLED_WHOLE = {"governance / instrument-self-tests", "tests / mutation-pins", "tests / mutation-autofix"}
-READS = re.compile(r"inputs\.(machinery|pins)\b")
+READS = re.compile(r"inputs\.machinery\b")
 
 
 def jobs_of(wf_dir: Path, unit: str, override: dict | None = None) -> dict:
@@ -85,6 +86,19 @@ def skippable_required(wf_dir: Path, override: dict | None = None) -> list[str]:
     return bad
 
 
+PINS_JOBS = ("mutation-pins", "mutation-autofix")
+
+
+def gated_pins(wf_dir: Path, override: dict | None = None) -> list[str]:
+    """R10-CI-SLIM round 3 (C7(c) dropped): the pins measurement and its autofix
+    run on every pull-request head whose `tests / mutation` failed, so neither
+    job-level `if:` may read a caller input -- round 2's `inputs.pins` skipped
+    pins after a head whose own pins cancel-superseded had cancelled."""
+    jobs = jobs_of(wf_dir, "tests", override)
+    return [f"tests / {k}: job-level if reads {m}" for k in PINS_JOBS
+            for m in re.findall(r"inputs\.[\w-]+", str(jobs[k].get("if", "")))]
+
+
 def run_for(kind_jobs: dict):
     return [{"name": k, "status": "completed", "conclusion": c, "id": 1} for k, c in kind_jobs.items()]
 
@@ -108,7 +122,7 @@ def main(argv) -> int:
     wf = Path(a.workflows)
     ok = True
     bad = skippable_required(wf)
-    print(f"required names whose job-level if reads machinery/pins: {bad or 'none'} "
+    print(f"required names whose job-level if reads machinery: {bad or 'none'} "
           f"(over {len(G.gate_required())} names)")
     ok &= not bad
     overlap = sorted(IDLED_WHOLE & set(G.gate_required()))
@@ -120,12 +134,12 @@ def main(argv) -> int:
              "mixed": [cc, "tools/ci/gate.py"]}
     pr_cc = G.REQUIRED["pr-cc"]
     for label, files in diffs.items():
-        # A tree before C7 has neither function: every lane runs and pins measure.
+        # A tree before C7 has no prelude.machinery: every lane runs.
         mach = getattr(P, "machinery", lambda f: True)(files)
         legs = {leg: Q.decide(leg, "pull_request", files)[0] for leg in Q.LEGS}
         skipped = sorted(IDLED_WHOLE) if not mach else []
         good, why = judge(list(pr_cc), skipped)
-        print(f"{label}: files={files} machinery={mach} pins_due(delta=files)={getattr(P, "pins_due", lambda f: True)(files)} legs={legs} "
+        print(f"{label}: files={files} machinery={mach} legs={legs} "
               f"-> gate {'PASS' if good else 'FAIL ' + '; '.join(why)}")
         ok &= good
     # Null control: a job-level stand-down on a required job is caught, and its SKIPPED fails the gate.
@@ -137,6 +151,14 @@ def main(argv) -> int:
     print(f"null control: job-level stand-down on arch-instrument -> {caught}; gate -> "
           f"{'PASS' if good else 'FAIL ' + '; '.join(why)}")
     ok &= bool(caught) and not good
+    gated = gated_pins(wf)
+    print(f"pins jobs gated on a caller input: {gated or 'none'}")
+    ok &= not gated
+    doc = yaml.safe_load((wf / "tests.yml").read_text())
+    doc["jobs"]["mutation-pins"]["if"] = f"({doc['jobs']['mutation-pins']['if']}) && inputs.pins != 'false'"
+    caught = gated_pins(wf, {"tests": yaml.safe_dump(doc)})
+    print(f"null control: round 2's pins gate planted -> {caught}")
+    ok &= bool(caught)
     print("GATE SATISFIABLE" if ok else "GATE NOT SATISFIABLE")
     return 0 if ok else 1
 

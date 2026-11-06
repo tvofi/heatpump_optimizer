@@ -138,10 +138,6 @@ on:
         description: "The prelude's: 'false' on a pull request whose every changed file is product idles the machinery lanes (R10-CI-SLIM C7(a)); anything else runs them"
         type: string
         default: ""
-      pins:
-        description: "The prelude's: 'false' when this push's own delta touches no product file, so mutation-pins has nothing new to measure (R10-CI-SLIM C7(c)); anything else measures"
-        type: string
-        default: ""
     # The autofix jobs' push token and the run-approver App, until M-3.
     secrets:
       CLOSURES_PUSH_TOKEN:
@@ -1140,7 +1136,6 @@ jobs:
       && github.event_name == 'pull_request'
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
-      && inputs.pins != 'false'
     runs-on: ubuntu-latest
     # The step's 340 plus this runner's checkout, pip install and upload
     # (R9-CI-1 round 2: the budget the step hands the base program is 260).
@@ -2929,13 +2924,11 @@ jobs:
   # unpinned and `mutation` stays red on it for a human.
   mutation-autofix:
     needs: [mutation, mutation-pins]
-    # R10-CI-SLIM C7(c): no measurement at this head (prelude.pins_due), nothing to apply.
     if: >-
       !cancelled()
       && github.event_name == 'pull_request'
       && needs.mutation.result == 'failure'
       && github.event.pull_request.head.repo.full_name == github.repository
-      && inputs.pins != 'false'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:

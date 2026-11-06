@@ -69,9 +69,6 @@ STARTED = ("in_progress", "completed")
 # them, and every push runs them.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
-# C7(c): what can change whether a mutant dies -- the package, a measured test
-# script, a golden fixture it compares against. A pin, a doc or a record cannot.
-KILL_PREFIXES = ("custom_components/", "tests/golden/")
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
@@ -239,14 +236,14 @@ def wait_sources(ctx: dict, get, sleep=time.sleep, now=time.monotonic) -> str:
         sleep(POLL_S)
 
 
-def _product(closures_json: Path, prefixes=PRODUCT_PREFIXES, files=PRODUCT_FILES):
-    """The predicate `f is under prefixes, in files, or a measured script`, or
-    None when the script table is unreadable."""
+def _product(closures_json: Path):
+    """The predicate `f is product` (C7(a)'s list above), or None when the
+    script table is unreadable."""
     try:
         scripts = set(json.loads(closures_json.read_text())["closures"])
     except (OSError, ValueError, KeyError, TypeError):
         return None
-    return lambda f: f.startswith(prefixes) or f in files or f in scripts
+    return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
 def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
@@ -255,62 +252,6 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) 
     files = [f for f in (changed or []) if f.strip()]
     is_product = _product(closures_json)
     return not files or is_product is None or not all(map(is_product, files))
-
-
-def pins_due(since_last_head: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
-    """R10-CI-SLIM card C7(c): whether `mutation-pins` measures at this head. It
-    measures the diff's unpinned production sites, so a push whose own delta
-    touches nothing that can change a kill -- mutation-autofix's pin commit, a
-    body-only or tooling fix-up -- has nothing new to measure. The delta is
-    given only from a head whose measurement concluded (`pins_measured`; the
-    caller passes None otherwise), so the sites still unpinned WERE measured
-    there. A delta that touches the package, a golden fixture or a measured test
-    script (a test written to kill a survivor) measures again. No delta (opened,
-    reopened, a force-push the diff cannot read, a previous head whose
-    measurement was cancelled, failed or unfinished) measures."""
-    files = [f for f in (since_last_head or []) if f.strip()]
-    can_kill = _product(closures_json, KILL_PREFIXES, frozenset())
-    return not files or can_kill is None or any(map(can_kill, files))
-
-
-PINS_JOB = "tests / mutation-pins"           # one job, or its matrix shards "tests / mutation-pins (N)"
-AUTOFIX_JOB = "tests / mutation-autofix"
-MUTATION_JOB = "tests / mutation"
-DONE_OK = ("completed", "success")
-
-
-def pins_measured(jobs: dict) -> bool:
-    """Whether one run's jobs ({name: (status, conclusion)}) concluded the pins
-    measurement (C7(c)'s premise, R10-CI-SLIM round 3): `tests / mutation`
-    succeeded (no survivor: pins skip legitimately), or it failed and every
-    pins job listed succeeded and mutation-autofix succeeded. A cancelled,
-    failed, skipped or unfinished pins or autofix job is no measurement, and
-    neither is a run whose mutation job is missing or unfinished."""
-    mut = jobs.get(MUTATION_JOB)
-    if mut == DONE_OK:
-        return True
-    if mut != ("completed", "failure"):
-        return False
-    pins = [v for k, v in jobs.items() if k == PINS_JOB or k.startswith(PINS_JOB + " (")]
-    return bool(pins) and all(v == DONE_OK for v in pins) and jobs.get(AUTOFIX_JOB) == DONE_OK
-
-
-def measured_at(ctx: dict, pr: str, head: str, get) -> bool:
-    """Whether a code run for `pr` at `head` concluded the pins measurement
-    (`pins_measured`); a failed read is False, so the caller measures."""
-    try:
-        st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
-                         {"head_sha": head, "per_page": 100})
-        if st != 200 or not isinstance(doc, dict):
-            return False
-        for r in doc.get("workflow_runs", []):
-            t = parse_title(r.get("display_title") or "")
-            if r.get("head_sha", head) == head and t is not None and t[:2] == ("code", pr) \
-                    and pins_measured(run_jobs(get, ctx["repo"], r["id"])):
-                return True
-    except ghapi.ApiError:
-        return False
-    return False
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -362,8 +303,7 @@ def proof_scope(ctx: dict, get, entries=None, changed=None) -> tuple[list[str], 
     return files, proven
 
 
-def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope,
-            delta=None) -> tuple[dict, str]:
+def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=proof_scope) -> tuple[dict, str]:
     """(the outputs, '' or why the prelude fails)."""
     kind, pr, base = derive(ctx)
     ev = ctx["event_name"]
@@ -375,14 +315,6 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
-    since = None
-    if (ev == "pull_request" and ctx.get("action") == "synchronize" and ctx.get("before")
-            and measured_at(ctx, pr, ctx["before"], get)):
-        try:
-            since = (delta or codeql_scope.changed_files)(ctx["before"], ctx["head"])
-        except Exception:                      # unreadable delta: measure (fail closed)
-            since = None
-    out["pins"] = "true" if pins_due(since) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
@@ -573,65 +505,6 @@ def self_test() -> int:
                        ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
     check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
-    with tempfile.TemporaryDirectory() as td:
-        cj = Path(td) / "closures.json"
-        cj.write_text(json.dumps({"closures": {"tests/fast_case.py": []}}))
-        check("C7c: a pin commit's delta (the ledger only) measures nothing again",
-              pins_due(["tests/mutation_budgets.json", "tests/mutation_ledger/a.json"], cj), False)
-        check("C7c: a delta to a golden fixture measures (a kill compares against it)",
-              pins_due(["tests/golden/x.json"], cj), True)
-        check("C7c: a tooling or body-record delta measures nothing again",
-              pins_due(["tools/ci/gate.py", "dev/programme/delivery/1.md"], cj), False)
-        check("C7c: a delta touching the package measures (null control)",
-              pins_due(["tests/mutation_budgets.json", "custom_components/heatpump_optimizer/x.py"], cj), True)
-        check("C7c: a delta adding a test to a measured script measures (a survivor may now die)",
-              pins_due(["tests/fast_case.py"], cj), True)
-        check("C7c: no readable delta measures (opened, reopened, force-push)", pins_due(None, cj), True)
-        check("C7c: an unreadable script table measures", pins_due(["tools/x.py"], Path(td) / "none.json"), True)
-    # C7(c) round 3: the delta counts only from a head whose pins measurement
-    # concluded; cancel-superseded cancels a superseded head's pins shards.
-    sctx = context("pull_request", {"action": "synchronize", "before": "P", "pull_request": pr}, env)
-
-    def at_prev(*jobsets, st=200):
-        runs = [{"id": 30 + i, "head_sha": "P", "display_title": title("code", "7", "main", "P"), "status": "completed"}
-                for i in range(len(jobsets))]
-
-        def get(path, params=None):
-            if path.endswith("ci.yml/runs"):
-                return st, {}, {"workflow_runs": runs if (params or {}).get("head_sha") == "P" else []}
-            rid = int(path.split("/runs/")[1].split("/")[0])
-            return 200, {}, {"jobs": [{"name": n, "status": a, "conclusion": b}
-                                      for n, (a, b) in jobsets[rid - 30].items()]}
-        return get
-    ok, fail, canc = ("completed", "success"), ("completed", "failure"), ("completed", "cancelled")
-    pins_out = lambda get: outputs(sctx, None, get, delta=lambda b, h: ["dev/programme/delivery/7.md"])[0]["pins"]  # noqa: E731
-    check("C7c: the previous head's pins were CANCELLED (cancel-superseded): this head measures",
-          pins_out(at_prev({MUTATION_JOB: canc, PINS_JOB: canc, AUTOFIX_JOB: canc})), "true")
-    check("C7c: the previous head's pins succeeded but its autofix FAILED: this head measures",
-          pins_out(at_prev({MUTATION_JOB: fail, PINS_JOB + " (1)": ok, AUTOFIX_JOB: fail})), "true")
-    check("C7c: the previous head's mutation failed and its pins are still RUNNING: this head measures",
-          pins_out(at_prev({MUTATION_JOB: fail, PINS_JOB + " (1)": ("in_progress", None), AUTOFIX_JOB: ("queued", None)})),
-          "true")
-    check("C7c: the previous head itself skipped pins on a failed mutation (no measurement to inherit): measures",
-          pins_out(at_prev({MUTATION_JOB: fail, PINS_JOB: ("completed", "skipped"), AUTOFIX_JOB: ("completed", "skipped")})),
-          "true")
-    check("C7c: one pins shard of several cancelled: measures",
-          pins_out(at_prev({MUTATION_JOB: fail, PINS_JOB + " (1)": ok, PINS_JOB + " (2)": canc, AUTOFIX_JOB: ok})), "true")
-    check("C7c: the runs listing at the previous head fails to read: measures",
-          pins_out(at_prev({MUTATION_JOB: ok}, st=502)), "true")
-    check("C7c: no code run at the previous head: measures", pins_out(at_prev()), "true")
-    check("C7c: every pins shard and the autofix concluded success at the previous head: the delta decides (no measure)",
-          pins_out(at_prev({MUTATION_JOB: fail, PINS_JOB + " (1)": ok, PINS_JOB + " (2)": ok, AUTOFIX_JOB: ok})), "false")
-    check("C7c: the previous head's mutation passed (pins skipped, nothing survived): the delta decides",
-          pins_out(at_prev({MUTATION_JOB: ok, PINS_JOB: ("completed", "skipped")})), "false")
-    check("C7c: one cancelled run and one concluded run at the previous head: the concluded one counts",
-          pins_out(at_prev({MUTATION_JOB: canc, PINS_JOB: canc}, {MUTATION_JOB: ok})), "false")
-    check("C7c: a concluded previous head with a product delta measures (null control)",
-          outputs(sctx, None, at_prev({MUTATION_JOB: ok}),
-                  delta=lambda b, h: ["custom_components/heatpump_optimizer/x.py"])[0]["pins"], "true")
-    check("C7c: a push or an opened pull request measures (no delta read)",
-          (outputs(ctx("push"), None, g(live))[0]["pins"],
-           outputs(ctx("pull_request", action="opened", pull_request=pr), ["x"], g(live))[0]["pins"]), ("true", "true"))
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr), ["README.md"], g(live))

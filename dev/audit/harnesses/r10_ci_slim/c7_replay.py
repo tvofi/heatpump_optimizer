@@ -28,7 +28,8 @@ costs completed_at - started_at.
       created_at -- a job finishing later is unfinished when this run's prelude
       reads it, as production reads it: every tests / mutation-pins shard and
       tests / mutation-autofix at 0. A tree without pins_measured (round 2's
-      rule) takes the delta from P whatever P's runs concluded.
+      rule) takes the delta from P whatever P's runs concluded; a tree without
+      pins_due (round 3 dropped C7(c), whose sound rule saved 0 here) saves 0.
 Push and dispatch runs are unchanged by construction (each rule reads a pull
 request only) and are counted in the total only.
 """
