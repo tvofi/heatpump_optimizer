@@ -1,0 +1,9 @@
+
+tools/audit/briefs/D1.md
+  ERROR   [budgets] tools/audit/briefs/D1.md: about 820 tokens across its lines exceeds its cap of 819 tokens (files_tokens). Cut, or state the case for a higher cap in the pull request body.
+
+KNOWN-BAD: 7 of 7 recorded defect(s) still present, in 8 recorded occurrence(s)
+
+TOTAL: 1 error(s) across 50 policy file(s)
+
+FIXTURE ok: 93 error(s) hold 266 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/

@@ -1,0 +1,29 @@
+== leads.json at MB 28482eceeb6b9809e44b12d80fc994282cc21645
+787-   "raised_by": "D1-s2",
+788-   "file": "custom_components/heatpump_optimizer/thermal_model.py",
+789:   "symbol": "ThermalModel._stability_substeps",
+790-   "why": "closed by D1-s2-02 (runaway wind-driven substeps)"
+791-  },
+792-  {
+== thermal n_sub
+3612:        n_sub, u_first, u_second = self._substeps_and_loss(
+3616:            if n_sub == 1:
+3626:            for _ in range(n_sub):
+3630:                    dt_hours / n_sub,
+3639:            self._step_buffer_refused = refused / n_sub
+                    )
+                if c_buf is None:
+                    c_buf = _buffer_capacity(p)
+                valve_row = ua_valve / c_buf
+            worst = max(
+                (u_upper + p.slab_heat_transfer) / p.room_thermal_mass,
+                (p.slab_heat_transfer + (ua_valve or 0.0)) / p.slab_thermal_mass,
+                valve_row,
+            )
+        n_sub = max(1, int(np.ceil(worst * dt_hours / EULER_MONOTONE_MAX_RATIO)))
+        return n_sub, u_upper, u_lower
+
+
+    def simulate_trajectory(
+        self,
+        initial_state: ThermalState,
