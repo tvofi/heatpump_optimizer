@@ -1,0 +1,120 @@
+128215481382 tests completed skipped
+128215470610 governance completed skipped
+128215468330 validate completed skipped
+128215461580 cancel-superseded completed success
+128215427635 hassfest completed skipped
+128215427552 pr-contract completed skipped
+128215427291 kernel-points completed skipped
+128215427174 arch-score / arch-score completed success
+128215427031 budget-raise-gate / budget-raise-gate completed success
+128215426484 codeql completed skipped
+128215426306 refresh completed success
+128215426141 prelude completed success
+128215425787 gate completed success
+128215158394 validate completed skipped
+128215143555 kernel-points completed skipped
+128215139023 codeql completed skipped
+128215138062 refresh completed success
+128215135247 hassfest completed skipped
+128215105242 pr-contract completed skipped
+128215104089 budget-raise-gate / budget-raise-gate completed success
+128215104020 governance completed skipped
+128215103844 tests completed skipped
+128215103819 arch-score / arch-score completed success
+128215103397 prelude completed success
+128215102848 gate completed success
+128215102788 cancel-superseded completed success
+128213777779 prelude completed success
+128213775663 cancel-superseded completed success
+128213771685 validate completed skipped
+128213770681 hassfest completed skipped
+128213767710 governance completed skipped
+128213766599 arch-score / arch-score completed success
+128213735114 pr-contract completed skipped
+128213733905 validate completed skipped
+128213733681 budget-raise-gate / budget-raise-gate completed success
+128213733654 kernel-points completed skipped
+128213733555 tests completed skipped
+128213733535 arch-score / arch-score completed success
+128213733111 hassfest completed skipped
+128213733086 codeql completed skipped
+128213733037 gate completed failure
+128213732877 refresh completed success
+128213732340 cancel-superseded completed success
+128213726602 pr-contract completed skipped
+128213726012 codeql completed skipped
+128213725705 tests completed skipped
+128213725665 budget-raise-gate / budget-raise-gate completed success
+128213725558 governance completed skipped
+128213725501 kernel-points completed skipped
+128213725322 prelude completed success
+128213724689 refresh completed success
+128213724460 gate completed failure
+128213388457 gate completed success
+128213150052 tests / closures-autofix completed skipped
+128213149962 tests / ci-ratchet completed skipped
+128213148674 pr-contract / pr-contract completed success
+128208954680 tests / lane-proofs completed success
+128208954569 tests / graders-head-copy completed success
+128208954556 tests / coverage-ratchet completed success
+128205456224 tests / claims-autofix completed skipped
+128202149359 pr-contract completed skipped
+128202148031 gate completed failure
+128201652034 hassfest completed skipped
+128201651728 governance completed skipped
+128201651704 tests completed skipped
+128201651170 validate completed skipped
+128201651152 codeql completed skipped
+128201650794 kernel-points completed skipped
+128201649528 arch-score / arch-score completed success
+128201649324 budget-raise-gate / budget-raise-gate completed success
+128201460351 refresh completed success
+128201460335 prelude completed success
+128201459986 cancel-superseded completed success
+128201062398 pr-contract completed skipped
+128201061248 gate completed failure
+128201034591 tests / mutation-autofix completed skipped
+128201034484 tests / mutation-pins completed skipped
+128200936622 tests / replay completed skipped
+128200936536 tests / nightly-ha completed skipped
+128200934527 tests / arch-instrument completed success
+128200934498 tests / closures completed success
+128200934470 tests / coverage completed success
+128200934425 tests / typing completed success
+128200934402 tests / browser completed success
+128200934360 tests / fast (3.14) completed success
+128200771585 CodeQL completed success
+128200694770 governance / delivery-status-publish completed skipped
+128200694728 governance / record completed skipped
+128200694711 kernel-points completed skipped
+128200693055 budget-raise-gate / budget-raise-gate completed success
+128200692899 codeql / Analyze (python) completed success
+128200692858 codeql / Analyze (actions) completed success
+128200692836 governance / delivery-status completed success
+128200692830 tests / nightly-status completed success
+128200692803 tests / closure-scope completed success
+128200692782 codeql / Analyze (javascript-typescript) completed success
+128200692737 tests / mutation completed success
+128200692713 hassfest / hassfest completed success
+128200692638 governance / instrument-self-tests completed success
+128200692630 tests / briefs completed success
+128200692621 governance / env-matrix completed success
+128200692566 governance / policy-docs completed success
+128200692554 governance / wave-script completed success
+128200692549 arch-score / arch-score completed success
+128200692525 validate / validate-hacs completed success
+128200619037 kernel-points completed skipped
+128200618427 validate completed skipped
+128200618291 codeql completed skipped
+128200618116 hassfest completed skipped
+128200617995 tests completed skipped
+128200617211 governance completed skipped
+128200615858 budget-raise-gate / budget-raise-gate completed success
+128200615675 arch-score / arch-score completed success
+128200421715 refresh completed success
+128200421665 prelude completed success
+128200421307 cancel-superseded completed success
+128200419658 prelude completed success
+128200419610 refresh completed success
+128200419215 cancel-superseded completed success
+128200417593 arm completed skipped

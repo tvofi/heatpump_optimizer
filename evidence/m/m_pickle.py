@@ -7,7 +7,8 @@ with no deadline.
 a stream, a zero-argument ``wait``/``join``/``recv``/``recv_bytes``/
 ``communicate``/``acquire`` with no ``timeout``/``blocking``, ``select.select``
 with no timeout, ``subprocess.run``/``call``/``check_call``/``check_output``
-with no ``timeout``, a queue's ``get()`` with no timeout, and a ``with`` over a
+with no ``timeout``, a ``get()`` with no timeout on a receiver whose name contains "queue"
+(a name heuristic: ``q.get()`` is not seen; the package has no queue), and a ``with`` over a
 module-level name ending ``_LOCK`` (a lock taken with no deadline). An awaited
 call is skipped (a coroutine's wait is cancellable at unload). Each site prints
 with its enclosing function, the key a reasoned disposition needs: the
@@ -50,7 +51,7 @@ def _why(node: ast.AST) -> str | None:
     if isinstance(node, ast.With):
         for item in node.items:
             expr = item.context_expr
-            if False:
+            if isinstance(expr, ast.Name) and expr.id.endswith("_LOCK"):
                 return f"with {expr.id} (no deadline)"
         return None
     if not isinstance(node, ast.Call):
@@ -58,7 +59,7 @@ def _why(node: ast.AST) -> str | None:
     func = node.func
     name = func.attr if isinstance(func, ast.Attribute) else getattr(func, "id", "")
     owner = ast.unparse(func.value) if isinstance(func, ast.Attribute) else ""
-    if owner == "pickle" and name == "load":
+    if False:
         return "pickle.load of a stream"
     if name in ZERO_ARG and not node.args and not _has_kw(node, "timeout", "blocking"):
         return f".{name}() with no timeout"

@@ -1,11 +1,11 @@
-== v712 arm=[]
+=== /tmp/tree-v7.1.2 drive --cap 6 --silent 30 
 RESULT reply_returned_within_cap=0
 RESULT reply_elapsed_s=>6
 OUTCOME still waiting on the worker reply
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== v712 arm=[--reply-timeout 2]
+=== /tmp/tree-v7.1.2 drive --cap 6 --silent 30 --reply-timeout 2
 NOTE this tree has no PROCESS_REPLY_TIMEOUT_S; --reply-timeout has nothing to set
 RESULT reply_returned_within_cap=0
 RESULT reply_elapsed_s=>6
@@ -13,14 +13,14 @@ OUTCOME still waiting on the worker reply
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== v712 arm=[--answer]
+=== /tmp/tree-v7.1.2 drive --cap 6 --silent 30 --answer
 RESULT reply_returned_within_cap=1
 RESULT reply_elapsed_s=0.10
 OUTCOME returned None
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== v712 scan
+=== /tmp/tree-v7.1.2 scan
 SITE coordinator.py:1841 _shutdown_process_pool: .wait() with no timeout: worker.wait()
 SITE coordinator.py:1850 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
 SITE coordinator.py:1900 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
@@ -28,92 +28,32 @@ SITE coordinator.py:1909 _run_in_process: pickle.load of a stream: pickle.load(s
 SITE coordinator.py:1923 _run_in_process: .wait() with no timeout: worker.wait()
 SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
 RESULT unbounded_sites=6
-== main9c arm=[]
+=== /tmp/tree-bba5b4d4d drive --cap 6 --silent 30 
 RESULT reply_returned_within_cap=0
 RESULT reply_elapsed_s=>6
 OUTCOME still waiting on the worker reply
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== main9c arm=[--reply-timeout 2]
-NOTE this tree has no PROCESS_REPLY_TIMEOUT_S; --reply-timeout has nothing to set
-RESULT reply_returned_within_cap=0
-RESULT reply_elapsed_s=>6
-OUTCOME still waiting on the worker reply
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== main9c arm=[--answer]
-RESULT reply_returned_within_cap=1
-RESULT reply_elapsed_s=0.10
-OUTCOME returned None
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== main9c scan
-SITE coordinator.py:1843 _shutdown_process_pool: .wait() with no timeout: worker.wait()
-SITE coordinator.py:1852 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
-SITE coordinator.py:1902 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
-SITE coordinator.py:1911 _run_in_process: pickle.load of a stream: pickle.load(stdout)
-SITE coordinator.py:1925 _run_in_process: .wait() with no timeout: worker.wait()
-SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
-RESULT unbounded_sites=6
-== f3232 arm=[]
-RESULT reply_returned_within_cap=0
-RESULT reply_elapsed_s=>6
-OUTCOME still waiting on the worker reply
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== f3232 arm=[--reply-timeout 2]
+=== /tmp/tree-bba5b4d4d drive --cap 6 --silent 30 --reply-timeout 2
 RESULT reply_returned_within_cap=1
 RESULT reply_elapsed_s=2.00
 OUTCOME raised ProcessWorkerTimeout
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== f3232 arm=[--answer]
+=== /tmp/tree-bba5b4d4d drive --cap 6 --silent 30 --answer
 RESULT reply_returned_within_cap=1
 RESULT reply_elapsed_s=0.10
 OUTCOME returned None
 RESULT stop_returned_within_cap=1
 RESULT stop_elapsed_s=0.00
 RESULT reply_released_after_stop=1
-== f3232 scan
+=== /tmp/tree-bba5b4d4d scan
 SITE coordinator.py:1878 _shutdown_process_pool: .wait() with no timeout: worker.wait()
 SITE coordinator.py:2001 _read_reply: pickle.load of a stream: pickle.load(stdout)
 SITE coordinator.py:2007 _read_reply: pickle.load of a stream: pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
 SITE coordinator.py:2031 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
 SITE coordinator.py:2066 _run_in_process: .wait() with no timeout: worker.wait()
-SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
-RESULT unbounded_sites=6
-== mb arm=[]
-RESULT reply_returned_within_cap=0
-RESULT reply_elapsed_s=>6
-OUTCOME still waiting on the worker reply
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== mb arm=[--reply-timeout 2]
-NOTE this tree has no PROCESS_REPLY_TIMEOUT_S; --reply-timeout has nothing to set
-RESULT reply_returned_within_cap=0
-RESULT reply_elapsed_s=>6
-OUTCOME still waiting on the worker reply
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== mb arm=[--answer]
-RESULT reply_returned_within_cap=1
-RESULT reply_elapsed_s=0.10
-OUTCOME returned None
-RESULT stop_returned_within_cap=1
-RESULT stop_elapsed_s=0.00
-RESULT reply_released_after_stop=1
-== mb scan
-SITE coordinator.py:1843 _shutdown_process_pool: .wait() with no timeout: worker.wait()
-SITE coordinator.py:1852 _shutdown_process_pool: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
-SITE coordinator.py:1902 _run_in_process: with _PROCESS_LOCK (no deadline): with _PROCESS_LOCK:
-SITE coordinator.py:1911 _run_in_process: pickle.load of a stream: pickle.load(stdout)
-SITE coordinator.py:1925 _run_in_process: .wait() with no timeout: worker.wait()
 SITE process_worker.py:73 run_worker: pickle.load of a stream: pickle.load(stdin)
 RESULT unbounded_sites=6

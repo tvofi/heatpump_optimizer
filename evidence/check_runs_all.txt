@@ -1,101 +1,68 @@
-success cancel-superseded id=128177201895
-skipped codeql id=128177194882
-success budget-raise-gate / budget-raise-gate id=128177193018
-skipped validate id=128177183987
-success prelude id=128177173215
-skipped tests id=128177172095
-success arch-score / arch-score id=128177125378
-skipped kernel-points id=128177124834
-skipped governance id=128177124756
-skipped pr-contract id=128177124512
-skipped hassfest id=128177124194
-success refresh id=128177123337
-success gate id=128177123255
-skipped tests id=128176779181
-success refresh id=128176777813
-success budget-raise-gate / budget-raise-gate id=128176769898
-skipped codeql id=128176765952
-skipped validate id=128176759408
-success budget-raise-gate / budget-raise-gate id=128176759048
-skipped hassfest id=128176756831
-success arch-score / arch-score id=128176751636
-skipped hassfest id=128176747181
-skipped validate id=128176743989
-success cancel-superseded id=128176739143
-skipped governance id=128176732144
-skipped pr-contract id=128176707710
-success arch-score / arch-score id=128176706572
-success gate id=128176706250
-skipped kernel-points id=128176706190
-skipped governance id=128176705958
-success cancel-superseded id=128176705479
-success prelude id=128176704994
-skipped pr-contract id=128176689628
-skipped kernel-points id=128176689079
-skipped codeql id=128176688786
-skipped tests id=128176688492
-success refresh id=128176688187
-failure gate id=128176687653
-success prelude id=128176687642
-success gate id=128176307422
-success pr-contract / pr-contract id=128176068791
-skipped tests / ci-ratchet id=128173084710
-skipped tests / closures-autofix id=128173084088
-success tests / coverage-ratchet id=128171967932
-success tests / graders-head-copy id=128171967855
-success tests / lane-proofs id=128171967746
-skipped tests / claims-autofix id=128169036519
-skipped pr-contract id=128164589787
-failure gate id=128164588196
-skipped codeql id=128163999853
-skipped tests id=128163999401
-skipped hassfest id=128163999001
-skipped validate id=128163998121
-skipped governance id=128163998101
-skipped kernel-points id=128163998073
-success arch-score / arch-score id=128163996082
-success budget-raise-gate / budget-raise-gate id=128163995999
-success prelude id=128163780719
-success cancel-superseded id=128163780693
-success refresh id=128163780464
-skipped pr-contract id=128162707769
-failure gate id=128162705998
-skipped tests / mutation-autofix id=128162402160
-skipped tests / mutation-pins id=128162401012
-skipped tests / replay id=128162345844
-skipped tests / nightly-ha id=128162345703
-success tests / coverage id=128162344025
-success tests / closures id=128162343813
-success tests / typing id=128162343706
-success tests / browser id=128162343699
-success tests / arch-instrument id=128162343616
-success tests / fast (3.14) id=128162343584
-success CodeQL id=128162212613
-skipped hassfest id=128162163659
-skipped codeql id=128162162656
-skipped tests id=128162162582
-skipped governance id=128162162453
-skipped kernel-points id=128162162373
-skipped validate id=128162162115
-success arch-score / arch-score id=128162160598
-success budget-raise-gate / budget-raise-gate id=128162160372
-skipped governance / record id=128162131892
-skipped governance / delivery-status-publish id=128162131770
-skipped kernel-points id=128162130466
-success governance / env-matrix id=128162129167
-success governance / policy-docs id=128162129164
-success governance / instrument-self-tests id=128162129161
-success hassfest / hassfest id=128162129141
-success tests / closure-scope id=128162129122
-success tests / briefs id=128162129114
-success governance / delivery-status id=128162129112
-success codeql / Analyze (javascript-typescript) id=128162129103
-success governance / wave-script id=128162129089
-success tests / mutation id=128162129064
-success budget-raise-gate / budget-raise-gate id=128162129052
-success codeql / Analyze (actions) id=128162129041
-success validate / validate-hacs id=128162129035
-success codeql / Analyze (python) id=128162129015
-success tests / nightly-status id=128162129011
-success arch-score / arch-score id=128162128831
-{"message":"Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead.","documentation_url":"https://docs.anthropic.com/en/docs/claude-code/github-actions"}gh: Numeric-ID repository paths (repositories/{id}/...) are not supported through this proxy. Use repos/{owner}/{repo}/... endpoints instead. (HTTP 403)
+68 128215481382 tests completed skipped
+68 128215470610 governance completed skipped
+68 128215468330 validate completed skipped
+68 128215461580 cancel-superseded completed success
+68 128215427635 hassfest completed skipped
+68 128215427552 pr-contract completed skipped
+68 128215427291 kernel-points completed skipped
+68 128215427174 arch-score / arch-score completed success
+68 128215427031 budget-raise-gate / budget-raise-gate completed success
+68 128215426484 codeql completed skipped
+68 128215426306 refresh completed success
+68 128215426141 prelude completed success
+68 128215425787 gate completed success
+68 128215158394 validate completed skipped
+68 128215143555 kernel-points completed skipped
+68 128215139023 codeql completed skipped
+68 128215138062 refresh completed success
+68 128215135247 hassfest completed skipped
+68 128215105242 pr-contract completed skipped
+68 128215104089 budget-raise-gate / budget-raise-gate completed success
+68 128215104020 governance completed skipped
+68 128215103844 tests completed skipped
+68 128215103819 arch-score / arch-score completed success
+68 128215103397 prelude completed success
+68 128215102848 gate completed success
+68 128215102788 cancel-superseded completed success
+68 128213388457 gate completed success
+68 128213150052 tests / closures-autofix completed skipped
+68 128213149962 tests / ci-ratchet completed skipped
+68 128213148674 pr-contract / pr-contract completed success
+68 128208954680 tests / lane-proofs completed success
+68 128208954569 tests / graders-head-copy completed success
+68 128208954556 tests / coverage-ratchet completed success
+68 128205456224 tests / claims-autofix completed skipped
+68 128201034591 tests / mutation-autofix completed skipped
+68 128201034484 tests / mutation-pins completed skipped
+68 128200936622 tests / replay completed skipped
+68 128200936536 tests / nightly-ha completed skipped
+68 128200934527 tests / arch-instrument completed success
+68 128200934498 tests / closures completed success
+68 128200934470 tests / coverage completed success
+68 128200934425 tests / typing completed success
+68 128200934402 tests / browser completed success
+68 128200934360 tests / fast (3.14) completed success
+68 128200771585 CodeQL completed success
+68 128200694770 governance / delivery-status-publish completed skipped
+68 128200694728 governance / record completed skipped
+68 128200694711 kernel-points completed skipped
+68 128200693055 budget-raise-gate / budget-raise-gate completed success
+68 128200692899 codeql / Analyze (python) completed success
+68 128200692858 codeql / Analyze (actions) completed success
+68 128200692836 governance / delivery-status completed success
+68 128200692830 tests / nightly-status completed success
+68 128200692803 tests / closure-scope completed success
+68 128200692782 codeql / Analyze (javascript-typescript) completed success
+68 128200692737 tests / mutation completed success
+68 128200692713 hassfest / hassfest completed success
+68 128200692638 governance / instrument-self-tests completed success
+68 128200692630 tests / briefs completed success
+68 128200692621 governance / env-matrix completed success
+68 128200692566 governance / policy-docs completed success
+68 128200692554 governance / wave-script completed success
+68 128200692549 arch-score / arch-score completed success
+68 128200692525 validate / validate-hacs completed success
+68 128200419658 prelude completed success
+68 128200419610 refresh completed success
+68 128200419215 cancel-superseded completed success
+68 128200417593 arm completed skipped
