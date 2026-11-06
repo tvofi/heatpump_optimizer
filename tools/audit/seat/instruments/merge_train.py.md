@@ -33,9 +33,9 @@
   A record pull request (`record_pr`: every changed path a delivery row,
   carry, plan, triage batch, the handover or a roster) is logged
   `HELD-FOR-STAMP` and queued for nobody, by `queue`, `add` and `sweep`
-  alike; under `--stamp` they are admitted, so the stamp seat's
-  `queue --stamp` before the tag merges every held record in one batch
-  (tvofi 2026-11-01). The record/autofix branch stays `--bot-prs`'s.
+  alike; under `--stamp` they are admitted, so the stamp step of
+  `.claude/workflows/web-stamp.js` runs `sweep --stamp` before the tag and
+  one train merges every held record in one batch (tvofi 2026-11-01). The record/autofix branch stays `--bot-prs`'s.
   An `add` that starts a train starts it over every ready pull request
   (`Train.ready_batch`: the sweep's queue, else `build_queue`), one batch;
   a train over one pull request starts only when it is the one ready

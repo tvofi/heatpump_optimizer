@@ -27,8 +27,8 @@
   [flags]` loads one pull request into that state dir's live train (its next
   batch) or, with none live, starts one with those flags over every ready
   pull request (`merge_train.py queue`'s, carry 14); a record pull request is
-  `HELD-FOR-STAMP`, rc 0 (the stamp seat loads them: `merge_train.py queue
-  --stamp`, then `train.sh --queue`). When: whenever a
+  `HELD-FOR-STAMP`, rc 0 (the stamp seat loads them in one batch: `merge_train.py sweep
+  --stamp`, the stamp step of `.claude/workflows/web-stamp.js`). When: whenever a
   merge verdict is confirmed. Refusal: `ADD REFUSED #<pr> <rule>: <why>` from
   `Train.admit_add` (shape, open, base, carry, row, budget-raise, policy),
   and `one-train` beside a train.sh still closing; a pull request already
