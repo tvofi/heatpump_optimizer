@@ -4144,6 +4144,12 @@ def _p2_registry(sources):
                  ast.Call, r"^np\.ones\(.+ - \w+\.size\)$",
                  lambda n: getattr(n.func, "attr", None) == "ones"),
              owners=["tariff.py::billed_windows"], dispositions={}),
+        dict(fact="plan_window_count", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Attribute, r"^metering_windows\(np\.zeros\(",
+                 lambda n: n.attr == "size" and isinstance(n.value, ast.Call)),
+             owners=["optimizer.py::HeatPumpOptimizer._n_peak_windows"],
+             dispositions={}),
     ]
 
 

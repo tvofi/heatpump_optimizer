@@ -3386,10 +3386,18 @@ class HeatPumpOptimizer:
             weekdays_only=bool(cfg.peak_weekdays_only),
             offpeak_factor=float(cfg.peak_offpeak_factor),
         )
-        n_windows = metering_windows(
-            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
-        ).size
+        n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
         return window_factors(mask, start_time, n_windows, dt)
+
+    def _n_peak_windows(self, n_steps: int, dt: float, offset_steps: int) -> int:
+        """How many metering windows a plan of ``n_steps`` spans.
+
+        The one count both the window factors and the window days are sized
+        by, so the two arrays ``peak_cost`` zips cannot differ in length.
+        """
+        return metering_windows(
+            np.zeros(n_steps), self.config.peak_window_minutes, dt, offset_steps
+        ).size
 
     def _peak_day_kwargs(
         self,
@@ -3405,9 +3413,7 @@ class HeatPumpOptimizer:
         are read at the same real instant (#1512).
         """
         cfg = self.config
-        n_windows = metering_windows(
-            np.zeros(n_steps), cfg.peak_window_minutes, dt, offset_steps
-        ).size
+        n_windows = self._n_peak_windows(n_steps, dt, offset_steps)
         days = (
             None if start_time is None
             else plan_window_days(n_windows, cfg.peak_window_minutes, start_time)

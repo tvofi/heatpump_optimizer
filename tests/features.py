@@ -78483,4 +78483,20 @@ R.check(
     f"report {_c2238_p4_rep}, ref {_c2238_p4_ref}, batch {_c2238_p4_batch} vs {_c2238_p4_bref}",
 )
 
+# P5: how many metering windows a plan spans -- the factors and the days are
+# both sized by HeatPumpOptimizer._n_peak_windows.
+with _c2238_mock.patch.object(
+    _BoOpt, "_n_peak_windows", create=True, side_effect=lambda *_a: 7,
+):
+    _c2238_p5_f = _c2238_opt._peak_window_factors(96, 0.25, _c2238_start, 0)
+    _c2238_p5_d = _c2238_opt._peak_day_kwargs(96, 0.25, _c2238_start, 0)["window_days"]
+R.check(
+    "R10-CLONE-2238 P5: the window factors and the window days are both sized "
+    "by _n_peak_windows",
+    _c2238_p5_f is not None and len(_c2238_p5_f) == 7
+    and _c2238_p5_d is not None and len(_c2238_p5_d) == 7,
+    f"factors {None if _c2238_p5_f is None else len(_c2238_p5_f)}, "
+    f"days {None if _c2238_p5_d is None else len(_c2238_p5_d)}",
+)
+
 sys.exit(R.close("FEATURE CHECKS"))
