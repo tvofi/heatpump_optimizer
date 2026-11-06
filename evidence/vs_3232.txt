@@ -1,0 +1,25 @@
+3232 head: bba5b4d4d7ac37f339850de36b1ca24573f8c821
+LEDGER-MERGE: resolved tests/closures.json
+fcb158b62c7b08964e840ced0d2c8fb171d0b2e9
+rc=0
+== 3232's closures.json hunks
+diff --git a/tests/closures.json b/tests/closures.json
+index 79d3291ae..b0319ca4e 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -1692,6 +1692,7 @@
+    "tests/typing_ruler.py",
+    "tests/validate.py",
+    "tests/wood_advisor.py",
++   "tests/worker_deadlines.py",
+    "tools/audit/archscore/__init__.py",
+    "tools/audit/archscore/calibrate.py",
+    "tools/audit/archscore/counters.py",
+@@ -2253,6 +2254,7 @@
+    "tests/run.sh",
+    "tests/stress.py",
+    "tests/structure.py",
++   "tests/worker_deadlines.py",
+    "tools/devices/gen_device_fixtures.py",
+    "tools/devices/measure_prefill_corpus.py"
+   ],
