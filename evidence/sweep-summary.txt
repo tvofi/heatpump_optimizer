@@ -1,4 +1,0 @@
-RESULT sweep 2026-11-01T00:00Z..2026-11-06T09:00Z hourly (126 cuts), window X=2026-09-07..T, no --fetch, bus of 2026-11-06
-RESULT arm=all would-trip at 1/126 hourly cuts; distinct (arm,cut) keys = 1 -> DISPATCH lines the row would emit
-RESULT arm=model:sonnet would-trip at 125/126 hourly cuts; distinct (arm,cut) keys = 37 -> DISPATCH lines the row would emit
-RESULT total distinct dispatches: 38

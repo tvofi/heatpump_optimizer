@@ -1,0 +1,47 @@
+base-f6a299d3 1793491200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T01:33Z..10-31T23:04Z
+base-f6a299d3 1793523600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T14:51Z..11-01T08:24Z
+base-f6a299d3 1793527200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T17:12Z..11-01T09:13Z
+base-f6a299d3 1793530800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T23:02Z..11-01T10:27Z
+base-f6a299d3 1793534400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T23:03Z..11-01T11:56Z
+base-f6a299d3 1793545200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T03:56Z..11-01T14:44Z
+base-f6a299d3 1793548800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T03:57Z..11-01T15:35Z
+base-f6a299d3 1793556000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T03:57Z..11-01T17:13Z
+base-f6a299d3 1793559600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T04:02Z..11-01T18:50Z
+base-f6a299d3 1793566800 NEW DISPATCH: planted-defect-audit arm=all cut=11-01T04:02Z..11-01T20:27Z
+base-f6a299d3 1793566800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T04:07Z..11-01T20:34Z
+base-f6a299d3 1793570400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T04:48Z..11-01T21:34Z
+base-f6a299d3 1793574000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T11:56Z..11-01T22:16Z
+base-f6a299d3 1793581200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T14:34Z..11-02T00:19Z
+base-f6a299d3 1793584800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T14:44Z..11-02T01:11Z
+base-f6a299d3 1793588400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T15:03Z..11-02T02:33Z
+base-f6a299d3 1793592000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T15:35Z..11-02T03:43Z
+base-f6a299d3 1793595600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T18:50Z..11-02T04:27Z
+base-f6a299d3 1793599200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T20:19Z..11-02T05:54Z
+base-f6a299d3 1793602800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T20:27Z..11-02T06:57Z
+base-f6a299d3 1793606400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T21:01Z..11-02T07:42Z
+base-f6a299d3 1793610000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T21:34Z..11-02T08:49Z
+base-f6a299d3 1793613600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T21:34Z..11-02T09:09Z
+base-f6a299d3 1793617200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T22:05Z..11-02T10:35Z
+base-f6a299d3 1793620800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T22:14Z..11-02T11:55Z
+base-f6a299d3 1793638800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T22:15Z..11-02T16:39Z
+base-f6a299d3 1793646000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-01T22:16Z..11-02T18:46Z
+base-f6a299d3 1793818800 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T01:11Z..11-04T18:41Z
+base-f6a299d3 1793822400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T02:33Z..11-04T19:49Z
+base-f6a299d3 1793833200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T05:54Z..11-04T22:58Z
+base-f6a299d3 1793847600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T07:38Z..11-05T02:18Z
+base-f6a299d3 1793858400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T08:49Z..11-05T05:50Z
+base-f6a299d3 1793862000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T09:09Z..11-05T06:43Z
+base-f6a299d3 1793880000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T10:35Z..11-05T11:05Z
+base-f6a299d3 1793883600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T11:55Z..11-05T12:05Z
+base-f6a299d3 1793894400 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-02T16:39Z..11-05T15:22Z
+base-f6a299d3 1793916000 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-04T18:40Z..11-05T21:59Z
+base-f6a299d3 1793919600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=11-04T18:40Z..11-05T22:03Z
+RESULT base-f6a299d3 all would-trip at 1/130 hourly cuts; DISPATCH lines 1
+RESULT base-f6a299d3 model:sonnet would-trip at 125/130 hourly cuts; DISPATCH lines 37
+RESULT base-f6a299d3 total distinct DISPATCH lines: 38 over 130 cuts
+head-79cf40f4 1793491200 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T01:33Z..10-31T23:04Z
+head-79cf40f4 1793523600 NEW DISPATCH: planted-defect-audit arm=model:sonnet cut=10-31T14:51Z..11-01T08:24Z
+head-79cf40f4 1793566800 NEW DISPATCH: planted-defect-audit arm=all cut=11-01T04:02Z..11-01T20:27Z
+RESULT head-79cf40f4 all would-trip at 1/130 hourly cuts; DISPATCH lines 1
+RESULT head-79cf40f4 model:sonnet would-trip at 125/130 hourly cuts; DISPATCH lines 2
+RESULT head-79cf40f4 total distinct DISPATCH lines: 3 over 130 cuts
