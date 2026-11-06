@@ -1,0 +1,7 @@
+  ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
+ledger self-test: 85 checks, 0 failed
+orchestrator_tick self-test: 274 checks, 0 failed
+  ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
+bus self-test: 135 checks, 0 failed
+
+STRUCTURE RATCHET PASSED
