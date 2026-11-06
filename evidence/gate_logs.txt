@@ -1,0 +1,18 @@
+== gate job 127716027534
+ * [new branch]          design-verdict/R10-COP-GATE -> origin/design-verdict/R10-COP-GATE
+ * [new branch]          design/R10-COP-GATE         -> origin/design/R10-COP-GATE
+ * [new branch]          dispatch/design-reviewer-R10-COP-GATE -> origin/dispatch/design-reviewer-R10-COP-GATE
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL budget-raise-gate / budget-raise-gate: failure (this run)
+== gate job 127715091088
+ * [new branch]          design-verdict/R10-COP-GATE -> origin/design-verdict/R10-COP-GATE
+ * [new branch]          design/R10-COP-GATE         -> origin/design/R10-COP-GATE
+ * [new branch]          dispatch/design-reviewer-R10-COP-GATE -> origin/dispatch/design-reviewer-R10-COP-GATE
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL budget-raise-gate / budget-raise-gate: failure (run 42160683435)
+== gate job 127714135055
+ * [new branch]          design-verdict/R10-COP-GATE -> origin/design-verdict/R10-COP-GATE
+ * [new branch]          design/R10-COP-GATE         -> origin/design/R10-COP-GATE
+ * [new branch]          dispatch/design-reviewer-R10-COP-GATE -> origin/dispatch/design-reviewer-R10-COP-GATE
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL budget-raise-gate / budget-raise-gate: failure (run 42160683435)

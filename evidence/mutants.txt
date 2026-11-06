@@ -1,6 +1,25 @@
-MUTANT tests/ci_ratchet.py [if key in REPORT_ONLY: -> if False:]: ci-ratchet self-test: 65 checks, 2 failed
-MUTANT tools/ci/gate.py [            bound = 0  ->             pass #]: gate self-test: 57 checks, 1 failed
-MUTANT tools/ci/prelude.py [if defer_to(ctx, pr, get) is not None: -> if False:]: prelude self-test: 70 checks, 3 failed
-MUTANT tools/pr/codeql_scope.py [if not any(f.startswith(ANALYZED_PREFIXES) for f in files): -> if False:]: codeql_scope self-test: 94 checks, 2 failed
-MUTANT tools/ci/prelude.py [    return not files or can_kill is None or any(map(can_kill, files)) ->     return True]: prelude self-test: 70 checks, 2 failed
-MUTANT tools/ci/prelude.py [    return not files or is_product is None or not all(map(is_product, files)) ->     return True]: prelude self-test: 70 checks, 3 failed
+MUTANT tests/ci_ratchet.py ['if key in REPORT_ONLY:' -> 'if False:'] (occurrences 1): rc=1 :: ci-ratchet: ci-metrics-fast artifacts fetch attempt 1/1 failed: the ci-metrics-fast artifacts fetch carried other names (ci-metrics-closures, other-name); the name filter was not applied, refusing to read that as the lane's window
+       FAIL critical_path_minutes growth (23.574 -> 99.0) is printed, never graded -- grew 1: ['  ok    archscore.dead_members: 1 (budget 1)', '  GREW  critical_path_minutes: 99.0 (budget 23.574)', '  ok  
+       FAIL both planted: only the graded row counts -- grew 2
+MUTANT tools/ci/gate.py ['bound = 0' -> 'pass #'] (occurrences 1): rc=1 :: gate self-test: 57 checks, 1 failed
+     FAIL C3: a deferring edit gate beside a busy code run publishes the deferral at once, holding no runner: got (True, [60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60, 60]), want (True, [])
+MUTANT tools/ci/prelude.py ['if defer_to(ctx, pr, get) is not None:' -> 'if False:'] (occurrences 1): rc=1 :: prelude self-test: 62 checks, 3 failed
+     FAIL C3: beside a code run in its units, the edit run exits at once without pr-contract: got (('UNBOUNDED: waited past the frames', ''), [60, 60, 60, 60, 60, 60]), want (('arch-score budget-raise-gate
+     FAIL C3: beside a queued code run (nothing listed), it exits at once: got ('UNBOUNDED: waited past the frames', [60, 60, 60, 60, 60, 60]), want ('arch-score budget-raise-gate', [])
+     FAIL C3: a queued pr-contract has not read the body: exits at once: got ('UNBOUNDED: waited past the frames', [60, 60, 60, 60, 60, 60]), want ('arch-score budget-raise-gate', [])
+MUTANT tools/pr/codeql_scope.py ['if not any(f.startswith(ANALYZED_PREFIXES) for f in files):' -> 'if False:'] (occurrences 1): rc=1 :: codeql_scope: cannot read the extracted archive /tmp/tmpwf1dx9hk/bad.zip: File is not a zip file
+       FAIL a roster PR skips javascript-typescript: nothing under custom_components/ or .github/ (C7b): got 'analyze', want 'skip'
+       FAIL C7b: a tools/ .py diff skips python on a pull request (the next main push analyzes it): got 'analyze', want 'skip'
+MUTANT tools/ci/prelude.py ['return not files or is_product is None or not all(map(is_product, file' -> 'return True'] (occurrences 1): rc=1 :: prelude self-test: 62 checks, 3 failed
+     FAIL C7a: a product-only diff (package + a measured script) idles the machinery lanes: got True, want False
+     FAIL C7a: ... and so do its docs, golden fixtures and ledger pins: got True, want False
+     FAIL C7a: the prelude's output on a product-only pull request: got 'true', want 'false'
+MUTANT tools/ci/prelude.py ['out["machinery"] = "true" if ev != "pull_request" or machinery(changed' -> 'out["machinery"] = "false"'] (occurrences 1): rc=1 :: prelude self-test: 62 checks, 1 failed
+     FAIL C7a: a push always runs them (null control): got 'false', want 'true'
+VACUOUS (my own: a duplicate `if:` key, overridden by the job's own; superseded below) MUTANT .github/workflows/tests.yml ['mutation-pins:' -> "mutation-pins:\n    if: inputs.machinery != 'false'"] (occurrences 1): rc=0 :: GATE SATISFIABLE
+VACUOUS (my own: a duplicate `if:` key, overridden by the job's own; superseded below) MUTANT .github/workflows/tests.yml ['mutation-autofix:' -> "mutation-autofix:\n    if: inputs.pins != 'false'"] (occurrences 1): rc=0 :: GATE SATISFIABLE
+clean: yes
+MUTANT tests.yml mutation-pins if += '&& inputs.machinery != false': rc=1 :: pins jobs gated on a caller input: ['tests / mutation-pins: job-level if reads inputs.machinery'] | GATE NOT SATISFIABLE
+MUTANT tests.yml mutation-autofix if += '&& inputs.machinery != false': rc=1 :: pins jobs gated on a caller input: ['tests / mutation-autofix: job-level if reads inputs.machinery'] | GATE NOT SATISFIABLE
+clean: yes
+MUTANT gated_pins -> []: rc=1 :: null control: round 2's pins gate planted -> [] GATE NOT SATISFIABLE 

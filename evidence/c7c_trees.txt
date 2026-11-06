@@ -1,0 +1,10 @@
+== r2 4ae9f7596c751d06d27d246f51e7f09277928f6b
+tree /tmp/tmp.2yJ3Erlxpo/r2: 121 pull_request code runs (0 diffs unreadable, left as run); ci.yml job-minutes in the sample 28055
+(c) mutation-pins + autofix, 3 runs whose delta had no product file: 2234 -> 1756 job-minutes on pull_request code runs (saving 479, 1.7% of the sample)
+(c) runs whose previous head had not concluded its pins measurement (delta not taken, measures): 0
+together: saving 1670 of 28055 job-minutes (6.0%)
+== sound 2c51d07b57980916c0a372d3ec5c66b496c1515c
+tree /tmp/tmp.2yJ3Erlxpo/sound: 121 pull_request code runs (0 diffs unreadable, left as run); ci.yml job-minutes in the sample 28055
+(c) mutation-pins + autofix, 0 runs whose delta had no product file: 2234 -> 2234 job-minutes on pull_request code runs (saving 0, 0.0% of the sample)
+(c) runs whose previous head had not concluded its pins measurement (delta not taken, measures): 39
+together: saving 1191 of 28055 job-minutes (4.2%)
