@@ -28325,6 +28325,26 @@ R.check(
 # Read from the comment-stripped job, as the pins above are.
 _PC_STEPS = _PC_BODY_STEP.split("\n      - name: ")
 _PC_WAIT = next((_b for _b in _PC_STEPS if _b.startswith("Wait for code scanning")), "")
+# THE CARRY STEP NAMES THE PULL REQUEST'S BRANCH (R10-BODY-CONTRACT part 2, carry 9): the
+# refusal prints the live groups after-edged on the PR's own group as the valid targets,
+# and it finds the group from `--branch`; without it the refusal reads `valid targets:
+# unknown` and nothing else fails. The step is read off the registered job; the plant is
+# the same step text with the flag dropped, the null control the step as written.
+_PC_CARRY = next((_b for _b in _PC_STEPS if _b.startswith("Every finding the body records")), "")
+
+
+def _pc_carry_names_branch(step: str) -> bool:
+    return ('check --body /tmp/pr-body.md --branch "$HEAD_REF"' in step
+            and "HEAD_REF: ${{ github.event.pull_request.head.ref }}" in step)
+
+
+R.check(
+    "pr-contract's carry step passes `--branch \"$HEAD_REF\"`, bound to the PR head ref (plant and null)",
+    bool(_PC_CARRY) and _pc_carry_names_branch(_PC_CARRY)
+    and not _pc_carry_names_branch(_PC_CARRY.replace(' --branch "$HEAD_REF"', ""))  # mut:carry-branch
+    and not _pc_carry_names_branch(_PC_CARRY.replace("github.event.pull_request.head.ref", "github.head_ref")),
+    f"step={'found' if _PC_CARRY else 'missing'}",
+)
 _PC_WAIT_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("Wait for code scanning")), -1)
 _PC_LIST_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("List the red checks")), -1)
 R.check(
