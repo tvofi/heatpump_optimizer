@@ -41684,6 +41684,14 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+# The worker read deadline, the reply frame bound and the stop path's lock
+# bound (#3232): their checks are in tests/worker_deadlines.py, run here, so
+# that CodeQL's extraction of this module stays inside its job limit.
+import worker_deadlines as _worker_deadlines  # noqa: E402
+
+_worker_deadlines.run(R, _g3_parent)
+
+# ---------------------------------------------------------------------------
 R.section("#525 — nothing blocking runs on Home Assistant's event loop")
 
 import subprocess as _g525_subprocess  # noqa: E402
