@@ -1,0 +1,15 @@
+== m1: 2 of 4860 FEATURE CHECKS FAILED
+  FAIL every domain a written slot accepts is commanded through a service that domain implements (#1526)  [20 (slot, domain) pairs driven; refused ['water_heater.p6_dhw_setpoint_entity: the consumer i
+  FAIL a water_heater DHW set-point is read from its temperature attribute, clamped to min_temp/max_temp and written on its target_temp_step  [{'read': 62.0, 'range': (30.0, 65.0), 'step': 0.5, 'write
+== m2: 2 of 4860 FEATURE CHECKS FAILED
+  FAIL a water_heater DHW set-point is read from its temperature attribute, clamped to min_temp/max_temp and written on its target_temp_step  [{'read': 62.0, 'range': (None, None), 'step': 0.5, 'write
+  FAIL a water_heater DHW set-point on a degF instance reads its range in degC and is clamped to it  [{'range': (None, None), 'clamp above max': 70.0, 'clamp below min': 20.0}]
+== m3: 1 of 4860 FEATURE CHECKS FAILED
+  FAIL a water_heater DHW set-point is read from its temperature attribute, clamped to min_temp/max_temp and written on its target_temp_step  [{'read': 62.0, 'range': (30.0, 65.0), 'step': 1.0, 'write
+== m4: 1 of 4860 FEATURE CHECKS FAILED
+  FAIL a water_heater DHW set-point on a degF instance reads its range in degC and is clamped to it  [{'range': (86.0, 149.0), 'clamp above max': 86.11111111111111, 'clamp below min': 86.1111111111111
+== m6: 4 of 4860 FEATURE CHECKS FAILED
+  FAIL a degF climate with no target attribute is still written in degF  [{'absent': 50, 'None': 50}]
+  FAIL the smart_write valve target is written in the entity's unit, once, and remembered in degC (L1)  [{'climate on degF': ([74], 23.5), 'climate on degF, no target': ([23], 23.5), 'number declaring
+  FAIL a climate set-point slot is clamped to its own min_temp/max_temp, read in the instance's unit (L2)  [{'climate on degF, above max': 55.0, 'climate on degF, below min': 45.0, 'climate on degC, a
+  FAIL a water_heater DHW set-point on a degF instance reads its range in degC and is clamped to it  [{'range': (86.0, 149.0), 'clamp above max': 86.11111111111111, 'clamp below min': 86.1111111111111
