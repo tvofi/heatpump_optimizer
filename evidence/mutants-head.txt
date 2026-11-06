@@ -1,47 +1,15 @@
-== L32_dispose_home_silent
-rc=0
+== plants at head a101717e588108b4520bb935f59a22fdab31f85f
+RESULT mutant=L35_import_sha_dropped rc=1 fails=1
+    FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
+RESULT mutant=L33_imported_verdict_unclosable rc=1 fails=2
+    FAIL an imported verdict-unposted closes on a read-back naming its sha (carry 1)
+    FAIL a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)
 RESULT mutant=L32_dispose_home_silent rc=1 fails=1
     FAIL dispose into a non-default home names it on stderr and still writes (carry 3)
-plants: 1, without a FAIL line: none
-== L33_imported_verdict_unclosable
-rc=0
-RESULT mutant=L33_imported_verdict_unclosable rc=1 fails=1
-    FAIL an imported verdict-unposted closes on a read-back naming its sha (carry 1)
-plants: 1, without a FAIL line: none
-== L34_backlog_escalates
-rc=0
 RESULT mutant=L34_backlog_escalates rc=1 fails=2
     FAIL a tip committed before the last opening is backlog and escalates nothing; a later arrival still ages (carry 2)
     FAIL a tip committed exactly at the last opening is backlog
-plants: 1, without a FAIL line: none
-== B4_orphans_merged_pr_ignored
-rc=0
 RESULT mutant=B4_orphans_merged_pr_ignored rc=1 fails=1
     FAIL a handoff whose pull request merged at or after its tip is merged-pr, not ORPHAN
-plants: 1, without a FAIL line: none
-== L3_any_verdict_posts
+plants: 5, without a FAIL line: none
 rc=0
-RESULT mutant=L3_any_verdict_posts rc=1 fails=3
-    FAIL a relayed claim is no close: a read-back of another verdict leaves it open
-    FAIL an imported verdict-unposted closes on a read-back naming its sha (carry 1)
-    FAIL null control: a read-back of another sha leaves the imported row open
-plants: 1, without a FAIL line: none
-== T4_no_escalation
-rc=0
-RESULT mutant=T4_no_escalation rc=1 fails=4
-    FAIL relay OWED: aging keys on arrivals after the newest fix/ or handoff/ opening: the 30 h backlog tip is silent, the 5 h arrival escalates (carry 2)
-    FAIL relay OWED: null control: an unreadable opening listing is UNREADABLE and keys on age alone, flagging the backlog
-    FAIL relay OWED: a stranded handoff past 4 h is a DISPATCH line naming its group and opener, oldest first
-    FAIL relay OWED: past 12 h it raises an owner flag
-plants: 1, without a FAIL line: none
-== self-test
-  ok   T7_readback_uncollected: the mutant parses
-  ok   every plant's target has an owner self-test
-r10_ledger_mutants self-test: 146 checks, 0 failed
-== T_last_open_none (reviewer mutant)
-  FAIL relay OWED: aging keys on arrivals after the newest fix/ or handoff/ opening: the 30 h backlog tip is silent, the 5 h arrival escalates (carry 2)
-  FAIL relay OWED: null control: an unreadable opening listing is UNREADABLE and keys on age alone, flagging the backlog
-orchestrator_tick self-test: 274 checks, 2 failed
-== L_import_sha_dropped (reviewer mutant)
-  ok   level CLI: a failed fetch is rc 2 and prints no level (unknown is not 'nothing owed')
-ledger self-test: 85 checks, 0 failed

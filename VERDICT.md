@@ -1,35 +1,23 @@
-Fix review: blocked c8c50b9f814c8d959b57d064ef1d7712b3564821 mutation-vacuous: L_import_sha_dropped (ledger._import_log keeps no sha; carry 1's import line is pinned by no self-test)
+Fix review: merge a101717e588108b4520bb935f59a22fdab31f85f
 
-bus-nonce: 4425b3b07dc737e03e772cba0d4c10f4
+bus-nonce: c3a9e66dc3fb7b3517ddd814b215a9ac
 
-Round 1. Measured head c8c50b9f814c8d959b57d064ef1d7712b3564821 (detached worktree), merge base 5421413b54ba1044b8e91e1afd88b41acfc7a753. The role file is current: there is no diff under dev/governance/roles/ between the merge base and origin/main.
-
-## Block
-
-Carry 1 (the roster's second carry: an imported verdict-unposted row nothing can close) is delivered by two production changes. The first is in `ledger._import_log`: the imported row keeps the sha its journal line names (`f[3] if is_sha(f[3]) else "-"`). The second is in `fold`, which closes such a row on a read-back naming that sha. The body names `ledger._import_log` as the change.
-
-The self-test rows for carry 1 (`iv` in ledger.py's self_test) are built with the sha already set, so they bypass `_import_log` entirely. Reviewer mutant: replace `kind, when, sha = "verdict-unposted", f[1], f[3] if is_sha(f[3]) else "-"` with `kind, when, sha = "verdict-unposted", f[1], "-"` (the pre-PR behaviour). The whole closure stays green (ev/mutant-import-sha.txt):
-- ledger self-test: 85 checks, 0 failed
-- orchestrator_tick self-test: 274 checks, 0 failed
-- cloud_relay self-test: 332 checks, 0 failed
-- r10_ledger_mutants self-test: 146 checks, 0 failed
-
-Under that mutant, a row migrated from a log OWED line still carries sha `-`. The new fold arm (`named` requires `sha != "-"`) then never fires, and the defect the carry names survives in production. The `fold` half is pinned: L33 is killed. The `_import_log` half, which is the half that makes a migrated row closable at all, is not.
-
-Repair: add a self-test that imports a log OWED line `... verdict-unposted <pr> <sha>` through `_import_log` (or `main` / the migration path), then folds it against a read-back naming that sha and expects it closed. Add a plant for this line to r10_ledger_mutants.py.
+Round 2 of 3. I measured PR head a101717e588108b4520bb935f59a22fdab31f85f from a detached worktree; its code head is 3279fe67192b1f5ac8089667d32fa68d3951cf28. The merge base is b36679ceaa65a08a67a84f0d934c93aa15f7c7f3. The role file is current: there is no diff under dev/governance/roles/ between the merge base and origin/main.
 
 ## Findings
 
-- Carry 2 (aging keyed on arrivals) silences every stranded handoff committed at or before the newest fix/ or handoff/ opening, whatever topic that opening belongs to. One unrelated PR opening resets the alarm for the whole backlog. That is the carry's own design ("as pulse.py does"), and the self-tests pin it, but the body does not state this consequence. Carry: dismissed: within the carry's stated design; noted for the next ledger owner, not a defect of this PR
-- The carry-2 re-measurements the roster carry asks for were not taken by the fixer (no gh in its seat), and could not be taken by this reviewer either: gh here fails auth, and pulse_replay plus a live `bus.sh orphans --min-age-h 24` need it. These are the 123/153 STOPPED replay and the count of orphans older than the newest opening. The body discloses the gap. Carry: R10-LEDGER-RESIDUE
+- The carry-2 re-measurements were not taken, by the fixer or by this reviewer: the `dev/audit/harnesses/pulse_replay.py` replay and the live `bus.sh orphans --min-age-h 24` backlog count both need an authenticated `gh`, which neither cloud seat has. The body states the gap under `## Null control`, as the brief allows ("stated or measured"). The live figures are still owed after the merge, by a seat that has `gh`. Carry: R10-LEDGER-RESIDUE
 
 ## Evidence
 
-- RESULT: self-tests at the head: ledger 85/0, orchestrator_tick 274/0, bus 135/0, r10_ledger_mutants 146/0. structure.py: STRUCTURE RATCHET PASSED. All match the body's figures (ev/selftests-head.txt, ev/mutants-head.txt).
-- RESULT: plants L32, L33, L34, B4, L3 and T4 are all KILLED, each failing the check the body names (ev/mutants-head.txt). A reviewer mutant, `last_open = None` in Tick.relay_owed, is KILLED by 2 relay OWED checks.
-- RESULT: carry 0 (the cloud_relay-8 plant) needs no change at this base. The pattern occurs once in cloud_relay.sh, and `r10_seat_selftests_mutants.py cloud_relay-8` gives KILLED, survivors=0 (ev/cloud_relay8-head.txt).
-- RESULT: carries 3 and 4 land as their roster text specifies, each with a null control.
-- `git merge-tree --write-tree origin/main c8c50b9f814c8d959b57d064ef1d7712b3564821`: clean, no conflict.
-- The three-dot diff touches 5 files: bus.sh, ledger.py, orchestrator_tick.py, r10_ledger_mutants.py, and the delivery row dev/programme/delivery/3248.md. VERSION, the manifest, RELEASE_NOTES.md, custom_components/ and every *_budgets.json are untouched.
-- CI: merge_train classify read RED (gate) at 12:31 and 12:36Z, with WAIT between (ev/classify.txt). Both gate runs (127892275620, 127895068836) logged "FAIL run(s) [42217622995] at this head are still being judged; their gate decides". That is an ordering artifact, not a test failure, so no root-cause trigger is judged here. CI had not concluded when this verdict was written. The block above does not depend on it.
-- The packet's figure_lint resolved 6/6. The finder's harness for this instrument group is the roster carries' own controls; no separate finder harness is named.
+- RESULT: round 1's block is settled. Reviewer mutant L_import_sha_dropped (the round-1 finder mutant: `f[3] if is_sha(f[3]) else "-"` becomes `"-"` in `ledger._import_log`) applied by hand at the head: ledger self-test 87 checks, 1 failed, and the failing check is "a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)". Restored, the head reads 87/0 (ev/mutant-import-sha.txt).
+- RESULT: null control at the base. At b36679ce, `_import_log` already drops the sha (line 290, `"-"`), the new check is absent, and the self-test reads 77/0: the hole was unpinned there. With the base's line put back in the head's file, the new check fails 87/1. The test's own null control, "the imported row stays open on a read-back of another sha", passes at the head.
+- RESULT: plant L35_import_sha_dropped is in r10_ledger_mutants.py and is KILLED, failing that check. L33, L32, L34 and B4 are all KILLED, each failing the check the body names; L33 now also fails the new check (ev/mutants-head.txt).
+- RESULT: self-tests at the head: ledger 87/0, orchestrator_tick 274/0, bus 135/0, r10_ledger_mutants 149/0. structure.py: STRUCTURE RATCHET PASSED. Every figure matches the body (ev/selftests-head.txt). At the base, ledger reads 77/0 and r10_ledger_mutants 135/0, and both deltas are this PR's new checks. I did not re-run `prepr.sh rc=0`; I cite CI's gate instead (heavy runs are cited, never re-run).
+- The round-1 note on the carry-2 consequence (one unrelated opening silences the older backlog) is now stated in the body's `## Carry 2 consequence`.
+- CI: `merge_train.py classify` read `GREEN a101717e588108b4520bb935f59a22fdab31f85f pending: none red: none`, rc=0, at 14:36Z (ev/classify.txt). I read all 68 check runs at the head on one page, all concluded: none failed, and none was cancelled or timed out. `## Red checks: none` is therefore correct. pr-contract / pr-contract 127945049366 is green (14:24Z), and gate is green (127949503809 at 14:32Z, with two earlier gate runs also green).
+- `git merge-tree --write-tree origin/main(33e60b5b) HEAD` gives rc=0 with no conflict (ev/repo-checks.txt).
+- The three-dot diff touches 5 files: bus.sh, ledger.py, orchestrator_tick.py, r10_ledger_mutants.py, and the delivery row dev/programme/delivery/3248.md (present, **open**). VERSION, the manifest, RELEASE_NOTES.md, custom_components/ and every *_budgets.json are untouched.
+- Carries 0, 2, 3 and 4 were verified in round 1 at c8c50b9f. Round 2 changes only ledger.py's self-test and one plant line (c8c50b9f..6850bc07); the rest is main merges, so those results stand.
+- Packet: no refusals; figure_lint resolved 6/6; carry_audit at the head found 0 items (ev/review-packet.md).
+- carry_audit check at rc 0 (ev/carry_audit.txt). The PR body was audited by the packet's own carry_audit at the head (0 items), so the body file passed here was empty.

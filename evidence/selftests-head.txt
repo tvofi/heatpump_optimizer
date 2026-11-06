@@ -1,7 +1,20 @@
+== head a101717e588108b4520bb935f59a22fdab31f85f self-tests
+$ python3 -I tools/audit/seat/ledger.py --self-test
   ok   every kind cloud_relay.sh writes is a ledger kind (census of level_line and ledger_open)
-ledger self-test: 85 checks, 0 failed
+ledger self-test: 87 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/orchestrator_tick.py --self-test
 orchestrator_tick self-test: 274 checks, 0 failed
+rc=0
+$ bash tools/audit/seat/bus.sh --self-test
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
 bus self-test: 135 checks, 0 failed
+rc=0
+$ python3 tools/audit/seat/r10_ledger_mutants.py --self-test
+  ok   every plant's target has an owner self-test
+r10_ledger_mutants self-test: 149 checks, 0 failed
+rc=0
+$ python3 tests/structure.py
 
 STRUCTURE RATCHET PASSED
+rc=0
