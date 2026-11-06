@@ -1,4 +1,4 @@
-Owner ruling (tvofi, 2026-11-01): a review-strength guardrail trip dispatches the planted-defect audit it names, one per tripped arm and cut, never twice for the same line; nothing for `ok` or `insufficient`; the guardrail still sets no exit code and blocks nothing; P0 = 0.28, ALPHA = 0.05 adopted. Built as a new beat job row `audit-dispatch` in `tools/audit/seat/beat_jobs.py` (job table `beatd.jobs.json`, interval 1800 s), which runs `review_strength.py --fetch --guardrail` and writes `DISPATCH: planted-defect-audit arm=<arm> cut=<first..last verdict>` once per (arm, cut), remembered in `state/audit-dispatch.json`. `carry-201.json`'s R10-FLY-YIELD-GUARD entry records the ruling. Closes the three stranded carries (DISPATCH-REG 13, BEATD 48 and 50). Alternative not taken: a new standalone script; the row reuses the digest, fold and memory the other rows share, so one owner holds the job table.
+Owner ruling (tvofi, 2026-11-01): a review-strength guardrail trip dispatches the planted-defect audit it names, one per tripped arm and cut, never twice for the same line; nothing for `ok` or `insufficient`; the guardrail still sets no exit code and blocks nothing; P0 = 0.28, ALPHA = 0.05 adopted. Built as a new beat job row `audit-dispatch` in `tools/audit/seat/beat_jobs.py` (job table `beatd.jobs.json`, interval 1800 s), which runs `review_strength.py --fetch --guardrail` and writes `DISPATCH: planted-defect-audit arm=<arm> cut=<first..last verdict>` once per (arm, cut), remembered in `state/audit-dispatch.json`. `carry-201.json`'s R10-FLY-YIELD-GUARD entry records the ruling. Closes the three stranded carries (DISPATCH-REG 13, BEATD 48 and 50). `standing-dispatch.md` is unchanged. Alternative not taken: a new standalone script; the row reuses the digest, fold and memory the other rows share, so one owner holds the job table.
 
 ## Head
 
@@ -30,7 +30,7 @@ none
 
 ## Forward-carry
 
-none. The dispatch half is in the beat job table; `standing-dispatch.md` is unchanged.
+none
 
 ## Friction
 
