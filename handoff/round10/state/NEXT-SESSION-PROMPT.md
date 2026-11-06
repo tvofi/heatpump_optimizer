@@ -36,7 +36,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TICK-PR-BUCKETS (stage absorbed, branch `handoff/r10-tick-pr-buckets`): `git fetch origin handoff/r10-tick-pr-buckets && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-GROUP-LINES (stage absorbed, branch `handoff/r10-tick-group-lines`): `git fetch origin handoff/r10-tick-group-lines && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PLANTED-DEFECT-AUDIT (stage carries-open, branch `handoff/r10-planted-defect-audit`): `git fetch origin handoff/r10-planted-defect-audit && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-TRAIN-MERGE-LOOP (stage in-progress, branch `handoff/r10-train-merge-loop`): `git fetch origin handoff/r10-train-merge-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-TRAIN-MERGE-LOOP (stage carries-open, branch `handoff/r10-train-merge-loop`): `git fetch origin handoff/r10-train-merge-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage carries-open, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-DISPATCH-AT-HANDOFF (stage in-progress, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -45,7 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-GANTT-DRIFT (stage absorbed, branch `handoff/r10-fly-gantt-drift`): `git fetch origin handoff/r10-fly-gantt-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CARRY-RESIDUE (stage in-progress, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-ROSTER-WRITE-SWEEP (stage in-progress, branch `handoff/r10-roster-write-sweep`): `git fetch origin handoff/r10-roster-write-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-ROSTER-WRITE-SWEEP (stage carries-open, branch `handoff/r10-roster-write-sweep`): `git fetch origin handoff/r10-roster-write-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-READ-SWEEP (stage in-progress, branch `handoff/r10-roster-read-sweep`): `git fetch origin handoff/r10-roster-read-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-LEVELS (stage carries-open, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HANDOFF-PATH (stage carries-open, branch `handoff/r10-handoff-path`): `git fetch origin handoff/r10-handoff-path && git worktree add --detach $SEAT/wt FETCH_HEAD`
@@ -58,6 +58,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PR-CONTRACT-OUTSIDE (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-REF-PRIVACY-CLOUD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-BUSY-DEFER (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-RCA-PROCESS-WORKER-HANG (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage design, branch `design/r10-combi-tank`): `git fetch origin design/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 
 Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-WHATIF, R10-BODY-CONTRACT, R10-CARRY-RESIDUE, R10-CI-RUNNER-FIXES, R10-CLONE-2238, R10-CLOSEOUT-CLEANUP, R10-COMBI-TANK, R10-COP-GATE-D, R10-DISPATCH-AT-HANDOFF, R10-FLOW-TOOLKIT-MODEL, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-GANTT-DRIFT, R10-FLY-GH-READ-RETRY, R10-FLY-RELAY-DELIVERED-GUARD, R10-FLY-STANDING-CONTRACTS, R10-FRICTION-RECORDS, R10-HANDOFF-PATH, R10-HOTFIX-CODEQL-HEADROOM, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-GATE-STALE-JOBS, R10-HOTFIX-NIGHTLY-STATUS, R10-HOTFIX-PLAN-LANES, R10-HOTFIX-SAV-ESTIMATE, R10-OPENER-REUSE, R10-ORCH-ROSTER-SCHEMA, R10-OUTSIDE-INTAKE, R10-OVERBOOK-RESIDUAL, R10-PARTLOAD-PRICING, R10-PLANTED-DEFECT-AUDIT, R10-POLICY-ROLE-PACK, R10-PR-CONTRACT-OUTSIDE, R10-PROCESS-SLIM, R10-RAISE-GATE-SHIM, R10-RCA-PROCESS-WORKER-HANG, R10-REF-PRIVACY-CLOUD, R10-RELAY-HANDOFF-ARM, R10-RELAY-SWEEP, R10-REPLAY-COST-BUDGET, R10-ROSTER-READ-SWEEP, R10-ROSTER-WRITE-SWEEP, R10-SEAT-SINGLE-WRITER, R10-SUITE-HOST-DETERMINISM, R10-SWEEP-TEMPLATE-SYNC, R10-TICK-LEVELS, R10-TICK-PR-BUCKETS, R10-TRAIN-MERGE-LOOP, R10-WHY-NOW-WIDGET
