@@ -1,0 +1,8 @@
+tree /tmp/tmp.2yJ3Erlxpo/base: 121 pull_request code runs (0 diffs unreadable, left as run); ci.yml job-minutes in the sample 28055
+(a) machinery lanes, 0 product-only runs idled: 4988 -> 4988 job-minutes on pull_request code runs (saving 0, 0.0% of the sample)
+(b) CodeQL on pull requests, 51 analyzed legs now skipped: 2955 -> 2863 job-minutes on pull_request code runs (saving 92, 0.3% of the sample)
+(c) mutation-pins + autofix, 0 runs whose delta had no product file: 2234 -> 2234 job-minutes on pull_request code runs (saving 0, 0.0% of the sample)
+(a) product pull requests (diff reaches custom_components/) that kept the machinery lanes: 8; files that kept them, by top two path parts: ['.github/workflows', 'README.md', 'custom_components/heatpump_optimizer', 'dev/audit', 'dev/programme', 'docs/architecture.md', 'docs/automations.md', 'docs/how-it-works.md', 'tests/card.mjs', 'tests/card_browser.mjs', 'tests/closures.json', 'tests/config_flow_steps.py', 'tests/deployment_shape.py', 'tests/entities.py', 'tests/features.py', 'tests/finite_boundary.py', 'tests/gate_lock.py', 'tests/golden', 'tests/golden.py', 'tests/guard_pins.py', 'tests/ha_contract.py', 'tests/mutation_ledger', 'tests/replay.py', 'tests/seam_map.json', 'tests/structure_budgets.json', 'tools/coverage', 'tools/replay']
+(c) runs whose previous head had not concluded its pins measurement (delta not taken, measures): 0
+together: saving 92 of 28055 job-minutes (0.3%)
+rc=0

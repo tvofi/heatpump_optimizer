@@ -1,66 +1,82 @@
-Fix review: blocked 84a7c456f2a682f76e285921c26d4b05044391e6 beyond-card: C7c pins_due skips mutation-pins on a non-product delta though the previous head's pins never completed, in 3 of 3 skips in the PR's own sample
+Fix review: merge 6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1
 
-bus-nonce: 743943f24c6bbb6c163fd2a7caafff24
+bus-nonce: 7778149c285cce63e18f7a619fe97814
 
-Round 1 (first-round fix review of R10-CI-SLIM, PR #3230). Measured head 84a7c456f2a682f76e285921c26d4b05044391e6, a merge commit whose tree is identical to the authored head 4ae9f7596 (`git diff --stat 4ae9f7596 84a7c456f` is empty). Merge base 785c2b604. The role files are current: `git diff $(git merge-base origin/main HEAD)...origin/main -- dev/governance/roles/` is empty.
+Round 2 (this is the re-check of the round-1 block at 84a7c456f; not yet the fourth round). Measured head 6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1. Its parents are 84a7c456f and the fixer's handoff 0440dfb4761f8dd11ab9f9c3791c4331b9238e0a. `git diff 0440dfb4 6ef53d8a` is empty, so the dispatch head's tree is the handoff's. The body's `## Head` names 0440dfb4. Merge base c679f4b69. origin/main has since moved to 5d75a576f. `git merge-tree --write-tree origin/main 6ef53d8a` gives rc=0, so there is no conflict. The role files are current: the three-dot `dev/governance/roles/` diff is empty.
 
-## Block
+## Round-1 block: resolved
 
-**C7(c) skips measurements that never happened.** `prelude.pins_due` gates `tests / mutation-pins` and `tests / mutation-autofix` on the push's own delta (`before...head`). Its docstring states the premise: "the sites still unpinned were measured at the head before". The rule never checks that premise. Cancel-superseded cancels a previous head's run, and its pins shards with it. When the next push is non-product (a delivery row, a body fix-up, a tooling commit), those sites go unmeasured.
-
-Measurement, on the PR's own recorded sample (`dev/audit/harnesses/r10_ci_slim/sample.json`, my script `ev/c7c_probe.py`, output `ev/c7c_probe.txt`, `ev/c7c_three_runs.txt`):
-- C7(c) changes behaviour only where `pins_due` is False AND `tests / mutation` failed, because the pins job's `if:` already needs a failed `mutation`. That is 3 runs, which are the body's "3 runs" and its whole 479-minute saving (re-derived: `ev/c7_replay_head.txt`).
-- In all 3, the previous head's survivors were never pinned:
-  - PR 3219, run 41937668180: the previous run 41937637106 had `tests / mutation-pins` **cancelled**. Its own pins succeeded in reality, and that was the only completed measurement of those sites. C7(c) removes it.
-  - PR 3220, run 41951544787: the previous run 41951503566 had pins **cancelled**. Its own 7 pin shards succeeded, the only completed measurement. C7(c) removes it.
-  - PR 3219, run 41951472711: the previous run's pins succeeded, but its autofix **failed**, so nothing was pinned.
-- Control: runs where `pins_due` is True keep today's behaviour by construction. The planted production defect below shows `pins_due` True on a product diff at the head.
-
-Consequence: at such a head, `mutation` stays red with no pins table and no autofix. The seat cannot re-trigger the measurement. A dispatch never runs pins (`github.event_name == 'pull_request'`), and an empty commit or a close-and-reopen is forbidden. Only a later push touching the package does. This does not weaken production quality, because `mutation` still fails closed. It is a throughput risk: in this window every C7(c) skip hits it.
-
-Card sentence it contradicts: C7 (c) "mutation-pins runs once when the PR is review-ready, not at every head", with the accepted risk "(c) A survivor is found at review-ready instead of per head". The implementation guarantees no single measurement. A survivor whose only measurement was superseded is not found at review-ready or at any later non-product head. That goes beyond the card.
-
-Minimal sound repair (the fixer's call): `pins_due` is False only when the head the delta starts from actually concluded `mutation-pins` (success, or skipped because `mutation` passed). Otherwise, measure. Equivalently, take the delta from the last head whose pins concluded, not from `before`. Add a self-test whose previous head's pins were cancelled. Re-run `c7_replay.py`: on this sample (c)'s saving becomes 0, so report it honestly.
+The fixer dropped C7(c), and that settles the block. `prelude.pins_due`, the `pins` output, tests.yml's `pins` input and both `inputs.pins` conditions are gone.
+- At the head, a `yaml.safe_load` comparison of `jobs.mutation`, `jobs.mutation-pins` and `jobs.mutation-autofix` against origin/main reads IDENTICAL for all three (`ev/head_tree.txt`).
+- `git grep "pins_due|C7(c)|inputs.pins|outputs.pins"` names only the two harnesses.
+- So there is no skip left that could survive where a previous head's pins never concluded. A replay at the head reads (c) 0 runs, saving 0, with 0 unreadable diffs (`ev/c7_replay_head.txt`).
+- Round 2's rule is reproduced on the same sample. At 4ae9f7596 it reads 3 runs, 2234 -> 1756, saving 479. That is the round-1 figure, now the null control.
+- The sound rule at 2c51d07b5 reads 0 runs and saving 0, with 39 runs whose previous head had not concluded (`ev/c7c_trees.txt`). So the body's claim that (c) saves 0 is honest, not deflated.
+- Mutating the condition out: at 2c51d07b5, I replaced the `measured_at(...)` conjunct with `True`. The prelude self-test then reads 81 checks, 7 failed, the seven the body names (`ev/sound_rule_mutant.txt`).
+- At the head the regression guard is `gate_satisfiable.gated_pins`. I added `&& inputs.machinery != 'false'` to the real job-level `if:` of `mutation-pins`, then of `mutation-autofix`. Each gives `GATE NOT SATISFIABLE`, rc=1. With `gated_pins` returning `[]`, its own null control fails, rc=1 (`ev/mutants.txt`).
+- The `## Raise justification` and `## Owner constraint` sections now state C7(c) as dropped. Total (a)+(b)+(c) = 1191 of 28055 job-minutes (4.2%). Net of the base tree's 92-minute replay noise it is 1099, which I re-derived below.
 
 ## Owner constraint
 
-Each change, the production path it touches, and the check that still guards it:
-- **C2** (`tests/ci_ratchet.py`, `tests/ci_budgets.json`, `budget_raise_gate.py`): no production path. Every other ci_budgets row is still graded at zero tolerance (the body's planted `script_runs_per_push` 54 -> 55 is GREW at the head). This is an owner-approved loosening under card C2 as written. The body states the acceptable risk.
-- **C3** (`prelude.defer_to`, `gate.deferring`, ci.yml `WORKSET`): no production path is skipped. The code run's gate still judges every production unit, and its `pr-contract` reads the latest body. This matches card C3 option A. No opus review dispatch is touched.
-- **C7(a)** (`prelude.machinery`; arch-instrument, the closures recording, env-matrix and instrument-self-tests stand down on an all-product PR): these lanes measure machinery. `tests / fast`, `tests / mutation`, goldens, features, CodeQL and review still run on a production diff.
-- **C7(b)** (`codeql_scope.ANALYZED_PREFIXES`): any PR reaching `custom_components/` or `.github/` analyzes as before, and every push to main analyzes. This matches the card as written.
-- **C7(c)**: production code is still guarded by the required `tests / mutation`. The defect is the throughput risk under `## Block`, not a weaker production check.
-- **Planted production defect** (`ev/planted_defect.txt`): `total += v * seconds` -> `* 2` at `custom_components/heatpump_optimizer/open_meteo.py:156`.
-  - At the head, `tests/solar_alignment.py` gives rc=1, 5 CHECK(S) FAILED. Every CodeQL leg reads `analyze`, `machinery` is False (only machinery lanes idle) and `pins_due` is True.
-  - Null control at origin/main 750a6001a: the same rc=1, 5 CHECK(S) FAILED, with every leg `analyze`. Production refusal is unchanged.
-- The body states, per change, why the risk is acceptable, with a before and after: yes, for C2, C3, C7a, C7b and C7c. C7c's statement rests on the premise refuted above.
+For each change: the production path it touches, and the check that still guards it.
+- **C2** (`tests/ci_ratchet.py`, `tests/ci_budgets.json`, `budget_raise_gate.py`)
+  - Touches no production path. Every other ci_budgets row is still graded at zero tolerance.
+  - The planted `script_runs_per_push +1` is GREW at both ends: grew=1 at the head, grew=2 at the base.
+  - The recorded window reads grew=1 at the base and grew=0 at the head (`ev/c2_c3.txt`).
+  - This is card C2 as written. It is the owner-approved loosening.
+- **C3** (`prelude.defer_to`, `gate.deferring`, ci.yml `WORKSET`)
+  - Skips no production unit. The code run's gate still judges every unit, and its `pr-contract` reads the latest body. Opus review dispatch is untouched.
+  - This is card C3 option A. Live at this head: three code-run `pr-contract`s each succeeded, and the edit runs held no runner past their prelude.
+- **C7(a)** (`prelude.machinery`)
+  - Stands down only machinery lanes: arch-instrument, the closures recording, env-matrix and instrument-self-tests.
+  - On a production diff these still run: `tests / fast`, `tests / mutation` with pins and autofix (byte-identical to main), goldens, features, CodeQL and review.
+  - A push always runs the lanes. The self-test null control and a mutant pinning `machinery` to "false" kill it (1 of 62).
+- **C7(b)** (`codeql_scope.ANALYZED_PREFIXES`)
+  - Any PR reaching `custom_components/` or `.github/` analyzes on every leg, and every push to main analyzes. This is card C7 as written.
+- **C7(c)**: dropped. Mutation testing on production changes is main's again.
+- **Planted production defect** (`ev/planted_defect.txt`, `ev/planted_run.txt`): `total += v * seconds` -> `* seconds * 2` at `custom_components/heatpump_optimizer/open_meteo.py:156`.
+  - At the head, `tests/solar_alignment.py` gives rc=1, 5 CHECK(S) FAILED. Unplanted it gives rc=0. Every CodeQL leg reads `analyze`, and `machinery` is False.
+  - Null control at origin/main 5d75a576f: the same rc=1, 5 CHECK(S) FAILED (unplanted rc=0), with every leg `analyze`.
+  - So production refusal is unchanged.
+- The body states, per change, why the risk is acceptable, with a before and after. No cut goes beyond the approved cards. I found no measured large unforeseen risk.
 
 ## Findings
 
-- C7(b) figure not re-derivable as quoted. The body reads "105 analyzed legs now skipped; 2955 -> 1797, saving 1159 (4.1%)" with 27 diffs unreadable. At this head with full history, `c7_replay.py` reads 0 unreadable, "150 analyzed legs now skipped: 2955 -> 1764 (saving 1191, 4.2%)". The fixer should retake the figure with every diff readable when re-cutting. Carry: R10-CI-SLIM
-- C7(a)'s product set counts every test script `tests/closures.json` measures as product, so a PR that edits a measured script and the package idles the closures recording. A closure that edit under-approximates is caught only by main's forced-full push, as CLAUDE.md rule 1 designs. Card C7's POLICY line foresees this change to the gate-scoping contract, so it is not a block. Carry: dismissed: card C7 POLICY foresees it; rule 1's main push is the backstop
-- The body names a cheaper detector for last round's `tests / fast` red: harness_headers' depth-seam scan, absent from `prepr.sh`. It leaves the contract change to the owner. Carry: dismissed: answered in the body as defect-root-cause.md requires; the contract edit is the owner's
+- `tools/ci/prelude.py:98` still adds `"before": ev.get("before")` to the context. That field was added for C7(c), and nothing reads it any more. It is dead and harmless. Carry: dismissed: one unused context key with no behaviour; fixer.md step 17 judges it too small to re-cut a round for
+- `gate_satisfiable.gated_pins` catches only an `inputs.*` read in the pins jobs' `if:`. A skip expressed another way would pass it. The jobs are YAML-identical to main today, and any later edit to them is opus-reviewed. Carry: dismissed: instrument scope is round 2's failure shape, and the identical-to-main comparison is the stronger check at this head
 
 ## Evidence
 
-- RESULT mutation proof (`ev/mutants.txt`): six mutants, each restored after the run, each killed.
-  - C2 `if key in REPORT_ONLY:` -> `if False:`: 2 of 65 failed.
-  - C3 `bound = 0` -> no-op: 1 of 57 failed.
-  - C3 `defer_to` branch -> `if False:`: 3 of 70 failed.
-  - C7b `ANALYZED_PREFIXES` skip -> `if False:`: 2 of 94 failed.
-  - C7c `pins_due` -> `return True`: 2 of 70 failed.
-  - C7a `machinery` -> `return True`: 3 of 70 failed.
-  - Every count matches the body.
-- RESULT self-tests at the head (`ev/checks.txt`): ci_ratchet 65/0, budget_raise_gate 273/0, prelude 70/0, gate 57/0, codeql_scope 94/0.
-- RESULT gate satisfiability (`ev/checks.txt`): `gate_satisfiable.py` reads GATE SATISFIABLE. The production-only, machinery-only and mixed diffs each give gate PASS. The job-level null control gives FAIL SKIPPED. No required name ends SKIPPED.
-- RESULT C3 (`ev/edit_runs_head.txt`): 127 runs, 117 deferred, 4438 -> 660 job-minutes, as the body says. Null control: 156 code runs, 20 deferred, saving 13.
-- RESULT C7(c) (`ev/c7_replay_head.txt`): 3 runs, 2234 -> 1756 (479), as the body says. (a): 0 idled, as the body says.
-- `git merge-tree --write-tree origin/main HEAD` rc=0, so it merges cleanly with origin/main 750a6001a.
-- Claim files are byte-identical to origin/main. VERSION, the manifest and RELEASE_NOTES are untouched (three-dot, empty). `tests/structure.py` passes.
-- Budget-raise gate: `RAISE tests/ci_budgets.json: critical_path_minutes_band: 1.3 -> None`, `RESULT budget_raises=1 count`. This is the one C2 loosening the owner approved, stated under `## Raise justification`. Its red waits on tvofi's review.
-- CI at this head (`ev/classify.txt`): `merge_train.py classify` rc=1, `RED 84a7c456f2a682f76e285921c26d4b05044391e6 pending: none red: gate`.
-  - The gate job 127668840956 and job 127667663510 log one reason: `FAIL budget-raise-gate / budget-raise-gate: failure (run 42145816190)`. That is the approval-owed C2 loosening, so in substance this head is APPROVAL-OWED, although classify printed RED (rc=1), not rc=4.
-  - All 55 check runs were read (one page; page 2 is empty). Every other required unit is success: fast, coverage, closures, arch-instrument, mutation, browser, typing, briefs, closure-scope, the three CodeQL legs, env-matrix, policy-docs, hassfest, validate, arch-score and pr-contract.
-  - `tests / nightly-status` is red: main's slow lane, not this diff. The body measures it unchanged at both ends.
-  - `pr-contract` (job 127668247900) started 02:16:37Z, after the last red to conclude (budget-raise-gate, 02:16:08Z), and is green. So the body answers each red, as rule 11 requires.
-- I built `ev/c7c_probe.py` myself. It is not the finder's harness: this group names none (packet: "Finder's harness: none named").
+- RESULT self-tests at the head (`ev/checks.txt`): ci_ratchet 65/0, budget_raise_gate 273/0, prelude 62/0, gate 57/0, codeql_scope 94/0. `r10_ci_gate_core.py mutants` reads `RESULT mutants=16 survivors=0`. `tests/structure.py` reads STRUCTURE RATCHET PASSED.
+- RESULT gate satisfiability (`ev/checks.txt`): `GATE SATISFIABLE`, rc=0.
+  - The production-only, machinery-only and mixed diffs each give gate PASS.
+  - The job-level null control gives `FAIL tests / arch-instrument: SKIPPED (this run)`.
+  - `pins jobs gated on a caller input: none`. No required name ends SKIPPED live either: every required unit at this head succeeded (`ev/checks_live.txt`).
+- RESULT mutants re-run at the new head (`ev/mutants.txt`). Each was restored, and the tree was clean after each.
+  - C2 REPORT_ONLY -> False: 2 failed.
+  - C3 `bound = 0` -> no-op: 1 of 57.
+  - C3 `defer_to` -> `if False:`: 3 of 62.
+  - C7b skip -> `if False:`: 2 failed.
+  - C7a `machinery` -> True: 3 of 62.
+  - C7a output forced to "false": 1 of 62.
+  - pins guard: two mutants, each GATE NOT SATISFIABLE.
+  - My first two tests.yml mutants were vacuous (a duplicate `if:` key, which the job's own `if:` overrides). They are marked VACUOUS in the file and superseded by `mut2.py`.
+- RESULT C7 (`ev/c7_replay_head.txt`, `ev/c7_replay_base.txt`): 121 pull_request code runs, 0 unreadable after fetching every PR head and the 26 missing shas.
+  - (a): 0 idled, 4988 -> 4988.
+  - (b): 150 legs, 2955 -> 1764, saving 1191 (4.2%).
+  - (c): 0.
+  - Together: 1191 (4.2%).
+  - Base-tree control: (b) 51 legs, saving 92, so net 1099. Every figure matches the body.
+- RESULT C3 (`ev/c2_c3.txt`): 127 runs, 117 deferred, 4438 -> 660 (saving 3778, 13.5%). The code-run control reads 156 runs, 20 deferred, saving 13. With the base prelude it reads 0 deferred, 4438 -> 4438. All match the body.
+- Claim files, VERSION, the manifest, RELEASE_NOTES and `custom_components/` are untouched in the three-dot diff. The only budget-file change is `tests/ci_budgets.json`: the band is deleted and the reason is updated.
+- Budget-raise gate (`ev/red_logs.txt`): CI runs main's gate, which prints `RAISE tests/ci_budgets.json: critical_path_minutes_band: removed at 1.3 (a removed cap is no cap)`, `RESULT budget_raises=1 count`, `REFUSED: no decisive review by tvofi`.
+  - The head's own gate words the same single raise as the body quotes it, `1.3 -> None`.
+  - It is the one C2 loosening the owner approved, under `## Raise justification`, and it waits on tvofi's review.
+- CI at this head (`ev/classify.txt`, `ev/classify_log.txt`): `merge_train.py classify` rc=1, `RED 6ef53d8a03cf86d506f749cf2769ca2f7a7aceb1 pending: none red: gate`.
+  - I read all three gate jobs' logs (127716027534, 127715091088, 127714135055, in `ev/gate_logs.txt`). Each logs one reason: `FAIL budget-raise-gate / budget-raise-gate: failure`.
+  - In substance this head is APPROVAL-OWED, as round 1's was, although classify printed RED (rc=1), not rc=4. I judged it as GREEN on that basis.
+- All 68 check runs were read (page 2 is empty, `ev/checks_live.txt`). Every required unit succeeded: fast, coverage, closures, arch-instrument, mutation, browser, typing, briefs, closure-scope, the three CodeQL legs, env-matrix, policy-docs, hassfest, validate, arch-score and three pr-contracts.
+- `tests / nightly-status` is red: `NIGHTLY FAILED: slow failed 1 night ago`. That is main's slow lane, and this diff does not reach it.
+- Rule 11: `pr-contract` job 127715567294 started at 04:40:05Z, after the last budget-raise-gate red concluded (04:39:34Z), and succeeded. The body names each red name at this head (budget-raise-gate, gate, nightly-status) and answers it.
+- The body's figures were taken at 4056a2c5e/0440dfb4. I re-took every one at 6ef53d8a, whose tree equals 0440dfb4.
+- Instruments: the group names no finder's harness (packet: "Finder's harness: none named"). The replays are the fixer's committed harnesses. The mutant drivers `ev/mut.py` and `ev/mut2.py` are mine.

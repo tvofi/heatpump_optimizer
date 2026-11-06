@@ -1,3 +1,0 @@
-edit runs (/home/user/heatpump_optimizer/tools/ci/prelude.py): 127 runs, 117 deferred; job-minutes 4438 -> 660 (prelude 3769 -> 64, pr-contract before 77); saving 3778 of 28055 ci.yml job-minutes (13.5%); prelude floor 0.45 min
-null control (code runs through the same predicate): 156 runs, 20 deferred; job-minutes 23354 -> 23341 (prelude 134 -> 133, pr-contract before 57); saving 13 of 28055 ci.yml job-minutes (0.0%); prelude floor 0.45 min
-rc=0

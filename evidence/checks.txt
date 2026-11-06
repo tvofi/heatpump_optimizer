@@ -1,23 +1,35 @@
-== merge-tree
+== tests/ci_ratchet.py
+  ok   --record re-records every derived metric, the reference included
+ci-ratchet self-test: 65 checks, 0 failed
 rc=0
-== claims/VERSION/manifest/notes vs origin/main (three-dot)
-claims-byte-identical-to-origin/main
+== tools/policy/budget_raise_gate.py
+  ok   e2e: --check-body: --base without --head exits 2
+budget_raise_gate self-test: 273 checks, 0 failed
+rc=0
+== tools/ci/prelude.py
+prelude self-test: 62 checks, 0 failed
+rc=0
+== tools/ci/gate.py
+gate self-test: 57 checks, 0 failed
+rc=0
+== tools/pr/codeql_scope.py
+  ok   stand-in: main's provenance and category are dropped, the results kept
+codeql_scope self-test: 94 checks, 0 failed
+rc=0
+== gate_satisfiable
+required names whose job-level if reads machinery: none (over 22 names)
+idled-whole names inside REQUIRED: none
+production-only: files=['custom_components/heatpump_optimizer/coordinator.py', 'tests/arch_score.py'] machinery=False legs={'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} -> gate PASS
+machinery-only: files=['tools/ci/gate.py', 'dev/programme/HANDOVER.md'] machinery=True legs={'actions': 'skip', 'javascript-typescript': 'skip', 'python': 'skip'} -> gate PASS
+mixed: files=['custom_components/heatpump_optimizer/coordinator.py', 'tools/ci/gate.py'] machinery=True legs={'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} -> gate PASS
+null control: job-level stand-down on arch-instrument -> ['tests / arch-instrument: job-level if reads inputs.machinery']; gate -> FAIL tests / arch-instrument: SKIPPED (this run)
+pins jobs gated on a caller input: none
+null control: round 2's pins gate planted -> ['tests / mutation-pins: job-level if reads inputs.pins']
+GATE SATISFIABLE
+rc=0
 == structure
 
 STRUCTURE RATCHET PASSED
-== selftests
-tests/ci_ratchet.py rc=0 ci-ratchet self-test: 65 checks, 0 failed
-tools/policy/budget_raise_gate.py rc=0 budget_raise_gate self-test: 273 checks, 0 failed
-tools/ci/prelude.py rc=0 prelude self-test: 70 checks, 0 failed
-tools/ci/gate.py rc=0 gate self-test: 57 checks, 0 failed
-tools/pr/codeql_scope.py rc=0 codeql_scope self-test: 94 checks, 0 failed
-== gate_satisfiable
-idled-whole names inside REQUIRED: none
-production-only: files=['custom_components/heatpump_optimizer/coordinator.py', 'tests/arch_score.py'] machinery=False pins_due(delta=files)=True legs={'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} -> gate PASS
-machinery-only: files=['tools/ci/gate.py', 'dev/programme/HANDOVER.md'] machinery=True pins_due(delta=files)=False legs={'actions': 'skip', 'javascript-typescript': 'skip', 'python': 'skip'} -> gate PASS
-mixed: files=['custom_components/heatpump_optimizer/coordinator.py', 'tools/ci/gate.py'] machinery=True pins_due(delta=files)=True legs={'actions': 'analyze', 'javascript-typescript': 'analyze', 'python': 'analyze'} -> gate PASS
-null control: job-level stand-down on arch-instrument -> ['tests / arch-instrument: job-level if reads inputs.machinery']; gate -> FAIL tests / arch-instrument: SKIPPED (this run)
-GATE SATISFIABLE
-== budget raise
-RAISE tests/ci_budgets.json: critical_path_minutes_band: 1.3 -> None (a pinned value the gate cannot sign as routine)
-RESULT budget_raises=1 count
+== gate core
+  M16 B3 on push: KILLED (self-test rc 1, replay rc 0)
+RESULT mutants=16 survivors=0
