@@ -746,7 +746,7 @@
               "dhw_idle_min_temperature": "Hur kall beredaren får bli utanför dessa perioder. Lägre sparar mer. Standardvärdet motsvarar ungefär rumstemperatur, alltså att ingen energi alls läggs på beredaren.",
               "dhw_min_temperature": "Temperaturen beredaren garanterat når under perioderna ovan. Runt 45 °C räcker för en vanlig dusch.",
               "dhw_setpoint": "En övre gräns för laddning, inte ett mål. Beredaren fylls bara så här högt när det lönar sig att lagra extra billig värme. Den värms aldrig hit bara för sakens skull.",
-              "dhw_setpoint_entity": "Valfritt. Number-, helper- eller climate-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
+              "dhw_setpoint_entity": "Valfritt. Number-, helper-, climate- eller water_heater-enheten som är pumpens eget varmvattenbörvärde. När det ligger under desinfektionstemperaturen eller varmvattenminimum du ställt in här erbjuder ett reparationskort att höja det till den siffran."
             }
           },
           "legionella": {
@@ -2045,6 +2045,25 @@
           "learning": "Lär sig",
           "learned": "Inlärd",
           "attention": "Behöver åtgärd"
+        },
+        "state_attributes": {
+          "pump_max_power_source": {
+            "name": "Maxeffekt som planen använde",
+            "state": {
+              "configured": "Inställd maxeffekt",
+              "ceiling_probe": "Uppmätt av takprovet"
+            }
+          },
+          "pump_max_power_reason": {
+            "name": "Varför planen använde den maxeffekten",
+            "state": {
+              "plan_writes_power": "Inställd: planen skriver effekten själv, så mätaren visar bara den",
+              "awaiting_probe": "Inställd: takprovet har ännu för få mätpunkter",
+              "lapsed": "Inställd: takprovets mätning är för gammal",
+              "not_below_configured": "Inställd: den uppmätta maxeffekten stämmer med den",
+              "measured_below_configured": "Uppmätt: pumpen drar tydligt mindre än sin inställda maxeffekt"
+            }
+          }
         }
       },
       "indoor_temperature_predicted": {

@@ -43,12 +43,30 @@ def load_export():
     return module
 
 
-def load_bundle(path: Path) -> dict:
+def read_download(path: Path) -> dict:
+    """The file as handed, gunzipped and parsed, with any wrapper intact: the
+    reader for a harness that measures the wrapper itself."""
     raw = path.read_bytes()
     if path.suffix == ".gz" or raw[:2] == b"\x1f\x8b":
         import gzip
         raw = gzip.decompress(raw)
     return json.loads(raw)
+
+
+def load_bundle(path: Path) -> dict:
+    return unwrap_download(read_download(path))
+
+
+def unwrap_download(doc: dict) -> dict:
+    """The bundle itself: Home Assistant's "Download diagnostics" file nests it
+    under ``data.debug``; a bare bundle (it carries its own ``schema``) is
+    returned as it is."""
+    if isinstance(doc, dict) and "schema" not in doc:
+        inner = (doc.get("data") or {}).get("debug") if isinstance(
+            doc.get("data"), dict) else None
+        if isinstance(inner, dict):
+            return inner
+    return doc
 
 
 class Results:
@@ -120,22 +138,28 @@ def ingest(bundle: dict, *, corrupt: str = "") -> Results:
 
     print("stage 4: monitor re-derivation (store window vs bundle rows)")
     if tracker is not None and tracker.samples:
-        from datetime import datetime as _dtm
         from heatpump_optimizer.accuracy import AccuracySample, AccuracyTracker as _AT
-        recomputed = tracker.temperature_bias()
-        row_pairs = [(r["t"], r["accuracy_sample"]) for r in bundle.get("cycle_rows", ())
-                     if r.get("accuracy_sample")]
-        tail = row_pairs[-len(tracker.samples):]
-        row_tracker = _AT()
-        for when, sample in tail:
-            row_tracker.samples.append(AccuracySample(
-                when=_dtm.fromisoformat(when),
-                predicted_temp=sample.get("predicted_temp"),
-                actual_temp=sample.get("actual_temp"),
-                predicted_power_kw=sample.get("predicted_power_kw"),
-                actual_power_kw=sample.get("actual_power_kw"),
-                outdoor_temp=sample.get("outdoor_temp"),
-            ))
+        # The store holds the tracker's window; the rows hold one sample per
+        # cycle, and the tracker may sample less often than cycles run, so a
+        # sample repeats across rows. Compare the samples both sides hold,
+        # each counted once, keyed by the sample's own time.
+        by_time = {}
+        for row in bundle.get("cycle_rows", ()):
+            sample = row.get("accuracy_sample")
+            if sample:
+                parsed = AccuracySample.from_dict(
+                    {**sample, "t": sample.get("t") or row.get("t")})
+                if parsed is not None:
+                    by_time.setdefault(parsed.when, parsed)
+        held = {s.when: s for s in tracker.samples}
+        shared = sorted(set(held) & set(by_time))
+        store_tracker, row_tracker = _AT(), _AT()
+        store_tracker.samples.extend(held[w] for w in shared)
+        row_tracker.samples.extend(by_time[w] for w in shared)
+        print(f"RESULT store_window_samples={len(held)} unit=count")
+        print(f"RESULT rows_distinct_samples={len(by_time)} unit=count")
+        print(f"RESULT shared_samples={len(shared)} unit=count")
+        recomputed = store_tracker.temperature_bias()
         row_bias = row_tracker.temperature_bias()
         published = ((bundle.get("diagnostics") or {}).get("accuracy")
                      or {}).get("temperature_bias")
@@ -147,7 +171,8 @@ def ingest(bundle: dict, *, corrupt: str = "") -> Results:
         print(f"RESULT accuracy_bias_delta={delta} unit=celsius")
         results.check("bias-rederived",
                       delta is not None and delta < 0.05,
-                      f"store={recomputed} rows={row_bias} live-deque={published}")
+                      f"store={recomputed} rows={row_bias} live-deque={published} "
+                      f"shared={len(shared)}/{len(held)}")
     else:
         results.check("bias-rederived", False, "no accuracy samples to re-derive")
     return results
@@ -176,6 +201,54 @@ def _mini_bundle() -> dict:
     }
 
 
+def _download(bundle: dict) -> dict:
+    """The "Download diagnostics" file as Home Assistant writes it: the
+    debugger bundle sits under ``data.debug`` beside the entry's own sections."""
+    return {"home_assistant": {"version": "gate"}, "data": {"debug": bundle}}
+
+
+def _tail_repeat_bundle(*, tamper: bool = False, disjoint: bool = False) -> dict:
+    """Four store samples, rows covering the newest two and repeating the
+    newest across the tail -- the shape a live bundle has when the tracker
+    stops sampling while cycle rows continue."""
+    base = _mini_bundle()
+    stamps = [f"2026-01-15T1{n}:00:00+00:00" for n in range(4)]
+    temps = [(20.0, 20.4), (20.0, 19.0), (20.0, 20.1), (20.0, 20.2)]
+    samples = [{"t": t, "predicted_temp": p, "actual_temp": a,
+                "predicted_power_kw": 1.0, "actual_power_kw": 1.0,
+                "outdoor_temp": -5.0} for t, (p, a) in zip(stamps, temps)]
+    seq = [samples[2], samples[3], samples[3], samples[3]]
+    rows = [{"t": f"2026-01-15T2{n}:00:00+00:00",
+             "accuracy_sample": copy.deepcopy(s)} for n, s in enumerate(seq)]
+    if tamper:
+        rows[1]["accuracy_sample"]["actual_temp"] = 25.0
+        rows[2]["accuracy_sample"]["actual_temp"] = 25.0
+    if disjoint:
+        for row in rows:
+            row["accuracy_sample"]["t"] = "2026-02-01T00:00:00+00:00"
+    base["manifest"]["cycles"] = len(rows)
+    base["cycle_rows"] = rows
+    base["stores"] = {"heatpump_optimizer_foreign_accuracy": {"accuracy": {
+        "samples": samples}}}
+    base["diagnostics"] = {"accuracy": {"temperature_bias": 0.0}}
+    return base
+
+
+def _quiet_ingest(bundle: dict, **kw) -> Results:
+    import io
+    from contextlib import redirect_stdout
+    with redirect_stdout(io.StringIO()):
+        return ingest(bundle, **kw)
+
+
+def _via_file(doc: dict, reader=None) -> dict:
+    import tempfile
+    with tempfile.TemporaryDirectory() as tmp:
+        path = Path(tmp) / "download.json"
+        path.write_text(json.dumps(doc))
+        return (reader or load_bundle)(path)
+
+
 def gate_checks() -> list[tuple[str, bool, str]]:
     """Cheap ingest arms for ``tests/entities.py``; no coordinator tick."""
     import io
@@ -186,6 +259,12 @@ def gate_checks() -> list[tuple[str, bool, str]]:
         clean = ingest(bundle)
         poisoned = ingest(copy.deepcopy(bundle), corrupt="accuracy")
     leaked = "planted-leak-caught" not in clean.fails
+    download = _download(bundle)
+    as_handed = _via_file(download, read_download)
+    wrapped = _quiet_ingest(_via_file(download))
+    repeat = _quiet_ingest(_tail_repeat_bundle())
+    tampered = _quiet_ingest(_tail_repeat_bundle(tamper=True))
+    disjoint = _quiet_ingest(_tail_repeat_bundle(disjoint=True))
     return [
         ("debug ingest: schema, stores, accuracy, bias, planted leak",
          not clean.fails, ",".join(clean.fails)),
@@ -195,6 +274,16 @@ def gate_checks() -> list[tuple[str, bool, str]]:
          ",".join(poisoned.fails)),
         ("debug ingest: planted credential is the null control",
          leaked, buf.getvalue()[-200:]),
+        ("debug ingest: a download wrapped as HA writes it ingests like the bare bundle",
+         not wrapped.fails, ",".join(wrapped.fails)),
+        ("debug ingest: read_download keeps the wrapper the harnesses measure",
+         as_handed == download, ",".join(sorted(as_handed))),
+        ("debug ingest: rows repeating the newest sample and covering half the store re-derive the bias",
+         not repeat.fails, ",".join(repeat.fails)),
+        ("debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived",
+         "bias-rederived" in tampered.fails, ",".join(tampered.fails)),
+        ("debug ingest: rows sharing no sample with the store fail bias-rederived (not vacuous)",
+         "bias-rederived" in disjoint.fails, ",".join(disjoint.fails)),
     ]
 
 

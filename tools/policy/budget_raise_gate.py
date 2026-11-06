@@ -205,14 +205,16 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
     # falls to `frozen`, which is the reading the consumer itself gives an
     # unknown metric ("is not a metric this ratchet knows"): a new metric
     # reaches this file only through ci_ratchet.py, never past this gate.
+    # critical_path_minutes is the one exception: the ratchet's REPORT_ONLY
+    # reference (R10-CI-SLIM card C2), printed and never graded, so moving it
+    # is no raise; its retired band falls to `frozen` like any unknown key.
     "tests/ci_budgets.json": [
         (("recorded_at",), FREE),
         (("reason",), FREE),
+        (("critical_path_minutes",), FREE),
         (("archscore.*",), MAX),
         (("script_runs_per_push",), MAX),
         (("script_runs_full_case_pr",), MAX),
-        (("critical_path_minutes",), MAX),
-        (("critical_path_minutes_band",), MAX0),
     ],
     "dev/governance/config/policy_budgets.json": [
         (("_band",), MAX),
@@ -222,6 +224,20 @@ SCHEMA: dict[str, list[tuple[tuple[str, ...], str]]] = {
         (("roles", "*", "cap"), MAX),
         (("roles", "*", "opens"), SUPERSET),
         (("files", "*"), CAPFILE),
+    ],
+    # The machinery ratchet (tools/audit/machinery_ratchet.py,
+    # R10-MACHINERY-RATCHETS): both caps and both bands are caps; the window
+    # is frozen, since a longer one dilutes either metric; an exemption may be
+    # appended and never removed, and the program, not this schema, refuses
+    # an entry the merge it exempts did not add.
+    "dev/governance/config/machinery_budgets.json": [
+        (("_*",), FREE),
+        (("window_merges",), FROZEN),
+        (("exemptions",), SUPERSET),
+        (("nonproduction_merges",), MAX),
+        (("nonproduction_merges_band",), MAX),
+        (("churn_per_kilo_product_lines",), MAX),
+        (("churn_per_kilo_product_lines_band",), MAX),
     ],
 }
 
@@ -508,14 +524,18 @@ def justified(body, score_fn=None) -> tuple[bool, str]:
     return ok, why
 
 
-def check_body(body, raises: list[str] | None = None) -> tuple[bool, str]:
+def check_body(body, raises: list[str] | None = None, score_fn=None) -> tuple[bool, str]:
     """(ok, why) for `--check-body`: what a mandated approval of this body
     would meet at merge. `raises` is raises_between's reading of the diff, or
     None when no diff was named. A section present is judged by justification()
     whatever the diff; with none, a diff that raises a cap is refused (the
-    train refuses it identically) and one that raises nothing owes nothing."""
+    train refuses it identically) and one that raises nothing owes nothing.
+    A diff that raises a cap and a section that is well formed are also judged
+    against `score_fn() -> report line` (justified), the figure the gate and the
+    train read at merge; a diff that raises nothing is never mandated, so its
+    section is shape-checked alone."""
     if raises is None or _heading_at(str(body or "").splitlines()):
-        return justification(body)
+        return justified(body, score_fn) if raises else justification(body)
     if raises:
         return False, (f"the diff raises {len(raises)} cap(s) ({'; '.join(raises)}) and the body has no "
                        f"`{JUSTIFICATION_HEADING}` section, which a mandated raise owes")
@@ -843,21 +863,18 @@ def self_test() -> int:
           raised(I, i0, {**i0, "script_runs_per_push": 54}), True)
     check("ci: the full-case PR count up is a raise",
           raised(I, i0, {**i0, "script_runs_full_case_pr": 54}), True)
-    check("ci: the critical path up is a raise",
-          raised(I, i0, {**i0, "critical_path_minutes": 61.5}), True)
+    check("ci: the report-only critical-path reference up is routine (C2)",
+          raised(I, i0, {**i0, "critical_path_minutes": 61.5}), False)
     check("ci: an archscore vector entry up is a raise",
           raised(I, i0, {**i0, "archscore.duplication_copies": 69}), True)
     check("ci: an archscore cap removed is a raise",
           raised(I, i0, {k: v for k, v in i0.items() if k != "archscore.family_splits"}), True)
-    # The timing band: absent is zero tolerance, so adding one is a raise.
-    check("ci: a critical-path band added is a raise (absent is a band of zero)",
+    # The retired timing band (C2) is a key the ratchet no longer knows: frozen,
+    # so re-adding it and removing it are each a change only the owner signs.
+    check("ci: the retired critical-path band re-added is frozen",
           raised(I, i0, {**i0, "critical_path_minutes_band": 1.3}), True)
-    check("ci: a critical-path band widened is a raise",
-          raised(I, {**i0, "critical_path_minutes_band": 1.3},
-                 {**i0, "critical_path_minutes_band": 1.4}), True)
-    check("ci: a critical-path band narrowed is routine",
-          raised(I, {**i0, "critical_path_minutes_band": 1.3},
-                 {**i0, "critical_path_minutes_band": 0.9}), False)
+    check("ci: the retired critical-path band removed is frozen (C2's own diff)",
+          raised(I, {**i0, "critical_path_minutes_band": 1.3}, i0), True)
     check("ci: a key the ratchet does not know is frozen (the consumer refuses it too)",
           raised(I, i0, {**i0, "jobs_per_day": 3}), True)
 
@@ -882,6 +899,27 @@ def self_test() -> int:
           raised(P, p0, {**p0, "files": {"CLAUDE.md": float("nan"), "old.md": 10}}), True)
     check("a NaN base lowered to a number is not a raise (null control)",
           raised(S, {**s0, "cut_views": float("nan")}, s0), False)
+
+    G = "dev/governance/config/machinery_budgets.json"
+    ex1 = {"pr": 3100, "measure": "ci_time", "before": 40, "after": 30, "before_command": "a",
+           "after_command": "b", "evidence": "dev/x.txt"}
+    g0 = {"_comment": "x", "window_merges": 580, "nonproduction_merges": 520,
+          "nonproduction_merges_band": 5, "churn_per_kilo_product_lines": 13097,
+          "churn_per_kilo_product_lines_band": 2436, "exemptions": [ex1]}
+    check("machinery: null control", raised(G, g0, g0), False)
+    check("machinery: a cap lowered is routine", raised(G, g0, {**g0, "nonproduction_merges": 519}), False)
+    check("machinery: a cap raised is a raise", raised(G, g0, {**g0, "nonproduction_merges": 521}), True)
+    check("machinery: a band widened is a raise",
+          raised(G, g0, {**g0, "churn_per_kilo_product_lines_band": 2437}), True)
+    check("machinery: an exemption appended is routine",
+          raised(G, g0, {**g0, "exemptions": [ex1, {**ex1, "pr": 3101}]}), False)
+    check("machinery: an exemption removed is a raise", raised(G, g0, {**g0, "exemptions": []}), True)
+    check("machinery: an exemption edited in place is a raise",
+          raised(G, g0, {**g0, "exemptions": [{**ex1, "after": 20}]}), True)
+    check("machinery: the window changed is a raise, either way",
+          (raised(G, g0, {**g0, "window_merges": 600}), raised(G, g0, {**g0, "window_merges": 560})),
+          (True, True))
+    check("machinery: a comment edited is routine", raised(G, g0, {**g0, "_comment": "y"}), False)
 
     U = "tests/new_budgets.json"
     check("unknown file: a change with no schema is a raise", raised(U, {"x": 1}, {"x": 0}), True)
@@ -1501,6 +1539,7 @@ def _end_to_end() -> list[tuple[str, object, object]]:
                 f.write(text)
             return run(head, argv=["--check-body", bodyf, "--base", base_, "--head", head])
         bare = "## Summary\n\nx\n"
+        planted_body = just["body"].replace("+0.0000 NULL", "+0.0012 IMPROVES")
         rc_, text, calls = check_body_run(raise_, bare)
         out.append(("e2e: --check-body: a raise whose body has no section exits 1, names the raise, asks nothing",
                     (rc_, "cut_views: 110 -> 111" in text, JUSTIFICATION_HEADING in text, calls), (1, True, True, [])))
@@ -1508,6 +1547,14 @@ def _end_to_end() -> list[tuple[str, object, object]]:
         out.append(("e2e: --check-body: ... a routine edit with no section exits 0 (null control)", rc_, 0))
         rc_, _, _ = check_body_run(raise_, just["body"])
         out.append(("e2e: --check-body: ... a raise with a well-formed section exits 0", rc_, 0))
+        # The value, not only the shape (#3045 round 1): the stub scorer measures
+        # dS +0.0000 NULL, so a body quoting +0.0012 IMPROVES is refused on a raise
+        # and a body quoting the measured figure is not (just["body"], above).
+        rc_, text, _ = check_body_run(raise_, planted_body)
+        out.append(("e2e: --check-body: a raise whose body quotes a dS the scorer did not measure exits 1 and says so",
+                    (rc_, "measures dS +0.0000 NULL" in text), (1, True)))
+        rc_, _, _ = check_body_run(routine, planted_body)
+        out.append(("e2e: --check-body: ... the same body on a diff that raises nothing is shape-checked alone (null control)", rc_, 0))
         rc_, text, _ = check_body_run(routine, just["body"].replace(" NULL", ""))
         out.append(("e2e: --check-body: a malformed section is refused on a diff that raises nothing",
                     (rc_, "Architecture score" in text), (1, True)))
@@ -1550,7 +1597,12 @@ def main(argv: list[str]) -> int:
                 print(f"the diff {rest['--base'][:12]}...{rest['--head'][:12]} could not be read "
                       f"({(e.stderr or '').strip()[:120] or f'git exited {e.returncode}'})")
                 return 2
-        ok, why = check_body(body, raises)
+        try:
+            ok, why = check_body(body, raises, (lambda: measured_score(rest["--base"], rest["--head"])) if rest else None)
+        except (RuntimeError, subprocess.CalledProcessError, OSError) as e:
+            print(f"the architecture score could not be measured ({str(e).splitlines()[0][:160] if str(e) else type(e).__name__}), "
+                  "and an unread figure supports no claim")
+            return 2
         print(why)
         return 0 if ok else 1
     args = dict(zip(argv[::2], argv[1::2]))

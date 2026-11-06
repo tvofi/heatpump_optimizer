@@ -1194,9 +1194,9 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
     Its own draw above :data:`CHANNEL_ACTIVE_KW`, on a step the plan runs the
     pump at all (``planned_draws_run`` over both channels): a channel is never
     "heating now" on a step the plan's on schedule calls off. The plan views'
-    ``active_now`` and slot merge read this, so neither can count a step the
-    on schedule calls off. An ``other`` series shorter than ``channel`` draws
-    nothing past its end.
+    ``active_now`` and slot merge and the reason classifiers all read this,
+    so none of them can count a step the on schedule calls off. An ``other``
+    series shorter than ``channel`` draws nothing past its end.
     """
     channel = np.asarray(channel_kw, dtype=float)
     other = np.zeros_like(channel)
@@ -1205,6 +1205,17 @@ def channel_heating_steps(channel_kw: Any, other_kw: Any = None) -> list[bool]:
         other[: len(given)] = given
     runs = planned_draws_run(channel, other)
     return [bool(on and kw > CHANNEL_ACTIVE_KW) for kw, on in zip(channel, runs)]
+
+
+def channel_heating_draw(channel_kw: Any, other_kw: Any = None) -> np.ndarray:
+    """A channel's draw on the steps it heats (``channel_heating_steps``), 0 elsewhere.
+
+    What the reason classifiers read in place of the raw draw, so a step whose
+    share sits over :data:`CHANNEL_ACTIVE_KW` while the plan runs no pump at
+    all is idle to them, as it is to the switch schedule.
+    """
+    channel = np.asarray(channel_kw, dtype=float)
+    return np.where(channel_heating_steps(channel, other_kw), channel, 0.0)
 
 def planned_draw_runs(
     space_kw: float,
@@ -1886,6 +1897,30 @@ def _circuit_draw(circuits: list[tuple[float, float, float]], tank: float) -> fl
     return sum(ua * max(0.0, min(tank, top) - zone) for ua, top, zone in circuits)
 
 
+def valve_hold_temperature(
+    model: "ThermalModel", state: ThermalState, need_kw: float,
+    outdoor_temp: float, wind_speed: float, precipitation: float,
+) -> float:
+    """The lowest tank temperature whose draw behind the valve is ``need_kw``.
+
+    Capped at the curve the valve mixes down to and ``buffer_max_temp``: heat
+    above it reaches no emitter. Where a thermostat keeps its tank
+    (R10-BUFFER-STORE), and so where its first step starts from.
+    """
+    p = model.params
+    circuits = _valve_draw_circuits(
+        model, state, outdoor_temp, wind_speed, precipitation)
+    # The draw is piecewise linear in the tank temperature, kinked where a
+    # circuit starts drawing (its zone) and where its curve caps it; the
+    # highest kink is the curve's top, or the cap behind a direct slab.
+    # Its inverse is the same line read the other way, and a need past the
+    # highest kink's draw holds that kink.
+    kinks = sorted({
+        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
+    })
+    return float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+
+
 def valve_charge_demand(
     model: "ThermalModel", state: ThermalState, need_kw: float,
     outdoor_temp: float, wind_speed: float, precipitation: float,
@@ -1909,15 +1944,8 @@ def valve_charge_demand(
     circuits = _valve_draw_circuits(
         model, state, outdoor_temp, wind_speed, precipitation)
     tank = state.buffer_tank_temperature
-    # The draw is piecewise linear in the tank temperature, kinked where a
-    # circuit starts drawing (its zone) and where its curve caps it; the
-    # highest kink is the curve's top, or the cap behind a direct slab.
-    # Its inverse is the same line read the other way, and a need past the
-    # highest kink's draw holds that kink.
-    kinks = sorted({
-        min(t, p.buffer_max_temp) for _, top, zone in circuits for t in (top, zone)
-    })
-    goal = float(np.interp(need_kw, [_circuit_draw(circuits, k) for k in kinks], kinks))
+    goal = valve_hold_temperature(
+        model, state, need_kw, outdoor_temp, wind_speed, precipitation)
     loss = p.buffer_tank_heat_loss_coefficient * (tank - TANK_ROOM_AMBIENT_TEMP)
     return (
         _circuit_draw(circuits, tank) + loss
@@ -2338,8 +2366,8 @@ def wood_share(
     lets any real tank cover a whole step, so priority degenerates to
     "wood to the floor" even at 30 °C against a 40 °C curve.
 
-    Module-level and pure so the savings baseline can reuse it verbatim —
-    two copies of this law would drift the first time one is tuned.
+    Module-level and pure: two copies of this law would drift the first time
+    one is tuned.
     """
     if wood_temp >= flow_set:
         return 1.0
@@ -3777,10 +3805,7 @@ class ThermalModel:
                 ua_floor = (
                     (1.0 - p.radiator_power_fraction) * design_power / design_dt
                 )
-                c_buf = p.buffer_tank_thermal_mass
-                if c_buf < 1e-6:
-                    c_buf = 0.04  # the step's own fallback
-                buf_row = design_power / design_dt / c_buf
+                buf_row = design_power / design_dt / _buffer_capacity(p)
             worst = max(
                 (u_upper + p.inter_zone_transfer + ua_rad)
                 / p.upper_floor_thermal_mass,

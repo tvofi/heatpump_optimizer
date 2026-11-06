@@ -160,6 +160,16 @@
 # request's copy to decide whether the heavy lanes run, so no pin can hold.
 /tests/lane_skip.py                       @tvofi
 /tests/harness.py                         @tvofi
+# The runner's speed probe (R10-HOTFIX-CI-CRITPATH-4): every heavy tests job
+# executes the pull request's copy, and its duration is the unit the CI
+# ratchet prices critical_path_minutes in.
+/tests/host_probe.py                      @tvofi
+# Its reference (R10-HOTFIX-CI-CRITPATH-4): PROBE_REFERENCE_S scales every
+# probed job's price as a budget would, so the grader, the rule deriving the
+# constant and the fleet record it is derived from are owned with the probe.
+/tests/ci_ratchet.py                      @tvofi
+/tools/audit/seat/probe_bridge.py         @tvofi
+/dev/audit/harnesses/r10_hotfix_ci_critpath_4/fleet.json @tvofi
 /tests/mutation_table.py                  @tvofi
 /tests/nightly_status.py                  @tvofi
 /tests/plan_view.py                       @tvofi

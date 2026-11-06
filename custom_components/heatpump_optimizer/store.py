@@ -49,7 +49,7 @@ from .price_tiles import TILE_NAMES
 from .drift import REFERENCE_PRIOR_COV, STAT_CAP_FACTOR
 from .flow_lift import FLOW_BIAS_CLAMP_K, FLOW_SUPPLY_MAX_C
 from .freq_control import FREQ_DECILES, FREQ_MAX_KW_PER_HZ
-from .ledger import BILLED_LINES
+from .ledger import BILLED_LINES, migrate_ledger_v1
 from .price_model import (
     QUARTER_FACTOR_MAX, QUARTER_FACTOR_MIN, RESIDUAL_VAR_MAX, SHAPE_MAX, SHAPE_MIN,
 )
@@ -438,6 +438,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "score_day/day": _DAY, "score_day/kwh": _R, "score_day/sek": _R,
         "score_day/spot_sum": _R, "score_day/spot_h": _Z, "score_day/free_streak": _Z,
         "operation_score": Domain("real", 0.0, 100.0, null=True),
+        "score_day/kwh_lo": _R, "score_day/sek_lo": _R,
+        "operation_drivers/~": Domain("choice", choices=("cheap_hours", "dear_hours")),
+        "operation_drivers/*": _R,
         "fuse_advisor/month": _MONTH, "fuse_advisor/current_fuse_a": Domain("real", _POS),
         "fuse_advisor/candidate_fuse_a": Domain("real", _POS),
         "fuse_advisor/candidate_kw": Domain("real", _POS), "fuse_advisor/feasible": _FLAG,
@@ -820,3 +823,14 @@ class QuarantiningStore(Store[_StorePayload]):
         """
         if self._reading is not None:
             await asyncio.shield(self._reading)
+
+
+class LedgerStore(QuarantiningStore[_StorePayload]):
+    """The money store; v2 stamps what a v1 document holds as the old basis."""
+
+    async def _async_migrate_func(
+        self, old_major_version: int, old_minor_version: int, old_data: Any
+    ) -> Any:
+        if old_major_version == 1 and isinstance(old_data, dict):
+            return migrate_ledger_v1(old_data)
+        return await super()._async_migrate_func(old_major_version, old_minor_version, old_data)

@@ -692,7 +692,10 @@ RULESET = "main-protect-checks"
 # `fast` (GATE_SCOPE=auto against main's merge base, the batch's whole diff).
 PR_ONLY: "tuple[str, ...]" = ()
 DISPATCH = (("ci.yml", ("-f", "recheck=true")),)
-FAILED_SCRIPT = re.compile(r">>> FAILED: .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b")
+# run.sh's lane report prints one of two lines for a non-zero script: FAILED
+# (it reached a summary) or ENDED BEFORE ITS SUMMARY (it crashed first); both
+# name the script, so both are read.
+FAILED_SCRIPT = re.compile(r">>> (?:FAILED|ENDED BEFORE ITS SUMMARY): .*?(tests/[\w./-]+\.(?:py|mjs|sh))\b")
 
 
 @functools.lru_cache(maxsize=None)
@@ -1665,6 +1668,12 @@ class Train:
             raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
         return o
 
+    def _measured_score(self, g, h: str) -> str:
+        """score.py's report line for <h> against origin/main, the gate's own
+        measured_score: the figure a mandated raise's body must name, judged at
+        the merge as the budget-raise-gate check judges it at the head."""
+        return g.measured_score("origin/main", h)
+
     def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
         """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
         budget raise, shared by `approve` and queue_pre_flight.py.
@@ -1722,7 +1731,7 @@ class Train:
         try:
             ok, why = g.approval(self._reviews(pr, "the owner's approval"), h, self._mandate_read,
                                  lambda _r, cid, c, t: g.mandate_state(cid, c, t, now, at, "merge"),
-                                 justify=lambda: g.justification(self._body(pr)))
+                                 justify=lambda: g.justified(self._body(pr), lambda: self._measured_score(g, h)))
         except Stop:
             raise
         except Exception as e:  # fail closed: an unread approval is none
@@ -3497,6 +3506,10 @@ def _self_test() -> int:
     passed = failed = 0
     H0, H1, H2, V = "a" * 40, "b" * 40, "9" * 39 + "a", "c" * 40
     BOT_SUBJ = "ci: pin killed mutants"
+    # The figure a mandated raise's body must name is the gate's measured_score (a
+    # scorer run on a worktree); the world below answers with one fixed line.
+    MEASURED = ["Architecture score: dS +0.4000 IMPROVES"]
+    Train._measured_score = lambda self, g, h: MEASURED[0]
 
     def check(name: str, cond: bool) -> None:
         nonlocal passed, failed
@@ -4223,6 +4236,14 @@ def _self_test() -> int:
     check("#2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval "
           "under an expired mandate stops exactly as today",
           rc == 1 and "a raise is the owner's" in lines[-1] and not merged(calls))
+    # The value, not only the shape (#3045 round 1: dS +0.0012 claimed, +0.0000 true).
+    planted_ds = JUST.replace("dS +0.4 IMPROVES", "dS +0.0012 IMPROVES")
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
+                                      pr_body=planted_ds), mandate=CB, approval_carry=True)
+    check("a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate "
+          "refuses it (the train reads budget_raise_gate.justified, its measured figure)",
+          rc == 1 and "a raise is the owner's" in lines[-1] and "measures dS +0.4000 IMPROVES" in lines[-1]
+          and not merged(calls) and not approved(calls))
     rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
                                       pr_body=JUST.replace("Payments tried", "Paid")), mandate=CB, approval_carry=True)
     check("#2209's shape MUTATION (the gate's own justification): a mandated approval at the head "
@@ -4771,10 +4792,41 @@ def _self_test() -> int:
     _state_self_test(check, go, merged, throwaway_git_init)
     _infra_self_test(check)
     _batch_self_test(check)
+    _failed_marker_self_test(check)
     _add_self_test(check)
     _queue_self_test(check)
     print(f"merge_train self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
+
+
+def _failed_marker_self_test(check) -> None:
+    """culprit() names a red proof's scripts from run.sh's lane report. The
+    report's if/else is lifted from tests/run.sh and driven on a crash log and
+    a failed-check log, and each printed line goes through FAILED_SCRIPT."""
+    src = (ROOT / "tests/run.sh").read_text()
+    pat = re.search(r"^SUMMARY_LINE=.*$", src, re.M)
+    fn = re.search(r"^ended_before_summary\(\) \{.*?^\}", src, re.M | re.S)
+    blk = re.search(r'^ *if ended_before_summary "\$WORKDIR/\$id\.log"; then\n.*?^ *fi$', src, re.M | re.S)
+    check("run.sh's lane report still has the SUMMARY_LINE / ended_before_summary / if-else this check lifts",
+          bool(pat and fn and blk))
+    if not (pat and fn and blk):
+        return
+    label = "python3 tests/entities.py"
+    out: dict[str, str] = {}
+    with tempfile.TemporaryDirectory() as tds:
+        for kind, body in (("crash", "sampling...\nTraceback\nOSError\n"),
+                           ("failed", "  FAIL x\n\n2 of 9 ENTITY CHECKS FAILED\n")):
+            Path(tds, f"{kind}.log").write_text(body)
+            prog = f'{pat.group(0)}\n{fn.group(0)}\nWORKDIR="$1"; id="$2"; label="$3"; rc=1\n{blk.group(0)}\n'
+            r = subprocess.run(["bash", "-e", "-c", prog, "x", tds, kind, label],
+                               capture_output=True, text=True)
+            out[kind] = r.stdout.strip()
+    check("a script that crashed before its summary prints the ENDED BEFORE line, not FAILED",
+          out["crash"].startswith(">>> ENDED BEFORE ITS SUMMARY: " + label))
+    check("a script that failed a check keeps the plain FAILED line",
+          out["failed"] == ">>> FAILED: " + label)
+    check("FAILED_SCRIPT names the script from the crash line and from the failed-check line",
+          all(FAILED_SCRIPT.findall(out[k]) == ["tests/entities.py"] for k in ("crash", "failed")))
 
 
 def _queue_self_test(check) -> None:

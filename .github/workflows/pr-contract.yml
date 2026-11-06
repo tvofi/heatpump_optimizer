@@ -123,7 +123,7 @@ jobs:
             'tests/layout.py' > "$RUNNER_TEMP/pinned.list"
           test -s "$RUNNER_TEMP/pinned.list"
           git checkout "$PINNED" --pathspec-from-file="$RUNNER_TEMP/pinned.list" --pathspec-file-nul
-          echo "check source restored from $PINNED: $(git diff --cached --name-only | wc -l) file(s) differ from the pull request's copy"
+          echo "check source restored from $PINNED: $(git diff --cached --no-renames --name-only | wc -l) file(s) differ from the pull request's copy"
           test -f .claude/workflows/policy_lint.mjs || test -f tools/policy/policy_lint.mjs
 
       # THE MERGE QUEUE (round-9 process review item 2). A `merge_group` run
@@ -446,7 +446,9 @@ jobs:
       # UNVERIFIED and the train's pre-flight checks it.
       - name: Every finding the body records names its destination
         if: always()
+        env:
+          HEAD_REF: ${{ github.event.pull_request.head.ref }}
         run: |
           set -euo pipefail
           git fetch --no-tags origin '+refs/heads/handoff/audit-r*-roster:refs/remotes/origin/handoff/audit-r*-roster'
-          python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md
+          python3 -I tools/audit/carry_audit.py check --body /tmp/pr-body.md --branch "$HEAD_REF"

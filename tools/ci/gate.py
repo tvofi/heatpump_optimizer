@@ -37,7 +37,11 @@ waits are acyclic: a gate waits only on runs that are not yet `judging`, and
 nothing waits on a judging run (prelude.wait_sources), so two gates that
 start together each find the other judging on a re-read. Only past the
 bound, a run still busy after GATE_WAIT_MAX_S, does the gate FAIL deferring,
-for gate-sweep.yml to re-judge.
+for gate-sweep.yml to re-judge. One gate never waits (R10-CI-SLIM card C3): an
+edit run's whose prelude left `pr-contract` to an unfinished code run at this
+head (prelude.defer_to, `deferring` here). It publishes the deferral at once:
+that code run's gate is listed only after its pr-contract has read the latest
+body, so it is the later verdict here, and the sweep re-judges this one.
 """
 from __future__ import annotations
 
@@ -64,6 +68,9 @@ ATTEMPT_CAP = 45     # GitHub fails a run's 51st attempt; the hooks never take a
 # so 12 min of waiting plus one poll leaves two minutes. The self-test pins it
 # under the job's `timeout-minutes`.
 GATE_WAIT_MAX_S = 720
+# An own job not yet listed at all: measured lag 20 s (41289450679), while a
+# structural ABSENT (a renamed job) is absent on every run, so its wait is short.
+GATE_ABSENT_MAX_S = 2 * POLL_S
 
 
 def _names(units, drop=(), extra=None) -> tuple[str, ...]:
@@ -101,6 +108,25 @@ def deferral(ids: list) -> str:
     return f"run(s) {ids} at this head are still being judged; their gate decides"
 
 
+OWN_PENDING = ": PENDING (this run)"
+OWN_ABSENT = ": ABSENT (this run)"
+
+
+def lag_bound(why: list[str]) -> int:
+    """Seconds judge() may re-read when every reason is the jobs listing lagging
+    this run's own graph, else 0. `gate` needs prelude and every unit of its own
+    run (through pr-contract), so an own job listed unfinished, or not listed,
+    has finished and the listing lags it (run 41870314676: closures done
+    17:36:51Z, read pending at 17:37:43Z; dev/audit/rca/r10-gate-stale-jobs.md).
+    A unit outside this run's workset is never ABSENT (gate() names no source),
+    and an unlisted prelude is no lag reason. A lagging job never reads as
+    success, so the bound exhausted is still a FAIL, and any other reason beside
+    it is published at once."""
+    if not why or not all(w.endswith((OWN_PENDING, OWN_ABSENT)) for w in why):
+        return 0
+    return GATE_ABSENT_MAX_S if any(w.endswith(OWN_ABSENT) for w in why) else GATE_WAIT_MAX_S
+
+
 def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     """The 4.1 predicate over what gate.py read (gate_model.gate's `api` shape):
     prelude, jobs (this run's, latest), runs_at_head (every OTHER run here,
@@ -111,7 +137,8 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
     ev = ctx["event_name"]
     pre = api["prelude"]
     if pre.get("conclusion") != "success":
-        return False, [f"prelude: {pre.get('conclusion')}"]
+        listed_unfinished = pre.get("status") not in (None, "completed")
+        return False, ["prelude" + OWN_PENDING if listed_unfinished else f"prelude: {pre.get('conclusion')}"]
     if (pre.get("kind"), pre.get("pr", "")) != (kind, pr):
         return False, [f"prelude says kind={pre.get('kind')} pr={pre.get('pr')!r}, the event says kind={kind} pr={pr!r}"]
     if int(ctx.get("run_attempt", 1)) >= ATTEMPT_CAP:
@@ -132,6 +159,7 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if lp.get("same_repo") is not True:  # R3-4: no supersession or refresh reaches a fork head
             return False, [f"PR {pr}: its head is not in this repository (a fork PR is not gated here)"]
     others = [r for r in api["runs_at_head"] if r["id"] != ctx["run_id"]]
+    own = pre.get("workset")                # the units the prelude ran here; a deferring edit run ran fewer (C3)
     waiting = busy(ctx, others)
     if waiting:
         return False, [deferral(waiting)]
@@ -150,9 +178,12 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
             if t is None:
                 bad.append(f"run {r['id']}: unreadable title {r['title']!r}")
                 continue
-            if t[1] != pr or t[2] != judge_base or unit not in workset(t[0], t[1]):
+            if t[1] != pr or t[2] != judge_base or unit not in (
+                    own if r is me and own is not None else workset(t[0], t[1])):
                 continue
             js = [r["jobs"].get(f"{unit} / {n}") for n in names]
+            if r is not me and all(j is not None and j[1] == "skipped" for j in js):
+                continue                    # a unit that run deferred (C3) judged nothing: no source
             if r is me or all(j is not None and j[0] == "completed" for j in js):
                 src = r                     # this run's own unit always counts (its needs ran it)
                 break
@@ -163,9 +194,9 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         for n in names:
             st = src["jobs"].get(f"{unit} / {n}")
             if st is None:
-                bad.append(f"{unit} / {n}: ABSENT ({where})")
+                bad.append(f"{unit} / {n}: ABSENT ({where})" if src is not me else f"{unit} / {n}{OWN_ABSENT}")
             elif st[0] != "completed":
-                bad.append(f"{unit} / {n}: PENDING ({where})")
+                bad.append(f"{unit} / {n}: PENDING ({where})" if src is not me else f"{unit} / {n}{OWN_PENDING}")
             elif st[1] != "success":
                 bad.append(f"{unit} / {n}: {st[1].upper() if st[1] == 'skipped' else st[1]} ({where})")
     return not bad, sorted(set(bad), key=bad.index)
@@ -183,7 +214,8 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
     """Every Actions and pulls read the predicate needs, in one place: the last step."""
     repo, (_, pr, _) = ctx["repo"], derive(ctx)
     jobs = run_jobs(get, repo, ctx["run_id"])
-    api = {"prelude": {"conclusion": (jobs.get("prelude") or (None, None))[1], **claim},
+    status, conclusion = jobs.get("prelude") or (None, None)
+    api = {"prelude": {"status": status, "conclusion": conclusion, **claim},
            "jobs": jobs, "reaches_cc": reaches_cc, "live_pr": None, "open_pr_heads": set()}
     if pr and ctx["event_name"] != "merge_group":
         lp = _pull(get, repo, pr)
@@ -205,22 +237,40 @@ def reaches_custom_components(base: str, head: str) -> bool:
     return p.returncode != 0 or bool(p.stdout.strip())
 
 
+def deferring(kind: str, pr: str, claim: dict) -> bool:
+    """Whether the prelude ran fewer units here than the kind owns: an edit run
+    that left `pr-contract` to an unfinished code run (prelude.defer_to, C3).
+    Such a gate publishes a deferral at once instead of waiting on that run: the
+    code run's gate is listed after its pr-contract, so it is the later
+    verdict at this head, and gate-sweep.yml re-judges this one once it ends."""
+    own = claim.get("workset")
+    return own is not None and own < workset(kind, pr)
+
+
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
           now=time.monotonic) -> tuple[str, list[str], list[str]]:
     """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
-    that only defers is never published while the bound allows a re-read."""
+    that only defers, or only waits on this run's own lagging jobs (lag_bound),
+    is never published while its bound allows a re-read."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
-    t0 = now()
+    t0, lagged = now(), []
     while True:
         api = read_api(ctx, claim, cc, get)
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
-        if ok or why != [deferral(waiting)] or now() - t0 + POLL_S > GATE_WAIT_MAX_S:
+        bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
+        if why == [deferral(waiting)] and deferring(kind, pr, claim):
+            bound = 0                           # C3: that busy code run's gate is the later verdict; hold no runner
+        if ok or now() - t0 + POLL_S > bound:
             break
+        if why != [deferral(waiting)]:
+            lagged = lagged or why
         sleep(POLL_S)
     owed = {n for names in REQUIRED.values() for n in names} | {"prelude", "gate"}
     notes = [f"{k}: {v[1] or v[0]}" for k, v in sorted(api["jobs"].items()) if k not in owed]
+    if lagged:                                   # the listing lagged this run: say so (RCA countermeasure 4)
+        notes.append(f"listing lag: {lagged[0]} re-read for {int(now() - t0)} s")
     return ("PASS" if ok else f"FAIL {why[0]}"), why, notes
 
 
@@ -283,7 +333,10 @@ def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int
         if a.kind is None or a.pr is None:
             print("FAIL usage: --pr N --base B --kind K (the prelude's outputs)")
             return 1
-        outcome, why, notes = judge(ctx, {"kind": a.kind, "pr": a.pr}, get)
+        claim = {"kind": a.kind, "pr": a.pr}
+        if env.get("WORKSET") is not None:          # the prelude's workset output (ci.yml's gate step)
+            claim["workset"] = set(env["WORKSET"].split())
+        outcome, why, notes = judge(ctx, claim, get)
     except ghapi.RateLimited as e:
         outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
         # The annotation is how the sweep tells this red from any other (check-runs/<job>/annotations).
@@ -345,9 +398,11 @@ def self_test() -> int:
     check("a red required job", judge(ctx, claim, fake(red), cc)[0], "FAIL tests / closures: failure (this run)")
     skip = [dict(j, conclusion="skipped") if j["name"] == "tests / browser" else j for j in green]
     check("a skipped required job (4.2)", judge(ctx, claim, fake(skip), cc)[0], "FAIL tests / browser: SKIPPED (this run)")
-    check("a run without tests / arch-instrument (U5b)",
-          judge(ctx, claim, fake([j for j in green if j["name"] != "tests / arch-instrument"]), cc)[0],
-          "FAIL tests / arch-instrument: ABSENT (this run)")
+    naps = []
+    check("a run without tests / arch-instrument (U5b): re-read, inside the ABSENT bound, then red",
+          (judge(ctx, claim, fake([j for j in green if j["name"] != "tests / arch-instrument"]), cc, naps.append,
+                 lambda: sum(naps))[0], 0 < sum(naps) <= GATE_ABSENT_MAX_S),
+          ("FAIL tests / arch-instrument: ABSENT (this run)", True))
     check("D-2 null: arch-score red, diff misses custom_components/",
           judge(ctx, claim, fake([dict(j, conclusion="failure") if j["name"].startswith("arch") else j for j in green]),
                 lambda b, h: False)[0], "PASS")
@@ -384,7 +439,7 @@ def self_test() -> int:
     def run(i, kind, status, jobs):
         return {"id": i, "display_title": title(kind, "7", "main", "M"), "status": status, "jobs": jobs}
 
-    def scene(*frames, me=100):
+    def scene(*frames, me=100, mine=None):
         """A get whose runs and jobs at the head move one frame per nap; `now` is the naps' sum."""
         naps = []
 
@@ -398,7 +453,7 @@ def self_test() -> int:
                 return 200, {}, {"workflow_runs": [{k: v for k, v in r.items() if k != "jobs"} for r in frame]}
             rid = int(path.split("/runs/")[1].split("/")[0])
             if rid == me:
-                return 200, {}, {"jobs": green}
+                return 200, {}, {"jobs": mine or green}
             return 200, {}, {"jobs": next(r["jobs"] for r in frame if r["id"] == rid)}
         return get, naps, naps.append, lambda: sum(naps)
 
@@ -431,6 +486,52 @@ def self_test() -> int:
                                 [run(101, "edit", "completed", owed("edit", red=("pr-contract / pr-contract",)))])
     check("a deferring gate published after the decider's red is that red, never a PASS",
           verdict(ctx, get, nap, now), "FAIL pr-contract / pr-contract: failure (run 101)")
+    # C3 (option A): an edit run beside a code run that has not started its
+    # pr-contract ran arch-score and budget-raise-gate only; its caller job
+    # `pr-contract` is listed skipped, under the caller's bare name.
+    ectx = context("pull_request", {**ev, "action": "edited"}, env)
+    deferred = [{"name": "prelude", "status": "completed", "conclusion": "success", "id": 1},
+                {"name": "arch-score / arch-score", "status": "completed", "conclusion": "success", "id": 1},
+                {"name": "budget-raise-gate / budget-raise-gate", "status": "completed", "conclusion": "success",
+                 "id": 1},
+                {"name": "pr-contract", "status": "completed", "conclusion": "skipped", "id": 1}]
+    eclaim3 = {"kind": "edit", "pr": "7", "workset": {"arch-score", "budget-raise-gate"}}
+    busy_code = [run(99, "code", "in_progress", owed("code", gate=False, state="in_progress"))]
+    get, naps, nap, now = scene(busy_code, mine=deferred)
+    out = verdict(ectx, get, nap, now, eclaim3)
+    check("C3: a deferring edit gate beside a busy code run publishes the deferral at once, holding no runner",
+          (out.startswith("FAIL run(s) [99]"), naps), (True, []))
+    get, naps, nap, now = scene(busy_code, mine=deferred)
+    verdict(ectx, get, nap, now, {"kind": "edit", "pr": "7"})
+    check("... null control: the same gate with the full edit workset waits on it, bounded, as before",
+          (bool(naps), sum(naps) <= GATE_WAIT_MAX_S), (True, True))
+    done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
+                                                           "conclusion": "failure", "id": 9}])
+    get, naps, nap, now = scene([done_edit])
+    check("C3: the code run's gate takes the edit run's body units, its own pr-contract (it read the latest body)",
+          verdict(ctx, get, nap, now), "PASS")
+    skipped_named = {**done_edit, "jobs": [j if j["name"] != "pr-contract" else
+                                           {**j, "name": "pr-contract / pr-contract"} for j in done_edit["jobs"]]}
+    get, naps, nap, now = scene([skipped_named])
+    check("C3: a unit a run deferred is no source even under its full job name (skipped)",
+          verdict(ctx, get, nap, now), "PASS")
+    red_edit = {**done_edit, "jobs": [j if j["name"] != "arch-score / arch-score" else
+                                      {**j, "conclusion": "failure"} for j in done_edit["jobs"]]}
+    get, naps, nap, now = scene([red_edit])
+    check("C3: the edit run's red arch-score (the latest body) is the code gate's source, not its own older green",
+          verdict(ctx, get, nap, now), "FAIL arch-score / arch-score: failure (run 101)")
+    for label, red, want in (("green", (), "PASS"),
+                             ("its pr-contract red", ("pr-contract / pr-contract",),
+                              "FAIL pr-contract / pr-contract: failure (run 99)")):
+        get, naps, nap, now = scene([run(99, "code", "completed", owed("code", red=red))], me=101, mine=deferred)
+        check(f"C3: the deferred gate re-judged once the code run ended ({label}) is that run's verdict",
+              verdict({**ectx, "run_id": 101}, get, nap, now, eclaim3), want)
+    late = deferred[:3] + [{"name": "pr-contract / pr-contract", "status": "completed", "conclusion": "failure",
+                            "id": 1}]
+    get, naps, nap, now = scene([run(99, "code", "completed", owed("code"))], mine=late)
+    check("C3: a body edited after the code run's gate passed is still judged (this run's own pr-contract)",
+          verdict(ectx, get, nap, now, {**eclaim3, "workset": set(BODY_UNITS)}),
+          "FAIL pr-contract / pr-contract: failure (this run)")
     get, naps, nap, now = scene([run(99, "code", "in_progress", owed("code", gate=False, state="in_progress"))])
     out = verdict(ctx, get, nap, now)
     check("past the bound, the deferral FAILs (for gate-sweep.yml), and the wait stays inside the bound",
@@ -454,9 +555,69 @@ def self_test() -> int:
           busy({**ctx, "run_id": 99}, [{**r, "title": r["display_title"],
                                         "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in r["jobs"]}}
                                        for r in reds + [rerun]]), [])
+    # R10-HOTFIX-GATE-STALE-JOBS: this run's own jobs read stale, then fresh.
+    def own(*frames):
+        naps = []
+
+        def get(path, params=None):
+            if sum(naps) > 2 * GATE_WAIT_MAX_S:
+                raise TimeoutError("waited past twice the bound")
+            if path.endswith("/runs/100/jobs"):
+                return 200, {}, {"jobs": frames[min(len(naps), len(frames) - 1)]}
+            return fake()(path, params)
+        return get, naps, naps.append, lambda: sum(naps)
+
+    def jset(**over):
+        return [dict(j, **over[j["name"]]) if j["name"] in over else j for j in green]
+    lag = {"status": "in_progress", "conclusion": None}
+    stale = jset(**{"tests / mutation": lag, "tests / closures": lag})
+    get, naps, nap, now = own(stale, green)
+    check("run 41870314676 shape: own jobs read in_progress, then completed -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(**{"tests / mutation": lag, "tests / closures": {"conclusion": "failure"}}), green)
+    out, why, _ = judge(ctx, claim, get, cc, nap, now)
+    check("null: a unit really failed beside a lagging one stays red, no wait",
+          (out.startswith("FAIL"), "tests / closures: failure (this run)" in why, naps), (True, True, []))
+    get, naps, nap, now = own(stale)
+    out = verdict(ctx, get, nap, now)
+    check("null: own jobs still pending past the bound stay red, the wait inside the bound",
+          (out, bool(naps), sum(naps) <= GATE_WAIT_MAX_S), ("FAIL tests / mutation: PENDING (this run)", True, True))
+    get, naps, nap, now = own(jset(**{"tests / browser": {"conclusion": "skipped"}}), green)
+    check("null: a skipped own unit is unchanged, no wait",
+          (verdict(ctx, get, nap, now), naps), ("FAIL tests / browser: SKIPPED (this run)", []))
+    pend = {"status": "in_progress", "conclusion": None}
+    get, naps, nap, now = own(stale, green)
+    check("a cleared lag is noticed: one note names the job and the wait; a fresh listing notes nothing (null)",
+          ([x for x in judge(ctx, claim, get, cc, nap, now)[2] if x.startswith("listing lag")],
+           [x for x in judge(ctx, claim, fake(), cc)[2] if x.startswith("listing lag")]),
+          (["listing lag: tests / mutation: PENDING (this run) re-read for 60 s"], []))
+    get, naps, nap, now = own(jset(prelude=pend), green)
+    check("41863133083 shape: prelude listed unfinished, then success -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(prelude=pend), jset(prelude={"conclusion": "failure"}))
+    check("41094975103 shape: prelude listed unfinished, then failure -> its true reason, after the re-read",
+          (verdict(ctx, get, nap, now), naps), ("FAIL prelude: failure", [POLL_S]))
+    get, naps, nap, now = own([j for j in green if j["name"] != "prelude"])
+    check("null: prelude not listed at all is no lag, no wait (only a listed unfinished prelude waits)",
+          (verdict(ctx, get, nap, now), naps), ("FAIL prelude: None", []))
+    get, naps, nap, now = own([j for j in green if j["name"] != "pr-contract / pr-contract"], green)
+    check("41289450679 shape: an own job not yet listed, then listed -> one re-read, PASS",
+          (verdict(ctx, get, nap, now), naps), ("PASS", [POLL_S]))
+    get, naps, nap, now = own(jset(**{"tests / mutation": lag}), [j for j in green if j["name"] != "hassfest / hassfest"])
+    out = verdict(ctx, get, nap, now)
+    check("an own job never listed stays red, its wait inside the shorter ABSENT bound",
+          (out, 0 < sum(naps) <= GATE_ABSENT_MAX_S), ("FAIL hassfest / hassfest: ABSENT (this run)", True))
+    ectx, eclaim = {**ctx, "action": "edited"}, {"kind": "edit", "pr": "7"}
+    get, naps, nap, now = own([j for j in green if j["name"] == "prelude" or j["name"].split(" / ")[0] in BODY])
+    out, why, _ = judge(ectx, eclaim, get, cc, nap, now)
+    check("null (workset): an edit run lists no code unit; that is no ABSENT and no wait",
+          (out.startswith("FAIL") and any(w.endswith("judged base 'main'") for w in why),
+           [w for w in why if "ABSENT" in w], naps), (True, [], []))
     import re
     ci = (HERE.parents[1] / ".github" / "workflows" / "ci.yml").read_text()
     m = re.search(r"\n  gate:\n(?:    .*\n)*?    timeout-minutes: (\d+)\n", ci)
+    check("the ABSENT bound is shorter than the pending bound, and pinned to two polls",
+          (GATE_ABSENT_MAX_S < GATE_WAIT_MAX_S, GATE_ABSENT_MAX_S), (True, 120))
     check("the wait bound, one poll and two minutes fit the gate job's timeout-minutes",
           bool(m) and GATE_WAIT_MAX_S + POLL_S + 120 <= int(m.group(1)) * 60, True)
 

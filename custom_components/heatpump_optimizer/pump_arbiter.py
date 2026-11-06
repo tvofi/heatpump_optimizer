@@ -118,7 +118,7 @@ over the step is hot water). Each step is ``delivered``,
 ``space-instead``, ``dhw-instead``, ``idle-instead``, ``unknown`` (no power
 meter and no tank rise) or ``baseline``. A concurrent Heating + DHW run
 reads as hot water; a big draw can hide a tank rise. The last
-:data:`LOG_STEPS` steps and their counts are in the diagnostics; the ledger
+:func:`log_steps` steps and their counts are in the diagnostics; the ledger
 is not persisted. It is what decides whether control is worth turning on:
 ``delivered`` over the other verdicts is how often the pump already does
 what the plan wanted.
@@ -212,8 +212,14 @@ RETRY_MINUTES = 5.0
 #: the other duty for the whole step (valve travel and compressor cycling).
 SPLIT_MIN_MINUTES = 5.0
 TANK_RISE_C = 0.5
-LOG_STEPS = 96
 _STORE_VERSION = 1
+
+
+def log_steps() -> int:
+    """One day of plan steps, the decision log's length (width owned by plan_step)."""
+    return 24 * 60 // PLAN_STEP_MINUTES
+
+
 _TICK = timedelta(minutes=1)
 #: How long into a step the meter still reads the last step (#2492 carry 8):
 #: the supply tick writes the switch in the step's first tick, and the
@@ -243,7 +249,7 @@ class ArbiterState:
     misses: dict[str, int] = field(default_factory=dict)
     retry: dict[str, datetime] = field(default_factory=dict)
     step: dict[str, Any] | None = None
-    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=LOG_STEPS))
+    log: deque[dict[str, Any]] = field(default_factory=lambda: deque(maxlen=log_steps()))
     dhw_since: datetime | None = None
     last_duty: str | None = None
     loaded: bool = False
@@ -504,7 +510,17 @@ def _experiment_kw(inp: ArbiterInputs) -> float | None:
 
 
 def _band_kw(inp: ArbiterInputs) -> tuple[Any, Any]:
-    """``(p_min, p_max)`` from the model when the params snapshot lacks them."""
+    """``(p_min, p_max)`` the step's power maps on.
+
+    A plan's step maps on the band the plan was solved on, its stamped
+    ``solve_band`` (R10-COP-GATE part D): a plan booked on a learned top
+    below the nameplate commands the ceiling at that top. An experiment's
+    step maps on the hub's band, which sysid sized it on; so does a plan with
+    no stamp. The hub's band from the model when the params snapshot lacks it.
+    """
+    band = getattr(inp.plan, "solve_band", None) or {}
+    if band and _experiment_kw(inp) is None:
+        return band["planned_min_kw"], band["planned_max_kw"]
     params = inp.params
     thermal_params = getattr(inp.thermal, "params", None)
     p_min = getattr(params, "min_electrical_power", None)
@@ -1153,10 +1169,10 @@ def _share(coord: Any, inp: ArbiterInputs, duty: str | None, now: datetime) -> s
     result = inp.plan
     i = bisect.bisect_right(result.timestamps, now) - 1
     space, dhw = result.power_schedule[i], result.dhw_power_schedule[i]
-    dhw_min = 15.0 * dhw / (space + dhw)
+    dhw_min = PLAN_STEP_MINUTES * dhw / (space + dhw)
     if dhw_min < SPLIT_MIN_MINUTES:
         return "space"
-    if 15.0 - dhw_min < SPLIT_MIN_MINUTES:
+    if PLAN_STEP_MINUTES - dhw_min < SPLIT_MIN_MINUTES:
         return "dhw"
     return "dhw" if (now - result.timestamps[i]) < timedelta(minutes=dhw_min) else "space"
 

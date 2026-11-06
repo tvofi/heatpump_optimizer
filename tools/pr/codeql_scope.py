@@ -86,6 +86,11 @@ INERT = {
     "python": _PROSE | {".json"},
 }
 FORCE_PREFIXES = (".github/",)
+#: R10-CI-SLIM card C7(b): a pull request is analyzed only where it reaches the
+#: product or the workflows. A tools/, tests/ or dev/ diff is analyzed at the
+#: next push to main, which always analyzes (no CodeQL alert outside the
+#: product has been raised since 2026-10-07).
+ANALYZED_PREFIXES = ("custom_components/", SELF) + FORCE_PREFIXES
 PROOF_REF = "refs/heads/batch/"
 #: merge_train.build's subject for proof commit P_i: entry, its head, P_(i-1).
 _PROOF_SUBJECT = re.compile(r"batch proof: #([0-9]+) at ([0-9a-f]{12}) onto ([0-9a-f]{12})")
@@ -116,6 +121,10 @@ def decide(language: str, event: str, files: list[str], ref: str = "",
     for f in files:
         if f.startswith(FORCE_PREFIXES):
             return "analyze", f"{f} changes the analysis itself"
+    if not any(f.startswith(ANALYZED_PREFIXES) for f in files):
+        return "skip", (f"none of {len(files)} changed file(s) is under custom_components/ or .github/: "
+                        "the next push to main analyzes it")
+    for f in files:
         suffix = PurePosixPath(f).suffix.lower()
         if suffix not in INERT[language]:
             return "analyze", f"{f} ({suffix or 'no suffix'}) may be read by the {language} extractor"
@@ -333,20 +342,29 @@ def self_test() -> int:
 
     check("a roster PR skips python", word("python", "pull_request", roster), "skip")
     check("a roster PR skips actions", word("actions", "pull_request", roster), "skip")
-    check("a roster PR analyzes javascript-typescript: its extractor reads .json",
-          word("javascript-typescript", "pull_request", roster), "analyze")
+    check("a roster PR skips javascript-typescript: nothing under custom_components/ or .github/ (C7b)",
+          word("javascript-typescript", "pull_request", roster), "skip")
+    cc = "custom_components/heatpump_optimizer/"
+    check("... its .json reaches the javascript-typescript extractor once the diff reaches the product (null)",
+          word("javascript-typescript", "pull_request", roster + [cc + "manifest.json"]), "analyze")
+    check("C7b: a tools/ .py diff skips python on a pull request (the next main push analyzes it)",
+          word("python", "pull_request", ["tools/audit/seat/roster_lib.py", "tests/closure.py"]), "skip")
+    check("C7b: ... and the same .py under custom_components/ analyzes python (null control)",
+          word("python", "pull_request", ["tools/audit/seat/roster_lib.py", cc + "coordinator.py"]), "analyze")
+    check("C7b: ... and on a push to main the tools/ diff analyzes (null control)",
+          word("python", "push", ["tools/audit/seat/roster_lib.py"]), "analyze")
     for leg in LEGS:
         check(f"a record PR (one .md row) skips {leg}", word(leg, "pull_request", row), "skip")
     check("a .py file analyzes python (null control)",
-          word("python", "pull_request", roster + ["tools/audit/seat/roster_lib.py"]), "analyze")
+          word("python", "pull_request", roster + [cc + "coordinator.py"]), "analyze")
     check("a .mjs file analyzes javascript-typescript (null control)",
-          word("javascript-typescript", "pull_request", row + ["tools/policy/brief_lint.mjs"]), "analyze")
+          word("javascript-typescript", "pull_request", row + [cc + "www/x.mjs"]), "analyze")
     check("a card .js file analyzes javascript-typescript",
           word("javascript-typescript", "pull_request",
                ["custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"]), "analyze")
     check("a .sh file analyzes python: not on the allow-list, so fail-closed",
-          word("python", "pull_request", ["tools/pr/prepr.sh"]), "analyze")
-    check("a file with no suffix analyzes", word("python", "pull_request", ["VERSION"]), "analyze")
+          word("python", "pull_request", [cc + "x.sh"]), "analyze")
+    check("a file with no suffix analyzes", word("python", "pull_request", [cc + "VERSION"]), "analyze")
     check("an upper-case suffix is the same suffix", word("python", "pull_request", ["docs/README.MD"]), "skip")
     for leg in LEGS:
         check(f"a workflow edit analyzes {leg}",
@@ -360,7 +378,7 @@ def self_test() -> int:
     check("a blank-lines-only file list analyzes", word("python", "pull_request", ["", "  "]), "analyze")
     check("an unknown leg analyzes", word("ruby", "pull_request", row), "analyze")
     check("the reason names the file that forced analysis",
-          "roster_lib.py" in decide("python", "pull_request", roster + ["tools/audit/seat/roster_lib.py"])[1], True)
+          "coordinator.py" in decide("python", "pull_request", roster + [cc + "coordinator.py"])[1], True)
     check("main: an unreadable list exits non-zero, never a word",
           main(["decide", "--language", "python", "--event", "pull_request",
                 "--files-from", "/nonexistent/o17-changed.txt"]), 2)
@@ -373,7 +391,7 @@ def self_test() -> int:
     check("a rename lists its source too: lib.py -> lib.md lists both",
           sorted(listed), ["lib.md", "lib.py"])
     check("so the python leg analyzes the rename",
-          word("python", "pull_request", listed), "analyze")
+          word("python", "pull_request", [cc + x for x in listed]), "analyze")
     check("the seam is real: porcelain git diff lists only lib.md (null control)",
           porcelain, ["lib.md"])
     cl = _closure()

@@ -140,10 +140,39 @@ function gridStates(plan) {
   const statStates = () => ({
     "sensor.heat_pump_optimizer_predicted_savings": { state: "12.34", attributes: { unit_of_measurement: "SEK" } },
     "sensor.heat_pump_optimizer_savings_percentage": { state: "8.2", attributes: {} },
-    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 90, machine: 75 } },
+    "sensor.heat_pump_optimizer_optimization_score": { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" }, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }, { code: "thermal_mass", points: -3.1 }], machine_drivers: [], machine_evidence: { required: 20, bands: [{ outdoor_c: -3, hot_water: false, samples: 12 }, { outdoor_c: 0, hot_water: true, samples: 5 }, { outdoor_c: 3, hot_water: false, samples: 4 }, { outdoor_c: -6, hot_water: false, samples: 2 }], refused_frozen: 7 }, operation_drivers: [{ code: "cheap_hours", points: 70.4 }, { code: "dear_hours", points: -10.4 }, { code: "earlier_days", points: 2.4 }] } },
     "sensor.heat_pump_optimizer_plan_narrative": { state: "cheap_price", attributes: {
       lines: ["Most heating is placed in the cheapest hours."], language: "en" } },
   });
+  // A graded heat pump carries `cop_shortfall` and no evidence (an ungraded
+  // one carries evidence and no driver), so the pump's two renderings need
+  // two states: this is the graded one, beside `statStates`' ungraded one.
+  const statStatesGradedPump = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "74", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
+      machine_drivers: [{ code: "cop_shortfall", points: -40.0 }], operation_drivers: [{ code: "cheap_hours", points: 30.4 }] } };
+    return st;
+  };
+  // The "typical" lines: a graded pump and a graded Driving row whose drivers
+  // all round to nothing read `driver_typical_machine` / `_operation`, and
+  // an ungraded pump with no band yet reads `evidence_empty`. Neither fits
+  // `statStates` (whose drivers move the grade), so each gets its own state.
+  const statStatesTypical = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "70", attributes: { envelope: 62, machine: 60, operation: 80, envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }],
+      machine_drivers: [], operation_drivers: [{ code: "cheap_hours", points: 0 }] } };
+    return st;
+  };
+  const statStatesNoEvidence = () => {
+    const st = statStates();
+    const id = "sensor.heat_pump_optimizer_optimization_score";
+    st[id] = { state: "82", attributes: { envelope: 62, machine: null, operation: 60, reasons: { machine: "cop_watch_learning" },
+      envelope_drivers: [{ code: "learned_heat_loss", points: 15.2 }], machine_drivers: [], machine_evidence: { required: 20, bands: [] },
+      operation_drivers: [{ code: "cheap_hours", points: 70.4 }] } };
+    return st;
+  };
   const shared = () => {
     const st = planStates(plan);
     const heating = new Set(st[DEFAULT_SPACE].attributes.forecast.filter((p) => Number(p.space_power) > 0.05).map((p) => p.t));
@@ -217,6 +246,9 @@ function gridStates(plan) {
     S("no_plan", { states: {} }),
     S("no_plan_expanded", { states: {}, steps: [["open"]] }),
     S("score_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "score"]] }),
+    S("score_open_typical", { states: { ...planStates(plan), ...statStatesTypical() }, steps: [["stat", "score"]] }),
+    S("score_open_no_evidence", { states: { ...planStates(plan), ...statStatesNoEvidence() }, steps: [["stat", "score"]] }),
+    S("score_open_graded_pump", { states: { ...planStates(plan), ...statStatesGradedPump() }, steps: [["stat", "score"]] }),
     S("savings_open", { states: { ...planStates(plan), ...statStates() }, steps: [["stat", "savings"]] }),
     S("hidden_series", { states: planStates(plan), config: { series: { outdoor: false, solar: false } }, steps: [["chip", "price"]] }),
     S("tooltip_hover", { states: planStates(plan), steps: [["cardClick"], ["hover", 5]] }),
@@ -234,6 +266,10 @@ function gridStates(plan) {
       attributes: { unit_of_measurement: "SEK", savings_months: [
         { month: "2026-01", baseline_sek: 900, actual_sek: 820, savings_sek: 80, savings_pct: 8.9, estimated: true },
         { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: -12, savings_pct: -1.7 }] } } },
+      steps: [["cardClick"], ["page", "savings"]] }),
+    S("savings_page_wood", { states: { ...wood({ cheaper: false, show_whatif: true, ready: true, slots: [] }),
+      "sensor.heat_pump_optimizer_plan_monthly_savings": { state: "8.1", attributes: { unit_of_measurement: "SEK", savings_months: [
+        { month: "2025-12", baseline_sek: 700, actual_sek: 712, savings_sek: null, savings_pct: null, old_basis: true }] } } },
       steps: [["cardClick"], ["page", "savings"]] }),
     S("estimated_price_hover", { states: (() => { const st = planStates(plan);
       for (const id of [DEFAULT_SPACE, DEFAULT_DHW]) st[id].attributes.forecast = st[id].attributes.forecast.map((p) => ({ ...p, price_known: false }));
@@ -1182,6 +1218,10 @@ async function p9Grid({ browser, check, plan, cardSrc, log = () => {} }) {
       const tag = `${st.name}/${cell.vp[0]}/${cell.theme}${cell.os ? "-on-" + cell.os : ""}/${cell.lang}`;
       try {
         await page.goto("http://hpo.test/");
+        // Each state starts from empty storage: one context serves the whole
+        // cell, so a choice an earlier state persists (hidden_series's chips)
+        // would otherwise hold for every later one (#2841).
+        await page.evaluate(() => { localStorage.clear(); sessionStorage.clear(); });
         await page.addScriptTag({ content: cardSrc });
         await page.addScriptTag({ content: `(${instrument.toString()})();` });
         await page.evaluate(([themeCss, w, cfg, states2, lang, svc, dark]) => {
@@ -2000,6 +2040,56 @@ try {
     `${Math.min(...clipCells.map((c) => c.runs))} text run(s) in the thinnest cell, ` +
     `${Math.min(...clipCells.filter((c) => c.pg === "savings").map((c) => c.tableRuns))} ` +
     `in the thinnest savings table`);
+  // R10-HOTFIX-SAV-ESTIMATE: an old-basis month draws its two columns, a dash
+  // for the saving and the percent, and the note; a house with wood configured
+  // carries the disclaimer, painted, and a house without it does not.
+  const savingsRows = (woodConfigured) => clipPage.evaluate(async ([st]) => {
+    document.body.innerHTML = "";
+    const card = document.createElement("heatpump-optimizer-card");
+    card.setConfig({ type: "custom:heatpump-optimizer-card" });
+    card.hass = { states: st, language: "en" };
+    document.body.style.width = "320px";
+    document.body.appendChild(card);
+    card._onCardClick({});
+    card.dialog.page = "savings";
+    card._render();
+    await new Promise((r) => requestAnimationFrame(() => requestAnimationFrame(r)));
+    const note = card.shadowRoot.querySelector(".savings-wood-note");
+    return {
+      note: note && note.getClientRects().length > 0 ? note.textContent.trim() : "",
+      noteRight: note ? note.getBoundingClientRect().right : 0,
+      rows: [...card.shadowRoot.querySelectorAll(".savings-table tbody tr")].map((tr) => ({
+        cells: [...tr.querySelectorAll("td")].map((td) => td.textContent.trim().replace(/\s+/g, " ")),
+        old: !!tr.querySelector(".savings-old"),
+        barWidth: tr.querySelector(".sv-mag")?.getBoundingClientRect().width ?? -1,
+      })),
+    };
+  }, [(() => {
+    const st = { ...clipStates, "sensor.heat_pump_optimizer_monthly_savings": {
+      state: "0", attributes: { unit_of_measurement: "SEK", savings_months: [
+        { month: "2026-09", baseline_sek: 1779.92, actual_sek: 344.81, savings_sek: null, savings_pct: null, old_basis: true, estimated: false },
+        { month: "2026-12", baseline_sek: 900, actual_sek: 1500, savings_sek: -600, savings_pct: -66.7, old_basis: false, estimated: false },
+      ] } } };
+    st[DEFAULT_SPACE] = { ...st[DEFAULT_SPACE], attributes: { ...st[DEFAULT_SPACE].attributes,
+      wood_fuel: woodConfigured ? { ready: true, cheaper: false, show_whatif: true } : { ready: false, cheaper: false, show_whatif: false } } };
+    return st;
+  })()]);
+  await clipPage.setViewportSize({ width: 320, height: 640 });
+  const woodPage = await savingsRows(true);
+  const plainPage = await savingsRows(false);
+  const [oldRow, statedRow] = woodPage.rows;
+  check("an old-basis row draws its two columns, a dash for saving and percent, and the note",
+    /old basis/.test(oldRow?.cells[0]) && oldRow.cells[1] === "1779.92" && oldRow.cells[2] === "344.81"
+      && oldRow.cells[3] === "—" && oldRow.cells[4] === "—" && oldRow.old && oldRow.barWidth === 0,
+    JSON.stringify(oldRow));
+  check("and a new-basis row beside it states its saving, its unclipped percent and its bar",
+    statedRow?.cells[3].includes("-600.00") && statedRow.cells[4] === "-67%" && !statedRow.old && statedRow.barWidth > 0,
+    JSON.stringify(statedRow));
+  check("a house with wood configured carries the disclaimer, painted within a phone's width",
+    /includes heat from wood/.test(woodPage.note) && /not counted/.test(woodPage.note) && woodPage.noteRight <= 320.5,
+    JSON.stringify([woodPage.note, woodPage.noteRight]));
+  check("a house with no wood configured carries none",
+    plainPage.note === "" && plainPage.rows.length === 2, JSON.stringify(plainPage.note));
   await clipPage.close();
 
   // #258: axis unit labels must not ink-collide with their top tick once the
