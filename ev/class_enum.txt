@@ -1,0 +1,127 @@
+## rule A: value keys in shipped files
+README.md:588:| Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes; `saving_includes_wood` is `true` where wood is configured, because the saving then includes wood's heat and not firewood's cost | Unavailable until at least one month row exists |
+blueprints/automation/notifications.yaml:93:    event_type: heatpump_optimizer_monthly_receipt
+blueprints/automation/notifications.yaml:108:          - "{{ trigger.event.event_type == 'heatpump_optimizer_monthly_receipt' }}"
+blueprints/automation/notifications.yaml:119:                {{ data.currency }}{% if data.saving_sek is not none %},
+blueprints/automation/notifications.yaml:120:                {{ data.saving_sek | round(0) }} {{ data.currency }}
+blueprints/automation/notifications.yaml:121:                {% if data.saving_pct is not none
+blueprints/automation/notifications.yaml:122:                %}({{ data.saving_pct | round(0) }} %) {% endif
+blueprints/automation/notifications.yaml:124:                {%- if data.saving_sek is not none and data.saving_includes_wood %}
+custom_components/heatpump_optimizer/coordinator.py:7940:            "savings_months": self._ledger.savings_months(dt_util.now(), wood_configured=wood_furnace_on(_ctx_of(self)._config)),
+custom_components/heatpump_optimizer/icons.json:188:      "plan_monthly_savings": {
+custom_components/heatpump_optimizer/ledger.py:149:def savings_pct(baseline_sek: float, savings_sek: float) -> float | None:
+custom_components/heatpump_optimizer/ledger.py:159:    return savings_sek / baseline_sek * 100.0
+custom_components/heatpump_optimizer/ledger.py:432:    def savings_months(self, now: datetime, *, wood_configured: bool = False) -> list[SavingsMonth]:
+custom_components/heatpump_optimizer/ledger.py:440:        is not booked as a loss; ``savings_sek`` is the one less the other.
+custom_components/heatpump_optimizer/ledger.py:486:                    "savings_sek": None if old_basis else saved,
+custom_components/heatpump_optimizer/ledger.py:487:                    "savings_pct": None if old_basis else savings_pct(baseline_sek, saved),
+custom_components/heatpump_optimizer/notifier.py:41:from .wood_fuel import saving_includes_wood
+custom_components/heatpump_optimizer/notifier.py:47:EVENT_MONTHLY_RECEIPT = f"{DOMAIN}_monthly_receipt"
+custom_components/heatpump_optimizer/notifier.py:57:        "entry_id", "month", "total_sek", "saving_sek", "saving_pct", "currency",
+custom_components/heatpump_optimizer/notifier.py:58:        "saving_old_basis", "saving_includes_wood",
+custom_components/heatpump_optimizer/notifier.py:84:def _monthly_receipt(data: Payload) -> Detected:
+custom_components/heatpump_optimizer/notifier.py:92:        (m for m in data.get("savings_months", []) if m.get("month") == month), None
+custom_components/heatpump_optimizer/notifier.py:97:        "saving_sek": saving.get("savings_sek") if saving else None,
+custom_components/heatpump_optimizer/notifier.py:98:        "saving_pct": saving.get("savings_pct") if saving else None,
+custom_components/heatpump_optimizer/notifier.py:104:        "saving_includes_wood": saving_includes_wood(data),
+custom_components/heatpump_optimizer/notifier.py:191:    ("receipt", _monthly_receipt),
+custom_components/heatpump_optimizer/optimizer.py:431:    Thermal, converted by the row at one COP (``ledger.savings_months``):
+custom_components/heatpump_optimizer/payload.py:258:    savings_sek: float | None
+custom_components/heatpump_optimizer/payload.py:259:    savings_pct: float | None
+custom_components/heatpump_optimizer/payload.py:270:    # published beside ``savings_sek``, not netted out of it.
+custom_components/heatpump_optimizer/payload.py:890:    savings_months: list[SavingsMonth]
+custom_components/heatpump_optimizer/sensor.py:56:from .wood_fuel import saving_includes_wood
+custom_components/heatpump_optimizer/sensor.py:498:        super().__init__(coordinator, entry, "monthly_savings", "plan_monthly_savings")
+custom_components/heatpump_optimizer/sensor.py:502:        rows = (self._data()).get("savings_months")
+custom_components/heatpump_optimizer/sensor.py:513:                val = payload_number(row.get("savings_sek"))
+custom_components/heatpump_optimizer/sensor.py:521:            "savings_months": self._rows(),
+custom_components/heatpump_optimizer/sensor.py:526:            "saving_includes_wood": saving_includes_wood(data),
+custom_components/heatpump_optimizer/strings.json:1952:      "plan_monthly_savings": {
+custom_components/heatpump_optimizer/translations/en.json:1952:      "plan_monthly_savings": {
+custom_components/heatpump_optimizer/translations/sv.json:1952:      "plan_monthly_savings": {
+custom_components/heatpump_optimizer/wood_fuel.py:94:def saving_includes_wood(data: Mapping[str, Any]) -> bool:
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:331:    "savings.wood_note": "The saving includes heat from wood. Firewood's cost is not counted.",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:897:    "headline.savings_pct": "({pct}%)",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:1188:    "savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte.",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:1714:    "headline.savings_pct": "({pct} %)",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:2299:  "_plan_monthly_savings": "_monthly_savings",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9076:        ? ` ${L("headline.savings_pct", { pct: pct.toFixed(0) })}`
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9489:  ["savings", "_plan_monthly_savings"],
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9947:  const saved = row && finiteNum(row.savings_sek)
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9949:        amount: row.savings_sek.toFixed(2), unit: cur,
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9950:        pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9952:        ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14914:    const st = this.plan.statEntity("_plan_monthly_savings");
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14915:    const rows = st && st.attributes && Array.isArray(st.attributes.savings_months)
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14916:      ? st.attributes.savings_months
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14927:    const cur = savingsUnit(this.plan, "_plan_monthly_savings");
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14944:    const biggest = rows.reduce((n, r) => Math.max(n, amount(r.savings_sek)), 0);
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14961:        <td class="num">${mag(row.savings_sek)}<span class="sv-val">${money(row.savings_sek)}</span></td>
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14962:        <td class="num">${pct(row.savings_pct)}</td>
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:14970:      ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
+docs/automations.md:146:| `heatpump_optimizer_monthly_receipt` | a month has closed and its receipt is published | `entry_id`, `month` (`YYYY-MM`), `total_sek`, `saving_sek` and `saving_pct` (against a plain thermostat with no wood, `null` when the month has no savings row or was booked on an older reference), `currency`, `saving_old_basis` (`true` for that older reference), `saving_includes_wood` (`true` where wood is configured: the saving includes its heat, and firewood's cost is not counted) |
+docs/automations.md:181:- [Notifications](https://raw.githubusercontent.com/tvofi/heatpump_optimizer/main/blueprints/automation/notifications.yaml) — sends the five events above to a notify target, one switch per event, with quiet hours that the comfort alert passes through. Where wood is configured, the monthly receipt's message says the saving includes heat from wood and that firewood's cost is not counted (`saving_includes_wood`).
+docs/dashboard-card.md:552:and its percentage — the same `savings_months` rows the **Plan Monthly Savings**
+## rule B: card string keys savings/receipt/headline/health.learn
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9143:"headline"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:828:"headline.savings"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:831:"headline.savings_caveat"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:897:"headline.savings_pct"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:829:"headline.savings_title"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:832:"headline.score"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:835:"headline.score_click_hint"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:833:"headline.score_title"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:156:"health.learn_accuracy"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:157:"health.learn_accuracy_why"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:155:"health.learn_cop"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:153:"health.learn_savings"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:154:"health.learn_savings_why"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:158:"health.learn_score"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:159:"health.learn_score_why"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:205:"health.learner_counting"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:206:"health.learner_eta"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:207:"health.learner_settling"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:208:"health.learner_settling_any"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:201:"health.learner_wait_colder"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:202:"health.learner_wait_darker"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:203:"health.learner_wait_sunnier"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:200:"health.learner_waiting"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:204:"health.learner_waiting_any"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:86:"health.learning"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9964:"receipt"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:350:"receipt.by_reason"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:333:"receipt.closed"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:336:"receipt.col_basis"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:337:"receipt.col_cost"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:335:"receipt.col_line"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:349:"receipt.covers"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:343:"receipt.line_backup_heater"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:340:"receipt.line_capacity"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:342:"receipt.line_dhw_booster"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:339:"receipt.line_grid_fee"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:341:"receipt.line_immersion"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:338:"receipt.line_spot"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:344:"receipt.line_wear"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:346:"receipt.not_priced"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:347:"receipt.peak"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:334:"receipt.saved"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:348:"receipt.starts"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:345:"receipt.total"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:9079:"savings"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:326:"savings.col_actual"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:325:"savings.col_baseline"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:324:"savings.col_month"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:328:"savings.col_pct"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:327:"savings.col_savings"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:332:"savings.empty"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:329:"savings.estimated"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:330:"savings.old_basis"
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:331:"savings.wood_note"
+## rule C: prose
+blueprints/automation/notifications.yaml:28:        a plain thermostat.
+blueprints/automation/notifications.yaml:123:                %}less than a plain thermostat would have{% endif %}.
+custom_components/heatpump_optimizer/optimizer.py:4855:        # The savings reference is the plain thermostat at the comfort schedule
+custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js:334:    "receipt.saved": "Saved {amount} {unit} ({pct}) against a plain thermostat",
+docs/automations.md:146:| `heatpump_optimizer_monthly_receipt` | a month has closed and its receipt is published | `entry_id`, `month` (`YYYY-MM`), `total_sek`, `saving_sek` and `saving_pct` (against a plain thermostat with no wood, `null` when the month has no savings row or was booked on an older reference), `currency`, `saving_old_basis` (`true` for that older reference), `saving_includes_wood` (`true` where wood is configured: the saving includes its heat, and firewood's cost is not counted) |
+docs/dashboard-card.md:527:what it saved against a plain thermostat, and one row per billed line with
+docs/dashboard-card.md:555:energy fee. The baseline is a plain thermostat over the same prices, hot water
