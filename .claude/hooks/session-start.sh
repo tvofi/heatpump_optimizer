@@ -130,7 +130,7 @@ role_pack() { # the `role pack:` line, printed only when HPO_SEAT_ROLE is set
     printf 'role pack:      REFUSE -- no git directory to write it in; read your contract and INSTRUMENTS.md as before\n'; return
   fi
   if err=$(python3 -I tools/policy/role_pack.py render "$role" --out "$out" 2>&1 </dev/null); then
-    printf 'role pack:      %s -- %s chars: your dev/governance/roles/ contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim; read it once in place of those files\n' \
+    printf 'role pack:      %s -- %s bytes: your dev/governance/roles/ contract, the rules its reads load and the INSTRUMENTS.md entries it names, verbatim; read it once in place of those files\n' \
       "$out" "$(wc -c < "$out" | tr -d ' ')"
   else
     printf 'role pack:      REFUSE -- %s; read your contract and INSTRUMENTS.md as before\n' "$(printf '%s' "$err" | tail -1)"
