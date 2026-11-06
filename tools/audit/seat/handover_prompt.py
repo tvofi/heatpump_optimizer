@@ -269,13 +269,13 @@ def _self_test() -> int:
     check("empty roster renders", "Ready next" in empty
           and "none" in empty and "Worktrees in flight" not in empty)
 
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     print(f"handover_prompt self-test: {n_checks[0]} checks, "
           f"{len(failed)} failed")
     for f in failed:
         print("FAIL", f)
-    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
-    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
-          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     return 1 if failed else 0
 
 
