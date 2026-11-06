@@ -1,0 +1,10 @@
+== wtmain 24547e39a7af4ab9ebf9cad3c2d1aaefb8adef37
+########## scoped gate ##########
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: no changed files could be determined
+scripts reaching stamp.py: ['tests/doc_claims.py', 'tests/entities.py']
+tests/structure.py exit 0 :: STRUCTURE RATCHET PASSED
+tests/entities.py exit 1 :: ModuleNotFoundError: No module named 'homeassistant'
+tests/doc_claims.py exit 0 :: ALL 296 checks PASSED
+tests/harness_headers.py exit 1 :: ModuleNotFoundError: No module named 'homeassistant'
+tests/layout.py exit 0 :: layout self-test: ok
