@@ -1,6 +1,6 @@
 # Flow board
 
-Window ends 2026-11-06T13:06:04+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-06T13:09:41+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
@@ -17,7 +17,7 @@ Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `orig
 
 | A critical path | B product | C process | F fly-in |
 |---|---|---|---|
-| 1 | 57 | 7 | 3 |
+| 1 | 58 | 7 | 3 |
 
 ## Rules
 
