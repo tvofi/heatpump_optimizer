@@ -16909,7 +16909,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "From PR 3170, body item 42008ca4: the free-slot race in tests/gate_lock.py stays open after that PR. A delay-only plant turned the one-winner check red in 8 of 10 runs at 5ee2be2d; the fix must turn that plant green. Re-measure at your merge base.",
+    "From PR 3170, body item 42008ca4: the free-slot race in tests/gate_lock.py stays open after that PR. A delay-only plant turned the one-winner check red in 8 of 10 runs at 5ee2be2d; the fix must turn that plant green. Re-measure at your merge base. [implemented: 5421413b54ba1044b8e91e1afd88b41acfc7a753]",
     "The gate-lease `_free_slot` `is_file` time-of-check/time-of-use race in `tests/gate_lock.py`, unchanged by this PR. With a delay-only plant (a 30 ms sleep after `_read_at` returns None for a slot path, no logic changed), `one_winner` reads red 8 of 10 (the verdict's delay-only plant and its run log, on the `verdict/3170` ref). This PR's test-side condition wait makes the check see the overlap more reliably; it does not remove the production race. It is carried to group R10-GATE-LEASE-TOCTOU, roster commit `7f6468d1ce071e988cdb1a401da183e4e2035bc9` on `handoff/audit-r10-roster` (`dev/programme/rosters/wave-r10-groups.json`, line 16813, `\"group\": \"R10-GATE-LEASE-TOCTOU\"`, confirmed by `git show 7f6468d1...:dev/programme/rosters/wave-r10-groups.json | grep R10-GATE-LEASE-TOCTOU`), with that delay-only plant as its precondition control. Carry: R10-GATE-LEASE-TOCTOU"
    ],
    "architect_note": "",
