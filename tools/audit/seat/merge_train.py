@@ -1138,6 +1138,25 @@ def launch_detached(argv: "list[str]", state: Path) -> "tuple[int, str]":
     return 0, f"rc {p.poll()}: {tail[:200]}"
 
 
+def is_draft(t: "Train", pr: int) -> bool:
+    return t.out("gh", "pr", "view", str(pr), "--repo", t.repo, "--json", "isDraft", "--jq", ".isDraft") == "true"
+
+
+def undraft(t: "Train", pr: int, h: str, item: dict) -> None:
+    """Merge step, after the verdict carry, CI, row, tree grade and approval:
+    undraft a head RECORDED AS A DRAFT AT ADMISSION (`item["draft"]`, set by
+    `add`). A head drafted after admission is left alone. Stops, never
+    continues, when `gh pr ready` fails or the head is a draft again."""
+    if not item.get("draft") or not is_draft(t, pr):
+        return
+    t.log(f"UNDRAFT #{pr} {h[:12]}")
+    code, said = t.run(["gh", "pr", "ready", str(pr), "--repo", t.repo])
+    if code:
+        raise Stop("undraft", f"gh pr ready #{pr} failed: {said.strip()[-160:]}")
+    if is_draft(t, pr):
+        raise Stop("undraft", f"#{pr} is a draft again after gh pr ready")
+
+
 def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_detached,
               settle: float = ADD_SETTLE_SECONDS, front: bool = False, ready: "list[dict] | None" = None) -> int:
     """`add`: load one verdicted pull request into the state dir's live train,
@@ -1187,6 +1206,8 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
             return 1
         entry = {k: item[k] for k in ("pr", "verdict", "verdict_comment", "issues", "priority") if item.get(k) is not None}
         entry["pr"] = int(pr)
+        if is_draft(t, int(pr)):
+            entry["draft"] = True
         if front:
             entry["front"] = True
         if live:
@@ -2278,7 +2299,7 @@ class Train:
             if under:
                 self.log(f"#{pr} policy head lands under {under}")
             self.log(f"#{pr} approved ({self.approve(pr, h, item, files)})")
-        self.run(["gh", "pr", "ready", str(pr), "--repo", self.repo])
+        undraft(self, pr, h, item)
         title = self.out("gh", "pr", "view", str(pr), "--repo", self.repo, "--json", "title", "--jq", ".title")
         pf = self.run(["bash", tool("preflight"), *map(str, item.get("issues", []))], stdin=title + "\n")[1]
         if re.search(r"(?m)^\s*REFUSE\b", pf) or not re.search(r"(?m)^\s*clean\b", pf):
@@ -3736,6 +3757,14 @@ def _self_test() -> int:
                 return world.get("hold_create", (0, "{}"))
             if argv[:3] == ["gh", "auth", "token"]:
                 return 0, "tok"
+            if argv[:3] == ["gh", "pr", "ready"]:
+                world.setdefault("readied", []).append(argv[3])
+                if "ready_rc" in world:
+                    return world["ready_rc"]
+                world["is_draft"] = world.get("redraft", False)
+                return 0, ""
+            if "isDraft" in argv:
+                return 0, "true" if world.get("is_draft") else "false"
             if argv[:3] == ["gh", "pr", "view"] and argv[3] == "9":  # the record PR
                 return 0, ("e" * 40 if "headRefOid" in a else
                            "MERGED " + "9" * 40 if 9 in world.get("bot_merged", ()) else "OPEN None")
@@ -3889,6 +3918,29 @@ def _self_test() -> int:
     def approved(calls) -> bool:
         return any(c[:3] == ["gh", "pr", "review"] for c in calls)
 
+    D = dict(item, draft=True)
+    ud = lambda ln: [x for x in ln if x.startswith("UNDRAFT")]
+    rc, lines, calls = go({"is_draft": True}, q=[dict(D)])
+    check("a head recorded as a draft at admission is undrafted once and merges",
+          rc == 0 and merged(calls) and ud(lines) == [f"UNDRAFT #7 {H0[:12]}"])
+    rc, lines, calls = go({}, q=[dict(D)])
+    check("undraft null: a non-draft head at the same step merges with no UNDRAFT line",
+          rc == 0 and merged(calls) and not ud(lines) and not any(c[:3] == ["gh", "pr", "ready"] for c in calls))
+    rc, lines, calls = go({"is_draft": True}, q=[dict(item)])
+    check("undraft null: a head drafted after admission (no draft:true in the item) is not undrafted",
+          not ud(lines) and not any(c[:3] == ["gh", "pr", "ready"] for c in calls))
+    rc, lines, calls = go({"is_draft": True, "carry": "CARRY: no"}, q=[dict(D)])
+    check("undraft null: a draft whose verdict does not carry to the head is not undrafted",
+          rc == 1 and not ud(lines) and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "runs": [{"name": "fast", "status": "in_progress", "started_at": "1"}],
+                           "pending_reads": 99}, q=[dict(D)])
+    check("undraft null: a draft with a pending required context is not undrafted",
+          rc == 1 and not ud(lines) and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "ready_rc": (1, "boom")}, q=[dict(D)])
+    check("a failed gh pr ready is an undraft Stop, no merge", rc == 1 and "undraft:" in lines[-1] and not merged(calls))
+    rc, lines, calls = go({"is_draft": True, "redraft": True}, q=[dict(D)])
+    check("a head re-drafted after the call stops the run before the merge",
+          rc == 1 and "undraft:" in lines[-1] and not merged(calls))
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
     check("a wait that settles on its first poll beats nothing (heartbeat null control)",
@@ -7454,6 +7506,8 @@ def _add_self_test(check) -> None:
             got = budget_fixture(w.get("budgets"), argv, B)
             if got is not None:
                 return got
+            if "isDraft" in argv:
+                return 0, "true" if w.get("is_draft") else "false"
             if argv[:2] == ["git", "ls-remote"]:  # verdict/<pr>'s confirmed tip
                 return w.get("ls", (0, f"{T}\t{argv[-1]}\n"))
             if argv[:2] == ["gh", "api"] and "/comments" in a:  # its posting: merge at the added verdict
@@ -7556,6 +7610,13 @@ def _add_self_test(check) -> None:
         check("add, a train live: the entry is spooled for its NEXT batch, nothing started (ADDED)",
               rc == 0 and len(got) == 1 and [e["pr"] for e in spool_read(st)[0]] == [8]
               and lines[-1].startswith("ADDED #8 to the live train"))
+        rc9, _ = add(st, 31, launch, is_draft=True)
+        rc10, _ = add(st, 32, launch)
+        sp = {e["pr"]: e for e in spool_read(st)[0]}
+        check("add records draft:true for a draft head at admission, and nothing for a non-draft",
+              sp[31].get("draft") is True and "draft" not in sp[32])
+        (st / QUEUE_SPOOL).unlink(missing_ok=True)
+        spool_append(st, {"pr": 8, "verdict": H, "verdict_comment": "42"})
         rc8, l8 = add(st, 8, launch)
         rc7, l7 = add(st, 7, launch)
         check("add is idempotent: a pull request spooled, or in the live train's batches, is ALREADY -- rc 0, "
