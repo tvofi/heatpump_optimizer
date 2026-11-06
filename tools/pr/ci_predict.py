@@ -513,14 +513,26 @@ _GREPS_SELF_TEST = re.compile(r"grep -E?q?E? '\^[A-Za-z0-9_.\-]+ self-test:")
 
 
 def instrument_steps(root: Path) -> dict[str, str]:
-    """{step name: run text} of instrument-self-tests' self-test-grepping steps."""
-    import yaml
+    """{step name: run text} of instrument-self-tests' self-test-grepping steps.
+    Read as text, not YAML: governance's runner python has no yaml module, and
+    every step there is `- name:` then a `run: |` block (or a one-line `run:`)."""
     p = root / INSTRUMENT_WF
-    if not p.is_file():
+    text = p.read_text() if p.is_file() else ""
+    at = text.find(f"\n  {INSTRUMENT_JOB}:\n")
+    if at < 0:
         return {}
-    job = (yaml.safe_load(p.read_text()).get("jobs") or {}).get(INSTRUMENT_JOB) or {}
-    return {s["name"]: s["run"] for s in job.get("steps") or []
-            if isinstance(s.get("run"), str) and s.get("name") and _GREPS_SELF_TEST.search(s["run"])}
+    job = text[at + 1:]
+    end = re.search(r"\n  [A-Za-z][\w-]*:\n", job)
+    job = job[:end.start() + 1] if end else job
+    out = {}
+    for chunk in job.split("\n      - name: ")[1:]:
+        name, _, rest = chunk.partition("\n")
+        m = re.search(r"^        run: \|\n((?:(?: {10}.*)?\n)*)", rest + "\n", re.M)
+        one = re.search(r"^        run: (?!\|)(.+)$", rest, re.M)
+        run = "\n".join(ln[10:] for ln in m.group(1).splitlines()) if m else (one.group(1) if one else "")
+        if _GREPS_SELF_TEST.search(run):
+            out[name.strip()] = run
+    return out
 
 
 def replay_step(tree: Path, run: str) -> int:
