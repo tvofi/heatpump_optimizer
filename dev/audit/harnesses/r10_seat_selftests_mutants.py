@@ -233,6 +233,9 @@ MUTANTS = [
     ("bus-11", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock', 'if false; then'),
     ("bus-12", "bus.sh", '    [ "$v" != merge ] || die "dispatch: #$pr\'s head $h already holds a merge verdict, so no second reviewer is dispatched"  # mut:mergehead', '    true'),
     ("bus-13", "bus.sh", 'if [ -n "$fixing" ]; then  # mut:autofixhold', 'if false; then'),
+    ("bus-14", "bus.sh", """select(.status != "completed") | .name' 2>>"$err"); then  # mut:completedfilter""", """select(true) | .name' 2>>"$err"); then  # mut:completedfilter"""),
+    ("bus-15", "bus.sh", """sed 's/^/bus: check-runs read: /' "$err" >&2; rm -f "$err"; return 1""", """rm -f "$err"; return 0"""),
+    ("bus-16", "bus.sh", 'if [ -z "$holder" ] && [ "$blank" -lt "${HPO_BUS_PID_SETTLE:-10}" ]; then  # mut:pidsettle', 'if false; then'),
     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
     ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
