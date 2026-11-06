@@ -16496,7 +16496,7 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Measured 2026-11-04: GET commits/616868bdc5ca/pulls returns [] though #3179 is MERGED at that commit (its subject reads Merge pull request #3179); the sibling 8e90d814 returns [3182]. record_row.py enumerate_merges (line 946) then refuses the window, so Nightly record-autofix is red on every main push until the anchor moves, and stamp rule 5 reads the same window. Fix: when the commit-to-PR endpoint is empty, resolve the merge from its first-line subject and confirm that PR's mergeCommit equals the sha; refuse only if that also fails. Failing test first; controls: normal API path unchanged (null); empty API with a subject naming a PR whose mergeCommit differs still refuses."
+    "Measured 2026-11-04: GET commits/616868bdc5ca/pulls returns [] though #3179 is MERGED at that commit (its subject reads Merge pull request #3179); the sibling 8e90d814 returns [3182]. record_row.py enumerate_merges (line 946) then refuses the window, so Nightly record-autofix is red on every main push until the anchor moves, and stamp rule 5 reads the same window. Fix: when the commit-to-PR endpoint is empty, resolve the merge from its first-line subject and confirm that PR's mergeCommit equals the sha; refuse only if that also fails. Failing test first; controls: normal API path unchanged (null); empty API with a subject naming a PR whose mergeCommit differs still refuses. [implemented: 3583448e197ab9625a4e684264290e19c80fdd69]"
    ],
    "architect_note": "",
    "resume": {
