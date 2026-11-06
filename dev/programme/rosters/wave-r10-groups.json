@@ -17479,6 +17479,44 @@
     "stage": "not-started"
    },
    "brief": "Root cause (trigger 1: reached v7.1.2) of the process worker reply wait in coordinator.py _run_in_process: pickle.load with no deadline under _PROCESS_LOCK hung optimisation about 70 minutes on a live Raspberry Pi 4 and blocked HA shutdown (evidence: outside PR #3226 body; our fix is #3232, topic r10-ext-3226). Owed: the named cause incl. why the worker went silent if establishable, process state a-d with evidence (why no audit round found it: D1, D3, D9, D15; do #511 fallback tests cover only a dead worker, never an alive-but-silent one), a cost test with numbers, a countermeasure or recorded refusal (candidates: a check for blocking IPC reads with no deadline; a harness double that hangs). Runs beside #3232, never inside it."
+  },
+  {
+   "group": "R10-HOTFIX-CODEQL-HEADROOM",
+   "lane": "CP",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "hotfix",
+   "severity": "medium",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tests/features.py",
+    "tests/entities.py",
+    ".github/workflows/codeql.yml"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started"
+   },
+   "brief": "Owner ruling tvofi 2026-11-06 (coordinator, via the dispatch seat): lower priority than #3232. Main's own CodeQL python job runs at 28 to 44.5 minutes against its 45-minute cap, so any growth of tests/features.py or tests/entities.py can cancel it (#3232 did: its new 364-line module-level try/finally block pushed the Python extraction of tests/features.py to 2211 s against entities.py's 378 s, ratio 5.85, where normal is 2.0 to 2.45; #3232 itself is reshaped by f-3232-reshape, topic r10-ext-3226). Cure the cause, not the cap: move the large module-level code of tests/features.py and tests/entities.py into functions called once (nested module-level try/finally is what the extractor is slow on), with no behaviour change, and do not raise the cap or exclude files from the scan. Measure first, at your merge base, the CodeQL python log line 'Extracted file ... in N ms' for features.py and entities.py on the last main runs, and again after the change on a CI run at your head; report the job duration before and after and a null control (an unchanged file's extraction time does not move). All feature and entity checks must still pass with the same counts; re-run the mutants of any block you move. Coordinate with #3232: take its merged shape as the base if it has merged, otherwise leave its blocks to f-3232-reshape."
   }
  ]
 }
