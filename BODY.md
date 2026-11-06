@@ -36,11 +36,7 @@ none
 
 ## Forward-carry
 
-Carries 5-8 stay in `dev/programme/rosters/wave-r10-groups.json`, group R10-ROSTER-READ-SWEEP. Carry: R10-ROSTER-READ-SWEEP
-- Carry 5 (a disposed key stranding when its only lister is set done, #2855 and #2429, #2436-#2438): not landed. Carry: R10-ROSTER-READ-SWEEP
-- Carry 6 (#2875 unowned, STRANDED report): not landed. Carry: R10-ROSTER-READ-SWEEP
-- Carry 7 (disposed-key mechanism in the routing audit): not landed. Carry: R10-ROSTER-READ-SWEEP
-- Carry 8 (review-packet numbering Carry 9; the invariant-3 tick line, `closing_stage` over `rca-done`/`absorbed`, `append-carry` mark-shaped suffix, the surviving M9_carry_dedupe_dropped mutant, a tick-level stranded-carry line): not landed. Carry: R10-ROSTER-READ-SWEEP
+none: carries 5-8 of the brief stay owed by this group and are unchanged in its roster brief; this diff produced no new finding for a later stage.
 
 ## Friction
 
