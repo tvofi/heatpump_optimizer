@@ -1,9 +1,0 @@
-Carry 3 (owner-2026-10-30-away.json loop_cpu_ratio budget 0.249 at origin/main 9315526f, tests/replay.py COST_BUDGETS)
-Band (budget/2, budget] = (0.1245, 0.249]. CI readings from the jobs tests/replay.py itself cites (cost lines in ev/carry3_ci_owner_loop.txt):
-RESULT ref30 job 125240101580: 0.1280 in band, 2.8% over floor
-RESULT ref30 job 125160076828: 0.1339 in band, 7.6% over floor
-RESULT ref46 job 125097530406: 0.1418 in band, 13.9% over floor
-RESULT ref46 job 125316010511: 0.1433 in band, 15.1% over floor
-RESULT ref24 job 125461180429: 0.1890 in band, 51.8% over floor
-Three CI classes plus non-CI boxes, all inside: the carry's condition (two CI classes plus one box outside) holds at base.
-But the tree comment's spread "0.137-0.227 ... edges 9-10 % inside" is contradicted: ref30 reads 0.128, under 0.137, 2.8% over the floor.

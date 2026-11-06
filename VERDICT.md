@@ -1,58 +1,73 @@
-Fix review: blocked e81028ccef62bed5e4c6b6042f28193bc1d7ce8b mutation-vacuous: the call-site recarry mutant the body names as killed survives, and git_recarry's clean-merge and main-parent predicates are unpinned
+Fix review: blocked 95c7e60422baf9333ae6e25fad972865698a4215 class-open: review_owed still carries a blocked verdict's head, which re-enters as a prior through the bus dispatch record
 
-bus-nonce: 2f1addadff5e0e81e60ff5c7c7caafb4
+bus-nonce: 1b6e0c73217c5b9853e3df1fdcf83a9a
+
+## Round
+
+Round 2 of the fix review of #3241 (R10-CARRY-RESIDUE). Opus reviewer, cloud seat, detached worktrees at head 95c7e60422baf9333ae6e25fad972865698a4215 and merge base dc0a170b671814be196a54b1c71e29449f54d6d7. `git diff <base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
 
 ## Block
 
-Round 1 (first fix review of #3241). Measured head `e81028ccef62bed5e4c6b6042f28193bc1d7ce8b`, merge base `9315526f8dca6dcd07f9cf3f2685bd1dd633b4f6` (= origin/main at review).
+The round-1 defect "a blocked verdict carried" is not closed in production. The repair takes `review_owed`'s priors from the heads of `merge` verdicts **plus every dispatched head** (`tools/audit/seat/ledger.py`, `priors = [...] + sorted(h for k, h in dispatched if k == str(n))`). The tick builds `dispatched` from bus.sh's dispatch record (`orchestrator_tick.py` `_dispatched`). bus.sh appends every dispatch to that record and never prunes it (`bus.sh:624`), and it refuses a verdict whose head has no dispatch at that head (`bus.sh:195-198`). So every blocked verdict's head is always in `dispatched`. When such a PR's head then moves only by a clean merge of main, `git_recarry(blocked_head, new_head)` is True and the tick prints an unflagged `CARRY:`. It does not print `REVIEW OWED`. That is the case fix-review.md step 12 rules out: only a merge verdict carries, and a red CI never carries.
 
-The body's mutation proof says: "Dropping the recarry argument at the call site is killed by `null control: the same head without the recarry test is REVIEW OWED`". It is not. That check calls `review_owed` directly inside `ledger.py --self-test` and never reaches `orchestrator_tick.py`. With the argument `lg.git_recarry(self.checkout or ".", "origin/main")` deleted from `orchestrator_tick.py`, `orchestrator_tick.py --self-test` passes (272 checks, rc 0) and `ledger.py --self-test` is untouched (mutant M7 SURVIVED, ev/mutants.txt). The two predicates that make a merge commit a "clean merge of main" also survive deletion:
-- the conflict-resolution test (`resolved.strip()`, M3);
-- the second-parent-in-main test (M4).
-So the carry's core claim, *only clean merges of origin/main*, is pinned by no test.
+My own probe, `ev/blocked_dispatched.py`, run against the head's ledger.py (`ev/probe_blocked_dispatched.txt`):
 
-The head is RED as well, and the body answers none of it.
-- `governance / instrument-self-tests` concluded `failure` because of this diff. `tools/audit/seat/r10_ledger_mutants.py:91` anchors mutant `T3_review_owed_silent` on the exact `review_owed(...)` call text in `orchestrator_tick.py`, and the diff rewrote that text. The suite's mutant for "the tick's REVIEW OWED goes silent" can no longer be planted. Reproduced: `python3 tools/audit/seat/r10_ledger_mutants.py --self-test` gives 135 checks, 0 failed at base and 135 checks, 1 failed (`FAIL T3_review_owed_silent: anchor occurs once`) at head.
-- `pr-contract / pr-contract` concluded `failure`. Its run started 07:58:39Z, after instrument-self-tests concluded red at 07:58:36Z, and refused: "check `governance / instrument-self-tests` is red and `## Red checks` does not name it".
-- The final `gate` (07:59:40Z) fails on that pr-contract.
+    blocked verdict, head X not in dispatch record : ['REVIEW OWED: #9 cb8d7b749b6d']
+    blocked verdict, head X in dispatch record     : ['CARRY: #9 cb8d7b749b6d']
 
-A cheaper detector existed: the same self-test, which runs in seconds. The body names it nowhere, so this red is also `root-cause-detectable: governance / instrument-self-tests` (fix-review.md step 11).
+The in-tree null controls do not catch this:
+- ledger.py's "a blocked verdict's head is no prior, whatever its class" passes `dispatched=set()`;
+- the tick's "same head after a blocked verdict is REVIEW OWED" runs with an empty `bus-ro` record.
+
+Both model a state the bus cannot produce. The C9 plant is killed, but only inside that unreal state.
+
+A concrete trigger: a PR is blocked on a red that main's own breakage caused, and the fixer merges the repaired main. The re-review is owed, and the board shows `CARRY`.
+
+Repair direction, for the fixer to own:
+- a dispatched head stops being a prior once any verdict names it, or once the newest verdict at it is blocked;
+- add a fixture whose blocked head is also in `dispatched`, and a plant that drops that exclusion.
 
 ## Findings
 
-- Mutation-vacuous call site (M7): deleting the `recarry` argument at `tools/audit/seat/orchestrator_tick.py:758` survives every test the diff reaches. The body says this mutant is killed, which is false. Add an `orchestrator_tick` self-test row where a PR whose head is a verdicted head plus one main merge prints `CARRY:` unflagged. Carry: R10-CARRY-RESIDUE
-- Mutation-vacuous predicates (M3, M4): in `git_recarry`, deleting `resolved.strip()` (a merge carrying a conflict-resolution edit) and deleting the `is-ancestor <second parent> main` test (a merge of a non-main branch) both survive `ledger.py --self-test`. Each needs a fixture: a merge with a hand-resolved conflict prints REVIEW OWED, and a merge of a side branch prints REVIEW OWED. Carry: R10-CARRY-RESIDUE
-- Defect: a BLOCKED verdict carries. `review_owed` collects `priors` from every verdict line, blocked ones included, so a head that is a blocked verdict's head plus one clean main merge prints an unflagged `CARRY:` and no `REVIEW OWED`. The orchestrator then sees a carry for a PR that has no merge verdict. fix-review.md step 12 and orchestrator.md section 11 carry only a `merge` verdict, and the pre-existing `carries` arm checks `last.startswith("Fix review: merge ")`. Reproducer (reviewer-built, not the finder's): ev/blocked_carry.py prints `CARRY: #9 …` for a prior `merge`, `blocked … mutation-vacuous` and `blocked … root-cause-unanswered` verdict alike. Restrict verdict priors to `merge` verdicts (dispatched heads stay priors) and add the blocked-prior null row. Carry: R10-CARRY-RESIDUE
-- Unpinned wiring: the `flag=not text.startswith("CARRY:")` arm (M8), the `record_owed` call in the tick (M9) and the `RECORD-OWED:` literal added to the `FAMILY` regexes of `beat_jobs.py` (M10) and `owed_unactioned.py` (M11) all survive their scripts' self-tests. `beat_jobs.py`'s own comment says "the self-test pins each literal there", and it does not pin this one. Carry: R10-CARRY-RESIDUE
-- Boundary unpinned: `record_owed`'s `age >= minutes` changed to `>` survives (M5). The fixtures are 29 and 31 minutes, and the carry's rule is "open 30 minutes". Add a 30-minute row. Carry: R10-CARRY-RESIDUE
-- Broken instrument: the diff moved the call text that `tools/audit/seat/r10_ledger_mutants.py:91` (`T3_review_owed_silent`) anchors on, so `governance / instrument-self-tests` is red at head and green at base (ev/base.r10_ledger_mutants.log, ev/head.r10_ledger_mutants.log, job log ev/job_127771317138.log). Re-anchor T3 on the new call text and show the T3 mutant killed again. Also: the scoped closure the body quotes (doc_claims.py and entities.py only) does not reach this instrument, though it reads `orchestrator_tick.py` by text. That closure gap is worth a check by whoever owns `tests/closures.json`. Carry: R10-CARRY-RESIDUE
-- Red checks unanswered: `## Red checks` says `none`. At this head, over all 68 check runs:
-  - `governance / instrument-self-tests` failed (the diff's own red, above);
-  - `pr-contract / pr-contract` failed (refusing the unnamed red);
-  - `gate` failed three times: 127771703222 and 127772016712 ran before their runs concluded ("still being judged"), and 127781394257 failed on pr-contract.
-
-  review_packet refuses with `red-unanswered` and `required-red`. Name each red with its class and its answer: for instrument-self-tests, the cheaper detector (`r10_ledger_mutants.py --self-test`, seconds) and why the fixer's pre-PR run missed it. Carry: R10-CARRY-RESIDUE
-- Carry 3 (loop_cpu_ratio) is answered by assertion ("not re-measured here"), which the brief forbids. I measured it at base: delivered. All five CI owner-fixture readings in the jobs `tests/replay.py` cites fall inside (0.1245, 0.249] across three runner classes (ev/carry3_band.txt). The tree comment's figure is contradicted, though. It states the spread as "0.137-0.227 … edges 9-10 % inside", but ref30 job 125240101580 reads 0.128, 2.8 % over the floor. The body must cite a measurement, and the comment's spread must be corrected, or the residual margin dispositioned. Carry: R10-CARRY-RESIDUE
-- Body inconsistencies:
-  - It numbers the six carries three ways: 1-6 in the prose, 0-3 in Figures, and 4/5 (roster indices) in Null control, so "Carry 5" names record-owed in one section and the CARRY arm in another.
-  - Its Null control and Head sections measure at `b88684a21`, not at the PR's merge base `9315526f`.
-  - Its Head section's second line names `849ceee29`, a commit of the branch, as if it were a head.
-
-  Carry: R10-CARRY-RESIDUE
+- Defect: `review_owed` takes a dispatched head as a prior even after a blocked verdict at that head. Under bus.sh's append-only dispatch record this re-opens the blocked-carry path that the body says round 2 closed. The in-tree null controls (ledger.py C9 row, tick CARRY/RECORD-OWED row) pass an empty dispatch set, so they cannot see it. Probe and output in `ev/`. Carry: R10-CARRY-RESIDUE
+- Follow-up: the body leaves `dev/governance/roles/standing-tick.md` unedited "for the owner", although that file states the ancestor-recarry test that the new `CARRY:` line implements. The brief allows no deferral, and a policy edit needs the owner's approval before merging, not before drafting (CLAUDE.md). So the repair round should draft the line naming `CARRY:` in this PR and surface it for the owner's review, or the body should record the owner's refusal. Carry: R10-CARRY-RESIDUE
 
 ## Evidence
 
-- HEAD measured: e81028ccef62bed5e4c6b6042f28193bc1d7ce8b (ev/HEAD.txt). `git merge-tree --write-tree origin/main HEAD` gave rc 0 and tree 7225bfc6fb21, so the branch merges cleanly. Roles dir: three-dot diff merge-base...origin/main is empty, so the contract is current.
-- Diff, read three-dot: 5 files; `dev/programme/delivery/3241.md` is in it; VERSION, the manifest and RELEASE_NOTES are untouched. The body's Head names the dispatch head.
-- Carries settled at origin/main 9315526f (ev/carries_at_main.txt):
-  - carry 0 (field_coverage `attribution`): delivered. The key sits in HOOKS `ignore` at `tools/policy/field_coverage.mjs:114`, and `git log -S` names df9bfd301.
-  - carry 1 (pre-bash.sh hook): delivered. The script is in the tree, wired in `.claude/settings.json:24`, and `policy_lint.mjs` has `HOOK_TOOLS` and the REQUIRED row (408644f7f).
-  - carry 2 (agreement bootstrap): delivered. The `(awaits <path>)` clause is in agreement.mjs, and the harness dev/audit/harnesses/agreement_two_pr.mjs is in the tree (82f333b9c).
-  - carry 3: delivered by my measurement (ev/carry3_band.txt), with the residual in Findings.
-  - carries 4 and 5 (record-owed, CARRY arm): absent. `git grep -nE "CARRY|RECORD-OWED|record_owed|recarry" origin/main -- tools/audit/seat/ledger.py` is empty, so building them is owed.
-- RESULT ledger.py --self-test: base 77 checks, 0 failed; head 86 checks, 0 failed, matching the body's 86. The new rows fail at base by absence: the functions do not exist there.
-- RESULT orchestrator_tick.py --self-test: 272 checks, 0 failed, at base and at head. beat_jobs.py: 107/0 at both ends. owed_unactioned.py: 46/0 at both ends.
-- RESULT doc_claims.py (hastub): ALL 296 checks PASSED at both ends. structure.py: STRUCTURE RATCHET PASSED at both ends (seam_cut_total 423 <= 423). RESULT entities.py (hastub): ALL 2632 ENTITY CHECKS PASSED at both ends (rc 0, ev/rc.txt `entities-full`; the earlier rows there are a run without hastub, which fails with ModuleNotFoundError, and one capped at 230 s).
-- Mutants (ev/mutants.txt, ev/mutants.py): these are mine; the PR committed no finder's harness, because the group's harness is the ledger self-test. Killed: M1 (ancestor test), M2 (row-only arm), M6 (approval), M12 (dispatched priors). Survived: M3, M4, M5, M7, M8, M9, M10, M11.
-- Figures: I re-derived 86 checks, 296 checks, STRUCTURE RATCHET PASSED and the base-empty grep, which I took at 9315526f rather than at b88684a21. I also re-derived 2632 entity checks. I could not re-derive "pre-bash.sh --self-test 26 passed" or "agreement.mjs 233 of 233": I did not run those two.
-- CI at the head, all workflows concluded: `merge_train.py classify` printed `RED e81028ccef62bed5e4c6b6042f28193bc1d7ce8b pending: none red: gate` with rc 1 (ev/classify.txt). Every non-green run is in ev/checkruns_final.tsv (68 runs). The failing steps' logs are in ev/job_*.log. refs/pull/3241/head is still e81028ccef62 at verdict time.
+- Head measured: 95c7e60422baf9333ae6e25fad972865698a4215 (`ev/HEAD.txt`). The PR body's Head section names it. Its tree differs from code head 725767534 only by the no-ff merge commit: `git diff 725767534 <head>` is empty.
+- Merge with main: `git merge-tree --write-tree origin/main <head>` gives exit 0 and tree c86f527ab. No conflict.
+- CI: `merge_train.py classify <head> --pr 3241` printed `GREEN 95c7e60422baf9333ae6e25fad972865698a4215 pending: none red: none` (rc=0, `ev/classify.txt`). No red concluded at this head, so no Red-checks answer is owed for it. The body answers the previous head's reds.
+- Three-dot diff: 8 files. It includes `dev/programme/delivery/3241.md`. It does not touch `VERSION`, the manifest or RELEASE_NOTES (0 lines), and it touches no golden or claim file.
+- Self-tests at base and head (`ev/selftests.txt`). These reproduce every count in the body's Null control and Figures:
+  - ledger: 77 → 89
+  - orchestrator_tick: 272 → 275
+  - owed_unactioned: 46 → 47
+  - beat_jobs: 107 → 107
+  - r10_ledger_mutants: 135 → 177
+- Mutation sweep, my run at the head (`ev/mutants_all.txt`): `plants: 62, without a FAIL line: none`. Each of C1-C14 and T3 gives rc=1 with fails>=1 (T3 fails=6, C12 fails=2). `--null` gives rc=0 fails=0 for all six owners (`ev/mutants_null.txt`). These match the body's table.
+- Gate scripts (`ev/gate_head2.txt`, `ev/gate_base.txt`), identical at the head and at the base:
+  - `closure.py select` at the head: `MODE: SCOPED -- 4 script(s) run, 29 scoped out`, naming debug_collect, doc_claims, entities and features. This matches the body.
+  - Results: STRUCTURE RATCHET PASSED; ALL 2632 ENTITY CHECKS PASSED; 162 DEBUG COLLECT; 296 doc_claims; 4876 FEATURE.
+  - The head run used a separate worktree from the mutant sweep, so the sweep's in-place plants cannot have touched it.
+- Carry 1 at the base (null control), delivered:
+  - df9bfd301 removes the `pending.attribution` entry from `tools/policy/field_coverage.mjs`; only the `ignore` entry is left at dc0a170b6 line 114.
+  - `node tools/policy/field_coverage.mjs` gives rc=0 (`ev/carries123_base.txt`).
+- Carry 2 at the base, delivered:
+  - `.claude/hooks/pre-bash.sh` is wired in `.claude/settings.json`; policy_lint has `HOOK_TOOLS` and REQUIRED lists it; 408644f7f is an ancestor of the base.
+  - The hook self-test gives 26 passed, 0 failed.
+  - My stdin probes: `pkill -f x`, `killall python3` and `kill $(pgrep -f x)` give rc=2; `kill $!` and `grep -n pkill f` give rc=0.
+  - `policy_lint --hooks`: `HOOKS ok: 4 wired hook(s)`.
+- Carry 3 at the base, delivered. `dev/audit/harnesses/agreement_two_pr.mjs` was run with the base grader:
+  - `identical:... (awaits {P})` gives TWO-PR HELD, rc=0 (`ev/agreement_two_pr_base.txt`).
+  - Null control without the `(awaits ...)` clause gives `TWO-PR BROKEN at main2 push, PR C by mainU`, rc=1 (`ev/agreement_two_pr_base_null.txt`). The deadlock is answered at the base by 82f333b9c.
+- Carry 4 at the base, delivered.
+  - The owner fixture's `loop_cpu_ratio` budget is 0.249 at both base and head (tests/replay.py), and the head changes only the comment.
+  - I re-read two of the five cited CI logs myself:
+    - job 125240101580: `loop_cpu_ratio 0.128`, ref_ms 30.7, owner `cycle_cost` ok;
+    - job 125461180429: `loop_cpu_ratio 0.189`, ref_ms 24.1, owner `cycle_cost` ok.
+  - Not re-read by me: 0.1339, 0.1418 and 0.1433 (jobs 125160076828, 125097530406, 125316010511).
+  - The margins re-derive: 0.128/0.1245 = 1.028 and 1 - 0.189/0.249 = 0.241.
+  - The floor margin is thin (2.8 %), but every cited CI reading is in the band, and the tree comment now records the margin. Carry: dismissed: evidence, not a finding.
+- Carries 5 and 6 are absent at the base. `git grep -E "RECORD-OWED|record_owed|git_recarry"` finds none of them in base ledger.py. The base hits for `CARRY:` are other mechanisms: queue_pre_flight's `CARRY: yes`, and the tick's weekly carry sweep. So building them here is not duplicate work.
+- The body's `owed_unactioned.py` key_of fix, `RECORD-OWED:` keyed on head12, is confirmed by its row and by plant C10.
+- Harness: none named by a finder. The instrument is the fixer's in-tree `r10_ledger_mutants.py`. My own probe is `ev/blocked_dispatched.py`, which is out of tree and disclosed as mine.
