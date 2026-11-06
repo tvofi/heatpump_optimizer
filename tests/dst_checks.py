@@ -2471,4 +2471,28 @@ from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
 from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
 
 
+class _C2238Gate(Exception):
+    """Raised by the patched residual gate: the learner consulted the owner."""
+
+
+# P2: a fabric-loss residual too large to be a heat-loss error -- both loss
+# learners consult _loss_residual_rejected and nothing else.
+_c2238_gated = []
+for _lower, _name in ((False, "house"), (True, "lower-floor")):
+    try:
+        with _c2238_mock.patch.object(
+            _c2238_cmod, "_loss_residual_rejected", create=True, side_effect=_C2238Gate
+        ):
+            _house_dt(_FOLD_LAST, _FOLD_NOW, _lower)
+    except _C2238Gate:
+        _c2238_gated.append(_name)
+    finally:
+        dt_util.freeze(None)
+R.check(
+    "R10-CLONE-2238 P2: the house and lower-floor loss learners both gate the "
+    "residual through _loss_residual_rejected",
+    _c2238_gated == ["house", "lower-floor"],
+    f"{_c2238_gated}",
+)
+
 sys.exit(R.close("DST / QUARTER-GRID CHECKS"))

@@ -4129,6 +4129,10 @@ def _p2_registry(sources):
                  ast.Call, r"\.get\('(space|dhw)_power'\) or 0\.0\)$",
                  lambda n: getattr(n.func, "id", None) == "float"),
              owners=["coordinator.py::_planned_split"], dispositions={}),
+        dict(fact="loss_residual_gate", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Compare, r"HOUSE_LOSS_MAX_RESIDUAL", lambda n: True),
+             owners=["coordinator.py::_loss_residual_rejected"], dispositions={}),
     ]
 
 

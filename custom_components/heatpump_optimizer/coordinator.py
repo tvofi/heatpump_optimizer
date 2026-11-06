@@ -1595,6 +1595,23 @@ _HEAT_LOSS_ANCHOR_KEYS = ("house_heat_loss_anchor", "lower_floor_loss_anchor", "
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
+
+
+def _loss_residual_rejected(residual: float, what: str) -> bool:
+    """Whether a fabric-loss residual is too large to be a heat-loss error.
+
+    The one magnitude gate both loss learners fold behind; a refusal is
+    logged naming the learner (``what``), so the two cannot disagree on the
+    bound or on whether a refused sample is reported.
+    """
+    if abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL:
+        return False
+    _LOGGER.debug(
+        "Ignoring %s sample: residual %.2f°C is too large to be a heat loss error",
+        what,
+        residual,
+    )
+    return True
 # Symmetric bound on how far one sample's Newton target may sit from the
 # *current* estimate before it is clipped, as a fraction of that estimate.
 # Centred on the current value, zero-mean noise has zero-mean effect after
@@ -5640,12 +5657,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return clean
         if not fold:
             return clean
-        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
-            _LOGGER.debug(
-                "Ignoring house heat loss sample: residual %.2f°C is too large "
-                "to be a heat loss error",
-                residual,
-            )
+        if _loss_residual_rejected(residual, "house heat loss"):
             return clean
 
         # T4b (#36 #53, both gated): the same accepted residual, split by
@@ -5763,12 +5775,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         residual = observed - predicted_state.lower_floor_temperature
         if not np.isfinite(residual):
             return clean
-        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
-            _LOGGER.debug(
-                "Ignoring lower floor loss sample: residual %.2f°C is too large "
-                "to be a heat loss error",
-                residual,
-            )
+        if _loss_residual_rejected(residual, "lower floor loss"):
             return clean
 
         base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
