@@ -78456,7 +78456,7 @@ R.check(
 # P4: window means at their billed-equivalent factor -- the published peak_kw,
 # the exact charge and the batch surrogate all read tariff.billed_windows.
 _c2238_ct = CapacityTariff(
-    enabled=True, window_minutes=60, marginal_price_per_kw=1.0,
+    enabled=True, window_minutes=60, price_per_kw=1.0,
     peak_hours=((7.0, 20.0),), offpeak_factor=0.5,
 )
 _c2238_opt = _bo_opt(_c2238_ct)
@@ -78464,9 +78464,12 @@ _c2238_start = datetime(2026, 1, 14, 0, 0, tzinfo=_BO_TZ)
 _c2238_pow = np.full(96, 1.0)
 _c2238_flat = np.full(96, 100.0)
 _c2238_zero = np.zeros(96)
+# The optimizer imports the owner by name, so both bindings take the sentinel.
+_c2238_billed = _c2238_mock.Mock(side_effect=lambda w, _f: np.full(np.shape(w), 100.0))
 with _c2238_mock.patch.object(
-    _c2238_tmod, "billed_windows", create=True,
-    side_effect=lambda w, _f: np.full(np.shape(w), 100.0),
+    _c2238_tmod, "billed_windows", _c2238_billed, create=True,
+), _c2238_mock.patch.object(
+    _c2238_omod, "billed_windows", _c2238_billed, create=True,
 ):
     _c2238_p4_bill = _c2238_opt._peak_billing(96, 0.25, _c2238_start)
     _c2238_p4_rep = _c2238_opt._grid_report(_c2238_pow, _c2238_zero, 0.25, _c2238_start)
