@@ -62013,6 +62013,8 @@ _P6_IMPLEMENTS = {
     "climate": {"turn_on", "turn_off", "toggle", "set_temperature", "set_hvac_mode"},
     "number": {"set_value"},
     "input_number": {"set_value", "increment", "decrement"},
+    "water_heater": {"turn_on", "turn_off", "set_temperature", "set_operation_mode",
+                     "set_away_mode"},
     "select": {"select_option", "select_first", "select_last", "select_next",
                "select_previous"},
     "input_select": {"select_option", "select_first", "select_last", "select_next",
@@ -72449,6 +72451,60 @@ R.check(
         "number on degC, inside": 45.0,
     },
     f"{_df_ranges}",
+)
+
+
+# A water_heater DHW slot (Luxtronik's domestic_water, for one) carries its
+# target as the ``temperature`` attribute, its range as min_temp/max_temp and
+# its step as target_temp_step, all in the instance's unit -- the climate
+# shape -- while its state is an operation mode, never a number. It is read,
+# clamped and written through set_temperature on its own 0.5-degree step.
+def _df_wh(**extra):
+    return FakeState("heat_pump", attributes={
+        "temperature": 62.0, "min_temp": 30.0, "max_temp": 65.0,
+        "target_temp_step": 0.5, **extra})
+
+
+_df_wh_hass = _df_hass({"water_heater.dhw": _df_wh()}, _DC)
+_df_wh_seen = {
+    "read": inputs_mod.read_setpoint(_df_wh_hass, "water_heater.dhw"),
+    "range": inputs_mod.setpoint_range_c(_df_wh_hass, "water_heater.dhw"),
+    "step": inputs_mod.setpoint_step(_df_wh_hass, "water_heater.dhw"),
+    "write 52.3": _df_write("dhw_setpoint", "water_heater.dhw", _df_wh(), _DC, 52.3),
+    "write 50 degC on degF": _df_write("dhw_setpoint", "water_heater.dhw", _df_wh(
+        temperature=140.0, min_temp=86.0, max_temp=149.0), _DF, 50.0),
+    "clamp above max": _df_dhw_command("water_heater.dhw", _df_wh(), _DC, 70.0),
+    "clamp below min": _df_dhw_command("water_heater.dhw", _df_wh(), _DC, 20.0),
+}
+R.check(
+    "a water_heater DHW set-point is read from its temperature attribute, "
+    "clamped to min_temp/max_temp and written on its target_temp_step",
+    _df_wh_seen == {
+        "read": 62.0, "range": (30.0, 65.0), "step": 0.5,
+        "write 52.3": 52.5, "write 50 degC on degF": 122.0,
+        "clamp above max": 65.0, "clamp below min": 30.0,
+    },
+    f"{_df_wh_seen}",
+)
+
+# The same slot in a degF instance: min_temp/max_temp are read in the
+# instance's unit and converted, so the range and the arbiter's clamp ceiling
+# are the degC figures, not the raw 86/149 -- the domain has to be an
+# attribute-target one for the unit to be applied at all.
+_df_wh_f = _df_wh(temperature=140.0, min_temp=86.0, max_temp=149.0)
+_df_wh_f_hass = _df_hass({"water_heater.dhw": _df_wh_f}, _DF)
+_df_wh_f_seen = {
+    "range": inputs_mod.setpoint_range_c(_df_wh_f_hass, "water_heater.dhw"),
+    "clamp above max": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 70.0),
+    "clamp below min": _df_dhw_command("water_heater.dhw", _df_wh_f, _DF, 20.0),
+}
+R.check(
+    "a water_heater DHW set-point on a degF instance reads its range in "
+    "degC and is clamped to it",
+    _df_wh_f_seen == {
+        "range": (30.0, 65.0), "clamp above max": 65.0, "clamp below min": 30.0,
+    },
+    f"{_df_wh_f_seen}",
 )
 
 
