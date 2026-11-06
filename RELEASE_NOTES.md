@@ -1,3 +1,19 @@
+## v7.1.4
+
+**Patch stamp: 10 merges since v7.1.3.** No user-visible change. The window is release and audit machinery.
+
+Stamped with --allow-red before main's gate completed, on the owner's standing order to stamp without waiting for main CI.
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (3): #3236 (the stamp bumps from the highest release tag), #3243 (gate lease TOCTOU), #3240 (planted-defect audit).
+- Triage rulings (3): #3212, #3237, #3238.
+- Roster and record merges (4): #3239 (round-10 roster and triage rulings), #3235, #3254 and #3257 (delivery rows, autofix).
+
+- Delivery record: the rows the stamp flushed before tagging (#3254).
+
+- Delivery record: the rows the stamp flushed before tagging (#3257).
+
 ## v7.1.3
 
 **Patch stamp: 84 merges since v7.1.1.** v7.1.2 was never stamped, so this window opens at v7.1.1 and carries v7.1.2's contents. The user-visible part is the savings estimate and a handful of pricing and learner fixes, plus a contributed DHW set-point input. The rest of the window is the round-10 engineering and audit machinery.
