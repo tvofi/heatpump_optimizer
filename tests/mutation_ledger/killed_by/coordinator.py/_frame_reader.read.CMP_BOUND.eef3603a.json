@@ -1,6 +1,6 @@
 {
   "anchor": "custom_components/heatpump_optimizer/coordinator.py:_frame_reader.read CMP_BOUND eef3603a",
-  "killed_by": "tests/worker_timeout.py",
+  "killed_by": "tests/features.py",
   "old": "        while size > 0:",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`while size >= 0:`) took tests/worker_timeout.py from rc=0 failed=0 to rc=1 failed=1."
+  "reason": "Recorded by `mutation_table.py --pin-killed`: CMP_BOUND (`while size >= 0:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 }
