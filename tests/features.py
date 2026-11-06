@@ -41912,9 +41912,43 @@ try:
             f"raised {_wt_split_err!r} after {_wt_split_s:.1f} s; returned {_wt_split_out!r}; "
             f"lock_free={_wt_split_free} worker={_g511_coord._PROCESS_WORKER!r}",
         )
+        # A child that dies mid-frame is an end of stream, a transport fault
+        # the fallback routes around at once, never a wait out to the deadline.
+        _g511_coord._run_in_process(_os.getpid, ())  # warm a fresh one
+        _wt_eof_t0 = _wt_time.monotonic()
+        _wt_eof_err, _ = _g511_submit(
+            _g511_coord._run_in_process, _g524_harness.split_reply, (0.05, False))
+        _wt_eof_s = _wt_time.monotonic() - _wt_eof_t0
+        R.check(
+            "a worker that dies mid-reply is a transport fault, not a timeout",
+            isinstance(_wt_eof_err, _g511_coord.ProcessWorkerUnavailable)
+            and _wt_timeout_cls is not None and not isinstance(_wt_eof_err, _wt_timeout_cls)
+            and _wt_eof_s < 0.5,
+            f"raised {_wt_eof_err!r} after {_wt_eof_s:.2f} s",
+        )
     finally:
         _g511_coord._REPLY_FRAME_TIMEOUT_S = _wt_frame_saved
     _g511_coord.PROCESS_REPLY_TIMEOUT_S = 0.5
+
+    # The reader's ``readline`` (only text opcodes ask) returns one line and
+    # leaves the rest of the frame unread, under the same deadline.
+    _wt_rl_r, _wt_rl_w = _os.pipe()
+    try:
+        _os.write(_wt_rl_w, b"ab\ncd")
+        _wt_rl = _g511_coord._frame_reader(_wt_rl_r, 1.0)
+        _wt_rl_line, _wt_rl_rest = _wt_rl.readline(), _wt_rl.read(2)
+        _os.close(_wt_rl_w)
+        _wt_rl_w = None
+        _wt_rl_tail = _wt_rl.readline()
+    finally:
+        _os.close(_wt_rl_r)
+        if _wt_rl_w is not None:
+            _os.close(_wt_rl_w)
+    R.check(
+        "the frame reader's readline returns one line, the rest stays unread, and it stops at end of stream",
+        (_wt_rl_line, _wt_rl_rest, _wt_rl_tail) == (b"ab\n", b"cd", b""),
+        f"line={_wt_rl_line!r} rest={_wt_rl_rest!r} tail={_wt_rl_tail!r}",
+    )
 
     # A worker whose pipe lands at a descriptor >= FD_SETSIZE (1024) -- Home
     # Assistant raises its soft fd limit past it -- must still be waited on

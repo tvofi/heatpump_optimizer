@@ -670,7 +670,7 @@ class SleepyOptimizer:
         return ("slept", os.getpid(), inputs)
 
 
-def split_reply(pause_s: float) -> None:
+def split_reply(pause_s: float, finish: bool = True) -> None:
     """Write a reply frame in two halves ``pause_s`` apart, then end the child.
 
     Stands in for a worker stopped mid-write after serialising its reply
@@ -687,6 +687,7 @@ def split_reply(pause_s: float) -> None:
     out.write(blob[: len(blob) // 2])
     out.flush()
     time.sleep(pause_s)
-    out.write(blob[len(blob) // 2:])
-    out.flush()
+    if finish:  # False: the child dies mid-frame, an end of stream mid-reply
+        out.write(blob[len(blob) // 2:])
+        out.flush()
     os._exit(0)

@@ -1947,7 +1947,7 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
                     f"process worker stopped mid-reply: the frame did not "
                     f"arrive within {timeout_s:g} s"
                 )
-            chunk = os.read(fd, min(size, 1 << 20))
+            chunk = os.read(fd, size)
             if not chunk:
                 break  # end of stream: the unpickler reports the short frame
             chunks.append(chunk)
