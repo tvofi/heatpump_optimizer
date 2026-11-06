@@ -1,0 +1,32 @@
+Prepare all required actions
+  persist-credentials: true
+Removing includeIf entries pointing to credentials config files
+[command]/usr/bin/git config --file /home/runner/work/_temp/git-credentials-05fdb7a9-774e-4639-b7dc-caef10e95bf7.config http.https://github.com/.extraheader AUTHORIZATION: basic ***
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git.path /home/runner/work/_temp/git-credentials-05fdb7a9-774e-4639-b7dc-caef10e95bf7.config
+[command]/usr/bin/git config --local includeIf.gitdir:/home/runner/work/heatpump_optimizer/heatpump_optimizer/.git/worktrees/*.path /home/runner/work/_temp/git-credentials-05fdb7a9-774e-4639-b7dc-caef10e95bf7.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git.path /github/runner_temp/git-credentials-05fdb7a9-774e-4639-b7dc-caef10e95bf7.config
+[command]/usr/bin/git config --local includeIf.gitdir:/github/workspace/.git/worktrees/*.path /github/runner_temp/git-credentials-05fdb7a9-774e-4639-b7dc-caef10e95bf7.config
+ * [new branch]          ci-probe/u0c-red            -> origin/ci-probe/u0c-red
+ * [new branch]          ci-probe/u0c-skip           -> origin/ci-probe/u0c-skip
+ * [new branch]          claim/s6/r10-diag-redact    -> origin/claim/s6/r10-diag-redact
+ * [new branch]          claim/s6/r10-flow-record-pitch -> origin/claim/s6/r10-flow-record-pitch
+ * [new branch]          claim/s6/r10-fly-cipredict-layout -> origin/claim/s6/r10-fly-cipredict-layout
+ * [new branch]          claim/s6/r10-gate-defer-r2  -> origin/claim/s6/r10-gate-defer-r2
+ * [new branch]          claim/s6/r10-mutant-skip    -> origin/claim/s6/r10-mutant-skip
+ * [new branch]          claim/s6/r10-mutant-skip-r3 -> origin/claim/s6/r10-mutant-skip-r3
+ * [new branch]          claim/s6/r10-policy-gate-scoping -> origin/claim/s6/r10-policy-gate-scoping
+ * [new branch]          claim/s6/r10-rca-gate-lease-flake -> origin/claim/s6/r10-rca-gate-lease-flake
+ * [new branch]          claim/s6/rev-r10-policy-gate-scoping -> origin/claim/s6/rev-r10-policy-gate-scoping
+ * [new branch]          design-verdict/R10-COP-GATE -> origin/design-verdict/R10-COP-GATE
+ * [new branch]          design/R10-COP-GATE         -> origin/design/R10-COP-GATE
+ * [new branch]          dispatch/design-reviewer-R10-COP-GATE -> origin/dispatch/design-reviewer-R10-COP-GATE
+ * [new branch]          dispatch/fixer-r10-cop-gate -> origin/dispatch/fixer-r10-cop-gate
+ * [new branch]          dispatch/fixer-r10-cop-gate-d -> origin/dispatch/fixer-r10-cop-gate-d
+ * [new branch]          dispatch/fixer-r10-cop-gate-p5 -> origin/dispatch/fixer-r10-cop-gate-p5
+[36;1m# reporter that grades `main` is exempt from `## Red checks` only[0m
+[36;1m# refusal nor `## Red checks` can match.[0m
+[36;1mRED_ARGS=()[0m
+[36;1m  RED_ARGS+=(--red "$name")[0m
+[36;1m    "${RED_ARGS[@]}"[0m
+[36;1m    "${RED_ARGS[@]}"[0m
+  record   red-history           7 commit(s) between origin/main and this head, every failure conclusion across them: none

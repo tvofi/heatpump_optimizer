@@ -1,0 +1,20 @@
+== 128162705998
+##[endgroup]
+programs restored from 198b8f7ed21fdd10dc3407aa95b92f906b6bb27a
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+  PR: 3261
+  BASE: main
+  KIND: edit
+  WORKSET: arch-score budget-raise-gate
+##[endgroup]
+== 128164588196
+##[endgroup]
+programs restored from 198b8f7ed21fdd10dc3407aa95b92f906b6bb27a
+##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+[36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+  PR: 3261
+  BASE: main
+  KIND: edit
+  WORKSET: arch-score budget-raise-gate
+##[endgroup]

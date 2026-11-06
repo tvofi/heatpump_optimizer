@@ -1,0 +1,14 @@
+== MUTANT stop-path: kill/terminate before the lock removed (v7.1.2 copy), silent job
+RESULT reply_returned_within_cap=0
+RESULT reply_elapsed_s=>6
+OUTCOME still waiting on the worker reply
+RESULT stop_returned_within_cap=0
+RESULT stop_elapsed_s=6.00
+RESULT reply_released_after_stop=0
+== same mutant, --answer null control
+RESULT reply_returned_within_cap=1
+RESULT reply_elapsed_s=0.10
+OUTCOME returned None
+RESULT stop_returned_within_cap=1
+RESULT stop_elapsed_s=0.00
+RESULT reply_released_after_stop=1
