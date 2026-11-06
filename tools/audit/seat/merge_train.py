@@ -1668,6 +1668,12 @@ class Train:
             raise Stop("approve", "the body could not be read for the raise justification: " + o.strip()[-160:])
         return o
 
+    def _measured_score(self, g, h: str) -> str:
+        """score.py's report line for <h> against origin/main, the gate's own
+        measured_score: the figure a mandated raise's body must name, judged at
+        the merge as the budget-raise-gate check judges it at the head."""
+        return g.measured_score("origin/main", h)
+
     def raise_hold(self, pr: int, h: str, files: "list[str]") -> "tuple[list[str], bool, str]":
         """(raises, held, why) for <pr> at <h>: the train's ONE reading of a
         budget raise, shared by `approve` and queue_pre_flight.py.
@@ -1725,7 +1731,7 @@ class Train:
         try:
             ok, why = g.approval(self._reviews(pr, "the owner's approval"), h, self._mandate_read,
                                  lambda _r, cid, c, t: g.mandate_state(cid, c, t, now, at, "merge"),
-                                 justify=lambda: g.justification(self._body(pr)))
+                                 justify=lambda: g.justified(self._body(pr), lambda: self._measured_score(g, h)))
         except Stop:
             raise
         except Exception as e:  # fail closed: an unread approval is none
@@ -3500,6 +3506,10 @@ def _self_test() -> int:
     passed = failed = 0
     H0, H1, H2, V = "a" * 40, "b" * 40, "9" * 39 + "a", "c" * 40
     BOT_SUBJ = "ci: pin killed mutants"
+    # The figure a mandated raise's body must name is the gate's measured_score (a
+    # scorer run on a worktree); the world below answers with one fixed line.
+    MEASURED = ["Architecture score: dS +0.4000 IMPROVES"]
+    Train._measured_score = lambda self, g, h: MEASURED[0]
 
     def check(name: str, cond: bool) -> None:
         nonlocal passed, failed
@@ -4226,6 +4236,14 @@ def _self_test() -> int:
     check("#2209's shape MUTATION (the mandate re-read at the merge): a re-anchored approval "
           "under an expired mandate stops exactly as today",
           rc == 1 and "a raise is the owner's" in lines[-1] and not merged(calls))
+    # The value, not only the shape (#3045 round 1: dS +0.0012 claimed, +0.0000 true).
+    planted_ds = JUST.replace("dS +0.4 IMPROVES", "dS +0.0012 IMPROVES")
+    rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
+                                      pr_body=planted_ds), mandate=CB, approval_carry=True)
+    check("a mandated raise whose body quotes a dS the scorer did not measure stops, as budget-raise-gate "
+          "refuses it (the train reads budget_raise_gate.justified, its measured figure)",
+          rc == 1 and "a raise is the owner's" in lines[-1] and "measures dS +0.4000 IMPROVES" in lines[-1]
+          and not merged(calls) and not approved(calls))
     rc, lines, calls = go(carry_world(reviews=[dict(owner_review(H1, NOW), id=RID)], mandate=mandate(NOW),
                                       pr_body=JUST.replace("Payments tried", "Paid")), mandate=CB, approval_carry=True)
     check("#2209's shape MUTATION (the gate's own justification): a mandated approval at the head "
