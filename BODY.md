@@ -6,7 +6,7 @@ Groups go from 302 on `origin/main` to 336: 34 are added and none removed, and 9
 
 ## Head
 
-`174417fa378846e2e876156984c3f39333ebd3ba`, the tip of `handoff/audit-r10-roster`: 174417fa3 plus one commit, `record: host paths scrubbed`, the mechanical `ref_privacy.py scrub --write` of three host-path spans in the roster. Every figure below was measured on a detached worktree at that commit against `origin/main` at `b88684a218923f85de66f1e8fb1833e31a76a154`. Read the diff three-dot: a two-dot diff shows main's own newer commits.
+`174417fa378846e2e876156984c3f39333ebd3ba`, the tip of `handoff/audit-r10-roster`: `70d926c65bf856456efe56a27c1bdf99d0aa1c7d` plus one commit, `record: host paths scrubbed`, the mechanical `ref_privacy.py scrub --write` of three host-path spans in the roster. Every figure below was measured on a detached worktree at that commit against `origin/main` at `b88684a218923f85de66f1e8fb1833e31a76a154`. Read the diff three-dot: a two-dot diff shows main's own newer commits.
 
 ## Mutation proof
 
