@@ -154,7 +154,8 @@ def plan(role: str, root: Path = ROOT) -> list[tuple[str, str, str]]:
             blocks.append((rel, "loaded by a read of " + ", ".join(hits), text))
     if INSTRUMENTS in files:
         entries = named_entries(contract, _read(root, INSTRUMENTS))
-        blocks.append((INSTRUMENTS, f"the {len(entries)} entries {contract_rel} names",
+        blocks.append((INSTRUMENTS, f"the {len(entries)} entries {contract_rel} names; "
+                       "read the file for any other",
                        "".join(e + "\n" for e in entries)))
     return blocks
 
