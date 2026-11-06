@@ -1,0 +1,35 @@
+    def savings_months(self, now: datetime, *, wood_configured: bool = False) -> list[SavingsMonth]:
+        """Published rows: months that booked savings_baseline, oldest first.
+
+        One basis for every cell: the intervals a plan covered, priced at
+        spot plus the per-kWh grid fee on both sides. ``actual_sek`` is the
+        metered energy's cost; ``baseline_sek`` is the modelled thermostat's,
+        scaled to the meter by ``meter_calibration``, so its power levels
+        are the pump's recorded ones and a model that under-reads the meter
+        is not booked as a loss; ``savings_sek`` is the one less the other.
+        At one flat price the saving is the volume difference alone. The
+        reference has no wood, so wood's heat counts in the saving and
+        firewood's cost nowhere (owner ruling, 2026-11-04). The
+        lines no thermostat prices (capacity, wear, uncovered intervals)
+        are in neither column: the receipt states them.
+
+        The open month is an estimate: every figure is scaled by
+        ``coverage_factor``. A month booked against another reference
+        (``REFERENCE_BASIS_META``) states its two columns and no saving. With
+        wood configured the calibration only raises the thermostat.
+        """
+        open_key = month_key(now)
+        rows: list[SavingsMonth] = []
+        for key in sorted(self.months):
+            lines = self.months[key].get("lines") or {}
+            if "savings_baseline" not in lines:
+                continue
+            calibration = self.meter_calibration(key)
+            if wood_configured and calibration is not None:
+                # A meter under the plan is what a fire the plan did not foresee
+                # looks like; scaling down by it would cancel wood's heat from
+                # the saving. Only an under-read model is corrected here.
+                calibration = max(1.0, calibration)
+            baseline_sek = self.line(key, "savings_baseline")["sek"] * (
+                1.0 if calibration is None else calibration
+            )
