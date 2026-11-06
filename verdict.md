@@ -1,39 +1,61 @@
-Design review: revise 964d7611a4d73a658ae7fe5428170a664393fa4b class-open
+Design review: revise 4ccb8922294c8810c9ece51cc30a24af200b865a class-open
 
-Reviewed design.md at 964d7611a from a detached worktree; base read at 28482eceeb6b9809e44b12d80fc994282cc21645. Note 2 of at most 5 (owner ruling tvofi 11-06 for R10-COMBI-TANK; the note's header still says "of at most 3").
+I reviewed design.md at 4ccb8922 from a detached worktree and read the base at 28482eceeb6b9809e44b12d80fc994282cc21645, which is also current origin/main. This is note 3. The owner ruling of ~22:12Z allows up to 10 rounds, so this revise is not a re-cut. As the brief directs, I rechecked only what 964d7611..4ccb8922 changed (§C0, §T, the cost line and the fixer notes) and did not re-review what was already approved.
 
-Round-1 revise points, each answered:
-- (1) class-open, answered. I re-ran `grep -n "dhw_tank_heat_loss_coefficient\|dhw_tank_thermal_mass\|c_dhw" custom_components/heatpump_optimizer/*.py` at base and got 55 hits. Every one is dispositioned:
-  - battery.py:327/331;
-  - coordinator.py:4232/4268/4277/4919;
-  - dhw_learning.py:421;
-  - dhw_planner.py:96/101 (`_tank_decay`), 247 (the context field), 373, 583-649, 691/720, 817-924, 972/1022/1086, 1367-1387, 1625-1723, 1817/1818, 2062-2148;
-  - optimizer.py:5431/5665;
-  - thermal_model.py:718/738/758 (the owner properties), 3119-3128, 3157/3194;
-  - binary_sensor.py:273, a substring false positive.
-  
-  One combi-aware accessor (`ThermalParameters.dhw_store`) is owned by thermal_model.py, and the exo series is carried through `_DhwPlanContext`. A5 (aliasing the properties) is rejected for sound in-code reasons (the aggregators would double-count, and the `_dhw_ua_cache` key would change).
-- (2) answered. battery.py:322-333 drops `dhw_tank` in combi. optimizer.py:5425-5433 and 5640-5665 skip the dhw term when the `two_zone_enabled` branch already counted the buffer; I read both branches at base and the rule is correct. coordinator.py:4206 litres_40c reads `store.volume_l`, and the standby readers 4232/4268/4277 read `store`. The "dhw_tank_volume unused" claim is withdrawn after a check of coordinator.py:2477 and services.py:478.
-- (3) answered. The `lp_flux` arm checks that P_dhw moves with the space flux, with an off-arm null control. Invariant 2 is extended to `battery.build` and `_stored_thermal_energy`. The P2 census (tests/entities.py:4130 `_P2_CENSUSES`) gains `combi_store_view` (0 readers outside thermal_model.py) and `combi_flux_live`, which counts the five planner recursion sites.
-- (4) answered. The re-estimate is +480-650 lines across 11 modules, so the note splits it: PR A R10-COMBI-TANK-STORE (L, unreachable parameter) and PR B R10-COMBI-TANK (M, after A). The learner gate rides with the option in B, which is sound by the note's own argument.
+## What note 3 answers
 
-Revise point:
-1. class-open, carry 0 (owner scope addition, D12-s1-01). The no-probe buffer bug is not designed, only deferred.
-   - **Where it fails.** coordinator.py:6563-6567 in `_update_current_state` sets `state.buffer_tank_temperature` only on `buffer_reading.ok`. Without a probe the value is never advanced. The note lists this only as "Carry: orchestrator (item buffer-open-loop-seed)", with no fix shape, no tests and no size effect. The owner ruling makes the item scope, not a carry.
-   - **Fix shape.** Add a §-section that names the site. The fix advances the buffer open-loop when no buffer probe reads ok, by the same mechanism the DHW branch above it already uses (coordinator.py:6555-6562): `_open_loop_plan_value(self._optimization_result, "buffer_temp_trajectory", dt_util.now())`. That helper is at coordinator.py:2315, and `OptimizationResult.buffer_temp_trajectory` is at optimizer.py:1886. The fix must be expressed through, or consistent with, `combi_tank_seed`'s order (buffer, else DHW, else open-loop), so that combi and non-combi share one seed path rather than two.
-   - **Tests.** A failing test first: the fixture has no buffer probe and a prior plan whose buffer trajectory moves, and today `state.buffer_tank_temperature` stays at its default or its last value across cycles. A null control: the same arm with a buffer probe present must be unchanged. A mutation target: drop the open-loop branch.
-   - **Placement and size.** Say which PR carries it. PR B is the natural home, because the edit lands in `_update_current_state` beside the seed after r10-livestate. If PR A carries it, say why it is safe before the option exists. Give its effect on the size estimate (about +15-25 lines, plus test). Ordering after r10-livestate then binds whichever PR carries it.
+- **Round-2 point (carry 0, D12-s1-01): answered in substance.**
+  - **Site.** The note names coordinator.py:6565-6568. I confirmed at base that `buffer_reading.ok` is the only writer of the value, and that the `CurrentState` default is 40.0 (thermal_model.py:1741).
+  - **Shape.** The fix goes through the one `_seed_store` primitive. `combi_tank_seed` uses the same primitive.
+  - **Helper and data.** The helper `_open_loop_plan_value` is at coordinator.py:2315. `buffer_temp_trajectory` is empty unless the valve throttles (optimizer.py:3059-3064), so the "never fabricated" arm is real.
+  - **Placement and size.** The note names a failing test, a null control, an empty-trajectory arm and a mutation target. PR B carries the fix, at +25 lines, and PR B stays M.
+  - **Fixer notes.** Both are carried: buffer-open-loop-nonstore (decided) and exo-sign-check.
+- **Owner carry 1 (a)-(d): present.**
+  - (a) A survey of five construction types, with type 5 correctly excluded.
+  - (b) Each path's parameters are labelled by source. The fetches were refused, and the note says so.
+  - (c) A one-node energy balance, with a UA = 0 null control and an ε null control.
+  - (d) The tank type is configuration: two numeric fields, slug-keyed presets used only by the config flow, and a `combi_type_branch` census. The vendor-name grep returns 0 at base.
+- **Sibling designs.** No other open design/* note names `ExternalHeatObservation`, `buffer_tank_temperature`, `_update_current_state`, `hp_tank_temp` or D12-s1-01. I grepped every design/* ref.
 
-Fixer notes (carries, not revise points):
-- Carry: R10-COMBI-TANK (item buffer-open-loop-nonstore). Decide whether the open-loop buffer seed applies to every two_zone buffer or only to `buffer_is_store`. A buffer whose trajectory is not planned has an empty `buffer_temp_trajectory`, so the helper returns None and the value must stay as it is, not be fabricated.
-- Carry: R10-COMBI-TANK (item exo-sign-check). `_dhw_window_floors` is said to take space flux "through the recursions that check the floor, not needed_delta". The fixer should assert in `lp_flux` that a large valve draw before a window raises the floor-repair energy, so that a floor computed without exo cannot under-plan silently.
+## Revise points
 
-decision: orchestrator, after edges and hot files.
-- PR A hot files: thermal_model.py, dhw_planner.py, optimizer.py, battery.py, coordinator.py (readers at 4206-4277 and 4919), dhw_learning.py, sensor.py.
-- PR B hot files: config_flow.py, entry_config.py, const.py, topology.py, sensor.py, coordinator.py (`_update_current_state`, learners), tests/features.py, tests/entities.py.
-- PR A edges: serialise A with R10-COP-GATE and R10-ADVISOR-WHATIF (optimizer.py, coordinator.py) and with R10-HEAT-METER (thermal_model.py).
-- PR B edges: B goes after A, after R10-CONFIGFLOW-PAGES and after r10-livestate; carry 0 adds to the last of these if B carries it.
-- No edge to R10-UX-HEALTH or r10-ceiling-probe.
-- No open design/* note claims the tank seam (r10-livestate and R10-HEAT-METER do not mention buffer_tank_temperature or D12-s1-01).
+### 1. class-open, §C0 "Observation stays measured" (design.md:243)
+
+**Defect.** The note says coordinator.py:5038 `hp_tank_temp` is a rise detector. At base it is not. Only `dhw_temp` and `buffer_temp` feed `_rate` (external_heat.py:240-246) and the "rising … with the compressor off" evidence (external_heat.py:295-309). `hp_tank_temp` is a **level**: external_heat.py:340-363 uses it as the useful floor for `wood_energy_kwh` and as the denominator of the wood `displacement` and `free_heat_kw` (payload.py:556-557).
+
+**Consequence.** Setting it to None without a buffer probe would silently turn off wood energy and displacement for every wood install with no buffer probe. topology.py:413 has the wood → buffer_tank chain, and the probe is optional. No finding names that behaviour change.
+
+**Fix wanted.**
+- Split the observation fields by what they measure. The rise inputs (`dhw_temp`, `buffer_temp`) take the measured value or None.
+- `hp_tank_temp` takes the best level estimate. That is the reading if there is one, else the open-loop seed. If neither exists, decide and say whether it falls back to None or to today's default, and give the reason.
+- Add an arm: wood, no buffer probe, a moving trajectory. The displacement must be computed against the seed. The null control is the same arm with a probe, where the reading wins. The mutation target is feeding None to `hp_tank_temp`.
+
+### 2. class-open, §T legionella target routed through ε (design.md:92 and 158)
+
+**Defect.** The note sends "the legionella target" through `store_temp_for_tap`. Physically that is wrong. ε describes water **flowing** through the exchanger. Disinfection concerns potable water standing in the coil or inner tank, and standing water reaches the store's own temperature between draws, which is ε = 1.
+
+**Consequence.** With the coil preset (ε 0.85, inlet 10 °C), a 60 °C target becomes a 68.8 °C store requirement. That is close to the `dhw_hard_max` cap of min(70, …) at thermal_model.py:864, and it buys ~9 K of charge the hygiene cycle does not need. The figures are mine; the note does not give them.
+
+**Wrong site name.** The note cites `_dhw_legionella_ceilings`, but the target is set at dhw_planner.py:494 (`ramp >= dhw_legionella_temp`) and 571 (`ready_temps[place_idx] = max(..., dhw_legionella_temp)`), in the scheduling function that starts at 441. The note's own grep returns both lines, and its table names neither.
+
+**Fix wanted.**
+- Exclude the legionella target from the tap transform, and name 494 and 571 as identity sites.
+- Add an arm: at ε = 0.6 and at ε = 1.0, the legionella placement and its ready temperature are identical.
+
+decision: owner. Should the cycle apply at all when `combi_potable_volume_l` is ≈ 0, as with the external station, where no potable water is stored? That is a product rule (the 3-litre exemption in DVGW W 551); it is not a revise point.
+
+## Fixer notes (carries, not revise points)
+
+- Carry: R10-COMBI-TANK (item tap-limit-census). design.md:158 names a census `combi_tap_limit`, but the evidence plan (design.md:275-277, 286) lists only `combi_store_view`, `combi_flux_live` and `combi_type_branch`. Either add it to `_P2_CENSUSES` or drop the reference.
+- Carry: R10-COMBI-TANK (item cop-floor-tap). dhw_planner.py:1392 evaluates COP at `np.maximum(requirement, params.dhw_min_temp)`. That compares a store requirement with a tap limit. In combi the floor should read `store.store_temp_for_tap(dhw_min_temp)`. Otherwise give a reason in the table for leaving it.
+- Carry: R10-COMBI-TANK (item loss-midpoint). dhw_planner.py:906 uses `0.5*(dhw_setpoint + dhw_min_temp)` as the store's loss temperature, so the second term is a tap limit. In combi it should go through the same transform, or be listed as left alone with a reason.
+
+## Decisions routed
+
+- **decision: orchestrator, the placement of carry 0.** The no-probe buffer fix affects every install and needs no combi option. Placing it in PR B queues it behind PR A (L) and behind R10-CONFIGFLOW-PAGES. It could instead land first as its own S PR after r10-livestate. PR B would then reuse `_seed_store` for `combi_tank_seed`, and the shared seed path would still be single. The note's placement is sound either way; this is an ordering call.
+- **decision: orchestrator, after edges and hot files.** These are unchanged from the round-2 verdict, plus the following:
+  - PR B's coordinator.py hot range adds the `ExternalHeatObservation` construction (coordinator.py:5022-5040). `git grep "ExternalHeatObservation("` at base names only that site, and no roster group's design touches it.
+  - PR A edges: R10-COP-GATE, R10-ADVISOR-WHATIF and R10-HEAT-METER.
+  - PR B edges: after A, after R10-CONFIGFLOW-PAGES and after r10-livestate.
 
 The harness reports no token count for this seat.
