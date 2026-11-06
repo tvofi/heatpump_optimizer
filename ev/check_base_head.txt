@@ -1,0 +1,19 @@
+== /tmp/tmp.oxGL0UmFx2/base
+-- HOME=/root
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:17201: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:17209: home-directory in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 80 line(s) added since 4b7e1770ba81 judged, 2 refused
+rc=0
+-- HOME=/nonexistent
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:17201: home-directory, account-name in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:17209: home-directory, account-name in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy: REFUSE dev/programme/rosters/wave-r10-groups.json:17390: account-name in an added line of a tracked file; rewrite it with `ref_privacy.py scrub --write dev/programme/rosters/wave-r10-groups.json` or drop the path
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 80 line(s) added since 4b7e1770ba81 judged, 3 refused
+rc=0
+== .
+-- HOME=/root
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 66 line(s) added since 57958d6a44c4 judged, 0 refused
+rc=0
+-- HOME=/nonexistent
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 66 line(s) added since 57958d6a44c4 judged, 0 refused
+rc=0

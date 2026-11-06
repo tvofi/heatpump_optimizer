@@ -1,0 +1,11 @@
+### HOME=/root
+ref_privacy self-test: 113 checks, 0 failed
+heartbeat self-test: 8 checks, 0 failed
+SELF-TEST PASSED
+### HOME=/home/runner
+ref_privacy self-test: 113 checks, 0 failed
+heartbeat self-test: 8 checks, 0 failed
+SELF-TEST PASSED
+cloud_dispatch self-test: 127 checks, 0 failed
+cloud_setup self-test: 19 checks, 0 failed
+STRUCTURE RATCHET PASSED

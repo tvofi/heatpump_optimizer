@@ -1,0 +1,44 @@
+== M1 drop the of_host filter
+ tools/audit/seat/ref_privacy.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a uid-0 cloud seat (root) judges its own paths and names no leak: Identity(homes=('/root',), names=(), uid=0, hosts=('vm',)) ['home-directory']
+  FAIL a uid-0 cloud seat (nonexistent) judges its own paths and names no leak: Identity(homes=('/nonexistent', '/root'), names=('nonexistent',), uid=0, hosts=('vm',)) ['home-directory', 'account-name']
+ref_privacy self-test: 113 checks, 2 failed
+heartbeat self-test: 8 checks, 0 failed
+TOTAL: 0 failed
+SELF-TEST PASSED
+== M2 _public_home always True
+ tools/audit/seat/ref_privacy.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a real host's /Users/<name> path still refuses through of_host (the null control): ['account-name', 'host-path']
+ref_privacy self-test: 113 checks, 1 failed
+  FAIL a message carrying the host's home directory is refused and the reachable ref does not move
+heartbeat self-test: 8 checks, 1 failed
+FAILED: arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+FAIL arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)
+TOTAL: 1 failed
+== M3 NO_HOMES emptied
+ tools/audit/seat/ref_privacy.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a uid-0 cloud seat (nonexistent) judges its own paths and names no leak: Identity(homes=('/nonexistent',), names=('nonexistent',), uid=0, hosts=('vm',)) ['account-name']
+ref_privacy self-test: 113 checks, 1 failed
+heartbeat self-test: 8 checks, 0 failed
+TOTAL: 0 failed
+SELF-TEST PASSED
+== M4 home regex widened to any name
+ tools/audit/seat/ref_privacy.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+  FAIL a real host's /Users/<name> path still refuses through of_host (the null control): ['account-name', 'host-path']
+ref_privacy self-test: 113 checks, 1 failed
+heartbeat self-test: 8 checks, 0 failed
+TOTAL: 0 failed
+SELF-TEST PASSED
+== M5 cloud_dispatch identity reverted to seat
+ tools/audit/seat/cloud-setup.sh    | 4 ++--
+ tools/audit/seat/cloud_dispatch.py | 2 +-
+ 2 files changed, 3 insertions(+), 3 deletions(-)
+  FAIL the seat identity is hpo-fixer at the owner's noreply address
+cloud_dispatch self-test: 127 checks, 1 failed
+cloud_setup self-test: 19 checks, 0 failed
+== tree clean after mutants:
+0
