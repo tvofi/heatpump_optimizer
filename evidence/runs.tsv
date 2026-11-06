@@ -1,4 +1,4 @@
-42217406703	CI edit pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	CI edit pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	completed	failure	1	2026-11-06T12:24:21Z
-42217216675	Dependabot auto-merge	R10-HOTFIX-GATE-BUSY-DEFER: one concurrent gate run decides at a head	completed	skipped	1	2026-11-06T12:22:52Z
-42217217301	CI code pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	CI code pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	in_progress		1	2026-11-06T12:22:52Z
-42217218226	CI edit pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	CI edit pr=3246 base=main sha=5f99aa6dca2ebd386b20bb04d0e1ade7f30b62ed	completed	failure	1	2026-11-06T12:22:52Z
+42229718965 CI edit pr=3246 base=main sha=c8d6e80fcaf4bdeb6454a176d6f3ff4d6cbf5589 pull_request completed failure attempt=2 2026-11-06T14:41:37Z
+42229013617 CI edit pr=3246 base=main sha=c8d6e80fcaf4bdeb6454a176d6f3ff4d6cbf5589 pull_request completed failure attempt=2 2026-11-06T14:41:37Z
+42229010609 Dependabot auto-merge pull_request_target completed skipped attempt=1 2026-11-06T13:52:26Z
+42229011444 CI code pr=3246 base=main sha=c8d6e80fcaf4bdeb6454a176d6f3ff4d6cbf5589 pull_request completed cancelled attempt=1 2026-11-06T14:40:39Z

@@ -1,0 +1,6 @@
+== 127953961800
+2026-11-06T14:41:29.2116462Z programs restored from b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+2026-11-06T14:41:33.8829424Z FAIL run(s) [42229013617] at this head are still being judged; their gate decides
+== 127953951344
+2026-11-06T14:41:29.7765323Z programs restored from b36679ceaa65a08a67a84f0d934c93aa15f7c7f3
+2026-11-06T14:41:34.4191110Z FAIL run(s) [42229718965] at this head are still being judged; their gate decides

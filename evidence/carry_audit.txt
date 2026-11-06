@@ -1,0 +1,5 @@
+NOTE body item ecbebc79: dismissed:one-shot payload text, the brief's later line is explicit
+NOTE body item 1ecd5ae5: dismissed:identity of a seat commit, settled per brief; this round's commits were re-made as `hpo-fixer` with an identical tree
+NOTE review 0 item d2121e1d: dismissed:main's pinned defect that this PR fixes; the body answers it and the merge mechanics are the orchestrator's
+NOTE review 0 item aacaa589: dismissed:main-wide job budget, carried by the body to R10-PROCESS-SLIM, not this PR's to settle
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)

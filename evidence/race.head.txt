@@ -31,3 +31,4 @@ single: sweep present re-runs 0 RESIDUAL-RED 0
   t=  680s run 100 (waited 300 s): PASS
 prelude: verdicts 3 UNDECIDED-RED 1 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 300 s (judge takes a clock: True)
 prelude: sweep present re-runs 1 RESIDUAL-RED 0
+race rc=0
