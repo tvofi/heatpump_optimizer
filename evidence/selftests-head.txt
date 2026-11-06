@@ -1,9 +1,0 @@
-== head beat_jobs
-beat_jobs self-test: 124 checks, 0 failed
-rc=0
-== head review_strength
-review_strength self-test: 116 checks, 0 failed
-rc=0
-== head beatd
-beatd self-test: 119 checks, 0 failed
-rc=0

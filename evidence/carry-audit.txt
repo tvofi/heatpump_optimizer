@@ -1,7 +1,6 @@
-NOTE stale tree: 79cf40f4751210c7868d8178b87dc97a69fa28ae lacks origin/main 7e8939d38cedb2976acc80a4ad7875cb545bd588; roster read at origin/main
-NOTE review 0 item d1a47456: R10-PLANTED-DEFECT-AUDIT
-NOTE review 0 item cb986e10: R10-PLANTED-DEFECT-AUDIT
-NOTE review 0 item aef39da2: R10-PLANTED-DEFECT-AUDIT
-NOTE review 0 item 66e751a6: dismissed:within the owner ruling (tvofi 2026-11-01) and the brief's null control; measured 2 model:sonnet dispatches in 5.4 days
+NOTE review None item d1a47456: R10-PLANTED-DEFECT-AUDIT
+NOTE review None item cb986e10: R10-PLANTED-DEFECT-AUDIT
+NOTE review None item aef39da2: R10-PLANTED-DEFECT-AUDIT
+NOTE review None item 66e751a6: dismissed:within the owner ruling (tvofi 2026-11-01) and the brief's null control; measured 2 model:sonnet dispatches in 5.4 days
 CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
 rc=0
