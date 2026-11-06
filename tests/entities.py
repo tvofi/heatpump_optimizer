@@ -35841,7 +35841,7 @@ R.check(
 # --drain (R9 F10.5): the pre-ratchet stock's path to a disposition. The slice
 # is whole anchors -- a split anchor spends runs on sites `pin_results` can
 # never pin -- reachable by a recorded closure, under the cap, fixed for one
-# seed and moved by another, so the nightly's date seed walks the stock rather
+# seed and moved by another, so the nightly's run seed walks the stock rather
 # than retrying the same survivors.
 _dp_site = lambda anchor, file, line: {  # noqa: E731
     "anchor": anchor, "file": file, "line": line, "kind": "CLAMP_DROP",
@@ -36115,7 +36115,7 @@ _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
 _ML_MISSING = [w for w, job in (
     ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
     ("--max 80 --jobs 4", _ml_meas),
-    ("--budget-minutes 240", _ml_meas),
+    ("--budget-minutes 270", _ml_meas),
     ("shard: [1, 2, 3, 4]", _ml_meas),
     ("pattern: mutation-ledger-*", _ml_push),
     ("m.merge_pin_shards(sys.argv[1], sys.argv[2])", _ml_push),
@@ -38407,7 +38407,7 @@ R.check(
 # pull request's pin step only to a base program that has the flag.
 _MUT_BW_MISSING = [(j, w) for j, w in (
     ("mutation-nightly", "--budget-minutes 270"),
-    ("mutation-ledger", "--budget-minutes 240"),
+    ("mutation-ledger", "--budget-minutes 270"),
     ("mutation-pins", "&& budget=(--budget-minutes 260)"),
     ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
     # The budget's ceilings, derived 2026-10-09 from the draw_range-class

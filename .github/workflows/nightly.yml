@@ -164,6 +164,13 @@ jobs:
   # --prior). The four shards of a run still share one seed, so they stay
   # disjoint; the seed is printed in each DRAIN SHARD header, so a night's
   # draw replays as before.
+  #
+  # --budget-minutes 270, mutation-nightly's sizing under the same 330-minute
+  # timeout (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): at 240, 185 of the 320 sites
+  # run 42139479636 drew were never started, while its longest shard ended
+  # 225 minutes into its 330 (nightly_drain_breakdown.py; the jobs API's
+  # started_at and completed_at). The 60 minutes left cover the runs in
+  # flight, each under its scaled timeout.
   mutation-ledger:
     if: github.ref == 'refs/heads/main' && github.event_name != 'push'
     runs-on: ubuntu-latest
@@ -212,7 +219,7 @@ jobs:
           python3 tests/mutation_table.py \
             --scope full --drain "$out" --shard ${{ matrix.shard }}/4 \
             --max 80 --jobs 4 \
-            --seed "${{ github.run_id }}" --budget-minutes 240 \
+            --seed "${{ github.run_id }}" --budget-minutes 270 \
             --pool-seconds "$RUNNER_TEMP/pool-seed/pool_seconds.json" \
             | tee "$RUNNER_TEMP/mutation-ledger.txt"
           test -s "$out/status"

@@ -1460,7 +1460,7 @@ def drain_pool(unpinned: list[dict], closures: dict, allow: list[str],
     `pin_results` pins one only when all of them were driven and killed, and a
     slice that split an anchor would spend runs on sites it can never pin. The
     anchors are ordered by a hash of (seed, anchor), so the slice is fixed for
-    one seed and the nightly's date seed walks the stock rather than retrying
+    one seed and the nightly's run seed walks the stock rather than retrying
     the same survivors every night; an anchor no recorded closure reaches is
     left out, and anchors are taken while their sites fit under `cap`.
 
