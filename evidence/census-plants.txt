@@ -1,0 +1,10 @@
+== null at head
+rc=0
+== planted new file
+OPEN tools/policy/new_pusher.py: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS
+rc=1
+== repair line deleted
+OPEN tools/policy/role_pack.py: undispositioned -- it names a pusher; give it an entry in PR_PUSHERS
+rc=1
+== rule unchanged vs main
+none
