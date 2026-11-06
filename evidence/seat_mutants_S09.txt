@@ -1,0 +1,4 @@
+== S09 handover_prompt.py: KILLED rc=1 | )
+== S09b handover_prompt.py: KILLED rc=1 | )
+RESULT survivors=0
+rc=0
