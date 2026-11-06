@@ -1,0 +1,6 @@
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  FAIL _await_optimize keeps the last plan on a timeout: translated UpdateFailed, no in-process solve  [raised None; returned ('slept', 3037, 'STATE'); jobs=[<function _run_in_process at 0x7f0d75149850>, <function optimize_in_process at 0x7f0d7510b7f0>] issues=[('heatpump_optimizer', 'solve_worker_fallback', {'is_fixable': False, 'is_persistent': True, 'severity': 'warning', 'translation_key': 'solve_worker_fallback', 'translation_placeholders': {'cause': 'ProcessWorkerTimeout: process worker gave no reply within 5 s'}, 'learn_more_url': 'https://github.com/tvofi/heatpump_optimizer'})]]
+  ok   a pump command that FAILED is not remembered as done
+1 of 4864 FEATURE CHECKS FAILED
+rc=1
