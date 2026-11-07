@@ -29,10 +29,10 @@ none known at this head; CI not yet run.
 
 ## Forward-carry
 
-- Settle gap and the rest of the `classify` wait: Carry: #3290 (R10-HOTFIX-TRAIN-DEFER-WAIT).
-- The six readers outside `classify`'s family, one shared deferral predicate, and an `agreement.mjs` registration: Carry: R10-HOTFIX-TRAIN-DEFER-WAIT successor group, owner's decision on the registration.
-- `orchestrator_tick.py` still describes the superseded 720 s wait: Carry: orchestrator (from #3287's review).
-- `train.sh add <pr> --front` with no verdict (re-fronting a spooled entry) is not covered: Carry: orchestrator.
+- Settle gap and the rest of the `classify` wait: Carry: R10-HOTFIX-TRAIN-DEFER-WAIT.
+- The six readers outside `classify`'s family, one shared deferral predicate, and an `agreement.mjs` registration: Carry: R10-HOTFIX-TRAIN-DEFER-WAIT (the registration is the owner's decision).
+- `orchestrator_tick.py` still describes the superseded 720 s wait: Carry: R10-HOTFIX-GATE-BUSY-DEFER.
+- `train.sh add <pr> --front` with no verdict (re-fronting a spooled entry) is not covered: Carry: R10-TRAIN-HOLD.
 
 ## Friction
 
