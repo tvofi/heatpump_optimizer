@@ -1,0 +1,68 @@
+gate	completed	failure
+pr-contract / pr-contract	completed	failure
+codeql	completed	skipped
+hassfest	completed	skipped
+kernel-points	completed	skipped
+tests	completed	skipped
+validate	completed	skipped
+governance	completed	skipped
+arch-score / arch-score	completed	success
+budget-raise-gate / budget-raise-gate	completed	success
+gate	completed	failure
+pr-contract / pr-contract	completed	failure
+validate	completed	skipped
+tests	completed	skipped
+governance	completed	skipped
+codeql	completed	skipped
+kernel-points	completed	skipped
+hassfest	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+arch-score / arch-score	completed	success
+gate	completed	failure
+pr-contract / pr-contract	completed	failure
+tests / ci-ratchet	completed	skipped
+tests / lane-proofs	completed	success
+tests / graders-head-copy	completed	success
+tests / coverage-ratchet	completed	success
+tests / closures-autofix	completed	skipped
+tests / claims-autofix	completed	success
+refresh	completed	success
+cancel-superseded	completed	success
+prelude	completed	success
+CodeQL	completed	success
+tests / nightly-ha	completed	skipped
+tests / replay	completed	skipped
+tests / closures	completed	success
+tests / fast (3.14)	completed	failure
+tests / coverage	completed	success
+tests / browser	completed	success
+tests / typing	completed	success
+tests / arch-instrument	completed	success
+tests / mutation-autofix	completed	skipped
+tests / mutation-pins	completed	skipped
+kernel-points	completed	skipped
+governance / record	completed	skipped
+governance / delivery-status-publish	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+hassfest / hassfest	completed	success
+governance / delivery-status	completed	failure
+governance / policy-docs	completed	success
+arch-score / arch-score	completed	success
+tests / closure-scope	completed	success
+governance / instrument-self-tests	completed	failure
+codeql / Analyze (python)	completed	success
+governance / env-matrix	completed	success
+tests / nightly-status	completed	failure
+governance / wave-script	completed	success
+codeql / Analyze (javascript-typescript)	completed	success
+tests / mutation	completed	success
+codeql / Analyze (actions)	completed	success
+tests / briefs	completed	success
+validate / validate-hacs	completed	success
+arm	completed	skipped
+cancel-superseded	completed	success
+refresh	completed	success
+prelude	completed	success
+cancel-superseded	completed	success
+refresh	completed	success
+prelude	completed	success
