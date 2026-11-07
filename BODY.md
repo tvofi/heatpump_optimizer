@@ -20,6 +20,8 @@ m8 is now killed by three of them. I re-ran all twelve of the reviewer's mutants
 
 ## Head
 
+`c7c5cef52a49bed59ee4c8a42e495ef2dae30db5` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+
 `aa5c0505b73c77d1ab5a650af2da58759b8b307a` is the handoff code head, and every figure below was measured at it. It is `8ff3432a965df930fb54e7aa6ffd52bf210e5f3f` (the reviewed head), plus a merge of origin/main at `f2a015142714383722bf49d7ab20d8398ec9674c` (merge commit `ab8da132a`), plus one commit that adds the self-test cases. The three-dot diff against the merge base `f2a015142` touches `tools/plan/replan.py` and `dev/programme/delivery/3265.md` only. `git diff 80016a71f f2a015142 -- tools/plan` is empty, so the main merge reaches nothing `replan.py` reads. `tools/pr/prepr.sh` ran clean (rc=0) at this head. origin/main was still `f2a015142` when I re-read it just before the handoff, so prepr was not run a second time.
 
 ## Mutation proof
@@ -148,13 +150,12 @@ Core model at the head (rule: `lane == "Core model"` in the head's plan): R10-AR
 
 ## Red checks
 
-At the reviewed head `8ff3432a`, all 68 check runs were read across every page (`commits/8ff3432a…/check-runs?per_page=100`, pages 1–3). Exactly two are red, and both are `gate`:
-- `gate` (run 42317750046, the edit run): failure. Class: CI-infrastructure, not this diff. Its log reads "FAIL run(s) [42318557432] at this head are still being judged; their gate decides".
-- `gate` (run 42318557432, the edit run): failure. Same class. Its log reads "FAIL run(s) [42317750046] at this head are still being judged; their gate decides".
+Read at the PR head `c7c5cef52a49bed59ee4c8a42e495ef2dae30db5`: `pull_request_read get_check_runs` returned total_count 68 and all 68 came back on one page (perPage 100). Exactly one concluded red there, and it is `cancelled`, not `failure`:
+- `governance / instrument-self-tests` (job 128283313187, run 42332778588): `cancelled`, started 2026-11-07T03:15:08Z, completed 03:45:10Z, exactly 30 minutes. Class: CI-infrastructure, not this diff. Answer: the job log shows its last step, `python3 -I tools/pr/ci_predict.py --self-test`, started 03:43:35Z and printed `ci_predict self-test: 0 failed` at 03:45:08Z, then `##[error]The operation was canceled.` at 03:45:09Z. That is the job's main-wide 30-minute timeout (03:15:08Z + 30 min = 03:45:08Z), not an assertion failure. The same job on main at `f2a015142` (run 42324915054, job 128269994510) took 26:36 and passed, so it runs near the cap on main as well. This diff touches only `tools/plan/replan.py` and a delivery record, and no file that job's scripts read. The owner is the open R10-HOTFIX-SELFTEST-TIMEOUT (a fixer is in flight; #3245's R10-PROCESS-SLIM also cures it). Nothing is owed here.
 
-Answer: this is the mutual edit-run deferral of the open R10-HOTFIX-GATE-BUSY-DEFER. Each edit run defers to the other, and the code run decides. Code run 42317750091's `gate` concluded `success` (job 128244970569, 2026-11-07T00:53:42Z). The cheaper detector is that group's own fix, so nothing is owed here.
+Not red at `c7c5cef5`, and named so the count is complete: the edit-run `gate` deferrals. At the reviewed head `8ff3432a`, `gate` runs 42317750046 and 42318557432 (the edit runs) failed with "FAIL run(s) … at this head are still being judged; their gate decides": the mutual edit-run deferral of the open R10-HOTFIX-GATE-BUSY-DEFER (class CI-infrastructure, not this diff). At `c7c5cef5` the gate jobs are `success`: 128291152776 (03:45:25Z to 03:45:59Z), 128291256420 (03:46:32Z to 03:47:00Z) and 128291967008 (03:49:28Z to 03:49:59Z). The earlier gate job 128283535088 (03:13Z), which the orchestrator reported as failed, is not among the 68 check runs the PR head lists; its log carries no verdict line, so I name it and do not rely on it. The code run's own `gate` concluded `success` (job 128244970569, 2026-11-07T00:53:42Z) at the reviewed head.
 
-At the final handoff head `aa5c0505`, no check run exists yet. CI runs on the pull-request head after the orchestrator moves it. Any red there is the next round's to answer by name.
+All other check runs at `c7c5cef5` are `success` or `skipped`.
 
 ## Forward-carry
 
