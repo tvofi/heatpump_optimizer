@@ -900,6 +900,13 @@ jobs:
           python3 -I tools/audit/seat/roster_sync.py --self-test | tee "$RUNNER_TEMP/roster-sync-self-test.txt"
           grep -Eq '^roster_sync self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-sync-self-test.txt"
 
+      - name: Show the dispatch-scope check refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/dispatch_scope.py --self-test | tee "$RUNNER_TEMP/dispatch-scope-self-test.txt"
+          grep -Eq '^dispatch_scope self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/dispatch-scope-self-test.txt"
+
       - name: Show the twin-run reader refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |
