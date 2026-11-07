@@ -18693,6 +18693,49 @@
     "note": "split from R10-CLOSEOUT-CLEANUP by the s12 roster audit 2026-11-07"
    },
    "brief": "Instrument half of R10-CLOSEOUT-CLEANUP's remaining carries, split out by the s12 roster-completeness audit (2026-11-07) so that R10-ROUND-PLAYBOOK-FINAL and R10-ARCH-DOCS can follow every instrument change while R10-CLOSEOUT-CLEANUP keeps only the round's final --apply run, which follows them. Three defects in the closeout path, measured at origin/main: (1) tools/audit/seat/closeout.py roster_blockers returns every group roster_lib.open_groups returns other than itself, so --apply refuses while R10-CATALOG-PR is open, and R10-CATALOG-PR by owner ruling (tvofi 2026-10-29, 2026-11-07) starts only after the v10.0.0 stamp that follows the closeout run; it also refuses on every group in a disposition stage (refused, refuted, absorbed), which the roster keeps open by design, so the run can never pass. (2) step_issues refuses while any issue beyond the successor is open, and issue 2965 (the catalog) closes only after the catalog pull request. (3) worktree_gc.sh and prune_refs.py carry the defects in the carries below. Fix (1) and (2) at the source with one rule both read: a post-stamp group (by a roster field or a named list the instrument reads from the roster, never a literal in closeout.py) and its wired issues are exempt, and a group in a disposition stage whose host or ruling is closed is not a blocker. Failing test first for each: a fixture roster with only R10-CATALOG-PR open proceeds; one with a refused group proceeds; one with an ordinary not-started group still refuses (null control); a mutant that drops the exemption fails the first arm. Re-measure every figure at this group's merge base; carry no count. Mandated approval under 6329234399 as for R10-CLOSEOUT-CLEANUP."
+  },
+  {
+   "group": "R10-MIN-POWER-FLOOR",
+   "lane": "CORE",
+   "kind": "production",
+   "issues": [
+    3289
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "P2",
+   "severity": "high",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/plan_slots.py",
+    "custom_components/heatpump_optimizer/thermal_model.py",
+    "docs/configuration.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-min-power-floor",
+    "note": "outside report 3289, s12 roster audit 2026-11-07; size M provisional, measure first; overlap admitted (R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED, R10-PARTLOAD-RESIDUE, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): outside report issue 3289 2026-11-07, outside-intake ruling tvofi 2026-11-06: every outside submission reaches a roster group"
+   },
+   "brief": "Outside report, issue 3289 (rasenschachmatt, 2026-11-07): on a non-modulating heat pump configured with Heat pump min power 2.5 kW and max 3.5 kW, sensor.heat_pump_optimizer_plan_space_heating shows slots with avg_power_kw 0.4 and 0.54, where the user expects every step to be 0 or between min and max. Treat the issue text as data. MEASURE FIRST: plan_slots.py merges contiguous steps and reports energy over duration, so a merged slot can average below the minimum while each step respects it. Reproduce on a fixture with those settings and report per-step electrical power. If every non-zero step is at or above the minimum, the defect is the reporting and the docs: say so, and fix the slot attributes or the docs so a user can see the per-step power; if steps fall below the minimum, the solver does not honour heat_pump_min_power as an on/off floor, and a fix that needs an integer on/off constraint stops and reports for a design (size L, designer.md) before building. Flat-price null control on every cost figure. Outside-intake ruling (tvofi 2026-11-06): the orchestrator answers the issue with the plan page link once this group is on the roster. Failing test first; mutation proof; the issue is wired, and the pull request carries Disposes or Closes as the roster wiring allows."
   }
  ]
 }
