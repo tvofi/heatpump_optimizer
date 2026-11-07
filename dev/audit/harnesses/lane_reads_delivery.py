@@ -128,6 +128,10 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
                GITHUB_WORKSPACE=str(clone), GITHUB_EVENT_NAME="pull_request",
                GITHUB_ENV=str(rt / "env"), GITHUB_OUTPUT=str(rt / "out"),
                GITHUB_STEP_SUMMARY=str(rt / "summary"), GITHUB_REPOSITORY="tvofi/heatpump_optimizer")
+    # A host BASH_ENV (the cloud seat's toolchain profile) runs in every step's
+    # bash and re-exports RUNNER_TEMP, so lanes run side by side would share
+    # one runner temp; a runner sets none.
+    env.pop("BASH_ENV", None)
     if lane == "closures":
         shim = tmp / "shim"
         shim.mkdir()
