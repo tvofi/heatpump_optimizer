@@ -444,6 +444,18 @@ def judged(required) -> "list[str]":
     return [n for n in required if n not in NOT_GATING]
 
 
+def owed_reds(train) -> "tuple[int, str]":
+    """`owed-reds`: (rc, output). The names whose red a pull-request body owes
+    an answer, one per line, from the ruleset a PR head is judged against; an
+    unreadable ruleset is rc 2 and a REFUSE line, which policy_lint reads as no
+    set (every red owed, as before the ruling)."""
+    try:
+        req = train.required(pr_head=True)
+    except Stop as s:
+        return 2, f"REFUSE {s.step}: {s.why}"
+    return 0, "\n".join(judged(gating_names(req)))
+
+
 ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
             "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
@@ -5769,6 +5781,21 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
           GATE in owed and "tests / fast (3.14)" in owed and "nightly-status" not in owed
           and "tests / nightly-status" not in owed)
+    class _Req:  # owed-reds over a stub train: the PR-head ruleset, and a Stop
+        def __init__(self, got=None):
+            self.got, self.asked = got, []
+
+        def required(self, pr_head=False):
+            self.asked.append(pr_head)
+            if self.got is None:
+                raise Stop("ruleset", "unreadable")
+            return self.got
+    ok_t, bad_t = _Req([GATE, "nightly-status"]), _Req()
+    rc_ok, out_ok = owed_reds(ok_t)
+    check("owed-reds: rc 0 prints judged(gating_names) of the PR-head ruleset, one per line "
+          "(null: an unreadable ruleset is rc 2 and a REFUSE line, never an empty set)",
+          (rc_ok, out_ok.split("\n"), ok_t.asked) == (0, owed, [True])
+          and owed_reds(bad_t) == (2, "REFUSE ruleset: unreadable") and bad_t.asked == [True])
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
@@ -7977,13 +8004,9 @@ def main(argv: list[str]) -> int:
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
     if a.cmd == "owed-reds":
-        try:
-            req = Train(a.repo, Path("."), None, "", (), a.min_runs).required(pr_head=True)
-        except Stop as s:
-            print(f"REFUSE {s.step}: {s.why}")
-            return 2
-        print("\n".join(judged(gating_names(req))))
-        return 0
+        rc, out = owed_reds(Train(a.repo, Path("."), None, "", (), a.min_runs))
+        print(out)
+        return rc
     if a.cmd in ("unstale", "classify"):
         t = Train(a.repo, Path("."), None, "", (), a.min_runs)
         try:

@@ -1012,8 +1012,8 @@ def _body_check(body: str, reds: list[str], workdir: Path,
     The fixture paths are a record pull request's: two delivery rows that
     already existed at the base (so the main-state reporters' exemption is
     void, which is the case this section exists for) and the pull request's
-    own added row. The required set is given EMPTY (`--required-file`), which
-    policy_lint reads as unreadable: the pre-ruling rule a record body still
+    own added row. The required set is given EMPTY (`--required-file` is
+    the null device), which policy_lint reads as unreadable: the pre-ruling rule a record body still
     answers where the live set is out of reach (`defect-root-cause.md`), and no
     ruleset read decides this self-test (tvofi 2026-11-07 made a readable set
     owe these reporters nothing).
@@ -1022,10 +1022,9 @@ def _body_check(body: str, reds: list[str], workdir: Path,
              "dev/programme/delivery/2483.md",
              "dev/programme/delivery/2484.md"]
     workdir.mkdir(parents=True, exist_ok=True)
-    body_path, paths_path, existing_path, required_path = (
-        workdir / "body.md", workdir / "paths.txt", workdir / "existing.txt",
-        workdir / "required.txt")
-    required_path.write_text("", encoding="utf-8")
+    body_path, paths_path, existing_path = (workdir / "body.md",
+                                            workdir / "paths.txt",
+                                            workdir / "existing.txt")
     body_path.write_text(body, encoding="utf-8")
     paths_path.write_text("\n".join(paths) + "\n", encoding="utf-8")
     existing_path.write_text("\n".join(paths[:2]) + "\n", encoding="utf-8")
@@ -1035,7 +1034,7 @@ def _body_check(body: str, reds: list[str], workdir: Path,
             "--head", "a" * 40, "--title", title,
             "--paths-file", str(paths_path),
             "--existing-file", str(existing_path),
-            "--required-file", str(required_path)]
+            "--required-file", os.devnull]
     for name in reds:
         argv += ["--red", name]
     try:
