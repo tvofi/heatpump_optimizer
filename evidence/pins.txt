@@ -1,0 +1,10 @@
+3261-pair run 42307493684 attempt 8: pinned 28482eceeb LACKS 355d9965a7 | live: FAIL run(s) [42307798573] at this head are still being judged; their g
+3261-pair run 42307798573 attempt 8: pinned 28482eceeb LACKS 355d9965a7 | live: FAIL run(s) [42307493684] at this head are still being judged; their g
+3265-pair run 42332777827 attempt 4: pinned f2a0151427 LACKS 355d9965a7 | live: FAIL run(s) [42333388705] at this head are still being judged; their g
+3265-pair run 42333388705 attempt 4: pinned f2a0151427 LACKS 355d9965a7 | live: FAIL run(s) [42332777827] at this head are still being judged; their g
+3255-pair run 42321825054 attempt 5: pinned 80016a71f5 LACKS 355d9965a7 | live: FAIL run(s) [42322943199] at this head are still being judged; their g
+3255-pair run 42322943199 attempt 4: pinned 80016a71f5 LACKS 355d9965a7 | live: FAIL run(s) [42321825054] at this head are still being judged; their g
+3263-c3 run 42338396358 attempt 1: pinned 294a880dae CARRIES 355d9965a7 | live: FAIL run(s) [42338396871] at this head are still being judged; their g
+3261-c3 run 42338828285 attempt 1: pinned 294a880dae CARRIES 355d9965a7 | live: FAIL run(s) [42338828950] at this head are still being judged; their g
+3241-c3 run 42338898175 attempt 1: pinned 294a880dae CARRIES 355d9965a7 | live: FAIL run(s) [42338897730] at this head are still being judged; their g
+RESULT pins gates=9 stale=6
