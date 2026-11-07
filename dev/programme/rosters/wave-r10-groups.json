@@ -7454,12 +7454,13 @@
    "architect_note": "",
    "brief": "Plan-model correctness residue, narrowed by the instrument-group audit (orchestrator s10, 2026-11-01, on tvofi's card-2 ruling: a carry stays only if it is a verified defect, or an accepted improvement that reaches the round's improvement bar and aligns with its other instrument groups). The Lean flow projection model this group was opened for (--project, --rank, the shadow overlay and the schedule table) is dropped: its own carry states it saves no round-10 time, and the machinery freeze after v10.0.0 leaves no later round to use it. Scope, in tools/plan/replan.py and tools/policy/brief_lint.mjs: (1) a group is live by evidence (a live ref, an open pull request, a design ref), not by its stage word; (2) an absorbed group is not scheduled as open work; (3) a ready critical-path group starts past the slots cap, as dispatch already does; (4) the stamp cadence the owner set; (5) brief_lint's roster index, the merge-time carry fold and the control lint (#2438, owner-approved 2026-10-29). Each carry names its own controls. Re-measure every figure a carry states at this group's merge base; carry no count.",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-flow-toolkit-model",
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
-    "note": "Lean flow study 2026-10-21 (owner-adopted)"
+    "note": "Lean flow study 2026-10-21 (owner-adopted)",
+    "pr": 3264
    }
   },
   {
@@ -9215,9 +9216,9 @@
     "R10-FLOW-AUTOTRAIN forward-carry item 1 (PR body at b3dceb5ca): nudge.md step 3 says to leave budget-file and policy-path heads out of the queue and direct-merge them (step 7). The pitch queues them for the batch's serial route instead, where `--pre-flight` parks a budget raise or policy head the owner has not approved at that head. Step 3's hand procedure, which names `merge_train.py run` (serial, no admission routing), now disagrees with the mechanism it describes. The orchestrator or R10-POLICY-ROLE-PACK should bring step 3 into line, or rule that the builder filters them. Control: diff nudge.md step 3 against `Train.admit_verdict` and `sweep_template.md` item (3); no contradiction remains. Not yet in that group's roster carry: this seat writes no roster. Carry: R10-POLICY-ROLE-PACK"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-policy-role-pack",
-    "commit": null,
+    "commit": "41aa9050fc874f0bc394fba9188f9229fd9cb502",
     "last_step": null,
     "next_step": "dispatch a fixer once every after group is done",
     "note": "owner card 1 recommendation (b), 2026-10-24",
@@ -17453,7 +17454,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3263
    },
    "brief": "Owner ruling tvofi 2026-11-06: the nightly red does not block merges or stamps, but a fixer is owed. `tests / nightly-status` reads red on main and PRs with 'NIGHTLY FAILED: slow failed in the last verification dispatch'. Read the nightly lane's last report and .github/workflows/nightly.yml, find why the status grades main red (the slow lane failed in scheduled runs 41555367389, 41749544997, 41943946464 and dispatch 42235215315; later dispatches 42242870295, 42247578523 and schedule 42139479636 are green), fix the lane or the grading, and prove the red-to-green flip with a null control. Cite f-3245-nightly's (handoff/r10-process-slim) main-wide cause if its handoff holds one; do not duplicate it."
   },
@@ -17529,7 +17531,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3266
    },
    "brief": "Owner ruling tvofi 2026-11-06 (coordinator, via the dispatch seat): lower priority than #3232. Main's own CodeQL python job runs at 28 to 44.5 minutes against its 45-minute cap, so any growth of tests/features.py or tests/entities.py can cancel it (#3232 did: its new 364-line module-level try/finally block pushed the Python extraction of tests/features.py to 2211 s against entities.py's 378 s, ratio 5.85, where normal is 2.0 to 2.45; #3232 itself is reshaped by f-3232-reshape, topic r10-ext-3226). Cure the cause, not the cap: move the large module-level code of tests/features.py and tests/entities.py into functions called once (nested module-level try/finally is what the extractor is slow on), with no behaviour change, and do not raise the cap or exclude files from the scan. Measure first, at your merge base, the CodeQL python log line 'Extracted file ... in N ms' for features.py and entities.py on the last main runs, and again after the change on a CI run at your head; report the job duration before and after and a null control (an unchanged file's extraction time does not move). All feature and entity checks must still pass with the same counts; re-run the mutants of any block you move. Coordinate with #3232: take its merged shape as the base if it has merged, otherwise leave its blocks to f-3232-reshape."
   },
@@ -17571,9 +17574,10 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "design",
+    "stage": "in-progress",
     "branch": "design/r10-combi-tank",
-    "note": "size L is provisional; the design sets the final size and owning seam"
+    "note": "size L is provisional; the design sets the final size and owning seam",
+    "pr": 3268
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted: \"Have a seat pre study the design for 3225 with the target of efficient and robust integration in the ongoing round, after design review fold the fix in a suitable place in the plan.\" Issue #3225 (outside user Bankaifan): no way to model a combi tank where the space-heating buffer and DHW are the same water. Setup: alpha innotec LWDV 91-1/3 (Luxtronik) with an MFS 600 S multifunction tank, 572 l of heating water charged for both space heating and DHW, DHW made on demand through an internal exchanger (39 l / 7.5 m2), no separate DHW tank, zoned returns (DHW return 765 mm, heating return 400 mm), ONE probe in use at 1250 mm, both buffer_tank_temp_entity and dhw_temp_entity point at it; datasheet standing loss 3100 Wh/24 h; current config topology_layout single_tank_valve, mixing_valve_mode smart_write. Read the whole issue body and its comment. DESIGN ONLY, never production code, note at design/r10-combi-tank. Cover: how the existing topologies and the DHW/buffer model represent or fail to represent a shared tank; the minimal sound change (a new topology against a parameterisation of an existing one); sensor handling with a single probe; effects on the solver, the comfort guard and the DHW trajectory seed (R10-BUFFER-STORE carry 1, the open-loop tank seed: this design may be its natural owner); the test fixtures to add; a size estimate and the owning seam. Target: efficient and robust integration in the ongoing round."
   },
@@ -17649,7 +17653,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3265
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted verbatim, and cite it verbatim in the body: \"The HTML plan seems to incorrectly place some instrument or CI fixes in the core model lane, fix that\". 1. Find where a group's lane is decided. The page comes from tools/audit/seat/plan_page.py over tools/plan/replan.py's plan JSON. The lane may be derived in either file or from roster fields such as seam, paths or kind. 2. List every group in the current plan (the live plan JSON the orchestrator renders; re-measure it at your merge base from the roster with replan.py, do not trust a stale copy) that sits in the core-model lane but whose owning files are instruments or CI: tools/, tests/ graders, .github/. Check each against its roster brief and owning seam. 3. Fix the classification at its source, not per group. A failing check comes first. Add a null control: a real core-model group, such as one touching custom_components/heatpump_optimizer, must stay in the core lane. 4. Put the before and after lane lists in the body."
   },
@@ -17685,7 +17690,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started"
+    "stage": "in-progress",
+    "pr": 3267
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted verbatim, cite it in the body: \"There should already be tracked sweep templates/scripts for these, update them if needed\". Read the instruments guide first (tools/audit/seat/ inventory). Fold the 2026-11-06 out-of-tree sweep changes into the tracked sweep instruments under tools/audit/seat/ (sweep_render.py, its template, and any tracked sweep runner). The changes, to be diffed against the orchestrator's out-of-tree sweep-runner directory (the orchestrator state dir s9/sweep-runner; the dispatch seat names no host path in the body): (a) Gantt inputs: handoffs live only if committed within 12 h, and fires filtered to 12 h, passed as --fired; (b) the verdict audit (UNHELD lines every second pass), from the out-of-tree verdict audit script in that directory; (c) the plan republish emit; (d) the manual roster-drain path. Each change must come with a self-test. If a tracked counterpart does not exist, say so in the body rather than inventing one. No host paths or secrets in anything committed."
   },
@@ -17706,9 +17712,10 @@
    "issues": [],
    "fixes": [],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": null,
-    "note": "overlap admitted (R10-HOTFIX-NIGHTLY-STATUS): distinct seam: nightly.yml mutation-ledger drain jobs and tests/mutation_table.py draw; R10-HOTFIX-NIGHTLY-STATUS owns the nightly_status grader only (its fixer is already fired)"
+    "note": "overlap admitted (R10-HOTFIX-NIGHTLY-STATUS): distinct seam: nightly.yml mutation-ledger drain jobs and tests/mutation_table.py draw; R10-HOTFIX-NIGHTLY-STATUS owns the nightly_status grader only (its fixer is already fired)",
+    "pr": 3269
    }
   },
   {
