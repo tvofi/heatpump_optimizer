@@ -1662,7 +1662,15 @@ class Train:
                     return red
             if only is None and runs and len(runs) >= self.min_runs and all(
                     c.get("status") == "completed" for c in runs):
-                return sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+                red = sorted(n for n, c in last.items() if c["conclusion"] not in GREEN)
+                # Every unit concluded, so gate.py's `busy` names no run; the
+                # sweep's re-run of a deferred red takes the train's settle.
+                if not (GATE in red and settle < SWEEP_SETTLE_POLLS
+                        and any(run_state(c) == "green" for c in gate_suites(runs))):
+                    return red
+                settle += 1
+                self.log(f"gate red at {h[:8]} beside a green gate suite, every run concluded: "
+                         f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
             now = self.clock()
             # A poll slower than the beat prints ONE beat, whose elapsed names
             # the true wait; a boundary-exact tick never prints twice.
