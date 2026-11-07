@@ -1,0 +1,4 @@
+RESULT wood notes=1 want=1 ok message="Heating and hot water cost 812.0 SEK, 204.0 SEK (20.0 %) less than a plain thermostat would have. The saving includes heat from wood. Firewood's cost is not counted."
+RESULT no-wood notes=0 want=0 ok message='Heating and hot water cost 812.0 SEK, 204.0 SEK (20.0 %) less than a plain thermostat would have.'
+RESULT no-saving notes=0 want=0 ok message='Heating and hot water cost 812.0 SEK.'
+rc=0

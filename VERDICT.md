@@ -1,61 +1,83 @@
-Fix review: blocked a258212553e123d735c7eff139a8e347a1a52ea3 ci-red: required gate concluded failure at this head, three edit-run gates deferring to one another
+Fix review: blocked 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 ci-red: CodeQL code-scanning alert 50 py/jinja2/autoescape-false on the new render harness, unanswered in Red checks, so pr-contract and the code gate are red
 
-bus-nonce: 76f26679dddd96f7ff72917aa9f3d039
+bus-nonce: 87d2fb78f58176bbc3387d9dabb56fbe
 
 ## Block
 
-Round 3 of the fix review of #3244 (R10-HOTFIX-SAV-ESTIMATE part 2, topic r10-sav-wood-heat), at head a258212553e123d735c7eff139a8e347a1a52ea3.
+This is fix-review round 4 of #3244 (R10-HOTFIX-SAV-ESTIMATE part 2, topic r10-sav-wood-heat), at head 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08.
 
-`python3 tools/audit/seat/merge_train.py classify a258212553e123d735c7eff139a8e347a1a52ea3 --pr 3244` prints `RED a258212553e123d735c7eff139a8e347a1a52ea3 pending: none red: gate` (rc 1), and printed the same on every run of this session (`ev/classify_2.txt`, `ev/classify_3.txt`, `ev/classify_final.txt`). A red CI never carries, so this head cannot take `merge`.
+`python3 tools/audit/seat/merge_train.py classify 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 --pr 3244` prints `RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate` (rc 1). It printed that on every run from 23:36Z to 00:49Z (`ev/classify_series.txt`, `ev/classify_final.txt`). A red CI never carries.
 
-The red is not the diff's. The code run 42286556863 passed its `gate` (job 128172572226, success 21:45:53Z) after its CodeQL python rerun went green. Then all three edit runs' gates were re-run inside 2 s of one another: 42286558101 (job 128173052224), 42286624031 (job 128173059639) and 42293328283 (job 128173073456). Each listed the other two as busy and failed at once with `FAIL run(s) [...] at this head are still being judged; their gate decides`, because `deferring()` sets bound 0 (`ev/ci_gate_reds.txt`). That is the liveness defect `R10-HOTFIX-GATE-BUSY-DEFER` already owns (tools/ci/gate.py `busy()`). Nothing re-judges the head without a new trigger: `gate-sweep.yml` runs only on `workflow_run`.
+This time the red is the diff's own. Round 3's deferral loop is not the cause.
+- `CodeQL` (check run 128216329154) concluded `failure`: "1 new alert including 1 high severity security vulnerability … in code changed by this pull request". The packet rendered it while it was still `neutral`.
+- The alert is code-scanning alert 50, `py/jinja2/autoescape-false`. Its only possible site is `dev/audit/harnesses/r10_sav_receipt_render.py:73`, `template = jinja2.Environment().from_string(receipt_message(path))`, which this PR adds. It is the only `jinja2.Environment` in the tree at the head, and `git grep jinja2.Environment origin/main` returns nothing.
+- `pr-contract / pr-contract` (job 128227675815, code run 42312136574) started at 00:02:20Z, after every other job had concluded. It refused the body twice: `check \`CodeQL\` is red and \`## Red checks\` does not name it` and the same for `code-scanning alert 50 (py/jinja2/autoescape-false)`. The body's `## Red checks` reads "none: the final head has not run CI".
+- The code run's `gate` (job 128227976173) failed on `pr-contract / pr-contract: failure (this run)`. The two edit-run gates only deferred to it (`FAIL run(s) [42312136574] at this head are still being judged; their gate decides`). Details are in `ev/ci_reds.txt`. Carry: dismissed: evidence, not a finding
 
-Unblock: re-run one edit run's `gate` alone (not all three at once), or push a new body event, then re-classify. Every code finding below supports `merge` on a GREEN re-judge of this same head, so a re-dispatch can confirm CI and carry this review (`review_carry.py`).
+Step 11 applies: the head's workflows have all concluded, and a `pr-contract` run started after the last red. The body owes an answer to `CodeQL` / alert 50: the cheaper detector and its standing cost, or the finding that none exists. No ruff or bandit is installed on this host (`ev/ruff_s701.txt`, the S701 rule), so I cannot name one as present.
 
-Step 11 (red-check answer) is not judged. The head's last `pr-contract` run started at 21:44:07Z, before the 21:46Z reds, so the rule's precondition does not hold. The body's `## Red checks` was written at 21:05Z and does not name these three reds.
+Unblock, the fixer's choice: change the harness's environment so CodeQL no longer flags it, then re-run the render arms. Note that `select_autoescape()` escapes string templates by default, which would turn the note's apostrophe into `&#39;` and break the arms' count. Or keep the harness, dismiss the alert with a reason, and answer it in `## Red checks`. Either way, re-classify.
+
+Every code finding below supports `merge` once the head is GREEN.
 
 ## Findings
 
-- Follow-up: three edit-run `gate` jobs re-run together at one head each defer to the other two and all fail; no gate judges the head (#3244 at a258212553e1, 2026-11-06 21:46Z, the third case after #3239's pair). Carry: R10-HOTFIX-GATE-BUSY-DEFER
-- Follow-up: the card mutant `const wood = !!(fuel && fuel.show_whatif)` → `!!fuel` (a note on a house where wood is present but not configured) survives `tests/card.mjs` and dies only in `tests/card_browser.mjs` (`a house with no wood configured carries none`). The scoped gate selects no `card_browser`; only CI's `tests / browser` lane runs it, so a local scoped run cannot see that mutant. This is the body's M5 pattern on the other leg. It is covered in CI, so this is not a block. Carry: R10-HOTFIX-SAV-ESTIMATE | dismissed: covered by the tests browser lane
+- Follow-up: the card mutant R9, `const wood = !!(fuel && fuel.show_whatif)` → `!!fuel` (a note on a house where wood is present but not configured), and the body's C3 (`woodNote = false`) both survive `tests/card.mjs` and die only in `tests/card_browser.mjs`. Only CI's `tests / browser` lane runs that script, and it ran green at this head, so this is not a block. Round 3 raised the same point. Carry: R10-HOTFIX-SAV-ESTIMATE | dismissed: covered by the tests browser lane
 
 ## Evidence
 
-- Head: `ev/HEAD.txt` holds a258212553e123d735c7eff139a8e347a1a52ea3; the body's `## Head` names it. Merge base 9cbd7dd0d7a66163b5b593dfe55f1d8b220785de. `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- Merge: `git merge-tree --write-tree origin/main a258212553e1` exits 0 against origin/main 28482eceeb6b (`ev/merge_tree.txt`), and again against 80016a71f567 at the end (`ev/merge_tree_2.txt`). There is no conflict and no claim-driver line.
-- Review packet rendered here: `ev/review-packet.md`, refusal `required-red: gate` (the block above). carry_audit at the head: 5 body items, 5 routed.
-- Round-2 block re-measured (class-open: MonthlySavingsSensor). It is repaired: `sensor.py` `extra_state_attributes` publishes `saving_includes_wood` from `wood_fuel.saving_includes_wood`, the one definition the notifier also reads.
-- Class, by my own rule (`ev/class_enum.txt`): A, the value keys (`savings_sek|saving_sek|savings_pct|saving_pct|savings_months|monthly_receipt|plan_monthly_savings|saving_includes_wood|wood_note`), over custom_components, blueprints, README and docs, excluding design and decisions; B, every card `savings.*|receipt.*|headline.*|health.learn*` string key; C, the prose "plain thermostat|less than … would have|saved … against". Every consumer returned is in the body's table:
-  - Seams that state the metered saving, all of which now carry the wood statement: ledger (producer); coordinator `_grid_view`; notifier `_monthly_receipt`; MonthlySavingsSensor; card `receiptHtml` and `_savingsPageHtml`; the blueprint's "Monthly receipt" message; README; docs/automations.md; docs/dashboard-card.md; docs/how-it-works.md.
-  - Out of class, with no stated saving: card `HEALTH_WAITING` `["savings", "_plan_monthly_savings"]` (a status), `headline.savings*` (the projection), payload types, the optimizer comment, the icon and entity-name strings, and the legacy suffix alias.
-  - No seam is undispositioned.
-- Finder's harness, `r10_rca_sav_estimate.py census` (the copy at handoff/r10-rca-sav-estimate d8eeae8f8e51, sha1 04b644563c84d26378cad42a603dc050e7e5fd88, the same as the body's): at the base 9cbd7dd0d7a6 and at the head, the same six lines: `RESULT census single 1.00 ok`, `unvalved 0.92 ok`, `valve-at-curve 1.00 ok`, `valve-charged 1.00 ok`, `wood-warm 1.00 ok`, `wood-hot 1.00 ok`, rc 0 at both (`ev/census_base.log`, `ev/census_head.log`). It is flat by design, as the body says.
-- Carry B, re-derived at the head (`ev/wood_plant_head.log`, rc 0):
-  - `RESULT wood_plant_error_m0.8: mean +0.00 % min +0.00 max +0.00 sd 0.00 over 9 fires`
-  - `RESULT wood_plant_error_m1.0: mean +0.00 % … over 9 fires`
-  - `RESULT wood_plant_error_m1.2: mean -1.95 % min -4.50 max +0.00 sd 1.47 over 9 fires`
-  - No fire: plan 133.79 = drawn 133.79 kWh, error +25.00 % / +0.00 / +0.00 at m 0.8 / 1.0 / 1.2, flat 7.59 % at m 1.0 and 1.2.
-  - Perturbation (the pump blind to the fire): +0.00 % at every m.
-  - Every figure equals the body's.
-- Full suites at the head, run in full (`ev/head_rc.txt`):
-  - `features.py` rc 0 and `entities.py` rc 0 (`ev/head_features.log`, `ev/head_entities.log`).
-  - `structure.py` rc 0, STRUCTURE RATCHET PASSED; no budget moved.
-  - `plan_view.py && card.mjs` rc 0 and `card_browser.mjs` rc 0. My first card and browser runs omitted `PYTHONPATH=tests/hastub` for plan_view; that was my setup error, and the rc=1 lines in head_rc.txt are those runs. The rerun lines are the measurement.
-- Golden claims: `env_drift.py --all 9cbd7dd0d7a6` at the head rc 0, `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE` (`ev/head_env_drift.log`). Each of the five claimed coord_* moved exactly one leaf, `sensors.monthly_savings.extra_state_attributes.saving_includes_wood` (present on one side only), so every claim moved and every move is claimed. `claims-for: 7.1.4` equals VERSION 7.1.4, and claimed_drift.txt differs from the base only by the five claim lines. `card_claimed_drift.txt` is unchanged.
-- Protected files: `git diff --quiet <mb> HEAD -- VERSION manifest.json RELEASE_NOTES.md card_claimed_drift.txt` rc 0.
-- My own mutants, each in its own detached worktree at the head, one exact replacement (runner `ev/mut.py`, logs under `ev/mutants/`). Null control: entities rc 0, card rc 0.
-  - R1, blueprint guard → `data.saving_sek is not none`: killed by entities, on the blueprint wood check.
-  - R2, guard → `data.saving_includes_wood` alone: killed by entities, on the same check.
-  - R3, guard negated: killed by entities.
-  - R4, blueprint text → "Firewood is free.": killed by entities.
-  - R5, sensor attribute → `False`: killed by entities `((False, True), (False, False), (False, False))`.
-  - R6, notifier → `True`: killed by features, 1 of 4877 (the receipt-event check).
-  - R7, definition → `bool(data.get("wood_fuel"))`: killed by entities `((True, True), (True, True), (False, False))` and by features.
-  - R8, card receipt `${wood` → `${!wood`: killed by card.mjs (`the receipt's saving on a wood house says it includes wood's heat … (en, sv); none without wood`); browser rc 0.
-  - R9, card `!!(fuel && fuel.show_whatif)` → `!!fuel`: survives card.mjs, killed by card_browser (see Findings).
-  - R10, `receiptHtml` without `wood`: killed by card.mjs.
-  - The entities `a3:*` FAIL lines are its own negative self-tests and print in the null run too.
-  - The body's M11 and M12 are my R1 and R2 shape (both die). Its M8 is my R5 and dies. The sv string `savings.wood_note` reads "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." (card.js:1188); card.mjs's en and sv check dies under R8 and R10.
-- Figures not re-derived by me: the body's 65-line and 6-line counts for its own rule R (I ran my own rule instead), and the jinja2 render, which needs venv-ha (I did not run it; the source pin plus R1 to R4 cover the guard and text).
-- Delivery row `dev/programme/delivery/3244.md` is in the three-dot diff. Both Forward-carry items carry a `Carry:` line (carry_audit 5 routed, 0 unrouted).
-- CI at this head: every other context concluded success or skipped (`ev/review-packet.md` digest; get_check_runs, 81 runs).
+- Head: `ev/HEAD.txt` holds 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08. The body's `## Head` names it, and `git ls-remote` reads the same at 00:48Z. The merge base is 28482eceeb6b. `git diff 2c147208a00d 8bc540e0` is empty, so the head's code is the handoff `2c147208`.
+- Role contract: `git diff <mb>...origin/main -- dev/governance/roles/` is empty, so the contract is current. This is round 4, and the body carries the re-cut that `fixer.md` owes (`## Re-cut`).
+- Delta since round 3 (`a258212553e1`, three-dot against three-dot): the new `dev/audit/harnesses/r10_sav_receipt_render.py`, its `tests/closures.json` INERT entry, and the `tools/policy/agreement.mjs` `SHARED_GRAMMARS` entry. Production code, tests, docs and goldens are byte-identical to round 3's.
+- Merge: `git merge-tree --write-tree origin/main 8bc540e0` exits 0 against origin/main 80016a71f567, with `LEDGER-MERGE: resolved tests/closures.json`. There is no conflict and no `MERGE-CLAIM` line (`ev/merge_tree.txt`).
+- Review packet rendered here (`ev/review-packet.md`): refusals none at render. carry_audit at the head: 3 items, 3 routed.
+- Finder's harness: `r10_rca_sav_estimate.py census`, the copy at `handoff/r10-rca-sav-estimate` d8eeae8f8e51, sha1 04b644563c84d26378cad42a603dc050e7e5fd88, the same as the body's. I ran it at the base 28482eceeb6b and at the head (`ev/census_base.log`, `ev/census_wt.log`). Both ends print the same six lines and rc 0, so it is flat by design, as the body says:
+  - `RESULT census single: booked over horizon mean 1.00 ok`
+  - `unvalved 0.92 ok`
+  - `valve-at-curve 1.00 ok`
+  - `valve-charged 1.00 ok`
+  - `wood-warm 1.00 ok`
+  - `wood-hot 1.00 ok`
+- Companion at both ends: `/opt/hpo/venv-ha/bin/python dev/audit/harnesses/r10_sav_receipt_render.py` (sha1 b97e785bf7c0, equal to the body's).
+  - At the head (`ev/render_head.txt`), rc 0: `RESULT wood notes=1 want=1 ok`, `RESULT no-wood notes=0 want=0 ok`, `RESULT no-saving notes=0 want=0 ok`.
+  - On the base's blueprint (`ev/render_base.txt`), rc 1: `RESULT wood notes=0 want=1 DEFECT`.
+  - Round 3 did not run this render. I have now run it, and it reads the defect at the base and not at the head.
+- Class, by my own rule (`ev/class_enum.txt`):
+  - A, the value keys `savings_sek|saving_sek|savings_pct|saving_pct|savings_months|monthly_receipt|plan_monthly_savings|saving_includes_wood|wood_note|MonthlySavingsSensor` over custom_components (less www), blueprints, README.md and docs, excluding design and decisions.
+  - B, the card's `savings.*|receipt.*|headline.*|health.learn_*` keys.
+  - C, the prose `plain thermostat|would have|saved … against|monthly receipt`.
+  - Every file A returns is in the body's table. C's extra hits are code comments, the Contract Comparison strings (a contract comparison, not the no-wood reference), and the blueprint input description `notifications.yaml:25-28`, which names the event and states no figure.
+  - MonthlySavingsSensor states wood (`saving_includes_wood`), so the round-2 block stays repaired. No seam is undispositioned.
+- The body's figures, re-derived at the head with its own commands (`ev/body_rules.txt`): R1 43 lines over 15 files, R2 12, R3 102, R1 on `dea3c729 -- blueprints` 4. All equal the body's.
+- Full suites at the head, run in full:
+  - `entities.py`: ALL 2639 ENTITY CHECKS PASSED, rc 0.
+  - `features.py`: ALL 4877 FEATURE CHECKS PASSED, rc 0.
+  - `structure.py`: STRUCTURE RATCHET PASSED, rc 0.
+  - `plan_view.py && card.mjs`: ALL CARD CHECKS PASSED, rc 0.
+  - `card_browser.mjs`: ALL BROWSER CHECKS PASSED, rc 0.
+  - My first card and browser run omitted `plan_view.py`. That was my setup error, and the rerun is the measurement. The `FAIL a8:*` and `a9:*` lines (7) in entities are its own negative self-tests and print in the null run too.
+- Golden claims: `env_drift.py --all 28482eceeb6b` at the head, rc 0 (`ev/env_drift.log`): `NO UNCLAIMED DRIFT: 56 scenario(s)` and `NO STALE FIXTURE`. `claims-for: 7.1.4` equals VERSION 7.1.4. `claimed_drift.txt` adds only the five `coord_*` claim lines, and each of those moves one key, `saving_includes_wood`. `card_claimed_drift.txt` is unchanged.
+- Protected files: `git diff --quiet 28482eceeb6b HEAD -- VERSION manifest.json RELEASE_NOTES.md card_claimed_drift.txt` exits 0.
+- Mutants: my own, plus every mutant the body lists. Each ran in its own detached worktree at the head with one exact replacement (runner `ev/mut.py`, logs `ev/mutants/*.txt`). The null control is the head's own full runs above.
+  - B1, blueprint note deleted: killed by entities (the blueprint check) and by the render (`wood notes=0 DEFECT`).
+  - B2, guard → `saving_sek is not none`: killed by entities and by the render (`no-wood notes=1 DEFECT`).
+  - B3, second wording: killed by entities and by the render.
+  - B4, guard → `saving_includes_wood` alone: killed by entities and by the render (`no-saving notes=1 DEFECT`).
+  - R3, guard negated: killed by entities and by the render.
+  - R11, `and` → `or`: killed by entities and by the render.
+  - S1 and S2, the sensor attribute → `False` / `True`: killed by entities (`((False, True), …)` and `((True, True), (True, False), (True, False))`).
+  - N1 and N2, the notifier → `False` / `True`: killed by entities and by features (1 of 4877, the receipt-event check).
+  - D1, the definition → `bool(data.get("wood_fuel"))`: killed by entities and by features.
+  - D2, the definition → `.get("ready")`: killed by features only. The entities wood case sets `ready` and `show_whatif` together.
+  - L1, the mutation ledger's own RETURN_DEL (`pass`): killed by entities `((None, None), …)` and by features (1 of 4877). The ledger entry is earned.
+  - C1, the receipt note → empty: killed by card.mjs.
+  - C2, `wood = true`: killed by card.mjs and by card_browser.
+  - C3, `woodNote = false`: survives card.mjs, killed by card_browser (`a house with wood configured carries the disclaimer`).
+  - R8, receipt `${wood` → `${!wood`: killed by card.mjs.
+  - R9, `wood = !!fuel`: survives card.mjs, killed by card_browser (`a house with no wood configured carries none`; see Findings).
+  - R10, `receiptHtml` called without `wood`: killed by card.mjs.
+  - R12, the sv `savings.wood_note` → the en text: killed by card.mjs (the en/sv check).
+- Carry B (`wood-plant`): not re-run this round. The harness's sha1 dfcdcc46269e and its code are unchanged since round 3, which re-derived every figure (mean −1.95 %, min −4.50 at m 1.2; +0.00 % at m 0.8 and 1.0; perturbation +0.00 %).
+- Figures I did not re-derive: the scoped gate's `MODE: SCOPED -- 28 script(s) run` (I cite CI's heavy runs and do not re-run the gate), and the agreement lane line, for which I cite CI's `governance / policy-docs`, green at this head.
+- Closing self-audit: `carry_audit.py check --comments <this verdict>` exits 0, 2 routed and 0 unrouted (`ev/carry_audit_verdict.txt`). It ran with an empty `--body`, because the PR body was read over MCP and not saved here. The packet's own carry_audit of the body read 3 routed.
+- Delivery row `dev/programme/delivery/3244.md` is in the three-dot diff. The one Forward-carry item carries a `Carry:` line (carry_audit 3 routed, 0 unrouted).
