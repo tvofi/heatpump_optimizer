@@ -1,0 +1,5 @@
+head d6482b704bb11831c12001ffc0b0210a47c35483: governance / instrument-self-tests job 128289649754 (run 42334641003, attempt 1)
+started 2026-11-07T03:40:04Z completed 2026-11-07T03:50:35Z conclusion success = 631 s (10m31s) of 1800 s timeout, 65% headroom
+launcher step 4: 03:40:26-03:40:26; waiter steps 100-103 0 s each (03:49:03); step 104 (PR updater) 03:49:03-03:50:33 = 90 s waiting on the chain
+log tail: "pr_args self-test: 174 checks, 0 failed" at 03:50:33.2199489Z (update-pr's log)
+source: GitHub actions get_workflow_job / get_job_logs via MCP
