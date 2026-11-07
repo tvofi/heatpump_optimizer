@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/optimizer.py:HeatPumpOptimizer.get_current_action BOOLOP 8458ecd6",
-  "killed_by": "tests/features.py",
-  "old": "        if result.lower_setpoints and i < len(result.lower_setpoints):",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`if result.lower_setpoints or i < len(result.lower_setpoints):`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

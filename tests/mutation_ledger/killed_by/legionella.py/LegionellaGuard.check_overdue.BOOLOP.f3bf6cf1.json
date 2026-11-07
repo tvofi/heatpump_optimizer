@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/legionella.py:LegionellaGuard.check_overdue BOOLOP f3bf6cf1",
-  "killed_by": "tests/features.py",
-  "old": "            watched=bool(params.dhw_enabled and params.dhw_legionella_enabled)",
-  "reason": "Recorded by `mutation_table.py --pin-killed`: BOOLOP (`watched=bool(params.dhw_enabled or params.dhw_legionella_enabled)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

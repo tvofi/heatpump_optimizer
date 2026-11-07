@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/services.py:handle_assign_entity GUARD_OFF 0bf43298",
-  "killed_by": "tests/entities.py",
-  "old": "        if write_setpoint:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
-}

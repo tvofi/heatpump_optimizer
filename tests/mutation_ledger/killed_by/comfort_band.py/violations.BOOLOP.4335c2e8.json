@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/comfort_band.py:violations BOOLOP 4335c2e8",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "    night_below_band = night < minimum and minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`night_below_band = night < minimum or minimum <= COMFORT_TEMP_NIGHT_SELECTOR_MAX`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=16."
-}

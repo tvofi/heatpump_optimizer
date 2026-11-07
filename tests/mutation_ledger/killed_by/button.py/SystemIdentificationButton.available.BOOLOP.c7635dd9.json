@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/button.py:SystemIdentificationButton.available BOOLOP c7635dd9",
-  "killed_by": "tests/entities.py",
-  "old": "            super().available and not self.coordinator.system_identification_active",
-  "reason": "Recorded by `mutation_table.py --drain`: BOOLOP (`super().available or not self.coordinator.system_identification_active`) took tests/entities.py from rc=0 failed=0 to rc=1 failed=2."
-}

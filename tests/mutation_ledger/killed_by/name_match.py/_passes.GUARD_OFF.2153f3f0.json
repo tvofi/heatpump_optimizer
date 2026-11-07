@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/name_match.py:_passes GUARD_OFF 2153f3f0",
-  "killed_by": "tests/features.py",
-  "old": "    if record.domain not in role.domains:",
-  "reason": "Recorded by `mutation_table.py --drain`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
-}

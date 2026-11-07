@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/topology.py:_sensor_gap_lines CMP_BOUND e2e319d2",
-  "killed_by": "tests/features.py",
-  "old": "    ranked = [g for g in gaps if float(g.get(\"sek_per_month\") or 0) > 0]",
-  "reason": "Recorded by `mutation_table.py --drain`: CMP_BOUND (`ranked = [g for g in gaps if float(g.get(\"sek_per_month\") or 0) >= 0]`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

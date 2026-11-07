@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/price_model.py:PriceShapeModel.sigma RETURN_DEL 19466354",
-  "killed_by": "tests/features.py",
-  "old": "        return float(level * np.sqrt(var) * self.confidence(when))",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
-}

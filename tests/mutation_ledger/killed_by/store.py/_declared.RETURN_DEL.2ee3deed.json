@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/store.py:_declared RETURN_DEL 2ee3deed",
-  "killed_by": "tests/debug_collect.py",
-  "old": "    return domain is not None and in_domain(domain, value)",
-  "reason": "Recorded by `mutation_table.py --pin-killed` against 9a1ce39c3e901c814fceb015f09eec75f1a5ef5f: RETURN_DEL (`pass`) took tests/debug_collect.py from rc=0 failed=0 to rc=1 failed=6."
-}

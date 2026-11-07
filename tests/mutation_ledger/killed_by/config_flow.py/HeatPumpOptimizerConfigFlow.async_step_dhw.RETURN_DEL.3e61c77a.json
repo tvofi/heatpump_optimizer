@@ -1,6 +1,0 @@
-{
-  "anchor": "custom_components/heatpump_optimizer/config_flow.py:HeatPumpOptimizerConfigFlow.async_step_dhw RETURN_DEL 3e61c77a",
-  "killed_by": "tests/config_flow_steps.py",
-  "old": "                return await self.async_step_weather_sensitivity()",
-  "reason": "Recorded by `mutation_table.py --drain`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=2."
-}
