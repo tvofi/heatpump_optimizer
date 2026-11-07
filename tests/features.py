@@ -68878,7 +68878,9 @@ R.check(
 # moved between arm64 and CI's x86_64. So the checks pin what the mechanism
 # guarantees on every platform -- a strictly lower objective where it wins,
 # never a higher one, and a plan that books above the floor -- not a cell's
-# basin.
+# basin. In the hot-water cells space ships projected against the DHW plan
+# (#3289, ``project_space_against``): before that, two cells shipped space
+# plus DHW above their 5.5 kW p_max; the checks' predicates hold either way.
 import heatpump_optimizer.optimizer as _sp_opt_mod  # noqa: E402
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _SpOpt,
