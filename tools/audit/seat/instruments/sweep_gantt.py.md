@@ -8,9 +8,9 @@
   each time the plan html is updated, mechanically, and surface slips to act
   on, defer or accept. Handoffs count as live only when the tip was committed
   within 12 h, and fire lines are filtered to 12 h (ruling 2026-11-06); the
-  `--handoff-rows` and `--fired-ledger` forms apply both filters here. Acks
+  `--handoff-rows` form and `--fired` apply both filters here. Acks
   are `<ISO> <KEY> act|defer|accept` lines; `accept` also re-baselines. When:
-  every second pass of `sweep_runner.sh`, or by hand after a plan update.
+  the beat's `gantt` row (`beat_jobs.py`) every 30 minutes, or by hand after a plan update.
   Refusal: a missing baseline is seeded from `--plan`, never an error.
   `--self-test` drives each slip kind, the 12 h filters and the ack forms
   beside their null controls.

@@ -16,9 +16,9 @@ bounded to the last 12 h (LIVE_H) before they count:
                             handoffs keep old tips) and returns the refs;
   recent_fired(lines, now)  keeps a ledger line only when its leading UTC stamp is
                             within 12 h.
-`--handoffs` takes the file of refs and `--fired` the ledger; the `--handoff-rows`
-and `--fired-ledger` forms apply the 12 h filters here, so the runner has no
-second copy of them. Both filters are applied at their one owner, this file.
+`--handoffs` takes a file of refs, unfiltered; `--handoff-rows` takes the rows and
+`--fired` the ledger, and both apply the 12 h filter here, so the beat's `gantt` row
+(`beat_jobs.py`) holds no second copy of them: this file is their one owner.
 
 Slip kinds, one line each, `GANTT-SLIP <KEY> <detail>`:
   IDLE:<group>     the plan starts the group by now (+GRACE) and nothing is working on it:
