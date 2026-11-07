@@ -1,0 +1,30 @@
+## base
+2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 780 s (judge takes a clock: True)
+2754: sweep present re-runs 0 RESIDUAL-RED 0
+2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 780 s (judge takes a clock: True)
+2754-red: sweep present re-runs 0 RESIDUAL-RED 0
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 120 s (judge takes a clock: True)
+pair: sweep present re-runs 0 RESIDUAL-RED 0
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 120 s (judge takes a clock: True)
+cascade: sweep present re-runs 2 RESIDUAL-RED 0
+editcode: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 600 s (judge takes a clock: True)
+editcode: sweep present re-runs 0 RESIDUAL-RED 0
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+prelude: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 480 s (judge takes a clock: True)
+prelude: sweep present re-runs 0 RESIDUAL-RED 0
+## head
+2754: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+2754: sweep present re-runs 2 RESIDUAL-RED 0
+2754-red: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+2754-red: sweep present re-runs 3 RESIDUAL-RED 0
+pair: verdicts 2 UNDECIDED-RED 2 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+pair: sweep present re-runs 2 RESIDUAL-RED 0
+cascade: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+cascade: sweep present re-runs 3 RESIDUAL-RED 0
+editcode: verdicts 2 UNDECIDED-RED 1 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+editcode: sweep present re-runs 1 RESIDUAL-RED 0
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+single: sweep present re-runs 0 RESIDUAL-RED 0
+prelude: verdicts 3 UNDECIDED-RED 2 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+prelude: sweep present re-runs 2 RESIDUAL-RED 0
