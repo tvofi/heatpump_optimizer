@@ -62,9 +62,9 @@
 # about one release's diff, it does not expire with the stamp and is not part
 # of the inherited-claims comparison.
 #
-# claims-for: 7.1.4
+# claims-for: 7.1.5
 #
-# v7.1.4: release and audit machinery: stamp base, gate lease. The stamp empties the list; the
+# v7.1.5: Bounded process worker wait (outside contribution #3232); round-10 machinery. The stamp empties the list; the
 # next branch restates its own footprint, claims included.
 #
 coord_all_features # R10-SAV-WOOD-HEAT: the monthly-savings sensor publishes saving_includes_wood (true on the wood house, false elsewhere); one key added, no value moved; structure-only edit of the committed file, never recorded
