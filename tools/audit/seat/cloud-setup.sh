@@ -52,8 +52,8 @@ CORETYPE=Haswell
 # so the four variables git reads first are exported; a runner default
 # (Claude <noreply@anthropic.com>) then cannot author a seat's commit. The values
 # are cloud_dispatch.py's SEAT_NAME and SEAT_EMAIL (its self-test asserts they agree).
-SEAT_NAME=seat
-SEAT_EMAIL=seat@users.noreply.github.com
+SEAT_NAME=hpo-fixer
+SEAT_EMAIL=70032254+tvofi@users.noreply.github.com
 # RUNNER_TEMP (D): a governance job's `run:` steps read it; a seat replaying one
 # has none. It is exported, not created: the replay does `mkdir -p "$RUNNER_TEMP"`.
 SELF=$(readlink -f "${BASH_SOURCE[0]}")

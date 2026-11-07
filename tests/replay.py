@@ -112,6 +112,7 @@ import math
 import os
 import re
 import shutil
+import statistics
 import subprocess
 import sys
 import tempfile
@@ -465,76 +466,79 @@ COST_DETECTION = 2.0
 #: 217.8-290.5, each edge 18-22 % inside; a loaded M1 (177-394, load average
 #: 30-200) spans more than a 2x band holds and is left out. ``peak_kib`` and
 #: ``loop_cpu_ratio`` over all four environments, the M1 included: 2514-2783
-#: and 0.137-0.227, the loop's edges 9-10 % inside.
+#: and 0.137-0.227 at that recording. The CI ``replay`` job reads the loop
+#: wider: 0.128 and 0.1339 (ref30: jobs 125240101580, 125160076828), 0.1418
+#: and 0.1433 (ref46: 125097530406, 125316010511), 0.189 (ref24: 125461180429),
+#: so under that recording's 0.249 budget its residual margin was the ref30
+#: reading, 2.8 % over the floor 0.1245, the ceiling side 24 %; round 3 below
+#: re-derives that budget.
 #: Re-centred (R10-REPLAY-COST-BUDGET) on the readings the CI ``replay`` job
 #: and nightly.yml ``slow`` take, from their own ``cost`` lines, and on
 #: nothing a reviewer's or author's box read. Owner fixture ``cpu_ratio``
 #: 235.8, 240.7 (ref_ms 30: job 125240101580 of run 41434115932, #3174; job
 #: 125160076828 of run 41405222589, #3167), 241.9, 246.0 (ref_ms 46: job
 #: 125097530406 of run 41389413359, #3078; job 125316010511, #3174): sqrt(2)
-#: x the geometric midpoint of 235.8 and 241.9 is 337.8, every reading 70-73 %
-#: of it; the ref_ms 53 class has not replayed it. Synthetic ``loop_cpu_ratio``
-#: 0.0901-0.1026 over the seven ref30, ref46 and ref53 jobs below: 0.1278,
-#: each ``loop doubled`` arm (0.179-0.2015) over it; the ref24 class reads
-#: 0.1282 and is keyed on its own reading. A box outside every class
+#: x the geometric midpoint of 235.8 and 241.9 was 337.8; round 3 re-derives
+#: it, and the owner ``loop_cpu_ratio``, by ``derive_cost_classes`` over the
+#: owner draws of ``COST_DRAWS`` (``cpu_ratio`` 204.2-271.2, one budget holds
+#: them, so it is not keyed by class). Synthetic ``loop_cpu_ratio``
+#: is one budget over every CI draw of ``COST_DRAWS``, each normalised by
+#: its job's pooled loop ruler (``job_cost``), by the rule
+#: ``derive_cost_classes`` states (R10-REPLAY-COST-BUDGET round 3). A box outside every class
 #: reads the loop figure higher at the same code (4 cores, ``loop_ref_ms``
 #: 87: 0.175; the reviewer's, 85-99: 0.152-0.191); the lane never runs on one.
-#: ``peak_kib`` and the owner fixture's ``loop_cpu_ratio`` stay. Synthetic
+#: ``peak_kib`` stays. Synthetic
 #: ``cpu_ratio`` is keyed by runner class, ``COST_CLASS_BUDGETS``.
 COST_BUDGETS: dict[str, dict[str, float]] = {
-    "synthetic-dhw-only.json": {"peak_kib": 2686.0, "loop_cpu_ratio": 0.1278},
-    "owner-2026-10-30-away.json": {"cpu_ratio": 337.8, "peak_kib": 3740.0,
-                                   "loop_cpu_ratio": 0.249},
+    "synthetic-dhw-only.json": {"peak_kib": 2686.0, "loop_cpu_ratio": 0.1527},
+    "owner-2026-10-30-away.json": {"cpu_ratio": 332.7976, "peak_kib": 3740.0,
+                                   "loop_cpu_ratio": 0.2154},
 }
-#: Runner classes, by the run's own BLAS ruler: its median reference-solve
-#: ms, the ``ref_ms`` its ``cost`` line prints -- never a runner's name. One
-#: synthetic ``cpu_ratio`` cannot serve them: the classes read 1.45-2.81 at
-#: the same code, more than the 2x one band holds, and the figure is not a
-#: function of the ruler (ref24, the fastest, reads 2.57, between ref46 and
-#: ref30), so a class is admitted only on its own readings, never
-#: interpolated. Each band is its ``ref_ms``
-#: readings (every clean and doubled run of the jobs cited in
-#: ``COST_CLASS_READINGS``) widened 5 % each way, the within-job spread being
-#: 2.3-3.2 %; the bands are disjoint. A run in no band is refused by name
-#: (``class_budget``), never graded against a neighbour's budget: a new
-#: runner class turns the lane red once, and its own ``cost`` lines are the
-#: readings that admit it here. Two rulers have read once each and are
-#: refused: 28.0 (job 125000687320, #3078: 1.89) and 34.4 (nightly job
-#: 123225871060: 1.87). The first lies 2.5 % under ref30 and reads 0.67-0.72x
-#: its ratios; a ref30 widened over it would not see its doubled arm (3.89).
-#: ``COST_RULERS_REFUSED`` holds them, so a band widened over either is red.
+#: Runner classes, by the job's BLAS ruler: the median ``ref_ms`` over the
+#: fixture's runs in one job, its clean run and its three doubled arms
+#: (``job_rulers``) -- never one run's ruler, which drifts 3.66 ms inside one
+#: job (127046649273: 47.28-50.94), nor a runner's name. One synthetic
+#: ``cpu_ratio`` cannot serve every class: CI's draws read 1.44-3.60 at the
+#: same code, more than the 2x one budget holds, and the figure is not a
+#: function of the ruler. ``derive_cost_classes`` states the rule that cuts
+#: the classes from every CI draw on record (``COST_DRAWS``), and the
+#: ``cycle_cost:class_rule`` control refuses a table the rule does not
+#: return: a hand-set band or budget is red. The bands are contiguous, half
+#: open, ``[lo, hi)``; a job ruler outside all of them is graded on
+#: ``fallback_budget`` and ``runner_notice`` prints it loudly.
 COST_RUNNER_CLASSES: dict[str, tuple[float, float]] = {
-    "ref24": (22.64, 25.53),
-    "ref30": (28.72, 32.69),
-    "ref46": (42.99, 49.51),
-    "ref53": (49.60, 56.78),
+    "ref23": (19.36, 25.63),
+    "ref28": (25.63, 29.17),
+    "ref31": (29.17, 35.81),
+    "ref38": (35.81, 38.92),
+    "ref40": (38.92, 42.96),
+    "ref47": (42.96, 51.12),
+    "ref53": (51.12, 57.34),
 }
-COST_RULERS_REFUSED: tuple[float, ...] = (28.01, 34.35)
-#: Per fixture and runner class, the budgets that differ by class: sqrt(2) x
-#: the geometric midpoint of that class's clean readings in
-#: ``COST_CLASS_READINGS``, every reading 69-72 % of its class's budget.
+
+#: Per fixture and runner class, the budgets that differ by class, from the
+#: same rule: sqrt(2) x the geometric midpoint of the class's clean draws.
 COST_CLASS_BUDGETS: dict[str, dict[str, dict[str, float]]] = {
-    "synthetic-dhw-only.json": {"ref24": {"cpu_ratio": 3.630, "loop_cpu_ratio": 0.1813},
-                                "ref30": {"cpu_ratio": 3.934},
-                                "ref46": {"cpu_ratio": 3.357},
-                                "ref53": {"cpu_ratio": 2.081}},
+    "synthetic-dhw-only.json": {"ref23": {'cpu_ratio': 3.7539},
+                                "ref28": {'cpu_ratio': 3.189},
+                                "ref31": {'cpu_ratio': 3.2877},
+                                "ref38": {'cpu_ratio': 3.4579},
+                                "ref40": {'cpu_ratio': 3.9874},
+                                "ref47": {'cpu_ratio': 3.3424},
+                                "ref53": {'cpu_ratio': 2.076}},
 }
-#: The lane readings each class budget is centred on: per cited job, its
-#: ``ref_ms``, the metric, its clean reading and its doubled arm's, from its
-#: ``cost`` lines. ref24: job 125461180429 (run 41498701363, #3174); ref30: jobs 125160076828 (#3167), 125240101580 (#3174); ref46: jobs
-#: 125097530406 (#3078), 125316010511 (#3174); ref53: nightly.yml ``slow``
-#: jobs 124414072168 (run 41159630948), 124725704090 (run 41264951784),
-#: 125036077984 (run 41369286061). A re-record appends its job here; the
-#: ``cycle_cost:class_budgets`` control holds every clean reading inside its
-#: class's band and every doubled arm over it.
-COST_CLASS_READINGS: dict[str, list[tuple[float, str, float, float]]] = {
-    "synthetic-dhw-only.json": [
-        (23.83, "cpu_ratio", 2.5671, 5.2086), (23.83, "loop_cpu_ratio", 0.1282, 0.2603),
-        (30.32, "cpu_ratio", 2.81, 5.701), (30.93, "cpu_ratio", 2.7543, 5.5315),
-        (45.65, "cpu_ratio", 2.3246, 4.6473), (46.36, "cpu_ratio", 2.4235, 4.7775),
-        (52.76, "cpu_ratio", 1.4563, 2.8848), (53.27, "cpu_ratio", 1.451, 2.841),
-        (52.43, "cpu_ratio", 1.4926, 2.9251)],
-}
+#: Every CI draw on record: one row per job, fixture and run (``clean`` or a
+#: doubled arm) with its rulers and figures, harvested from the ``tests /
+#: replay`` and nightly ``slow`` job logs by ``tools/audit/seat/replay_draws.py``.
+#: The ``cycle_cost:draws`` control grades every job of it as the lane does; a
+#: re-record appends the new jobs' rows and re-derives the tables.
+COST_DRAWS = ROOT / "tests" / "replay_cost_draws.tsv"
+COST_DRAW_FIGURES = ("ref_ms", "loop_ref_ms", "cpu_ratio", "peak_kib", "loop_cpu_ratio")
+#: A class border is a gap of at least this between two consecutive job
+#: rulers. On the draws of ``COST_DRAWS`` the largest step the rule leaves
+#: inside a class is 1.70 ms (job 126631977357 to 127046649273) and the
+#: smallest it cuts is 2.10 (127046649273 to 125051003592).
+COST_CLASS_GAP_MS = 2.0
 #: Fixtures the lane replays once, clean, without the three doubled-cost
 #: arms: each arm is a whole replay, and a fixture whose replay costs a large
 #: share of the lane's job time cannot be run four times inside it (the
@@ -649,20 +653,183 @@ def cost_offenders(figures: dict[str, float], budget: dict[str, float] | None,
     return out
 
 
+def runner_class(name: str, ref_ms: float) -> str | None:
+    """The class of ``COST_CLASS_BUDGETS[name]`` whose band holds ``ref_ms``,
+    or None: an unbanded ruler, or a fixture not keyed by class."""
+    keyed = COST_CLASS_BUDGETS.get(name, {})
+    return next((c for c, (lo, hi) in COST_RUNNER_CLASSES.items()
+                 if lo <= ref_ms < hi and c in keyed), None)
+
+
+def fallback_budget(name: str) -> dict[str, float]:
+    """The budget of a ruler in no band: each metric keyed by class at its
+    largest class budget, every other metric at its one ``COST_BUDGETS``
+    value (``cycle_cost:class_rule`` refuses a metric keyed both ways). It
+    holds every clean draw of the classes, and sees a doubling of any reading
+    above half of it (``cost_offenders`` refuses a lower one by name)."""
+    keyed = COST_CLASS_BUDGETS[name]
+    return {**COST_BUDGETS.get(name, {}),
+            **{k: max(b[k] for b in keyed.values() if k in b)
+               for b in keyed.values() for k in b}}
+
+
 def class_budget(name: str, ref_ms: float) -> tuple[dict[str, float] | None, list[str]]:
-    """``name``'s budget on the runner class ``ref_ms`` falls in, and the
-    refusal when a fixture keyed by class ran in no class's band: no default
-    and no neighbour's budget is assumed."""
+    """``name``'s budget on the runner class ``ref_ms`` falls in. A ruler in no
+    band is graded against ``fallback_budget``, not refused: CI's runners draw
+    rulers between and below the bands (R10-REPLAY-COST-BUDGET round 2), and
+    the lane printed ``runner_notice`` for it. A non-finite ruler is refused."""
     keyed = COST_CLASS_BUDGETS.get(name)
     if keyed is None:
         return COST_BUDGETS.get(name), []
-    runner = next((c for c, (lo, hi) in COST_RUNNER_CLASSES.items()
-                   if lo <= ref_ms <= hi and c in keyed), None)
-    if runner is None:
-        return None, [f"runner class unknown: ref_ms {ref_ms:.4g} lies in no band of "
-                      f"COST_RUNNER_CLASSES {sorted(COST_RUNNER_CLASSES.values())}; "
+    if not math.isfinite(ref_ms):
+        return None, [f"runner class unknown: ref_ms {ref_ms} is not finite; "
                       "no budget is assumed"]
+    runner = runner_class(name, ref_ms)
+    if runner is None:
+        return fallback_budget(name), []
     return {**COST_BUDGETS.get(name, {}), **keyed[runner]}, []
+
+
+def job_rulers(costs: list[dict]) -> tuple[float, float]:
+    """One job's rulers: the median ``ref_ms`` and ``loop_ref_ms`` over every
+    run of the lane in it, each fixture's clean run and doubled arms. Each run
+    times its own ruler, and one run's drifts (job 127310664875: synthetic
+    ``loop_ref_ms`` 279.78 against 158.40-161.42 on its arms; job
+    125652838863: owner fixture 189.64), so the runner's speed is the job's,
+    not the run's."""
+    return (statistics.median(c["ref_ms"] for c in costs),
+            statistics.median(c["loop_ref_ms"] for c in costs))
+
+
+def pooled_figures(cost: dict, loop_ruler: float) -> dict[str, float]:
+    """A run's graded figures: ``loop_cpu_ratio`` re-normalised from its own
+    loop ruler to the job's, ``cpu_ratio`` and ``peak_kib`` as measured.
+    Pooling the loop ruler holds the synthetic loop figure of every CI draw
+    on record inside one budget (``COST_DRAWS``: 0.0883-0.1320, a 1.50x
+    spread, where the runs' own rulers read 0.0594-0.1331, 2.24x); pooling
+    the solve ruler would widen the ref23 class's ``cpu_ratio`` from 1.84x to
+    1.92x, so the solve ruler picks the class and does not re-normalise."""
+    loop = cost["loop_cpu_ratio"] * cost["loop_ref_ms"] / loop_ruler \
+        if loop_ruler > 0 and math.isfinite(loop_ruler) else float("nan")
+    return {"cpu_ratio": cost["cpu_ratio"], "peak_kib": cost["peak_kib"],
+            "loop_cpu_ratio": round(loop, 4) if math.isfinite(loop) else loop}
+
+
+def job_cost(name: str, clean: dict, arms: dict[str, dict],
+             rulers: tuple[float, float]) -> dict:
+    """Grade one fixture's runs in one job on the job's ``rulers``
+    (``job_rulers``): the class is the job ruler's, and the clean run and every
+    doubled arm are held against that one budget. ``lines`` is what the lane
+    prints for it, the loud fallback notice included."""
+    ruler, loop_ruler = rulers
+    budget, refused = class_budget(name, ruler)
+
+    def graded(cost: dict) -> list[str]:
+        return refused or cost_offenders(pooled_figures(cost, loop_ruler), budget)
+
+    notice = runner_notice(name, ruler)
+    return {"ruler": ruler, "loop_ruler": loop_ruler, "class": runner_class(name, ruler),
+            "clean": graded(clean), "arms": {k: graded(c) for k, c in arms.items()},
+            "lines": [f"graded on the job's rulers: ref_ms {ruler:.4g} (class "
+                      f"{runner_class(name, ruler)}), loop_ref_ms {loop_ruler:.4g}",
+                      *([notice] if notice else [])]}
+
+
+def cost_draws(path: Path = COST_DRAWS) -> dict[tuple[str, str], dict[str, dict[str, float]]]:
+    """``COST_DRAWS`` as (job, fixture) -> run -> its rulers and figures."""
+    rows = path.read_text().splitlines()
+    head = rows[0].split("\t")
+    out: dict[tuple[str, str], dict[str, dict[str, float]]] = {}
+    for line in rows[1:]:
+        r = dict(zip(head, line.split("\t")))
+        out.setdefault((r["job"], r["fixture"]), {})[r["arm"]] = {
+            k: float(r[k]) for k in COST_DRAW_FIGURES}
+    return out
+
+
+def derive_cost_classes(draws: dict, name: str, gap_ms: float = COST_CLASS_GAP_MS,
+                        metrics: tuple[str, ...] = ("cpu_ratio", "loop_cpu_ratio")):
+    """The rule ``COST_RUNNER_CLASSES``, ``COST_CLASS_BUDGETS`` and the class-free
+    budgets are cut by, over ``name``'s jobs of ``draws``:
+
+    * the jobs sorted by ruler (``job_rulers``) split into classes at every gap
+      of at least ``gap_ms``; a class is named ``ref`` + its median job ruler;
+    * a border is that gap's midpoint; the outer edges are the extreme job
+      rulers widened 5 %;
+    * a metric whose clean draws (``pooled_figures``) one budget can hold --
+      the largest under ``COST_DETECTION`` x the smallest -- takes one budget;
+      any other is keyed by class;
+    * every budget is sqrt(COST_DETECTION) x the geometric midpoint of the
+      clean draws it holds (4 decimals), the centring rule of ``COST_BUDGETS``.
+
+    Returns (bands, class budgets, class-free budgets)."""
+    rulers = draw_rulers(draws)
+    jobs = sorted(((rulers[j], a) for (j, f), a in draws.items()
+                   if f == name and "clean" in a), key=lambda t: t[0][0])
+    groups = [[jobs[0]]]
+    for prev, cur in zip(jobs, jobs[1:]):
+        if cur[0][0] - prev[0][0] >= gap_ms:
+            groups.append([])
+        groups[-1].append(cur)
+    rs = [[r for (r, _), _ in g] for g in groups]
+    edges = ([rs[0][0] * 0.95] + [(a[-1] + b[0]) / 2 for a, b in zip(rs, rs[1:])]
+             + [rs[-1][-1] * 1.05])
+    names = [f"ref{round(statistics.median(r))}" for r in rs]
+    bands = {n: (round(lo, 2), round(hi, 2)) for n, lo, hi in zip(names, edges, edges[1:])}
+
+    def centre(vals: list[float]) -> float:
+        return round(math.sqrt(COST_DETECTION * min(vals) * max(vals)), 4)
+
+    def clean(group: list, key: str) -> list[float]:
+        return [pooled_figures(a["clean"], lr)[key] for (_, lr), a in group]
+
+    flat: dict[str, float] = {}
+    keyed: dict[str, dict[str, float]] = {n: {} for n in names}
+    for key in metrics:
+        every = [v for g in groups for v in clean(g, key)]
+        if max(every) < COST_DETECTION * min(every):
+            flat[key] = centre(every)
+        else:
+            for n, g in zip(names, groups):
+                keyed[n][key] = centre(clean(g, key))
+    return bands, keyed, flat
+
+
+def draw_rulers(draws: dict) -> dict[str, tuple[float, float]]:
+    """Each job of ``draws``: its rulers over every run of every fixture."""
+    runs: dict[str, list[dict]] = {}
+    for (job, _), arms in draws.items():
+        runs.setdefault(job, []).extend(arms.values())
+    return {job: job_rulers(costs) for job, costs in runs.items()}
+
+
+def draw_offenders(draws: dict) -> list[str]:
+    """Every job of ``draws`` graded as the lane grades it (``job_cost``): its
+    clean run within budget, and each doubled arm over it on its own metric."""
+    keys = {"cpu": "cpu_ratio", "memory": "peak_kib", "loop": "loop_cpu_ratio"}
+    out, rulers = [], draw_rulers(draws)
+    for (job, fixture), runs in sorted(draws.items()):
+        if "clean" not in runs:
+            continue
+        arms = {k: v for k, v in runs.items() if k != "clean"}
+        got = job_cost(fixture, runs["clean"], arms, rulers[job])
+        where = f"job {job} {fixture} (ruler {got['ruler']:.4g}, class {got['class']})"
+        out += [f"{where}: clean {o}" for o in got["clean"]]
+        out += [f"{where}: {k} arm not over budget: {got['arms'][k][:1]}" for k in arms
+                if not any(o.startswith(f"{keys[k]} ") and "over its budget" in o
+                           for o in got["arms"][k])]
+    return out
+
+
+def runner_notice(name: str, ref_ms: float) -> str | None:
+    """The loud line for a ruler in no band, graded on the fallback."""
+    if name not in COST_CLASS_BUDGETS or not math.isfinite(ref_ms) \
+            or runner_class(name, ref_ms) is not None:
+        return None
+    return (f"WARNING runner class unknown: {name} ref_ms {ref_ms:.4g} lies in no band "
+            f"of COST_RUNNER_CLASSES; graded on the FALLBACK budget {fallback_budget(name)} "
+            "(the largest class budget); append this job's rows to COST_DRAWS "
+            "(tools/audit/seat/replay_draws.py) and re-derive the tables to admit it")
 
 
 def arms_skip_offenders(skipped: set[str], committed: set[str]) -> list[str]:
@@ -819,26 +986,116 @@ def controls() -> list[tuple[str, bool, str]]:
         [20.0, 22.0], [r * 3 for r in ref], [4096])["cpu_ratio"]
     res.append(("control:cycle_cost:cpu_normaliser", cpu_solve_moved,
                 f"cpu_ratio {clean['cpu_ratio']}: solve x3 moved={cpu_solve_moved}"))
-    # Runner classes (R10-REPLAY-COST-BUDGET): each class's budget holds its
-    # own lane readings in band and sees its own doubled arm; one budget for
-    # every class could not. A ruler in no band is refused, by name.
+    # Runner classes (R10-REPLAY-COST-BUDGET round 3). The tables are the
+    # rule's over every CI draw on record: a hand-set budget (ref23 back at
+    # round 2's 3.630) or band is named.
     syn = "synthetic-dhw-only.json"
-    off = [(ref_ms, cost_offenders({key: c}, class_budget(syn, ref_ms)[0]),
-            cost_offenders({key: d}, class_budget(syn, ref_ms)[0]))
-           for ref_ms, key, c, d in COST_CLASS_READINGS[syn]]
-    res.append(("control:cycle_cost:class_budgets",
-                all(not c and any("over its budget" in o for o in d) for _, c, d in off),
-                str([(r, c[:1], d[:1]) for r, c, d in off if c or not d])))
-    # One probe in every gap between bands, one under the lowest, the rulers
-    # CI read and no band admits, and NaN.
-    bands = sorted(COST_RUNNER_CLASSES.values())
-    gaps = [(hi + lo) / 2 for (_, hi), (lo, _) in zip(bands, bands[1:])]
-    unknown = [class_budget(syn, x) for x in (*gaps, bands[0][0] / 2,
-                                              *COST_RULERS_REFUSED, float("nan"))]
-    pair("cycle_cost:runner_class_unknown",
-         [m for b, r in unknown if b is None for m in r if m.startswith("runner class unknown")]
-         if all(r for _, r in unknown) else [],
-         class_budget(syn, COST_CLASS_READINGS[syn][0][0])[1])
+    draws = cost_draws()
+    bands, keyed, flat = derive_cost_classes(draws, syn)
+
+    def table_offenders(classes: dict, class_budgets: dict, budgets: dict) -> list[str]:
+        out = ([f"COST_RUNNER_CLASSES {classes} is not the rule's {bands}"]
+               if classes != bands else [])
+        out += ([f"COST_CLASS_BUDGETS[{syn!r}] {class_budgets[syn]} is not the rule's {keyed}"]
+                if class_budgets[syn] != keyed else [])
+        for name in budgets:
+            got = derive_cost_classes(draws, name)
+            out += [f"COST_BUDGETS[{name!r}][{k!r}] {budgets[name].get(k)} is not the rule's {v}"
+                    for k, v in got[2].items() if budgets[name].get(k) != v]
+            out += [f"{name}: the rule keys {k} by class" for k in
+                    {k for b in got[1].values() for k in b} if name not in class_budgets]
+        return out + [f"{syn}: {k} is keyed both flat and by class" for k in budgets[syn]
+                      if any(k in b for b in class_budgets[syn].values())]
+
+    first = next(iter(COST_CLASS_BUDGETS[syn]))
+    hand = {syn: {**COST_CLASS_BUDGETS[syn], first: {"cpu_ratio": 3.630}}}
+    both = {syn: {**COST_BUDGETS[syn], "cpu_ratio": 1.0}}
+    nulls = [table_offenders(COST_RUNNER_CLASSES, hand, COST_BUDGETS),
+             table_offenders({**COST_RUNNER_CLASSES,
+                              first: (22.64, COST_RUNNER_CLASSES[first][1])},
+                             COST_CLASS_BUDGETS, COST_BUDGETS),
+             table_offenders(COST_RUNNER_CLASSES, COST_CLASS_BUDGETS, both)]
+    pair("cycle_cost:class_rule", [o for n in nulls for o in n] if all(nulls) else [],
+         table_offenders(COST_RUNNER_CLASSES, COST_CLASS_BUDGETS, COST_BUDGETS))
+    # Every CI draw on record, graded as the lane grades it, passes clean in
+    # the class its job's rulers name, and each doubled arm is over that
+    # class's budget. Null: a draw moved across a border is mis-graded and
+    # named -- job 127046649273 (ref47) moved over the ref47/ref53 border,
+    # and the lowest ref53 job, 125051003592, moved under it.
+    def moved(job: str, to: float) -> dict:
+        r = draw_rulers(draws)[job][0]
+        return {(j, f): {k: {**c, "ref_ms": c["ref_ms"] * to / r} for k, c in a.items()}
+                for (j, f), a in draws.items() if j == job}
+
+    border = COST_RUNNER_CLASSES["ref53"][0]
+    nulls = (draw_offenders(moved("127046649273", border + 1.0)),
+             draw_offenders(moved("125051003592", border - 1.0)))
+    off = draw_offenders(draws)
+    per_class: dict[str, int] = {}
+    for (j, f), a in draws.items():
+        if f == syn and "clean" in a:
+            c = runner_class(syn, draw_rulers(draws)[j][0])
+            per_class[str(c)] = per_class.get(str(c), 0) + 1
+    res.append(("control:cycle_cost:draws",
+                not off and all(any(j in o for o in n) for j, n in
+                                zip(("127046649273", "125051003592"), nulls)),
+                f"{len({j for j, _ in draws})} jobs, {sum(len(a) for a in draws.values())} "
+                f"runs; {syn} jobs by class {per_class}; offenders {off[:4]}; "
+                f"nulls named {[n[:1] for n in nulls]}"))
+    # Each band is half open: its low edge is in it and its high edge is not.
+    res.append(("control:cycle_cost:band_edges",
+                all(runner_class(syn, lo) == c and runner_class(syn, hi) != c
+                    for c, (lo, hi) in COST_RUNNER_CLASSES.items()),
+                str(COST_RUNNER_CLASSES)))
+    # A job ruler outside every band is graded on the fallback, never refused
+    # for want of a budget, and the lane prints the notice for it. Only a
+    # non-finite ruler has no budget.
+    lo_all = min(lo for lo, _ in COST_RUNNER_CLASSES.values())
+    hi_all = max(hi for _, hi in COST_RUNNER_CLASSES.values())
+    fb = fallback_budget(syn)
+    keyed_cpu = [b["cpu_ratio"] for b in COST_CLASS_BUDGETS[syn].values()]
+    some = next(a for (_, f), a in draws.items() if f == syn)["clean"]
+    lines = job_cost(syn, some, {}, (lo_all / 2, some["loop_ref_ms"]))["lines"]
+    banded = job_cost(syn, some, {}, (some["ref_ms"], some["loop_ref_ms"]))
+    res.append(("control:cycle_cost:runner_class_fallback",
+                all(class_budget(syn, x) == (fb, []) and runner_notice(syn, x)
+                    for x in (lo_all / 2, hi_all, hi_all * 2))
+                and fb["cpu_ratio"] == max(keyed_cpu)
+                and fb["loop_cpu_ratio"] == COST_BUDGETS[syn]["loop_cpu_ratio"]
+                and class_budget(syn, float("nan"))[0] is None
+                and any(ln.startswith("WARNING runner class unknown") for ln in lines)
+                and not any(ln.startswith("WARNING") for ln in banded["lines"]),
+                f"fallback {fb}; lines {lines}"))
+    # The lane itself (``grade_ran``, what main() runs) on the block's draw,
+    # job 127046649273 (run 41966183843): clean passes in its job's class and
+    # every doubled arm is refused. Moved over the ref53 border it is red, and
+    # moved under every band it prints the fallback notice (a dropped print is
+    # named) and still refuses each doubled arm.
+    def lane(job: str, to: float | None) -> tuple[int, str]:
+        import contextlib
+        import io
+        from harness import Results
+        runs = draws[(job, syn)]
+        r = draw_rulers(draws)[job][0]
+        cost = {k: {**c, "ref_ms": c["ref_ms"] * (to / r if to else 1.0),
+                    "injected_ratio": 1.0} for k, c in runs.items()}
+        ran = [(Path(syn), {"cost": cost["clean"], "cycles": 1, "entities": 1,
+                            "results": {"cycle_cost": []}, "counts": {}},
+                {k: {"cost": c} for k, c in cost.items() if k != "clean"})]
+        buf = io.StringIO()
+        with contextlib.redirect_stdout(buf):
+            rep = Results("control")
+            grade_ran(rep, ran)
+        return rep.failures, buf.getvalue()
+
+    held, over, under = (lane("127046649273", None), lane("127046649273", border + 1.0),
+                         lane("127046649273", lo_all / 2))
+    res.append(("control:cycle_cost:lane_prints_notice",
+                held[0] == 0 and "WARNING" not in held[1] and over[0] > 0
+                and under[0] == 0 and "WARNING runner class unknown" in under[1],
+                f"failures held {held[0]}, over the ref53 border {over[0]}, unbanded "
+                f"{under[0]}; unbanded notice printed "
+                f"{'WARNING runner class unknown' in under[1]}"))
     pair("cycle_cost:arms_skipped_never_everywhere",
          arms_skip_offenders({"a.json", "b.json"}, {"a.json", "b.json"}),
          arms_skip_offenders({"a.json"}, {"a.json", "b.json"}))
@@ -2273,9 +2530,8 @@ def run_fixture(path: Path, step_minutes: int | None, inject: str | None = None)
     share = ({"injected_ratio": round(sum(i for i, _ in injected) / clean, 4)}
              if inject in ("cpu", "loop") and clean > 0 else {})
     ref_ms = sorted(ref_cpu)[len(ref_cpu) // 2]
-    budget, refused = class_budget(path.name, ref_ms)
-    results["cycle_cost"] = uncovered_files(traced) + (
-        refused or cost_offenders(figures, budget))
+    # The budget is the job's, graded in main() over every run (``job_cost``).
+    results["cycle_cost"] = uncovered_files(traced)
     return {"fixture": path.name, "cycles": cycles, "entities": len(entities),
             "cost": {**figures, **share, "timed": len(cycle_cpu), "traced": len(peaks),
                      "ref_ms": ref_ms,
@@ -2664,6 +2920,41 @@ def kernel_verdicts(runs: dict[str, dict | None]) -> list[tuple[str, bool, str]]
     ]
 
 
+def grade_ran(R, ran: list[tuple[Path, dict, dict[str, dict]]]) -> None:
+    """Grade every fixture the lane replayed on the job's rulers (``job_cost``):
+    print each one's grading lines, the loud fallback notice included, and
+    check its clean run within budget and each doubled arm over it. The
+    ``cycle_cost:lane_prints_notice`` control drives it with an unbanded ruler."""
+    rulers = job_rulers([r["cost"] for _, out, hots in ran for r in (out, *hots.values())]) \
+        if ran else (float("nan"), float("nan"))
+    for path, out, hots in ran:
+        R.section(f"graded {path.name}")
+        graded = job_cost(path.name, out["cost"], {k: h["cost"] for k, h in hots.items()},
+                          rulers)
+        for line in graded["lines"]:
+            print(f"  {line}")
+        out["results"]["cycle_cost"] += graded["clean"]
+        out["counts"]["cycle_cost"] = len(out["results"]["cycle_cost"])
+        R.check(f"{path.name}: at least one cycle and one entity",
+                out["cycles"] > 0 and out["entities"] > 0, str(out["cycles"]))
+        for name, offenders in out["results"].items():
+            R.check(f"{path.name}: {name}", not offenders,
+                    f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
+        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
+                          ("loop", "loop_cpu_ratio")):
+            if kind not in hots:
+                continue
+            hot, offenders = hots[kind], graded["arms"][kind]
+            fired = [o for o in offenders if o.startswith(f"{key} ") and "over its budget" in o]
+            R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
+                    f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
+                    + " | ".join(offenders[:3]))
+            if kind != "memory":
+                short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
+                R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
+                        not short, " | ".join(short))
+
+
 def main(argv: list[str] | None = None) -> int:
     ap = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     ap.add_argument("--fixture", action="append", type=Path)
@@ -2699,6 +2990,7 @@ def main(argv: list[str] | None = None) -> int:
     R.check("the synthetic fixture is what synthesize.py + export.py write", ok, detail)
 
     perturbed: list[str] = []
+    ran: list[tuple[Path, dict, dict[str, dict]]] = []
     for path in paths:
         R.section(f"replay {path.name}")
         out = replay_one(R, path, args.step_minutes, None)
@@ -2709,31 +3001,19 @@ def main(argv: list[str] | None = None) -> int:
         print(f"  record: {path.name} " + " ".join(
             f"{k}={math.sqrt(COST_DETECTION) * out['cost'][k]:.4g}"
             for k in ("cpu_ratio", "peak_kib", "loop_cpu_ratio")))
-        R.check(f"{path.name}: at least one cycle and one entity",
-                out["cycles"] > 0 and out["entities"] > 0, str(out["cycles"]))
-        for name, offenders in out["results"].items():
-            R.check(f"{path.name}: {name}", not offenders,
-                    f"{out['counts'][name]} offender(s): " + " | ".join(offenders[:6]))
         # The perturbation, every night: a doubled cycle must be over budget.
+        hots: dict[str, dict] = {}
         if path.name in COST_ARMS_SKIPPED:
             print(f"  doubled arms not run: {COST_ARMS_SKIPPED[path.name]}")
-            continue
-        perturbed.append(path.name)
-        for kind, key in (("cpu", "cpu_ratio"), ("memory", "peak_kib"),
-                          ("loop", "loop_cpu_ratio")):
-            hot = replay_one(R, path, args.step_minutes, kind)
-            if hot is None:
-                continue
-            print(f"  {kind} doubled: cost {hot['cost']}")
-            fired = [o for o in hot["results"]["cycle_cost"]
-                     if o.startswith(f"{key} ") and "over its budget" in o]
-            R.check(f"{path.name}: cycle_cost sees a doubled cycle {kind}", bool(fired),
-                    f"{key} {hot['cost'][key]} against clean {out['cost'][key]}: "
-                    + " | ".join(hot["results"]["cycle_cost"][:3]))
-            if kind != "memory":
-                short = short_doubling(hot["cost"].get("injected_ratio", float("nan")))
-                R.check(f"{path.name}: the {kind} arm doubles the whole span {key} times",
-                        not short, " | ".join(short))
+        else:
+            perturbed.append(path.name)
+            for kind in ("cpu", "memory", "loop"):
+                hot = replay_one(R, path, args.step_minutes, kind)
+                if hot is not None:
+                    print(f"  {kind} doubled: cost {hot['cost']}")
+                    hots[kind] = hot
+        ran.append((path, out, hots))
+    grade_ran(R, ran)
     # The arms prove the instrument sees a doubling: the skip list names only
     # committed fixtures and leaves at least one to them, so the full lane
     # (nightly, and every pull request that reaches it) always runs them.

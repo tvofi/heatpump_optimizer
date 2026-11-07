@@ -180,7 +180,7 @@ def cases(bj) -> dict[str, bool]:
         digest(c) == (FIXTURE / "digest.txt").read_text())
     src = "".join((HERE / f).read_text() for f in ("orchestrator_tick.py", "ledger.py"))
     lits = ["OWED", "DISPATCH:", "OWNER FLAG:", "BLOCKED-UNFIXED:", "DESIGN-BUILD:", "UNREADABLE:",
-            "DESIGN OWED:", "REVIEW OWED:", "REVIEW STALLED:", "UNLEVELLED:", "APPROVAL-OWED:",
+            "DESIGN OWED:", "REVIEW OWED:", "RECORD-OWED:", "REVIEW STALLED:", "UNLEVELLED:", "APPROVAL-OWED:",
             "MERGE-READY:", "main-red ", "REQUIRED not green", "RAISE APPROVAL OWED", "NOT REVIEWABLE",
             "mergeable state DIRTY", "RED unanswered", "code-owned with no ",
             "BOARD measured from origin/main at"]
@@ -444,6 +444,66 @@ def cases(bj) -> dict[str, bool]:
     bj.head_watch(c)
     res["head-watch: an unreadable API is UNREADABLE"] = digest(c) == "head-watch: UNREADABLE gh rc=1\n"
 
+    # audit-dispatch
+    trip = ("GUARDRAIL {a} last 20 PRs (first verdict 10-20T01:00Z..11-01T02:00Z): incidence 0/20; "
+            "P(X<=0|20,0.28) = 0.0007 -> would-trip: audit the last reviews with a planted defect (report-only)")
+    okl = "GUARDRAIL cloud last 20 PRs (first verdict 10-20T01:00Z..11-01T02:00Z): incidence 7/20; P(X<=7|20,0.28) = 0.7 -> ok (report-only)"
+    insuf = "GUARDRAIL local insufficient: 19 reviewed PRs < N=20"
+    tail = "GUARDRAIL unclassified block words (neither real nor taught): a, b"
+    rs = {"text": "\n".join([trip.format(a="all"), okl, insuf, tail]) + "\n"}
+    c, f = fresh(answers={"review_strength.py": lambda a: (0, rs["text"], "")})
+    pre = "planted-defect-audit" not in digest(c)
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none"] = (
+        pre and digest(c) == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z\n"
+        and "--guardrail" in f.calls[0] and "--fetch" in f.calls[0])
+    stamp = files(c).get("new.stamp")
+    before = files(c)
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"] = (
+        files(c) == before and files(c).get("new.stamp") == stamp)
+    slid = trip.format(a="all").replace("11-01T02", "11-02T02")
+    rs["text"] = "\n".join([slid, trip.format(a="local"), okl, tail]) + "\n"
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none"] = (
+        digest(c).splitlines() == ["DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z",
+                                   "DISPATCH: planted-defect-audit arm=local cut=10-20T01:00Z..11-01T02:00Z"])
+    rs["text"] = "\n".join([okl.replace("cloud", "all"), trip.format(a="local"), tail]) + "\n"
+    bj.audit_dispatch(c)
+    rs["text"] = "\n".join([slid, tail]) + "\n"
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a trip that clears and trips again dispatches again"] = (
+        digest(c).splitlines()[-1] == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-02T02:00Z")
+    rs["text"] = "\n".join([okl, insuf, tail]) + "\n"
+    c, _ = fresh(answers={"review_strength.py": lambda a: (0, rs["text"], "")})
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: only ok and insufficient arm lines write no job, no digest, no memory"] = (
+        not digest(c) and not (c.digest / "jobs" / "audit-dispatch").exists()
+        and not (c.digest / "state" / "audit-dispatch.json").exists())
+    fail = {"v": (2, trip.format(a="all") + "\n", "boom")}
+    c, _ = fresh(answers={"review_strength.py": lambda a: fail["v"]})
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a failed run is UNREADABLE, never a dispatch"] = (
+        digest(c) == "audit-dispatch: UNREADABLE review_strength boom\n")
+    bj.audit_dispatch(c)
+    res["audit-dispatch null: a still-failing run stays UNREADABLE"] = (
+        digest(c) == "audit-dispatch: UNREADABLE review_strength boom\n")
+    fail["v"] = (0, okl + "\n", "")
+    bj.audit_dispatch(c)
+    res["audit-dispatch: a good run after a failed one clears UNREADABLE"] = not digest(c)
+    fail["v"] = (0, trip.format(a="all") + "\n", "")
+    bj.audit_dispatch(c)
+    fail["v"] = (2, "", "boom")
+    bj.audit_dispatch(c)
+    fail["v"] = (0, trip.format(a="all") + "\n", "")
+    bj.audit_dispatch(c)
+    res["audit-dispatch: recovering on the same trip clears UNREADABLE and keeps the DISPATCH line"] = (
+        digest(c) == "DISPATCH: planted-defect-audit arm=all cut=10-20T01:00Z..11-01T02:00Z\n")
+    c, _ = fresh(answers={"review_strength.py": (0, tail + "\n", "")})
+    bj.audit_dispatch(c)
+    res["audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"] = (
+        digest(c).startswith("audit-dispatch: UNREADABLE"))
+
     # fold
     c, _ = fresh()
     bj.write_job(c, "pulse", ["PULSE a STOPPED x"])
@@ -574,6 +634,23 @@ MUTANTS = {
     "head_closed_kept": ('    text = "".join(f"{n}\\t{heads[n]}\\n" for n in sorted(heads, key=int))',
                          '    text = "".join(f"{n}\\t{v}\\n" for n, v in sorted({**old, **heads}.items(), key=lambda kv: int(kv[0])))',
                          "head-watch: a closed pull request leaves heads.tsv"),
+    "audit_trip_any_arm": ('.* -> would-trip\\b")', '.* -> (?:would-trip|ok)\\b")',
+                           "audit-dispatch: a would-trip arm gives one DISPATCH line keyed arm and cut; ok and insufficient give none"),
+    "audit_no_memory": ('        if m and f"{m[1]} {m[2]}" not in sent:', '        if m:',
+                        "audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"),
+    "audit_no_memory": ('        if m and arm not in tripped:', '        if m:',
+                        "audit-dispatch null: a repeat of the same arm line dispatches nothing and writes no byte"),
+    "audit_key_by_span": ('        if m and arm not in tripped:\n            tripped.append(arm)',
+                          '        if m and f"{arm} {m[2]}" not in tripped:\n            tripped.append(f"{arm} {m[2]}")',
+                          "audit-dispatch: a second arm dispatches; the still-tripped arm at a slid cut gives none"),
+    "audit_trip_never_clears": ("        elif not m and arm in tripped:", "        elif False:",
+                                "audit-dispatch null: a trip that clears and trips again dispatches again"),
+    "audit_no_clearing_write": ('    write_job(ctx, "audit-dispatch", kept + new)', '    if new:\n        write_job(ctx, "audit-dispatch", kept + new)',
+                                "audit-dispatch: a good run after a failed one clears UNREADABLE"),
+    "audit_unclassified_kept": (' and " unclassified " not in ln]', ']',
+                                "audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"),
+    "audit_rc_ignored": ("    if rc != 0 or not arms:", "    if not arms:",
+                         "audit-dispatch: a failed run is UNREADABLE, never a dispatch"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
                             "fold: a duplicated line is one more line, new.txt and a new stamp"),
