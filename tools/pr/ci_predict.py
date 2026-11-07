@@ -802,6 +802,7 @@ def grader_preds(root: Path, base_ref: str, body: str | None = None,
     if not keyed:
         return []
     homes = restoring_jobs(root)
+    body = Path(body).read_text() if body else None  # the argument is the body file's path
     head = (git(root, "rev-parse", "HEAD") or "").strip()
     branch = (git(root, "rev-parse", "--abbrev-ref", "HEAD") or "").strip()
     subject = (git(root, "log", "-1", "--format=%s") or "").strip()
