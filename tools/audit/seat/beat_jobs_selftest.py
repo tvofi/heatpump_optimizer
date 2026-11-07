@@ -223,6 +223,10 @@ def cases(bj) -> dict[str, bool]:
             rep = Path(argv[argv.index("--report") + 1])
             op = Path(argv[argv.index("--queue") + 1]).read_text().split()
             rep.write_text(f"roster: {op[0]} {op[1]} {word}\n")
+            if "--mark" in argv and "no op attempted" not in word:  # roster_queue marks the exact line it ran
+                q = Path(argv[argv.index("--queue") + 1])
+                tag = "#done" if " pushed " in f" {word}" else "#refused"
+                q.write_text(f"{tag} {q.read_text()}")
             return 0, "", ""
         return ans
 
@@ -259,7 +263,7 @@ def cases(bj) -> dict[str, bool]:
         held and stale and f.ran("roster_queue.py") == 1 and "pushed" in digest(c))
     one = bj.read(c.digest / "state" / "roster-one.queue")
     res["roster-drain: a released hold hands roster_queue the held op, not the hold line"] = (
-        one == "set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
+        one == "#done set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
 
     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
     q = c.state / "roster-drain.queue"
@@ -323,6 +327,111 @@ def cases(bj) -> dict[str, bool]:
     res["plan-beat: replan is handed the plan, slots and seats"] = (
         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+
+    # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
+    c, f = fresh(answers={"roster_queue.py": (0, "", "")})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
+    pre = "roster: UNRUN" not in digest(c)
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain: an op neither reported nor marked is UNRUN and stays pending"] = (
+        pre and digest(c).startswith("roster: UNRUN set-stage G1 done rc=0") and f.ran("roster_queue.py") == 2
+        and "--mark" in f.calls[0])
+    wt = "roster: set-stage G1 refused rc=1 x | /w HEAD 0123456789ab is on no origin ref; an unpushed edit"
+    det = {"v": True}
+    def cas(argv):
+        return (roster("refused rc=1 x | /w HEAD 0123456789ab is on no origin ref; an unpushed edit") if det["v"]
+                else roster("pushed 0123abcde"))(argv)
+    c, f = fresh(answers={"roster_queue.py": cas})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
+    pre = "roster: CASCADE" not in digest(c)
+    bj.roster_drain(c)
+    cascade = digest(c).startswith("roster: CASCADE 1 op(s) stay pending") and wt not in digest(c)
+    det["v"] = False
+    bj.roster_drain(c)
+    res["roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs"] = (
+        pre and cascade and f.ran("roster_queue.py") == 2 and digest(c) == "roster: set-stage G1 pushed 0123abcde\n")
+    c, f = fresh(answers={"roster_queue.py": roster("refused rc=1 lint gate: TOTAL: 1")})
+    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
+    bj.roster_drain(c)
+    bj.roster_drain(c)
+    res["roster-drain null: a lint refusal marked #refused is no CASCADE and no UNRUN, and is not retried"] = (
+        "CASCADE" not in digest(c) and "UNRUN" not in digest(c) and f.ran("roster_queue.py") == 1)
+
+    # plan-beat: PLAN MOVED
+    def page(text):
+        def ans(argv):
+            if arg(argv, "--mirror") is None:
+                return 0, "", ""
+            m = Path(arg(argv, "--mirror"))
+            m.mkdir(parents=True, exist_ok=True)
+            (m / "PLAN.html").write_text(text["v"])
+            return 0, "", ""
+        return ans
+    text = {"v": "<p>one</p>"}
+    c, f = fresh(answers={"state_docs.py": page(text)})
+    pre = "PLAN MOVED" not in digest(c)
+    bj.plan_beat(c)
+    first = digest(c) == f"plan-beat: PLAN MOVED {c.state / 'mirror' / 'PLAN.html'} re-rendered; republish owed\n"
+    bj.plan_beat(c)
+    same = digest(c) == ""
+    text["v"] = "<p>two</p>"
+    bj.plan_beat(c)
+    res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
+        pre and first and same and "PLAN MOVED" in digest(c))
+    c, f = fresh()
+    bj.plan_beat(c)
+    res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
+
+    # gantt
+    def git_g(argv):
+        if "show" in argv:
+            return 0, '{"groups": []}', ""
+        if "for-each-ref" in argv:
+            return 0, f"{SHA['a']}\trefs/gantt/handoff/r10-x\t1800000000\n", ""
+        return 0, "", ""
+    gov = {"repo": "o/r", "plan_json": "/p.json", "gantt_roster": "handoff/audit-r10-roster:dev/r.json",
+           "gantt_acks": "/acks.txt"}
+    slip = "GANTT-SLIP IDLE:G1 starts 2026-11-01T09:00Z, nothing working on it -> ack: 2026-11-01T10:00Z IDLE:G1 act"
+    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""),
+                                       "sweep_gantt.py": (0, "noise\n" + slip + "\n", "")})
+    pre = "GANTT-SLIP" not in digest(c)
+    bj.gantt(c)
+    g = next((a for a in f.calls if any(x.endswith("sweep_gantt.py") for x in a)), [])
+    st = c.digest / "state" / "gantt"
+    res["gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints"] = (
+        pre and digest(c) == bj.norm(slip) + "\n")
+    res["gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger"] = (
+        arg(g, "--plan") == "/p.json" and arg(g, "--acks") == "/acks.txt"
+        and bj.read(Path(arg(g, "--roster") or "/x")) == '{"groups": []}'
+        and bj.read(Path(arg(g, "--handoff-rows") or "/x")) == f"{SHA['a']}\trefs/heads/handoff/r10-x\t1800000000\n"
+        and arg(g, "--open-prs") == str(st / "prs.json") and arg(g, "--fired") == str(st / "fired.txt")
+        and arg(g, "--baseline") == str(st / "baseline.json"))
+    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""), "sweep_gantt.py": (1, slip, "boom\n")})
+    bj.gantt(c)
+    res["gantt: a failed sweep_gantt is UNREADABLE, never its partial lines"] = (
+        digest(c) == "gantt: UNREADABLE sweep_gantt rc=1: boom\n")
+    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""), "sweep_gantt.py": (0, "noise\n", "")})
+    bj.gantt(c)
+    res["gantt null: no slip writes no digest"] = not (c.digest / "digest.txt").exists()
+
+    # verdict-audit
+    unheld = "UNHELD #12 no verdict ever: owed a first reviewer once the gate is green (x)"
+    c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired", "unheld_skip": "/skip"},
+                 answers={"verdict_audit.py": (0, "note\n" + unheld + "\n", "")})
+    pre = "UNHELD" not in digest(c)
+    bj.verdict_audit(c)
+    v = (f.calls or [[]])[0]
+    res["verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"] = (
+        pre and digest(c) == unheld + "\n" and arg(v, "--repo") == "o/r" and arg(v, "--fired") == "/fired"
+        and arg(v, "--skip") == "/skip" and "--train-glob" not in v)
+    c, f = fresh(answers={"verdict_audit.py": (1, unheld, "Traceback: gh\n")})
+    bj.verdict_audit(c)
+    res["verdict-audit: a failed run is UNREADABLE, never its partial lines"] = (
+        digest(c) == "verdict-audit: UNREADABLE rc=1: Traceback: gh\n")
+    c, f = fresh(answers={"verdict_audit.py": (0, "note\n", "")})
+    bj.verdict_audit(c)
+    res["verdict-audit null: nothing unheld writes no byte"] = not files(c)
 
     # pulse
     ok = "PULSE opener ok fine\npulse: 1 arms, 0 stopped, 0 unreadable at 2026-11-01T09:00:00Z\n"
@@ -564,8 +673,7 @@ MUTANTS = {
                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
-    "plan_rc1_silent": ('    if rc == 0:\n        return write_job(ctx, "plan-beat", [])',
-                        '    if rc in (0, 1):\n        return write_job(ctx, "plan-beat", [])',
+    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
     "pulse_stopped_dropped": ('(?:STOPPED|UNREADABLE) ', '(?:UNREADABLE) ', "pulse: a STOPPED line reaches the digest"),
     "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
@@ -591,7 +699,7 @@ MUTANTS = {
                                 "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
     "roster_shrink_ignored": ("    if len(whole) < seen or ", "    if False and ",
                               "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
-    "roster_noop_marked": ('        if not any("no op attempted" in ln for ln in said):', '        if True:',
+    "roster_noop_marked": ('        if mark != op or not any("no op attempted" in ln for ln in said):', '        if True:',
                            "roster-drain: a no-op-attempted report is retried on the next pass"),
     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
@@ -651,6 +759,27 @@ MUTANTS = {
                                 "audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"),
     "audit_rc_ignored": ("    if rc != 0 or not arms:", "    if not arms:",
                          "audit-dispatch: a failed run is UNREADABLE, never a dispatch"),
+    "roster_unrun_marked": ("        if not said and mark == op:", "        if False:",
+                            "roster-drain: an op neither reported nor marked is UNRUN and stays pending"),
+    "roster_mark_dropped": ('"run", "1", "1", "--mark", "--queue"', '"run", "1", "1", "--queue"',
+                            "roster-drain: an op neither reported nor marked is UNRUN and stays pending"),
+    "roster_cascade_marked": ('        if mark == f"#refused {op}" and any("is on no origin ref"', '        if False and any("is on no origin ref"',
+                              "roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs"),
+    "plan_moved_dropped": ("        moved = sha and sha != ctx.memory(", "        moved = False and sha != ctx.memory(",
+                           "plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"),
+    "plan_moved_every_pass": ('        ctx.remember("plan-page.json", sha, "")\n', "",
+                              "plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"),
+    "gantt_filter_dropped": ('if re.match(r"^GANTT-(?:SLIP|BASELINE) ", ln)])', "])",
+                             "gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints"),
+    "gantt_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE sweep_gantt',
+                         '    if False:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE sweep_gantt',
+                         "gantt: a failed sweep_gantt is UNREADABLE, never its partial lines"),
+    "gantt_rows_unmapped": ('out.replace("\\trefs/gantt/", "\\trefs/heads/")', "out",
+                            "gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger"),
+    "verdict_filter_dropped": ('if ln.startswith("UNHELD ")])', "])",
+                               "verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"),
+    "verdict_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "verdict-audit",', '    if False:\n        return write_job(ctx, "verdict-audit",',
+                           "verdict-audit: a failed run is UNREADABLE, never its partial lines"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
                             "fold: a duplicated line is one more line, new.txt and a new stamp"),

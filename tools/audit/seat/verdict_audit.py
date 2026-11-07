@@ -4,9 +4,9 @@
     verdict_audit.py --repo O/R [--fired LEDGER] [--train-glob GLOB] [--skip FILE]
     verdict_audit.py --self-test
 
-Owner ruling (tvofi 2026-11-06): the sweep's point is that no PR waits unheld. The sweep
-runner (`tools/audit/seat/sweep_runner.sh`) runs this every second pass and forwards each
-`UNHELD` line to the orchestrator's digest.
+Owner ruling (tvofi 2026-11-06): the sweep's point is that no PR waits unheld. The beat's
+`verdict-audit` row (`tools/audit/seat/beat_jobs.py`) runs this every 30 minutes and writes
+each `UNHELD` line to the digest the orchestrator reads.
 
 One `UNHELD` line per PR whose next step nobody visibly holds:
   merge verdict at an older head that the PR head only main-merges onto -> owed to the merge train

@@ -8,7 +8,7 @@
   reviewer). Held means queued in a train log modified within 3 h, or a fire
   line in the last 12 h naming the PR or its topic; `--skip FILE` lists
   `#<N> <ruling>` lines for PRs held by an owner ruling. Owner ruling (tvofi
-  2026-11-06): no PR waits unheld. When: every second pass of
-  `sweep_runner.sh`, or by hand from a checkout with origin fetched. Reads
+  2026-11-06): no PR waits unheld. When: the beat's
+  `verdict-audit` row (`beat_jobs.py`) every 30 minutes, or by hand from a checkout with origin fetched. Reads
   only (`gh pr list`, `git ls-remote`, `git fetch`, `git show`).
   `--self-test` drives each owed state beside its held null control.
