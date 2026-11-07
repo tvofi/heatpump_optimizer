@@ -1,0 +1,7 @@
+MUT fixdel rc=1 393s 2 of 4885 FEATURE CHECKS FAILED
+  FAIL R10-BUFFER-OPENLOOP: with no buffer probe the buffer level follows the previous plan's trajectory, not the 40 degC default  [buffer levels=[40.0, 40.0] (plan at covering steps 41.0, 43.0)]
+  FAIL R10-BUFFER-OPENLOOP (wood_seed): with no buffer probe the wood reference hp_tank_temp is the plan's seed, and wood energy and displacement follow it  [hp_tank_temp=[40.0, 40.0] outputs=(26.68, 0.5) expect(43)=(23.2, 0.444444) expect(40)=(26.68, 0.5)]
+  ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+  ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+  ok   a pump command that FAILED is not remembered as done
+2 of 4885 FEATURE CHECKS FAILED
