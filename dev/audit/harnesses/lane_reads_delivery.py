@@ -71,6 +71,8 @@ def expr_value(e: str, tmp: str) -> str:
     table = {
         "secrets.GITHUB_TOKEN": os.environ.get("GITHUB_TOKEN", ""),
         "runner.temp": tmp,
+        "github.repository": "tvofi/heatpump_optimizer",
+        "github.token": os.environ.get("GITHUB_TOKEN", ""),
         "needs.closure-scope.outputs.case": "full",
         "needs.closure-scope.outputs.scripts": "",
         "needs.closure-scope.outputs.case == 'scoped' && 'scoped' || 'full'": "full",
@@ -84,11 +86,20 @@ def expr_value(e: str, tmp: str) -> str:
     return table[e]
 
 
+def on_pull_request(cond) -> bool:
+    """False for an `if:` whose top level (parenthesised groups removed) pins
+    another event: the C7(a) idling only ever skips a pull_request's steps."""
+    top = str(cond or "")
+    while re.search(r"\([^()]*\)", top):
+        top = re.sub(r"\([^()]*\)", "", top)
+    return not re.search(r"github\.event_name == '(?!pull_request')", top)
+
+
 def steps(clone: Path, lane: str) -> list[dict]:
     wf, job = LANES[lane]
     j = yaml.safe_load((clone / ".github/workflows" / wf).read_text())["jobs"][job]
     whole = bool(GATE.search(str(j.get("if") or "")))
-    return [s for s in j["steps"] if whole or GATE.search(str(s.get("if") or ""))]
+    return [s for s in j["steps"] if (whole or GATE.search(str(s.get("if") or ""))) and on_pull_request(s.get("if"))]
 
 
 def run_lane(lane: str, out: Path) -> dict:
