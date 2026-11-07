@@ -38,6 +38,7 @@ from homeassistant.util import dt as dt_util
 from .const import CONF_FLOOR_RETURN_TEMP_ENTITY, DOMAIN
 from .payload import InputProblem, Payload
 from .issues import set_issue
+from .wood_fuel import saving_includes_wood
 from .store import QuarantiningStore, load_mapping
 
 _LOGGER = logging.getLogger(__name__)
@@ -100,7 +101,7 @@ def _monthly_receipt(data: Payload) -> Detected:
         # has no saving, and with wood configured the saving includes its heat
         # and not its cost.
         "saving_old_basis": bool(saving and saving.get("old_basis")),
-        "saving_includes_wood": bool((data.get("wood_fuel") or {}).get("show_whatif")),
+        "saving_includes_wood": saving_includes_wood(data),
     })}
 
 

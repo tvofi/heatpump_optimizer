@@ -121,6 +121,9 @@ action:
                 {% if data.saving_pct is not none
                 %}({{ data.saving_pct | round(0) }} %) {% endif
                 %}less than a plain thermostat would have{% endif %}.
+                {%- if data.saving_sek is not none and data.saving_includes_wood %}
+                The saving includes heat from wood. Firewood's cost is not counted.
+                {%- endif %}
       - alias: Comfort at risk
         conditions:
           - "{{ trigger.event.event_type == 'heatpump_optimizer_comfort_at_risk' }}"

@@ -38905,12 +38905,15 @@ _ET_KEYS = {
     "simulate_plan_no_prices": {"entry_ids"},
     "simulate_plan_invalid_windows": {"error", "windows"},
     "simulate_plan_failed": {"error", "entry_ids"},
+    "diagnose_interval_failed": {"error", "entry_ids"},
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "restore_learned_snapshot_no_refit": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
     # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
     "process_worker_unusable": {"cycles"},
+    # The worker read deadline (a silent worker is reaped, not waited on).
+    "process_worker_timeout": {"minutes"},
     "update_failed": {"error"},
     "tibber_fetch_failed": {"error"},
     # D10-s1-03: the refused token, through _raise_auth_failed.
@@ -41681,6 +41684,14 @@ R.check(
 )
 
 # ---------------------------------------------------------------------------
+# The worker read deadline, the reply frame bound and the stop path's lock
+# bound (#3232): their checks are in tests/worker_deadlines.py, run here, so
+# that CodeQL's extraction of this module stays inside its job limit.
+import worker_deadlines as _worker_deadlines  # noqa: E402
+
+_worker_deadlines.run(R, _g3_parent)
+
+# ---------------------------------------------------------------------------
 R.section("#525 — nothing blocking runs on Home Assistant's event loop")
 
 import subprocess as _g525_subprocess  # noqa: E402
@@ -44096,6 +44107,31 @@ R.check(
     and "baseline_power_schedule" not in _pub
     and "baseline_kw" not in _pub,
     repr({k: _pub.get(k) for k in ("savings_months", "baseline_power_schedule")}),
+)
+
+
+# R10-SAV-WOOD-HEAT: the published row takes the wood floor from the house's
+# own configuration, read where the coordinator publishes it (a meter at half
+# the plan books 75 % on a wood house, 50 % on a plain one: _sb_meter_row's).
+def _sv_published_pct(**config):
+    coord = _t2_coord(**config)
+    for hour in range(24):
+        coord._ledger.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": 2.0, "power": 1.0}, 0.5, 1.0
+        )
+    try:
+        _dt_sav.now = lambda: NOW
+        rows = coord._build_data_dict()["savings_months"]
+    finally:
+        _dt_sav.now = _real_now_sav
+    return next(r["savings_pct"] for r in rows if r["month"] == "2026-02")
+
+
+_sv_wood_pub = (_sv_published_pct(wood_furnace_enabled=True), _sv_published_pct())
+R.check(
+    "the coordinator publishes the wood floor from the house's configuration, and no floor without wood",
+    _sv_wood_pub == (75.0, 50.0),
+    repr(_sv_wood_pub),
 )
 _sv._current_action = {"power": 1.0, "dhw_power": 0.5, "baseline_kw": 3.25}
 # Drive the pending builder by reading the assignment target after a call
