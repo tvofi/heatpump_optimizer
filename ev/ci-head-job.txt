@@ -1,0 +1,11 @@
+head 763d98319f8a02bb0ef43eae1b22c0e7be7b77de
+governance / instrument-self-tests job 128464907715, run 42393030383: success, started 2026-11-07T16:52:08Z, completed 2026-11-07T17:02:20Z = 612 s of 1800 s
+log tail (get_job_logs):
+  ok   update_pr: the lock holder has exited by the time a run returns
+  ok     mutant mut:unlock (its line deleted): the holder is still alive when the run returns
+  pr_args self-test: 174 checks, 0 failed
+  Run . "$RUNNER_TEMP/bg/lib.sh"; bg_unread
+  bg_unread: 5 started, 0 unread
+  Cleaning up orphan processes
+check runs at head: total_count 55 (one page); concluded failure: tests / nightly-status job 128464907664 (16:51:07Z-16:51:17Z) only
+pr-contract / pr-contract job 128475915866: success, 17:32:47Z-17:33:32Z

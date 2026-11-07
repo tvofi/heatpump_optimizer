@@ -1,0 +1,16 @@
+== mutant D (beatd waiter echoes fake tally), beatd stub fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+FAIL Refuse a detached self-test whose status no step read | UNREAD beatd: no step read its status
+JOB RED
+== mutant A (update-pr bg_wait line deleted)
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+FAIL Refuse a detached self-test whose status no step read | UNREAD update-pr: no step read its status
+JOB RED

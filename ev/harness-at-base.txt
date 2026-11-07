@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.tIAFLF7EWz/wt/dev/audit/harnesses/r10_selftest_timeout.py", line 171, in <module>
+    sys.exit(mutants())
+             ~~~~~~~^^
+  File "/tmp/tmp.tIAFLF7EWz/wt/dev/audit/harnesses/r10_selftest_timeout.py", line 122, in mutants
+    lib = library(WORKFLOW)
+  File "/tmp/tmp.tIAFLF7EWz/wt/dev/audit/harnesses/r10_selftest_timeout.py", line 98, in library
+    run = next(s["run"] for s in steps(wf) if s.get("name") == LAUNCHER)
+StopIteration
+rc=1
