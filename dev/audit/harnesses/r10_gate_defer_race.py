@@ -34,6 +34,11 @@ Scenarios:
             decider, so a code gate expiring at the bound (--edit-s past 740)
             is red on the HIGHER id (#2770 round-1 review).
   single    one code run alone at the head: the null (no wait, no red).
+  prelude   a deferring edit run (C3: its prelude left `pr-contract` to the
+            unfinished code run) at its gate, the code run done, and a later
+            edit run whose prelude waits on it (#3246 review): the prelude/gate
+            seam. Only this scenario lets the runs take the workset their
+            prelude returns (`--defer`), so the others replay as recorded.
 
 Per scenario it prints every published `gate` verdict with its simulated time,
 then: UNDECIDED-RED (a FAIL whose reason is the deferral), MASKED (a PASS
@@ -41,7 +46,9 @@ published while a real red source exists), DEADLOCK (no gate PASS and no real
 red: nothing at the head ever decides green), and the gates' total wait, all
 over the gates the scenario runs; then RESIDUAL-RED, on a head with no real
 red, the runs whose latest gate, after every sweep has converged, is still the
-deferral's red.
+deferral's red. DEADLOCK also reads yes when a wait cycle formed: a gate slept
+on a run still in its prelude whose wait_sources waits on that gate's run (the
+CYCLE count beside it), however the bound later broke it.
 """
 from __future__ import annotations
 
@@ -131,6 +138,27 @@ class Head:
         self.sweep = importlib.import_module("sweep") if (ci / "sweep.py").exists() else None
         self.sim, self.runs, self.verdicts, self.waited = sim, {}, [], 0
         self.timed = "sleep" in inspect.signature(self.gate.judge).parameters
+        self.defer, self.cycles, self.last_busy = False, set(), {}
+        busy = self.gate.busy
+
+        def seen_busy(ctx, runs_at_head):          # judge() reads the module global at each call
+            out = busy(ctx, runs_at_head)
+            self.last_busy[int(ctx["run_id"])] = out
+            return out
+        self.gate.busy = seen_busy
+
+    def gate_nap(self, rid):
+        """The gate's sleep: first record each wait edge that closes a cycle through a prelude."""
+        def nap(s):
+            me = self.runs[rid]
+            mine = {"id": rid, "title": me["title"],
+                    "jobs": {k: (st, c) for k, (st, c, seen) in me["jobs"].items() if seen <= self.sim.t}}
+            for y in self.last_busy.get(rid, []):
+                if (self.runs[y].get("phase") == "prelude" and self.prelude.waits_on(y, mine)
+                        and not self.prelude.judging(mine)):
+                    self.cycles.add((rid, y))
+            self.sim.sleep(s)
+        return nap
 
     def get(self, path, params=None):
         if path.endswith(f"/pulls/{PR}"):
@@ -152,8 +180,8 @@ class Head:
         action = "edited" if kind == "edit" else "synchronize"
         return self.prelude.context("pull_request", {"action": action, "pull_request": pr}, env)
 
-    def names(self, kind):
-        ws = self.prelude.workset(kind, str(PR))
+    def names(self, kind, ws=None):
+        ws = self.prelude.workset(kind, str(PR)) if ws is None else ws
         return [f"{u} / {n}" for u in sorted(ws & set(self.gate.UNITS)) for n in self.gate.UNITS[u]]
 
     def add(self, rid, kind, created, prelude_at, units_s, red=(), lag=0, done=False):
@@ -173,12 +201,18 @@ class Head:
             r["status"] = "in_progress"
             r["jobs"]["prelude"] = ("in_progress", None, self.sim.t)
             c = self.ctx(rid, kind)
-            _, why = self.prelude.outputs(c, [], self.get, self.sim.sleep)
+            r["phase"] = "prelude"
+            out, why = self.prelude.outputs(c, [], self.get, self.sim.sleep)
+            r["phase"] = "units"
             r["jobs"]["prelude"] = ("completed", "failure" if why else "success", self.sim.t)
-            for n in self.names(kind):
+            ws = set(out["workset"].split()) if self.defer else None
+            if ws is not None and ws < self.prelude.workset(kind, str(PR)):
+                r["workset"] = ws                  # C3: the caller job is listed skipped, under its bare name
+                r["jobs"]["pr-contract"] = ("completed", "skipped", self.sim.t)
+            for n in self.names(kind, ws):
                 r["jobs"][n] = ("in_progress", None, self.sim.t)
             self.sim.sleep(units_s)
-            for n in self.names(kind):
+            for n in self.names(kind, ws):
                 r["jobs"][n] = ("completed", "failure" if n in red else "success", self.sim.t)
             self.judge(rid, kind, lag)
         self.sim.spawn(life)
@@ -197,8 +231,9 @@ class Head:
         r["jobs"]["gate"] = ("in_progress", None, self.sim.t + lag)
         c = self.ctx(rid, kind, attempt)
         t0 = self.sim.t
-        kw = {"sleep": self.sim.sleep, "now": self.sim.now} if self.timed else {}
-        out = self.gate.judge(c, {"kind": kind, "pr": str(PR)}, self.get, lambda b, h: True, **kw)[0]
+        kw = {"sleep": self.gate_nap(rid), "now": self.sim.now} if self.timed else {}
+        claim = {"kind": kind, "pr": str(PR), **({"workset": r["workset"]} if "workset" in r else {})}
+        out = self.gate.judge(c, claim, self.get, lambda b, h: True, **kw)[0]
         self.waited += self.sim.t - t0
         self.sim.sleep(JUDGE_S)                    # the job publishes its check-run after its last read
         self.verdicts.append((self.sim.t, rid, out, self.sim.t - JUDGE_S - t0, by_sweep))
@@ -259,19 +294,24 @@ def scenario(ci: Path, name: str, edit_s: int):
         h.rerun_gate(90, 30)
     elif name == "single":
         h.add(100, "code", 0, 30, 600)
+    elif name == "prelude":
+        h.defer = True
+        h.add(100, "code", 0, 60, 300)             # units 60-360 s: its pr-contract has not started at 30 s
+        h.add(101, "edit", 0, 30, 400)             # prelude at 30 s defers (C3); gate at 430 s
+        h.add(102, "edit", 420, 425, 120)          # prelude at 425 s, beside 101's gate (430 s)
     sim.run()
     defer = "still being judged"
     own = [v for v in h.verdicts if not v[4]]
     undecided = sum(1 for _, _, o, _, _ in own if o.startswith("FAIL") and defer in o)
     masked = sum(1 for _, _, o, _, _ in h.verdicts if o == "PASS") if real_red else 0
-    deadlock = not real_red and not any(o == "PASS" for _, _, o, _, _ in h.verdicts)
+    deadlock = bool(h.cycles) or not real_red and not any(o == "PASS" for _, _, o, _, _ in h.verdicts)
     latest = {rid: r["seeded"] for rid, r in h.runs.items() if "seeded" in r}
     latest.update((rid, o) for _, rid, o, _, _ in h.verdicts)
     residual = 0 if real_red else sum(1 for o in latest.values() if o.startswith("FAIL") and defer in o)
     for t, rid, o, w, by in h.verdicts:
         print(f"  t={t:>5}s run {rid}{' sweep' if by else ''} (waited {w} s): {o}")
     print(f"{name}: verdicts {len(own)} UNDECIDED-RED {undecided} MASKED {masked} "
-          f"DEADLOCK {'yes' if deadlock else 'no'} gate-wait {h.waited} s (judge takes a clock: {h.timed})")
+          f"DEADLOCK {'yes' if deadlock else 'no'} CYCLE {len(h.cycles)} gate-wait {h.waited} s (judge takes a clock: {h.timed})")
     print(f"{name}: sweep {'present' if h.sweep else 'absent'} re-runs {len(h.verdicts) - len(own)} "
           f"RESIDUAL-RED {residual}")
     for m in MODULES:
@@ -283,7 +323,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ci", default=str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
     ap.add_argument("--edit-s", type=int, default=518)
-    ap.add_argument("scenarios", nargs="*", default=["2754", "2754-red", "pair", "cascade", "editcode", "single"])
+    ap.add_argument("scenarios", nargs="*", default=["2754", "2754-red", "pair", "cascade", "editcode", "single", "prelude"])
     a = ap.parse_args()
     ci = Path(a.ci).resolve()
     for s in a.scenarios:
