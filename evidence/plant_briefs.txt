@@ -1,0 +1,10 @@
+case=briefs head=926a01499de2a184481a42734fc91bfedc5bb4b1 diff: .claude/workflows/wave-zz-groups.json tools/policy/brief_lint.mjs 
+head-copy brief_lint rc: 0
+PREDICT briefs   GRADER brief_lint.mjs REFUSED by the base's copy, over tools/policy/brief_lint.mjs: ERROR   [ZZ-PLANT] shape: `brief` is missing or is not a non-empty string, so no citation in it can be checked -- BOOTSTRAP: no change in this pull request reaches the base's copy; move the registration to unpinned data the grader reads, or split p1 grader / p2 artifact (fixer.md, decision 0013 Consequences)
+NOTE    GRADER SKIPPED pr-contract: carry_audit.py reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: figure_lint.mjs reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: policy_lint.mjs reads the pull-request body; pass --body to grade it as CI does
+NOTE    GRADER SKIPPED pr-contract: preflight.sh reads the pull-request body; pass --body to grade it as CI does
+CI PREDICT: a GRADER refusal is CI's verdict under the base's copy of every path the job restores, so an exclusion, registration or rule written into a restored grader, or into anything it loads, is graded by the copy it replaces: move it into the data the grader reads (corpus_excluded.json for named-docs, #2916's repair), or land the grader change first (dev/audit/rca/R10-RCA-PREPR-HEAD-GRADERS.md); the body names it under ## Red checks
+CI PREDICT: 1 predicted red(s) on briefs against 926a01499de2 -- the lines above name each arm's repair (1 BOOTSTRAP: split or move, not repair)
+rc=1
