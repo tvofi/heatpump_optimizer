@@ -233,3 +233,49 @@ Cost:
 
 Binding:
 - **Carry for R10-CARRY-RESIDUE-2.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P411 at <roster sha>), savings estimate 3.5 to 11 h (central 6 h; instrument tier), the barrier form for this group carry 3 (CARRY-LANDED strands a cloud fixer): two more instances on 2026-11-07, R10-HOTFIX-SELFTEST-TIMEOUT (PR 3275, blocked 13:23Z, folded 13:45Z) and R10-HOTFIX-GATE-BUSY-DEFER (3 carries, blocked 13:36Z, found 14:10Z). Build it in tools/audit/seat/cloud_relay.sh handoff arm: when a fixer BLOCKED.md refusal is CARRY-LANDED alone and its body is kept on handoff-wip/<topic>-body, run tools/audit/seat/carry_fold.py (the designated writer) on that body and then body_push.sh; any other refusal prints a tick line and folds nothing. body_push.sh may exit with a distinct code for CARRY-LANDED-only so the relay keys on it. Fixtures: a CARRY-LANDED-only block is folded and re-pushed; null control: a block naming CARRY-LANDED plus any other refusal is not folded and prints its line; a mutant dropping the CARRY-LANDED-only test folds the mixed block and fails.`
+
+## P412: file-overlap cap (queue line s12-file-overlap-cap)
+
+Verdict: the owner asked for the measurement first, and this ruling is on that measurement.
+- **The per-file open-PR cap: REJECT.**
+- **(1) Keyed merge drivers: ACCEPT narrowed** to the two files whose shape keys every entry:
+  - `dev/programme/rosters/wave-r10-groups.json`, keyed by `group`;
+  - `tools/audit/seat/INSTRUMENTS.md`, one bullet per instrument, keyed by its link target.
+- **The Python files: DEFER.** These are `dev/audit/harnesses/r10_seat_selftests_mutants.py` and `dev/audit/rounds/round4/D6/claims.py`. A union driver on code can merge two valid files into an invalid one. They need either a data-file split or a measured lag share per file.
+- **(2) The warn-only handoff-time overlap check: DEFER.**
+
+The destination for (1) is a new fly-in group, R10-FLY-KEYED-MERGE-DRIVERS, because no open group owns `tools/merge/` or `.gitattributes`. It is not taken on the >10 % exemption.
+
+Source: the orchestrator's queue line of 2026-11-07 and seat a50195df's evidence file (orchestration log `s12/filecap/evidence.txt`, host-local).
+
+Instances (all from that evidence file):
+- **Step 1.** 147 merge-forward conflict rounds in 94 PRs under the repo's merge drivers. Lag: median 1.4 h, sum 919 h, p90 14.1 h.
+- **Conflicted files, by rounds:** `r10_seat_selftests_mutants.py` 16, `wave-r10-groups.json` 15, `coordinator.py` 8, `INSTRUMENTS.md` 8, `bugclasses.json` 8, `D6/claims.py` 6.
+- **Step 3, the replay of 428 merged work PRs:**
+  - a cap of 1 per file shifts the last merge by +1124 h (row b');
+  - 1 per roster-hot file, also +1124 h (row c-);
+  - a global cap of 16 shifts it +3 h (row a16).
+- **Step 4.** The roster forecast names a median 0.26 of a PR's actual files, and 276 of 320 PRs touch a file outside it. A cap enforced from the forecast holds 155 PRs for 22575 h and prevents 76 of 121 conflicts (row (c) from forecast).
+- **The rule on the instances:**
+  - The two keyed files account for 23 of the 147 rounds (15 + 8).
+  - Under a keyed driver, a round in which the two sides added or edited different keys resolves clean. A round in which both edited the same key still conflicts, and that same-key conflict is the null control.
+  - `bugclasses.json` already has `merge=ledgermerge` (`.gitattributes`) and still conflicted 8 times. So the fixer measures the same-key share on the 23 rounds by replaying them against the driver. It does not assume all 23 resolve.
+
+Cost:
+- **(1) The code:**
+  - A driver under `tools/merge/` modelled on `tools/merge/ledger_merge.py`, a three-way merge per key that refuses a same-key conflict, plus two `.gitattributes` lines and the install step that `ledger_merge.py --install` already provides.
+  - About 120 lines with self-tests: disjoint additions merge; a same-key edit conflicts; a reorder-only change is a no-op; the null control, a malformed side, refuses and leaves the conflict to git.
+- **(1) Benefit:**
+  - 23 rounds in about 23 days, at a median lag of 1.4 h and p90 14.1 h. For the 6 days left, about 6 rounds: **8 to 20 h of pull-request lag, central 10 h. Tier: instrument.**
+  - It also removes the hand resolutions: 75 of the 147 rounds were resolved by tvofi.
+- **The per-file cap, the binding cost:** +1124 h of last-merge shift for at most 104 of 121 conflicts prevented, against +3 h at the global cap.
+- **(2), what would change it:**
+  - A warning prevents no conflict. Its benefit is a seat's choice to wait or re-cut, and that has not been measured.
+  - Re-file it with a count of the PRs whose fixer, warned, would have avoided a measured conflict. The 38 of 320 PRs that left the forecast on a file that later conflicted are the population.
+- **The Python files, what would change it:** a per-file lag share from the evidence script, or a split of the mutant table into a keyed data file, which is the owning group's architecture call, R10-SEAT-SELFTESTS-CI's successor.
+
+Binding:
+- **New group R10-FLY-KEYED-MERGE-DRIVERS:** lane F, kind instrument, class instrument, size S.
+  - Files: `tools/merge/keyed_merge.py`, `.gitattributes` and `tools/merge/ledger_merge.py` (install step only).
+  - Fixer sonnet, reviewer opus, effort medium, no `after`.
+- **The brief text:** `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P412 at <roster sha>), savings estimate 8 to 20 h (central 10 h; instrument tier). The file-overlap measurement (seat a50195df, 2026-11-07): 147 merge-forward conflict rounds in 94 PRs, lag median 1.4 h, sum 919 h; dev/programme/rosters/wave-r10-groups.json 15 rounds and tools/audit/seat/INSTRUMENTS.md 8. Add a keyed three-way merge driver under tools/merge/ modelled on ledger_merge.py: wave-r10-groups.json merged per group object (keyed by group), INSTRUMENTS.md per bullet (keyed by its link target), refusing a same-key edit on both sides so git keeps the conflict; wire both in .gitattributes and in the existing --install step. Self-tests: disjoint additions merge; a same-key edit conflicts; a reorder-only side is a no-op; null control: a malformed side refuses. Measure before and after by replaying the evidence 23 rounds on these two files against the driver and report how many resolve. No per-file open-PR cap; no driver for Python files (r10_seat_selftests_mutants.py, D6/claims.py).`
