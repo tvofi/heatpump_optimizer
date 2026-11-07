@@ -29,9 +29,11 @@ none
 
 ## Carries built
 
-Fold 5 (bare_array HEAD vs working tree): built as the documentation arm. The row's name now says it judges HEAD (a tree read would open every tools/*.sh and join the closure), and a planted control in a throwaway repo (`throwaway_git_init`) shows an uncommitted bare site is clean to `scan("HEAD")` and red to `scan()`. Mutant above.
+Carry 5 (bare_array HEAD vs working tree): built as the documentation arm. The row's name now says it judges HEAD (a tree read would open every tools/*.sh and join the closure), and a planted control in a throwaway repo (`throwaway_git_init`) shows an uncommitted bare site is clean to `scan("HEAD")` and red to `scan()`. Mutant above.
 
-Fold 6 and 7 (darwin task-port, wrapper copies): built as one platform rule, `_hb_stdlib_arm`. A `PermissionError` on darwin prints `SKIP stdlib sampler control: macOS denies the task port (<message>)` and the module continues; linux, any other exception, and a bad sample still fail or are judged. One row pins all four cases; the two mutants above go red. The py-spy stub's `wc -l` padding is already handled (`| tr -d " "`), so no change. The out-of-tree wrapper copies are not in the repository and no tools/ file was added.
+Carry 6 and Carry 7 (darwin task-port, wrapper copies): built as one platform rule, `_hb_stdlib_arm`. A `PermissionError` on darwin prints `SKIP stdlib sampler control: macOS denies the task port (<message>)` and the module continues; linux, any other exception, and a bad sample still fail or are judged. One row pins all four cases; the two mutants above go red. The py-spy stub's `wc -l` padding is already handled (`| tr -d " "`), so no change. The out-of-tree wrapper copies are not in the repository and no tools/ file was added.
+
+Carry 1, Carry 2, Carry 3 and Carry 9 are outside this part's scope (other parts of the group, or already answered); this part touches none of them.
 
 ## Forward-carry
 
