@@ -146,7 +146,8 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
     # latter so a hit can be put to the command that made it. It also counts
     # every line, so a step that traced nothing reads as 0, not clean.
     (tmp / "filter.awk").write_text(
-        '/dev\\/programme/ || (/execve\\(/ && / = 0$/) { print > (out ".hits") }\n'
+        '/dev\\/programme/ || (/execve\\(/ && / = 0$/) || /(clone3?|v?fork)[(]|<[.][.][.] (clone3?|v?fork) resumed>/ '
+        '{ print > (out ".hits") }\n'
         'END { print NR > (out ".n") }\n')
     script = ["#!/bin/bash", "set -o pipefail", f"cd {clone}"]
     listed = []
@@ -164,7 +165,7 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
         sink = f"|awk -v out={tmp}/step{i} -f {tmp}/filter.awk"
         script.append(f"echo '::step {i}'; ( cd {clone}/{wd} && [ -f {rt}/env ] && set -a && . {rt}/env; "
                       f"set +a; cd {clone}/{wd}; exec /usr/bin/strace -f -qq -y -s 4096 "
-                      f"-e trace=%file,execve,getdents64 -o '{sink}' "
+                      f"-e trace=%file,execve,getdents64,clone,clone3,fork,vfork -o '{sink}' "
                       f"env {exports} bash --noprofile --norc -eo pipefail {f} ) "
                       f"> {tmp}/step{i}.log 2>&1; echo \"::exit {i} $?\"")
         listed.append({"step": name, "ran": True, "i": i})
@@ -199,7 +200,7 @@ def _argv(line: str) -> list[str]:
 
 def scan(hits: Path, clone: Path) -> dict:
     """Each traced syscall touching the clone's delivery rows, by kind and by
-    the command (the process's last exec, first three argv words) that made
+    the command (the process's last exec, first three argv words, inherited across a fork or thread until the child execs) that made
     it. `open` is an open of a row or of the directory; `list` a getdents64
     on it; `exec-names` an exec whose argv names dev/programme other than as
     an exclusion (`:!`, `:(exclude)`); `exec-excludes` one naming it only so;
@@ -211,6 +212,12 @@ def scan(hits: Path, clone: Path) -> dict:
     out = scan_empty()
     for line in hits.open(errors="replace"):
         pid = line.split(None, 1)[0]
+        fork = re.search(r"(?:\b(?:clone3?|v?fork)\(.*|<\.\.\. (?:clone3?|v?fork) resumed>.*)\) = (\d+)$", line.rstrip())
+        if fork:  # a child or thread runs its parent's command until it execs
+            cmd[fork.group(1)] = cmd.get(pid, "?")
+            continue
+        if re.search(r"\b(clone3?|v?fork)\(", line) and "dev/programme" not in line:
+            continue
         if "execve(" in line and line.rstrip().endswith("= 0"):
             argv = _argv(line)
             cmd[pid] = " ".join(a.rsplit("/", 1)[-1] if j == 0 else a for j, a in enumerate(argv[:3]))[:120]
