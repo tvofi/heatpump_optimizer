@@ -1,0 +1,8 @@
+128455324901	budget-raise-gate / budget-raise-gate	queued		2026-11-07T16:10:53Z		runs
+128455324878	arch-score / arch-score	queued		2026-11-07T16:10:53Z		runs
+128451327977	gate	in_progress		2026-11-07T16:04:41Z		runs
+128451090669	gate	completed	failure	2026-11-07T16:04:12Z	2026-11-07T16:04:45Z	runs
+128451087542	gate	completed	failure	2026-11-07T16:00:08Z	2026-11-07T16:12:29Z	runs
+128451087259	governance / instrument-self-tests	completed	cancelled	2026-11-07T12:44:02Z	2026-11-07T13:14:07Z	runs
+128451063920	gate	completed	failure	2026-11-07T16:00:03Z	2026-11-07T16:00:41Z	runs
+128451058748	gate	completed	failure	2026-11-07T15:55:22Z	2026-11-07T16:07:45Z	runs

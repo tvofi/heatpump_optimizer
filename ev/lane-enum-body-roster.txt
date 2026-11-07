@@ -1,0 +1,9 @@
+roster 364 base 364 head 364
+base Counter({'Instruments': 196, 'Core model': 135, 'Product UX': 14, 'Replay': 9, 'Learners': 8, 'Docs': 2})
+head Counter({'Instruments': 260, 'Core model': 65, 'Product UX': 14, 'Replay': 9, 'Docs': 8, 'Learners': 8})
+moved 70 Counter({('Core model', 'Instruments'): 64, ('Core model', 'Docs'): 6})
+moved not from Core model: []
+--moved groups with any custom_components/ or bare file:
+--Core model at head
+core at head 65 with custom_components 58
+--counts of moved open: 17

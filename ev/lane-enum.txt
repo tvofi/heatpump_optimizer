@@ -1,0 +1,16 @@
+roster 369 base 369 head 369
+base Counter({'Instruments': 198, 'Core model': 136, 'Product UX': 16, 'Replay': 9, 'Learners': 8, 'Docs': 2})
+head Counter({'Instruments': 262, 'Core model': 66, 'Product UX': 16, 'Replay': 9, 'Docs': 8, 'Learners': 8})
+moved 70 Counter({('Core model', 'Instruments'): 64, ('Core model', 'Docs'): 6})
+moved not from Core model: []
+--moved groups with any custom_components/ or bare file:
+--Core model at head
+core at head 66 with custom_components 59
+  core without custom_components: ('R10-CARD-VOICE', 0, False, False, 'feature', None, True)
+  core without custom_components: ('R10-CATALOG-PR', 0, False, False, 'owner-step', 'owner-step', False)
+  core without custom_components: ('R10-COMBI-TANK', 0, False, False, 'production', 'production', False)
+  core without custom_components: ('R10-NIGHTLY-SLOW-ROLLING', 0, False, False, 'production', 'hotfix', True)
+  core without custom_components: ('R10-RCA-HEADMOVED', 0, False, False, 'study', 'study', True)
+  core without custom_components: ('R10-ROSTER-PUSH-RACE', 0, False, False, 'defect', None, True)
+  core without custom_components: ('R10-STORE-RACES', 0, False, False, 'production', None, True)
+--counts of moved open: 16

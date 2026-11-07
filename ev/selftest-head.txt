@@ -1,0 +1,2 @@
+ok   self-test fails when gate-cancellation is deleted
+self-test: 0 failed
