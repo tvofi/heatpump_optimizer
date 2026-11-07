@@ -1372,6 +1372,22 @@ def selftest() -> int:
            _lane([], kind="rca", name="R10-DEEPLINK-CENSUS") == "Product UX")
     expect("lane null control: a learner keeps its lane over its files",
            _lane(["tools/x.py"], name="R10-COP-GATE") == "Learners")
+    # hot_files are owned files too: a tool group whose hot file is in the
+    # integration, or is a bare filename, stays core (a bare basename, even a
+    # tool's, is not proof of an instrument: the roster writes coordinator.py
+    # and merge_train.py alike).
+    def _hot(hot_files):
+        return roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                            "files": ["tools/x.py"], "hot_files": hot_files})
+
+    expect("lane null control: an integration hot file keeps a tool group Core model",
+           _hot(["custom_components/heatpump_optimizer/x.py"]) == "Core model")
+    expect("lane null control: a bare hot filename keeps a tool group Core model",
+           _hot(["coordinator.py"]) == "Core model")
+    expect("lane null control: a bare tool basename in hot_files stays Core model",
+           _hot(["merge_train.py"]) == "Core model")
+    expect("lane: an instrument-path hot file keeps a tool group Instruments",
+           _hot([".github/workflows/ci.yml"]) == "Instruments")
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
