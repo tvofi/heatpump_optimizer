@@ -1,0 +1,47 @@
+ok   the default poll is inside [60 s, 240 s]
+ok   --poll 59 is refused at --poll
+ok   --poll 60 is refused at --head
+ok   (a1) dry-run reports what it would hand merge_pr.sh
+ok   (a1) dry-run performs no merge
+ok   (f) dry-run creates no state directory, log or lock
+ok   (a2) the merge goes through merge_pr.sh with pr, pinned head, evidence and mode
+ok   (a3) owner mode passes --mandate <id> to merge_pr.sh
+proof_watch: REFUSE: --mode owner needs --mandate <comment-id>
+ok   (a3) --mode owner without --mandate refuses at launch
+ok   (a2) exactly one merge line
+ok   (a2) the merge line names pr, head, check, verdict comment id, evidence and merge sha
+ok   (a2) the state log exists after a live merge
+ok   (a2) the merge line is in the state log too
+ok   (b) a failing named check aborts, naming the check
+ok   (b) no merge after a failed check
+ok   (b) the abort is logged too
+ok   (c) an exceeded budget aborts with a report
+ok   (c) the clock's budget abort fired, not the poll-count fallback
+ok   (c) no merge on budget
+ok   (c) the watch was announced first
+ok   (d) a moved head aborts, naming both heads
+ok   (d) no merge at a moved head
+ok   (e) a refused verdict gate aborts with its reason
+ok   (e) no merge without a verdict
+ok   (e) the gate was asked, not assumed
+ok   (e2) the divergence is named
+ok   (e2) no merge on an unreadable verdict
+ok   (g) the red context is named
+ok   (g) no merge on red
+ok   (g2) an older red gate suite: the red gate is named
+ok   (g2) an older red gate suite: no merge
+ok   (g2) a RATE-LIMITED gate suite: the red gate is named
+ok   (g2) a RATE-LIMITED gate suite: no merge
+ok   (g3) the deferral waits one poll, then merges once the code run's gate lands
+ok   (h) the mergeable state is named
+ok   (h) no merge unmergeable
+ok   (i) the held lock is named
+ok   (i) no double merge
+ok   (j) the merge path's refusal is reported
+ok   (j) no MERGE line is logged for a merge that did not land
+ok   (k) skipped reads as not-succeeded
+ok   (k) no merge on a skipped check
+ok   (l) a pending required context waits a poll, then merges when it lands
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 44 checks, 0 failed
+rc=0

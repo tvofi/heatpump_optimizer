@@ -1,34 +1,62 @@
-Fix review: blocked 43a9d5842392426ea06806affa479461f6017645 class-open: merge_train.py:8013 classify CLI and proof_watch.py:226 read a deferral red as RED, undispositioned
+Fix review: blocked a8c36900eed9a789e2bab2eee70ffc883f1a608f class-open: the classify CLI exits 1 RED in the gate-sweep settle gap, live at this head 18:16:12Z
 
-bus-nonce: 43d186d67f27454563fb99abb0686157
-
-Round: first.
+bus-nonce: 5a2baec6a7dcf5c6acf30fe8b4a9196d
 
 ## Block
 
-- The body's class rule is `git grep -n "classify(" -- tools/audit/seat`. At this head it returns seven merge_train/orchestrator_tick/proof_watch readers of `merge_train.classify` (ev/class-grep.txt). The body dispositions `wait_ci` (closed), `approval_owed` (:529), `main_green` (:3115) and `orchestrator_tick` (:1151, :1648), and says the proof waits share `wait_ci`. Two readers it returns are in neither the diff nor the body:
-  - `tools/audit/seat/merge_train.py:8013`, the `classify` CLI subcommand. Dispatch and every reviewer seat use it to wait for CI ("exits 1 RED"). It calls `classify(latest_runs(runs), req)` with no `busy`, so a deferring edit gate reads as a final RED while the code run runs. That is the defect this group exists to remove, at the seam the brief's focus (1) names ("classify").
-  - `tools/audit/seat/proof_watch.py:226`, `required_state`. It calls `_train().classify(last, self.required_names())` with no `busy`. This is a separate check-runs read, not `wait_ci`, so the body's "proof waits share wait_ci" does not cover it.
-- I saw this happen live on this PR's own head. At 16:22:14Z `merge_train.py classify 43a9d584... --pr 3290` exited 1 with `RED ... pending: none red: gate` (ev/classify-log.txt). Both red gates are edit-run deferrals: runs 42387524862 and 42387655386 each log `FAIL run(s) [42387525051] at this head are still being judged; their gate decides` (ev/edit-gate-logs.txt). Code run 42387525051 was still `in_progress` at that time (ev/ci-runs.txt). On the same live reads, this PR's own `gate_busy` returns `[42387525051]` and `classify(..., busy)` returns `('wait', ['gate'], [])`, but the CLI's call returns `('red', [], ['gate'])` (ev/live-seam.txt).
-- Remedy: route the CLI `classify` (and `proof_watch.required_state`) through `Train._gate_busy` when GATE reads red, with a self-test case (the #3248 frame read through the CLI path). Alternatively, give each reader a reasoned disposition in the body. Either way, also disposition the `wait-ci` subcommand (:8000, `only=None`).
+Round 2 of the fix review (first round blocked at 43a9d584, class-open). The round-2 remedy is wired correctly: the `classify` CLI (`classify_cmd` -> `Train.classify_at`) and proof_watch `required_state` (`Train.classify_at`) now both use the shared `_gate_busy` predicate, and wait-ci takes the settle. While the code run runs, the deferral is a WAIT on every reader. That was reproduced live (see Evidence).
+
+What is still open is one domain of the same predicate on the one-read readers: the **settle gap**. After the code run completes (its `gate` green, every unit done, so `busy` is empty), the edit suite's deferral red is still the worst-suite `gate` until gate-sweep.yml re-runs it. `classify_at` deliberately takes no settle there. Its docstring and the instrument doc say "the caller's next read sees the sweep", and the self-test pins RED ("defer-wait CLI: one read takes no settle -- a red beside a green suite with nothing busy is RED"). That disposition is false for the CLI's callers, because none of them re-reads on RED:
+- `bus.sh` (:587) refuses a dispatch on rc 1. A review dispatch is refused for a head that is going green.
+- `postmerge.py` (:49) reports the last line.
+- The reviewer seats' CI wait (cloud_dispatch prompt :208/:1036) stops at exit 1 and judges the head RED.
+
+**Live at this head**, with the head's own code (worktree at a8c36900eed9a789e2bab2eee70ffc883f1a608f):
+- The code run 42397572783's `gate` went green at 18:16:00Z (check run 128486567216).
+- `merge_train.py classify a8c36900eed9a789e2bab2eee70ffc883f1a608f --pr 3290` at 18:16:12Z printed `RED ... pending: none red: gate` and exited 1.
+- gate-sweep's re-run of the edit gate started at 18:16:18Z (128486820605).
+- The next read printed `GREEN ... red: none`, rc 0.
+
+So this very reviewer's waiter ended on a false RED. The window was 18 s against a 60–70 s poll, so roughly a quarter of polling callers land in it.
+
+The remedy is the fixer's design call. Some options:
+- (a) In `classify_at`, read a red GATE beside a green GATE suite whose completion is recent (bounded, e.g. within SWEEP_SETTLE_POLLS * HEARTBEAT_SECONDS of the read) as WAIT, and RED after that, so a sweep that never comes still ends RED.
+- (b) Read gate-sweep.yml's runs at the head the same way `_gate_busy` reads ci.yml's.
+- (c) Give each CLI caller a re-read on RED. This one is weaker: it makes three copies.
+
+Whichever is chosen, add a self-test case from this scene and flip the pinned "one read takes no settle" case.
 
 ## Findings
 
-- M5 survives: the mutant drops `{} if status == "action_required" else` in `gate_busy`. The self-test still reads 478 checks, 0 failed. This is an equivalent mutant: gate.py `busy` excludes `action_required` by status before it reads `jobs`, so the mapping only mirrors gate.py's read_api shape. Carry: dismissed: equivalent mutant, busy() filters that status first
+- Follow-up: the body's `## Figures` and `## Mutation proof` were not re-taken at this head. They quote `478 checks` and M1–M3 at 478, but the self-test at a8c36900eed9a789e2bab2eee70ffc883f1a608f prints `merge_train self-test: 485 checks, 0 failed`. They carry no mutant for the round-2 lines (`classify_at`, `classify_cmd`, proof_watch `required_state`). The class-enumeration list also omits the `classify` CLI and proof_watch readers this head closes. All of this is owed at the repair head. Carry: R10-HOTFIX-TRAIN-DEFER-WAIT
+- Residual: a surviving mutant, M9. Routing `classify`'s log to stderr (`**({"log": ...stderr} if a.cmd == "classify" else {})` -> `**({})`) leaves both self-tests green, so the line is untested. It is equivalent under every current caller: the only log line on that path (`runs listing is unreadable`) precedes the verdict line. `bus.sh` reads `tail -n 1` of 2>&1, `postmerge.py` reads the last stdout line, and `review_packet.py` uses an `re.M` anchored search. Carry: dismissed: equivalent mutant under all three stdout readers (bus.sh, postmerge.py, review_packet.py)
 
 ## Evidence
 
-- Head reviewed: 43a9d5842392426ea06806affa479461f6017645 (ev/HEAD.txt). Merge base: 1c1ae100b59e. Three-dot diff: dev/programme/delivery/3290.md (new, the delivery row), tools/audit/seat/merge_train.py, tools/audit/seat/instruments/merge_train.py.md. VERSION, the manifest and RELEASE_NOTES.md are untouched.
-- `git merge-tree --write-tree origin/main HEAD`: clean. Merged with #3287's head 520538cc: clean (tree 8e94e233), and the merge_train self-test on that combined tree gives 478 checks, 0 failed (ev/combo-3287-selftest.txt). gate.py's `busy(ctx, runs)` signature and the jobs shape are unchanged by #3287, so there is no dependency or conflict.
-- `python3 tools/audit/seat/merge_train.py --self-test` at the head: 478 checks, 0 failed. This matches the body.
-- Mutation proof, re-run by me, each restored afterwards (ev/mut-*.txt):
-  - M1 (`busy = []`): 4 failed. Matches the body, including the named 13:01Z case.
-  - M2 (`deferred = set()`): 4 failed. Matches.
-  - M3 (settle off): 2 failed. Matches.
-  - M4 (my own: per-suite jobs replaced with `{}`): 1 failed, the judging table row.
-  - M6 (my own: `SWEEP_SETTLE_POLLS` set to 50): 2 failed, including the bound case.
-  - Null control (comment-only edit): 0 failed.
-- The finder's harness: none is named or committed. The 56/32/10 SKIP figures and about 3,500 runner-minutes come from the s12 study, whose harness is not in the tree. I could not re-derive them, and the body says so too. The #3248 and 13:01Z scenes are self-test frames, not recorded-run replays.
-- On the train path the fix is sound. A red with no busy run still SKIPs on its first poll. A code-run red gets no settle. The wait is bounded by `polls` (TIMEOUT). An unreadable listing leaves the red standing. No second copy of the deferral grammar is added: `busy` is imported from tools/ci/gate.py.
-- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED; no budget moved. `PYTHONPATH=tests/hastub python3 tests/entities.py`: ALL 2645 ENTITY CHECKS PASSED (ev/entities.txt). `tests/closure.py select`: `MODE: SCOPED -- 1 script(s) run, 32 scoped out`.
-- CI at the head, read at 16:22Z (ev/check-runs.txt): the code run 42387525051 is still in progress. `gate` is red twice, and both are edit-run deferrals. `tests / nightly-status` is red, which is not this PR's: the diff does not reach what it reads. I did not judge `## Red checks` (step 11), because the head's workflows have not all concluded.
+- Head reviewed: a8c36900eed9a789e2bab2eee70ffc883f1a608f (ev/HEAD.txt), merge base 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76. Roles dir unchanged between merge base and origin/main (0-line diff).
+- Self-tests at the head: `merge_train self-test: 485 checks, 0 failed`, `proof_watch self-test: 44 checks, 0 failed` (ev/mt-selftest.txt, ev/pw-selftest.txt).
+- My targeted mutants on the round-2 lines (ev/mutants.txt), each applied, run and restored:
+  - M4 (`classify_at` busy -> []): merge_train 2 failed (the CLI #3248 and CLI unreadable cases), proof_watch 2 failed (g3).
+  - M6 (CLI back to the base `classify(latest_runs(runs), req)`): merge_train 2 failed.
+  - M7 (proof_watch `required_state` back to the base reading): proof_watch 2 failed (g3 aborts with REQUIRED RED).
+  - M8 (wait-ci all-runs settle dropped): merge_train 2 failed.
+  - M1 re-run: merge_train 4 failed, matching the body.
+  - M9 survives (see Findings).
+  - Null control: a docstring perturbation gives 485/0 and 44/0.
+  - M5 equivalent-mutant dismissal: stands per the brief, not re-judged.
+- Class enumeration (ev/class-grep.txt, `git grep -n "classify("` plus classify_at/classify_cmd):
+  - CLI `classify` (:8101 -> `classify_cmd` :519 -> `classify_at`) and proof_watch.py:234: both on the shared predicate.
+  - `wait_ci` :1644/:1659: on the predicate.
+  - `approval_owed` :544, `main_green` overlap :3148 (main has no edit run), orchestrator_tick.py :1151/:1648 (tick report lines): unchanged, consistent with the body's disposition.
+- Live repro of the round-2 class at 18:01:41Z (ev/live-repro.txt), while code run 42397572783 was in_progress and edit run 42397572454's gate log said `FAIL run(s) [42397572783] at this head are still being judged; their gate decides`:
+  - origin/main's code: `RED ... red: gate`, rc 1.
+  - The head's code: `WAIT ... pending: gate`, rc 3.
+  - My first waiter mistakenly ran origin/main's code and ended RED at 17:58:45Z (ev/classify-base-code.log), which is the base defect.
+- The waiter on the head's code (ev/classify-run1.log): WAIT from 18:01:47Z to 18:15Z, then false RED at 18:16:12Z, then GREEN rc 0 at about 18:17Z (ev/classify.log). Gate rows: ev/gate-rows-1816.tsv, ev/check-runs-final.tsv, ev/ci-runs-final.tsv.
+- CI at the head, judged job by job over all check-run pages (55 rows): every required context is green at the final read. The only concluded red is `tests / nightly-status` (failure at 17:49:36Z), which is not this PR's: the diff does not reach what it reads. `## Red checks: none` is consistent with that. The deferral red was superseded by gate-sweep's re-run, now green.
+- Merge with origin/main aaaec212: `git merge-tree --write-tree` rc 0, tree 32e9db28 (ev/merge-tree.txt).
+- #3287 interaction: #3287 has merged on main as cc100c275 (gate.py busy/judging). This PR touches neither gate.py nor gate-sweep.yml. On the merged tree the self-tests print `merge_train self-test: 492 checks, 0 failed` and `proof_watch self-test: 44 checks, 0 failed` (ev/merged-selftest.txt), including the table that pins `gate_busy` equal to gate.py's own `busy`. No copy of the deferral grammar was added: gate.py's `busy` is imported from its tree path.
+- `PYTHONPATH=tests/hastub python3 tests/entities.py`: rc 0 (ev/entities.txt). `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED` (ev/structure.txt).
+- The diff has 5 files: the delivery row dev/programme/delivery/3290.md is present, and no budget file, VERSION, manifest or RELEASE_NOTES.md is touched. `## Head` names a8c36900eed9a789e2bab2eee70ffc883f1a608f.
+- Figures I could not re-derive: the s12 study's 56/32/10 SKIPs, 27 re-merges and about 3,500 runner-minutes. Its harness is not in the tree, and the body says so.
+- The scheduled brief said never to send a push notification, so none was sent.

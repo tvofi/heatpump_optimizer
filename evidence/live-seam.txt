@@ -1,3 +1,0 @@
-CLI-classify(no busy): ('red', [], ['gate'])
-gate_busy: [42387525051]
-classify(busy): ('wait', ['gate'], [])
