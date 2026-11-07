@@ -187,7 +187,11 @@ def judging(run: dict) -> bool:
     """A run that can add no source is not waited on (rev2 N2, rev3 R3-2): its
     `gate` is listed, no listed prelude or unit job is unfinished, and every name
     its own title's workset owes is listed and completed (`tests /
-    closure-scope` aside when it names no PR)."""
+    closure-scope` aside when it names no PR), or its caller job is listed completed
+    under the unit's bare name: a unit the run never expanded, as a deferring edit
+    run's skipped `pr-contract` (C3), adds no source. Read as owed, it made every
+    such run busy to every other gate and prelude at its head (#3263, run
+    42338396358 beside code run 42338396871)."""
     jobs = run.get("jobs") or {}
     if "gate" not in jobs or not all(st[0] == "completed" for k, st in jobs.items()
                                      if k == "prelude" or k.split(" / ")[0] in UNITS):
@@ -196,6 +200,8 @@ def judging(run: dict) -> bool:
     if t is None:
         return False                        # unreadable: never treated as finished (gate() also refuses it)
     for u in workset(t[0], t[1]) & set(UNITS):
+        if jobs.get(u, ("",))[0] == "completed":
+            continue                        # the caller, never expanded: this run runs no such unit
         for n in UNITS[u]:
             if u == "tests" and n == "closure-scope" and not t[1]:
                 continue

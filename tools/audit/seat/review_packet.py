@@ -219,6 +219,26 @@ def hot_file_refusals(paths: set[str], open_prs: list[dict], boarded: set[int], 
     return out
 
 
+def own_pr(open_prs: list[dict], topic: str, is_ancestor) -> tuple[int, str | None]:
+    """The open pull request a handoff updates (P368): by ancestry -- the one whose head is an
+    ancestor of the handoff's HEAD, since a re-cut is built on it -- and only when none is, by
+    head branch `fix/<topic>`. (0, None) when none qualifies; two qualifying are excluded
+    neither and named in the note, because a guess would hide a real collision."""
+    for found in ([p for p in open_prs if is_ancestor(p["head"])],
+                  [p for p in open_prs if p.get("branch") == f"fix/{topic}"]):
+        if len(found) == 1:
+            return found[0]["number"], None
+        if found:
+            return 0, "own-pr: ambiguous, " + " and ".join(f"#{p['number']}" for p in found) + " both qualify; neither is excluded from the hot-file rule"
+    return 0, None
+
+
+def handoff_hot(touched: set[str], open_prs: list[dict], boarded: set[int], topic: str, is_ancestor) -> list[str]:
+    """The handoff's hot-file refusals, the pull request it updates excluded (P368)."""
+    this_pr, note = own_pr(open_prs, topic, is_ancestor)  # mut:ownpr
+    return hot_file_refusals(touched, open_prs, boarded, this_pr) + ([note] if note else [])
+
+
 def handoff_topics(branch: str) -> list[str]:
     """The handoff topics a pull request's branch can carry: `fix/<t>` or
     `fix/<t>-pr`, `open_pr.sh`'s two spellings; none for any other shape."""
@@ -568,7 +588,7 @@ def hot_prs(touched: set[str]) -> tuple[list[dict], set[int]]:
         merge_head = None
         if tip and not git("fetch", "-q", "origin", f"refs/heads/verdict/{p['number']}", check=False):
             merge_head = verdict_merge_head(tip[0])
-        open_prs.append({"number": p["number"], "head": p["head"]["sha"], "files": files,
+        open_prs.append({"number": p["number"], "head": p["head"]["sha"], "branch": p["head"]["ref"], "files": files,
                          "merge_verdict_head": merge_head})
     return open_prs, train_boarded()
 
@@ -590,8 +610,10 @@ def handoff(a) -> int:
     gid = roster_lib.group_for_branch(roster, f"handoff/{a.topic}")
     carries = len(roster_lib.groups_of(roster)[gid].get("carry") or []) if gid else 0
     open_prs, boarded = hot_prs(touched)
+    anc = lambda sha: subprocess.run(  # noqa: E731
+        ["git", "merge-base", "--is-ancestor", sha, head], cwd=repo(), capture_output=True).returncode == 0
     refusals = handoff_refusals(structure_at_merge(a.main, head),
-                                hot_file_refusals(touched, open_prs, boarded, 0), unnamed_carries(body, carries),
+                                handoff_hot(touched, open_prs, boarded, a.topic, anc), unnamed_carries(body, carries),
                                 unlanded_carries(landed_cites(body), *reversed(roster_carry_reader([a.topic], ref))))
     for x in refusals:
         print(f"review_packet: REFUSE {x}", file=sys.stderr)
@@ -770,6 +792,22 @@ def _self_test() -> int:
     check("hot-file arm: an unboarded merge verdict sharing a hot file refuses",
           len(hot_file_refusals({HOT_FILES[0]}, prs, set(), 7)) == 1)
     check("hot-file null: the same verdict boarded passes", hot_file_refusals({HOT_FILES[0]}, prs, {9}, 7) == [])
+    # P368: the handoff's own pull request is not a collision with itself.
+    own = [{"number": 9, "head": H, "branch": "fix/t-2", "files": [HOT_FILES[0]], "merge_verdict_head": H}]
+    n, note = own_pr(own, "t", lambda sha: sha == H)
+    check("hot-file own-pr arm (a): the pull request whose head is an ancestor is not refused against itself",
+          n == 9 and note is None
+          and handoff_hot({HOT_FILES[0]}, own, set(), "t", lambda sha: sha == H) == [])
+    n2, _ = own_pr(own, "t-2", lambda sha: False)
+    check("own-pr: with no ancestor, the head branch fix/<topic> identifies it", n2 == 9)
+    other = [dict(own[0], number=11, head=B, branch="fix/other")]
+    n3, _ = own_pr(own + other, "t", lambda sha: sha == H)
+    check("hot-file own-pr arm (b) null: a different open pull request holding an unboarded merge verdict still refuses",
+          n3 == 9 and len(handoff_hot({HOT_FILES[0]}, own + [dict(other[0], merge_verdict_head=B)], set(), "t",
+                                      lambda sha: sha == H)) == 1)
+    n4, note4 = own_pr(own + other, "t", lambda sha: True)
+    check("hot-file own-pr arm (c): two ancestors are excluded neither and both are named",
+          n4 == 0 and note4 and "#9" in note4 and "#11" in note4)
     check("hot-file null: a verdict at a stale head is not a merge verdict at its head",
           hot_file_refusals({HOT_FILES[0]}, [dict(prs[0], merge_verdict_head=B)], set(), 7) == [])
     check("hot-file reader: the verdict's head is the first line of VERDICT.md through proof_watch.parse_verdict",
