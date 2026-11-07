@@ -158,3 +158,27 @@ Binding:
   - Files: `tools/audit/seat/ref_privacy.py` and `tools/audit/seat/cloud-setup.sh`.
   - Fixer sonnet, reviewer opus, effort medium, no `after`.
 - **The brief text:** `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P408 at <roster sha>), hotfix tier (owner, 2026-11-07: it misattributes contributors; history is not rewritten). Commits reach main under placeholder or unnumbered author and committer emails that GitHub credits to unrelated accounts: since 2026-11-05T12:00 seat@users.noreply.github.com 378, hpo-fixer@users.noreply.github.com 144, noreply@users.noreply.github.com 7 (git log origin/main --since=2026-11-05T12:00 --format=%ae%n%ce); historically t@t, x@x, fixer@invalid, noreply@anthropic.com. Add to tools/audit/seat/ref_privacy.py's push guard a refusal of any added commit whose author or committer email is outside this grammar: the seat identity 70032254+tvofi@users.noreply.github.com; <digits>+<login>@users.noreply.github.com; <name>[bot]@users.noreply.github.com with or without a <digits>+ prefix; noreply@github.com as committer only; and an adopted outside contributor own email passed explicitly per adoption. Find and fix the writers of seat@ and hpo-fixer@users.noreply.github.com (cloud-setup.sh git identity, any git -c user.email under tools/) so live seats pass. Self-test arms: each refused form above refuses; each allowed form passes; a mutant dropping the digits requirement fails the seat@ arm; null control: a Co-authored-by trailer naming 476059+Bankaifan@users.noreply.github.com is not judged. No history rewrite; credit for past placeholder commits stays the owner Co-authored-by route (R10-COMBI-TANK carry 6).`
+
+## P409: roster drain stale tracking ref, with the push addendum (queue lines s12-roster-drain-stale-tracking-ref and its measured addendum)
+
+Verdict: ACCEPT. Both arms are one defect: `roster_edit.py`'s on-origin guard trusts a remote-tracking ref that nothing keeps current. It goes to R10-ROSTER-WRITE-SWEEP (carries-open, PR 3253), which owns `roster_edit.py` and `roster_queue.py`. It is not taken on the >10 % exemption. The tier is hotfix as the queue line asks, because it stalls every roster-dependent dispatch.
+
+Source: the orchestrator's queue lines of 2026-11-07, measured at about 13:40Z and 13:46Z.
+
+Instances:
+- **The guard.** At origin/main, `tools/audit/seat/roster_edit.py` line 911 refuses `HEAD <sha> is on no origin ref` when `git for-each-ref --contains <old> refs/remotes/origin/` is empty. That reads the LOCAL tracking refs.
+- **The push.** The push at line 1100 sends `<head>:refs/heads/<branch>` from the worktree. The queue addendum measured that the next op's guard did not see it: it pushed c96a6f2d, then refused the next two ops at c96a6f2d.
+- **A rival writer.** When carry_fold or a second drain pushes the roster branch, the same guard refuses until a `git fetch`. At about 13:40Z 48 queued ops stalled this way, the COP hotfix group append among them, while HEAD 575dbfc9 was on origin all along (queue line).
+- **The rule on the instances.** Before refusing, the guard runs one `git fetch origin <branch>` and re-reads `--contains`. After its own successful push it runs `update-ref refs/remotes/origin/<branch> <head>`.
+  - Both measured cases then pass: 575dbfc9 is on the fresh tip, and c96a6f2d is the tracking ref after the update.
+  - The null control: a HEAD on no fetched ref, a real unpushed edit, is still refused.
+
+Cost:
+- About 10 lines in `roster_edit.py`, at the guard and after the push.
+- Self-test arms in its throwaway-git block: a rival push leaves the local tracking ref stale, and the guard passes after its own fetch; two ops in one run both land; the null control, an unpushed commit, still refuses; a mutant dropping the fetch refuses the rival case.
+- One fetch per refusal path, and none on the common path.
+- `roster_edit.py` is not a `--budgets` row.
+- **Benefit.** 48 ops held until a hand fetch, twice on 11-07, and every two-op run at half throughput. Every roster-dependent dispatch waits on that queue.
+
+Binding:
+- **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P409 at <roster sha>), hotfix tier (it stalls every roster-dependent dispatch): roster_edit.py refuses HEAD <sha> is on no origin ref from git for-each-ref --contains over the LOCAL refs/remotes/origin/ refs, which go stale (a) when a rival writer (carry_fold, a second drain) pushes the roster branch (2026-11-07 about 13:40Z: 48 queued ops stalled until a hand git fetch while HEAD 575dbfc9 was on origin) and (b) after its own <sha>:refs/heads/<branch> push (13:46Z: pushed c96a6f2d, then refused the next two ops at c96a6f2d). Before refusing, fetch the branch once and re-check; after a successful push, update-ref refs/remotes/origin/<branch> to the pushed head. Self-test arms (throwaway git): a rival push with a stale local tracking ref passes after the fetch; two ops in one run both land; null control: a real unpushed commit still refuses; a mutant dropping the fetch refuses the rival case.`
