@@ -17836,6 +17836,48 @@
     "pr": 3280
    },
    "brief": "From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/train-hold, younger than nightly.yml HOLD_MAX_AGE_S=3600, makes every beat it dispatches exit skip-train-hold; its 3 dispatches (0, 900, 1800 s) are spent under the hold and it times out at 7200 s naming no hold. Inject a held collaborator into record_flush, defaulting to a zero-REST git read (ls-remote origin refs/heads/train-hold for presence, the fetched commit committer date for age, the commit message pid), with the bound read from nightly.yml by source read, never a second literal. Print one line naming the hold sha, age, pid and bound when it appears, changes or clears; do not count a dispatch sent under a live hold toward FLUSH_MAX_DISPATCHES, and dispatch again when it clears; name a still-live hold in the timeout message; never refuse on a hold. Self-test arms in the existing flush block: a planted live hold is named and spends no dispatch, a stale hold is ignored, an absent hold is unchanged (null control), a mutant counting the held dispatch exhausts at 3 and is caught. First, before the stamp change: probe merge_train.py with a stubbed gh, TERM both the train.sh pid and the merge_train.py pid at once mid-run, and record whether the hold DELETE is issued; if a second TERM during the unwind skips hold_release, make the unwind ignore further TERM and HUP once it starts (as pr_reap does) with a self-test arm and a mutant; if the DELETE is issued, record that as a non-finding and change nothing there. No train.sh trap change: pr_exit_trap already TERMs merge_train.py first."
+  },
+  {
+   "group": "R10-FLY-STAMP-FLUSH-COST",
+   "lane": "F",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/release/stamp.py",
+    ".github/workflows/nightly.yml",
+    "tests/delivery_status.py",
+    "tests/entities.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [
+    "R10-FLY-STAMP-FLUSH-HOLD"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "note": "overlap admitted (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT): distinct seam: nightly.yml workflow_dispatch input and five heavy-job if lines; that group owns the mutation-ledger drain steps"
+   },
+   "brief": "From triage batch 132 (triage: dev/programme/triage/s6-batch132.md#P404 and #P403 at 6db424629), savings estimate 6 to 16 h (central 10 h; instrument tier). (1) Beat-only dispatch (P404): every stamp record-flush dispatch of nightly.yml runs all nightly lanes (mutation-nightly, four mutation-ledger shards, slow, two nightly-ha), about 950 runner-min, to run the one-minute record-autofix job; on 2026-11-07 seven dispatches held 58 runner-h by noon and four were hand-cancelled, losing finished ledger shards. Add nightly.yml on.workflow_dispatch.inputs.lanes (choice all or beat, default all) and append \"&& inputs.lanes != 'beat'\" to the if of mutation-nightly, mutation-ledger, mutation-ledger-push, slow and nightly-ha; record-autofix keeps its if. stamp.py dispatch_record_beat posts inputs lanes=beat. Keep tests/entities.py pins on nightly lanes true and add one: every heavy job skips on lanes=beat and record-autofix does not. Self-test arm: the dispatch payload carries lanes=beat; a mutant dropping it fails; null control: a dispatch with no input (a hand probe) runs every lane, and schedule and push evaluate as today. Measure before and after on one beat-only dispatch: its jobs and runner-minutes by the runs jobs API. Name the hand form (gh workflow run nightly.yml -f lanes=beat) where stamp.py documents the flush. (2) One window (P403): rule 4 enumerates tag..HEAD (window_log_args) but disposition_gate runs tests/delivery_status.py over tag..origin/main, and the flush fetches origin every poll, so after a flush timeout any merge past HEAD makes rule rows refuse (v7.1.5 run 1, #3271). Add delivery_status.py --head REV (default origin/main) used in its span, and pass the stamp head from disposition_gate. Self-test arms: origin/main one record merge ahead of HEAD is not refused as rows; a mutant dropping --head refuses as rows; null control: HEAD equal to origin/main is unchanged; delivery_status.py --head selects its window. No cancel_superseded.py change, no train hold, no rows written by the stamp."
   }
  ]
 }
