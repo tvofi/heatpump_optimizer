@@ -12,7 +12,7 @@ Closes: triage batch 131 P402 (`dev/programme/triage/s6-batch131.md`, which exis
 
 ## Head
 
-10fa087733460ce6f8f5d4164d3e7fa1d4050ead, on origin/main 28d46c491 (merged in; `prepr.sh` run at this head, 2026-11-07T13:45Z).
+60b97bb5d872e151563f2e7c0307605f2fb11804, on origin/main a37c58e5f (merged in; `prepr.sh` rc=0 at this head, 2026-11-07T14:20Z).
 
 ## Mutation proof
 
