@@ -20,6 +20,9 @@ set -uo pipefail
 OUT=${1:?usage: autofix_statuses.sh <out-dir> [pages]}
 PAGES=${2:-3}
 R=tvofi/heatpump_optimizer
+# Job logs are read by merge_train.job_log (`job-log`), the one reader.
+SEAT=$(cd "$(dirname "$0")" && pwd)
+joblog() { sleep 1; python3 "$SEAT/merge_train.py" job-log "$1" "$R"; }
 api() { sleep 1; gh api "$@"; }
 mkdir -p "$OUT/logs" "$OUT/jobs"
 cd "$OUT" || exit 2
@@ -50,15 +53,14 @@ lf=0
 : > status.tsv
 while IFS=$'\t' read -r run br sha jid name concl; do
   f=logs/$jid.log
-  [ -s "$f" ] || api --allow-escape-sequences "repos/$R/actions/jobs/$jid/logs" > "$f" 2>/dev/null \
+  [ -s "$f" ] || joblog "$jid" > "$f" 2>/dev/null \
     || { lf=$((lf + 1)); rm -f "$f"; continue; }
   st=$(grep -m1 -oE 'AUTOFIX: [a-z-]+' "$f" | cut -d' ' -f2)
   why=-
   if [ "$name" = "tests / closures-autofix" ] && [ "${st:-}" != changed ]; then
     cj=$(jq -r '.jobs[] | select(.name == "tests / closures") | .id' "jobs/$run.json")
     c=logs/closures-$cj.log
-    if [ -n "$cj" ] && { [ -s "$c" ] || api --allow-escape-sequences \
-        "repos/$R/actions/jobs/$cj/logs" > "$c" 2>/dev/null; }; then
+    if [ -n "$cj" ] && { [ -s "$c" ] || joblog "$cj" > "$c" 2>/dev/null; }; then
       why=$(grep -oE '(UNDER-SCOPED|INERT READS UNDER-APPROXIMATED|PHANTOM|NOT A FILE):' "$c" \
         | sort -u | tr -d ':' | paste -sd, -)
     else
