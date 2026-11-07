@@ -311,3 +311,25 @@ Cost:
 - **What would change it:** a body-ahead held past one sweep after P416 lands.
 
 Binding: none. See P416.
+
+## P415: bottleneck mutation-vacuous (queue line s12-bottleneck-mutation-vacuous)
+
+Verdict: DEFER. The class already has its RCA document and its landed countermeasures, so `defect-root-cause.md`'s audit-class clause is answered, not open.
+- **The barrier the line names already exists, in report-only form.** `prepr.sh` step 6d' runs `mutant_run.py --diff` on the diff's added lines (line 4448), but only when `MUTANT_CMD` is set (line 4460), and it refuses nothing.
+- **What would change the verdict.** Whether to make 6d' refuse, or to make `MUTANT_CMD` default from the group's self-test, turns on one unmeasured fact: did 6d' run on the 11 blocked heads, and would it have reported the hand mutant that survived? Measure that and re-file.
+- **The owner.** This is an RCA re-take of `dev/audit/rca/R10-RCA-MUTATION-VACUOUS.md` section 6, the T population, which already names this class's new cause.
+
+Source: the orchestrator's queue line of 2026-11-07T16:13:23Z and the prototype bottleneck checker's output.
+
+Instances:
+- **The checker.** Orchestration log `s12/proto-plan/live-check.txt`, host-local: `BOTTLENECK: block-class mutation-vacuous 39% (11/28 blocks, 24 h) vs 30%` and `BOTTLENECK: yield 0.46 (11/24 first passes, 24 h) vs 0.6`.
+- **The record.** `dev/audit/rca/R10-RCA-MUTATION-VACUOUS.md` counts `mutation-vacuous` at 31 PRs and 38 entries since v7.0.4 (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, measured at `7e8939d38`). It records countermeasure C (`mutation-autofix` reddens on a site left alive, #3059) and the family-map change, and it names population T as a new cause with its countermeasure landed (section 6).
+- **The overlap check the line asked for.** `dev/audit/rca/R10-RCA-MUTATION-SURVIVOR.md` section 7 places its own countermeasure in `prepr.sh` step 7d (`unpinned_line`), the survivor half. Neither record promotes 6d' to a refusal.
+- **The arm in the tree.** `tools/pr/prepr.sh` 6d' reads `say skip "diff mutants" "MUTANT_CMD unset ..."` when unset. So a fixer who sets nothing gets no diff mutants at handoff.
+
+Cost:
+- **What a refusal arm would cost:** a mutant run per handoff, minutes per group self-test, on every PR, against 11 blocks in 24 h.
+- **The fact that sets the benefit, still unmeasured:** whether 6d' would have caught those hand mutants. The reviewer's mutant is chosen by hand, and `mutant_run.py`'s operators (GUARD_OFF, RETURN_DEL, CMP_BOUND, CALL_DEL) may not include it.
+- An unmeasured benefit is DEFER.
+
+Binding: the measurement goes to the R10-RCA-MUTATION-VACUOUS owner as a re-take of section 6. The 11 blocks of the 24 h window are read from the checker's own source. For each one, record whether `MUTANT_CMD` was set at the handoff, and whether `mutant_run.py --diff` with the group's self-test, run at that head, reports the reviewer's surviving mutant. If it would have caught 6 or more of the 11, re-file with a refusal arm and its standing cost.
