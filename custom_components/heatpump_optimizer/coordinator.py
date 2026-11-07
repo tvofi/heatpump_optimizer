@@ -630,6 +630,17 @@ def _peak_tariff_hours(spec: str) -> tuple[Any, ...]:
 _FENCED_CAUSES: set[tuple[str, str]] = set()
 
 
+def _track_states(
+    hass: HomeAssistant, entity_ids: list[str], action: Callable[[Any], None]
+) -> Callable[[], None]:
+    """``async_track_state_change_event`` for a plain callable, run on the loop.
+
+    The tracker ``InputReturnWatch`` is handed, so ``inputs`` imports no
+    Home Assistant; ``@callback`` keeps the action off the executor.
+    """
+    return async_track_state_change_event(hass, entity_ids, callback(lambda event: action(event)))
+
+
 async def _best_effort_cycle_step(step: Callable[[], Any], message: str) -> None:
     """Run one best-effort cycle step, logging -- never raising -- its fault.
 
@@ -3563,6 +3574,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             self, self._spawn, self._adopt_away_override, config, self._entity_state
         )
         away_mode.watch_away_inputs(hass, entry, config, self.async_request_refresh)
+        self._input_returns = InputReturnWatch(functools.partial(_track_states, hass), lambda:
+            hass.async_create_task(self.async_request_refresh()), 60.0 * config.optimization_interval)
 
     @callback
     def _release_registrations(self) -> None:
@@ -3578,7 +3591,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1755 r1: a released entry drops its worker-fallback latch, so a removed
         # entry cannot hold the shared repair issue or leak a key after it is gone.
         _clear_worker_fallback(self.hass, self.entry.entry_id)
-        InputReturnWatch.release_for(self)
+        self._input_returns.release()
         for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
             unsub = getattr(self, name, None)
             setattr(self, name, None)
@@ -3992,7 +4005,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "dhw_cost": 0.0,
             "total_cost": 0.0,
         }
-        self._last_energy_sample: datetime | None = None
         #: The date the lifetime accumulators started, restored from the
         #: energy store; set on first publish when the store has none.
         self._energy_totals_since: str | None = None
@@ -6654,7 +6666,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # None (no forecast) keeps the default: the honest horizon.
             state.outdoor_temperature = forecast_outdoor
 
-        # Floor heating return temperature sensor
         floor_return = reader.read(CONF_FLOOR_RETURN_TEMP_ENTITY)
         if floor_return.ok:
             self._floor_return_temp = floor_return.value
@@ -6803,7 +6814,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
-        InputReturnWatch.arm_for(self, reader.health)
+        self._input_returns.arm(reader.health)
         self._learner_freeze_reason = None
 
         # The defrost derate's humidity bucket is resolved from this, so it has
