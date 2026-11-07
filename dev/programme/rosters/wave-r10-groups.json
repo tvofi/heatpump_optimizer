@@ -19257,6 +19257,47 @@
     "note": "owner waste-study ruling 2026-11-07, card 2, narrowed; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS): owner ruling tvofi 2026-11-07 waste-study card 2"
    },
    "brief": "Owner ruling (tvofi, 2026-11-07, waste-study decision cards, card 2, ruled NARROW): in dev/governance/roles/fix-review.md, a reviewer returning blocked with class mutation-vacuous or class-open must enumerate every survivor or every open class it found at that head in the same verdict, not one per round. The repair fixer then answers the whole list in one repair. Scope is the narrow form the owner ruled: the complete list of what the review itself found at that head (survivors the mutation driver reports over the diff; every surface of an open class that the review identified); it does NOT require the reviewer to hunt further than the review already ran, and it leaves class sweeps beyond what was found to judgement. Keep the judge's void rule: a listed finding whose harness does not move under its own perturbation is void, so padding the list with weak findings buys nothing; say so in the rule text. Measured: python3 -I tools/audit/seat/review_strength.py --window last3d=2026-11-04T19:00:00Z..2026-11-07T19:00:00Z --by class counts mutation-vacuous 25 verdicts on 19 PRs and class-open 23 verdicts on 13 PRs, 16 repeat rounds in 3 days; #3262 had four consecutive mutation-vacuous blocks, each a new survivor in the same files (blocked cycles 3.7, 4.2 and 4.5 h, 12.4 h of extra rounds); #3244 had two class-open rounds, the sensor and then the blueprint (7.2 h); about 54 h across the window at the sample median blocked cycle of 3.4 h (n=24, rounds table in the waste-study timelines). Controls: a verdict of class mutation-vacuous that names one survivor while the driver output at that head shows two is refused by whichever check the rule text names, or the rule text states the review packet shows both; null control: a blocked verdict of another class is unchanged. If a mechanical check is cheap (the verdict's survivor count against the driver output), add it and pin it with a mutant; if not, say so in the body and leave it to the reviewer contract. This is policy: it changes what a seat must do, so it merges only on tvofi's approving review. Open the pull request and surface it. Check dev/governance/roles/fix-review.md for edits in flight (R10-PROCESS-SLIM, R10-HOTFIX-NONREQUIRED-REDS, R10-DISPATCH-AT-HANDOFF all name it) and rebase onto whichever landed first. Hand off at the first clean prepr.sh head; merge origin/main only on a merge-tree conflict (owner ruling 2026-11-07)."
+  },
+  {
+   "group": "R10-FLY-DISPATCH-RULINGS",
+   "lane": "IN",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/cloud_dispatch.py",
+    "tools/audit/seat/instruments/cloud_dispatch.py.md",
+    "dev/governance/roles/fix-review.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Moved from R10-TICK-LEVELS carry 17 (triage: dev/programme/triage/s6-batch134.md#P419 at b1f3ce2c73001c509b61a4163d2d08cb946d1518): Owner ruling (tvofi, 2026-11-07): \"Having the fixers merge main and re-run prepr after each main head move seems extremely wasteful, as the train can handle that.\" The fixer prompt tools/audit/seat/cloud_dispatch.py renders tells a fixer to merge a moved origin/main and re-run prepr.sh before its handoff. Measured on f-3262-r6 (#3262, 2026-11-07): four prepr.sh runs of about 12 min each, three of them caused only by main moving, and the handoff was still not pushed after 75 min. Change the rendered fixer and repair-round text so that a fixer hands off at its first clean prepr.sh head. It merges origin/main only when `git merge-tree --write-tree origin/main HEAD` conflicts (the claimnotes case). That is the same rule update_pr.sh already follows (ruling R4, merged only when DIRTY or conflicting). The train's recarry, and its overlap grade for a moved base, re-prove the head on the current main. Failing test first: a rendered fixer prompt must not instruct a re-merge on a clean merge-tree, and must instruct one on a conflicting merge-tree. Reviewer side, same ruling (tvofi: \"The reviewers should not block on that either\"): the rendered reviewer prompt (its \"Check that it merges with origin/main\" line) and fix-review.md's merge-tree check (fix-review.md line 97 at main 364353e67) may block only on a `git merge-tree --write-tree origin/main <head>` conflict, never on a head that is behind main but merges cleanly. Say so in the reviewer text. Second arm: a rendered reviewer prompt names a merge-tree conflict as the only main-related block. Null control: the probe prompt is unchanged. Mutant: restoring the unconditional merge sentence fails the first arm. If dev/governance/roles/fixer.md also requires a pre-handoff re-merge, carry the matching sentence to R10-FIXER-MD-SPELLING-CORPUS's policy PR, which needs the owner's review. Carry: R10-FLY-DISPATCH-RULINGS"
+   ],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "note": "triage batch 134 P419; overlap admitted (R10-HOTFIX-NONREQUIRED-REDS, R10-REVIEW-ENUMERATE): triage batch 134 P419, owner rulings reach dispatched seats; carry 17 moved from R10-TICK-LEVELS"
+   },
+   "brief": "From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P419 at b1f3ce2c73001c509b61a4163d2d08cb946d1518). Owner rulings reach a group-dispatched seat only through a session-local wrapper, because cloud_dispatch.py --group renders the roster brief alone and GROUP_FLAGS refuses --brief there. Add --preamble FILE, repeatable, on the flag and --group paths. Each file is rendered after the seat line and setup and before Role:, under one heading: Owner rulings in force (where they differ, they outrank the role text and the brief). A missing, empty or host-path file refuses with no publish. Self-test arms: two preamble files both appear in order in the published prompt at the pinned commit; a host-path preamble refuses and publishes nothing; null control: no --preamble renders byte-identically to the base; a mutant dropping the preamble on the --group path fails the first arm. Then build carry 0, moved from R10-TICK-LEVELS. Instrument doc tools/audit/seat/instruments/cloud_dispatch.py.md gains the flag. fix-review.md is code-owned: it merges under the mandate in force or on tvofi review."
   }
  ]
 }
