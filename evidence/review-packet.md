@@ -1,55 +1,54 @@
 # Review packet #3263
-head: b0ef8f54964a832950dce1ddd02423f3cfb60aa8
-base: 28482eceeb6b9809e44b12d80fc994282cc21645
+head: 5cf07f77a1b7090a1d813e9747765c6807b98055
+base: f2a015142714383722bf49d7ab20d8398ec9674c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=128206588947 success
-arch-score / arch-score id=128206554771 success
-arm id=128206410086 skipped
-budget-raise-gate / budget-raise-gate id=128206554934 success
-cancel-superseded id=128206356194 success
-codeql id=128206556065 skipped
-codeql / Analyze (actions) id=128206518212 success
-codeql / Analyze (javascript-typescript) id=128206518181 success
-codeql / Analyze (python) id=128206518087 success
-gate id=128206881487 failure
-governance id=128206556173 skipped
-governance / delivery-status id=128206518360 success
-governance / delivery-status-publish id=128206520758 skipped
-governance / env-matrix id=128206518255 in_progress
-governance / instrument-self-tests id=128206518254 in_progress
-governance / policy-docs id=128206518423 success
-governance / record id=128206520483 skipped
-governance / wave-script id=128206518482 success
-hassfest id=128206556084 skipped
-hassfest / hassfest id=128206518102 success
-kernel-points id=128206556960 skipped
-pr-contract id=128206884286 skipped
-prelude id=128206355802 success
-refresh id=128206355793 success
-tests id=128206557037 skipped
-tests / arch-instrument id=128206739697 success
-tests / briefs id=128206518266 success
-tests / browser id=128206739613 success
-tests / closure-scope id=128206518396 success
-tests / closures id=128206739718 in_progress
-tests / coverage id=128206739531 in_progress
-tests / fast (3.14) id=128206739676 in_progress
-tests / mutation id=128206518192 success
-tests / mutation-autofix id=128206843255 skipped
-tests / mutation-pins id=128206841207 skipped
-tests / nightly-ha id=128206742365 skipped
-tests / nightly-status id=128206518269 success
-tests / replay id=128206741792 skipped
-tests / typing id=128206739585 success
-validate id=128206557049 skipped
-validate / validate-hacs id=128206518049 success
+CodeQL id=128266076049 success
+arch-score / arch-score id=128266042723 success
+arm id=128265921175 skipped
+budget-raise-gate / budget-raise-gate id=128266042829 success
+cancel-superseded id=128265881694 success
+codeql id=128266043729 skipped
+codeql / Analyze (actions) id=128266024751 success
+codeql / Analyze (javascript-typescript) id=128266024801 success
+codeql / Analyze (python) id=128266024700 success
+gate id=128266263058 failure
+governance id=128266043687 skipped
+governance / delivery-status id=128266024739 success
+governance / delivery-status-publish id=128266026342 skipped
+governance / env-matrix id=128266024766 in_progress
+governance / instrument-self-tests id=128266024727 in_progress
+governance / policy-docs id=128266024782 success
+governance / record id=128266026040 skipped
+governance / wave-script id=128266024756 success
+hassfest id=128266043797 skipped
+hassfest / hassfest id=128266024716 success
+kernel-points id=128266043555 skipped
+pr-contract id=128266264821 skipped
+prelude id=128265881938 success
+refresh id=128265882019 success
+tests id=128266044386 skipped
+tests / arch-instrument id=128266170176 success
+tests / briefs id=128266024814 success
+tests / browser id=128266170233 in_progress
+tests / closure-scope id=128266024822 success
+tests / closures id=128266170164 in_progress
+tests / coverage id=128266170226 in_progress
+tests / fast (3.14) id=128266170141 in_progress
+tests / mutation id=128266024757 success
+tests / mutation-autofix id=128266246301 skipped
+tests / mutation-pins id=128266246192 skipped
+tests / nightly-ha id=128266171509 skipped
+tests / nightly-status id=128266024726 success
+tests / replay id=128266171400 skipped
+tests / typing id=128266170212 success
+validate id=128266044327 skipped
+validate / validate-hacs id=128266024586 success
 
 ## Refusals
-red-unanswered: concluded red check `gate` is not named in ## Red checks
-required-red: required context `gate` concluded failure at b0ef8f54964a832950dce1ddd02423f3cfb60aa8
+required-red: required context `gate` concluded failure at 5cf07f77a1b7090a1d813e9747765c6807b98055
 
 ## Advisories
 none
@@ -58,20 +57,28 @@ none
 CARRY-AUDIT: 0 finding item(s): 0 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+ok         python3 dev/audit/harnesses/r10_nightly_status_mutants.py . .
+             `dev/audit/harnesses/r10_nightly_status_mutants.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/r10_nightly_status_mutants.py <b0ef8f54 export> .
+             `dev/audit/harnesses/r10_nightly_status_mutants.py` is in the tree at this head
+  ok         python3 dev/audit/harnesses/r10_nightly_status_mutants.py . <28482ece export>
+             `dev/audit/harnesses/r10_nightly_status_mutants.py` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
   ok         tests/harness_headers.py
              `tests/harness_headers.py` is in the tree at this head
-  unverified git diff --stat origin/main...HEAD
-             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  unverified git diff origin/main -- VERSION RELEASE_NOTES.md tests/golden .github | wc -l
-             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         bash tools/audit/seat/cloud-setup.sh --check
+             `tools/audit/seat/cloud-setup.sh` is in the tree at this head
 
-FIGURES: 4 resolved, 2 not verified, 0 refused
+FIGURES: 10 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -83,6 +90,113 @@ not run
 none
 
 ## Three-dot diff
+diff --git a/dev/audit/harnesses/r10_nightly_status_mutants.py b/dev/audit/harnesses/r10_nightly_status_mutants.py
+new file mode 100644
+index 000000000..da307a042
+--- /dev/null
++++ b/dev/audit/harnesses/r10_nightly_status_mutants.py
+@@ -0,0 +1,101 @@
++"""R10-HOTFIX-NIGHTLY-STATUS mutation proof: one tree's check against another tree's grader.
++
++Runs the superseded-failure checks of CHECK_TREE's ``tests/entities.py``
++VERBATIM (sliced between their own section markers) against CODE_TREE's
++``tests/nightly_status.py``, unmutated and then under each mutant below, one
++per changed grading line of ``verdict`` and of ``main``'s in-flight fetch.
++
++    python3 dev/audit/harnesses/r10_nightly_status_mutants.py CHECK_TREE CODE_TREE
++
++Both arguments are checkout roots (a worktree or a ``git archive`` export).
++A mutant is KILLED when any sliced check fails or the slice raises. Null
++control: the unmutated row must read ``rc=0``, and a CODE_TREE whose
++``verdict`` predates ``in_flight_jobs`` reads ``rc=1`` (TypeError).
++"""
++import os
++import pathlib
++import subprocess
++import sys
++import tempfile
++
++MUTANTS = [
++    ("M1-predicate-off", "    if bad and in_flight is not None and in_flight_jobs",
++     "    if False and bad and in_flight is not None and in_flight_jobs"),
++    ("M2-gt-to-ge", 'in_flight.get("created_at")) > started:',
++     'in_flight.get("created_at")) >= started:'),
++    ("M3-drop-newer", 'in_flight_jobs and parse_ts(\n            in_flight.get("created_at")) > started:',
++     "in_flight_jobs:"),
++    ("M4-success-to-ok", 'if j.get("conclusion") == "success"}',
++     'if j.get("conclusion") in OK_CONCLUSIONS}'),
++    ("M5-success-to-notfail", 'if j.get("conclusion") == "success"}',
++     'if j.get("conclusion") != "failure"}'),
++    ("M6-all-to-any", 'if all(j.get("name") in greens for j in bad):',
++     'if any(j.get("name") in greens for j in bad):'),
++    ("M7-keep-runfailed", "            bad, run_failed = [], False\n", "            bad = []\n"),
++    ("M8-name-match", 'if all(j.get("name") in greens for j in bad):', "if greens:"),
++    ("M9-drop-flyjobs-guard", "in_flight is not None and in_flight_jobs and parse_ts(",
++     "in_flight is not None and parse_ts("),
++    ("M10-main-nofetch", "fly_jobs = _jobs(args.repo", "fly_jobs = None and _jobs(args.repo"),
++    ("M11-main-drop-failing-guard", "                and failing_jobs(jobs)):", "                ):"),
++    ("M12-main-drop-concluded-guard", "if (in_flight is not None and concluded is not None\n",
++     "if (in_flight is not None\n"),
++    ("M13-main-drop-inner-except",
++     "            except Unreadable:\n                fly_jobs = None  # no jobs yet",
++     "            except ZeroDivisionError:\n                fly_jobs = None  # no jobs yet"),
++    ("M14-main-wrong-run", 'fly_jobs = _jobs(args.repo, in_flight["id"],',
++     'fly_jobs = _jobs(args.repo, concluded["id"],'),
++    ("M15-main-not-passed", "record,\n            fly_jobs)", "record,\n            None)"),
++    ("M16-main-guard-inverted", "if (in_flight is not None and concluded",
++     "if (in_flight is None and concluded"),
++]
++
++SLICE = r'''
++import sys
++sys.path.insert(0, sys.argv[1])
++src = open(sys.argv[2]).read()
++code = (src[src.index("_NS_NOW = datetime(2026, 9, 10"):src.index("_NS_LAST_NIGHT =")]
++        + src[src.index("# --- a failure a newer in-flight run"):
++              src.index("# --- a run with no clock")])
++class R:
++    failed = []
++    @staticmethod
++    def check(name, ok, detail=""):
++        if not ok:
++            R.failed.append(name)
++import contextlib as _contextlib, io as _io, os
++from datetime import UTC, datetime, timedelta
++import nightly_status as _nstatus
++exec(code, dict(globals()))
++print("checks failed:", R.failed)
++sys.exit(1 if R.failed else 0)
++'''
++
++
++def run(code_dir: str, entities: pathlib.Path) -> int:
++    return subprocess.run([sys.executable, "-I", "-c", SLICE, code_dir, str(entities)],
++                          capture_output=True, text=True).returncode
++
++
++def main() -> int:
++    check_tree, code_tree = map(pathlib.Path, sys.argv[1:3])
++    entities = check_tree / "tests/entities.py"
++    src = (code_tree / "tests/nightly_status.py").read_text()
++    print(f"RESULT unmutated rc={run(str(code_tree / 'tests'), entities)}")
++    killed = 0
++    with tempfile.TemporaryDirectory() as tmp:
++        for label, old, new in MUTANTS:
++            if src.count(old) != 1:
++                print(f"RESULT {label} NOT-APPLICABLE (site count {src.count(old)})")
++                continue
++            d = os.path.join(tmp, label)
++            os.makedirs(d)
++            pathlib.Path(d, "nightly_status.py").write_text(src.replace(old, new))
++            rc = run(d, entities)
++            killed += rc != 0
++            print(f"RESULT {label} rc={rc} {'KILLED' if rc else 'SURVIVED'}")
++    print(f"RESULT killed={killed}/{len(MUTANTS)}")
++    return 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/dev/programme/delivery/3263.md b/dev/programme/delivery/3263.md
 new file mode 100644
 index 000000000..34f0f08f1
@@ -90,11 +204,23 @@ index 000000000..34f0f08f1
 +++ b/dev/programme/delivery/3263.md
 @@ -0,0 +1 @@
 +- [#3263](https://github.com/tvofi/heatpump_optimizer/pull/3263) — **open**, R10-HOTFIX-NIGHTLY-STATUS: nightly-status no longer grades main red on a rolling nightly (R10-HOTFIX-NIGHTLY-STATUS)
+diff --git a/tests/closures.json b/tests/closures.json
+index c71959796..7b9ed5ba0 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -4066,6 +4066,7 @@
+    "dev/audit/harnesses/r10_night_folds_learners.py",
+    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
+    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
++   "dev/audit/harnesses/r10_nightly_status_mutants.py",
+    "dev/audit/harnesses/r10_open_driver_mutants.py",
+    "dev/audit/harnesses/r10_partload_pricing.py",
+    "dev/audit/harnesses/r10_plan_durations_mutants.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index 1a257bf95..94c1962b8 100644
+index 1a257bf95..1fe1483de 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -27286,6 +27286,44 @@ R.check(
+@@ -27286,6 +27286,119 @@ R.check(
      "11 and 12, i.e. a two-night-old run reported as last night's",
  )
  
@@ -104,13 +230,20 @@ index 1a257bf95..94c1962b8 100644
 +# 42247578523 passed `slow` while their 3.5 h mutation lanes ran on, and the
 +# check kept naming the stale failure. Null controls: the same failure with
 +# nothing newer, with a newer `slow` failed or still pending, or with a newer
-+# run that is OLDER, must all stay red.
++# run that is OLDER, must all stay red. Each arm past those five kills one
++# mutant of a grading line the review (#3263, round 1) found surviving:
++# superseding when ANY failed lane is answered (two failed, one answered), by
++# any green name (green on another lane only), by `skipped` or `neutral`
++# counted as an answer, or by a run created at the same instant.
 +_ns_bad = _ns_run(21, "2026-09-10T02:17:00Z", conclusion="failure")
 +_ns_badjobs = [j if j["name"] != "slow" else _ns_job("slow", "failure")
 +               for j in _NS_LIVE]
 +_ns_newer = _ns_run(22, "2026-09-10T08:00:00Z", "in_progress", None)
 +_ns_older = _ns_run(20, "2026-09-09T08:00:00Z", "in_progress", None)
 +_ns_green = [_ns_job("slow", "success"), _ns_job("mutation-nightly", None)]
++_ns_twobad = [j if j["name"] not in ("slow", "mutation-ledger")
++              else _ns_job(j["name"], "failure") for j in _NS_LIVE]
++_ns_sametime = _ns_run(22, "2026-09-10T02:17:00Z", "in_progress", None)
 +_ns_cases = {
 +    "superseded": _nstatus.verdict(_ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
 +                                   in_flight_jobs=_ns_green)[0],
@@ -124,23 +257,91 @@ index 1a257bf95..94c1962b8 100644
 +    "in-flight older": _nstatus.verdict(
 +        _ns_bad, _ns_older, _ns_badjobs, _NS_NOW,
 +        in_flight_jobs=_ns_green)[0],
++    "two failed, one superseded": _nstatus.verdict(
++        _ns_bad, _ns_newer, _ns_twobad, _NS_NOW, in_flight_jobs=_ns_green)[0],
++    "green on another lane only": _nstatus.verdict(
++        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
++        in_flight_jobs=[_ns_job("slow", None),
++                        _ns_job("mutation-nightly", "success")])[0],
++    "newer slow skipped": _nstatus.verdict(
++        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
++        in_flight_jobs=[_ns_job("slow", "skipped")])[0],
++    "newer slow neutral": _nstatus.verdict(
++        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
++        in_flight_jobs=[_ns_job("slow", "neutral")])[0],
++    "in-flight same created_at": _nstatus.verdict(
++        _ns_bad, _ns_sametime, _ns_badjobs, _NS_NOW,
++        in_flight_jobs=_ns_green)[0],
 +}
 +R.check(
 +    "a failed lane is superseded only by a NEWER in-flight run that "
 +    "concluded the same job green; every other arm stays FAILED",
 +    _ns_cases == {"superseded": _nstatus.PASSED,
-+                  "nothing newer": _nstatus.FAILED,
-+                  "newer slow failed": _nstatus.FAILED,
-+                  "newer slow pending": _nstatus.FAILED,
-+                  "in-flight older": _nstatus.FAILED},
++                  **{_k: _nstatus.FAILED for _k in _ns_cases
++                     if _k != "superseded"}},
 +    f"states {_ns_cases}",
++)
++
++# The WIRING: `main` must fetch the in-flight run's jobs and hand them to
++# `verdict`, or the predicate above never meets a real run (the review's M10:
++# `fly_jobs = None and _jobs(...)` left every arm above green). `main` reads
++# the wall clock, so the runs are dated from it. Null controls: the same
++# wiring with the newer `slow` failed, or its jobs unreadable, stays FAILED
++# (exit 1): an unreadable in-flight listing supersedes nothing, and it is not
++# the whole check being UNREADABLE (exit 2) either. A concluded run with no
++# failing job has nothing to supersede, so `main` spends no request on it.
++_ns_main_real = (_nstatus.collect, _nstatus._jobs)
++
++
++def _ns_main_exit(fly, concluded_ok=False):
++    _t = datetime.now(UTC)
++    _iso = lambda h: (_t - timedelta(hours=h)).strftime(
++        "%Y-%m-%dT%H:%M:%SZ")
++    _asked = []
++
++    def _fake_jobs(_repo, run_id, _token):
++        _asked.append(run_id)
++        if fly is None:
++            raise _nstatus.Unreadable("no jobs yet")
++        return fly
++
++    _nstatus.collect = lambda *_a, **_k: (
++        _ns_run(21, _iso(3), conclusion="success" if concluded_ok
++                else "failure"),
++        _ns_run(22, _iso(1), "in_progress", None),
++        _NS_LIVE if concluded_ok else _ns_badjobs, None)
++    _nstatus._jobs = _fake_jobs
++    _summary = os.environ.pop("GITHUB_STEP_SUMMARY", None)
++    try:
++        with _contextlib.redirect_stdout(_io.StringIO()):
++            _rc = _nstatus.main(["--repo", "o/r"])
++    finally:
++        _nstatus.collect, _nstatus._jobs = _ns_main_real
++        if _summary is not None:
++            os.environ["GITHUB_STEP_SUMMARY"] = _summary
++    return _rc, _asked
++
++
++_ns_main = {"superseded": _ns_main_exit(_ns_green),
++            "newer slow failed": _ns_main_exit([_ns_job("slow", "failure")]),
++            "jobs unreadable": _ns_main_exit(None),
++            "concluded green": _ns_main_exit(_ns_green, concluded_ok=True)}
++R.check(
++    "main fetches the in-flight run's jobs and grades with them: a superseded "
++    "failure exits 0, a newer failed or unreadable lane stays FAILED, and a "
++    "green concluded run fetches nothing",
++    _ns_main == {"superseded": (_nstatus.EXIT_GREEN, [22]),
++                 "newer slow failed": (_nstatus.EXIT_RED, [22]),
++                 "jobs unreadable": (_nstatus.EXIT_RED, [22]),
++                 "concluded green": (_nstatus.EXIT_GREEN, [])},
++    f"(exit, jobs fetched for) {_ns_main}",
 +)
 +
  # --- a run with no clock is "could not look", not a crash and not a verdict --
  #
  # `parse_ts(r["created_at"])` raised KeyError straight through `main`'s
 diff --git a/tests/nightly_status.py b/tests/nightly_status.py
-index 260808149..42140228b 100644
+index 260808149..17dd64ce0 100644
 --- a/tests/nightly_status.py
 +++ b/tests/nightly_status.py
 @@ -409,6 +409,7 @@ def verdict(
@@ -151,7 +352,7 @@ index 260808149..42140228b 100644
  ) -> tuple[str, int, list[str]]:
      """Classify. Returns (state, exit code, report lines).
  
-@@ -475,6 +476,30 @@ def verdict(
+@@ -475,6 +476,28 @@ def verdict(
      run_conclusion = concluded.get("conclusion")
      run_failed = run_conclusion not in OK_CONCLUSIONS
      bad = failing_jobs(jobs)
@@ -160,29 +361,27 @@ index 260808149..42140228b 100644
 +    # this reads; "the newest CONCLUDED run" then names a run a later one has
 +    # already answered. On 2026-11-06 `slow` failed in dispatch 42235215315
 +    # (14:35Z) and passed in 42242870295 and 42247578523 while their
-+    # mutation lanes ran on, and this check stayed red on every pull request
-+    # for hours. A failed job is superseded ONLY when a strictly newer
++    # mutation lanes ran on, and this check read red for about 71 minutes:
++    # from 18:06:31Z, when 42235215315 concluded, to 19:17:32Z, when
++    # 42242870295 concluded green and became the newest concluded run. A
++    # failed job is superseded ONLY when a strictly newer
 +    # in-flight run has already concluded the SAME job green. A job still
 +    # pending, failed, skipped or absent there supersedes nothing, so a lane
 +    # that is really red stays red.
-+    superseded: list[dict] = []
 +    if bad and in_flight is not None and in_flight_jobs and parse_ts(
 +            in_flight.get("created_at")) > started:
 +        greens = {j.get("name") for j in in_flight_jobs
 +                  if j.get("conclusion") == "success"}
-+        superseded = [j for j in bad if j.get("name") in greens]
-+        if len(superseded) == len(bad):
++        if all(j.get("name") in greens for j in bad):
 +            where.append(
 +                "  failed job(s) superseded by the newer in-flight run "
 +                f"{in_flight['id']}, which already concluded them green: "
 +                + ", ".join(sorted(j.get("name", "?") for j in bad)))
 +            bad, run_failed = [], False
-+        else:
-+            superseded = []
      if bad or run_failed:
          if bad:
              names = ", ".join(sorted(j.get("name", "?") for j in bad))
-@@ -690,8 +715,17 @@ def main(argv: list[str] | None = None) -> int:
+@@ -690,8 +713,17 @@ def main(argv: list[str] | None = None) -> int:
          concluded, in_flight, jobs, record = collect(
              args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run,
              args.default_branch, now, args.max_age_nights)

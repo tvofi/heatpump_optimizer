@@ -1,50 +1,39 @@
-Fix review: blocked b0ef8f54964a832950dce1ddd02423f3cfb60aa8 mutation-vacuous: M6 len(superseded)==len(bad) to any-superseded survives the new check, so a second genuinely failed lane can be graded green unpinned
+Fix review: merge 5cf07f77a1b7090a1d813e9747765c6807b98055
 
-bus-nonce: b8f3204a2c9ce3c3e788b2ee3f4426b8
+bus-nonce: 0e48788535ab45f4187cb523aecf2bce
 
-Round 1, first-round adversarial fix review. Reviewed from a detached worktree at b0ef8f54964a832950dce1ddd02423f3cfb60aa8, three-dot against merge base 28482eceeb6b9809e44b12d80fc994282cc21645. The group names no finder's harness, so my harness is the PR's entity check copied verbatim plus reviewer probes, and a replay of the real API runs on the production grader (`ev/ns_check.py`, `ev/replay.py`).
-
-## Block
-
-The production predicate in `verdict` is correct, and the fix is real: the replay of the cited runs flips red to green, and the null controls stay red. But four of the changed grading lines can each be mutated into a version that grades a genuinely red lane green, and the PR's only new check still passes. The check does not pin the property its own name states ("a failed lane is superseded only by a NEWER in-flight run that concluded the same job green").
-
-- M6 `if len(superseded) == len(bad):` to `if superseded:` SURVIVES. Probe B1: `slow` and `mutation-ledger` both failed, the newer run has `slow` green, and the probe reads PASSED. A real `mutation-ledger` failure is hidden.
-- M8 `superseded = [j for j in bad if j.get("name") in greens]` to `superseded = list(bad) if greens else []` SURVIVES. Probe B1 again reads PASSED: any green job supersedes any failure, matched by no name.
-- M4 `== "success"` to `in OK_CONCLUSIONS` SURVIVES. Probes B2 and B5: when the newer run has `slow` skipped or neutral, the stale failure reads PASSED.
-- M2 `> started` to `>= started` SURVIVES. Probe B3: an in-flight run with the same `created_at` as the failed run supersedes it.
-
-The cure is a check, not a code change: add arms for two failed jobs with one superseded, a newer `skipped` job, and an equal `created_at`, all expected FAILED. Each arm kills one mutant in `ev/mutants.txt`. The fixer re-runs the mutation proof on every changed grading line, not only on the one predicate the body mutated.
+Round 2 adversarial fix review of #3263 (R10-HOTFIX-NIGHTLY-STATUS), from a detached worktree at 5cf07f77a1b7090a1d813e9747765c6807b98055, three-dot against merge base f2a015142714383722bf49d7ab20d8398ec9674c (= origin/main). The finder's harness is round 1's `evidence/ns_check.py` and its mutants (verdict/3263), re-run here at this head; the fixer's harness `dev/audit/harnesses/r10_nightly_status_mutants.py` is run beside it. Every round-1 finding is closed by my own re-run.
 
 ## Findings
 
-- Surviving mutants M2, M4, M6 and M8 on the changed grading lines of `tests/nightly_status.py` `verdict` (claim: each changed line is mutation-proof). Evidence: `ev/mutants.txt`. Harness: `ev/ns_check.py` arms A, which are the PR's check verbatim. Metric: PR-CHECK rc. Perturbation: each mutant, with rc 0 (survived) while probes B1, B2, B3 and B5 flip to PASSED. The harness moves under its own perturbation: M1, M3, M5 and M7 each give rc 1. Carry: R10-HOTFIX-NIGHTLY-STATUS
-- M10 SURVIVES: in `main`, `fly_jobs = _jobs(...)` changed to `None and _jobs(...)`. No test reaches the `main()` wiring that fetches the in-flight run's jobs. With M10 the production check grades red exactly as at the base, and every test stays green. The fix's effect on the real check is therefore unpinned. A check is owed that drives `main` (or `collect` plus the fetch) with a stubbed `_jobs` and asserts that the in-flight run's jobs reach `verdict`. Harness: `ev/mutants.txt`, line M10. Carry: R10-HOTFIX-NIGHTLY-STATUS
-- The figure "this check stayed red on every pull request for hours" (code comment in `verdict`) does not re-derive. At the API, 42235215315 concluded at 18:06:31Z and 42242870295 concluded green at 19:17:32Z. The window in which the newest concluded run was the failed one is about 71 minutes. Evidence: `ev/runs-api.txt`. Correct the comment to the measured window. Carry: R10-HOTFIX-NIGHTLY-STATUS
-- `## Red checks` says "none", but at this head `gate` (check run 128206881487) concluded failure at 23:05:41Z with "FAIL run(s) [42309258015] at this head are still being judged; their gate decides". The packet refuses with `red-unanswered` and `required-red`. The body owes an answer for every concluded red, including this ordering red. Carry: R10-HOTFIX-NIGHTLY-STATUS
+- Reviewer mutant X6 SURVIVES: in `main`, `except Unreadable:` broadened to `except Exception:` (`ev/reviewer-extra-mutants.txt`). Claim: the in-flight fetch's handler is pinned to `Unreadable`. Harness: the PR's sliced checks via `ev/xmut.py`. Metric: slice rc. Perturbation: X6 gives rc 0, while X1 to X5 each give rc 1, so the harness moves. The survivor fails safe: a swallowed non-`Unreadable` error leaves `fly_jobs` None, so the failure stays FAILED (red), never green. M13 (handler narrowed to another type) is killed. Nothing owed. Carry: dismissed: fails safe toward red, no grading path turns green under it
 
 ## Evidence
 
-- RESULT: setup: `cloud-setup.sh --check` printed OK.
-- RESULT: packet: rendered with refusals `red-unanswered` and `required-red` (gate). Copy in `ev/review-packet.md`.
-- RESULT: merge: `git merge-tree --write-tree origin/main b0ef8f54` gives rc 0 (`ev/merge-tree.txt`).
-- RESULT: diff scope (three-dot): 3 files, `dev/programme/delivery/3263.md` (+1), `tests/entities.py` (+38), `tests/nightly_status.py` (+35/-1). VERSION, manifest, RELEASE_NOTES.md, `tests/golden`, `*_budgets.json` and `.github` are untouched (empty diff). `nightly.yml` is untouched, so the nightly's strength on production code is not weakened.
-- RESULT: the delivery row is in the diff. `tests/closure.py select --diff <merge-base>` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out`, so the new file does not force FULL. `tests/structure.py` prints STRUCTURE RATCHET PASSED.
-- RESULT: the body's line "three-dot 2 files, +73/-1" describes the authored head 99556a1e. At this head the diff is 3 files, +74/-1, with the row commit that `## Head` explains. `## Head` is current.
-- RESULT: the cited runs, re-read from the API (`ev/runs-api.txt`):
-  - 42235215315 (dispatch, main, 14:35:02Z): failure; `slow` failure at 15:11:00Z; run concluded at 18:06:31Z.
-  - 42242870295 (dispatch, 15:25:13Z): `slow` success at 15:52:47Z; run success at 19:17:32Z.
-  - 42247578523 (dispatch, 15:55:42Z): `slow` success at 16:24:19Z; run success at 19:34:05Z.
-  - 41555367389, 41749544997 and 41943946464 (schedule): each failure on `slow`.
-  - 42139479636 (schedule, 11-06): success.
-  - The body's cause holds: `pick_runs` takes the newest completed run as `concluded`, and 42235215315 read failed while newer runs had already passed `slow`.
-- RESULT: production-grader replay (`ev/replay.txt`):
-  - At 18:30Z and 19:00Z: FAILED exit 1 at the base, PASSED exit 0 at the head (concluded 42235215315, in_flight 42247578523).
-  - Null control at 2026-11-04T01:00Z, with the newer run's `slow` pending: FAILED at both.
-  - Null control at 06:00Z, with the newer run's `slow` failed: FAILED at both.
-- RESULT: the PR check at the base cannot pass: `ev/check-base.txt` gives rc 1 (no `in_flight_jobs` parameter). At the head: PR-CHECK PASS, PROBES PASS (`ev/check-head.txt`).
-- RESULT: mutants (`ev/mutants.txt`):
-  - Killed: M1, M3, M5, M7.
-  - Survived: M2, M4, M6, M8, M10.
-  - M9, which drops the `in_flight_jobs and` guard, is equivalent: an empty list gives `len(superseded)` 0, which is never equal to `len(bad)` of at least 1.
-- RESULT: the full `tests/entities.py` could not be run locally. venv-ci lacks homeassistant, and venv-ha plus the CI requirements fails on `FakeConfig.config_dir`. The mutants were run against the PR's check copied verbatim. No other check in `tests/entities.py` passes `in_flight_jobs` (grep), so no other check can kill them. The body's figure of 2638 entity checks is not re-derived here.
-- RESULT: CI: `merge_train.py classify` printed `RED b0ef8f54964a832950dce1ddd02423f3cfb60aa8 pending: none red: gate` with rc 1, twice (`ev/classify-1.txt`, `ev/classify-2.txt`). At 23:14Z tests run 42309258015 was still in progress (closures, fast, coverage), as was `governance / instrument-self-tests`, the owner's standing line (#3245). `tests / nightly-status` is success at this head.
+- RESULT: round-1 M2, M4, M6, M8 and M10 are each KILLED by the PR's named checks at this head (`ev/fixer-harness.txt`): `RESULT killed=15/16`, unmutated rc=0. M2, M4, M6 and M8 are killed by "a failed lane is superseded only by a NEWER in-flight run ...". M10 is killed by "main fetches the in-flight run's jobs ...".
+- RESULT: the finder's harness `ev/finder_ns_check.py` at this head prints PR-CHECK PASS and PROBES PASS (`ev/finder-check-head.txt`). Applied to this head's code, mutants M2, M4, M6 and M8 each flip their round-1 probe (B3; B2 and B5; B1; B1). So the probes still detect them, and the PR's check now carries those arms.
+- RESULT: the mutation proof was re-run on every changed grading line (M1 to M16). The only survivor, M12 (drop the `concluded is not None` guard), is equivalent. When `concluded` is None, `collect` returns `jobs = []` (nightly_status.py L689), so `failing_jobs` is falsy. `verdict` also returns RUNNING or never_ran at L423 or L430, before it reads `in_flight_jobs` at L491.
+- RESULT: reviewer extra mutants X1 (only the first bad job), X2 (`run_failed` kept), X3 (`>` to `<`), X4 (any conclusion counts as green) and X5 (fetch without the failing guard) are each KILLED. X6 is under Findings.
+- RESULT: null controls. The old check (b0ef8f54) against this code kills only 4 of 16 (`ev/null-oldcheck.txt`). This check against the pre-fix grader at the base gives unmutated rc=1 (`ev/null-base.txt`). A genuinely failed lane stays FAILED in 9 arms of `verdict`, plus the newer-failed and unreadable arms of `main` (exit 1).
+- RESULT: the window figure in the code comment is corrected and re-derives. From the API, 42235215315 `updated_at` is 18:06:31Z (failure) and 42242870295 `updated_at` is 19:17:32Z (success), 71 min 1 s apart (`ev/runs-api.txt`).
+- RESULT: the round-1 red-checks finding is closed. Check run 128206881487 is `gate` attempt 1 of edit run 42309259823 at b0ef8f54. The body names that run's `gate` red (attempt 5, job 128239026202), quotes the same deferral text and answers it: cheaper detector, none from this seat; the gate's ordering is the gate workflow's.
+- RESULT: red checks at this head, all 55 check runs on one page: two concluded reds.
+  - `gate` 128266263058 (edit run 42327440324): "FAIL run(s) [42327439751] at this head are still being judged; their gate decides". This is the edit-run deferral. The code run's `gate` 128274624678 concluded success at 02:38:51Z.
+  - `governance / instrument-self-tests` 128266024727: cancelled at its 30-minute timeout (02:05:51Z to 02:35:54Z). That is the owner's standing line (R10-PROCESS-SLIM, #3245), and the body pre-answers it (Carry R10-HOTFIX-SELFTEST-TIMEOUT).
+  - `pr-contract / pr-contract` 128274216702 started at 02:36:50Z, after the last red concluded, and passed. Under fix-review.md step 11 that run is the evidence that the body answered its reds.
+- RESULT: CI. `merge_train.py classify` read RED while only the edit-run deferral was red (`ev/classify-loop.txt`), then WAIT, then `02:42:29Z rc=0 GREEN 5cf07f77a1b7090a1d813e9747765c6807b98055 pending: none red: none` (`ev/classify-final.txt`).
+- RESULT: merge. `git merge-tree --write-tree origin/main 5cf07f77a1b7090a1d813e9747765c6807b98055` gives rc 0, and the tree is 6871f15e, the head's own tree (`ev/merge-tree.txt`). The head's tree equals 795e8aae's tree (6871f15e), so `git diff 6871f15e 5cf07f77a1b7090a1d813e9747765c6807b98055` is empty: the merge added nothing beyond the receipted code and main.
+- RESULT: diff scope (three-dot, `ev/three-dot.diff`): 5 files, +249/-1. They are `tests/nightly_status.py`, `tests/entities.py`, the new harness, `tests/closures.json` (the harness classified INERT) and `dev/programme/delivery/3263.md` (the delivery row). VERSION, the manifest, RELEASE_NOTES.md, `tests/golden`, `*_budgets.json` and `.github` are untouched (`ev/untouched.txt`, 0 bytes). `nightly.yml` is untouched, so the nightly's strength on production code is not weakened.
+- RESULT: the body's figures re-derive at this head:
+  - `PYTHONPATH=tests/hastub python3 tests/entities.py`: "ALL 2642 ENTITY CHECKS PASSED", rc=0.
+  - `tests/harness_headers.py`: rc=0.
+  - `tests/structure.py`: STRUCTURE RATCHET PASSED.
+  - `tests/closure.py select`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out.`
+  - The harness gives killed 15/16 at this check and 4/16 at the old check, and unmutated rc=1 at the pre-fix grader.
+- RESULT: `## Head` names 5cf07f77a1b7090a1d813e9747765c6807b98055 and the receipted code head 795e8aae. The commit messages carry no Co-Authored-By, claude.ai or session trailer (grep count 0).
+- RESULT: packet rendered (`ev/review-packet.md`). Its one refusal at render, `required-red` (gate), was the edit-run deferral above and later cleared to GREEN. carry_audit printed 0 items, and figure_lint resolved 10 of 10.
+- RESULT: setup. `cloud-setup.sh --check` printed OK.
+
+## Friction
+
+- The brief asks for a handoff-wip push at each milestone, and also to push nothing but the probe ref. I pushed only the probe ref. Carry: dismissed: brief conflict resolved toward the narrower instruction
