@@ -53,6 +53,7 @@ from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
 from .thermal_model import feedback_gaps
+from .wood_fuel import saving_includes_wood
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -520,6 +521,9 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
             "savings_months": self._rows(),
             "receipts": data.get("receipts") or [],
             "plan_replay": data.get("plan_replay"),
+            # The state is the metered saving the receipt states: with wood
+            # configured it includes wood's heat and not firewood's cost.
+            "saving_includes_wood": saving_includes_wood(data),
         }
         waiting = self._waiting_for
         if waiting is not None:

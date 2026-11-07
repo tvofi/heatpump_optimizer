@@ -22,6 +22,7 @@ before it and `roster_edit.py` refuses an exact repeat, so the two never double-
 from __future__ import annotations
 
 import argparse
+import os
 import shlex
 import sys
 from pathlib import Path
@@ -82,6 +83,7 @@ def main(argv=None) -> int:
 
     def apply(op: str) -> int:
         parts = shlex.split(op)
+        os.environ[roster_edit.LANE_ENV] = roster_edit.LANE_VALUE  # this tool is the lane
         return roster_edit.main(parts + ["--worktree", a.worktree, "--checkout", a.checkout,
                                          "--branch", branch, "--push"])
 

@@ -223,6 +223,14 @@ MUTANTS = [
      ''),
     ("M15 unreadable title", '                bad.append(f"run {r[\'id\']}: unreadable title {r[\'title\']!r}")\n', ''),
     ("M16 B3 on push", 'extra=PUSH_ONLY),', 'extra=None),'),
+    # r10-gate-busy-defer: the tie-break between two started gates at one head.
+    ("M17 busy tie-break deleted", '\n                  and not (r["id"] > ctx["run_id"] and started(r)))', ')'),
+    ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and started(r)', 'r["id"] < ctx["run_id"] and started(r)'),
+    ("M19 a listed gate read as started (R3-2 EARLY)", 'return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
+     'return "gate" in (run.get("jobs") or {})'),
+    # r10-gate-busy-defer-2: a never-expanded unit adds no source; the deferring gate waits like any other.
+    ("M25 judging: a skipped caller read as owing its unit", '        if jobs.get(u, ("",))[0] == "completed":\n            continue', '        pass', PRELUDE),
+    ("M26 C3 at-once bound restored (#3263's red)", '        if ok or now() - t0 + POLL_S > bound:', '        if why == [deferral(waiting)] and claim.get("workset") is not None and claim["workset"] < workset(kind, pr):\n            bound = 0\n        if ok or now() - t0 + POLL_S > bound:'),
 ]
 
 
@@ -231,13 +239,14 @@ def mutants_arm() -> int:
         print("mutants: gate.py or prelude.py has uncommitted edits; the restore would erase them")
         return 2
 
-    def verdicts() -> tuple[int, int]:
-        st = subprocess.run([sys.executable, "-I", str(GATE), "--self-test"], capture_output=True).returncode
+    def verdicts() -> tuple[int, int, list[str]]:
+        p = subprocess.run([sys.executable, "-I", str(GATE), "--self-test"], capture_output=True, text=True)
         rp = subprocess.run([sys.executable, __file__, "replay"], capture_output=True).returncode
-        return st, rp
-    base = verdicts()
+        red = [ln[5:].split(": got ", 1)[0] for ln in p.stdout.splitlines() if ln.startswith("FAIL ")]
+        return p.returncode, rp, red
+    *base, _ = verdicts()
     print(f"mutants: unmutated self-test rc {base[0]}, replay rc {base[1]}")
-    if base != (0, 0):
+    if base != [0, 0]:
         return 1
     survived = 0
     for name, old, new, *where in MUTANTS:
@@ -250,12 +259,14 @@ def mutants_arm() -> int:
             continue
         target.write_text(text.replace(old, new))
         try:
-            st, rp = verdicts()
+            st, rp, red = verdicts()
         finally:
             target.write_bytes(orig)
         killed = st or rp
         survived += not killed
         print(f"  {name}: {'KILLED' if killed else 'SURVIVED'} (self-test rc {st}, replay rc {rp})")
+        for case in red:
+            print(f"    red: {case}")
     print(f"RESULT mutants={len(MUTANTS)} survivors={survived}")
     return 1 if survived else 0
 
