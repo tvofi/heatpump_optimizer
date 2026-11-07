@@ -1,0 +1,6 @@
+/home/user/base beat_jobs overlay keys not in the template's placeholder table: []
+/home/user/rev beat_jobs overlay keys not in the template's placeholder table: ['fire_ledger', 'gantt_acks', 'gantt_roster', 'train_glob', 'unheld_skip']
+control render (declared keys only): OK
+with gantt_roster -> REFUSED: unknown: `gantt_roster` not in the placeholder table
+with gantt_acks -> REFUSED: unknown: `gantt_acks` not in the placeholder table
+with fire_ledger -> REFUSED: unknown: `fire_ledger` not in the placeholder table
