@@ -3,17 +3,36 @@ tools/audit/seat/ledger.py:230:            classify(f[0])
 tools/audit/seat/ledger.py:258:    classify(ref)
 tools/audit/seat/ledger.py:322:        if classify(subject) != "handoff-no-pr":
 tools/audit/seat/ledger.py:769:            classify(args[0])
-tools/audit/seat/ledger.py:839:        check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
-tools/audit/seat/ledger.py:842:        check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
 tools/audit/seat/merge_train.py:445:def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
-tools/audit/seat/merge_train.py:529:    red = set(classify(latest_runs(runs), gating_names(required))[2])
-tools/audit/seat/merge_train.py:1619:                state = classify(last, only)
-tools/audit/seat/merge_train.py:1634:                    state = classify(last, only, busy)
-tools/audit/seat/merge_train.py:3115:            state, pending, red = classify(latest_runs(runs or ()), req)
-tools/audit/seat/merge_train.py:8013:            state, pending, red = classify(latest_runs(runs), req)
+tools/audit/seat/merge_train.py:512:def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
+tools/audit/seat/merge_train.py:519:    state, pending, red = t.classify_at(sha, runs, req)
+tools/audit/seat/merge_train.py:544:    red = set(classify(latest_runs(runs), gating_names(required))[2])
+tools/audit/seat/merge_train.py:1602:    def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
+tools/audit/seat/merge_train.py:1608:        state = classify(last, required)
+tools/audit/seat/merge_train.py:1610:        return classify(last, required, busy) if busy else state
+tools/audit/seat/merge_train.py:1644:                state = classify(last, only)
+tools/audit/seat/merge_train.py:1659:                    state = classify(last, only, busy)
+tools/audit/seat/merge_train.py:3148:            state, pending, red = classify(latest_runs(runs or ()), req)
+tools/audit/seat/merge_train.py:5703:          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
+tools/audit/seat/merge_train.py:5704:          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
+tools/audit/seat/merge_train.py:5705:          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+tools/audit/seat/merge_train.py:5770:        return classify_cmd(t, "a" * 40, None, False), logged
+tools/audit/seat/merge_train.py:5824:          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+tools/audit/seat/merge_train.py:5826:          classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
+tools/audit/seat/merge_train.py:5829:          classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
+tools/audit/seat/merge_train.py:5832:          classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
+tools/audit/seat/merge_train.py:5835:          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+tools/audit/seat/merge_train.py:5837:        classify(e7, None)
+tools/audit/seat/merge_train.py:5877:              classify(latest_runs(runs), [GATE]) == ("red", [], [GATE]))
+tools/audit/seat/merge_train.py:5879:          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE])[0] == "green"
+tools/audit/seat/merge_train.py:5880:          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE])[0] == "green")
+tools/audit/seat/merge_train.py:5882:          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE])[0] == "wait")
+tools/audit/seat/merge_train.py:5885:          all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
+tools/audit/seat/merge_train.py:5887:          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+tools/audit/seat/merge_train.py:8101:            rc, line = classify_cmd(t, a.sha, a.pr, a.main)
 tools/audit/seat/orchestrator_tick.py:1151:            req_red = mt.classify(self.latest(runs or []), req)[2]
 tools/audit/seat/orchestrator_tick.py:1648:                req_bad = mt.classify(latest, req)[2]
-tools/audit/seat/proof_watch.py:226:        _, pending, red = _train().classify(last, self.required_names())
+tools/audit/seat/proof_watch.py:234:        _, pending, red = self.train().classify_at(self.sha, self.check_runs(), self.required_names())
 tools/audit/seat/prune_refs.py:274:def classify(name: str, sha: str, prs: dict, main_reachable: set,
 tools/audit/seat/prune_refs.py:339:        rule = classify(name, refs[name], prs, main_reachable, done_branches,
 tools/audit/seat/prune_refs.py:568:           classify("claude/audit-x", merged, {}, reachable) == KEEP_SESSION, results)
@@ -28,9 +47,7 @@ tools/audit/seat/prune_refs.py:590:           classify("dispatch/fixer-t", merge
 tools/audit/seat/prune_refs.py:593:           classify("fix/y", merged, {}, reachable, ages={}) == KEEP_YOUNG, results)
 tools/audit/seat/prune_refs.py:595:           classify("fix/y", merged, {}, reachable, ages=None) == DELETE_MERGED, results)
 tools/audit/seat/prune_refs.py:597:           classify("claude/x", merged, {"claude/x": {"open": [1]}}, reachable) == KEEP,
-tools/audit/seat/prune_refs.py:840:    _check("main keeps", classify("main", main_sha, {}, reachable) == KEEP, results)
 tools/audit/seat/prune_refs.py:843:           classify("fix/x", merged_sha, {}, reachable) == DELETE_MERGED, results)
-tools/audit/seat/prune_refs.py:846:    _check("open PR keeps", classify("fix/x", orphan_sha, p, reachable) == KEEP,
 tools/audit/seat/prune_refs.py:851:           classify("fix/x", merged_sha, p, reachable) == KEEP, results)
 tools/audit/seat/prune_refs.py:855:           classify("handoff/x", orphan_sha, p, reachable) == DELETE_HANDOFF_PR,
 tools/audit/seat/prune_refs.py:860:           classify("handoff/x", merged_sha, p, reachable) == DELETE_MERGED,

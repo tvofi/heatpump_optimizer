@@ -1,0 +1,14 @@
+18:01:47Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:02:59Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:04:11Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:05:23Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:06:35Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:07:47Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:08:59Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:10:11Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:11:24Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:12:36Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:13:48Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:15:00Z rc=3 WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
+18:16:12Z rc=1 RED a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: none red: gate
+FINAL rc=1

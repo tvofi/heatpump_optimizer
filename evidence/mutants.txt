@@ -1,0 +1,35 @@
+M4-classify_at-no-busy: merge_train self-test: 485 checks, 2 failed | proof_watch self-test: 45 checks, 2 failed
+      FAIL defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+      FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+    FAIL (g3) a deferral red while the code run runs is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abort')
+    FAIL (g3) the deferral waits one poll, then merges once the code run's gate lands (got False, want True)
+M6-cli-base-reading: merge_train self-test: 485 checks, 2 failed | proof_watch self-test: 44 checks, 0 failed
+      FAIL defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+      FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+M7-proofwatch-base-reading: merge_train self-test: 485 checks, 0 failed | proof_watch self-test: 45 checks, 2 failed
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+    FAIL (g3) a deferral red while the code run runs is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abort')
+    FAIL (g3) the deferral waits one poll, then merges once the code run's gate lands (got False, want True)
+M8-wait_all-no-settle: merge_train self-test: 485 checks, 2 failed | proof_watch self-test: 44 checks, 0 failed
+      FAIL defer-wait wait-ci: a red gate beside a green suite, every run concluded, waits one poll for gate-sweep's re-run and reads its green
+      FAIL defer-wait wait-ci bound: a sweep that never re-runs the red leaves it standing one poll later
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+M9-cli-stdout-log: merge_train self-test: 485 checks, 0 failed | proof_watch self-test: 44 checks, 0 failed
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+M1-repeat: merge_train self-test: 485 checks, 4 failed | proof_watch self-test: 44 checks, 0 failed
+      FAIL defer-wait #3248: the edit gate's red while code run 42237558473 runs is waited on, then it MERGES (the failing-test-first scene)
+      FAIL defer-wait 13:01Z cycle: five of five deferring heads wait and merge, none SKIPs (the mutant's named case)
+      FAIL defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges
+      FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
+NULL-docstring: merge_train self-test: 485 checks, 0 failed | proof_watch self-test: 44 checks, 0 failed
+      ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+      ok   V142 null: a gate with no reason (no FAIL outcome line) does not qualify
