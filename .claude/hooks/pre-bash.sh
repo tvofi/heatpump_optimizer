@@ -280,7 +280,8 @@ EOF'                                               "a heredoc body holding pkill
   # SECOND ARM: the orchestrator-checkout guard, over a throwaway repository
   # and state directory (HPO_STATE_DIR/orch-checkout names the repository).
   gtmp=$(mktemp -d); mkdir -p "$gtmp/state" "$gtmp/orch" "$gtmp/other"
-  git -C "$gtmp/orch" init -q; git -C "$gtmp/other" init -q
+  . "$(dirname "$0")/../../tests/throwaway_git.sh"
+  throwaway_git_init "$gtmp/orch" -q; throwaway_git_init "$gtmp/other" -q
   printf '%s\n' "$gtmp/orch" > "$gtmp/state/orch-checkout"
   gst() { # want(refuse|allow), command, cwd, label, [state dir]
     local payload out got
