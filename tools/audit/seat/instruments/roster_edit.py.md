@@ -35,3 +35,10 @@
   the same `--checkout` can reset. A push lost to a rival re-applies the op
   on the new tip, at most `PUSH_ATTEMPTS` times, then refuses with rc 2; a
   `--worktree` whose HEAD is on no origin ref is not reused.
+
+  Lane: `wire-issue`, `unwire-issue`, `edit-brief`, `append-carry`, `set-after` and
+  `drop-carry` refuse a caller without `HPO_ROSTER_LANE=queue-runner` in its
+  environment (`lane_refusal`), which `roster_queue.py` sets, naming the runner and
+  the group before anything is read or written. `set-stage`, `append-group`,
+  `set-resume` and `mark-carry` stay directly callable. Setting the variable by
+  hand forges the lane and is out of scope.
