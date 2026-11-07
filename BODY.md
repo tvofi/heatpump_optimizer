@@ -1,8 +1,8 @@
-R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measured at this group's merge base. Each comes out immaterial or reserved to a later stage, so **no production line changes**. The diff lands the harness that re-derives the two CPU figures (`dev/audit/harnesses/r10_partload_residue.py`) and its `INERT` classification. The linear-valuation figures come from `r10_partload_pricing.py`, which is already in the tree. Every carry is answered below with its number.
+R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measured at this group's merge base. Each comes out immaterial or reserved to a later stage, so **no production line changes**. The diff lands the harness that re-derives the two CPU figures (`dev/audit/harnesses/r10_partload_residue.py`) and its `INERT` classification. The linear-valuation figures come from `r10_partload_pricing.py`, which is already in the tree. Every carry is answered below with its number. Carries are numbered 1 to 3 in roster order, so the brief's carry 0, 1 and 2 are carries 1, 2 and 3 here.
 
-- **Carry 0, the live buffer store's CPU.** A 750 L store costs about 1.9x per solve. Measured one lever at a time: 1.87x on the seeded spread days and 1.93x on the flat null. The price day alone costs 1.15x. The worst solve is 1.83 s here, about 12 s scaled to Pi class, which is 2 % of the shortest optimisation interval the options flow accepts (10 min). The 272 s owner-box outlier did not reproduce in 80 seeded solves, and no harness in the tree re-derives it. **Refused:** no bound or warm start is earned at these numbers.
-- **Carry 1, linear valuations under a convex cost.** The hot-water LP's secant error is at most 0.27 currency/day against a hot-water cost of about 7 to 8 per day (3.8 %). The terminal and deferred figures state no refill rate, so their error lies between 0 (refilled at the floor) and 4.37 / 2.14 (refilled at maximum power). The zero-derate null reads exactly 0 on every row. The carry reserves the segmenting decision to a later D0 pass on `_plan_dhw_min_cost` and `_terminal_cost`. That ruling is not this group's: nothing is segmented, and the numbers go forward to it.
-- **Carry 2, Pi CPU of the relaxed start.** The worst clamped solve is 1.96 s and the relaxed pass inside it at most 0.32 s. At the derived Pi-class factor of 6.8x that is about 13.3 s and 2.2 s, against the 600 s budget. The null control holds: the unclamped cells start 0 relaxed runs and spend 0.000 s in the pass. **Refused:** a `maxiter` cap on the relaxed pass is not earned. It would become due only if a clamped solve ran 306x slower than here.
+- **Carry 1, the live buffer store's CPU.** A 750 L store costs about 1.9x per solve. Measured one lever at a time: 1.87x on the seeded spread days and 1.93x on the flat null. The price day alone costs 1.15x. The worst solve is 1.83 s here, about 12 s scaled to Pi class, which is 2 % of the shortest optimisation interval the options flow accepts (10 min). The 272 s owner-box outlier did not reproduce in 80 seeded solves, and no harness in the tree re-derives it. **Refused:** no bound or warm start is earned at these numbers.
+- **Carry 2, linear valuations under a convex cost.** The hot-water LP's secant error is at most 0.27 currency/day against a hot-water cost of about 7 to 8 per day (3.8 %). The terminal and deferred figures state no refill rate, so their error lies between 0 (refilled at the floor) and 4.37 / 2.14 (refilled at maximum power). The zero-derate null reads exactly 0 on every row. The carry reserves the segmenting decision to a later D0 pass on `_plan_dhw_min_cost` and `_terminal_cost`. That ruling is not this group's: nothing is segmented, and the numbers go forward to it.
+- **Carry 3, Pi CPU of the relaxed start.** The worst clamped solve is 1.96 s and the relaxed pass inside it at most 0.32 s. At the derived Pi-class factor of 6.8x that is about 13.3 s and 2.2 s, against the 600 s budget. The null control holds: the unclamped cells start 0 relaxed runs and spend 0.000 s in the pass. **Refused:** a `maxiter` cap on the relaxed pass is not earned. It would become due only if a clamped solve ran 306x slower than here.
 
 ## Head
 
@@ -18,18 +18,18 @@ n/a: no production line is added or changed. There is no fix line to delete. Eac
 
 ## Null control
 
-- Carry 0: the flat price day, with no cheap window to store for. The 750 L store still costs 1.93x there, so the store's cost is per-solve model work, not arbitrage search. The no-buffer arm separates the price lever: 0.455 s flat against 0.522 s spread, p50.
-- Carry 1: zero derate. `r10_partload_pricing.py` prints `null rows not zero 0`, and `lp_err`, terminal, deferred and baseline change all read `0.000000` at `d=0.0`, on both price days and all 16 installs.
-- Carry 2: the non-relaxed path, on the 32 unclamped cells. They show 0 relaxed runs and a maximum of 0.000 s inside the pass. The whole-solve delta between the production arm and the pass-removed arm ranges from -0.082 to +0.056 s there; that is the timing noise floor. The clamped cells' delta has a p50 of +0.150 s and a maximum of +0.667 s.
+- Carry 1: the flat price day, with no cheap window to store for. The 750 L store still costs 1.93x there, so the store's cost is per-solve model work, not arbitrage search. The no-buffer arm separates the price lever: 0.455 s flat against 0.522 s spread, p50.
+- Carry 2: zero derate. `r10_partload_pricing.py` prints `null rows not zero 0`, and `lp_err`, terminal, deferred and baseline change all read `0.000000` at `d=0.0`, on both price days and all 16 installs.
+- Carry 3: the non-relaxed path, on the 32 unclamped cells. They show 0 relaxed runs and a maximum of 0.000 s inside the pass. The whole-solve delta between the production arm and the pass-removed arm ranges from -0.082 to +0.056 s there; that is the timing noise floor. The clamped cells' delta has a p50 of +0.150 s and a maximum of +0.667 s.
 
 ## Figures
 
 All times are `time.process_time` of one process pinned to one core (`taskset -c N`) with `OMP_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1`. Host: x86_64, `Intel(R) Xeon(R) Processor @ 2.30GHz`, family 6, model 173 (Granite Rapids class), Python 3.14.7, numpy 2.5.4, scipy 1.18.1. The budget is `config_flow`'s `CONF_OPTIMIZATION_INTERVAL` slider minimum, 10 min = 600 s; the default interval is 30 min.
 
-- Carry 2, relaxed pass. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 0 python3 dev/audit/harnesses/r10_partload_residue.py relaxed`. It prints `clamped solves 32: solve_s p50 0.466 max 1.961; relaxed_pass_s p50 0.105 max 0.318; worst solve share of budget 0.00327` and `null (unclamped) cells with a relaxed run 0`, exit 0.
+- Carry 3, relaxed pass. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 0 python3 dev/audit/harnesses/r10_partload_residue.py relaxed`. It prints `clamped solves 32: solve_s p50 0.466 max 1.961; relaxed_pass_s p50 0.105 max 0.318; worst solve share of budget 0.00327` and `null (unclamped) cells with a relaxed run 0`, exit 0.
   - Rule: 16 installs (`r10_setpoint_boost.CELLS`) x 2 price days x 2 derates (0 and the central plant's 0.112), timing only the cells whose levels ship clamped.
   - The per-cell delta figures (p50 +0.150 s, maximum +0.667 s clamped; -0.082 to +0.056 s unclamped) are the median, minimum and maximum of the `delta_s` field over the printed per-cell lines, grouped by `clamped`.
-- Carry 0, buffer store. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 1 python3 dev/audit/harnesses/r10_partload_residue.py buffer 20`. Over 20 seeded solves per arm (seed 2500, `r10_buffer_store.solve`'s owner shape) it prints:
+- Carry 1, buffer store. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 1 python3 dev/audit/harnesses/r10_partload_residue.py buffer 20`. Over 20 seeded solves per arm (seed 2500, `r10_buffer_store.solve`'s owner shape) it prints:
 
   | arm | p50 (s) | max (s) |
   |---|---|---|
@@ -39,7 +39,7 @@ All times are `time.process_time` of one process pinned to one core (`taskset -c
   | 0 L flat | 0.455 | 0.720 |
 
   The ratios are p50 over p50 within a price day: 0.975/0.522 = 1.87x, 0.876/0.455 = 1.93x, and 0.522/0.455 = 1.15x for the price lever.
-- Carry 1, linear valuations. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 2 python3 dev/audit/harnesses/r10_partload_pricing.py`. It prints:
+- Carry 2, linear valuations. Command: `PYTHONPATH=tests/hastub:custom_components:tests taskset -c 2 python3 dev/audit/harnesses/r10_partload_pricing.py`. It prints:
   - `spread d=0.112: cells 16 lp_err max 0.173106 (dhw cost max 8.0681) terminal-at-max max 3.723135 deferred-at-max max 0.963508`
   - `flat d=0.112: cells 16 lp_err max 0.267290 (dhw cost max 7.0145) terminal-at-max max 4.368455 deferred-at-max max 2.139841`
   - both `d=0.0` rows at `0.000000`, then `null rows not zero 0`, `failures 0`, exit 0.
@@ -60,12 +60,12 @@ none
 
 ## Forward-carry
 
-- Carry 1's numbers go to the decision the carry itself reserves: the next D0 (price optimality) pass on `_plan_dhw_min_cost` and `_terminal_cost`. That pass decides whether to segment the LP and state a refill rate. The numbers it receives:
+- Carry 2's numbers go to the decision the carry itself reserves: the next D0 (price optimality) pass on `_plan_dhw_min_cost` and `_terminal_cost`. That pass decides whether to segment the LP and state a refill rate. The numbers it receives:
   - LP secant error of at most 0.27 currency/day (3.8 % of the hot-water cost);
   - terminal and deferred error between 0 and 4.37 / 2.14 depending on the refill rate, re-derivable by `dev/audit/harnesses/r10_partload_pricing.py`.
 
   `dev/governance/dimensions/D0.md` is owner policy, so this fixer did not edit it. No live roster group owns a D0 pass: R10-BRIEFS-FOLD-D0 is done, as of `origin/handoff/audit-r10-roster` f50c6f2de. So the item stays a pending carry on this group, which the merge sync leaves at `carries-open`, for the carry-routing seat to place in that pass's brief; it waits on that ruling. Carry: R10-PARTLOAD-RESIDUE
-- Carry 0's 272 s owner-box outlier has no harness that re-derives it, and it did not reproduce in 80 seeded solves here. Carry: dismissed: not reproduced in 80 seeded solves; a future outlier report owes its install shape
+- Carry 1's 272 s owner-box outlier has no harness that re-derives it, and it did not reproduce in 80 seeded solves here. Carry: dismissed: not reproduced in 80 seeded solves; a future outlier report owes its install shape
 
 ## Friction
 
