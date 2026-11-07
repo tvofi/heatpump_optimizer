@@ -86,7 +86,7 @@ def _store(hass: Any, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(hass, OFF_RESTORE_STORE_VERSION, f"{DOMAIN}_{entry_id}_off_restore")
 
 
-async def _held(owner: Any, hass: Any, entry_id: str) -> _Held:
+async def _armed_record(owner: Any, hass: Any, entry_id: str) -> _Held:
     held = _HELD.get(owner)
     if held is None:
         held = _HELD[owner] = _Held(_store(hass, entry_id))
@@ -120,7 +120,7 @@ async def async_arm(owner: Any, hass: Any, entry_id: str, config: Any, key: str)
     restorer = factory(config) if factory is not None else None
     if restorer is None:
         return False
-    held = await _held(owner, hass, entry_id)
+    held = await _armed_record(owner, hass, entry_id)
     if key in held.armed:
         return True
     baseline = None
@@ -142,7 +142,7 @@ async def async_restore(owner: Any, hass: Any, entry_id: str, config: Any, reaso
     A consumer no longer configured is disarmed unwritten: its entity is no
     longer the optimizer's to write.
     """
-    held = await _held(owner, hass, entry_id)
+    held = await _armed_record(owner, hass, entry_id)
     sent = 0
     for key, baseline in list(held.armed.items()):
         factory = _CONSUMERS.get(key)
