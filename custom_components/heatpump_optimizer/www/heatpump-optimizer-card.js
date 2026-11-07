@@ -8981,13 +8981,19 @@ function scoreParts(plan) {
  * none to show; an unknown code is skipped rather than shown raw. */
 function scoreDrivers(part, drivers) {
   if (part !== "envelope" && !Array.isArray(drivers)) return "";
-  const shown = (Array.isArray(drivers) ? drivers : [])
-    .filter((d) => STRINGS.en[`score.driver_${d.code}`] !== undefined)
+  const shown = knownCodes(drivers, "score.driver_")
     .map((d) => ({ code: d.code, pts: Math.round(Number(d.points) || 0) }))
     .filter((d) => d.pts !== 0)
     .map((d) => `${L(`score.driver_${d.code}`)} ${d.pts > 0 ? "+" : "−"}${Math.abs(d.pts)}`);
   return shown.length ? shown.join("; ")
     : L(part === "envelope" ? "score.driver_typical" : `score.driver_typical_${part}`);
+}
+
+/** The entries of a published code list the card has words for under
+ * `prefix`; an unknown code is skipped rather than shown raw. Shared by the
+ * score's drivers and the why-now block. */
+function knownCodes(list, prefix) {
+  return (Array.isArray(list) ? list : []).filter((d) => STRINGS.en[`${prefix}${d.code}`] !== undefined);
 }
 
 /** What an ungraded heat pump waits on (`machine_evidence`): the four
@@ -9054,8 +9060,7 @@ function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub
  * nothing: the weights and directions are the solver's. */
 function whyNowHtml(plan) {
   const why = plan.attrRaw("why_now", null);
-  const drivers = (why && Array.isArray(why.drivers) ? why.drivers : [])
-    .filter((d) => STRINGS.en[`whynow.driver_${d.code}`] !== undefined);
+  const drivers = knownCodes(why && why.drivers, "whynow.driver_");
   const mark = { run: "↑", idle: "↓" };
   const rows = !drivers.length
     ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
