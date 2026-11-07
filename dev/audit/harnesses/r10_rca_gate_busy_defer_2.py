@@ -13,8 +13,10 @@ Arms:
   replay --ci DIR        judge every scene's gates with DIR's gate.py; print one line per scene
                          and exit 1 if a pair scene's gate defers to its partner (DEADLOCK: both
                          do; HALF-DEFERRED: one does), the live #3241/#3246 defect
-  census --since ISO     live: every `gate` job started since ISO on a ci.yml run, by whether its
-                         pinned programs carry the fix (--fix SHA), and its verdict class
+  census --since ISO [--until ISO]
+                         live: every `gate` job started in the window on a ci.yml run, by
+                         whether its pinned programs carry the fix (--fix SHA; no pin line:
+                         unpinned), its verdict class, and whether it was a re-run attempt
   pins                   per scene: the pinned sha each live gate ran, and whether that sha
                          carries the #3246 fix (355d9965); needs the repository's history
 
@@ -242,7 +244,7 @@ def replay(fixture, ci):
     return rc
 
 
-def census(since, fix):
+def census(since, until, fix):
     """Every gate verdict since `since`: pinned sha, carries `fix`?, conclusion, class, seconds."""
     rows, page = [], 1
     while True:
@@ -255,7 +257,7 @@ def census(since, fix):
                 jobs = gh(f"repos/{REPO}/actions/runs/{r['id']}/attempts/{n}/jobs?per_page=100")["jobs"]
                 for j in jobs:
                     if j["name"] != "gate" or j["status"] != "completed" or not j["started_at"] \
-                            or j["started_at"] < since or j["run_attempt"] != n:
+                            or not since <= j["started_at"] < until or j["run_attempt"] != n:
                         continue
                     lg = gate_log(j["id"])
                     ok = bool(lg["pin"]) and subprocess.run(
@@ -264,14 +266,15 @@ def census(since, fix):
                     cls = "pass" if v == "PASS" else "defer" if "are still being judged" in v else \
                         "other-red" if j["conclusion"] == "failure" else j["conclusion"]
                     secs = (ts(j["completed_at"]) - ts(j["started_at"])).total_seconds()
-                    rows.append((r["id"], n, r["display_title"].split()[2], "fixed" if ok else "stale", cls, secs))
+                    rows.append((r["id"], n, r["display_title"].split()[2], "fixed" if ok else "stale" if lg["pin"] else "unpinned", cls, secs))
         page += 1
     for row in sorted(rows):
         print("\t".join(map(str, row)))
-    for pin in ("stale", "fixed"):
+    for pin in ("stale", "fixed", "unpinned"):
         sub = [x for x in rows if x[3] == pin]
         by = {c: sum(1 for x in sub if x[4] == c) for c in sorted({x[4] for x in sub})}
         print(f"CENSUS {pin}: gates={len(sub)} {by} prs={sorted({x[2] for x in sub if x[4] == 'defer'})} "
+              f"reruns={sum(1 for x in sub if x[1] > 1)} "
               f"defer_job_s={int(sum(x[5] for x in sub if x[4] == 'defer'))}")
     return 0
 
@@ -297,12 +300,13 @@ def main(argv):
     ap.add_argument("--ci", default=str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
     ap.add_argument("--fixture", default=str(FIXTURE))
     ap.add_argument("--since", default="2026-11-07T03:45:14Z")    # 355d9965's merge
+    ap.add_argument("--until", default="9999")
     ap.add_argument("--fix", default=FIX)
     a = ap.parse_args(argv)
     if a.arm == "record":
         return record(a.out or a.fixture)
     if a.arm == "census":
-        return census(a.since, a.fix)
+        return census(a.since, a.until, a.fix)
     if a.arm == "pins":
         return pins(a.fixture)
     return replay(a.fixture, a.ci)
