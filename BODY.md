@@ -1,73 +1,76 @@
-R10-FLOW-TOOLKIT-MODEL: plan-model correctness in tools/plan/replan.py, plus the tracked Gantt-drift instrument (carry 12). Measures the roster/plan semantics only; no production code. Merge-resolution on top of repair round 5 for the blocked fix review at 0ce1f09bd196: --since-tag now credits a multi-PR group's part-branch merges (on main's real history v7.1.0..v7.1.1 it credits 12 of 12 production groups that changed code, was 8; v7.1.2..v7.1.3 credits 9 of 9, was 8), and the squash fallback is pinned.
+R10-FLOW-TOOLKIT-MODEL: plan-model correctness in tools/plan/replan.py, plus the tracked Gantt-drift instrument (carry 12). Measures the roster/plan semantics only; no production code.
 
-Merge resolution (PR was DIRTY; only the merge was done, no other edit): `git merge origin/main` conflicted in two files, each resolved by union.
+This repair round lands carry 15 (0-based; "From the s12 slip study (2026-11-07)"), on top of the merge-only conflict seat's head d84006e66001d42c744448949159f6473adedcd6, fast-forward. `git merge-tree --write-tree origin/main HEAD` reported no conflict at the start, so no merge was made.
 
-- tools/plan/replan.py, `is_done` hunk. Main contributed: `is_done` delegates to `roster_lib.is_open` (the one owner of closed stages, absorbed included) and a selftest arm "an absorbed group is closed work, not scheduled". Branch contributed: the `DONE_STAGES`/`ABSORBED_RE` block, `absorbers()` (the absorbed advisory) and `post_closure_groups()`. Kept: main's `is_done` body, `ABSORBED_RE`, `absorbers`, `post_closure_groups`, main's selftest arm. The branch's local `DONE_STAGES` tuple duplicated `roster_lib.CLOSED_STAGES` and nothing else read it once `is_done` delegated, so only that constant went; its comment was kept as the doc of `is_done`, and its mutant `absorbed-done` was re-anchored from the tuple to main's `return not roster_lib.is_open(group)` (mutated to the old two-stage test) and is killed by main's absorbed arm.
-- tools/audit/seat/plan_page.py, two selftest hunks (bar present for every open group; ETA reason for every open group). Main contributed the shared `scheduled(g)` helper (not plan-done). Branch contributed the `rows[g]["st"] != "done"` test. Kept both conditions in each: `rows[g]["st"] != "done" and scheduled(g)`.
-- Auto-merged without conflict and read back: tests/closures.json (ledger merge driver), main's selftest additions in replan.py. Claim files byte-identical to origin/main.
+Carry 15: `held_open` counted `len(group carry)` and `group_hours`' absorbed-carry term counted `len(group carry)`, so a carry `roster_edit.py mark-carry` had discharged (implemented, moved, dismissed) still priced as open work. Both now count `roster_lib.pending_carries` (unmarked and not legacy):
 
-Carries built: 0 (live-refs, in-flight, inflow; the size measure was already built at the base), 2 (absorbed is done, advisory), 3 (liveness by evidence incl. design-only without credit, binding chain and CP slack, uncalibrated-sensitivity note), 8 (critical-path groups start past the slots cap, exempt), 9 (stamp cadence 3 by group, comment-only diffs ignored, matched by merge topic branch, credit only for done groups), 10 and 11 (post-closure groups), 12 (tools/audit/seat/gantt_drift.py).
-Carries 1 and 7 were moved to R10-BODY-CONTRACT; 4, 5 and 6 are dismissed as duplicates.
+- `held_open(group, durations, pending)`: an unmeasured group counts its pending carries; a measured one (`held_open_carries`) counts `min(open at measurement, pending carries among those then held)` plus the pending carries appended since. With no carry marked this is exactly the old figure.
+- `group_hours(..., legacy=None)`: computes `pending` once, prices the absorbed-carry term on `len(pending)`, and the duration basis ends `, N marked carries left out` whenever any carry was left out.
+- `build_plan(..., legacy=None)` threads the cut-over through; `main` reads it with `roster_lib.read_legacy(repo, ROSTERS_DIR/<roster basename>)`, so a `--roster-file` copy named `wave-r10-groups.json` keeps its round's cut-over (`roster_lib.CARRY_CUTOVER`). A cut-over the clone cannot read refuses as a `PlanError`, never "no legacy".
 
-Repair of the review's items:
+`replan --measure-sizes` was not used (the verifier found it does not deliver the saving).
 
-- Item 1, mutation-vacuous: one pin per surviving mutant in replan.py --self-test (overflow slot filter, post-closure propagation and STAMP-ROUND-MAJOR mark, credit lane, check refusals, produced credit, carries, binding-chain walk, arrivals median, parse_live_refs, post-closure in the peak sweep, stamp cut). gantt_drift.py is_named now has a direct word-boundary pin and a word-boundary mutant in its table.
-- Item 2, --since-tag: production_groups_since names a group by a merge's topic branch (as topic_evidence does) and git_commits_since_tag diffs against the first parent; pinned with a real-shaped "Merge pull request #N from tvofi/fix/<topic>" subject and with a real throwaway merge repository.
-- Item 3: a stage-live group whose only evidence is a design ref is design_only, no live credit.
-- Item 4: stamp credit is filtered to done groups; a credited group still open is counted once.
-- Item 5: measure_sizes_hours, --sizes-input, --sizes-since and --sizes-until are removed with their fixture null and two mutants. Carry 0 (2) was already built at the base: --measure-sizes runs size_durations.run (p75, earliest of first commit or PR creation). I did not re-run that measurement here (it needs the network edge); durations.json sizes are unchanged.
-- Round 5, item 1: production_groups_since matches a merge topic to the longest roster topic it equals or extends by `-<suffix>` (word boundary as in gantt_drift.py: `r10-storey` credits nothing, `r10-store-p2` credits R10-STORE, `r10-store-races-p2` credits R10-STORE-RACES), once per group. Pinned with `-p2`/`-p3` merge subjects and a null (an unrelated topic and a non-boundary prefix credit nothing); mutants since-tag-part-branch, -part-boundary and -part-longest are killed.
-- Round 5, item 2: the squash fallback is pinned (a subject naming R10-STORE-RACES credits it, not R10-STORE); mutant since-tag-squash-longest (`max` -> `min`) is killed.
-- Item 7 (dismissed with a reason): inflow_groups_per_hour 0.4 stays reported-only, never scheduled, and the hard-coded slot_sensitivity string (27 snapshots, r=0.045) stays a labelled "uncalibrated" note; neither is a figure this PR claims. No later open group owns measuring them (R10-PLAN-REAL-DURATIONS and R10-PLAN-ARTIFACT are both done and their briefs mention neither), so they are dismissed, not carried: a measurement would be a new group if an owner asks for one.
+Earlier rounds (unchanged by this repair, kept from the previous body): carries 0, 2, 3, 8, 9, 10, 11 and 12 built; 1 and 7 moved to R10-BODY-CONTRACT; 4, 5 and 6 dismissed as duplicates; review items 1-5 and round-5 items 1-2 repaired, item 7 dismissed with its reason; the merge resolutions in `is_done`/`plan_page.py` are as described on the earlier heads.
 
 ## Head
 
-d84006e66001d42c744448949159f6473adedcd6 is the code head: a conflict resolution by merge. Parents are the previous PR head 0542969c33313f54db611ca0609fade7c1b14989 and origin/main dee8b413fd7da7b07f13e28a93d7d49b4a9e978a; no re-cut, squash or rebase. The merge train skipped the PR on a content conflict in tools/plan/replan.py (tests/closures.json merged by the ledger driver).
-
-Resolution delta (what to review; `git diff 0542969c d84006e6` also carries main's own changes): in tools/plan/replan.py both sides added a block at the same spot, so both are kept, this PR's `absorbers` and `post_closure_groups` followed by main's `_NON_PRODUCT_*`, `_TOOLING_PREFIXES`, `INSTRUMENT_KINDS` and `_owned_lane` (from #3265). Nothing else was edited by hand; VERSION, manifest version, RELEASE_NOTES heading, budgets and claim files are untouched.
-
-Measured at it: tools/pr/prepr.sh rc=0 (MODE: SCOPED; structure ratchet passed with no budget change; claim files byte-identical to origin/main).
+55b86a71ea5752e1af9f6491a94798629df236b2, a fast-forward of d84006e66001d42c744448949159f6473adedcd6 by three commits: the failing test (83b3e0b00, committed red), the fix (e08021412), and the pins for the boundary mutants (55b86a71e). Every figure below was taken at this head. `tools/pr/prepr.sh` was run once at this head; per the owner's 2026-11-07 ruling main was not merged again (merge-tree reports no conflict).
 
 ## Mutation proof
 
-`python3 tools/plan/replan.py --self-test` exits 0. The reviewer's evidence/mut.py run against it: 15 of 15 reviewer mutants killed, and the sixteenth (credit-lane, whose anchor my edit moved) is killed as the new stamp-credit-lane mutant in the table; new table mutants: stamp-credit-lane, stamp-credit-done, since-tag-merge-topic, since-tag-first-parent, evidence-design-uncredited (re-anchored). `python3 -I tools/audit/seat/gantt_drift.py --self-test` kills 16 mutants including word-boundary.
+Red first: at 83b3e0b00 `python3 -I tools/plan/replan.py --self-test` printed `FAIL R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four: 79.2 44 carries, none measured as answered: 4 part(s)`, the same for the measured held group (`1 open carries at measurement + 6 appended since: 2 part(s)`) and the absorbed term (`30.0 ... + 3 absorbed carries`), then a TypeError on `build_plan(legacy=)`.
+
+In-tree mutants added to the self-test's table, each killed (`python3 -I tools/plan/replan.py --self-test` prints `-> rc=1` for each, and `self-test: 0 failed`):
+
+- `held-open-pending`: `return len(pending), ...` restored to `return len(group.get("carry") or []), ...` in `held_open` (the brief's first mutant) -> rc=1, failing the BODY-CONTRACT-shape arm and the two-part arm.
+- `absorbed-pending`: `extra = len(pending) - ` restored to `extra = len(group.get("carry") or []) - ` in `group_hours`' absorbed-carry term -> rc=1.
+- `appended-carries-open` (re-anchored), `held-measured-pending`, `pending-left-out`, `legacy-threaded` -> rc=1 each.
+
+Diff mutants (owner ruling): `python3 tools/audit/seat/mutant_run.py --diff d84006e66...HEAD --cmd "env REPLAN_MUTATION_CHILD=1 python3 -I tools/plan/replan.py --self-test" --max-mutants 0 --report-only` over this round's added lines: 39 mutants, 15 survived, every survivor in a self-test fixture line (see `## Unpinned sites`); every production-line mutant (lines of `held_open` and the absorbed term) killed. The first pass left four production survivors (`i > cut`, `i <= cut`, `sum(2 ...)` in the measured count, the baseline default `0 -> 1`); 55b86a71e adds one arm for each and the second pass kills them. prepr.sh's own diff-mutant step ran with the same `MUTANT_CMD`; its line is in `## Figures`.
 
 ## Null control
 
-Each new arm has a null: a plan without the exempt group frees the same slot; a group after nothing post-closure stays in the round; a non-production done group earns no credit; merges with comment-only diffs credit nothing; the unmutated copy of the self-test exits 0.
+- The carry text's null: the same two-part fixture with no carry marked (`["c"] * 9`) prices two parts (40 h), basis without "left out" (arm "the same carries with none marked plan two parts as before").
+- Whole roster: the roster blob below with all 661 carry marks stripped, priced by the new head, gives a plan whose every group's `duration_minutes` and `finish` and whose `summary` equal the old head's plan on the marked blob (0 groups differ, summary equal). So the head's only change on real data is the marks.
+- The unmutated copy of the self-test exits 0 (`null control: unmutated copy rc=0`).
 
 ## Figures
 
-none
+Roster: blob df4c1694f8b7ba59ba5144868a2b654b8bd32a56 (`origin/handoff/audit-r10-roster:dev/programme/rosters/wave-r10-groups.json`), two copies named `wave-r10-groups.json`; before = `python3 tools/plan/replan.py --roster-file <copy>/wave-r10-groups.json --start 2026-11-07T22:00:00` from a worktree of d84006e66, after = the same from 55b86a71e; same durations.json (unchanged by this diff).
+
+- before: `summary: closure 2026-11-13T23:59:00Z | wall 145.98 h | CI 7537.5 min | batches 62 | stamps 5`; binding chain R10-BODY-CONTRACT -> R10-ARCH-DOCS -> R10-CLOSEOUT-CLEANUP, critical path 133.72 h, slack 12.26 h.
+- after: `summary: closure 2026-11-14T00:51:00Z | wall 146.85 h | CI 7312.5 min | batches 60 | stamps 5`; binding chain R10-CLONE-2238 -> R10-ARCH-DOCS -> R10-CLOSEOUT-CLEANUP, critical path 112.6 h, slack 34.25 h.
+- Closure delta: +52 min (later), not the verifier's -4h17m. Seat-minutes: R10-BODY-CONTRACT 4752 -> 1188 and R10-HANDOFF-PATH 4752 -> 1188 (7128 together, as the verifier said); all groups together 14464 fewer (also PREPR-CAP, ROSTER-WRITE-SWEEP, SAV-COMFORT, TICK-LEVELS, TRAIN-MERGE-LOOP to 0, and the absorbed term of ARCH-DOCS, FLOW-TOOLKIT-MODEL, ROUND-PLAYBOOK, USER-DOCS-VERIFY). Rule: per-group `duration_minutes` difference between the two plan.json files, summed.
+- Why later: BODY-CONTRACT stops binding ARCH-DOCS (critical path -21.12 h), and ARCH-DOCS is then bound by R10-CLONE-2238, a coordinator group that waits for the coordinator cap 2 and finishes 11-11T19:39Z after, 11-11T13:53Z before. Isolated with a copy of the head whose absorbed term is restored to `len(carry)` (held-stage fix alone): closure 2026-11-14T02:10:00Z, binding chain the same. The coordinator queue order is not keyed on the realized binding chain; that is the scheduler's existing priority rule, outside carry 15 (see `## Forward-carry`).
+- Merge-base control (the carry text): at the merge base dee8b413fd7d's own roster (blob c96d0d1eee72), before and after both print `closure 2026-11-12T15:16:00Z | wall 113.27 h`; R10-BODY-CONTRACT 4752 -> 4752 and R10-HANDOFF-PATH 2376 -> 2376, because that roster marks none of BODY-CONTRACT's carries yet and one of HANDOFF-PATH's 15 (2 parts either way).
+- Self-test: `python3 -I tools/plan/replan.py --self-test`: `model self-test: 0 failed`, `self-test: 0 failed`, wall 68 s.
+- Diff mutants (this round's lines): 39 mutants, 15 survived, wall 47.5 s (command in `## Mutation proof`).
+- prepr.sh diff-mutant step (whole PR diff, MUTANT_MAX default 40): `WARN diff mutants 40 survivor(s)` (prepr.sh log, step "diff mutants"; the 40-mutant cap was spent wholly on the earlier rounds' tools/audit/seat/gantt_drift.py lines 41-124, which the replan self-test does not drive). Re-run against gantt_drift's own self-test, `python3 tools/audit/seat/mutant_run.py --diff $(git merge-base origin/main HEAD)...HEAD --path tools/audit/seat/gantt_drift.py --cmd "python3 -I tools/audit/seat/gantt_drift.py --self-test" --max-mutants 0 --report-only`: 107 mutants, 46 survived, wall 16.7 s; dispositions in `## Unpinned sites`.
+- `python3 tests/structure.py`: STRUCTURE RATCHET PASSED, no budget touched.
+- Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)`: `MODE: SCOPED -- 2 script(s) run, 31 scoped out` (tests/entities.py, tests/harness_headers.py), run by prepr.sh.
+
+## Unpinned sites
+
+The 15 diff-mutant survivors are all in `selftest_model`'s new arms (lines of the fixture calls, not production code): `is_live` False -> True in a held-stage call (the held path ignores `is_live`: equivalent), `marked(0) -> marked(1)` (only the mark's hex value changes: equivalent), `carries_per_part 11 -> 22` and `["c"] * 9 -> 10` (still one/two parts: the arm's own cell), `open 5 -> 6` (min still 1), `<` -> `<=` on a float tolerance, and the date/round of the legacy plan fixture (not read by the arm). Disposition: equivalent mutants of test fixtures; no production site of this round is unpinned.
+
+Earlier rounds' tools/audit/seat/gantt_drift.py (not this repair's lines, which the brief scoped to carry 15): of the 46 survivors under its own self-test, 40 are in its self-test body, its in-file mutant table and its argparse defaults (lines 133 onward); the production survivors are line 98 (the `key.split(":", 1)[1]` index swap in the silenced-key reader) and lines 121-124 (the state-file write in `main` and its return code), which no self-test arm drives. A tools/ site is outside `mutation-autofix`'s custom_components/ lane, so these need an in-tree arm; not built in this repair, left on this group (it owns gantt_drift.py) for its next round.
 
 ## Red checks
 
-At this head: none concluded. The head has not run in CI (the PR was DIRTY, so CI could not run); no check run exists for it yet, so there is no red to answer. History only, at the earlier head 0ce1f09bd196: `gate` concluded failure four times (128274341527, 128285252987: edit-run deferrals to code run 42329754862; 128289689105 and 128289692210: edit runs 42329758968 and 42333416528 deferring to each other), and code run 42329754862 attempt 1 was cancelled at 02:54Z while attempt 2 was green. None is this diff's code: the mutual deferral is the CI gate instrument owned by R10-PROCESS-SLIM (#3245). Cheaper detector: none for a cancellation. Any red the new head concludes will be answered by the next repair.
-
-`tests / nightly-status` is red on origin/main and grades `main`; it is outside the required set and never counts (owner ruling 2026-11-07), and this resolution touches nothing it reads (the merge changed tools/plan/replan.py by hand only; .github/workflows/governance.yml arrives unchanged from main). Cheaper detector: none; its standing cost is the nightly run itself, which already exists.
+At head 55b86a71e: none concluded. The head has not run in CI yet (it reaches the PR when the orchestrator moves it), so no check run exists for it. At the PR head 0542969c3 (DIRTY, superseded by d84006e66 and this head), read with check-runs filter=all, all pages, in the previous body: `pr-contract / pr-contract` (body contract, answered by that body; cheaper detector `tools/pr/prepr.sh --body-check`, run for this body), `gate` (derived from pr-contract), `tests / nightly-status` (main's cancelled nightly.yml dispatch 42369836867, not this diff, non-required: never blocks per the owner's 2026-11-07 ruling). Earlier-head `gate` deferral reds belong to the gate instrument owned by R10-PROCESS-SLIM (#3245). Cheaper detector for a cancellation: none.
 
 ## Carry dispositions
 
-Numbering follows the review packet (1-based); the brief's own index is one lower.
+0-based roster indices.
 
-- Carry 1 (brief 0): built. --live-refs, --in-flight, inflow field; --measure-sizes already built at the base.
-- Carry 2 (brief 1): moved to R10-BODY-CONTRACT.
-- Carry 3 (brief 2): built. Absorbed counts as done; advisory.
-- Carry 4 (brief 3): built. Liveness by evidence (design-only uncredited), binding chain, CP slack.
-- Carry 5 (brief 4): dismissed, duplicate of carry 2.
-- Carry 6 (brief 5): dismissed, duplicate of carry 2.
-- Carry 7 (brief 6): dismissed, duplicate of carry 2.
-- Carry 8 (brief 7): moved to R10-BODY-CONTRACT.
-- Carry 9 (brief 8): built. Critical-path groups start past the slots cap.
-- Carry 10 (brief 9): built. Stamp cadence by production group, matched by merge topic.
-- Carry 11 (brief 10): built. Post-closure groups.
-- Carry 12 (brief 11): built with carry 11 (same seam).
-- Carry 13 (brief 12): built. tools/audit/seat/gantt_drift.py.
+- Carry 15: implemented in this pull request (83b3e0b00 test, e08021412 fix, 55b86a71e pins). The orchestrator lands the mark.
+- Carries 0, 2, 3, 8, 9, 10, 11, 12: built in earlier rounds (as the previous body). 1 and 7 moved to R10-BODY-CONTRACT; 4, 5, 6 dismissed as duplicates.
+- Carries 13 and 14: not in this repair's brief (it scoped carry 15); left as they stand in the roster.
 
 ## Forward-carry
 
-none
+The +52 min closure is a scheduler property this diff exposes, not one it adds: the coordinator-cap queue orders by tier/critical-path/height computed without the cap, so a coordinator group that becomes binding (R10-CLONE-2238 here) is not promoted. A finding for the plan model's owner, which lands as a carry on this group in dev/programme/rosters/wave-r10-groups.json (the orchestrator writes it; no issue filed). Carry: R10-FLOW-TOOLKIT-MODEL
 
 ## Friction
 
-none
+- fixer-step-push: stale: refs/heads/handoff-wip/r10-flow-toolkit-model held a previous seat's BLOCKED commit 18b3f1d41 on 0542969c3, not an ancestor of d84006e66, so no step push could be a fast-forward; none was forced, and the ref is left for the orchestrator. Carry: R10-FLOW-TOOLKIT-MODEL
