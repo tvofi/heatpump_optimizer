@@ -970,6 +970,13 @@ jobs:
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
 
+      - name: Show the hook installer refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/audit/seat/hooks_setup.py --self-test | tee "$RUNNER_TEMP/hooks-setup-self-test.txt"
+          grep -Eq '^hooks_setup self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/hooks-setup-self-test.txt"
+
       - name: Show the offline spy refusing its own fixtures
         if: ${{ !cancelled() }}
         run: |

@@ -123,3 +123,4 @@ sweep's standing-seat liveness step keep them alive.
 - [`shims/seat-python`, `shims/seat-python3`](instruments/shims_seat-python.md) — the seat interpreter
 - [`shims/seat-gh`](instruments/shims_seat-gh.md) — the seat's `gh`: one log line per call (caller, subcommand, api path, no values), then the real gh
 - [`gh_calls.py`](instruments/gh_calls.py.md) — reads that log: `--top` ranks callers and endpoints, `--coverage` names the processes whose PATH misses the shim
+- [`hooks_setup.py`](instruments/hooks_setup.py.md) — reports and installs the user-level hooks (liveness, seat interpreter, git identity) and reports the project-level checkout guard, from `tools/audit/seat/hooks/`
