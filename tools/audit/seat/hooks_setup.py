@@ -176,13 +176,16 @@ def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False):
     return s, fd
 
 
-def _run_hook(script: str, state: Path, payload: dict | None = None) -> str:
+def _run_hook(script: str, state: Path, payload: dict | None = None, *, env: dict | None = None,
+              seat: Path = SEAT, args: list[str] | None = None) -> str:
+    """The hook's stdout, plus an `EXIT <rc>` line when it exits non-zero (a hook must not)."""
     tr = state.parent / "transcript.jsonl"
     payload = dict({"hook_event_name": "SessionStart", "transcript_path": str(tr)}, **(payload or {}))
-    r = subprocess.run([sys.executable, "-I", str(SEAT / "hooks" / script), "--state", str(state)],
-                       input=json.dumps(payload),
+    r = subprocess.run([sys.executable, "-I", str(seat / "hooks" / script),
+                        *(["--state", str(state)] if args is None else args)],
+                       input=json.dumps(payload), env=dict(os.environ, **(env or {})),
                        capture_output=True, text=True)
-    return r.stdout
+    return r.stdout + (f"EXIT {r.returncode}\n" if r.returncode else "")
 
 
 def cases() -> dict[str, bool]:
@@ -230,9 +233,57 @@ def cases() -> dict[str, bool]:
         res["liveness: a healthy table prints nothing actionable"] = (
             not any(w in out for w in ("DEAD", "STALE", "ALARM", "UNREADABLE")) and "ARM:" in out
             and "OWED reviewer-fire 1" in out)
+        res["liveness: a healthy table with a fresh stamp owes no policy re-read"] = "POLICY-REREAD" not in out
         res["liveness: PostCompact demands the policy re-read"] = (
             "POLICY-REREAD" in _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"}))
+        res["liveness: an unparseable HPO_ALIVE_STALE_MIN falls back to its default"] = (
+            "ARM:" in (o := _run_hook("liveness.py", s, env={"HPO_ALIVE_STALE_MIN": "x"})) and "UNREADABLE" not in o)
+        past = time.time() - 120.5 * 60  # half a minute past the 120-minute default
+        os.utime(s / "alive" / "merge", (past, past))
+        res["liveness: an alive file half a minute past HPO_ALIVE_STALE_MIN is STALE"] = (
+            "STALE alive merge age_min=120" in _run_hook("liveness.py", s))
+        (s / "policy-reread.stamp").unlink()
+        res["liveness: SessionStart with no re-read stamp owes the policy re-read"] = (
+            "POLICY-REREAD owed" in _run_hook("liveness.py", s))
+        # a seat copy holding the hook but not policy_reread_check.py: the check cannot run
+        cp = tmp / "seatcopy"
+        (cp / "hooks").mkdir(parents=True)
+        shutil.copy2(SEAT / "hooks" / "liveness.py", cp / "hooks" / "liveness.py")
+        o = _run_hook("liveness.py", s, seat=cp)
+        res["liveness: a policy_reread_check that cannot run is UNREADABLE, not owed"] = (
+            "UNREADABLE policy_reread_check" in o and "POLICY-REREAD" not in o)
+        # the same copy with a stub beatd.py: each status line shape it reads
+        shutil.copy2(SEAT / "policy_reread_check.py", cp / "policy_reread_check.py")
+        (cp / "beatd.py").write_text(
+            "import os, sys\nprint('JOB pulse failed\\nJOB tick ok\\nJOB x\\nDOWN no pid\\nALERT disk\\nSTALE-CODE b')\n"
+            "sys.exit(2 if os.environ.get('STUB_RC') == '2' else 0)\n")
+        o = _run_hook("liveness.py", s, seat=cp)
+        res["liveness: beatd's failed job, DOWN, ALERT and STALE-CODE lines are reported, ok and short lines not"] = (
+            "ALARM job pulse failed" in o and "DEAD beatd no pid" in o and "ALARM ALERT disk" in o
+            and "ALARM STALE-CODE b" in o and "job tick" not in o and "UNREADABLE" not in o)
+        res["liveness: beatd status exiting 2 is UNREADABLE"] = (
+            "UNREADABLE beatd status" in _run_hook("liveness.py", s, seat=cp, env={"STUB_RC": "2"}))
+        res["liveness: a --state with no value, and no HPO_STATE_DIR, is inert"] = (
+            _run_hook("liveness.py", s, args=["--state"], env={"HPO_STATE_DIR": ""}) == ""
+            and _run_hook("liveness.py", s, args=[], env={"HPO_STATE_DIR": ""}) == "")
+        past = time.time() - 30.5 * 60  # half a minute past the 30-minute default
+        for p in (s / "digest" / "digest.txt", s / "beatd" / "journal.log"):
+            os.utime(p, (past, past))
+        res["liveness: a digest and journal half a minute past HPO_DIGEST_STALE_MIN are STALE"] = (
+            "STALE digest" in _run_hook("liveness.py", s))
+        # seat_interpreter against a stub seat_venv.sh: silent when it passes, its last line when not
+        (cp / "hooks" / "seat_interpreter.py").write_bytes((SEAT / "hooks" / "seat_interpreter.py").read_bytes())
+        (cp / "seat_venv.sh").write_text('[ "${STUB_VENV:-}" = ok ] && exit 0\necho first >&2\necho last >&2\nexit 1\n')
+        res["seat-interpreter: a passing seat_venv.sh --check prints nothing"] = (
+            _run_hook("seat_interpreter.py", s, seat=cp, env={"STUB_VENV": "ok"}) == "")
+        res["seat-interpreter: the refusal quotes the check's last line"] = (
+            _run_hook("seat_interpreter.py", s, seat=cp).startswith("SEAT-INTERPRETER refused: last;")
+            and _run_hook("seat_interpreter.py", s, seat=cp, args=["--state"], env={"HPO_STATE_DIR": ""}) == "")
         os.close(fd)
+        gone = tmp / "gone"
+        gone.mkdir()
+        (gone / "orch-checkout").write_text(f"{tmp / 'no-such-checkout'}\n")
+        res["liveness: an orch-checkout naming no directory is inert"] = _run_hook("liveness.py", gone) == ""
         s, fd = _fixture_state(tmp / "dead", dead=True)
         res["liveness: a planted dead loop prints DEAD"] = "DEAD loop pulse" in _run_hook("liveness.py", s)
         os.close(fd)
@@ -247,19 +298,47 @@ def cases() -> dict[str, bool]:
             _run_hook(h, quiet) == "" for h in ("liveness.py", "seat_interpreter.py", "git_identity.py"))
         s, fd = _fixture_state(tmp / "ident")
         os.close(fd)
+        # the fixture state holds orch-checkout but no venv-ci, so seat_venv.sh --check refuses
+        out = _run_hook("seat_interpreter.py", s)
+        res["seat-interpreter: a refusing seat_venv.sh --check prints SEAT-INTERPRETER refused"] = (
+            out.startswith("SEAT-INTERPRETER refused: seat_venv: no venv at") and "seat_venv.sh" in out)
         (s / "git-identity").write_text("Seat Name\nseat@example.invalid\n")
         first = _run_hook("git_identity.py", s)
         repo = (s / "orch-checkout").read_text().strip()
         have = subprocess.run(["git", "-C", repo, "config", "--local", "user.email"],
                               capture_output=True, text=True).stdout.strip()
+        name = subprocess.run(["git", "-C", repo, "config", "--local", "user.name"],
+                              capture_output=True, text=True).stdout.strip()
         res["git-identity: sets a differing identity, then prints nothing"] = (
             "GIT-IDENTITY set user.email" in first and have == "seat@example.invalid"
-            and _run_hook("git_identity.py", s) == "")
+            and name == "Seat Name" and _run_hook("git_identity.py", s) == "")
+        (s / "git-identity").write_text("Other Name\n")
+        res["git-identity: a one-line identity file is ignored"] = _run_hook("git_identity.py", s) == ""
+        res["git-identity: a --state with no value is ignored"] = _run_hook("git_identity.py", s, args=["--state"]) == ""
+        # the installer's edges and its command line
+        rc, out = check({}, tmp / "bare")
+        res["check reports the project guard missing in a tree without it"] = (
+            rc == 1 and any(ln.startswith("missing pre-bash guard") for ln in out))
+        deep = tmp / "new" / "dir" / "settings.json"
+        res["install creates a settings file under a missing directory, then has nothing to change"] = (
+            cmd_install(deep) == 0 and check(load(deep))[0] == 0 and cmd_install(deep) == 0)
+        bad = tmp / "list.json"
+        bad.write_text("[]\n")
+        cli = lambda *a: subprocess.run([sys.executable, "-I", str(SEAT / "hooks_setup.py"), *a],  # noqa: E731
+                                        capture_output=True, text=True)
+        res["the command line: --check, --install, a non-object file refused, no mode"] = (
+            cli("--check", "--settings", str(deep)).returncode == 0
+            and cli("--install", "--settings", str(tmp / "cli" / "s.json")).returncode == 0
+            and (tmp / "cli" / "s.json").is_file()
+            and "REFUSE" in (r := cli("--check", "--settings", str(bad))).stderr and r.returncode == 2
+            and cli().returncode == 2)
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return res
 
 
+COPY_FOR_MUTANTS = (  # what cases() reads outside tools/audit/seat, copied beside each mutant
+    "tests/throwaway_git.py", "tests/typing_budgets.json", ".claude/settings.json", PROJECT_GUARD[1])
 MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("install skips the backup", "        shutil.copy2(path, bak)\n", "        pass\n"),
     ("install rewrites an unrelated entry",
@@ -268,6 +347,7 @@ MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("install is not idempotent", "            if st == \"ok\":\n                continue\n", ""),
     ("liveness reads no dead loop", "            if f[2] == \"late\":", "            if False:"),
     ("liveness reads no stale digest", "if not ages or min(ages) > _env_min(", "if False and min(ages) > _env_min("),
+    ("seat-interpreter never reports", "    if r.returncode == 0:\n        return []\n", "    if True:\n        return []\n"),
 ]
 
 
@@ -278,17 +358,20 @@ def self_test(run_mutants: bool = True) -> int:
     for k in fails:
         print(f"  FAIL {k}")
     if run_mutants and not fails and not os.environ.get("HPO_HOOKS_MUTANT"):
-        for label, old, new in MUTANTS:
+        # the null control first: the copy un-mutated must pass, or every mutant "dies" of the copy
+        for label, old, new in [("null control: the copy un-mutated", None, None), *MUTANTS]:
             tgt = Path(tempfile.mkdtemp(prefix="hooks-mutant-"))
             try:
                 shutil.copytree(SEAT, tgt / "tools/audit/seat", ignore=shutil.ignore_patterns("__pycache__", "fixtures"))
-                (tgt / "tests").mkdir()
-                shutil.copy2(ROOT / "tests" / "throwaway_git.py", tgt / "tests" / "throwaway_git.py")
-                for f in ("hooks_setup.py", "hooks/liveness.py"):
+                for rel in COPY_FOR_MUTANTS:
+                    (tgt / rel).parent.mkdir(parents=True, exist_ok=True)
+                    shutil.copy2(ROOT / rel, tgt / rel)
+                # the hooks before this file: an anchor without a newline also matches its own MUTANTS literal here
+                for f in ("hooks/liveness.py", "hooks/seat_interpreter.py", "hooks_setup.py"):
                     p = tgt / "tools/audit/seat" / f
                     text = p.read_text()
-                    if old in text:
-                        p.write_text(text.replace(old, new, 1))
+                    if old is None or old in text:
+                        p.write_text(text if old is None else text.replace(old, new, 1))
                         break
                 else:
                     print(f"  FAIL mutant '{label}': its target text is gone")
@@ -297,8 +380,9 @@ def self_test(run_mutants: bool = True) -> int:
                 r = subprocess.run([sys.executable, "-I", str(tgt / "tools/audit/seat/hooks_setup.py"), "--self-test"],
                                    capture_output=True, text=True, env=dict(os.environ, HPO_HOOKS_MUTANT="1"))
                 n += 1
-                if r.returncode == 0:
-                    print(f"  FAIL mutant '{label}' survived")
+                if (r.returncode == 0) != (old is None):
+                    print(f"  FAIL mutant '{label}' " + ("is red: " + " | ".join(
+                        ln.strip() for ln in r.stdout.splitlines() if "FAIL" in ln) if old is None else "survived"))
                     fails.append(label)
             finally:
                 shutil.rmtree(tgt, ignore_errors=True)
