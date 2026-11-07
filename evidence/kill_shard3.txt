@@ -1,0 +1,4 @@
+KILLED rc=1 GUARD_OFF _loss_residual_rejected -> tests/features.py | 33 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 RETURN_DEL OptimizationResult.sensor_trajectory -> tests/manual_plan.py | -- Pins change the solved schedule
+KILLED rc=1 CLAMP_DROP _window_partition -> tests/features.py | 3 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 GUARD_OFF billed_windows -> tests/features.py |   ok   a new month resets the peaks

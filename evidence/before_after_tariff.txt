@@ -1,3 +1,0 @@
-RESULT tariff_outputs_compared=72363 count
-RESULT tariff_outputs_differing=0 count
-(base export f2a01514 vs head a46e4d02, repr-equal)

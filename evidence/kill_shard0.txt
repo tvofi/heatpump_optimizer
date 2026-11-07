@@ -1,0 +1,5 @@
+KILLED rc=1 GUARD_OFF HeatPumpOptimizerCoordinator._async_learn_house_heat_loss -> tests/features.py | 2 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 RETURN_DEL _loss_residual_rejected -> tests/features.py | 3 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 GUARD_OFF _WaitsForEvidenceMixin._evidence_attributes -> tests/entities.py | 5 of 2650 ENTITY CHECKS FAILED
+KILLED rc=1 RETURN_DEL _window_partition -> tests/features.py | -- R9 P6: the unprobed plant state advances from the plan (D12-s1-01)
+KILLED rc=1 RETURN_DEL billed_windows -> tests/features.py |   ok   every row equals the scalar objective bit for bit on the Neumaier grid: single-zone with-DHW, PV, capacity tariff, off-boundary start

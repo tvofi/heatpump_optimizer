@@ -1,8 +1,0 @@
-RESULT fixture.F1_run_threshold=0 count
-RESULT fixture.F2_learner_gate=0 count
-RESULT fixture.F3_cop_law_fork=0 count
-RESULT fixture.F4_entry_resolve=0 count
-RESULT fixture.F5_clone=0 count
-RESULT fixture.F6_hour_clock=0 count
-RESULT fixture.F7_scrub_mixin=0 count
-RESULT fixture.total=0 count

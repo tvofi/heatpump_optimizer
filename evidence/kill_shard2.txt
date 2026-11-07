@@ -1,0 +1,4 @@
+KILLED rc=1 CMP_BOUND _loss_residual_rejected -> tests/features.py | 1 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 GUARD_OFF OptimizationResult.sensor_trajectory -> tests/features.py | 1 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 RETURN_DEL _WaitsForEvidenceMixin._evidence_attributes -> tests/entities.py |   ok   accuracy is published
+KILLED rc=1 GUARD_OFF billed_windows -> tests/features.py |   ok   every row equals the scalar objective bit for bit on the Neumaier grid: two-zone with-DHW, valve, masked windows
