@@ -13317,7 +13317,11 @@ check("without an indoor reading the corner now label is absent",
     && !/not_a_code/.test(fed), fed);
   check("why-now: the block and each row carry the plain-words metric as their hover",
     fed.includes(`title="${fn("esc")(EN["whynow.metric"])}"`)
-    && fed.includes(fn("esc")(`Price rank: ↑ +57%\n${EN["whynow.explain_price_rank"]}`)), fed.slice(0, 600));
+    && fed.includes(fn("esc")(`Price rank: pushes toward running, ↑ +57%\n${EN["whynow.explain_price_rank"]}\n${EN["whynow.metric"]}`)), fed.slice(0, 600));
+  check("why-now: each row names its direction in words: toward running, toward idle, no effect now",
+    /data-part="price_rank"[\s\S]*?sb-text">pushes toward running</.test(fed)
+    && /data-part="away"[\s\S]*?sb-text">pushes toward idle</.test(fed)
+    && /data-part="mold_guard"[\s\S]*?sb-text">no effect now</.test(fed), fed);
   const absent = withWhy(undefined);
   check("why-now: no why_now attribute renders the no-data line and no rows",
     absent.includes(EN["whynow.no_data"]) && !/sb-row/.test(absent), absent);
@@ -13328,12 +13332,17 @@ check("without an indoor reading the corner now label is absent",
   const sv = withWhy(why, "sv-SE");
   const SV = fn("STRINGS.sv");
   check("why-now: Swedish words, hover and percent spacing",
-    sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"])), sv.slice(0, 600));
+    sv.includes(SV["whynow.title"]) && sv.includes("↑ +57 %") && sv.includes(fn("esc")(SV["whynow.metric"]))
+    && sv.includes("Prisrang") && sv.includes("Bortaläge") && sv.includes("driver mot drift") && sv.includes("driver mot vila"), sv.slice(0, 600));
   build(mkStates(DEFAULT_SPACE, DEFAULT_DHW, true)); // leave the module back in English
   const whyKeys = (lang) => Object.keys(fn(`STRINGS.${lang}`)).filter((k) => k.startsWith("whynow.")).sort();
   check("why-now: every en string has its sv twin, and every driver code has a label and an explanation",
     JSON.stringify(whyKeys("en")) === JSON.stringify(whyKeys("sv"))
-    && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`]),
+    && ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].every((c) => EN[`whynow.driver_${c}`] && EN[`whynow.explain_${c}`])
+    // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
+    && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
+    && ["Prisrang", "Komfortgolv", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
+    && EN["whynow.metric"].startsWith("The reasons behind this hour's decision.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen bakom den här timmens beslut."),
     `${whyKeys("en")} | ${whyKeys("sv")}`);
 }
 

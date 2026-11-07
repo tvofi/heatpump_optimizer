@@ -897,25 +897,28 @@ const STRINGS = {
     "headline.savings_pct": "({pct}%)",
     "whynow.title": "Why now",
     "whynow.metric":
-      "Why the plan runs or idles the heat pump in the current time slot. Each reason is scored from what the plan was made with: how cheap this slot is among the coming ones, how warm the house is against its comfort band, the mold guard, away mode and the weather ahead. ↑ pushes towards heating now, ↓ towards waiting, · neither; each percentage is that reason's share of the whole push, and together they add up to 100.",
-    "whynow.no_data": "No reasons published for this slot yet.",
-    "whynow.all_neutral": "Nothing pushes this slot either way: every reason is neutral.",
+      "The reasons behind this hour's decision. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason mostly decides the hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
+    "whynow.no_data": "No data",
+    "whynow.all_neutral": "No effect now from any reason.",
+    "whynow.dir_run": "pushes toward running",
+    "whynow.dir_idle": "pushes toward idle",
+    "whynow.dir_neutral": "no effect now",
     "whynow.weight": "{sign}{w}%",
     "whynow.driver_price_rank": "Price rank",
     "whynow.explain_price_rank":
-      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully towards heating now, the dearest towards waiting.",
-    "whynow.driver_comfort_floor": "Comfort band",
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully toward running, the dearest toward idle.",
+    "whynow.driver_comfort_floor": "Comfort floor",
     "whynow.explain_comfort_floor":
-      "How far the room is from the middle of its comfort band: below the middle pushes towards heating, above it towards waiting.",
+      "How far the room is from the middle of its comfort band, above the comfort floor: below the middle pushes toward running, above it toward idle.",
     "whynow.driver_mold_guard": "Mold guard",
     "whynow.explain_mold_guard":
-      "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes towards heating.",
+      "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes toward running.",
     "whynow.driver_away": "Away",
     "whynow.explain_away":
-      "How far away mode or the holiday schedule lowers the lowest allowed temperature; it only ever pushes towards waiting.",
-    "whynow.driver_forecast": "Weather ahead",
+      "How far away mode or the holiday schedule lowers the lowest allowed temperature; it only ever pushes toward idle.",
+    "whynow.driver_forecast": "Forecast",
     "whynow.explain_forecast":
-      "This slot's weather against the next 8 hours: colder, windier or wetter ahead pushes towards heating now, more sun ahead towards waiting.",
+      "This slot's weather against the next 8 hours: colder, windier or wetter ahead pushes toward running now, more sun ahead toward idle.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Price now",
     "tiles.planned": "Planned heating",
@@ -1735,25 +1738,28 @@ const STRINGS = {
     "headline.savings_pct": "({pct} %)",
     "whynow.title": "Varför nu",
     "whynow.metric":
-      "Varför planen kör eller vilar värmepumpen i den aktuella tidsluckan. Varje skäl räknas fram ur det planen gjordes med: hur billig luckan är bland de kommande, hur varmt huset är mot sitt komfortintervall, mögelskyddet, bortaläget och vädret framöver. ↑ drar mot att värma nu, ↓ mot att vänta, · åt inget håll; varje procentsats är skälets andel av hela draget, och tillsammans blir de 100.",
-    "whynow.no_data": "Inga skäl publicerade för den här luckan än.",
-    "whynow.all_neutral": "Inget drar den här luckan åt något håll: alla skäl är neutrala.",
+      "Skälen bakom den här timmens beslut. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet mest avgör timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
+    "whynow.no_data": "Ingen data",
+    "whynow.all_neutral": "Ingen påverkan nu från något skäl.",
+    "whynow.dir_run": "driver mot drift",
+    "whynow.dir_idle": "driver mot vila",
+    "whynow.dir_neutral": "ingen påverkan nu",
     "whynow.weight": "{sign}{w} %",
     "whynow.driver_price_rank": "Prisrang",
     "whynow.explain_price_rank":
-      "Hur billig luckan är mot resten av planen: den billigaste luckan drar helt mot att värma nu, den dyraste mot att vänta.",
-    "whynow.driver_comfort_floor": "Komfortintervall",
+      "Hur billig luckan är mot resten av planen: den billigaste luckan driver helt mot drift, den dyraste mot vila.",
+    "whynow.driver_comfort_floor": "Komfortgolv",
     "whynow.explain_comfort_floor":
-      "Hur långt rummet ligger från mitten av sitt komfortintervall: under mitten drar mot att värma, över mot att vänta.",
+      "Hur långt rummet ligger från mitten av sitt komfortintervall, ovanför komfortgolvet: under mitten driver mot drift, över mot vila.",
     "whynow.driver_mold_guard": "Mögelskydd",
     "whynow.explain_mold_guard":
-      "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det drar bara mot att värma.",
-    "whynow.driver_away": "Borta",
+      "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det driver bara mot drift.",
+    "whynow.driver_away": "Bortaläge",
     "whynow.explain_away":
-      "Hur mycket bortaläget eller helgschemat sänker den lägsta tillåtna temperaturen; det drar bara mot att vänta.",
-    "whynow.driver_forecast": "Vädret framöver",
+      "Hur mycket bortaläget eller helgschemat sänker den lägsta tillåtna temperaturen; det driver bara mot vila.",
+    "whynow.driver_forecast": "Prognos",
     "whynow.explain_forecast":
-      "Luckans väder mot de kommande 8 timmarna: kallare, blåsigare eller blötare framöver drar mot att värma nu, mer sol framöver mot att vänta.",
+      "Luckans väder mot de kommande 8 timmarna: kallare, blåsigare eller blötare framöver driver mot drift nu, mer sol framöver mot vila.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Pris nu",
     "tiles.planned": "Planerad uppvärmning",
@@ -9070,11 +9076,11 @@ function whyNowHtml(plan) {
         const w = Math.round(Number(d.weight) || 0);
         const label = L(`whynow.driver_${d.code}`);
         const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
-        const explain = L(`whynow.explain_${d.code}`);
+        const dir = L(`whynow.dir_${mark[d.direction] ? d.direction : "neutral"}`);
         return breakdownRow({
           key: d.code, label, valueText, muted: d.direction === "neutral",
-          barPct: Math.abs(w), sub: [["sb-text", explain]],
-          title: `${label}: ${valueText}\n${explain}`,
+          barPct: Math.abs(w), sub: [["sb-text", dir]],
+          title: `${label}: ${dir}, ${valueText}\n${L(`whynow.explain_${d.code}`)}\n${L("whynow.metric")}`,
         });
       }).join("");
   return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
