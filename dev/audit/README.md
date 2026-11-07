@@ -125,9 +125,9 @@ usage, against a measured baseline and a null control.
   away target, null control below it.
 - The D14 P2 sweep: the eleven F5 clone instances #2238 left are class P2's
   in `bugclasses.json`, re-measured and routed by owning seam. Before reading
-  `probes_failed`, the sixth probe of `dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py`
+  `probes_failed`, the sixth probe in `dev/audit/rounds/round10/D14/sweep-P2/`
   needs `defrost_interval` and `self._pump_signals` bound, or the predicate
-  re-extracted; `enumerate_p2.py --fixture` reads 0 per family as its null.
+  re-extracted; the enumerator's `--fixture` run reads 0 per family as its null.
 - D15 reads the next bundle's `unhealthy_input` (only the newest snapshot
   carried it) and runs `dev/audit/harnesses/r10_scores_envelope.py --bundle PATH`.
 - Recorded decisions: #1763's P2/I5 split is not built (owner, 2026-10-20);
