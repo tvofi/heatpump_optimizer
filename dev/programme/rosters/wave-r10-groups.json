@@ -3410,7 +3410,16 @@
     "R10-CI-SELFTEST-SCOPE",
     "R10-CI-EDIT-RUNNER",
     "R10-TRAIN-STALE-VERDICT-GUARD",
-    "R10-COMBI-TANK"
+    "R10-COMBI-TANK",
+    "R10-CLOSEOUT-INSTRUMENTS",
+    "R10-MIN-POWER-FLOOR",
+    "R10-ROUND-PLAYBOOK",
+    "R10-RCA-GATE-BUSY-DEFER-2",
+    "R10-FRICTION-CI-RED",
+    "R10-FRICTION-OTHER-FAMILY",
+    "R10-RCA-STAMP-FLUSH-COST",
+    "R10-RCA-COP-UNMEASURED",
+    "R10-INPUT-REAPPEAR"
    ],
    "carry": [
     "Verify the orchestration-machinery shape R10-ARCH-DOCS-FIRST drew (components, one handoff's path, decision points) against the job and event-kind tables R10-ORCH-MACHINERY lands, read at this stage's merge base.",
