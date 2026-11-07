@@ -454,12 +454,23 @@ def self_test() -> int:
     check("arm_privacy_refuses_a_body_naming_the_home (#2310)", hit and "exampleuser" not in why)
     hit, _ = refuses(lambda: privacy_check("evidence: ~/.zcode/bus/verdicts/7", fid))
     check("arm_privacy_passes_the_home_relative_body (null control)", not hit)
-    body_f = os.path.join(tmp, "seat", "leak.md")
-    os.makedirs(os.path.dirname(body_f), exist_ok=True)
-    with open(body_f, "w", encoding="utf-8") as fh:
-        fh.write("evidence: " + os.path.realpath(os.environ.get("HOME", "/")) + "/x\n")
-    hit, _ = refuses(lambda: run(["post", "--repo", "o/r", "--issue", "7", "--body-file", body_f, "--dry-run"]))
-    check("arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)", hit)
+    # The host's home is planted, never read: a public home (`/root`, the
+    # runner's) names no host and ref_privacy rightly passes it. Outside
+    # /home and /Users, so only the home rule can refuse it.
+    from unittest import mock
+    seat_home = os.path.realpath(os.path.join(tmp, "seat-home"))
+
+    def posts(path: str) -> bool:
+        body_f = os.path.join(tmp, "seat", "leak.md")
+        os.makedirs(os.path.dirname(body_f), exist_ok=True)
+        with open(body_f, "w", encoding="utf-8") as fh:
+            fh.write("evidence: " + path + "/x\n")
+        with mock.patch.dict(os.environ, {"HOME": seat_home}):
+            hit, _ = refuses(lambda: run(["post", "--repo", "o/r", "--issue", "7", "--body-file", body_f, "--dry-run"]))
+        return hit
+    check("arm_privacy_post_dry_run_refuses_this_hosts_home (the wiring)", posts(seat_home))
+    check("arm_privacy_post_dry_run_passes_another_path (null control)",
+          not posts(os.path.join(tmp, "elsewhere")))
 
     # -- Arm 6: the mandate guard (triage P336), through run() --------------
     # The fake #201 thread holds the grants the rows name; the field text is

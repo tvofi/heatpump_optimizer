@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._maybe_run_fuse_advisor CLAMP_DROP 54ff1de3",
+  "killed_by": "tests/features.py",
+  "old": "        cap_kw = max(0.0, candidate_kw - baseline_now)",
+  "reason": "Recorded by `mutation_table.py --drain`: CLAMP_DROP (`cap_kw = (0.0)`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
+}
