@@ -585,7 +585,7 @@ every sensor is created on every install regardless of which group it is in.
 | Cost Predicted | CUR | Cost of the optimized 24 h plan | |
 | Cost Baseline | CUR | Cost of the baseline over the same 24 h | |
 | DHW Heating Cost (next 24 h) | CUR | Estimated cost of the planned hot water | |
-| Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes | Unavailable until at least one month row exists |
+| Plan Monthly Savings | CUR | Estimated savings for the open month, with the settled and in-progress months in attributes; `saving_includes_wood` is `true` where wood is configured, because the saving then includes wood's heat and not firewood's cost | Unavailable until at least one month row exists |
 | Cost Contract Comparison | CUR/kWh | How far below the month's flat-consumer average the shifting landed; the three settled totals — hourly spot, monthly-average spot, fixed price — ride in attributes | Diagnostic; disabled by default; needs a configured contract comparison |
 | Lifetime Space Heating Cost | CUR | Accumulating cost | |
 | DHW Cost (lifetime) | CUR | Accumulating cost | |

@@ -1970,13 +1970,16 @@
     "detector": null,
     "detector_idea": "Stop latency ratio vs an unlocked reap (the finder harness perturbation)",
     "barrier": null,
+    "barrier_refusal": "tests/features.py's 'D1-s2-05: the stop reaps the worker without waiting out the solve that holds the transport lock' (landed 1c4d70fdd) pins one seam with a double whose kill ends the read, and v7.1.2's field hang (R10-RCA-PROCESS-WORKER-HANG) still held the stop on _PROCESS_LOCK, so it is no class barrier. The class owes none: 1 counted instance (_counting) and no barriered member. dev/audit/rca/r10-process-worker-hang.md prices a per-PR arm over silent_peer_waits.py --scan and leaves it to the owner until #3232 merges.",
     "status": "open",
     "nearest_existing": "P2",
     "mechanism_difference": "P2 lifecycle rows (R2 D1-02, R9 D1-s3-02) are a missing guard; this is lock ordering between shutdown and an in-flight solve",
     "aliases": [
       "new: shutdown reap waits on the lock a solve holds"
     ],
-    "rca": [],
+    "rca": [
+      "R10-RCA-PROCESS-WORKER-HANG"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -4682,6 +4685,42 @@
       "doc": [
         "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md"
       ]
+    },
+    "R10-RCA-PROCESS-WORKER-HANG": {
+      "class": "N-reap-lock",
+      "level": "instance-or-process",
+      "subject": "v7.1.2 field hang (#3226, fix #3232): _run_in_process read the worker's reply with pickle.load and no deadline under _PROCESS_LOCK; a worker alive and computing for about 55 min held every later job and Home Assistant's stop behind the lock",
+      "trigger": "1 (release v7.1.2)",
+      "date": "2026-11-06",
+      "status": "proposed",
+      "parts_missing": [
+        "owner decision on a per-PR static arm over silent_peer_waits.py --scan, buildable only after #3232 merges"
+      ],
+      "process_state": "(c) round 9's D1 seat read this lock and read (D1-s2-05) with a stop-latency unit against a finite solve, its check's double ends the read on kill, D1 step 5 injects exceptions a silent peer never raises, and the #511 checks drive only a failing worker",
+      "countermeasure": "D1.md method step 5 (Guards, waits): every wait on a peer driven by one that stays alive and silent, instrument dev/audit/harnesses/silent_peer_waits.py (drive reads 0 at v7.1.2 and main, 1 with ProcessWorkerTimeout at 2.00 s at #3232's head under the deadline perturbation; --answer null control 1 on every tree); about 58 s/release against about 475 s/release",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-process-worker-hang.md",
+      "doc": [
+        "dev/audit/rca/r10-process-worker-hang.md"
+      ]
+    },
+    "R10-RCA-LIVEHEAD-CANCEL": {
+      "class": "N-livehead-operator-cancel",
+      "level": "class",
+      "subject": "whole-run cancels at live PR heads (#3241 run 42332985078/1, #3232 run 42329221705/2, 2026-11-07), each annotated 'The run was canceled by @tvofi.' and rerun 32 s and 96 s later; the class is routine (detector reading in the document)",
+      "trigger": "2 (red check: the bus refuses a cancelled gate, two reviewer dispatches delayed)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the sending process, which only the orchestrator's seat transcripts can name"
+      ],
+      "process_state": "(a): no process bounds, records or attributes a cancel sent from outside CI; cancel_superseded.py's live-head rule binds only its two callers and P267's bounded pause never landed",
+      "countermeasure": "detector built (dev/audit/harnesses/livehead_cancels.py, 0 s standing cost); concurrency re-key, body-edit routing and a rerun rule refused by the cost test; barrier owed once the sender is named",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-livehead-cancel.md",
+      "doc": [
+        "dev/audit/rca/r10-livehead-cancel.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5180,6 +5219,40 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-livehead-operator-cancel": {
+    "kind": "instrument",
+    "mechanism": "A workflow run at a pull request's live head is cancelled under an operator credential from outside every in-tree canceller, which alone carries the live-head rule, and usually restarted later; the runs listing shows only the latest attempt, so the cancelled attempt and its canceller are invisible to every sweep, and the bus refuses the head's cancelled gate with no cause on record",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 dev/audit/harnesses/livehead_cancels.py --cache DIR --fetch --since ISO --list",
+    "detector_idea": "The harness's CLASS line over a window starting after a countermeasure lands; a bounded, logged pause (P267, carried by R10-CI-PRIORITY-PAUSE) or a refusal at the sending seat's cancel path once the orchestrator names the sender (dev/audit/rca/r10-livehead-cancel.md section 6)",
+    "barrier": null,
+    "status": "detector",
+    "nearest_existing": "N-p2b-assembly-reader",
+    "mechanism_difference": "no reader meets a sibling change here: the run is healthy and an actor outside the tree ends it; cancel_superseded.py's live-head rule exists and binds only its own two callers",
+    "minted": "R10",
+    "aliases": [
+      "new: whole-run cancel at a live head under the operator credential"
+    ],
+    "non_round_note": "Process incidents, not audit findings, not in register_rows.tsv, not counted in total. The detector's reading over 2026-11-04..07 is in the RCA document.",
+    "non_round_instances": [
+      "#3241 run 42332985078 attempt 1 cancelled by @tvofi 03:24:57Z 2026-11-07, rerun 03:25:29Z",
+      "#3232 run 42329221705 attempt 2 cancelled by @tvofi 03:49:15Z 2026-11-07, rerun 03:50:51Z"
+    ],
+    "rca": [
+      "R10-RCA-LIVEHEAD-CANCEL"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": true
     }
