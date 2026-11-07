@@ -18889,7 +18889,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-input-reappear",
     "note": "outside PR 3292, s12 roster audit 2026-11-07; overlap admitted (R10-HOTFIX-COP-UNMEASURED, R10-COP-GATE-E, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): outside PR 3292 opened 2026-11-07T15:58Z, outside-intake ruling tvofi 2026-11-06",
     "pr": 3292
