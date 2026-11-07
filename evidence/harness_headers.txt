@@ -1,0 +1,4 @@
+  ok   and an unrecorded run within it passes
+  ok   the executed harnesses leave their committed output byte-identical
+
+56 of 112 HARNESS HEADER CHECKS FAILED
