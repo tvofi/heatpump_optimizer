@@ -1,7 +1,7 @@
 R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measured at this group's merge base. Each comes out immaterial or reserved to a later stage, so **no production line changes**. The diff lands the harness that re-derives the two CPU figures (`dev/audit/harnesses/r10_partload_residue.py`) and its `INERT` classification. The linear-valuation figures come from `r10_partload_pricing.py`, which is already in the tree. Every carry is answered below with its number. Carries are numbered 1 to 3 in roster order, so the brief's carry 0, 1 and 2 are carries 1, 2 and 3 here.
 
 - **Carry 1, the live buffer store's CPU.** A 750 L store costs about 1.9x per solve. Measured one lever at a time: 1.87x on the seeded spread days and 1.93x on the flat null. The price day alone costs 1.15x. The worst solve is 1.83 s here, about 12 s scaled to Pi class, which is 2 % of the shortest optimisation interval the options flow accepts (10 min). The 272 s owner-box outlier did not reproduce in 80 seeded solves, and no harness in the tree re-derives it. **Refused:** no bound or warm start is earned at these numbers.
-- **Carry 2, linear valuations under a convex cost.** The hot-water LP's secant error is at most 0.27 currency/day against a hot-water cost of about 7 to 8 per day (3.8 %). The terminal and deferred figures state no refill rate, so their error lies between 0 (refilled at the floor) and 4.37 / 2.14 (refilled at maximum power). The zero-derate null reads exactly 0 on every row. The carry reserves the segmenting decision to a later D0 pass on `_plan_dhw_min_cost` and `_terminal_cost`. That ruling is not this group's: nothing is segmented, and the numbers go forward to it.
+- **Carry 2, linear valuations under a convex cost.** The hot-water LP's secant error is at most 0.27 currency/day against a hot-water cost of about 7 to 8 per day (3.8 %). The terminal and deferred figures state no refill rate, so their error lies between 0 (refilled at the floor) and 4.37 / 2.14 (refilled at maximum power). The zero-derate null reads exactly 0 on every row. The carry reserves the segmenting decision to a later D0 pass on `_plan_dhw_min_cost` and `_terminal_cost`. That ruling is not this group's, and this body waits on it: nothing is segmented. The numbers are re-derivable for that pass by `dev/audit/harnesses/r10_partload_pricing.py`, already in the tree.
 - **Carry 3, Pi CPU of the relaxed start.** The worst clamped solve is 1.96 s and the relaxed pass inside it at most 0.32 s. At the derived Pi-class factor of 6.8x that is about 13.3 s and 2.2 s, against the 600 s budget. The null control holds: the unclamped cells start 0 relaxed runs and spend 0.000 s in the pass. **Refused:** a `maxiter` cap on the relaxed pass is not earned. It would become due only if a clamped solve ran 306x slower than here.
 
 ## Head
@@ -60,11 +60,6 @@ none
 
 ## Forward-carry
 
-- Carry 2's numbers go to the decision the carry itself reserves: the next D0 (price optimality) pass on `_plan_dhw_min_cost` and `_terminal_cost`. That pass decides whether to segment the LP and state a refill rate. The numbers it receives:
-  - LP secant error of at most 0.27 currency/day (3.8 % of the hot-water cost);
-  - terminal and deferred error between 0 and 4.37 / 2.14 depending on the refill rate, re-derivable by `dev/audit/harnesses/r10_partload_pricing.py`.
-
-  `dev/governance/dimensions/D0.md` is owner policy, so this fixer did not edit it. No live roster group owns a D0 pass: R10-BRIEFS-FOLD-D0 is done, as of `origin/handoff/audit-r10-roster` f50c6f2de. So the item stays a pending carry on this group, which the merge sync leaves at `carries-open`, for the carry-routing seat to place in that pass's brief; it waits on that ruling. Carry: R10-PARTLOAD-RESIDUE
 - Carry 1's 272 s owner-box outlier has no harness that re-derives it, and it did not reproduce in 80 seeded solves here. Carry: dismissed: not reproduced in 80 seeded solves; a future outlier report owes its install shape
 
 ## Friction
