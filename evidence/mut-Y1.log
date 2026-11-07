@@ -1,2 +1,2 @@
   FAIL relay GAP: a relay log holding a handoff-no-pr OWED line and no .level file prints GAP, flagged, with the count
-orchestrator_tick self-test: 275 checks, 1 failed
+orchestrator_tick self-test: 283 checks, 1 failed

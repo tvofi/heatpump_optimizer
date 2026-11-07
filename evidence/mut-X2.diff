@@ -1,0 +1,12 @@
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index ceffa817b..729cd2006 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -389,7 +389,6 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
+     elif ! grep -rqF -- "$hsha" "$d/evidence" 2>/dev/null; then why="no file under evidence/ names the head $hsha"
+     fi
+   fi
+-  if [ -z "$why" ] && cc=$(case_collision "$d/evidence" 2>/dev/null); then why="evidence/ names collide case-insensitively: $cc"; fi
+   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
+ }
+ 

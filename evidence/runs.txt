@@ -1,0 +1,11 @@
+tick-head rc=0
+tick-base rc=0
+tickloop-head rc=0
+Y1 rc=1
+bus-head rc=0
+bus-base rc=0
+relay-base rc=0
+relay-head rc=0
+DONE
+X2 rc=1
+MUTDONE

@@ -1,0 +1,6 @@
+get_check_runs PR 3252 head b9cc5e32e26b8ebdec66cc8bba9ee110a96c04a0, perPage 100, page 1: total_count 42 (one page holds all 42).
+Concluded not-success/skipped:
+128377933403 tests / nightly-status failure 10:26:18-10:26:27Z
+128377933374 governance / instrument-self-tests cancelled 10:26:18-10:56:32Z (30 min)
+gate 128385605028 success 11:03:40Z; pr-contract / pr-contract 128385450387 success 11:02:25-11:03:05Z (started after the last red concluded)
+All other 40 runs: success or skipped.
