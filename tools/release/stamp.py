@@ -126,6 +126,7 @@ from __future__ import annotations
 
 import argparse
 import contextlib
+import inspect
 import io
 import json
 import os
@@ -1863,10 +1864,12 @@ def self_test() -> int:
     _fl: list = []
     _tick = iter(range(0, 10 ** 6, FLUSH_POLL_S))
 
-    def _flush(owed, lands_after, ready=True, sent=True):
+    def _flush(owed, lands_after, ready=True, sent=True, holds=(), fn=None):
         _fl.clear()
         polls = iter([[]] * lands_after + [["2810"]])
-        return record_flush(owed, "pre1234",
+        _holds = iter(holds)
+        return (fn or record_flush)(owed, "pre1234",
+                            held=lambda: next(_holds, None), say=_fl.append,
                             dispatch=lambda: (_fl.append("dispatch"), (sent, "x"))[1],
                             landed=lambda pre: (_fl.append(f"poll {pre}"), next(polls, []))[1],
                             ready=lambda: ready, sleep=lambda s: _fl.append("sleep"),
@@ -1892,6 +1895,48 @@ def self_test() -> int:
     _flush(_owed, 10 ** 5, ready=False)
     check("flush: and never re-dispatches while the record pull request is not ready",
           _fl.count("dispatch") == 1)
+    # The train hold (nightly.yml's HOLD_MAX_AGE_S): every beat dispatched under a
+    # live one exits skip-train-hold, so a flush spends no dispatch under it.
+    _H1 = {"sha": "a" * 40, "age": 120, "pid": "4242", "bound": 3600}
+    _live = [_H1] * 10 ** 5
+    _merged, _msg = _flush(_owed, 10 ** 5, holds=_live)
+    check("flush: a planted live hold is named, announced once, and spends no dispatch",
+          _merged == [] and _fl.count("dispatch") == 0 and "aaaaaaaa" in _msg and "pid 4242" in _msg
+          and "3600s" in _msg and sum("appeared" in l for l in _fl) == 1)
+    _merged, _msg = _flush(_owed, 6, holds=[None, None, _H1, _H1, None])
+    check("flush: a dispatch sent before the hold appeared is taken back and sent again "
+          "once it clears, and the flush still merges",
+          _merged == ["2810"] and _fl.count("dispatch") == 2 and "after 1 dispatch(es)" in _msg
+          and any("cleared" in l for l in _fl))
+    _flush(_owed, 10 ** 5, holds=[])
+    _merged, _msg = _flush(_owed, 10 ** 5)
+    check("flush: an absent hold changes nothing (null control): FLUSH_MAX_DISPATCHES, no hold named",
+          _fl.count("dispatch") == FLUSH_MAX_DISPATCHES and "train hold" not in _msg
+          and not any("train hold" in l for l in _fl))
+    _src = inspect.getsource(record_flush)
+    _mut = {}
+    exec(_src.replace("if not hold and (count == 0 or owe):", "if count == 0 or owe:")
+         .replace("if not hold and count <", "if count <"), globals(), _mut)
+    _flush(_owed, 10 ** 5, holds=_live, fn=_mut["record_flush"])
+    check("flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught",
+          _src.count("if not hold and") == 2 and _fl.count("dispatch") == FLUSH_MAX_DISPATCHES)
+    _hold_log = {"ls": "abc\trefs/heads/train-hold\n", "ct": 1000, "msg": "train hold pid=77"}
+
+    def _git(*a):
+        if a[1] == "ls-remote":
+            return _hold_log["ls"]
+        return "" if a[1] == "fetch" else f"{'b' * 40}\n{_hold_log['ct']}\n{_hold_log['msg']}\n"
+    _g = lambda now, bound=3600: train_hold(_git, wall=lambda: now, bound=bound)
+    _bound = hold_bound_s()
+    check("hold: a young one is live with sha, age and pid; a stale one, a future-dated one and an "
+          "absent ref read as no hold",
+          _g(1100) == {"sha": "b" * 40, "age": 100, "pid": "77", "bound": 3600}
+          and _g(1000 + 3600) is None and _g(1000 + 3599) is not None and _g(900) is None
+          and train_hold(lambda *a: "" if a[1] == "ls-remote" else _git(*a), bound=3600) is None)
+    check("hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read, not a literal here",
+          isinstance(_bound, int) and f"HOLD_MAX_AGE_S={_bound}" in
+          (ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+          and "3600" not in inspect.getsource(train_hold) + inspect.getsource(hold_bound_s))
     check("flush: the owed set is rule 5's rowless merges less the record-class ones; a "
           "cleared window owes nothing",
           owed_rows("v1.0.0", gate=lambda t: (False, "  pending  #2801 abc1234 3 commit(s)\n"
@@ -2407,37 +2452,101 @@ def record_pr_green(token=_api_token) -> bool:
                           text=True, capture_output=True, env=env).returncode == 0
 
 
+#: The ref merge_train.py publishes while a real run is live (`HOLD_REF` there).
+TRAIN_HOLD_REF = "refs/heads/train-hold"
+
+
+def hold_bound_s(workflow: Path | None = None) -> int | None:
+    """nightly.yml's `HOLD_MAX_AGE_S`, read off its source so the bound is never
+    a second literal; None when the workflow no longer states one."""
+    try:
+        text = (workflow or ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+    except OSError:
+        return None
+    found = re.search(r"^\s*HOLD_MAX_AGE_S=(\d+)\s*$", text, re.M)
+    return int(found.group(1)) if found else None
+
+
+def train_hold(runner=None, wall=time.time, bound: int | None = None) -> dict | None:
+    """The live train hold {sha, age, pid, bound}, or None. Zero REST: `git
+    ls-remote` for presence, the fetched commit's committer date for age, its
+    message for the pid. Stale is nightly.yml's rule: at or past the bound, or a
+    date ahead of this clock (unknowable, never young, #775). A read that fails,
+    or a workflow stating no bound, reads as no hold: the flush never refuses on one."""
+    run = runner or sh
+    bound = hold_bound_s() if bound is None else bound
+    try:
+        if not run("git", "ls-remote", "origin", TRAIN_HOLD_REF).split() or bound is None:
+            return None
+        run("git", "fetch", "--quiet", "origin", TRAIN_HOLD_REF)
+        sha, stamp, message = run("git", "log", "-1", "--format=%H%n%ct%n%B", "FETCH_HEAD").split("\n", 2)
+        age = int(wall()) - int(stamp)
+    except (subprocess.CalledProcessError, OSError, ValueError):
+        return None
+    if not 0 <= age < bound:
+        return None
+    pid = message.partition("pid=")[2].split()[:1]
+    return {"sha": sha, "age": age, "pid": pid[0] if pid and pid[0].isdigit() else "unknown",
+            "bound": bound}
+
+
+def hold_line(hold: dict) -> str:
+    return (f"train hold {hold['sha'][:8]} age {hold['age']}s pid {hold['pid']} "
+            f"(live below {hold['bound']}s)")
+
+
 def record_flush(owed: list[tuple[str, str]], pre_main: str, dispatch=dispatch_record_beat,
                  landed=record_merges_since, ready=record_pr_green, sleep=None, clock=None,
-                 timeout_s: int = FLUSH_TIMEOUT_S) -> tuple[list[str], str]:
+                 timeout_s: int = FLUSH_TIMEOUT_S, held=train_hold, say=print) -> tuple[list[str], str]:
     """(record pull requests merged, what happened). Nothing owed dispatches
     nothing; otherwise one dispatch, then a wait for a record merge on main,
     with one more dispatch whenever the open record pull request is ready and
-    the last one is FLUSH_REDISPATCH_S old, up to FLUSH_MAX_DISPATCHES."""
+    the last one is FLUSH_REDISPATCH_S old, up to FLUSH_MAX_DISPATCHES.
+
+    A live train hold makes every beat exit `skip-train-hold`, so nothing is
+    dispatched while one is live, and a dispatch sent before one appeared (its
+    beat saw the hold) is taken back off the count: the dispatch is sent again
+    once the hold clears. `held` is the hold collaborator; each appearance,
+    change and clearing prints one line, and a still-live hold is named in the
+    timeout message. A hold never refuses the flush."""
     if not owed:
         return [], "record flush: nothing owed; nothing dispatched"
     sleep = sleep or time.sleep
     clock = clock or time.monotonic
     named = ", ".join(f"#{pr}" for pr, _ in owed)
-    sent, why = dispatch()
-    if not sent:
-        return [], f"record flush: could not dispatch {NIGHTLY_WORKFLOW_FILE} for {named}: {why}"
-    count, last = 1, clock()
+    count, last, hold, owe = 0, clock(), held(), False
     deadline = last + timeout_s
+    if hold:
+        say(f"record flush: {hold_line(hold)} appeared; no dispatch while it is live")
     while True:
+        if not hold and (count == 0 or owe):
+            owe = False
+            sent, why = dispatch()
+            if not sent:
+                return [], (f"record flush: could not dispatch {NIGHTLY_WORKFLOW_FILE} for "
+                            f"{named}: {why}")
+            count, last = count + 1, clock()
         merged = landed(pre_main)
         if merged:
             return merged, (f"record flush: record merge(s) #{', #'.join(merged)} landed for "
                             f"{named} after {count} dispatch(es)")
         now = clock()
         if now >= deadline:
+            tail = f"; {hold_line(hold)} was still live" if hold else ""
             return [], (f"record flush: no record merge landed within {timeout_s}s of "
-                        f"{count} dispatch(es) for {named}")
-        if count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
+                        f"{count} dispatch(es) for {named}{tail}")
+        if not hold and count < FLUSH_MAX_DISPATCHES and now - last >= FLUSH_REDISPATCH_S and ready():
             sent, why = dispatch()
             if sent:
                 count, last = count + 1, now
         sleep(FLUSH_POLL_S)
+        before, hold = hold, held()
+        if hold and (not before or hold["sha"] != before["sha"]):
+            say(f"record flush: {hold_line(hold)} " + ("changed" if before else "appeared"))
+        elif before and not hold:
+            say(f"record flush: train hold {before['sha'][:8]} cleared")
+        if hold and not before and count > 0:
+            count, owe = count - 1, True  # the beat sent before it appeared saw it and skipped
 
 
 def notes_with_flush(text: str, version: str, prs: list[str]) -> str:
