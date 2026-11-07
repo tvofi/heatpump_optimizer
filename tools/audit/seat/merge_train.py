@@ -5732,6 +5732,37 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
     check("defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge",
           rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
           and any("runs listing is unreadable" in ln for ln in lines))
+    # The `classify` subcommand (dispatch's and every reviewer's CI wait, "exits
+    # 1 RED") reads the same deferral through the same predicate (round 2).
+    def cli(frame, ci_out=None):
+        logged: list = []
+
+        def run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if a.endswith("rulesets --jq " + argv[-1]) and argv[2] == "repos/o/r/rulesets":
+                return 0, "7\n"
+            if "repos/o/r/rulesets/7" in argv:
+                return 0, GATE + "\n"
+            if "actions/workflows/ci.yml/runs" in a:
+                return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
+            if "check-runs" in a:
+                return 0, "\n".join(json.dumps(c) for c in frame["runs"])
+            return 9, "unstubbed: " + a
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append)
+        return classify_cmd(t, "a" * 40, None, False), logged
+    (rc, line), _ = cli(scene[0])
+    check("defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run "
+          "42237558473 runs, never RED", rc == 3 and line.startswith("WAIT ") and line.endswith("red: none"))
+    (rc, line), _ = cli({"runs": [edit_red], "ci_runs": [wr(E, "completed", 1)]})
+    check("defer-wait CLI null: a red gate with no unfinished ci.yml run still reads RED (exit 1)",
+          rc == 1 and line.startswith("RED ") and line.endswith("red: " + GATE))
+    (rc, line), logged = cli({"runs": [edit_red]}, ci_out=(1, "HTTP 502"))
+    check("defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged",
+          rc == 1 and line.startswith("RED ") and any("runs listing is unreadable" in ln for ln in logged))
+    (rc, line), _ = cli({"runs": [edit_red, code_gate_green],
+                         "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]})
+    check("defer-wait CLI: one read takes no settle -- a red beside a green suite with nothing busy is RED "
+          "(the caller's next read sees the sweep)", rc == 1 and line.startswith("RED "))
 
 
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
