@@ -16,7 +16,7 @@ set -uo pipefail
 # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
 . "$(dirname -- "$0")/pr_args.sh"
 PR=$1; W=$2; BR=$3; B=$4; shift 4
-PL=$B.push.log; pr_exit_trap 'rm -f "$PL"'
+PL=$B.push.log; pr_exit_trap 'test -n "${KEEP:-}" || rm -f "$PL"'
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
 # A failed merge is aborted before the stop (P276: #2935, #2936): left conflicted, the worktree kept
@@ -36,5 +36,8 @@ ISS=$(grep -oiE '\b(fixes|closes|resolves) #[0-9]+' "$B" | grep -oE '[0-9]+' | s
 if test -f tools/audit/app_push.sh; then _push=tools/audit/app_push.sh; else _push=tools/pr/app_push.sh; fi
 PYTHONPATH=tests/hastub PREPR_SKIP_CLOSURES=1 bash "$_push" --recarry tvofi/heatpump_optimizer "$W" "$BR" "$B" $ISS > "$PL" 2>&1 &
 wait $! || :; push_out=$(cat "$PL")
-printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED' || true
+# FAIL lines name the failing arms and prepr's `full log:` line names its log (carry 16).
+printf '%s\n' "$push_out" | grep -E 'RECARRY|REFUSE|PUSHED|^ *FAIL |full log:' || true  # mut:remergegrep
+# No PUSHED: keep the log, as pr_push_failed does, and name it.
+case $push_out in *PUSHED*) ;; *) KEEP=1; echo "remerge: push log kept: $PL" ;; esac
 sleep 5; echo "RESULT pr=$PR head=$(gh pr view "$PR" --json headRefOid --jq .headRefOid)"

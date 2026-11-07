@@ -1470,6 +1470,21 @@ GH
   rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ] \
     && [ "$(git -C "$t/rmw" rev-parse HEAD^1)" = "$(git -C "$t/rmm" rev-parse origin/rc)" ]
   ck "null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted" $?
+  # The push's FAIL lines and prepr's `full log:` line reach the train's Stop message, and a push that
+  # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
+  # deleted the log, so a prepr refusal named neither its failing arm nor its log.
+  rmstub() { printf '#!/bin/bash\n%s\n' "$1" > "$t/rmm/tools/pr/app_push.sh"; }
+  rmstub 'echo "app_push: REFUSE: prepr step self-test"; echo "  FAIL arm-x (got 1, wanted 0)"; echo "PRE-PR: self-test deadbeef rc=1; full log: prepr-log.zz (PREPR_VERBOSE=1 prints it on stdout)"; exit 1'
+  rm -f "$t/body.md.push.log"; rmrun - rc
+  grep -qF "REFUSE: prepr step self-test" "$t/out" && grep -qF "FAIL arm-x (got 1, wanted 0)" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" \
+    && grep -qxF "remerge: push log kept: $t/body.md.push.log" "$t/out" && [ -f "$t/body.md.push.log" ]
+  ck "remerge_main: a push that pushed nothing prints its REFUSE, FAIL and full-log lines and names its kept log, which exists after exit" $?
+  rmrun remergegrep rc; ! { grep -qF "FAIL arm-x" "$t/out" && grep -qF "full log: prepr-log.zz" "$t/out" && [ -f "$t/body.md.push.log" ]; }
+  ck "  mutant mut:remergegrep (its line deleted): the FAIL and full-log lines are lost" $?
+  rmstub 'echo "app_push: PUSHED abc"; exit 0'; rm -f "$t/body.md.push.log"; rmrun - rc
+  grep -qF "PUSHED abc" "$t/out" && ! grep -qF "push log kept" "$t/out" && [ ! -e "$t/body.md.push.log" ]
+  ck "null control: a push that printed PUSHED prints as before, keeps no log and names none" $?
+  rmstub 'echo stub-push-refused; exit 1'
   # The push's auto-maintenance runs in the foreground (#2825 round 1: a `git fetch` in the push
   # daemonized `git gc --auto`, which kept the push's fd 9, and so its lock, after the push). The
   # fixture's git has auto-maintenance off (throwaway_git); fix/g's stub push turns gc.auto back on
