@@ -602,6 +602,38 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     return None
 
 
+def is_outside(group: dict) -> bool:
+    """Whether the group serves an accepted outside issue or contribution: its
+    `source` field is the string `outside`. An absent or any other value is
+    internal, so a roster with no `source` field orders as it always did.
+    Owner ruling tvofi 2026-11-07 (triage P420): outside work is dispatched
+    and merged ahead of audit or owner work unless the owner calls it a hotfix."""
+    return isinstance(group, dict) and group.get("source") == "outside"
+
+
+def group_for_pr(roster: dict, pr) -> str | None:
+    """The roster group id whose `resume.pr` is `pr`, or None. A fork head
+    carries no branch of ours, so `group_for_branch` cannot map it; the
+    roster's own record of the pull request does. `pr` may be an int or a
+    digit string; a bool, a non-number or an unrecorded pull request is None."""
+    try:
+        if isinstance(pr, bool):
+            return None
+        want = int(pr)
+    except (TypeError, ValueError):
+        return None
+    for g in roster.get("groups", []):
+        v = (g.get("resume") or {}).get("pr")
+        if isinstance(v, bool) or v is None:
+            continue
+        try:
+            if int(v) == want:
+                return g.get("group")
+        except (TypeError, ValueError):
+            continue
+    return None
+
+
 # ------------------------------------------------------- the critical-path set
 #
 # Which groups a wave must drain first is the orchestrator's policy, re-cut at
@@ -833,6 +865,17 @@ def _self_test() -> int:
         check("group_for_branch: a phase branch of no group is None (null control)",
               group_for_branch(rg, "handoff/r10-zz-p2") is None
               and group_for_branch(rg, "handoff/r10-ph-px") is None)
+        check("is_outside: source `outside` only; absent or other is internal",
+              is_outside({"group": "G", "source": "outside"})
+              and not is_outside({"group": "G"}) and not is_outside({"group": "G", "source": "Outside"})
+              and not is_outside({"group": "G", "source": True}) and not is_outside({"group": "G", "source": ["outside"]}))
+        rp = {"groups": [{"group": "R10-F", "resume": {"pr": 7}}, {"group": "R10-G", "resume": {"pr": "8"}},
+                         {"group": "R10-H", "resume": {"pr": None}}, {"group": "R10-I"}]}
+        check("group_for_pr: resume.pr maps int or digit string; unrecorded, bool, junk are None",
+              group_for_pr(rp, 7) == "R10-F" and group_for_pr(rp, "7") == "R10-F"
+              and group_for_pr(rp, 8) == "R10-G" and group_for_pr(rp, 9) is None
+              and group_for_pr(rp, None) is None and group_for_pr(rp, True) is None
+              and group_for_pr(rp, "x") is None and group_for_pr({}, 7) is None)
         check("group_for_branch: -p2 never answers a longer id by prefix",
               group_for_branch({"groups": [{"group": "R10-PH-1"}]},
                                "handoff/r10-ph-p2") is None)

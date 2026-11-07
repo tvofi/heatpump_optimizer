@@ -380,10 +380,14 @@ def critical_path(deps: dict, dur: dict, order: list) -> list:
 
 
 #: The owner's priority order (standing directive, 2026-10-30), as tiers:
-#: 1 main (a red main or a main fix), 2 the critical path and hotfixes (user-
-#: reported production findings), 3 production work and instruments saving
-#: SAVING_TIER_HOURS or more, 4 every other instrument, ranked by its savings.
-TIER_MAIN, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4
+#: 1 main (a red main or a main fix), 2 hotfixes (user-reported production
+#: findings), 3 accepted outside issues and contributions, 4 the critical path,
+#: 5 production work and instruments saving SAVING_TIER_HOURS or more, 6 every
+#: other instrument, ranked by its savings. Hotfix and outside precede the
+#: critical path by the owner's ruling (tvofi 2026-11-07, triage P420): "all
+#: accepted outside issues or contributions should be prioritized higher than
+#: audit or owner submitted ones unless i call the owner one a hotfix".
+TIER_MAIN, TIER_HOTFIX, TIER_OUTSIDE, TIER_URGENT, TIER_PRODUCTION_WORK, TIER_INSTRUMENT = 1, 2, 3, 4, 5, 6
 SAVING_TIER_HOURS = 12.0
 
 
@@ -391,19 +395,23 @@ def dispatch_tier(group: dict, on_cp: bool, savings: float | None) -> tuple[int,
     """(tier, the roster fields that decided it) for one open group.
 
     Read from the roster alone: `kind` "main" or a `-MAIN-FIX`/`-MAIN-RED`
-    name is main; `on_cp` (`critical_path()`'s output, never a stored list),
-    a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
-    group is urgent; `work_class` production, or an instrument whose
-    `savings` is at least SAVING_TIER_HOURS, is tier 3; else tier 4.
+    name is main; a `kind` "bug" (the user-reported finding) or a HOTFIX-named production
+    group is a hotfix; `source` "outside" (`roster_lib.is_outside`) is
+    outside, ahead of `on_cp` (`critical_path()`'s output, never a stored
+    list), which is urgent; `work_class` production, or an instrument whose
+    `savings` is at least SAVING_TIER_HOURS, is the production tier; else the
+    instrument tier.
     """
     g, k = group["group"], group.get("kind")
     if k == "main" or "-MAIN-FIX" in g or "-MAIN-RED" in g:
         return TIER_MAIN, f"main (kind {k!r}, name)"
     cls = work_class(group)
+    if k == "bug" or "HOTFIX" in g and cls == "production":
+        return TIER_HOTFIX, f"hotfix (kind {k!r}, name)"
+    if roster_lib.is_outside(group):
+        return TIER_OUTSIDE, "outside (source)"
     if on_cp:
         return TIER_URGENT, "critical path"
-    if k == "bug" or "HOTFIX" in g and cls == "production":
-        return TIER_URGENT, f"hotfix (kind {k!r}, name)"
     if cls == "production":
         return TIER_PRODUCTION_WORK, "production (work_class)"
     if savings is not None and savings >= SAVING_TIER_HOURS:
@@ -626,9 +634,20 @@ def selftest_model() -> int:
     def tier_of(g, cp=False, sav=None):
         return dispatch_tier(g, cp, sav)[0]
     expect("main work is tier 1", tier_of(grp("R10-MAIN-FIX-X", kind="main")) == TIER_MAIN)
-    expect("the critical path is tier 2", tier_of(grp("I", kind="instrument"), cp=True) == TIER_URGENT)
-    expect("a user-reported bug (hotfix) is tier 2, off the critical path",
-           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_URGENT)
+    expect("the critical path is the urgent tier", tier_of(grp("I", kind="instrument"), cp=True) == TIER_URGENT)
+    expect("a user-reported bug (hotfix) is the hotfix tier, off the critical path",
+           tier_of(grp("R10-HOTFIX-X", kind="bug")) == TIER_HOTFIX)
+    # Owner ruling tvofi 2026-11-07 (triage P420): main, hotfix, outside, then
+    # the critical path and the rest in today's order.
+    expect("a hotfix ranks ahead of an outside group, which ranks ahead of the critical path",
+           TIER_MAIN < tier_of(grp("R10-HOTFIX-X", kind="bug")) < tier_of(grp("OUT", source="outside"))
+           < tier_of(grp("I", kind="instrument"), cp=True) < TIER_PRODUCTION_WORK,
+           [tier_of(grp("R10-HOTFIX-X", kind="bug")), tier_of(grp("OUT", source="outside"))])
+    expect("an outside group that is also a hotfix is a hotfix, and one on the critical path is outside",
+           tier_of(grp("R10-HOTFIX-O", kind="bug", source="outside")) == tier_of(grp("R10-HOTFIX-X", kind="bug"))
+           and tier_of(grp("OUT", source="outside"), cp=True) == tier_of(grp("OUT", source="outside")))
+    expect("null control: any other source (or none) is internal",
+           tier_of(grp("P", source="audit")) == tier_of(grp("P")) == TIER_PRODUCTION_WORK)
     expect("production work is tier 3", tier_of(grp("P")) == TIER_PRODUCTION_WORK)
     expect("an instrument saving 12 h is tier 3, one saving 11 h tier 4",
            tier_of(grp("I", kind="instrument"), sav=12) == TIER_PRODUCTION_WORK
@@ -638,25 +657,26 @@ def selftest_model() -> int:
     order = {"groups": [
         grp("CPA", "S", "instrument"), grp("CPB", "S", "instrument", after=["CPA"]),
         grp("CPC", "L", "instrument", after=["CPB"]),
-        grp("R10-HOTFIX-H", "L", "bug"), grp("PROD", "M"),
+        grp("R10-HOTFIX-H", "L", "bug"), grp("OUT", "S", source="outside"), grp("PROD", "M"),
         grp("HI", "S", "instrument", savings=9), grp("LO", "S", "instrument", savings=2),
         grp("NONE", "S", "instrument")]}
     po = build_plan(order, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     seq = sorted((g for g in po["groups"]), key=lambda n: po["groups"][n]["start"])
-    expect("dispatch follows the owner's order: critical path, hotfix, production, "
-           "instruments by savings, unrecorded savings last",
-           seq == ["CPA", "CPB", "CPC", "R10-HOTFIX-H", "PROD", "HI", "LO", "NONE"], seq)
+    expect("dispatch follows the owner's order (tvofi 2026-11-07, triage P420): hotfix, outside, "
+           "critical path, production, instruments by savings, unrecorded savings last",
+           seq == ["R10-HOTFIX-H", "OUT", "CPA", "CPB", "CPC", "PROD", "HI", "LO", "NONE"], seq)
     keys = {n: po["groups"][n]["sort_key"] for n in po["groups"]}
     expect("each group's sort_key is in the plan and orders it the same way",
-           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "CPA"
+           sorted(keys, key=lambda n: [float("inf") if k is None else k for k in keys[n]])[0] == "R10-HOTFIX-H"
            and all(po["groups"][n]["tier_reason"] for n in keys), keys)
     # A critical-path tail (B, 18 h left) against a taller hotfix (H, 24 h):
-    # height alone dispatches H first; the owner's order puts B first.
-    tail = build_plan({"groups": [grp("A", "L", "instrument"),
-                                  grp("B", "S", "instrument", after=["A"]),
+    # height alone dispatches H first; the owner's order puts B first. All
+    # three are hotfixes: the critical-path-first term orders within a tier.
+    tail = build_plan({"groups": [grp("A", "L", "bug"),
+                                  grp("B", "S", "bug", after=["A"]),
                                   grp("H", "M", "bug")]}, M, dict(caps1, slots=1), start, "v1.0.0", round_n=2)
     T = tail["groups"]
-    expect("within tier 2 the critical path goes first, even its shorter tail",
+    expect("within a tier the critical path goes first, even its shorter tail",
            tail["critical_path"] == ["A", "B"] and T["B"]["start"] < T["H"]["start"],
            {n: (T[n]["start"], T[n]["sort_key"]) for n in T})
     tie = build_plan({"groups": [grp("A1", "M"), grp("A2", "S")]}, M,
@@ -1876,6 +1896,9 @@ def selftest() -> int:
             ("tier-hotfix",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m('if k == "bug" or "HOTFIX" in g ', 'and cls == "production":'), "if False:"),
+            ("tier-outside",
+             _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
+             "    if roster_lib.is_outside(group):", "    if False:"),
             ("tier-main",
              _m("def dispatch_tier(group: dict, ", "on_cp: bool,"),
              _m('if k == "main" or "-MAIN-FIX" in g ', 'or "-MAIN-RED" in g:'), "if False:"),
