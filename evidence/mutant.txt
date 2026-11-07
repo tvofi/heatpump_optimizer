@@ -1,0 +1,1 @@
+RESULT runs=2 runner_min=1996 record_autofix_min=2 cancelled=2 lost_ledger_min=0

@@ -1,0 +1,1 @@
+RESULT runs=26 runner_min=15909 record_autofix_min=33 cancelled=7 lost_ledger_min=916

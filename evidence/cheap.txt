@@ -1,0 +1,28 @@
+fold_ledger: 50 classes, 755 instances, 121 in-tree judge survivors (rounds [8, 10]), 136 rca entries
+fold_ledger: 0 violation(s)
+---
+                      [--ledger LEDGER] [--judge JUDGE] [--self-test]
+                      [{fold,check,refresh,sync}]
+fold_ledger.py: error: unrecognized arguments: --check
+---
+@@ -4080,6 +4080,7 @@
+    "dev/audit/harnesses/r10_raise_paths.sh",
+    "dev/audit/harnesses/r10_ratio_anchor.py",
+    "dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py",
++   "dev/audit/harnesses/r10_rca_flush_dispatch.py",
+    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
+    "dev/audit/harnesses/r10_rca_sav_estimate.py",
+    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
+---
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+---
+    ...<9 lines>...
+    )
+  File "/home/user/heatpump_optimizer/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+  ok   a throwing block is reported as a failure rather than ending the run
+
+224 passed, 0 failed
