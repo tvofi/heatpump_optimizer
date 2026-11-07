@@ -1,0 +1,9 @@
+2026-11-07T08:04:57Z
+WAIT 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: gate red: none
+rc=3
+2026-11-07T08:06:29Z
+WAIT 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: gate red: none
+rc=3
+2026-11-07T08:08:00Z
+RED 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: none red: gate
+rc=1

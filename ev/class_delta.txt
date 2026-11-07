@@ -1,0 +1,21 @@
+production/test/doc/golden delta 8bc540e0..head:
+(end)
+consumers at head (own rule):
+      1 README.md
+      5 blueprints/automation/notifications.yaml
+      1 custom_components/heatpump_optimizer/coordinator.py
+      5 custom_components/heatpump_optimizer/ledger.py
+      9 custom_components/heatpump_optimizer/notifier.py
+      1 custom_components/heatpump_optimizer/optimizer.py
+      3 custom_components/heatpump_optimizer/payload.py
+      7 custom_components/heatpump_optimizer/sensor.py
+      1 custom_components/heatpump_optimizer/wood_fuel.py
+     10 custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js
+      2 docs/automations.md
+      1 docs/dashboard-card.md
+claim files vs origin/main:
+ tests/golden/claimed_drift.txt | 5 +++++
+ 1 file changed, 5 insertions(+)
+7.1.4
+#   1. The `claims-for:` line below is machine-read and MUST equal the
+protected_quiet=0
