@@ -70,7 +70,11 @@ def receipt_message(path: pathlib.Path) -> str:
 def main() -> int:
     path = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_BP
     note = re.search(r'"savings\.wood_note": "([^"]+)"', CARD.read_text()).group(1)
-    template = jinja2.Environment().from_string(receipt_message(path))
+    # autoescape=True (CodeQL py/jinja2/autoescape-false). It escapes only an
+    # expression's output; the note is the template's literal text, which no
+    # escaping touches, so it is counted as written. The expressions render
+    # numbers and a currency code, which hold no escapable character.
+    template = jinja2.Environment(autoescape=True).from_string(receipt_message(path))
     base = {"total_sek": 812.4, "currency": "SEK", "saving_sek": 203.6, "saving_pct": 20.1}
     arms = [
         ("wood", {"saving_includes_wood": True}, 1),
