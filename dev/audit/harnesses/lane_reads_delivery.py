@@ -24,6 +24,11 @@ clean result.
 
     python3 dev/audit/harnesses/lane_reads_delivery.py [--lanes a,b] --out DIR
 
+A fresh clone's files are as new as its index, so git rehashes every tracked
+file, rows included, the first time a command refreshes it. `--refresh-index`
+refreshes it before the steps run, which separates that rehash from a step
+that reads a row.
+
 Lanes: control, instrument-self-tests, env-matrix, arch-instrument, closures.
 EXPECTED RESULT control_hits=3
 """
@@ -102,8 +107,8 @@ def steps(clone: Path, lane: str) -> list[dict]:
     return [s for s in j["steps"] if (whole or GATE.search(str(s.get("if") or ""))) and on_pull_request(s.get("if"))]
 
 
-def run_lane(lane: str, out: Path) -> dict:
-    tmp = out / f"{lane}.tmp"
+def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
+    tmp = out / f"{lane}{'.refreshed' if refresh else ''}.tmp"
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
     clone = tmp / "ws"
@@ -114,6 +119,9 @@ def run_lane(lane: str, out: Path) -> dict:
     main = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "origin/main"],
                           capture_output=True, text=True, check=True).stdout.strip()
     subprocess.run(["git", "-C", str(clone), "update-ref", "refs/remotes/origin/main", main], check=True)
+    if refresh:  # the null control: a stat-clean index, so git rehashes no file
+        time.sleep(2)
+        subprocess.run(["git", "-C", str(clone), "update-index", "-q", "--really-refresh"], check=True)
     rt = tmp / "runner"
     rt.mkdir()
     env = dict(os.environ, CI="true", GITHUB_ACTIONS="true", RUNNER_TEMP=str(rt),
@@ -230,12 +238,16 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--lanes", default="control," + ",".join(LANES))
     ap.add_argument("--out", required=True)
+    ap.add_argument("--refresh-index", action="store_true",
+                    help="refresh the clone's index first: separates git's own rehash of a fresh checkout "
+                         "(every tracked file, rows included) from a step that reads a row")
     a = ap.parse_args()
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     for lane in a.lanes.split(","):
-        r = run_lane(lane, out)
-        (out / f"{lane}.json").write_text(json.dumps(r, indent=1))
+        r = run_lane(lane, out, a.refresh_index)
+        lane = lane + (" (index refreshed)" if a.refresh_index else "")
+        (out / f"{lane.split()[0]}{'.refreshed' if a.refresh_index else ''}.json").write_text(json.dumps(r, indent=1))
         ran = [s for s in r["steps"] if s["ran"]]
         bad = [s["step"] for s in ran if s["exit"] != 0]
         readers = [s for s in ran if any(s["kinds"][k] for k in READS)]
@@ -249,7 +261,7 @@ def main() -> int:
                 for c, v in s["by_command"].items():
                     if any(v.get(x) for x in READS):
                         print(f"      by {c}: {v}")
-        if lane == "control":
+        if lane.startswith("control"):
             print(f"RESULT control_hits={sum(s['kinds'][k] for s in ran for k in READS)}")
     return 0
 
