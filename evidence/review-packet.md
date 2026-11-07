@@ -1,58 +1,55 @@
 # Review packet #3275
-head: d6482b704bb11831c12001ffc0b0210a47c35483
-base: f2a015142714383722bf49d7ab20d8398ec9674c
+head: a09ebaebd4f892729d96f24c7ec930ab6a12a37b
+base: 28d46c4918285d36c409c1fb2f72eb77e04e569e
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=128289990132 success
-arch-score / arch-score id=128299179581 success
-arm id=128288686318 skipped
-budget-raise-gate / budget-raise-gate id=128299179682 success
-cancel-superseded id=128299179368 success
-codeql id=128299218677 skipped
-codeql / Analyze (actions) id=128289649603 success
-codeql / Analyze (javascript-typescript) id=128289649595 success
-codeql / Analyze (python) id=128289649557 success
-gate id=128299179386 success
-governance id=128299179788 skipped
-governance / delivery-status id=128289649720 success
-governance / delivery-status-publish id=128289651319 skipped
-governance / env-matrix id=128289649638 success
-governance / instrument-self-tests id=128289649754 success
-governance / policy-docs id=128289649747 success
-governance / record id=128289650459 skipped
-governance / wave-script id=128289649660 success
-hassfest id=128299179618 skipped
-hassfest / hassfest id=128289649518 success
-kernel-points id=128299179448 skipped
-pr-contract id=128299180452 skipped
-pr-contract / pr-contract id=128298817138 success
-prelude id=128299179436 success
-refresh id=128299178827 success
-tests id=128299179537 skipped
-tests / arch-instrument id=128289937419 success
-tests / briefs id=128289649591 success
-tests / browser id=128289937477 success
-tests / ci-ratchet id=128298817805 skipped
-tests / claims-autofix id=128292136805 skipped
-tests / closure-scope id=128289649479 success
-tests / closures id=128289937464 success
-tests / closures-autofix id=128298818012 skipped
-tests / coverage id=128289937588 success
-tests / coverage-ratchet id=128294783336 success
-tests / fast (3.14) id=128289937436 success
-tests / graders-head-copy id=128294783333 success
-tests / lane-proofs id=128294783281 success
-tests / mutation id=128289649492 success
-tests / mutation-autofix id=128289882057 skipped
-tests / mutation-pins id=128289881159 skipped
-tests / nightly-ha id=128289939024 skipped
-tests / nightly-status id=128289649439 success
-tests / replay id=128289938278 skipped
-tests / typing id=128289937397 success
-validate id=128299180275 skipped
-validate / validate-hacs id=128289649640 success
+## Gate digest: red
+CodeQL id=128427207833 neutral
+arch-score / arch-score id=128432855637 success
+arm id=128426872504 skipped
+budget-raise-gate / budget-raise-gate id=128432855630 success
+cancel-superseded id=128432731750 success
+codeql id=128432857022 skipped
+codeql / Analyze (actions) id=128427022767 success
+codeql / Analyze (javascript-typescript) id=128427022713 success
+codeql / Analyze (python) id=128427022748 in_progress
+gate id=128433055053 in_progress
+governance id=128432857247 skipped
+governance / delivery-status id=128427022827 success
+governance / delivery-status-publish id=128427024165 skipped
+governance / env-matrix id=128427022756 success
+governance / instrument-self-tests id=128427022752 success
+governance / policy-docs id=128427022847 success
+governance / record id=128427023687 skipped
+governance / wave-script id=128427022737 success
+hassfest id=128432857130 skipped
+hassfest / hassfest id=128427022779 success
+kernel-points id=128432857281 skipped
+pr-contract id=128433055709 skipped
+prelude id=128432731631 success
+refresh id=128432731909 success
+tests id=128432856901 skipped
+tests / arch-instrument id=128427132017 success
+tests / briefs id=128427022793 success
+tests / browser id=128427131940 success
+tests / claims-autofix id=128429309793 skipped
+tests / closure-scope id=128427022762 success
+tests / closures id=128427132007 in_progress
+tests / coverage id=128427132011 success
+tests / coverage-ratchet id=128432914668 success
+tests / fast (3.14) id=128427131925 success
+tests / graders-head-copy id=128432914741 success
+tests / lane-proofs id=128432914740 success
+tests / mutation id=128427022776 success
+tests / mutation-autofix id=128427195650 skipped
+tests / mutation-pins id=128427195472 skipped
+tests / nightly-ha id=128427133483 skipped
+tests / nightly-status id=128427022838 failure
+tests / replay id=128427132843 skipped
+tests / typing id=128427131842 success
+validate id=128432856880 skipped
+validate / validate-hacs id=128427022694 success
 
 ## Refusals
 none
@@ -61,10 +58,11 @@ none
 none
 
 ## carry_audit at the head
-NOTE stale tree: d6482b704bb11831c12001ffc0b0210a47c35483 lacks origin/main 630bf533d838110be56ede0366756da3de0d941e; roster read at origin/main
-NOTE body item 720a1bef: dismissed:recorded at the launcher step's comment; a deterministic arm is pr_args.sh's
-NOTE body item 91bb838f: dismissed:the pull request's own first run is the probe
-CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item d01fdda0: R10-HANDOFF-PATH
+NOTE body item 88b0d653: dismissed:re-measured here, 702 s replay and 631 s CI under the 1800 s timeout
+NOTE body item 232a63b1: dismissed:the pull request's own first run is the probe
+NOTE body item d88dd683: dismissed:corrected in this body
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
 ok         gh run view 42297617709 --json jobs --jq '.jobs[]|select(.name=="governance / instrument-self-tests")|.steps[]|[.name,.startedAt,.completedAt]|@tsv'
@@ -73,10 +71,10 @@ ok         gh run view 42297617709 --json jobs --jq '.jobs[]|select(.name=="gove
              `tools/pr/prepr.sh` is in the tree at this head
   ok         python3 dev/audit/harnesses/r10_selftest_timeout.py replay <(git show 41aa9050f:.github/workflows/governance.yml) all
              `dev/audit/harnesses/r10_selftest_timeout.py` is in the tree at this head
-  ok         python3 dev/audit/harnesses/r10_selftest_timeout.py replay .github/workflows/governance.yml all
+  ok         python3 dev/audit/harnesses/r10_selftest_timeout.py
              `dev/audit/harnesses/r10_selftest_timeout.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
-             `tests/closure.py` is in the tree at this head
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+             `tests/run.sh` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
 
@@ -295,10 +293,10 @@ index 759ec575e..f36563a70 100644
    # by a fact about the clone -- shallow or not, origin/main present or not,
 diff --git a/dev/audit/harnesses/r10_selftest_timeout.py b/dev/audit/harnesses/r10_selftest_timeout.py
 new file mode 100644
-index 000000000..f70ba3c35
+index 000000000..a75b43e76
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_selftest_timeout.py
-@@ -0,0 +1,138 @@
+@@ -0,0 +1,146 @@
 +#!/usr/bin/env python3
 +"""R10-HOTFIX-SELFTEST-TIMEOUT: instrument-self-tests' detached self-tests, against their mutants and as a replay.
 +
@@ -312,10 +310,12 @@ index 000000000..f70ba3c35
 +writes a status, and a pass printing no tally; and the same through a
 +chain of bg_run under one bg_pid, the launcher's form for pr_args.sh's three
 +callers: a failing first link, a passing second, a chain killed in its first
-+link read from its second. Each refusal arm must refuse
-+and each control must pass, first on the library as committed (M0) and then
-+on two mutants of its predicates: M1 returns 0 in place of the recorded
-+status, M2 returns 0 for a launcher gone with no status. Prints one line per
++link read from its second; and, waited on while still running with no
++tally grep as the prepr step is, a slow non-zero exit and a slow pass. Each
++refusal arm must refuse and each control must pass, first on the library as committed (M0) and then
++on three mutants of bg_wait: M1 returns 0 in place of the recorded
++status, M2 returns 0 for a launcher gone with no status, X8 returns 0 after
++its first poll finds the command still running. Prints one line per
 +arm and mutant, and `RESULT survivors=<n>`; exit 1 when a mutant survived or
 +M0 failed.
 +
@@ -347,11 +347,16 @@ index 000000000..f70ba3c35
 +bg_start bad bash -c 'echo "x self-test: 3 checks, 1 failed"; exit 7'
 +bg_start killed bash -c 'sleep 600'
 +bg_start notally bash -c 'echo hi'
++bg_start slowbad bash -c 'sleep 8; echo partial; exit 5'
++bg_start slowok bash -c 'sleep 15; echo partial'
 +( bg_run c1 bash -c 'exit 3'; bg_run c2 bash -c 'echo "x self-test: 1 checks, 0 failed"' ) < /dev/null > /dev/null 2>&1 &
 +bg_pid "$!" c1 c2
 +( bg_run d1 bash -c 'sleep 600'; bg_run d2 true ) < /dev/null > /dev/null 2>&1 &
 +bg_pid "$!" d1 d2
-+sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d1.pid")"; wait 2> /dev/null || true
++sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d1.pid")"
++( bg_wait slowbad > /dev/null ) && echo "FAIL refuse slow bad" || echo "PASS refuse slow bad"
++( bg_wait slowok > /dev/null ) && echo "PASS control slow ok" || echo "FAIL control slow ok"
++wait 2> /dev/null || true
 +( bg_wait c1 > /dev/null ) && echo "FAIL refuse chained bad" || echo "PASS refuse chained bad"
 +( bg_wait c2 | grep -Eq "$2" ) && echo "PASS control chained tally" || echo "FAIL control chained tally"
 +( bg_wait d2 > /dev/null 2>&1 ) && echo "FAIL refuse chain killed" || echo "PASS refuse chain killed"
@@ -365,6 +370,7 @@ index 000000000..f70ba3c35
 +MUTANTS = {
 +    "M1": ('return "$(cat "$d/$1.rc")"', "return 0"),
 +    "M2": ('echo "$1: its launcher exited with no status" >&2; return 1', "return 0"),
++    "X8": ("    sleep 5\n", "    sleep 5; return 0\n"),
 +}
 +
 +
@@ -394,7 +400,7 @@ index 000000000..f70ba3c35
 +    base = arms(lib)
 +    for ln in base:
 +        print(f"M0 {ln}")
-+    ok0 = len(base) == 8 and all(ln.startswith("PASS") for ln in base)
++    ok0 = len(base) == 10 and all(ln.startswith("PASS") for ln in base)
 +    survivors = 0
 +    for name, (old, new) in MUTANTS.items():
 +        if lib.count(old) != 1:
@@ -445,10 +451,10 @@ index 000000000..146ec7693
 @@ -0,0 +1 @@
 +- [#3275](https://github.com/tvofi/heatpump_optimizer/pull/3275) — **open**, R10-HOTFIX-SELFTEST-TIMEOUT: hotfix selftest timeout (R10-HOTFIX-SELFTEST-TIMEOUT)
 diff --git a/tests/closures.json b/tests/closures.json
-index c71959796..fefe6ccb9 100644
+index 2139c2396..7d7e2f619 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -4101,6 +4101,7 @@
+@@ -4104,6 +4104,7 @@
     "dev/audit/harnesses/r10_savings_upgrade_month.py",
     "dev/audit/harnesses/r10_scores_envelope.py",
     "dev/audit/harnesses/r10_seat_selftests_mutants.py",
