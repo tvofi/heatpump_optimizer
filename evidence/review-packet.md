@@ -1,90 +1,93 @@
 # Review packet #3232
-head: bba5b4d4d7ac37f339850de36b1ca24573f8c821
-base: 9cbd7dd0d7a66163b5b593dfe55f1d8b220785de
+head: 28e4375441e6011083dce278e3ffdee9cbbbf26f
+base: 80016a71f567d936450d8708abcbb79d9e8071d7
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=128146651316 neutral
-arch-score / arch-score id=128147213598 success
-arm id=128146100887 skipped
-budget-raise-gate / budget-raise-gate id=128147213315 success
-cancel-superseded id=128146951581 success
-codeql id=128147215043 skipped
-codeql / Analyze (actions) id=128146293526 success
-codeql / Analyze (javascript-typescript) id=128146293638 success
-codeql / Analyze (python) id=128146293561 in_progress
-gate id=128147720472 failure
-governance id=128147215123 skipped
-governance / delivery-status id=128146293712 success
-governance / delivery-status-publish id=128146295627 skipped
-governance / env-matrix id=128146293838 success
-governance / instrument-self-tests id=128146293947 in_progress
-governance / policy-docs id=128146293683 success
-governance / record id=128146296379 skipped
-governance / wave-script id=128146293597 success
-hassfest id=128147215094 skipped
-hassfest / hassfest id=128146293451 success
-kernel-points id=128147215752 skipped
-pr-contract id=128147722314 skipped
-prelude id=128146951782 success
-refresh id=128146951139 success
-tests id=128147215943 skipped
-tests / arch-instrument id=128146598354 in_progress
-tests / briefs id=128146293678 success
-tests / browser id=128146598389 success
-tests / closure-scope id=128146293503 success
-tests / closures id=128146598709 in_progress
-tests / coverage id=128146598368 in_progress
-tests / fast (3.14) id=128146598509 in_progress
-tests / mutation id=128146293642 in_progress
-tests / nightly-ha (2025.2.0) id=128146598492 success
-tests / nightly-ha (stable) id=128146598436 success
-tests / nightly-status id=128146293588 success
-tests / replay id=128146598497 in_progress
-tests / typing id=128146598409 success
-validate id=128147214837 skipped
-validate / validate-hacs id=128146293605 success
+## Gate digest: green
+CodeQL id=128271923258 success
+arch-score / arch-score id=128305317011 success
+arm id=128271631899 skipped
+budget-raise-gate / budget-raise-gate id=128305317165 success
+cancel-superseded id=128305345288 success
+codeql id=128305335909 skipped
+codeql / Analyze (actions) id=128292503964 success
+codeql / Analyze (javascript-typescript) id=128292503971 success
+codeql / Analyze (python) id=128292504049 success
+gate id=128305316658 success
+governance id=128305317134 skipped
+governance / delivery-status id=128292504024 success
+governance / delivery-status-publish id=128292505233 skipped
+governance / env-matrix id=128292504003 success
+governance / instrument-self-tests id=128292504040 success
+governance / policy-docs id=128292503991 success
+governance / record id=128292505140 skipped
+governance / wave-script id=128292504038 success
+hassfest id=128305335972 skipped
+hassfest / hassfest id=128292504005 success
+kernel-points id=128305343901 skipped
+pr-contract id=128305317224 skipped
+pr-contract / pr-contract id=128303396284 success
+prelude id=128305316806 success
+refresh id=128305316606 success
+tests id=128305316893 skipped
+tests / arch-instrument id=128292633019 success
+tests / briefs id=128292504006 success
+tests / browser id=128292633094 success
+tests / ci-ratchet id=128300689909 skipped
+tests / claims-autofix id=128292745490 skipped
+tests / closure-scope id=128292503951 success
+tests / closures id=128292633115 success
+tests / closures-autofix id=128300689908 skipped
+tests / coverage id=128292633850 skipped
+tests / coverage-ratchet id=128292634834 skipped
+tests / fast (3.14) id=128292633069 success
+tests / graders-head-copy id=128292633322 success
+tests / lane-proofs id=128292744137 success
+tests / mutation id=128292503945 success
+tests / mutation-autofix id=128303395574 skipped
+tests / mutation-pins id=128303395485 skipped
+tests / nightly-ha (2025.2.0) id=128292633030 success
+tests / nightly-ha (stable) id=128292633198 success
+tests / nightly-status id=128292504011 success
+tests / replay id=128292633083 success
+tests / typing id=128292633051 success
+validate id=128305317059 skipped
+validate / validate-hacs id=128292503984 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at bba5b4d4d7ac37f339850de36b1ca24573f8c821
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
-NOTE body item dcab459d: dismissed:this seat may not write the roster branch; the orchestrator lands it on R10-PROCESS-SLIM or refuses it
-NOTE body item b4d171b4: dismissed:orchestrator's dispatch, not a finding
-NOTE body item a6d26f0d: dismissed:orchestrator's dispatch, not a finding
+NOTE body item a08541b3: dismissed:instrument class outside this PR's diff; the orchestrator routes it to the mutation-tooling owner or refuses it
+NOTE body item 979393b1: dismissed:orchestrator's dispatch, not a finding
+NOTE body item 4e05a0b0: dismissed:orchestrator's dispatch, not a finding
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         tests/features.py
-             `tests/features.py` is in the tree at this head
-  ok         gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>/logs | grep -E "Extracted file .* in [0-9]{5,}ms"
-             gh api: every long flag accepted
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  unverified git show <sha>:tests/features.py | wc -l
-             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  ok         PYTHONPATH=tests/hastub python3 tests/features.py
+ok         PYTHONPATH=tests/hastub python3 tests/features.py
              `tests/features.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/entities.py` is in the tree at this head
-  ok         python3 tests/structure.py
+  ok         python3 -I tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         python3 tests/closure.py selftest
+  ok         tests/closure.py
              `tests/closure.py` is in the tree at this head
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) ./tests/run.sh
+             `tests/run.sh` is in the tree at this head
+  ok         tests/arch_score.py
+             `tests/arch_score.py` is in the tree at this head
+  ok         HPO_ALLOW_STALE_TOOLS=1 bash tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
   ok         tests/worker_deadlines.py
              `tests/worker_deadlines.py` is in the tree at this head
-  ok         ./tests/derive_closures.sh --single tests/features.py
-             `tests/derive_closures.sh` is in the tree at this head
-  ok         tests/closure.py changes the gate itself
-             `tests/closure.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"
-             `tests/closure.py` is in the tree at this head
+  unverified git diff --stat origin/main...HEAD -- tests/golden VERSION RELEASE_NOTES.md
+             `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 11 resolved, 1 not verified, 0 refused
+FIGURES: 8 resolved, 1 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -733,10 +736,10 @@ index 0ec5d97dd..b3d1df5d7 100644
      # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
      # is driven by the workflow's decision steps, never by the suite. NOT
 diff --git a/tests/closures.json b/tests/closures.json
-index 79d3291ae..b0319ca4e 100644
+index c71959796..ca2802994 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -1692,6 +1692,7 @@
+@@ -1693,6 +1693,7 @@
     "tests/typing_ruler.py",
     "tests/validate.py",
     "tests/wood_advisor.py",
@@ -744,7 +747,7 @@ index 79d3291ae..b0319ca4e 100644
     "tools/audit/archscore/__init__.py",
     "tools/audit/archscore/calibrate.py",
     "tools/audit/archscore/counters.py",
-@@ -2253,6 +2254,7 @@
+@@ -2254,6 +2255,7 @@
     "tests/run.sh",
     "tests/stress.py",
     "tests/structure.py",
@@ -1127,10 +1130,10 @@ index 004a7b041..b4405499a 100755
    # pair as its two named skips.
 diff --git a/tests/worker_deadlines.py b/tests/worker_deadlines.py
 new file mode 100644
-index 000000000..87f0ca652
+index 000000000..d4576b877
 --- /dev/null
 +++ b/tests/worker_deadlines.py
-@@ -0,0 +1,532 @@
+@@ -0,0 +1,565 @@
 +"""The solve worker's reply deadline, frame bound and stop-path lock bound.
 +
 +Not a script: ``tests/features.py`` calls ``run`` at the place these checks
@@ -1495,6 +1498,39 @@ index 000000000..87f0ca652
 +                and _wt_cap_s < 0.5 and _wt_cap_free and _coord._PROCESS_WORKER is None,
 +                f"raised {_wt_cap_err!r} after {_wt_cap_s:.2f} s; returned {len(_wt_cap_out or b'')} bytes; "
 +                f"lock_free={_wt_cap_free} worker={_coord._PROCESS_WORKER!r}",
++            )
++            # The cap bounds the WHOLE frame, not each read(): a reply of two
++            # 600 kB strings reads each under a 1 MB cap and totals 1.2 MB, and
++            # only the running count in ``_frame_reader`` refuses it. The null
++            # control is a total under the cap, which returns whole.
++            _coord._REPLY_FRAME_MAX_BYTES = 1_000_000
++            try:
++                _wt_cum_ok_err, _wt_cum_ok = _submit(
++                    _coord._run_in_process, tuple,
++                    ([bytes(400_000), bytes(400_000)],))
++                _wt_cum_t0 = _wt_time.monotonic()
++                _wt_cum_err, _wt_cum_out = _submit(
++                    _coord._run_in_process, tuple,
++                    ([bytes(600_000), bytes(600_000)],))
++                _wt_cum_s = _wt_time.monotonic() - _wt_cum_t0
++            finally:
++                _coord._REPLY_FRAME_MAX_BYTES = _wt_cap_saved
++            _wt_cum_free = _coord._PROCESS_LOCK.acquire(blocking=False)
++            if _wt_cum_free:
++                _coord._PROCESS_LOCK.release()
++            R.check(
++                "null control: a reply of two reads whose total is under the frame cap returns whole",
++                _wt_cum_ok_err is None and _wt_cum_ok is not None
++                and tuple(len(b) for b in _wt_cum_ok) == (400_000, 400_000),
++                f"raised {_wt_cum_ok_err!r}",
++            )
++            R.check(
++                "a reply whose reads each fit the frame cap but whose total exceeds it is refused and the worker reaped",
++                isinstance(_wt_cum_err, _coord.ProcessWorkerUnavailable)
++                and "exceeds 1000000 bytes" in str(_wt_cum_err) and _wt_cum_out is None
++                and _wt_cum_free and _coord._PROCESS_WORKER is None,
++                f"raised {_wt_cum_err!r} after {_wt_cum_s:.2f} s; returned {_wt_cum_out!r}; "
++                f"lock_free={_wt_cum_free} worker={_coord._PROCESS_WORKER!r}",
 +            )
 +        finally:
 +            _coord._REPLY_FRAME_TIMEOUT_S = _wt_frame_saved
