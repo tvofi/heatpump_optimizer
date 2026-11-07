@@ -50,7 +50,8 @@
 // rules FOUND, and finding nothing is what a clean tree and a gutted linter
 // both look like. fixtures/wave-1b-931dffe.json pins lintBrief,
 // fixtures/shape-defects.json pins checkShape, fixtures/carry-99000*.json pin
-// the carry rules in both directions, and a probe pins the driver guard. Each
+// the carry rules in both directions, fixtures/playbook-*.md pin the playbook
+// arm (dev/audit/README.md's paths), and a probe pins the driver guard. Each
 // states the errors it must still produce; see REQUIRED_931DFFE.
 
 import fs from 'node:fs'
@@ -1017,6 +1018,96 @@ export function carryFiles(dir) {
 // driver
 
 // `shape` is off for the acceptance fixture only -- see checkShape's note.
+// ---------------------------------------------------------------------------
+// The playbook arm (R10-ROUND-PLAYBOOK). dev/audit/README.md tells a fresh
+// orchestrator which instrument and contract binds each phase of a round; a
+// renamed or deleted one leaves the phase pointing at nothing. Every backticked
+// span whose first word is a path is resolved in the tree under test (the
+// checkout, or BRIEF_LINT_TREE_REV), or at a SHA or tag the same file cites.
+// Fenced and indented code is a command transcript, not a citation, and is
+// skipped. A token with a slash must match a tracked path exactly or as a
+// whole-segment suffix, so an instrument moved to another directory is red;
+// a bare basename resolves anywhere, as a brief's does. A trailing slash names
+// a directory: some tracked path starts with it.
+export const PLAYBOOK_FILE = 'dev/audit/README.md'
+const PLAYBOOK_PATH_RE = new RegExp(`^(?:[A-Za-z0-9_.][A-Za-z0-9_.-]*/)*(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\\.(?:${EXT_RE})|[A-Za-z0-9_.][A-Za-z0-9_.-]*/)$`)
+
+export function playbookCitations(text) {
+  const prose = []
+  let fenced = false
+  for (const line of text.split('\n')) {
+    if (/^\s*```/.test(line)) { fenced = !fenced; continue }
+    if (fenced || /^ {4}/.test(line)) continue
+    prose.push(line)
+  }
+  const out = new Set()
+  for (const m of prose.join('\n').matchAll(/`([^`\n]+)`/g)) {
+    const word = m[1].trim().split(/\s+/)[0].replace(/:\d+(?:-\d+)?$/, '')
+    // `../x` is outside the repository by construction: a statement, not a citation.
+    if (PLAYBOOK_PATH_RE.test(word) && !word.startsWith('../')) out.add(word)
+  }
+  return [...out]
+}
+
+function playbookLookup(listing, token) {
+  const list = listing.list || [...listing.set]
+  if (token.endsWith('/')) return list.some((f) => f.startsWith(token) || f.includes(`/${token}`))
+  if (!token.includes('/')) return !!lookupPath(listing, token)
+  return listing.set.has(token) || list.some((f) => f.endsWith(`/${token}`))
+}
+
+// The checkout is tried raw and canonical: trackedFiles() files a moved path
+// under its pre-move name (canonList), and a directory has no such entry.
+let _rawTree = null
+function rawTree() {
+  if (_rawTree) return _rawTree
+  const list = treeListing(process.env.BRIEF_LINT_TREE_REV).split('\n').filter(Boolean)
+  _rawTree = { set: new Set(list), byBase: basenameMap(list), list }
+  return _rawTree
+}
+
+export function lintPlaybook(label, text, findings) {
+  const add = (severity, kind, message) => findings.push({ group: label, severity, kind, message })
+  const refs = tagRefsIn(text)
+  for (const token of playbookCitations(text)) {
+    if (playbookLookup(rawTree(), token) || playbookLookup(trackedFiles(), canonList([token])[0])) continue
+    const tagResult = checkAgainstTags(refs, (ref) => {
+      const listing = refFiles(ref)
+      return listing === null ? null : playbookLookup(listing, token)
+    })
+    if (tagResult.status === 'ok') continue
+    // No shorthand warning here: a playbook names an instrument to run, so a
+    // path that matches only part of a basename is a rename, not prose.
+    if (tagResult.status === 'none') add('error', 'playbook path', `${token}: not in the tree, and no tag SHA is cited alongside it`)
+    else reportUnresolvedPath(add, 'playbook path', token, token, tagResult, refs)
+  }
+  return findings
+}
+
+const lintPlaybookFile = (file) => lintPlaybook('(playbook)', fs.readFileSync(file, 'utf8'), [])
+
+// The arm's acceptance: the renamed fixture must be refused for exactly the
+// instruments it renames and removes, and the null fixture -- the same prose
+// with the real paths -- must produce no finding of any severity.
+const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py']
+function assertPlaybookFixtures() {
+  const problems = []
+  const red = lintPlaybookFile(path.join(FIXTURES, 'playbook-renamed.md'))
+  const errs = red.filter((f) => f.severity === 'error')
+  for (const needle of REQUIRED_PLAYBOOK) {
+    if (!errs.some((e) => e.message.startsWith(`${needle}:`))) problems.push(`playbook-renamed.md: no error for ${needle}`)
+  }
+  if (errs.length !== REQUIRED_PLAYBOOK.length) problems.push(`playbook-renamed.md: ${errs.length} error(s), not ${REQUIRED_PLAYBOOK.length}`)
+  for (const f of lintPlaybookFile(path.join(FIXTURES, 'playbook-null.md'))) problems.push(`playbook-null.md: ${f.severity} ${f.message}`)
+  if (problems.length) {
+    console.log('\nPLAYBOOK VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log(`\nPLAYBOOK ok: the renamed fixture is refused for its ${REQUIRED_PLAYBOOK.length} moved instruments and the null fixture lints clean`)
+  return 0
+}
+
 function lintFile(file, { shape = true } = {}) {
   const findings = []
   let data
@@ -1520,6 +1611,7 @@ function main() {
   for (const f of carries) {
     totalErrors += printReport(path.relative(ROOT, f), lintFileGuarded(f, { roster }, lintCarryFile))
   }
+  if (defaultRun) totalErrors += printReport(PLAYBOOK_FILE, lintPlaybookFile(path.join(ROOT, PLAYBOOK_FILE)))
   // Printed even at zero, and named: a destination nobody has written to is a
   // fact a reviewer should read, not an absence they have to infer.
   console.log(`\nCARRY: ${carries.length} carry file(s) (dev/programme/carries/carry-<issue>.json)`)
@@ -1540,6 +1632,7 @@ function main() {
     acceptanceRc += assertCarryControl()
     acceptanceRc += assertLegacyControl()
     acceptanceRc += assertTreeRev()
+    acceptanceRc += assertPlaybookFixtures()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
 }
