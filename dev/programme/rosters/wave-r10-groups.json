@@ -18227,7 +18227,8 @@
    "rca": [],
    "after": [],
    "carry": [
-    "Re-routed from R10-PARTLOAD-PRICING carry 0 by the s12 carry-routing seat (2026-11-07): that group's pull request (#3182) built its own seam and closes; this residue is what it left. Original text: The 2.5x CPU cost of the live buffer store, and the 272 s owner-box outlier: a bound or warm start on the planner must earn it (R10-BUFFER-STORE carry, `optimizer.py`). Carry: R10-PARTLOAD-RESIDUE"
+    "Re-routed from R10-PARTLOAD-PRICING carry 0 by the s12 carry-routing seat (2026-11-07): that group's pull request (#3182) built its own seam and closes; this residue is what it left. Original text: The 2.5x CPU cost of the live buffer store, and the 272 s owner-box outlier: a bound or warm start on the planner must earn it (R10-BUFFER-STORE carry, `optimizer.py`). Carry: R10-PARTLOAD-RESIDUE",
+    "Re-routed from R10-PARTLOAD-PRICING carry 2 by the s12 carry-routing seat (2026-11-07): that group's pull request (#3182) built its own seam and closes; this residue is what it left. Original text: From PR #3006 round 2 (handoff-body/r10-cop-partload-p2 cee77229): linear valuations under a convex cost. The hot-water LP's objective (price * E / cop), the terminal row_cost, _deferred_energy_cost and the wood advisor's pump-heat price all price heat linearly at a COP, with no draw rate. Under a part-load derate the electrical cost is convex in heat, so each is a secant under-estimate. FIRST measure the magnitude: the cost error, in currency per day, between the linear price and the derated per-step price on the round-2 derate scenarios, with a zero-derate null control that must read 0. Segment only if the error is material: per-step segments in the LP, a stated refill rate for the terminal and deferred figures. A later D0 pass on _plan_dhw_min_cost and _terminal_cost owns the decision. Carry: R10-PARTLOAD-RESIDUE"
    ],
    "architect_note": "",
    "resume": {
