@@ -1,7 +1,7 @@
 # R10-RCA-LIVEHEAD-CANCEL: whole-run cancels at live pull-request heads
 
 Root-cause seat, group R10-RCA-LIVEHEAD-CANCEL. Measured at origin/main
-`355d9965a7a14ec45ef8cd25fb9c75c5ced044f1`, 2026-11-07 03:57-04:20Z. Every
+`355d9965a7a14ec45ef8cd25fb9c75c5ced044f1`, 2026-11-07 03:57-05:00Z. Every
 figure below names the command that produced it. The instrument is
 `dev/audit/harnesses/livehead_cancels.py`, landed with this document. Its cache
 (`--cache DIR`) holds what GitHub returned and stays out of the tree.
@@ -95,7 +95,7 @@ browser and any relay holding the owner's token read the same `@tvofi`. A
 user-owned repository has no audit-log API that would name the client. The seat
 that holds the answer is whichever one sent `POST actions/runs/42332985078/cancel`
 near 03:24:57Z and `POST actions/runs/42329221705/cancel` near 03:49:15Z, and
-then the reruns 32 s and 96 s later. Only the orchestrator can read those
+then the reruns 32 s and 96 s after the first job cancelled. Only the orchestrator can read those
 transcripts. This seat cannot.
 
 **The motive, as far as the tree can show it.** P267
@@ -155,72 +155,78 @@ pull_request run created by then.
     python3 dev/audit/harnesses/livehead_cancels.py --cache DIR --fetch \
         --since 2026-11-04T00:00:00Z --until 2026-11-07T04:00:00Z --list
 
-The run read 1631 attempts and attributed 344 cancelled attempts. It took 19 min
-wall-clock (attempts 4.5 min, annotations 14.5 min).
+It read 1217 runs (1960 attempts) and attributed 421 cancelled attempts.
 
-    CANCELLED    125  by=@github-actions[bot]         head=superseded
-    CANCELLED    141  by=@tvofi                       head=live
-    CANCELLED     27  by=@tvofi                       head=superseded
-    CANCELLED     31  by=timeout                      head=live
+**Completeness control.** `gh api 'repos/tvofi/heatpump_optimizer/actions/workflows/ci.yml/runs?per_page=1&created=2026-11-04T00:00:00Z..2026-11-07T04:00:00Z' --jq .total_count`
+prints `1217`. A first fetch, before the harness listed in slices, stopped at
+exactly 1000 runs without any error. That is GitHub's silent cap on a filtered
+listing. The harness now lists in 6-hour slices and refuses a slice that reaches
+the cap.
+
+    CANCELLED    182  by=@github-actions[bot]         head=superseded
+    CANCELLED    154  by=@tvofi                       head=live
+    CANCELLED     29  by=@tvofi                       head=superseded
+    CANCELLED     32  by=timeout                      head=live
     CANCELLED      1  by=timeout                      head=superseded
     CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
     CANCELLED      1  by=timeout+@tvofi               head=live
-    CANCELLED     16  by=unattributed                 head=live
-    CANCELLED      1  by=unattributed                 head=superseded
-    CLASS live-head external cancels: 142, minutes lost 2586.3 (attempt start to cancel)
+    CANCELLED     17  by=unattributed                 head=live
+    CANCELLED      2  by=unattributed                 head=superseded
+    CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)
     NULLCONTROL-HEAD live=0 class=0
     NULLCONTROL-BOT class=0
+    FOLLOW restarted     81  minutes  1861.2
+    FOLLOW duplicate      5  minutes   153.0
+    FOLLOW dropped       69  minutes   850.5
+    FOLLOW restart gap s: min 22 median 906 max 7496, within 120 s 18
 
-Both events in the brief are in the `--list` output (`42332985078/1`, 11.8 min,
-and `42329221705/2`, 16.8 min). #3275's two bot cancels read
-`@github-actions[bot]` / `superseded`, outside the class. The null controls force
-every head superseded and every canceller to the bot, and both print 0. So the
-class count is not something the classifier produces whatever its input.
-`--selftest` drives the same rule on synthetic attempts.
+What the output shows:
+
+- **Both events in the brief are in the `--list` output.** `42332985078/1` ran
+  11.8 min and its restart gap was 22 s. `42329221705/2` ran 16.8 min and its
+  gap was 70 s. Gaps are measured from the attempt's `updated_at`; section 1
+  measures from the first job cancelled.
+- **#3275's two bot cancels** read `@github-actions[bot]` / `superseded`,
+  outside the class.
+- **The null controls** force every head superseded and every canceller to the
+  bot, and both print 0. So the class count is not something the classifier
+  produces whatever its input. `--selftest` drives the same rules, the follow-up
+  classification included, on synthetic attempts.
+- **The follow-up classes.** `restarted` is a later attempt of the same run.
+  `duplicate` is a run of the same kind at the same SHA that was alive at the
+  cancel. `dropped` is neither.
+- **The cadence in the brief's hour,** by `--list --since
+  2026-11-07T02:30:00Z`: seven class cancels between 02:38 and 03:50Z, each
+  restarted. They were #3272 02:38, #3264 02:54, #3274 03:16, #3241 03:25,
+  #3267 03:35, #3273 03:41 and #3232 03:49, so about one every 8-10 min. Read by
+  hand from the seven attempts' jobs API, they share no failing job. Their
+  longest-running job at the cancel ranged from 0.5 min (`pr-contract`) to
+  58 min (`mutation-pins`).
+- **`record/autofix` (#3215)** accounts for 40 of the 155. It is the
+  bot-recorded delivery PR, which the train drives, so its cancels may be
+  deliberate. This seat did not establish that.
 
 **Live-head proxy, and which way it errs.** A push that started no run is
 invisible to the proxy, so the proxy can read a superseded attempt as live and
-never the reverse. The 142 is an upper bound on live-head cancels. The 141 is
-exact for "cancelled by `@tvofi`".
-
-What followed each of the 142, by a scratch reading over the same cache (the
-next attempt of the same run, or a run of the same kind at the same SHA that was
-alive at the cancel):
-
-| what followed | attempts | minutes run before the cancel |
-|---|---|---|
-| restarted: a later attempt of the same run | 70 | 1584.9 |
-| dropped: no later attempt and no twin | 67 | 848.4 |
-| duplicate: a twin run was alive at the cancel | 5 | 153.0 |
-
-- **Restart gap (cancel to next attempt start).** Minimum 22 s, median 816 s,
-  maximum 7496 s. 17 of the 70 restarts came within 120 s, as both events here
-  did.
-- **PR merged or closed within 10 min of the cancel.** 0 of 142, by the pulls
-  API on each PR the run title names. These were not cleanup after a merge.
-- **Cadence in the brief's hour.** Seven class cancels between 02:38 and 03:50Z,
-  each restarted: #3272 02:38, #3264 02:54, #3274 03:16, #3241 03:24, #3267
-  03:34, #3273 03:41, #3232 03:49. About one every 8-10 min, with no common
-  failing or long-running job.
-- **`record/autofix` (#3215).** It accounts for 38 of the class rows. It is the
-  bot-recorded delivery PR, which the train drives. Its cancels are almost all
-  "dropped". Whether that harms anything depends on the train, and this seat did
-  not measure it.
+never the reverse. The 155 is an upper bound on live-head cancels. The 154 + 1 is
+exact for "cancelled by `@tvofi`" with the proxy reading live.
 
 ## 5. Cost test
 
     cost(countermeasure, recurring) < cost(defect) x P(recurrence)
 
-**Defect.** In 76 h of this window: 142 cancels, which is 45 per day, so
+**Defect.** In the 76 h window: 155 cancels, about 49 per day, so
 P(recurrence) is about 1 per day at least.
 
-- 2586 runner-minutes were run and discarded, from attempt start to cancel.
-- Each restart adds the gap plus a full rerun before the head has a gate.
+- 2864.7 runner-minutes were run and discarded, from attempt start to cancel.
+- 81 restarts each added the gap (median 906 s) plus a full rerun before the
+  head had a gate.
+- 69 were dropped: the head kept a cancelled gate until something else ran.
 - The brief's concrete cost is one reviewer dispatch per event, because the bus
   refuses a head whose latest gate is cancelled. Its two events delayed two
-  dispatches by at least 11.8 + 0.5 min and 16.8 + 1.6 min of discarded run,
-  plus each rerun's own run time.
-- For the other 140, the delay to a dispatch depends on whether the PR was
+  dispatches by at least 11.8 min + 22 s and 16.8 min + 70 s, plus each rerun's
+  own run time.
+- For the other 153, the delay to a dispatch depends on whether the PR was
   waiting for review at the time. This seat did not measure that, so it is not
   stated.
 
@@ -228,25 +234,31 @@ P(recurrence) is about 1 per day at least.
 
 1. *Re-key `ci.yml`'s concurrency group so an `edited` event cannot cancel a
    code run.* **Refused: it is a no-op.** The group is already per run id with
-   `cancel-in-progress: false`, and no cancel in the class is a concurrency
-   cancel (0 rows read `concurrency`).
+   `cancel-in-progress: false`, and no cancel in the window is a concurrency
+   cancel (no `by=concurrency` row).
 2. *Route body edits through a path that does not trigger the group.* **Refused:
    the cause is not a body edit.** Edit runs neither enter a code run's group nor
-   send cancels, and no edit run's `cancel-superseded` job cancelled anything at
-   a live head.
+   send cancels: a run-id group admits no other run, and an edit run's
+   `cancel-superseded` cancels only older-head runs (`candidates()`).
 3. *Make the dispatch seat's rerun rule explicit in tools.* **Refused here.** The
    rerun is the response to the cancel, not its cause. A sharper rerun rule
-   leaves the 142 cancels in place.
+   leaves the 155 cancels in place.
 4. *A live-head refusal in `ci_probe.py cancel`.* **Not built.** It would cost
    about one PR-head read per cancel and nothing per CI run. But no evidence
-   shows `ci_probe.py` sent any of the 142: it has no in-tree caller, and its log
+   shows `ci_probe.py` sent any of the 155: it has no in-tree caller, and its log
    path is the caller's. A guard on a path not shown to be used is unmotivated by
    `root-cause.md` section 5. Revisit if the orchestrator's reading (section 6)
    names it.
 5. *The detector, `livehead_cancels.py`.* **Built.** It adds 0 s to every CI run
    and every session, because it runs only on demand. A reading costs about
-   19 min wall-clock and about 1,000 read-only API calls per 3-day window, well
-   inside the 5,000/h REST budget. It turns "no known cause" into a named
+   about 1,600 read-only API calls per 3-day window, well inside the 5,000/h
+   REST budget:
+   - at least 13 listing pages, one per 6-hour slice;
+   - 743 earlier-attempt reads (1960 attempts less 1217 runs);
+   - 421 jobs reads;
+   - at most 425 annotation reads (421 first, plus 4 timeout re-reads, counted
+     from `cancellers.jsonl`). The resumed annotation pass took 12 min
+   wall-clock (04:44-04:56Z). It turns "no known cause" into a named
    credential, a count and a restart pattern in one run. That is the first step
    any countermeasure needs, and the only one this seat can take without knowing
    the sender.
@@ -258,7 +270,7 @@ leaving it unbuilt here is not a decision against it.
 ## 6. Owed, and where it goes
 
 - **To the orchestrator.** Name the process that sends `@tvofi` cancels at live
-  heads: about 45 a day in this window, 17 restarted within 2 min. It is in a
+  heads: about 49 a day in this window, 18 restarted within 2 min. It is in a
   seat transcript, a relay or the owner's own hand. The countermeasure depends on
   which:
   - If it is a hand-run P267 pause, land P267's bounded pause
@@ -278,10 +290,10 @@ leaving it unbuilt here is not a decision against it.
 
 ## 7. Not covered
 
-- The 16 `unattributed` and 31 `timeout` live-head cancels. Timeouts are
+- The 17 `unattributed` and 32 `timeout` live-head cancels. Timeouts are
   R10-HOTFIX-SELFTEST-TIMEOUT's. An unattributed attempt's earliest-completed
   cancelled job carried no canceller line, and this seat did not read further
   into them.
 - Workflows other than `ci.yml`.
-- Attempt 3 of 42329221705 was still in progress at 04:20Z. Its outcome is not
-  part of this reading.
+- Attempt 3 of 42329221705 started after the window's 04:00Z end. Its outcome is
+  not part of this reading.

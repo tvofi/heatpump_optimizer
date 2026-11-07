@@ -131,6 +131,39 @@ def in_class(row: dict) -> bool:
     return row["live"] and row["by"].removeprefix("timeout+").startswith("@") and BOT not in row["by"]
 
 
+def follow(rows: list[dict], attempts: list[dict]) -> dict:
+    """What followed each class row: a later attempt of the same run (restarted), a run of the
+    same kind at the same sha alive at the cancel (duplicate), or neither (dropped)."""
+    f = "%Y-%m-%dT%H:%M:%SZ"
+    t = lambda x: calendar.timegm(time.strptime(x, f))
+    by_run: dict[int, dict[int, dict]] = {}
+    for a in attempts:
+        by_run.setdefault(int(a["id"]), {})[int(a["run_attempt"])] = a
+    out = {"restarted": [], "duplicate": [], "dropped": []}
+    gaps = []
+    for r in rows:
+        rid, n = map(int, r["key"].split("/"))
+        a = by_run[rid][n]
+        tc = t(a["updated_at"])
+        nxt = by_run[rid].get(n + 1)
+        if nxt and nxt.get("run_started_at"):
+            out["restarted"].append(r)
+            gaps.append(t(nxt["run_started_at"]) - tc)
+        elif any(x["id"] != a["id"] and x["head_sha"] == a["head_sha"] and x.get("event") == "pull_request"
+                 and kind(x.get("display_title", "")) == r["pr_kind"]
+                 and t(x["created_at"]) <= tc + 60 and t(x["updated_at"]) >= tc for x in attempts):
+            out["duplicate"].append(r)
+        else:
+            out["dropped"].append(r)
+    for k, v in out.items():
+        print(f"FOLLOW {k:10s} {len(v):5d}  minutes {sum(r['minutes'] for r in v):7.1f}")
+    gaps.sort()
+    if gaps:
+        print(f"FOLLOW restart gap s: min {gaps[0]:.0f} median {gaps[len(gaps) // 2]:.0f} max {gaps[-1]:.0f}, "
+              f"within 120 s {sum(g <= 120 for g in gaps)}")
+    return {k: len(v) for k, v in out.items()}
+
+
 def report(rows: list[dict], show: bool) -> dict:
     tally = Counter((r["by"], "live" if r["live"] else "superseded") for r in rows)
     cls = [r for r in rows if in_class(r)]
@@ -214,14 +247,14 @@ def fetch_cancellers(cache: Path, attempts: list[dict]) -> None:
             f.flush()
 
 
-def load(cache: Path, since: str | None, until: str | None) -> list[dict]:
+def load(cache: Path, since: str | None, until: str | None) -> tuple[list[dict], list[dict]]:
     attempts = [json.loads(x) for x in open(cache / "attempts.jsonl")]
     cancellers = {}
     for x in open(cache / "cancellers.jsonl"):
         r = json.loads(x)
         cancellers[r["key"]] = attribute(r["first"], r["last"])
     rows = classify(attempts, cancellers)
-    return [r for r in rows if (not since or r["cancel"] >= since) and (not until or r["cancel"] <= until)]
+    return [r for r in rows if (not since or r["cancel"] >= since) and (not until or r["cancel"] <= until)], attempts
 
 
 def selftest() -> int:
@@ -246,6 +279,9 @@ def selftest() -> int:
                     ["The run was canceled by @owner."]) == "timeout+@owner"
     ok &= not any(in_class(dict(r, live=False)) for r in rows)
     ok &= not any(in_class(dict(r, by=f"@{BOT}")) for r in rows)
+    fl = follow([r for r in rows if in_class(r)], atts + [att(1, 2, "a", "2026-11-07T03:10:30Z", "2026-11-07T03:30:00Z", "success")])
+    ok &= fl == {"restarted": 1, "duplicate": 0, "dropped": 0}
+    ok &= follow([r for r in rows if in_class(r)], atts) == {"restarted": 0, "duplicate": 0, "dropped": 1}
     sl = slices("2026-11-04T00:00:00Z", "2026-11-04T13:00:00Z")
     ok &= sl == [("2026-11-04T00:00:00Z", "2026-11-04T05:59:59Z"), ("2026-11-04T06:00:00Z", "2026-11-04T11:59:59Z"),
                  ("2026-11-04T12:00:00Z", "2026-11-04T12:59:59Z")]
@@ -270,7 +306,9 @@ def main(argv: list[str]) -> int:
         if not a.since:
             ap.error("--fetch needs --since")
         fetch(a.cache, a.since, a.until)
-    report(load(a.cache, a.since, a.until), a.list)
+    rows, attempts = load(a.cache, a.since, a.until)
+    report(rows, a.list)
+    follow([r for r in rows if in_class(r)], attempts)
     return 0
 
 
