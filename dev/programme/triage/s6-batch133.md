@@ -356,3 +356,29 @@ Cost:
 
 Binding:
 - **Carry for R10-TICK-LEVELS.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P416 at <roster sha>), instrument defect: owed_unactioned.py key_of has no arm for orchestrator_tick.py own owed line -> OWED body-ahead #<pr> <sha12> handoff-body/<topic> ... (tick line 927), so board() raises Unreadable and run() exits 2 on the whole board; logged 2026-11-07 as UNACTIONED-UNREADABLE on #3265 c7c5cef52a49 while that body sat 50 min unapplied. Add the arm (key #<pr>, id the sha12) and a self-test that every owed kind the tick emits in its own fixtures has a key arm. Self-test arms: a body-ahead line keys and is reported unactioned on the second sweep; null control: a line naming no PR stays UNREADABLE; a mutant dropping the arm fails the first.`
+
+## P417: roster batch swallows the refusal (queue line s12-roster-batch-swallows-reason)
+
+Verdict: ACCEPT. This is a silent-swallow defect. `roster_queue.py` `_run_batch` catches `SystemExit` and `Exception` as `e`, discards `e`, and prints only `roster: batch fell back to the single-op path`. Accepted:
+- print the exception and the line it names;
+- when the failure is attributable to one line (argparse refused that line's parse, or `roster_edit` raised `Refuse` naming it), re-batch once without that line and report it refused.
+
+Any other batch-level failure still falls back as today. The destination is a carry on R10-ROSTER-WRITE-SWEEP (PR 3253), which owns `roster_queue.py`. It is not taken on the >10 % exemption.
+
+Source: the orchestrator's queue line of 2026-11-07T17:16:12Z.
+
+Instances:
+- **The swallow.** In `tools/audit/seat/roster_queue.py` `_run_batch` (line 264), both `except SystemExit as e` and `except Exception as e` set `rc, m, results = 1, None, None` and never read `e`. Line 307 is the only output.
+- **The instance.** A 116-line hold drain fell to the single-op path, about 2 h, with no way to see or drop the one bad line (queue line).
+- **The rule on the instance.** The failing line is printed, with roster_edit's message. If that line's parse or `Refuse` caused the failure, the other 115 lines land in one batch in seconds: `_run_batch`'s docstring gives 0.36 s a line against 1 to 3 min a line single-op. The bad line is reported refused.
+
+Cost:
+- About 20 lines, with self-test arms:
+  - a batch with one malformed line lands the rest and names the bad line;
+  - a batch-level failure not tied to a line (a lost race) still falls back;
+  - a mutant that drops the re-batch falls back on the first arm.
+- The null control: a clean batch is unchanged.
+- **Benefit.** About 2 h on the measured instance. Long hold drains recur at each freeze release, so expect 2 to 4 more this round: **4 to 8 h. Tier: instrument.**
+
+Binding:
+- **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P417 at <roster sha>), savings estimate 4 to 8 h (instrument tier): roster_queue.py _run_batch catches SystemExit and Exception as e, discards e and prints only roster: batch fell back to the single-op path, so a 116-line hold drain on 2026-11-07 fell to about 2 h single-op with the refusing line unknown. Print the exception and the line it names; when the failure is one line (its parse_op SystemExit or a roster_edit Refuse naming it), re-batch once without that line and report it refused; any other batch-level failure falls back as today. Self-test arms: one malformed line in a batch lands the rest and names it; a lost race still falls back; null control: a clean batch is unchanged; a mutant dropping the re-batch fails the first.`
