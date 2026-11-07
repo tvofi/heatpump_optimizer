@@ -70,6 +70,9 @@
   ok   a refused verdict is not retried on the next pass
   ok   watch refuses a raw proposal whose only naming file is VERDICT.md
   ok   unpack refuses a proposal whose evidence names differ only by case, naming both (read side)
+  ok   unpack names both colliding names when the folded file would not name the head (ls-tree read)
+  ok   case_collision_names refuses a folded-source ls-tree name list, naming both
+  ok   case_collision_names lets a distinct ls-tree name list past (null control)
   ok   unpack lets distinct evidence names past the case check (null control, read side)
   ok   a poster refusal is reported and not recorded as posted
   ok   a merge verdict the poster refused adds nothing to the train
@@ -154,4 +157,4 @@
   ok   and dispatches once the group's carries name the pull request (P310, the null control)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 156 checks, 0 failed
+bus self-test: 159 checks, 0 failed

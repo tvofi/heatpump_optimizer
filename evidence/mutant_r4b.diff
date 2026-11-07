@@ -1,0 +1,17 @@
+diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
+index f55b4c35a..6bf350e0f 100644
+--- a/tools/audit/seat/cloud_relay.sh
++++ b/tools/audit/seat/cloud_relay.sh
+@@ -232,10 +232,10 @@ relay() {
+   # from the commit's own name list and BEFORE anything is extracted: on such a filesystem the
+   # unpack itself dies (mkdir/write on the colliding path, rc 1) before any later check could refuse.
+   # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
+-  local dup; dup=$(ev_case_collision "$sha")
+-  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
+   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
+   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
++  local dup; dup=$(ev_case_collision "$sha")
++  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
+   subj=$(git log -1 --format=%s "$sha")
+   [ "$subj" = "verdict $pr $head" ] || { die "the ref's commit says '$subj', not 'verdict $pr $head': another PR or head"; return; }
+   [ -f "$d/verdict.md" ] || { die "no verdict.md in the ref"; return; }
