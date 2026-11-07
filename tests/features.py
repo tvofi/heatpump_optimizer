@@ -68596,6 +68596,11 @@ R.check(
 # The solve cell is the finder's (dev/audit/harnesses/r10_min_power_floor.py):
 # a 2.5-3.5 kW pump, spread prices, DHW on, outdoor mean -4 degC.
 from heatpump_optimizer.const import (  # noqa: E402
+    CONF_CLAMP_PLANNED_LEVELS as _MPF_CLAMP_KEY,
+    CONF_COMPRESSOR_FREQ_ENTITY as _MPF_FREQ,
+    CONF_HEAT_PUMP_SWITCH_ENTITY as _MPF_SWITCH,
+    CONF_POWER_ENTITY as _MPF_POWER,
+    CONF_SPACE_SETPOINT_ENTITY as _MPF_SETPOINT,
     COMPRESSOR_MODULATION_AUTO as _MPF_AUTO,
     COMPRESSOR_MODULATION_MODULATING as _MPF_MOD,
     COMPRESSOR_MODULATION_ON_OFF as _MPF_ON_OFF,
@@ -68606,18 +68611,28 @@ from heatpump_optimizer.const import (  # noqa: E402
 )
 from heatpump_optimizer.optimizer import (  # noqa: E402
     HeatPumpOptimizer as _MpfOpt,
+    OptimizationConfig as _MpfCfg,
     _realize_draw as _mpf_realize,
 )
 from heatpump_optimizer.thermal_model import (  # noqa: E402
+    UNMETERED_POWER_FREEZE as _MPF_FREEZE,
     ThermalModel as _MpfTM,
     ThermalParameters as _MpfTP,
     ThermalState as _MpfTS,
     declared_modulation as _mpf_declared,
     learner_unmetered as _mpf_unmetered,
+    probe_install as _mpf_probe,
+    project_planned_levels as _mpf_project,
     project_space_against as _mpf_against,
 )
 
-_MPF_SETPOINT_ONLY = {_PP_SETPOINT: "number.flow"}
+# The #1955 block's two surfaces, restated so this block runs alone
+# (``tools/audit/seat/features_block.py``): switch plus setpoint, and that
+# surface with a power entity and a frequency write.
+_MPF_UNMETERED = {_MPF_SWITCH: "switch.hp", _MPF_SETPOINT: "number.flow"}
+_MPF_METERED = {**_MPF_UNMETERED, _MPF_POWER: "sensor.hp_power", _MPF_FREQ: "number.hz"}
+
+_MPF_SETPOINT_ONLY = {_MPF_SETPOINT: "number.flow"}
 _MPF_FREQ_ONLY = {_MPF_FREQ_SENSOR: "sensor.hz"}
 
 
@@ -68628,49 +68643,49 @@ def _mpf_on_off(cfg):
 R.check(
     "a declared on/off compressor clamps on every write surface, metered or not",
     all(
-        _PpCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels is True
-        for m in (_PP_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})
+        _MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels is True
+        for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})
     )
-    and _pp_probe(_mpf_on_off(_PP_METERED)).fully_metered() is False,
-    f"{[_PpCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_PP_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
+    and _mpf_probe(_mpf_on_off(_MPF_METERED)).fully_metered() is False,
+    f"{[_MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
 )
-_mpf_base_rows = (_PP_UNMETERED, _PP_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
+_mpf_base_rows = (_MPF_UNMETERED, _MPF_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
 R.check(
     "null control: auto and an absent key keep the probe's clamp on every surface, "
     "legacy false and modulating opt out, legacy true clamps",
     all(
-        _PpCfg.from_mapping({**m, _MPF_KEY: _MPF_AUTO}).clamp_planned_levels
-        is _PpCfg.from_mapping(m).clamp_planned_levels
+        _MpfCfg.from_mapping({**m, _MPF_KEY: _MPF_AUTO}).clamp_planned_levels
+        is _MpfCfg.from_mapping(m).clamp_planned_levels
         for m in _mpf_base_rows
     )
-    and [_PpCfg.from_mapping(m).clamp_planned_levels for m in _mpf_base_rows]
+    and [_MpfCfg.from_mapping(m).clamp_planned_levels for m in _mpf_base_rows]
     == [True, False, False, False, False]
-    and _PpCfg.from_mapping({**_PP_UNMETERED, _MPF_KEY: _MPF_MOD}).clamp_planned_levels is False
-    and _PpCfg.from_mapping({**_PP_UNMETERED, _PP_CLAMP_KEY: False}).clamp_planned_levels is False
-    and _PpCfg.from_mapping({**_PP_METERED, _PP_CLAMP_KEY: True}).clamp_planned_levels is True
-    and _PpCfg.from_mapping(
-        {**_PP_UNMETERED, _MPF_KEY: _MPF_AUTO, _PP_CLAMP_KEY: False}
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_UNMETERED, _MPF_CLAMP_KEY: False}).clamp_planned_levels is False
+    and _MpfCfg.from_mapping({**_MPF_METERED, _MPF_CLAMP_KEY: True}).clamp_planned_levels is True
+    and _MpfCfg.from_mapping(
+        {**_MPF_UNMETERED, _MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: False}
     ).clamp_planned_levels is False,
 )
 R.check(
     "declared_modulation reads the select first, the legacy key only under auto or absent, "
     "and anything else as undeclared",
     _mpf_declared({}) is None
-    and _mpf_declared({_MPF_KEY: _MPF_ON_OFF, _PP_CLAMP_KEY: False}) is False
-    and _mpf_declared({_MPF_KEY: _MPF_MOD, _PP_CLAMP_KEY: True}) is True
-    and _mpf_declared({_MPF_KEY: _MPF_AUTO, _PP_CLAMP_KEY: True}) is False
-    and _mpf_declared({_PP_CLAMP_KEY: False}) is True
+    and _mpf_declared({_MPF_KEY: _MPF_ON_OFF, _MPF_CLAMP_KEY: False}) is False
+    and _mpf_declared({_MPF_KEY: _MPF_MOD, _MPF_CLAMP_KEY: True}) is True
+    and _mpf_declared({_MPF_KEY: _MPF_AUTO, _MPF_CLAMP_KEY: True}) is False
+    and _mpf_declared({_MPF_CLAMP_KEY: False}) is True
     and _mpf_declared({_MPF_KEY: "bogus"}) is None
-    and _mpf_declared({_PP_CLAMP_KEY: "false"}) is None,
+    and _mpf_declared({_MPF_CLAMP_KEY: "false"}) is None,
 )
 R.check(
     "an unmetered on/off install freezes the house learner; a metered one, or a "
     "declared modulating one, learns",
-    _mpf_unmetered(_mpf_on_off(_MPF_SETPOINT_ONLY)) == _PP_FREEZE
+    _mpf_unmetered(_mpf_on_off(_MPF_SETPOINT_ONLY)) == _MPF_FREEZE
     and _mpf_unmetered(_MPF_SETPOINT_ONLY) is None
-    and _mpf_unmetered(_mpf_on_off(_PP_METERED)) is None
-    and _mpf_unmetered({**_PP_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
-    and _mpf_unmetered(_PP_UNMETERED) == _PP_FREEZE,
+    and _mpf_unmetered(_mpf_on_off(_MPF_METERED)) is None
+    and _mpf_unmetered({**_MPF_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
+    and _mpf_unmetered(_MPF_UNMETERED) == _MPF_FREEZE,
 )
 
 _mpf_space = np.array([0.0, 0.3, 2.8, 4.0, 1.0, 2.8, 0.05, -0.2])
@@ -68682,7 +68697,7 @@ R.check(
     "level raised to p_min only where DHW is off, identity where the total already fits",
     np.allclose(_mpf_proj, [0.0, 2.5, 1.0, 3.5, 0.0, 2.8, 0.05, 0.0])
     and np.array_equal(_mpf_against(_mpf_space, np.zeros(8), 2.5, 3.5),
-                       _pp_project(_mpf_space, 2.5, 3.5))
+                       _mpf_project(_mpf_space, 2.5, 3.5))
     and np.array_equal(_mpf_rows[0], _mpf_proj)
     and np.array_equal(_mpf_rows[1], _mpf_against(_mpf_space[::-1], _mpf_dhw, 2.5, 3.5)),
     f"{_mpf_proj.tolist()}",
@@ -68697,7 +68712,7 @@ R.check(
     and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[1] is _mpf_dhw
     and _mpf_realize(True, _mpf_space, None, 2.5, 3.5)[1] is None
     and np.array_equal(_mpf_realize(True, _mpf_space, None, 2.5, 3.5)[0],
-                       _pp_project(_mpf_space, 2.5, 3.5)),
+                       _mpf_project(_mpf_space, 2.5, 3.5)),
     f"space {_mpf_r_space.tolist()} dhw {_mpf_r_dhw.tolist()}",
 )
 
@@ -68712,8 +68727,8 @@ def _mpf_totals(cfg):
     params.min_electrical_power, params.max_electrical_power = 2.5, 3.5
     params.dhw_enabled = True
     out = -4.0 + 3 * np.sin(2 * np.pi * (_MPF_STEPS - 50) / 96)
-    opt = _MpfOpt(_MpfTM(params), _PpCfg(
-        clamp_planned_levels=_PpCfg.from_mapping(cfg).clamp_planned_levels,
+    opt = _MpfOpt(_MpfTM(params), _MpfCfg(
+        clamp_planned_levels=_MpfCfg.from_mapping(cfg).clamp_planned_levels,
     ))
     res = opt.optimize(inputs=solve_inputs(
         initial_state=_MpfTS(
@@ -68732,8 +68747,8 @@ def _mpf_off_or_band(tot):
     return bool(np.all((tot == 0.0) | ((tot >= 2.5 - 1e-9) & (tot <= 3.5 + 1e-9))))
 
 
-_mpf_declared_tot = _mpf_totals(_mpf_on_off(_PP_METERED))
-_mpf_probed_tot = _mpf_totals(_PP_UNMETERED)
+_mpf_declared_tot = _mpf_totals(_mpf_on_off(_MPF_METERED))
+_mpf_probed_tot = _mpf_totals(_MPF_UNMETERED)
 R.check(
     "per step, a declared on/off pump on a fully metered install plans every step off "
     "or between min and max power (#3289)",
@@ -70463,7 +70478,7 @@ R.check(
     "S4 where the install can duty-cycle: the min end stays configured",
     _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
 )
-_dr_duty_cfg = {_PP_SETPOINT: "number.flow", _PP_POWER: "sensor.hp_power"}
+_dr_duty_cfg = {_MPF_SETPOINT: "number.flow", _MPF_POWER: "sensor.hp_power"}
 R.check(
     "S4 on a setpoint-only install declared on/off: the metered floor raises the min "
     "end, as on a switch-plus-setpoint one (#3289); undeclared it stays configured",
@@ -70475,7 +70490,7 @@ R.check(
 R.check(
     "S4 a declared on/off install whose plan writes the frequency still reads None",
     _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(
-        {_PP_SWITCH: "switch.hp", _PP_FREQ: "number.hz", _MPF_FREQ_MODE: _MPF_FREQ_CONTROL}
+        {_MPF_SWITCH: "switch.hp", _MPF_FREQ: "number.hz", _MPF_FREQ_MODE: _MPF_FREQ_CONTROL}
     ))) is None,
 )
 _dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
