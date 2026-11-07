@@ -1722,6 +1722,11 @@ B
   out=$(run dispatch 30 "$h1" cmsg_S2); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
   expect "a second reviewer at a head holding a merge verdict is refused, recording nothing" $?
+  # Card C4's derive refuses that dispatch first; card 3's own check is reached when the caller names a
+  # reviewed head with code since it (norow..h1 adds the rows), so C4's derive and carry both pass.
+  out=$(run dispatch 30 "$h1" cmsg_S2b --reviewed-head "$norow"); rc=$?
+  [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict, so no second reviewer is dispatched" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
+  expect "card 3 past card C4's derive: a named reviewed head with code since it still refuses a second reviewer at a merge-verdict head" $?
   out=$(run dispatch 30 "$h2c" cmsg_S3); rc=$?
   [ $rc = 0 ]; expect "null control: a head with no verdict, carrying code since the merge verdict (h2c; h2 alone carries under card C4), dispatches" $?
   # The stub stands in for `gh api` and prints the API's own JSON, so bus.sh's status filter runs:
