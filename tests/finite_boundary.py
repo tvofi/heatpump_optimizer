@@ -1798,7 +1798,7 @@ def _a6_savers():
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
         "notifier": _save_notifier,
         "debug": _save_debug,
-        "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._HELD[c.entry]),
+        "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._RECORDS[c.entry]),
     }
 
 

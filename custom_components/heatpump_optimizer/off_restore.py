@@ -86,7 +86,7 @@ class _Held:
     last_restore: str | None = None
 
 
-_HELD: WeakKeyDictionary[HeatPumpOptimizerConfigEntry, _Held] = WeakKeyDictionary()
+_RECORDS: WeakKeyDictionary[HeatPumpOptimizerConfigEntry, _Held] = WeakKeyDictionary()
 
 
 def _store(hass: HomeAssistant, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
@@ -94,9 +94,9 @@ def _store(hass: HomeAssistant, entry_id: str) -> QuarantiningStore[dict[str, An
 
 
 async def _armed_record(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> _Held:
-    held = _HELD.get(entry)
+    held = _RECORDS.get(entry)
     if held is None:
-        held = _HELD[entry] = _Held(_store(hass, entry.entry_id))
+        held = _RECORDS[entry] = _Held(_store(hass, entry.entry_id))
     if not held.loaded:
         held.loaded = True
         raw = await load_mapping(held.store, "off-restore store") or {}
@@ -202,7 +202,7 @@ async def async_forget(hass: HomeAssistant, entry_id: str) -> None:
 
 def diagnostics(entry: HeatPumpOptimizerConfigEntry) -> dict[str, Any]:
     """The armed consumers and the restores counted for ``entry``."""
-    held = _HELD.get(entry)
+    held = _RECORDS.get(entry)
     if held is None:
         return {"armed": [], "restores": 0, "last_restore": None}
     return {"armed": sorted(held.armed), "restores": held.restores,
