@@ -1,0 +1,16 @@
+Design review: revise 0391c607c69d59ebc308b0c5eda074502b7e6bc7 architecture-unsound
+
+Note 1 of 3. Reviewed from a detached worktree at 0391c607c, against base 53273de4d (origin/main tip).
+
+Confirmed:
+- The finder's harness (d58242d8c, sha1 e21d29905d30) at base gives all 16 lines byte-identical to the STOP table.
+- Joint-projection claim re-measured with `max(space+dhw)` added: clamp=True with DHW on gives 5.30 kW (3 steps over), 5.00 (1 step), 5.00 (3 steps) in 3 of 4 DHW cells, against p_max 3.5. clamp=False never goes above 3.50. The defect is real and per step.
+- Choice (a) is sound against (b) and (c): the solver is continuous L-BFGS-B (`optimizer.py:54`), and the probe (`thermal_model.py:1285-1300`) cannot observe modulation. `declared_modulation` as the only reader of the key, inside `thermal_model.py`, gives one owner. No open `design/*` ref names `project_planned_levels`, `_realize_draw`, `can_duty_cycle`, `probe_install`, `InstallCapability` or `clamp_planned_levels`. The config-flow, strings and docs overlap with #3297 and #3284 is textual, and the note orders after both.
+
+Revise points:
+1. architecture-unsound: design.md "Shape", `project_planned_draw`. A shared scale on the total writes into the DHW schedule, but the space solve plans around a DHW plan it treats as fixed: "Optimize space heating around a fixed DHW schedule" (`optimizer.py:4190`), and "the grid sees the combined draw: space plus the fixed DHW plan" (`optimizer.py:4690-4694`). When t > p_max, `p_max/t` ships less DHW heat than the DHW planner booked, so the tank can fall short. No finding names that change. In `objective_batch` (`optimizer.py:4679`) a per-row scale also turns the shared DHW vector into a B x N matrix, which breaks the twin's row-for-row identity with `objective`. Fix wanted: keep DHW as planned (a DHW-only step keeps today's `project_planned_levels`), and project only space, against the DHW already in that step: space in {0} ∪ [max(0, p_min - dhw), p_max - dhw]. That still gives total in {0} ∪ [p_min, p_max], is the identity wherever the total is already at or above p_min, and keeps `_realize_draw`'s DHW output a vector in both the scalar and batch paths.
+2. evidence-plan: design.md "Invariants kept" says "absent key and `auto` are byte-identical to base on every install". That is false: the joint projection changes every probed switch-plus-setpoint install with DHW, and those are the harness's clamp=True DHW cells. The plan does not name what it moves. Fix wanted: state that this changes behaviour on the probed arm, and list the pins that move. These include the clamped DHW solves in `tests/features.py:68737-68776` (`_sp_solve(..., dhw, ...)` with `clamp_planned_levels=True`), and `coord_dhw` / `coord_all_features` if any of them probes clamped (`tests/golden.py:893-917`). Also add a per-step test on the probed (undeclared) switch-plus-setpoint arm, which fails at base with totals up to 5.3. The sibling grep at "Sibling sites" missed these clamp=True sites in tests (`tests/features.py:65608, 68743, 68820`).
+
+Carry: R10-MIN-POWER-FLOOR (item a1c0f3d2): with space projected against fixed DHW, the fixer note on "a channel's own share below p_min in a mixed step" still holds for space; count `space_steps_below_min` only on space-only steps, as the note says.
+
+Token count: not reported by the harness.
