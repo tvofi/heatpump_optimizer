@@ -15991,7 +15991,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-overbook-residual",
     "commit": "fc338b8048d3219fcdcae3485795d4d3e24197b0",
     "last_step": null,
