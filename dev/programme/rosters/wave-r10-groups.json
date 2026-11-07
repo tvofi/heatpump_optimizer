@@ -17869,9 +17869,7 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [
-    "R10-FLY-STAMP-FLUSH-HOLD"
-   ],
+   "after": [],
    "carry": [],
    "architect_note": "",
    "resume": {
