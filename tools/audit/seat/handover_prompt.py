@@ -53,7 +53,7 @@ def in_flight(roster: dict) -> list:
     out = []
     for g, gr in roster_lib.groups_of(roster).items():
         stage = (gr.get("resume") or {}).get("stage") or NOT_STARTED
-        if stage not in roster_lib.DONE_STAGES and stage != NOT_STARTED:
+        if stage not in roster_lib.CLOSED_STAGES and stage != NOT_STARTED:
             out.append((g, gr))
     return out
 
@@ -196,6 +196,7 @@ def _fixture_roster() -> dict:
         g("R9-A", "L1", [], "done"),
         g("R9-B", "L1", ["R9-A"], "in-review"),
         g("R9-C", "L2", [], "not-started"),
+        g("R9-D", "L2", [], "absorbed"),
     ]}
 
 
@@ -225,6 +226,11 @@ def _self_test() -> int:
           and "handoff/r9-fixture/fix/resume/R9-B.md" in text)
     check("not-started group has no pickup", "handoff/r9-c" not in text)
     check("done group has no pickup", "handoff/r9-a" not in text)
+    # an absorbed group is closed (roster_lib.CLOSED_STAGES), not in flight.
+    check("absorbed group is not in flight and has no pickup",
+          "handoff/r9-d" not in text
+          and [g for g, _ in in_flight(roster)] == ["R9-B"],
+          [g for g, _ in in_flight(roster)])
     # an in-flight group with no branch pushed yet, or no note file, names
     # neither (#201 comment 6310616463: `git fetch origin None`).
     bare = _fixture_roster()
@@ -269,6 +275,9 @@ def _self_test() -> int:
     check("empty roster renders", "Ready next" in empty
           and "none" in empty and "Worktrees in flight" not in empty)
 
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     print(f"handover_prompt self-test: {n_checks[0]} checks, "
           f"{len(failed)} failed")
     for f in failed:
@@ -277,4 +286,4 @@ def _self_test() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(roster_lib.run_refusing("handover_prompt", main))

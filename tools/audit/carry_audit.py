@@ -419,8 +419,10 @@ class Dests:
             return True, ""
         if r is not None and self.live(r):
             return True, f"{tok} resolved on {self.round_ref}"
-        stage = ((g or r).get("resume") or {}).get("stage")
-        return False, (f"{tok} is {'done' if stage in roster_lib.DONE_STAGES else stage} (resume.stage {stage}); "
+        res = (g or r).get("resume") or {}
+        stage = res.get("stage")
+        into = f" into {res['absorbed_into']}" if stage == "absorbed" and res.get("absorbed_into") else ""
+        return False, (f"{tok} is {'done' if stage in roster_lib.DONE_STAGES else stage}{into} (resume.stage {stage}); "
                        f"valid targets: {self.consumers()}")
 
     @staticmethod
@@ -1108,7 +1110,7 @@ def _self_test() -> int:
     # after-edged on the pull request's own group as the valid targets.
     def gr(name, stage, after=()):
         return {"group": name, "after": list(after), "resume": {"stage": stage}}
-    Dcl = Dests({"groups": [gr("R10-PR", "in-progress"), gr("R10-GONE", "done"), gr("R10-ABS", "absorbed"),
+    Dcl = Dests({"groups": [gr("R10-PR", "in-progress"), gr("R10-GONE", "done"), dict(gr("R10-ABS", "absorbed"), resume={"stage": "absorbed", "absorbed_into": "R10-CONS"}),
                             gr("R10-CONS", "not-started", ["R10-PR"]), gr("R10-DEAD", "done", ["R10-PR"]),
                             gr("R10-OTHER", "not-started", ["R10-LIVE"]), gr("R10-NS", "not-started")]},
                 set(), None, pr_group="R10-PR")
@@ -1118,6 +1120,9 @@ def _self_test() -> int:
         check(f"a closed group ({g}) is refused naming it and listing the live after-edged consumers",
               g in msg and "R10-CONS" in msg and "R10-OTHER" not in msg and "R10-DEAD" not in msg
               and "R10-NS" not in msg)
+    r = run(plant.rstrip() + " Carry: R10-ABS\n", d=Dcl)
+    check("an absorbed destination is refused naming absorbed_into",
+          "R10-ABS is absorbed into R10-CONS" in (r["rows"][0]["bad"][0] if r["b"] == 1 else ""))
     for g in ("R10-CONS", "R10-NS"):
         r = run(plant.rstrip() + f" Carry: {g}\n", d=Dcl)
         check(f"a live group ({g}) is accepted with no note (null control)",
