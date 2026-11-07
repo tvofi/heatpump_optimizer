@@ -1,0 +1,156 @@
+RESULT mutant[C-P1-accum] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P1: the ledger split and the diagnosis apportionment both read the planned split from _planned_split
+RESULT mutant[C-P1-diag] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P1: the ledger split and the diagnosis apportionment both read the planned split from _planned_split
+RESULT mutant[C-P2-house] KILLED expected_check_red=True
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P2: the house and lower-floor loss learners both gate the residual through _loss_residual_rejected
+RESULT mutant[C-P2-lower] KILLED expected_check_red=True
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P2: the house and lower-floor loss learners both gate the residual through _loss_residual_rejected
+RESULT mutant[C-P3-lead] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and the safety release all read OptimizationResult.sensor_trajectory
+RESULT mutant[C-P3-next] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and the safety release all read OptimizationResult.sensor_trajectory
+RESULT mutant[C-P3-breach] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and the safety release all read OptimizationResult.sensor_trajectory
+RESULT mutant[C-P3-release] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and the safety release all read OptimizationResult.sensor_trajectory
+RESULT mutant[C-P4-excess] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P4: peak_kw, peak_cost and peak_cost_batch all scale the window means through tariff.billed_windows
+RESULT mutant[C-P4-batch] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P4: peak_kw, peak_cost and peak_cost_batch all scale the window means through tariff.billed_windows
+RESULT mutant[C-P4-grid] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P4: peak_kw, peak_cost and peak_cost_batch all scale the window means through tariff.billed_windows
+RESULT mutant[C-P5-factors] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P5: the window factors and the window days are both sized by _n_peak_windows
+RESULT mutant[C-P5-days] KILLED expected_check_red=True
+   features: 2 of 4883 FEATURE CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P5: the window factors and the window days are both sized by _n_peak_windows
+RESULT mutant[C-P6-acc] KILLED expected_check_red=True
+   entities: 3 of 2650 ENTITY CHECKS FAILED; new FAIL 3
+      + P2 owners: evidence_attributes is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[C-P6-cc] KILLED expected_check_red=True
+   entities: 3 of 2650 ENTITY CHECKS FAILED; new FAIL 3
+      + P2 owners: evidence_attributes is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[C-P6-freq] KILLED expected_check_red=True
+   entities: 3 of 2650 ENTITY CHECKS FAILED; new FAIL 3
+      + P2 owners: evidence_attributes is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor sensors all publish _evidence_attributes
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[C-P9-factors] KILLED expected_check_red=True
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P9: window_factors and plan_window_days both walk the windows through _window_starts
+RESULT mutant[C-P9-days] KILLED expected_check_red=True
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P9: window_factors and plan_window_days both walk the windows through _window_starts
+RESULT mutant[O-P1-swap] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: ALL 2650 ENTITY CHECKS PASSED; new FAIL 0
+   features: 4 of 4883 FEATURE CHECKS FAILED; new FAIL 4
+      + #2229 null control: a priced interval still books its cost and spot sample
+      + R10-SAV-REASONS: a channel the plan ran explains the draw at any meter magnitude, and an idle step books outside the plan even at a trickle
+      + R10-SAV-REASONS: the idle channel's share books as untagged and the reason lines still sum to the spot line
+      + the reason lines partition the spot line, split by the plan's shares
+RESULT mutant[O-P2-lt] KILLED
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P2: _loss_residual_rejected keeps a residual at the bound (either sign) and refuses one just past it
+RESULT mutant[O-P2-never] KILLED
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P2: _loss_residual_rejected keeps a residual at the bound (either sign) and refuses one just past it
+RESULT mutant[O-P2-noabs] KILLED
+   dst_checks: 9 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 1
+      + R10-CLONE-2238 P2: _loss_residual_rejected keeps a residual at the bound (either sign) and refuses one just past it
+RESULT mutant[O-P3-nogate] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 6 CRASH:    --output <file>       output to a specific file
+      + P2 owners: sensor_trajectory is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[O-P3-nopresence] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 4 CRASH:    --output <file>       output to a specific file
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and that commit is reachable from HEAD
+      + exactly one handover, with no date in its name
+RESULT mutant[O-P4-zeros] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: 2 of 2650 ENTITY CHECKS FAILED; new FAIL 2
+      + P2 owners: billed_window_pad is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[O-P4-ignore] SURVIVED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: ALL 2650 ENTITY CHECKS PASSED; new FAIL 0
+RESULT mutant[O-P4-axis0] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 4 CRASH:    --output <file>       output to a specific file
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and that commit is reachable from HEAD
+      + exactly one handover, with no date in its name
+RESULT mutant[O-P5-off0] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 4 CRASH:    --output <file>       output to a specific file
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and that commit is reachable from HEAD
+      + exactly one handover, with no date in its name
+RESULT mutant[O-P6-nowait] KILLED
+   entities: NO-SUMMARY (crash?); new FAIL 14 CRASH:    --output <file>       output to a specific file
+      + ContractComparisonSensor names what it is waiting for
+      + ContractComparisonSensor publishes exactly its pinned attribute keys (#373)
+      + FrequencyAdvisorSensor names what it is waiting for
+      + FrequencyAdvisorSensor publishes exactly its pinned attribute keys (#373)
+RESULT mutant[O-P6-noreport] KILLED
+   entities: NO-SUMMARY (crash?); new FAIL 9 CRASH:    --output <file>       output to a specific file
+      + ContractComparisonSensor publishes exactly its pinned attribute keys (#373)
+      + PredictionAccuracySensor publishes exactly its pinned attribute keys (#373)
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+RESULT mutant[O-P8-nohead] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 4 CRASH:    --output <file>       output to a specific file
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and that commit is reachable from HEAD
+      + exactly one handover, with no date in its name
+RESULT mutant[O-P8-floor] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 6 CRASH:    --output <file>       output to a specific file
+      + P2 owners: window_partition is decided only by its owner or a dispositioned site, its owner exists, no disposition is stale, the rule is live
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and each P2 fact fails on a new sibling outside its owner, and each refusal fires on its planted skip (null controls)
+RESULT mutant[O-P9-wall] KILLED
+   dst_checks: 10 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 2
+      + autumn fold: every window bills under the hour the meter keys it at
+      + spring gap: every window bills under the hour the meter keys it at
+RESULT mutant[O-P9-noconv] KILLED
+   dst_checks: 12 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 4
+      + NULL CONTROL: the ordinary Saturday a week earlier never disagreed
+      + autumn fold: every window bills under the hour the meter keys it at
+      + spring gap: every window bills under the hour the meter keys it at
+      + window_factors samples 12:00/14:00/16:00, not 13:00/15:00/17:00
+RESULT mutant[O-P8-clampdrop] KILLED
+   dst_checks: 8 of 137 DST / QUARTER-GRID CHECKS FAILED; new FAIL 0
+   entities: NO-SUMMARY (crash?); new FAIL 4 CRASH:    --output <file>       output to a specific file
+      + a refused baseline worktree add reports git's own reason, not a bare exit 128 (#2119)
+      + a resolvable ref builds the baseline worktree and unregisters cleanly (null control)
+      + and that commit is reachable from HEAD
+      + exactly one handover, with no date in its name

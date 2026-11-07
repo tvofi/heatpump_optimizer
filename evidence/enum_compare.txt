@@ -1,0 +1,17 @@
+sample entry: ["binary_sensor", "available", 321, "[3] binary_sensor:available:321 | climate:available:123 | sensor:available:2453"]
+RESULT F1_run_threshold base=9 head=9 left=0 entered=0
+RESULT F2_learner_gate base=8 head=8 left=0 entered=0
+RESULT F3_cop_law_fork base=2 head=2 left=0 entered=0
+RESULT F4_entry_resolve base=0 head=0 left=0 entered=0
+RESULT F5_clone base=24 head=15 left=9 entered=0
+  LEFT ["coordinator", "_accumulate_energy", #, "[2] coordinator:_accumulate_energy:# | coordinator:_maybe_run_fuse_advisor:#"]
+  LEFT ["coordinator", "_async_learn_house_heat_loss", #, "[2] coordinator:_async_learn_house_heat_loss:# | coordinator:_async_learn_lower_floor_loss:#"]
+  LEFT ["coordinator", "_file_lead_predictions", #, "[2] coordinator:_file_lead_predictions:# | coordinator:_predicted_next_room_temp:#"]
+  LEFT ["optimizer", "_grid_report", #, "[2] optimizer:_grid_report:# | tariff:_peak_excess:#"]
+  LEFT ["optimizer", "_peak_day_kwargs", #, "[2] optimizer:_peak_day_kwargs:# | optimizer:_peak_window_factors:#"]
+  LEFT ["sensor", "extra_state_attributes", #, "[2] sensor:extra_state_attributes:# | sensor:extra_state_attributes:#"]
+  LEFT ["tariff", "_close_window", #, "[2] tariff:_close_window:# | tariff:from_dict:#"]
+  LEFT ["tariff", "_window_means_batch", #, "[2] tariff:_window_means_batch:# | tariff:metering_windows:#"]
+  LEFT ["tariff", "plan_window_days", #, "[2] tariff:plan_window_days:# | tariff:window_factors:#"]
+RESULT F6_hour_clock base=2 head=2 left=0 entered=0
+RESULT F7_scrub_mixin base=1 head=1 left=0 entered=0

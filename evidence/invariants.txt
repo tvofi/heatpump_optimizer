@@ -1,0 +1,40 @@
+## untouched
+(empty above = untouched)
+## new files
+A	dev/programme/delivery/3273.md
+A	tests/mutation_ledger/survivor_triage/tariff.py/billed_windows.CMP_BOUND.0a51dd45.json
+## budgets
+diff --git a/tests/structure_budgets.json b/tests/structure_budgets.json
+index 4d4e78df8..37aa0c4dd 100644
+--- a/tests/structure_budgets.json
++++ b/tests/structure_budgets.json
+@@ -1,21 +1,21 @@
+ {
+- "class_excess_loc": 17585,
++ "class_excess_loc": 17561,
+  "const_modules_over_50": 3,
+  "coordinator_attrs": 141,
+  "coordinator_multiassigned_attrs": 108,
+  "coordinator_private_reach": 0,
+  "dead_methods": 0,
+  "dead_top_level_symbols": 1,
+- "duplication_copies": 14,
++ "duplication_copies": 10,
+  "functions_cc_over_15": 26,
+  "functions_cc_over_25": 8,
+  "import_cycle_modules": 0,
+  "max_cc": 44,
+- "max_class_loc": 7955,
++ "max_class_loc": 7934,
+  "max_method_loc": 373,
+  "methods_over_150": 15,
+  "methods_over_200": 8,
+  "name_kept_members": 38,
+- "recorded_at": "2a9cd3476dae9f45d3091b546fdd2723bcb0ce4e",
++ "recorded_at": "28482eceeb6b9809e44b12d80fc994282cc21645",
+  "seam_cut_total": 423
+ }
+## merge-tree
+8df66266c8080aabe13e7781dd0f943e418a5941
+rc=0
+f2a015142714383722bf49d7ab20d8398ec9674c

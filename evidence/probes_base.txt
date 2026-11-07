@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/home/user/exp/base/dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py", line 143, in <module>
+    raise SystemExit(main(sys.argv[1:]))
+                     ~~~~^^^^^^^^^^^^^^
+  File "/home/user/exp/base/dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py", line 134, in main
+    rows = run(pkg)
+  File "/home/user/exp/base/dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py", line 99, in run
+    gate = _expr_in(pkg, "freq_control.py", "evidence_exhausted", "target_kw <=")
+  File "/home/user/exp/base/dev/audit/rounds/round10/D14/sweep-P2/probes_p2.py", line 63, in _expr_in
+    raise LookupError((fname, func, needle))
+LookupError: ('freq_control.py', 'evidence_exhausted', 'target_kw <=')
+rc=1
