@@ -1,0 +1,5 @@
+NOTE stale tree: 4b663581a88e96ce6b90223ae4b1a563de1e250f lacks origin/main dee8b413fd7da7b07f13e28a93d7d49b4a9e978a; roster read at origin/main
+NOTE review 0 item 30fd8707: R10-HANDOFF-PATH
+NOTE review 0 item 2017b16b: dismissed:equivalent mutant; no caller sources by a relative path, changes directory, then calls pr_pushers without a root
+CARRY-AUDIT: 2 finding item(s): 2 routed, 0 unrouted, 0 bad destination(s)
+rc=0
