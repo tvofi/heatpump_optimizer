@@ -5773,6 +5773,30 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
                          "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]})
     check("defer-wait CLI: one read takes no settle -- a red beside a green suite with nothing busy is RED "
           "(the caller's next read sees the sweep)", rc == 1 and line.startswith("RED "))
+    # The `wait-ci` subcommand (wait_ci with no `only`) returns once every check
+    # run concluded: the code run's units are done then, but gate-sweep's re-run
+    # of the deferred red may not have started -- the same settle as the train's.
+    def wait_all(frames):
+        logged, reads = [], [0]
+
+        def run(argv, cwd=ROOT, stdin=None):
+            if "check-runs" in " ".join(argv):
+                reads[0] += 1
+                return 0, "\n".join(json.dumps(c) for c in frames[min(reads[0], len(frames)) - 1])
+            return 9, "unstubbed"
+        t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, polls=4)
+        return t.wait_ci("a" * 40), logged, reads[0]
+    swept = dict(edit_red, conclusion="success", started_at="15:27", output={"title": ""})
+    red, logged, reads = wait_all([[edit_red, code_gate_green], [edit_red, swept, code_gate_green]])
+    check("defer-wait wait-ci: a red gate beside a green suite, every run concluded, waits one poll for "
+          "gate-sweep's re-run and reads its green", red == [] and reads == 2
+          and any("waiting 1 poll(s) for gate-sweep" in ln for ln in logged))
+    red, logged, reads = wait_all([[edit_red, code_gate_green]])
+    check("defer-wait wait-ci bound: a sweep that never re-runs the red leaves it standing one poll later",
+          red == [GATE] and reads == 2)
+    red, logged, reads = wait_all([[edit_red]])
+    check("defer-wait wait-ci null: a red gate with no green suite beside it is read on the first poll, no settle",
+          red == [GATE] and reads == 1 and not logged)
 
 
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
