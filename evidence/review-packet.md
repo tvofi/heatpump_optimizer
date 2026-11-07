@@ -1,49 +1,60 @@
 # Review packet #3252
-head: b9cc5e32e26b8ebdec66cc8bba9ee110a96c04a0
-base: 601b9695a68533814c68e36caba36fda57fe2d77
+head: 3134798017b1d26994c410206349b06d187559a0
+base: 28d46c4918285d36c409c1fb2f72eb77e04e569e
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=128377977460 success
-arch-score / arch-score id=128377933244 success
-arm id=128377835719 skipped
-budget-raise-gate / budget-raise-gate id=128377933372 success
-cancel-superseded id=128377835113 success
-codeql / Analyze (actions) id=128377933315 success
-codeql / Analyze (javascript-typescript) id=128377933414 success
-codeql / Analyze (python) id=128377933411 success
-governance / delivery-status id=128377933322 success
-governance / delivery-status-publish id=128377934714 skipped
-governance / env-matrix id=128377933359 success
-governance / instrument-self-tests id=128377933374 in_progress
-governance / policy-docs id=128377933348 success
-governance / record id=128377934679 skipped
-governance / wave-script id=128377933349 success
-hassfest / hassfest id=128377933338 success
-kernel-points id=128377933999 skipped
-prelude id=128377835075 success
-refresh id=128377834945 success
-tests / arch-instrument id=128378041840 success
-tests / briefs id=128377933435 success
-tests / browser id=128378041808 success
-tests / claims-autofix id=128380985010 skipped
-tests / closure-scope id=128377933389 success
-tests / closures id=128378041835 success
-tests / closures-autofix id=128382372457 skipped
-tests / coverage id=128378041756 in_progress
-tests / fast (3.14) id=128378041774 success
-tests / mutation id=128377933387 success
-tests / mutation-autofix id=128378077070 skipped
-tests / mutation-pins id=128378076689 skipped
-tests / nightly-ha id=128378042772 skipped
-tests / nightly-status id=128377933403 failure
-tests / replay id=128378042733 skipped
-tests / typing id=128378041923 success
-validate / validate-hacs id=128377933353 success
+CodeQL id=128457033368 success
+arch-score / arch-score id=128455323882 success
+arm id=128441645997 skipped
+budget-raise-gate / budget-raise-gate id=128455324015 success
+cancel-superseded id=128455121732 success
+codeql id=128449067115 skipped
+codeql / Analyze (actions) id=128455324172 success
+codeql / Analyze (javascript-typescript) id=128455324041 success
+codeql / Analyze (python) id=128455324138 success
+gate id=128471344242 failure
+governance id=128449066721 skipped
+governance / delivery-status id=128455323917 success
+governance / delivery-status-publish id=128455325341 skipped
+governance / env-matrix id=128455324037 success
+governance / instrument-self-tests id=128455323930 success
+governance / policy-docs id=128455323944 success
+governance / record id=128455325355 skipped
+governance / wave-script id=128455324012 success
+hassfest id=128449067091 skipped
+hassfest / hassfest id=128455324053 success
+kernel-points id=128455325005 skipped
+pr-contract / pr-contract id=128471138373 success
+prelude id=128455092054 success
+refresh id=128455093679 success
+tests id=128449066796 skipped
+tests / arch-instrument id=128458682354 success
+tests / briefs id=128455324034 success
+tests / browser id=128458682461 success
+tests / ci-ratchet id=128469924485 skipped
+tests / claims-autofix id=128463944230 skipped
+tests / closure-scope id=128455324057 success
+tests / closures id=128458682386 success
+tests / closures-autofix id=128465569989 skipped
+tests / coverage id=128458682420 success
+tests / coverage-ratchet id=128469922714 success
+tests / fast (3.14) id=128458682347 success
+tests / graders-head-copy id=128469922896 success
+tests / lane-proofs id=128469922717 success
+tests / mutation id=128455324028 success
+tests / mutation-autofix id=128457546747 skipped
+tests / mutation-pins id=128457545784 skipped
+tests / nightly-ha id=128458683825 skipped
+tests / nightly-status id=128455324026 failure
+tests / replay id=128458683527 skipped
+tests / typing id=128458682378 success
+validate id=128449066906 skipped
+validate / validate-hacs id=128455323897 success
 
 ## Refusals
-none
+required-red: required context `gate` concluded failure at 3134798017b1d26994c410206349b06d187559a0
 
 ## Advisories
 hot-file: HPO_BUS_TRAIN_STATE is unset, so every merge verdict reads unboarded
@@ -60,20 +71,20 @@ ok         bash tools/audit/seat/bus.sh --self-test
              `tools/audit/seat/cloud_relay.sh` is in the tree at this head
   ok         bash tools/audit/seat/tick_loop.sh --self-test
              `tools/audit/seat/tick_loop.sh` is in the tree at this head
+  ok         python3 -I tools/audit/seat/ledger.py --self-test
+             `tools/audit/seat/ledger.py` is in the tree at this head
+  ok         python3 tools/audit/seat/selftest_wiring.py --self-test
+             `tools/audit/seat/selftest_wiring.py` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir $D
              `tests/closure.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
   ok         node tools/policy/policy_lint.mjs
              `tools/policy/policy_lint.mjs` is in the tree at this head
-  ok         node tools/policy/rules_sync.mjs --check
-             `tools/policy/rules_sync.mjs` is in the tree at this head
   ok         python3 tools/audit/seat/bare_array.py --check
              `tools/audit/seat/bare_array.py` is in the tree at this head
-  unverified bash --version
-             bash with no script argument
 
-FIGURES: 9 resolved, 1 not verified, 0 refused
+FIGURES: 10 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -167,23 +178,26 @@ index 000000000..8c218d2cf
 @@ -0,0 +1 @@
 +- [#3252](https://github.com/tvofi/heatpump_optimizer/pull/3252) — **open**, R10-RELAY-SWEEP: the relay's residue on one seam, cloud_relay.sh (R10-RELAY-SWEEP)
 diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
-index 62e20564b..ceffa817b 100755
+index 62e20564b..c6189967d 100755
 --- a/tools/audit/seat/bus.sh
 +++ b/tools/audit/seat/bus.sh
-@@ -261,6 +261,12 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
+@@ -261,6 +261,15 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
    return 1
  }
  
 +# Names that differ only by case collide on a case-insensitive checkout (ancestors count: file
 +# `a` against dir `A/x`). Prints "<one> and <other>" for the first pair, rc 0; rc 1 if none.
++case_collision_names() { # reads one path per line on stdin
++  LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }'
++}
 +case_collision() { # dir
-+  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }')
++  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | case_collision_names)
 +}
 +
  push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
    local pr=${1:-} v=${2:-} ev=${3:-} first hsha t gd tree why
    numeric "$pr" || die "push-verdict: the pull request '$pr' is not a number"
-@@ -273,6 +279,7 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
+@@ -273,6 +282,7 @@ push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on revie
    [ -n "$ev" ] && [ -d "$ev" ] || die "push-verdict: no evidence directory (a verdict cites one; fix-review.md)"
    grep -rqF -- "$hsha" "$ev" \
      || die "push-verdict: no file under $ev names the head $hsha"
@@ -191,7 +205,7 @@ index 62e20564b..ceffa817b 100755
    [ -z "$(find "$ev" -type f -size +50M 2>/dev/null)" ] \
      || die "push-verdict: a file under $ev is over 50 MB; cite it by path instead"
    # Verify the nonce against the dispatcher's record before proposing: a
-@@ -362,7 +369,7 @@ kind_of() { # ref name -> "<kind> <name>"
+@@ -362,7 +372,7 @@ kind_of() { # ref name -> "<kind> <name>"
  }
  
  unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS refused, rc 1
@@ -200,15 +214,20 @@ index 62e20564b..ceffa817b 100755
    pr=$2
    numeric "$pr" || { printf 'BUS refused %s: %s/%s is not a pull-request number\n' "$pr" "$fam" "$pr"; return 1; }
    if ! git fetch -q "$REMOTE" "+refs/heads/$fam/$pr:refs/hpo-bus/$fam/$pr" 2>/dev/null; then
-@@ -382,6 +389,7 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
-     elif ! grep -rqF -- "$hsha" "$d/evidence" 2>/dev/null; then why="no file under evidence/ names the head $hsha"
-     fi
-   fi
-+  if [ -z "$why" ] && cc=$(case_collision "$d/evidence" 2>/dev/null); then why="evidence/ names collide case-insensitively: $cc"; fi
-   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
- }
- 
-@@ -1048,6 +1056,12 @@ P
+@@ -375,7 +385,11 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
+   d=$S/${fam}s/$pr/$c
+   rm -rf "$d" && mkdir -p "$d" && git archive "$c" | tar -x -C "$d" \
+     || { printf 'BUS refused %s %s: could not unpack the verdict tree\n' "$pr" "$c"; return 1; }
+-  if [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
++  # Names come from the commit, not from the extracted directory: tar on a case-insensitive
++  # filesystem (APFS) has already folded HEAD.txt and head.txt into one file by then.
++  if cc=$(git ls-tree -r --name-only "$c" -- evidence 2>/dev/null | case_collision_names); then
++    why="evidence/ names collide case-insensitively: $cc"
++  elif [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
+   else
+     first=$(head -n 1 "$d/VERDICT.md")
+     if ! hsha=$(verdict_sha "$first"); then why="the first line is outside fix-review.md's grammar: '$first'"
+@@ -1048,6 +1062,12 @@ P
    [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
    out=$(seat push-verdict 7 "$W/merge0.md"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
@@ -221,7 +240,7 @@ index 62e20564b..ceffa817b 100755
    out=$(seat push-verdict 7x "$W/merge0.md" "$W/ev1"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
    git -C "$W/seat" ls-remote --exit-code origin 'refs/heads/review/*' >/dev/null 2>&1
-@@ -1354,6 +1368,27 @@ B
+@@ -1354,6 +1374,41 @@ B
    out=$(run watch --once --post)
    echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
    expect "watch refuses a raw proposal whose only naming file is VERDICT.md" $?
@@ -230,7 +249,7 @@ index 62e20564b..ceffa817b 100755
 +  rawev() { # names... : VERDICT.md from stdin, evidence/<each name> naming $h1
 +    local b e tr n ents=""
 +    b=$(git -C "$W/seat" hash-object -w --stdin)
-+    e=$(printf 'measured at %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
++    e=$(printf '%s\n' "${EVBODY-measured at $h1}" | git -C "$W/seat" hash-object -w --stdin)
 +    for n in "$@"; do ents="$ents$(printf '100644 blob %s\t%s\n' "$e" "$n")"$'\n'; done
 +    e=$(printf '%s' "$ents" | git -C "$W/seat" mktree)
 +    tr=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' "$b" "$e" | git -C "$W/seat" mktree)
@@ -239,8 +258,22 @@ index 62e20564b..ceffa817b 100755
 +  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt head.txt)
 +  git -C "$W/seat" push -q origin "$t:refs/heads/review/40"
 +  out=$(run watch --once --post)
-+  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and head.txt"
++  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt"
 +  expect "unpack refuses a proposal whose evidence names differ only by case, naming both (read side)" $?
++  # Folded-source row: on APFS the extract has folded HEAD.txt and head.txt into one file that
++  # may not name the head, so the refusal must come from the commit's own name list (ls-tree),
++  # and name both, not "no file under evidence/ names the head".
++  t=$(printf 'Fix review: merge %s\n' "$h1" | EVBODY="no head here" rawev HEAD.txt head.txt)
++  git -C "$W/seat" push -q origin "$t:refs/heads/review/42"
++  out=$(run watch --once --post)
++  echo "$out" | grep -q "^BUS refused 42 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt" \
++    && ! echo "$out" | grep -q "no file under evidence/ names the head"
++  expect "unpack names both colliding names when the folded file would not name the head (ls-tree read)" $?
++  got=$(git -C "$W/seat" ls-tree -r --name-only "$t" -- evidence | case_collision_names); r=$?
++  [ "$r" = 0 ] && echo "$got" | grep -q "HEAD.txt and evidence/head.txt"
++  expect "case_collision_names refuses a folded-source ls-tree name list, naming both" $?
++  got=$(printf 'evidence/HEAD.txt\nevidence/other.txt\nevidence/sub/a\nevidence/sub/b\n' | case_collision_names); r=$?
++  [ "$r" = 1 ] && [ -z "$got" ]; expect "case_collision_names lets a distinct ls-tree name list past (null control)" $?
 +  t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt other.txt)
 +  git -C "$W/seat" push -q origin "$t:refs/heads/review/41"
 +  out=$(run watch --once --post)
@@ -250,7 +283,7 @@ index 62e20564b..ceffa817b 100755
    N9=$(run dispatch 9 "$h1" cmsg_S | sed -n 's/^bus-nonce: //p')
    printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h1" "$N9" > "$W/merge9.md"
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
-index 0df114bbd..a29ffba6f 100644
+index 0df114bbd..f55b4c35a 100644
 --- a/tools/audit/seat/cloud_relay.sh
 +++ b/tools/audit/seat/cloud_relay.sh
 @@ -99,7 +99,9 @@
@@ -280,19 +313,37 @@ index 0df114bbd..a29ffba6f 100644
  #   stuck and no-return arms: level lines only (THE STUCK ANDON, THE NO-RETURN LINE below).
  #   confirm arm (--confirm): the ledger is written before confirm runs, so a
  #     confirm that failed, a relay by a script without the confirm, or one by a
-@@ -228,8 +237,27 @@ relay() {
-   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
-   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
-   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
-+  # Names under ev/ that differ only in case: a case-insensitive filesystem (the orchestrator's
-+  # macOS) unpacks one over the other, and push-verdict then refuses "no file names the head" --
-+  # a cause that reads as a missing file (PR 3061). Refused here by name, on the first tick line.
-+  # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
-+  local dup; dup=$(git -c core.quotepath=off ls-tree -r --name-only "$sha" -- ev | awk '{
+@@ -199,6 +208,13 @@ review_tip() { # <pr> -> review/<pr>'s tip as ls-remote answers it, its objects
+   git cat-file -e "$tip^{commit}" 2>/dev/null && echo "$tip"
+ }
+ 
++ev_case_collision() { # <commit> -> "<a> and <b>" for the first two names under ev/ that fold together; reads only the commit's name list
++  git -c core.quotepath=off ls-tree -r --name-only "$1" -- ev | awk '{
 +    n = split($0, p, "/"); q = ""
 +    for (i = 1; i <= n; i++) { q = (i == 1 ? p[i] : q "/" p[i]); k = tolower(q)
-+      if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }')
++      if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }'
++}
++
+ relay() {
+   local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
+   case $pr in ''|*[!0-9]*) die "pr '$pr' is not a number"; return;; esac
+@@ -210,6 +226,14 @@ relay() {
+   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
+   if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
+   git fetch -q origin "$ref" || { echo "cloud_relay: could not fetch $ref" >&2; return 1; }
++  # Names under ev/ that differ only in case: a case-insensitive filesystem (the orchestrator's
++  # macOS) unpacks one over the other, and push-verdict then refuses "no file names the head" --
++  # a cause that reads as a missing file (PR 3061). Refused here by name, on the first tick line,
++  # from the commit's own name list and BEFORE anything is extracted: on such a filesystem the
++  # unpack itself dies (mkdir/write on the colliding path, rc 1) before any later check could refuse.
++  # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
++  local dup; dup=$(ev_case_collision "$sha")
 +  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
+   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
+   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
+   subj=$(git log -1 --format=%s "$sha")
+@@ -230,6 +254,16 @@ relay() {
+   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
    local out sha2 wt tip tries=0
    wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
 +  # DELIVERED GUARD (R10-RELAY-REPLAY): a ledger that is not the one that recorded this probe (a
@@ -308,7 +359,7 @@ index 0df114bbd..a29ffba6f 100644
    # A push refused non-fast-forward (review/<pr> moved since push-verdict read its tip) is
    # re-applied: push-verdict reads the fresh tip again and appends the same verdict there,
    # never forcing. A fresh tip that already carries this verdict's tree is not re-applied.
-@@ -276,7 +304,9 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -276,7 +310,9 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
    led=$state/cloud-relayed; bus=${HPO_BUS_STATE:-$HOME/.zcode/bus}
    # a failed listing leaves the level as it was: unknown is not "nothing owed"
    git ls-remote origin 'refs/heads/probe/*' > "${TMPDIR:-/tmp}/cloud_relay_ls.$$" || { echo "cloud_relay: ls-remote failed; will retry" >&2; rm -f "${TMPDIR:-/tmp}/cloud_relay_ls.$$"; return 0; }
@@ -319,7 +370,7 @@ index 0df114bbd..a29ffba6f 100644
    while read -r sha ref; do
      [ -n "$ref" ] || continue
      case $ref in refs/heads/probe/rev-*) ;;
-@@ -288,6 +318,12 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -288,6 +324,12 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
        [ -z "$why" ] || disposed "$ref" "$sha" || level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"
        continue
      fi
@@ -332,7 +383,7 @@ index 0df114bbd..a29ffba6f 100644
      k=${ref#refs/heads/probe/rev-}; pr=${k%%-*}; n8=${k#*-}
      rec=$(awk -v p="$pr" -v n="$n8" '$1 == p && index($4, n) == 1 { print $2, $4 }' "$bus/dispatched" 2>/dev/null | tail -n 1)
      if [ -z "$rec" ]; then echo "$(date -u +%FT%TZ) cloud_relay: $ref $sha has no dispatch record in $bus; leaving it" >&2; continue; fi
-@@ -303,8 +339,8 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
+@@ -303,8 +345,8 @@ probe_arm() { # one pass over every probe/* ref: rev-* relays each unseen ref+sh
        echo "$ref $sha" >> "$led.refused"; echo "$ref $sha $why" >> "$led.refused-why"
        level_line probe-refused "$ref" "$sha" "$why" >> "$state/cloud-level-refused.$$"; echo "cloud_relay: REFUSED $ref $sha $why"
      else echo "cloud_relay: relay of $ref $sha failed (rc=$rc, try $n of $max); the next pass retries: $why" >&2; fi
@@ -343,7 +394,7 @@ index 0df114bbd..a29ffba6f 100644
    level_set probe-ref "$state/cloud-level-probe.$$"; level_set probe-refused "$state/cloud-level-refused.$$"
  }
  
-@@ -432,6 +468,30 @@ tools_level() { # <state>: prints the levelled tree's seat directory, or why not
+@@ -432,6 +474,30 @@ tools_level() { # <state>: prints the levelled tree's seat directory, or why not
      || { rm -rf "$tw.lock"; echo "the relay's tools tree $tw could not check out origin/main"; return 2; }  # mut:toolslevel
    echo "$tw/tools/audit/seat"
  }
@@ -374,7 +425,7 @@ index 0df114bbd..a29ffba6f 100644
  handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
    local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
    local bf bonly key seed=""
-@@ -454,7 +514,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -454,7 +520,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
    # one listing of the verdicts per pass, outside the loop: an unread listing would update a merge-verdicted head
    git ls-remote origin 'refs/heads/verdict/*' > "$state/cloud-vrefs.$$" \
      || { echo "cloud_relay: could not list verdict refs; will retry" >&2; rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-vrefs.$$"; return 0; }
@@ -384,7 +435,7 @@ index 0df114bbd..a29ffba6f 100644
    while IFS=$'\t' read -r pr br head; do
      [ -n "$pr" ] || continue
      topic=${br#fix/}; topic=${topic%-pr}
-@@ -469,7 +530,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -469,7 +536,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
        grep -qxF "$topic $bs" "$bf" && continue
        [ -z "$seed" ] || { echo "$topic $bs" >> "$bf"; continue; }
        bonly=1; fi
@@ -393,7 +444,7 @@ index 0df114bbd..a29ffba6f 100644
      # a body-only move leaves the head under review where it is, so no review freezes it
      if [ -z "$bonly" ] && ! grep -qxF "$pr" <<< "$released" && why=$(review_freeze "$pr" "$head" "$state/cloud-vrefs.$$"); then
        echo "cloud_relay: HELD-${why%% *} #$pr $hs${why#"${why%% *}"} (head $head under review; merge it, or list #$pr in $(release_file) and re-dispatch)"
-@@ -498,7 +559,16 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -498,7 +565,16 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
      fi
      # A body-only move is made with the body pushed for this head: one with no `Code:` line, which
      # predates the trailer, is recorded as applied and left alone, as before this arm existed.
@@ -411,7 +462,7 @@ index 0df114bbd..a29ffba6f 100644
      iss=$(grep -oiE '\b(close[sd]?|fix(e[sd])?|resolve[sd]?)[: ]+#[0-9]+' "$body" | grep -oE '[0-9]+' | sort -un | tr '\n' ' ')
      if [ -n "$bonly" ]; then echo "$(date -u +%FT%TZ) cloud_relay: handoff-body/$topic $bs is new for #$pr $head; body-only"
      else echo "$(date -u +%FT%TZ) cloud_relay: handoff/$topic $hs is ahead of #$pr $head; updating"; fi
-@@ -548,19 +618,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
+@@ -548,19 +624,7 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of
    level_set handoff-update "$state/cloud-level-update.$$"
    level_set handoff-held "$state/cloud-level-held.$$"
    level_set handoff-body-stale "$state/cloud-level-stale.$$"
@@ -432,7 +483,7 @@ index 0df114bbd..a29ffba6f 100644
    rm -f "$state/cloud-prs.$$" "$state/cloud-hrefs.$$" "$state/cloud-topics.$$" "$state/cloud-vrefs.$$" "$state/cloud-merged.$$"
  }
  
-@@ -650,7 +708,9 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
+@@ -650,7 +714,9 @@ pass() { # [--confirm] [--log FILE] [--loop [--interval N]]
      --confirm) CONFIRM=1; shift;; --log) LOG=${2:-}; shift 2;; --loop) loop=1; shift;; --interval) every=${2:-}; shift 2;;
      *) echo "cloud_relay: unknown pass option '$1'" >&2; return 2;; esac; done
    case $every in ''|*[!0-9]*|0) echo "cloud_relay: --interval must be a positive number of seconds" >&2; return 2;; esac
@@ -443,7 +494,7 @@ index 0df114bbd..a29ffba6f 100644
  }
  
  self_test() {
-@@ -797,6 +857,45 @@ EOF
+@@ -797,6 +863,76 @@ EOF
    chk "without --confirm, relay logs nothing" 0 relay 7 $n $h
    chk "and the log stayed empty" 0 test ! -s "$LOG"
    chk "but the ledger owes its posting: a relayed verdict is owed until it is read back" 0 owes "verdict-unposted 7 $h "
@@ -479,17 +530,48 @@ index 0df114bbd..a29ffba6f 100644
 +  chk "and once per pass (two passes, two lines)" 0 test "$(grep -c '^cloud_relay: state dir ' <<< "$out")" = 2
 +  # ev/ names differing only in case (carry 8): refused by name, nothing pushed
 +  rm -f "$t/pushed"
-+  mkf 41 x ev/HEAD.txt ev/head.txt; out=$(relay 41 $n $h 2>&1); rc=$?
++  # The colliding trees are built in the object database only (hash-object, mktree, commit-tree): no
++  # working-tree file with either name is ever created, so this runs the same on APFS and on ext4.
++  dbtree() { # <blob> <relative paths, one per line> -> a tree sha; names hold no space
++    local blob=$1 list=$2 ents="" top sub
++    for top in $(printf '%s\n' "$list" | sed 's|/.*||' | LC_ALL=C sort -u); do
++      if printf '%s\n' "$list" | grep -qxF "$top"; then ents="$ents$(printf '100644 blob %s\t%s' "$blob" "$top")"$'\n'
++      else sub=$(printf '%s\n' "$list" | grep -F "$top/" | sed "s|^$top/||"); ents="$ents$(printf '040000 tree %s\t%s' "$(dbtree "$blob" "$sub")" "$top")"$'\n'; fi
++    done
++    printf '%s' "$ents" | git mktree
++  }
++  mkdb() { # mkdb <pr> <ev path>...: a probe ref whose ev/ holds those paths, built without a working tree
++    local p=$1 bl vb et rt c; shift
++    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q
++    bl=$(echo x | git -C "$t/pr" hash-object -w --stdin)
++    vb=$(printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h" "$n" | git -C "$t/pr" hash-object -w --stdin)
++    et=$(cd "$t/pr" && dbtree "$bl" "$(printf '%s\n' "$@" | sed 's|^ev/||')")
++    rt=$(printf '040000 tree %s\tev\n100644 blob %s\tverdict.md\n' "$et" "$vb" | git -C "$t/pr" mktree)
++    c=$(git -C "$t/pr" commit-tree "$rt" -m "verdict $p $h")
++    git -C "$t/pr" update-ref refs/heads/mkdb "$c"
++    git -C "$t/o.git" fetch -qf "$t/pr" "refs/heads/mkdb:refs/heads/probe/rev-$p-${n:0:8}"
++    [ -z "$(ls -A "$t/pr" | grep -v '^\.git$')" ]; }  # rc 0: the work tree holds nothing but .git
++  tar() { echo x >> "$t/tar.calls"; command tar "$@"; }
++  mkdb 41 ev/HEAD.txt ev/head.txt; chk "the fixture never materialises a name (work tree empty)" 0 test "$?" = 0
++  mkdb 41 ev/HEAD.txt ev/head.txt; rm -f "$t/tar.calls"; TD=$(mktemp -d "$t/tmpdir.XXXXXX"); out=$(TMPDIR=$TD relay 41 $n $h 2>&1); rc=$?
++  chk "refused before any write: nothing was extracted (tar never ran)" 0 test ! -e "$t/tar.calls"
++  chk "and no scratch directory was created (TMPDIR still empty)" 0 test -z "$(ls -A "$TD")"
++  mkdb 42 ev/head.txt ev/other.txt; rm -f "$t/tar.calls"; out=$(TMPDIR=$TD relay 42 $n $h 2>&1)
++  chk "null control: distinct names do run the extract" 0 test -e "$t/tar.calls"
++  unset -f tar
++  rm -f "$t/pushed"
++  mkdb 41 ev/HEAD.txt ev/head.txt; out=$(relay 41 $n $h 2>&1); rc=$?
++  chk "ev_case_collision names both, from the commit alone" 0 grep -Eq "^ev/HEAD.txt and ev/head.txt$|^ev/head.txt and ev/HEAD.txt$" <<< "$(ev_case_collision "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-41-${n:0:8})")"
 +  chk "ev/HEAD.txt and ev/head.txt are refused rc 2" 0 test "$rc" = 2
 +  chk "naming both files" 0 grep -Eq "HEAD.txt and ev/head.txt|head.txt and ev/HEAD.txt" <<< "$out"
 +  chk "with nothing pushed" 0 test ! -s "$t/pushed"
-+  mkf 41 x ev/A ev/a/x; out=$(relay 41 $n $h 2>&1); rc=$?
++  mkdb 41 ev/A ev/a/x; out=$(relay 41 $n $h 2>&1); rc=$?
 +  chk "a file ev/A and a directory ev/a/x are refused rc 2" 0 test "$rc $(pushes)" = "2 0"
 +  mkf 41 x ev/head.txt ev/other.txt; chk "distinct names relay (null control)" 0 relay 41 $n $h
    # the watch pass
    HPO_RELAY_PUSH=$stub; rm -f "$t/pushed" "$t/state/cloud-relayed" "$t/state/cloud-relayed.refused"
    export HPO_BUS_STATE=$t/bus; mkdir -p "$t/bus"
-@@ -874,7 +973,7 @@ EOF
+@@ -874,7 +1010,7 @@ EOF
    unset HPO_RELAY_PUSH; export HPO_RELAY_PUSH=$stub; LOG=$t/pass.log; : > "$LOG"; CONFIRM=
    prs=$t/prs.tsv; ustub=$t/ustub.sh; dstub=$t/dstub.sh; astub=$t/astub.sh; N40=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa
    hc() { git -C "$t/pr" -c user.name=t -c user.email=t@t commit -q --allow-empty -m "$1"; }
@@ -498,7 +580,7 @@ index 0df114bbd..a29ffba6f 100644
    rm -rf "$t/m"; throwaway_git_init "$t/m" -q; git -C "$t/m" -c user.name=t -c user.email=t@t commit -q --allow-empty -m main
    git -C "$t/o.git" fetch -qf "$t/m" "HEAD:refs/heads/main"
    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q; hc base; mkref fix/topic-a-pr; PRH=$(git -C "$t/pr" rev-parse HEAD)
-@@ -892,7 +991,10 @@ EOF
+@@ -892,7 +1028,10 @@ EOF
    chk "a handoff with no body ref does nothing" 0 test ! -e "$t/updated"
    # a handoff ahead of its PR fires the arm
    rm -rf "$t/b"; throwaway_git_init "$t/b" -q; printf 'Part of #201\n\nCloses #77 and fixes #78.\n' > "$t/b/BODY.md"
@@ -510,7 +592,7 @@ index 0df114bbd..a29ffba6f 100644
    handoff_arm >/dev/null 2>&1
    chk "a handoff ahead of its PR runs update_pr with branch and code sha" 0 grep -q "^fix/topic-a-pr $HS " "$t/updated"
    chk "the issues come from the body's closing keywords" 0 grep -q " 77 78 *$" "$t/updated"
-@@ -1150,7 +1252,7 @@ EOF
+@@ -1150,7 +1289,7 @@ EOF
    chk "and runs no update and owes handoff-held" 0 test "$([ -e "$t/hupdated" ] && echo ran)-$(grep -c "handoff-held refs/heads/handoff/topic-a $HS3 #41 VERDICT\$" "$LOG.level")" = -1
    git -C "$t/o.git" update-ref refs/heads/handoff/topic-a "$HS2"; git -C "$t/o.git" update-ref -d refs/heads/verdict/41
    git -C "$t/pr" reset -q --hard "$PRH"; mv "$t/bus/dispatched.bo" "$t/bus/dispatched"; rm -f "$t/hupdated"
@@ -519,7 +601,7 @@ index 0df114bbd..a29ffba6f 100644
    chk "a contained body with no Code: line runs nothing, and is recorded applied" 0 test ! -e "$t/hupdated" -a "$(tail -n 1 "$BF")" = "topic-a $(bsha)"
    bodyc "$HS"; ho=$(handoff_arm 2>&1)
    chk "a contained body naming another code head runs nothing and is owed stale" 0 test ! -e "$t/hupdated" -a "$(grep -c "handoff-body-stale refs/heads/handoff/topic-a $HS2 body names ${HS:0:12}\$" "$LOG.level")" = 1
-@@ -1208,6 +1310,71 @@ EOF
+@@ -1208,6 +1347,71 @@ EOF
    mv "$t/dispositions.tsv" "$t/disp.bak"; mkdir "$t/dispositions.tsv"; handoff_arm >/dev/null 2>&1
    chk "an unreadable ledger leaves the handoff level as it was (rc 2 is not 'nothing owed')" 0 grep -q "handoff-no-pr refs/heads/handoff/topic-b $OB2 ct=" "$LV"
    rmdir "$t/dispositions.tsv"; mv "$t/disp.bak" "$t/dispositions.tsv"
@@ -591,7 +673,7 @@ index 0df114bbd..a29ffba6f 100644
    git -C "$t/o.git" update-ref -d refs/heads/handoff/topic-b; : > "$LOG"
    chk "pass --loop is the only loop (a bad interval is refused)" 2 pass --loop --interval 0
    HPO_RELAY_UPDATE=$ustub; rm -f "$t/updated" "$t/state/cloud-handoff-failed"; : > "$LOG"; printf '%s\t%s\t%s\n' 41 fix/topic-a-pr "$PRH" > "$prs"
-@@ -1353,7 +1520,7 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
+@@ -1353,7 +1557,7 @@ open(sys.argv[1], "w").close(); time.sleep(60)' "$t/stuck.held" "$t/state/pr/upd
      done
      cp "$LOG.level" "$t/stuck.level"
      # one more pass with every lock released: a released lock is never reported
