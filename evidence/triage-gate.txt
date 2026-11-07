@@ -1,0 +1,15 @@
+GATE R10-HOTFIX-SAV-ESTIMATE[1] passes
+GATE R10-RCA-SAV-ESTIMATE[0] passes
+GATE R10-TRAIN-MERGE-LOOP-2[1] passes
+GATE R10-TRAIN-MERGE-LOOP-2[2] passes
+GATE R10-TRAIN-MERGE-LOOP-2[3] passes
+GATE R10-TRAIN-MERGE-LOOP-2[4] passes
+GATE R10-TRAIN-MERGE-LOOP-2[5] passes
+GATE R10-TRAIN-MERGE-LOOP-2[9] passes
+GATE R10-TRAIN-MERGE-LOOP-2[10] passes
+GATE R10-TRAIN-MERGE-LOOP-2[11] passes
+GATE R10-TRAIN-MERGE-LOOP-2[12] passes
+GATE R10-TRAIN-MERGE-LOOP-2[13] passes
+GATE R10-TRAIN-MERGE-LOOP-2[17] refused the triage ruling dev/programme/triage/s6-batch127.md is not on the roster branch or origin/main
+GATE R10-COMBI-TANK[5] refused the triage ruling dev/programme/triage/s6-batch127.md is not on the roster branch or origin/main
+replay: 1360 carries, 278 proposal-sourced, 22 refused
