@@ -4,7 +4,7 @@ R10-OUTSIDE-INTAKE. The owner's ruling (tvofi 2026-11-06), verbatim: "the plan h
 
 What lands, by the brief's three parts:
 
-1. **Public plan page.** `tools/audit/seat/plan_public.py stage` takes `PLAN.html` from the newest `origin/handoff/audit-r<N>-plan` state ref (the layout `state_docs.state_of` owns) and writes `plan/index.html`. `.github/workflows/pages.yml` runs it from the dispatched ref's tree. It then checks out the newest `v*` tag for the docs and adds the page, served at `https://tvofi.github.io/heatpump_optimizer/plan/` (`plan_public.PLAN_URL`, the one spelling of the URL). The beat's `plan-beat` row dispatches `pages.yml` on `main` after each state push that landed. `dev/programme/HANDOVER.md` links the page from the head of its Round 10 section; no user doc links it. If `ref_privacy` reads a host path, account name, uid, scratch root or a tool's attribution in the page, it refuses the page (rc 1: the deploy goes red and nothing is published). With no state ref, or no `PLAN.html` at the newest one, it stages nothing (rc 2): the site deploys without a plan and warns. A closed round's state ref is not retired until `closeout.py --apply`, so until then the newest closed round's page is served; that is a carried finding (`## Forward-carry`), not a property this PR claims.
+1. **Public plan page.** `tools/audit/seat/plan_public.py stage` takes `PLAN.html` from the newest `origin/handoff/audit-r<N>-plan` state ref (the layout `state_docs.state_of` owns) and writes `plan/index.html`. `.github/workflows/pages.yml` runs it from the dispatched ref's tree. It then checks out the newest `v*` tag for the docs and adds the page, served at `https://tvofi.github.io/heatpump_optimizer/plan/` (`plan_public.PLAN_URL`, the one spelling of the URL). The beat's `plan-beat` row dispatches `pages.yml` on `main` after each state push that landed. `dev/programme/HANDOVER.md` links the page from the head of its Round 10 section; no user doc links it. If `ref_privacy` reads a host path, account name, uid, scratch root or a tool's attribution in the page, it refuses the page (rc 1: the deploy goes red and nothing is published). With no state ref, or no `PLAN.html` at the newest one, it stages nothing (rc 2): the site deploys without a plan and warns. A closed round's state ref stays the newest until `closeout.py --apply` deletes it, so the closed round's page is served until then. `plan_public.py`'s docstring and the `pages.yml` header now say so (round 6).
 2. **Intake as machinery.** `tools/audit/seat/outside_intake.py list` lists threads (issues, pull requests and discussions, which share one number space). It lists a thread when it has activity at or after a cursor by an author who is outside `OURS` and not a bot. It prints the `OUTSIDE #N owed=triage|answer|reply` lines owed this turn. Disposition is read from the roster (`issues`/`fixes`, wired by `roster_edit.py wire-issue`) and from marker comments by our accounts, never from memory. The new beat row `outside-intake` [1800 s] runs it with a cursor under the digest's `state/` and writes its lines to the digest. Sweep step (5b) in `sweep_template.md` names the action for each line. `orchestrator.md` section 5 and `standing-dispatch.md` each carry the short obligation.
 3. **Answer step.** `outside_intake.py answer --issue N` posts the plan link through `tools/pr/gh_comment.py post`, whose read-back is the proof. It marks the comment. A marker is read only from a comment by an account in `OURS`, and only `saw()` moves a thread's outside activity, so a third-party bot's comment is neither ours nor outside activity. It refuses a thread already answered or refused, so none is answered twice. It also refuses a thread on no roster group, any thread while the plan page does not answer, and a discussion. `refuse --issue N --reason-file F` records a refusal the same way.
 
@@ -18,61 +18,99 @@ The dispatch keeps that pinned set. One existing behaviour changes: a dispatch n
 
 ## Re-cut note
 
-Round 5, the minimal re-cut owed past three rounds (`fixer.md`, "Past three rounds, re-cut rather than repair"): one self-test case plus two mutants, answering the round-4 block (`verdict/3262`, mutation-vacuous: `plan_public.py` stage's host identity default and `main()`'s exit status survived the self-test). The round-3 block (`one_thread`'s review-comment read) stays cured and untouched. The only production-adjacent file changed in this round is `tools/audit/seat/plan_public.py`, and only its self-test and `MUTANTS` table:
+Round 6. This is a minimal re-cut of the round-5 block (`verdict/3262`, ci-red). The block is cured by a fresh head, and this round also takes the four findings that verdict carried to R10-OUTSIDE-INTAKE. The plan_public.py lines the round-5 reviewer found cured are untouched: the CLI case, the `host_ident_dropped` and `main_rc0` mutants, and the runner.
 
-- The case "the CLI over a scratch repository" runs `main(["stage", "--out", D, "--repo", R])` with no ident, as `pages.yml` does, over a fresh `git init` repository whose `refs/remotes/origin/handoff/audit-r10-plan` holds `handoff/round10/state/PLAN.html`. Three arms: a clean page gives rc 0 and the page staged byte-identical; a page naming another account's home gives rc 1 and nothing staged; no state ref gives rc 2 and nothing staged. An exception counts as a failed arm, so a crashing mutant fails its case instead of aborting the self-test.
-- Mutants `host_ident_dropped` (`refusal`: `ident or ref_privacy.Identity.of_host()` made `ident`) and `main_rc0` (`main`: `return rc` made `return 0`).
-- The mutation runner mutated only the code above the `MUTANTS` table, so `main()`, below it, could not be mutated. It now mutates everything but the table, and an old string must occur exactly once outside it.
+- **A fresh head.** `10bd5426d` is a clean merge of `origin/main` at `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76`, so the head's runs start anew.
+- **The false sentence is corrected.** In both `plan_public.py`'s docstring and the `pages.yml` header, "between rounds there is no page" now reads like this:
+  - A closed round's state ref stays the newest until `closeout.py --apply` deletes it, so its page is served until then.
+  - The page is absent only when there is no state ref, or no `PLAN.html` at the newest one.
+  - Source: `closeout.py`'s `refs` step (2) is the only step that deletes remote branches, and it runs only under `--apply`.
+- **`main_url_rc1` is killed.** A new `plan_public.py` case, "url prints PLAN_URL alone, rc 0", runs `main(["url"])` and requires rc 0 and stdout of exactly `PLAN_URL` plus a newline. The mutant `main_url_rc1` is entered in `MUTANTS`.
+- **`scan_disc_kind` is killed.** A new `outside_intake_selftest.py` case, "discussions: a discussion opened before the cursor, its new outside comment listed as a discussion", covers discussion #3262. It was opened before `SINCE`, and an outside comment came after it. The case requires the line `OUTSIDE #3262 owed=triage discussion by=asker since=2026-11-06T10:00:00Z`; the mutant prints `comment`.
+- **`owed_reply_ge` is killed.** A new case, "reply: outside activity in our answer's own second owes nothing; one second later owes a reply", drives `owed()` on two threads. In the first, outside activity falls in the same second as our answer and owes `None`. In the second it falls one second later and owes `reply`.
+  - **This case encodes a design choice** (`fixer.md` step 11). GitHub stamps to the second, so a same-second outside comment cannot be ordered against our answer.
+  - The choice is that only activity strictly after our latest comment owes a reply. The alternative, `>=`, would owe a reply on that tie. Both directions are defensible. This one keeps the production predicate unchanged, and the case names the tie, so a later seat that reads the tie the other way is reversing a stated choice rather than fixing a bug.
+- Both new entries go in `outside_intake_selftest.py`'s `MUTANTS`.
 
 ## Head
 
-`f69a1caf9c3de0b4d1f9ae663f58f0dbf55a534c`, on top of the round-4 code head `28f9f11bb0e302cfd4920bb1e50384c4db9633a6` (tree-identical to the PR head `aa5022f63cac715abe871d168d2ed250997261e7`). Its commits: `7a603a1f0`, a clean merge of `origin/main` at `28d46c4918285d36c409c1fb2f72eb77e04e569e`; `78389d732`, the round-5 change above; `22e1f930f`, which builds the case's scratch repository with `tests/throwaway_git.py`'s `throwaway_git_init` after `prepr.sh`'s throwaway-git lane refused the raw `git init` (`python3 -I tests/throwaway_git.py --check` now prints `0 raw git init or clone site(s) refused`); and `f69a1caf9`, a clean merge of `origin/main` at `a37c58e5f32123b4028e90983799dc2aa81816f8`, because main moved during that `prepr.sh` run. The merge base is `a37c58e5f32123b4028e90983799dc2aa81816f8`. Every figure below was taken at this head. `origin/main` was `a37c58e5f32123b4028e90983799dc2aa81816f8` before and after the clean `prepr.sh` run below, so no further merge was owed.
+`b6feee85e3308a1581b568120cf8870cb287038e`, pushed to `handoff/r10-outside-intake` at 2026-11-07T17:19:49Z. It sits on the round-5 PR head `b9b6af68683febf678907b19d7e73be453bc5bb7` and adds two commits:
+
+- `10bd5426d`: the clean merge of `origin/main` at `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76`.
+- `b6feee85e`: the round-6 change above, 3 files, +36 and -4 (`git diff --stat HEAD~1 HEAD`).
+
+The merge base is `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76`. Every figure below was taken at this head. `origin/main` was `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76` before the `prepr.sh` run (17:08:33Z), after it (17:19:34Z) and at 17:50Z, so no second run was owed.
 
 ## Mutation proof
 
-Failing test first: with the two `MUTANTS` entries and the runner change in place but the case not yet written, `python3 -I tools/audit/seat/plan_public.py --self-test` gave rc 1 with exactly two failures, `FAIL mutant host_ident_dropped killed by: the CLI over a scratch repository: a clean page is staged, rc 0` and `FAIL mutant main_rc0 killed by: the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written`. With the case added, the same command gives rc 0 and `plan_public self-test: all checks passed`, printing `ok   mutant host_ident_dropped killed by: the CLI over a scratch repository: a clean page is staged, rc 0` and `ok   mutant main_rc0 killed by: the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written`.
+**Failing test first.** At `HEAD~1`, I applied the new `MUTANTS` entries alone, without the new cases.
+- `python3 -I tools/audit/seat/plan_public.py --self-test` gave rc 1: `FAIL mutant main_url_rc1 killed by: url prints PLAN_URL alone, rc 0`.
+- `outside_intake.py --self-test` refused both new entries as stale, because their cases did not yet exist: `FAIL mutant scan_disc_kind: stale` and `FAIL mutant owed_reply_ge: stale`.
 
-The kill is read from the case's own `FAIL` line in the mutant's cases-only output (`mod.self_test(mutants=False)`), so the stale-mutant check cannot stand in for it.
+**Direct survival proof.** A scratch driver applies each `outside_intake.py` mutant by hand and runs `outside_intake_selftest.cases()` on the mutant copy:
 
-The round-4 reviewer's 18-mutant set (`verdict/3262` `evidence/mut_pp.py`), re-run with its apply step widened to mutate the whole file but the `MUTANTS` table, in a detached worktree at the head, both cases-only (`self_test(False)`) and full (`self_test(True)`):
-
-| mutant | at round 4 | at this head |
+| run | at `HEAD~1` (27 cases) | at this head (29 cases) |
 |---|---|---|
-| `host_ident_dropped` | SURVIVED | KILLED: `the CLI over a scratch repository: a clean page is staged, rc 0` |
-| `main_rc0` | not applied (below the table) | KILLED: `the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written` |
-| `main_repo_cwd_ignored` | not applied (below the table) | KILLED: `the CLI over a scratch repository: a clean page is staged, rc 0` |
-| `int_dropped`, `max_to_min`, `regex_no_end`, `html_check_off`, `leak_off`, `attribution_off`, `refused_rc0`, `absent_rc1`, `noref_rc0`, `write_empty`, `dest_name` | KILLED | KILLED |
-| `html_case_sensitive`, `rc_ignored_refs`, `show_rc_ignored`, `empty_text_published` | SURVIVED | SURVIVED |
+| null | no case fails | no case fails |
+| `scan_disc_kind` | no case fails (SURVIVES) | fails "discussions: a discussion opened before the cursor, its new outside comment listed as a discussion" |
+| `owed_reply_ge` | no case fails (SURVIVES) | fails "reply: outside activity in our answer's own second owes nothing; one second later owes a reply" |
 
-The four survivors are the ones the round-4 verdict classed equivalent or near-equivalent, each for its stated reason: `plan_page.py` writes a lowercase `<!doctype html>`; a failed `for-each-ref` prints nothing; a failed `git show` prints nothing on stdout; an empty page moves from rc 2 to rc 1, refused either way. Every non-equivalent mutant of the set is killed. Count rule: `grep -c KILLED` over each run's output prints 14 for both runs. The runner's first-`FAIL` column for `main_rc0` names another line; applied by hand, its cases-only output fails exactly the CLI case's rc 1 and rc 2 arms, so the kill is the named case's.
+At `HEAD~1` the result matches the round-5 reviewer's cases-only record (`verdict/3262` `evidence/reviewer-mutants-casesonly.txt`).
+
+**At this head, both self-tests pass and print each kill:**
+- `plan_public.py --self-test`: rc 0, ending in `ok   mutant main_url_rc1 killed by: url prints PLAN_URL alone, rc 0` and `plan_public self-test: all checks passed`.
+- `outside_intake.py --self-test`: rc 0, with these lines:
+  - `ok   mutant scan_disc_kind killed by: discussions: a discussion opened before the cursor, its new outside comment listed as a discussion`
+  - `ok   mutant owed_reply_ge killed by: reply: outside activity in our answer's own second owes nothing; one second later owes a reply`
+  - `outside_intake self-test: all checks passed`
+
+The round-5 survivors `mark_old_restored_EQUIV`, `has_disc_ignored` and `plan_live_200` (`outside_intake.py`) were not in the findings carried to this round, and this round leaves them untouched. The same holds for `html_case_sensitive`, `rc_ignored_refs`, `show_rc_ignored`, `empty_text_published` and `main_print_stdout` (`plan_public.py`), which the round-4 and round-5 verdicts classed as equivalent, near-equivalent or cosmetic.
 
 ## Null control
 
-- The unmutated runner baseline: `NULL(full=False) rc=0` and `NULL(full=True) rc=0`, each `plan_public self-test: all checks passed`, so each kill above is its mutant's.
-- The script driven as `pages.yml` drives it, outside the self-test (`verdict/3262` `evidence/drive_pp.sh` against this head's tree): `clean page: rc=0  staged=yes`, then `plan_public: REFUSED: round 10 PLAN.html: host-path in the page` and `leaky page: rc=1  staged=no`. The case's arms agree with the real CLI.
+- The unmutated module at both ends: the hand driver's `NULL` row fails no case at `HEAD~1` (27 cases) or at this head (29 cases). Each kill above therefore belongs to its mutant, not to the case set.
+- The pass arms of `owed_reply_ge`'s case are not vacuous. The one-second-later thread must owe `reply`, so a predicate that never replies fails it too.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/plan_public.py --self-test`: rc 0, `plan_public self-test: all checks passed`, with 18 `ok` lines (`grep -c '^ok'`): 12 cases and 6 `mutant` lines. Round 4 had 9 and 4.
-- `python3 -I tools/audit/seat/outside_intake.py --self-test`: rc 0, `outside_intake self-test: all checks passed`, 48 `ok` lines (`grep -c '^ok'`), unchanged from round 4 because this round edits no file it reads.
-- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`tests/entities.py`, `tests/harness_headers.py`).
-- Scoped scripts: `PYTHONPATH=tests/hastub python3 tests/entities.py` gives `ALL 2646 ENTITY CHECKS PASSED` (rc 0). `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` gives `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- `python3 -I tools/audit/seat/plan_public.py --self-test`: rc 0. It prints 20 `ok` lines (`grep -c '^ok'`): 13 cases and 7 `mutant` lines.
+- `python3 -I tools/audit/seat/outside_intake.py --self-test`: rc 0. It prints 52 `ok` lines (`grep -c '^ok'`): 29 cases and 23 `mutant` lines.
+- Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` The two scripts are `tests/entities.py` and `tests/harness_headers.py`.
+- The scoped scripts, each run with `PYTHONPATH=tests/hastub`:
+  - `python3 tests/entities.py`: `ALL 2646 ENTITY CHECKS PASSED`.
+  - `python3 tests/harness_headers.py`: `ALL 112 HARNESS HEADER CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. No `*_budgets.json` is in the three-dot diff (`git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c budgets.json` prints 0).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `python3 tools/audit/seat/ref_privacy.py --check`: `0 refused`. `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused`. `python3 -I tools/audit/seat/selftest_wiring.py --check`: `120 self-testing, 120 wired, 0 unwired` and `0 index gap(s)`.
-- `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are byte-identical to `origin/main` (`git diff --quiet origin/main HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`).
-- Toolchain: `bash tools/audit/seat/cloud-setup.sh --check`: `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
-- `tools/pr/prepr.sh <body>` at `f69a1caf9`, run 2026-11-07T14:11:27Z to 14:22:48Z: `PRE-PR: f69a1caf9c3de0b4d1f9ae663f58f0dbf55a534c ... rc=0`, every lane `ok` or `skip`. The first run, at `78389d732` (13:49Z-14:00Z), was rc 1 on three lanes: `throwaway git` (the raw `git init`, cured by `22e1f930f`), `self-test` (`511 passed, 2 failed`, both in the throwaway-git check's own null control, which reads the tree and went green with the same cure), and `pr-body` (a `## Forward-carry` item named a path outside the tree, re-worded).
+- Path and wiring checks at the head:
+  - `python3 tools/audit/seat/ref_privacy.py --check`: `0 refused`.
+  - `python3 -I tools/audit/seat/tmp_paths.py --check`: `tmp_paths: 0 refused`.
+  - `python3 -I tools/audit/seat/selftest_wiring.py --check`: `120 self-testing, 120 wired, 0 unwired` and `0 index gap(s)`.
+  - `python3 -I tests/throwaway_git.py --check`: `0 raw git init or clone site(s) refused`.
+- `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are byte-identical to `origin/main`: `git diff --quiet origin/main HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`.
+- `dev/programme/delivery/3262.md` is in the three-dot diff (`grep -c` prints 1).
+- Toolchain: `bash tools/audit/seat/cloud-setup.sh` was run, then `--check` gave `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
+- `tools/pr/prepr.sh` at `b6feee85e`, run 2026-11-07T17:08:33Z to 17:19:34Z: `PRE-PR: b6feee85e3308a1581b568120cf8870cb287038e ... rc=0`. Every lane was `ok` or `skip`: `closures` was skipped (CI re-records), `diff mutants` because `MUTANT_CMD` was unset, and body and receipt because no body was passed. The body lane is `tools/pr/prepr.sh --body-check` on this body, which `body_push.sh` re-runs.
 
 ## Red checks
 
-The PR head `aa5022f63cac715abe871d168d2ed250997261e7` holds 160 check runs in the `filter=all` read across both pages (`verdict/3262` `evidence/check-runs.tsv`, read at about 11:30Z; the latest-only read at 13:40Z returns 68, its newest run 128389156452 the tsv's first row, so no run was added after). `python3 -I tools/audit/seat/merge_train.py classify aa5022f63cac715abe871d168d2ed250997261e7 --pr 3262` at 2026-11-07T13:38Z: `GREEN aa5022f63cac715abe871d168d2ed250997261e7 pending: none red: none` (rc 0), so every concluded red below is classified away by a later concluded success of the same check, or is unrequired. The concluded reds, by literal check-run name (`awk -F'\t' '$4!="success"&&$4!="skipped"&&$4!="neutral"'` over the tsv prints these nine rows):
+**At the new head, nothing has run, so no red has concluded.** `gh api "repos/tvofi/heatpump_optimizer/commits/b6feee85e3308a1581b568120cf8870cb287038e/check-runs?filter=all&per_page=100"` gives `total_count` 0 (one page), and `actions/runs?head_sha=` gives `total_count` 0. Both were read at 2026-11-07T17:50Z.
+- `merge_train.py classify b6feee85e3308a1581b568120cf8870cb287038e --pr 3262` read `WAIT ... pending: gate red: none` at 17:20:02Z and again at 17:50:08Z.
+- The cause: pull request #3262's head branch is `fix/r10-outside-intake`, still at `b9b6af68683febf678907b19d7e73be453bc5bb7` (`pulls/3262` `.head`). The PR moves only when the orchestrator's `tools/audit/seat/handoff_push.sh` relays `handoff/r10-outside-intake` through `app_push.sh`.
+- So the brief's "make classify read GREEN before handoff" cannot be met from this seat, which may not write `fix/`. I took the option that keeps coverage: hand off with the fresh head. **The GREEN classify is owed at the relayed head before the next review.** If a fresh run is cancelled by a runner stall, that is the orchestrator's re-run.
 
-- **`tests / nightly-status` 128369432665 (09:45:58Z-09:46:09Z) and 128382846793 (10:49:52Z-10:50:04Z) concluded `failure`.** Each logs `NIGHTLY FAILED: mutation-ledger (1), mutation-ledger (2), mutation-ledger (3), mutation-ledger (4), mutation-ledger-push, mutation-nightly failed in the last verification dispatch` and `dispatched run 42357667261, ... head 62bcca7, run conclusion 'cancelled'`. It grades `main`'s Nightly dispatch, which the orchestrator cancelled to free runners; the job checks `tests/nightly_status.py` out of the pinned main commit, and this diff does not touch it (`git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c nightly_status` prints 0). It is unrequired, red for every open PR graded against that dispatch, and the check itself is the detector that named the cause: no countermeasure owed here.
-- **`governance / instrument-self-tests` 128369432606 (09:45:57Z-10:16:12Z) concluded `cancelled`** at the job's 30-minute timeout, the owner's standing line (R10-HOTFIX-SELFTEST-TIMEOUT, cure R10-PROCESS-SLIM, #3245). The same job, 128382846790 (10:49:52Z-11:17:08Z), concluded success at this tree. No cheaper detector exists.
-- **`pr-contract / pr-contract` 128378515649 (10:29:02Z-10:29:49Z) concluded `failure`**: it refused an earlier body whose `## Red checks` omitted the nightly-status red. Superseded by 128382814711, 128388623658 and 128389122891, each success. The check is its own detector.
-- **`gate` 128378686810 and 128378835497 concluded `failure`**, each with only `FAIL pr-contract / pr-contract: failure`: they repeat the `pr-contract` red above and cleared with it.
-- **`gate` 128369699756 (09:47:09Z-09:59:21Z), 128382850917 (10:49:53Z-11:01:53Z) and 128382978616 (10:50:30Z-11:02:29Z) concluded `failure`**, each `KIND: edit` with the single line `FAIL run(s) [42361045445] at this head are still being judged; their gate decides`. This is the edit-run deferral red R10-HOTFIX-GATE-BUSY-DEFER (#3276, `cc100c275`) was meant to remove, and the base already contained it, so it recurs after that fix after a roughly 12-minute wait: a defect of the gate, not of this diff, carried to that group (`## Forward-carry`). Superseded by `gate` 128388861998, 128389118396 and 128389122431, each success. The cheaper detector is the gate's own later run.
+**The old head's concluded reds** (`b9b6af686`, `verdict/3262` `evidence/reds.tsv`). This head supersedes each one:
+- `gate` 128449147307 concluded `failure`, with `FAIL tests / fast (3.14): cancelled (run 42385084286)`.
+- `gate` 128449368751 concluded `cancelled`.
+- The cancelled jobs of code run 42385084286, cancelled at about 15:46:18Z with no re-run: `tests / fast (3.14)`, `tests / browser`, `tests / closures`, `tests / coverage`, `governance / instrument-self-tests` and `codeql / Analyze (python)`.
+  - This was a cancellation, not a defect of this diff. No cheaper detector exists.
+  - The two `gate` reds repeat it, and they are the same edit-run gate red class that `R10-HOTFIX-GATE-BUSY-DEFER` carries.
+- `tests / nightly-status` 128443914073 concluded `failure`. It grades main's cancelled Nightly 42369836867 at `08fd676`.
+  - This diff does not read that run: `git diff --name-only $(git merge-base origin/main HEAD)...HEAD | grep -c nightly_status` prints 0.
+  - The check is unrequired, red for every open PR graded against that dispatch, and its own detector.
+
+This seat could not read the code-scanning alerts: the body check's ancestry lane reports `code-scanning/analyses page 1: HTTP 403`, fail-closed. That read is owed by a seat with that access.
+
+Carry: R10-HOTFIX-GATE-BUSY-DEFER (the edit-run gate reds on another run's cancelled jobs recur).
 
 ## Unpinned sites
 
@@ -84,9 +122,7 @@ Pending: tvofi's approving review at the head. The ruling of 2026-11-06 approves
 
 ## Forward-carry
 
-- "Between rounds there is no state ref" is false as the tree stands: nothing retires `handoff/audit-r<N>-plan` at round close but `closeout.py --apply`, so the newest closed round's page stays served. The sentence stands in `plan_public.py`'s docstring (the STAGE paragraph) and `pages.yml`'s header; this minimal re-cut does not touch either, and this body no longer states it. Cure: retire the state ref at round close, or stage only while the round's roster is open, then correct both. Carry: R10-OUTSIDE-INTAKE
-- The edit-run deferral `gate` reds above recur after R10-HOTFIX-GATE-BUSY-DEFER merged. Carry: R10-HOTFIX-GATE-BUSY-DEFER
-- `outside_intake.py`'s plausible mutants `scan_disc_kind` and `owed_reply_ge` still survive the cases-only run, as the round-4 verdict on `verdict/3262` records; out of this minimal re-cut. Carry: R10-OUTSIDE-INTAKE
+none
 
 ## Friction
 
