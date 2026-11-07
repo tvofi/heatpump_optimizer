@@ -44,6 +44,8 @@ none
 
 At this head: none concluded. The head has not run in CI (the PR was DIRTY, so CI could not run); no check run exists for it yet, so there is no red to answer. History only, at the earlier head 0ce1f09bd196: `gate` concluded failure four times (128274341527, 128285252987: edit-run deferrals to code run 42329754862; 128289689105 and 128289692210: edit runs 42329758968 and 42333416528 deferring to each other), and code run 42329754862 attempt 1 was cancelled at 02:54Z while attempt 2 was green. None is this diff's code: the mutual deferral is the CI gate instrument owned by R10-PROCESS-SLIM (#3245). Cheaper detector: none for a cancellation. Any red the new head concludes will be answered by the next repair.
 
+`tests / nightly-status` is red on origin/main and grades `main`; it is outside the required set and never counts (owner ruling 2026-11-07), and this resolution touches nothing it reads (the merge changed tools/plan/replan.py by hand only; .github/workflows/governance.yml arrives unchanged from main). Cheaper detector: none; its standing cost is the nightly run itself, which already exists.
+
 ## Carry dispositions
 
 Numbering follows the review packet (1-based); the brief's own index is one lower.
