@@ -1,4 +1,0 @@
-    130 tests/features.py
-     15 tests/entities.py
-     13 tests/config_flow_steps.py
-     10 tests/env_drift.py
