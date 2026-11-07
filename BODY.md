@@ -6,48 +6,48 @@ Legacy control (second item): dismissed citing `LEGACY_CONTROL_CAP` and `assertL
 
 Carry dispositions (roster indexes, 0-based):
 
-Carry 0 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 0 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 1 - answered by the card 7 build (option B).
-Carry 2 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 3 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 4 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 5 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 6 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 7 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 8 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 9 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 2 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 3 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 4 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 5 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 6 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 7 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 8 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 9 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 10 - answered by the card 7 build (option B).
-Carry 11 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 12 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 13 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 11 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 12 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 13 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 14 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 15 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 15 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 16 - answered by the card 7 build (option B).
-Carry 17 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 18 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 19 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 17 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 18 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 19 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 20 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 21 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 22 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 23 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 24 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 25 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 21 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 22 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 23 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 24 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 25 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 26 - answered by the card 7 build (option B).
-Carry 27 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 28 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 29 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 27 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 28 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 29 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 30 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 31 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 32 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 33 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 34 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
-Carry 35 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 31 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 32 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 33 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 34 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
+Carry 35 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 36 - answered by the card 7 build (option B).
-Carry 37 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 37 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 38 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
 Carry 39 - answered by the card 7 build (option B).
 Carry 40 - dismissed: LEGACY_CONTROL_CAP and assertLegacyControl bound the set; all members still need the exemption.
-Carry 41 - not in this part's scope (part 3 takes card 7 and its legacy-control item only); stays with the group's other parts.
+Carry 41 - held by the group's other part; part 3 takes card 7 and its legacy-control item only.
 Carry 42 - built here (card 7 ruling).
 
 ## Head
