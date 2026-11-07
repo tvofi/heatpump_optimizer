@@ -204,6 +204,7 @@
    "tests/README.md",
    "tests/fixtures/**",
    "tests/replay/**",
+   "tests/replay_cost_draws.tsv",
    "tests/pwlane/*.json"
   ],
   "steps": [
