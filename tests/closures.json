@@ -1692,6 +1692,7 @@
    "tests/typing_ruler.py",
    "tests/validate.py",
    "tests/wood_advisor.py",
+   "tests/worker_deadlines.py",
    "tools/audit/archscore/__init__.py",
    "tools/audit/archscore/calibrate.py",
    "tools/audit/archscore/counters.py",
@@ -2253,6 +2254,7 @@
    "tests/run.sh",
    "tests/stress.py",
    "tests/structure.py",
+   "tests/worker_deadlines.py",
    "tools/devices/gen_device_fixtures.py",
    "tools/devices/measure_prefill_corpus.py"
   ],
@@ -4065,6 +4067,7 @@
    "dev/audit/harnesses/r10_night_folds_learners.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry.py",
    "dev/audit/harnesses/r10_nightly_pyspy_retry_mutants.py",
+   "dev/audit/harnesses/r10_nightly_status_mutants.py",
    "dev/audit/harnesses/r10_open_driver_mutants.py",
    "dev/audit/harnesses/r10_partload_pricing.py",
    "dev/audit/harnesses/r10_plan_durations_mutants.py",
