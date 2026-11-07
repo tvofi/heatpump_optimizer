@@ -12,9 +12,20 @@ What changes (`custom_components/heatpump_optimizer/coordinator.py`):
 
 **Note for PR B. It is not carried, because it is not a measured finding: combi is not reachable yet, so nothing can be measured.** In combi one buffer probe fills both store fields, but the DHW rise input here reads only `CONF_DHW_TEMP_ENTITY`. PR B's `combi_tank_seed` will have to decide whether the combi DHW rise input reads the buffer probe, since it is the same water.
 
+Group carries (roster `R10-COMBI-TANK`, read at `origin/handoff/audit-r10-roster`), one disposition each:
+- **Carry 1** (owner ruling 11-06, the no-probe buffer bug): **closed in this PR.** The unprobed buffer is seeded from the previous plan's `buffer_temp_trajectory` through the same seed helper the design adds, `_seed_store` over `_open_loop_plan_value`. PR B reuses that helper for `combi_tank_seed`. Its failing test and its controls are below.
+- **Carry 2** (physically sound, general combi-tank types): not reached by PR 0. It adds no heat-transfer path, no tank type and no type branch. The seed is type-agnostic, because it reads whichever trajectory the plan published, so PR A and PR B build on it without a combi special case.
+- **Carry 3** (judged on robustness, integration efficiency, architecture and maintainability): answered here as follows:
+  - **Robustness.** No reading and no plan leaves the field as it is, never fabricated. The rise inputs are never fed a planned value.
+  - **Integration efficiency.** It adds two `InputReader` reads in the same tick and no new coordinator attribute, following the verdict's `observation-read-in-place` note.
+  - **Architecture.** One module-level primitive outside the coordinator class. `max_class_loc` and `class_excess_loc` each fall by 1.
+  - **Maintainability.** The DHW and buffer seeds share one code path.
+- **Carry 4** (web verification of the figures before PR B): binds PR B. PR 0 states no tank figure.
+- **Carry 5** (the folded web-verification report): binds PR B, and PR A takes only item 1's UA. PR 0 touches no preset, UA, volume or help text.
+
 ## Head
 
-`0ec5d1852cf679730c04e2923a8bbc3a6fafecee`. The merge base is `80016a71f567d936450d8708abcbb79d9e8071d7`, which was origin/main's tip at 2026-11-06T23:29Z. Main moved from the design base `28482ece` during the first gate run. It was merged in, never rebased; that merge brought #3234 (replay-cost tooling, no `custom_components` change). The scoped gate, `ci_predict`, structure and the harness were then re-taken on this head, and prepr.sh was run on it.
+`fc6af95eab538606f1cdf0481d911cd2cdd922ec` is the PR head; the Code line is the handoff head `0ec5d1852cf679730c04e2923a8bbc3a6fafecee`. The merge base is `80016a71f567d936450d8708abcbb79d9e8071d7`, which was origin/main's tip at 2026-11-06T23:29Z. Main moved from the design base `28482ece` during the first gate run. It was merged in, never rebased; that merge brought #3234 (replay-cost tooling, no `custom_components` change). The scoped gate, `ci_predict`, structure and the harness were then re-taken on the handoff head, and prepr.sh was run on it.
 
 ## Mutation proof
 
@@ -66,7 +77,13 @@ For the rise-input class, `git grep -n "ExternalHeatObservation(" -- custom_comp
 
 ## Red checks
 
-- `mutation`: red only on the three unpinned sites the diff adds, listed under `## Unpinned sites`. Each is killed, and `mutation-autofix` pins them by a `ci: pin killed mutants` commit (`ci-autofix.md`). The cheaper detector already exists and ran here: `prepr.sh` step 6d / `tools/pr/ci_predict.py` predicted all three before the handoff, at no standing cost beyond that step. No new detector is owed.
+Read from the check-runs of every commit of the PR (`7515282d`, `133fe9d1`, `219838cd`, `28b3933f`, `0ec5d185`, `d95f6b7a`, `129dc30d`, `fc6af95e`), `filter=all`, all pages. The commits `7515282d`, `133fe9d1`, `219838cd` and `28b3933f` have no concluded red.
+
+- `tests / mutation`: red on the three unpinned sites the diff adds, listed under `## Unpinned sites`. Failure 128233877269 at `d95f6b7a` is that table. Cancelled 128233790198 at `0ec5d185` and cancelled 128320026602 at `fc6af95e` were superseded by a newer push, so they concluded no verdict. The table is now green at the final head `fc6af95e`: success runs 128325233303 and 128345411068. Cure: each site's lane mutant is killed by the new `R10-BUFFER-OPENLOOP` block, and `mutation-autofix` pins it by a `ci: pin killed mutants` commit (`ci-autofix.md`). The cheaper detector exists and ran before the handoff: `prepr.sh` step 6d / `tools/pr/ci_predict.py` predicted all three, at no standing cost beyond that step. No new detector is owed.
+- `governance / instrument-self-tests`: cancelled 128233790595 (`0ec5d185`), 128233877434 (`d95f6b7a`), 128320026640 (`fc6af95e`). Class: the 30-minute job timeout, not a test failure, and no code in this PR touches the instruments. Owner: R10-HOTFIX-SELFTEST-TIMEOUT, with the cure R10-PROCESS-SLIM #3245. The cheaper detector is that cure. This PR adds none.
+- `arch-score / arch-score` cancelled 128233790177, `budget-raise-gate / budget-raise-gate` cancelled 128233790310, and the rest of the `0ec5d185` and `fc6af95e` cancelled set (`tests / fast`, `closures`, `coverage`, `replay`, `arch-instrument`, `mutation-pins`, `mutation-autofix` and the like): superseded by a newer push, so the run was cancelled before a verdict. Each one has a later success or a skip at the final head. The detector is the later run itself.
+- `gate`: failure 128234307691, 128251574952 (`d95f6b7a`), 128259311175, 128262596400, 128270160712 (`129dc30d`), 128323069638, 128336538142, 128345578885 (`fc6af95e`), and cancelled 128324962094 (`fc6af95e`). Two classes. (1) The edit-run deferral, log "FAIL run(s) [...] at this head are still being judged": the gate refuses while another run is held. Owner: R10-HOTFIX-GATE-BUSY-DEFER, merged. (2) A repeat of a `pr-contract` red below: 128345578885 at the final head repeats 128345411314. The gate fails only because `pr-contract` failed. Cure: the body answer below. The cheaper detector is `prepr.sh --body-check`, which reads the earlier heads and is run on this body.
+- `pr-contract / pr-contract`: failure 128251394174 (`d95f6b7a`), 128262403323, 128269988017 (`129dc30d`), 128335147142 and 128345411314 (`fc6af95e`). Class: body red-history refusals, because the body did not name a red check. 128345411314 is the refusal "check `tests / mutation` is red and `## Red checks` does not name it". The answer is this section, which names every red check by its literal name. The cheaper detector is `prepr.sh --body-check ... --pr-branch fix/r10-combi-tank` with `GH_TOKEN` set. Run on this body, it reads the check-runs of the earlier heads, where the previous bodies ran it without that token and so missed the earlier heads' reds.
 
 ## Forward-carry
 
