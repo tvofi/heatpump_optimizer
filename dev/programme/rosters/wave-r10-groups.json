@@ -16417,7 +16417,8 @@
     "From #3293, body item 5e91c904: Carry 16: built with carry 7. Arm runs update_pr.sh by a relative path from a fresh worktree whose common checkout is behind origin/main: passes the freshness check; mutant refuses. update_pr.sh and open_pr.sh untouched. Afterwards the dispatch seat drops HPO_ALLOW_STALE_TOOLS=1 from its update scripts. Carry: R10-HANDOFF-PATH (items 5e91c904) [dismissed: status line from PR 3293 body on carry 16; carry 16 itself holds the work and its mark]",
     "From #3293, body item 768d41f1: Carry 17: this part's scope; before editing, the open PR set was checked by file list and none edited open_driver.py or pr_args.sh. Carry: R10-HANDOFF-PATH (items 768d41f1) [dismissed: status line from PR 3293 body on carry 17; carry 17 itself holds the work and its mark]",
     "From #3293, body item 03290508: Carry 18: not in this part (the mut:unlock arm of pr_args.sh is flaky under load; carry 17 does not name it, and it needs its own deterministic arm); stays open on the roster. Carry: R10-HANDOFF-PATH (items 03290508) [dismissed: status line from PR 3293 body on carry 18; carry 18 itself holds the work and its mark]",
-    "From #3293, body item 8f2763d6: Carry 19: not in this part (carry 17 does not name it); stays open on the roster. Carry: R10-HANDOFF-PATH (items 8f2763d6) [dismissed: status line from PR 3293 body on carry 19; carry 19 itself holds the work and its mark]"
+    "From #3293, body item 8f2763d6: Carry 19: not in this part (carry 17 does not name it); stays open on the roster. Carry: R10-HANDOFF-PATH (items 8f2763d6) [dismissed: status line from PR 3293 body on carry 19; carry 19 itself holds the work and its mark]",
+    "pr_args.sh's `mut:unlock` arm passes only while its checker runs `kill -0` within the lock holder's 0.2 s parent poll, so CPU load can turn it red. Measured: 1 in 9 with all five self-tests at once, and 22 of 22 chained (Figures). That bounds the rate only to below about 1 in 7. The deterministic cure belongs to pr_args.sh, which this group does not own, and the reviewer concurred with this route. Carry text: make pr_args.sh's `mut:unlock` arm deterministic under CPU load (wait for the holder's exit with a bound, not one `kill -0` inside the holder's 0.2 s parent poll), null-controlled by the unmutated holder still read alive; measured 1 FAIL in 9 with five self-tests concurrent, 22 of 22 chained. Carry: R10-HANDOFF-PATH"
    ],
    "architect_note": "",
    "resume": {
@@ -17722,10 +17723,11 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-combi-tank",
     "note": "size L is provisional; the design sets the final size and owning seam | set-files files [] -> ['custom_components/heatpump_optimizer/thermal_model.py', 'custom_components/heatpump_optimizer/dhw_planner.py', 'custom_components/heatpump_optimizer/optimizer.py', 'custom_components/heatpump_optimizer/battery.py', 'custom_components/heatpump_optimizer/coordinator.py', 'custom_components/heatpump_optimizer/dhw_learning.py', 'custom_components/heatpump_optimizer/sensor.py', 'custom_components/heatpump_optimizer/topology.py', 'custom_components/heatpump_optimizer/config_flow.py', 'custom_components/heatpump_optimizer/entry_config.py', 'custom_components/heatpump_optimizer/const.py', 'custom_components/heatpump_optimizer/legionella.py', 'custom_components/heatpump_optimizer/setpoint_check.py', 'tests/features.py', 'docs/configuration.md']; hot_files [] -> ['coordinator.py']",
-    "pr": 3268
+    "pr": 3268,
+    "commit": "15e34edb8b1c3e3b209b6d258cc0165021725736"
    },
    "brief": "Owner ruling (tvofi 2026-11-06), quoted: \"Have a seat pre study the design for 3225 with the target of efficient and robust integration in the ongoing round, after design review fold the fix in a suitable place in the plan.\" Issue #3225 (outside user Bankaifan): no way to model a combi tank where the space-heating buffer and DHW are the same water. Setup: alpha innotec LWDV 91-1/3 (Luxtronik) with an MFS 600 S multifunction tank, 572 l of heating water charged for both space heating and DHW, DHW made on demand through an internal exchanger (39 l / 7.5 m2), no separate DHW tank, zoned returns (DHW return 765 mm, heating return 400 mm), ONE probe in use at 1250 mm, both buffer_tank_temp_entity and dhw_temp_entity point at it; datasheet standing loss 3100 Wh/24 h; current config topology_layout single_tank_valve, mixing_valve_mode smart_write. Read the whole issue body and its comment. DESIGN ONLY, never production code, note at design/r10-combi-tank. Cover: how the existing topologies and the DHW/buffer model represent or fail to represent a shared tank; the minimal sound change (a new topology against a parameterisation of an existing one); sensor handling with a single probe; effects on the solver, the comfort guard and the DHW trajectory seed (R10-BUFFER-STORE carry 1, the open-loop tank seed: this design may be its natural owner); the test fixtures to add; a size estimate and the owning seam. Target: efficient and robust integration in the ongoing round.",
    "source": "outside"
@@ -17865,10 +17867,11 @@
    "issues": [],
    "fixes": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "done",
     "branch": null,
     "note": "overlap admitted (R10-HOTFIX-NIGHTLY-STATUS): distinct seam: nightly.yml mutation-ledger drain jobs and tests/mutation_table.py draw; R10-HOTFIX-NIGHTLY-STATUS owns the nightly_status grader only (its fixer is already fired)",
-    "pr": 3269
+    "pr": 3269,
+    "commit": "70c15830b94a758357faa0b35f9011229a0d6a9c"
    }
   },
   {
@@ -17887,9 +17890,10 @@
    "issues": [],
    "fixes": [],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": null,
-    "pr": 3275
+    "pr": 3275,
+    "commit": "17e1157925908bd69addb58ed824c1ac22bfa82f"
    },
    "carry": [
     "Orchestrator evidence (2026-11-07): another class-A instance \u2014 #3262 head 0fd9bc6d, CI code run 42339563999 attempt 1, job governance / instrument-self-tests ran 04:45:23Z to 05:15:38Z (30m15s) and was cancelled at the 30-minute job timeout; earlier #3265 job 128283313187 (03:15:08Z-03:45:10Z). The fixer re-measures the self-test wall time at its own base."
@@ -18237,7 +18241,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s12 CI-levers seat 2026-11-07: owner lever 2"
+    "note": "s12 CI-levers seat 2026-11-07: owner lever 2",
+    "pr": 3302
    },
    "brief": "Owner-approved CI-throughput lever 2 (tvofi, 2026-11-07, #201 comment 6707834331). R10-CI-SLIM's C7(a) lane idling in tools/ci/prelude.py (`machinery`, `_product`, the PRODUCT_PREFIXES list) stands the machinery lanes down (tests / arch-instrument, tests / closures' recording, governance / env-matrix, governance / instrument-self-tests) on a pull request whose every changed file is product. Every pull request carries its own delivery row dev/programme/delivery/<N>.md, which is not product, so over the 2026-11-05 13:26Z to 2026-11-07 13:26Z window the lanes stood down on none of 52 merged pull requests; with the PR's own row exempted they would have on 10 of 52, an estimated 1,380 runner-minutes a day (10 PRs x about 5 code runs x about 55 machinery-minutes; s12 study). Change: `machinery` takes the PR number and treats exactly that pull request's own delivery row as neither product nor machinery (it is ignored), so a package-plus-row diff idles the lanes. STEP 1 is a recording, committed before the change: prove that no machinery lane reads dev/programme/delivery/ at the head. Several tools under tools/audit/seat read that path (the delivery-row tools, record_row.py among them), so the proof must cover EVERY lane the idling skips, including every step of instrument-self-tests and the env-matrix and arch-instrument lanes, by tracing file opens or an equivalent measured read-set per lane, not by grepping for the path. If any skipped lane does read it, report which, and exempt the row only for the lanes that do not; do not guess. Failing test first: a diff of one package file plus its own row idles the lanes. Null controls: a row-plus-tools/ PR still runs the lanes; a row of ANOTHER pull request (a different <N>) still counts as machinery; an empty or unreadable changed list still runs them; a push runs them (the existing C7a pushes-run-everything case). Mutant: exempting every file under dev/programme/delivery/ rather than the PR's own row is shown red by the other-PR control. Code-owned (tools/ci/ is owned by tvofi): merges on his approving review or under mandate 6624093439. Overlap: R10-CI-EDIT-RUNNER also edits tools/ci/prelude.py (wait_sources, a different function) and is not started; keep the diff to the C7(a) functions and merge in either order."
   },
@@ -18476,7 +18481,8 @@
     "commit": null,
     "last_step": null,
     "next_step": "dispatch a fixer",
-    "note": "s12 carry-routing 2026-11-07: created to receive R10-CI-RUNNER-FIXES carry 0; overlap admitted (R10-CI-OWN-DELIVERY-ROW, R10-CI-SELFTEST-SCOPE): s12 carry routing: the one open item of R10-CI-RUNNER-FIXES, a code-owned ci.yml change"
+    "note": "s12 carry-routing 2026-11-07: created to receive R10-CI-RUNNER-FIXES carry 0; overlap admitted (R10-CI-OWN-DELIVERY-ROW, R10-CI-SELFTEST-SCOPE): s12 carry routing: the one open item of R10-CI-RUNNER-FIXES, a code-owned ci.yml change",
+    "pr": 3303
    },
    "brief": "An edit run that finds no finished code run exits without holding a runner, and the code run's gate re-dispatches the body units when it finishes (an `actions: write` step in the code-owned `.github/workflows/ci.yml`; `tools/ci/prelude.py` stops polling). Failing test first: an edit run with a pending code run exits within one poll; null control: an edit run whose code run is done grades as today. The change forces a MODE: FULL gate and merges on the owner's approving review or under mandate 6624093439. If a CI-throughput analysis seat's findings are inlined in the dispatch, they apply to this brief. Every carry was routed here by the s12 carry-routing seat (2026-11-07) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   },
@@ -19363,8 +19369,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
-    "note": "triage batch 134 P420; owner ruling tvofi 2026-11-07T19:40Z outside first; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-STALE-VERDICT-GUARD, R10-TRAIN-REJOIN-NO-RECARRY): triage batch 134 P420, owner ruling tvofi 2026-11-07T19:40Z outside first"
+    "stage": "in-progress",
+    "note": "triage batch 134 P420; owner ruling tvofi 2026-11-07T19:40Z outside first; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-STALE-VERDICT-GUARD, R10-TRAIN-REJOIN-NO-RECARRY): triage batch 134 P420, owner ruling tvofi 2026-11-07T19:40Z outside first",
+    "pr": 3304
    },
    "brief": "From triage batch 134 (triage: dev/programme/triage/s6-batch134.md#P420 at b1f3ce2c73001c509b61a4163d2d08cb946d1518), owner ruling tvofi 2026-11-07T19:40Z, quote it verbatim in the body: all accepted outside issues or contributions should be prioritized higher than audit or owner submitted ones unless i call the owner one a hotfix. Add roster_lib.is_outside(group), true when the group field source is the string outside, and roster_lib.group_for_pr(roster, pr), which maps a pull request to its group through resume.pr for fork heads. The order everywhere becomes main, then hotfix (an R10-HOTFIX- name or kind bug), then outside, then today's order. (1) replan.py dispatch_tier: an outside group gets its own tier after hotfix and before the critical path; the critical path and the rest keep their relative order; keep the signature its self-test pins. (2) open_driver.py default_class and order: hotfix, outside, critical, record, rest; the fence that keeps critical first, whatever the opener priority file says, covers hotfix, outside and critical in that order. (3) merge_train.py spool drain key (line 3261 at 53273de4d): priority or front, then outside, then critical, then arrival; an entry maps to its group by branch, else by group_for_pr. Failing test first in each self-test: an outside group or entry ranks ahead of a critical-path one and behind a hotfix one. Null control: a roster with no source field orders byte-identically to the base in all three. One mutant per reader, removing the outside term, fails its arm. No policy file states the order: write no policy sentence; the docstrings cite the ruling."
   }
