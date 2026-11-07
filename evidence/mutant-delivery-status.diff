@@ -1,0 +1,13 @@
+diff --git a/tests/delivery_status.py b/tests/delivery_status.py
+index 36633d145..df3b77654 100644
+--- a/tests/delivery_status.py
++++ b/tests/delivery_status.py
+@@ -554,7 +554,7 @@ def gather(repo: str, since_tag: str | None = None,
+         since_tag = subprocess.run(
+             list(DESCRIBE_ARGV), cwd=ROOT,
+             capture_output=True, text=True).stdout.strip()
+-    span = f"{since_tag}..{head}" if since_tag else head
++    span = f"{since_tag}..origin/main" if since_tag else "origin/main"
+     log = subprocess.run(
+         ["git", "log", "--first-parent", f"--format={LOG_FORMAT}", span],
+         cwd=ROOT, capture_output=True, text=True).stdout
