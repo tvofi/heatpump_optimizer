@@ -1,4 +1,10 @@
-R10-FLOW-TOOLKIT-MODEL: plan-model correctness in tools/plan/replan.py, plus the tracked Gantt-drift instrument (carry 12). Measures the roster/plan semantics only; no production code. Repair round 5 for the blocked fix review at 0ce1f09bd196: --since-tag now credits a multi-PR group's part-branch merges (on main's real history v7.1.0..v7.1.1 it credits 12 of 12 production groups that changed code, was 8; v7.1.2..v7.1.3 credits 9 of 9, was 8), and the squash fallback is pinned.
+R10-FLOW-TOOLKIT-MODEL: plan-model correctness in tools/plan/replan.py, plus the tracked Gantt-drift instrument (carry 12). Measures the roster/plan semantics only; no production code. Merge-resolution on top of repair round 5 for the blocked fix review at 0ce1f09bd196: --since-tag now credits a multi-PR group's part-branch merges (on main's real history v7.1.0..v7.1.1 it credits 12 of 12 production groups that changed code, was 8; v7.1.2..v7.1.3 credits 9 of 9, was 8), and the squash fallback is pinned.
+
+Merge resolution (PR was DIRTY; only the merge was done, no other edit): `git merge origin/main` conflicted in two files, each resolved by union.
+
+- tools/plan/replan.py, `is_done` hunk. Main contributed: `is_done` delegates to `roster_lib.is_open` (the one owner of closed stages, absorbed included) and a selftest arm "an absorbed group is closed work, not scheduled". Branch contributed: the `DONE_STAGES`/`ABSORBED_RE` block, `absorbers()` (the absorbed advisory) and `post_closure_groups()`. Kept: main's `is_done` body, `ABSORBED_RE`, `absorbers`, `post_closure_groups`, main's selftest arm. The branch's local `DONE_STAGES` tuple duplicated `roster_lib.CLOSED_STAGES` and nothing else read it once `is_done` delegated, so only that constant went; its comment was kept as the doc of `is_done`, and its mutant `absorbed-done` was re-anchored from the tuple to main's `return not roster_lib.is_open(group)` (mutated to the old two-stage test) and is killed by main's absorbed arm.
+- tools/audit/seat/plan_page.py, two selftest hunks (bar present for every open group; ETA reason for every open group). Main contributed the shared `scheduled(g)` helper (not plan-done). Branch contributed the `rows[g]["st"] != "done"` test. Kept both conditions in each: `rows[g]["st"] != "done" and scheduled(g)`.
+- Auto-merged without conflict and read back: tests/closures.json (ledger merge driver), main's selftest additions in replan.py. Claim files byte-identical to origin/main.
 
 Carries built: 0 (live-refs, in-flight, inflow; the size measure was already built at the base), 2 (absorbed is done, advisory), 3 (liveness by evidence incl. design-only without credit, binding chain and CP slack, uncalibrated-sensitivity note), 8 (critical-path groups start past the slots cap, exempt), 9 (stamp cadence 3 by group, comment-only diffs ignored, matched by merge topic branch, credit only for done groups), 10 and 11 (post-closure groups), 12 (tools/audit/seat/gantt_drift.py).
 Carries 1 and 7 were moved to R10-BODY-CONTRACT; 4, 5 and 6 are dismissed as duplicates.
@@ -16,7 +22,7 @@ Repair of the review's items:
 
 ## Head
 
-77265a28ebc76b64c512779febb0e6a14c2c0d70 is the code head of this repair. It merges the PR head 0ce1f09bd196 and origin/main at be813ecd4924; prepr.sh was run at this head (rc=0).
+28ec0da039a094fd5093adb34e6c6a328f982f86 is the code head: the merge of the PR head ec3b2460156219519962589fdaed1d382e1e41ab and origin/main (630bf533d838). Measured at it: replan.py --self-test, gantt_drift.py --self-test and plan_page.py --self-test (67 checks) all 0 failed; tests/structure.py PASSED with no budget change; selftest_wiring --check 119/119 wired; prepr.sh rc=0 (MODE: SCOPED). main had not moved since that prepr run.
 
 ## Mutation proof
 
@@ -32,7 +38,7 @@ none
 
 ## Red checks
 
-At the PR head 0ce1f09bd196, by exact name over all check-run pages: `gate` concluded failure four times (128274341527, 128285252987: edit-run deferrals to code run 42329754862; 128289689105 and 128289692210: edit runs 42329758968 and 42333416528, each deferring to the other). `gate` 128278851908 and 10 jobs of code run 42329754862 attempt 1 (including `codeql / Analyze (python)`, `instrument-self-tests`, `closures`, `coverage`) were cancelled at 02:54Z; attempt 2 succeeded, with `gate` 128288954024 passing. None is this diff's code: the cancellations were a runner cancellation re-run to green, and the mutual edit-run deferral (runs 42329758968 and 42333416528 each waiting on the other) is the CI gate instrument tools/ci/gate.py, owned by R10-PROCESS-SLIM (#3245), not this diff. Cheaper detector: none for a cancellation; the deadlock is R10-PROCESS-SLIM's. CI at the new head has not run when this body is written; every red it concludes will be answered by the next repair.
+At this head: none concluded. The head has not run in CI (the PR was DIRTY, so CI could not run); no check run exists for it yet, so there is no red to answer. History only, at the earlier head 0ce1f09bd196: `gate` concluded failure four times (128274341527, 128285252987: edit-run deferrals to code run 42329754862; 128289689105 and 128289692210: edit runs 42329758968 and 42333416528 deferring to each other), and code run 42329754862 attempt 1 was cancelled at 02:54Z while attempt 2 was green. None is this diff's code: the mutual deferral is the CI gate instrument owned by R10-PROCESS-SLIM (#3245). Cheaper detector: none for a cancellation. Any red the new head concludes will be answered by the next repair.
 
 ## Carry dispositions
 
