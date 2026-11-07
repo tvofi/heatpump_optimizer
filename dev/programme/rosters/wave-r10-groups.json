@@ -15793,7 +15793,7 @@
     ".github/workflows/governance.yml"
    ],
    "carry": [
-    "Owner correction tvofi 2026-11-04: the Gantt draws R10-CATALOG-PR before the round-close v10.0.0 stamp, but it goes after that stamp, as its brief says. `tools/plan/replan.py` schedules every group before the closing stamp and has no post-stamp group. Add a way for a group to be scheduled after the round-close stamp, mark R10-CATALOG-PR with it, and have the page draw it there. Fixture arms: that group starts after the stamp; an ordinary group stays before it (the null control)."
+    "Owner correction tvofi 2026-11-04: the Gantt draws R10-CATALOG-PR before the round-close v10.0.0 stamp, but it goes after that stamp, as its brief says. `tools/plan/replan.py` schedules every group before the closing stamp and has no post-stamp group. Add a way for a group to be scheduled after the round-close stamp, mark R10-CATALOG-PR with it, and have the page draw it there. Fixture arms: that group starts after the stamp; an ordinary group stays before it (the null control). [moved: R10-FLOW-TOOLKIT-MODEL]"
    ],
    "resume": {
     "stage": "absorbed",
