@@ -1,5 +1,5 @@
 diff --git a/tools/audit/seat/cloud_relay.sh b/tools/audit/seat/cloud_relay.sh
-index f55b4c35a..e0d2f6e82 100644
+index f55b4c35a..8eed748e4 100644
 --- a/tools/audit/seat/cloud_relay.sh
 +++ b/tools/audit/seat/cloud_relay.sh
 @@ -232,8 +232,6 @@ relay() {
@@ -11,3 +11,12 @@ index f55b4c35a..e0d2f6e82 100644
    d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
    git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
    subj=$(git log -1 --format=%s "$sha")
+@@ -252,6 +250,8 @@ relay() {
+   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
+   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
+   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
++  local dup; dup=$(ev_case_collision "$sha")
++  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
+   local out sha2 wt tip tries=0
+   wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
+   # DELIVERED GUARD (R10-RELAY-REPLAY): a ledger that is not the one that recorded this probe (a
