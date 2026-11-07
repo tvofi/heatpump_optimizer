@@ -78538,6 +78538,97 @@ R.check(
     and _wn_sd.away_floor_drops(_WnCfg(), np.array([8.0]), [_wn_hday], None) is None,
     f"{_wn_hdrops}",
 )
+_wn_hoff = _wn_sd.away_floor_drops(
+    _wn_hcfg, np.array([8.0]), [_wn_hday + timedelta(days=1)], None)
+R.check(
+    "R10-WHY-NOW-WIDGET: a holiday calendar with no step on a holiday and no setback reads None, not zeros",
+    _wn_hoff is None,
+    f"{_wn_hoff}",
+)
+
+# The pushes at their bounds, on a hand-built horizon whose every input is
+# stated: the price rank's short horizons, the forecast's window, scale,
+# solar divisor and clip, and the comfort band's floor and clips.
+_wn_pp = [list(_wn_sd._price_push(np.array(p, float))) for p in ([], [1.0], [1.0, 2.0])]
+R.check(
+    "R10-WHY-NOW-WIDGET: the price rank is empty for no step, 0 for one, +1/-1 for two",
+    _wn_pp == [[], [0.0], [1.0, -1.0]],
+    f"{_wn_pp}",
+)
+
+
+def _wn_h(n, dt=1.0, outdoor=None, sun=None, floor=20.0, ceiling=22.0, drops=None):
+    return SimpleNamespace(
+        n_steps=n, dt=dt, prices=np.ones(n),
+        outdoor_temps=np.zeros(n) if outdoor is None else np.asarray(outdoor, float),
+        heat_loss_factors=np.zeros(n),
+        solar_gains=np.zeros(n) if sun is None else np.asarray(sun, float),
+        temp_min_bounds=np.full(n, floor), temp_max_bounds=np.full(n, ceiling),
+        comfort_floors=None, mold_floors=None,
+        away_floor_drops=None if drops is None else np.full(n, drops))
+
+
+# Window 0..8 h: four steps at 0 C, four at -4 C -> mean -2 C, a 2 C swing
+# over the 10 C scale = 0.2 (a 16 h window reads 0.3, a 20 C scale 0.1).
+_wn_fb = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] * 4 + [-4.0] * 20), 5.0)[0]
+# A 26.25 C swing reads 2.625 before the clip, 1.0 after it.
+_wn_fa = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] + [-30.0] * 23), 5.0)[0]
+# Solar 0 now, 0.35 kW mean ahead, p_max 0.5 kW: divided by the 1 kW floor,
+# -0.35 (by p_max itself, -0.7).
+_wn_fs = _wn_sd._forecast_push(_wn_h(24, sun=[0.0] + [0.4] * 23), 0.5)[0]
+R.check(
+    "R10-WHY-NOW-WIDGET: forecast push reads 0.2 on an 8 h window at 10 C, clips at 1, divides solar by >= 1 kW",
+    abs(_wn_fb - 0.2) < 1e-9 and _wn_fa == 1.0 and abs(_wn_fs + 0.35) < 1e-9,
+    f"{_wn_fb} {_wn_fa} {_wn_fs}",
+)
+
+
+def _wn_cw(room, **kw):
+    w = _wn_sd.space_drivers(_wn_h(2, **kw), np.full(2, room), 5.0)
+    return w["comfort_floor"][0], w["away"][0]
+
+
+_wn_bands = [
+    # 0.4 C band: the half-band floors at 0.5 -> 0.5 vs -0.5 (at 1.0: 75/-25).
+    _wn_cw(20.25, floor=20.0, ceiling=20.4, drops=0.25),
+    # room 4 half-bands under mid-band clips to 1 vs -0.5 (unclipped 88.9/-11.1).
+    _wn_cw(17.0, drops=0.5),
+    # a 3 C drop on a 1 C half-band clips to -1 vs 0.5 (unclipped 14.3/-85.7).
+    _wn_cw(20.5, drops=3.0),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: the comfort half-band floors at 0.5 C, and comfort and away clip at one half-band",
+    _wn_bands == [(50.0, -50.0), (66.7, -33.3), (33.3, -66.7)],
+    f"{_wn_bands}",
+)
+
+
+def _wn_at(res, i):
+    try:
+        return _wn_sd.why_now_at(res, i)
+    except Exception as exc:  # noqa: BLE001 -- the bound under test is what raised
+        return f"raised {type(exc).__name__}"
+
+
+_wn_n = len(_wn_res.timestamps)
+_wn_bounds = [
+    # drivers one step short of the prices: the last step has none.
+    _wn_at(_wn_replace(_wn_res, space_drivers={
+        c: v[:-1] for c, v in _wn_res.space_drivers.items()}), _wn_n - 1),
+    # prices one step short of the drivers: the last step's price is unknown.
+    _wn_at(_wn_replace(_wn_res, prices=list(_wn_res.prices)[:-1]), _wn_n - 1),
+    # a NaN price with no price_known list at all.
+    _wn_at(_wn_replace(_wn_res, prices=[float("nan")] + list(_wn_res.prices)[1:],
+                       price_known=[]), 0),
+    # price_known one step short: the last step is not known.
+    _wn_at(_wn_replace(_wn_res, price_known=[True] * (_wn_n - 1)), _wn_n - 1),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: why_now_at is None at each list's own end and on a NaN price, never an IndexError",
+    _wn_bounds == [None, None, None, None]
+    and _wn_at(_wn_res, _wn_n - 1) is not None,
+    f"{_wn_bounds}",
+)
 
 # The payload carries the action's why_now, and nothing when it has none.
 _wn_views = {"space_plan": {}, "dhw_plan": {}}
