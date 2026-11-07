@@ -73,7 +73,7 @@ def _price_push(prices: np.ndarray) -> np.ndarray:
         return np.zeros(n)
     less = (prices[None, :] < prices[:, None]).sum(axis=1)
     equal = (prices[None, :] == prices[:, None]).sum(axis=1)
-    rank = (less + 0.5 * (equal - 1)) / (n - 1)
+    rank: np.ndarray = (less + 0.5 * (equal - 1)) / (n - 1)
     return 1.0 - 2.0 * rank
 
 
