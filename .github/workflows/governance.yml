@@ -647,6 +647,7 @@ jobs:
           python3 -I tools/pr/head_note.py --self-test
           python3 -I tools/release/stamp.py --self-test
           python3 -I tools/policy/agreement_py.py --self-test
+          python3 -I tools/policy/role_pack.py --self-test
           # The wave-script restore list is derived, never carried: every .py
           # file the agreement reader loads must be restored from the base,
           # or a head whose readers agree still reads divergent (#2423).
