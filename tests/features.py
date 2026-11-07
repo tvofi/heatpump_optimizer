@@ -78347,4 +78347,192 @@ R.check(
 )
 
 
+# --- R10-WHY-NOW-WIDGET: per-slot drivers on the solver path ---------------
+# slot_drivers.space_drivers reads five signed pushes off the solve's own
+# inputs at each step and normalises them to percents of one push;
+# get_current_action carries step i's through why_now_at, at the one index it
+# already found. Driven through the production solve, never a re-derivation.
+from heatpump_optimizer import slot_drivers as _wn_sd  # noqa: E402
+from heatpump_optimizer import away as _wn_away  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _WnOpt, OptimizationConfig as _WnCfg,
+    SolveInputs as _WnIn, ForecastSeries as _WnFc, SolveLimits as _WnLim,
+)
+from heatpump_optimizer.coordinator import _apply_result_payload as _wn_apply  # noqa: E402
+from dataclasses import replace as _wn_replace  # noqa: E402
+
+_wn_t0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+
+def _wn_solve(prices, limits=None, outdoor=None, room=21.0):
+    opt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    out = np.full(96, -5.0) if outdoor is None else np.asarray(outdoor, float)
+    res = opt.optimize(inputs=_WnIn(
+        state=ThermalState(room_temperature=room, slab_temperature=25.0,
+                           outdoor_temperature=float(out[0])),
+        start_time=_wn_t0,
+        forecast=_WnFc(prices=np.asarray(prices, float), outdoor_temps=out),
+        limits=limits or _WnLim()))
+    return opt, res
+
+
+def _wn_weights(why):
+    return {d["code"]: d["weight"] for d in (why or {}).get("drivers", [])}
+
+
+_wn_cheap = np.full(96, 2.0)
+_wn_cheap[0] = 0.5
+_wn_opt, _wn_res = _wn_solve(_wn_cheap)
+_wn_act = _wn_opt.get_current_action(_wn_res, _wn_t0)
+_wn_why = _wn_act.get("why_now")
+R.check(
+    "R10-WHY-NOW-WIDGET: the cheapest step, mid-band, flat weather: price_rank leads and pushes to run",
+    isinstance(_wn_why, dict)
+    and _wn_why["drivers"][0]["code"] == "price_rank"
+    and _wn_why["drivers"][0]["direction"] == "run"
+    and _wn_res.space_drivers["price_rank"][0] > 0
+    and _wn_why["t"] == _wn_res.timestamps[0].isoformat(),
+    f"{_wn_why}",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0",
+    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES)
+    and all(len(v) == len(_wn_res.timestamps) for v in _wn_res.space_drivers.values())
+    and all(
+        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_sd.DRIVER_CODES) - 100.0) < 0.3
+        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_sd.DRIVER_CODES)
+        for i in range(len(_wn_res.timestamps))
+    ),
+    f"{ {c: v[:3] for c, v in _wn_res.space_drivers.items()} }",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: drivers are sorted by magnitude, largest first",
+    [abs(d["weight"]) for d in _wn_why["drivers"]]
+    == sorted((abs(d["weight"]) for d in _wn_why["drivers"]), reverse=True),
+    f"{_wn_why}",
+)
+
+# Null control: flat prices, mid-band, hlf and solar flat over the window --
+# every push is 0, so every weight is 0 and every row neutral.
+_wn_fopt, _wn_flat = _wn_solve(np.full(96, 1.0))
+_wn_fwhy = _wn_fopt.get_current_action(_wn_flat, _wn_t0).get("why_now")
+R.check(
+    "R10-WHY-NOW-WIDGET null control: flat prices, mid-band, flat weather read all-neutral at 0",
+    _wn_fwhy is not None
+    and all(d["weight"] == 0.0 and d["direction"] == "neutral" for d in _wn_fwhy["drivers"]),
+    f"{_wn_fwhy}",
+)
+
+# Invariant (1): the drivers are read after the solve, never written back.
+_wn_real = _wn_sd.space_drivers
+_wn_sd.space_drivers = lambda *_a, **_k: {}
+try:
+    _wn_popt, _wn_patched = _wn_solve(_wn_cheap)
+finally:
+    _wn_sd.space_drivers = _wn_real
+R.check(
+    "R10-WHY-NOW-WIDGET: the plan is byte-identical with the drivers emptied; no why_now then",
+    _wn_patched.power_schedule == _wn_res.power_schedule
+    and _wn_patched.space_drivers == {}
+    and "why_now" not in _wn_popt.get_current_action(_wn_patched, _wn_t0),
+    "the drivers must never feed the solve",
+)
+
+# Perturbations: an away drop of 3 C pushes to idle and takes price_rank's
+# share; a mold floor above the comfort floor moves mold_guard off 0.
+_wn_aopt, _wn_away_res = _wn_solve(_wn_cheap, _WnLim(away_floor_drop_c=3.0))
+_wn_aw = _wn_weights(_wn_aopt.get_current_action(_wn_away_res, _wn_t0).get("why_now"))
+_wn_base_w = _wn_weights(_wn_why)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: away_floor_drop_c=3 reads away negative, price_rank's share moves",
+    _wn_base_w.get("away") == 0.0 and _wn_aw.get("away", 0.0) < 0
+    and _wn_aw.get("price_rank") != _wn_base_w.get("price_rank"),
+    f"base {_wn_base_w} away {_wn_aw}",
+)
+_wn_mopt, _wn_mold = _wn_solve(_wn_cheap, _WnLim(min_temp_floors=np.full(96, 20.5)))
+_wn_mw = _wn_weights(_wn_mopt.get_current_action(_wn_mold, _wn_t0).get("why_now"))
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a mold floor above the comfort floor moves mold_guard 0 -> positive",
+    _wn_base_w.get("mold_guard") == 0.0 and _wn_mw.get("mold_guard", 0.0) > 0,
+    f"base {_wn_base_w} mold {_wn_mw}",
+)
+_wn_cold_ahead = np.concatenate([np.full(8, -5.0), np.full(88, -15.0)])
+_wn_copt, _wn_cold = _wn_solve(np.full(96, 1.0), outdoor=_wn_cold_ahead)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a cold spell ahead pushes the step now to run (forecast > 0)",
+    _wn_cold.space_drivers["forecast"][0] > 0,
+    f"{_wn_cold.space_drivers['forecast'][:4]}",
+)
+_wn_ropt, _wn_coldroom = _wn_solve(np.full(96, 1.0), room=19.5)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a room below mid-band pushes comfort_floor to run",
+    _wn_coldroom.space_drivers["comfort_floor"][0] > 0,
+    f"{_wn_coldroom.space_drivers['comfort_floor'][:4]}",
+)
+
+# why_now_at's None branch: no drivers, an index past them, an unknown price.
+_wn_none_cases = [
+    _wn_sd.why_now_at(_wn_replace(_wn_res, space_drivers={}), 0),
+    _wn_sd.why_now_at(_wn_res, len(_wn_res.timestamps)),
+    _wn_sd.why_now_at(_wn_replace(_wn_res, price_known=[False] * len(_wn_res.timestamps)), 0),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: why_now_at is None with no drivers, past them, or on an unknown price",
+    _wn_none_cases == [None, None, None]
+    and _wn_sd.why_now_at(_wn_res, 0) is not None,
+    f"{_wn_none_cases}",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: |weight| under 0.5 is neutral, the sign gives run or idle",
+    [_wn_sd._direction(w) for w in (0.4, -0.4, 0.5, -0.5)]
+    == ["neutral", "neutral", "run", "idle"],
+    "direction thresholds",
+)
+
+# The away drop is solve_bands' arithmetic: configured floor less the setback
+# target, None while away is off or recovering.
+_wn_cfg = _WnCfg(min_temp=19.0)
+_wn_states = [
+    _wn_away.AwayState(active=True, target_temperature=16.0),
+    _wn_away.AwayState(active=True, target_temperature=16.0, recovery_active=True),
+    _wn_away.AwayState(active=False, target_temperature=16.0),
+    _wn_away.AwayState(active=True, target_temperature=20.0),
+]
+_wn_drops = [_wn_away.floor_drop_c(_wn_cfg, st) for st in _wn_states] + [
+    _wn_away.floor_drop_c(_wn_cfg, None)]
+R.check(
+    "R10-WHY-NOW-WIDGET: away.floor_drop_c is 3 active, None recovering or off, 0 above the floor",
+    _wn_drops == [3.0, None, None, 0.0, None]
+    and _wn_away.solve_bands(_wn_cfg, ThermalParameters(), _wn_states[0])[0]["min_temp"]
+    == _wn_cfg.min_temp - _wn_drops[0],
+    f"{_wn_drops}",
+)
+# The holiday profile's later day start leaves 08:00 on the night floor.
+_wn_hday = datetime(2026, 12, 25, 8, 0)
+_wn_hcfg = _WnCfg(min_temp=19.0, day_start_hour=6, holiday_day_start_hour=10,
+                  holiday_dates=frozenset({_wn_hday.date()}))
+_wn_hdrops = _wn_sd.away_floor_drops(
+    _wn_hcfg, np.array([8.0, 8.0]), [_wn_hday, _wn_hday + timedelta(days=1)], None)
+R.check(
+    "R10-WHY-NOW-WIDGET: a holiday step on the night floor reads the 0.5 C drop; a working day none",
+    _wn_hdrops is not None and list(_wn_hdrops) == [0.5, 0.0]
+    and _wn_sd.away_floor_drops(_WnCfg(), np.array([8.0]), [_wn_hday], None) is None,
+    f"{_wn_hdrops}",
+)
+
+# The payload carries the action's why_now, and nothing when it has none.
+_wn_views = {"space_plan": {}, "dhw_plan": {}}
+_wn_with: dict = {}
+_wn_apply(_wn_with, _wn_res, _wn_act, _wn_views)
+_wn_without: dict = {}
+_wn_apply(_wn_without, _wn_res, {k: v for k, v in _wn_act.items() if k != "why_now"}, _wn_views)
+R.check(
+    "R10-WHY-NOW-WIDGET: _apply_result_payload copies why_now, and leaves the key absent without one",
+    _wn_with.get("why_now") == _wn_why and "why_now" not in _wn_without,
+    f"{sorted(_wn_with)[:3]} / {'why_now' in _wn_without}",
+)
+
+
 sys.exit(R.close("FEATURE CHECKS"))
