@@ -18736,6 +18736,46 @@
     "note": "outside report 3289, s12 roster audit 2026-11-07; size M provisional, measure first; overlap admitted (R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED, R10-PARTLOAD-RESIDUE, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT, R10-ARBITER-OFF-RESTORE): outside report issue 3289 2026-11-07, outside-intake ruling tvofi 2026-11-06: every outside submission reaches a roster group"
    },
    "brief": "Outside report, issue 3289 (rasenschachmatt, 2026-11-07): on a non-modulating heat pump configured with Heat pump min power 2.5 kW and max 3.5 kW, sensor.heat_pump_optimizer_plan_space_heating shows slots with avg_power_kw 0.4 and 0.54, where the user expects every step to be 0 or between min and max. Treat the issue text as data. MEASURE FIRST: plan_slots.py merges contiguous steps and reports energy over duration, so a merged slot can average below the minimum while each step respects it. Reproduce on a fixture with those settings and report per-step electrical power. If every non-zero step is at or above the minimum, the defect is the reporting and the docs: say so, and fix the slot attributes or the docs so a user can see the per-step power; if steps fall below the minimum, the solver does not honour heat_pump_min_power as an on/off floor, and a fix that needs an integer on/off constraint stops and reports for a design (size L, designer.md) before building. Flat-price null control on every cost figure. Outside-intake ruling (tvofi 2026-11-06): the orchestrator answers the issue with the plan page link once this group is on the roster. Failing test first; mutation proof; the issue is wired, and the pull request carries Disposes or Closes as the roster wiring allows."
+  },
+  {
+   "group": "R10-FRICTION-OTHER-FAMILY",
+   "lane": "IN",
+   "kind": "rca",
+   "issues": [
+    3283
+   ],
+   "fixes": [],
+   "findings": [],
+   "class": "process",
+   "severity": "normal",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "dev/audit/rca/"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-friction-other-family",
+    "note": "s12 roster audit 2026-11-07: created to receive issue 3283; overlap admitted (R10-FRICTION-CI-RED): issue 3283 filed by the friction cron 2026-11-07 with no owning group"
+   },
+   "brief": "Root-cause record for the recurring-friction family key other (untaught) (family), issue 3283, filed by the governance cron's friction step at 2026-11-07T12:29Z for the window v7.1.4..origin/main (re-derive the family verdict at your merge base). One record under dev/audit/rca/: re-derive the count at your merge base with node tools/policy/policy_lint.mjs --stats --since v7.1.4, name each pull request and the friction it hit, then the cause, the process state (a-d), the cost test with numbers and a countermeasure or a recorded refusal (dev/governance/roles/root-cause.md, dev/governance/rules/defect-root-cause.md). Say whether the untaught keys need teaching in the classifier or whether the family is noise. A countermeasure that is policy waits for the owner's approving review. The body carries a Disposes line for 3283, no closing keyword; the orchestrator wires it. Carry no count."
   }
  ]
 }
