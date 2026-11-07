@@ -2010,6 +2010,181 @@ R.check(
     "the 55 degC default must not be replaced by a plan that has not started",
 )
 
+# --- R10-BUFFER-OPENLOOP (D12-s1-01): the no-probe buffer is advanced ------
+# Without a buffer probe ``state.buffer_tank_temperature`` kept the 40 degC
+# dataclass default (or its last value) cycle after cycle, and every solve
+# started the buffer from it. The fix seeds it from the previous plan's
+# ``buffer_temp_trajectory`` at the step covering now, through the same
+# ``_seed_store`` primitive the DHW seed now uses. Each arm drives the
+# production ``_update_current_state`` (which calls the external-heat
+# detection) and reads the published state and the detector's observation.
+R.section("R10-BUFFER-OPENLOOP: the no-probe buffer follows the previous plan")
+from heatpump_optimizer import external_heat as _r10bo_eh  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _r10bo_Coord,
+)
+
+_r10bo_t0 = datetime(2026, 3, 2, 6, 0, tzinfo=UTC)
+#: Planned buffer 40 -> 47 degC over eight 15-minute steps: cycles at +20 and
+#: +50 minutes are covered by steps 1 and 3 (41.0 and 43.0).
+_r10bo_traj = [40.0 + i for i in range(8)]
+_r10bo_at = (_r10bo_t0 + timedelta(minutes=20), _r10bo_t0 + timedelta(minutes=50))
+
+
+def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False,
+               dhw_trajectory=()):
+    """Two cycles; returns ([buffer level per cycle], [dhw level], [observation])."""
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "buffer_tank_volume": 500.0,
+        "dhw_tank_volume": 200.0,
+        # The plan publishes a buffer trajectory only under a throttling valve
+        # (optimizer.py, ``buffer_temp_trajectory``); the injected plan below
+        # stands for that plan, so the valve is configured to match it.
+        "mixing_valve_mode": "manual",
+    }
+    if probe is not None:
+        cfg["buffer_tank_temp_entity"] = "sensor.buffer"
+    if dhw_probe is not None:
+        cfg["dhw_temp_entity"] = "sensor.tank"
+    if wood:
+        cfg.update({
+            "wood_furnace_enabled": True,
+            "external_heat_detection_enabled": True,
+            "external_heat_entity": "input_boolean.stove",
+            "wood_tank_top_entity": "sensor.wood_top",
+            "wood_tank_bottom_entity": "sensor.wood_bottom",
+            "valve_outlet_temp_entity": "sensor.outlet",
+            "wood_tank_volume": 1000.0,
+        })
+    coord = _r10bo_Coord(FakeHass(), _r9f12_entry(data=cfg))
+    coord._snapshots_loaded = True
+    coord._optimization_result = _r9f12_ns(
+        buffer_temp_trajectory=list(trajectory),
+        dhw_temp_trajectory=list(dhw_trajectory),
+        timestamps=[_r10bo_t0 + timedelta(minutes=15 * i) for i in range(8)],
+    )
+    seen = []
+    real_update = coord._external_heat.update
+
+    def _r10bo_spy(obs):
+        seen.append(obs)
+        return real_update(obs)
+
+    coord._external_heat.update = _r10bo_spy
+    levels, dhw_levels = [], []
+    try:
+        for now in _r10bo_at:
+            _r9f12_dt.freeze(now)
+            states = [("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0")]
+            if probe is not None:
+                states.append(("sensor.buffer", f"{probe}"))
+            if dhw_probe is not None:
+                states.append(("sensor.tank", f"{dhw_probe}"))
+            if wood:
+                states += [("sensor.wood_top", "70.0"), ("sensor.wood_bottom", "60.0"),
+                           ("sensor.outlet", "55.0")]
+            for entity, value in states:
+                coord.hass.states.set(entity, FakeState(value, last_updated=now, unit="°C"))
+            if wood:
+                coord.hass.states.set("input_boolean.stove", FakeState("on", last_updated=now))
+            _r9f12_aio.run(coord._update_current_state())
+            state = getattr(coord, "_ctx", coord)._current_state
+            levels.append(state.buffer_tank_temperature)
+            dhw_levels.append(state.dhw_temperature)
+    finally:
+        _r9f12_dt.freeze(None)
+    return levels, dhw_levels, seen, coord
+
+
+_r10bo_lv, _r10bo_dlv, _r10bo_obs, _ = _r10bo_run()
+R.check(
+    "R10-BUFFER-OPENLOOP: with no buffer probe the buffer level follows the "
+    "previous plan's trajectory, not the 40 degC default",
+    _r10bo_lv == [41.0, 43.0],
+    "buffer levels=%r (plan at covering steps 41.0, 43.0)" % (_r10bo_lv,),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP: the observation's rise inputs carry no seed: with no "
+    "probe buffer_temp and dhw_temp are None while the state holds the seed",
+    [(o.buffer_temp, o.dhw_temp) for o in _r10bo_obs] == [(None, None)] * 2,
+    "rise inputs=%r" % ([(o.buffer_temp, o.dhw_temp) for o in _r10bo_obs],),
+)
+_r10bo_plv, _, _r10bo_pobs, _ = _r10bo_run(probe=36.5, dhw_probe=48.0)
+R.check(
+    "R10-BUFFER-OPENLOOP: a buffer probe reading ok wins over the plan (null control)",
+    _r10bo_plv == [36.5, 36.5],
+    "buffer levels=%r" % (_r10bo_plv,),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP: with probes the rise inputs carry the readings",
+    [(o.buffer_temp, o.dhw_temp) for o in _r10bo_pobs] == [(36.5, 48.0)] * 2,
+    "rise inputs=%r" % ([(o.buffer_temp, o.dhw_temp) for o in _r10bo_pobs],),
+)
+_r10bo_elv, _, _, _r10bo_ecoord = _r10bo_run(trajectory=())
+_r10bo_default = type(getattr(_r10bo_ecoord, "_ctx", _r10bo_ecoord)._current_state)(
+).buffer_tank_temperature
+R.check(
+    "R10-BUFFER-OPENLOOP: an empty buffer trajectory (no throttling valve) "
+    "leaves the level as it is, never fabricated",
+    _r10bo_elv == [_r10bo_default, _r10bo_default] == [40.0, 40.0],
+    "buffer levels=%r default=%r" % (_r10bo_elv, _r10bo_default),
+)
+# The DHW seed re-expressed through ``_seed_store`` (behaviour unchanged; the
+# R9 D12-s1-01 checks above are its end-to-end control): the seed reaches the
+# state, and is not read back as a rise.
+_, _r10bo_dd, _r10bo_dobs, _ = _r10bo_run(dhw_trajectory=[50.0 + i for i in range(8)])
+R.check(
+    "R10-BUFFER-OPENLOOP: the open-loop DHW seed reaches the state but not the "
+    "detector's rise input",
+    _r10bo_dd == [51.0, 53.0] and [o.dhw_temp for o in _r10bo_dobs] == [None, None],
+    "dhw levels=%r rise inputs=%r" % (_r10bo_dd, [o.dhw_temp for o in _r10bo_dobs]),
+)
+
+
+# The wood arm: the level input ``hp_tank_temp`` is the useful floor of the
+# wood energy and the reference of the displacement, so it reads the best
+# level estimate (the seed), never None. Wood 70/60 degC (mean 65), outlet 55.
+def _r10bo_wood_expect(hp):
+    energy = (max(0.0, 65.0 - (hp + _r10bo_eh.WOOD_TANK_MIN_MARGIN))
+              * 1000.0 * _r10bo_eh.WATER_SPECIFIC_HEAT)
+    return round(energy, 6), round(min(1.0, max(0.0, (55.0 - hp) / (70.0 - hp))), 6)
+
+
+def _r10bo_wood(**kw):
+    _, _, _, coord = _r10bo_run(wood=True, **kw)
+    st = coord._external_heat.state
+    return (None if st.wood_energy_kwh is None else round(st.wood_energy_kwh, 6),
+            round(st.displacement, 6))
+
+
+_r10bo_wlv, _, _r10bo_wobs, _ = _r10bo_run(wood=True)
+_r10bo_w = _r10bo_wood()
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): with no buffer probe the wood reference "
+    "hp_tank_temp is the plan's seed, and wood energy and displacement follow it",
+    [o.hp_tank_temp for o in _r10bo_wobs] == [41.0, 43.0]
+    and _r10bo_w == _r10bo_wood_expect(43.0) != _r10bo_wood_expect(40.0),
+    "hp_tank_temp=%r outputs=%r expect(43)=%r expect(40)=%r"
+    % ([o.hp_tank_temp for o in _r10bo_wobs], _r10bo_w,
+       _r10bo_wood_expect(43.0), _r10bo_wood_expect(40.0)),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): a buffer probe wins and the wood outputs "
+    "follow the reading (null control)",
+    _r10bo_wood(probe=38.0) == _r10bo_wood_expect(38.0),
+    "outputs=%r expect=%r" % (_r10bo_wood(probe=38.0), _r10bo_wood_expect(38.0)),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): no seed and no reading keeps today's 40 degC "
+    "level, so wood energy and displacement stay on, as at base",
+    _r10bo_wood(trajectory=()) == _r10bo_wood_expect(40.0),
+    "outputs=%r expect=%r" % (_r10bo_wood(trajectory=()), _r10bo_wood_expect(40.0)),
+)
+
 # --- R10-DEMAND-OVERBOOK (#2499): the slab advances by the heat delivered ----
 R.section("R10-DEMAND-OVERBOOK: the unsensed slab advances by metered heat (#2499)")
 
