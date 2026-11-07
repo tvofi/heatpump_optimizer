@@ -1,0 +1,18 @@
+## policy_lint
+FIXTURE ok: 93 error(s) hold 269 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+rc=0
+RULES-SYNC ok: every generated rule is the generated form of its source
+## bare_array
+
+rc=0
+## structure
+STRUCTURE RATCHET PASSED
+## merge-tree vs origin/main 08fd676e9087abba636ade4106a0f0313f838bda
+ceefae5989d9ec4e42aa0b1901dcf409218d5d8b
+rc=0
+## role delta base...origin/main
+## untouched
+none
+## fix-review.md three-dot
+2
++Evidence names differ beyond case.
