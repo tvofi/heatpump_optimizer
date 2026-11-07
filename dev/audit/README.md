@@ -79,8 +79,11 @@ the machinery (`tools/audit/`, `tools/pr/`, `tools/plan/`, `tools/policy/`,
 `.github/workflows/`, `dev/governance/`, seat scripts) merges only if it
 unblocks a named pull request touching `custom_components/` or fixes a red on
 main or on one; the rest waits for an instrument window the owner opens. The
-merge seat checks it at admission. Of the open-PR cap, 10 slots are reserved
-for pull requests touching `custom_components/`; a machinery PR never takes
+merge seat checks it at admission. The open-PR cap is the owner's; it is
+recorded with its provenance in `DEFAULT_CAPS` and `CAPS_PROVENANCE` in
+`tools/plan/replan.py`, so read it there. Of that cap, 10 slots are reserved
+(the owner's 2026-11-01 figure, a fixed count and not a share, the one figure
+here that is a ruling and not a tree value) for pull requests touching `custom_components/`; a machinery PR never takes
 one, and a production PR is never refused for a machinery slot. A proposal is
 accepted only when its friction blocks a production merge, otherwise ruled
 LOG (`proposal-triage.md`). Exemption from all three: a proposal proving more

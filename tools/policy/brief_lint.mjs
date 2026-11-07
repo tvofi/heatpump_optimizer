@@ -1032,6 +1032,8 @@ export function carryFiles(dir) {
 export const PLAYBOOK_FILE = 'dev/audit/README.md'
 const PLAYBOOK_PATH_RE = new RegExp(`^(?:[A-Za-z0-9_.][A-Za-z0-9_.-]*/)*(?:[A-Za-z0-9_][A-Za-z0-9_.-]*\\.(?:${EXT_RE})|[A-Za-z0-9_.][A-Za-z0-9_.-]*/)$`)
 
+const PLAYBOOK_CAP_FIGURE_RE = /\b\d+\s+(?:open\s+)?(?:PRs?|pull requests)?\s*in round \d+|\b(?:open-PR|PR|pull-request) cap\s*(?:is|of|at|:|=)\s*\d+|\b\d+-PR cap/gi
+
 export function playbookCitations(text) {
   const prose = []
   let fenced = false
@@ -1081,6 +1083,9 @@ export function lintPlaybook(label, text, findings) {
     if (tagResult.status === 'none') add('error', 'playbook path', `${token}: not in the tree, and no tag SHA is cited alongside it`)
     else reportUnresolvedPath(add, 'playbook path', token, token, tagResult, refs)
   }
+  // The open-PR cap is the owner's and lives in tools/plan/replan.py; a figure
+  // for it written here goes stale at the next raise.
+  for (const m of text.matchAll(PLAYBOOK_CAP_FIGURE_RE)) add('error', 'playbook cap', `${m[0].trim()}: the open-PR cap is read from tools/plan/replan.py, not stated`)
   return findings
 }
 
@@ -1089,7 +1094,7 @@ const lintPlaybookFile = (file) => lintPlaybook('(playbook)', fs.readFileSync(fi
 // The arm's acceptance: the renamed fixture must be refused for exactly the
 // instruments it renames, removes and moves to another directory, and the null fixture -- the same prose
 // with the real paths -- must produce no finding of any severity.
-const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py']
+const REQUIRED_PLAYBOOK = ['tools/release/stamp_renamed.py', 'tools/audit/seat/no_such_beat.py', 'tools/pr/state_docs.py', 'open-PR cap is 16']
 function assertPlaybookFixtures() {
   const problems = []
   const red = lintPlaybookFile(path.join(FIXTURES, 'playbook-renamed.md'))
