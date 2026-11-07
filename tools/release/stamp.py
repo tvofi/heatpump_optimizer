@@ -2485,8 +2485,9 @@ def train_hold(runner=None, wall=time.time, bound: int | None = None) -> dict | 
         return None
     if not 0 <= age < bound:
         return None
-    pid = re.search(r"pid=(\d+)", message)
-    return {"sha": sha, "age": age, "pid": pid.group(1) if pid else "unknown", "bound": bound}
+    pid = message.partition("pid=")[2].split()[:1]
+    return {"sha": sha, "age": age, "pid": pid[0] if pid and pid[0].isdigit() else "unknown",
+            "bound": bound}
 
 
 def hold_line(hold: dict) -> str:
