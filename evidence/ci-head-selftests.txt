@@ -1,5 +1,0 @@
-head a09ebaebd4f892729d96f24c7ec930ab6a12a37b, code run 42380487764
-governance / instrument-self-tests job 128427022752: success, 2026-11-07T14:12:54Z -> 14:23:30Z = 636 s of 1800 s (64.7% headroom)
-log tail: "pr_args self-test: 174 checks, 0 failed" at 14:23:27Z (PR updater waiter step, last step of the job)
-gate job 128427176656 (edit run 42380487589): failure 14:25:41Z, log: "FAIL run(s) [42380487764] at this head are still being judged; their gate decides" -> edit-run deferral
-tests / nightly-status job 128427022838: failure (main's Nightly, not this diff)

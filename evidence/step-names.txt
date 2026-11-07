@@ -1,0 +1,5 @@
+jobs equal: True
+timeout base/head: 30 30
+removed names: []
+added names: ['Refuse a detached self-test whose status no step read', 'Start the five slowest self-tests beside the rest of the job']
+steps base/head: 100 102
