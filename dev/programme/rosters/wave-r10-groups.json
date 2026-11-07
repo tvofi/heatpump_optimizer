@@ -15943,7 +15943,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-carry-residue",
     "commit": "136e835c35a2ac228129201700375ac23f414a0a",
     "last_step": null,
