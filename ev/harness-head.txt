@@ -1,0 +1,171 @@
+CANCELLED    182  by=@github-actions[bot]         head=superseded
+CANCELLED    154  by=@tvofi                       head=live
+CANCELLED     29  by=@tvofi                       head=superseded
+CANCELLED     32  by=timeout                      head=live
+CANCELLED      1  by=timeout                      head=superseded
+CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
+CANCELLED      1  by=timeout+@tvofi               head=live
+CANCELLED     17  by=unattributed                 head=live
+CANCELLED      2  by=unattributed                 head=superseded
+CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)
+  41814979310/1    edit   fix/r10-rca-ci-critpath-3          f70e239339d9 2026-11-04T10:33:37Z -> 2026-11-04T10:35:08Z   1.5 min @tvofi
+  41814968031/1    code   fix/r10-rca-ci-critpath-3          f70e239339d9 2026-11-04T10:33:31Z -> 2026-11-04T10:34:05Z   0.6 min @tvofi
+  41878084037/1    edit   fix/triage-s11-batch118            e5381d941c44 2026-11-04T17:30:17Z -> 2026-11-04T17:53:41Z  23.4 min @tvofi
+  41878084088/1    code   fix/triage-s11-batch118            e5381d941c44 2026-11-04T17:30:17Z -> 2026-11-04T18:24:46Z  54.5 min @tvofi
+  41870437982/1    edit   fix/r10-replay-cost-budget         d52dc26f2077 2026-11-04T16:44:20Z -> 2026-11-04T16:52:18Z   8.0 min @tvofi
+  41870437982/2    edit   fix/r10-replay-cost-budget         d52dc26f2077 2026-11-04T17:19:57Z -> 2026-11-04T17:50:02Z  30.1 min @tvofi
+  41869857914/1    code   fix/r10-machinery-ratchets-p1b     6946e9d73eb3 2026-11-04T16:41:10Z -> 2026-11-04T16:54:55Z  13.8 min @tvofi
+  41869755429/1    code   fix/r10-flow-body-only             ecf4ef3fe300 2026-11-04T16:40:36Z -> 2026-11-04T16:56:25Z  15.8 min @tvofi
+  41869680432/1    edit   fix/r10-machinery-ratchets-p1b     6946e9d73eb3 2026-11-04T16:40:12Z -> 2026-11-04T16:57:25Z  17.2 min @tvofi
+  41865836208/1    code   fix/r10-sav-comfort-p3             6f742a33e521 2026-11-04T16:18:06Z -> 2026-11-04T17:11:04Z  53.0 min @tvofi
+  41865835967/1    edit   fix/r10-sav-comfort-p3             6f742a33e521 2026-11-04T16:18:06Z -> 2026-11-04T17:04:50Z  46.7 min @tvofi
+  41831302984/2    code   fix/r10-fly-standing-contracts-p1  fe2077441519 2026-11-04T16:23:13Z -> 2026-11-04T16:29:52Z   6.7 min @tvofi
+  41937591278/1    edit   fix/r10-closeout-cleanup           5aae1e12ea1d 2026-11-04T23:56:32Z -> 2026-11-05T00:11:31Z  15.0 min @tvofi
+  41937490359/1    edit   fix/r10-fly-archscore-stmt-packing 0a13dd1a9c05 2026-11-04T23:55:42Z -> 2026-11-05T00:17:41Z  22.0 min @tvofi
+  41937192628/1    code   fix/r10-fly-archscore-stmt-packing 0a13dd1a9c05 2026-11-04T23:53:18Z -> 2026-11-05T00:37:03Z  43.8 min @tvofi
+  41936647883/1    edit   fix/r10-closeout-cleanup           5aae1e12ea1d 2026-11-04T23:48:54Z -> 2026-11-05T00:24:28Z  35.6 min @tvofi
+  41936645495/2    code   fix/r10-closeout-cleanup           5aae1e12ea1d 2026-11-05T01:35:03Z -> 2026-11-05T02:06:42Z  31.6 min @tvofi
+  41936645495/1    code   fix/r10-closeout-cleanup           5aae1e12ea1d 2026-11-04T23:48:53Z -> 2026-11-05T00:30:53Z  42.0 min @tvofi
+  41936431209/1    edit   fix/triage-s12-batch122            278244751e3a 2026-11-04T23:47:10Z -> 2026-11-04T23:50:48Z   3.6 min @tvofi
+  41936430083/1    code   fix/triage-s12-batch122            278244751e3a 2026-11-04T23:47:09Z -> 2026-11-04T23:50:47Z   3.6 min @tvofi
+  41936376651/1    edit   record/autofix                     f1c199bdbef7 2026-11-04T23:46:43Z -> 2026-11-04T23:50:45Z   4.0 min @tvofi
+  41936374372/1    code   record/autofix                     f1c199bdbef7 2026-11-04T23:46:42Z -> 2026-11-04T23:50:45Z   4.0 min @tvofi
+  41933014995/1    edit   fix/r10-fly-standing-contracts-p1  2e3a51a9954c 2026-11-04T23:21:04Z -> 2026-11-04T23:41:02Z  20.0 min @tvofi
+  41932122425/1    code   record/autofix                     e834541bede5 2026-11-04T23:14:28Z -> 2026-11-04T23:15:35Z   1.1 min @tvofi
+  41931690869/1    edit   fix/r10-fly-standing-contracts-p1  2e3a51a9954c 2026-11-04T23:11:23Z -> 2026-11-04T23:34:31Z  23.1 min @tvofi
+  41931690213/1    code   fix/r10-fly-standing-contracts-p1  2e3a51a9954c 2026-11-04T23:11:22Z -> 2026-11-05T00:00:10Z  48.8 min @tvofi
+  41931360571/1    edit   fix/triage-s12-batch120            2dab52439219 2026-11-04T23:09:02Z -> 2026-11-04T23:15:19Z   6.3 min @tvofi
+  41929021663/1    code   record/autofix                     10121b474f8f 2026-11-04T22:52:28Z -> 2026-11-04T22:53:00Z   0.5 min @tvofi
+  41929016207/1    code   fix/triage-s12-batch124            b15157fb5b98 2026-11-04T22:52:25Z -> 2026-11-04T22:53:00Z   0.6 min @tvofi
+  41929011256/1    code   fix/triage-s12-batch123            a01e980f0aa5 2026-11-04T22:52:23Z -> 2026-11-04T22:52:59Z   0.6 min @tvofi
+  41929004632/1    code   fix/triage-s12-batch122            e966fb701366 2026-11-04T22:52:20Z -> 2026-11-04T22:52:59Z   0.7 min @tvofi
+  41928999482/1    code   fix/triage-s12-batch121            1fca63cb1665 2026-11-04T22:52:18Z -> 2026-11-04T22:52:58Z   0.7 min @tvofi
+  41928989800/1    code   fix/triage-s12-batch120            2dab52439219 2026-11-04T22:52:14Z -> 2026-11-04T22:52:57Z   0.7 min @tvofi
+  41928982023/1    code   fix/triage-s12-batch119            9e2f045e6c6d 2026-11-04T22:52:11Z -> 2026-11-04T22:52:57Z   0.8 min @tvofi
+  41928111249/1    code   fix/triage-s12-batch120            2dab52439219 2026-11-04T22:46:02Z -> 2026-11-04T22:50:59Z   5.0 min @tvofi
+  41928111399/1    edit   fix/triage-s12-batch120            2dab52439219 2026-11-04T22:46:02Z -> 2026-11-04T22:51:00Z   5.0 min @tvofi
+  41927747546/1    edit   fix/r10-cop-gate-d                 a27fc404a102 2026-11-04T22:43:29Z -> 2026-11-04T23:10:28Z  27.0 min @tvofi
+  41927640479/1    edit   fix/triage-s12-batch124            b15157fb5b98 2026-11-04T22:42:43Z -> 2026-11-04T22:50:59Z   8.3 min @tvofi
+  41927589618/1    edit   fix/r10-rca-sav-estimate           17b2f1561770 2026-11-04T22:42:20Z -> 2026-11-04T23:16:20Z  34.0 min @tvofi
+  41927206736/1    code   fix/r10-rca-sav-estimate           17b2f1561770 2026-11-04T22:39:39Z -> 2026-11-04T23:47:51Z  68.2 min @tvofi
+  41927207754/1    edit   fix/r10-rca-sav-estimate           17b2f1561770 2026-11-04T22:39:39Z -> 2026-11-04T23:03:53Z  24.2 min @tvofi
+  41926484862/1    code   record/autofix                     10121b474f8f 2026-11-04T22:34:40Z -> 2026-11-04T22:50:58Z  16.3 min @tvofi
+  41926483586/1    edit   record/autofix                     10121b474f8f 2026-11-04T22:34:40Z -> 2026-11-04T22:51:56Z  17.3 min @tvofi
+  41926212006/1    edit   fix/r10-cop-gate-d                 a27fc404a102 2026-11-04T22:32:50Z -> 2026-11-04T23:28:09Z  55.3 min @tvofi
+  41926047267/1    edit   fix/triage-s12-batch124            b15157fb5b98 2026-11-04T22:31:42Z -> 2026-11-04T22:45:15Z  13.6 min @tvofi
+  41926047087/1    code   fix/triage-s12-batch124            b15157fb5b98 2026-11-04T22:31:42Z -> 2026-11-04T22:50:57Z  19.2 min @tvofi
+  41925224198/1    edit   fix/r10-two-zone-hhl               18007245e681 2026-11-04T22:26:01Z -> 2026-11-04T23:52:49Z  86.8 min @tvofi
+  41925209612/1    edit   fix/triage-s12-batch123            a01e980f0aa5 2026-11-04T22:25:55Z -> 2026-11-04T22:50:55Z  25.0 min @tvofi
+  41925207389/1    code   fix/triage-s12-batch123            a01e980f0aa5 2026-11-04T22:25:54Z -> 2026-11-04T22:52:19Z  26.4 min @tvofi
+  41924352912/1    edit   fix/r10-replay-open-log            4e4bb291b503 2026-11-04T22:20:06Z -> 2026-11-04T22:38:54Z  18.8 min @tvofi
+  41924352912/2    edit   fix/r10-replay-open-log            4e4bb291b503 2026-11-05T00:43:50Z -> 2026-11-05T00:49:26Z   5.6 min @tvofi
+  41924350700/1    code   fix/r10-replay-open-log            4e4bb291b503 2026-11-04T22:20:06Z -> 2026-11-04T23:22:32Z  62.4 min @tvofi
+  41924120873/1    edit   fix/triage-s12-batch122            e966fb701366 2026-11-04T22:18:34Z -> 2026-11-04T22:51:11Z  32.6 min @tvofi
+  41924117411/1    code   fix/triage-s12-batch122            e966fb701366 2026-11-04T22:18:33Z -> 2026-11-04T22:50:59Z  32.4 min @tvofi
+  41923436967/1    edit   fix/triage-s12-batch121            1fca63cb1665 2026-11-04T22:14:02Z -> 2026-11-04T22:51:24Z  37.4 min @tvofi
+  41923437389/1    code   fix/triage-s12-batch121            1fca63cb1665 2026-11-04T22:14:02Z -> 2026-11-04T22:50:54Z  36.9 min @tvofi
+  41922786960/1    edit   fix/triage-s12-batch120            1570415e53f8 2026-11-04T22:09:52Z -> 2026-11-04T22:25:56Z  16.1 min @tvofi
+  41922545240/1    edit   fix/r10-closeout-cleanup           ad023b880ee4 2026-11-04T22:08:17Z -> 2026-11-04T22:57:52Z  49.6 min @tvofi
+  41922285946/1    edit   fix/triage-s12-batch119            9e2f045e6c6d 2026-11-04T22:06:36Z -> 2026-11-04T22:50:51Z  44.2 min @tvofi
+  41922283078/1    code   fix/triage-s12-batch119            9e2f045e6c6d 2026-11-04T22:06:35Z -> 2026-11-04T22:50:50Z  44.2 min @tvofi
+  41915306269/1    edit   fix/r10-machinery-ratchets-p2-pr   327d83e73b4a 2026-11-04T21:21:16Z -> 2026-11-04T21:38:52Z  17.6 min @tvofi
+  41914683569/1    edit   fix/r10-ci-runner-fixes            cd88b3fc3f68 2026-11-04T21:17:25Z -> 2026-11-04T21:45:45Z  28.3 min @tvofi
+  41914419310/1    edit   fix/r10-prepr-cap-slot             6eb13aac4f8a 2026-11-04T21:15:44Z -> 2026-11-04T21:20:56Z   5.2 min @tvofi
+  41911656993/1    edit   fix/r10-fly-standing-contracts-p1  344feb6c1f27 2026-11-04T20:58:33Z -> 2026-11-04T21:13:56Z  15.4 min @tvofi
+  41911654718/1    code   fix/r10-fly-standing-contracts-p1  344feb6c1f27 2026-11-04T20:58:32Z -> 2026-11-04T21:26:36Z  28.1 min @tvofi
+  41908786157/2    code   fix/r10-sav-comfort-p3             26d52a2fb016 2026-11-04T20:40:19Z -> 2026-11-04T21:33:21Z  53.0 min @tvofi
+  41895006869/1    edit   fix/r10-rca-ci-critpath-3          5ae7dc79b8c5 2026-11-04T19:14:23Z -> 2026-11-04T19:21:30Z   7.1 min @tvofi
+  41975507106/3    code   fix/r10-fly-replay-mask            2cfa51a43dea 2026-11-05T06:40:23Z -> 2026-11-05T06:43:40Z   3.3 min @tvofi
+  41974386819/1    edit   fix/r10-fly-archscore-stmt-packing 54f7f234ce4f 2026-11-05T05:30:07Z -> 2026-11-05T05:44:55Z  14.8 min @tvofi
+  41973402220/1    edit   fix/r10-handoff-path-p1            20d5aab00a01 2026-11-05T05:20:31Z -> 2026-11-05T05:25:04Z   4.5 min @tvofi
+  41972323648/1    edit   record/autofix                     bbd2ad65d2ac 2026-11-05T05:10:34Z -> 2026-11-05T05:14:09Z   3.6 min @tvofi
+  41972322846/1    code   record/autofix                     bbd2ad65d2ac 2026-11-05T05:10:33Z -> 2026-11-05T05:15:01Z   4.5 min @tvofi
+  41968234374/1    edit   record/autofix                     cac9813b1706 2026-11-05T04:30:34Z -> 2026-11-05T04:33:56Z   3.4 min @tvofi
+  41968234292/1    code   record/autofix                     cac9813b1706 2026-11-05T04:30:34Z -> 2026-11-05T04:33:26Z   2.9 min @tvofi
+  41966445820/1    edit   fix/r10-fly-replay-mask            aca500910b89 2026-11-05T04:13:20Z -> 2026-11-05T04:20:52Z   7.5 min @tvofi
+  41966182433/1    edit   fix/r10-fly-replay-mask            aca500910b89 2026-11-05T04:10:49Z -> 2026-11-05T04:15:52Z   5.0 min @tvofi
+  41966183843/1    code   fix/r10-fly-replay-mask            aca500910b89 2026-11-05T04:10:49Z -> 2026-11-05T04:40:15Z  29.4 min @tvofi
+  41966180254/1    code   record/autofix                     969f931cd379 2026-11-05T04:10:48Z -> 2026-11-05T04:13:16Z   2.5 min @tvofi
+  41966180728/1    edit   record/autofix                     969f931cd379 2026-11-05T04:10:48Z -> 2026-11-05T04:13:16Z   2.5 min @tvofi
+  41964640604/1    code   record/autofix                     f9102198ead7 2026-11-05T03:56:03Z -> 2026-11-05T03:58:08Z   2.1 min @tvofi
+  41964640539/1    edit   record/autofix                     f9102198ead7 2026-11-05T03:56:03Z -> 2026-11-05T03:58:47Z   2.7 min @tvofi
+  41960866527/1    code   record/autofix                     9e942d7de6bb 2026-11-05T03:19:30Z -> 2026-11-05T03:22:49Z   3.3 min @tvofi
+  41960867054/1    edit   record/autofix                     9e942d7de6bb 2026-11-05T03:19:30Z -> 2026-11-05T03:23:48Z   4.3 min @tvofi
+  41957440509/1    edit   fix/r10-closeout-cleanup           31e0bab01a71 2026-11-05T02:47:13Z -> 2026-11-05T03:30:41Z  43.5 min @tvofi
+  41957409873/1    edit   fix/r10-closeout-cleanup           31e0bab01a71 2026-11-05T02:46:55Z -> 2026-11-05T03:36:11Z  49.3 min @tvofi
+  41957409301/1    code   fix/r10-closeout-cleanup           31e0bab01a71 2026-11-05T02:46:54Z -> 2026-11-05T03:42:59Z  56.1 min @tvofi
+  41956961819/1    edit   fix/r10-sav-comfort-p3             611e1aa6fc00 2026-11-05T02:42:40Z -> 2026-11-05T04:09:10Z  86.5 min @tvofi
+  41956875918/1    edit   fix/r10-sav-comfort-p3             611e1aa6fc00 2026-11-05T02:41:51Z -> 2026-11-05T03:18:35Z  36.7 min @tvofi
+  41955940431/1    code   record/autofix                     09bfb2098d58 2026-11-05T02:33:02Z -> 2026-11-05T02:37:27Z   4.4 min @tvofi
+  41955896390/1    edit   fix/r10-fly-archscore-stmt-packing c8204eb83609 2026-11-05T02:32:37Z -> 2026-11-05T02:43:04Z  10.4 min @tvofi
+  41955325094/1    code   fix/r10-fly-archscore-stmt-packing c8204eb83609 2026-11-05T02:27:27Z -> 2026-11-05T02:37:38Z  10.2 min @tvofi
+  41955325094/2    code   fix/r10-fly-archscore-stmt-packing c8204eb83609 2026-11-05T03:54:00Z -> 2026-11-05T04:03:18Z   9.3 min @tvofi
+  41953678981/1    edit   fix/r10-handoff-path-p1            794fe6a76d5d 2026-11-05T02:12:38Z -> 2026-11-05T02:24:52Z  12.2 min @tvofi
+  41952981275/1    edit   fix/r10-handoff-path-p1            794fe6a76d5d 2026-11-05T02:06:24Z -> 2026-11-05T02:49:37Z  43.2 min @tvofi
+  41952981275/2    edit   fix/r10-handoff-path-p1            794fe6a76d5d 2026-11-05T04:28:39Z -> 2026-11-05T04:31:17Z   2.6 min @tvofi
+  41952980694/1    code   fix/r10-handoff-path-p1            794fe6a76d5d 2026-11-05T02:06:24Z -> 2026-11-05T02:55:29Z  49.1 min @tvofi
+  41951472711/2    code   fix/r10-fly-replay-mask            651468bb58c8 2026-11-05T01:53:00Z -> 2026-11-05T02:13:22Z  20.4 min @tvofi
+  41947614452/1    edit   fix/r10-machinery-ratchets-p2-pr   4fa863b557a5 2026-11-05T01:18:29Z -> 2026-11-05T02:00:11Z  41.7 min @tvofi
+  41945306332/1    code   record/autofix                     8305e366e3b9 2026-11-05T00:59:02Z -> 2026-11-05T01:01:41Z   2.6 min @tvofi
+  41944054481/1    code   record/autofix                     7d991d598b57 2026-11-05T00:48:32Z -> 2026-11-05T00:51:29Z   3.0 min @tvofi
+  41940154491/1    edit   record/autofix                     ec9debd3c432 2026-11-05T00:16:55Z -> 2026-11-05T00:21:09Z   4.2 min @tvofi
+  41940153834/1    code   record/autofix                     ec9debd3c432 2026-11-05T00:16:54Z -> 2026-11-05T00:21:09Z   4.2 min @tvofi
+  41938895348/1    edit   fix/r10-two-zone-hhl               113ec64d0a2b 2026-11-05T00:06:58Z -> 2026-11-05T00:43:07Z  36.1 min @tvofi
+  41938893647/1    code   fix/r10-two-zone-hhl               113ec64d0a2b 2026-11-05T00:06:57Z -> 2026-11-05T00:55:34Z  48.6 min @tvofi
+  41938638470/1    edit   fix/r10-fly-replay-mask            140df0268a10 2026-11-05T00:04:58Z -> 2026-11-05T01:00:35Z  55.6 min @tvofi
+  42022743139/1    code   record/autofix                     988e2310fdce 2026-11-05T11:54:34Z -> 2026-11-05T11:57:59Z   3.4 min @tvofi
+  42022210025/1    code   record/autofix                     0759a0f8af0d 2026-11-05T11:50:31Z -> 2026-11-05T11:52:59Z   2.5 min @tvofi
+  42007897773/1    code   record/autofix                     2e22c1b2eee6 2026-11-05T10:06:19Z -> 2026-11-05T10:12:33Z   6.2 min @tvofi
+  42000586784/1    code   record/autofix                     8b623c321195 2026-11-05T09:13:16Z -> 2026-11-05T09:16:33Z   3.3 min @tvofi
+  42000588043/1    edit   record/autofix                     8b623c321195 2026-11-05T09:13:16Z -> 2026-11-05T09:16:48Z   3.5 min @tvofi
+  42000022519/1    code   record/autofix                     37111364ac75 2026-11-05T09:09:11Z -> 2026-11-05T09:11:39Z   2.5 min @tvofi
+  41991283644/1    code   record/autofix                     57a971fb5e93 2026-11-05T08:00:58Z -> 2026-11-05T08:06:05Z   5.1 min @tvofi
+  41988826127/1    edit   fix/r10-raise-gate-shim            e7126ae228c8 2026-11-05T07:39:59Z -> 2026-11-05T07:59:07Z  19.1 min @tvofi
+  41985459476/1    code   fix/r10-seat-identity-guards       749a3161dbbc 2026-11-05T07:11:19Z -> 2026-11-05T07:25:22Z  14.1 min @tvofi
+  41985047907/1    code   record/autofix                     7ef8da2a4208 2026-11-05T07:07:46Z -> 2026-11-05T07:11:08Z   3.4 min @tvofi
+  41983910696/2    code   record/autofix                     475eb6d9e1da 2026-11-05T07:03:36Z -> 2026-11-05T07:06:07Z   2.5 min @tvofi
+  41983910696/1    code   record/autofix                     475eb6d9e1da 2026-11-05T06:57:50Z -> 2026-11-05T06:59:46Z   1.9 min @tvofi
+  41978846175/2    code   fix/r10-fly-archscore-stmt-packing 4bda0d5258d6 2026-11-05T06:12:22Z -> 2026-11-05T06:36:15Z  23.9 min @tvofi
+  41978387014/1    code   record/autofix                     298c4cf77c42 2026-11-05T06:08:07Z -> 2026-11-05T06:10:11Z   2.1 min @tvofi
+  41977510527/1    code   fix/r10-grade-drivers              25e478a7fe73 2026-11-05T06:00:10Z -> 2026-11-05T06:18:06Z  17.9 min @tvofi
+  42078026947/1    code   record/autofix                     16024603e2d7 2026-11-05T17:47:22Z -> 2026-11-05T17:51:16Z   3.9 min @tvofi
+  42068307998/1    edit   record/autofix                     70bf907c671e 2026-11-05T16:48:53Z -> 2026-11-05T16:50:19Z   1.4 min @tvofi
+  42068304182/1    code   record/autofix                     70bf907c671e 2026-11-05T16:48:52Z -> 2026-11-05T16:49:32Z   0.7 min @tvofi
+  42042993703/1    edit   fix/r10-body-contract              ece7cbabb8bd 2026-11-05T14:13:57Z -> 2026-11-05T14:23:06Z   9.2 min @tvofi
+  42038246326/1    code   record/autofix                     0d8b7e26d165 2026-11-05T13:43:10Z -> 2026-11-05T13:49:07Z   6.0 min @tvofi
+  42029742893/1    code   record/autofix                     ed0379d3e305 2026-11-05T12:44:47Z -> 2026-11-05T12:48:38Z   3.9 min @tvofi
+  42133420815/1    edit   fix/triage-s12-batch124            deef2713292a 2026-11-05T23:58:53Z -> 2026-11-06T00:13:58Z  15.1 min @tvofi
+  42133381679/1    edit   fix/triage-s12-batch123            89a82ddc602c 2026-11-05T23:58:32Z -> 2026-11-06T00:20:20Z  21.8 min @tvofi
+  42133338456/1    edit   fix/triage-s12-batch122            f02530f49181 2026-11-05T23:58:09Z -> 2026-11-06T00:25:55Z  27.8 min @tvofi
+  42133294182/1    edit   fix/triage-s12-batch121            5017b5660ab6 2026-11-05T23:57:46Z -> 2026-11-06T00:08:21Z  10.6 min @tvofi
+  42115877718/1    edit   record/autofix                     da1fbdc8ed1e 2026-11-05T21:47:57Z -> 2026-11-05T21:52:03Z   4.1 min @tvofi
+  42115877769/1    code   record/autofix                     da1fbdc8ed1e 2026-11-05T21:47:57Z -> 2026-11-05T21:52:35Z   4.6 min @tvofi
+  42085836365/1    code   record/autofix                     2547159bdb1c 2026-11-05T18:36:20Z -> 2026-11-05T18:41:40Z   5.3 min @tvofi
+  42138801181/2    edit   fix/r10-grade-drivers              3f188f896081 2026-11-06T02:31:42Z -> 2026-11-06T02:36:01Z   4.3 min @tvofi
+  42136508003/1    edit   fix/r10-ext-3226                   e80a319c21f7 2026-11-06T00:23:50Z -> 2026-11-06T00:46:43Z  22.9 min @tvofi
+  42264775300/1    code   fix/r10-dispatch-at-handoff        411571c08e0c 2026-11-06T17:47:02Z -> 2026-11-06T18:08:20Z  21.3 min @tvofi
+  42263877395/1    code   fix/r10-carry-residue              1d5a5ce7f8aa 2026-11-06T17:41:06Z -> 2026-11-06T17:51:54Z  10.8 min @tvofi
+  42263816886/1    code   fix/r10-roster-write-sweep         ecbba06860aa 2026-11-06T17:40:42Z -> 2026-11-06T17:58:01Z  17.3 min @tvofi
+  42259459358/1    code   fix/audit-r10-roster-pr            ac1eb8c4de45 2026-11-06T17:12:16Z -> 2026-11-06T17:23:30Z  11.2 min @tvofi
+  42255824634/1    code   fix/r10-relay-sweep                accca58859ef 2026-11-06T16:48:42Z -> 2026-11-06T16:58:44Z  10.0 min @tvofi
+  42255235770/1    code   fix/r10-policy-role-pack           9c8ca4f7acfa 2026-11-06T16:44:52Z -> 2026-11-06T16:52:37Z   7.8 min @tvofi
+  42246392699/1    code   fix/r10-process-slim               6289321a8451 2026-11-06T15:47:58Z -> 2026-11-06T16:02:50Z  14.9 min @tvofi
+  42233522251/1    edit   fix/r10-policy-role-pack           9478bca58c43 2026-11-06T14:23:43Z -> 2026-11-06T14:32:13Z   8.5 min @tvofi
+  42233112046/1    code   fix/r10-carry-residue              bb33e680731f 2026-11-06T14:20:56Z -> 2026-11-06T14:56:24Z  35.5 min timeout+@tvofi
+  42228220210/1    code   fix/r10-roster-write-sweep         21be201ce8cc 2026-11-06T13:46:33Z -> 2026-11-06T13:56:11Z   9.6 min @tvofi
+  42283173042/2    code   fix/r10-ext-3226                   0e59de5574d7 2026-11-06T20:38:07Z -> 2026-11-06T20:38:54Z   0.8 min @tvofi
+  42278190124/1    code   fix/r10-ref-privacy-cloud          b4951a08c98c 2026-11-06T19:16:38Z -> 2026-11-06T19:19:28Z   2.8 min @tvofi
+  42273769718/1    code   fix/r10-relay-sweep                b4d990860b42 2026-11-06T18:46:47Z -> 2026-11-06T18:54:58Z   8.2 min @tvofi
+  42332985078/1    code   fix/r10-carry-residue              96987ab3d722 2026-11-07T03:13:18Z -> 2026-11-07T03:25:07Z  11.8 min @tvofi
+  42332429939/1    code   fix/r10-why-now-widget             0260beb41c2e 2026-11-07T03:06:25Z -> 2026-11-07T03:16:54Z  10.5 min @tvofi
+  42331131423/1    code   fix/r10-sweep-template-sync        61f1ec71a428 2026-11-07T02:49:46Z -> 2026-11-07T03:34:59Z  45.2 min @tvofi
+  42329898240/1    code   fix/r10-clone-2238                 a46e4d02fac4 2026-11-07T02:34:11Z -> 2026-11-07T03:41:16Z  67.1 min @tvofi
+  42329754862/1    code   fix/r10-flow-toolkit-model         0ce1f09bd196 2026-11-07T02:32:27Z -> 2026-11-07T02:54:44Z  22.3 min @tvofi
+  42329713447/1    code   fix/triage-s12-batch128            d37fea157d55 2026-11-07T02:31:58Z -> 2026-11-07T02:38:08Z   6.2 min @tvofi
+  42329221705/2    code   fix/r10-ext-3226                   28e4375441e6 2026-11-07T03:32:55Z -> 2026-11-07T03:49:41Z  16.8 min @tvofi
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+FOLLOW restarted     81  minutes  1861.2
+FOLLOW duplicate      5  minutes   153.0
+FOLLOW dropped       69  minutes   850.5
+FOLLOW restart gap s: min 22 median 906 max 7496, within 120 s 18

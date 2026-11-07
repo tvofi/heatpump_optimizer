@@ -1,0 +1,5 @@
+NOTE stale tree: 2a8b8f0ccdf5ce4f3ed2f8101e201de7caf7354a lacks origin/main be813ecd4924865b75489f12c56600e9432d5727; roster read at origin/main
+NOTE body item 7bd3e57f: R10-CI-PRIORITY-PAUSE
+NOTE body item dece2890: dismissed:delegating reads cleared it each time, no rule changes
+NOTE body item eeb655ef: dismissed:repaired in this diff by livehead_cancels.py fetch
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)

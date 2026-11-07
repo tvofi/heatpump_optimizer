@@ -1,0 +1,6 @@
+2026-11-07T06:19:22.7960411Z Complete job name: gate
+2026-11-07T06:19:47.4511967Z ##[group]Run python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"
+2026-11-07T06:19:47.4512598Z [36;1mpython3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"[0m
+2026-11-07T06:19:47.4566530Z   WORKSET: arch-score budget-raise-gate
+2026-11-07T06:19:49.6944782Z FAIL run(s) [42345105570, 42345573857] at this head are still being judged; their gate decides
+2026-11-07T06:19:49.7084268Z ##[error]Process completed with exit code 1.
