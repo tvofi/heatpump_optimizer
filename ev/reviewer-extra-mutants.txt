@@ -1,0 +1,6 @@
+RESULT X1-first-bad-only rc=1 KILLED
+RESULT X2-runfailed-kept rc=1 KILLED
+RESULT X3-gt-to-lt rc=1 KILLED
+RESULT X4-greens-any-conclusion rc=1 KILLED
+RESULT X5-main-fetch-unconditional rc=1 KILLED
+RESULT X6-swallow-all rc=0 SURVIVED

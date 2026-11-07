@@ -1,0 +1,9 @@
+42235215315 workflow_dispatch main created 2026-11-06T14:35:02Z updated_at 2026-11-06T18:06:31Z conclusion failure (head 33e60b5b)
+42242870295 workflow_dispatch main created 2026-11-06T15:25:13Z updated_at 2026-11-06T19:17:32Z conclusion success (head 817c2b16)
+window 18:06:31Z -> 19:17:32Z = 71 min 1 s
+gate job 128206881487: run 42309259823 attempt 1, head b0ef8f54, failure 23:05:41Z (CI edit)
+gate job 128239026202: run 42309259823 attempt 5, head b0ef8f54, failure 00:35:36Z (CI edit) -- named in body
+gate job 128266263058: run 42327440324 (CI edit), head 5cf07f77, failure 02:07:09Z: "FAIL run(s) [42327439751] at this head are still being judged; their gate decides"
+gate job 128274624678: run 42327439751 (CI code), head 5cf07f77, success 02:38:51Z
+pr-contract / pr-contract 128274216702: run 42327439751, started 02:36:50Z, success 02:37:30Z
+governance / instrument-self-tests 128266024727: cancelled 02:05:51Z -> 02:35:54Z (30-min timeout)
