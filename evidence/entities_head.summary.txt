@@ -1,0 +1,5 @@
+  ok   mutation-ledger measures without a write grant and mutation-ledger-push writes only rows
+  ok   mutation-nightly, mutation-ledger and the pin step each pass a budget
+  ok   budget admission charges no pair reach_skip frees, in both schedules, and main() hands the schedule its reach predicate
+ALL 2641 ENTITY CHECKS PASSED
+rc=0
