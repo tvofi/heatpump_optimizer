@@ -18460,9 +18460,7 @@
    },
    "fixerModel": "opus",
    "reviewerModel": "opus",
-   "after": [
-    "R10-USER-DOCS-VERIFY"
-   ],
+   "after": [],
    "files": [
     "custom_components/heatpump_optimizer/coordinator.py",
     "custom_components/heatpump_optimizer/config_flow.py",
