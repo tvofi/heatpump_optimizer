@@ -1,0 +1,21 @@
+features base stmts 15623 unwrapped head stmts 15623 wrapped 169 structural problems []
+features differing top-level stmts 1
+  base line 35430 if _EpPlanner is not None: |     from golden import make as _ep_mk, SCENARIOS as _EP_SC, START as _EP_START, external_heat_for as _ep_ext |     _ep_inits: list = []
+  head      if _EpPlanner is not None: |     from golden import make as _ep_mk, SCENARIOS as _EP_SC, START as _EP_START, external_heat_for as _ep_ext |     _ep_inits = [] |     _
+features module-scope try at base 171 at head 0
+features wrappers with local (non-global) bindings 0 []
+features frame-sensitive uses inside wrappers []
+features duplicate top-level def names []
+entities base stmts 5835 unwrapped head stmts 5842 wrapped 110 structural problems []
+entities differing top-level stmts 8
+  base line 41407 sys.exit(R.close('ENTITY CHECKS'))
+  head      _GIANT_SCRIPT_LINES = 20000
+entities module-scope try at base 116 at head 0
+entities wrappers with local (non-global) bindings 0 []
+entities frame-sensitive uses inside wrappers [('_module_block_4441', 'vars', 4498, 1), ('_module_block_10291', 'vars', 10353, 1), ('_module_block_40917', 'vars', 41242, 1)]
+entities duplicate top-level def names []
+entities: prefix identical True | last stmt identical True | inserted 7
+wr/features.py: wrapped 169 statements, 1863 lines; +489 lines
+wr/entities.py: wrapped 110 statements, 1905 lines; +324 lines
+features: tool output == head byte-identical
+entities: head == tool output + 60-line appended guard only

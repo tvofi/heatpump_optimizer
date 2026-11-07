@@ -1,0 +1,6 @@
+pull_request: codeql_scope: python: skip: none of 8 changed file(s) is under custom_components/ or .github/: the next push to main analyzes it
+skip
+workflow_dispatch: codeql_scope: python: analyze: event 'workflow_dispatch' always analyzes
+analyze
+push: codeql_scope: python: analyze: event 'push' always analyzes
+analyze
