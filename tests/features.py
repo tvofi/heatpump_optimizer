@@ -30331,6 +30331,206 @@ R.check(
 )
 
 
+R.section("A configured input that returns is re-read at once, not one interval later")
+
+# A live install's indoor sensor is a Zigbee2MQTT entity. After a restart or a
+# reload of this integration the first read ran before MQTT discovery had
+# re-created it, so the reading was `missing_entity` and every learner froze;
+# nothing read it again until the next scheduled update, one
+# `optimization_interval` (15 min there) later, although the entity was back
+# within seconds. `InputReturnWatch` asks for the coordinator's debounced
+# refresh as soon as an input the last read found absent or valueless reports
+# a value. The re-read goes through the real `_update_current_state` here, so
+# every guard a scheduled read applies applies to the returned value too.
+
+
+def _ir_event(entity_id, state):
+    return type("Ev", (), {"data": {
+        "entity_id": entity_id, "old_state": None, "new_state": state}})()
+
+
+def _ir_fire(hass, entity_id, state):
+    for ids, action in list(getattr(hass, "state_listeners", [])):
+        if entity_id in ids:
+            action(_ir_event(entity_id, state))
+
+
+def _ir_rig(indoor=None):
+    """A coordinator whose first read finds ``indoor`` (absent when None)."""
+    import homeassistant.util.dt as _ir_dt
+
+    states = {"sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_LF_T0)}
+    if indoor is not None:
+        states["sensor.indoor"] = indoor
+    hass = _FakeHass(states)
+    coord = Coord(hass, _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 15,
+    }))
+    coord._current_weather = lambda: (0.0, 0.0)
+    # Captured from here on: the construction's own loaders are not the watch.
+    tasks = []
+    hass.async_create_task = lambda coro, *a, **k: tasks.append(coro)
+    refreshes = []
+
+    async def _refresh():
+        # The scheduled cycle's input half: the real read, every real guard.
+        refreshes.append(1)
+        await coord._update_current_state()
+
+    coord.async_request_refresh = _refresh
+    clock = [1000.0]
+    real = (_ir_dt.now, _ir_dt.utcnow)
+    _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
+    try:
+        _asyncio.run(coord._update_current_state())
+    finally:
+        _ir_dt.now, _ir_dt.utcnow = real
+    watch = getattr(inputs_mod, "_RETURN_WATCHES", {}).get(coord)
+    if watch is not None:
+        watch.clock = lambda: clock[0]
+
+    def run_tasks():
+        _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
+        try:
+            while tasks:
+                _asyncio.run(tasks.pop(0))
+        finally:
+            _ir_dt.now, _ir_dt.utcnow = real
+
+    return coord, hass, tasks, refreshes, clock, run_tasks
+
+
+def _ir_watched(hass):
+    return sorted(
+        e for ids, _a in getattr(hass, "state_listeners", []) for e in ids)
+
+
+_ir_c, _ir_h, _ir_tasks, _ir_refreshes, _ir_clock, _ir_run = _ir_rig()
+R.check(
+    "precondition: an indoor entity absent at the first read is missing_entity "
+    "and freezes the learners",
+    _ir_c._input_health.readings["indoor_temp_entity"].problem == "missing_entity"
+    and _ir_c._learning_frozen("indoor_temp_entity")
+    == "missing_entity:indoor_temp_entity",
+    f"got {_ir_c._learning_frozen('indoor_temp_entity')!r}",
+)
+R.check(
+    "the read that found it absent watches exactly that entity",
+    _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"watched {_ir_watched(_ir_h)}",
+)
+# HA writes an `unavailable` placeholder for a registry entity whose
+# integration has not loaded; that is not a return.
+_ir_fire(_ir_h, "sensor.indoor", FakeState("unavailable", last_updated=_LF_T0))
+R.check(
+    "an entity that reappears without a value asks for nothing",
+    not _ir_tasks,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_back = FakeState("21.3", unit="°C", last_updated=_LF_T0)
+_ir_h.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "the entity reporting a value asks for one refresh at once",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_run()
+R.check(
+    "that refresh re-reads it: the input is ok, the learners unfreeze, the "
+    "planner's room temperature is the reading",
+    _ir_refreshes == [1]
+    and _ir_c._input_health.readings["indoor_temp_entity"].ok
+    and _ir_c._learning_frozen("indoor_temp_entity") is None
+    and _ir_c._current_state.room_temperature == 21.3,
+    f"refreshes {_ir_refreshes}, "
+    f"frozen {_ir_c._learning_frozen('indoor_temp_entity')!r}, "
+    f"room {_ir_c._current_state.room_temperature}",
+)
+R.check(
+    "and with nothing absent any more nothing is watched",
+    _ir_watched(_ir_h) == [],
+    f"watched {_ir_watched(_ir_h)}",
+)
+
+# A flapping sensor: absent again at the next scheduled read, back within the
+# same interval. One extra refresh per entity per interval, not one per flap.
+_ir_h.states._states.pop("sensor.indoor")
+_ir_run_read = _ir_c._update_current_state
+_ir_tasks.append(_ir_run_read())
+_ir_run()
+_ir_clock[0] += 60.0
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a second return inside one interval of the first ask asks for nothing",
+    not _ir_tasks and _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"{len(_ir_tasks)} requested, watched {_ir_watched(_ir_h)}",
+)
+_ir_clock[0] += 15 * 60.0
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a return a full interval after the last ask asks again",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_tasks.clear()
+
+# The guards still decide. A value twelve hours old comes back: the re-read
+# runs, rejects it as stale, and the learners stay frozen.
+_ir_s, _ir_sh, _ir_st, _ir_sr, _ir_sc, _ir_srun = _ir_rig()
+_ir_old = FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12))
+_ir_sh.states.set("sensor.indoor", _ir_old)
+_ir_fire(_ir_sh, "sensor.indoor", _ir_old)
+_ir_srun()
+R.check(
+    "a returned value the guards reject is re-read and keeps the learners "
+    "frozen",
+    _ir_sr == [1]
+    and _ir_s._learning_frozen("indoor_temp_entity") == "stale:indoor_temp_entity",
+    f"refreshes {_ir_sr}, got {_ir_s._learning_frozen('indoor_temp_entity')!r}",
+)
+
+# Released with the entry (#236): the listener goes, and no later read re-arms.
+_ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun = _ir_rig()
+_ir_r._release_registrations()
+_ir_released = _ir_watched(_ir_rh)
+_ir_rt.append(_ir_r._update_current_state())
+_ir_rrun()
+R.check(
+    "releasing the entry drops the watch, and a read after it registers none",
+    _ir_released == [] and _ir_watched(_ir_rh) == [],
+    f"after release {_ir_released}, after a later read {_ir_watched(_ir_rh)}",
+)
+
+# NULL CONTROL: a healthy install carries no listener at all, so the watch
+# cannot be what every healthy read pays for.
+_ir_n, _ir_nh, _ir_nt, _ir_nr, _ir_nc, _ir_nrun = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0))
+R.check(
+    "null control: a read with every configured input usable watches nothing",
+    _ir_n._input_health.readings["indoor_temp_entity"].ok
+    and _ir_watched(_ir_nh) == [] and not _ir_nt,
+    f"watched {_ir_watched(_ir_nh)}",
+)
+# A design choice, pinned: only absence and no-value are watched. A sensor
+# reporting a word (or a fault code, or a unit the reader cannot convert) is
+# present and reporting; its next event vouches for nothing the re-read could
+# accept, so watching it would buy one extra update per interval for as long
+# as it stays broken.
+_ir_w, _ir_wh, _ir_wt, _ir_wr, _ir_wc, _ir_wrun = _ir_rig(
+    FakeState("warm", unit="°C", last_updated=_LF_T0))
+R.check(
+    "a present input with an unusable value (not_numeric) is not watched",
+    _ir_w._input_health.readings["indoor_temp_entity"].problem == "not_numeric"
+    and _ir_watched(_ir_wh) == [],
+    f"watched {_ir_watched(_ir_wh)}",
+)
+
+
 # ===========================================================================
 # v5.1.7 — an ordinary slot stops calling itself weather pre-heating
 # ===========================================================================
