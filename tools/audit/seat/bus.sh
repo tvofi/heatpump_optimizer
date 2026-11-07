@@ -263,8 +263,11 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
 
 # Names that differ only by case collide on a case-insensitive checkout (ancestors count: file
 # `a` against dir `A/x`). Prints "<one> and <other>" for the first pair, rc 0; rc 1 if none.
+case_collision_names() { # reads one path per line on stdin
+  LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }'
+}
 case_collision() { # dir
-  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | LC_ALL=C sort | awk '{ n=split($0,p,"/"); q=""; for(i=1;i<=n;i++){ q=(i==1?p[i]:q "/" p[i]); k=tolower(q); if((k in s)&&s[k]!=q){print s[k] " and " q; f=1; exit} s[k]=q } } END { exit !f }')
+  (cd "$1" && find . -mindepth 1 | sed 's|^\./||' | case_collision_names)
 }
 
 push_verdict() { # pr verdict-file evidence-dir -> proposes the verdict on review/<pr>
@@ -382,14 +385,17 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
   d=$S/${fam}s/$pr/$c
   rm -rf "$d" && mkdir -p "$d" && git archive "$c" | tar -x -C "$d" \
     || { printf 'BUS refused %s %s: could not unpack the verdict tree\n' "$pr" "$c"; return 1; }
-  if [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
+  # Names come from the commit, not from the extracted directory: tar on a case-insensitive
+  # filesystem (APFS) has already folded HEAD.txt and head.txt into one file by then.
+  if cc=$(git ls-tree -r --name-only "$c" -- evidence 2>/dev/null | case_collision_names); then
+    why="evidence/ names collide case-insensitively: $cc"
+  elif [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
   else
     first=$(head -n 1 "$d/VERDICT.md")
     if ! hsha=$(verdict_sha "$first"); then why="the first line is outside fix-review.md's grammar: '$first'"
     elif ! grep -rqF -- "$hsha" "$d/evidence" 2>/dev/null; then why="no file under evidence/ names the head $hsha"
     fi
   fi
-  if [ -z "$why" ] && cc=$(case_collision "$d/evidence" 2>/dev/null); then why="evidence/ names collide case-insensitively: $cc"; fi
   [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
 }
 
@@ -1373,7 +1379,7 @@ B
   rawev() { # names... : VERDICT.md from stdin, evidence/<each name> naming $h1
     local b e tr n ents=""
     b=$(git -C "$W/seat" hash-object -w --stdin)
-    e=$(printf 'measured at %s\n' "$h1" | git -C "$W/seat" hash-object -w --stdin)
+    e=$(printf '%s\n' "${EVBODY-measured at $h1}" | git -C "$W/seat" hash-object -w --stdin)
     for n in "$@"; do ents="$ents$(printf '100644 blob %s\t%s\n' "$e" "$n")"$'\n'; done
     e=$(printf '%s' "$ents" | git -C "$W/seat" mktree)
     tr=$(printf '100644 blob %s\tVERDICT.md\n040000 tree %s\tevidence\n' "$b" "$e" | git -C "$W/seat" mktree)
@@ -1382,8 +1388,22 @@ B
   t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt head.txt)
   git -C "$W/seat" push -q origin "$t:refs/heads/review/40"
   out=$(run watch --once --post)
-  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and head.txt"
+  echo "$out" | grep -q "^BUS refused 40 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt"
   expect "unpack refuses a proposal whose evidence names differ only by case, naming both (read side)" $?
+  # Folded-source row: on APFS the extract has folded HEAD.txt and head.txt into one file that
+  # may not name the head, so the refusal must come from the commit's own name list (ls-tree),
+  # and name both, not "no file under evidence/ names the head".
+  t=$(printf 'Fix review: merge %s\n' "$h1" | EVBODY="no head here" rawev HEAD.txt head.txt)
+  git -C "$W/seat" push -q origin "$t:refs/heads/review/42"
+  out=$(run watch --once --post)
+  echo "$out" | grep -q "^BUS refused 42 $t: evidence/ names collide case-insensitively: .*HEAD.txt and evidence/head.txt" \
+    && ! echo "$out" | grep -q "no file under evidence/ names the head"
+  expect "unpack names both colliding names when the folded file would not name the head (ls-tree read)" $?
+  got=$(git -C "$W/seat" ls-tree -r --name-only "$t" -- evidence | case_collision_names); r=$?
+  [ "$r" = 0 ] && echo "$got" | grep -q "HEAD.txt and evidence/head.txt"
+  expect "case_collision_names refuses a folded-source ls-tree name list, naming both" $?
+  got=$(printf 'evidence/HEAD.txt\nevidence/other.txt\nevidence/sub/a\nevidence/sub/b\n' | case_collision_names); r=$?
+  [ "$r" = 1 ] && [ -z "$got" ]; expect "case_collision_names lets a distinct ls-tree name list past (null control)" $?
   t=$(printf 'Fix review: merge %s\n' "$h1" | rawev HEAD.txt other.txt)
   git -C "$W/seat" push -q origin "$t:refs/heads/review/41"
   out=$(run watch --once --post)
