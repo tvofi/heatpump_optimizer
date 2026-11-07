@@ -1,6 +1,0 @@
-Traceback (most recent call last):
-  File "/tmp/claude-0/wt-head/tests/plan_view.py", line 8, in <module>
-    from heatpump_optimizer.thermal_model import ThermalModel, ThermalParameters, ThermalState
-  File "/tmp/claude-0/wt-head/custom_components/heatpump_optimizer/__init__.py", line 23, in <module>
-    from homeassistant.config_entries import ConfigEntry
-ModuleNotFoundError: No module named 'homeassistant'

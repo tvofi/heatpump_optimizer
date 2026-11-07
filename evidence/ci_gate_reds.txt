@@ -1,7 +1,0 @@
-Head a258212553e123d735c7eff139a8e347a1a52ea3, check-runs read via MCP get_check_runs (81 runs) after 21:47Z 2026-11-06.
-code run 42286556863: gate job 128172572226 success (21:45:18-21:45:53); pr-contract / pr-contract 128172029926 success (21:44:07-21:45:14); codeql / Analyze (python) 128151741153 success (rerun, 21:01-21:44).
-edit run 42286558101: gate job 128173052224 failure 21:46:57  "FAIL run(s) [42286624031, 42293328283] at this head are still being judged; their gate decides"
-edit run 42286624031: gate job 128173059639 failure 21:46:54  "FAIL run(s) [42286558101, 42293328283] at this head are still being judged; their gate decides"
-edit run 42293328283: gate job 128173073456 failure 21:46:59  "FAIL run(s) [42286558101, 42286624031] at this head are still being judged; their gate decides"
-All three edit gates (KIND edit, WORKSET arch-score budget-raise-gate) were re-run within 2 s of one another, each listed the other two as busy, and tools/ci/gate.py deferring() set bound 0, so each published the deferral at once. No pr-contract run started after 21:46:59.
-merge_train classify: see classify_2.txt / classify_3.txt (RED pending: none red: gate, rc=1).

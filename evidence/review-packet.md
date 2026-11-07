@@ -1,86 +1,97 @@
 # Review packet #3244
-head: a258212553e123d735c7eff139a8e347a1a52ea3
-base: 9cbd7dd0d7a66163b5b593dfe55f1d8b220785de
+head: 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08
+base: 28482eceeb6b9809e44b12d80fc994282cc21645
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-CodeQL id=128129452955 success
-arch-score / arch-score id=128173122877 success
-arm id=128128774175 skipped
-budget-raise-gate / budget-raise-gate id=128173136532 success
-cancel-superseded id=128173152527 success
-codeql id=128173113101 skipped
-codeql / Analyze (actions) id=128151812171 success
-codeql / Analyze (javascript-typescript) id=128151744025 success
-codeql / Analyze (python) id=128151741153 success
-gate id=128173073456 failure
-governance id=128173142234 skipped
-governance / delivery-status id=128151743251 success
-governance / delivery-status-publish id=128151743218 skipped
-governance / env-matrix id=128151796411 success
-governance / instrument-self-tests id=128151743336 success
-governance / policy-docs id=128151742910 success
-governance / record id=128151742866 skipped
-governance / wave-script id=128151743474 success
-hassfest id=128173120630 skipped
-hassfest / hassfest id=128151796183 success
-kernel-points id=128173143939 skipped
-pr-contract id=128173075229 skipped
-pr-contract / pr-contract id=128172029926 success
-prelude id=128173140728 success
-refresh id=128173124528 success
-tests id=128173139308 skipped
-tests / arch-instrument id=128151746026 success
-tests / briefs id=128151743290 success
-tests / browser id=128151746779 success
-tests / ci-ratchet id=128151749175 skipped
-tests / claims-autofix id=128151750531 skipped
-tests / closure-scope id=128151809621 success
-tests / closures id=128151746392 success
-tests / closures-autofix id=128151750135 skipped
-tests / coverage id=128151745655 success
-tests / coverage-ratchet id=128151749665 success
-tests / fast (3.14) id=128151746217 success
-tests / graders-head-copy id=128151750617 success
-tests / lane-proofs id=128151748877 success
-tests / mutation id=128151742585 success
-tests / mutation-autofix id=128151749245 skipped
-tests / mutation-pins id=128151745637 skipped
-tests / nightly-ha id=128151746176 skipped
-tests / nightly-status id=128151742621 success
-tests / replay id=128151745458 success
-tests / typing id=128151745958 success
-validate id=128173150753 skipped
-validate / validate-hacs id=128151742356 success
+## Gate digest: pending
+CodeQL id=128216329154 neutral
+arch-score / arch-score id=128218194827 success
+arm id=128215911060 skipped
+budget-raise-gate / budget-raise-gate id=128218194791 success
+cancel-superseded id=128217982162 success
+codeql id=128218196267 skipped
+codeql / Analyze (actions) id=128216096389 success
+codeql / Analyze (javascript-typescript) id=128216096394 success
+codeql / Analyze (python) id=128216096339 in_progress
+gate id=128218621028 in_progress
+governance id=128218195859 skipped
+governance / delivery-status id=128216096490 success
+governance / delivery-status-publish id=128216097952 skipped
+governance / env-matrix id=128216096387 success
+governance / instrument-self-tests id=128216096422 in_progress
+governance / policy-docs id=128216096448 success
+governance / record id=128216097788 skipped
+governance / wave-script id=128216096449 success
+hassfest id=128218196658 skipped
+hassfest / hassfest id=128216096248 success
+kernel-points id=128218196857 skipped
+pr-contract id=128218622296 skipped
+prelude id=128217982000 success
+refresh id=128217981682 success
+tests id=128218196280 skipped
+tests / arch-instrument id=128216321989 success
+tests / briefs id=128216096534 success
+tests / browser id=128216322062 success
+tests / closure-scope id=128216096305 success
+tests / closures id=128216322079 in_progress
+tests / coverage id=128216322085 in_progress
+tests / fast (3.14) id=128216322020 in_progress
+tests / mutation id=128216096396 in_progress
+tests / nightly-ha id=128216323455 skipped
+tests / nightly-status id=128216096489 success
+tests / replay id=128216321970 in_progress
+tests / typing id=128216322061 success
+validate id=128218196112 skipped
+validate / validate-hacs id=128216096474 success
 
 ## Refusals
-required-red: required context `gate` concluded failure at a258212553e123d735c7eff139a8e347a1a52ea3
+none
 
 ## Advisories
 none
 
 ## carry_audit at the head
-NOTE body item 193e21a3: dismissed:owner ruling territory, stated for the owner in docs/how-it-works.md and this body
-NOTE body item b083830f: dismissed:built and dispositioned in this PR (rule R in the body), so no later stage owes it
-NOTE body item 9a78471f: dismissed:a session plugin outside this repository's policy
-NOTE body item 3a6fccb0: dismissed:a dispatch event, recorded for the orchestrator in this body
-NOTE body item a8fab875: dismissed:a harness setting outside this repository's policy
-CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 661322b8: dismissed:owner ruling territory, stated for the owner in docs/how-it-works.md and this body
+NOTE body item 33581d9d: dismissed:a dispatch event, recorded for the orchestrator in this body
+NOTE body item 6f451c44: dismissed:a session plugin outside this repository's policy
+CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py wood-plant
+ok         PYTHONPATH=tests/hastub python3 tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  unverified git checkout
+             `git checkout` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  unverified git show dea3c729:blueprints/automation/notifications.yaml
+             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+  ok         PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py wood-plant
              `dev/audit/harnesses/r10_sav_wood_reference.py` is in the tree at this head
-  unverified PYTHONPATH=tests/hastub:tests:custom_components python3 r10_rca_sav_estimate.py census
-             `r10_rca_sav_estimate.py` does not look like a path in this tree
-  ok         GATE_SCOPE=auto GOLDEN_MODE=drift GOLDEN_REF=$(git merge-base origin/main HEAD) PYTHONPATH=tests/hastub ./tests/run.sh
+  ok         PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census
+             `dev/audit/harnesses/r10_rca_sav_estimate.py` is in the tree at this head
+  ok         GATE_SCOPE=auto GOLDEN_MODE=drift PYTHONPATH=tests/hastub bash tests/run.sh
              `tests/run.sh` is in the tree at this head
+  ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
+             `tests/closure.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
+  ok         PYTHONPATH=tests/hastub python3 tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
+  ok         python3 -I tools/policy/agreement_py.py --out <json> && node tools/policy/agreement.mjs --py-json <json>
+             `tools/policy/agreement_py.py` is in the tree at this head
+  ok         python3 -I tools/policy/agreement_py.py --out <json> && node tools/policy/agreement.mjs --py-json <json>
+             `tools/policy/agreement.mjs` is in the tree at this head
+  ok         tests/entities.py
+             `tests/entities.py` is in the tree at this head
+  ok         node tools/policy/agreement.mjs --self-test
+             `tools/policy/agreement.mjs` is in the tree at this head
+  ok         python3 tools/pr/ci_predict.py --base origin/main
+             `tools/pr/ci_predict.py` is in the tree at this head
+  ok         tests/harness_headers.py
+             `tests/harness_headers.py` is in the tree at this head
   unverified git diff --quiet origin/main HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md tests/golden/card_claimed_drift.txt
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 3 resolved, 2 not verified, 0 refused
+FIGURES: 13 resolved, 3 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -243,6 +254,103 @@ index a638cf7c4..c1a852288 100644
        ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
        : "";
      return `${top}<table class="savings-table">
+diff --git a/dev/audit/harnesses/r10_sav_receipt_render.py b/dev/audit/harnesses/r10_sav_receipt_render.py
+new file mode 100644
+index 000000000..e8335b805
+--- /dev/null
++++ b/dev/audit/harnesses/r10_sav_receipt_render.py
+@@ -0,0 +1,91 @@
++#!/usr/bin/env python3
++"""R10-HOTFIX-SAV-ESTIMATE: the notifications blueprint's monthly receipt, rendered.
++
++WHY IT EXISTS. The receipt event (``notifier.EVENT_MONTHLY_RECEIPT``) carries
++``saving_includes_wood``, and the blueprint's "Monthly receipt" message states
++the event's ``saving_sek`` to the user. Where wood is configured that saving
++includes wood's heat and not firewood's cost, so the message must say so (Carry
++A, tvofi 2026-11-04). ``tests/entities.py`` pins the template's source, because
++CI's interpreter has no jinja2; this harness renders it, under an interpreter
++that has one (``/opt/hpo/venv-ha/bin/python``, whose Home Assistant brings
++jinja2), so a reader sees the message a user receives.
++
++Asserted arms (rc 1 on DEFECT):
++
++  wood      a saving on a wood house: the card's ``savings.wood_note`` appears
++            exactly once in the rendered message.
++  no-wood   the null leg: the same saving, ``saving_includes_wood`` false, and
++            the note is absent.
++  no-saving the event's ``saving_sek`` is null on a wood house: the message
++            states no saving, so it carries no note.
++
++Usage: python3 dev/audit/harnesses/r10_sav_receipt_render.py [blueprint.yaml]
++The default blueprint is the tree's; pass another file (a ``git show`` of an
++older head) to measure that one.
++"""
++from __future__ import annotations
++
++import pathlib
++import re
++import sys
++
++import jinja2
++import yaml
++
++
++def repo_root(start):
++    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
++    from pathlib import Path
++    here = Path(start).resolve()
++    if here.is_file():
++        here = here.parent
++    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
++    for cand in (here, *here.parents):
++        if (cand / marker).is_file():
++            return cand
++    raise RuntimeError(f"no repository root above {start}")
++
++
++ROOT = repo_root(__file__)
++DEFAULT_BP = ROOT / "blueprints/automation/notifications.yaml"
++CARD = ROOT / "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
++
++
++class _Loader(yaml.SafeLoader):
++    pass
++
++
++_Loader.add_constructor("!input", lambda loader, node: loader.construct_scalar(node))
++
++
++def receipt_message(path: pathlib.Path) -> str:
++    bp = yaml.load(path.read_text(), Loader=_Loader)
++    return next(
++        option["sequence"][0]["data"]["message"]
++        for step in bp["action"] if "choose" in step
++        for option in step["choose"] if option.get("alias") == "Monthly receipt"
++    )
++
++
++def main() -> int:
++    path = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_BP
++    note = re.search(r'"savings\.wood_note": "([^"]+)"', CARD.read_text()).group(1)
++    template = jinja2.Environment().from_string(receipt_message(path))
++    base = {"total_sek": 812.4, "currency": "SEK", "saving_sek": 203.6, "saving_pct": 20.1}
++    arms = [
++        ("wood", {"saving_includes_wood": True}, 1),
++        ("no-wood", {"saving_includes_wood": False}, 0),
++        ("no-saving", {"saving_sek": None, "saving_includes_wood": True}, 0),
++    ]
++    defect = False
++    for name, extra, want in arms:
++        text = template.render(data={**base, **extra})
++        got = text.count(note)
++        ok = got == want
++        defect |= not ok
++        print(f"RESULT {name} notes={got} want={want} {'ok' if ok else 'DEFECT'} message={text!r}")
++    return 1 if defect else 0
++
++
++if __name__ == "__main__":
++    sys.exit(main())
 diff --git a/dev/audit/harnesses/r10_sav_wood_reference.py b/dev/audit/harnesses/r10_sav_wood_reference.py
 index 19b3c6cef..764134aff 100644
 --- a/dev/audit/harnesses/r10_sav_wood_reference.py
@@ -511,6 +619,18 @@ index 79e43c934..f8adac8fd 100644
    check("UX-6: the money goes by reason, largest first",
      /Where the money went/.test(rcpPage) &&
      rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
+diff --git a/tests/closures.json b/tests/closures.json
+index 79d3291ae..1ba567ff3 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -4094,6 +4094,7 @@
+    "dev/audit/harnesses/r10_sav_baseline_mutants.py",
+    "dev/audit/harnesses/r10_sav_null_settled.py",
+    "dev/audit/harnesses/r10_sav_null_terms.py",
++   "dev/audit/harnesses/r10_sav_receipt_render.py",
+    "dev/audit/harnesses/r10_sav_volume.py",
+    "dev/audit/harnesses/r10_sav_wood_reference.py",
+    "dev/audit/harnesses/r10_savings_upgrade_month.py",
 diff --git a/tests/entities.py b/tests/entities.py
 index 1a257bf95..561ad0b5b 100644
 --- a/tests/entities.py
@@ -723,6 +843,19 @@ index 000000000..0777cf5c5
 +  "old": "    return bool((data.get(\"wood_fuel\") or {}).get(\"show_whatif\"))",
 +  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=2."
 +}
+diff --git a/tools/policy/agreement.mjs b/tools/policy/agreement.mjs
+index 5618678e4..a43372b98 100644
+--- a/tools/policy/agreement.mjs
++++ b/tools/policy/agreement.mjs
+@@ -587,6 +587,8 @@ const SHARED_GRAMMARS = {
+   "[0-9a-f]{40}": "not-a-concept:the full commit-SHA shape, policy_lint.mjs's head check and ci_probe.py's probe-push guard",
+   "DERIVED=\\$\\(.*?\\)": "identical:coverage_tree.sh's DERIVED line extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
+   "fast\\)\\s+(SCRIPTS=.*?) ;;": "identical:coverage_tree.sh's `fast)` SCRIPTS extractor, entities.py _cir_once_count and the disclosed copy in U5b's script_runs.py null control",
++  // R10-HOTFIX-SAV-ESTIMATE: the blueprint's receipt reuses the card's wood note.
++  '"savings\\.wood_note": "([^"]+)"': "identical:the card's en savings.wood_note extractor, entities.py's blueprint receipt pin and the render harness r10_sav_receipt_render.py",
+ }
+ 
+ const isGovernanceCode = (f) => /\.(py|mjs|js|cjs)$/.test(f)
 
 ## Before you return the verdict (P275)
 Run `python3 -I tools/audit/carry_audit.py check --body <PR body file> --comments <file holding [{"id": 0, "body": <verdict.md text>}]>`. Give every reported item its own `Carry: <GROUP> | #<issue> | O<n> | dismissed: <reason>`;

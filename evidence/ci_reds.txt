@@ -1,0 +1,17 @@
+Head 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08, read 2026-11-07 ~00:45Z via GitHub MCP (get_check_runs, get_workflow_run, list_workflow_jobs, get_job_logs, get_check_run).
+
+CodeQL (check run 128216329154): conclusion failure. Title "1 new alert including 1 high severity security vulnerability"; summary "New alerts in code changed by this pull request ... 1 high".
+  (The review packet, rendered earlier, read it as neutral; it concluded failure later, once codeql / Analyze (python) finished.)
+pr-contract / pr-contract (job 128227675815, code run 42312136574, started 00:02:20Z, after every other job concluded):
+  code-scanning alerts the body must answer: code-scanning alert 50 (py/jinja2/autoescape-false)
+  red checks the body must answer: CodeQL,code-scanning alert 50 (py/jinja2/autoescape-false)
+  ERROR [pr-body] check `CodeQL` is red and `## Red checks` does not name it.
+  ERROR [pr-body] check `code-scanning alert 50 (py/jinja2/autoescape-false)` is red and `## Red checks` does not name it.
+  PR-BODY: 2 error(s)
+gate (job 128227976173, code run, KIND code): "pr-contract / pr-contract: failure (this run)", exit 1.
+gate (edit runs, jobs 128218621028, 128216468204): "FAIL run(s) [42312136574] at this head are still being judged; their gate decides" (deferral to the code run, which then failed as above).
+Code run 42312136574: 40 jobs, 29 success, 9 skipped, 2 failure (pr-contract, gate). conclusion failure.
+
+The alert's site: the only jinja2.Environment in the tree at the head is
+  dev/audit/harnesses/r10_sav_receipt_render.py:73   template = jinja2.Environment().from_string(receipt_message(path))
+added by this PR (three-dot diff line 218); `git grep jinja2.Environment origin/main` returns nothing.

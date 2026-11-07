@@ -5,4 +5,4 @@ RESULT census valve-charged: booked over horizon mean 1.00 ok
 RESULT census wood-warm: booked over horizon mean 1.00 ok
 RESULT census wood-hot: booked over horizon mean 1.00 ok
 census: 6 of 6 cells ran, 0 out of band: -
-census base rc=0
+rc=0
