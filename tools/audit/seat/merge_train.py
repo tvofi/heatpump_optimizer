@@ -277,6 +277,7 @@ import argparse
 import contextlib
 import datetime
 import fcntl
+import contextlib
 import functools
 import json
 import os
@@ -310,6 +311,22 @@ def stop_on_signal() -> None:
         raise SystemExit(128 + signum)
     for sig in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, unwind)
+
+@contextlib.contextmanager
+def stop_ignored():
+    """A second TERM or HUP must not end the closing lines mid-way: the hold
+    DELETE follows the worktree release, and a stop that cut the release short
+    left `train-hold` for the record beat to read as a live train until its
+    expiry. Ignored for the block only (as pr_reap does for its reap); the
+    handlers stop_on_signal installed are restored after."""
+    saved = {sig: signal.signal(sig, signal.SIG_IGN)  # mut:stopign
+             for sig in (signal.SIGTERM, signal.SIGHUP)}
+    try:
+        yield
+    finally:
+        for sig, handler in saved.items():
+            signal.signal(sig, handler)
+
 
 # EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
 # dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
@@ -2453,12 +2470,18 @@ class Train:
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
 
+    def unwind(self) -> None:
+        """The closing lines of a train or batch, run once a stop is already
+        unwinding it: release the worktrees, then the hold, ignoring a second stop."""
+        with stop_ignored():
+            self.release_worktrees()
+            self.hold_release()
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
-            self.release_worktrees()
-            self.hold_release()
+            self.unwind()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
@@ -3182,8 +3205,7 @@ class Train:
                 try:
                     stopped = self._batch(batches[k], name, total)
                 finally:
-                    self.release_worktrees()
-                    self.hold_release()
+                    self.unwind()
                 if stopped:
                     return 1
                 for e in batches[k]:  # neither merged nor skipped: ran (a rehearsal), no longer pending
@@ -4897,6 +4919,7 @@ def _self_test() -> int:
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
+    _unwind_self_test(check)
     _read_retry_self_test(check)
     _review_settle_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
@@ -5478,6 +5501,56 @@ def _read_retry_self_test(check) -> None:
     t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
     code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
     check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
+
+
+def _unwind_self_test(check) -> None:
+    """A train TERMed twice mid-unwind still deletes the hold ref. The driver
+    stubs `gh` and makes the worktree release take 2 s; the second TERM lands in
+    that release. The null control sends one TERM; the mutant (stop_ignored's
+    `mut:stopign` line replaced by a no-op) is the unfixed unwind, run for real."""
+    driver = (
+        "import sys, time, tempfile\nfrom pathlib import Path\n"
+        f"sys.path.insert(0, {str(Path(__file__).resolve().parent)!r})\n"
+        "import merge_train as m\n"
+        "rec = open(sys.argv[1], 'a')\n"
+        "def run(argv, cwd=None, stdin=None):\n"
+        "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        "    if argv[:3] == ['git', 'worktree', 'remove']: time.sleep(2)\n"
+        "    return 0, ''\n"
+        "m.Train._train = lambda self, q: time.sleep(60)\n"
+        "if sys.argv[2] == 'mutant':\n"
+        "    import contextlib\n"
+        "    m.stop_ignored = contextlib.nullcontext\n"
+        "t = m.Train('o/r', Path(tempfile.mkdtemp()), None, 'r', (), 1, run=run, log=lambda s: None)\n"
+        "t.held = True; t.made_wts = [Path('/x')]\n"
+        "m.stop_on_signal()\n"
+        "rec.write('READY\\n'); rec.flush()\n"
+        "try: t.train([])\n"
+        "except SystemExit: pass\n")
+
+    def deleted(terms: int, mode: str) -> bool:
+        with tempfile.TemporaryDirectory() as d:
+            rec = Path(d) / "rec"
+            p = subprocess.Popen([sys.executable, "-I", "-c", driver, str(rec), mode])
+            for _ in range(300):
+                if rec.exists() and "READY" in rec.read_text():
+                    break
+                time.sleep(0.1)
+            os.kill(p.pid, signal.SIGTERM)
+            for _ in range(terms - 1):
+                time.sleep(0.5)
+                os.kill(p.pid, signal.SIGTERM)
+            try:
+                p.wait(20)
+            except subprocess.TimeoutExpired:
+                p.kill()
+            return "--method DELETE" in rec.read_text()
+    check("a train TERMed again during its unwind still deletes the hold ref",
+          deleted(2, "real"))
+    check("  null control: one TERM deletes the hold ref",
+          deleted(1, "real"))
+    check("  mutant mut:stopign (stop_ignored a no-op): the second TERM skips the DELETE",
+          not deleted(2, "mutant"))
 
 
 def _stop_self_test(check) -> None:
