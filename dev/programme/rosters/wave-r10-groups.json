@@ -17790,6 +17790,44 @@
     "stage": "in-progress"
    },
    "brief": "Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e92e7c edit run 42338396358's gate failed in 2 s with 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides' while code run 42338396871 was in progress; #3261 old edit runs 42307798573 and 42307493684 deadlocked each other. Owed: the named cause, process state a-d with evidence (why #3246's review and tests passed a fix that leaves this shape), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document under the rca directory cited from the bugclass register. Runs beside the R10-HOTFIX-GATE-BUSY-DEFER fixer, never inside it; never edits the gate script."
+  },
+  {
+   "group": "R10-FLY-STAMP-FLUSH-HOLD",
+   "lane": "F",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "high",
+   "size": "S",
+   "wave": 1,
+   "files": [
+    "tools/release/stamp.py",
+    "tools/audit/seat/merge_train.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "note": "overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-MERGE-LOOP-2): distinct seam: stamp.py record_flush; merge_train.py is read only as the first probe (hold release under TERM), no edit planned there; hot-file overlap by seam is allowed"
+   },
+   "brief": "From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/train-hold, younger than nightly.yml HOLD_MAX_AGE_S=3600, makes every beat it dispatches exit skip-train-hold; its 3 dispatches (0, 900, 1800 s) are spent under the hold and it times out at 7200 s naming no hold. Inject a held collaborator into record_flush, defaulting to a zero-REST git read (ls-remote origin refs/heads/train-hold for presence, the fetched commit committer date for age, the commit message pid), with the bound read from nightly.yml by source read, never a second literal. Print one line naming the hold sha, age, pid and bound when it appears, changes or clears; do not count a dispatch sent under a live hold toward FLUSH_MAX_DISPATCHES, and dispatch again when it clears; name a still-live hold in the timeout message; never refuse on a hold. Self-test arms in the existing flush block: a planted live hold is named and spends no dispatch, a stale hold is ignored, an absent hold is unchanged (null control), a mutant counting the held dispatch exhausts at 3 and is caught. First, before the stamp change: probe merge_train.py with a stubbed gh, TERM both the train.sh pid and the merge_train.py pid at once mid-run, and record whether the hold DELETE is issued; if a second TERM during the unwind skips hold_release, make the unwind ignore further TERM and HUP once it starts (as pr_reap does) with a self-test arm and a mutant; if the DELETE is issued, record that as a non-finding and change nothing there. No train.sh trap change: pr_exit_trap already TERMs merge_train.py first."
   }
  ]
 }
