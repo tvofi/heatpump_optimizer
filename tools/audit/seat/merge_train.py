@@ -442,18 +442,71 @@ def platform_gate(payload, head: str) -> "tuple[str, str]":
     return "green", f"{len(gates)} required gate run(s) pass"
 
 
-def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
+def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
     """(state, pending, red) over the required contexts less NOT_GATING, each
     on its latest run: 'red' when any concluded non-green, else 'wait' while
-    any is pending or has no run yet, else 'green'. `required` None (a ruleset
-    that could not be read) raises ValueError: a refusal, never green. A head
-    is reviewable (K15 (d)) exactly when `red` is empty."""
+    any is pending or has no run yet, else 'green'. A red GATE is pending
+    while `busy` (gate_busy: a ci.yml run at the head still adding a source)
+    is non-empty. `required` None (a ruleset that could not be read) raises
+    ValueError: a refusal, never green. A head is reviewable (K15 (d))
+    exactly when `red` is empty."""
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
     names = [n for n in required if n not in NOT_GATING]
-    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending")
-    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red")
+    deferred = {GATE} if busy else set()
+    pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending"
+                     or (n in deferred and run_state(latest[n]) == "red"))
+    red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red" and n not in deferred)
     return ("red" if red else "wait" if pending else "green"), pending, red
+
+
+# A DEFERRED GATE IS NOT A VERDICT (R10-HOTFIX-TRAIN-DEFER-WAIT). An edit run's
+# gate fails at once deferring ("run(s) [..] at this head are still being
+# judged; their gate decides": gate.py `deferral`, fa921fd59, 2026-11-05), and
+# the code run it defers to publishes no `gate` check run until every unit of
+# that run finishes, so the check runs alone read the head red: 32 of 56
+# `ci red=['gate']` SKIPs over 2026-11-05/07 sat at heads whose code run
+# concluded success. While gate.py's own `busy` names an unfinished ci.yml run
+# at the head, a red GATE is a wait; GATE's success, `cross_check` and the
+# ruleset still decide a merge, and `polls` still bounds the wait (TIMEOUT).
+_GATE_PY = ROOT / "tools/ci/gate.py"
+
+
+@functools.lru_cache(maxsize=1)
+def _gate_py():
+    """tools/ci/gate.py, imported from its tree path: its `busy` is THE rule, never a copy."""
+    import importlib.util
+    spec = importlib.util.spec_from_file_location("hpo_ci_gate", str(_GATE_PY))
+    mod = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(mod)
+    return mod
+
+
+def gate_busy(ci_runs, check_runs) -> list:
+    """The ci.yml run ids at a head gate.py's `busy` reads as still adding a
+    source (unfinished, not held, not judging), from the train's two reads:
+    the head's ci.yml runs listing and its check runs. A run's jobs are its
+    check suite's check runs (a job is a check run of its run's suite, by the
+    same name), so `judging` reads what gate.py's per-run jobs read gives it,
+    with no read per run."""
+    by_suite: dict = {}
+    for c in sorted(check_runs or (), key=lambda c: c.get("started_at") or ""):
+        sid = (c.get("check_suite") or {}).get("id")
+        by_suite.setdefault(sid, {})[c["name"]] = (c.get("status"), c.get("conclusion"))
+    runs = [{"id": r["id"], "title": r.get("display_title") or "", "status": r.get("status"),
+             "jobs": {} if r.get("status") == "action_required" else by_suite.get(r.get("check_suite_id"), {})}
+            for r in ci_runs]
+    # The train is no run: gate.py's tie-break between two gates (a LATER run
+    # whose gate started) has no train side, so run_id is past every id.
+    return _gate_py().busy({"run_id": float("inf")}, runs)
+
+
+#: Polls a red GATE beside a green GATE suite is still waited on once no run is
+#: busy: gate-sweep.yml starts on the green run's completion and re-runs the
+#: deferred red gate (tools/ci/sweep.py), which lists its run unfinished again.
+#: One poll (HEARTBEAT_SECONDS) covers the sweep's start; a sweep that never
+#: re-runs it leaves the red standing, read one poll later.
+SWEEP_SETTLE_POLLS = 1
 
 
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
@@ -1516,6 +1569,21 @@ class Train:
         except ValueError:
             return None
 
+    def _gate_busy(self, h: str, check_runs) -> list:
+        """gate_busy at <h> from one ci.yml runs listing by head sha. An
+        unreadable listing reads no run busy, logged: the red stands as it did
+        before this read existed -- a refusal, never a wait on a guess."""
+        code, raw = self.run(["gh", "api", "--paginate", "--jq", ".workflow_runs[]",
+                              f"repos/{self.repo}/actions/workflows/ci.yml/runs?head_sha={h}&per_page=100"])
+        try:
+            ci_runs = [json.loads(x) for x in raw.splitlines() if x.strip()] if code == 0 else None
+        except ValueError:
+            ci_runs = None
+        if ci_runs is None:
+            self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
+            return []
+        return gate_busy(ci_runs, check_runs)
+
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
         """The names whose latest run at <h> is not green, once every run completed.
@@ -1524,6 +1592,8 @@ class Train:
         GitHub adds later, or `action_required` and `stale` today, reads red.
         With `only`, those names alone are waited for and judged, and each must
         have a run: a batch proof judges the required contexts (`required`).
+        A red GATE among them is re-read against one ci.yml runs listing at
+        <h> (`_gate_busy`) and waited on while gate.py's `busy` names a run.
 
         `beat` is the phrase after "waiting" in the heartbeat line (default
         "CI at <sha[:8]>"; a proof passes "proof <branch>"): every
@@ -1540,11 +1610,29 @@ class Train:
         start = self.clock()
         due = start + HEARTBEAT_SECONDS
         what = beat or f"CI at {h[:8]}"
+        held: list = []
+        settle = 0
         for k in range(1, self.polls + 1):
             runs = self._check_runs(h)
             last = latest_runs(runs or ())
             if only is not None and runs is not None:
-                _, pending, red = classify(last, only)
+                state = classify(last, only)
+                if GATE in state[2]:
+                    busy = self._gate_busy(h, runs)
+                    if not busy and settle < SWEEP_SETTLE_POLLS and any(
+                            run_state(c) == "green" for c in gate_suites(runs)):
+                        settle += 1
+                        busy = ["sweep"]
+                    if busy != held:
+                        held = busy
+                        if busy == ["sweep"]:
+                            self.log(f"gate red at {h[:8]} beside a green gate suite, no ci.yml run busy: "
+                                     f"waiting {SWEEP_SETTLE_POLLS} poll(s) for gate-sweep's re-run")
+                        elif busy:
+                            self.log(f"gate red at {h[:8]} is a deferral while ci.yml run(s) {busy} "
+                                     "are unfinished: waiting (gate.py busy)")
+                    state = classify(last, only, busy)
+                _, pending, red = state
                 if not pending:
                     return red
             if only is None and runs and len(runs) >= self.min_runs and all(
@@ -3697,10 +3785,15 @@ def _self_test() -> int:
             if "statusCheckRollup" in a:  # A5's platform cross-check
                 world["rollup_reads"] = world.get("rollup_reads", 0) + 1
                 return world.get("rollup", (1, "HTTP 502"))
+            if "actions/workflows/ci.yml/runs" in a:  # the deferral read (R10-HOTFIX-TRAIN-DEFER-WAIT)
+                world["ci_list_reads"] = world.get("ci_list_reads", 0) + 1
+                return world.get("ci_runs_out") or (0, "\n".join(json.dumps(r) for r in world.get("ci_runs", [])))
             if "check-runs" in a:
                 # `pending_reads`: the first N reads report in_progress, so a
                 # wait that outlives one poll can be driven without a clock.
                 reads = world["ci_reads"] = world.get("ci_reads", 0) + 1
+                if world.get("frames"):  # a scene: the Nth read sees frame N (the last one holds)
+                    world.update(world["frames"][min(reads, len(world["frames"])) - 1])
                 runs = world.get("runs", [])
                 if reads <= world.get("pending_reads", 0):
                     runs = [dict(c, status="in_progress") for c in runs]
@@ -3796,7 +3889,7 @@ def _self_test() -> int:
 
         with tempfile.TemporaryDirectory() as d:
             rc = Train("o/r", Path(d), mandate, "the orchestrator", ("nightly-status",), min_runs,
-                       run=run_traced, sleep=lambda s: None, log=logline, polls=2, merge_tries=3,
+                       run=run_traced, sleep=lambda s: None, log=logline, polls=opts.pop("polls", 2), merge_tries=3,
                        approval_carry=approval_carry, base=base, **opts).train(q or [dict(item)])
             for key, name in (("approve_body", "approve7.md"), ("carry_body", "carry7.md")):
                 f = Path(d) / name
@@ -5537,6 +5630,95 @@ def _stop_self_test(check) -> None:
               left == 3)
 
 
+def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str) -> None:
+    """R10-HOTFIX-TRAIN-DEFER-WAIT: a red GATE while gate.py's `busy` names a
+    ci.yml run at the head is a wait, never a SKIP; the scenes are #3248's and
+    the 13:01Z cycle's (2026-11-07, five recarries onto 28d46c49)."""
+    E, C = 42237558635, 42237558473       # #3248: edit run (gate failed 14:55:47Z), code run (gate green 15:25:55Z)
+
+    def wr(rid, status, suite, title="CI code pr=3248 base=main sha=a"):
+        return {"id": rid, "status": status, "check_suite_id": suite, "display_title": title}
+
+    def unit(name, suite, status="completed", conclusion="success", started="14:40"):
+        return dict(cr(name, status, conclusion if status == "completed" else None, started), check_suite={"id": suite})
+
+    edit_red = gt("failure", 1, "14:55:47", title="run(s) [42237558473] at this head are still being judged; their gate decides")
+    running = [edit_red, unit("tests / closures", 2, "in_progress")]
+    # The table both readings are pinned against: gate_busy over the train's two
+    # reads, and gate.py's own busy over the per-run jobs gate.py reads itself.
+    gp = _gate_py()
+    judging_edit = wr(E, "in_progress", 1, "CI edit pr=3248 base=main sha=a")
+    judging_jobs = [unit("prelude", 1), unit("arch-score / arch-score", 1), unit("budget-raise-gate / budget-raise-gate", 1),
+                    unit("pr-contract", 1, conclusion="skipped"), unit(GATE, 1, "in_progress")]
+    table = (
+        ("a code run with a unit in progress is busy", [wr(E, "completed", 1), wr(C, "in_progress", 2)], running, [C]),
+        ("a held run (action_required) is not busy", [wr(C, "action_required", 2)], [edit_red], []),
+        ("a completed run is not busy", [wr(E, "completed", 1), wr(C, "completed", 2)], [edit_red], []),
+        ("a run at its gate with every unit done is judging, not busy", [judging_edit], judging_jobs, []),
+        ("the same run with pr-contract unfinished is busy (judging's null)", [judging_edit],
+         judging_jobs[:3] + [unit("pr-contract", 1, "in_progress"), judging_jobs[4]], [E]))
+    for what, ci_runs, crs, want in table:
+        jobs = {}
+        for c in sorted(crs, key=lambda c: c.get("started_at") or ""):
+            jobs.setdefault(c["check_suite"]["id"], {})[c["name"]] = (c["status"], c["conclusion"])
+        own = gp.busy({"run_id": float("inf")}, [{"id": r["id"], "title": r["display_title"], "status": r["status"],
+                                                  "jobs": {} if r["status"] == "action_required" else jobs.get(r["check_suite_id"], {})}
+                                                 for r in ci_runs])
+        check(f"defer-wait table: {what} (gate_busy == gate.py busy == {want})", gate_busy(ci_runs, crs) == own == want)
+    check("defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context "
+          "stays red whatever is busy)",
+          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
+          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
+          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+    code_gate_live = unit(GATE, 2, "in_progress", started="15:20")
+    code_gate_green = unit(GATE, 2, started="15:20")
+    scene = [  # one frame per check-runs read, i.e. per poll
+        {"runs": running, "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        {"runs": running, "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        {"runs": [edit_red, code_gate_live], "ci_runs": [wr(E, "completed", 1), wr(C, "in_progress", 2)]},
+        # the code run done, gate-sweep not yet started: one settle poll
+        {"runs": [edit_red, code_gate_green], "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]},
+        {"runs": [edit_red, unit(GATE, 1, "in_progress", started="15:27"), code_gate_green],
+         "ci_runs": [wr(E, "in_progress", 1), wr(C, "completed", 2)]},
+        {"runs": [edit_red, unit(GATE, 1, started="15:27"), code_gate_green],
+         "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]}]
+    w = dict(gate_req, frames=scene, rollup=(0, rollup_green))
+    rc, lines, calls = go(w, polls=8)
+    check("defer-wait #3248: the edit gate's red while code run 42237558473 runs is waited on, then it MERGES "
+          "(the failing-test-first scene)",
+          rc == 0 and merged(calls) and any("deferral while ci.yml run(s) [42237558473]" in ln for ln in lines)
+          and any("waiting 1 poll(s) for gate-sweep" in ln for ln in lines))
+    for k in range(5):  # 13:01Z: five recarries, each edit gate failing deferral 1210 s in, each code run running
+        w = dict(gate_req, frames=scene, rollup=(0, rollup_green))
+        rc, lines, calls = go(w, polls=8)
+        if not (rc == 0 and merged(calls)):
+            break
+    check("defer-wait 13:01Z cycle: five of five deferring heads wait and merge, none SKIPs (the mutant's named case)",
+          rc == 0 and merged(calls) and k == 4)
+    rc, lines, calls = go(dict(gate_req, frames=[{"runs": [edit_red], "ci_runs": [wr(E, "completed", 1)]}],
+                               rollup=(0, rollup_green)), polls=8)
+    check("defer-wait null: a red gate with no unfinished ci.yml run at the head still SKIPs, on its first poll",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1] and "beat:" not in " ".join(lines))
+    code_red = unit(GATE, 2, conclusion="failure", started="15:20")
+    rc, lines, calls = go(dict(gate_req, frames=scene[:3] + [
+        {"runs": [edit_red, code_red], "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]}],
+        rollup=(0, rollup_green)), polls=8)
+    check("defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
+          and not any("gate-sweep" in ln for ln in lines))
+    rc, lines, calls = go(dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green)), polls=8)
+    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1])
+    rc, lines, calls = go(dict(gate_req, frames=scene[:1], rollup=(0, rollup_green)), polls=3)
+    check("defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges",
+          rc == 1 and not merged(calls) and "TIMEOUT" in lines[-1])
+    rc, lines, calls = go(dict(gate_req, frames=[{"runs": [edit_red]}], ci_runs_out=(1, "HTTP 502"),
+                               rollup=(0, rollup_green)), polls=3)
+    check("defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
+          and any("runs listing is unreadable" in ln for ln in lines))
+
+
 def _state_self_test(check, go, merged, throwaway_git_init) -> None:
     """THE STATE CLASSIFIER (R10-FLOW-MAIN-GATE, Lean flow study K15)."""
     import contextlib
@@ -5658,6 +5840,7 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
         rc, lines, calls = go(w)
         check(f"A5 serial: {what}", (rc == 0 and merged(calls)) == merges
               and (merges or not merged(calls)) and ("A5" in lines[-1] or merges or "red at the head" in lines[-1]))
+    _defer_wait_self_test(check, go, merged, cr, gt, gate_req, json.dumps(rollup(ok_g, ok_g)))
     rc, lines, calls = go({})  # go()'s default: the ruleset ["fast"], green runs
     check("A5 null: an old-layout ruleset (no gate) makes no platform read", rc == 0 and merged(calls)
           and not any("statusCheckRollup" in " ".join(c) for c in calls))
