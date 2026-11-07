@@ -37,6 +37,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import shutil
 import subprocess
@@ -115,7 +116,7 @@ def main() -> int:
                         "wire-issue", group, a.issue, "--checkout", str(drv),
                         "--roster-ref", ref, "--branch", branch,
                         "--worktree", str(tmp / wt), "--lint-cwd", str(drv),
-                        *extra])
+                        *extra], env={**os.environ, "HPO_ROSTER_LANE": "queue-runner"})
                 touched = sh(["git", "-C", str(tmp / wt), "diff", "--name-only",
                               f"origin/{ref}", "HEAD"]).stdout.split() \
                     if (tmp / wt).exists() else []
