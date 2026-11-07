@@ -1,0 +1,18 @@
+ALL 4904 FEATURE CHECKS PASSED
+DONE rc=0
+  ok   the reply frame deadline stays at its 60 s design value
+  ok   the reply frame size cap stays at its 256 MiB design value
+  ok   null control: a 50 MB reply arrives whole through the frame reader, inside its deadline
+  ok   null control: a reply frame written in two halves inside the frame deadline returns
+  ok   a worker stopped mid-reply raises ProcessWorkerTimeout, is reaped and frees the lock
+  ok   a worker that dies mid-reply is a transport fault, not a timeout
+  ok   null control: a reply under the frame size cap returns whole
+  ok   a reply frame past its size cap is a transport fault: the worker is reaped and the lock freed
+  ok   null control: a reply of two reads whose total is under the frame cap returns whole
+  ok   a reply whose reads each fit the frame cap but whose total exceeds it is refused and the worker reaped
+  ok   the frame reader's readline returns one line, the rest stays unread, and it stops at end of stream
+  ok   the frame reader refuses a declared length past its cap at once, and waits on one at it
+  ok   a worker pipe at fd >= 1024 answers in time and still times out as a timeout
+  ok   the stop path returns within its lock timeout while the lock is held
+  ok   null control: a diagnosis that runs is returned by the service
+  ok   a diagnosis failing with ProcessWorkerTimeout reaches the service caller translated
