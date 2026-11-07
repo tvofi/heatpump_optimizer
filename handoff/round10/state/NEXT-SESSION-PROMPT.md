@@ -45,7 +45,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WHY-NOW-WIDGET (stage in-progress, branch `handoff/r10-why-now-widget`): `git fetch origin handoff/r10-why-now-widget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-GANTT-DRIFT (stage absorbed, branch `handoff/r10-fly-gantt-drift`): `git fetch origin handoff/r10-fly-gantt-drift && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-CARRY-RESIDUE (stage in-progress, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-CARRY-RESIDUE (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLONE-2238 (stage in-progress, branch `handoff/r10-clone-2238`): `git fetch origin handoff/r10-clone-2238 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-WRITE-SWEEP (stage carries-open, branch `handoff/r10-roster-write-sweep`): `git fetch origin handoff/r10-roster-write-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
