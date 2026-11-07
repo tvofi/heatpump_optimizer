@@ -236,7 +236,7 @@ Binding:
 
 ## P412: file-overlap cap (queue line s12-file-overlap-cap)
 
-Verdict: the owner asked for the measurement first, and this ruling is on that measurement.
+Verdict: ACCEPT narrowed. The owner asked for the measurement first, and this ruling is on that measurement.
 - **The per-file open-PR cap: REJECT.**
 - **(1) Keyed merge drivers: ACCEPT narrowed** to the two files whose shape keys every entry:
   - `dev/programme/rosters/wave-r10-groups.json`, keyed by `group`;
@@ -355,7 +355,7 @@ Cost:
 - **Benefit.** Every sweep while any body-ahead is on the board, which recurred all day on 11-07, the owed check reports nothing. It cost P414's 50 min once, and a stale owed line of any kind can hide behind it.
 
 Binding:
-- **Carry for R10-TICK-LEVELS.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P416 at <roster sha>), instrument defect: owed_unactioned.py key_of has no arm for orchestrator_tick.py own owed line -> OWED body-ahead #<pr> <sha12> handoff-body/<topic> ... (tick line 927), so board() raises Unreadable and run() exits 2 on the whole board; logged 2026-11-07 as UNACTIONED-UNREADABLE on #3265 c7c5cef52a49 while that body sat 50 min unapplied. Add the arm (key #<pr>, id the sha12) and a self-test that every owed kind the tick emits in its own fixtures has a key arm. Self-test arms: a body-ahead line keys and is reported unactioned on the second sweep; null control: a line naming no PR stays UNREADABLE; a mutant dropping the arm fails the first.`
+- **Carry for R10-TICK-LEVELS.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P416 at <roster sha>), instrument defect: owed_unactioned.py key_of has no arm for orchestrator_tick.py own owed line (OWED body-ahead, then the hash-prefixed PR number, the head sha12 and handoff-body/<topic>; tick line 927), so board() raises Unreadable and run() exits 2 on the whole board; logged 2026-11-07 as UNACTIONED-UNREADABLE on PR 3265 at c7c5cef52a49 while that body sat 50 min unapplied. Add the arm (key the hash-prefixed PR number, id the sha12) and a self-test that every owed kind the tick emits in its own fixtures has a key arm. Self-test arms: a body-ahead line keys and is reported unactioned on the second sweep; null control: a line naming no PR stays UNREADABLE; a mutant dropping the arm fails the first.`
 
 ## P417: roster batch swallows the refusal (queue line s12-roster-batch-swallows-reason)
 
@@ -404,4 +404,4 @@ Cost:
 
 Binding:
 - **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P418 at <roster sha>), instrument defect (silent partial write): roster_edit.py --add is nargs=+ with the default store action, so repeated --add flags keep only the last list (argparse repro prints [b] for --add a --add b); at roster c2e398675 set-files R10-USER-DOCS-VERIFY --add docs/img/brand/coffee.svg --add docs/img/readme/mermaid_figures.json landed only mermaid_figures.json and reported pushed. Use action=extend; check every other flag the grammar documents as repeatable. Self-test arms: two --add flags land both paths; null control: one --add with one path lands one; a mutant restoring the default action fails the first.`
-- **The operational step.** The orchestrator re-applies `set-files R10-USER-DOCS-VERIFY --add docs/img/brand/coffee.svg` now, and reads it back.
+- **The operational step is already done.** At roster `3069eaa49`, R10-USER-DOCS-VERIFY's `files` list both `docs/img/readme/mermaid_figures.json` and `docs/img/brand/coffee.svg`. No re-apply is owed.
