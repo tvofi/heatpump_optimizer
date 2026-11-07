@@ -292,6 +292,11 @@ jobs:
       # job's wall time and two main runs hit the timeout; four of them wait
       # far more than they compute (prepr.sh's alone keeps a core busy), so
       # they overlap the steps below, each with its own log and exit status.
+      # pr_args.sh's self-test, which the three PR-tool steps each run, runs
+      # them one after another, as before: its mut:unlock arm observes a lock
+      # holder inside the 0.2 s it takes to notice its parent has gone, and
+      # under the CPU of all five at once it missed that window.
+      # prepr.sh's, the one that computes, runs at nice 10 for the same reason.
       # Each keeps its own step at the end, under its old name, which prints
       # that log and fails on that status -- every step still runs and still
       # greps its tally. bg_wait fails a test whose launcher vanished without
@@ -301,11 +306,18 @@ jobs:
           set -euo pipefail
           mkdir -p "$RUNNER_TEMP/bg"
           cat > "$RUNNER_TEMP/bg/lib.sh" <<'LIB'
-          bg_start() { # <name> <command...>: run it detached, to <name>.log, its status to <name>.rc
-            local d="$RUNNER_TEMP/bg"
-            ( if "${@:2}" > "$d/$1.log" 2>&1; then r=0; else r=$?; fi
-              echo "$r" > "$d/$1.rc.tmp" && mv "$d/$1.rc.tmp" "$d/$1.rc" ) < /dev/null > /dev/null 2>&1 &
-            echo "$!" > "$d/$1.pid"
+          bg_run() { # <name> <command...>: run it, to <name>.log, its status to <name>.rc
+            local d="$RUNNER_TEMP/bg" r
+            if "${@:2}" > "$d/$1.log" 2>&1; then r=0; else r=$?; fi
+            echo "$r" > "$d/$1.rc.tmp" && mv "$d/$1.rc.tmp" "$d/$1.rc"
+          }
+          bg_pid() { # <pid> <name...>: the detached process each name's bg_wait watches
+            local p=$1; shift
+            for n in "$@"; do echo "$p" > "$RUNNER_TEMP/bg/$n.pid"; done
+          }
+          bg_start() { # <name> <command...>: bg_run detached
+            ( bg_run "$@" ) < /dev/null > /dev/null 2>&1 &
+            bg_pid "$!" "$1"
           }
           bg_wait() { # <name>: wait for it, print its log, return its status
             local d="$RUNNER_TEMP/bg"
@@ -319,11 +331,12 @@ jobs:
           }
           LIB
           . "$RUNNER_TEMP/bg/lib.sh"
-          bg_start prepr bash -c 'if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi'
+          bg_start prepr nice -n 10 bash -c 'if test -f tools/audit/prepr.sh; then bash tools/audit/prepr.sh --self-test; else bash tools/pr/prepr.sh --self-test; fi'
           bg_start beatd python3 -I tools/audit/seat/beatd.py --self-test
-          bg_start open-pr bash tools/audit/seat/open_pr.sh --self-test
-          bg_start pr-args bash tools/audit/seat/pr_args.sh --self-test
-          bg_start update-pr bash tools/audit/seat/update_pr.sh --self-test
+          ( bg_run open-pr bash tools/audit/seat/open_pr.sh --self-test
+            bg_run pr-args bash tools/audit/seat/pr_args.sh --self-test
+            bg_run update-pr bash tools/audit/seat/update_pr.sh --self-test ) < /dev/null > /dev/null 2>&1 &
+          bg_pid "$!" open-pr pr-args update-pr
 
       # EVERY STEP HERE DRIVES A PROGRAM THE PULL REQUEST CARRIES. A
       # self-test's verdict is about a program's own refusals, and the copy

@@ -8,7 +8,10 @@ Run from the repository root. The default mode reads the bg_start/bg_wait
 library out of the launcher step of `.github/workflows/governance.yml`,
 exactly as the step writes it, and drives it over four planted commands: a
 pass with a tally (the control), a non-zero exit, a launcher killed before it
-writes a status, and a pass printing no tally. Each refusal arm must refuse
+writes a status, and a pass printing no tally; and the same through a
+chain of bg_run under one bg_pid, the launcher's form for pr_args.sh's three
+callers: a failing first link, a passing second, a chain killed in its first
+link read from its second. Each refusal arm must refuse
 and each control must pass, first on the library as committed (M0) and then
 on two mutants of its predicates: M1 returns 0 in place of the recorded
 status, M2 returns 0 for a launcher gone with no status. Prints one line per
@@ -43,7 +46,14 @@ bg_start ok bash -c 'echo "x self-test: 3 checks, 0 failed"'
 bg_start bad bash -c 'echo "x self-test: 3 checks, 1 failed"; exit 7'
 bg_start killed bash -c 'sleep 600'
 bg_start notally bash -c 'echo hi'
-sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")"; wait 2> /dev/null || true
+( bg_run c1 bash -c 'exit 3'; bg_run c2 bash -c 'echo "x self-test: 1 checks, 0 failed"' ) < /dev/null > /dev/null 2>&1 &
+bg_pid "$!" c1 c2
+( bg_run d1 bash -c 'sleep 600'; bg_run d2 true ) < /dev/null > /dev/null 2>&1 &
+bg_pid "$!" d1 d2
+sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d1.pid")"; wait 2> /dev/null || true
+( bg_wait c1 > /dev/null ) && echo "FAIL refuse chained bad" || echo "PASS refuse chained bad"
+( bg_wait c2 | grep -Eq "$2" ) && echo "PASS control chained tally" || echo "FAIL control chained tally"
+( bg_wait d2 > /dev/null 2>&1 ) && echo "FAIL refuse chain killed" || echo "PASS refuse chain killed"
 ( bg_wait ok > /dev/null ) && echo "PASS control ok" || echo "FAIL control ok"
 ( bg_wait bad > /dev/null ) && echo "FAIL refuse bad" || echo "PASS refuse bad"
 ( bg_wait killed > /dev/null 2>&1 ) && echo "FAIL refuse killed" || echo "PASS refuse killed"
@@ -83,7 +93,7 @@ def mutants():
     base = arms(lib)
     for ln in base:
         print(f"M0 {ln}")
-    ok0 = len(base) == 5 and all(ln.startswith("PASS") for ln in base)
+    ok0 = len(base) == 8 and all(ln.startswith("PASS") for ln in base)
     survivors = 0
     for name, (old, new) in MUTANTS.items():
         if lib.count(old) != 1:
