@@ -121,6 +121,10 @@ CLOSURES_COMMENT = (
 # could not record it without both. Its own nightly job runs it.
 NOT_A_TEST = {
     "harness.py", "profiles.py", "closure.py", "gate_lock.py",
+    # features.py's worker-deadline checks (#3232), a module it imports and
+    # runs, kept out of features.py so CodeQL's extraction of that module
+    # fits its job limit. Measured through features.py's closure.
+    "worker_deadlines.py",
     # The lane-skip decision instrument (R9-CI-SKIP): it reads this table to
     # decide whether `fast`/`coverage`/`browser` may report `skipped`, so it
     # is driven by the workflow's decision steps, never by the suite. NOT

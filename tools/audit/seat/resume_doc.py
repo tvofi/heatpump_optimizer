@@ -237,6 +237,9 @@ def _self_test() -> int:
 
     import shutil
     shutil.rmtree(d, ignore_errors=True)
+    rc, refused, tb = roster_lib.missing_ref_probe(__file__)
+    check("a missing roster ref is one REFUSED line, rc 2, no traceback",
+          rc == 2 and refused == 1 and not tb, (rc, refused, tb))
     print(f"resume_doc self-test: {n_checks[0]} checks, {len(failed)} failed")
     for f in failed:
         print("FAIL", f)
@@ -244,4 +247,4 @@ def _self_test() -> int:
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    sys.exit(roster_lib.run_refusing("resume_doc", main))

@@ -1,3 +1,21 @@
+## v7.1.5
+
+**Patch stamp: 23 merges since v7.1.4.** One user-visible fix: the optimiser no longer hangs when its worker process goes silent.
+
+Stamped with --allow-red before main's gate completed, on the owner's standing order to stamp without waiting for main CI.
+
+User-visible:
+
+- #3232 (outside contribution from @Bankaifan, adopted from #3226): the coordinator's process worker reply wait is now bounded, and the stop path no longer holds the worker lock indefinitely, so a silent worker cannot hang optimisation or Home Assistant shutdown.
+
+Engineering and audit programme (round 10):
+
+- Audited fix groups and instruments (15): #3250 (roster-reader predicates, carries 1-4), #3251 (ref privacy for cloud seats), #3259 (gate stale-jobs carries, part 2), #3260 (body-contract carries, part 2), #3249 (dispatch at handoff), #3241 (carry residue), #3276 (an edit gate no longer defers to a code run it cannot see conclude), #3263 (nightly-status hotfix), #3234 (replay cost budget, round 2), #3242 (train merge loop), #3246 (one concurrent gate run decides at a head), #3248 (obligations ledger residue), #3253 (roster write path residue), #3255 (friction records), #3256 (policy role pack).
+- Brief carries (2): #3247 (D0 brief: stop-tolerance refusal and DHW cert-cell gap), #3261 (D1 brief: the process-worker hang root cause).
+- Roster and record merges (5): #3258 (round-10 roster and triage rulings), #3270 (delivery rows, autofix), #3271 (triage batch 127, P393 to P398), #3279 (delivery rows for #3232, #3246, #3255, #3263, autofix), #3281 (delivery rows for #3241, #3249, #3250, #3251, #3259, #3261, #3271, #3276, autofix).
+
+- Delivery record: the rows the stamp flushed before tagging (#3282).
+
 ## v7.1.4
 
 **Patch stamp: 10 merges since v7.1.3.** No user-visible change. The window is release and audit machinery.
