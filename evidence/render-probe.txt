@@ -1,0 +1,18 @@
+== 14a73c15e
+control (declared keys only) -> OK
+all five + declared -> REFUSED: unknown: `fire_ledger`, `gantt_acks`, `gantt_roster`, `train_glob`, `unheld_skip` not in the placeholder table
+declared minus gantt_roster -> OK
+declared minus gantt_acks -> OK
+declared minus fire_ledger -> OK
+declared minus train_glob -> OK
+declared minus unheld_skip -> OK
+null: + zz_undeclared_probe -> REFUSED: unknown: `zz_undeclared_probe` not in the placeholder table
+== a72237674
+control (declared keys only) -> REFUSED: unfilled: the overlay omits `gantt_roster`, `gantt_acks`, `fire_ledger`, `train_glob`, `unheld_skip`
+all five + declared -> OK
+declared minus gantt_roster -> REFUSED: unfilled: the overlay omits `gantt_roster`
+declared minus gantt_acks -> REFUSED: unfilled: the overlay omits `gantt_acks`
+declared minus fire_ledger -> REFUSED: unfilled: the overlay omits `fire_ledger`
+declared minus train_glob -> REFUSED: unfilled: the overlay omits `train_glob`
+declared minus unheld_skip -> REFUSED: unfilled: the overlay omits `unheld_skip`
+null: + zz_undeclared_probe -> REFUSED: unknown: `zz_undeclared_probe` not in the placeholder table

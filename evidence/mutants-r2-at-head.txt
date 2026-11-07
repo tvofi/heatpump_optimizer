@@ -1,0 +1,13 @@
+M3 gh-list-rc-ignored rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)', '  FAIL mutant gantt_gh_rc_ignored: its site appears 0 times']
+M4 roster-show-rc-ignored rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)', '  FAIL mutant gantt_show_rc_ignored: its site appears 0 times']
+M5 va-fired-flag-wrong rc 1 ['beat_jobs self-test: 159 checks, 1 failed'] ['  FAIL verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on']
+M5b va-flags-dropped rc 1 ['beat_jobs self-test: 159 checks, 1 failed'] ['  FAIL verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on']
+M7 mark-ne-op-dropped rc 1 ['beat_jobs self-test: 159 checks, 1 failed'] ['  FAIL mutant roster_noop_marked: its site appears 0 times']
+M7b refused-cascade-any rc 1 ['beat_jobs self-test: 159 checks, 1 failed'] ['  FAIL mutant roster_cascade_marked: its site appears 0 times']
+M10 rows-no-gantt rc 1 ['beat_jobs self-test: 159 checks, 5 failed'] ['  FAIL gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints', '  FAIL gantt: a failed sweep_gantt is UNREADABLE, never its partial lines', '  FAIL gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)']
+M11 no-handoff-wip-fetch rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip', '  FAIL mutant gantt_wip_refspec_dropped: its site appears 0 times']
+M12 fired-ledger-empty rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)', '  FAIL mutant gantt_ledger_not_copied: its site appears 0 times']
+M13 gantt-err-tail rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL gantt: a failed sweep_gantt is UNREADABLE, never its partial lines', '  FAIL mutant gantt_rc_ignored: its site appears 0 times']
+M14 plan-sha-empty-page rc 1 ['beat_jobs self-test: 159 checks, 2 failed'] ['  FAIL plan-beat null: both succeed, nothing written', '  FAIL plan-beat null: no mirrored page is no PLAN MOVED and no byte']
+M15 cascade-line-dropped rc 1 ['beat_jobs self-test: 159 checks, 1 failed'] ['  FAIL roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs']
+DONE
