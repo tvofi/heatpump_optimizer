@@ -18015,6 +18015,47 @@
     "note": "s12 CI-levers seat 2026-11-07: owner lever 1, hotfix tier; takes over R10-TRAIN-MERGE-LOOP-2's carry for the gate-deferral false red; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-MERGE-LOOP-2): hotfix: owner lever 1 of 2026-11-07, false train SKIPs on a deferring gate block merges"
    },
    "brief": "The merge train reads a red `gate` as final while the head's code run is still running, and skips a pull request that would have gone green. An edit run's gate publishes a red at once by design (it defers to the code run: tools/ci/gate.py `deferral`, the message \"still being judged; their gate decides\"), and the code run's own gate check-run does not exist until every unit of that run finishes. merge_train.py `latest_runs` then sees only the edit gate, `classify` counts it red, `wait_ci` returns it and `at_head` logs `ci red=['gate']` and SKIPs. Owner-approved CI-throughput lever 1 (tvofi, 2026-11-07, #201 comment 6707834331), hotfix tier because it blocks merges. Measured over 2026-11-05 13:26Z to 2026-11-07 13:26Z (s12 CI-throughput study): 56 `ci red=['gate']` SKIPs, of which 32 sat at heads whose code run later concluded success (false red) and 10 at heads whose code run failed (genuine); 27 of the 32 false-red heads were re-merged with main afterwards, discarding about 3,500 runner-minutes of green runs, at least 1,750 runner-minutes a day. The 13:01Z cycle: five recarries onto 28d46c49, five edit gates failing \"run(s) [<code run>] at this head are still being judged\", read red by the train 1210 s in, all five SKIPped. Fix: in `wait_ci` and `classify`, a red `gate` counts as pending (state wait, not red) while any ci.yml run at that head is unfinished, read from one actions runs listing per poll by head sha. Use the same rule as gate.py `busy()` (unfinished, not held, not judging); share the predicate from tools/ci/gate.py if the train can import it, otherwise pin the two readings against one table of cases in the self-test. The train only waits and never merges on red: gate success, `cross_check` against GitHub's required-check evaluation and the ruleset still decide, and the wait stays bounded by `polls` and ends in TIMEOUT, not in an endless wait. Failing test first: the #3248 scene (edit run 42237558635 gate failed 14:55:47Z, code run 42237558473 gate green 15:25:55Z) must wait and then merge. Null control: a red `gate` with no unfinished ci.yml run at the head still SKIPs, and a genuine code-run failure still SKIPs. Mutant: dropping the unfinished-run test reproduces the 13:01Z five-of-five SKIP; show it red by a named case. Say in the body that this retires R10-TRAIN-MERGE-LOOP-2's carry for the same defect (its carry on the gate deferral read as a final red moves here, so it is built once). Process state (d): gate.py's at-once deferral (fa921fd59, 2026-11-05) post-dates the classifier (e23062763, 2026-10-21). Files: tools/audit/seat/merge_train.py with its self-test, and its instrument entry tools/audit/seat/instruments/merge_train.py.md."
+  },
+  {
+   "group": "R10-CI-OWN-DELIVERY-ROW",
+   "lane": "IN",
+   "kind": "fix",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "instrument",
+   "severity": "medium",
+   "size": "S",
+   "wave": 6,
+   "files": [
+    "tools/ci/prelude.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "code-owned: tools/ci/ (tvofi approves, or mandate 6624093439 in force)",
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-own-delivery-row",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s12 CI-levers seat 2026-11-07: owner lever 2"
+   },
+   "brief": "Owner-approved CI-throughput lever 2 (tvofi, 2026-11-07, #201 comment 6707834331). R10-CI-SLIM's C7(a) lane idling in tools/ci/prelude.py (`machinery`, `_product`, the PRODUCT_PREFIXES list) stands the machinery lanes down (tests / arch-instrument, tests / closures' recording, governance / env-matrix, governance / instrument-self-tests) on a pull request whose every changed file is product. Every pull request carries its own delivery row dev/programme/delivery/<N>.md, which is not product, so over the 2026-11-05 13:26Z to 2026-11-07 13:26Z window the lanes stood down on none of 52 merged pull requests; with the PR's own row exempted they would have on 10 of 52, an estimated 1,380 runner-minutes a day (10 PRs x about 5 code runs x about 55 machinery-minutes; s12 study). Change: `machinery` takes the PR number and treats exactly that pull request's own delivery row as neither product nor machinery (it is ignored), so a package-plus-row diff idles the lanes. STEP 1 is a recording, committed before the change: prove that no machinery lane reads dev/programme/delivery/ at the head. Several tools under tools/audit/seat read that path (the delivery-row tools, record_row.py among them), so the proof must cover EVERY lane the idling skips, including every step of instrument-self-tests and the env-matrix and arch-instrument lanes, by tracing file opens or an equivalent measured read-set per lane, not by grepping for the path. If any skipped lane does read it, report which, and exempt the row only for the lanes that do not; do not guess. Failing test first: a diff of one package file plus its own row idles the lanes. Null controls: a row-plus-tools/ PR still runs the lanes; a row of ANOTHER pull request (a different <N>) still counts as machinery; an empty or unreadable changed list still runs them; a push runs them (the existing C7a pushes-run-everything case). Mutant: exempting every file under dev/programme/delivery/ rather than the PR's own row is shown red by the other-PR control. Code-owned (tools/ci/ is owned by tvofi): merges on his approving review or under mandate 6624093439. Overlap: R10-CI-EDIT-RUNNER also edits tools/ci/prelude.py (wait_sources, a different function) and is not started; keep the diff to the C7(a) functions and merge in either order."
   }
  ]
 }
