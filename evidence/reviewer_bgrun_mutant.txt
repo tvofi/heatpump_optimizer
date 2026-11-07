@@ -1,5 +1,0 @@
-X5 bg_run records 0 always KILLED by FAIL refuse chained bad; FAIL refuse bad
-X7 bg_run writes no status KILLED by FAIL control chained tally; FAIL control ok; FAIL control tally
-X8 bg_wait returns 0 after first poll SURVIVED
-slow-arm committed | PASS refuse slow bad ; PASS control slow ok
-slow-arm X8 bg_wait returns 0 after first poll | FAIL refuse slow bad (prepr-shaped step passes) ; PASS control slow ok

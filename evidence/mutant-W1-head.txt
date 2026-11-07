@@ -1,0 +1,8 @@
+HEAD a09ebaebd, prepr waiter step deleted (mutant W1):
+selftest_wiring: 118 self-testing, 118 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
+M1 KILLED by FAIL refuse slow bad; FAIL refuse chained bad; FAIL refuse bad
+M2 KILLED by FAIL refuse chain killed; FAIL refuse killed
+X8 KILLED by FAIL refuse slow bad
+RESULT survivors=0

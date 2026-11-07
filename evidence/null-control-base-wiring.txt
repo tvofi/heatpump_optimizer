@@ -1,0 +1,5 @@
+BASE 28d46c491, prepr self-test step deleted:
+  UNWIRED tools/pr/prepr.sh: no workflow run line names its self-test
+selftest_wiring: 118 self-testing, 117 wired, 1 unwired
+selftest_wiring: 0 index gap(s)
+rc=0
