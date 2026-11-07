@@ -21,9 +21,12 @@ import logging
 import math
 import os
 import pickle
+import selectors
 import subprocess
 import sys
 import threading
+import time
+from types import SimpleNamespace
 from bisect import bisect_right
 from dataclasses import dataclass, field, replace
 from operator import attrgetter
@@ -791,6 +794,28 @@ SOLVE_FAILURE_ISSUE_COUNT = 3
 # hass.data, not a process global, so a later test's new hass is not charged
 # for an earlier one.
 WORKER_FALLBACK_CAP = 3
+# How long ``_run_in_process`` waits for the worker's reply before it reaps
+# the worker as hung. Far above any real solve: on a Raspberry Pi 4 the
+# spread measured on one install over three days was a median of 18 s and a maximum
+# of 426 s, while the hang this bounds ran for about 55 minutes with one core
+# busy. A module global read at call time, so a test can shorten it.
+PROCESS_REPLY_TIMEOUT_S = 1800.0
+# How long the stop path waits for ``_PROCESS_LOCK`` after killing the worker,
+# and how long a timed-out reply's reap waits for the killed child. The swap
+# is only bookkeeping, and neither a read the kill did not break nor a child
+# slow to die may hold a solve or Home Assistant's shutdown hostage.
+_SHUTDOWN_LOCK_TIMEOUT_S = 5.0
+# How long the reply frame may take to arrive once its first byte has. The
+# worker serialises its whole reply before writing it, so the frame then flows
+# at pipe speed (a 50 MB reply round-trips in about half a second); this only
+# bounds a writer stopped mid-frame (SIGSTOP, a stalled host). Module global,
+# read at call time, so a test can shorten it.
+_REPLY_FRAME_TIMEOUT_S = 60.0
+# The most the reply frame may carry, counted on what the unpickler asks for.
+# The bytes come from the worker, so a frame's declared lengths are bounded
+# before they are allocated. Module global, read at call time, so a test can
+# shorten it.
+_REPLY_FRAME_MAX_BYTES = 256 * 1024 * 1024
 
 
 def _republish_handover_ages(coord: Any, handover: Payload) -> Payload:
@@ -1759,6 +1784,16 @@ class ProcessWorkerUnavailable(RuntimeError):
     """
 
 
+class ProcessWorkerTimeout(ProcessWorkerUnavailable):
+    """The worker took the job and gave no reply within the deadline.
+
+    Not a transport fault that an in-process solve would route around: the
+    same job would occupy an executor thread just as long. The worker has
+    been reaped; the caller keeps the last plan and the next cycle spawns a
+    fresh worker.
+    """
+
+
 def _worker_env() -> dict[str, str]:
     """Make the package importable in the child under BOTH of its names.
 
@@ -1850,13 +1885,22 @@ def _shutdown_process_pool(*, at_exit: bool = False) -> None:
                 worker.wait(timeout=2)
             except Exception:  # noqa: BLE001
                 worker.kill()
-    with _PROCESS_LOCK:
+    # Bounded: a read the kill above did not break would otherwise hold the
+    # stop for as long as it held the lock (observed: the shutdown ran into
+    # the supervisor's timeout). Skipping the swap then only leaves a handle
+    # to a dead child, which ``_ensure_worker`` replaces on its next call.
+    if not _PROCESS_LOCK.acquire(timeout=_SHUTDOWN_LOCK_TIMEOUT_S):
+        _LOGGER.debug("Solve worker lock still held at stop; skipping the handle swap")
+        return
+    try:
         # Only the swap is locked, and only when this reap's own handle is
         # still the installed one: a solve that died on the killed pipes has
         # already cleared it, and a worker spawned after that must not be
         # clobbered by a stop it outlived.
         if _PROCESS_WORKER is worker:
             _PROCESS_WORKER = None
+    finally:
+        _PROCESS_LOCK.release()
 
 
 @callback
@@ -1877,6 +1921,91 @@ def async_register_worker_shutdown(hass: HomeAssistant, entry: HeatPumpOptimizer
     entry.async_on_unload(
         hass.bus.async_listen_once(EVENT_HOMEASSISTANT_STOP, _stop)
     )
+
+
+def _reply_ready(stream: Any, timeout_s: float) -> bool:
+    """Whether ``stream`` turns readable within ``timeout_s``.
+
+    A selector, never ``select.select``: that refuses any descriptor at or
+    above FD_SETSIZE (1024), and Home Assistant raises its own soft fd limit
+    past it, so a worker respawned into a full fd table read as a transport
+    fault and every solve fell back in process.
+    """
+    with selectors.DefaultSelector() as selector:
+        selector.register(stream, selectors.EVENT_READ)
+        return bool(selector.select(timeout_s))
+
+
+def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
+    """``pickle.load``'s file over the reply pipe, every read under one deadline.
+
+    Reads the raw descriptor, never the buffered stream, whose held bytes a
+    selector cannot see. It has no ``peek``, so the unpickler asks for
+    exactly the bytes it consumes and nothing past the frame is taken.
+    """
+    deadline = time.monotonic() + timeout_s
+    left_bytes = _REPLY_FRAME_MAX_BYTES
+
+    def read(size: int) -> bytes:
+        nonlocal left_bytes
+        # Refused on the size asked for, before ``os.read`` allocates it: a
+        # frame's declared lengths come from the worker and are not trusted.
+        # Not a timeout, so the transport route reaps the worker mid-frame.
+        if size > left_bytes:
+            raise ValueError(
+                f"reply frame exceeds {_REPLY_FRAME_MAX_BYTES} bytes"
+            )
+        left_bytes -= size
+        chunks: list[bytes] = []
+        while size > 0:
+            # Checked here, not left to the wait: a descriptor at end of
+            # stream always reads as ready, so the wait alone never expires.
+            left_s = deadline - time.monotonic()
+            if left_s <= 0 or not _reply_ready(fd, left_s):
+                raise ProcessWorkerTimeout(
+                    f"process worker stopped mid-reply: the frame did not "
+                    f"arrive within {timeout_s:g} s"
+                )
+            chunk = os.read(fd, size)
+            if not chunk:
+                break  # end of stream: the unpickler reports the short frame
+            chunks.append(chunk)
+            size -= len(chunk)
+        return b"".join(chunks)
+
+    def readline() -> bytes:
+        # Only text opcodes ask, and the worker's binary protocol sends none.
+        line = b""
+        while not line.endswith(b"\n") and (byte := read(1)):
+            line += byte
+        return line
+
+    return SimpleNamespace(read=read, readline=readline)
+
+
+def _read_reply(stdout: Any) -> Any:
+    """The worker's ``(status, payload)``, its wait and its frame each bounded.
+
+    The worker serialises its whole reply before writing it
+    (``process_worker._dump``), so a readable pipe means the job is done.
+    Waiting for that with a deadline instead of blocking in ``pickle.load``
+    matters because a worker alive but silent never raises, and holding
+    ``_PROCESS_LOCK`` in that read wedged every later solve, every reload and
+    the stop path until a restart. The frame then has its own deadline, so a
+    writer stopped mid-reply (SIGSTOP, a stalled host) cannot hold it either.
+    A stream with no descriptor (an in-memory one) has nothing to wait on
+    and is read directly; the worker's pipe always has one.
+    """
+    try:
+        fd = stdout.fileno()
+    except (AttributeError, OSError, ValueError):
+        return pickle.load(stdout)
+    timeout = PROCESS_REPLY_TIMEOUT_S
+    if not _reply_ready(stdout, timeout):
+        raise ProcessWorkerTimeout(
+            f"process worker gave no reply within {timeout:g} s"
+        )
+    return pickle.load(_frame_reader(fd, _REPLY_FRAME_TIMEOUT_S))
 
 
 def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
@@ -1909,7 +2038,19 @@ def _run_in_process(fn: Callable[..., Any], args: tuple[Any, ...]) -> Any:
                 raise ProcessWorkerUnavailable("process worker pipes missing")
             stdin.write(job)
             stdin.flush()
-            status, payload = pickle.load(stdout)
+            try:
+                status, payload = _read_reply(stdout)
+            except ProcessWorkerTimeout:
+                _PROCESS_WORKER = None
+                # Bounded too: a child the kill does not end at once (one
+                # stuck in the kernel) must not turn this into the same
+                # unbounded wait one line further down.
+                try:
+                    worker.kill()
+                    worker.wait(timeout=_SHUTDOWN_LOCK_TIMEOUT_S)
+                except Exception:  # noqa: BLE001 - must not mask the timeout
+                    pass
+                raise
         except ProcessWorkerUnavailable:
             # Already the class the fallback route catches; rewrapping it
             # would bury the pipes/load-err cause under a generic one.
@@ -1954,12 +2095,24 @@ async def _await_off_loop(hass: HomeAssistant, fn: Callable[..., Any], *args: An
 
     The process worker first; a worker that cannot carry the job degrades to
     the executor, the #511 trade -- a GIL-holding thread, never the loop.
+    A job that outran the reply deadline is not rerun there: the same job
+    would hold an executor thread and a core with no deadline at all. It
+    raises to the caller, which skips its job this cycle (the replay and the
+    sensor advisor) or fails the cycle through ``_note_solve_failure`` (away
+    recovery, sysid); the warning is held per job until one completes.
     """
+    name = fn.__qualname__
+    key = f"off_loop_timeout:{name}"
     try:
-        return await _await_process(hass, fn, *args)
+        result = await _await_process(hass, fn, *args)
+    except ProcessWorkerTimeout as err:
+        log_held(hass, key, True, "%s; %s skipped this cycle", err, name)
+        raise
     except ProcessWorkerUnavailable as err:
         _LOGGER.debug("Process worker unusable (%s); using the executor", err)
         return await hass.async_add_executor_job(fn, *args)
+    log_held(hass, key, False)
+    return result
 
 
 async def _sysid_step_off_loop(
@@ -2124,6 +2277,15 @@ async def _await_optimize(
     entry_id = _CURRENT_ENTRY_ID.get()
     try:
         result = await _await_process(hass, optimize_in_process, optimizer, inputs)
+    except ProcessWorkerTimeout as err:
+        # Held, not per cycle: a worker that keeps timing out warns once and
+        # says "Resolved" on the first solve it carries again (R10 N-log-flood).
+        log_held(hass, f"process_worker_timeout:{entry_id}", True,
+                 "%s; keeping the last plan, a fresh worker starts next cycle", err)
+        _raise_update_failed(
+            "process_worker_timeout", f"{err}; the last plan stays in effect", err,
+            minutes=f"{PROCESS_REPLY_TIMEOUT_S / 60:.0f}",
+        )
     except ProcessWorkerUnavailable as err:
         _note_worker_fallback(hass, err, entry_id)
         n = _bump_worker_fallback(hass, entry_id)
@@ -2136,6 +2298,7 @@ async def _await_optimize(
             optimize_in_process, optimizer, inputs
         )
     _clear_worker_fallback(hass, entry_id)
+    log_held(hass, f"process_worker_timeout:{entry_id}", False)
     return result
 
 
