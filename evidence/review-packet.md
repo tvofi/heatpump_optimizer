@@ -1,49 +1,58 @@
 # Review packet #3244
-head: 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08
-base: 28482eceeb6b9809e44b12d80fc994282cc21645
+head: 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b
+base: f2a015142714383722bf49d7ab20d8398ec9674c
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: pending
-CodeQL id=128216329154 neutral
-arch-score / arch-score id=128218194827 success
-arm id=128215911060 skipped
-budget-raise-gate / budget-raise-gate id=128218194791 success
-cancel-superseded id=128217982162 success
-codeql id=128218196267 skipped
-codeql / Analyze (actions) id=128216096389 success
-codeql / Analyze (javascript-typescript) id=128216096394 success
-codeql / Analyze (python) id=128216096339 in_progress
-gate id=128218621028 in_progress
-governance id=128218195859 skipped
-governance / delivery-status id=128216096490 success
-governance / delivery-status-publish id=128216097952 skipped
-governance / env-matrix id=128216096387 success
-governance / instrument-self-tests id=128216096422 in_progress
-governance / policy-docs id=128216096448 success
-governance / record id=128216097788 skipped
-governance / wave-script id=128216096449 success
-hassfest id=128218196658 skipped
-hassfest / hassfest id=128216096248 success
-kernel-points id=128218196857 skipped
-pr-contract id=128218622296 skipped
-prelude id=128217982000 success
-refresh id=128217981682 success
-tests id=128218196280 skipped
-tests / arch-instrument id=128216321989 success
-tests / briefs id=128216096534 success
-tests / browser id=128216322062 success
-tests / closure-scope id=128216096305 success
-tests / closures id=128216322079 in_progress
-tests / coverage id=128216322085 in_progress
-tests / fast (3.14) id=128216322020 in_progress
-tests / mutation id=128216096396 in_progress
-tests / nightly-ha id=128216323455 skipped
-tests / nightly-status id=128216096489 success
-tests / replay id=128216321970 in_progress
-tests / typing id=128216322061 success
-validate id=128218196112 skipped
-validate / validate-hacs id=128216096474 success
+## Gate digest: red
+CodeQL id=128325422020 success
+arch-score / arch-score id=128347111954 success
+arm id=128321416611 skipped
+budget-raise-gate / budget-raise-gate id=128347118095 success
+cancel-superseded id=128347094985 success
+codeql id=128347119080 skipped
+codeql / Analyze (actions) id=128347114332 success
+codeql / Analyze (javascript-typescript) id=128347083846 success
+codeql / Analyze (python) id=128347084264 success
+gate id=128347497957 queued
+governance id=128347122266 skipped
+governance / delivery-status id=128347084164 success
+governance / delivery-status-publish id=128347083750 skipped
+governance / env-matrix id=128347084369 success
+governance / instrument-self-tests id=128347084107 cancelled
+governance / policy-docs id=128347083883 success
+governance / record id=128347084037 skipped
+governance / wave-script id=128347084242 success
+hassfest id=128347108245 skipped
+hassfest / hassfest id=128347083776 success
+kernel-points id=128347116967 skipped
+pr-contract id=128347119536 skipped
+pr-contract / pr-contract id=128347085467 success
+prelude id=128347108584 success
+refresh id=128347106946 success
+tests id=128347089626 skipped
+tests / arch-instrument id=128347084146 success
+tests / briefs id=128347109569 success
+tests / browser id=128347084315 success
+tests / ci-ratchet id=128347084820 skipped
+tests / claims-autofix id=128347085125 skipped
+tests / closure-scope id=128347084190 success
+tests / closures id=128347084498 success
+tests / closures-autofix id=128347084532 skipped
+tests / coverage id=128347084168 success
+tests / coverage-ratchet id=128347085113 success
+tests / fast (3.14) id=128347085031 success
+tests / graders-head-copy id=128347084964 success
+tests / lane-proofs id=128347084829 success
+tests / mutation id=128347083858 success
+tests / mutation-autofix id=128347084787 skipped
+tests / mutation-pins id=128347084465 skipped
+tests / nightly-ha id=128347084497 skipped
+tests / nightly-status id=128347116557 success
+tests / replay id=128347084401 success
+tests / typing id=128347084185 success
+validate id=128347124468 skipped
+validate / validate-hacs id=128347084233 success
 
 ## Refusals
 none
@@ -53,17 +62,15 @@ none
 
 ## carry_audit at the head
 NOTE body item 661322b8: dismissed:owner ruling territory, stated for the owner in docs/how-it-works.md and this body
-NOTE body item 33581d9d: dismissed:a dispatch event, recorded for the orchestrator in this body
+NOTE body item ab1270f7: dismissed(R10-HOTFIX-SAV-ESTIMATE):covered by the tests browser lane
 NOTE body item 6f451c44: dismissed:a session plugin outside this repository's policy
 CARRY-AUDIT: 3 finding item(s): 3 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         PYTHONPATH=tests/hastub python3 tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  unverified git checkout
-             `git checkout` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
-  unverified git show dea3c729:blueprints/automation/notifications.yaml
-             `git show` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
+unverified python3 -I mut.py
+             `mut.py` does not look like a path in this tree
+  unverified git status --porcelain
+             `git status` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
   ok         PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_sav_wood_reference.py wood-plant
              `dev/audit/harnesses/r10_sav_wood_reference.py` is in the tree at this head
   ok         PYTHONPATH=tests/hastub:tests:custom_components python3 dev/audit/harnesses/r10_rca_sav_estimate.py census
@@ -72,26 +79,12 @@ ok         PYTHONPATH=tests/hastub python3 tests/entities.py
              `tests/run.sh` is in the tree at this head
   ok         python3 tests/closure.py select --diff $(git merge-base origin/main HEAD)
              `tests/closure.py` is in the tree at this head
-  ok         python3 tests/structure.py
-             `tests/structure.py` is in the tree at this head
-  ok         PYTHONPATH=tests/hastub python3 tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
-  ok         python3 -I tools/policy/agreement_py.py --out <json> && node tools/policy/agreement.mjs --py-json <json>
-             `tools/policy/agreement_py.py` is in the tree at this head
-  ok         python3 -I tools/policy/agreement_py.py --out <json> && node tools/policy/agreement.mjs --py-json <json>
-             `tools/policy/agreement.mjs` is in the tree at this head
-  ok         tests/entities.py
-             `tests/entities.py` is in the tree at this head
-  ok         node tools/policy/agreement.mjs --self-test
-             `tools/policy/agreement.mjs` is in the tree at this head
-  ok         python3 tools/pr/ci_predict.py --base origin/main
-             `tools/pr/ci_predict.py` is in the tree at this head
-  ok         tests/harness_headers.py
-             `tests/harness_headers.py` is in the tree at this head
+  ok         HPO_ALLOW_STALE_TOOLS=1 bash tools/pr/prepr.sh
+             `tools/pr/prepr.sh` is in the tree at this head
   unverified git diff --quiet origin/main HEAD -- VERSION custom_components/heatpump_optimizer/manifest.json RELEASE_NOTES.md tests/golden/card_claimed_drift.txt
              `git diff` resolves; its flags are not checked -- git prints a man page rather than a flag list, and a list carried in this file would rot into false refusals
 
-FIGURES: 13 resolved, 3 not verified, 0 refused
+FIGURES: 5 resolved, 3 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -256,10 +249,10 @@ index a638cf7c4..c1a852288 100644
      return `${top}<table class="savings-table">
 diff --git a/dev/audit/harnesses/r10_sav_receipt_render.py b/dev/audit/harnesses/r10_sav_receipt_render.py
 new file mode 100644
-index 000000000..e8335b805
+index 000000000..13a09d359
 --- /dev/null
 +++ b/dev/audit/harnesses/r10_sav_receipt_render.py
-@@ -0,0 +1,91 @@
+@@ -0,0 +1,95 @@
 +#!/usr/bin/env python3
 +"""R10-HOTFIX-SAV-ESTIMATE: the notifications blueprint's monthly receipt, rendered.
 +
@@ -332,7 +325,11 @@ index 000000000..e8335b805
 +def main() -> int:
 +    path = pathlib.Path(sys.argv[1]) if len(sys.argv) > 1 else DEFAULT_BP
 +    note = re.search(r'"savings\.wood_note": "([^"]+)"', CARD.read_text()).group(1)
-+    template = jinja2.Environment().from_string(receipt_message(path))
++    # autoescape=True (CodeQL py/jinja2/autoescape-false). It escapes only an
++    # expression's output; the note is the template's literal text, which no
++    # escaping touches, so it is counted as written. The expressions render
++    # numbers and a currency code, which hold no escapable character.
++    template = jinja2.Environment(autoescape=True).from_string(receipt_message(path))
 +    base = {"total_sek": 812.4, "currency": "SEK", "saving_sek": 203.6, "saving_pct": 20.1}
 +    arms = [
 +        ("wood", {"saving_includes_wood": True}, 1),
@@ -620,10 +617,10 @@ index 79e43c934..f8adac8fd 100644
      /Where the money went/.test(rcpPage) &&
      rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));
 diff --git a/tests/closures.json b/tests/closures.json
-index 79d3291ae..1ba567ff3 100644
+index c71959796..ff07c98db 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -4094,6 +4094,7 @@
+@@ -4096,6 +4096,7 @@
     "dev/audit/harnesses/r10_sav_baseline_mutants.py",
     "dev/audit/harnesses/r10_sav_null_settled.py",
     "dev/audit/harnesses/r10_sav_null_terms.py",

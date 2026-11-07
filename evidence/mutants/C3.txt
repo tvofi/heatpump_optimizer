@@ -1,5 +1,0 @@
-mutant C3: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js: 'const woodNote = wood\n' -> 'const woodNote = false\n'
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card.mjs: rc=0 last=['ALL CARD CHECKS PASSED']
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card_browser.mjs: rc=1 last=['1 BROWSER CHECK(S) FAILED']
-      FAIL  a house with wood configured carries the disclaimer, painted within a phone's width
-    1 BROWSER CHECK(S) FAILED

@@ -1,5 +1,0 @@
-mutant R9: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js: 'const wood = !!(fuel && fuel.show_whatif);' -> 'const wood = !!fuel;'
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card.mjs: rc=0 last=['ALL CARD CHECKS PASSED']
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card_browser.mjs: rc=1 last=['1 BROWSER CHECK(S) FAILED']
-      FAIL  a house with no wood configured carries none
-    1 BROWSER CHECK(S) FAILED

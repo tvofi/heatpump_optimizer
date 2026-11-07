@@ -1,2 +1,4 @@
-RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-rc=1 00:49:01
+2026-11-07T08:27:05Z
+WAIT 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: gate red: none
+rc=3
+4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b	refs/heads/fix/r10-sav-wood-heat
