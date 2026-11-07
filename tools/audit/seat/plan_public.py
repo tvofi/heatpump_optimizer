@@ -96,6 +96,10 @@ MUTANTS = {
                               "refused, rc 1 and nothing written: a page carrying a tool's attribution"),
     "absent_refused_red": ('        return 2, f"plan_public: NOTHING TO PUBLISH: no {state_docs', '        return 1, f"plan_public: NOTHING TO PUBLISH: no {state_docs',
                            "nothing to publish, rc 2 and nothing written: no PLAN.html at the newest ref (an older round's is never taken)"),
+    "host_ident_dropped": ("ident or ref_privacy.Identity.of_host()", "ident",
+                           "the CLI over a scratch repository: a clean page is staged, rc 0"),
+    "main_rc0": ("    return rc\n", "    return 0\n",
+                 "the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written"),
 }
 
 
@@ -148,19 +152,47 @@ def self_test(mutants: bool = True) -> int:
             rc, msg = stage(out, out, fake(pages, refs_out), ident)
             check(f"refused, rc 1 and nothing written: {name}",
                   rc == 1 and "REFUSED" in msg and not (out / "plan").exists())
+    for name, body, want_rc in (("a clean page is staged, rc 0", page, 0),
+                                ("a page naming a home directory is refused, rc 1 and nothing written",
+                                 page.replace("plan", "/ho" + "me/alice/wt/plan"), 1),
+                                ("no state ref, rc 2 and nothing written", None, 2)):
+        with tempfile.TemporaryDirectory() as d:  # main() as the workflow runs it: no ident, the host's
+            repo, out = Path(d) / "repo", Path(d) / "site"
+            g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
+            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            if body is not None:
+                f = repo / "handoff" / "round10" / "state" / state_docs.PLAN_PAGE
+                f.parent.mkdir(parents=True)
+                f.write_text(body)
+                subprocess.run(g + ["add", "-A"], check=True)
+                tree = subprocess.run(g + ["write-tree"], capture_output=True, text=True, check=True).stdout.strip()
+                sha = subprocess.run(g + ["commit-tree", tree, "-m", "state"], capture_output=True, text=True,
+                                     check=True).stdout.strip()
+                subprocess.run(g + ["update-ref", "refs/remotes/origin/handoff/audit-r10-plan", sha], check=True)
+            try:
+                cl, io = __import__("contextlib"), __import__("io")
+                with cl.redirect_stdout(io.StringIO()), cl.redirect_stderr(io.StringIO()):
+                    rc = main(["stage", "--out", str(out), "--repo", str(repo)])
+            except Exception as e:  # a crash is a failed case, never an aborted self-test
+                rc = repr(e)
+            staged = out / PLAN_DIR / "index.html"
+            check(f"the CLI over a scratch repository: {name}",
+                  rc == want_rc and (staged.read_text() == body if want_rc == 0 else not staged.exists()))
     check("PLAN_URL is under the Pages site and ends in the staged directory",
           PLAN_URL.startswith(PAGES_URL) and PLAN_URL.endswith(f"/{PLAN_DIR}/"))
     if mutants:
         import importlib.util
-        # the code under mutation sits above the table, which spells every old string again
+        # the code under mutation is all but the table, which spells every old string again
         code, mark, rest = Path(__file__).read_text().partition("#: (old, new, the check")
+        table, sep, tail = rest.partition("\n\ndef self_test(")
         for mid, (old, new, case) in MUTANTS.items():
-            if code.count(old) != 1:
-                check(f"mutant {mid} applies (old string x{code.count(old)})", False)
+            n = code.count(old) + tail.count(old)
+            if n != 1:
+                check(f"mutant {mid} applies (old string x{n})", False)
                 continue
             with tempfile.TemporaryDirectory() as d:
                 mp = Path(d) / "plan_public.py"
-                mp.write_text(code.replace(old, new) + mark + rest)
+                mp.write_text(code.replace(old, new) + mark + table + sep + tail.replace(old, new))
                 spec = importlib.util.spec_from_file_location(f"pp_mutant_{mid}", mp)
                 mod = importlib.util.module_from_spec(spec)
                 spec.loader.exec_module(mod)
