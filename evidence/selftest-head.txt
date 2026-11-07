@@ -47,6 +47,10 @@ ok   lane: user docs with a dev harness are Docs
 ok   lane null control: a production group with no files stays Core model
 ok   lane null control: a named UX group keeps its lane over its kind
 ok   lane null control: a learner keeps its lane over its files
+ok   lane null control: an integration hot file keeps a tool group Core model
+ok   lane null control: a bare hot filename keeps a tool group Core model
+ok   lane null control: a bare tool basename in hot_files stays Core model
+ok   lane: an instrument-path hot file keeps a tool group Instruments
 ok   deterministic: two runs are byte-identical
 ok   the clean plan passes --check
 ok   the critical path runs A -> B -> D
@@ -169,3 +173,4 @@ ok   self-test fails when freshness is deleted
   mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
 ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed
+rc=0

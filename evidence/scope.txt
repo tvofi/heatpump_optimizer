@@ -1,0 +1,12 @@
+dev/programme/delivery/3265.md
+tools/plan/replan.py
+-- protected:
+-- roles diff MB..main:
+main=355d9965a7a14ec45ef8cd25fb9c75c5ced044f1
+3c0b2c2522f29c40ad3a08bfdf337036e7a99305
+merge-rc=0
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+entities rc=124
+  ok   the CI ratchet's main() refuses a script-run count above its budget
+structure rc=0
+STRUCTURE RATCHET PASSED

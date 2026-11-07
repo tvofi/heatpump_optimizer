@@ -1,0 +1,47 @@
+MUTANT m0-null rc=0 ['model self-test: 0 failed', 'self-test: 0 failed']
+MUTANT m1-no-owned rc=1 ['model self-test: 0 failed', 'self-test: 8 failed']
+  FAIL lane: a CI-only group is Instruments: Core model
+  FAIL lane: a tests-and-tools group is Instruments: 
+  FAIL lane: a docs-only doc group is Docs: 
+  FAIL lane: a user-docs group is Docs: 
+  FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+  FAIL lane: user docs with a dev harness are Docs: 
+  FAIL lane: an instrument-path hot file keeps a tool group Instruments: 
+MUTANT m2-no-kindfallback rc=1 ['model self-test: 0 failed', 'self-test: 4 failed']
+  FAIL lane: an RCA group with no files is Instruments: 
+  FAIL lane: a tooling group with no files is Instruments: 
+  FAIL lane: a roster class instrument with no files is Instruments: 
+MUTANT m3-no-class rc=1 ['model self-test: 0 failed', 'self-test: 2 failed']
+  FAIL lane: a roster class instrument with no files is Instruments: 
+MUTANT m4-any rc=1 ['model self-test: 0 failed', 'self-test: 5 failed']
+  FAIL lane null control: a mixed group stays Core model: 
+  FAIL lane null control: an integration hot file keeps a tool group Core model: 
+  FAIL lane null control: a bare hot filename keeps a tool group Core model: 
+  FAIL lane null control: a bare tool basename in hot_files stays Core model: 
+MUTANT m5-nofiles-guard rc=1 ['model self-test: 5 failed', 'self-test: 7 failed']
+  FAIL lane null control: a group with no files stays Core model: 
+  FAIL lane null control: a production group with no files stays Core model: 
+MUTANT m6-userdocs-tooling rc=1 ['model self-test: 0 failed', 'self-test: 2 failed']
+  FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+MUTANT m7-doc-kind rc=1 ['model self-test: 0 failed', 'self-test: 2 failed']
+  FAIL lane: a docs-only doc group is Docs: 
+MUTANT m8-hotfiles rc=1 ['model self-test: 0 failed', 'self-test: 4 failed']
+  FAIL lane null control: an integration hot file keeps a tool group Core model: 
+  FAIL lane null control: a bare hot filename keeps a tool group Core model: 
+  FAIL lane null control: a bare tool basename in hot_files stays Core model: 
+MUTANT m9-docs-prefix rc=1 ['model self-test: 0 failed', 'self-test: 4 failed']
+  FAIL lane: a user-docs group is Docs: 
+  FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+  FAIL lane: user docs with a dev harness are Docs: 
+MUTANT m10-rootfiles rc=1 ['model self-test: 0 failed', 'self-test: 4 failed']
+  FAIL lane: a docs-only doc group is Docs: 
+  FAIL lane: a user-docs group is Docs: 
+  FAIL lane: user docs with a dev harness are Docs: 
+MUTANT m11-rca-kind rc=1 ['model self-test: 0 failed', 'self-test: 2 failed']
+  FAIL lane: an RCA group with no files is Instruments: 
+MUTANT m12-userdocs-any rc=1 ['model self-test: 0 failed', 'self-test: 5 failed']
+  FAIL lane: a CI-only group is Instruments: Docs
+  FAIL lane: a tests-and-tools group is Instruments: 
+  FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+  FAIL lane: an instrument-path hot file keeps a tool group Instruments: 
+MUTANT m13-workclass-tuple rc=0 ['model self-test: 0 failed', 'self-test: 0 failed']
