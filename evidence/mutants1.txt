@@ -1,0 +1,22 @@
+MUTANT hotfix-defer-empty: rc=1 merge_train self-test: 519 checks, 4 failed KILLED
+    FAIL a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, not returned red (the #3248 scene)
+    FAIL a sibling run that never finishes ends as TIMEOUT, bounded by the polls
+    FAIL null control: a red gate with no unfinished sibling run still returns red on the first poll
+    FAIL an unreadable runs listing leaves the red standing (today's skip)
+MUTANT hotfix-no-cascade-grace: rc=1 merge_train self-test: 519 checks, 1 failed KILLED
+    FAIL a failed gate beside an unfinished sibling run is waited on, then through the cascade re-run's lag, not returned red (the #3248 scene)
+MUTANT hotfix-count-action_required: rc=0 merge_train self-test: 519 checks, 0 failed SURVIVED
+MUTANT c3-runs_approved-True: rc=1 merge_train self-test: 519 checks, 10 failed KILLED
+    FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+    FAIL the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)
+    FAIL carry 3: a bot head whose pull_request runs are still held action_required is refused with the BOT-HEAD line
+    FAIL carry 3: a bot head whose pull_request runs are held, status form is refused with the BOT-HEAD line
+    FAIL carry 3: a bot head whose pull_request runs are absent (no pull_request run) is refused with the BOT-HEAD line
+    FAIL a batch entry whose head is a GITHUB_TOKEN bot push goes serial, not into a proof, and its recarry after #1's merge is the App push: it lands
+MUTANT c3-runs_approved-noempty: rc=1 merge_train self-test: 519 checks, 8 failed KILLED
+    FAIL a head whose tip is a GITHUB_TOKEN bot push is refused before CI is even read -- waiting cannot repair it; the required follow-up is an App push
+    FAIL the bot-head stop is classified BOT-HEAD in the line itself (the remedy text was already exact)
+    FAIL carry 3: a bot head whose pull_request runs are absent (no pull_request run) is refused with the BOT-HEAD line
+    FAIL a batch entry whose head is a GITHUB_TOKEN bot push goes serial, not into a proof, and its recarry after #1's merge is the App push: it lands
+    FAIL ... and with nothing merged before it, main never moved: no recarry is possible and it is refused as before, [BOT-HEAD] (null control)
+    FAIL --overlap leaves a bot-routed head out of the up-front recarry (main has not moved, so none is possible); it recarries at its turn, after the ear

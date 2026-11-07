@@ -1,0 +1,16 @@
+  vid=$(printf '%s\n'   "$verdict" | sed -n 1p)
+  vurl=$(printf '%s\n'  "$verdict" | sed -n 2p)
+  vline=$(printf '%s\n' "$verdict" | sed -n 3p)
+  vbody=$(printf '%s\n' "$verdict" | sed -n 4p)
+  vbody=${vbody//$'\x01'/$'\n'}
+  local evsha=$sha carried="" vsha why
+  if [ "$vline" != "Fix review: merge $sha" ]; then
+    why="the newest allowlisted verdict on #$pr ($vurl) is '$vline', not 'Fix review: merge $sha'"
+    vsha=$(printf '%s' "$vline" | sed -n 's/^Fix review: merge \([0-9a-f]\{40\}\)$/\1/p')
+    [ -n "$vsha" ] || die "$why"
+    git fetch -q --no-tags origin "+refs/heads/main:refs/hpo-carry/main" "+refs/pull/$pr/head:refs/hpo-carry/head" \
+      || die "$why, and fetching main and the head to test a carry failed"
+    [ "$(git rev-parse refs/hpo-carry/head)" = "$sha" ] || die "$why, and the fetched head is not $sha"
+    carried=$(carry "$vsha" "$sha" refs/hpo-carry/main) || die "$why, and it does not carry: $carried"
+    evsha=$vsha
+    printf 'app_approve: CARRY %s -> %s: %s\n' "$vsha" "$sha" "$carried"
