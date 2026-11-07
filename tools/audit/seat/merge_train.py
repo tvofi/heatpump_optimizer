@@ -5895,6 +5895,27 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             Train._run = saved
         return rc, buf.getvalue()
 
+    def owed_cli(ruleset) -> "tuple[int, str]":  # `owed-reds` through main, the ruleset faked as `cli` fakes it
+        def fake_run(argv, cwd=ROOT, stdin=None):
+            a = " ".join(argv)
+            if a.endswith("rulesets --jq " + argv[-1]):
+                return (0, "7") if ruleset else (1, "HTTP 404")
+            return (0, ruleset) if "rulesets/7" in a else (1, "unexpected")
+        saved, buf = Train._run, io.StringIO()
+        Train._run = staticmethod(fake_run)
+        try:
+            with contextlib.redirect_stdout(buf):
+                rc = main(["owed-reds"])
+        finally:
+            Train._run = saved
+        return rc, buf.getvalue()
+    rc_o, out_o = owed_cli(f"{GATE}\nnightly-status\n")
+    rc_u, out_u = owed_cli("")
+    check("owed-reds CLI: rc 0 prints the owed set, one name per line (null: an unreadable ruleset is rc 2, "
+          "a REFUSE line and no name)",
+          rc_o == 0 and out_o.split() and out_o.splitlines() == judged(gating_names([GATE, "nightly-status"]))
+          and rc_u == 2 and out_u.startswith("REFUSE ") and GATE not in out_u.splitlines())
+
     red_pc = [cr("fast"), cr("pr-contract", conclusion="failure")]
     check("K15 (d): a pull request's head with a required context concluded failure is RED, not reviewable "
           "(rc 1); PR_ONLY is empty under the umbrella, so main's tip reads the same runs RED too",
