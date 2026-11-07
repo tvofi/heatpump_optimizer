@@ -1,16 +1,16 @@
 # Flow board
 
-Window ends 2026-11-07T05:37:18+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
+Window ends 2026-11-07T06:10:39+01:00 (a function of the refs, not of when this ran). Takt 1.0 roster group per hour.
 
 Sources: tree `origin/main`, roster `origin/handoff/audit-r10-roster`, bus `origin/review/*`
 
 | measure | last 1 h | last 24 h |
 |---|---|---|
 | roster groups closed vs takt | 0 / 1.0 | 12 / 24.0 |
-| fly-ins closed | 1 | 6 |
-| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 1 | 9 / 4 / 2 / 6 |
-| first-pass fix-review yield | 0/1 (0.00) | 8/32 (0.25) |
-| blocked-class mix | ci-red:1, defect:1 | architecture-unsound:1, carry-unanswered:1, ci-red:8, citation-false:1, class-open:3, defect:1, figures-uncited:1, instrument-broken:1, mutation-vacuous:15, over-fire:1, owner-ruling-contradicted:1, owner-words:2, policy-unapproved:3, root-cause-detectable:1, selftest-red:1, wait-cycle:1 |
+| fly-ins closed | 0 | 5 |
+| main moves: group-carrying / record / roster-edit / fly-in | 0 / 0 / 0 / 0 | 9 / 4 / 2 / 5 |
+| first-pass fix-review yield | 1/2 (0.50) | 9/33 (0.27) |
+| blocked-class mix | ci-red:2 | architecture-unsound:1, carry-unanswered:1, ci-red:9, citation-false:1, class-open:3, defect:1, figures-uncited:1, instrument-broken:1, mutation-vacuous:15, over-fire:1, owner-ruling-contradicted:1, owner-words:2, policy-unapproved:3, root-cause-detectable:1, selftest-red:1, wait-cycle:1 |
 | lead time per size (h, n/p50/max) | none | M n=4 p50=10.12 max=13.36; S n=5 p50=7.74 max=13.94 |
 
 ### WIP by flow lane (snapshot at the window's end)
