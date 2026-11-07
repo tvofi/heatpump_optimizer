@@ -1,0 +1,5 @@
+read_setpoint            : -275.15
+setpoint_range_c         : (-293.15, -253.14999999999998)
+quantise_setpoint_c(-2.0): -2.1499999999999773
+temperature_from_c(-2, K): 271.15
+setpoint_step            : 0.5
