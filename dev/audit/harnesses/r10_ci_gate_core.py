@@ -223,19 +223,14 @@ MUTANTS = [
      ''),
     ("M15 unreadable title", '                bad.append(f"run {r[\'id\']}: unreadable title {r[\'title\']!r}")\n', ''),
     ("M16 B3 on push", 'extra=PUSH_ONLY),', 'extra=None),'),
-    # r10-gate-busy-defer: the tie-break between two started gates at one head, and C3's at-once bound
-    # beside any run whose gate has not started (#3246 review).
+    # r10-gate-busy-defer: the tie-break between two started gates at one head.
     ("M17 busy tie-break deleted", '\n                  and not (r["id"] > ctx["run_id"] and started(r)))', ')'),
     ("M18 busy tie-break id inverted", 'r["id"] > ctx["run_id"] and started(r)', 'r["id"] < ctx["run_id"] and started(r)'),
     ("M19 a listed gate read as started (R3-2 EARLY)", 'return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED',
      'return "gate" in (run.get("jobs") or {})'),
-    ("M20 C3 at once beside any run", ' and not all(\n                started(r) for r in api["runs_at_head"] if r["id"] in waiting)', ''),
-    ("M21 C3 waits beside any run", 'deferring(kind, pr, claim) and not all(', 'deferring(kind, pr, claim) and not True and all('),
-    ("M22 C3 at once only beside a code run (c0c60886)", 'not all(\n                started(r) for r in api["runs_at_head"]',
-     'any(\n                (parse_title(r["title"]) or ("code",))[0] == "code" for r in api["runs_at_head"]'),
-    # #3246 round 2: C3 waits only when ALL waited runs have started their gate; ANY re-opens the cycle.
-    ("M24 C3 waits beside any started run (all to any)", 'deferring(kind, pr, claim) and not all(',
-     'deferring(kind, pr, claim) and not any('),
+    # r10-gate-busy-defer-2: a never-expanded unit adds no source; the deferring gate waits like any other.
+    ("M25 judging: a skipped caller read as owing its unit", '        if jobs.get(u, ("",))[0] == "completed":\n            continue', '        pass', PRELUDE),
+    ("M26 C3 at-once bound restored (#3263's red)", '        if ok or now() - t0 + POLL_S > bound:', '        if why == [deferral(waiting)] and claim.get("workset") is not None and claim["workset"] < workset(kind, pr):\n            bound = 0\n        if ok or now() - t0 + POLL_S > bound:'),
 ]
 
 
