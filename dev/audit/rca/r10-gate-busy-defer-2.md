@@ -1,8 +1,10 @@
 # R10-RCA-GATE-BUSY-DEFER-2: a gate fix does not reach a run created before it merged
 
 Root-cause seat (`dev/governance/roles/root-cause.md`), run beside the fixer of
-R10-HOTFIX-GATE-BUSY-DEFER (topic r10-gate-busy-defer-2). Measured at origin/main
-`294a880da`, which carries #3246's merge `355d9965a`, on 2026-11-07. This seat
+R10-HOTFIX-GATE-BUSY-DEFER (topic r10-gate-busy-defer-2). First measured at
+origin/main `294a880da`, which carries #3246's merge `355d9965a`, on 2026-11-07, and
+re-cut against origin/main `b4ec2f332`, which also carries #3276's merge `812bb8747`
+(R10-HOTFIX-GATE-BUSY-DEFER reopened: the edit/code-run half below). This seat
 changed nothing in `tools/ci/`. The live figures are for the window
 2026-11-07T03:45:14Z (#3246 merged) to 2026-11-07T04:50:21Z, and the harness prints
 them again for any window.
@@ -16,24 +18,35 @@ them again for any window.
   programs #3246 fixed. Every mutual deferral since the merge ran those programs.
   The reported cause, "#3246's fix missed these shapes", is wrong. Replayed through
   the fixed `gate.py`, the listings GitHub served decide every pair.
-- **#3263 is not the race.** Run 42338396358's 2-second red is C3's at-once
-  deferral, which is designed (`fa921fd59`; #3246 widened it). It ran the fixed
-  program, pinned `294a880da`. The pre-fix and the fixed program give the same
-  verdict on its recorded listing.
-- **Process state: (c).** The fixer's harnesses, the mutation proof and the
-  review's step 11 all ran and passed. Their unit is one copy of the gate program
+- **#3263 is a second defect with its own cause, fixed by #3276.** Run
+  42338396358's 2-second red is the edit/code-run deferral. It ran the program
+  pinned `294a880da`, which carries #3246 and still had gate.py's at-once bound
+  for a deferring edit gate (C3, `fa921fd59`; #3246 widened it). The bound was a
+  workaround: `prelude.judging()` read the deferring edit run's skipped
+  `pr-contract` caller, listed completed under its bare name, as an owed unit, so
+  that run looked busy to every gate and prelude at its head, and a wait on it
+  would have closed a cycle. #3276 (`812bb8747`) made `judging()` read such a
+  caller as a unit the run never ran and deleted the bound. As of main now, the
+  at-once red is an instance of that defect, not of #3246's race and not a
+  design. Section 1 gives its cause, section 3 its process state, section 4 its
+  cost, and the replay arm scores it (`C3-AT-ONCE` is a defect class).
+- **Process state: (c), twice.** For the stale pin: the fixer's harnesses, the
+  mutation proof and the review's step 11 all ran and passed. Their unit is one copy of the gate program
   per scene. The review read the live reds' `programs restored from <base>` lines
   and dismissed them until "this fix lands". Landing the fix does not reach those
-  runs.
+  runs. For the at-once bound (section 3): the self-test case pinned the bound
+  ("publishes the deferral at once"), the symptom, and not the property a
+  deferring run owes, that it is judging.
 - **Cost test: passes** for the countermeasure below, proposed and not built,
   because it edits `tools/ci/`. It costs one tree compare per re-run. Against it,
   21 red gates on 7 PRs in the first 65 minutes after the
   merge, and 3 gate-program fixes merged on main in the 7 days before.
 - **Built.** `dev/audit/harnesses/r10_rca_gate_busy_defer_2.py` replays the real
-  run and job listings of both evidence pairs, and of one more pair, through a
-  chosen program copy. It is red at the three pinned bases the live gates ran
-  and green at the fix. Its `census` arm sorts every gate since a time into
-  pinned-stale and pinned-fixed.
+  run and job listings of both evidence pairs, of one more pair and of three
+  edit/code-run scenes through a chosen program copy. It is red at the three
+  pinned bases the live gates ran and at `294a880da` (the C3 scenes), and green
+  at `812bb8747` and at this tree. Its `census` arm sorts every gate since a time
+  into pinned-stale and pinned-fixed.
 
 ## 1. The cause, reproduced
 
@@ -83,36 +96,72 @@ in time, as they did live, and the arm refuses a fixture where they do not.
 | 28482ece (pre-fix) | DEADLOCK | DEADLOCK | DEADLOCK | C3-AT-ONCE, naps 0 | 1 |
 | f2a01514 (pre-fix) | DEADLOCK | DEADLOCK | DEADLOCK | C3-AT-ONCE, naps 0 | 1 |
 | 80016a71 (pre-fix) | DEADLOCK | DEADLOCK | DEADLOCK | C3-AT-ONCE, naps 0 | 1 |
-| 294a880d (main, the fix) | DECIDED: PASS, PASS after 1 nap | DECIDED: PASS, PASS | DECIDED: PASS, PASS | C3-AT-ONCE, naps 0 | 0 |
-| this branch's tools/ci | as 294a880d | as 294a880d | as 294a880d | as 294a880d | 0 |
+| 294a880d (#3246's fix) | DECIDED: PASS, PASS after 1 nap | DECIDED: PASS, PASS | DECIDED: PASS, PASS | C3-AT-ONCE, naps 0 | 1 |
+| 812bb8747 (#3276, main) | DECIDED: PASS, PASS (naps 0, 0) | DECIDED: PASS, PASS | DECIDED: PASS, PASS | DEFERRED, naps 12 | 0 |
+| this tree's tools/ci (origin/main `b4ec2f332` merged) | as 812bb8747 | as 812bb8747 | as 812bb8747 | as 812bb8747 | 0 |
 
 In every pre-fix row, the replay gives the same deferral ids the live logs print.
-The fixed program decides all three pairs. The lower gate passes at once beside
+#3246's program decides all three pairs. The lower gate passes at once beside
 the higher's started gate. In #3261, the higher gate waits one poll, then passes.
+Under #3276's `judging()` the higher gate no longer waits at all (naps 0 and 0).
 None of the six live reds would have happened if the re-run had executed main's
 `gate.py`.
 
-### #3263: the designed C3 red, under the fixed program
+The three C3 scenes read `C3-AT-ONCE` through `294a880d` and `DEFERRED` with
+naps 12 through `812bb8747` and this tree. The 12 naps are the wait bound
+(`GATE_WAIT_MAX_S` 720 s at `POLL_S` 60 s): the recorded code run had not finished
+its units by then (29 minutes in progress at the recording), so the gate waited
+the bound and then published the deferral for the sweep. That is the designed
+bounded outcome. The replay cannot show the wait cycle `judging()` made, because
+a single-gate scene judges one gate beside a code run listed as recorded; the
+fixture self-test #3276 added to `gate.py` pins it.
+
+### #3263: the at-once red, an instance of the defect #3276 fixed
 
 Run 42338396358 is an edit run. Its prelude left `pr-contract` to code run
 42338396871 (`WORKSET: arch-score budget-raise-gate`). That code run's `gate` had
-not started. `judge()` sets the wait bound to 0
-(`deferring(...) and not all(started(r) ...)`) and publishes
-`FAIL run(s) [42338396871] ...` at once. The `gate.py` docstring states this case:
-"It publishes the deferral at once: that code run's gate is listed only after its
-pr-contract has read the latest body, so it is the later verdict here, and the
-sweep re-judges this one". The replay gives this verdict, with 0 naps, under all
-four programs. #3246's race harness counts it too: its `prelude` scenario reads
-UNDECIDED-RED 1, a designed deferral that the sweep converges to PASS. So the
-brief's first instance is not an escape of the race. The other two fixed-pin reds
-in the window, on #3261's new head and on #3241, have the same shape.
+not started. Under the program it ran (`294a880da`) `judge()` set the wait bound to
+0 (`deferring(...) and not all(started(r) ...)`) and published
+`FAIL run(s) [42338396871] ...` at once. The replay gives this verdict, with 0 naps,
+under `28482ece`, `f2a01514`, `80016a71` and `294a880d`. The other two
+fixed-pin reds in the window, on #3261's new head and on #3241, have the same
+shape. This record first called the red designed because `gate.py`'s docstring
+and #3246's own race harness (`prelude` scene, UNDECIDED-RED 1) both did.
 
-The cost of this red is real. Until its code run's gate is listed, the PR carries a
-red `gate`. At the recording, the code run had been in progress for 29 minutes
-(`governance / instrument-self-tests`, `tests / fast (3.14)` and `tests / closures`
-were still running). That cost is C3 option A's design, decided in R10-CI-SLIM, and
-#3246 did not change it. This seat records it in section 3 and does not price it as
-this defect.
+**Cause.** The at-once bound dodged a cycle that `prelude.judging()` made. A
+deferring edit run never expands `pr-contract`: GitHub lists its skipped caller
+as `pr-contract` completed, under the bare name. `judging()` looked up the unit's
+expanded job names, found them absent, and read the unit as owed. The deferring
+run then never counted as judging, so it looked busy to every gate and prelude at
+its head, and a gate that waited on it would wait on a run that waited on it. The
+bound cut the wait, and published a red instead. #3276 (`812bb8747`) reads a caller
+listed completed under its bare name as a unit the run never ran, and deletes the
+bound and `deferring()`. Its tree is main's `tools/ci/prelude.py` `judging()` and
+`tools/ci/gate.py`'s DEFERRAL docstring ("No gate is exempt from the wait"). That
+cause is recorded in #3276's commit message and in that docstring; this record
+adds the process state and the cost, which neither carries.
+
+**What it cost.** A red `gate` on the PR until the code run's gate is listed. At
+the recording, the code run had been in progress for 29 minutes. The census counts
+3 such reds in the first 65 minutes after #3246 merged (the `fixed` row, all C3),
+on PRs #3241, #3261 and #3263.
+
+**Process state.** (c), as for the stale pin: a process ran and passed. The checks
+that existed pinned the bound: `gate.py`'s self-test case "publishes the deferral
+at once", #3246's `prelude` scene and C3's decision all treated the at-once red as the specification, and #3276 rewrote the self-test case from "publishes the deferral at once" to "waits on it, then judges". The property the bound stood in for, "a deferring run is judging", was
+checked by none. Fixer step 11 asks a check to pin the artifact it reads, here the
+run's listed state, and not the outcome the author expected. Not (d): the
+`pr-contract` skip is C3's own design (R10-CI-SLIM, `fa921fd59`). Not (b): no rule
+is missing; step 11 states this one. Not (a): the cheaper detector was the live red itself, read as designed.
+
+**Countermeasure.** Landed by #3276, which deleted the bound and pinned the
+property with a fixture self-test of the recorded listings (a pin on the artifact
+read). This seat's `replay` arm now scores `C3-AT-ONCE` as a defect: rc 1 at
+`294a880d`, rc 0 at `812bb8747` and this tree. Standing cost: none; the arm runs
+no gate and no CI lane (section 4). Until this pull request merged, the arm
+was blind to it: `classify()` returned the single-gate scene's class but only
+`DEADLOCK` and `HALF-DEFERRED` set the exit code, so at `294a880d` the at-once red
+read rc 0. That blindness is fixed, in the same pull request, by `DEFECTS`.
 
 ## 2. Why the harnesses, the mutation proof and the review passed it
 
@@ -141,7 +190,7 @@ this defect.
 
 ## 3. Process state: (c)
 
-The process is `fixer.md` step 3 (the finder's harness at both ends), step 2 (the
+For the stale pin, the process is `fixer.md` step 3 (the finder's harness at both ends), step 2 (the
 mutation proof), and `fix-review.md`'s reading of every red check. It existed, it
 was followed, and it measured correctly what it measures, which is the gate
 predicate in one program copy. It did not produce the intended result, "the red
@@ -167,10 +216,7 @@ restore. A fix to any of them takes effect only for runs created after it merges
 A re-run of an older run replays the old behaviour, and does so until
 `ATTEMPT_CAP` (45) or a new push. The class search
 (`git log --first-parent --since=<d> origin/main -- 'tools/ci/*.py' tools/pr/codeql_scope.py tests/closure.py tools/pr/cancel_superseded.py`)
-returns 27 first-parent commits since 2026-10-23 and 11 since 2026-10-31. Over
-`tools/ci/gate.py` and `tools/ci/prelude.py` alone, it returns 3 merges since
-2026-10-31, each a hotfix for a red `gate`: #3205 (R10-HOTFIX-GATE-STALE-JOBS),
-#3230 (R10-CI-SLIM) and #3246. A fix to a grader that a PR's `pr-contract` re-run
+returns, at origin/main `b4ec2f332` on 2026-11-07 (15:02Z), 30 first-parent commits since `2026-10-23T00:00:00Z` and 15 since `2026-10-31T00:00:00Z`. `git log --since` anchors a bare date at the current time of day, so the time is written; the count still grows with each merge to those paths, so the record relies on the order of magnitude and on the rule. Over `tools/ci/gate.py` and `tools/ci/prelude.py` alone, the same rule returns 4 merges since `2026-10-31T00:00:00Z`, each a fix to a red `gate`: #3205 (R10-HOTFIX-GATE-STALE-JOBS), #3230 (R10-CI-SLIM), #3246 and #3276. A fix to a grader that a PR's `pr-contract` re-run
 reads has the same reach. `pr-contract.yml` already avoids the payload base for
 the main ref ("THE MAIN REF IS FETCHED, NOT THE PAYLOAD'S `base.sha`: a re-run
 replays the payload"), so the hazard is known in one workflow and not handled in
@@ -195,8 +241,7 @@ no such line (push runs, cancelled jobs). Command:
 36 of the 46 stale gates were re-run attempts (attempt > 1).
 
 Within 65 minutes of the merge, the stale gates published 21 deferral
-reds on 7 PRs. The fixed gates published 3, all of them C3's
-designed at-once red, and no mutual deferral. Null control: had the fix not
+reds on 7 PRs. The fixed gates published 3, all of them the at-once edit/code-run red of section 1, and no mutual deferral. Null control: had the fix not
 reached new runs either, the fixed row would hold mutual deferrals, and it holds
 none. Had the census called everything stale, the fixed row would be empty, and it
 holds three. Each stale mutual pair stays red until a new push creates a fresh run.
@@ -206,9 +251,7 @@ classify` reads the head as `RED ... red: gate`, as the #3246 review's
 `classify_log.txt` recorded at that PR's head. This seat did not measure reviewer dispatches delayed: no API records
 them, and the bus log is not in this tree.
 
-**P(recurrence).** 3 merges to `gate.py`/`prelude.py` in the 7 days to 2026-11-07,
-each a gate hotfix merged while PRs had open runs (section 3), and 27 commits to
-pinned programs in 15 days. Every one of them leaves the open PRs' re-runs on the
+**P(recurrence).** 4 merges to `gate.py`/`prelude.py` since `2026-10-31T00:00:00Z`, each a gate fix merged while PRs had open runs (section 3), and 30 commits to pinned programs since `2026-10-23T00:00:00Z` (the rule and the tip are section 3's). Every one of them leaves the open PRs' re-runs on the
 old copy.
 
 **The countermeasure's standing cost.** Before `refresh` or the sweep re-runs a
@@ -240,18 +283,25 @@ arm takes 0.08 s wall (`date +%s.%N` around it).
 recorded 2026-11-07T04:47:56Z by `record`). It addresses state (c)'s unit: it
 judges listings GitHub actually served, and it names the program copy.
 
-- **Red on the defect:** rc 1, DEADLOCK on all three pairs, at `28482ece`,
-  `f2a01514` and `80016a71`, the three bases the live gates ran.
-- **Green on the fix:** rc 0, DECIDED on all three pairs, at `294a880d` and at this
-  branch's `tools/ci`.
+- **Red on the defect:** rc 1 at `28482ece`, `f2a01514` and `80016a71`, the three
+  bases the live gates ran (DEADLOCK on all three pairs), and rc 1 at `294a880d`
+  (`C3-AT-ONCE` on the three edit/code-run scenes, the pairs DECIDED).
+- **Green on the fixes:** rc 0 at `812bb8747` and at this tree's `tools/ci`
+  (origin/main `b4ec2f332` merged): DECIDED on all three pairs, DEFERRED with
+  naps 12 (the bounded wait) on the three C3 scenes.
 - **Null controls:**
-  - The three C3 scenes read C3-AT-ONCE, with 0 naps, under every program, so the
-    arm does not count the designed red as the race.
-  - Mutant M17 (busy()'s tie-break deleted) on this tree's `gate.py` turns the arm
-    red: rc 1, with DEADLOCK on #3265 and #3255 and HALF-DEFERRED on #3261.
-  - Mutant M24 (`all` to `any`) survives the arm, rc 0. None of the recorded scenes
-    is the mixed prelude/gate scene that M24 opens, and `gate.py --self-test`'s
-    named case pins it. The arm does not replace the self-test.
+  - Scoring: a copy of the harness with `DEFECTS` reduced to `("DEADLOCK",
+    "HALF-DEFERRED")` (the harness as first handed off) gives rc 0 at `294a880d`;
+    the unmutated copy, relocated the same way, gives rc 1. The arm moves.
+  - The C3 scenes read `C3-AT-ONCE` with naps 0 under every program before
+    `812bb8747` and `DEFERRED` with naps 12 after it, so the class tells the at-once
+    publication from the bounded wait.
+  - Mutant M17 (busy()'s tie-break deleted) on this tree's `gate.py` **survives**
+    the arm at this head: rc 0, the three pairs DECIDED. Under #3276's `judging()`
+    the pair no longer reads each other busy, so the tie-break is not what decides
+    these listings, and `gate.py --self-test`'s M17 row pins it. M24 (`all` to `any`
+    in the bound) names code #3276 deleted and is not run. The arm does not replace
+    the self-test.
   - The arm refuses, and does not go green, on a fixture whose pair gates did not
     overlap, and on a gate that never started.
 
@@ -293,10 +343,10 @@ them. A re-run of the old run does not clear them.
 ## Carries
 
 - To the R10-HOTFIX-GATE-BUSY-DEFER fixer (topic r10-gate-busy-defer-2) and the
-  orchestrator: #3263's red is the designed C3 at-once deferral under the fixed
-  program, not the race. Another change to busy() or judge() cannot remove the six
-  stale reds, because they never ran busy() as it stands on main. Re-prove any
-  gate change with `replay --ci <export>`.
+  orchestrator: #3263's red was not designed; #3276 fixed it, and section 1 records
+  its cause, process state and cost. Another change to busy() or judge() cannot
+  remove the six stale reds, because they never ran busy() as it stands on main.
+  Re-prove any gate change with `replay --ci <export>`; `C3-AT-ONCE` now fails it.
 - To the orchestrator, now: #3265 and #3255 at their recorded heads, and any other
   PR the census lists as stale-red, need a fresh dispatched run (5.3), not a
   re-run.
