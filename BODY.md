@@ -2,7 +2,7 @@ R10-FLOW-TOOLKIT-MODEL: plan-model correctness in tools/plan/replan.py, plus the
 
 This repair round lands carry 16 (packet numbering; roster index 15; "From the s12 slip study (2026-11-07)"), on top of the merge-only conflict seat's head d84006e66001d42c744448949159f6473adedcd6, fast-forward. `git merge-tree --write-tree origin/main HEAD` reported no conflict at the start, so no merge was made.
 
-Carry 15: `held_open` counted `len(group carry)` and `group_hours`' absorbed-carry term counted `len(group carry)`, so a carry `roster_edit.py mark-carry` had discharged (implemented, moved, dismissed) still priced as open work. Both now count `roster_lib.pending_carries` (unmarked and not legacy):
+Carry 16 (roster index 15): `held_open` counted `len(group carry)` and `group_hours`' absorbed-carry term counted `len(group carry)`, so a carry `roster_edit.py mark-carry` had discharged (implemented, moved, dismissed) still priced as open work. Both now count `roster_lib.pending_carries` (unmarked and not legacy):
 
 - `held_open(group, durations, pending)`: an unmeasured group counts its pending carries; a measured one (`held_open_carries`) counts `min(open at measurement, pending carries among those then held)` plus the pending carries appended since. With no carry marked this is exactly the old figure.
 - `group_hours(..., legacy=None)`: computes `pending` once, prices the absorbed-carry term on `len(pending)`, and the duration basis ends `, N marked carries left out` whenever any carry was left out.
