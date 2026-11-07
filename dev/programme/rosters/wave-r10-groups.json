@@ -18009,7 +18009,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From PR 3296 (r10-fly-stamp-flush-cost), body item 7ab754eb: Post-merge measurement owed at the first stamp after merge, for one beat-only dispatch: its jobs and runner-minutes by the runs jobs API (`python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py runs <id>`). The job list should show record-autofix alone running. The same measurement must also confirm nightly-status's reading of that run: the run's `display_title` is `Nightly record beat`, and the next PR's `tests / nightly-status` grades the last schedule or lanes=all run, not the beat. This seat has no workflow-dispatch right. Carry: R10-FLY-STAMP-FLUSH-COST (items 7ab754eb)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
