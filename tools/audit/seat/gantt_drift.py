@@ -206,6 +206,11 @@ def _conf(mod):
     check("accept leaves other baselines alone", nb["finish"]["NEARG"] == base["finish"]["NEARG"])
     check("accept prints GANTT-BASELINE lines", len(notes) == 2 and all(x.startswith("GANTT-BASELINE") for x in notes))
     check("accept does not mutate the input baseline", base["closure"] == "2026-11-05T10:00:00Z")
+    isn = mod["is_named"]
+    check("a longer group's branch does not silence the shorter name (word boundary)",
+          not isn("PRG", roster, [{"headRefName": "fix/prg-extra"}], "", ""))
+    check("null: the exact topic branch names the group",
+          isn("PRG", roster, [{"headRefName": "fix/prg"}], "", ""))
     return n[0], bad
 
 
@@ -215,6 +220,7 @@ MUTANTS = [
     ("idle-prs", "[p.get(\"headRefName\", \"\") for p in prs]", "[]"),
     ("idle-refs", "+ [refs] +", "+ [] +"),
     ("idle-fired", "[l for l in fired.splitlines() if \"FIRED\" in l]", "[l for l in fired.splitlines()]"),
+    ("word-boundary", 'rf"(?<![\\w-]){re.escape(n)}(?![\\w-])"', "re.escape(n)"),
     ("idle-cp-first", "return idle + rest", "return rest + idle"),
     ("idle-cp-tag", "tag = \" CP\" if g in cp else \"\"", "tag = \"\""),
     ("late-threshold", "if d > late_h * 3600:", "if d >= late_h * 3600:"),
