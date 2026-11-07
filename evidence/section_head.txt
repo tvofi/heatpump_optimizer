@@ -1,0 +1,31 @@
+2314:  ok   a fresh install grades nothing, and says why for each part (#2258): with no heat reading the heat pump is never graded (R10-HOTFIX-COP-UNMEASURED); a metered one is still learning
+2315-  ok   R10-GRADE-DRIVERS: an ungraded heat pump says what it waits on -- samples per outdoor band against the requirement, and freeze refusals -- and no part publishes a driver without a grade
+2316-  ok   R10-GRADE-DRIVERS: the heat pump's evidence lists each band's samples, most first, and counts only the intervals a freeze refused
+2317-  ok   R10-GRADE-DRIVERS: a graded heat pump drops its evidence and carries one driver, its distance below its own COP history: none at 100, and a Cusum a quarter of the way to its alarm takes 25 points
+2318-  ok   R10-GRADE-DRIVERS: the Driving grade's drivers split it exactly -- energy bought under the day's mean pushes it up, energy bought over pulls it down -- and keep summing to it through the EMA
+2319-  ok   R10-GRADE-DRIVERS null control: buying flat through the day scores 0 and no driver moves it a point
+2320-  ok   R10-GRADE-DRIVERS: the Driving drivers ride the store across a restart, and a grade stored before they were kept reads as earlier days, never as a driver it did not measure
+2321-  ok   a house six times its typical loss is not 5/100 overall while nothing has been driven
+2322-  ok   #2258: a two-zone house is graded on the Health tab's heat loss, learned split included
+2323-  ok   #2258: at split 1.0 the configured total and the model's figure agree (null arm)
+2324-  ok   #2258: the grade dashes exactly while the Health tab reads the learner as learning
+2325-  ok   #2258: Health's learned and the score's heat_loss_learning are one predicate, and the unscored sensor stays available with the coordinator's code
+2326-  ok   #2258: converged is one EWMA time constant, 1/alpha samples, from the prior
+2327-  ok   #2258: an unconverged learner with a refit outside the band reads learning alone
+2328-  ok   #2258: no house loss reads no_house_model alone, learner state aside
+2329-  ok   #2258: a converged learner the refit disagrees with is dashed, not graded
+2330-  ok   #2258: a refit inside its own band does not dash the grade
+2331-  ok   #2258: a bucket with a non-finite count is not watched, here or on Health
+2332-  ok   #2258: after a free-price reset the operation part says so
+2333-  ok   #2258: across every view built here, a None carries a reason and a value none
+2334-  ok   #2258: one advice per cycle, none per advisor-sensor write
+--
+5831:-- R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power
+5832-  ok   no heat input: a hot-water interval whose draw equals its ask records no measured COP and no health-watch sample, though its inference is the model exactly; the COP scale still trains on it
+
+ALL 4912 FEATURE CHECKS PASSED
+rc=0
+
+real	7m14.006s
+user	6m50.392s
+sys	0m6.094s

@@ -1,0 +1,43 @@
+== m_A_if_measured_true_features.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+  FAIL no heat input: a hot-water interval whose draw equals its ask records no measured COP and no health-watch sample, though its inference is the model exactly; the COP scale still trains on it  [i
+  FAIL estimated heat over estimated power observes the fitted COP on every interval and records nothing measured; marked metered it records; an estimate marked by its source records nothing whatever 
+  FAIL metered heat over metered power records a space sample; a hot-water sample only where the heat meter is declared to see the hot-water circuit  [space (None, {(2, False): [3.0, 1]}, 3.0, 3.58749
+== m_B_cop_sample_none_false_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+  FAIL a thermal-power install with no heat reading refuses the COP fold; with no heat slot the same interval still trains the scale (null)  [thermal 2 (None); no slot 2]
+== m_C_id_rule_off_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+  FAIL estimated heat over estimated power observes the fitted COP on every interval and records nothing measured; marked metered it records; an estimate marked by its source records nothing whatever 
+  FAIL probe_install: an estimate on either side is not a measured COP; a heat counter outranks an estimated thermal power and divides by its electric counter
+  FAIL cop_observability: no heat input is not measurable, an estimated input is an estimate, metered heat over metered power is heat-metered  [{'no heat input': 'not_measurable', 'estimated heat and 
+== m_D_power_side_only_heat_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+  FAIL probe_install: an estimate on either side is not a measured COP; a heat counter outranks an estimated thermal power and divides by its electric counter
+== m_E_heat_side_only_power_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+  FAIL estimated heat over estimated power observes the fitted COP on every interval and records nothing measured; marked metered it records; an estimate marked by its source records nothing whatever 
+  FAIL probe_install: an estimate on either side is not a measured COP; a heat counter outranks an estimated thermal power and divides by its electric counter
+== m_F_loader_old_key_features.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+  FAIL a COP baseline stored before measured provenance loads empty with its CUSUM reset; one stored since round-trips  [old {(0, True): [2.3031, 2], (2, False): [2.5166, 2]} tripped False; back {(2, 
+== m_G_measured_cop_ungated_entities.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+== m_G_measured_cop_ungated_features.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+== m_H_machine_score_ungated_features.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 --
+  FAIL a fresh install grades nothing, and says why for each part (#2258): with no heat reading the heat pump is never graded (R10-HOTFIX-COP-UNMEASURED); a metered one is still learning  [{'envelope'
+== m_I_dhw_coverage_off_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 1 -
+  FAIL metered heat over metered power records a space sample; a hot-water sample only where the heat meter is declared to see the hot-water circuit  [space (None, {(2, False): [3.0, 1]}, 3.0, 3.58749
+== m_J_cusum_old_key_features.py.log
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+  FAIL a COP baseline stored before measured provenance loads empty with its CUSUM reset; one stored since round-trips  [old {} tripped True; back {(2, False): [3.0, 1]}]
+== m_K_obs_estimated_as_metered_features.py.log
+ custom_components/heatpump_optimizer/accuracy.py | 2 +-
+  FAIL cop_observability: metered heat measures; no heat reading is not measurable; an estimate is an estimate; no electrical figure is no COP
+  FAIL cop_observability: no heat input is not measurable, an estimated input is an estimate, metered heat over metered power is heat-metered  [{'no heat input': 'not_measurable', 'estimated heat and 
+== m_L_counter_power_estimate_features.py.log
+ custom_components/heatpump_optimizer/thermal_model.py | 2 +-
+  FAIL probe_install: an estimate on either side is not a measured COP; a heat counter outranks an estimated thermal power and divides by its electric counter
