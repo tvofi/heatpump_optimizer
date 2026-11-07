@@ -1224,6 +1224,18 @@ def _accuracy_freeze_allows_sample(reason: str | None) -> bool:
     return reason is None or reason == boost.FREEZE_REASON
 
 
+def _planned_split(pending: dict[str, Any]) -> tuple[float, float]:
+    """An interval's planned (space, dhw) kW; an absent channel planned 0.
+
+    The one reading of the plan's split: the energy settlement books by it
+    and the diagnosis record apportions the meter by it, so the two agree.
+    """
+    return (
+        float(pending.get("space_power") or 0.0),
+        float(pending.get("dhw_power") or 0.0),
+    )
+
+
 def _settle_interval_diag(
     coord: Any, sample: AccuracySample, pending: dict[str, Any],
     elapsed: float, now: datetime,
@@ -1241,9 +1253,7 @@ def _settle_interval_diag(
     if diag is None or sample.actual_temp is None:
         return
     ctx = getattr(coord, "_ctx", coord)
-    a = heat_energy.meter_of(coord).attribution(
-        (float(pending.get("space_power") or 0.0), float(pending.get("dhw_power") or 0.0))
-    )
+    a = heat_energy.meter_of(coord).attribution(_planned_split(pending))
     share = draw_range.space_share(a.space, a.dhw)
     coord._last_interval_record = {
         "when": now.isoformat(timespec="seconds"),
@@ -1611,6 +1621,23 @@ _HEAT_LOSS_ANCHOR_KEYS = ("house_heat_loss_anchor", "lower_floor_loss_anchor", "
 # Residuals beyond this are a door left open, a wood stove, or a sensor glitch
 # rather than a heat loss error.
 HOUSE_LOSS_MAX_RESIDUAL = 1.0  # °C
+
+
+def _loss_residual_rejected(residual: float, what: str) -> bool:
+    """Whether a fabric-loss residual is too large to be a heat-loss error.
+
+    The one magnitude gate both loss learners fold behind; a refusal is
+    logged naming the learner (``what``), so the two cannot disagree on the
+    bound or on whether a refused sample is reported.
+    """
+    if abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL:
+        return False
+    _LOGGER.debug(
+        "Ignoring %s sample: residual %.2f°C is too large to be a heat loss error",
+        what,
+        residual,
+    )
+    return True
 # Symmetric bound on how far one sample's Newton target may sit from the
 # *current* estimate before it is clipped, as a fraction of that estimate.
 # Centred on the current value, zero-mean noise has zero-mean effect after
@@ -5815,12 +5842,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return clean
         if not fold:
             return clean
-        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
-            _LOGGER.debug(
-                "Ignoring house heat loss sample: residual %.2f°C is too large "
-                "to be a heat loss error",
-                residual,
-            )
+        if _loss_residual_rejected(residual, "house heat loss"):
             return clean
 
         # T4b (#36 #53, both gated): the same accepted residual, split by
@@ -5938,12 +5960,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         residual = observed - predicted_state.lower_floor_temperature
         if not np.isfinite(residual):
             return clean
-        if abs(residual) > HOUSE_LOSS_MAX_RESIDUAL:
-            _LOGGER.debug(
-                "Ignoring lower floor loss sample: residual %.2f°C is too large "
-                "to be a heat loss error",
-                residual,
-            )
+        if _loss_residual_rejected(residual, "lower floor loss"):
             return clean
 
         base_u = params.lower_floor_heat_loss * self._house_heat_loss_scale
@@ -10243,12 +10260,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Filed first, so a plan with no room trajectory to promise about
         # (the early return below) does not also silence the tank's record.
         self._file_dhw_lead_predictions(result, solve_time, dt_h)
-        trajectory = (
-            result.upper_temp_trajectory
-            if ctx._thermal_params.two_zone_enabled
-            and result.upper_temp_trajectory
-            else result.room_temp_trajectory
-        )
+        trajectory = result.sensor_trajectory(ctx._thermal_params.two_zone_enabled)
         if not trajectory:
             return
         self._accuracy.note_promise(  # R9-UX-6: the day-ahead replay's promise
@@ -10292,12 +10304,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 )
             ),
         )
-        trajectory = (
-            result.upper_temp_trajectory
-            if ctx._thermal_params.two_zone_enabled
-            and result.upper_temp_trajectory
-            else result.room_temp_trajectory
-        )
+        trajectory = result.sensor_trajectory(ctx._thermal_params.two_zone_enabled)
         idx = min(steps, len(trajectory) - 1)
         return float(trajectory[idx])
     # ==================================================================
@@ -10329,8 +10336,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # its priced lines and spot sample out rather than booking 0.0.
         known_price = pending.get("price")
         price = float("nan") if known_price is None else float(known_price)
-        planned_space = float(pending.get("space_power") or 0.0)
-        planned_dhw = float(pending.get("dhw_power") or 0.0)
+        planned_space, planned_dhw = _planned_split(pending)
         planned_total = planned_space + planned_dhw
 
         when = pending.get("when") or dt_util.now()

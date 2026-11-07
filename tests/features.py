@@ -88,6 +88,8 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext
 from heatpump_optimizer.optimizer import _Horizon
+from heatpump_optimizer.optimizer import OptimizationResult as _OptResult
+import types as _types_mod
 
 
 def _owned_params(params):
@@ -8371,8 +8373,11 @@ class _PredGate:
         self._thermal_model = ThermalModel(self._thermal_params)
 
         class _Res:
+            from heatpump_optimizer.optimizer import OptimizationResult as _O
             room_temp_trajectory = [21.0, 21.4, 21.8]
             upper_temp_trajectory = []
+            # The production selection, as _predicted_next_room_temp is above.
+            sensor_trajectory = _O.sensor_trajectory
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -22298,6 +22303,10 @@ def _nf_settled(sun):
     coord._optimization_result = SimpleNamespace(
         room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
     )
+    # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+    coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
+        _OptResult.sensor_trajectory, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -22737,6 +22746,10 @@ _fake_plan = _NS(
     power_schedule=[0.5] * 96,
     dhw_power_schedule=[0.0] * 96,
     prices=[2.0] * 96,
+)
+# The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+_fake_plan.sensor_trajectory = _types_mod.MethodType(
+    _OptResult.sensor_trajectory, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -78555,6 +78568,210 @@ R.check(
     and _dg_held_b == {"cheap_hours": 1.0}
     and _dg_held_c == {"cheap_hours": 9.0},
     f"{_dg_held} {_dg_held_b} {_dg_held_c}",
+)
+
+
+# R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
+# owner to a sentinel answer and drives EVERY production caller that decided
+# the fact on its own copy; a caller that re-inlines its copy reads the input
+# and not the sentinel, so the check fails.
+from unittest import mock as _c2238_mock  # noqa: E402
+from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
+
+# P1: an interval's planned (space, dhw) split -- the ledger's reason lines and
+# the diagnosis record's apportionment of the meter.
+_c2238_pending = {
+    "price": 2.5, "spot_price": 2.0, "grid_fee": 0.5,
+    "space_power": 1.5, "dhw_power": 0.5, "when": _T6,
+    "space_reason": "cheap_price", "dhw_reason": "dhw_preheat",
+    "diag": {"state": {}, "planned": {}},
+}
+_c2238_p1 = _t2_coord()
+with _c2238_mock.patch.object(_c2238_cmod, "_planned_split", create=True, return_value=(1.0, 1.0)):
+    _c2238_p1._accumulate_energy(
+        AccuracySample(when=_T6, actual_power_kw=2.0), 1.0, dict(_c2238_pending)
+    )
+    _c2238_cmod._settle_interval_diag(
+        _c2238_p1,
+        AccuracySample(when=_T6, actual_power_kw=2.0, actual_temp=20.0),
+        dict(_c2238_pending), 1.0, _T6,
+    )
+_c2238_p1_space = _c2238_p1._ledger.line("2026-03", "reason:cheap_price")["kwh"]
+_c2238_p1_diag = (_c2238_p1._last_interval_record or {}).get("realised", {})
+R.check(
+    "R10-CLONE-2238 P1: the ledger split and the diagnosis apportionment both "
+    "read the planned split from _planned_split",
+    abs(_c2238_p1_space - 1.0) < 1e-9
+    and abs((_c2238_p1_diag.get("electrical_power") or 0.0) - 1.0) < 1e-9,
+    f"ledger space kWh {_c2238_p1_space}, diag {_c2238_p1_diag}",
+)
+
+
+# P3: the trajectory the indoor sensor reads -- the coordinator's next-room
+# prediction and lead buckets, the optimizer's breach report and its
+# safety-release scan all select it through OptimizationResult.sensor_trajectory.
+from heatpump_optimizer import optimizer as _c2238_omod  # noqa: E402
+from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _c2238_auto  # noqa: E402
+
+_C2238_SENTINEL_C = 10.0
+
+
+def _c2238_traj(_self, _two_zone):
+    return [_C2238_SENTINEL_C] * 400
+
+
+def _c2238_result(n):
+    return _BrRes(
+        power_schedule=[0.0] * n, room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1), timestamps=[], prices=[1.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0,
+        savings_percentage=0.0, optimal_setpoints=[21.0] * n, status="optimal",
+        dhw_power_schedule=[0.0] * n,
+    )
+
+
+_c2238_p3 = _t2_coord()
+_c2238_p3._mode = _c2238_auto
+_c2238_p3._optimization_result = _c2238_result(3)
+_c2238_p3._file_dhw_lead_predictions = lambda *_a, **_k: None
+_c2238_leads: list[float] = []
+_c2238_p3._accuracy.note_promise = lambda *_a, **_k: None
+_c2238_p3._accuracy.note_lead_prediction = lambda _w, _l, v: _c2238_leads.append(v)
+_c2238_p3_opt = _MbOpt(ThermalModel(_br_params), _MbCfg(horizon_hours=1))
+_c2238_p3_opt._dhw_requirement = None
+_c2238_p3_br = _c2238_result(3)
+with _c2238_mock.patch.object(
+    _c2238_omod.OptimizationResult, "sensor_trajectory", _c2238_traj, create=True
+):
+    _c2238_p3_next = _c2238_p3._predicted_next_room_temp()
+    _c2238_p3._file_lead_predictions(_c2238_result(3), _T6)
+    _c2238_p3_opt._publish_breach_reports(
+        _c2238_p3_br, np.array([1.0, 1.0, 1.0]), False, False, 3,
+        np.array([21.0, 21.0, 21.0]),
+    )
+    _c2238_p3_rel = _c2238_p3_opt._safety_release_steps(
+        _c2238_result(3), np.full(3, 18.0), np.zeros(3), None
+    )
+R.check(
+    "R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and "
+    "the safety release all read OptimizationResult.sensor_trajectory",
+    _c2238_p3_next == _C2238_SENTINEL_C
+    and bool(_c2238_leads) and set(_c2238_leads) == {_C2238_SENTINEL_C}
+    and _c2238_p3_br.predictive_info.get("power_cap_breach_c") == 21.0 - _C2238_SENTINEL_C
+    and _c2238_p3_rel[0] == [0, 1, 2],
+    f"next {_c2238_p3_next}, leads {_c2238_leads}, breach "
+    f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
+)
+
+# P3's rule itself, on a real result: two-zone with an upper trajectory reads
+# it; single-zone, or two-zone without one, reads the room.
+_c2238_p3_rule = _c2238_result(3)
+_c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_bare = _c2238_result(3)
+R.check(
+    "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
+    "mode with an upper trajectory, else the room",
+    _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
+    and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
+    f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
+    f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
+# P4: window means at their billed-equivalent factor -- the published peak_kw,
+# the exact charge and the batch surrogate all read tariff.billed_windows.
+_c2238_ct = CapacityTariff(
+    enabled=True, window_minutes=60, price_per_kw=1.0,
+    peak_hours=((7.0, 20.0),), offpeak_factor=0.5,
+)
+_c2238_opt = _bo_opt(_c2238_ct)
+_c2238_start = datetime(2026, 1, 14, 0, 0, tzinfo=_BO_TZ)
+_c2238_pow = np.full(96, 1.0)
+_c2238_flat = np.full(96, 100.0)
+_c2238_zero = np.zeros(96)
+# The optimizer imports the owner by name, so both bindings take the sentinel.
+_c2238_billed = _c2238_mock.Mock(side_effect=lambda w, _f: np.full(np.shape(w), 100.0))
+with _c2238_mock.patch.object(
+    _c2238_tmod, "billed_windows", _c2238_billed, create=True,
+), _c2238_mock.patch.object(
+    _c2238_omod, "billed_windows", _c2238_billed, create=True,
+):
+    _c2238_p4_bill = _c2238_opt._peak_billing(96, 0.25, _c2238_start)
+    _c2238_p4_rep = _c2238_opt._grid_report(_c2238_pow, _c2238_zero, 0.25, _c2238_start)
+    _c2238_p4_ref = round(peak_cost(_c2238_flat, _c2238_zero, _c2238_p4_bill), 3)
+    _c2238_p4_batch = float(_bo_pcb(np.stack([_c2238_pow]), _c2238_zero, _c2238_p4_bill)[0])
+    _c2238_p4_bref = _c2238_tmod.peak_cost_smooth(_c2238_flat, _c2238_zero, _c2238_p4_bill)
+R.check(
+    "R10-CLONE-2238 P4: peak_kw, peak_cost and peak_cost_batch all scale the "
+    "window means through tariff.billed_windows",
+    _c2238_p4_bill.window_factors is not None
+    and _c2238_p4_rep["peak_kw"] == 100.0
+    and _c2238_p4_rep["peak_cost"] == _c2238_p4_ref > 0.0
+    and abs(_c2238_p4_batch - _c2238_p4_bref) < 1e-9 and _c2238_p4_bref > 0.0,
+    f"report {_c2238_p4_rep}, ref {_c2238_p4_ref}, batch {_c2238_p4_batch} vs {_c2238_p4_bref}",
+)
+
+# P5: how many metering windows a plan spans -- the factors and the days are
+# both sized by HeatPumpOptimizer._n_peak_windows.
+with _c2238_mock.patch.object(
+    _BoOpt, "_n_peak_windows", create=True, side_effect=lambda *_a: 7,
+):
+    _c2238_p5_f = _c2238_opt._peak_window_factors(96, 0.25, _c2238_start, 0)
+    _c2238_p5_d = _c2238_opt._peak_day_kwargs(96, 0.25, _c2238_start, 0)["window_days"]
+R.check(
+    "R10-CLONE-2238 P5: the window factors and the window days are both sized "
+    "by _n_peak_windows",
+    _c2238_p5_f is not None and len(_c2238_p5_f) == 7
+    and _c2238_p5_d is not None and len(_c2238_p5_d) == 7,
+    f"factors {None if _c2238_p5_f is None else len(_c2238_p5_f)}, "
+    f"days {None if _c2238_p5_d is None else len(_c2238_p5_d)}",
+)
+
+# P7: the tracker's ranked (kW, day) record -- a restore and a window close
+# both store it through PeakTracker._keep_ranked.
+_c2238_kept: list[int] = []
+
+
+def _c2238_keep(self, ranked):
+    _c2238_kept.append(len(ranked))
+    self.peaks, self.peak_days = [42.0], ["sentinel"]
+
+
+with _c2238_mock.patch.object(PeakTracker, "_keep_ranked", _c2238_keep, create=True):
+    _c2238_p7 = PeakTracker.from_dict({
+        "month": "2026-10", "peaks": [5.0], "peak_days": ["2026-10-01"],
+        "window_key": "2026-10-02T12:00:00+02:00|60", "window_sum": 9.0,
+        "window_samples": 1, "window_factor": 1.0, "window_wsum": 9.0,
+        "window_weight": 1.0,
+    })
+    _c2238_p7_restored = list(_c2238_p7.peaks)
+    _c2238_p7.peaks, _c2238_p7.peak_days = [1.0], ["2026-10-01"]
+    _c2238_p7._close_window(CapacityTariff(enabled=True, window_minutes=60))
+R.check(
+    "R10-CLONE-2238 P7: from_dict and _close_window both store the ranked "
+    "record through PeakTracker._keep_ranked",
+    _c2238_kept == [1, 2] and _c2238_p7_restored == [42.0]
+    and _c2238_p7.peaks == [42.0] and _c2238_p7.peak_days == ["sentinel"],
+    f"calls {_c2238_kept}, restored {_c2238_p7_restored}, closed "
+    f"{_c2238_p7.peaks} {_c2238_p7.peak_days}",
+)
+
+# P8: the metering-window partition -- the scalar windows and the batch twin
+# both partition through tariff._window_partition.
+_c2238_house = np.arange(8.0)
+with _c2238_mock.patch.object(
+    _c2238_tmod, "_window_partition", create=True, side_effect=lambda *_a: (2, 1),
+):
+    _c2238_p8_s = _c2238_tmod.metering_windows(_c2238_house, 60, 0.25, 0)
+    _c2238_p8_b = _c2238_tmod._window_means_batch(_c2238_house[None, :], 60, 0.25, 0)
+R.check(
+    "R10-CLONE-2238 P8: metering_windows and _window_means_batch both "
+    "partition through _window_partition",
+    _c2238_p8_s.size == 5 and _c2238_p8_b.shape == (1, 5)
+    and np.allclose(_c2238_p8_s, _c2238_p8_b[0]),
+    f"scalar {_c2238_p8_s}, batch {_c2238_p8_b}",
 )
 
 
