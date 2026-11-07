@@ -116,3 +116,45 @@ Binding:
   2. `append-carry` with the dropped text verbatim, followed by `triage: dev/programme/triage/s6-batch133.md#P407 at <roster sha>`.
   3. `mark-carry --match 'triage: dev/programme/triage/s6-batch133.md#P407' implemented 6125b263d94e7ea8c43d31eb483869f8d8c83019`.
 - The orchestrator's refused mark is replaced by these three ops.
+
+## P408: author-email guard (queue line s12-author-email-guard)
+
+Verdict: ACCEPT changed, as an owner-tier hotfix. The owner set the tier and ruled that history is not rewritten. This seat rules on the form.
+- **The push guard: ACCEPT, with a changed allowlist.** It is a grammar, not a list of names:
+  - the seat identity `70032254+tvofi@users.noreply.github.com`;
+  - any `<digits>+<login>@users.noreply.github.com`, because the number pins the account;
+  - any `<name>[bot]@users.noreply.github.com` or `<digits>+<name>[bot]@users.noreply.github.com`, the Apps and github-actions;
+  - `noreply@github.com` as a committer only, the web-merge committer;
+  - an adopted outside contributor's own email, named per adoption.
+- **The adoption step that preserves the contributor's author: ACCEPT, narrowed.** The adopted commits keep their original author email, which the allowlist admits by name. A contributor whose commits reached main under a placeholder is credited by a `Co-authored-by:` trailer, as the owner ruled for #3226 on R10-COMBI-TANK carry 6.
+
+The destination is a new hotfix group, R10-HOTFIX-AUTHOR-EMAIL. Its owner, R10-SEAT-IDENTITY-GUARDS, is done (PR 3222, merged 2026-11-05T17:45:59Z), and it refused only Claude-authored commits.
+
+Source: the orchestrator's queue line of 2026-11-07, with the owner's tier and no-rewrite rulings it records.
+
+Instances:
+- **Placeholder and unnumbered addresses on main.** By `git log origin/main --format='%ae' | sort | uniq -c | sort -rn` (author emails, whole history):
+  - `t@t` 386, `fixer@invalid` 25, `noreply@anthropic.com` 1007;
+  - `seat@users.noreply.github.com` 522, `hpo-fixer@users.noreply.github.com` 194, `hpo-author@users.noreply.github.com` 25.
+  - The queue line's figures are a narrower window. These are cited from the command, not carried.
+- **Still arriving after PR 3222 merged.** By `git log origin/main --since=2026-11-05T12:00 --format='%ae%n%ce' | sort | uniq -c`:
+  - `seat@users.noreply.github.com` 378, `hpo-fixer@users.noreply.github.com` 144 and `noreply@users.noreply.github.com` 7.
+  - An unnumbered `<login>@users.noreply.github.com` is credited by GitHub to whichever account holds that login, so 529 commits in two days credit accounts that are not this project's.
+- **What ref_privacy refuses today.** `tools/audit/seat/ref_privacy.py` refuses private-use domains (`host-email`, `PRIVATE_EMAIL_SUFFIXES`, line 158) and Claude attribution (lines 243 to 258), but no placeholder or unnumbered address.
+- **The rule on the instances:**
+  - `seat@`, `hpo-fixer@`, `noreply@users.noreply.github.com`, `t@t`, `x@x`, `fixer@invalid` and `noreply@anthropic.com` are refused. None matches the grammar.
+  - `70032254+tvofi@`, `331381602+hpo-author[bot]@`, `hpo-author[bot]@`, `41898282+github-actions[bot]@` and `noreply@github.com` as committer pass.
+  - The null control: `476059+Bankaifan@users.noreply.github.com` in a trailer is not an author or committer, and passes untouched.
+
+Cost:
+- **The code:**
+  - One `email_identity` check in `ref_privacy.py` over the author and committer of each commit the push adds, which the file already reads for `host-email`. About 30 lines.
+  - Self-test arms for each refused and each passing form above, plus a mutant that drops the digits requirement and must pass `seat@users.noreply.github.com`.
+- **The writers.** The fixer finds which writers set `seat@` and `hpo-fixer@users.noreply.github.com`, and makes each set the seat identity. The candidates are the cloud environment's git config (`cloud-setup.sh`) and any `git -c user.email` in `tools/`. Otherwise the guard refuses live seats' pushes.
+- **Ownership and tier.** `ref_privacy.py` and `cloud-setup.sh` are seat instruments, and neither is a `--budgets` row. The tier is the owner's, hotfix: it misattributes contributors. It is not a wall-clock trade and needs no >10 % exemption.
+
+Binding:
+- **New group R10-HOTFIX-AUTHOR-EMAIL:** lane HOTFIX, kind instrument, class instrument, size S.
+  - Files: `tools/audit/seat/ref_privacy.py` and `tools/audit/seat/cloud-setup.sh`.
+  - Fixer sonnet, reviewer opus, effort medium, no `after`.
+- **The brief text:** `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P408 at <roster sha>), hotfix tier (owner, 2026-11-07: it misattributes contributors; history is not rewritten). Commits reach main under placeholder or unnumbered author and committer emails that GitHub credits to unrelated accounts: since 2026-11-05T12:00 seat@users.noreply.github.com 378, hpo-fixer@users.noreply.github.com 144, noreply@users.noreply.github.com 7 (git log origin/main --since=2026-11-05T12:00 --format=%ae%n%ce); historically t@t, x@x, fixer@invalid, noreply@anthropic.com. Add to tools/audit/seat/ref_privacy.py's push guard a refusal of any added commit whose author or committer email is outside this grammar: the seat identity 70032254+tvofi@users.noreply.github.com; <digits>+<login>@users.noreply.github.com; <name>[bot]@users.noreply.github.com with or without a <digits>+ prefix; noreply@github.com as committer only; and an adopted outside contributor own email passed explicitly per adoption. Find and fix the writers of seat@ and hpo-fixer@users.noreply.github.com (cloud-setup.sh git identity, any git -c user.email under tools/) so live seats pass. Self-test arms: each refused form above refuses; each allowed form passes; a mutant dropping the digits requirement fails the seat@ arm; null control: a Co-authored-by trailer naming 476059+Bankaifan@users.noreply.github.com is not judged. No history rewrite; credit for past placeholder commits stays the owner Co-authored-by route (R10-COMBI-TANK carry 6).`
