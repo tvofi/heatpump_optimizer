@@ -1433,6 +1433,9 @@ class _PlanSensorBase(HeatPumpOptimizerSensorBase):
             "sensor_advisor",
             # Lovelace reads plan-sensor attributes, not coordinator.data.
             "wood_fuel",
+            # The space plan's current-step drivers (R10-WHY-NOW-WIDGET):
+            # card-only, and new at every step.
+            "why_now",
         }
     )
     _plan_key: str = ""

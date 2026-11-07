@@ -78681,6 +78681,98 @@ R.check(
 )
 
 
+# Fix review of #3274, mutant C: rows are ordered by magnitude at EVERY step,
+# not only at the cheap-first step 0 (which has no negative weight). The
+# precondition asserts the solves hold a step where an idle push outweighs a
+# run push, so a sort by signed weight would list them the other way round.
+_wn_spiky = np.where(np.arange(96) % 8 < 2, 3.0, 0.8)
+_wn_sopt, _wn_sres = _wn_solve(_wn_spiky, room=21.8)
+_wn_steps = [
+    _wn_sd.why_now_at(r, i)
+    for r in (_wn_res, _wn_flat, _wn_away_res, _wn_mold, _wn_sres)
+    for i in range(len(r.timestamps))
+]
+_wn_steps = [w for w in _wn_steps if w is not None]
+_wn_mags = [[abs(d["weight"]) for d in w["drivers"]] for w in _wn_steps]
+_wn_crossed = sum(
+    1 for w in _wn_steps
+    if any(a["weight"] < 0 < b["weight"] and abs(a["weight"]) > b["weight"]
+           for a in w["drivers"] for b in w["drivers"])
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: at every step the rows run largest magnitude first, an idle push ahead of a smaller run push",
+    _wn_crossed > 0 and all(m == sorted(m, reverse=True) for m in _wn_mags),
+    f"{_wn_crossed} step(s) with an idle push over a run push, of {len(_wn_steps)}",
+)
+
+# Mutant D: the coordinator wires the away setback's drop into the solve.
+# Null control: away inactive reads None, the byte-inert default.
+from harness import FakeEntry as _WnEntry  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_start as _wn_pss  # noqa: E402
+_wn_coord = Coord(FakeHass(), _WnEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+
+def _wn_drop(state):
+    _wn_coord._away_state = state
+    now = _wn_pss(_wn_t0)
+    return _wn_coord._solve_record(now, _wn_coord._forecast_arrays(now)).inputs.limits.away_floor_drop_c
+
+
+_wn_rec_away = _wn_drop(_wn_away.AwayState(active=True, target_temperature=16.0))
+_wn_rec_home = _wn_drop(_wn_away.AwayState())
+_wn_want = _wn_away.floor_drop_c(
+    getattr(_wn_coord, "_ctx", _wn_coord)._opt_config,
+    _wn_away.AwayState(active=True, target_temperature=16.0))
+R.check(
+    "R10-WHY-NOW-WIDGET: _solve_record hands the solve away.floor_drop_c while away, None at home",
+    _wn_want is not None and _wn_want > 0
+    and _wn_rec_away == _wn_want and _wn_rec_home is None,
+    f"away {_wn_rec_away} (want {_wn_want}), home {_wn_rec_home}",
+)
+
+# Mutant E: the comfort floor _build_comfort_bounds returns for the drivers
+# carries the T5 confidence margins, and never the mold guard's raise.
+_wn_bopt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
+    horizon_hours=6, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+_wn_bh = np.array([(12.0 + 0.25 * i) % 24.0 for i in range(24)])
+_, _wn_b0, _, (_wn_cf0, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
+_, _wn_bm, _, (_wn_cfm, _wn_mfm) = _wn_bopt._build_comfort_bounds(
+    _wn_bh, 24, np.full(24, 0.4), np.full(24, 20.0))
+R.check(
+    "R10-WHY-NOW-WIDGET: the drivers' comfort floor is the margined floor, below the mold floor's raise",
+    np.allclose(_wn_cf0, _wn_b0)
+    and np.allclose(_wn_cfm, _wn_b0 + 0.4)
+    and np.allclose(_wn_mfm, 20.0) and np.allclose(_wn_bm, np.maximum(_wn_b0 + 0.4, 20.0)),
+    f"floor {_wn_b0[:2]} margined {_wn_cfm[:2]} mold {_wn_mfm[:2]} bound {_wn_bm[:2]}",
+)
+
+# The class of the fix review's block: every caller of _build_comfort_bounds
+# reads its four-element return. The out-of-tree-run harness caller
+# (r10_demand_overbook.py's DP reference) is driven here through its own
+# comfort_schedule, so a caller left on the old 3-tuple is a red check, not a
+# ValueError nobody runs. Census: git grep -n '_build_comfort_bounds(' --
+# custom_components tools tests dev ':!*.tsv'.
+import importlib.util as _wn_ilu  # noqa: E402
+_wn_spec = _wn_ilu.spec_from_file_location(
+    "hpo_r10_demand_overbook", "dev/audit/harnesses/r10_demand_overbook.py")
+_wn_hm = _wn_ilu.module_from_spec(_wn_spec)
+_wn_spec.loader.exec_module(_wn_hm)
+try:
+    _wn_hsched = _wn_hm.comfort_schedule(_wn_bopt, _wn_t0, 24)
+except ValueError as _wn_herr:
+    _wn_hsched = _wn_herr
+_wn_hh = np.array([(_wn_t0.hour + _wn_t0.minute / 60.0 + i * _wn_hm.DT_MIN / 60.0) % 24.0
+                   for i in range(24)])
+_wn_hwant = _wn_bopt._build_comfort_bounds(
+    _wn_hh, 24, None, None, [_wn_t0 + timedelta(minutes=_wn_hm.DT_MIN * i) for i in range(24)])
+R.check(
+    "R10-WHY-NOW-WIDGET: r10_demand_overbook.comfort_schedule reads the solve's (target, floor, ceiling)",
+    isinstance(_wn_hsched, tuple) and len(_wn_hsched) == 3
+    and all(np.array_equal(a, b) for a, b in zip(_wn_hsched, _wn_hwant[:3])),
+    f"{_wn_hsched!r}"[:300],
+)
+
+
 # R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
 # owner to a sentinel answer and drives EVERY production caller that decided
 # the fact on its own copy; a caller that re-inlines its copy reads the input

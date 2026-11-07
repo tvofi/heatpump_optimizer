@@ -13362,7 +13362,11 @@ check("without an indoor reading the corner now label is absent",
     // The roster brief's wording, verbatim (R10-WHY-NOW-WIDGET carry 1).
     && ["Price rank", "Comfort floor", "Mold guard", "Away", "Forecast"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => EN[`whynow.driver_${c}`]).join()
     && ["Prisrang", "Komfortgolv", "Mögelskydd", "Bortaläge", "Prognos"].join() === ["price_rank", "comfort_floor", "mold_guard", "away", "forecast"].map((c) => fn("STRINGS.sv")[`whynow.driver_${c}`]).join()
-    && EN["whynow.metric"].startsWith("The reasons behind this hour's decision.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen bakom den här timmens beslut."),
+    && EN["whynow.metric"].startsWith("The reasons weighing on this hour's plan.") && fn("STRINGS.sv")["whynow.metric"].startsWith("Skälen som väger på den här timmens plan.")
+    // The rows are pushes on the plan, not the decision: the text may not
+    // claim a share decides the hour (fix review of #3274, finding 1).
+    && !/decides the hour/.test(EN["whynow.metric"]) && EN["whynow.metric"].includes("can still do the opposite")
+    && fn("STRINGS.sv")["whynow.metric"].includes("ändå göra tvärtom"),
     `${whyKeys("en")} | ${whyKeys("sv")}`);
 }
 

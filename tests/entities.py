@@ -2455,6 +2455,11 @@ R.check(
     "and keeps wood_fuel out of the recorder",
     "wood_fuel" in sensor._PlanSensorBase._unrecorded_attributes,
 )
+R.check(
+    "the space plan keeps why_now out of the recorder (R10-WHY-NOW-WIDGET)",
+    "why_now" in sensor.SpaceHeatingPlanSensor._unrecorded_attributes,
+    "card-only, and new at every step: worth no SD-card writes per update",
+)
 
 # Optional inputs must degrade cleanly.
 no_power = FakeCoordinator({**DATA, "measured_power_available": False, "measured_power": None})

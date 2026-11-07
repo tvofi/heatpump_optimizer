@@ -897,7 +897,7 @@ const STRINGS = {
     "headline.savings_pct": "({pct}%)",
     "whynow.title": "Why now",
     "whynow.metric":
-      "The reasons behind this hour's decision. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason mostly decides the hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
+      "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
     "whynow.no_data": "No data",
     "whynow.all_neutral": "No effect now from any reason.",
     "whynow.dir_run": "pushes toward running",
@@ -1738,7 +1738,7 @@ const STRINGS = {
     "headline.savings_pct": "({pct} %)",
     "whynow.title": "Varför nu",
     "whynow.metric":
-      "Skälen bakom den här timmens beslut. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet mest avgör timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
+      "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
     "whynow.no_data": "Ingen data",
     "whynow.all_neutral": "Ingen påverkan nu från något skäl.",
     "whynow.dir_run": "driver mot drift",
