@@ -4739,6 +4739,24 @@
       "doc": [
         "dev/audit/rca/r10-rca-flush-dispatch.md"
       ]
+    },
+    "R10-RCA-GATE-BUSY-DEFER-2": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3246 (355d9965) fixed gate.py's mutual deferral, yet mutual deferral reds persisted on #3261, #3265 and #3255: ci.yml restores tools/ci from the payload's base.sha, a job re-run replays that payload, so refresh and the sweep re-ran pre-merge runs on the pre-fix gate.py (46 stale-pinned gates, 21 deferral reds on 7 PRs in the 65 min after the merge; the replay of their real listings DEADLOCKs at each pinned base and DECIDES at the fix). #3263's red is a second defect, fixed by #3276 (812bb8747): prelude.judging() read a deferring edit run's skipped pr-contract caller as owed and gate.py's at-once bound dodged the cycle that made",
+      "trigger": "2 (red required check: gate)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the stale-pin compare in refresh() and sweep.py, dispatching a fresh run (tools/ci, the gate fixer's and the orchestrator's)"
+      ],
+      "process_state": "(c) fixer step 3's harnesses import one tools/ci copy per scene and the mutation proof mutates that copy; the #3246 review read the live reds' `programs restored from b36679ce` lines and dismissed them until the fix landed, and landing does not reach a run pinned at its creation; for #3263 the self-test and #3246's prelude scene pinned the at-once red as the specification, not the property the bound stood in for (a deferring run is judging)",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay over recorded live listings (rc 1 at 28482ece, f2a01514, 80016a71 and, for C3-AT-ONCE, 294a880d; rc 0 at 812bb8747 and the branch) and its census arm; proposed: a re-run of a gate whose pinned programs differ from the base tip is replaced by a ci.yml dispatch (under 0.01 s of compare per re-run)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-2.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
     }
   },
   "N-registry-leak": {
