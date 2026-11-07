@@ -1,0 +1,8 @@
+== real code (head)
+renovate[bot]/Bot owed=None
+Bankaifan/User owed=reply
+== mutant mark_thirdbot_moves_out
+renovate[bot]/Bot owed=reply
+Bankaifan/User owed=reply
+outside_intake self-test: all checks passed
+self-test rc=0

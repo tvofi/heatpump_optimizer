@@ -1,0 +1,13 @@
+outside_intake rc=0 outside_intake self-test: all checks passed
+ok-cases=44 of which mutants=19
+plan_public self-test: all checks passed
+beat_jobs self-test: 136 checks, 0 failed
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1162 line(s) added since f2a015142714 judged, 0 refused
+origin/main f2a015142714383722bf49d7ab20d8398ec9674c
+merge-tree rc=0
+diff 296bc921..head vs main-merge:
+0
+48acc104f97cf88bf0ec28a3f6ec01438e169bb5
+296bc921d0023a52d194c1f8d16d5afa418c098f
+no-version-touch-check-done
+STRUCTURE RATCHET PASSED
