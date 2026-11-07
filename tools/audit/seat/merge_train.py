@@ -509,6 +509,21 @@ def gate_busy(ci_runs, check_runs) -> list:
 SWEEP_SETTLE_POLLS = 1
 
 
+def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
+    """The `classify` subcommand's one read at <sha>, as (exit code, line):
+    GREEN 0, RED 1, WAIT 3, APPROVAL-OWED 4. A Stop is the caller's REFUSE."""
+    runs = t._check_runs(sha)
+    if runs is None:
+        raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
+    req = t.required(pr_head=not on_main)
+    state, pending, red = classify(latest_runs(runs), req)
+    why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
+    if why:
+        return 4, f"APPROVAL-OWED {sha} {why}"
+    return ({"green": 0, "red": 1, "wait": 3}[state],
+            f"{state.upper()} {sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
+
+
 #: The gate unit whose red, before the review, is every budget raise's state (K15 (d)).
 RAISE_GATE = "budget-raise-gate / budget-raise-gate"
 
@@ -8006,21 +8021,12 @@ def main(argv: list[str]) -> int:
             if a.cmd == "unstale":
                 t.unstale(a.sha)
                 return 0
-            runs = t._check_runs(a.sha)
-            if runs is None:
-                raise Stop("ci", f"the check runs at {a.sha[:12]} could not be read")
-            req = t.required(pr_head=not a.main)
-            state, pending, red = classify(latest_runs(runs), req)
-            why = (approval_owed(t, a.pr, a.sha, runs, req)
-                   if state == "red" and a.pr is not None else None)
+            rc, line = classify_cmd(t, a.sha, a.pr, a.main)
         except Stop as s:
             print(f"REFUSE {s.step}: {s.why}")
             return 1 if a.cmd == "unstale" else 2
-        if why:
-            print(f"APPROVAL-OWED {a.sha} {why}")
-            return 4
-        print(f"{state.upper()} {a.sha} pending: {' '.join(pending) or 'none'} red: {' '.join(red) or 'none'}")
-        return {"green": 0, "red": 1, "wait": 3}[state]
+        print(line)
+        return rc
     if a.cmd == "sweep":
         t = Train(a.repo, Path(a.state_dir), a.mandate, "", (), a.min_runs, stamp=a.stamp)
         return sweep(t, auto_train_argv(a.repo, a.state_dir, a.mandate))
