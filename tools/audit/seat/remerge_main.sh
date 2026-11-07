@@ -16,6 +16,7 @@ set -uo pipefail
 # trap reaps it, and the push runs asynchronously so an INT does not wait behind it.
 . "$(dirname -- "$0")/pr_args.sh"
 PR=$1; W=$2; BR=$3; B=$4; shift 4
+SEAT=$(cd "$(dirname -- "$0")" && pwd)
 PL=$B.push.log; pr_exit_trap 'test -n "${KEEP:-}" || rm -f "$PL"'
 cd "$(git -C "$(dirname -- "$0")" rev-parse --show-toplevel)" || exit 1
 export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=tvofi GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com
@@ -23,7 +24,9 @@ export GIT_AUTHOR_NAME=tvofi GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.githu
 # the branch, merge_train.py's unforced release_worktrees could not remove it, and the next recarry's
 # `worktree add -B` found the branch checked out. The merge started at origin/$BR and merged only
 # origin/main, so the abort, or the reset when no merge is in progress, loses nothing.
-if ! ( cd "$W" && git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
+# The fetch rides git's own transient stderr out on gh_read.py's rule, the train's own
+# (R10-TRAIN-MERGE-LOOP-2): unretried, one 502 read as MERGE CONFLICT and stopped the train.
+if ! ( cd "$W" && python3 "$SEAT/gh_read.py" --git-retry git fetch -q origin main "$BR" && git reset -q --hard "origin/$BR" && git merge --no-edit -q origin/main ); then
   git -C "$W" merge --abort 2>/dev/null || git -C "$W" reset -q --hard "origin/$BR" 2>/dev/null || :  # mut:remergeabort
   echo "MERGE CONFLICT $PR"; exit 1
 fi

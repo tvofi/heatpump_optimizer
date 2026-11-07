@@ -1302,34 +1302,6 @@ def train_add(t: "Train", item: dict, train_argv: "list[str]", launch=launch_det
         return 0
 
 
-GIT_TRIES = 3
-#: git's own stderr, measured: smart-HTTP and socket failures a later call rides out.
-GIT_TRANSIENT = re.compile(
-    r"returned error: 5\d\d|RPC failed; HTTP 5\d\d|unexpected disconnect while reading sideband"
-    r"|early EOF|the remote end hung up unexpectedly|Connection reset by peer|Could not resolve host"
-    r"|Failed to connect|Operation timed out|GnuTLS recv error|SSL_ERROR_SYSCALL|unable to access.*timed? ?out")
-#: A refusal or a rejected update: never retried, whatever else the output says.
-GIT_REFUSED = re.compile(
-    r"non-fast-forward|\[rejected\]|Permission denied|Authentication failed|\b40[34]\b"
-    r"|couldn't find remote ref|protected branch hook declined|stale info|remote rejected")
-
-
-def git_transient(output: str) -> bool:
-    """git's stderr on a failed fetch/push -> True when another call may ride it out."""
-    return not GIT_REFUSED.search(output) and bool(GIT_TRANSIENT.search(output))
-
-
-def run_git_retry(run, argv, sleep, log=lambda line: None, **kw):
-    """`run(argv)` for a git fetch/push, repeated up to GIT_TRIES times (settling 5/15 s)
-    while the failure is git_transient; a rejection or a success answers at once."""
-    for n in range(1, GIT_TRIES + 1):
-        code, o = run(argv, **kw)
-        if not code or n == GIT_TRIES or not git_transient(o):
-            return code, o
-        log(f"merge_train: {' '.join(argv)[:120]}: git {n}/{GIT_TRIES}: {' '.join(o.split())[:120]}")
-        sleep(5 * 3 ** (n - 1))
-
-
 class Train:
     def __init__(self, repo: str, state: Path, mandate: str | None, role: str,
                  ignore: tuple[str, ...], min_runs: int, run=None, sleep=time.sleep,
@@ -1405,7 +1377,7 @@ class Train:
         of a head commit. Every other call, and every write, is `run`'s alone."""
         def retried(argv, **kw):
             if argv[:2] in (["git", "fetch"], ["git", "push"]):  # transport, idempotent: a rejection is never retried
-                return run_git_retry(run, argv, self.sleep, self.log, **kw)
+                return gh_read.run_git_retry(run, argv, self.sleep, lambda line: self.log(f"merge_train: {line}"), **kw)
             if not gh_read.is_read(argv):
                 return run(argv, **kw)
 
@@ -3993,10 +3965,13 @@ def _self_test() -> int:
     check("undraft null: a draft with a pending required context is not undrafted",
           rc == 1 and not ud(lines) and not merged(calls))
     rc, lines, calls = go({"is_draft": True, "ready_rc": (1, "boom")}, q=[dict(D)])
-    check("a failed gh pr ready is an undraft Stop, no merge", rc == 1 and "undraft:" in lines[-1] and not merged(calls))
+    # Keyed on each arm's own Stop: the failed ready's fixture leaves isDraft true, so
+    # the re-read arm would stop it too, under the same `undraft:` phase.
+    check("a failed gh pr ready is its own undraft Stop, naming the call and its output, no merge",
+          rc == 1 and "undraft: gh pr ready #7 failed: boom" in lines[-1] and not merged(calls))
     rc, lines, calls = go({"is_draft": True, "redraft": True}, q=[dict(D)])
-    check("a head re-drafted after the call stops the run before the merge",
-          rc == 1 and "undraft:" in lines[-1] and not merged(calls))
+    check("a head re-drafted after the call stops the run before the merge, as a draft again",
+          rc == 1 and "undraft: #7 is a draft again after gh pr ready" in lines[-1] and not merged(calls))
     rc, lines, calls = go({})
     check("a green, carried, non-policy pull request merges (null control)", rc == 0 and merged(calls) and lines[-1] == "TRAIN DONE")
     check("a wait that settles on its first poll beats nothing (heartbeat null control)",
@@ -5594,6 +5569,9 @@ def _gate_race_self_test(check) -> None:
     red, sb = wait([[edit_gate]], [done])
     check("null control: a red gate with no unfinished sibling run still returns red on the first poll",
           red == [GATE] and len(sb) == 1)
+    red, sb = wait([[edit_gate]], ["42237558473\taction_required\n42237558635\tcompleted\n"])
+    check("a held sibling run (action_required) is not unfinished: the red gate returns on the first poll",
+          red == [GATE] and len(sb) == 1)
     red, sb = wait([[edit_gate]], [(1, "boom")])
     check("an unreadable runs listing leaves the red standing (today's skip)", red == [GATE] and len(sb) == 1)
     unit = {"name": "fast", "status": "completed", "conclusion": "failure", "started_at": "1"}
@@ -5674,12 +5652,12 @@ def _git_retry_self_test(check) -> None:
               "Connection reset by peer", "Could not resolve host: github.com", "Failed to connect to github.com",
               "Operation timed out", "GnuTLS recv error (-54)", "OpenSSL SSL_ERROR_SYSCALL", "returned error: 502",
               "fatal: unable to access 'u': Connection timed out"):
-        check(f"git transient: {s[:50]}", git_transient(s))
+        check(f"git transient: {s[:50]}", gh_read.git_transient(s))
     for s in (" ! [rejected] main -> main (non-fast-forward)", "Permission denied (publickey)", "Authentication failed",
               "returned error: 403", "returned error: 404", "fatal: couldn't find remote ref x",
               "remote: error: protected branch hook declined", "! [rejected] (stale info)", "! [remote rejected] x",
               "RPC failed; HTTP 502 but remote rejected"):
-        check(f"git not transient: {s[:50]}", not git_transient(s))
+        check(f"git not transient: {s[:50]}", not gh_read.git_transient(s))
 
     def go(outs):
         calls, sleeps = [], []
@@ -7974,7 +7952,7 @@ def _post_approval_self_test(check) -> None:
     """`add --wait-post-approval`: a fake gh, a fake clock; sleeping advances it."""
     H, OLD, AT, NEW = "a" * 40, "2026-01-01T10:00:00Z", "2026-01-01T11:00:00Z", "2026-01-01T11:05:00Z"
 
-    def wait(runs_by_poll, ref=H, budget=10000.0):
+    def wait(runs_by_poll, ref=H, budget=10000.0, verdict="merge"):
         clk, slept = [0.0], []
 
         def run(argv, **kw):
@@ -7985,7 +7963,7 @@ def _post_approval_self_test(check) -> None:
                 return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
                                        "submitted_at": AT}]])
             if "/comments" in j:
-                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: merge {H}\nn"}]])
+                return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}]])
             if "check-runs" in j:
                 rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
                 return 0, "\n".join(json.dumps(r) for r in rs)
@@ -8006,6 +7984,10 @@ def _post_approval_self_test(check) -> None:
     rc, slept, _ = wait([[old_green, cr(NEW, "in_progress", None)], [old_green, cr(NEW)]])
     check("post-approval wait: a gate run green BEFORE the approval plus one in progress after it waits "
           "(slept), then adds when the new run completes", rc == 0 and len(slept) == 1)
+    rc, slept, lines = wait([[old_green, cr(NEW)]], verdict="blocked", budget=500)
+    check("post-approval wait: an approval review with no `Fix review: merge <head>` comment beside it "
+          "waits to the budget (rc 3), naming the missing verdict",
+          rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and "verdict comment" in lines[-1])
     rc, slept, _ = wait([[old_green]])
     check("post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)",
           rc == 3 and bool(slept))
