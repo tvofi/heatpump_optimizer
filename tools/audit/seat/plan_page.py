@@ -399,12 +399,13 @@ def project_issues(roster: dict, plan: dict, open_now: set) -> dict:
     unplanned: set = set()
     wired: dict = {}
     for gid, entry in roster_lib.groups_of(roster).items():
-        for n in entry.get("issues") or []:
+        carried = list(dict.fromkeys([*(entry.get("issues") or []), *(entry.get("fixes") or [])]))
+        for n in carried:
             wired.setdefault(n, []).append(gid)
         pg = plan["groups"].get(gid)
         if not pg or not roster_lib.is_open(entry):
             continue
-        for n in entry.get("issues") or []:
+        for n in carried:
             if n not in open_now:
                 continue
             if not pg.get("finish"):
@@ -836,6 +837,11 @@ def _self_test() -> int:
     check("an open issue wired only to a done group, or to none, is an unplanned orphan "
           "naming the groups it was wired to",
           pr_["orphans"] == {6: ["R9-GONE"], 99: []}, pr_["orphans"])
+    fr = {"groups": [grp("R9-FIXONLY", "CO", fixes=(8,))]}
+    fp = project_issues(fr, {"groups": {"R9-FIXONLY": pg("2026-01-05T10:00:00Z")}}, {8})
+    check("an open issue wired only via `fixes` to an open group closes at its finish, "
+          "not an unplanned orphan",
+          fp["close_at"].get(8) == _t("2026-01-05T10:00:00Z") and not fp["orphans"], fp)
     check("the tracking issue is never an orphan",
           TRACKING_ISSUE not in project_issues(ir, ip, {1, TRACKING_ISSUE})["orphans"])
     osec = issues_section(ir, dict(ip, generated={"start": "2026-01-05T00:00:00Z"},
