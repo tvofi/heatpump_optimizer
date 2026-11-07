@@ -8010,8 +8010,27 @@ R.check(
 from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
 
 
+from heatpump_optimizer import coordinator as _cg_coord_mod  # noqa: E402
+
+
 class _CopGate:
-    _learn_measured_cop = Coord._learn_measured_cop
+    #: R10-HOTFIX-COP-UNMEASURED: this stub has no heat reading, so the fold
+    #: records nothing as measured. ``as_measured`` hands the fold's tail an
+    #: interval it treats as a measured one, for the checks that pin what the
+    #: tail credits a measured sample; which samples are measured is pinned on
+    #: the real coordinator (that section's checks).
+    as_measured = False
+
+    def _learn_measured_cop(self, draw=None):
+        if not self.as_measured:
+            return Coord._learn_measured_cop(self, draw)
+        saved = _cg_coord_mod._cop_sample_measured
+        _cg_coord_mod._cop_sample_measured = lambda coord, heat_kw, dhw: True
+        try:
+            return Coord._learn_measured_cop(self, draw)
+        finally:
+            _cg_coord_mod._cop_sample_measured = saved
+
     _fold_measured_cop = Coord._fold_measured_cop
     _fold_cop_evidence = Coord._fold_cop_evidence
     _commanded_power = Coord._commanded_power
@@ -8028,6 +8047,7 @@ class _CopGate:
         # all, and this fixture is about the frost-band *split*, not the
         # magnitude — it has to stay on the efficiency side of that gate.
         self._measured_power = 2.6
+        self._config = {}  # no heat slot: probe_install's empty install
         self._current_action = dict(action) if action else {"power": 3.0}
         # v5.3.0: with no mode entity the signals are the full-capability
         # default, which masks nothing and selects the space curve — the
@@ -23564,7 +23584,10 @@ R.check(
     and _ce1_lossless["reasons"]["envelope"] == "no_house_model",
     f"massless {_ce1_massless} lossless {_ce1_lossless}",
 )
-_cmach = _t2_coord()
+# R10-HOTFIX-COP-UNMEASURED: a grade needs an install that measures its COP,
+# metered heat over metered power; the grading fixtures below carry one.
+_CMACH_METERED = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
+_cmach = _t2_coord(**_CMACH_METERED)
 R.check(
     "no COP evidence means no machine grade, not a failing one",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] is None,
@@ -23573,7 +23596,7 @@ R.check(
 # so a bucket at exactly that count is watched; one short of it is not.
 _cmach_edge = {}
 for _cmach_n in (COP_BASELINE_MIN_SAMPLES - 1, COP_BASELINE_MIN_SAMPLES):
-    _cmach_c = _t2_coord()
+    _cmach_c = _t2_coord(**_CMACH_METERED)
     _cmach_c._cop_baseline[(3, False)] = [3.0, _cmach_n]
     _cmach_edge[_cmach_n] = _cmach_c._scores_view(_rs_advice(_cmach_c))["machine"]
 R.check(
@@ -23596,7 +23619,7 @@ R.check(
     "a machine past the alarm threshold still grades 0, never below (#2258)",
     _cmach._scores_view(_rs_advice(_cmach))["machine"] == 0.0,
 )
-_cedge = _t2_coord()
+_cedge = _t2_coord(**_CMACH_METERED)
 _cedge._cop_baseline[(3, False)] = [3.0, COP_BASELINE_MIN_SAMPLES]
 _cedge_view = _cedge._scores_view(_rs_advice(_cedge))
 R.check(
@@ -23769,17 +23792,22 @@ R.check(
 )
 _fresh6_c = _t2_coord()
 _fresh6 = _fresh6_c._scores_view(_rs_advice(_fresh6_c))
+_fresh6_m = _t2_coord(**_CMACH_METERED)
+_fresh6_mv = _fresh6_m._scores_view(_rs_advice(_fresh6_m))
 R.check(
-    "a fresh install grades nothing, and says why for each part (#2258)",
+    "a fresh install grades nothing, and says why for each part (#2258): with "
+    "no heat reading the heat pump is never graded (R10-HOTFIX-COP-UNMEASURED); "
+    "a metered one is still learning",
     _fresh6["machine"] is None
     and _fresh6["operation"] is None
     and _fresh6["overall"] is None
     and _fresh6["envelope"] is None
     and _fresh6["reasons"] == {
-        "envelope": "heat_loss_learning", "machine": "cop_watch_learning",
+        "envelope": "heat_loss_learning", "machine": "cop_unmeasurable",
         "operation": "no_scored_day", "overall": "first_scored_day",
-    },
-    f"{_fresh6}",
+    }
+    and _fresh6_mv["machine"] is None and _fresh6_mv["reasons"]["machine"] == "cop_watch_learning",
+    f"{_fresh6} / {_fresh6_mv['reasons']}",
 )
 
 # --- R10-GRADE-DRIVERS: the heat-pump and Driving grades publish drivers in
@@ -23795,7 +23823,7 @@ R.check(
     and _fresh6["machine_evidence"] == {"required": 20, "bands": [], "refused_frozen": 0},
     f"{_fresh6}",
 )
-_gd_m = _t2_coord()
+_gd_m = _t2_coord(**_CMACH_METERED)
 _gd_m._cop_baseline[(-1, False)] = [3.1, 12]
 _gd_m._cop_baseline[(0, True)] = [2.4, 5]
 _gd_m._measured_power = 1.0
@@ -24078,7 +24106,7 @@ R.check(
 
 # The machine counts the buckets the Health tab counts: a non-finite sample
 # count is no evidence, never a raise and never a watched bucket.
-_sc_m = _t2_coord()
+_sc_m = _t2_coord(**_CMACH_METERED)
 _sc_m._cop_baseline[(3, False)] = [3.0, float("nan")]
 _sc_mv = _sc_view(_sc_m)
 R.check(
@@ -31255,23 +31283,24 @@ _dhw_action = {"power": 0.0, "dhw_power": 3.0}
 _cop_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
 _cop_dhw._current_state.dhw_temperature = 55.0
 _cop_dhw._learn_measured_cop()
+# With no heat slot neither interval is a measured COP (R10-HOTFIX-COP-
+# UNMEASURED), so the curve each is judged against is read where the fold
+# takes it, and both still trained the scale.
+_cop_space_ref = _cop_space._cop_reference_curve()
+_cop_dhw_ref = _cop_dhw._cop_reference_curve()
 R.check(
     "a hot-water interval is judged against the DHW curve",
-    _cop_dhw._measured_cop.cop is not None
-    and _cop_dhw._measured_cop.cop < _cop_space._measured_cop.cop,
-    f"dhw {_cop_dhw._measured_cop.cop} vs space {_cop_space._measured_cop.cop}",
-)
-_expected_dhw_cop = _cop_space._measured_cop.cop * (
-    _cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0)
-    / _cop_dhw._thermal_model.compute_cop(8.0)
+    _cop_dhw_ref[1] is True and _cop_space_ref[1] is False
+    and _cop_dhw_ref[0] < _cop_space_ref[0]
+    and _cop_dhw._cop_samples == 1 and _cop_space._cop_samples == 1,
+    f"dhw {_cop_dhw_ref} vs space {_cop_space_ref}",
 )
 R.check(
     "and the gap is exactly the model's own DHW law at the tank's "
     "temperature, not a fudge",
-    abs(_cop_dhw._measured_cop.cop - round(_expected_dhw_cop, 2)) <= 0.02,
-    f"{_cop_dhw._measured_cop.cop} vs {round(_expected_dhw_cop, 2)} "
-    f"(the law's ratio at 8 °C / 55 °C is "
-    f"{_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0) / _cop_dhw._thermal_model.compute_cop(8.0):.4f})",
+    _cop_dhw_ref == (_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0), True, 55.0)
+    and _cop_space_ref[0] == _cop_dhw._thermal_model.compute_cop(8.0),
+    f"{_cop_dhw_ref} vs {_cop_dhw._thermal_model.compute_cop_dhw(8.0, 55.0)}",
 )
 R.check(
     "the reported COP for a healthy pump on the space curve is unchanged",
@@ -31313,6 +31342,7 @@ R.check(
 # re-pointed the residual's reference while leaving the stored COP alone — and
 # in HEATDHW with an even split that is every cycle on the target hardware.
 _cop_pair = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_cop_pair.as_measured = True
 _cop_pair._current_state.dhw_temperature = 55.0
 _cop_pair._learn_measured_cop()
 _cop_pair_cop = _cop_pair._measured_cop.cop
@@ -31561,6 +31591,7 @@ _EH_NIGHT_SIG = pump_signals.PumpSignals(
 )
 
 _eh_cop_ok = _CopGate(outdoor=8.0)
+_eh_cop_ok.as_measured = True
 _eh_cop_ok._learn_measured_cop()
 R.check(
     "the control: the same interval with no electric-heat evidence folds",
@@ -32004,6 +32035,7 @@ def _fl_model1_gate(outdoor, supply_phys, mapped):
     commanded = 3.0
     measured = commanded * c0 / ct
     gate = _CopGate(outdoor=outdoor, action={"power": commanded})
+    gate.as_measured = True
     gate._measured_power = measured
     # A persistent ratio, not a blip: the tracking gate judges against it.
     gate._cop_ratio_ewma = measured / commanded
@@ -32415,6 +32447,7 @@ R.check(
 # priced C0 x L(curve + bias); the credit must still be Ct exactly.
 def _g3_credit(supply_phys):
     gate = _CopGate(outdoor=-3.0, action={"power": 3.0})
+    gate.as_measured = True
     gate._thermal_params = ThermalParameters.from_config({_G3_KEY: True, **_G3_HOT})
     gate._thermal_params.flow_curve_bias = 5.0
     gate._thermal_model = ThermalModel(gate._thermal_params)
@@ -32570,12 +32603,12 @@ R.check(
     and not _g3_tog._cop_health_cusum.tripped,
     f"{_g3_tog._cop_baseline}, tripped={_g3_tog._cop_health_cusum.tripped}",
 )
-_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline"]
+_g3_saved = _g3_tog._thermal_learning_payload()["cop_baseline_measured"]
 _g3_back = _g3_watch(True)
 
 
 async def _g3_fake_load():
-    return {"cop_baseline": _g3_saved}
+    return {"cop_baseline_measured": _g3_saved}
 
 
 _g3_back._thermal_learning_store.async_load = _g3_fake_load
@@ -32587,7 +32620,7 @@ _g3_old = _g3_watch(True)
 
 
 async def _g3_old_load():
-    return {"cop_baseline": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
+    return {"cop_baseline_measured": {"2": [3.1, 25], "2:dhw": [2.6, 25], "2:zzz": [9.0, 9]}}
 
 
 _g3_old._thermal_learning_store.async_load = _g3_old_load
@@ -36057,8 +36090,10 @@ R.check(
 # curve it used. Separate baselines are worthless if every sample arrives
 # labelled "space".
 _hw_gate_space = _CopGate(outdoor=8.0)
+_hw_gate_space.as_measured = True
 _hw_gate_space._learn_measured_cop()
 _hw_gate_dhw = _CopGate(outdoor=8.0, signals=_DHW_ONLY, action=_dhw_action)
+_hw_gate_dhw.as_measured = True
 _hw_gate_dhw._current_state.dhw_temperature = 55.0
 _hw_gate_dhw._learn_measured_cop()
 R.check(
@@ -36073,7 +36108,7 @@ R.check(
 # Persistence: additive, and an existing store keeps every bucket it had.
 _hw_old = _t2_coord()
 _hw_old._cop_baseline = {}
-_hw_v1_payload = {"cop_baseline": {"1": [3.2, 40], "2": [3.5, 25]}}
+_hw_v1_payload = {"cop_baseline_measured": {"1": [3.2, 40], "2": [3.5, 25]}}
 
 
 async def _hw_load_v1(_p=_hw_v1_payload):
@@ -36091,7 +36126,7 @@ R.check(
 )
 _hw_old._current_state.outdoor_temperature = _HW_OUT
 _hw_old._observe_cop_health(_hw_dhw, True)
-_hw_written = _hw_old._thermal_learning_payload()["cop_baseline"]
+_hw_written = _hw_old._thermal_learning_payload()["cop_baseline_measured"]
 R.check(
     "and it writes back under the SAME keys, with the DHW curve alongside",
     _hw_written.get("1") == [3.2, 40]
@@ -46694,7 +46729,7 @@ _T2_GOOD_STORE = {
     "snow_accum_cm": 5.0,
     "last_heavy_snow": "2026-01-02T03:04:05",
     "snow_accum_last": "2026-01-03T04:05:06",
-    "cop_baseline": {"4": [3.0, 7], "5:dhw": [2.0, 3]},
+    "cop_baseline_measured": {"4": [3.0, 7], "5:dhw": [2.0, 3]},
 }
 _t2_store_good = _t2_load(dict(_T2_GOOD_STORE))
 R.check(
@@ -46757,7 +46792,7 @@ R.check(
 _t2_store_base = _t2_load(
     dict(
         _T2_GOOD_STORE,
-        cop_baseline={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
+        cop_baseline_measured={"nope": [1.0, 1], "4": [3.0, 7], "6": "x"},
     )
 )
 R.check(
@@ -60712,7 +60747,7 @@ R.check(
 _f14b_counts = _t1_coord()
 _f14b_counts._thermal_learning_store = _T1DictStore(
     _f14b_store._sanitize({
-        "cop_baseline": {"4": [3.1, 1e20], "4:dhw": [2.5, 1e308],
+        "cop_baseline_measured": {"4": [3.1, 1e20], "4:dhw": [2.5, 1e308],
                          "5": [2.0, 5]},
         "capacity_envelope": {"-3": [5.0, 1e308], "2": [4.0, 9]},
     }))
@@ -69421,7 +69456,18 @@ R.check(
 
 # The last measured COP survives a restart beside cop_scale, with the curve
 # it was judged against, so the sensor does not go dark until the next fold.
-_cf_live = _cf_coord()
+# Measured: metered heat over the metered power (R10-HOTFIX-COP-UNMEASURED).
+
+
+def _cf_metered(heat_kw=6.0):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0,
+               heat_pump_thermal_power_entity="sensor.heat_kw")
+    coord = _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+    coord._flow_bias.heat_output_kw = heat_kw
+    return coord
+
+
+_cf_live = _cf_metered()
 _cf_learn(_cf_live, 2.4, 2)
 if hasattr(_cf_live, "_measured_cop"):
     _cf_live._measured_cop.curve_dhw, _cf_live._measured_cop.dhw_temp = True, 52.0
@@ -69599,18 +69645,20 @@ R.check(
 )
 
 # The observability state the payload publishes: a heat reading (the heat
-# counter, or the thermal power entity) measures the COP whatever the draw
-# does; without one, the draw window decides; without an electrical figure to
-# divide by there is none. A heat counter divides by its electric counter.
+# counter, or the thermal power entity) over an electrical one measures the
+# COP; without a heat reading it cannot be measured, whatever the draw does
+# (R10-HOTFIX-COP-UNMEASURED); a vendor's estimate on either side is not a
+# measurement; without an electrical figure to divide by there is none. A heat
+# counter divides by its electric counter.
 _cg_obs = _cg_acc.cop_observability
 R.check(
-    "cop_observability: heat metered beats a draw that ignores the ask; no "
-    "electrical figure is no COP; the draw window decides the rest",
-    _cg_obs(electric=True, measured_heat=True, follows=False) == "heat_metered"
-    and _cg_obs(electric=False, measured_heat=True, follows=True) == "no_electric_meter"
-    and _cg_obs(electric=True, measured_heat=False, follows=False) == "not_measurable"
-    and _cg_obs(electric=True, measured_heat=False, follows=True) == "draw_follows_plan"
-    and _cg_obs(electric=True, measured_heat=False, follows=None) == "awaiting_draw_evidence",
+    "cop_observability: metered heat measures; no heat reading is not "
+    "measurable; an estimate is an estimate; no electrical figure is no COP",
+    _cg_obs(electric=True, measured_heat=True, estimated=False) == "heat_metered"
+    and _cg_obs(electric=False, measured_heat=True, estimated=False) == "no_electric_meter"
+    and _cg_obs(electric=True, measured_heat=False, estimated=False) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=False, estimated=True) == "not_measurable"
+    and _cg_obs(electric=True, measured_heat=True, estimated=True) == "estimated_inputs",
 )
 
 
@@ -69630,12 +69678,12 @@ _cg_states = {
         heat_pump_heat_energy_entity="sensor.heat_kwh", heat_pump_energy_entity="sensor.elec_kwh"),
 }
 R.check(
-    "the coordinator's state: a self-set draw with no heat reading is not "
-    "measurable, a thermal-power install never is, and a heat counter without "
-    "an electric counter has nothing to divide by",
+    "the coordinator's state: no heat reading is not measurable whether or not "
+    "the draw follows the ask, a metered thermal-power install is, and a heat "
+    "counter without an electric counter has nothing to divide by",
     _cg_states == {
         "power, self-set draw": "not_measurable",
-        "power, following draw": "draw_follows_plan",
+        "power, following draw": "not_measurable",
         "thermal power, self-set draw": "heat_metered",
         "heat counter, no electric counter": "no_electric_meter",
         "heat counter and electric counter": "heat_metered",
@@ -69643,10 +69691,178 @@ R.check(
     f"{_cg_states!r}",
 )
 
+# ---------------------------------------------------------------------------
+R.section("R10-HOTFIX-COP-UNMEASURED: a COP sample is measured only from metered heat over metered power")
+
+# A measured COP sample, and with it the COP health watch, needs a heat
+# measurement for the interval over an electrical one, neither of them a vendor
+# estimate, and for a hot-water interval a heat measurement that sees the
+# hot-water circuit (``InstallCapability.cop_measured``). Everything else still
+# trains the COP scale (tvofi, 2026-11-07: "Training on estimated power should
+# be good enough and better than nothing though so retain that").
+from heatpump_optimizer import flow_meter as _cu_fm  # noqa: E402
+from heatpump_optimizer import thermal_model as _cu_tm  # noqa: E402
+
+
+def _cu_coord(**extra):
+    cfg = dict(_L5_CFG, heat_pump_max_power=14.0, heat_pump_min_power=1.0, **extra)
+    return _Coord(_FakeHass(dict(_CF_STATES)), _FakeEntry(data=cfg))
+
+
+def _cu_fold(coord, heat_kw, dhw, elec=2.0, commanded=2.0, outdoor=8.0, tank=48.0):
+    """One interval through the fold's tail; (refusal, baseline, measured cop, model)."""
+    coord._current_state.outdoor_temperature = outdoor
+    model = coord._thermal_model
+    ref = (model.compute_cop_dhw(outdoor, tank), True, tank) if dhw else (model.compute_cop(outdoor), False, None)
+    refusal = coord._fold_cop_evidence(commanded, elec, heat_kw, ref)
+    return refusal, dict(coord._cop_baseline), coord._measured_cop.cop, ref[0]
+
+
+# The null control: no heat slot, a hot-water interval drawing exactly what the
+# plan asked. The inference then IS the model (compute_cop_dhw), so a sample
+# recorded here is the model graded against itself.
+_cu_null = _cu_coord()
+_cu_null_ref = _cu_null._thermal_model.compute_cop_dhw(8.0, 48.0)
+_cu_null_inferred = _cu_fm.cop_evidence(_cu_null_ref, 2.0, 2.0, None, _cu_null._cop_scale)[0]
+_cu_null_out = _cu_fold(_cu_null, None, True)
+R.check(
+    "no heat input: a hot-water interval whose draw equals its ask records no "
+    "measured COP and no health-watch sample, though its inference is the model "
+    "exactly; the COP scale still trains on it",
+    _cu_null_inferred == _cu_null_ref
+    and _cu_null_out[0] is None and _cu_null_out[1] == {} and _cu_null_out[2] is None
+    and _cu_null._cop_samples == 1,
+    f"inferred {_cu_null_inferred} model {_cu_null_ref}; {_cu_null_out}; scale samples {_cu_null._cop_samples}",
+)
+
+# Both inputs are the vendor's models (the Tuya "Estimated Heating Output" and
+# "Estimated Power Draw"): heat over power is the vendor's own fitted COP on
+# every interval, so nothing is measured, by name; the explicit source wins
+# either way.
+_CU_TUYA = {
+    "heat_pump_power_entity": "sensor.pump_estimated_power_draw",
+    "heat_pump_thermal_power_entity": "sensor.pump_estimated_heating_output",
+}
+_cu_fitted = (3.1, 2.4, 4.05)
+_cu_tuya = _cu_coord(**_CU_TUYA)
+_cu_tuya_obs = [_cu_fm.cop_evidence(2.9, 2.0, 2.0, cop * 2.0, 1.0)[0] for cop in _cu_fitted]
+for _cu_cop in _cu_fitted:
+    _cu_tuya_out = _cu_fold(_cu_tuya, _cu_cop * 2.0, False)
+_cu_meter = _cu_coord(**_CU_TUYA, heat_pump_power_source="meter", heat_pump_thermal_power_source="meter")
+_cu_meter_out = _cu_fold(_cu_meter, 3.1 * 2.0, False)
+_cu_named = _cu_coord(heat_pump_power_entity="sensor.hp_power", heat_pump_thermal_power_entity="sensor.heat_kw",
+                      heat_pump_thermal_power_source="estimate")
+_cu_named_out = _cu_fold(_cu_named, 3.1 * 2.0, False)
+R.check(
+    "estimated heat over estimated power observes the fitted COP on every "
+    "interval and records nothing measured; marked metered it records; an "
+    "estimate marked by its source records nothing whatever its name",
+    _cu_tuya_obs == [c for c in _cu_fitted]
+    and _cu_tuya_out[1] == {} and _cu_tuya_out[2] is None and _cu_tuya._cop_samples == 3
+    and _cu_meter_out[1] == {(2, False): [3.1, 1]} and _cu_meter_out[2] == 3.1
+    and _cu_named_out[1] == {} and _cu_named_out[2] is None,
+    f"observed {_cu_tuya_obs}; tuya {_cu_tuya_out}; meter {_cu_meter_out}; named {_cu_named_out}",
+)
+_cu_probe = _cu_tm.probe_install
+R.check(
+    "probe_install: an estimate on either side is not a measured COP; a heat "
+    "counter outranks an estimated thermal power and divides by its electric counter",
+    not _cu_probe(_CU_TUYA).cop_measured(False)
+    and not _cu_probe({**_CU_TUYA, "heat_pump_power_source": "meter"}).cop_measured(False)
+    and not _cu_probe({**_CU_TUYA, "heat_pump_thermal_power_source": "meter"}).cop_measured(False)
+    and _cu_probe({**_CU_TUYA, "heat_pump_power_source": "meter",
+                   "heat_pump_thermal_power_source": "meter"}).cop_measured(False)
+    and _cu_probe({**_CU_TUYA, "heat_pump_heat_energy_entity": "sensor.heat_kwh",
+                   "heat_pump_energy_entity": "sensor.elec_kwh"}).cop_measured(False)
+    and not _cu_probe({"heat_pump_power_entity": "sensor.hp_power"}).cop_measured(False),
+)
+
+# Hot-water coverage is declared, never assumed: a metered heat reading counts
+# for a hot-water sample only once the install says it sees that circuit.
+_CU_METERED = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
+_cu_space = _cu_fold(_cu_coord(**_CU_METERED), 6.0, False)
+_cu_dhw_blind = _cu_fold(_cu_coord(**_CU_METERED), 5.0, True)
+_cu_dhw_seen = _cu_fold(_cu_coord(**_CU_METERED, heat_meter_sees_dhw=True), 5.0, True)
+R.check(
+    "metered heat over metered power records a space sample; a hot-water sample "
+    "only where the heat meter is declared to see the hot-water circuit",
+    _cu_space[1] == {(2, False): [3.0, 1]} and _cu_space[2] == 3.0
+    and _cu_dhw_blind[1] == {} and _cu_dhw_blind[2] is None
+    and _cu_dhw_seen[1] == {(2, True): [2.5, 1]} and _cu_dhw_seen[2] == 2.5,
+    f"space {_cu_space}; blind {_cu_dhw_blind}; seen {_cu_dhw_seen}",
+)
+
+# A configured thermal power that reads no heat (unavailable, or negative,
+# which read_heat_output_kw turns into None) stops the COP fold rather than
+# falling back to the plan's inference.
+_cu_neg = _cu_coord(**_CU_METERED)
+_cu_neg._flow_bias.heat_output_kw = None
+_cu_neg_n = _cf_learn(_cu_neg, 2.0, 2)
+_cu_neg_ctl = _cf_learn(_cu_coord(heat_pump_power_entity="sensor.hp_power"), 2.0, 2)
+R.check(
+    "a thermal-power install with no heat reading refuses the COP fold; with no "
+    "heat slot the same interval still trains the scale (null)",
+    _cu_neg_n == 0 and _cf_last(_cu_neg, "refusal") == _cg_acc.COP_REFUSED_NO_HEAT
+    and _cu_neg_ctl == 2,
+    f"thermal {_cu_neg_n} ({_cf_last(_cu_neg, 'refusal')}); no slot {_cu_neg_ctl}",
+)
+
+# The observability the card and the sensors read.
+_cu_states = {
+    "no heat input": _cg_install_obs(selfset=False),
+    "estimated heat and power": _cg_install_obs(**_CU_TUYA),
+    "metered heat and power": _cg_install_obs(**_CU_METERED),
+}
+R.check(
+    "cop_observability: no heat input is not measurable, an estimated input is "
+    "an estimate, metered heat over metered power is heat-metered",
+    _cu_states == {
+        "no heat input": "not_measurable",
+        "estimated heat and power": "estimated_inputs",
+        "metered heat and power": "heat_metered",
+    },
+    f"{_cu_states!r}",
+)
+
+# The migration: bands stored before this fix were recorded without a heat
+# measurement on at least the owner's install, and carry no provenance, so
+# they are dropped with the CUSUM built on them; bands stored since load.
+_cu_old = _cu_coord()
+_cu_old_payload = {"cop_baseline": {"0:dhw": [2.3031, 2], "2": [2.5166, 2]},
+                   "cop_health_cusum": {"stat": 0.5, "tripped": True}}
+
+
+async def _cu_old_load(_p=_cu_old_payload):
+    return _p
+
+
+_cu_old._thermal_learning_store.async_load = _cu_old_load
+_asyncio.run(_cu_old._async_load_thermal_learning())
+_cu_new = _cu_coord(**_CU_METERED)
+_cu_fold(_cu_new, 6.0, False)
+_cu_new_payload = _cu_new._thermal_learning_payload()
+_cu_back = _cu_coord()
+
+
+async def _cu_new_load(_p=_cu_new_payload):
+    return _p
+
+
+_cu_back._thermal_learning_store.async_load = _cu_new_load
+_asyncio.run(_cu_back._async_load_thermal_learning())
+R.check(
+    "a COP baseline stored before measured provenance loads empty with its CUSUM "
+    "reset; one stored since round-trips",
+    _cu_old._cop_baseline == {} and not _cu_old._cop_health_cusum.tripped
+    and "cop_baseline" not in _cu_new_payload
+    and _cu_back._cop_baseline == {(2, False): [3.0, 1]},
+    f"old {_cu_old._cop_baseline} tripped {_cu_old._cop_health_cusum.tripped}; back {_cu_back._cop_baseline}",
+)
+
 # The latch outlives every later refusal, so the time it folded is kept with
 # it, round-trips the store, and a record stored before the instant was loads
 # with its age unknown, never now.
-_cg_t = _cf_coord()
+_cg_t = _cf_metered()
 _cf_learn(_cg_t, 2.0, 1)
 _cg_at = _cg_t._measured_cop.at
 _cg_back = _cf_MC.from_dict(_cg_t._measured_cop.as_dict())
@@ -74603,6 +74819,8 @@ R.check(
 _tp_track = {}
 for _tp_heat in (None, 6.0):
     _g = _CopGate(outdoor=8.0, action={"power": 3.0})
+    # A metered install: its measured COP is recorded (R10-HOTFIX-COP-UNMEASURED).
+    _g._config = {"heat_pump_power_entity": "sensor.hp_power", "heat_pump_thermal_power_entity": "sensor.heat_kw"}
     _g._measured_power = 1.4
     _g._flow_bias.observe_temps(40.0, 35.0, heat_output_kw=_tp_heat)
     _g._learn_measured_cop()

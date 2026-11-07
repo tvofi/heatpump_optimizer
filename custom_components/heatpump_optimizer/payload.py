@@ -216,6 +216,7 @@ class DrawStat(TypedDict, total=False):
 
 
 class CopHealth(TypedDict, total=False):
+    measurable: bool
     watched_buckets: int
     alarm: bool
     evidence: list[str]
@@ -834,6 +835,7 @@ class LearningView(TypedDict, total=False):
     #: ``draw_range.SolveBand.as_dict()`` stamped on the live plan, or None.
     pump_max_power: dict[str, Any] | None
     cop_observability: str
+    cop_dhw_covered: bool
     defrost_derate: float
     defrost_samples: int
     defrost_measured_samples: int

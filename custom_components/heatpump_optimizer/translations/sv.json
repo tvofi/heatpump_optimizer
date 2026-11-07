@@ -1174,6 +1174,9 @@
               "heat_pump_heat_energy_entity": "Värmemängdsmätare för värmepumpen (valfritt)",
               "heat_pump_power_entity": "Effektmätare för värmepumpen (valfritt)",
               "heat_pump_thermal_power_entity": "Värmeeffektmätare för värmepumpen (valfritt)",
+              "heat_pump_power_source": "Värmepumpens effektmätare: mätare eller uppskattning",
+              "heat_pump_thermal_power_source": "Värmepumpens värmeeffektmätare: mätare eller uppskattning",
+              "heat_meter_sees_dhw": "Värmeavläsningen omfattar varmvatten",
               "house_power_entity": "Effektmätare för hela huset (valfritt)"
             },
             "data_description": {
@@ -1181,6 +1184,9 @@
               "heat_pump_heat_energy_entity": "En ackumulerande kWh-mätare för värmen pumpen levererar, från en värmemätare. Den räknar värmen över varje timme, korta kompressorkörningar inräknade, så den används i stället för värmeeffektmätaren och givaren för vattenflöde när den är vald. Tillsammans med energimätaren blir verkningsgraden en mätning, och husets värmeförlustinlärning läser den värme som faktiskt levererades. En mätare som också räknar varmvatten delas upp med driftlägesentiteten, efter den tid pumpen värmde huset och tanken; utan en sådan, eller i ett kombinerat läge, räknas inte en timme som värmde tanken som husvärme.",
               "heat_pump_power_entity": "Faktisk elförbrukning. Utan den vet integrationen bara vad den bad pumpen om. Med den blir verkningsgraden mätbar, de beräknade kostnaderna får något att stämmas av mot, och en vedpanna kan upptäckas säkert. Både watt och kilowatt fungerar.",
               "heat_pump_thermal_power_entity": "Värmen pumpen levererar, från en värmemätare, i watt eller kilowatt. Tillsammans med effektmätaren blir verkningsgraden en mätning i stället för en slutsats, och husets värmeförlustinlärning och kapacitetskurvan läser den värme som faktiskt levererades. När den är vald används den i stället för givaren för vattenflöde.",
+              "heat_pump_power_source": "Om effektmätaren är en verklig mätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Power Draw\". All inlärning tränar på båda; bara uppmätt värme genom uppmätt effekt visas och betygsätts som uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_pump_thermal_power_source": "Om värmeeffektmätaren är en verklig värmemätare eller ett värde som pumpen eller dess integration uppskattar, till exempel en sensor för \"Estimated Heating Output\". En uppskattning tränar inlärningen men ger aldrig en uppmätt COP. Auto läser en entitet vars id innehåller \"estimat\" som en uppskattning.",
+              "heat_meter_sees_dhw": "Slå på bara om värmemängdsmätaren eller värmeeffektmätaren även mäter värmen till varmvattenberedaren, till exempel en mätare före växelventilen. Avstängd ger varmvattenkörningar ingen uppmätt COP.",
               "house_power_entity": "Total förbrukning vid mätaren. Effekttariff debiteras på hela huset, inte bara på värmepumpen, så utan denna är den topp optimeraren undviker bara en del av den verkliga."
             }
           },
@@ -1634,6 +1640,13 @@
       "options": {
         "observe": "Observera (läs och visa bara)",
         "control": "Styra (slå på och av brytaren)"
+      }
+    },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (ett id som anger en uppskattning är en)",
+        "meter": "Mätare (en mätning)",
+        "estimate": "Uppskattning (en tillverkarmodell)"
       }
     },
     "freq_control_mode": {

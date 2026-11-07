@@ -6130,9 +6130,10 @@ R.check(
     == "measured_power_entity",
 )
 
-# R10-COP-GATE (#2262): where the draw does not follow the plan's ask and no
-# heat reading exists, a latched COP is no reading of this install: the sensor
-# waits for a heat meter instead of showing it. A heat counter's open span is
+# R10-COP-GATE (#2262), R10-HOTFIX-COP-UNMEASURED: where no heat reading
+# exists, or either reading is a vendor's estimate, a latched COP is no reading
+# of this install: the sensor waits for a heat meter, or for metered inputs,
+# instead of showing it. A heat counter's open span is
 # its own code beside a measured COP, never a refusal, and the latch's time
 # rides with it.
 _cg_cop = {
@@ -6141,7 +6142,7 @@ _cg_cop = {
         "cop_refusal": "span_open" if obs == "heat_metered" else "draw_off_ask",
         "measured_cop_at": "2026-10-24T03:00:00+00:00",
     }), ENTRY)
-    for obs in ("not_measurable", "heat_metered", "draw_follows_plan")
+    for obs in ("not_measurable", "heat_metered", "estimated_inputs")
 }
 _cg_view = {
     obs: (ent.available, ent.extra_state_attributes.get("waiting_for"),
@@ -6150,13 +6151,13 @@ _cg_view = {
     for obs, ent in _cg_cop.items()
 }
 R.check(
-    "a COP not measurable here waits for a heat meter; a heat-metered COP "
-    "between span closes stays measured with span_open as its code; a draw "
-    "that follows the plan keeps its COP (null); each carries its fold time",
+    "a COP not measurable here waits for a heat meter, one from estimated "
+    "inputs for metered ones; a heat-metered COP between span closes stays "
+    "measured with span_open as its code (null); each carries its fold time",
     _cg_view == {
         "not_measurable": (False, "heat_meter", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
         "heat_metered": (True, None, "span_open", "2026-10-24T03:00:00+00:00"),
-        "draw_follows_plan": (True, None, "draw_off_ask", "2026-10-24T03:00:00+00:00"),
+        "estimated_inputs": (False, "metered_inputs", "draw_off_ask", "2026-10-24T03:00:00+00:00"),
     },
     f"{_cg_view!r}",
 )

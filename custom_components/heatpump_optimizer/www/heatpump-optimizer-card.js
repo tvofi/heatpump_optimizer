@@ -209,8 +209,9 @@ const STRINGS = {
     "health.model_unobservable": "Not observable without a power meter.",
     "health.cop_measured": "Measured {age} ago.",
     "health.cop_reason_heat_metered": "Measured by the heat meter.",
-    "health.cop_reason_draw_follows_plan": "Read from the power draw, which follows the plan.",
-    "health.cop_reason_not_measurable": "Not measurable here: without a heat meter the power draw does not follow the plan closely enough to read efficiency from.",
+    "health.cop_reason_not_measurable": "COP cannot be measured on this install: it has no heat reading, and without one the efficiency shown is the model's own. A heat energy meter or a thermal power meter covering the heating circuit, hot water included, would measure it.",
+    "health.cop_reason_estimated_inputs": "COP cannot be measured on this install: its power or heat reading is the pump's own estimate, so heat over power is the vendor model's COP. A real heat meter and power meter, the hot-water circuit included, would measure it.",
+    "health.cop_reason_no_heat_reading": "The heat meter gave no usable reading in the interval.",
     "health.cop_reason_awaiting_draw_evidence": "Waiting to see whether the power draw follows the plan.",
     "health.cop_reason_no_electric_meter": "Needs a power or energy meter on the heat pump.",
     "health.cop_reason_no_measured_power": "Waiting for a power reading from the heat pump.",
@@ -845,11 +846,13 @@ const STRINGS = {
       "era. 50 is typical for that type and era; above is tighter, below " +
       "leakier. Never 0 — that is only for no data.",
     "score.part_machine":
-      "Heat pump: the measured COP — heat delivered per kWh of electricity " +
-      "— in each 3 °C outdoor band, against the pump's own history in that " +
-      "band. 100 is matching its history; each point below is a lasting " +
-      "COP shortfall (see the COP health diagnostics). A band is watched " +
-      "once it holds 20 samples; no grade yet means no band does — not a zero.",
+      "Heat pump: the measured COP — heat delivered per kWh of electricity, " +
+      "from a heat meter over a power meter, neither an estimate — in each " +
+      "3 °C outdoor band, against the pump's own history in that band. 100 " +
+      "is matching its history; each point below is a lasting COP shortfall " +
+      "(see the COP health diagnostics). A band is watched once it holds 20 " +
+      "samples; no grade yet means no band does — not a zero. Without a " +
+      "metered heat reading there is no grade at all.",
     "score.part_operation":
       "Driving: whether the plan buys at the cheap hours. Each day's " +
       "energy is priced against that day's flat mean spot price — buying " +
@@ -864,6 +867,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "The learned heat loss disagrees with recent days; a refit is on offer.",
     "score.reason_cop_watch_learning": "Not enough COP data yet to watch the heat pump.",
+    "score.reason_cop_unmeasurable":
+      "COP cannot be measured on this install, so the heat pump is not graded: it needs a heat energy meter or a thermal power meter covering the heating circuit, hot water included, and a power meter, neither an estimate.",
     "score.reason_no_scored_day": "Waiting for the first scored day.",
     "score.reason_free_price_reset":
       "Reset after a run of free-price days; waiting for a priced day.",
@@ -1070,8 +1075,9 @@ const STRINGS = {
     "health.model_unobservable": "Går inte att observera utan effektmätare.",
     "health.cop_measured": "Mätt för {age} sedan.",
     "health.cop_reason_heat_metered": "Mätt med värmemängdsmätaren.",
-    "health.cop_reason_draw_follows_plan": "Avläst från effektuttaget, som följer planen.",
-    "health.cop_reason_not_measurable": "Går inte att mäta här: utan värmemängdsmätare följer effektuttaget inte planen tillräckligt nära för att verkningsgraden ska kunna avläsas.",
+    "health.cop_reason_not_measurable": "COP går inte att mäta i den här installationen: den saknar värmeavläsning, och utan en sådan är verkningsgraden modellens egen. En värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, skulle mäta den.",
+    "health.cop_reason_estimated_inputs": "COP går inte att mäta i den här installationen: dess effekt- eller värmeavläsning är pumpens egen uppskattning, så värme genom effekt är tillverkarmodellens COP. En verklig värmemätare och effektmätare, varmvattenkretsen inräknad, skulle mäta den.",
+    "health.cop_reason_no_heat_reading": "Värmemätaren gav ingen användbar avläsning under intervallet.",
     "health.cop_reason_awaiting_draw_evidence": "Väntar på att se om effektuttaget följer planen.",
     "health.cop_reason_no_electric_meter": "Behöver en effekt- eller energimätare på värmepumpen.",
     "health.cop_reason_no_measured_power": "Väntar på en effektavläsning från värmepumpen.",
@@ -1672,11 +1678,13 @@ const STRINGS = {
       "byggperioden. 50 är typiskt för den typen och perioden; över är " +
       "tätare, under läckigare. Aldrig 0 — det betyder bara inget underlag.",
     "score.part_machine":
-      "Värmepumpen: uppmätt COP — levererad värme per kWh el — i varje " +
-      "utomhusband om 3 °C, mot pumpens egen historik i det bandet. 100 är " +
-      "som historiken; varje poäng under är ett bestående COP-underskott " +
-      "(se COP-hälsodiagnostiken). Ett band bevakas när det har 20 prov; " +
-      "inget betyg ännu betyder att inget band har det — inte noll.",
+      "Värmepumpen: uppmätt COP — levererad värme per kWh el, från en " +
+      "värmemätare genom en effektmätare, ingen av dem en uppskattning — i " +
+      "varje utomhusband om 3 °C, mot pumpens egen historik i det bandet. " +
+      "100 är som historiken; varje poäng under är ett bestående " +
+      "COP-underskott (se COP-hälsodiagnostiken). Ett band bevakas när det " +
+      "har 20 prov; inget betyg ännu betyder att inget band har det — inte " +
+      "noll. Utan uppmätt värme finns inget betyg alls.",
     "score.part_operation":
       "Körningen: om planen köper på de billiga timmarna. Varje dags " +
       "energi prissätts mot dagens platta medelspotpris — 20 % under platt " +
@@ -1689,6 +1697,8 @@ const STRINGS = {
     "score.reason_heat_loss_refit_disagrees":
       "Den inlärda värmeförlusten stämmer inte med de senaste dagarna; en omanpassning erbjuds.",
     "score.reason_cop_watch_learning": "Ännu för lite COP-data för att bevaka värmepumpen.",
+    "score.reason_cop_unmeasurable":
+      "COP går inte att mäta i den här installationen, så värmepumpen betygsätts inte: det krävs en värmemängdsmätare eller värmeeffektmätare som omfattar värmekretsen, varmvattnet inräknat, och en effektmätare, ingen av dem en uppskattning.",
     "score.reason_no_scored_day": "Väntar på den första bedömda dagen.",
     "score.reason_free_price_reset":
       "Nollställd efter en rad dagar med gratis el; väntar på en dag med pris.",
@@ -9723,16 +9733,16 @@ function copState(cop) {
   const words = (code) => (STRINGS.en[`health.cop_reason_${code}`] !== undefined ? L(`health.cop_reason_${code}`) : null);
   const scale = readNumber(c.scale);
   if (c.alarm) return { value: L("health.model_cop_low"), reason: L("health.model_cop_alarm"), tone: "warn", watched: true };
-  if (obs === "not_measurable" || obs === "no_electric_meter") {
+  if (obs === "not_measurable" || obs === "no_electric_meter" || obs === "estimated_inputs") {
     return { value: "—", reason: words(obs), tone: "ok", watched: false };
   }
   if (readNumber(c.watched_buckets) > 0 && scale !== null) {
-    const source = obs === "heat_metered" || obs === "draw_follows_plan" ? words(obs) : "";
+    const source = obs === "heat_metered" ? words(obs) : "";
     return { value: L("health.model_cop_normal", { v: scale.toFixed(2) }),
       reason: [L("health.model_cop_fine"), source].filter(Boolean).join(" "), tone: "ok", watched: true };
   }
   return { value: "—", tone: "ok", watched: false,
-    reason: words(c.cop_refusal) || (obs === "awaiting_draw_evidence" && words(obs)) || scoreReasonText("cop_watch_learning") };
+    reason: words(c.cop_refusal) || scoreReasonText("cop_watch_learning") };
 }
 
 /** "What the model has learned" (R9-UX-7): the model status sensor's rows. */

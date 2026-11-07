@@ -1174,6 +1174,9 @@
               "heat_pump_heat_energy_entity": "Heat pump heat energy meter (optional)",
               "heat_pump_power_entity": "Heat pump power meter (optional)",
               "heat_pump_thermal_power_entity": "Heat pump thermal power meter (optional)",
+              "heat_pump_power_source": "Heat pump power meter: meter or estimate",
+              "heat_pump_thermal_power_source": "Heat pump thermal power meter: meter or estimate",
+              "heat_meter_sees_dhw": "Heat reading covers hot water",
               "house_power_entity": "Whole-house power meter (optional)"
             },
             "data_description": {
@@ -1181,6 +1184,9 @@
               "heat_pump_heat_energy_entity": "A cumulative kWh meter of the heat the pump delivers, from a heat meter. It counts the heat over each hour, short compressor runs included, so it is used instead of the thermal power meter and the water flow sensor when set. With the energy meter it makes efficiency an observation, and the house heat-loss learner reads the heat that was actually delivered. A meter that also counts hot water is split by the operating mode entity, by the time the pump spent heating the house and the tank; without one, or in a combined mode, an hour that heated the tank is not read as space heating.",
               "heat_pump_power_entity": "Actual electrical draw. Without it the integration only knows what it asked the pump to do. With it, efficiency becomes measurable, predicted costs get a real counterpart to check against, and a wood furnace can be detected reliably. Watts or kilowatts both work.",
               "heat_pump_thermal_power_entity": "The heat the pump delivers, from a heat meter, in watts or kilowatts. With the power meter it makes efficiency an observation rather than an inference, and the house heat-loss learner and the capacity curve read the heat that was actually delivered. When set it is used instead of the water flow sensor.",
+              "heat_pump_power_source": "Whether the power meter is a real meter or a figure the pump or its integration estimates, such as an \"Estimated Power Draw\" sensor. Every learner trains on either; only metered heat over metered power is shown and graded as a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_pump_thermal_power_source": "Whether the thermal power meter is a real heat meter or a figure the pump or its integration estimates, such as an \"Estimated Heating Output\" sensor. An estimate trains the learners but never makes a measured COP. Auto reads an entity whose id contains \"estimat\" as an estimate.",
+              "heat_meter_sees_dhw": "Turn on only if the heat energy meter or the thermal power meter also measures the heat sent to the hot-water tank, for example a meter ahead of the diverter valve. Off, hot-water runs record no measured COP.",
               "house_power_entity": "Total consumption at the meter. A capacity tariff is billed on the whole house, not on the heat pump alone, so without this the peak the optimizer avoids is only part of the real one."
             }
           },
@@ -1647,6 +1653,13 @@
       "options": {
         "observe": "Observe (read and show only)",
         "control": "Control (turn the switch on and off)"
+      }
+    },
+    "meter_source": {
+      "options": {
+        "auto": "Auto (an id naming an estimate is one)",
+        "meter": "Meter (a measurement)",
+        "estimate": "Estimate (a vendor model)"
       }
     },
     "freq_control_mode": {

@@ -772,3 +772,9 @@
 # not only the house's when it has drivers (the owner's hover spec, carry 14);
 # it is the state that renders the score with its hover. The other 43 states
 # were rendered and stayed identical.
+
+# R10-HOTFIX-COP-UNMEASURED: the heat pump grade's explanation says a measured
+# COP is metered heat over a power meter, neither an estimate, and that without
+# a metered heat reading there is no grade at all. Only score_open moves; the
+# other 44 states are identical.
+score_open

@@ -22,7 +22,7 @@ from homeassistant.helpers.entity_platform import AddEntitiesCallback
 
 from . import narrative
 from . import topology
-from .accuracy import COP_NOT_MEASURABLE
+from .accuracy import COP_ESTIMATED, COP_NOT_MEASURABLE
 from .const import (
     CONF_BUFFER_TANK_TEMP_ENTITY,
     CONF_DHW_TEMP_ENTITY,
@@ -1690,6 +1690,10 @@ class ObservedCOPSensor(
         data = self._data()
         if not data.get("measured_power_available"):
             return "measured_power_entity"
+        if data.get("cop_observability") == COP_ESTIMATED:
+            # R10-HOTFIX-COP-UNMEASURED: a vendor's estimate on either side
+            # makes heat over power the vendor's own COP, never a measurement.
+            return "metered_inputs"
         if data.get("cop_observability") == COP_NOT_MEASURABLE:
             # #2262: the draw does not follow the plan's ask, so its ratio to
             # the ask is no COP; only a heat reading measures one here.

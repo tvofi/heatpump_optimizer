@@ -5898,7 +5898,7 @@ function ctxL(card, key) {
   // grade the input does not carry.
   const CODES = {
     envelope: ["no_house_model", "heat_loss_learning", "heat_loss_refit_disagrees"],
-    machine: ["cop_watch_learning"],
+    machine: ["cop_unmeasurable", "cop_watch_learning"],
     operation: ["no_scored_day", "free_price_reset"],
   };
   const LABEL = { envelope: "House", machine: "Heat pump", operation: "Driving" };
@@ -12415,9 +12415,15 @@ check("without an indoor reading the corner now label is absent",
     const both = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence", cop_refusal: "duty_floor" });
     check("UX-HEALTH E: the learner's own refusal is said before the gate's wait for draw evidence",
       /ran too little/.test(both) && !/Waiting to see whether/.test(both), both);
-    const awaiting = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "awaiting_draw_evidence" });
-    check("UX-HEALTH E: with no refusal the gate's wait for draw evidence is said",
-      /Waiting to see whether the power draw follows the plan/.test(awaiting), awaiting);
+    // R10-HOTFIX-COP-UNMEASURED: no heat reading, or an estimated input, is
+    // said as never measurable here, not as data still to come.
+    const noHeat = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "not_measurable",
+      cop_refusal: "awaiting_draw_evidence" });
+    const estimated = copRow({ scale: 1.0, watched_buckets: 0, cop_observability: "estimated_inputs" });
+    check("UX-HEALTH E: a COP this install cannot measure says so and names what would measure it, never 'not enough data yet'",
+      /COP cannot be measured on this install: it has no heat reading/.test(noHeat)
+      && /COP cannot be measured on this install: its power or heat reading is the pump's own estimate/.test(estimated)
+      && ![noHeat, estimated].some((row) => /Not enough COP data yet/.test(row)), `${noHeat}\n${estimated}`);
     const aged = copRow({ scale: 0.97, watched_buckets: 2, measured_cop_at: new Date(FROZEN - 2 * 3600e3).toISOString() });
     check("UX-HEALTH E: the latched COP shows its age", /Measured 2 h ago/.test(aged), aged);
     check("UX-HEALTH E: a watched COP still reads Normal (null control)",
@@ -12429,7 +12435,7 @@ check("without an indoor reading the corner now label is absent",
     const nmPage = pageOf(mkHealth(nm).html());
     const learnCop = (/Heat pump COP<span class="adv-sub">([^<]*)</.exec(nmPage) || [])[1] || "";
     check("UX-HEALTH E: the learning row says the same COP reason as the model row",
-      /^Not measurable here/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
+      /^COP cannot be measured on this install/.test(learnCop) && !/Needs a power meter/.test(nmPage), learnCop);
     // Every code the COP gate and the heat counter publish has words in both
     // languages; the count is asserted non-zero so a grep miss cannot pass.
     const pySrc = ["accuracy.py", "heat_energy.py"].map((f) => fs.readFileSync(`custom_components/heatpump_optimizer/${f}`, "utf8")).join("\n");

@@ -1149,6 +1149,24 @@ CONF_FLOW_METER_ENTITY: Final = "flow_meter_entity"
 #: outranks the meter whenever it is configured, and with a power entity it
 #: makes COP an observable (``flow_meter.read_heat_output_kw``).
 CONF_THERMAL_POWER_ENTITY: Final = "heat_pump_thermal_power_entity"
+#: Whether the power and the thermal power entity are meters or a vendor's
+#: model (R10-HOTFIX-COP-UNMEASURED): a COP is measured only from metered heat
+#: over metered power (``thermal_model.InstallCapability.cop_measured``), while
+#: every learner trains on either. ``auto`` reads an entity whose id names an
+#: estimate (``ESTIMATE_ID_MARK``, as an "Estimated Power Draw" sensor's does) as
+#: one and any other as a meter; the explicit answers override it.
+CONF_POWER_SOURCE: Final = "heat_pump_power_source"
+CONF_THERMAL_POWER_SOURCE: Final = "heat_pump_thermal_power_source"
+METER_SOURCE_AUTO: Final = "auto"
+METER_SOURCE_METER: Final = "meter"
+METER_SOURCE_ESTIMATE: Final = "estimate"
+DEFAULT_METER_SOURCE: Final = METER_SOURCE_AUTO
+ESTIMATE_ID_MARK: Final = "estimat"
+#: Whether the heat reading (the heat counter, else the thermal power entity)
+#: sees the hot-water circuit, as a meter ahead of the diverter does. Declared,
+#: never assumed: off, a hot-water interval records no measured COP.
+CONF_HEAT_METER_SEES_DHW: Final = "heat_meter_sees_dhw"
+DEFAULT_HEAT_METER_SEES_DHW: Final = False
 CONF_FREQ_CONTROL_MODE: Final = "freq_control_mode"
 #: The two frequency-control stages. Anything unrecognised in config reads
 #: as observe. Here rather than in ``freq_control`` because ``entry_config``

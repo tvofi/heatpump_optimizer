@@ -355,6 +355,14 @@ from .const import (
     CONF_COMPRESSOR_FREQ_SENSOR,
     CONF_FLOW_METER_ENTITY,
     CONF_THERMAL_POWER_ENTITY,
+    CONF_THERMAL_POWER_SOURCE,
+    CONF_POWER_SOURCE,
+    CONF_HEAT_METER_SEES_DHW,
+    DEFAULT_HEAT_METER_SEES_DHW,
+    DEFAULT_METER_SOURCE,
+    METER_SOURCE_AUTO,
+    METER_SOURCE_ESTIMATE,
+    METER_SOURCE_METER,
     CONF_HEAT_ENERGY_ENTITY,
     CONF_COMPRESSOR_FREQ_MIN_HZ,
     CONF_COMPRESSOR_FREQ_MAX_HZ,
@@ -1071,6 +1079,17 @@ def _select(options: list[str], translation_key: str) -> selector.SelectSelector
     )
 
 
+def _meter_source_selector() -> selector.SelectSelector:
+    """Meter, vendor estimate, or read from the entity's id (R10-HOTFIX-COP-UNMEASURED)."""
+    return selector.SelectSelector(
+        selector.SelectSelectorConfig(
+            options=[METER_SOURCE_AUTO, METER_SOURCE_METER, METER_SOURCE_ESTIMATE],
+            translation_key="meter_source",
+            mode=selector.SelectSelectorMode.DROPDOWN,
+        )
+    )
+
+
 def _freq_mode_selector() -> selector.SelectSelector:
     """Observe or control (T7 #61).
 
@@ -1594,9 +1613,12 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("entities_metering", CONF_SOLAR_FORECAST_SOURCE, DEFAULT_SOLAR_FORECAST_SOURCE, _solar_source_selector(), group="solar"),
     _F("entities_metering", CONF_SOLAR_LOCATION, _Computed(lambda cur, hass: _default_location(hass, cur)), _solar_location_selector(), group="solar"),
     _F("entities_metering", CONF_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
     _F("entities_metering", CONF_THERMAL_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
+    _F("entities_metering", CONF_THERMAL_POWER_SOURCE, DEFAULT_METER_SOURCE, _meter_source_selector(), group="meters"),
     _F("entities_metering", CONF_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
     _F("entities_metering", CONF_HEAT_ENERGY_ENTITY, _STORED, _entity_of('sensor', 'energy'), group="meters"),
+    _F("entities_metering", CONF_HEAT_METER_SEES_DHW, DEFAULT_HEAT_METER_SEES_DHW, selector.BooleanSelector(), group="meters"),
     _F("entities_metering", CONF_HOUSE_POWER_ENTITY, _STORED, _entity_of('sensor', 'power'), group="meters"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_ENTITY, _STORED, _entity_of('number'), group="compressor"),
     _F("entities_metering", CONF_COMPRESSOR_FREQ_SENSOR, _STORED, _entity_of('sensor', 'frequency'), group="compressor"),
