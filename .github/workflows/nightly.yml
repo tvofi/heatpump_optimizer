@@ -24,6 +24,15 @@ on:
     branches:
       - main
   workflow_dispatch:
+    inputs:
+      # `beat` runs record-autofix alone: the stamp's record flush needs only
+      # that one-minute job, not the nightly lanes. Default `all` keeps a hand
+      # dispatch running every lane.
+      lanes:
+        description: "all nightly lanes, or only the record beat"
+        type: choice
+        options: [all, beat]
+        default: all
   schedule:
     - cron: "37 0 * * *"
 
@@ -49,7 +58,7 @@ jobs:
   # of one pool, so two half-runs would each judge their own half against a
   # cap measured over the whole.
   mutation-nightly:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     steps:
@@ -155,7 +164,7 @@ jobs:
   # slice one runner would not have had the hours for. Each shard uploads its
   # own artifact; the one push merges them (`merge_pin_shards`).
   mutation-ledger:
-    if: github.ref == 'refs/heads/main' && github.event_name != 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 330
     strategy:
@@ -275,6 +284,7 @@ jobs:
     if: >-
       !cancelled() && github.ref == 'refs/heads/main'
       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+      && inputs.lanes != 'beat'
       && needs.mutation-ledger.result == 'success'
     environment: ledger
     runs-on: ubuntu-latest
@@ -418,7 +428,7 @@ jobs:
             "${{ steps.record.outputs.status }}"
 
   slow:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 150
     steps:
@@ -510,7 +520,7 @@ jobs:
   # the two cannot drift. tests.yml's own comment on that job carries the
   # lane's history (#511, #2056, #533). Not a required context.
   nightly-ha:
-    if: github.event_name != 'push'
+    if: github.event_name != 'push' && inputs.lanes != 'beat'
     runs-on: ubuntu-latest
     timeout-minutes: 45
     # Unrequired, and on a pull request its verdict is about the pull

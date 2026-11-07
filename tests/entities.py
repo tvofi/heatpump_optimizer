@@ -27064,6 +27064,7 @@ def _ns_nightly_lanes(text: str) -> "list[str]":
 
     def _runs(_n, _ev):
         _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main",
+                "inputs.lanes": "all",
                 **{f"needs.{_m}.result": _v for _m, _v in _ok.items()}}
         return _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx)
     return sorted(_n for _n in _ids if _runs(_n, "schedule") and not _runs(_n, "push"))
@@ -27085,7 +27086,7 @@ R.check(
 # The derivation's null control: a lane whose `if:` admits the push too (the
 # record beat's shape) is not a nightly lane, and one added on the schedule is.
 _NS_PLANT = _NIGHTLY_YML.replace(
-    "\n  slow:\n    if: github.event_name != 'push'\n",
+    "\n  slow:\n    if: github.event_name != 'push' && inputs.lanes != 'beat'\n",
     "\n  slow:\n    if: github.event_name != 'pull_request'\n", 1) + (
     "\n  planted-lane:\n    if: github.event_name == 'schedule'\n    runs-on: x\n")
 R.check(
@@ -27093,6 +27094,33 @@ R.check(
     _ns_nightly_lanes(_NS_PLANT)
     == sorted({*_nstatus.REQUIRED_LANES, "planted-lane"} - {"slow"}),
     f"planted={_ns_nightly_lanes(_NS_PLANT)}",
+)
+
+# The record flush dispatches lanes=beat (stamp.py RECORD_BEAT_PAYLOAD): every
+# heavy job skips and record-autofix alone runs. A dispatch with no input (a
+# hand probe) runs every lane; schedule and push evaluate as before.
+def _nightly_runs_on(_text: str, _ev: str, _lanes: str) -> "dict[str, bool]":
+    _body = _text.split("\njobs:", 1)[1]
+    _ids = re.findall(r"^  ([A-Za-z][\w-]*):$", _body, re.M)
+    _ctx = {"github.event_name": _ev, "github.ref": "refs/heads/main", "inputs.lanes": _lanes,
+            **{f"needs.{_m}.result": "success" for _m in _ids}}
+    return {_n: _gh_eval(_gh_if(_workflow_job(_body, _n)), _ctx) for _n in _ids}
+
+
+_NS_BEAT = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "beat")
+_NS_HAND = _nightly_runs_on(_NIGHTLY_YML, "workflow_dispatch", "")
+R.check(
+    "lanes=beat skips every heavy nightly lane and runs record-autofix; no input runs every lane",
+    sorted(_n for _n, _v in _NS_BEAT.items() if _v) == ["record-autofix"]
+    and all(_NS_HAND[_n] for _n in _nstatus.REQUIRED_LANES)
+    and _NS_HAND["record-autofix"],
+    f"beat={_NS_BEAT} hand={_NS_HAND}",
+)
+R.check(
+    "nightly.yml declares the lanes choice input (all, beat) defaulting to all",
+    re.search(r"workflow_dispatch:\n    inputs:\n(?:      #.*\n)*      lanes:\n(?:.*\n)*?"
+              r"        options: \[all, beat\]\n        default: all\n", _NIGHTLY_YML) is not None,
+    "lanes input missing",
 )
 
 # --- the four states --------------------------------------------------------
@@ -28142,7 +28170,54 @@ def _ds_rc(ledger, *flags):
             sys.argv = argv
 
 
-_DS_ROWS_RCS = {v: _ds_rc(l, "--require-rows") for v, l in (
+def _ds_head_window():
+    """gather() over a throwaway repo: A (tagged), then merges #101 and #102."""
+    with _tempfile.TemporaryDirectory() as td:
+        repo = Path(td) / "r"
+        env = throwaway_git_init(repo, "-q", "-b", "main")
+
+        def g(*a):
+            return subprocess.run(["git", *a], cwd=repo, env=env, check=True,
+                                  capture_output=True, text=True).stdout.strip()
+        (repo / "f").write_text("a")
+        g("add", "-A")
+        g("commit", "-q", "-m", "A")
+        g("tag", "v0.0.1")
+        shas = []
+        for n, side in ((101, "a"), (102, "b")):
+            g("checkout", "-q", "-b", side)
+            (repo / f"{side}.txt").write_text(side)
+            g("add", "-A")
+            g("commit", "-q", "-m", side)
+            g("checkout", "-q", "main")
+            g("merge", "-q", "--no-ff", "-m", f"Merge pull request #{n} from x/{side}", side)
+            shas.append(g("rev-parse", "HEAD"))
+        g("update-ref", "refs/remotes/origin/main", shas[1])
+        saved, _ds.ROOT = _ds.ROOT, repo
+        try:
+            nums = lambda *a, **k: [m["number"] for m in _ds.gather("r", *a, **k)[0]]
+            return (nums("v0.0.1", head=shas[0]), nums("v0.0.1", head=shas[1]),
+                    nums("v0.0.1"))
+        finally:
+            _ds.ROOT = saved
+
+
+_ds_h1, _ds_h2, _ds_hdef = _ds_head_window()
+R.check(
+    "delivery_status --head selects its window",
+    _ds_h1 == [101],
+    f"gather(head=M1) returned {_ds_h1}, expected [101]")
+R.check(
+    "delivery_status --head at the tip is unchanged (null control)",
+    _ds_h2 == [102, 101],
+    f"gather(head=M2) returned {_ds_h2}, expected [102, 101]")
+R.check(
+    "delivery_status default head is origin/main",
+    _ds_hdef == _ds_h2,
+    f"default {_ds_hdef} != head=M2 {_ds_h2}")
+
+
+_DS_ROWS_RCS ={v: _ds_rc(l, "--require-rows") for v, l in (
     ("OVERDUE", _ds_overdue), ("UNCHECKED", _ds_unchecked),
     ("OK", _ds_all_rowed), ("EMPTY", _ds_empty), ("PENDING", _ds_pending))}
 R.check(
@@ -36357,7 +36432,7 @@ _REACH: list = []
 try:
     for _rv in _NIGHTLY_EVENTS:
         for _rr in ("refs/heads/main", "refs/heads/fix/x"):
-            _rx = {"github.event_name": _rv, "github.ref": _rr}
+            _rx = {"github.event_name": _rv, "github.ref": _rr, "inputs.lanes": "all"}
             _r_meas = _gh_eval(_gh_if(_ml_meas), _rx)
             _r_push = _gh_eval(_gh_if(_ml_push), {
                 **_rx, "needs.mutation-ledger.result": "success" if _r_meas else "skipped"})
@@ -36407,7 +36482,7 @@ try:
                                        "needs.closure-scope.outputs.nightly_ha": _nf})
             # nightly.yml lists push, schedule and dispatch alone.
             _ngot_n = _nv in _NIGHTLY_EVENTS and _gh_eval(
-                _NHA_NIGHT_IF, {"github.event_name": _nv})
+                _NHA_NIGHT_IF, {"github.event_name": _nv, "inputs.lanes": "all"})
             _nwant = _nv == "pull_request" and _nf == "true"
             _nwant_n = _nv in ("schedule", "workflow_dispatch")
             if (_ngot, _ngot_n) != (_nwant, _nwant_n):

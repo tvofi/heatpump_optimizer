@@ -1466,6 +1466,32 @@ def self_test() -> int:
     check("rows gate: with no tag yet it asks over the whole of origin/main",
           disposition_gate_argv(None, "py")
           == ["py", "tests/delivery_status.py", "--require-rows"])
+    check("rows gate: the stamp's head is passed to the instrument, one window with rule 4",
+          disposition_gate_argv("v6.6.1", "py", head="abc123")
+          == ["py", "tests/delivery_status.py", "--require-rows", "--since", "v6.6.1",
+              "--head", "abc123"])
+    _seen_argv: list = []
+    disposition_gate("v6.6.1", lambda argv: (_seen_argv.append(argv), _Proc(0, "ok"))[1], head="abc123")
+    check("rows gate: disposition_gate forwards its head to the command",
+          _seen_argv and _seen_argv[0][-2:] == ["--head", "abc123"])
+    check("rows gate: main's rule 5 passes the stamp head",
+          "disposition_gate(last_tag, head=head)" in __import__("inspect").getsource(main))
+    check("record beat: the dispatch payload carries lanes=beat on main",
+          RECORD_BEAT_PAYLOAD == {"ref": "main", "inputs": {"lanes": "beat"}})
+    _beat_sent: list = []
+
+    class _BeatResp:
+        status = 204
+        def __enter__(self): return self
+        def __exit__(self, *a): return False
+    _real_urlopen = urllib.request.urlopen
+    urllib.request.urlopen = lambda req, timeout=None: (_beat_sent.append(req.data), _BeatResp())[1]
+    try:
+        dispatch_record_beat(token=lambda: "t")
+    finally:
+        urllib.request.urlopen = _real_urlopen
+    check("record beat: dispatch_record_beat posts lanes=beat",
+          _beat_sent and json.loads(_beat_sent[0]) == {"ref": "main", "inputs": {"lanes": "beat"}})
     _rows_rowless = ("DELIVERY STATUS OK -- 0 rowed, 1 pending, 0 overdue "
                      "(overdue at 12 commits)\n  pending  #1301 0abc123 the merge")
     check("rows gate: a rowless window refuses, carrying the instrument's own list",
@@ -1508,7 +1534,7 @@ def self_test() -> int:
     _r5 = _r4_src[_r4_src.rindex("# Rule 5: the window"):]
     _r5 = _r5[:_r5.index("# Rule 6:")]
     check("rows gate: main() runs the disposition gate, before the manifest rule",
-          "disposition_gate(last_tag)" in _r5)
+          "disposition_gate(last_tag, head=head)" in _r5)
     check("rows gate: main() hands the verdict to the driven decision, and refuses it",
           "rows_gate_decision(" in _r5 and 'raise Refuse("rows"' in _r5)
 
@@ -2150,18 +2176,23 @@ def claims_selfcheck(runner=None) -> tuple[bool, str]:
 DISPOSITION_GATE_SCRIPT = "tests/delivery_status.py"
 
 
-def disposition_gate_argv(last_tag: str | None, python: str = sys.executable) -> list[str]:
+def disposition_gate_argv(last_tag: str | None, python: str = sys.executable,
+                          head: str | None = None) -> list[str]:
     argv = [python, DISPOSITION_GATE_SCRIPT, "--require-rows"]
     if last_tag:
         argv += ["--since", last_tag]
+    if head:
+        argv += ["--head", head]
     return argv
 
 
-def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
+def disposition_gate(last_tag: str | None, runner=None, head: str | None = None) -> tuple[bool, str]:
     """(cleared, what it printed) for the window the tag is about to close.
 
     `record`'s predicate, asked from git alone: every merged pull request in
-    `<last tag>..origin/main` carries a disposition. With no tag yet the whole
+    `<last tag>..<head>` carries a disposition (`head` defaults to origin/main;
+    the stamp passes the head rule 4 enumerates, so one window is read even
+    when a merge lands on origin after the flush). With no tag yet the whole
     of origin/main is asked, which is the same window `record` would have read.
     Any exit other than 0 is a refusal -- the predicate returns 1 for a window
     with an unrowed merge, and a crash is not a pass. A gate that cannot be
@@ -2169,7 +2200,7 @@ def disposition_gate(last_tag: str | None, runner=None) -> tuple[bool, str]:
     this exists to stop."""
     run = runner or (lambda argv: subprocess.run(argv, cwd=ROOT, text=True, capture_output=True))
     try:
-        proc = run(disposition_gate_argv(last_tag))
+        proc = run(disposition_gate_argv(last_tag, head=head))
     except OSError as exc:
         return False, f"could not run the disposition check: {exc}"
     output = ((proc.stdout or "") + (proc.stderr or "")).strip()
@@ -2326,6 +2357,10 @@ def parse_rowless(output: str) -> list[tuple[str, str]]:
 # dispatches nothing and says what the stamp would flush. --no-flush skips
 # it, and rule 5 decides alone.
 NIGHTLY_WORKFLOW_FILE = "nightly.yml"
+#: The dispatch body of the flush: lanes=beat runs record-autofix alone. Without
+#: it (a hand `gh workflow run nightly.yml --ref main`) every nightly lane runs;
+#: the hand form of the flush is `gh workflow run nightly.yml -f lanes=beat`.
+RECORD_BEAT_PAYLOAD = {"ref": "main", "inputs": {"lanes": "beat"}}
 RECORD_ROW = ROOT / "tools" / "audit" / "seat" / "record_row.py"
 #: The fixer contract's 60 s API floor between reads of a waited-on state.
 FLUSH_POLL_S = 60
@@ -2369,7 +2404,7 @@ def dispatch_record_beat(token=_api_token) -> tuple[bool, str]:
         return False, "no GH_TOKEN and no gh login to dispatch with"
     request = urllib.request.Request(
         f"{GITHUB_API}/repos/{REPO}/actions/workflows/{NIGHTLY_WORKFLOW_FILE}/dispatches",
-        data=json.dumps({"ref": "main"}).encode(), method="POST",
+        data=json.dumps(RECORD_BEAT_PAYLOAD).encode(), method="POST",
         headers={**rest_headers(tok), "Content-Type": "application/json"})
     try:
         with urllib.request.urlopen(request, timeout=GATE_TIMEOUT_S) as response:
@@ -2712,7 +2747,7 @@ def main() -> int:
     # and the row files and needs no token, so it runs under --dry-run too --
     # a dry run says whether the stamp would be refused, which is most of what
     # a dry run is for.
-    cleared, why = disposition_gate(last_tag)
+    cleared, why = disposition_gate(last_tag, head=head)
     # The record-class partition. The instrument's rowless merges are parsed
     # from its own output, cross-checked against rule 4's window (both read the
     # same first-parent line, so a number or sha one names and the other does
