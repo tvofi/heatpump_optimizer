@@ -38,7 +38,7 @@ Carry 1, Carry 2, Carry 3 and Carry 9 are outside this part's scope (other parts
 ## Forward-carry
 
 - Carry 4 (cost: the two base-red checks in a cloud seat) does not reproduce. `tests/entities.py` reads `ALL 2645 ENTITY CHECKS PASSED` at the merge base in this seat, the control being that same run. Carry: R10-SUITE-HOST-DETERMINISM | dismissed: not reproducible at the merge base in this seat
-- Carry 8 (heartbeat respawn) is left open. The nightly history shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; only 11-05 (run 41943946464) was read: both `nightly-ha` jobs succeeded and the `slow` replay step failed, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-SUITE-HOST-DETERMINISM
+- Carry 8 (stranded carry 36): count it over the nightly history at your own merge-base, against the same count before that fix's merge as the null control; absent such a red, close the group as superseded rather than build (b). Left open here. The nightly history shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; only 11-05 (run 41943946464) was read: both `nightly-ha` jobs succeeded and the `slow` replay step failed, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-SUITE-HOST-DETERMINISM
 
 ## Friction
 
