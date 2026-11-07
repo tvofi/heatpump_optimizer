@@ -17220,8 +17220,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3251
+    "stage": "carries-open",
+    "pr": 3251,
+    "commit": "601b9695a68533814c68e36caba36fda57fe2d77"
    },
    "brief": "ref_privacy flags a false-positive host path on a cloud seat. On a cloud runner (uid 0, HOME=/root) tools/audit/seat/ref_privacy.py --check refuses a roster line as home-directory, and with HOME=/nonexistent refuses three lines instead (account-name for the passwd name root, and the token 0 in \"(0-based)\"); review_packet.py render then refuses host-path and writes no packet. Fix the predicate so a cloud runner's own paths are classified correctly without widening what a real host path gets past. Failing test first, with the cloud-seat string as the fixture. Add a null control: a genuine /Users/<name> path still refuses. Mutation proof on the new branch. Source: the verdict on #3239 at 6a8964e8."
   },
