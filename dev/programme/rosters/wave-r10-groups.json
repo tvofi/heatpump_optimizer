@@ -18190,6 +18190,50 @@
     "note": "s12 carry-routing 2026-11-07: created to receive R10-COP-GATE-D carries 3 and 8; overlap admitted (R10-HOTFIX-COP-UNMEASURED): s12 carry routing: production defect deferred by the part D pull request to a part E that was never created; owner closure rule 2026-11-07"
    },
    "brief": "Part E of R10-COP-GATE, the part that the pull request taking part D named and never created. Two measure-first items from R10-COP-GATE-D: the slab propagation in the coordinator (`_propagated_slab`, a production defect still in main: a switch-back interval advances the unsensed slab by a hot-water run's kW as space heat) and the set-point-to-draw linearity between the duty gate and the ceiling (`DrawRange`). Production code: the fixer runs fixer.md steps 2-8 with the flat-price null control on every cost figure and the all-space dwell as the null on the slab. The linearity item is measured with a harness on recorded fixtures where they span the band, else the body names exactly the owner data that closes it. It shares coordinator.py and heat_energy.py with R10-HOTFIX-COP-UNMEASURED, so it starts from that group's merge. Every carry was routed here by the s12 carry-routing seat (2026-11-07) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
+  },
+  {
+   "group": "R10-PARTLOAD-RESIDUE",
+   "lane": "IN",
+   "kind": "production",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "production",
+   "severity": "medium",
+   "size": "S",
+   "wave": 6,
+   "files": [
+    "custom_components/heatpump_optimizer/optimizer.py",
+    "custom_components/heatpump_optimizer/dhw_planner.py"
+   ],
+   "hot_files": [
+    "optimizer.py"
+   ],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": null,
+   "rca": [],
+   "after": [],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-partload-residue",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s12 carry-routing 2026-11-07: created to receive R10-PARTLOAD-PRICING carries 0, 2 and 6"
+   },
+   "brief": "Residue of R10-PARTLOAD-PRICING after its pull request (#3182): the CPU cost of the live buffer store, the linear valuations under a convex part-load cost with their refill-rate dependency, and the Pi CPU of the relaxed start. Each is measure-first with a null control (flat price, zero derate, a clamped-solve time against the update-interval budget) and builds only if the measurement is material, else records the refusal with the number. The Pi CPU item is a measurement the fixer runs itself on Raspberry-Pi-class hardware (the D9 target), not one that waits on the owner, who owns no Raspberry Pi. A fix that needs a coordinator.py edit stops and reports before editing. Every carry was routed here by the s12 carry-routing seat (2026-11-07) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so."
   }
  ]
 }
