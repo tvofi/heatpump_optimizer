@@ -1,0 +1,10 @@
+review_carry: de1a371e2 -> 96987ab3d  main=origin/main
+  branch-only commits: 6
+  why: 49feb621c06987143872795f502b2c72a2549c6e is not the automatic merge of its parents
+  bb33e6807  Merge remote-tracking branch 'origin/main' into fix/r10-carry-residue
+  1d5a5ce7f  Merge remote-tracking branch 'origin/main' into fix/r10-carry-residue
+  87b00d3ec  Merge remote-tracking branch 'origin/main' into fix/r10-carry-residue
+  49feb621c  Merge remote-tracking branch 'origin/main' into fix/r10-carry-residue
+  0b1a4bb6f  replay: carry 4's loop-margin sentence names the 0.249 budget round 3 re-derives (merge of main, R10-CARRY-RESIDUE)
+  96987ab3d  Merge commit '0b1a4bb6feb941974fc78d1402d5f8f2a23c739e' into fix/r10-carry-residue
+review_carry: FRESH-REVIEW

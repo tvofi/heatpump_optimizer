@@ -1,8 +1,0 @@
-11 344 Show the pre-PR self-check refusing its own fixtures
-81 275 Show the supervised beat refusing its own fixtures
-53 200 Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-56 199 Show the PR argument builder refusing its own fixtures
-83 197 Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
-4 106 Refuse a corpus or record-mode check that survives its own deletion
-101 91 Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal
-35 68 Show the self-tests outside tools/audit/seat/ refusing their own fixtures

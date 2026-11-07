@@ -1,80 +1,46 @@
-Fix review: merge de1a371e2ed49c742ef690d605fbc8e605b853f3
+Fix review: merge 96987ab3d7224b04803106ae4366c5a02bb91b51
 
-bus-nonce: 1a35ee25dc97cd7c6b0640c34ac5c50f
+bus-nonce: 2c1b06518a61d24f9ab98fc57e2c3838
 
 ## Round
 
-This is round 3 of the fix review of #3241 (R10-CARRY-RESIDUE), by an opus reviewer in a cloud seat.
+This is a merge-resolution delta review of #3241 (R10-CARRY-RESIDUE), done after the round-3 `merge` at de1a371e2ed49c742ef690d605fbc8e605b853f3 (probe/rev-3241-1a35ee25, read in full). It is not a fourth blocked round, so no re-cut is owed. I ran it from a detached worktree at the head 96987ab3d7224b04803106ae4366c5a02bb91b51, with origin/main 355d9965a7a14ec45ef8cd25fb9c75c5ced044f1 as the null control. `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
 
-- Measured at PR head de1a371e2ed49c742ef690d605fbc8e605b853f3, a no-ff merge of code head bcbdcfb377d78433b122370bb21dc29b66371cfa. `git diff bcbdcfb de1a371e` is empty.
-- Merge base: dc0a170b671814be196a54b1c71e29449f54d6d7. Null control: origin/main b36679ceaa65a08a67a84f0d934c93aa15f7c7f3.
-- I used detached worktrees at the head, the base, origin/main, 9d16d843a and two separate mutant copies.
-- `git diff <base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current.
-- Round 2 blocked at 95c7e604 as class-open: `review_owed` took a dispatched head as a prior even after a blocked verdict at that head. This round settles that block.
+## Head
+
+- I measured 96987ab3d7224b04803106ae4366c5a02bb91b51. It was still the PR head at the last read, both in pull_request_read `get` and in the check-runs listing.
+- The body's `## Head` names this SHA as the head.
 
 ## Findings
 
-- Residual: `governance / instrument-self-tests` (job 127922552146) concluded `cancelled` at this head when it hit `timeout-minutes: 30` (1814 s). Steps 1-101 were all success, and step 101 had printed `ci_predict self-test: 0 failed` before the cancel. The cause is not this diff:
-  - origin/main's own run (job 127910411605 at b36679ce) was cancelled the same way at 1804 s;
-  - this PR's steps 30, 39 and 70 take 0-3 s (`ev/instrument_job_compare.txt`, `ev/instrument_step_durations.txt`).
-
-  The roster already carries this from the #3239 review. This head adds one more instance. Carry: R10-PROCESS-SLIM
-- Residual: the body's `## Red checks` was written while bcbdcfb read WAIT. It does not name this head's concluded non-greens:
-  - the cancellation above;
-  - three deferral `gate` reds, `FAIL run(s) [...] at this head are still being judged; their gate decides` (jobs 127923462002, 127923310057 and 127940007490). Each was superseded within its own suite by a later gate run that passed.
-
-  Under fix-review.md step 11, the evidence is the `pr-contract / pr-contract` run (job 127936796625), which started at 14:08:00 after the last real red concluded at 14:07:09 and passed. The later 14:14 deferral was re-run green by the gate sweep. So I do not re-derive the body's answer. Carry: dismissed: step 11's green pr-contract after the last concluded red is the evidence, and the red is main's (carried above)
+None. The resolution delta settles everything the brief asked about.
 
 ## Evidence
 
-- **Head.** `ev/HEAD.txt` names de1a371e2ed49c742ef690d605fbc8e605b853f3. Re-read before returning: the PR head is still de1a371e (`ev/head_at_post.txt`). The body's `## Head` names it.
-- **Merge with main.** `git merge-tree --write-tree origin/main de1a371e...` exits 0 with tree 71feb7073, so there is no conflict (`ev/tree_checks.txt`).
-- **CI.** `merge_train.py classify de1a371e... --pr 3241` printed `GREEN de1a371e2ed49c742ef690d605fbc8e605b853f3 pending: none red: none` (rc=0). The polling history is in `ev/classify.log`, and the final check-run list (68 runs, page 2 empty) is in `ev/check_runs_final.txt`.
-  - Gate job 127937543894 (KIND code) printed PASS. Gate job 127940017942 (edit) printed PASS.
-  - The packet's `required-red` refusal at render time was the 13:39 deferral gate. The live state supersedes it.
-- **Three-dot diff.** 8 files, the delivery row dev/programme/delivery/3241.md among them. It touches no VERSION, manifest, RELEASE_NOTES, golden file or claim file.
-- **Round-2 block settled.** ledger.py `review_owed` now keeps a dispatched head as a prior only when no verdict names it (`h not in newest`), and only a head whose newest verdict is a merge carries.
-  - Failing test first: at 9d16d843a (test added, code as at 95c7e604), `ledger.py --self-test` gives 91 checks, 1 failed. At the head it gives 91 checks, 0 failed (`ev/failing_first_9d16d843a.txt`, `ev/selftests.txt`).
-  - My round-2 reproducer now shows the right state: the blocked head is in `dispatched` and the result is REVIEW OWED, by the new fixture row "a blocked verdict's head in the dispatch record is no prior".
-  - That row's null control, a dispatched head whose newest verdict is a merge, still carries.
-- **Self-tests** at base, head and main (`ev/selftests.txt`); base and main are identical:
-
-  | self-test | base | head | main |
-  |---|---|---|---|
-  | ledger | 77 | 91 | 77 |
-  | orchestrator_tick | 272 | 275 | 272 |
-  | owed_unactioned | 46 | 47 | 46 |
-  | beat_jobs | 107 | 107 | 107 |
-  | r10_ledger_mutants | 135 | 180 | 135 |
-
-  Every run reported 0 failed. Each count the body quotes reproduces.
-- **Mutation proof, fixer's instrument.** A clean run in its own worktree (`ev/mutants_clean.txt`): `plants: 63, without a FAIL line: none`, rc=0.
-  - C15_blocked_dispatched_prior rc=1 fails=1; C9 rc=1 fails=2; C14 rc=1 fails=1; T3 rc=1 fails=6.
-  - The round-1 M3-M11 lineage (C1-C14) is all killed.
-  - `--null` gives rc=0 fails=0 for all six owners (`ev/mutants_null_clean.txt`). These match the body's table.
-  - An earlier sweep overlapped a timed-out run in one worktree, so I discarded it. It is kept in `ev/mutants_all.txt` and printed the same summary.
-- **My own plants of the round-3 change** (`ev/my_mutants.txt`, restored afterwards, null 91/0):
-  - R3a, newest = oldest verdict: killed, 2 fails.
-  - R3b, any merge line is a prior: killed, 1 fail.
-  - R3c, drop the newest exclusion: killed, 1 fail.
-  - R3e, priors without recarry: killed, 5 fails.
-  - R3d, exclude only blocked-newest heads, survives. It is an equivalent mutant: `VERDICT` matches only `merge|blocked`, so a head excluded under the head's rule and kept under R3d is a merge head, which is already a prior.
-- **Class.** The newest-verdict rule covers both verdict kinds the `VERDICT` regex admits.
-  - A dispatched head with no verdict is still a prior, which is intended. It is self-correcting: a later blocked verdict there removes it.
-  - A code commit after any prior fails `git_recarry`'s first-parent walk, as the existing null rows and C12 show.
-- **Gate scripts** (`ev/gate_wt-head.txt`, `ev/gate_wt-main.txt`):
-  - Head: `MODE: SCOPED -- 4 script(s) run, 29 scoped out`, the same as the body. STRUCTURE RATCHET PASSED; ALL 2632 ENTITY CHECKS PASSED; ALL 162 DEBUG COLLECT; ALL 296 doc_claims; ALL 4876 FEATURE CHECKS PASSED.
-  - origin/main: structure PASSED; ALL 2637 ENTITY CHECKS PASSED (main's own tree); 162 debug_collect; 296 doc_claims. Main's features run was still going when I returned this verdict.
-- **The four earlier owed items** are on R10-CARRY-RESIDUE-2 at origin/handoff/audit-r10-roster: the #3241 CARRY line (standing-tick.md), the pr-token gap, the landing-barrier class and the bus round counter. `carry_audit.py landed --body <body>` gives `CARRY-LANDED: 0 missing` under `--pr 3241`, `--pr #3241` and `--topic r10-carry-residue` (`ev/carry_landed.txt`).
-  - The standing-tick.md policy line goes to a round-10 group under the orchestrator's minimal re-cut ruling, not to round 11.
-- **The six carries at the base**, unchanged since round 2's null control (verdict/3241):
-  - Carry 1 is delivered by df9bfd301, carry 2 by 408644f7f and carry 3 by 82f333b9c.
-  - Carry 4 is delivered at the base; this PR changes only the comment.
-  - Carries 5 and 6 are absent at the base, and the body's `git grep` printed NONE.
-- **Carry 4 figures.** I re-read the three CI readings round 2 had not read (`ev/carry4_rereads.txt`):
-  - job 125160076828: `loop_cpu_ratio 0.1339`, ref_ms 30.4;
-  - job 125097530406: 0.1418, ref_ms 46.3;
-  - job 125316010511: 0.1433, ref_ms 46.7.
-
-  All five readings in the tree comment are now re-derived: two in round 2 and three here. The margin 0.128 / 0.1245 = 1.028 re-derives.
-- **Harness.** No finder harness is named. The instrument is the fixer's in-tree `r10_ledger_mutants.py`. My plants R3a-R3e are my own, out of tree, and disclosed here.
+- (1) review_carry: `review_carry.py de1a371e2 96987ab3d` printed `review_carry: FRESH-REVIEW`, because `49feb621c06987143872795f502b2c72a2549c6e is not the automatic merge of its parents` (ev/review_carry.txt). So the scope of this review is the resolution delta.
+- (2) Hand-resolved merges: I diffed each merge in de1a371e..96987ab3 against `git merge-tree --write-tree` of its parents.
+  - bb33e6807, 1d5a5ce7f, 87b00d3ec and 96987ab3d are identical to git's automatic merge (ev/resolution_vs_auto_96987ab3d.txt).
+  - Only 49feb621c differs, and only in tools/audit/seat/r10_ledger_mutants.py, where it removes the conflict markers (ev/resolution_vs_auto_49feb621c.diff). The resolution keeps the branch's `T3_review_owed_silent`, anchored on `lg.git_recarry(...)` and `flag=not text.startswith("CARRY:")`, and main's `T4_no_escalation`, anchored on `aging, group_of, last_open)`. Main's T3 anchor and the branch's old T4 anchor are dropped. That matches the body's account of the resolution.
+  - At the head, both anchors exist once in orchestrator_tick.py, at lines 758-759 and 1075-1076. Main's former T3 anchor (`getattr(rr, "RECORD_BRANCH", None)):` plus `flag=True`) no longer exists at the head: line 757 now ends `None),`. Dropping it was therefore correct.
+- RESULT mutant=T3_review_owed_silent rc=1 fails=6. RESULT mutant=T4_no_escalation rc=1 fails=4. Output: `plants: 2, without a FAIL line: none`, run by me at the head (ev/plants_T3_T4.txt). T3 still plants and is killed.
+- Self-test at the head: `r10_ledger_mutants self-test: 194 checks, 0 failed` (ev/selftest_head.txt).
+- Self-test at origin/main 355d9965 (null control): `r10_ledger_mutants self-test: 149 checks, 0 failed` (ev/selftest_main.txt). The 45 extra checks at the head are the branch's own plants.
+- (3) Nothing rode in under the resolution: I compared the PR's patch at de1a371e (against merge base dc0a170b) with the patch at 96987ab3 (against merge base f2a01514), with index and hunk-header lines removed (ev/patch_interdiff.txt). Both touch the same 8 files. They differ in exactly two places:
+  - the tests/replay.py carry-4 comment sentence (0b1a4bb6f);
+  - the T4 anchor in r10_ledger_mutants.py, which is now main's.
+  - No other line moved.
+- (4) The 0.249 figure (ev/budget_0249.txt, ev/commit_0b1a4bb6f.txt) checks out:
+  - The owner `loop_cpu_ratio` budget was 0.249 from 37bafc867 ("replay: record the owner fixture's cost budget") until 6715d9733 re-derived it to 0.2154. That is R10-REPLAY-COST-BUDGET round 3, so the past tense ("under that recording's 0.249 budget ... round 3 below re-derives that budget") is accurate.
+  - sqrt(2) x sqrt(0.137 x 0.227) = 0.2494, the recording's rule applied to the cited spread.
+  - The floor is 0.249/2 = 0.1245. The ref30 reading 0.128 is 2.8 % over it (0.128/0.1245 - 1 = 0.028). The highest CI reading 0.189 (ref24) sits 24.1 % under the ceiling (1 - 0.189/0.249). Both match the sentence.
+  - Not re-derived: I did not re-open the logs of the cited jobs 125240101580, 125160076828, 125097530406, 125316010511 and 125461180429 to re-read 0.128 / 0.1339 / 0.1418 / 0.1433 / 0.189. Those readings are unchanged from the de1a371e text that round 3 verified, and 0b1a4bb6f moves none of them (ev/patch_interdiff.txt). The commit changes only a comment.
+- (5) Red checks:
+  - The live head has 68 check-runs, read in one page (total_count 68): 0 failure, 0 cancelled, everything else success or skipped. `gate` succeeded in runs 42332985078 (job 128293783122), 42333513736 (job 128293945477) and 42332985466 (job 128294118593). `pr-contract / pr-contract` (job 128293626552) succeeded after the last code-run job concluded.
+  - The live head has no red, so R10-HOTFIX-GATE-BUSY-DEFER does not arise: no gate is red by mutual deferral.
+  - The body's `## Red checks` answers the reds at the prior head 87b00d3: `tests / replay`, `tests / nightly-status`, `pr-contract`, `gate`.
+- CI: `merge_train.py classify 96987ab3d --pr 3241` exited 0 with `GREEN 96987ab3d7224b04803106ae4366c5a02bb91b51 pending: none red: none` (ev/classify.txt).
+- Merges with main: `git merge-tree --write-tree origin/main 96987ab3d` (origin/main 355d9965, 2 commits past the PR's base f2a01514) exited 0 with tree 0b22ec89849692fa275747426692bbbd383b4754 and no conflict (ev/merge_tree.txt).
+- Review packet: it rendered with rc 0 and `## Refusals: none`. The advisory `hot-file: HPO_BUS_TRAIN_STATE is unset` is a seat-environment notice. Its carry_audit line at the head read `1 finding item(s): 1 routed` (the body's R10-CARRY-RESIDUE-2 forward-carry). The packet is in ev/review-packet.md.
+- VERSION, the manifest and the release notes are outside the patch: the 8 files in ev/patch_interdiff.txt do not include them.
+- Instrument disclosure: I built no harness of my own. The plants, the self-test and classify are the committed instruments.
+- Closing self-audit: `carry_audit.py check` ran on this verdict with the body's `## Forward-carry` and `## Friction` sections copied verbatim from the live PR body, and exited 0 with `CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)`.

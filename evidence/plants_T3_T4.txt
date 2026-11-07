@@ -1,0 +1,14 @@
+RESULT mutant=T3_review_owed_silent rc=1 fails=6
+    FAIL verdict levels: a verdict not from the approver App is ignored: the head owes its review
+    FAIL REVIEW OWED: of reviewed, dispatched and neither (a draft aside), exactly one line: the one with neither
+    FAIL REVIEW OWED: a head the newest merge verdict carries to owes no review; one it does not carry to does
+    FAIL REVIEW OWED: P322: a record/autofix PR at an unverdicted head prints no REVIEW OWED; the fix/ PR beside it does
+    FAIL CARRY and RECORD-OWED: a verdicted head plus one main merge prints CARRY, unflagged, and no REVIEW OWED
+    FAIL CARRY and RECORD-OWED: null control: the same head after a blocked verdict is REVIEW OWED, flagged, and no CARRY
+RESULT mutant=T4_no_escalation rc=1 fails=4
+    FAIL relay OWED: aging keys on arrivals after the newest fix/ or handoff/ opening: the 30 h backlog tip is silent, the 5 h arrival escalates (carry 2)
+    FAIL relay OWED: null control: an unreadable opening listing is UNREADABLE and keys on age alone, flagging the backlog
+    FAIL relay OWED: a stranded handoff past 4 h is a DISPATCH line naming its group and opener, oldest first
+    FAIL relay OWED: past 12 h it raises an owner flag
+plants: 2, without a FAIL line: none
+exit=0
