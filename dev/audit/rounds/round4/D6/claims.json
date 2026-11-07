@@ -1118,9 +1118,9 @@
  {
   "id": "C125",
   "source": "strings.json:selector",
-  "claim": "every SelectSelector option on every options page has a translated label (45 selects)",
+  "claim": "every SelectSelector option on every options page has a translated label (47 selects)",
   "command": "PYTHONPATH=tests/hastub python3 dev/audit/rounds/round4/D6/claims.py",
-  "result": "45 selects, untranslated=[]",
+  "result": "47 selects, untranslated=[]",
   "verdict": "true",
   "truth": ""
  }

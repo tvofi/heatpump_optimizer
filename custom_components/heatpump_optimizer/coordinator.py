@@ -1163,23 +1163,6 @@ async def _async_learn_heat_span(coord: Any, clean: dict[str, bool]) -> None:
         coord._measured_cop.refusal = close.refusal or (None if coord._measured_power is not None else MeasuredCop.judge_floor(close.asked_kw, close.elec_kw, ctx._thermal_params)) or coord._fold_cop_evidence(close.asked_kw, close.elec_kw, close.heat_kw, coord._cop_reference_curve(close.reference))
 
 
-def _cop_sample_measured(coord: Any, heat_kw: float | None, dhw: bool) -> bool | None:
-    """Whether one folded interval is a measured COP (R10-HOTFIX-COP-UNMEASURED).
-
-    ``True`` for metered heat over metered power where the install measures
-    that curve (``InstallCapability.cop_measured``): recorded and graded.
-    ``False`` for the plan's inference or a vendor estimate, which trains the
-    COP scale alone (tvofi, 2026-11-07: "Training on estimated power should be
-    good enough and better than nothing though so retain that"). ``None`` --
-    refuse -- for a configured thermal power that read no heat, unavailable or
-    negative: a missing input, never an inference.
-    """
-    install = probe_install(_ctx_of(coord)._config)
-    if heat_kw is None:
-        return None if install.measured_heat and not install.heat_counter else False
-    return install.cop_measured(dhw)
-
-
 def _watch_lift(coord: Any, dhw_curve: bool) -> tuple[float, bool | str] | None:
     """#1067: ``(divisor, baseline curve key)`` for a health sample, or ``None``.
 
@@ -4589,13 +4572,11 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # Re-anchored before anything solves; gated write, last: `updated_at` defeats the hash skip.
         save = self._reanchor_house_heat_loss_scale(stored) or not all(
             k in stored for k in _HEAT_LOSS_ANCHOR_KEYS)
-        # A store from before _COP_BASELINE_KEY may hold an inferred last COP.
         self._measured_cop = MeasuredCop.from_dict(stored.get("measured_cop") if _COP_BASELINE_KEY in stored else None)
 
         # v4.0.0 T4a — the detectors' memory. Absent from every pre-T4
         # payload, and each loader tolerates garbage on its own.
         self._vent_cusum.load(stored.get("vent_cusum"))
-        # The pre-fix keys' samples a heat measurement never vouched for: unread.
         self._cop_health_cusum.load(stored.get(_COP_HEALTH_CUSUM_KEY))
         raw_baseline = stored.get(_COP_BASELINE_KEY)
         if isinstance(raw_baseline, dict):
@@ -5311,9 +5292,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """Compare measured electrical input with modelled thermal output.
 
         Without a power entity or a heat counter the COP is a curve fitted to
-        a nameplate figure, and since every plan is priced through it, an
-        error there is an error in every cost the integration reports. With
-        either, COP becomes an observable and can join the other learners.
+        a nameplate figure every plan's cost runs through. With either the COP
+        scale learns; a measured COP needs metered heat too (``cop_sample``).
 
         Only intervals where the pump is genuinely running carry information;
         at low duty the measured average is dominated by standby draw.
@@ -5353,11 +5333,9 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         if heat_energy.meter_of(self).counter:
             return COP_REFUSED_SPAN_OPEN
 
-        # v4.0.5: without a heat meter this ratio reads as efficiency only
-        # while the pump plausibly runs the plan, so outliers are judged
-        # against a walking ratio EWMA (a fixed gate deadlocks on a true
-        # efficiency past it); a draw off the ask needs draw_range's
-        # evidence. A measured heat (fold e) leaves the gates nothing to judge.
+        # v4.0.5: without a heat reading this ratio trains the scale only while the pump
+        # plausibly runs the plan: outliers are judged against a walking ratio EWMA (a fixed gate
+        # deadlocks past it), a draw off the ask on draw_range's evidence; heat skips both.
         ratio = float(cast(float, self._measured_power)) / max(commanded, 1e-6)  # the two guards leave a power here
         # Seeded at 1.0, the model's own expectation, and gated against the
         # value BEFORE this sample updates it, so a first-sample blip cannot
@@ -5386,7 +5364,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             return COP_REFUSED_BLENDED
         if modelled_cop <= 0.1:
             return COP_REFUSED_MODELLED
-        if (measured := _cop_sample_measured(self, heat_kw, bool(cop_curve_dhw))) is None:
+        if (measured := probe_install(_ctx_of(self)._config).cop_sample(heat_kw, bool(cop_curve_dhw))) is None:
             return COP_REFUSED_NO_HEAT
 
         # ``cop_scale`` multiplies the *nameplate* curve and ``modelled_cop``
@@ -5398,8 +5376,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         if not np.isfinite(observed_cop) or observed_cop <= 0.1:
             return COP_REFUSED_OBSERVED
-        if measured:  # an inference or an estimate trains the scale alone
-            self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
 
         alpha = COP_LEARNING_ALPHA
         new_scale = (1.0 - alpha) * self._cop_scale + alpha * target_scale
@@ -5418,10 +5394,10 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "against a modelled %.2f; scale now %.3f (%d samples)",
             commanded, electrical_kw, observed_cop, modelled_cop, self._cop_scale, self._cop_samples,
         )
-        # #12: the same vetted sample feeds the weeks-scale health watch —
-        # this path is already guarded against frost, immersion, freezes
-        # and low duty, so the baseline inherits every filter for free.
+        # #12: a measured sample, vetted on this path for frost, immersion, freezes and
+        # low duty, feeds the health watch; an inference or estimate trains the scale alone.
         if measured:
+            self._measured_cop.record(observed_cop, cop_curve_dhw, cop_dhw_temp, dt_util.now())
             self._observe_cop_health(float(observed_cop), cop_curve_dhw)
         # #17 (gated): and the capacity envelope, for the same reason.
         self._fold_capacity_envelope(float(observed_cop), heat_kw)
@@ -8022,7 +7998,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
                 electric=install.cop_electric(), measured_heat=install.measured_heat,
                 estimated=install.heat_estimated or install.power_estimated,
             ),
-            "cop_dhw_covered": install.heat_sees_dhw,  # declared, never assumed
             "defrost_derate": self._defrost.factor(
                 ctx._current_state.outdoor_temperature, self._current_humidity()
             ),
@@ -8053,7 +8028,6 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             "immersion_active": self._immersion_active,
             "immersion_evidence": list(self._immersion_evidence),
             "cop_health": {
-                "measurable": install.cop_measured(False),
                 "watched_buckets": _watched_cop_buckets(self._cop_baseline),
                 "alarm": self._cop_health_cusum.tripped,
                 "evidence": list(self._cop_health_cusum.evidence),

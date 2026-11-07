@@ -1304,6 +1304,22 @@ class InstallCapability:
             and (self.heat_sees_dhw or not dhw)
         )
 
+    def cop_sample(self, heat_kw: float | None, dhw: bool) -> bool | None:
+        """Whether one folded interval is a measured COP (R10-HOTFIX-COP-UNMEASURED).
+
+        ``True`` for an interval's heat reading where this install measures
+        that curve (``cop_measured``): recorded and graded. ``False`` for no
+        heat slot, or an estimate: the plan's inference or the vendor's fitted
+        COP trains the COP scale alone (tvofi, 2026-11-07: "Training on
+        estimated power should be good enough and better than nothing though
+        so retain that"). ``None`` -- refuse -- for a configured thermal power
+        that read no heat, unavailable or negative: a missing input, never an
+        inference.
+        """
+        if heat_kw is None:
+            return None if self.measured_heat and not self.heat_counter else False
+        return self.cop_measured(dhw)
+
     def can_duty_cycle(self) -> bool:
         """A sub-minimum average is realizable.
 

@@ -269,7 +269,7 @@
     "overall": null,
     "reasons": {
      "envelope": "heat_loss_learning",
-     "machine": "cop_watch_learning",
+     "machine": "cop_unmeasurable",
      "operation": "no_scored_day",
      "overall": "first_scored_day"
     }
@@ -1987,7 +1987,7 @@
     "price_tiles": {},
     "reasons": {
      "envelope": "heat_loss_learning",
-     "machine": "cop_watch_learning",
+     "machine": "cop_unmeasurable",
      "operation": "no_scored_day",
      "overall": "first_scored_day"
     },
