@@ -9273,7 +9273,17 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "group": "R10-CLOSEOUT-CLEANUP",
-   "after": [],
+   "after": [
+    "R10-ARCH-DOCS",
+    "R10-USER-DOCS-VERIFY",
+    "R10-ROUND-PLAYBOOK-FINAL",
+    "R10-CLOSEOUT-INSTRUMENTS",
+    "R10-RCA-GATE-BUSY-DEFER-2",
+    "R10-RCA-STAMP-FLUSH-COST",
+    "R10-RCA-COP-UNMEASURED",
+    "R10-FRICTION-CI-RED",
+    "R10-FRICTION-OTHER-FAMILY"
+   ],
    "files": [
     "tools/audit/seat/prune_refs.py",
     "tools/audit/worktree_gc.sh",
