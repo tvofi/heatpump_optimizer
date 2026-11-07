@@ -1,3 +1,0 @@
-model self-test: 0 failed
-self-test: 0 failed
-m8@8ff3432a rc=0
