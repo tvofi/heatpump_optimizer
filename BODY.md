@@ -1,12 +1,12 @@
 Adopts outside pull request 3292 (contributor Bankaifan, fork head f20c98084b179c85d2c834adc4caf49dc05631d8): a configured input the cycle finds `missing_entity` or `unavailable` is re-read as soon as its entity reports a value, not one `optimization_interval` later. The contributor's four commits are kept with their authorship; their trailers naming an assistant session were dropped from the messages, and the contributor is credited by the Co-authored-by trailer below. The fork's `dev/programme/carries/carry-201.json` hunk is dropped (a programme record; the orchestrator rules it in or not). One added commit drops a stale mutation-ledger pin that the `has_value` helper made unreachable. Independent review: read from the merged tree; the design matches `away.watch_away_inputs` (debounced `async_request_refresh`), `inputs.py` imports no Home Assistant, the watch reads nothing itself so every guard applies, and release latches (#236).
 
-Closes #3292 on merge (close it with thanks once this merges). Plan page link for the outside-intake ruling: owed on 3292 by the orchestrator.
+Closes #3292 on merge (close it with thanks once this merges). The fork's archscore-gap carry rode in the dropped carry-201 hunk; the orchestrator decides whether to land it. Plan page link for the outside-intake ruling: owed on 3292 by the orchestrator.
 
 Co-authored-by: Daniel <476059+Bankaifan@users.noreply.github.com>
 
 ## Head
 
-c0cb5dcea9e242fbfd4e28f7316adb6f20067df3 (code head, cut from origin/main 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76; main had not moved at the last `tools/pr/prepr.sh` run, so no second run).
+7137c4f7bea5a7149655ab896379db95ed6934b5 (code head, cut from origin/main 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76; main had not moved at the last `tools/pr/prepr.sh` run, so no second run).
 
 ## Mutation proof
 
@@ -26,10 +26,11 @@ Unmutated head, same command, from the worktree: `ALL 4923 FEATURE CHECKS PASSED
 ## Red checks
 
 none (the one predicted red, a stale ledger pin of the replaced `_begin` guard line, is repaired in this diff; cheaper detector already standing: `ci_predict` ledger arm).
+- `mutation` at 7137c4f7bea5: red by construction on the 12 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Forward-carry
 
-none. (The fork's archscore-gap carry is dropped with the carry-201 hunk; the orchestrator decides whether to land it.)
+none
 
 ## Friction
 
