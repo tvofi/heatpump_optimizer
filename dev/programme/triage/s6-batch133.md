@@ -382,3 +382,26 @@ Cost:
 
 Binding:
 - **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P417 at <roster sha>), savings estimate 4 to 8 h (instrument tier): roster_queue.py _run_batch catches SystemExit and Exception as e, discards e and prints only roster: batch fell back to the single-op path, so a 116-line hold drain on 2026-11-07 fell to about 2 h single-op with the refusing line unknown. Print the exception and the line it names; when the failure is one line (its parse_op SystemExit or a roster_edit Refuse naming it), re-batch once without that line and report it refused; any other batch-level failure falls back as today. Self-test arms: one malformed line in a batch lands the rest and names it; a lost race still falls back; null control: a clean batch is unchanged; a mutant dropping the re-batch fails the first.`
+
+## P418: set-files keeps only the last --add (queue line s12-set-files-repeat-add)
+
+Verdict: ACCEPT. This is an instrument defect: a silent partial write, and a guard narrower than its own grammar. The destination is a carry on R10-ROSTER-WRITE-SWEEP (PR 3253), as the line asks, plus an operational re-apply of the lost path.
+
+Source: the orchestrator's queue line of 2026-11-07T18:14:32Z.
+
+Instances:
+- **The parser.** `tools/audit/seat/roster_edit.py` line 1151 reads `p.add_argument("--add", nargs="+", help="set-files: paths appended to files")`. With `nargs="+"` and the default `store` action, a repeated flag replaces the earlier list.
+- **The repro.** `python3 -c "import argparse; p=argparse.ArgumentParser(); p.add_argument('--add', nargs='+'); print(p.parse_args(['--add','a','--add','b']).add)"` prints `['b']`.
+- **The instance.** In the slip batch at roster `c2e398675`, `set-files R10-USER-DOCS-VERIFY --add docs/img/brand/coffee.svg --add docs/img/readme/mermaid_figures.json` landed only `mermaid_figures.json`, and the tool reported pushed.
+- **The rule on the instance.** With `action="extend"`, the same line lands both paths. The null control: one `--add a b` lands both, and one `--add a` lands one.
+
+Cost:
+- One line, plus self-test arms in the existing set-files block (line 1926 onward):
+  - two `--add` flags land both paths;
+  - the null control, one `--add` with one path, lands one;
+  - a mutant restoring the default action fails the first.
+- The same check applies to every other repeatable flag that roster_edit's grammar documents as `...`.
+
+Binding:
+- **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P418 at <roster sha>), instrument defect (silent partial write): roster_edit.py --add is nargs=+ with the default store action, so repeated --add flags keep only the last list (argparse repro prints [b] for --add a --add b); at roster c2e398675 set-files R10-USER-DOCS-VERIFY --add docs/img/brand/coffee.svg --add docs/img/readme/mermaid_figures.json landed only mermaid_figures.json and reported pushed. Use action=extend; check every other flag the grammar documents as repeatable. Self-test arms: two --add flags land both paths; null control: one --add with one path lands one; a mutant restoring the default action fails the first.`
+- **The operational step.** The orchestrator re-applies `set-files R10-USER-DOCS-VERIFY --add docs/img/brand/coffee.svg` now, and reads it back.
