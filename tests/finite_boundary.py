@@ -265,7 +265,7 @@ def _healthy_payloads() -> dict[str, dict]:
     except Exception as exc:  # pragma: no cover - diagnostic only
         print("note: pump_arbiter persist skipped: %r" % (exc,))
     from heatpump_optimizer import off_restore
-    _off = run(off_restore._armed_record(coord, coord.hass, coord.entry.entry_id))
+    _off = run(off_restore._armed_record(coord.hass, coord.entry))
     _off.armed.update({"heat_curve": None, "stand_in": 21.5})
     run(off_restore._save(_off))
     run(_save_notifier(coord))
@@ -483,7 +483,7 @@ LOADERS = {
     "pump_duty": lambda c: __import__("heatpump_optimizer.pump_arbiter", fromlist=["x"])._load(c),
     "notifier": _load_notifier,
     "debug": _load_debug,
-    "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c, c.hass, c.entry.entry_id),
+    "off_restore": lambda c: __import__("heatpump_optimizer.off_restore", fromlist=["x"])._armed_record(c.hass, c.entry),
 }
 
 R.check(
@@ -1133,7 +1133,7 @@ def _a4_seed(enrich=None) -> dict[str, dict]:
     arbiter.state_for(coord).written["dhw_setpoint"] = (55.0, t0)
     run(arbiter._persist(coord))
     off = importlib.import_module("heatpump_optimizer.off_restore")
-    held = run(off._armed_record(coord, coord.hass, coord.entry.entry_id))
+    held = run(off._armed_record(coord.hass, coord.entry))
     held.armed.update({"heat_curve": None, "stand_in": 21.5})
     run(off._save(held))
     run(_save_notifier(coord))
@@ -1798,7 +1798,7 @@ def _a6_savers():
         "pump_duty": lambda c: mod("pump_arbiter")._persist(c),
         "notifier": _save_notifier,
         "debug": _save_debug,
-        "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._HELD[c]),
+        "off_restore": lambda c: mod("off_restore")._save(mod("off_restore")._HELD[c.entry]),
     }
 
 

@@ -435,7 +435,7 @@ async def async_get_config_entry_diagnostics(
                     **config_view(entry.data, entry.options),
                     "coordinator": snapshot,
                     # The heat-curve entity arm and its off restore.
-                    "heat_curve": heat_curve.diagnostics(coord, coord.effective_config) if coord is not None else None,
+                    "heat_curve": heat_curve.diagnostics(entry, coord.effective_config) if coord is not None else None,
                     **_published_sections(coord, now),
                     "domain": DOMAIN,
                     # #1940: capped, so a week too large to inline is its summary.

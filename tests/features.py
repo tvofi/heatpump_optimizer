@@ -40664,10 +40664,10 @@ _g2 = _ghc_coord()
 _ghc_pub(_g2, 2.0)
 _ghc_pub(_g2, 2.0)
 _w2_grace = list(_ghc_writes(_g2))
-_ghc.state_for(_g2).written_at -= _ghc.HELD_GRACE_S + 1
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
 _ghc_pub(_g2, 2.0)
 _w2_after = list(_ghc_writes(_g2))
-_ghc.state_for(_g2).written_at -= _ghc.HELD_GRACE_S + 1
+_ghc.state_for(_g2.entry).written_at -= _ghc.HELD_GRACE_S + 1
 _w3_warn = _ghc_logged(lambda: _ghc_pub(_g2, 2.0))
 _w3_gave_up = list(_ghc_writes(_g2))
 _ghc_pub(_g2, 1.0)
@@ -40693,10 +40693,10 @@ R.check(
 )
 _g4 = _ghc_coord()
 _cap = _ghc.write_cap_per_day(_g4.effective_config)
-_ghc.state_for(_g4).writes.extend([_time.monotonic()] * _cap)
+_ghc.state_for(_g4.entry).writes.extend([_time.monotonic()] * _cap)
 _w4_warn = _ghc_logged(lambda: _ghc_pub(_g4, 2.0))
 _g4b = _ghc_coord()
-_ghc.state_for(_g4b).writes.extend([_time.monotonic()] * (_cap - 1))
+_ghc.state_for(_g4b.entry).writes.extend([_time.monotonic()] * (_cap - 1))
 _ghc_pub(_g4b, 2.0)
 R.check(
     "the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)",
@@ -40737,7 +40737,7 @@ _cr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
 _cr.hass.services = _GhcRaising()
 _cr_warn = _ghc_logged(lambda: _ghc_pub(_cr, 2.0))
 _bad["raising service"] = (
-    [], _ghc_mqtt(_cr), bool(_cr_warn) and _ghc.state_for(_cr).written is None,
+    [], _ghc_mqtt(_cr), bool(_cr_warn) and _ghc.state_for(_cr.entry).written is None,
 )
 R.check(
     "absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising "
@@ -40782,7 +40782,7 @@ _unloaded = _asyncio.run(_ghc_unload(_gl.hass, _gl.entry))
 R.check(
     "unload after a write writes one 0, through async_unload_entry (the off rule)",
     _unloaded and _ghc_writes(_gl) == [-3, 0]
-    and _ghc_restore.diagnostics(_gl)["restores"] == 1,
+    and _ghc_restore.diagnostics(_gl.entry)["restores"] == 1,
     "ok=%r writes=%r" % (_unloaded, _ghc_writes(_gl)),
 )
 
@@ -40816,11 +40816,11 @@ _ghc_restore.register_consumer(
 )
 _si = _ghc_coord(entity=None, entry_id="ghc_stand_in", stand_in=True)
 _si_cfg = _si.effective_config
-_armed = _asyncio.run(_ghc_restore.async_arm(_si, _si.hass, "ghc_stand_in", _si_cfg, "stand_in_space_setpoint"))
+_armed = _asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
 _ghc_base["v"] = 46.0  # the consumer's own write moved the entity
-_asyncio.run(_ghc_restore.async_arm(_si, _si.hass, "ghc_stand_in", _si_cfg, "stand_in_space_setpoint"))
+_asyncio.run(_ghc_restore.async_arm(_si.hass, _si.entry, _si_cfg, "stand_in_space_setpoint"))
 _si2 = _ghc_coord(entity=None, hass=_si.hass, entry_id="ghc_stand_in", stand_in=True)
-_si_sent = _asyncio.run(_ghc_restore.async_restore(_si2, _si2.hass, "ghc_stand_in", _si2.effective_config, "unload"))
+_si_sent = _asyncio.run(_ghc_restore.async_restore(_si2.hass, _si2.entry, _si2.effective_config, "unload"))
 R.check(
     "a stand-in second consumer registers without editing the hook: its baseline, captured "
     "before its first write, survives a restart and is what the restore writes",
@@ -40831,7 +40831,7 @@ _ghc_base["v"] = None
 _si3 = _ghc_coord(entity=None, entry_id="ghc_stand_in_unreadable", stand_in=True)
 R.check(
     "and an unreadable baseline refuses the consumer's write: nothing to restore it to",
-    _asyncio.run(_ghc_restore.async_arm(_si3, _si3.hass, "ghc_stand_in_unreadable",
+    _asyncio.run(_ghc_restore.async_arm(_si3.hass, _si3.entry,
                                         _si3.effective_config, "stand_in_space_setpoint")) is False,
     "",
 )

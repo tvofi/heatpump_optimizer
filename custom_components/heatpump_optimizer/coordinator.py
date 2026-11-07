@@ -6430,8 +6430,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # #1935: the mode surface's settling tail — same plant-state
             # divergence the channel overlay's leaves behind.
             boost.note_mode_boost_ended(self)
-        if mode == MODE_OFF and self._mode != MODE_OFF:  # off restores (tvofi, 2026-11-07)
-            await off_restore.async_restore(self, self.hass, self.entry.entry_id, _ctx_of(self)._config, "mode_off")
+        await off_restore.async_mode_change(self.hass, self.entry, _ctx_of(self)._config, self._mode, mode)
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
             # The plan stops being what runs, so its unmatured promises
@@ -7619,7 +7618,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         self._ecl110_current_displace = float(displace_int)
 
         await heat_curve.publish(
-            self, getattr(self, "_ctx", self)._config, displace_int, legacy_payload,
+            self.hass, self.entry, getattr(self, "_ctx", self)._config, displace_int, legacy_payload,
             mode_off=self._mode == MODE_OFF,
         )
 

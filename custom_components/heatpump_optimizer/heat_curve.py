@@ -69,7 +69,7 @@ _DAY_S = 86400.0
 
 @dataclass
 class HeatCurveState:
-    """Per coordinator, the entity arm's record (``pump_arbiter.state_for``'s shape)."""
+    """Per config entry, the entity arm's record (``pump_arbiter.state_for``'s shape)."""
 
     #: The last value written, in the entity's unit, and its monotonic stamp.
     written: float | None = None
@@ -83,10 +83,10 @@ class HeatCurveState:
 _STATES: WeakKeyDictionary[Any, HeatCurveState] = WeakKeyDictionary()
 
 
-def state_for(owner: Any) -> HeatCurveState:
-    held = _STATES.get(owner)
+def state_for(entry: Any) -> HeatCurveState:
+    held = _STATES.get(entry)
     if held is None:
-        held = _STATES[owner] = HeatCurveState()
+        held = _STATES[entry] = HeatCurveState()
     return held
 
 
@@ -184,7 +184,8 @@ async def publish_ecl110_topics(
 
 
 async def publish(
-    owner: Any,
+    hass: Any,
+    entry: Any,
     config: Any,
     displace_int: int,
     legacy_payload: Ecl110Payload,
@@ -193,11 +194,11 @@ async def publish(
 ) -> None:
     """Fan one displace out: the MQTT arms first, then the entity arm.
 
-    ``owner`` is the coordinator: its ``hass`` and ``entry`` are read, and it
-    keys the arm's record and latches, so the coordinator carries no attribute.
+    ``entry`` keys the arm's record and its latches, so the coordinator
+    carries no attribute and is not handed in.
     """
     await publish_ecl110_topics(
-        owner.hass,
+        hass,
         config.ecl110_displace_set_topic,
         config.ecl110_command_topic,
         config.ecl110_mqtt_qos,
@@ -206,7 +207,7 @@ async def publish(
         legacy_payload,
     )
     if config.heat_curve_displace_entity and not mode_off:
-        await write_displace(owner, config, displace_int)
+        await write_displace(hass, entry, config, displace_int)
 
 
 def range_excludes_zero(reading: NumberReading) -> bool:
@@ -261,13 +262,13 @@ def write_cap_per_day(config: Any) -> int:
     return int(2 * 1440 / max(1.0, float(config.optimization_interval)))
 
 
-async def write_displace(owner: Any, config: Any, displace_int: int) -> bool:
+async def write_displace(hass: Any, entry: Any, config: Any, displace_int: int) -> bool:
     """The entity arm: write ``displace_int`` K to the offset entity; True when sent.
 
-    Every failure is latched on ``owner`` and swallowed: the cycle and the
+    Every failure is latched on ``entry`` and swallowed: the cycle and the
     MQTT arms are never affected by the entity.
     """
-    hass, entity_id = owner.hass, config.heat_curve_displace_entity
+    entity_id = config.heat_curve_displace_entity
     reading = number_reading(hass, entity_id)
     domain = entity_id.split(".", 1)[0]
     target: float | None = None
@@ -276,50 +277,50 @@ async def write_displace(owner: Any, config: Any, displace_int: int) -> bool:
     if domain in DOMAINS:
         target, why, saturated = offset_target(reading, float(displace_int), float(config.heat_curve_offset_band_k))
     if target is None or reading is None:
-        log_held(owner, "heat_curve_entity", True, "Heat-curve entity %s %s: not written", entity_id, why)
+        log_held(entry, "heat_curve_entity", True, "Heat-curve entity %s %s: not written", entity_id, why)
         return False
-    log_held(owner, "heat_curve_entity", False)
-    log_held(owner, "heat_curve_saturated", saturated,
+    log_held(entry, "heat_curve_entity", False)
+    log_held(entry, "heat_curve_saturated", saturated,
              "Heat-curve entity %s range narrower than the displace %s K: sending %s",
              entity_id, displace_int, target)
-    held = state_for(owner)
+    held = state_for(entry)
     now = time.monotonic()
     step = setpoint_step(hass, entity_id)
     decision = _decide(held, target, reading.value, step / 2.0, now)
-    if log_held(owner, "heat_curve_not_held", decision == "gave up",
+    if log_held(entry, "heat_curve_not_held", decision == "gave up",
                 "Heat-curve entity %s does not hold %s after a rewrite: not resent until the target changes",
                 entity_id, target) or decision is not None:
         return False
     while held.writes and now - held.writes[0] > _DAY_S:
         held.writes.popleft()
     cap = write_cap_per_day(config)
-    if log_held(owner, "heat_curve_write_cap", len(held.writes) >= cap,
+    if log_held(entry, "heat_curve_write_cap", len(held.writes) >= cap,
                 "Heat-curve entity %s: %d writes in 24 h reached the guard, refused", entity_id, cap):
         return False
-    if not await off_restore.async_arm(owner, hass, owner.entry.entry_id, config, CONSUMER):
+    if not await off_restore.async_arm(hass, entry, config, CONSUMER):
         return False
     try:
         await write_setpoint(hass, entity_id, target)
     except Exception as err:  # noqa: BLE001 - the entity never breaks a cycle
-        log_held(owner, "heat_curve_write", True, "Heat-curve entity %s write failed: %s", entity_id, err)
+        log_held(entry, "heat_curve_write", True, "Heat-curve entity %s write failed: %s", entity_id, err)
         return False
-    log_held(owner, "heat_curve_write", False)
+    log_held(entry, "heat_curve_write", False)
     held.written, held.written_at = target, now
     held.writes.append(now)
     return True
 
 
-def diagnostics(owner: Any, config: Any) -> dict[str, Any]:
+def diagnostics(entry: Any, config: Any) -> dict[str, Any]:
     """The entity arm's record, for the diagnostics bundle.
 
     Counts and numbers only: the entity, kind and band are the config
     section's, so nothing the install names is repeated here.
     """
-    held = _STATES.get(owner)
+    held = _STATES.get(entry)
     return {
         "written": None if held is None else held.written,
         "misses": 0 if held is None else held.misses,
         "writes_24h": 0 if held is None else len(held.writes),
         "write_cap_per_day": write_cap_per_day(config),
-        "restore": off_restore.diagnostics(owner),
+        "restore": off_restore.diagnostics(entry),
     }

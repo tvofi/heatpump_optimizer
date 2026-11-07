@@ -424,7 +424,7 @@ async def async_unload_entry(
         # The off rule's unload half (tvofi, 2026-11-07): what the optimizer
         # wrote is restored as it lets go, a Home Assistant stop included.
         await (await _async_lazy(hass, "off_restore")).async_restore(
-            coordinator, hass, entry.entry_id, coordinator.effective_config, "unload"
+            hass, entry, coordinator.effective_config, "unload"
         )
         await coordinator.async_shutdown()
 

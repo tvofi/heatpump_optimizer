@@ -121,7 +121,7 @@ against a document that is CORRECT.
                                          #1588's pump_arbiter.py added to
                                          architecture.md's module map)
     RESULT arch_map_missing=0            (was 11)
-    RESULT ha_module_level_importers=29  (28 until R10-GENERIC-HEAT-CURVE's heat_curve.py; 27 until the live-fix wave's early_cutoff.py imports
+    RESULT ha_module_level_importers=30  (28 until R10-GENERIC-HEAT-CURVE's heat_curve.py and off_restore.py; 27 until the live-fix wave's early_cutoff.py imports
                                          homeassistant.core at module level;
                                          26 until R9-DBG-1's debugger.py imports
                                          homeassistant.core at module level;
