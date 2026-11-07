@@ -104,10 +104,15 @@ All at the head unless stated; base = `git archive origin/main` export at 28482e
 
 ## Red checks
 
-`mutation` (predicted by `prepr.sh` step 6d, `CI PREDICT: 8 predicted red(s) on ledger`): eight `killed_by` pins named sites this diff removed or renumbered (STALE PIN). Repaired in the ledger commit, which deletes each; the new owner sites are listed under `## Unpinned sites`. Cheaper detector: `tools/pr/ci_predict.py`, the one that named them, already exists and ran before the handoff, so none is owed.
+Read from the check-runs of PR head a46e4d02 (all pages, 54 runs; two concluded red, the rest green, skipped or still running `tests / mutation-pins (1-3)`):
 
-No CI has run on this head yet. Locally, my first two scoped-gate runs went red on scripts I had turned red myself, each fixed in its own commit (a third, P8's check calling a bare `metering_windows` features.py never binds, raised NameError in the second run; same answer as the first bullet):
-- `tests/features.py`: P4's new check built `CapacityTariff(marginal_price_per_kw=...)` (a property, not a field) and patched only `tariff.billed_windows` while the optimizer binds the name by import. Cheaper detector: running the new check block alone before the 6-minute script, which I then did (scratch harness, base and head); standing cost nil, so no countermeasure to build.
+- `tests / mutation` (run 42329898240, job 128291088162), failing step `Drive the table over what this diff tested`: `MUTATION TABLE REFUSED -- 2941 unpinned site(s) against 2939 at the ratchet base f2a01514, 14 of them added by this diff`. Class: newly added unpinned sites, the kind `tools/pr/ci_predict.py` already predicts (it ran in `prepr.sh` step 6d before the handoff and named the eight stale pins repaired in the ledger commit). The 14 added sites are exactly the 14 lines under `## Unpinned sites` (the 15th, `tariff.py:877 CMP_BOUND`, carries a recorded triage, so CI does not count it). Answer: the `mutation-autofix` job records each pin after the PR opens (`ci-autofix.md`) and `tests / mutation-pins (1-3)` is running on it now; each site is answered below. Cheaper detector: `ci_predict.py` already lists the sites and the table driver run locally would kill them, but running it over a four-module diff costs more than the autofix lane that exists for it, so no new detector is owed.
+- `gate` (run 42329898001, job 128275301443, kind edit): `FAIL run(s) [42329898240] at this head are still being judged; their gate decides`. This is the edit-run deferral (the busy-defer fix is merged as #3246), not a failure of its own: run 42329898240 decides, and its only red is `tests / mutation` above. Cheaper detector: none owed; the deferral is the designed behaviour.
+
+Not red: `governance / instrument-self-tests` completed success at this head (no 30-minute cancellation).
+
+Local scoped-gate reds before the handoff, each on a script I had turned red myself and fixed in its own commit:
+- `tests/features.py`: P4's new check built `CapacityTariff(marginal_price_per_kw=...)` (a property, not a field) and patched only `tariff.billed_windows` while the optimizer binds the name by import; a third, P8's check calling a bare `metering_windows` features.py never binds, raised NameError. Cheaper detector: running the new check block alone before the 6-minute script, which I then did (scratch harness, base and head); standing cost nil, so no countermeasure to build.
 - `tests/typing_ruler.py` (pinned census `--mypy`): +3 errors from the new P4/P6 owners (a `str` key into the `Payload` TypedDict, an ndarray product read as Any). Cheaper detector: `mypy --strict` over the package, about a minute, which exists and which I had not run before the gate; no new detector is owed.
 
 ## Forward-carry
