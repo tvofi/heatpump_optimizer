@@ -113,7 +113,13 @@
   judged on the latest run of each required context (`main-protect-checks`,
   read live; `record`, `record-autofix`, `nightly-status` and
   `delivery-status` never count): a queued or in-progress run is a wait,
-  never red, and an unreadable ruleset refuses. `--overlap` logs main RED,
+  never red, and an unreadable ruleset refuses. A red `gate` in a head wait
+  is a wait while `tools/ci/gate.py`'s own `busy` (imported) names a ci.yml
+  run at the head, read from one runs listing per poll, so an edit run's
+  at-once deferral red is not read final while its code run runs; a red
+  beside a green `gate` suite gets one settle poll for gate-sweep's re-run,
+  and an unreadable listing leaves the red standing, logged
+  (R10-HOTFIX-TRAIN-DEFER-WAIT). `polls` still bounds the wait (TIMEOUT). `--overlap` logs main RED,
   or still running, by that rule. Before a merge attempt a check-run still
   queued or in progress over a completed workflow run is stale: its run is
   re-run once, logged `STALE <context> ... run <id>` (a third recurrence goes
