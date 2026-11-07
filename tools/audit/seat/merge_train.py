@@ -5914,9 +5914,11 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
     check("defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)",
           rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1]
           and not any("gate-sweep" in ln for ln in lines))
-    rc, lines, calls = go(dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green)), polls=8)
-    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP",
-          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1])
+    w = dict(gate_req, frames=[scene[3]], rollup=(0, rollup_green))
+    rc, lines, calls = go(w, polls=8)
+    check("defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP "
+          "(two red polls, two ci.yml listing reads)",
+          rc == 1 and not merged(calls) and "red at the head: gate" in lines[-1] and w.get("ci_list_reads") == 2)
     rc, lines, calls = go(dict(gate_req, frames=scene[:1], rollup=(0, rollup_green)), polls=3)
     check("defer-wait bound: a code run that never finishes ends in TIMEOUT within `polls`, never merges",
           rc == 1 and not merged(calls) and "TIMEOUT" in lines[-1])
@@ -5927,7 +5929,7 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
           and any("runs listing is unreadable" in ln for ln in lines))
     # The `classify` subcommand (dispatch's and every reviewer's CI wait, "exits
     # 1 RED") reads the same deferral through the same predicate (round 2).
-    def cli(frame, ci_out=None, wall=time.time):
+    def cli(frame, ci_out=None, wall=time.time, cr_out=None):
         logged: list = []
 
         def run(argv, cwd=ROOT, stdin=None):
@@ -5939,7 +5941,7 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
             if "actions/workflows/ci.yml/runs" in a:
                 return ci_out or (0, "\n".join(json.dumps(r) for r in frame.get("ci_runs", [])))
             if "check-runs" in a:
-                return 0, "\n".join(json.dumps(c) for c in frame["runs"])
+                return cr_out or (0, "\n".join(json.dumps(c) for c in frame["runs"]))
             return 9, "unstubbed: " + a
         t = Train("o/r", Path("."), None, "", (), 1, run=run, sleep=lambda s: None, log=logged.append, wall=wall)
         return classify_cmd(t, "a" * 40, None, False), logged
@@ -5956,6 +5958,15 @@ def _defer_wait_self_test(check, go, merged, cr, gt, gate_req, rollup_green: str
                          "ci_runs": [wr(E, "completed", 1), wr(C, "completed", 2)]})
     check("defer-wait CLI null: a red beside a green suite whose completion is unstamped takes no settle -- RED",
           rc == 1 and line.startswith("RED "))
+    (rc, line), logged = cli({"runs": [code_gate_green]}, ci_out=(1, "HTTP 502"))
+    check("defer-wait CLI: a green gate is read with no ci.yml listing read (no unreadable-listing log) -- GREEN",
+          rc == 0 and line.startswith("GREEN ") and not logged)
+    try:
+        cli({"runs": []}, cr_out=(1, "HTTP 502"))
+        refused = False
+    except Stop:
+        refused = True
+    check("defer-wait CLI: unreadable check runs are a Stop (the caller's REFUSE), never a verdict", refused)
     # The `wait-ci` subcommand (wait_ci with no `only`) returns once every check
     # run concluded: the code run's units are done then, but gate-sweep's re-run
     # of the deferred red may not have started -- the same settle as the train's.
@@ -6033,6 +6044,8 @@ def _settle_gap_self_test(check, cli, wr) -> None:
           "a sweep that never comes still ends RED", rc == 1 and line.startswith("RED ") and line.endswith("red: " + GATE))
     (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31") + bound)
     check("settle gap: at exactly the bound the settle still holds -- WAIT", rc == 3)
+    (rc, line), _ = cli(gap, wall=lambda: ts("20:02:31"))
+    check("settle gap: a read in the code gate's completion second (age 0) is inside the settle -- WAIT", rc == 3)
     (rc, line), _ = cli(gap, wall=lambda: ts("20:02:00"))
     check("settle gap: a completion stamped ahead of the reading clock is unknowable, no settle -- RED",
           rc == 1 and line.startswith("RED "))
