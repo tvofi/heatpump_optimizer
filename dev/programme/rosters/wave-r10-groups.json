@@ -15432,7 +15432,7 @@
    "resume": {
     "stage": "carries-open",
     "branch": "handoff/r10-replay-cost-budget",
-    "commit": "62f94f3fbceb6acfbd3a79b42f300f091406c10c",
+    "commit": "80016a71",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-REPLAY-REAL-DAY",
