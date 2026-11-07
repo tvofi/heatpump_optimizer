@@ -1,4 +1,4 @@
-Closes #2952. Widens the `graders` arm of `tools/pr/ci_predict.py` from governance.yml's three restoring jobs to every job the enumeration rule returns (`restoring_jobs`, keyed on each job's own restore pathspecs, `ci_tree_run` taking the job's workflow). A run line that reads the pull request's live state is run with the predictor's stand-in and noted `GRADER PARTIAL ... not a pass` (budget-raise-gate reads live reviews; its result is never a pass). Carry 1 (self-test-reads file-key plant) and carry 2(c) (BOOTSTRAP remedy on a refusal by a grader the diff itself changes; no verdict or rc change) are included.
+Closes #2952. Widens the `graders` arm of `tools/pr/ci_predict.py` from governance.yml's three restoring jobs to every job the enumeration rule returns (`restoring_jobs`, keyed on each job's own restore pathspecs, `ci_tree_run` taking the job's workflow). A run line that reads the pull request's live state is run with the predictor's stand-in and noted `GRADER PARTIAL ... not a pass` (budget-raise-gate reads live reviews; its result is never a pass). Carry 2 (self-test-reads file-key plant) and Carry 3 part (c) (BOOTSTRAP remedy on a refusal by a grader the diff itself changes; no verdict or rc change) are included.
 
 ## Head
 
@@ -6,11 +6,11 @@ Closes #2952. Widens the `graders` arm of `tools/pr/ci_predict.py` from governan
 
 ## Mutation proof
 
-`python3 -I dev/audit/rca/prepr-head-graders/mutants.py .` (M1-M5 existing, M6 and M7 new). Each mutant fails graders_self_test: M1 7 FAIL, M2 1, M3 1, M4 1, M5 4, M6 (ci_tree_run reads governance.yml for every job) 2, M7 (enumeration reads governance.yml only) 4. Carry 1: mutant R1 (`json.dumps({**rec, "script": host})` -> `json.dumps(rec)`) fails the new case "a read in the file's own closure but not the host's" (1 FAIL, `bad 1`). The remaining round-2 mutants R2-R7 were not re-run: their table is not in the tree.
+`python3 -I dev/audit/rca/prepr-head-graders/mutants.py .` (M1-M5 existing, M6 and M7 new). Each mutant fails graders_self_test: M1 7 FAIL, M2 1, M3 1, M4 1, M5 4, M6 (ci_tree_run reads governance.yml for every job) 2, M7 (enumeration reads governance.yml only) 4. Carry 2: mutant R1 (`json.dumps({**rec, "script": host})` -> `json.dumps(rec)`) fails the new case "a read in the file's own closure but not the host's" (1 FAIL, `bad 1`). The remaining round-2 mutants R2-R7 were not re-run: their table is not in the tree.
 
 ## Null control
 
-Unmutated tree: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predict self-test: 0 failed`. Carry 2(c) null: the self-test asserts `BOOTSTRAP:` rides a refusal line exactly when the refusing program is in its over-list (silent on the vendored-file and spawned-gate cases). Per-job plants on the real tree (`dev/audit/rca/prepr-head-graders/plant_jobs.sh`, a comment appended to brief_lint.mjs, budget_raise_gate.py, policy_lint.mjs, preflight.sh, prepr.sh, carry_audit.py): the arm ran pr-contract, tests.yml/briefs and budget-raise-gate; the verdict-changing plants (head passes what the base refuses) exist only in the self-test's second and third planted workflows. On the real tree the plants' refusals came from the stub body, not from a verdict-changing edit: the claim "one verdict-changing plant per job" is NOT made.
+Unmutated tree: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predict self-test: 0 failed`. Carry 3(c) null: the self-test asserts `BOOTSTRAP:` rides a refusal line exactly when the refusing program is in its over-list (silent on the vendored-file and spawned-gate cases). Per-job plants on the real tree (`dev/audit/rca/prepr-head-graders/plant_jobs.sh`, a comment appended to brief_lint.mjs, budget_raise_gate.py, policy_lint.mjs, preflight.sh, prepr.sh, carry_audit.py): the arm ran pr-contract, tests.yml/briefs and budget-raise-gate; the verdict-changing plants (head passes what the base refuses) exist only in the self-test's second and third planted workflows. On the real tree the plants' refusals came from the stub body, not from a verdict-changing edit: the claim "one verdict-changing plant per job" is NOT made.
 
 ## Figures
 
@@ -24,7 +24,7 @@ Unmutated tree: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predi
 
 ## Forward-carry
 
-Not landed in this PR (still owed) — Carry: R10-FLY-CIPREDICT-RESTORING: carry 0 (inline_scan arm for `parents[N]` harnesses), carry 2(a)/(b) (fixer.md, designer.md, design-review.md at their budget caps; policy, owner's review), carry 3 (tools/policy/agreement.mjs age-needle and mutant M-h), and the verdict-changing per-job plants for budget-raise-gate, pr-contract and briefs.
+Numbering is the brief's carries in order (Carry 1 = its first). Not landed in this PR (still owed) — Carry: R10-FLY-CIPREDICT-RESTORING: Carry 1 (inline_scan arm for `parents[N]` harnesses), Carry 3 parts (a)/(b) (fixer.md, designer.md, design-review.md sit at their budget caps; policy, owner's review), Carry 4 (tools/policy/agreement.mjs age-needle and mutant M-h), and the verdict-changing per-job plants for budget-raise-gate, pr-contract and briefs. Landed: Carry 2 and Carry 3(c).
 
 ## Friction
 
