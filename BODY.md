@@ -1,0 +1,36 @@
+Closes #2952. Widens the `graders` arm of `tools/pr/ci_predict.py` from governance.yml's three restoring jobs to every job the enumeration rule returns (`restoring_jobs`, keyed on each job's own restore pathspecs, `ci_tree_run` taking the job's workflow). A run line that reads the pull request's live state is run with the predictor's stand-in and noted `GRADER PARTIAL ... not a pass` (budget-raise-gate reads live reviews; its result is never a pass). Carry 2 (self-test-reads file-key plant) and Carry 3 part (c) (BOOTSTRAP remedy on a refusal by a grader the diff itself changes; no verdict or rc change) are included.
+
+## Head
+
+19f57d012c61d71c851df4c42205457fb4117945, cut on origin/main 4b5d771bdf8f. origin/main has since moved to 53273de4d449; `git merge-tree --write-tree origin/main HEAD` reports no conflict, so main is not merged here and the merge train recarries this head. Every figure below was re-taken at this head.
+
+## Mutation proof
+
+`python3 -I dev/audit/rca/prepr-head-graders/mutants.py .` (M1-M5 existing, M6 and M7 new). Each mutant fails graders_self_test: M1 7 FAIL, M2 1, M3 1, M4 1, M5 4, M6 (ci_tree_run reads governance.yml for every job) 2, M7 (enumeration reads governance.yml only) 4. Carry 2: mutant R1 (`json.dumps({**rec, "script": host})` -> `json.dumps(rec)`) fails the new case "a read in the file's own closure but not the host's" (1 FAIL, `bad 1`). The remaining round-2 mutants R2-R7 were not re-run: their table is not in the tree.
+
+## Null control
+
+Unmutated tree: `python3 -I tools/pr/ci_predict.py --self-test` prints `ci_predict self-test: 0 failed`. Carry 3(c) null: the self-test asserts `BOOTSTRAP:` rides a refusal line exactly when the refusing program is in its over-list (silent on the vendored-file and spawned-gate cases). Per-job plants on the real tree (`dev/audit/rca/prepr-head-graders/plant_jobs.sh`, a comment appended to brief_lint.mjs, budget_raise_gate.py, policy_lint.mjs, preflight.sh, prepr.sh, carry_audit.py): the arm ran pr-contract, tests.yml/briefs and budget-raise-gate; the verdict-changing plants (head passes what the base refuses) exist only in the self-test's second and third planted workflows. On the real tree the plants' refusals came from the stub body, not from a verdict-changing edit: the claim "one verdict-changing plant per job" is NOT made.
+
+## Figures
+
+- `git grep -n -- "- name: Restore the check source from the base commit" HEAD -- .github/workflows/` returns six jobs at the merge base (governance policy-docs, env-matrix, wave-script; budget-raise-gate; pr-contract; tests briefs); graders_self_test asserts the arm's job count equals that grep's count.
+- `bash tools/pr/prepr.sh` rc=0 at the first hand-off of this same head (the code head has not moved since). Re-run in the body-repair seat it passed every step through `claims hygiene` and then refused at `closures`: `tests/entities.py` cannot import `homeassistant` (venv-ci) or `paho` (venv-ha) in that cloud environment, the stale-venv gap named in the brief; the diff touches neither; `python3 tests/structure.py` STRUCTURE RATCHET PASSED.
+- `python3 -I tools/audit/seat/tmp_paths.py --check`: 0 refused (five ALLOW entries added for ci_predict's stand-ins for pr-contract's runner files).
+
+## Red checks
+
+`tmp_paths` went red in prepr on the literal runner paths; answer: it is the cheaper detector already (prepr step 16), repaired by ALLOW entries. Otherwise none.
+
+## Forward-carry
+
+Numbering is the brief's carries in order (Carry 1 = its first). Landed in this PR: Carry 2 and Carry 3 part (c). Still owed, each already carried by this group's roster entry, so nothing is left to land:
+
+- Carry 1 (inline_scan arm for `parents[N]` harnesses). Carry: R10-FLY-CIPREDICT-RESTORING | dismissed: not dropped, still owed; already stated verbatim in this group's own roster carries, so no new landing.
+- Carry 3 parts (a)/(b) (fixer.md, designer.md, design-review.md sit at their budget caps; policy, owner's review). Carry: R10-FLY-CIPREDICT-RESTORING | dismissed: not dropped, still owed; already stated verbatim in this group's own roster carries, so no new landing.
+- Carry 4 (tools/policy/agreement.mjs age-needle and mutant M-h). Carry: R10-FLY-CIPREDICT-RESTORING | dismissed: not dropped, still owed; already stated verbatim in this group's own roster carries, so no new landing.
+- The verdict-changing per-job plants for budget-raise-gate, pr-contract and briefs (the Controls clause of the group's brief). Carry: R10-FLY-CIPREDICT-RESTORING | dismissed: not dropped, still owed; already stated in this group's brief, so no new landing.
+
+## Friction
+
+none
