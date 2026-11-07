@@ -201,10 +201,9 @@ def groups_of(roster: dict) -> dict:
     return {g["group"]: g for g in roster.get("groups", [])}
 
 
-#: Stages whose work is finished or carried elsewhere: none is scheduled as
-#: open work. `absorbed` is done for the plan (R10-FLOW-TOOLKIT-MODEL carry 2):
-#: its remaining work lives in the group its resume note names.
-DONE_STAGES = ("done", "rca-done", "absorbed")
+#: A group in a closed stage (`roster_lib.CLOSED_STAGES`, `absorbed` included:
+#: R10-FLOW-TOOLKIT-MODEL carry 2) is not scheduled as open work; its remaining
+#: work lives in the group its resume note names.
 ABSORBED_RE = re.compile(r"absorbed into ([A-Z][A-Z0-9]*(?:-[A-Z0-9]+)+)")
 
 #: The group that cuts the round's closing stamp; a group after it is post-closure.
@@ -213,7 +212,7 @@ POST_CLOSE_STEP_RE = re.compile(r"after the .*\b(stamp|closeout)\b", re.I)
 
 
 def is_done(group: dict) -> bool:
-    return (group.get("resume") or {}).get("stage") in DONE_STAGES
+    return not roster_lib.is_open(group)
 
 
 def absorbers(G: dict) -> dict:
@@ -1598,6 +1597,12 @@ def selftest() -> int:
             failures.append(name)
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    absorbed = dict(roster, groups=roster["groups"] + [
+        {"group": "X", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "absorbed", "absorbed_into": "A"}}])
+    pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
+           str(pa["groups"].get("X")))
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("deterministic: two runs are byte-identical",
            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
@@ -2348,8 +2353,9 @@ def selftest() -> int:
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
              "exempt.add(n)", "pass"),
             ("absorbed-done",
-             _m("DONE_STAGES ", '= ("done", "rca-done", "absorbed")'),
-             '"rca-done", "absorbed")', '"rca-done")'),
+             _m("def is_done(group: ", "dict) -> bool:"),
+             "return not roster_lib.is_open(group)",
+             'return (group.get("resume") or {}).get("stage") in ("done", "rca-done")'),
             ("absorbed-advisory",
              _m("def absorbers(G: ", "dict) -> dict:"),
              _m('out[n] = (into, None if into else', ''), 'out[n] = (into, None if True else'),
