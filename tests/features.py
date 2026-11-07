@@ -44121,6 +44121,31 @@ R.check(
     and "baseline_kw" not in _pub,
     repr({k: _pub.get(k) for k in ("savings_months", "baseline_power_schedule")}),
 )
+
+
+# R10-SAV-WOOD-HEAT: the published row takes the wood floor from the house's
+# own configuration, read where the coordinator publishes it (a meter at half
+# the plan books 75 % on a wood house, 50 % on a plain one: _sb_meter_row's).
+def _sv_published_pct(**config):
+    coord = _t2_coord(**config)
+    for hour in range(24):
+        coord._ledger.observe_spot_and_settle_savings(
+            _SavDT(2026, 2, 9, hour, 0), 1.0, {"baseline_kw": 2.0, "power": 1.0}, 0.5, 1.0
+        )
+    try:
+        _dt_sav.now = lambda: NOW
+        rows = coord._build_data_dict()["savings_months"]
+    finally:
+        _dt_sav.now = _real_now_sav
+    return next(r["savings_pct"] for r in rows if r["month"] == "2026-02")
+
+
+_sv_wood_pub = (_sv_published_pct(wood_furnace_enabled=True), _sv_published_pct())
+R.check(
+    "the coordinator publishes the wood floor from the house's configuration, and no floor without wood",
+    _sv_wood_pub == (75.0, 50.0),
+    repr(_sv_wood_pub),
+)
 _sv._current_action = {"power": 1.0, "dhw_power": 0.5, "baseline_kw": 3.25}
 # Drive the pending builder by reading the assignment target after a call
 # is not possible without the interval loop; pin the source instead:

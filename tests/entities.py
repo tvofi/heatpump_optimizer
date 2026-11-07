@@ -12411,6 +12411,73 @@ R.check(
     == _ATTR_RICH["savings_months"],
     repr(_ready_sav.native_value),
 )
+# R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so on
+# a house with wood configured the entity's saving says it includes wood's heat
+# and not firewood's cost, by the receipt event's one definition. The null
+# controls: no wood_fuel at all, and wood not configured, both state False.
+from heatpump_optimizer.notifier import _monthly_receipt as _sav_receipt  # noqa: E402
+from heatpump_optimizer import notifier as _sav_notifier  # noqa: E402
+
+
+def _sav_wood(fuel):
+    data = {k: v for k, v in _ATTR_RICH.items() if k != "wood_fuel"}
+    if fuel is not None:
+        data["wood_fuel"] = fuel
+    attrs = sensor.MonthlySavingsSensor(FakeCoordinator(data), ENTRY).extra_state_attributes
+    month = data["savings_months"][0]["month"]
+    event = _sav_receipt({**data, "insight": {"monthly_report": {"month": month}}})
+    return attrs.get("saving_includes_wood"), event["receipt"].data["saving_includes_wood"]
+
+
+_sav_wood_cases = (
+    _sav_wood({"ready": True, "show_whatif": True}),
+    _sav_wood({"ready": False, "show_whatif": False}),
+    _sav_wood(None),
+)
+R.check(
+    "MonthlySavingsSensor states that a wood house's saving includes wood's heat, as the receipt event does; "
+    "False without wood",
+    _sav_wood_cases == ((True, True), (False, False), (False, False)),
+    repr(_sav_wood_cases),
+)
+
+
+# The receipt event leaves the package for the notifications blueprint, whose
+# Monthly receipt message states the same saving to the user, so it carries the
+# same statement, guarded by the event's saving_includes_wood and worded as the
+# card's savings.wood_note. A source pin, not a render: CI's interpreter has no
+# jinja2. The guard is the null leg -- a house without wood gets no statement.
+class _SavBpLoader(yaml.SafeLoader):
+    pass
+
+
+_SavBpLoader.add_constructor("!input", lambda loader, node: loader.construct_scalar(node))
+_sav_bp_root = pathlib.Path(__file__).resolve().parents[1]
+_sav_bp = yaml.load(
+    (_sav_bp_root / "blueprints/automation/notifications.yaml").read_text(),
+    Loader=_SavBpLoader,
+)
+_sav_bp_msg = next(
+    option["sequence"][0]["data"]["message"]
+    for step in _sav_bp["action"] if "choose" in step
+    for option in step["choose"] if option.get("alias") == "Monthly receipt"
+)
+_sav_bp_note = re.search(
+    r'"savings\.wood_note": "([^"]+)"',
+    (_sav_bp_root / ROOT / "www/heatpump-optimizer-card.js").read_text(),
+).group(1)
+R.check(
+    "The notifications blueprint's monthly receipt says a wood house's saving includes wood's heat, "
+    "in the card's words, and says nothing without wood",
+    "saving_includes_wood" in _sav_notifier.EVENT_DATA[_sav_notifier.EVENT_MONTHLY_RECEIPT]
+    and _sav_bp_msg.count(_sav_bp_note) == 1
+    and re.search(
+        r"\{%-? if data\.saving_sek is not none and data\.saving_includes_wood %\}\s*"
+        + re.escape(_sav_bp_note) + r"\s*\{%-? endif %\}",
+        _sav_bp_msg,
+    ) is not None,
+    _sav_bp_msg,
+)
 
 
 #: The one publisher whose attribute KEYS are data rather than API:
@@ -12570,7 +12637,8 @@ _PUBLISHED_ATTRS: dict[str, frozenset[str]] = {
         "outage_recovery_active", "projected_peak_cost", "projected_peak_kw"
     }),
     "MonthlySavingsSensor": frozenset(
-        {"plan_replay", "receipts", "savings_months", "waiting_for"}
+        {"plan_replay", "receipts", "saving_includes_wood", "savings_months",
+         "waiting_for"}
     ),
     "ObservedCOPSensor": frozenset({
         "cop_samples", "cop_scale", "defrost_buckets", "defrost_derate",
