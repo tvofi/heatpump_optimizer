@@ -14876,7 +14876,7 @@
     "Widens carry 3 and sets its form. Same-verdict re-adds refused after a pre-flight park in `train/current.log`: `policy` on PR 3000, PR 3059, PR 3051, PR 3065 at `1ac45d87` and PR 3200; `findings` on PR 3074. In `train_add`, when the skip of the entry is a pre-flight park at this verdict, run `queue_pre_flight.PreFlight.entry` under the same construction `Train.preflight` uses: PASS admits it, and anything else logs an `ADD REFUSED` line naming the pull request, step and why, rc 1, never ADDED. Do not add these parks to `READMIT_SAME_VERDICT` alone: `admit_add` has no `findings` rule. Record the park so `already_held` can tell it from a `ci` or `merge` skip, which stay held at the same verdict, and keep `train_add` and the drain on the one predicate (`s6-batch32.md#P189`), so the drain does not drop what the add admitted. Arms: a cured `policy` park and a cured `findings` park each rejoin at the same verdict and reach the next batch; the same parks uncured are refused, with no spool line (control); a `SKIP ci` at the same verdict stays ALREADY (null); a park at a new verdict behaves as today. Mutant: dropping the re-read fails the uncured arm. triage: dev/programme/triage/s6-batch123.md#P388 at 8439f738e [implemented: 198b8f7ed21fdd10dc3407aa95b92f906b6bb27a]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-train-merge-loop",
     "commit": "198b8f7ed21fdd10dc3407aa95b92f906b6bb27a",
     "last_step": null,
