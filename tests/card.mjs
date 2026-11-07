@@ -2828,6 +2828,26 @@ check("the hand-scheduled reason has a label",
     /Covers spot energy, grid energy fee, capacity charge\. The savings figure compares spot cost only\./.test(rcpPage));
   check("UX-6: the saving against a thermostat is the month's own row",
     /Saved 148\.00 SEK \(19 %\) against a plain thermostat/.test(rcpPage));
+  // R10-SAV-WOOD-HEAT (owner ruling, 2026-11-04): the reference has no wood, so
+  // on a house with wood configured the receipt's saving states, beside the
+  // figure, that it includes wood's heat and not firewood's cost, in en and sv.
+  // The null control is the page above: no wood configured, no disclaimer.
+  const rcpWood = (lang) => {
+    const st = JSON.parse(JSON.stringify(rcpStates));
+    st[DEFAULT_SPACE].attributes.wood_fuel = { ready: true, cheaper: false, show_whatif: true, slots: [] };
+    const c = build(st);
+    c.hass = { states: st, language: lang };
+    c._onCardClick({});
+    c.dialog.page = "savings";
+    c._render();
+    return collect(c.shadowRoot).join("\n");
+  };
+  const rcpWoodNote = (page) => (page.match(/receipt-wood-note">([^<]*)/) || [])[1] || "";
+  check("the receipt's saving on a wood house says it includes wood's heat, not firewood's cost (en, sv); none without wood",
+    rcpWoodNote(rcpWood("en")) === "The saving includes heat from wood. Firewood's cost is not counted." &&
+    rcpWoodNote(rcpWood("sv-SE")) === "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte." &&
+    !/receipt-wood-note/.test(rcpPage),
+    `${rcpWoodNote(rcpWood("en"))} | ${rcpWoodNote(rcpWood("sv-SE"))}`);
   check("UX-6: the money goes by reason, largest first",
     /Where the money went/.test(rcpPage) &&
     rcpPage.indexOf("Cheapest hours") < rcpPage.indexOf("Keeping the house at target"));

@@ -2,7 +2,7 @@
 from __future__ import annotations
 
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Mapping, TypedDict
+from typing import TYPE_CHECKING, Any, Literal, Mapping, TypedDict
 
 from homeassistant.components.sensor import (
     SensorDeviceClass,
@@ -53,6 +53,7 @@ from .entry_config import EntryConfig
 from .payload import Payload
 from .mixing_valve import is_throttling
 from .thermal_model import feedback_gaps
+from .wood_fuel import saving_includes_wood
 
 if TYPE_CHECKING:
     _SensorMixinBase = HeatPumpOptimizerEntity
@@ -403,6 +404,25 @@ class _WaitsForEvidenceMixin(_SensorMixinBase):
     def available(self) -> bool:
         return bool(super().available and self._waiting_for is None)
 
+    def _evidence_attributes(
+        self,
+        block: Literal["accuracy", "contract_comparison", "freq_control"],
+        report_key: Literal["last_diagnosis", "monthly_report"] | None = None,
+    ) -> dict[str, Any]:
+        """The payload ``block``, ``waiting_for``, and at most one ``insight`` report.
+
+        The report rides on the sensor whose evidence it explains, and only
+        when one exists; ``report_key`` None publishes none.
+        """
+        data = self._data()
+        attrs = dict(data.get(block, {}) or {})
+        attrs["waiting_for"] = self._waiting_for
+        if report_key is not None:
+            report = (data.get("insight") or {}).get(report_key)
+            if report:
+                attrs[report_key] = report
+        return attrs
+
 
 # ---------------------------------------------------------------------------
 # Original sensors (maintained for backward compatibility)
@@ -520,6 +540,9 @@ class MonthlySavingsSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
             "savings_months": self._rows(),
             "receipts": data.get("receipts") or [],
             "plan_replay": data.get("plan_replay"),
+            # The state is the metered saving the receipt states: with wood
+            # configured it includes wood's heat and not firewood's cost.
+            "saving_includes_wood": saving_includes_wood(data),
         }
         waiting = self._waiting_for
         if waiting is not None:
@@ -1920,16 +1943,9 @@ class PredictionAccuracySensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBa
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("accuracy", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
         # T6 #52: the last interval's residual, attributed input by input —
         # accuracy's "how wrong" gets its "why" on the same sensor.
-        report = ((self._data()).get("insight") or {}).get(
-            "last_diagnosis"
-        )
-        if report:
-            attrs["last_diagnosis"] = report
-        return attrs
+        return self._evidence_attributes("accuracy", "last_diagnosis")
 
 
 class PredictedIndoorTempSensor(_WaitsForEvidenceMixin, HeatPumpOptimizerSensorBase):
@@ -2416,18 +2432,9 @@ class ContractComparisonSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict(
-            (self._data()).get("contract_comparison", {}) or {}
-        )
-        attrs["waiting_for"] = self._waiting_for
         # T6 #40: the latest frozen month's itemised receipt rides on the
         # month-money sensor — the receipt is that comparison, settled.
-        report = ((self._data()).get("insight") or {}).get(
-            "monthly_report"
-        )
-        if report:
-            attrs["monthly_report"] = report
-        return attrs
+        return self._evidence_attributes("contract_comparison", "monthly_report")
 
 
 class PowerHeadroomSensor(_PayloadNumberMixin, HeatPumpOptimizerSensorBase):
@@ -2811,9 +2818,7 @@ class FrequencyAdvisorSensor(
 
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
-        attrs = dict((self._data()).get("freq_control", {}) or {})
-        attrs["waiting_for"] = self._waiting_for
-        return attrs
+        return self._evidence_attributes("freq_control")
 
 
 #: The price of a consumed kWh the Sensor-Gap Advisor assumes when the
