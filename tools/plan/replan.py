@@ -774,13 +774,19 @@ def production_groups_since(commits: list, G: dict) -> list:
     `commits`: [{"subject": str, "diff": the change against the first parent
     of custom_components}]. A group is named by a merge's topic branch, as
     `topic_evidence` matches one (main's merges read "Merge pull request #N
-    from tvofi/fix/<topic>"), else by the longest roster group name in the
+    from tvofi/fix/<topic>"; a part branch `<topic>-p2` extends its group's
+    topic at a `-` boundary), else by the longest roster group name in the
     subject (a squash)."""
     by_topic = {t: n for n in G for t in topics_of(G[n])}
     out: dict = {}
     for c in commits:
         topic = merge_topic(c["subject"])
-        n = by_topic.get(topic) if topic else None
+        n = None
+        if topic:
+            # a part branch (`<topic>-p2`) belongs to the longest roster topic it
+            # equals or extends at a `-` boundary
+            hit = [t for t in by_topic if topic == t or topic.startswith(t + "-")]
+            n = by_topic[max(hit, key=len)] if hit else None
         if n is None:
             named = [g for g in G if g in c["subject"]]
             n = max(named, key=len) if named else None
@@ -2234,6 +2240,19 @@ def selftest() -> int:
            str(production_groups_since(real, G9)))
     expect("since-tag (null): the same merges with no code change credit nothing",
            production_groups_since([dict(c, diff=note) for c in real], G9) == [], "")
+    parts = [{"subject": "Merge pull request #15 from tvofi/fix/r10-store-p2", "diff": code},
+             {"subject": "Merge pull request #16 from tvofi/fix/r10-store-p3", "diff": code},
+             {"subject": "Merge pull request #17 from tvofi/fix/r10-store-races-p2", "diff": code},
+             {"subject": "Merge pull request #18 from tvofi/fix/r10-storey", "diff": code},
+             {"subject": "Merge pull request #19 from tvofi/fix/unrelated-p2", "diff": code}]
+    expect("since-tag: part branches credit their group by the longest roster topic they extend, once each",
+           production_groups_since(parts, G9) == ["R10-STORE", "R10-STORE-RACES"],
+           str(production_groups_since(parts, G9)))
+    expect("since-tag (null): an unrelated topic and a non-boundary prefix (r10-storey) credit nothing",
+           production_groups_since(parts[3:], G9) == [], str(production_groups_since(parts[3:], G9)))
+    sq = production_groups_since([{"subject": "R10-STORE-RACES (#20)", "diff": code}], G9)
+    expect("since-tag: a squash subject naming R10-STORE-RACES credits it, not the shorter R10-STORE",
+           sq == ["R10-STORE-RACES"], str(sq))
     with throwaway_git_environ(), tempfile.TemporaryDirectory() as gd:
         def g(*a):
             return subprocess.run(["git", "-C", gd, *a], capture_output=True, text=True)
@@ -2354,10 +2373,22 @@ def selftest() -> int:
              "lane[n] in PRODUCTION and n in done]", "lane[n] in PRODUCTION]"),
             ("since-tag-merge-topic",
              _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
-             "n = by_topic.get(topic) if topic else None", "n = None"),
+             "n = by_topic[max(hit, key=len)] if hit else None", "n = None"),
             ("since-tag-first-parent",
              _m("def git_commits_since_tag(", "repo: str) -> list:"),
              '"diff", "-U0", f"{sha}^1", sha,', '"show", "-U0", sha, "--format=",'),
+            ("since-tag-part-branch",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             'topic == t or topic.startswith(t + "-")]', 'topic == t]'),
+            ("since-tag-part-boundary",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             'topic.startswith(t + "-")]', 'topic.startswith(t)]'),
+            ("since-tag-part-longest",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "n = by_topic[max(hit, key=len)] if hit else None", "n = by_topic[min(hit, key=len)] if hit else None"),
+            ("since-tag-squash-longest",
+             _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
+             "n = max(named, key=len) if named else None", "n = min(named, key=len) if named else None"),
             ("since-tag-once",
              _m("def production_groups_since(commits: ", "list, G: dict) -> list:"),
              "return list(out)", "return [n for n in out] + list(out)"),
