@@ -279,6 +279,22 @@ def cases(m) -> dict[str, bool]:
                                                  "body": m.REFUSED_MARK + " by our App"}]}])
     lines, _ = m.listing(Fake(wd), "o/r", SINCE, roster(), LIVE(), NOW)
     res["discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)"] = lines == []
+    wd = dict(empty, discussions=[{"n": 3262, "at": "2026-11-01T10:00:00Z", "login": "asker", "type": "User",
+                                   "comments": [{"login": "asker", "type": "User", "at": "2026-11-06T10:00:00Z",
+                                                 "body": "still open?"}]}])
+    lines, _ = m.listing(Fake(wd), "o/r", SINCE, roster(), LIVE(), NOW)
+    res["discussions: a discussion opened before the cursor, its new outside comment listed as a discussion"] = (
+        lines == ["OUTSIDE #3262 owed=triage discussion by=asker since=2026-11-06T10:00:00Z"])
+    # A design choice: GitHub stamps to the second, so a same-second outside comment cannot be
+    # ordered against our answer; only outside activity strictly after our latest comment owes a reply.
+    t = m.Thread(3225, "issue")
+    t.saw("Bankaifan", "2026-11-06T22:00:00Z")
+    t.answered = t.last_ours = "2026-11-06T22:00:00Z"
+    later = m.Thread(3225, "issue")
+    later.saw("Bankaifan", "2026-11-06T22:00:01Z")
+    later.answered = later.last_ours = "2026-11-06T22:00:00Z"
+    res["reply: outside activity in our answer's own second owes nothing; one second later owes a reply"] = (
+        m.owed(t, m.wired(roster()), True) is None and m.owed(later, m.wired(roster()), True) == "reply")
     res["identity: every account of ours and every bot is not outside; a stranger is"] = (
         not any(m.outside(a, "User") for a in m.OURS) and not m.outside("renovate[bot]", "Bot")
         and m.outside("Bankaifan", "User"))
@@ -329,6 +345,11 @@ MUTANTS = {
                          "post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept"),
     "post_wrong_script": ('"tools/pr/gh_comment.py"', '"tools/pr/gh_comment_missing.py"',
                           "post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept"),
+    "scan_disc_kind": ('        if t.n in disc:\n            t.kind = "discussion"', '        if False:\n            t.kind = "discussion"',
+                       "discussions: a discussion opened before the cursor, its new outside comment listed as a discussion"),
+    "owed_reply_ge": ('"reply" if t.last_out > max(disposed, t.last_ours) else None',
+                      '"reply" if t.last_out >= max(disposed, t.last_ours) else None',
+                      "reply: outside activity in our answer's own second owes nothing; one second later owes a reply"),
     "discussion_answered": ('        return 1, f"outside_intake: REFUSED: #{n} is a discussion; answer it by hand"', "        pass",
                             "discussions: an outside discussion is listed, and answering one is refused (by hand)"),
 }

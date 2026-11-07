@@ -19,8 +19,11 @@ sweep that moved the plan.
 STAGE reads the remote-tracking state refs (`origin/handoff/audit-r<N>-plan`,
 the layout `state_docs.state_of` owns), takes the highest round N's PLAN.html
 and writes it as `<out>/plan/index.html`. Nothing to publish, rc 2 and nothing
-written: no state ref, or no PLAN.html at the newest one (between rounds: the
-workflow deploys the site without a plan and warns). Refusals, rc 1 and nothing
+written: no state ref, or no PLAN.html at the newest one (the workflow deploys
+the site without a plan and warns). A closed round's state ref stays the newest
+until `closeout.py --apply` deletes it, so its page is served until then; only
+after that delete, and before the next round's state ref, is there no page.
+Refusals, rc 1 and nothing
 written, which turn the deploy red: a page that is not an HTML document, and a page `ref_privacy` reads a host path, account name, uid or
 session scratch root in, or a tool's attribution -- a public page carries
 none of them. The UNAVAILABLE page `plan_page.py` writes over a stale plan is
@@ -100,6 +103,8 @@ MUTANTS = {
                            "the CLI over a scratch repository: a clean page is staged, rc 0"),
     "main_rc0": ("    return rc\n", "    return 0\n",
                  "the CLI over a scratch repository: a page naming a home directory is refused, rc 1 and nothing written"),
+    "main_url_rc1": ("        print(PLAN_URL)\n        return 0", "        print(PLAN_URL)\n        return 1",
+                     "url prints PLAN_URL alone, rc 0"),
 }
 
 
@@ -183,6 +188,10 @@ def self_test(mutants: bool = True) -> int:
             staged = out / PLAN_DIR / "index.html"
             check(f"the CLI over a scratch repository: {name}",
                   rc == want_rc and (staged.read_text() == body if want_rc == 0 else not staged.exists()))
+    url_out = __import__("io").StringIO()
+    with __import__("contextlib").redirect_stdout(url_out):
+        url_rc = main(["url"])
+    check("url prints PLAN_URL alone, rc 0", url_rc == 0 and url_out.getvalue() == PLAN_URL + "\n")
     check("PLAN_URL is under the Pages site and ends in the staged directory",
           PLAN_URL.startswith(PAGES_URL) and PLAN_URL.endswith(f"/{PLAN_DIR}/"))
     if mutants:
