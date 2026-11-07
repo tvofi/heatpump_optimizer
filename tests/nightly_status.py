@@ -409,6 +409,7 @@ def verdict(
     now: dt.datetime,
     max_age_nights: int = MAX_AGE_NIGHTS,
     workflow: dict | None = None,
+    in_flight_jobs: list[dict] | None = None,
 ) -> tuple[str, int, list[str]]:
     """Classify. Returns (state, exit code, report lines).
 
@@ -475,6 +476,28 @@ def verdict(
     run_conclusion = concluded.get("conclusion")
     run_failed = run_conclusion not in OK_CONCLUSIONS
     bad = failing_jobs(jobs)
+    # SUPERSEDED FAILURES. The nightly takes ~3.5 h (mutation-nightly and the
+    # ledger push run last), so a NEWER run is routinely still in flight when
+    # this reads; "the newest CONCLUDED run" then names a run a later one has
+    # already answered. On 2026-11-06 `slow` failed in dispatch 42235215315
+    # (14:35Z) and passed in 42242870295 and 42247578523 while their
+    # mutation lanes ran on, and this check read red for about 71 minutes:
+    # from 18:06:31Z, when 42235215315 concluded, to 19:17:32Z, when
+    # 42242870295 concluded green and became the newest concluded run. A
+    # failed job is superseded ONLY when a strictly newer
+    # in-flight run has already concluded the SAME job green. A job still
+    # pending, failed, skipped or absent there supersedes nothing, so a lane
+    # that is really red stays red.
+    if bad and in_flight is not None and in_flight_jobs and parse_ts(
+            in_flight.get("created_at")) > started:
+        greens = {j.get("name") for j in in_flight_jobs
+                  if j.get("conclusion") == "success"}
+        if all(j.get("name") in greens for j in bad):
+            where.append(
+                "  failed job(s) superseded by the newer in-flight run "
+                f"{in_flight['id']}, which already concluded them green: "
+                + ", ".join(sorted(j.get("name", "?") for j in bad)))
+            bad, run_failed = [], False
     if bad or run_failed:
         if bad:
             names = ", ".join(sorted(j.get("name", "?") for j in bad))
@@ -690,8 +713,17 @@ def main(argv: list[str] | None = None) -> int:
         concluded, in_flight, jobs, record = collect(
             args.repo, args.workflow, os.environ.get("GITHUB_TOKEN"), args.run,
             args.default_branch, now, args.max_age_nights)
+        fly_jobs = None
+        if (in_flight is not None and concluded is not None
+                and failing_jobs(jobs)):
+            try:
+                fly_jobs = _jobs(args.repo, in_flight["id"],
+                                 os.environ.get("GITHUB_TOKEN"))
+            except Unreadable:
+                fly_jobs = None  # no jobs yet: supersedes nothing
         state, code, lines = verdict(
-            concluded, in_flight, jobs, now, args.max_age_nights, record)
+            concluded, in_flight, jobs, now, args.max_age_nights, record,
+            fly_jobs)
     except Unreadable as exc:
         state, code = UNREADABLE, EXIT_UNREADABLE
         lines = [
