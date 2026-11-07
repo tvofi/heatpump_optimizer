@@ -7,7 +7,7 @@ Triage batch 127 rules on the six queue lines after batch 126, P393 to P398.
 - **P397: DEFER.** The augmented-assignment operator gap is unmeasured.
 - **P398: ACCEPT.** This is the owner directive on the subagent discovery line, ruled on form. It goes to R10-POLICY-ROLE-PACK.
 
-The diff is three files against the merge base:
+The diff is three files against the merge base. The last commit drops a carry number from P393's carry text, because the destination numbers its own appends:
 - `dev/audit/harnesses/r10_triage_p393.py`, the harness that prints every figure (INERT under `dev/audit/`);
 - `tests/closures.json`, one line recording that `tests/harness_headers.py` reads it (written by `tools/pr/ci_predict.py --apply-inert`);
 - `dev/programme/triage/s6-batch127.md`, the ruling.
@@ -16,7 +16,7 @@ No product behaviour changes.
 
 ## Head
 
-`5f64290de7cad8f54128512420e8126a4eaf344a`
+`2e84abd9c662e6dc3d21d55b0b2b390ca3542de6`
 
 ## Mutation proof
 
@@ -28,7 +28,7 @@ P399 reads `None`, and a carry citing it is refused as "no such entry". A batch 
 
 ## Figures
 
-- `git diff --stat 41aa9050fc87...5f64290de7cad8f54128512420e8126a4eaf344a`: 3 files.
+- `git diff --stat 41aa9050fc87...2e84abd9c662e6dc3d21d55b0b2b390ca3542de6`: 3 files.
 - Every ruling figure is printed by the harness arm the ruling names, at `3a45ec251`.
 - No capped file is touched.
 
