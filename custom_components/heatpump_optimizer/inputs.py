@@ -1151,6 +1151,33 @@ class InputReturnWatch:
         self._unsub: Callable[[], None] | None = None
         self._asked_at: dict[str, float] = {}
 
+    @classmethod
+    def of(cls, owner: Any) -> InputReturnWatch:
+        """``owner``'s watch, created on first use: its hass, its debounced
+        ``async_request_refresh`` and one ``update_interval`` of spacing."""
+        watch = _RETURN_WATCHES.get(owner)
+        if watch is None:
+            interval = getattr(owner, "update_interval", None)
+            watch = cls(
+                owner.hass,
+                owner.async_request_refresh,
+                interval.total_seconds() if isinstance(interval, timedelta) else 0.0,
+            )
+            _RETURN_WATCHES[owner] = watch
+        return watch
+
+    @classmethod
+    def arm_for(cls, owner: Any, health: InputHealth) -> None:
+        """Arm ``owner``'s watch on this cycle's ``health``."""
+        watch: InputReturnWatch = cls.of(owner)
+        watch.arm(health)
+
+    @classmethod
+    def release_for(cls, owner: Any) -> None:
+        """Release ``owner``'s watch; one that never armed is created released."""
+        watch: InputReturnWatch = cls.of(owner)
+        watch.release()
+
     def arm(self, health: InputHealth) -> None:
         """Watch exactly the entities ``health`` found absent or valueless."""
         if self.released:
@@ -1207,29 +1234,6 @@ class InputReturnWatch:
 
 #: Per coordinator, its return watch: ``boost.py``'s side-table precedent.
 _RETURN_WATCHES: WeakKeyDictionary[Any, InputReturnWatch] = WeakKeyDictionary()
-
-
-def _return_watch(owner: Any) -> InputReturnWatch:
-    watch = _RETURN_WATCHES.get(owner)
-    if watch is None:
-        interval = getattr(owner, "update_interval", None)
-        watch = InputReturnWatch(
-            owner.hass,
-            owner.async_request_refresh,
-            interval.total_seconds() if isinstance(interval, timedelta) else 0.0,
-        )
-        _RETURN_WATCHES[owner] = watch
-    return watch
-
-
-def watch_returns(owner: Any, health: InputHealth) -> None:
-    """Arm ``owner``'s return watch on this cycle's ``health``."""
-    _return_watch(owner).arm(health)
-
-
-def release_returns(owner: Any) -> None:
-    """Release ``owner``'s return watch, creating it released if it never armed."""
-    _return_watch(owner).release()
 
 
 def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:
