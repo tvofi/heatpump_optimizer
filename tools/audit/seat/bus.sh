@@ -1722,8 +1722,8 @@ B
   out=$(run dispatch 30 "$h1" cmsg_S2); rc=$?
   [ $rc != 0 ] && echo "$out" | grep -q "already holds a merge verdict" && [ "$(grep -c '^30 ' "$W/state/dispatched")" = 1 ]
   expect "a second reviewer at a head holding a merge verdict is refused, recording nothing" $?
-  out=$(run dispatch 30 "$h2" cmsg_S3); rc=$?
-  [ $rc = 0 ]; expect "null control: a head with no verdict dispatches (the first dispatch at a head is accepted)" $?
+  out=$(run dispatch 30 "$h2c" cmsg_S3); rc=$?
+  [ $rc = 0 ]; expect "null control: a head with no verdict, carrying code since the merge verdict (h2c; h2 alone carries under card C4), dispatches" $?
   # The stub stands in for `gh api` and prints the API's own JSON, so bus.sh's status filter runs:
   # $W/checks-in holds `name status` lines, rendered to {"check_runs":[{name,status}...]}.
   chk() { # name-status pairs... -> a check-runs response on $W/checks-in's stub
