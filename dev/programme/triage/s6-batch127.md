@@ -28,7 +28,7 @@ Cost:
 - No capped file: `tests/structure_budgets.json` has no row under `tools/`, and the file is not policy, so it has no `policy_lint.mjs --budgets` row. Six live groups name `merge_train.py`, so the fixer rebases over them.
 
 Binding:
-- Carry text: `Carry 8 (triage: dev/programme/triage/s6-batch127.md#P393 at <roster sha>): merge_train.py admit refuses a merge verdict at <head> when a blocked verdict at the same head carries a different bus-nonce that was dispatched later (events log reviewer-fire), and refuses with a reason when either dispatch time is missing; same-nonce and later-dispatch merges are admitted. Self-test: STALE refused, LATER and SAME admitted, missing time refused; a mutant drops the comparison. Re-run dev/audit/harnesses/r10_triage_p393.py stale at your base: 1 stale, 21 later, 4 same.`
+- Carry text: `From triage batch 127 (triage: dev/programme/triage/s6-batch127.md#P393 at <roster sha>): merge_train.py admit refuses a merge verdict at <head> when a blocked verdict at the same head carries a different bus-nonce that was dispatched later (events log reviewer-fire), and refuses with a reason when either dispatch time is missing; same-nonce and later-dispatch merges are admitted. Self-test: STALE refused, LATER and SAME admitted, missing time refused; a mutant drops the comparison. Re-run dev/audit/harnesses/r10_triage_p393.py stale at your base: 1 stale, 21 later, 4 same.`
 - The figures above are the fixer's control. Re-derive them at the fixer's own base; do not carry them.
 
 ## P394: replan prices len(carry), so marked carries still cost a part
