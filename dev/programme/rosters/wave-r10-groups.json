@@ -18755,7 +18755,9 @@
     "tests/features.py",
     "docs/configuration.md"
    ],
-   "carry": [],
+   "carry": [
+    "From r10-generic-heat-curve, body item 73eb63bd: The hook's interface (this body's \"restore hook\" list) changes how R10-ARBITER-OFF-RESTORE and R10-GENERIC-HEAT-CURVE-PERSISTENT must work: register a consumer and arm before the first write, never a second owner of the unload, MODE_OFF or remove path. Lands in those two groups' entries in `dev/programme/rosters/wave-r10-groups.json`. Carry: R10-ARBITER-OFF-RESTORE. Carry: R10-GENERIC-HEAT-CURVE-PERSISTENT. (items 73eb63bd)"
+   ],
    "resume": {
     "stage": "not-started",
     "branch": "handoff/r10-arbiter-off-restore",
