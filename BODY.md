@@ -6,7 +6,7 @@ Co-authored-by: Daniel <476059+Bankaifan@users.noreply.github.com>
 
 ## Head
 
-7137c4f7bea5a7149655ab896379db95ed6934b5 (code head, cut from origin/main 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76; main had not moved at the last `tools/pr/prepr.sh` run, so no second run).
+71c249c81fd1e3f0604129534f2a6e38186e0729 (code head, cut from origin/main 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76). This moves the earlier handoff 7137c4f7bea5 by one commit: a test that kills two diff-mutant survivors (see `## Unpinned sites`). Per the owner ruling of 2026-11-07, main is not re-merged.
 
 ## Mutation proof
 
@@ -14,19 +14,39 @@ Mutant: the predicate line `self._input_returns.arm(reader.health)` in `_update_
 
 ## Null control
 
-Unmutated head, same command, from the worktree: `ALL 4923 FEATURE CHECKS PASSED`. Mutant: `10 of 4923 FEATURE CHECKS FAILED`. Flat-price null control: not applicable (no cost figure).
+Unmutated head, same command, from the worktree: `ALL 4923 FEATURE CHECKS PASSED`. Mutant: `10 of 4923 FEATURE CHECKS FAILED`. Flat-price null control: kept, not applicable (no cost figure). The new watch-level checks have their own null: an unchanged watched set neither re-registers nor drops the listener, and a settled request is stamped once.
 
 ## Figures
 
 - `PYTHONPATH=tests/hastub python3 tests/structure.py` at the head: `STRUCTURE RATCHET PASSED`, no budget re-recorded.
 - `GATE_SCOPE=auto` gate: `MODE: SCOPED -- 27 script(s) run, 6 scoped out.`; its one failure was `tests/structure.py` on an uncommitted reformat of the constructor that was then reverted; structure passes at the head.
 - `bash tools/pr/prepr.sh` at the head: `PRE-PR ... rc=0`.
-- Unpinned sites listed by prepr step 6d (the mutation job pins the killed ones; a survivor is triaged by hand): the new sites in `InputReturnWatch`, `has_value` and `_track_states`.
+- `bash tools/pr/prepr.sh` at the head 71c249c81fd1: every step ok or warn except `closures`, which refused because `tests/entities.py` failed while being recorded here on 3 checks (the coverage-job reuse, the release ZIP build and the Pages workflow probes); none of those files is in this diff, so I read it as this container's toolchain, not the head, and left it to CI. `hooks` passed this time.
+- Diff-mutant run (`tools/audit/seat/mutant_run.py --diff origin/main...HEAD`, `MUTANT_CMD` = the new feature block through `features_block.py`, 20 checks): wall time 34 s; first run 4 survivors, after the added test 1 survivor (equivalent, below).
+
+## Unpinned sites
+
+Step 6d lists these 12; mutation-autofix pins the killed ones after the push. The mutant run above killed all but one.
+
+- custom_components/heatpump_optimizer/coordinator.py:641 RETURN_DEL: killed by the feature block (the watch registers through it); pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:910 GUARD_OFF: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1113 BOOLOP: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1113 RETURN_DEL: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1166 GUARD_OFF: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1175 BOOLOP: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1177 GUARD_OFF: survived at first, now killed by "an unchanged watched set neither re-registers nor drops the listener"; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1181 GUARD_OFF: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1194 BOOLOP: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1194 CMP_BOUND: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1194 GUARD_OFF: killed by the feature block; pinned by mutation-autofix.
+- custom_components/heatpump_optimizer/inputs.py:1201 GUARD_OFF: killed by the feature block; pinned by mutation-autofix.
+
+Survivor with no key above (the diff mutator's `CALL_DEL`, not in step 6d's list): inputs.py:1209 CALL_DEL (`self._pending.clear()` in `release`) is equivalent: after `release`, `arm` returns at its first line and `_on_event` returns on `self.released`, so `_pending` is never read again. inputs.py:1171 CALL_DEL (`self._pending.clear()` in `arm`) and :1178 RETURN_DEL were survivors too and are killed by the two added checks.
 
 ## Red checks
 
 none (the one predicted red, a stale ledger pin of the replaced `_begin` guard line, is repaired in this diff; cheaper detector already standing: `ci_predict` ledger arm).
-- `mutation` at 7137c4f7bea5: red by construction on the 12 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
+- `mutation` at 71c249c81fd1: red by construction on the 12 site(s) under `## Unpinned sites`; mutation-autofix pins killed sites after the push.
 
 ## Forward-carry
 
