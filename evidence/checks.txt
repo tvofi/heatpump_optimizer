@@ -1,11 +1,17 @@
-ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1182 line(s) added since 62bcca76ee04 judged, 0 refused
-tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 62bcca76ee04
+MB=a37c58e5f32123b4028e90983799dc2aa81816f8 origin/main=1c1ae100b59e29564c7aec069b257dface6ef50f
+LEDGER-MERGE: resolved tests/closures.json
+b20199172aec2799b66623bceff6d333adc55591
+merge-rc=0
+0
+dev/programme/delivery/3262.md
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1219 line(s) added since a37c58e5f321 judged, 0 refused
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since a37c58e5f321
 selftest_wiring: 120 self-testing, 120 wired, 0 unwired
 selftest_wiring: 0 index gap(s)
-plan_public self-test: all checks passed
-beat_jobs self-test: 136 checks, 0 failed
+throwaway_git: 0 raw git init or clone site(s) refused, 0 stale allow entries at HEAD
 STRUCTURE RATCHET PASSED
-ALL 2643 ENTITY CHECKS PASSED
+ALL 2646 ENTITY CHECKS PASSED
 ALL 112 HARNESS HEADER CHECKS PASSED
-budgets/VERSION/notes/manifest in 3-dot diff: 0
-dev/programme/delivery/3262.md
+  MODE: SCOPED -- 2 script(s) run, 31 scoped out.
+Architecture score: dS +0.0000 NULL
+outside_intake self-test: all checks passed
