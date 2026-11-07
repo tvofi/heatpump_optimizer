@@ -166,9 +166,10 @@ pr_kept() { printf '%s: KEPT %s on %s: %s\n' "${PR_NAME:-pr}" "$1" "$2" "$3" >&2
 # HPO_ALLOW_STALE_TOOLS=1 names the staleness and goes on.
 # Top-relative (`:/`): git runs in the tools' own directory, where a bare path would be read below it.
 PR_FRESH_PATHS=(:/tools/audit/seat :/tools/pr)  # mut:freshpaths
+# This file's own directory, absolute, fixed once at source time. A caller that sourced it by a relative path and then changed directory (update_pr.sh and open_pr.sh `cd "$M"`) would otherwise resolve the relative BASH_SOURCE against the new directory and measure the main checkout, not the one holding these tools: a false STALE CHECKOUT (P362, P401). Every reader uses this, never BASH_SOURCE at call time.
+PR_ARGS_DIR=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)  # mut:argsdir
 pr_tools_fresh() { # after `git fetch origin main`: refuse when this file's checkout is behind it in PR_FRESH_PATHS
-  local d n h o why
-  d=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  local d=${PR_ARGS_DIR:-} n h o why
   h=$(git -C "$d" rev-parse --short=12 HEAD 2>/dev/null) && o=$(git -C "$d" rev-parse --short=12 origin/main 2>/dev/null) \
     && n=$(git -C "$d" rev-list --count HEAD..origin/main -- ${PR_FRESH_PATHS[@]+"${PR_FRESH_PATHS[@]}"} 2>/dev/null) \
     || pr_refuse "could not count what origin/main adds over the checkout holding $d"
@@ -372,7 +373,7 @@ tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse 
 tools/pr/app_mint.sh mention: comments; sourced by app_push.sh, it launches nothing
 tools/policy/policy_lint.mjs mention: a refusal message'
 pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any OPEN
-  local root=${1:-$(cd "$(dirname -- "${BASH_SOURCE[0]}")/../../.." && pwd)} rev=${2:-} f kind txt bad=0
+  local root=${1:-$(cd "$PR_ARGS_DIR/../../.." && pwd)} rev=${2:-} f kind txt bad=0
   local found
   if [ -n "$rev" ]; then
     found=$(git -C "$root" grep -lE "$PR_PUSHER_RULE" "$rev" -- 'tools/*.sh' 'tools/*.py' 'tools/*.mjs' 'tools/*.js' | sed "s|^$rev:||")
@@ -421,7 +422,7 @@ pr_pushers() { # [<root>] [<rev>]: the census; one line per seam, exit 1 on any 
 # fails closed without it, so its reap arms never reached a push (#2668's CI).
 pr_args_self_test() (
   local src t f=0 n=0 o m base code side body i reapsha UNREL
-  src=$(cd "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  src=$PR_ARGS_DIR
   t=$(mktemp -d) || { echo "pr_args self-test: no temporary directory"; return 1; }
   # The pusher stubs the reap arms drive read this directory ($T is open_pr's topic).
   REAP_DIR=$t; export REAP_DIR
@@ -621,6 +622,36 @@ STUB
   cp "$t/body.md" "$t/b.md"; fresh - tools/pr/zz update_pr.sh fix/x - "$t/b.md"
   [ "$(cat "$t/rc")" != 0 ] && grep -qF "update_pr: REFUSE: STALE CHECKOUT" "$t/out" && ! grep -qF "the push failed" "$t/out"
   ck "update_pr: tools behind origin/main under tools/pr refuse too" $?
+  # P362/P401: the directory is fixed at source time. (A) a fresh clone sourced by a relative path, then a cd into a stale sibling checkout, passes; (B, null control) the same clone made stale still refuses; (C) update_pr.sh run by a relative path from a fresh worktree whose common checkout is behind origin/main passes the check, where call-time resolution measured that common checkout.
+  mkdir -p "$o/tools/audit/seat" && printf 's\n' > "$o/tools/audit/seat/zzr" && git -C "$o" add tools/audit/seat/zzr && git -C "$o" commit -q -m "main: zzr"
+  throwaway_git_clone -q "$o" "$t/fr" && throwaway_git_clone -q "$o" "$t/st" && git -C "$t/st" reset -q --hard "$base"
+  git -C "$o" reset -q --hard "$base"
+  relsrc() { # <mutant|-> <fresh clone> <sibling>: source by a relative path, cd to the sibling, ask
+    mkdir -p "$2/tools/audit/seat"
+    if [ "$1" = - ]; then cp "$src/pr_args.sh" "$2/tools/audit/seat/pr_args.sh"
+    else grep -v "# mut:$1\$" "$src/pr_args.sh" > "$2/tools/audit/seat/pr_args.sh"; fi
+    ( unset PR_ARGS_DIR; cd "$2" && . ./tools/audit/seat/pr_args.sh && cd "$3" && PR_NAME=fresh pr_tools_fresh ) > "$t/out" 2>&1
+  }
+  relsrc - "$t/fr" "$t/st"; ck "pr_args: sourced by a relative path from a fresh clone, then cd'd into a stale sibling, passes" $?
+  ! relsrc argsdir "$t/fr" "$t/st"
+  ck "  mutant mut:argsdir (its line deleted): call-time resolution reads the sibling and refuses" $?
+  git -C "$t/fr" reset -q --hard "$base"
+  ! relsrc - "$t/fr" "$t/st" && grep -qF "STALE CHECKOUT" "$t/out"
+  ck "null control: the same clone made stale refuses STALE CHECKOUT" $?
+  mkdir -p "$o/tools/audit/seat" && printf 's\n' > "$o/tools/audit/seat/zzw" && git -C "$o" add tools/audit/seat/zzw && git -C "$o" commit -q -m "main: zzw"
+  git -C "$m" fetch -q origin main; rm -rf "$t/wtf"; git -C "$m" worktree prune
+  git -C "$m" worktree add -q --detach "$t/wtf" origin/main
+  relupd() { # <mutant|->: update_pr.sh by a relative path from the fresh worktree; the common checkout $m is behind
+    copyin "$1"; mkdir -p "$t/wtf/tools/audit/seat" "$t/wtf/tools/pr"
+    cp "$m"/tools/audit/seat/*.sh "$m"/tools/audit/seat/*.py "$t/wtf/tools/audit/seat/"; cp "$m/tools/pr/head_note.py" "$t/wtf/tools/pr/"
+    i=$((i + 1)); ( cd "$t/wtf" && HPO_STATE_DIR=$t/s$i BR=fix/x-$i BR_FIXED=1 bash tools/audit/seat/update_pr.sh fix/x - "$t/b.md" ) > "$t/out" 2>&1
+  }
+  cp "$t/body.md" "$t/b.md"
+  relupd -; ! grep -qF "STALE CHECKOUT" "$t/out"
+  ck "update_pr: run by a relative path from a fresh worktree, the common checkout behind origin/main, passes the freshness check" $?
+  relupd argsdir; grep -qF "STALE CHECKOUT" "$t/out"
+  ck "  mutant mut:argsdir (its line deleted): the common checkout is measured and refuses" $?
+  git -C "$m" worktree remove --force "$t/wtf"; git -C "$o" reset -q --hard "$base"; git -C "$m" fetch -q origin main
   # ---- a stopped pusher reaps its whole descendant tree (R10-PUSHER-REAP) ----
   # The stub app_push above leaves a two-level sleep tree recorded by pid, so
   # each arm counts what is still alive after the signal. The bystander sleeper

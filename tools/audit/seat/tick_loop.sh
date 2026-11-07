@@ -62,6 +62,7 @@ HERE=$(cd "$(dirname -- "$0")" && pwd)
 # <out>.relay.rc. Only this process holds the lock fd, so it frees on the holder's
 # exit however that comes. 76: a finished relay's rc is not yet reaped; start none.
 RELAY_HOLDER='import fcntl, os, subprocess, sys, time
+os.setpgid(0, 0)  # own process group: a group signal to the stopped loop leaves an in-flight relay to write its rc
 r = sys.argv[1]
 f = open(r + ".lock", "a")
 try: fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
@@ -219,6 +220,14 @@ done" ]
     && [ "$(printf '%s\n' "$out" | grep -c SLOW-LOG)" = 2 ] && printf '%s\n' "$out" | grep -q 'relay=ok tick=0' \
     && [ "$(grep -c start "$t/slow")" = 2 ] && [ ! -f "$t/b.txt.relay.rc" ]
   ck "null control: the late relay is reaped with its log next pass, and a fast relay reports ok" $?
+  # A group TERM to the loop (a stop of its process group) must leave an in-flight relay to write its rc.
+  rm -f "$t/g.txt" "$t/g.txt.relay.rc"
+  RELAY_SLEEP=4 HPO_TICK_RELAY_WAIT=1 HPO_TICK_RELAY=$t/slow.sh HPO_TICK_CMD="bash $t/tick.sh" \
+    python3 -I -c 'import os, sys; os.setpgid(0, 0); os.execvp("bash", ["bash"] + sys.argv[1:])' "$0" --once --out "$t/g.txt" > "$t/g.log" 2>&1 &
+  gp=$!; sleep 2.5; kill -TERM -- "-$gp" 2>/dev/null; wait "$gp" 2>/dev/null
+  k=0; while [ ! -f "$t/g.txt.relay.rc" ] && [ $k -lt 100 ]; do sleep 0.1; k=$((k + 1)); done
+  [ -f "$t/g.txt.relay.rc" ]
+  ck "a TERM to the loop's process group leaves the in-flight relay to write its rc" $?
   # Stubbed and --once, so a mutant that accepts the interval cannot loop on the real tick.
   HPO_TICK_RELAY=$t/absent.sh HPO_TICK_CMD="bash $t/tick.sh" bash "$0" --once --interval x --out "$t/b.txt" > "$t/e" 2>&1
   [ $? = 2 ] && grep -q 'interval' "$t/e"
