@@ -1,0 +1,14 @@
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:1607 CMP_BOUND: if abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL:
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:1607 GUARD_OFF: if abs(residual) <= HOUSE_LOSS_MAX_RESIDUAL:
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:1614 RETURN_DEL: return True
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5660 GUARD_OFF: if _loss_residual_rejected(residual, "house heat loss"):
+    ADDED UNPINNED custom_components/heatpump_optimizer/coordinator.py:5778 GUARD_OFF: if _loss_residual_rejected(residual, "lower floor loss"):
+    ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:1987 BOOLOP: if two_zone and self.upper_temp_trajectory:
+    ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:1987 GUARD_OFF: if two_zone and self.upper_temp_trajectory:
+    ADDED UNPINNED custom_components/heatpump_optimizer/optimizer.py:1989 RETURN_DEL: return self.room_temp_trajectory
+    ADDED UNPINNED custom_components/heatpump_optimizer/sensor.py:419 GUARD_OFF: if report_key is not None:
+    ADDED UNPINNED custom_components/heatpump_optimizer/tariff.py:546 RETURN_DEL: return per_window, int(offset_steps) % per_window
+    ADDED UNPINNED custom_components/heatpump_optimizer/tariff.py:652 RETURN_DEL: return [s if tz is None else s.astimezone(tz) for s in starts]
+    ADDED UNPINNED custom_components/heatpump_optimizer/tariff.py:873 GUARD_OFF: if window_factors is None or not window_factors.size:
+    ADDED UNPINNED custom_components/heatpump_optimizer/tariff.py:877 GUARD_OFF: if factors.size < n:
+    ADDED UNPINNED custom_components/heatpump_optimizer/tariff.py:880 RETURN_DEL: return billed

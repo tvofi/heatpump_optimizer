@@ -1,0 +1,9 @@
+PASS optimizer.classify_space_steps: reason=idle_coasting owner_runs=False
+PASS optimizer.classify_dhw_steps: reason=idle owner_runs=False
+FAIL freq_control.FrequencyMap.recommend: recommend=33.0 owner_runs=False
+FAIL freq_control.FrequencyMap.evidence_exhausted: gate 'not np.isfinite(target_kw) or target_kw <= 0.05' passes=True owner_runs=False
+FAIL coordinator._async_learn_buffer_cooling: 'float(self._current_action.get('power', 0.0)) > 0.05' -> heating=True owner_runs=False
+FAIL coordinator._observe_frequency: 'self._commanded_power() > 0.05 and reported >= hz_min and (not defrost_interval(self._pump_signals.defrosting))' -> watch_active=True owner_runs=False
+RESULT probes_failed=4 count
+RESULT probes_total=6 count
+rc=0
