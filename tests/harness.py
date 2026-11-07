@@ -650,3 +650,44 @@ class UnpicklableResultOptimizer:
 
     def optimize(self, *, inputs):
         return UnpicklableResult()
+
+
+class SleepyOptimizer:
+    """``optimize`` runs in the child and answers only after ``seconds``.
+
+    Stands in for a worker that is alive but silent: the parent's read sees
+    no reply, no EOF and no error until the sleep ends.
+    """
+
+    def __init__(self, seconds: float) -> None:
+        self.seconds = seconds
+
+    def optimize(self, *, inputs):
+        import os
+        import time
+
+        time.sleep(self.seconds)
+        return ("slept", os.getpid(), inputs)
+
+
+def split_reply(pause_s: float, finish: bool = True) -> None:
+    """Write a reply frame in two halves ``pause_s`` apart, then end the child.
+
+    Stands in for a worker stopped mid-write after serialising its reply
+    (SIGSTOP, a stalled host): the pipe turns readable, then goes quiet. The
+    child exits after the frame, so the worker's own reply never follows it.
+    """
+    import os
+    import pickle
+    import sys
+    import time
+
+    blob = pickle.dumps(("ok", "split"), protocol=pickle.HIGHEST_PROTOCOL)
+    out = sys.stdout.buffer
+    out.write(blob[: len(blob) // 2])
+    out.flush()
+    time.sleep(pause_s)
+    if finish:  # False: the child dies mid-frame, an end of stream mid-reply
+        out.write(blob[len(blob) // 2:])
+        out.flush()
+    os._exit(0)
