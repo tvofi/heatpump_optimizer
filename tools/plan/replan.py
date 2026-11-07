@@ -476,20 +476,25 @@ def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
 HELD_STAGE = "carries-open"
 
 
-def held_open(group: dict, durations: dict) -> tuple[int, str]:
-    """(open carries, how known) for a carries-open group. The measured
-    count (`held_open_carries`, `tools/plan/size_durations.py`) plus every
-    carry appended since; a group it never measured counts every carry."""
-    carry = len(group.get("carry") or [])
+def held_open(group: dict, durations: dict, pending: list) -> tuple[int, str]:
+    """(open carries, how known) for a carries-open group, counting only
+    `pending` (`roster_lib.pending_carries`: unmarked and not legacy). The
+    measured count (`held_open_carries`, `tools/plan/size_durations.py`),
+    never above the carries then held that are still pending, plus every
+    pending carry appended since; a group it never measured counts every
+    pending carry."""
     rec = (durations.get("held_open_carries") or {}).get(group["group"])
     if rec is None:
-        return carry, f"{carry} carries, none measured as answered"
-    added = max(0, carry - int(rec["carries"]))
-    return int(rec["open"]) + added, (f"{rec['open']} open carries at measurement"
-                                      + (f" + {added} appended since" if added else ""))
+        return len(pending), f"{len(pending)} carries, none measured as answered"
+    cut = int(rec["carries"])
+    added = sum(1 for i in pending if i >= cut)
+    then = min(int(rec["open"]), sum(1 for i in pending if i < cut))
+    return then + added, (f"{then} open carries at measurement"
+                          + (f" + {added} appended since" if added else ""))
 
 
-def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tuple[float, str]:
+def group_hours(group: dict, durations: dict, is_live: bool, where: str,
+                legacy: dict | None = None) -> tuple[float, str]:
     """(hours of work left, the basis in words) for one open group.
 
     carries-open: ceil(open carries / carries_per_part) parts of
@@ -502,13 +507,21 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         sizes_hours alone. An unmeasured size is refused: a hand-written
         duration would be a fabricated measurement, and a KeyError from
         inside the schedule names neither the group nor the roster.
+    Both carry counts are `roster_lib.pending_carries` (`legacy`: the
+    roster's cut-over, `roster_lib.read_legacy`): a carry marked implemented,
+    moved or dismissed is not work left, and the basis says how many were
+    left out.
     """
     n, size, cls = group["group"], group.get("size") or "M", work_class(group)
     stage = (group.get("resume") or {}).get("stage")
+    pending = roster_lib.pending_carries(group, legacy or {})
+    left = len(group.get("carry") or []) - len(pending)
+    left_out = f", {left} marked carries left out" if left else ""
     if stage == HELD_STAGE and durations.get("carries_per_part"):
-        k, how = held_open(group, durations)
+        k, how = held_open(group, durations, pending)
         parts = math.ceil(k / float(durations["carries_per_part"]))
-        return parts * float(durations["carry_part_hours"]), f"{how}: {parts} part(s)"
+        return (parts * float(durations["carry_part_hours"]),
+                f"{how}: {parts} part(s){left_out}")
     sizes = durations["sizes_hours"]
     if size not in sizes:
         raise PlanError(f"{n}: size {size!r} has no measured duration in sizes_hours "
@@ -521,10 +534,11 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         rounds = float(rcell.get(cls, durations["review_rounds"][size]))
         hours = work + (rounds - 1) * float(durations["round_hours"])
         why = f"{size}/{cls if cls in cell else 'all'}: {work:g} h + {rounds - 1:.2f} extra rounds"
-        extra = len(group.get("carry") or []) - float((durations.get("carry_baseline") or {}).get(size, 0))
+        extra = len(pending) - float((durations.get("carry_baseline") or {}).get(size, 0))
         if extra > 0 and durations.get("carry_hours"):
             hours += extra * float(durations["carry_hours"])
             why += f" + {extra:g} absorbed carries"
+        why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
     if is_live:
@@ -648,17 +662,20 @@ def selftest_model() -> int:
     h, why = group_hours(grp("BC", "M", stage="carries-open", carry=body), m11, False, "fx")
     expect("R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four",
            abs(h - 19.8) < 1e-9 and "36 marked carries left out" in why, f"{h} {why}")
-    two = ["c"] * 6 + [marked(i) for i in range(4)]
+    two = ["c"] * 5 + [marked(i) for i in range(4)]
     h, why = group_hours(grp("T", "L", stage="carries-open", carry=two), M, False, "fx")
     expect("carries filling two parts, four marked and left out, plan one part (20 h)",
            h == 20.0 and "4 marked carries left out" in why, f"{h} {why}")
-    h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 10), M, False, "fx")
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 9), M, False, "fx")
     expect("the same carries with none marked plan two parts as before (null control)",
            h == 40.0 and "left out" not in why, f"{h} {why}")
     h1 = ["c"] * 8 + [marked(8)] * 3 + ["c"] * 3
     h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, False, "fx")
     expect("a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part",
            h == 20.0 and "3 appended since" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8), M, False, "fx")
+    expect("a measured held group whose carries were all marked since plans zero, not one part",
+           h == 0.0 and "0 open carries at measurement" in why, f"{h} {why}")
     h, why = group_hours(grp("P", "S", carry=["x"] * 2 + [marked(0)] * 3), M, False, "fx")
     expect("marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h",
            h == 18.0 and "absorbed" not in why, f"{h} {why}")
@@ -878,7 +895,7 @@ def git_commits_since_tag(repo: str) -> list:
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
                roster_path: str = "", *, round_n: int, since_tag: list | None = None,
-               evidence: dict | None = None) -> dict:
+               evidence: dict | None = None, legacy: dict | None = None) -> dict:
     closing, why = closure_version(version, round_n)
     if why:
         raise PlanError(f"the round-close stamp: {why}")
@@ -923,7 +940,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     dur_h, basis = {}, {}
     for n in open_:
         dur_h[n], basis[n] = group_hours(G[n], durations, n in live,
-                                         roster_path or roster_ref or "<fixture>")
+                                         roster_path or roster_ref or "<fixture>", legacy)
     # A held group with nothing left owes only its record step: it is
     # started at the replan instant like a working one and holds no slot wait.
     settled = {n for n in open_ if n not in live and dur_h[n] == 0}
@@ -2577,8 +2594,26 @@ def selftest() -> int:
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("work = float(cell.get(cls, ", "first[size]))"), "work = float(first[size])"),
             ("appended-carries-open",
-             _m("def held_open(group: dict, ", "durations: dict)"),
-             _m('added = max(0, carry - int(rec', '["carries"]))'), "added = 0"),
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("added = sum(1 for i in pending ", "if i >= cut)"), "added = 0"),
+            ("held-open-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("return len(pending), ", 'f"{len(pending)} carries'),
+             'return len(group.get("carry") or []), f"{len(pending)} carries'),
+            ("held-measured-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m('then = min(int(rec["open"]), ', "sum(1 for i in pending if i < cut))"),
+             'then = int(rec["open"])'),
+            ("absorbed-pending",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("extra = len(pending) ", "- float("), 'extra = len(group.get("carry") or []) - float('),
+            ("pending-left-out",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('left_out = f", {left} marked carries ', 'left out" if left else ""'), 'left_out = ""'),
+            ("legacy-threaded",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('roster_path or roster_ref or "<fixture>", ', "legacy)"),
+             'roster_path or roster_ref or "<fixture>")'),
             ("caps-owner-default",
              _m("def cli_caps(", "args) -> dict:"),
              _m('"slots": DEFAULT_CAPS["slots"] if args.slots ', 'is None else args.slots,'),
@@ -2906,8 +2941,16 @@ def main(argv=None) -> int:
         }
     since_tag = (production_groups_since(git_commits_since_tag(args.repo), groups_of(roster))
                  if args.since_tag else None)
+    # The carries a group still owes are `roster_lib.pending_carries`, which
+    # needs the round's cut-over (a `--roster-file` copy keeps its round's).
+    try:
+        legacy = roster_lib.read_legacy(
+            args.repo, f"{roster_lib.ROSTERS_DIR}/{src.rsplit('/', 1)[-1]}")
+    except roster_lib.RosterNotFound as exc:
+        raise PlanError(f"the carry cut-over: {exc}") from exc
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence)
+                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence,
+                      legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
