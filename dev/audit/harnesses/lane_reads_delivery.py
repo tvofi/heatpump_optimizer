@@ -23,6 +23,7 @@ another, run through the same tracer and scan. The scan must report all three re
 clean result.
 
     python3 dev/audit/harnesses/lane_reads_delivery.py [--lanes a,b] --out DIR
+    python3 dev/audit/harnesses/lane_reads_delivery.py --summarize DIR... > recording.json
 
 A fresh clone's files are as new as its index, so git rehashes every tracked
 file, rows included, the first time a command refreshes it. `--refresh-index`
@@ -262,14 +263,58 @@ def scan(hits: Path, clone: Path) -> dict:
     return out
 
 
+def summarize(outs: list[Path], head: str) -> dict:
+    """One recording across lane output directories: per lane, each run step's
+    exit, trace lines, syscall kinds and the commands that read a row. A lane
+    still running is read from the steps whose trace has closed (`.n` written)
+    and marked partial; a partial lane can show a reader, never clear one."""
+    lanes = {}
+    for o in outs:
+        for lane in ["control", *LANES]:
+            j, tmp = o / f"{lane}.json", o / f"{lane}.tmp"
+            if j.exists():
+                r = json.loads(j.read_text())
+                complete = True
+            elif tmp.is_dir():
+                r = {"steps": []}
+                for n in sorted(tmp.glob("step*.n"), key=lambda f: int(f.stem[4:])):
+                    i = int(n.stem[4:])
+                    hits = tmp / f"step{i}.hits"
+                    r["steps"].append({"step": f"step{i}", "ran": True, "i": i, "exit": None,
+                                       "trace_lines": int(n.read_text().strip() or 0),
+                                       **(scan(hits, tmp / "ws") if hits.exists() else scan_empty())})
+                complete = False
+            else:
+                continue
+            steps = [{"step": s["step"], "exit": s["exit"], "trace_lines": s["trace_lines"],
+                      "kinds": {k: v for k, v in s["kinds"].items() if v},
+                      "row_readers": {c: v for c, v in s["by_command"].items() if any(v.get(x) for x in READS)}}
+                     for s in r["steps"] if s.get("ran")]
+            lanes[lane] = {"complete": complete, "seconds": r.get("seconds"),
+                           "uses_listed": [s["step"] for s in r["steps"] if not s.get("ran")],
+                           "steps_traced": len(steps),
+                           "reads_a_row": any(any(s["kinds"].get(k) for k in READS) for s in steps),
+                           "steps": steps}
+    return {"head": head, "rule": "a lane reads a row when any traced step opens or lists a path under "
+            "<clone>/dev/programme/delivery/, or execs with an argv naming dev/programme other than as an "
+            "exclusion (READS); a fixture repository's rows are not the clone's", "lanes": lanes}
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
+    ap.add_argument("--summarize", nargs="+", metavar="OUT", help="write one recording from these --out directories")
     ap.add_argument("--lanes", default="control," + ",".join(LANES))
-    ap.add_argument("--out", required=True)
+    ap.add_argument("--out")
     ap.add_argument("--refresh-index", action="store_true",
                     help="refresh the clone's index first: separates git's own rehash of a fresh checkout "
                          "(every tracked file, rows included) from a step that reads a row")
     a = ap.parse_args()
+    if a.summarize:
+        head = subprocess.run(["git", "-C", str(ROOT), "rev-parse", "HEAD"], capture_output=True, text=True).stdout.strip()
+        print(json.dumps(summarize([Path(d) for d in a.summarize], head), indent=1))
+        return 0
+    if not a.out:
+        ap.error("--out is required")
     out = Path(a.out).resolve()
     out.mkdir(parents=True, exist_ok=True)
     for lane in a.lanes.split(","):
