@@ -496,6 +496,18 @@ def _hours(xs) -> str:
     return "—" if not xs else f"{sorted(xs)[len(xs) // 2]:.1f} h (n {len(xs)})"
 
 
+def pill(st: str, label: str) -> str:
+    """The status pill. A "waiting on A, B, ..." label past three groups shows
+    the first three and "+N more"; the full list stays in `title`."""
+    pre = "waiting on "
+    names = label[len(pre):].split(", ") if label.startswith(pre) else []
+    if len(names) > 3:
+        shown = f'{pre}{", ".join(names[:3])} +{len(names) - 3} more'
+        return (f'<span class="pill {st}" title="{html.escape(label)}">'
+                f'{html.escape(shown)}</span>')
+    return f'<span class="pill {st}">{html.escape(label)}</span>'
+
+
 def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
     """The flow metrics (proposal 2, tvofi 2026-11-07): throughput against
     takt, first-pass yield and the blocked-class mix, lead time per size,
@@ -507,8 +519,7 @@ def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
     e = html.escape
     by = {r["g"]: r for r in rows}
     lane = "".join(
-        f'<tr><td class="g">{e(short(g))}</td><td><span class="pill {by[g]["st"]}">'
-        f'{e(by[g]["label"])}</span></td><td class="mono">{e(by[g]["pr"])}</td>'
+        f'<tr><td class="g">{e(short(g))}</td><td class="st">{pill(by[g]["st"], by[g]["label"])}</td><td class="mono">{e(by[g]["pr"])}</td>'
         f'<td class="mono">{by[g]["finish"] or "—"}</td></tr>'
         for g in plan["critical_path"] if g in by)
     head = ('<section>\n  <h2>Flow</h2>\n'
@@ -598,7 +609,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict,
         + ('<span class="cp" title="critical path">◆</span>' if r["crit"] else "")
         + f'{e(short(r["g"]))}<div class="lanec">{e(r["lane"])}</div></td>'
         f'<td class="d">{e(r["desc"])}</td>'
-        f'<td><span class="pill {r["st"]}">{e(r["label"])}</span></td>'
+        f'<td class="st">{pill(r["st"], r["label"])}</td>'
         f'<td class="tier">{r["tier"] if r["tier"] is not None else "—"}</td>'
         f'<td class="mono">{e(r["pr"])}</td>'
         f'<td>{"".join(chip(*i) for i in r["issues"]) or "—"}</td>'
@@ -1168,8 +1179,8 @@ h1{font:700 2.1rem/1 var(--display);letter-spacing:.01em;margin:0}
 h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
 h3{font:600 1rem/1.2 var(--display);letter-spacing:.04em;margin:14px 0 8px}
 .alerts{margin:0;padding-left:1.2em}
-.alerts li{overflow-wrap:anywhere}
-pre,code{white-space:pre-wrap;overflow-wrap:anywhere}
+.alerts li{overflow-wrap:break-word}
+pre,code{white-space:pre-wrap;overflow-wrap:break-word}
 .sub{color:var(--muted);margin:6px 0 0}
 .strip{display:flex;flex-wrap:wrap;gap:10px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
@@ -1218,7 +1229,8 @@ td.d{min-width:260px;max-width:440px}
 .alerts li.mono{white-space:normal}
 .blk{color:var(--muted);font-size:.82rem;max-width:200px}
 .cp{color:var(--accent);margin-right:4px}
-.pill{display:inline-block;max-width:100%;box-sizing:border-box;border-radius:999px;padding:1px 9px;font-size:.78rem;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border:1px solid}
+.pill{display:inline-block;max-width:100%;box-sizing:border-box;border-radius:999px;padding:1px 9px;font-size:.78rem;line-height:1.35;white-space:normal;overflow-wrap:break-word;word-break:normal;border:1px solid}
+td.st{min-width:11rem}
 .pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
 .pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
 .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
