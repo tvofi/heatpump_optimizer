@@ -1,0 +1,81 @@
+tools/audit/seat/ledger.py:148:def classify(ref: str) -> str:
+tools/audit/seat/ledger.py:230:            classify(f[0])
+tools/audit/seat/ledger.py:258:    classify(ref)
+tools/audit/seat/ledger.py:322:        if classify(subject) != "handoff-no-pr":
+tools/audit/seat/ledger.py:769:            classify(args[0])
+tools/audit/seat/ledger.py:839:        check("each of the five arms classifies", [classify(f"refs/heads/{p}/x") for p in
+tools/audit/seat/ledger.py:842:        check("a ref of no arm is refused, not guessed", refuses(lambda: classify("refs/heads/main")) == "Refused")
+tools/audit/seat/merge_train.py:476:def classify(latest: dict, required, busy=()) -> "tuple[str, list[str], list[str]]":
+tools/audit/seat/merge_train.py:550:    state, pending, red = t.classify_at(sha, runs, req)
+tools/audit/seat/merge_train.py:575:    red = set(classify(latest_runs(runs), gating_names(required))[2])
+tools/audit/seat/merge_train.py:1618:    def _gate_busy(self, h: str, check_runs) -> list:
+tools/audit/seat/merge_train.py:1633:    def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
+tools/audit/seat/merge_train.py:1639:        state = classify(last, required)
+tools/audit/seat/merge_train.py:1640:        busy = self._gate_busy(h, runs) if GATE in state[2] else []
+tools/audit/seat/merge_train.py:1641:        return classify(last, required, busy) if busy else state
+tools/audit/seat/merge_train.py:1675:                state = classify(last, only)
+tools/audit/seat/merge_train.py:1677:                    busy = self._gate_busy(h, runs)
+tools/audit/seat/merge_train.py:1690:                    state = classify(last, only, busy)
+tools/audit/seat/merge_train.py:3185:            state, pending, red = classify(latest_runs(runs or ()), req)
+tools/audit/seat/merge_train.py:5844:          classify(latest_runs([edit_red]), [GATE], [C]) == ("wait", [GATE], [])
+tools/audit/seat/merge_train.py:5845:          and classify(latest_runs([edit_red]), [GATE]) == ("red", [], [GATE])
+tools/audit/seat/merge_train.py:5846:          and classify(latest_runs([cr("fast", conclusion="failure")]), ["fast"], [C])[0] == "red")
+tools/audit/seat/merge_train.py:5965:          classify(e7, req) == ("wait", ["mutation", "typing"], []))
+tools/audit/seat/merge_train.py:5967:          classify(latest_runs([cr("fast"), cr("mutation"), cr("typing"), cr("codeql", conclusion="failure")]),
+tools/audit/seat/merge_train.py:5970:          classify(latest_runs([cr("fast", conclusion="failure"), cr("mutation", "in_progress"), cr("typing")]),
+tools/audit/seat/merge_train.py:5973:          classify(latest_runs([cr("fast", conclusion="failure"), cr("fast", started="2"), cr("mutation"),
+tools/audit/seat/merge_train.py:5976:          classify(latest_runs([cr("fast"), cr("mutation")]), req) == ("wait", ["typing"], []))
+tools/audit/seat/merge_train.py:5978:        classify(e7, None)
+tools/audit/seat/merge_train.py:6018:              classify(latest_runs(runs), [GATE]) == ("red", [], [GATE]))
+tools/audit/seat/merge_train.py:6020:          classify(latest_runs([gt("success", 1, "1"), gt("success", 2, "2")]), [GATE])[0] == "green"
+tools/audit/seat/merge_train.py:6021:          and classify(latest_runs([gt("failure", 1, "1"), gt("success", 1, "2")]), [GATE])[0] == "green")
+tools/audit/seat/merge_train.py:6023:          classify(latest_runs([gt("failure", 1, "1"), gt(None, 2, "2", "in_progress")]), [GATE])[0] == "wait")
+tools/audit/seat/merge_train.py:6026:          all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
+tools/audit/seat/merge_train.py:6028:          and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+tools/audit/seat/orchestrator_tick.py:1151:            req_red = mt.classify(self.latest(runs or []), req)[2]
+tools/audit/seat/orchestrator_tick.py:1648:                req_bad = mt.classify(latest, req)[2]
+tools/audit/seat/proof_watch.py:234:        _, pending, red = self.train().classify_at(self.sha, self.check_runs(), self.required_names())
+tools/audit/seat/prune_refs.py:274:def classify(name: str, sha: str, prs: dict, main_reachable: set,
+tools/audit/seat/prune_refs.py:339:        rule = classify(name, refs[name], prs, main_reachable, done_branches,
+tools/audit/seat/prune_refs.py:568:           classify("claude/audit-x", merged, {}, reachable) == KEEP_SESSION, results)
+tools/audit/seat/prune_refs.py:570:           classify("fix/audit-x", merged, {}, reachable) == DELETE_MERGED, results)
+tools/audit/seat/prune_refs.py:573:           classify("design/R10-NOT-STARTED", orphan, {}, reachable, frozenset(), og)
+tools/audit/seat/prune_refs.py:576:           classify("design-verdict/R10-NOT-STARTED", orphan, {}, reachable,
+tools/audit/seat/prune_refs.py:579:           classify("design/R10-DONE", orphan, {}, reachable, frozenset(), og)
+tools/audit/seat/prune_refs.py:583:           classify("fix/y", orphan, {}, reachable, ages=ages) == KEEP_YOUNG, results)
+tools/audit/seat/prune_refs.py:585:           classify("fix/y", merged, {}, reachable, ages=ages) == DELETE_MERGED, results)
+tools/audit/seat/prune_refs.py:587:           classify("dispatch/fixer-t", merged, {}, reachable, ages=ages) == KEEP_YOUNG,
+tools/audit/seat/prune_refs.py:590:           classify("dispatch/fixer-t", merged, {}, reachable,
+tools/audit/seat/prune_refs.py:593:           classify("fix/y", merged, {}, reachable, ages={}) == KEEP_YOUNG, results)
+tools/audit/seat/prune_refs.py:595:           classify("fix/y", merged, {}, reachable, ages=None) == DELETE_MERGED, results)
+tools/audit/seat/prune_refs.py:597:           classify("claude/x", merged, {"claude/x": {"open": [1]}}, reachable) == KEEP,
+tools/audit/seat/prune_refs.py:840:    _check("main keeps", classify("main", main_sha, {}, reachable) == KEEP, results)
+tools/audit/seat/prune_refs.py:843:           classify("fix/x", merged_sha, {}, reachable) == DELETE_MERGED, results)
+tools/audit/seat/prune_refs.py:846:    _check("open PR keeps", classify("fix/x", orphan_sha, p, reachable) == KEEP,
+tools/audit/seat/prune_refs.py:851:           classify("fix/x", merged_sha, p, reachable) == KEEP, results)
+tools/audit/seat/prune_refs.py:855:           classify("handoff/x", orphan_sha, p, reachable) == DELETE_HANDOFF_PR,
+tools/audit/seat/prune_refs.py:860:           classify("handoff/x", merged_sha, p, reachable) == DELETE_MERGED,
+tools/audit/seat/prune_refs.py:864:           classify("verdict/1", orphan_sha, {}, reachable) == RESIDUE_NONE,
+tools/audit/seat/prune_refs.py:869:           classify("fix/y", orphan_sha, p, reachable) == RESIDUE_CLOSED, results)
+tools/audit/seat/prune_refs.py:873:           classify("handoff/z", orphan_sha, p, reachable) == KEEP, results)
+tools/audit/seat/prune_refs.py:878:           classify("handoff/r9-ux-money", orphan_sha, {}, reachable,
+tools/audit/seat/prune_refs.py:882:           classify("handoff/r9-ux-money", orphan_sha,
+tools/audit/seat/prune_refs.py:934:           classify("ci-probe/a", orphan_sha, {}, reachable) == DELETE_CI_PROBE, results)
+tools/audit/seat/prune_refs.py:936:           classify("ci-probe/a", orphan_sha, {"ci-probe/a": {"open": [], "merged": [], "closed": [4]}},
+tools/audit/seat/prune_refs.py:939:           classify("ci-probe/a", orphan_sha, {"ci-probe/a": {"open": [4], "merged": [], "closed": []}},
+tools/audit/seat/prune_refs.py:942:           classify("probe/a", orphan_sha, {}, reachable) == RESIDUE_NONE, results)
+tools/audit/seat/record_row.py:1410:        led = delivery_status.classify(
+tools/audit/seat/record_row.py:1424:        _stale_led = delivery_status.classify(
+tools/audit/seat/record_row.py:1430:        _honest_led = delivery_status.classify(
+tools/audit/seat/review_carry.py:148:def classify(repo, reviewed, new, main):
+tools/audit/seat/review_carry.py:225:    verdict, reason, count, commits = classify(repo, reviewed, new, main)
+tools/audit/seat/review_carry.py:320:        return classify(seat, resolve_commit(seat, rev), resolve_commit(seat, new),
+tools/audit/seat/row_position.py:56:def classify(repo: str, number: int, head: str) -> tuple[str, str, str]:
+tools/audit/seat/row_position.py:83:        kind, _r, _v = classify(args.repo, p["number"], p["headRefOid"])
+tools/audit/seat/run_twins.py:33:def classify(runs: "list[dict]") -> "tuple[int, int, list[tuple]]":
+tools/audit/seat/run_twins.py:80:    twins, others, rows = classify(runs)
+tools/audit/seat/run_twins.py:106:        got = classify(runs)[:2]
+tools/audit/seat/tmp_paths.py:178:def classify(lines: list[tuple[str, int, str]], allow=ALLOW) -> tuple[list[str], list[str]]:
+tools/audit/seat/tmp_paths.py:265:        return classify([(path, 1, text)], allow)[0]
+tools/audit/seat/tmp_paths.py:298:          classify([(s, 1, "nothing here")], allow)[1] != [] and classify([(s, 1, "/tmp/fixture")], allow)[1] == [])
+tools/audit/seat/tmp_paths.py:355:    bad, stale = classify(grep(ref))

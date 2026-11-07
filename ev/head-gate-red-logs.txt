@@ -1,0 +1,8 @@
+== job 128507622651
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL run(s) [42404526059] at this head are still being judged; their gate decides
+##[error]Process completed with exit code 1.
+== job 128499580417
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL run(s) [42404526059] at this head are still being judged; their gate decides
+##[error]Process completed with exit code 1.

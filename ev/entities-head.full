@@ -1,0 +1,300 @@
+  ok   a pinned site's killer is driven first however dear it is; an unpinned site and a stale pin keep the cost order (R9-F10.13)
+  ok   --anchor re-drives one site: the real pin is reproduced, a pin planted on a script that does not kill it is reported NOT REPRODUCED after its own run, and nothing is recorded (R9-F10.13)
+  ok   a re-driven pin is not reproduced by a driver that only sees the row the mutant made stale: the row is hidden from the mutant's tree, and a code check still kills it (R10 mutation-anchor)
+  ok   invalidated_rows names exactly the rows pinned to a rewritten line, the ledger without them agrees with the rewritten file, and an unpinned line names none (R10 mutation-anchor)
+  ok   mutation-nightly rotates its seed by date and surfaces the report (R9-F10.13)
+  ok   a changed-scope pool draws only sites on lines the diff modified
+  ok   and a comment-, whitespace-, docs- or test-only diff draws nothing
+  ok   and --scope full still draws from every site
+  ok   the null control is drawn from a file of the line-scoped pool, on a line the diff never touched
+  ok   and an empty pool passes before a null control is sought
+  ok   the null run's tree differs from the baseline tree on exactly the null comment's line, and main() drives it through null_edit
+  ok   the null control runs under every driver in the baseline phase, and its stress.py run shares the runner with nothing
+  ok   every float() of an entity's state outside inputs.py is normalised or dispositioned (#1513)
+  ok   null control: a bare read, direct or through a local, is refused
+  ok   const.py's power-entity comment names the real CONF_HEAT_PUMP_MIN_POWER, not a bare MIN_POWER shorthand
+  ok   optimizer.py names the real min_electrical_power attribute at all (the symbol the comment should point readers at)
+  ok   and optimizer.py's baseline comment itself uses the real name
+  ok   every dependency install in every workflow is hash-pinned (#1548)
+  ok   hash-pin barrier arm: the finder's version-pinned install -> 1 refusal(s)
+  ok   hash-pin barrier arm: a bare package spec beside the flags -> 1 refusal(s)
+  ok   hash-pin barrier arm: a lock generated at run time -> 1 refusal(s)
+  ok   hash-pin barrier arm: an install with no build constraint -> 1 refusal(s)
+  ok   hash-pin barrier arm: a continued npm install and npx -> 2 refusal(s)
+  ok   hash-pin barrier arm: the hashed installs this workflow uses -> 0 refusal(s)
+  ok   hash-pin barrier arm: a hashed install narrowed by --no-deps -> 0 refusal(s)
+  ok   hash-pin barrier arm: an install named only in a comment -> 0 refusal(s)
+  ok   hash-pin barrier arm: a lock with one requirement stripped of its hashes is refused
+
+-- The replay lane: controls, sanitiser, fixture, wiring
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+  ok   a10:no_precise_location  [0 coordinate(s) beyond 2 dp]
+reading the recorder: SQLite database /tmp/tmpiele4v0z/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpew7eph7n/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpdnfbfxl8/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmlsw86ba/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpow2y8alp/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpsvlb5hk0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpsr53fzkk/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp508obswm/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpffp_j327/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp70yaw1hu/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmppodn9ml8/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpi04v4ck7/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpmokcisqd/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp754_sfk0/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp36ghnmhk/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp5pov7_av/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmperk9_3mt/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpd4ftlt5n/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmp4dpgvxfc/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpbmiyo1k3/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpxrfq9va3/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmptxoql08u/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpf5ejtzqu/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpuu1av1qy/home-assistant_v2.db
+left out: entity id(s) under 1 entry key(s) this integration does not read (legacy_probe_entity)
+reading the recorder: SQLite database /tmp/tmpcm2mt838/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpx2dmdzrs/home-assistant_v2.db
+  ok   replay control:finite
+  ok   replay control:unit
+  ok   replay control:no_default
+  ok   replay control:no_default:setpoint_value_on_a_reading
+  ok   replay control:no_default:setpoint_at_an_unconfigured_default
+  ok   replay control:no_default:setpoint_keys_are_published_config
+  ok   replay control:agreement:attribute
+  ok   replay control:agreement:plan
+  ok   replay control:agreement:power
+  ok   replay control:agreement:climate
+  ok   replay control:not_frozen
+  ok   replay control:not_frozen:one_value_beside_zeros
+  ok   replay control:cycle_cost:cpu
+  ok   replay control:cycle_cost:memory
+  ok   replay control:cycle_cost:loose_budget
+  ok   replay control:cycle_cost:unrecorded
+  ok   replay control:cycle_cost:loop_thread
+  ok   replay control:cycle_cost:loop_normaliser
+  ok   replay control:cycle_cost:cpu_normaliser
+  ok   replay control:cycle_cost:class_rule
+  ok   replay control:cycle_cost:draws
+  ok   replay control:cycle_cost:band_edges
+  ok   replay control:cycle_cost:runner_class_fallback
+  ok   replay control:cycle_cost:lane_prints_notice
+  ok   replay control:cycle_cost:arms_skipped_never_everywhere
+  ok   replay control:cycle_cost:arms_skipped_committed_only
+  ok   replay control:away:covered_names_are_committed
+  ok   replay control:cycle_cost:short_doubling
+  ok   replay control:cycle_cost:unmetered_doubling
+  ok   replay control:away:view
+  ok   replay control:away:override
+  ok   replay control:away:floor
+  ok   replay control:away:replayed
+  ok   replay control:away:coverage_needs_a_command
+  ok   replay control:away:coverage_needs_a_commanded_cycle
+  ok   replay control:cycle_cost:coverage
+  ok   replay sanitised:owner-2026-10-30-away.json
+  ok   replay a10_location:owner-2026-10-30-away.json
+  ok   replay away_coverage:owner-2026-10-30-away.json
+  ok   replay sanitised:synthetic-dhw-only.json
+  ok   replay a10_location:synthetic-dhw-only.json
+  ok   replay away_coverage:synthetic-dhw-only.json
+  ok   replay control:sanitiser_refuses
+  ok   replay control:sanitise_clears
+  ok   replay leak_probe:capital_Latitude:export_drops
+  ok   replay leak_probe:capital_Latitude:check_refuses
+  ok   replay leak_probe:lat_lon_short:export_drops
+  ok   replay leak_probe:lat_lon_short:check_refuses
+  ok   replay leak_probe:coord_list:export_drops
+  ok   replay leak_probe:coord_list:check_refuses
+  ok   replay leak_probe:coord_string:export_drops
+  ok   replay leak_probe:coord_string:check_refuses
+  ok   replay leak_probe:basic_auth_url:export_drops
+  ok   replay leak_probe:basic_auth_url:check_refuses
+  ok   replay leak_probe:apikey_query:export_drops
+  ok   replay leak_probe:apikey_query:check_refuses
+  ok   replay leak_probe:pin_code:export_drops
+  ok   replay leak_probe:pin_code:check_refuses
+  ok   replay leak_probe:psk:export_drops
+  ok   replay leak_probe:psk:check_refuses
+  ok   replay leak_probe:email:export_drops
+  ok   replay leak_probe:email:check_refuses
+  ok   replay leak_probe:serial_mac:export_drops
+  ok   replay leak_probe:serial_mac:check_refuses
+  ok   replay leak_probe:entry_address:export_drops
+  ok   replay leak_probe:entry_address:check_refuses
+  ok   replay leak_probe:entry_url_in_allowed_key:export_drops
+  ok   replay leak_probe:entry_url_in_allowed_key:check_refuses
+  ok   replay leak_probe:state_address:export_drops
+  ok   replay leak_probe:state_address:check_refuses
+  ok   replay leak_probe:n1_options_dict:export_drops
+  ok   replay leak_probe:n1_options_dict:check_refuses
+  ok   replay leak_probe:n2_currency_name:export_drops
+  ok   replay leak_probe:n2_currency_name:check_refuses
+  ok   replay leak_probe:n3_options_address:export_drops
+  ok   replay leak_probe:n3_options_address:check_refuses
+  ok   replay leak_probe:n4_token_in_series:export_drops
+  ok   replay leak_probe:n4_token_in_series:check_refuses
+  ok   replay leak_probe:state_n10_host_path:export_drops
+  ok   replay leak_probe:state_n10_host_path:check_refuses
+  ok   replay leak_probe:n11_host_path_unit:export_drops
+  ok   replay leak_probe:n11_host_path_unit:check_refuses
+  ok   replay leak_probe:entry_n13_text_in_entity_key:export_drops
+  ok   replay leak_probe:entry_n13_text_in_entity_key:check_refuses
+  ok   replay leak_probe:n14_mac_no_colons:export_drops
+  ok   replay leak_probe:n14_mac_no_colons:check_refuses
+  ok   replay leak_probe:state_street_number:export_drops
+  ok   replay leak_probe:state_street_number:check_refuses
+  ok   replay leak_probe:entry_free_text:export_drops
+  ok   replay leak_probe:entry_free_text:check_refuses
+  ok   replay tibber_price:one_home_picked
+  ok   replay tibber_price:none_refused
+  ok   replay tibber_price:two_homes_refused
+  ok   replay tibber_price:flag_overrides_two
+  ok   replay tibber_price:flag_overrides_one
+  ok   replay tibber_price:entry_names_one
+  ok   replay tibber_price:disabled_skipped
+  ok   replay tibber_price:unrecorded_skipped
+  ok   replay tibber_price:unavailable_skipped
+  ok   replay tibber_price:entity_source_untouched
+  ok   replay recorder:db_url_whole_day_read
+  ok   replay recorder:db_url_read_only_session_selects_only
+  ok   replay recorder:db_url_secret_resolved
+  ok   replay recorder:db_url_credentials_never_printed
+  ok   replay recorder:db_url_connect_refusal_names_no_credential
+  ok   replay recorder:open_line_names_kind_and_db_path
+  ok   replay recorder:open_line_url_branch_carries_no_url_value
+  ok   replay recorder:open_recorder_line:default
+  ok   replay recorder:open_recorder_line:db_path
+  ok   replay recorder:open_recorder_line:mysql_url
+  ok   replay recorder:open_recorder_line:sqlite_url
+  ok   replay recorder:open_recorder_lines_carry_no_url_value
+  ok   replay recorder:unsupported_scheme_refusal_prints_none_of_the_url
+  ok   replay recorder:db_url_flag_read
+  ok   replay recorder:sqlite_db_url_named_by_kind_not_path
+  ok   replay recorder:db_url_driver_missing_refused_by_name
+  ok   replay recorder:stale_sqlite_near_empty_day_refused
+  ok   replay recorder:db_url_emptied_window_refused_naming_inputs_and_recorder
+  ok   replay recorder:sqlite_db_url_refusal_names_kind_not_path
+  ok   replay recorder:retired_key_left_out
+  ok   replay recorder:read_key_unrecorded_refused
+  ok   replay recorder:url_from_configuration:inline_quoted
+  ok   replay recorder:url_from_configuration:inline_plain
+  ok   replay recorder:url_from_configuration:secret
+  ok   replay recorder:url_from_configuration:include
+  ok   replay recorder:url_from_configuration:nested_key_ignored
+  ok   replay recorder:url_from_configuration:no_db_url
+  ok   replay recorder:url_from_configuration:no_file
+  ok   replay mask:entry_entities_renamed_to_their_role
+  ok   replay mask:published_ids_hashed
+  ok   replay mask:street_in_entity_ids_and_names_absent_from_export
+  ok   replay mask:check_refuses_unmapped_id_naming_class_not_token
+  ok   replay mask:check_refuses_address_text_naming_class_not_token
+  ok   replay mask:seal_refuses_unmapped_id_naming_class_not_token
+  ok   replay mask:check_refuses_a_document_with_its_times_nulled
+  ok   replay mask:null_committed_fixture_passes_the_check
+  ok   replay mask:id_as_any_dict_key_renamed_and_refused_unrenamed
+  ok   replay mask:id_only_as_a_list_item_refused
+  ok   replay mask:id_only_as_a_states_key_refused
+  ok   replay mask:entities_list_ids_take_their_numbered_role
+  ok   replay mask:a_payload_that_is_no_document_has_no_violation
+  ok   replay mask:id_under_key_off_the_allowlist_seals_masked
+  ok   replay mask:id_under_list_beside_a_non_id_seals_masked
+  ok   replay mask:id_in_list_under_a_kept_key_beside_a_non_id_seals_masked
+  ok   replay mask:id_in_list_under_an_entities_key_beside_a_non_id_seals_masked
+  ok   replay mask:build_export_passes_conf_to_document
+  ok   replay mask:debugger_replay_document_passes_conf_to_document
+  ok   replay mask:clean_export_writes_a_non_empty_replay
+  ok   replay mask:planted_unmasked_id_still_refused
+  ok   replay leak_copy:bool_under_a_credential_key_is_no_credential
+  ok   replay leak_copy:copy_inside_a_list_dropped
+  ok   replay leak_copy:string_copy_in_attribute_dropped
+  ok   replay leak_copy:number_copy_refused_naming_its_place_not_its_value
+  ok   replay leak_copy:null_number_inside_a_longer_one_sealed
+  ok   replay leak_copy:dropped_text_inside_timestamps_keeps_them
+  ok   replay leak_copy:credential_text_inside_timestamps_keeps_them
+  ok   replay leak_copy:state_words_under_a_credential_key_not_searched
+  ok   replay cut_day:every_cycle_instant_reads_as_the_whole_export
+  ok   replay cut_day:price_series_kept_to_the_export_end
+  ok   replay cut_day:no_published_entity_kept
+  ok   replay cut_day:away_command_from_the_paired_switch_restart_skipped
+  ok   replay cut_day:reload_is_every_published_entity_gone_and_no_input
+  ok   replay cut_day:null_restart_with_inputs_gone_is_no_reload
+  ok   replay cut_day:null_day_without_a_command_has_none
+  ok   replay cut_day:two_paired_switches_refused
+  ok   replay synthetic_reproduces
+  ok   the nightly slow job runs the replay lane as its own step
+  ok   the nightly slow job is the unique scripts, not a second full suite (#1930 (c))
+  ok   replay reach: the rule reads the lane's own COST_FILES
+  ok   replay reach: every cost file, the optimizer, the lane and a fixture run the timed lane; nothing beside them does
+  ok   replay reach: a lane source naming no COST_FILES runs the lane, never skips it
+  ok   the timed replay runs on a pull request whose diff reaches it, and on nothing else in tests.yml (nightly runs it in full)
+  ok   P10: on a replayed day no model kernel runs on the event loop or an executor thread; every one runs in the process worker
+  ok   P10: with the process route unusable the kernels land on the executor (the #511 trade, counted), never on the loop
+  ok   P10: an armed system identification sizes, gates and fits its night in the process worker, never on the loop
+  ok   P10: an away override's recovery estimate simulates the ramp in the process worker, never on the loop (D14-s1-01)
+  ok   P10: the space-heating learners replay the elapsed interval in the process worker, never on the loop
+
+-- The debugger harness: ingest, store seed, week generator
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected
+  ok   debug ingest: schema, stores, accuracy, bias, planted leak
+  ok   debug ingest: --corrupt accuracy is refused by the loader
+  ok   debug ingest: planted credential is the null control
+  ok   debug ingest: a download wrapped as HA writes it ingests like the bare bundle
+  ok   debug ingest: read_download keeps the wrapper the harnesses measure
+  ok   debug ingest: rows repeating the newest sample and covering half the store re-derive the bias
+  ok   debug ingest: a shared sample whose row disagrees with the store still fails bias-rederived
+  ok   debug ingest: rows sharing no sample with the store fail bias-rederived (not vacuous)
+  ok   debug replay: store keys remap onto FakeEntry's test_entry
+  ok   debug replay: seeded energy document is on the stub disk
+  ok   debug replay: a key outside DOMAINS is not seeded
+  ok   debug replay: trim_replay shortens the window and keeps states
+  ok   debug replay: trim_replay carries sparse export attributes forward
+  ok   debug generator: schema id is hpo-debug/1
+  ok   debug generator: extend_fixture(1) keeps the committed window
+  ok   debug generator: extend_fixture(2) doubles state rows and shifts end
+  ok   debug generator: --out default is empty so the CLI mkdtemps
+
+-- Round 9: the judge's batch re-runner
+  ok   judge_batch: a harness whose perturbation moves in the stated direction is reproduced and not void, measured under the gate lease
+  ok   judge_batch: the null control -- a harness whose perturbation does not move is void (judge.md step 2), and one that moves the wrong way is void too
+  ok   judge_batch: no perturbation command is left to the judge by hand, never passed; a number outside the header's tolerance is not reproduced
+  ok   judge_batch: every row carries the harness's load1 and thread_factor, one table row per finding, and the lease is released after the batch
+  ok   judge_batch: to_zero means reaching zero -- 3 -> 1 moves the wrong way and is void; a thread_factor over 1.05 is flagged for a re-take, 1.00 is not
+  ok   judge_batch: a judge_batch override that is not an object is ignored and flagged on its own row, and the batch goes on
+  ok   judge_batch: absolute and relative tolerances hold inside the bound and fail outside it (±0.5: 10.4 yes, 10.6 no; ±5 %: 209 yes, 211 no)
+  ok   judge_batch: --shard k/n for n = 2 and 3 splits the input into disjoint shards whose union is the input
+  ok   judge_batch: a perturbation that edits a tracked file is flagged on its row and put back, so the next finding reads the tree it would read alone, and the tree is clean after the batch
+  ok   judge_batch: an edit the command STAGED is restored from HEAD, not from the index it staged, and a new EMPTY file (and its new directory) is noticed and removed; the row says restored only when the re-snapshot agrees
+  ok   judge_batch: a harness that takes flock itself under the batch's label (gate_lock.py flock-wrap, run.sh's route onto stress.py) runs, and does not wait out the timeout
+  ok   EG-B2: no entity platform reads a coordinator private member or keeps its own merged copy of the entry's data and options
+  ok   EG-B2: the private-read scan names a planted reach of each spelling and none of their public twins (the scan's null control)
+  ok   EG-B2: the unique id and the pinned object id are assigned in the entity base's one rule, and in no platform file
+  ok   EG-B2: every coordinator view the surfaces read is a read-only property
+  ok   EG-B2: on a real coordinator each view is the very member it names, and effective_config is the merged entry the platforms used to copy
+  ok   EG-B6: no collaborator module reaches a coordinator private member; its inputs arrive as explicit parameters or a published view (#1739)
+  ok   EG-B6: the collaborator reach scan names a planted reach of each spelling and none of their published twins (the scan's null control)
+  ok   EG-B3: every merge source in the payload producers is resolved
+  ok   EG-B3: Payload declares exactly the keys the producers publish
+  ok   EG-B3: Insight and CompressorStarts declare the keys _insight_view writes
+  FAIL the Pages workflow deploys on a release tag, is gated on Pages being enabled, and stages the published set and never a markdown file  [probe on workflow: rc=1 enabled=[]; probe on 404: rc=1 enabled=[]; probe on legacy: rc=1 enabled=[]]
+  ok   and a staging that copies docs/ wholesale, or a guard that refuses nothing, is refused (null controls)
+  ok   pages.yml is not a gate file, and is classified
+  ok   and a deploy outside the github-pages environment, or a build job that inherits the deploy grant, is refused (null controls)
+  ok   and an `if:` calling any status function is refused, one planted spelling each (null controls)
+  ok   EG-B3b: every view the assembler merges returns a slice Payload inherits
+  ok   EG-B3b: _build_data_dict returns Payload and casts nothing
+  ok   EG-B3b: every payload key an entity reads is declared in Payload
+  ok   EG-B3b: DATA, the representative payload, carries only keys Payload declares
+  ok   EG-B3b: payload.py loads with no package, so its open_meteo import is type-checking only
+  ok   R10 N-no-expiry barrier: every 'entry covering now' lookup goes through _covering_index or is on the reasoned list with its exact count
+  ok   R10 N-log-flood barrier: every unlatched WARNING/ERROR is on the reasoned list with its exact count -- a persisting condition goes through log_held
+  ok   the record job's three modes are all found, so the wiring check below reads something
+  ok   every record-job invocation of --record, --stats and --sunset passes the same --window-cache file
+  ok   Nightly's enumerate step is bracketed by its own M0 pair, the after reading under always()
+  ok   the record job's push arm reads --record alone: --stats, --sunset and the filer wait on the window step's report
+  ok   the window step reports on the schedule, a dispatch and the stamp, never an ordinary push
+  ok   record_burst_replay counts demand as record + enumerate + rest, never the record job alone
+  ok   every InputReader key is an options-flow entity field, so the Health card has its label
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+
+3 of 2645 ENTITY CHECKS FAILED

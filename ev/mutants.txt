@@ -1,0 +1,81 @@
+RESULT MA merge_train.py: ['merge_train self-test: 492 checks, 2 failed'] 
+    FAIL defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+    FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+RESULT MA proof_watch.py: ['proof_watch self-test: 45 checks, 2 failed'] 
+    FAIL (g3) a deferral red while the code run runs is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abo
+    FAIL (g3) the deferral waits one poll, then merges once the code run's gate lands (got False, want True)
+RESULT MB merge_train.py: ['merge_train self-test: 492 checks, 0 failed'] 
+RESULT MB proof_watch.py: ['proof_watch self-test: 45 checks, 2 failed'] 
+    FAIL (g3) a deferral red while the code run runs is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abo
+    FAIL (g3) the deferral waits one poll, then merges once the code run's gate lands (got False, want True)
+RESULT MC merge_train.py: ['merge_train self-test: 492 checks, 2 failed'] 
+    FAIL defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+    FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+RESULT MC proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT MD merge_train.py: ['merge_train self-test: 492 checks, 2 failed'] 
+    FAIL defer-wait wait-ci: a red gate beside a green suite, every run concluded, waits one poll for gate-sweep's re-run and reads its green
+    FAIL defer-wait wait-ci bound: a sweep that never re-runs the red leaves it standing one poll later
+RESULT MD proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT ME ci-watch.sh: ['ci-watch self-test: 18 checks, 1 failed'] 
+    FAIL W13 an edit run's deferral red while its code run runs (classify WAIT, gate not red) is no RED alert
+RESULT R1 merge_train.py: ['merge_train self-test: 492 checks, 33 failed'] 
+    FAIL A5 (i) an older red gate suite beside a newer green one reads RED, never green (the worst suite stands)
+    FAIL A5 (ii) an older green gate suite beside a newer red one reads RED, never green (the worst suite stands)
+    FAIL A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral gate, which judged nothing (null: a skipped non-gate co
+    FAIL defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context stays red whatever is busy)
+    FAIL defer-wait #3248: the edit gate's red while code run 42237558473 runs is waited on, then it MERGES (the failing-test-first scene)
+    FAIL defer-wait null: a red gate with no unfinished ci.yml run at the head still SKIPs, on its first poll
+    FAIL defer-wait null: a genuine code-run failure still SKIPs once that run finishes (no green suite: no settle)
+    FAIL defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP
+    FAIL defer-wait: an unreadable runs listing reads no run busy -- the red stands, logged, never a merge
+    FAIL defer-wait CLI null: a red gate with no unfinished ci.yml run still reads RED (exit 1)
+    FAIL defer-wait CLI: an unreadable runs listing leaves the red standing (exit 1), logged
+    FAIL defer-wait CLI: one read takes no settle -- a red beside a green suite with nothing busy is RED (the caller's next read sees the sweep)
+    FAIL P345 row 1: #3045's shape (gate + budget-raise-gate red, one raise in the diff, the owner's approval on an older head) is APPROVAL-OWED, rc 4, naming the r
+    FAIL P345 row 2 (null): the same plus `tests / fast (3.14)` red stays RED, rc 1
+    FAIL P345 row 3 (null): budget-raise-gate red with no raise in the diff -- no budget file, or one that only gains rows (#2401) -- stays RED, rc 1
+    FAIL P345 row 4 (null): a raise_hold Stop (an unlistable tree) is not approval owed: RED, rc 1
+    FAIL P345 row 5: without --pr the same head is RED, rc 1, exactly as old callers read it
+    FAIL P345 (null): a raise the owner's mandated approval already holds at the head owes nothing: RED, rc 1
+    FAIL P345 (null): a red gate whose units do not include budget-raise-gate stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for a SKIPPED unit stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for an ABSENT unit (no check run) stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for a PENDING unit under a concluded gate stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for a reason naming no unit (the deferral bound) stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for a reason naming no unit (the prelude cross-check) stays RED, rc 1
+    FAIL #3073: a raise whose gate is also red for the raise unit itself SKIPPED or PENDING, not failed (no approval judged) stays RED, rc 1
+    FAIL #3073: a gate log that cannot be read, or whose gate.py step never ran, stays RED, rc 1
+    FAIL #3073: every red gate suite is read -- two raise-only suites (#3045 carried four) are owed, rc 4; one suite red for another unit is RED, rc 1
+    FAIL #3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1
+    FAIL V142 --overlap: past the reset the stamp's run is re-run once, failed jobs only, and logged INFRA-RERUN with its run id and attempt
+    FAIL V142 --overlap: before the reset nothing is re-run and INFRA-RED names the due time
+    FAIL V142 blocking: the re-run that clears main lets the wait pass (no stop), one re-run
+    FAIL carry 2: infra_rerun reads its job logs through job_log, so a gh that needs --allow-escape-sequences still re-runs the stamp's run once, logged INFRA-RERUN
+    FAIL carry 2: infra_rerun reads its job logs through job_log, so a gh that lacks --allow-escape-sequences still re-runs the stamp's run once, logged INFRA-RERUN
+RESULT R1 proof_watch.py: ['proof_watch self-test: 44 checks, 3 failed'] 
+    FAIL (g) the red context is named (got False, want True)
+    FAIL (g2) an older red gate suite: the red gate is named (got False, want True)
+    FAIL (g2) a RATE-LIMITED gate suite: the red gate is named (got False, want True)
+RESULT R2 merge_train.py: ['merge_train self-test: 492 checks, 2 failed'] 
+    FAIL defer-wait: classify reads a red gate as pending while busy, red without (null: a red non-gate context stays red whatever is busy)
+    FAIL defer-wait CLI #3248: `classify` reads the deferring edit gate as WAIT (exit 3) while code run 42237558473 runs, never RED
+RESULT R2 proof_watch.py: ['proof_watch self-test: 45 checks, 2 failed'] 
+    FAIL (g3) a deferral red while the code run runs is waited on, not REQUIRED RED (got 'aborted: REQUIRED RED at aaaaaaaaaaaa: gate; nothing merged', want 'no abo
+    FAIL (g3) the deferral waits one poll, then merges once the code run's gate lands (got False, want True)
+RESULT R3 merge_train.py: ['merge_train self-test: 492 checks, 1 failed'] 
+    FAIL defer-wait bound: a sweep that never re-runs the red leaves it standing one poll later, a SKIP
+RESULT R3 proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT R4 merge_train.py: ['merge_train self-test: 492 checks, 1 failed'] 
+    FAIL defer-wait table: a run at its gate with every unit done is judging, not busy (gate_busy == gate.py busy == [])
+RESULT R4 proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT R5 merge_train.py: ['merge_train self-test: 492 checks, 0 failed'] 
+RESULT R5 proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT R6 ci-watch.sh: ['ci-watch self-test: 18 checks, 0 failed'] 
+RESULT R7 merge_train.py: ['merge_train self-test: 492 checks, 0 failed'] 
+RESULT R7 proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT NULL merge_train.py: ['merge_train self-test: 492 checks, 0 failed'] 
+RESULT NULL proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT NULLPW merge_train.py: ['merge_train self-test: 492 checks, 0 failed'] 
+RESULT NULLPW proof_watch.py: ['proof_watch self-test: 44 checks, 0 failed'] 
+RESULT NULLCW ci-watch.sh: ['ci-watch self-test: 18 checks, 0 failed'] 
+clean
