@@ -18179,7 +18179,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Re-routed from R10-COP-GATE-D carry 3 by the s12 carry-routing seat (2026-11-07): a production defect still in main, which the pull request that took part D deferred to a part E that was never created. Orchestrator measurement, to be re-taken: the all-space dwell reads right and a switch-back dwell over-advances the unsensed slab by about 2.25 kW; re-measure at this group's merge base with `dev/audit/harnesses/r10_cop_gate.py` or a new harness beside it, the all-space dwell as the null control, and carry no count. Original text: From R10-COP-GATE part 6 (handoff f40be9c9, step-8 enumeration): `_propagated_slab` (`coordinator.py`) advances the unsensed slab by `draw_range.space_draw_kw(..., coord._commanded_split(), space_served=signals.space_heat or not signals.mode_observed)`. That is the running draw apportioned by the plan's split and gated on the live mode only, so a switch-back interval advances the slab by a hot-water run's kW as space heat. Unmeasured. MEASURE FIRST on a switch-back dwell, with the all-space dwell as the null. If confirmed, the rule is a design choice: the slab's own rule books a hot-water-only mode as a confident 0 kW, so prorating by the dwell's space hours competes with falling back to the plan's trajectory. Route it through `heat_energy.meter_of(coord).attribution(...)` (`ran_hot_water` for the skip). Build it: measure first, then pick the rule (prorate by the dwell's space hours, or fall back to the plan's trajectory), test it failing first on the switch-back dwell with the all-space dwell unchanged byte-for-byte, and give the choice and its number in the body. Carry: R10-COP-GATE-E"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
