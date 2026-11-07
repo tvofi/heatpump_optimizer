@@ -1,56 +1,58 @@
 # Review packet #3255
-head: a8d19cf1950250e378b3cf0dfd4f8c5c29e01255
-base: 9cbd7dd0d7a66163b5b593dfe55f1d8b220785de
+head: 2ad28ecb50906877b34a378cacd8085e6afca029
+base: 80016a71f567d936450d8708abcbb79d9e8071d7
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: red
-arch-score / arch-score id=128232647084 success
-budget-raise-gate / budget-raise-gate id=128232700869 success
-cancel-superseded id=128232646854 success
-codeql id=128232701174 skipped
-codeql / Analyze (actions) id=128230601247 success
-codeql / Analyze (javascript-typescript) id=128230551909 success
-codeql / Analyze (python) id=128230590719 success
-gate id=128232646122 success
-governance id=128232647839 skipped
-governance / delivery-status id=128230551171 success
-governance / delivery-status-publish id=128230552176 skipped
-governance / env-matrix id=128230551521 success
-governance / instrument-self-tests id=128230551793 cancelled
-governance / policy-docs id=128230605465 success
-governance / record id=128230599044 skipped
-governance / wave-script id=128230588153 success
-hassfest id=128232647102 skipped
-hassfest / hassfest id=128230588034 success
-kernel-points id=128232647297 skipped
-pr-contract id=128232647674 skipped
-pr-contract / pr-contract id=128231701668 success
-prelude id=128232646414 success
-refresh id=128232694320 success
-tests id=128232687283 skipped
-tests / arch-instrument id=128230553339 success
-tests / briefs id=128230601787 success
-tests / browser id=128230553185 success
-tests / ci-ratchet id=128230554824 skipped
-tests / claims-autofix id=128230554618 skipped
-tests / closure-scope id=128230551492 success
-tests / closures id=128230552857 success
-tests / closures-autofix id=128230553974 skipped
-tests / coverage id=128230552951 success
-tests / coverage-ratchet id=128230555189 success
-tests / fast (3.14) id=128230552920 success
-tests / graders-head-copy id=128230553513 success
-tests / lane-proofs id=128230553749 success
-tests / mutation id=128230601173 success
-tests / mutation-autofix id=128230554032 skipped
-tests / mutation-pins id=128230553117 skipped
-tests / nightly-ha id=128230553393 skipped
-tests / nightly-status id=128230551759 success
-tests / replay id=128230552961 skipped
-tests / typing id=128230552628 success
-validate id=128232647108 skipped
-validate / validate-hacs id=128230585464 success
+## Gate digest: green
+CodeQL id=128248158297 success
+arch-score / arch-score id=128257743231 success
+arm id=128247922900 skipped
+budget-raise-gate / budget-raise-gate id=128257743075 success
+cancel-superseded id=128257741570 success
+codeql id=128257742171 skipped
+codeql / Analyze (actions) id=128248097601 success
+codeql / Analyze (javascript-typescript) id=128248097531 success
+codeql / Analyze (python) id=128248097615 success
+gate id=128257742496 success
+governance id=128257743345 skipped
+governance / delivery-status id=128248097812 success
+governance / delivery-status-publish id=128248099577 skipped
+governance / env-matrix id=128248097702 success
+governance / instrument-self-tests id=128248097717 success
+governance / policy-docs id=128248097679 success
+governance / record id=128248099635 skipped
+governance / wave-script id=128248097796 success
+hassfest id=128257787309 skipped
+hassfest / hassfest id=128248097484 success
+kernel-points id=128257742377 skipped
+pr-contract id=128257743832 skipped
+pr-contract / pr-contract id=128257095312 success
+prelude id=128257790557 success
+refresh id=128257773063 success
+tests id=128257742491 skipped
+tests / arch-instrument id=128248248699 success
+tests / briefs id=128248097694 success
+tests / browser id=128248248718 success
+tests / ci-ratchet id=128254536843 skipped
+tests / claims-autofix id=128250989602 skipped
+tests / closure-scope id=128248097571 success
+tests / closures id=128248248833 success
+tests / closures-autofix id=128254536564 skipped
+tests / coverage id=128248248810 success
+tests / coverage-ratchet id=128253328392 success
+tests / fast (3.14) id=128248248719 success
+tests / graders-head-copy id=128253328361 success
+tests / lane-proofs id=128253328459 success
+tests / mutation id=128248097664 success
+tests / mutation-autofix id=128248334029 skipped
+tests / mutation-pins id=128248333013 skipped
+tests / nightly-ha id=128248250611 skipped
+tests / nightly-status id=128248097706 success
+tests / replay id=128248250385 skipped
+tests / typing id=128248248695 success
+validate id=128257742873 skipped
+validate / validate-hacs id=128248097419 success
 
 ## Refusals
 none
@@ -59,21 +61,26 @@ none
 none
 
 ## carry_audit at the head
-NOTE body item 5a56edc5: dismissed:drafted for the owner, nothing in this tree consumes it until approved.
+NOTE body item 8b154e3b: dismissed:drafted for the owner, nothing in this tree consumes it until approved.
 NOTE body item 9871b246: dismissed:the cost number that would reverse the refusal is not produced by any group.
 NOTE body item 16a28f20: dismissed:one instance does not make a class.
-NOTE body item e64e5c55: dismissed:paid in this change.
-CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+NOTE body item 6244c822: #3156
+NOTE body item a2d90296: dismissed:paid in this change.
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
 
 ## figure_lint at the head
-ok         node tools/policy/policy_lint.mjs --stats --since v7.0.4
+ok         node tools/policy/policy_lint.mjs --budgets
              `tools/policy/policy_lint.mjs` is in the tree at this head
-  ok         python3 -I tools/audit/seat/r10_ledger_mutants.py --self-test
-             `tools/audit/seat/r10_ledger_mutants.py` is in the tree at this head
-  ok         node tools/policy/policy_lint.mjs --budgets
+  ok         node tools/policy/policy_lint.mjs --self-test
              `tools/policy/policy_lint.mjs` is in the tree at this head
+  ok         node tools/policy/rules_sync.mjs --check
+             `tools/policy/rules_sync.mjs` is in the tree at this head
+  ok         python3 tests/structure.py
+             `tests/structure.py` is in the tree at this head
+  ok         python3 tests/mutation_table.py --scope changed --base origin/main --max 10 --jobs 3
+             `tests/mutation_table.py` is in the tree at this head
 
-FIGURES: 3 resolved, 0 not verified, 0 refused
+FIGURES: 5 resolved, 0 not verified, 0 refused
 
 ## Finder's harness: none named
 ### at the base
@@ -86,7 +93,7 @@ none
 
 ## Three-dot diff
 diff --git a/.claude/rules/ci-autofix.md b/.claude/rules/ci-autofix.md
-index 0a7063317..efb4b6f00 100644
+index 0a7063317..6a5c8c6ac 100644
 --- a/.claude/rules/ci-autofix.md
 +++ b/.claude/rules/ci-autofix.md
 @@ -65,9 +65,6 @@ every unrelated `fast` failure): its summary line is its only signal.
@@ -105,13 +112,13 @@ index 0a7063317..efb4b6f00 100644
  
 -When `mutation-autofix` goes red, run `--pin-killed` yourself. A `ci: pin killed mutants`
 -stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
-+When `mutation-autofix` goes red, run `--pin-killed` yourself. Until `mutation-pins` concludes the body says `unmeasured`;
++When `mutation-autofix` goes red, run `--pin-killed` yourself. If `mutation-pins` has not concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and the body says `unmeasured`;
 +`pinned` only if `--pin-killed` ran on this head. A pin stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
  golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
  not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
  
 diff --git a/.cursor/rules/ci-autofix.mdc b/.cursor/rules/ci-autofix.mdc
-index 5c3c2d1f5..3c4ed0ec2 100644
+index 5c3c2d1f5..5191b1a3f 100644
 --- a/.cursor/rules/ci-autofix.mdc
 +++ b/.cursor/rules/ci-autofix.mdc
 @@ -60,9 +60,6 @@ every unrelated `fast` failure): its summary line is its only signal.
@@ -130,7 +137,7 @@ index 5c3c2d1f5..3c4ed0ec2 100644
  
 -When `mutation-autofix` goes red, run `--pin-killed` yourself. A `ci: pin killed mutants`
 -stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
-+When `mutation-autofix` goes red, run `--pin-killed` yourself. Until `mutation-pins` concludes the body says `unmeasured`;
++When `mutation-autofix` goes red, run `--pin-killed` yourself. If `mutation-pins` has not concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and the body says `unmeasured`;
 +`pinned` only if `--pin-killed` ran on this head. A pin stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
  golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
  not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
@@ -279,10 +286,10 @@ index 000000000..2b16eb2a8
 +  round is not established.
 diff --git a/dev/audit/rca/R10-RCA-FRICTION-SWEEP.md b/dev/audit/rca/R10-RCA-FRICTION-SWEEP.md
 new file mode 100644
-index 000000000..ed2cc04f8
+index 000000000..777a09ddc
 --- /dev/null
 +++ b/dev/audit/rca/R10-RCA-FRICTION-SWEEP.md
-@@ -0,0 +1,177 @@
+@@ -0,0 +1,186 @@
 +# R10-RCA-FRICTION-SWEEP: sufficiency of the existing friction records, the landed countermeasures, and three carried measurements
 +
 +The ledger record for the group that answers the recurring-friction keys
@@ -416,14 +423,17 @@ index 000000000..ed2cc04f8
 +adds no filing**, and it is the case the map exists for the day a window splits
 +the obligation across words at 1 and 2 each.
 +
-+**(3) #2429, `ci-autofix.md`**: the wait is bounded (until `mutation-pins`
-+concludes the body says `unmeasured`), and a body says `pinned` only when
-+`--pin-killed` ran on this head. The file's cap
-+(`dev/governance/config/policy_budgets.json`) had 3 tokens of headroom. The
-+rule keeps "(kept until M-3)" (`ci.yml`, `tests.yml`, `merge-main.yml` and
-+`HANDOVER.md` still say "until M-3") and "the reviewer re-checks it". The two
-+new sentences were shortened, and the cap was still exceeded, so the paragraph
-+about `linecache` artefacts in the failed-recording bullet is deleted: a policy
++**(3) #2429, `ci-autofix.md`**: the approved bound, verbatim as
++`R10-RCA-FRICTION-RESIDUE.md` section 7 drafted it: "If `mutation-pins` has not
++concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and
++the body says `unmeasured`", plus "`pinned` only if `--pin-killed` ran on this
++head". The wait ends at `tests / mutation`'s conclusion, and the pin is owed by
++the handoff. The file's cap (`dev/governance/config/policy_budgets.json`) had 3
++tokens of headroom. The rule keeps "(kept until M-3)" (`ci.yml`, `tests.yml`,
++`merge-main.yml` and `HANDOVER.md` still say "until M-3") and "the reviewer
++re-checks it". The paragraph about `linecache` artefacts in the failed-recording
++bullet is deleted to pay for the two approved sentences, which then fill the cap
++exactly (`node tools/policy/policy_lint.mjs --budgets` prints that row): a policy
 +change the 2026-10-29 approval does not cover, named under `## Approval` in the
 +body. Its action half ("fix it first") stays in the bullet above; the warning
 +that an UNDER-SCOPED beside a failed recording may be an artefact is gone.
@@ -437,14 +447,20 @@ index 000000000..ed2cc04f8
 +fold to 3. (ii) The wiring: `statsFindings` driven over synthetic merged PRs
 +yields exactly one `verdict family` would-open for `other (untaught)` for three
 +untaught words, exactly one for `mutation` for `mutation-unpinned`,
-+`unpinned-site` and `mutation-survivors`, and none for a taught-only window.
++`unpinned-site` and `mutation-survivors`, none for a taught-only window, and
++no `friction family` would-open for three untaught friction rule ids on three
++PRs (the derived family is the verdict table's alone).
 +(iii) `cmdStats` builds its table from the shared `derivedInput`. Mutants, each
 +run with `node tools/policy/policy_lint.mjs` and restored byte for byte, the
 +unmutated tree as the null control (rc 0): `statsFindings` passing `null`
 +(killed), `cmdStats` passing no derived list (killed), `mutation-unpinned`
 +dropped from the family (killed), all three spellings dropped (killed),
 +`unpinned-site` and `mutation-survivors` dropped (killed), passing-verdict
-+exclusion removed and `root-cause-unrecorded` removed (killed by (i)).
++exclusion removed and `root-cause-unrecorded` removed (killed by (i)), the
++derived family applied to the friction table too (killed by the friction-id row
++of (ii)). In `tools/pr/ci_predict.py --self-test`, `mutant_preds` selecting by
++`quoted & changed` instead of `(quoted | {rel}) & changed` (a diff touching only
++a driver would not run it) is killed by the driver-only row.
 +
 +## 4b. #3156 (`ci-red`): not disposed by this group
 +
@@ -848,7 +864,7 @@ index 000000000..b5bd63c8b
 +  the false-answer defect `defect-root-cause.md` enforcement exists to prevent.
 +- #3221 and #3206 name only the job; their cheaper detector is not stated.
 diff --git a/dev/governance/rules/ci-autofix.md b/dev/governance/rules/ci-autofix.md
-index 0a7063317..efb4b6f00 100644
+index 0a7063317..6a5c8c6ac 100644
 --- a/dev/governance/rules/ci-autofix.md
 +++ b/dev/governance/rules/ci-autofix.md
 @@ -65,9 +65,6 @@ every unrelated `fast` failure): its summary line is its only signal.
@@ -867,7 +883,7 @@ index 0a7063317..efb4b6f00 100644
  
 -When `mutation-autofix` goes red, run `--pin-killed` yourself. A `ci: pin killed mutants`
 -stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
-+When `mutation-autofix` goes red, run `--pin-killed` yourself. Until `mutation-pins` concludes the body says `unmeasured`;
++When `mutation-autofix` goes red, run `--pin-killed` yourself. If `mutation-pins` has not concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and the body says `unmeasured`;
 +`pinned` only if `--pin-killed` ran on this head. A pin stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
  golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
  not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
@@ -880,7 +896,7 @@ index 000000000..2208c1f8c
 @@ -0,0 +1 @@
 +- [#3255](https://github.com/tvofi/heatpump_optimizer/pull/3255) — **open**, R10-FRICTION-RECORDS: friction records (R10-FRICTION-RECORDS)
 diff --git a/tools/policy/policy_lint.mjs b/tools/policy/policy_lint.mjs
-index 97d0124ea..2439f84bb 100644
+index 97d0124ea..63a5d845c 100644
 --- a/tools/policy/policy_lint.mjs
 +++ b/tools/policy/policy_lint.mjs
 @@ -2813,11 +2813,29 @@ const FRICTION_THRESHOLD = 3
@@ -945,7 +961,7 @@ index 97d0124ea..2439f84bb 100644
        const n = fam.prs.size
        if (n < FRICTION_THRESHOLD) continue
        out.push({
-@@ -6150,6 +6178,84 @@ function assertAcceptance(derived) {
+@@ -6150,6 +6178,95 @@ function assertAcceptance(derived) {
        }
      }
      pins += 1
@@ -1011,10 +1027,21 @@ index 97d0124ea..2439f84bb 100644
 +      const mutWords = ['mutation-unpinned', 'unpinned-site', 'mutation-survivors']
 +      const mut = opens(mutWords, mutWords)
 +      const taughtOnly = opens(['harness', 'harness', 'other'])
++      // A friction-id row: three distinct untaught friction rule ids on three
++      // PRs. The derived family is the VERDICT table's; applied to friction
++      // ids it would file a spurious `other (untaught)` friction family.
++      const frictionWin = { prs: [], fetched: new Map() }
++      ;['zz-alpha', 'zz-beta', 'zz-gamma'].forEach((id, i) => {
++        const pr = String(7200 + i)
++        frictionWin.prs.push({ pr, subject: `x (#${pr})` })
++        frictionWin.fetched.set(pr, { body: `## Friction\n\n- \`${id}\`: \`cost\`: x.\n`, comments: [] })
++      })
++      const frictionFam = statsFindings({ ...frictionWin, fetchError: null, classes: ['merge', 'blocked'], blocks: ['harness', 'other', 'class-open'], passing: 'merge' })
++        .filter((f) => /would open .*\(family\)" -- friction family/.test(f.message))
 +      if (
-+        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length
++        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length || frictionFam.length
 +      ) {
-+        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none)`)
++        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none; 3 untaught friction ids -> ${frictionFam.length} friction-family would-open(s), want none)`)
 +        rc = 1
 +      }
 +    }
@@ -1030,7 +1057,7 @@ index 97d0124ea..2439f84bb 100644
      // A family that contains the passing verdict would open rework as
      // friction -- the one class the histogram withholds from its own row. The
      // declared set must never do it, and the pin is here so the next declared
-@@ -7467,7 +7573,7 @@ function cmdStats(since, cacheFile) {
+@@ -7467,7 +7584,7 @@ function cmdStats(since, cacheFile) {
      // over BOTH maps (FRICTION_FAMILIES: mutation's siblings are verdict
      // classes, environment's are friction rule ids). A window with no family
      // member prints none, and stays byte-identical to the pre-fold counter.
@@ -1040,7 +1067,7 @@ index 97d0124ea..2439f84bb 100644
        console.log(`\n${label} (PRs / entries):`)
        const rows = [...hist.entries()].sort((a, b) => b[1].prs.size - a[1].prs.size || b[1].entries - a[1].entries)
 diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
-index 450810418..22bc0262b 100644
+index 450810418..8ad7b7965 100644
 --- a/tools/pr/ci_predict.py
 +++ b/tools/pr/ci_predict.py
 @@ -499,6 +499,42 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
@@ -1103,7 +1130,7 @@ index 450810418..22bc0262b 100644
          ("agreement", lambda: agreement_preds(root, base_ref)),
          ("graders", lambda: grader_preds(root, base_ref)),
          ("no-recording", lambda: no_recording(root, base, changed, closure)),
-@@ -1166,6 +1203,39 @@ def wiring_self_test(root: Path) -> int:
+@@ -1166,6 +1203,41 @@ def wiring_self_test(root: Path) -> int:
      return bad
  
  
@@ -1129,6 +1156,8 @@ index 450810418..22bc0262b 100644
 +             "x = 1\n", {"tools/audit/seat/owner.py"}, 1),
 +            ("the same target with its anchor intact is predicted green",
 +             "ANCHOR\n", {"tools/audit/seat/owner.py"}, 0),
++            ("a diff touching only the driver runs it: the driver is its own target",
++             "x = 1\n", {"tools/audit/seat/r10_x_mutants.py"}, 1),
 +            ("null control: a diff touching no planted target runs no driver (the anchor is gone, no red)",
 +             "x = 1\n", {"tools/audit/seat/other.py"}, 0),
 +        ]
@@ -1143,7 +1172,7 @@ index 450810418..22bc0262b 100644
  def null_control_self_test(root: Path) -> int:
      """`null_control_preds` over a comment-free pool, a commented one and a mix."""
      sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
-@@ -1232,6 +1302,7 @@ def self_test() -> int:
+@@ -1232,6 +1304,7 @@ def self_test() -> int:
      bad += self_test_reads_self_test(root)
      bad += rekey_self_test()
      bad += wiring_self_test(root)

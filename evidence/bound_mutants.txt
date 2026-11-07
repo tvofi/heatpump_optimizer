@@ -1,0 +1,30 @@
+== N0 null control (clean head)
+RULES-SYNC ok: every generated rule is the generated form of its source
+rules_sync rc=0
+.claude/rules/ci-autofix.md                       88   96     1469  1469 
+budgets rc=0
+policy_lint rc=0
+== B1 terminating condition cut, canonical only
+RULES-SYNC: 2 file(s) out of date. Run without --check.
+rules_sync rc=1
+.claude/rules/ci-autofix.md                       88   96     1469  1469 
+budgets rc=0
+policy_lint rc=0
+== B2 terminating condition cut, copies regenerated
+RULES-SYNC ok: every generated rule is the generated form of its source
+rules_sync rc=0
+.claude/rules/ci-autofix.md                       88   96     1460  1469 
+budgets rc=0
+policy_lint rc=0
+== B3 obligation cut, regenerated
+RULES-SYNC ok: every generated rule is the generated form of its source
+rules_sync rc=0
+.claude/rules/ci-autofix.md                       88   96     1461  1469 
+budgets rc=0
+policy_lint rc=0
+== B4 approved 'the next' wording, regenerated
+RULES-SYNC ok: every generated rule is the generated form of its source
+rules_sync rc=0
+.claude/rules/ci-autofix.md                       88   96     1470  1469 
+budgets rc=0
+policy_lint rc=1

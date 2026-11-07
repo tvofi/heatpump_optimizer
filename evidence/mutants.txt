@@ -1,0 +1,9 @@
+3205:    for (const fam of statsFamilies(hist, kind === 'verdict family' ? derivedInput(blocks, passing) : null)) {
+== M1 derived family on friction ids
+FIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ["other (untaught)"], want one `other (untaught)`; mutation-unpinned + unpinned-site + mutation-survivors -> ["mutation"], want one `mutation`; a taught-only window -> [], want none; 3 untaught friction ids -> 1 friction-family would-open(s), want none)
+selftest rc=1
+527:        if not ((quoted | {rel}) & changed):
+== M2 ci_predict quoted&changed
+  FAIL a diff touching only the driver runs it: the driver is its own target
+ci_predict self-test: 1 failed
+rc=1
