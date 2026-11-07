@@ -19,6 +19,11 @@ name: Nightly
 # REQUIRED_LANES, which tests/entities.py derives from the `if:`s below. After
 # a red, verify with `gh workflow run nightly.yml --ref main`.
 
+# A lanes=beat dispatch (the stamp's record flush) runs no REQUIRED_LANES job,
+# so its title marks it and nightly_status.BEAT_TITLE drops it from the runs
+# it grades; every other run keeps the title `Nightly`.
+run-name: ${{ inputs.lanes == 'beat' && 'Nightly record beat' || 'Nightly' }}
+
 on:
   push:
     branches:
