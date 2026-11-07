@@ -24,7 +24,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-CIPREDICT-RESTORING (stage queued): no branch pushed yet, so nothing to fetch
 - R10-FLY-STANDING-CONTRACTS (stage carries-open, branch `handoff/r10-fly-standing-contracts`): `git fetch origin handoff/r10-fly-standing-contracts && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-FLY-RELAY-DELIVERED-GUARD (stage absorbed, branch `handoff/r10-fly-relay-delivered-guard`): `git fetch origin handoff/r10-fly-relay-delivered-guard && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-FRICTION-RECORDS (stage in-progress, branch `handoff/r10-friction-records`): `git fetch origin handoff/r10-friction-records && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-FRICTION-RECORDS (stage carries-open, branch `handoff/r10-friction-records`): `git fetch origin handoff/r10-friction-records && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-COP-GATE-D (stage carries-open, branch `handoff/r10-cop-gate-d`): `git fetch origin handoff/r10-cop-gate-d && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-PARTLOAD-PRICING (stage carries-open, branch `handoff/r10-partload-pricing`): `git fetch origin handoff/r10-partload-pricing && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-HANDOFF-ARM (stage absorbed, branch `handoff/r10-relay-handoff-arm`): `git fetch origin handoff/r10-relay-handoff-arm && git worktree add --detach $SEAT/wt FETCH_HEAD`
