@@ -637,6 +637,39 @@ def selftest_model() -> int:
            g0["start"] == g0["finish"] == iso(start, 0) and g0["duration_minutes"] == 0
            and "record step" in g0["start_reason"], str(g0))
 
+    # 2b. a carry `roster_edit.py mark-carry` discharged is not open work
+    # (carry 15): both carry counts read `roster_lib.pending_carries`.
+    def marked(i):
+        return f"c{i} [implemented: {i:040x}]"
+
+    owed = (0, 1, 5, 6, 8, 9, 42, 43)
+    body = [f"c{i}" if i in owed else marked(i) for i in range(44)]
+    m11 = dict(M, carries_per_part=11.0, carry_part_hours=19.8)
+    h, why = group_hours(grp("BC", "M", stage="carries-open", carry=body), m11, False, "fx")
+    expect("R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four",
+           abs(h - 19.8) < 1e-9 and "36 marked carries left out" in why, f"{h} {why}")
+    two = ["c"] * 6 + [marked(i) for i in range(4)]
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=two), M, False, "fx")
+    expect("carries filling two parts, four marked and left out, plan one part (20 h)",
+           h == 20.0 and "4 marked carries left out" in why, f"{h} {why}")
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 10), M, False, "fx")
+    expect("the same carries with none marked plan two parts as before (null control)",
+           h == 40.0 and "left out" not in why, f"{h} {why}")
+    h1 = ["c"] * 8 + [marked(8)] * 3 + ["c"] * 3
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, False, "fx")
+    expect("a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part",
+           h == 20.0 and "3 appended since" in why, f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] * 2 + [marked(0)] * 3), M, False, "fx")
+    expect("marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h",
+           h == 18.0 and "absorbed" not in why, f"{h} {why}")
+    held = {"groups": [grp("H", "L", stage="carries-open", carry=["old"] * 5 + ["c"])]}
+    pl = build_plan(held, M, dict(DEFAULT_CAPS), dt.datetime(2026, 1, 5), "v1.0.0",
+                    round_n=2, legacy={"H": frozenset({"old"})})
+    gh = pl["groups"]["H"]
+    expect("a legacy carry (held while closed at the cut-over) is not open work: one part",
+           gh["duration_minutes"] == 1200 and "5 marked carries left out" in gh["duration_basis"],
+           str(gh))
+
     # 3. started work keeps its place: in flight from now, past the slot cap.
     many = {"groups": [grp(f"L{i}", stage="in-progress") for i in range(4)]
             + [grp("NEW"), grp("DEP", after=["NEW"], stage="in-progress")]}
