@@ -1,0 +1,15 @@
+offline_spy: tools/audit/seat/hooks_setup.py rc=0 network=0 remote_git=0 git=114 subprocess=31 backstop=none offline | hooks_setup self-test: 19 checks, 0 failed
+offline_spy: 1 files, 0 refused
+rc=0
+selftest_wiring: 119 self-testing, 119 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 4b5d771bdf8f
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 670 line(s) added since 4b5d771bdf8f judged, 0 refused
+  ok   methods_over_200 8 <= 8
+  ok   name_kept_members 38 <= 38
+  ok   seam_cut_total 423 <= 423
+
+STRUCTURE RATCHET PASSED
+  File "/tmp/tmp.bvhMVl4AyY/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
