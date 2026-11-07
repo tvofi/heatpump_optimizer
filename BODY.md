@@ -22,12 +22,12 @@ Unmodified tree: cap 45 (`git show origin/main:.github/workflows/codeql.yml | gr
 
 ## Red checks
 
-`prepr.sh` rc=1 with one REFUSE: "closures: failed while being recorded: tests/entities.py (exit 1)". Cause: those 3 environment failures in this container, identical on unmodified origin/main (null control above). Every other step ok or skip. Not repaired in this seat; CI is the judge. No non-required reds known.
+`prepr.sh` rc=1 with one REFUSE: "closures: failed while being recorded: tests/entities.py (exit 1)". Cause: those 3 environment failures in this container, identical on unmodified origin/main (null control above). Every other step ok or skip. Not repaired in this seat; CI is the judge. The earlier handoff refs held a non-fast-forwardable attempt, so this head merges them `-s ours` (tree unchanged); carries 6e003ed3, 93aad749 and e017bcd8 are dispositioned by dropping the wrapping and not dispatching ci.yml. No non-required reds known.
 
 ## Forward-carry
 
-Carry: R10-HOTFIX-CODEQL-HEADROOM (items 6e003ed3, 93aad749, e017bcd8) are dispositioned: 6e003ed3 by dropping the wrapping, the other two (dispatch with empty inputs for a CodeQL figure) by not dispatching at all here. Carry: none beyond that.
+none
 
 ## Friction
 
-fixer-wip-ref: contradiction: the brief says push step refs fast-forward only, but handoff-wip/ and handoff/ already held an earlier attempt's heads that the new cut from main could not fast-forward; resolved with a `-s ours` merge. Carry: orchestrator.
+none
