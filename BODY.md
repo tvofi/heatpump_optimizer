@@ -16,57 +16,49 @@ Alternatives, and why each lost (`fixer.md` step 17):
 
 The dispatch keeps that pinned set. One existing behaviour changes: a dispatch now serves the newest release's docs rather than the dispatched ref's. That matches the workflow's stated design ("the served page is the release HACS installs"), and it keeps a plan refresh from publishing main's unreleased docs. The owner may prefer otherwise; this is the change to review.
 
-**Round 2 repair (fix review blocked, mutation-vacuous).** The block was on the inner `outside()` guard in `Thread.mark`'s non-OURS branch: `if True:` survived the self-test. Two commits answer it.
+**Round 2 repair (fix review blocked, mutation-vacuous).** The block was on the inner `outside()` guard in `Thread.mark`'s non-OURS branch. `4bb24d609` added the failing case first ("identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply") and its mutant `thirdbot_moves_out`. `9ffed3f2a` deleted the outsider branch in `Thread.mark`, which was dead code: `saw()` is the only writer of `last_out` for outside activity. Round 3 found that cure holds.
 
-- `4bb24d609`, failing test first. A new case, "identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply", takes #3225 answered by our App (`hpo-approver[bot]`) and then adds a later comment. With a `renovate[bot]` (Bot) comment, `listing` prints no #3225 line. With a `Bankaifan` (User) comment, the null control, it prints one `owed=reply` line. The new mutant `thirdbot_moves_out` (the guard made `if True:`) fails this case at that commit: `ok   mutant thirdbot_moves_out killed by: identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply`.
-- `9ffed3f2a`, the better fix (`fixer.md` step 17). The outsider branch in `Thread.mark` was dead code. `one_thread` calls `saw()` on every outside comment before `mark()`. A comment `scan` skips has `at < since`, while the thread exists only because `saw` saw activity at or after `since`, so the comment can never raise `last_out`'s maximum. The measurement: the reviewer's `mark_no_last_out`, which deletes that move, was reported KILLED in round 2, but only as `FAIL mutant forged_marker_read: stale`. The runner counted its own stale-mutant check, not a case. Counting case failures alone, it SURVIVED at `b157d297c` (`ok` on every case). So I deleted the branch, and the guard the block named went with it; `saw()` is now the only writer of `last_out` for outside activity. The new case also drives `one_thread`/`owed` (Bot: `None`, User: `reply`). `thirdbot_moves_out` now restores an unguarded move in `mark`. `forged_marker_read` is retargeted to the early `return` that remains.
-  - The alternative was to keep the branch and pin its guard, which is the brief's literal cure. It lost because the branch's own move is an equivalent mutant (`mark_outsider_moves_out` below, which restores it, survives). Keeping it would leave a line no case can pin, on a changed line, and the next mutation re-run would find it.
-  - A consequence the reviewer's harness reads: `ev/thirdbot.py` calls `Thread.mark` alone, without `saw`. At `9ffed3f2a` it gives `Bankaifan/User owed=None` (at `b157d297c`: `reply`). That drive skips the reader that owns outside activity. Through the readers (`listing` and `one_thread`), the User control still gives `reply`. That is what the new case asserts, and mutant `saw_no_last_out` shows `saw` is the owner.
+**Round 4 repair (round-3 fix review blocked, mutation-vacuous; verdict `c652d217` on `verdict/3262`).** The block: in `one_thread`, the read of a pull request's review comments (`if r["kind"] == "pr":`, L210) was unpinned. The mutant `if False:` survived the cases. Under it, `dispose` refuses #3240 with `REFUSED: #3240 has no outside activity`. This round makes one change, in `tools/audit/seat/outside_intake_selftest.py`:
+
+- A new case, "refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)". In the self-test's fixture world, #3240 is a pull request opened by `hpo-author[bot]`, and its only outside activity is a review comment by `reviewer-x`. The case runs `dispose(Fake(w), "o/r", 3240, roster(), LIVE, "Not in scope: reason.\n", False, poster)`. It asserts rc 0 and exactly one post, to #3240, that starts with `REFUSED_MARK`.
+- A new mutant, `one_thread_pr_reviews_drop`: `        if r["kind"] == "pr":` becomes `        if False:`. It names that case.
+- The reviewer's plausible findings `scan_disc_kind` and `owed_reply_ge` are left out of this round, as the brief directs. They stay where the round-3 verdict (`verdict/3262`, `## Findings`) records them, under this PR's own group R10-OUTSIDE-INTAKE. This seat's brief forbids writing the roster branch, so this body carries neither. No production line changed.
 
 ## Head
 
-`9ffed3f2a80b6387bff9f41b893ac7bf804ca10c` is the head everything below was measured at, unless a line names another. It is the reviewed head `3189559b21ddf1d5517ea7ec34f0df470c480103`, plus a merge of `origin/main` at `294a880dae608502b62055775e34a5db93217b98` (`b157d297c`, clean, no conflict), plus the two round-2 commits above. Those two commits touch only `tools/audit/seat/outside_intake.py` and `tools/audit/seat/outside_intake_selftest.py`. `origin/main` was still `294a880dae608502b62055775e34a5db93217b98` at 2026-11-07T04:26Z, after the checks below ran, so no second merge or run was owed.
+`28f9f11bb0e302cfd4920bb1e50384c4db9633a6` is the head everything below was measured at. It is the reviewed head `0fd9bc6da6a5f562c7104c1e4d921189f492cff1` plus four commits. The first is a merge of `origin/main` at `0e9c508c1260220e49c049753b011e6e140f0e9c` (`e3304b4f4`, clean). The second is the one round-4 commit above (`b83f2f43c`), which touches only `tools/audit/seat/outside_intake_selftest.py`. The third is a merge of `origin/main` at `812bb874708a348ed603009191f151aa0a06c6d5` (`da54a710d`, clean), because main moved after the first `prepr.sh` run. The fourth is a merge of `origin/main` at `62bcca76ee043e68544a7f7042e9bb3ff5502aa7` (`28f9f11bb`, clean), because main moved again during the second. Every figure below was re-taken at `28f9f11bb`. The merge base is `62bcca76ee043e68544a7f7042e9bb3ff5502aa7`.
 
 ## Mutation proof
 
-Run with `python3 -I tools/audit/seat/outside_intake.py --self-test`. All 20 mutants in `outside_intake_selftest.py` `MUTANTS` are killed at the head, each by its named case (`ok   mutant <id> killed by: <case>`). A surviving or stale mutant is a failed check. This round adds one mutant:
+Run with `python3 -I tools/audit/seat/outside_intake.py --self-test`. All 21 mutants in `outside_intake_selftest.py` `MUTANTS` are killed at the head, each by its named case (`ok   mutant <id> killed by: <case>`). A surviving or stale mutant is a failed check. This round adds one mutant:
 
 | mutant | edit | command | red at mutant | green on null control |
 |---|---|---|---|---|
-| `thirdbot_moves_out` | `Thread.mark`'s non-OURS early return gets `self.last_out = max(self.last_out, c["at"])` before it (at `4bb24d609`: the inner guard made `if True:`) | `python3 -I tools/audit/seat/outside_intake.py --self-test` | `ok   mutant thirdbot_moves_out killed by: identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply` (renovate[bot] gives `owed=reply`) | unmutated: that case passes, rc 0. Its User half gives `owed=reply` at the head and under the mutant, so the case's kill is the Bot half |
+| `one_thread_pr_reviews_drop` | `one_thread` L210: `if r["kind"] == "pr":` made `if False:` (the round-3 reviewer's mutant) | applied in place, then cases only: `cd tools/audit/seat && python3 -I -c 'import sys; sys.path.insert(0,"."); import outside_intake_selftest as t; sys.exit(t.run(False))'` | rc 1: `FAIL refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)` and `1 self-test check(s) failed`, with that case the only failure | source restored (`git status` clean for `outside_intake.py`): the same command rc 0, `outside_intake self-test: all checks passed`. In-tree, `--self-test` prints `ok   mutant one_thread_pr_reviews_drop killed by: refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)` |
 
-**The finder's harness at both ends.** I re-ran the reviewer's mutant set: `ev/mut.py` on `probe/rev-3262-990dee62`, ported to this head, each mutant applied in place and then restored. My port makes one change, and it is a correction. Each mutant runs the cases only (`outside_intake_selftest.run(False)`), and a kill counts only when a case fails. The reviewer's runner ran the full `--self-test`, so a mutant that edits text an in-tree mutant targets was counted KILLED by `mutant ... stale`. That is how `mark_no_last_out` read as killed in round 2.
+The kill is counted on cases only (`run(False)`), the counting the round-3 reviewer adopted, so the self-test's own stale-mutant check cannot stand in for a case.
 
-- The 6 round-1 mutants (cursor read, cursor write, post rc, `--dry-run` drop, script path, list rc): all KILLED at `9ffed3f2a`.
-- The reviewer's 12 changed-line mutants: `who_no_suffix`, `who_never_bot`, `who_typ_user`, `cursor_exists_guard`, `dry_always`, `post_issue_arg`, `last_ours_drop`, `keep_now` and `mark_thirdbot_moves_out` are KILLED. `cursor_write_skip` is KILLED: the main-list case's read of the unwritten cursor raises `FileNotFoundError`, and in-tree the self-test then exits non-zero.
-  - `mark_revert_old` (the pre-round-1 `if outside(...): move; return`) is KILLED by "identity: a third-party bot's marker disposes of nothing".
-  - `mark_no_last_out` has no line left to delete at the head. Its round-2 state is above: it SURVIVED by case at `b157d297c`.
-- New at the head:
-  - `mark_no_return` (the early `return` made `pass`): KILLED by "list: the fixture world gives exactly its owed lines".
-  - `saw_no_last_out` (`saw` no longer moves `last_out`): KILLED by the same case. This is the null control for the claim that `saw` owns the move.
-  - `mark_outsider_moves_out` (the deleted guarded move restored): SURVIVED, rc 0. That is expected and is the equivalence measurement: restoring the line changes no case.
+The first draft of this case reused the `Poster` variable `p` that the next case ("refuse: a refused submission owes nothing until the submitter writes again") reads. Under the mutant, that draft also failed the next case, so the red was not this case's alone. The case now uses its own `Poster`. The table above is from that final form, where the new case is the only failure.
 
-**Class rule (step 8).** The rule that enumerates the writers of the property is every assignment to `last_out` in `outside_intake.py`: `grep -n "last_out =" tools/audit/seat/outside_intake.py`. At the head it returns `Thread.__init__` (the empty initial value) and `Thread.saw`. At `b157d297c` it also returned `Thread.mark`'s guarded move, closed in this diff by deletion. `saw` is reached only through `scan.saw` and `one_thread`, and both apply `outside()` first. The round-1 marker class (writers of `Thread.answered`/`Thread.refused`) is unchanged: only `Thread.mark`, inside its OURS branch.
+**Class rule (step 8).** The rule that enumerates the readers of a thread's comments is every `rows(` call in `one_thread` and `scan`. `one_thread` has two: the issue comments, and the PR review comments that this round pins. `scan` reads review comments through the `pulls/comments` endpoint pair, which `review_comments_unread` already pins.
 
 ## Null control
 
-- The unmutated self-test runs rc 0 at the head (`outside_intake self-test: all checks passed`), and so does the cases-only run, so each kill above is the mutant's.
-- An outsider's later comment on an answered thread still owes `reply` at the head, both through `listing` and through `one_thread`/`owed` (the new case's User half).
-- `hpo-approver[bot]` still disposes of #3225 ("answer: an answered submission is refused and no longer listed").
-- `main list null`: an empty world gives rc 0 and prints nothing, so rc 1 is not unconditional.
-- At the merge base, `pages.yml` has none of the three plan steps. The entities check returns `a plan step is missing: [...]` over `git show origin/main:.github/workflows/pages.yml` and `[]` over the head. That figure is from round 1 and unchanged, because neither `pages.yml` nor the check moved.
+- The unmutated self-test runs rc 0 at the head (`outside_intake self-test: all checks passed`), and so does the cases-only run, so the kill above is the mutant's.
+- At the head, #3240's listing line is unchanged (`OUTSIDE #3240 owed=triage comment by=reviewer-x since=2026-11-06T08:00:00Z`, in the fixture world's `want`). That line comes from `scan`, which the mutant does not touch. So the new case is what separates `one_thread`'s read.
+- The existing refusal of a thread with no outside activity (#3251, #9999) still holds. So the new case's rc 0 is not an unconditional dispose.
 
 ## Figures
 
-- `python3 -I tools/audit/seat/outside_intake.py --self-test` at `9ffed3f2a`: `outside_intake self-test: all checks passed`, with 46 `ok` lines. That is 26 cases and 20 `mutant` lines, counted as the `ok` lines without and with the `mutant` prefix. Round 2 had 25 and 19.
+- `python3 -I tools/audit/seat/outside_intake.py --self-test` at `28f9f11bb`: `outside_intake self-test: all checks passed`, with 48 `ok` lines. That is 27 cases and 21 `mutant` lines. Round 3 had 26 and 20.
 - Gate scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 2 script(s) run, 31 scoped out.` (`tests/entities.py`, `tests/harness_headers.py`).
-- Scoped scripts: `PYTHONPATH=tests/hastub python3 tests/entities.py` gives `ALL 2641 ENTITY CHECKS PASSED` (rc 0). `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` gives `ALL 112 HARNESS HEADER CHECKS PASSED`.
+- Scoped scripts: `PYTHONPATH=tests/hastub python3 tests/entities.py` gives `ALL 2643 ENTITY CHECKS PASSED` (rc 0). `PYTHONPATH=tests/hastub python3 tests/harness_headers.py` gives `ALL 112 HARNESS HEADER CHECKS PASSED`.
 - `python3 tests/structure.py`: `STRUCTURE RATCHET PASSED`. No budget moved, and no `*_budgets.json` is in the three-dot diff (`git diff --name-only origin/main...HEAD | grep -c budgets.json` prints 0).
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD) HEAD`: `Architecture score: dS +0.0000 NULL`.
-- `python3 -I tools/audit/seat/ref_privacy.py --check`: `0 refused`. `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`.
-- `python3 -I tools/audit/seat/selftest_wiring.py --check`: `120 self-testing, 120 wired, 0 unwired` and `0 index gap(s)`.
-- Toolchain: `bash tools/audit/seat/cloud-setup.sh` then `bash tools/audit/seat/cloud-setup.sh --check`: `OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
-- `VERSION`, `RELEASE_NOTES.md`, `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt` are byte-identical to `origin/main` (`git diff --quiet origin/main HEAD -- <those> && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`).
+- `python3 -I tools/audit/seat/ref_privacy.py --check`: `0 refused`. `python3 -I tools/audit/seat/tmp_paths.py --check`: `0 refused`. `python3 -I tools/audit/seat/selftest_wiring.py --check`: `120 self-testing, 120 wired, 0 unwired` and `0 index gap(s)`.
+- `VERSION`, `RELEASE_NOTES.md`, the manifest, `tests/golden/claimed_drift.txt` and `tests/golden/card_claimed_drift.txt` are byte-identical to `origin/main` (`git diff --quiet origin/main HEAD -- <those> && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`).
+- Toolchain: `bash tools/audit/seat/cloud-setup.sh --check`: `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
+- `tools/pr/prepr.sh <body>` at `28f9f11bb`, run 2026-11-07T09:24:11Z to 09:38:11Z, with `origin/main` at `62bcca76ee043e68544a7f7042e9bb3ff5502aa7` both before and after: `PRE-PR: 28f9f11bb0e302cfd4920bb1e50384c4db9633a6 ... rc=0`. Its lanes include `carry ok` (2 routed, 0 unrouted), `pr-body ok`, `figures ok`, `merged structure ok`, and `ci predict` with no red predicted. Main had not moved at the end of the run, so no further merge was owed. The two earlier runs, at `b83f2f43c` and `da54a710d`, were rc 0 too; main moved after each of them. `tools/pr/prepr.sh --body-check <body>`: rc 0.
 - These round-1 figures are unchanged, because this round edits no file they read:
   - the `plan_public.py` self-test (4 mutants) and the `beat_jobs.py` self-test (136 checks);
   - the `policy_lint --budgets` caps on `orchestrator.md` and `standing-dispatch.md`;
@@ -74,19 +66,18 @@ Run with `python3 -I tools/audit/seat/outside_intake.py --self-test`. All 20 mut
 
 ## Red checks
 
-The final head `9ffed3f2a80b6387bff9f41b893ac7bf804ca10c` has no check runs: it has not been pushed to the PR. Its reds, if any, are named at the next read.
+The final head `28f9f11bb0e302cfd4920bb1e50384c4db9633a6` has no check runs: it has not been pushed to the PR. Its reds, if any, are named at the next read.
 
-At the reviewed head `3189559b21ddf1d5517ea7ec34f0df470c480103`:
+At the round-3 head `0fd9bc6da6a5f562c7104c1e4d921189f492cff1` (the reviewer's `filter=all` read across both pages, 200 runs; my latest-only read at about 08:15Z returned 68 runs, all success or skipped):
 
-- **`gate` check run 128272376901 concluded `failure`** with `FAIL run(s) [42329336154] at this head are still being judged; their gate decides`. That is the edit run's ordering deferral to code run 42329336154, which was still in progress. It is not a defect of the authored code.
-  - The run that decides is that code run's own `gate`, which concluded success: 128282233458 in the reviewer's read, and 128285176170 in mine.
-  - The open item R10-HOTFIX-GATE-BUSY-DEFER, which removes this deferral red, is MERGED (#3246). Its fix is in this head through the `origin/main` merge.
-  - The cheaper detector is the gate itself once the code run concludes, so no new countermeasure is owed.
-- I read the check runs once more at about 04:10Z (`pull_request_read get_check_runs`, `total_count` 68, every run on one page): no run concluded failure, cancelled or timed out. 128272376901 is no longer listed, because later attempts replaced it.
-- **`governance / instrument-self-tests`** (128285213331) concluded success at 02:54:52Z. It was not cancelled by the 30-minute timeout, so R10-HOTFIX-SELFTEST-TIMEOUT did not fire at this head.
+- **`gate` 128304775378, 128316374818 and 128324526998 concluded `failure`.** Each log says `FAIL run(s) [42339563999] at this head are still being judged; their gate decides`. Class: the edit run's ordering deferral to code run 42339563999, which was still in progress. It is not a defect of the authored code. That code run's own `gate`, 128330158424, concluded success at 06:44:00Z. Answer: R10-HOTFIX-GATE-BUSY-DEFER, which removes this deferral red, is MERGED. The cheaper detector is the gate itself once the code run concludes, so no new countermeasure is owed.
+- **`gate` 128305369003 and `arch-score / arch-score` 128304887981 concluded `cancelled`.** Class: superseded by a later attempt or run at the same head (`cancel-superseded`). Their replacements concluded success: `gate` 128330158424 and 128331018038, and `arch-score / arch-score` 128322484672 and 128331044271. Answer: no defect, so no countermeasure is owed.
+- **`governance / instrument-self-tests` 128304160651 (04:45:23Z-05:15:38Z) and 128314670086 (05:30:48Z-06:01:03Z) concluded `cancelled`, each at the 30-minute job timeout.** Class: the job's wall time, which is the owner's standing line. Answer: R10-HOTFIX-SELFTEST-TIMEOUT, cured by R10-PROCESS-SLIM (#3245). Attempt 3, 128322483648, concluded success at 06:35:48Z. This PR's own self-test (`outside_intake`) runs in well under a minute locally, so it is not the cost.
 - Every other run concluded success, skipped or neutral.
 
-At the round-1 head `48acc104f97cf88bf0ec28a3f6ec01438e169bb5`, four concluded reds, all `gate`, were the same ordering deferral: 128203011639, 128206299696, 128215975302 and 128215984338. They were named in round 1 and are answered the same way.
+At the round-2 reviewed head `3189559b21ddf1d5517ea7ec34f0df470c480103`, `gate` 128272376901 concluded `failure` with `FAIL run(s) [42329336154] at this head are still being judged; their gate decides`. It is the same deferral with the same answer. That code run's `gate` concluded success.
+
+At the round-1 head `48acc104f97cf88bf0ec28a3f6ec01438e169bb5`, four `gate` runs concluded `failure`, all the same ordering deferral: 128203011639, 128206299696, 128215975302 and 128215984338. They were named in round 1 and are answered the same way.
 
 The earlier local red stands as recorded. `tests/entities.py` reported "no errexit `run:` block reads `$?` after a bare producer" on the new "Stage the round's plan page" step at 36313431c. It was fixed before any pull request existed, and the existing census caught it, so no countermeasure is owed.
 
