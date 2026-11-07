@@ -18536,7 +18536,7 @@
     "From the web-research probe (handoff-body/r10-ghc-research 52f5a44257ada6ed2b85d959337e1585dbd1cc72, BODY.md): the offset kind's default band is 3 K, user range 0.5 to 5 K, bound by Luxtronik's plus-or-minus 5 K user correction and SG-Ready boost steps. The write-endurance limits (12 writes per day default, Daikin quota 7000 per year) bind the persistent kind only, and are carried to R10-GENERIC-HEAT-CURVE-PERSISTENT. The fixer cites the band default to its source line, and the user docs flag the evidence tag."
    ],
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-generic-heat-curve",
     "commit": null,
     "last_step": null,
