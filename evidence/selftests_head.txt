@@ -1,2 +1,2 @@
+sweep self-test: 52 checks, 0 failed
 gate self-test: 77 checks, 0 failed
-sweep self-test: 33 checks, 0 failed

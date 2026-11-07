@@ -1,0 +1,27 @@
+## untouched
+VERSION manifest notes claims budgets: untouched
+## delivery row
+- [#3287](https://github.com/tvofi/heatpump_optimizer/pull/3287) — **open**, R10-HOTFIX-GATE-BUSY-DEFER: a deferring gate publishes at once and the sweep settles it, holding no runner (R10-HOTFIX-GATE-BUSY-DEFER)
+## closures.json diff
+diff --git a/tests/closures.json b/tests/closures.json
+index e0693316d..1a2ea4815 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -4025,6 +4025,7 @@
+    "dev/audit/harnesses/r10_fly_raise_reviewable_carry.sh",
+    "dev/audit/harnesses/r10_fly_raise_reviewable_overfire.py",
+    "dev/audit/harnesses/r10_ftol_cell_search.py",
++   "dev/audit/harnesses/r10_gate_busy_defer_3.py",
+    "dev/audit/harnesses/r10_gate_defer_race.py",
+    "dev/audit/harnesses/r10_gate_priority_base.py",
+    "dev/audit/harnesses/r10_gate_stale_jobs/harness.py",
+## structure
+
+STRUCTURE RATCHET PASSED
+## entities
+  File "/home/user/rev/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
+## closure select
+  MODE: FULL -- every test script runs, nothing is scoped out.
+  reason: tools/ci/fixtures/gate_busy_defer_runs.json changes the gate itself, so every closure is suspect

@@ -1,0 +1,6 @@
+## base
+third run completed with no jobs=False: posts=['repos/o/r/actions/jobs/10/rerun'] out='SWEEP-DONE run=2 reruns=1'
+third run completed with no jobs=True: posts=[] out="SKIP run 2: its gate is not green and newest-covering; a newer run's sweep owns convergence"
+## head
+third run completed with no jobs=False: posts=['repos/o/r/actions/jobs/10/rerun'] out='SWEEP-DONE run=2 reruns=1'
+third run completed with no jobs=True: posts=[] out='SKIP run 2: its gate is not green and newest-covering, and run(s) [3] have not concluded their gate; their completion sweeps'
