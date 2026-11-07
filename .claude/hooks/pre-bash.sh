@@ -160,17 +160,86 @@ SELF_TEST=0
 #         sys.exit(1)
 # HPO_PRE_BASH_PY_END
 
-decide() { # $1 the raw payload; stdout: a refusal message, or nothing
-  # Prefilter: no `kill` anywhere in the payload means nothing here can match,
-  # and a bash `case` costs about 3 ms where a python start costs about 26.
-  case "$1" in *kill*) ;; *) return 0 ;; esac
-  sed -n '/^# HPO_PRE_BASH_PY$/,/^# HPO_PRE_BASH_PY_END$/{
-    /^# HPO_PRE_BASH_PY$/d
-    /^# HPO_PRE_BASH_PY_END$/d
+# HPO_PRE_BASH_GUARD_PY
+# import json, os, re, shlex, subprocess, sys
+# # Second arm: the orchestrator's checkout is what beatd, tick_loop.sh and
+# # cloud_relay.sh run their scripts from, and bash reads a script
+# # incrementally, so a command that moves its HEAD or working tree corrupts
+# # them (2026-10-31, gap 4 of R10-FLY-STANDING-CONTRACTS). INERT unless
+# # $HPO_STATE_DIR/orch-checkout names a directory; fails open on anything odd.
+# MOVERS = {"checkout", "switch", "reset", "pull", "merge", "rebase", "stash", "clean", "restore"}
+# try:
+#     state = os.environ.get("HPO_STATE_DIR", "")
+#     marker = open(os.path.join(state, "orch-checkout")).read().strip() if state else ""
+#     if not marker or not os.path.isdir(marker):
+#         sys.exit(0)
+#     payload = json.loads(sys.argv[1])
+#     cmd = payload["tool_input"]["command"]
+#     cwd = payload.get("cwd") or os.getcwd()
+#     guarded = os.path.realpath(marker)
+#     if not isinstance(cmd, str):
+#         sys.exit(0)
+#     def toplevel(d):
+#         r = subprocess.run(["git", "-C", d, "rev-parse", "--show-toplevel"], capture_output=True, text=True)
+#         return os.path.realpath(r.stdout.strip()) if r.returncode == 0 and r.stdout.strip() else ""
+#     cur = cwd
+#     for stmt in re.split(r"\n|;|&&|\|\||\||&", cmd):
+#         try:
+#             w = shlex.split(stmt, comments=True)
+#         except ValueError:
+#             continue
+#         while w and (re.fullmatch(r"\w+=.*", w[0]) or w[0] in ("sudo", "env", "command", "time", "nohup", "exec")):
+#             w = w[1:]
+#         if not w:
+#             continue
+#         if w[0] == "cd" and len(w) > 1:
+#             cur = os.path.realpath(os.path.join(cur, os.path.expanduser(w[1])))
+#             continue
+#         if w[0] != "git":
+#             continue
+#         d, i = cur, 1
+#         while i < len(w) and w[i].startswith("-"):
+#             if w[i] == "-C" and i + 1 < len(w):
+#                 d = os.path.realpath(os.path.join(d, os.path.expanduser(w[i + 1]))); i += 2
+#             elif w[i] in ("-c", "--git-dir", "--work-tree", "--namespace") and i + 1 < len(w):
+#                 i += 2
+#             else:
+#                 i += 1
+#         sub = w[i] if i < len(w) else ""
+#         if sub in MOVERS and os.path.isdir(d) and toplevel(d) == guarded:
+#             print(f"`git {sub}` would move HEAD or the working tree of the orchestrator checkout "
+#                   "($HPO_STATE_DIR/orch-checkout), which beatd, tick_loop.sh and cloud_relay.sh run their "
+#                   "scripts from; bash reads a script incrementally, so the move corrupts them. Read main with "
+#                   "`git -C <checkout> show origin/main:<path>` or work in a worktree of your own.")
+#             sys.exit(1)
+# except SystemExit:
+#     raise
+# except Exception:
+#     sys.exit(0)                          # anything unforeseen -- fail open
+# HPO_PRE_BASH_GUARD_PY_END
+
+extract() { # $1 the marker name; stdout: that block as a python program
+  sed -n "/^# $1\$/,/^# $1_END\$/{
+    /^# $1\$/d
+    /^# $1_END\$/d
     s/^# //
-    s/^#$//
+    s/^#\$//
     p
-  }' "$0" | python3 - "$1"
+  }" "$0"
+}
+
+decide() { # $1 the raw payload; stdout: a refusal message, or nothing
+  # Prefilter: no `kill` anywhere in the payload means the first arm cannot
+  # match, and a bash `case` costs about 3 ms where a python start costs about
+  # 26. The second arm needs `git` in the payload AND a marker file.
+  case "$1" in
+    *kill*) extract HPO_PRE_BASH_PY | python3 - "$1" ;;
+  esac
+  case "$1" in
+    *git*) [ -n "${HPO_STATE_DIR:-}" ] && [ -f "$HPO_STATE_DIR/orch-checkout" ] \
+             && extract HPO_PRE_BASH_GUARD_PY | python3 - "$1" ;;
+  esac
+  return 0
 }
 
 if [ "$SELF_TEST" = 1 ]; then
@@ -208,6 +277,30 @@ pkill -f x
 EOF'                                               "a heredoc body holding pkill is allowed (null control)"
   st allow  'echo hi # pkill x'                    "pkill in a comment is allowed (null control)"
   st allow  'git status'                           "a command without the substring kill takes the prefilter path"
+  # SECOND ARM: the orchestrator-checkout guard, over a throwaway repository
+  # and state directory (HPO_STATE_DIR/orch-checkout names the repository).
+  gtmp=$(mktemp -d); mkdir -p "$gtmp/state" "$gtmp/orch" "$gtmp/other"
+  git -C "$gtmp/orch" init -q; git -C "$gtmp/other" init -q
+  printf '%s\n' "$gtmp/orch" > "$gtmp/state/orch-checkout"
+  gst() { # want(refuse|allow), command, cwd, label, [state dir]
+    local payload out got
+    payload=$(python3 -c 'import json,sys; print(json.dumps({"tool_name":"Bash","cwd":sys.argv[2],"tool_input":{"command":sys.argv[1]}}))' "$2" "$3")
+    out=$(HPO_STATE_DIR="${5-$gtmp/state}" decide "$payload")
+    got=allow; [ -n "$out" ] && got=refuse
+    if [ "$got" = "$1" ]; then pass=$((pass+1)); printf '  ok   %s\n' "$4"
+    else fail=$((fail+1)); printf '  FAIL %s (got %s, wanted %s)\n' "$4" "$got" "$1"; fi
+  }
+  gst refuse 'git pull'                         "$gtmp/orch"  "guard: git pull in the orchestrator checkout is refused"
+  gst refuse "git -C $gtmp/orch checkout main"  "$gtmp/other" "guard: git -C into the checkout is refused"
+  gst refuse "cd $gtmp/orch && git reset --hard" "$gtmp/other" "guard: cd then reset is refused"
+  gst refuse 'git -c x=y merge origin/main'     "$gtmp/orch"  "guard: git -c before the subcommand is read past"
+  gst allow  'git status'                       "$gtmp/orch"  "guard: a read-only git command is allowed (null control)"
+  gst allow  "git -C $gtmp/orch show origin/main:README.md" "$gtmp/other" "guard: show of main is allowed (null control)"
+  gst allow  'git pull'                         "$gtmp/other" "guard: pull in another repository is allowed (null control)"
+  gst allow  'git pull'                         "$gtmp/orch"  "guard: inert without HPO_STATE_DIR (null control)" ""
+  rm -f "$gtmp/state/orch-checkout"
+  gst allow  'git pull'                         "$gtmp/orch"  "guard: inert without the marker file (null control)"
+  rm -rf "$gtmp"
   # AND THE SCRIPT ITSELF, end to end over its real stdin: every case above
   # drives `decide`, none of them the wrapper that reads the payload and turns a
   # message into an exit status -- where pre-edit.sh was inert once.
