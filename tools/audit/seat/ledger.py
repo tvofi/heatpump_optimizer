@@ -74,7 +74,11 @@ threshold, oldest first, naming the roster group and the repair; an OWNER FLAG
 at the second. The thresholds are policy (tvofi's); the switch is
 HPO_LEDGER_AGING = `<dispatch_h>,<owner_h>` or `off`, defaulting to the
 owner's ruling of 2026-10-21 (4 h, 12 h). A tip stamped ahead of the clock has
-no age (fixer.md step 16): it escalates nothing.
+no age (fixer.md step 16): it escalates nothing. Only an arrival after the
+newest fix/ or handoff/ pull-request opening ages (the tick passes it; the
+standing backlog would otherwise hold the alarm up for ever); an unread
+opening keys on age alone. `dispose` into a home other than the default says
+so on stderr: the tick reads the default.
 
 EXIT CODES (`board`, `level`, `disposed`). 0: nothing owed (not disposed).
 1: obligations exist (disposed), the finding, with `board`'s summary line.
@@ -287,7 +291,9 @@ def _import_log(log: str) -> "tuple[list, list[str]]":
             elif f[2] == "handoff-update":
                 continue  # derived now: the relay's level from cloud-handoff-failed
             elif f[2] == pr and len(f) > 3 and (f[3] == "-" or is_sha(f[3])):
-                kind, when, sha = "verdict-unposted", f[1], "-"
+                # the journal line's own sha, when it names one: the fold's head-move and read-back
+                # closers key on it (an imported row's text is not a verdict's first line)
+                kind, when, sha = "verdict-unposted", f[1], f[3] if is_sha(f[3]) else "-"
             else:
                 refused.append(f"'{line}' is no relay OWED shape")
                 continue
@@ -350,8 +356,11 @@ def fold(rows: list, live: "dict | None" = None, readback: "dict | None" = None)
                    else "superseded" if sha != "-" and live[subj] != sha else None)
         if how is None and kind in PR_KEYED and readback is not None and subj in readback:
             lines = readback[subj]
-            if (text in lines if kind == "verdict-unposted"
-                    else sha != "-" and any(verdict_head(l) == sha for l in lines)):
+            named = sha != "-" and any(verdict_head(l) == sha for l in lines)
+            # a native row's text is the verdict's first line; an imported one keeps the journal line,
+            # which no read-back equals, so it closes on the sha it names like the other kinds
+            if (text in lines or (named and verdict_head(text) is None) if kind == "verdict-unposted"
+                    else named):
                 how = "read-back"
         if how:
             closed[how] += 1
@@ -570,8 +579,14 @@ def parse_aging(value: "str | None"):
     return a, b
 
 
-def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[str]:
-    """DISPATCH lines, oldest first, then OWNER FLAG lines, one per topic."""
+def escalate(level_rows: list, now: datetime.datetime, aging, group_of,
+             last_open: "float | None" = None) -> list[str]:
+    """DISPATCH lines, oldest first, then OWNER FLAG lines, one per topic.
+    `last_open` is the epoch of the newest pull-request opening of a fix/ or
+    handoff/ branch: a tip committed at or before it is the standing backlog,
+    which an age-only threshold would flag for ever, and escalates nothing;
+    only an arrival after the last opening ages (as pulse.py's opener rule
+    does). None (the opening unread) keys on age alone: it over-owes."""
     if aging is None:
         return []
     by: dict[str, dict] = {}
@@ -586,6 +601,8 @@ def escalate(level_rows: list, now: datetime.datetime, aging, group_of) -> list[
     for t, refs in by.items():
         ref, sha, kv = refs.get("code") or refs["body"]
         if not kv.get("ct", "").isdigit():
+            continue
+        if last_open is not None and int(kv["ct"]) <= last_open:
             continue
         age = (now.timestamp() - int(kv["ct"])) / 3600  # ahead of the clock: < 0, below any threshold
         repair = ("no code ref" if "code" not in refs
@@ -668,6 +685,9 @@ def main(argv: list) -> int:
     try:
         if cmd == "dispose" and len(args) in (2, 3):
             dispose(home, args[0], args[1], args[2] if len(args) == 3 else "disposed")
+            if home.resolve() != Path(default_log()).parent.resolve():
+                print(f"ledger: dispose wrote to {home}, not the default home; the tick reads "
+                      f"{Path(default_log()).parent}", file=sys.stderr)
             print(f"ledger: disposed {args[0]} {args[1]}")
             return 0
         if cmd == "disposed" and len(args) == 2:
@@ -759,6 +779,25 @@ def self_test() -> int:
               (h / DISP).read_text().count("\n") == 1 + 3 + 1 and dispositions(h)["refs/heads/probe/q"][0] == C)
         check("a ref matching no arm in the import was refused (wip-sync)",
               "refs/heads/wip-sync/x" not in dispositions(h))
+        import contextlib
+        import io
+        nh = D / "nondefault"
+        nh.mkdir()
+        with contextlib.redirect_stderr(io.StringIO()) as err, contextlib.redirect_stdout(io.StringIO()):
+            rc_n = main(["--log", str(nh / "cloud-relay.log"), "dispose", "refs/heads/probe/n", C])
+        check("dispose into a non-default home names it on stderr and still writes (carry 3)",
+              rc_n == 0 and str(nh) in err.getvalue() and "default home" in err.getvalue()
+              and dispositions(nh)["refs/heads/probe/n"][0] == C)
+        dflt = D / "dflt"
+        dflt.mkdir()
+        os.environ["HPO_STATE_DIR"] = str(dflt)
+        try:
+            with contextlib.redirect_stderr(io.StringIO()) as err, contextlib.redirect_stdout(io.StringIO()):
+                rc_d = main(["dispose", "refs/heads/probe/n", C])
+        finally:
+            del os.environ["HPO_STATE_DIR"]
+        check("null control: dispose into the default home prints nothing and writes",
+              rc_d == 0 and err.getvalue() == "" and dispositions(dflt)["refs/heads/probe/n"][0] == C)
         check("dispose refuses a ref of no arm", refuses(lambda: dispose(h, "refs/heads/main", A)) == "Refused")
         check("a missing store with no legacy file is first run: empty", dispositions(D / "none") == {})
         (D / "bad").mkdir()
@@ -820,6 +859,26 @@ def self_test() -> int:
         o2, _ = fold(rv, live=live, readback={"20": [f"Fix review: merge {A}"]})
         check("a relayed claim is no close: a read-back of another verdict leaves it open",
               "20" in {s for _, s, *_ in o2})
+        iv = [["open", "t", "verdict-unposted", "24", C, f"OWED t verdict-unposted 24 {C}"],
+              ["open", "t", "verdict-unposted", "25", "-", "OWED t verdict-unposted 25 -"]]
+        oi, ci = fold(iv, live={"24": C, "25": C}, readback={"24": [v], "25": [v]})
+        check("an imported verdict-unposted closes on a read-back naming its sha (carry 1)",
+              {s for _, s, *_ in oi} == {"25"} and ci["read-back"] == 1)
+        oi2, ci2 = fold(iv, live={"24": A, "25": C})
+        check("and on the PR head moving off it; a sha-less import stays owed (`close ... -` is its closer)",
+              {s for _, s, *_ in oi2} == {"25"} and ci2["superseded"] == 1)
+        oi3, _ = fold(iv, live={"24": C}, readback={"24": [f"Fix review: merge {A}"]})
+        check("null control: a read-back of another sha leaves the imported row open",
+              "24" in {s for _, s, *_ in oi3})
+        (D / "implog").mkdir()
+        ilog = str(D / "implog" / "cloud-relay.log")
+        Path(ilog).write_text(f"OWED 2026-10-18T19:00:00Z 30 {C} bus.sh confirm failed; run it by hand\n")
+        ir = events(D / "implog", ilog)
+        oq, cq = fold(ir, live={"30": C}, readback={"30": [f"Fix review: merge {C}"]})
+        check("a log OWED line imported through _import_log keeps its sha and a read-back naming it closes it (carry 1)",
+              ir[0][4] == C and not oq and cq["read-back"] == 1)
+        oq2, _ = fold(ir, live={"30": C}, readback={"30": [f"Fix review: merge {A}"]})
+        check("null control: the imported row stays open on a read-back of another sha", len(oq2) == 1)
         o3, c3 = fold(rv, live={"23": C})
         check("a PR no longer open closes its PR-keyed events (subject-absent)",
               {s for _, s, *_ in o3} == {"23"} and c3["subject-absent"] == 3)
@@ -845,6 +904,15 @@ def self_test() -> int:
               == ["R10-OLD"])
         check("null control: a young tip and a tip ahead of the clock escalate nothing",
               not any("/new " in x or "/fut " in x for x in es))
+        after_old = escalate(lv, now, parse_aging(None), dict().get, ts(20))
+        check("a tip committed before the last opening is backlog and escalates nothing; a later arrival still ages (carry 2)",
+              [x.split()[2] for x in after_old] == ["refs/heads/handoff/mid"]
+              and len(escalate(lv, now, parse_aging("0.5,40"), dict().get, ts(20))) == 2)
+        check("null control: the opening unread (None) keys on age alone, as before",
+              escalate(lv, now, parse_aging(None), dict().get, None)
+              == escalate(lv, now, parse_aging(None), dict().get))
+        check("a tip committed exactly at the last opening is backlog",
+              not escalate(lv[:1], now, parse_aging(None), dict().get, ts(30)))
         check("the switch off escalates nothing", escalate(lv, now, parse_aging("off"), dict().get) == [])
         check("a malformed switch is refused", refuses(lambda: parse_aging("4")) == "Refused"
               and refuses(lambda: parse_aging("12,4")) == "Refused")
