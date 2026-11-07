@@ -1,15 +1,12 @@
-# BLOCKED: body re-take for r10-fly-stamp-flush-cost (PR 3296)
+# BLOCKED: r10-fly-stamp-flush-cost, repair round for #3296
 
-body_push.sh refuses: "handoff/r10-fly-stamp-flush-cost is at 45510e0e1693, this checkout at 01e9c6127375; push the code, then the body".
-The brief forbids moving handoff/ and the PR head (01e9c61273753db2526fb19b6b44ece19167128b), so the body cannot be pushed without working around the script. Not worked around.
+The code is on refs/heads/handoff/r10-fly-stamp-flush-cost at b4446e5cb97958de79c1c9d38d25e7679624de68, a fast-forward from the PR head 01e9c612. tools/pr/prepr.sh with the body: rc=0. carry_audit check: 2 routed, 0 unrouted.
 
-Question: advance handoff/r10-fly-stamp-flush-cost to 01e9c61273753db2526fb19b6b44ece19167128b (no code change), or run body_push.sh from a checkout at 45510e0?
+body_push.sh refuses the body with CARRY-LANDED: 2 missing. Both of its Carry: R10-FLY-STAMP-FLUSH-COST items (the brief-mandated post-merge beat-dispatch measurement, and one friction line) must first be appended to the group's carries on the round roster branch. This seat may not write that branch (brief: write only the return refs). The refused body is kept at refs/heads/handoff-wip/r10-fly-stamp-flush-cost-body, at da2447df3a5077007c2b606f366d87aafd1cb168.
 
-Findings (body-only decision, no red is caused by the diff):
-- tests / nightly-status (128480692664): grades cancelled main dispatch 42369836867 (head 08fd676, predates the branch); all listed lanes `cancelled`; diff cannot reach them. Later main dispatch 42382408131 (a37c58e) concluded success. No verification dispatch of this branch's nightly.yml exists.
-- pr-contract / pr-contract (128492906044): body contract, answered by the new body.
-- gate (128493108261, 128487511325, 128481833681): aggregates, no cause of their own.
-- Figures at 01e9c61: entities.py 2650 checks pass; stamp.py --self-test pass; structure.py pass.
-- The re-taken body passed `prepr.sh --body-check` and carry_audit.py clean from a checkout at the PR head.
+Question: will the orchestrator or the standing-roster seat land these two roster_edit.py ops (output of carry_audit.py land-ops, verbatim below) and then re-run `bash tools/audit/seat/body_push.sh r10-fly-stamp-flush-cost <body>` from the kept body? Or should the friction item be dropped from the body?
 
-Body text (clean copy) follows in BODY.md.
+```
+append-carry R10-FLY-STAMP-FLUSH-COST 'From #3296 (r10-fly-stamp-flush-cost), body item 7ab754eb: Post-merge measurement owed at the first stamp after merge, for one beat-only dispatch: its jobs and runner-minutes by the runs jobs API (`python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py runs <id>`). The job list should show record-autofix alone running. The same measurement must also confirm nightly-status'\''s reading of that run: the run'\''s `display_title` is `Nightly record beat`, and the next PR'\''s `tests / nightly-status` grades the last schedule or lanes=all run, not the beat. This seat has no workflow-dispatch right. Carry: R10-FLY-STAMP-FLUSH-COST (items 7ab754eb)'
+append-carry R10-FLY-STAMP-FLUSH-COST 'From #3296 (r10-fly-stamp-flush-cost), body item 37f02097: fixer-step-push: stale: refs/heads/handoff-wip/r10-fly-stamp-flush-cost held a previous seat'\''s BLOCKED commit (e4b03333) not on the PR head'\''s line, so a fast-forward step push was refused. I did not force it, and no step was pushed before the handoff. Carry: R10-FLY-STAMP-FLUSH-COST (items 37f02097)'
+```
