@@ -1,0 +1,35 @@
+ dev/audit/harnesses/livehead_cancels.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant in_class without BOT term
+selftest: FAILED {'1/1': ('@owner', True), '2/1': ('@github-actions[bot]', False), '4/1': ('timeout', True)} slices=3
+CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=204
+ dev/audit/harnesses/livehead_cancels.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant classify live=True
+selftest: FAILED {'1/1': ('@owner', True), '2/1': ('@github-actions[bot]', True), '4/1': ('timeout', True)} slices=3
+CLASS live-head external cancels: 184, minutes lost 3160.1 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+ dev/audit/harnesses/livehead_cancels.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant canceller never reads the @login line
+selftest: FAILED {'1/1': ('unattributed', True), '2/1': ('unattributed', False), '4/1': ('timeout', True)} slices=3
+CLASS live-head external cancels: 0, minutes lost 0.0 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+ dev/audit/harnesses/livehead_cancels.py | 4 ++--
+ 1 file changed, 2 insertions(+), 2 deletions(-)
+== mutant concurrency line read as a login
+selftest: ok {'1/1': ('@owner', True), '2/1': ('@github-actions[bot]', False), '4/1': ('timeout', True)} slices=3
+CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+ dev/audit/harnesses/livehead_cancels.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+== mutant head_at ignores created_at<=cancel
+selftest: FAILED {'1/1': ('@owner', False), '2/1': ('@github-actions[bot]', False), '4/1': ('timeout', True)} slices=3
+CLASS live-head external cancels: 23, minutes lost 557.2 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0

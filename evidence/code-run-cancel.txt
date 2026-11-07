@@ -1,0 +1,15 @@
+PR head now 2a8b8f0ccdf5ce4f3ed2f8101e201de7caf7354a
+42345105570/1 cancelled upd=2026-11-07T06:34:28Z actor=hpo-author[bot]
+first cancelled job 128326075838
+The run was canceled by @tvofi.
+The operation was canceled.
+"The ubuntu-latest label will migrate to Ubuntu 26 beginning October 19, 2026. For more information, see https://github.com/actions/runner-images/issues/14748"
+42345573857 CI edit pr=3 completed failure 2026-11-07T06:07:09Z
+42345105570 CI code pr=3 completed cancelled 2026-11-07T06:00:50Z
+42345104864 CI edit pr=3 completed failure 2026-11-07T06:00:49Z
+42345102243 R10-RCA-LIVE completed skipped 2026-11-07T06:00:47Z
+42345573857 2a8b8f0ccdf5 CI edit p completed failure 2026-11-07T06:07:09Z
+42345105570 2a8b8f0ccdf5 CI code p completed cancelled 2026-11-07T06:00:50Z
+42345104864 2a8b8f0ccdf5 CI edit p completed failure 2026-11-07T06:00:49Z
+42345073027 4ace0d770aa8 CI edit p completed cancelled 2026-11-07T06:00:27Z
+42345069169 4ace0d770aa8 CI code p completed cancelled 2026-11-07T06:00:24Z
