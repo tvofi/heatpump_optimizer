@@ -11,8 +11,14 @@ harnesses could not ask: which program judged the red.
 Arms:
   record OUT.json        read the scenes below from the GitHub API (gh api), write the fixture
   replay --ci DIR        judge every scene's gates with DIR's gate.py; print one line per scene
-                         and exit 1 if a pair scene's gate defers to its partner (DEADLOCK: both
-                         do; HALF-DEFERRED: one does), the live #3241/#3246 defect
+                         and exit 1 on a defect class: a pair scene's gate defers to its partner
+                         (DEADLOCK: both do; HALF-DEFERRED: one does; the live #3241/#3246 defect), or
+                         a single edit gate publishes its deferral to a code run at once, naps 0
+                         (C3-AT-ONCE; the #3263 defect #3276 removed). A single gate that waited and
+                         then deferred is DEFERRED, not a defect: the bounded wait. The single-gate
+                         scenes judge one gate beside a code run listed as recorded, so they see the
+                         at-once bound and not the wait cycle judging() once made (#3276's fixture
+                         self-test in gate.py pins that)
   census --since ISO [--until ISO]
                          live: every `gate` job started in the window on a ci.yml run, by
                          whether its pinned programs carry the fix (--fix SHA; no pin line:
@@ -194,6 +200,12 @@ def judge_one(gate, scene, g, t0, sim):
     return outcome, clock["t"], clock["naps"]
 
 
+# Classes that make replay exit 1. C3-AT-ONCE is a defect since #3276 (812bb8747) deleted gate.py's at-once
+# bound for a deferring edit gate (the cause was prelude.judging() reading the deferring run's skipped
+# `pr-contract` caller as owed); DEFERRED after naps is the bounded wait, a designed outcome.
+DEFECTS = ("DEADLOCK", "HALF-DEFERRED", "C3-AT-ONCE")
+
+
 def classify(scene, verdicts):
     pair = {g["run"] for g in scene["gates"]}
     deferred_to = {}
@@ -237,10 +249,10 @@ def replay(fixture, ci):
             verdicts = {g["run"]: (verdicts[g["run"]] if verdicts[g["run"]][2] == 0 else judge_one(
                 gate, scene, g, ts(g["started_at"]) + timedelta(seconds=READ_AFTER_S), sim)) for g in gates}
         cls = classify(scene, verdicts)
-        rc |= cls in ("DEADLOCK", "HALF-DEFERRED")
+        rc |= cls in DEFECTS
         detail = "; ".join(f"{rid}: {out[:60]} naps={n}" for rid, (out, _, n) in sorted(verdicts.items()))
         print(f"{scene['name']}: {cls} | {detail}")
-    print(f"RESULT replay ci={ci} deadlocks={'yes' if rc else 'no'}")
+    print(f"RESULT replay ci={ci} defects={'yes' if rc else 'no'}")
     return rc
 
 
