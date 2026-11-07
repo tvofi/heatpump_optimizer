@@ -17919,8 +17919,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3278
+    "stage": "carries-open",
+    "pr": 3278,
+    "commit": "cb24224b2387955085c6d0fe0eb42736f7ad2cb7"
    },
    "brief": "Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e92e7c edit run 42338396358's gate failed in 2 s with 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides' while code run 42338396871 was in progress; #3261 old edit runs 42307798573 and 42307493684 deadlocked each other. Owed: the named cause, process state a-d with evidence (why #3246's review and tests passed a fix that leaves this shape), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document under the rca directory cited from the bugclass register. Runs beside the R10-HOTFIX-GATE-BUSY-DEFER fixer, never inside it; never edits the gate script."
   },
