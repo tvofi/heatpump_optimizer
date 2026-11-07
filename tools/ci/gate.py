@@ -35,13 +35,23 @@ verdict it then publishes is the one every gate at the head computes from the
 same finished sources, so a red source stays red and no wait masks it. The
 waits are acyclic: a gate waits only on runs that are not yet `judging`, and
 nothing waits on a judging run (prelude.wait_sources), so two gates that
-start together each find the other judging on a re-read. Only past the
+start together each find the other judging on a re-read. Two runs whose
+gates have both started are broken by id (`busy`): the lower decides, the higher
+waits on it, so a run that judging() misreads (a deferring edit run never lists
+its title's pr-contract) cannot make two gates defer to each other. Only past the
 bound, a run still busy after GATE_WAIT_MAX_S, does the gate FAIL deferring,
 for gate-sweep.yml to re-judge. One gate never waits (R10-CI-SLIM card C3): an
 edit run's whose prelude left `pr-contract` to an unfinished code run at this
 head (prelude.defer_to, `deferring` here). It publishes the deferral at once:
 that code run's gate is listed only after its pr-contract has read the latest
-body, so it is the later verdict here, and the sweep re-judges this one.
+body, so it is the later verdict here, and the sweep re-judges this one. The
+same holds beside any run whose gate has not started: judging() reads a
+deferring run busy, so such a run may sit in prelude.wait_sources waiting on
+this one, a cycle only GATE_WAIT_MAX_S would break (#3246 review). A deferring
+gate waits only when every run it waits on has started its gate: busy() leaves
+out a LATER started gate, so each is an earlier run, and one busy() still names
+is not judging, so a deferring run (it waits only so, down in id) or one whose
+listing lags its own owed jobs, which a re-read clears.
 """
 from __future__ import annotations
 
@@ -56,7 +66,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
+from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
                      run_jobs, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
@@ -98,10 +108,25 @@ def gate_required() -> list[str]:
     return sorted({n for names in REQUIRED.values() for n in names})
 
 
+def started(run: dict) -> bool:
+    """Whether the run's `gate` job has started: listed `in_progress` or `completed`,
+    never merely listed (GitHub lists it `waiting` from the run's start, R3-2)."""
+    return (run.get("jobs") or {}).get("gate", ("",))[0] in STARTED
+
+
 def busy(ctx: dict, runs_at_head: list[dict]) -> list:
-    """The OTHER runs at this head still adding a source: unfinished, not held, not judging."""
+    """The OTHER runs at this head still adding a source: unfinished, not held, not
+    judging, and not a LATER run whose `gate` has started. A started gate has run
+    every unit it needs (ci.yml's `needs`; a merely listed one has not: GitHub
+    lists it `waiting` from the run's start, R3-2), yet judging() can still read
+    it busy:
+    a deferring edit run never lists the `pr-contract / pr-contract` its title
+    owes (C3). Two such gates then each deferred to the other and none judged
+    (#3241 at 95c7e604, runs 42192623509 and 42193153511). The tie-break: the
+    lower id decides, the higher waits on it, so the waits stay acyclic."""
     return sorted(r["id"] for r in runs_at_head
-                  if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r))
+                  if r["id"] != ctx["run_id"] and r["status"] not in ("completed", "action_required") and not judging(r)
+                  and not (r["id"] > ctx["run_id"] and started(r)))
 
 
 def deferral(ids: list) -> str:
@@ -260,8 +285,9 @@ def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=
         ok, why = gate(ctx, api)
         waiting = busy(ctx, api["runs_at_head"])
         bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
-        if why == [deferral(waiting)] and deferring(kind, pr, claim):
-            bound = 0                           # C3: that busy code run's gate is the later verdict; hold no runner
+        if why == [deferral(waiting)] and deferring(kind, pr, claim) and not all(
+                started(r) for r in api["runs_at_head"] if r["id"] in waiting):
+            bound = 0                           # C3: a waited run's gate is the later verdict; hold no runner
         if ok or now() - t0 + POLL_S > bound:
             break
         if why != [deferral(waiting)]:
@@ -505,6 +531,57 @@ def self_test() -> int:
     verdict(ectx, get, nap, now, {"kind": "edit", "pr": "7"})
     check("... null control: the same gate with the full edit workset waits on it, bounded, as before",
           (bool(naps), sum(naps) <= GATE_WAIT_MAX_S), (True, True))
+    # r10-gate-busy-defer: #3241 head 95c7e604, attempt 2 -- two deferring edit
+    # runs, each gate listed, each read the other as busy (its pr-contract never
+    # listed), so both published the deferral and no gate judged.
+    lo, hi = 42192623509, 42193153511
+    at_gate = deferred + [{"name": "gate", "status": "in_progress", "conclusion": None, "id": 9}]
+    pair = [{"id": i, "title": title("edit", "7", "main", "M"), "status": "in_progress",
+             "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in at_gate}} for i in (lo, hi)]
+    check("busy-defer: of two started gates at one head the lower id defers to none, the higher to the lower",
+          (busy({**ctx, "run_id": lo}, pair), busy({**ctx, "run_id": hi}, pair)), ([], [lo]))
+    coded = run(99, "code", "completed", owed("code")[:-1] + [{"name": "gate", "status": "completed",
+                                                                "conclusion": "success", "id": 9}])
+    get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", at_gate)], me=lo, mine=deferred)
+    check("busy-defer: the lower deferring edit gate judges at once beside the higher one",
+          (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("PASS", []))
+    get, naps, nap, now = scene([coded, run(lo, "edit", "in_progress", at_gate)],
+                                [coded, run(lo, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
+                                                                          "conclusion": "success", "id": 9}])],
+                                me=hi, mine=deferred)
+    check("busy-defer: the higher deferring edit gate waits on the lower (an edit run, not C3's code run), "
+          "then judges, never a red deferral", (verdict({**ectx, "run_id": hi}, get, nap, now, eclaim3), naps),
+          ("PASS", [POLL_S]))
+    early = [{"id": lo, "title": title("code", "7", "main", "M"), "status": "in_progress",
+              "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in owed("code", gate=False, state="in_progress")}}]
+    check("busy-defer null: a genuinely earlier run still adding sources is still deferred to",
+          busy({**ctx, "run_id": hi}, early), [lo])
+    late_busy = [{**early[0], "id": hi}]
+    check("busy-defer null: a later run whose gate is not listed is still deferred to (no gate yet: it adds sources)",
+          busy({**ctx, "run_id": lo}, late_busy), [hi])
+    late_waiting = [{**early[0], "id": hi, "jobs": {**early[0]["jobs"], "gate": ("waiting", None)}}]
+    check("busy-defer null (R3-2 EARLY): a later run whose gate is listed `waiting` beside running units is "
+          "still deferred to", busy({**ctx, "run_id": lo}, late_waiting), [hi])
+    # #3246 review: the same deferring gate (lo) beside a LATER edit run (hi) still
+    # in its prelude, the code run done. hi's prelude waits on lo (judging() reads
+    # a deferring run busy), so lo's gate must not wait on hi: it publishes at once.
+    for label, hi_jobs in (("still in its prelude", in_prelude),
+                           ("in its prelude, gate listed `waiting` (R3-2)",
+                            in_prelude + [{"name": "gate", "status": "waiting", "conclusion": None, "id": 9}])):
+        get, naps, nap, now = scene([coded, run(hi, "edit", "in_progress", hi_jobs)], me=lo, mine=deferred)
+        check(f"prelude/gate cycle: a deferring gate beside a later edit run {label} publishes at once",
+              (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps), ("FAIL " + deferral([hi]), []))
+    # #3246 round 2: the same scene with an EARLIER deferring edit run whose gate has
+    # started beside hi. C3 waits only when ALL waited runs have started their gate;
+    # read as ANY, lo waits on hi while hi's prelude waits on lo (the 720 s cycle).
+    early_gate = 42192000000
+    get, naps, nap, now = scene([coded, run(early_gate, "edit", "in_progress",
+                                            deferred + [{"name": "gate", "status": "in_progress",
+                                                         "conclusion": None, "id": 9}]),
+                                 run(hi, "edit", "in_progress", in_prelude)], me=lo, mine=deferred)
+    check("prelude/gate cycle: a deferring gate beside an earlier started gate and a later edit run in its "
+          "prelude publishes at once", (verdict({**ectx, "run_id": lo}, get, nap, now, eclaim3), naps),
+          ("FAIL " + deferral([early_gate, hi]), []))
     done_edit = run(101, "edit", "completed", deferred + [{"name": "gate", "status": "completed",
                                                            "conclusion": "failure", "id": 9}])
     get, naps, nap, now = scene([done_edit])
