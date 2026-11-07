@@ -152,16 +152,21 @@ def run_lane(lane: str, out: Path) -> dict:
     (tmp / "lane.sh").write_text("\n".join(script) + "\n")
     trace = out / f"{lane}.strace"
     t0 = time.time()
-    p = subprocess.run(["/usr/bin/strace", "-f", "-qq", "-y", "-s", "4096", "-o", str(trace),
+    # The full log runs to gigabytes on the self-test lane: strace pipes it
+    # through awk, which keeps only the lines naming dev/programme and
+    # counts every line, so a lane that traced nothing reads as 0, not clean.
+    sink = f"|awk '/dev\\/programme/ {{ print > \"{trace}\" }} END {{ print NR > \"{trace}.n\" }}'"
+    p = subprocess.run(["/usr/bin/strace", "-f", "-qq", "-y", "-s", "4096", "-o", sink,
                         "-e", "trace=%file,execve,getdents64", "bash", str(tmp / "lane.sh")],
                        env=env, capture_output=True, text=True)
     exits = dict(re.findall(r"::exit (\d+) (\d+)", p.stdout))
     for e in listed:
         if e["ran"]:
             e["exit"] = int(exits.get(str(e["i"]), -1))
+    trace.touch()
     hits = scan(trace, clone)
     return {"lane": lane, "steps": listed, "hits": hits, "seconds": round(time.time() - t0),
-            "trace_lines": sum(1 for _ in trace.open(errors="replace"))}
+            "trace_lines": int(Path(f"{trace}.n").read_text().strip() or 0) if Path(f"{trace}.n").exists() else 0}
 
 
 def scan(trace: Path, clone: Path) -> list[str]:
