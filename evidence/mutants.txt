@@ -1,0 +1,21 @@
+== M4-overlap-arm-removed
+ tools/ci/sweep.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 1
+FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 2
+sweep self-test: 33 checks, 2 failed
+gate self-test: 77 checks, 0 failed
+== M3-late-arm-removed
+ tools/ci/sweep.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+FAIL settle: two gates that deferred to each other (each started before the other's units finished) are both re-run, the triggering run's included
+FAIL settle: a decider that ended red re-runs the gate that deferred to it, not itself
+FAIL settle: a gate still running is polled, then the deferral it leaves red is re-judged
+sweep self-test: 33 checks, 3 failed
+gate self-test: 77 checks, 0 failed
+== M8-judge-lag-bound-max
+ tools/ci/gate.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+M8: self-test did not finish within ~4 min; stopped, not counted (the body's M1 covers this line)
+== NULL-comment-only
+sweep self-test: 33 checks, 0 failed
