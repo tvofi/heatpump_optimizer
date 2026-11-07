@@ -264,8 +264,12 @@ class Head:
             return 200, {}, row[rid]
         r = self.runs[rid]
         s, c, seen = r["jobs"].get("gate", (None, None, self.sim.t + 1))
-        gate = {"name": "gate", "id": rid, "status": s, "conclusion": c, "started_at": stamp(r["gate_at"])}
-        return 200, {}, {"jobs": [gate] if seen <= self.sim.t else []}
+        gate = {"name": "gate", "id": rid, "status": s, "conclusion": c, "started_at": stamp(r["gate_at"]),
+                "completed_at": stamp(seen) if s == "completed" else None}
+        others = [{"name": k, "id": rid, "status": st, "conclusion": cc,     # sweep.settle reads their stamps
+                   "completed_at": stamp(at) if st == "completed" else None}
+                  for k, (st, cc, at) in r["jobs"].items() if k != "gate" and at <= self.sim.t]
+        return 200, {}, {"jobs": ([gate] if seen <= self.sim.t else []) + others}
 
     def sweep_post(self, path, body=None):
         rid = int(path.split("/jobs/")[1].split("/")[0])
