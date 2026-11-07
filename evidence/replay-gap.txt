@@ -1,0 +1,38 @@
+head:
+2026-11-07T19:30:00Z 3 WAIT a38bd141ec8b42fc8d2bcd17090be1814ca97d83 pending: gate red: none
+base:
+Traceback (most recent call last):
+  File "/tmp/tmp.tbTIjOHq2r/replay_gap.py", line 27, in <module>
+    print(T, *mt.classify_cmd(t, "a38bd141ec8b42fc8d2bcd17090be1814ca97d83", None, False))
+              ^^^^^^^^^^^^^^^
+AttributeError: module 'mt' has no attribute 'classify_cmd'. Did you mean: 'classified'?
+head:
+2026-11-07T20:03:00Z 1 RED a38bd141ec8b42fc8d2bcd17090be1814ca97d83 pending: none red: gate
+base:
+Traceback (most recent call last):
+  File "/tmp/tmp.tbTIjOHq2r/replay_gap.py", line 27, in <module>
+    print(T, *mt.classify_cmd(t, "a38bd141ec8b42fc8d2bcd17090be1814ca97d83", None, False))
+              ^^^^^^^^^^^^^^^
+AttributeError: module 'mt' has no attribute 'classify_cmd'. Did you mean: 'classified'?
+head:
+2026-11-07T20:04:00Z 1 RED a38bd141ec8b42fc8d2bcd17090be1814ca97d83 pending: none red: gate
+base:
+Traceback (most recent call last):
+  File "/tmp/tmp.tbTIjOHq2r/replay_gap.py", line 27, in <module>
+    print(T, *mt.classify_cmd(t, "a38bd141ec8b42fc8d2bcd17090be1814ca97d83", None, False))
+              ^^^^^^^^^^^^^^^
+AttributeError: module 'mt' has no attribute 'classify_cmd'. Did you mean: 'classified'?
+head:
+2026-11-07T20:07:00Z 0 GREEN a38bd141ec8b42fc8d2bcd17090be1814ca97d83 pending: none red: none
+base:
+Traceback (most recent call last):
+  File "/tmp/tmp.tbTIjOHq2r/replay_gap.py", line 27, in <module>
+    print(T, *mt.classify_cmd(t, "a38bd141ec8b42fc8d2bcd17090be1814ca97d83", None, False))
+              ^^^^^^^^^^^^^^^
+AttributeError: module 'mt' has no attribute 'classify_cmd'. Did you mean: 'classified'?
+base 364353e67:
+2026-11-07T19:30:00Z red [] ['gate']
+base 364353e67:
+2026-11-07T20:03:00Z red [] ['gate']
+base 364353e67:
+2026-11-07T20:07:00Z green [] []

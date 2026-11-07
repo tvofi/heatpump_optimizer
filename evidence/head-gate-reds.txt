@@ -1,0 +1,2 @@
+2026-11-07T19:53:38Z	114887946321			https://github.com/tvofi/heatpump_optimizer/actions/runs/42406706258/job/128507622651
+2026-11-07T19:19:15Z	114882436719			https://github.com/tvofi/heatpump_optimizer/actions/runs/42404527136/job/128499580417

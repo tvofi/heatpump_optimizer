@@ -1,0 +1,7 @@
+  ok   RECOMMENDED is the owner's six, each a flag batch accepts
+  ok   add --auto (bus.sh's event add): the same started train, the comment left for admit_add to fill; --auto with `--` flags is refused
+merge_train self-test: 492 checks, 0 failed
+ok   (l) the wait polls at the configured cadence
+proof_watch self-test: 44 checks, 0 failed
+  ok   the loop sleeps POLL_S between cycles (slept 240)
+ci-watch self-test: 18 checks, 0 failed
