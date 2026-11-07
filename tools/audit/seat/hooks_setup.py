@@ -247,6 +247,10 @@ def cases() -> dict[str, bool]:
             _run_hook(h, quiet) == "" for h in ("liveness.py", "seat_interpreter.py", "git_identity.py"))
         s, fd = _fixture_state(tmp / "ident")
         os.close(fd)
+        # the fixture state holds orch-checkout but no venv-ci, so seat_venv.sh --check refuses
+        out = _run_hook("seat_interpreter.py", s)
+        res["seat-interpreter: a refusing seat_venv.sh --check prints SEAT-INTERPRETER refused"] = (
+            out.startswith("SEAT-INTERPRETER refused: seat_venv: no venv at") and "seat_venv.sh" in out)
         (s / "git-identity").write_text("Seat Name\nseat@example.invalid\n")
         first = _run_hook("git_identity.py", s)
         repo = (s / "orch-checkout").read_text().strip()
@@ -268,6 +272,7 @@ MUTANTS = [  # (label, old text, new text): each must turn at least one case red
     ("install is not idempotent", "            if st == \"ok\":\n                continue\n", ""),
     ("liveness reads no dead loop", "            if f[2] == \"late\":", "            if False:"),
     ("liveness reads no stale digest", "if not ages or min(ages) > _env_min(", "if False and min(ages) > _env_min("),
+    ("seat-interpreter never reports", "    if r.returncode == 0:\n        return []\n", "    if True:\n        return []\n"),
 ]
 
 
@@ -284,7 +289,7 @@ def self_test(run_mutants: bool = True) -> int:
                 shutil.copytree(SEAT, tgt / "tools/audit/seat", ignore=shutil.ignore_patterns("__pycache__", "fixtures"))
                 (tgt / "tests").mkdir()
                 shutil.copy2(ROOT / "tests" / "throwaway_git.py", tgt / "tests" / "throwaway_git.py")
-                for f in ("hooks_setup.py", "hooks/liveness.py"):
+                for f in ("hooks_setup.py", "hooks/liveness.py", "hooks/seat_interpreter.py"):
                     p = tgt / "tools/audit/seat" / f
                     text = p.read_text()
                     if old in text:
