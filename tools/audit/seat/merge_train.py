@@ -516,7 +516,7 @@ def classify_cmd(t: "Train", sha: str, pr, on_main: bool) -> "tuple[int, str]":
     if runs is None:
         raise Stop("ci", f"the check runs at {sha[:12]} could not be read")
     req = t.required(pr_head=not on_main)
-    state, pending, red = classify(latest_runs(runs), req)
+    state, pending, red = t.classify_at(sha, runs, req)
     why = approval_owed(t, pr, sha, runs, req) if state == "red" and pr is not None else None
     if why:
         return 4, f"APPROVAL-OWED {sha} {why}"
@@ -1598,6 +1598,16 @@ class Train:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
             return []
         return gate_busy(ci_runs, check_runs)
+
+    def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
+        """`classify` over <h>'s check runs with a red GATE re-read against
+        `_gate_busy`: the deferral reading of the one-read readers (the
+        `classify` subcommand, proof_watch). One read takes no sweep settle;
+        that is `wait_ci`'s, which polls, and a caller's next read sees the sweep."""
+        last = latest_runs(runs or ())
+        state = classify(last, required)
+        busy = self._gate_busy(h, runs) if GATE in state[2] else []
+        return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,
                 beat: "str | None" = None) -> list[str]:
@@ -5978,6 +5988,8 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
             if "/actions/jobs/" in a and a.endswith("/logs"):
                 text = (logs or {}).get(int(a.rsplit("/", 2)[-2]), RAISE_LOG)
                 return (0, text) if text is not None else (1, "HTTP 410: logs expired")
+            if "actions/workflows/ci.yml/runs" in a:  # no ci.yml run at the head: nothing busy
+                return 0, ""
             if "check-runs" in a:
                 return 0, "\n".join(json.dumps(c) for c in runs)
             if a.endswith("rulesets --jq " + argv[-1]):
@@ -8047,7 +8059,9 @@ def main(argv: list[str]) -> int:
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
     if a.cmd in ("unstale", "classify"):
-        t = Train(a.repo, Path("."), None, "", (), a.min_runs)
+        # classify's stdout is its one verdict line; its deferral log goes to stderr
+        t = Train(a.repo, Path("."), None, "", (), a.min_runs,
+                  **({"log": lambda m: print(m, file=sys.stderr)} if a.cmd == "classify" else {}))
         try:
             if a.cmd == "unstale":
                 t.unstale(a.sha)

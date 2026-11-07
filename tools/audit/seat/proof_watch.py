@@ -200,21 +200,28 @@ class Watcher:
             raise Abort(f"could not read #{self.pr}'s mergeable state: {out.strip()[-200:]}")
         return out.strip()
 
-    def latest_by_name(self) -> dict[str, dict]:
+    def check_runs(self) -> list[dict]:
         code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
                               f"repos/{self.repo}/commits/{self.sha}/check-runs?per_page=100"])
         if code:
             raise Abort(f"could not read the check-runs at {self.sha[:12]}: {raw.strip()[-200:]}")
+        return _json_docs(raw)
+
+    def latest_by_name(self) -> dict[str, dict]:
         # The train's own reading, never a copy: `gate` per check suite, the
         # worst suite standing, success only (A5).
-        return _train().latest_runs(_json_docs(raw))
+        return _train().latest_runs(self.check_runs())
+
+    def train(self):
+        """merge_train's Train over this watch's runner: its readers, never copies."""
+        return _train().Train(self.repo, state=self.state, mandate=None,
+                              role="proof-watch", ignore=(), min_runs=0,
+                              run=self.run, sleep=self.sleep, log=self.say)
 
     def required_names(self) -> list[str]:
         """The ruleset's required contexts, through merge_train's own reader."""
         merge_train = _train()
-        t = merge_train.Train(self.repo, state=self.state, mandate=None,
-                              role="proof-watch", ignore=(), min_runs=0,
-                              run=self.run, sleep=self.sleep)
+        t = self.train()
         try:
             return t.required()
         except merge_train.Stop as e:
@@ -222,8 +229,9 @@ class Watcher:
                         f"against a guessed list: {e.step}: {e.why}") from e
 
     def required_state(self) -> tuple[list[str], list[str]]:
-        last = self.latest_by_name()
-        _, pending, red = _train().classify(last, self.required_names())
+        # A red gate that is an edit run's deferral, while gate.py's `busy`
+        # names a code run at the head, is pending (merge_train.classify_at).
+        _, pending, red = self.train().classify_at(self.sha, self.check_runs(), self.required_names())
         return red, pending
 
     # -- the verdict -------------------------------------------------------
