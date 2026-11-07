@@ -1,0 +1,3 @@
+bench {"arm": "owner_buffer_spread", "n": 20, "median_s": 1.376, "max_s": 2.742, "peak_rss": 82796} single_zone
+bench {"arm": "null_flat_nobuffer", "n": 20, "median_s": 0.716, "max_s": 1.055, "peak_rss": 83460} single_zone
+rc=0
