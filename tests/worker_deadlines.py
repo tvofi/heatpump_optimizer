@@ -363,6 +363,39 @@ def run(R, _parent: int) -> None:
                 f"raised {_wt_cap_err!r} after {_wt_cap_s:.2f} s; returned {len(_wt_cap_out or b'')} bytes; "
                 f"lock_free={_wt_cap_free} worker={_coord._PROCESS_WORKER!r}",
             )
+            # The cap bounds the WHOLE frame, not each read(): a reply of two
+            # 600 kB strings reads each under a 1 MB cap and totals 1.2 MB, and
+            # only the running count in ``_frame_reader`` refuses it. The null
+            # control is a total under the cap, which returns whole.
+            _coord._REPLY_FRAME_MAX_BYTES = 1_000_000
+            try:
+                _wt_cum_ok_err, _wt_cum_ok = _submit(
+                    _coord._run_in_process, tuple,
+                    ([bytes(400_000), bytes(400_000)],))
+                _wt_cum_t0 = _wt_time.monotonic()
+                _wt_cum_err, _wt_cum_out = _submit(
+                    _coord._run_in_process, tuple,
+                    ([bytes(600_000), bytes(600_000)],))
+                _wt_cum_s = _wt_time.monotonic() - _wt_cum_t0
+            finally:
+                _coord._REPLY_FRAME_MAX_BYTES = _wt_cap_saved
+            _wt_cum_free = _coord._PROCESS_LOCK.acquire(blocking=False)
+            if _wt_cum_free:
+                _coord._PROCESS_LOCK.release()
+            R.check(
+                "null control: a reply of two reads whose total is under the frame cap returns whole",
+                _wt_cum_ok_err is None and _wt_cum_ok is not None
+                and tuple(len(b) for b in _wt_cum_ok) == (400_000, 400_000),
+                f"raised {_wt_cum_ok_err!r}",
+            )
+            R.check(
+                "a reply whose reads each fit the frame cap but whose total exceeds it is refused and the worker reaped",
+                isinstance(_wt_cum_err, _coord.ProcessWorkerUnavailable)
+                and "exceeds 1000000 bytes" in str(_wt_cum_err) and _wt_cum_out is None
+                and _wt_cum_free and _coord._PROCESS_WORKER is None,
+                f"raised {_wt_cum_err!r} after {_wt_cum_s:.2f} s; returned {_wt_cum_out!r}; "
+                f"lock_free={_wt_cum_free} worker={_coord._PROCESS_WORKER!r}",
+            )
         finally:
             _coord._REPLY_FRAME_TIMEOUT_S = _wt_frame_saved
         _coord.PROCESS_REPLY_TIMEOUT_S = 0.5
