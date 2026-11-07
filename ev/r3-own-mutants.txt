@@ -1,0 +1,5 @@
+part-hit-or-swap rc= 1 KILLED ["FAIL since-tag: a real-shaped merge subject names its group by the topic branch: ['R10-STORE']", "FAIL since-tag: a clean merge's change is read against its first parent: ['R10-STORE']"]
+part-endswith rc= 1 KILLED ['FAIL since-tag: part branches credit their group by the longest roster topic they extend, once each: []', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
+part-hit-ignored rc= 1 KILLED ['FAIL since-tag: part branches credit their group by the longest roster topic they extend, once each: []', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
+part-no-squash-after-topic rc= 0 SURVIVED []
+part-sep-underscore rc= 1 KILLED ['FAIL since-tag: part branches credit their group by the longest roster topic they extend, once each: []', "FAIL the unmutated copy's self-test exits 0 (null control): rc=1"]
