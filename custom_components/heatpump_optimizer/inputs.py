@@ -1127,61 +1127,48 @@ class InputReturnWatch:
     ``missing_entity`` until the next scheduled update, one
     ``optimization_interval`` later, with every learner frozen and the planner
     steering from the value pinned before it. The watch reads nothing itself:
-    ``refresh`` is the coordinator's debounced ``async_request_refresh``, so the
-    returned value passes every guard a scheduled read applies, and one they
-    reject keeps the learners frozen. Each entity asks at most once per
-    ``spacing_s`` (one update interval), so a sensor flapping between
-    ``unavailable`` and a value costs one extra update per interval, not one
-    per flap.
+    ``request`` asks the owner for a refresh, so the returned value passes
+    every guard a scheduled read applies, and one they reject keeps the
+    learners frozen.
+
+    Its edges are injected, as the reader's clock is: ``track(entity_ids,
+    action)`` subscribes ``action`` to those entities' state changes and
+    returns the unsubscribe; ``request()`` asks for a refresh. So this module
+    imports no Home Assistant and holds no reference to its owner.
+
+    A request can be dropped: Home Assistant's debouncer discards a call while
+    a cycle is in flight. So a return stays pending until a read has run after
+    it (``arm`` is that read's snapshot), and only a re-read that ran starts the
+    ``spacing_s`` hold. A second return before that read asks again; one inside
+    ``spacing_s`` of a re-read asks for nothing, which bounds a sensor flapping
+    between ``unavailable`` and a value at one extra update per interval.
     """
 
     def __init__(
         self,
-        hass: Any,
-        refresh: Callable[[], Any],
+        track: Callable[[list[str], Callable[[Any], None]], Callable[[], None]],
+        request: Callable[[], Any],
         spacing_s: float,
         clock: Callable[[], float] = time.monotonic,
     ) -> None:
-        self.hass = hass
-        self.refresh = refresh
+        self.track = track
+        self.request = request
         self.spacing_s = float(spacing_s)
         self.clock = clock
         self.released = False
         self._entities: frozenset[str] = frozenset()
         self._unsub: Callable[[], None] | None = None
-        self._asked_at: dict[str, float] = {}
-
-    @classmethod
-    def of(cls, owner: Any) -> InputReturnWatch:
-        """``owner``'s watch, created on first use: its hass, its debounced
-        ``async_request_refresh`` and one ``update_interval`` of spacing."""
-        watch = _RETURN_WATCHES.get(owner)
-        if watch is None:
-            interval = getattr(owner, "update_interval", None)
-            watch = cls(
-                owner.hass,
-                owner.async_request_refresh,
-                interval.total_seconds() if isinstance(interval, timedelta) else 0.0,
-            )
-            _RETURN_WATCHES[owner] = watch
-        return watch
-
-    @classmethod
-    def arm_for(cls, owner: Any, health: InputHealth) -> None:
-        """Arm ``owner``'s watch on this cycle's ``health``."""
-        watch: InputReturnWatch = cls.of(owner)
-        watch.arm(health)
-
-    @classmethod
-    def release_for(cls, owner: Any) -> None:
-        """Release ``owner``'s watch; one that never armed is created released."""
-        watch: InputReturnWatch = cls.of(owner)
-        watch.release()
+        self._pending: set[str] = set()
+        self._reread_at: dict[str, float] = {}
 
     def arm(self, health: InputHealth) -> None:
-        """Watch exactly the entities ``health`` found absent or valueless."""
+        """Take a read's snapshot: settle what it re-read, watch what it lacked."""
         if self.released:
             return
+        now = self.clock()
+        for entity_id in self._pending:
+            self._reread_at[entity_id] = now
+        self._pending.clear()
         wanted = frozenset(
             reading.entity_id
             for reading in health.readings.values()
@@ -1191,18 +1178,8 @@ class InputReturnWatch:
             return
         self._drop()
         self._entities = wanted
-        if not wanted:
-            return
-        from homeassistant.core import callback
-        from homeassistant.helpers.event import async_track_state_change_event
-
-        @callback
-        def _changed(event: Any) -> None:
-            self._on_event(event)
-
-        self._unsub = async_track_state_change_event(
-            self.hass, sorted(wanted), _changed
-        )
+        if wanted:
+            self._unsub = self.track(sorted(wanted), self._on_event)
 
     def _on_event(self, event: Any) -> None:
         data = getattr(event, "data", {})
@@ -1213,12 +1190,11 @@ class InputReturnWatch:
             or not has_value(data.get("new_state"))
         ):
             return
-        now = self.clock()
-        asked = self._asked_at.get(entity_id)
-        if asked is not None and now - asked < self.spacing_s:
+        reread = self._reread_at.get(entity_id)
+        if reread is not None and self.clock() - reread < self.spacing_s:
             return
-        self._asked_at[entity_id] = now
-        self.hass.async_create_task(self.refresh())
+        self._pending.add(entity_id)
+        self.request()
 
     def _drop(self) -> None:
         unsub, self._unsub = self._unsub, None
@@ -1230,10 +1206,7 @@ class InputReturnWatch:
         self.released = True
         self._drop()
         self._entities = frozenset()
-
-
-#: Per coordinator, its return watch: ``boost.py``'s side-table precedent.
-_RETURN_WATCHES: WeakKeyDictionary[Any, InputReturnWatch] = WeakKeyDictionary()
+        self._pending.clear()
 
 
 def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:

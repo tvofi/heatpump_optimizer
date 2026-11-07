@@ -258,8 +258,7 @@ and the supporting modules `accuracy`, `away`, `boost`, `currency`, `debugger`, 
 `dhw_learning`, `diagnostics`, `early_cutoff`, `entity`, `issues`, `legionella`, `notifier`, `pump_arbiter`, `repairs`, `services`,
 `store`. One module outside that set touches it at all: `inputs`
 reaches for `homeassistant.util.dt` inside a function, as the fallback when no
-clock function was injected, and for the state-change listener inside
-`InputReturnWatch.arm`, registered only while a configured input is absent.
+clock function was injected.
 
 The other 56 modules are deliberately free of it, so each can be driven
 directly by `tests/features.py` with no Home Assistant running. That matters

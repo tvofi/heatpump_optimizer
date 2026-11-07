@@ -30342,6 +30342,10 @@ R.section("A configured input that returns is re-read at once, not one interval 
 # refresh as soon as an input the last read found absent or valueless reports
 # a value. The re-read goes through the real `_update_current_state` here, so
 # every guard a scheduled read applies applies to the returned value too.
+import gc as _ir_gc  # noqa: E402
+import weakref as _ir_weakref  # noqa: E402
+
+_IR_SPACING_S = 15 * 60.0
 
 
 def _ir_event(entity_id, state):
@@ -30355,8 +30359,13 @@ def _ir_fire(hass, entity_id, state):
             action(_ir_event(entity_id, state))
 
 
-def _ir_rig(indoor=None):
-    """A coordinator whose first read finds ``indoor`` (absent when None)."""
+def _ir_rig(indoor=None, *, stub_refresh=True):
+    """A coordinator whose first read finds ``indoor`` (absent when None).
+
+    ``stub_refresh`` replaces the refresh with the cycle's input half (the
+    real read, every real guard); without it the real debounced
+    ``async_request_refresh`` is what a return reaches.
+    """
     import homeassistant.util.dt as _ir_dt
 
     states = {"sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_LF_T0)}
@@ -30377,31 +30386,32 @@ def _ir_rig(indoor=None):
     refreshes = []
 
     async def _refresh():
-        # The scheduled cycle's input half: the real read, every real guard.
         refreshes.append(1)
         await coord._update_current_state()
 
-    coord.async_request_refresh = _refresh
+    if stub_refresh:
+        coord.async_request_refresh = _refresh
     clock = [1000.0]
-    real = (_ir_dt.now, _ir_dt.utcnow)
-    _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
-    try:
-        _asyncio.run(coord._update_current_state())
-    finally:
-        _ir_dt.now, _ir_dt.utcnow = real
-    watch = getattr(inputs_mod, "_RETURN_WATCHES", {}).get(coord)
+    # getattr: at a tree without the watch the checks below fail, not crash.
+    watch = getattr(coord, "_input_returns", None)
     if watch is not None:
         watch.clock = lambda: clock[0]
+    real = (_ir_dt.now, _ir_dt.utcnow)
 
-    def run_tasks():
+    def run(coro):
         _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
         try:
-            while tasks:
-                _asyncio.run(tasks.pop(0))
+            _asyncio.run(coro)
         finally:
             _ir_dt.now, _ir_dt.utcnow = real
 
-    return coord, hass, tasks, refreshes, clock, run_tasks
+    run(coord._update_current_state())
+
+    def run_tasks():
+        while tasks:
+            run(tasks.pop(0))
+
+    return coord, hass, tasks, refreshes, clock, run_tasks, run
 
 
 def _ir_watched(hass):
@@ -30409,11 +30419,15 @@ def _ir_watched(hass):
         e for ids, _a in getattr(hass, "state_listeners", []) for e in ids)
 
 
-_ir_c, _ir_h, _ir_tasks, _ir_refreshes, _ir_clock, _ir_run = _ir_rig()
+def _ir_indoor(coord):
+    return coord._input_health.readings["indoor_temp_entity"]
+
+
+_ir_c, _ir_h, _ir_tasks, _ir_refreshes, _ir_clock, _ir_run, _ir_do = _ir_rig()
 R.check(
     "precondition: an indoor entity absent at the first read is missing_entity "
     "and freezes the learners",
-    _ir_c._input_health.readings["indoor_temp_entity"].problem == "missing_entity"
+    _ir_indoor(_ir_c).problem == "missing_entity"
     and _ir_c._learning_frozen("indoor_temp_entity")
     == "missing_entity:indoor_temp_entity",
     f"got {_ir_c._learning_frozen('indoor_temp_entity')!r}",
@@ -30444,7 +30458,7 @@ R.check(
     "that refresh re-reads it: the input is ok, the learners unfreeze, the "
     "planner's room temperature is the reading",
     _ir_refreshes == [1]
-    and _ir_c._input_health.readings["indoor_temp_entity"].ok
+    and _ir_indoor(_ir_c).ok
     and _ir_c._learning_frozen("indoor_temp_entity") is None
     and _ir_c._current_state.room_temperature == 21.3,
     f"refreshes {_ir_refreshes}, "
@@ -30458,30 +30472,72 @@ R.check(
 )
 
 # A flapping sensor: absent again at the next scheduled read, back within the
-# same interval. One extra refresh per entity per interval, not one per flap.
+# same interval. The hold runs from the re-read (at clock 1000.0), one
+# interval long, so one extra refresh per entity per interval, not one per flap.
 _ir_h.states._states.pop("sensor.indoor")
-_ir_run_read = _ir_c._update_current_state
-_ir_tasks.append(_ir_run_read())
-_ir_run()
-_ir_clock[0] += 60.0
+_ir_do(_ir_c._update_current_state())
+_ir_clock[0] = 1000.0 + _IR_SPACING_S - 1.0
 _ir_fire(_ir_h, "sensor.indoor", _ir_back)
 R.check(
-    "a second return inside one interval of the first ask asks for nothing",
+    "a return one second short of an interval after the re-read asks for nothing",
     not _ir_tasks and _ir_watched(_ir_h) == ["sensor.indoor"],
     f"{len(_ir_tasks)} requested, watched {_ir_watched(_ir_h)}",
 )
-_ir_clock[0] += 15 * 60.0
+_ir_clock[0] = 1000.0 + _IR_SPACING_S
 _ir_fire(_ir_h, "sensor.indoor", _ir_back)
 R.check(
-    "a return a full interval after the last ask asks again",
+    "a return exactly one interval after the re-read asks again",
     len(_ir_tasks) == 1,
     f"{len(_ir_tasks)} refreshes requested",
 )
 _ir_tasks.clear()
 
+# A return while a cycle is in flight. Home Assistant's debouncer discards a
+# call while it is executing; the real `async_request_refresh` meets the stub's
+# copy of that branch here. A request that never became a read must not start
+# the hold, or the next return would wait a whole interval.
+_ir_f, _ir_fh, _ir_ft, _ir_fr, _ir_fc, _ir_frun, _ir_fdo = _ir_rig(stub_refresh=False)
+_ir_fh.states.set("sensor.indoor", _ir_back)
+_ir_f._debounced_refresh._executing = True
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+_ir_asked = len(_ir_ft)
+_ir_frun()
+R.check(
+    "precondition: a return during an in-flight cycle is asked for and "
+    "dropped by the debouncer, so nothing was re-read",
+    _ir_asked == 1 and _ir_f.refresh_requests == 1
+    and _ir_indoor(_ir_f).problem == "missing_entity",
+    f"asked {_ir_asked}, requests {_ir_f.refresh_requests}, "
+    f"indoor {_ir_indoor(_ir_f).problem}",
+)
+_ir_f._debounced_refresh._executing = False
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "the next report after a dropped request asks again",
+    len(_ir_ft) == 1,
+    f"{len(_ir_ft)} refreshes requested",
+)
+for _ir_coro in _ir_ft:
+    _ir_coro.close()
+_ir_ft.clear()
+# The in-flight cycle's own read, or any later one, is a re-read: it settles
+# the pending return and starts the hold.
+_ir_fdo(_ir_f._update_current_state())
+_ir_fh.states._states.pop("sensor.indoor")
+_ir_fdo(_ir_f._update_current_state())
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "a read after the return settles it: the next return inside the hold "
+    "asks for nothing",
+    not _ir_ft,
+    f"{len(_ir_ft)} refreshes requested",
+)
+
 # The guards still decide. A value twelve hours old comes back: the re-read
 # runs, rejects it as stale, and the learners stay frozen.
-_ir_s, _ir_sh, _ir_st, _ir_sr, _ir_sc, _ir_srun = _ir_rig()
+_ir_s, _ir_sh, _ir_st, _ir_sr, _ir_sc, _ir_srun, _ = _ir_rig()
 _ir_old = FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12))
 _ir_sh.states.set("sensor.indoor", _ir_old)
 _ir_fire(_ir_sh, "sensor.indoor", _ir_old)
@@ -30494,40 +30550,68 @@ R.check(
     f"refreshes {_ir_sr}, got {_ir_s._learning_frozen('indoor_temp_entity')!r}",
 )
 
+# `unavailable` is watched as `missing_entity` is: an entity HA holds, with no
+# value, that then reports one.
+_ir_u, _ir_uh, _ir_ut, _ir_ur, _ir_uc, _ir_urun, _ = _ir_rig(
+    FakeState("unavailable", unit="°C", last_updated=_LF_T0))
+_ir_uh.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_uh, "sensor.indoor", _ir_back)
+_ir_urun()
+R.check(
+    "an input read as unavailable is watched and re-read when it reports a value",
+    _ir_watched(_ir_uh) == [] and _ir_ur == [1] and _ir_indoor(_ir_u).ok,
+    f"refreshes {_ir_ur}, indoor {_ir_indoor(_ir_u).problem}",
+)
+
 # Released with the entry (#236): the listener goes, and no later read re-arms.
-_ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun = _ir_rig()
+_ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo = _ir_rig()
 _ir_r._release_registrations()
 _ir_released = _ir_watched(_ir_rh)
-_ir_rt.append(_ir_r._update_current_state())
-_ir_rrun()
+_ir_rdo(_ir_r._update_current_state())
 R.check(
     "releasing the entry drops the watch, and a read after it registers none",
     _ir_released == [] and _ir_watched(_ir_rh) == [],
     f"after release {_ir_released}, after a later read {_ir_watched(_ir_rh)}",
 )
+# And nothing the watch holds keeps the coordinator alive: a module-level
+# table keyed by the coordinator, whose value held its bound refresh, pinned
+# every coordinator for the life of the process -- one per reload and per
+# ConfigEntryNotReady retry.
+_ir_ref = _ir_weakref.ref(_ir_r)
+del _ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo
+_ir_gc.collect()
+R.check(
+    "a released coordinator is collected",
+    _ir_ref() is None,
+    f"{len(_ir_gc.get_referrers(_ir_ref()))} referrers" if _ir_ref() else "",
+)
 
 # NULL CONTROL: a healthy install carries no listener at all, so the watch
 # cannot be what every healthy read pays for.
-_ir_n, _ir_nh, _ir_nt, _ir_nr, _ir_nc, _ir_nrun = _ir_rig(
+_ir_n, _ir_nh, _ir_nt, *_ = _ir_rig(
     FakeState("21.0", unit="°C", last_updated=_LF_T0))
 R.check(
     "null control: a read with every configured input usable watches nothing",
-    _ir_n._input_health.readings["indoor_temp_entity"].ok
-    and _ir_watched(_ir_nh) == [] and not _ir_nt,
+    _ir_indoor(_ir_n).ok and _ir_watched(_ir_nh) == [] and not _ir_nt,
     f"watched {_ir_watched(_ir_nh)}",
 )
 # A design choice, pinned: only absence and no-value are watched. A sensor
 # reporting a word (or a fault code, or a unit the reader cannot convert) is
-# present and reporting; its next event vouches for nothing the re-read could
-# accept, so watching it would buy one extra update per interval for as long
-# as it stays broken.
-_ir_w, _ir_wh, _ir_wt, _ir_wr, _ir_wc, _ir_wrun = _ir_rig(
-    FakeState("warm", unit="°C", last_updated=_LF_T0))
+# present and reporting, and a stale one re-reported unchanged fires no state
+# change at all; an event vouches for nothing the re-read could accept, so
+# watching either would buy one extra update per interval while it stays so.
+_ir_w, _ir_wh, *_ = _ir_rig(FakeState("warm", unit="°C", last_updated=_LF_T0))
 R.check(
     "a present input with an unusable value (not_numeric) is not watched",
-    _ir_w._input_health.readings["indoor_temp_entity"].problem == "not_numeric"
-    and _ir_watched(_ir_wh) == [],
+    _ir_indoor(_ir_w).problem == "not_numeric" and _ir_watched(_ir_wh) == [],
     f"watched {_ir_watched(_ir_wh)}",
+)
+_ir_o, _ir_oh, *_ = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12)))
+R.check(
+    "a stale input is not watched",
+    _ir_indoor(_ir_o).problem == "stale" and _ir_watched(_ir_oh) == [],
+    f"watched {_ir_watched(_ir_oh)}",
 )
 
 
