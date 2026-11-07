@@ -158,17 +158,22 @@ def self_test(mutants: bool = True) -> int:
                                 ("no state ref, rc 2 and nothing written", None, 2)):
         with tempfile.TemporaryDirectory() as d:  # main() as the workflow runs it: no ident, the host's
             repo, out = Path(d) / "repo", Path(d) / "site"
-            g = ["git", "-c", "user.name=t", "-c", "user.email=t@t", "-C", str(repo)]
-            subprocess.run(["git", "init", "-q", str(repo)], check=True)
+            # tests/ beside this tool's own tree: a mutant copy's __file__ sits in a scratch directory
+            sys.path.insert(0, str(Path(ref_privacy.__file__).resolve().parents[3] / "tests"))
+            from throwaway_git import throwaway_git_init
+            env = throwaway_git_init(repo, "-q")
+            g = ["git", "-C", str(repo)]
             if body is not None:
                 f = repo / "handoff" / "round10" / "state" / state_docs.PLAN_PAGE
                 f.parent.mkdir(parents=True)
                 f.write_text(body)
-                subprocess.run(g + ["add", "-A"], check=True)
-                tree = subprocess.run(g + ["write-tree"], capture_output=True, text=True, check=True).stdout.strip()
-                sha = subprocess.run(g + ["commit-tree", tree, "-m", "state"], capture_output=True, text=True,
-                                     check=True).stdout.strip()
-                subprocess.run(g + ["update-ref", "refs/remotes/origin/handoff/audit-r10-plan", sha], check=True)
+                subprocess.run(g + ["add", "-A"], env=env, check=True)
+                tree = subprocess.run(g + ["write-tree"], env=env, capture_output=True, text=True,
+                                      check=True).stdout.strip()
+                sha = subprocess.run(g + ["commit-tree", tree, "-m", "state"], env=env, capture_output=True,
+                                     text=True, check=True).stdout.strip()
+                subprocess.run(g + ["update-ref", "refs/remotes/origin/handoff/audit-r10-plan", sha], env=env,
+                               check=True)
             try:
                 cl, io = __import__("contextlib"), __import__("io")
                 with cl.redirect_stdout(io.StringIO()), cl.redirect_stderr(io.StringIO()):
