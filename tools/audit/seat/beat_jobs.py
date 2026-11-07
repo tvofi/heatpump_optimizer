@@ -117,7 +117,7 @@ HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
 #: orchestrator_tick.py and ledger.py print; the self-test pins each literal there.
 FAMILY = re.compile(
     r"^(?:OWED\b|DISPATCH:|OWNER FLAG:|BLOCKED-UNFIXED:|DESIGN-BUILD:|UNREADABLE:|DESIGN OWED:"
-    r"|REVIEW OWED:|REVIEW STALLED:|UNLEVELLED:|APPROVAL-OWED:|MERGE-READY:|main-red "
+    r"|REVIEW OWED:|RECORD-OWED:|REVIEW STALLED:|UNLEVELLED:|APPROVAL-OWED:|MERGE-READY:|main-red "
     r"|main \S+: REQUIRED not green"
     r"|#\d+: (?:RAISE APPROVAL OWED|NOT REVIEWABLE|mergeable state DIRTY|RED unanswered"
     r"|code-owned with no \S+ review))")

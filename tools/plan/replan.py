@@ -201,7 +201,7 @@ def groups_of(roster: dict) -> dict:
 
 
 def is_done(group: dict) -> bool:
-    return (group.get("resume") or {}).get("stage") in ("done", "rca-done")
+    return not roster_lib.is_open(group)
 
 
 def roster_lane(group: dict) -> str:
@@ -1298,6 +1298,12 @@ def selftest() -> int:
             failures.append(name)
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    absorbed = dict(roster, groups=roster["groups"] + [
+        {"group": "X", "size": "S", "lane": "Core model", "kind": "defect",
+         "after": [], "resume": {"stage": "absorbed", "absorbed_into": "A"}}])
+    pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
+           str(pa["groups"].get("X")))
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("deterministic: two runs are byte-identical",
            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
