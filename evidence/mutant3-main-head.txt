@@ -1,0 +1,3 @@
+  FAIL rows gate: main's rule 5 passes the stamp head
+  FAIL rows gate: main() runs the disposition gate, before the manifest rule
+RESULT stamp_self_test=fail

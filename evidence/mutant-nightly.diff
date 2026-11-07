@@ -1,0 +1,49 @@
+diff --git a/.github/workflows/nightly.yml b/.github/workflows/nightly.yml
+index d45278add..b7c9c5adf 100644
+--- a/.github/workflows/nightly.yml
++++ b/.github/workflows/nightly.yml
+@@ -58,7 +58,7 @@ jobs:
+   # of one pool, so two half-runs would each judge their own half against a
+   # cap measured over the whole.
+   mutation-nightly:
+-    if: github.event_name != 'push' && inputs.lanes != 'beat'
++    if: github.event_name != 'push'
+     runs-on: ubuntu-latest
+     timeout-minutes: 330
+     steps:
+@@ -164,7 +164,7 @@ jobs:
+   # slice one runner would not have had the hours for. Each shard uploads its
+   # own artifact; the one push merges them (`merge_pin_shards`).
+   mutation-ledger:
+-    if: github.ref == 'refs/heads/main' && github.event_name != 'push' && inputs.lanes != 'beat'
++    if: github.ref == 'refs/heads/main' && github.event_name != 'push'
+     runs-on: ubuntu-latest
+     timeout-minutes: 330
+     strategy:
+@@ -284,7 +284,7 @@ jobs:
+     if: >-
+       !cancelled() && github.ref == 'refs/heads/main'
+       && (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+-      && inputs.lanes != 'beat'
++     
+       && needs.mutation-ledger.result == 'success'
+     environment: ledger
+     runs-on: ubuntu-latest
+@@ -428,7 +428,7 @@ jobs:
+             "${{ steps.record.outputs.status }}"
+ 
+   slow:
+-    if: github.event_name != 'push' && inputs.lanes != 'beat'
++    if: github.event_name != 'push'
+     runs-on: ubuntu-latest
+     timeout-minutes: 150
+     steps:
+@@ -520,7 +520,7 @@ jobs:
+   # the two cannot drift. tests.yml's own comment on that job carries the
+   # lane's history (#511, #2056, #533). Not a required context.
+   nightly-ha:
+-    if: github.event_name != 'push' && inputs.lanes != 'beat'
++    if: github.event_name != 'push'
+     runs-on: ubuntu-latest
+     timeout-minutes: 45
+     # Unrequired, and on a pull request its verdict is about the pull
