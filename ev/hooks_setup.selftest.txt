@@ -1,0 +1,10 @@
+hooks_setup: backed up to settings.json.bak-1794084194120087580
+hooks_setup: added liveness SessionStart
+hooks_setup: added liveness PostCompact
+hooks_setup: added seat-interpreter SessionStart
+hooks_setup: added git-identity SessionStart
+hooks_setup: nothing to change
+hooks_setup: backed up to settings.json.bak-1794084194121183386
+hooks_setup: corrected liveness SessionStart
+hooks_setup self-test: 19 checks, 0 failed
+rc=0
