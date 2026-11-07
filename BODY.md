@@ -29,10 +29,7 @@ none known at this head; CI not yet run.
 
 ## Forward-carry
 
-- Settle gap and the rest of the `classify` wait: Carry: R10-HOTFIX-TRAIN-DEFER-WAIT.
-- The six readers outside `classify`'s family, one shared deferral predicate, and an `agreement.mjs` registration: Carry: R10-HOTFIX-TRAIN-DEFER-WAIT (the registration is the owner's decision).
-- `orchestrator_tick.py` still describes the superseded 720 s wait: Carry: R10-HOTFIX-GATE-BUSY-DEFER.
-- `train.sh add <pr> --front` with no verdict (re-fronting a spooled entry) is not covered: Carry: R10-TRAIN-MERGE-LOOP-2.
+none routed by this seat: the four carries (settle gap; the six readers outside `classify`'s family and the shared predicate; `orchestrator_tick.py`'s stale 720 s text; `train.sh add <pr> --front` with no verdict) are written in the record's Forward-carry section with their owners. body_push refuses a `Carry:` line whose destination's brief does not hold it, and landing one is a push to the round's roster branch, which this seat may not make: the orchestrator lands them (carry_audit.py land-ops).
 
 ## Friction
 
