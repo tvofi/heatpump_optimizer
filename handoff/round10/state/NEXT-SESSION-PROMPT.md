@@ -40,7 +40,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-TRAIN-MERGE-LOOP (stage carries-open, branch `handoff/r10-train-merge-loop`): `git fetch origin handoff/r10-train-merge-loop && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SEAT-SINGLE-WRITER (stage absorbed, branch `handoff/r10-seat-single-writer`): `git fetch origin handoff/r10-seat-single-writer && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-SUITE-HOST-DETERMINISM (stage carries-open, branch `handoff/r10-suite-host-determinism`): `git fetch origin handoff/r10-suite-host-determinism && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-DISPATCH-AT-HANDOFF (stage in-progress, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-DISPATCH-AT-HANDOFF (stage carries-open, branch `handoff/r10-dispatch-at-handoff`): `git fetch origin handoff/r10-dispatch-at-handoff && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RAISE-GATE-SHIM (stage carries-open, branch `handoff/r10-raise-gate-shim`): `git fetch origin handoff/r10-raise-gate-shim && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WHY-NOW-WIDGET (stage in-progress, branch `handoff/r10-why-now-widget`): `git fetch origin handoff/r10-why-now-widget && git worktree add --detach $SEAT/wt FETCH_HEAD`
