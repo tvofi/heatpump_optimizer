@@ -34697,7 +34697,7 @@ _cb_opt = _MbOpt(
 # carry different bounds and a builder that ignores step_hours cannot pass.
 _cb_hours = np.array([12.0, 3.0])
 
-_cb_targets, _cb_min, _cb_max = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)
+_cb_targets, _cb_min, _cb_max, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)
 R.check(
     "with neither adjustment the envelope is exactly the configured band",
     list(_cb_targets) == [21.0, 19.5]
@@ -34708,7 +34708,7 @@ R.check(
     f"goldens move",
 )
 
-_, _cb_floor_min, _ = _cb_opt._build_comfort_bounds(
+_, _cb_floor_min, _, _ = _cb_opt._build_comfort_bounds(
     _cb_hours, 2, None, np.array([30.0, 30.0])
 )
 R.check(
@@ -34718,7 +34718,7 @@ R.check(
     f"which makes the solve infeasible and the comfort penalty unbounded",
 )
 
-_, _cb_neg_min, _ = _cb_opt._build_comfort_bounds(
+_, _cb_neg_min, _, _ = _cb_opt._build_comfort_bounds(
     _cb_hours, 2, np.array([-5.0, -5.0]), None
 )
 R.check(
@@ -34728,7 +34728,7 @@ R.check(
     f"a mis-signed model error now relaxes the floor it exists to raise",
 )
 
-_, _cb_short_min, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([1.0]), None)
+_, _cb_short_min, _, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([1.0]), None)
 R.check(
     "a short margin series pads with zero rather than shortening the horizon",
     list(_cb_short_min) == [20.0, 18.5],
@@ -52990,7 +52990,7 @@ def _g8_sat_comfort(holiday=False, **state_kw):
         ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
         _dc_replace(cfg, **bands),
     )
-    targets, _, _ = opt._build_comfort_bounds(
+    targets, _, _, _ = opt._build_comfort_bounds(
         np.array([14.0, 3.0]), 2, None, None,
         [_g8_sat.replace(hour=14), _g8_sat.replace(hour=3)],
     )

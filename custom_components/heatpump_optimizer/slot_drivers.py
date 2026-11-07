@@ -22,7 +22,7 @@ import numpy as np
 
 if TYPE_CHECKING:
     from .optimizer import OptimizationConfig, OptimizationResult, _Horizon
-    from .payload import CurrentAction, WhyNow
+    from .payload import CurrentAction, WhyNow, WhyNowDriver
 
 #: The five drivers, in the order a tie in weight is listed.
 DRIVER_CODES = ("price_rank", "comfort_floor", "mold_guard", "away", "forecast")
@@ -158,13 +158,11 @@ def why_now_at(result: OptimizationResult, i: int) -> WhyNow | None:
         return None
     if result.price_known and (i >= len(result.price_known) or not result.price_known[i]):
         return None
-    rows = sorted(
-        (
-            {"code": code, "direction": _direction(w), "weight": w}
-            for code in DRIVER_CODES
-            if code in drivers
-            for w in (float(drivers[code][i]),)
-        ),
-        key=lambda d: -abs(d["weight"]),
-    )
+    rows: list[WhyNowDriver] = [
+        {"code": code, "direction": _direction(w), "weight": w}
+        for code in DRIVER_CODES
+        if code in drivers
+        for w in (float(drivers[code][i]),)
+    ]
+    rows.sort(key=lambda d: -abs(d["weight"]))
     return {"t": result.timestamps[i].isoformat(), "drivers": rows}
