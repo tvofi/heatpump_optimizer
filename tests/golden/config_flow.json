@@ -984,7 +984,7 @@
    ],
    [
     "heat_curve",
-    "Heat curve control (ECL110)"
+    "Heat curve control"
    ],
    [
     "factory_reset",
@@ -1063,6 +1063,7 @@
   "flow_meter_entity": "sensor.seed_flow_meter_entity",
   "fuse_guard_enabled": true,
   "grid_fee_entity": "sensor.seed_grid_fee_entity",
+  "heat_curve_displace_entity": "sensor.seed_heat_curve_displace_entity",
   "heat_pump_backup_heater_entity": "sensor.seed_heat_pump_backup_heater_entity",
   "heat_pump_capacity_limited_entity": "sensor.seed_heat_pump_capacity_limited_entity",
   "heat_pump_defrost_entity": "sensor.seed_heat_pump_defrost_entity",
@@ -2652,6 +2653,36 @@
     "default": "''",
     "required": "Optional",
     "selector": "type"
+   },
+   "heat_curve_displace_entity": {
+    "config": {
+     "filter": "[{'domain': ['number', 'input_number']}]"
+    },
+    "default": "'sensor.seed_heat_curve_displace_entity'",
+    "required": "Optional",
+    "selector": "EntitySelector"
+   },
+   "heat_curve_offset_band_k": {
+    "config": {
+     "max": "5.0",
+     "min": "0.5",
+     "mode": "'box'",
+     "step": "'any'",
+     "unit_of_measurement": "'K'"
+    },
+    "default": "3.0",
+    "required": "Optional",
+    "selector": "NumberSelector"
+   },
+   "heat_curve_target_kind": {
+    "config": {
+     "mode": "'dropdown'",
+     "options": "['offset']",
+     "translation_key": "'heat_curve_target_kind'"
+    },
+    "default": "'offset'",
+    "required": "Optional",
+    "selector": "SelectSelector"
    }
   },
   "hot_water": {
@@ -5243,6 +5274,36 @@
    "default": "''",
    "required": "Optional",
    "selector": "type"
+  },
+  "heat_curve_displace_entity": {
+   "config": {
+    "filter": "[{'domain': ['number', 'input_number']}]"
+   },
+   "default": null,
+   "required": "Optional",
+   "selector": "EntitySelector"
+  },
+  "heat_curve_offset_band_k": {
+   "config": {
+    "max": "5.0",
+    "min": "0.5",
+    "mode": "'box'",
+    "step": "'any'",
+    "unit_of_measurement": "'K'"
+   },
+   "default": "3.0",
+   "required": "Optional",
+   "selector": "NumberSelector"
+  },
+  "heat_curve_target_kind": {
+   "config": {
+    "mode": "'dropdown'",
+    "options": "['offset']",
+    "translation_key": "'heat_curve_target_kind'"
+   },
+   "default": "'offset'",
+   "required": "Optional",
+   "selector": "SelectSelector"
   }
  },
  "hot_water": {
