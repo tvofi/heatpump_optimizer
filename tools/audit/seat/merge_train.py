@@ -5583,6 +5583,10 @@ def _unwind_self_test(check) -> None:
         "rec = open(sys.argv[1], 'a')\n"
         "def run(argv, cwd=None, stdin=None):\n"
         "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        # The fixture's /x is registered, so release_worktrees removes it rather than
+        # logging it already collected (#3245's train docs step) and the 2 s window opens.
+        "    if argv[:3] == ['git', 'worktree', 'list']:\n"
+        "        return 0, 'worktree /x\\n'\n"
         "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
         "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
         "    return 0, ''\n")
