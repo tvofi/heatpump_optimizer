@@ -2234,11 +2234,10 @@ def selftest() -> int:
            str(production_groups_since(real, G9)))
     expect("since-tag (null): the same merges with no code change credit nothing",
            production_groups_since([dict(c, diff=note) for c in real], G9) == [], "")
-    with tempfile.TemporaryDirectory() as gd:
+    with throwaway_git_environ(), tempfile.TemporaryDirectory() as gd:
         def g(*a):
-            return subprocess.run(["git", "-C", gd, "-c", "user.name=t", "-c", "user.email=t@x",
-                                   *a], capture_output=True, text=True)
-        g("init", "-q", "-b", "main")
+            return subprocess.run(["git", "-C", gd, *a], capture_output=True, text=True)
+        throwaway_git_init(gd, "-q", "-b", "main")
         (Path(gd) / "custom_components").mkdir()
         (Path(gd) / "custom_components" / "a.py").write_text("x = 0\n")
         g("add", "-A"), g("commit", "-q", "-m", "base"), g("tag", "v0")
