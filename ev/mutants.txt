@@ -1,0 +1,40 @@
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('FLUSH_POLL_S))', 2)
+== null rc=0
+RESULT stamp_self_test=pass
+== M1-stopign-real rc=1
+  FAIL a first TERM in batch 1's closing release stops the train: no second batch, exit 143
+merge_train self-test: 472 checks, 1 failed
+== M2-unwind-nostopignored rc=1
+  FAIL a train TERMed again during its unwind still deletes the hold ref
+  FAIL   and the hold DELETE is issued before the stop is delivered
+  FAIL   mutant (old SIG_IGN): the first TERM is discarded and batch 2 runs
+  FAIL   mutant (defer never re-raises): the stop is lost as well and batch 2 runs
+merge_train self-test: 472 checks, 4 failed
+== M3-stopping-false rc=0
+merge_train self-test: 472 checks, 0 failed
+== M4-deliver-pass rc=1
+  FAIL a first TERM in batch 1's closing release stops the train: no second batch, exit 143
+merge_train self-test: 472 checks, 1 failed
+== S1-dispatch-nohold rc=1
+  FAIL flush: a planted live hold is named, announced once, and spends no dispatch
+  FAIL flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+RESULT stamp_self_test=fail
+== S2-redispatch-nohold rc=1
+  FAIL flush: a planted live hold is named, announced once, and spends no dispatch
+  FAIL flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+RESULT stamp_self_test=fail
+== S3-no-giveback rc=1
+  FAIL flush: a dispatch sent before the hold appeared is taken back and sent again once it clears, and the flush still merges
+RESULT stamp_self_test=fail
+== S4-future rc=1
+  FAIL hold: a young one is live with sha, age and pid; a stale one, a future-dated one and an absent ref read as no hold
+RESULT stamp_self_test=fail
+== S5-bound-literal rc=1
+  FAIL hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read, not a literal here
+RESULT stamp_self_test=fail
+== S6-held-ignored rc=1
+  FAIL flush: a planted live hold is named, announced once, and spends no dispatch
+  FAIL flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+RESULT stamp_self_test=fail
