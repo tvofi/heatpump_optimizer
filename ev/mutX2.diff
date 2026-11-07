@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
+index c6189967d..092865008 100755
+--- a/tools/audit/seat/bus.sh
++++ b/tools/audit/seat/bus.sh
+@@ -387,7 +387,7 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
+     || { printf 'BUS refused %s %s: could not unpack the verdict tree\n' "$pr" "$c"; return 1; }
+   # Names come from the commit, not from the extracted directory: tar on a case-insensitive
+   # filesystem (APFS) has already folded HEAD.txt and head.txt into one file by then.
+-  if cc=$(git ls-tree -r --name-only "$c" -- evidence 2>/dev/null | case_collision_names); then
++  if false; then
+     why="evidence/ names collide case-insensitively: $cc"
+   elif [ ! -f "$d/VERDICT.md" ]; then why="the tree has no VERDICT.md"
+   else
