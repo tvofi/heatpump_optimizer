@@ -32,6 +32,7 @@ ok   a replan given no caps does not draw a 6-slot plan: the owner's 16, with pr
 ok   null control: a cap given on the command line is used and named as given
 ok   the plan records whose caps it drew at
 model self-test: 0 failed
+ok   an absorbed group is closed work, not scheduled
 ok   deterministic: two runs are byte-identical
 ok   the clean plan passes --check
 ok   the critical path runs A -> B -> D
@@ -125,6 +126,9 @@ ok   post-closure groups are outside the in-flight peak (null: none, same peak)
 ok   evidence: a stage-live group with only a design ref gets no live credit
 ok   since-tag: a real-shaped merge subject names its group by the topic branch
 ok   since-tag (null): the same merges with no code change credit nothing
+ok   since-tag: part branches credit their group by the longest roster topic they extend, once each
+ok   since-tag (null): an unrelated topic and a non-boundary prefix (r10-storey) credit nothing
+ok   since-tag: a squash subject naming R10-STORE-RACES credits it, not the shorter R10-STORE
 ok   since-tag: a clean merge's change is read against its first parent
 ok   the gate price includes the cancelled-leg rerun
   null control: unmutated copy rc=0
@@ -149,7 +153,7 @@ ok   self-test fails when tier-savings is deleted
 ok   self-test fails when cp-first-in-tier is deleted
   mutation overflow-exempt: 'exempt.add(n)' -> rc=1
 ok   self-test fails when overflow-exempt is deleted
-  mutation absorbed-done: '"rca-done", "absorbed")' -> rc=1
+  mutation absorbed-done: 'return not roster_lib.is_open(group)' -> rc=1
 ok   self-test fails when absorbed-done is deleted
   mutation absorbed-advisory: 'out[n] = (into, None if into else' -> rc=1
 ok   self-test fails when absorbed-advisory is deleted
@@ -165,10 +169,18 @@ ok   self-test fails when comment-only-diff is deleted
 ok   self-test fails when stamp-credit-lane is deleted
   mutation stamp-credit-done: 'lane[n] in PRODUCTION and n in done]' -> rc=1
 ok   self-test fails when stamp-credit-done is deleted
-  mutation since-tag-merge-topic: 'n = by_topic.get(topic) if topic else None' -> rc=1
+  mutation since-tag-merge-topic: 'n = by_topic[max(hit, key=len)] if hit else None' -> rc=1
 ok   self-test fails when since-tag-merge-topic is deleted
   mutation since-tag-first-parent: '"diff", "-U0", f"{sha}^1", sha,' -> rc=1
 ok   self-test fails when since-tag-first-parent is deleted
+  mutation since-tag-part-branch: 'topic == t or topic.startswith(t + "-")]' -> rc=1
+ok   self-test fails when since-tag-part-branch is deleted
+  mutation since-tag-part-boundary: 'topic.startswith(t + "-")]' -> rc=1
+ok   self-test fails when since-tag-part-boundary is deleted
+  mutation since-tag-part-longest: 'n = by_topic[max(hit, key=len)] if hit else None' -> rc=1
+ok   self-test fails when since-tag-part-longest is deleted
+  mutation since-tag-squash-longest: 'n = max(named, key=len) if named else None' -> rc=1
+ok   self-test fails when since-tag-squash-longest is deleted
   mutation since-tag-once: 'return list(out)' -> rc=1
 ok   self-test fails when since-tag-once is deleted
   mutation evidence-design-uncredited: 'live = (live - demoted - ev_design) | ev_live\n' -> rc=1
@@ -234,3 +246,4 @@ ok   self-test fails when freshness is deleted
   mutation gate-cancellation: 'return fast + clo + ana * (1.0 + p_cancel)' -> rc=1
 ok   self-test fails when gate-cancellation is deleted
 self-test: 0 failed
+rc=0

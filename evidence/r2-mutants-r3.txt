@@ -4,8 +4,8 @@ merge-topic-lastseg rc= 0 SURVIVED []
 merge-topic-lower rc= 0 SURVIVED []
 merge-re-anchor rc= 0 SURVIVED []
 squash-fallback-dropped rc= 1 KILLED ['FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: []']
-squash-longest rc= 0 SURVIVED []
-topic-only-no-subject-fallback-when-topic rc= 1 KILLED ['FAIL since-tag: a real-shaped merge subject names its group by the topic branch: []']
+squash-longest rc= 1 KILLED ["FAIL since-tag: a squash subject naming R10-STORE-RACES credits it, not the shorter R10-STORE: ['R10-STORE']"]
+topic-only-no-subject-fallback-when-topic ANCHOR 0
 since-prod-lane rc= 1 KILLED ["FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: ['R10-X', 'R10-Z', 'R10-W']"]
 since-substantive rc= 1 KILLED ["FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: ['R10-X', 'R10-Y', 'R10-Z']"]
 design-subtract ANCHOR 2

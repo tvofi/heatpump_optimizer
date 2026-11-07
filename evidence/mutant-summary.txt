@@ -1,0 +1,32 @@
+r1-mutants-r3.txt: free-slot-overflow-filter rc= 1 KILLED
+r1-mutants-r3.txt: check-counted-exempt rc= 1 KILLED
+r1-mutants-r3.txt: post-propagate rc= 1 KILLED
+r1-mutants-r3.txt: post-owner-step rc= 1 KILLED
+r1-mutants-r3.txt: post-after-mark rc= 1 KILLED
+r1-mutants-r3.txt: credit-lane ANCHOR 0
+r1-mutants-r3.txt: check-post-before-stamp rc= 1 KILLED
+r1-mutants-r3.txt: chain-walk-max rc= 1 KILLED
+r1-mutants-r3.txt: arrivals-median rc= 1 KILLED
+r1-mutants-r3.txt: work-ref rc= 1 KILLED
+r1-mutants-r3.txt: live-refs-prefix rc= 1 KILLED
+r1-mutants-r3.txt: check-produced-credit rc= 1 KILLED
+r1-mutants-r3.txt: design-start-t0 rc= 1 KILLED
+r1-mutants-r3.txt: post-dur-in-closure rc= 1 KILLED
+r1-mutants-r3.txt: post-check-carries rc= 1 KILLED
+r1-mutants-r3.txt: stamp-while-cut rc= 1 KILLED
+r2-mutants-r3.txt: credit-lane-r2 rc= 1 KILLED
+r2-mutants-r3.txt: credit-done-r2 rc= 1 KILLED
+r2-mutants-r3.txt: merge-topic-lastseg rc= 0 SURVIVED
+r2-mutants-r3.txt: merge-topic-lower rc= 0 SURVIVED
+r2-mutants-r3.txt: merge-re-anchor rc= 0 SURVIVED
+r2-mutants-r3.txt: squash-fallback-dropped rc= 1 KILLED
+r2-mutants-r3.txt: squash-longest rc= 1 KILLED
+r2-mutants-r3.txt: topic-only-no-subject-fallback-when-topic ANCHOR 0
+r2-mutants-r3.txt: since-prod-lane rc= 1 KILLED
+r2-mutants-r3.txt: since-substantive rc= 1 KILLED
+r2-mutants-r3.txt: design-subtract ANCHOR 2
+r2-mutants-r3.txt: first-parent-diff ANCHOR 2
+gantt-mutants-r3.txt: cp-first rc= 1 KILLED
+gantt-mutants-r3.txt: late-threshold rc= 1 KILLED
+gantt-mutants-r3.txt: closure-threshold rc= 1 KILLED
+gantt-mutants-r3.txt: word-boundary rc= 1 KILLED
