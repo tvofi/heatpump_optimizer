@@ -1,0 +1,4 @@
+128315297427 governance / instrument-self-tests completed cancelled 2026-11-07T05:34:07Z 2026-11-07T06:04:12Z [('Show the CI predictor (tools/pr/ci_predict.py) pre', 'cancelled')]
+128322722296 tests / lane-proofs completed success 2026-11-07T06:09:58Z 2026-11-07T06:10:04Z []
+128323099459 pr-contract / pr-contract completed success 2026-11-07T06:15:27Z 2026-11-07T06:16:08Z []
+128324499249 gate completed success 2026-11-07T06:16:17Z 2026-11-07T06:16:49Z []
