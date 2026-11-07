@@ -807,7 +807,7 @@ def grader_preds(root: Path, base_ref: str, body: str | None = None,
     subject = (git(root, "log", "-1", "--format=%s") or "").strip()
     paths = lambda *f: git(root, "diff", "--no-renames", "--name-only", *f, f"{tip}...HEAD") or ""
     ctx = {"$PR_BASE": tip, "$PR_HEAD": head, "$BASE_REF": "main", "$HEAD_REF": branch, "$PR_NUMBER": "0",
-           "$PR_TITLE": subject, "$(cat /tmp/pr-author.txt)": "hpo-author"}
+           "$PR_TITLE": subject, "$(cat /tmp/pr-author.txt)": "hpo-author[bot]"}  # the REST login policy_lint accepts
     said: list[str] = []
 
     def one(key: str) -> list[tuple[str, str]]:
