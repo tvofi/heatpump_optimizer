@@ -11,10 +11,12 @@ pass with a tally (the control), a non-zero exit, a launcher killed before it
 writes a status, and a pass printing no tally; and the same through a
 chain of bg_run under one bg_pid, the launcher's form for pr_args.sh's three
 callers: a failing first link, a passing second, a chain killed in its first
-link read from its second. Each refusal arm must refuse
-and each control must pass, first on the library as committed (M0) and then
-on two mutants of its predicates: M1 returns 0 in place of the recorded
-status, M2 returns 0 for a launcher gone with no status. Prints one line per
+link read from its second; and, waited on while still running with no
+tally grep as the prepr step is, a slow non-zero exit and a slow pass. Each
+refusal arm must refuse and each control must pass, first on the library as committed (M0) and then
+on three mutants of bg_wait: M1 returns 0 in place of the recorded
+status, M2 returns 0 for a launcher gone with no status, X8 returns 0 after
+its first poll finds the command still running. Prints one line per
 arm and mutant, and `RESULT survivors=<n>`; exit 1 when a mutant survived or
 M0 failed.
 
@@ -46,11 +48,16 @@ bg_start ok bash -c 'echo "x self-test: 3 checks, 0 failed"'
 bg_start bad bash -c 'echo "x self-test: 3 checks, 1 failed"; exit 7'
 bg_start killed bash -c 'sleep 600'
 bg_start notally bash -c 'echo hi'
+bg_start slowbad bash -c 'sleep 8; echo partial; exit 5'
+bg_start slowok bash -c 'sleep 15; echo partial'
 ( bg_run c1 bash -c 'exit 3'; bg_run c2 bash -c 'echo "x self-test: 1 checks, 0 failed"' ) < /dev/null > /dev/null 2>&1 &
 bg_pid "$!" c1 c2
 ( bg_run d1 bash -c 'sleep 600'; bg_run d2 true ) < /dev/null > /dev/null 2>&1 &
 bg_pid "$!" d1 d2
-sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d1.pid")"; wait 2> /dev/null || true
+sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d1.pid")"
+( bg_wait slowbad > /dev/null ) && echo "FAIL refuse slow bad" || echo "PASS refuse slow bad"
+( bg_wait slowok > /dev/null ) && echo "PASS control slow ok" || echo "FAIL control slow ok"
+wait 2> /dev/null || true
 ( bg_wait c1 > /dev/null ) && echo "FAIL refuse chained bad" || echo "PASS refuse chained bad"
 ( bg_wait c2 | grep -Eq "$2" ) && echo "PASS control chained tally" || echo "FAIL control chained tally"
 ( bg_wait d2 > /dev/null 2>&1 ) && echo "FAIL refuse chain killed" || echo "PASS refuse chain killed"
@@ -64,6 +71,7 @@ sleep 2; kill -9 "$(cat "$RUNNER_TEMP/bg/killed.pid")" "$(cat "$RUNNER_TEMP/bg/d
 MUTANTS = {
     "M1": ('return "$(cat "$d/$1.rc")"', "return 0"),
     "M2": ('echo "$1: its launcher exited with no status" >&2; return 1', "return 0"),
+    "X8": ("    sleep 5\n", "    sleep 5; return 0\n"),
 }
 
 
@@ -93,7 +101,7 @@ def mutants():
     base = arms(lib)
     for ln in base:
         print(f"M0 {ln}")
-    ok0 = len(base) == 8 and all(ln.startswith("PASS") for ln in base)
+    ok0 = len(base) == 10 and all(ln.startswith("PASS") for ln in base)
     survivors = 0
     for name, (old, new) in MUTANTS.items():
         if lib.count(old) != 1:
