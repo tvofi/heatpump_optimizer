@@ -19,7 +19,8 @@ deferred to each other, or a decider that ended red or cancelled -- would stay r
 gate at the head has concluded (in_progress gates polled as above), every red gate, V's own
 included, that may have judged an undecided head is re-run (`undecided`: it started before a
 job of ANOTHER run, its gate aside, finished; or a higher-id run's gate started while it judged,
-the lagging-listing pair, of which the lower id is re-run). A re-run judges after every such job
+the lagging-listing pair, of which the lower id is re-run, or the higher where the lower ended
+green). A re-run judges after every such job
 finished and beside no gate starting, so it is never re-run again: the branch cannot loop.
 A rate limit prints `RATE-LIMITED`, re-runs nothing further and exits 1: reset_epoch is
 printed, a caller re-runs nothing before it.
@@ -64,13 +65,18 @@ def undecided(gate, run_id, others):
     its gate aside, that finished after this gate started or has not finished (a source it could
     not read); or a HIGHER-id run whose gate started while this one judged (a listing lagging
     that start reads the run busy, and busy()'s tie-break makes the lower id the one that
-    decides, so only the lower is re-run: re-judged, it is final, and nothing loops)."""
+    decides, so only the lower is re-run: re-judged, it is final, and nothing loops); or a
+    LOWER-id run whose gate judged while this one did and ended green (that pair seen from its
+    higher side, which deferred to the decider: re-run, it starts after that gate concluded, so
+    it is final; a red lower is re-run by the arm before, never both, so nothing loops)."""
     t0, t1 = gate.get("started_at") or "", gate.get("completed_at") or "~"
     out = []
     for i, jobs in others.items():
         g = latest_gate(jobs) or {}
+        gs, ge = g.get("started_at") or "", g.get("completed_at") or "~"
         if (any(j.get("name") != "gate" and (j.get("completed_at") or "~") > t0 for j in jobs)
-                or (i > run_id and t0 <= (g.get("started_at") or "") <= t1)):
+                or (i > run_id and t0 <= gs <= t1)
+                or (i < run_id and g.get("conclusion") == "success" and gs <= t1 and ge >= t0)):
             out.append(i)
     return sorted(out)
 
