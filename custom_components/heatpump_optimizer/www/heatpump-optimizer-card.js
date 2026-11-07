@@ -895,6 +895,27 @@ const STRINGS = {
     // The percent is a template because the spacing is orthographic:
     // English sets "(8%)", Swedish "(8 %)".
     "headline.savings_pct": "({pct}%)",
+    "whynow.title": "Why now",
+    "whynow.metric":
+      "Why the plan runs or idles the heat pump in the current time slot. Each reason is scored from what the plan was made with: how cheap this slot is among the coming ones, how warm the house is against its comfort band, the mold guard, away mode and the weather ahead. ↑ pushes towards heating now, ↓ towards waiting, · neither; each percentage is that reason's share of the whole push, and together they add up to 100.",
+    "whynow.no_data": "No reasons published for this slot yet.",
+    "whynow.all_neutral": "Nothing pushes this slot either way: every reason is neutral.",
+    "whynow.weight": "{sign}{w}%",
+    "whynow.driver_price_rank": "Price rank",
+    "whynow.explain_price_rank":
+      "How cheap this slot is against the rest of the plan: the cheapest slot pushes fully towards heating now, the dearest towards waiting.",
+    "whynow.driver_comfort_floor": "Comfort band",
+    "whynow.explain_comfort_floor":
+      "How far the room is from the middle of its comfort band: below the middle pushes towards heating, above it towards waiting.",
+    "whynow.driver_mold_guard": "Mold guard",
+    "whynow.explain_mold_guard":
+      "How far the mold guard lifts the lowest allowed temperature above the comfort minimum in this slot; it only ever pushes towards heating.",
+    "whynow.driver_away": "Away",
+    "whynow.explain_away":
+      "How far away mode or the holiday schedule lowers the lowest allowed temperature; it only ever pushes towards waiting.",
+    "whynow.driver_forecast": "Weather ahead",
+    "whynow.explain_forecast":
+      "This slot's weather against the next 8 hours: colder, windier or wetter ahead pushes towards heating now, more sun ahead towards waiting.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Price now",
     "tiles.planned": "Planned heating",
@@ -1712,6 +1733,27 @@ const STRINGS = {
     "score.label_machine": "Värmepumpen",
     "score.label_operation": "Körningen",
     "headline.savings_pct": "({pct} %)",
+    "whynow.title": "Varför nu",
+    "whynow.metric":
+      "Varför planen kör eller vilar värmepumpen i den aktuella tidsluckan. Varje skäl räknas fram ur det planen gjordes med: hur billig luckan är bland de kommande, hur varmt huset är mot sitt komfortintervall, mögelskyddet, bortaläget och vädret framöver. ↑ drar mot att värma nu, ↓ mot att vänta, · åt inget håll; varje procentsats är skälets andel av hela draget, och tillsammans blir de 100.",
+    "whynow.no_data": "Inga skäl publicerade för den här luckan än.",
+    "whynow.all_neutral": "Inget drar den här luckan åt något håll: alla skäl är neutrala.",
+    "whynow.weight": "{sign}{w} %",
+    "whynow.driver_price_rank": "Prisrang",
+    "whynow.explain_price_rank":
+      "Hur billig luckan är mot resten av planen: den billigaste luckan drar helt mot att värma nu, den dyraste mot att vänta.",
+    "whynow.driver_comfort_floor": "Komfortintervall",
+    "whynow.explain_comfort_floor":
+      "Hur långt rummet ligger från mitten av sitt komfortintervall: under mitten drar mot att värma, över mot att vänta.",
+    "whynow.driver_mold_guard": "Mögelskydd",
+    "whynow.explain_mold_guard":
+      "Hur mycket mögelskyddet lyfter den lägsta tillåtna temperaturen över komfortminimum i luckan; det drar bara mot att värma.",
+    "whynow.driver_away": "Borta",
+    "whynow.explain_away":
+      "Hur mycket bortaläget eller helgschemat sänker den lägsta tillåtna temperaturen; det drar bara mot att vänta.",
+    "whynow.driver_forecast": "Vädret framöver",
+    "whynow.explain_forecast":
+      "Luckans väder mot de kommande 8 timmarna: kallare, blåsigare eller blötare framöver drar mot att värma nu, mer sol framöver mot att vänta.",
     // The tile row and the header's status pill (R9-UI-3, #1791).
     "tiles.price_now": "Pris nu",
     "tiles.planned": "Planerad uppvärmning",
@@ -8978,23 +9020,60 @@ function scoreReasonText(code) {
  */
 function scoreBreakdownHtml(plan) {
   const rows = scoreParts(plan)
-    .map((p) => {
-      const value =
-        p.value === null
-          ? `<span class="sb-na">— ${esc(p.reason)}</span>`
-          : `<span class="sb-val">${Math.round(p.value)}/100</span>`;
-      const bar = p.value === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, p.value))}%"></span></span>`;
-      return (
-        `<div class="sb-row" data-part="${p.key}" title="${esc(scoreRowTitle(p))}">` +
-        `<div class="sb-head"><span class="sb-name">${esc(p.label)}</span>` +
-        `${bar}${value}</div>` +
-        (p.drivers ? `<div class="sb-text sb-drivers">${esc(p.drivers)}</div>` : "") +
-        `<div class="sb-text">${esc(L(`score.part_${p.key}`))}</div>` +
-        `</div>`
-      );
-    })
+    .map((p) => breakdownRow({
+      key: p.key,
+      label: p.label,
+      valueText: p.value === null ? `— ${p.reason}` : `${Math.round(p.value)}/100`,
+      muted: p.value === null,
+      barPct: p.value,
+      sub: [["sb-text sb-drivers", p.drivers], ["sb-text", L(`score.part_${p.key}`)]],
+      title: scoreRowTitle(p),
+    }))
     .join("");
   return `<div class="score-breakdown">${rows}</div>`;
+}
+
+/** One breakdown row, shared by the score panel and the why-now block: a
+ * name, an optional 0-100 bar, a value (muted when it is a reason rather
+ * than a figure), each non-empty `[class, text]` sub-line, and a hover. */
+function breakdownRow({ key, label, valueText, muted = false, barPct = null, sub = [], title }) {
+  const bar = barPct === null ? "" : `<span class="sb-bar"><span class="sb-fill" style="width:${Math.max(0, Math.min(100, barPct))}%"></span></span>`;
+  return (
+    `<div class="sb-row" data-part="${key}" title="${esc(title)}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(label)}</span>` +
+    `${bar}<span class="${muted ? "sb-na" : "sb-val"}">${esc(valueText)}</span></div>` +
+    sub.filter(([, text]) => text).map(([cls, text]) => `<div class="${cls}">${esc(text)}</div>`).join("") +
+    `</div>`
+  );
+}
+
+/** The "Why now" block (R10-WHY-NOW-WIDGET): the current step's drivers as
+ * the space-plan sensor publishes them in `why_now`, one row each with its
+ * direction mark and signed share of the push; one line when every driver
+ * is neutral, the no-data line when the attribute is absent. Derives
+ * nothing: the weights and directions are the solver's. */
+function whyNowHtml(plan) {
+  const why = plan.attrRaw("why_now", null);
+  const drivers = (why && Array.isArray(why.drivers) ? why.drivers : [])
+    .filter((d) => STRINGS.en[`whynow.driver_${d.code}`] !== undefined);
+  const mark = { run: "↑", idle: "↓" };
+  const rows = !drivers.length
+    ? `<div class="sb-text">${esc(L("whynow.no_data"))}</div>`
+    : drivers.every((d) => d.direction === "neutral")
+      ? `<div class="sb-text">${esc(L("whynow.all_neutral"))}</div>`
+      : drivers.map((d) => {
+        const w = Math.round(Number(d.weight) || 0);
+        const label = L(`whynow.driver_${d.code}`);
+        const valueText = `${mark[d.direction] || "·"} ${L("whynow.weight", { sign: w > 0 ? "+" : w < 0 ? "−" : "", w: Math.abs(w) })}`;
+        const explain = L(`whynow.explain_${d.code}`);
+        return breakdownRow({
+          key: d.code, label, valueText, muted: d.direction === "neutral",
+          barPct: Math.abs(w), sub: [["sb-text", explain]],
+          title: `${label}: ${valueText}\n${explain}`,
+        });
+      }).join("");
+  return `<div class="score-breakdown why-now" data-block="why-now" title="${esc(L("whynow.metric"))}">` +
+    `<div class="sb-head"><span class="sb-name">${esc(L("whynow.title"))}</span></div>${rows}</div>`;
 }
 
 /** One sub-score's hover: its grade or reason, its drivers or what it
@@ -9144,6 +9223,7 @@ function headlineHtml(plan, cfg, scoreOpen) {
       ${stats ? `<div class="hl-stats">${stats}</div>` : ""}
       ${scoreOpen && score !== null ? scoreBreakdownHtml(plan) : ""}
       ${rows ? `<ul class="hl-narrative">${rows}</ul>` : ""}
+      ${whyNowHtml(plan)}
     </div>`;
 }
 
