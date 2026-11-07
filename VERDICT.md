@@ -1,61 +1,78 @@
-Fix review: blocked 8ff3432a965df930fb54e7aa6ffd52bf210e5f3f mutation-vacuous: dropping hot_files from _owned_lane survives the self-test and moves a custom_components group out of Core model
+Fix review: blocked c7c5cef52a49bed59ee4c8a42e495ef2dae30db5 ci-red: required gate is red at the head by mutual edit-run deferral (gate jobs 128296193620 and 128296198588, 04:08Z) and the body's Red checks predates both and reports the gate green; the code is otherwise approvable
 
-bus-nonce: c69f2b2f30f4a04a12cfa21cd9ef4474
+bus-nonce: 68eaffc22bfcfcc9217089055287b881
 
-Round 1. Reviewed from a detached worktree at 8ff3432a965df930fb54e7aa6ffd52bf210e5f3f, merge base 80016a71f567d936450d8708abcbb79d9e8071d7. The finder's harness: none is committed. This is an owner-reported hotfix, so the harness is the owner's ruling plus the live plan. I built the enumeration below myself and disclose it as mine.
+Round 2. I reviewed from a detached worktree at c7c5cef52a49bed59ee4c8a42e495ef2dae30db5. The merge base is f2a015142714383722bf49d7ab20d8398ec9674c. The code head is aa5c0505b73c77d1ab5a650af2da58759b8b307a. The finder's harness: none is committed, because this is an owner-reported hotfix. The harness is therefore the owner's ruling plus the live plan. The enumeration, mutants and HTML parser below are my own, and they are copied to `ev/*.py`.
 
 Owner ruling (tvofi 2026-11-06), verbatim: "The HTML plan seems to incorrectly place some instrument or CI fixes in the core model lane, fix that".
 
 ## Block
 
-- Claim: the PR's predicates in `_owned_lane`/`roster_lane` are each pinned by a named self-test check (brief item 3; body `## Mutation proof`).
-- Evidence: mutant m8 replaces `list(group.get("files") or []) + list(group.get("hot_files") or [])` with `list(group.get("files") or [])` in `tools/plan/replan.py` `_owned_lane`. On a `git archive` copy of the head, `python3 tools/plan/replan.py --self-test` then exits rc=0 (`ev/mutants-all.txt`, line `MUTANT m8-hotfiles rc=0`).
-- Metric: the probe group `{"kind": "fix", "files": ["tools/ci/gate.py"], "hot_files": ["custom_components/heatpump_optimizer/coordinator.py"]}` is drawn as `Core model` at the head and as `Instruments` under m8 (`ev/m8-probe.txt`). The same holds with a bare `hot_files: ["coordinator.py"]`, and `work_class` flips to `instrument` with it. So the arm that keeps a group touching the integration in the core lane, which is the brief's item-1 null control, is unpinned. The self-test's controls put the bare filename and the `custom_components/` path in `files` only. Yet on the live roster, bare names occur in `hot_files` (for example R10-FAHRENHEIT `hot_files: ["coordinator.py"]`).
-- Perturbation: m8 itself; the harness (`--self-test`) does not move under it, which is the defect.
-- Live effect today: none. All 11 roster groups whose `files` are all non-product but whose `hot_files` are not are `kind: instrument`, so the kind rule places them before `_owned_lane` (`ev/m8-live.txt`). The block concerns the pin, not the current plan.
-- Remedy (small): add self-test cases such as `_lane(["tools/x.py"])` with `hot_files=["custom_components/heatpump_optimizer/x.py"]` and with `hot_files=["coordinator.py"]`, each expecting `Core model`, then re-run m8 and show it killed.
-- Second item for the same re-cut: `## Red checks` says `none`, but at this head `gate` concluded `failure` twice. Both were edit runs: run 42317750046 (job 128235103524, 00:24:12Z) and run 42318557432 (job 128237840805, 00:32:01Z). Job 128235103524's log reads "FAIL run(s) [42317750091] at this head are still being judged; their gate decides". That is the mutual edit-run deferral of the open R10-HOTFIX-GATE-BUSY-DEFER, and code run 42317750091 decides. The body must name it so (the packet refuses `red-unanswered`). The body predates both reds (body updated 00:21:40Z).
+- Claim: `## Red checks` names every concluded red of the live head (brief item 6; fix-review.md step 11).
+- Evidence: I read `get_check_runs` at c7c5cef52a49bed59ee4c8a42e495ef2dae30db5 at about 04:15Z. It returned total_count 81, all on one page. Three runs had concluded red (`ev/ci-state.txt`):
+  - `gate` job 128296193620, from edit run 42332777827 attempt 5, failed at 04:08:17Z. Its log reads "FAIL run(s) [42333388705] at this head are still being judged; their gate decides".
+  - `gate` job 128296198588, from edit run 42333388705 attempt 5, failed at 04:08:22Z. Its log reads "FAIL run(s) [42332777827] at this head are still being judged; their gate decides".
+  - `governance / instrument-self-tests` job 128295162018 was `cancelled`. The body answers it: a 30-minute timeout owned by R10-HOTFIX-SELFTEST-TIMEOUT. I accept that answer.
+- The two gate reds defer to each other. That is the open R10-HOTFIX-GATE-BUSY-DEFER, and no code run is in progress to break the deadlock.
+- The code run 42332778588 has concluded. Its own `gate` job 128295163417 is `success` (04:06:09Z), and edit run 42336664899's `gate` job 128295636172 is `success`. Those runs decide. But the required `gate` context is now red.
+- `merge_train.py classify` → `RED c7c5cef52a49bed59ee4c8a42e495ef2dae30db5 pending: none red: gate`, rc=1. I polled it every 2 min from 04:10Z (`ev/classify-history.txt`).
+- The packet refuses `required-red` (`ev/packet-render.txt`).
+- The body was last updated at 04:02:36Z, before both reds. It states "At `c7c5cef5` the gate jobs are `success`" and cites jobs 128291152776, 128291256420 and 128291967008. None of those is among the head's 81 check runs now.
+- Metric: concluded gate reds at the head that the body names: 0 of 2.
+- Perturbation: none is needed. These are CI facts read from the API, and the classifier flips to GREEN once one gate is re-run alone.
+- Not a root-cause block: the last `pr-contract` run started at 04:04:26Z, before the last red concluded at 04:08:22Z. Under step 11, no `root-cause-*` class is posted yet.
+- Remedy, with no code change:
+  - The orchestrator re-runs one of the two edit-run `gate` jobs on its own, so it no longer sees the other in progress.
+  - The body's `## Red checks` names both reds as the R10-HOTFIX-GATE-BUSY-DEFER mutual deferral, decided by code run 42332778588's gate 128295163417, and drops the job ids that are gone.
+  - Everything else below holds at this head. A round 3 is a re-verdict of the same code; it is not a re-cut.
 
 ## Findings
 
-- Follow-up: a CI or instrument hotfix whose roster entry is `kind: fix`/`hotfix`, has no `class: instrument`, and lists a bare tool basename in `hot_files` (for example `merge_train.py`, `gate.py`) stays Core model under this rule. That is because a bare filename is treated as possible integration code. Today no open group hits this (my enumeration of every Core-model group at the head finds each owns a `custom_components/` file or is product or owner work with no files), and the brief's rule (1) prescribes this conservatism. The residual risk sits in roster data: the roster seat writing `hot_files` as bare names. Carry: R10-HOTFIX-PLAN-LANES | dismissed: brief rule (1) mandates bare filename stays Core model; not a defect of this PR, recorded so the re-cut's self-test pins it in hot_files
+- Follow-up: my extra mutant m13 survives the self-test. It narrows `work_class`'s `or k in INSTRUMENT_KINDS` to `("instrument", "policy")`. That clause is now reached only for a group that a name rule places in Learners, Product UX or Replay with a tool-landing kind, for example R10-DEEPLINK-CENSUS with `kind: rca`. Over all 351 live roster groups, the mutated `work_class` differs from the head's on 0 groups (`ev/m13-live.txt`). The line is pre-existing and was changed here only to reuse the tuple, so it is not one of `roster_lane`'s core lines (brief item 3). Carry: R10-HOTFIX-PLAN-LANES | dismissed: no live effect (0 of 351 groups) and outside the roster_lane predicates this fix owns; a work_class pin for a name-placed rca group would close it if the seam is ever touched
 
 ## Evidence
 
-- RESULT head self-test: `python3 tools/plan/replan.py --self-test` → `self-test: 0 failed` (`ev/selftest-head.txt`).
-- RESULT mutants (my own, on `git archive` copies of the head; `ev/mutants-all.txt`):
-  - m1, deleting `if owned := _owned_lane(group): return owned`: rc=1, with 6 lane checks failing.
-  - m2, deleting the `INSTRUMENT_KINDS`/`class` fallback: rc=1, 3 checks.
-  - m3, dropping the `class == "instrument"` arm: rc=1, `lane: a roster class instrument with no files is Instruments`.
-  - m4, `not all(` → `not any(`: rc=1, `lane null control: a mixed group stays Core model`.
-  - m5, dropping the `not files` guard: rc=1, both no-files controls.
-  - m6, dropping the tooling exclusion from `user_docs`: rc=1, `docs plus a tool is Instruments, not Docs`.
-  - m7, dropping the `kind == "doc"` arm: rc=1, `a docs-only doc group is Docs`.
-  - **m8, dropping `hot_files`: rc=0 (survives)**.
-  - m9, removing `docs/` from the prefixes: rc=1, 3 checks.
-  - m10, emptying `_NON_PRODUCT_FILES`: rc=1, 3 checks.
-  - m11, removing `rca` from `INSTRUMENT_KINDS`: rc=1, `an RCA group with no files is Instruments`.
-  - m12, setting `user_docs` to always true: rc=1, `a tests-and-tools group is Instruments`.
-  - The body's 5 mutants (my m1, m2, m3, m4 and the user-docs rule) reproduce as killed.
-- RESULT live lanes (JSON), with my own enumeration (`ev/lane-enum.txt`).
-  - Setup: plans were built at main 80016a71f and at the head. Both used roster `origin/handoff/audit-r10-roster` at 1f11980fa7cfbe23767975b332ea4bb52dfb336d (roster blob 9ed12e88f758) and `--start 2026-11-06T22:00:00Z`.
-  - Plans: `ev/plan-base.json`, `ev/plan-wt.json`.
-  - Groups: 351 at both ends. The body says 350, because the roster gained R10-HOTFIX-SELFTEST-TIMEOUT after the body's measurement.
-  - Main: Core model 126, Instruments 192, Docs 2, Learners 8, Product UX 14, Replay 9.
+- RESULT head self-test: `python3 -I tools/plan/replan.py --self-test` → `self-test: 0 failed`, rc=0 (`ev/selftest-head.txt`).
+- RESULT mutants. These are my own, built with `ev/mut.py`: `git archive` of the head, one exact substitution that must match once, then `--self-test` (`ev/mutants-head.txt`).
+  - m0 (null control, unmutated) passes with rc=0.
+  - Every mutant below exits rc=1. Each is listed with the self-test checks that fail:
+    - m1, deleting the `_owned_lane` call: 7 lane checks fail, including "a CI-only group is Instruments".
+    - m2, deleting the kind/class fallback: "an RCA group with no files is Instruments", "a tooling group with no files is Instruments" and "a roster class instrument with no files is Instruments".
+    - m3, dropping the `class == "instrument"` arm: "a roster class instrument with no files is Instruments".
+    - m4, `not all(` → `not any(`: "a mixed group stays Core model" plus the three hot-file null controls.
+    - m5, dropping the `not files` guard: "a group with no files stays Core model" and "a production group with no files stays Core model".
+    - m6, dropping the user-docs tooling exclusion: "docs plus a tool is Instruments, not Docs".
+    - m7, dropping the doc-kind arm: "a docs-only doc group is Docs".
+    - **m8, dropping hot_files**: "an integration hot file keeps a tool group Core model", "a bare hot filename keeps a tool group Core model" and "a bare tool basename in hot_files stays Core model".
+    - m9, removing the `docs/` prefix: 3 checks.
+    - m10, emptying `_NON_PRODUCT_FILES`: 3 checks.
+    - m11, removing `rca` from the kinds: "an RCA group with no files is Instruments".
+    - m12, making `user_docs` always true: 4 checks.
+  - Result: 12 of 12 killed, so the round-1 block (m8) is cured.
+  - Failing-test-first: the same m8 substitution at the round-1 head 8ff3432a exits rc=0 with `self-test: 0 failed` (`ev/m8-at-r1head.txt`).
+  - The body's mutation table lists all 12, each with its substitution, the red checks under the mutant and the green null control. Its check names match mine.
+- RESULT live lanes (JSON), from my own enumeration (`ev/laneenum.py` → `ev/lane-enum.txt`).
+  - Setup: plans built at base f2a015142 and at the head, with roster `origin/handoff/audit-r10-roster` at 22a80168786b0a0f04d1834daf71fb4807c674e5 and `--start 2026-11-06T22:00:00Z`.
+  - Groups: 351 at both ends.
+  - Base: Core model 126, Instruments 192, Docs 2, Learners 8, Product UX 14, Replay 9.
   - Head: Core model 62, Instruments 251, Docs 7, Learners 8, Product UX 14, Replay 9.
-  - Moved: 64, all from Core model (59 to Instruments, 5 to Docs). The body says 63 (58 + 5); the difference is exactly R10-HOTFIX-SELFTEST-TIMEOUT, whose only file is `.github/workflows/governance.yml`. After that adjustment, the body's 63-row table matches my list group for group.
-  - No group moved in any other direction.
-- RESULT moved groups are correctly moved. Under my own path classification (custom_components/ = integration; tools/, tests/, .github/, .claude/, dev/, docs/ and root records = instrument), none of the 64 owns a `custom_components/` file or a bare filename. Three own no file and move by kind or class: R10-CARRY-RESIDUE-2 (`class: instrument`), R10-PLAN-PRIO (`kind: tooling`) and R10-RCA-RELEASE-TAG (`kind: rca`). R10-MARKETPLACE-EXTRAS (`kind: production`) owns only `.github/workflows/*`, `tests/*` and `dev/governance/dimensions/D10.md`, so Instruments is correct.
-- RESULT null control: every group still Core model at the head owns a `custom_components/` file, or owns no file and is product or owner work. Those are R10-CARD-VOICE, R10-CATALOG-PR, R10-COMBI-TANK and R10-STORE-RACES, plus the three done groups the body itself discloses: R10-RCA-HEADMOVED, R10-ROSTER-PUSH-RACE and R10-NIGHTLY-SLOW-ROLLING. No Core-model group at the head owns only instrument paths.
-- RESULT HTML: `tools/audit/seat/plan_page.py` is unchanged in the three-dot diff and reads `pg["lane"]` (plan_page.py:241). I rendered both plans (`ev/plan-base.html`, `ev/plan-wt.html`, offline snapshot `{"open_prs":[],"merged_prs":[],"issues":[]}`) and parsed each drawn bar's y against the lane bands (`ev/html-lanes.txt`).
+  - Open groups at the base: Core model 24, Instruments 39, Docs 1. At the head: Core model 10, Instruments 51, Docs 3.
+  - Moved: 64, all from Core model (59 to Instruments, 5 to Docs), of which 14 are open. All of this equals the body.
+  - The body's 64-row table is identical, group for group, to my moved list (`diff` empty; `ev/body-moved.txt` against `ev/my-moved.txt`).
+- RESULT moved groups are correct under my own path classes. Of the 64, 0 are suspect: each owns only instrument or record paths, or owns no file and has a tool-landing kind or `class: instrument`. No moved group owns a `custom_components/` file or a bare filename.
+- RESULT null control: every Core-model group at the head owns a `custom_components/` file, or owns no file without a tool kind or class. The 7 file-less ones match the body's list exactly: R10-CARD-VOICE, R10-CATALOG-PR, R10-COMBI-TANK, R10-NIGHTLY-SLOW-ROLLING, R10-RCA-HEADMOVED, R10-ROSTER-PUSH-RACE and R10-STORE-RACES. No group moved out of Learners, Product UX or Replay. The only Instruments or Docs group owning an integration file is R10-I5-DOCS, which a name rule places in Docs at both ends and which did not move.
+- RESULT HTML: `plan_page.py` is unchanged in the three-dot diff. I rendered both plans offline (`ev/plan-base.html`, `ev/plan-rev.html`) and parsed each bar's y against the lane bands (`ev/htmllanes.py` → `ev/html-lanes.txt`).
   - Drawn lane ≠ JSON lane: 0 at both ends.
   - Drawn bars: 67 at both ends.
-  - Core model drawn: 24 at main, 10 at the head. Instruments: 39 → 51. Docs: 1 → 3.
-  - 14 open groups move in the drawing. The body says 13; the extra is R10-HOTFIX-SELFTEST-TIMEOUT.
-- RESULT summary: main `stamps 6 | CI 7762.5 min | batches 63`; head `stamps 3 | CI 7087.5 min | batches 60`, at this roster. The body's 6→3 / 7875.0→6975.0 / 64→59 were at an older roster blob, so the stamps figure reproduces and CI and batches move with the roster. The duration change flows through `work_class`, which reads `roster_lane`, and the body discloses it.
-- RESULT scope: `python3 tests/closure.py select --diff 80016a71f…` → `MODE: SCOPED -- 1 script(s) run, 32 scoped out.` `tests/entities.py` could not run in this container (`ModuleNotFoundError: homeassistant`, `ev/entities.txt`), so CI's run of it is cited.
-- RESULT protected paths: the three-dot diff touches only `tools/plan/replan.py` and `dev/programme/delivery/3265.md`. No `custom_components/`, `VERSION`, manifest, `RELEASE_NOTES.md` or `*_budgets.json` change, and the delivery row is in the diff.
-- RESULT merge: `git merge-tree --write-tree origin/main 8ff3432a…` → rc=0, tree 7500ec8b1266729b3f9eee3be04090eaa5de38e6, with origin/main at 80016a71f (the merge base).
-- RESULT `## Head`: it names 8ff3432a965df930fb54e7aa6ffd52bf210e5f3f, which is the head measured. `origin/fix/r10-hotfix-plan-lanes` was still 8ff3432a… at verdict time.
-- RESULT role-file currency: `git diff $(merge-base)...origin/main -- dev/governance/roles/` is empty.
-- CI at verdict: `merge_train.py classify` → `RED 8ff3432a… pending: none red: gate` (`ev/classify.txt`, `ev/classify-history.txt`). The only reds are the two edit-run `gate` deferrals named above. Code run 42317750091 was still running jobs at verdict time (`tests / claims-autofix` at 00:33:45Z), so its gate has not decided. This verdict does not block on CI.
+  - Core model 24 → 10, Instruments 39 → 51, Docs 1 → 3.
+  - 14 open groups move in the drawing, all out of Core model.
+- RESULT figures: at the body's roster cab343ebe891836ff776defccab9cb8ae9a9cbc7 (blob e7207ea34c7f), the summary is `CI 7537.5 min | batches 61 | stamps 6` at the base and `CI 6300.0 min | batches 53 | stamps 3` at the head (`ev/summary-cab343.txt`). That is exactly the body's figures. At today's roster 22a80168 it is 6862.5/55/6 → 6637.5/56/3, so the figures move with the roster, as the body discloses. `--check` on the head plan prints `PLAN OK`.
+- RESULT scope (`ev/scope.txt`):
+  - The three-dot diff touches only `tools/plan/replan.py` and `dev/programme/delivery/3265.md`, so the delivery row is in it.
+  - No `custom_components/`, `VERSION`, manifest, `RELEASE_NOTES.md`, `*_budgets.json` or `plan_page.py` change.
+  - `tests/closure.py select --diff f2a015142…` → `MODE: SCOPED -- 1 script(s) run, 32 scoped out.`
+  - `tests/structure.py` → `STRUCTURE RATCHET PASSED`.
+  - `tests/entities.py` hit my 200 s timeout here (rc=124), so I cite CI instead: `tests / closures` and `tests / fast` are `success` in code run 42332778588.
+- RESULT merge: `git merge-tree --write-tree origin/main c7c5cef52a49bed59ee4c8a42e495ef2dae30db5` → rc=0, tree 3c0b2c2522f29c40ad3a08bfdf337036e7a99305, with origin/main at 355d9965a7a14ec45ef8cd25fb9c75c5ced044f1. `dev/governance/roles/` is unchanged between the merge base and main.
+- RESULT `## Head`: it names c7c5cef52a49bed59ee4c8a42e495ef2dae30db5 as the PR head and aa5c0505 as the code head, and both are current. The paragraph naming c7c5cef52a49bed59ee4c8a42e495ef2dae30db5 is duplicated word for word, which is cosmetic.
+- CI: `merge_train.py classify` → RED, rc=1, red: gate, from 04:10Z through 04:59:05Z (head re-read at 05:00Z, still c7c5cef5) (`ev/classify.txt`, `ev/classify-history.txt`). See `## Block`.
