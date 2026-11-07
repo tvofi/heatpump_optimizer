@@ -80,7 +80,7 @@ claim file turned main red. So every rule below is a refusal, not a warning:
      (rule "flush", between rules 3 and 4) The record beat batches on a
      push, so a window can owe rows it is holding back. Before rule 4 reads
      the window, a stamp whose window owes a non-record-class row dispatches
-     nightly.yml (a dispatch flushes at any count) and waits for the record
+     nightly.yml with lanes=beat (a dispatch flushes at any count) and waits for the record
      merge, then moves the checkout to that main, names the record pull
      request in the notes and waits for its gate (`flush_before_tag`). A flush
      that cannot dispatch or sees no merge in time leaves rule 5 to refuse;
@@ -2412,7 +2412,8 @@ FLUSH_POLL_S = 60
 #: Above record-autofix's own `timeout-minutes: 10`, so a dispatch that is
 #: still merging is never sent again.
 FLUSH_REDISPATCH_S = 900
-#: Open, merge, and one retry: each dispatch also runs every nightly lane.
+#: Open, merge, and one retry. Each dispatch is a lanes=beat run (record-autofix
+#: alone), titled `Nightly record beat`, which nightly_status never grades.
 FLUSH_MAX_DISPATCHES = 3
 #: A record head's base-to-merge wait, p90 6129 s over round 10
 #: (dev/audit/harnesses/record_batch_measure.py's `wait_s`), with margin.
