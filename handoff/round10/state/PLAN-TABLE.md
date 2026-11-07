@@ -464,7 +464,7 @@ Role: dev/governance/roles/root-cause.md. |  |
 | R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT | IN | 1 | in-progress | - | -/- | - | Owner request 2026-11-06 ~22:42Z (tvofi): measure from the last scheduled nightly's mutation-ledger shard logs (run 42139479636, jobs 127635902545, 127635902... |  |
 | R10-HOTFIX-SELFTEST-TIMEOUT | IN | 1 | in-progress | - | -/- | - | Orchestrator, 2026-11-06 ~23:45Z, measured on main: governance / instrument-self-tests (.github/workflows/governance.yml job instrument-self-tests, timeout-m... |  |
 | R10-RCA-GATE-BUSY-DEFER-2 | CP | 1 | in-progress | - | opus/opus | - | Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e9... |  |
-| R10-FLY-STAMP-FLUSH-HOLD | F | 1 | not-started | - | sonnet/opus | - | From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/tra... |  |
+| R10-FLY-STAMP-FLUSH-HOLD | F | 1 | in-progress | - | sonnet/opus | - | From triage batch 131 (triage: dev/programme/triage/s6-batch131.md#P402 at cd88cf6bd00d): stamp.py record_flush waits for a record merge while refs/heads/tra... |  |
 
 ## ETA
 
