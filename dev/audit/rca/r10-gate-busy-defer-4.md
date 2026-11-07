@@ -204,12 +204,12 @@ controls of section 1). It is classified in `tests/closures.json`. Standing cost
 
 ### 5.3 Side finding: `train.sh add --front`
 
-`merge_train.py add <pr> <verdict> --front` exists; `train.sh add` forwarded it to the
-child's flag list after `--`, where it is refused as an unknown argument. It is now a
-pass-through next to `--priority`, and `train.sh --self-test`'s `add` argv case pins it
-(dropping `--front|` from the expected argv makes the self-test refuse; with it, `ok`).
-`add <pr> --front` (re-fronting an entry already spooled, no verdict) is not covered:
-`train.sh add` still needs `<verdict>`, and a verdictless form is a restructure.
+`merge_train.py add <pr> <verdict> --front` exists; `train.sh add` forwards it to the
+child's flag list after `--`, where it is refused as an unknown argument. The pass-through
+next to `--priority` (and a pin of it in `train.sh --self-test`'s `add` argv case) belongs
+to R10-HOTFIX-TRAIN-DEFER-WAIT (#3290), which owns `train.sh`; this record does not change
+the file. `add <pr> --front` (re-fronting an entry already spooled, no verdict) is a
+further gap: `train.sh add` needs `<verdict>`, and a verdictless form is a restructure.
 
 ## Forward-carry
 
@@ -220,3 +220,7 @@ pass-through next to `--priority`, and `train.sh --self-test`'s `add` argv case 
   scenes must read WAIT, and the mutated-wait control must read `defects=3`.
 - To the orchestrator: `orchestrator_tick.py` still describes the superseded 720 s wait
   (#3287's review carried it).
+- Carry: R10-HOTFIX-TRAIN-DEFER-WAIT: `train.sh add <pr> <verdict> --front` is refused by
+  `merge_train.py` as an unknown argument after `--`; add the pass-through next to
+  `--priority` with an argv pin in `train.sh --self-test`, and consider a verdictless
+  `add <pr> --front`.
