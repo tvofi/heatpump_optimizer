@@ -4081,6 +4081,7 @@
    "dev/audit/harnesses/r10_raise_paths.sh",
    "dev/audit/harnesses/r10_ratio_anchor.py",
    "dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py",
+   "dev/audit/harnesses/r10_rca_flush_dispatch.py",
    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
    "dev/audit/harnesses/r10_rca_sav_estimate.py",
    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
