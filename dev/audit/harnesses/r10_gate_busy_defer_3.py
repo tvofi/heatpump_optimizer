@@ -188,16 +188,13 @@ def replay(ci):
     clock = [t_sweep]
 
     def sget(path, params=None):
-        if m := re.search(r"/actions/runs/(\d+)/jobs", path):
-            r = next(r for r in sview(clock[0]) if r["id"] == int(m[1]))
-            return 200, {}, {"jobs": r["jobs"]}
-        if m := re.search(r"/actions/runs/(\d+)$", path):
-            return 200, {}, next(r for r in sview(clock[0]) if r["id"] == int(m[1]))
-        if path.endswith("/actions/runs"):
-            return 200, {}, {"workflow_runs": sview(clock[0])}
+        rs = sview(clock[0])
         if path.endswith("/pulls/3282"):
             return 200, {}, {"head": {"sha": H3282}}
-        return 404, {}, {}
+        if path.endswith("/actions/runs"):
+            return 200, {}, {"workflow_runs": rs}
+        r = next(r for r in rs if r["id"] == int(path.split("/runs/")[1].split("/")[0]))
+        return 200, {}, ({"jobs": r["jobs"]} if path.endswith("/jobs") else r)
 
     def spost(path, body=None):
         posts.append(path)
