@@ -35,14 +35,17 @@ Round 6. This is a minimal re-cut of the round-5 block (`verdict/3262`, ci-red).
 
 ## Head
 
-`8eac7a7049082315693abbedf6c2f5ed2e19babc`. It sits on the round-5 PR head `b9b6af68683febf678907b19d7e73be453bc5bb7` and adds four commits:
+`0ac370fa281804336ba3444b3c867dacf48505ff`, a conflict resolution by merge: one merge commit whose parents are the previous head `33c3dd998d2413452fa6aec5c331a0a7e9c0c579` and `origin/main` at `8a1358e8448e6734ed16982f25da6aae223ba8b9`. No re-cut, squash or rebase. The merge conflicted in `tools/audit/seat/beat_jobs.py`, `tools/audit/seat/beat_jobs_selftest.py` and `tools/audit/seat/instruments/beat_jobs.py.md`; `tests/closures.json` and `sweep_template.md` merged without a conflict. Review only the resolution delta: `git show --cc 0ac370fa2`, which prints just the hunks that differ from both parents.
 
-- `10bd5426d`: a clean merge of `origin/main` at `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76`.
-- `b6feee85e`: the round-6 change above, 3 files, +36 and -4.
-- `f6a7b52fe`: a clean merge of `origin/main` at `aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98`. Main moved while the body was being written after the first clean `prepr.sh` run, which was at `b6feee85e`.
-- `8eac7a704`: a clean merge of `origin/main` at `364353e670f666be6c97a5942ffa0bea9132b5ce`. Main moved during the clean `prepr.sh` run at `f6a7b52fe` (18:05:31Z to 18:17:34Z). This merge touches none of the round's four files (`git diff --quiet HEAD~1 HEAD -- <the four>`).
+Resolution delta:
+- `beat_jobs.py` docstring: `plan-beat` keeps main's `PLAN MOVED` sentence, then this branch's `pages.yml` dispatch sentences. The `gantt` and `verdict-audit` docs are main's.
+- `beat_jobs.py` `ROWS` and the dispatch table: main's `gantt` and `verdict-audit` plus this branch's `outside-intake`.
+- `beat_jobs.py` `plan_beat`: one `lines` list. A non-zero rc gives this branch's `PLAN UNAVAILABLE` or `REFUSED` line. On rc 0, main's page-hash `PLAN MOVED` line is added when the page changed. A state push that landed (`pushed ` on rc 0 or 1) dispatches `pages.yml`, and a refused dispatch adds `PAGES NOT DISPATCHED`. A single `write_job` call writes the list.
+- `beat_jobs_selftest.py`: the `plan_rc1_silent` mutant uses this branch's predicate (`    if rc != 0:
+        said = `). Main's `plan_moved_every_pass` mutant still matches the merged source, and `pages_*` mutants are unchanged.
+- `instruments/beat_jobs.py.md`: main's text, with the `pages.yml` dispatch added to the `plan-beat` description.
 
-The merge base is `364353e670f666be6c97a5942ffa0bea9132b5ce`. The figures below were re-taken at `8eac7a704`, except the mutation proof's `HEAD~1` arm, which was taken against `b6feee85e`'s parent before the last merge. That merge touches none of the three files the round changes. `origin/main` was `aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98` before and after the final `prepr.sh` run (see `## Figures`), so no further merge was owed.
+Previous head `33c3dd998` was itself at `8eac7a704` plus the round-6 review fixes; the earlier history in this section is unchanged and superseded by this merge. The merge base with `origin/main` is now `8a1358e8448e6734ed16982f25da6aae223ba8b9`.
 
 ## Mutation proof
 
@@ -92,11 +95,13 @@ The round-5 survivors `mark_old_restored_EQUIV`, `has_disc_ignored` and `plan_li
 - `VERSION`, `RELEASE_NOTES.md`, the manifest and both claim files are byte-identical to `origin/main`: `git diff --quiet origin/main HEAD -- VERSION RELEASE_NOTES.md custom_components/heatpump_optimizer/manifest.json tests/golden/claimed_drift.txt tests/golden/card_claimed_drift.txt && echo BYTE-IDENTICAL` printed `BYTE-IDENTICAL`.
 - `dev/programme/delivery/3262.md` is in the three-dot diff (`grep -c` prints 1).
 - Toolchain: `bash tools/audit/seat/cloud-setup.sh` was run, then `--check` gave `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. No golden was run, because the diff touches none.
-- `tools/pr/prepr.sh <body>` at `8eac7a704`, run 2026-11-07T18:18:02Z to 18:38:47Z: `PRE-PR: 8eac7a7049082315693abbedf6c2f5ed2e19babc ... rc=0`. Every lane was `ok` or `skip`: `closures` was skipped (CI re-records), `diff mutants` because `MUTANT_CMD` was unset, and `unpinned sites` because the diff adds none. The `push order` WARN names the push to `handoff/` that followed. Earlier clean runs were at `b6feee85e` (17:08:33Z to 17:19:34Z) and `f6a7b52fe` (18:05:31Z to 18:17:34Z), each followed by a main move and a merge. `origin/main` was `364353e670f666be6c97a5942ffa0bea9132b5ce` at the start and the end of the last run.
+- `python3 tools/audit/seat/beat_jobs.py --self-test` at the merge: rc 0, `171 checks, 0 failed`, every mutant `ok`, including `plan_rc1_silent`, `plan_moved_every_pass` and the three `pages_*` mutants.
+- `python3 -I tools/audit/seat/plan_public.py --self-test` and `outside_intake.py --self-test`: rc 0 after the merge.
+- `tools/pr/prepr.sh` at `0ac370fa2` (no body passed): `PRE-PR: 0ac370fa281804336ba3444b3c867dacf48505ff ... rc=0`, every lane `ok` or `skip`. `closures` skipped (CI re-records); `diff mutants` skipped with `MUTANT_CMD` unset: the added lines of the resolution are this branch's and main's already-killed lines, covered by the beat_jobs self-test mutants above, so the survivor count is 0 by that run and there is no new site.
 
 ## Red checks
 
-**At the new head, nothing has run, so no red has concluded.** `gh api "repos/tvofi/heatpump_optimizer/commits/8eac7a7049082315693abbedf6c2f5ed2e19babc/check-runs?filter=all&per_page=100"` gives `total_count` 0 (one page), and `actions/runs?head_sha=` gives `total_count` 0. Both were read at 2026-11-07T18:39:12Z. The same reads gave 0 and 0 at `f6a7b52fe` (18:05Z) and at `b6feee85e` (17:50Z).
+**At the new head `0ac370fa2`, nothing has run, so no red has concluded; the reads below were taken at the previous head and are not re-taken.** `gh api "repos/tvofi/heatpump_optimizer/commits/8eac7a7049082315693abbedf6c2f5ed2e19babc/check-runs?filter=all&per_page=100"` gives `total_count` 0 (one page), and `actions/runs?head_sha=` gives `total_count` 0. Both were read at 2026-11-07T18:39:12Z. The same reads gave 0 and 0 at `f6a7b52fe` (18:05Z) and at `b6feee85e` (17:50Z).
 - `merge_train.py classify 8eac7a7049082315693abbedf6c2f5ed2e19babc --pr 3262` read `WAIT 8eac7a7049082315693abbedf6c2f5ed2e19babc pending: gate red: none` at 18:39:12Z. At `f6a7b52fe` it read `WAIT` at 18:05:20Z, and at `b6feee85e` it read `WAIT` at 17:20:02Z and 17:50:08Z.
 - The cause: pull request #3262's head branch is `fix/r10-outside-intake`, still at `b9b6af68683febf678907b19d7e73be453bc5bb7` (`pulls/3262` `.head`). The PR moves only when the orchestrator's `tools/audit/seat/handoff_push.sh` relays `handoff/r10-outside-intake` through `app_push.sh`.
 - So the brief's "make classify read GREEN before handoff" cannot be met from this seat, which may not write `fix/`. I took the option that keeps coverage: hand off with the fresh head. **The GREEN classify is owed at the relayed head before the next review.** If a fresh run is cancelled by a runner stall, that is the orchestrator's re-run.
