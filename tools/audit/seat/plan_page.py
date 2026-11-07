@@ -513,8 +513,8 @@ def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
         for g in plan["critical_path"] if g in by)
     head = ('<section>\n  <h2>Flow</h2>\n'
             f'  <h3>Critical-path lane ({len(plan["critical_path"])} groups, the plan\'s full set)</h3>\n'
-            '  <table><thead><tr><th>Group</th><th>Status</th><th>PR</th><th>ETA</th></tr></thead>'
-            f'<tbody>{lane or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n')
+            '  <div class="scroll"><table><thead><tr><th>Group</th><th>Status</th><th>PR</th><th>ETA</th></tr></thead>'
+            f'<tbody>{lane or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n')
     if flow is None:
         return head + '  <p class="note">Flow metrics not drawn (--no-flow).</p>\n</section>\n'
 
@@ -555,13 +555,13 @@ def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
             + f'  <h3>Bottlenecks ({len(alerts)})</h3>\n  <ul class="alerts">{alert}</ul>\n'
             + '  <p class="note">Each line suggests an action and takes none; the orchestrator '
               'decides. Thresholds and their minimum samples are <code>bottleneck_check.THRESHOLDS</code>.</p>\n'
-            + f'  <h3>Flow metrics (to {e(str(flow["until"]))})</h3>\n  <table><tbody>{strip}</tbody></table>\n'
+            + f'  <h3>Flow metrics (to {e(str(flow["until"]))})</h3>\n  <div class="scroll"><table><tbody>{strip}</tbody></table></div>\n'
             + '  <h3>Merge-wait per PR, 24 h (merge verdict to merge)</h3>\n'
-            + '  <table><thead><tr><th>PR</th><th>Kind</th><th>Wait</th><th>Verdict at merged head</th>'
-              f'</tr></thead><tbody>{wait_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n'
+            + '  <div class="scroll"><table><thead><tr><th>PR</th><th>Kind</th><th>Wait</th><th>Verdict at merged head</th>'
+              f'</tr></thead><tbody>{wait_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
             + '  <h3>Train skips per batch (latest 8)</h3>\n'
-            + '  <table><thead><tr><th>Batch (UTC)</th><th>Skipped</th><th>Why</th><th>State</th>'
-              f'</tr></thead><tbody>{batch_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n'
+            + '  <div class="scroll"><table><thead><tr><th>Batch (UTC)</th><th>Skipped</th><th>Why</th><th>State</th>'
+              f'</tr></thead><tbody>{batch_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table></div>\n'
             + "</section>\n")
 
 
@@ -1161,10 +1161,15 @@ _TEMPLATE = """<!doctype html>
   --bg:#10171c; --panel:#162028; --fg:#e4ebef; --muted:#93a3ad; --line:#2a3842;
   --accent:#f07a42; --done:#5cc48a; --live:#5aa7e6; --ready:#d9b440; --blocked:#76848e; --partial:#b78be0;
   --done-bg:#173226; --live-bg:#152b3d; --ready-bg:#33290f; --blocked-bg:#1e2a32; --partial-bg:#2a1f38; color-scheme:dark}
+html{-webkit-text-size-adjust:100%;text-size-adjust:100%}
 body{background:var(--bg);color:var(--fg);font:15px/1.45 var(--body);margin:0;padding:20px 16px 40px}
 main{max-width:1240px;margin:0 auto;display:flex;flex-direction:column;gap:22px}
 h1{font:700 2.1rem/1 var(--display);letter-spacing:.01em;margin:0}
 h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:uppercase;margin:0 0 10px}
+h3{font:600 1rem/1.2 var(--display);letter-spacing:.04em;margin:14px 0 8px}
+.alerts{margin:0;padding-left:1.2em}
+.alerts li{overflow-wrap:anywhere}
+pre,code{white-space:pre-wrap;overflow-wrap:anywhere}
 .sub{color:var(--muted);margin:6px 0 0}
 .strip{display:flex;flex-wrap:wrap;gap:10px}
 .stat{background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:10px 14px;min-width:120px;flex:1}
@@ -1172,6 +1177,8 @@ h2{font:600 1.25rem/1.1 var(--display);letter-spacing:.04em;text-transform:upper
 .stat span{font-size:.78rem;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
 .stat.end b{color:var(--accent);font-size:1.15rem;padding-top:6px}
 section{background:var(--panel);border:1px solid var(--line);border-radius:8px;padding:16px;min-width:0}
+.scroll{max-width:100%}
+@media (max-width:480px){body{padding:14px 10px 32px}section{padding:12px}h1{font-size:1.7rem}}
 .scroll{overflow-x:auto}
 svg{display:block;font-family:var(--mono)}
 .grid{stroke:var(--line);stroke-width:1}
@@ -1208,9 +1215,10 @@ td.g{font:600 .85rem var(--mono);white-space:nowrap}
 td.d{min-width:260px;max-width:440px}
 .lanec{font:400 .72rem var(--body);color:var(--muted);text-transform:uppercase;letter-spacing:.05em;margin-top:2px}
 .mono{font-family:var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap;font-size:.82rem}
+.alerts li.mono{white-space:normal}
 .blk{color:var(--muted);font-size:.82rem;max-width:200px}
 .cp{color:var(--accent);margin-right:4px}
-.pill{display:inline-block;border-radius:999px;padding:1px 9px;font-size:.78rem;white-space:nowrap;border:1px solid}
+.pill{display:inline-block;max-width:100%;box-sizing:border-box;border-radius:999px;padding:1px 9px;font-size:.78rem;line-height:1.35;white-space:normal;overflow-wrap:anywhere;border:1px solid}
 .pill.done{background:var(--done-bg);color:var(--done);border-color:var(--done)}
 .pill.live{background:var(--live-bg);color:var(--live);border-color:var(--live)}
 .pill.ready{background:var(--ready-bg);color:var(--ready);border-color:var(--ready)}
