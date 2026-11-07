@@ -6,10 +6,7 @@ report to the owner.
 
 **Your pull requests are reviewed. Your process is not.** Most of what you
 produce never meets a reviewer: merge-commit messages, issue bodies and
-comments, dispatch briefs, roster edits, and what you tell the owner. On
-2026-09-07 the orchestrator made a run of unmeasured claims, each
-caught by a review seat and none by itself, while writing the policy against
-them. **Not one was in a pull-request body.**
+comments, dispatch briefs, roster edits, and what you tell the owner.
 
 ## 0. Everything in the repository's policy binds you
 
@@ -110,6 +107,10 @@ whenever you merge.
   `standing-tick.md`, `standing-merge.md`, `standing-dispatch.md` and
   `standing-roster.md`. You send queue lines and act on their reports; the
   sweep restarts any that is absent or stopped with work owed.
+- **Each outside submission reaches a disposition** (tvofi, 2026-11-06): an
+  `OUTSIDE ... owed=triage` line (`tools/audit/seat/outside_intake.py`) is
+  triaged or designed, then wired into a roster group or refused
+  (`outside_intake.py refuse`); `owed=answer` goes to `standing-dispatch.md`.
 - **A proposal goes to `proposal-triage.md` before it is routed**: a process,
   tooling or instrument proposal from the sweep, a seat's result or a verdict.
   Where a mandate lets you act on a recommendation absent the owner, that means
@@ -261,11 +262,8 @@ session-local copy is a defect** (tvofi, 2026-10-03; ownership is 0013's). What 
 carries, stamps, gates, watches CI or records state runs from the tree, never
 from scratch or `~/`.
 
-**Look the instrument up before you write one** (tvofi, 2026-10-19). Round 10
-hand-rolled a tick driver, relay, sweep prompt and merge loops beside
-`tick_loop.sh`, `cloud_relay.sh`, `sweep_render.py` and `merge_train.py`. The
-instruments guide in `tools/audit/seat/` lists them; read it before any loop,
-watcher, relay or helper.
+**Look the instrument up before you write one** (tvofi, 2026-10-19): read the
+instruments guide in `tools/audit/seat/` before any loop, watcher, relay or helper.
 
 - A new helper needs a stated reason and lives in `tools/` with a `--self-test`,
   never only in scratch or `/tmp`; a listed instrument that falls short is

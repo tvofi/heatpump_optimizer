@@ -320,6 +320,16 @@ jobs:
       - name: Show the probe bridge deriving the reference and refusing without a probed run
         run: python3 tools/audit/seat/probe_bridge.py --self-test
 
+      # R10-OUTSIDE-INTAKE: the public plan page's stager (its refusal of a
+      # page carrying a host path or a tool's attribution) and the outside
+      # intake's owed lines, answers and mutants, offline over faked gh and
+      # git; the intake's projections run through the runner's own jq.
+      - name: Show the plan page stager refusing a page it may not publish
+        run: python3 -I tools/audit/seat/plan_public.py --self-test
+
+      - name: Show the outside intake owing, answering once and refusing its fixtures
+        run: python3 -I tools/audit/seat/outside_intake.py --self-test
+
       # The I3 barrier's own verdicts (BLIND, DEAD, REFUSED, unregistered) on a
       # synthetic registration, offline: `policy-docs` runs the base's copy,
       # which cannot answer for a change to this one.
