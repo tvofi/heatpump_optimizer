@@ -651,6 +651,12 @@ GRADER_PARTIAL = {
 GRADER_EXEMPT[("pr-contract", "codescan_wait.py", "--pr", "--base")] = "it queries the code-scanning API and grades no file"
 
 
+# The remedy a refusal carries when the refusing program is itself in the diff:
+# the pull request cannot reach the base's copy that grades it.
+BOOTSTRAP = ("BOOTSTRAP: no change in this pull request reaches the base's copy; move the registration to "
+             "unpinned data the grader reads, or split p1 grader / p2 artifact (fixer.md, decision 0013 Consequences)")
+
+
 def run_key(job: str, prog: str, argv) -> tuple[str, ...]:
     return (job, Path(prog).name, *(a for a in argv if a.startswith("--")))
 
@@ -858,7 +864,8 @@ def grader_preds(root: Path, base_ref: str, body: str | None = None,
                           and "probe, expected" not in l), lines[-1])
             label = " ".join((Path(prog).name, *argv))
             preds.append((job, f"GRADER {label} REFUSED by the base's copy, over {over(hit)}: {first[:240]}"
-                               + (f" (partial: ran without {part})" if part else "")))
+                               + (f" (partial: ran without {part})" if part else "")
+                               + (f" -- {BOOTSTRAP}" if prog in hit else "")))
         return preds
     with ThreadPoolExecutor(max_workers=len(keyed)) as pool:
         out = [p for preds in pool.map(one, sorted(keyed)) for p in preds]
@@ -1222,8 +1229,10 @@ def main(argv: list[str] | None = None) -> int:
                f"`--apply-inert` repairs the {inert} INERT READS, the lines "
                f"above the rest" if inert else
                "the lines above name each arm's repair")
+        boot = sum(1 for j, l in preds if is_red(j, l) and "BOOTSTRAP:" in l)
+        tail = ("repair before the handoff; " if boot < reds else "") + who
         print(f"CI PREDICT: {reds} predicted red(s) on {', '.join(jobs)} "
-              f"against {base[:12]} -- repair before the handoff; {who}")
+              f"against {base[:12]} -- {tail}" + (f" ({boot} BOOTSTRAP: split or move, not repair)" if boot else ""))
     else:
         ran = args.record_self_tests or args.only == "self-test-reads"
         seen = (" unless a changed file's own self-test makes it" if ran else "")
@@ -1535,6 +1544,9 @@ def graders_self_test(root: Path) -> int:
             got = grader_preds(r, tip, None, nl)
             who = "gate" if "live state" in label else "other-job" if "second workflow" in label else "policy-docs"
             ok = (any(j == who and want in l for j, l in got) if want else not got)
+            m = re.match(r"GRADER (\S+) REFUSED by the base's copy, over (\S+):", want or "")
+            if want and who != "gate":  # the remedy rides the line exactly when the refusing program is in the over-list
+                ok = ok and all(("BOOTSTRAP:" in l) == bool(m and m[2].endswith(m[1])) for _, l in got)
             if who == "gate":
                 ok = ok and any(l.startswith("GRADER PARTIAL gate") and "not a pass" in l for l in nl) \
                     and any("(partial: ran without" in l for _, l in got)
@@ -1581,7 +1593,7 @@ def self_test_reads_self_test(root: Path) -> int:
         (t / f).write_text("# throwaway_git.py --self-test\n")
         listed = {h: [f, h], n: [f, n], f: [f]}
 
-        def run(files, reads, inert_reads, changed=(f,), why=None):
+        def run(files, reads, inert_reads, changed=(f,), why=None, own=()):
             def record(_root, _f, out):
                 calls.append(_f)
                 out.write_text(json.dumps({"script": _f, "rc": 0, "files": [_f, *files],
@@ -1590,9 +1602,10 @@ def self_test_reads_self_test(root: Path) -> int:
             calls, notes = [], []
             closure.CLOSURES = t / "closures.json"
             ir = {i: [f], **inert_reads}
-            closure.write_closures(closure.CLOSURES, {"closures": listed, "inert_reads": ir})
+            tbl = {**listed, f: [f, *own]}  # `own`: reads the file's own key lists and its hosts' do not
+            closure.write_closures(closure.CLOSURES, {"closures": tbl, "inert_reads": ir})
             try:
-                preds = self_test_reads(t, set(changed), listed, ir, closure,
+                preds = self_test_reads(t, set(changed), tbl, ir, closure,
                                         record=record, notes=notes)
             finally:
                 closure.CLOSURES = saved
@@ -1609,6 +1622,10 @@ def self_test_reads_self_test(root: Path) -> int:
              + plain in p[0][1]),
             ("null control: a record inside the host's closure is not",
              run([], [], {}), lambda p, c, n: p == [] and c == [f]),
+            ("a read in the file's own closure but not the host's is graded under the host's key "
+             "(null control for the file-key mutant: grading under the file's own key passes it)",
+             run([plain], [], {}, own=(plain,)), lambda p, c, n: len(p) == 1 and f"UNDER-SCOPED {h}: "
+             + plain in p[0][1]),
             ("a self-test the recorder cannot finish is a note, never a red",
              run([inert], [inert], {}, why="not recorded in 180 s"), lambda p, c, n: p == [] and len(n) == 1),
             ("null control: a file the diff does not change is never recorded",
