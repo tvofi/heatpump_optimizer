@@ -40848,6 +40848,93 @@ R.check(
                                         _si3.effective_config, "stand_in_space_setpoint")) is False,
     "",
 )
+
+# The hook's failure edges, each through the production function: a consumer
+# that refuses before any record exists, a restore whose write raises and is
+# retried, one whose consumer is no longer configured, and a store that cannot
+# save or be removed. None of them may raise into the caller.
+_ghc_fail = {"write": True}
+
+
+async def _ghc_flaky_write(hass, entity_id, value):
+    if _ghc_fail["write"]:
+        raise RuntimeError("integration gone")
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_flaky",
+    lambda cfg: _ghc_restore.Restorer("number.flaky", _ghc_flaky_write, neutral=0.0)
+    if cfg.get("flaky") else None,
+)
+_ge = _ghc_coord(entity=None, entry_id="ghc_edges")
+_ge_refused = (
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "no_such_consumer")),
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "stand_in_flaky")),
+)
+R.check(
+    "an unregistered consumer, or one its factory reads as unconfigured, refuses the write "
+    "and leaves no record behind",
+    _ge_refused == (False, False) and _ge.entry not in _ghc_restore._RECORDS,
+    "refused=%r recorded=%r" % (_ge_refused, _ge.entry in _ghc_restore._RECORDS),
+)
+_gw = _ghc_coord(entity=None, entry_id="ghc_flaky", flaky=True)
+_gw_cfg = _gw.effective_config
+_gw_armed = _asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_sent = []
+_gw_warn = _ghc_logged(lambda: _gw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))))
+_gw_after_fail = (list(_gw_sent), _ghc_restore.diagnostics(_gw.entry))
+_ghc_fail["write"] = False
+_gw_retry = _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "mode_off"))
+R.check(
+    "a restore whose write raises sends nothing, stays armed and latches a warning naming the entity",
+    _gw_armed is True
+    and _gw_after_fail == ([0], {"armed": ["stand_in_flaky"], "restores": 0, "last_restore": None})
+    and any("number.flaky" in m and "failed" in m for m in _gw_warn),
+    "armed=%r after=%r warn=%r" % (_gw_armed, _gw_after_fail, _gw_warn),
+)
+R.check(
+    "and the next off retries it: one write of the neutral 0, disarmed and counted",
+    _gw_retry == 1 and _ghc_writes(_gw) == [0.0]
+    and _ghc_restore.diagnostics(_gw.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "sent=%r writes=%r diag=%r" % (_gw_retry, _ghc_writes(_gw), _ghc_restore.diagnostics(_gw.entry)),
+)
+_gx = _ghc_coord(entity=None, entry_id="ghc_unconfigured", flaky=True)
+_asyncio.run(_ghc_restore.async_arm(_gx.hass, _gx.entry, _gx.effective_config, "stand_in_flaky"))
+_gx2 = _ghc_coord(entity=None, hass=_gx.hass, entry_id="ghc_unconfigured")
+_gx_sent = _asyncio.run(_ghc_restore.async_restore(_gx2.hass, _gx2.entry, _gx2.effective_config, "unload"))
+R.check(
+    "an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's",
+    _gx_sent == 0 and _ghc_writes(_gx2) == [] and _ghc_restore.diagnostics(_gx2.entry)["armed"] == [],
+    "sent=%r writes=%r diag=%r" % (_gx_sent, _ghc_writes(_gx2), _ghc_restore.diagnostics(_gx2.entry)),
+)
+
+
+async def _ghc_store_gone(*_a, **_k):
+    raise RuntimeError("store gone")
+
+
+class _GhcDeadStore:
+    async_save = async_remove = staticmethod(_ghc_store_gone)
+
+
+_gd = _ghc_coord(entity=None, entry_id="ghc_dead_store", flaky=True)
+_asyncio.run(_ghc_restore._armed_record(_gd.hass, _gd.entry))
+_ghc_restore._RECORDS[_gd.entry].store = _GhcDeadStore()
+_gd_armed = _asyncio.run(_ghc_restore.async_arm(_gd.hass, _gd.entry, _gd.effective_config, "stand_in_flaky"))
+_ghc_real_store = _ghc_restore._store
+_ghc_restore._store = lambda hass, entry_id: _GhcDeadStore()
+try:
+    _gd_forgot = _asyncio.run(_ghc_restore.async_forget(_gd.hass, "ghc_dead_store"))
+finally:
+    _ghc_restore._store = _ghc_real_store
+R.check(
+    "a store that cannot save still arms the write, and one that cannot be removed does not raise",
+    _gd_armed is True and _ghc_restore.diagnostics(_gd.entry)["armed"] == ["stand_in_flaky"]
+    and _gd_forgot is None,
+    "armed=%r diag=%r" % (_gd_armed, _ghc_restore.diagnostics(_gd.entry)),
+)
 R.check(
     "a factory reset keeps the heat-curve kind beside its entity (ghc-d03)",
     "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
