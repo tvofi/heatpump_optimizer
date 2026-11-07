@@ -85,6 +85,7 @@ from .config_flow import identity_update
 from .coordinator import (
     HeatPumpOptimizerConfigEntry,
     HeatPumpOptimizerCoordinator,
+    ProcessWorkerUnavailable,
     async_adopt_heat_loss_refit,
     async_factory_reset,
 )
@@ -1254,10 +1255,26 @@ async def handle_diagnose_interval(hass: HomeAssistant, call: ServiceCall) -> di
     """Attribute the last settled interval's residual (T6 #52)."""
     target_entry = dict(call.data).get("entry_id")
     reports: dict[str, Any] = {}
+    failed: dict[str, str] = {}
     for entry_id, coord in _manual_targets(hass, target_entry):
         # The button's snapshot path; a bound method on the executor read
         # live coordinator state off the loop (#1529).
-        reports[entry_id] = await coord.async_diagnose_interval()
+        try:
+            reports[entry_id] = await coord.async_diagnose_interval()
+        except ProcessWorkerUnavailable as err:
+            # A worker that timed out or could not run the job: the service
+            # call failed, so it says so in the shape the other services use,
+            # not as the worker's own RuntimeError.
+            failed[entry_id] = str(err)
+    if failed:
+        entry_ids = ", ".join(failed)
+        error = next(iter(failed.values()))
+        raise HomeAssistantError(
+            f"The interval diagnosis could not run for {entry_ids}: {error}",
+            translation_domain=DOMAIN,
+            translation_key="diagnose_interval_failed",
+            translation_placeholders={"entry_ids": entry_ids, "error": error},
+        )
     return {"diagnosis": reports}
 
 
