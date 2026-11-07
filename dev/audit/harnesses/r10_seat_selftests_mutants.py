@@ -275,8 +275,47 @@ MUTANTS = [
      'key=lambda e: (not crit(e), not (e.get("priority") or e.get("front"))))'),
     # Round 3: train_add's start path orders a stopped train's spool plus the entry by drain_order.
     ("merge_train-42", "merge_train.py",
-     "queue = t.drain_order([entry] + spooled if front else spooled + [entry])  # mut:start",
-     "queue = [entry] + spooled if front else spooled + [entry]  # mut:start"),
+     "queue = t.drain_order([entry] + spooled + others if front else spooled + [entry] + others)  # mut:start",
+     "queue = [entry] + spooled + others if front else spooled + [entry] + others  # mut:start"),
+    ("merge_train-43", "merge_train.py", "return bool(tree) and tree == self.tree(tip)", "return bool(tree)"),
+    ("merge_train-44", "merge_train.py", "                status, step, pf_why = t.preflight_entry(item)\n",
+     '                status, step, pf_why = "PASS", "", ""\n'),
+    # r10-train-merge-loop round 2: the one job-log reader (carry 2), the
+    # same-tree fetch (R5), carry 19's drain, carries 14 and 15.
+    ("merge_train-45", "merge_train.py",
+     'logs = {j.get("id"): job_log(self.run, self.repo, j.get("id")) for j in failed}',
+     'logs = {j.get("id"): (lambda c: None if c[0] else c[1])(self.run(["gh", "api", '
+     'f"repos/{self.repo}/actions/jobs/{j.get(\'id\')}/logs"])) for j in failed}'),
+    ("merge_train-46", "merge_train.py",
+     '    if code and f"unknown flag: {ESCAPES_FLAG}" in text:\n',
+     '    if False:\n'),
+    ("merge_train-47", "merge_train.py",
+     '        if self.run(["git", "fetch", "-q", "origin", f"verdict/{n}"])[0]:\n',
+     '        if False:\n'),
+    ("merge_train-48", "merge_train.py",
+     "READMIT_SAME_VERDICT = (HOLDER, BRANCH_POLICY, PREFLIGHT_PARK)",
+     "READMIT_SAME_VERDICT = (HOLDER, BRANCH_POLICY)"),
+    ("merge_train-49", "merge_train.py",
+     '        others = t.ready_batch(ready, {int(e["pr"]) for e in spooled} | {entry["pr"]})\n',
+     '        others = []\n'),
+    ("merge_train-50", "merge_train.py",
+     "            if not self.stamp and record_pr([f.get(\"path\", \"\") for f in pr.get(\"files\") or ()]):\n",
+     "            if False:\n"),
+    ("merge_train-51", "merge_train.py",
+     "        return HELD_FOR_STAMP if code == 0 and record_pr(o.split()) else None\n",
+     "        return None\n"),
+    ("merge_train-52", "merge_train.py",
+     "all(stamp.record_class_paths([p]) or PROGRAMME_RECORD.match(p) for p in paths)",
+     "all(stamp.record_class_paths([p]) for p in paths)"),
+    ("merge_train-53", "merge_train.py",
+     "        if self.stamp:\n            return None\n        code, o = self.run([\"gh\", \"pr\", \"view\"",
+     "        code, o = self.run([\"gh\", \"pr\", \"view\""),
+    ("merge_train-54", "merge_train.py",
+     '        log = job_log(train.run, train.repo, c.get("id"))\n',
+     '        log = train.run(["gh", "api", f"repos/{train.repo}/actions/jobs/{c.get(\'id\')}/logs"])[1]\n'),
+    ("merge_train-55", "merge_train.py",
+     'scripts |= set(FAILED_SCRIPT.findall(job_log(self.run, self.repo, c["id"]) or ""))',
+     'scripts |= set(FAILED_SCRIPT.findall(self.run(["gh", "api", f"repos/{self.repo}/actions/jobs/{c[\'id\']}/logs"])[1]))'),
     # r10-ci-layout-p2-u9a: the merge-main bot's pin chain under ci.yml's names.
     ("merge_main_bot-1", "tools/pr/merge_main_bot.py", 'PIN_CHAIN = re.compile(r"^tests / (?:',
      'PIN_CHAIN = re.compile(r"^(?:'),
@@ -353,6 +392,16 @@ MUTANTS = [
     # R10-FLOW-BODY-ONLY carry 13 (V147): a PR body names its code head; graded by prepr's self-test
     ("body_push-3", "tools/audit/seat/body_push.sh", '[ -z "$HREF" ] || MSG=', '[ -n "$HREF" ] || MSG='),
     ("body_push-4", "tools/audit/seat/body_push.sh", '  if [ "$lrc" = 1 ]; then  # mut:landed', '  if false; then'),
+    # #3245 round 2's block: the identity guard outranks head-stale. body_push-5 drops the
+    # guard; body_push-6 re-plants the reviewed head's order (a ## Head check before the
+    # guard). Both are graded by ref_privacy's self-test (STEP_OF), whose fixture body names no ## Head.
+    ("body_push-5", "tools/audit/seat/body_push.sh",
+     '  python3 -I "$HERE/ref_privacy.py" guard --ref "handoff/$TOPIC"',
+     '  true || python3 -I "$HERE/ref_privacy.py" guard --ref "handoff/$TOPIC"'),
+    ("body_push-6", "tools/audit/seat/body_push.sh",
+     '  ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")\n',
+     '  ABS=$(cd "$(dirname "$BODY")" && pwd)/$(basename "$BODY")\n'
+     '  case $(awk \'/^## Head[[:space:]]*$/ { f = 1; next } /^## / { f = 0 } f\' "$BODY") in *"$HREF"*) ;; *) exit 1 ;; esac\n'),
     # #2853's review: the class the copy enumeration missed is a link to an
     # in-tree file it does not name. prepr-11 renames a LISTED entry (the
     # pathspec arm); prepr-13 stops the copy taking the generator's own link
@@ -641,6 +690,7 @@ ENV_MUTANTS = [("S04U", "S04", {"PYTHONUNBUFFERED": "1"})]
 STEP_OF = {"prepr-9": "tools/pr/prepr.sh", "prepr-10": "tools/pr/prepr.sh",
            "prepr-12": "tools/pr/prepr.sh", "body_push-1": "tools/pr/prepr.sh",
            "body_push-2": "tools/pr/prepr.sh", "body_push-3": "tools/pr/prepr.sh", "body_push-4": "tools/pr/prepr.sh",
+           "body_push-5": "tools/audit/seat/ref_privacy.py", "body_push-6": "tools/audit/seat/ref_privacy.py",
            "carry_audit-1": "tools/audit/seat/bus.sh"}
 
 # The wrappers' own line is the dispatch to the self-tests they delegate.
