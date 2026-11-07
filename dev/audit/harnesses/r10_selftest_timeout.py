@@ -16,7 +16,11 @@ tally grep as the prepr step is, a slow non-zero exit and a slow pass. Each
 refusal arm must refuse and each control must pass, first on the library as committed (M0) and then
 on three mutants of bg_wait: M1 returns 0 in place of the recorded
 status, M2 returns 0 for a launcher gone with no status, X8 returns 0 after
-its first poll finds the command still running. Prints one line per
+its first poll finds the command still running, M3 drops bg_wait's read
+marker, M4 makes bg_unread pass with names unread. Three arms more drive
+bg_unread over the job's five names: four read and one never read is refused
+and named, all five read passes. W2 deletes the job's last step, which must
+run bg_unread under !cancelled(): the shape check refuses it. Prints one line per
 arm and mutant, and `RESULT survivors=<n>`; exit 1 when a mutant survived or
 M0 failed.
 
@@ -24,7 +28,7 @@ M0 failed.
 `bash --noprofile --norc -eo pipefail` with one RUNNER_TEMP, the runner's
 skip rule for a step without `!cancelled()` after a failure, and prints each
 step's seconds and the total. `bg` runs only the launcher and the steps that
-call bg_wait; `all` runs every step. WF may be any copy of the workflow, e.g.
+call bg_wait or bg_unread; `all` runs every step. WF may be any copy of the workflow, e.g.
 the merge base's from `git show`.
 """
 import os
@@ -66,13 +70,23 @@ wait 2> /dev/null || true
 ( bg_wait killed > /dev/null 2>&1 ) && echo "FAIL refuse killed" || echo "PASS refuse killed"
 ( bg_wait notally | grep -Eq "$2" ) && echo "FAIL refuse notally" || echo "PASS refuse notally"
 ( bg_wait ok | grep -Eq "$2" ) && echo "PASS control tally" || echo "FAIL control tally"
+RUNNER_TEMP="$RUNNER_TEMP/u"; mkdir -p "$RUNNER_TEMP/bg"
+for n in prepr beatd open-pr pr-args update-pr; do bg_start "$n" true; done
+for n in beatd open-pr pr-args update-pr; do bg_wait "$n" > /dev/null; done
+( bg_unread > /dev/null 2>&1 ) && echo "FAIL refuse unread" || echo "PASS refuse unread"
+( { bg_unread 2>&1 || true; } | grep "^UNREAD prepr:" > /dev/null ) && echo "PASS names unread" || echo "FAIL names unread"
+bg_wait prepr > /dev/null
+( bg_unread > /dev/null 2>&1 ) && echo "PASS control all read" || echo "FAIL control all read"
 '''
 
 MUTANTS = {
     "M1": ('return "$(cat "$d/$1.rc")"', "return 0"),
     "M2": ('echo "$1: its launcher exited with no status" >&2; return 1', "return 0"),
     "X8": ("    sleep 5\n", "    sleep 5; return 0\n"),
+    "M3": (': > "$d/$1.read"; ', ""),
+    "M4": ('test "$u" -eq 0', "true"),
 }
+UNREAD_STEP = "Refuse a detached self-test whose status no step read"
 
 
 def steps(wf):
@@ -83,6 +97,14 @@ def steps(wf):
 def library(wf):
     run = next(s["run"] for s in steps(wf) if s.get("name") == LAUNCHER)
     return re.search(r"<<'LIB'\n(.*?)\nLIB\n", run, re.S).group(1)
+
+
+def shape(st):
+    """The job's last step runs bg_unread under !cancelled(), after every bg_wait."""
+    last = st[-1]
+    ok = (last.get("name") == UNREAD_STEP and "bg_unread" in last.get("run", "")
+          and "!cancelled()" in last.get("if", ""))
+    return f"{'PASS' if ok else 'FAIL'} shape last step reads bg_unread"
 
 
 def arms(lib):
@@ -98,11 +120,14 @@ def arms(lib):
 
 def mutants():
     lib = library(WORKFLOW)
-    base = arms(lib)
+    base = arms(lib) + [shape(steps(WORKFLOW))]
     for ln in base:
         print(f"M0 {ln}")
-    ok0 = len(base) == 10 and all(ln.startswith("PASS") for ln in base)
+    ok0 = len(base) == 14 and all(ln.startswith("PASS") for ln in base)
     survivors = 0
+    w2 = shape(steps(WORKFLOW)[:-1])
+    print(f"W2 {'KILLED by ' + w2 if w2.startswith('FAIL') else 'SURVIVED'}")
+    survivors += not w2.startswith("FAIL")
     for name, (old, new) in MUTANTS.items():
         if lib.count(old) != 1:
             print(f"{name} NOT APPLIED: {old!r} occurs {lib.count(old)} times")
@@ -121,7 +146,7 @@ def replay(wf, mode):
     for s in steps(wf):
         if "run" not in s:
             continue
-        if mode == "bg" and s["name"] != LAUNCHER and "bg_wait" not in s["run"]:
+        if mode == "bg" and s["name"] != LAUNCHER and not re.search(r"\bbg_(wait|unread)\b", s["run"]):
             continue
         if failed and "!cancelled()" not in s.get("if", ""):
             print(f"SKIP          {s['name']}")
