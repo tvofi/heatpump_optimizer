@@ -47,7 +47,7 @@ Every other carry of the brief, by 0-based index, with its disposition. None is 
 - Carry 19: delivered for its section (2) only; section (1) stays open.
 - Carry 20, Carry 21: tick-digest and the mechanical jobs, built in P1 (#3197); the seat retirements are design P2; not touched here.
 - Carry 22, Carry 23, Carry 24: the generation token and the session lock, design P5; stay open.
-- Carry 25: the loop-cwd row, not in this part because open PRs 3262 and 3267 edit beat_jobs.py and beatd.jobs.json; stays open.
+- Carry 25: the loop-cwd row, not in this part because open PRs 3262 and 3267 edit beat_jobs.py and beatd.jobs.json; stays open. Carry: R10-FLY-STANDING-CONTRACTS
 - Carry 26: this part scope itself, answered above.
 
 ## Friction
