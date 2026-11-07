@@ -3,7 +3,7 @@
     "step": {
       "user": {
         "title": "Einrichtung des Wärmepumpen-Optimierers",
-        "description": "Wählen Sie eine Preisquelle und eine Wettervorhersage. Ein Tibber-Token ist nur erforderlich, wenn die Preise von Tibber kommen. Optionale Sensoren folgen auf dem nächsten Bildschirm.",
+        "description": "Wähle eine Preisquelle und eine Wettervorhersage. Ein Tibber-Token ist nur erforderlich, wenn die Preise von Tibber kommen. Optionale Sensoren folgen auf dem nächsten Bildschirm.",
         "data": {
           "name": "Name für diese Integration",
           "price_source": "Quelle für den Strompreis",
@@ -13,8 +13,8 @@
         },
         "data_description": {
           "name": "Wird jedem Sensor vorangestellt, den diese Integration erstellt.",
-          "price_source": "Tibber verwendet Ihr API-Token. Entität liest einen Preissensor aus Home Assistant, z. B. Nord Pool.",
-          "tibber_token": "Wird verwendet, um Ihre stündlichen Strompreise abzufragen. Erstellen Sie eines unter developer.tibber.com. Unverändert lassen, solange es sich nicht geändert hat. Nicht erforderlich, wenn die Preisquelle eine Entität ist.",
+          "price_source": "Tibber verwendet dein API-Token. Entität liest einen Preissensor aus Home Assistant, z. B. Nord Pool.",
+          "tibber_token": "Wird verwendet, um deine stündlichen Strompreise abzufragen. Erstelle eines unter developer.tibber.com. Unverändert lassen, solange es sich nicht geändert hat. Nicht erforderlich, wenn die Preisquelle eine Entität ist.",
           "price_entity": "Erforderlich, wenn die Preisquelle eine Entität ist. Typische Attribute sind raw_today und raw_tomorrow.",
           "weather_entity": "Woher die Vorhersage für Außentemperatur, Wind und Regen stammt. Der Optimierer plant 24 Stunden voraus, daher ist eine Vorhersage erforderlich."
         }
@@ -42,8 +42,8 @@
         }
       },
       "building": {
-        "title": "Ihr Gebäude",
-        "description": "Der Optimierer benötigt ein thermisches Modell des Hauses. Die meisten beschreiben am besten das Gebäude und lassen die Integration die Physik ableiten; die Werte lassen sich später in den Optionen jederzeit verfeinern. Geben Sie Werte nur direkt ein, wenn Sie reale Zahlen haben, etwa aus einem Energieausweis.",
+        "title": "Dein Gebäude",
+        "description": "Der Optimierer benötigt ein thermisches Modell des Hauses. Die meisten beschreiben am besten das Gebäude und lassen die Integration die Physik ableiten; die Werte lassen sich später in den Optionen jederzeit verfeinern. Gib Werte nur direkt ein, wenn du reale Zahlen hast, etwa aus einem Energieausweis.",
         "menu_options": {
           "building_describe": "Mein Gebäude beschreiben (empfohlen)",
           "thermal": "Thermische Werte direkt eingeben"
@@ -70,7 +70,7 @@
         }
       },
       "building_extras": {
-        "title": "Ihre Wärmepumpe",
+        "title": "Deine Wärmepumpe",
         "description": "Drei Werte vom Typenschild. Alles, was der Fragebogen abgeleitet hat, lässt sich später in den Optionen der Integration prüfen.",
         "data": {
           "heat_pump_cop_nominal": "Nenn-COP der Wärmepumpe",
@@ -85,7 +85,7 @@
       },
       "thermal": {
         "title": "Thermisches Modell & Optimierung",
-        "description": "Konfigurieren Sie die thermischen Eigenschaften Ihres Hauses und die Wärmepumpe. Die Standardwerte passen für ein typisches, gut gedämmtes skandinavisches Haus mit Fußbodenheizung im Estrich. Passen Sie sie bei Bedarf an.",
+        "description": "Konfiguriere die thermischen Eigenschaften deines Hauses und die Wärmepumpe. Die Standardwerte passen für ein typisches, gut gedämmtes skandinavisches Haus mit Fußbodenheizung im Estrich. Passe sie bei Bedarf an.",
         "data": {
           "house_thermal_mass": "Thermische Masse des Hauses (kWh/°C)",
           "house_heat_loss_coefficient": "Wärmeverlustkoeffizient (kW/°C)",
@@ -100,7 +100,7 @@
         },
         "data_description": {
           "house_thermal_mass": "Wie viel Wärme Raumluft, Einrichtung und leichte Bausubstanz pro Grad speichern – etwa 0,02 kWh/°C pro m² beheizter Fläche bei einem Holzhaus, 0,05 oder mehr bei Stein. Schwere Böden und ein beheizter Estrich werden separat unter „Thermische Masse des Estrichs“ erfasst, daher beschreibt dieser Wert allein nicht das ganze Gebäude.",
-          "house_heat_loss_coefficient": "Wie schnell das Haus pro Grad Temperaturdifferenz zur Außenluft Wärme verliert. Multiplizieren Sie mit dem Unterschied zwischen innen und außen, um die benötigte Heizleistung zu erhalten: 0,25 kW/°C bei 20 Grad Unterschied ergibt etwa 5 kW.",
+          "house_heat_loss_coefficient": "Wie schnell das Haus pro Grad Temperaturdifferenz zur Außenluft Wärme verliert. Multipliziere mit dem Unterschied zwischen innen und außen, um die benötigte Heizleistung zu erhalten: 0,25 kW/°C bei 20 Grad Unterschied ergibt etwa 5 kW.",
           "slab_thermal_mass": "Pro Grad gespeicherte Wärme in dem, worüber die Wärme abgegeben wird: der Betonestrich eines Hauses mit Fußbodenheizung – der Puffer, mit dem sich die Fußbodenheizung bei Preisspitzen abschalten lässt – oder bei Heizkörpern das Wasser und der Stahl des Heizkreises, der weit kleiner ist. Ein Haus mit Heizkörpern und 100 m² liegt bei etwa 0,2 kWh/°C, ein beheizter Estrich gleicher Größe bei etwa 10.",
           "slab_heat_transfer": "Wie schnell die Wärme aus diesem Speicher in den Raum gelangt. Niedrigere Werte bedeuten einen trägen Boden, der früher aufgeladen werden muss; Heizkörper sind deutlich schneller und liegen weit höher.",
           "heat_pump_cop_nominal": "Erzeugte Wärmeeinheiten pro Einheit Strom unter Normalbedingungen. Siehe Datenblatt; 3 bis 4 sind typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
@@ -108,12 +108,12 @@
           "heat_pump_min_power": "Niedrigste elektrische Leistungsaufnahme, mit der die Pumpe ohne ständiges Ein- und Ausschalten laufen kann.",
           "optimization_interval": "Wie oft der Plan anhand aktueller Preise und aktuellen Wetters neu berechnet wird. Häufiger reagiert schneller, verursacht aber mehr Rechenaufwand.",
           "price_weight": "Höher bedeutet, dass der Optimierer stärker versucht, das Heizen in günstige Stunden zu verlegen, auf Kosten größerer Temperaturschwankungen.",
-          "comfort_weight": "Das Gegengewicht zur obigen Einstellung und der wirksamste Regler, den Sie haben. Er wird gegen den von Ihnen erlaubten Bereich gemessen, ein breiterer Bereich macht den Optimierer also mutiger. Etwa 5 lässt das Haus innerhalb Ihres erlaubten Bereichs frei schwanken und bringt die größten Einsparungen; 10 hält es spürbar näher am Ziel; 20 oder mehr verhält sich fast wie ein gewöhnlicher Thermostat."
+          "comfort_weight": "Das Gegengewicht zur obigen Einstellung und der wirksamste Regler, den du hast. Er wird gegen den von dir erlaubten Bereich gemessen, ein breiterer Bereich macht den Optimierer also mutiger. Etwa 5 lässt das Haus innerhalb deines erlaubten Bereichs frei schwanken und bringt die größten Einsparungen; 10 hält es spürbar näher am Ziel; 20 oder mehr verhält sich fast wie ein gewöhnlicher Thermostat."
         }
       },
       "zones": {
         "title": "Zwei-Zonen- & Solarkonfiguration",
-        "description": "Optional: Konfigurieren Sie die Zwei-Zonen-Heizung (Heizkörper im Obergeschoss + Estrich im Untergeschoss) und die Parameter des solaren Wärmeeintrags. Belassen Sie die Standardwerte, wenn Sie das Zwei-Zonen-Modell nicht benötigen.",
+        "description": "Optional: Konfiguriere die Zwei-Zonen-Heizung (Heizkörper im Obergeschoss + Estrich im Untergeschoss) und die Parameter des solaren Wärmeeintrags. Belasse die Standardwerte, wenn du das Zwei-Zonen-Modell nicht benötigst.",
         "data": {
           "upper_floor_thermal_mass": "Thermische Masse Obergeschoss (kWh/°C)",
           "lower_floor_thermal_mass": "Thermische Masse Untergeschoss (kWh/°C)",
@@ -138,14 +138,14 @@
           "upper_floor_area_ratio": "Anteil der Gesamtfläche, der im Obergeschoss liegt. 0,5 bedeutet, dass beide Etagen gleich groß sind.",
           "buffer_tank_volume": "Liter. Der Speicher zwischen Wärmepumpe und Heizkreisen. Größere Speicher nehmen mehr günstige Wärme auf.",
           "window_area": "Quadratmeter Verglasung mit direkter Sonneneinstrahlung. Dient zur Vorhersage kostenloser Solarwärme.",
-          "solar_orientation_factor": "Wie gut die Fenster im Tagesverlauf zur Sonne ausgerichtet sind. 1,0 passt zu überwiegend nach Süden gerichteter Verglasung; senken Sie den Wert für Fenster nach Osten oder Westen, die nur einen Teil des Tages Sonne bekommen.",
+          "solar_orientation_factor": "Wie gut die Fenster im Tagesverlauf zur Sonne ausgerichtet sind. 1,0 passt zu überwiegend nach Süden gerichteter Verglasung; senke den Wert für Fenster nach Osten oder Westen, die nur einen Teil des Tages Sonne bekommen.",
           "solar_heat_gain_coefficient": "0,6 ist typisch für moderne Dreifachverglasung. Höher bedeutet mehr kostenlose Wärme an sonnigen Tagen.",
           "two_zone": "Ein: Das Zwei-Zonen-Modell wird verwendet und die Zonenfelder unten gelten. Aus: Das Haus wird als eine Zone modelliert, unabhängig von den Feldern unten."
         }
       },
       "dhw": {
         "title": "Warmwasserkonfiguration",
-        "description": "Teilen Sie dem Optimierer mit, wann Sie tatsächlich Warmwasser benötigen. Er garantiert dann in diesen Zeiträumen eine nutzbare Speichertemperatur und erwärmt das Wasser vorher in den günstigsten Stunden. Außerhalb dieser Zeiträume darf der Speicher auskühlen, sodass keine Energie darauf verwendet wird, Wasser warm zu halten, das niemand nutzt.",
+        "description": "Teile dem Optimierer mit, wann du tatsächlich Warmwasser benötigst. Er garantiert dann in diesen Zeiträumen eine nutzbare Speichertemperatur und erwärmt das Wasser vorher in den günstigsten Stunden. Außerhalb dieser Zeiträume darf der Speicher auskühlen, sodass keine Energie darauf verwendet wird, Wasser warm zu halten, das niemand nutzt.",
         "data": {
           "dhw_tank_volume": "Größe des Warmwasserspeichers",
           "dhw_setpoint": "Höchste Speichertemperatur beim Laden",
@@ -153,7 +153,7 @@
           "dhw_daily_consumption": "Warmwasserverbrauch pro Tag",
           "dhw_cooling_rate": "Wärmeverlust des Speichers (gelernt)",
           "dhw_schedule_enabled": "Warmwasser nur zu festgelegten Zeiten garantieren",
-          "dhw_windows": "Wann Sie Warmwasser benötigen",
+          "dhw_windows": "Wann du Warmwasser benötigst",
           "dhw_legionella_enabled": "Legionellenschaltung ausführen",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
           "dhw_idle_min_temperature": "Speicher auskühlen lassen auf",
@@ -167,39 +167,39 @@
           "dhw_idle_min_temperature": "Wie kalt der Speicher außerhalb dieser Zeiträume werden darf. Niedriger spart mehr. Der Standardwert entspricht in etwa der Raumtemperatur, sodass überhaupt keine Energie aufgewendet wird.",
           "dhw_setpoint": "Eine Obergrenze für das Laden, kein Ziel. Der Speicher wird nur dann so hoch gefüllt, wenn sich das Speichern zusätzlicher günstiger Wärme lohnt. Er wird nie nur der Form halber auf diesen Wert erhitzt.",
           "dhw_tank_volume": "Liter. Ein größerer Speicher nimmt mehr günstigen Strom auf und kann mehr teure Stunden überspringen.",
-          "dhw_daily_consumption": "Ungefähr, wie viele Liter Warmwasser Ihr Haushalt pro Tag verbraucht. Dient zur Berechnung, wie viel vor jedem Zeitraum gespeichert werden muss.",
-          "dhw_cooling_rate": "Wie schnell der Speicher auskühlt, wenn niemand Warmwasser nutzt, gemessen bei 45 °C in einem 20 °C warmen Raum. Das ist nur ein Startwert: Die Integration misst die tatsächliche Auskühlung Ihres Speichers und verfeinert den Wert automatisch. Ein Speicher, der die Wärme gut hält, kann früher im Voraus geladen werden, sodass mehr des Heizens in günstige Stunden fällt.",
+          "dhw_daily_consumption": "Ungefähr, wie viele Liter Warmwasser dein Haushalt pro Tag verbraucht. Dient zur Berechnung, wie viel vor jedem Zeitraum gespeichert werden muss.",
+          "dhw_cooling_rate": "Wie schnell der Speicher auskühlt, wenn niemand Warmwasser nutzt, gemessen bei 45 °C in einem 20 °C warmen Raum. Das ist nur ein Startwert: Die Integration misst die tatsächliche Auskühlung deines Speichers und verfeinert den Wert automatisch. Ein Speicher, der die Wärme gut hält, kann früher im Voraus geladen werden, sodass mehr des Heizens in günstige Stunden fällt.",
           "dhw_legionella_enabled": "Da der Speicher nun lange Zeit kühl bleiben darf, wird er regelmäßig so heiß aufgeheizt, dass Legionellen abgetötet werden. Dringend empfohlen.",
           "dhw_legionella_temperature": "60 °C sind die übliche Empfehlung.",
           "dhw_legionella_interval_days": "Wie oft die Desinfektionsaufheizung läuft. Sie wird in die günstigste Stunde vor jeder Frist gelegt.",
-          "dhw_enabled": "Ein: Warmwasser wird geplant und der Speicher geladen. Lassen Sie es aus, solange die Wärmepumpe nicht wirklich einen Speicher beheizt – die übrigen Felder gelten nur, wenn dies eingeschaltet ist."
+          "dhw_enabled": "Ein: Warmwasser wird geplant und der Speicher geladen. Lass es aus, solange die Wärmepumpe nicht wirklich einen Speicher beheizt – die übrigen Felder gelten nur, wenn dies eingeschaltet ist."
         }
       },
       "weather_sensitivity": {
         "title": "Parameter der Wetterempfindlichkeit",
-        "description": "Konfigurieren Sie, wie Wind und Regen die Vorhersage des Wärmeverlusts beeinflussen. Höhere Windempfindlichkeit = mehr Vorheizen vor windigen Phasen.",
+        "description": "Konfiguriere, wie Wind und Regen die Vorhersage des Wärmeverlusts beeinflussen. Höhere Windempfindlichkeit = mehr Vorheizen vor windigen Phasen.",
         "data": {
           "wind_sensitivity_factor": "Windempfindlichkeit",
           "rain_heat_loss_multiplier": "Regenempfindlichkeit"
         },
         "data_description": {
-          "wind_sensitivity_factor": "Wie viel zusätzliche Wärme das Haus pro m/s Wind verliert. Erhöhen Sie den Wert, wenn das Haus an windigen Tagen spürbar auskühlt, damit der Optimierer vorher vorheizt.",
+          "wind_sensitivity_factor": "Wie viel zusätzliche Wärme das Haus pro m/s Wind verliert. Erhöhe den Wert, wenn das Haus an windigen Tagen spürbar auskühlt, damit der Optimierer vorher vorheizt.",
           "rain_heat_loss_multiplier": "Zusätzlicher Wärmeverlust bei Regen. 1,0 bedeutet, dass Regen keinen Unterschied macht."
         }
       },
       "reauth_confirm": {
         "title": "Tibber erneut authentifizieren",
-        "description": "Tibber hat das konfigurierte Token abgelehnt. Geben Sie ein gültiges API-Token ein, um die Preisaktualisierung wiederherzustellen.",
+        "description": "Tibber hat das konfigurierte Token abgelehnt. Gib ein gültiges API-Token ein, um die Preisaktualisierung wiederherzustellen.",
         "data": {
           "tibber_token": "Tibber-API-Token"
         },
         "data_description": {
-          "tibber_token": "Erstellen Sie eines unter developer.tibber.com."
+          "tibber_token": "Erstelle eines unter developer.tibber.com."
         }
       },
       "user_sensors": {
         "title": "Optionale Sensoren",
-        "description": "Jeder Sensor hier ist optional. Überspringen Sie, was Sie nicht haben – der Optimierer funktioniert trotzdem, nur mit geringerer Genauigkeit.",
+        "description": "Jeder Sensor hier ist optional. Überspringe, was du nicht hast – der Optimierer funktioniert trotzdem, nur mit geringerer Genauigkeit.",
         "data": {
           "indoor_temp_entity": "Innentemperatursensor",
           "outdoor_temp_entity": "Außentemperatursensor",
@@ -221,14 +221,14 @@
           "outdoor_temp_entity": "Optional. Ein eigenes Außenthermometer ist für die aktuelle Stunde genauer als die Vorhersage.",
           "heat_pump_switch_entity": "Optional. Ein Schalter, mit dem die Wärmepumpe in teuren Stunden ausgeschaltet wird.",
           "solar_radiation_entity": "Optional. Sonneneinstrahlung in W/m². Erlaubt dem Optimierer, vor einem sonnigen Nachmittag, der das Haus kostenlos erwärmt, nicht zu heizen.",
-          "solar_forecast_source": "Woher die Sonneneinstrahlung stammt. „Wetter-Entität“ nutzt Ihre Wetter-Integration, die Einstrahlung oft gar nicht bereitstellt. „Open-Meteo“ ruft eine kostenlose Vorhersage für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
-          "solar_location": "Koordinaten für die Open-Meteo-Einstrahlungsvorhersage. Standardmäßig der Standort Ihres Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
+          "solar_forecast_source": "Woher die Sonneneinstrahlung stammt. „Wetter-Entität“ nutzt deine Wetter-Integration, die Einstrahlung oft gar nicht bereitstellt. „Open-Meteo“ ruft eine kostenlose Vorhersage für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
+          "solar_location": "Koordinaten für die Open-Meteo-Einstrahlungsvorhersage. Standardmäßig der Standort deines Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
           "floor_return_temp_entity": "Optional. Wassertemperatur im Rücklauf der Fußbodenheizkreise, dient zur Einschätzung, wie viel Wärme der Estrich speichert.",
           "lower_floor_temp_entity": "Optional, nur Zwei-Zonen. Ein echtes Thermometer in der unteren Zone. Ohne eines wird das Untergeschoss mit dem Wert des Hauptraumsensors geplant und dargestellt, sodass ein Erdgeschoss, das wärmer oder kälter ist als oben, unsichtbar bleibt.",
           "dhw_temp_entity": "Optional, aber empfohlen. Die tatsächliche Speichertemperatur. Ermöglicht außerdem, dass ein manueller Warmwasser-Boost den Legionellen-Timer zurücksetzt.",
           "buffer_tank_temp_entity": "Optional. Wenn gesetzt, lernt die Integration, wie schnell der Pufferspeicher Wärme verliert, statt sich auf die konfigurierte Schätzung zu verlassen.",
           "heat_pump_mode_entity": "Optional. Die eigene Betriebsartwahl der Pumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, es sei denn, die Steuerung der Pumpenaufgabe ist auf „Steuern“ gesetzt. Eine Pumpe im Kühl- oder reinen Warmwasserbetrieb kann das Haus nicht heizen, und eine im reinen Heizbetrieb kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan also Wärme versprechen, die die Pumpe gerade nicht liefern kann. Bleibt das Feld leer, geht der Optimierer davon aus, dass die Pumpe alles kann.",
-          "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachten Sie, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
+          "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachte, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional, aber bei einer cloudverbundenen Pumpe dringend empfohlen. Ein, solange die Pumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre zuletzt bekannten Werte weiter veröffentlichen, obwohl die Pumpe selbst vom Netzwerk getrennt ist; dadurch wirken alle anderen Sensoren völlig aktuell, und dies ist das einzige Signal, das etwas anderes anzeigt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar und dies bringt wenig.",
           "heat_pump_fault_entity": "Optional. Ein, solange die Pumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst."
         },
@@ -252,8 +252,8 @@
               "solar_radiation_entity": "Sensor für Sonneneinstrahlung"
             },
             "data_description": {
-              "solar_forecast_source": "Woher die Sonneneinstrahlung stammt. „Wetter-Entität“ nutzt Ihre Wetter-Integration, die Einstrahlung oft gar nicht bereitstellt. „Open-Meteo“ ruft eine kostenlose Vorhersage für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
-              "solar_location": "Koordinaten für die Open-Meteo-Einstrahlungsvorhersage. Standardmäßig der Standort Ihres Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
+              "solar_forecast_source": "Woher die Sonneneinstrahlung stammt. „Wetter-Entität“ nutzt deine Wetter-Integration, die Einstrahlung oft gar nicht bereitstellt. „Open-Meteo“ ruft eine kostenlose Vorhersage für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
+              "solar_location": "Koordinaten für die Open-Meteo-Einstrahlungsvorhersage. Standardmäßig der Standort deines Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
               "solar_radiation_entity": "Optional. Sonneneinstrahlung in W/m². Erlaubt dem Optimierer, vor einem sonnigen Nachmittag, der das Haus kostenlos erwärmt, nicht zu heizen."
             }
           },
@@ -274,7 +274,7 @@
               "buffer_tank_temp_entity": "Optional. Wenn gesetzt, lernt die Integration, wie schnell der Pufferspeicher Wärme verliert, statt sich auf die konfigurierte Schätzung zu verlassen.",
               "dhw_temp_entity": "Optional, aber empfohlen. Die tatsächliche Speichertemperatur. Ermöglicht außerdem, dass ein manueller Warmwasser-Boost den Legionellen-Timer zurücksetzt.",
               "floor_return_temp_entity": "Optional. Wassertemperatur im Rücklauf der Fußbodenheizkreise, dient zur Einschätzung, wie viel Wärme der Estrich speichert.",
-              "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachten Sie, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
+              "heat_pump_defrost_entity": "Optional. Ein, solange die Pumpe den Kreislauf umkehrt, um Reif vom Außenregister zu schmelzen. Der während einer Abtauung eingekaufte Strom geht ins Register statt ins Haus. Beachte, dass viele Pumpen nur alle paar Minuten abgefragt werden, sodass kurze Abtauungen völlig übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
               "heat_pump_fault_entity": "Optional. Ein, solange die Pumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst.",
               "heat_pump_mode_entity": "Optional. Die eigene Betriebsartwahl der Pumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, es sei denn, die Steuerung der Pumpenaufgabe ist auf „Steuern“ gesetzt. Eine Pumpe im Kühl- oder reinen Warmwasserbetrieb kann das Haus nicht heizen, und eine im reinen Heizbetrieb kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan also Wärme versprechen, die die Pumpe gerade nicht liefern kann. Bleibt das Feld leer, geht der Optimierer davon aus, dass die Pumpe alles kann.",
               "heat_pump_online_entity": "Optional, aber bei einer cloudverbundenen Pumpe dringend empfohlen. Ein, solange die Pumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre zuletzt bekannten Werte weiter veröffentlichen, obwohl die Pumpe selbst vom Netzwerk getrennt ist; dadurch wirken alle anderen Sensoren völlig aktuell, und dies ist das einzige Signal, das etwas anderes anzeigt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar und dies bringt wenig.",
@@ -286,7 +286,7 @@
       },
       "finish_setup": {
         "title": "Einrichtung jetzt abschließen?",
-        "description": "Ein Eintrag wird erst erstellt, wenn dieser Ablauf abgeschlossen ist. Sie können hier aufhören und mit den mitgelieferten Standardwerten starten – Temperaturen, Gebäude, Warmwasser und Wetterempfindlichkeit lassen sich später in den Optionen festlegen – oder jetzt diese Bildschirme durchlaufen.",
+        "description": "Ein Eintrag wird erst erstellt, wenn dieser Ablauf abgeschlossen ist. Du kannst hier aufhören und mit den mitgelieferten Standardwerten starten – Temperaturen, Gebäude, Warmwasser und Wetterempfindlichkeit lassen sich später in den Optionen festlegen – oder jetzt diese Bildschirme durchlaufen.",
         "menu_options": {
           "quick_setup": "Schnelleinrichtung (empfohlen)",
           "temperature": "Einrichtung fortsetzen",
@@ -295,7 +295,7 @@
       },
       "quick_setup": {
         "title": "Schnelleinrichtung",
-        "description": "Sagen Sie dem Optimierer, was für ein System Sie haben, den Rest erledigt er. Die Entitäten der Wärmepumpe werden auf dem nächsten Bildschirm automatisch gelesen, und alles, was Sie hier auslassen, startet mit einem sinnvollen Standardwert, den Sie später in den Optionen verfeinern können.",
+        "description": "Sage dem Optimierer, was für ein System du hast, den Rest erledigt er. Die Entitäten der Wärmepumpe werden auf dem nächsten Bildschirm automatisch gelesen, und alles, was du hier auslässt, startet mit einem sinnvollen Standardwert, den du später in den Optionen verfeinern kannst.",
         "data": {
           "two_zone": "Haus mit zwei Zonen",
           "buffer_tank": "Pufferspeicher",
@@ -314,7 +314,7 @@
         "data_description": {
           "two_zone": "Ein bei einem Haus mit zwei getrennt beheizten Etagen, aus bei einer. Bei einem Zwei-Zonen-Haus kann der Optimierer das per Estrich beheizte Untergeschoss gegen das Obergeschoss abwägen.",
           "buffer_tank": "Ein Speicher zwischen Wärmepumpe und Heizkreisen, groß genug zum Speichern von Wärme. Ein hinterlegt ein speichergerechtes Volumen (500 Liter; der mitgelieferte Standardwert von 35 Litern bildet eine kleine hydraulische Weiche ab, die keine Nachtwärme speichern kann). Der Optimierer plant nur dann mit ihm als Speicher, wenn in den Optionen auch ein drosselndes Mischventil eingerichtet ist; ohne ein solches legt dies nur die Größe des Speichers im Modell fest.",
-          "dhw_tank": "Ein Speicher, den die Wärmepumpe mit Warmwasser gefüllt hält. Eingeschaltet lassen, wenn Ihre Wärmepumpe Warmwasser bereitet.",
+          "dhw_tank": "Ein Speicher, den die Wärmepumpe mit Warmwasser gefüllt hält. Eingeschaltet lassen, wenn deine Wärmepumpe Warmwasser bereitet.",
           "wood_furnace": "Ein Holzkessel, der denselben Wasserkreis beheizt. Ein lässt den Optimierer seine Wärme einrechnen und die Pumpe pausieren, solange das Feuer brennt.",
           "wood_buffer_tank": "Ein zweiter Speicher, den der Holzkessel beheizt, getrennt vom Puffer der Wärmepumpe. Seine Temperaturfühler werden unten ausgewählt; die Zwei-Speicher-Physik wird erst aktiv, wenn ein Fühler zugewiesen ist.",
           "wood_tank_top_entity": "Zusammen mit dem unteren Sensor zeigt dieser, wie viel ein Feuer noch übrig hat. Ein heißes Oben über einem kalten Unten bedeutet, dass die Ladung fast aufgebraucht ist.",
@@ -328,17 +328,17 @@
         }
       },
       "setup_overview": {
-        "title": "Ihr System, wie konfiguriert",
-        "description": "Was der Optimierer anhand der aktuellen Konfiguration für Ihr System hält. Ein leerer Platz wird absichtlich leer angezeigt – es ist ein Sensor, den diese Anlage nutzen könnte und der nicht vorhanden ist.\n\n{setup_summary}"
+        "title": "Dein System, wie konfiguriert",
+        "description": "Was der Optimierer anhand der aktuellen Konfiguration für dein System hält. Ein leerer Platz wird absichtlich leer angezeigt – es ist ein Sensor, den diese Anlage nutzen könnte und der nicht vorhanden ist.\n\n{setup_summary}"
       },
       "device_prefill": {
         "title": "Aus einem Wärmepumpengerät vorausfüllen",
-        "description": "Ein Wärmepumpengerät in dieser Installation kann mehrere dieser Einstellungen aus seinen eigenen Entitäten beantworten. Wählen Sie es aus und senden Sie ab: Das nächste Formular schlägt vor, was seine Entitäten angeben, als gewöhnliche Felder, die Sie bearbeiten oder leeren können; geschrieben wird erst, wenn Sie dieses Formular absenden. Lassen Sie das Gerät leer, um dies zu überspringen und die Einrichtung fortzusetzen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zusatzheizers: {backup_heater_type} - jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizstab-Feldern unter Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht verifizieren, prüfen Sie daher jede vor dem Speichern: {name_matched}. Aus veröffentlichten Definitionen gelesene Rollen, nach Quelle: {matched_sources}.",
+        "description": "Ein Wärmepumpengerät in dieser Installation kann mehrere dieser Einstellungen aus seinen eigenen Entitäten beantworten. Wähle es aus und sende ab: Das nächste Formular schlägt vor, was seine Entitäten angeben, als gewöhnliche Felder, die du bearbeiten oder leeren kannst; geschrieben wird erst, wenn du dieses Formular absendest. Lass das Gerät leer, um dies zu überspringen und die Einrichtung fortzusetzen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zusatzheizers: {backup_heater_type} - jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizstab-Feldern unter Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht verifizieren, prüfe daher jede vor dem Speichern: {name_matched}. Aus veröffentlichten Definitionen gelesene Rollen, nach Quelle: {matched_sources}.",
         "data": {
           "prefill_device": "Wärmepumpen-Gerät",
           "dhw_setpoint": "Höchste Ladetemperatur des Speichers",
           "dhw_min_temperature": "Benötigte Warmwassertemperatur",
-          "dhw_windows": "Wann Sie Warmwasser brauchen",
+          "dhw_windows": "Wann du Warmwasser brauchst",
           "dhw_legionella_temperature": "Temperatur der Legionellenschaltung",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
           "silent_mode_windows": "Eigener Nachtmodus-Zeitplan der Pumpe",
@@ -354,7 +354,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "prefill_device": "Das eigene Gerät der Pumpe. Seine Entitäten werden anhand der veröffentlichten Definitionen dieser Integration oder, wo nichts veröffentlicht ist, anhand ihrer Namen den Einstellungen zugeordnet – nicht aus einer Auslesung Ihres Geräts –, prüfen Sie die Vorschläge daher, bevor Sie sie übernehmen. Lassen Sie es leer, um die Einrichtung ohne Vorausfüllung fortzusetzen.",
+          "prefill_device": "Das eigene Gerät der Pumpe. Seine Entitäten werden anhand der veröffentlichten Definitionen dieser Integration oder, wo nichts veröffentlicht ist, anhand ihrer Namen den Einstellungen zugeordnet – nicht aus einer Auslesung deines Geräts –, prüfe die Vorschläge daher, bevor du sie übernimmst. Lass es leer, um die Einrichtung ohne Vorausfüllung fortzusetzen.",
           "dhw_setpoint": "Gelesen aus dem Register für den normalen Warmwasser-Sollwert der Pumpe (0194H), mal 0,1.",
           "dhw_min_temperature": "Gelesen aus dem Register für den sparsamen Warmwasser-Sollwert der Pumpe (0196H), mal 0,1.",
           "dhw_windows": "Gelesen aus den Start- und Stopp-Registern des Warmwasser-Zeitplans der Pumpe (02C8H, 02C9H), jeweils Stunde mal 256 plus Minute, nur solange dieser Zeitplan einen Tag gesetzt hat. Das Speichern eines Warmwasser-Zeitfensters hier schaltet die Warmwasserplanung ein, wie auch auf der Seite Warmwasser.",
@@ -375,23 +375,23 @@
       }
     },
     "error": {
-      "invalid_tibber_token": "Dieses Tibber-Token wurde nicht akzeptiert. Prüfen Sie es unter developer.tibber.com und versuchen Sie es erneut.",
+      "invalid_tibber_token": "Dieses Tibber-Token wurde nicht akzeptiert. Prüfe es unter developer.tibber.com und versuche es erneut.",
       "tibber_token_required": "Ein Tibber-Token ist erforderlich, wenn die Preisquelle Tibber ist.",
       "price_entity_required": "Ein Preissensor ist erforderlich, wenn die Preisquelle eine Entität ist.",
-      "cannot_connect": "Tibber konnte zur Prüfung des Tokens nicht erreicht werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.",
-      "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwenden Sie 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel \"06:00-08:30, 17:00-22:00\".",
+      "cannot_connect": "Tibber konnte zur Prüfung des Tokens nicht erreicht werden. Prüfe die Internetverbindung und versuche es erneut.",
+      "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwende 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel \"06:00-08:30, 17:00-22:00\".",
       "dhw_window_too_short": "Ein Warmwasser-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
       "silent_mode_window_too_short": "Ein Zeitfenster für den Silent-Modus ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
-      "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halten Sie mindestens 5 °C Abstand unter dem Sollwert.",
+      "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halte mindestens 5 °C Abstand unter dem Sollwert.",
       "min_above_target": "Die Mindesttemperatur liegt über der Zieltemperatur.",
       "max_below_target": "Die Höchsttemperatur liegt unter der Zieltemperatur.",
       "night_above_day": "Die Nachttemperatur liegt über der Tagestemperatur.",
       "day_window_empty": "Der Tag würde zu oder vor seinem Beginn enden und ließe überhaupt keinen Tageszeitraum übrig.",
       "comfort_outside_band": "Die Komforttemperaturen für Tag und Nacht müssen innerhalb des Komfortbereichs liegen",
       "min_power_above_max": "Die Mindestleistung der Wärmepumpe liegt über ihrer Höchstleistung.",
-      "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite dennoch gespeichert werden kann – prüfen Sie den Wert und korrigieren Sie ihn, falls er falsch aussieht.",
-      "flow_target_needs_two_zone": "„Vorlauftemperatur“ wird aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells abgeleitet, die bei diesem Eintrag nicht konfiguriert ist. Konfigurieren Sie zuerst das Zwei-Zonen-Modell oder belassen Sie dies auf „Innentemperatur“.",
-      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten enthält einen Wert. Lassen Sie das Gerät leer und geben Sie stattdessen ein Modbus-Paket-Präfix an."
+      "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite dennoch gespeichert werden kann – prüfe den Wert und korrigiere ihn, falls er falsch aussieht.",
+      "flow_target_needs_two_zone": "„Vorlauftemperatur“ wird aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells abgeleitet, die bei diesem Eintrag nicht konfiguriert ist. Konfiguriere zuerst das Zwei-Zonen-Modell oder belasse dies auf „Innentemperatur“.",
+      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten enthält einen Wert. Lass das Gerät leer und gib stattdessen ein Modbus-Paket-Präfix an."
     },
     "abort": {
       "already_configured": "Diese Integration ist bereits eingerichtet.",
@@ -449,7 +449,7 @@
       "message": "Die Optimierung wurde für {entry_ids} nicht ausgeführt: Die Berechnung ist fehlgeschlagen; der Fehler steht im Protokoll der Integration"
     },
     "simulate_plan_no_plan": {
-      "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es existiert noch kein Plan, daher gibt es nichts zum Vergleichen; warten Sie, bis die erste Optimierung abgeschlossen ist"
+      "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es existiert noch kein Plan, daher gibt es nichts zum Vergleichen; warte, bis die erste Optimierung abgeschlossen ist"
     },
     "simulate_plan_no_prices": {
       "message": "Die Was-wäre-wenn-Simulation konnte für {entry_ids} nicht ausgeführt werden: Es waren weniger als vier Strompreisintervalle verfügbar"
@@ -482,7 +482,7 @@
       "message": "Fehler beim Aktualisieren der Daten: {error}"
     },
     "tibber_auth_failed": {
-      "message": "Tibber hat das konfigurierte Token abgelehnt; authentifizieren Sie die Integration erneut: {error}"
+      "message": "Tibber hat das konfigurierte Token abgelehnt; authentifiziere die Integration erneut: {error}"
     },
     "tibber_fetch_failed": {
       "message": "Die Strompreise konnten nicht abgerufen werden: {error}"
@@ -507,9 +507,9 @@
     "step": {
       "init": {
         "title": "Optionen für Heat Pump Optimizer",
-        "description": "Wählen Sie die Einstellungsgruppe, die Sie ändern möchten. Sensoren, Gebäudephysik und Steuerungshardware finden Sie unter „Erweiterte Einstellungen“.",
+        "description": "Wähle die Einstellungsgruppe, die du ändern möchtest. Sensoren, Gebäudephysik und Steuerungshardware findest du unter „Erweiterte Einstellungen“.",
         "menu_options": {
-          "setup_overview": "Ihre Anlage, wie konfiguriert",
+          "setup_overview": "Deine Anlage, wie konfiguriert",
           "comfort": "Komfort und Temperaturen",
           "hot_water": "Warmwasser",
           "tuning": "Einsparung oder Komfort",
@@ -522,7 +522,7 @@
       },
       "advanced": {
         "title": "Erweiterte Einstellungen",
-        "description": "Einstellungen, die Sie in der Regel nur einmal anfassen: Sensoren, das Gebäude und sein thermisches Modell, Solarmodule, Selbstlernen und die Steuerungshardware.",
+        "description": "Einstellungen, die du in der Regel nur einmal anfasst: Sensoren, das Gebäude und sein thermisches Modell, Solarmodule, Selbstlernen und die Steuerungshardware.",
         "menu_options": {
           "entities": "Sensoren und Entitäten",
           "entities_metering": "Leistungs- und Solarsensoren",
@@ -543,17 +543,17 @@
         }
       },
       "setup_overview": {
-        "title": "Ihre Anlage, wie konfiguriert",
-        "description": "Was der Optimierer aus der aktuellen Konfiguration über Ihre Anlage annimmt. Ein leerer Platz wird absichtlich als leer angezeigt – es ist ein Sensor, den diese Anlage nutzen könnte und nicht hat.\n\n{setup_summary}"
+        "title": "Deine Anlage, wie konfiguriert",
+        "description": "Was der Optimierer aus der aktuellen Konfiguration über deine Anlage annimmt. Ein leerer Platz wird absichtlich als leer angezeigt – es ist ein Sensor, den diese Anlage nutzen könnte und nicht hat.\n\n{setup_summary}"
       },
       "entities": {
         "title": "Sensoren und Entitäten",
-        "description": "Wählen Sie, welche Home-Assistant-Entitäten der Optimierer ausliest. Leeren Sie ein Feld, um den Sensor nicht mehr zu verwenden. Nur das Preis-Token und die Wettervorhersage sind erforderlich; jeder weitere Sensor macht das Modell genauer, ist aber optional.",
+        "description": "Wähle, welche Home-Assistant-Entitäten der Optimierer ausliest. Leere ein Feld, um den Sensor nicht mehr zu verwenden. Nur das Preis-Token und die Wettervorhersage sind erforderlich; jeder weitere Sensor macht das Modell genauer, ist aber optional.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog danach führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog danach führt."
         },
         "sections": {
           "credentials": {
@@ -568,10 +568,10 @@
             },
             "data_description": {
               "price_entity": "Erforderlich, wenn die Preisquelle eine Entität ist. Typische Attribute sind raw_today und raw_tomorrow.",
-              "price_source": "Tibber verwendet Ihr API-Token. „Entität“ liest einen Preissensor aus Home Assistant, etwa Nord Pool.",
+              "price_source": "Tibber verwendet dein API-Token. „Entität“ liest einen Preissensor aus Home Assistant, etwa Nord Pool.",
               "price_surcharge": "Wird nach der MwSt. addiert, in derselben Währung wie die Preise.",
               "price_vat": "Angewendet als Wert × MwSt.-Faktor + Aufschlag. 1,0 lässt die Sensorwerte unverändert.",
-              "tibber_token": "Dient zum Lesen Ihrer stündlichen Strompreise. Ein Token erstellen Sie unter developer.tibber.com. Lassen Sie es unverändert, solange es sich nicht geändert hat. Nicht erforderlich, wenn die Preisquelle eine Entität ist.",
+              "tibber_token": "Dient zum Lesen deiner stündlichen Strompreise. Ein Token erstellst du unter developer.tibber.com. Lass es unverändert, solange es sich nicht geändert hat. Nicht erforderlich, wenn die Preisquelle eine Entität ist.",
               "weather_entity": "Woher die Prognose für Außentemperatur, Wind und Regen kommt. Der Optimierer plant 24 Stunden voraus, daher ist eine Vorhersage erforderlich."
             }
           },
@@ -611,12 +611,12 @@
       },
       "comfort": {
         "title": "Komfort und Temperaturen",
-        "description": "Wie warm Sie es im Haus haben möchten und wie weit der Optimierer davon abweichen darf, um Geld zu sparen. Der Abstand zwischen Zielwert und Minimum macht Einsparungen erst möglich: Je größer er ist, desto mehr kann das Haus durch teure Stunden auskühlen.",
+        "description": "Wie warm du es im Haus haben möchtest und wie weit der Optimierer davon abweichen darf, um Geld zu sparen. Der Abstand zwischen Zielwert und Minimum macht Einsparungen erst möglich: Je größer er ist, desto mehr kann das Haus durch teure Stunden auskühlen.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog danach führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog danach führt."
         },
         "sections": {
           "band": {
@@ -687,28 +687,28 @@
             },
             "data_description": {
               "indoor_humidity_entity": "Ein Sensor für die relative Luftfeuchte im Wohnbereich. Ohne ihn bleibt der Schimmelschutz unabhängig vom Schalter aus.",
-              "mold_guard_enabled": "Die kälteste Stelle im Haus – eine Fensterlaibung, eine Ecke hinter einem Schrank – liegt deutlich unter der Raumtemperatur, und Schimmel wächst dort, wo die Oberflächenfeuchte über 80 % bleibt. Ist dies aktiviert, lässt der Optimierer das Haus nicht unter die Temperatur auskühlen, die diese Stelle sicher hält, berechnet aus der gemessenen Raumfeuchte und der Außenprognose. Benötigt den Feuchtesensor unten; es wird nie über Ihr Komfortziel hinaus geheizt – dauerhaft hohe Feuchte ist ein Lüftungs-, kein Heizproblem.",
+              "mold_guard_enabled": "Die kälteste Stelle im Haus – eine Fensterlaibung, eine Ecke hinter einem Schrank – liegt deutlich unter der Raumtemperatur, und Schimmel wächst dort, wo die Oberflächenfeuchte über 80 % bleibt. Ist dies aktiviert, lässt der Optimierer das Haus nicht unter die Temperatur auskühlen, die diese Stelle sicher hält, berechnet aus der gemessenen Raumfeuchte und der Außenprognose. Benötigt den Feuchtesensor unten; es wird nie über dein Komfortziel hinaus geheizt – dauerhaft hohe Feuchte ist ein Lüftungs-, kein Heizproblem.",
               "mold_floor_breach_margin": "Wie weit der gemessene Raum unter die schimmelsichere Untergrenze fallen darf, bevor der Binärsensor „Mold Floor Breach“ einschaltet. Die Warnung gibt es, weil ein reiner Warmwasserbetrieb (Raumheizung aus) die Untergrenze nicht halten kann, sodass der Raum frei darunter auskühlen kann, während der Plan die Untergrenze weiterhin zusagt.",
-              "thermal_bridge_frsi": "Wie kalt Ihre schlechteste Oberfläche wird, als Anteil: Oberfläche = außen + fRsi × (Raum − außen). 0,75 ist die schwedische Bauvorschrift als Richtwert; niedriger bedeutet eine kältere schlechteste Stelle und einen vorsichtigeren Schutz."
+              "thermal_bridge_frsi": "Wie kalt deine schlechteste Oberfläche wird, als Anteil: Oberfläche = außen + fRsi × (Raum − außen). 0,75 ist die schwedische Bauvorschrift als Richtwert; niedriger bedeutet eine kältere schlechteste Stelle und einen vorsichtigeren Schutz."
             }
           }
         }
       },
       "hot_water": {
         "title": "Warmwasser",
-        "description": "Teilen Sie dem Optimierer mit, wann Sie tatsächlich Warmwasser brauchen. Er garantiert dann in diesen Zeiträumen eine nutzbare Speichertemperatur und erwärmt das Wasser vorher in den günstigsten Stunden. Außerhalb dieser Zeiträume darf der Speicher auskühlen, sodass nichts dafür ausgegeben wird, Wasser warm zu halten, das niemand nutzt.",
+        "description": "Teile dem Optimierer mit, wann du tatsächlich Warmwasser brauchst. Er garantiert dann in diesen Zeiträumen eine nutzbare Speichertemperatur und erwärmt das Wasser vorher in den günstigsten Stunden. Außerhalb dieser Zeiträume darf der Speicher auskühlen, sodass nichts dafür ausgegeben wird, Wasser warm zu halten, das niemand nutzt.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog danach führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog danach führt."
         },
         "sections": {
           "schedule": {
             "name": "Bedarfszeiträume",
             "data": {
               "dhw_schedule_enabled": "Warmwasser nur zu festgelegten Zeiten garantieren",
-              "dhw_windows": "Wann Sie Warmwasser brauchen",
+              "dhw_windows": "Wann du Warmwasser brauchst",
               "holiday_dhw_windows": "Warmwasserzeiträume an Feiertagen",
               "dhw_windows_by_day": "Nach Wochentag anpassen"
             },
@@ -772,12 +772,12 @@
       },
       "building": {
         "title": "Heizsystem und Wärmespeicher",
-        "description": "Alles zwischen den Wärmequellen und den Heizflächen: das Mischventil, der Pufferspeicher als Speicher und der Holzkessel-Speicher mit seinen Fühlern. Lassen Sie das Ventil auf „Kein Mischventil“, wenn Sie keines haben – das Modell ist für diesen Fall bereits korrekt. Die Ventileinstellungen wirken nur, wenn das Zwei-Zonen-Modell konfiguriert ist.",
+        "description": "Alles zwischen den Wärmequellen und den Heizflächen: das Mischventil, der Pufferspeicher als Speicher und der Holzkessel-Speicher mit seinen Fühlern. Lass das Ventil auf „Kein Mischventil“, wenn du keines hast – das Modell ist für diesen Fall bereits korrekt. Die Ventileinstellungen wirken nur, wenn das Zwei-Zonen-Modell konfiguriert ist.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog danach führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog danach führt."
         },
         "sections": {
           "valve": {
@@ -792,11 +792,11 @@
             },
             "data_description": {
               "flow_curve_cop_enabled": "Standardmäßig aus. Für eine Anlage ohne Mischventil, bei der die Pumpe die Heizkörper oder Fußbodenheizkreise direkt speist. Wenn aktiviert, berücksichtigen Pläne und Kosten, dass die Pumpe für heißeres Wasser härter arbeitet: Die Vorlauftemperatur ergibt sich aus der eigenen Wetterkurve des Modells plus dem Versatz, der aus dem Vorlauftemperatursensor gelernt wird, falls vorhanden. Mit diesem Sensor beurteilt die Effizienzüberwachung die Pumpe zudem bei einer gemeinsamen Wassertemperatur, sodass ein heißerer Vorlauf nicht als defekter Verdichter gemeldet wird, und sie überspringt jedes Intervall, in dem der Sensor keinen frischen Wert hat; solange der Sensor nicht verfügbar ist, beurteilt die Überwachung die Raumheizung also gar nicht. Der gelernte Versatz ist auf 15 °C begrenzt, sodass bei einer Anlage, deren Vorlauf weit über der Kurve des Modells liegt, nur ein Teil der Mehrarbeit bepreist wird. Nicht verfügbar mit Mischventil, dessen Speichertemperatur den Preis bereits festlegt.",
-              "mixing_valve_mode": "„Von Hand eingestellt“ ist ein Ventil, das Sie selbst konfigurieren; teilen Sie der Integration unten mit, worauf Sie es eingestellt haben. „Von einem Sensor gelesen“ bedeutet, dass die Integration den Zielwert sehen, aber nicht ändern kann. „Vom Optimierer gesteuert“ schreibt den empfohlenen Zielwert über die Steuerentität unten in den eigenen Regler des Ventils.",
-              "mixing_valve_target": "Die Innentemperatur, die das Ventil hält. Bei 0 wird die Obergrenze Ihres Komfortbereichs verwendet, was die empfohlene Einstellung ist: Das Gebäude wird zuerst ohne Effizienzverlust geladen, und der Speicher nimmt nur den Überschuss.",
+              "mixing_valve_mode": "„Von Hand eingestellt“ ist ein Ventil, das du selbst konfigurierst; teile der Integration unten mit, worauf du es eingestellt hast. „Von einem Sensor gelesen“ bedeutet, dass die Integration den Zielwert sehen, aber nicht ändern kann. „Vom Optimierer gesteuert“ schreibt den empfohlenen Zielwert über die Steuerentität unten in den eigenen Regler des Ventils.",
+              "mixing_valve_target": "Die Innentemperatur, die das Ventil hält. Bei 0 wird die Obergrenze deines Komfortbereichs verwendet, was die empfohlene Einstellung ist: Das Gebäude wird zuerst ohne Effizienzverlust geladen, und der Speicher nimmt nur den Überschuss.",
               "mixing_valve_target_entity": "Optional. Liest den Zielwert des Ventils, statt den festen Wert oben zu verwenden.",
-              "mixing_valve_write_entity": "Erforderlich für „Vom Optimierer gesteuert“: die Zahl- oder Climate-Entität, die der Regler Ihres Ventils bereitstellt. Der Optimierer schreibt seinen empfohlenen Zielwert nach jedem Planungszyklus dorthin, und nur wenn sich das Ergebnis ändert.",
-              "mixing_valve_write_target_kind": "„Innentemperatur“ ist richtig für einen Raum-/Thermostat-Sollwert und wurde schon immer geschrieben – der sichere Standard. „Vorlauftemperatur“ gilt für einen Ventil- oder Wärmepumpenregler, dessen Sollwert eine Wassertemperatur ist: Der Optimierer leitet sie aus derselben Vorlaufkurve ab, die er bereits für ein einfaches Ventil verwendet. Wählen Sie „Vorlauftemperatur“ nur, wenn Sie bestätigt haben, dass die Entität eine Wassertemperatur erwartet – bei einem Vorlauf-Sollwert würde „Innentemperatur“ etwa 21 °C an ein Gerät senden, das 35-45 °C erwartet, und das Haus stark unterheizen."
+              "mixing_valve_write_entity": "Erforderlich für „Vom Optimierer gesteuert“: die Zahl- oder Climate-Entität, die der Regler deines Ventils bereitstellt. Der Optimierer schreibt seinen empfohlenen Zielwert nach jedem Planungszyklus dorthin, und nur wenn sich das Ergebnis ändert.",
+              "mixing_valve_write_target_kind": "„Innentemperatur“ ist richtig für einen Raum-/Thermostat-Sollwert und wurde schon immer geschrieben – der sichere Standard. „Vorlauftemperatur“ gilt für einen Ventil- oder Wärmepumpenregler, dessen Sollwert eine Wassertemperatur ist: Der Optimierer leitet sie aus derselben Vorlaufkurve ab, die er bereits für ein einfaches Ventil verwendet. Wähle „Vorlauftemperatur“ nur, wenn du bestätigt hast, dass die Entität eine Wassertemperatur erwartet – bei einem Vorlauf-Sollwert würde „Innentemperatur“ etwa 21 °C an ein Gerät senden, das 35-45 °C erwartet, und das Haus stark unterheizen."
             }
           },
           "buffer": {
@@ -833,14 +833,14 @@
               "dhw_wood_coil_enabled": "Der Kaltwasserzulauf des Warmwasserspeichers führt durch eine Rohrschlange im Holz-Pufferspeicher, sodass das Nachfüllwasser vorgewärmt ankommt, wenn dieser Speicher heiß ist. Wirkt nur, wenn der Holzspeicher als eigener Speicher modelliert ist.",
               "external_heat_decay_minutes": "Wie lange erkannte Fremdwärme nach dem Abklingen des Hinweises weiter als Beitrag angenommen wird. Länger hält den Plan nach dem Herunterbrennen eines Feuers weiter zurück.",
               "external_heat_detection_enabled": "Erkennt, wenn sich die Speicher erwärmen, während die Wärmepumpe nicht läuft. Solange das geschieht, wird geplantes elektrisches Warmwasser zurückgehalten – dafür zu bezahlen, Wasser zu erhitzen, das schon kostenlos erhitzt wird, wäre der teuerste mögliche Fehler.",
-              "external_heat_entity": "Wenn Sie einen Abgasthermostat oder einen Ofenschalter haben, verwenden Sie ihn. Ihm wird mehr vertraut als der automatischen Erkennung, in beide Richtungen – er kann sagen, dass ein Feuer brennt, und auch, dass keines brennt. Einem Schalter oder Helfer-Umschalter wird vertraut, bis Sie ihn ändern. Einem Abgasfühler, der eine Temperatur meldet, wird eine Stunde nach seiner letzten Meldung vertraut: Ein Fühler, der mit leerer Batterie heiß anzeigt, würde die Heizung sonst unbegrenzt zurückhalten.",
-              "external_heat_min_rise": "Erhöhen Sie den Wert, wenn der Normalbetrieb ihn auslöst. Ein verpasstes Feuer kostet einen unnötigen Heizzyklus; fälschlich eines anzunehmen kann Sie ohne Warmwasser lassen.",
+              "external_heat_entity": "Wenn du einen Abgasthermostat oder einen Ofenschalter hast, verwende ihn. Ihm wird mehr vertraut als der automatischen Erkennung, in beide Richtungen – er kann sagen, dass ein Feuer brennt, und auch, dass keines brennt. Einem Schalter oder Helfer-Umschalter wird vertraut, bis du ihn änderst. Einem Abgasfühler, der eine Temperatur meldet, wird eine Stunde nach seiner letzten Meldung vertraut: Ein Fühler, der mit leerer Batterie heiß anzeigt, würde die Heizung sonst unbegrenzt zurückhalten.",
+              "external_heat_min_rise": "Erhöhe den Wert, wenn der Normalbetrieb ihn auslöst. Ein verpasstes Feuer kostet einen unnötigen Heizzyklus; fälschlich eines anzunehmen kann dich ohne Warmwasser lassen.",
               "valve_outlet_temp_entity": "Temperatur des gemischten Vorlaufs, der das Ventil verlässt, das Holz- und Wärmepumpenwasser mischt. Zusammen mit den Speichersensoren sagt sie dem Plan, wie viel der Heizung ein Feuer gerade abdeckt, sodass die elektrische Heizung um genau diesen Anteil zurückfahren kann, statt ganz oder gar nicht.",
               "wood_furnace_efficiency": "Anteil der Holzenergie, der den Speicher erreicht, in Prozent.",
               "wood_lighting_lead_minutes": "Wie lange vor einem Zeitfenster, in dem Holz günstiger als die Wärmepumpe ist, der Kessel angefeuert wird, damit er die Anlaufphase hinter sich hat und den Speicher lädt, wenn das Fenster beginnt. Legt das Anfeuerfenster am Sensor „Wood Cheaper Than Heat Pump“ fest.",
               "wood_furnace_enabled": "Aus blendet die Holzfühler, die Erkennung und den Brennstoffpreis aus; gespeicherte Werte bleiben erhalten. Ein einzelnes Speichervolumen von 500 l schaltet dies nicht ein.",
               "wood_packing": "Gepackt ist gestapelt (travad); lose ist geschüttet (stjälpt) und wird mit 0,60 des gepackten Volumens abgerechnet.",
-              "wood_price_sek_m3": "Was Sie pro abgerechnetem Kubikmeter zahlen. Leer lässt den Sensor „günstiger als Pumpe“ nicht verfügbar – es gibt keinen stillen Standardwert.",
+              "wood_price_sek_m3": "Was du pro abgerechnetem Kubikmeter zahlst. Leer lässt den Sensor „günstiger als Pumpe“ nicht verfügbar – es gibt keinen stillen Standardwert.",
               "wood_tank_bottom_entity": "Siehe den oberen Sensor. Beide werden für die Schätzung der Restenergie benötigt; einer allein wird vorsichtig gelesen.",
               "wood_tank_top_entity": "Zusammen mit dem unteren Sensor zeigt dies, wie viel ein Feuer übrig lässt. Eine heiße Oberseite über einer kalten Unterseite bedeutet, dass die Ladung fast aufgebraucht ist.",
               "wood_tank_volume": "Der Pufferspeicher auf der Holzseite; dient dazu zu begrenzen, wie viel kostenlose Wärme ein Feuer noch liefern kann.",
@@ -860,12 +860,12 @@
       },
       "tuning": {
         "title": "Einsparung oder Komfort",
-        "description": "Der Kompromiss zwischen einer niedrigen Rechnung und einer felsenfesten Temperatur. Wenn das Haus bei Preisspitzen zu kühl wirkt, erhöhen Sie, wie streng die Temperatur gehalten wird. Wenn Sie größere Einsparungen wollen und mehr Schwankung verkraften, senken Sie ihn.",
+        "description": "Der Kompromiss zwischen einer niedrigen Rechnung und einer felsenfesten Temperatur. Wenn das Haus bei Preisspitzen zu kühl wirkt, erhöhe, wie streng die Temperatur gehalten wird. Wenn du größere Einsparungen willst und mehr Schwankung verkraftest, senke ihn.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog danach führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog danach führt."
         },
         "sections": {
           "weights": {
@@ -876,7 +876,7 @@
               "price_weight": "Wie stark niedrigen Preisen nachgejagt wird"
             },
             "data_description": {
-              "comfort_weight": "Das Gegengewicht zur obigen Einstellung und der wirksamste Regler, den Sie haben. Er wird an dem Bereich gemessen, den Sie erlauben; ein breiterer Bereich macht den Optimierer mutiger. Um 5 lässt das Haus innerhalb Ihres erlaubten Bereichs frei driften, für die größten Einsparungen; 10 hält es spürbar näher am Zielwert; 20 oder mehr verhält sich fast wie ein gewöhnlicher Thermostat.",
+              "comfort_weight": "Das Gegengewicht zur obigen Einstellung und der wirksamste Regler, den du hast. Er wird an dem Bereich gemessen, den du erlaubst; ein breiterer Bereich macht den Optimierer mutiger. Um 5 lässt das Haus innerhalb deines erlaubten Bereichs frei driften, für die größten Einsparungen; 10 hält es spürbar näher am Zielwert; 20 oder mehr verhält sich fast wie ein gewöhnlicher Thermostat.",
               "optimization_interval": "Wie oft der Plan mit frischen Preisen und frischem Wetter neu berechnet wird. Häufiger reagiert schneller, bedeutet aber mehr Rechenaufwand.",
               "price_weight": "Höher bedeutet, dass der Optimierer sich stärker bemüht, Heizen in günstige Stunden zu verlegen, auf Kosten stärkerer Temperaturschwankungen."
             }
@@ -890,10 +890,10 @@
               "wear_autotune_enabled": "Tatsächlichen Verschleiß die Taktkosten einstellen lassen"
             },
             "data_description": {
-              "compressor_cycling_cost": "Verhindert Pläne, die wiederholt ein- und ausschalten. Lassen Sie 0, solange Sie keinen Grund zur Annahme haben, dass Ihr Gerät zu oft taktet; die geplante Startzahl wird an den Plansensoren veröffentlicht, sodass Sie nachsehen können, bevor Sie entscheiden.",
+              "compressor_cycling_cost": "Verhindert Pläne, die wiederholt ein- und ausschalten. Lass 0, solange du keinen Grund zur Annahme hast, dass dein Gerät zu oft taktet; die geplante Startzahl wird an den Plansensoren veröffentlicht, sodass du nachsehen kannst, bevor du entscheidest.",
               "compressor_rated_starts": "Für wie viele Starts der Hersteller den Verdichter auslegt. Die Tauschkosten oben werden auf diese Zahl verteilt.",
-              "compressor_replacement_cost": "Was ein Verdichtertausch kostet, einschließlich Arbeitszeit. Geteilt durch die Nennstarts unten bepreist es jeden tatsächlich erfolgten Verdichterstart; lassen Sie 0, damit der Startzähler reine Beobachtung bleibt, ohne Geldbetrag.",
-              "wear_autotune_enabled": "Wenn aktiviert, wird der Verschleißpreis pro Start (Tauschkosten geteilt durch Nennstarts) zur Untergrenze der Verdichter-Taktkosten oben, sodass Pläne keine Kosten mehr unterschätzen, die Sie ausdrücklich angegeben haben. Dies ist die einzige Einblick-Funktion, die Pläne verändert."
+              "compressor_replacement_cost": "Was ein Verdichtertausch kostet, einschließlich Arbeitszeit. Geteilt durch die Nennstarts unten bepreist es jeden tatsächlich erfolgten Verdichterstart; lass 0, damit der Startzähler reine Beobachtung bleibt, ohne Geldbetrag.",
+              "wear_autotune_enabled": "Wenn aktiviert, wird der Verschleißpreis pro Start (Tauschkosten geteilt durch Nennstarts) zur Untergrenze der Verdichter-Taktkosten oben, sodass Pläne keine Kosten mehr unterschätzen, die du ausdrücklich angegeben hast. Dies ist die einzige Einblick-Funktion, die Pläne verändert."
             }
           },
           "risk": {
@@ -905,7 +905,7 @@
             },
             "data_description": {
               "confidence_margins_enabled": "Ein Plan, der zwölf Stunden im Voraus 19,0 °C zusagt, beruht auf einer Zwölf-Stunden-Prognose, und der Optimierer weiß aus seiner eigenen Historie, wie falsch diese werden. Ist dies aktiviert, steigt die Komfortuntergrenze um genau diesen erwarteten Fehler – begrenzt auf 0,8 °C und auf null schrumpfend, wenn die Genauigkeit steigt –, sodass tiefes, preisgetriebenes Auskühlen nur dort stattfindet, wo sich das Modell das Vertrauen verdient hat.",
-              "price_risk_lambda": "Jenseits des veröffentlichten Horizonts werden Preise aus Ihrem gelernten Tagesverlauf geschätzt. Dies fügt diesen Schätzungen einen Aufschlag hinzu, proportional dazu, wie falsch sie tendenziell lagen, damit der Plan eine geschätzte günstige Nacht nicht mehr als sicher behandelt. 0 vertraut den Schätzungen unverändert.",
+              "price_risk_lambda": "Jenseits des veröffentlichten Horizonts werden Preise aus deinem gelernten Tagesverlauf geschätzt. Dies fügt diesen Schätzungen einen Aufschlag hinzu, proportional dazu, wie falsch sie tendenziell lagen, damit der Plan eine geschätzte günstige Nacht nicht mehr als sicher behandelt. 0 vertraut den Schätzungen unverändert.",
               "price_tiles_enabled": "Nach jeder planmäßigen Optimierung wird eine Was-wäre-wenn-Kachel bepreist – der Komfortplan ein Grad niedriger, ein Grad höher und die Leistung auf 75 % begrenzt, im Wechsel, jeweils über 30 Tage gemittelt. Standardmäßig aus, weil jede Kachel eine komplette zusätzliche Berechnung mit echter CPU-Last ist."
             }
           }
@@ -913,7 +913,7 @@
       },
       "heat_curve": {
         "title": "Heizkurvensteuerung (ECL110)",
-        "description": "Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden. Der Optimierer verschiebt die Heizkurve in günstigen Stunden nach oben und in teuren nach unten. Lassen Sie diese Felder leer, wenn Sie keinen solchen Regler haben.",
+        "description": "Für Danfoss-ECL110-Regler, die über MQTT angesteuert werden. Der Optimierer verschiebt die Heizkurve in günstigen Stunden nach oben und in teuren nach unten. Lass diese Felder leer, wenn du keinen solchen Regler hast.",
         "data": {
           "ecl110_displace_set_topic": "Topic für Verschiebungsbefehl",
           "ecl110_command_topic": "Topic für Legacy-JSON-Befehl",
@@ -926,7 +926,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "ecl110_displace_set_topic": "MQTT-Topic, auf das die Parallelverschiebung der Heizkurve veröffentlicht wird. Solange dieses und das Legacy-Befehls-Topic unten leer sind, wird nichts veröffentlicht: Lassen Sie beide leer, wenn Sie keinen Danfoss ECL110 haben.",
+          "ecl110_displace_set_topic": "MQTT-Topic, auf das die Parallelverschiebung der Heizkurve veröffentlicht wird. Solange dieses und das Legacy-Befehls-Topic unten leer sind, wird nichts veröffentlicht: Lass beide leer, wenn du keinen Danfoss ECL110 hast.",
           "ecl110_command_topic": "Nur für ältere Installationen nötig, die stattdessen eine JSON-Nutzlast erwarten.",
           "ecl110_state_topic": "MQTT-Topic, auf dem der Regler seinen aktuellen Zustand meldet.",
           "ecl110_mqtt_qos": "0 genügt für fast alle.",
@@ -934,17 +934,17 @@
           "ecl110_displace_min": "Wie weit die Heizkurve in teuren Stunden nach unten verschoben werden darf.",
           "ecl110_displace_max": "Wie weit die Heizkurve nach oben verschoben werden darf, wenn günstige Wärme gespeichert wird.",
           "ecl110_pid_time_constant_hours": "Ungefähr, wie lange der Regler braucht, um auf eine neue Verschiebung zu reagieren. Damit fordert der Optimierer keine schnelleren Änderungen an, als das System umsetzen kann.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "building_preset": {
         "title": "Gebäudetyp und Heizflächen",
-        "description": "Beantworten Sie drei Fragen zum Gebäude, und die Werte des thermischen Modells werden für Sie berechnet. Das sind nur Startwerte – das selbstlernende Modell verfeinert sie anhand des tatsächlichen Verhaltens Ihres Hauses, sie müssen also nicht exakt sein. Lassen Sie dies aus, wenn Sie echte Werte aus einem Energieausweis haben und sie lieber direkt auf der Seite des thermischen Modells eingeben.",
+        "description": "Beantworte drei Fragen zum Gebäude, und die Werte des thermischen Modells werden für dich berechnet. Das sind nur Startwerte – das selbstlernende Modell verfeinert sie anhand des tatsächlichen Verhaltens deines Hauses, sie müssen also nicht exakt sein. Lass dies aus, wenn du echte Werte aus einem Energieausweis hast und sie lieber direkt auf der Seite des thermischen Modells eingibst.",
         "data": {
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         },
         "sections": {
           "questionnaire": {
@@ -986,7 +986,7 @@
             "data_description": {
               "rain_heat_loss_multiplier": "Zusätzlicher Wärmeverlust bei Regen. 1,0 bedeutet, dass Regen keinen Unterschied macht.",
               "solar_heat_gain_coefficient": "0,6 ist typisch für moderne Dreifachverglasung. Höhere Werte bedeuten mehr kostenlose Wärme an sonnigen Tagen.",
-              "wind_sensitivity_factor": "Wie viel zusätzliche Wärme das Haus pro m/s Wind verliert. Erhöhen Sie den Wert, wenn das Haus an windigen Tagen spürbar auskühlt, damit der Optimierer vorher vorheizt.",
+              "wind_sensitivity_factor": "Wie viel zusätzliche Wärme das Haus pro m/s Wind verliert. Erhöhe den Wert, wenn das Haus an windigen Tagen spürbar auskühlt, damit der Optimierer vorher vorheizt.",
               "window_area": "Quadratmeter Verglasung mit direkter Sonneneinstrahlung. Dient zur Vorhersage des kostenlosen solaren Wärmeeintrags."
             }
           }
@@ -1008,19 +1008,19 @@
         },
         "data_description": {
           "house_thermal_mass": "Wie viel Wärme Raumluft, Einrichtung und leichte Bauteile pro Grad speichern – etwa 0,02 kWh/°C pro m² beheizter Fläche bei einem Holzhaus, 0,05 oder mehr bei Stein. Schwere Böden und ein beheizter Estrich werden separat unter „Thermische Masse des Estrichs“ erfasst, dieser Wert allein ist also nicht das ganze Gebäude.",
-          "house_heat_loss_coefficient": "Wie schnell das Haus pro Grad Temperaturdifferenz zur Außenseite Wärme verliert. Multiplizieren Sie mit der Differenz zwischen Innen und Außen, um die nötige Heizleistung zu erhalten: 0,25 kW/°C bei 20 Grad Differenz ergeben etwa 5 kW.",
+          "house_heat_loss_coefficient": "Wie schnell das Haus pro Grad Temperaturdifferenz zur Außenseite Wärme verliert. Multipliziere mit der Differenz zwischen Innen und Außen, um die nötige Heizleistung zu erhalten: 0,25 kW/°C bei 20 Grad Differenz ergeben etwa 5 kW.",
           "slab_thermal_mass": "Pro Grad gespeicherte Wärme in dem, worüber die Wärme abgegeben wird: der Betonestrich eines Hauses mit Fußbodenheizung – der Puffer, der es erlaubt, den Boden in Preisspitzen abzuschalten – oder, bei Heizkörpern, das Wasser und der Stahl des Heizkörperkreises, der weit kleiner ist. Ein Haus mit Heizkörpern von 100 m² liegt bei etwa 0,2 kWh/°C, ein beheizter Estrich gleicher Größe bei etwa 10.",
           "slab_heat_transfer": "Wie schnell Wärme aus diesem Speicher in den Raum gelangt. Niedrigere Werte bedeuten einen trägen Boden, der weiter im Voraus geladen werden muss; Heizkörper sind deutlich schneller und liegen weit höher.",
-          "heat_pump_cop_nominal": "Erzeugte Wärme pro eingesetzter Einheit Strom unter Normalbedingungen. Prüfen Sie das Datenblatt; 3 bis 4 ist typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
+          "heat_pump_cop_nominal": "Erzeugte Wärme pro eingesetzter Einheit Strom unter Normalbedingungen. Prüfe das Datenblatt; 3 bis 4 ist typisch für Luft-Wasser, 4 bis 5 für Erdwärme.",
           "heat_pump_max_power": "Elektrische Aufnahme bei voller Leistung. Begrenzt, wie viel günstiger Strom pro Stunde gespeichert werden kann.",
           "heat_pump_min_power": "Geringste elektrische Aufnahme, bei der die Wärmepumpe laufen kann, ohne zu takten.",
-          "heat_pump_cop_partload_derate": "Anteil der Effizienz, der beim Betrieb mit maximaler statt minimaler Leistung verloren geht, als Bruchteil (0,1 = 10 %). Größere Wärmeströme erfordern größere Temperaturdifferenzen an den Wärmetauschern. 0 lässt die Leistung aus dem COP heraus; typische Luft-Wasser-Geräte verlieren 0,05 bis 0,15. Ein Wärmemengenzähler ist nicht nötig. Halten Sie den Wert unter Spanne / (Spanne + maximale Leistung), wobei die Spanne maximale minus minimale Leistung ist, sonst würde die Wärme bei steigender Leistung sinken.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "heat_pump_cop_partload_derate": "Anteil der Effizienz, der beim Betrieb mit maximaler statt minimaler Leistung verloren geht, als Bruchteil (0,1 = 10 %). Größere Wärmeströme erfordern größere Temperaturdifferenzen an den Wärmetauschern. 0 lässt die Leistung aus dem COP heraus; typische Luft-Wasser-Geräte verlieren 0,05 bis 0,15. Ein Wärmemengenzähler ist nicht nötig. Halte den Wert unter Spanne / (Spanne + maximale Leistung), wobei die Spanne maximale minus minimale Leistung ist, sonst würde die Wärme bei steigender Leistung sinken.",
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "grid": {
         "title": "Netz-Spitzentarif",
-        "description": "Kosten, die nicht einfach der Preis pro kWh sind. Viele schwedische Netzbetreiber berechnen zusätzlich eine monatliche Leistungsgebühr auf Basis Ihrer höchsten Stunden – Warmwasser und Heizung in dieselbe günstige Stunde zu legen kann dann mehr kosten, als es spart.",
+        "description": "Kosten, die nicht einfach der Preis pro kWh sind. Viele schwedische Netzbetreiber berechnen zusätzlich eine monatliche Leistungsgebühr auf Basis deiner höchsten Stunden – Warmwasser und Heizung in dieselbe günstige Stunde zu legen kann dann mehr kosten, als es spart.",
         "data": {
           "peak_tariff_enabled": "Meine Netzrechnung enthält eine Leistungsgebühr",
           "peak_tariff_price_per_kw": "Leistungsgebühr pro kW und Monat",
@@ -1034,21 +1034,21 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "peak_tariff_enabled": "Fügt die monatliche Leistungsspitzengebühr Ihres Netzbetreibers dem Zielfunktional hinzu, sodass sich das Glätten von Spitzen in echtem Geld auszahlt.",
-          "peak_tariff_price_per_kw": "Entnehmen Sie dies Ihrer Netzrechnung – es unterscheidet sich stark zwischen Netzbetreibern.",
-          "peak_tariff_peaks_averaged": "Die meisten schwedischen Tarife mitteln die drei höchsten Stunden des Monats. Prüfen Sie Ihre Rechnung.",
+          "peak_tariff_enabled": "Fügt die monatliche Leistungsspitzengebühr deines Netzbetreibers dem Zielfunktional hinzu, sodass sich das Glätten von Spitzen in echtem Geld auszahlt.",
+          "peak_tariff_price_per_kw": "Entnimm dies deiner Netzrechnung – es unterscheidet sich stark zwischen Netzbetreibern.",
+          "peak_tariff_peaks_averaged": "Die meisten schwedischen Tarife mitteln die drei höchsten Stunden des Monats. Prüfe deine Rechnung.",
           "peak_tariff_window_minutes": "Bei den meisten Tarifen stündlich. Einige neuere messen alle 15 Minuten, was deutlich weniger nachsichtig ist.",
           "peak_tariff_months": "Zum Beispiel \"Nov-Mar\". Leer bedeutet, dass der Tarif in jedem Monat abgerechnet wird. Außerhalb dieser Monate trägt eine Spitze nichts zur Rechnung bei, und der Plan weiß das.",
           "peak_tariff_hours": "Zum Beispiel \"07:00-19:00\". Leer bedeutet, dass jede Stunde voll zählt. Außerhalb dieser Stunden zählt eine Spitze mit dem Schwachlastfaktor unten.",
           "peak_tariff_weekdays_only": "Viele schwedische Tarife berechnen nur Spitzen an Werktagen. Ist dies aktiviert, zählen Samstag und Sonntag mit dem Schwachlastfaktor.",
           "peak_tariff_offpeak_factor": "1,0 behandelt jede Stunde gleich. 0,5 ist der übliche halbe Satz für Nachtspitzen; 0 macht Schwachlaststunden kostenlos – das Bündeln in der Nacht kostet dann keine Leistungsgebühr, genau die Konzentration auf günstige Stunden, die diese Integration aufspüren soll.",
-          "peak_tariff_distinct_days": "Die meisten schwedischen Tarife zählen die höchste Stunde von drei verschiedenen Tagen, sodass ein kalter Morgen mit drei hohen Stunden eine Spitze ist, nicht drei. Schalten Sie dies nur aus, wenn Ihre Rechnung die höchsten Stunden unabhängig vom Tag mittelt.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "peak_tariff_distinct_days": "Die meisten schwedischen Tarife zählen die höchste Stunde von drei verschiedenen Tagen, sodass ein kalter Morgen mit drei hohen Stunden eine Spitze ist, nicht drei. Schalte dies nur aus, wenn deine Rechnung die höchsten Stunden unabhängig vom Tag mittelt.",
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "solar_pv": {
         "title": "Solaranlage",
-        "description": "Wenn Sie Solarstrom erzeugen, ist es besser, Warmwasser oder den Pufferspeicher mit Überschuss zu beheizen, als ihn zum Vergütungssatz einzuspeisen. Teilen Sie dem Optimierer mit, wie Ihre Anlage aussieht, und er bewertet jede Stunde mit den tatsächlichen Kosten des Verbrauchs.",
+        "description": "Wenn du Solarstrom erzeugst, ist es besser, Warmwasser oder den Pufferspeicher mit Überschuss zu beheizen, als ihn zum Vergütungssatz einzuspeisen. Teile dem Optimierer mit, wie deine Anlage aussieht, und er bewertet jede Stunde mit den tatsächlichen Kosten des Verbrauchs.",
         "data": {
           "pv_enabled": "Ich habe eine Solaranlage",
           "pv_peak_kw": "Installierte Leistung",
@@ -1060,17 +1060,17 @@
         },
         "data_description": {
           "pv_system_efficiency": "Alles zwischen Sonnenlicht und Zähler: Wechselrichterverluste, Modultemperatur, Verschmutzung, Ausrichtung. 0,8 ist typisch.",
-          "pv_export_price": "Was Sie für eine eingespeiste kWh erhalten. Solange Sie Überschuss haben, kostet eine zusätzliche kWh Heizung genau das.",
-          "pv_export_price_entity": "Verwenden Sie stattdessen diese, wenn Ihre Vergütung dem Spotpreis folgt.",
-          "pv_enabled": "Lässt den Plan die Wärmepumpe mit Ihrem eigenen Überschuss betreiben, statt ihn für weniger zu verkaufen, als Netzstrom kostet.",
+          "pv_export_price": "Was du für eine eingespeiste kWh erhältst. Solange du Überschuss hast, kostet eine zusätzliche kWh Heizung genau das.",
+          "pv_export_price_entity": "Verwende stattdessen diese, wenn deine Vergütung dem Spotpreis folgt.",
+          "pv_enabled": "Lässt den Plan die Wärmepumpe mit deinem eigenen Überschuss betreiben, statt ihn für weniger zu verkaufen, als Netzstrom kostet.",
           "pv_peak_kw": "Die Nennspitzenleistung der Anlage. Dient zur Skalierung der Erzeugungsprognose.",
           "pv_production_entity": "Optional. Ein Live-Erzeugungssensor lässt die Prognose sich anhand dessen korrigieren, was das Dach tatsächlich liefert.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "away": {
         "title": "Abwesenheits- und Urlaubsmodus",
-        "description": "Eine Woche Abwesenheit ist die größte einzelne Einsparung, die ein Heizsystem bieten kann. Wenn Sie zusätzlich angeben, wann Sie zurückkommen, wird die Wärme zum erneuten Aufheizen des Hauses vorher in den günstigsten Stunden eingekauft statt zu dem Preis, der gerade gilt, wenn Sie hereinkommen.",
+        "description": "Eine Woche Abwesenheit ist die größte einzelne Einsparung, die ein Heizsystem bieten kann. Wenn du zusätzlich angibst, wann du zurückkommst, wird die Wärme zum erneuten Aufheizen des Hauses vorher in den günstigsten Stunden eingekauft statt zu dem Preis, der gerade gilt, wenn du hereinkommst.",
         "data": {
           "away_presence_entity": "Abwesenheitsanzeige (optional)",
           "holiday_calendar_entity": "Kalender für Urlaubsprofil (optional)",
@@ -1081,14 +1081,14 @@
         "data_description": {
           "away_presence_entity": "Eine Person, ein Gerätetracker, ein Kalender oder ein Anwesenheitssensor. Der Schalter auf der Plan-Seite hat Vorrang, bis er ausgeschaltet wird. Eine Person, die „nicht zu Hause“ ist, bedeutet bei ausgeschaltetem Schalter weiterhin Abwesenheit.",
           "holiday_calendar_entity": "Wenn dieser Kalender eingeschaltet ist, ersetzen die Urlaubs-Komfort- und Urlaubs-Warmwasserfenster für diesen Tag das Paar aus Werktag und Wochenende. Die Abwesenheitsabsenkung hat weiterhin Vorrang, wenn Abwesenheit aktiv ist.",
-          "away_dhw_min_temperature": "Der Anti-Legionellen-Zyklus läuft weiterhin und wird so getimt, dass er vor Ihrer Rückkehr abgeschlossen ist.",
+          "away_dhw_min_temperature": "Der Anti-Legionellen-Zyklus läuft weiterhin und wird so getimt, dass er vor deiner Rückkehr abgeschlossen ist.",
           "away_temperature": "Die Haltetemperatur während der Abwesenheit. Niedrig genug zum Sparen, hoch genug, um das Haus und seine Leitungen zu schützen.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "quick_setup": {
         "title": "Schnelleinrichtung",
-        "description": "Dieselben Fragen zum Haus wie bei der Ersteinrichtung, angewendet auf die bestehenden Einstellungen dieses Eintrags. Ändern Sie eine Antwort und senden Sie ab, dann wird das thermische Modell aus dem Fragebogen neu abgeleitet; ohne Änderung wird nichts geschrieben. Die Vorbelegung aus einem Gerät wird hier nicht angeboten – die Entitätsfelder dieses Eintrags sind bereits beantwortet, und die Vorbelegung bleibt auf der Seite „Vorbelegung aus einem Wärmepumpengerät“.",
+        "description": "Dieselben Fragen zum Haus wie bei der Ersteinrichtung, angewendet auf die bestehenden Einstellungen dieses Eintrags. Ändere eine Antwort und sende ab, dann wird das thermische Modell aus dem Fragebogen neu abgeleitet; ohne Änderung wird nichts geschrieben. Die Vorbelegung aus einem Gerät wird hier nicht angeboten – die Entitätsfelder dieses Eintrags sind bereits beantwortet, und die Vorbelegung bleibt auf der Seite „Vorbelegung aus einem Wärmepumpengerät“.",
         "data": {
           "two_zone": "Haus mit zwei Zonen",
           "buffer_tank": "Pufferspeicher",
@@ -1108,7 +1108,7 @@
         "data_description": {
           "two_zone": "Ein für ein Haus mit zwei getrennt beheizten Etagen, aus für eine. Bei zwei Zonen kann der Optimierer die estrichbeheizte untere Etage gegen die obere abwägen.",
           "buffer_tank": "Ein Speicher zwischen Wärmepumpe und Heizkreisen, groß genug zum Speichern von Wärme. Ein hinterlegt ein speichertaugliches Volumen (500 Liter; der ausgelieferte Standard von 35 Litern bildet eine kleine hydraulische Weiche ab, die keine Nachtwärme speichern kann). Der Optimierer plant erst dann mit ihm als Speicher, wenn in den Optionen auch ein drosselndes Mischventil eingerichtet ist; ohne dieses legt dies nur die Speichergröße im Modell fest.",
-          "dhw_tank": "Ein Speicher, den die Wärmepumpe mit Brauchwarmwasser gefüllt hält. Lassen Sie dies eingeschaltet, wenn Ihre Wärmepumpe Warmwasser bereitet.",
+          "dhw_tank": "Ein Speicher, den die Wärmepumpe mit Brauchwarmwasser gefüllt hält. Lass dies eingeschaltet, wenn deine Wärmepumpe Warmwasser bereitet.",
           "wood_furnace": "Ein Holzofen, der denselben Wasserkreislauf heizt. Ein lässt den Optimierer dessen Wärme einrechnen und die Wärmepumpe pausieren, solange das Feuer brennt.",
           "wood_buffer_tank": "Ein zweiter Speicher, den der Holzofen heizt, getrennt vom Puffer der Wärmepumpe. Dessen Temperaturfühler werden unten gewählt; die Zwei-Speicher-Physik wird erst aktiv, sobald ein Fühler zugewiesen ist.",
           "wood_tank_top_entity": "Zusammen mit dem Sensor unten zeigt dies, wie viel ein Feuer noch übrig hat. Oben heiß über unten kalt bedeutet, dass die Ladung fast aufgebraucht ist.",
@@ -1119,12 +1119,12 @@
           "heated_area_m2": "Alles wird mit diesem Wert skaliert, daher lohnt es sich, ihn möglichst genau anzugeben.",
           "upper_floor_emitter": "Heizkörper reagieren in Minuten, eine Fußbodenheizung in Stunden. Das bestimmt, wie weit im Voraus sich Heizen sinnvoll verschieben lässt.",
           "lower_floor_emitter": "Ein beheizter Estrich ist ein großer Speicher, der aktiv geladen wird – das Vorheizen wird dadurch wertvoller und zugleich notwendiger.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "learning": {
         "title": "Selbstlernen und Diagnose",
-        "description": "Überwachungsfunktionen und optionale Lernfunktionen. Die Sensorüberwachung ist standardmäßig aktiv und schützt alles andere; der Rest bleibt aus, bis Sie ihn einschalten.",
+        "description": "Überwachungsfunktionen und optionale Lernfunktionen. Die Sensorüberwachung ist standardmäßig aktiv und schützt alles andere; der Rest bleibt aus, bis du ihn einschaltest.",
         "data": {
           "staleness_watchdog_enabled": "Sensoren ignorieren, die nicht mehr aktualisieren",
           "staleness_max_age_scale": "Zusätzliches Alter zulassen",
@@ -1136,12 +1136,12 @@
         },
         "data_description": {
           "staleness_watchdog_enabled": "Eine leere Batterie lässt einen völlig normal aussehenden Wert für immer stehen. Ohne Gegenmaßnahme lernt das Modell aus dieser Flatline, und der Schaden übersteht einen Neustart. Ist dies aktiviert, wird ein alter Wert als fehlend behandelt und das Lernen pausiert stattdessen.",
-          "staleness_max_age_scale": "Erhöhen Sie dies, wenn Sie Sensoren haben, die absichtlich selten melden und unnötigerweise markiert werden.",
-          "comfort_learning_enabled": "Jedes Mal, wenn Sie die Temperatur übersteuern, sagen Sie damit, dass der Plan in eine Richtung zu weit ging. Daraus wird die Komforteinstellung langsam angepasst. Der gelernte Wert wird in einem eigenen Sensor angezeigt, und es gibt eine Schaltfläche zum Zurücksetzen.",
-          "system_identification_enabled": "Lässt den Optimierer in einer milden, günstigen Nacht einen kleinen, gezielten Heizschritt ausführen, um Ihr Haus direkt zu vermessen, statt wochenlang zu warten und es abzuleiten. Die Änderung bleibt so klein, dass man sie nicht bemerkt, und sie wird abgebrochen, wenn die Temperatur abdriftet.",
-          "price_prior_enabled": "Die Preise für morgen treffen gegen 13:00 Uhr ein. Bis dahin füllt dies den Rest des Horizonts aus Ihrem gelernten Tagespreisprofil auf, und der Plan kennzeichnet, welche Stunden geschätzt sind. Ist es ausgeschaltet, wiederholt der Rest des Horizonts den letzten Preis, was jede günstige Stunde im Voraus verdeckt.",
+          "staleness_max_age_scale": "Erhöhe dies, wenn du Sensoren hast, die absichtlich selten melden und unnötigerweise markiert werden.",
+          "comfort_learning_enabled": "Jedes Mal, wenn du die Temperatur übersteuerst, sagst du damit, dass der Plan in eine Richtung zu weit ging. Daraus wird die Komforteinstellung langsam angepasst. Der gelernte Wert wird in einem eigenen Sensor angezeigt, und es gibt eine Schaltfläche zum Zurücksetzen.",
+          "system_identification_enabled": "Lässt den Optimierer in einer milden, günstigen Nacht einen kleinen, gezielten Heizschritt ausführen, um dein Haus direkt zu vermessen, statt wochenlang zu warten und es abzuleiten. Die Änderung bleibt so klein, dass man sie nicht bemerkt, und sie wird abgebrochen, wenn die Temperatur abdriftet.",
+          "price_prior_enabled": "Die Preise für morgen treffen gegen 13:00 Uhr ein. Bis dahin füllt dies den Rest des Horizonts aus deinem gelernten Tagespreisprofil auf, und der Plan kennzeichnet, welche Stunden geschätzt sind. Ist es ausgeschaltet, wiederholt der Rest des Horizonts den letzten Preis, was jede günstige Stunde im Voraus verdeckt.",
           "debug_collect_enabled": "Zeichnet pro Optimierungszyklus eine kleine Zeile und einmal täglich einen vollständigen Schnappschuss auf, sieben Tage lang, und endet dann von selbst. Beim Beenden laufen einige rein lesende Selbsttests (höchstens 15 Minuten; es wird nichts geschaltet). Der Download der Diagnosedaten dieses Eintrags enthält danach die Woche und die Testergebnisse, für einen Fehlerbericht. Beim Ausschalten werden die gesammelten Daten gelöscht.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "entities_metering": {
@@ -1151,7 +1151,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         },
         "sections": {
           "solar": {
@@ -1162,8 +1162,8 @@
               "solar_radiation_entity": "Sensor für Sonneneinstrahlung"
             },
             "data_description": {
-              "solar_forecast_source": "Woher die Sonneneinstrahlung bezogen wird. „Wetter-Entität“ nutzt Ihre Wetter-Integration, die Einstrahlung oft gar nicht veröffentlicht. „Open-Meteo“ ruft eine kostenlose Prognose für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
-              "solar_location": "Koordinate für die Open-Meteo-Einstrahlungsprognose. Standardmäßig der Standort Ihres Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
+              "solar_forecast_source": "Woher die Sonneneinstrahlung bezogen wird. „Wetter-Entität“ nutzt deine Wetter-Integration, die Einstrahlung oft gar nicht veröffentlicht. „Open-Meteo“ ruft eine kostenlose Prognose für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
+              "solar_location": "Koordinate für die Open-Meteo-Einstrahlungsprognose. Standardmäßig der Standort deines Zuhauses in Home Assistant. Wird nur verwendet, wenn die Quelle Open-Meteo ist.",
               "solar_radiation_entity": "Optional. Sonnenschein in W/m². Lässt den Optimierer das Heizen vor einem sonnigen Nachmittag auslassen, der das Haus kostenlos erwärmt."
             }
           },
@@ -1195,10 +1195,10 @@
               "compressor_freq_max_hz": "Höchste Verdichterfrequenz"
             },
             "data_description": {
-              "compressor_freq_entity": "Eine Number-Entität, die die Verdichterfrequenz bereitstellt, typischerweise aus einer Modbus- oder ESPHome-Integration. Ist sie konfiguriert, lernt der Optimierer eine kW-pro-Hz-Kennlinie und empfiehlt eine Frequenz – nur beobachtend, bis Sie den Modus unten ausdrücklich auf Steuerung umstellen.",
-              "compressor_freq_sensor": "Ein Sensor mit der TATSÄCHLICHEN Frequenz des Verdichters, falls Ihre Integration eine solche separat bereitstellt. Viele Number-Entitäten sind Sollwertregister, die lediglich den zuletzt geschriebenen Wert zurückgeben – liest man aus einem solchen Echo, kann die Überwachung nie eine Abweichung erkennen, und die gelernte Kennlinie folgt dem Sollwert statt der Maschine. Lassen Sie ihn nur leer, wenn der Zustand der Number-Entität tatsächlich der echten Frequenz folgt. Ohne Number-Entität genügt dieser Sensor allein zum Beobachten; für die Steuerung wird die Number-Entität benötigt.",
+              "compressor_freq_entity": "Eine Number-Entität, die die Verdichterfrequenz bereitstellt, typischerweise aus einer Modbus- oder ESPHome-Integration. Ist sie konfiguriert, lernt der Optimierer eine kW-pro-Hz-Kennlinie und empfiehlt eine Frequenz – nur beobachtend, bis du den Modus unten ausdrücklich auf Steuerung umstellst.",
+              "compressor_freq_sensor": "Ein Sensor mit der TATSÄCHLICHEN Frequenz des Verdichters, falls deine Integration eine solche separat bereitstellt. Viele Number-Entitäten sind Sollwertregister, die lediglich den zuletzt geschriebenen Wert zurückgeben – liest man aus einem solchen Echo, kann die Überwachung nie eine Abweichung erkennen, und die gelernte Kennlinie folgt dem Sollwert statt der Maschine. Lass ihn nur leer, wenn der Zustand der Number-Entität tatsächlich der echten Frequenz folgt. Ohne Number-Entität genügt dieser Sensor allein zum Beobachten; für die Steuerung wird die Number-Entität benötigt.",
               "flow_meter_entity": "Ein Sensor mit dem Wasserdurchfluss des Heizkreises, in L/min, L/s, m³/h oder kg/s. Zusammen mit Vor- und Rücklauftemperatur kann die Integration damit die von der Wärmepumpe abgegebene Wärme bei einer Installation ohne Leistungs- oder Frequenzsignal ermitteln. Wird ignoriert, wenn eines von beiden vorhanden ist; ein Energiesensor schaltet ihn nicht ab.",
-              "freq_control_mode": "Beobachten lernt und empfiehlt, schreibt aber nie. Wechseln Sie erst auf Steuerung, nachdem Sie die Entität an Ihrer echten Hardware validiert haben: Geschrieben wird über number.set_value, höchstens einmal pro fünf Minuten, begrenzt auf den eigenen Bereich der Entität, und weicht eine gemeldete Frequenz drei Zyklen lang von der angeforderten ab, fällt der Regler zurück auf Beobachten. Die Steuerung benötigt die Number-Entität.",
+              "freq_control_mode": "Beobachten lernt und empfiehlt, schreibt aber nie. Wechsle erst auf Steuerung, nachdem du die Entität an deiner echten Hardware validiert hast: Geschrieben wird über number.set_value, höchstens einmal pro fünf Minuten, begrenzt auf den eigenen Bereich der Entität, und weicht eine gemeldete Frequenz drei Zyklen lang von der angeforderten ab, fällt der Regler zurück auf Beobachten. Die Steuerung benötigt die Number-Entität.",
               "compressor_freq_min_hz": "Der Frequenzbereich des Verdichters, verwendet, wenn nur der Sensor konfiguriert ist oder die Number-Entität kein eigenes Minimum und Maximum veröffentlicht. Die gelernte Kennlinie wird über diesen Bereich aufgeteilt.",
               "compressor_freq_max_hz": "Das obere Ende dieses Bereichs. Das eigene Maximum einer Number-Entität hat stets Vorrang."
             }
@@ -1223,16 +1223,16 @@
         },
         "data_description": {
           "heat_pump_mode_entity": "Optional. Die eigene Modusauswahl der Wärmepumpe – Kühlen, Heizen, Warmwasser oder eine Kombination aus zwei. Nur lesend, außer die Steuerung der Pumpenfunktion steht auf Steuern. Eine Wärmepumpe im Kühl- oder reinen Warmwassermodus kann das Haus nicht heizen, und eine im reinen Heizmodus kann kein Warmwasser bereiten; ohne diese Angabe kann der Plan Wärme versprechen, die die Wärmepumpe gerade nicht liefern kann. Bleibt sie leer, geht der Optimierer davon aus, dass die Wärmepumpe alles kann.",
-          "pump_duty_mode": "Aus (Standard) schreibt nie auf die Wärmepumpe. Beobachten schreibt nichts und führt in den Diagnosedaten ein 24-Stunden-Protokoll darüber, welche Funktion jeder Planschritt angefordert hat und was die Wärmepumpe getan hat (aus der Leistungsentität, dem Modus und der Speichertemperatur). Steuern schreibt den oben gewählten Betriebsmodus (nur Warmwasser bei reinen Warmwasserschritten, nur Heizen bei reinen Raumheizungsschritten, Heizen + Warmwasser, wenn beides geplant ist oder ein Desinfektionszyklus läuft, unverändert bei Leerlaufschritten), die Entität für den Warmwasser-Sollwert (der auf der Warmwasserseite konfigurierte Warmwasser-Sollwert) und die Entität für den Raumheizungs-Sollwert (bei einem Vorlauf-Sollwert ein Ziel, das der geplanten Leistung folgt – die Heizungsvorlauftemperatur (55 °C, oder flow_heat_c) bei voller Leistung, in Richtung 5 °C über dem ersten aktuellen Wert von Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass (35 °C, wenn keiner konfiguriert ist) an der Modulationsuntergrenze – oder das Maximum der Entität bei Schritten, die das Haus heizen, ihr Minimum bei Schritten, die es nicht tun, und 35 °C oder die Wetterkurve, wenn der Plan nicht die Führung hat; bei einem Raum-Sollwert die geplante Raumtemperatur). Wo der Modus keine Einzelfunktion anbietet, etwa beim GCHV-Modbus-Paket, wird stattdessen der Sollwert der anderen Funktion auf sein Minimum gesenkt. Ein reiner Warmwasserabschnitt ist auf 90 Minuten begrenzt (30 unter -10 °C Außentemperatur), außer der Raum hat bereits seine geplante Temperatur. Solange Optimierer aktiv eingeschaltet ist, wird jede Änderung an diesen Entitäten, die der Optimierer nicht vorgenommen hat, sofort zurückgeschrieben; schalten Sie Optimierer aktiv aus, um die Wärmepumpe von Hand zu ändern. Ein Wert, den die Wärmepumpe nicht übernimmt, löst eine Warnung aus und wird alle 5 Minuten erneut gesendet.",
-          "heat_pump_defrost_entity": "Optional. Ein, solange die Wärmepumpe den Kreislauf umkehrt, um Frost vom Außenwärmetauscher zu schmelzen. Der während einer Abtauung bezogene Strom geht in den Wärmetauscher statt ins Haus. Beachten Sie, dass viele Wärmepumpen nur alle paar Minuten abgefragt werden, kurze Abtauvorgänge also komplett übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
+          "pump_duty_mode": "Aus (Standard) schreibt nie auf die Wärmepumpe. Beobachten schreibt nichts und führt in den Diagnosedaten ein 24-Stunden-Protokoll darüber, welche Funktion jeder Planschritt angefordert hat und was die Wärmepumpe getan hat (aus der Leistungsentität, dem Modus und der Speichertemperatur). Steuern schreibt den oben gewählten Betriebsmodus (nur Warmwasser bei reinen Warmwasserschritten, nur Heizen bei reinen Raumheizungsschritten, Heizen + Warmwasser, wenn beides geplant ist oder ein Desinfektionszyklus läuft, unverändert bei Leerlaufschritten), die Entität für den Warmwasser-Sollwert (der auf der Warmwasserseite konfigurierte Warmwasser-Sollwert) und die Entität für den Raumheizungs-Sollwert (bei einem Vorlauf-Sollwert ein Ziel, das der geplanten Leistung folgt – die Heizungsvorlauftemperatur (55 °C, oder flow_heat_c) bei voller Leistung, in Richtung 5 °C über dem ersten aktuellen Wert von Wärmepumpen-Rücklauf, Pufferspeicher, Fußbodenrücklauf oder Ventilauslass (35 °C, wenn keiner konfiguriert ist) an der Modulationsuntergrenze – oder das Maximum der Entität bei Schritten, die das Haus heizen, ihr Minimum bei Schritten, die es nicht tun, und 35 °C oder die Wetterkurve, wenn der Plan nicht die Führung hat; bei einem Raum-Sollwert die geplante Raumtemperatur). Wo der Modus keine Einzelfunktion anbietet, etwa beim GCHV-Modbus-Paket, wird stattdessen der Sollwert der anderen Funktion auf sein Minimum gesenkt. Ein reiner Warmwasserabschnitt ist auf 90 Minuten begrenzt (30 unter -10 °C Außentemperatur), außer der Raum hat bereits seine geplante Temperatur. Solange Optimierer aktiv eingeschaltet ist, wird jede Änderung an diesen Entitäten, die der Optimierer nicht vorgenommen hat, sofort zurückgeschrieben; schalte Optimierer aktiv aus, um die Wärmepumpe von Hand zu ändern. Ein Wert, den die Wärmepumpe nicht übernimmt, löst eine Warnung aus und wird alle 5 Minuten erneut gesendet.",
+          "heat_pump_defrost_entity": "Optional. Ein, solange die Wärmepumpe den Kreislauf umkehrt, um Frost vom Außenwärmetauscher zu schmelzen. Der während einer Abtauung bezogene Strom geht in den Wärmetauscher statt ins Haus. Beachte, dass viele Wärmepumpen nur alle paar Minuten abgefragt werden, kurze Abtauvorgänge also komplett übersehen werden: Dies ist eine Stichprobe der Abtauaktivität, keine Stoppuhr.",
           "heat_pump_online_entity": "Optional und bei einer cloudverbundenen Wärmepumpe dringend empfohlen. Ein, solange die Wärmepumpe tatsächlich erreichbar ist. Eine Cloud-Integration kann ihre letzten bekannten Werte weiter veröffentlichen, obwohl die Wärmepumpe selbst vom Netzwerk getrennt ist, sodass alle anderen Sensoren völlig aktuell aussehen; dies ist das einzige Signal, das etwas anderes sagt. Bei einer lokalen Verbindung (LAN) werden die Sensoren von selbst nicht verfügbar, und dies bringt wenig.",
           "heat_pump_fault_entity": "Optional. Ein, solange die Wärmepumpe eine Störung meldet. Verwendet wird nur, ob eine Störung vorliegt, nie der Code selbst.",
-          "heat_pump_backup_heater_entity": "Optional. Ein, solange der eigene elektrische Zuheizer der Wärmepumpe im Raumheizkreis läuft. Resistive Kilowatt am Zähler bedeuten nicht, dass der Verdichter ineffizient ist; solange dies eingeschaltet ist, wertet der Optimierer den Zähler daher nicht als Effizienzmessung. Die Wärme zählt weiterhin: Sie ist echte Wärme im Haus, und die Hauslernmodelle laufen weiter. Vor allem nützlich, wenn Ihre Wärmepumpe keinen Leistungsmesser veröffentlicht, da es sonst keine Möglichkeit gibt, das Heizelement überhaupt zu bemerken.",
-          "heat_pump_dhw_booster_entity": "Optional. Ein, solange der elektrische Heizstab im Warmwasserspeicher läuft. Wird wie der Zuheizer oben behandelt, und jedes Einschalten wird zusätzlich als Warmwasser-Notfall erfasst – wiederholt sich das und Sie haben die Option für die Heizstab-Rückmeldung eingeschaltet, beginnt der Plan, den Speicher etwas früher zu heizen, statt für die Differenz resistive Preise zu zahlen.",
+          "heat_pump_backup_heater_entity": "Optional. Ein, solange der eigene elektrische Zuheizer der Wärmepumpe im Raumheizkreis läuft. Resistive Kilowatt am Zähler bedeuten nicht, dass der Verdichter ineffizient ist; solange dies eingeschaltet ist, wertet der Optimierer den Zähler daher nicht als Effizienzmessung. Die Wärme zählt weiterhin: Sie ist echte Wärme im Haus, und die Hauslernmodelle laufen weiter. Vor allem nützlich, wenn deine Wärmepumpe keinen Leistungsmesser veröffentlicht, da es sonst keine Möglichkeit gibt, das Heizelement überhaupt zu bemerken.",
+          "heat_pump_dhw_booster_entity": "Optional. Ein, solange der elektrische Heizstab im Warmwasserspeicher läuft. Wird wie der Zuheizer oben behandelt, und jedes Einschalten wird zusätzlich als Warmwasser-Notfall erfasst – wiederholt sich das und du hast die Option für die Heizstab-Rückmeldung eingeschaltet, beginnt der Plan, den Speicher etwas früher zu heizen, statt für die Differenz resistive Preise zu zahlen.",
           "heat_pump_capacity_limited_entity": "Optional. Ein, solange die Wärmepumpe mit reduzierter Verdichterdrehzahl läuft, was die meisten Geräte Nachtmodus oder Flüstermodus nennen. Was die Wärmepumpe dann aufnimmt und abgibt, entspricht nicht ihrem uneingeschränkten Verhalten, daher lernt der Optimierer aus diesen Intervallen weder Effizienz noch Leistung. Für Kosten und Wärmebilanz verwendet er weiterhin die gemessene Leistung, denn ein drehzahlbegrenzter Verdichter nimmt genau das auf, was der Zähler anzeigt.",
-          "heat_pump_supply_temp_entity": "Optional. Die Wassertemperatur, die die Wärmepumpe an das Heizsystem abgibt. Der Optimierer liest sie und lernt, wie weit Ihr System von seiner eigenen Heizkurve abweicht, zum Beispiel bei einer steiler eingestellten Kurve als im Modell. Für sich allein wird diese Abweichung nur aufgezeichnet. Sie verändert Pläne und Kosten nur, wenn „Anhebung der Vorlauftemperatur bepreisen“ auf der Seite des Heizsystems eingeschaltet ist; andernfalls nimmt die gelernte Effizienz den Mehraufwand für heißeres Wasser weiter auf. Am nützlichsten bei einem System ohne Pufferspeicher, bei dem die Wärmepumpe Heizkörper oder Fußbodenschleifen direkt speist.",
-          "heat_pump_return_temp_entity": "Optional. Die Wassertemperatur, die zur Wärmepumpe zurückkommt. Beachten Sie, um welche Leitung es sich handelt: um den Rücklauf der Wärmepumpe selbst. Speist die Wärmepumpe die Fußbodenschleifen direkt, ist das zugleich der Rücklauf des Bodens und kann derselbe Sensor sein, den Sie bereits für die Fußbodenrücklauftemperatur gewählt haben. Hinter einem Pufferspeicher oder Mischventil ist es völlig anderes Wasser, und den Rücklauf der Wärmepumpe in das Feld für den Fußbodenrücklauf einzutragen ergibt eine falsche Schätzung der Estrichtemperatur.",
-          "after_save": "Das Speichern wirkt sofort; hier wählen Sie, wohin der Dialog als Nächstes führt."
+          "heat_pump_supply_temp_entity": "Optional. Die Wassertemperatur, die die Wärmepumpe an das Heizsystem abgibt. Der Optimierer liest sie und lernt, wie weit dein System von seiner eigenen Heizkurve abweicht, zum Beispiel bei einer steiler eingestellten Kurve als im Modell. Für sich allein wird diese Abweichung nur aufgezeichnet. Sie verändert Pläne und Kosten nur, wenn „Anhebung der Vorlauftemperatur bepreisen“ auf der Seite des Heizsystems eingeschaltet ist; andernfalls nimmt die gelernte Effizienz den Mehraufwand für heißeres Wasser weiter auf. Am nützlichsten bei einem System ohne Pufferspeicher, bei dem die Wärmepumpe Heizkörper oder Fußbodenschleifen direkt speist.",
+          "heat_pump_return_temp_entity": "Optional. Die Wassertemperatur, die zur Wärmepumpe zurückkommt. Beachte, um welche Leitung es sich handelt: um den Rücklauf der Wärmepumpe selbst. Speist die Wärmepumpe die Fußbodenschleifen direkt, ist das zugleich der Rücklauf des Bodens und kann derselbe Sensor sein, den du bereits für die Fußbodenrücklauftemperatur gewählt hast. Hinter einem Pufferspeicher oder Mischventil ist es völlig anderes Wasser, und den Rücklauf der Wärmepumpe in das Feld für den Fußbodenrücklauf einzutragen ergibt eine falsche Schätzung der Estrichtemperatur.",
+          "after_save": "Das Speichern wirkt sofort; hier wählst du, wohin der Dialog als Nächstes führt."
         }
       },
       "hot_water_tank": {
@@ -1242,7 +1242,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         },
         "sections": {
           "tank": {
@@ -1254,10 +1254,10 @@
               "shower_flow_lpm": "Duschdurchfluss"
             },
             "data_description": {
-              "dhw_cooling_rate": "Wie schnell der Speicher abkühlt, wenn niemand Warmwasser nutzt, gemessen bei 45 °C in einem 20 °C warmen Raum. Das ist nur ein Startwert: Die Integration misst die tatsächliche Abkühlung Ihres Speichers und verfeinert ihn automatisch. Ein Speicher, der die Wärme gut hält, kann weiter im Voraus geladen werden, sodass mehr Heizenergie in günstige Stunden fällt.",
-              "dhw_daily_consumption": "Ungefähr wie viele Liter Warmwasser Ihr Haushalt pro Tag verbraucht. Damit wird berechnet, wie viel vor jedem Zeitraum gespeichert werden soll.",
+              "dhw_cooling_rate": "Wie schnell der Speicher abkühlt, wenn niemand Warmwasser nutzt, gemessen bei 45 °C in einem 20 °C warmen Raum. Das ist nur ein Startwert: Die Integration misst die tatsächliche Abkühlung deines Speichers und verfeinert ihn automatisch. Ein Speicher, der die Wärme gut hält, kann weiter im Voraus geladen werden, sodass mehr Heizenergie in günstige Stunden fällt.",
+              "dhw_daily_consumption": "Ungefähr wie viele Liter Warmwasser dein Haushalt pro Tag verbraucht. Damit wird berechnet, wie viel vor jedem Zeitraum gespeichert werden soll.",
               "dhw_tank_volume": "Liter. Ein größerer Speicher nimmt mehr günstigen Strom auf und kann mehr teure Stunden überspringen.",
-              "shower_flow_lpm": "Durchfluss Ihres Duschkopfs. Wird nur verwendet, um den Speicherinhalt in Duschminuten auf dem Sensor „Warmwasser-Mischwasser“ umzurechnen."
+              "shower_flow_lpm": "Durchfluss deines Duschkopfs. Wird nur verwendet, um den Speicherinhalt in Duschminuten auf dem Sensor „Warmwasser-Mischwasser“ umzurechnen."
             }
           },
           "inlet": {
@@ -1270,7 +1270,7 @@
             "data_description": {
               "dhw_inlet_entity": "Ein Temperatursensor an der Kaltwasser-Zuleitung. Wenn gesetzt, wird sein Messwert anstelle des obigen Modells verwendet.",
               "dhw_inlet_seasonal_amplitude": "Um wie viele Grad das zulaufende Wasser im Jahresverlauf um diesen Mittelwert schwankt – am kältesten Ende Februar, am wärmsten im Spätsommer. Bei 0 wird der Wert als konstant behandelt.",
-              "dhw_inlet_temp": "Jahresmittel der Temperatur des Kaltwassers, das den Speicher auffüllt. Der schwedische Standardwert von 10 °C passt für die meisten Häuser; ändern Sie ihn nur, wenn Sie Ihren Wert gemessen haben."
+              "dhw_inlet_temp": "Jahresmittel der Temperatur des Kaltwassers, das den Speicher auffüllt. Der schwedische Standardwert von 10 °C passt für die meisten Häuser; ändere ihn nur, wenn du deinen Wert gemessen hast."
             }
           },
           "recovery": {
@@ -1293,7 +1293,7 @@
               "dhw_quantile_targets_enabled": "Warmwasser-Zielwerte für Tage mit hohem Verbrauch lernen"
             },
             "data_description": {
-              "dhw_disinfection_mode": "Beobachten liest den Schalter und schreibt ihn nie. Steuern schaltet ihn ein, wenn eine Legionellenschaltung startet, und aus, wenn sie endet, schaltet ihn aber nie ein, solange der Modus der Pumpe kein Warmwasser erzeugt. Es wird nur ein Schalter ausgeschaltet, den die Integration selbst eingeschaltet hat: Ein Schalter, der bei Beginn des Zyklus schon eingeschaltet war, bleibt unberührt. Eine Einschränkung: Wenn Sie den Schalter von Hand einschalten, während ein vom Optimierer gestarteter Zyklus läuft, wird er am Ende dieses Zyklus ausgeschaltet, weil sich beides nicht unterscheiden lässt. Steuern benötigt den obigen Schalter.",
+              "dhw_disinfection_mode": "Beobachten liest den Schalter und schreibt ihn nie. Steuern schaltet ihn ein, wenn eine Legionellenschaltung startet, und aus, wenn sie endet, schaltet ihn aber nie ein, solange der Modus der Pumpe kein Warmwasser erzeugt. Es wird nur ein Schalter ausgeschaltet, den die Integration selbst eingeschaltet hat: Ein Schalter, der bei Beginn des Zyklus schon eingeschaltet war, bleibt unberührt. Eine Einschränkung: Wenn du den Schalter von Hand einschaltest, während ein vom Optimierer gestarteter Zyklus läuft, wird er am Ende dieses Zyklus ausgeschaltet, weil sich beides nicht unterscheiden lässt. Steuern benötigt den obigen Schalter.",
               "dhw_disinfection_switch_entity": "Ein Schalter oder Helfer, der das eigene Legionellenprogramm der Wärmepumpe startet. Im Beobachtungsmodus wird sein Zustand nur gelesen und in den Attributen des Warmwasser-Sensors angezeigt; im Steuerungsmodus schaltet die Integration ihn ein, wenn ein Desinfektionszyklus startet, und aus, wenn er endet.",
               "dhw_elastic_legionella_enabled": "Erlaubt der Legionellenschaltung, ein bis zwei Tage früher zu laufen, wenn Strom ungewöhnlich günstig ist, statt immer bis zur Frist zu warten. Die Frist wird weiterhin immer eingehalten.",
               "dhw_free_disinfection_enabled": "Wenn ein Holzkessel, eine Solarspirale oder ein Heizstab den Speicher bereits auf die Legionellentemperatur bringt und dort hält, wird das als abgeschlossener Zyklus gezählt, statt einen weiteren auszuführen.",
@@ -1312,14 +1312,14 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "vvc_pump_entity": "Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt, läuft die Pumpe nur in Ihren Warmwasser-Zeitfenstern plus der unten genannten Vorlaufzeit.",
+          "vvc_pump_entity": "Ein Schalter, der die Pumpe der Warmwasser-Zirkulation (VVC) steuert. Wenn gesetzt, läuft die Pumpe nur in deinen Warmwasser-Zeitfenstern plus der unten genannten Vorlaufzeit.",
           "vvc_lead_minutes": "Wie lange vor einem Warmwasser-Zeitfenster die Zirkulationspumpe startet, damit die Leitung bei Beginn des Zeitfensters schon heiß ist.",
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         }
       },
       "grid_connection": {
         "title": "Sicherung und Spitzenwächter",
-        "description": "Größe der Hauptsicherung, Schutz vor dem Auslösen oder dem Überschreiten Ihres Spitzenkontingents und der eigene Flüstermodus der Wärmepumpe.",
+        "description": "Größe der Hauptsicherung, Schutz vor dem Auslösen oder dem Überschreiten deines Spitzenkontingents und der eigene Flüstermodus der Wärmepumpe.",
         "data": {
           "main_fuse_amperes": "Größe der Hauptsicherung",
           "main_fuse_phases": "Phasen",
@@ -1338,7 +1338,7 @@
           "peak_guard_margin_kw": "Wie weit unter dem abgerechneten Schwellenwert der Wächter zu wirken beginnt. Größer fängt mehr Spitzen ab und greift häufiger ein.",
           "silent_mode_windows": "Wann der eigene Flüster- oder Nachtmodus der Wärmepumpe den Verdichter begrenzt, geschrieben wie die Warmwasser-Zeitfenster, zum Beispiel „22:00-06:00“. Der Zeitplan liegt in der Pumpe, wo der Plan ihn nicht lesen kann: Ohne diese Angabe rechnet der Plan in diesen Stunden mit voller Leistung. Leer lassen, um ohne sie zu planen.",
           "silent_mode_power_fraction": "Der Anteil der maximalen elektrischen Leistung der Wärmepumpe, mit dem sie im Flüstermodus-Zeitplan noch läuft. 1.0 begrenzt nichts. Der Regler endet an derselben Untergrenze wie die gemessene Leistungsgrenze, sodass dies den Plan zwar beschneiden, das Haus aber nie ohne Wärme lassen kann.",
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         }
       },
       "grid_fees": {
@@ -1354,13 +1354,13 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "dso_product": "Eine datierte Tabelle nur für Schweden. Die Auswahl eines Produkts schreibt Netzentgeltregeln und Felder für den Spitzentarif, die Sie weiterhin bearbeiten können. Prüfen Sie sie anhand Ihrer Rechnung. Unbekannte oder veraltete Produkte schreiben nichts.",
-          "grid_fee_mode": "Das Entgelt, das Ihr Netzbetreiber pro übertragener kWh aufschlägt. Der Tibber-Preis enthält es nicht, sodass der Plan mit dieser Konfiguration endlich den gesamten Grenzpreis sieht. „Rules“ verwendet den Zeitplan unten; „Live sensor“ folgt einer Entität.",
-          "grid_fee_fixed": "Ein pauschales Entgelt, das in jeder Stunde zusätzlich zu allen Regeln aufgeschlagen wird. Entnehmen Sie es Ihrer Netzrechnung.",
+          "dso_product": "Eine datierte Tabelle nur für Schweden. Die Auswahl eines Produkts schreibt Netzentgeltregeln und Felder für den Spitzentarif, die du weiterhin bearbeiten kannst. Prüfe sie anhand deiner Rechnung. Unbekannte oder veraltete Produkte schreiben nichts.",
+          "grid_fee_mode": "Das Entgelt, das dein Netzbetreiber pro übertragener kWh aufschlägt. Der Tibber-Preis enthält es nicht, sodass der Plan mit dieser Konfiguration endlich den gesamten Grenzpreis sieht. „Rules“ verwendet den Zeitplan unten; „Live sensor“ folgt einer Entität.",
+          "grid_fee_fixed": "Ein pauschales Entgelt, das in jeder Stunde zusätzlich zu allen Regeln aufgeschlagen wird. Entnimm es deiner Netzrechnung.",
           "grid_fee_rules": "Eine Regel pro Zeile, zum Beispiel „Nov-Mar Mon-Fri 06:00-22:00 = 0.25“. Monats-, Wochentags- und Zeitteil sind jeweils optional; überlappende Regeln addieren sich, was einem Grundentgelt plus einem Hochlastzuschlag entspricht. Ein Komma zwischen Ziffern ist ein Dezimaltrenner, „0,25“ wird also als 0.25 gelesen und trennt nie eine Regel.",
           "grid_fee_entity": "Ein Sensor, der das aktuelle Entgelt in {currency}/kWh meldet, für Netze mit dynamischen Entgelten. Sein Wert wird zu jeder geplanten Stunde addiert.",
-          "contract_fixed_price": "Falls Sie einen Festpreisvertrag haben könnten: dessen Preis in {currency}/kWh. Der Sensor „Vertragsvergleich“ zeigt dann, was dieser Monat damit gekostet hätte. 0 lässt diese Spalte weg.",
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "contract_fixed_price": "Falls du einen Festpreisvertrag haben könntest: dessen Preis in {currency}/kWh. Der Sensor „Vertragsvergleich“ zeigt dann, was dieser Monat damit gekostet hätte. 0 lässt diese Spalte weg.",
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         }
       },
       "learning_features": {
@@ -1370,7 +1370,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         },
         "sections": {
           "weather": {
@@ -1421,7 +1421,7 @@
           "after_save": "Nach dem Speichern"
         },
         "data_description": {
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt."
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt."
         },
         "sections": {
           "mode": {
@@ -1459,7 +1459,7 @@
             },
             "data_description": {
               "radiator_power_fraction": "Nur für Zwei-Zonen-Systeme. 0 bedeutet, dass alle Wärme in den Estrich geht, 1, dass sie vollständig an die Heizkörper geht. 0.4 bedeutet 40 Prozent an die Heizkörper.",
-              "solar_orientation_factor": "Wie gut die Fenster im Tagesverlauf zur Sonne zeigen. 1.0 passt zu überwiegend nach Süden gerichteter Verglasung; senken Sie den Wert für Fenster nach Osten oder Westen, die nur einen Teil des Tages Sonne bekommen.",
+              "solar_orientation_factor": "Wie gut die Fenster im Tagesverlauf zur Sonne zeigen. 1.0 passt zu überwiegend nach Süden gerichteter Verglasung; senke den Wert für Fenster nach Osten oder Westen, die nur einen Teil des Tages Sonne bekommen.",
               "upper_floor_area_ratio": "Anteil der gesamten Wohnfläche, der im Obergeschoss liegt. 0.5 bedeutet, dass beide Etagen gleich groß sind."
             }
           }
@@ -1467,13 +1467,13 @@
       },
       "modbus_prefill": {
         "title": "Aus einem Wärmepumpen-Gerät vorbefüllen",
-        "description": "Für eine Rotenso Windmi oder eine andere von GCHV gebaute Wärmepumpe, die über das Modbus-Paket des Projekts tuya_heat_pump ausgelesen wird. Nennen Sie den Entitäts-Präfix des Pakets und senden Sie ab: Das nächste Formular schlägt Werte vor, die aus den eigenen Registern der Pumpe gelesen wurden – die Warmwasser-Sollwerte und den Zeitplan, die Legionellentage, den Nachtmodus-Zeitplan, ob die Pumpe nach Wassertemperatur regelt, und die eigenen Sensoren der Pumpe für noch leere Sensorplätze. Bearbeiten oder leeren Sie beliebige davon; nur was Sie behalten, wird gespeichert, und ein geleertes Feld bleibt, wie es war. Nichts über das Haus oder sein Heizsystem lässt sich auf diese Weise auslesen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zuheizers: {backup_heater_type} – jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizer-Plätzen bei der Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht prüfen, prüfen Sie daher jede vor dem Speichern: {name_matched}. Rollen aus veröffentlichten Definitionen, nach Quelle: {matched_sources}.",
+        "description": "Für eine Rotenso Windmi oder eine andere von GCHV gebaute Wärmepumpe, die über das Modbus-Paket des Projekts tuya_heat_pump ausgelesen wird. Nenne den Entitäts-Präfix des Pakets und sende ab: Das nächste Formular schlägt Werte vor, die aus den eigenen Registern der Pumpe gelesen wurden – die Warmwasser-Sollwerte und den Zeitplan, die Legionellentage, den Nachtmodus-Zeitplan, ob die Pumpe nach Wassertemperatur regelt, und die eigenen Sensoren der Pumpe für noch leere Sensorplätze. Bearbeite oder leere beliebige davon; nur was du behältst, wird gespeichert, und ein geleertes Feld bleibt, wie es war. Nichts über das Haus oder sein Heizsystem lässt sich auf diese Weise auslesen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zuheizers: {backup_heater_type} – jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizer-Plätzen bei der Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht prüfen, prüfe daher jede vor dem Speichern: {name_matched}. Rollen aus veröffentlichten Definitionen, nach Quelle: {matched_sources}.",
         "data": {
           "prefill_device": "Wärmepumpen-Gerät (optional)",
           "modbus_prefill_prefix": "Entitäts-Präfix des Modbus-Pakets",
           "dhw_setpoint": "Höchste Ladetemperatur des Speichers",
           "dhw_min_temperature": "Benötigte Warmwassertemperatur",
-          "dhw_windows": "Wann Sie Warmwasser brauchen",
+          "dhw_windows": "Wann du Warmwasser brauchst",
           "dhw_legionella_temperature": "Temperatur der Legionellenschaltung",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
           "silent_mode_windows": "Eigener Nachtmodus-Zeitplan der Pumpe",
@@ -1490,7 +1490,7 @@
           "prefill_offer": "Diese Vorbefüllung bei der Einrichtung anbieten"
         },
         "data_description": {
-          "prefill_device": "Wählen Sie das eigene Gerät der Wärmepumpe, um dessen Entitäten statt eines Modbus-Pakets auszulesen. Leer lassen, um den Präfix unten zu verwenden. Die Vorschläge stammen aus den veröffentlichten Definitionen dieser Integration, nicht aus einer Auslesung Ihres Geräts – prüfen Sie sie daher.",
+          "prefill_device": "Wähle das eigene Gerät der Wärmepumpe, um dessen Entitäten statt eines Modbus-Pakets auszulesen. Leer lassen, um den Präfix unten zu verwenden. Die Vorschläge stammen aus den veröffentlichten Definitionen dieser Integration, nicht aus einer Auslesung deines Geräts – prüfe sie daher.",
           "modbus_prefill_prefix": "Der Anfang der Entitäts-IDs des Pakets: „hp“ für sensor.hp_outdoor_air_temperature. Er wird nur gespeichert, wenn das Paket darunter gefunden wurde.",
           "dhw_setpoint": "Gelesen aus dem Register für den normalen Warmwasser-Sollwert der Pumpe (0194H), mal 0,1.",
           "dhw_min_temperature": "Gelesen aus dem Register für den sparsamen Warmwasser-Sollwert der Pumpe (0196H), mal 0,1.",
@@ -1507,13 +1507,13 @@
           "heat_pump_return_temp_entity": "Der Sensor für die Eintrittswassertemperatur (Tw-in) des Pakets, nur vorgeschlagen, solange dieser Platz leer ist.",
           "compressor_freq_sensor": "Der Sensor für die tatsächliche Verdichterfrequenz des Pakets, nur vorgeschlagen, solange dieser Platz leer ist.",
           "heat_pump_capacity_limited_entity": "Der Sensor des Pakets für aktiven Nachtmodus (Frequenzreduzierung), nur vorgeschlagen, solange dieser Platz leer ist.",
-          "after_save": "Das Speichern wirkt sofort; hier legen Sie fest, wohin der Dialog als Nächstes führt.",
+          "after_save": "Das Speichern wirkt sofort; hier legst du fest, wohin der Dialog als Nächstes führt.",
           "prefill_offer": "Wenn aktiviert, bietet das Einrichten eines neuen Eintrags diese Seite an, falls ein zu dieser Installation hinzugefügtes Wärmepumpen-Gerät eine dieser Einstellungen füllen kann. Standardmäßig aus: Der Einrichtungsassistent bleibt unverändert, solange sie aus ist, und dieser Schalter wird gespeichert, übersteht also einen Neustart."
         }
       },
       "factory_reset": {
         "title": "Auf Werkseinstellungen zurücksetzen",
-        "description": "Setzt den Optimierer auf den Zustand einer frischen Installation zurück. Wählen Sie, was zurückgesetzt werden soll:\n\n- **Einstellungen**: Jede Einstellung auf diesen Seiten (Komfort, Warmwasser, Preise und Entgelte, das thermische Modell, Modi und Funktionen) geht auf ihren Standardwert zurück. Ihre Sensoren und anderen zugewiesenen Entitäten, die Zonen und Heizflächen, der Warmwasserspeicher, die Ventil- und Kesselkonfiguration, die Preisquelle und die Hauptsicherung bleiben erhalten, sodass der Optimierer mit Ihrem Haus verbunden bleibt.\n- **Gelernte Werte**: Alles, was der Optimierer über Ihr Haus gelernt hat (Wärmeverlust, der Anteil der unteren Etage, das Komfortgewicht, COP, Abkühlung und Verbrauch beim Warmwasser, Abtauen, die Heizkurve und der Verlauf der Vorhersagegenauigkeit), wird vergessen, und das Lernen beginnt von vorn mit den Einstellungen.\n- **Beides**.\n\nBevor sich etwas ändert, wird eine Momentaufnahme erstellt. Bis zur nächsten wöchentlichen Momentaufnahme, etwa eine Woche, macht die Aktion „Gelernte Momentaufnahme wiederherstellen“ das Zurücksetzen rückgängig: Die Einstellungen und gelernten Werte kommen zurück, wie sie waren, mit Ihren Sensoren, wie sie jetzt sind. Die Integration wird danach neu geladen und plant sofort wieder.",
+        "description": "Setzt den Optimierer auf den Zustand einer frischen Installation zurück. Wähle, was zurückgesetzt werden soll:\n\n- **Einstellungen**: Jede Einstellung auf diesen Seiten (Komfort, Warmwasser, Preise und Entgelte, das thermische Modell, Modi und Funktionen) geht auf ihren Standardwert zurück. Deine Sensoren und anderen zugewiesenen Entitäten, die Zonen und Heizflächen, der Warmwasserspeicher, die Ventil- und Kesselkonfiguration, die Preisquelle und die Hauptsicherung bleiben erhalten, sodass der Optimierer mit deinem Haus verbunden bleibt.\n- **Gelernte Werte**: Alles, was der Optimierer über dein Haus gelernt hat (Wärmeverlust, der Anteil der unteren Etage, das Komfortgewicht, COP, Abkühlung und Verbrauch beim Warmwasser, Abtauen, die Heizkurve und der Verlauf der Vorhersagegenauigkeit), wird vergessen, und das Lernen beginnt von vorn mit den Einstellungen.\n- **Beides**.\n\nBevor sich etwas ändert, wird eine Momentaufnahme erstellt. Bis zur nächsten wöchentlichen Momentaufnahme, etwa eine Woche, macht die Aktion „Gelernte Momentaufnahme wiederherstellen“ das Zurücksetzen rückgängig: Die Einstellungen und gelernten Werte kommen zurück, wie sie waren, mit deinen Sensoren, wie sie jetzt sind. Die Integration wird danach neu geladen und plant sofort wieder.",
         "data": {
           "scope": "Was zurückgesetzt werden soll",
           "confirm": "Ja, zurücksetzen"
@@ -1525,38 +1525,38 @@
       }
     },
     "error": {
-      "invalid_tibber_token": "Dieses Tibber-Token wurde nicht akzeptiert. Prüfen Sie es auf developer.tibber.com und versuchen Sie es erneut.",
+      "invalid_tibber_token": "Dieses Tibber-Token wurde nicht akzeptiert. Prüfe es auf developer.tibber.com und versuche es erneut.",
       "tibber_token_required": "Ein Tibber-Token ist erforderlich, wenn die Preisquelle Tibber ist.",
       "price_entity_required": "Ein Preissensor ist erforderlich, wenn die Preisquelle eine Entität ist.",
-      "cannot_connect": "Tibber konnte zur Prüfung des Tokens nicht erreicht werden. Prüfen Sie die Internetverbindung und versuchen Sie es erneut.",
-      "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwenden Sie 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel „06:00-08:30, 17:00-22:00“.",
+      "cannot_connect": "Tibber konnte zur Prüfung des Tokens nicht erreicht werden. Prüfe die Internetverbindung und versuche es erneut.",
+      "invalid_dhw_windows": "Diese Zeitfenster konnten nicht gelesen werden. Verwende 24-Stunden-Zeiten, durch Kommas getrennt, zum Beispiel „06:00-08:30, 17:00-22:00“.",
       "dhw_window_too_short": "Ein Warmwasser-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
-      "freq_control_needs_number": "Steuern schreibt die Frequenz über eine Number-Entität. Wählen Sie eine aus oder belassen Sie den Modus auf Beobachten: Ein Frequenzsensor allein kann nur beobachtet werden.",
+      "freq_control_needs_number": "Steuern schreibt die Frequenz über eine Number-Entität. Wähle eine aus oder belasse den Modus auf Beobachten: Ein Frequenzsensor allein kann nur beobachtet werden.",
       "silent_mode_window_too_short": "Ein Flüstermodus-Zeitfenster ist kürzer als {min_window_minutes} Minuten. Der Plan wird in {min_window_minutes}-Minuten-Schritten erstellt, daher kann ein kürzeres Fenster zwischen zwei Schritte fallen und nie wirksam werden.",
-      "disinfection_control_needs_entity": "Steuern schaltet den Desinfektionsschalter der Pumpe ein und aus und braucht daher einen. Wählen Sie oben den Schalter oder setzen Sie den Modus zurück auf Beobachten.",
-      "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halten Sie mindestens 5 °C Abstand unter dem Sollwert.",
+      "disinfection_control_needs_entity": "Steuern schaltet den Desinfektionsschalter der Pumpe ein und aus und braucht daher einen. Wähle oben den Schalter oder setze den Modus zurück auf Beobachten.",
+      "dhw_min_too_close": "Ein Warmwasser-Minimum so nahe am Sollwert lässt dem Speicher kein Arbeitsband; halte mindestens 5 °C Abstand unter dem Sollwert.",
       "invalid_grid_fee_rules": "Diese Entgeltregeln konnten nicht gelesen werden. Eine Regel pro Zeile, etwa „Nov-Mar Mon-Fri 06:00-22:00 = 0.25“.",
       "grid_fee_rules_negative": "Eine Entgeltregel hat einen negativen Satz. Ein Netzentgelt ist eine Gebühr, daher muss jeder Satz null oder größer sein – ein Minuszeichen würde den Plan diese Stunden als subventioniert behandeln lassen.",
       "grid_fee_rules_implausible": "Eine Entgeltregel hat einen Satz über {fee_bound} {currency}/kWh. Netzentgelte liegen bei einigen Zehnteln pro kWh, ein so großer Wert ist daher fast immer in öre oder Cent eingegeben, wo ganze {currency} gemeint waren – 25 statt 0.25.",
-      "invalid_peak_months": "Diese Monate konnten nicht gelesen werden. Verwenden Sie Bereiche wie „Nov-Mar“ oder einzelne Monate wie „Jul“.",
-      "invalid_peak_hours": "Diese Stunden konnten nicht gelesen werden. Verwenden Sie 24-Stunden-Bereiche wie „07:00-19:00“.",
+      "invalid_peak_months": "Diese Monate konnten nicht gelesen werden. Verwende Bereiche wie „Nov-Mar“ oder einzelne Monate wie „Jul“.",
+      "invalid_peak_hours": "Diese Stunden konnten nicht gelesen werden. Verwende 24-Stunden-Bereiche wie „07:00-19:00“.",
       "min_above_target": "Die Mindesttemperatur liegt über der Zieltemperatur.",
       "max_below_target": "Die Höchsttemperatur liegt unter der Zieltemperatur.",
       "night_above_day": "Die Nachttemperatur liegt über der Tagestemperatur.",
       "day_window_empty": "Der Tag würde bei oder vor seinem Beginn enden und ließe überhaupt keinen Tageszeitraum übrig.",
       "comfort_outside_band": "Die Komfort-Temperaturen für Tag und Nacht müssen innerhalb des Komfortbereichs liegen",
-      "partload_derate_above_limit": "Dieser COP-Verlust ist für das Leistungsband zu steil: Die abgegebene Wärme würde sinken, wenn die Leistung Richtung Maximum steigt. Halten Sie ihn unter Band / (Band + maximale Leistung), wobei Band die maximale minus die minimale Leistung ist: unter 0,44 bei einer 1-5-kW-Pumpe, unter 0,17 bei einer 4-5-kW-Pumpe.",
+      "partload_derate_above_limit": "Dieser COP-Verlust ist für das Leistungsband zu steil: Die abgegebene Wärme würde sinken, wenn die Leistung Richtung Maximum steigt. Halte ihn unter Band / (Band + maximale Leistung), wobei Band die maximale minus die minimale Leistung ist: unter 0,44 bei einer 1-5-kW-Pumpe, unter 0,17 bei einer 4-5-kW-Pumpe.",
       "min_power_above_max": "Die minimale Leistung der Wärmepumpe liegt über ihrer maximalen Leistung.",
-      "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite weiterhin gespeichert werden kann – prüfen Sie den Wert und korrigieren Sie ihn, falls er falsch aussieht.",
-      "flow_target_needs_two_zone": "„Vorlauftemperatur“ leitet sich aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells ab, die dieser Eintrag nicht konfiguriert hat. Konfigurieren Sie zuerst das Zwei-Zonen-Modell oder lassen Sie es bei „Innentemperatur“.",
-      "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stellen Sie das Ventil auf „Kein Mischventil“ oder schalten Sie dies aus.",
-      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lassen Sie das Gerät leer und nennen Sie stattdessen einen Modbus-Paket-Präfix.",
-      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, geben Sie daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben."
+      "stored_value_out_of_range": "Dieser Wert liegt außerhalb des Bereichs, den dieses Feld normalerweise akzeptiert. Der Bereich wurde erweitert, damit die Seite weiterhin gespeichert werden kann – prüfe den Wert und korrigiere ihn, falls er falsch aussieht.",
+      "flow_target_needs_two_zone": "„Vorlauftemperatur“ leitet sich aus der eigenen Vorlaufkurve des Zwei-Zonen-Gebäudemodells ab, die dieser Eintrag nicht konfiguriert hat. Konfiguriere zuerst das Zwei-Zonen-Modell oder lass es bei „Innentemperatur“.",
+      "flow_curve_needs_direct_plant": "Die Bepreisung der Vorlauftemperaturanhebung ist für ein System ohne Mischventil gedacht. Mit Ventil bepreist die Temperatur des Pufferspeichers die Anhebung bereits, sie würde also doppelt gezählt. Stelle das Ventil auf „Kein Mischventil“ oder schalte dies aus.",
+      "prefill_device_unreadable": "Dieses Gerät konnte nicht gelesen werden. Seine Integration hat hier noch keine Zuordnung, oder keine seiner Entitäten hat einen Wert. Lass das Gerät leer und nenne stattdessen einen Modbus-Paket-Präfix.",
+      "dhw_windows_day_selector": "Dieses Feld nennt seinen Tag bereits, gib daher nur reine Zeiten ein, z. B. 06:00-08:30. Tagesauswahlen wie 'weekdays' gehören in das normale Zeitfenster-Feld oben."
     },
     "abort": {
-      "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führen Sie die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
-      "factory_reset_not_loaded": "Die Integration läuft nicht, daher gibt es nichts zurückzusetzen. Beheben Sie, was sie gestoppt hat, und versuchen Sie es dann erneut.",
-      "factory_reset_not_applied": "Nicht angewendet: Home Assistant hat das Entladen der Integration verweigert, daher wurde nichts geändert. Versuchen Sie es erneut oder starten Sie zuerst Home Assistant neu."
+      "factory_reset_done": "Zurücksetzen abgeschlossen. Die Integration wurde neu geladen und plant wieder. Um das Zurücksetzen rückgängig zu machen, führe die Aktion „Gelernte Momentaufnahme wiederherstellen“ aus.",
+      "factory_reset_not_loaded": "Die Integration läuft nicht, daher gibt es nichts zurückzusetzen. Behebe, was sie gestoppt hat, und versuche es dann erneut.",
+      "factory_reset_not_applied": "Nicht angewendet: Home Assistant hat das Entladen der Integration verweigert, daher wurde nichts geändert. Versuche es erneut oder starte zuerst Home Assistant neu."
     }
   },
   "selector": {
@@ -1702,15 +1702,15 @@
     },
     "accuracy_drift": {
       "title": "Das gelernte Modell driftet",
-      "description": "Die Vorhersagen des Optimierers liegen seit mehreren Tagen durchgehend daneben. Das bedeutet meist, dass sich am Haus oder an der Anlage etwas schneller geändert hat, als die Lernmodelle folgen können. Prüfen Sie, ob die Sensoren sinnvolle Werte liefern. Ist der Plan spürbar schlechter geworden, setzt der Dienst \"Restore learned snapshot\" das gelernte Modell auf den letzten bewährten wöchentlichen Snapshot zurück. Der Sensor „Model Restart Advisor“ und der Reiter „Ratgeber“ der Karte bieten diesen Snapshot an und, sobald drei eingeschwungene Tage an Daten vorliegen, eine Neuanpassung des Wärmeverlust-Maßstabs des Hauses mit einer Unsicherheit von etwa ±7–10 %. Nichts wird angewendet, bevor Sie zustimmen."
+      "description": "Die Vorhersagen des Optimierers liegen seit mehreren Tagen durchgehend daneben. Das bedeutet meist, dass sich am Haus oder an der Anlage etwas schneller geändert hat, als die Lernmodelle folgen können. Prüfe, ob die Sensoren sinnvolle Werte liefern. Ist der Plan spürbar schlechter geworden, setzt der Dienst \"Restore learned snapshot\" das gelernte Modell auf den letzten bewährten wöchentlichen Snapshot zurück. Der Sensor „Model Restart Advisor“ und der Reiter „Ratgeber“ der Karte bieten diesen Snapshot an und, sobald drei eingeschwungene Tage an Daten vorliegen, eine Neuanpassung des Wärmeverlust-Maßstabs des Hauses mit einer Unsicherheit von etwa ±7–10 %. Nichts wird angewendet, bevor du zustimmst."
     },
     "accuracy_drift_rolled_back": {
       "title": "Gelerntes Modell wurde aus einem Snapshot wiederhergestellt",
-      "description": "Die Vorhersagen des Optimierers lagen mehrere Tage lang außerhalb des Sollbereichs, obwohl alle Eingaben einwandfrei aussahen. Daher wurde das gelernte Modell automatisch auf den jüngsten bewährten wöchentlichen Snapshot zurückgesetzt. Von Ihnen ist nichts erforderlich; dieser Hinweis macht die Änderung nur sichtbar. Falls die Drift real war – neue Heizkörper, geänderte Dämmung –, lernen die Lernmodelle ab dem wiederhergestellten Stand einfach neu. Bleiben die Vorhersagen daneben, bietet der Model Restart Advisor nach drei eingeschwungenen Tagen an Daten eine Neuanpassung des Wärmeverlust-Maßstabs des Hauses mit einer Unsicherheit von etwa ±7–10 % an; nichts wird angewendet, bevor Sie zustimmen."
+      "description": "Die Vorhersagen des Optimierers lagen mehrere Tage lang außerhalb des Sollbereichs, obwohl alle Eingaben einwandfrei aussahen. Daher wurde das gelernte Modell automatisch auf den jüngsten bewährten wöchentlichen Snapshot zurückgesetzt. Von dir ist nichts erforderlich; dieser Hinweis macht die Änderung nur sichtbar. Falls die Drift real war – neue Heizkörper, geänderte Dämmung –, lernen die Lernmodelle ab dem wiederhergestellten Stand einfach neu. Bleiben die Vorhersagen daneben, bietet der Model Restart Advisor nach drei eingeschwungenen Tagen an Daten eine Neuanpassung des Wärmeverlust-Maßstabs des Hauses mit einer Unsicherheit von etwa ±7–10 % an; nichts wird angewendet, bevor du zustimmst."
     },
     "freq_watchdog": {
       "title": "Frequenzregelung wurde eingestellt",
-      "description": "Die von {entity} gemeldete Verdichterfrequenz wich wiederholt vom Sollwert ab, daher ist die Frequenzregelung in den Beobachtungsmodus zurückgefallen und es werden keine weiteren Schreibvorgänge mehr ausgeführt. Meist ist das falsche Register oder die falsche Entität konfiguriert, oder die Pumpe befindet sich in einem Schutzmodus, der externe Befehle ignoriert. Prüfen Sie die Entität und aktivieren Sie die Regelung dann erneut: Frequenzmodus auf Beobachten stellen, speichern und wieder auf Steuern stellen."
+      "description": "Die von {entity} gemeldete Verdichterfrequenz wich wiederholt vom Sollwert ab, daher ist die Frequenzregelung in den Beobachtungsmodus zurückgefallen und es werden keine weiteren Schreibvorgänge mehr ausgeführt. Meist ist das falsche Register oder die falsche Entität konfiguriert, oder die Pumpe befindet sich in einem Schutzmodus, der externe Befehle ignoriert. Prüfe die Entität und aktiviere die Regelung dann erneut: Frequenzmodus auf Beobachten stellen, speichern und wieder auf Steuern stellen."
     },
     "solve_failures": {
       "title": "Die Optimierung schlägt wiederholt fehl; der Plan wird veraltet",
@@ -1718,27 +1718,27 @@
     },
     "solve_worker_fallback": {
       "title": "Die Planung ist auf den langsamen prozessinternen Solver zurückgefallen",
-      "description": "Der separate Solver-Prozess konnte nicht verwendet werden, daher lief die Optimierung stattdessen im eigenen Interpreter von Home Assistant. Der Plan ist korrekt, aber die Berechnung hält während ihrer Laufzeit die Interpreter-Sperre, sodass Home Assistant bei jeder Optimierung kurz träge wirken kann. Als Ursache wurde gemeldet: {cause}. Bitte fügen Sie diese Zeile und das Protokoll einem Bericht bei. Dieser Hinweis verschwindet, sobald eine Berechnung wieder im separaten Prozess abgeschlossen wird."
+      "description": "Der separate Solver-Prozess konnte nicht verwendet werden, daher lief die Optimierung stattdessen im eigenen Interpreter von Home Assistant. Der Plan ist korrekt, aber die Berechnung hält während ihrer Laufzeit die Interpreter-Sperre, sodass Home Assistant bei jeder Optimierung kurz träge wirken kann. Als Ursache wurde gemeldet: {cause}. Bitte füge diese Zeile und das Protokoll einem Bericht bei. Dieser Hinweis verschwindet, sobald eine Berechnung wieder im separaten Prozess abgeschlossen wird."
     },
     "floor_return_silent": {
       "title": "Der Sensor für die Fußboden-Rücklauftemperatur meldet nichts",
-      "description": "Die Entität, die Sie für den Rücklauf der Fußbodenheizung gewählt haben, {entity_id}, hat seit über {minutes} Minuten keinen brauchbaren Messwert geliefert. Ohne sie wird die Temperatur des Estrichs nicht mehr gemessen: Sie wird aus der eigenen Vorhersage des Plans fortgeschrieben, die vom tatsächlichen Fußboden umso stärker abweicht, je länger dies andauert. Prüfen Sie, ob die Entität noch existiert, verfügbar ist und eine Temperatur meldet, oder leeren Sie das Feld, wenn sie nicht mehr verwendet werden soll. Dieser Hinweis verschwindet, sobald der Sensor wieder meldet."
+      "description": "Die Entität, die du für den Rücklauf der Fußbodenheizung gewählt hast, {entity_id}, hat seit über {minutes} Minuten keinen brauchbaren Messwert geliefert. Ohne sie wird die Temperatur des Estrichs nicht mehr gemessen: Sie wird aus der eigenen Vorhersage des Plans fortgeschrieben, die vom tatsächlichen Fußboden umso stärker abweicht, je länger dies andauert. Prüfe, ob die Entität noch existiert, verfügbar ist und eine Temperatur meldet, oder leere das Feld, wenn sie nicht mehr verwendet werden soll. Dieser Hinweis verschwindet, sobald der Sensor wieder meldet."
     },
     "pump_mode_unreadable": {
       "title": "Die Entität für den Betriebsmodus der Wärmepumpe meldet nichts",
-      "description": "Die Entität, die Sie für den Betriebsmodus der Wärmepumpe gewählt haben, ist seit über {hours} Stunden nicht lesbar. Der zuletzt gemeldete Modus war „{mode}“, und bisher wurde der Plan weiterhin auf das begrenzt, was dieser Modus leisten kann. Diese Begrenzung wurde aufgehoben: Ein Betriebsmodus, den seit Stunden niemand lesen kann, sagt nichts mehr darüber aus, was die Pumpe tut, und Heizung oder Warmwasser darauf gestützt weiter zu unterdrücken, ließe Sie auf das Wort eines toten Sensors hin frieren. Der Plan geht wieder davon aus, dass die Pumpe alles leisten kann – wie vor der Konfiguration dieser Entität. Prüfen Sie, ob die Entität noch existiert und verfügbar ist, oder leeren Sie das Feld, wenn sie nicht mehr verwendet werden soll. Dieser Hinweis verschwindet, sobald die Entität wieder meldet."
+      "description": "Die Entität, die du für den Betriebsmodus der Wärmepumpe gewählt hast, ist seit über {hours} Stunden nicht lesbar. Der zuletzt gemeldete Modus war „{mode}“, und bisher wurde der Plan weiterhin auf das begrenzt, was dieser Modus leisten kann. Diese Begrenzung wurde aufgehoben: Ein Betriebsmodus, den seit Stunden niemand lesen kann, sagt nichts mehr darüber aus, was die Pumpe tut, und Heizung oder Warmwasser darauf gestützt weiter zu unterdrücken, ließe dich auf das Wort eines toten Sensors hin frieren. Der Plan geht wieder davon aus, dass die Pumpe alles leisten kann – wie vor der Konfiguration dieser Entität. Prüfe, ob die Entität noch existiert und verfügbar ist, oder leere das Feld, wenn sie nicht mehr verwendet werden soll. Dieser Hinweis verschwindet, sobald die Entität wieder meldet."
     },
     "dhw_disinfection_switch_lost": {
       "title": "Der Desinfektionsschalter der Pumpe ist möglicherweise noch eingeschaltet",
-      "description": "Der Optimierer hat {entity_id} für einen Desinfektionszyklus eingeschaltet, doch dieser Schalter ist seit einer halben Stunde nicht lesbar – er wurde möglicherweise umbenannt, entfernt oder in diesen Einstellungen ersetzt. Der Optimierer kann ihn daher nicht mehr ausschalten und hat es aufgegeben. Prüfen Sie den Desinfektionsschalter der Wärmepumpe selbst und schalten Sie ihn aus, falls er noch an ist. Wenn Sie ihn umbenannt haben, schalten Sie ihn von Hand aus, bevor Sie auf der Einstellungsseite des Warmwasserspeichers die neue Entität wählen: Der Optimierer schaltet nur Schalter aus, die er selbst eingeschaltet hat, und lässt daher einen bereits eingeschalteten Schalter unberührt."
+      "description": "Der Optimierer hat {entity_id} für einen Desinfektionszyklus eingeschaltet, doch dieser Schalter ist seit einer halben Stunde nicht lesbar – er wurde möglicherweise umbenannt, entfernt oder in diesen Einstellungen ersetzt. Der Optimierer kann ihn daher nicht mehr ausschalten und hat es aufgegeben. Prüfe den Desinfektionsschalter der Wärmepumpe selbst und schalte ihn aus, falls er noch an ist. Wenn du ihn umbenannt hast, schalte ihn von Hand aus, bevor du auf der Einstellungsseite des Warmwasserspeichers die neue Entität wählst: Der Optimierer schaltet nur Schalter aus, die er selbst eingeschaltet hat, und lässt daher einen bereits eingeschalteten Schalter unberührt."
     },
     "dhw_disinfection_write_failed": {
       "title": "Der Desinfektionsschalter der Pumpe konnte nicht gesetzt werden",
-      "description": "Der Legionellenzyklus wollte {entity_id} setzen, und Home Assistant hat den Aufruf abgelehnt, sodass das Desinfektionsprogramm der Pumpe möglicherweise nicht läuft, wenn der Plan es erwartet. Der Schreibvorgang wird bei jeder Aktualisierung wiederholt, und dieser Hinweis verschwindet von selbst, sobald einer durchgeht. Prüfen Sie, ob die Entität existiert und verfügbar ist, oder stellen Sie den Modus des Desinfektionsschalters wieder auf Beobachten."
+      "description": "Der Legionellenzyklus wollte {entity_id} setzen, und Home Assistant hat den Aufruf abgelehnt, sodass das Desinfektionsprogramm der Pumpe möglicherweise nicht läuft, wenn der Plan es erwartet. Der Schreibvorgang wird bei jeder Aktualisierung wiederholt, und dieser Hinweis verschwindet von selbst, sobald einer durchgeht. Prüfe, ob die Entität existiert und verfügbar ist, oder stelle den Modus des Desinfektionsschalters wieder auf Beobachten."
     },
     "dhw_legionella_mode_blocked": {
       "title": "Die Warmwasserdesinfektion ist überfällig: Der Modus der Wärmepumpe blockiert sie",
-      "description": "Der Legionellenzyklus war vor {overdue_days} Tag(en) fällig, doch die Wärmepumpe meldet einen Betriebsmodus, der überhaupt kein Warmwasser erzeugt. Der Plan hat daher keine Stelle für den Zyklus und plant ihn nicht ein. In Ihrem Namen wird nichts geändert: Warmwasser wird nie in einen Modus geplant, den die Pumpe nicht bedienen kann, denn das würde Wasser versprechen, das die Hardware nicht erwärmt. Der Speicher wird einfach nicht desinfiziert, solange die Pumpe in diesem Modus bleibt. Schalten Sie die Pumpe in einen Modus mit Warmwasser oder schalten Sie den Desinfektionszyklus ab, falls das beabsichtigt ist. Er läuft normalerweise alle {interval_days} Tage, und dieser Hinweis verschwindet, sobald ein Zyklus wieder eingeplant werden kann."
+      "description": "Der Legionellenzyklus war vor {overdue_days} Tag(en) fällig, doch die Wärmepumpe meldet einen Betriebsmodus, der überhaupt kein Warmwasser erzeugt. Der Plan hat daher keine Stelle für den Zyklus und plant ihn nicht ein. In deinem Namen wird nichts geändert: Warmwasser wird nie in einen Modus geplant, den die Pumpe nicht bedienen kann, denn das würde Wasser versprechen, das die Hardware nicht erwärmt. Der Speicher wird einfach nicht desinfiziert, solange die Pumpe in diesem Modus bleibt. Schalte die Pumpe in einen Modus mit Warmwasser oder schalte den Desinfektionszyklus ab, falls das beabsichtigt ist. Er läuft normalerweise alle {interval_days} Tage, und dieser Hinweis verschwindet, sobald ein Zyklus wieder eingeplant werden kann."
     },
     "dhw_legionella_overdue": {
       "title": "Das Warmwasser wurde seit {days} Tagen nicht desinfiziert",
@@ -1750,35 +1750,35 @@
     },
     "dhw_legionella_unverified": {
       "title": "Der Desinfektionszyklus kann nicht überprüft werden",
-      "description": "Der Legionellenzyklus wurde angefordert, aber es ist kein Temperatursensor für den Warmwasserspeicher konfiguriert, sodass nichts bestätigt, dass der Speicher je {target} °C erreicht hat – oder dass die Pumpe die Anforderung überhaupt umgesetzt hat. Der Countdown wird zurückgesetzt, als sei der Zyklus gelaufen, denn ihn nicht zurückzusetzen würde ebenfalls nichts desinfizieren; behauptet wird nicht, dass es funktioniert hat. Weisen Sie dem Sensor \"Hot water tank temperature\" eine echte Messsonde zu, dann wird der Zyklus ab dann überprüft, und dieser Hinweis verschwindet, sobald einer bei Solltemperatur beobachtet wird."
+      "description": "Der Legionellenzyklus wurde angefordert, aber es ist kein Temperatursensor für den Warmwasserspeicher konfiguriert, sodass nichts bestätigt, dass der Speicher je {target} °C erreicht hat – oder dass die Pumpe die Anforderung überhaupt umgesetzt hat. Der Countdown wird zurückgesetzt, als sei der Zyklus gelaufen, denn ihn nicht zurückzusetzen würde ebenfalls nichts desinfizieren; behauptet wird nicht, dass es funktioniert hat. Weise dem Sensor \"Hot water tank temperature\" eine echte Messsonde zu, dann wird der Zyklus ab dann überprüft, und dieser Hinweis verschwindet, sobald einer bei Solltemperatur beobachtet wird."
     },
     "dhw_legionella_above_setpoint": {
-      "title": "Die Desinfektion überschreitet Ihre Ladegrenze für Warmwasser",
-      "description": "Der Legionellenzyklus ist auf {legionella_temp} °C eingestellt, was über den {setpoint} °C liegt, die Sie als höchste Ladetemperatur des Speichers festgelegt haben. Das ist zulässig und kein Fehler: Alle {interval_days} Tage wird der Speicher für den Zyklus auf {legionella_temp} °C gebracht, die übrige Zeit wird er nie über {setpoint} °C geladen. Dieser Hinweis soll verhindern, dass der eine heiße Tag pro Woche überrascht. Zum Ändern erhöhen Sie die Ladegrenze, senken die Desinfektionstemperatur oder schalten den Zyklus ab."
+      "title": "Die Desinfektion überschreitet deine Ladegrenze für Warmwasser",
+      "description": "Der Legionellenzyklus ist auf {legionella_temp} °C eingestellt, was über den {setpoint} °C liegt, die du als höchste Ladetemperatur des Speichers festgelegt hast. Das ist zulässig und kein Fehler: Alle {interval_days} Tage wird der Speicher für den Zyklus auf {legionella_temp} °C gebracht, die übrige Zeit wird er nie über {setpoint} °C geladen. Dieser Hinweis soll verhindern, dass der eine heiße Tag pro Woche überrascht. Zum Ändern erhöhst du die Ladegrenze, senkst die Desinfektionstemperatur oder schaltest den Zyklus ab."
     },
     "price_currency_mismatch": {
       "title": "Preisquelle und Home Assistant nennen unterschiedliche Währungen",
-      "description": "{entity} gibt den Strompreis in {feed} an, während die Währung von Home Assistant {configured} ist. Der Optimierer veröffentlicht seine Kosten und Einsparungen in {feed}, der Währung, in der die Zahlen tatsächlich vorliegen. Die Geldfelder im Optionsdialog sind mit {configured} beschriftet, doch Netzentgelte, Vertragspreis und Brennholzpreis müssen ebenfalls in {feed} eingegeben werden. Stellen Sie die Währung von Home Assistant auf {feed} um oder wählen Sie einen Preissensor in {configured}, dann verschwindet dieser Hinweis im nächsten Planungszyklus. Nennen die Kostensensoren weiterhin die alte Währung, laden Sie die Integration neu."
+      "description": "{entity} gibt den Strompreis in {feed} an, während die Währung von Home Assistant {configured} ist. Der Optimierer veröffentlicht seine Kosten und Einsparungen in {feed}, der Währung, in der die Zahlen tatsächlich vorliegen. Die Geldfelder im Optionsdialog sind mit {configured} beschriftet, doch Netzentgelte, Vertragspreis und Brennholzpreis müssen ebenfalls in {feed} eingegeben werden. Stelle die Währung von Home Assistant auf {feed} um oder wähle einen Preissensor in {configured}, dann verschwindet dieser Hinweis im nächsten Planungszyklus. Nennen die Kostensensoren weiterhin die alte Währung, lade die Integration neu."
     },
     "price_unit_unrecognised": {
       "title": "Eine Preis-Entität meldet eine Einheit, die der Optimierer nicht lesen kann",
-      "description": "{entity} meldet ihren Preis in {unit}. Der Optimierer liest einen Preis als Währung oder deren Hundertstel (öre, cent) pro kWh, MWh oder Wh und kann diese Einheit nicht deuten; daher verwendet er die Zahl so, wie sie veröffentlicht wird. Ist das kein Preis pro kWh in ganzen Währungseinheiten, wird der Plan falsch bepreist. Wählen Sie einen Preissensor oder eine Sensoroption mit einer Einheit in einer dieser Formen, dann verschwindet dieser Hinweis im nächsten Planungszyklus."
+      "description": "{entity} meldet ihren Preis in {unit}. Der Optimierer liest einen Preis als Währung oder deren Hundertstel (öre, cent) pro kWh, MWh oder Wh und kann diese Einheit nicht deuten; daher verwendet er die Zahl so, wie sie veröffentlicht wird. Ist das kein Preis pro kWh in ganzen Währungseinheiten, wird der Plan falsch bepreist. Wähle einen Preissensor oder eine Sensoroption mit einer Einheit in einer dieser Formen, dann verschwindet dieser Hinweis im nächsten Planungszyklus."
     },
     "grid_fee_magnitude": {
       "title": "Ein konfiguriertes Netzentgelt wirkt 100-mal zu hoch",
-      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Übertragungsentgelte betragen einige Zehntel {currency} pro kWh, ein Wert dieser Größe sind daher fast immer öre oder cent, wo ganze {currency} gemeint waren – 25 statt 0,25. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigieren Sie den Wert in den Optionen für das Netzentgelt (oder reparieren Sie den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
+      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Übertragungsentgelte betragen einige Zehntel {currency} pro kWh, ein Wert dieser Größe sind daher fast immer öre oder cent, wo ganze {currency} gemeint waren – 25 statt 0,25. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert in den Optionen für das Netzentgelt (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
     },
     "grid_fee_sign": {
       "title": "Ein konfiguriertes Netzentgelt ist negativ",
-      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Ein Übertragungsentgelt ist eine Gebühr, ein negativer Wert daher fast immer ein Vorzeichenfehler – und der Plan bepreist jede betroffene Stunde als subventioniert und bevorzugt genau die Stunden, für die der Netzbetreiber Gebühren verlangt. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigieren Sie den Wert in den Optionen für das Netzentgelt (oder reparieren Sie den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
+      "description": "Die Netzentgelt-Ebene enthält einen Satz von {rate} {currency}/kWh (aus der Eingabe {source}). Ein Übertragungsentgelt ist eine Gebühr, ein negativer Wert daher fast immer ein Vorzeichenfehler – und der Plan bepreist jede betroffene Stunde als subventioniert und bevorzugt genau die Stunden, für die der Netzbetreiber Gebühren verlangt. Es wird nichts geändert oder begrenzt: Der Plan rechnet weiter genau mit dem konfigurierten Wert. Korrigiere den Wert in den Optionen für das Netzentgelt (oder repariere den Entgeltsensor), dann verschwindet dieser Hinweis im nächsten Planungszyklus."
     },
     "lower_floor_modelled": {
       "title": "Die Temperatur im Untergeschoss wird modelliert, nicht gemessen",
-      "description": "Die Zwei-Zonen-Planung ist aktiv und es ist kein Thermometer für das Untergeschoss konfiguriert, daher startet die untere Zone vom Hauptraumsensor und wird vom thermischen Modell fortgeschrieben – die Kurve „Lower floor (modelled)“ im Plandiagramm. So muss die Zone ohne Sensor geplant werden, und der Fußboden-Rücklaufsensor kann sie nicht ersetzen: Das Rücklaufwasser ist 3–9 K wärmer als der beheizte Raum und speist daher die Estrich-Schätzung, wofür es tatsächlich ein Stellvertreter ist. Eine modellierte Zone kann sich nicht selbst korrigieren und kann daher bei langer Kälte vom echten Untergeschoss abweichen. Weisen Sie in den Zonenoptionen den „Lower floor temperature sensor“ zu, um diese Lücke zu schließen; dann verschwindet dieser Hinweis."
+      "description": "Die Zwei-Zonen-Planung ist aktiv und es ist kein Thermometer für das Untergeschoss konfiguriert, daher startet die untere Zone vom Hauptraumsensor und wird vom thermischen Modell fortgeschrieben – die Kurve „Lower floor (modelled)“ im Plandiagramm. So muss die Zone ohne Sensor geplant werden, und der Fußboden-Rücklaufsensor kann sie nicht ersetzen: Das Rücklaufwasser ist 3–9 K wärmer als der beheizte Raum und speist daher die Estrich-Schätzung, wofür es tatsächlich ein Stellvertreter ist. Eine modellierte Zone kann sich nicht selbst korrigieren und kann daher bei langer Kälte vom echten Untergeschoss abweichen. Weise in den Zonenoptionen den „Lower floor temperature sensor“ zu, um diese Lücke zu schließen; dann verschwindet dieser Hinweis."
     },
     "comfort_band_contradiction": {
-      "title": "Ihre Komforttemperaturen widersprechen sich",
-      "description": "Die gespeicherten Komforteinstellungen lassen sich nicht alle gleichzeitig erfüllen: {problem}. Bis Version 5.1.7 reichte der Temperaturregler der Thermostatkarte ein Grad über die wärmste zulässige Temperatur hinaus und speicherte, was er bekam, sodass ein einziger Tipp auf die oberste Stufe einen Zielwert über der Obergrenze ablegen konnte. Nichts ist kaputt – der Optimierer bepreist diese Grenzen, statt sie zu erzwingen, der Plan läuft also weiter, nur in dauerhafter leichter Verletzung eines Bereichs, den er nie erfüllen kann. Auch wurde nichts für Sie geändert: Welcher der beiden Werte falsch ist, müssen Sie entscheiden. Korrigieren Sie sie in den Temperaturoptionen, dann verschwindet dieser Hinweis im nächsten Zyklus."
+      "title": "Deine Komforttemperaturen widersprechen sich",
+      "description": "Die gespeicherten Komforteinstellungen lassen sich nicht alle gleichzeitig erfüllen: {problem}. Bis Version 5.1.7 reichte der Temperaturregler der Thermostatkarte ein Grad über die wärmste zulässige Temperatur hinaus und speicherte, was er bekam, sodass ein einziger Tipp auf die oberste Stufe einen Zielwert über der Obergrenze ablegen konnte. Nichts ist kaputt – der Optimierer bepreist diese Grenzen, statt sie zu erzwingen, der Plan läuft also weiter, nur in dauerhafter leichter Verletzung eines Bereichs, den er nie erfüllen kann. Auch wurde nichts für dich geändert: Welcher der beiden Werte falsch ist, musst du entscheiden. Korrigiere sie in den Temperaturoptionen, dann verschwindet dieser Hinweis im nächsten Zyklus."
     },
     "dhw_setpoint_below_disinfection": {
       "title": "Der Warmwasser-Sollwert der Wärmepumpe liegt unter der konfigurierten Temperatur",
@@ -1794,19 +1794,19 @@
     },
     "space_setpoint_unreadable": {
       "title": "Die Entität für den Sollwert der Raumheizung meldet nichts",
-      "description": "Die Entität, die Sie als Sollwert der Raumheizung gewählt haben ({entity}), fehlt oder ist nicht lesbar, daher lässt sich nichts über das aktuelle Ziel der Pumpe sagen. Der Sollwert der Raumheizung wird nie empfohlen; dieser Hinweis meldet nur, dass die Entität nicht gelesen werden kann. Prüfen Sie, ob sie noch existiert und verfügbar ist, oder leeren Sie das Feld. Dieser Hinweis verschwindet, sobald die Entität eine Temperatur meldet."
+      "description": "Die Entität, die du als Sollwert der Raumheizung gewählt hast ({entity}), fehlt oder ist nicht lesbar, daher lässt sich nichts über das aktuelle Ziel der Pumpe sagen. Der Sollwert der Raumheizung wird nie empfohlen; dieser Hinweis meldet nur, dass die Entität nicht gelesen werden kann. Prüfe, ob sie noch existiert und verfügbar ist, oder leere das Feld. Dieser Hinweis verschwindet, sobald die Entität eine Temperatur meldet."
     },
     "pump_write_ignored": {
       "title": "Die Wärmepumpe behält eine vom Optimierer geschriebene Einstellung nicht bei",
-      "description": "Der Optimierer hat einen Wert in die Wärmepumpe geschrieben und ein weiteres Mal geschrieben, doch die Pumpe zeigt weiterhin etwas anderes an: {detail}. Solange „Optimizer active“ eingeschaltet ist, ist der Optimierer der einzige Schreiber der Pumpe: Er sendet den Wert alle fünf Minuten erneut, und dieser Hinweis verschwindet, sobald die Pumpe ihn hält. Um die Pumpe von Hand zu ändern, schalten Sie zuerst „Optimizer active“ aus. Hat niemand etwas geändert, prüfen Sie, ob die Entität der Pumpe den Wert akzeptiert (Bereich, Cloud-Verbindung, lokaler Schlüssel, Schreibrechte)."
+      "description": "Der Optimierer hat einen Wert in die Wärmepumpe geschrieben und ein weiteres Mal geschrieben, doch die Pumpe zeigt weiterhin etwas anderes an: {detail}. Solange „Optimizer active“ eingeschaltet ist, ist der Optimierer der einzige Schreiber der Pumpe: Er sendet den Wert alle fünf Minuten erneut, und dieser Hinweis verschwindet, sobald die Pumpe ihn hält. Um die Pumpe von Hand zu ändern, schalte zuerst „Optimizer active“ aus. Hat niemand etwas geändert, prüfe, ob die Entität der Pumpe den Wert akzeptiert (Bereich, Cloud-Verbindung, lokaler Schlüssel, Schreibrechte)."
     },
     "store_version": {
       "title": "Gespeicherte Lerndaten konnten nicht gelesen werden",
-      "description": "Die gespeicherten Daten {store} des Optimierers können nicht gelesen werden: {detail}. Diese Version hat dafür keine Migration, daher beginnt dieser Teil des Gelernten wieder bei den Standardwerten. Das passiert, wenn eine ältere Version über eine neuere installiert wird oder eine neuere, die das Speicherformat geändert hat. Damit der Optimierer weiterläuft, ist nichts zu tun. Wurden die Daten von einer neueren Version gespeichert, bleiben sie unverändert und diese Version überschreibt nichts: Installieren Sie die neuere Version erneut, um sie zurückzubekommen, oder löschen Sie, um diese Version zu behalten, die Datei {store} im Ordner .storage und starten Sie neu."
+      "description": "Die gespeicherten Daten {store} des Optimierers können nicht gelesen werden: {detail}. Diese Version hat dafür keine Migration, daher beginnt dieser Teil des Gelernten wieder bei den Standardwerten. Das passiert, wenn eine ältere Version über eine neuere installiert wird oder eine neuere, die das Speicherformat geändert hat. Damit der Optimierer weiterläuft, ist nichts zu tun. Wurden die Daten von einer neueren Version gespeichert, bleiben sie unverändert und diese Version überschreibt nichts: Installiere die neuere Version erneut, um sie zurückzubekommen, oder lösche, um diese Version zu behalten, die Datei {store} im Ordner .storage und starte neu."
     },
     "quiet_silent_not_enforced": {
       "title": "Leisezeiten werden nicht durchgesetzt",
-      "description": "Leisezeiten sind konfiguriert, aber der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, den diese Integration halten kann, daher wird der Plan dafür nicht begrenzt und die Wärmepumpe wird nie zum leisen Betrieb aufgefordert. Weisen Sie den eigenen Nacht-/Leisemodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entfernen Sie die Leise-Zeilen."
+      "description": "Leisezeiten sind konfiguriert, aber der Slot für die leistungsbegrenzte Entität ({entity}) ist kein Schalter, den diese Integration halten kann, daher wird der Plan dafür nicht begrenzt und die Wärmepumpe wird nie zum leisen Betrieb aufgefordert. Weise den eigenen Nacht-/Leisemodus-Schalter der Wärmepumpe als leistungsbegrenzte Entität zu oder entferne die Leise-Zeilen."
     }
   },
   "entity": {
@@ -1973,7 +1973,7 @@
           "idle_other_channel": "Der andere Kanal hat die Kapazität",
           "idle_solar": "Warten auf Solarstrom",
           "legionella": "Legionellenzyklus",
-          "manual_plan": "Ihr eigener Zeitplan",
+          "manual_plan": "Dein eigener Zeitplan",
           "preheat_weather": "Vorheizen vor kälterem Wetter",
           "pump_mode": "Durch den Modus der Wärmepumpe blockiert",
           "scheduled": "Haus wird auf Zieltemperatur gehalten",
@@ -2167,13 +2167,13 @@
       "fields": {
         "mode": {
           "name": "Modus",
-          "description": "Der einzustellende Betriebsmodus. Verfügbare Modi: - auto: Volle MPC-Optimierung mit vorausschauender Wetterberücksichtigung (empfohlen) - comfort: Komforttemperatur halten, Preisoptimierung ignorieren - economy: Lässt den Plan das Haus bis zu 1,5 °C unter Ihre\n  Komfortuntergrenze fallen, um teure Stunden zu überbrücken\n  (nie unter 15 °C)\n- boost: Maximale Heizleistung - off: Optimierer deaktivieren, Wärmepumpe im Standardzustand belassen"
+          "description": "Der einzustellende Betriebsmodus. Verfügbare Modi: - auto: Volle MPC-Optimierung mit vorausschauender Wetterberücksichtigung (empfohlen) - comfort: Komforttemperatur halten, Preisoptimierung ignorieren - economy: Lässt den Plan das Haus bis zu 1,5 °C unter deine\n  Komfortuntergrenze fallen, um teure Stunden zu überbrücken\n  (nie unter 15 °C)\n- boost: Maximale Heizleistung - off: Optimierer deaktivieren, Wärmepumpe im Standardzustand belassen"
         }
       }
     },
     "set_thermal_parameters": {
       "name": "Thermische Parameter setzen",
-      "description": "Aktualisiert die vom Optimierer verwendeten Parameter des thermischen Modells. Nützlich, um das Modell auf das tatsächliche thermische Verhalten Ihres Hauses abzustimmen. Unterstützt Parameter für eine Zone, zwei Zonen, Warmwasser und Wetterempfindlichkeit.",
+      "description": "Aktualisiert die vom Optimierer verwendeten Parameter des thermischen Modells. Nützlich, um das Modell auf das tatsächliche thermische Verhalten deines Hauses abzustimmen. Unterstützt Parameter für eine Zone, zwei Zonen, Warmwasser und Wetterempfindlichkeit.",
       "fields": {
         "house_thermal_mass": {
           "name": "Thermische Masse des Hauses",
@@ -2237,7 +2237,7 @@
         },
         "dhw_cooling_rate": {
           "name": "Abkühlrate des Warmwasserspeichers",
-          "description": "Wie schnell der Speicher ohne Zapfung abkühlt, in °C pro Stunde bei 45 °C Speichertemperatur und 20 °C Umgebungstemperatur. Wird normalerweise automatisch aus dem beobachteten Bereitschaftsabfall gelernt; setzen Sie ihn, um den gelernten Wert vorzugeben oder zu übersteuern."
+          "description": "Wie schnell der Speicher ohne Zapfung abkühlt, in °C pro Stunde bei 45 °C Speichertemperatur und 20 °C Umgebungstemperatur. Wird normalerweise automatisch aus dem beobachteten Bereitschaftsabfall gelernt; setze ihn, um den gelernten Wert vorzugeben oder zu übersteuern."
         },
         "buffer_cooling_rate": {
           "name": "Abkühlrate des Pufferspeichers",
@@ -2385,7 +2385,7 @@
     },
     "assign_entity": {
       "name": "Entität zuweisen",
-      "description": "Weist einen der optionalen Sensoren der Integration zu oder löscht die Zuweisung. Das ruft das Anlagendiagramm auf der Dashboard-Karte auf, wenn Sie auf einen Platz klicken, und es schreibt dieselbe Konfiguration wie die Optionsseiten. Eine Änderung der Konfiguration lädt die Integration neu.",
+      "description": "Weist einen der optionalen Sensoren der Integration zu oder löscht die Zuweisung. Das ruft das Anlagendiagramm auf der Dashboard-Karte auf, wenn du auf einen Platz klickst, und es schreibt dieselbe Konfiguration wie die Optionsseiten. Eine Änderung der Konfiguration lädt die Integration neu.",
       "fields": {
         "key": {
           "name": "Einstellung",
@@ -2487,11 +2487,11 @@
       "fields": {
         "space_slots": {
           "name": "Raumheizungs-Slots",
-          "description": "Wann die Raumheizung laufen soll, als Liste von Objekten, die jeweils einen Start und ein Ende als ISO-8601-Datum mit Uhrzeit enthalten. Eine leere Liste schaltet die Raumheizung für den gesamten Zeitraum aus; lassen Sie das Feld ganz weg, um die Raumheizung vollautomatisch zu lassen."
+          "description": "Wann die Raumheizung laufen soll, als Liste von Objekten, die jeweils einen Start und ein Ende als ISO-8601-Datum mit Uhrzeit enthalten. Eine leere Liste schaltet die Raumheizung für den gesamten Zeitraum aus; lass das Feld ganz weg, um die Raumheizung vollautomatisch zu lassen."
         },
         "dhw_slots": {
           "name": "Warmwasser-Slots",
-          "description": "Wann Warmwasser laufen soll, als Liste von Objekten, die jeweils einen Start und ein Ende als ISO-8601-Datum mit Uhrzeit enthalten. Eine leere Liste schaltet Warmwasser für den gesamten Zeitraum aus; lassen Sie das Feld ganz weg, um Warmwasser vollautomatisch zu lassen."
+          "description": "Wann Warmwasser laufen soll, als Liste von Objekten, die jeweils einen Start und ein Ende als ISO-8601-Datum mit Uhrzeit enthalten. Eine leere Liste schaltet Warmwasser für den gesamten Zeitraum aus; lass das Feld ganz weg, um Warmwasser vollautomatisch zu lassen."
         },
         "expires_at": {
           "name": "Läuft ab um",
@@ -2515,7 +2515,7 @@
     },
     "restore_learned_snapshot": {
       "name": "Gelernten Snapshot wiederherstellen",
-      "description": "Setzt jedes Lernmodell auf den jüngsten wöchentlichen Snapshot zurück, der erfasst wurde, als alle Eingaben in Ordnung waren und die Prognosegenauigkeit im Rahmen lag. Nutzen Sie dies, wenn das gelernte Modell sichtbar danebenliegt, zum Beispiel nachdem ein Sensor eine Zeit lang Unsinn geliefert hat. Der Drift-Wächter tut automatisch dasselbe, wenn er belegen kann, dass die Eingaben durchgehend in Ordnung waren; dieser Dienst ist die manuelle Übersteuerung für den Fall, dass Sie sehen, was er nicht sehen kann. Nichts geht dauerhaft verloren: Das Lernen setzt einfach ab dem wiederhergestellten Punkt fort. Findet sich kein passender Snapshot, schlägt der Aufruf mit einem Fehler fehl, statt mit einer leeren Wiederherstellung zu antworten. Ist die Quelle auf die Wärmeverlust-Neuanpassung gesetzt, übernimmt er stattdessen die Neuanpassung der Wärmeverlustskala des Hauses durch den Drift-Ratgeber, die angeboten wird, solange der Drift-Alarm ausgelöst ist und drei ausgeglichene Tage an Belegen vorliegen. Bis zum nächsten wöchentlichen Snapshot nach einem Werksreset macht er stattdessen diesen Reset rückgängig: Einstellungen und gelernte Werte kommen so zurück, wie sie davor waren, mit den Sensoren und anderen Entitäten, wie sie jetzt sind.",
+      "description": "Setzt jedes Lernmodell auf den jüngsten wöchentlichen Snapshot zurück, der erfasst wurde, als alle Eingaben in Ordnung waren und die Prognosegenauigkeit im Rahmen lag. Nutze dies, wenn das gelernte Modell sichtbar danebenliegt, zum Beispiel nachdem ein Sensor eine Zeit lang Unsinn geliefert hat. Der Drift-Wächter tut automatisch dasselbe, wenn er belegen kann, dass die Eingaben durchgehend in Ordnung waren; dieser Dienst ist die manuelle Übersteuerung für den Fall, dass du siehst, was er nicht sehen kann. Nichts geht dauerhaft verloren: Das Lernen setzt einfach ab dem wiederhergestellten Punkt fort. Findet sich kein passender Snapshot, schlägt der Aufruf mit einem Fehler fehl, statt mit einer leeren Wiederherstellung zu antworten. Ist die Quelle auf die Wärmeverlust-Neuanpassung gesetzt, übernimmt er stattdessen die Neuanpassung der Wärmeverlustskala des Hauses durch den Drift-Ratgeber, die angeboten wird, solange der Drift-Alarm ausgelöst ist und drei ausgeglichene Tage an Belegen vorliegen. Bis zum nächsten wöchentlichen Snapshot nach einem Werksreset macht er stattdessen diesen Reset rückgängig: Einstellungen und gelernte Werte kommen so zurück, wie sie davor waren, mit den Sensoren und anderen Entitäten, wie sie jetzt sind.",
       "fields": {
         "entry_id": {
           "name": "Konfigurationseintrag",
@@ -2529,7 +2529,7 @@
     },
     "reset_heat_loss_learners": {
       "name": "Wärmeverlust-Lernen zurücksetzen",
-      "description": "Setzt die gelernte Wärmeverlustskala des Hauses und das gelernte Verlustverhältnis des Untergeschosses auf 1,0 zurück, sodass der Plan die Wärmeverlustwerte aus den Einstellungen so verwendet, wie sie stehen, und die Lernmodelle von dort aus wieder Belege sammeln. Nutzen Sie dies, nachdem Sie diese Einstellungen korrigiert oder einen Temperatursensor versetzt haben oder wenn die gelernten Werte sichtbar danebenliegen. Nur diese beiden werden zurückgesetzt: Die Lernmodelle für Komfortgewichtung, Warmwasser, COP und Abtauung bleiben unverändert. Der Plan wird sofort neu berechnet.",
+      "description": "Setzt die gelernte Wärmeverlustskala des Hauses und das gelernte Verlustverhältnis des Untergeschosses auf 1,0 zurück, sodass der Plan die Wärmeverlustwerte aus den Einstellungen so verwendet, wie sie stehen, und die Lernmodelle von dort aus wieder Belege sammeln. Nutze dies, nachdem du diese Einstellungen korrigiert oder einen Temperatursensor versetzt hast oder wenn die gelernten Werte sichtbar danebenliegen. Nur diese beiden werden zurückgesetzt: Die Lernmodelle für Komfortgewichtung, Warmwasser, COP und Abtauung bleiben unverändert. Der Plan wird sofort neu berechnet.",
       "fields": {
         "entry_id": {
           "name": "Konfigurationseintrag",

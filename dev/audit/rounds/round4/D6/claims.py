@@ -1338,8 +1338,8 @@ claim("C112", "strings.json + translations/*.json",
                str({k: len(v) for k, v in _missing.items()}))
       + f", extra={ {k: len(v) for k, v in _extra.items()} }",
       "true" if not any(_missing.values()) and not any(_extra.values()) else "false")
-eq("C113", "README.md", "entity names are translated into English and Swedish", CMD,
-   ["en", "sv"], sorted(TRANS))
+eq("C113", "README.md", "entity names are translated into English, Swedish and German", CMD,
+   ["de", "en", "sv"], sorted(TRANS))
 # The climate entity deliberately carries no translation key: with
 # ``_attr_has_entity_name`` and ``_attr_name = None`` it takes the device name.
 _untranslated = sorted(
