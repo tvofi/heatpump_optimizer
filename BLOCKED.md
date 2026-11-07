@@ -1,0 +1,4 @@
+BLOCKED: body re-take for PR #3264 is drafted (BODY.md here) and passes `prepr.sh --body-check` and `carry_audit.py check` at head 0542969c3, but `body_push.sh` refuses: refs/heads/handoff/r10-flow-toolkit-model is at 28ec0da039a0 and the checkout is at 0542969c3331 ("push the code, then the body").
+The brief forbids pushing to handoff/ or fix/, so the body is not pushed to handoff-body.
+Question for the orchestrator: either move handoff/r10-flow-toolkit-model to 0542969c3 (a ref move that does not change the PR head), or push BODY.md to handoff-body/r10-flow-toolkit-model directly.
+Finding: tests / nightly-status is not caused by this diff: all seven named lanes are nightly.yml jobs, cancelled in dispatch run 42369836867 on main at 08fd676; the diff touches governance.yml only (one added step), not nightly.yml.
