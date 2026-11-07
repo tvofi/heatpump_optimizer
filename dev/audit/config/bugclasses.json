@@ -4703,6 +4703,24 @@
       "doc": [
         "dev/audit/rca/r10-process-worker-hang.md"
       ]
+    },
+    "R10-RCA-LIVEHEAD-CANCEL": {
+      "class": "N-livehead-operator-cancel",
+      "level": "class",
+      "subject": "whole-run cancels at live PR heads (#3241 run 42332985078/1, #3232 run 42329221705/2, 2026-11-07), each annotated 'The run was canceled by @tvofi.' and rerun 32 s and 96 s later; the class is routine (detector reading in the document)",
+      "trigger": "2 (red check: the bus refuses a cancelled gate, two reviewer dispatches delayed)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the sending process, which only the orchestrator's seat transcripts can name"
+      ],
+      "process_state": "(a): no process bounds, records or attributes a cancel sent from outside CI; cancel_superseded.py's live-head rule binds only its two callers and P267's bounded pause never landed",
+      "countermeasure": "detector built (dev/audit/harnesses/livehead_cancels.py, 0 s standing cost); concurrency re-key, body-edit routing and a rerun rule refused by the cost test; barrier owed once the sender is named",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-livehead-cancel.md",
+      "doc": [
+        "dev/audit/rca/r10-livehead-cancel.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5201,6 +5219,40 @@
     "trigger": {
       "per_round": true,
       "cross_round": true,
+      "barriered_any": false,
+      "class_rca_on_record": true
+    }
+  },
+  "N-livehead-operator-cancel": {
+    "kind": "instrument",
+    "mechanism": "A workflow run at a pull request's live head is cancelled under an operator credential from outside every in-tree canceller, which alone carries the live-head rule, and usually restarted later; the runs listing shows only the latest attempt, so the cancelled attempt and its canceller are invisible to every sweep, and the bus refuses the head's cancelled gate with no cause on record",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 dev/audit/harnesses/livehead_cancels.py --cache DIR --fetch --since ISO --list",
+    "detector_idea": "The harness's CLASS line over a window starting after a countermeasure lands; a bounded, logged pause (P267, carried by R10-CI-PRIORITY-PAUSE) or a refusal at the sending seat's cancel path once the orchestrator names the sender (dev/audit/rca/r10-livehead-cancel.md section 6)",
+    "barrier": null,
+    "status": "detector",
+    "nearest_existing": "N-p2b-assembly-reader",
+    "mechanism_difference": "no reader meets a sibling change here: the run is healthy and an actor outside the tree ends it; cancel_superseded.py's live-head rule exists and binds only its own two callers",
+    "minted": "R10",
+    "aliases": [
+      "new: whole-run cancel at a live head under the operator credential"
+    ],
+    "non_round_note": "Process incidents, not audit findings, not in register_rows.tsv, not counted in total. The detector's reading over 2026-11-04..07 is in the RCA document.",
+    "non_round_instances": [
+      "#3241 run 42332985078 attempt 1 cancelled by @tvofi 03:24:57Z 2026-11-07, rerun 03:25:29Z",
+      "#3232 run 42329221705 attempt 2 cancelled by @tvofi 03:49:15Z 2026-11-07, rerun 03:50:51Z"
+    ],
+    "rca": [
+      "R10-RCA-LIVEHEAD-CANCEL"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": true
     }
