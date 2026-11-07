@@ -13587,9 +13587,7 @@
    "class": "production",
    "severity": "medium",
    "size": "M",
-   "issues": [
-    3106
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [],
    "wave": 6,
@@ -13634,7 +13632,7 @@
     "Unanswered residual of R10-CEILING-PROBE Carry 1, from #2465 (handoff-body/r10-ceiling-probe 61b216fc; orchestrator s9 2026-10-31). The gain between set-point and drawn power at levels between the duty gate and the ceiling is unmeasured: the probe measures only the draw at the ceiling, as its approved note scopes it. #2465 routed this gap to R10-DEMAND-OVERBOOK, which is done, and carry_audit refuses a done destination. It is re-routed here because R10-COP-GATE is the live group that owns the DrawRange and power modelling and runs after the probe. Measure first: from the probe's stored samples plus ordinary operation, report whether drawn power tracks the set-point linearly between gate and ceiling, with a flat-price null control. Only if it does not, build the correction, or record a refusal with the number. Carry: R10-COP-GATE [moved: R10-COP-GATE-E]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-cop-gate-d",
     "commit": "7c274274830ce553b8faec9574837de91a2be234",
     "last_step": null,
@@ -13705,9 +13703,7 @@
    "class": "production",
    "severity": "medium",
    "size": "M",
-   "issues": [
-    3124
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [],
    "wave": 6,
@@ -13745,7 +13741,7 @@
     "Coordinator lane (s10 plan-slip, 2026-11-01): this group is planned off the coordinator.py cap; no carry or brief seam names coordinator.py. A fix that needs a coordinator.py edit stops and reports before editing, and is then re-queued behind the coordinator cap. [dismissed: lane constraint met: PR 3182 (8e90d8144) edits no coordinator.py]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-partload-pricing",
     "commit": "8e90d81443317f76f22602a89651f7ca17c633f9",
     "last_step": null,
@@ -14359,9 +14355,7 @@
    "class": "instrument",
    "severity": "high",
    "size": "M",
-   "issues": [
-    3105
-   ],
+   "issues": [],
    "fixes": [],
    "findings": [],
    "wave": 6,
@@ -14392,7 +14386,7 @@
     "From #2406 (R10-ROSTER-FASTPATH) review 6251656756, item 8694f912, re-verified by the s9 residual sweep at origin/main 92588d581 (2026-11-01). Measured: tests/closure.py `_RENAME_EXEMPT` (line 2875) still exempts any line containing `--cached` from the rename-detecting `--name-only` census (`rename_sites`, line 2920), though `git diff --cached --name-only` does detect renames in the index. Enumerated with the module's own RENAME_SITES and `_logical_lines`: the exemption covers exactly six live lines today, all the same pinned-restore count `$(git diff --cached --name-only | wc -l)` in .github/workflows/budget-raise-gate.yml:84, governance.yml:154/1117/1221, pr-contract.yml:126 and tests.yml:633; none feeds a changed-file list. Fix: drop `--cached` from `_RENAME_EXEMPT` and either add `--no-renames` at those six sites or allow them per file through RENAME_ALLOW with the reason (a count after a pinned restore), so a future `--cached --name-only` that builds a file list is refused. Failing test first: a planted tests/*.sh line `git diff --cached --name-only > files.txt` is refused by `rename_sites` (passes today). Null control: the six restore-count lines, once allowed or given --no-renames, are not refused, and the RENAME_ALLOW stale-entry check stays empty. [implemented: c0b082bc48777199cb9b4998514b20b88ec805a1]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-ci-runner-fixes",
     "commit": "c0b082bc48777199cb9b4998514b20b88ec805a1",
     "last_step": null,
@@ -18199,9 +18193,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "done",
     "branch": "handoff/r10-ci-grader-batch-study",
-    "commit": null,
+    "commit": "34ed8ee709c1bd9295a0f35b6ae161d796e809b2",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s12 CI-levers seat 2026-11-07: owner lever 4, probe seat, no pull request; overlap admitted (R10-CI-PRIORITY-PAUSE, R10-TRAIN-MERGE-LOOP-2, R10-HOTFIX-TRAIN-DEFER-WAIT): owner CI-throughput lever 4 of 2026-11-07, read-only probe study"
@@ -18212,7 +18206,9 @@
    "group": "R10-COP-GATE-E",
    "lane": "LR",
    "kind": "production",
-   "issues": [],
+   "issues": [
+    3106
+   ],
    "fixes": [],
    "findings": [],
    "class": "production",
@@ -18262,7 +18258,9 @@
    "group": "R10-PARTLOAD-RESIDUE",
    "lane": "IN",
    "kind": "production",
-   "issues": [],
+   "issues": [
+    3124
+   ],
    "fixes": [],
    "findings": [],
    "class": "production",
@@ -18311,7 +18309,9 @@
    "lane": "IN",
    "kind": "instrument",
    "issues": [],
-   "fixes": [],
+   "fixes": [
+    3105
+   ],
    "findings": [],
    "class": "instrument",
    "severity": "high",
@@ -18530,7 +18530,8 @@
     "tests/config_flow_steps.py"
    ],
    "carry": [
-    "When this group builds, the pull request carries the trailer `Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>`, as the owner ruled for this contributor (relayed by the orchestrator, 2026-11-07)."
+    "When this group builds, the pull request carries the trailer `Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>`, as the owner ruled for this contributor (relayed by the orchestrator, 2026-11-07).",
+    "From the web-research probe (handoff-body/r10-ghc-research 52f5a44257ada6ed2b85d959337e1585dbd1cc72, BODY.md): the offset kind's default band is 3 K, user range 0.5 to 5 K, bound by Luxtronik's plus-or-minus 5 K user correction and SG-Ready boost steps. The write-endurance limits (12 writes per day default, Daikin quota 7000 per year) bind the persistent kind only, and are carried to R10-GENERIC-HEAT-CURVE-PERSISTENT. The fixer cites the band default to its source line, and the user docs flag the evidence tag."
    ],
    "resume": {
     "stage": "not-started",
@@ -18587,7 +18588,8 @@
     "custom_components/heatpump_optimizer/__init__.py"
    ],
    "carry": [
-    "When this group builds, the pull request carries the trailer `Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>`, as the owner ruled for this contributor (relayed by the orchestrator, 2026-11-07)."
+    "When this group builds, the pull request carries the trailer `Co-authored-by: Bankaifan <476059+Bankaifan@users.noreply.github.com>`, as the owner ruled for this contributor (relayed by the orchestrator, 2026-11-07).",
+    "From the web-research probe the owner ordered on 2026-11-07 (\"have a seat with web access do research on suitable numbers as generic as possible\"). Source: handoff-body/r10-ghc-research 52f5a44257ada6ed2b85d959337e1585dbd1cc72, BODY.md, read-only at tree a37c58e5. Recommended defaults, each with the user range and the reason that binds it:\n(1) O5a band: 3 K, user range 0.5 to 5 K. Luxtronik's own user correction is plus or minus 5 K, and SG-Ready style boosts are 1 to 2 offset steps.\n(2) O5b non-volatile writes per day: 12, which is 6 displace-and-restore episodes, user range 0 (off) to 48. This is below the only manufacturer write quota found (Daikin, 7000 per year, about 19 per day) and gives 15 years on a 100k-cycle cell.\n(3) O5c dwell: 60 min, user range 15 min to 6 h, which is about three radiator response times; the SG-Ready 10 min minimum is the floor.\nEvidence tags in the body: D documented, F forum, E estimate, S snippet-only. Three hosts were unreachable, so the NIBE 1M-writes figure and the ioBroker write counts are unverified, and nothing was found for Vaillant, Stiebel, Mitsubishi or Panasonic. Luxtronik parameter writes go through to NAND, while its SHI offset registers are volatile, so the persistent kind must prefer a volatile register wherever one exists. The fixer cites each default to its source line in the body, and any default resting on an F, S or E tag says so in the user docs."
    ],
    "resume": {
     "stage": "not-started",
