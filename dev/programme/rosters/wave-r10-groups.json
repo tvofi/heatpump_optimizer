@@ -17464,8 +17464,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3263
+    "stage": "done",
+    "pr": 3263,
+    "commit": "be813ecd4924865b75489f12c56600e9432d5727"
    },
    "brief": "Owner ruling tvofi 2026-11-06: the nightly red does not block merges or stamps, but a fixer is owed. `tests / nightly-status` reads red on main and PRs with 'NIGHTLY FAILED: slow failed in the last verification dispatch'. Read the nightly lane's last report and .github/workflows/nightly.yml, find why the status grades main red (the slow lane failed in scheduled runs 41555367389, 41749544997, 41943946464 and dispatch 42235215315; later dispatches 42242870295, 42247578523 and schedule 42139479636 are green), fix the lane or the grading, and prove the red-to-green flip with a null control. Cite f-3245-nightly's (handoff/r10-process-slim) main-wide cause if its handoff holds one; do not duplicate it."
   },
