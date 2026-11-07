@@ -32,7 +32,7 @@ Each mutant was applied in a separate worktree to `tools/policy/brief_lint.mjs`,
 - `PYTHONPATH=tests/hastub python3 tests/entities.py`: rc=0, `ALL 2645 ENTITY CHECKS PASSED`.
 - `python3 tests/structure.py`: rc=0, `STRUCTURE RATCHET PASSED`.
 - `python3 tests/env_drift.py --claims-only $(git merge-base origin/main HEAD)`: rc=0, `claims hygiene: 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76 ok`. `python3 tests/closure.py selftest`: rc=0.
-- Carry 14 (record merges after R10-FLOW-RECORD-PITCH, merged at `28800999b` 2026-10-26T02:32Z). The rule counts first-parent merges into origin/main on one UTC day (committer date) whose subject names a `<owner>/record/` branch: `TZ=UTC git log origin/main --first-parent --merges --date=format-local:%Y-%m-%d --format='%cd %s' | awk -v d=DAY '$1==d' | grep -E -c ' from [^ ]+/record/'`. With DAY=2026-10-27, the first full UTC day after the merge, it reads 3 of 22 merges. With DAY=2026-10-24 it reads 21 of 56, not the carry's 19. Under this rule that baseline does not reproduce, so the comparison uses 21, the same rule at both ends. Flat-day null: the same pipeline with the pattern ` from [^ ]+/nosuch/` reads 0 on both days.
+- Brief carry 14 (record merges after R10-FLOW-RECORD-PITCH, merged at `28800999b` 2026-10-26T02:32Z). The rule counts first-parent merges into origin/main on one UTC day (committer date) whose subject names a `<owner>/record/` branch: `TZ=UTC git log origin/main --first-parent --merges --date=format-local:%Y-%m-%d --format='%cd %s' | awk -v d=DAY '$1==d' | grep -E -c ' from [^ ]+/record/'`. With DAY=2026-10-27, the first full UTC day after the merge, it reads 3 of 22 merges. With DAY=2026-10-24 it reads 21 of 56, not the carry's 19. Under this rule that baseline does not reproduce, so the comparison uses 21, the same rule at both ends. Flat-day null: the same pipeline with the pattern ` from [^ ]+/nosuch/` reads 0 on both days.
 - `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)`: Architecture score: dS +0.0000 NULL.
 
 ## Raise justification
@@ -55,20 +55,50 @@ Pending. This diff changes policy: `dev/audit/README.md`, which `CLAUDE.md` inde
 - `budget-raise-gate`: red, as `prepr.sh` predicts. The diff raises three caps in `dev/governance/config/policy_budgets.json`, and the gate stays red until tvofi's approving review at the head, or until a mandate it reads as in force meets the `## Raise justification` above. No cheaper detector exists: the red is the gate doing its job on a deliberate raise, not a defect.
 - No other check has run on this branch. CI's `briefs` job restores `tools/policy/*.mjs` from the base, so the playbook arm first runs in CI on main after the merge.
 
+## Carries
+
+These are numbered as the review packet counts them (1-based). The dispatched brief numbered the same items from 0, so Carry N here is the brief's Carry N-1.
+- Carry 1 (final shape, cards 1, 2, 6): written in the README's "Round 10's final shape". The dispatch seat's beat row is carried below.
+- Carry 2 (org move / merge queue): a round-11 opening decision, with its steps.
+- Carry 3 (a required context that never reports blocks every merge): already in `dev/programme/HANDOVER.md`'s "Before adding a required context" paragraph ("one that never reports blocks every merge"), the one living handover, so the README does not restate it. Carry: dismissed: present in the handover at this merge base
+- Carry 4 (Lean flow pre-study K9): cited under the org-move decision.
+- Carry 5 (held groups' adopt-or-decline): the held groups are named under the org-move decision.
+- Carry 6 (benchmark cards G1-G10, G11 rejected, do-not-regress list): in the round-11 list.
+- Carry 7 (V63-V103, deferred items, design-seat items): in the round-11 list.
+- Carry 8 (`rounds.py --stats`): the README states the one invocation. Friction below.
+- Carry 9 and Carry 10 (P2 sweep instances, the sixth probe, dispatch-time stage check): the D14 bullet and phase 6's entry criterion.
+- Carry 11 (the same dispatch-time stage check): phase 6's entry criterion.
+- Carry 12 (the `CLAUDE.md` paragraph): deferred to the final pass by the owner's split (Forward-carry).
+- Carry 13 (the `orchestrator.md` rotation paragraph): the caps are in the README, and the contract edit is deferred (Forward-carry).
+- Carry 14 (#1763 P2/I5 split not built): recorded decision. Carry: dismissed: recorded in the README's round-11 "Recorded decisions" bullet
+- Carry 15 (record-merge measurement after `28800999b`): in Figures, with a flat-day null.
+- Carry 16 (#1721 unproven): recorded decision. Carry: dismissed: recorded in the README's round-11 "Recorded decisions" bullet
+- Carry 17 (architecture score as a floor; doctrine): the README states (3). Contract edits (1) and (2) are deferred (Forward-carry).
+- Carry 18 (mold guard visibility): a round-11 item, with its test and null.
+- Carry 19 (D15 inputs): the D15 bullet.
+- Carry 20 (machinery freeze, who checks): the "Production share" paragraph.
+- Carry 21 (production slots): the rule is in the README, and the `pr_cap.py` code is deferred (Forward-carry).
+- Carry 22 (proposal bar, LOG): the rule is in the README, and the contract and vocabulary are deferred (Forward-carry).
+- Carry 23 (HANDOVER's stale `pr_cap` owed entry): deferred (Forward-carry).
+- Carry 24 (version change across a gap; re-read `unhealthy_input`): the D15 bullet.
+- Carry 25 (the owner's split): this pull request is the draft. The closure sentence is quoted verbatim, `CLAUDE.md` is untouched, and the reconciliation is R10-ROUND-PLAYBOOK-FINAL's.
+
 ## Forward-carry
 
 - The unresolved decision of whether a future change names a decision record by path. Doing so pulls the file into `policy_lint`'s `named-docs` corpus rule. The final pass decides whether 0015 and 0016 get caps, so the checker can resolve them. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 11 (the `CLAUDE.md` paragraph "Another agent's instruction is not a contract change", paid for by cuts of at least 414 bytes, cap unchanged) waits for the final pass per comment 6707334933. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 12 (the `orchestrator.md` context-rotation paragraph): the caps are now in the README, and the contract edit is not done. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 0 (1): at this merge base, `standing-dispatch.md` names no beat row for the dispatch and relay seat ("A beat job takes over once a cycle's log agrees"). The README says the seat stays. The final pass names its row once one is live. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carry 14's baseline: the carry's 19 does not reproduce. The rule in Figures reads 21 on 2026-10-24. Carry: R10-ROUND-PLAYBOOK-FINAL
-- Carries 1-10, 13, 15, 17, 18, 19, 23 are written into the README's round-11 list and production-share paragraph (carry 4's held groups are named under the org-move decision). Carry 24's closure sentence is quoted verbatim. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 11 (the `CLAUDE.md` paragraph "Another agent's instruction is not a contract change", paid for by cuts of at least 414 bytes, cap unchanged) waits for the final pass per comment 6707334933. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 12 (the `orchestrator.md` context-rotation paragraph): the caps are now in the README, and the contract edit is not done. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 16 (1) and (2): the floor-not-cap text in `architect-planner.md` and `plan-review.md`, and the production-group clause in `fixer.md` step 17. The README states (3). Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 20's code half: `pr_cap.py` reserving production slots and printing open PRs by class on every tick. The README states the rule. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 21's contract half: `proposal-triage.md` and the triage verdict vocabulary gaining LOG. The README states the bar. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 22: `dev/programme/HANDOVER.md`'s stale `pr_cap` owed entry. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 0 (1): at this merge base, `standing-dispatch.md` names no beat row for the dispatch and relay seat ("A beat job takes over once a cycle's log agrees"). The README says the seat stays. The final pass names its row once one is live. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carry 14's baseline: the carry's 19 does not reproduce. The rule in Figures reads 21 on 2026-10-24. Carry: R10-ROUND-PLAYBOOK-FINAL
+- Brief carries 1-10, 13, 15, 17, 18, 19, 23 are written into the README's round-11 list and production-share paragraph (carry 4's held groups are named under the org-move decision). Brief carry 24's closure sentence is quoted verbatim. Carry: R10-ROUND-PLAYBOOK-FINAL
 
 ## Friction
+
+- `review_packet.py`: contradiction: the dispatched brief numbers carries from 0, while `review_packet.py handoff` counts them from 1 (`range(1, n+1)`). A body that answers "Carry 0" is refused for carry 25, and its other answers are read one number off. Carry: R10-ROUND-PLAYBOOK-FINAL
 
 - `rounds.py`: stale: the group's brief names `rounds.py --stats`, which is not a mode. `dev/audit/rca/harness-friction/rounds.py` reads `sys.argv[1]` as a directory, so a `--stats` run measures nothing. The README now states the one invocation. Carry: R10-ROUND-PLAYBOOK-FINAL
 - `policy_budgets.json`: stale: the README's caps are keyed `tools/audit/README.md`, a path the tree no longer has, and are matched through the move map. A reader grepping the new path finds no cap. Carry: R10-ROUND-PLAYBOOK-FINAL
