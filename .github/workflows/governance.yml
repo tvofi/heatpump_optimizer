@@ -270,8 +270,8 @@ jobs:
     # its final 90 s, mostly in five self-tests (prepr.sh's, beatd.py's, and
     # pr_args.sh's once alone and once each through open_pr.sh and
     # update_pr.sh), four of which wait far more than they compute. They start
-    # detached in the first step and are read in the last five
-    # (R10-HOTFIX-SELFTEST-TIMEOUT), so the job lasts as long as the longer
+    # detached in the first step and are read in five steps near the end,
+    # the last step refusing any never read (R10-HOTFIX-SELFTEST-TIMEOUT), so the job lasts as long as the longer
     # of its in-line steps and prepr.sh's self-test, not as long as all of
     # them added together.
     timeout-minutes: 30
@@ -300,7 +300,11 @@ jobs:
       # Each keeps its own step at the end, under its old name, which prints
       # that log and fails on that status -- every step still runs and still
       # greps its tally. bg_wait fails a test whose launcher vanished without
-      # a status rather than waiting for the job timeout.
+      # a status rather than waiting for the job timeout, and marks each
+      # status it reads; the job's last step fails naming every self-test
+      # started here whose status no step read, so deleting a waiter step,
+      # or its bg_wait line, turns the job red rather than leaving that
+      # self-test's exit status unread.
       - name: Start the five slowest self-tests beside the rest of the job
         run: |
           set -euo pipefail
@@ -327,7 +331,16 @@ jobs:
               fi
               sleep 5
             done
-            cat "$d/$1.log"; return "$(cat "$d/$1.rc")"
+            : > "$d/$1.read"; cat "$d/$1.log"; return "$(cat "$d/$1.rc")"
+          }
+          bg_unread() { # every name started whose status no bg_wait read: list them, fail
+            local d="$RUNNER_TEMP/bg" p n s=0 u=0
+            for p in "$d"/*.pid; do
+              n=$(basename "$p" .pid); s=$((s + 1))
+              if ! test -f "$d/$n.read"; then echo "UNREAD $n: no step read its status" >&2; u=$((u + 1)); fi
+            done
+            echo "bg_unread: $s started, $u unread"
+            test "$u" -eq 0
           }
           LIB
           . "$RUNNER_TEMP/bg/lib.sh"
@@ -1184,6 +1197,14 @@ jobs:
           bg_wait update-pr | tee "$RUNNER_TEMP/update-pr-self-test.txt"
           grep -Eq '^delivery_row self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
           grep -Eq '^pr_args self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/update-pr-self-test.txt"
+
+      # Last: a self-test started above whose status no step read would
+      # otherwise run unread and be killed as an orphan, the job green.
+      - name: Refuse a detached self-test whose status no step read
+        if: ${{ !cancelled() }}
+        run: |
+          . "$RUNNER_TEMP/bg/lib.sh"
+          bg_unread
 
   # THE LANES ABOVE RUN IN ONE ENVIRONMENT. Five separate assertions in this
   # repository were CORRECT and never RAN, because whether they run is decided
