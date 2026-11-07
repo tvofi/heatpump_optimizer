@@ -78458,6 +78458,12 @@ R.check(
     _wn_base_w.get("mold_guard") == 0.0 and _wn_mw.get("mold_guard", 0.0) > 0,
     f"base {_wn_base_w} mold {_wn_mw}",
 )
+_wn_lopt, _wn_low = _wn_solve(_wn_cheap, _WnLim(min_temp_floors=np.full(96, 15.0)))
+R.check(
+    "R10-WHY-NOW-WIDGET control: a mold floor below the comfort floor pushes nothing (mold_guard 0, never negative)",
+    all(w == 0.0 for w in _wn_low.space_drivers["mold_guard"]),
+    f"{_wn_low.space_drivers['mold_guard'][:4]}",
+)
 _wn_cold_ahead = np.concatenate([np.full(8, -5.0), np.full(88, -15.0)])
 _wn_copt, _wn_cold = _wn_solve(np.full(96, 1.0), outdoor=_wn_cold_ahead)
 R.check(
