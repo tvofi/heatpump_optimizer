@@ -3991,6 +3991,7 @@
    "dev/audit/harnesses/r10_ci_layout_u5/unitcheck.py",
    "dev/audit/harnesses/r10_ci_layout_u6/unitcheck.sh",
    "dev/audit/harnesses/r10_ci_layout_u8/unitcheck.sh",
+   "dev/audit/harnesses/r10_ci_slim/body_defer.py",
    "dev/audit/harnesses/r10_ci_slim/c2_replay.py",
    "dev/audit/harnesses/r10_ci_slim/c7_replay.py",
    "dev/audit/harnesses/r10_ci_slim/edit_runs.py",
