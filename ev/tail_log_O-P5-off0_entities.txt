@@ -1,0 +1,3 @@
+reading the recorder: SQLite database /tmp/tmp69jpufcp/home-assistant_v2.db
+reading the recorder: SQLite database /tmp/tmpw3aj9q8z/home-assistant_v2.db
+Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected

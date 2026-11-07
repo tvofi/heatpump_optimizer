@@ -1,0 +1,291 @@
+{
+ "F1_run_threshold": [
+  [
+   "accuracy",
+   "delivered_ratio",
+   635,
+   "sample.predicted_power_kw <= 0.05"
+  ],
+  [
+   "accuracy",
+   "delivered_ratio",
+   635,
+   "sample.actual_power_kw <= 0.05"
+  ],
+  [
+   "climate",
+   "hvac_action",
+   182,
+   "power_norm > 0.1"
+  ],
+  [
+   "coordinator",
+   "_capacity_caps",
+   9193,
+   "p_max <= 0.1"
+  ],
+  [
+   "coordinator",
+   "_detect_immersion",
+   8942,
+   "self._commanded_power() > 0.1"
+  ],
+  [
+   "coordinator",
+   "_fold_capacity_envelope",
+   9165,
+   "p_max <= 0.1"
+  ],
+  [
+   "dhw_learning",
+   "async_learn_usage",
+   520,
+   "draw_intensity <= 0.05"
+  ],
+  [
+   "freq_control",
+   "observe",
+   156,
+   "kw <= 0.05"
+  ],
+  [
+   "optimizer",
+   "get_current_action",
+   5915,
+   "dhw_power > 0.1"
+  ]
+ ],
+ "F2_learner_gate": [
+  [
+   "coordinator",
+   "_update_current_state",
+   6638,
+   "self._defrost_window.observe"
+  ],
+  [
+   "coordinator",
+   "_async_learn_price_shape",
+   8454,
+   "self._price_learner.fold"
+  ],
+  [
+   "coordinator",
+   "_track_realised_peak",
+   8511,
+   "self._peak_tracker.observe"
+  ],
+  [
+   "coordinator",
+   "_on_defrost_event",
+   8560,
+   "self._defrost_window.observe"
+  ],
+  [
+   "coordinator",
+   "_observe_compressor_start",
+   10347,
+   "self._start_counter.observe"
+  ],
+  [
+   "coordinator",
+   "_observe_frequency",
+   10706,
+   "self._freq_map.observe"
+  ],
+  [
+   "coordinator",
+   "_on_power_event",
+   8624,
+   "self._peak_tracker.observe"
+  ],
+  [
+   "coordinator",
+   "_settle_defrost",
+   9831,
+   "self._defrost.observe"
+  ]
+ ],
+ "F3_cop_law_fork": [
+  [
+   "thermal_model",
+   "compute_cop",
+   2733,
+   "not self.params.cop_flow_carnot"
+  ],
+  [
+   "thermal_model",
+   "_batch_cop",
+   3955,
+   "flow_carnot_eligible and p.cop_flow_carnot"
+  ]
+ ],
+ "F4_entry_resolve": [],
+ "F5_clone": [
+  [
+   "binary_sensor",
+   "available",
+   321,
+   "[3] binary_sensor:available:321 | climate:available:123 | sensor:available:2453"
+  ],
+  [
+   "optimizer",
+   "_optimize_space_only",
+   4700,
+   "[3] optimizer:_optimize_space_only:4700 | optimizer:_optimize_with_dhw:4964 | optimizer:_solve_space:4162"
+  ],
+  [
+   "tariff",
+   "_smooth_topk_sum",
+   716,
+   "[3] tariff:_smooth_topk_sum:716 | tariff:_smooth_topk_sum_batch:760 | tariff:peak_cost_batch:1124"
+  ],
+  [
+   "thermal_model",
+   "_simulate_step_single",
+   3299,
+   "[3] thermal_model:_simulate_step_single:3299 | thermal_model:_simulate_step_two_zone:3411 | thermal_model:simulate_trajectory_batch:4026"
+  ],
+  [
+   "coordinator",
+   "_accumulate_energy",
+   10128,
+   "[2] coordinator:_accumulate_energy:10128 | coordinator:_maybe_run_fuse_advisor:8792"
+  ],
+  [
+   "coordinator",
+   "_async_learn_house_heat_loss",
+   5543,
+   "[2] coordinator:_async_learn_house_heat_loss:5543 | coordinator:_async_learn_lower_floor_loss:5704"
+  ],
+  [
+   "coordinator",
+   "_file_lead_predictions",
+   10044,
+   "[2] coordinator:_file_lead_predictions:10044 | coordinator:_predicted_next_room_temp:10087"
+  ],
+  [
+   "coordinator",
+   "_update_current_state",
+   6454,
+   "[2] coordinator:_update_current_state:6454 | coordinator:_update_external_heat_detection:5010"
+  ],
+  [
+   "drift",
+   "_note",
+   286,
+   "[2] drift:_note:286 | power_guard:_note:157"
+  ],
+  [
+   "inputs",
+   "read",
+   955,
+   "[2] inputs:read:955 | inputs:read_state:996"
+  ],
+  [
+   "ledger",
+   "_prune",
+   230,
+   "[2] ledger:_prune:230 | wear:observe:44"
+  ],
+  [
+   "ledger",
+   "add",
+   237,
+   "[2] ledger:add:237 | ledger:observe_meta_mean:246"
+  ],
+  [
+   "legionella",
+   "check_mode_block",
+   675,
+   "[2] legionella:check_mode_block:675 | legionella:check_overdue:644"
+  ],
+  [
+   "optimizer",
+   "_grid_report",
+   4902,
+   "[2] optimizer:_grid_report:4902 | tariff:_peak_excess:843"
+  ],
+  [
+   "optimizer",
+   "_peak_day_kwargs",
+   3382,
+   "[2] optimizer:_peak_day_kwargs:3382 | optimizer:_peak_window_factors:3352"
+  ],
+  [
+   "optimizer",
+   "objective",
+   4602,
+   "[2] optimizer:objective:4602 | optimizer:objective_batch:4655"
+  ],
+  [
+   "price_model",
+   "observe_day",
+   191,
+   "[2] price_model:observe_day:191 | price_model:observe_day_quarters:237"
+  ],
+  [
+   "pump_arbiter",
+   "_planned_room",
+   454,
+   "[2] pump_arbiter:_planned_room:454 | pump_arbiter:_step_index:379"
+  ],
+  [
+   "sensor",
+   "extra_state_attributes",
+   1913,
+   "[2] sensor:extra_state_attributes:1913 | sensor:extra_state_attributes:2409"
+  ],
+  [
+   "sysid",
+   "_lm_solve",
+   790,
+   "[2] sysid:_lm_solve:790 | sysid:_slab_ua_profile_halfwidth:1004"
+  ],
+  [
+   "tariff",
+   "_close_window",
+   312,
+   "[2] tariff:_close_window:312 | tariff:from_dict:407"
+  ],
+  [
+   "tariff",
+   "_window_means_batch",
+   1058,
+   "[2] tariff:_window_means_batch:1058 | tariff:metering_windows:534"
+  ],
+  [
+   "tariff",
+   "plan_window_days",
+   660,
+   "[2] tariff:plan_window_days:660 | tariff:window_factors:587"
+  ],
+  [
+   "thermal_model",
+   "simulate_trajectory",
+   3848,
+   "[2] thermal_model:simulate_trajectory:3848 | thermal_model:simulate_trajectory_with_dhw:4355"
+  ]
+ ],
+ "F6_hour_clock": [
+  [
+   "dhw_schedule",
+   "format_clock",
+   451,
+   "round(h*60) % (24*60)"
+  ],
+  [
+   "quiet_windows",
+   "wall_clock",
+   294,
+   "round(h*60) % (24*60)"
+  ]
+ ],
+ "F7_scrub_mixin": [
+  [
+   "sensor",
+   "_PayloadNumberMixin",
+   343,
+   "native_value (mixin)"
+  ]
+ ]
+}
