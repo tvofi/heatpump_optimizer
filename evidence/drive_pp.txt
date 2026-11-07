@@ -1,18 +1,4 @@
-== head (wt-rev)
 plan_public: round 10 PLAN.html from origin/handoff/audit-r10-plan -> plan/index.html
 clean page: rc=0  staged=yes
 plan_public: REFUSED: round 10 PLAN.html: host-path in the page
 leaky page: rc=1  staged=no
-== host_ident_dropped
-plan_public self-test: all checks passed
-  File "/home/user/wt-mut/tools/audit/seat/ref_privacy.py", line 267, in _leaks
-    if any(re.search(_home_re(h.casefold()), folded) for h in ident.homes):
-                                                              ^^^^^^^^^^^
-AttributeError: 'NoneType' object has no attribute 'homes'
-leaky page: rc=1  staged=no
-== main_rc0
-plan_public self-test: all checks passed
-plan_public: round 10 PLAN.html from origin/handoff/audit-r10-plan -> plan/index.html
-clean page: rc=0  staged=yes
-plan_public: REFUSED: round 10 PLAN.html: host-path in the page
-leaky page: rc=0  staged=no
