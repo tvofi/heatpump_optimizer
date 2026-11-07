@@ -4122,6 +4122,55 @@ def _p2_registry(sources):
                      "frequency pair's own predicate decides the two "
                      "frequency questions the gate cannot express",
              }),
+        # R10-CLONE-2238 (#2238): the F5_clone instances, one fact per entry,
+        # each routed through one owner in the module that held both copies.
+        dict(fact="planned_split", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"\.get\('(space|dhw)_power'\) or 0\.0\)$",
+                 lambda n: getattr(n.func, "id", None) == "float"),
+             owners=["coordinator.py::_planned_split"], dispositions={}),
+        dict(fact="loss_residual_gate", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Compare, r"HOUSE_LOSS_MAX_RESIDUAL", lambda n: True),
+             owners=["coordinator.py::_loss_residual_rejected"], dispositions={}),
+        dict(fact="sensor_trajectory", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.BoolOp, r"two_zone\w* and [\w.]*upper_temp_trajectory",
+                 lambda n: isinstance(n.op, ast.And)),
+             owners=["optimizer.py::OptimizationResult.sensor_trajectory"],
+             dispositions={}),
+        dict(fact="billed_window_pad", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"^np\.ones\(.+ - \w+\.size\)$",
+                 lambda n: getattr(n.func, "attr", None) == "ones"),
+             owners=["tariff.py::billed_windows"], dispositions={}),
+        dict(fact="plan_window_count", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Attribute, r"^metering_windows\(np\.zeros\(",
+                 lambda n: n.attr == "size" and isinstance(n.value, ast.Call)),
+             owners=["optimizer.py::HeatPumpOptimizer._n_peak_windows"],
+             dispositions={}),
+        dict(fact="evidence_attributes", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Assign, r"\['waiting_for'\] = self\._waiting_for$",
+                 lambda n: isinstance(n.targets[0], ast.Subscript)),
+             owners=["sensor.py::_WaitsForEvidenceMixin._evidence_attributes"],
+             dispositions={}),
+        dict(fact="ranked_peak_lists", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.ListComp, r"^\[(kw|day) for (kw, _|_, day) in ranked\]$",
+                 lambda n: True),
+             owners=["tariff.py::PeakTracker._keep_ranked"], dispositions={}),
+        dict(fact="window_partition", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.Call, r"^round\(window_minutes / max\(dt_hours",
+                 lambda n: getattr(n.func, "id", None) == "round"),
+             owners=["tariff.py::_window_partition"], dispositions={}),
+        dict(fact="window_starts_walk", finding="R10-CLONE-2238",
+             match=_p2_match_node(
+                 ast.IfExp, r"if \w+ is None else \w+\.astimezone\(timezone\.utc\)$",
+                 lambda n: isinstance(n.test, ast.Compare)),
+             owners=["tariff.py::_window_starts"], dispositions={}),
     ]
 
 
@@ -41607,6 +41656,32 @@ R.check(
     "and refuses a key it does not read",
     _MR_GOT == ("read", "refused"),
     f"(tracked file, file plus an unread key) -> {_MR_GOT}",
+)
+
+
+# R10-CLONE-2238 (#2238, class P2) P6: an evidence sensor's attributes -- its
+# payload block, ``waiting_for`` and one insight report -- are built once, by
+# _WaitsForEvidenceMixin._evidence_attributes; the three sensors that
+# published them on their own copy publish the owner's dict (the frequency
+# advisor carries no report, and is the sibling the P2 registry returned).
+from unittest import mock as _c2238_mock  # noqa: E402
+
+with _c2238_mock.patch.object(
+    sensor._WaitsForEvidenceMixin, "_evidence_attributes", create=True,
+    side_effect=lambda *_a: {"c2238": "sentinel"},
+):
+    _c2238_p6 = [
+        cls(FakeCoordinator(DATA), ENTRY).extra_state_attributes
+        for cls in (
+            sensor.PredictionAccuracySensor, sensor.ContractComparisonSensor,
+            sensor.FrequencyAdvisorSensor,
+        )
+    ]
+R.check(
+    "R10-CLONE-2238 P6: the accuracy, contract-comparison and frequency-advisor "
+    "sensors all publish _evidence_attributes",
+    _c2238_p6 == [{"c2238": "sentinel"}] * 3,
+    f"{_c2238_p6}",
 )
 
 
