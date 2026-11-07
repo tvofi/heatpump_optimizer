@@ -31,7 +31,7 @@ refreshes it before the steps run, which separates that rehash from a step
 that reads a row.
 
 Lanes: control, instrument-self-tests, env-matrix, arch-instrument, closures.
-EXPECTED RESULT control_hits=3
+EXPECTED RESULT control_hits=3 copy_reader=True fixture_reader=False
 """
 from __future__ import annotations
 
@@ -142,7 +142,14 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
     if lane == "control":
         rows = sorted(p.name for p in (clone / ROW).iterdir())[:2]
         chosen = [{"name": "planted reader", "run": f"cat {ROW}/{rows[0]} >/dev/null\n"
-                   f"git show HEAD:{ROW}/{rows[1]} >/dev/null\n"}]
+                   f"git show HEAD:{ROW}/{rows[1]} >/dev/null\n"},
+                  # a copy of the tree read whole counts (env-matrix's shape) ...
+                  {"name": "planted copy reader", "run": f"cp -r {ROW} $RUNNER_TEMP/copy-rows-src\n"
+                   f"mkdir -p $RUNNER_TEMP/copy/dev/programme && mv $RUNNER_TEMP/copy-rows-src $RUNNER_TEMP/copy/{ROW}\n"
+                   f"cat $RUNNER_TEMP/copy/{ROW}/*.md >/dev/null\n"},
+                  # ... and a fixture repository's planted row does not
+                  {"name": "fixture row (null control)", "run": f"mkdir -p $RUNNER_TEMP/fx/{ROW}\n"
+                   f"echo x > $RUNNER_TEMP/fx/{ROW}/7.md && cat $RUNNER_TEMP/fx/{ROW}/7.md >/dev/null\n"}]
     else:
         chosen = steps(clone, lane)
     # One strace per step, so each hit is that step's. The full log runs to
@@ -203,6 +210,20 @@ def _argv(line: str) -> list[str]:
     return re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)) if m else []
 
 
+COPY_SHARE = 0.5
+_ABS = re.compile(r'(/[^"<>\s]*?)/' + re.escape(ROW) + r'(?:/([^"<>/\s]+))?(?=["<>\s/]|$)')
+_REL = re.compile(r'(?:AT_FDCWD|\b\d+)<([^>]*)>, "(?:\./)?' + re.escape(ROW) + r'(?:/([^"/]+))?"')
+
+
+def _row_roots(line: str) -> "list[tuple[str, str | None]]":
+    """(root, row file name or None for the directory) for each row path a
+    syscall line names: absolute, inside an fd's `<path>`, or relative to the
+    fd it is opened at."""
+    got = [(m.group(1), m.group(2)) for m in _ABS.finditer(line)]
+    got += [(m.group(1).rstrip("/"), m.group(2)) for m in _REL.finditer(line)]
+    return got
+
+
 def scan(hits: Path, clone: Path) -> dict:
     """Each traced syscall touching the clone's delivery rows, by kind and by
     the command that made it: the process's last exec, first four argv
@@ -211,9 +232,18 @@ def scan(hits: Path, clone: Path) -> dict:
     an exclusion (`:!`, `:(exclude)`); `exec-excludes` one naming it only so;
     `stat` a stat-family call, which reads no content. A path under another
     root (a self-test's fixture repository) is not the clone's and not counted."""
-    under = f"{clone}/{ROW}"
-    rel = re.compile(r'(AT_FDCWD<' + re.escape(str(clone)) + r'[^>]*>|^\d+\s+\w+\()"?(\./)?' + re.escape(ROW))
     lines = hits.read_text(errors="replace").splitlines()
+    # A root is the directory a row path hangs from. The clone is one; a copy
+    # of it is another (env-matrix runs policy_lint in four copies of the
+    # pull request's tree under $RUNNER_TEMP). A copy carries the clone's whole
+    # row directory, a fixture repository plants a handful, so a root counts
+    # when its rows named in the trace reach COPY_SHARE of the clone's.
+    named: dict[str, set] = {}
+    for line in lines:
+        for root, name in _row_roots(line):
+            named.setdefault(root, set()).add(name)
+    whole = len(list((clone / ROW).glob("*.md")))
+    roots = {str(clone)} | {r for r, n in named.items() if len(n - {None}) >= COPY_SHARE * whole}
     fork = re.compile(r"(?:\b(?:clone3?|v?fork)\(.*|<\.\.\. (?:clone3?|v?fork) resumed>.*)\)\s+=\s+(\d+)$")
     # Two passes: strace may print a child's first syscalls before its
     # parent's clone returns, so the fork edges and execs are collected first.
@@ -238,16 +268,20 @@ def scan(hits: Path, clone: Path) -> dict:
         return command(parent[pid], n, depth + 1) if pid in parent and depth < 64 else "?"
 
     out = scan_empty()
+    out["roots"] = sorted(r.replace(str(clone.parent), "<tmp>") for r in roots)
     for n, line in enumerate(lines):
         pid = line.split(None, 1)[0]
         if fork.search(line) or (re.search(r"\b(clone3?|v?fork)\(", line) and "dev/programme" not in line):
             continue
         if "execve(" in line and re.search(r"\)\s+=\s+0$", line):
-            named = [a for a in _argv(line) if "dev/programme" in a]
+            # an absolute path names its root, counted only when that root
+            # is; a relative mention (a pathspec, `HEAD:<row>`) is counted
+            named = [a for a in _argv(line) if "dev/programme" in a
+                     and all(r in roots for r, _ in _row_roots(f'"{a}"') if a.startswith("/"))]
             if not named:
                 continue
             kind = "exec-excludes" if all(a.startswith((":!", ":(exclude)")) for a in named) else "exec-names"
-        elif under not in line and not rel.search(line):
+        elif not any(r in roots for r, _ in _row_roots(line)):
             continue
         elif "getdents64(" in line:
             kind = "list"
@@ -275,6 +309,10 @@ def summarize(outs: list[Path], head: str) -> dict:
             if j.exists():
                 r = json.loads(j.read_text())
                 complete = True
+                for st in r["steps"]:  # re-scanned, so a recording is the scan at this head's rule
+                    hits = tmp / f"step{st.get('i')}.hits"
+                    if st.get("ran") and hits.exists():
+                        st.update(scan(hits, tmp / "ws"))
             elif tmp.is_dir():
                 r = {"steps": []}
                 for n in sorted(tmp.glob("step*.n"), key=lambda f: int(f.stem[4:])):
@@ -288,6 +326,7 @@ def summarize(outs: list[Path], head: str) -> dict:
                 continue
             steps = [{"step": s["step"], "exit": s["exit"], "trace_lines": s["trace_lines"],
                       "kinds": {k: v for k, v in s["kinds"].items() if v},
+                      "roots": s.get("roots", []),
                       "row_readers": {c: v for c, v in s["by_command"].items() if any(v.get(x) for x in READS)}}
                      for s in r["steps"] if s.get("ran")]
             lanes[lane] = {"complete": complete, "seconds": r.get("seconds"),
@@ -335,7 +374,9 @@ def main() -> int:
                     if any(v.get(x) for x in READS):
                         print(f"      by {c}: {v}")
         if lane.startswith("control"):
-            print(f"RESULT control_hits={sum(s['kinds'][k] for s in ran for k in READS)}")
+            print(f"RESULT control_hits={sum(s['kinds'][k] for s in ran[:1] for k in READS)} "
+                  f"copy_reader={any(s['kinds'][k] for s in ran[1:2] for k in READS)} "
+                  f"fixture_reader={any(s['kinds'][k] for s in ran[2:3] for k in READS)}")
     return 0
 
 
