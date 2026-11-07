@@ -29,6 +29,17 @@ RULESET=main-protect-checks
 # wake on its exit does not rewrite the seat's whole context (R10-FLY-CACHE-PROMPTS),
 # and never under GitHub's 60 s poll floor.
 POLL_S=240
+# A red gate is re-read through merge_train's `classify` (Train.classify_at),
+# the train's own deferral reading: never a second copy of gate.py's `busy`.
+CLASSIFY=${CI_WATCH_CLASSIFY:-python3 -I $(dirname "$0")/merge_train.py classify}
+gate_deferred() { # <sha>: 0 when classify reads the head WAIT with `gate` not red
+  local out rc
+  out=$($CLASSIFY "$1" --repo "$R" 2>/dev/null); rc=$?
+  [ "$rc" = 3 ] || return 1
+  case "$out" in "WAIT "*) ;; *) return 1 ;; esac
+  case " ${out##* red: } " in *" gate "*) return 1 ;; esac
+  return 0
+}
 
 # --------------------------------------------------------------- self-test
 self_test() {
@@ -320,7 +331,13 @@ while true; do
         # Sorted: the signature file dedups on this string, and awk's END-loop
         # order is arbitrary -- an unsorted list would re-alert the same reds
         # as a NEW state every cycle (v2's jq group_by was name-sorted).
-        reds=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{k = ($1 == "gate") ? $1 SUBSEP $5 : $1; nm[k] = $1; bad[k] = ($1 == "gate") ? ($2 == "completed" && $3 != "success") : ($3 == "failure")} END {for (x in bad) if (bad[x]) print nm[x]}' | sort -u | tr '\n' ' ')
+        reds_l=$(printf '%s\n' "$CR" | sort -s -t "$TAB" -k1,1 -k4,4 | awk -F "$TAB" '{k = ($1 == "gate") ? $1 SUBSEP $5 : $1; nm[k] = $1; bad[k] = ($1 == "gate") ? ($2 == "completed" && $3 != "success") : ($3 == "failure")} END {for (x in bad) if (bad[x]) print nm[x]}' | sort -u)
+        # An edit run's at-once deferral while its code run runs is a wait,
+        # not a state (R10-HOTFIX-TRAIN-DEFER-WAIT); a refusing read keeps it red.
+        if printf '%s\n' "$reds_l" | grep -qx gate && gate_deferred "$sha"; then
+          reds_l=$(printf '%s\n' "$reds_l" | grep -vx gate)
+        fi
+        reds=$(printf '%s\n' "$reds_l" | sed '/^$/d' | tr '\n' ' ')
         [ -n "$reds" ] && issue="$issue | RED: $reds"
         # ABSENT, judged only at a settled head: every run it has completed.
         pending=$(printf '%s\n' "$CR" | awk -F "$TAB" '$2 != "completed"' | wc -l | tr -d ' ')
