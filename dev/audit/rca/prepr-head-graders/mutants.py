@@ -10,7 +10,9 @@ M = {
  "M1 restored_hit keys nothing": ("return sorted(p for p in names if p in at_tip and any(covers(s, p) for s in specs))", "return []"),
  "M2 restored_hit ignores the base tip": ("p in at_tip and any(covers(s, p)", "any(covers(s, p)"),
  "M3 grader_runs drops no exemption": ("not in GRADER_EXEMPT.keys() | AGREEMENT_RUNS]", "not in AGREEMENT_RUNS]"),
- "M4 predict's graders entry removed": ('        ("graders", lambda: grader_preds(root, base_ref)),\n', ""),
+ "M4 predict's graders entry removed": ('        ("graders", lambda: grader_preds(root, base_ref, body, notes)),\n', ""),
+ "M6 ci_tree_run reads governance.yml for every job": ("(r / (workflow or agreement_py.WORKFLOW))", "(r / agreement_py.WORKFLOW)"),
+ "M7 the enumeration reads governance.yml only": ('for wf in sorted((root / WORKFLOWS).glob("*.y*ml")):', 'for wf in [root / WORKFLOWS / "governance.yml"]:'),
  "M5 ci_tree_run restores nothing": ('        run("git", "checkout", tip, f"--pathspec-from-file={tmp / \'pinned.list\'}", "--pathspec-file-nul")\n', ""),
 }
 for name, (a, b) in M.items():
