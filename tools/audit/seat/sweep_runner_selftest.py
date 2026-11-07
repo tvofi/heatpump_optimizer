@@ -52,8 +52,8 @@ def one_pass(tmp, name, handoff_age_h, fire_age_h, html_same, queue=None):
     # git: fetch no-ops, show prints the roster, for-each-ref prints one handoff row of the given age
     w(os.path.join(bin_, "git"),
       "#!/bin/bash\ncase \"$1\" in show) echo '%s';; for-each-ref) printf 'abc\\trefs/gantt/handoff/r10-cp\\t%d\\n';; esac\nexit 0\n"
-      % (json.dumps(roster), int(now - handoff_age_h * 3600)), 0o755)
-    w(os.path.join(bin_, "gh"), "#!/bin/bash\necho '[]'\n", 0o755)
+      % (json.dumps(roster), int(now - handoff_age_h * 3600)), 0o700)
+    w(os.path.join(bin_, "gh"), "#!/bin/bash\necho '[]'\n", 0o700)
     stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now - fire_age_h * 3600))
     w(os.path.join(st, "fired.ledger"), f"{stamp} FIRED r10-cp\n")
     env = dict(os.environ, SWEEP_STATE_DIR=st, SWEEP_CHECKOUT=co, SWEEP_REPO="o/r", SWEEP_ONCE="1",
