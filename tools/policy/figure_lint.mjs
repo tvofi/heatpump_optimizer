@@ -16,7 +16,11 @@
 // the tree would have.
 //
 // WHAT THIS DELIBERATELY DOES NOT DO: it does not execute one character of the
-// body. #679 proposed re-executing allowlisted commands and comparing the
+// body. (Narrowed by card 7, 2026-11-07: the refusal stands, and what changed
+// is who chooses. tools/pr/figure_block.py renders a figure-block only from an
+// instrument the BASE's tools/pr/figure_registry.json names, so the author
+// chooses no command, only a registered name; a free-form figure is still
+// never executed.) #679 proposed re-executing allowlisted commands and comparing the
 // printed value to the stated one. That is refused, and the reasons are
 // recorded here so the next seat has to answer them rather than rediscover
 // them. TWO OF THEM ARE LOAD-BEARING, one is load-bearing for one arm, and the

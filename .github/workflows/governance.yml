@@ -389,6 +389,13 @@ jobs:
       - name: Show the superseded-run canceller refusing its own fixtures
         run: python3 tools/pr/cancel_superseded.py --self-test
 
+      - name: Show the figure-block renderer refusing its own fixtures
+        if: ${{ !cancelled() }}
+        run: |
+          set -o pipefail
+          python3 -I tools/pr/figure_block.py --self-test | tee "$RUNNER_TEMP/figure-block-self-test.txt"
+          grep -Eq '^figure_block self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/figure-block-self-test.txt"
+
       # The Dependabot auto-merge decision (dependabot-automerge.yml): patch and
       # minor merge, a major is left, and a code-owned path withholds the App's
       # approval, over fixtures and the tree's own CODEOWNERS.

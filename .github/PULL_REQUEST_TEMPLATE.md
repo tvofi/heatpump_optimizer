@@ -23,6 +23,8 @@ name the instrument rather than restate what it prints. `pr-contract` refuses a
 command that does not resolve, and never re-runs one. Required check `arch-score`:
 a gate rise passes only explained under `## Architecture score`, one line per metric.
 
+A figure a registered instrument prints (tools/pr/figure_registry.json: scope-line, structure-ratchet, merge-base) is a generated block, never typed: write the empty marker `<!-- figure-block: scope-line -->` then `<!-- /figure-block -->` on the next line and seat/body_push.sh or prepr.sh --body-check fills it at the head; pr-contract re-renders and refuses a block that differs. Only registered figures are structurally non-stale.
+
 ## Red checks
 
 `none`, or each failing check and each open `code-scanning alert <n> (<rule id>)`

@@ -1902,6 +1902,8 @@
    "tools/pr/README.md",
    "tools/pr/cancel_superseded.py",
    "tools/pr/codeql_scope.py",
+   "tools/pr/figure_block.py",
+   "tools/pr/figure_registry.json",
    "tools/pr/preflight.sh",
    "tools/release/stamp.py",
    "tools/replay/cut_day.py",
