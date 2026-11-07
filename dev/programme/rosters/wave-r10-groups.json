@@ -17604,7 +17604,8 @@
    "after": [],
    "carry": [
     "From #3266 (r10-hotfix-codeql-headroom), body item 6e003ed3: The premise fails: per-statement wrapping of module-scope `try` slows `features.py`'s CodeQL extraction and query evaluation, and the python job no longer fits its cap. The group's design has to change before any fix lands, and only `entities.py`'s half measured a gain. Carry: R10-HOTFIX-CODEQL-HEADROOM (items 6e003ed3)",
-    "From #3266 (r10-hotfix-codeql-headroom), body item 93aad749: A fixer cannot dispatch `ci.yml` with `pr=<N>` from its own ref. The prelude refuses any ref that is not the PR's head. Dispatch with inputs empty, the batch-proof form, which still analyzes. A brief asking a fixer for a CodeQL figure should name that form. Carry: R10-HOTFIX-CODEQL-HEADROOM (items 93aad749)"
+    "From #3266 (r10-hotfix-codeql-headroom), body item 93aad749: A fixer cannot dispatch `ci.yml` with `pr=<N>` from its own ref. The prelude refuses any ref that is not the PR's head. Dispatch with inputs empty, the batch-proof form, which still analyzes. A brief asking a fixer for a CodeQL figure should name that form. Carry: R10-HOTFIX-CODEQL-HEADROOM (items 93aad749)",
+    "From #3266 (r10-hotfix-codeql-headroom), body item e017bcd8: fixer-codeql-dispatch: contradiction: the brief named dispatch inputs `pr=3266`, `base=main`, and the prelude refuses them for any ref but the PR's head, so the first run (42380280230) went red at the prelude. Carry: R10-HOTFIX-CODEQL-HEADROOM (items e017bcd8)"
    ],
    "architect_note": "",
    "resume": {
