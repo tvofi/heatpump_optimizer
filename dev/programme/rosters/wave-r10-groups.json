@@ -17344,7 +17344,7 @@
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
-    "note": "PR 3246 open (fixer dispatched 2026-11-06, branch fix/r10-gate-busy-defer); roster stage was stale",
+    "note": "part 1 merged as PR 3246 (355d9965); part 3 is PR 3287 on fix/r10-gate-busy-defer-3",
     "commit": "355d9965a",
     "pr": 3287,
     "branch": "handoff/r10-gate-busy-defer-3"
