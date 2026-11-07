@@ -1,0 +1,3 @@
+  ok   every JOB value is a name gate.REQUIRED owes
+ci_predict self-test: 0 failed
+rc=0

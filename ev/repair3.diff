@@ -1,0 +1,65 @@
+commit a9d4bf12b5aa6998ec5e3968418ae7afeb208e96
+Author: hpo-fixer <70032254+tvofi@users.noreply.github.com>
+Date:   Fri Nov 6 23:05:49 2026 +0000
+
+    Repair r10-friction-records round 3: restore the approved #2429 bound, kill two survivors
+    
+    Restore the ci-autofix.md bound verbatim as approved (by tests / mutation's
+    conclusion, the pin owed by the handoff); regenerated copies by rules_sync.
+    Pin the friction-id row in statsFindings' end-to-end wiring block and the
+    driver-only diff in ci_predict's mutant_self_test.
+
+diff --git a/dev/governance/rules/ci-autofix.md b/dev/governance/rules/ci-autofix.md
+index efb4b6f00..6a5c8c6ac 100644
+--- a/dev/governance/rules/ci-autofix.md
++++ b/dev/governance/rules/ci-autofix.md
+@@ -76,7 +76,7 @@ a `GITHUB_TOKEN` push's `pull_request` runs are held `action_required`, so the r
+ until approved: all three jobs approve them (kept until M-3), fail-soft without their
+ secrets, when an App push or body edit cures it. Absent is not green (`orchestrator.md` section 11).
+ 
+-When `mutation-autofix` goes red, run `--pin-killed` yourself. Until `mutation-pins` concludes the body says `unmeasured`;
++When `mutation-autofix` goes red, run `--pin-killed` yourself. If `mutation-pins` has not concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and the body says `unmeasured`;
+ `pinned` only if `--pin-killed` ran on this head. A pin stales the body's `## Red checks` `mutation` line; the reviewer re-checks it. Do not automate survivor triage,
+ golden drift, structure budgets, `no-copies`, orphan → `INERT`, or briefs lint. A new selectable script with **no** recording is
+ not UNDER-SCOPED — add it to a derive lane or `--single` it; autofix cannot invent a trace.
+diff --git a/tools/policy/policy_lint.mjs b/tools/policy/policy_lint.mjs
+index 2439f84bb..63a5d845c 100644
+--- a/tools/policy/policy_lint.mjs
++++ b/tools/policy/policy_lint.mjs
+@@ -6240,10 +6240,21 @@ function assertAcceptance(derived) {
+       const mutWords = ['mutation-unpinned', 'unpinned-site', 'mutation-survivors']
+       const mut = opens(mutWords, mutWords)
+       const taughtOnly = opens(['harness', 'harness', 'other'])
++      // A friction-id row: three distinct untaught friction rule ids on three
++      // PRs. The derived family is the VERDICT table's; applied to friction
++      // ids it would file a spurious `other (untaught)` friction family.
++      const frictionWin = { prs: [], fetched: new Map() }
++      ;['zz-alpha', 'zz-beta', 'zz-gamma'].forEach((id, i) => {
++        const pr = String(7200 + i)
++        frictionWin.prs.push({ pr, subject: `x (#${pr})` })
++        frictionWin.fetched.set(pr, { body: `## Friction\n\n- \`${id}\`: \`cost\`: x.\n`, comments: [] })
++      })
++      const frictionFam = statsFindings({ ...frictionWin, fetchError: null, classes: ['merge', 'blocked'], blocks: ['harness', 'other', 'class-open'], passing: 'merge' })
++        .filter((f) => /would open .*\(family\)" -- friction family/.test(f.message))
+       if (
+-        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length
++        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length || frictionFam.length
+       ) {
+-        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none)`)
++        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none; 3 untaught friction ids -> ${frictionFam.length} friction-family would-open(s), want none)`)
+         rc = 1
+       }
+     }
+diff --git a/tools/pr/ci_predict.py b/tools/pr/ci_predict.py
+index 22bc0262b..8ad7b7965 100644
+--- a/tools/pr/ci_predict.py
++++ b/tools/pr/ci_predict.py
+@@ -1225,6 +1225,8 @@ def mutant_self_test(root: Path) -> int:
+              "x = 1\n", {"tools/audit/seat/owner.py"}, 1),
+             ("the same target with its anchor intact is predicted green",
+              "ANCHOR\n", {"tools/audit/seat/owner.py"}, 0),
++            ("a diff touching only the driver runs it: the driver is its own target",
++             "x = 1\n", {"tools/audit/seat/r10_x_mutants.py"}, 1),
+             ("null control: a diff touching no planted target runs no driver (the anchor is gone, no red)",
+              "x = 1\n", {"tools/audit/seat/other.py"}, 0),
+         ]

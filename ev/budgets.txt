@@ -1,0 +1,2 @@
+.claude/rules/ci-autofix.md                       88   96     1469  1469 
+rc=0
