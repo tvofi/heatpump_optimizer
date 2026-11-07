@@ -504,6 +504,34 @@ def self_test() -> int:
                        (["git", "fetch", "origin"], False)):
         check(f"is_read({' '.join(argv)}) is {want}", is_read(argv) is want)
 
+    # git's rule (R10-TRAIN-MERGE-LOOP-2): the loop, its runner and the CLI the
+    # shell callers use. merge_train.py's self-test holds the classifier's table.
+    import contextlib
+    import io
+    outs, logs, slept = [(1, "error: RPC failed; HTTP 502"), (0, "ok")], [], []
+    got = run_git_retry(lambda argv: outs.pop(0), ["git", "fetch"], slept.append, logs.append)
+    check("run_git_retry: a 502 then success answers the success after one 5 s settle, logged once",
+          got == (0, "ok") and slept == [5] and len(logs) == 1 and "git 1/3" in logs[0])
+    code, o = _run_captured(["git", "--version"])
+    check("_run_captured: git's own output comes back, with its exit code", code == 0 and o.startswith("git version"))
+    for text, rc in (("fatal: unable to access 'u': The requested URL returned error: 502", 0),
+                     ("! [rejected] main -> main (non-fast-forward)", 1)):
+        with contextlib.redirect_stdout(io.StringIO()), contextlib.redirect_stderr(io.StringIO()):
+            stdin, sys.stdin = sys.stdin, io.StringIO(text)
+            try:
+                got = main(["--classify-git"])
+            finally:
+                sys.stdin = stdin
+        check(f"--classify-git exits {rc} on {text[:40]!r}", got == rc)
+    for argv, rc, want in ((["git", "--version"], 0, "git version"), (["git", "--no-such-flag"], 129, "unknown option")):
+        out, err = io.StringIO(), io.StringIO()
+        with contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            got = main(["--git-retry", *argv])
+        check(f"--git-retry {' '.join(argv)}: rc {rc}, git's output on {'stdout' if rc == 0 else 'stderr'}",
+              got == rc and want in (out if rc == 0 else err).getvalue())
+    with contextlib.redirect_stderr(io.StringIO()):
+        check("--git-retry refuses an argv that is not git (usage, rc 2)", main(["--git-retry", "ls"]) == 2)
+
     print(f"gh_read self-test: {passed + failed} checks, {failed} failed")
     return 1 if failed else 0
 

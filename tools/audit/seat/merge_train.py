@@ -7952,7 +7952,7 @@ def _post_approval_self_test(check) -> None:
     """`add --wait-post-approval`: a fake gh, a fake clock; sleeping advances it."""
     H, OLD, AT, NEW = "a" * 40, "2026-01-01T10:00:00Z", "2026-01-01T11:00:00Z", "2026-01-01T11:05:00Z"
 
-    def wait(runs_by_poll, ref=H, budget=10000.0, verdict="merge"):
+    def wait(runs_by_poll, ref=H, budget=10000.0, verdict="merge", comments=None):
         clk, slept = [0.0], []
 
         def run(argv, **kw):
@@ -7963,6 +7963,8 @@ def _post_approval_self_test(check) -> None:
                 return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "state": "APPROVED", "commit_id": H,
                                        "submitted_at": AT}]])
             if "/comments" in j:
+                if comments is not None:
+                    return 0, comments
                 return 0, json.dumps([[{"user": {"login": APPROVER_BOT}, "body": f"Fix review: {verdict} {H}\nn"}]])
             if "check-runs" in j:
                 rs = runs_by_poll[min(len(slept), len(runs_by_poll) - 1)]
@@ -7988,6 +7990,12 @@ def _post_approval_self_test(check) -> None:
     check("post-approval wait: an approval review with no `Fix review: merge <head>` comment beside it "
           "waits to the budget (rc 3), naming the missing verdict",
           rc == 3 and "WAIT BUDGET SPENT" in lines[-1] and "verdict comment" in lines[-1])
+    rc, slept, lines = wait([[old_green, cr(NEW)]], comments="not json", budget=500)
+    check("post-approval wait: an unparseable comment listing is no verdict: it waits to the budget (rc 3)",
+          rc == 3 and "verdict comment" in lines[-1])
+    rc, slept, _ = wait([[old_green, cr(AT)]])
+    check("post-approval wait: a gate run started at the approval's own second counts as the re-run (adds, rc 0)",
+          rc == 0 and not slept)
     rc, slept, _ = wait([[old_green]])
     check("post-approval wait: only a pre-approval run is no re-run: it waits to the budget (rc 3)",
           rc == 3 and bool(slept))
