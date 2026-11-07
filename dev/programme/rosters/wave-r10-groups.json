@@ -18484,7 +18484,7 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "not-started",
+    "stage": "in-progress",
     "branch": "handoff/r10-i18n-de",
     "note": "owner request 2026-11-07 (tvofi), sized M, folded into round 10; overlap admitted (R10-ARCH-DOCS, R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED): owner request 2026-11-07 (tvofi): German UI language, sized M, folded into round 10"
    },
