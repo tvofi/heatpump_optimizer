@@ -1,0 +1,15 @@
+runs 1217 attempts 1975 attempts updated<=04:00Z 1929
+total_count 1217
+== brief hour
+CLASS live-head external cancels: 7, minutes lost 179.9 (attempt start to cancel)
+  42332985078/1    code   fix/r10-carry-residue              96987ab3d722 2026-11-07T03:13:18Z -> 2026-11-07T03:25:07Z  11.8 min @tvofi
+  42332429939/1    code   fix/r10-why-now-widget             0260beb41c2e 2026-11-07T03:06:25Z -> 2026-11-07T03:16:54Z  10.5 min @tvofi
+  42331131423/1    code   fix/r10-sweep-template-sync        61f1ec71a428 2026-11-07T02:49:46Z -> 2026-11-07T03:34:59Z  45.2 min @tvofi
+  42329898240/1    code   fix/r10-clone-2238                 a46e4d02fac4 2026-11-07T02:34:11Z -> 2026-11-07T03:41:16Z  67.1 min @tvofi
+  42329754862/1    code   fix/r10-flow-toolkit-model         0ce1f09bd196 2026-11-07T02:32:27Z -> 2026-11-07T02:54:44Z  22.3 min @tvofi
+  42329713447/1    code   fix/triage-s12-batch128            d37fea157d55 2026-11-07T02:31:58Z -> 2026-11-07T02:38:08Z   6.2 min @tvofi
+  42329221705/2    code   fix/r10-ext-3226                   28e4375441e6 2026-11-07T03:32:55Z -> 2026-11-07T03:49:41Z  16.8 min @tvofi
+== record/autofix share
+40
+== TZ check
+CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)

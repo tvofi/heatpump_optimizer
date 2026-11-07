@@ -1,0 +1,43 @@
+== merge-tree
+LEDGER-MERGE: resolved tests/closures.json
+  inert_reads.tests/harness_headers.py: merged as a set (960 entries)
+  re-run the gate that owns this file before pushing
+823ef0492960c2e5f52140d25e84590055333937
+rc=0
+origin/main be813ecd4924865b75489f12c56600e9432d5727
+== untouched
+(empty=untouched)
+== fold_ledger
+fold_ledger: 49 classes, 755 instances, 121 in-tree judge survivors (rounds [8, 10]), 134 rca entries
+fold_ledger: 0 violation(s)
+== structure
+
+STRUCTURE RATCHET PASSED
+== closure select
+  MODE: SCOPED -- 1 script(s) run, 32 scoped out.
+  closure. The claim is re-checked by the FULL unscoped suite that runs
+  gate. Set GATE_SCOPE=full to run everything here and now.
+== entities
+
+ALL 2640 ENTITY CHECKS PASSED
+== harness_headers
+ModuleNotFoundError: No module named 'homeassistant'
+== agreement
+  discovery: 580 governance code files, 2239 distinct grammars, 31 shared by two or more files
+RESULT divergent=0 unregistered=0 dead=0 refused=0 seconds=5.3
+AGREEMENT ok
+== ci.yml concurrency
+69:concurrency:
+70-  group: CI-${{ github.run_id }}
+71-  cancel-in-progress: false
+== P267 grep at origin/main
+(end)
+~~^^^^^^^^^^^^^^
+KeyError: 'properties'
+== fold_ledger sync check
+                      [{fold,check,refresh,sync}]
+fold_ledger.py: error: unrecognized arguments: --check
+bugclasses-ids 49 enum 49 CLASS_GUESS 49 FINDING_REPORT 49
+diffs set() set() set()
+rca key in _rca: True class->rca ['R10-RCA-LIVEHEAD-CANCEL']
+sync then git status:

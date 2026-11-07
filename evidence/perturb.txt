@@ -1,0 +1,49 @@
+== P0 unperturbed
+CANCELLED    182  by=@github-actions[bot]         head=superseded
+CANCELLED    154  by=@tvofi                       head=live
+CANCELLED     29  by=@tvofi                       head=superseded
+CANCELLED     32  by=timeout                      head=live
+CANCELLED      1  by=timeout                      head=superseded
+CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
+CANCELLED      1  by=timeout+@tvofi               head=live
+CANCELLED     17  by=unattributed                 head=live
+CANCELLED      2  by=unattributed                 head=superseded
+CLASS live-head external cancels: 155, minutes lost 2864.7 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+== P-concurrency: every @tvofi annotation replaced by the concurrency line
+CANCELLED    182  by=@github-actions[bot]         head=superseded
+CANCELLED    154  by=concurrency                  head=live
+CANCELLED     29  by=concurrency                  head=superseded
+CANCELLED     33  by=timeout                      head=live
+CANCELLED      1  by=timeout                      head=superseded
+CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
+CANCELLED     17  by=unattributed                 head=live
+CANCELLED      2  by=unattributed                 head=superseded
+CLASS live-head external cancels: 0, minutes lost 0.0 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+== P-bot: every @tvofi annotation replaced by the bot line
+CANCELLED    154  by=@github-actions[bot]         head=live
+CANCELLED    211  by=@github-actions[bot]         head=superseded
+CANCELLED     32  by=timeout                      head=live
+CANCELLED      1  by=timeout                      head=superseded
+CANCELLED      1  by=timeout+@github-actions[bot] head=live
+CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
+CANCELLED     17  by=unattributed                 head=live
+CANCELLED      2  by=unattributed                 head=superseded
+CLASS live-head external cancels: 0, minutes lost 0.0 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
+injected 421 newer-head runs 1 s before each cancel
+== P-superseded
+CANCELLED    182  by=@github-actions[bot]         head=superseded
+CANCELLED    183  by=@tvofi                       head=superseded
+CANCELLED     33  by=timeout                      head=superseded
+CANCELLED      1  by=timeout+@github-actions[bot] head=superseded
+CANCELLED      1  by=timeout+@tvofi               head=superseded
+CANCELLED      1  by=unattributed                 head=live
+CANCELLED     18  by=unattributed                 head=superseded
+CLASS live-head external cancels: 0, minutes lost 0.0 (attempt start to cancel)
+NULLCONTROL-HEAD live=0 class=0
+NULLCONTROL-BOT class=0
