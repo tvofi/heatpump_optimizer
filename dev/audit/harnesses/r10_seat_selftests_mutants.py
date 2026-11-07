@@ -229,6 +229,13 @@ MUTANTS = [
     ("bus-7", "bus.sh", '[ -n "$a" ] && [ -z "$(grep -vxF \'dependabot[bot]\' <<< "$a")" ]  # mut:botonly', '[ -n "$a" ]'),
     ("bus-8", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:watchlock', 'if false; then'),
     ("bus-9", "bus.sh", '  rm -f "$b"; [ "$rc" != 1 ]  # mut:landed', '  rm -f "$b"; true'),
+    ("bus-10", "bus.sh", 'if [ "$(git rev-parse "$tip^{tree}" 2>/dev/null)" = "$tree" ]; then  # mut:sametree', 'if false; then'),
+    ("bus-11", "bus.sh", 'if [ -n "$holder" ] && kill -0 "$holder" 2>/dev/null; then  # mut:confirmlock', 'if false; then'),
+    ("bus-12", "bus.sh", '    [ "$v" != merge ] || die "dispatch: #$pr\'s head $h already holds a merge verdict, so no second reviewer is dispatched"  # mut:mergehead', '    true'),
+    ("bus-13", "bus.sh", 'if [ -n "$fixing" ]; then  # mut:autofixhold', 'if false; then'),
+    ("bus-14", "bus.sh", """select(.status != "completed") | .name' 2>>"$err"); then  # mut:completedfilter""", """select(true) | .name' 2>>"$err"); then  # mut:completedfilter"""),
+    ("bus-15", "bus.sh", """sed 's/^/bus: check-runs read: /' "$err" >&2; rm -f "$err"; return 1""", """rm -f "$err"; return 0"""),
+    ("bus-16", "bus.sh", 'if [ -z "$holder" ] && [ "$blank" -lt "${HPO_BUS_PID_SETTLE:-10}" ]; then  # mut:pidsettle', 'if false; then'),
     # P43: the pre-flight reads each pull request's destinations with its head as the extra ref
     ("queue_pre_flight-1", "queue_pre_flight.py", "extra_ref=head or None)", "extra_ref=None)"),
     # carry_audit.py check reads no roster for a verdict with no finding item (bus.sh's step grades it:
@@ -358,6 +365,7 @@ MUTANTS = [
     # R10-ORCH-REVIEW-PACKET (P229, P256): the handoff-not-applied signal, the
     # handoff refusals and body_push's call of them; body_push-1/2 are graded by
     # prepr's self-test (STEP_OF), which drives body_push.
+    ("review_packet-own", "review_packet.py", "    this_pr, note = own_pr(open_prs, topic, is_ancestor)  # mut:ownpr", "    this_pr, note = 0, None"),
     ("review_packet-1", "review_packet.py",
      "return None if is_ancestor(tip, head) else", "return None if not is_ancestor(tip, head) else"),
     ("review_packet-2", "review_packet.py",
