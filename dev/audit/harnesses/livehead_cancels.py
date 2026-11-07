@@ -53,16 +53,18 @@ from pathlib import Path
 REPO = "tvofi/heatpump_optimizer"
 BOT = "github-actions[bot]"
 PAGE = 100
+TRANSIENT = ("(HTTP 5", "connection reset", "EOF", "timeout", "TLS handshake")
 CAP = 1000  # GitHub's ceiling on a filtered runs listing, reached silently
 
 
 def gh(path: str) -> object:
-    """One read; a 5xx answer is retried after 2, 4 and 8 s, any other failure stops the fetch."""
+    """One read; a transient failure (5xx, a reset or dropped connection) is retried after
+    2, 4 and 8 s, and any other failure (a 4xx) stops the fetch."""
     for wait in (2, 4, 8, None):
         p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
         if p.returncode == 0:
             return json.loads(p.stdout)
-        if wait is None or "(HTTP 5" not in p.stderr:
+        if wait is None or not any(t in p.stderr for t in TRANSIENT):
             break
         time.sleep(wait)
     raise SystemExit(f"gh api {path}: exit {p.returncode}: {p.stderr.strip()[:200]}")
@@ -162,6 +164,9 @@ def fetch(cache: Path, since: str, until: str | None) -> None:
     """GitHub returns at most CAP runs for a filtered listing and says nothing when it
     stops, so the window is read in slices and a slice that reaches CAP is refused."""
     cache.mkdir(parents=True, exist_ok=True)
+    if (cache / "attempts.jsonl").exists():
+        print(f"fetch: reusing {cache / 'attempts.jsonl'}; delete it to re-list")
+        return fetch_cancellers(cache, [json.loads(x) for x in open(cache / "attempts.jsonl")])
     until = until or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
     attempts: list[dict] = []
     for lo, hi in slices(since, until):
@@ -184,8 +189,17 @@ def fetch(cache: Path, since: str, until: str | None) -> None:
     with open(cache / "attempts.jsonl", "w") as f:
         for a in attempts:
             f.write(json.dumps({k: a.get(k) for k in keep}) + "\n")
-    with open(cache / "cancellers.jsonl", "w") as f:
+    fetch_cancellers(cache, attempts)
+
+
+def fetch_cancellers(cache: Path, attempts: list[dict]) -> None:
+    """One record per cancelled attempt, appended, so a stopped fetch resumes where it stopped."""
+    path = cache / "cancellers.jsonl"
+    done = {json.loads(x)["key"] for x in open(path)} if path.exists() else set()
+    with open(path, "a") as f:
         for a in attempts:
+            if f"{a['id']}/{a['run_attempt']}" in done:
+                continue
             if a.get("conclusion") != "cancelled" or a.get("event") != "pull_request" or a.get("head_branch") == "main":
                 continue
             jobs = gh(f"repos/{REPO}/actions/runs/{a['id']}/attempts/{a['run_attempt']}/jobs?per_page=100")["jobs"]
@@ -197,6 +211,7 @@ def fetch(cache: Path, since: str, until: str | None) -> None:
                 if canceller(rec["first"]) == "timeout" and len(cj) > 1:
                     rec["last"] = [x["message"] for x in gh(f"repos/{REPO}/check-runs/{cj[-1]['id']}/annotations")]
             f.write(json.dumps(rec) + "\n")
+            f.flush()
 
 
 def load(cache: Path, since: str | None, until: str | None) -> list[dict]:
