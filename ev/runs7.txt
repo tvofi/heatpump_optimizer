@@ -1,0 +1,8 @@
+42344537787 workflow_dispatch 2026-11-07T05:52:24Z cancelled be813ecd total=1053 record-autofix=1 shards_ok=4 ledger-push=cancelled lost=788
+42346251204 workflow_dispatch 2026-11-07T06:16:14Z cancelled be813ecd total=943 record-autofix=1 shards_ok=1 ledger-push=cancelled lost=127
+42353878060 workflow_dispatch 2026-11-07T08:04:08Z cancelled 0e9c508c total=410 record-autofix=1 shards_ok=0 ledger-push=cancelled lost=0
+42357667261 workflow_dispatch 2026-11-07T08:57:51Z cancelled 62bcca76 total=187 record-autofix=1 shards_ok=0 ledger-push=cancelled lost=0
+42364230438 workflow_dispatch 2026-11-07T10:30:26Z cancelled c9c88336 total=538 record-autofix=1 shards_ok=0 ledger-push=cancelled lost=0
+42367391498 workflow_dispatch 2026-11-07T11:15:15Z cancelled 08fd676e total=305 record-autofix=1 shards_ok=0 ledger-push=cancelled lost=0
+42369836867 workflow_dispatch 2026-11-07T11:50:04Z cancelled 08fd676e total=120 record-autofix=1 shards_ok=0 ledger-push=cancelled lost=0
+RESULT runs=7 runner_min=3557 record_autofix_min=6 cancelled=7 lost_ledger_min=916
