@@ -17614,7 +17614,7 @@
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
-    "branch": "design/r10-combi-tank",
+    "branch": "handoff/r10-combi-tank",
     "note": "size L is provisional; the design sets the final size and owning seam",
     "pr": 3268
    },
