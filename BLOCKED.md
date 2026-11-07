@@ -1,0 +1,7 @@
+# BLOCKED: r10-body-contract-p3
+
+Repairs 2 and 3 are done and green at b4e835040: figure_block.py builds its self-test repository with throwaway_git_init (throwaway git check: 0 raw sites), and prepr's self-test reads 515 passed, 0 failed.
+
+Repair 1 cannot be made clean inside this pull request. figure_block.py is registered in DECLARED in tools/policy/field_coverage.mjs and the head's own field coverage run reads FIELD COVERAGE ok. But prepr step "ci predict" still REFUSES: CI grades policy-docs with the BASE's copy of field_coverage.mjs, whose DECLARED lacks the entry, and governance.yml (self-test step) pins figure_block.py in this head: `REFUSED registry: pinned tools/pr/figure_block.py is unregistered`. This is the same chicken-and-egg ee2974270 solved for machinery_ratchet.py with a `pending:` entry landed on main BEFORE the part that pins.
+
+Question for the orchestrator/owner: (a) land first, as its own change on main, the entry `'pinned tools/pr/figure_block.py': { none: ..., pending: 'R10-BODY-CONTRACT part 3 pins it in governance.yml' }`, then this part (which drops `pending`) is clean; or (b) accept the governance / policy-docs red on this part as a one-time bootstrap; or (c) have this part stop pinning figure_block.py (remove the governance.yml self-test step and the pr-contract use), which loses the self-test's CI coverage. I took none of these, since (c) cuts coverage and (a)/(b) are not mine to land.
