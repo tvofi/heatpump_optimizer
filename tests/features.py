@@ -78453,6 +78453,22 @@ R.check(
     f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
 )
 
+# P3's rule itself, on a real result: two-zone with an upper trajectory reads
+# it; single-zone, or two-zone without one, reads the room.
+_c2238_p3_rule = _c2238_result(3)
+_c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_bare = _c2238_result(3)
+R.check(
+    "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
+    "mode with an upper trajectory, else the room",
+    _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
+    and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
+    f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
+    f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
 # P4: window means at their billed-equivalent factor -- the published peak_kw,
 # the exact charge and the batch surrogate all read tariff.billed_windows.
 _c2238_ct = CapacityTariff(

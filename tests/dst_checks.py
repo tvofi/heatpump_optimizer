@@ -2495,6 +2495,20 @@ R.check(
     f"{_c2238_gated}",
 )
 
+# P2's bound itself: a residual exactly at HOUSE_LOSS_MAX_RESIDUAL is still a
+# heat-loss error (the copies refused only ``>``); one ulp past it is refused.
+_c2238_max = _c2238_cmod.HOUSE_LOSS_MAX_RESIDUAL
+_c2238_past = float(np.nextafter(_c2238_max, np.inf))
+R.check(
+    "R10-CLONE-2238 P2: _loss_residual_rejected keeps a residual at the bound "
+    "(either sign) and refuses one just past it",
+    not _c2238_cmod._loss_residual_rejected(_c2238_max, "house heat loss")
+    and not _c2238_cmod._loss_residual_rejected(-_c2238_max, "house heat loss")
+    and _c2238_cmod._loss_residual_rejected(_c2238_past, "house heat loss") is True
+    and _c2238_cmod._loss_residual_rejected(-_c2238_past, "house heat loss") is True,
+    f"bound {_c2238_max}, past {_c2238_past}",
+)
+
 # P9: each window's real local start -- the billing factors and the day labels
 # are both read off tariff._window_starts.
 _c2238_noon = datetime(2030, 1, 15, 12, 0, tzinfo=STHLM)
