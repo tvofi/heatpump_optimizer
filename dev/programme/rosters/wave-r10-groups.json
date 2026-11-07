@@ -16189,9 +16189,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-roster-read-sweep",
-    "commit": null,
+    "commit": "87c2852ebc53596db6449a50f5ba004168645742",
     "last_step": null,
     "next_step": "dispatch a fixer",
     "note": "s11 replan fold",
