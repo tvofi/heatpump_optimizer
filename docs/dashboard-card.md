@@ -249,10 +249,12 @@ audited.
 
 ### Language and currency
 
-Every string the card draws lives in one table inside the card file, in English
-and Swedish — the same keys in both languages, with no Swedish entry missing.
+Every string the card draws lives in one table inside the card file, in English,
+Swedish and German — the same keys in every language, with no translated entry
+missing.
 The active
-language follows `hass.language`, so `sv-SE` selects Swedish and any language
+language follows `hass.language`, so `sv-SE` selects Swedish, `de-DE` (or
+`de-AT`, `de-CH`) selects German, and any language
 without a dictionary renders in English; a key missing from a translation falls
 back to its English text rather than to a blank. Switching the Home Assistant
 language re-renders the card without a reload. Times in axis labels and slot
@@ -263,7 +265,8 @@ names, reason codes, and the messages the card writes to the browser console.
 Those are contracts, not prose.
 
 The default title is localized too, so a Swedish install shows
-*Värmepumpsplan* where an English one shows *Heat pump plan*. Set `title:`
+*Värmepumpsplan* and a German one *Wärmepumpenplan* where an English one shows
+*Heat pump plan*. Set `title:`
 yourself and yours wins in every language.
 
 Prices are labelled with the first currency the card can find:

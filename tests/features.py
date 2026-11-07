@@ -14,7 +14,7 @@ from __future__ import annotations
 import sys
 from datetime import datetime, timedelta, timezone
 
-from harness import FakeHass, FakeState, Results, UTC, minutes_ago, with_config
+from harness import FakeHass, FakeState, Results, UTC, SHIPPED_CATALOGUES, TRANSLATED_LANGS, minutes_ago, with_config
 from profiles import solve_inputs  # noqa: E402
 
 import numpy as np
@@ -5634,7 +5634,7 @@ import json as _rt_json  # noqa: E402
 import re as _rt_re  # noqa: E402
 
 _rt_examples = {}
-for _rt_f in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _rt_f in ("strings.json", *SHIPPED_CATALOGUES):
     with open(f"custom_components/heatpump_optimizer/{_rt_f}", encoding="utf-8") as _fh:
         _rt_doc = _rt_json.load(_fh)
 
@@ -13696,8 +13696,7 @@ R.check(
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["abort"].get("factory_reset_not_applied")
             and _fi_json.loads(_FrPath(p).read_text())["exceptions"]["factory_reset_not_applied"]["message"]
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
     f"{_fr_refused[0]}, raised {_fr_refused[1]!r}",
 )
 _fr_off = _aio.run(_fr_flow_case({"scope": "both", "confirm": True}, "fr_flow_off", loaded=False))
@@ -13712,8 +13711,7 @@ R.check(
     "factory_reset" in _fr_flow.HeatPumpOptimizerOptionsFlow._ADVANCED_MENU
     and all(_fi_json.loads(_FrPath(p).read_text())["options"]["step"]["advanced"]["menu_options"].get("factory_reset")
             for p in ("custom_components/heatpump_optimizer/strings.json",
-                      "custom_components/heatpump_optimizer/translations/en.json",
-                      "custom_components/heatpump_optimizer/translations/sv.json")),
+                      *(f"custom_components/heatpump_optimizer/{c}" for c in SHIPPED_CATALOGUES))),
 )
 
 _fr_svc_refused = []
@@ -26437,7 +26435,7 @@ R.check(
     f"{_svc_valid_entry.runtime_data._thermal_params.dhw_windows}",
 )
 
-# The translations: every new key in all three files, each message naming
+# The translations: every new key in every file, each message naming
 # exactly the placeholders its raise passes, strings.json parity with
 # en.json (hassfest), and no single-quoted placeholder anywhere (hassfest).
 import json as _svc_json  # noqa: E402
@@ -26447,7 +26445,10 @@ _SVC_FILES = {}
 for _svc_label, _svc_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_svc_path, encoding="utf-8") as _svc_fh:
         _SVC_FILES[_svc_label] = _svc_json.load(_svc_fh).get("exceptions", {})
@@ -26459,7 +26460,7 @@ _svc_missing = {
     if key not in block
 }
 R.check(
-    "every operational-failure key exists in strings.json, en.json and sv.json",
+    "every operational-failure key exists in strings.json and every translation",
     not _svc_missing,
     f"missing: {sorted(_svc_missing)}",
 )
@@ -26471,7 +26472,7 @@ def _svc_names(message):
 
 _svc_bad = []
 for _svc_key, (_svc_want, _svc_cls) in _SVC_KEYS.items():
-    for _svc_label in ("strings", "en", "sv"):
+    for _svc_label in _SVC_FILES:
         _svc_msg = _SVC_FILES[_svc_label].get(_svc_key, {}).get("message", "")
         if _svc_names(_svc_msg) != _svc_want:
             _svc_bad.append(
@@ -30490,10 +30491,19 @@ for _lang_cl in narrative_mod.TEMPLATES:  # every shipped language
 _card_src_cl = _Path(
     "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js"
 ).read_text(encoding="utf-8")
+# One label per dictionary in the card's STRINGS table, plus the code's map.
+import re as _re_cl  # noqa: E402
+_card_langs_cl = _re_cl.findall(
+    r"^  ([a-z]{2}): \{$",
+    _card_src_cl.split("const STRINGS = {", 1)[1].split("\n};", 1)[0],
+    _re_cl.M,
+)
 R.check(
-    "and a card label in both languages, wired to the code",
-    _card_src_cl.count('"reasons.scheduled"') == 3
+    "and a card label in every card language, wired to the code",
+    len(_card_langs_cl) >= 2
+    and _card_src_cl.count('"reasons.scheduled"') == len(_card_langs_cl) + 1
     and "scheduled: \"reasons.scheduled\"," in _card_src_cl,
+    f"{_card_src_cl.count(chr(34) + 'reasons.scheduled' + chr(34))} uses over {_card_langs_cl}",
 )
 
 
@@ -35936,7 +35946,7 @@ R.check(
     and abs(_lg_skew_past - 2.0) < 1e-3,
     f"future {_lg_skew_future!r} h, past {_lg_skew_past!r} h",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _lg_doc = _json.loads(
         (_PKG_DIR / _lang_file).read_text(encoding="utf-8")
     )
@@ -36234,7 +36244,7 @@ R.check(
     60.0 < MODE_LAST_GOOD_MAX_AGE_MINUTES < 360.0,
     f"{MODE_LAST_GOOD_MAX_AGE_MINUTES} min",
 )
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _ex_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the mode-unreadable notice is translated in {_lang_file}",
@@ -38857,7 +38867,7 @@ for _wx_key in ("solar_irradiance", "native_solar_irradiance"):
 # D10-17 (#217, Gold `exception-translations`): every user-facing
 # ServiceValidationError must carry translation_domain + translation_key and
 # placeholders for exactly the values the old English f-string interpolated,
-# and strings.json / en.json / sv.json must carry an exceptions section
+# and strings.json / every translation must carry an exceptions section
 # covering them. Each of the 13 raise sites is driven with input that reaches
 # it -- through hass.services.async_call, which dispatches the real schema to
 # the real handler the way Home Assistant does, and for the coordinator's
@@ -39267,26 +39277,28 @@ _et_check(
     "set_temperature_comfort_band_violation",
 )
 
-# The translations themselves: same key set in all three files, each message
+# The translations themselves: same key set in every file, each message
 # naming exactly the placeholders its raise site passes, and strings.json
 # staying parity-identical with translations/en.json (hassfest).
 _ET_FILES = {}
 for _et_label, _et_path in (
     ("strings", "custom_components/heatpump_optimizer/strings.json"),
     ("en", "custom_components/heatpump_optimizer/translations/en.json"),
-    ("sv", "custom_components/heatpump_optimizer/translations/sv.json"),
+    *(
+        (_l, f"custom_components/heatpump_optimizer/translations/{_l}.json")
+        for _l in TRANSLATED_LANGS
+    ),
 ):
     with open(_et_path, encoding="utf-8") as _et_fh:
         _ET_FILES[_et_label] = _et_json.load(_et_fh).get("exceptions", {})
 
 R.check(
-    "every raised exception key exists in strings.json, en.json and sv.json",
+    "every raised exception key exists in strings.json and every translation",
     set(_ET_KEYS)
     == set(_ET_FILES["strings"])
     == set(_ET_FILES["en"])
-    == set(_ET_FILES["sv"]),
-    f"strings={sorted(_ET_FILES['strings'])} en={sorted(_ET_FILES['en'])} "
-    f"sv={sorted(_ET_FILES['sv'])}",
+    and all(set(_ET_FILES[_l]) == set(_ET_KEYS) for _l in TRANSLATED_LANGS),
+    " ".join(f"{_l}={sorted(_b)}" for _l, _b in _ET_FILES.items()),
 )
 
 
@@ -39296,7 +39308,7 @@ def _et_names(message):
 
 _et_bad = []
 for _et_key, _et_want in _ET_KEYS.items():
-    for _et_label in ("strings", "en", "sv"):
+    for _et_label in _ET_FILES:
         _et_msg = _ET_FILES[_et_label].get(_et_key, {}).get("message", "")
         if _et_names(_et_msg) != _et_want:
             _et_bad.append(
@@ -42555,7 +42567,7 @@ R.check(
     f"got {_sp_clim_fix.hass.services.calls!r}",
 )
 
-for _lang_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *SHIPPED_CATALOGUES):
     _sp_doc = _json.loads((_PKG_DIR / _lang_file).read_text(encoding="utf-8"))
     R.check(
         f"the DHW consistency notice is translated in {_lang_file}",
@@ -68419,7 +68431,7 @@ R.check(
 _dbg_rows = [f for f in _dbg_flow._OPTION_FIELDS if f.key == _dbg_const.CONF_DEBUG_COLLECT]
 _dbg_texts = {
     name: _dbg_json.loads((_DBG_ROOT / "custom_components/heatpump_optimizer" / name).read_text())
-    for name in ("strings.json", "translations/en.json", "translations/sv.json")
+    for name in ("strings.json", *SHIPPED_CATALOGUES)
 }
 R.check(
     "DBG-1 the option is one boolean on the learning page, off by default, with a label "
@@ -71329,7 +71341,7 @@ R.check(
     str(_frs_wiring()),
 )
 _FRS_PKG = _frs_Path(__file__).resolve().parent.parent / "custom_components/heatpump_optimizer"
-for _frs_file in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _frs_file in ("strings.json", *SHIPPED_CATALOGUES):
     _frs_doc = _frs_json.loads((_FRS_PKG / _frs_file).read_text(encoding="utf-8"))
     _frs_text = _frs_doc.get("issues", {}).get(_frs_mod.ISSUE_FLOOR_RETURN_SILENT, {})
     R.check(
@@ -77745,7 +77757,7 @@ _cpd_codes = {
                               "not_below_configured", "measured_below_configured"},
 }
 _cpd_tr_missing = []
-for _cpd_name in ("strings.json", "translations/en.json", "translations/sv.json"):
+for _cpd_name in ("strings.json", *SHIPPED_CATALOGUES):
     _cpd_tr = _cpd_json.loads((_CpdPath(__file__).resolve().parents[1] / "custom_components/heatpump_optimizer" / _cpd_name).read_text())
     _cpd_attrs_tr = _cpd_tr["entity"]["sensor"]["learning_model_status"].get("state_attributes", {})
     for _cpd_attr, _cpd_vals in _cpd_codes.items():

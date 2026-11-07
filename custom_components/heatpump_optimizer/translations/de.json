@@ -335,21 +335,21 @@
         "title": "Aus einem Wärmepumpengerät vorausfüllen",
         "description": "Ein Wärmepumpengerät in dieser Installation kann mehrere dieser Einstellungen aus seinen eigenen Entitäten beantworten. Wählen Sie es aus und senden Sie ab: Das nächste Formular schlägt vor, was seine Entitäten angeben, als gewöhnliche Felder, die Sie bearbeiten oder leeren können; geschrieben wird erst, wenn Sie dieses Formular absenden. Lassen Sie das Gerät leer, um dies zu überspringen und die Einrichtung fortzusetzen.\n\nGelesene Entitäten: {found}. Register für den Typ des Zusatzheizers: {backup_heater_type} - jeder Wert außer 7 bedeutet, dass die Pumpe eine eigene elektrische Heizung hat, die von den Heizstab-Feldern unter Wärmepumpen-Telemetrie überwacht werden soll.\n\nRollen, die aus dem NAMEN einer Entität statt aus einer veröffentlichten Definition gelesen wurden – die Seite kann diese nicht verifizieren, prüfen Sie daher jede vor dem Speichern: {name_matched}. Aus veröffentlichten Definitionen gelesene Rollen, nach Quelle: {matched_sources}.",
         "data": {
-          "prefill_device": "Wärmepumpengerät",
-          "dhw_setpoint": "Höchste Speichertemperatur beim Laden",
+          "prefill_device": "Wärmepumpen-Gerät",
+          "dhw_setpoint": "Höchste Ladetemperatur des Speichers",
           "dhw_min_temperature": "Benötigte Warmwassertemperatur",
-          "dhw_windows": "Wann Sie Warmwasser benötigen",
+          "dhw_windows": "Wann Sie Warmwasser brauchen",
           "dhw_legionella_temperature": "Temperatur der Legionellenschaltung",
           "dhw_legionella_interval_days": "Intervall der Legionellenschaltung",
-          "silent_mode_windows": "Nachtmodus-Zeitplan der Pumpe",
-          "heat_pump_max_power": "Max. Leistung der Wärmepumpe (kW)",
+          "silent_mode_windows": "Eigener Nachtmodus-Zeitplan der Pumpe",
+          "heat_pump_max_power": "Maximale Leistung der Wärmepumpe (kW)",
           "space_setpoint_unit": "Was diese Sollwert-Entität erwartet",
-          "mixing_valve_write_target_kind": "Was die Steuer-Entität erwartet",
-          "compressor_freq_sensor": "Sensor für die tatsächliche Frequenz (für die Steuerung empfohlen)",
+          "mixing_valve_write_target_kind": "Was die Steuerentität erwartet",
+          "compressor_freq_sensor": "Sensor der Ist-Frequenz (für die Steuerung empfohlen)",
           "outdoor_temp_entity": "Außentemperatursensor",
-          "dhw_temp_entity": "Temperatursensor des Warmwasserspeichers",
-          "heat_pump_supply_temp_entity": "Vorlauftemperatur (Wasser)",
-          "heat_pump_return_temp_entity": "Rücklauftemperatur (Wasser)",
+          "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
+          "heat_pump_supply_temp_entity": "Vorlauftemperatur",
+          "heat_pump_return_temp_entity": "Rücklauftemperatur",
           "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",
           "after_save": "Nach dem Speichern"
         },
@@ -2043,7 +2043,7 @@
         "name": "Holzfeuerung-Ratgeber für die Nacht"
       },
       "model_restart_advisor": {
-        "name": "Model Restart Advisor"
+        "name": "Modellneustart-Ratgeber"
       },
       "learning_model_status": {
         "name": "Lernen Modellstatus",
