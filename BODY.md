@@ -31,7 +31,7 @@ none known at this head; CI not yet run. No red check triggered this record.
 
 ## Forward-carry
 
-Carry: R10-HOTFIX-TRAIN-DEFER-WAIT: `train.sh add <pr> <verdict> --front` is refused by `merge_train.py` as an unknown argument after `--`; add the pass-through next to `--priority` with an argv pin in its self-test (this seat reverted its own copy; #3290 owns `train.sh`).
+Carry for R10-HOTFIX-TRAIN-DEFER-WAIT (body_push's carry check refused the `Carry:` form: that group's brief does not hold it yet; the orchestrator lands it): `train.sh add <pr> <verdict> --front` is refused by `merge_train.py` as an unknown argument after `--`; add the pass-through next to `--priority` with an argv pin in its self-test (this seat reverted its own copy; #3290 owns `train.sh`).
 
 ## Friction
 
