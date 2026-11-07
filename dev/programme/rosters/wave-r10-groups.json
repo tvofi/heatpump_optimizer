@@ -18226,7 +18226,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Re-routed from R10-PARTLOAD-PRICING carry 0 by the s12 carry-routing seat (2026-11-07): that group's pull request (#3182) built its own seam and closes; this residue is what it left. Original text: The 2.5x CPU cost of the live buffer store, and the 272 s owner-box outlier: a bound or warm start on the planner must earn it (R10-BUFFER-STORE carry, `optimizer.py`). Carry: R10-PARTLOAD-RESIDUE"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "not-started",
