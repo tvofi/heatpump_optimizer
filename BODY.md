@@ -59,7 +59,7 @@ This is past the third round, so this body replaces the earlier ones. Every figu
 
 ## Head
 
-07461bb3756bd7189f51c60677f5c0c092680610 (code at `handoff/r10-sav-wood-heat`).
+4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b (the pull-request head, `fix/r10-sav-wood-heat`): the merge `4ee05dcd9` of the code handoff `07461bb3756bd7189f51c60677f5c0c092680610` (`handoff/r10-sav-wood-heat`). `git diff --stat 07461bb3 4ee05dcd` is empty, so the tree equals the handoff's and every figure below, taken at `07461bb3`, holds at the pull-request head.
 - It is the review head `8bc540e0`, then the merge `992dd8a58` of `origin/main` at `f2a015142714` (the merge base), then the one harness commit `07461bb37`. `git diff --stat 992dd8a5 07461bb3` lists only `dev/audit/harnesses/r10_sav_receipt_render.py`. `git diff --quiet 8bc540e0 992dd8a5 -- custom_components blueprints docs README.md tests/entities.py tests/features.py tests/card.mjs tests/card_browser.mjs dev/audit/harnesses tests/golden` exits 0, so main's merge changed none of the files this PR's figures read.
 - `origin/main` has not moved since the merge: it read `f2a015142714` at the `prepr.sh` run and again before the handoff, so no second merge was owed.
 - Every figure below was taken at this head. The mutants ran in a detached worktree at this head.
@@ -112,16 +112,23 @@ Failing test first: B1 is the blueprint before part 2's blueprint change, and th
 
 ## Red checks
 
-At the review head `8bc540e0`, every check run (68 in total, one page of up to 100) was read. Five concluded `failure`; every other run was `success` or `skipped`.
+Two heads have run CI. The check runs of both were read with every page and every attempt (`filter=all`; 68 runs at the PR head, one page of up to 100 per workflow run). Every other run at either head was `success` or `skipped`.
+
+At the PR head `4ee05dcd`, read after the first CI cycle:
 
 | check run | class | answer |
 |---|---|---|
-| `CodeQL` (128216329154): `code-scanning alert 50 (py/jinja2/autoescape-false)` | the diff's own | Alert 50 is fixed at `07461bb3`. Root fix: the render harness now builds `jinja2.Environment(autoescape=True)`, and its output is byte-identical (`## Null control`). The cheaper detector would be ruff's bandit rule S701 (`jinja2-autoescape-false`), run before the push. No ruff or bandit is in this repository's toolchain (`venv-ci`), so its standing cost would be a new linter dependency and lane for the one harness directory. CodeQL caught it on the first CI run, before any merge, so this seat builds nothing more; the analysis is `root-cause.md`'s seat if the orchestrator opens one. |
-| `pr-contract / pr-contract` (128227675815) | consequence | It refused the body because `## Red checks` did not name `code-scanning alert 50 (py/jinja2/autoescape-false)`. This table names it by that literal check name. |
-| `gate` (128227976173, code run 42312136574) | consequence | It failed on `pr-contract / pr-contract: failure (this run)`. It clears with the two rows above. |
-| `gate` (128216468204, run 42312137479) and `gate` (128218621028, run 42312767404) | consequence | The edit-run gates deferred to the code run's verdict (`FAIL run(s) [42312136574] at this head are still being judged; their gate decides`). They clear with it. |
+| `governance / instrument-self-tests` (128324881150, code run 42345231019): `cancelled` at 06:48:06 after a 30-minute start at 06:18:03 | class A, the 30-minute `instrument-self-tests` timeout | The timeout is owned by R10-HOTFIX-SELFTEST-TIMEOUT. No cheaper detector exists: the job is the self-test suite, and it ran out of time before it concluded. This diff touches no instrument. The code run's `gate` (128341143870) concluded `success` at 07:35:11, which judges the head. |
+| `gate` (128342239804, edit run 42345230614 attempt 2): `FAIL run(s) [42345649254] at this head are still being judged; their gate decides` | R10-HOTFIX-GATE-BUSY-DEFER (merged #3246, #3276) | The edit-run deferral. The other edit run 42345649254 (attempt 2) was still running at 07:42, so this edit run deferred to it. Run 42345649254 is the run that decides; its `gate` (128342242673) was `in_progress` at the read, and its `pr-contract`, `tests` and `governance` jobs were `skipped` by design. The edit run clears on that rerun. |
 
-No main-wide red: every other check run at `8bc540e0` concluded `success` or `skipped`. The final head has not run CI yet, because it reaches the pull request with this handoff.
+At the earlier review head `8bc540e0`, five runs concluded `failure`; a later push cleared all of them:
+
+| check run | class | answer |
+|---|---|---|
+| `CodeQL` (128216329154): `code-scanning alert 50 (py/jinja2/autoescape-false)` | the diff's own | Alert 50 is fixed at `07461bb3`, and `CodeQL` (128325422020) concluded `success` at `4ee05dcd`. Root fix: the render harness now builds `jinja2.Environment(autoescape=True)`, and its output is byte-identical (`## Null control`). The cheaper detector would be ruff's bandit rule S701 (`jinja2-autoescape-false`), run before the push. No ruff or bandit is in this repository's toolchain (`venv-ci`), so its standing cost would be a new linter dependency and lane for the one harness directory. CodeQL caught it on the first CI run, before any merge, so this seat builds nothing more; the analysis is `root-cause.md`'s seat if the orchestrator opens one. |
+| `pr-contract / pr-contract` (128227675815) | consequence | It refused the body because `## Red checks` did not name `code-scanning alert 50 (py/jinja2/autoescape-false)`. This table names it by that literal check name. `pr-contract / pr-contract` (128340923050) concluded `success` at `4ee05dcd`. |
+| `gate` (128227976173, code run 42312136574) | consequence | It failed on `pr-contract / pr-contract: failure (this run)`. It cleared with the two rows above. |
+| `gate` (128216468204, run 42312137479) and `gate` (128218621028, run 42312767404) | R10-HOTFIX-GATE-BUSY-DEFER (merged #3246, #3276) | Edit-run deferrals to the code run's verdict (`FAIL run(s) [42312136574] at this head are still being judged; their gate decides`). Code run 42312136574 is the run that decided; the head moved to `4ee05dcd` and the new code run's gate went green. |
 
 ## Forward-carry
 
