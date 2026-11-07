@@ -3,10 +3,8 @@
   {
    "at": "2026-11-07T10:02:00Z",
    "groups": [
-    "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
-    "R10-HOTFIX-NIGHTLY-STATUS",
-    "R10-HOTFIX-PLAN-LANES",
-    "R10-RCA-PROCESS-WORKER-HANG",
+    "R10-FLY-STAMP-FLUSH-COST",
+    "R10-FLY-STAMP-FLUSH-HOLD",
     "R10-SWEEP-TEMPLATE-SYNC"
    ],
    "id": 1
@@ -14,380 +12,476 @@
   {
    "at": "2026-11-07T10:30:00Z",
    "groups": [
-    "R10-HOTFIX-GATE-BUSY-DEFER",
-    "R10-REF-PRIVACY-CLOUD"
+    "R10-RCA-GATE-BUSY-DEFER-2"
    ],
    "id": 2
   },
   {
-   "at": "2026-11-07T11:28:00Z",
+   "at": "2026-11-07T10:58:00Z",
    "groups": [
-    "R10-HOTFIX-CODEQL-HEADROOM",
-    "R10-OUTSIDE-INTAKE"
+    "R10-FLY-CIPREDICT-RESTORING"
    ],
    "id": 3
   },
   {
-   "at": "2026-11-07T11:42:00Z",
+   "at": "2026-11-07T11:28:00Z",
    "groups": [
-    "R10-PROCESS-SLIM"
+    "R10-OUTSIDE-INTAKE"
    ],
    "id": 4
   },
   {
-   "at": "2026-11-07T12:37:00Z",
+   "at": "2026-11-07T13:19:00Z",
    "groups": [
-    "R10-CARRY-RESIDUE"
+    "R10-RELAY-SWEEP"
    ],
    "id": 5
   },
   {
-   "at": "2026-11-07T13:05:00Z",
+   "at": "2026-11-07T14:09:00Z",
    "groups": [
-    "R10-FRICTION-RECORDS"
+    "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
+    "R10-HOTFIX-PLAN-LANES",
+    "R10-HOTFIX-TRAIN-DEFER-WAIT"
    ],
    "id": 6
   },
   {
-   "at": "2026-11-07T13:19:00Z",
+   "at": "2026-11-07T14:23:00Z",
    "groups": [
-    "R10-RELAY-SWEEP",
-    "R10-ROSTER-READ-SWEEP"
+    "R10-HOTFIX-SELFTEST-TIMEOUT"
    ],
    "id": 7
   },
   {
-   "at": "2026-11-07T14:14:00Z",
+   "at": "2026-11-07T14:42:00Z",
    "groups": [
     "R10-FLOW-TOOLKIT-MODEL"
    ],
    "id": 8
   },
   {
-   "at": "2026-11-07T14:56:00Z",
+   "at": "2026-11-07T15:54:00Z",
    "groups": [
-    "R10-DISPATCH-AT-HANDOFF"
+    "R10-HOTFIX-CODEQL-HEADROOM"
    ],
    "id": 9
   },
   {
-   "at": "2026-11-07T17:47:00Z",
+   "at": "2026-11-07T16:00:00Z",
+   "groups": [
+    "R10-HOTFIX-GATE-BUSY-DEFER"
+   ],
+   "id": 10
+  },
+  {
+   "at": "2026-11-07T16:07:00Z",
+   "groups": [
+    "R10-PROCESS-SLIM"
+   ],
+   "id": 11
+  },
+  {
+   "at": "2026-11-07T17:05:00Z",
+   "groups": [
+    "R10-CLONE-2238",
+    "R10-WHY-NOW-WIDGET"
+   ],
+   "id": 12
+  },
+  {
+   "at": "2026-11-07T18:01:00Z",
    "groups": [
     "R10-COMBI-TANK"
    ],
-   "id": 10
+   "id": 13
   },
   {
    "at": "2026-11-08T05:50:00Z",
    "groups": [
     "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "id": 11
-  },
-  {
-   "at": "2026-11-08T06:18:00Z",
-   "groups": [
-    "R10-OVERBOOK-RESIDUAL",
-    "R10-PARTLOAD-PRICING"
-   ],
-   "id": 12
-  },
-  {
-   "at": "2026-11-08T09:07:00Z",
-   "groups": [
-    "R10-CI-RUNNER-FIXES"
-   ],
-   "id": 13
-  },
-  {
-   "at": "2026-11-08T10:02:00Z",
-   "groups": [
-    "R10-FLY-GH-READ-RETRY"
-   ],
    "id": 14
   },
   {
-   "at": "2026-11-08T10:44:00Z",
+   "at": "2026-11-08T10:30:00Z",
    "groups": [
-    "R10-PLANTED-DEFECT-AUDIT"
+    "R10-REPLAY-COST-BUDGET"
    ],
    "id": 15
   },
   {
-   "at": "2026-11-08T13:18:00Z",
+   "at": "2026-11-08T10:33:00Z",
    "groups": [
-    "R10-CLONE-2238",
-    "R10-WHY-NOW-WIDGET"
+    "R10-CI-OWN-DELIVERY-ROW"
    ],
    "id": 16
   },
   {
-   "at": "2026-11-08T13:35:00Z",
+   "at": "2026-11-08T11:02:00Z",
    "groups": [
-    "R10-POLICY-ROLE-PACK"
+    "R10-PARTLOAD-RESIDUE"
    ],
    "id": 17
   },
   {
-   "at": "2026-11-09T02:06:00Z",
+   "at": "2026-11-08T16:21:00Z",
    "groups": [
-    "R10-RAISE-GATE-SHIM"
+    "R10-CARRY-RESIDUE-2"
    ],
    "id": 18
   },
   {
-   "at": "2026-11-09T03:04:00Z",
+   "at": "2026-11-08T18:39:00Z",
    "groups": [
-    "R10-TICK-LEVELS"
+    "R10-HOTFIX-COP-UNMEASURED"
    ],
    "id": 19
   },
   {
-   "at": "2026-11-09T04:13:00Z",
+   "at": "2026-11-08T20:21:00Z",
    "groups": [
-    "R10-HANDOFF-PATH"
+    "R10-GENERIC-HEAT-CURVE"
    ],
    "id": 20
   },
   {
-   "at": "2026-11-09T04:41:00Z",
+   "at": "2026-11-08T22:48:00Z",
    "groups": [
-    "R10-ROSTER-WRITE-SWEEP"
+    "R10-ROUND-PLAYBOOK"
    ],
    "id": 21
   },
   {
-   "at": "2026-11-09T04:55:00Z",
+   "at": "2026-11-09T05:45:00Z",
    "groups": [
-    "R10-REPLAY-COST-BUDGET",
+    "R10-TICK-LEVELS",
     "R10-TRAIN-MERGE-LOOP"
    ],
    "id": 22
   },
   {
-   "at": "2026-11-09T05:15:00Z",
+   "at": "2026-11-09T06:50:00Z",
    "groups": [
-    "R10-FLY-CIPREDICT-RESTORING"
+    "R10-FLY-GH-READ-RETRY"
    ],
    "id": 23
   },
   {
-   "at": "2026-11-09T05:50:00Z",
+   "at": "2026-11-09T07:30:00Z",
    "groups": [
-    "R10-SUITE-HOST-DETERMINISM"
+    "R10-DISPATCH-AT-HANDOFF"
    ],
    "id": 24
   },
   {
-   "at": "2026-11-09T09:06:00Z",
+   "at": "2026-11-09T07:36:00Z",
    "groups": [
-    "R10-ADVISOR-WHATIF",
-    "R10-COP-GATE-D"
+    "R10-HANDOFF-PATH"
    ],
    "id": 25
   },
   {
-   "at": "2026-11-09T09:34:00Z",
+   "at": "2026-11-09T09:37:00Z",
    "groups": [
-    "R10-SAV-WOOD-MEASURED"
+    "R10-ROSTER-WRITE-SWEEP"
    ],
    "id": 26
   },
   {
-   "at": "2026-11-09T13:26:00Z",
+   "at": "2026-11-09T12:09:00Z",
    "groups": [
-    "R10-ORCH-ROSTER-SCHEMA"
+    "R10-FRICTION-RECORDS"
    ],
    "id": 27
+  },
+  {
+   "at": "2026-11-09T13:49:00Z",
+   "groups": [
+    "R10-SAV-WOOD-MEASURED"
+   ],
+   "id": 28
+  },
+  {
+   "at": "2026-11-09T16:01:00Z",
+   "groups": [
+    "R10-REPLAY-COST-2"
+   ],
+   "id": 29
+  },
+  {
+   "at": "2026-11-09T18:36:00Z",
+   "groups": [
+    "R10-PLANTED-DEFECT-AUDIT"
+   ],
+   "id": 30
+  },
+  {
+   "at": "2026-11-09T20:33:00Z",
+   "groups": [
+    "R10-COP-GATE-E"
+   ],
+   "id": 31
   },
   {
    "at": "2026-11-09T21:26:00Z",
    "groups": [
     "R10-SAV-COMFORT"
    ],
-   "id": 28
-  },
-  {
-   "at": "2026-11-09T21:54:00Z",
-   "groups": [
-    "R10-CLOSEOUT-CLEANUP"
-   ],
-   "id": 29
-  },
-  {
-   "at": "2026-11-09T22:52:00Z",
-   "groups": [
-    "R10-FLY-STANDING-CONTRACTS"
-   ],
-   "id": 30
-  },
-  {
-   "at": "2026-11-09T23:06:00Z",
-   "groups": [
-    "R10-PREPR-CAP"
-   ],
-   "id": 31
-  },
-  {
-   "at": "2026-11-09T23:18:00Z",
-   "groups": [
-    "R10-CI-PRIORITY-PAUSE"
-   ],
    "id": 32
   },
   {
-   "at": "2026-11-10T02:53:00Z",
+   "at": "2026-11-09T22:41:00Z",
    "groups": [
-    "R10-OPENER-REUSE"
+    "R10-TRAIN-MERGE-LOOP-2"
    ],
    "id": 33
   },
   {
-   "at": "2026-11-10T03:03:00Z",
+   "at": "2026-11-09T23:37:00Z",
    "groups": [
-    "R10-RELAY-HANDOFF-ARM"
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
    ],
    "id": 34
   },
   {
-   "at": "2026-11-10T03:08:00Z",
+   "at": "2026-11-10T01:47:00Z",
    "groups": [
-    "R10-TICK-PR-BUCKETS"
+    "R10-FLY-STANDING-CONTRACTS"
    ],
    "id": 35
   },
   {
-   "at": "2026-11-10T03:25:00Z",
+   "at": "2026-11-10T02:38:00Z",
    "groups": [
-    "R10-CARRY-RESIDUE-2",
-    "R10-SEAT-SINGLE-WRITER"
+    "R10-CI-PRIORITY-PAUSE",
+    "R10-POLICY-ROLE-PACK"
    ],
    "id": 36
   },
   {
-   "at": "2026-11-10T04:54:00Z",
+   "at": "2026-11-10T03:18:00Z",
    "groups": [
-    "R10-HOTFIX-GATE-STALE-JOBS",
-    "R10-RCA-SAV-ESTIMATE"
+    "R10-RAISE-GATE-SHIM"
    ],
    "id": 37
   },
   {
-   "at": "2026-11-10T05:46:00Z",
+   "at": "2026-11-10T03:24:00Z",
    "groups": [
-    "R10-TRAIN-MERGE-LOOP-2"
+    "R10-ROSTER-READ-SWEEP"
    ],
    "id": 38
   },
   {
-   "at": "2026-11-10T10:26:00Z",
+   "at": "2026-11-10T03:31:00Z",
    "groups": [
-    "R10-REPLAY-COST-2"
+    "R10-PREPR-CAP"
    ],
    "id": 39
   },
   {
-   "at": "2026-11-10T12:38:00Z",
+   "at": "2026-11-10T05:25:00Z",
    "groups": [
-    "R10-ROSTER-OPS-2"
+    "R10-SUITE-HOST-DETERMINISM"
    ],
    "id": 40
   },
   {
-   "at": "2026-11-10T17:14:00Z",
+   "at": "2026-11-10T07:23:00Z",
    "groups": [
-    "R10-BODY-CONTRACT"
+    "R10-CI-SELFTEST-SCOPE"
    ],
    "id": 41
   },
   {
-   "at": "2026-11-10T18:09:00Z",
+   "at": "2026-11-10T09:03:00Z",
    "groups": [
-    "R10-ROSTER-QUEUE"
+    "R10-I18N-DE"
    ],
    "id": 42
   },
   {
-   "at": "2026-11-10T19:06:00Z",
+   "at": "2026-11-10T09:52:00Z",
    "groups": [
-    "R10-ROSTER-LIB-SCHEMA"
+    "R10-CI-EDIT-RUNNER"
    ],
    "id": 43
   },
   {
-   "at": "2026-11-10T19:07:00Z",
+   "at": "2026-11-10T15:53:00Z",
    "groups": [
-    "R10-USER-DOCS-VERIFY"
+    "R10-TRAIN-STALE-VERDICT-GUARD"
    ],
    "id": 44
   },
   {
-   "at": "2026-11-10T19:20:00Z",
+   "at": "2026-11-10T18:27:00Z",
    "groups": [
-    "R10-TICK-GROUP-LINES"
+    "R10-ORCH-ROSTER-SCHEMA"
    ],
    "id": 45
   },
   {
-   "at": "2026-11-10T20:20:00Z",
+   "at": "2026-11-10T19:25:00Z",
    "groups": [
-    "R10-FLY-CLOUD-FRUGAL-OFF"
+    "R10-ADVISOR-WHATIF"
    ],
    "id": 46
-  },
-  {
-   "at": "2026-11-10T20:25:00Z",
-   "groups": [
-    "R10-FLY-GANTT-DRIFT"
-   ],
-   "id": 47
   },
   {
    "at": "2026-11-10T20:31:00Z",
    "groups": [
     "R10-SAV-METER-FLOOR"
    ],
+   "id": 47
+  },
+  {
+   "at": "2026-11-10T21:21:00Z",
+   "groups": [
+    "R10-BODY-CONTRACT"
+   ],
    "id": 48
   },
   {
-   "at": "2026-11-10T20:35:00Z",
+   "at": "2026-11-10T21:22:00Z",
    "groups": [
-    "R10-FLY-RELAY-DELIVERED-GUARD"
+    "R10-SEAT-SINGLE-WRITER"
    ],
    "id": 49
   },
   {
-   "at": "2026-11-10T20:37:00Z",
+   "at": "2026-11-10T21:35:00Z",
    "groups": [
-    "R10-HOTFIX-SELFTEST-TIMEOUT",
-    "R10-PR-CONTRACT-OUTSIDE"
+    "R10-CLOSEOUT-CLEANUP"
    ],
    "id": 50
   },
   {
-   "at": "2026-11-11T20:04:00Z",
+   "at": "2026-11-10T22:07:00Z",
    "groups": [
-    "R10-ROUND-PLAYBOOK"
+    "R10-ARBITER-OFF-RESTORE"
    ],
    "id": 51
   },
   {
-   "at": "2026-11-12T03:18:00Z",
+   "at": "2026-11-10T22:57:00Z",
    "groups": [
-    "R10-ARCH-DOCS"
+    "R10-FLY-GANTT-DRIFT"
    ],
    "id": 52
   },
   {
-   "at": "2026-11-13T03:02:00Z",
+   "at": "2026-11-10T23:12:00Z",
+   "groups": [
+    "R10-RCA-SAV-ESTIMATE"
+   ],
+   "id": 53
+  },
+  {
+   "at": "2026-11-11T00:31:00Z",
+   "groups": [
+    "R10-RELAY-HANDOFF-ARM",
+    "R10-TICK-PR-BUCKETS"
+   ],
+   "id": 54
+  },
+  {
+   "at": "2026-11-11T00:50:00Z",
+   "groups": [
+    "R10-OPENER-REUSE"
+   ],
+   "id": 55
+  },
+  {
+   "at": "2026-11-11T00:55:00Z",
+   "groups": [
+    "R10-FLY-RELAY-DELIVERED-GUARD"
+   ],
+   "id": 56
+  },
+  {
+   "at": "2026-11-11T02:15:00Z",
+   "groups": [
+    "R10-FLY-CLOUD-FRUGAL-OFF"
+   ],
+   "id": 57
+  },
+  {
+   "at": "2026-11-11T03:04:00Z",
+   "groups": [
+    "R10-FRICTION-CI-RED"
+   ],
+   "id": 58
+  },
+  {
+   "at": "2026-11-11T09:05:00Z",
+   "groups": [
+    "R10-PR-CONTRACT-OUTSIDE"
+   ],
+   "id": 59
+  },
+  {
+   "at": "2026-11-11T15:39:00Z",
+   "groups": [
+    "R10-ROSTER-LIB-SCHEMA"
+   ],
+   "id": 60
+  },
+  {
+   "at": "2026-11-11T16:13:00Z",
+   "groups": [
+    "R10-ROSTER-QUEUE"
+   ],
+   "id": 61
+  },
+  {
+   "at": "2026-11-11T16:45:00Z",
+   "groups": [
+    "R10-TICK-GROUP-LINES"
+   ],
+   "id": 62
+  },
+  {
+   "at": "2026-11-11T17:39:00Z",
+   "groups": [
+    "R10-ROSTER-OPS-2"
+   ],
+   "id": 63
+  },
+  {
+   "at": "2026-11-11T20:26:00Z",
+   "groups": [
+    "R10-ROUND-PLAYBOOK-FINAL"
+   ],
+   "id": 64
+  },
+  {
+   "at": "2026-11-12T01:40:00Z",
+   "groups": [
+    "R10-USER-DOCS-VERIFY"
+   ],
+   "id": 65
+  },
+  {
+   "at": "2026-11-12T08:30:00Z",
+   "groups": [
+    "R10-ARCH-DOCS"
+   ],
+   "id": 66
+  },
+  {
+   "at": "2026-11-13T08:14:00Z",
    "groups": [
     "R10-CATALOG-PR"
    ],
-   "id": 53
+   "id": 67
   }
  ],
  "critical_path": [
-  "R10-BODY-CONTRACT",
+  "R10-HOTFIX-SAV-ESTIMATE",
+  "R10-SAV-COMFORT",
+  "R10-SAV-METER-FLOOR",
   "R10-ARCH-DOCS",
   "R10-CATALOG-PR"
  ],
@@ -408,7 +502,10 @@
   "inherited_coordinator": {
    "cap": 2,
    "exceeds_cap": false,
-   "groups": []
+   "groups": [
+    "R10-CLONE-2238",
+    "R10-WHY-NOW-WIDGET"
+   ]
   },
   "inherited_dependency_violations": [],
   "model": {
@@ -471,8 +568,8 @@
    "sizes_percentile": 75,
    "sizes_provenance": "p75 over 189 done groups with a merged PR (S n=123, M n=49, L n=11, XL n=6): active hours (the union of each part's first commit or creation, or the roster's dispatch stamp, to its merge) with extra review rounds priced out at the pooled Theil-Sen slope (4.62 h/round), then the cell's mean rounds added back; per class where a cell has n>=5. Wall clock: review, queueing and the PR-less handoff wait are inside it. carry_hours (0.33 h) is the Theil-Sen slope of the round-adjusted hours on the group's carry count, priced per carry above the size's median (carry_baseline). Monotone in size: XL 31 h lifted to L's 31.1 h. Measured by tools/plan/size_durations.py; re-derive, never edit."
   },
-  "roster_blob": "e7207ea34c7f45bcda8e64582c158058cc5d1ed2",
-  "roster_ref": "cab343ebe891836ff776defccab9cb8ae9a9cbc7",
+  "roster_blob": "aefd7f7585ddf155a15f9ab2aeaf14823e45ab29",
+  "roster_ref": "5e7f73ad5e6f3fc0bc16ca904dcf95748ea0a82c",
   "round": 10,
   "start": "2026-11-06T22:00:00Z",
   "version": "7.1.4"
@@ -534,33 +631,33 @@
   },
   "R10-ADVISOR-WHATIF": {
    "after": [],
-   "batch": 25,
+   "batch": 46,
    "coordinator": true,
    "done": false,
    "duration_basis": "1 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-09T09:06:00Z",
+   "finish": "2026-11-10T19:25:00Z",
    "inherited": false,
    "lane": "Product UX",
    "level": 1,
    "live": false,
    "size": "L",
-   "slot": 14,
+   "slot": 9,
    "sort_key": [
     3,
     1,
     0.0,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-ADVISOR-WHATIF"
    ],
-   "stamp": "v7.1.6",
-   "start": "2026-11-08T13:18:00Z",
+   "stamp": "v7.1.9",
+   "start": "2026-11-09T23:37:00Z",
    "start_reason": "coordinator cap 2: waited for a coordinator slot",
    "started": false,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 17
+   "wave": 35
   },
   "R10-AGREEMENT-BOOTSTRAP": {
    "after": [],
@@ -580,47 +677,101 @@
    "tier": null,
    "wave": null
   },
+  "R10-ARBITER-OFF-RESTORE": {
+   "after": [
+    "R10-GENERIC-HEAT-CURVE"
+   ],
+   "batch": 51,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds",
+   "duration_minutes": 1534,
+   "finish": "2026-11-10T22:07:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 8,
+   "sort_key": [
+    3,
+    1,
+    0.0,
+    -83.69,
+    -1534,
+    "R10-ARBITER-OFF-RESTORE"
+   ],
+   "stamp": "v7.1.10",
+   "start": "2026-11-09T20:33:00Z",
+   "start_reason": "coordinator cap 2: waited for a coordinator slot",
+   "started": false,
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 32
+  },
   "R10-ARCH-DOCS": {
    "after": [
     "R10-ADVISOR-WHATIF",
+    "R10-ARBITER-OFF-RESTORE",
     "R10-BODY-CONTRACT",
-    "R10-CARRY-RESIDUE",
+    "R10-CARRY-RESIDUE-2",
+    "R10-CI-EDIT-RUNNER",
+    "R10-CI-OWN-DELIVERY-ROW",
     "R10-CI-PRIORITY-PAUSE",
-    "R10-CI-RUNNER-FIXES",
+    "R10-CI-SELFTEST-SCOPE",
     "R10-CLONE-2238",
-    "R10-COP-GATE-D",
+    "R10-COMBI-TANK",
+    "R10-COP-GATE-E",
     "R10-DISPATCH-AT-HANDOFF",
     "R10-FLOW-TOOLKIT-MODEL",
     "R10-FLY-CIPREDICT-RESTORING",
     "R10-FLY-GH-READ-RETRY",
+    "R10-FLY-STAMP-FLUSH-COST",
+    "R10-FLY-STAMP-FLUSH-HOLD",
     "R10-FLY-STANDING-CONTRACTS",
     "R10-FRICTION-RECORDS",
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT",
     "R10-HANDOFF-PATH",
-    "R10-OVERBOOK-RESIDUAL",
-    "R10-PARTLOAD-PRICING",
+    "R10-HOTFIX-CODEQL-HEADROOM",
+    "R10-HOTFIX-COP-UNMEASURED",
+    "R10-HOTFIX-GATE-BUSY-DEFER",
+    "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
+    "R10-HOTFIX-PLAN-LANES",
+    "R10-HOTFIX-SELFTEST-TIMEOUT",
+    "R10-HOTFIX-TRAIN-DEFER-WAIT",
+    "R10-I18N-DE",
+    "R10-OUTSIDE-INTAKE",
+    "R10-PARTLOAD-RESIDUE",
     "R10-PLANTED-DEFECT-AUDIT",
     "R10-POLICY-ROLE-PACK",
     "R10-PREPR-CAP",
+    "R10-PROCESS-SLIM",
     "R10-RAISE-GATE-SHIM",
     "R10-RELAY-SWEEP",
+    "R10-REPLAY-COST-2",
     "R10-REPLAY-COST-BUDGET",
     "R10-ROSTER-READ-SWEEP",
     "R10-ROSTER-WRITE-SWEEP",
     "R10-SAV-COMFORT",
+    "R10-SAV-METER-FLOOR",
     "R10-SUITE-HOST-DETERMINISM",
+    "R10-SWEEP-TEMPLATE-SYNC",
     "R10-TICK-LEVELS",
     "R10-TRAIN-MERGE-LOOP",
+    "R10-TRAIN-MERGE-LOOP-2",
+    "R10-TRAIN-STALE-VERDICT-GUARD",
     "R10-WHY-NOW-WIDGET"
    ],
-   "batch": 52,
+   "batch": 66,
    "coordinator": false,
    "done": false,
-   "duration_basis": "L/all: 16.4 h + 3.18 extra rounds + 9 absorbed carries",
-   "duration_minutes": 2044,
-   "finish": "2026-11-12T03:18:00Z",
+   "duration_basis": "L/all: 16.4 h + 3.18 extra rounds + 10 absorbed carries",
+   "duration_minutes": 2063,
+   "finish": "2026-11-12T08:30:00Z",
    "inherited": false,
    "lane": "Docs",
-   "level": 3,
+   "level": 4,
    "live": false,
    "size": "L",
    "slot": 0,
@@ -628,17 +779,17 @@
     2,
     0,
     0.0,
-    -57.797799999999995,
-    -2044,
+    -58.12779999999999,
+    -2063,
     "R10-ARCH-DOCS"
    ],
    "stamp": null,
-   "start": "2026-11-10T17:14:00Z",
-   "start_reason": "after R10-BODY-CONTRACT (merges 2026-11-10T17:14:00Z)",
+   "start": "2026-11-10T22:07:00Z",
+   "start_reason": "after R10-ARBITER-OFF-RESTORE (merges 2026-11-10T22:07:00Z)",
    "started": false,
    "tier": 2,
    "tier_reason": "critical path",
-   "wave": 38
+   "wave": 51
   },
   "R10-ARCH-DOCS-FIRST": {
    "after": [],
@@ -648,7 +799,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Docs",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "L",
@@ -822,33 +973,33 @@
   },
   "R10-BODY-CONTRACT": {
    "after": [],
-   "batch": 41,
+   "batch": 48,
    "coordinator": false,
    "done": false,
-   "duration_basis": "42 carries, none measured as answered: 4 part(s)",
+   "duration_basis": "43 carries, none measured as answered: 4 part(s)",
    "duration_minutes": 4752,
-   "finish": "2026-11-10T17:14:00Z",
+   "finish": "2026-11-10T21:21:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 12,
+   "slot": 3,
    "sort_key": [
-    2,
-    0,
-    0.0,
-    -136.99779999999998,
+    4,
+    1,
+    null,
+    -137.3278,
     -4752,
     "R10-BODY-CONTRACT"
    ],
    "stamp": null,
-   "start": "2026-11-07T10:02:00Z",
+   "start": "2026-11-07T14:09:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
-   "tier": 2,
-   "tier_reason": "critical path",
-   "wave": 2
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 7
   },
   "R10-BRIEFS-FOLD": {
    "after": [],
@@ -924,82 +1075,68 @@
   },
   "R10-CARRY-RESIDUE": {
    "after": [],
-   "batch": 5,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 5 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 877,
-   "finish": "2026-11-07T12:37:00Z",
-   "inherited": true,
-   "lane": "Instruments",
-   "level": 1,
-   "live": true,
-   "size": "M",
-   "slot": 7,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -72.41828,
-    -877,
-    "R10-CARRY-RESIDUE"
-   ],
-   "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
-  },
-  "R10-CARRY-RESIDUE-2": {
-   "after": [
-    "R10-CARRY-RESIDUE"
-   ],
-   "batch": 36,
-   "coordinator": false,
-   "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 12 absorbed carries",
-   "duration_minutes": 1392,
-   "finish": "2026-11-10T03:25:00Z",
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
    "inherited": false,
    "lane": "Instruments",
-   "level": 2,
+   "level": null,
    "live": false,
    "size": "M",
-   "slot": 7,
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
+  },
+  "R10-CARRY-RESIDUE-2": {
+   "after": [],
+   "batch": 18,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 13 absorbed carries",
+   "duration_minutes": 1791,
+   "finish": "2026-11-08T16:21:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 15,
    "sort_key": [
-    4,
+    3,
     1,
-    null,
-    -23.1964,
-    -1392,
+    0.0,
+    -87.97999999999999,
+    -1791,
     "R10-CARRY-RESIDUE-2"
    ],
-   "stamp": null,
-   "start": "2026-11-09T04:13:00Z",
+   "stamp": "v7.1.7",
+   "start": "2026-11-07T10:30:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 21
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 3
   },
   "R10-CATALOG-PR": {
    "after": [
     "R10-ARCH-DOCS",
     "R10-CLOSEOUT-CLEANUP",
-    "R10-ROUND-PLAYBOOK",
+    "R10-ROUND-PLAYBOOK-FINAL",
     "R10-USER-DOCS-VERIFY"
    ],
-   "batch": 53,
+   "batch": 67,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/production: 16.1 h + 1.51 extra rounds + 2 absorbed carries",
    "duration_minutes": 1424,
-   "finish": "2026-11-13T03:02:00Z",
+   "finish": "2026-11-13T08:14:00Z",
    "inherited": false,
    "lane": "Core model",
-   "level": 4,
+   "level": 5,
    "live": false,
    "size": "S",
    "slot": 0,
@@ -1012,12 +1149,12 @@
     "R10-CATALOG-PR"
    ],
    "stamp": "v10.0.0",
-   "start": "2026-11-12T03:18:00Z",
-   "start_reason": "after R10-ARCH-DOCS (merges 2026-11-12T03:18:00Z)",
+   "start": "2026-11-12T08:30:00Z",
+   "start_reason": "after R10-ARCH-DOCS (merges 2026-11-12T08:30:00Z)",
    "started": false,
    "tier": 2,
    "tier_reason": "critical path",
-   "wave": 39
+   "wave": 52
   },
   "R10-CEILING-PROBE": {
    "after": [],
@@ -1031,6 +1168,54 @@
    "level": null,
    "live": false,
    "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
+  },
+  "R10-CI-EDIT-RUNNER": {
+   "after": [],
+   "batch": 43,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 2 absorbed carries",
+   "duration_minutes": 1071,
+   "finish": "2026-11-10T09:52:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 10,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -75.98559999999999,
+    -1071,
+    "R10-CI-EDIT-RUNNER"
+   ],
+   "stamp": null,
+   "start": "2026-11-09T16:01:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 30
+  },
+  "R10-CI-GRADER-BATCH-STUDY": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "S",
    "slot": null,
    "stamp": null,
    "start": null,
@@ -1091,37 +1276,67 @@
    "tier": null,
    "wave": null
   },
+  "R10-CI-OWN-DELIVERY-ROW": {
+   "after": [],
+   "batch": 16,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds",
+   "duration_minutes": 1385,
+   "finish": "2026-11-08T10:33:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 12,
+   "sort_key": [
+    3,
+    1,
+    0.0,
+    -81.204,
+    -1385,
+    "R10-CI-OWN-DELIVERY-ROW"
+   ],
+   "stamp": "v7.1.7",
+   "start": "2026-11-07T11:28:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 5
+  },
   "R10-CI-PRIORITY-PAUSE": {
    "after": [
     "R10-TICK-LEVELS"
    ],
-   "batch": 32,
+   "batch": 36,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 3 absorbed carries",
-   "duration_minutes": 1214,
-   "finish": "2026-11-09T23:18:00Z",
+   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 5 absorbed carries",
+   "duration_minutes": 1253,
+   "finish": "2026-11-10T02:38:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
    "live": false,
    "size": "M",
-   "slot": 8,
+   "slot": 5,
    "sort_key": [
     4,
     1,
     null,
-    -78.0242,
-    -1214,
+    -79.01419999999999,
+    -1253,
     "R10-CI-PRIORITY-PAUSE"
    ],
    "stamp": null,
-   "start": "2026-11-09T03:04:00Z",
-   "start_reason": "after R10-TICK-LEVELS (merges 2026-11-09T03:04:00Z)",
+   "start": "2026-11-09T05:45:00Z",
+   "start_reason": "after R10-TICK-LEVELS (merges 2026-11-09T05:45:00Z)",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 20
+   "wave": 23
   },
   "R10-CI-RATCHET-RED": {
    "after": [],
@@ -1131,7 +1346,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -1143,36 +1358,6 @@
   },
   "R10-CI-RUNNER-FIXES": {
    "after": [],
-   "batch": 13,
-   "coordinator": false,
-   "done": false,
-   "duration_basis": "3 carries, none measured as answered: 1 part(s)",
-   "duration_minutes": 1188,
-   "finish": "2026-11-08T09:07:00Z",
-   "inherited": false,
-   "lane": "Instruments",
-   "level": 1,
-   "live": false,
-   "size": "M",
-   "slot": 5,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -77.59779999999999,
-    -1188,
-    "R10-CI-RUNNER-FIXES"
-   ],
-   "stamp": null,
-   "start": "2026-11-07T13:19:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 8
-  },
-  "R10-CI-SLIM": {
-   "after": [],
    "batch": null,
    "coordinator": false,
    "done": true,
@@ -1189,50 +1374,100 @@
    "tier": null,
    "wave": null
   },
-  "R10-CLONE-2238": {
-   "after": [],
-   "batch": 16,
-   "coordinator": true,
+  "R10-CI-SELFTEST-SCOPE": {
+   "after": [
+    "R10-HOTFIX-SELFTEST-TIMEOUT"
+   ],
+   "batch": 41,
+   "coordinator": false,
    "done": false,
-   "duration_basis": "L/production: 16 h + 2.44 extra rounds",
-   "duration_minutes": 1636,
-   "finish": "2026-11-08T13:18:00Z",
+   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds",
+   "duration_minutes": 1154,
+   "finish": "2026-11-10T07:23:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 15,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -77.3642,
+    -1154,
+    "R10-CI-SELFTEST-SCOPE"
+   ],
+   "stamp": null,
+   "start": "2026-11-09T12:09:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 28
+  },
+  "R10-CI-SLIM": {
+   "after": [],
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
    "inherited": false,
    "lane": "Core model",
-   "level": 1,
+   "level": null,
    "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
+  },
+  "R10-CLONE-2238": {
+   "after": [],
+   "batch": 12,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "L/production: 16 h + 2.44 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 1145,
+   "finish": "2026-11-07T17:05:00Z",
+   "inherited": true,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
    "size": "L",
-   "slot": 14,
+   "slot": 8,
    "sort_key": [
     3,
     1,
     0.0,
-    -85.0706,
-    -1636,
+    -77.21875999999999,
+    -1145,
     "R10-CLONE-2238"
    ],
-   "stamp": "v7.1.5",
-   "start": "2026-11-07T10:02:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
+   "stamp": "v7.1.6",
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 2
+   "wave": 1
   },
   "R10-CLOSEOUT-CLEANUP": {
    "after": [],
-   "batch": 29,
+   "batch": 50,
    "coordinator": false,
    "done": false,
    "duration_basis": "9 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-09T21:54:00Z",
+   "finish": "2026-11-10T21:35:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 11,
+   "slot": 0,
    "sort_key": [
     4,
     1,
@@ -1242,12 +1477,12 @@
     "R10-CLOSEOUT-CLEANUP"
    ],
    "stamp": null,
-   "start": "2026-11-09T02:06:00Z",
+   "start": "2026-11-10T01:47:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 19
+   "wave": 36
   },
   "R10-CLOUD-POOL": {
    "after": [],
@@ -1269,27 +1504,27 @@
   },
   "R10-COMBI-TANK": {
    "after": [],
-   "batch": 10,
+   "batch": 13,
    "coordinator": false,
    "done": false,
-   "duration_basis": "L/production: 16 h + 2.44 extra rounds + 3 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 1187,
-   "finish": "2026-11-07T17:47:00Z",
+   "duration_basis": "L/production: 16 h + 2.44 extra rounds + 4 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 1201,
+   "finish": "2026-11-07T18:01:00Z",
    "inherited": true,
    "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "L",
-   "slot": 0,
+   "slot": 7,
    "sort_key": [
     3,
     1,
     0.0,
-    -19.783959999999997,
-    -1187,
+    -78.14276,
+    -1201,
     "R10-COMBI-TANK"
    ],
-   "stamp": "v7.1.5",
+   "stamp": "v7.1.7",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
@@ -1353,33 +1588,53 @@
   },
   "R10-COP-GATE-D": {
    "after": [],
-   "batch": 25,
+   "batch": null,
    "coordinator": true,
-   "done": false,
-   "duration_basis": "9 carries, none measured as answered: 1 part(s)",
-   "duration_minutes": 1188,
-   "finish": "2026-11-09T09:06:00Z",
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
    "inherited": false,
    "lane": "Core model",
-   "level": 1,
+   "level": null,
    "live": false,
    "size": "M",
-   "slot": 15,
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
+  },
+  "R10-COP-GATE-E": {
+   "after": [
+    "R10-HOTFIX-COP-UNMEASURED"
+   ],
+   "batch": 31,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 1 absorbed carries",
+   "duration_minutes": 1554,
+   "finish": "2026-11-09T20:33:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 2,
+   "live": false,
+   "size": "M",
+   "slot": 8,
    "sort_key": [
     3,
     1,
     0.0,
-    -77.59779999999999,
-    -1188,
-    "R10-COP-GATE-D"
+    -84.01999999999998,
+    -1554,
+    "R10-COP-GATE-E"
    ],
-   "stamp": "v7.1.6",
-   "start": "2026-11-08T13:18:00Z",
-   "start_reason": "coordinator cap 2: waited for a coordinator slot",
+   "stamp": "v7.1.9",
+   "start": "2026-11-08T18:39:00Z",
+   "start_reason": "after R10-HOTFIX-COP-UNMEASURED (merges 2026-11-08T18:39:00Z)",
    "started": false,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 17
+   "wave": 20
   },
   "R10-COP-PARTLOAD": {
    "after": [],
@@ -1497,7 +1752,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -1551,7 +1806,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -1569,7 +1824,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -1587,7 +1842,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -1653,33 +1908,33 @@
   },
   "R10-DISPATCH-AT-HANDOFF": {
    "after": [],
-   "batch": 9,
+   "batch": 24,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 15 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 1016,
-   "finish": "2026-11-07T14:56:00Z",
-   "inherited": true,
+   "duration_basis": "17 carries, none measured as answered: 2 part(s)",
+   "duration_minutes": 2376,
+   "finish": "2026-11-09T07:30:00Z",
+   "inherited": false,
    "lane": "Instruments",
    "level": 1,
-   "live": true,
+   "live": false,
    "size": "M",
    "slot": 2,
    "sort_key": [
     4,
     1,
     null,
-    -74.72828,
-    -1016,
+    -97.7278,
+    -2376,
     "R10-DISPATCH-AT-HANDOFF"
    ],
    "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
+   "start": "2026-11-07T15:54:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "wave": 10
   },
   "R10-ERREXIT-COUNTERMEASURES": {
    "after": [],
@@ -1689,7 +1944,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -1977,7 +2232,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -2118,21 +2373,21 @@
    "batch": 8,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 12 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 974,
-   "finish": "2026-11-07T14:14:00Z",
+   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 14 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 1002,
+   "finish": "2026-11-07T14:42:00Z",
    "inherited": true,
    "lane": "Instruments",
    "level": 1,
    "live": true,
    "size": "M",
-   "slot": 3,
+   "slot": 10,
    "sort_key": [
     4,
     1,
     null,
-    -74.03528,
-    -974,
+    -74.82728,
+    -1002,
     "R10-FLOW-TOOLKIT-MODEL"
    ],
    "stamp": null,
@@ -2169,7 +2424,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -2205,7 +2460,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -2241,7 +2496,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -2403,7 +2658,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -2433,33 +2688,33 @@
   },
   "R10-FLY-CIPREDICT-RESTORING": {
    "after": [],
-   "batch": 23,
+   "batch": 3,
    "coordinator": false,
    "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 4 absorbed carries",
-   "duration_minutes": 1111,
-   "finish": "2026-11-09T05:15:00Z",
-   "inherited": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 4 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 778,
+   "finish": "2026-11-07T10:58:00Z",
+   "inherited": true,
    "lane": "Instruments",
    "level": 1,
-   "live": false,
+   "live": true,
    "size": "S",
-   "slot": 2,
+   "slot": 13,
    "sort_key": [
     4,
     1,
     null,
-    -76.31559999999999,
-    -1111,
+    -71.09026,
+    -778,
     "R10-FLY-CIPREDICT-RESTORING"
    ],
    "stamp": null,
-   "start": "2026-11-08T10:44:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 16
+   "wave": 1
   },
   "R10-FLY-CLOSURE-MAJOR": {
    "after": [],
@@ -2481,18 +2736,18 @@
   },
   "R10-FLY-CLOUD-FRUGAL-OFF": {
    "after": [],
-   "batch": 46,
+   "batch": 57,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds",
    "duration_minutes": 1032,
-   "finish": "2026-11-10T20:20:00Z",
+   "finish": "2026-11-11T02:15:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 2,
+   "slot": 12,
    "sort_key": [
     4,
     1,
@@ -2502,12 +2757,12 @@
     "R10-FLY-CLOUD-FRUGAL-OFF"
    ],
    "stamp": null,
-   "start": "2026-11-10T03:08:00Z",
+   "start": "2026-11-10T09:03:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 36
+   "wave": 43
   },
   "R10-FLY-CLOUD-SETUP-TOOLCHAIN": {
    "after": [],
@@ -2583,18 +2838,18 @@
   },
   "R10-FLY-GANTT-DRIFT": {
    "after": [],
-   "batch": 47,
+   "batch": 52,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 1 absorbed carries",
    "duration_minutes": 1052,
-   "finish": "2026-11-10T20:25:00Z",
+   "finish": "2026-11-10T22:57:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 6,
+   "slot": 7,
    "sort_key": [
     4,
     1,
@@ -2604,12 +2859,12 @@
     "R10-FLY-GANTT-DRIFT"
    ],
    "stamp": null,
-   "start": "2026-11-10T02:53:00Z",
+   "start": "2026-11-10T05:25:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 34
+   "wave": 41
   },
   "R10-FLY-GH-CALL-LOG": {
    "after": [],
@@ -2631,33 +2886,33 @@
   },
   "R10-FLY-GH-READ-RETRY": {
    "after": [],
-   "batch": 14,
+   "batch": 23,
    "coordinator": false,
    "done": false,
    "duration_basis": "11 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-08T10:02:00Z",
+   "finish": "2026-11-09T06:50:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 3,
+   "slot": 13,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-FLY-GH-READ-RETRY"
    ],
    "stamp": null,
-   "start": "2026-11-07T14:14:00Z",
+   "start": "2026-11-08T11:02:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 9
+   "wave": 18
   },
   "R10-FLY-INERT-LOAD-TIME": {
    "after": [],
@@ -2757,7 +3012,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3021,18 +3276,18 @@
   },
   "R10-FLY-RELAY-DELIVERED-GUARD": {
    "after": [],
-   "batch": 49,
+   "batch": 56,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 1 absorbed carries",
    "duration_minutes": 1052,
-   "finish": "2026-11-10T20:35:00Z",
+   "finish": "2026-11-11T00:55:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 3,
+   "slot": 15,
    "sort_key": [
     4,
     1,
@@ -3042,12 +3297,12 @@
     "R10-FLY-RELAY-DELIVERED-GUARD"
    ],
    "stamp": null,
-   "start": "2026-11-10T03:03:00Z",
+   "start": "2026-11-10T07:23:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 35
+   "wave": 42
   },
   "R10-FLY-RELAY-FREEZE-REGISTRY": {
    "after": [],
@@ -3075,7 +3330,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3211,35 +3466,95 @@
    "tier": null,
    "wave": null
   },
-  "R10-FLY-STANDING-CONTRACTS": {
+  "R10-FLY-STAMP-FLUSH-COST": {
    "after": [],
-   "batch": 30,
+   "batch": 1,
    "coordinator": false,
    "done": false,
-   "duration_basis": "26 carries, none measured as answered: 3 part(s)",
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 722,
+   "finish": "2026-11-07T10:02:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 14,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -70.16626,
+    -722,
+    "R10-FLY-STAMP-FLUSH-COST"
+   ],
+   "stamp": null,
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 1
+  },
+  "R10-FLY-STAMP-FLUSH-HOLD": {
+   "after": [],
+   "batch": 1,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 722,
+   "finish": "2026-11-07T10:02:00Z",
+   "inherited": true,
+   "lane": "Instruments",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 15,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -70.16626,
+    -722,
+    "R10-FLY-STAMP-FLUSH-HOLD"
+   ],
+   "stamp": null,
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 1
+  },
+  "R10-FLY-STANDING-CONTRACTS": {
+   "after": [],
+   "batch": 35,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "27 carries, none measured as answered: 3 part(s)",
    "duration_minutes": 3564,
-   "finish": "2026-11-09T22:52:00Z",
+   "finish": "2026-11-10T01:47:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "L",
-   "slot": 9,
+   "slot": 0,
    "sort_key": [
     4,
     1,
     null,
-    -117.1978,
+    -117.5278,
     -3564,
     "R10-FLY-STANDING-CONTRACTS"
    ],
    "stamp": null,
-   "start": "2026-11-07T11:28:00Z",
+   "start": "2026-11-07T14:23:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 4
+   "wave": 8
   },
   "R10-FLY-SUITE-ENV-FLAKES": {
    "after": [],
@@ -3403,6 +3718,36 @@
    "tier": null,
    "wave": null
   },
+  "R10-FRICTION-CI-RED": {
+   "after": [],
+   "batch": 58,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds",
+   "duration_minutes": 1032,
+   "finish": "2026-11-11T03:04:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "S",
+   "slot": 10,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -17.1978,
+    -1032,
+    "R10-FRICTION-CI-RED"
+   ],
+   "stamp": "v7.1.10",
+   "start": "2026-11-10T09:52:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 44
+  },
   "R10-FRICTION-CLAIM-FALSE": {
    "after": [],
    "batch": null,
@@ -3411,7 +3756,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3429,7 +3774,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3447,7 +3792,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3465,7 +3810,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3477,33 +3822,33 @@
   },
   "R10-FRICTION-RECORDS": {
    "after": [],
-   "batch": 6,
+   "batch": 27,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 7 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 905,
-   "finish": "2026-11-07T13:05:00Z",
-   "inherited": true,
-   "lane": "Instruments",
+   "duration_basis": "8 carries, none measured as answered: 1 part(s)",
+   "duration_minutes": 1188,
+   "finish": "2026-11-09T12:09:00Z",
+   "inherited": false,
+   "lane": "Core model",
    "level": 1,
-   "live": true,
+   "live": false,
    "size": "M",
-   "slot": 6,
+   "slot": 15,
    "sort_key": [
     4,
     1,
     null,
-    -72.88028,
-    -905,
+    -77.92779999999999,
+    -1188,
     "R10-FRICTION-RECORDS"
    ],
-   "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
+   "stamp": "v7.1.8",
+   "start": "2026-11-08T16:21:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "wave": 19
   },
   "R10-FRICTION-REGRESSION": {
    "after": [],
@@ -3513,7 +3858,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3577,6 +3922,68 @@
    "tier": null,
    "wave": null
   },
+  "R10-GENERIC-HEAT-CURVE": {
+   "after": [],
+   "batch": 20,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "L/production: 16 h + 2.44 extra rounds",
+   "duration_minutes": 1636,
+   "finish": "2026-11-08T20:21:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 1,
+   "live": false,
+   "size": "L",
+   "slot": 9,
+   "sort_key": [
+    3,
+    1,
+    0.0,
+    -112.6734,
+    -1636,
+    "R10-GENERIC-HEAT-CURVE"
+   ],
+   "stamp": "v7.1.8",
+   "start": "2026-11-07T17:05:00Z",
+   "start_reason": "coordinator cap 2: waited for a coordinator slot",
+   "started": false,
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 13
+  },
+  "R10-GENERIC-HEAT-CURVE-PERSISTENT": {
+   "after": [
+    "R10-GENERIC-HEAT-CURVE"
+   ],
+   "batch": 34,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "L/production: 16 h + 2.44 extra rounds",
+   "duration_minutes": 1636,
+   "finish": "2026-11-09T23:37:00Z",
+   "inherited": false,
+   "lane": "Product UX",
+   "level": 2,
+   "live": false,
+   "size": "L",
+   "slot": 9,
+   "sort_key": [
+    3,
+    1,
+    0.0,
+    -85.4006,
+    -1636,
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
+   ],
+   "stamp": "v7.1.9",
+   "start": "2026-11-08T20:21:00Z",
+   "start_reason": "after R10-GENERIC-HEAT-CURVE (merges 2026-11-08T20:21:00Z)",
+   "started": false,
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 21
+  },
   "R10-GRADE-DRIVERS": {
    "after": [],
    "batch": null,
@@ -3615,33 +4022,33 @@
   },
   "R10-HANDOFF-PATH": {
    "after": [],
-   "batch": 20,
+   "batch": 25,
    "coordinator": false,
    "done": false,
-   "duration_basis": "16 carries, none measured as answered: 2 part(s)",
+   "duration_basis": "19 carries, none measured as answered: 2 part(s)",
    "duration_minutes": 2376,
-   "finish": "2026-11-09T04:13:00Z",
+   "finish": "2026-11-09T07:36:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 7,
+   "slot": 1,
    "sort_key": [
     4,
     1,
     null,
-    -97.39779999999999,
+    -97.7278,
     -2376,
     "R10-HANDOFF-PATH"
    ],
    "stamp": null,
-   "start": "2026-11-07T12:37:00Z",
+   "start": "2026-11-07T16:00:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 6
+   "wave": 11
   },
   "R10-HANDOVER-REFRESH": {
    "after": [],
@@ -3651,7 +4058,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3795,7 +4202,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3813,7 +4220,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -3825,93 +4232,111 @@
   },
   "R10-HOTFIX-CODEQL-HEADROOM": {
    "after": [],
-   "batch": 3,
+   "batch": 9,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds, working (live_remaining_fraction)",
-   "duration_minutes": 808,
-   "finish": "2026-11-07T11:28:00Z",
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 1074,
+   "finish": "2026-11-07T15:54:00Z",
    "inherited": true,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "M",
-   "slot": 8,
+   "slot": 2,
    "sort_key": [
-    4,
+    2,
     1,
-    null,
-    -13.46548,
-    -808,
+    0.0,
+    -76.02134,
+    -1074,
     "R10-HOTFIX-CODEQL-HEADROOM"
    ],
-   "stamp": null,
+   "stamp": "v7.1.6",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "tier": 2,
+   "tier_reason": "hotfix (kind 'fix', name)",
    "wave": 1
+  },
+  "R10-HOTFIX-COP-UNMEASURED": {
+   "after": [],
+   "batch": 19,
+   "coordinator": true,
+   "done": false,
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds",
+   "duration_minutes": 1534,
+   "finish": "2026-11-08T18:39:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 8,
+   "sort_key": [
+    2,
+    1,
+    0.0,
+    -109.58219999999997,
+    -1534,
+    "R10-HOTFIX-COP-UNMEASURED"
+   ],
+   "stamp": "v7.1.8",
+   "start": "2026-11-07T17:05:00Z",
+   "start_reason": "coordinator cap 2: waited for a coordinator slot",
+   "started": false,
+   "tier": 2,
+   "tier_reason": "hotfix (kind 'hotfix', name)",
+   "wave": 13
   },
   "R10-HOTFIX-GATE-BUSY-DEFER": {
    "after": [],
-   "batch": 2,
+   "batch": 10,
    "coordinator": false,
    "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 2 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 750,
-   "finish": "2026-11-07T10:30:00Z",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds + 8 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 1080,
+   "finish": "2026-11-07T16:00:00Z",
    "inherited": true,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "S",
-   "slot": 10,
+   "slot": 1,
    "sort_key": [
-    4,
+    2,
     1,
-    null,
-    -12.50046,
-    -750,
+    0.0,
+    -76.12913999999999,
+    -1080,
     "R10-HOTFIX-GATE-BUSY-DEFER"
    ],
-   "stamp": null,
+   "stamp": "v7.1.6",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "tier": 2,
+   "tier_reason": "hotfix (kind 'fix', name)",
    "wave": 1
   },
   "R10-HOTFIX-GATE-STALE-JOBS": {
    "after": [],
-   "batch": 37,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "3 carries, none measured as answered: 1 part(s)",
-   "duration_minutes": 1188,
-   "finish": "2026-11-10T04:54:00Z",
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
    "inherited": false,
-   "lane": "Instruments",
-   "level": 1,
+   "lane": "Core model",
+   "level": null,
    "live": false,
    "size": "S",
-   "slot": 14,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -19.8,
-    -1188,
-    "R10-HOTFIX-GATE-STALE-JOBS"
-   ],
+   "slot": null,
    "stamp": null,
-   "start": "2026-11-09T09:06:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 26
+   "start": null,
+   "tier": null,
+   "wave": null
   },
   "R10-HOTFIX-LEARNER-INPUTS": {
    "after": [],
@@ -3933,92 +4358,80 @@
   },
   "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT": {
    "after": [],
-   "batch": 1,
+   "batch": 6,
    "coordinator": false,
    "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
-   "duration_minutes": 722,
-   "finish": "2026-11-07T10:02:00Z",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 969,
+   "finish": "2026-11-07T14:09:00Z",
    "inherited": true,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "S",
-   "slot": 12,
+   "slot": 3,
    "sort_key": [
-    4,
+    2,
     1,
-    null,
-    -12.03846,
-    -722,
+    0.0,
+    -74.28114,
+    -969,
     "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT"
    ],
-   "stamp": null,
+   "stamp": "v7.1.5",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "tier": 2,
+   "tier_reason": "hotfix (kind None, name)",
    "wave": 1
   },
   "R10-HOTFIX-NIGHTLY-STATUS": {
    "after": [],
-   "batch": 1,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
-   "duration_minutes": 722,
-   "finish": "2026-11-07T10:02:00Z",
-   "inherited": true,
-   "lane": "Instruments",
-   "level": 1,
-   "live": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
    "size": "S",
-   "slot": 13,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -12.03846,
-    -722,
-    "R10-HOTFIX-NIGHTLY-STATUS"
-   ],
+   "slot": null,
    "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "start": null,
+   "tier": null,
+   "wave": null
   },
   "R10-HOTFIX-PLAN-LANES": {
    "after": [],
-   "batch": 1,
+   "batch": 6,
    "coordinator": false,
    "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
-   "duration_minutes": 722,
-   "finish": "2026-11-07T10:02:00Z",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 969,
+   "finish": "2026-11-07T14:09:00Z",
    "inherited": true,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "S",
-   "slot": 14,
+   "slot": 4,
    "sort_key": [
-    4,
+    2,
     1,
-    null,
-    -12.03846,
-    -722,
+    0.0,
+    -74.28114,
+    -969,
     "R10-HOTFIX-PLAN-LANES"
    ],
-   "stamp": null,
+   "stamp": "v7.1.5",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "tier": 2,
+   "tier_reason": "hotfix (kind 'fix', name)",
    "wave": 1
   },
   "R10-HOTFIX-PREHEAT-LABEL": {
@@ -4047,7 +4460,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -4065,7 +4478,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -4077,7 +4490,7 @@
   },
   "R10-HOTFIX-SAV-ESTIMATE": {
    "after": [],
-   "batch": 11,
+   "batch": 14,
    "coordinator": false,
    "done": false,
    "duration_basis": "2 carries, none measured as answered: 1 part(s)",
@@ -4088,52 +4501,52 @@
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 13,
+   "slot": 14,
    "sort_key": [
     2,
-    1,
+    0,
     0.0,
-    -117.19779999999999,
+    -140.604,
     -1188,
     "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "stamp": "v7.1.5",
+   "stamp": "v7.1.7",
    "start": "2026-11-07T10:02:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 2,
-   "tier_reason": "hotfix (kind 'hotfix', name)",
+   "tier_reason": "critical path",
    "wave": 2
   },
   "R10-HOTFIX-SELFTEST-TIMEOUT": {
    "after": [],
-   "batch": 50,
+   "batch": 7,
    "coordinator": false,
    "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds",
-   "duration_minutes": 1032,
-   "finish": "2026-11-10T20:37:00Z",
-   "inherited": false,
-   "lane": "Instruments",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds + 1 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 983,
+   "finish": "2026-11-07T14:23:00Z",
+   "inherited": true,
+   "lane": "Core model",
    "level": 1,
-   "live": false,
+   "live": true,
    "size": "S",
-   "slot": 7,
+   "slot": 0,
    "sort_key": [
-    4,
+    2,
     1,
-    null,
-    -17.1978,
-    -1032,
+    0.0,
+    -93.74853999999999,
+    -983,
     "R10-HOTFIX-SELFTEST-TIMEOUT"
    ],
-   "stamp": null,
-   "start": "2026-11-10T03:25:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 37
+   "stamp": "v7.1.5",
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
+   "tier": 2,
+   "tier_reason": "hotfix (kind None, name)",
+   "wave": 1
   },
   "R10-HOTFIX-STAMP-BASE": {
    "after": [],
@@ -4143,7 +4556,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -4153,6 +4566,36 @@
    "tier": null,
    "wave": null
   },
+  "R10-HOTFIX-TRAIN-DEFER-WAIT": {
+   "after": [],
+   "batch": 6,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 969,
+   "finish": "2026-11-07T14:09:00Z",
+   "inherited": true,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 5,
+   "sort_key": [
+    2,
+    1,
+    0.0,
+    -74.28114,
+    -969,
+    "R10-HOTFIX-TRAIN-DEFER-WAIT"
+   ],
+   "stamp": "v7.1.5",
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
+   "tier": 2,
+   "tier_reason": "hotfix (kind 'fix', name)",
+   "wave": 1
+  },
   "R10-HOTFIX-UUTILS-SLEEP": {
    "after": [],
    "batch": null,
@@ -4161,7 +4604,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -4206,6 +4649,36 @@
    "start": null,
    "tier": null,
    "wave": null
+  },
+  "R10-I18N-DE": {
+   "after": [],
+   "batch": 42,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds",
+   "duration_minutes": 1154,
+   "finish": "2026-11-10T09:03:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 12,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -77.3642,
+    -1154,
+    "R10-I18N-DE"
+   ],
+   "stamp": null,
+   "start": "2026-11-09T13:49:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 29
   },
   "R10-I5-DOCS": {
    "after": [],
@@ -4431,7 +4904,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "L",
@@ -4467,7 +4940,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -4713,18 +5186,18 @@
   },
   "R10-OPENER-REUSE": {
    "after": [],
-   "batch": 33,
+   "batch": 55,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 9 absorbed carries",
    "duration_minutes": 1332,
-   "finish": "2026-11-10T02:53:00Z",
+   "finish": "2026-11-11T00:50:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 6,
+   "slot": 5,
    "sort_key": [
     4,
     1,
@@ -4734,12 +5207,12 @@
     "R10-OPENER-REUSE"
    ],
    "stamp": null,
-   "start": "2026-11-09T04:41:00Z",
+   "start": "2026-11-10T02:38:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 22
+   "wave": 37
   },
   "R10-OPENPR-SILENT": {
    "after": [],
@@ -4869,18 +5342,18 @@
   },
   "R10-ORCH-ROSTER-SCHEMA": {
    "after": [],
-   "batch": 27,
+   "batch": 45,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 14 absorbed carries",
    "duration_minutes": 1431,
-   "finish": "2026-11-09T13:26:00Z",
+   "finish": "2026-11-10T18:27:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 0,
+   "slot": 11,
    "sort_key": [
     4,
     1,
@@ -4890,16 +5363,16 @@
     "R10-ORCH-ROSTER-SCHEMA"
    ],
    "stamp": null,
-   "start": "2026-11-08T13:35:00Z",
+   "start": "2026-11-09T18:36:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 18
+   "wave": 31
   },
   "R10-OUTSIDE-INTAKE": {
    "after": [],
-   "batch": 3,
+   "batch": 4,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds, working (live_remaining_fraction)",
@@ -4910,12 +5383,12 @@
    "level": 1,
    "live": true,
    "size": "M",
-   "slot": 9,
+   "slot": 12,
    "sort_key": [
     4,
     1,
     null,
-    -13.46548,
+    -71.59328,
     -808,
     "R10-OUTSIDE-INTAKE"
    ],
@@ -4929,33 +5402,21 @@
   },
   "R10-OVERBOOK-RESIDUAL": {
    "after": [],
-   "batch": 12,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "1 carries, none measured as answered: 1 part(s)",
-   "duration_minutes": 1188,
-   "finish": "2026-11-08T06:18:00Z",
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
    "inherited": false,
    "lane": "Core model",
-   "level": 1,
+   "level": null,
    "live": false,
    "size": "M",
-   "slot": 10,
-   "sort_key": [
-    3,
-    1,
-    0.0,
-    -77.59779999999999,
-    -1188,
-    "R10-OVERBOOK-RESIDUAL"
-   ],
-   "stamp": "v7.1.5",
-   "start": "2026-11-07T10:30:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
-   "tier": 3,
-   "tier_reason": "production (work_class)",
-   "wave": 3
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
   },
   "R10-PARAMS-OWNER": {
    "after": [],
@@ -4977,33 +5438,51 @@
   },
   "R10-PARTLOAD-PRICING": {
    "after": [],
-   "batch": 12,
+   "batch": null,
+   "coordinator": false,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
+   "size": "M",
+   "slot": null,
+   "stamp": null,
+   "start": null,
+   "tier": null,
+   "wave": null
+  },
+  "R10-PARTLOAD-RESIDUE": {
+   "after": [],
+   "batch": 17,
    "coordinator": false,
    "done": false,
-   "duration_basis": "8 carries, none measured as answered: 1 part(s)",
-   "duration_minutes": 1188,
-   "finish": "2026-11-08T06:18:00Z",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds + 3 absorbed carries",
+   "duration_minutes": 1444,
+   "finish": "2026-11-08T11:02:00Z",
    "inherited": false,
    "lane": "Core model",
    "level": 1,
    "live": false,
-   "size": "M",
-   "slot": 11,
+   "size": "S",
+   "slot": 13,
    "sort_key": [
     3,
     1,
     0.0,
-    -77.59779999999999,
-    -1188,
-    "R10-PARTLOAD-PRICING"
+    -82.19399999999999,
+    -1444,
+    "R10-PARTLOAD-RESIDUE"
    ],
-   "stamp": "v7.1.5",
-   "start": "2026-11-07T10:30:00Z",
+   "stamp": "v7.1.7",
+   "start": "2026-11-07T10:58:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 3
+   "wave": 4
   },
   "R10-PLAN-ARTIFACT": {
    "after": [],
@@ -5013,7 +5492,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -5049,7 +5528,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5067,7 +5546,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -5079,33 +5558,33 @@
   },
   "R10-PLANTED-DEFECT-AUDIT": {
    "after": [],
-   "batch": 15,
+   "batch": 30,
    "coordinator": false,
    "done": false,
    "duration_basis": "6 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-08T10:44:00Z",
+   "finish": "2026-11-09T18:36:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 2,
+   "slot": 11,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-PLANTED-DEFECT-AUDIT"
    ],
    "stamp": null,
-   "start": "2026-11-07T14:56:00Z",
+   "start": "2026-11-08T22:48:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 10
+   "wave": 22
   },
   "R10-POLICY-FIXER-MD": {
    "after": [],
@@ -5199,48 +5678,48 @@
   },
   "R10-POLICY-ROLE-PACK": {
    "after": [],
-   "batch": 17,
+   "batch": 36,
    "coordinator": false,
    "done": false,
    "duration_basis": "6 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-08T13:35:00Z",
+   "finish": "2026-11-10T02:38:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 0,
+   "slot": 13,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-POLICY-ROLE-PACK"
    ],
    "stamp": null,
-   "start": "2026-11-07T17:47:00Z",
+   "start": "2026-11-09T06:50:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 11
+   "wave": 24
   },
   "R10-PR-CONTRACT-OUTSIDE": {
    "after": [],
-   "batch": 50,
+   "batch": 59,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds",
    "duration_minutes": 1032,
-   "finish": "2026-11-10T20:37:00Z",
+   "finish": "2026-11-11T09:05:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 10,
+   "slot": 4,
    "sort_key": [
     4,
     1,
@@ -5250,12 +5729,12 @@
     "R10-PR-CONTRACT-OUTSIDE"
    ],
    "stamp": null,
-   "start": "2026-11-10T03:25:00Z",
+   "start": "2026-11-10T15:53:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 37
+   "wave": 45
   },
   "R10-PRE-EDIT-HOOK": {
    "after": [],
@@ -5279,33 +5758,33 @@
    "after": [
     "R10-PROCESS-SLIM"
    ],
-   "batch": 31,
+   "batch": 39,
    "coordinator": false,
    "done": false,
    "duration_basis": "30 carries, none measured as answered: 3 part(s)",
    "duration_minutes": 3564,
-   "finish": "2026-11-09T23:06:00Z",
+   "finish": "2026-11-10T03:31:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
    "live": false,
    "size": "S",
-   "slot": 1,
+   "slot": 6,
    "sort_key": [
     4,
     1,
     null,
-    -117.1978,
+    -117.5278,
     -3564,
     "R10-PREPR-CAP"
    ],
    "stamp": null,
-   "start": "2026-11-07T11:42:00Z",
-   "start_reason": "after R10-PROCESS-SLIM (merges 2026-11-07T11:42:00Z)",
+   "start": "2026-11-07T16:07:00Z",
+   "start_reason": "after R10-PROCESS-SLIM (merges 2026-11-07T16:07:00Z)",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 5
+   "wave": 12
   },
   "R10-PREPR-UNPINNED-RED": {
    "after": [],
@@ -5327,32 +5806,32 @@
   },
   "R10-PROCESS-SLIM": {
    "after": [],
-   "batch": 4,
+   "batch": 11,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 1 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 822,
-   "finish": "2026-11-07T11:42:00Z",
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 1 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 1087,
+   "finish": "2026-11-07T16:07:00Z",
    "inherited": true,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 1,
    "live": true,
    "size": "M",
-   "slot": 1,
+   "slot": 6,
    "sort_key": [
-    4,
+    3,
     1,
-    null,
-    -130.89428,
-    -822,
+    0.0,
+    -135.65233999999998,
+    -1087,
     "R10-PROCESS-SLIM"
    ],
-   "stamp": null,
+   "stamp": "v7.1.6",
    "start": "2026-11-06T22:00:00Z",
    "start_reason": "started: its fixer is working",
    "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "tier": 3,
+   "tier_reason": "production (work_class)",
    "wave": 1
   },
   "R10-PROD-RESIDUE-PINS": {
@@ -5411,33 +5890,33 @@
   },
   "R10-RAISE-GATE-SHIM": {
    "after": [],
-   "batch": 18,
+   "batch": 37,
    "coordinator": false,
    "done": false,
    "duration_basis": "8 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-09T02:06:00Z",
+   "finish": "2026-11-10T03:18:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 11,
+   "slot": 2,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-RAISE-GATE-SHIM"
    ],
    "stamp": null,
-   "start": "2026-11-08T06:18:00Z",
+   "start": "2026-11-09T07:30:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 13
+   "wave": 25
   },
   "R10-RATIO-ANCHOR": {
    "after": [],
@@ -5501,7 +5980,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5519,7 +5998,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5555,7 +6034,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5565,6 +6044,36 @@
    "tier": null,
    "wave": null
   },
+  "R10-RCA-GATE-BUSY-DEFER-2": {
+   "after": [],
+   "batch": 2,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 2 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 750,
+   "finish": "2026-11-07T10:30:00Z",
+   "inherited": true,
+   "lane": "Core model",
+   "level": 1,
+   "live": true,
+   "size": "S",
+   "slot": 17,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -12.50046,
+    -750,
+    "R10-RCA-GATE-BUSY-DEFER-2"
+   ],
+   "stamp": "v7.1.5",
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 1
+  },
   "R10-RCA-HANDOFF-SLIP": {
    "after": [],
    "batch": null,
@@ -5573,7 +6082,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5609,7 +6118,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5645,7 +6154,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5663,7 +6172,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -5675,33 +6184,21 @@
   },
   "R10-RCA-PROCESS-WORKER-HANG": {
    "after": [],
-   "batch": 1,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds, working (live_remaining_fraction)",
-   "duration_minutes": 722,
-   "finish": "2026-11-07T10:02:00Z",
-   "inherited": true,
-   "lane": "Instruments",
-   "level": 1,
-   "live": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
+   "lane": "Core model",
+   "level": null,
+   "live": false,
    "size": "S",
-   "slot": 15,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -12.03846,
-    -722,
-    "R10-RCA-PROCESS-WORKER-HANG"
-   ],
+   "slot": null,
    "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "start": null,
+   "tier": null,
+   "wave": null
   },
   "R10-RCA-RATELIMIT-RECUR": {
    "after": [],
@@ -5711,7 +6208,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5729,7 +6226,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5743,18 +6240,18 @@
    "after": [
     "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "batch": 37,
+   "batch": 53,
    "coordinator": false,
    "done": false,
    "duration_basis": "1 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-10T04:54:00Z",
+   "finish": "2026-11-10T23:12:00Z",
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": 2,
    "live": false,
    "size": "S",
-   "slot": 15,
+   "slot": 1,
    "sort_key": [
     4,
     1,
@@ -5763,13 +6260,13 @@
     -1188,
     "R10-RCA-SAV-ESTIMATE"
    ],
-   "stamp": null,
-   "start": "2026-11-09T09:06:00Z",
+   "stamp": "v7.1.10",
+   "start": "2026-11-10T03:24:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 26
+   "wave": 39
   },
   "R10-RCA-STRUCTURE-BLIND": {
    "after": [],
@@ -5779,7 +6276,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5797,7 +6294,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Docs",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "M",
@@ -5851,7 +6348,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -5899,33 +6396,21 @@
   },
   "R10-REF-PRIVACY-CLOUD": {
    "after": [],
-   "batch": 2,
+   "batch": null,
    "coordinator": false,
-   "done": false,
-   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 2 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 750,
-   "finish": "2026-11-07T10:30:00Z",
-   "inherited": true,
+   "done": true,
+   "duration_minutes": 0,
+   "finish": null,
+   "inherited": false,
    "lane": "Instruments",
-   "level": 1,
-   "live": true,
+   "level": null,
+   "live": false,
    "size": "S",
-   "slot": 11,
-   "sort_key": [
-    4,
-    1,
-    null,
-    -12.50046,
-    -750,
-    "R10-REF-PRIVACY-CLOUD"
-   ],
+   "slot": null,
    "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "start": null,
+   "tier": null,
+   "wave": null
   },
   "R10-REGISTRY-LEAK": {
    "after": [],
@@ -5947,18 +6432,18 @@
   },
   "R10-RELAY-HANDOFF-ARM": {
    "after": [],
-   "batch": 34,
+   "batch": 54,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 6 absorbed carries",
    "duration_minutes": 1273,
-   "finish": "2026-11-10T03:03:00Z",
+   "finish": "2026-11-11T00:31:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 3,
+   "slot": 2,
    "sort_key": [
     4,
     1,
@@ -5968,16 +6453,16 @@
     "R10-RELAY-HANDOFF-ARM"
    ],
    "stamp": null,
-   "start": "2026-11-09T05:50:00Z",
+   "start": "2026-11-10T03:18:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 25
+   "wave": 38
   },
   "R10-RELAY-SWEEP": {
    "after": [],
-   "batch": 7,
+   "batch": 5,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 8 absorbed carries, working (live_remaining_fraction)",
@@ -5988,12 +6473,12 @@
    "level": 1,
    "live": true,
    "size": "M",
-   "slot": 4,
+   "slot": 11,
    "sort_key": [
     4,
     1,
     null,
-    -73.11128,
+    -73.44127999999999,
     -919,
     "R10-RELAY-SWEEP"
    ],
@@ -6027,63 +6512,63 @@
    "after": [
     "R10-REPLAY-COST-BUDGET"
    ],
-   "batch": 39,
+   "batch": 29,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 12 absorbed carries",
    "duration_minutes": 1771,
-   "finish": "2026-11-10T10:26:00Z",
+   "finish": "2026-11-09T16:01:00Z",
    "inherited": false,
    "lane": "Replay",
    "level": 2,
    "live": false,
    "size": "M",
-   "slot": 4,
+   "slot": 10,
    "sort_key": [
     3,
     1,
     0.0,
-    -29.522199999999998,
+    -87.64999999999999,
     -1771,
     "R10-REPLAY-COST-2"
    ],
    "stamp": null,
-   "start": "2026-11-09T04:55:00Z",
-   "start_reason": "after R10-REPLAY-COST-BUDGET (merges 2026-11-09T04:55:00Z)",
+   "start": "2026-11-08T10:30:00Z",
+   "start_reason": "after R10-REPLAY-COST-BUDGET (merges 2026-11-08T10:30:00Z)",
    "started": false,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 23
+   "wave": 16
   },
   "R10-REPLAY-COST-BUDGET": {
    "after": [],
-   "batch": 22,
+   "batch": 15,
    "coordinator": false,
    "done": false,
    "duration_basis": "5 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-09T04:55:00Z",
+   "finish": "2026-11-08T10:30:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 5,
+   "slot": 10,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -107.44999999999999,
     -1188,
     "R10-REPLAY-COST-BUDGET"
    ],
    "stamp": null,
-   "start": "2026-11-08T09:07:00Z",
+   "start": "2026-11-07T14:42:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 14
+   "wave": 9
   },
   "R10-REPLAY-LANE": {
    "after": [],
@@ -6183,7 +6668,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -6201,7 +6686,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -6215,12 +6700,12 @@
    "after": [
     "R10-ORCH-ROSTER-SCHEMA"
    ],
-   "batch": 43,
+   "batch": 60,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 3 absorbed carries",
    "duration_minutes": 1214,
-   "finish": "2026-11-10T19:06:00Z",
+   "finish": "2026-11-11T15:39:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
@@ -6236,12 +6721,12 @@
     "R10-ROSTER-LIB-SCHEMA"
    ],
    "stamp": null,
-   "start": "2026-11-09T22:52:00Z",
+   "start": "2026-11-10T19:25:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 31
+   "wave": 47
   },
   "R10-ROSTER-OPS": {
    "after": [],
@@ -6265,18 +6750,18 @@
    "after": [
     "R10-ORCH-ROSTER-SCHEMA"
    ],
-   "batch": 40,
+   "batch": 63,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 12 absorbed carries",
    "duration_minutes": 1392,
-   "finish": "2026-11-10T12:38:00Z",
+   "finish": "2026-11-11T17:39:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
    "live": false,
    "size": "M",
-   "slot": 0,
+   "slot": 11,
    "sort_key": [
     4,
     1,
@@ -6286,12 +6771,12 @@
     "R10-ROSTER-OPS-2"
    ],
    "stamp": null,
-   "start": "2026-11-09T13:26:00Z",
-   "start_reason": "after R10-ORCH-ROSTER-SCHEMA (merges 2026-11-09T13:26:00Z)",
+   "start": "2026-11-10T18:27:00Z",
+   "start_reason": "after R10-ORCH-ROSTER-SCHEMA (merges 2026-11-10T18:27:00Z)",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 28
+   "wave": 46
   },
   "R10-ROSTER-PUSH-RACE": {
    "after": [],
@@ -6315,18 +6800,18 @@
    "after": [
     "R10-ORCH-ROSTER-SCHEMA"
    ],
-   "batch": 42,
+   "batch": 61,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 5 absorbed carries",
    "duration_minutes": 1131,
-   "finish": "2026-11-10T18:09:00Z",
+   "finish": "2026-11-11T16:13:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
    "live": false,
    "size": "S",
-   "slot": 8,
+   "slot": 6,
    "sort_key": [
     4,
     1,
@@ -6336,123 +6821,171 @@
     "R10-ROSTER-QUEUE"
    ],
    "stamp": null,
-   "start": "2026-11-09T23:18:00Z",
+   "start": "2026-11-10T21:22:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 33
+   "wave": 50
   },
   "R10-ROSTER-READ-SWEEP": {
    "after": [],
-   "batch": 7,
+   "batch": 38,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 8 absorbed carries, working (live_remaining_fraction)",
-   "duration_minutes": 919,
-   "finish": "2026-11-07T13:19:00Z",
-   "inherited": true,
+   "duration_basis": "9 carries, none measured as answered: 1 part(s)",
+   "duration_minutes": 1188,
+   "finish": "2026-11-10T03:24:00Z",
+   "inherited": false,
    "lane": "Instruments",
    "level": 1,
-   "live": true,
+   "live": false,
    "size": "M",
-   "slot": 5,
+   "slot": 1,
    "sort_key": [
     4,
     1,
     null,
-    -73.11128,
-    -919,
+    -77.92779999999999,
+    -1188,
     "R10-ROSTER-READ-SWEEP"
    ],
    "stamp": null,
-   "start": "2026-11-06T22:00:00Z",
-   "start_reason": "started: its fixer is working",
-   "started": true,
+   "start": "2026-11-09T07:36:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 1
+   "wave": 26
   },
   "R10-ROSTER-WRITE-SWEEP": {
    "after": [],
-   "batch": 21,
+   "batch": 26,
    "coordinator": false,
    "done": false,
    "duration_basis": "17 carries, none measured as answered: 2 part(s)",
    "duration_minutes": 2376,
-   "finish": "2026-11-09T04:41:00Z",
+   "finish": "2026-11-09T09:37:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 6,
+   "slot": 7,
    "sort_key": [
     4,
     1,
     null,
-    -97.39779999999999,
+    -97.7278,
     -2376,
     "R10-ROSTER-WRITE-SWEEP"
    ],
    "stamp": null,
-   "start": "2026-11-07T13:05:00Z",
+   "start": "2026-11-07T18:01:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 7
+   "wave": 14
   },
   "R10-ROUND-PLAYBOOK": {
+   "after": [],
+   "batch": 21,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 24 absorbed carries",
+   "duration_minutes": 2009,
+   "finish": "2026-11-08T22:48:00Z",
+   "inherited": false,
+   "lane": "Core model",
+   "level": 1,
+   "live": false,
+   "size": "M",
+   "slot": 11,
+   "sort_key": [
+    3,
+    1,
+    0.0,
+    -80.2946,
+    -2009,
+    "R10-ROUND-PLAYBOOK"
+   ],
+   "stamp": "v7.1.8",
+   "start": "2026-11-07T13:19:00Z",
+   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "started": false,
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 6
+  },
+  "R10-ROUND-PLAYBOOK-FINAL": {
    "after": [
     "R10-BODY-CONTRACT",
+    "R10-CARRY-RESIDUE-2",
+    "R10-CI-EDIT-RUNNER",
+    "R10-CI-OWN-DELIVERY-ROW",
     "R10-CI-PRIORITY-PAUSE",
-    "R10-CI-RUNNER-FIXES",
+    "R10-CI-SELFTEST-SCOPE",
     "R10-DISPATCH-AT-HANDOFF",
     "R10-FLOW-TOOLKIT-MODEL",
     "R10-FLY-CIPREDICT-RESTORING",
     "R10-FLY-GH-READ-RETRY",
+    "R10-FLY-STAMP-FLUSH-COST",
+    "R10-FLY-STAMP-FLUSH-HOLD",
     "R10-FLY-STANDING-CONTRACTS",
     "R10-FRICTION-RECORDS",
     "R10-HANDOFF-PATH",
+    "R10-HOTFIX-CODEQL-HEADROOM",
+    "R10-HOTFIX-GATE-BUSY-DEFER",
+    "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
+    "R10-HOTFIX-PLAN-LANES",
+    "R10-HOTFIX-SELFTEST-TIMEOUT",
+    "R10-HOTFIX-TRAIN-DEFER-WAIT",
+    "R10-OUTSIDE-INTAKE",
     "R10-PLANTED-DEFECT-AUDIT",
     "R10-POLICY-ROLE-PACK",
     "R10-PREPR-CAP",
+    "R10-PROCESS-SLIM",
     "R10-RAISE-GATE-SHIM",
     "R10-RELAY-SWEEP",
+    "R10-REPLAY-COST-2",
     "R10-ROSTER-READ-SWEEP",
     "R10-ROSTER-WRITE-SWEEP",
+    "R10-ROUND-PLAYBOOK",
     "R10-SUITE-HOST-DETERMINISM",
+    "R10-SWEEP-TEMPLATE-SYNC",
     "R10-TICK-LEVELS",
-    "R10-TRAIN-MERGE-LOOP"
+    "R10-TRAIN-MERGE-LOOP",
+    "R10-TRAIN-MERGE-LOOP-2",
+    "R10-TRAIN-STALE-VERDICT-GUARD"
    ],
-   "batch": 51,
+   "batch": 64,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 23 absorbed carries",
-   "duration_minutes": 1610,
-   "finish": "2026-11-11T20:04:00Z",
+   "duration_basis": "S/production: 16.1 h + 1.51 extra rounds",
+   "duration_minutes": 1385,
+   "finish": "2026-11-11T20:26:00Z",
    "inherited": false,
-   "lane": "Docs",
-   "level": 3,
+   "lane": "Core model",
+   "level": 4,
    "live": false,
-   "size": "M",
-   "slot": 4,
+   "size": "S",
+   "slot": 3,
    "sort_key": [
-    4,
+    3,
     1,
-    null,
-    -50.5626,
-    -1610,
-    "R10-ROUND-PLAYBOOK"
+    0.0,
+    -46.8124,
+    -1385,
+    "R10-ROUND-PLAYBOOK-FINAL"
    ],
-   "stamp": null,
-   "start": "2026-11-10T17:14:00Z",
-   "start_reason": "after R10-BODY-CONTRACT (merges 2026-11-10T17:14:00Z)",
+   "stamp": "v7.1.10",
+   "start": "2026-11-10T21:21:00Z",
+   "start_reason": "after R10-BODY-CONTRACT (merges 2026-11-10T21:21:00Z)",
    "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 38
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 49
   },
   "R10-ROUTING-INVARIANTS": {
    "after": [],
@@ -6512,7 +7045,7 @@
    "after": [
     "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "batch": 28,
+   "batch": 32,
    "coordinator": false,
    "done": false,
    "duration_basis": "19 carries, none measured as answered: 2 part(s)",
@@ -6523,29 +7056,29 @@
    "level": 2,
    "live": false,
    "size": "M",
-   "slot": 13,
+   "slot": 14,
    "sort_key": [
-    3,
-    1,
+    2,
+    0,
     0.0,
-    -97.39779999999999,
+    -120.804,
     -2376,
     "R10-SAV-COMFORT"
    ],
-   "stamp": "v7.1.6",
+   "stamp": "v7.1.9",
    "start": "2026-11-08T05:50:00Z",
    "start_reason": "after R10-HOTFIX-SAV-ESTIMATE (merges 2026-11-08T05:50:00Z)",
    "started": false,
-   "tier": 3,
-   "tier_reason": "production (work_class)",
-   "wave": 12
+   "tier": 2,
+   "tier_reason": "critical path",
+   "wave": 15
   },
   "R10-SAV-METER-FLOOR": {
    "after": [
     "R10-HOTFIX-SAV-ESTIMATE",
     "R10-SAV-COMFORT"
    ],
-   "batch": 48,
+   "batch": 47,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/production: 16.1 h + 1.51 extra rounds",
@@ -6556,22 +7089,22 @@
    "level": 3,
    "live": false,
    "size": "S",
-   "slot": 13,
+   "slot": 14,
    "sort_key": [
-    3,
-    1,
+    2,
+    0,
     0.0,
-    -23.0762,
+    -81.204,
     -1385,
     "R10-SAV-METER-FLOOR"
    ],
-   "stamp": "v10.0.0",
+   "stamp": "v7.1.9",
    "start": "2026-11-09T21:26:00Z",
    "start_reason": "after R10-SAV-COMFORT (merges 2026-11-09T21:26:00Z)",
    "started": false,
-   "tier": 3,
-   "tier_reason": "production (work_class)",
-   "wave": 29
+   "tier": 2,
+   "tier_reason": "critical path",
+   "wave": 33
   },
   "R10-SAV-REASONS": {
    "after": [],
@@ -6595,18 +7128,18 @@
    "after": [
     "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "batch": 26,
+   "batch": 28,
    "coordinator": false,
    "done": false,
    "duration_basis": "L/production: 16 h + 2.44 extra rounds",
    "duration_minutes": 1636,
-   "finish": "2026-11-09T09:34:00Z",
+   "finish": "2026-11-09T13:49:00Z",
    "inherited": false,
    "lane": "Core model",
    "level": 2,
    "live": false,
    "size": "L",
-   "slot": 10,
+   "slot": 12,
    "sort_key": [
     3,
     1,
@@ -6615,13 +7148,13 @@
     -1636,
     "R10-SAV-WOOD-MEASURED"
    ],
-   "stamp": "v7.1.6",
-   "start": "2026-11-08T06:18:00Z",
+   "stamp": "v7.1.8",
+   "start": "2026-11-08T10:33:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 13
+   "wave": 17
   },
   "R10-SAVINGS-NEGATIVE": {
    "after": [],
@@ -6697,18 +7230,18 @@
   },
   "R10-SEAT-SINGLE-WRITER": {
    "after": [],
-   "batch": 36,
+   "batch": 49,
    "coordinator": false,
    "done": false,
    "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds + 2 absorbed carries",
    "duration_minutes": 1071,
-   "finish": "2026-11-10T03:25:00Z",
+   "finish": "2026-11-10T21:22:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "S",
-   "slot": 10,
+   "slot": 6,
    "sort_key": [
     4,
     1,
@@ -6718,12 +7251,12 @@
     "R10-SEAT-SINGLE-WRITER"
    ],
    "stamp": null,
-   "start": "2026-11-09T09:34:00Z",
+   "start": "2026-11-10T03:31:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 27
+   "wave": 40
   },
   "R10-SENSOR-PAYLOAD": {
    "after": [],
@@ -6961,33 +7494,33 @@
   },
   "R10-SUITE-HOST-DETERMINISM": {
    "after": [],
-   "batch": 24,
+   "batch": 40,
    "coordinator": false,
    "done": false,
    "duration_basis": "9 carries, none measured as answered: 1 part(s)",
    "duration_minutes": 1188,
-   "finish": "2026-11-09T05:50:00Z",
+   "finish": "2026-11-10T05:25:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 3,
+   "slot": 7,
    "sort_key": [
     4,
     1,
     null,
-    -77.59779999999999,
+    -77.92779999999999,
     -1188,
     "R10-SUITE-HOST-DETERMINISM"
    ],
    "stamp": null,
-   "start": "2026-11-08T10:02:00Z",
+   "start": "2026-11-09T09:37:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 15
+   "wave": 27
   },
   "R10-SWEEP-TEMPLATE-SYNC": {
    "after": [],
@@ -7007,7 +7540,7 @@
     4,
     1,
     null,
-    -12.03846,
+    -70.16626,
     -722,
     "R10-SWEEP-TEMPLATE-SYNC"
    ],
@@ -7095,18 +7628,18 @@
    "after": [
     "R10-ORCH-ROSTER-SCHEMA"
    ],
-   "batch": 45,
+   "batch": 62,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 3 absorbed carries",
    "duration_minutes": 1214,
-   "finish": "2026-11-10T19:20:00Z",
+   "finish": "2026-11-11T16:45:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
    "live": false,
    "size": "M",
-   "slot": 1,
+   "slot": 14,
    "sort_key": [
     4,
     1,
@@ -7116,42 +7649,42 @@
     "R10-TICK-GROUP-LINES"
    ],
    "stamp": null,
-   "start": "2026-11-09T23:06:00Z",
+   "start": "2026-11-10T20:31:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 32
+   "wave": 48
   },
   "R10-TICK-LEVELS": {
    "after": [],
-   "batch": 19,
+   "batch": 22,
    "coordinator": false,
    "done": false,
    "duration_basis": "16 carries, none measured as answered: 2 part(s)",
    "duration_minutes": 2376,
-   "finish": "2026-11-09T03:04:00Z",
+   "finish": "2026-11-09T05:45:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 8,
+   "slot": 5,
    "sort_key": [
     4,
     1,
     null,
-    -117.6242,
+    -118.61419999999998,
     -2376,
     "R10-TICK-LEVELS"
    ],
    "stamp": null,
-   "start": "2026-11-07T11:28:00Z",
+   "start": "2026-11-07T14:09:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 4
+   "wave": 7
   },
   "R10-TICK-ORCH": {
    "after": [],
@@ -7191,18 +7724,18 @@
   },
   "R10-TICK-PR-BUCKETS": {
    "after": [],
-   "batch": 35,
+   "batch": 54,
    "coordinator": false,
    "done": false,
    "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 8 absorbed carries",
    "duration_minutes": 1313,
-   "finish": "2026-11-10T03:08:00Z",
+   "finish": "2026-11-11T00:31:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
    "live": false,
    "size": "M",
-   "slot": 2,
+   "slot": 13,
    "sort_key": [
     4,
     1,
@@ -7212,12 +7745,12 @@
     "R10-TICK-PR-BUCKETS"
    ],
    "stamp": null,
-   "start": "2026-11-09T05:15:00Z",
+   "start": "2026-11-10T02:38:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 24
+   "wave": 37
   },
   "R10-TICK-RELAY-DECOUPLE": {
    "after": [],
@@ -7298,7 +7831,7 @@
    "done": false,
    "duration_basis": "19 carries, none measured as answered: 2 part(s)",
    "duration_minutes": 2376,
-   "finish": "2026-11-09T04:55:00Z",
+   "finish": "2026-11-09T05:45:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 1,
@@ -7309,46 +7842,46 @@
     4,
     1,
     null,
-    -97.39779999999999,
+    -131.85608,
     -2376,
     "R10-TRAIN-MERGE-LOOP"
    ],
    "stamp": null,
-   "start": "2026-11-07T13:19:00Z",
+   "start": "2026-11-07T14:09:00Z",
    "start_reason": "slot cap 16: waited behind higher-priority groups",
    "started": false,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 8
+   "wave": 7
   },
   "R10-TRAIN-MERGE-LOOP-2": {
    "after": [
     "R10-TRAIN-MERGE-LOOP"
    ],
-   "batch": 38,
+   "batch": 33,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 17 absorbed carries",
-   "duration_minutes": 1491,
-   "finish": "2026-11-10T05:46:00Z",
+   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 15 absorbed carries, working (live_remaining_fraction)",
+   "duration_minutes": 1016,
+   "finish": "2026-11-09T22:41:00Z",
    "inherited": false,
    "lane": "Instruments",
    "level": 2,
-   "live": false,
+   "live": true,
    "size": "M",
-   "slot": 5,
+   "slot": 4,
    "sort_key": [
     4,
     1,
     null,
-    -24.8464,
-    -1491,
+    -92.25608,
+    -1016,
     "R10-TRAIN-MERGE-LOOP-2"
    ],
    "stamp": null,
-   "start": "2026-11-09T04:55:00Z",
-   "start_reason": "after R10-TRAIN-MERGE-LOOP (merges 2026-11-09T04:55:00Z)",
-   "started": false,
+   "start": "2026-11-09T05:45:00Z",
+   "start_reason": "started: its fixer is working; after R10-TRAIN-MERGE-LOOP (merges 2026-11-09T05:45:00Z)",
+   "started": true,
    "tier": 4,
    "tier_reason": "instrument; savings not recorded on the roster, ranked last",
    "wave": 23
@@ -7389,6 +7922,38 @@
    "tier": null,
    "wave": null
   },
+  "R10-TRAIN-STALE-VERDICT-GUARD": {
+   "after": [
+    "R10-TRAIN-MERGE-LOOP-2"
+   ],
+   "batch": 44,
+   "coordinator": false,
+   "done": false,
+   "duration_basis": "S/instrument: 11.7 h + 1.19 extra rounds",
+   "duration_minutes": 1032,
+   "finish": "2026-11-10T15:53:00Z",
+   "inherited": false,
+   "lane": "Instruments",
+   "level": 3,
+   "live": false,
+   "size": "S",
+   "slot": 4,
+   "sort_key": [
+    4,
+    1,
+    null,
+    -75.3256,
+    -1032,
+    "R10-TRAIN-STALE-VERDICT-GUARD"
+   ],
+   "stamp": null,
+   "start": "2026-11-09T22:41:00Z",
+   "start_reason": "after R10-TRAIN-MERGE-LOOP-2 (merges 2026-11-09T22:41:00Z)",
+   "started": false,
+   "tier": 4,
+   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
+   "wave": 34
+  },
   "R10-TRAIN-UPGRADE": {
    "after": [],
    "batch": null,
@@ -7415,7 +7980,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -7433,7 +7998,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -7451,7 +8016,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Instruments",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "S",
@@ -7541,7 +8106,7 @@
    "duration_minutes": 0,
    "finish": null,
    "inherited": false,
-   "lane": "Docs",
+   "lane": "Core model",
    "level": null,
    "live": false,
    "size": "L",
@@ -7554,42 +8119,46 @@
   "R10-USER-DOCS-VERIFY": {
    "after": [
     "R10-ADVISOR-WHATIF",
-    "R10-CARRY-RESIDUE",
+    "R10-ARBITER-OFF-RESTORE",
     "R10-CLONE-2238",
-    "R10-COP-GATE-D",
-    "R10-OVERBOOK-RESIDUAL",
-    "R10-PARTLOAD-PRICING",
-    "R10-REPLAY-COST-BUDGET",
+    "R10-COMBI-TANK",
+    "R10-COP-GATE-E",
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT",
+    "R10-HOTFIX-COP-UNMEASURED",
+    "R10-I18N-DE",
+    "R10-PARTLOAD-RESIDUE",
     "R10-SAV-COMFORT",
+    "R10-SAV-METER-FLOOR",
     "R10-WHY-NOW-WIDGET"
    ],
-   "batch": 44,
+   "batch": 65,
    "coordinator": false,
    "done": false,
-   "duration_basis": "M/instrument: 13.6 h + 1.22 extra rounds + 6 absorbed carries",
-   "duration_minutes": 1273,
-   "finish": "2026-11-10T19:07:00Z",
+   "duration_basis": "M/production: 17.2 h + 1.81 extra rounds + 6 absorbed carries",
+   "duration_minutes": 1653,
+   "finish": "2026-11-12T01:40:00Z",
    "inherited": false,
-   "lane": "Docs",
-   "level": 3,
+   "lane": "Core model",
+   "level": 4,
    "live": false,
    "size": "M",
-   "slot": 11,
+   "slot": 8,
    "sort_key": [
-    4,
+    3,
     1,
-    null,
-    -44.952600000000004,
-    -1273,
+    0.0,
+    -51.2784,
+    -1653,
     "R10-USER-DOCS-VERIFY"
    ],
-   "stamp": null,
-   "start": "2026-11-09T21:54:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
+   "stamp": "v7.1.10",
+   "start": "2026-11-10T22:07:00Z",
+   "start_reason": "after R10-ARBITER-OFF-RESTORE (merges 2026-11-10T22:07:00Z)",
    "started": false,
-   "tier": 4,
-   "tier_reason": "instrument; savings not recorded on the roster, ranked last",
-   "wave": 30
+   "tier": 3,
+   "tier_reason": "production (work_class)",
+   "wave": 51
   },
   "R10-UX-HEALTH": {
    "after": [],
@@ -7647,33 +8216,33 @@
   },
   "R10-WHY-NOW-WIDGET": {
    "after": [],
-   "batch": 16,
+   "batch": 12,
    "coordinator": true,
    "done": false,
-   "duration_basis": "L/production: 16 h + 2.44 extra rounds",
-   "duration_minutes": 1636,
-   "finish": "2026-11-08T13:18:00Z",
-   "inherited": false,
+   "duration_basis": "L/production: 16 h + 2.44 extra rounds, working (live_remaining_fraction)",
+   "duration_minutes": 1145,
+   "finish": "2026-11-07T17:05:00Z",
+   "inherited": true,
    "lane": "Core model",
    "level": 1,
-   "live": false,
+   "live": true,
    "size": "L",
-   "slot": 15,
+   "slot": 9,
    "sort_key": [
     3,
     1,
     0.0,
-    -85.0706,
-    -1636,
+    -77.21875999999999,
+    -1145,
     "R10-WHY-NOW-WIDGET"
    ],
    "stamp": "v7.1.6",
-   "start": "2026-11-07T10:02:00Z",
-   "start_reason": "slot cap 16: waited behind higher-priority groups",
-   "started": false,
+   "start": "2026-11-06T22:00:00Z",
+   "start_reason": "started: its fixer is working",
+   "started": true,
    "tier": 3,
    "tier_reason": "production (work_class)",
-   "wave": 2
+   "wave": 1
   },
   "R10-WOOD-NOTIFY": {
    "after": [],
@@ -7697,36 +8266,87 @@
  "schema": 1,
  "stamps": [
   {
-   "at": "2026-11-08T14:18:00Z",
-   "batch": 16,
+   "at": "2026-11-07T15:23:00Z",
+   "batch": 7,
    "carries": [
-    "R10-COMBI-TANK",
-    "R10-HOTFIX-SAV-ESTIMATE",
-    "R10-OVERBOOK-RESIDUAL",
-    "R10-PARTLOAD-PRICING",
-    "R10-CLONE-2238"
+    "R10-RCA-GATE-BUSY-DEFER-2",
+    "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
+    "R10-HOTFIX-PLAN-LANES",
+    "R10-HOTFIX-TRAIN-DEFER-WAIT",
+    "R10-HOTFIX-SELFTEST-TIMEOUT"
    ],
    "kind": "patch",
    "version": "v7.1.5"
   },
   {
-   "at": "2026-11-09T22:26:00Z",
-   "batch": 28,
+   "at": "2026-11-07T18:05:00Z",
+   "batch": 12,
    "carries": [
-    "R10-WHY-NOW-WIDGET",
-    "R10-ADVISOR-WHATIF",
-    "R10-COP-GATE-D",
-    "R10-SAV-WOOD-MEASURED",
-    "R10-SAV-COMFORT"
+    "R10-HOTFIX-CODEQL-HEADROOM",
+    "R10-HOTFIX-GATE-BUSY-DEFER",
+    "R10-PROCESS-SLIM",
+    "R10-CLONE-2238",
+    "R10-WHY-NOW-WIDGET"
    ],
    "kind": "patch",
    "version": "v7.1.6"
   },
   {
-   "at": "2026-11-13T05:02:00Z",
+   "at": "2026-11-08T17:21:00Z",
+   "batch": 18,
+   "carries": [
+    "R10-COMBI-TANK",
+    "R10-HOTFIX-SAV-ESTIMATE",
+    "R10-CI-OWN-DELIVERY-ROW",
+    "R10-PARTLOAD-RESIDUE",
+    "R10-CARRY-RESIDUE-2"
+   ],
+   "kind": "patch",
+   "version": "v7.1.7"
+  },
+  {
+   "at": "2026-11-09T14:49:00Z",
+   "batch": 28,
+   "carries": [
+    "R10-HOTFIX-COP-UNMEASURED",
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-ROUND-PLAYBOOK",
+    "R10-FRICTION-RECORDS",
+    "R10-SAV-WOOD-MEASURED"
+   ],
+   "kind": "patch",
+   "version": "v7.1.8"
+  },
+  {
+   "at": "2026-11-10T21:31:00Z",
+   "batch": 47,
+   "carries": [
+    "R10-COP-GATE-E",
+    "R10-SAV-COMFORT",
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT",
+    "R10-ADVISOR-WHATIF",
+    "R10-SAV-METER-FLOOR"
+   ],
+   "kind": "patch",
+   "version": "v7.1.9"
+  },
+  {
+   "at": "2026-11-12T02:40:00Z",
+   "batch": 65,
+   "carries": [
+    "R10-ARBITER-OFF-RESTORE",
+    "R10-RCA-SAV-ESTIMATE",
+    "R10-FRICTION-CI-RED",
+    "R10-ROUND-PLAYBOOK-FINAL",
+    "R10-USER-DOCS-VERIFY"
+   ],
+   "kind": "patch",
+   "version": "v7.1.10"
+  },
+  {
+   "at": "2026-11-13T10:14:00Z",
    "batch": null,
    "carries": [
-    "R10-SAV-METER-FLOOR",
     "R10-CATALOG-PR"
    ],
    "kind": "round-close",
@@ -7734,21 +8354,21 @@
   }
  ],
  "summary": {
-  "batches": 53,
-  "ci_minutes": 6300.0,
-  "closure": "2026-11-13T03:02:00Z",
+  "batches": 67,
+  "ci_minutes": 8325.0,
+  "closure": "2026-11-13T08:14:00Z",
   "closure_stamp": "v10.0.0",
   "gate_minutes": 112.5,
-  "groups_done": 284,
-  "groups_open": 67,
-  "groups_total": 351,
-  "inherited_coordinator": 0,
-  "inherited_in_progress": 17,
+  "groups_done": 294,
+  "groups_open": 75,
+  "groups_total": 369,
+  "inherited_coordinator": 2,
+  "inherited_in_progress": 18,
   "peak_coordinator_in_flight": 2,
-  "peak_in_flight": 17,
-  "peak_working": 17,
-  "stamps": 3,
-  "wall_hours": 149.03
+  "peak_in_flight": 18,
+  "peak_working": 18,
+  "stamps": 7,
+  "wall_hours": 154.23
  },
  "waves": [
   {
@@ -7762,492 +8382,486 @@
     7,
     8,
     9,
-    10
+    10,
+    11,
+    12,
+    13
    ],
-   "drains": "2026-11-07T17:47:00Z",
+   "drains": "2026-11-07T18:01:00Z",
    "groups": [
-    "R10-CARRY-RESIDUE",
+    "R10-CLONE-2238",
     "R10-COMBI-TANK",
-    "R10-DISPATCH-AT-HANDOFF",
     "R10-FLOW-TOOLKIT-MODEL",
-    "R10-FRICTION-RECORDS",
+    "R10-FLY-CIPREDICT-RESTORING",
+    "R10-FLY-STAMP-FLUSH-COST",
+    "R10-FLY-STAMP-FLUSH-HOLD",
     "R10-HOTFIX-CODEQL-HEADROOM",
     "R10-HOTFIX-GATE-BUSY-DEFER",
     "R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT",
-    "R10-HOTFIX-NIGHTLY-STATUS",
     "R10-HOTFIX-PLAN-LANES",
+    "R10-HOTFIX-SELFTEST-TIMEOUT",
+    "R10-HOTFIX-TRAIN-DEFER-WAIT",
     "R10-OUTSIDE-INTAKE",
     "R10-PROCESS-SLIM",
-    "R10-RCA-PROCESS-WORKER-HANG",
-    "R10-REF-PRIVACY-CLOUD",
+    "R10-RCA-GATE-BUSY-DEFER-2",
     "R10-RELAY-SWEEP",
-    "R10-ROSTER-READ-SWEEP",
-    "R10-SWEEP-TEMPLATE-SYNC"
-   ],
-   "opens": "2026-11-06T22:00:00Z",
-   "stamp": null,
-   "wave": 1
-  },
-  {
-   "batch": [
-    11,
-    16,
-    41
-   ],
-   "drains": "2026-11-10T17:14:00Z",
-   "groups": [
-    "R10-BODY-CONTRACT",
-    "R10-CLONE-2238",
-    "R10-HOTFIX-SAV-ESTIMATE",
+    "R10-SWEEP-TEMPLATE-SYNC",
     "R10-WHY-NOW-WIDGET"
    ],
-   "opens": "2026-11-07T10:02:00Z",
+   "opens": "2026-11-06T22:00:00Z",
    "stamp": "v7.1.5",
-   "wave": 2
-  },
-  {
-   "batch": [
-    12
-   ],
-   "drains": "2026-11-08T06:18:00Z",
-   "groups": [
-    "R10-OVERBOOK-RESIDUAL",
-    "R10-PARTLOAD-PRICING"
-   ],
-   "opens": "2026-11-07T10:30:00Z",
-   "stamp": null,
-   "wave": 3
-  },
-  {
-   "batch": [
-    19,
-    30
-   ],
-   "drains": "2026-11-09T22:52:00Z",
-   "groups": [
-    "R10-FLY-STANDING-CONTRACTS",
-    "R10-TICK-LEVELS"
-   ],
-   "opens": "2026-11-07T11:28:00Z",
-   "stamp": null,
-   "wave": 4
-  },
-  {
-   "batch": [
-    31
-   ],
-   "drains": "2026-11-09T23:06:00Z",
-   "groups": [
-    "R10-PREPR-CAP"
-   ],
-   "opens": "2026-11-07T11:42:00Z",
-   "stamp": null,
-   "wave": 5
-  },
-  {
-   "batch": [
-    20
-   ],
-   "drains": "2026-11-09T04:13:00Z",
-   "groups": [
-    "R10-HANDOFF-PATH"
-   ],
-   "opens": "2026-11-07T12:37:00Z",
-   "stamp": null,
-   "wave": 6
-  },
-  {
-   "batch": [
-    21
-   ],
-   "drains": "2026-11-09T04:41:00Z",
-   "groups": [
-    "R10-ROSTER-WRITE-SWEEP"
-   ],
-   "opens": "2026-11-07T13:05:00Z",
-   "stamp": null,
-   "wave": 7
-  },
-  {
-   "batch": [
-    13,
-    22
-   ],
-   "drains": "2026-11-09T04:55:00Z",
-   "groups": [
-    "R10-CI-RUNNER-FIXES",
-    "R10-TRAIN-MERGE-LOOP"
-   ],
-   "opens": "2026-11-07T13:19:00Z",
-   "stamp": null,
-   "wave": 8
+   "wave": 1
   },
   {
    "batch": [
     14
    ],
-   "drains": "2026-11-08T10:02:00Z",
+   "drains": "2026-11-08T05:50:00Z",
    "groups": [
-    "R10-FLY-GH-READ-RETRY"
+    "R10-HOTFIX-SAV-ESTIMATE"
    ],
-   "opens": "2026-11-07T14:14:00Z",
+   "opens": "2026-11-07T10:02:00Z",
    "stamp": null,
-   "wave": 9
+   "wave": 2
   },
   {
    "batch": [
-    15
+    18
    ],
-   "drains": "2026-11-08T10:44:00Z",
+   "drains": "2026-11-08T16:21:00Z",
    "groups": [
-    "R10-PLANTED-DEFECT-AUDIT"
+    "R10-CARRY-RESIDUE-2"
    ],
-   "opens": "2026-11-07T14:56:00Z",
-   "stamp": null,
-   "wave": 10
+   "opens": "2026-11-07T10:30:00Z",
+   "stamp": "v7.1.7",
+   "wave": 3
   },
   {
    "batch": [
     17
    ],
-   "drains": "2026-11-08T13:35:00Z",
+   "drains": "2026-11-08T11:02:00Z",
    "groups": [
-    "R10-POLICY-ROLE-PACK"
+    "R10-PARTLOAD-RESIDUE"
    ],
-   "opens": "2026-11-07T17:47:00Z",
+   "opens": "2026-11-07T10:58:00Z",
+   "stamp": null,
+   "wave": 4
+  },
+  {
+   "batch": [
+    16
+   ],
+   "drains": "2026-11-08T10:33:00Z",
+   "groups": [
+    "R10-CI-OWN-DELIVERY-ROW"
+   ],
+   "opens": "2026-11-07T11:28:00Z",
+   "stamp": null,
+   "wave": 5
+  },
+  {
+   "batch": [
+    21
+   ],
+   "drains": "2026-11-08T22:48:00Z",
+   "groups": [
+    "R10-ROUND-PLAYBOOK"
+   ],
+   "opens": "2026-11-07T13:19:00Z",
+   "stamp": null,
+   "wave": 6
+  },
+  {
+   "batch": [
+    22,
+    48
+   ],
+   "drains": "2026-11-10T21:21:00Z",
+   "groups": [
+    "R10-BODY-CONTRACT",
+    "R10-TICK-LEVELS",
+    "R10-TRAIN-MERGE-LOOP"
+   ],
+   "opens": "2026-11-07T14:09:00Z",
+   "stamp": null,
+   "wave": 7
+  },
+  {
+   "batch": [
+    35
+   ],
+   "drains": "2026-11-10T01:47:00Z",
+   "groups": [
+    "R10-FLY-STANDING-CONTRACTS"
+   ],
+   "opens": "2026-11-07T14:23:00Z",
+   "stamp": null,
+   "wave": 8
+  },
+  {
+   "batch": [
+    15
+   ],
+   "drains": "2026-11-08T10:30:00Z",
+   "groups": [
+    "R10-REPLAY-COST-BUDGET"
+   ],
+   "opens": "2026-11-07T14:42:00Z",
+   "stamp": null,
+   "wave": 9
+  },
+  {
+   "batch": [
+    24
+   ],
+   "drains": "2026-11-09T07:30:00Z",
+   "groups": [
+    "R10-DISPATCH-AT-HANDOFF"
+   ],
+   "opens": "2026-11-07T15:54:00Z",
+   "stamp": null,
+   "wave": 10
+  },
+  {
+   "batch": [
+    25
+   ],
+   "drains": "2026-11-09T07:36:00Z",
+   "groups": [
+    "R10-HANDOFF-PATH"
+   ],
+   "opens": "2026-11-07T16:00:00Z",
    "stamp": null,
    "wave": 11
   },
   {
    "batch": [
-    28
+    39
+   ],
+   "drains": "2026-11-10T03:31:00Z",
+   "groups": [
+    "R10-PREPR-CAP"
+   ],
+   "opens": "2026-11-07T16:07:00Z",
+   "stamp": null,
+   "wave": 12
+  },
+  {
+   "batch": [
+    19,
+    20
+   ],
+   "drains": "2026-11-08T20:21:00Z",
+   "groups": [
+    "R10-GENERIC-HEAT-CURVE",
+    "R10-HOTFIX-COP-UNMEASURED"
+   ],
+   "opens": "2026-11-07T17:05:00Z",
+   "stamp": null,
+   "wave": 13
+  },
+  {
+   "batch": [
+    26
+   ],
+   "drains": "2026-11-09T09:37:00Z",
+   "groups": [
+    "R10-ROSTER-WRITE-SWEEP"
+   ],
+   "opens": "2026-11-07T18:01:00Z",
+   "stamp": null,
+   "wave": 14
+  },
+  {
+   "batch": [
+    32
    ],
    "drains": "2026-11-09T21:26:00Z",
    "groups": [
     "R10-SAV-COMFORT"
    ],
    "opens": "2026-11-08T05:50:00Z",
-   "stamp": "v7.1.6",
-   "wave": 12
-  },
-  {
-   "batch": [
-    18,
-    26
-   ],
-   "drains": "2026-11-09T09:34:00Z",
-   "groups": [
-    "R10-RAISE-GATE-SHIM",
-    "R10-SAV-WOOD-MEASURED"
-   ],
-   "opens": "2026-11-08T06:18:00Z",
-   "stamp": null,
-   "wave": 13
-  },
-  {
-   "batch": [
-    22
-   ],
-   "drains": "2026-11-09T04:55:00Z",
-   "groups": [
-    "R10-REPLAY-COST-BUDGET"
-   ],
-   "opens": "2026-11-08T09:07:00Z",
-   "stamp": null,
-   "wave": 14
-  },
-  {
-   "batch": [
-    24
-   ],
-   "drains": "2026-11-09T05:50:00Z",
-   "groups": [
-    "R10-SUITE-HOST-DETERMINISM"
-   ],
-   "opens": "2026-11-08T10:02:00Z",
    "stamp": null,
    "wave": 15
   },
   {
    "batch": [
-    23
+    29
    ],
-   "drains": "2026-11-09T05:15:00Z",
+   "drains": "2026-11-09T16:01:00Z",
    "groups": [
-    "R10-FLY-CIPREDICT-RESTORING"
+    "R10-REPLAY-COST-2"
    ],
-   "opens": "2026-11-08T10:44:00Z",
+   "opens": "2026-11-08T10:30:00Z",
    "stamp": null,
    "wave": 16
   },
   {
    "batch": [
-    25
+    28
    ],
-   "drains": "2026-11-09T09:06:00Z",
+   "drains": "2026-11-09T13:49:00Z",
    "groups": [
-    "R10-ADVISOR-WHATIF",
-    "R10-COP-GATE-D"
+    "R10-SAV-WOOD-MEASURED"
    ],
-   "opens": "2026-11-08T13:18:00Z",
-   "stamp": null,
+   "opens": "2026-11-08T10:33:00Z",
+   "stamp": "v7.1.8",
    "wave": 17
   },
   {
    "batch": [
-    27
+    23
    ],
-   "drains": "2026-11-09T13:26:00Z",
+   "drains": "2026-11-09T06:50:00Z",
    "groups": [
-    "R10-ORCH-ROSTER-SCHEMA"
+    "R10-FLY-GH-READ-RETRY"
    ],
-   "opens": "2026-11-08T13:35:00Z",
+   "opens": "2026-11-08T11:02:00Z",
    "stamp": null,
    "wave": 18
   },
   {
    "batch": [
-    29
+    27
    ],
-   "drains": "2026-11-09T21:54:00Z",
+   "drains": "2026-11-09T12:09:00Z",
    "groups": [
-    "R10-CLOSEOUT-CLEANUP"
+    "R10-FRICTION-RECORDS"
    ],
-   "opens": "2026-11-09T02:06:00Z",
+   "opens": "2026-11-08T16:21:00Z",
    "stamp": null,
    "wave": 19
   },
   {
    "batch": [
-    32
+    31
    ],
-   "drains": "2026-11-09T23:18:00Z",
+   "drains": "2026-11-09T20:33:00Z",
    "groups": [
-    "R10-CI-PRIORITY-PAUSE"
+    "R10-COP-GATE-E"
    ],
-   "opens": "2026-11-09T03:04:00Z",
+   "opens": "2026-11-08T18:39:00Z",
    "stamp": null,
    "wave": 20
   },
   {
    "batch": [
-    36
+    34
    ],
-   "drains": "2026-11-10T03:25:00Z",
+   "drains": "2026-11-09T23:37:00Z",
    "groups": [
-    "R10-CARRY-RESIDUE-2"
+    "R10-GENERIC-HEAT-CURVE-PERSISTENT"
    ],
-   "opens": "2026-11-09T04:13:00Z",
+   "opens": "2026-11-08T20:21:00Z",
    "stamp": null,
    "wave": 21
   },
   {
    "batch": [
-    33
+    30
    ],
-   "drains": "2026-11-10T02:53:00Z",
+   "drains": "2026-11-09T18:36:00Z",
    "groups": [
-    "R10-OPENER-REUSE"
+    "R10-PLANTED-DEFECT-AUDIT"
    ],
-   "opens": "2026-11-09T04:41:00Z",
+   "opens": "2026-11-08T22:48:00Z",
    "stamp": null,
    "wave": 22
   },
   {
    "batch": [
-    38,
-    39
+    33,
+    36
    ],
-   "drains": "2026-11-10T10:26:00Z",
+   "drains": "2026-11-10T02:38:00Z",
    "groups": [
-    "R10-REPLAY-COST-2",
+    "R10-CI-PRIORITY-PAUSE",
     "R10-TRAIN-MERGE-LOOP-2"
    ],
-   "opens": "2026-11-09T04:55:00Z",
+   "opens": "2026-11-09T05:45:00Z",
    "stamp": null,
    "wave": 23
   },
   {
    "batch": [
-    35
+    36
    ],
-   "drains": "2026-11-10T03:08:00Z",
+   "drains": "2026-11-10T02:38:00Z",
    "groups": [
-    "R10-TICK-PR-BUCKETS"
+    "R10-POLICY-ROLE-PACK"
    ],
-   "opens": "2026-11-09T05:15:00Z",
+   "opens": "2026-11-09T06:50:00Z",
    "stamp": null,
    "wave": 24
   },
   {
    "batch": [
-    34
+    37
    ],
-   "drains": "2026-11-10T03:03:00Z",
+   "drains": "2026-11-10T03:18:00Z",
    "groups": [
-    "R10-RELAY-HANDOFF-ARM"
+    "R10-RAISE-GATE-SHIM"
    ],
-   "opens": "2026-11-09T05:50:00Z",
+   "opens": "2026-11-09T07:30:00Z",
    "stamp": null,
    "wave": 25
   },
   {
    "batch": [
-    37
+    38
    ],
-   "drains": "2026-11-10T04:54:00Z",
+   "drains": "2026-11-10T03:24:00Z",
    "groups": [
-    "R10-HOTFIX-GATE-STALE-JOBS",
-    "R10-RCA-SAV-ESTIMATE"
+    "R10-ROSTER-READ-SWEEP"
    ],
-   "opens": "2026-11-09T09:06:00Z",
+   "opens": "2026-11-09T07:36:00Z",
    "stamp": null,
    "wave": 26
   },
   {
    "batch": [
-    36
+    40
    ],
-   "drains": "2026-11-10T03:25:00Z",
+   "drains": "2026-11-10T05:25:00Z",
    "groups": [
-    "R10-SEAT-SINGLE-WRITER"
+    "R10-SUITE-HOST-DETERMINISM"
    ],
-   "opens": "2026-11-09T09:34:00Z",
+   "opens": "2026-11-09T09:37:00Z",
    "stamp": null,
    "wave": 27
   },
   {
    "batch": [
-    40
+    41
    ],
-   "drains": "2026-11-10T12:38:00Z",
+   "drains": "2026-11-10T07:23:00Z",
    "groups": [
-    "R10-ROSTER-OPS-2"
+    "R10-CI-SELFTEST-SCOPE"
    ],
-   "opens": "2026-11-09T13:26:00Z",
+   "opens": "2026-11-09T12:09:00Z",
    "stamp": null,
    "wave": 28
   },
   {
    "batch": [
-    48
+    42
+   ],
+   "drains": "2026-11-10T09:03:00Z",
+   "groups": [
+    "R10-I18N-DE"
+   ],
+   "opens": "2026-11-09T13:49:00Z",
+   "stamp": null,
+   "wave": 29
+  },
+  {
+   "batch": [
+    43
+   ],
+   "drains": "2026-11-10T09:52:00Z",
+   "groups": [
+    "R10-CI-EDIT-RUNNER"
+   ],
+   "opens": "2026-11-09T16:01:00Z",
+   "stamp": null,
+   "wave": 30
+  },
+  {
+   "batch": [
+    45
+   ],
+   "drains": "2026-11-10T18:27:00Z",
+   "groups": [
+    "R10-ORCH-ROSTER-SCHEMA"
+   ],
+   "opens": "2026-11-09T18:36:00Z",
+   "stamp": null,
+   "wave": 31
+  },
+  {
+   "batch": [
+    51
+   ],
+   "drains": "2026-11-10T22:07:00Z",
+   "groups": [
+    "R10-ARBITER-OFF-RESTORE"
+   ],
+   "opens": "2026-11-09T20:33:00Z",
+   "stamp": null,
+   "wave": 32
+  },
+  {
+   "batch": [
+    47
    ],
    "drains": "2026-11-10T20:31:00Z",
    "groups": [
     "R10-SAV-METER-FLOOR"
    ],
    "opens": "2026-11-09T21:26:00Z",
-   "stamp": null,
-   "wave": 29
+   "stamp": "v7.1.9",
+   "wave": 33
   },
   {
    "batch": [
     44
    ],
-   "drains": "2026-11-10T19:07:00Z",
+   "drains": "2026-11-10T15:53:00Z",
    "groups": [
-    "R10-USER-DOCS-VERIFY"
+    "R10-TRAIN-STALE-VERDICT-GUARD"
    ],
-   "opens": "2026-11-09T21:54:00Z",
-   "stamp": null,
-   "wave": 30
-  },
-  {
-   "batch": [
-    43
-   ],
-   "drains": "2026-11-10T19:06:00Z",
-   "groups": [
-    "R10-ROSTER-LIB-SCHEMA"
-   ],
-   "opens": "2026-11-09T22:52:00Z",
-   "stamp": null,
-   "wave": 31
-  },
-  {
-   "batch": [
-    45
-   ],
-   "drains": "2026-11-10T19:20:00Z",
-   "groups": [
-    "R10-TICK-GROUP-LINES"
-   ],
-   "opens": "2026-11-09T23:06:00Z",
-   "stamp": null,
-   "wave": 32
-  },
-  {
-   "batch": [
-    42
-   ],
-   "drains": "2026-11-10T18:09:00Z",
-   "groups": [
-    "R10-ROSTER-QUEUE"
-   ],
-   "opens": "2026-11-09T23:18:00Z",
-   "stamp": null,
-   "wave": 33
-  },
-  {
-   "batch": [
-    47
-   ],
-   "drains": "2026-11-10T20:25:00Z",
-   "groups": [
-    "R10-FLY-GANTT-DRIFT"
-   ],
-   "opens": "2026-11-10T02:53:00Z",
+   "opens": "2026-11-09T22:41:00Z",
    "stamp": null,
    "wave": 34
   },
   {
    "batch": [
-    49
+    46
    ],
-   "drains": "2026-11-10T20:35:00Z",
+   "drains": "2026-11-10T19:25:00Z",
    "groups": [
-    "R10-FLY-RELAY-DELIVERED-GUARD"
+    "R10-ADVISOR-WHATIF"
    ],
-   "opens": "2026-11-10T03:03:00Z",
+   "opens": "2026-11-09T23:37:00Z",
    "stamp": null,
    "wave": 35
   },
   {
    "batch": [
-    46
+    50
    ],
-   "drains": "2026-11-10T20:20:00Z",
+   "drains": "2026-11-10T21:35:00Z",
    "groups": [
-    "R10-FLY-CLOUD-FRUGAL-OFF"
+    "R10-CLOSEOUT-CLEANUP"
    ],
-   "opens": "2026-11-10T03:08:00Z",
+   "opens": "2026-11-10T01:47:00Z",
    "stamp": null,
    "wave": 36
   },
   {
    "batch": [
-    50
+    54,
+    55
    ],
-   "drains": "2026-11-10T20:37:00Z",
+   "drains": "2026-11-11T00:50:00Z",
    "groups": [
-    "R10-HOTFIX-SELFTEST-TIMEOUT",
-    "R10-PR-CONTRACT-OUTSIDE"
+    "R10-OPENER-REUSE",
+    "R10-TICK-PR-BUCKETS"
    ],
-   "opens": "2026-11-10T03:25:00Z",
+   "opens": "2026-11-10T02:38:00Z",
    "stamp": null,
    "wave": 37
   },
   {
    "batch": [
-    51,
-    52
+    54
    ],
-   "drains": "2026-11-12T03:18:00Z",
+   "drains": "2026-11-11T00:31:00Z",
    "groups": [
-    "R10-ARCH-DOCS",
-    "R10-ROUND-PLAYBOOK"
+    "R10-RELAY-HANDOFF-ARM"
    ],
-   "opens": "2026-11-10T17:14:00Z",
+   "opens": "2026-11-10T03:18:00Z",
    "stamp": null,
    "wave": 38
   },
@@ -8255,13 +8869,171 @@
    "batch": [
     53
    ],
-   "drains": "2026-11-13T03:02:00Z",
+   "drains": "2026-11-10T23:12:00Z",
+   "groups": [
+    "R10-RCA-SAV-ESTIMATE"
+   ],
+   "opens": "2026-11-10T03:24:00Z",
+   "stamp": null,
+   "wave": 39
+  },
+  {
+   "batch": [
+    49
+   ],
+   "drains": "2026-11-10T21:22:00Z",
+   "groups": [
+    "R10-SEAT-SINGLE-WRITER"
+   ],
+   "opens": "2026-11-10T03:31:00Z",
+   "stamp": null,
+   "wave": 40
+  },
+  {
+   "batch": [
+    52
+   ],
+   "drains": "2026-11-10T22:57:00Z",
+   "groups": [
+    "R10-FLY-GANTT-DRIFT"
+   ],
+   "opens": "2026-11-10T05:25:00Z",
+   "stamp": null,
+   "wave": 41
+  },
+  {
+   "batch": [
+    56
+   ],
+   "drains": "2026-11-11T00:55:00Z",
+   "groups": [
+    "R10-FLY-RELAY-DELIVERED-GUARD"
+   ],
+   "opens": "2026-11-10T07:23:00Z",
+   "stamp": null,
+   "wave": 42
+  },
+  {
+   "batch": [
+    57
+   ],
+   "drains": "2026-11-11T02:15:00Z",
+   "groups": [
+    "R10-FLY-CLOUD-FRUGAL-OFF"
+   ],
+   "opens": "2026-11-10T09:03:00Z",
+   "stamp": null,
+   "wave": 43
+  },
+  {
+   "batch": [
+    58
+   ],
+   "drains": "2026-11-11T03:04:00Z",
+   "groups": [
+    "R10-FRICTION-CI-RED"
+   ],
+   "opens": "2026-11-10T09:52:00Z",
+   "stamp": null,
+   "wave": 44
+  },
+  {
+   "batch": [
+    59
+   ],
+   "drains": "2026-11-11T09:05:00Z",
+   "groups": [
+    "R10-PR-CONTRACT-OUTSIDE"
+   ],
+   "opens": "2026-11-10T15:53:00Z",
+   "stamp": null,
+   "wave": 45
+  },
+  {
+   "batch": [
+    63
+   ],
+   "drains": "2026-11-11T17:39:00Z",
+   "groups": [
+    "R10-ROSTER-OPS-2"
+   ],
+   "opens": "2026-11-10T18:27:00Z",
+   "stamp": null,
+   "wave": 46
+  },
+  {
+   "batch": [
+    60
+   ],
+   "drains": "2026-11-11T15:39:00Z",
+   "groups": [
+    "R10-ROSTER-LIB-SCHEMA"
+   ],
+   "opens": "2026-11-10T19:25:00Z",
+   "stamp": null,
+   "wave": 47
+  },
+  {
+   "batch": [
+    62
+   ],
+   "drains": "2026-11-11T16:45:00Z",
+   "groups": [
+    "R10-TICK-GROUP-LINES"
+   ],
+   "opens": "2026-11-10T20:31:00Z",
+   "stamp": null,
+   "wave": 48
+  },
+  {
+   "batch": [
+    64
+   ],
+   "drains": "2026-11-11T20:26:00Z",
+   "groups": [
+    "R10-ROUND-PLAYBOOK-FINAL"
+   ],
+   "opens": "2026-11-10T21:21:00Z",
+   "stamp": null,
+   "wave": 49
+  },
+  {
+   "batch": [
+    61
+   ],
+   "drains": "2026-11-11T16:13:00Z",
+   "groups": [
+    "R10-ROSTER-QUEUE"
+   ],
+   "opens": "2026-11-10T21:22:00Z",
+   "stamp": null,
+   "wave": 50
+  },
+  {
+   "batch": [
+    65,
+    66
+   ],
+   "drains": "2026-11-12T08:30:00Z",
+   "groups": [
+    "R10-ARCH-DOCS",
+    "R10-USER-DOCS-VERIFY"
+   ],
+   "opens": "2026-11-10T22:07:00Z",
+   "stamp": "v7.1.10",
+   "wave": 51
+  },
+  {
+   "batch": [
+    67
+   ],
+   "drains": "2026-11-13T08:14:00Z",
    "groups": [
     "R10-CATALOG-PR"
    ],
-   "opens": "2026-11-12T03:18:00Z",
+   "opens": "2026-11-12T08:30:00Z",
    "stamp": null,
-   "wave": 39
+   "wave": 52
   }
  ]
 }

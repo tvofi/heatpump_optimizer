@@ -1,17 +1,8 @@
-base lanes ['slots', 'Learners', 'Core model', 'Product UX', 'Replay', 'Instruments', 'Docs'] drawn bars 67 by lane {'Core model': 24, 'Product UX': 2, 'Replay': 1, 'Instruments': 39, 'Docs': 1} html!=json 0 []
-rev lanes ['slots', 'Learners', 'Core model', 'Product UX', 'Replay', 'Instruments', 'Docs'] drawn bars 67 by lane {'Core model': 10, 'Product UX': 2, 'Replay': 1, 'Instruments': 51, 'Docs': 3} html!=json 0 []
-drawn moved 14
-  R10-CARRY-RESIDUE-2 Core model -> Instruments
-  R10-FRICTION-RECORDS Core model -> Instruments
-  R10-HOTFIX-CODEQL-HEADROOM Core model -> Instruments
-  R10-HOTFIX-GATE-BUSY-DEFER Core model -> Instruments
-  R10-HOTFIX-GATE-STALE-JOBS Core model -> Instruments
-  R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT Core model -> Instruments
-  R10-HOTFIX-NIGHTLY-STATUS Core model -> Instruments
-  R10-HOTFIX-PLAN-LANES Core model -> Instruments
-  R10-HOTFIX-SELFTEST-TIMEOUT Core model -> Instruments
-  R10-PROCESS-SLIM Core model -> Instruments
-  R10-RCA-PROCESS-WORKER-HANG Core model -> Instruments
-  R10-RCA-SAV-ESTIMATE Core model -> Instruments
-  R10-ROUND-PLAYBOOK Core model -> Docs
-  R10-USER-DOCS-VERIFY Core model -> Docs
+lanes ['Learners', 'Core model', 'Product UX', 'Replay', 'Instruments', 'Docs']
+base drawn 75 html!=json 0 {'Core model': 27, 'Product UX': 4, 'Replay': 1, 'Instruments': 42, 'Docs': 1}
+head drawn 75 html!=json 0 {'Core model': 11, 'Product UX': 4, 'Replay': 1, 'Instruments': 55, 'Docs': 4}
+drawn moved 16 Counter({('Core model', 'Instruments'): 13, ('Core model', 'Docs'): 3})
+drawn moved json-moved check: True
+['CARRY-RESIDUE-2', 'CI-OWN-DELIVERY-ROW', 'FRICTION-CI-RED', 'FRICTION-RECORDS', 'HOTFIX-CODEQL-HEADROOM', 'HOTFIX-GATE-BUSY-DEFER', 'HOTFIX-NIGHTLY-PIN-THROUGHPUT', 'HOTFIX-PLAN-LANES', 'HOTFIX-SELFTEST-TIMEOUT', 'HOTFIX-TRAIN-DEFER-WAIT', 'PROCESS-SLIM', 'RCA-GATE-BUSY-DEFER-2', 'RCA-SAV-ESTIMATE', 'ROUND-PLAYBOOK', 'ROUND-PLAYBOOK-FINAL', 'USER-DOCS-VERIFY']
+plan-wtbase.html table rows 364 table!=json 0
+plan-wt.html table rows 364 table!=json 0

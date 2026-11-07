@@ -1,0 +1,1 @@
+scout diagnosis: gh api --paginate page 2 Link uses repositories/{id}/ numeric path; proxy HTTP 403; page 2 readable via repos/ path (5 runs); total_count 105
