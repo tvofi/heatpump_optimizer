@@ -18056,6 +18056,53 @@
     "note": "s12 CI-levers seat 2026-11-07: owner lever 2"
    },
    "brief": "Owner-approved CI-throughput lever 2 (tvofi, 2026-11-07, #201 comment 6707834331). R10-CI-SLIM's C7(a) lane idling in tools/ci/prelude.py (`machinery`, `_product`, the PRODUCT_PREFIXES list) stands the machinery lanes down (tests / arch-instrument, tests / closures' recording, governance / env-matrix, governance / instrument-self-tests) on a pull request whose every changed file is product. Every pull request carries its own delivery row dev/programme/delivery/<N>.md, which is not product, so over the 2026-11-05 13:26Z to 2026-11-07 13:26Z window the lanes stood down on none of 52 merged pull requests; with the PR's own row exempted they would have on 10 of 52, an estimated 1,380 runner-minutes a day (10 PRs x about 5 code runs x about 55 machinery-minutes; s12 study). Change: `machinery` takes the PR number and treats exactly that pull request's own delivery row as neither product nor machinery (it is ignored), so a package-plus-row diff idles the lanes. STEP 1 is a recording, committed before the change: prove that no machinery lane reads dev/programme/delivery/ at the head. Several tools under tools/audit/seat read that path (the delivery-row tools, record_row.py among them), so the proof must cover EVERY lane the idling skips, including every step of instrument-self-tests and the env-matrix and arch-instrument lanes, by tracing file opens or an equivalent measured read-set per lane, not by grepping for the path. If any skipped lane does read it, report which, and exempt the row only for the lanes that do not; do not guess. Failing test first: a diff of one package file plus its own row idles the lanes. Null controls: a row-plus-tools/ PR still runs the lanes; a row of ANOTHER pull request (a different <N>) still counts as machinery; an empty or unreadable changed list still runs them; a push runs them (the existing C7a pushes-run-everything case). Mutant: exempting every file under dev/programme/delivery/ rather than the PR's own row is shown red by the other-PR control. Code-owned (tools/ci/ is owned by tvofi): merges on his approving review or under mandate 6624093439. Overlap: R10-CI-EDIT-RUNNER also edits tools/ci/prelude.py (wait_sources, a different function) and is not started; keep the diff to the C7(a) functions and merge in either order."
+  },
+  {
+   "group": "R10-CI-SELFTEST-SCOPE",
+   "lane": "IN",
+   "kind": "policy",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "policy",
+   "severity": "medium",
+   "size": "M",
+   "wave": 6,
+   "files": [
+    ".github/workflows/governance.yml",
+    "dev/governance/rules/gate-scoping.md",
+    "tools/ci/prelude.py",
+    "tools/audit/seat/selftest_wiring.py",
+    "tests/closure.py"
+   ],
+   "hot_files": [],
+   "fixerModel": "opus",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "opus",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "policy: widens gate-scoping.md; merges on tvofi's approving review (approved in principle on #201 comment 6707834331)",
+   "rca": [],
+   "after": [
+    "R10-HOTFIX-SELFTEST-TIMEOUT"
+   ],
+   "carry": [],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-ci-selftest-scope",
+    "commit": null,
+    "last_step": null,
+    "next_step": "dispatch a fixer",
+    "note": "s12 CI-levers seat 2026-11-07: owner lever 3; policy widening approved on #201 comment 6707834331; overlap admitted (R10-CI-OWN-DELIVERY-ROW): owner CI-throughput lever 3 of 2026-11-07, policy widening approved"
+   },
+   "brief": "Owner-approved CI-throughput lever 3 (tvofi, 2026-11-07, #201 comment 6707834331), and the owner approved the policy widening in the same comment. On a pull request, each governance / instrument-self-tests step runs only when the diff reaches that step's MEASURED closure, the way rule 1 of CLAUDE.md selects test scripts from tests/closures.json; every push to main stays FULL (a wrong closure turns main red within one merge, which rule 1 already accepts). Measured over 2026-11-05 13:26Z to 2026-11-07 13:26Z (s12 study): this job is the largest single lane, an estimated 1,560 to 3,900 runner-minutes a day saved, the floor from 21 of 52 merged pull requests touching no tools/, .github/ or harness path, and it shortens the pull-request long pole from about 29 to 26 minutes. Today tools/ is INERT in tests/closure.py (tools/audit/seat/selftest_wiring.py states it), so no tool has a measured closure; STEP 1 is therefore to measure each self-test step's read-set (the files it imports or opens) into a recorded table that CI re-derives and refuses drift on, in the style of tests/closures.json and tests/derive_closures.sh, then to select steps from it. The job's selection is computed in tools/ci/prelude.py or the workflow from the diff and the table; steps are gated by that selection in .github/workflows/governance.yml. selftest_wiring.py --check must still pass: no step dropped, every step still greps its `checks, 0 failed` line. This is a policy change: it widens dev/governance/rules/gate-scoping.md, and this pull request edits that rule file (and regenerates the .claude/rules and .cursor/rules copies with node tools/policy/rules_sync.mjs). It merges on tvofi's approving review, the owner's approval of the widening being recorded in the comment above. ORDER: this group is after R10-HOTFIX-SELFTEST-TIMEOUT, which shards the same job; build on the sharded form and do not re-shard. Failing test first: a diff touching no tools/ file selects zero self-test steps. Null controls: a push to main selects every step; a diff touching a file inside one step's closure selects that step; an unreadable or stale table selects every step (fail closed). Mutant: a table that omits a file a step reads is shown red by a drift check. Say in the body how a new tools/ file is classified (a new file with no recorded closure runs every step) and what tests/entities.py demands of it."
   }
  ]
 }
