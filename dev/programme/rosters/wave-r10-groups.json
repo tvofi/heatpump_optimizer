@@ -13039,7 +13039,9 @@
     "R10-GENERIC-HEAT-CURVE",
     "R10-GENERIC-HEAT-CURVE-PERSISTENT",
     "R10-ARBITER-OFF-RESTORE",
-    "R10-COMBI-TANK"
+    "R10-COMBI-TANK",
+    "R10-MIN-POWER-FLOOR",
+    "R10-INPUT-REAPPEAR"
    ],
    "resume": {
     "stage": "not-started",
