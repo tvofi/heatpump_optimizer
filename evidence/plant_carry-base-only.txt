@@ -1,0 +1,5 @@
+case=carry-base-only head=926a01499de2a184481a42734fc91bfedc5bb4b1 diff: tools/audit/carry_audit.py 
+head-copy carry_audit: CARRY-AUDIT: 1 finding item(s): 0 routed, 1 unrouted, 0 bad destination(s) rc=0
+PREDICT pr-contract / pr-contract CARRY UNROUTED item 23982e6e: '- Residual: the planted defect nobody routes.'
+CI PREDICT: 1 predicted red(s) on pr-contract / pr-contract against 926a01499de2 -- repair before the handoff; the lines above name each arm's repair
+rc=1
