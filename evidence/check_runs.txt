@@ -1,0 +1,5 @@
+head 2ad28ecb50906877b34a378cacd8085e6afca029: total_count 68, one page (perPage 100), read via GitHub MCP get_check_runs.
+Non-success conclusions: skipped only (gated jobs). No failure, no cancelled, none in progress.
+governance / instrument-self-tests 128248097717 success 01:03:18Z -> 01:33:12Z (29m54s, inside the 30-min timeout).
+gate runs: 128257742496 success, 128257498742 success, 128257274132 success.
+pr-contract / pr-contract 128257095312 success. tests / mutation 128248097664 success; mutation-pins 128248333013 skipped.

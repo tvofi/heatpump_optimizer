@@ -1,4 +1,2 @@
-tools/audit/briefs/orchestrator.md               294  295     4251  4251 
-.claude/rules/ci-autofix.md                       88   96     1450  1469 
-dev/governance/roles/architect-planner.md         85   85     1261  1261 
+.claude/rules/ci-autofix.md                       88   96     1469  1469 
 rc=0
