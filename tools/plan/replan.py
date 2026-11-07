@@ -249,11 +249,38 @@ def post_closure_groups(G: dict, open_: set) -> set:
     return post
 
 
+#: Paths that are instruments, CI or records, never the integration (tvofi
+#: 2026-11-06: the plan placed instrument and CI fixes in the core lane).
+_NON_PRODUCT_PREFIXES = ("tools/", "tests/", ".github/", ".claude/", "dev/", "docs/")
+_NON_PRODUCT_FILES = ("CLAUDE.md", "AGENTS.md", "README.md", "RELEASE_NOTES.md")
+#: A group touching any of these lands a tool, so it is not user docs.
+_TOOLING_PREFIXES = ("tools/", ".github/", ".claude/")
+#: Kinds that land tools: a group the name rules leave unplaced and whose
+#: files do not place it is drawn as Instruments when its kind is one of these.
+INSTRUMENT_KINDS = ("instrument", "policy", "rca", "tooling")
+
+
+def _owned_lane(group: dict) -> str | None:
+    """Instruments (or Docs, for a doc group) when every file the group owns
+    is an instrument, CI or record path; None when it owns no file, a bare
+    filename, or any file outside those paths (the integration stays core)."""
+    files = list(group.get("files") or []) + list(group.get("hot_files") or [])
+    if not files or not all(f.startswith(_NON_PRODUCT_PREFIXES) or f in _NON_PRODUCT_FILES
+                            for f in files):
+        return None
+    user_docs = (any(f.startswith("docs/") or f == "README.md" for f in files)
+                 and not any(f.startswith(_TOOLING_PREFIXES) for f in files))
+    return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
+
+
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
     Ported from the out-of-tree renderer this replaces, which was the only
-    definition: `kind` first, then the group's own name.
+    definition: `kind` first, then the group's own name, then the files it
+    owns, then a tool-landing kind or roster `class` (the signal `work_class`
+    prices); only a group none of these places is core
+    model work (tvofi 2026-11-06: instrument and CI fixes were drawn there).
     """
     g = group["group"]
     k = group.get("kind")
@@ -272,6 +299,10 @@ def roster_lane(group: dict) -> str:
         return "Learners"
     if k == "owner" or g in ("R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-DEEPLINK-CENSUS"):
         return "Product UX"
+    if owned := _owned_lane(group):
+        return owned
+    if k in INSTRUMENT_KINDS or group.get("class") == "instrument":
+        return "Instruments"
     return "Core model"
 
 
@@ -290,7 +321,7 @@ def work_class(group: dict) -> str:
     branch = (group.get("resume") or {}).get("branch") or ""
     if k == "record" or "audit-r" in branch and "-roster" in branch:
         return "record"
-    if roster_lane(group) in ("Instruments", "Docs") or k in ("rca", "policy", "tooling"):
+    if roster_lane(group) in ("Instruments", "Docs") or k in INSTRUMENT_KINDS:
         return "instrument"
     return "production"
 
@@ -445,20 +476,25 @@ def dispatch_key(n: str, tier: dict, crit: set, savings: dict, height: dict,
 HELD_STAGE = "carries-open"
 
 
-def held_open(group: dict, durations: dict) -> tuple[int, str]:
-    """(open carries, how known) for a carries-open group. The measured
-    count (`held_open_carries`, `tools/plan/size_durations.py`) plus every
-    carry appended since; a group it never measured counts every carry."""
-    carry = len(group.get("carry") or [])
+def held_open(group: dict, durations: dict, pending: list) -> tuple[int, str]:
+    """(open carries, how known) for a carries-open group, counting only
+    `pending` (`roster_lib.pending_carries`: unmarked and not legacy). The
+    measured count (`held_open_carries`, `tools/plan/size_durations.py`),
+    never above the carries then held that are still pending, plus every
+    pending carry appended since; a group it never measured counts every
+    pending carry."""
     rec = (durations.get("held_open_carries") or {}).get(group["group"])
     if rec is None:
-        return carry, f"{carry} carries, none measured as answered"
-    added = max(0, carry - int(rec["carries"]))
-    return int(rec["open"]) + added, (f"{rec['open']} open carries at measurement"
-                                      + (f" + {added} appended since" if added else ""))
+        return len(pending), f"{len(pending)} carries, none measured as answered"
+    cut = int(rec["carries"])
+    added = sum(1 for i in pending if i >= cut)
+    then = min(int(rec["open"]), sum(1 for i in pending if i < cut))
+    return then + added, (f"{then} open carries at measurement"
+                          + (f" + {added} appended since" if added else ""))
 
 
-def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tuple[float, str]:
+def group_hours(group: dict, durations: dict, is_live: bool, where: str,
+                legacy: dict | None = None) -> tuple[float, str]:
     """(hours of work left, the basis in words) for one open group.
 
     carries-open: ceil(open carries / carries_per_part) parts of
@@ -471,13 +507,21 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         sizes_hours alone. An unmeasured size is refused: a hand-written
         duration would be a fabricated measurement, and a KeyError from
         inside the schedule names neither the group nor the roster.
+    Both carry counts are `roster_lib.pending_carries` (`legacy`: the
+    roster's cut-over, `roster_lib.read_legacy`): a carry marked implemented,
+    moved or dismissed is not work left, and the basis says how many were
+    left out.
     """
     n, size, cls = group["group"], group.get("size") or "M", work_class(group)
     stage = (group.get("resume") or {}).get("stage")
+    pending = roster_lib.pending_carries(group, legacy or {})
+    left = len(group.get("carry") or []) - len(pending)
+    left_out = f", {left} marked carries left out" if left else ""
     if stage == HELD_STAGE and durations.get("carries_per_part"):
-        k, how = held_open(group, durations)
+        k, how = held_open(group, durations, pending)
         parts = math.ceil(k / float(durations["carries_per_part"]))
-        return parts * float(durations["carry_part_hours"]), f"{how}: {parts} part(s)"
+        return (parts * float(durations["carry_part_hours"]),
+                f"{how}: {parts} part(s){left_out}")
     sizes = durations["sizes_hours"]
     if size not in sizes:
         raise PlanError(f"{n}: size {size!r} has no measured duration in sizes_hours "
@@ -490,10 +534,11 @@ def group_hours(group: dict, durations: dict, is_live: bool, where: str) -> tupl
         rounds = float(rcell.get(cls, durations["review_rounds"][size]))
         hours = work + (rounds - 1) * float(durations["round_hours"])
         why = f"{size}/{cls if cls in cell else 'all'}: {work:g} h + {rounds - 1:.2f} extra rounds"
-        extra = len(group.get("carry") or []) - float((durations.get("carry_baseline") or {}).get(size, 0))
+        extra = len(pending) - float((durations.get("carry_baseline") or {}).get(size, 0))
         if extra > 0 and durations.get("carry_hours"):
             hours += extra * float(durations["carry_hours"])
             why += f" + {extra:g} absorbed carries"
+        why += left_out
     else:
         hours, why = float(sizes[size]), f"{size}: sizes_hours"
     if is_live:
@@ -605,6 +650,55 @@ def selftest_model() -> int:
     expect("the zero-open held group starts and finishes at the replan instant",
            g0["start"] == g0["finish"] == iso(start, 0) and g0["duration_minutes"] == 0
            and "record step" in g0["start_reason"], str(g0))
+
+    # 2b. a carry `roster_edit.py mark-carry` discharged is not open work
+    # (carry 15): both carry counts read `roster_lib.pending_carries`.
+    def marked(i):
+        return f"c{i} [implemented: {i:040x}]"
+
+    owed = (0, 1, 5, 6, 8, 9, 42, 43)
+    body = [f"c{i}" if i in owed else marked(i) for i in range(44)]
+    m11 = dict(M, carries_per_part=11.0, carry_part_hours=19.8)
+    h, why = group_hours(grp("BC", "M", stage="carries-open", carry=body), m11, False, "fx")
+    expect("R10-BODY-CONTRACT's shape: 8 unmarked of 44 plan one part (19.8 h), not four",
+           abs(h - 19.8) < 1e-9 and "36 marked carries left out" in why, f"{h} {why}")
+    two = ["c"] * 5 + [marked(i) for i in range(4)]
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=two), M, False, "fx")
+    expect("carries filling two parts, four marked and left out, plan one part (20 h)",
+           h == 20.0 and "4 marked carries left out" in why, f"{h} {why}")
+    h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 9), M, False, "fx")
+    expect("the same carries with none marked plan two parts as before (null control)",
+           h == 40.0 and "left out" not in why, f"{h} {why}")
+    h1 = ["c"] * 9 + [marked(9)] * 3 + ["c"] * 2
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, False, "fx")
+    expect("a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part",
+           h == 20.0 and "3 appended since" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8), M, False, "fx")
+    expect("a measured held group whose carries were all marked since plans zero, not one part",
+           h == 0.0 and "0 open carries at measurement" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8 + ["c"]),
+                         M, False, "fx")
+    expect("the measured open count never exceeds the carries then held still pending: 0 + 1",
+           h == 20.0 and "0 open carries at measurement + 1 appended since" in why, f"{h} {why}")
+    m5 = dict(M, held_open_carries={"H5": {"open": 5, "carries": 8}})
+    h, why = group_hours(grp("H5", "L", stage="carries-open", carry=["c"] + [marked(0)] * 7),
+                         m5, False, "fx")
+    expect("five open at measurement, seven of the eight since marked: one open carry",
+           h == 20.0 and why.startswith("1 open carries at measurement:"), f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] + [marked(0)] * 3),
+                         dict(M, carry_baseline={}), False, "fx")
+    expect("a size with no carry baseline prices every unmarked carry as absorbed: 18 + 4 h",
+           h == 22.0 and "+ 1 absorbed carries, 3 marked carries left out" in why, f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] * 2 + [marked(0)] * 3), M, False, "fx")
+    expect("marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h",
+           h == 18.0 and "absorbed" not in why, f"{h} {why}")
+    held = {"groups": [grp("H", "L", stage="carries-open", carry=["old"] * 5 + ["c"])]}
+    pl = build_plan(held, M, dict(DEFAULT_CAPS), dt.datetime(2026, 1, 5), "v1.0.0",
+                    round_n=2, legacy={"H": frozenset({"old"})})
+    gh = pl["groups"]["H"]
+    expect("a legacy carry (held while closed at the cut-over) is not open work: one part",
+           gh["duration_minutes"] == 1200 and "5 marked carries left out" in gh["duration_basis"],
+           str(gh))
 
     # 3. started work keeps its place: in flight from now, past the slot cap.
     many = {"groups": [grp(f"L{i}", stage="in-progress") for i in range(4)]
@@ -814,7 +908,7 @@ def git_commits_since_tag(repo: str) -> list:
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
                roster_path: str = "", *, round_n: int, since_tag: list | None = None,
-               evidence: dict | None = None) -> dict:
+               evidence: dict | None = None, legacy: dict | None = None) -> dict:
     closing, why = closure_version(version, round_n)
     if why:
         raise PlanError(f"the round-close stamp: {why}")
@@ -859,7 +953,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
     dur_h, basis = {}, {}
     for n in open_:
         dur_h[n], basis[n] = group_hours(G[n], durations, n in live,
-                                         roster_path or roster_ref or "<fixture>")
+                                         roster_path or roster_ref or "<fixture>", legacy)
     # A held group with nothing left owes only its record step: it is
     # started at the replan instant like a working one and holds no slot wait.
     settled = {n for n in open_ if n not in live and dur_h[n] == 0}
@@ -1595,6 +1689,67 @@ def selftest() -> int:
         print(f"{'ok  ' if cond else 'FAIL'} {name}{'' if cond else ': ' + detail}")
         if not cond:
             failures.append(name)
+
+    # The lane follows the files a group owns (tvofi 2026-11-06): a group whose
+    # every file is an instrument or CI path is not core-model work, whatever
+    # its name; a group touching the integration stays in the core lane.
+    def _lane(files, kind="fix", name="X-LANE-PROBE"):
+        return roster_lane({"group": name, "kind": kind, "files": files})
+
+    expect("lane: a CI-only group is Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]) == "Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]))
+    expect("lane: a tests-and-tools group is Instruments",
+           _lane(["tests/ci_ratchet.py", "tests/ci_budgets.json"]) == "Instruments")
+    expect("lane: a docs-only doc group is Docs",
+           _lane(["dev/audit/README.md", "CLAUDE.md"], kind="doc") == "Docs")
+    expect("lane: a user-docs group is Docs",
+           _lane(["README.md", "docs/setup.md", "tests/doc_claims.py"],
+                 kind="feature") == "Docs")
+    expect("lane null control: docs plus a tool is Instruments, not Docs",
+           _lane(["docs/setup.md", "tools/x.py"], kind="feature") == "Instruments")
+    expect("lane null control: a core-model group stays Core model",
+           _lane(["custom_components/heatpump_optimizer/optimizer.py"]) == "Core model")
+    expect("lane null control: a mixed group stays Core model",
+           _lane(["tools/audit/seat/x.py",
+                  "custom_components/heatpump_optimizer/ledger.py"]) == "Core model")
+    expect("lane null control: a group with no files stays Core model",
+           _lane([]) == "Core model")
+    expect("lane null control: a bare filename is not proof of an instrument",
+           _lane(["coordinator.py"]) == "Core model")
+    expect("lane: an RCA group with no files is Instruments",
+           _lane([], kind="rca") == "Instruments")
+    expect("lane: a tooling group with no files is Instruments",
+           _lane([], kind="tooling") == "Instruments")
+    expect("lane: a roster class instrument with no files is Instruments",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                        "class": "instrument"}) == "Instruments")
+    expect("lane: user docs with a dev harness are Docs",
+           _lane(["README.md", "docs/img/x.png", "dev/audit/harnesses/h.mjs",
+                  "tests/doc_claims.py"], kind="production") == "Docs")
+    expect("lane null control: a production group with no files stays Core model",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "production",
+                        "class": "production"}) == "Core model")
+    expect("lane null control: a named UX group keeps its lane over its kind",
+           _lane([], kind="rca", name="R10-DEEPLINK-CENSUS") == "Product UX")
+    expect("lane null control: a learner keeps its lane over its files",
+           _lane(["tools/x.py"], name="R10-COP-GATE") == "Learners")
+    # hot_files are owned files too: a tool group whose hot file is in the
+    # integration, or is a bare filename, stays core (a bare basename, even a
+    # tool's, is not proof of an instrument: the roster writes coordinator.py
+    # and merge_train.py alike).
+    def _hot(hot_files):
+        return roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                            "files": ["tools/x.py"], "hot_files": hot_files})
+
+    expect("lane null control: an integration hot file keeps a tool group Core model",
+           _hot(["custom_components/heatpump_optimizer/x.py"]) == "Core model")
+    expect("lane null control: a bare hot filename keeps a tool group Core model",
+           _hot(["coordinator.py"]) == "Core model")
+    expect("lane null control: a bare tool basename in hot_files stays Core model",
+           _hot(["merge_train.py"]) == "Core model")
+    expect("lane: an instrument-path hot file keeps a tool group Instruments",
+           _hot([".github/workflows/ci.yml"]) == "Instruments")
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     absorbed = dict(roster, groups=roster["groups"] + [
@@ -2452,8 +2607,26 @@ def selftest() -> int:
              _m("def group_hours(group: dict, ", "durations: dict,"),
              _m("work = float(cell.get(cls, ", "first[size]))"), "work = float(first[size])"),
             ("appended-carries-open",
-             _m("def held_open(group: dict, ", "durations: dict)"),
-             _m('added = max(0, carry - int(rec', '["carries"]))'), "added = 0"),
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("added = sum(1 for i in pending ", "if i >= cut)"), "added = 0"),
+            ("held-open-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m("return len(pending), ", 'f"{len(pending)} carries'),
+             'return len(group.get("carry") or []), f"{len(pending)} carries'),
+            ("held-measured-pending",
+             _m("def held_open(group: dict, ", "durations: dict, pending: list)"),
+             _m('then = min(int(rec["open"]), ', "sum(1 for i in pending if i < cut))"),
+             'then = int(rec["open"])'),
+            ("absorbed-pending",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m("extra = len(pending) ", "- float("), 'extra = len(group.get("carry") or []) - float('),
+            ("pending-left-out",
+             _m("def group_hours(group: dict, ", "durations: dict,"),
+             _m('left_out = f", {left} marked carries ', 'left out" if left else ""'), 'left_out = ""'),
+            ("legacy-threaded",
+             _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
+             _m('roster_path or roster_ref or "<fixture>", ', "legacy)"),
+             'roster_path or roster_ref or "<fixture>")'),
             ("caps-owner-default",
              _m("def cli_caps(", "args) -> dict:"),
              _m('"slots": DEFAULT_CAPS["slots"] if args.slots ', 'is None else args.slots,'),
@@ -2781,8 +2954,16 @@ def main(argv=None) -> int:
         }
     since_tag = (production_groups_since(git_commits_since_tag(args.repo), groups_of(roster))
                  if args.since_tag else None)
+    # The carries a group still owes are `roster_lib.pending_carries`, which
+    # needs the round's cut-over (a `--roster-file` copy keeps its round's).
+    try:
+        legacy = roster_lib.read_legacy(
+            args.repo, f"{roster_lib.ROSTERS_DIR}/{src.rsplit('/', 1)[-1]}")
+    except roster_lib.RosterNotFound as exc:
+        raise PlanError(f"the carry cut-over: {exc}") from exc
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence)
+                      roster_path=src, round_n=round_n, since_tag=since_tag, evidence=evidence,
+                      legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)

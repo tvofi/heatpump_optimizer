@@ -4721,6 +4721,42 @@
       "doc": [
         "dev/audit/rca/r10-livehead-cancel.md"
       ]
+    },
+    "R10-RCA-FLUSH-DISPATCH": {
+      "class": "N-dispatch-overreach",
+      "level": "instance-or-process",
+      "subject": "the stamp's record flush (6b1aa629f, #2836) dispatched all of nightly.yml to run record-autofix; on 2026-11-07 seven dispatches took 3557 runner-min for 6 min of wanted work, all seven were cancelled and 916 runner-min of finished ledger shards never landed",
+      "trigger": "owner ruling 2026-11-07 (hotfix priority)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "owner decision on the proposal-triage.md cost line for a change that dispatches a workflow"
+      ],
+      "process_state": "(c) the triage cost gate (proposal-triage.md, CI runners named) was obeyed by P88, whose unit for the stamp step was a job (\"dispatches record-autofix\") while the dispatch API runs a workflow; the fixer recorded the every-lane fact in a code comment, the flush arms and mutants drive a dispatch double, and the fix review was asked no runner cost",
+      "countermeasure": "generic dispatch-scope check refused under the bound (reach 1 of 7 callers; instance pinned by R10-FLY-STAMP-FLUSH-COST); proposed proposal-triage.md line pricing a dispatch by the jobs it runs, about 27 runner-h per cycle against seconds per dispatching proposal",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-rca-flush-dispatch.md",
+      "doc": [
+        "dev/audit/rca/r10-rca-flush-dispatch.md"
+      ]
+    },
+    "R10-RCA-GATE-BUSY-DEFER-2": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "#3246 (355d9965) fixed gate.py's mutual deferral, yet mutual deferral reds persisted on #3261, #3265 and #3255: ci.yml restores tools/ci from the payload's base.sha, a job re-run replays that payload, so refresh and the sweep re-ran pre-merge runs on the pre-fix gate.py (46 stale-pinned gates, 21 deferral reds on 7 PRs in the 65 min after the merge; the replay of their real listings DEADLOCKs at each pinned base and DECIDES at the fix). #3263's red is a second defect, fixed by #3276 (812bb8747): prelude.judging() read a deferring edit run's skipped pr-contract caller as owed and gate.py's at-once bound dodged the cycle that made",
+      "trigger": "2 (red required check: gate)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the stale-pin compare in refresh() and sweep.py, dispatching a fresh run (tools/ci, the gate fixer's and the orchestrator's)"
+      ],
+      "process_state": "(c) fixer step 3's harnesses import one tools/ci copy per scene and the mutation proof mutates that copy; the #3246 review read the live reds' `programs restored from b36679ce` lines and dismissed them until the fix landed, and landing does not reach a run pinned at its creation; for #3263 the self-test and #3246's prelude scene pinned the at-once red as the specification, not the property the bound stood in for (a deferring run is judging)",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_gate_busy_defer_2.py replay over recorded live listings (rc 1 at 28482ece, f2a01514, 80016a71 and, for C3-AT-ONCE, 294a880d; rc 0 at 812bb8747 and the branch) and its census arm; proposed: a re-run of a gate whose pinned programs differ from the base tip is replaced by a ci.yml dispatch (under 0.01 s of compare per re-run)",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-2.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-busy-defer-2.md"
+      ]
     }
   },
   "N-registry-leak": {
@@ -5255,6 +5291,39 @@
       "cross_round": false,
       "barriered_any": false,
       "class_rca_on_record": true
+    }
+  },
+  "N-dispatch-overreach": {
+    "kind": "instrument",
+    "mechanism": "A code caller dispatches a workflow to get one of its jobs, and the workflow runs every job whose if: holds on workflow_dispatch: the dispatch API's unit is a workflow, the caller's is a job. In the instance, stamp.py's record flush posted {\"ref\": \"main\"} to nightly.yml to run record-autofix (1 runner-min) and started mutation-nightly, four mutation-ledger shards, slow and two nightly-ha arms",
+    "rounds": [],
+    "instances": [],
+    "per_round": {},
+    "total": 0,
+    "max_per_round": 0,
+    "detector": "python3 -I dev/audit/harnesses/r10_rca_flush_dispatch.py since <iso>",
+    "detector_idea": null,
+    "barrier": null,
+    "barrier_refusal": "A generic dispatch-scope check is refused under the bound: reach 1 of 7 code dispatch callers, the five ci.yml callers can only be registered as wanting the whole gate, and the instance is pinned by R10-FLY-STAMP-FLUSH-COST (nightly.yml inputs.lanes, a payload self-test arm, a tests/entities.py pin); the (c) countermeasure is a proposed proposal-triage.md cost line, owner's decision (dev/audit/rca/r10-rca-flush-dispatch.md section 5)",
+    "status": "open",
+    "nearest_existing": "N-livehead-operator-cancel",
+    "mechanism_difference": "N-livehead-operator-cancel is a run at a pull request's live head cancelled by an operator outside the in-tree cancellers; here the runs are main's own Nightly dispatches, started by a tool for one job, and their cancels on 2026-11-07 were the owner's response to the cost, the consequence rather than the cause",
+    "aliases": [
+      "new: a dispatch that runs more than the job it wants"
+    ],
+    "non_round_note": "A process defect ruled by the owner on 2026-11-07, not an audit finding, not in register_rows.tsv, not counted in total. Reopen on a second code caller whose dispatch runs jobs it does not want.",
+    "non_round_instances": [
+      "6b1aa629f stamp.py dispatch_record_beat dispatches all of nightly.yml for record-autofix (26 dispatches, at most 15909 runner-min, 2026-10-26 to 2026-11-07)"
+    ],
+    "rca": [
+      "R10-RCA-FLUSH-DISPATCH"
+    ],
+    "rca_planned": [],
+    "trigger": {
+      "per_round": false,
+      "cross_round": false,
+      "barriered_any": false,
+      "class_rca_on_record": false
     }
   }
 }
