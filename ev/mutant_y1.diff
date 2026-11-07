@@ -1,0 +1,13 @@
+diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
+index ececf246d..f8b3c0484 100644
+--- a/tools/audit/seat/orchestrator_tick.py
++++ b/tools/audit/seat/orchestrator_tick.py
+@@ -1054,7 +1054,7 @@ class Tick:
+                     n = sum(1 for r in fh if r.startswith("OWED ") and " handoff-no-pr " in r)
+             except OSError:
+                 n = 0
+-            if n > 0:
++            if False:
+                 self.line(S, f"GAP: {self.relay_log} holds {n} handoff-no-pr OWED line(s) but "
+                              f"{self.relay_log}.level does not exist: the relay has not published its level",
+                           flag=True)
