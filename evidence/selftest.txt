@@ -20,6 +20,7 @@ ok   answer: #3252 is refused (already refused) and nothing is posted
 ok   answer: #3251 is refused (no outside activity) and nothing is posted
 ok   answer: #9999 is refused (no outside activity) and nothing is posted
 ok   refuse: the reason is posted under the refusal marker, and the thread is then silent
+ok   refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)
 ok   refuse: a refused submission owes nothing until the submitter writes again
 ok   discussions: an outside discussion is listed, and answering one is refused (by hand)
 ok   discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
@@ -33,6 +34,7 @@ ok   mutant plan_down_answers killed by: list: with the plan page down, an answe
 ok   mutant reply_never killed by: list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
 ok   mutant cursor_jumps killed by: list: the cursor stays at the earliest owed submission's first outside activity
 ok   mutant review_comments_unread killed by: list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
+ok   mutant one_thread_pr_reviews_drop killed by: refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)
 ok   mutant unreadable_swallowed killed by: list: a failed read is UNREADABLE, never a clean board
 ok   mutant marker_any_bot killed by: identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)
 ok   mutant thirdbot_moves_out killed by: identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply
@@ -45,3 +47,4 @@ ok   mutant post_dry_dropped killed by: post: gh_comment.py post is run with the
 ok   mutant post_wrong_script killed by: post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept
 ok   mutant discussion_answered killed by: discussions: an outside discussion is listed, and answering one is refused (by hand)
 outside_intake self-test: all checks passed
+rc=0
