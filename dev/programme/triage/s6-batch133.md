@@ -279,3 +279,18 @@ Binding:
   - Files: `tools/merge/keyed_merge.py`, `.gitattributes` and `tools/merge/ledger_merge.py` (install step only).
   - Fixer sonnet, reviewer opus, effort medium, no `after`.
 - **The brief text:** `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P412 at <roster sha>), savings estimate 8 to 20 h (central 10 h; instrument tier). The file-overlap measurement (seat a50195df, 2026-11-07): 147 merge-forward conflict rounds in 94 PRs, lag median 1.4 h, sum 919 h; dev/programme/rosters/wave-r10-groups.json 15 rounds and tools/audit/seat/INSTRUMENTS.md 8. Add a keyed three-way merge driver under tools/merge/ modelled on ledger_merge.py: wave-r10-groups.json merged per group object (keyed by group), INSTRUMENTS.md per bullet (keyed by its link target), refusing a same-key edit on both sides so git keeps the conflict; wire both in .gitattributes and in the existing --install step. Self-tests: disjoint additions merge; a same-key edit conflicts; a reorder-only side is a no-op; null control: a malformed side refuses. Measure before and after by replaying the evidence 23 rounds on these two files against the driver and report how many resolve. No per-file open-PR cap; no driver for Python files (r10_seat_selftests_mutants.py, D6/claims.py).`
+
+## P413: the fixer.md spelling-corpus sentence (queue line, orchestrator RULING under mandate 6624093439)
+
+Verdict: ACCEPT. This is an owner-mandate directive, so it keeps its route and this seat rules only on the form. The destination the line asks for already exists: R10-FIXER-MD-SPELLING-CORPUS (not-started, lane IN, size S, files `dev/governance/roles/fixer.md`). Its brief quotes the approved sentence verbatim and names the placement, budget and control rules. No other open group lists `dev/governance/roles/fixer.md`, so no existing policy group precedes it. No append-carry is owed: the brief already carries the whole directive.
+
+Source: the orchestrator's ruling line, mandate comment 6624093439 (scope all), 2026-11-07, and the roster-audit4 note in that group's `resume.note`.
+
+Instances:
+- **The group.** At roster `3069eaa49`, R10-FIXER-MD-SPELLING-CORPUS has `owner_gate` `policy: merges under mandate 6624093439`, `carry` `[]`, and a brief that holds the sentence `A guard that classifies text by shape is driven over a generated spelling corpus (case, quoting, glued options, delimiters, wrapping) with the corpus size named in the body; a spelling the reviewer finds is added to it.` exactly once.
+- **The search.** It is the only group not done, absorbed or struck whose `files` include `dev/governance/roles/fixer.md`, by a scan of `groups[].files` in `wave-r10-groups.json`.
+- **The source text.** The drafted sentence is in `dev/audit/rca/R10-RCA-CLASS-OPEN.md` at origin/main, lines 99 to 101.
+
+Cost: no op. The policy cost is the group's: `fixer.md`'s `--budgets` cap, paid by tightening first, as its brief binds.
+
+Binding: none beyond the group as it stands. The orchestrator dispatches it.
