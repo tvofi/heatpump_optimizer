@@ -481,25 +481,23 @@ def verdict(
     # this reads; "the newest CONCLUDED run" then names a run a later one has
     # already answered. On 2026-11-06 `slow` failed in dispatch 42235215315
     # (14:35Z) and passed in 42242870295 and 42247578523 while their
-    # mutation lanes ran on, and this check stayed red on every pull request
-    # for hours. A failed job is superseded ONLY when a strictly newer
+    # mutation lanes ran on, and this check read red for about 71 minutes:
+    # from 18:06:31Z, when 42235215315 concluded, to 19:17:32Z, when
+    # 42242870295 concluded green and became the newest concluded run. A
+    # failed job is superseded ONLY when a strictly newer
     # in-flight run has already concluded the SAME job green. A job still
     # pending, failed, skipped or absent there supersedes nothing, so a lane
     # that is really red stays red.
-    superseded: list[dict] = []
     if bad and in_flight is not None and in_flight_jobs and parse_ts(
             in_flight.get("created_at")) > started:
         greens = {j.get("name") for j in in_flight_jobs
                   if j.get("conclusion") == "success"}
-        superseded = [j for j in bad if j.get("name") in greens]
-        if len(superseded) == len(bad):
+        if all(j.get("name") in greens for j in bad):
             where.append(
                 "  failed job(s) superseded by the newer in-flight run "
                 f"{in_flight['id']}, which already concluded them green: "
                 + ", ".join(sorted(j.get("name", "?") for j in bad)))
             bad, run_failed = [], False
-        else:
-            superseded = []
     if bad or run_failed:
         if bad:
             names = ", ".join(sorted(j.get("name", "?") for j in bad))
