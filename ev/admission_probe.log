@@ -1,0 +1,36 @@
+  3091 unpinned site(s) of 6799 candidate sites, 3091 at the ratchet base HEAD^1; the ledger agrees with the deterministic inventory; this scope drives neither tests/harness_headers.py, tests/stress.py -- each measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011) -- and 11 recorded killed_by disposition(s) name one, so those pins stay in the ledger and this lane re-verifies none of them
+MUTATION TABLE -- scope full: every production module
+  SKIP tests/harness_headers.py (this scope does not drive it at all: it measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011))
+  SKIP tests/stress.py (this scope does not drive it at all: it measures the machine, so its own limits judged a comment-only null control on a shared runner and refused the lane: harness_headers.py SIGXCPU rc=-24 (run 37108891698), stress.py 8.0x against its own 7.9x budget (run 37189092011))
+DRAIN -- 320 of 3091 unpinned site(s), whole anchors under --seed 20261106, to drive
+  320 mutant(s) over 84 file(s); drivers in play: tests/arch_score_head.py, tests/backtest.py, tests/block_duty.py, tests/boost_drift_replay.py, tests/config_flow_steps.py, tests/debug_collect.py, tests/deployment_shape.py, tests/doc_claims.py, tests/edge.py, tests/entities.py, tests/env_drift.py, tests/features.py, tests/finite_boundary.py, tests/frontend.py, tests/guard_pins.py, tests/manual_plan.py, tests/open_meteo.py, tests/optimality.py, tests/plan_view.py, tests/solar_alignment.py, tests/structure.py, tests/typing_ruler.py, tests/validate.py, tests/wood_advisor.py
+  ref-driven drivers compare against 'HEAD^1' (run.sh's GOLDEN_REF resolution)
+  null control: custom_components/heatpump_optimizer/__init__.py:37 NULL_COMMENT, a comment-only edit every driver in play must let survive
+  baseline tests/arch_score_head.py: rc=0 failed=0 38s
+  baseline tests/backtest.py: rc=0 failed=0 54s
+  baseline tests/block_duty.py: rc=0 failed=0 1s
+  baseline tests/env_drift.py: rc=0 failed=0 192s
+  baseline tests/config_flow_steps.py: rc=0 failed=0 15s
+  baseline tests/debug_collect.py: rc=0 failed=0 1s
+  baseline tests/deployment_shape.py: rc=0 failed=0 2s
+  baseline tests/doc_claims.py: rc=0 failed=0 8s
+  baseline tests/edge.py: rc=0 failed=0 20s
+  baseline tests/boost_drift_replay.py: rc=0 failed=0 186s
+  baseline tests/features.py: rc=0 failed=0 389s
+  baseline tests/frontend.py: rc=0 failed=0 0s
+  baseline tests/guard_pins.py: rc=0 failed=0 1s
+  baseline tests/entities.py: rc=0 failed=0 433s
+  baseline tests/manual_plan.py: rc=0 failed=0 6s
+  baseline tests/open_meteo.py: rc=0 failed=0 0s
+  baseline tests/finite_boundary.py: rc=0 failed=0 60s
+  baseline tests/plan_view.py: rc=0 failed=0 1s
+  baseline tests/solar_alignment.py: rc=0 failed=0 1s
+  baseline tests/structure.py: rc=0 failed=0 17s
+  baseline tests/typing_ruler.py: rc=0 failed=0 19s
+  baseline tests/optimality.py: rc=0 failed=0 95s
+  baseline tests/wood_advisor.py: rc=0 failed=0 1s
+  baseline tests/validate.py: rc=0 failed=0 19s
+  null control custom_components/heatpump_optimizer/__init__.py:37 NULL_COMMENT survived every driver
+  36 mutant(s) rewrite a line a ledger row pins: each row is hidden from that mutant's tree, so it cannot read killed for the row's sake (invalidated_rows)
+ADMISSION PROBE: 320 row(s) written
+rc=0
