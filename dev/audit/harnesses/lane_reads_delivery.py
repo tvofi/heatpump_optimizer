@@ -132,6 +132,14 @@ def run_lane(lane: str, out: Path) -> dict:
                    f"git show HEAD:{ROW}/{rows[1]} >/dev/null\n"}]
     else:
         chosen = steps(clone, lane)
+    # One strace per step, so each hit is that step's. The full log runs to
+    # gigabytes on the self-test lane, so strace pipes it through awk. Awk
+    # keeps the lines naming dev/programme and every successful exec, the
+    # latter so a hit can be put to the command that made it. It also counts
+    # every line, so a step that traced nothing reads as 0, not clean.
+    (tmp / "filter.awk").write_text(
+        '/dev\\/programme/ || (/execve\\(/ && / = 0$/) { print > (out ".hits") }\n'
+        'END { print NR > (out ".n") }\n')
     script = ["#!/bin/bash", "set -o pipefail", f"cd {clone}"]
     listed = []
     for i, s in enumerate(chosen):
@@ -145,46 +153,77 @@ def run_lane(lane: str, out: Path) -> dict:
         f.write_text(body)
         exports = " ".join(f"{k}={json.dumps(v)}" for k, v in senv.items())
         wd = s.get("working-directory", ".")
+        sink = f"|awk -v out={tmp}/step{i} -f {tmp}/filter.awk"
         script.append(f"echo '::step {i}'; ( cd {clone}/{wd} && [ -f {rt}/env ] && set -a && . {rt}/env; "
-                      f"set +a; cd {clone}/{wd}; env {exports} bash --noprofile --norc -eo pipefail {f} ) "
+                      f"set +a; cd {clone}/{wd}; exec /usr/bin/strace -f -qq -y -s 4096 "
+                      f"-e trace=%file,execve,getdents64 -o '{sink}' "
+                      f"env {exports} bash --noprofile --norc -eo pipefail {f} ) "
                       f"> {tmp}/step{i}.log 2>&1; echo \"::exit {i} $?\"")
         listed.append({"step": name, "ran": True, "i": i})
     (tmp / "lane.sh").write_text("\n".join(script) + "\n")
-    trace = out / f"{lane}.strace"
     t0 = time.time()
-    # The full log runs to gigabytes on the self-test lane: strace pipes it
-    # through awk, which keeps only the lines naming dev/programme and
-    # counts every line, so a lane that traced nothing reads as 0, not clean.
-    sink = f"|awk '/dev\\/programme/ {{ print > \"{trace}\" }} END {{ print NR > \"{trace}.n\" }}'"
-    p = subprocess.run(["/usr/bin/strace", "-f", "-qq", "-y", "-s", "4096", "-o", sink,
-                        "-e", "trace=%file,execve,getdents64", "bash", str(tmp / "lane.sh")],
-                       env=env, capture_output=True, text=True)
+    p = subprocess.run(["bash", str(tmp / "lane.sh")], env=env, capture_output=True, text=True)
     exits = dict(re.findall(r"::exit (\d+) (\d+)", p.stdout))
     for e in listed:
-        if e["ran"]:
-            e["exit"] = int(exits.get(str(e["i"]), -1))
-    trace.touch()
-    hits = scan(trace, clone)
-    return {"lane": lane, "steps": listed, "hits": hits, "seconds": round(time.time() - t0),
-            "trace_lines": int(Path(f"{trace}.n").read_text().strip() or 0) if Path(f"{trace}.n").exists() else 0}
-
-
-def scan(trace: Path, clone: Path) -> list[str]:
-    """Every traced syscall touching the clone's delivery rows, and every exec
-    naming dev/programme in its argv. A relative path is resolved against
-    nothing and kept, so an unresolved open cannot hide a read."""
-    under = f"{clone}/{ROW}"
-    hits = []
-    for line in trace.open(errors="replace"):
-        if ROW not in line and "dev/programme" not in line:
+        if not e["ran"]:
             continue
-        if under in line:
-            hits.append(line.rstrip())
-        elif "execve(" in line and "dev/programme" in line.split("execve(", 1)[1]:
-            hits.append(line.rstrip())
-        elif re.search(r'"(\./)?' + re.escape(ROW), line):  # relative, unresolved
-            hits.append(line.rstrip())
-    return hits
+        e["exit"] = int(exits.get(str(e["i"]), -1))
+        base = tmp / f"step{e['i']}"
+        n = Path(f"{base}.n")
+        e["trace_lines"] = int(n.read_text().strip() or 0) if n.exists() else 0
+        hits = Path(f"{base}.hits")
+        e.update(scan(hits, clone) if hits.exists() else scan_empty())
+    return {"lane": lane, "steps": listed, "seconds": round(time.time() - t0)}
+
+
+KINDS = ("open", "list", "exec-names", "stat", "exec-excludes")
+READS = ("open", "list", "exec-names")  # what counts as reading a row
+
+
+def scan_empty() -> dict:
+    return {"kinds": {k: 0 for k in KINDS}, "by_command": {}, "examples": {}}
+
+
+def _argv(line: str) -> list[str]:
+    m = re.search(r'execve\("[^"]*", \[(.*?)\](?:, 0x| /\*)', line)
+    return re.findall(r'"((?:[^"\\]|\\.)*)"', m.group(1)) if m else []
+
+
+def scan(hits: Path, clone: Path) -> dict:
+    """Each traced syscall touching the clone's delivery rows, by kind and by
+    the command (the process's last exec, first three argv words) that made
+    it. `open` is an open of a row or of the directory; `list` a getdents64
+    on it; `exec-names` an exec whose argv names dev/programme other than as
+    an exclusion (`:!`, `:(exclude)`); `exec-excludes` one naming it only so;
+    `stat` a stat-family call, which reads no content. A path under another
+    root (a self-test's fixture repository) is not the clone's and not counted."""
+    under = f"{clone}/{ROW}"
+    rel = re.compile(r'(AT_FDCWD<' + re.escape(str(clone)) + r'[^>]*>|^\d+\s+\w+\()"?(\./)?' + re.escape(ROW))
+    cmd: dict[str, str] = {}
+    out = scan_empty()
+    for line in hits.open(errors="replace"):
+        pid = line.split(None, 1)[0]
+        if "execve(" in line and line.rstrip().endswith("= 0"):
+            argv = _argv(line)
+            cmd[pid] = " ".join(a.rsplit("/", 1)[-1] if j == 0 else a for j, a in enumerate(argv[:3]))[:120]
+            named = [a for a in argv if "dev/programme" in a]
+            if not named:
+                continue
+            kind = "exec-excludes" if all(a.startswith((":!", ":(exclude)")) for a in named) else "exec-names"
+        elif under not in line and not rel.search(line):
+            continue
+        elif "getdents64(" in line:
+            kind = "list"
+        elif re.search(r"\b(open|openat|openat2|creat)\(", line):
+            kind = "open"
+        else:
+            kind = "stat"
+        out["kinds"][kind] += 1
+        c = cmd.get(pid, "?")
+        out["by_command"].setdefault(c, {}).setdefault(kind, 0)
+        out["by_command"][c][kind] += 1
+        out["examples"].setdefault(kind, line.rstrip()[:400])
+    return out
 
 
 def main() -> int:
@@ -199,15 +238,19 @@ def main() -> int:
         (out / f"{lane}.json").write_text(json.dumps(r, indent=1))
         ran = [s for s in r["steps"] if s["ran"]]
         bad = [s["step"] for s in ran if s["exit"] != 0]
+        readers = [s for s in ran if any(s["kinds"][k] for k in READS)]
         print(f"lane {lane}: {len(ran)} run step(s), {len(r['steps']) - len(ran)} uses: step(s) listed, "
-              f"{len(bad)} exited non-zero, {r['trace_lines']} trace lines, {len(r['hits'])} row read(s), "
-              f"{r['seconds']} s")
-        for s in bad:
-            print(f"  non-zero: {s}")
-        for h in r["hits"][:20]:
-            print(f"  HIT {h[:300]}")
+              f"{len(bad)} exited non-zero, {sum(s['trace_lines'] for s in ran)} trace lines, "
+              f"{len(readers)} step(s) read a row, {r['seconds']} s")
+        for s in ran:
+            if s["exit"] != 0 or s["trace_lines"] == 0 or s in readers:
+                k = " ".join(f"{x}={s['kinds'][x]}" for x in KINDS if s["kinds"][x])
+                print(f"  [{s['i']}] exit={s['exit']} lines={s['trace_lines']} {k or 'no row syscall'} :: {s['step']}")
+                for c, v in s["by_command"].items():
+                    if any(v.get(x) for x in READS):
+                        print(f"      by {c}: {v}")
         if lane == "control":
-            print(f"RESULT control_hits={len(r['hits'])}")
+            print(f"RESULT control_hits={sum(s['kinds'][k] for s in ran for k in READS)}")
     return 0
 
 
