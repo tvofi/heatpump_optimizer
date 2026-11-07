@@ -38905,12 +38905,15 @@ _ET_KEYS = {
     "simulate_plan_no_prices": {"entry_ids"},
     "simulate_plan_invalid_windows": {"error", "windows"},
     "simulate_plan_failed": {"error", "entry_ids"},
+    "diagnose_interval_failed": {"error", "entry_ids"},
     "restore_learned_snapshot_no_snapshot": {"entry_ids"},
     "restore_learned_snapshot_no_refit": {"entry_ids"},
     "set_thermal_params_invalid_dhw_windows": {"error", "windows"},
     "set_temperature_comfort_band_violation": {"violations"},
     # #1546: the coordinator's UpdateFailed raises, through _raise_update_failed.
     "process_worker_unusable": {"cycles"},
+    # The worker read deadline (a silent worker is reaped, not waited on).
+    "process_worker_timeout": {"minutes"},
     "update_failed": {"error"},
     "tibber_fetch_failed": {"error"},
     # D10-s1-03: the refused token, through _raise_auth_failed.
@@ -41679,6 +41682,14 @@ R.check(
     f"raised {_g524_ok_err!r}; returned {_g524_ok_plan!r}; "
     f"jobs={_g524_ok_hass.jobs!r} issues={_g524_ok_hass.issues!r}",
 )
+
+# ---------------------------------------------------------------------------
+# The worker read deadline, the reply frame bound and the stop path's lock
+# bound (#3232): their checks are in tests/worker_deadlines.py, run here, so
+# that CodeQL's extraction of this module stays inside its job limit.
+import worker_deadlines as _worker_deadlines  # noqa: E402
+
+_worker_deadlines.run(R, _g3_parent)
 
 # ---------------------------------------------------------------------------
 R.section("#525 — nothing blocking runs on Home Assistant's event loop")
