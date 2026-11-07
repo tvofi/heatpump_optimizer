@@ -78640,6 +78640,26 @@ R.check(
     f"{_wn_bands}",
 )
 
+# The other side of each bound (diff mutants at 9cde30560): a 12 h step
+# floors the forecast window at one step (0, where two steps read 0.5); a
+# warm spell ahead clips at -1 (unclipped -2.6); a room far above the band
+# clips comfort at -1 (unclipped -80/-20); step_reasons one past the last
+# reason reads None, never an IndexError.
+_wn_f12 = _wn_sd._forecast_push(_wn_h(2, dt=12.0, outdoor=[0.0, -10.0]), 5.0)[0]
+_wn_fw = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] + [30.0] * 23), 5.0)[0]
+_wn_hot = _wn_cw(26.0, drops=0.5)
+try:
+    _wn_end = _wn_sd.step_reasons(_wn_res, len(_wn_res.space_reasons))
+except Exception as exc:  # noqa: BLE001 -- the bound under test is what raised
+    _wn_end = f"raised {type(exc).__name__}"
+R.check(
+    "R10-WHY-NOW-WIDGET: the forecast window floors at one step and clips at -1; comfort clips at -1; step_reasons past the end is None",
+    _wn_f12 == 0.0 and _wn_fw == -1.0 and _wn_hot == (-66.7, -33.3)
+    and isinstance(_wn_end, dict) and _wn_end.get("space_reason") is None
+    and "why_now" not in _wn_end,
+    f"{_wn_f12} {_wn_fw} {_wn_hot} {_wn_end}",
+)
+
 
 def _wn_at(res, i):
     try:
