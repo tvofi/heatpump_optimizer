@@ -14,7 +14,8 @@ SKIPPED (`SKIP <topic> <sha8> <reason>`): `moved` (origin's handoff tip is not
 the board's sha), `no-body` (no handoff-body/<topic>), `landed` (`ledger.py
 landed`, the classifier cloud_relay.sh and bus.sh orphans use), `fix-branch`
 (fix/<topic> or fix/<topic>-pr exists), `seen` (opened at this sha), `live`
-(its run is still going), `backoff` (a failed open waiting its turn), `cap`.
+(its run is still going), `backoff` (a failed open waiting its turn), `stuck` (three
+runs failed), `cap`.
 
 TOPIC -> GROUP (P337 rule 3, P363), each candidate checked against the roster:
 the override in open-titles.json first; `triage-s<N>-batch<M>` -> R10-TRIAGE-S<N>
@@ -39,9 +40,17 @@ A board topic unstarted for more than 2 h prints `STARVED <topic> <sha8> <h>h`
 RUNS (P337 rule 4, carry 4): a run is `bash open_pr.sh` in its own session; its
 PID and result file live in `$HPO_STATE_DIR/open-driver/`, and live runs are
 counted from those PIDs alone. A (topic, sha) is marked seen ONLY on rc=0; a
-failed one is retried with backoff (5 min doubling to 2 h) and prints
-`OWED <utc> open-refused <topic> <sha8> rc=<n> <reason>` every pass until it
-opens. Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
+failed one is retried with backoff 30 min, then 60 min (doubling, capped at 2 h),
+for THREE runs in all. The standing-contracts design's 30 min replaced the old
+5-minute start: three fast retries of a content refusal only repeat it. While
+fewer than three runs have failed every pass prints
+`OWED <utc> open-refused <topic> <sha8> rc=<n> <reason>`; after the third the
+(topic, sha) is `stuck`, never relaunched, and every pass prints exactly one
+`STUCK <topic> <sha8> rc=<n> <reason>` line instead (beat_jobs.py's OPENER
+regex reads the `STUCK ` prefix). A new sha is a new key and starts fresh.
+Per-topic files are `t-<stem>.log`/`.rc`, so no topic name can equal
+`open-driver.log`; `stem` escapes `%` before `/` so two topics never share a stem.
+Log lines: START / RESULT rc=<n> / SKIP / NEEDS-TITLE / STARVED.
 """
 from __future__ import annotations
 
@@ -60,7 +69,7 @@ import roster_lib  # noqa: E402
 REPO = "tvofi/heatpump_optimizer"
 BOARD_RE = re.compile(r"^OWED \S+ handoff-no-pr refs/heads/handoff/(\S+) ([0-9a-f]{40})(?: ct=(\d+|\?))?")
 STARVE_S = 2 * 3600
-BACKOFF_S, BACKOFF_MAX_S = 300, 7200
+BACKOFF_S, BACKOFF_MAX_S, MAX_TRIES = 1800, 7200, 3
 DEFAULT_CAP = 2
 
 
@@ -133,7 +142,7 @@ def order(items, priority: list, critical) -> list:
 
 def stem(topic: str) -> str:
     """The topic as one file name: a ref may hold a slash, a file name may not."""
-    return topic.replace("/", "%2F")
+    return topic.replace("%", "%25").replace("/", "%2F")
 
 
 def backoff(n: int) -> int:
@@ -170,11 +179,11 @@ class World:
 
     def launch(self, topic, sha, title, group) -> int:
         d = self.sd / "open-driver"
-        rc = d / f"{stem(topic)}.rc"
+        rc = d / f"t-{stem(topic)}.rc"
         rc.unlink(missing_ok=True)
         # Paths and the topic travel as arguments, never as shell text: a ref name may hold `$(...)`.
         cmd = 'o=$0; l=$1; r=$2; shift 2; bash "$o" "$@" > "$l" 2>&1; echo $? > "$r"'
-        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"{stem(topic)}.log"), str(rc), topic, sha, title, group]
+        argv = ["bash", "-c", cmd, str(self.opener), str(d / f"t-{stem(topic)}.log"), str(rc), topic, sha, title, group]
         return subprocess.Popen(argv, cwd=self.repo, start_new_session=True, stdin=subprocess.DEVNULL,
                                 stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).pid
 
@@ -224,12 +233,12 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             fh.write(f"{stamp} {msg}\n")
 
     for t, r in list(runs.items()):  # reap: a result file settles a run; a vanished PID without one is a kill
-        rcf = d / f"{stem(t)}.rc"
+        rcf = d / f"t-{stem(t)}.rc"
         rc = int(rcf.read_text().strip() or -1) if rcf.exists() else (None if world.alive(r["pid"]) else -1)
         if rc is None:
             continue
         key = f"{t} {r['sha']}"
-        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / (stem(t) + '.log'))}")
+        log(f"RESULT {t} {r['sha'][:8]} rc={rc} {reason(d / f"t-{stem(t)}.log")}")
         if rc == 0:
             seen.add(key)
             fails.pop(key, None)
@@ -237,13 +246,16 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
                 fh.write(key + "\n")
         else:
             n = fails.get(key, {}).get("n", 0) + 1
-            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / (stem(t) + ".log"))}
+            fails[key] = {"n": n, "next": now + backoff(n), "rc": rc, "why": reason(d / f"t-{stem(t)}.log")}
         del runs[t]
     (d / "fails.json").write_text(json.dumps(fails))
 
     for key, f in sorted(fails.items()):
         t, sha = key.split()
-        out(f"OWED {stamp} open-refused {t} {sha[:8]} rc={f['rc']} {f['why']}")
+        if f["n"] >= MAX_TRIES:
+            out(f"STUCK {t} {sha[:8]} rc={f['rc']} {f['why']}")
+        else:
+            out(f"OWED {stamp} open-refused {t} {sha[:8]} rc={f['rc']} {f['why']}")
 
     tips = world.tips()
     main = tips.get("refs/heads/main", "")
@@ -273,6 +285,8 @@ def run_pass(board: str, world, sd: Path, now: float, out=print) -> dict:
             skip("fix-branch")
         elif topic in runs:
             skip("live")
+        elif fails.get(f"{topic} {sha}", {}).get("n", 0) >= MAX_TRIES:
+            skip("stuck")
         elif fails.get(f"{topic} {sha}", {}).get("next", 0) > now:
             skip("backoff")
         else:
