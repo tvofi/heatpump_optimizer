@@ -15,7 +15,8 @@ R10-PARTLOAD-RESIDUE: the three measure-first items #3182 left. Each was measure
 - Two `origin/main` merges followed: 219c27b5d (bringing in 1c1ae100b) and 12a5d22a5 (bringing in 4b5d771bd). Neither moved anything the figures read: `git diff --quiet b4ec2f332 306a0b76e -- custom_components dev/audit/harnesses/r10_buffer_store.py dev/audit/harnesses/r10_partload_pricing.py dev/audit/harnesses/r10_cop_partload.py dev/audit/harnesses/r10_setpoint_boost.py tests/profiles.py && echo MEASURED-INPUTS-IDENTICAL` prints `MEASURED-INPUTS-IDENTICAL`.
 - This round's one commit, 306a0b76e, adds the harness's `refill` subcommand. Its two removed lines are the docstring's usage line and the `thermal_model` import; the `relaxed` and `buffer` bodies are untouched.
 - Carry 2's figures (both harnesses) were re-taken at 306a0b76e.
-- `origin/main` is 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76, unmoved since the merge base 12a5d22a5 brought in, so no third merge was owed.
+- `origin/main` has since moved to 53273de4d449a990bc29734565f63babada9ff7f. `git merge-tree --write-tree origin/main 306a0b76e` reports no conflict, so by the owner's 2026-11-07 ruling no third merge is made; the merge train recarries the head.
+- Carry 2's `refill` and `r10_partload_pricing.py` figures were re-derived a second time by the body re-take seat (at 306a0b76e and at merge base 4b5d771bd) and matched every printed digit; the zero-derate null read `null rows not zero 0` on both.
 
 ## Mutation proof
 
@@ -79,8 +80,9 @@ The 3.8 % share is 0.267290 / 7.0145.
 
 ## Red checks
 
-Every check run at the round-1 head d5f8f410c, read from the full list (68 runs, one page of 100), with each run not concluding `success` or `skipped`:
+Every check run at PR head d5f8f410c, read with `filter=all` across both pages (156 runs at 2026-11-07 20:12 UTC, re-runs included; the in-progress re-runs are not concluded and not listed), with each concluded run not `success`, `skipped` or `neutral`:
 - `gate`, check run 128454048061 (edit run 42388390774), failure. It was a deferral: `FAIL run(s) [42388250566] at this head are still being judged; their gate decides`. The code run's own `gate` (check run 128463363585) then concluded success at 16:43 UTC, and the edit run's `gate` re-ran as check run 128465293496, success at 16:53 UTC. Class: gate deferral, not a defect. Answer: no cheaper detector exists, because the deferral is the gate waiting on the run it defers to. None.
+- `gate`, check run 128453123588 (edit run 42388250955), cancelled at 16:06 UTC. Class: superseded gate run, not a defect; run 42388250955's `gate` is re-running as check run 128513716807 (in progress at the read). Answer: none owed; a cancellation carries no verdict on this diff, and the code run's `gate` (128463363585) concluded success.
 - `tests / nightly-status`, check run 128451039899, failure. It grades `main`, and this diff touches none of what it reads (its scripts, the workflows, the plan, `HANDOVER.md` or a delivery row). By `defect-root-cause.md` it is the orchestrator's on `main`. None owed here.
 - `governance / instrument-self-tests`, check run 128451039876, cancelled after 30 min 14 s (15:53:40 to 16:23:54 UTC). It is a cancellation, not a failure, and the gate that judged its run concluded success afterwards. This diff changes nothing under `tools/`. The cause was not established in this seat. Named here; this head re-runs it.
 
