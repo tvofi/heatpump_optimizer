@@ -176,13 +176,16 @@ def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False):
     return s, fd
 
 
-def _run_hook(script: str, state: Path, payload: dict | None = None) -> str:
+def _run_hook(script: str, state: Path, payload: dict | None = None, *, env: dict | None = None,
+              seat: Path = SEAT, args: list[str] | None = None) -> str:
+    """The hook's stdout, plus an `EXIT <rc>` line when it exits non-zero (a hook must not)."""
     tr = state.parent / "transcript.jsonl"
     payload = dict({"hook_event_name": "SessionStart", "transcript_path": str(tr)}, **(payload or {}))
-    r = subprocess.run([sys.executable, "-I", str(SEAT / "hooks" / script), "--state", str(state)],
-                       input=json.dumps(payload),
+    r = subprocess.run([sys.executable, "-I", str(seat / "hooks" / script),
+                        *(["--state", str(state)] if args is None else args)],
+                       input=json.dumps(payload), env=dict(os.environ, **(env or {})),
                        capture_output=True, text=True)
-    return r.stdout
+    return r.stdout + (f"EXIT {r.returncode}\n" if r.returncode else "")
 
 
 def cases() -> dict[str, bool]:
@@ -230,9 +233,30 @@ def cases() -> dict[str, bool]:
         res["liveness: a healthy table prints nothing actionable"] = (
             not any(w in out for w in ("DEAD", "STALE", "ALARM", "UNREADABLE")) and "ARM:" in out
             and "OWED reviewer-fire 1" in out)
+        res["liveness: a healthy table with a fresh stamp owes no policy re-read"] = "POLICY-REREAD" not in out
         res["liveness: PostCompact demands the policy re-read"] = (
             "POLICY-REREAD" in _run_hook("liveness.py", s, {"hook_event_name": "PostCompact"}))
+        res["liveness: an unparseable HPO_ALIVE_STALE_MIN falls back to its default"] = (
+            "ARM:" in (o := _run_hook("liveness.py", s, env={"HPO_ALIVE_STALE_MIN": "x"})) and "UNREADABLE" not in o)
+        past = time.time() - 121 * 60  # one minute past the 120-minute default
+        os.utime(s / "alive" / "merge", (past, past))
+        res["liveness: an alive file one minute past HPO_ALIVE_STALE_MIN is STALE"] = (
+            "STALE alive merge age_min=121" in _run_hook("liveness.py", s))
+        (s / "policy-reread.stamp").unlink()
+        res["liveness: SessionStart with no re-read stamp owes the policy re-read"] = (
+            "POLICY-REREAD owed" in _run_hook("liveness.py", s))
+        # a seat copy holding the hook but not policy_reread_check.py: the check cannot run
+        cp = tmp / "seatcopy"
+        (cp / "hooks").mkdir(parents=True)
+        shutil.copy2(SEAT / "hooks" / "liveness.py", cp / "hooks" / "liveness.py")
+        o = _run_hook("liveness.py", s, seat=cp)
+        res["liveness: a policy_reread_check that cannot run is UNREADABLE, not owed"] = (
+            "UNREADABLE policy_reread_check" in o and "POLICY-REREAD" not in o)
         os.close(fd)
+        gone = tmp / "gone"
+        gone.mkdir()
+        (gone / "orch-checkout").write_text(f"{tmp / 'no-such-checkout'}\n")
+        res["liveness: an orch-checkout naming no directory is inert"] = _run_hook("liveness.py", gone) == ""
         s, fd = _fixture_state(tmp / "dead", dead=True)
         res["liveness: a planted dead loop prints DEAD"] = "DEAD loop pulse" in _run_hook("liveness.py", s)
         os.close(fd)
@@ -256,9 +280,14 @@ def cases() -> dict[str, bool]:
         repo = (s / "orch-checkout").read_text().strip()
         have = subprocess.run(["git", "-C", repo, "config", "--local", "user.email"],
                               capture_output=True, text=True).stdout.strip()
+        name = subprocess.run(["git", "-C", repo, "config", "--local", "user.name"],
+                              capture_output=True, text=True).stdout.strip()
         res["git-identity: sets a differing identity, then prints nothing"] = (
             "GIT-IDENTITY set user.email" in first and have == "seat@example.invalid"
-            and _run_hook("git_identity.py", s) == "")
+            and name == "Seat Name" and _run_hook("git_identity.py", s) == "")
+        (s / "git-identity").write_text("Other Name\n")
+        res["git-identity: a one-line identity file is ignored"] = _run_hook("git_identity.py", s) == ""
+        res["git-identity: a --state with no value is ignored"] = _run_hook("git_identity.py", s, args=["--state"]) == ""
     finally:
         shutil.rmtree(tmp, ignore_errors=True)
     return res
