@@ -15075,9 +15075,9 @@
     "From triage P374 (orchestrator s10, 2026-11-02; #3173 deadlock fixed by hand at 13:49Z): `append_commit` in `tools/audit/seat/bus.sh` appends a commit whose tree equals the tip's. On #3173 the reviewer ran `push-verdict` twice on one verdict (`review/3173` got 2eab795f, then an empty-diff e6899918 seven seconds later). Each review head was confirmed, and the second confirm passed the `posted-signed` replay guard in `confirm()` because the first had not yet posted. It appended dba76851 on top of the posted f9aafd42 with the same tree, and `post_verdict` then refused it as a replay. The posted commit was left one behind the tip, so `merge_train.py`'s deliberate check (\"the newest posted verdict ... is not verdict/<n>'s tip\") refused the add and nothing could merge the pull request. Change: in `append_commit`, once the remote has answered the tip, compare the tip's tree with the tree to be written. If they are equal, write and push nothing, and print the existing `<family>/<pr> <tip>` line with rc 0, so that `push-verdict` and `confirm` are idempotent on a repeated verdict. A same-tree append can only repeat a verdict: `post_verdict` treats \"<pr> <tree>\" as what was signed, and each round's nonce makes its tree distinct. Leave `merge_train.py`'s verdict-tip check unchanged; do not loosen it to compare trees. Fixture arms in bus.sh's self-test: (a) `push-verdict` run twice with the same verdict and evidence leaves `review/<pr>` with one new commit; (b) `confirm` on a second review commit whose tree equals the first's leaves `verdict/<pr>`'s tip at the first, posted commit; (c) the null control: a verdict with a new nonce, and therefore a new tree, still appends. Mutation: removing the tree comparison must fail arms (a) and (b); add the site to `dev/audit/harnesses/r10_seat_selftests_mutants.py`. triage: dev/programme/triage/s6-batch115.md#P374"
    ],
    "resume": {
-    "stage": "in-progress",
+    "stage": "carries-open",
     "branch": "handoff/r10-dispatch-at-handoff",
-    "commit": null,
+    "commit": "387c74217c27f68f791228fa668274aaaa34c085",
     "last_step": null,
     "next_step": "dispatch a fixer once its after-groups are done",
     "note": "s9 carry-routing pass, 2026-11-01: created to receive carries of R10-ORCH-REVIEW-PACKET",
