@@ -1,0 +1,57 @@
+  ok   self-test: base tree: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 221 of 221 listed
+  ok   self-test: file outside every category: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: path in two categories: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 221 of 221 listed
+  ok   self-test: retired file re-added: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: live citation of a retired path: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 221 of 221 listed
+  ok   self-test: live citation of a retired directory, no slash: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 221 of 221 listed
+  ok   self-test: retired target outside every category: counts (1, 1, 0, 1), want (1, 1, 0, 1); enumerated 222 of 222 listed
+  ok   self-test: moved path re-added after its move landed: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: file one directory below a single-star glob: counts (1, 0, 0, 0), want (1, 0, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: live citation of a retired directory ending a sentence: counts (0, 0, 1, 0), want (0, 0, 1, 0); enumerated 221 of 221 listed
+  ok   self-test: dead retired entry: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 221 of 221 listed
+  ok   self-test: dead category glob: counts (0, 0, 0, 1), want (0, 0, 0, 1); enumerated 221 of 221 listed
+  ok   self-test: negative: the citation under the archive: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: negative: the citation in a delivery row: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: negative: the citation in a row not yet moved: counts (1, 1, 0, 0), want (1, 1, 0, 0); enumerated 222 of 222 listed
+  ok   self-test: negative: a longer name that contains it: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 221 of 221 listed
+  ok   self-test: negative: the new path cited: counts (0, 0, 0, 0), want (0, 0, 0, 0); enumerated 221 of 221 listed
+  ok   locate .claude/workflows/agreement.mjs with ['.claude/workflows/agreement.mjs', 'tools/policy/agreement.mjs']: .claude/workflows/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with ['tools/policy/agreement.mjs']: tools/policy/agreement.mjs
+  ok   locate .claude/workflows/agreement.mjs with neither: .claude/workflows/agreement.mjs
+  ok   guard self-test: null: the base tree unchanged: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a doc gains a citation of a landed path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line naming the new path too: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line through the move map: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the same line marked as building the old tree: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command whose marker names another path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command whose marker names a longer path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation in a generated .claude/rules copy: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation in a generated .cursor/rules copy: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command with an unkeyed marker: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a stale command beside a locate of another path: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: prose naming the marker: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the old path as the move map's own argument: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the citation under a historical prefix: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: an old citation kept while the file changes: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a second copy of an old citation: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  FAIL guard self-test: an old citation re-indented: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+         new-reference: docs/b.md cites retired path old/gone.sh: run old/gone.sh here
+  ok   guard self-test: a re-indented second copy of an old citation: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file renamed with its old citation: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of a planned path: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a nested file sharing a retired top-level name: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: the retired top-level name itself: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of a directory the moves emptied: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file re-added in a directory the moves emptied: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file outside every category: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file in its category: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file in two categories: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a file citation inside an emptied directory, counted once: {'new-reference': 1, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file under a planned move: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a file re-added at a landed path: {'new-reference': 0, 'unswept': 0, 'placement': 1}
+  ok   guard self-test: a move landed, a citation left: {'new-reference': 0, 'unswept': 1, 'placement': 0}
+  ok   guard self-test: a move landed and swept: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: 1 case(s) FAILED
+rc=1
