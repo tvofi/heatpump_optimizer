@@ -507,6 +507,32 @@ def self_test() -> int:
             check(f"C7a: ... and {f} beside it runs them", machinery([cc, f], cj), True)
         check("C7a: an empty list runs them (fail closed)", machinery([], cj), True)
         check("C7a: an unreadable script table runs them (fail closed)", machinery([cc], Path(td) / "none.json"), True)
+        # The pull request's own delivery row is ignored: neither product nor
+        # machinery. Exactly that row, keyed on the number the event names.
+        own = "dev/programme/delivery/3300.md"
+        check("C7a-row: a package file plus its own delivery row idles them",
+              machinery([cc, own], cj, "3300"), False)
+        check("C7a-row: ... the row beside tools/ still runs them (null control)",
+              machinery([cc, own, "tools/ci/gate.py"], cj, "3300"), True)
+        check("C7a-row: ANOTHER pull request's row still counts as machinery",
+              machinery([cc, "dev/programme/delivery/3299.md"], cj, "3300"), True)
+        check("C7a-row: ... and so does the row when the event names no number",
+              machinery([cc, own], cj, ""), True)
+        check("C7a-row: the own row alone is nothing product to stand on: runs them",
+              machinery([own], cj, "3300"), True)
+        check("C7a-row: an empty list still runs them", machinery([], cj, "3300"), True)
+        check("C7a-row: an unread changed list still runs them", machinery(None, cj, "3300"), True)
+        check("C7a-row: an unreadable script table still runs them",
+              machinery([cc, own], Path(td) / "none.json", "3300"), True)
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"], g(live))
+    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7", out["machinery"], "false")
+    out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
+                     ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/8.md"], g(live))
+    check("C7a-row: ... and row 8 on pull request 7 runs them", out["machinery"], "true")
+    check("C7a-row: a push with the row still runs them",
+          outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
+                  g(live))[0]["machinery"], "true")
     out, why = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                        ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
     check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
