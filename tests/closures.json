@@ -1514,6 +1514,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -2839,6 +2840,7 @@
    "custom_components/heatpump_optimizer/tariff.py",
    "custom_components/heatpump_optimizer/thermal_model.py",
    "custom_components/heatpump_optimizer/topology.py",
+   "custom_components/heatpump_optimizer/translations/de.json",
    "custom_components/heatpump_optimizer/translations/en.json",
    "custom_components/heatpump_optimizer/translations/sv.json",
    "custom_components/heatpump_optimizer/wear.py",
@@ -4976,7 +4978,7 @@
   },
   "tests/harness_headers.py": {
    "rc": 0,
-   "seconds": 241.1
+   "seconds": 118.2
   },
   "tests/layout.py": {
    "rc": 0,
