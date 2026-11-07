@@ -754,7 +754,11 @@ class Tick:
         elif dispatched is not None:
             rr = _module("record_row_tick", "tools/audit/seat/record_row.py")
             for text in lg.review_owed(prs, self._readback, dispatched, self._carries,
-                                       getattr(rr, "RECORD_BRANCH", None)):
+                                       getattr(rr, "RECORD_BRANCH", None),
+                                       lg.git_recarry(self.checkout or ".", "origin/main")):
+                self.line(S, text, flag=not text.startswith("CARRY:"))
+            now = getattr(self, "now", None) or datetime.datetime.now(datetime.timezone.utc)
+            for text in lg.record_owed(prs, now):
                 self.line(S, text, flag=True)
 
     # ------------------------------------------------------- OWED buckets
@@ -2206,9 +2210,16 @@ class Tick:
                                      f"{sha[:12]} is not in origin/main's "
                                      "history -- re-derive the resume",
                                   flag=True)
-            # owner-gated age
-            gated = [g for gid, g in groups.items()
-                     if gid in open_g and g.get("owner_gate")]
+            # owner-gated age: the gate's class is roster_lib's (`gate_kind`);
+            # a covered gate is informational, only an owner gate flags and
+            # costs the issues read
+            kinds = {gid: rl.gate_kind(g.get("owner_gate")) for gid, g in groups.items()
+                     if gid in open_g}
+            covered = [gid for gid, k in kinds.items() if k == "covered"]
+            gated = [groups[gid] for gid, k in kinds.items() if k == "owner"]
+            if covered:
+                self.line(S, f"{len(covered)} group(s) with an owner gate the "
+                             "mandate in force covers (informational)")
             if gated:
                 issues = sorted(i for g in gated for i in (g.get("issues") or []))
                 age = ""
@@ -2805,6 +2816,29 @@ def self_test() -> int:
             ("REPLAN: a queued PR not OPEN is to prune; an OPEN one is not",
              any("#2379 not OPEN" in x["text"] for x in t_rp.findings)
              and not any("#2394 not OPEN" in x["text"] for x in t_rp.findings)),
+        ])
+        total, failed = total + a, failed + f
+        def gated_tick(gate):
+            ro = {"groups": [{"group": "G-OWN", "issues": [7], "owner_gate": gate,
+                              "resume": {"stage": "not-started"}},
+                             {"group": "G-NONE", "resume": {"stage": "not-started"}}]}
+            rf = tmp / f"gate-{abs(hash(gate))}.json"
+            rf.write_text(json.dumps(ro))
+            tg = tick(prs=[], queue=str(q16), roster=str(rf),
+                      states={p: ("closed", H2) for p in (2379, 2394, 2416)})
+            tg.replan()
+            return tg
+        tg_cov = gated_tick("code-owned: .claude/hooks/ (mandate 6329234399)")
+        tg_own = gated_tick("owner decision after the probe")
+        a, f = check("REPLAN owner gates: only a decision not yet taken flags", [
+            ("a mandate-covered gate prints one informational line, no flag",
+             any("1 group(s) with an owner gate" in l["text"] and not l["flag"]
+                 for l in tg_cov.sections["REPLAN"])
+             and not any("blocked on owner" in x["text"] for x in tg_cov.findings)),
+            ("a covered gate costs no issues read",
+             not any("issues/7" in " ".join(c) for c in tg_cov._gh.calls)),
+            ("an owner gate is flagged blocked on owner",
+             any("1 group(s) blocked on owner" in x["text"] for x in tg_own.findings)),
         ])
         total, failed = total + a, failed + f
         t = tick(procs=lambda pattern: [(11, "python3 merge_train.py"),
@@ -4673,6 +4707,56 @@ def self_test() -> int:
             ("an unreadable dispatch record is UNREADABLE and owes nothing it cannot know",
              any("UNREADABLE: bus dispatch record" in x for x in rb)
              and not any(x.startswith("REVIEW OWED") for x in rb)),
+        ])
+        total, failed = total + a, failed + f
+
+        # ---- CARRY and RECORD-OWED through the tick's own call (R10-CARRY-RESIDUE): a real
+        # checkout whose origin/main the tick's git_recarry reads. #80's head is its merge verdict's
+        # head plus one clean main merge; #81 is an approved record PR open 40 minutes.
+        tgc = _module("throwaway_git_carry", "tests/throwaway_git.py")
+        with tempfile.TemporaryDirectory() as d:
+            env = tgc.throwaway_git_init(d, "-q", "-b", "main")
+
+            def cgit(*argv):
+                return subprocess.run(["git", *argv], cwd=d, env=env, capture_output=True, text=True).stdout.strip()
+
+            def cput(name: str, msg: str) -> str:
+                (Path(d) / name).write_text(msg + "\n")
+                cgit("add", "-A")
+                cgit("commit", "-qm", msg)
+                return cgit("rev-parse", "HEAD")
+
+            cput("base.txt", "base")
+            cgit("checkout", "-qb", "fix")
+            cvh = cput("fix.txt", "the reviewed fix")
+            cgit("checkout", "-q", "main")
+            cput("main.txt", "main moves on")
+            cgit("checkout", "-q", "fix")
+            cgit("merge", "-q", "--no-edit", "main")
+            cmh = cgit("rev-parse", "HEAD")
+            cgit("update-ref", "refs/remotes/origin/main", "main")
+            ca_board = [pr_obj(80, cmh), dict(pr_obj(81, h(81), branch="record/autofix", rd="APPROVED"),
+                                               createdAt=iso(NOW - datetime.timedelta(minutes=40)))]
+
+            def ca_run(verdict: str) -> list:
+                extra = [(("issues/80/comments?per_page=100",), 0, json.dumps([[vc(22, verdict)]])),
+                         (("issues/81/comments?per_page=100",), 0, json.dumps([[]]))]
+                t_ca = tick(prs=ca_board, gh_extra=extra, bus_state=str(tmp / "bus-ro"), checkout=d)
+                t_ca._git.on(("ls-remote",), out="")
+                t_ca._carries = lambda v, hd: False  # the train's predicate stays out: this row is git_recarry's
+                t_ca.verdict_levels("PRS", ca_board)
+                return t_ca.sections.get("PRS", [])
+
+            ca, cb = ca_run(f"Fix review: merge {cvh}"), ca_run(f"Fix review: blocked {cvh} mutation-vacuous: x")
+        a, f = check("CARRY and RECORD-OWED", [
+            ("a verdicted head plus one main merge prints CARRY, unflagged, and no REVIEW OWED",
+             {"flag": False, "text": f"CARRY: #80 {cmh[:12]}"} in ca
+             and not any(x["text"].startswith("REVIEW OWED: #80") for x in ca)),
+            ("null control: the same head after a blocked verdict is REVIEW OWED, flagged, and no CARRY",
+             {"flag": True, "text": f"REVIEW OWED: #80 {cmh[:12]}"} in cb
+             and not any(x["text"].startswith("CARRY") for x in cb)),
+            ("an approved record PR open 40 minutes prints RECORD-OWED, flagged",
+             {"flag": True, "text": f"RECORD-OWED: #81 {h(81)[:12]} 40m"} in ca),
         ])
         total, failed = total + a, failed + f
 
