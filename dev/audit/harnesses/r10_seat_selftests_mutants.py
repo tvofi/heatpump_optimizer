@@ -650,8 +650,12 @@ MUTANTS = [
     # #3245's countermeasure: the STEP REPLAY arm selects, and its base control excuses only a shared red.
     ("ci_predict-3", "tools/pr/ci_predict.py",
      'hit = {n: r for n, r in head.items() if names_changed(root, r, changed)}', 'hit = {}'),
-    ("ci_predict-4", "tools/pr/ci_predict.py", '                if b:\n', '                if True:\n'),
+    ("ci_predict-4", "tools/pr/ci_predict.py", '                if b or not again:\n', '                if True:\n'),
     ("ci_predict-5", "tools/pr/ci_predict.py", '        if any(n in text for n in names):\n', '        if False:\n'),
+    # #3245 repair 4: a head timeout is replayed at the head before it is the branch's red.
+    ("ci_predict-6", "tools/pr/ci_predict.py",
+     '                again = replay_step(root, head[n]) if rc == 124 and not b else rc\n',
+     '                again = rc\n'),
     ("local_alerts-1", "tools/pr/local_alerts.py", "        if not prs:\n            return 3,",
      "        if False:\n            return 3,"),
     ("local_alerts-2", "tools/pr/local_alerts.py", 'and j.get("conclusion") == "success")', ")"),
