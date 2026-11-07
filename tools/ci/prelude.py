@@ -67,8 +67,24 @@ STARTED = ("in_progress", "completed")
 # pins). Anything else -- tools/, .github/, dev/, policy, tests
 # infrastructure, a new or unmeasured script, an unknown root file -- runs
 # them, and every push runs them.
+#
+# R10-CI-OWN-DELIVERY-ROW: every pull request carries its own delivery row
+# (DELIVERY_ROW with its number), which is not product, so the rule above
+# idled no pull request. `machinery_rowblind` ignores exactly that row, for
+# the lanes that read no row; another pull request's row stays machinery.
+# dev/audit/harnesses/lane_reads_delivery.recording.json traced each lane's
+# steps: tests / arch-instrument reads no row, while tests / closures (its
+# re-record), governance / env-matrix and governance / instrument-self-tests do
+# (policy_lint and its tree-wide `git grep`), so those three keep `machinery`.
 PRODUCT_PREFIXES = ("custom_components/", "docs/", "tests/golden/", "tests/mutation_ledger/")
 PRODUCT_FILES = frozenset({"README.md"})
+DELIVERY_ROW = "dev/programme/delivery/{}.md"
+# (workflow, job) -> the prelude output its steps gate on; the split is
+# lane_reads_delivery.py's recording, above. `lane_gates` pins it.
+LANE_GATE = {("tests.yml", "arch-instrument"): "machinery_rowblind",
+             ("tests.yml", "closures"): "machinery",
+             ("governance.yml", "env-matrix"): "machinery",
+             ("governance.yml", "instrument-self-tests"): "machinery"}
 CLOSURES_JSON = HERE.parents[1] / "tests" / "closures.json"
 KP = "kernel-points"
 UNITS = {                                          # every name a unit owes at a PR head (gate.py's sources)
@@ -252,12 +268,25 @@ def _product(closures_json: Path):
     return lambda f: f.startswith(PRODUCT_PREFIXES) or f in PRODUCT_FILES or f in scripts
 
 
-def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) -> bool:
-    """Whether the machinery lanes run: False only for a non-empty changed list
-    that is all product (C7(a)); an unreadable script table runs them."""
-    files = [f for f in (changed or []) if f.strip()]
+def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON, pr: str = "") -> bool:
+    """Whether the machinery lanes run: False only for a changed list that,
+    less pull request `pr`'s own delivery row, is non-empty and all product
+    (C7(a)); an unreadable script table runs them."""
+    own = DELIVERY_ROW.format(pr) if pr.isdigit() else None
+    files = [f for f in (changed or []) if f.strip() and f != own]
     is_product = _product(closures_json)
     return not files or is_product is None or not all(map(is_product, files))
+
+
+def lane_gates(workflows: Path = HERE.parents[1] / ".github" / "workflows") -> dict:
+    """(workflow, job) -> the set of machinery inputs the job's text names
+    (`inputs.machinery`, `inputs.machinery_rowblind`), for each LANE_GATE job."""
+    got = {}
+    for wf, job in LANE_GATE:
+        text = (workflows / wf).read_text()
+        m = re.search(rf"\n  {re.escape(job)}:\n(.*?)(?=\n  [A-Za-z][\w-]*:\n|\Z)", text, re.S)
+        got[(wf, job)] = set(re.findall(r"inputs\.(machinery\w*)", m.group(1))) if m else set()
+    return got
 
 
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
@@ -321,6 +350,7 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     if ev == "workflow_dispatch" and ref.startswith(codeql_scope.PROOF_REF):
         changed, proven = proof(ctx, get)
     out["machinery"] = "true" if ev != "pull_request" or machinery(changed) else "false"
+    out["machinery_rowblind"] = "true" if ev != "pull_request" or machinery(changed, pr=pr) else "false"
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
