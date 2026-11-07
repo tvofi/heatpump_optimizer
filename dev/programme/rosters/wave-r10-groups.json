@@ -18647,6 +18647,52 @@
     "note": "s12-36 dispatch seat 2026-11-07: owner ruling Arbiter too, #201 comment 6708225978; fixer dispatches when R10-GENERIC-HEAT-CURVE's PR merges, not before; overlap admitted (R10-USER-DOCS-VERIFY, R10-HOTFIX-COP-UNMEASURED, R10-COP-GATE-E, R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT): owner ruling 2026-11-07 (tvofi, issue 201 comment 6708225978): Arbiter too, off restores the baseline"
    },
    "brief": "Owner ruling (tvofi, #201 comment 6708225978, 2026-11-07, verbatim): \"Arbiter too\" - the ruling that turning the optimizer off restores the baseline applies to the pump arbiter as well, retracting the 2026-09-26 \"off writes nothing\" ruling. Today the arbiter writes nothing on MODE_OFF or unload (pump_arbiter.py, MODE_OFF handling near its \"off writes nothing\" ruling comment), which leaves the space set-point entity at the last value the optimizer wrote. Fix: on MODE_OFF and on unload while Home Assistant is not stopping, restore the space set-point entity to the user's baseline. Capture the baseline from the entity before the arbiter's first write, and persist it so it survives restarts. Adopt a person's edit made at the controller while the optimizer is off, or between writes, as the new baseline. Refuse to capture a value equal to the arbiter's own last write. Tests are failing-first with a null control: with the arbiter unconfigured, no write happens on off. Docs: wherever the off behaviour is documented (grep the docs for the old ruling). Size M, fixer and reviewer opus. SHARED RESTORE HOOK: R10-GENERIC-HEAT-CURVE, R10-GENERIC-HEAT-CURVE-PERSISTENT and R10-ARBITER-OFF-RESTORE each own an off/unload restore. Per orchestrator.md section 5 the later groups reuse the first group's hook shape (the one owner of the unload restore, async_unload_entry / async_remove_entry and the MODE_OFF path) and add no second owner of it. The persistent kind and the arbiter group both capture a baseline from an entity before the first write (the note's P1, P6); share one baseline mechanism if it is sound. This group has an after-edge on R10-GENERIC-HEAT-CURVE; dispatch its fixer when that group's PR merges and not before. Reuse the hook shape that group lands."
+  },
+  {
+   "group": "R10-CLOSEOUT-INSTRUMENTS",
+   "lane": "C",
+   "kind": "instrument",
+   "issues": [],
+   "fixes": [],
+   "findings": [],
+   "class": "process",
+   "severity": "normal",
+   "size": "M",
+   "wave": 1,
+   "files": [
+    "tools/audit/seat/closeout.py",
+    "tools/audit/seat/prune_refs.py",
+    "tools/audit/worktree_gc.sh",
+    "tools/audit/seat/instruments/closeout.py.md",
+    "tools/audit/seat/instruments/worktree_gc.sh.md"
+   ],
+   "hot_files": [],
+   "fixerModel": "sonnet",
+   "reviewerModel": "opus",
+   "model": {
+    "fixer": "sonnet",
+    "reviewer": "opus",
+    "rca": null,
+    "runner": "haiku",
+    "record": "sonnet"
+   },
+   "effort": "medium",
+   "fixture": false,
+   "owner_gate": "mandated approval under 6329234399",
+   "rca": [],
+   "after": [],
+   "carry": [
+    "Moved from R10-CLOSEOUT-CLEANUP carry 6 (s12 roster audit 2026-11-07), verbatim: From the s9 local cleanup (2026-11-01; ~/hpo-orch/cleanup-20261101.log). The disk was at 7.8 GiB free, under the sweep's 15 GiB floor, so the sweep ran tools/audit/worktree_gc.sh, which reported \"eligible 0, kept 131\". A hand cleanup that proved each item dead then freed 10.2 GiB: 30 worktrees, plus 61 plain repo copies totalling 4.9 GiB. worktree_gc missed them for three reasons:\n(1) It keeps every branch that has no pull request of its own, and fixer branches (`work/*`, `scratch/*`, `seat/*`) never do, because their PR sits on `fix/<topic>`.\n(2) Its orphan-dir class defaults to /tmp/hpo-orch, but seats live under ~/hpo-seats/<round>.\n(3) It has no class for plain repo copies (mutant, null and head trees with no .git) inside seat dirs.\nFix:\n- Map a seat branch to its PR topic; a merged or closed PR makes the seat eligible, once it has no unpushed commits, a clean status and no live process.\n- Read the seats root from config or the environment.\n- Add a class for plain copies under a seat dir whose topic's PR is merged.\n- Keep the safety gates the cleanup used: an lsof/ps cwd check, no unpushed commits, clean status.\nFailing test first: a fixture seat on a merged topic, eligible after the fix and kept today. Null control: a seat with one unpushed commit, or with a live process cwd in it, stays kept.",
+    "Moved from R10-CLOSEOUT-CLEANUP carry 8 (s12 roster audit 2026-11-07), verbatim: `worktree_gc.sh` keeps any worktree a live process has its cwd in, on every removal arm. Call `cwd_inside` on classes A and B as well as `on-remote`: today only the `on-remote` arm consults it (line 752 at `5e6d43ae1`), and a clean detached worktree at a proper ancestor of main prints `remove` with the cwd of a process inside it (2026-11-04: `worktree_gc: summary -- eligible 2, removed 2` at the merge of PR 3184, with orch-wt2 under six live loops). Keep the `cwd-inside` and `cwd-unread` lines as they are. Fixture arms: (a) class B with a holder keeps (`cwd-inside`); (b) class B without one removes (the null control); (c) class A with a holder keeps. Mutant: restoring the `onremote` condition fails (a). Answer it in the next repair of PR 3085 if that PR is still open at dispatch, otherwise in a part 2; do not hold PR 3085 for it. triage: dev/programme/triage/s6-batch119.md#P383 at 8439f738e",
+    "From PR 3085's Forward-carry (R10-CLOSEOUT-CLEANUP, merged 6125b263), routed there to issue 2727, which closed 2026-11-05 with the item unrouted: after a lease refusal, the moved ref's archive tag archive/<name> already sits at the old sha, so a re-plan at the new tip has its tag push refused (tag-FAILED, abort). Nothing is deleted, but a re-run stays blocked on that ref until the old tag is retargeted or a per-sha tag name is adopted. Fix it in prune_refs.py with a failing fixture first (lease refusal, then re-plan at the moved tip) and a null control (an unmoved ref archives once)."
+   ],
+   "architect_note": "",
+   "resume": {
+    "stage": "not-started",
+    "branch": "handoff/r10-closeout-instruments",
+    "note": "split from R10-CLOSEOUT-CLEANUP by the s12 roster audit 2026-11-07"
+   },
+   "brief": "Instrument half of R10-CLOSEOUT-CLEANUP's remaining carries, split out by the s12 roster-completeness audit (2026-11-07) so that R10-ROUND-PLAYBOOK-FINAL and R10-ARCH-DOCS can follow every instrument change while R10-CLOSEOUT-CLEANUP keeps only the round's final --apply run, which follows them. Three defects in the closeout path, measured at origin/main: (1) tools/audit/seat/closeout.py roster_blockers returns every group roster_lib.open_groups returns other than itself, so --apply refuses while R10-CATALOG-PR is open, and R10-CATALOG-PR by owner ruling (tvofi 2026-10-29, 2026-11-07) starts only after the v10.0.0 stamp that follows the closeout run; it also refuses on every group in a disposition stage (refused, refuted, absorbed), which the roster keeps open by design, so the run can never pass. (2) step_issues refuses while any issue beyond the successor is open, and issue 2965 (the catalog) closes only after the catalog pull request. (3) worktree_gc.sh and prune_refs.py carry the defects in the carries below. Fix (1) and (2) at the source with one rule both read: a post-stamp group (by a roster field or a named list the instrument reads from the roster, never a literal in closeout.py) and its wired issues are exempt, and a group in a disposition stage whose host or ruling is closed is not a blocker. Failing test first for each: a fixture roster with only R10-CATALOG-PR open proceeds; one with a refused group proceeds; one with an ordinary not-started group still refuses (null control); a mutant that drops the exemption fails the first arm. Re-measure every figure at this group's merge base; carry no count. Mandated approval under 6329234399 as for R10-CLOSEOUT-CLEANUP."
   }
  ]
 }
