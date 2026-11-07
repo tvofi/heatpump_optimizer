@@ -1,0 +1,19 @@
+no_probe seed : buffer levels 41.0,43.0  rise inputs [(None, None), (None, None)]
+RESULT no_probe_seed=41.0,43.0
+RESULT no_probe_rise=None,None
+no_probe probe: buffer levels 36.5,36.5  rise inputs [(36.5, None), (36.5, None)]
+RESULT no_probe_probe=36.5,36.5
+no_probe empty: buffer levels 40.0,40.0  rise inputs [(None, None), (None, None)]
+RESULT no_probe_empty=40.0,40.0
+wood_seed seed : hp_tank_temp 41.0,43.0  wood_energy_kwh 23.2000  displacement 0.4444
+RESULT wood_seed_hp=41.0,43.0
+wood_seed probe: hp_tank_temp 38.0,38.0  wood_energy_kwh 29.0000  displacement 0.5312
+RESULT wood_seed_probe_hp=38.0,38.0
+wood_seed empty: hp_tank_temp 40.0,40.0  wood_energy_kwh 26.6800  displacement 0.5000
+RESULT wood_seed_empty_hp=40.0,40.0
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+solve valve=manual: solver buffer seeds 40.0,42.5,40.9,40.3  previous plan published a buffer trajectory [False, True, True, True]
+No forecast data returned for weather.home. Plans continue on the last forecast, marked stale.
+No weather forecast available — using current conditions. Predictive optimization will be limited.
+solve valve=none  : solver buffer seeds 40.0,40.0,40.0,40.0  previous plan published a buffer trajectory [False, False, False, False]

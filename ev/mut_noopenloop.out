@@ -1,0 +1,7 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT noopenloop rc=1 526s 4 of 4885 FEATURE CHECKS FAILED
+  FAIL D12-s1-01: with no tank probe the solver's DHW seed follows the previous plan, not the 55 degC default  [dhw seeds=[55.0, 55.0, 55.0, 55.0] prev-plan+1h=[52.29, 48.45, 52.13]]
+  FAIL R10-BUFFER-OPENLOOP: with no buffer probe the buffer level follows the previous plan's trajectory, not the 40 degC default  [buffer levels=[40.0, 40.0] (plan at covering steps 41.0, 43.0)]
+  FAIL R10-BUFFER-OPENLOOP: the open-loop DHW seed reaches the state but not the detector's rise input  [dhw levels=[55.0, 55.0] rise inputs=[None, None]]
+  FAIL R10-BUFFER-OPENLOOP (wood_seed): with no buffer probe the wood reference hp_tank_temp is the plan's seed, and wood energy and displacement follow it  [hp_tank_temp=[40.0, 40.0] outputs=(26.68, 0.5) expect(43)=(23.2, 0.444444) expect(40)=(26.68, 0.5)]

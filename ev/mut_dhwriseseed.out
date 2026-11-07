@@ -1,0 +1,5 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT dhwriseseed rc=1 527s 2 of 4885 FEATURE CHECKS FAILED
+  FAIL R10-BUFFER-OPENLOOP: the observation's rise inputs carry no seed: with no probe buffer_temp and dhw_temp are None while the state holds the seed  [rise inputs=[(None, 55.0), (None, 55.0)]]
+  FAIL R10-BUFFER-OPENLOOP: the open-loop DHW seed reaches the state but not the detector's rise input  [dhw levels=[51.0, 53.0] rise inputs=[51.0, 53.0]]

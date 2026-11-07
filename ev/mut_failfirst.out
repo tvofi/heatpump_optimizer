@@ -1,0 +1,5 @@
+FAILFIRST rc=1 443s 4 of 4885 FEATURE CHECKS FAILED
+  FAIL R10-BUFFER-OPENLOOP: with no buffer probe the buffer level follows the previous plan's trajectory, not the 40 degC default  [buffer levels=[40.0, 40.0] (plan at covering steps 41.0, 43.0)]
+  FAIL R10-BUFFER-OPENLOOP: the observation's rise inputs carry no seed: with no probe buffer_temp and dhw_temp are None while the state holds the seed  [rise inputs=[(40.0, 55.0), (40.0, 55.0)]]
+  FAIL R10-BUFFER-OPENLOOP: the open-loop DHW seed reaches the state but not the detector's rise input  [dhw levels=[51.0, 53.0] rise inputs=[51.0, 53.0]]
+  FAIL R10-BUFFER-OPENLOOP (wood_seed): with no buffer probe the wood reference hp_tank_temp is the plan's seed, and wood energy and displacement follow it  [hp_tank_temp=[40.0, 40.0] outputs=(26.68, 0.5) expect(43)=(23.2, 0.444444) expect(40)=(26.68, 0.5)]

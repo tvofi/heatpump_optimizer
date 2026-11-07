@@ -1,0 +1,6 @@
+ custom_components/heatpump_optimizer/coordinator.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+MUT predok rc=1 528s 3 of 4885 FEATURE CHECKS FAILED
+  FAIL D12-s1-01: a mapped tank probe still wins the seed (null control)  [dhw seeds=[55.0, 53.63, 47.09, 44.32]]
+  FAIL R10-BUFFER-OPENLOOP: a buffer probe reading ok wins over the plan (null control)  [buffer levels=[41.0, 43.0]]
+  FAIL R10-BUFFER-OPENLOOP (wood_seed): a buffer probe wins and the wood outputs follow the reading (null control)  [outputs=(23.2, 0.444444) expect=(29.0, 0.53125)]
