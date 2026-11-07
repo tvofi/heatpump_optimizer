@@ -1,58 +1,58 @@
 # Review packet #3269
-head: 37d64edf2f82f78288999663cee629842aabef88
-base: 80016a71f567d936450d8708abcbb79d9e8071d7
+head: 2fef6b26ac392e49366a8d4acb9b26f4a1162a7f
+base: a37c58e5f32123b4028e90983799dc2aa81816f8
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
-## Gate digest: green
-CodeQL id=128242257030 success
-arch-score / arch-score id=128255857915 success
-arm id=128241776786 skipped
-budget-raise-gate / budget-raise-gate id=128255857463 success
-cancel-superseded id=128255898483 success
-codeql id=128255892761 skipped
-codeql / Analyze (actions) id=128241936506 success
-codeql / Analyze (javascript-typescript) id=128241936413 success
-codeql / Analyze (python) id=128241936512 success
-gate id=128255856434 success
-governance id=128255881317 skipped
-governance / delivery-status id=128241936753 success
-governance / delivery-status-publish id=128241937663 skipped
-governance / env-matrix id=128241936503 success
-governance / instrument-self-tests id=128241936416 success
-governance / policy-docs id=128241937048 success
-governance / record id=128241937750 skipped
-governance / wave-script id=128241936498 success
-hassfest id=128255896382 skipped
-hassfest / hassfest id=128241936510 success
-kernel-points id=128255890474 skipped
-pr-contract id=128255894810 skipped
-pr-contract / pr-contract id=128255052574 success
-prelude id=128255857303 success
-refresh id=128255887137 success
-tests id=128255903394 skipped
-tests / arch-instrument id=128242140219 success
-tests / briefs id=128241936682 success
-tests / browser id=128242140121 success
-tests / ci-ratchet id=128252403340 skipped
-tests / claims-autofix id=128249887209 skipped
-tests / closure-scope id=128241936769 success
-tests / closures id=128242140342 success
-tests / closures-autofix id=128249091976 skipped
-tests / coverage id=128242139952 success
-tests / coverage-ratchet id=128252401308 success
-tests / fast (3.14) id=128242140184 success
-tests / graders-head-copy id=128252401202 success
-tests / lane-proofs id=128252706512 success
-tests / mutation id=128241936571 success
-tests / mutation-autofix id=128242269103 skipped
-tests / mutation-pins id=128242268981 skipped
-tests / nightly-ha id=128242141986 skipped
-tests / nightly-status id=128241936711 success
-tests / replay id=128242141683 skipped
-tests / typing id=128242139962 success
-validate id=128255894651 skipped
-validate / validate-hacs id=128241936442 success
+## Gate digest: red
+CodeQL id=128434912110 success
+arch-score / arch-score id=128465511022 success
+arm id=128434206078 skipped
+budget-raise-gate / budget-raise-gate id=128465542492 success
+cancel-superseded id=128465545674 success
+codeql id=128465537797 skipped
+codeql / Analyze (actions) id=128465545371 success
+codeql / Analyze (javascript-typescript) id=128465528182 success
+codeql / Analyze (python) id=128465536277 success
+gate id=128465510128 success
+governance id=128465537831 skipped
+governance / delivery-status id=128465505812 success
+governance / delivery-status-publish id=128465506012 skipped
+governance / env-matrix id=128465505752 success
+governance / instrument-self-tests id=128465541542 success
+governance / policy-docs id=128465505840 success
+governance / record id=128465531051 skipped
+governance / wave-script id=128465506060 success
+hassfest id=128465551109 skipped
+hassfest / hassfest id=128465506027 success
+kernel-points id=128465548060 skipped
+pr-contract id=128465538109 skipped
+pr-contract / pr-contract id=128465507613 failure
+prelude id=128465535346 success
+refresh id=128465541207 success
+tests id=128465510215 skipped
+tests / arch-instrument id=128465506742 success
+tests / briefs id=128465534470 success
+tests / browser id=128465506400 success
+tests / ci-ratchet id=128465507771 skipped
+tests / claims-autofix id=128465506932 skipped
+tests / closure-scope id=128465505784 success
+tests / closures id=128465506699 success
+tests / closures-autofix id=128465507366 skipped
+tests / coverage id=128465506057 success
+tests / coverage-ratchet id=128465506906 success
+tests / fast (3.14) id=128465506583 success
+tests / graders-head-copy id=128465506968 success
+tests / lane-proofs id=128465506951 success
+tests / mutation id=128465505758 success
+tests / mutation-autofix id=128465507022 skipped
+tests / mutation-pins id=128465506415 skipped
+tests / nightly-ha id=128465506797 skipped
+tests / nightly-status id=128465529651 failure
+tests / replay id=128465506713 skipped
+tests / typing id=128465506590 success
+validate id=128465542137 skipped
+validate / validate-hacs id=128465535659 success
 
 ## Refusals
 none
@@ -61,6 +61,7 @@ none
 none
 
 ## carry_audit at the head
+NOTE stale tree: 2fef6b26ac392e49366a8d4acb9b26f4a1162a7f lacks origin/main 4b5d771bdf8feb1f83d7d9443e5117b771a0ab76; roster read at origin/main
 NOTE body item 88a5bb7b: dismissed:one-off for this group, whose after-run is named under Forward-carry for the seat that lands it; a fixer may not write the roster branch to land it there
 CARRY-AUDIT: 1 finding item(s): 1 routed, 0 unrouted, 0 bad destination(s)
 
@@ -75,9 +76,9 @@ ok         gh api repos/tvofi/heatpump_optimizer/actions/jobs/<id>/logs
              `dev/audit/harnesses/drain_admission_probe.py` is in the tree at this head
   ok         python3 tests/structure.py
              `tests/structure.py` is in the tree at this head
-  ok         python3 tools/audit/archscore/score.py --diff 80016a71f567
+  ok         python3 tools/audit/archscore/score.py --diff a37c58e5f
              `tools/audit/archscore/score.py` is in the tree at this head
-  ok         python3 tests/closure.py select --diff 80016a71f567
+  ok         python3 tests/closure.py select --diff a37c58e5f
              `tests/closure.py` is in the tree at this head
   ok         tests/entities.py
              `tests/entities.py` is in the tree at this head
@@ -391,10 +392,10 @@ index 000000000..09fbeef93
 @@ -0,0 +1 @@
 +- [#3269](https://github.com/tvofi/heatpump_optimizer/pull/3269) — **open**, R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT: hotfix nightly pin throughput (R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT)
 diff --git a/tests/closures.json b/tests/closures.json
-index c71959796..b7082b69c 100644
+index 828aa5824..b843b346c 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3932,6 +3932,7 @@
+@@ -3933,6 +3933,7 @@
     "dev/audit/harnesses/d1_s3_02_queued_apply.py",
     "dev/audit/harnesses/d6_page_anchors.py",
     "dev/audit/harnesses/d907_kernel_band.py",
@@ -402,8 +403,8 @@ index c71959796..b7082b69c 100644
     "dev/audit/harnesses/draw_range_evidence.py",
     "dev/audit/harnesses/dual_path.py",
     "dev/audit/harnesses/early_cutoff_closed_loop.py",
-@@ -3950,6 +3951,7 @@
-    "dev/audit/harnesses/learner_inputs_swap.py",
+@@ -3952,6 +3953,7 @@
+    "dev/audit/harnesses/livehead_cancels.py",
     "dev/audit/harnesses/merge_subject_guard_block.mjs",
     "dev/audit/harnesses/mutant_guard.py",
 +   "dev/audit/harnesses/nightly_drain_breakdown.py",
@@ -411,10 +412,10 @@ index c71959796..b7082b69c 100644
     "dev/audit/harnesses/r10_2205_replay_cost_arms.py",
     "dev/audit/harnesses/r10_advisor_degree.py",
 diff --git a/tests/entities.py b/tests/entities.py
-index 1a257bf95..3378376a8 100644
+index 95a2f533a..a466e29ec 100644
 --- a/tests/entities.py
 +++ b/tests/entities.py
-@@ -35841,7 +35841,7 @@ R.check(
+@@ -36042,7 +36042,7 @@ R.check(
  # --drain (R9 F10.5): the pre-ratchet stock's path to a disposition. The slice
  # is whole anchors -- a split anchor spends runs on sites `pin_results` can
  # never pin -- reachable by a recorded closure, under the cap, fixed for one
@@ -423,7 +424,7 @@ index 1a257bf95..3378376a8 100644
  # than retrying the same survivors.
  _dp_site = lambda anchor, file, line: {  # noqa: E731
      "anchor": anchor, "file": file, "line": line, "kind": "CLAMP_DROP",
-@@ -36107,7 +36107,7 @@ R.check(
+@@ -36308,7 +36308,7 @@ R.check(
  )
  
  # Wired, against the YAML: the measuring job holds no write grant and runs the
@@ -432,7 +433,7 @@ index 1a257bf95..3378376a8 100644
  # `apply_drained` with the measured head's diff, checks the write set, pushes
  # only to main under the writer's subject, and is graded by `drain_report`.
  _ml_meas = _workflow_job(_NIGHTLY_YML, "mutation-ledger")
-@@ -36115,12 +36115,12 @@ _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
+@@ -36316,12 +36316,12 @@ _ml_push = _workflow_job(_NIGHTLY_YML, "mutation-ledger-push")
  _ML_MISSING = [w for w, job in (
      ('--scope full --drain "$out" --shard ${{ matrix.shard }}/4', _ml_meas),
      ("--max 80 --jobs 4", _ml_meas),
@@ -447,7 +448,7 @@ index 1a257bf95..3378376a8 100644
      ("github.event_name != 'push'", _ml_meas),
      ("needs.mutation-ledger.result == 'success'", _ml_push),
      ("m.apply_drained(pins, head, changed)", _ml_push),
-@@ -38407,7 +38407,7 @@ R.check(
+@@ -38608,7 +38608,7 @@ R.check(
  # pull request's pin step only to a base program that has the flag.
  _MUT_BW_MISSING = [(j, w) for j, w in (
      ("mutation-nightly", "--budget-minutes 270"),
@@ -456,7 +457,7 @@ index 1a257bf95..3378376a8 100644
      ("mutation-pins", "&& budget=(--budget-minutes 260)"),
      ("mutation-pins", '"${budget[@]}" "${shard[@]}" 2>&1 | tee "$RUNNER_TEMP/pin-run.txt"'),
      # The budget's ceilings, derived 2026-10-09 from the draw_range-class
-@@ -38736,6 +38736,56 @@ R.check(
+@@ -38937,6 +38937,56 @@ R.check(
      if _MUT_BG2_OUT else f"drive_pin_pool="
                           f"{'absent' if _mut_pin is None else 'present'}",
  )

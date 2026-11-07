@@ -1,3 +1,0 @@
-mutants 320; shared pairs 6028, reach-free 2234 (37%)
-admission charge 126.5 h, reach-free 15.4 h (12%)
-median charge per mutant: 22.9 min charged, 19.7 min without the reach-free pairs
