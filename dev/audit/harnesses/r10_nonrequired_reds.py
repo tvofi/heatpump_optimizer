@@ -45,9 +45,9 @@ def main() -> int:
     body = (ROOT / "tools/policy/fixtures/policy-rot/prepr/unnamed-red.md").read_text()
     # The fixture's section is the literal `none`; naming every red replaces it.
     # A fixture whose section moved stops here rather than measure a body naming none.
-    unanswered = "\n\nnone\n"
-    assert body.count(unanswered) == 1, "unnamed-red.md no longer answers `none` exactly once"
-    named = body.replace(unanswered, "\n\n" + "".join(f"- `{n}`: answered.\n" for n in CASES[3][2]))
+    unanswered = "## Red checks\n\nnone\n"
+    assert body.count(unanswered) == 1, "unnamed-red.md's `## Red checks` no longer reads `none`"
+    named = body.replace(unanswered, "## Red checks\n\n" + "".join(f"- `{n}`: answered.\n" for n in CASES[3][2]))
     # The base copy sits beside the head's, so its relative imports resolve.
     old = ROOT / "tools/policy" / f".base_policy_lint_{os.getpid()}.mjs"
     old.write_text(subprocess.run(["git", "show", f"{base}:tools/policy/policy_lint.mjs"], capture_output=True,
