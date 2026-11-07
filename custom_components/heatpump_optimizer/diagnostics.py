@@ -68,6 +68,7 @@ from homeassistant.const import CONF_NAME
 from homeassistant.core import HomeAssistant
 from homeassistant.util import dt as dt_util
 
+from . import heat_curve
 from . import accuracy, debugger, draw_range, early_cutoff, pump_arbiter, replay_doc
 from .const import CONF_COP_SCALE, CONF_TIBBER_TOKEN, DOMAIN, PRIVATE_ENTITY_ID
 from .drift import stored_age_seconds
@@ -433,6 +434,8 @@ async def async_get_config_entry_diagnostics(
                     },
                     **config_view(entry.data, entry.options),
                     "coordinator": snapshot,
+                    # The heat-curve entity arm and its off restore.
+                    "heat_curve": heat_curve.diagnostics(coord, coord.effective_config),
                     **_published_sections(coord, now),
                     "domain": DOMAIN,
                     # #1940: capped, so a week too large to inline is its summary.

@@ -391,7 +391,8 @@
       "min_power_above_max": "The heat pump's minimum power is above its maximum power.",
       "stored_value_out_of_range": "This value is outside the range this field normally accepts. The range was widened so the page can still be saved — check the value, and correct it if it looks wrong.",
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
-      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead."
+      "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "already_configured": "This integration is already set up.",
@@ -538,7 +539,7 @@
           "learning_features": "Advanced learning features",
           "grid_connection": "Fuse and peak guards",
           "grid_fees": "Transfer fees and contract",
-          "heat_curve": "Heat curve control (ECL110)",
+          "heat_curve": "Heat curve control",
           "factory_reset": "Reset to factory defaults"
         }
       },
@@ -912,8 +913,8 @@
         }
       },
       "heat_curve": {
-        "title": "Heat curve control (ECL110)",
-        "description": "For Danfoss ECL110 controllers driven over MQTT. The optimizer shifts the heat curve up in cheap hours and down in expensive ones. Leave these blank if you do not have one.",
+        "title": "Heat curve control",
+        "description": "Shifts the heat curve up in cheap hours and down in expensive ones, through a Danfoss ECL110 over MQTT, a number entity that offsets your controller's curve, or both. Leave the topics and the entity empty if you have neither.",
         "data": {
           "ecl110_displace_set_topic": "Offset command topic",
           "ecl110_command_topic": "Legacy JSON command topic",
@@ -923,6 +924,9 @@
           "ecl110_displace_min": "Largest downward offset",
           "ecl110_displace_max": "Largest upward offset",
           "ecl110_pid_time_constant_hours": "Controller response time",
+          "heat_curve_displace_entity": "Heat-curve offset entity",
+          "heat_curve_target_kind": "What the entity is",
+          "heat_curve_offset_band_k": "Largest offset written to the entity",
           "after_save": "After saving"
         },
         "data_description": {
@@ -934,6 +938,9 @@
           "ecl110_displace_min": "How far the heat curve may be shifted down during expensive hours.",
           "ecl110_displace_max": "How far the heat curve may be shifted up when storing cheap heat.",
           "ecl110_pid_time_constant_hours": "Roughly how long the controller takes to act on a new offset. Used so the optimizer does not ask for changes faster than the system can follow.",
+          "heat_curve_displace_entity": "A number entity that shifts your controller's whole heat curve, 0 meaning no shift, and that the controller forgets on a restart (for example a Luxtronik SHI heating offset). Never an absolute curve point or a stored parameter. Turning the optimizer off, or unloading it, writes 0.",
+          "heat_curve_target_kind": "Offset: a temperature difference, 0 neutral, not stored by the controller. The only kind in this version.",
+          "heat_curve_offset_band_k": "The offset written to the entity stays within this many kelvin either way. 3 K is an estimate between a +1 to +2 step SG-Ready boost and Luxtronik's own ±5 K correction.",
           "after_save": "Saving writes through immediately; this chooses where the dialog goes next."
         }
       },
@@ -1551,7 +1558,9 @@
       "flow_target_needs_two_zone": "\"Flow temperature\" derives from the two-zone building model's own flow curve, which this entry does not have configured. Configure the two-zone model first, or leave this at \"Indoor temperature\".",
       "flow_curve_needs_direct_plant": "Pricing the supply temperature lift is for a system with no mixing valve. With a valve the buffer tank's temperature already prices the lift, so this would count it twice. Set the valve to \"No mixing valve\" or turn this off.",
       "prefill_device_unreadable": "That device could not be read. Its integration has no mapping here yet, or none of its entities holds a value. Leave the device empty and name a Modbus package prefix instead.",
-      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above."
+      "dhw_windows_day_selector": "This field already names its day, so enter plain times only, e.g. 06:00-08:30. Day selectors like 'weekdays' belong in the ordinary windows field above.",
+      "heat_curve_not_offset": "That entity's own range does not include 0, so it is not an offset: it looks like an absolute curve point. Choose the controller's offset entity.",
+      "heat_curve_entity_in_use": "The heat-curve offset entity is already written by the optimizer for another purpose (a set-point, the valve, the compressor or the mode). Choose a different entity for one of them."
     },
     "abort": {
       "factory_reset_done": "Reset done. The integration has reloaded and is planning again. To undo the reset, run the Restore learned snapshot action.",
@@ -1692,6 +1701,11 @@
         "settings": "Settings",
         "learners": "Learned values",
         "both": "Settings and learned values"
+      }
+    },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Offset (0 is neutral, volatile)"
       }
     }
   },

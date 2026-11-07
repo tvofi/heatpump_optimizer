@@ -224,7 +224,9 @@ from . import battery as battery_view
 from . import comfort_band
 from . import draw_range
 from . import heat_energy
+from . import heat_curve
 from . import mixing_valve
+from . import off_restore
 from . import topology
 from . import pv as pv_model
 from . import presets
@@ -3134,89 +3136,6 @@ def _apply_unsolved_payload(data: Payload) -> None:
     )
 
 
-def _ecl110_legacy_payload(
-    reason: str,
-    heat_pump_on: bool,
-    displace_int: int,
-    current_action: CurrentAction,
-) -> Ecl110Payload:
-    """The legacy JSON command body, over the action passed in.
-
-    Takes ``current_action`` as a value rather than reading it off the
-    coordinator: a module-level helper handed ``self`` would keep every
-    reference it moved -- ``tests/structure.py`` walks only class methods
-    and matches ``self.<attr>``, so the seam metric would fall while the
-    coupling stood. Same rule as ``plan_step.plan_step_start`` and ``_liquid_fraction``.
-    """
-    return {
-        "source": DOMAIN,
-        "reason": reason,
-        "timestamp": dt_util.now().isoformat(),
-        "command": {
-            "type": "ecl110_control",
-            "heat_pump_on": bool(heat_pump_on),
-            "displace": displace_int,
-        },
-        "context": {
-            "price": current_action.get("price"),
-            "mode": current_action.get("mode"),
-            "pre_heat_urgency": current_action.get("pre_heat_urgency"),
-        },
-    }
-
-
-async def _publish_ecl110_topics(
-    hass: HomeAssistant,
-    set_topic: str | None,
-    command_topic: str | None,
-    qos: Any,
-    retain: Any,
-    displace_int: int,
-    legacy_payload: Ecl110Payload,
-) -> None:
-    """Write the displace command to whichever ECL110 topics are configured.
-
-    Each arm swallows its own MQTT failure, so a broken legacy topic never
-    suppresses the direct ``/set`` write that supersedes it.
-    """
-    if not set_topic and not command_topic:
-        return
-
-    # Preferred path: write plain numeric payload directly to /set topic.
-    if set_topic:
-        try:
-            await hass.services.async_call(
-                "mqtt",
-                "publish",
-                {
-                    "topic": set_topic,
-                    "payload": str(displace_int),
-                    "qos": int(qos),
-                    "retain": bool(retain),
-                },
-                blocking=True,
-            )
-        except Exception as err:
-            _LOGGER.error("Error publishing ECL110 direct displace MQTT command: %s", err)
-
-    # Backward compatibility path: optional legacy JSON command topic.
-    if command_topic:
-        try:
-            await hass.services.async_call(
-                "mqtt",
-                "publish",
-                {
-                    "topic": command_topic,
-                    "payload": json.dumps(legacy_payload),
-                    "qos": int(qos),
-                    "retain": bool(retain),
-                },
-                blocking=True,
-            )
-        except Exception as err:
-            _LOGGER.error("Error publishing ECL110 legacy MQTT command: %s", err)
-
-
 def _effective_house_heat_loss(
     params: ThermalParameters, scale: float
 ) -> float:
@@ -4039,10 +3958,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         """MQTT heat-curve control state."""
         ctx = getattr(self, "_ctx", self)
         self._ecl110_command_topic: str = ctx._config.ecl110_command_topic
-        self._ecl110_displace_set_topic: str = ctx._config.ecl110_displace_set_topic
         self._ecl110_state_topic: str = ctx._config.ecl110_state_topic
         self._ecl110_qos: int = ctx._config.ecl110_mqtt_qos
-        self._ecl110_retain: bool = ctx._config.ecl110_mqtt_retain
         self._ecl110_displace_min: float = ctx._config.ecl110_displace_min
         self._ecl110_displace_max: float = ctx._config.ecl110_displace_max
         self._ecl110_current_displace: float = 0.0
@@ -6513,6 +6430,8 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
             # #1935: the mode surface's settling tail — same plant-state
             # divergence the channel overlay's leaves behind.
             boost.note_mode_boost_ended(self)
+        if mode == MODE_OFF and self._mode != MODE_OFF:  # off restores (tvofi, 2026-11-07)
+            await off_restore.async_restore(self, self.hass, self.entry.entry_id, _ctx_of(self)._config, "mode_off")
         self._mode = mode
         if mode not in (MODE_AUTO, MODE_ECONOMY):
             # The plan stops being what runs, so its unmatured promises
@@ -7692,21 +7611,16 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         )
         displace_int = int(round(displace))
 
-        legacy_payload = _ecl110_legacy_payload(
+        legacy_payload = heat_curve.ecl110_legacy_payload(
             reason, heat_pump_on, displace_int, self._current_action
         )
 
         self._ecl110_last_payload = legacy_payload
         self._ecl110_current_displace = float(displace_int)
 
-        await _publish_ecl110_topics(
-            self.hass,
-            self._ecl110_displace_set_topic,
-            self._ecl110_command_topic,
-            self._ecl110_qos,
-            self._ecl110_retain,
-            displace_int,
-            legacy_payload,
+        await heat_curve.publish(
+            self, getattr(self, "_ctx", self)._config, displace_int, legacy_payload,
+            mode_off=self._mode == MODE_OFF,
         )
 
     async def async_publish_current_action(self, reason: str = "optimizer") -> None:

@@ -391,7 +391,8 @@
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
       "flow_target_needs_two_zone": "\"Framledningstemperatur\" beräknas från tvåzonsmodellens egen flödeskurva, som denna anläggning inte har konfigurerad. Konfigurera tvåzonsmodellen först, eller lämna detta på \"Inomhustemperatur\".",
-      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället."
+      "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
+      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem."
     },
     "abort": {
       "already_configured": "Den här integrationen är redan konfigurerad.",
@@ -538,7 +539,7 @@
           "learning_features": "Avancerade inlärningsfunktioner",
           "grid_connection": "Säkring och effekttak",
           "grid_fees": "Överföringsavgifter och avtal",
-          "heat_curve": "Värmekurvestyrning (ECL110)",
+          "heat_curve": "Värmekurvestyrning",
           "factory_reset": "Återställ till fabriksinställningar"
         }
       },
@@ -912,8 +913,8 @@
         }
       },
       "heat_curve": {
-        "title": "Värmekurvestyrning (ECL110)",
-        "description": "För Danfoss ECL110-regulatorer som styrs via MQTT. Optimeringen förskjuter värmekurvan uppåt under billiga timmar och nedåt under dyra. Lämna tomt om du inte har en sådan.",
+        "title": "Värmekurvestyrning",
+        "description": "Förskjuter värmekurvan uppåt under billiga timmar och nedåt under dyra, via en Danfoss ECL110 över MQTT, en nummerentitet som förskjuter styrningens kurva, eller båda. Lämna ämnena och entiteten tomma om du inte har någon av dem.",
         "data": {
           "ecl110_displace_set_topic": "Topic för förskjutningskommando",
           "ecl110_command_topic": "Äldre JSON-kommandotopic",
@@ -923,6 +924,9 @@
           "ecl110_displace_min": "Största nedåtförskjutning",
           "ecl110_displace_max": "Största uppåtförskjutning",
           "ecl110_pid_time_constant_hours": "Regulatorns svarstid",
+          "heat_curve_displace_entity": "Entitet för värmekurvans förskjutning",
+          "heat_curve_target_kind": "Vad entiteten är",
+          "heat_curve_offset_band_k": "Största förskjutning som skrivs till entiteten",
           "after_save": "Efter sparande"
         },
         "data_description": {
@@ -934,6 +938,9 @@
           "ecl110_displace_min": "Hur långt ned värmekurvan får förskjutas under dyra timmar.",
           "ecl110_displace_max": "Hur långt upp värmekurvan får förskjutas när billig värme lagras.",
           "ecl110_pid_time_constant_hours": "Ungefär hur lång tid regulatorn behöver för att verkställa en ny förskjutning. Används så att optimeringen inte begär snabbare ändringar än systemet hinner följa.",
+          "heat_curve_displace_entity": "En nummerentitet som förskjuter styrningens hela värmekurva, där 0 betyder ingen förskjutning, och som styrningen glömmer vid en omstart (till exempel en Luxtronik SHI-värmeförskjutning). Aldrig en absolut kurvpunkt eller en lagrad parameter. När optimeraren stängs av eller avlastas skrivs 0.",
+          "heat_curve_target_kind": "Förskjutning: en temperaturskillnad, 0 neutral, lagras inte av styrningen. Den enda typen i den här versionen.",
+          "heat_curve_offset_band_k": "Förskjutningen som skrivs till entiteten håller sig inom så här många kelvin åt båda hållen. 3 K är en uppskattning mellan en SG-Ready-höjning på +1 till +2 steg och Luxtronik egen korrigering på ±5 K.",
           "after_save": "Sparandet slår igenom direkt; detta val avgör vart dialogen går näst."
         }
       },
@@ -1551,7 +1558,9 @@
       "tibber_token_required": "En Tibber-token krävs när priskällan är Tibber.",
       "price_entity_required": "En prissensor krävs när priskällan är en entitet.",
       "prefill_device_unreadable": "Enheten kunde inte läsas. Dess integration har ingen mappning här ännu, eller så har ingen av dess entiteter något värde. Lämna enheten tom och ange ett prefix för ett Modbus-paket i stället.",
-      "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan."
+      "dhw_windows_day_selector": "Fältet namnger redan sin dag — skriv bara tider, t.ex. 06:00-08:30. Dagväljare som 'weekdays' hör hemma i fältet för de vanliga fönstren ovan.",
+      "heat_curve_not_offset": "Den entitetens eget intervall innehåller inte 0, så den är ingen förskjutning: den ser ut som en absolut kurvpunkt. Välj styrningens förskjutningsentitet.",
+      "heat_curve_entity_in_use": "Entiteten för värmekurvans förskjutning skrivs redan av optimeraren för ett annat syfte (ett börvärde, ventilen, kompressorn eller driftläget). Välj en annan entitet för en av dem."
     },
     "abort": {
       "factory_reset_done": "Återställningen är klar. Integrationen har laddats om och planerar igen. Kör åtgärden Återställ inlärd ögonblicksbild för att ångra återställningen.",
@@ -1692,6 +1701,11 @@
         "settings": "Inställningar",
         "learners": "Inlärda värden",
         "both": "Inställningar och inlärda värden"
+      }
+    },
+    "heat_curve_target_kind": {
+      "options": {
+        "offset": "Förskjutning (0 är neutral, flyktig)"
       }
     }
   },

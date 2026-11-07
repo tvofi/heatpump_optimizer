@@ -29,6 +29,7 @@ from .const import (
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_STATE_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
     CONF_FLOOR_RETURN_TEMP_ENTITY,
     CONF_LOWER_FLOOR_TEMP_ENTITY,
     CONF_COP_SCALE,
@@ -60,12 +61,13 @@ if TYPE_CHECKING:
 else:
     _SensorMixinBase = object
 
-#: The ECL110 MQTT topics: any one stored means the hardware is in use, the
-#: arm-off rule `_ecl110_topic` states for the publish and subscribe seams.
+#: The heat-curve outputs: any one stored means the displace is commanded --
+#: the ECL110 MQTT topics, or the heat-curve entity (R10-GENERIC-HEAT-CURVE).
 ECL110_TOPIC_SLOTS = (
     CONF_ECL110_DISPLACE_SET_TOPIC,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_STATE_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
 )
 
 # Coordinator-fed and read-only: the coordinator serialises the one inbound

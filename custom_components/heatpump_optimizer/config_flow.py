@@ -4,6 +4,7 @@ from __future__ import annotations
 import hashlib
 import logging
 from collections.abc import Awaitable, Callable, Iterable, Mapping
+from functools import partial
 from typing import TYPE_CHECKING, Any, Final, NamedTuple, Protocol, cast
 
 import aiohttp
@@ -88,6 +89,13 @@ from .const import (
     CONF_DHW_TEMP_ENTITY,
     CONF_ECL110_COMMAND_TOPIC,
     CONF_ECL110_DISPLACE_SET_TOPIC,
+    CONF_HEAT_CURVE_DISPLACE_ENTITY,
+    CONF_HEAT_CURVE_OFFSET_BAND_K,
+    CONF_HEAT_CURVE_TARGET_KIND,
+    DEFAULT_HEAT_CURVE_OFFSET_BAND_K,
+    DEFAULT_HEAT_CURVE_TARGET_KIND,
+    HEAT_CURVE_OFFSET_BAND_RANGE_K,
+    HEAT_CURVE_TARGET_KINDS,
     CONF_ECL110_STATE_TOPIC,
     CONF_ECL110_QOS,
     CONF_ECL110_RETAIN,
@@ -410,6 +418,7 @@ from .const import (
     DEFAULT_BUILDING_PRESET_ENABLED,
     DEFAULT_HEATED_AREA,
 )
+from . import heat_curve
 from . import (
     comfort_band,
     device_prefill,
@@ -1552,7 +1561,7 @@ _OPTION_PAGES: Final[tuple[_P, ...]] = (
     _P("learning_features", "Advanced learning features", _ADVANCED),
     _P("grid_connection", "Fuse and peak guards", _ADVANCED),
     _P("grid_fees", "Transfer fees and contract", _ADVANCED),
-    _P("heat_curve", "Heat curve control (ECL110)", _ADVANCED),
+    _P("heat_curve", "Heat curve control", _ADVANCED),
     # R10-FACTORY-RESET: an action behind a confirmation, not a settings page;
     # last, so no one meets it on the way to a setting.
     _P("factory_reset", "Reset to factory defaults", _ADVANCED),
@@ -1756,6 +1765,11 @@ _OPTION_FIELDS: Final[tuple[_F, ...]] = (
     _F("heat_curve", CONF_ECL110_DISPLACE_MIN, DEFAULT_ECL110_DISPLACE_MIN, _number(-30, 0, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_DISPLACE_MAX, DEFAULT_ECL110_DISPLACE_MAX, _number(0, 30, 0.5, '°C')),
     _F("heat_curve", CONF_ECL110_PID_TIME_CONSTANT, DEFAULT_ECL110_PID_TIME_CONSTANT, _number(0.25, 6.0, 0.25, 'h')),
+    # R10-GENERIC-HEAT-CURVE: the same displace through a number entity. Not
+    # climate: its target is absolute, and a whole-curve offset is a difference.
+    _F("heat_curve", CONF_HEAT_CURVE_DISPLACE_ENTITY, _STORED, _entity_of(['number', 'input_number'])),
+    _F("heat_curve", CONF_HEAT_CURVE_TARGET_KIND, DEFAULT_HEAT_CURVE_TARGET_KIND, _select(list(HEAT_CURVE_TARGET_KINDS), 'heat_curve_target_kind')),
+    _F("heat_curve", CONF_HEAT_CURVE_OFFSET_BAND_K, DEFAULT_HEAT_CURVE_OFFSET_BAND_K, _number(*HEAT_CURVE_OFFSET_BAND_RANGE_K, 0.5, 'K')),
     # -- building_preset
     _F("building_preset", "", _DYNAMIC, _questionnaire_fields, group="questionnaire"),
     _F("building_preset", CONF_BUILDING_PRESET_ENABLED, DEFAULT_BUILDING_PRESET_ENABLED, bool, group="derivation"),
@@ -2163,6 +2177,44 @@ def _prefill_offer_stored(hass: HomeAssistant) -> bool:
     )
 
 
+async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
+    """T2: an offset entity whose own range excludes 0 is no offset.
+
+    A plausibility check, not proof: an absolute curve point is caught only
+    where its integration declares a range without 0. An entity with no state
+    at save time is not judged here (ghc-r08); the arm refuses it at every
+    write by the same rule (``heat_curve.range_excludes_zero``).
+    """
+    entity_id = {**current, **submit}.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    state = hass.states.get(entity_id) if entity_id else None
+    if state is not None and heat_curve.range_excludes_zero(state):
+        return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}
+    return {}
+
+
+#: The entities the optimizer writes besides the heat-curve one (ghc-r03).
+_WRITTEN_ENTITY_KEYS = (
+    CONF_SPACE_SETPOINT_ENTITY,
+    CONF_DHW_SETPOINT_ENTITY,
+    CONF_MIXING_VALVE_WRITE_ENTITY,
+    CONF_COMPRESSOR_FREQ_ENTITY,
+    CONF_HEAT_PUMP_MODE_ENTITY,
+)
+
+
+def _written_entity_collision(merged: Mapping[str, Any]) -> dict[str, str]:
+    """The heat-curve entity may not be one the optimizer writes for another purpose.
+
+    Judged over the save merged onto the stored config, on every page that
+    saves either half (``_page``) and on the pre-fill save, so the refusal holds
+    whichever half was saved last (ghc-r03).
+    """
+    entity_id = merged.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
+    if entity_id and any(merged.get(key) == entity_id for key in _WRITTEN_ENTITY_KEYS):
+        return {"base": "heat_curve_entity_in_use"}
+    return {}
+
+
 def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str, str]:
     """The refusals of the pages the suggested keys live on, for this save.
 
@@ -2197,7 +2249,7 @@ def _prefill_errors(saved: dict[str, Any], current: dict[str, Any]) -> dict[str,
             _power_errors(saved, current) or _partload_errors(saved, current)
         ).values():
             errors["base"] = problem
-    return errors
+    return errors or _written_entity_collision({**current, **saved})
 
 
 def _omit_unstored_computed(
@@ -3221,6 +3273,7 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
             cleaned = _clear_absent(flat, step_id, merged) if clear else flat
             if check is not None:
                 errors = await check(cleaned, current)
+            errors = errors or _written_entity_collision(merged)
             if not errors:
                 return await self._save_or_menu(
                     finish(cleaned, merged) if finish is not None else cleaned
@@ -3641,8 +3694,8 @@ class HeatPumpOptimizerOptionsFlow(_StoredValuesAlwaysFit, config_entries.Option
     async def async_step_heat_curve(
         self, user_input: dict[str, Any] | None = None
     ) -> ConfigFlowResult:
-        """Danfoss ECL110 heat-curve offset control over MQTT."""
-        return await self._page("heat_curve", user_input)
+        """Heat-curve offset control: ECL110 over MQTT, or a number entity."""
+        return await self._page("heat_curve", user_input, clear=True, check=partial(_heat_curve_errors, self.hass))
 
     # ------------------------------------------------------------------
     # Option pages added in v2.8.0

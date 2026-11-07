@@ -98,8 +98,9 @@ Every picker on this second screen is optional; skip any you do not have. Withou
 | Pump online | none | Strongly recommended for a cloud-connected pump. On while the pump is actually reachable, which a stale cloud republish cannot tell you on its own. |
 | Fault alarm | none | On while the pump is reporting a fault. Only whether there is a fault is used, never the code itself. |
 
-The Danfoss ECL110 MQTT settings are not asked during setup. Eight questions
-only ECL110 owners can answer do not belong on everyone's first screen, so they
+The heat-curve settings (the Danfoss ECL110 MQTT topics and the offset entity)
+are not asked during setup. Questions only owners of such a controller can
+answer do not belong on everyone's first screen, so they
 live on their own options page, where both MQTT topics ship empty and nothing
 is published or subscribed until a topic is set (see [ecl110.md](ecl110.md));
 an install without an ECL110 never touches the topics.
@@ -355,7 +356,7 @@ control, described once here rather than twenty-three times below:
 | Advanced learning features | Outage recovery, weather/plant learners, curve learning |
 | Fuse and peak guards | Main fuse, the fuse cap, the live peak guard, the heat pump's silent mode |
 | Transfer fees and contract | DSO product, per-kWh fees, the fixed-contract comparison |
-| Heat curve control (ECL110) | MQTT topics and displace limits |
+| Heat curve control | MQTT topics, the offset entity and displace limits |
 | Reset to factory defaults | The settings, the learned values, or both, back to a fresh installation; undone by `restore_learned_snapshot` |
 
 ### Your system, as configured
@@ -986,9 +987,10 @@ reads SEK, that is a label, not a constraint.
 | Live fee sensor | none | a sensor | For grids with dynamic fees. Its value is added to every planned hour. |
 | Fixed contract price to compare | 0.0 per kWh | 0–10, 0.01 steps | If you could have a fixed-price contract, its price per kWh. The Cost Contract Comparison sensor then shows what this month would have cost on it. 0 leaves that column out. |
 
-### Heat curve control (ECL110)
+### Heat curve control
 
-For Danfoss ECL110 controllers driven over MQTT. The topics have no
+For Danfoss ECL110 controllers driven over MQTT, or any controller whose
+heat-curve offset Home Assistant exposes as a `number`. The topics have no
 shipped default: each is exactly what you store, an empty or absent topic
 leaves that arm off, and nothing is published or subscribed until a topic
 is set — an install without an ECL110 never touches these topics. See
@@ -1004,6 +1006,9 @@ is set — an install without an ECL110 never touches these topics. See
 | Largest downward offset | −20 °C | −30–0, 0.5 steps | How far the curve may be shifted down during expensive hours. |
 | Largest upward offset | 20 °C | 0–30, 0.5 steps | How far it may be shifted up when storing cheap heat. |
 | Controller response time | 1.5 h | 0.25–6.0, 0.25 steps | Roughly how long the controller takes to act on a new offset, so the optimizer does not ask for changes faster than the system can follow. |
+| Heat-curve offset entity | *(empty)* | a `number` or `input_number` | The same offset written to an entity instead of, or as well as, MQTT: a whole-curve offset, 0 neutral, that the controller forgets on a restart. Turning the optimizer off, or unloading it, writes 0. Refused when it is an entity the optimizer already writes, or when its own range excludes 0. |
+| What the entity is | Offset | Offset | The only kind in this version: a temperature difference, not stored by the controller. |
+| Largest offset written to the entity | 3 K | 0.5–5, 0.5 steps | The entity's offset stays within this many kelvin either way, whatever the MQTT range allows. 3 K is an estimate; see [ecl110.md](ecl110.md#without-mqtt-a-number-entity). |
 
 ### Reset to factory defaults
 
@@ -1290,4 +1295,4 @@ file under `.storage/` that holds the rows.
 - [../README.md#removal](../README.md#removal) — removing the integration: what deleting the entry does, and what it leaves behind
 - [how-it-works.md](how-it-works.md) — the mechanisms behind these settings
 - [dashboard-card.md](dashboard-card.md) — the card, its own configuration keys, and the Setup tab
-- [ecl110.md](ecl110.md) — the Danfoss ECL110 path in full
+- [ecl110.md](ecl110.md) — the heat-curve path in full: the Danfoss ECL110 over MQTT, and an offset `number` entity

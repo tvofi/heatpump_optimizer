@@ -474,6 +474,9 @@ DOMAINS: dict[str, dict[str, Domain | str]] = {
         "block_dhw/until": _AT, "block_space/until": _AT,
     },
     "notifier": {"sent/~": _TEXT, "sent/*": _TEXT},
+    # off_restore.py: each armed consumer and the baseline its restore writes,
+    # null for a consumer with a fixed neutral (the heat-curve offset: 0).
+    "off_restore": {"armed/~": _TEXT, "armed/*": Domain("real", null=True)},
     "away": {"active": _FLAG, "return_time": _AT0, "migrated_helpers": _FLAG},
     "pump_duty": {
         "written/mode/0": _TEXT, "written/dhw_setpoint/0": _R, "written/space_setpoint/0": _R,
