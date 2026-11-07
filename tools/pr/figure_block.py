@@ -203,6 +203,8 @@ def _scope(root: str, mb: str, workdir: str) -> int:
 
 
 def _self_test() -> int:
+    sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), "..", "..", "tests"))
+    from throwaway_git import throwaway_git_init
     results = []
 
     def check(name, ok):
@@ -220,7 +222,7 @@ def _self_test() -> int:
     try:
         def g(*a, cwd=tmp):
             subprocess.run(["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], cwd=cwd, check=True, capture_output=True)
-        g("init", "-q", "-b", "main")
+        throwaway_git_init(tmp, "-q", "-b", "main")
         os.makedirs(os.path.join(tmp, "tools/pr"))
         reg = {"instruments": {"mb": {"argv": ["git", "merge-base", "{base}", "{head}"], "files": []},
                                "bad": {"argv": ["false"], "files": []}}}

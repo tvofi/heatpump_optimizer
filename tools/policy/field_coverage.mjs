@@ -341,6 +341,7 @@ const DECLARED = {
   'pinned .claude/workflows/render_md.mjs': { none: PROSE },
   'pinned .claude/workflows/rules_sync.mjs': { none: 'byte-compares generated rules, no field to skip' },
   'pinned .claude/workflows/vendor/markdown-it.min.js': { none: 'a vendored parser, not a check' },
+  'pinned tools/pr/figure_block.py': { none: 'renders and verifies a body\'s figure blocks from tools/pr/figure_registry.json by running registered argv at the head; reads no structured field of a check input, graded by its own --self-test' },
   'pinned tools/policy/dependabot_contract.mjs': { none: 'reads a Dependabot PR\'s author, commit list and changed paths against the base\'s .github/dependabot.yml; graded by policy_lint\'s acceptance fixture (one arm, one refusing control per clause) and entities.py\'s YAML census, no arm here' },
   'pinned tests/coverage_ratchet.py': { none: 'reads the coverage budget file; residual, no arm here' },
   'pinned tests/structure.py': { none: 'the structural ratchet, graded by its own self-check; the census arm plants members in it' },
