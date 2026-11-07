@@ -1,0 +1,1 @@
+RESULT unrecorded why_now: False | wood_fuel: True | slots: True

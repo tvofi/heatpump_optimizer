@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/tmp/tmp.7kQs6ZzRMn/wt/dev/audit/harnesses/r10_demand_overbook.py", line 292, in <module>
+    print(json.dumps(run(args[1], dp=len(args) > 2)), flush=True)
+                     ~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.7kQs6ZzRMn/wt/dev/audit/harnesses/r10_demand_overbook.py", line 177, in run
+    row["dp_learned"] = _dp_reference(opt, state, window, res, t)
+                        ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/tmp/tmp.7kQs6ZzRMn/wt/dev/audit/harnesses/r10_demand_overbook.py", line 245, in _dp_reference
+    targets, floors, ceilings = opt._build_comfort_bounds(
+    ^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: too many values to unpack (expected 3, got 4)
+wt rc=1
