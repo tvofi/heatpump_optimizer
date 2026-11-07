@@ -1,9 +1,0 @@
-Traceback (most recent call last):
-  File "/tmp/h/ns_check.py", line 21, in <module>
-    "superseded": V(_ns_bad, _ns_newer, _ns_badjobs, _NS_NOW, in_flight_jobs=_ns_green),
-                  ~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/tmp/h/ns_check.py", line 19, in <lambda>
-    V = lambda *a, **k: _nstatus.verdict(*a, **k)[0]
-                        ~~~~~~~~~~~~~~~~^^^^^^^^^
-TypeError: verdict() got an unexpected keyword argument 'in_flight_jobs'
-rc=1
