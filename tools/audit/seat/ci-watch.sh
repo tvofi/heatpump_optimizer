@@ -227,6 +227,35 @@ EOF
   ck "W12 a gate that did not succeed (skipped; RATE-LIMITED is a failure) alerts RED: gate, never a pass" \
      "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
 
+  # W13-W15 (R10-HOTFIX-TRAIN-DEFER-WAIT): a red gate is re-read through
+  # merge_train's `classify` (Train.classify_at: gate.py's own `busy`), stubbed
+  # here by CI_WATCH_CLASSIFY printing $FIX/classify and exiting $FIX/classify-rc.
+  printf '#!/bin/bash\ncat "$FIX/classify" 2>/dev/null\nexit "$(cat "$FIX/classify-rc" 2>/dev/null || echo 2)"\n' > "$TMP/bin/classify"
+  chmod +x "$TMP/bin/classify"
+  cwatch() { PATH="$TMP/bin:$PATH" FIX="$1" CI_WATCH_STATE="$2" CI_WATCH_ONCE=1 CI_WATCH_CLASSIFY="$TMP/bin/classify" bash "$WATCH" 2>&1; }
+  F=$TMP/w13; gatefix "$F" deferring <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+tests / closures|in_progress||2026-11-07T16:11:23Z|2
+EOF
+  printf 'WAIT deferring pending: gate red: none\n' > "$F/classify"; echo 3 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s13"); rc=$?
+  ck "W13 an edit run's deferral red while its code run runs (classify WAIT, gate not red) is no RED alert" \
+     "$([ $rc = 0 ] && ! says 'RED' "$O" && echo 1 || echo 0)"
+  F=$TMP/w14; gatefix "$F" realred <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+EOF
+  printf 'RED realred pending: none red: gate\n' > "$F/classify"; echo 1 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s14"); rc=$?
+  ck "W14 null: a red gate classify reads RED still alerts RED: gate" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+  F=$TMP/w15; gatefix "$F" unread <<EOF
+gate|completed|failure|2026-11-07T16:05:20Z|1
+EOF
+  printf 'REFUSE ci: the check runs could not be read\n' > "$F/classify"; echo 2 > "$F/classify-rc"
+  O=$(cwatch "$F" "$TMP/s15"); rc=$?
+  ck "W15 a classify that refuses leaves the red standing: RED: gate" \
+     "$([ $rc = 1 ] && says 'RED: gate' "$O" && echo 1 || echo 0)"
+
   # The cadence (R10-FLY-CACHE-PROMPTS): under the seat's 5-minute prompt-cache
   # TTL, never under GitHub's 60 s poll floor.
   ck "the poll is inside [60 s, 240 s] (POLL_S=${POLL_S:-unset})" \
