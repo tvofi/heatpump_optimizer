@@ -182,3 +182,20 @@ Cost:
 
 Binding:
 - **Carry for R10-ROSTER-WRITE-SWEEP.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P409 at <roster sha>), hotfix tier (it stalls every roster-dependent dispatch): roster_edit.py refuses HEAD <sha> is on no origin ref from git for-each-ref --contains over the LOCAL refs/remotes/origin/ refs, which go stale (a) when a rival writer (carry_fold, a second drain) pushes the roster branch (2026-11-07 about 13:40Z: 48 queued ops stalled until a hand git fetch while HEAD 575dbfc9 was on origin) and (b) after its own <sha>:refs/heads/<branch> push (13:46Z: pushed c96a6f2d, then refused the next two ops at c96a6f2d). Before refusing, fetch the branch once and re-check; after a successful push, update-ref refs/remotes/origin/<branch> to the pushed head. Self-test arms (throwaway git): a rival push with a stale local tracking ref passes after the fetch; two ops in one run both land; null control: a real unpushed commit still refuses; a mutant dropping the fetch refuses the rival case.`
+
+## P410: roster drain mispair (queue line s12-roster-drain-mispair)
+
+Verdict: REJECT, as a roster change. The tracked beat row the line names as its fix already marks each op from its own report. The mispair is in the session-local `s9/sweep-runner/roster_drain.py`, which is outside the tree, so a roster carry cannot fix it. The countermeasure is operational: the session drains through the tracked `roster-drain` beat row (decision 0013: never a session-local loop) and retires the local script. That is the orchestrator's step, and this ruling sends it there.
+
+Source: the orchestrator's queue line of 2026-11-07, which extends s12-roster-drain-stale-tracking-ref.
+
+Instances:
+- **The session-local script.** `s9/sweep-runner/roster_drain.py` line 41 reads `for op, res in zip(pend, new):` (host-local). When an op writes no report line, or another writer's line lands, every later op takes the wrong result. That is the queue line's `append-group R10-GENERIC-HEAT-CURVE` marked done with `unwire-issue R10-FRICTION-RECORDS`'s note.
+- **The tracked beat row.** `tools/audit/seat/beat_jobs.py` `roster_drain` (line 301) writes one op to `roster-one.queue` and unlinks `roster-report.txt` before each call. It runs `roster_queue.py run 1 1` on that single op and reads the report it just wrote. One op per report cannot mispair.
+- **The rule on the instance.** Run through the beat row, the GENERIC-HEAT-CURVE op is marked from its own report, and the FRICTION-RECORDS note cannot reach it.
+
+Cost:
+- **The binding cost.** A carry to edit `beat_jobs.py` would re-implement what it already does. A carry to fix a host-local script lands nothing in the tree, and leaves the second drain loop that P409's rival-writer instance also came from.
+- **What would change this ruling:** a mispair measured from the beat row itself.
+
+Binding: no roster op. The orchestrator moves its drain onto the `roster-drain` beat row and retires `s9/sweep-runner/roster_drain.py`. Then it re-queues `append-group R10-GENERIC-HEAT-CURVE`, and every other op the local script marked done from another op's line: read back the roster for each.
