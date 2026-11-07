@@ -5433,6 +5433,8 @@ def _queue_self_test(check) -> None:
     check("P420 _outside: a branch maps to its group, a fork head through resume.pr; an internal group, "
           "an unrecorded pull request and no pull request are not outside",
           live420(ros420, *forks) == [True, True, False, False, False])
+    check("P420 _outside: a roster that cannot be read is internal, never outside",
+          live420(None, {"branch": "handoff/r10-out", "pr": 31}) == [False])
     check("P420 _outside null: a roster with no source field has no outside entry",
           live420({"groups": [{k: v for k, v in g.items() if k != "source"} for g in ros420["groups"]]}, *forks)
           == [False] * 5)
