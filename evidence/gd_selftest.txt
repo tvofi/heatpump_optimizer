@@ -1,0 +1,17 @@
+  base: 27 checks
+  ok   mutant idle-horizon killed
+  ok   mutant idle-prs killed
+  ok   mutant idle-refs killed
+  ok   mutant idle-fired killed
+  ok   mutant idle-cp-first killed
+  ok   mutant idle-cp-tag killed
+  ok   mutant late-threshold killed
+  ok   mutant late-direction killed
+  ok   mutant closure-threshold killed
+  ok   mutant ack-until killed
+  ok   mutant ack-defer killed
+  ok   mutant ack-key killed
+  ok   mutant accept-late killed
+  ok   mutant accept-closure killed
+  ok   mutant accept-silence killed
+gantt_drift self-test: 42 checks, 0 failed

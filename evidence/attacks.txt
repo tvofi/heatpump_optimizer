@@ -1,0 +1,24 @@
+head 09ec9a880383929c73fd1581c028d1d5b966fd4b, base 80016a71f567d936450d8708abcbb79d9e8071d7
+A. --since-tag on real first-parent history (replan.git_commits_since_tag / production_groups_since, head copy):
+   origin/main since v7.1.4: commits 8, nonempty custom_components diffs (git show) 0, subjects naming a roster group 0, since_tag []
+   v7.1.3..v7.1.4: commits 11, PR-code(show) 1, PR-code(diff ^1) 1, subjects naming a group 0
+   v7.1.2..v7.1.3: commits 61, PR-code(show) 1, PR-code(diff ^1) 14, subjects naming a group 0
+   v7.1.1..v7.1.2: commits 33, PR-code(show) 0, PR-code(diff ^1) 3, subjects naming a group 0
+   v7.1.0..v7.1.1: commits 108, PR-code(show) 1, PR-code(diff ^1) 16, subjects naming a group 0
+   cause: first-parent subjects are "Merge pull request #N from tvofi/fix/<topic>" (lower-case topic, never the group name);
+          `git show --format= -U0 <merge>` prints the combined diff, empty for a clean merge.
+B. stage-word live group (in-progress, M) with only refs {"design/w"}, evidence on: live True, design_only None, duration 1074 min
+   null: not-started + design/w: live False, design_only True, duration 1534 min  -> the live-stage design-only group keeps live credit
+C. since_tag=["Q1"] with Q1 still open: stamps [('patch', ['Q1','Q1','Q2']), ('round-close', ['Q3'])]; check_plan -> []
+D. base durations.json sizes_hours {'L': 31.1, 'M': 22.2, 'S': 18.2, 'XL': 31.1}; base replan.py already has --measure-sizes
+   (line 2041) through size_durations.py (p75, start = earliest of first commit / PR creation ..., MIN_CELL);
+   the head's self-test null builds rows (9,10,12,13.1,20) etc. whose p75 is the constant itself.
+E. gantt_drift word-boundary: live roster has 24 group-name prefix pairs (e.g. R10-STORE / R10-STORE-RACES);
+   is_named('R10-STORE', prs=[fix/r10-store-races]) = False at head; the surviving mutant (plain re.escape) = True.
+F. CI: gate 128226496049 (code run 42310285273) concluded failure: "FAIL codeql / Analyze (python): cancelled (this run)";
+   codeql / Analyze (python) 128209941747 cancelled 23:13:01 -> 23:58:07. Edit-run gate 128221323084 failure (deferral to 42310285273);
+   earlier gate 128215588422 (run 42310395855) failure. merge_train classify at 00:03:09Z: rc=1 RED pending: none red: gate.
+G. Clean: git merge-tree --write-tree origin/main head exits 0; structure.py STRUCTURE RATCHET PASSED; selftest_wiring 118/118 wired,
+   0 index gaps; plan_page self-test 66 checks 0 failed; replan --self-test 0 failed (also under -O); gantt_drift 42 checks 0 failed
+   (also under -O), 15 mutants killed (matches body); VERSION / manifest / RELEASE_NOTES.md not in diff; dev/programme/delivery/3264.md in diff;
+   roles/ unchanged base...main.
