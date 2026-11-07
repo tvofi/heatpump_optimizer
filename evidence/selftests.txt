@@ -1,0 +1,10 @@
+head beat_jobs: beat_jobs self-test: 146 checks, 0 failed
+head sweep_gantt: sweep_gantt self-test: 16 checks, 0 failed
+head verdict_audit: verdict_audit self-test: 14 checks, 0 failed
+head beatd: beatd self-test: 119 checks, 0 failed
+head sweep_render: sweep_render self-test: 34 checks, 0 failed
+head wiring: selftest_wiring: 0 index gap(s)
+base beat_jobs: beat_jobs self-test: 124 checks, 0 failed
+base beatd: beatd self-test: 119 checks, 0 failed
+base sweep_render: sweep_render self-test: 34 checks, 0 failed
+base wiring: selftest_wiring: 0 index gap(s)

@@ -1,7 +1,0 @@
-sweep_gantt self-test: 16 checks, 0 failed
-verdict_audit self-test: 14 checks, 0 failed
-roster_drain self-test: 9 checks, 0 failed
-sweep_runner self-test: 11 checks, 0 failed
-sweep_runner self-test: 11 checks, 0 failed
-selftest_wiring: 123 self-testing, 123 wired, 0 unwired
-selftest_wiring: 0 index gap(s)

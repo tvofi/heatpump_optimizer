@@ -1,0 +1,5 @@
+2026-11-07T05:22:14.8312445Z [command]/usr/bin/git submodule foreach --recursive sh -c "git config --local --name-only --get-regexp 'http\.https\:\/\/github\.com\/\.extraheader' && git config --local --unset-all 'http.https://github.com/.extraheader' || :"
+2026-11-07T05:22:14.8542446Z Removing includeIf entries pointing to credentials config files
+2026-11-07T05:22:14.8547328Z [command]/usr/bin/git config --local --name-only --get-regexp ^includeIf\.gitdir:
+2026-11-07T05:22:14.8574597Z [command]/usr/bin/git submodule foreach --recursive git config --local --show-origin --name-only --get-regexp remote.origin.url
+2026-11-07T05:22:14.8961491Z Cleaning up orphan processes

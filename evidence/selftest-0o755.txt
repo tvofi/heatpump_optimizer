@@ -1,1 +1,0 @@
-sweep_runner self-test: 11 checks, 0 failed

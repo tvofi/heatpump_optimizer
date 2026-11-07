@@ -1,0 +1,24 @@
+14a73c15e5 total 94 pages 1 red: 4
+    arch-score / arch-score cancelled 128324556485 2026-11-07T05:04:31Z 
+    gate failure 128312324401 2026-11-07T05:22:16Z 
+    gate cancelled 128308899754 2026-11-07T05:04:31Z 
+    arch-score / arch-score cancelled 128307712802 2026-11-07T05:04:31Z 
+61f1ec71a4 total 147 pages 2 red: 5
+    gate failure 128290983518 2026-11-07T03:45:12Z 
+    gate cancelled 128288757875 2026-11-07T03:34:58Z 
+    pr-contract / pr-contract cancelled 128288387497 2026-11-07T03:34:58Z 
+    gate failure 128285014276 2026-11-07T03:20:02Z 
+    gate failure 128279140047 2026-11-07T02:56:25Z 
+0ae78ac106 total 68 pages 1 red: 5
+    gate failure 128231841950 2026-11-07T00:14:36Z 
+    pr-contract / pr-contract failure 128231570697 2026-11-07T00:14:07Z 
+    gate failure 128221754844 2026-11-06T23:45:12Z 
+    gate failure 128220043119 2026-11-06T23:40:22Z 
+    CodeQL failure 128219897245 2026-11-06T23:39:28Z 1 new alert including 1 high severity security vulnerability
+aa680f8ba6 total 27 pages 1 red: 6
+    gate cancelled 128219559757 2026-11-06T23:38:28Z 
+    gate cancelled 128219558260 2026-11-06T23:38:27Z 
+    refresh cancelled 128219412787 2026-11-06T23:38:40Z 
+    prelude cancelled 128219412437 2026-11-06T23:38:27Z 
+    refresh cancelled 128219395325 2026-11-06T23:38:36Z 
+    prelude cancelled 128219395266 2026-11-06T23:38:27Z 
