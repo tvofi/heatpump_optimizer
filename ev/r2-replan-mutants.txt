@@ -1,0 +1,12 @@
+credit-lane-r2 rc= 1 KILLED ["FAIL cadence: a non-production done group in the tag range earns no credit: [{'version': 'v1.0.1', 'at': '2026-01-05T03:00:00Z', 'carries': ['R10-W', 'P1', 'P2'"]
+credit-done-r2 rc= 1 KILLED ["FAIL cadence: a credited group still open is counted once, in the plan: [{'version': 'v1.0.1', 'at': '2026-01-05T03:00:00Z', 'carries': ['Q1', 'Q1', 'Q2'], 'kin"]
+merge-topic-lastseg rc= 0 SURVIVED []
+merge-topic-lower rc= 0 SURVIVED []
+merge-re-anchor rc= 0 SURVIVED []
+squash-fallback-dropped rc= 1 KILLED ['FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: []']
+squash-longest rc= 0 SURVIVED []
+topic-only-no-subject-fallback-when-topic rc= 1 KILLED ['FAIL since-tag: a real-shaped merge subject names its group by the topic branch: []']
+since-prod-lane rc= 1 KILLED ["FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: ['R10-X', 'R10-Z', 'R10-W']"]
+since-substantive rc= 1 KILLED ["FAIL cadence: production groups since the tag, once each; comment-only and instrument groups do not count: ['R10-X', 'R10-Y', 'R10-Z']"]
+design-subtract ANCHOR 2
+first-parent-diff ANCHOR 2
