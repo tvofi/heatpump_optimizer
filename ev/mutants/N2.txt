@@ -1,0 +1,14 @@
+mutant N2: custom_components/heatpump_optimizer/notifier.py: '"saving_includes_wood": saving_includes_wood(data),' -> '"saving_includes_wood": True,'
+  python3 tests/entities.py: rc=1 last=["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
+      FAIL MonthlySavingsSensor states that a wood house's saving includes wood's heat, as the receipt event does; False without wood  [((True, True), (False, True), (False, True))]
+      FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['diagnose_interval__dup', 'set_thermal_parameters__dup', 'simulate_plan__dup']; missing=[]]
+      FAIL a8:deregister  [0 registered after unload; catalog 15; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimiza
+      FAIL a8:deregister  [16 registered after unload; catalog 15; extra=['leftover']; missing=[]]
+      FAIL a8:already_configured  [duplicate setup aborted as None]
+      FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  python3 tests/features.py: rc=1 last=['RuntimeWarning: Enable tracemalloc to get the object allocation traceback']
+      ok   an unresolvable recorded_at FAILS the ratchet, it is not merely noted (#361)
+      ok   the ratchet FAILS on an improvement instead of printing a note (#350)
+      FAIL the receipt event carries what the card states: no saving on the old basis, the percent unclipped, wood stated  [({'month': '2026-09', 'total_sek': 1.0, 'saving_sek': None, 'saving_pct': None, 'currency': 'SEK', 'saving_old_basis': True, 'saving_includes_wood': True}, {'month': '2026-09', 'to
+      ok   a pump command that FAILED is not remembered as done
+    1 of 4877 FEATURE CHECKS FAILED

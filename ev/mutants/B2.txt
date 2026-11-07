@@ -1,0 +1,10 @@
+mutant B2: blueprints/automation/notifications.yaml: 'data.saving_sek is not none and data.saving_includes_wood %}' -> 'data.saving_sek is not none %}'
+  python3 tests/entities.py: rc=1 last=["Accuracy store: ignoring non-list 'samples' field (str); the other learned fields are unaffected"]
+      FAIL The notifications blueprint's monthly receipt says a wood house's saving includes wood's heat, in the card's words, and says nothing without wood  [Heating and hot water cost {{ data.total_sek | round(0) }} {{ data.currency }}{% if data.saving_sek is not none %}, {{ data.saving_sek | round(0)
+      FAIL a8:register_once  [18 registered after two entries; catalog 15; extra=['apply_schedule__dup', 'set_away__dup', 'set_mode__dup']; missing=[]]
+      FAIL a8:deregister  [0 registered after unload; catalog 15; extra=[]; missing=['apply_manual_plan', 'apply_schedule', 'apply_topology', 'assign_entity', 'clear_manual_plan', 'debug_collect', 'diagnose_interval', 'factory_reset', 'reset_heat_loss_learners', 'restore_learned_snapshot', 'run_optimiza
+      FAIL a8:deregister  [16 registered after unload; catalog 15; extra=['leftover']; missing=[]]
+      FAIL a8:already_configured  [duplicate setup aborted as None]
+      FAIL a9:reload_loaded  [1 of 2 reload(s) loaded (need 5)]
+  /opt/hpo/venv-ha/bin/python dev/audit/harnesses/r10_sav_receipt_render.py: rc=1 last=["RESULT no-saving notes=0 want=0 ok message='Heating and hot water cost 812.0 SEK.'"]
+    RESULT no-wood notes=1 want=0 DEFECT message="Heating and hot water cost 812.0 SEK, 204.0 SEK (20.0 %) less than a plain thermostat would have. The saving includes heat from wood. Firewood's cost is not counted."
