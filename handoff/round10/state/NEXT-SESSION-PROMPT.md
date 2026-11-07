@@ -53,7 +53,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-PR-CONTRACT-OUTSIDE (stage absorbed): no branch pushed yet, so nothing to fetch
 - R10-TRAIN-MERGE-LOOP-2 (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-GATE-BUSY-DEFER (stage in-progress, branch `handoff/r10-gate-busy-defer-3`): `git fetch origin handoff/r10-gate-busy-defer-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
+- R10-HOTFIX-GATE-BUSY-DEFER (stage carries-open, branch `handoff/r10-gate-busy-defer-3`): `git fetch origin handoff/r10-gate-busy-defer-3 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-CODEQL-HEADROOM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage in-progress, branch `handoff/r10-combi-tank`): `git fetch origin handoff/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-OUTSIDE-INTAKE (stage in-progress): no branch pushed yet, so nothing to fetch
