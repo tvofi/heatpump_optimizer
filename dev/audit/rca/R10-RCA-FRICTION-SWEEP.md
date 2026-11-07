@@ -131,14 +131,17 @@ family working as designed, and it is recorded plainly: **in this window it
 adds no filing**, and it is the case the map exists for the day a window splits
 the obligation across words at 1 and 2 each.
 
-**(3) #2429, `ci-autofix.md`**: the wait is bounded (until `mutation-pins`
-concludes the body says `unmeasured`), and a body says `pinned` only when
-`--pin-killed` ran on this head. The file's cap
-(`dev/governance/config/policy_budgets.json`) had 3 tokens of headroom. The
-rule keeps "(kept until M-3)" (`ci.yml`, `tests.yml`, `merge-main.yml` and
-`HANDOVER.md` still say "until M-3") and "the reviewer re-checks it". The two
-new sentences were shortened, and the cap was still exceeded, so the paragraph
-about `linecache` artefacts in the failed-recording bullet is deleted: a policy
+**(3) #2429, `ci-autofix.md`**: the approved bound, verbatim as
+`R10-RCA-FRICTION-RESIDUE.md` section 7 drafted it: "If `mutation-pins` has not
+concluded by `tests / mutation`'s conclusion, the pin is owed by the handoff and
+the body says `unmeasured`", plus "`pinned` only if `--pin-killed` ran on this
+head". The wait ends at `tests / mutation`'s conclusion, and the pin is owed by
+the handoff. The file's cap (`dev/governance/config/policy_budgets.json`) had 3
+tokens of headroom. The rule keeps "(kept until M-3)" (`ci.yml`, `tests.yml`,
+`merge-main.yml` and `HANDOVER.md` still say "until M-3") and "the reviewer
+re-checks it". The paragraph about `linecache` artefacts in the failed-recording
+bullet is deleted to pay for the two approved sentences, which then fill the cap
+exactly (`node tools/policy/policy_lint.mjs --budgets` prints that row): a policy
 change the 2026-10-29 approval does not cover, named under `## Approval` in the
 body. Its action half ("fix it first") stays in the bullet above; the warning
 that an UNDER-SCOPED beside a failed recording may be an artefact is gone.
@@ -152,14 +155,20 @@ subtracted; with no derived list there is no row; the three root-cause words
 fold to 3. (ii) The wiring: `statsFindings` driven over synthetic merged PRs
 yields exactly one `verdict family` would-open for `other (untaught)` for three
 untaught words, exactly one for `mutation` for `mutation-unpinned`,
-`unpinned-site` and `mutation-survivors`, and none for a taught-only window.
+`unpinned-site` and `mutation-survivors`, none for a taught-only window, and
+no `friction family` would-open for three untaught friction rule ids on three
+PRs (the derived family is the verdict table's alone).
 (iii) `cmdStats` builds its table from the shared `derivedInput`. Mutants, each
 run with `node tools/policy/policy_lint.mjs` and restored byte for byte, the
 unmutated tree as the null control (rc 0): `statsFindings` passing `null`
 (killed), `cmdStats` passing no derived list (killed), `mutation-unpinned`
 dropped from the family (killed), all three spellings dropped (killed),
 `unpinned-site` and `mutation-survivors` dropped (killed), passing-verdict
-exclusion removed and `root-cause-unrecorded` removed (killed by (i)).
+exclusion removed and `root-cause-unrecorded` removed (killed by (i)), the
+derived family applied to the friction table too (killed by the friction-id row
+of (ii)). In `tools/pr/ci_predict.py --self-test`, `mutant_preds` selecting by
+`quoted & changed` instead of `(quoted | {rel}) & changed` (a diff touching only
+a driver would not run it) is killed by the driver-only row.
 
 ## 4b. #3156 (`ci-red`): not disposed by this group
 

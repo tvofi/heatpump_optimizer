@@ -6240,10 +6240,21 @@ function assertAcceptance(derived) {
       const mutWords = ['mutation-unpinned', 'unpinned-site', 'mutation-survivors']
       const mut = opens(mutWords, mutWords)
       const taughtOnly = opens(['harness', 'harness', 'other'])
+      // A friction-id row: three distinct untaught friction rule ids on three
+      // PRs. The derived family is the VERDICT table's; applied to friction
+      // ids it would file a spurious `other (untaught)` friction family.
+      const frictionWin = { prs: [], fetched: new Map() }
+      ;['zz-alpha', 'zz-beta', 'zz-gamma'].forEach((id, i) => {
+        const pr = String(7200 + i)
+        frictionWin.prs.push({ pr, subject: `x (#${pr})` })
+        frictionWin.fetched.set(pr, { body: `## Friction\n\n- \`${id}\`: \`cost\`: x.\n`, comments: [] })
+      })
+      const frictionFam = statsFindings({ ...frictionWin, fetchError: null, classes: ['merge', 'blocked'], blocks: ['harness', 'other', 'class-open'], passing: 'merge' })
+        .filter((f) => /would open .*\(family\)" -- friction family/.test(f.message))
       if (
-        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length
+        untaught.join('|') !== UNTAUGHT_FAMILY || mut.join('|') !== 'mutation' || taughtOnly.length || frictionFam.length
       ) {
-        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none)`)
+        console.log(`\nFIXTURE VACUOUS: statsFindings did not file the families end to end (3 untaught words on 3 PRs -> ${JSON.stringify(untaught)}, want one \`${UNTAUGHT_FAMILY}\`; mutation-unpinned + unpinned-site + mutation-survivors -> ${JSON.stringify(mut)}, want one \`mutation\`; a taught-only window -> ${JSON.stringify(taughtOnly)}, want none; 3 untaught friction ids -> ${frictionFam.length} friction-family would-open(s), want none)`)
         rc = 1
       }
     }
