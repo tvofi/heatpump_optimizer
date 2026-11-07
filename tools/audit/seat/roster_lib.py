@@ -580,7 +580,9 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
     normalized the same way: `fix/r9-fr-4` answers for `R9-FR-4` without the
     roster having to name every branch spelling a seat used. Equality, never
     a prefix -- `fix/r9-fr-1` must not answer for `R9-FR-10`. None for a
-    branch no group claims: the caller rows it in the neutral phrasing.
+    branch no group claims: the caller rows it in the neutral phrasing. A
+    phase branch `<group>-pN` (handoff/r10-x-p2) answers for its group when
+    no group is itself named `<group>-pN`.
     """
     if not branch:
         return None
@@ -592,6 +594,11 @@ def group_for_branch(roster: dict, branch: str) -> str | None:
         gid = norm_group(str(g.get("group") or ""))
         if gid and gid == tail:
             return g.get("group")
+    phase = re.sub(r"-p\d+\Z", "", tail)
+    if phase != tail:  # handoff/<group>-pN: a phase branch of the group
+        for g in roster.get("groups", []):
+            if norm_group(str(g.get("group") or "")) == phase:
+                return g.get("group")
     return None
 
 
@@ -816,6 +823,19 @@ def _self_test() -> int:
         # The critical-path set: read at a ref and normalized; None for every
         # failure shape, so a caller fails to FIFO rather than crashing.
         check("a group id normalizes case and underscore", norm_group("R10_A") == "r10-a")
+        # Phase branches (handoff/<group>-pN) answer for their group (carry 5).
+        rg = {"groups": [{"group": "R10-PH", "resume": {"branch": "handoff/other"}},
+                         {"group": "R10-PH-P2", "resume": {"branch": "handoff/x"}}]}
+        check("group_for_branch: handoff/<group>-p2 resolves to the group",
+              group_for_branch(rg, "handoff/r10-ph-p2") == "R10-PH-P2"
+              and group_for_branch({"groups": rg["groups"][:1]},
+                                   "handoff/r10-ph-p2") == "R10-PH")
+        check("group_for_branch: a phase branch of no group is None (null control)",
+              group_for_branch(rg, "handoff/r10-zz-p2") is None
+              and group_for_branch(rg, "handoff/r10-ph-px") is None)
+        check("group_for_branch: -p2 never answers a longer id by prefix",
+              group_for_branch({"groups": [{"group": "R10-PH-1"}]},
+                               "handoff/r10-ph-p2") is None)
         check("no critical-path file at a ref is None",
               critical_path_groups(str(repo), "HEAD") is None)
         check("critical_path_read: a ref publishing no file is (set(), ''), a "

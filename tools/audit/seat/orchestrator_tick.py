@@ -1008,6 +1008,21 @@ class Tick:
             self.unreadable(S, "bus dispatch record (REVIEW OWED)", str(e)[:100])
             return None
 
+    def last_opening(self, S: str) -> "float | None":
+        """Epoch of the newest pull request opened from a fix/ or handoff/ branch, any state
+        (the arrival key of `ledger.escalate`); None, reported, when the listing is unreadable."""
+        code, o = self.gh(["pr", "list", "--repo", self.repo, "--state", "all", "--limit", "30",
+                           "--json", "headRefName,createdAt"])
+        try:
+            if code:
+                raise ValueError(o.strip()[-100:])
+            ts = [datetime.datetime.fromisoformat(p["createdAt"].replace("Z", "+00:00")).timestamp()
+                  for p in json.loads(o) if p["headRefName"].startswith(("fix/", "handoff/"))]
+        except (ValueError, KeyError, TypeError) as e:
+            self.unreadable(S, "newest pull-request opening (handoff aging keys on age alone)", str(e)[:100])
+            return None
+        return max(ts) if ts else None
+
     def relay_owed(self, S: str) -> None:
         """`OWED: <line>` every pass for what the obligations ledger holds open
         (`ledger.py`, the one schema; R10-ORCH-LEDGER). The relay's DERIVED
@@ -1051,8 +1066,9 @@ class Tick:
                 read.append(self._roster(S, announce=False) if hasattr(self, "_roster") else (None, None))
             rl, rost = read[0]
             return rl.group_for_branch(rost, f"handoff/{t}") if rl else None
+        last_open = self.last_opening(S) if aging and any(" handoff-no-pr " in r for r in level) else None
         for text in lg.escalate(level, getattr(self, "now", None) or datetime.datetime.now(datetime.timezone.utc),
-                                aging, group_of):
+                                aging, group_of, last_open):
             self.line(S, text, flag=True)
         home = Path(self.relay_log).parent
         try:
@@ -4505,7 +4521,7 @@ def self_test() -> int:
         seq = iter(range(1000))
 
         def owed_lines(text=None, level=None, events=None, live=None, readback=None, aging=None,
-                       roster_groups=None):
+                       roster_groups=None, gh_extra=None):
             home = tmp / f"ledger{next(seq)}"
             home.mkdir()
             lg = home / "cloud-relay.log"
@@ -4523,7 +4539,7 @@ def self_test() -> int:
             if aging is not None:
                 os.environ["HPO_LEDGER_AGING"] = aging
             try:
-                t = tick(relay_log=str(lg), roster=str(rf) if rf else None)
+                t = tick(relay_log=str(lg), roster=str(rf) if rf else None, gh_extra=gh_extra)
                 t._live, t._readback = live, readback
                 t.relay_owed("PRS")
             finally:
@@ -4567,6 +4583,13 @@ def self_test() -> int:
                f"OWED 2026-10-12T17:00:00Z handoff-no-pr refs/heads/handoff/r10-new {'c' * 40} ct={ct2}\n")
         grp = [{"group": "R10-OLD", "resume": {"stage": "in-progress"}}]
         aged, _ = owed_lines(None, agl, roster_groups=grp)
+        ct10 = int((NOW - datetime.timedelta(hours=10)).timestamp())
+        opened = json.dumps([{"headRefName": "fix/other", "createdAt": datetime.datetime.fromtimestamp(
+            ct10, datetime.timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")}, {"headRefName": "dependabot/x", "createdAt": "2099-01-01T00:00:00Z"}])
+        agl4 = agl.replace(f"ct={ct2}", f"ct={ct2 - 3 * 3600}")  # r10-new: committed 5 h ago, after the opening
+        arrivals, _ = owed_lines(None, agl4, roster_groups=grp,
+                                 gh_extra=[(("pr", "list", "--state", "all"), 0, opened)])
+        no_listing, _ = owed_lines(None, agl4, roster_groups=grp, gh_extra=[(("pr", "list", "--state", "all"), 1, "boom")])
         aged_off, _ = owed_lines(None, agl, aging="off", roster_groups=grp)
         aged_bad, _ = owed_lines(None, agl, aging="4", roster_groups=grp)
         a, f = check("relay OWED", [
@@ -4594,6 +4617,12 @@ def self_test() -> int:
              any("UNREADABLE: obligations ledger" in x for x in flagged(unread_ev))),
             ("no store and no log yet is no OWED and no flag",
              not any(l["flag"] for l in none) and any("obligations ledger: none yet" in l["text"] for l in none)),
+            ("aging keys on arrivals after the newest fix/ or handoff/ opening: the 30 h backlog tip is silent, "
+             "the 5 h arrival escalates (carry 2)",
+             [x.split()[2] for x in flagged(arrivals) if x.startswith("DISPATCH")] == ["refs/heads/handoff/r10-new"]),
+            ("null control: an unreadable opening listing is UNREADABLE and keys on age alone, flagging the backlog",
+             any("UNREADABLE: newest pull-request opening" in x for x in flagged(no_listing))
+             and any("handoff/r10-old" in x for x in flagged(no_listing) if x.startswith("DISPATCH"))),
             ("a stranded handoff past 4 h is a DISPATCH line naming its group and opener, oldest first",
              [x.split(" (")[0] for x in flagged(aged) if x.startswith("DISPATCH")]
              == [f"DISPATCH: R10-OLD refs/heads/handoff/r10-old {'c' * 12} opener"]),
