@@ -17602,7 +17602,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "From #3266 (r10-hotfix-codeql-headroom), body item 6e003ed3: The premise fails: per-statement wrapping of module-scope `try` slows `features.py`'s CodeQL extraction and query evaluation, and the python job no longer fits its cap. The group's design has to change before any fix lands, and only `entities.py`'s half measured a gain. Carry: R10-HOTFIX-CODEQL-HEADROOM (items 6e003ed3)"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
