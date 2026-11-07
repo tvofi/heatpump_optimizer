@@ -8010,7 +8010,7 @@ R.check(
 from heatpump_optimizer.accuracy import MeasuredCop as _CopRecord  # noqa: E402
 
 
-from heatpump_optimizer import coordinator as _cg_coord_mod  # noqa: E402
+from heatpump_optimizer.thermal_model import InstallCapability as _cg_cap  # noqa: E402
 
 
 class _CopGate:
@@ -8024,12 +8024,12 @@ class _CopGate:
     def _learn_measured_cop(self, draw=None):
         if not self.as_measured:
             return Coord._learn_measured_cop(self, draw)
-        saved = _cg_coord_mod._cop_sample_measured
-        _cg_coord_mod._cop_sample_measured = lambda coord, heat_kw, dhw: True
+        saved = _cg_cap.cop_sample
+        _cg_cap.cop_sample = lambda cap, heat_kw, dhw: True
         try:
             return Coord._learn_measured_cop(self, draw)
         finally:
-            _cg_coord_mod._cop_sample_measured = saved
+            _cg_cap.cop_sample = saved
 
     _fold_measured_cop = Coord._fold_measured_cop
     _fold_cop_evidence = Coord._fold_cop_evidence
