@@ -669,13 +669,26 @@ def selftest_model() -> int:
     h, why = group_hours(grp("T", "L", stage="carries-open", carry=["c"] * 9), M, False, "fx")
     expect("the same carries with none marked plan two parts as before (null control)",
            h == 40.0 and "left out" not in why, f"{h} {why}")
-    h1 = ["c"] * 8 + [marked(8)] * 3 + ["c"] * 3
+    h1 = ["c"] * 9 + [marked(9)] * 3 + ["c"] * 2
     h, why = group_hours(grp("H1", "L", stage="carries-open", carry=h1), M, False, "fx")
     expect("a measured held group counts only the unmarked carries appended since: 1 + 3 -> one part",
            h == 20.0 and "3 appended since" in why, f"{h} {why}")
     h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8), M, False, "fx")
     expect("a measured held group whose carries were all marked since plans zero, not one part",
            h == 0.0 and "0 open carries at measurement" in why, f"{h} {why}")
+    h, why = group_hours(grp("H1", "L", stage="carries-open", carry=[marked(0)] * 8 + ["c"]),
+                         M, False, "fx")
+    expect("the measured open count never exceeds the carries then held still pending: 0 + 1",
+           h == 20.0 and "0 open carries at measurement + 1 appended since" in why, f"{h} {why}")
+    m5 = dict(M, held_open_carries={"H5": {"open": 5, "carries": 8}})
+    h, why = group_hours(grp("H5", "L", stage="carries-open", carry=["c"] + [marked(0)] * 7),
+                         m5, False, "fx")
+    expect("five open at measurement, seven of the eight since marked: one open carry",
+           h == 20.0 and why.startswith("1 open carries at measurement:"), f"{h} {why}")
+    h, why = group_hours(grp("P", "S", carry=["x"] + [marked(0)] * 3),
+                         dict(M, carry_baseline={}), False, "fx")
+    expect("a size with no carry baseline prices every unmarked carry as absorbed: 18 + 4 h",
+           h == 22.0 and "+ 1 absorbed carries, 3 marked carries left out" in why, f"{h} {why}")
     h, why = group_hours(grp("P", "S", carry=["x"] * 2 + [marked(0)] * 3), M, False, "fx")
     expect("marked carries are not absorbed work: 2 unmarked at the S baseline plan 18 h",
            h == 18.0 and "absorbed" not in why, f"{h} {why}")
