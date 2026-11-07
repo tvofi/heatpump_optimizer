@@ -35,8 +35,8 @@ Fold 6 and 7 (darwin task-port, wrapper copies): built as one platform rule, `_h
 
 ## Forward-carry
 
-- Carry 4 (cost: the two base-red checks in a cloud seat) does not reproduce. `tests/entities.py` reads `ALL 2645 ENTITY CHECKS PASSED` at the merge base in this seat, the control being that same run. Carry: R10-FLY-SUITE-ENV-FLAKES | dismissed: not reproducible at the merge base in this seat
-- Carry 8 (heartbeat respawn) is left open. The nightly history shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; only 11-05 (run 41943946464) was read: both `nightly-ha` jobs succeeded and the `slow` replay step failed, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-FLY-SUITE-ENV-FLAKES
+- Carry 4 (cost: the two base-red checks in a cloud seat) does not reproduce. `tests/entities.py` reads `ALL 2645 ENTITY CHECKS PASSED` at the merge base in this seat, the control being that same run. Carry: R10-SUITE-HOST-DETERMINISM | dismissed: not reproducible at the merge base in this seat
+- Carry 8 (heartbeat respawn) is left open. The nightly history shows failures after the stdlib-sampler fix on 2026-11-03, 11-04 and 11-05; only 11-05 (run 41943946464) was read: both `nightly-ha` jobs succeeded and the `slow` replay step failed, so not `hb:positive_control`. The 11-03 and 11-04 runs and the pre-fix null count were not read. Carry: R10-SUITE-HOST-DETERMINISM
 
 ## Friction
 
