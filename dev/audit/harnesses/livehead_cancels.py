@@ -57,10 +57,15 @@ CAP = 1000  # GitHub's ceiling on a filtered runs listing, reached silently
 
 
 def gh(path: str) -> object:
-    p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
-    if p.returncode:
-        raise SystemExit(f"gh api {path}: exit {p.returncode}: {p.stderr.strip()[:200]}")
-    return json.loads(p.stdout)
+    """One read; a 5xx answer is retried after 2, 4 and 8 s, any other failure stops the fetch."""
+    for wait in (2, 4, 8, None):
+        p = subprocess.run(["gh", "api", path], capture_output=True, text=True)
+        if p.returncode == 0:
+            return json.loads(p.stdout)
+        if wait is None or "(HTTP 5" not in p.stderr:
+            break
+        time.sleep(wait)
+    raise SystemExit(f"gh api {path}: exit {p.returncode}: {p.stderr.strip()[:200]}")
 
 
 def kind(title: str) -> str:
