@@ -11,7 +11,20 @@ the null control: both ends owe nothing.
 """
 import argparse, os, pathlib, re, subprocess, tempfile
 
-ROOT = pathlib.Path(__file__).resolve().parents[3]
+def repo_root(start):
+    """The directory holding custom_components/heatpump_optimizer/manifest.json."""
+    from pathlib import Path
+    here = Path(start).resolve()
+    if here.is_file():
+        here = here.parent
+    marker = Path("custom_components") / "heatpump_optimizer" / "manifest.json"
+    for cand in (here, *here.parents):
+        if (cand / marker).is_file():
+            return cand
+    raise RuntimeError(f"no repository root above {start}")
+
+
+ROOT = repo_root(__file__)
 CASES = [("A reporter red, reporter input touched", "unnamed", ["tests / nightly-status"]),
          ("B required unit red", "unnamed", ["tests / typing"]),
          ("C non-required red", "unnamed", ["docs / links"]),
