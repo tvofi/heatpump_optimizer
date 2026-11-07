@@ -73,3 +73,46 @@ Binding:
 - **Carry for R10-BODY-CONTRACT.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P406 at <roster sha>), audit-class barrier (red-checks retake class, 7 instances on 2026-11-07), savings estimate 3 to 15 h: policy_lint.mjs voids the main-graded exemption for both MAIN_STATE_REPORTERS when the diff touches any path in one shared REPORTER_INPUTS set, so a diff touching only .github/workflows/governance.yml owes tests / nightly-status, a tests.yml job that runs the base-pinned tests/nightly_status.py and that no governance.yml path can redden (PR 3264, PR 3267, PR 3294, PR 3275 refused on 11-07). Key REPORTER_INPUTS per reporter: nightly-status voided by ci.yml, tests.yml, nightly.yml; delivery-status by ci.yml, governance.yml, tests/delivery_status.py, the plan and handover files and the base delivery rows as today; keep the set read from the base copy. Acceptance arms in the existing table: a governance.yml-only diff owes delivery-status and not nightly-status; a tests.yml diff owes nightly-status; null control: tests/nightly_status.py alone and the existing arms unchanged; one mutant merging the sets back fails the first arm. review_packet.py delegates (P282), so it needs no edit; no known-cause registry, no relay re-take of Red checks.`
 - **Cause C.** #3252's codescan_wait fail-closed goes to R10-HOTFIX-GATE-BUSY-DEFER as an instance, through the orchestrator. No carry is ruled here: whether a deferral or timeout should redden `gate` is that group's open question.
 - **The audit class is answered by this barrier together with R10-HOTFIX-SELFTEST-TIMEOUT.** Once both have merged, a repeat of cause A or B is an instance of a barriered class.
+
+## P407: CLOSEOUT-CLEANUP carry 2 discharge (queue line s12-closeout-cleanup-carry2)
+
+Verdict: ACCEPT. Carry 2 of R10-CLOSEOUT-CLEANUP is implemented: its code at `9f7487299` (2026-11-01), merged into main by PR 3085 at `6125b263d94e7ea8c43d31eb483869f8d8c83019`. What remains of it is the group's own `--apply` run, which is the brief's step 2 and carry 1's last act. That run is not this carry's code. The mark lands only by re-appending the carry with this citation, because the gate judges the whole marked text, and carry 2 names `Triage P-A` with no citation.
+
+Source: the orchestrator's queue line of 2026-11-07T17:09:55Z (the mark `implemented 6125b263d` was refused as proposal-sourced and uncited), and the slip study's finding that the carry was built at `9f7487299`.
+
+Instances:
+- **The carry.** It is carry [2] (0-based) of R10-CLOSEOUT-CLEANUP at roster `3069eaa49`, `Folded from R10-FLY-PRUNE-REFS ...`. It holds R10-FLY-PRUNE-REFS's brief and its carries 0 to 4.
+- **The two shas.**
+  - `git merge-base --is-ancestor 9f7487299 6125b263d` succeeds, and both are on origin/main.
+  - `9f7487299` (`prune_refs: batched git-push arm, keep guards, --topic`) touches only `tools/audit/seat/prune_refs.py`, with 443 insertions.
+  - `6125b263d` is the merge of PR 3085, which the group's `resume.commit` names.
+- **Each item, read in `git show 6125b263d:tools/audit/seat/prune_refs.py`:**
+  - **Carry (i), the batched push arm:**
+    - `apply_plan_push` pushes tags first as `<sha>:refs/tags/<tag>` in `PUSH_CHUNK` chunks, then reads them back, then deletes in the same chunks, and aborts on the first refusal. Each delete chunk is `--atomic`.
+    - Self-test: `0 gh calls in the push arm (the gh stub fails on any call)`.
+    - Null control: `the gh-api arm makes 2N writes (and N reads) for N unmoved refs`.
+  - **Carry (ii), the keeps:**
+    - `classify` returns `KEEP_SESSION` for `claude/*`, and `KEEP_DESIGN` for a `design/` or `design-verdict/` ref of a group that `--roster-file` records not done.
+    - It returns `KEEP_YOUNG` for a tip younger than `YOUNG_TIP_S = 6 * 3600`, a `dispatch/*` tip younger than `YOUNG_DISPATCH_S = 24 * 3600`, or an unreadable age.
+    - Self-test: `a claude/* ref with a main-reachable tip is kept`, `a design-verdict/ ref of a not-done group is kept`, and `null: a dispatch/* tip of 25 h is deleted`.
+  - **P-A cleanup, the residue that nothing deleted.** `dispatch/*` and `brief/*` refs now fall to `DELETE_MERGED` or the residue rules, which delete by default (`--keep-residue` keeps), behind the 24 h guard that carry (ii) presumed.
+  - **Carries 3 and 4, the audit-output refs.** These are operational: dispose or prune them. On origin there are still 1 `handoff/audit-r10-find-B*`, 910 `dispatch/*` and 1 `brief/*` refs (`git ls-remote origin 'refs/heads/<family>*' | wc -l`). They are exactly what the brief's step-2 `--apply` run archives and deletes with this instrument, so no further code is owed.
+- **The self-test.** `python3 tools/audit/seat/prune_refs.py --self-test` over `git archive 6125b263d tools tests` prints `SELF-TEST PASS (74 checks)`.
+- **Why the mark was refused.**
+  - `roster_edit.py` `op_mark_carry` appends ` [implemented: <sha>]`, and `added_texts` then sees a carry entry the base did not hold.
+  - `triage_refusal` finds `PROPOSAL_RE` (`\b(?:triage|proposal)\s+P(?:\d+|-[A-Q])\b`, any case) in the carry's own words `Triage P-A cleanup`, and no `triage:` citation.
+  - The mark's value cannot carry a citation, because `SHA_RE` is `\A[0-9a-f]{7,40}\Z`. No op edits a carry in place.
+- **The rule on the instance.** Drop the carry by `--match`, re-append the same text with this ruling's citation, and mark the re-appended entry `implemented` by `--match`. This was simulated through `added_texts` and `triage_refusal` against this file:
+  - the bare mark is refused;
+  - the re-append is accepted;
+  - the mark of the cited entry is accepted;
+  - the null control, the same citation with the verdict flipped to REJECT, is refused.
+
+Cost: three roster ops and no code. The drop moves carries [3] to [8] down by one, so any pending index-addressed op on the group must use `--match`. No capped file is touched.
+
+Binding:
+- Roster ops for R10-CLOSEOUT-CLEANUP, in order. Every op addresses the carry by `--match`, never by index:
+  1. `drop-carry --match 'Folded from R10-FLY-PRUNE-REFS'`.
+  2. `append-carry` with the dropped text verbatim, followed by `triage: dev/programme/triage/s6-batch133.md#P407 at <roster sha>`.
+  3. `mark-carry --match 'triage: dev/programme/triage/s6-batch133.md#P407' implemented 6125b263d94e7ea8c43d31eb483869f8d8c83019`.
+- The orchestrator's refused mark is replaced by these three ops.
