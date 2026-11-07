@@ -38,7 +38,7 @@ from datetime import UTC, datetime, timedelta
 from pathlib import Path
 
 from layout import canon as _layout_canon, locate as _layout_locate, repo_path as _layout_repo_path
-from throwaway_git import throwaway_git_env, throwaway_git_init
+from throwaway_git import throwaway_git_env, throwaway_git_environ, throwaway_git_init
 
 # Dynamic import of a moved instrument. The string is the path while the file
 # is still there, otherwise the path the move map records, so a module import
@@ -28805,15 +28805,15 @@ try:
     with _tempfile.TemporaryDirectory() as _ba_tmp:
         _ba_cwd = os.getcwd()
         try:
+            _ba_env = throwaway_git_init(_ba_tmp, "-q")
+            Path(_ba_tmp, "tools").mkdir()
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + "f x\n")
+            for _ba_args in (["add", "."], ["commit", "-qm", "c"]):
+                subprocess.run(["git", *_ba_args], cwd=_ba_tmp, env=_ba_env, check=True, capture_output=True)
+            Path(_ba_tmp, "tools", "x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
             os.chdir(_ba_tmp)
-            _ba_git = lambda *a: subprocess.run(  # noqa: E731
-                ["git", "-c", "user.name=t", "-c", "user.email=t@t", *a], check=True, capture_output=True)
-            _ba_git("init", "-q")
-            Path("tools").mkdir()
-            Path("tools/x.sh").write_text(_ba_head + "f x\n")
-            _ba_git("add", "."), _ba_git("commit", "-qm", "c")
-            Path("tools/x.sh").write_text(_ba_head + 'f "${a[@]}"\n')
-            _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
+            with throwaway_git_environ():
+                _ba_uncommitted = (_ba.scan("HEAD"), _ba.scan())
         finally:
             os.chdir(_ba_cwd)
     _ba_rows = (
