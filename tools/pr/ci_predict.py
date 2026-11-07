@@ -499,6 +499,42 @@ def wiring_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
             for g in gaps if len(g) > 1 and named(g[1].rstrip(":"))]
 
 
+def mutant_preds(root: Path, changed: set[str]) -> list[tuple[str, str]]:
+    """`instrument-self-tests`'s seat mutant drivers (`r10_*_mutants.py
+    --self-test`), run when the diff touches a file a driver plants into.
+
+    Each driver refuses to start when an anchor it replaces no longer occurs
+    exactly once, so an edit to a planted file reddens the CI job and no local
+    path ran it (#2865: `orchestrator_tick.py` moved `r10_ledger_mutants.py`'s
+    T3 anchor; dev/audit/rca/R10-RCA-ROOT-CAUSE-DETECTABLE.md). The drivers are
+    the ones governance.yml runs; a driver's plant targets are the repository
+    paths its source quotes, and the driver itself counts as a target. A diff
+    touching none of them runs nothing, so the standing cost is the 2.3 s the
+    four drivers take, paid only by a diff that can move an anchor.
+    """
+    wf = root / ".github" / "workflows" / "governance.yml"
+    if not wf.is_file():
+        return []
+    drivers = sorted(set(re.findall(r"tools/audit/seat/(r10_\w+_mutants\.py) --self-test",
+                                    wf.read_text())))
+    out: list[tuple[str, str]] = []
+    for name in drivers:
+        rel = f"tools/audit/seat/{name}"
+        src = root / rel
+        if not src.is_file():
+            continue
+        quoted = set(re.findall(r"[\"'](tools/[\w./-]+\.(?:py|sh|mjs))[\"']", src.read_text()))
+        if not ((quoted | {rel}) & changed):
+            continue
+        r = subprocess.run([sys.executable, "-I", rel, "--self-test"], cwd=root,
+                           capture_output=True, text=True)
+        if r.returncode:
+            fails = [ln.strip() for ln in (r.stdout + r.stderr).splitlines() if "FAIL" in ln]
+            out.append(("instrument", f"SEAT MUTANT SELF-TEST {name}: "
+                        + (fails[0] if fails else f"rc={r.returncode}")))
+    return out
+
+
 def privacy_preds(root: Path) -> list[tuple[str, str]]:
     """`instrument-self-tests`'s `ref_privacy.py --check`, which no local path
     ran (dev/audit/rca/R10-RCA-2671-WAVE-SCRIPT.md, countermeasure B): its own
@@ -827,7 +863,7 @@ def unpinned(base):
 # alone, and reaching it by running every other arm cost 6.5 s of CPU against
 # the 5 s budget the seat's checks meet (eight others then; R10-FLOW-JIDOKA's
 # review, 2026-10-26).
-ARMS = ("orphans", "layout", "privacy", "wiring", "agreement", "graders", "no-recording",
+ARMS = ("orphans", "layout", "privacy", "wiring", "mutants", "agreement", "graders", "no-recording",
         "under-scoped", "inert-siblings", "left-inert", "mutation", "self-test-reads")
 
 
@@ -858,6 +894,7 @@ def predict(root: Path, base_ref: str, pairs: set | None = None,
         ("layout", lambda: layout_preds(root, base)),
         ("privacy", lambda: privacy_preds(root)),
         ("wiring", lambda: wiring_preds(root, changed)),
+        ("mutants", lambda: mutant_preds(root, changed)),
         ("agreement", lambda: agreement_preds(root, base_ref)),
         ("graders", lambda: grader_preds(root, base_ref)),
         ("no-recording", lambda: no_recording(root, base, changed, closure)),
@@ -1166,6 +1203,41 @@ def wiring_self_test(root: Path) -> int:
     return bad
 
 
+def mutant_self_test(root: Path) -> int:
+    """`mutant_preds` over a planted driver: a moved anchor, the intact twin, a null."""
+    import tempfile
+    bad = 0
+    with tempfile.TemporaryDirectory() as d:
+        t = Path(d)
+        seat = t / "tools" / "audit" / "seat"
+        seat.mkdir(parents=True)
+        (t / ".github" / "workflows").mkdir(parents=True)
+        (t / ".github" / "workflows" / "governance.yml").write_text(
+            "      - run: python3 -I tools/audit/seat/r10_x_mutants.py --self-test\n")
+        (seat / "r10_x_mutants.py").write_text(
+            'import sys\nT = "tools/audit/seat/owner.py"\n'
+            'src = open(T).read()\n'
+            'sys.exit(0 if src.count("ANCHOR") == 1 else (print("FAIL T3 anchor occurs once") or 1))\n')
+        (seat / "other.py").write_text("x = 1\n")
+        owner = seat / "owner.py"
+        cases = [
+            ("a planted target edited so its anchor is gone is predicted red",
+             "x = 1\n", {"tools/audit/seat/owner.py"}, 1),
+            ("the same target with its anchor intact is predicted green",
+             "ANCHOR\n", {"tools/audit/seat/owner.py"}, 0),
+            ("a diff touching only the driver runs it: the driver is its own target",
+             "x = 1\n", {"tools/audit/seat/r10_x_mutants.py"}, 1),
+            ("null control: a diff touching no planted target runs no driver (the anchor is gone, no red)",
+             "x = 1\n", {"tools/audit/seat/other.py"}, 0),
+        ]
+        for label, body, changed, want in cases:
+            owner.write_text(body)
+            got = len(mutant_preds(t, changed))
+            print(f"  {'ok  ' if got == want else 'FAIL'} {label}")
+            bad += got != want
+    return bad
+
+
 def null_control_self_test(root: Path) -> int:
     """`null_control_preds` over a comment-free pool, a commented one and a mix."""
     sys.path[:0] = [str(root / "tests"), str(root / "tests" / "hastub")]
@@ -1232,6 +1304,7 @@ def self_test() -> int:
     bad += self_test_reads_self_test(root)
     bad += rekey_self_test()
     bad += wiring_self_test(root)
+    bad += mutant_self_test(root)
     bad += null_control_self_test(root)
     bad += graders_self_test(root)
     gate = root / "tools" / "ci" / "gate.py"

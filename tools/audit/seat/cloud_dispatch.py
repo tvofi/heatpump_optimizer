@@ -113,7 +113,8 @@ FOOTER_BAN = ("Write no Claude Code footer, no Co-Authored-By or Claude-Session 
 
 #: The identity a dispatch commit and a writing seat's own commits carry: a noreply
 #: address, which ref_privacy's host-email class passes, never the host's default.
-SEAT_NAME, SEAT_EMAIL = "seat", "seat@users.noreply.github.com"
+#: It is the one `dev/programme/HANDOVER.md`'s Identity bullet names (hpo-fixer).
+SEAT_NAME, SEAT_EMAIL = "hpo-fixer", "70032254+tvofi@users.noreply.github.com"
 #: The roles that commit in their own checkout, and so pin that identity first.
 COMMITTING_ROLES = ("fixer", "probe")
 #: Where a cloud fixer pushes each verified step (`<WIP_NS>/<topic>`), so an idle
@@ -1061,6 +1062,10 @@ def self_test() -> int:
     shid = [(m.group(1), m.group(2)) for m in [re.search(r"^SEAT_NAME=(\S+)\nSEAT_EMAIL=(\S+)$", sh, re.M)] if m]
     check("cloud-setup.sh exports the same SEAT_NAME/SEAT_EMAIL as this module",
           shid == [(SEAT_NAME, SEAT_EMAIL)])
+    # A design choice, pinned by value: the arms above compare against the
+    # constant and pass for any identity, so the old `seat` read green.
+    check("the seat identity is hpo-fixer at the owner's noreply address",
+          (SEAT_NAME, SEAT_EMAIL) == ("hpo-fixer", "70032254+tvofi@users.noreply.github.com"))
     for role, ref in (("fixer", "dispatch/fixer-t-1"), ("reviewer", "dispatch/reviewer-rev-7")):
         a = dict(pr="7" if role == "reviewer" else "", topic="" if role == "reviewer" else "t-1",
                  nonce="abc123" if role == "reviewer" else "")
