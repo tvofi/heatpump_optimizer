@@ -294,3 +294,20 @@ Instances:
 Cost: no op. The policy cost is the group's: `fixer.md`'s `--budgets` cap, paid by tightening first, as its brief binds.
 
 Binding: none beyond the group as it stands. The orchestrator dispatches it.
+
+## P414: relay body-only alarm (queue line s12-relay-body-only-alarm)
+
+Verdict: REJECT. The alarm it asks for already exists. `orchestrator_tick.py` prints `OWED body-ahead #<pr> <sha> handoff-body/<topic> is newer than the head, repair done and unapplied` (line 927 at origin/main), which is the R10-TICK-LEVELS BODY-AHEAD level. The 50 minutes were lost downstream: `owed_unactioned.py` cannot key that line and goes UNREADABLE, so the sweep's owed check reported nothing. That defect is P416's, and P416 fixes it.
+
+Source: the orchestrator's queue line of 2026-11-07 (f-3265-body).
+
+Instances:
+- **The one instance.** f-3265-body's body sat unapplied for 50 min (queue line).
+- **The tick line was printed.** The orchestration logs hold `UNACTIONED-UNREADABLE: UNREADABLE: an owed line names no topic or pull request: -> OWED body-ahead #3265 c7c5cef52a49 handoff-body/r10-hotfix-plan-lanes is newer than the head, repair done and unapplied` (`grep -rh UNACTIONED-UNREADABLE` under the session directory). So the tick saw #3265's body-ahead, and the owed check failed to read it.
+- **The rule on the instance.** With P416's keying, that line is keyed `#3265` on `c7c5cef52a49`, and is reported unactioned on the next sweep: within one sweep, not 50 min.
+
+Cost:
+- **The binding cost.** A second beat row with a 30-min threshold duplicates a level that already fires at once, adds a row to the beat file and a second reader of the same fact, and adds a hot-file edit to `cloud_relay.sh`.
+- **What would change it:** a body-ahead held past one sweep after P416 lands.
+
+Binding: none. See P416.
