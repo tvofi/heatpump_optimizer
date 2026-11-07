@@ -76,8 +76,13 @@ Failing first, with each file put back after its run:
 ## Red checks
 
 Source: the reviewer's `filter=all` read, every page, in `probe/rev-3267-0b9792ab:ev/red-history-filter-all.txt`.
-- This seat could not re-read check runs with `filter=all`. Its only GitHub reader is the MCP check-run tool, which takes no filter, and `gh` is limited to search in this environment.
+- This seat read the PR head's check runs and the job list of run 42352016707 with `filter=all`, all pages, through the MCP tools. Earlier heads' reds come from the reviewer's read above.
 - For the same reason, `review_packet.py render`, whose check-run read is a `gh api` call, was not run here. Every red that read lists is answered below, so a `red-unanswered` refusal has nothing left to name.
+
+At `a7223767`, the PR head (run 42352016707, read with `filter=all` through the job list):
+- `governance / instrument-self-tests` cancelled 128358602803 (attempt 2, 08:54:51Z to 09:25:05Z): class A, the 30-minute `instrument-self-tests` timeout. It is owned by R10-HOTFIX-SELFTEST-TIMEOUT, and the cure is R10-PROCESS-SLIM #3245. No cheaper detector exists: the timeout is a wall-clock limit on the whole job, which only the job itself measures. No attempt at this head concluded green. Attempt 1, 128342095963, was cancelled at 07:49:49Z by the supersession that ended the run's other jobs, and attempt 2 is the timeout. So this is a concluded red that stays at the head.
+- `governance / env-matrix` cancelled 128342096436, `codeql / Analyze (python)` cancelled 128342095898, `gate` cancelled 128344632834, and the `tests / ...` jobs 128343442060, 128343442066, 128343442076, 128344592291, 128344592450, 128344593000, 128344617027, 128344617193 and 128344617628: all attempt 1 of run 42352016707, cancelled at 07:49:40Z to 07:49:52Z by supersession. Attempt 2 concluded success for `env-matrix` 128358602969, `codeql / Analyze (python)` 128358602971, `tests / fast (3.14)` 128358603580, `tests / coverage` 128358603274 and `tests / closures` 128358603452, and the gate 128368923846 and 128368919784 concluded success. They are supersession, not a defect, so no detector is owed.
+- Gate failures from the edit-run deferral (`run(s) [...] at this head are still being judged`): R10-HOTFIX-GATE-BUSY-DEFER, merged as #3246. The edit run is the one that defers, and the code run 42352016707 decides. Its gates concluded success at 128368923846, 128368919784 and 128368179798. Answer: the hotfix owns it.
 
 At `14a73c15`, the reviewed head:
 - `gate` failure 128312324401: this is the edit-run deferral, R10-HOTFIX-GATE-BUSY-DEFER, merged as #3246. Its log reads `FAIL run(s) [42340579795] at this head are still being judged; their gate decides`, and gate 128324519569 later concluded success. Answer: no cheaper detector is needed, because the hotfix already owns the deferral.
