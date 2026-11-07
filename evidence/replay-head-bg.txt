@@ -1,0 +1,9 @@
+OK       0.0s Start the five slowest self-tests beside the rest of the job
+OK     300.2s Show the pre-PR self-check refusing its own fixtures
+OK       0.0s Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+OK     155.1s Show the PR argument builder refusing its own fixtures
+OK       0.0s Show the supervised beat refusing its own fixtures
+OK     225.1s Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures
+OK       0.0s Refuse a detached self-test whose status no step read
+RESULT replay_seconds=681 failed=0
+rc=0

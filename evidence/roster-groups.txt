@@ -1,0 +1,73 @@
+===== R10-HANDOFF-PATH
+{
+ "group": "R10-HANDOFF-PATH",
+ "lane": "IN",
+ "kind": "instrument",
+ "issues": [
+  3123
+ ],
+ "fixes": [],
+ "findings": [],
+ "class": "instrument",
+ "severity": "medium",
+ "size": "M",
+ "wave": 1,
+ "files": [
+  "tools/audit/seat/update_pr.sh",
+  "tools/audit/seat/open_pr.sh",
+  "tools/audit/seat/pr_args.sh",
+  "tools/audit/seat/open_driver.py",
+  "tests/structure.py",
+  "tools/pr/app_push.sh",
+  "tools/pr/prepr.sh",
+  "tools/audit/seat/body_push.sh"
+ ],
+ "hot_files": [],
+ "fixerModel": "sonnet",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "sonnet",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": null,
+ "rca": [],
+ "after": [],
+ "carry": [
+  "Folded from R10-OPENER-REUSE into R10-HANDOFF-PATH (shared owning seam; s11 replan). BRIEF: Stop re-running a full prepr on a code head that already passed it: tools/audit/seat/update_pr.sh merges origin/main unconditionally, so the row-only path refuses. Merge main only when the pull request is DIRTY or merge-tree reports a conflict (released by the owner's no-merge-queue resolution), and reuse a passed prepr on a clean merge with row checks that include tests/structure.py on the merged tree. From R10-FLOW-BODY-ONLY and the 2026-11-01 plan-regain study. Every carry was moved verbatim by the s9 carry-routing pass (2026-11-01) from a carries-open source group; each names its own controls. Re-measure every figure a carry states at this group's own merge base; carry no count. A carry that says it waits on an owner or orchestrator ruling waits for that ruling, and the body says so.",
+  "tvofi 2026-10-24 card 4 (CARDS.json (prestudy-mech, r10s6 scratch, not in the tree)): hold part (a) (merge origin/main into the head only when the pull request is DIRTY or merge-tree reports a conflict) until R10-FLOW-MQ-PROBE reports and the owner decides; a merge queue makes part (a) moot. Parts (b) and (c) (body-only mode and the relay's body-only call) do not depend on the queue: build them now, because card 7 builds on them.",
+  "Resolved: the merge queue is not adopted in round 10 (tvofi 2026-10-25; #2826 closed). Take the train-path branch of the conditional; the hold behind R10-FLOW-MQ-PROBE is lifted.",
+  "From the plan-regain study, 2026-11-01 (card 4, low risk, no owner decision). Measured over 24 h: 151 prepr runs took a heavy slot (8356 min); 59 of them (3021 min, mean 51) were open_pr/update_pr re-runs on code heads whose fixer had already passed prepr (PRE-PR rc=0). update_pr.sh always merges origin/main, so --row-only refuses (HEAD has 2 parents). Fix in update_pr.sh and open_pr.sh: when the code sha's tree has a PRE-PR rc=0 line and HEAD is a clean merge of {live head, code sha, origin/main} plus the row, run only row_only_checks; CI still gates the head. Mirrors app_push.sh's recarry verdict (#201 comment 6070202495). fixer.md's prepr-before-handoff duty is unchanged. Failing test first: an update to a passed code sha with a clean main merge runs no full prepr. Null control: a new code sha runs the full prepr. [implemented: 788e8ceed2d7251740e46fa7f1568ea284d85d47]",
+  "From #3052's red, 2026-11-01 (root-cause trigger, red check a cheaper detector could have run). A clean `ci: merge main` merge re-recorded max_class_loc but kept main's class_excess_loc, and tests / fast (3.14) and governance / instrument-self-tests went red. tests/structure.py on the merged tree (24 s) would have caught it, but the merge-main bot and app_push.sh --recarry both skip prepr on a clean merge. This binds card 4 (s9-card4-prepr-reuse): the reuse path's row_only_checks MUST include tests/structure.py, run on the merged tree, plus any budget re-record the merge needs, so reusing prepr never lets a structure red past. Failing test first: a clean main merge that changes a counted class is refused by the reuse path when structure.py fails. Null control: a merge that touches no counted class passes on row checks alone. [implemented: 788e8ceed2d7251740e46fa7f1568ea284d85d47]",
+  "Opener driver (s9 seat-opener/driver4.py) records (topic, sha) in seen2.txt at START, so a failed open/update is never retried: 7 handoffs stranded 1-16 h on 2026-11-01 (away-presence, ceiling-probe, bus-bash32, carry-doc-context, record-s9-owed, rca-roster-sync-orphans, flow-body-only). Countermeasure owed in R10-OPENER-REUSE: mark seen only on rc=0, retry a failed (topic, sha) with backoff, surface a refusal as an OWED line the tick prints.",
+  "Disk (2026-11-01): the opener's per-topic checkout under the PR scratch root stays after the PR opens, and update_pr.sh then makes a second per-topic checkout for every update, so each open PR holds two ~140 MB checkouts; with ~25 open PRs and concurrent local prepr scratch, free disk swung between 16 and 2 GiB in one afternoon and a cleanup seat had to remove live loops' checkouts. Countermeasure owed: open_pr.sh removes (or worktree_gc.sh collects) its own checkout once the PR exists and the row is pushed, and update_pr.sh reuses one per-PR checkout; the sweep's disk floor names which checkouts it could collect. Controls: after a planted open, no opener checkout remains; a second update reuses the first checkout; a dirty checkout is kept and reported.",
+  "From triage P362 (orchestrator s10, 2026-11-01T18:19:37Z: a false STALE CHECKOUT refusal on #3047). tools/audit/seat/pr_args.sh `pr_tools_fresh` resolves its tools directory as `cd \"$(dirname -- \"${BASH_SOURCE[0]}\")\" && pwd` when it is called, not when it is sourced. tools/audit/seat/update_pr.sh sources pr_args.sh through `$(dirname -- \"$0\")`, then runs `cd \"$M\"` (the main checkout) before it calls `pr_tools_fresh`. So a relative invocation (`bash tools/audit/seat/update_pr.sh ...` from a fresh worktree) checks the main checkout's freshness and refuses STALE CHECKOUT, whatever the invoking worktree holds. Change: pr_args.sh records its own absolute directory once, at source time (one variable beside PR_FRESH
+===== R10-HOTFIX-SELFTEST-TIMEOUT
+{
+ "group": "R10-HOTFIX-SELFTEST-TIMEOUT",
+ "size": "S",
+ "after": [],
+ "files": [
+  ".github/workflows/governance.yml"
+ ],
+ "brief": "Orchestrator, 2026-11-06 ~23:45Z, measured on main: governance / instrument-self-tests (.github/workflows/governance.yml job instrument-self-tests, timeout-minutes 30) took 29m45s, 29m19s, 29m44s and 28m39s on its last four successful main runs (42297617709, 42291959742, 42278712414, 42271471389). Two of the last six main runs were cancelled at the 30-minute timeout (42280756390 and 42307872956), and each cancel stalled the single-entry merge train by one full main-CI wait. Enumerator: `gh run view <id> --json jobs` filtered to that job's startedAt and completedAt. Fix it architecturally, not by only raising the timeout. Measure where the job's wall time goes, per self-test step, with each step's seconds, then make the sound change: run the self-tests in parallel (matrix shards or concurrent steps with per-step logs), cut a slow self-test's cost, or both, so the job keeps at least 30% headroom under its timeout. A timeout raise is allowed only beside a measured speed-up, and must be justified in the body. Null control: every self-test step still runs and still greps its `checks, 0 failed` line, and selftest_wiring.py --check still passes, so the shard split drops no step. Before and after: the job's wall time on a probe run, with run ids.",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus"
+ },
+ "lane": "IN",
+ "issues": [],
+ "fixes": [],
+ "resume": {
+  "stage": "in-progress",
+  "branch": null,
+  "pr": 3275
+ },
+ "carry": [
+  "Orchestrator evidence (2026-11-07): another class-A instance \u2014 #3262 head 0fd9bc6d, CI code run 42339563999 attempt 1, job governance / instrument-self-tests ran 04:45:23Z to 05:15:38Z (30m15s) and was cancelled at the 30-minute job timeout; earlier #3265 job 128283313187 (03:15:08Z-03:45:10Z). The fixer re-measures the self-test wall time at its own base."
+ ]
+}

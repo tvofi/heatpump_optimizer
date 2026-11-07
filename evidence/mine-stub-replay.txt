@@ -1,0 +1,81 @@
+== null control: all pass
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB GREEN
+== prepr fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+FAIL Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB RED
+== beatd fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+FAIL Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB RED
+== open-pr fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+FAIL Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB RED
+== pr-args fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+FAIL Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB RED
+== update-pr fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+FAIL Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB RED
+== W1: prepr waiter deleted
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+FAIL Refuse a detached self-test whose status no step read | UNREAD prepr: no step read its status
+JOB RED
+== M1 on real workflow, prepr fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB GREEN
+== M1 on real workflow, update-pr fails
+OK   Start the five slowest self-tests beside the rest of the job | 
+OK   Show the pre-PR self-check refusing its own fixtures | 
+OK   Show the PR opener (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Show the PR argument builder refusing its own fixtures | 
+OK   Show the supervised beat refusing its own fixtures | 
+OK   Show the PR updater (delivery_row.sh's and pr_args.sh's self-tests) refusing its own fixtures | 
+OK   Refuse a detached self-test whose status no step read | 
+JOB GREEN
+== M2 on real workflow, chain launcher killed (stub kill)
