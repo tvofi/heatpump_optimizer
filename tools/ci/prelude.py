@@ -526,16 +526,19 @@ def self_test() -> int:
               machinery([cc, own], Path(td) / "none.json", "3300"), True)
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"], g(live))
-    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7", out["machinery"], "false")
+    check("C7a-row: the prelude passes the event's number: package + row 7 on pull request 7 idles the row-blind lanes",
+          out["machinery_rowblind"], "false")
+    check("C7a-row: ... and runs the lanes that read rows", out["machinery"], "true")
     out, _ = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                      ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/8.md"], g(live))
-    check("C7a-row: ... and row 8 on pull request 7 runs them", out["machinery"], "true")
-    check("C7a-row: a push with the row still runs them",
-          outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
-                  g(live))[0]["machinery"], "true")
+    check("C7a-row: ... and row 8 on pull request 7 runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
+    out = outputs(ctx("push"), ["custom_components/heatpump_optimizer/coordinator.py", "dev/programme/delivery/7.md"],
+                  g(live))[0]
+    check("C7a-row: a push with the row still runs them", (out["machinery_rowblind"], out["machinery"]), ("true", "true"))
     out, why = outputs(ctx("pull_request", action="synchronize", pull_request=pr),
                        ["custom_components/heatpump_optimizer/coordinator.py"], g(live))
-    check("C7a: the prelude's output on a product-only pull request", out["machinery"], "false")
+    check("C7a: the prelude's output on a product-only pull request", (out["machinery"], out["machinery_rowblind"]),
+          ("false", "false"))
     check("C7a: a push always runs them (null control)", outputs(ctx("push"), None, g(live))[0]["machinery"], "true")
     out, why = outputs(ctx("push"), None, g(live))
     check("push: full scope, code units", (out["scope"], out["workset"], why), ("full", "codeql governance hassfest tests validate", ""))
@@ -604,6 +607,17 @@ def self_test() -> int:
         check("rate limit fails closed", (rc, err.getvalue().split()[:1]), (3, ["RATE-LIMITED"]))
     finally:
         os.unlink(path)
+    # The wiring: each machinery lane gates on exactly the output its
+    # recording earned, so a row-reading lane cannot drift to the row-blind one.
+    check("C7a-row: each machinery lane's job names exactly its own machinery input",
+          lane_gates(), {k: {v} for k, v in LANE_GATE.items()})
+    with tempfile.TemporaryDirectory() as td:
+        wd = Path(td)
+        for wf in {w for w, _ in LANE_GATE}:
+            (wd / wf).write_text((HERE.parents[1] / ".github" / "workflows" / wf).read_text()
+                                 .replace("inputs.machinery ", "inputs.machinery_rowblind "))
+        check("C7a-row: ... and a row-reading lane moved to the row-blind input is seen (null control)",
+              lane_gates(wd)[("tests.yml", "closures")] >= {"machinery_rowblind"}, True)
     print(f"prelude self-test: {n} checks, {fails} failed")
     return 1 if fails else 0
 
