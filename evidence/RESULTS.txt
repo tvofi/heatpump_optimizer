@@ -1,0 +1,18 @@
+head=3134798017b1d26994c410206349b06d187559a0
+RESULT head-cloud_relay rc=0 fails=0 tail=cloud_relay self-test: 372 checks, 0 failed
+RESULT head-bus rc=0 fails=0 tail=bus self-test: 159 checks, 0 failed
+RESULT head-tick rc=0 fails=0 tail=orchestrator_tick self-test: 283 checks, 0 failed
+RESULT head-ledger rc=0 fails=0 tail=ledger self-test: 101 checks, 0 failed
+RESULT head-tickloop rc=0 fails=0 tail=tick_loop self-test: 27 checks, 0 failed
+RESULT head-policy_lint rc=0 fails=0 tail=FIXTURE ok: 93 error(s) hold 269 pins across 12 check classes on fixtures/policy-rot/ and fixtures/policy-loop/
+RESULT head-structure rc=0 fails=0 tail=STRUCTURE RATCHET PASSED
+ tools/audit/seat/cloud_relay.sh | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+RESULT mutM1-cloud_relay rc=1 fails=0 tail=cloud_relay self-test: 372 checks, 4 failed
+RESULT mutM2-cloud_relay rc=1 fails=0 tail=cloud_relay self-test: 372 checks, 2 failed
+RESULT mutX2-bus rc=1 fails=0 tail=bus self-test: 159 checks, 2 failed
+RESULT mutY1-tick rc=1 fails=0 tail=orchestrator_tick self-test: 283 checks, 1 failed
+RESULT base-cloud_relay rc=0 fails=0 tail=cloud_relay self-test: 332 checks, 0 failed
+RESULT base-bus rc=0 fails=0 tail=bus self-test: 152 checks, 0 failed
+RESULT base-tick rc=0 fails=0 tail=orchestrator_tick self-test: 280 checks, 0 failed
+DONE

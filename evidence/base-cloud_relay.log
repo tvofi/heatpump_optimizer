@@ -48,28 +48,6 @@
   ok   without --confirm, relay logs nothing
   ok   and the log stayed empty
   ok   but the ledger owes its posting: a relayed verdict is owed until it is read back
-  ok   a new tree is pushed (stub called)
-  ok   a tree review/31 already carries relays rc 0 with an emptied ledger
-  ok   and does not call the push stub again
-  ok   and records ref sha in the ledger
-  ok   and says 'already carries'
-  ok   a different tree (different ev content) is pushed (null control)
-  ok   and does not say 'already carries'
-  ok   the oldest of many review commits is still found (pipefail-safe): skipped
-  ok   and says so
-  ok   the guard does not depend on the review commit being newer than the probe
-  ok   a pass prints its state dir, ledger and log once
-  ok   and once per pass (two passes, two lines)
-  ok   the fixture never materialises a name (work tree empty)
-  FAIL refused before any write: nothing was extracted (tar never ran) (rc=1, want 0)
-  FAIL and no scratch directory was created (TMPDIR still empty) (rc=1, want 0)
-  ok   null control: distinct names do run the extract
-  ok   ev_case_collision names both, from the commit alone
-  FAIL ev/HEAD.txt and ev/head.txt are refused rc 2 (rc=1, want 0)
-  FAIL naming both files (rc=1, want 0)
-  ok   with nothing pushed
-  FAIL a file ev/A and a directory ev/a/x are refused rc 2 (rc=1, want 0)
-  ok   distinct names relay (null control)
   ok   a ref with no dispatch record is left alone
   ok   a watch pass relays a dispatched ref once
   ok   a second pass relays nothing
@@ -84,7 +62,7 @@
   ok   and is not tried a fourth time
   ok   the refusal is owed in the level file, once, with its reason
   ok   a refusal of the ref itself (rc 2) is refused at once, with its reason
-ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the tick reads /tmp/cloud_relay_st.w9NbXG/state
+ledger: dispose wrote to /tmp/cloud_relay_st.dWP23S, not the default home; the tick reads /tmp/cloud_relay_st.dWP23S/state
   ok   a disposed refusal is not owed
   ok   with the real bus.sh push-verdict the relay passes
   ok   and confirms the remote tip as carrying its verdict tree
@@ -308,30 +286,12 @@ ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the t
   ok   null control: a handoff committed after its topic's merge stays owed
   ok   a no-PR handoff ref a live fix/ head carries is not owed (the ledger's ancestry close)
   ok   a handoff-body ref with no open PR is OWED
-ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the tick reads /tmp/cloud_relay_st.w9NbXG/state
-ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the tick reads /tmp/cloud_relay_st.w9NbXG/state
+ledger: dispose wrote to /tmp/cloud_relay_st.dWP23S, not the default home; the tick reads /tmp/cloud_relay_st.dWP23S/state
+ledger: dispose wrote to /tmp/cloud_relay_st.dWP23S, not the default home; the tick reads /tmp/cloud_relay_st.dWP23S/state
   ok   disposed no-PR refs are not owed
   ok   a disposed no-PR ref that moved is OWED again
   ok   a failed PR listing leaves the level as it was (unknown is not 'nothing owed')
   ok   an unreadable ledger leaves the handoff level as it was (rc 2 is not 'nothing owed')
-  ok   a handoff ahead of its PR whose body names the old tip prints HELD-BODY once per pass
-  ok   and runs no update and owes one handoff-held line with why BODY
-  ok   once the body names the new tip the update runs (null control)
-  ok   and prints no HELD-BODY and owes no handoff-held (null control)
-  ok   a body-only handoff with a body newer than the head prints BODY-ONLY once per pass
-  ok   runs nothing and owes exactly one handoff-body-unapplied line after two passes
-  ok   null control: a body committed before the head's commit prints no BODY-ONLY
-  ok   and owes no handoff-body-unapplied
-  ok   held by the hold file, a newer body-only body prints HELD and BODY-ONLY once each
-  ok   and owes one handoff-body-unapplied line
-  ok   null control: held, with a body older than the head, prints no BODY-ONLY and owes nothing
-  ok   a hold line for a PR not among the open PRs owes handoff-hold-stale
-  ok   a hold line for an open PR does not (null control)
-  ok   and the stale line is gone with the hold line
-  ok   while the update runs, the handoff-no-pr line for an orphan handoff ref is already on the level
-  ok   and the run is in flight (the stub has started)
-  ok   while the relay push runs, the probe-ref line is already on the level
-  ok   and the push is in flight
   ok   pass --loop is the only loop (a bad interval is refused)
   ok   pass runs both arms once and returns
   ok   the pass fired the handoff arm
@@ -345,7 +305,7 @@ ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the t
   ok   and owes nothing
   ok   an undispatched review is owed once in the level after two passes (null control)
   ok   and confirm never runs on it
-ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the tick reads /tmp/cloud_relay_st.w9NbXG/state
+ledger: dispose wrote to /tmp/cloud_relay_st.dWP23S, not the default home; the tick reads /tmp/cloud_relay_st.dWP23S/state
   ok   a disposed review is not owed
   ok   a review/<pr> tip the relay did not push is left to the orchestrator (null control)
   ok   and owes nothing
@@ -374,5 +334,4 @@ ledger: dispose wrote to /tmp/cloud_relay_st.w9NbXG, not the default home; the t
   ok   a return ref older than the dispatch (an earlier round's) does not count as a return
   ok   deleting the dispatch ref takes its line off the level (the disposal)
   ok   a pass runs the no-return arm
-cloud_relay self-test: 372 checks, 5 failed
-rc=1
+cloud_relay self-test: 332 checks, 0 failed

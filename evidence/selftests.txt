@@ -1,6 +1,0 @@
-bash tools/audit/seat/cloud_relay.sh --self-test rc=0
-bash tools/audit/seat/bus.sh --self-test rc=0
-python3 -I tools/audit/seat/orchestrator_tick.py --self-test rc=0
-python3 -I tools/audit/seat/ledger.py --self-test rc=0
-node tools/policy/policy_lint.mjs rc=0
-DONE

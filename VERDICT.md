@@ -1,26 +1,27 @@
-Fix review: blocked 3134798017b1d26994c410206349b06d187559a0 red-checks: the required gate concluded failure at this head and the body's Red checks reads b9cc5e32's runs, naming none of this head's concluded reds
+Fix review: merge 3134798017b1d26994c410206349b06d187559a0
 
-bus-nonce: cadcb4da69387217a9d4d50501093e2e
+bus-nonce: b2105ebb24c3ec63b0c50e076bdb16a7
 
-## Block
-
-- The required context `gate` is red at 3134798017b1d26994c410206349b06d187559a0: `merge_train.py classify` prints `RED 3134798017b1d26994c410206349b06d187559a0 pending: none red: gate` (exit 1), re-read at verdict time. The latest gate run 128471344242 (run 42385416529, 17:14:38Z-17:15:10Z) logs `FAIL pr-contract / pr-contract: failure (run 42387066581)`: it read the failed pr-contract 128449815767 of the superseded run 42387066581, although pr-contract 128471138373 in its own run is green (17:13:48Z-17:14:35Z). So the red looks like a stale cross-run read rather than a code defect, but a red required context is not a merge verdict; it needs a gate re-run after a green pr-contract.
-- The body's `## Red checks` says it reads "the PR 3252 head b9cc5e32... (total_count 42)". This head has total_count 68 (one page of 100, read via get_check_runs), with these concluded reds, none named in the body: `gate` 128471344242, 128452383371 and 128448828285 (failure); `pr-contract / pr-contract` 128449815767 and 128446411039 (failure); `tests / nightly-status` 128455324026 (failure). The body's runs (128377933403, 128377933374) are of another head. This is the same class as round 3's block (verdict/3252 22658bca); the repair did not rewrite the section for this head.
-- The code itself passes: see Evidence. Repair needed is body-only (Red checks rewritten against 3134798 runs) plus a green gate run.
-
-## Findings
-
-- Finding (a), carried: the relay and bus self-tests were not run under macOS bash 3.2 in this round either; this container has only bash 5.2. Claim: the self-test passes under bash 3.2 / APFS. Evidence: none at this head; the body states it was not demonstrated. Harness: `bash tools/audit/seat/cloud_relay.sh --self-test` under /bin/bash 3.2 on APFS. Metric: failed-check count. Perturbation: the round-4 mutant R4b (collision check moved after extraction), which reproduced the orchestrator's APFS failure mode in principle. Carry: R10-RELAY-SWEEP
+Round 4 (body re-take for round 3's red-checks block; no code change since 31347980). Measured head 3134798017b1d26994c410206349b06d187559a0, detached worktree; merge base 28d46c4918285d36c409c1fb2f72eb77e04e569e.
 
 ## Evidence
 
-- Head reviewed: 3134798017b1d26994c410206349b06d187559a0 (ev/HEAD.txt), parents 45c0f78a0 and de5a645a4; merge base 28d46c4918285d36c409c1fb2f72eb77e04e569e. Detached worktree at the head.
-- `bash tools/audit/seat/cloud_relay.sh --self-test`: `cloud_relay self-test: 372 checks, 0 failed`, rc 0 (ev/cloud_relay.sh.log). Matches the body's 372.
-- `bash tools/audit/seat/bus.sh --self-test`: `bus self-test: 159 checks, 0 failed`, rc 0 (ev/bus.sh.log). Matches 159.
-- `python3 -I tools/audit/seat/orchestrator_tick.py --self-test` rc 0; `python3 -I tools/audit/seat/ledger.py --self-test` rc 0; `node tools/policy/policy_lint.mjs` rc 0 (ev/selftests.txt; the two python logs were written to one file name by my loop and are not kept, only their rc).
-- Round-4 mutant R4a (delete the `ev_case_collision` call in relay(), cloud_relay.sh lines 235-236; ev/mutant_r4a.diff): 372 checks, 5 failed, including `refused before any write: nothing was extracted (tar never ran)` and `ev/HEAD.txt and ev/head.txt are refused rc 2` (ev/mut_r4a.log). Killed.
-- Round-4 mutant R4b (move the collision check to after `git archive | tar -x`, the pre-repair order behind the APFS failure; ev/mutant_r4b.diff): 372 checks, 2 failed: `refused before any write: nothing was extracted (tar never ran)` and `and no scratch directory was created (TMPDIR still empty)` (ev/mut_r4b.log). Killed: the ordering is pinned on a case-sensitive filesystem, by the tar-call and TMPDIR rows; the null control `null control: distinct names do run the extract` stays ok.
-- Earlier mutation-vacuous lines stay killed: X2 (bus.sh line 390 `if cc=$(git ls-tree ...)` to `if false; then :`): 159 checks, 2 failed, the two read-side case rows (ev/mut_x2.log). Y1 (`if n > 0:` to `if False:` at orchestrator_tick.py:1057): 283 checks, 1 failed, `relay GAP: a relay log holding a handoff-no-pr OWED line and no .level file prints GAP, flagged, with the count` (ev/mut_y1.log).
-- `git merge-tree --write-tree origin/main HEAD` against origin/main 4b5d771bd: rc 0, clean (ev/merge-tree.txt).
-- review_packet.py render: `REFUSE required-red: required context gate concluded failure` (ev/review-packet.md); figure_lint 10 resolved, carry_audit 0 items.
-- bash 3.2 compatibility of the new self-test helpers was only read: `$'\n'`, `${n:0:8}`, `local` and here-strings are bash 3.2 features; no run.
+- Self-tests at the head (bash 5.2.21, Linux): cloud_relay 372 checks 0 failed; bus 159/0; orchestrator_tick 283/0; ledger 101/0; tick_loop 27/0; policy_lint rc 0; structure.py STRUCTURE RATCHET PASSED. At the base (null control): cloud_relay 332/0, bus 152/0, orchestrator_tick 280/0. Every figure in the body's Figures section that I re-ran matches. ev/RESULTS.txt.
+- Mutant M1 (cloud_relay.sh relay(): the line `[ -z "$dup" ] || die ...` replaced by `:`): 372 checks, 4 failed. Killed.
+- Mutant M2 (the round-4 repair reverted in order: the ev_case_collision check moved back after the extract, after the `no ev/ directory` check): 372 checks, 2 failed, so the "refused before any write" rows (tar never ran, TMPDIR empty) pin the orchestrator's APFS finding that the check ran after the write. Killed. ev/mutM2.diff.
+- Mutant X2 (bus.sh unpack: `if cc=$(git ls-tree ...)` to `if false; then`): 159 checks, 2 failed. Still killed.
+- Mutant Y1 (orchestrator_tick.py relay_owed `if n > 0:` to `if False:`): 283 checks, 1 failed. Still killed.
+- Merge with origin/main 53273de4d: `git merge-tree --write-tree` rc 0, tree f915c5a2, no conflict. ev/merge-tree.txt.
+- custom_components/, VERSION, the manifest, RELEASE_NOTES.md and every *budgets.json are untouched in the three-dot diff. The delivery row dev/programme/delivery/3252.md is in it.
+- CI: `merge_train.py classify 3134798017b1d26994c410206349b06d187559a0 --pr 3252` printed `GREEN 3134798017b1d26994c410206349b06d187559a0 pending: none red: none`, rc 0. The latest gate runs (128496140338, 128496134349, 128496131112, 128495898003) are success. The latest pr-contract 128495675518 (18:51:27-18:52:19Z) started after the last red concluded (gate 128471344242, 17:15:10Z) and concluded success, so the body check passed at this body.
+- Red checks, checked against the commit's check-runs with filter=all across both pages (total_count 160; ev/check-runs-filter-all.tsv). The body names all six failures by their first-attempt ids (gate 128448828285, 128452383371, 128471344242; pr-contract 128446411039, 128449815767; nightly-status 128455324026) and answers each one. The remaining failure ids, 128496135074, 128496141046 (pr-contract) and 128496129422 (nightly-status), are re-run-attempt copies of those same jobs: same run, same check suite, identical start and end timestamps. They are not new reds. The two unnamed cancels are gate 128444855841 (0 s at 15:27:40Z, cancelled when superseded; later gates in that run are success) and prelude 128441647474. prelude is outside the required set, so under the 2026-11-07 owner ruling neither blocks.
+- The nightly-status red is not this PR's: its diff reaches no nightly lane (fix-review.md step 11).
+- The finder's harness is not named in the packet. I used the carries' own self-test rows plus my own targeted mutants M1/M2 (disclosed as mine, step 9).
+
+## Findings
+
+- Finding (a), carried: bash 3.2 / APFS is still not demonstrated. This container has only bash 5.2. Claim: `cloud_relay.sh --self-test` passes under macOS bash 3.2 on APFS. Evidence: none at this head. Mutant M2 shows the after-write ordering the orchestrator saw is now pinned, but the fixture never materialises names only by reasoning on ext4. Harness: `/bin/bash tools/audit/seat/cloud_relay.sh --self-test` on the orchestrator's macOS. Metric: failed-check count, expected 0. Perturbation: M2. Carry: R10-RELAY-SWEEP
+
+## Friction
+
+- The frugal inline-op guard counted a test-run Bash call as a search op, so the run went through a mechanic subagent. Carry: dismissed: tooling friction, not a finding of this PR
