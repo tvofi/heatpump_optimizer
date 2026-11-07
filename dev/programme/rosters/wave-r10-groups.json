@@ -17345,7 +17345,8 @@
    "resume": {
     "stage": "in-progress",
     "note": "PR 3246 open (fixer dispatched 2026-11-06, branch fix/r10-gate-busy-defer); roster stage was stale",
-    "commit": "355d9965a"
+    "commit": "355d9965a",
+    "pr": 3287
    },
    "brief": "tools/ci/gate.py busy() lets two gate jobs at one head each defer to the other, so no gate judges. Two edit-run gates started within one second at one head each list the other's run as unfinished and not judging, and both fail in step \"Judge this head\" with \"run(s) at this head are still being judged; their gate decides\". Fix: a deterministic tie-break so exactly one of the concurrent gate runs at a head decides, without leaving a head with no judging gate and without a gate judging before a source that is still adding results. Failing test first, reproducing the two-run deferral from runs 42193153511 and 42192623509 (gate jobs 127833303340 and 127833295321); a mutant of the tie-break shown red by a named case; a null control: a single run at a head still judges, and a genuinely earlier unfinished run still defers. Say in the body which merges first against #3243 (R10-GATE-LEASE-TOCTOU). Source: #3239 round-1 verdict Red checks; reproduced on #3241 and #3236."
   },
