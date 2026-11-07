@@ -38,6 +38,7 @@ from __future__ import annotations
 
 import logging
 import math
+import time
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable, Collection
@@ -906,8 +907,7 @@ class InputReader:
             reading.problem = "missing_entity"
             return reading, None
 
-        raw = getattr(state, "state", None)
-        if raw is None or str(raw).lower() in _INVALID_STATES:
+        if not has_value(state):
             reading.problem = "unavailable"
             return reading, None
 
@@ -1105,6 +1105,131 @@ class InputReader:
             return reading
         reading.value = converted
         return reading
+
+
+def has_value(state: Any) -> bool:
+    """Whether ``state`` carries a value at all, before any guard judges it."""
+    raw = getattr(state, "state", None) if state is not None else None
+    return raw is not None and str(raw).lower() not in _INVALID_STATES
+
+
+#: The problems a state event can show have cleared: the entity was not in the
+#: state machine, or held no value. Age, plausibility and units are judged by
+#: the re-read, never by the event.
+RETURN_WATCHED_PROBLEMS: frozenset[str] = frozenset({"missing_entity", "unavailable"})
+
+
+class InputReturnWatch:
+    """Ask for a re-read as soon as an input the last read could not use returns.
+
+    A configured entity absent at one read -- an MQTT entity discovery has not
+    re-created yet when this integration starts or reloads -- otherwise stayed
+    ``missing_entity`` until the next scheduled update, one
+    ``optimization_interval`` later, with every learner frozen and the planner
+    steering from the value pinned before it. The watch reads nothing itself:
+    ``refresh`` is the coordinator's debounced ``async_request_refresh``, so the
+    returned value passes every guard a scheduled read applies, and one they
+    reject keeps the learners frozen. Each entity asks at most once per
+    ``spacing_s`` (one update interval), so a sensor flapping between
+    ``unavailable`` and a value costs one extra update per interval, not one
+    per flap.
+    """
+
+    def __init__(
+        self,
+        hass: Any,
+        refresh: Callable[[], Any],
+        spacing_s: float,
+        clock: Callable[[], float] = time.monotonic,
+    ) -> None:
+        self.hass = hass
+        self.refresh = refresh
+        self.spacing_s = float(spacing_s)
+        self.clock = clock
+        self.released = False
+        self._entities: frozenset[str] = frozenset()
+        self._unsub: Callable[[], None] | None = None
+        self._asked_at: dict[str, float] = {}
+
+    def arm(self, health: InputHealth) -> None:
+        """Watch exactly the entities ``health`` found absent or valueless."""
+        if self.released:
+            return
+        wanted = frozenset(
+            reading.entity_id
+            for reading in health.readings.values()
+            if reading.entity_id and reading.problem in RETURN_WATCHED_PROBLEMS
+        )
+        if wanted == self._entities:
+            return
+        self._drop()
+        self._entities = wanted
+        if not wanted:
+            return
+        from homeassistant.core import callback
+        from homeassistant.helpers.event import async_track_state_change_event
+
+        @callback
+        def _changed(event: Any) -> None:
+            self._on_event(event)
+
+        self._unsub = async_track_state_change_event(
+            self.hass, sorted(wanted), _changed
+        )
+
+    def _on_event(self, event: Any) -> None:
+        data = getattr(event, "data", {})
+        entity_id = data.get("entity_id")
+        if (
+            self.released
+            or entity_id not in self._entities
+            or not has_value(data.get("new_state"))
+        ):
+            return
+        now = self.clock()
+        asked = self._asked_at.get(entity_id)
+        if asked is not None and now - asked < self.spacing_s:
+            return
+        self._asked_at[entity_id] = now
+        self.hass.async_create_task(self.refresh())
+
+    def _drop(self) -> None:
+        unsub, self._unsub = self._unsub, None
+        if unsub is not None:
+            unsub()
+
+    def release(self) -> None:
+        """Drop the listener for good; a later ``arm`` registers nothing (#236)."""
+        self.released = True
+        self._drop()
+        self._entities = frozenset()
+
+
+#: Per coordinator, its return watch: ``boost.py``'s side-table precedent.
+_RETURN_WATCHES: WeakKeyDictionary[Any, InputReturnWatch] = WeakKeyDictionary()
+
+
+def _return_watch(owner: Any) -> InputReturnWatch:
+    watch = _RETURN_WATCHES.get(owner)
+    if watch is None:
+        interval = getattr(owner, "update_interval", None)
+        watch = InputReturnWatch(
+            owner.hass,
+            owner.async_request_refresh,
+            interval.total_seconds() if isinstance(interval, timedelta) else 0.0,
+        )
+        _RETURN_WATCHES[owner] = watch
+    return watch
+
+
+def watch_returns(owner: Any, health: InputHealth) -> None:
+    """Arm ``owner``'s return watch on this cycle's ``health``."""
+    _return_watch(owner).arm(health)
+
+
+def release_returns(owner: Any) -> None:
+    """Release ``owner``'s return watch, creating it released if it never armed."""
+    _return_watch(owner).release()
 
 
 def health_summary(stale_keys: Collection[str], missing_keys: Collection[str]) -> str:

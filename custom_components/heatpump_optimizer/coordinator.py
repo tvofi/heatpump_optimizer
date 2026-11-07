@@ -205,10 +205,12 @@ from .inputs import (
     normalize_price_per_kwh,
     parse_bool,
     price_per_kwh,
+    release_returns,
     stale_summary,
     state_power_kw,
     state_unit,
     temperature_c,
+    watch_returns,
     write_setpoint_c,
 )
 from .external_heat import (
@@ -3577,6 +3579,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # #1755 r1: a released entry drops its worker-fallback latch, so a removed
         # entry cannot hold the shared repair issue or leak a key after it is gone.
         _clear_worker_fallback(self.hass, self.entry.entry_id)
+        release_returns(self)
         for name in ("_unsub_ecl110_state", "_unsub_peak_guard", "_unsub_defrost"):
             unsub = getattr(self, name, None)
             setattr(self, name, None)
@@ -6635,14 +6638,12 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # ``prior`` is the state the interval started from (the slab seed).
         prior = ctx._current_state
         state = replace(prior)
-        # Indoor temperature
         indoor = reader.read(CONF_INDOOR_TEMP_ENTITY)
         if indoor.ok:
             state.room_temperature = indoor.value
             # For two-zone: indoor sensor is typically upper floor
             state.upper_floor_temperature = indoor.value
 
-        # Outdoor temperature
         outdoor = reader.read(CONF_OUTDOOR_TEMP_ENTITY)
         if outdoor.ok:
             state.outdoor_temperature = outdoor.value
@@ -6803,6 +6804,7 @@ class HeatPumpOptimizerCoordinator(DataUpdateCoordinator[Payload]):
         # The health snapshot has to be complete before any learner runs, since
         # each one consults it to decide whether to freeze.
         self._input_health = reader.health
+        watch_returns(self, reader.health)
         self._learner_freeze_reason = None
 
         # The defrost derate's humidity bucket is resolved from this, so it has
