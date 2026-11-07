@@ -5,7 +5,8 @@ Metric, one line per plant: `RESULT mutant=<name> rc=<rc> fails=<n>`, then the
 failing check names. Each plant is one exact one-occurrence replacement in one
 of the files the ledger change touched; the driver applies it, runs that
 file's owner's self-test (ledger.py for the ledger and open_pr.sh's attempt
-lines, cloud_relay.sh, orchestrator_tick.py), and restores the file byte for
+lines, cloud_relay.sh, bus.sh, orchestrator_tick.py, beat_jobs.py,
+owed_unactioned.py), and restores the file byte for
 byte. It refuses to start when a target differs from HEAD, so a restore cannot
 overwrite work. Expected: every plant rc=1 with fails>=1 -- a FAIL line, not a
 crash (a crash is rc=1 with fails=0 and prints its tail). Each plant mutates
@@ -15,7 +16,7 @@ a predicate, never a tail.
     python3 tools/audit/seat/r10_ledger_mutants.py --null
     python3 tools/audit/seat/r10_ledger_mutants.py --self-test
 
-Null control: `--null` runs the three self-tests with no plant, which must
+Null control: `--null` runs every owner's self-test with no plant, which must
 print rc=0 fails=0 each. `--self-test` runs no plant and pins the sweep's
 preconditions: every anchor occurs exactly once, every plant changes its text,
 and every Python mutant parses.
@@ -29,7 +30,8 @@ ROOT = Path(__file__).resolve().parents[3]
 BUS = "tools/audit/seat/bus.sh"
 LEDGER, RELAY, TICK, OPENER = ("tools/audit/seat/ledger.py", "tools/audit/seat/cloud_relay.sh",
                                "tools/audit/seat/orchestrator_tick.py", "tools/audit/seat/open_pr.sh")
-OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK, BUS: BUS}
+BEAT, OWED_U = "tools/audit/seat/beat_jobs.py", "tools/audit/seat/owed_unactioned.py"
+OWNER = {LEDGER: LEDGER, OPENER: LEDGER, RELAY: RELAY, TICK: TICK, BUS: BUS, BEAT: BEAT, OWED_U: OWED_U}
 PLANTS = {
     # the ledger: event closers, the level's closers, aging, refusals, stores
     "L1_readback_no_close": (LEDGER, '                how = "read-back"', "                how = None"),
@@ -93,8 +95,9 @@ PLANTS = {
     # the tick reads the ledger
     "T1_unkinded_printed": (TICK, "            if len(f) > 2 and f[2] in lg.KINDS:", "            if True:"),
     "T2_no_reads_fold": (TICK, 'lg.fold(rows, getattr(self, "_live", None), getattr(self, "_readback", None))', "lg.fold(rows)"),
-    "T3_review_owed_silent": (TICK, '                                       getattr(rr, "RECORD_BRANCH", None)):\n                self.line(S, text, flag=True)',
-                              '                                       getattr(rr, "RECORD_BRANCH", None)):\n                pass'),
+    "T3_review_owed_silent": (TICK, '''lg.git_recarry(self.checkout or ".", "origin/main")):
+                self.line(S, text, flag=not text.startswith("CARRY:"))''',
+                              'lg.git_recarry(self.checkout or ".", "origin/main")):\n                pass'),
     "T4_no_escalation": (TICK, "                                aging, group_of, last_open):\n            self.line(S, text, flag=True)",
                          "                                aging, group_of, last_open):\n            pass"),
     "T5_no_design_build": (TICK, "        self.design_builds(S, rl, roster)\n", ""),
@@ -102,6 +105,28 @@ PLANTS = {
                              "            return\n        if not rows"),
     "T7_readback_uncollected": (TICK, '            self._readback[str(n)] = [(c.get("body") or "").split("\\n", 1)[0].rstrip("\\r") for c in vs]',
                                 "            pass"),
+    # R10-CARRY-RESIDUE: the CARRY arm, RECORD-OWED, and the family readers of RECORD-OWED
+    "C1_recarry_conflict_unchecked": (LEDGER, "if resolved is None or resolved.strip() or any(",
+                                      "if resolved is None or any("),
+    "C2_recarry_side_merge": (LEDGER, "if resolved is None or resolved.strip() or any(",
+                              "if resolved is None or resolved.strip() or False and any("),
+    "C3_record_owed_strict": (LEDGER, "        if age >= minutes:", "        if age > minutes:"),
+    "C4_tick_no_recarry": (TICK, ',\n                                       lg.git_recarry(self.checkout or ".", "origin/main")', ""),
+    "C5_tick_carry_flagged": (TICK, 'flag=not text.startswith("CARRY:")', "flag=True"),
+    "C6_tick_no_record_owed": (TICK, "for text in lg.record_owed(prs, now):", "for text in []:"),
+    "C7_beat_family_no_record": (BEAT, "|RECORD-OWED:|", "|"),
+    "C8_owed_family_no_record": (OWED_U, "|RECORD-OWED:|", "|"),
+    "C9_blocked_prior_carries": (LEDGER, 'for h, l in newest.items() if l.startswith("Fix review: merge ")]', "for h, l in newest.items()]"),
+    "C10_record_owed_unkeyed": (OWED_U, '    m = re.match(r"RECORD-OWED: (#\\d+) ([0-9a-f]{12}) \\d+m$", body)',
+                                '    m = None'),
+    "C11_recarry_no_ancestor": (LEDGER, '        if subprocess.run(["git", "-C", cwd, "merge-base", "--is-ancestor", prior, head],',
+                                '        if False and subprocess.run(["git", "-C", cwd, "merge-base", "--is-ancestor", prior, head],'),
+    "C12_recarry_any_commit": (LEDGER, 'if files is None or set(files.split()) != {f"dev/programme/delivery/{n}.md"}:',
+                               "if files is None:"),
+    "C13_record_owed_unapproved": (LEDGER, '                or (pr.get("reviewDecision") or "").upper() != "APPROVED":',
+                                   "                or False:"),
+    "C14_dispatched_not_prior": (LEDGER, " \\\n            + sorted(h for k, h in dispatched if k == str(n) and h not in newest)", ""),
+    "C15_blocked_dispatched_prior": (LEDGER, "if k == str(n) and h not in newest)", "if k == str(n))"),
 }
 
 
