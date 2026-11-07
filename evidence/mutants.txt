@@ -1,0 +1,44 @@
+### M1 stopign: SIG_IGN -> SIG_DFL-free (handler kept)
+  FAIL a train TERMed again during its unwind still deletes the hold ref
+  ok   K15 (a): a failed required context reads red while another is still in flight
+  ok   K15 (a): the --overlap gate logs main RED for a failed required context
+  ok   A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral gate, which judged nothing (null: a skipped non-gate context still reads green)
+  ok   #3073: a raise whose gate is also red for the raise unit itself SKIPPED or PENDING, not failed (no approval judged) stays RED, rc 1
+  ok   #3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: one failed job on any other failure is not re-run
+### M2 unwind in train(): stop_ignored dropped
+  FAIL a train TERMed again during its unwind still deletes the hold ref
+  ok   K15 (a): a failed required context reads red while another is still in flight
+  ok   K15 (a): the --overlap gate logs main RED for a failed required context
+  ok   A5/A1 item 4: a RATE-LIMITED gate (gate.py exit 3, a failed job) is red; so is a skipped or neutral gate, which judged nothing (null: a skipped non-gate context still reads green)
+  ok   #3073: a raise whose gate is also red for the raise unit itself SKIPPED or PENDING, not failed (no approval judged) stays RED, rc 1
+  ok   #3073 O2: a failed three-dot diff read is not approval owed: RED, rc 1
+  ok   V142: the stamp's shape (validate-hacs and env-matrix on the rate-limit strings, gate FAIL env-matrix then validate-hacs unprefixed) is due 3600 s after the last matching job, 23:43Z
+  ok   V142 null: one failed job on any other failure is not re-run
+### M3 stamp: dispatch-site guard only removed
+  ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   push: a failed refresh is reported, not raised
+  FAIL flush: a planted live hold is named, announced once, and spends no dispatch
+  FAIL flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+RESULT stamp_self_test=fail
+### M4 stamp: redispatch-site guard only removed
+  ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   push: a failed refresh is reported, not raised
+  FAIL flush: a planted live hold is named, announced once, and spends no dispatch
+  FAIL flush: a mutant dispatching under a live hold exhausts FLUSH_MAX_DISPATCHES, and is caught
+RESULT stamp_self_test=fail
+### M5 stamp: count taken back removed
+  ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   push: a failed refresh is reported, not raised
+  FAIL flush: a dispatch sent before the hold appeared is taken back and sent again once it clears, and the flush still merges
+RESULT stamp_self_test=fail
+### M6 stamp: stale bound check removed
+  ok   B3: a gate that did not succeed is never green: RATE-LIMITED (a failed job), skipped, cancelled, absent
+  ok   tag push: a failed tag push does not roll the commit back
+  ok   push: a failed refresh is reported, not raised
+  FAIL hold: a young one is live with sha, age and pid; a stale one, a future-dated one and an absent ref read as no hold
+RESULT stamp_self_test=fail

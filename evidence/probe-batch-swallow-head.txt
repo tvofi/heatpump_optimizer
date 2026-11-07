@@ -1,0 +1,10 @@
+== mode=real
+BATCH T
+git worktree remove /x
+UNWINDING
+gh api --method DELETE repos/o/r/git/refs/heads/train-hold
+BATCH T-b2
+git worktree remove /x
+UNWINDING
+gh api --method DELETE repos/o/r/git/refs/heads/train-hold
+RETURNED rc=0
