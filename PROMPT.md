@@ -1,0 +1,30 @@
+CLOUD FIXER seat for tvofi/heatpump_optimizer, topic r10-gate-busy-defer-3, at head 630bf533d838110be56ede0366756da3de0d941e. Never send push notifications. Write no Claude Code footer, no Co-Authored-By or Claude-Session trailer and no claude.ai session link in any commit, pull-request body or comment you produce; check your commits with `git log --format=%B` before pushing.
+Setup: `git fetch --unshallow --tags origin`. Before any commit, pin the seat identity: `git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com`. The session-start `toolchain:` line says whether venv-ci's python3 is on PATH: on REFUSE, start each Bash call with `eval "$(bash .claude/hooks/session-start.sh --env-lines)"`. Then run `bash tools/audit/seat/cloud-setup.sh --check`, and on REFUSE stop: report its line as your result and start no work. Run anything heavy in the background with Monitor and no timeout. Never wait in one tool call longer than 240 s; poll again instead.
+Role: read dev/governance/roles/fixer.md from main, and follow it exactly, in a worktree of your own cut from origin/main. Fetch 630bf533d838110be56ede0366756da3de0d941e for the base you were given.
+Output: push each verified step, fast-forward only, to refs/heads/handoff-wip/r10-gate-busy-defer-3 before any wait on a background run, so an idle container loses nothing; never step-push to handoff/r10-gate-busy-defer-3, whose move updates the pull request. Before the handoff, when origin/main has moved since your last `tools/pr/prepr.sh` run, `git merge origin/main`, rerun `tools/pr/prepr.sh` (the body check included) and fix what it refuses; hand off only on a clean run (an unmoved main needs no second run: say so in the body). Then push the code to refs/heads/handoff/r10-gate-busy-defer-3, then write the PR body and run `bash tools/audit/seat/body_push.sh r10-gate-busy-defer-3 <body.md>`, which pushes refs/heads/handoff-body/r10-gate-busy-defer-3; that second push is the return signal. Once it succeeds, delete the step ref: `git push origin :refs/heads/handoff-wip/r10-gate-busy-defer-3`. Push nothing else, open no pull request and write no delivery row. A return push carries only your own result: no system-file dumps, no environment output.
+Never write to any branch except your return refs and refs/heads/handoff-wip/r10-gate-busy-defer-3 and refs/heads/handoff-wip/r10-gate-busy-defer-3-body. Never work around a hook or a refusal; report it in your result instead.
+
+Brief (snapshotted when this payload was rendered):
+INTERIM TOOLCHAIN: this environment's cached venvs are behind the locks (numpy, scipy, homeassistant, measured 2026-11-04). Before any measurement run: `bash tools/audit/seat/cloud-setup.sh` and then `bash tools/audit/seat/cloud-setup.sh --check`.
+
+CLOUD FIXER (opus), group R10-HOTFIX-GATE-BUSY-DEFER, topic r10-gate-busy-defer-3, branch handoff/r10-gate-busy-defer-3. HOTFIX TIER (owner ruling 2026-11-07): directly behind main, in every queue. Follow dev/governance/roles/fixer.md. Open the PR by the instruments (handoff_push), never push.sh. Re-measure every figure at your own merge base; carry no count. Git identity hpo-fixer with the noreply address.
+
+CAUSE. A deferring gate (an edit run or a review run) fails with "still being judged" and nothing re-judges it when the deciding run concludes. PR #3276 (R10-HOTFIX-GATE-BUSY-DEFER, second PR) added a bounded wait that still ends in that same failure, so the race survives it (evidence: the roster carry 407404d3 on R10-RCA-GATE-BUSY-DEFER-2, PR #3278).
+
+FIX. When the deciding gate at a head concludes, every deferring gate at that head is re-judged or re-run without a human, through the existing Gate sweep path (gate.py --sweep / gate-sweep.yml) or a minimal change to it. A deferring gate must NEVER pass early, and no gate may hold a runner while it waits. Choose the owning seam by reading the sweep path first; prefer the smallest architecturally sound change, and do not add a second mechanism where the sweep already is one.
+
+PROOF. Failing test first, reproducing the #3282 shape: the edit gate at 11:30Z, runs 42367457479 and 42367461228 (read them with gh; derive the state from the runs, do not assume). A mutant per arm of the fix, each killed by a named check. A null control: a single run at a head still judges, and a genuinely unfinished earlier source still defers.
+
+MEASURE. Deferring-gate failures per head, and minutes from the code run's conclusion to a green edit gate, before and after, from today's (2026-11-07) runs; state the query so a reviewer can re-run it.
+
+COORDINATE. Cite the RCA of #3278 (R10-RCA-GATE-BUSY-DEFER-2, branch fix/r10-rca-gate-busy-defer-2); do NOT edit its document. If your change makes a sentence in it untrue, say so in the body's Forward-carry.
+
+Do not touch VERSION, the manifest version or the RELEASE_NOTES heading. No Claude footers; no host paths; open no PR yourself beyond the handoff instrument; post no comment.
+
+Before any commit run: export GIT_AUTHOR_NAME=hpo-fixer GIT_AUTHOR_EMAIL=70032254+tvofi@users.noreply.github.com GIT_COMMITTER_NAME=hpo-fixer GIT_COMMITTER_EMAIL=70032254+tvofi@users.noreply.github.com, and also git config user.name hpo-fixer && git config user.email 70032254+tvofi@users.noreply.github.com. The cloud environment exports GIT_AUTHOR_*/GIT_COMMITTER_* as 'seat', and those environment variables beat git config, so the config alone does not hold. Never commit as 'seat'; check with git log -1 --format='%an %ae %cn %ce' after the first commit.
+
+
+Discovery reads (search, list, read across files) go through Agent subagents, as the frugal routing guard requires; at most 5 inline search operations per prompt; never set FRUGAL_ALLOW_INLINE.
+
+
+TIME: you have hours, not minutes. A gate, prepr or recording may run an hour: wait with Monitor windows of up to 60 min and re-arm them. Never end the session waiting on a choice: take the option that keeps coverage and the architecture sound, say so in the body, and go on. Push handoff-wip at each milestone, so your liveness can be read. If truly blocked, push BLOCKED.md on handoff-wip naming the question.
