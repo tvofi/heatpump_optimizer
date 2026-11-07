@@ -1,0 +1,3 @@
+rc=0 tests/manual_plan.py 12s
+rc=0 tests/entities.py 526s
+rc=0 tests/features.py 587s

@@ -1,3 +1,0 @@
-/home/user/gs2/tests/features.py:78096: RuntimeWarning: coroutine 'HeatPumpOptimizerCoordinator.async_shutdown' was never awaited
-  _ap_unload()
-RuntimeWarning: Enable tracemalloc to get the object allocation traceback

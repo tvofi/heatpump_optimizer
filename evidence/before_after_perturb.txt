@@ -1,4 +1,0 @@
-RESULT perturb[O-P4-zeros] tariff_outputs_differing=5708 count
-RESULT perturb[O-P9-wall] tariff_outputs_differing=6062 count
-RESULT perturb[O-P8-nohead] tariff_outputs_differing=18649 count
-RESULT perturb[O-P7-days] tariff_outputs_differing=29 count

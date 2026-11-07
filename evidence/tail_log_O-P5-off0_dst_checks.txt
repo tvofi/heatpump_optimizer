@@ -1,3 +1,0 @@
-Update gap of 3584090 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-Update gap of 3584180 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)
-Update gap of 3584165 minutes reads as an outage; staggered recovery active for 2.0 h (hot water queued 45 min behind space heating)

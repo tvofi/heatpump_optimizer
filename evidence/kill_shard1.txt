@@ -1,0 +1,4 @@
+KILLED rc=1 GUARD_OFF HeatPumpOptimizerCoordinator._async_learn_lower_floor_loss -> tests/features.py | 2 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 BOOLOP OptimizationResult.sensor_trajectory -> tests/features.py | 1 of 4883 FEATURE CHECKS FAILED
+KILLED rc=1 GUARD_OFF _WaitsForEvidenceMixin._evidence_attributes -> tests/entities.py | 5 of 2650 ENTITY CHECKS FAILED
+KILLED rc=1 RETURN_DEL _window_starts -> tests/features.py | -- R9 P6: the unprobed plant state advances from the plan (D12-s1-01)
