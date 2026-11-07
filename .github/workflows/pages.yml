@@ -25,8 +25,10 @@ name: Pages
 #   `handoff/audit-r<N>-plan` state ref, refusing a page that carries a host
 #   path or a tool's attribution (a red run; nothing deployed), and the beat's
 #   `plan-beat` row dispatches this workflow on `main` after each state push
-#   that carried a page. Between rounds there is no page: the site deploys
-#   without one and warns. The docs are always the newest `v*` tag's -- on a
+#   that carried a page. A closed round's state ref stays the newest until
+#   `closeout.py --apply` deletes it, so its page is served until then; with
+#   no state ref, or no page at the newest, the site deploys without one and
+#   warns. The docs are always the newest `v*` tag's -- on a
 #   dispatch the build checks that tag out after staging the plan -- so a plan
 #   refresh never serves main's unreleased documentation.
 #
