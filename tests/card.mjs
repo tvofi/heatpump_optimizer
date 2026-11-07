@@ -13324,11 +13324,11 @@ check("without an indoor reading the corner now label is absent",
     && /data-part="mold_guard"[\s\S]*?sb-text">no effect now</.test(fed), fed);
   const absent = withWhy(undefined);
   check("why-now: no why_now attribute renders the no-data line and no rows",
-    absent.includes(EN["whynow.no_data"]) && !/sb-row/.test(absent), absent);
+    absent.includes(`<div class="sb-text">${EN["whynow.no_data"]}</div>`) && !/sb-row/.test(absent), absent);
   const neutral = withWhy({ t: why.t, drivers: [
     { code: "price_rank", direction: "neutral", weight: 0 }, { code: "forecast", direction: "neutral", weight: 0 }] });
   check("why-now: every driver neutral renders the one all-neutral line",
-    neutral.includes(EN["whynow.all_neutral"]) && !/sb-row/.test(neutral), neutral);
+    neutral.includes(`<div class="sb-text">${EN["whynow.all_neutral"]}</div>`) && !/sb-row/.test(neutral), neutral);
   const sv = withWhy(why, "sv-SE");
   const SV = fn("STRINGS.sv");
   check("why-now: Swedish words, hover and percent spacing",
