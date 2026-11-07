@@ -469,8 +469,9 @@ COST_DETECTION = 2.0
 #: and 0.137-0.227 at that recording. The CI ``replay`` job reads the loop
 #: wider: 0.128 and 0.1339 (ref30: jobs 125240101580, 125160076828), 0.1418
 #: and 0.1433 (ref46: 125097530406, 125316010511), 0.189 (ref24: 125461180429),
-#: so its residual margin is the ref30 reading, 2.8 % over the band's floor
-#: 0.1245; the ceiling side keeps 24 %.
+#: so under that recording's 0.249 budget its residual margin was the ref30
+#: reading, 2.8 % over the floor 0.1245, the ceiling side 24 %; round 3 below
+#: re-derives that budget.
 #: Re-centred (R10-REPLAY-COST-BUDGET) on the readings the CI ``replay`` job
 #: and nightly.yml ``slow`` take, from their own ``cost`` lines, and on
 #: nothing a reviewer's or author's box read. Owner fixture ``cpu_ratio``
