@@ -1,0 +1,4 @@
+tools/audit/seat/pr_args.sh: line 446: /../../../tests/throwaway_git.sh: No such file or directory
+tools/audit/seat/pr_args.sh: line 449: throwaway_git_init: command not found
+  FAIL fixture
+rc=1

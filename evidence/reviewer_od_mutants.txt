@@ -1,0 +1,15 @@
+RESULT mutant=NULL 0 failed; open_driver self-test: 76 checks, 0 failed
+RESULT mutant=R-print-gt 2 failed; open_driver self-test: 76 checks, 2 failed
+RESULT mutant=R-skip-gt 2 failed; open_driver self-test: 76 checks, 2 failed
+RESULT mutant=R-tries4 3 failed; open_driver self-test: 76 checks, 3 failed
+RESULT mutant=R-tries2 0 failed; 
+RESULT mutant=R-tprefix-open 6 failed; open_driver self-test: 76 checks, 6 failed
+RESULT mutant=R-tprefix-all 1 failed; open_driver self-test: 76 checks, 1 failed
+Traceback (most recent call last):
+  File "<stdin>", line 1, in <module>
+AssertionError: ('reason(d / f"t-{stem(t)}.log")}\\n', 0)
+RESULT mutant=R-why-log NOT-APPLIED (pattern not found; second null: 76 checks, 0 failed)
+RESULT mutant=R-fails-why 2 failed; open_driver self-test: 76 checks, 2 failed
+RESULT mutant=R-escape-order 1 failed; open_driver self-test: 76 checks, 1 failed
+RESULT mutant=R-stuck-why 1 failed; open_driver self-test: 76 checks, 1 failed
+RESULT mutant=R-tries2 killed (self-test crashes: FileNotFoundError seen.txt, rc!=0)
