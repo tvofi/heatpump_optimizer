@@ -1,0 +1,20 @@
+
+-- R10-PROD-RESIDUE-PINS: one plan step width in the arbiter; shutdown re-arms the hass latches
+  ok   R10-PROD-RESIDUE-PINS #2365: a 40 % hot-water share splits at minute 12 of a 30-minute step (6 of a 15-minute one) and the log holds a day of steps
+  ok   R10-PROD-RESIDUE-PINS #2365 null control: at the real 15-minute width the split is minute 6 and the log holds 96 steps
+  ok   R10-PROD-RESIDUE-PINS #2365: a remainder of exactly SPLIT_MIN_MINUTES is still a heating share (the guard is a strict <)
+  ok   R10-PROD-RESIDUE-PINS #2351: async_shutdown re-arms a hass-owned latch (WARNING twice across a shutdown)
+  ok   R10-PROD-RESIDUE-PINS #2351 null control: without the shutdown the second call stays at DEBUG
+  ok   R10-GRADE-DRIVERS tally: a zero-hour interval books no spot time
+  ok   R10-GRADE-DRIVERS tally: a non-finite spot books no spot time
+  ok   R10-GRADE-DRIVERS tally: the first interval is at the running mean, not below it
+  ok   R10-GRADE-DRIVERS day_drivers: an empty book splits a positive sample into zeros
+  ok   R10-GRADE-DRIVERS day_drivers: a negative sample leaves both drivers at 0
+  ok   R10-GRADE-DRIVERS day_drivers: a zero sample leaves both drivers at 0
+  ok   R10-GRADE-DRIVERS day_drivers: a negative-zero sample books the same zeros as a zero one, sign included
+  ok   R10-GRADE-DRIVERS day_drivers: a day that saved nothing scales to 0
+  ok   R10-GRADE-DRIVERS fold: None seeds the grade, a held grade blends by SCORE_ALPHA
+  ok   R10-GRADE-DRIVERS restore: adopts only a mapping the store admitted
+
+1 of 4904 FEATURE CHECKS FAILED
+DONE rc=1

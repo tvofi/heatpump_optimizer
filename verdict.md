@@ -1,0 +1,23 @@
+Fix review: merge 28e4375441e6011083dce278e3ffdee9cbbbf26f
+
+bus-nonce: 12b63d80e20ec9d0ee77cec63ba73108
+
+Round 6 of the #3232 review (outside contribution #3226, re-authored). This is past the fourth round, where `fixer.md` owes a re-cut. The orchestrator ruled at 22:33Z that the round-5 repair already is the minimal re-cut: one killing check plus its null control. Measured head `28e4375441e6011083dce278e3ffdee9cbbbf26f`, re-read as `refs/pull/3232/head` just before posting. Reviewed from detached worktrees at the head and at the head plus the `measure` mutant. The role file is current: three-dot `merge-base...origin/main -- dev/governance/roles/` touches only `nudge.md`.
+
+## Evidence
+
+- Block closed. Mutant `measure` is round 5's `ev/mutant-m_measure.diff` (from `probe/rev-3232-cc3bfb99`). It deletes `left_bytes -= size` at `coordinator.py:1957`. At the head it gives `1 of 4904 FEATURE CHECKS FAILED`, rc=1. The one FAIL is the new check "a reply whose reads each fit the frame cap but whose total exceeds it is refused and the worker reaped" (`raised None after 0.00 s`, the whole reply returned). See ev/features-mut.summary.txt.
+- Null control. The unmutated head gives `ALL 4904 FEATURE CHECKS PASSED`, rc=0, and the new check is `ok`. "null control: a reply of two reads whose total is under the frame cap returns whole" is `ok` both at the head and under the mutant. See ev/features-head.summary.txt.
+- Probe. Round 5's ev/probe_measure.py at the head prints `RESULT head: refused: reply frame exceeds 1000000 bytes`. Under the mutant it prints `RESULT mut: frame of 1200044 bytes ACCEPTED over cap 1000000`, which reproduces the block. See ev/probe-head.txt and ev/probe-mut.txt.
+- Repair scope. There is one non-merge commit, `9f53a7bc1`: +33 lines in `tests/worker_deadlines.py` and nothing else. Its parent `79f202f8e` has the same tree as `bba5b4d4` (`75409b2f9`). The tree of `dc8cbd06c` equals `git merge-tree --write-tree 9f53a7bc1 80016a71f` (`d357153ed`), so the main merge is clean and carries no hand resolution. The head merge `28e437544` has that same tree. The PR's three-dot diff at bba5b4d4 and at the head differs only by those 33 lines and by context offsets in `tests/closures.json`. See ev/threedot-bba-vs-head.diff and ev/figures.txt. No file under `custom_components/` moved this round.
+- Pin. No new `killed_by` row was added. I checked the body's reason: `tests/mutation_table.py` generates only CLAMP_DROP, GUARD_OFF, RAISE_DEL, RETURN_DEL, BOOLOP, CONST and CMP_BOUND (lines 212-339). It has no mutant for an augmented assignment, so there is no inventory site for a row to pin. The check is the pin. The 20 ledger rows from earlier rounds are unchanged.
+- Body figures re-derived at the head: 4904 feature checks, 1 of 4904 under the mutant, 27 `R.check(` sites in `tests/worker_deadlines.py`. Three-dot `-- tests/golden VERSION RELEASE_NOTES.md manifest.json` is empty. Not re-derived, per the brief: 4876 at base, entities 2640, structure, gate MODE FULL, prepr rc=0, arch_score 279. The packet's figure_lint gives `FIGURES: 8 resolved, 1 not verified, 0 refused`.
+- Head SHA in the body: `28e4375441e6011083dce278e3ffdee9cbbbf26f`, which is the head I measured.
+- CI. `merge_train.py classify` gave `GREEN 28e4375441e6011083dce278e3ffdee9cbbbf26f pending: none red: none` (rc=0) at 05:25Z and again just before posting. The packet's gate digest is green, with `pr-contract / pr-contract` success. Every red in the body's Red-checks section is at `e80a319c2` or is a superseded aggregate, and each is answered by name there. Nothing stands red at this head.
+- Merge with main. `git merge-tree --write-tree origin/main 28e4375441e6011083dce278e3ffdee9cbbbf26f` exits rc=0 (tree `f4ce91ffa`) at origin/main `294a880da`. See ev/merge-tree-main.txt.
+- Security: CLEAR, per p-3232-r5 at bba5b4d4. I did not redo it, as the brief says, and the code is unchanged since.
+
+## Findings
+
+- The new check's failure message formats `{_wt_cum_out!r}`, so a failure prints the whole 1.2 MB returned tuple into the log. The mutant run's log reached 4.6 MB from that one line. Cosmetic: it appears only when the check fails, and the verdict is unaffected. Carry: dismissed: cosmetic, printed only on failure, no gate reads its length
+- `tests/mutation_table.py` generates no mutant that deletes an augmented assignment, so a running-count bound like `left_bytes -= size` can lose its test while the mutation lane stays green. The body already hands this to the orchestrator. Carry: dismissed: instrument class outside this PR's diff; the orchestrator routes it to the mutation-tooling owner or refuses it

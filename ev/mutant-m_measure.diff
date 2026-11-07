@@ -1,0 +1,12 @@
+diff --git a/custom_components/heatpump_optimizer/coordinator.py b/custom_components/heatpump_optimizer/coordinator.py
+index 7bcdcea16..b8f65fd9e 100644
+--- a/custom_components/heatpump_optimizer/coordinator.py
++++ b/custom_components/heatpump_optimizer/coordinator.py
+@@ -1954,7 +1954,6 @@ def _frame_reader(fd: int, timeout_s: float) -> SimpleNamespace:
+             raise ValueError(
+                 f"reply frame exceeds {_REPLY_FRAME_MAX_BYTES} bytes"
+             )
+-        left_bytes -= size
+         chunks: list[bytes] = []
+         while size > 0:
+             # Checked here, not left to the wait: a descriptor at end of
