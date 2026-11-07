@@ -1472,9 +1472,10 @@ def self_test() -> int:
           == ["py", "tests/delivery_status.py", "--require-rows", "--since", "v6.6.1",
               "--head", "abc123"])
     _seen_argv: list = []
-    disposition_gate("v6.6.1", lambda argv: (_seen_argv.append(argv), _Proc(0, "ok"))[1], head="abc123")
+    _gate_ret = disposition_gate("v6.6.1", lambda argv: (_seen_argv.append(argv), _Proc(0, "ok"))[1],
+                                 head="abc123")
     check("rows gate: disposition_gate forwards its head to the command",
-          _seen_argv and _seen_argv[0][-2:] == ["--head", "abc123"])
+          _seen_argv and _seen_argv[0][-2:] == ["--head", "abc123"] and _gate_ret == (True, "ok"))
     check("rows gate: main's rule 5 passes the stamp head",
           "disposition_gate(last_tag, head=head)" in __import__("inspect").getsource(main))
     check("record beat: the dispatch payload carries lanes=beat on main",
@@ -1488,11 +1489,12 @@ def self_test() -> int:
     _real_urlopen = urllib.request.urlopen
     urllib.request.urlopen = lambda req, timeout=None: (_beat_sent.append(req.data), _BeatResp())[1]
     try:
-        dispatch_record_beat(token=lambda: "t")
+        _beat_ret = dispatch_record_beat(token=lambda: "t")
     finally:
         urllib.request.urlopen = _real_urlopen
     check("record beat: dispatch_record_beat posts lanes=beat",
-          _beat_sent and json.loads(_beat_sent[0]) == {"ref": "main", "inputs": {"lanes": "beat"}})
+          _beat_sent and json.loads(_beat_sent[0]) == {"ref": "main", "inputs": {"lanes": "beat"}}
+          and _beat_ret == (True, "HTTP 204"))
     _rows_rowless = ("DELIVERY STATUS OK -- 0 rowed, 1 pending, 0 overdue "
                      "(overdue at 12 commits)\n  pending  #1301 0abc123 the merge")
     check("rows gate: a rowless window refuses, carrying the instrument's own list",
