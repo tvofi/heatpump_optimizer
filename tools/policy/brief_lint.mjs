@@ -852,6 +852,7 @@ function checkShape(groups, findings) {
 // and belongs where case 4 already is.
 export const CARRY_FILE_RE = /^carry-(\d+)\.json$/
 export const ROSTER_FILE_RE = /^wave-.*-groups\.json$/
+export const ROSTERS_DIR = path.join(ROOT, 'dev', 'programme', 'rosters')
 const CARRY_EFFECTS = new Set(['narrows', 'invalidates', 'removes'])
 const CARRY_FIELDS = ['from', 'effect', 'control', 'remeasure', 'brief']
 
@@ -870,7 +871,11 @@ export function rosterIssues(dir) {
   const out = new Map()
   let files
   try {
-    files = dir ? fs.readdirSync(dir).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(dir, f)) : workflowFiles(ROSTER_FILE_RE)
+    // No argument reads the roster directory (roster_lib.ROSTERS_DIR) as well as workflowFiles(): a default
+    // that read only the latter indexed one issue, so the live-group refusal never fired in CI (#2896 A1).
+    const d = dir ?? ROSTERS_DIR
+    files = fs.readdirSync(d).filter((f) => ROSTER_FILE_RE.test(f)).sort().map((f) => path.join(d, f))
+    if (!dir) files = [...new Set([...files, ...workflowFiles(ROSTER_FILE_RE)])]
   } catch {
     return out
   }
@@ -954,13 +959,16 @@ export function checkCarryShape(file, data, findings, roster) {
 // Repairing them would rewrite other groups' controls, so the control lint leaves out these files and
 // only them (both its citation check and its no-path rule): the set is closed -- a new carry file is
 // never added here -- and shrinks as a carry is re-measured or consumed.
+// LEGACY_CONTROL_CAP pins that: the set may only shrink (assertLegacyControl), and a member whose
+// controls now lint clean must leave it.
+const LEGACY_CONTROL_CAP = 14
 const LEGACY_CONTROL_FILES = new Set([
   'carry-1067.json', 'carry-1336.json', 'carry-1395.json', 'carry-1398.json', 'carry-1412.json',
   'carry-1454.json', 'carry-1459.json', 'carry-1463.json', 'carry-1644.json', 'carry-1645.json',
-  'carry-1659.json', 'carry-1660.json', 'carry-1795.json', 'carry-201.json', 'carry-752.json',
+  'carry-1659.json', 'carry-1660.json', 'carry-201.json', 'carry-752.json',
 ])
 
-export function lintCarryFile(file, { roster } = {}) {
+export function lintCarryFile(file, { roster, legacy = LEGACY_CONTROL_FILES } = {}) {
   const findings = []
   const label = path.posix.basename(file)
   let data
@@ -976,7 +984,7 @@ export function lintCarryFile(file, { roster } = {}) {
     if (!c || typeof c !== 'object') return
     // The control is cited prose like the brief: an unresolvable path or symbol, a metric literal or a
     // derived count in it is refused the same way (the next stage re-establishes the finding from it).
-    if (typeof c.control === 'string' && c.control.trim() && !LEGACY_CONTROL_FILES.has(label)) {
+    if (typeof c.control === 'string' && c.control.trim() && !legacy.has(label)) {
       lintBrief(`${label} carry ${i} control`, c.control, findings)
       // A control no seat can re-run is a figure, not a control (writing-for-agents.md: no enumerator,
       // no figure). The requirement binds every carry file but the LEGACY_CONTROL_FILES recorded below.
@@ -1288,7 +1296,7 @@ function assertCarryControl() {
     for (const m of problems) console.log(`  ${m}`)
     return 1
   }
-  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the 15 legacy files are left out')
+  console.log('\nCONTROL ok: a carry control with no path, or an unresolvable one, is refused; one naming an existing harness is not; the legacy files are left out')
   return 0
 }
 
@@ -1319,6 +1327,45 @@ function assertCarryFixtures() {
     `\nCARRY ok: ${REQUIRED_CARRY.length} error(s) pin the carry acceptance across three malformed fixtures, ` +
       'and the correct one produces no finding of any severity'
   )
+  return 0
+}
+
+// A1 (#2896) and the carry-control narrowing, pinned:
+//  - the no-argument roster default reads dev/programme/rosters, so a carry file at an issue a live group
+//    covers is refused by lintCarryFile with no roster handed in (a carry at 999999 is not: null control);
+//  - LEGACY_CONTROL_FILES only shrinks: its size is at most LEGACY_CONTROL_CAP, and every member still has a
+//    control error when linted without the exemption (a repaired file must be removed from the set).
+function assertLegacyControl() {
+  const problems = []
+  const live = [...rosterIssues(ROSTERS_DIR).keys()][0]
+  const tmp = fs.mkdtempSync(path.join(os.tmpdir(), 'carrycollide-'))
+  try {
+    const model = JSON.parse(fs.readFileSync(path.join(FIXTURES, 'carry-990001.json'), 'utf8'))
+    const at = (n) => {
+      const f = path.join(tmp, `carry-${n}.json`)
+      fs.writeFileSync(f, JSON.stringify({ ...model, issue: n }))
+      return lintCarryFile(f).filter((x) => x.severity === 'error' && x.message.includes('live roster group'))
+    }
+    if (!Number.isInteger(live)) problems.push('the roster directory indexes no issue: the default reads nothing')
+    else if (!at(live).length) problems.push(`a carry file at #${live}, covered by a live group, is accepted with the default roster`)
+    if (at(999999).length) problems.push('a carry file at an uncovered issue (999999) is refused as a collision (null control)')
+  } finally {
+    fs.rmSync(tmp, { recursive: true, force: true })
+  }
+  if (LEGACY_CONTROL_FILES.size > LEGACY_CONTROL_CAP) problems.push(`LEGACY_CONTROL_FILES holds ${LEGACY_CONTROL_FILES.size} files, over its cap ${LEGACY_CONTROL_CAP}: the set only shrinks`)
+  const files = new Map(carryFiles().map((f) => [path.posix.basename(f), f]))
+  for (const label of LEGACY_CONTROL_FILES) {
+    const f = files.get(label)
+    if (!f) { problems.push(`${label} is in LEGACY_CONTROL_FILES and in no carry directory: remove it`); continue }
+    const errs = lintCarryFile(f, { roster: new Map(), legacy: new Set() }).filter((x) => x.severity === 'error' && / control/.test(x.group))
+    if (!errs.length) problems.push(`${label}: its controls lint clean without the exemption: remove it from LEGACY_CONTROL_FILES`)
+  }
+  if (problems.length) {
+    console.log('\nLEGACY-CONTROL VACUOUS:')
+    for (const m of problems) console.log(`  ${m}`)
+    return 1
+  }
+  console.log('\nLEGACY-CONTROL ok: the default roster refuses a live-group collision and accepts an uncovered carry; the legacy set is within its cap and each member still needs the exemption')
   return 0
 }
 
@@ -1491,6 +1538,7 @@ function main() {
     acceptanceRc += assertRosterIssues()
     acceptanceRc += assertCarryFixtures()
     acceptanceRc += assertCarryControl()
+    acceptanceRc += assertLegacyControl()
     acceptanceRc += assertTreeRev()
   }
   process.exit(totalErrors > 0 || acceptanceRc ? 1 : 0)
