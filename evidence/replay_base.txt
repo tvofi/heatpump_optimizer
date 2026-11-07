@@ -1,5 +1,0 @@
-replay: edit gate 42367457809 judged from its recorded Judge this head start: 'FAIL run(s) [42367457479, 42367461228] at this head are still being judged; their gate decides' after waiting 720 s
-replay: sweep for code run 42367457479: SWEEP re-ran gate of run 42367457809 (attempt 1, completed red)
-replay: sweep for code run 42367457479: SWEEP-DONE run=42367457479 reruns=1
-replay: re-judged by the sweep's re-run: 'PASS'
-RESULT replay wait_s=720 first=FAIL swept=yes final=PASS

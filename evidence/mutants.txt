@@ -1,21 +1,68 @@
-== M4-overlap-arm-removed
- tools/ci/sweep.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 1
-FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 2
-sweep self-test: 33 checks, 2 failed
-gate self-test: 77 checks, 0 failed
-== M3-late-arm-removed
- tools/ci/sweep.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-FAIL settle: two gates that deferred to each other (each started before the other's units finished) are both re-run, the triggering run's included
-FAIL settle: a decider that ended red re-runs the gate that deferred to it, not itself
-FAIL settle: a gate still running is polled, then the deferral it leaves red is re-judged
-sweep self-test: 33 checks, 3 failed
-gate self-test: 77 checks, 0 failed
-== M8-judge-lag-bound-max
- tools/ci/gate.py | 2 +-
- 1 file changed, 1 insertion(+), 1 deletion(-)
-M8: self-test did not finish within ~4 min; stopped, not counted (the body's M1 covers this line)
-== NULL-comment-only
-sweep self-test: 33 checks, 0 failed
+MUTANT NULL comment-only:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT G1 deferral waits again:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 14 failed rc=1
+      FAIL #2754 shape: a gate beside a busy edit run and a queued review run defers at once, no nap; re-run once they decide, it judges: got ('FAIL run(s) [101, 102] at this head are still being judged; th
+      FAIL simultaneous completion, side A: the other's gate not yet listed -> the deferral at once; re-run, it judges: got ('FAIL run(s) [101] at this head are still being judged; their gate decides', [60,
+  -B: RESULT replay wait_s=720 first=FAIL swept=yes final=PASS rc=0
+MUTANT G2 lagged not recorded:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 1 failed rc=1
+      FAIL a cleared lag is noticed: one note names the job and the wait; a fresh listing notes nothing (null): got ([], []), want (['listing lag: tests / mutation: PENDING (this run) re-read for 60 s'], []
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S1 settle -> old SKIP:
+  sweep.py: sweep self-test: 52 checks, 20 failed rc=1
+      FAIL a triggering run whose gate is red re-runs nothing (no source finished after either gate started)
+      FAIL a gate that does not cover the newest event sweeps nothing
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S2 arm1 late source removed:
+  sweep.py: sweep self-test: 52 checks, 3 failed rc=1
+      FAIL settle: two gates that deferred to each other (each started before the other's units finished) are both re-run, the triggering run's included
+      FAIL settle: a decider that ended red re-runs the gate that deferred to it, not itself
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S3 arm2 removed:
+  sweep.py: sweep self-test: 52 checks, 4 failed rc=1
+      FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 1
+      FAIL settle: a lagging-listing pair (sources done, gates overlapping) re-runs the lower id only, swept from run 2
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S4 arm3 removed:
+  sweep.py: sweep self-test: 52 checks, 3 failed rc=1
+      FAIL settle: the higher of a lagging pair, deferred to a lower gate that ended green but does not cover the newest event, is re-run, swept from run 1
+      FAIL settle: the higher of a lagging pair, deferred to a lower gate that ended green but does not cover the newest event, is re-run, swept from run 2
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S5 arm1 excludes no gate:
+  sweep.py: sweep self-test: 52 checks, 11 failed rc=1
+      FAIL a triggering run whose gate is red re-runs nothing (no source finished after either gate started)
+      FAIL a gate that does not cover the newest event sweeps nothing
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S6 no finishing poll:
+  sweep.py: sweep self-test: 52 checks, 1 failed rc=1
+      FAIL settle: a gate still running is polled, then the deferral it leaves red is re-judged
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S7 no unconcluded skip:
+  sweep.py: sweep self-test: 52 checks, 2 failed rc=1
+      FAIL settle: a run whose gate is still queued owns convergence (SKIP, nothing re-run)
+      FAIL settle: a run whose gate is still waiting owns convergence (SKIP, nothing re-run)
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S8 success gate re-run too:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S9 completed-but-run-open not polled:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
+MUTANT S10 live check dropped:
+  sweep.py: sweep self-test: 52 checks, 0 failed rc=0
+  gate.py: gate self-test: 77 checks, 0 failed rc=0
+  -B: RESULT replay wait_s=0 first=FAIL swept=yes final=PASS rc=0
