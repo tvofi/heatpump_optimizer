@@ -1,0 +1,5 @@
+== mode=base
+BATCH T
+git worktree remove /x
+UNWINDING
+SYSTEMEXIT 143
