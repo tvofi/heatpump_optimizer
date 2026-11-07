@@ -208,6 +208,13 @@ review_tip() { # <pr> -> review/<pr>'s tip as ls-remote answers it, its objects 
   git cat-file -e "$tip^{commit}" 2>/dev/null && echo "$tip"
 }
 
+ev_case_collision() { # <commit> -> "<a> and <b>" for the first two names under ev/ that fold together; reads only the commit's name list
+  git -c core.quotepath=off ls-tree -r --name-only "$1" -- ev | awk '{
+    n = split($0, p, "/"); q = ""
+    for (i = 1; i <= n; i++) { q = (i == 1 ? p[i] : q "/" p[i]); k = tolower(q)
+      if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }'
+}
+
 relay() {
   local pr=$1 nonce=$2 head=$3 ref sha d subj first state led
   case $pr in ''|*[!0-9]*) die "pr '$pr' is not a number"; return;; esac
@@ -219,6 +226,14 @@ relay() {
   state=${HPO_STATE_DIR:-$HOME/.local/state/hpo}; led=$state/cloud-relayed
   if [ -f "$led" ] && grep -qxF "$ref $sha" "$led"; then die "$ref at $sha was already relayed"; return; fi
   git fetch -q origin "$ref" || { echo "cloud_relay: could not fetch $ref" >&2; return 1; }
+  # Names under ev/ that differ only in case: a case-insensitive filesystem (the orchestrator's
+  # macOS) unpacks one over the other, and push-verdict then refuses "no file names the head" --
+  # a cause that reads as a missing file (PR 3061). Refused here by name, on the first tick line,
+  # from the commit's own name list and BEFORE anything is extracted: on such a filesystem the
+  # unpack itself dies (mkdir/write on the colliding path, rc 1) before any later check could refuse.
+  # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
+  local dup; dup=$(ev_case_collision "$sha")
+  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
   d=$(mktemp -d "${TMPDIR:-/tmp}/cloud_relay.XXXXXX") || return 1
   git archive "$sha" | tar -x -C "$d" || { die "could not read $sha"; return; }
   subj=$(git log -1 --format=%s "$sha")
@@ -237,15 +252,6 @@ relay() {
   else die "the first line is not 'Fix review: merge $head' or 'Fix review: blocked $head <class>: <reason>': '$first'"; return; fi
   grep -qx "bus-nonce: $nonce" "$d/verdict.md" || { die "nonce mismatch: no 'bus-nonce: $nonce' line"; return; }
   [ -d "$d/ev" ] || { die "no ev/ directory in the ref"; return; }
-  # Names under ev/ that differ only in case: a case-insensitive filesystem (the orchestrator's
-  # macOS) unpacks one over the other, and push-verdict then refuses "no file names the head" --
-  # a cause that reads as a missing file (PR 3061). Refused here by name, on the first tick line.
-  # Every ancestor path is compared too, so a file ev/A and a directory ev/a collide as well.
-  local dup; dup=$(git -c core.quotepath=off ls-tree -r --name-only "$sha" -- ev | awk '{
-    n = split($0, p, "/"); q = ""
-    for (i = 1; i <= n; i++) { q = (i == 1 ? p[i] : q "/" p[i]); k = tolower(q)
-      if ((k in s) && s[k] != q) { print s[k] " and " q; exit } s[k] = q } }')
-  [ -z "$dup" ] || { die "ev/ holds names that differ only in case ($dup); a case-insensitive checkout keeps one, so rename them apart"; return; }
   local out sha2 wt tip tries=0
   wt=$(verdict_tree "$d/verdict.md" "$d/ev") || { echo "cloud_relay: could not build the verdict's tree" >&2; return 1; }
   # DELIVERED GUARD (R10-RELAY-REPLAY): a ledger that is not the one that recorded this probe (a
@@ -889,11 +895,42 @@ EOF
   chk "and once per pass (two passes, two lines)" 0 test "$(grep -c '^cloud_relay: state dir ' <<< "$out")" = 2
   # ev/ names differing only in case (carry 8): refused by name, nothing pushed
   rm -f "$t/pushed"
-  mkf 41 x ev/HEAD.txt ev/head.txt; out=$(relay 41 $n $h 2>&1); rc=$?
+  # The colliding trees are built in the object database only (hash-object, mktree, commit-tree): no
+  # working-tree file with either name is ever created, so this runs the same on APFS and on ext4.
+  dbtree() { # <blob> <relative paths, one per line> -> a tree sha; names hold no space
+    local blob=$1 list=$2 ents="" top sub
+    for top in $(printf '%s\n' "$list" | sed 's|/.*||' | LC_ALL=C sort -u); do
+      if printf '%s\n' "$list" | grep -qxF "$top"; then ents="$ents$(printf '100644 blob %s\t%s' "$blob" "$top")"$'\n'
+      else sub=$(printf '%s\n' "$list" | grep -F "$top/" | sed "s|^$top/||"); ents="$ents$(printf '040000 tree %s\t%s' "$(dbtree "$blob" "$sub")" "$top")"$'\n'; fi
+    done
+    printf '%s' "$ents" | git mktree
+  }
+  mkdb() { # mkdb <pr> <ev path>...: a probe ref whose ev/ holds those paths, built without a working tree
+    local p=$1 bl vb et rt c; shift
+    rm -rf "$t/pr"; throwaway_git_init "$t/pr" -q
+    bl=$(echo x | git -C "$t/pr" hash-object -w --stdin)
+    vb=$(printf 'Fix review: merge %s\n\nbus-nonce: %s\n' "$h" "$n" | git -C "$t/pr" hash-object -w --stdin)
+    et=$(cd "$t/pr" && dbtree "$bl" "$(printf '%s\n' "$@" | sed 's|^ev/||')")
+    rt=$(printf '040000 tree %s\tev\n100644 blob %s\tverdict.md\n' "$et" "$vb" | git -C "$t/pr" mktree)
+    c=$(git -C "$t/pr" commit-tree "$rt" -m "verdict $p $h")
+    git -C "$t/pr" update-ref refs/heads/mkdb "$c"
+    git -C "$t/o.git" fetch -qf "$t/pr" "refs/heads/mkdb:refs/heads/probe/rev-$p-${n:0:8}"
+    [ -z "$(ls -A "$t/pr" | grep -v '^\.git$')" ]; }  # rc 0: the work tree holds nothing but .git
+  tar() { echo x >> "$t/tar.calls"; command tar "$@"; }
+  mkdb 41 ev/HEAD.txt ev/head.txt; chk "the fixture never materialises a name (work tree empty)" 0 test "$?" = 0
+  mkdb 41 ev/HEAD.txt ev/head.txt; rm -f "$t/tar.calls"; TD=$(mktemp -d "$t/tmpdir.XXXXXX"); out=$(TMPDIR=$TD relay 41 $n $h 2>&1); rc=$?
+  chk "refused before any write: nothing was extracted (tar never ran)" 0 test ! -e "$t/tar.calls"
+  chk "and no scratch directory was created (TMPDIR still empty)" 0 test -z "$(ls -A "$TD")"
+  mkdb 42 ev/head.txt ev/other.txt; rm -f "$t/tar.calls"; out=$(TMPDIR=$TD relay 42 $n $h 2>&1)
+  chk "null control: distinct names do run the extract" 0 test -e "$t/tar.calls"
+  unset -f tar
+  rm -f "$t/pushed"
+  mkdb 41 ev/HEAD.txt ev/head.txt; out=$(relay 41 $n $h 2>&1); rc=$?
+  chk "ev_case_collision names both, from the commit alone" 0 grep -Eq "^ev/HEAD.txt and ev/head.txt$|^ev/head.txt and ev/HEAD.txt$" <<< "$(ev_case_collision "$(git -C "$t/o.git" rev-parse refs/heads/probe/rev-41-${n:0:8})")"
   chk "ev/HEAD.txt and ev/head.txt are refused rc 2" 0 test "$rc" = 2
   chk "naming both files" 0 grep -Eq "HEAD.txt and ev/head.txt|head.txt and ev/HEAD.txt" <<< "$out"
   chk "with nothing pushed" 0 test ! -s "$t/pushed"
-  mkf 41 x ev/A ev/a/x; out=$(relay 41 $n $h 2>&1); rc=$?
+  mkdb 41 ev/A ev/a/x; out=$(relay 41 $n $h 2>&1); rc=$?
   chk "a file ev/A and a directory ev/a/x are refused rc 2" 0 test "$rc $(pushes)" = "2 0"
   mkf 41 x ev/head.txt ev/other.txt; chk "distinct names relay (null control)" 0 relay 41 $n $h
   # the watch pass
