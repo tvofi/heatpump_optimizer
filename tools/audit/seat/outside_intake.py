@@ -129,10 +129,12 @@ class Thread:
         self.last_out = max(self.last_out, at)
 
     def mark(self, c: dict) -> None:
-        """A comment of the thread: ours marks it, an outsider's moves last_out, a third-party bot's is neither."""
+        """A comment of the thread: ours marks it, and no other moves anything here.
+
+        Outside activity reaches `last_out` through `saw` alone: `one_thread` passes it
+        every outside comment, and one `scan` skips predates the activity that opened
+        the thread, so cannot raise its maximum. A third-party bot's is neither."""
         if c["login"] not in OURS:
-            if outside(c["login"], c["type"]):
-                self.last_out = max(self.last_out, c["at"])
             return
         self.last_ours = max(self.last_ours, c["at"])
         if c.get("answered"):
