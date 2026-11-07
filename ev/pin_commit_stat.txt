@@ -1,0 +1,18 @@
+ ...Coordinator._async_learn_house_heat_loss.GUARD_OFF.ce809cca.json | 6 ++++++
+ ...oordinator._async_learn_lower_floor_loss.GUARD_OFF.d05a0947.json | 6 ++++++
+ .../coordinator.py/_loss_residual_rejected.CMP_BOUND.07ea7eb6.json  | 6 ++++++
+ .../coordinator.py/_loss_residual_rejected.GUARD_OFF.07ea7eb6.json  | 6 ++++++
+ .../coordinator.py/_loss_residual_rejected.RETURN_DEL.80a0007e.json | 6 ++++++
+ .../OptimizationResult.sensor_trajectory.BOOLOP.cc727924.json       | 6 ++++++
+ .../OptimizationResult.sensor_trajectory.GUARD_OFF.cc727924.json    | 6 ++++++
+ .../OptimizationResult.sensor_trajectory.RETURN_DEL.1a942d8c.json   | 6 ++++++
+ ...itsForEvidenceMixin._evidence_attributes.GUARD_OFF.5f1c8d82.json | 6 ++++++
+ ...itsForEvidenceMixin._evidence_attributes.GUARD_OFF.f450751c.json | 6 ++++++
+ ...tsForEvidenceMixin._evidence_attributes.RETURN_DEL.91845384.json | 6 ++++++
+ .../killed_by/tariff.py/_window_partition.CLAMP_DROP.80efca0b.json  | 6 ++++++
+ .../killed_by/tariff.py/_window_partition.RETURN_DEL.b25dd300.json  | 6 ++++++
+ .../killed_by/tariff.py/_window_starts.RETURN_DEL.dd61f966.json     | 6 ++++++
+ .../killed_by/tariff.py/billed_windows.GUARD_OFF.0a51dd45.json      | 6 ++++++
+ .../killed_by/tariff.py/billed_windows.GUARD_OFF.c32091bc.json      | 6 ++++++
+ .../killed_by/tariff.py/billed_windows.RETURN_DEL.dad1dd16.json     | 6 ++++++
+ 17 files changed, 102 insertions(+)
