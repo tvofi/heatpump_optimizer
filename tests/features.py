@@ -30521,8 +30521,9 @@ R.check(
 for _ir_coro in _ir_ft:
     _ir_coro.close()
 _ir_ft.clear()
-# The in-flight cycle's own read, or any later one, is a re-read: it settles
-# the pending return and starts the hold.
+# The in-flight cycle read its inputs before the return arrived, so it cannot
+# settle it; the first read that runs after the return does (here the next
+# one), and that read starts the hold.
 _ir_fdo(_ir_f._update_current_state())
 _ir_fh.states._states.pop("sensor.indoor")
 _ir_fdo(_ir_f._update_current_state())
