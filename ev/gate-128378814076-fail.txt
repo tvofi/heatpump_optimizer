@@ -1,0 +1,2 @@
+2026-11-07T10:30:44.4584055Z [36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+2026-11-07T10:30:54.2478546Z FAIL run(s) [42364179195] at this head are still being judged; their gate decides

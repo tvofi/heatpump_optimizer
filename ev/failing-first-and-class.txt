@@ -1,0 +1,9 @@
+failing-first (14a73c15 template restored):
+  FAIL census: every overlay key beat_jobs.py reads is declared in sweep_template.md's Placeholders
+  FAIL census null: the template without its gantt_roster row is reported missing exactly gantt_roster
+beat_jobs self-test: 159 checks, 2 failed
+--- overlay readers:
+tools/audit/seat/beat_jobs.py:34:`S/sweep-overlay.json`), the same JSON `sweep_render.py` fills the sweep from,
+tools/audit/seat/beat_jobs.py:172:            self.overlay = json.loads((overlay or state / "sweep-overlay.json").read_text())
+tools/audit/seat/beat_jobs_selftest.py:130:        (s / "sweep-overlay.json").write_text(json.dumps(ov))
+tools/audit/seat/instruments/beat_jobs.py.md:26:  (`S/sweep-overlay.json`, the JSON `sweep_render.py` reads); a row missing
