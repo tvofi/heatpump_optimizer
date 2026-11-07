@@ -1,0 +1,12 @@
+M0 PASS refuse chained bad
+M0 PASS control chained tally
+M0 PASS refuse chain killed
+M0 PASS control ok
+M0 PASS refuse bad
+M0 PASS refuse killed
+M0 PASS refuse notally
+M0 PASS control tally
+M1 KILLED by FAIL refuse chained bad; FAIL refuse bad
+M2 KILLED by FAIL refuse chain killed; FAIL refuse killed
+RESULT survivors=0
+rc=0
