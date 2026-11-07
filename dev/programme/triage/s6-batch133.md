@@ -199,3 +199,37 @@ Cost:
 - **What would change this ruling:** a mispair measured from the beat row itself.
 
 Binding: no roster op. The orchestrator moves its drain onto the `roster-drain` beat row and retires `s9/sweep-runner/roster_drain.py`. Then it re-queues `append-group R10-GENERIC-HEAT-CURVE`, and every other op the local script marked done from another op's line: read back the roster for each.
+
+## P411: relay auto carry-fold (queue line s12-relay-auto-carry-fold)
+
+Verdict: ACCEPT changed. The line is the third instance set of a class that R10-CARRY-RESIDUE-2 carry 3 already owns: "body_push refuses CARRY-LANDED missing for forward carries a fixer cannot land", 4 instances on 11-06. It is not a new group. It goes to R10-CARRY-RESIDUE-2 (not-started) as a carry that fixes the barrier's form to the queue line's relay arm:
+- `cloud_relay.sh`'s handoff arm folds the carries through `carry_fold.py`, the designated writer, and re-runs `body_push.sh` on the kept body. This applies only when the fixer's `BLOCKED.md` refusal is CARRY-LANDED alone.
+- Any other refusal owes a line on the tick board.
+- The carry-3 alternative, "body_push emits land-ops and exits with a distinct code", is kept as the signal that the relay keys on, not as a second writer.
+
+It is not taken on the >10 % exemption.
+
+Source: the orchestrator's queue line of 2026-11-07.
+
+Instances:
+- **11-07, two hotfix-tier groups:**
+  - R10-HOTFIX-SELFTEST-TIMEOUT (PR 3275; 1 carry) was blocked at 13:23Z and folded at 13:45Z.
+  - R10-HOTFIX-GATE-BUSY-DEFER (3 carries) was blocked at 13:36Z and found at 14:10Z.
+  - Each waited 20 to 35 min until the orchestrator looked (queue line).
+- **11-06, the class's own four instances:** #3241 r3, the #3234 recut, #3242 tml-body and the #3241 body (R10-CARRY-RESIDUE-2 carry 3, roster `3069eaa49`).
+- **The relay today.** At origin/main `git grep -n BLOCKED.md tools/audit/seat/cloud_relay.sh` prints nothing, so no arm reads a fixer's BLOCKED.md.
+- **The fold tool.** `tools/audit/seat/carry_fold.py` already appends each missing `Carry: <GROUP>` item with `roster_edit.py append-carry --push`, and asserts after the fold that every item is present (its docstring). It is the orchestrator's tool today, and nothing calls it on a block.
+- **The rule on the instances.** With the arm, each of the six is folded on the relay's next pass and its body re-pushed. That removes the 20 to 35 min wait, and the null control holds: a BLOCKED.md that also names any other refusal is not auto-folded, and prints its line.
+
+Cost:
+- **The code:**
+  - About 30 lines in `cloud_relay.sh`'s handoff arm. It reads `handoff-wip/<topic>-body` and BLOCKED.md, checks that the only refusal is CARRY-LANDED, runs `carry_fold.py --body ... --topic ...` and then `body_push.sh` from the relay's checkout.
+  - A self-test fixture for each arm, and a mutant that drops the CARRY-LANDED-only test, which must auto-fold a mixed refusal.
+- **Ownership.** `cloud_relay.sh` is in `review_packet.py`'s HOT_FILES, so the fixer overlaps by seam with any open relay PR (R10-HANDOFF-PATH, R10-TICK-LEVELS). It is not a `--budgets` row.
+- **Benefit and tier.**
+  - 6 instances in 2 days at 20 to 35 min each, which is 2 to 3.5 h.
+  - Most repair rounds carry, so expect 10 to 20 more in the 6 days left: **3.5 to 11 h, central 6 h. Tier: instrument.**
+  - On hotfix groups each hold is on the merge path.
+
+Binding:
+- **Carry for R10-CARRY-RESIDUE-2.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P411 at <roster sha>), savings estimate 3.5 to 11 h (central 6 h; instrument tier), the barrier form for this group carry 3 (CARRY-LANDED strands a cloud fixer): two more instances on 2026-11-07, R10-HOTFIX-SELFTEST-TIMEOUT (PR 3275, blocked 13:23Z, folded 13:45Z) and R10-HOTFIX-GATE-BUSY-DEFER (3 carries, blocked 13:36Z, found 14:10Z). Build it in tools/audit/seat/cloud_relay.sh handoff arm: when a fixer BLOCKED.md refusal is CARRY-LANDED alone and its body is kept on handoff-wip/<topic>-body, run tools/audit/seat/carry_fold.py (the designated writer) on that body and then body_push.sh; any other refusal prints a tick line and folds nothing. body_push.sh may exit with a distinct code for CARRY-LANDED-only so the relay keys on it. Fixtures: a CARRY-LANDED-only block is folded and re-pushed; null control: a block naming CARRY-LANDED plus any other refusal is not folded and prints its line; a mutant dropping the CARRY-LANDED-only test folds the mixed block and fails.`
