@@ -333,3 +333,26 @@ Cost:
 - An unmeasured benefit is DEFER.
 
 Binding: the measurement goes to the R10-RCA-MUTATION-VACUOUS owner as a re-take of section 6. The 11 blocks of the 24 h window are read from the checker's own source. For each one, record whether `MUTANT_CMD` was set at the handoff, and whether `mutant_run.py --diff` with the group's self-test, run at that head, reports the reviewer's surviving mutant. If it would have caught 6 or more of the 11, re-file with a refusal arm and its standing cost.
+
+## P416: owed_unactioned body-ahead key (queue line s12-owed-unactioned-body-ahead)
+
+Verdict: ACCEPT. This is an instrument defect, not a trade. `owed_unactioned.py`'s `key_of` has no arm for the tick's own `OWED body-ahead` line, and `board()` raises `Unreadable` on any unkeyed line. So the whole run prints `UNREADABLE` and exits 2, and every owed line on that board goes unchecked, not only the body-ahead one. The destination is a carry on R10-TICK-LEVELS (carries-open, PR 3200), which owns `owed_unactioned.py` and `orchestrator_tick.py`. It is not taken on the >10 % exemption.
+
+Source: the orchestrator's queue line of 2026-11-07T16:57:07Z.
+
+Instances:
+- **The tick writes the line.** `tools/audit/seat/orchestrator_tick.py` line 927 returns `"owed", f"handoff-body/{body} is newer than the head, repair done and unapplied", "body-ahead"`, which renders as `-> OWED body-ahead #<pr> <sha12> handoff-body/<topic> ...`.
+- **The reader cannot key it.** `owed_unactioned.py` `key_of` (line 79) keys `OWED handoff:` and `OWED: OWED ...`, but no `OWED body-ahead`. It falls through to `raise Unreadable(...)` (line 111).
+- **One line blinds the run.** `run()` returns 2 after one `UNREADABLE` from `board()` (lines 164 to 168).
+- **The logged instance.** The orchestration logs hold `UNACTIONED-UNREADABLE: UNREADABLE: an owed line names no topic or pull request: -> OWED body-ahead #3265 c7c5cef52a49 handoff-body/r10-hotfix-plan-lanes ...`. This is P414's 50-minute instance.
+- **The rule on the instance.** With a `OWED body-ahead (#\d+) ([0-9a-f]{12})` arm, the #3265 line keys `#3265` on `c7c5cef52a49`, and the run reads the rest of the board.
+
+Cost:
+- About 4 lines, and a self-test arm in the existing block beside the RECORD-OWED arm (line 390): a body-ahead line is keyed and is reported unactioned on the second sweep.
+- The null control: a line that names no PR is still UNREADABLE.
+- Also one cross-check that every owed kind `orchestrator_tick.py` can emit has a key arm, so the next new kind fails a self-test instead of blinding the run. The kinds are read from the tick's own self-test fixtures.
+- `owed_unactioned.py` is not a `--budgets` row. An S carry, sonnet.
+- **Benefit.** Every sweep while any body-ahead is on the board, which recurred all day on 11-07, the owed check reports nothing. It cost P414's 50 min once, and a stale owed line of any kind can hide behind it.
+
+Binding:
+- **Carry for R10-TICK-LEVELS.** The carry text: `From triage batch 133 (triage: dev/programme/triage/s6-batch133.md#P416 at <roster sha>), instrument defect: owed_unactioned.py key_of has no arm for orchestrator_tick.py own owed line -> OWED body-ahead #<pr> <sha12> handoff-body/<topic> ... (tick line 927), so board() raises Unreadable and run() exits 2 on the whole board; logged 2026-11-07 as UNACTIONED-UNREADABLE on #3265 c7c5cef52a49 while that body sat 50 min unapplied. Add the arm (key #<pr>, id the sha12) and a self-test that every owed kind the tick emits in its own fixtures has a key arm. Self-test arms: a body-ahead line keys and is reported unactioned on the second sweep; null control: a line naming no PR stays UNREADABLE; a mutant dropping the arm fails the first.`
