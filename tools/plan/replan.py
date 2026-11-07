@@ -257,14 +257,19 @@ def touches_coordinator(group: dict) -> bool:
 
 # ----------------------------------------------------------------------- graph
 
-def dependency_graph(G: dict) -> tuple[dict, set, set]:
+def dependency_graph(G: dict, legacy: dict | None = None) -> tuple[dict, set, set]:
     """(open deps per open group, open set, done set).
 
     An `after` edge to a done group is satisfied and drops out. An `after`
     naming no group in the roster is refused: silently dropping it would make
-    a dependency look met when the roster has a typo.
+    a dependency look met when the roster has a typo. A discharged group
+    (`roster_lib.discharged` over `legacy`, the roster's cut-over carries: a
+    merged `carries-open` group every carry of which is marked) is done here:
+    no fixer work is left, so it takes no slot and clears its after-edges
+    (tvofi 2026-11-07, proposal 1).
     """
-    done = {n for n, g in G.items() if is_done(g)}
+    done = {n for n, g in G.items()
+            if is_done(g) or roster_lib.discharged(g, legacy or {})}
     open_ = set(G) - done
     deps = {}
     for n in open_:
@@ -654,12 +659,14 @@ def selftest_model() -> int:
 
 def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                version: str, roster_ref: str = "", roster_blob: str = "",
-               roster_path: str = "", *, round_n: int) -> dict:
+               roster_path: str = "", *, round_n: int,
+               legacy: dict | None = None) -> dict:
     closing, why = closure_version(version, round_n)
     if why:
         raise PlanError(f"the round-close stamp: {why}")
     G = groups_of(roster)
-    deps, open_, done = dependency_graph(G)
+    deps, open_, done = dependency_graph(G, legacy)
+    discharged = {n for n in done if not is_done(G[n])}
     order = topo_order(deps)
     children = children_of(deps)
     size_hours = durations["sizes_hours"]
@@ -918,6 +925,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
                 "level": None, "live": False, "inherited": False,
                 "coordinator": touches_coordinator(G[n]), "batch": None,
                 "stamp": None, "after": [], "done": True,
+                **({"discharged": True} if n in discharged else {}),
             }
             continue
         groups_out[n] = {
@@ -995,6 +1003,7 @@ def build_plan(roster: dict, durations: dict, caps: dict, start: dt.datetime,
             "stamps": len(stamps),
             "groups_total": len(G),
             "groups_done": len(done),
+            "groups_discharged": len(discharged),
             "groups_open": len(open_),
             "inherited_in_progress": len(inherited),
             "inherited_coordinator": sum(1 for n in inherited if coord[n]),
@@ -1304,6 +1313,29 @@ def selftest() -> int:
     pa = build_plan(absorbed, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("an absorbed group is closed work, not scheduled", pa["groups"]["X"].get("done") is True,
            str(pa["groups"].get("X")))
+    # Proposal 1 (tvofi 2026-11-07): a merged carries-open group whose every
+    # carry is marked is closed work, and its dependent no longer waits on it.
+    def held(carry):
+        return dict(roster, groups=roster["groups"] + [
+            {"group": "HD", "size": "L", "lane": "Core model", "kind": "defect", "after": [],
+             "carry": carry, "resume": {"stage": "carries-open", "commit": "0123abcd"}},
+            {"group": "HN", "size": "S", "lane": "Core model", "kind": "defect",
+             "after": ["HD"], "resume": {"stage": "not-started"}}])
+    marked = ["x [moved: A]", "y [implemented: 0123abcd]", "z [dismissed: a duplicate]"]
+    pd = build_plan(held(marked), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("discharged: a merged carries-open group with every carry marked is closed, "
+           "takes no slot and clears its dependent's edge",
+           pd["groups"]["HD"].get("done") is True and pd["groups"]["HD"].get("discharged") is True
+           and pd["groups"]["HN"]["after"] == [] and pd["summary"]["groups_discharged"] == 1
+           and check_plan(pd) == [], str(pd["groups"]["HD"]))
+    po = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
+    expect("discharged (null): one unmarked carry keeps it scheduled and its dependent waiting",
+           po["groups"]["HD"].get("done") is False and po["groups"]["HN"]["after"] == ["HD"]
+           and po["summary"]["groups_discharged"] == 0, str(po["groups"]["HD"]))
+    pl = build_plan(held(marked + ["w"]), durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND,
+                    legacy={"HD": frozenset({"w"})})
+    expect("discharged: a legacy carry is not owed (the cut-over is read)",
+           pl["groups"]["HD"].get("done") is True, str(pl["groups"]["HD"]))
     again = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     expect("deterministic: two runs are byte-identical",
            json.dumps(plan, sort_keys=True) == json.dumps(again, sort_keys=True))
@@ -1865,8 +1897,8 @@ def selftest() -> int:
              _m("if s[\"kind\"] not in (\"patch\", ", "\"minor\", ROUND_CLOSE)]")),
             ("round-n-required",
              _m("def build_plan(roster: dict, ", "durations: dict, caps: dict, start: dt.datetime,"),
-             _m("roster_path: str = \"\", *, ", "round_n: int) -> dict:"),
-             _m("roster_path: str = \"\", *, ", "round_n: int = 10) -> dict:")),
+             _m("roster_path: str = \"\", *, ", "round_n: int,\n"),
+             _m("roster_path: str = \"\", *, ", "round_n: int = 10,\n")),
             ("round-from-roster",
              _m("def main(argv=", "None) -> int:"),
              _m("round_n = roster_lib.roster_round(", "src)"), "round_n = 99"),
@@ -2140,8 +2172,14 @@ def main(argv=None) -> int:
         round_n = roster_lib.roster_round(src)
     except roster_lib.RosterNotFound as exc:
         raise PlanError(f"no round for the round-close stamp: {exc}") from exc
+    # The cut-over carries `roster_lib.pending_carries` reads: a fixture has
+    # none; a roster whose cut-over cannot be read refuses, never "no legacy".
+    try:
+        legacy = {} if args.roster_file else roster_lib.read_legacy(args.repo, src)
+    except roster_lib.RosterNotFound as exc:
+        raise PlanError(f"the carry cut-over is unreadable: {exc}") from exc
     plan = build_plan(roster, durations, caps, start, version, ref, blob,
-                      roster_path=src, round_n=round_n)
+                      roster_path=src, round_n=round_n, legacy=legacy)
     bad = check_plan(plan)
     if bad:
         print("the model produced a violating plan; refusing to write it", file=sys.stderr)
