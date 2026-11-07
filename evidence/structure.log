@@ -1,3 +1,5 @@
++ PYTHONPATH=tests/hastub
++ python3 tests/structure.py
 ########## counting-rule self-check ##########
   ok   73 counting rules hold
 ########## classes over 300 LOC (evidence; max_class_loc is the row) ##########
@@ -248,4 +250,5 @@ RESULT thread_factor=1.0 ratio
   ok   seam_cut_total 423 <= 423
 
 STRUCTURE RATCHET PASSED
++ echo rc=0
 rc=0

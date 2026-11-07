@@ -1,3 +1,6 @@
++ cd /tmp/tmp.OV2hGaZzKM/base
++ PYTHONPATH=tests/hastub:tests:custom_components
++ python3 dev/audit/harnesses/r10_rca_sav_estimate.py census
 RESULT census single: booked over horizon mean 1.00 ok
 RESULT census unvalved: booked over horizon mean 0.92 ok
 RESULT census valve-at-curve: booked over horizon mean 1.00 ok
@@ -5,4 +8,5 @@ RESULT census valve-charged: booked over horizon mean 1.00 ok
 RESULT census wood-warm: booked over horizon mean 1.00 ok
 RESULT census wood-hot: booked over horizon mean 1.00 ok
 census: 6 of 6 cells ran, 0 out of band: -
++ echo rc=0
 rc=0

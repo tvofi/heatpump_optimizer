@@ -1,5 +1,0 @@
-mutant R12: custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js: '"savings.wood_note": "Sparandet inkluderar värme från ved. Vedens kostnad räknas inte."' -> '"savings.wood_note": "The saving includes heat from wood. Firewood\'s cost is not counted."'
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card.mjs: rc=1 last=['1 CARD CHECK(S) FAILED']
-      FAIL  the receipt's saving on a wood house says it includes wood's heat, not firewood's cost (en, sv); none without wood
-    1 CARD CHECK(S) FAILED
-  sh -c python3 tests/plan_view.py >/dev/null && node tests/card_browser.mjs: rc=0 last=['ALL BROWSER CHECKS PASSED']

@@ -1,33 +1,9 @@
-23:40:55 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:42:56 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:44:58 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:47:00 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:49:02 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:51:05 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:53:07 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:55:08 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:57:30 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-23:59:32 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:01:37 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:03:38 rc=3 WAIT 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: gate red: none
-00:05:40 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:07:42 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:09:44 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:11:45 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:13:47 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:15:48 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:17:50 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:19:52 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:21:53 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:23:55 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:25:56 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:27:58 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:29:59 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:32:01 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:34:02 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:36:04 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:38:06 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:40:07 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:42:09 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:44:11 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
-00:46:12 rc=1 RED 8bc540e052a8a4ac048715d4d2e7d0ab9a260c08 pending: none red: gate
+2026-11-07T08:04:57Z
+WAIT 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: gate red: none
+rc=3
+2026-11-07T08:06:29Z
+WAIT 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: gate red: none
+rc=3
+2026-11-07T08:08:00Z
+RED 4ee05dcd9ac1bfd8a9fc8ee63a95f98d9b2eff9b pending: none red: gate
+rc=1
