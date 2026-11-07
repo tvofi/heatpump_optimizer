@@ -1,0 +1,17 @@
+base lanes ['slots', 'Learners', 'Core model', 'Product UX', 'Replay', 'Instruments', 'Docs'] drawn bars 67 by lane {'Core model': 24, 'Product UX': 2, 'Replay': 1, 'Instruments': 39, 'Docs': 1} html!=json 0 []
+rev lanes ['slots', 'Learners', 'Core model', 'Product UX', 'Replay', 'Instruments', 'Docs'] drawn bars 67 by lane {'Core model': 10, 'Product UX': 2, 'Replay': 1, 'Instruments': 51, 'Docs': 3} html!=json 0 []
+drawn moved 14
+  R10-CARRY-RESIDUE-2 Core model -> Instruments
+  R10-FRICTION-RECORDS Core model -> Instruments
+  R10-HOTFIX-CODEQL-HEADROOM Core model -> Instruments
+  R10-HOTFIX-GATE-BUSY-DEFER Core model -> Instruments
+  R10-HOTFIX-GATE-STALE-JOBS Core model -> Instruments
+  R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT Core model -> Instruments
+  R10-HOTFIX-NIGHTLY-STATUS Core model -> Instruments
+  R10-HOTFIX-PLAN-LANES Core model -> Instruments
+  R10-HOTFIX-SELFTEST-TIMEOUT Core model -> Instruments
+  R10-PROCESS-SLIM Core model -> Instruments
+  R10-RCA-PROCESS-WORKER-HANG Core model -> Instruments
+  R10-RCA-SAV-ESTIMATE Core model -> Instruments
+  R10-ROUND-PLAYBOOK Core model -> Docs
+  R10-USER-DOCS-VERIFY Core model -> Docs

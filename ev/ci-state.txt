@@ -1,0 +1,9 @@
+check-runs at c7c5cef52a49bed59ee4c8a42e495ef2dae30db5: pull_request_read get_check_runs perPage 100 -> total_count 81, all on one page (read ~04:15Z)
+concluded red (failure/cancelled):
+  gate 128296193620 (edit run 42332777827 attempt 5) failure 04:07:40Z-04:08:17Z log: "FAIL run(s) [42333388705] at this head are still being judged; their gate decides"
+  gate 128296198588 (edit run 42333388705 attempt 5) failure 04:07:41Z-04:08:22Z log: "FAIL run(s) [42332777827] at this head are still being judged; their gate decides"
+  governance / instrument-self-tests 128295162018 (code run 42332778588) cancelled 03:15:08Z-03:45:10Z (30-min timeout; body answers it)
+green gates at the head: 128295163417 (code run 42332778588, attempt 2) success 04:03:20Z-04:06:09Z; 128295636172 (edit run 42336664899) success 04:05:18Z-04:05:52Z
+last pr-contract run started: 128295428450 at 04:04:26Z (before the last red concluded 04:08:22Z); the rerun edit runs' pr-contract jobs are skipped
+PR body updated_at 2026-11-07T04:02:36Z (before both gate reds)
+Body's gate job ids 128291152776, 128291256420, 128291967008 are not among the head's 81 check runs now.
