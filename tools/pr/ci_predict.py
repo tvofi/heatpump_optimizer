@@ -829,6 +829,9 @@ def grader_preds(root: Path, base_ref: str, body: str | None = None,
                     (tmp / Path(f).name).write_text(text_ or "")
                 args, stdin = [], None
                 for i, a in enumerate(argv):
+                    if a == "$INTENDED":  # the roster-owned closes: stood in by every issue the body closes
+                        args += sorted(set(re.findall(r"\b(?:close[sd]?|fix(?:e[sd])?|resolve[sd]?)\s*:?\s+#(\d+)", body or "", re.I)))
+                        continue
                     if a in PR_DROPPED and a != "<" or (a == "<" or (i and argv[i - 1] == "<")):
                         if i and argv[i - 1] == "<":
                             stdin = (tmp / Path(a).name).read_text()
