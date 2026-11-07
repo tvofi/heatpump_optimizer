@@ -148,7 +148,9 @@ def _fixture_state(base: Path, *, dead: bool = False, stale: bool = False):
     (s / "digest").mkdir()
     (s / "alive").mkdir()
     repo = base / "orch"
-    subprocess.run(["git", "init", "-q", str(repo)], check=True)
+    sys.path.insert(0, str(ROOT / "tests"))
+    from throwaway_git import throwaway_git_init
+    throwaway_git_init(repo, "-q")
     (s / "orch-checkout").write_text(f"{repo}\n")
     now = time.time()
     stamp = lambda t: time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(t))  # noqa: E731
@@ -280,7 +282,8 @@ def self_test(run_mutants: bool = True) -> int:
             tgt = Path(tempfile.mkdtemp(prefix="hooks-mutant-"))
             try:
                 shutil.copytree(SEAT, tgt / "tools/audit/seat", ignore=shutil.ignore_patterns("__pycache__", "fixtures"))
-                (tgt / ".claude").mkdir()
+                (tgt / "tests").mkdir()
+                shutil.copy2(ROOT / "tests" / "throwaway_git.py", tgt / "tests" / "throwaway_git.py")
                 for f in ("hooks_setup.py", "hooks/liveness.py"):
                     p = tgt / "tools/audit/seat" / f
                     text = p.read_text()
