@@ -257,6 +257,10 @@ def cases(m) -> dict[str, bool]:
     rc, msg = m.dispose(Fake(w), "o/r", 3226, roster(), LIVE, "Not in scope: reason.\n", False, p)
     res["refuse: the reason is posted under the refusal marker, and the thread is then silent"] = (
         rc == 0 and p.posts and p.posts[0][1].startswith(m.REFUSED_MARK) and "reason" in p.posts[0][1])
+    pr = Poster()
+    rc, msg = m.dispose(Fake(w), "o/r", 3240, roster(), LIVE, "Not in scope: reason.\n", False, pr)
+    res["refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)"] = (
+        rc == 0 and len(pr.posts) == 1 and pr.posts[0][0] == 3240 and pr.posts[0][1].startswith(m.REFUSED_MARK))
     w3 = world(m)
     w3["comments"].append(comment(3226, ME, "2026-11-06T23:00:00Z", p.posts[0][1] if p.posts else ""))
     lines, _ = m.listing(Fake(w3), "o/r", SINCE, roster(), LIVE(), NOW)
@@ -301,6 +305,8 @@ MUTANTS = {
     "review_comments_unread": ('(("issues/comments", "issue_url"), ("pulls/comments", "pull_request_url"))',
                                '(("issues/comments", "issue_url"),)',
                                "list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)"),
+    "one_thread_pr_reviews_drop": ('        if r["kind"] == "pr":\n', "        if False:\n",
+                                   "refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)"),
     "unreadable_swallowed": ('        raise Unreadable(f"gh {\' \'.join(argv[:2])} rc={rc}")', "        return []",
                              "list: a failed read is UNREADABLE, never a clean board"),
     "marker_any_bot": ('        if c["login"] not in OURS:\n', '        if outside(c["login"], c["type"]):\n',
