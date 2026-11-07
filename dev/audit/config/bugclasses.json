@@ -4757,6 +4757,26 @@
       "doc": [
         "dev/audit/rca/r10-gate-busy-defer-2.md"
       ]
+    },
+    "R10-RCA-GATE-BUSY-DEFER-4": {
+      "class": null,
+      "level": "instance-or-process",
+      "subject": "the merge train skipped #3293 (fefaa492), #3267 (cc6ee11f) and #3268 (64fe84b2) on `ci: red at the head: gate` while each head's code run was still in progress: gate.py publishes an edit run's deferral as a failed `gate` at once (fa921fd59, 2026-11-05; the wait cc100c275 restored for 8 h; published at once again by #3287, 52f9fc5b3), and merge_train.py classify, which reads a check run's conclusion alone and has done so since 9262e6f43 (2026-10-22), cannot tell a deferral from a verdict. 14 deferral gates on 14 heads in the 2 h 16 min after #3287 merged; the producer moved three times, the reader never",
+      "trigger": "2 (red required check: gate), third instance of the deferral-red class (#3246, #3278, this)",
+      "date": "2026-11-07",
+      "status": "proposed",
+      "parts_missing": [
+        "the classifier wait (tools/audit/seat/merge_train.py, PR #3290, unmerged, not this seat's)",
+        "the settle gap between the code run's green and gate-sweep's re-run of the edit gate",
+        "the readers outside classify: merge_pr.sh, merge_train.py policy_refusal, review_packet.py gate_digest, ci-watch.sh, orchestrator_tick.py one_pr"
+      ],
+      "process_state": "(c) #3287's replay and race harnesses and its review ran and passed; their unit is gate.py judge() and sweep over recorded listings, the producer. The review ran merge_train.py classify, read RED on a deferral at 16:55Z and waited, and the verdict records that as evidence; the same signature was attributed to the defect being fixed, as in #3278's RCA. No harness had a consumer of the published conclusion in its unit",
+      "countermeasure": "built: dev/audit/harnesses/r10_rca_gate_busy_defer_4.py replay of the three evidence heads' recorded listings through a chosen merge_train.py (defects=3 at origin/main dee8b413, 0 at #3290 a38bd141, 3 again with #3290's busy wait mutated out); proposed, not built: the readers outside classify read one shared deferral predicate, and the settle gap needs a wait keyed on the sweep, not a poll count",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-gate-busy-defer-4.md",
+      "doc": [
+        "dev/audit/rca/r10-gate-busy-defer-4.md"
+      ]
     }
   },
   "N-registry-leak": {
