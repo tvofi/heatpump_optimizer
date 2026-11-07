@@ -46,7 +46,7 @@
 //   ... | node .claude/workflows/policy_lint.mjs --corpus-filter  # keep the policy paths
 //   node .claude/workflows/policy_lint.mjs <files...> # lint just these
 //   node .claude/workflows/policy_lint.mjs --record-known-bad   # reseed the ratchet
-//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f]
+//   node tools/policy/policy_lint.mjs --pr-body <file> --head <sha> [--base <sha>] [--title t] [--red names] [--paths-file f] [--existing-file f] [--author login] [--commits-file f] [--required-file f]
 //   node .claude/workflows/policy_lint.mjs --record --since <ref>   # dispositions
 //   node .claude/workflows/policy_lint.mjs --stats  --since <ref>   # histograms
 //   node .claude/workflows/policy_lint.mjs --sunset --since <ref>   # dead rules
@@ -4500,6 +4500,47 @@ function assertAcceptance(derived) {
       rc = 1
     }
   }
+  // ONLY A REQUIRED RED IS OWED (owner ruling 2026-11-07). The set is the
+  // train's at the recorded ruleset ([gate]): the fixture's gate_required plus
+  // `gate`, what `merge_train.py owed-reds` prints for it. A main-graded
+  // reporter red and a non-required check go unnamed even on a diff touching
+  // the reporter's own script; a required unit, prepr's job-name prediction and
+  // a code-scanning alert stay owed (the arm). The mutant -- every concluded
+  // red treated as required -- owes all six and fails it.
+  pins += 4
+  const RC = JSON.parse(fs.readFileSync(path.join(HERE, 'fixtures', 'required-contexts.json'), 'utf8'))
+  const REQ = new Set([...RC.contexts, ...RC.gate_required])
+  const owedOf = (findings) => findings.map((f) => /check `([^`]+)` is red/.exec(f.message)?.[1]).filter(Boolean)
+  const MIXED = ['tests / nightly-status', 'governance / delivery-status', 'docs / links',
+    'tests / fast (3.14)', 'budget-raise-gate', 'code-scanning alert 7 (py/x)']
+  const reqGot = owedOf(checkPrBody(unnamed, { head: ZERO, red: MIXED, paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: REQ }))
+  if (reqGot.join('|') !== 'tests / fast (3.14)|budget-raise-gate|code-scanning alert 7 (py/x)') {
+    console.log(`\nFIXTURE VACUOUS: with the required set known, red ${JSON.stringify(MIXED)} owed answers for ${JSON.stringify(reqGot)}; only the required unit, the job-name prediction and the alert are owed`)
+    rc = 1
+  }
+  // The null control: a body that names every red is refused for none, with or
+  // without the set, and never reads it (the read is lazy).
+  const namedAll = path.join(os.tmpdir(), `prbody-named-${process.pid}.md`)
+  fs.writeFileSync(namedAll, fs.readFileSync(path.join(ROOT, unnamed), 'utf8').replace(/## Red checks\n[^#]*/, `## Red checks\n${MIXED.map((n) => `- \`${n}\`: answered.`).join('\n')}\n\n`))
+  let reads = 0
+  const namedWith = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'], required: () => { reads += 1; return REQ } }))
+  const namedWithout = owedOf(checkPrBody(namedAll, { head: ZERO, red: MIXED, paths: ['tests/x.py'] }))
+  fs.rmSync(namedAll, { force: true })
+  if (namedWith.length || namedWithout.length || reads) {
+    console.log(`\nFIXTURE VACUOUS: a body naming every red was refused for ${JSON.stringify([...namedWith, ...namedWithout])} (set read ${reads} time(s)); naming every red behaves as before the ruling`)
+    rc = 1
+  }
+  // An unreadable set (the thunk's null) is the rule as it stood: the same
+  // owed list REPORTER_CASES pins for the reporter's own script.
+  const unreadSet = owedOf(checkPrBody(unnamed, { head: ZERO, red: ['tests / nightly-status', 'docs / links'], paths: ['tests/nightly_status.py'], existing: ['tests/nightly_status.py'], required: () => null }))
+  if (unreadSet.join('|') !== 'tests / nightly-status|docs / links') {
+    console.log(`\nFIXTURE VACUOUS: an unreadable required set owed ${JSON.stringify(unreadSet)}, not both reds; the relaxation must fail closed`)
+    rc = 1
+  }
+  // No unnamed red, no read: an empty red list never calls the owner.
+  let reads0 = 0
+  checkPrBody(unnamed, { head: ZERO, red: [], paths: ['tests/x.py'], required: () => { reads0 += 1; return REQ } })
+  if (reads0) { console.log('\nFIXTURE VACUOUS: a run with no red read the required set'); rc = 1 }
   // Both markers on SHAPE, for the reason `enumSkipLine`'s pin above gives: they
   // carry no finding, so no count can see them. The skip line is the only thing
   // between an unread history and a green that measured nothing, and the record
@@ -6739,6 +6780,35 @@ function reporterInputsTouched(paths, existing) {
   const rows = (existing ?? paths).filter((p) => DELIVERY_ROW.test(p))
   return [...new Set([...paths.filter((p) => REPORTER_INPUTS.has(p)), ...rows])].sort()
 }
+// ONLY A REQUIRED RED OWES AN ANSWER (owner ruling tvofi, 2026-11-07: "not
+// having anything block because of unnamed reds that is non required"). The
+// required set is the one the merge train judges -- merge_train.py's `judged`
+// over `gating_names` of main-protect-checks, read live -- and it is read
+// through that owner (`merge_train.py owed-reds`), never a list copied here.
+// A red is owed when its name is in that set, or is the job half of a name in
+// it (prepr.sh's offline predictions ride `--red budget-raise-gate` and
+// `--red mutation`, the jobs of `budget-raise-gate / budget-raise-gate` and
+// `tests / mutation`), or is a code-scanning alert (alert_list.py's lines:
+// no check run, and owner ruling R-10 B made each one a red to answer). A set
+// that cannot be read leaves every red owed, MAIN_STATE_REPORTERS' exemption
+// included, which is the rule as it stood: the relaxation fails closed.
+const ALERT_RED = /^code-scanning alert \d+ /
+function redOwed(name, required) {
+  if (ALERT_RED.test(name) || required.has(name)) return true
+  for (const r of required) if (r.split(' / ').length === 2 && r.split(' / ')[1] === name) return true
+  return false
+}
+
+// The live set, through its owner; { names } or { why }. `--required-file`
+// (one name per line) replaces the read for a caller that already holds it.
+function requiredFromTrain() {
+  const r = spawnSync('python3', [path.join(ROOT, 'tools', 'audit', 'seat', 'merge_train.py'), 'owed-reds'],
+    { cwd: ROOT, encoding: 'utf8', timeout: 120000 })
+  const names = (r.stdout ?? '').split('\n').map((x) => x.trim()).filter(Boolean)
+  if (r.status !== 0 || !names.length) return { why: (r.stdout || r.stderr || String(r.error ?? `rc ${r.status}`)).trim().split('\n').pop() }
+  return { names }
+}
+
 const RED_HISTORY_PAGE = 100
 const RED_HISTORY_MAX_PAGES = 10
 
@@ -6913,7 +6983,7 @@ function dependabotYmlAt(base) {
   try { return fs.readFileSync(path.join(ROOT, '.github', 'dependabot.yml'), 'utf8') } catch { return '' }
 }
 
-function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null } = {}) {
+function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], paths = [], existing = null, notes = [], author = null, commits = null, required = null } = {}) {
   // A Dependabot pull request answers the dependency-bump contract instead
   // (tools/policy/dependabot_contract.mjs); every other author, the full one.
   if (author != null && DEPENDABOT_AUTHORS.has(author)) {
@@ -7026,8 +7096,11 @@ function checkPrBody(bodyPath, { base = '', head = '', title = '', red = [], pat
   // but naming it is mechanical, and naming it is what gets skipped.
   const redSec = (secs.get('Red checks') ?? '').trim()
   const touched = reporterInputsTouched(paths, existing)
-  for (const name of red) {
-    if (redSec.includes(name) || (MAIN_STATE_REPORTERS.has(name) && !touched.length)) continue
+  const silent = red.filter((name) => !redSec.includes(name))
+  const req = silent.length && typeof required === 'function' ? required() : required
+  for (const name of silent) {
+    if (req instanceof Set && !redOwed(name, req)) continue
+    if (!(req instanceof Set) && MAIN_STATE_REPORTERS.has(name) && !touched.length) continue
     const why = MAIN_STATE_REPORTERS.has(name)
       ? ` It grades \`main\`, but this diff touches what it reads (${touched.join(', ')}), so the red may be this pull request's own.`
       : ''
@@ -7127,7 +7200,19 @@ function cmdPrBody(args) {
       return 1
     }
   }
-  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits })
+  // Read only when a red goes unnamed (checkPrBody calls it lazily), so a body
+  // naming every red, or a run with none, reaches no network at all.
+  const requiredFile = val('--required-file')
+  const required = () => {
+    let got
+    if (requiredFile != null) {
+      try { got = { names: fs.readFileSync(requiredFile, 'utf8').split('\n').map((x) => x.trim()).filter(Boolean) } } catch { got = { why: `--required-file ${requiredFile}: unreadable` } }
+    } else got = requiredFromTrain()
+    if (got.names?.length) return new Set(got.names)
+    notes.push(`  skip    required-set: ${got.why ?? 'empty'} -- every red is owed an answer this run, as before the 2026-11-07 ruling`)
+    return null
+  }
+  const findings = checkPrBody(bodyPath, { base: (val('--base') ?? '').trim(), head, title: val('--title') ?? '', red: redAll, paths, existing, notes, author, commits, required })
   for (const n of notes) console.log(n)
   printFindings(findings)
   console.log(`\nPR-BODY: ${findings.length} error(s) in ${bodyPath}`)

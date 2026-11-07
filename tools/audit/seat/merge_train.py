@@ -436,6 +436,14 @@ def gating_names(required):
     return sorted(set(required) | set(owed))
 
 
+def judged(required) -> "list[str]":
+    """<required> less NOT_GATING: the names whose red the train counts. Over
+    `gating_names` of the live ruleset it is THE required set a red is judged
+    against -- `classify` here, and every `## Red checks` obligation through
+    `owed-reds` (owner ruling tvofi 2026-11-07: a red outside it owes no answer)."""
+    return [n for n in required if n not in NOT_GATING]
+
+
 ROLLUP_Q = ("query($o:String!,$n:String!,$pr:Int!){repository(owner:$o,name:$n){pullRequest(number:$pr){"
             "commits(last:1){nodes{commit{oid statusCheckRollup{contexts(first:100){pageInfo{hasNextPage} "
             "nodes{__typename ... on CheckRun{name status conclusion isRequired(pullRequestNumber:$pr)} "
@@ -481,7 +489,7 @@ def classify(latest: dict, required) -> "tuple[str, list[str], list[str]]":
     is reviewable (K15 (d)) exactly when `red` is empty."""
     if required is None:
         raise ValueError(f"{RULESET}'s required contexts are unreadable; nothing is judged against a guessed list")
-    names = [n for n in required if n not in NOT_GATING]
+    names = judged(required)
     pending = sorted(n for n in names if n not in latest or run_state(latest[n]) == "pending")
     red = sorted(n for n in names if n in latest and run_state(latest[n]) == "red")
     return ("red" if red else "wait" if pending else "green"), pending, red
@@ -5756,6 +5764,11 @@ def _state_self_test(check, go, merged, throwaway_git_init) -> None:
           all(classify(latest_runs([gt(c, title=tt)]), [GATE])[0] == "red"
               for c, tt in (("failure", "RATE-LIMITED reset_epoch=1"), ("skipped", ""), ("neutral", "")))
           and classify(latest_runs([cr("fast", conclusion="skipped")]), ["fast"])[0] == "green")
+    owed = judged(gating_names([GATE, "nightly-status"]))
+    check("owed-reds: the required set is the ruleset's plus gate_required less NOT_GATING -- a unit is owed, "
+          "a NOT_GATING reporter the ruleset lists is not (null: tests / nightly-status is in neither)",
+          GATE in owed and "tests / fast (3.14)" in owed and "nightly-status" not in owed
+          and "tests / nightly-status" not in owed)
     names = gating_names([GATE])
     check("item 11: once the ruleset is [gate], a unit's red is classed REQUIRED by the fixture's gate_required "
           "(null: an old-layout ruleset passes through unchanged)",
@@ -7908,6 +7921,11 @@ def _parser() -> argparse.ArgumentParser:
     c.add_argument("sha")
     c.add_argument("--main", action="store_true", help="<sha> is main's tip: PR_ONLY contexts are not judged")
     c.add_argument("--pr", type=int, help="the pull request <sha> heads: lets a RED read as APPROVAL-OWED (rc 4)")
+    # The required set a `## Red checks` obligation is judged against
+    # (policy_lint.mjs --pr-body): the one owner, read live.
+    sub.add_parser("owed-reds", parents=[common],
+                   help="the check names whose red a pull-request body owes an answer, one per line: "
+                        "judged(gating_names(required(pr_head=True))); an unreadable ruleset is rc 2")
     return p
 
 
@@ -7958,6 +7976,14 @@ def main(argv: list[str]) -> int:
         red = Train(a.repo, Path("."), None, "", (), a.min_runs).wait_ci(a.sha)
         print("DONE", a.sha, "red:", " ".join(red) or "none")
         return 1 if red else 0
+    if a.cmd == "owed-reds":
+        try:
+            req = Train(a.repo, Path("."), None, "", (), a.min_runs).required(pr_head=True)
+        except Stop as s:
+            print(f"REFUSE {s.step}: {s.why}")
+            return 2
+        print("\n".join(judged(gating_names(req))))
+        return 0
     if a.cmd in ("unstale", "classify"):
         t = Train(a.repo, Path("."), None, "", (), a.min_runs)
         try:
