@@ -68,10 +68,16 @@ hb_self_test() (
   b=$(git -C "$t/remote.git" rev-parse heartbeat/orchestrator)
   [ "$a" != "$b" ] && [ "$(git -C "$t/remote.git" rev-list --count heartbeat/orchestrator)" = 1 ]
   ck "a second pass force-moves the same ref (one parentless commit, no history)" $?
-  out=$(bash "$hb" --once --message "TICK-PASS $HOME/x"); rc=$?
+  # The host's home is planted, never read: a public home (`/root`, the
+  # runner's) names no host and ref_privacy rightly passes it. Outside
+  # /home and /Users, so only the home rule can refuse it.
+  out=$(HOME=$t/seat-home bash "$hb" --once --message "TICK-PASS $t/seat-home/x"); rc=$?
   [ $rc = 1 ] && printf '%s\n' "$out" | grep -q 'ref_privacy guard refused' \
     && [ "$(git -C "$t/remote.git" rev-parse heartbeat/orchestrator)" = "$b" ]
   ck "a message carrying the host's home directory is refused and the reachable ref does not move" $?
+  out=$(HOME=$t/seat-home bash "$hb" --once --message "TICK-PASS $t/elsewhere/x"); rc=$?
+  [ $rc = 0 ] && [ "$(git -C "$t/remote.git" rev-parse heartbeat/orchestrator)" != "$b" ]
+  ck "null control: the same host's message naming another path is pushed" $?
   out=$(bash "$hb" --watch --max-age 600); rc=$?
   [ $rc = 0 ] && printf '%s\n' "$out" | grep -q '^HEARTBEAT FRESH'
   ck "watcher: a fresh ref does not alert" $?
