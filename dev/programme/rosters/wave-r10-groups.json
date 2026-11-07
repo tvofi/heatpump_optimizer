@@ -17317,7 +17317,7 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "in-progress",
     "note": "PR 3246 open (fixer dispatched 2026-11-06, branch fix/r10-gate-busy-defer); roster stage was stale",
     "commit": "355d9965a"
    },
