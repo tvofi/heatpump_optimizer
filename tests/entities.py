@@ -29793,7 +29793,7 @@ _PT_EXEMPT = {
         "(`pr-contract` needs `tests`, so it is PENDING), whatever the token can see",
     "tools/ci/prelude.py":
         "on a pull_request code run, the only run graders-head-copy executes in, it makes no "
-        "API read (its reads are a dispatch's PR check and a non-code kind's wait)",
+        "API read (its reads are a dispatch's PR check, a body kind's deferral and a non-code kind's wait)",
     # pr-contract's code-scanning wait (U6): it reads runs, jobs and code-scanning
     # analyses and alerts, none of which graders-head-copy's token holds.
     "tools/ci/codescan_wait.py":
@@ -31800,8 +31800,9 @@ _PRW_SUBJECTS = sorted({d.split(" ", 1)[0] for d in _prw_defects(_PRW_UNDONE)})
 R.check(
     "and the same ci.yml and tests.yml with their restores and token hygiene undone are "
     "refused on each of the three autofix jobs (a workflow_call callee of a pull_request "
-    "workflow) and on ci.yml's cancel-superseded and refresh jobs (null control)",
-    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:refresh", "tests.yml:claims-autofix",
+    "workflow) and on ci.yml's cancel-superseded, gate (its `actions: write` re-runs a deferred "
+    "body run, R10-CI-EDIT-RUNNER) and refresh jobs (null control)",
+    _PRW_SUBJECTS == ["ci.yml:cancel-superseded", "ci.yml:gate", "ci.yml:refresh", "tests.yml:claims-autofix",
                       "tests.yml:closures-autofix", "tests.yml:mutation-autofix"],
     f"refused jobs on the undone copy: {_PRW_SUBJECTS}",
 )

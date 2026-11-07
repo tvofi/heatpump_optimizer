@@ -1,6 +1,10 @@
 #!/usr/bin/env python3
 """R10-CI-SLIM card C3: what CI 'edit' runs cost, before and after the deferral.
 
+Its cost model is C3's (a deferred run skips only `pr-contract`); for
+R10-CI-EDIT-RUNNER's predicate, where a deferred run runs no unit and is
+re-run, price with body_defer.py, which reads this file's recording.
+
     python3 dev/audit/harnesses/r10_ci_slim/edit_runs.py --fetch SAMPLE.json --since T0 --until T1
     python3 dev/audit/harnesses/r10_ci_slim/edit_runs.py SAMPLE.json [--prelude PATH]
     python3 dev/audit/harnesses/r10_ci_slim/edit_runs.py --self-test
