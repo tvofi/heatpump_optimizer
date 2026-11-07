@@ -60,7 +60,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-SWEEP-TEMPLATE-SYNC (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-SELFTEST-TIMEOUT (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-RCA-GATE-BUSY-DEFER-2 (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-RCA-GATE-BUSY-DEFER-2 (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-STAMP-FLUSH-COST (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-COP-UNMEASURED (stage in-progress, branch `handoff/r10-hotfix-cop-unmeasured`): `git fetch origin handoff/r10-hotfix-cop-unmeasured && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HOTFIX-TRAIN-DEFER-WAIT (stage in-progress, branch `handoff/r10-hotfix-train-defer-wait`): `git fetch origin handoff/r10-hotfix-train-defer-wait && git worktree add --detach $SEAT/wt FETCH_HEAD`
