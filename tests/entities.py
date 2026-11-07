@@ -46,6 +46,8 @@ from throwaway_git import throwaway_git_env, throwaway_git_init
 _PL_IMPORT = "import('./" + _layout_locate(".claude/workflows/policy_lint.mjs") + "')"
 _COUNTS_IMPORT = "import('./" + _layout_locate(".claude/workflows/counts.mjs") + "')"
 from harness import (
+    SHIPPED_LANGS,
+    TRANSLATED_LANGS,
     EagerHass,
     FakeCoordinator,
     FakeEntry,
@@ -683,7 +685,7 @@ R.check(
 # and its labels are copies. A copy that drifts from the home page's label
 # names one setting two ways, so each is compared, in both shipped languages.
 _prefill_drift = []
-for _lang_file in ("strings.json", "translations/sv.json"):
+for _lang_file in ("strings.json", *(f"translations/{_l}.json" for _l in TRANSLATED_LANGS)):
     _lang_steps = json.loads((ROOT / _lang_file).read_text())["options"]["step"]
     for _pkey, _plabel in _lang_steps["modbus_prefill"]["data"].items():
         # A home page may group the field into a section() (#824-style), which
@@ -4838,8 +4840,10 @@ _P6_TREES = {p.name: ast.parse(p.read_text()) for p in sorted(ROOT.glob("*.py"))
 _P6_WALKS = {name: list(ast.walk(tree)) for name, tree in _P6_TREES.items()}
 _P6_CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 _P6_ICONS = json.loads((ROOT / "icons.json").read_text())
 
@@ -9914,8 +9918,10 @@ R.check(
 # say.)
 _CATALOGUES = {
     "strings.json": json.loads((ROOT / "strings.json").read_text()),
-    "en.json": json.loads((ROOT / "translations" / "en.json").read_text()),
-    "sv.json": json.loads((ROOT / "translations" / "sv.json").read_text()),
+    **{
+        f"{_l}.json": json.loads((ROOT / "translations" / f"{_l}.json").read_text())
+        for _l in SHIPPED_LANGS
+    },
 }
 
 # Home Assistant has no way to grey a field out, so the page says in words
@@ -9951,14 +9957,17 @@ for _name, _data in _CATALOGUES.items():
 # substituted verbatim by the frontend and a step has nowhere valid to keep
 # a free-standing sentence. So the languages have to be checked here.
 R.check(
-    "the warning is carried in code, in both languages",
-    set(config_flow.PRESET_WARNING) == {"en", "sv"}
-    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values()),
-    "an English-only warning would ship untranslated to every Swedish user",
+    "the warning is carried in code, in every shipped language",
+    set(config_flow.PRESET_WARNING) == set(SHIPPED_LANGS)
+    and all(len(v) > 80 for v in config_flow.PRESET_WARNING.values())
+    and len(set(config_flow.PRESET_WARNING.values())) == len(SHIPPED_LANGS),
+    f"{sorted(config_flow.PRESET_WARNING)} against {SHIPPED_LANGS}: an English-only "
+    "warning would ship untranslated to every user of a translated catalogue",
 )
 R.check(
     "and an unknown language falls back to English rather than a KeyError",
-    config_flow.PRESET_WARNING.get("de", config_flow.PRESET_WARNING["en"])
+    "xx" not in config_flow.PRESET_WARNING
+    and config_flow.PRESET_WARNING.get("xx", config_flow.PRESET_WARNING["en"])
     == config_flow.PRESET_WARNING["en"],
     "a form must never fail to render",
 )
@@ -10011,7 +10020,7 @@ def all_keys(data, prefix=""):
 strings = json.loads((ROOT / "strings.json").read_text())
 files = {
     name: json.loads((ROOT / "translations" / f"{name}.json").read_text())
-    for name in ("en", "sv")
+    for name in SHIPPED_LANGS
 }
 # #1067 W1067-G5: the disinfection switch's repair, mode options and refusal.
 for _lang, _texts in (("strings", strings), *files.items()):
@@ -10048,7 +10057,7 @@ def leaf_values(data, prefix=""):
 # English text shipped is en.json's, not strings.json's. The key check above
 # read "exactly" while comparing keys only, and en.json's pump_duty_mode text
 # went stale beside an edited source. en.json is a copy of strings.json leaf
-# for leaf; sv.json is a translation, so only its keys are pinned.
+# for leaf; every other catalogue is a translation, so only its keys are pinned.
 def en_value_drift(source, en):
     """The dotted paths where en's leaf differs from the source's."""
     a, b = leaf_values(source), leaf_values(en)
@@ -10115,7 +10124,18 @@ _HISTORY_MARKERS = {
     "sv": re.compile(
         r"\b(?:som tidigare|som förut|dessförinnan var|fungerade tidigare|tidigare fungerade"
         r"|(?:den|det) gamla (?:regeln|beteendet|sättet)|förut|numera)\b", re.IGNORECASE),
+    # de: bare "früher" is excluded, because it is also "earlier" in time
+    # ("heats earlier"), which is current behaviour.
+    "de": re.compile(
+        r"\b(?:wie (?:bisher|zuvor|früher)|vormals|ehemals|bislang"
+        r"|(?:die|das) alte (?:Regel|Verhalten|Weise)|(?:der|dem) alten (?:Regel|Weise))\b",
+        re.IGNORECASE),
 }
+R.check(
+    "every shipped language names its change-history markers",
+    set(_HISTORY_MARKERS) == set(SHIPPED_LANGS),
+    f"{sorted(_HISTORY_MARKERS)} against {SHIPPED_LANGS}",
+)
 
 
 def _history_leaves(data, marker, prefix=""):
@@ -10163,27 +10183,29 @@ R.check(
     == "Create one at developer.tibber.com.",
     "the setup step already carries that pointer; reauth is the screen that needs it",
 )
-R.check(
-    "and the Swedish reauth pointer is actually translated",
-    files["sv"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ]
-    != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
-        "tibber_token"
-    ],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"and the {_lang} reauth pointer is actually translated",
+        files[_lang]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ]
+        != files["en"]["config"]["step"]["reauth_confirm"]["data_description"][
+            "tibber_token"
+        ],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # #1534: the ECL110 MQTT QoS label was byte-identical English left in sv.json
 # (the key-identity check above passes on an untranslated copy the same way
 # the tibber_token case above does -- this is that same class of gap, named
 # by its own field).
-R.check(
-    "the ECL110 MQTT QoS label is actually translated in Swedish",
-    files["sv"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
-    != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
-    "English copied into sv.json passes the key check and fails the user",
-)
+for _lang in TRANSLATED_LANGS:
+    R.check(
+        f"the ECL110 MQTT QoS label is actually translated in {_lang}",
+        files[_lang]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"]
+        != files["en"]["options"]["step"]["heat_curve"]["data"]["ecl110_mqtt_qos"],
+        f"English copied into {_lang}.json passes the key check and fails the user",
+    )
 
 # The stored-value warning is rendered on a form the user merely opened, so
 # an untranslated one is especially visible. It has to exist for both flows —
@@ -10195,12 +10217,13 @@ for _flow_name in ("config", "options"):
         strings[_flow_name]["error"].get(_warning),
         "a missing error string renders as the raw key",
     )
-    R.check(
-        f"and the Swedish {_flow_name} message is actually translated",
-        files["sv"][_flow_name]["error"].get(_warning)
-        not in (None, files["en"][_flow_name]["error"].get(_warning)),
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and the {_lang} {_flow_name} message is actually translated",
+            files[_lang][_flow_name]["error"].get(_warning)
+            not in (None, files["en"][_flow_name]["error"].get(_warning)),
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 menu = strings["options"]["step"]["init"]["menu_options"]
 advanced_menu = strings["options"]["step"]["advanced"]["menu_options"]
@@ -10212,12 +10235,13 @@ R.check(
 )
 
 for _step_id, _base in (("init", menu), ("advanced", advanced_menu)):
-    _sv_menu = files["sv"]["options"]["step"][_step_id]["menu_options"]
-    R.check(
-        f"the Swedish {_step_id} menu is actually translated",
-        sum(1 for k in _sv_menu if _sv_menu[k] == _base[k]) < len(_base) / 2,
-        "placeholder English left in a translation is worse than no translation",
-    )
+    for _lang in TRANSLATED_LANGS:
+        _tr_menu = files[_lang]["options"]["step"][_step_id]["menu_options"]
+        R.check(
+            f"the {_lang} {_step_id} menu is actually translated",
+            sum(1 for k in _tr_menu if _tr_menu[k] == _base[k]) < len(_base) / 2,
+            "placeholder English left in a translation is worse than no translation",
+        )
 
 # Every field a flow page presents needs a label and a description the
 # frontend actually finds, in every catalogue it may load. The frontend's rule
@@ -10316,7 +10340,7 @@ R.check(
     not _setup_render_errors,
     "; ".join(_setup_render_errors[:4]),
 )
-_catalogues = {"strings.json": strings, "en.json": files["en"], "sv.json": files["sv"]}
+_catalogues = {"strings.json": strings, **{f"{_l}.json": files[_l] for _l in SHIPPED_LANGS}}
 _sectioned_fields = sorted(f for f in _flow_fields if f[2])
 R.check(
     "the label walk reaches grouped fields in both flows",
@@ -10376,15 +10400,16 @@ for _section in ("data", "data_description"):
         bool(_wood_coil_en),
         f"missing from options.step.building at {_wood_coil_path}.{_section}",
     )
-    R.check(
-        f"and its Swedish {_section} is a real translation",
-        _frontend_flow_text(
-            files["sv"], "options", "building", _wood_coil_path, _section,
-            const.CONF_DHW_WOOD_COIL_ENABLED,
+    for _lang in TRANSLATED_LANGS:
+        R.check(
+            f"and its {_lang} {_section} is a real translation",
+            _frontend_flow_text(
+                files[_lang], "options", "building", _wood_coil_path, _section,
+                const.CONF_DHW_WOOD_COIL_ENABLED,
+            )
+            not in (None, _wood_coil_en),
+            f"English copied into {_lang}.json passes the key check and fails the user",
         )
-        not in (None, _wood_coil_en),
-        "English copied into sv.json passes the key check and fails the user",
-    )
 
 selectors = strings.get("selector", {})
 for key in ("building_structure", "building_era", "building_foundation", "emitter"):
@@ -12948,21 +12973,24 @@ R.check(
     set(_ENTITY_STRINGS) == set(_used_keys),
     str(set(_ENTITY_STRINGS) ^ set(_used_keys)),
 )
-_sv_entities = json.loads(
-    (ROOT / "translations" / "sv.json").read_text()
-)["entity"]
-_untranslated = sum(
-    1
-    for _platform, _entries in _ENTITY_STRINGS.items()
-    for _key, _val in _entries.items()
-    if _sv_entities[_platform][_key]["name"] == _val["name"]
-)
+_tr_entities = {
+    _lang: json.loads((ROOT / "translations" / f"{_lang}.json").read_text())["entity"]
+    for _lang in TRANSLATED_LANGS
+}
+_sv_entities = _tr_entities["sv"]
 _total_names = sum(len(v) for v in _ENTITY_STRINGS.values())
-R.check(
-    "the Swedish entity names are actually translated",
-    _untranslated < _total_names / 4,
-    f"{_untranslated} of {_total_names} identical to English",
-)
+for _lang, _ents in _tr_entities.items():
+    _untranslated = sum(
+        1
+        for _platform, _entries in _ENTITY_STRINGS.items()
+        for _key, _val in _entries.items()
+        if _ents[_platform][_key]["name"] == _val["name"]
+    )
+    R.check(
+        f"the {_lang} entity names are actually translated",
+        _untranslated < _total_names / 4,
+        f"{_untranslated} of {_total_names} identical to English",
+    )
 
 # #797: English entity names follow one house style. The D8-03 instrument
 # (dev/audit/rounds/round3/D8/d8_ordering.py `_sentence_case`) counts a name as
@@ -13099,7 +13127,22 @@ _FAM_SV_TAIL = str.maketrans({"å": "z\u0001", "ä": "z\u0002", "ö": "z\u0003"}
 _FAM_COLLATION = {
     "en": lambda _n: _n.casefold(),
     "sv": lambda _n: _n.casefold().translate(_FAM_SV_TAIL),
+    # DIN 5007-1, the order HA's de frontend gives: an umlaut sorts as its
+    # base vowel (casefold already folds ß to ss).
+    "de": lambda _n: _n.casefold().translate(str.maketrans("äöü", "aou")),
 }
+R.check(
+    "every shipped language has a collation for the family check",
+    set(_FAM_COLLATION) == set(SHIPPED_LANGS),
+    f"{sorted(_FAM_COLLATION)} against {SHIPPED_LANGS}",
+)
+
+
+def _fam_name(_lang: str, _row: tuple) -> str:
+    """The row's entity name in ``_lang``, as the frontend shows it."""
+    if _lang == "en":
+        return _row[2]
+    return _tr_entities[_lang].get(_row[0], {}).get(_row[1], {}).get("name", f"~{_row[1]}")
 _FAM_OVERRIDES = const.ENTITY_FAMILY_OVERRIDES
 _FAM_UNKNOWN = sorted(
     _key for _key in _FAM_OVERRIDES if _key not in {k for _, k, _, _ in _FAM_ROWS}
@@ -13171,23 +13214,22 @@ R.check(
 # in either of these again -- still fails until its owner rules on it here.
 _FAM_SPLIT_ALLOWED = frozenset()
 _FAM_SPLIT = []
-for _lang in ("en", "sv"):
-    _name_at = 2 if _lang == "en" else 3
+for _lang in SHIPPED_LANGS:
     _order = [
         (_p, _k)
         for _p, _k, *_ in sorted(
-            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_r[_name_at])
+            _FAM_ROWS, key=lambda _r: _FAM_COLLATION[_lang](_fam_name(_lang, _r))
         )
     ]
     for _tok, _m in sorted(_FAM_FAMILIES.items()):
         _runs_n = _fam_runs(_order, _m)
         if _runs_n > 1 and (_lang, _tok) not in _FAM_SPLIT_ALLOWED:
             _names = sorted(
-                _r[_name_at] for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
+                _fam_name(_lang, _r) for _r in _FAM_ROWS if (_r[0], _r[1]) in _m
             )
             _FAM_SPLIT.append(f"{_lang} {_tok!r}: {_runs_n} runs: {_names}")
 R.check(
-    "every declared family sorts as one contiguous run in en and sv (#1760)",
+    "every declared family sorts as one contiguous run in every shipped language (#1760)",
     not _FAM_SPLIT,
     "; ".join(_FAM_SPLIT),
 )
@@ -13487,26 +13529,28 @@ for _plat, _pins in sorted(_CLUSTER_PREFIXES.items()):
     for _prefix, _keys in sorted(_clusters.items()):
         if len(_keys) < 2:
             continue
-        _sv_names = [_sv_entities[_plat][_k]["name"] for _k in sorted(_keys)]
-        R.check(
-            f"the Swedish {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
-            len(_lead_token(_sv_names)) >= 3,
-            f"lcp={_lead_token(_sv_names)!r} over {_sv_names}",
-        )
+        for _lang, _lang_ents in _tr_entities.items():
+            _tr_names = [_lang_ents[_plat][_k]["name"] for _k in sorted(_keys)]
+            R.check(
+                f"the {_lang} {_plat} names {_prefix!r} leads keep a lead token too (#1334)",
+                len(_lead_token(_tr_names)) >= 3,
+                f"lcp={_lead_token(_tr_names)!r} over {_tr_names}",
+            )
 for _key_prefix in ("dhw_", "learning_", "ecl110_", "solar_"):
-    _prefix_names = sorted(
-        _body["name"]
-        for _ents in _sv_entities.values()
-        for _key, _body in _ents.items()
-        if _key.startswith(_key_prefix)
-    )
-    if len(_prefix_names) < 2:
-        continue
-    R.check(
-        f"the Swedish {_key_prefix}* family's names keep a lead token (#1334)",
-        len(_lead_token(_prefix_names)) >= 3,
-        f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
-    )
+    for _lang, _lang_ents in _tr_entities.items():
+        _prefix_names = sorted(
+            _body["name"]
+            for _ents in _lang_ents.values()
+            for _key, _body in _ents.items()
+            if _key.startswith(_key_prefix)
+        )
+        if len(_prefix_names) < 2:
+            continue
+        R.check(
+            f"the {_lang} {_key_prefix}* family's names keep a lead token (#1334)",
+            len(_lead_token(_prefix_names)) >= 3,
+            f"lcp={_lead_token(_prefix_names)!r} over {_prefix_names}",
+        )
 
 # Belt-and-braces for the future: the four headline sensors advertise a
 # stable stat_kind attribute, same contract as plan_kind on the plan sensors.
@@ -26162,23 +26206,23 @@ R.check(
 # And the translations themselves, in all three files. A missing state entry
 # renders the raw token -- exactly the defect D3 exists to remove.
 _state_string_errors = []
-_sv_ent = json.loads((ROOT / "translations" / "sv.json").read_text())["entity"]
 for _key, (_c, _states, _m) in _ENUM_SENSORS.items():
     _en_states = (_ENTITY_STRINGS["sensor"].get(_key) or {}).get("state") or {}
-    _sv_states = (_sv_ent["sensor"].get(_key) or {}).get("state") or {}
     if set(_en_states) != set(_states):
         _state_string_errors.append(
             f"{_key}: strings.json states {sorted(set(_en_states) ^ set(_states))}"
         )
-    if set(_sv_states) != set(_states):
-        _state_string_errors.append(
-            f"{_key}: sv.json states {sorted(set(_sv_states) ^ set(_states))}"
-        )
-    for _s in sorted(set(_en_states) & set(_sv_states)):
-        if _sv_states[_s] == _en_states[_s]:
-            _state_string_errors.append(f"{_key}.{_s} is identical in sv")
+    for _lang, _lang_ents in _tr_entities.items():
+        _tr_states = (_lang_ents["sensor"].get(_key) or {}).get("state") or {}
+        if set(_tr_states) != set(_states):
+            _state_string_errors.append(
+                f"{_key}: {_lang}.json states {sorted(set(_tr_states) ^ set(_states))}"
+            )
+        for _s in sorted(set(_en_states) & set(_tr_states)):
+            if _tr_states[_s] == _en_states[_s]:
+                _state_string_errors.append(f"{_key}.{_s} is identical in {_lang}")
 R.check(
-    "every enum option has an English and a translated Swedish state name",
+    "every enum option has an English and a translated state name in every language",
     not _state_string_errors,
     "; ".join(_state_string_errors[:6]),
 )
@@ -26719,28 +26763,29 @@ R.check(
 # Placeholder English left in a translation is worse than no translation: it
 # looks translated. Applied to descriptions as well as names, because the
 # descriptions are the long text and the easiest half to skip.
-_sv_services = _CATALOGUES["sv.json"].get("services") or {}
 _en_services = _CATALOGUES["en.json"].get("services") or {}
-_untranslated = []
-for _svc in sorted(set(_sv_services) & set(_en_services)):
-    for _k in _SERVICE_TEXT_KEYS:
-        if _sv_services[_svc].get(_k) == _en_services[_svc].get(_k):
-            _untranslated.append(f"{_svc}.{_k}")
-    _sv_f = _sv_services[_svc].get("fields") or {}
-    _en_f = _en_services[_svc].get("fields") or {}
-    for _fname in sorted(set(_sv_f) & set(_en_f)):
+for _lang in TRANSLATED_LANGS:
+    _tr_services = _CATALOGUES[f"{_lang}.json"].get("services") or {}
+    _untranslated = []
+    for _svc in sorted(set(_tr_services) & set(_en_services)):
         for _k in _SERVICE_TEXT_KEYS:
-            if _sv_f[_fname].get(_k) == _en_f[_fname].get(_k):
-                _untranslated.append(f"{_svc}.{_fname}.{_k}")
-R.check(
-    "the Swedish service text is actually translated",
-    # Non-emptiness is part of the claim: with no services section at all this
-    # compares two empty mappings and passes while saying nothing, which is the
-    # shape of check this repository keeps having to refute.
-    bool(_sv_services) and bool(_en_services) and not _untranslated,
-    f"{len(_untranslated)} identical of {len(_sv_services)} services: "
-    f"{_untranslated[:4]}",
-)
+            if _tr_services[_svc].get(_k) == _en_services[_svc].get(_k):
+                _untranslated.append(f"{_svc}.{_k}")
+        _tr_f = _tr_services[_svc].get("fields") or {}
+        _en_f = _en_services[_svc].get("fields") or {}
+        for _fname in sorted(set(_tr_f) & set(_en_f)):
+            for _k in _SERVICE_TEXT_KEYS:
+                if _tr_f[_fname].get(_k) == _en_f[_fname].get(_k):
+                    _untranslated.append(f"{_svc}.{_fname}.{_k}")
+    R.check(
+        f"the {_lang} service text is actually translated",
+        # Non-emptiness is part of the claim: with no services section at all this
+        # compares two empty mappings and passes while saying nothing, which is the
+        # shape of check this repository keeps having to refute.
+        bool(_tr_services) and bool(_en_services) and not _untranslated,
+        f"{len(_untranslated)} identical of {len(_tr_services)} services: "
+        f"{_untranslated[:4]}",
+    )
 
 # The catalogue describes services that exist. A row for a service nothing
 # registers is text no user can reach; one registered with no row is the

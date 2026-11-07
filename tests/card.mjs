@@ -237,6 +237,53 @@ if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 // Module-level functions the tests call directly, reached the way the setup
 // constants already are: by name, in the card's own realm (#136, PR 9).
 const fn = (name) => vm.runInContext(name, ctx);
+
+// R10-I18N-DE: every dictionary in STRINGS is key-for-key with `en` and names
+// exactly en's {placeholders}. L() falls back to English per key, so a key a
+// translation lacks renders English mid-sentence and no render check sees it;
+// an extra key is a translation nobody can reach; a dropped placeholder loses
+// a number. The languages are STRINGS' own keys, never a list kept here.
+{
+  const ph = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
+  const parity = (tables) => {
+    const out = [];
+    for (const [lang, t] of Object.entries(tables)) {
+      if (lang === "en") continue;
+      for (const k of Object.keys(tables.en)) {
+        if (!(k in t)) out.push(`${lang}: missing ${k}`);
+        else if (ph(tables.en[k]) !== ph(t[k])) out.push(`${lang}: placeholders of ${k}`);
+      }
+      for (const k of Object.keys(t)) if (!(k in tables.en)) out.push(`${lang}: extra ${k}`);
+    }
+    return out;
+  };
+  const tables = JSON.parse(JSON.stringify(fn("STRINGS")));
+  const langs = Object.keys(tables).filter((l) => l !== "en");
+  const bad = parity(tables);
+  check("every card language is key-for-key with en and names en's placeholders",
+    langs.length >= 2 && bad.length === 0, `${langs.join(",")}: ${bad.slice(0, 6).join("; ")}`);
+  // Null controls: a planted missing key, dropped placeholder and extra key in
+  // each translated table fail the same function, and the unplanted copy passes.
+  const fails = (mut) => { const c = JSON.parse(JSON.stringify(tables)); mut(c); return parity(c).length > 0; };
+  const k0 = Object.keys(tables.en).find((k) => /\{\w+\}/.test(tables.en[k]));
+  check("and a planted missing key, dropped placeholder or extra key in any language fails it (null controls)",
+    !fails(() => {}) && langs.every((lang) =>
+      fails((c) => { delete c[lang][k0]; })
+      && fails((c) => { c[lang][k0] = c[lang][k0].replace(/\{\w+\}/, ""); })
+      && fails((c) => { c[lang]["zz.planted"] = "x"; })),
+    `planted on ${k0} in ${langs.join(",")}`);
+  // hass.language carries a region ("de-DE"); setLanguage must reach every
+  // dictionary through the prefix, and an unknown one must fall back to en.
+  const active = (raw) => { vm.runInContext(`setLanguage(${JSON.stringify(raw)})`, ctx); return vm.runInContext("ACTIVE_LANG", ctx); };
+  const reached = Object.keys(tables).filter((lang) => active(`${lang}-XX`) === lang);
+  const deTab = active("de-DE") === "de" ? vm.runInContext('L("header.tab_setup")', ctx) : null;
+  const fallback = active("xx-YY");
+  active("en");
+  check("a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en",
+    reached.length === Object.keys(tables).length && deTab === tables.de["header.tab_setup"]
+    && deTab !== tables.en["header.tab_setup"] && fallback === "en",
+    `reached ${reached.join(",")}; de-DE tab ${deTab}; xx-YY -> ${fallback}`);
+}
 const reasonHtml = fn("reasonHtml");
 const sharedTooltipHtml = fn("sharedTooltipHtml");
 const extraFields = fn("extraFields");
@@ -12219,7 +12266,7 @@ check("without an indoor reading the corner now label is absent",
   // the English table. So each code's own key is read from both tables directly.
   const strings = fn("STRINGS");
   const keyOf = (code) => (code === "stale" ? "health.stale" : `health.p_${code}`);
-  for (const lang of ["en", "sv"]) {
+  for (const lang of Object.keys(strings)) {
     const missing = codes.filter((k) => !(typeof strings[lang][keyOf(k)] === "string" && strings[lang][keyOf(k)].trim()));
     check(`every published problem code has its own words in the card's ${lang} table`,
       missing.length === 0, missing.join(","));
@@ -12265,11 +12312,13 @@ check("without an indoor reading the corner now label is absent",
     // owning page's (never the quick_setup / modbus_prefill shortcuts), and
     // the card's label is it less the language's optional marker.
     const SHORTCUT = new Set(["quick_setup", "modbus_prefill"]);
-    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"] };
-    const FILES = { en: "custom_components/heatpump_optimizer/strings.json",
-      sv: "custom_components/heatpump_optimizer/translations/sv.json" };
+    const STRIP = { en: [" (optional)"], sv: [" (valfri)", " (valfritt)"], de: [" (optional)"] };
+    const FILES = { en: "custom_components/heatpump_optimizer/strings.json" };
     const tbl = fn("STRINGS");
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(tbl)) if (lang !== "en") FILES[lang] = `custom_components/heatpump_optimizer/translations/${lang}.json`;
+    check("UX-HEALTH A: every card language names its optional-field marker",
+      Object.keys(tbl).every((lang) => STRIP[lang]), `${Object.keys(tbl).join(",")} against ${Object.keys(STRIP).join(",")}`);
+    for (const lang of Object.keys(tbl).filter((l) => STRIP[l])) {
       const json = JSON.parse(fs.readFileSync(FILES[lang], "utf8"));
       const fields = {};
       const walk = (n, path) => {
@@ -12337,7 +12386,10 @@ check("without an indoor reading the corner now label is absent",
         },
       });
       const esc = fn("esc");
-      for (const [lang, noData] of [["en", /with no samples|dash means/], ["sv", /utan mätningar|streck betyder/]]) {
+      const NO_DATA = { en: /with no samples|dash means/, sv: /utan mätningar|streck betyder/, de: /ohne Messwerte|Strich bedeutet/ };
+      check("hover spec: every card language names its no-data wording",
+        Object.keys(fn("STRINGS")).every((lang) => NO_DATA[lang]), Object.keys(NO_DATA).join(","));
+      for (const [lang, noData] of Object.entries(NO_DATA)) {
         const m = modelOf(bare, lang);
         const strings = fn("STRINGS")[lang];
         const ids = [...m.matchAll(/data-model-row="([^"]+)"/g)].map((x) => x[1]);
@@ -12434,7 +12486,7 @@ check("without an indoor reading the corner now label is absent",
     // languages; the count is asserted non-zero so a grep miss cannot pass.
     const pySrc = ["accuracy.py", "heat_energy.py"].map((f) => fs.readFileSync(`custom_components/heatpump_optimizer/${f}`, "utf8")).join("\n");
     const copCodes = [...pySrc.matchAll(/^(?:COP_(?:HEAT|DRAW|NOT|NO_ELECTRIC)[A-Z_]*|COP_REFUSED_[A-Z_]+|SPAN_REFUSED_[A-Z_]+) = "(\w+)"/gm)].map((m) => m[1]);
-    for (const lang of ["en", "sv"]) {
+    for (const lang of Object.keys(fn("STRINGS"))) {
       const missing = copCodes.filter((c) => !fn("STRINGS")[lang][`health.cop_reason_${c}`]);
       check(`UX-HEALTH E: every published COP code has its own ${lang} words`,
         copCodes.length > 0 && missing.length === 0, `${copCodes.length} codes; missing ${missing.join(",")}`);
