@@ -1,12 +1,12 @@
 diff --git a/.github/workflows/governance.yml b/.github/workflows/governance.yml
-index 759ec575e..7091021c7 100644
+index 759ec575e..94240aa6f 100644
 --- a/.github/workflows/governance.yml
 +++ b/.github/workflows/governance.yml
-@@ -1087,6 +1087,20 @@ jobs:
+@@ -1087,6 +1087,15 @@ jobs:
            python3 -I tools/audit/seat/sweep_driver.py --self-test | tee "$RUNNER_TEMP/sweep-driver-self-test.txt"
            grep -Eq '^sweep_driver self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-driver-self-test.txt"
  
-+      - name: Show the sweep runner and its Gantt, verdict-audit and roster-drain parts refusing their own fixtures
++      - name: Show the beat's Gantt and verdict-audit instruments (sweep_gantt.py, verdict_audit.py) refusing their own fixtures
 +        if: ${{ !cancelled() }}
 +        run: |
 +          set -o pipefail
@@ -14,11 +14,6 @@ index 759ec575e..7091021c7 100644
 +          grep -Eq '^sweep_gantt self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-gantt-self-test.txt"
 +          python3 -I tools/audit/seat/verdict_audit.py --self-test | tee "$RUNNER_TEMP/verdict-audit-self-test.txt"
 +          grep -Eq '^verdict_audit self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/verdict-audit-self-test.txt"
-+          python3 -I tools/audit/seat/roster_drain.py --self-test | tee "$RUNNER_TEMP/roster-drain-self-test.txt"
-+          grep -Eq '^roster_drain self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/roster-drain-self-test.txt"
-+          bash tools/audit/seat/sweep_runner.sh --self-test | tee "$RUNNER_TEMP/sweep-runner-self-test.txt"
-+          grep -Eq '^sweep_runner self-test: [1-9][0-9]* checks, 0 failed$' "$RUNNER_TEMP/sweep-runner-self-test.txt"
-+          python3 -I tools/audit/seat/sweep_runner_selftest.py --self-test | grep -Eq '^sweep_runner self-test: [1-9][0-9]* checks, 0 failed$'
 +
        - name: Show the CI probe instrument (tools/audit/seat/ci_probe.py) refusing its own fixtures
          if: ${{ !cancelled() }}
@@ -31,64 +26,465 @@ index 000000000..2ccad47b9
 @@ -0,0 +1 @@
 +- [#3267](https://github.com/tvofi/heatpump_optimizer/pull/3267) — **open**, R10-SWEEP-TEMPLATE-SYNC: fold the 11-06 out-of-tree sweep changes into the tracked sweep instruments (R10-SWEEP-TEMPLATE-SYNC)
 diff --git a/tests/closures.json b/tests/closures.json
-index c71959796..b02b3c413 100644
+index c71959796..ddf81bd83 100644
 --- a/tests/closures.json
 +++ b/tests/closures.json
-@@ -3898,13 +3898,17 @@
-    "tools/audit/seat/review_carry.py",
-    "tools/audit/seat/review_packet.py",
-    "tools/audit/seat/review_strength.py",
-+   "tools/audit/seat/roster_drain.py",
-    "tools/audit/seat/roster_lib.py",
-    "tools/audit/seat/roster_queue.py",
+@@ -3903,8 +3903,10 @@
     "tools/audit/seat/selftest_wiring.py",
     "tools/audit/seat/sweep_driver.py",
     "tools/audit/seat/sweep_driver_selftest.py",
 +   "tools/audit/seat/sweep_gantt.py",
     "tools/audit/seat/sweep_render.py",
-+   "tools/audit/seat/sweep_runner_selftest.py",
     "tools/audit/seat/tmp_paths.py",
 +   "tools/audit/seat/verdict_audit.py",
     "tools/policy/budget_raise_gate.py",
     "tools/policy/figure_lint.mjs",
     "tools/policy/fixtures/policy-rot/prepr/raise/bare-payments.md",
 diff --git a/tools/audit/seat/INSTRUMENTS.md b/tools/audit/seat/INSTRUMENTS.md
-index 57fcb0697..9c48a617a 100644
+index 57fcb0697..fa3ebbd50 100644
 --- a/tools/audit/seat/INSTRUMENTS.md
 +++ b/tools/audit/seat/INSTRUMENTS.md
-@@ -116,6 +116,10 @@ sweep's standing-seat liveness step keep them alive.
+@@ -116,6 +116,8 @@ sweep's standing-seat liveness step keep them alive.
  - [`sweep_driver.py`](instruments/sweep_driver.py.md) — the probe PR's sweep, where `workflow_run` never fires (`gate-sweep.yml` runs only from the default branch)
  - [`sweep_render.py`](instruments/sweep_render.py.md) — renders the orchestrator sweep from `sweep_template.md` and a session's JSON overlay (stdout or `--out`)
  - [`sweep_template.md`](instruments/sweep_template.md.md) — the orchestrator's recurring sweep, steps in order
-+- [`sweep_runner.sh`](instruments/sweep_runner.sh.md) — the sweep's mechanical steps as one env-configured loop; writes only actionable lines to `new.txt`
 +- [`sweep_gantt.py`](instruments/sweep_gantt.py.md) — compares the live state to the plan's Gantt and prints each unacknowledged `GANTT-SLIP`
 +- [`verdict_audit.py`](instruments/verdict_audit.py.md) — maps every open PR to its latest verdict and holder; prints `UNHELD` lines
-+- [`roster_drain.py`](instruments/roster_drain.py.md) — the manual roster-queue drain path through `roster_queue.py`, forwarding refusals
  - [`bare_array.py`](instruments/bare_array.py.md) — refuses a bare `"${name[@]}"` in any tracked `tools/**/*.sh` script (a sourced library runs under its caller's `set -u`), which macOS bash 3.2 dies on when the array is empty (`--check`, `--self-test`)
  - [`tmp_paths.py`](instruments/tmp_paths.py.md) — refuses a tracked script, workflow or decision record that depends on a temp or machine path (`--check`, `--self-test`)
  - [`update_pr.sh`](instruments/update_pr.sh.md) — brings an open PR branch to its head + a code SHA (merge) + origin/main (merge), adds the PR's own delivery row when the head lacks it (`delivery_row.sh`), prefixes ## Head with what happened, pushes as `hpo-author`
-diff --git a/tools/audit/seat/instruments/roster_drain.py.md b/tools/audit/seat/instruments/roster_drain.py.md
-new file mode 100644
-index 000000000..e3eb0cefd
---- /dev/null
-+++ b/tools/audit/seat/instruments/roster_drain.py.md
-@@ -0,0 +1,13 @@
-+# `roster_drain.py`
+diff --git a/tools/audit/seat/beat_jobs.py b/tools/audit/seat/beat_jobs.py
+index 5f2f4c39f..9758f4463 100644
+--- a/tools/audit/seat/beat_jobs.py
++++ b/tools/audit/seat/beat_jobs.py
+@@ -51,11 +51,26 @@ ROWS (the job table's `interval_s` in brackets):
+                      occurrence) is marked done in `state/`, refused or not: a
+                      refusal is never retried. `hold <tree-path> <op...>` waits
+                      until `origin/main:<tree-path>` exists, and is
+-                     `roster: HOLD-STALE` after HOLD_STALE_S. The lint clone is
+-                     `S/roster-lint`, the orchestrator's to provision.
++                     `roster: HOLD-STALE` after HOLD_STALE_S. Done or refused is
++                     read from the exact line roster_queue's `--mark` rewrites
++                     (`#done <op>` / `#refused <op>`): an op it neither reported
++                     nor marked is `roster: UNRUN` and stays pending; a refusal
++                     because the worktree is on no origin ref (an earlier
++                     refusal's leftover) stays pending under one `roster:
++                     CASCADE` line. The lint clone is `S/roster-lint`, the
++                     orchestrator's to provision.
+   plan-beat [1800]   replan.py `--out`, then state_docs.py `--push --mirror
+                      --plan`; `plan-beat: PLAN UNAVAILABLE` on a replan failure
+-                     or state_docs rc 1, `plan-beat: REFUSED` on its rc 2.
++                     or state_docs rc 1, `plan-beat: REFUSED` on its rc 2; on
++                     success `plan-beat: PLAN MOVED` when the mirrored PLAN.html
++                     differs from the last pass's (a republish is owed).
++  gantt [1800]       sweep_gantt.py against `plan_json`, its baseline in
++                     `state/gantt/`, the `gantt_acks` file, the roster at
++                     `gantt_roster` (`<branch>:<path>`), the open pull requests,
++                     the handoff tips (fetched to `refs/gantt/`) and the
++                     overlay's `fire_ledger`; its GANTT-SLIP and GANTT-BASELINE lines.
++  verdict-audit [1800] verdict_audit.py `--repo` (+ `fire_ledger`, `train_glob`,
++                     `unheld_skip`); its UNHELD lines.
+   pulse [300]        pulse.py into `S/beatd/pulse.txt`; its STOPPED and
+                      UNREADABLE lines to the digest.
+   cancel-sweep [600] cancel_superseded.py `sweep --repo R`; failures only.
+@@ -84,6 +99,7 @@ from __future__ import annotations
+ import argparse
+ import collections
+ import fcntl
++import hashlib
+ import json
+ import os
+ import re
+@@ -94,7 +110,7 @@ import sys
+ import time
+ from pathlib import Path
+ 
+-ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "pulse",
++ROWS = ("tick-digest", "owed-check", "roster-drain", "plan-beat", "gantt", "verdict-audit", "pulse",
+         "cancel-sweep", "disk", "opener", "head-watch", "audit-dispatch")
+ HOLD_STALE_S = 24 * 3600  # gap 6: a hold line never expired
+ #: The board's actionable family (carry 20's list), keyed on the texts
+@@ -301,7 +317,7 @@ def on_main(ctx: Ctx, path: str) -> bool:
+ def roster_drain(ctx: Ctx) -> None:
+     done = set(ctx.memory("roster-done.json", []))
+     holds = ctx.memory("roster-hold.json", {})
+-    lines, count, ran = [], collections.Counter(), False
++    lines, count, ran, cascade = [], collections.Counter(), False, 0
+     # The queue is append-only. Only newline-terminated lines run: a last segment read mid-append waits
+     # for its newline. A queue with fewer terminated lines than a past pass drained was cleared or
+     # rotated, which would silently skip a re-queued op under its occurrence key: refuse it visibly.
+@@ -338,15 +354,26 @@ def roster_drain(ctx: Ctx) -> None:
+         atomic(one, op + "\n")
+         report.unlink(missing_ok=True)
+         ran = True
+-        rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--queue", str(one),
++        rc, out, err = ctx.py("tools/audit/seat/roster_queue.py", "run", "1", "1", "--mark", "--queue", str(one),
+                               "--report", str(report), "--edit-checkout", str(ctx.repo),
+                               "--worktree", str(ctx.digest / "state" / "roster-wt"),
+                               "--lint-clone", str(ctx.state / "roster-lint"))
+         said = [ln for ln in read(report).splitlines() if ln.startswith("roster: ")]
+-        lines += said or [f"roster: {op} FAILED rc={rc} no report line"]
+-        if not any("no op attempted" in ln for ln in said):
++        mark = read(one).split("\n", 1)[0]  # `--mark` rewrites the exact line `#done <op>` or `#refused <op>`
++        if not said and mark == op:  # no report line and no mark: roster_queue attempted nothing
++            lines.append(f"roster: UNRUN {op} rc={rc} no report line; stays pending")
++            continue
++        if mark == f"#refused {op}" and any("is on no origin ref" in ln for ln in said):
++            cascade += 1  # the worktree an earlier refusal left detached refused it, not the lint gate
++            continue
++        lines += said or [f"roster: {op} {mark.split()[0]} rc={rc} no report line"]
++        if mark != op or not any("no op attempted" in ln for ln in said):
+             done.add(key)  # applied or refused: never retried past the lint gate
+             holds.pop(key, None)
++    if cascade:
++        lines.append(f"roster: CASCADE {cascade} op(s) stay pending: the worktree "
++                     f"{ctx.digest / 'state' / 'roster-wt'} is on no origin ref after an earlier refusal; "
++                     "remove it to release them")
+     ctx.remember("roster-queue-lines.json", len(whole), 0)
+     ctx.remember("roster-done.json", sorted(done), [])
+     ctx.remember("roster-hold.json", holds, {})
+@@ -365,12 +392,69 @@ def plan_beat(ctx: Ctx) -> None:
+         return write_job(ctx, "plan-beat", [f"plan-beat: PLAN UNAVAILABLE replan rc={rc}: {last}"])
+     rc, _, err = ctx.py("tools/audit/seat/state_docs.py", "--push", "--mirror", mirror, "--plan", plan)
+     if rc == 0:
+-        return write_job(ctx, "plan-beat", [])
++        page = read(Path(mirror) / "PLAN.html")
++        sha = hashlib.sha256(page.encode()).hexdigest() if page else ""
++        moved = sha and sha != ctx.memory("plan-page.json", "")
++        ctx.remember("plan-page.json", sha, "")
++        # owner ruling (tvofi 2026-11-06): every sweep updates the plan artifact; a changed page owes a republish
++        return write_job(ctx, "plan-beat", [f"plan-beat: PLAN MOVED {Path(mirror) / 'PLAN.html'} "
++                                            "re-rendered; republish owed"] if moved else [])
+     said = [ln for ln in err.splitlines() if "UNAVAILABLE" in ln or "REFUSED" in ln]
+     word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"
+     write_job(ctx, "plan-beat", [f"plan-beat: {word} rc={rc}: {(said or [''])[-1]}"])
+ 
+ 
++def gantt(ctx: Ctx) -> None:
++    """sweep_gantt.py against the plan plan-beat wrote; its GANTT-SLIP and GANTT-BASELINE lines."""
++    got = ctx.need("gantt", "repo", "plan_json", "gantt_roster", "gantt_acks")
++    if got is None:
++        return
++    repo, plan, roster, acks = got
++    branch, _, path = roster.partition(":")
++    d, git = ctx.digest / "state" / "gantt", ["git", "-C", str(ctx.repo)]
++    d.mkdir(parents=True, exist_ok=True)
++    # tips land under refs/gantt/, never refs/heads/ or refs/remotes/: no branch and no tree moves
++    ctx.run([*git, "fetch", "-q", "origin", f"+refs/heads/{branch}:refs/gantt/roster",
++             "+refs/heads/handoff/*:refs/gantt/handoff/*", "+refs/heads/handoff-wip/*:refs/gantt/handoff-wip/*"],
++            ctx.repo, ctx.env)
++    rc, out, _ = ctx.run([*git, "show", f"refs/gantt/roster:{path}"], ctx.repo, ctx.env)
++    if rc != 0 or not path:
++        return write_job(ctx, "gantt", [f"gantt: UNREADABLE roster {roster} rc={rc}"])
++    atomic(d / "roster.json", out)
++    _, out, _ = ctx.run([*git, "for-each-ref", "--format=%(objectname)%09%(refname)%09%(committerdate:unix)",
++                         "refs/gantt/handoff/", "refs/gantt/handoff-wip/"], ctx.repo, ctx.env)
++    atomic(d / "handoff-rows.tsv", out.replace("\trefs/gantt/", "\trefs/heads/"))
++    rc, out, _ = ctx.run(["gh", "pr", "list", "--repo", repo, "--state", "open", "--limit", "100",
++                          "--json", "number,title"], ctx.repo, ctx.env)
++    if rc != 0:
++        return write_job(ctx, "gantt", [f"gantt: UNREADABLE gh pr list rc={rc}"])
++    atomic(d / "prs.json", out)
++    ledger = ctx.overlay.get("fire_ledger")
++    atomic(d / "fired.txt", read(Path(str(ledger))) if ledger else "")
++    rc, out, err = ctx.py("tools/audit/seat/sweep_gantt.py", "--plan", plan, "--baseline", str(d / "baseline.json"),
++                          "--acks", acks, "--roster", str(d / "roster.json"), "--open-prs", str(d / "prs.json"),
++                          "--handoff-rows", str(d / "handoff-rows.tsv"), "--fired", str(d / "fired.txt"))
++    if rc != 0:
++        return write_job(ctx, "gantt", [f"gantt: UNREADABLE sweep_gantt rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
++    write_job(ctx, "gantt", [ln for ln in out.splitlines() if re.match(r"^GANTT-(?:SLIP|BASELINE) ", ln)])
 +
-+- `roster_drain.py` — the manual roster-queue drain path: runs the pending
-+  lines of a queue file through `roster_queue.py run`, marks each line
-+  `#done` or `#refused` by exact-line match, and prints one line per problem:
-+  `ROSTER-REFUSED`, `ROSTER-SKIPPED`, `ROSTER-CASCADE`, `ROSTER-UNRUN`.
-+  Owner ruling (tvofi 2026-10-31): mechanical seat work goes into the sweep
-+  script. When: a session with no standing roster seat; the beat's
-+  `roster-drain` row (`beat_jobs.py`) is the unattended path and the two do
-+  not run together on one queue. Refusal: it never releases a `#held` line,
-+  and a line holding ` #` is skipped with a notice rather than cut. Run from
-+  a checkout of the repository. `--self-test` drives each output kind beside
-+  a clean drain.
++
++def verdict_audit(ctx: Ctx) -> None:
++    """verdict_audit.py: one UNHELD line per open pull request whose next step nobody holds."""
++    got = ctx.need("verdict-audit", "repo")
++    if got is None:
++        return
++    args = ["--repo", got[0]]
++    for key, flag in (("fire_ledger", "--fired"), ("train_glob", "--train-glob"), ("unheld_skip", "--skip")):
++        if ctx.overlay.get(key):
++            args += [flag, str(ctx.overlay[key])]
++    rc, out, err = ctx.py("tools/audit/seat/verdict_audit.py", *args)
++    if rc != 0:
++        return write_job(ctx, "verdict-audit",
++                         [f"verdict-audit: UNREADABLE rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
++    write_job(ctx, "verdict-audit", [ln for ln in out.splitlines() if ln.startswith("UNHELD ")])
++
++
+ def pulse(ctx: Ctx) -> None:
+     o = ctx.overlay
+     args = ["--repo", str(o["repo"])] if o.get("repo") else []
+@@ -477,7 +561,7 @@ def audit_dispatch(ctx: Ctx) -> None:
+ 
+ 
+ RUN = {"tick-digest": tick_digest, "owed-check": owed_check, "roster-drain": roster_drain,
+-       "plan-beat": plan_beat, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
++       "plan-beat": plan_beat, "gantt": gantt, "verdict-audit": verdict_audit, "pulse": pulse, "cancel-sweep": cancel_sweep, "disk": disk,
+        "opener": opener, "head-watch": head_watch, "audit-dispatch": audit_dispatch}
+ 
+ 
+diff --git a/tools/audit/seat/beat_jobs_selftest.py b/tools/audit/seat/beat_jobs_selftest.py
+index 3fb0df7da..f68a5dcc0 100644
+--- a/tools/audit/seat/beat_jobs_selftest.py
++++ b/tools/audit/seat/beat_jobs_selftest.py
+@@ -223,6 +223,10 @@ def cases(bj) -> dict[str, bool]:
+             rep = Path(argv[argv.index("--report") + 1])
+             op = Path(argv[argv.index("--queue") + 1]).read_text().split()
+             rep.write_text(f"roster: {op[0]} {op[1]} {word}\n")
++            if "--mark" in argv and "no op attempted" not in word:  # roster_queue marks the exact line it ran
++                q = Path(argv[argv.index("--queue") + 1])
++                tag = "#done" if " pushed " in f" {word}" else "#refused"
++                q.write_text(f"{tag} {q.read_text()}")
+             return 0, "", ""
+         return ans
+ 
+@@ -259,7 +263,7 @@ def cases(bj) -> dict[str, bool]:
+         held and stale and f.ran("roster_queue.py") == 1 and "pushed" in digest(c))
+     one = bj.read(c.digest / "state" / "roster-one.queue")
+     res["roster-drain: a released hold hands roster_queue the held op, not the hold line"] = (
+-        one == "set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
++        one == "#done set-stage G3 x\n" and digest(c) == "roster: set-stage G3 pushed 0123abcde\n")
+ 
+     c, f = fresh(answers={"roster_queue.py": roster("pushed 0123abcde")})
+     q = c.state / "roster-drain.queue"
+@@ -324,6 +328,111 @@ def cases(bj) -> dict[str, bool]:
+         arg(a, "--out") == str(c.state.parent / "p.json") or arg(a, "--out").endswith("p.json")) and (
+         arg(a, "--slots") == "10" and arg(a, "--seats") == "99")
+ 
++    # roster-drain: the exact-line mark, UNRUN and CASCADE (folded from the retired roster_drain.py)
++    c, f = fresh(answers={"roster_queue.py": (0, "", "")})
++    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
++    pre = "roster: UNRUN" not in digest(c)
++    bj.roster_drain(c)
++    bj.roster_drain(c)
++    res["roster-drain: an op neither reported nor marked is UNRUN and stays pending"] = (
++        pre and digest(c).startswith("roster: UNRUN set-stage G1 done rc=0") and f.ran("roster_queue.py") == 2
++        and "--mark" in f.calls[0])
++    wt = "roster: set-stage G1 refused rc=1 x | /w HEAD 0123456789ab is on no origin ref; an unpushed edit"
++    det = {"v": True}
++    def cas(argv):
++        return (roster("refused rc=1 x | /w HEAD 0123456789ab is on no origin ref; an unpushed edit") if det["v"]
++                else roster("pushed 0123abcde"))(argv)
++    c, f = fresh(answers={"roster_queue.py": cas})
++    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
++    pre = "roster: CASCADE" not in digest(c)
++    bj.roster_drain(c)
++    cascade = digest(c).startswith("roster: CASCADE 1 op(s) stay pending") and wt not in digest(c)
++    det["v"] = False
++    bj.roster_drain(c)
++    res["roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs"] = (
++        pre and cascade and f.ran("roster_queue.py") == 2 and digest(c) == "roster: set-stage G1 pushed 0123abcde\n")
++    c, f = fresh(answers={"roster_queue.py": roster("refused rc=1 lint gate: TOTAL: 1")})
++    (c.state / "roster-drain.queue").write_text("set-stage G1 done\n")
++    bj.roster_drain(c)
++    bj.roster_drain(c)
++    res["roster-drain null: a lint refusal marked #refused is no CASCADE and no UNRUN, and is not retried"] = (
++        "CASCADE" not in digest(c) and "UNRUN" not in digest(c) and f.ran("roster_queue.py") == 1)
++
++    # plan-beat: PLAN MOVED
++    def page(text):
++        def ans(argv):
++            if arg(argv, "--mirror") is None:
++                return 0, "", ""
++            m = Path(arg(argv, "--mirror"))
++            m.mkdir(parents=True, exist_ok=True)
++            (m / "PLAN.html").write_text(text["v"])
++            return 0, "", ""
++        return ans
++    text = {"v": "<p>one</p>"}
++    c, f = fresh(answers={"state_docs.py": page(text)})
++    pre = "PLAN MOVED" not in digest(c)
++    bj.plan_beat(c)
++    first = digest(c) == f"plan-beat: PLAN MOVED {c.state / 'mirror' / 'PLAN.html'} re-rendered; republish owed\n"
++    bj.plan_beat(c)
++    same = digest(c) == ""
++    text["v"] = "<p>two</p>"
++    bj.plan_beat(c)
++    res["plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"] = (
++        pre and first and same and "PLAN MOVED" in digest(c))
++    c, f = fresh()
++    bj.plan_beat(c)
++    res["plan-beat null: no mirrored page is no PLAN MOVED and no byte"] = not files(c)
++
++    # gantt
++    def git_g(argv):
++        if "show" in argv:
++            return 0, '{"groups": []}', ""
++        if "for-each-ref" in argv:
++            return 0, f"{SHA['a']}\trefs/gantt/handoff/r10-x\t1800000000\n", ""
++        return 0, "", ""
++    gov = {"repo": "o/r", "plan_json": "/p.json", "gantt_roster": "handoff/audit-r10-roster:dev/r.json",
++           "gantt_acks": "/acks.txt"}
++    slip = "GANTT-SLIP IDLE:G1 starts 2026-11-01T09:00Z, nothing working on it -> ack: 2026-11-01T10:00Z IDLE:G1 act"
++    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""),
++                                       "sweep_gantt.py": (0, "noise\n" + slip + "\n", "")})
++    pre = "GANTT-SLIP" not in digest(c)
++    bj.gantt(c)
++    g = next((a for a in f.calls if any(x.endswith("sweep_gantt.py") for x in a)), [])
++    st = c.digest / "state" / "gantt"
++    res["gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints"] = (
++        pre and digest(c) == bj.norm(slip) + "\n")
++    res["gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger"] = (
++        arg(g, "--plan") == "/p.json" and arg(g, "--acks") == "/acks.txt"
++        and bj.read(Path(arg(g, "--roster") or "/x")) == '{"groups": []}'
++        and bj.read(Path(arg(g, "--handoff-rows") or "/x")) == f"{SHA['a']}\trefs/heads/handoff/r10-x\t1800000000\n"
++        and arg(g, "--open-prs") == str(st / "prs.json") and arg(g, "--fired") == str(st / "fired.txt")
++        and arg(g, "--baseline") == str(st / "baseline.json"))
++    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""), "sweep_gantt.py": (1, slip, "boom\n")})
++    bj.gantt(c)
++    res["gantt: a failed sweep_gantt is UNREADABLE, never its partial lines"] = (
++        digest(c) == "gantt: UNREADABLE sweep_gantt rc=1: boom\n")
++    c, f = fresh(overlay=gov, answers={"git": git_g, "gh": (0, "[]", ""), "sweep_gantt.py": (0, "noise\n", "")})
++    bj.gantt(c)
++    res["gantt null: no slip writes no digest"] = not (c.digest / "digest.txt").exists()
++
++    # verdict-audit
++    unheld = "UNHELD #12 no verdict ever: owed a first reviewer once the gate is green (x)"
++    c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired", "unheld_skip": "/skip"},
++                 answers={"verdict_audit.py": (0, "note\n" + unheld + "\n", "")})
++    pre = "UNHELD" not in digest(c)
++    bj.verdict_audit(c)
++    v = (f.calls or [[]])[0]
++    res["verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"] = (
++        pre and digest(c) == unheld + "\n" and arg(v, "--repo") == "o/r" and arg(v, "--fired") == "/fired"
++        and arg(v, "--skip") == "/skip" and "--train-glob" not in v)
++    c, f = fresh(answers={"verdict_audit.py": (1, unheld, "Traceback: gh\n")})
++    bj.verdict_audit(c)
++    res["verdict-audit: a failed run is UNREADABLE, never its partial lines"] = (
++        digest(c) == "verdict-audit: UNREADABLE rc=1: Traceback: gh\n")
++    c, f = fresh(answers={"verdict_audit.py": (0, "note\n", "")})
++    bj.verdict_audit(c)
++    res["verdict-audit null: nothing unheld writes no byte"] = not files(c)
++
+     # pulse
+     ok = "PULSE opener ok fine\npulse: 1 arms, 0 stopped, 0 unreadable at 2026-11-01T09:00:00Z\n"
+     c, f = fresh(answers={"pulse.py": (0, ok, "")})
+@@ -564,8 +673,7 @@ MUTANTS = {
+                        "roster-drain: a queue line drains once, is marked, and is not re-run"),
+     "roster_hold_ignored": ("            if not on_main(ctx, parts[1]):", "            if False:",
+                             "roster-drain: a hold waits for main, is HOLD-STALE past 24 h, then releases"),
+-    "plan_rc1_silent": ('    if rc == 0:\n        return write_job(ctx, "plan-beat", [])',
+-                        '    if rc in (0, 1):\n        return write_job(ctx, "plan-beat", [])',
++    "plan_rc1_silent": ('    if rc == 0:\n        page = read(', '    if rc in (0, 1):\n        page = read(',
+                         "plan-beat: state_docs rc 1 is PLAN UNAVAILABLE"),
+     "pulse_stopped_dropped": ('(?:STOPPED|UNREADABLE) ', '(?:UNREADABLE) ', "pulse: a STOPPED line reaches the digest"),
+     "cancel_failure_dropped": ('r"could not cancel| rc=', 'r"could not cancelX| rc=',
+@@ -591,7 +699,7 @@ MUTANTS = {
+                                 "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
+     "roster_shrink_ignored": ("    if len(whole) < seen or ", "    if False and ",
+                               "roster-drain: a cleared queue is refused as QUEUE-SHRANK, stays refused, and nothing runs"),
+-    "roster_noop_marked": ('        if not any("no op attempted" in ln for ln in said):', '        if True:',
++    "roster_noop_marked": ('        if mark != op or not any("no op attempted" in ln for ln in said):', '        if True:',
+                            "roster-drain: a no-op-attempted report is retried on the next pass"),
+     "plan_rc2_unavailable": ('word = "PLAN UNAVAILABLE" if rc == 1 else "REFUSED"', 'word = "PLAN UNAVAILABLE"',
+                              "plan-beat: state_docs rc 2 is REFUSED, not PLAN UNAVAILABLE"),
+@@ -651,6 +759,28 @@ MUTANTS = {
+                                 "audit-dispatch: output whose only GUARDRAIL line is the unclassified one is UNREADABLE"),
+     "audit_rc_ignored": ("    if rc != 0 or not arms:", "    if not arms:",
+                          "audit-dispatch: a failed run is UNREADABLE, never a dispatch"),
++    "roster_unrun_marked": ("        if not said and mark == op:", "        if False:",
++                            "roster-drain: an op neither reported nor marked is UNRUN and stays pending"),
++    "roster_mark_dropped": ('"run", "1", "1", "--mark", "--queue"', '"run", "1", "1", "--queue"',
++                            "roster-drain: an op neither reported nor marked is UNRUN and stays pending"),
++    "roster_cascade_marked": ('        if mark == f"#refused {op}" and any("is on no origin ref"', '        if False and any("is on no origin ref"',
++                              "roster-drain: a refusal by a worktree on no origin ref is CASCADE, stays pending, then runs"),
++    "plan_moved_dropped": ("        moved = sha and sha != ctx.memory(", "        moved = False and sha != ctx.memory(",
++                           "plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"),
++    "plan_moved_every_pass": ('        ctx.remember("plan-page.json", sha, "")\n', "",
++                              "plan-beat: a changed PLAN.html is PLAN MOVED once; an unchanged one is no line"),
++    "gantt_filter_dropped": ('write_job(ctx, "gantt", [ln for ln in out.splitlines() if re.match(',
++                             'write_job(ctx, "gantt", [ln for ln in out.splitlines() if True or re.match(',
++                             "gantt: a GANTT-SLIP line reaches the digest, and nothing else sweep_gantt prints"),
++    "gantt_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE sweep_gantt',
++                         '    if False:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE sweep_gantt',
++                         "gantt: a failed sweep_gantt is UNREADABLE, never its partial lines"),
++    "gantt_rows_unmapped": ('out.replace("\\trefs/gantt/", "\\trefs/heads/")', "out",
++                            "gantt: sweep_gantt is handed the plan, acks, roster, open PRs, live handoff rows and the fire ledger"),
++    "verdict_filter_dropped": ('if ln.startswith("UNHELD ")])', "])",
++                               "verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"),
++    "verdict_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "verdict-audit",', '    if False:\n        return write_job(ctx, "verdict-audit",',
++                           "verdict-audit: a failed run is UNREADABLE, never its partial lines"),
+     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
+                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
+                             "fold: a duplicated line is one more line, new.txt and a new stamp"),
+diff --git a/tools/audit/seat/beatd.jobs.json b/tools/audit/seat/beatd.jobs.json
+index 7e68ada02..fbb4d3b5a 100644
+--- a/tools/audit/seat/beatd.jobs.json
++++ b/tools/audit/seat/beatd.jobs.json
+@@ -82,6 +82,46 @@
+       "class": "orch-checkout",
+       "kind": "periodic"
+     },
++    {
++      "name": "gantt",
++      "argv": [
++        "python3",
++        "-I",
++        "tools/audit/seat/beat_jobs.py",
++        "gantt",
++        "--state",
++        "$S"
++      ],
++      "cwd": "orch",
++      "interval_s": 1800,
++      "timeout_s": 600,
++      "heartbeat_s": null,
++      "env_pass": [
++        "GH_TOKEN"
++      ],
++      "class": "orch-checkout",
++      "kind": "periodic"
++    },
++    {
++      "name": "verdict-audit",
++      "argv": [
++        "python3",
++        "-I",
++        "tools/audit/seat/beat_jobs.py",
++        "verdict-audit",
++        "--state",
++        "$S"
++      ],
++      "cwd": "orch",
++      "interval_s": 1800,
++      "timeout_s": 600,
++      "heartbeat_s": null,
++      "env_pass": [
++        "GH_TOKEN"
++      ],
++      "class": "orch-checkout",
++      "kind": "periodic"
++    },
+     {
+       "name": "pulse",
+       "argv": [
+diff --git a/tools/audit/seat/instruments/beat_jobs.py.md b/tools/audit/seat/instruments/beat_jobs.py.md
+index f399272d5..2cc1846ef 100644
+--- a/tools/audit/seat/instruments/beat_jobs.py.md
++++ b/tools/audit/seat/instruments/beat_jobs.py.md
+@@ -6,10 +6,15 @@
+   actionable family; a `NOT REVIEWABLE` or `RED unanswered` line only once a
+   second board carries it), `owed-check` (`owed_unactioned.py`, once per
+   sweep), `roster-drain` (`roster_queue.py run` per pending line of
+-  `S/roster-drain.queue`, each exact line marked done, a refusal never
+-  retried, `hold <tree-path> <op>` released once main carries the path and
+-  `HOLD-STALE` after 24 h), `plan-beat` (`replan.py` then `state_docs.py
+-  --push --mirror --plan`), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
++  `S/roster-drain.queue`, done or refused read from the exact line
++  `roster_queue.py --mark` rewrites, a refusal never retried, an op neither
++  reported nor marked `UNRUN` and pending, a refusal by a worktree on no origin
++  ref pending under one `CASCADE` line, `hold <tree-path> <op>` released once
++  main carries the path and `HOLD-STALE` after 24 h), `plan-beat` (`replan.py`
++  then `state_docs.py --push --mirror --plan`, and `PLAN MOVED` when the
++  mirrored `PLAN.html` changed), `gantt` (`sweep_gantt.py`'s `GANTT-SLIP` and
++  `GANTT-BASELINE` lines), `verdict-audit` (`verdict_audit.py`'s `UNHELD`
++  lines), `pulse` (into `S/beatd/pulse.txt`), `cancel-sweep`,
+   `disk` (`worktree_gc.sh` under the floor), `opener` (one `open_driver.py
+   --board` pass, its refusals and `STUCK` forwarded) `head-watch`
+   (`HEAD-MOVED` events) and `audit-dispatch` (one `DISPATCH: planted-defect-audit
 diff --git a/tools/audit/seat/instruments/sweep_gantt.py.md b/tools/audit/seat/instruments/sweep_gantt.py.md
 new file mode 100644
-index 000000000..79a5a109a
+index 000000000..16f6600d8
 --- /dev/null
 +++ b/tools/audit/seat/instruments/sweep_gantt.py.md
 @@ -0,0 +1,16 @@
@@ -102,35 +498,15 @@ index 000000000..79a5a109a
 +  each time the plan html is updated, mechanically, and surface slips to act
 +  on, defer or accept. Handoffs count as live only when the tip was committed
 +  within 12 h, and fire lines are filtered to 12 h (ruling 2026-11-06); the
-+  `--handoff-rows` and `--fired-ledger` forms apply both filters here. Acks
++  `--handoff-rows` form and `--fired` apply both filters here. Acks
 +  are `<ISO> <KEY> act|defer|accept` lines; `accept` also re-baselines. When:
-+  every second pass of `sweep_runner.sh`, or by hand after a plan update.
++  the beat's `gantt` row (`beat_jobs.py`) every 30 minutes, or by hand after a plan update.
 +  Refusal: a missing baseline is seeded from `--plan`, never an error.
 +  `--self-test` drives each slip kind, the 12 h filters and the ack forms
 +  beside their null controls.
-diff --git a/tools/audit/seat/instruments/sweep_runner.sh.md b/tools/audit/seat/instruments/sweep_runner.sh.md
-new file mode 100644
-index 000000000..11cf2cfe0
---- /dev/null
-+++ b/tools/audit/seat/instruments/sweep_runner.sh.md
-@@ -0,0 +1,14 @@
-+# `sweep_runner.sh`
-+
-+- `sweep_runner.sh` — the sweep's mechanical steps as one loop, configured by
-+  `SWEEP_*` environment (`SWEEP_STATE_DIR`, `SWEEP_CHECKOUT`, `SWEEP_REPO`
-+  required; `SWEEP_ONCE`, `SWEEP_SLEEP` and the roster, ledger, train and
-+  disk-floor variables optional). Owner ruling (tvofi 2026-10-31): mechanical
-+  seat work goes into the sweep script. It runs the roster drain, `pulse.py`,
-+  the superseded-run cancel, the disk floor, and every second pass
-+  `sweep_gantt.py` and `verdict_audit.py`, and writes only actionable lines
-+  to `$SWEEP_STATE_DIR/sweep-runner/new.txt` (+ `new.stamp`) for the
-+  orchestrator's one wake. When: a session runs its recurring sweep. Run it
-+  from a checkout fetched fresh by the session, never the one `tick_loop.sh`
-+  or `cloud_relay.sh` run from. Refusal: an unset required variable exits
-+  non-zero. `--self-test` runs `sweep_runner_selftest.py`.
 diff --git a/tools/audit/seat/instruments/verdict_audit.py.md b/tools/audit/seat/instruments/verdict_audit.py.md
 new file mode 100644
-index 000000000..641412f94
+index 000000000..4ea7bd727
 --- /dev/null
 +++ b/tools/audit/seat/instruments/verdict_audit.py.md
 @@ -0,0 +1,14 @@
@@ -144,149 +520,13 @@ index 000000000..641412f94
 +  reviewer). Held means queued in a train log modified within 3 h, or a fire
 +  line in the last 12 h naming the PR or its topic; `--skip FILE` lists
 +  `#<N> <ruling>` lines for PRs held by an owner ruling. Owner ruling (tvofi
-+  2026-11-06): no PR waits unheld. When: every second pass of
-+  `sweep_runner.sh`, or by hand from a checkout with origin fetched. Reads
++  2026-11-06): no PR waits unheld. When: the beat's
++  `verdict-audit` row (`beat_jobs.py`) every 30 minutes, or by hand from a checkout with origin fetched. Reads
 +  only (`gh pr list`, `git ls-remote`, `git fetch`, `git show`).
 +  `--self-test` drives each owed state beside its held null control.
-diff --git a/tools/audit/seat/roster_drain.py b/tools/audit/seat/roster_drain.py
-new file mode 100755
-index 000000000..aa9d52187
---- /dev/null
-+++ b/tools/audit/seat/roster_drain.py
-@@ -0,0 +1,130 @@
-+#!/usr/bin/env python3
-+"""The manual roster-queue drain path: pending queue lines through roster_queue.py.
-+
-+    roster_drain.py --queue FILE --work-dir DIR --edit-checkout DIR --worktree DIR --lint-clone DIR
-+                    [--branch handoff/audit-r10-roster] [--alive FILE] [--timeout 3600]
-+    roster_drain.py --self-test
-+
-+Owner ruling (tvofi 2026-10-31): mechanical seat work goes into the sweep script. This is
-+the path for a session with no standing roster seat; the beat's `roster-drain` row
-+(`beat_jobs.py`) is the unattended one, and the two do not run together on one queue.
-+Drains the pending lines of QUEUE through `tools/audit/seat/roster_queue.py run`, marks
-+each line `#done` or `#refused` by exact-line match, and prints one line per problem for
-+the sweep runner to forward: ROSTER-REFUSED, ROSTER-SKIPPED, ROSTER-CASCADE, ROSTER-UNRUN.
-+Never releases a `#held` line (any line starting `#` is not pending). Run from a
-+checkout of the repository.
-+"""
-+import argparse, os, subprocess, sys
-+
-+
-+def pending(lines):
-+    """Pending = non-blank, not a comment. A line holding ' #' is skipped with a notice:
-+    roster_queue.parse_line would cut it at the comment."""
-+    pend = [l for l in lines if l.strip() and not l.startswith("#")]
-+    notes = [f"ROSTER-SKIPPED: ' #' in the line, parse_line would cut it; rewrite it: {l[:120]}" for l in pend if " #" in l]
-+    return [l for l in pend if " #" not in l], notes
-+
-+
-+def reconcile(pend, new, cur):
-+    """Fold the report lines `new` (one per pending op, in order) into the queue lines `cur`.
-+    Returns (new queue lines, output lines)."""
-+    cur = list(cur)
-+    out, cascade = [], 0
-+    for op, res in zip(pend, new):
-+        if op not in cur:
-+            continue
-+        i = cur.index(op)
-+        if " pushed " in res:
-+            cur[i:i + 1] = ["#done " + op, "#note " + res.split(" | ")[0].replace("roster: ", "") + " (sweep runner)"]
-+        elif "is on no origin ref" in res:
-+            cascade += 1  # an earlier refusal left the worktree detached: not this op's refusal; stays pending
-+        else:
-+            cur[i:i + 1] = ["#refused " + op, "#note " + res]
-+            out.append("ROSTER-REFUSED: " + op[:120] + " :: " + res[-200:])
-+    if cascade:
-+        out.append(f"ROSTER-CASCADE: {cascade} line(s) left pending behind an earlier refusal's detached worktree")
-+    for op in pend[len(new):]:
-+        out.append("ROSTER-UNRUN: " + op[:120] + " (no report line; the run stopped early)")
-+    return cur, out
-+
-+
-+def drain(a):
-+    lines = open(a.queue).read().split("\n")
-+    pend, notes = pending(lines)
-+    for n in notes:
-+        print(n)
-+    if not pend:
-+        return 0
-+
-+    def sh(*cmd, **k):
-+        return subprocess.run(cmd, text=True, capture_output=True, **k)
-+
-+    sh("git", "-C", a.edit_checkout, "fetch", "-q", "origin")
-+    sh("git", "-C", a.edit_checkout, "checkout", "-q", "-B", "roster-drain-main", "origin/main")
-+    sh("git", "-C", a.edit_checkout, "worktree", "remove", "--force", a.worktree)
-+    sh("git", "-C", a.edit_checkout, "worktree", "prune")
-+    qcopy, rep = os.path.join(a.work_dir, "roster-q.txt"), os.path.join(a.work_dir, "roster-rep.txt")
-+    open(qcopy, "w").write("\n".join(pend) + "\n")
-+    before = len(open(rep).read().splitlines()) if os.path.exists(rep) else 0
-+    cmd = ["python3", "-I", "tools/audit/seat/roster_queue.py", "run", "1", str(len(pend)), "--queue", qcopy,
-+           "--report", rep, "--edit-checkout", a.edit_checkout, "--worktree", a.worktree,
-+           "--lint-clone", a.lint_clone, "--branch", a.branch]
-+    if a.alive:
-+        cmd += ["--alive", a.alive]
-+    sh(*cmd, cwd=a.edit_checkout, timeout=a.timeout)
-+    new = open(rep).read().splitlines()[before:] if os.path.exists(rep) else []
-+    cur, out = reconcile(pend, new, open(a.queue).read().split("\n"))
-+    open(a.queue, "w").write("\n".join(cur))
-+    for o in out:
-+        print(o)
-+    return 0
-+
-+
-+def self_test():
-+    n = bad = 0
-+
-+    def check(name, cond):
-+        nonlocal n, bad
-+        n += 1
-+        if not cond:
-+            bad += 1
-+            print(f"FAIL {name}")
-+
-+    q = ["set-stage A done", "# comment", "#held set-stage H x", "", "set-stage B done", "set-stage C done # tail"]
-+    pend, notes = pending(q)
-+    check("held and comment lines are not pending", pend == ["set-stage A done", "set-stage B done"])
-+    check("a ' #' line is skipped with a notice", len(notes) == 1 and notes[0].startswith("ROSTER-SKIPPED"))
-+    cur, out = reconcile(pend, ["roster: A pushed abc | x", "roster: B refused: lint"], q)
-+    check("pushed -> #done + note", "#done set-stage A done" in cur and any(l.startswith("#note A pushed abc") for l in cur))
-+    check("refused -> #refused + ROSTER-REFUSED", "#refused set-stage B done" in cur and len(out) == 1 and out[0].startswith("ROSTER-REFUSED"))
-+    check("the held line is untouched", "#held set-stage H x" in cur)
-+    cur, out = reconcile(pend, ["roster: A refused: boom", "roster: B is on no origin ref"], q)
-+    check("cascade: later op stays pending, one ROSTER-CASCADE", "set-stage B done" in cur and any(o.startswith("ROSTER-CASCADE: 1") for o in out))
-+    cur, out = reconcile(pend, ["roster: A pushed abc | x"], q)
-+    check("unrun op is reported, stays pending", "set-stage B done" in cur and any(o.startswith("ROSTER-UNRUN: set-stage B") for o in out))
-+    cur, out = reconcile(pend, ["roster: A pushed abc | x", "roster: B pushed def | y"], q)
-+    check("null control: all pushed -> no problem line", out == [])
-+    cur, out = reconcile(pend, ["roster: A pushed abc | x"], [l for l in q if l != "set-stage A done"])
-+    check("an op removed from the queue meanwhile is not re-added", "#done set-stage A done" not in cur)
-+    print(f"roster_drain self-test: {n} checks, {bad} failed")
-+    return 1 if bad else 0
-+
-+
-+def main(argv):
-+    ap = argparse.ArgumentParser()
-+    for f in ("queue", "work-dir", "edit-checkout", "worktree", "lint-clone", "alive"):
-+        ap.add_argument("--" + f)
-+    ap.add_argument("--branch", default="handoff/audit-r10-roster")
-+    ap.add_argument("--timeout", type=int, default=3600)
-+    ap.add_argument("--self-test", action="store_true")
-+    a = ap.parse_args(argv)
-+    if a.self_test:
-+        return self_test()
-+    for f in ("queue", "work_dir", "edit_checkout", "worktree", "lint_clone"):
-+        if not getattr(a, f):
-+            ap.error("--" + f.replace("_", "-") + " is required")
-+    return drain(a)
-+
-+
-+if __name__ == "__main__":
-+    sys.exit(main(sys.argv[1:]))
 diff --git a/tools/audit/seat/sweep_gantt.py b/tools/audit/seat/sweep_gantt.py
 new file mode 100755
-index 000000000..af6078a0f
+index 000000000..f4b9bb40f
 --- /dev/null
 +++ b/tools/audit/seat/sweep_gantt.py
 @@ -0,0 +1,252 @@
@@ -308,9 +548,9 @@ index 000000000..af6078a0f
 +                            handoffs keep old tips) and returns the refs;
 +  recent_fired(lines, now)  keeps a ledger line only when its leading UTC stamp is
 +                            within 12 h.
-+`--handoffs` takes the file of refs and `--fired` the ledger; the `--handoff-rows`
-+and `--fired-ledger` forms apply the 12 h filters here, so the runner has no
-+second copy of them. Both filters are applied at their one owner, this file.
++`--handoffs` takes a file of refs, unfiltered; `--handoff-rows` takes the rows and
++`--fired` the ledger, and both apply the 12 h filter here, so the beat's `gantt` row
++(`beat_jobs.py`) holds no second copy of them: this file is their one owner.
 +
 +Slip kinds, one line each, `GANTT-SLIP <KEY> <detail>`:
 +  IDLE:<group>     the plan starts the group by now (+GRACE) and nothing is working on it:
@@ -542,217 +782,25 @@ index 000000000..af6078a0f
 +    ap.add_argument("--self-test", action="store_true")
 +    a = ap.parse_args()
 +    sys.exit(self_test() if a.self_test else run(a))
-diff --git a/tools/audit/seat/sweep_runner.sh b/tools/audit/seat/sweep_runner.sh
-new file mode 100755
-index 000000000..3223d54ce
---- /dev/null
-+++ b/tools/audit/seat/sweep_runner.sh
-@@ -0,0 +1,73 @@
-+#!/bin/bash
-+# The sweep's mechanical steps as one loop (tvofi 2026-10-31: mechanical seat work goes into the sweep
-+# script). Runs the actionable-line steps of tools/audit/seat/sweep_template.md and writes ONLY actionable
-+# lines to $SWEEP_STATE_DIR/sweep-runner/new.txt (+ new.stamp), which the orchestrator's one wake reads.
-+#
-+#   SWEEP_STATE_DIR=<dir> SWEEP_CHECKOUT=<checkout> SWEEP_REPO=<owner/name> bash tools/audit/seat/sweep_runner.sh
-+#
-+# Required: SWEEP_STATE_DIR (the orchestrator state dir; exported as HPO_STATE_DIR), SWEEP_CHECKOUT (a
-+# checkout fetched fresh by the session; NEVER the one tick_loop.sh / cloud_relay.sh run from: bash reads
-+# scripts incrementally), SWEEP_REPO. Optional: SWEEP_ONCE=1 (one pass, no sleep), SWEEP_SLEEP (900 s),
-+# SWEEP_FIRED_LEDGER (the fire ledger, `<UTC stamp> FIRED ...` lines), SWEEP_ROSTER_QUEUE (+ SWEEP_ROSTER_EDIT,
-+# SWEEP_ROSTER_WT, SWEEP_ROSTER_LINT: the manual roster-drain path), SWEEP_TRAIN_GLOB (merge-train logs),
-+# SWEEP_ROSTER_REF (default handoff/audit-r10-roster), SWEEP_DISK_FLOOR_GIB (15), SWEEP_PLAN_SLOTS (16),
-+# SWEEP_PLAN_SEATS (16), SWEEP_PY (python3). Every state file lives under SWEEP_STATE_DIR.
-+set -u
-+if [ "${1:-}" = "--self-test" ]; then exec "${SWEEP_PY:-python3}" -I "$(dirname "$0")/sweep_runner_selftest.py" --self-test; fi
-+: "${SWEEP_STATE_DIR:?SWEEP_STATE_DIR is required}" "${SWEEP_CHECKOUT:?SWEEP_CHECKOUT is required}" "${SWEEP_REPO:?SWEEP_REPO is required}"
-+O=$SWEEP_STATE_DIR; W=$SWEEP_CHECKOUT; REPO=$SWEEP_REPO; PY=${SWEEP_PY:-python3}
-+R=$O/sweep-runner; G=$O/gantt; mkdir -p "$R" "$G"
-+REF=${SWEEP_ROSTER_REF:-handoff/audit-r10-roster}; LEDGER=${SWEEP_FIRED_LEDGER:-}
-+export PATH=$W/tools/audit/seat/shims:$PATH HPO_STATE_DIR=$O
-+n=0
-+emit(){ printf '%s\n' "$@" >> "$R/new.tmp"; }
-+while :; do
-+  n=$((n+1)); : > "$R/new.tmp"; cd "$W" || exit 1
-+  # roster queue drain (the manual path; the beat's roster-drain row is the unattended one): refusals and unrun lines only
-+  if [ -n "${SWEEP_ROSTER_QUEUE:-}" ]; then
-+    timeout 3700 $PY -I tools/audit/seat/roster_drain.py --queue "$SWEEP_ROSTER_QUEUE" --work-dir "$R" \
-+      --edit-checkout "${SWEEP_ROSTER_EDIT:?}" --worktree "${SWEEP_ROSTER_WT:?}" --lint-clone "${SWEEP_ROSTER_LINT:?}" --branch "$REF" >> "$R/new.tmp" 2>&1
-+  fi
-+  # (1b) pulse: STOPPED / UNREADABLE only
-+  timeout 200 $PY -I tools/audit/seat/pulse.py --repo "$REPO" > "$R/pulse.txt" 2>&1
-+  grep -E 'STOPPED|UNREADABLE' "$R/pulse.txt" | sed 's/^/PULSE: /' >> "$R/new.tmp"
-+  # (4e) cancel superseded runs; report only if it cancelled something or failed
-+  timeout 200 $PY -I tools/pr/cancel_superseded.py sweep --repo "$REPO" > "$R/cancel.txt" 2>&1 || emit "CANCEL-SWEEP failed: $(tail -1 "$R/cancel.txt")"
-+  grep -q 'cancelled [1-9]' "$R/cancel.txt" && grep 'CANCEL-SWEEP' "$R/cancel.txt" >> "$R/new.tmp"
-+  # (8) disk floor
-+  free=$(df -Pk / | awk 'NR==2{print int($4/1048576)}'); floor=${SWEEP_DISK_FLOOR_GIB:-15}
-+  [ "${free:-99}" -lt "$floor" ] && { emit "DISK: ${free} GiB free (<$floor); running worktree_gc"; bash tools/audit/worktree_gc.sh "$REPO" > "$R/gc.txt" 2>&1; }
-+  # every 2nd pass (~30 min): (4b) plan render, gantt drift, verdict audit, state docs, owed_unactioned
-+  if [ $((n % 2)) -eq 1 ]; then
-+    git fetch -q origin "$REF" 2>/dev/null
-+    timeout 300 $PY tools/plan/replan.py --out "$O/plan-live.json" --slots "${SWEEP_PLAN_SLOTS:-16}" --seats "${SWEEP_PLAN_SEATS:-16}" > "$R/replan.txt" 2>&1 || emit "REPLAN failed: $(tail -1 "$R/replan.txt")"
-+    timeout 150 $PY tools/audit/seat/plan_page.py --plan "$O/plan-live.json" --html "$O/plan-live.html" > "$R/plan_page.txt" 2>&1 || emit "PLAN-PAGE failed: $(tail -1 "$R/plan_page.txt")"
-+    grep -q "refused" "$R/plan_page.txt" && emit "PLAN-PAGE refused: $(grep -m1 refused "$R/plan_page.txt" | cut -c1-200)"
-+    # tvofi 2026-11-06: every sweep updates the plan artifact; a re-render that differs from the published page owes a republish
-+    cmp -s "$O/plan-live.html" "$O/plan.html" || { cp "$O/plan-live.html" "$O/plan.html" && emit "PLAN MOVED: plan.html re-rendered; republish owed"; }
-+    # tvofi 2026-11-01: each plan render is compared against the Gantt baseline; every unacked slip is owed act|defer|accept
-+    git show "origin/$REF:dev/programme/rosters/wave-r10-groups.json" > "$G/roster.json" 2>/dev/null
-+    # a handoff already in main is not work in flight; sweep_gantt.py keeps only tips committed in the last 12 h,
-+    # and only fire lines from the last 12 h (both filters are its own, so this runner holds no second copy)
-+    git fetch -q origin '+refs/heads/handoff/*:refs/gantt/handoff/*' '+refs/heads/handoff-wip/*:refs/gantt/handoff-wip/*' 2>/dev/null
-+    git for-each-ref --format='%(objectname)%09%(refname)%09%(committerdate:unix)' refs/gantt/ | sed 's#\trefs/gantt/#\trefs/heads/#' > "$G/handoff-rows.tsv"
-+    [ -n "$LEDGER" ] && [ -f "$LEDGER" ] && cp "$LEDGER" "$G/fired.txt" || : > "$G/fired.txt"
-+    gh pr list --repo "$REPO" --state open --limit 100 --json number,title > "$G/prs.json" 2>/dev/null || echo '[]' > "$G/prs.json"
-+    timeout 120 $PY -I tools/audit/seat/sweep_gantt.py --plan "$O/plan-live.json" --baseline "$G/baseline.json" --acks "$G/acks.txt" \
-+      --roster "$G/roster.json" --open-prs "$G/prs.json" --handoff-rows "$G/handoff-rows.tsv" --fired "$G/fired.txt" > "$R/gantt.txt" 2>&1 || emit "GANTT-DRIFT failed: $(tail -1 "$R/gantt.txt")"
-+    grep -E '^GANTT-(SLIP|BASELINE)' "$R/gantt.txt" | sed 's/^/GANTT: /' >> "$R/new.tmp"
-+    # tvofi 2026-11-06: no PR waits unheld; every open PR is mapped to its verdict and holder
-+    timeout 300 $PY -I tools/audit/seat/verdict_audit.py --repo "$REPO" --fired "$G/fired.txt" --train-glob "${SWEEP_TRAIN_GLOB:-}" --skip "$G/unheld-skip.txt" > "$R/unheld.txt" 2>&1 || emit "VERDICT-AUDIT failed: $(tail -1 "$R/unheld.txt")"
-+    grep '^UNHELD' "$R/unheld.txt" >> "$R/new.tmp"
-+    timeout 900 $PY -u tools/audit/seat/state_docs.py --push --mirror "$O/state-mirror" --plan "$O/plan-live.json" > "$R/state.txt" 2>&1; src=$?
-+    [ $src -ne 0 ] && emit "STATE-DOCS rc=$src (124 = timeout): $(grep -i -E 'refus|unavail|error' "$R/state.txt" | tail -1)"
-+    grep -h '^summary:' "$R/replan.txt" > "$R/plan-summary.txt"
-+    $PY -I tools/audit/seat/owed_unactioned.py --tick "$O/tick.txt" --state "$O/owed-unactioned.json" --acks "$O/seat-ledger.md" > "$R/unact.txt" 2>&1; rc=$?
-+    [ $rc -eq 1 ] && grep -E '^\s+-> |^\s+ack:' "$R/unact.txt" | sed 's/^ */UNACTIONED: /' >> "$R/new.tmp"
-+    [ $rc -eq 2 ] && emit "UNACTIONED-UNREADABLE: $(tail -1 "$R/unact.txt")"
-+  fi
-+  if [ -s "$R/new.tmp" ]; then mv "$R/new.tmp" "$R/new.txt"; date -u +%FT%TZ > "$R/new.stamp"; else rm -f "$R/new.tmp"; fi
-+  echo "$(date -u +%FT%TZ) pass $n new=$( [ -f "$R/new.stamp" ] && cat "$R/new.stamp" || echo -) $(cut -c1-60 "$R/plan-summary.txt" 2>/dev/null)"
-+  [ -n "${SWEEP_ONCE:-}" ] && exit 0
-+  sleep "${SWEEP_SLEEP:-900}"
-+done
-diff --git a/tools/audit/seat/sweep_runner_selftest.py b/tools/audit/seat/sweep_runner_selftest.py
-new file mode 100644
-index 000000000..6e3d4fbb9
---- /dev/null
-+++ b/tools/audit/seat/sweep_runner_selftest.py
-@@ -0,0 +1,101 @@
-+#!/usr/bin/env python3
-+"""Self-test of sweep_runner.sh: one real pass over a temp checkout of stub instruments.
-+
-+Invoked as `python3 -I tools/audit/seat/sweep_runner_selftest.py --self-test` (or `bash tools/audit/seat/sweep_runner.sh --self-test`). The stubs stand in for the
-+network instruments (replan, plan_page, state_docs, pulse, owed_unactioned, cancel_superseded,
-+git, gh); sweep_gantt.py, verdict_audit.py and roster_drain.py are the tracked ones, linked in.
-+Each owed line is proved present, then proved absent by a null control that changes one input.
-+"""
-+import json, os, shutil, subprocess, sys, tempfile, time
-+
-+HERE = os.path.dirname(os.path.abspath(__file__))
-+SH = os.path.join(HERE, "sweep_runner.sh")
-+N = BAD = 0
-+
-+
-+def check(name, cond):
-+    global N, BAD
-+    N += 1
-+    if not cond:
-+        BAD += 1
-+        print(f"FAIL {name}")
-+
-+
-+def w(path, text, mode=None):
-+    os.makedirs(os.path.dirname(path), exist_ok=True)
-+    open(path, "w").write(text)
-+    if mode:
-+        os.chmod(path, mode)
-+
-+
-+def one_pass(tmp, name, handoff_age_h, fire_age_h, html_same, queue=None):
-+    root = os.path.join(tmp, name)
-+    co, st, bin_ = (os.path.join(root, d) for d in ("co", "state", "bin"))
-+    for f in ("sweep_gantt.py", "verdict_audit.py", "roster_drain.py"):
-+        w(os.path.join(co, "tools/audit/seat", f), open(os.path.join(HERE, f)).read())
-+    stub = "import sys\nsys.exit(0)\n"
-+    for f in ("tools/audit/seat/pulse.py", "tools/audit/seat/owed_unactioned.py", "tools/pr/cancel_superseded.py"):
-+        w(os.path.join(co, f), stub)
-+    w(os.path.join(co, "tools/audit/seat/state_docs.py"), stub)
-+    now = time.time()
-+    plan = {"critical_path": ["G-CP"], "summary": {"closure": "2026-11-07T00:00:00Z"},
-+            "groups": {"G-CP": {"start": "2026-11-01T00:00:00Z", "finish": "2026-11-06T20:00:00Z", "done": False}}}
-+    w(os.path.join(co, "tools/plan/replan.py"),
-+      "import sys, json\nopen(sys.argv[sys.argv.index('--out') + 1], 'w').write(%r)\nprint('summary: stub')\n" % json.dumps(plan))
-+    w(os.path.join(co, "tools/audit/seat/plan_page.py"),
-+      "import sys\nopen(sys.argv[sys.argv.index('--html') + 1], 'w').write('<html>new</html>')\n")
-+    if html_same:
-+        w(os.path.join(st, "plan.html"), "<html>new</html>")
-+    else:
-+        w(os.path.join(st, "plan.html"), "<html>old</html>")
-+    roster = {"groups": [{"group": "G-CP", "resume": {"stage": "carries-open", "branch": "handoff/r10-cp"}}]}
-+    # git: fetch no-ops, show prints the roster, for-each-ref prints one handoff row of the given age
-+    w(os.path.join(bin_, "git"),
-+      "#!/bin/bash\ncase \"$1\" in show) echo '%s';; for-each-ref) printf 'abc\\trefs/gantt/handoff/r10-cp\\t%d\\n';; esac\nexit 0\n"
-+      % (json.dumps(roster), int(now - handoff_age_h * 3600)), 0o700)
-+    w(os.path.join(bin_, "gh"), "#!/bin/bash\necho '[]'\n", 0o700)
-+    stamp = time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime(now - fire_age_h * 3600))
-+    w(os.path.join(st, "fired.ledger"), f"{stamp} FIRED r10-cp\n")
-+    env = dict(os.environ, SWEEP_STATE_DIR=st, SWEEP_CHECKOUT=co, SWEEP_REPO="o/r", SWEEP_ONCE="1",
-+               SWEEP_FIRED_LEDGER=os.path.join(st, "fired.ledger"), PATH=bin_ + os.pathsep + os.environ["PATH"])
-+    if queue is not None:
-+        w(os.path.join(st, "q.txt"), queue)
-+        env.update(SWEEP_ROSTER_QUEUE=os.path.join(st, "q.txt"), SWEEP_ROSTER_EDIT=os.path.join(root, "e"),
-+                   SWEEP_ROSTER_WT=os.path.join(root, "wt"), SWEEP_ROSTER_LINT=os.path.join(root, "l"))
-+        os.makedirs(env["SWEEP_ROSTER_EDIT"], exist_ok=True)
-+    r = subprocess.run(["bash", SH], env=env, capture_output=True, text=True, timeout=120)
-+    p = os.path.join(st, "sweep-runner", "new.txt")
-+    return r, (open(p).read() if os.path.exists(p) else "")
-+
-+
-+def main():
-+    with tempfile.TemporaryDirectory() as tmp:
-+        # live handoff (2 h) -> the CP group is busy; a plan re-render differing from plan.html -> PLAN MOVED
-+        r, new = one_pass(tmp, "live", 2, 30, False)
-+        check("pass exits 0", r.returncode == 0)
-+        check("PLAN MOVED emitted when the render differs from the published page", "PLAN MOVED" in new)
-+        check("a 2 h-old handoff keeps the CP group busy (no GANTT slip)", "GANTT-SLIP IDLE:G-CP" not in new)
-+        # (a) the 12 h handoff filter: a 20 h-old tip is not work in flight
-+        r, new = one_pass(tmp, "stale", 20, 30, True)
-+        check("null control: unchanged plan page -> no PLAN MOVED", "PLAN MOVED" not in new)
-+        check("a 20 h-old handoff tip no longer counts: IDLE slip", "GANTT: GANTT-SLIP IDLE:G-CP" in new)
-+        # (a) the 12 h fire filter: a 2 h-old fire line is a live seat
-+        r, new = one_pass(tmp, "fired", 20, 2, True)
-+        check("a 2 h-old fire line keeps the group busy", "GANTT-SLIP IDLE:G-CP" not in new)
-+        # (b) verdict audit: gh returns no PRs here, so it prints nothing and the step must not fail
-+        check("verdict audit step ran without VERDICT-AUDIT failed", "VERDICT-AUDIT failed" not in new)
-+        # (d) roster drain: a ' #' line is skipped with its notice and reaches new.txt
-+        r, new = one_pass(tmp, "drain", 2, 2, True, queue="set-stage G done # tail\n")
-+        check("roster drain notice is forwarded", "ROSTER-SKIPPED" in new)
-+        r, new = one_pass(tmp, "nodrain", 2, 2, True)
-+        check("null control: no queue configured -> no roster line", "ROSTER-" not in new)
-+    rc = subprocess.run(["bash", "-n", SH]).returncode
-+    check("sweep_runner.sh parses", rc == 0)
-+    text = open(SH).read()
-+    check("the runner carries no host path", "/Users/" not in text and "/home/" not in text and "<STATE_DIR>" not in text)
-+    print(f"sweep_runner self-test: {N} checks, {BAD} failed")
-+    return 1 if BAD else 0
-+
-+
-+if __name__ == "__main__":
-+    sys.exit(main())
 diff --git a/tools/audit/seat/sweep_template.md b/tools/audit/seat/sweep_template.md
-index 139293ef5..35a0ebb3b 100644
+index 139293ef5..2a63546b4 100644
 --- a/tools/audit/seat/sweep_template.md
 +++ b/tools/audit/seat/sweep_template.md
-@@ -57,7 +57,7 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
+@@ -65,9 +65,9 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
  
- (1) Seats. Cloud seats are uncapped. A fixer for a NEW roster group is dispatched only while fewer than 3 handoffs wait without a pull request and 6 to 10 pull requests are open (owner ruling, 2026-10-28; `tools/audit/seat/pr_cap.py` `dispatch-gate` measures its WIP arm); reviews, repairs and openers are never capped, and a ready critical-path group dispatches past every cap (`dev/governance/roles/orchestrator.md` section 5). Resume the next queued seat from {{seat_ledger}}. Dispatch a record pull request's reviewer (triage, roster batches) on sonnet, and a design, code or architecture pull request's reviewer on opus. Seat worktrees live under {{seat_root}}, each named absolute in its brief (`dev/governance/roles/orchestrator.md` section 5). A handed-off seat is not resumed and an unblocked roster group gets a fixer (`dev/governance/roles/nudge.md` steps 14 and 16).
+ (4) After each merge (`dev/governance/roles/nudge.md` steps 12 and 18): `tools/audit/seat/roster_edit.py set-stage` for a roster group, one #201 comment through `tools/pr/gh_comment.py` with its read-back, `tools/audit/worktree_gc.sh {{repo}}`, the issues the merge commit closed read back (`dev/governance/roles/orchestrator.md` section 4), and the finished seat's worktrees under {{seat_root}} and its scratch removed.
  
--(1b) Standing-seat liveness. The four standing seats are `dev/governance/roles/standing-tick.md`, `dev/governance/roles/standing-merge.md`, `dev/governance/roles/standing-dispatch.md` and `dev/governance/roles/standing-roster.md`. Run `python3 -I tools/audit/seat/pulse.py --repo {{repo}} {{seat_queues}} {{seat_alives}} {{launch_ledger}}`; a seat that is absent from {{seat_ledger}}, that finished with work still owed, or that a `PULSE` line reports `STOPPED` (`seat <name>:`, `DUPLICATE seat <name>:` or `FOREIGN <name>:`, a beat by a process that is not the seat) is restarted in this sweep on its contract with its queue, and the restart is logged in {{seat_ledger}}. Routine work goes to these seats as queue lines, never inline (`dev/governance/roles/orchestrator.md` section 5).
-+(1b) Standing-seat liveness. The four standing seats are `dev/governance/roles/standing-tick.md`, `dev/governance/roles/standing-merge.md`, `dev/governance/roles/standing-dispatch.md` and `dev/governance/roles/standing-roster.md`. Run `python3 -I tools/audit/seat/pulse.py --repo {{repo}} {{seat_queues}} {{seat_alives}} {{launch_ledger}}`; a seat that is absent from {{seat_ledger}}, that finished with work still owed, or that a `PULSE` line reports `STOPPED` (`seat <name>:`, `DUPLICATE seat <name>:` or `FOREIGN <name>:`, a beat by a process that is not the seat) is restarted in this sweep on its contract with its queue, and the restart is logged in {{seat_ledger}}. A session with no standing roster seat drains the roster queue by hand with `tools/audit/seat/roster_drain.py`, whose `ROSTER-REFUSED`, `ROSTER-UNRUN` and `ROSTER-CASCADE` lines each need an answer; the beat's `roster-drain` row is the unattended path and the two never run on one queue. Routine work goes to these seats as queue lines, never inline (`dev/governance/roles/orchestrator.md` section 5).
+-(4b) Record beat. The beat's `plan-beat` row runs `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, every 30 minutes, merge or none; it publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. A `plan-beat: PLAN UNAVAILABLE` line in {{digest}}/digest.txt is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): answer its reason and re-run that replan, never hand-run `plan_page.py` around the refusal; a `plan-beat: REFUSED` line is the docs push's own refusal.
++(4b) Record beat. The beat's `plan-beat` row runs `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, every 30 minutes, merge or none; it publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. A `plan-beat: PLAN UNAVAILABLE` line in {{digest}}/digest.txt is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): answer its reason and re-run that replan, never hand-run `plan_page.py` around the refusal; a `plan-beat: REFUSED` line is the docs push's own refusal. A `plan-beat: PLAN MOVED` line is a page that changed since the last beat: republish it at {{plan_page}} this sweep (owner ruling, 2026-11-06: every sweep updates the plan artifact). The beat's `gantt` row compares that plan with the Gantt baseline through `tools/audit/seat/sweep_gantt.py`: each `GANTT-SLIP` line of {{digest}}/digest.txt is owed `act`, `defer` or `accept`, appended to the acks file the line names (owner ruling, 2026-11-01).
  
- (2) Handoffs. The beat's `opener` and `head-watch` rows (`tools/audit/seat/beat_jobs.py`, run by `tools/audit/seat/beatd.py`) open each handoff that has no pull request through `tools/audit/seat/open_driver.py` and record each moved head: act on every `OWED ... open-refused`, `NEEDS-TITLE`, `STARVED` and `STUCK` line of {{digest}}/digest.txt and every `HEAD-MOVED` and `STUCK` line of {{digest}}/events.txt. Cross-check `git -C {{orch_checkout}} ls-remote --heads origin 'handoff/r{{round}}-*'` against the open pull-request heads, and run `tools/audit/seat/bus.sh orphans`. A handoff ahead of its pull request gets `tools/audit/seat/update_pr.sh`, and one the opener refused or left `STUCK` gets `tools/audit/seat/open_pr.sh` once its reason is answered; each runs detached under `tools/audit/seat/daemonize.py`, then `tools/pr/approve_held_runs.sh` on that branch, then `tools/audit/seat/bus.sh dispatch` and a reviewer seat at the printed head; a `HEAD-MOVED` line at a reviewed head owes the same at the new head (`dev/governance/roles/orchestrator.md` section 5b; `dev/governance/roles/nudge.md` steps 1, 2 and 8).
- 
-@@ -67,6 +67,8 @@ ORCHESTRATOR SWEEP, round {{round}}, repository {{repo}}. Read {{seat_ledger}} f
- 
- (4b) Record beat. The beat's `plan-beat` row runs `python3 tools/plan/replan.py --out {{plan_json}} --slots {{plan_slots}} --seats {{plan_seats}}`, then `tools/audit/seat/state_docs.py --push --mirror {{state_mirror}} --plan {{plan_json}}`, every 30 minutes, merge or none; it publishes the plan page as `PLAN.html` in the plan table's commit at the state ref and mirrors it as {{plan_page}}, republished at the same path. A `plan-beat: PLAN UNAVAILABLE` line in {{digest}}/digest.txt is the page UNAVAILABLE (the other docs are still pushed; the ref keeps the last good page): answer its reason and re-run that replan, never hand-run `plan_page.py` around the refusal; a `plan-beat: REFUSED` line is the docs push's own refusal.
- 
-+(4b+) Plan republish, Gantt and verdict audit. Every second pass of `tools/audit/seat/sweep_runner.sh` re-renders the plan page and compares it with the published one: a differing render prints `PLAN MOVED`, and the page is republished at the same path (owner ruling, 2026-11-06: every sweep updates the plan artifact). It then runs `tools/audit/seat/sweep_gantt.py` against the Gantt baseline and prints a `GANTT-SLIP` line per unacknowledged slip, each owed `act`, `defer` or `accept`; a handoff counts as work in flight only if its tip was committed in the last 12 h, and only a fire line from the last 12 h counts as a live seat. Last, `tools/audit/seat/verdict_audit.py` maps every open pull request to its latest verdict and holder and prints an `UNHELD` line for each whose next step nobody holds (a merge verdict owed to the train, a blocked verdict owed a repair fixer or an `update_pr`, no verdict owed a first reviewer): give every `UNHELD` line a holder this sweep (owner ruling, 2026-11-06: no pull request waits unheld). A pull request held by an owner ruling goes on the runner's skip file, not unanswered.
-+
- (4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first.
+-(4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first.
++(4c) Open pull requests. Reconcile every open pull request to one bucket, with its reason: in train, review out, fixer out, CI wait, or owner-held; none waits without one; critical path first. The beat's `verdict-audit` row (`tools/audit/seat/verdict_audit.py`) prints an `UNHELD` line in {{digest}}/digest.txt for each pull request whose next step nobody holds: give each a holder this sweep, or put a pull request held by an owner ruling on its skip file (owner ruling, 2026-11-06: no pull request waits unheld).
  
  (4d) Queue priority, for the train, review, fixer and CI queues alike: a push to main; then critical path and hotfix; then production pull requests with instrument pull requests saving 12 h or more; then other instruments by savings. A group's critical-path standing is the roster's `critical` list (`tools/audit/seat/roster_lib.py` `critical_path`); the gate order is `tools/pr/gate_priority.py`'s.
+ 
 diff --git a/tools/audit/seat/verdict_audit.py b/tools/audit/seat/verdict_audit.py
 new file mode 100755
-index 000000000..ab8f40aae
+index 000000000..db898f680
 --- /dev/null
 +++ b/tools/audit/seat/verdict_audit.py
 @@ -0,0 +1,174 @@
@@ -762,9 +810,9 @@ index 000000000..ab8f40aae
 +    verdict_audit.py --repo O/R [--fired LEDGER] [--train-glob GLOB] [--skip FILE]
 +    verdict_audit.py --self-test
 +
-+Owner ruling (tvofi 2026-11-06): the sweep's point is that no PR waits unheld. The sweep
-+runner (`tools/audit/seat/sweep_runner.sh`) runs this every second pass and forwards each
-+`UNHELD` line to the orchestrator's digest.
++Owner ruling (tvofi 2026-11-06): the sweep's point is that no PR waits unheld. The beat's
++`verdict-audit` row (`tools/audit/seat/beat_jobs.py`) runs this every 30 minutes and writes
++each `UNHELD` line to the digest the orchestrator reads.
 +
 +One `UNHELD` line per PR whose next step nobody visibly holds:
 +  merge verdict at an older head that the PR head only main-merges onto -> owed to the merge train
