@@ -47,7 +47,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RCA-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
-- R10-REF-PRIVACY-CLOUD (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-REF-PRIVACY-CLOUD (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-GATE-BUSY-DEFER (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-HOTFIX-CODEQL-HEADROOM (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-COMBI-TANK (stage in-progress, branch `design/r10-combi-tank`): `git fetch origin design/r10-combi-tank && git worktree add --detach $SEAT/wt FETCH_HEAD`
