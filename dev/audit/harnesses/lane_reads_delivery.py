@@ -7,7 +7,7 @@ The machinery lanes (tools/ci/prelude.py `machinery`) are the steps whose
 .github/workflows/tests.yml and governance.yml. This driver reads those steps
 off the workflow YAML of the tree it runs in, so it covers a step added later
 without an edit here. It runs each lane's `run:` steps in order, in a fresh
-`git clone` of HEAD, under one `strace -f -y`. Then it reports every syscall
+clone of HEAD (tests/throwaway_git.py), under one `strace -f -y`. Then it reports every syscall
 naming a path under `<clone>/dev/programme/delivery/`, plus every exec whose
 argv names `dev/programme`, so a `git show HEAD:<row>` counts as a read too.
 `uses:` steps (checkout, setup-*, upload-artifact) are listed, not run.
@@ -48,6 +48,9 @@ from pathlib import Path
 import yaml
 
 ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(ROOT / "tests"))
+from closure import _STRACE_SPAWN  # noqa: E402  the recorder's own spawn grammar
+from throwaway_git import throwaway_git_clone  # noqa: E402
 LANES = {  # lane -> (workflow, job)
     "instrument-self-tests": ("governance.yml", "instrument-self-tests"),
     "env-matrix": ("governance.yml", "env-matrix"),
@@ -55,7 +58,6 @@ LANES = {  # lane -> (workflow, job)
     "closures": ("tests.yml", "closures"),
 }
 GATE = re.compile(r"inputs\.machinery|MACHINERY_IDLE")
-EXPR = re.compile(r"\$\{\{\s*(.*?)\s*\}\}")
 ROW = "dev/programme/delivery"
 SHIM = """#!/bin/sh
 # stands in for tests/closure.py's strace: run the command untraced, empty log
@@ -92,12 +94,23 @@ def expr_value(e: str, tmp: str) -> str:
     return table[e]
 
 
+def substitute(text: str, tmp: str) -> str:
+    """`text` with each `${{ e }}` replaced by expr_value(e)."""
+    out, rest = [], text
+    while "${{" in rest:
+        pre, _, after = rest.partition("${{")
+        expr, _, rest = after.partition("}}")
+        out += [pre, expr_value(expr.strip(), tmp)]
+    return "".join(out) + rest
+
+
 def on_pull_request(cond) -> bool:
     """False for an `if:` whose top level (parenthesised groups removed) pins
     another event: the C7(a) idling only ever skips a pull_request's steps."""
-    top = str(cond or "")
-    while re.search(r"\([^()]*\)", top):
-        top = re.sub(r"\([^()]*\)", "", top)
+    top, depth = "", 0
+    for ch in str(cond or ""):  # the characters outside every parenthesised group
+        depth += (ch == "(") - (ch == ")")
+        top += ch if depth == 0 and ch != ")" else ""
     return not re.search(r"github\.event_name == '(?!pull_request')", top)
 
 
@@ -113,7 +126,7 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
     shutil.rmtree(tmp, ignore_errors=True)
     tmp.mkdir(parents=True)
     clone = tmp / "ws"
-    subprocess.run(["git", "clone", "-q", "--no-hardlinks", str(ROOT), str(clone)], check=True)
+    throwaway_git_clone(ROOT, clone, "-q", "--no-hardlinks")
     url = subprocess.run(["git", "-C", str(ROOT), "remote", "get-url", "origin"],
                          capture_output=True, text=True).stdout.strip()
     subprocess.run(["git", "-C", str(clone), "remote", "set-url", "origin", url], check=True)
@@ -168,8 +181,8 @@ def run_lane(lane: str, out: Path, refresh: bool = False) -> dict:
         if "run" not in s:
             listed.append({"step": name, "ran": False})
             continue
-        senv = {k: EXPR.sub(lambda m: expr_value(m.group(1), str(rt)), str(v)) for k, v in (s.get("env") or {}).items()}
-        body = EXPR.sub(lambda m: expr_value(m.group(1), str(rt)), s["run"])
+        senv = {k: substitute(str(v), str(rt)) for k, v in (s.get("env") or {}).items()}
+        body = substitute(s["run"], str(rt))
         f = tmp / f"step{i}.sh"
         f.write_text(body)
         exports = " ".join(f"{k}={json.dumps(v)}" for k, v in senv.items())
@@ -271,7 +284,7 @@ def scan(hits: Path, clone: Path) -> dict:
     out["roots"] = sorted(r.replace(str(clone.parent), "<tmp>") for r in roots)
     for n, line in enumerate(lines):
         pid = line.split(None, 1)[0]
-        if fork.search(line) or (re.search(r"\b(clone3?|v?fork)\(", line) and "dev/programme" not in line):
+        if fork.search(line) or (_STRACE_SPAWN.search(line) and "dev/programme" not in line):
             continue
         if "execve(" in line and re.search(r"\)\s+=\s+0$", line):
             # an absolute path names its root, counted only when that root
