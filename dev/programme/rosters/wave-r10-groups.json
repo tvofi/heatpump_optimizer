@@ -18867,7 +18867,10 @@
    "fixture": false,
    "owner_gate": null,
    "rca": [],
-   "after": [],
+   "after": [
+    "R10-HOTFIX-COP-UNMEASURED",
+    "R10-GENERIC-HEAT-CURVE"
+   ],
    "carry": [],
    "architect_note": "",
    "resume": {
