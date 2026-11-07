@@ -23,8 +23,10 @@ WORKSET is the units a kind's run owns; a code run on a PR carrying the
 
 A dispatch naming `pr` is VERIFIED against the live PR (open, from this
 repository, headed by this SHA, based on `base`) or the prelude fails, and the
-gate, which re-verifies, fails with it. A non-code run waits (`wait_sources`)
-until no run at its head that it orders after can still add a source: every
+gate, which re-verifies, fails with it. A body run beside an unfinished,
+not-judging code run for its PR runs no unit and exits (`defer_to`); the code
+run's gate re-runs it (gate.redispatch). Otherwise a non-code run waits
+(`wait_sources`) until no run at its head that it orders after can still add a source: every
 EARLIER run and every CODE run, whatever its id (a held run aside). GitHub
 does not number a same-second push and body edit in event order
 (R10-RCA-CODESCAN-WAIT: the edit run got the lower id in 27 of 94 pairs), so
@@ -52,12 +54,12 @@ CODE_UNITS = ("tests", "codeql", "governance", "hassfest", "validate")
 BODY_UNITS = ("arch-score", "budget-raise-gate", "pr-contract")
 BODY_ON_EDIT = frozenset(BODY_UNITS)
 BODY_ON_REVIEW = frozenset({"budget-raise-gate"})  # owner variant: a review re-runs only budget-raise-gate
-# An edit run beside an unfinished code run whose pr-contract has not started
-# (R10-CI-SLIM card C3, option A): it judges these two against the live body at
-# once and holds no runner waiting; `pr-contract`, which reads the body off the
-# API when it starts and needs every unit first, is the code run's, so the
-# code run's gate judges the LATEST body.
-EDIT_UNDER_CODE = BODY_ON_EDIT - {"pr-contract"}
+# A body run (edit or review) beside an unfinished code run for its PR that is
+# not yet judging (R10-CI-EDIT-RUNNER, superseding R10-CI-SLIM card C3) runs no
+# unit and holds no runner waiting: its workset is empty, and the code run's
+# gate re-runs it once the code run is judging (gate.redispatch), when it reads
+# the live body and finds nothing to wait for.
+BODY_KINDS = ("edit", "review")
 STARTED = ("in_progress", "completed")
 # R10-CI-SLIM card C7(a): the machinery lanes (tests / arch-instrument, tests /
 # closures' recording, governance / env-matrix, governance /
@@ -188,8 +190,8 @@ def judging(run: dict) -> bool:
     `gate` is listed, no listed prelude or unit job is unfinished, and every name
     its own title's workset owes is listed and completed (`tests /
     closure-scope` aside when it names no PR), or its caller job is listed completed
-    under the unit's bare name: a unit the run never expanded, as a deferring edit
-    run's skipped `pr-contract` (C3), adds no source. Read as owed, it made every
+    under the unit's bare name: a unit the run never expanded, as every unit of a
+    deferring body run (`deferring`) or C3's skipped `pr-contract`, adds no source. Read as owed, it made every
     such run busy to every other gate and prelude at its head (#3263, run
     42338396358 beside code run 42338396871)."""
     jobs = run.get("jobs") or {}
@@ -260,10 +262,23 @@ def machinery(changed: "list[str] | None", closures_json: Path = CLOSURES_JSON) 
     return not files or is_product is None or not all(map(is_product, files))
 
 
+def deferring(run: dict) -> bool:
+    """A body run that ran none of its units after a green prelude (`defer_to`
+    emptied its workset): every unit its title owes is listed as its bare,
+    never-expanded caller, completed and skipped. The code run's gate re-runs
+    the latest one of each kind (gate.redispatch)."""
+    t = parse_title(run.get("title") or "")
+    jobs = run.get("jobs") or {}
+    if t is None or t[0] not in BODY_KINDS or jobs.get("prelude") != ("completed", "success"):
+        return False
+    return all(jobs.get(u) == ("completed", "skipped") for u in workset(t[0], t[1]) & set(UNITS))
+
+
 def defer_to(ctx: dict, pr: str, get) -> "int | None":
-    """The unfinished code run at this head for `pr` whose `pr-contract` has not
-    started, or None. Its pr-contract will read the body after this edit, and its
-    gate is listed only after that, so it is the later verdict at this head."""
+    """An unfinished code run at this head for `pr` that is not judging, or None.
+    Its gate starts only once it is judging and then re-runs this run
+    (gate.redispatch), which reads the live body and review then, so this run
+    holds no runner meanwhile, whatever stage that code run is at."""
     st, _, doc = get(f"repos/{ctx['repo']}/actions/workflows/ci.yml/runs",
                      {"head_sha": ctx["head"], "per_page": 100})
     if st != 200 or not isinstance(doc, dict):
@@ -272,8 +287,7 @@ def defer_to(ctx: dict, pr: str, get) -> "int | None":
         t = parse_title(r.get("display_title") or "")
         if r["id"] == ctx["run_id"] or r["status"] not in UNFINISHED or t is None or t[:2] != ("code", pr):
             continue
-        contract = run_jobs(get, ctx["repo"], r["id"]).get("pr-contract / pr-contract")
-        if contract is None or contract[0] not in STARTED:
+        if not judging({"title": r.get("display_title") or "", "jobs": run_jobs(get, ctx["repo"], r["id"])}):
             return r["id"]
     return None
 
@@ -324,10 +338,10 @@ def outputs(ctx: dict, changed: list[str] | None, get, sleep=time.sleep, proof=p
     out["legs"] = json.dumps({leg: codeql_scope.decide(leg, ev, changed or [], ref, proven)[0]
                               for leg in codeql_scope.LEGS}, separators=(",", ":"))
     why = verify_dispatch(ctx, get) if ev == "workflow_dispatch" else ""
-    if not why and kind == "edit":
+    if not why and kind in BODY_KINDS and pr:
         try:
             if defer_to(ctx, pr, get) is not None:
-                out["workset"] = " ".join(sorted(EDIT_UNDER_CODE))
+                out["workset"] = ""
                 return out, ""
         except ghapi.ApiError as e:
             return out, str(e)
@@ -441,15 +455,16 @@ def self_test() -> int:
     get, _ = timeline([run(1, "code", "queued")])
     w = wait_sources(rctx, get, lambda s: None, lambda: next(clock))
     check("the wait is bounded", w.startswith("run(s) [1] still adding sources"), True)
-    # C3 (option A): an edit run beside a code run that has not started its
-    # pr-contract exits at once with the body units less pr-contract; beside one
-    # whose pr-contract has started, or a finished one, it waits as before.
+    # R10-CI-EDIT-RUNNER: an edit or review run beside an unfinished code run for
+    # its PR that is not yet judging exits at once with no unit and no poll; the
+    # code run's gate re-runs it (gate.redispatch). Beside a code run that is
+    # judging, or finished, it runs its full workset as before (null control).
     ectx = ctx("pull_request", action="edited", pull_request=pr)       # run 50
     in_units = [{"name": "prelude", "status": "completed", "conclusion": "success"},
                 {"name": "tests / fast (3.14)", "status": "in_progress", "conclusion": None}]
     contract = lambda st: in_units + [{"name": "pr-contract / pr-contract", "status": st, "conclusion": None}]  # noqa: E731
 
-    def edit_out(*frames):
+    def body_out(c, *frames):
         get, naps = timeline(*frames)
 
         def nap(s):                         # bounded: a wait the frames never end is a failed check, not a hang
@@ -459,37 +474,54 @@ def self_test() -> int:
 
         def run_it():
             try:
-                return outputs(ectx, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
+                return outputs(c, None, lambda path, params=None: (200, {}, live) if "/pulls/" in path
                                else get(path, params), nap)
             except TimeoutError as e:
                 return {"workset": f"UNBOUNDED: {e}"}, ""
         return run_it, naps
+    edit_out = lambda *frames: body_out(ectx, *frames)  # noqa: E731
     f, naps = edit_out([run(40, "code", "in_progress", in_units)])
-    check("C3: beside a code run in its units, the edit run exits at once without pr-contract",
-          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate", ""), []))
+    check("defer: beside a code run in its units, the edit run exits at once running no unit",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("", ""), []))
     f, naps = edit_out([run(40, "code", "queued", [])])
-    check("C3: beside a queued code run (nothing listed), it exits at once", (f()[0]["workset"], naps),
-          ("arch-score budget-raise-gate", []))
-    f, naps = edit_out([run(40, "code", "in_progress", contract("queued"))])
-    check("C3: a queued pr-contract has not read the body: exits at once", (f()[0]["workset"], naps),
-          ("arch-score budget-raise-gate", []))
+    check("defer: beside a queued code run (nothing listed), it exits at once", (f()[0]["workset"], naps), ("", []))
     f, naps = edit_out([run(40, "code", "in_progress", contract("in_progress"))],
                        [run(40, "code", "in_progress", done("code"))])
-    check("C3: beside a started pr-contract (it may have read the old body) the edit run waits and owns pr-contract",
-          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("arch-score budget-raise-gate pr-contract", ""), [POLL_S]))
+    check("defer: beside a started pr-contract the edit run exits within one poll (no wait)",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("", ""), []))
+    f, naps = edit_out([run(60, "code", "in_progress", in_units)])
+    check("defer: a LATER-numbered code run defers it too (ids order nothing)", (f()[0]["workset"], naps), ("", []))
+    f, naps = edit_out([run(40, "code", "in_progress", done("code"))])
+    check("null: beside a JUDGING code run (its gate redispatches nothing more), the full edit workset, no wait",
+          ((lambda o: o[0]["workset"])(f()), naps), ("arch-score budget-raise-gate pr-contract", []))
     f, naps = edit_out([run(40, "code", "completed", done("code"))])
-    check("C3: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
+    check("null: beside a finished code run, the full edit workset and no wait", ((lambda o: o[0]["workset"])(f()), naps),
           ("arch-score budget-raise-gate pr-contract", []))
     other = title("code", "8", "main", "M")
     f, naps = edit_out([{**run(40, "code", "in_progress", in_units), "display_title": other}],
                        [{**run(40, "code", "in_progress", done("code")), "display_title": other}])
-    check("C3: a code run for another PR at this head is no deferral; it is waited on (null control)",
+    check("null: a code run for another PR at this head is no deferral; it is waited on",
           (f()[0]["workset"], naps), ("arch-score budget-raise-gate pr-contract", [POLL_S]))
     f, naps = edit_out([run(40, "edit", "in_progress", in_units)], [run(40, "edit", "in_progress", done("edit"))])
-    check("C3: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
+    check("null: an unfinished EDIT run is no deferral; it is waited on as before", (f()[0]["workset"], naps),
           ("arch-score budget-raise-gate pr-contract", [POLL_S]))
-    check("C3: a review run never defers (only an edit does)",
-          outputs(rctx, None, timeline([run(40, "code", "in_progress", done("code"))])[0])[0]["workset"], "budget-raise-gate")
+    f, naps = body_out(rctx, [run(40, "code", "in_progress", contract("in_progress"))],
+                       [run(40, "code", "in_progress", done("code"))])
+    check("defer: a review run beside an unfinished code run exits within one poll, running no unit",
+          ((lambda o: (o[0]["workset"], o[1]))(f()), naps), (("", ""), []))
+    f, naps = body_out(rctx, [run(40, "code", "completed", done("code"))])
+    check("null: a review run beside a finished code run grades as before",
+          ((lambda o: o[0]["workset"])(f()), naps), ("budget-raise-gate", []))
+    check("deferring: a run that ran none of its units after a green prelude",
+          [deferring({"title": title(k, "7", "main"), "jobs": j}) for k, j in (
+              ("edit", {"prelude": ("completed", "success"), **{u: ("completed", "skipped") for u in BODY_UNITS}}),
+              ("review", {"prelude": ("completed", "success"), "budget-raise-gate": ("completed", "skipped")}),
+              ("edit", {"prelude": ("completed", "failure"), **{u: ("completed", "skipped") for u in BODY_UNITS}}),
+              ("edit", {"prelude": ("completed", "success"), "arch-score / arch-score": ("completed", "success"),
+                        "budget-raise-gate": ("completed", "skipped"), "pr-contract": ("completed", "skipped")}),
+              ("code", {"prelude": ("completed", "success"), **{u: ("completed", "skipped") for u in CODE_UNITS}}),
+              ("edit", {"prelude": ("in_progress", None)}))],
+          [True, True, False, False, False, False])
     # C7(a): the machinery lanes stand down only on an all-product pull request.
     import tempfile
     with tempfile.TemporaryDirectory() as td:

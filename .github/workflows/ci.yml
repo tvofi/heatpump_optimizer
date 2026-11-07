@@ -309,6 +309,10 @@ jobs:
   # It needs every unit through `pr-contract`, which needs them all and whose
   # `!cancelled()` holds even its skip until they end (one edge into `gate`
   # in the run graph, not ten; dev/audit/harnesses/r10_ci_gate_ready.py).
+  # On a code run for a PR it re-runs the latest edit and review run at this
+  # head that deferred to it (ran no unit, prelude.defer_to) and waits for
+  # them before it judges (gate.redispatch, R10-CI-EDIT-RUNNER): hence
+  # `actions: write`, which only that re-run uses.
   gate:
     needs: [prelude, pr-contract]
     if: ${{ !cancelled() }}
@@ -316,7 +320,7 @@ jobs:
     timeout-minutes: 15
     permissions:
       contents: read
-      actions: read
+      actions: write
       pull-requests: read
     steps:
       # Full history: D-2's three-dot diff against origin/<base>.
@@ -345,7 +349,7 @@ jobs:
           PR: ${{ needs.prelude.outputs.pr }}
           BASE: ${{ needs.prelude.outputs.base }}
           KIND: ${{ needs.prelude.outputs.kind }}
-          # What the prelude ran here: an edit run beside an unfinished code run
-          # runs no pr-contract (prelude.defer_to, R10-CI-SLIM C3).
+          # What the prelude ran here: an edit or review run beside an
+          # unfinished code run runs no unit (prelude.defer_to).
           WORKSET: ${{ needs.prelude.outputs.workset }}
         run: python3 -I tools/ci/gate.py --pr "$PR" --base "$BASE" --kind "$KIND"

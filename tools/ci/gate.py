@@ -40,19 +40,24 @@ gates have both started are broken by id (`busy`): the lower decides, the higher
 waits on it, so a run whose listing lags its resolved jobs cannot make two gates
 defer to each other. Only past the bound, a run still busy after
 GATE_WAIT_MAX_S, does the gate FAIL deferring, for gate-sweep.yml to re-judge.
-No gate is exempt from the wait (r10-gate-busy-defer-2): a deferring edit run
-(prelude.defer_to, R10-CI-SLIM card C3) waits on the code run its prelude left
-`pr-contract` to, bounded like any other, where it once published the deferral
-at once (#3263: run 42338396358 red in 2 s beside code run 42338396871). That
-at-once bound dodged a cycle judging() made: it read the deferring run's skipped
-`pr-contract` caller as owed, so that run looked busy to every gate and prelude
-at its head. judging() now reads a caller listed completed under its bare name
-as a unit the run never ran, so a deferring run is judging once its gate is
-listed and its own units are done, and nothing waits on it. The waits then form
-one order: a code run's prelude waits on nothing; another prelude only on an
-earlier run, or on a code run, that is not judging; a gate only on runs not
-judging, past the busy() tie-break. No run that is judging waits on a run that
-is not, so no cycle closes.
+A deferring body run (prelude.defer_to, R10-CI-EDIT-RUNNER) is the one gate
+that never waits: it ran no unit, so it publishes SELF_DEFERRED at once, and
+the code run's gate, once that run is judging, re-runs it (`redispatch`) and
+waits on it; the re-run's own attempt then replaces that red with a verdict.
+Every other gate waits on the latest deferring run of each kind (`pending`)
+as on a busy one, so no gate passes the head before its latest body and review
+are judged. A deferring run of R10-CI-SLIM card C3's shape (arch-score and
+budget-raise-gate run, `pr-contract` skipped) waited instead (#3263: run
+42338396358 red in 2 s beside code run 42338396871, when judging() read the
+skipped `pr-contract` caller as owed and the at-once bound dodged a cycle).
+judging() reads a caller listed completed under its bare name as a unit the
+run never ran, so a deferring run is judging once its gate is listed and its
+own units are done, and nothing waits on it through busy(). The waits then
+form one order: a code run's prelude waits on nothing; another prelude only on
+an earlier run, or on a code run, that is not judging, and a body run's
+prelude not even on that code run; a gate only on runs not judging, past the
+busy() tie-break, and on a pending run, which waits on nothing. No run that is
+judging waits on a run that is not, so no cycle closes.
 """
 from __future__ import annotations
 
@@ -68,8 +73,8 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))                      # -I drops the script's directory
 import ghapi  # noqa: E402
-from prelude import (BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, derive, judging, parse_title,  # noqa: E402,F401
-                     run_jobs, title, workset)
+from prelude import (BODY_KINDS, BODY_UNITS, CODE_UNITS, POLL_S, STARTED, UNITS, context, deferring,  # noqa: E402,F401
+                     derive, judging, parse_title, run_jobs, title, workset)
 
 PUSH_ONLY = {"tests": ("coverage", "coverage-ratchet", "ci-ratchet")}      # B3
 CODE = {u: UNITS[u] for u in CODE_UNITS}
@@ -135,6 +140,56 @@ def deferral(ids: list) -> str:
     return f"run(s) {ids} at this head are still being judged; their gate decides"
 
 
+# R10-CI-EDIT-RUNNER. A body run (edit, review) beside an unfinished code run
+# that is not judging runs no unit (prelude.defer_to). Until it is re-run it is
+# the latest event's unjudged body or review, so every gate at the head waits
+# on the latest such run of each kind (`pending`) as on a busy one, and the
+# code run's gate, the one gate that run's deferral names, re-runs it
+# (`redispatch`), at most once per judge(). The re-run's prelude finds that
+# code run judging, so it runs its full workset and waits on nothing. An
+# earlier deferring run of a kind is superseded by the latest: its event's
+# body or review is read again by the later run.
+SELF_DEFERRED = "this run deferred to an unfinished code run at this head, whose gate re-runs it"
+
+
+def pending(ctx: dict, runs: list[dict]) -> list:
+    """The ids of the latest run of each body kind for this PR, when that run is
+    deferring (prelude.deferring): owed a re-run, then a judgement. `runs`
+    includes this run itself when the caller wants it considered."""
+    _, pr, _ = derive(ctx)
+    latest: dict[str, dict] = {}
+    for r in runs:
+        t = parse_title(r.get("title") or "")
+        if pr and t is not None and t[0] in BODY_KINDS and t[1] == pr and r["id"] > latest.get(t[0], {"id": -1})["id"]:
+            latest[t[0]] = r
+    return sorted(r["id"] for r in latest.values() if r.get("status") != "action_required" and deferring(r))
+
+
+def waiting_on(ctx: dict, others: list[dict]) -> list:
+    """What this gate waits on: the busy runs and the pending deferred ones."""
+    return sorted(set(busy(ctx, others)) | set(pending(ctx, others)))
+
+
+def redispatch(ctx: dict, runs: list[dict], post, done: set) -> list[str]:
+    """A code run's gate re-runs each pending deferred run that has completed and
+    that this judge() has not re-run yet; the reasons a re-run failed."""
+    kind, pr, _ = derive(ctx)
+    if kind != "code" or not pr or post is None:
+        return []
+    bad = []
+    for r in runs:
+        if r["id"] in done or r["id"] not in pending(ctx, runs) or r.get("status") != "completed":
+            continue
+        done.add(r["id"])
+        if int(r.get("attempt", 1)) >= ATTEMPT_CAP:
+            bad.append(f"deferred run {r['id']} is at attempt {r['attempt']}, the cap: push a new commit")
+            continue
+        st, _, _ = post(f"repos/{ctx['repo']}/actions/runs/{r['id']}/rerun")
+        if st not in (201, 204):
+            bad.append(f"re-run of deferred run {r['id']}: HTTP {st}")
+    return bad
+
+
 OWN_PENDING = ": PENDING (this run)"
 OWN_ABSENT = ": ABSENT (this run)"
 
@@ -186,16 +241,18 @@ def gate(ctx: dict, api: dict) -> tuple[bool, list[str]]:
         if lp.get("same_repo") is not True:  # R3-4: no supersession or refresh reaches a fork head
             return False, [f"PR {pr}: its head is not in this repository (a fork PR is not gated here)"]
     others = [r for r in api["runs_at_head"] if r["id"] != ctx["run_id"]]
-    own = pre.get("workset")                # the units the prelude ran here; a deferring edit run ran fewer (C3)
-    waiting = busy(ctx, others)
+    own = pre.get("workset")                # the units the prelude ran here; a deferring body run ran none
+    me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
+          "jobs": api["jobs"]}
+    waiting = waiting_on(ctx, others)
+    if kind in BODY_KINDS and own == set() and deferring(me) and (waiting or ctx["run_id"] in pending(ctx, others + [me])):
+        return False, [SELF_DEFERRED]       # never waits: the code run's gate re-runs the latest deferring run
     if waiting:
         return False, [deferral(waiting)]
     required: dict[str, list[str]] = {}
     for name in REQUIRED[event_class(ev, pr, api.get("reaches_cc"))]:
         u, n = name.split(" / ", 1)
         required.setdefault(u, []).append(n)
-    me = {"id": ctx["run_id"], "title": title(kind, pr, base, ctx.get("sha", "")), "status": "completed",
-          "jobs": api["jobs"]}
     for unit, names in required.items():
         src = None
         for r in sorted(others + [me], key=lambda r: r["id"], reverse=True):
@@ -252,6 +309,7 @@ def read_api(ctx: dict, claim: dict, reaches_cc, get) -> dict:
         api["open_pr_heads"] = {p["head"]["sha"] for p in ghapi.paginate(f"repos/{repo}/pulls", {"state": "open"}, get=get)}
     runs = ghapi.paginate(f"repos/{repo}/actions/workflows/ci.yml/runs", {"head_sha": ctx["head"]}, get=get)
     api["runs_at_head"] = [{"id": r["id"], "title": r.get("display_title") or "", "status": r["status"],
+                            "attempt": int(r.get("run_attempt") or 1),
                             "jobs": {} if r["status"] == "action_required" else run_jobs(get, repo, r["id"])}
                            for r in runs if r["id"] != ctx["run_id"]]
     return api
@@ -265,18 +323,21 @@ def reaches_custom_components(base: str, head: str) -> bool:
 
 
 def judge(ctx: dict, claim: dict, get, reaches=reaches_custom_components, sleep=time.sleep,
-          now=time.monotonic) -> tuple[str, list[str], list[str]]:
+          now=time.monotonic, post=None) -> tuple[str, list[str], list[str]]:
     """(outcome, reasons, this run's other jobs: reported, never gating). A verdict
     that only defers, or only waits on this run's own lagging jobs (lag_bound),
-    is never published while its bound allows a re-read."""
+    is never published while its bound allows a re-read. A code run's gate
+    re-runs the deferred body runs it finds (`redispatch`, with `post`) before
+    it judges; a deferring run's own gate publishes SELF_DEFERRED at once."""
     kind, pr, base = derive(ctx)
     cc = reaches(base, ctx["head"]) if pr else None     # git first; the API reads are last (R3-1)
-    t0, lagged = now(), []
+    t0, lagged, rerun = now(), [], set()
     while True:
         api = read_api(ctx, claim, cc, get)
-        ok, why = gate(ctx, api)
-        waiting = busy(ctx, api["runs_at_head"])
-        bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else lag_bound(why)
+        failed = redispatch(ctx, api["runs_at_head"], post, rerun)
+        ok, why = (False, failed) if failed else gate(ctx, api)
+        waiting = waiting_on(ctx, api["runs_at_head"])
+        bound = GATE_WAIT_MAX_S if why == [deferral(waiting)] else 0 if failed else lag_bound(why)
         if ok or now() - t0 + POLL_S > bound:
             break
         if why != [deferral(waiting)]:
@@ -351,7 +412,7 @@ def main(argv: list[str], get=ghapi.get, post=ghapi.post, env=os.environ) -> int
         claim = {"kind": a.kind, "pr": a.pr}
         if env.get("WORKSET") is not None:          # the prelude's workset output (ci.yml's gate step)
             claim["workset"] = set(env["WORKSET"].split())
-        outcome, why, notes = judge(ctx, claim, get)
+        outcome, why, notes = judge(ctx, claim, get, post=post)
     except ghapi.RateLimited as e:
         outcome, why = f"RATE-LIMITED reset_epoch={e.reset_epoch} {e.path}", [str(e)]
         # The annotation is how the sweep tells this red from any other (check-runs/<job>/annotations).
@@ -645,6 +706,65 @@ def self_test() -> int:
           busy({**ctx, "run_id": 99}, [{**r, "title": r["display_title"],
                                         "jobs": {j["name"]: (j["status"], j["conclusion"]) for j in r["jobs"]}}
                                        for r in reds + [rerun]]), [])
+    # R10-CI-EDIT-RUNNER: a deferring body run ran no unit (prelude.defer_to); its
+    # gate never waits, and the code run's gate re-runs the latest one of each kind.
+    skipped = lambda kind: ([{"name": "prelude", "status": "completed", "conclusion": "success", "id": 1}]  # noqa: E731
+                            + [{"name": u, "status": "completed", "conclusion": "skipped", "id": 1}
+                               for u in sorted(workset(kind, "7") & set(UNITS))])
+    g_in = [{"name": "gate", "status": "in_progress", "conclusion": None, "id": 9}]
+    g_red = [{"name": "gate", "status": "completed", "conclusion": "failure", "id": 9}]
+    nothing = {"kind": "edit", "pr": "7", "workset": set()}
+    get, naps, nap, now = scene(busy_code, mine=skipped("edit") + g_in, me=101)
+    check("edit-runner: a deferring edit gate beside a busy code run publishes at once, holding no runner",
+          (verdict({**ectx, "run_id": 101}, get, nap, now, nothing), naps), ("FAIL " + SELF_DEFERRED, []))
+    rctx = context("pull_request_review", {**ev, "action": "submitted"}, env)
+    get, naps, nap, now = scene(busy_code, mine=skipped("review") + g_in, me=102)
+    check("edit-runner: a deferring review gate beside a busy code run publishes at once",
+          (verdict({**rctx, "run_id": 102}, get, nap, now, {"kind": "review", "pr": "7", "workset": set()}), naps),
+          ("FAIL " + SELF_DEFERRED, []))
+
+    def code_scene(*frames):
+        posts = []
+        get, naps, nap, now = scene(*frames)
+        return get, naps, nap, now, posts, lambda path, body=None: (posts.append(path), (201, {}, None))[1]
+    gone = run(95, "edit", "completed", skipped("edit") + g_red)
+    e_done = run(101, "edit", "completed", skipped("edit") + g_red)
+    r_done = run(102, "review", "completed", skipped("review") + g_red)
+    get, naps, nap, now, posts, post = code_scene(
+        [gone, e_done, r_done],
+        [gone, run(101, "edit", "in_progress", owed("edit", gate=False, state="in_progress")),
+         run(102, "review", "queued", [])],
+        [gone, run(101, "edit", "in_progress", owed("edit")), run(102, "review", "in_progress", owed("review"))])
+    check("edit-runner: the code run's gate re-runs the latest deferring edit and review run once each, "
+          "waits for them, then judges",
+          (judge(ctx, claim, get, cc, nap, now, post)[0], posts, naps),
+          ("PASS", ["repos/o/r/actions/runs/101/rerun", "repos/o/r/actions/runs/102/rerun"], [POLL_S, POLL_S]))
+    get, naps, nap, now, posts, post = code_scene(
+        [gone, run(101, "edit", "in_progress", skipped("edit") + g_in)], [gone, e_done],
+        [gone, run(101, "edit", "in_progress", owed("edit"))])
+    check("edit-runner: a deferring run still at its own gate (judging, a later id) is waited on, then re-run",
+          (judge(ctx, claim, get, cc, nap, now, post)[0], posts), ("PASS", ["repos/o/r/actions/runs/101/rerun"]))
+    get, naps, nap, now, posts, post = code_scene([run(101, "edit", "completed", owed("edit")), gone])
+    check("edit-runner null: beside a finished edit run that ran its units, the code gate re-runs nothing, "
+          "judges at once", (judge(ctx, claim, get, cc, nap, now, post)[0], posts, naps), ("PASS", [], []))
+    get, naps, nap, now, posts, _ = code_scene([e_done])
+    check("edit-runner: a refused re-run is published at once, never a PASS",
+          (judge(ctx, claim, get, cc, nap, now, lambda path, body=None: (403, {}, None))[0], naps),
+          ("FAIL re-run of deferred run 101: HTTP 403", []))
+    get, naps, nap, now, posts, post = code_scene([{**e_done, "run_attempt": ATTEMPT_CAP}])
+    check("edit-runner: a deferred run at the attempt cap is not re-run",
+          (judge(ctx, claim, get, cc, nap, now, post)[0].startswith("FAIL deferred run 101 is at attempt"), posts),
+          (True, []))
+    get, naps, nap, now, posts, post = code_scene([e_done])
+    lctx = context("pull_request", {**ev, "action": "labeled", "label": {"name": "x"}}, env)
+    judge(lctx, {"kind": "label", "pr": "7"}, get, cc, nap, now, post)
+    check("edit-runner: only a code run's gate re-runs; another gate waits on the pending run, bounded",
+          (posts, 0 < sum(naps) <= GATE_WAIT_MAX_S), ([], True))
+    get, naps, nap, now = scene([run(99, "code", "completed", owed("code")),
+                                 run(110, "edit", "completed", owed("edit"))], mine=skipped("edit") + g_in, me=101)
+    check("edit-runner null: a superseded deferring gate re-run once nothing is pending judges like every "
+          "other gate (the sweep's re-run converges)",
+          (verdict({**ectx, "run_id": 101}, get, nap, now, nothing), naps), ("PASS", []))
     # r10-gate-busy-defer-2: replay recorded runs (#3263, #3261) through judge() as the API read then.
     fx = json.loads((HERE / "fixtures" / "gate_busy_defer_runs.json").read_text())
     frepo = fx["repo"]
