@@ -1,0 +1,7 @@
+budget 0.2494 floor 0.1247
+0.128 over floor 2.6% under ceiling 48.7%
+0.1339 over floor 7.4% under ceiling 46.3%
+0.1418 over floor 13.7% under ceiling 43.1%
+0.1433 over floor 14.9% under ceiling 42.5%
+0.189 over floor 51.6% under ceiling 24.2%
+0.128/0.1245-1 = 0.028 1-0.189/0.249 = 0.241

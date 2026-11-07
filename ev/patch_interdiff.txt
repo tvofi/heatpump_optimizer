@@ -1,0 +1,13 @@
+16,17c16,18
+< +#: so its residual margin is the ref30 reading, 2.8 % over the band's floor
+< +#: 0.1245; the ceiling side keeps 24 %.
+---
+> +#: so under that recording's 0.249 budget its residual margin was the ref30
+> +#: reading, 2.8 % over the floor 0.1245, the ceiling side 24 %; round 3 below
+> +#: re-derives that budget.
+388,389c389,390
+<      "T4_no_escalation": (TICK, "                                aging, group_of):\n            self.line(S, text, flag=True)",
+<                           "                                aging, group_of):\n            pass"),
+---
+>      "T4_no_escalation": (TICK, "                                aging, group_of, last_open):\n            self.line(S, text, flag=True)",
+>                           "                                aging, group_of, last_open):\n            pass"),

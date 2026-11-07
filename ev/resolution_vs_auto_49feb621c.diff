@@ -1,0 +1,23 @@
+diff --git a/tools/audit/seat/r10_ledger_mutants.py b/tools/audit/seat/r10_ledger_mutants.py
+index 291116189..9c6f01a63 100644
+--- a/tools/audit/seat/r10_ledger_mutants.py
++++ b/tools/audit/seat/r10_ledger_mutants.py
+@@ -95,18 +95,11 @@ PLANTS = {
+     # the tick reads the ledger
+     "T1_unkinded_printed": (TICK, "            if len(f) > 2 and f[2] in lg.KINDS:", "            if True:"),
+     "T2_no_reads_fold": (TICK, 'lg.fold(rows, getattr(self, "_live", None), getattr(self, "_readback", None))', "lg.fold(rows)"),
+-<<<<<<< 87b00d3ec3779e826faac670e624062401356d5d
+     "T3_review_owed_silent": (TICK, '''lg.git_recarry(self.checkout or ".", "origin/main")):
+                 self.line(S, text, flag=not text.startswith("CARRY:"))''',
+                               'lg.git_recarry(self.checkout or ".", "origin/main")):\n                pass'),
+-    "T4_no_escalation": (TICK, "                                aging, group_of):\n            self.line(S, text, flag=True)",
+-                         "                                aging, group_of):\n            pass"),
+-=======
+-    "T3_review_owed_silent": (TICK, '                                       getattr(rr, "RECORD_BRANCH", None)):\n                self.line(S, text, flag=True)',
+-                              '                                       getattr(rr, "RECORD_BRANCH", None)):\n                pass'),
+     "T4_no_escalation": (TICK, "                                aging, group_of, last_open):\n            self.line(S, text, flag=True)",
+                          "                                aging, group_of, last_open):\n            pass"),
+->>>>>>> f2a015142714383722bf49d7ab20d8398ec9674c
+     "T5_no_design_build": (TICK, "        self.design_builds(S, rl, roster)\n", ""),
+     "T6_unreadable_silent": (TICK, '            self.unreadable(S, "obligations ledger", str(e)[:100])\n            return\n        if not rows',
+                              "            return\n        if not rows"),
