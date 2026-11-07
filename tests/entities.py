@@ -27286,6 +27286,119 @@ R.check(
     "11 and 12, i.e. a two-night-old run reported as last night's",
 )
 
+# --- a failure a newer in-flight run has already answered (2026-11-06) -------
+#
+# Dispatch 42235215315 (14:35Z) concluded `failure` on `slow`; 42242870295 and
+# 42247578523 passed `slow` while their 3.5 h mutation lanes ran on, and the
+# check kept naming the stale failure. Null controls: the same failure with
+# nothing newer, with a newer `slow` failed or still pending, or with a newer
+# run that is OLDER, must all stay red. Each arm past those five kills one
+# mutant of a grading line the review (#3263, round 1) found surviving:
+# superseding when ANY failed lane is answered (two failed, one answered), by
+# any green name (green on another lane only), by `skipped` or `neutral`
+# counted as an answer, or by a run created at the same instant.
+_ns_bad = _ns_run(21, "2026-09-10T02:17:00Z", conclusion="failure")
+_ns_badjobs = [j if j["name"] != "slow" else _ns_job("slow", "failure")
+               for j in _NS_LIVE]
+_ns_newer = _ns_run(22, "2026-09-10T08:00:00Z", "in_progress", None)
+_ns_older = _ns_run(20, "2026-09-09T08:00:00Z", "in_progress", None)
+_ns_green = [_ns_job("slow", "success"), _ns_job("mutation-nightly", None)]
+_ns_twobad = [j if j["name"] not in ("slow", "mutation-ledger")
+              else _ns_job(j["name"], "failure") for j in _NS_LIVE]
+_ns_sametime = _ns_run(22, "2026-09-10T02:17:00Z", "in_progress", None)
+_ns_cases = {
+    "superseded": _nstatus.verdict(_ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+                                   in_flight_jobs=_ns_green)[0],
+    "nothing newer": _nstatus.verdict(_ns_bad, None, _ns_badjobs, _NS_NOW)[0],
+    "newer slow failed": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", "failure")])[0],
+    "newer slow pending": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", None)])[0],
+    "in-flight older": _nstatus.verdict(
+        _ns_bad, _ns_older, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=_ns_green)[0],
+    "two failed, one superseded": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_twobad, _NS_NOW, in_flight_jobs=_ns_green)[0],
+    "green on another lane only": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", None),
+                        _ns_job("mutation-nightly", "success")])[0],
+    "newer slow skipped": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", "skipped")])[0],
+    "newer slow neutral": _nstatus.verdict(
+        _ns_bad, _ns_newer, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=[_ns_job("slow", "neutral")])[0],
+    "in-flight same created_at": _nstatus.verdict(
+        _ns_bad, _ns_sametime, _ns_badjobs, _NS_NOW,
+        in_flight_jobs=_ns_green)[0],
+}
+R.check(
+    "a failed lane is superseded only by a NEWER in-flight run that "
+    "concluded the same job green; every other arm stays FAILED",
+    _ns_cases == {"superseded": _nstatus.PASSED,
+                  **{_k: _nstatus.FAILED for _k in _ns_cases
+                     if _k != "superseded"}},
+    f"states {_ns_cases}",
+)
+
+# The WIRING: `main` must fetch the in-flight run's jobs and hand them to
+# `verdict`, or the predicate above never meets a real run (the review's M10:
+# `fly_jobs = None and _jobs(...)` left every arm above green). `main` reads
+# the wall clock, so the runs are dated from it. Null controls: the same
+# wiring with the newer `slow` failed, or its jobs unreadable, stays FAILED
+# (exit 1): an unreadable in-flight listing supersedes nothing, and it is not
+# the whole check being UNREADABLE (exit 2) either. A concluded run with no
+# failing job has nothing to supersede, so `main` spends no request on it.
+_ns_main_real = (_nstatus.collect, _nstatus._jobs)
+
+
+def _ns_main_exit(fly, concluded_ok=False):
+    _t = datetime.now(UTC)
+    _iso = lambda h: (_t - timedelta(hours=h)).strftime(
+        "%Y-%m-%dT%H:%M:%SZ")
+    _asked = []
+
+    def _fake_jobs(_repo, run_id, _token):
+        _asked.append(run_id)
+        if fly is None:
+            raise _nstatus.Unreadable("no jobs yet")
+        return fly
+
+    _nstatus.collect = lambda *_a, **_k: (
+        _ns_run(21, _iso(3), conclusion="success" if concluded_ok
+                else "failure"),
+        _ns_run(22, _iso(1), "in_progress", None),
+        _NS_LIVE if concluded_ok else _ns_badjobs, None)
+    _nstatus._jobs = _fake_jobs
+    _summary = os.environ.pop("GITHUB_STEP_SUMMARY", None)
+    try:
+        with _contextlib.redirect_stdout(_io.StringIO()):
+            _rc = _nstatus.main(["--repo", "o/r"])
+    finally:
+        _nstatus.collect, _nstatus._jobs = _ns_main_real
+        if _summary is not None:
+            os.environ["GITHUB_STEP_SUMMARY"] = _summary
+    return _rc, _asked
+
+
+_ns_main = {"superseded": _ns_main_exit(_ns_green),
+            "newer slow failed": _ns_main_exit([_ns_job("slow", "failure")]),
+            "jobs unreadable": _ns_main_exit(None),
+            "concluded green": _ns_main_exit(_ns_green, concluded_ok=True)}
+R.check(
+    "main fetches the in-flight run's jobs and grades with them: a superseded "
+    "failure exits 0, a newer failed or unreadable lane stays FAILED, and a "
+    "green concluded run fetches nothing",
+    _ns_main == {"superseded": (_nstatus.EXIT_GREEN, [22]),
+                 "newer slow failed": (_nstatus.EXIT_RED, [22]),
+                 "jobs unreadable": (_nstatus.EXIT_RED, [22]),
+                 "concluded green": (_nstatus.EXIT_GREEN, [])},
+    f"(exit, jobs fetched for) {_ns_main}",
+)
+
 # --- a run with no clock is "could not look", not a crash and not a verdict --
 #
 # `parse_ts(r["created_at"])` raised KeyError straight through `main`'s
@@ -28306,6 +28419,26 @@ R.check(
 # Read from the comment-stripped job, as the pins above are.
 _PC_STEPS = _PC_BODY_STEP.split("\n      - name: ")
 _PC_WAIT = next((_b for _b in _PC_STEPS if _b.startswith("Wait for code scanning")), "")
+# THE CARRY STEP NAMES THE PULL REQUEST'S BRANCH (R10-BODY-CONTRACT part 2, carry 9): the
+# refusal prints the live groups after-edged on the PR's own group as the valid targets,
+# and it finds the group from `--branch`; without it the refusal reads `valid targets:
+# unknown` and nothing else fails. The step is read off the registered job; the plant is
+# the same step text with the flag dropped, the null control the step as written.
+_PC_CARRY = next((_b for _b in _PC_STEPS if _b.startswith("Every finding the body records")), "")
+
+
+def _pc_carry_names_branch(step: str) -> bool:
+    return ('carry_audit.py check --body' in step and ' --branch "$HEAD_REF"' in step
+            and "HEAD_REF: ${{ github.event.pull_request.head.ref }}" in step)
+
+
+R.check(
+    "pr-contract's carry step passes `--branch \"$HEAD_REF\"`, bound to the PR head ref (plant and null)",
+    bool(_PC_CARRY) and _pc_carry_names_branch(_PC_CARRY)
+    and not _pc_carry_names_branch(_PC_CARRY.replace(' --branch "$HEAD_REF"', ""))  # mut:carry-branch
+    and not _pc_carry_names_branch(_PC_CARRY.replace("github.event.pull_request.head.ref", "github.head_ref")),
+    f"step={'found' if _PC_CARRY else 'missing'}",
+)
 _PC_WAIT_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("Wait for code scanning")), -1)
 _PC_LIST_I = next((_i for _i, _b in enumerate(_PC_STEPS) if _b.startswith("List the red checks")), -1)
 R.check(
@@ -40644,6 +40777,10 @@ for _uxh_f in sorted(_UXH_PKG.glob("*.py")):
     for _uxh_c in ast.walk(_uxh_tree):
         if not (isinstance(_uxh_c, ast.Call) and isinstance(_uxh_c.func, ast.Attribute)
                 and _uxh_c.func.attr in _UXH_READS and _uxh_c.args):
+            continue
+        # ``os.read(fd, n)`` is the descriptor read (the worker reply frame),
+        # never an InputReader: keyed by its receiver, not just the method name.
+        if isinstance(_uxh_c.func.value, ast.Name) and _uxh_c.func.value.id == "os":
             continue
         _uxh_arg = _uxh_c.args[0]
         # `const.CONF_X` is the name `CONF_X`; any other shape is listed.

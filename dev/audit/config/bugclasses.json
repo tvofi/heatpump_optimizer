@@ -1970,13 +1970,16 @@
     "detector": null,
     "detector_idea": "Stop latency ratio vs an unlocked reap (the finder harness perturbation)",
     "barrier": null,
+    "barrier_refusal": "tests/features.py's 'D1-s2-05: the stop reaps the worker without waiting out the solve that holds the transport lock' (landed 1c4d70fdd) pins one seam with a double whose kill ends the read, and v7.1.2's field hang (R10-RCA-PROCESS-WORKER-HANG) still held the stop on _PROCESS_LOCK, so it is no class barrier. The class owes none: 1 counted instance (_counting) and no barriered member. dev/audit/rca/r10-process-worker-hang.md prices a per-PR arm over silent_peer_waits.py --scan and leaves it to the owner until #3232 merges.",
     "status": "open",
     "nearest_existing": "P2",
     "mechanism_difference": "P2 lifecycle rows (R2 D1-02, R9 D1-s3-02) are a missing guard; this is lock ordering between shutdown and an in-flight solve",
     "aliases": [
       "new: shutdown reap waits on the lock a solve holds"
     ],
-    "rca": [],
+    "rca": [
+      "R10-RCA-PROCESS-WORKER-HANG"
+    ],
     "rca_planned": [],
     "trigger": {
       "per_round": false,
@@ -4681,6 +4684,24 @@
       "in_tree_home": "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md",
       "doc": [
         "dev/audit/rca/R10-RCA-SAV-ESTIMATE.md"
+      ]
+    },
+    "R10-RCA-PROCESS-WORKER-HANG": {
+      "class": "N-reap-lock",
+      "level": "instance-or-process",
+      "subject": "v7.1.2 field hang (#3226, fix #3232): _run_in_process read the worker's reply with pickle.load and no deadline under _PROCESS_LOCK; a worker alive and computing for about 55 min held every later job and Home Assistant's stop behind the lock",
+      "trigger": "1 (release v7.1.2)",
+      "date": "2026-11-06",
+      "status": "proposed",
+      "parts_missing": [
+        "owner decision on a per-PR static arm over silent_peer_waits.py --scan, buildable only after #3232 merges"
+      ],
+      "process_state": "(c) round 9's D1 seat read this lock and read (D1-s2-05) with a stop-latency unit against a finite solve, its check's double ends the read on kill, D1 step 5 injects exceptions a silent peer never raises, and the #511 checks drive only a failing worker",
+      "countermeasure": "D1.md method step 5 (Guards, waits): every wait on a peer driven by one that stays alive and silent, instrument dev/audit/harnesses/silent_peer_waits.py (drive reads 0 at v7.1.2 and main, 1 with ProcessWorkerTimeout at 2.00 s at #3232's head under the deadline perturbation; --answer null control 1 on every tree); about 58 s/release against about 475 s/release",
+      "landed": null,
+      "in_tree_home": "dev/audit/rca/r10-process-worker-hang.md",
+      "doc": [
+        "dev/audit/rca/r10-process-worker-hang.md"
       ]
     }
   },
