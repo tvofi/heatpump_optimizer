@@ -13,7 +13,7 @@ path resolves in the tree, as a directory, or at the cited commit d5d8c4a.
 Not a citation: `mock.patch.object`, `--budgets`, `MODE: FULL`.
 
 ```
-tools/audit/seat/inside_a_fence_is_skipped.py
+bash `tools/audit/seat/inside_a_fence_is_skipped.py`
 ```
 
-    tools/audit/seat/indented_is_skipped.py
+    `tools/audit/seat/indented_is_skipped.py`
