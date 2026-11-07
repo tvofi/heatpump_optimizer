@@ -1,0 +1,160 @@
+head selftest rc=0
+self-test: 0 failed
+MUTANT m1-no-owned rc=1
+model self-test: 0 failed
+FAIL lane: a CI-only group is Instruments: Core model
+FAIL lane: a tests-and-tools group is Instruments: 
+FAIL lane: a docs-only doc group is Docs: 
+FAIL lane: a user-docs group is Docs: 
+FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+FAIL lane: user docs with a dev harness are Docs: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+MUTANT m2-no-kindfallback rc=1
+model self-test: 0 failed
+FAIL lane: an RCA group with no files is Instruments: 
+FAIL lane: a tooling group with no files is Instruments: 
+FAIL lane: a roster class instrument with no files is Instruments: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+MUTANT m3-no-class rc=1
+model self-test: 0 failed
+FAIL lane: a roster class instrument with no files is Instruments: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+MUTANT m4-any rc=1
+model self-test: 0 failed
+FAIL lane null control: a mixed group stays Core model: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+MUTANT m5-nofiles-guard rc=1
+FAIL a production S plans first-round 10 + 2 extra rounds x 4 = 18 h: 12.0 S/instrument: 8 h + 1.00 extra rounds
+FAIL three carries absorbed past the S baseline add 3 x 4 h (30 h): 24.0
+FAIL a working fixer plans live_remaining_fraction of its hours (9 h): 6.0
+FAIL production work is tier 3: 
+FAIL dispatch follows the owner's order: critical path, hotfix, production, instruments by savings, unrecorded savings last: ['CPA', 'CPB', 'CPC', 'R10-HOTFIX-H', 'HI', 'LO', 'PROD', 'NONE']
+model self-test: 5 failed
+FAIL lane null control: a group with no files stays Core model: 
+FAIL lane null control: a production group with no files stays Core model: 
+FAIL a short production group outranks a taller non-production one: {'CP': '2026-01-05T00:00:00Z', 'CP2': '2026-01-05T06:00:00Z', 'PROD': '2026-01-05T18:00:00Z', 'TALL': '2026-01-05T10:00:00Z'}
+FAIL the t==0 started admission keeps both, in the same priority key: {'PROD': [4, 1, None, -1.4, -84, 'PROD'], 'TALL': [4, 1, None, -5.6, -336, 'TALL']}
+FAIL five production merges cut one patch stamp: [{'version': 'v2.0.0', 'at': '2026-01-05T04:00:00Z', 'carries': [], 'kind': 'round-close', 'batch': None}]
+FAIL an interim stamp stays a patch bump of the current version: []
+MUTANT m6-userdocs-tooling rc=1
+model self-test: 0 failed
+FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+MUTANT m7-doc-kind rc=1
+model self-test: 0 failed
+FAIL lane: a docs-only doc group is Docs: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+MUTANT m8-hotfiles rc=0
+model self-test: 0 failed
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+ok   self-test fails when height-tiebreak is deleted
+ok   self-test fails when started-past-cap is deleted
+MUTANT m9-docs-prefix rc=1
+model self-test: 0 failed
+FAIL lane: a user-docs group is Docs: 
+FAIL lane null control: docs plus a tool is Instruments, not Docs: 
+FAIL lane: user docs with a dev harness are Docs: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+MUTANT m10-rootfiles rc=1
+model self-test: 0 failed
+FAIL lane: a docs-only doc group is Docs: 
+FAIL lane: a user-docs group is Docs: 
+FAIL lane: user docs with a dev harness are Docs: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+MUTANT m11-rca-kind rc=1
+model self-test: 0 failed
+FAIL lane: an RCA group with no files is Instruments: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+MUTANT m12-userdocs-any rc=1
+model self-test: 0 failed
+FAIL lane: a tests-and-tools group is Instruments: 
+FAIL the unmutated copy's self-test exits 0 (null control): rc=1
+ok   self-test fails when earliest-attempt is deleted
+ok   self-test fails when coordinator-cap is deleted
+ok   self-test fails when tier-critical-path is deleted
+ok   self-test fails when tier-production is deleted
+ok   self-test fails when tier-hotfix is deleted
+ok   self-test fails when tier-main is deleted
+ok   self-test fails when tier-saving-instrument is deleted
+ok   self-test fails when tier-savings is deleted
+ok   self-test fails when cp-first-in-tier is deleted
+
+[exited with code 0]
