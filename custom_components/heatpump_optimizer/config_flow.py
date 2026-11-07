@@ -419,6 +419,7 @@ from .const import (
     DEFAULT_HEATED_AREA,
 )
 from . import heat_curve
+from .inputs import number_reading
 from . import (
     comfort_band,
     device_prefill,
@@ -2186,8 +2187,8 @@ async def _heat_curve_errors(hass: Any, submit: dict[str, Any], current: dict[st
     write by the same rule (``heat_curve.range_excludes_zero``).
     """
     entity_id = {**current, **submit}.get(CONF_HEAT_CURVE_DISPLACE_ENTITY)
-    state = hass.states.get(entity_id) if entity_id else None
-    if state is not None and heat_curve.range_excludes_zero(state):
+    reading = number_reading(hass, entity_id) if entity_id else None
+    if reading is not None and heat_curve.range_excludes_zero(reading):
         return {CONF_HEAT_CURVE_DISPLACE_ENTITY: "heat_curve_not_offset"}
     return {}
 

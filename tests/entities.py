@@ -41288,7 +41288,7 @@ _R10_LOG_ALLOWED_BY_REASON = {
     "one record per failed call, an event and not a held condition (the "
     "sweep's actuation handlers, and an unexpected exception per failed update)": {
         ("climate.py", "_async_publish_displace_from_current_action"): 1,
-        ("coordinator.py", "_publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
+        ("heat_curve.py", "publish_ecl110_topics"): 2, ("coordinator.py", "_async_set_pump"): 1,
         ("coordinator.py", "_command_frequency"): 1, ("coordinator.py", "_async_update_data"): 1,
         ("coordinator.py", "_async_first_refresh_light"): 1, ("disinfection.py", "_write"): 2,
         ("disinfection.py", "release"): 1, ("pump_arbiter.py", "_write"): 1,

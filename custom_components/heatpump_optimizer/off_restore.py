@@ -47,13 +47,13 @@ class Restorer:
 
     ``write(hass, entity_id, value)`` sends ``value`` in the entity's own
     unit. ``neutral`` is the fixed restore value; ``None`` restores the
-    baseline ``read(hass, entity_id)`` returned at the first arm.
+    baseline ``baseline_of(hass, entity_id)`` returned at the first arm.
     """
 
     entity_id: str
     write: Callable[[Any, str, float], Awaitable[Any]]
     neutral: float | None = None
-    read: Callable[[Any, str], float | None] | None = None
+    baseline_of: Callable[[Any, str], float | None] | None = None
 
 
 Factory = Callable[[Any], "Restorer | None"]
@@ -125,7 +125,7 @@ async def async_arm(owner: Any, hass: Any, entry_id: str, config: Any, key: str)
         return True
     baseline = None
     if restorer.neutral is None:
-        baseline = restorer.read(hass, restorer.entity_id) if restorer.read else None
+        baseline = restorer.baseline_of(hass, restorer.entity_id) if restorer.baseline_of else None
         if log_held(owner, f"off_restore_baseline_{key}", baseline is None,
                     "No baseline readable from %s: not written, nothing to restore it to",
                     restorer.entity_id):

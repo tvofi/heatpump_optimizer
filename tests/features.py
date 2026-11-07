@@ -40811,7 +40811,7 @@ async def _ghc_stand_in_write(hass, entity_id, value):
 _ghc_restore.register_consumer(
     "stand_in_space_setpoint",
     lambda cfg: _ghc_restore.Restorer(
-        "number.space_setpoint", _ghc_stand_in_write, read=lambda hass, eid: _ghc_base["v"],
+        "number.space_setpoint", _ghc_stand_in_write, baseline_of=lambda hass, eid: _ghc_base["v"],
     ) if cfg.get("stand_in") else None,
 )
 _si = _ghc_coord(entity=None, entry_id="ghc_stand_in", stand_in=True)

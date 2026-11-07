@@ -1566,9 +1566,11 @@ planted_paths = _carrying(planted_open)
 # section a later change adds is refused here until the fixture plants in it.
 # The exempt ones carry no text the install supplies: a constant, the names of
 # config keys, the version stamps, the export's clock, and the replay half, which ``seal`` refuses
-# rather than write with a dropped value in it (the checks above).
+# rather than write with a dropped value in it (the checks above). The heat-curve
+# record is numbers and the restore hook's own consumer keys: its entity is the
+# config section's (heat_curve.diagnostics).
 EXEMPT = {".exported_at", ".entry", ".config_overridden_by_options", ".domain",
-          ".debug.schema", ".debug.replay"}
+          ".debug.schema", ".debug.replay", ".heat_curve"}
 SECTIONS = {f".{key}" for key in planted_open if key != "debug"} | {
     f".debug.{key}" for key in planted_open["debug"]}
 _unplanted = sorted(section for section in SECTIONS - EXEMPT if not any(

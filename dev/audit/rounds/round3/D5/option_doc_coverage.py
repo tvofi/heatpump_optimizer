@@ -97,9 +97,9 @@ EXPECTED on this tree (ae36eff printed option_fields_rendered=174 and
     is reached by a shell-out the closure recorder cannot see, so it does not
     go red on a pull request: it is re-measured in the commit that changes
     what the script prints, or main's forced-full run finds it):
-    RESULT option_fields_rendered=204 count
+    RESULT option_fields_rendered=207 count   (204 until R10-GENERIC-HEAT-CURVE's three heat_curve fields)
     RESULT option_fields_undocumented=0 count
-    RESULT option_schema_keys_rendered=237 count
+    RESULT option_schema_keys_rendered=240 count   (237 until R10-GENERIC-HEAT-CURVE)
     RESULT wood_economics_fields_rendered=4 count
     RESULT wood_economics_doc_lines=8 count      (tolerance: exact;
     moved 6 -> 8 by #1645/F8.1: the Services section's `simulate_plan`

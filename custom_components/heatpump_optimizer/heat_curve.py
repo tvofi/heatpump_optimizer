@@ -40,9 +40,9 @@ from weakref import WeakKeyDictionary
 from homeassistant.util import dt as dt_util
 
 from . import off_restore
-from .const import DOMAIN, HEAT_CURVE_KIND_OFFSET, finite_float
+from .const import DOMAIN, HEAT_CURVE_KIND_OFFSET
 from .payload import CurrentAction, Ecl110Payload
-from .inputs import setpoint_step, write_setpoint
+from .inputs import NumberReading, number_reading, setpoint_step, write_setpoint
 from .log_latch import log_held
 
 _LOGGER = logging.getLogger(__name__)
@@ -209,30 +209,29 @@ async def publish(
         await write_displace(owner, config, displace_int)
 
 
-def range_excludes_zero(state: Any) -> bool:
+def range_excludes_zero(reading: NumberReading) -> bool:
     """T2: the entity's own declared range leaves 0 out, so it is no offset.
 
     One rule for the options flow's save and the arm's every write.
     """
-    attrs = getattr(state, "attributes", None) or {}
-    lo, hi = finite_float(attrs.get("min")), finite_float(attrs.get("max"))
+    lo, hi = reading.lo, reading.hi
     return (lo is not None and lo > 0.0) or (hi is not None and hi < 0.0)
 
 
-def offset_target(state: Any, displace_k: float, band_k: float) -> tuple[float | None, str | None, bool]:
+def offset_target(
+    reading: NumberReading | None, displace_k: float, band_k: float
+) -> tuple[float | None, str | None, bool]:
     """(target in the entity's unit, why not, saturated by the entity's range).
 
-    Pure over a state object: the read and the convert of the entity arm.
+    Pure over the raw reading: the convert of the entity arm.
     """
-    if state is None or str(state.state).strip().lower() in ("unknown", "unavailable", "none", ""):
+    if reading is None or reading.value is None:
         return None, "is unavailable", False
-    attrs = getattr(state, "attributes", None) or {}
-    unit = str(attrs.get("unit_of_measurement") or "").strip()
-    per_k = _DELTA_PER_K.get(unit)
+    per_k = _DELTA_PER_K.get(reading.unit)
     if per_k is None:
-        return None, f"states unit {unit!r}, not a temperature difference", False
-    lo, hi = finite_float(attrs.get("min")), finite_float(attrs.get("max"))
-    if range_excludes_zero(state):
+        return None, f"states unit {reading.unit!r}, not a temperature difference", False
+    lo, hi = reading.lo, reading.hi
+    if range_excludes_zero(reading):
         return None, f"declares range {lo}..{hi}, which excludes 0: not an offset", False
     banded = max(-band_k, min(band_k, displace_k)) * per_k
     target = banded
@@ -269,21 +268,24 @@ async def write_displace(owner: Any, config: Any, displace_int: int) -> bool:
     MQTT arms are never affected by the entity.
     """
     hass, entity_id = owner.hass, config.heat_curve_displace_entity
-    state = hass.states.get(entity_id)
+    reading = number_reading(hass, entity_id)
     domain = entity_id.split(".", 1)[0]
-    if domain not in DOMAINS:
-        target, why, saturated = None, f"is a {domain}, not a number", False
-    else:
-        target, why, saturated = offset_target(state, float(displace_int), float(config.heat_curve_offset_band_k))
-    if log_held(owner, "heat_curve_entity", target is None, "Heat-curve entity %s %s: not written", entity_id, why):
+    target: float | None = None
+    why: str | None = f"is a {domain}, not a number"
+    saturated = False
+    if domain in DOMAINS:
+        target, why, saturated = offset_target(reading, float(displace_int), float(config.heat_curve_offset_band_k))
+    if target is None or reading is None:
+        log_held(owner, "heat_curve_entity", True, "Heat-curve entity %s %s: not written", entity_id, why)
         return False
+    log_held(owner, "heat_curve_entity", False)
     log_held(owner, "heat_curve_saturated", saturated,
              "Heat-curve entity %s range narrower than the displace %s K: sending %s",
              entity_id, displace_int, target)
     held = state_for(owner)
     now = time.monotonic()
     step = setpoint_step(hass, entity_id)
-    decision = _decide(held, target, finite_float(state.state), step / 2.0, now)
+    decision = _decide(held, target, reading.value, step / 2.0, now)
     if log_held(owner, "heat_curve_not_held", decision == "gave up",
                 "Heat-curve entity %s does not hold %s after a rewrite: not resent until the target changes",
                 entity_id, target) or decision is not None:
@@ -308,12 +310,13 @@ async def write_displace(owner: Any, config: Any, displace_int: int) -> bool:
 
 
 def diagnostics(owner: Any, config: Any) -> dict[str, Any]:
-    """The entity arm's record, for the diagnostics bundle."""
+    """The entity arm's record, for the diagnostics bundle.
+
+    Counts and numbers only: the entity, kind and band are the config
+    section's, so nothing the install names is repeated here.
+    """
     held = _STATES.get(owner)
     return {
-        "entity": config.heat_curve_displace_entity,
-        "kind": config.heat_curve_target_kind,
-        "band_k": config.heat_curve_offset_band_k,
         "written": None if held is None else held.written,
         "misses": 0 if held is None else held.misses,
         "writes_24h": 0 if held is None else len(held.writes),

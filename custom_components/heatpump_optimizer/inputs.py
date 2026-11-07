@@ -41,7 +41,7 @@ import math
 from dataclasses import dataclass, field
 from datetime import datetime, timedelta
 from collections.abc import Callable, Collection
-from typing import Any, Literal
+from typing import Any, Literal, NamedTuple
 from weakref import WeakKeyDictionary
 
 from .const import (
@@ -613,6 +613,34 @@ async def write_setpoint(hass: Any, entity_id: str, value: float) -> bool:
         blocking=True,
     )
     return True
+
+
+class NumberReading(NamedTuple):
+    """A number entity read in its OWN unit: no conversion applied.
+
+    For a target that is a difference, not a temperature (the heat-curve
+    offset): the absolute helpers read a kelvin entity's -2 as -275.15 degC.
+    ``value`` is None while the entity holds no reading.
+    """
+
+    value: float | None
+    unit: str
+    lo: float | None
+    hi: float | None
+
+
+def number_reading(hass: Any, entity_id: str) -> NumberReading | None:
+    """The entity's reading and declared range, raw; None with no state object."""
+    state = hass.states.get(entity_id)
+    if state is None:
+        return None
+    attrs = getattr(state, "attributes", None) or {}
+    raw = str(state.state).strip()
+    lo, hi = (finite_float(attrs.get(key)) for key in _NUMBER_RANGE_KEYS)
+    return NumberReading(
+        None if raw.lower() in _NO_SETPOINT else finite_float(raw),
+        str(attrs.get("unit_of_measurement") or "").strip(), lo, hi,
+    )
 
 
 async def write_setpoint_c(
