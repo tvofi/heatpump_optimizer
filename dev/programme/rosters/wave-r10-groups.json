@@ -18291,7 +18291,9 @@
    "group": "R10-FRICTION-CI-RED",
    "lane": "IN",
    "kind": "rca",
-   "issues": [],
+   "issues": [
+    3156
+   ],
    "fixes": [],
    "findings": [],
    "class": "rca",
