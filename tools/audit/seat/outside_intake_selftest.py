@@ -8,7 +8,8 @@ are the round's three outside submissions (tvofi 2026-11-06): #3224 (adopted
 via #3231, on the roster and answered), #3225 (design R10-COMBI-TANK, on the
 roster and unanswered) and #3226 (adopted via #3232, here on no roster group),
 plus the shapes around them: our own thread, a bot's pull request, an outside
-comment on our issue, a review comment, a forged marker, a third-party bot's marker,
+comment on our issue, a review comment, a forged marker, a third-party bot's marker
+and its later comment on an answered thread,
 our App's marker in a discussion, a refusal with and
 without a later outside reply, and a discussion. MUTANTS plants one edit per
 predicate in a temp copy and expects its named case to fail.
@@ -227,6 +228,13 @@ def cases(m) -> dict[str, bool]:
     p = Poster()
     rc, msg = m.dispose(Fake(w2), "o/r", 3225, roster(), LIVE, None, False, p)
     lines, _ = m.listing(Fake(w2), "o/r", SINCE, roster(), LIVE(), NOW)
+    after = {}
+    for who in ({"login": "renovate[bot]", "type": "Bot"}, {"login": "Bankaifan", "type": "User"}):
+        w5 = world(m)
+        w5["comments"] += [w2["comments"][-1], comment(3225, who, "2026-11-06T23:00:00Z", "a later comment")]
+        after[who["type"]] = [ln for ln in m.listing(Fake(w5), "o/r", SINCE, roster(), LIVE(), NOW)[0] if "#3225" in ln]
+    res["identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply"] = (
+        after["Bot"] == [] and len(after["User"]) == 1 and " owed=reply " in after["User"][0])
     for dry in (True, False):
         r = Ran(0)
         got = m.post("o/r", 3225, "the body\n", dry, r)
@@ -296,6 +304,8 @@ MUTANTS = {
                              "list: a failed read is UNREADABLE, never a clean board"),
     "marker_any_bot": ('        if c["login"] not in OURS:\n', '        if outside(c["login"], c["type"]):\n',
                        "identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)"),
+    "thirdbot_moves_out": ('            if outside(c["login"], c["type"]):\n', "            if True:\n",
+                           "identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply"),
     "graphql_bot_suffix": ('        login = f"{login}[bot]"\n', "        pass\n",
                            "discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)"),
     "main_cursor_unread": ('                since = json.loads(a.cursor.read_text()).get("since") or since\n',
