@@ -30615,6 +30615,66 @@ R.check(
     f"watched {_ir_watched(_ir_oh)}",
 )
 
+# The watch itself, driven with a fake clock and a counting tracker, so the
+# bookkeeping a whole-coordinator read cannot see is pinned too.
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputHealth as _IrHealth,
+    InputReading as _IrReading,
+    InputReturnWatch as _IrWatch,
+)
+
+
+def _ir_unit():
+    log = {"track": [], "unsub": 0, "req": 0, "t": 0.0, "cb": None}
+
+    def track(ids, cb):
+        log["track"].append(list(ids))
+        log["cb"] = cb
+
+        def unsub():
+            log["unsub"] += 1
+        return unsub
+
+    def request():
+        log["req"] += 1
+
+    w = _IrWatch(track, request, _IR_SPACING_S, clock=lambda: log["t"])
+    return w, log
+
+
+def _ir_health(*ids):
+    h = _IrHealth()
+    for i in ids:
+        h.record(_IrReading(key=i, entity_id=i, problem="missing_entity"))
+    return h
+
+
+_ir_w1, _ir_l1 = _ir_unit()
+_ir_w1.arm(_ir_health("sensor.a"))
+_ir_w1.arm(_ir_health("sensor.a"))
+R.check(
+    "an unchanged watched set neither re-registers nor drops the listener",
+    _ir_l1["track"] == [["sensor.a"]] and _ir_l1["unsub"] == 0,
+    f"{_ir_l1['track']} unsub {_ir_l1['unsub']}",
+)
+
+# The re-read stamp is the arm that follows the request, not a later arm.
+_ir_w2, _ir_l2 = _ir_unit()
+_ir_w2.arm(_ir_health("sensor.a"))
+_ir_l2["t"] = 10.0
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+_ir_l2["t"] = 20.0
+_ir_w2.arm(_ir_health("sensor.a"))  # stamps the re-read at t=20
+_ir_l2["t"] = 5000.0
+_ir_w2.arm(_ir_health("sensor.a"))  # nothing pending: must not restamp
+_ir_l2["t"] = 20.0 + _IR_SPACING_S
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+R.check(
+    "a settled request is stamped once; a later arm does not push the spacing out",
+    _ir_l2["req"] == 2,
+    f"requests {_ir_l2['req']}",
+)
+
 
 # ===========================================================================
 # v5.1.7 — an ordinary slot stops calling itself weather pre-heating
