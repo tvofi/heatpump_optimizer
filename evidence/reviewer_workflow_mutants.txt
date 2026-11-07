@@ -1,0 +1,6 @@
+X0 null control (as committed, stub commands): launcher rc=0 waiters=['ok', 'ok', 'ok', 'ok', 'ok']
+X1 bg_start prepr deleted: launcher rc=0 waiters=['FAIL', 'ok', 'ok', 'ok', 'ok']
+X2 bg_start beatd deleted: launcher rc=0 waiters=['ok', 'ok', 'ok', 'FAIL', 'ok']
+X3 chain bg_pid deleted: launcher rc=0 waiters=['ok', 'ok', 'ok', 'ok', 'ok']
+X4 pr-args link deleted from chain: launcher rc=0 waiters=['ok', 'ok', 'FAIL', 'ok', 'ok']
+X5 bg_run records 0 always: launcher rc=0 waiters=['ok', 'ok', 'ok', 'ok', 'ok']
