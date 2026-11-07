@@ -1,58 +1,46 @@
 # Review packet #3252
-head: b4d990860b42aa6cbc6312b1c1a2318dadd28dbd
-base: 4b7e1770ba81fa02a8dda531463eba68e987ff59
+head: b9cc5e32e26b8ebdec66cc8bba9ee110a96c04a0
+base: 601b9695a68533814c68e36caba36fda57fe2d77
 
 Start here (fix-review.md). Re-read the live check state before a verdict: the digest is as read at render.
 
 ## Gate digest: red
-CodeQL id=128085291628 success
-arch-score / arch-score id=128110107767 success
-arm id=128084812064 skipped
-budget-raise-gate / budget-raise-gate id=128110042024 success
-cancel-superseded id=128110115038 success
-codeql id=128110070531 skipped
-codeql / Analyze (actions) id=128107785090 success
-codeql / Analyze (javascript-typescript) id=128107863566 success
-codeql / Analyze (python) id=128107784857 success
-gate id=128110040055 success
-governance id=128110089172 skipped
-governance / delivery-status id=128107847761 success
-governance / delivery-status-publish id=128107784763 skipped
-governance / env-matrix id=128107784435 success
-governance / instrument-self-tests id=128107784710 cancelled
-governance / policy-docs id=128107784576 success
-governance / record id=128107852802 skipped
-governance / wave-script id=128107839938 success
-hassfest id=128110071659 skipped
-hassfest / hassfest id=128107784824 success
-kernel-points id=128110041506 skipped
-pr-contract id=128110042163 skipped
-pr-contract / pr-contract id=128108266936 success
-prelude id=128110040678 success
-refresh id=128110041920 success
-tests id=128110042325 skipped
-tests / arch-instrument id=128107786072 success
-tests / briefs id=128107862917 success
-tests / browser id=128107785653 success
-tests / ci-ratchet id=128107786510 skipped
-tests / claims-autofix id=128107785945 skipped
-tests / closure-scope id=128107784848 success
-tests / closures id=128107786436 success
-tests / closures-autofix id=128107787412 skipped
-tests / coverage id=128107786654 success
-tests / coverage-ratchet id=128107787157 success
-tests / fast (3.14) id=128107785783 success
-tests / graders-head-copy id=128107786802 success
-tests / lane-proofs id=128107787017 success
-tests / mutation id=128107863743 success
-tests / mutation-autofix id=128107785855 skipped
-tests / mutation-pins id=128107785600 skipped
-tests / nightly-ha id=128107785990 skipped
-tests / nightly-status id=128107831139 failure
-tests / replay id=128107785869 skipped
-tests / typing id=128107786533 success
-validate id=128110118264 skipped
-validate / validate-hacs id=128107840787 success
+CodeQL id=128377977460 success
+arch-score / arch-score id=128377933244 success
+arm id=128377835719 skipped
+budget-raise-gate / budget-raise-gate id=128377933372 success
+cancel-superseded id=128377835113 success
+codeql / Analyze (actions) id=128377933315 success
+codeql / Analyze (javascript-typescript) id=128377933414 success
+codeql / Analyze (python) id=128377933411 success
+governance / delivery-status id=128377933322 success
+governance / delivery-status-publish id=128377934714 skipped
+governance / env-matrix id=128377933359 success
+governance / instrument-self-tests id=128377933374 in_progress
+governance / policy-docs id=128377933348 success
+governance / record id=128377934679 skipped
+governance / wave-script id=128377933349 success
+hassfest / hassfest id=128377933338 success
+kernel-points id=128377933999 skipped
+prelude id=128377835075 success
+refresh id=128377834945 success
+tests / arch-instrument id=128378041840 success
+tests / briefs id=128377933435 success
+tests / browser id=128378041808 success
+tests / claims-autofix id=128380985010 skipped
+tests / closure-scope id=128377933389 success
+tests / closures id=128378041835 success
+tests / closures-autofix id=128382372457 skipped
+tests / coverage id=128378041756 in_progress
+tests / fast (3.14) id=128378041774 success
+tests / mutation id=128377933387 success
+tests / mutation-autofix id=128378077070 skipped
+tests / mutation-pins id=128378076689 skipped
+tests / nightly-ha id=128378042772 skipped
+tests / nightly-status id=128377933403 failure
+tests / replay id=128378042733 skipped
+tests / typing id=128378041923 success
+validate / validate-hacs id=128377933353 success
 
 ## Refusals
 none
@@ -179,7 +167,7 @@ index 000000000..8c218d2cf
 @@ -0,0 +1 @@
 +- [#3252](https://github.com/tvofi/heatpump_optimizer/pull/3252) — **open**, R10-RELAY-SWEEP: the relay's residue on one seam, cloud_relay.sh (R10-RELAY-SWEEP)
 diff --git a/tools/audit/seat/bus.sh b/tools/audit/seat/bus.sh
-index bb14786a4..65992f38e 100755
+index 62e20564b..ceffa817b 100755
 --- a/tools/audit/seat/bus.sh
 +++ b/tools/audit/seat/bus.sh
 @@ -261,6 +261,12 @@ carry_gate() { # verdict-file -> rc 0 when each finding item routes, else why, n
@@ -203,7 +191,7 @@ index bb14786a4..65992f38e 100755
    [ -z "$(find "$ev" -type f -size +50M 2>/dev/null)" ] \
      || die "push-verdict: a file under $ev is over 50 MB; cite it by path instead"
    # Verify the nonce against the dispatcher's record before proposing: a
-@@ -355,7 +362,7 @@ kind_of() { # ref name -> "<kind> <name>"
+@@ -362,7 +369,7 @@ kind_of() { # ref name -> "<kind> <name>"
  }
  
  unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS refused, rc 1
@@ -212,7 +200,7 @@ index bb14786a4..65992f38e 100755
    pr=$2
    numeric "$pr" || { printf 'BUS refused %s: %s/%s is not a pull-request number\n' "$pr" "$fam" "$pr"; return 1; }
    if ! git fetch -q "$REMOTE" "+refs/heads/$fam/$pr:refs/hpo-bus/$fam/$pr" 2>/dev/null; then
-@@ -375,6 +382,7 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
+@@ -382,6 +389,7 @@ unpack() { # family pr [want] -> sets c d first hsha in the caller; prints BUS r
      elif ! grep -rqF -- "$hsha" "$d/evidence" 2>/dev/null; then why="no file under evidence/ names the head $hsha"
      fi
    fi
@@ -220,7 +208,7 @@ index bb14786a4..65992f38e 100755
    [ -z "$why" ] || { printf 'BUS refused %s %s: %s\n' "$pr" "$c" "$why"; return 1; }
  }
  
-@@ -954,6 +962,12 @@ P
+@@ -1048,6 +1056,12 @@ P
    [ $rc != 0 ] && echo "$out" | grep -q "names the head $h1"; expect "push-verdict refuses evidence that names no head" $?
    out=$(seat push-verdict 7 "$W/merge0.md"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "no evidence directory"; expect "push-verdict refuses a verdict with no evidence directory" $?
@@ -233,7 +221,7 @@ index bb14786a4..65992f38e 100755
    out=$(seat push-verdict 7x "$W/merge0.md" "$W/ev1"); rc=$?
    [ $rc != 0 ] && echo "$out" | grep -q "not a number"; expect "push-verdict refuses a non-numeric pull request" $?
    git -C "$W/seat" ls-remote --exit-code origin 'refs/heads/review/*' >/dev/null 2>&1
-@@ -1252,6 +1266,27 @@ B
+@@ -1354,6 +1368,27 @@ B
    out=$(run watch --once --post)
    echo "$out" | grep -q "^BUS refused 10 $t: no file under evidence/ names the head" && [ "$(calls)" = 2 ]
    expect "watch refuses a raw proposal whose only naming file is VERDICT.md" $?
@@ -652,23 +640,23 @@ index f9b36d0bb..31318c704 100644
    than `HPO_RELAY_NORETURN_SECS` (default 7200) and younger than
    `HPO_RELAY_NORETURN_WINDOW_SECS` (default 172800), with no `handoff-wip/`,
 diff --git a/tools/audit/seat/ledger.py b/tools/audit/seat/ledger.py
-index b5e3424db..f73445315 100644
+index 4d1d738d9..6c14625ac 100644
 --- a/tools/audit/seat/ledger.py
 +++ b/tools/audit/seat/ledger.py
-@@ -100,7 +100,7 @@ from merge_train import is_sha  # noqa: E402
+@@ -104,7 +104,7 @@ from merge_train import is_sha  # noqa: E402
  ROOT = Path(__file__).resolve().parents[3]
  KINDS = {
      "handoff-no-pr": "derived", "handoff-update": "derived", "probe-ref": "derived",
 -    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived",
 +    "handoff-hold-malformed": "derived", "handoff-held": "derived", "handoff-body-stale": "derived", "handoff-body-unapplied": "derived", "handoff-hold-stale": "derived",
-     "design-build": "derived", "review-owed": "derived",
+     "design-build": "derived", "review-owed": "derived", "record-owed": "derived",
      "probe-refused": "derived", "confirm-owed": "derived", "push-stuck": "derived",
      "seat-no-return": "derived",
 diff --git a/tools/audit/seat/orchestrator_tick.py b/tools/audit/seat/orchestrator_tick.py
-index c605a1601..00662033f 100644
+index 89d2deea3..ececf246d 100644
 --- a/tools/audit/seat/orchestrator_tick.py
 +++ b/tools/audit/seat/orchestrator_tick.py
-@@ -1030,6 +1030,15 @@ class Tick:
+@@ -1049,6 +1049,15 @@ class Tick:
                  level = [r.strip() for r in fh if r.startswith("OWED ")]
          except FileNotFoundError:
              level = []
@@ -684,7 +672,7 @@ index c605a1601..00662033f 100644
          except OSError as e:
              level = []
              self.unreadable(S, "cloud-relay level", str(e)[:100])
-@@ -4577,6 +4586,21 @@ def self_test() -> int:
+@@ -4640,6 +4649,21 @@ def self_test() -> int:
          ])
          total, failed = total + a, failed + f
  

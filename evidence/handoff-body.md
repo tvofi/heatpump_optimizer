@@ -6,9 +6,8 @@ Carry 0: levels written before the serial update loops, exit 75 and body-sha key
 
 ## Head
 
-`b4d990860b42aa6cbc6312b1c1a2318dadd28dbd` is this PR's head, unchanged: its code was already in it and main merged cleanly, so the orchestrator's script set this body without a push.
+428882f9dc8b40e441b7f04001dc289899de774d: merge of origin/main 601b9695a into the PR head daaf9c55e385afa05c77004cd41fd03761a28c1d (merge, never rebase). The authored code head 4f7f846d7699cf467f3e992d6c55b9659744f51a is unchanged in content. origin/main was 601b9695a when measured; measured 2026-11-07T10:08:12Z.
 
-4f7f846d7699cf467f3e992d6c55b9659744f51a (the PR head accca58859ef89acafe74a3ee74aaf064acfb712 merged with origin/main 4b7e1770ba81fa02a8dda531463eba68e987ff59, which was already in it; merge, never rebase). Main has not moved since the merge, so one `tools/pr/prepr.sh` run covers it. Every figure below was measured at this head.
 
 ## Mutation proof
 
@@ -39,11 +38,8 @@ Finding (a), bash 3.2: not demonstrated. No bash 3.2 exists in this environment 
 
 ## Red checks
 
-Read once from the PR's check runs at the PR head b4d990860b42aa6cbc6312b1c1a2318dadd28dbd (all non-gate checks completed at that read).
-- `gate` job 128106156879 (run 42274763766) and `gate` job 128106149981 (run 42273770234) concluded failure at the same minute, each with `FAIL run(s) [<the other run>] at this head are still being judged; their gate decides`: the mutual deferral of two edit runs, not a verdict on the diff. One gate job is to be rerun.
-- governance / instrument-self-tests job 128089772135 (run 42273769718): cancelled at its 30-min job timeout, main-wide and not this PR's diff; the cure is R10-PROCESS-SLIM (#3245).
-- tests / nightly-status job 128089771822 grades main; this diff does not touch governance.yml, nightly.yml or tests.yml.
-Answer: no cheaper detector is owed to the diff; the deferral is the gate's design and the cancel is main-wide.
+No check run exists yet at the merge head 428882f9 (not pushed to a PR head before this handoff), so no concluded red is knowable there. Carried from the previous head daaf9c55 (the PR's check runs): the two `gate` deferral failures described in the kept body ("still being judged; their gate decides"), class deferral: the deciding run reads green and no cheaper detector is owed; I did not re-read check runs for this resolution.
+
 
 ## Forward-carry
 
@@ -57,4 +53,6 @@ none
 
 This diff edits `dev/governance/roles/fix-review.md`, which is policy: it adds one sentence ("Evidence names differ beyond case."). No existing obligation is removed (the earlier deletion of "to be confirmed" is reverted). The owner's approving review at the head is pending.
 
+## Resolution delta
 
+Merge-resolution only; no other change. origin/main (601b9695a) conflicted with the PR head in `tools/audit/seat/ledger.py`, one hunk, the `KINDS` table. The PR side added `handoff-body-unapplied` and `handoff-hold-stale`; main added `record-owed`. Union chosen: the line keeps all three, and every pre-existing kind on both sides. Parent read-back: `git diff HEAD^1 HEAD -- tools/audit/seat/ledger.py` removes only the old KINDS line (superseded by the union line) and the `review_owed` signature/doc lines main itself changed; `git diff HEAD^2 HEAD -- tools/audit/seat/ledger.py` removes only main's old KINDS line. Every other hunk of either side is present unmerged-by-hand (auto-merged). Checks at this head: ledger self-test 101 checks 0 failed; cloud_relay 367/0, bus 156/0, orchestrator_tick 283/0, tick_loop 27/0; selftest_wiring 118 wired 0 unwired; structure ratchet PASSED; entities 2642 PASSED; doc_claims 296 PASSED; scoped gate `MODE: SCOPED -- 2 script(s) run, 31 scoped out`. Mutation-proof, null-control and figures sections above describe the authored head and are carried, not re-taken (self-test counts above moved with main's additions).

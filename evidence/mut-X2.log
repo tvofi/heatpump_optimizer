@@ -54,6 +54,8 @@
   ok   an unchanged pass reports and posts nothing
   ok   post refuses a commit already posted
   ok   a second confirm of a posted tree is refused and verdict/<pr> stays at the first commit
+  ok   a confirm under a live holder's lock waits and moves nothing (P354)
+  ok   null control: a dead holder's lock is taken over and released (P354)
   ok   a signed verdict moved to another pull request does not post
   ok   a signature over another tree does not post
   ok   round 1's nonce does not count at another head
@@ -67,7 +69,7 @@
   ok   watch refuses a raw ref outside the grammar and posts nothing
   ok   a refused verdict is not retried on the next pass
   ok   watch refuses a raw proposal whose only naming file is VERDICT.md
-  ok   unpack refuses a proposal whose evidence names differ only by case, naming both (read side)
+  FAIL unpack refuses a proposal whose evidence names differ only by case, naming both (read side)
   ok   unpack lets distinct evidence names past the case check (null control, read side)
   ok   a poster refusal is reported and not recorded as posted
   ok   a merge verdict the poster refused adds nothing to the train
@@ -78,8 +80,13 @@
   ok   watch without --once keeps waiting while nothing changes
   ok   an intervening fetch of an unrelated ref does not reparent the appended commit
   ok   an ordinary append with no intervening fetch is the same commit object as before
+  ok   a repeated push-verdict of one verdict appends nothing and prints the existing tip (P374)
+  ok   null control: a verdict with a new nonce, so a new tree, still appends (P374)
   ok   a copy outside a checkout refuses before it pushes the verdict ref
   ok   orphans reports an owed handoff with no pull request as repair=opener, exit 1
+  ok   a handoff whose pull request merged at or after its tip is merged-pr, not ORPHAN
+  ok   null control: a pull request merged before the tip leaves it ORPHAN
+  ok   null control: an unread listing says so and the refs-only answer stands
   ok   null control: a ref inside the two-hour window is in flight, not an orphan
   ok   null control: a handoff ref with no body ref is never owed
   ok   a pull request whose head is behind its ref is repair=update
@@ -99,6 +106,19 @@
   ok   null control: an unreachable remote still refuses the orphans run
   ok   the shared delivery-row writer passes its self-test, at the ROW_DIR dispatch reads
   ok   delivery_row.sh is the one seat script that defines write_row or commits a row
+  ok   a second reviewer at a head holding a merge verdict is refused, recording nothing
+  ok   null control: a head with no verdict dispatches (the first dispatch at a head is accepted)
+  ok   a dispatch is held (rc 3, naming the job) while mutation-autofix is in progress, recording nothing (P344)
+  ok   a queued closures-autofix holds the dispatch too (P344)
+  ok   --force dispatches over the hold and writes one ledger line (P344)
+  ok   all autofix jobs completed dispatches (P344)
+  ok   a red completed autofix job is no commit coming: it dispatches (P344)
+  ok   null control: no autofix job at all dispatches (P344)
+  ok   a failed check-runs read is reported on a line, not swallowed (P344)
+  ok   a confirm on a second review commit of the same tree leaves verdict/<pr> at the first signed commit and posts there (P374)
+  ok   two concurrent confirms produce one verdict commit and one post (P354)
+  ok   a lock whose pid is not yet written is a live holder inside the settle (P354)
+  ok   null control: an empty pid left past the settle is a dead holder's, taken over (P354)
   ok   push-verdict refuses a first line naming a host path, and review/7 does not move (#2310)
   ok   and proposes the same verdict with a clean first line (the null control)
   ok   push-verdict refuses an unrouted finding item, naming it, and review/7 does not move (P40, P207)
@@ -134,5 +154,4 @@
   ok   and dispatches once the group's carries name the pull request (P310, the null control)
   ok   watch --once under a live watcher's lock refuses and names its pid (P102)
   ok   null control: a dead watcher's lock is taken over, the pass runs, and its exit releases the lock
-bus self-test: 136 checks, 0 failed
-rc=0
+bus self-test: 156 checks, 1 failed
