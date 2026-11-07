@@ -79,12 +79,10 @@ the machinery (`tools/audit/`, `tools/pr/`, `tools/plan/`, `tools/policy/`,
 `.github/workflows/`, `dev/governance/`, seat scripts) merges only if it
 unblocks a named pull request touching `custom_components/` or fixes a red on
 main or on one; the rest waits for an instrument window the owner opens. The
-merge seat checks it at admission. The open-PR cap is the owner's; it is
-recorded with its provenance in `DEFAULT_CAPS` and `CAPS_PROVENANCE` in
-`tools/plan/replan.py`, so read it there. Of that cap, 10 slots are reserved
-(the owner's 2026-11-01 figure, a fixed count and not a share, the one figure
-here that is a ruling and not a tree value) for pull requests touching `custom_components/`; a machinery PR never takes
-one, and a production PR is never refused for a machinery slot. A proposal is
+merge seat checks it at admission. The open-PR cap is the owner's: read it
+from `DEFAULT_CAPS` in `tools/plan/replan.py`. Of it, 10 slots (a fixed count,
+the owner's ruling, not a tree value) are reserved for pull requests touching
+`custom_components/`; a machinery PR never takes one, and a production PR is never refused for a machinery slot. A proposal is
 accepted only when its friction blocks a production merge, otherwise ruled
 LOG (`proposal-triage.md`). Exemption from all three: a proposal proving more
 than 10% on CI time, programme completion time, right-first-time rate or token
@@ -257,7 +255,7 @@ repaired, old path first. A seat re-running a retired one repairs it first.
 
 Drift mode against the merge base, and the lease `run.sh` takes around
 `stress.py`, are `.claude/rules/gate-scoping.md`. A direct `stress.py` run
-takes no lease. A ratio cancels load; an absolute number does not.
+takes no lease. A ratio cancels load, an absolute number does not.
 
 ## A defect in an instrument is a finding
 
@@ -269,22 +267,20 @@ instrumented symbol, perturbation, metric definition, control — and not a
 paragraph of prose in your report.
 
 It travels the ordinary route: panel, judge, then an issue. **Filing waits for
-the judge**, as a product finding does, and the reason is not symmetry: the seat
-that finds an instrument defect is using the instrument it accuses, and the judge
-re-measures with that same instrument. A verifier who cannot make the accused
-check fire has not refuted the finding; say which of the two you could not
-separate.
+the judge**: the seat that finds an instrument defect is using the instrument it
+accuses, and the judge re-measures with it. A verifier who cannot make the
+accused check fire has not refuted the finding; say which you could not separate.
 
 `CLAUDE.md`'s order still governs — fix it, verify it independently if you
 cannot, file it only then — so a one-line instrument repair is made in place and
-needs no issue. What this refuses is the third outcome: recorded in a report,
-carried by nobody, met again next round.
+needs no issue. What this refuses is the third outcome: a report nobody carries,
+met again next round.
 
 ## A harness at the evidence tag may measure the tag, not your tree
 
 `audit-round2-evidence` harnesses disagree on the repository root: `D6/claims.py`
 measures the working directory, `D7/sysid_plant.py` the checkout its file lives
-in, so run from the tag's worktree it measures the tag, with plausible numbers.
+in, so from the tag's worktree it measures the tag.
 **Copy a harness into the tree under test first**, say which root rule it used,
 and cite the SHA you ran, never the tag name: the round-2 numbers were recorded
 at `c398fc84`, and the tag, moved once by name, points at `757e164`. Which of
