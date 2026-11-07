@@ -249,11 +249,38 @@ def post_closure_groups(G: dict, open_: set) -> set:
     return post
 
 
+#: Paths that are instruments, CI or records, never the integration (tvofi
+#: 2026-11-06: the plan placed instrument and CI fixes in the core lane).
+_NON_PRODUCT_PREFIXES = ("tools/", "tests/", ".github/", ".claude/", "dev/", "docs/")
+_NON_PRODUCT_FILES = ("CLAUDE.md", "AGENTS.md", "README.md", "RELEASE_NOTES.md")
+#: A group touching any of these lands a tool, so it is not user docs.
+_TOOLING_PREFIXES = ("tools/", ".github/", ".claude/")
+#: Kinds that land tools: a group the name rules leave unplaced and whose
+#: files do not place it is drawn as Instruments when its kind is one of these.
+INSTRUMENT_KINDS = ("instrument", "policy", "rca", "tooling")
+
+
+def _owned_lane(group: dict) -> str | None:
+    """Instruments (or Docs, for a doc group) when every file the group owns
+    is an instrument, CI or record path; None when it owns no file, a bare
+    filename, or any file outside those paths (the integration stays core)."""
+    files = list(group.get("files") or []) + list(group.get("hot_files") or [])
+    if not files or not all(f.startswith(_NON_PRODUCT_PREFIXES) or f in _NON_PRODUCT_FILES
+                            for f in files):
+        return None
+    user_docs = (any(f.startswith("docs/") or f == "README.md" for f in files)
+                 and not any(f.startswith(_TOOLING_PREFIXES) for f in files))
+    return "Docs" if group.get("kind") == "doc" or user_docs else "Instruments"
+
+
 def roster_lane(group: dict) -> str:
     """The lane a group is drawn in and counted under for the stamp cadence.
 
     Ported from the out-of-tree renderer this replaces, which was the only
-    definition: `kind` first, then the group's own name.
+    definition: `kind` first, then the group's own name, then the files it
+    owns, then a tool-landing kind or roster `class` (the signal `work_class`
+    prices); only a group none of these places is core
+    model work (tvofi 2026-11-06: instrument and CI fixes were drawn there).
     """
     g = group["group"]
     k = group.get("kind")
@@ -272,6 +299,10 @@ def roster_lane(group: dict) -> str:
         return "Learners"
     if k == "owner" or g in ("R10-UX-HEALTH", "R10-CONFIGFLOW-PAGES", "R10-DEEPLINK-CENSUS"):
         return "Product UX"
+    if owned := _owned_lane(group):
+        return owned
+    if k in INSTRUMENT_KINDS or group.get("class") == "instrument":
+        return "Instruments"
     return "Core model"
 
 
@@ -290,7 +321,7 @@ def work_class(group: dict) -> str:
     branch = (group.get("resume") or {}).get("branch") or ""
     if k == "record" or "audit-r" in branch and "-roster" in branch:
         return "record"
-    if roster_lane(group) in ("Instruments", "Docs") or k in ("rca", "policy", "tooling"):
+    if roster_lane(group) in ("Instruments", "Docs") or k in INSTRUMENT_KINDS:
         return "instrument"
     return "production"
 
@@ -1595,6 +1626,67 @@ def selftest() -> int:
         print(f"{'ok  ' if cond else 'FAIL'} {name}{'' if cond else ': ' + detail}")
         if not cond:
             failures.append(name)
+
+    # The lane follows the files a group owns (tvofi 2026-11-06): a group whose
+    # every file is an instrument or CI path is not core-model work, whatever
+    # its name; a group touching the integration stays in the core lane.
+    def _lane(files, kind="fix", name="X-LANE-PROBE"):
+        return roster_lane({"group": name, "kind": kind, "files": files})
+
+    expect("lane: a CI-only group is Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]) == "Instruments",
+           _lane([".github/workflows/ci.yml", "tools/ci/gate.py"]))
+    expect("lane: a tests-and-tools group is Instruments",
+           _lane(["tests/ci_ratchet.py", "tests/ci_budgets.json"]) == "Instruments")
+    expect("lane: a docs-only doc group is Docs",
+           _lane(["dev/audit/README.md", "CLAUDE.md"], kind="doc") == "Docs")
+    expect("lane: a user-docs group is Docs",
+           _lane(["README.md", "docs/setup.md", "tests/doc_claims.py"],
+                 kind="feature") == "Docs")
+    expect("lane null control: docs plus a tool is Instruments, not Docs",
+           _lane(["docs/setup.md", "tools/x.py"], kind="feature") == "Instruments")
+    expect("lane null control: a core-model group stays Core model",
+           _lane(["custom_components/heatpump_optimizer/optimizer.py"]) == "Core model")
+    expect("lane null control: a mixed group stays Core model",
+           _lane(["tools/audit/seat/x.py",
+                  "custom_components/heatpump_optimizer/ledger.py"]) == "Core model")
+    expect("lane null control: a group with no files stays Core model",
+           _lane([]) == "Core model")
+    expect("lane null control: a bare filename is not proof of an instrument",
+           _lane(["coordinator.py"]) == "Core model")
+    expect("lane: an RCA group with no files is Instruments",
+           _lane([], kind="rca") == "Instruments")
+    expect("lane: a tooling group with no files is Instruments",
+           _lane([], kind="tooling") == "Instruments")
+    expect("lane: a roster class instrument with no files is Instruments",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                        "class": "instrument"}) == "Instruments")
+    expect("lane: user docs with a dev harness are Docs",
+           _lane(["README.md", "docs/img/x.png", "dev/audit/harnesses/h.mjs",
+                  "tests/doc_claims.py"], kind="production") == "Docs")
+    expect("lane null control: a production group with no files stays Core model",
+           roster_lane({"group": "X-LANE-PROBE", "kind": "production",
+                        "class": "production"}) == "Core model")
+    expect("lane null control: a named UX group keeps its lane over its kind",
+           _lane([], kind="rca", name="R10-DEEPLINK-CENSUS") == "Product UX")
+    expect("lane null control: a learner keeps its lane over its files",
+           _lane(["tools/x.py"], name="R10-COP-GATE") == "Learners")
+    # hot_files are owned files too: a tool group whose hot file is in the
+    # integration, or is a bare filename, stays core (a bare basename, even a
+    # tool's, is not proof of an instrument: the roster writes coordinator.py
+    # and merge_train.py alike).
+    def _hot(hot_files):
+        return roster_lane({"group": "X-LANE-PROBE", "kind": "fix",
+                            "files": ["tools/x.py"], "hot_files": hot_files})
+
+    expect("lane null control: an integration hot file keeps a tool group Core model",
+           _hot(["custom_components/heatpump_optimizer/x.py"]) == "Core model")
+    expect("lane null control: a bare hot filename keeps a tool group Core model",
+           _hot(["coordinator.py"]) == "Core model")
+    expect("lane null control: a bare tool basename in hot_files stays Core model",
+           _hot(["merge_train.py"]) == "Core model")
+    expect("lane: an instrument-path hot file keeps a tool group Instruments",
+           _hot([".github/workflows/ci.yml"]) == "Instruments")
 
     plan = build_plan(roster, durations, caps, start, "v1.0.0", round_n=FIXTURE_ROUND)
     absorbed = dict(roster, groups=roster["groups"] + [
