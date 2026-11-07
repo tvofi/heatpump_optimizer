@@ -1,4 +1,4 @@
-# generic-heat-curve design note (designer seat, note 2 of at most 3)
+# generic-heat-curve design note (designer seat, note 3 of at most 3)
 
 The group's architect note, extended (`dev/governance/roles/designer.md`). It lives on `design/generic-heat-curve`
 and never merges. **There is no finding and no finder harness: the evidence is a user's feature request** (an
@@ -12,6 +12,11 @@ specified follow-up), R1b in §Write policy (W1–W6 sized for volatile targets;
 documented refusal), R2 in U4 and §Alternatives (A split into A1 and A2). The verdict's seven fixer carries are in
 §Notes for the fixer as items ghc-r01…r07. The reviewer's verified points (seam, chokepoint, feeds, K-unit trap,
 ratchet, sibling designs) stand unchanged. The user asked for "both" kinds and for use beyond his install.
+
+**Note 3** answers `Design review: revise dd331b64e6f35b376033ff9594e1ce03ab0b74fe architecture-unsound` (V1) by
+option (i): kind `persistent` is downgraded to a sketch whose own group owes its own design note and review
+(§Target contract (b)); it adds carry ghc-r08 and records the user's measurement of 2026-11-07 under U1. Nothing
+else changed.
 
 **Read at.** `origin/main` = `28d46c4918285d36c409c1fb2f72eb77e04e569e`, unchanged since note 1. Outside the tree,
 read-only: the user's `luxtronik_shi` at `1eb46953f3baf55f5e9f915f4a244e6ab9b8e49d` (`registers.py`, `README.md`),
@@ -47,14 +52,20 @@ to the current return temperature setpoint (tRL) for heating. Requires heating_m
 python-luxtronik that SHI holdings are volatile (README.md:213-217, :229-231).
 
 **Recommendation.** Build one slot with a declared target kind. **First build: kind `offset`** (§Target contract
-(a)). **Kind `persistent` is a follow-up** specified to build level in (b), not part of the first build. Never two
+(a)). **Kind `persistent` is a later group** sketched in (b), not part of the first build and not
+build-level: its group owes its own design note and design review before any fixer starts. Never two
 slots, and never writes of two curve points (A1). If the owner sees no install class beyond the reference, the
 zero-code stopgap C suffices and nothing is built. **`decision: owner`**: build at all; first build (a) only, or
 (a) and later (b).
 
 **Assumptions the tree cannot verify.**
-- U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3 (python-luxtronik's text;
-  not measured on the reference installation).
+- U1: `heating_offset` acts as a parallel shift of the return-target curve on FW 3.92.3. **Measured by the user
+  on 2026-11-07** on the reference installation (LWDV 91-1/3, FW 3.92.3, SHI): with SHI heating mode (holding
+  10000) = `offset` and heating offset (holding 10002) = +2 K, the controller's return-temperature target rose from
+  27.7 °C to 29.7 °C; with the mode set back to `off` it returned to 27.7 °C; the offset was then set to 0 with the
+  mode left at `offset`. So at that one operating point the offset shifts the return target by exactly the offset.
+  Whether it does so at other outdoor temperatures (a true parallel shift across the curve) was not measured; U1
+  stays open beyond that point, and U4 is untouched by it.
 - U2: it applies only while `cfg_heating_mode` = offset, which the optimizer does not own; mode setpoint, which
   the arbiter's space set-point on this controller needs (`luxtronik_shi` README, "Heating setpoint (reg. 10001)"),
   excludes it.
@@ -91,28 +102,32 @@ entity-only install.
 **(a) Kind `offset`: zero-neutral and volatile (first build).** Invariants:
 - T1 the target's neutral value is 0: written value = `displace_int`, as a temperature difference (identity for
   `K`, `°C`, `C`, `degC` or no unit; ×9/5 for `°F`, `F`, `degF`; any other unit refused).
-- T2 the config flow refuses kind `offset` on an entity whose own `min`/`max` exclude 0. That catches an absolute
-  curve point (for example a range 20…70) at save time; it cannot prove volatility, which is the user's declaration,
-  stated as a requirement in docs/ecl110.md.
+- T2 a **plausibility check**, not proof: the config flow refuses kind `offset` on an entity whose own `min`/`max`
+  exclude 0. It catches an absolute curve point only when the exposing integration declares a tight range (for
+  example 20…70); an absolute entity whose declared range includes 0 passes. The behaviour when the entity is
+  unavailable at save time is open (ghc-r08). Volatility is the user's declaration, stated as a requirement in
+  docs/ecl110.md, and that declaration carries the contract.
 - T3 persistent controller parameters are **out of scope for kind `offset`**, in this design and in the docs.
 - T4 MODE_OFF and unload write nothing, the 2026-09-26 ruling (pump_arbiter.py:1131-1133). A volatile target falls
   back by itself on a controller restart.
 
-**(b) Kind `persistent`: a stored controller parameter (follow-up, specified here).** For a curve parameter the
-controller keeps in non-volatile memory, such as a single "parallel shift" parameter if U4 holds as an offset or
-a foot point the user accepts as approximate (A2). Invariants:
+**(b) Kind `persistent`: a stored controller parameter (sketch only, for a later group).** For a curve parameter
+the controller keeps in non-volatile memory, such as a single "parallel shift" parameter if U4 holds as an offset
+or a foot point the user accepts as approximate (A2). **P1–P7 are a sketch, not a design on record**: the later
+group owes its own design note and design review before any fixer starts, starting from P1–P7 and solving the open
+problems listed after them. Sketch:
 - P1 **baseline captured at enable**: when the options flow saves kind `persistent` (or a new entity under it),
   it reads the entity's current value and stores it as `heat_curve_baseline` in the options, shown and editable on
   the same page. No Store: the options are the record, and an entity change re-captures.
 - P2 written value = `baseline + displace`, clamped to `baseline ± heat_curve_persistent_band` (option, default
-  narrow, the user's choice; the band bounds what a crash can leave behind) and to the entity's own min/max,
+  open, O5; the band bounds what a crash can leave behind) and to the entity's own min/max,
   on its step.
 - P3 **restore**: the coordinator writes `baseline` on MODE_OFF, on unload while `hass.is_stopping` is false
   (option change, option removal, kind change, entry disable), and in `async_remove_entry` (__init__.py:429). A
   Home Assistant shutdown does not restore: the next start resumes within one cycle, and a restore there would
   cost two writes per restart. A crash leaves at most `baseline ± band`, the documented limit. Restores bypass the
   budget and dwell (P4, P5) and are counted.
-- P4 a **daily write budget**, `heat_curve_persistent_writes_per_day` (option, low default). A write past it is
+- P4 a **daily write budget**, `heat_curve_persistent_writes_per_day` (option, default open, O5). A write past it is
   refused until local midnight; the refusal is documented behaviour, shown as a diagnostics attribute, logged at
   INFO once per day, not a defect latch.
 - P5 a **minimum dwell** between two writes, `heat_curve_persistent_min_dwell_minutes` (option). A changed
@@ -124,6 +139,18 @@ a foot point the user accepts as approximate (A2). Invariants:
   stored baseline in the options, logs INFO, and does not overwrite it. A reading equal to the value before the
   write is a refusal: W3 applies.
 - P7 a baseline outside the entity's range, or no readable value at enable, refuses the save.
+
+**Open problems the later group's note must solve** (design review V1 of dd331b64; the options listener reloads
+the entry on any changed option, __init__.py:345 and :372-398):
+- O1 P6 writes the baseline into the options, which triggers a reload; each reload costs a restore (P3) plus a
+  rewrite of `baseline + d`, and any other options save while kind `persistent` is active costs the same.
+- O2 the budget and dwell state (P4, P5) lives per coordinator and does not survive a reload or a restart, so P4 is
+  not a budget across either.
+- O3 baseline capture after a crash: an entity left at `baseline ± band` is read back as a new baseline by P1;
+  nothing detects or prevents it.
+- O4 two restore hooks with no single owner: `async_remove_entry` (__init__.py:429) runs after the unload, finds no
+  coordinator and duplicates the unload restore.
+- O5 the band, budget and dwell defaults have no numbers and no source can derive them: `decision: owner`.
 
 ## Shape
 
@@ -183,7 +210,7 @@ entity (ghc-r03).
   write is a true parallel shift and the geometric objection does not apply. If it is a foot point, writing
   `baseline + d` rotates the curve about the end point (shift `d·(x − x_end)/(x_base − x_end)` at outdoor x, under
   U3), so only the base point moves by d. Either way its remaining costs are persistence, baseline and wear,
-  which P1–P7 answer. Not rejected: deferred to the follow-up, behind U4 and `decision: owner`.
+  which the later group's note must answer from the P1–P7 sketch and O1–O5. Not rejected: deferred to the follow-up, behind U4 and `decision: owner`.
 - **B. A new `space_setpoint_unit` "offset" on the arbiter's slot.** The arbiter's value is per duty and per
   one-minute tick, and the displace chain does not pass through it: two owners of one concern. Lost on coupling.
 - **B2. Two slots, one per kind.** Two writers on one concern, the objection to B. Lost on coupling.
@@ -224,9 +251,8 @@ entity (ghc-r03).
 - **Goldens:** none move (W7); no claim file is touched.
 - **Mutation targets** (heat_curve.py): the W1 comparator, the delta conversion, the clamp, the grace check, the W3
   give-up, the W4 guard, T2. New sites killed or triaged (`tests/mutation_budgets.json`).
-- **Kind (b)**, in its later group, owes beyond these: P1 capture at save; P2 band clamp; P3 restore on OFF, on unload with and
-  without `is_stopping`, on removal; P4 refusal past the budget with restores exempt; P5 dwell; P6 an edit adopted
-  and not overwritten, a refusal treated as W3; P7. Carry: generic-heat-curve (item ghc-06)
+- **Kind (b)** has no evidence plan here: its later group's own design note owes one, with O1–O5 solved first.
+  Carry: generic-heat-curve (item ghc-06)
 
 ## Cost against the ratchet, and how it is paid
 
@@ -266,7 +292,7 @@ group, size (L by file count, M by logic), and (b) as its own later group are `d
   stale comment outside scope, for a D5 round (item ghc-04)
 - Questions only the owner or the user can answer: build at all, and (a) only versus (a) then (b)
   (`decision: owner`); for (b), restore the baseline on OFF and unload as P3 specifies, against the 2026-09-26
-  "off writes nothing" ruling, which (a) keeps (`decision: owner`); U1 and U4 measured on the reference
+  "off writes nothing" ruling, which (a) keeps (`decision: owner`); U1 across outdoor temperatures and U4 measured on the reference
   installation before the docs name the Luxtronik example (the user). Carry: generic-heat-curve (item ghc-05)
 - Only `_apply_action` checks staleness (coordinator.py:7797-7808); the peak-guard transition
   (coordinator.py:8846-8870) and a mode change (climate.py:291-296 → coordinator.py:7712-7720) publish without it.
@@ -288,3 +314,7 @@ group, size (L by file count, M by logic), and (b) as its own later group are `d
 - python-luxtronik is cited at `02afea84bd5bf3ee87445de6f2a42b8029983169` (2026-03-22), verified by
   `git -C /home/claude/shi-re/pylux/src log -1`; name that commit, not an unnamed copy, where the docs quote it.
   Carry: generic-heat-curve (item ghc-r07)
+- T2 is only as strong as the exposing integration's declared range. A `number` that declares no range most likely
+  gets Home Assistant's default range; that is unverified at this SHA (Home Assistant is not installed in the CI
+  venv). Define T2 when the entity is unavailable at save time, and re-check the range at runtime under W6.
+  Carry: generic-heat-curve (item ghc-r08)
