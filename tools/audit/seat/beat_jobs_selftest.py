@@ -48,6 +48,60 @@ class Fake:
         return sum(any(Path(a).name == tool for a in c) for c in self.calls)
 
 
+OVERLAY_EXPRS = ("o", "ctx.overlay", "self.overlay")
+
+
+def overlay_keys(src: str) -> tuple[set[str], list[str]]:
+    """Every overlay key a beat_jobs source reads, and the reads it could not resolve to a literal.
+
+    Reads are `need(row, *keys)` and `.get(k)` / `[k]` on the overlay; a key
+    bound by a `for` over a literal tuple of tuples resolves to each tuple's
+    first item; `need`'s own body is skipped, its callers being the reads.
+    Any other key expression is unresolved, so a new read shape
+    fails the census instead of escaping it."""
+    import ast
+    tree = ast.parse(src)
+    keys, unresolved, loops = set(), [], {}
+    # need() itself reads `self.overlay.get(k)` for the keys its callers name: its callers are the reads
+    inner = {id(m) for d in ast.walk(tree) if isinstance(d, ast.FunctionDef) and d.name == "need"
+             for m in ast.walk(d)}
+    for n in ast.walk(tree):
+        if isinstance(n, ast.For) and isinstance(n.iter, ast.Tuple) and isinstance(n.target, ast.Tuple) \
+                and isinstance(n.target.elts[0], ast.Name) \
+                and all(isinstance(e, ast.Tuple) and isinstance(e.elts[0], ast.Constant) for e in n.iter.elts):
+            loops[n.target.elts[0].id] = {e.elts[0].value for e in n.iter.elts}
+
+    def key(expr, where):
+        if isinstance(expr, ast.Constant) and isinstance(expr.value, str):
+            keys.add(expr.value)
+        elif isinstance(expr, ast.Name) and expr.id in loops:
+            keys.update(loops[expr.id])
+        else:
+            unresolved.append(f"{where}: {ast.unparse(expr)}")
+
+    for n in ast.walk(tree):
+        if id(n) in inner:
+            continue
+        if isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "need" \
+                and ast.unparse(n.func.value) in ("ctx", "self"):
+            for a in n.args[1:]:
+                key(a, f"line {n.lineno} need")
+        elif isinstance(n, ast.Call) and isinstance(n.func, ast.Attribute) and n.func.attr == "get" \
+                and ast.unparse(n.func.value) in OVERLAY_EXPRS:
+            key(n.args[0], f"line {n.lineno} get")
+        elif isinstance(n, ast.Subscript) and ast.unparse(n.value) in OVERLAY_EXPRS:
+            key(n.slice, f"line {n.lineno} []")
+    return keys, unresolved
+
+
+def undeclared(keys, template: str) -> list[str]:
+    """The keys sweep_render's own `declared()` does not find in the template's table."""
+    spec = importlib.util.spec_from_file_location("sweep_render_for_census", HERE / "sweep_render.py")
+    sr = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(sr)
+    return sorted(set(keys) - set(sr.declared(template)))
+
+
 def arg(argv, flag):
     """The word after `flag` in an argv, or None: a dropped flag fails a case, never crashes it."""
     return argv[argv.index(flag) + 1] if flag in argv[:-1] else None
@@ -415,6 +469,79 @@ def cases(bj) -> dict[str, bool]:
     bj.gantt(c)
     res["gantt null: no slip writes no digest"] = not (c.digest / "digest.txt").exists()
 
+    def runs_gantt(f):
+        return any(any(x.endswith("sweep_gantt.py") for x in a) for a in f.calls)
+
+    def git_with(fetch=(0, "", ""), show=(0, '{"groups": []}', "")):
+        """git answering like origin: for-each-ref lists one tip per namespace the fetch named."""
+        fetched = []
+
+        def answer(argv):
+            if "fetch" in argv:
+                fetched.extend(a.split(":", 1)[1] for a in argv if a.startswith("+refs/heads/"))
+                return fetch
+            if "show" in argv:
+                return show
+            if "for-each-ref" in argv:
+                rows = [f"{SHA['a']}\trefs/gantt/handoff/r10-x\t1800000000",
+                        f"{SHA['b']}\trefs/gantt/handoff-wip/r10-y\t1800000000"]
+                return 0, "".join(r + "\n" for r in rows
+                                  if any(r.split("\t")[1].startswith(d.rstrip("*")) for d in fetched if d.endswith("*"))), ""
+            return 0, "", ""
+        return answer
+
+    ok_ans = {"gh": (0, "[]", ""), "sweep_gantt.py": (0, "noise\n", "")}
+    c, f = fresh(overlay=gov, answers={"git": git_with(), **ok_ans})
+    bj.gantt(c)
+    null_ok = runs_gantt(f) and not (c.digest / "digest.txt").exists()
+    c, f = fresh(overlay=gov, answers={"git": git_with(), **ok_ans, "gh": (1, "", "gh: auth\n")})
+    pre = "gh pr list" not in digest(c)
+    bj.gantt(c)
+    res["gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)"] = (
+        null_ok and pre and digest(c) == "gantt: UNREADABLE gh pr list rc=1\n" and not runs_gantt(f))
+    c, f = fresh(overlay=gov, answers={"git": git_with(show=(128, "", "fatal: bad ref\n")), **ok_ans})
+    pre = "UNREADABLE roster" not in digest(c)
+    bj.gantt(c)
+    res["gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)"] = (
+        null_ok and pre and digest(c) == "gantt: UNREADABLE roster handoff/audit-r10-roster:dev/r.json rc=128\n"
+        and not runs_gantt(f))
+    c, f = fresh(overlay=gov, answers={"git": git_with(fetch=(1, "", "fatal: unable to access\n")), **ok_ans})
+    pre = "UNREADABLE fetch" not in digest(c)
+    bj.gantt(c)
+    res["gantt: a failed fetch is UNREADABLE, never the stale refs/gantt/ roster (null: rc 0 runs it)"] = (
+        null_ok and pre and digest(c) == "gantt: UNREADABLE fetch rc=1: fatal: unable to access\n"
+        and not runs_gantt(f) and not any("show" in a for a in f.calls))
+    c, f = fresh(overlay=gov, answers={"git": git_with(), **ok_ans})
+    rows = c.digest / "state" / "gantt" / "handoff-rows.tsv"
+    pre = not rows.exists()
+    bj.gantt(c)
+    res["gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip"] = (
+        pre and bj.read(rows) == f"{SHA['a']}\trefs/heads/handoff/r10-x\t1800000000\n"
+                                f"{SHA['b']}\trefs/heads/handoff-wip/r10-y\t1800000000\n")
+    led = root / "fired.ledger"
+    led.write_text("2026-11-01T09:00Z fire r10-x fixer\n")
+    c, f = fresh(overlay=dict(gov, fire_ledger=str(led)), answers={"git": git_with(), **ok_ans})
+    fired = c.digest / "state" / "gantt" / "fired.txt"
+    bj.gantt(c)
+    c0, _ = fresh(overlay=gov, answers={"git": git_with(), **ok_ans})
+    bj.gantt(c0)
+    res["gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)"] = (
+        bj.read(fired) == "2026-11-01T09:00Z fire r10-x fixer\n"
+        and (c0.digest / "state" / "gantt" / "fired.txt").exists()
+        and bj.read(c0.digest / "state" / "gantt" / "fired.txt") == "")
+
+    # every overlay key a row reads is a declared sweep placeholder (#3267: the sweep and its rows fed from one overlay)
+    src = Path(bj.__file__).read_text()
+    template = (HERE / "sweep_template.md").read_text()
+    read_keys, unresolved = overlay_keys(src)
+    res["census: every overlay key beat_jobs.py reads is declared in sweep_template.md's Placeholders"] = (
+        len(read_keys) > 0 and not unresolved and undeclared(read_keys, template) == [])
+    cut = "\n".join(ln for ln in template.splitlines() if not ln.startswith("| `gantt_roster` |"))
+    res["census null: the template without its gantt_roster row is reported missing exactly gantt_roster"] = (
+        cut != template and undeclared(read_keys, cut) == ["gantt_roster"])
+    res["census null: an overlay read by a computed key is unresolved, never skipped"] = (
+        overlay_keys("def f(ctx, k):\n    return ctx.overlay.get(k)\n")[1] != [])
+
     # verdict-audit
     unheld = "UNHELD #12 no verdict ever: owed a first reviewer once the gate is green (x)"
     c, f = fresh(overlay={"repo": "o/r", "fire_ledger": "/fired", "unheld_skip": "/skip"},
@@ -781,6 +908,17 @@ MUTANTS = {
                                "verdict-audit: an UNHELD line reaches the digest, and the repo, ledger and skip file are handed on"),
     "verdict_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "verdict-audit",', '    if False:\n        return write_job(ctx, "verdict-audit",',
                            "verdict-audit: a failed run is UNREADABLE, never its partial lines"),
+    "gantt_gh_rc_ignored": ('    if rc != 0:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE gh pr list',
+                            '    if False:\n        return write_job(ctx, "gantt", [f"gantt: UNREADABLE gh pr list',
+                            "gantt: a failed gh pr list is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)"),
+    "gantt_show_rc_ignored": ("    if rc != 0 or not path:", "    if not path:",
+                              "gantt: a failed roster git show is UNREADABLE and runs no sweep_gantt (null: rc 0 runs it)"),
+    "gantt_fetch_rc_ignored": ("    if rc != 0:  # refs/gantt/ would still hold", "    if False:  # refs/gantt/ would still hold",
+                               "gantt: a failed fetch is UNREADABLE, never the stale refs/gantt/ roster (null: rc 0 runs it)"),
+    "gantt_wip_refspec_dropped": (', "+refs/heads/handoff-wip/*:refs/gantt/handoff-wip/*"]', "]",
+                                  "gantt: a handoff-wip tip is fetched and reaches sweep_gantt beside the handoff tip"),
+    "gantt_ledger_not_copied": ('read(Path(str(ledger))) if ledger else ""', '""',
+                                "gantt: the fire ledger is copied whole for sweep_gantt (null: no fire_ledger copies nothing)"),
     "fold_counter_to_set": ("    was, now = collections.Counter(old.splitlines()), collections.Counter(text.splitlines())",
                             "    was, now = collections.Counter(set(old.splitlines())), collections.Counter(set(text.splitlines()))",
                             "fold: a duplicated line is one more line, new.txt and a new stamp"),

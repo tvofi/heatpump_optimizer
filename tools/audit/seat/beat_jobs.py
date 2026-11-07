@@ -414,9 +414,11 @@ def gantt(ctx: Ctx) -> None:
     d, git = ctx.digest / "state" / "gantt", ["git", "-C", str(ctx.repo)]
     d.mkdir(parents=True, exist_ok=True)
     # tips land under refs/gantt/, never refs/heads/ or refs/remotes/: no branch and no tree moves
-    ctx.run([*git, "fetch", "-q", "origin", f"+refs/heads/{branch}:refs/gantt/roster",
-             "+refs/heads/handoff/*:refs/gantt/handoff/*", "+refs/heads/handoff-wip/*:refs/gantt/handoff-wip/*"],
-            ctx.repo, ctx.env)
+    rc, _, err = ctx.run([*git, "fetch", "-q", "origin", f"+refs/heads/{branch}:refs/gantt/roster",
+                          "+refs/heads/handoff/*:refs/gantt/handoff/*", "+refs/heads/handoff-wip/*:refs/gantt/handoff-wip/*"],
+                         ctx.repo, ctx.env)
+    if rc != 0:  # refs/gantt/ would still hold the last pass's roster and tips: never read them as current
+        return write_job(ctx, "gantt", [f"gantt: UNREADABLE fetch rc={rc}: {(err.strip().splitlines() or [''])[-1]}"])
     rc, out, _ = ctx.run([*git, "show", f"refs/gantt/roster:{path}"], ctx.repo, ctx.env)
     if rc != 0 or not path:
         return write_job(ctx, "gantt", [f"gantt: UNREADABLE roster {roster} rc={rc}"])
