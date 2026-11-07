@@ -200,21 +200,28 @@ class Watcher:
             raise Abort(f"could not read #{self.pr}'s mergeable state: {out.strip()[-200:]}")
         return out.strip()
 
-    def latest_by_name(self) -> dict[str, dict]:
+    def check_runs(self) -> list[dict]:
         code, raw = self.run(["gh", "api", "--paginate", "--jq", ".check_runs[]",
                               f"repos/{self.repo}/commits/{self.sha}/check-runs?per_page=100"])
         if code:
             raise Abort(f"could not read the check-runs at {self.sha[:12]}: {raw.strip()[-200:]}")
+        return _json_docs(raw)
+
+    def latest_by_name(self) -> dict[str, dict]:
         # The train's own reading, never a copy: `gate` per check suite, the
         # worst suite standing, success only (A5).
-        return _train().latest_runs(_json_docs(raw))
+        return _train().latest_runs(self.check_runs())
+
+    def train(self):
+        """merge_train's Train over this watch's runner: its readers, never copies."""
+        return _train().Train(self.repo, state=self.state, mandate=None,
+                              role="proof-watch", ignore=(), min_runs=0,
+                              run=self.run, sleep=self.sleep, log=self.say)
 
     def required_names(self) -> list[str]:
         """The ruleset's required contexts, through merge_train's own reader."""
         merge_train = _train()
-        t = merge_train.Train(self.repo, state=self.state, mandate=None,
-                              role="proof-watch", ignore=(), min_runs=0,
-                              run=self.run, sleep=self.sleep)
+        t = self.train()
         try:
             return t.required()
         except merge_train.Stop as e:
@@ -222,8 +229,9 @@ class Watcher:
                         f"against a guessed list: {e.step}: {e.why}") from e
 
     def required_state(self) -> tuple[list[str], list[str]]:
-        last = self.latest_by_name()
-        _, pending, red = _train().classify(last, self.required_names())
+        # A red gate that is an edit run's deferral, while gate.py's `busy`
+        # names a code run at the head, is pending (merge_train.classify_at).
+        _, pending, red = self.train().classify_at(self.sha, self.check_runs(), self.required_names())
         return red, pending
 
     # -- the verdict -------------------------------------------------------
@@ -480,6 +488,7 @@ def self_test() -> int:
                  "started_at": "2026-10-12T00:01:00Z", "check_suite": {"id": 1}},
             ]
             self.required = "gate"
+            self.ci_runs: list[dict] = []  # the head's ci.yml runs (merge_train's deferral read)
             self.mergeable = "MERGEABLE"
             self.now = [0.0]
             self.evidence = self.root / "evidence"
@@ -506,6 +515,8 @@ def self_test() -> int:
                 return 0, "23698884\n"
             if any(a.startswith(f"repos/{REPO}/rulesets/") for a in argv):
                 return 0, self.required + "\n"
+            if any("actions/workflows/ci.yml/runs" in a for a in argv):
+                return 0, "".join(json.dumps(r) + "\n" for r in self.ci_runs)
             if any(a.startswith("repos/") and "/check-runs" in a for a in argv):
                 return 0, "".join(json.dumps(c) + "\n" for c in self.checks)
             if "mergeable" in argv:
@@ -674,6 +685,37 @@ def self_test() -> int:
         except Abort as e:
             st("REQUIRED RED" in str(e) and "gate" in str(e), True, f"(g2) {what}: the red gate is named")
             st(f.merge_calls, [], f"(g2) {what}: no merge")
+
+    # (g3) a red gate that is an edit run's DEFERRAL, while the code run it
+    # defers to is still running (gate.py `busy`), is pending, not red: the
+    # watch waits a poll, and merges once the code run's gate and the swept
+    # edit gate land green (R10-HOTFIX-TRAIN-DEFER-WAIT round 2, #3248's scene).
+    f3 = Fixture(); cases.append(f3); f3.set_verdict()
+    deferral = {"name": "gate", "status": "completed", "conclusion": "failure",
+                "started_at": "2026-10-12T00:02:00Z", "check_suite": {"id": 2},
+                "output": {"title": "run(s) [43] at this head are still being judged; their gate decides"}}
+    f3.checks = [f3.checks[0], deferral,
+                 {"name": "tests / closures", "status": "in_progress", "conclusion": None,
+                  "started_at": "2026-10-12T00:01:30Z", "check_suite": {"id": 3}}]
+    f3.ci_runs = [{"id": 42, "status": "completed", "check_suite_id": 2, "display_title": "CI edit pr=1 base=main sha=a"},
+                  {"id": 43, "status": "in_progress", "check_suite_id": 3, "display_title": "CI code pr=1 base=main sha=a"}]
+    sleeps3: list[float] = []
+
+    def landed(s):
+        sleeps3.append(s)
+        f3.checks = [f3.checks[0], deferral,
+                     dict(deferral, conclusion="success", started_at="2026-10-12T00:09:00Z", output={"title": ""}),
+                     {"name": "gate", "status": "completed", "conclusion": "success",
+                      "started_at": "2026-10-12T00:08:00Z", "check_suite": {"id": 3}}]
+        f3.ci_runs = [dict(r, status="completed") for r in f3.ci_runs]
+    f3.sleep = landed
+    out = []
+    try:
+        f3.watcher(out=out).watch()
+    except Abort as e:
+        st(f"aborted: {e}", "no abort", "(g3) a deferral red while the code run runs is waited on, not REQUIRED RED")
+    st(len(sleeps3) == 1 and len(f3.merge_calls) == 1, True,
+       "(g3) the deferral waits one poll, then merges once the code run's gate lands")
 
     # (h) unmergeable: abort.
     f = Fixture(); cases.append(f); f.set_verdict()
