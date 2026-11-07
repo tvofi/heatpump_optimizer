@@ -17788,7 +17788,9 @@
    "owner_gate": null,
    "rca": [],
    "after": [],
-   "carry": [],
+   "carry": [
+    "Orchestrator s12, 2026-11-07, evidence that the race survives #3276 (merged 812bb874): on #3282 (record PR, head at 11:16Z) the edit run's gate restored programs from 08fd676e, which includes #3276, waited 11:18-11:30Z and failed \"FAIL run(s) [42367457479, 42367461228] at this head are still being judged; their gate decides\" while the code and review runs were in progress. The same shape recurred on #3279, #3281 (twice), #3262 and #3273 today, each cured by a manual `gh run rerun <edit> --failed` after the code run ended. The countermeasure must make the deciding gate's conclusion re-judge (or re-run) every deferring gate at the head, without a human; the Gate sweep workflow (gate.py --sweep) exists for this and did not fire it. Measure: deferring-gate failures per PR head and minutes from code-run conclusion to the edit gate's green, over today's runs. Carry: R10-RCA-GATE-BUSY-DEFER-2"
+   ],
    "architect_note": "",
    "resume": {
     "stage": "in-progress",
