@@ -26,7 +26,8 @@ DISPOSITION, read from the roster and the thread, never from memory:
             mechanism -- a carry onto a group is wired the same way);
   answered  on roster, and a comment by OURS carrying ANSWER_MARK.
 A marker in a comment by anyone else is not read: an outsider cannot dispose
-of their own submission.
+of their own submission, nor a third-party bot (one quoting a submitter's text)
+of anyone's; such a bot's comment is neither ours nor outside activity.
 
 LIST prints one line per submission owed this turn, rc 1 when any is, rc 0
 when none, rc 2 when a read failed (nothing printed but the UNREADABLE line):
@@ -128,9 +129,10 @@ class Thread:
         self.last_out = max(self.last_out, at)
 
     def mark(self, c: dict) -> None:
-        """A comment of the thread: ours marks it, an outsider's moves last_out."""
-        if outside(c["login"], c["type"]):
-            self.last_out = max(self.last_out, c["at"])
+        """A comment of the thread: ours marks it, an outsider's moves last_out, a third-party bot's is neither."""
+        if c["login"] not in OURS:
+            if outside(c["login"], c["type"]):
+                self.last_out = max(self.last_out, c["at"])
             return
         self.last_ours = max(self.last_ours, c["at"])
         if c.get("answered"):
@@ -150,7 +152,13 @@ def discussions(run, repo: str) -> list[dict]:
     rc, out = run(["api", "graphql", "-f", f"query={_DISCUSSIONS}", "-F", f"owner={owner}", "-F", f"name={name}"])
     if rc != 0:
         raise Unreadable(f"gh api graphql rc={rc}")
-    who = lambda a: ((a or {}).get("login") or "ghost", "Bot" if (a or {}).get("__typename") == "Bot" else "User")
+    def who(a: dict | None) -> tuple[str, str]:
+        """(login, type) as the REST API spells them: GraphQL names a bot without its `[bot]` suffix."""
+        login, typ = (a or {}).get("login") or "ghost", "Bot" if (a or {}).get("__typename") == "Bot" else "User"
+        if typ == "Bot":
+            login = f"{login}[bot]"
+        return login, typ
+
     res = []
     for d in json.loads(out)["data"]["repository"]["discussions"]["nodes"]:
         login, typ = who(d.get("author"))

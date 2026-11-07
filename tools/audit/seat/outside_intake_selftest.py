@@ -8,13 +8,16 @@ are the round's three outside submissions (tvofi 2026-11-06): #3224 (adopted
 via #3231, on the roster and answered), #3225 (design R10-COMBI-TANK, on the
 roster and unanswered) and #3226 (adopted via #3232, here on no roster group),
 plus the shapes around them: our own thread, a bot's pull request, an outside
-comment on our issue, a review comment, a forged marker, a refusal with and
+comment on our issue, a review comment, a forged marker, a third-party bot's marker,
+our App's marker in a discussion, a refusal with and
 without a later outside reply, and a discussion. MUTANTS plants one edit per
 predicate in a temp copy and expects its named case to fail.
 """
 from __future__ import annotations
 
+import contextlib
 import importlib.util
+import io
 import json
 import shutil
 import subprocess
@@ -143,6 +146,30 @@ class Poster:
 LIVE, DOWN = (lambda: (True, "HTTP 200")), (lambda: (False, "URLError"))
 
 
+class Ran:
+    """subprocess.run for post(): records each argv and the body file's text, answers rc."""
+
+    def __init__(self, rc: int):
+        self.rc, self.argv, self.body = rc, [], None
+
+    def __call__(self, argv):
+        self.argv = list(argv)
+        self.body = Path(argv[argv.index("--body-file") + 1]).read_text()
+        return subprocess.CompletedProcess(argv, self.rc)
+
+
+def main_list(m, w, d: Path, since: str) -> tuple[int, list[str]]:
+    """m.main(["list", ...]) over world w with the cursor in d: (rc, printed lines). `gh` and the
+    plan probe are swapped on the module for the fake, the only seam main() reads them through."""
+    (d / "roster.json").write_text(json.dumps(roster()))
+    m.gh, m.plan_live = Fake(w), LIVE
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        rc = m.main(["list", "--repo", "o/r", "--since", since, "--cursor", str(d / "c" / "cursor.json"),
+                     "--roster", str(d / "roster.json")])
+    return rc, out.getvalue().splitlines()
+
+
 def cases(m) -> dict[str, bool]:
     res: dict[str, bool] = {}
     w = world(m)
@@ -169,6 +196,20 @@ def cases(m) -> dict[str, bool]:
     res["list null: no outside activity prints nothing and moves the cursor to now"] = lines == [] and keep == NOW
     lines, _ = m.listing(Fake(w), "o/r", "2026-11-06T09:00:00Z", roster(), LIVE(), NOW)
     res["list: activity before the cursor is not re-read"] = lines == []
+    with tempfile.TemporaryDirectory() as d:
+        rc1, l1 = main_list(m, w, Path(d), SINCE)
+        cur = json.loads((Path(d) / "c" / "cursor.json").read_text())
+        rc2, l2 = main_list(m, w, Path(d), "2026-11-06T09:00:00Z")  # a later --since: the cursor must win
+        rc3, l3 = main_list(m, empty, Path(d), SINCE)
+    res["main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass"] = (
+        rc1 == 1 and l1 == want and cur == {"since": "2026-11-05T10:29:13Z"} and rc2 == 1 and l2 == want)
+    res["main list null: no owed submission is rc 0 and prints nothing"] = rc3 == 0 and l3 == []
+    w4 = world(m)
+    w4["comments"].append(comment(3225, {"login": "renovate[bot]", "type": "Bot"}, "2026-11-06T22:00:00Z",
+                                  m.ANSWER_MARK + " quoted by a third-party App"))
+    lines, _ = m.listing(Fake(w4), "o/r", SINCE, roster(), LIVE(), NOW)
+    res["identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)"] = (
+        lines == want)
     try:
         m.listing(Fake(w, fail="issues/comments"), "o/r", SINCE, roster(), LIVE(), NOW)
         res["list: a failed read is UNREADABLE, never a clean board"] = False
@@ -186,6 +227,14 @@ def cases(m) -> dict[str, bool]:
     p = Poster()
     rc, msg = m.dispose(Fake(w2), "o/r", 3225, roster(), LIVE, None, False, p)
     lines, _ = m.listing(Fake(w2), "o/r", SINCE, roster(), LIVE(), NOW)
+    for dry in (True, False):
+        r = Ran(0)
+        got = m.post("o/r", 3225, "the body\n", dry, r)
+        res[f"post: gh_comment.py post is run with the body file, --dry-run {'passed' if dry else 'absent'}, rc 0 kept"] = (
+            got == 0 and Path(r.argv[2]).relative_to(m.REPO_ROOT).as_posix() == "tools/pr/gh_comment.py"
+            and r.argv[3:9] == ["post", "--repo", "o/r", "--issue", "3225", "--body-file"]
+            and r.body == "the body\n" and (r.argv[10:] == ["--dry-run"] if dry else len(r.argv) == 10))
+    res["post: a failed gh_comment read-back (rc 1) is a non-zero answer"] = m.post("o/r", 3225, "b", False, Ran(1)) == 1
     res["answer: an answered submission is refused and no longer listed (never answered twice)"] = (
         rc == 1 and "already answered" in msg and not p.posts and not any("#3225" in ln for ln in lines))
     for n, why, live in ((3226, "on no roster group", LIVE), (3225, "does not answer", DOWN),
@@ -211,6 +260,11 @@ def cases(m) -> dict[str, bool]:
     res["discussions: an outside discussion is listed, and answering one is refused (by hand)"] = (
         lines == ["OUTSIDE #3260 owed=triage discussion by=asker since=2026-11-06T10:00:00Z"]
         and rc == 1 and "discussion" in msg and not p.posts)
+    wd = dict(empty, discussions=[{"n": 3261, "at": "2026-11-06T10:00:00Z", "login": "asker", "type": "User",
+                                   "comments": [{"login": "hpo-approver", "type": "Bot", "at": "2026-11-06T11:00:00Z",
+                                                 "body": m.REFUSED_MARK + " by our App"}]}])
+    lines, _ = m.listing(Fake(wd), "o/r", SINCE, roster(), LIVE(), NOW)
+    res["discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)"] = lines == []
     res["identity: every account of ours and every bot is not outside; a stranger is"] = (
         not any(m.outside(a, "User") for a in m.OURS) and not m.outside("renovate[bot]", "Bot")
         and m.outside("Bankaifan", "User"))
@@ -221,8 +275,8 @@ def cases(m) -> dict[str, bool]:
 MUTANTS = {
     "bots_outside": ('return login not in OURS and typ != "Bot"', "return login not in OURS",
                      "identity: every account of ours and every bot is not outside; a stranger is"),
-    "forged_marker_read": ("        if outside(c[\"login\"], c[\"type\"]):\n            self.last_out = max(self.last_out, c[\"at\"])\n            return\n",
-                           "        if outside(c[\"login\"], c[\"type\"]):\n            self.last_out = max(self.last_out, c[\"at\"])\n",
+    "forged_marker_read": ("                self.last_out = max(self.last_out, c[\"at\"])\n            return\n",
+                           "                self.last_out = max(self.last_out, c[\"at\"])\n",
                            "list: a marker in the submitter's own comment disposes of nothing (#3226 owes triage)"),
     "since_ignored": ("        if at >= since and outside(login, typ):", "        if outside(login, typ):",
                       "list: activity before the cursor is not re-read"),
@@ -240,6 +294,23 @@ MUTANTS = {
                                "list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)"),
     "unreadable_swallowed": ('        raise Unreadable(f"gh {\' \'.join(argv[:2])} rc={rc}")', "        return []",
                              "list: a failed read is UNREADABLE, never a clean board"),
+    "marker_any_bot": ('        if c["login"] not in OURS:\n', '        if outside(c["login"], c["type"]):\n',
+                       "identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)"),
+    "graphql_bot_suffix": ('        login = f"{login}[bot]"\n', "        pass\n",
+                           "discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)"),
+    "main_cursor_unread": ('                since = json.loads(a.cursor.read_text()).get("since") or since\n',
+                           "                pass\n",
+                           "main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass"),
+    "main_cursor_now": ('json.dumps({"since": keep})', 'json.dumps({"since": utc()})',
+                        "main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass"),
+    "main_list_rc0": ("    return 1 if lines else 0\n", "    return 0\n",
+                      "main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass"),
+    "post_rc_dropped": ("    return runner(argv).returncode\n", "    runner(argv)\n    return 0\n",
+                        "post: a failed gh_comment read-back (rc 1) is a non-zero answer"),
+    "post_dry_dropped": (' + (["--dry-run"] if dry else [])', "",
+                         "post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept"),
+    "post_wrong_script": ('"tools/pr/gh_comment.py"', '"tools/pr/gh_comment_missing.py"',
+                          "post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept"),
     "discussion_answered": ('        return 1, f"outside_intake: REFUSED: #{n} is a discussion; answer it by hand"', "        pass",
                             "discussions: an outside discussion is listed, and answering one is refused (by hand)"),
 }
