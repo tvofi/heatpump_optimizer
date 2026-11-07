@@ -200,28 +200,45 @@ def _argv(line: str) -> list[str]:
 
 def scan(hits: Path, clone: Path) -> dict:
     """Each traced syscall touching the clone's delivery rows, by kind and by
-    the command (the process's last exec, first three argv words, inherited across a fork or thread until the child execs) that made
-    it. `open` is an open of a row or of the directory; `list` a getdents64
+    the command that made it: the process's last exec, first four argv
+    words, inherited across a fork or thread until the child execs. `open` is an open of a row or of the directory; `list` a getdents64
     on it; `exec-names` an exec whose argv names dev/programme other than as
     an exclusion (`:!`, `:(exclude)`); `exec-excludes` one naming it only so;
     `stat` a stat-family call, which reads no content. A path under another
     root (a self-test's fixture repository) is not the clone's and not counted."""
     under = f"{clone}/{ROW}"
     rel = re.compile(r'(AT_FDCWD<' + re.escape(str(clone)) + r'[^>]*>|^\d+\s+\w+\()"?(\./)?' + re.escape(ROW))
-    cmd: dict[str, str] = {}
-    out = scan_empty()
-    for line in hits.open(errors="replace"):
+    lines = hits.read_text(errors="replace").splitlines()
+    fork = re.compile(r"(?:\b(?:clone3?|v?fork)\(.*|<\.\.\. (?:clone3?|v?fork) resumed>.*)\)\s+=\s+(\d+)$")
+    # Two passes: strace may print a child's first syscalls before its
+    # parent's clone returns, so the fork edges and execs are collected first.
+    parent: dict[str, str] = {}
+    execs: dict[str, list[tuple[int, str]]] = {}
+    for n, line in enumerate(lines):
         pid = line.split(None, 1)[0]
-        fork = re.search(r"(?:\b(?:clone3?|v?fork)\(.*|<\.\.\. (?:clone3?|v?fork) resumed>.*)\) = (\d+)$", line.rstrip())
-        if fork:  # a child or thread runs its parent's command until it execs
-            cmd[fork.group(1)] = cmd.get(pid, "?")
+        m = fork.search(line)
+        if m:
+            parent.setdefault(m.group(1), pid)
+        elif "execve(" in line and re.search(r"\)\s+=\s+0$", line):
+            execs.setdefault(pid, []).append((n, " ".join(
+                a.rsplit("/", 1)[-1] if j == 0 else a.replace(str(clone), "<clone>")
+                for j, a in enumerate(_argv(line)[:4]))[:160]))
+
+    def command(pid: str, n: int, depth: int = 0) -> str:
+        """`pid`'s last exec at line n, else its parent's (a child or thread
+        runs its parent's command until it execs)."""
+        done = [c for k, c in execs.get(pid, ()) if k <= n]
+        if done:
+            return done[-1]
+        return command(parent[pid], n, depth + 1) if pid in parent and depth < 64 else "?"
+
+    out = scan_empty()
+    for n, line in enumerate(lines):
+        pid = line.split(None, 1)[0]
+        if fork.search(line) or (re.search(r"\b(clone3?|v?fork)\(", line) and "dev/programme" not in line):
             continue
-        if re.search(r"\b(clone3?|v?fork)\(", line) and "dev/programme" not in line:
-            continue
-        if "execve(" in line and line.rstrip().endswith("= 0"):
-            argv = _argv(line)
-            cmd[pid] = " ".join(a.rsplit("/", 1)[-1] if j == 0 else a for j, a in enumerate(argv[:3]))[:120]
-            named = [a for a in argv if "dev/programme" in a]
+        if "execve(" in line and re.search(r"\)\s+=\s+0$", line):
+            named = [a for a in _argv(line) if "dev/programme" in a]
             if not named:
                 continue
             kind = "exec-excludes" if all(a.startswith((":!", ":(exclude)")) for a in named) else "exec-names"
@@ -234,10 +251,10 @@ def scan(hits: Path, clone: Path) -> dict:
         else:
             kind = "stat"
         out["kinds"][kind] += 1
-        c = cmd.get(pid, "?")
+        c = command(pid, n)
         out["by_command"].setdefault(c, {}).setdefault(kind, 0)
         out["by_command"][c][kind] += 1
-        out["examples"].setdefault(kind, line.rstrip()[:400])
+        out["examples"].setdefault(kind, line[:400])
     return out
 
 
