@@ -1,15 +1,19 @@
-KILLED rc=1 outside_intake.py: 'OURS = frozenset({"tvofi",' -> 'OURS = frozenset({'
-KILLED rc=1 outside_intake.py: 'disposed = max(t.answered, t.refused)' -> 'disposed = t.answered'
-KILLED rc=1 outside_intake.py: 'return "reply" if t.last_out > max(disposed, t.last_ours) else None' -> 'return "reply" if t.last_out > disposed else None'
-KILLED rc=1 outside_intake.py: 'if t.n in groups:\n        return "answer"' -> 'if True:\n        return "answer"'
-KILLED rc=1 outside_intake.py: 'f"and is refreshed as the round runs: {plan_public.PLAN_URL}\\n"' -> 'f"and is refreshed as the round runs.\\n"'
-KILLED rc=1 outside_intake.py: 'self.answered = max(self.answered, c["at"])' -> 'pass'
-SURVIVED rc=0 outside_intake.py: 'a.cursor.write_text(json.dumps({"since": keep}) + "\\n")' -> 'a.cursor.write_text(json.dumps({"since": now}) + "'
-SURVIVED rc=0 outside_intake.py: 'return runner(argv).returncode' -> 'runner(argv); return 0'
-SURVIVED rc=0 outside_intake.py: 'return 1 if lines else 0' -> 'return 0'
-KILLED rc=1 plan_public.py: 'return max(rounds) if rounds else None' -> 'return min(rounds) if rounds else None'
-KILLED rc=1 plan_public.py: 'why = ref_privacy.leaks(text, ident or ref_privacy.Identity.of_host())' -> 'why = ref_privacy.attribution(text)'
-SURVIVED rc=0 outside_intake.py: 'a.cursor.write_text(json.dumps({"since": keep}) + "\\n")' -> 'a.cursor.write_text(json.dumps({"since": utc()}) + "\\n")'
-SURVIVED rc=0 outside_intake.py: '+ (["--dry-run"] if dry else [])' -> ''
-SURVIVED rc=0 outside_intake.py: 'str(REPO_ROOT / "tools/pr/gh_comment.py"), "post"' -> 'str(REPO_ROOT / "tools/pr/gh_comment_missing.py"), "post"'
-SURVIVED rc=0 outside_intake.py: 'since = json.loads(a.cursor.read_text()).get("since") or since' -> 'pass'
+NULL rc=0 outside_intake self-test: all checks passed
+r1_cursor_read KILLED rc=1 FAIL main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+r1_cursor_write KILLED rc=1 FAIL main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+r1_post_rc KILLED rc=1 FAIL post: a failed gh_comment read-back (rc 1) is a non-zero answer
+r1_dry_drop KILLED rc=1 FAIL post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept
+r1_script_path KILLED rc=1 FAIL post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept
+r1_list_rc KILLED rc=1 FAIL main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+mark_revert_old KILLED rc=1 FAIL identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)
+mark_thirdbot_moves_out SURVIVED rc=0 
+mark_no_last_out KILLED rc=1 FAIL mutant forged_marker_read: stale
+who_no_suffix KILLED rc=1 FAIL discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
+who_never_bot KILLED rc=1 FAIL discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
+who_typ_user KILLED rc=1 FAIL discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
+cursor_exists_guard KILLED rc=1 FAIL main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+cursor_write_skip KILLED rc=1 Traceback (most recent call last):
+dry_always KILLED rc=1 FAIL post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept
+post_issue_arg KILLED rc=1 FAIL post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept
+last_ours_drop KILLED rc=1 FAIL list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
+keep_now KILLED rc=1 FAIL list: the cursor stays at the earliest owed submission's first outside activity
