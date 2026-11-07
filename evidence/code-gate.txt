@@ -1,0 +1,8 @@
+code run 42342100403 (head cecca4391dab34349fe10eb41a6ccfb2c4d3600e) gate job 128324499249 success 06:16:17-06:16:49
+  programs restored from 294a880dae608502b62055775e34a5db93217b98
+  KIND: code  WORKSET: arch-score budget-raise-gate codeql governance hassfest pr-contract tests validate
+  2026-11-07T06:16:47.3625232Z PASS
+pr-contract / pr-contract job 128323099459 success 06:15:27-06:16:08 (started after the last red, 05:36:27)
+run conclusion: cancelled -- governance / instrument-self-tests job 128315297427 cancelled 05:34:07-06:04:12 (30 min),
+  in step "Show the CI predictor (tools/pr/ci_predict.py) predicting pr-contract's carry refusal",
+  after "ci_predict self-test: 0 failed" at 06:04:10.6584252Z, then "##[error]The operation was canceled."

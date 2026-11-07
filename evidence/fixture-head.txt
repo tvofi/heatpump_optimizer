@@ -1,0 +1,3 @@
+fixture: run 42338396358 (PR 3263, programs CI restored 294a880d): this tree 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides' after 720 s; CI logged 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides'
+fixture: run 42307493684 (PR 3261, programs CI restored 28482ece): this tree 'PASS' after 0 s; CI logged 'FAIL run(s) [42307798573] at this head are still being judged; their gate decides'
+fixture: run 42307798573 (PR 3261, programs CI restored 28482ece): this tree 'PASS' after 0 s; CI logged 'FAIL run(s) [42307493684] at this head are still being judged; their gate decides'

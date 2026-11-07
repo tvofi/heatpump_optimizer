@@ -1,0 +1,3 @@
+  File "/tmp/tmp.nTGRQ1zala/wt/tests/harness.py", line 25, in <module>
+    from homeassistant.config_entries import ConfigEntryState
+ModuleNotFoundError: No module named 'homeassistant'
