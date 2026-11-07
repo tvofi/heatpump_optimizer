@@ -1,0 +1,3 @@
+  ok   guard self-test: a ref namespace's name is not a citation of its emptied parent: {'new-reference': 0, 'unswept': 0, 'placement': 0}
+  ok   guard self-test: a citation of the moved tree under a ref namespace is still swept: {'new-reference': 1, 'unswept': 1, 'placement': 0}
+layout self-test: ok
