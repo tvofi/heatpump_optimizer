@@ -1,13 +1,13 @@
 GAP: 1 merge(s) recovered from the commit's own "Merge pull request #N" subject after /commits/<sha>/pulls answered []
 WINDOW_CACHE: commit-to-PR map fetched, not served by; per-PR reads fetched, not served by W.json
-STATS: 91 merged pull request(s) in v7.1.2..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
-STATS COVERAGE: 80 of 91 merged pull request(s) in the window carried a parsable verdict; 11 carried none (#3282 #3281 #3279 #3270 #3257 #3254 #3235 #3233 #3215 #3207 +1 more); the histogram's verdict denominator is 80, not the window's merge count
-STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 11 of 12 (#3282 #3281 #3279 #3270 #3257 #3254 #3235 #3233 #3215 #3207 +1 more); (untyped) 0 of 63; feat 0 of 1; fix 0 of 1; roster 0 of 2; triage 0 of 12
-STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 199; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
-STATS ROUNDS: over the 80 merged pull request(s) carrying a parsable verdict, first-verdict yield 24/80 = 0.300 (the first verdict was `merge`), one-round yield 22/80 = 0.275 (merged on that one verdict, no later parsable one). Of the 119 parsable verdict(s) after a pull request's first, by the verdict before each: 8 re-verified a head that moved after a `merge` (7 PR(s), the "head-moved (rework)" row), 100 repaired after a `blocked`, 11 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
+STATS: 93 merged pull request(s) in v7.1.2..origin/main; verdict grammar ["blocked","merge"] over block classes ["mutation-vacuous","harness","null-control","claims","version","head-moved","carry-missing","root-cause-unanswered","preflight-mismatch","class-open","conflict","other","product-tradeoff-regression","metric-gamed","architecture-unsound","root-cause-detectable","root-cause-unrecorded"] read from .claude/workflows/web-fix-wave.js
+STATS COVERAGE: 81 of 93 merged pull request(s) in the window carried a parsable verdict; 12 carried none (#3286 #3282 #3281 #3279 #3270 #3257 #3254 #3235 #3233 #3215 +2 more); the histogram's verdict denominator is 81, not the window's merge count
+STATS COVERAGE BY CLASS: merged pull request(s) carrying no parsable verdict, of each class's window, by the title's type -- record 12 of 13 (#3286 #3282 #3281 #3279 #3270 #3257 #3254 #3235 #3233 #3215 +2 more); (untyped) 0 of 63; feat 0 of 1; fix 0 of 1; roster 0 of 2; triage 0 of 13
+STATS ENDPOINTS: parsable verdict(s) by the endpoint they arrived on -- /issues/<n>/comments (issue comment): 200; /pulls/<n>/reviews (review): 0. Both endpoints are read, so a verdict posted as a review is counted rather than read as a merge that carried none.
+STATS ROUNDS: over the 81 merged pull request(s) carrying a parsable verdict, first-verdict yield 25/81 = 0.309 (the first verdict was `merge`), one-round yield 23/81 = 0.284 (merged on that one verdict, no later parsable one). Of the 119 parsable verdict(s) after a pull request's first, by the verdict before each: 8 re-verified a head that moved after a `merge` (7 PR(s), the "head-moved (rework)" row), 100 repaired after a `blocked`, 11 repeated the previous verdict's head. A `Fix review:` line outside the grammar is in none of these; each is reported below.
 
 verdict class (PRs / entries):
-    80 / 99    merge   <- at or over threshold
+    81 / 100   merge   <- at or over threshold
     15 / 16    mutation-vacuous   <- at or over threshold
     14 / 18    ci-red   <- at or over threshold
     12 / 23    class-open   <- at or over threshold
@@ -41,7 +41,7 @@ verdict class (PRs / entries):
      0 / 0     mutation (family) (of 15; mutation-vacuous files its own)
      1 / 1     root-cause (family) (of 5; root-cause-detectable files its own)
     20 / 28    other (untaught) (family) (of 34; ci-red files its own)   <- at or over threshold
-CENSUS	verdict class	80	99	merge
+CENSUS	verdict class	81	100	merge
 CENSUS	verdict class	15	16	mutation-vacuous
 CENSUS	verdict class	14	18	ci-red
 CENSUS	verdict class	12	23	class-open
@@ -117,7 +117,7 @@ CENSUS: 50 key(s)
 threshold: 3 or more of one key in the window opens "[policy] recurring friction: <key>". Nothing is opened here.
 
 (window)
-  INFO    [stats] (window): not opened: verdict class "merge" at 80 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a `merge` is counted on the "head-moved (rework)" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.
+  INFO    [stats] (window): not opened: verdict class "merge" at 81 pull request(s) is the passing verdict .claude/workflows/web-fix-wave.js requires before a merge, so this row counts rework nowhere -- a merge verdict re-verifying a head that moved after a `merge` is counted on the "head-moved (rework)" row, and a repair after a block is on the STATS ROUNDS line. Friction is rework.
   INFO    [stats] (window): would open "[policy] recurring friction: mutation-vacuous" -- verdict class at 15 in this window, threshold 3. Counted as DISTINCT pull requests (16 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
   INFO    [stats] (window): would open "[policy] recurring friction: ci-red" -- verdict class at 14 in this window, threshold 3. Counted as DISTINCT pull requests (18 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.
   INFO    [stats] (window): would open "[policy] recurring friction: class-open" -- verdict class at 12 in this window, threshold 3. Counted as DISTINCT pull requests (23 entries in all); recurrence is across occasions, not within one body. Not opened here: a seat measures and files, a report does not.

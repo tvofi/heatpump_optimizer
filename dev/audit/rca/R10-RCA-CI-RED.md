@@ -7,13 +7,15 @@ neither the keying rule nor the gate. The countermeasures it names are owed to
 later groups, section 6.
 
 **Merge base and window.** Every figure was taken on 2026-11-07 at merge base
-and `origin/main` `b4ec2f332fe3ab8dcf169bd3066276d3bb8848ab`; tag `v7.1.2` is
+and `origin/main` `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76` (re-taken there after
+`main` moved from `b4ec2f332`; the 18 entries are identical, the window grew
+from 91 to 93 merged PRs); tag `v7.1.2` is
 the window's start.
 
 ## 1. The count, re-derived
 
 `node tools/policy/policy_lint.mjs --stats --since v7.1.2 --window-cache W.json`
-printed `STATS: 91 merged pull request(s) in v7.1.2..origin/main` and the row
+printed `STATS: 93 merged pull request(s) in v7.1.2..origin/main` and the row
 `14 / 18     ci-red   <- at or over threshold`, with the would-open line at 14
 (`ci-red/stats_v7.1.2.txt`). #3156 was filed at 11 PRs / 14 entries; the window
 has since taken three more PRs and four more entries. The count is **not
@@ -112,13 +114,13 @@ static sub-check is **not established here**.
 Cost test, `cost(countermeasure, recurring) < cost(defect) x P(recurrence)`,
 per PR, wall-clock:
 
-| group | defect cost (mean min to next verdict) | P per merged PR (entries / 91) | expected cost per PR | standing cost per `prepr` |
+| group | defect cost (mean min to next verdict) | P per merged PR (entries / 93) | expected cost per PR | standing cost per `prepr` |
 |---|---|---|---|---|
-| B | 212 min (848 over 4) | 4 / 91 = 0.044 | 9.3 min = 559 s | 0.55 s |
-| A | 110 min without #3211 (769 over 7) | 8 / 91 = 0.088 | 9.7 min | no repo countermeasure |
-| C | 297 min (1186 over 4) | 4 / 91 = 0.044 | 13.0 min | 0 s (a keying change) |
+| B | 212 min (848 over 4) | 4 / 93 = 0.043 | 9.1 min = 547 s | 0.55 s |
+| A | 110 min without #3211 (769 over 7) | 8 / 93 = 0.086 | 9.5 min | no repo countermeasure |
+| C | 297 min (1186 over 4) | 4 / 93 = 0.043 | 12.8 min | 0 s (a keying change) |
 
-B: 0.55 s < 559 s, by a factor of about 1000, so the countermeasure pays even
+B: 0.55 s < 547 s, by a factor of about 1000, so the countermeasure pays even
 if the defect cost is a tenth of the upper bound. Null control: the figure
 `P` uses is one window; a window with no harness-adding PR gives `P = 0` and the
 0.55 s is then pure standing cost, which is the case the call below limits.
