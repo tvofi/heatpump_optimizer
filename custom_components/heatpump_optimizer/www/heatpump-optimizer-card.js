@@ -9922,7 +9922,7 @@ const RECEIPT_CSS = `
 const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
 
 /** The latest receipt's lines, its total and where its spot money went. */
-function receiptHtml(st, rows, cur) {
+function receiptHtml(st, rows, cur, wood) {
   const list = Array.isArray(st.attributes.receipts) ? st.attributes.receipts : [];
   const r = list.length ? list[list.length - 1] : null;
   if (!r || !r.lines || typeof r.lines !== "object") return "";
@@ -9948,7 +9948,9 @@ function receiptHtml(st, rows, cur) {
     ? `<div>${esc(L("receipt.saved", {
         amount: row.savings_sek.toFixed(2), unit: cur,
         pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
-      }))}</div>`
+      }))}</div>${wood
+        ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
+        : ""}`
     : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
@@ -14925,7 +14927,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     // R9-UX-6: the closed month's receipt and yesterday's replay come first;
     // the table of every month below them is unchanged.
-    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    // The reference has no wood: on a house with wood configured every saving
+    // the page states, the receipt's and the table's, says so (owner ruling,
+    // 2026-11-04).
+    const fuel = this.plan.woodFuel();
+    const wood = !!(fuel && fuel.show_whatif);
+    const drawn = `${receiptHtml(st, rows, cur, wood)}${replayHtml(st, cur)}`;
     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
     const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
@@ -14959,8 +14966,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
-    const fuel = this.plan.woodFuel();
-    const woodNote = fuel && fuel.show_whatif
+    const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
       : "";
     return `${top}<table class="savings-table">
