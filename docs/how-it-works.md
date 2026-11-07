@@ -1265,7 +1265,7 @@ anticipating weather nobody has forecast. Everything below is built on those cod
 
 | Where to look | What it explains |
 |---|---|
-| **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English or Swedish |
+| **Plan Narrative** sensor | The current plan grouped by reason and told in prose, in English, Swedish or German |
 | **Cost Contract Comparison** sensor | The closed month as an itemised receipt, reason by reason, with the reason lines summing to the metered spot line by construction |
 | **Plan Optimization Score** sensor | Envelope, machine and operation graded separately — how good is the house, how healthy is the machine, how well is it driven — with the operation grade replaying each day's kWh against that day's prices |
 | **Prediction Accuracy Diagnose Last Interval** button | The last interval's temperature error attributed input by input: the interval is re-run swapping realised inputs in one at a time, each charged the share of the error it explains |

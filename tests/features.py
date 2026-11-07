@@ -12445,9 +12445,29 @@ R.check(
     and "Värmepump" in _sv_text and "Ute" in _sv_text,
     _sv_text,
 )
+# Every language the setup text ships (R10-I18N-DE): each table's slot
+# labels differ from English, and its summary carries no English heading.
+for _tr_lang in _topo._TRANSLATIONS:
+    _tr_full = _topo.describe_setup(_full_cfg, f"{_tr_lang}-XX")
+    _tr_labels = {s["key"]: s["label"] for s in _tr_full["slots"]}
+    _tr_text = _topo.render_text_summary(_tr_full)
+    R.check(
+        f"every slot label and no summary heading is English on a {_tr_lang} install",
+        _tr_labels.keys() == _en_labels.keys()
+        and all(_tr_labels[k] != _en_labels[k] for k in _en_labels)
+        and not any(w in _tr_text for w in _en_words)
+        and all(e["label"] != n["label"]
+                for e, n in zip(_full["catalog"], _tr_full["catalog"])),
+        f"unchanged: {[k for k in _en_labels if _tr_labels.get(k) == _en_labels[k]]}; {_tr_text[:200]}",
+    )
+R.check(
+    "setup text ships the card's languages beside English",
+    set(_topo._TRANSLATIONS) >= {"sv", "de"},
+    str(sorted(_topo._TRANSLATIONS)),
+)
 R.check(
     "null control: English and an unknown language read as before",
-    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "de"))
+    _topo.render_text_summary(_topo.describe_setup(_full_cfg, "xx"))
     == _text_en_ref
     if (_text_en_ref := _topo.render_text_summary(_full)) else False,
 )
@@ -24446,16 +24466,18 @@ for _lang6 in narrative_mod.TEMPLATES:  # the languages the narratives ship
         f"every template language carries every reason key ({_lang6})",
         set(narrative_mod.TEMPLATES[_lang6]) == set(narrative_mod.TEMPLATES["en"]),
     )
-_par_ok = all(
-    set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
-    == set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["sv"][key]))
+_par_bad = [
+    f"{_lang6}:{key}"
+    for _lang6 in narrative_mod.TEMPLATES
     for key in narrative_mod.TEMPLATES["en"]
-)
+    if set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES["en"][key]))
+    != set(_re6.findall(r"{(\w+)}", narrative_mod.TEMPLATES[_lang6].get(key, "")))
+]
 R.check(
-    "en and sv templates use identical placeholders per key",
-    _par_ok,
-    "a placeholder present in one language and absent in the other is a "
-    "sentence that cannot be said",
+    "every template language uses en's placeholders per key",
+    len(narrative_mod.TEMPLATES) >= 3 and not _par_bad,
+    f"{sorted(narrative_mod.TEMPLATES)}: {_par_bad[:6]} -- a placeholder present "
+    "in one language and absent in the other is a sentence that cannot be said",
 )
 _n_items = narrative_mod.build(
     {
