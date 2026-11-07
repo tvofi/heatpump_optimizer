@@ -14368,7 +14368,8 @@
    "fixerModel": "sonnet",
    "reviewerModel": "opus",
    "after": [
-    "R10-TICK-LEVELS"
+    "R10-TICK-LEVELS",
+    "R10-OUTSIDE-FIRST"
    ],
    "files": [
     "tools/audit/seat/merge_train.py",
