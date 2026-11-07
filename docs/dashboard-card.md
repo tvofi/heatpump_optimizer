@@ -559,7 +559,10 @@ neither column. At one flat price the difference is energy alone. The savings co
 carries a bar scaled to the biggest month in the table, which answers "compared
 with the others" without quoting a target the page does not show. The open
 month is an estimate until it closes, and is badged as one; a month with no
-settled rows yet says so in words rather than drawing an empty table.
+settled rows yet says so in words rather than drawing an empty table. The
+baseline has no wood, so where wood is configured the receipt and the table
+both say the saving includes heat from wood and that firewood's cost is not
+counted.
 
 <picture>
   <source media="(prefers-color-scheme: dark)" srcset="img/card/savings-dark.png">
