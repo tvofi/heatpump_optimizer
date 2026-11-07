@@ -4149,6 +4149,7 @@
    "dev/audit/harnesses/record_burst_replay.py",
    "dev/audit/harnesses/sav_reasons_booking.py",
    "dev/audit/harnesses/scale_writer_seams.py",
+   "dev/audit/harnesses/silent_peer_waits.py",
    "dev/audit/harnesses/solve_inputs_parity.py",
    "dev/audit/harnesses/superseded_runs.py",
    "dev/audit/harnesses/thermal_parity.py",
