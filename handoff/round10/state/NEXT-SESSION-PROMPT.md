@@ -34,16 +34,13 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-RAISE-GATE-SHIM (stage carries-open, branch `handoff/r10-raise-gate-shim`): `git fetch origin handoff/r10-raise-gate-shim && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-REPLAY-COST-BUDGET (stage carries-open, branch `handoff/r10-replay-cost-budget`): `git fetch origin handoff/r10-replay-cost-budget && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-WHY-NOW-WIDGET (stage in-progress, branch `handoff/r10-why-now-widget`): `git fetch origin handoff/r10-why-now-widget && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-CARRY-RESIDUE (stage carries-open, branch `handoff/r10-carry-residue`): `git fetch origin handoff/r10-carry-residue && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-OVERBOOK-RESIDUAL (stage carries-open, branch `handoff/r10-overbook-residual`): `git fetch origin handoff/r10-overbook-residual && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-CLONE-2238 (stage in-progress, branch `handoff/r10-clone-2238`): `git fetch origin handoff/r10-clone-2238 && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-WRITE-SWEEP (stage carries-open, branch `handoff/r10-roster-write-sweep`): `git fetch origin handoff/r10-roster-write-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-ROSTER-READ-SWEEP (stage carries-open, branch `handoff/r10-roster-read-sweep`): `git fetch origin handoff/r10-roster-read-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-TICK-LEVELS (stage carries-open, branch `handoff/r10-tick-levels`): `git fetch origin handoff/r10-tick-levels && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-HANDOFF-PATH (stage carries-open, branch `handoff/r10-handoff-path`): `git fetch origin handoff/r10-handoff-path && git worktree add --detach $SEAT/wt FETCH_HEAD`
 - R10-RELAY-SWEEP (stage in-progress, branch `handoff/r10-relay-sweep`): `git fetch origin handoff/r10-relay-sweep && git worktree add --detach $SEAT/wt FETCH_HEAD`
-- R10-HOTFIX-GATE-STALE-JOBS (stage carries-open): no branch pushed yet, so nothing to fetch
-- R10-HOTFIX-SAV-ESTIMATE (stage in-progress): no branch pushed yet, so nothing to fetch
+- R10-HOTFIX-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-RCA-SAV-ESTIMATE (stage carries-open): no branch pushed yet, so nothing to fetch
 - R10-FLY-CLOUD-FRUGAL-OFF (stage refused): no branch pushed yet, so nothing to fetch
 - R10-PROCESS-SLIM (stage in-progress): no branch pushed yet, so nothing to fetch
@@ -59,7 +56,7 @@ Worktrees in flight (a crashed seat restarts from its branch and note, never fro
 - R10-FLY-STAMP-FLUSH-HOLD (stage in-progress): no branch pushed yet, so nothing to fetch
 - R10-FLY-STAMP-FLUSH-COST (stage in-progress): no branch pushed yet, so nothing to fetch
 
-Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-WHATIF, R10-BODY-CONTRACT, R10-CARRY-RESIDUE, R10-CI-OWN-DELIVERY-ROW, R10-CI-RUNNER-FIXES, R10-CLONE-2238, R10-CLOSEOUT-CLEANUP, R10-COMBI-TANK, R10-COP-GATE-D, R10-DISPATCH-AT-HANDOFF, R10-FLOW-TOOLKIT-MODEL, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-GH-READ-RETRY, R10-FLY-STAMP-FLUSH-COST, R10-FLY-STAMP-FLUSH-HOLD, R10-FLY-STANDING-CONTRACTS, R10-FRICTION-RECORDS, R10-HANDOFF-PATH, R10-HOTFIX-CODEQL-HEADROOM, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-GATE-STALE-JOBS, R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT, R10-HOTFIX-PLAN-LANES, R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-SELFTEST-TIMEOUT, R10-HOTFIX-TRAIN-DEFER-WAIT, R10-OUTSIDE-INTAKE, R10-OVERBOOK-RESIDUAL, R10-PARTLOAD-PRICING, R10-PLANTED-DEFECT-AUDIT, R10-POLICY-ROLE-PACK, R10-PROCESS-SLIM, R10-RAISE-GATE-SHIM, R10-RCA-GATE-BUSY-DEFER-2, R10-RELAY-SWEEP, R10-REPLAY-COST-BUDGET, R10-ROSTER-READ-SWEEP, R10-ROSTER-WRITE-SWEEP, R10-ROUND-PLAYBOOK, R10-SUITE-HOST-DETERMINISM, R10-SWEEP-TEMPLATE-SYNC, R10-TICK-LEVELS, R10-TRAIN-MERGE-LOOP, R10-WHY-NOW-WIDGET
+Ready next (after-edges satisfied; nothing open constrains them): R10-ADVISOR-WHATIF, R10-BODY-CONTRACT, R10-CARRY-RESIDUE-2, R10-CI-GRADER-BATCH-STUDY, R10-CI-OWN-DELIVERY-ROW, R10-CI-RUNNER-FIXES, R10-CLONE-2238, R10-CLOSEOUT-CLEANUP, R10-COMBI-TANK, R10-COP-GATE-D, R10-COP-GATE-E, R10-DISPATCH-AT-HANDOFF, R10-FLOW-TOOLKIT-MODEL, R10-FLY-CIPREDICT-RESTORING, R10-FLY-CLOUD-FRUGAL-OFF, R10-FLY-GH-READ-RETRY, R10-FLY-STAMP-FLUSH-COST, R10-FLY-STAMP-FLUSH-HOLD, R10-FLY-STANDING-CONTRACTS, R10-FRICTION-RECORDS, R10-HANDOFF-PATH, R10-HOTFIX-CODEQL-HEADROOM, R10-HOTFIX-COP-UNMEASURED, R10-HOTFIX-GATE-BUSY-DEFER, R10-HOTFIX-NIGHTLY-PIN-THROUGHPUT, R10-HOTFIX-PLAN-LANES, R10-HOTFIX-SAV-ESTIMATE, R10-HOTFIX-SELFTEST-TIMEOUT, R10-HOTFIX-TRAIN-DEFER-WAIT, R10-OUTSIDE-INTAKE, R10-PARTLOAD-PRICING, R10-PARTLOAD-RESIDUE, R10-PLANTED-DEFECT-AUDIT, R10-POLICY-ROLE-PACK, R10-PROCESS-SLIM, R10-RAISE-GATE-SHIM, R10-RCA-GATE-BUSY-DEFER-2, R10-RELAY-SWEEP, R10-REPLAY-COST-BUDGET, R10-ROSTER-READ-SWEEP, R10-ROSTER-WRITE-SWEEP, R10-ROUND-PLAYBOOK, R10-SUITE-HOST-DETERMINISM, R10-SWEEP-TEMPLATE-SYNC, R10-TICK-LEVELS, R10-TRAIN-MERGE-LOOP, R10-WHY-NOW-WIDGET
 
 ## Resume steps
 
