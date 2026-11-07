@@ -1,0 +1,4 @@
+
+STRUCTURE RATCHET PASSED
+selftest_wiring: 0 index gap(s)
+plan_page self-test: 67 checks, 0 failed
