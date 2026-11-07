@@ -1,0 +1,70 @@
+gate	completed	failure	2026-11-05T04:39:22Z
+pr-contract / pr-contract	completed	success	2026-11-05T04:34:38Z
+tests / mutation-autofix	completed	success	2026-11-05T04:33:56Z
+gate	completed	cancelled	2026-11-05T04:09:09Z
+governance	completed	skipped	2026-11-05T04:09:09Z
+pr-contract	completed	skipped	2026-11-05T04:09:09Z
+hassfest	completed	skipped	2026-11-05T04:09:09Z
+arch-score	completed	skipped	2026-11-05T04:09:09Z
+tests	completed	skipped	2026-11-05T04:09:09Z
+budget-raise-gate	completed	skipped	2026-11-05T04:09:09Z
+validate	completed	skipped	2026-11-05T04:09:09Z
+kernel-points	completed	skipped	2026-11-05T04:09:09Z
+codeql	completed	skipped	2026-11-05T04:09:09Z
+tests / ci-ratchet	completed	skipped	2026-11-05T04:03:58Z
+tests / graders-head-copy	completed	success	2026-11-05T04:05:53Z
+tests / coverage-ratchet	completed	success	2026-11-05T04:06:31Z
+tests / lane-proofs	completed	success	2026-11-05T04:05:29Z
+tests / closures-autofix	completed	skipped	2026-11-05T04:02:20Z
+tests / claims-autofix	completed	skipped	2026-11-05T03:53:18Z
+tests / mutation-pins (1)	completed	success	2026-11-05T04:22:47Z
+tests / mutation-pins (2)	completed	success	2026-11-05T04:20:35Z
+tests / mutation-pins (3)	completed	success	2026-11-05T04:32:35Z
+gate	completed	cancelled	2026-11-05T03:18:35Z
+pr-contract	completed	skipped	2026-11-05T03:18:35Z
+codeql	completed	skipped	2026-11-05T03:18:34Z
+hassfest	completed	skipped	2026-11-05T03:18:34Z
+arch-score	completed	skipped	2026-11-05T03:18:34Z
+budget-raise-gate	completed	skipped	2026-11-05T03:18:34Z
+tests	completed	skipped	2026-11-05T03:18:34Z
+governance	completed	skipped	2026-11-05T03:18:34Z
+kernel-points	completed	skipped	2026-11-05T03:18:34Z
+validate	completed	skipped	2026-11-05T03:18:34Z
+tests / nightly-ha	completed	skipped	2026-11-05T02:57:52Z
+tests / arch-instrument	completed	success	2026-11-05T03:36:07Z
+tests / replay	completed	failure	2026-11-05T03:43:59Z
+tests / coverage	completed	success	2026-11-05T04:03:58Z
+tests / fast (3.14)	completed	success	2026-11-05T03:53:18Z
+tests / typing	completed	success	2026-11-05T03:37:37Z
+tests / closures	completed	success	2026-11-05T04:02:20Z
+tests / browser	completed	success	2026-11-05T03:28:45Z
+CodeQL	completed	success	2026-11-05T02:52:36Z
+kernel-points	completed	skipped	2026-11-05T02:43:18Z
+governance / delivery-status-publish	completed	skipped	2026-11-05T02:43:18Z
+governance / record	completed	skipped	2026-11-05T02:43:18Z
+arch-score / arch-score	completed	success	2026-11-05T02:55:49Z
+tests / closure-scope	completed	success	2026-11-05T02:57:52Z
+governance / instrument-self-tests	completed	success	2026-11-05T03:23:42Z
+governance / policy-docs	completed	success	2026-11-05T03:05:44Z
+validate / validate-hacs	completed	success	2026-11-05T02:49:39Z
+tests / mutation	completed	failure	2026-11-05T03:24:27Z
+governance / env-matrix	completed	success	2026-11-05T03:01:40Z
+tests / briefs	completed	success	2026-11-05T03:25:15Z
+codeql / Analyze (python)	completed	success	2026-11-05T03:48:36Z
+governance / delivery-status	completed	failure	2026-11-05T03:07:40Z
+governance / wave-script	completed	success	2026-11-05T02:57:53Z
+budget-raise-gate / budget-raise-gate	completed	success	2026-11-05T02:54:29Z
+tests / nightly-status	completed	failure	2026-11-05T02:57:02Z
+codeql / Analyze (actions)	completed	success	2026-11-05T02:52:43Z
+codeql / Analyze (javascript-typescript)	completed	success	2026-11-05T02:53:02Z
+hassfest / hassfest	completed	success	2026-11-05T02:55:17Z
+prelude	completed	cancelled	2026-11-05T04:09:09Z
+cancel-superseded	completed	success	2026-11-05T03:16:43Z
+refresh	completed	success	2026-11-05T03:15:42Z
+refresh	completed	success	2026-11-05T03:15:40Z
+cancel-superseded	completed	success	2026-11-05T03:04:24Z
+prelude	completed	cancelled	2026-11-05T03:18:34Z
+refresh	completed	success	2026-11-05T02:56:02Z
+prelude	completed	success	2026-11-05T02:43:18Z
+cancel-superseded	completed	success	2026-11-05T02:53:28Z
+arm	completed	skipped	2026-11-05T02:41:50Z

@@ -1,0 +1,55 @@
+gate	completed	failure
+pr-contract / pr-contract	completed	failure
+governance / env-matrix	completed	success
+tests / briefs	completed	success
+codeql / Analyze (python)	completed	success
+governance / policy-docs	completed	success
+hassfest / hassfest	completed	success
+prelude	completed	success
+refresh	completed	success
+tests / coverage-ratchet	completed	success
+tests / mutation-autofix	completed	skipped
+tests / claims-autofix	completed	skipped
+tests / closures-autofix	completed	skipped
+tests / closures	completed	success
+tests / graders-head-copy	completed	success
+tests / ci-ratchet	completed	skipped
+tests / arch-instrument	completed	success
+tests / lane-proofs	completed	success
+tests / mutation-pins	completed	skipped
+tests / typing	completed	success
+tests / browser	completed	success
+tests / coverage	completed	success
+tests / fast (3.14)	completed	success
+tests / nightly-ha	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+governance / delivery-status-publish	completed	skipped
+tests / nightly-status	completed	success
+governance / instrument-self-tests	completed	success
+arch-score / arch-score	completed	success
+tests / mutation	completed	success
+governance / delivery-status	completed	success
+codeql / Analyze (actions)	completed	success
+validate / validate-hacs	completed	success
+governance / record	completed	skipped
+codeql / Analyze (javascript-typescript)	completed	success
+governance / wave-script	completed	success
+kernel-points	completed	skipped
+tests / closure-scope	completed	success
+cancel-superseded	completed	success
+tests / replay	completed	failure
+gate	completed	failure
+pr-contract / pr-contract	completed	failure
+kernel-points	completed	skipped
+validate	completed	skipped
+codeql	completed	skipped
+governance	completed	skipped
+hassfest	completed	skipped
+tests	completed	skipped
+budget-raise-gate / budget-raise-gate	completed	success
+arch-score / arch-score	completed	success
+CodeQL	completed	success
+cancel-superseded	completed	success
+prelude	completed	success
+refresh	completed	success
+arm	completed	skipped
