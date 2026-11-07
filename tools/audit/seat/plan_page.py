@@ -74,6 +74,9 @@ sys.path.insert(0, str(_SEAT))
 sys.path.insert(0, str(_SEAT.parents[1] / "plan"))
 import roster_lib  # noqa: E402 -- the one roster reader
 import replan  # noqa: E402 -- the one owner of plan.json and its freshness
+sys.path.insert(0, str(_SEAT.parent))
+import merge_throughput as mt  # noqa: E402 -- the flow board's computations
+import bottleneck_check  # noqa: E402 -- the one owner of the alert thresholds
 
 SELF = "tools/audit/seat/plan_page.py"
 # The round's tracking issue (CLAUDE.md's #201): the open-issue count leaves it
@@ -187,8 +190,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
     # clears an after-edge and drops a group from the schedule. `merged` is the
     # narrower class that renders done; an absorbed group stays held, naming
     # the group it went to.
-    done = {g for g in G if not roster_lib.is_open(G[g])}
-    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES}
+    # A discharged group (replan's `discharged`: merged, carries-open, every
+    # carry marked) is closed in the plan, so it renders merged and clears the
+    # edges on it; the roster's own stage is left as written.
+    discharged = {g for g in G if (PG.get(g) or {}).get("discharged")}
+    done = {g for g in G if not roster_lib.is_open(G[g])} | discharged
+    merged = {g for g in done if _stage(G[g]) in roster_lib.DONE_STAGES} | discharged
 
     open_pr: dict = {}
     for p in sorted(snap["open_prs"], key=lambda p: p["number"]):
@@ -225,6 +232,12 @@ def build_rows(roster: dict, plan: dict, snap: dict) -> list:
                 label, pr = f"merged at {commit[:8]}", "merged"
             else:
                 label, pr = "folded into another group (no merge of its own)", "merged"
+            if g in discharged:
+                owed = [n for n in entry.get("issues") or []
+                        if (state.get(n) or {}).get("state") == "OPEN"]
+                label += ", every carry discharged" + (
+                    f"; record owed: close or re-own #{', #'.join(map(str, owed))}, "
+                    "then set-stage done" if owed else "; record owed: set-stage done")
         elif _stage(entry) in roster_lib.DISPOSITION:
             st = "held"
             into = entry.get("absorbed_into")
@@ -479,11 +492,85 @@ def issues_section(roster: dict, plan: dict, snap: dict) -> str:
 
 # --------------------------------------------------------------------- page
 
+def _hours(xs) -> str:
+    return "—" if not xs else f"{sorted(xs)[len(xs) // 2]:.1f} h (n {len(xs)})"
+
+
+def flow_section(plan: dict, rows: list, flow: dict | None) -> str:
+    """The flow metrics (proposal 2, tvofi 2026-11-07): throughput against
+    takt, first-pass yield and the blocked-class mix, lead time per size,
+    in-progress WIP against the slot cap, merge-wait per PR and train skips
+    per batch, all `merge_throughput.bottleneck_metrics`; the breaches
+    `bottleneck_check.judge` prints; and the critical-path lane as the full
+    set, each group with its status. A source that cannot be read is
+    UNAVAILABLE with its reason, never a zero."""
+    e = html.escape
+    by = {r["g"]: r for r in rows}
+    lane = "".join(
+        f'<tr><td class="g">{e(short(g))}</td><td><span class="pill {by[g]["st"]}">'
+        f'{e(by[g]["label"])}</span></td><td class="mono">{e(by[g]["pr"])}</td>'
+        f'<td class="mono">{by[g]["finish"] or "—"}</td></tr>'
+        for g in plan["critical_path"] if g in by)
+    head = ('<section>\n  <h2>Flow</h2>\n'
+            f'  <h3>Critical-path lane ({len(plan["critical_path"])} groups, the plan\'s full set)</h3>\n'
+            '  <table><thead><tr><th>Group</th><th>Status</th><th>PR</th><th>ETA</th></tr></thead>'
+            f'<tbody>{lane or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n')
+    if flow is None:
+        return head + '  <p class="note">Flow metrics not drawn (--no-flow).</p>\n</section>\n'
+
+    def cell(pair, fmt):
+        v, why = pair
+        return f'<span class="na">UNAVAILABLE — {e(why)}</span>' if v is None else fmt(v)
+
+    takt = flow["takt"]
+    stats = [
+        ("Throughput, 6 h", cell(flow["closed"], lambda v: f"{v / 6:.2f}/h vs takt {takt:g}/h "
+                                 f"({v} groups closed; alert below {0.7 * takt:.2f}/h)")),
+        ("First-pass yield, 24 h", cell(flow["yield"], lambda v: (
+            f"{v[0] / v[1]:.2f} ({v[0]}/{v[1]}; alert below 0.6)" if v[1] else "0/0"))),
+        ("Blocked classes, 24 h", cell(flow["classes"], lambda v: ", ".join(
+            f"{k or 'unclassed'} {n} ({n / sum(v.values()):.0%})" for k, n in v.most_common()) or "none")),
+        ("Lead time per size, 24 h", cell(flow["lead"], lambda v: ", ".join(
+            f"{k} {_hours(xs)}" for k, xs in sorted(v[0].items())) or "no group merge")),
+        ("WIP, in progress", cell(flow["wip"], lambda v: f"{len(v)} vs cap {flow['wip_cap']}")),
+        ("Merge-wait, 24 h", cell(flow["merge_wait"], lambda v: (
+            f"median {_hours([r['hours'] for r in v[0]])}; alert above 2 h; "
+            f"{v[1]} merges with no verdict before them"))),
+    ]
+    strip = "".join(f'<tr><th>{e(k)}</th><td>{v}</td></tr>' for k, v in stats)
+    waits = flow["merge_wait"][0]
+    wait_rows = "".join(
+        f'<tr><td class="mono">#{r["pr"]}</td><td>{e(r["kind"])}</td>'
+        f'<td class="mono">{r["hours"]:.1f} h</td><td>{"yes" if r["at_head"] else "carried"}</td></tr>'
+        for r in sorted(waits[0], key=lambda r: -r["hours"])) if waits else ""
+    batches = flow["batches"][0] or []
+    batch_rows = "".join(
+        f'<tr><td class="mono">{e(b["tag"])}</td><td class="mono">{len(b["skips"])}/{b["queue"]}</td>'
+        f'<td>{e("; ".join(f"#{pr} {why}" for pr, why in b["skips"])) or "—"}</td>'
+        f'<td>{"done" if b["done"] else "running"}</td></tr>' for b in batches[-8:][::-1])
+    alerts = bottleneck_check.judge(flow)
+    alert = ("".join(f"<li class=\"mono\">{e(a)}</li>" for a in alerts)
+             if alerts else "<li>no metric past its threshold</li>")
+    return (head
+            + f'  <h3>Bottlenecks ({len(alerts)})</h3>\n  <ul class="alerts">{alert}</ul>\n'
+            + '  <p class="note">Each line suggests an action and takes none; the orchestrator '
+              'decides. Thresholds and their minimum samples are <code>bottleneck_check.THRESHOLDS</code>.</p>\n'
+            + f'  <h3>Flow metrics (to {e(str(flow["until"]))})</h3>\n  <table><tbody>{strip}</tbody></table>\n'
+            + '  <h3>Merge-wait per PR, 24 h (merge verdict to merge)</h3>\n'
+            + '  <table><thead><tr><th>PR</th><th>Kind</th><th>Wait</th><th>Verdict at merged head</th>'
+              f'</tr></thead><tbody>{wait_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n'
+            + '  <h3>Train skips per batch (latest 8)</h3>\n'
+            + '  <table><thead><tr><th>Batch (UTC)</th><th>Skipped</th><th>Why</th><th>State</th>'
+              f'</tr></thead><tbody>{batch_rows or "<tr><td colspan=4>—</td></tr>"}</tbody></table>\n'
+            + "</section>\n")
+
+
 def _when(s: str) -> str:
     return _t(s).strftime("%a %d %b %H:%M")
 
 
-def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
+def render(roster: dict, roster_src: str, plan: dict, snap: dict,
+           flow: dict | None = None) -> str:
     """The page. Pure: every input is an argument."""
     rows = build_rows(roster, plan, snap)
     svg, drawn = swimlanes(plan, rows)
@@ -540,6 +627,7 @@ def render(roster: dict, roster_src: str, plan: dict, snap: dict) -> str:
         "source": e(f'{roster_src} @ {gen["roster_blob"][:12]}'),
         "tracking": str(TRACKING_ISSUE), "open_iss": open_iss,
         "issues_chart": issues_section(roster, plan, snap),
+        "flow": flow_section(plan, rows, flow),
         "end": _t(summ["closure"]).strftime("%a %d %b %H:%M"),
         "svg": svg, "crit": crit or "—", "trs": trs, "stamps": stamps, "waves": waves,
         "slots": str(slots), "every": str(every),
@@ -588,6 +676,19 @@ def _refuse(html_out: str, what: str, detail: list) -> int:
 
 # ---------------------------------------------------------------------- cli
 
+def flow_metrics(repo: str, ref: str, path: str, roster: dict, plan: dict,
+                 train_log: str | None) -> dict:
+    """`merge_throughput.bottleneck_metrics` over the roster this page drew,
+    WIP against the plan's own slot cap."""
+    crit, cwhy = mt.critical_read(Path(repo), ref, roster)
+    ctx = mt.FlowCtx(repo=Path(repo), tree="origin/main", remote="origin", roster=roster,
+                     roster_unavailable="", roster_ref=ref, roster_path=path, prefix="",
+                     record_prefix="record/", critical=crit, critical_unavailable=cwhy)
+    until = mt.flow_default_until(Path(repo), "origin/main", ref)
+    return mt.bottleneck_metrics(ctx, until, Path(train_log) if train_log else None,
+                                 int(plan["generated"]["caps"]["slots"]))
+
+
 def main(argv=None, fetch=fetch_github) -> int:
     p = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     p.add_argument("--plan")
@@ -601,6 +702,9 @@ def main(argv=None, fetch=fetch_github) -> int:
                    help="read GitHub state from this JSON file instead of gh")
     p.add_argument("--no-fetch", action="store_true",
                    help="read an origin/ roster ref as this clone has it")
+    p.add_argument("--train-log", default=None,
+                   help="the live merge train's train.log, for the skip measure")
+    p.add_argument("--no-flow", action="store_true", help="draw no flow metrics")
     p.add_argument("--self-test", action="store_true")
     a = p.parse_args(argv)
     if a.self_test:
@@ -626,7 +730,8 @@ def main(argv=None, fetch=fetch_github) -> int:
     roster = roster_lib.show_roster(a.repo, ref, path)
     snap = (json.loads(Path(a.github_snapshot).read_text(encoding="utf-8"))
             if a.github_snapshot else _fetch_or_offline(fetch, a.gh_repo))
-    page = render(roster, f"{ref}:{path}", plan, snap)
+    flow = None if a.no_flow else flow_metrics(a.repo, ref, path, roster, plan, a.train_log)
+    page = render(roster, f"{ref}:{path}", plan, snap, flow)
     Path(a.html).write_text(page, encoding="utf-8")
     print(f"wrote {a.html}: {len(roster_lib.groups_of(roster))} groups, "
           f"closure {plan['summary']['closure']}")
@@ -840,6 +945,52 @@ def _self_test() -> int:
             check("every template field is filled", "{{" not in page,
                   re.findall(r"\{\{\w+\}\}", page))
             check("the round comes from the roster path", "<h1>Round 9 Fix Plan</h1>" in page)
+
+            # PROPOSAL 1 (tvofi 2026-11-07): a merged carries-open group with
+            # every carry marked is closed in the plan and renders merged, with
+            # the record step it still owes; one unmarked carry keeps it held.
+            def dis_roster(carry):
+                return {"groups": roster["groups"] + [
+                    dict(grp("R9-DIS", "CO", stage="carries-open", commit="fffffff1",
+                             issues=(12,)), carry=carry),
+                    grp("R9-AFTER", "CO", after=("R9-DIS",))]}
+            for carry, want in ((["a [moved: R9-READY]", "b [dismissed: a duplicate]"], True),
+                                (["a [moved: R9-READY]", "b"], False)):
+                rd = dis_roster(carry)
+                pd = replan.build_plan(rd, durations, dict(replan.DEFAULT_CAPS), start,
+                                       "v1.0.0", round_n=9)
+                rr = {r["g"]: r for r in build_rows(rd, pd, snap)}
+                if want:
+                    check("discharged: rendered merged, naming the record step it owes",
+                          rr["R9-DIS"]["st"] == "done"
+                          and "every carry discharged" in rr["R9-DIS"]["label"]
+                          and "close or re-own #12" in rr["R9-DIS"]["label"]
+                          and rr["R9-AFTER"]["blk"] == [], (rr["R9-DIS"], rr["R9-AFTER"]["blk"]))
+                else:
+                    check("discharged (null): one unmarked carry keeps it held and its "
+                          "dependent blocked", rr["R9-DIS"]["st"] == "held"
+                          and rr["R9-AFTER"]["blk"] == ["R9-DIS"], (rr["R9-DIS"], rr["R9-AFTER"]))
+
+            # PROPOSAL 2: the flow section draws bottleneck_metrics' dict, the
+            # alert's lines, and the critical-path lane as the full set.
+            flow = bottleneck_check._fixture(
+                closed=(4, ""), batches=(None, "no train log named"),
+                merge_wait=(([{"pr": 7, "hours": 3.0, "kind": "group", "at_head": True}], 0), ""))
+            flow.update(until="2026-01-05 00:00:00+00:00", lead=(({"S": [1.5, 2.5]}, 0), ""))
+            fp = render(roster, f"main:{roster_lib.ROSTERS_DIR}/wave-r9-groups.json", plan, snap, flow)
+            check("flow: the alert's breach line is drawn",
+                  "BOTTLENECK: throughput 0.67/h" in fp and "<h3>Bottlenecks (2)</h3>" in fp,
+                  re.findall(r"BOTTLENECK[^<]*", fp))
+            check("flow: an unreadable source is UNAVAILABLE with its reason, the page is not",
+                  "BOTTLENECK-UNREADABLE: skip-share -- no train log named" in fp
+                  and "PLAN UNAVAILABLE" not in fp)
+            check("flow: the critical-path lane lists the plan's full set",
+                  f"Critical-path lane ({len(plan['critical_path'])} groups" in fp
+                  and all(f'<td class="g">{short(g)}</td>' in fp for g in plan["critical_path"]))
+            check("flow: merge-wait and WIP are drawn from the dict",
+                  "#7</td><td>group</td><td class=\"mono\">3.0 h" in fp and "19 vs cap 20" in fp)
+            check("flow (null): with no metrics the section says not drawn, no zero",
+                  "Flow metrics not drawn" in page and "BOTTLENECK" not in page)
             model = plan["generated"]["model"]
             check("the methodology states the plan's sizes and live fraction",
                   f"S {model['sizes_hours']['S']:g} h" in page
@@ -1096,6 +1247,7 @@ td.d{min-width:260px;max-width:440px}
 </div>
 
 {{issues_chart}}
+{{flow}}
 <section>
   <h2>Swimlanes</h2>
   <div class="scroll">{{svg}}</div>
