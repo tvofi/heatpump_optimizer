@@ -39,6 +39,10 @@ Scenarios:
             edit run whose prelude waits on it (#3246 review): the prelude/gate
             seam. Only this scenario lets the runs take the workset their
             prelude returns (`--defer`), so the others replay as recorded.
+  fixture   r10-gate-busy-defer-2: the RECORDED runs at #3263's head 02e92e7c and
+            #3261's head e17fadc1 (tools/ci/fixtures/gate_busy_defer_runs.json, the
+            jobs API's timestamps), each logged gate re-judged by this tree's
+            judge() from its `Judge this head` step on; printed beside CI's verdict.
 
 Per scenario it prints every published `gate` verdict with its simulated time,
 then: UNDECIDED-RED (a FAIL whose reason is the deferral), MASKED (a PASS
@@ -319,15 +323,98 @@ def scenario(ci: Path, name: str, edit_s: int):
     sys.path.remove(str(ci))
 
 
+FIXTURE = Path(__file__).resolve().parents[3] / "tools" / "ci" / "fixtures" / "gate_busy_defer_runs.json"
+
+
+def _epoch(x):
+    from datetime import datetime
+    return None if x is None else datetime.fromisoformat(x.replace("Z", "+00:00")).timestamp()
+
+
+def _listed(rows, t):
+    """The Actions API at epoch t, re-derived from the recorded job timestamps."""
+    out = []
+    for r in rows:
+        if _epoch(r["created_at"]) > t:
+            continue
+        jobs = []
+        for j in r["jobs"]:
+            if _epoch(j["created_at"]) > t:
+                continue
+            if j["status"] == "completed" and j["completed_at"] and _epoch(j["completed_at"]) <= t:
+                jobs.append({"name": j["name"], "status": "completed", "conclusion": j["conclusion"], "id": 1})
+            else:
+                st = "in_progress" if j.get("started_at") and _epoch(j["started_at"]) <= t else "queued"
+                jobs.append({"name": j["name"], "status": st, "conclusion": None, "id": 1})
+        done = r["status"] == "completed" and _epoch(r["updated_at"]) <= t
+        out.append({"id": r["id"], "display_title": r["display_title"],
+                    "status": "completed" if done else "in_progress", "jobs": jobs})
+    return out
+
+
+def fixture(ci: Path, path: Path) -> None:
+    """r10-gate-busy-defer-2: each recorded gate (#3263's 42338396358, #3261's pair)
+    re-judged by THIS tree's gate.judge over the API as it read at that gate's
+    `Judge this head` step, then forward on the recorded timestamps, one poll per
+    nap. Prints the tree's verdict and wait beside the verdict CI logged."""
+    import json
+    fx = json.loads(path.read_text())
+    sys.path[:0] = [str(ci)]
+    for m in MODULES:
+        sys.modules.pop(m, None)
+    prelude, gate = importlib.import_module("prelude"), importlib.import_module("gate")
+    timed = "sleep" in inspect.signature(gate.judge).parameters
+    for head, rows in sorted(fx["heads"].items()):
+        for rid_s, rec in sorted(fx["gates"].items()):
+            me = next((r for r in rows if str(r["id"]) == rid_s), None)
+            if me is None:
+                continue
+            t0 = _epoch(next(j for j in me["jobs"] if j["name"] == "gate")["judge_started_at"])
+            kind, pr, _ = prelude.parse_title(me["display_title"])
+            naps = []
+
+            def get(path, params=None, rows=rows, t0=t0, pr=pr, naps=naps, head=head):
+                if sum(naps) > 2 * gate.GATE_WAIT_MAX_S:
+                    raise TimeoutError
+                rs = _listed(rows, t0 + sum(naps))
+                if path.endswith(f"/pulls/{pr}"):
+                    return 200, {}, {"state": "open", "head": {"sha": head, "repo": {"full_name": fx["repo"]}},
+                                     "base": {"ref": "main"}}
+                if path.endswith("ci.yml/runs"):
+                    return 200, {}, {"workflow_runs": [{k: r[k] for k in ("id", "display_title", "status")} for r in rs]}
+                i = int(path.split("/runs/")[1].split("/")[0])
+                return 200, {}, {"jobs": next(r["jobs"] for r in rs if r["id"] == i)}
+            env = {"GITHUB_SHA": "M", "GITHUB_REPOSITORY": fx["repo"], "GITHUB_RUN_ID": rid_s,
+                   "GITHUB_RUN_ATTEMPT": str(me["run_attempt"])}
+            ctx = prelude.context("pull_request", {"action": "edited", "pull_request": {
+                "number": int(pr), "base": {"ref": "main"}, "head": {"sha": head}}}, env)
+            claim = {"kind": kind, "pr": pr, "workset": set(rec["workset"].split())}
+            kw = {"sleep": naps.append, "now": lambda naps=naps: sum(naps)} if timed else {}
+            try:
+                out = gate.judge(ctx, claim, get, lambda b, h: True, **kw)[0]
+            except TimeoutError:
+                out = "UNBOUNDED"
+            print(f"fixture: run {rid_s} (PR {pr}, programs CI restored {rec['restored'][:8]}): "
+                  f"this tree {out!r} after {sum(naps)} s; CI logged {rec['verdict']!r}")
+    for m in MODULES:
+        sys.modules.pop(m, None)
+    sys.path.remove(str(ci))
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--ci", default=str(Path(__file__).resolve().parents[3] / "tools" / "ci"))
     ap.add_argument("--edit-s", type=int, default=518)
-    ap.add_argument("scenarios", nargs="*", default=["2754", "2754-red", "pair", "cascade", "editcode", "single", "prelude"])
+    ap.add_argument("--fixture", default=str(FIXTURE), help="the recorded runs the `fixture` scenario replays")
+    ap.add_argument("scenarios", nargs="*", default=["2754", "2754-red", "pair", "cascade", "editcode", "single", "prelude",
+                                                     "fixture"])
     a = ap.parse_args()
     ci = Path(a.ci).resolve()
     for s in a.scenarios:
-        scenario(ci, s, a.edit_s)
+        if s == "fixture":
+            fixture(ci, Path(a.fixture))
+        else:
+            scenario(ci, s, a.edit_s)
     return 0
 
 
