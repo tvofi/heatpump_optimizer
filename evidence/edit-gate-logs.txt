@@ -1,0 +1,10 @@
+run 42387524862 job 128451133241
+##[group]Run set -euo pipefail
+[36;1mset -euo pipefail[0m
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL run(s) [42387525051] at this head are still being judged; their gate decides
+run 42387655386 job 128453922283
+##[group]Run set -euo pipefail
+[36;1mset -euo pipefail[0m
+[36;1m  [[ "$INPUT_BASE" =~ ^[A-Za-z0-9._/-]+$ ]] || { echo "FAIL base ref malformed"; exit 1; }[0m
+FAIL run(s) [42387525051] at this head are still being judged; their gate decides
