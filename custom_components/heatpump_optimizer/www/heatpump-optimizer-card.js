@@ -11,7 +11,7 @@
 
 const CARD_TAG = "heatpump-optimizer-card";
 const EDITOR_TAG = "heatpump-optimizer-card-editor";
-const CARD_VERSION = "7.1.4";
+const CARD_VERSION = "7.1.5";
 
 // Home Assistant's default --primary-color (#03a9f4) is 2.63:1 on a white
 // card — too light for text or for white label text on a filled button.
@@ -897,7 +897,7 @@ const STRINGS = {
     "headline.savings_pct": "({pct}%)",
     "whynow.title": "Why now",
     "whynow.metric":
-      "The reasons behind this hour's decision. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason mostly decides the hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
+      "The reasons weighing on this hour's plan. Each row is one reason: the arrow shows whether it pushes the heat pump to run or to idle, and the percentage is its share of the total push this hour. A high share means that reason pushes hardest; the plan weighs the whole day's hours together, so the heat pump can still do the opposite this hour. No data means the optimizer has no plan for this hour yet, for example before the first solve or while the price forecast is missing.",
     "whynow.no_data": "No data",
     "whynow.all_neutral": "No effect now from any reason.",
     "whynow.dir_run": "pushes toward running",
@@ -1738,7 +1738,7 @@ const STRINGS = {
     "headline.savings_pct": "({pct} %)",
     "whynow.title": "Varför nu",
     "whynow.metric":
-      "Skälen bakom den här timmens beslut. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet mest avgör timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
+      "Skälen som väger på den här timmens plan. Varje rad är ett skäl: pilen visar om det driver värmepumpen att gå eller vila, och procenten är dess andel av den totala påverkan den här timmen. Hög andel betyder att skälet driver hårdast; planen väger hela dygnets timmar mot varandra, så värmepumpen kan ändå göra tvärtom den här timmen. Ingen data betyder att optimeraren ännu inte har någon plan för timmen, till exempel före första beräkningen eller när prisprognosen saknas.",
     "whynow.no_data": "Ingen data",
     "whynow.all_neutral": "Ingen påverkan nu från något skäl.",
     "whynow.dir_run": "driver mot drift",
@@ -10013,7 +10013,7 @@ const RECEIPT_CSS = `
 const finiteNum = (n) => typeof n === "number" && Number.isFinite(n);
 
 /** The latest receipt's lines, its total and where its spot money went. */
-function receiptHtml(st, rows, cur) {
+function receiptHtml(st, rows, cur, wood) {
   const list = Array.isArray(st.attributes.receipts) ? st.attributes.receipts : [];
   const r = list.length ? list[list.length - 1] : null;
   if (!r || !r.lines || typeof r.lines !== "object") return "";
@@ -10039,7 +10039,9 @@ function receiptHtml(st, rows, cur) {
     ? `<div>${esc(L("receipt.saved", {
         amount: row.savings_sek.toFixed(2), unit: cur,
         pct: finiteNum(row.savings_pct) ? `${row.savings_pct.toFixed(0)} %` : "—",
-      }))}</div>`
+      }))}</div>${wood
+        ? `<div class="receipt-sub receipt-wood-note">${esc(L("savings.wood_note"))}</div>`
+        : ""}`
     : "";
   const covers = basis.map((n) => L(`receipt.line_${n}`).toLowerCase()).join(", ");
   const reasons = Object.entries(r.reasons || {})
@@ -15016,7 +15018,12 @@ class HeatpumpOptimizerCard extends HTMLElement {
     const cur = savingsUnit(this.plan, "_plan_monthly_savings");
     // R9-UX-6: the closed month's receipt and yesterday's replay come first;
     // the table of every month below them is unchanged.
-    const drawn = `${receiptHtml(st, rows, cur)}${replayHtml(st, cur)}`;
+    // The reference has no wood: on a house with wood configured every saving
+    // the page states, the receipt's and the table's, says so (owner ruling,
+    // 2026-11-04).
+    const fuel = this.plan.woodFuel();
+    const wood = !!(fuel && fuel.show_whatif);
+    const drawn = `${receiptHtml(st, rows, cur, wood)}${replayHtml(st, cur)}`;
     const top = drawn ? `<style>${RECEIPT_CSS}</style>${drawn}` : "";
     const money = (n) => (finiteNum(n) ? n.toFixed(2) : "—");
     const pct = (n) => (finiteNum(n) ? `${n.toFixed(0)}%` : "—");
@@ -15050,8 +15057,7 @@ class HeatpumpOptimizerCard extends HTMLElement {
     // the same unit down the whole column, and repeating it is what pushed
     // the decimal points out of line.
     const head = (key) => `${esc(L(key))} (${esc(cur)})`;
-    const fuel = this.plan.woodFuel();
-    const woodNote = fuel && fuel.show_whatif
+    const woodNote = wood
       ? `<div class="savings-wood-note" style="margin-top:.6em;font-size:.9em;color:var(--secondary-text-color)">${esc(L("savings.wood_note"))}</div>`
       : "";
     return `${top}<table class="savings-table">
