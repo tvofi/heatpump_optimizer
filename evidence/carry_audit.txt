@@ -1,0 +1,6 @@
+NOTE body item 312fc193: dismissed:verdict robust below a 306x factor
+NOTE review 0 item 665a60f4: R10-PARTLOAD-RESIDUE: R10-PARTLOAD-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 2454724c: R10-PARTLOAD-RESIDUE: R10-PARTLOAD-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item 7d8de35e: R10-PARTLOAD-RESIDUE: R10-PARTLOAD-RESIDUE resolved on origin/handoff/audit-r10-roster
+NOTE review 0 item b3900a7c: R10-PARTLOAD-RESIDUE: R10-PARTLOAD-RESIDUE resolved on origin/handoff/audit-r10-roster
+CARRY-AUDIT: 5 finding item(s): 5 routed, 0 unrouted, 0 bad destination(s)
