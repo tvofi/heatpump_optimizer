@@ -2216,6 +2216,7 @@
    "custom_components/heatpump_optimizer/wear.py",
    "custom_components/heatpump_optimizer/wood_fuel.py",
    "custom_components/heatpump_optimizer/www/heatpump-optimizer-card.js",
+   "dev/audit/harnesses/r10_demand_overbook.py",
    "docs/automations.md",
    "tests/dst_checks.py",
    "tests/features.py",
