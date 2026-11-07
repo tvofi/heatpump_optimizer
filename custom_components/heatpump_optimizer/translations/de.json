@@ -203,16 +203,16 @@
         "data": {
           "indoor_temp_entity": "Innentemperatursensor",
           "outdoor_temp_entity": "Außentemperatursensor",
-          "heat_pump_switch_entity": "Ein-/Aus-Schalter der Wärmepumpe",
+          "heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
           "solar_radiation_entity": "Sensor für Sonneneinstrahlung",
           "solar_forecast_source": "Quelle der Sonneneinstrahlung",
           "solar_location": "Standort der Sonneneinstrahlung",
-          "floor_return_temp_entity": "Rücklauftemperatursensor der Fußbodenheizung",
+          "floor_return_temp_entity": "Rücklauftemperatursensor Fußbodenheizung",
           "lower_floor_temp_entity": "Temperatursensor Untergeschoss",
-          "dhw_temp_entity": "Temperatursensor des Warmwasserspeichers",
-          "buffer_tank_temp_entity": "Temperatursensor des Pufferspeichers",
+          "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
+          "buffer_tank_temp_entity": "Temperatursensor Pufferspeicher",
           "heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
-          "heat_pump_defrost_entity": "Abtauung",
+          "heat_pump_defrost_entity": "Abtauen",
           "heat_pump_online_entity": "Pumpe online",
           "heat_pump_fault_entity": "Störungsmeldung"
         },
@@ -260,14 +260,14 @@
           "plant": {
             "name": "Wärmepumpe und Speicher",
             "data": {
-              "buffer_tank_temp_entity": "Temperatursensor des Pufferspeichers",
-              "dhw_temp_entity": "Temperatursensor des Warmwasserspeichers",
-              "floor_return_temp_entity": "Rücklauftemperatursensor der Fußbodenheizung",
-              "heat_pump_defrost_entity": "Abtauung",
+              "buffer_tank_temp_entity": "Temperatursensor Pufferspeicher",
+              "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
+              "floor_return_temp_entity": "Rücklauftemperatursensor Fußbodenheizung",
+              "heat_pump_defrost_entity": "Abtauen",
               "heat_pump_fault_entity": "Störungsmeldung",
               "heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
               "heat_pump_online_entity": "Pumpe online",
-              "heat_pump_switch_entity": "Ein-/Aus-Schalter der Wärmepumpe",
+              "heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
               "lower_floor_temp_entity": "Temperatursensor Untergeschoss"
             },
             "data_description": {
@@ -302,8 +302,8 @@
           "dhw_tank": "Warmwasserspeicher",
           "wood_furnace": "Holzkessel",
           "wood_buffer_tank": "Holzkessel-Pufferspeicher",
-          "wood_tank_top_entity": "Sensor oben am Holzspeicher (optional)",
-          "wood_tank_bottom_entity": "Sensor unten am Holzspeicher (optional)",
+          "wood_tank_top_entity": "Fühler oben am Holzspeicher (optional)",
+          "wood_tank_bottom_entity": "Fühler unten am Holzspeicher (optional)",
           "building_structure": "Woraus das Haus gebaut ist",
           "building_era": "Ungefähres Baujahr",
           "building_foundation": "Fundament",
@@ -597,7 +597,7 @@
               "dhw_temp_entity": "Temperatursensor Warmwasserspeicher",
               "floor_return_temp_entity": "Rücklauftemperatursensor Fußbodenheizung",
               "heat_pump_switch_entity": "Ein/Aus-Schalter der Wärmepumpe",
-              "lower_floor_temp_entity": "Temperatursensor unteres Geschoss"
+              "lower_floor_temp_entity": "Temperatursensor Untergeschoss"
             },
             "data_description": {
               "buffer_tank_temp_entity": "Optional. Wenn gesetzt, lernt die Integration, wie schnell der Pufferspeicher Wärme verliert, statt sich auf die konfigurierte Schätzung zu verlassen.",
@@ -1095,8 +1095,8 @@
           "dhw_tank": "Warmwasserspeicher",
           "wood_furnace": "Holzofen",
           "wood_buffer_tank": "Holz-Pufferspeicher",
-          "wood_tank_top_entity": "Sensor oben am Holzspeicher (optional)",
-          "wood_tank_bottom_entity": "Sensor unten am Holzspeicher (optional)",
+          "wood_tank_top_entity": "Fühler oben am Holzspeicher (optional)",
+          "wood_tank_bottom_entity": "Fühler unten am Holzspeicher (optional)",
           "building_structure": "Bauweise des Hauses",
           "building_era": "Ungefähres Baujahr",
           "building_foundation": "Fundament",
@@ -1159,7 +1159,7 @@
             "data": {
               "solar_forecast_source": "Quelle der Sonneneinstrahlung",
               "solar_location": "Standort der Sonneneinstrahlung",
-              "solar_radiation_entity": "Sensor für Sonnenstrahlung"
+              "solar_radiation_entity": "Sensor für Sonneneinstrahlung"
             },
             "data_description": {
               "solar_forecast_source": "Woher die Sonneneinstrahlung bezogen wird. „Wetter-Entität“ nutzt Ihre Wetter-Integration, die Einstrahlung oft gar nicht veröffentlicht. „Open-Meteo“ ruft eine kostenlose Prognose für den unten angegebenen Standort ab; ein Konto ist nicht nötig.",
@@ -1209,11 +1209,11 @@
         "title": "Wärmepumpen-Telemetrie",
         "description": "Was die Wärmepumpe über sich selbst meldet.",
         "data": {
-          "heat_pump_mode_entity": "Betriebsmodus der Wärmepumpe",
+          "heat_pump_mode_entity": "Betriebsart der Wärmepumpe",
           "pump_duty_mode": "Steuerung der Pumpenfunktion",
           "heat_pump_defrost_entity": "Abtauen",
           "heat_pump_online_entity": "Pumpe online",
-          "heat_pump_fault_entity": "Störungsalarm",
+          "heat_pump_fault_entity": "Störungsmeldung",
           "heat_pump_backup_heater_entity": "Zuheizer für Raumheizung",
           "heat_pump_dhw_booster_entity": "Heizstab im Warmwasserspeicher",
           "heat_pump_capacity_limited_entity": "Leistung begrenzt (Nachtmodus)",

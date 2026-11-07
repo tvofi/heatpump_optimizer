@@ -238,52 +238,6 @@ if (!Card) { console.error("FAIL: card not registered"); process.exit(1); }
 // constants already are: by name, in the card's own realm (#136, PR 9).
 const fn = (name) => vm.runInContext(name, ctx);
 
-// R10-I18N-DE: every dictionary in STRINGS is key-for-key with `en` and names
-// exactly en's {placeholders}. L() falls back to English per key, so a key a
-// translation lacks renders English mid-sentence and no render check sees it;
-// an extra key is a translation nobody can reach; a dropped placeholder loses
-// a number. The languages are STRINGS' own keys, never a list kept here.
-{
-  const ph = (s) => [...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]).sort().join(",");
-  const parity = (tables) => {
-    const out = [];
-    for (const [lang, t] of Object.entries(tables)) {
-      if (lang === "en") continue;
-      for (const k of Object.keys(tables.en)) {
-        if (!(k in t)) out.push(`${lang}: missing ${k}`);
-        else if (ph(tables.en[k]) !== ph(t[k])) out.push(`${lang}: placeholders of ${k}`);
-      }
-      for (const k of Object.keys(t)) if (!(k in tables.en)) out.push(`${lang}: extra ${k}`);
-    }
-    return out;
-  };
-  const tables = JSON.parse(JSON.stringify(fn("STRINGS")));
-  const langs = Object.keys(tables).filter((l) => l !== "en");
-  const bad = parity(tables);
-  check("every card language is key-for-key with en and names en's placeholders",
-    langs.length >= 2 && bad.length === 0, `${langs.join(",")}: ${bad.slice(0, 6).join("; ")}`);
-  // Null controls: a planted missing key, dropped placeholder and extra key in
-  // each translated table fail the same function, and the unplanted copy passes.
-  const fails = (mut) => { const c = JSON.parse(JSON.stringify(tables)); mut(c); return parity(c).length > 0; };
-  const k0 = Object.keys(tables.en).find((k) => /\{\w+\}/.test(tables.en[k]));
-  check("and a planted missing key, dropped placeholder or extra key in any language fails it (null controls)",
-    !fails(() => {}) && langs.every((lang) =>
-      fails((c) => { delete c[lang][k0]; })
-      && fails((c) => { c[lang][k0] = c[lang][k0].replace(/\{\w+\}/, ""); })
-      && fails((c) => { c[lang]["zz.planted"] = "x"; })),
-    `planted on ${k0} in ${langs.join(",")}`);
-  // hass.language carries a region ("de-DE"); setLanguage must reach every
-  // dictionary through the prefix, and an unknown one must fall back to en.
-  const active = (raw) => { vm.runInContext(`setLanguage(${JSON.stringify(raw)})`, ctx); return vm.runInContext("ACTIVE_LANG", ctx); };
-  const reached = Object.keys(tables).filter((lang) => active(`${lang}-XX`) === lang);
-  const deTab = active("de-DE") === "de" ? vm.runInContext('L("header.tab_setup")', ctx) : null;
-  const fallback = active("xx-YY");
-  active("en");
-  check("a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en",
-    reached.length === Object.keys(tables).length && deTab === tables.de["header.tab_setup"]
-    && deTab !== tables.en["header.tab_setup"] && fallback === "en",
-    `reached ${reached.join(",")}; de-DE tab ${deTab}; xx-YY -> ${fallback}`);
-}
 const reasonHtml = fn("reasonHtml");
 const sharedTooltipHtml = fn("sharedTooltipHtml");
 const extraFields = fn("extraFields");
@@ -408,6 +362,67 @@ function check(name, cond, detail) {
     if (detail) console.log("        " + detail);
     fails++;
   }
+}
+
+// R10-I18N-DE: every dictionary in STRINGS is key-for-key with `en`, names
+// every one of en's {placeholders}, and adds none but a listed one. L() falls back to English per key, so a key a
+// translation lacks renders English mid-sentence and no render check sees it;
+// an extra key is a translation nobody can reach; a dropped placeholder loses
+// a number. The languages are STRINGS' own keys, never a list kept here.
+{
+  const names = (s) => new Set([...String(s).matchAll(/\{(\w+)\}/g)].map((m) => m[1]));
+  // A translation may word a sentence around a placeholder English leaves
+  // out, but only one the call site fills: each such extra is listed here by
+  // language, key and placeholder, so an entry cannot excuse any other.
+  // (Design choice: dropping one of en's placeholders is always refused.)
+  const EXTRA_OK = new Set([
+    // L(detailKey, { verdict, ... }) passes verdict to both detail keys; sv
+    // words the unchanged case "oförändrad jämfört med ...".
+    "sv:stats.delta_detail_same:verdict",
+  ]);
+  const parity = (tables) => {
+    const out = [];
+    for (const [lang, t] of Object.entries(tables)) {
+      if (lang === "en") continue;
+      for (const k of Object.keys(tables.en)) {
+        if (!(k in t)) out.push(`${lang}: missing ${k}`);
+        else {
+          const want = names(tables.en[k]), have = names(t[k]);
+          for (const n of want) if (!have.has(n)) out.push(`${lang}: ${k} drops {${n}}`);
+          for (const n of have) if (!want.has(n) && !EXTRA_OK.has(`${lang}:${k}:${n}`)) out.push(`${lang}: ${k} adds {${n}}`);
+        }
+      }
+      for (const k of Object.keys(t)) if (!(k in tables.en)) out.push(`${lang}: extra ${k}`);
+    }
+    return out;
+  };
+  const tables = JSON.parse(JSON.stringify(fn("STRINGS")));
+  const langs = Object.keys(tables).filter((l) => l !== "en");
+  const bad = parity(tables);
+  check("every card language is key-for-key with en and keeps en's placeholders",
+    langs.length >= 2 && bad.length === 0, `${langs.join(",")}: ${bad.slice(0, 6).join("; ")}`);
+  // Null controls: a planted missing key, dropped placeholder and extra key in
+  // each translated table fail the same function, and the unplanted copy passes.
+  const fails = (mut) => { const c = JSON.parse(JSON.stringify(tables)); mut(c); return parity(c).length > 0; };
+  const k0 = Object.keys(tables.en).find((k) => /\{\w+\}/.test(tables.en[k]));
+  check("and a planted missing key, dropped or unlisted extra placeholder, or extra key in any language fails it (null controls)",
+    !fails(() => {}) && langs.every((lang) =>
+      fails((c) => { delete c[lang][k0]; })
+      && fails((c) => { c[lang][k0] = c[lang][k0].replace(/\{\w+\}/, ""); })
+      && fails((c) => { c[lang]["zz.planted"] = "x"; })
+      && fails((c) => { c[lang][k0] += " {zz_planted}"; })),
+    `planted on ${k0} in ${langs.join(",")}`);
+  // hass.language carries a region ("de-DE"); setLanguage must reach every
+  // dictionary through the prefix, and an unknown one must fall back to en.
+  const active = (raw) => { vm.runInContext(`setLanguage(${JSON.stringify(raw)})`, ctx); return vm.runInContext("ACTIVE_LANG", ctx); };
+  const reached = Object.keys(tables).filter((lang) => active(`${lang}-XX`) === lang);
+  const deTab = active("de-DE") === "de" ? vm.runInContext('L("header.tab_setup")', ctx) : null;
+  const fallback = active("xx-YY");
+  active("en");
+  check("a region-tagged hass.language reaches every card dictionary, de-DE included, and an unknown one falls back to en",
+    reached.length === Object.keys(tables).length && deTab === tables.de["header.tab_setup"]
+    && deTab !== tables.en["header.tab_setup"] && fallback === "en",
+    `reached ${reached.join(",")}; de-DE tab ${deTab}; xx-YY -> ${fallback}`);
 }
 
 // --- The navigation surface, declared once (R10-DEEPLINK) ------------------
@@ -4815,7 +4830,7 @@ const restartStates = (patch = {}) => {
       check("the Undo label goes through the translation layer, both ways",
         /"setup\.undo_layout": "Undo"/.test(cardSrc) &&
         /"setup\.undo_layout": "Ångra"/.test(cardSrc) &&
-        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === 2,
+        (cardSrc.match(/"setup\.undo_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length,
         "a hard-coded English string is a string the Swedish card keeps");
 
       // One drag and one new pipe: both halves of the working set moved.
@@ -5086,7 +5101,7 @@ const restartStates = (patch = {}) => {
     check("the Tidy up label goes through the translation layer, both ways",
       /"setup\.tidy_layout": "Tidy up"/.test(cardSrc) &&
       /"setup\.tidy_layout": "Städa upp"/.test(cardSrc) &&
-      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === 2);
+      (cardSrc.match(/"setup\.tidy_layout_aria":/g) || []).length === Object.keys(fn("STRINGS")).length);
   }
 }
 
@@ -5331,16 +5346,18 @@ const restartStates = (patch = {}) => {
       })()
     ));
 
-  // A language without a dictionary falls back to English wholesale.
-  const de = new Card();
-  de.setConfig({ type: "custom:heatpump-optimizer-card" });
-  de.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
-    language: "de-DE" };
-  const deDump = collect(de.shadowRoot).join("\n");
+  // A language without a dictionary falls back to English wholesale. (This
+  // used German as the unknown language until R10-I18N-DE gave it one.)
+  const unk = new Card();
+  unk.setConfig({ type: "custom:heatpump-optimizer-card" });
+  unk.hass = { states: mkStates(DEFAULT_SPACE, DEFAULT_DHW, true),
+    language: "xx-YY" };
+  const unkDump = collect(unk.shadowRoot).join("\n");
   check("an unknown language falls back to English",
-    deDump.includes("Electricity price") &&
-    deDump.includes("Heat pump plan") &&
-    !/Elpris/.test(deDump));
+    !fn("STRINGS").xx &&
+    unkDump.includes("Electricity price") &&
+    unkDump.includes("Heat pump plan") &&
+    !/Elpris|Strompreis/.test(unkDump));
 
   // Currency: published by the plan sensor as `currency`, shown on the price
   // axis and in the legend chip; absent, the SEK fallback holds.
