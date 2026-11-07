@@ -13582,7 +13582,7 @@
     "STRANDED CARRY 24 (carry-strand audit, orchestrator s9, 2026-10-31)\n\nSource: group R10-FLOW-JIDOKA, index 21; triage id: none; roster ref origin/handoff/audit-r10-roster abb47a06cd190e49c9d9da264ea3fab2a71f890d.\nOwner-ordered: no.\n\nWhy stranded: #2853 Forward-carry: \"Carry 22, the gate-scoping friction measurement. Not taken\"; #2835 open.\n\nFold into: R10-PREPR-CAP (live). Owner of tools/pr/prepr.sh among live groups (the only other is R10-FLY-NO-FOOTERS); PR #3051 is open, so this rides its next PR, not #3051.\n\nOriginal text, verbatim:\nMeasure first (#2835, main ruling under mandate 6329234399, 2026-10-26): recurring friction on .claude/rules/gate-scoping.md across 6 distinct PRs over v7.0.4..main. Name the 6 PRs and the rule hit each made (`node tools/policy/policy_lint.mjs --stats --since v7.0.4`, with a token), then decide whether the keying rule or the gate changes. Fix the cause in this group or record a decision not to, with the numbers. Part of #2835.\n\nCarry: R10-PREPR-CAP [implemented: 567565eec1600208b637453ea08d7e8e4b8138f8]"
    ],
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "branch": "handoff/r10-friction-records",
     "commit": "567565eec1600208b637453ea08d7e8e4b8138f8",
     "last_step": null,
