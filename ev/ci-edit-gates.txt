@@ -1,0 +1,12 @@
+head cecca4391dab34349fe10eb41a6ccfb2c4d3600e, check-runs read 2026-11-07 (60 check runs, one page of 100)
+edit run 42342100330 gate job 128315564740 failure 05:34:50-05:35:42:
+  2026-11-07T05:35:11.5538832Z FAIL run(s) [42342100403, 42342851829] at this head are still being judged; their gate decides
+edit run 42342851829 gate job 128315851252 failure 05:35:59-05:36:27:
+  2026-11-07T05:36:25.0147397Z FAIL run(s) [42342100403] at this head are still being judged; their gate decides
+code run 42342100403: tests / fast, closures, arch-instrument, coverage, browser, governance env-matrix, instrument-self-tests in_progress at read
+Both edit gates ran the event base's programs (294a880d, pre-fix): at-once deferral 3 s into Judge, exactly #3263's red (brief: GATE DEFERRAL).
+merge_train classify (7 iterations, ~10m41s): final "RED cecca4391dab34349fe10eb41a6ccfb2c4d3600e pending: none red: gate" rc=1
+gate-sweep re-runs (attempt 2, programs restored from 294a880d):
+  42342100330 gate job 128325112694 failure 06:20:18 "FAIL run(s) [42342851829] at this head are still being judged; their gate decides" (pre-fix at-once deferral to its sibling, whose re-run gate was queued)
+  42342851829 gate job 128325114872 success 06:23:32
+then a further sweep cleared 42342100330; merge_train classify: "GREEN cecca4391dab34349fe10eb41a6ccfb2c4d3600e pending: none red: none" rc=0 at 06:34:27Z

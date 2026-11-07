@@ -1,0 +1,11 @@
+== head
+2754: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 780 s (judge takes a clock: True)
+2754-red: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 780 s (judge takes a clock: True)
+pair: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 120 s (judge takes a clock: True)
+cascade: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 120 s (judge takes a clock: True)
+editcode: verdicts 2 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 600 s (judge takes a clock: True)
+single: verdicts 1 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 0 s (judge takes a clock: True)
+prelude: verdicts 3 UNDECIDED-RED 0 MASKED 0 DEADLOCK no CYCLE 0 gate-wait 480 s (judge takes a clock: True)
+fixture: run 42338396358 (PR 3263, programs CI restored 294a880d): this tree 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides' after 720 s; CI logged 'FAIL run(s) [42
+fixture: run 42307493684 (PR 3261, programs CI restored 28482ece): this tree 'PASS' after 0 s; CI logged 'FAIL run(s) [42307798573] at this head are still being judged; their gate decides'
+fixture: run 42307798573 (PR 3261, programs CI restored 28482ece): this tree 'PASS' after 0 s; CI logged 'FAIL run(s) [42307493684] at this head are still being judged; their gate decides'
