@@ -532,6 +532,30 @@ def gate_busy(ci_runs, check_runs) -> list:
     return _gate_py().busy({"run_id": float("inf")}, runs)
 
 
+def gate_rerunning(ci_runs, check_runs) -> list:
+    """The unfinished ci.yml run ids at a head whose check suite's latest GATE
+    run is completed: `gate` is ci.yml's last job, so such a run is a re-run
+    attempt (gate-sweep's) whose gate is not yet listed again, and gate.py's
+    `busy` reads it judging. Its red is the one being re-judged."""
+    done = {(c.get("check_suite") or {}).get("id") for c in gate_suites(check_runs or ())
+            if c.get("status") == "completed"}
+    return sorted(r["id"] for r in ci_runs
+                  if r.get("status") not in ("completed", "action_required") and r.get("check_suite_id") in done)
+
+
+def sweep_settling(check_runs, now: float) -> bool:
+    """Whether the newest green GATE suite completed at most SWEEP_SETTLE_SECONDS
+    before <now> (epoch seconds), so gate-sweep's re-run of a red beside it may
+    not have started. A stamp ahead of <now>, or none readable, is unknowable:
+    no settle, the red stands."""
+    ends = [c.get("completed_at") for c in gate_suites(check_runs or ()) if run_state(c) == "green"]
+    try:
+        last = max(datetime.datetime.fromisoformat(t.replace("Z", "+00:00")).timestamp() for t in ends)
+    except (ValueError, AttributeError):
+        return False
+    return 0 <= now - last <= SWEEP_SETTLE_SECONDS
+
+
 #: Polls a red GATE beside a green GATE suite is still waited on once no run is
 #: busy: gate-sweep.yml starts on the green run's completion and re-runs the
 #: deferred red gate (tools/ci/sweep.py), which lists its run unfinished again.
@@ -1635,16 +1659,19 @@ class Train:
         if ci_runs is None:
             self.log(f"gate red at {h[:8]}: the ci.yml runs listing is unreadable, so no run reads busy")
             return []
-        return gate_busy(ci_runs, check_runs)
+        return gate_busy(ci_runs, check_runs) or gate_rerunning(ci_runs, check_runs)
 
     def classify_at(self, h: str, runs, required) -> "tuple[str, list[str], list[str]]":
         """`classify` over <h>'s check runs with a red GATE re-read against
-        `_gate_busy`: the deferral reading of the one-read readers (the
-        `classify` subcommand, proof_watch). One read takes no sweep settle;
-        that is `wait_ci`'s, which polls, and a caller's next read sees the sweep."""
+        `_gate_busy` (a run busy, or re-running its gate), else against
+        `sweep_settling` on the wall clock: the deferral reading of the one-read
+        readers (the `classify` subcommand, proof_watch), none of which re-reads
+        a RED. `wait_ci`, which polls, takes the same settle as SWEEP_SETTLE_POLLS."""
         last = latest_runs(runs or ())
         state = classify(last, required)
-        busy = self._gate_busy(h, runs) if GATE in state[2] else []
+        if GATE not in state[2]:
+            return state
+        busy = self._gate_busy(h, runs) or (["sweep"] if sweep_settling(runs, self.wall()) else [])
         return classify(last, required, busy) if busy else state
 
     def wait_ci(self, h: str, only: "list[str] | None" = None,

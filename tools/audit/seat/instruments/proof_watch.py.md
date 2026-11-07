@@ -8,7 +8,8 @@
   moved off the pin, a named check that completed not-success, an exceeded
   `--budget`, a red required context (the ruleset's list, read through
   `merge_train.required`, judged by `Train.classify_at`, so an edit run's
-  gate deferral while gate.py's `busy` names a code run is pending), an unmergeable pull request and a head
+  gate deferral while gate.py's `busy` names a code run, or inside the
+  gate-sweep settle beside a green `gate` suite, is pending), an unmergeable pull request and a head
   `app_approve --dry-run` does not verdict — each aborts with a logged report
   and no merge; one instance per pinned head (flock), and `--dry-run` passes
   every guard and touches nothing. `--mode owner` hands `merge_pr.sh` its
