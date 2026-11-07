@@ -104,7 +104,7 @@ transcripts. This seat cannot.
 for the victim's active runs at its live head"*, then resume with
 `rerun-failed-jobs`. The rule was bounded: one pause per 5 min, a `never_pause`
 list, a `paused.json` record and `PAUSE` and `RESUME` log lines. It was carried
-into R10-TRAIN-OVERLAP-GRADE and has not landed.
+into R10-TRAIN-OVERLAP-GRADE; the live round roster now holds that pause under R10-CI-PRIORITY-PAUSE. It has not landed.
 `grep -rn "paused.json\|PAUSE #\|never_pause" tools dev/governance .claude dev/audit/config`
 returns nothing at `355d9965`. A hand-run pause would produce exactly this
 shape: a live-head cancel under the operator's credential, then a later rerun.
@@ -274,7 +274,7 @@ leaving it unbuilt here is not a decision against it.
   seat transcript, a relay or the owner's own hand. The countermeasure depends on
   which:
   - If it is a hand-run P267 pause, land P267's bounded pause
-    (R10-TRAIN-OVERLAP-GRADE carries it), with its `paused.json`, rate limit and
+    (R10-CI-PRIORITY-PAUSE carries it), with its `paused.json`, rate limit and
     `rerun-failed-jobs` resume, and retire the hand practice.
   - If it is a seat restarting runs to "see whether it comes out differently",
     that is `.claude/skills/steward/SKILL.md` S9's prohibition, and the barrier

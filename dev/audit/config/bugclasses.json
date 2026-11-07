@@ -5211,7 +5211,7 @@
     "total": 0,
     "max_per_round": 0,
     "detector": "python3 dev/audit/harnesses/livehead_cancels.py --cache DIR --fetch --since ISO --list",
-    "detector_idea": "The harness's CLASS line over a window starting after a countermeasure lands; a bounded, logged pause (P267, carried by R10-TRAIN-OVERLAP-GRADE) or a refusal at the sending seat's cancel path once the orchestrator names the sender (dev/audit/rca/r10-livehead-cancel.md section 6)",
+    "detector_idea": "The harness's CLASS line over a window starting after a countermeasure lands; a bounded, logged pause (P267, carried by R10-CI-PRIORITY-PAUSE) or a refusal at the sending seat's cancel path once the orchestrator names the sender (dev/audit/rca/r10-livehead-cancel.md section 6)",
     "barrier": null,
     "status": "detector",
     "nearest_existing": "N-p2b-assembly-reader",
