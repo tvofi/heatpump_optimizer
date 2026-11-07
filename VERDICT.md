@@ -1,44 +1,63 @@
-Fix review: blocked 3189559b21ddf1d5517ea7ec34f0df470c480103 mutation-vacuous: outside_intake.py Thread.mark third-party-bot guard survives the self-test
+Fix review: blocked 0fd9bc6da6a5f562c7104c1e4d921189f492cff1 mutation-vacuous: outside_intake.py one_thread review-comment read for a pull request survives the self-test
 
-bus-nonce: 990dee62cc5f67975d7170e16ff65360
+bus-nonce: fda2562f99fc192a50f4ddbd7f39ea73
 
-This is round 2 of the fix review of #3262 (R10-OUTSIDE-INTAKE), at head 3189559b21ddf1d5517ea7ec34f0df470c480103. I worked from a detached worktree at that head. The merge base with origin/main is f2a015142714383722bf49d7ab20d8398ec9674c, which is also origin/main, so the role contract is current. The head's tree is the same as the authored head 296bc921d0023a52d194c1f8d16d5afa418c098f (`git diff` is empty). Since round 1 (48acc104), the branch's only authored change is 296bc921d. This is a policy and developer-docs PR: it merges only on tvofi's approving review at the head.
+This is round 3 of the fix review of #3262 (R10-OUTSIDE-INTAKE), at head 0fd9bc6da6a5f562c7104c1e4d921189f492cff1, the merge of 9ffed3f2a and main. I worked from a detached worktree at that head and used a second worktree for the mutants. The merge base is 294a880dae608502b62055775e34a5db93217b98. origin/main is be813ecd4924865b75489f12c56600e9432d5727, and `git diff <merge-base>...origin/main -- dev/governance/roles/` is empty, so the role contract is current. Round 4 would owe a re-cut (`fixer.md`). This is a policy and developer-docs PR: it merges only on tvofi's approving review at the head.
 
 ## Block
 
-The brief asks for the mutation proof to be re-run on every changed line, not only the lines the body names. Commit 296bc921d restructured `Thread.mark` (`tools/audit/seat/outside_intake.py` L133-136). One of its new lines survives `python3 -I tools/audit/seat/outside_intake.py --self-test` (rc 0):
+The round-2 block is cured. Commit 9ffed3f2a deleted the guarded `last_out` move in `Thread.mark`, and the self-test's new `thirdbot_moves_out` mutant kills the unguarded form. The brief also asks for the mutation proof to be re-run on every changed line. `tools/audit/seat/outside_intake.py` is new in this PR, so every one of its lines is a changed line. I ran 47 mutants and counted case failures only (`outside_intake_selftest.run(False)`), the counting the fixer adopted in this round. One non-equivalent mutant on the thread reader survives:
 
-- **Inner `outside()` guard** (L134). Changing `if outside(c["login"], c["type"]):` to `if True:` SURVIVED. That lets a third-party bot's comment move `last_out`. It contradicts the docstring and body line it implements: "a third-party bot's is neither ours nor outside activity". The mutant is not equivalent. Drive #3225: outside submission, then our ANSWER_MARK, then a later comment by `renovate[bot]` (Bot). The head gives `owed=None`; the mutant gives `owed=reply`. So any review or dependency bot commenting on an answered thread would raise a false `reply` owed line on every beat. The null control is a later comment by `Bankaifan` (User), which gives `owed=reply` both at the head and under the mutant. `marker_any_bot` does not cover this: it reverts the whole guard to `outside()`, so the third-party branch itself is never asserted. Evidence: `ev/thirdbot-survivor.txt` and `ev/reviewer-mutants.txt`.
+- **`one_thread_pr_reviews_drop`.** Changing `if r["kind"] == "pr":` to `if False:` (L210) drops the read of a pull request's review comments. The cases-only self-test stays rc 0.
+  - The mutant is not equivalent. In the self-test's own fixture world, `listing` prints `OUTSIDE #3240 owed=triage comment by=reviewer-x`, an outside review comment on our PR.
+  - At the head, `dispose(..., 3240, ..., "not in scope", dry=True)` gives `outside_intake: #3240 refused rc=0`.
+  - Under the mutant, it gives `outside_intake: REFUSED: #3240 has no outside activity` (rc 1). That owed triage line could then never be disposed through the tool, and it would print on every beat.
+  - Evidence: `ev/drive.txt` (script `ev/drive.py`) and `ev/reviewer-mutants-casesonly.txt`.
 
-Cure: one case that adds a third-party bot comment after our answer on a disposed thread and asserts `owed` is None, plus a mutant on L134.
+Cure: one case that refuses (or answers) a thread whose only outside activity is a review comment, plus a MUTANTS entry on L210.
 
 ## Findings
 
-- **Unpinned guard.** Claim: the `outside()` guard inside `Thread.mark`'s non-OURS branch (L134) is not pinned by the self-test. Evidence: `ev/thirdbot-survivor.txt`. Harness: `python3 -I tools/audit/seat/outside_intake.py --self-test` and a direct `Thread`/`owed` drive (`ev/thirdbot.py`; mutant runner `ev/mut.py`). Metric: self-test rc, and the owed word. Perturbation: `if True:` at L134. The self-test stays rc 0, while owed moves from None to reply for a `renovate[bot]` comment after our answer. Null control: an outside `User` comment gives reply under both. Carry: R10-OUTSIDE-INTAKE
-- **Head's gate red not yet answered.** Claim: `## Red checks` names the reds of 48acc104 only, and says no check had run at 296bc921. At 3189559b, `gate` check run 128272376901 concluded `failure` with `FAIL run(s) [42329336154] at this head are still being judged; their gate decides`. That is the edit-run deferral to an in-progress code run. Evidence: `ev/check-runs.tsv` and `ev/classify.log`. Harness: the head's check-runs API, all pages. Metric: concluded reds not named. Perturbation: none applies; this is a read of state. The code run's own `gate` (128282233458) later concluded success, at 03:09:48Z. The concluded red still owes the body a line naming it as the ordering deferral, as the body did for 48acc104's four. Carry: R10-OUTSIDE-INTAKE
+- **Unpinned review-comment read.** Claim: `one_thread`'s read of `pulls/{n}/comments` for a PR (L210) is not pinned by any case. Evidence: `ev/reviewer-mutants-casesonly.txt` (`one_thread_pr_reviews_drop SURVIVED rc=0`) and `ev/drive.txt`. Harness: the self-test's cases (`run(False)`) plus my own drive of `dispose` over the self-test's `Fake(world)`. Metric: case rc, and dispose's rc and message for #3240. Perturbation: `if False:` at L210. The cases stay rc 0, while dispose moves from `refused rc=0` to `REFUSED: #3240 has no outside activity`. Null control: the head gives rc 0. Carry: R10-OUTSIDE-INTAKE
+- **Unpinned discussion kind (plausible).** Claim: in `scan`, `if t.n in disc: t.kind = "discussion"` survives (`scan_disc_kind SURVIVED rc=0`). Evidence: `ev/reviewer-mutants-casesonly.txt`. Harness: the self-test's cases. Metric: case rc. Perturbation: `if False:`. By reading the code, `saw()` sets the kind only from an outside opener. A discussion opened by us, with only outside comments, would then print `comment` rather than `discussion` on its OUTSIDE line. I did not drive that world, because the fixture world holds no discussions, so this one is not demonstrated. Carry: R10-OUTSIDE-INTAKE
+- **Same-second reply boundary.** Claim: in `owed`, `>` to `>=` survives the cases-only run (`owed_reply_ge SURVIVED rc=0`). In the full `--self-test` it read KILLED only through the `reply_never: stale` text check. Evidence: `ev/drive.txt`. An outside comment in the same second as our answer on #3225 gives no line at the head and `owed=reply` under the mutant. Harness: my drive. Metric: the #3225 line. Perturbation: `>=`. The head's choice, which treats a same-second outside comment as answered, is unasserted and arguably the wrong way round. Carry: R10-OUTSIDE-INTAKE
+- **`## Red checks` is stale at the PR head.** Claim: the body says the measured head has no check runs and that its "reds, if any, are named at the next read". Its section names no red of 0fd9bc6d. Evidence: `ev/check-runs.tsv` (200 runs, two pages, `filter=all`) and `ev/red-details.txt`. Harness: the commit's check-runs API. Metric: concluded reds not named. Perturbation: none applies; this is a read of state. Unnamed at this head:
+  - `gate` 128304775378, 128316374818 and 128324526998 concluded failure. Each log says `FAIL run(s) [42339563999] at this head are still being judged; their gate decides`, the edit-run deferral.
+  - `gate` 128305369003 and `arch-score / arch-score` 128304887981 concluded cancelled.
+  - `governance / instrument-self-tests` 128304160651 (04:45:23Z-05:15:38Z) and 128314670086 (05:30:48Z-06:01:03Z) concluded cancelled, each at the 30-minute timeout. That is the owner's standing line, cure R10-PROCESS-SLIM, #3245.
+  - Attempt 3 (128322483648) concluded success at 06:35:48Z.
+
+  Carry: R10-OUTSIDE-INTAKE
+- **Gate green over a cancelled required job.** Claim: `gate` 128321406871 concluded success at 06:04Z while instrument-self-tests attempt 2 was cancelled. Evidence: `ev/check-runs.tsv`. Harness: the check-runs API. Metric: gate conclusion against the required job's conclusion. Perturbation: none applies; this is a read of state. The brief records it already (s12-3262-gate-green-over-cancel.txt). I did not rely on it. Carry: R10-HOTFIX-GATE-BUSY-DEFER
 
 ## Evidence
 
-- Setup: `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`.
-- `review_packet.py render`: `REFUSE required-red: required context gate concluded failure at 3189559b...`. The packet was written, and live checks were re-read.
-- Round-1 survivors, re-run by me in place (`ev/reviewer-mutants.txt`). Null control: unmutated rc 0. All six round-1 mutants are now KILLED (rc 1):
-  - cursor read and cursor write, each by "main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass";
-  - post rc, by "post: a failed gh_comment read-back (rc 1) is a non-zero answer";
-  - `--dry-run` drop and script path, each by "post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept";
-  - list rc, by "main list: ...".
-- Changed-line mutants (my own, beyond the body's): 12 run, 11 KILLED, and 1 SURVIVED (`mark_thirdbot_moves_out`, see Block).
-  - Killed: `mark_revert_old`, `mark_no_last_out`, `who_no_suffix`, `who_never_bot`, `who_typ_user`, `cursor_exists_guard`, `cursor_write_skip`, `dry_always`, `post_issue_arg`, `last_ours_drop` and `keep_now`.
-- Self-tests at head (`ev/checks.txt`):
-  - `outside_intake self-test: all checks passed`, rc 0. There are 44 `ok` lines: 25 cases plus 19 `mutant` lines. That matches the body's "25 cases and 19 mutants".
-  - `plan_public self-test: all checks passed`.
-  - `beat_jobs self-test: 136 checks, 0 failed`.
-  - `ref_privacy --check`: 0 refused.
-  - `STRUCTURE RATCHET PASSED`.
-- No change to VERSION, RELEASE_NOTES.md, any manifest or any `*budgets.json` in the three-dot diff. `dev/programme/delivery/3262.md` is in the diff.
-- Merge: `git merge-tree --write-tree origin/main 3189559b` gives rc 0 with no conflict. origin/main is f2a015142714383722bf49d7ab20d8398ec9674c.
-- `## Head`: the body names 3189559b as the merge of the authored head 296bc921, with an identical tree, so it is current.
-- I did not re-derive from scratch the round-1 figures this delta does not move: the policy_lint budgets, the scoped gate count and archscore dS. The role contracts, pages.yml and plan_public are unchanged since 48acc104 in the branch's authored range. Round 1 verified those figures.
-- Policy part: it merges only on tvofi's approving review at the head. The ruling is quoted verbatim in the body.
-- CI at return (`ev/check-runs.tsv`, 55 runs, all pages, `filter=all`): all completed. The one concluded red is `gate` 128272376901 (the edit-run deferral). `gate` 128282233458 concluded success. `pr-contract / pr-contract` 128281910559 concluded success at 03:08:23Z. `governance / instrument-self-tests` concluded success (02:54:52Z), not cancelled. `tests / mutation` concluded success. CodeQL is neutral. Everything else is success or skipped.
-- `merge_train.py classify 3189559b... --pr 3262` printed `RED 3189559b21ddf1d5517ea7ec34f0df470c480103 pending: none red: gate` (rc 1) after every run had concluded (`ev/classify.log`). It keys on the deferral's failed `gate` run beside the later green one. The block above is independent of CI.
-- The head was re-read before return: the PR head is still 3189559b21ddf1d5517ea7ec34f0df470c480103.
+- Setup: `cloud-setup check: OK python3 is /opt/hpo/venv-ci/bin/python3`. `review_packet.py render` reported no refusals and wrote a green digest. I re-read the live checks after that.
+- Round-2 survivor: `thirdbot_moves_out` KILLED (rc 1) by "identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply". The round-2 form, the inner guard made `if True:`, has no line left at the head. The same holds in both counting modes.
+- The fixer's correction of the round-2 runner is right. Run in full, `--self-test` counts its own stale-mutant check as a kill. My full-mode run (`ev/reviewer-mutants.txt`) showed `mark_old_restored_EQUIV` and `owed_reply_ge` as KILLED only through `stale`. Cases-only, both survive. My runner stopped at its timeout after 28 mutants. I then restored the worktree (`git checkout`, tree clean) and re-ran all 47 cases-only on a separate worktree.
+- Cases-only results (`ev/reviewer-mutants-casesonly.txt`): the null run is rc 0. Of 47 mutants, 41 were KILLED and 6 SURVIVED:
+  - `one_thread_pr_reviews_drop`: the block.
+  - `scan_disc_kind` and `owed_reply_ge`: the findings above.
+  - `mark_old_restored_EQUIV`: the equivalence the body declares and measures (`mark_outsider_moves_out`).
+  - `has_disc_ignored`: dismissed as equivalent in output. On a repository without discussions, the GraphQL call it no longer skips returns no nodes.
+  - `plan_live_200`: dismissed as near-equivalent. `urlopen` raises on 4xx and 5xx and follows 3xx, so `status == 200` only separates other 2xx codes. `plan_live` is network-only, and LIVE/DOWN fakes stand in for it.
+- Killed by a named case, among others: all of `Thread.mark` (`mark_guard_false`, `mark_guard_outside`, `last_ours_drop`, `mark_answered_drop` and `mark_refused_drop`).
+  - `saw_no_last_out` and `saw_first_max` are killed. That confirms `saw` owns `last_out`.
+  - Every `one_thread` predicate but L210 is killed, and so is every `scan` predicate but the discussion kind.
+  - The `owed` words, every `dispose` refusal (twice, discussion, no group, not live, no thread) and both markers are killed.
+  - So are `post` rc, argv, dry-run and script path, plus the cursor, wait and UNAVAILABLE lines, `rows` rc and the `who` suffix.
+- The class rule the body names, `last_out =` in `outside_intake.py`: at the head, `Thread.__init__` and `Thread.saw`, as the body says. The body's reasoning holds when read against `scan`. A comment `scan` does not pass to `saw` has `at < since`, and the thread exists only through activity at or after `since`, so the deletion is equivalent for outside comments.
+- Self-test at head: `outside_intake self-test: all checks passed`, rc 0, 46 `ok` lines. That is 26 cases and 20 mutants, which matches the body. Cheap checks at head: `ev/checks.txt`.
+- I did not re-run the full instrument-self-tests job (about 27 minutes in CI). I cite CI's attempt 3, 128322483648, success. I ran this PR's own instruments in that job myself: the outside_intake self-test above, plus plan_public and beat_jobs in `ev/checks.txt`.
+- `merge_train.py classify 0fd9bc6d... --pr 3262`: `GREEN 0fd9bc6da6a5f562c7104c1e4d921189f492cff1 pending: none red: none` (rc 0), in `ev/classify.log`. The block above does not depend on CI.
+- `pr-contract / pr-contract` 128328973908 concluded success. It started at 06:40:29Z, after the last concluded red at 06:18:04Z.
+- Merge: `git merge-tree --write-tree origin/main HEAD` against be813ecd gives rc 0, tree e71990321e896bf719f9835bb041cb2935dac27a, with `LEDGER-MERGE: resolved tests/closures.json`.
+- Cheap checks at head (`ev/checks.txt`):
+  - `ref_privacy --check`: 0 refused. `tmp_paths`: 0 refused.
+  - `selftest_wiring`: 120 self-testing, 120 wired, 0 unwired, 0 index gaps.
+  - `plan_public self-test: all checks passed`. `beat_jobs self-test: 136 checks, 0 failed`.
+  - `STRUCTURE RATCHET PASSED`. `ALL 2641 ENTITY CHECKS PASSED`, so the new tracked files are classified. `ALL 112 HARNESS HEADER CHECKS PASSED`.
+  - The three-dot diff touches no `*budgets.json`, `VERSION`, `RELEASE_NOTES.md` or manifest (count 0). `dev/programme/delivery/3262.md` is in the diff.
+- `## Head`: it names 0fd9bc6d as the PR head and 9ffed3f2a as the measured head, which matches what I measured.
+- I did not re-derive the round-1 figures this delta does not move: the policy_lint caps, archscore dS and the live intake pass. The delta touches only `outside_intake.py` and its self-test.
+- Policy part: it merges only on tvofi's approving review at the head. The 2026-11-06 ruling is quoted verbatim in the body.
