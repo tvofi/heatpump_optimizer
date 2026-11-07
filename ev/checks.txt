@@ -1,0 +1,11 @@
+ref_privacy --check at HEAD: 30 file(s) with a push site, 12 guarded, 1182 line(s) added since 62bcca76ee04 judged, 0 refused
+tmp_paths: 0 refused, 0 stale allow entries at HEAD, ledger lines added since 62bcca76ee04
+selftest_wiring: 120 self-testing, 120 wired, 0 unwired
+selftest_wiring: 0 index gap(s)
+plan_public self-test: all checks passed
+beat_jobs self-test: 136 checks, 0 failed
+STRUCTURE RATCHET PASSED
+ALL 2643 ENTITY CHECKS PASSED
+ALL 112 HARNESS HEADER CHECKS PASSED
+budgets/VERSION/notes/manifest in 3-dot diff: 0
+dev/programme/delivery/3262.md

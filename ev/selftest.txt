@@ -1,0 +1,50 @@
+ok   list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
+ok   list: a marker in the submitter's own comment disposes of nothing (#3226 owes triage)
+ok   list: the cursor stays at the earliest owed submission's first outside activity
+ok   list: with the plan page down, an answer waits behind one UNAVAILABLE line and still holds the cursor
+ok   list null: no outside activity prints nothing and moves the cursor to now
+ok   list: activity before the cursor is not re-read
+ok   main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+ok   main list null: no owed submission is rc 0 and prints nothing
+ok   identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)
+ok   list: a failed read is UNREADABLE, never a clean board
+ok   answer: an unanswered submission on the roster gets the plan page link once, marked
+ok   identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply
+ok   post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept
+ok   post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept
+ok   post: a failed gh_comment read-back (rc 1) is a non-zero answer
+ok   answer: an answered submission is refused and no longer listed (never answered twice)
+ok   answer: #3226 is refused (on no roster group) and nothing is posted
+ok   answer: #3225 is refused (does not answer) and nothing is posted
+ok   answer: #3252 is refused (already refused) and nothing is posted
+ok   answer: #3251 is refused (no outside activity) and nothing is posted
+ok   answer: #9999 is refused (no outside activity) and nothing is posted
+ok   refuse: the reason is posted under the refusal marker, and the thread is then silent
+ok   refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)
+ok   refuse: a refused submission owes nothing until the submitter writes again
+ok   discussions: an outside discussion is listed, and answering one is refused (by hand)
+ok   discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
+ok   identity: every account of ours and every bot is not outside; a stranger is
+ok   mutant bots_outside killed by: identity: every account of ours and every bot is not outside; a stranger is
+ok   mutant forged_marker_read killed by: list: a marker in the submitter's own comment disposes of nothing (#3226 owes triage)
+ok   mutant since_ignored killed by: list: activity before the cursor is not re-read
+ok   mutant answer_twice killed by: answer: an answered submission is refused and no longer listed (never answered twice)
+ok   mutant unwired_answered killed by: answer: #3226 is refused (on no roster group) and nothing is posted
+ok   mutant plan_down_answers killed by: list: with the plan page down, an answer waits behind one UNAVAILABLE line and still holds the cursor
+ok   mutant reply_never killed by: list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
+ok   mutant cursor_jumps killed by: list: the cursor stays at the earliest owed submission's first outside activity
+ok   mutant review_comments_unread killed by: list: the fixture world gives exactly its owed lines (answered, bot, ours, old and replied-to threads silent)
+ok   mutant one_thread_pr_reviews_drop killed by: refuse: a pull request whose only outside activity is a review comment is refused, marked (#3240)
+ok   mutant unreadable_swallowed killed by: list: a failed read is UNREADABLE, never a clean board
+ok   mutant marker_any_bot killed by: identity: a third-party bot's marker disposes of nothing (#3225 still owes the answer)
+ok   mutant thirdbot_moves_out killed by: identity: a third-party bot's comment after our answer owes nothing; an outsider's owes a reply
+ok   mutant graphql_bot_suffix killed by: discussions: our App's marker is read (GraphQL names a bot without its [bot] suffix)
+ok   mutant main_cursor_unread killed by: main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+ok   mutant main_cursor_now killed by: main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+ok   mutant main_list_rc0 killed by: main list: rc 1 with owed lines, the cursor persisted at the earliest owed activity and read back next pass
+ok   mutant post_rc_dropped killed by: post: a failed gh_comment read-back (rc 1) is a non-zero answer
+ok   mutant post_dry_dropped killed by: post: gh_comment.py post is run with the body file, --dry-run passed, rc 0 kept
+ok   mutant post_wrong_script killed by: post: gh_comment.py post is run with the body file, --dry-run absent, rc 0 kept
+ok   mutant discussion_answered killed by: discussions: an outside discussion is listed, and answering one is refused (by hand)
+outside_intake self-test: all checks passed
+rc=0
