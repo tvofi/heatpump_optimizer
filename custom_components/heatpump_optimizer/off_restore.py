@@ -31,15 +31,17 @@ from __future__ import annotations
 import logging
 from collections.abc import Awaitable, Callable, Mapping
 from dataclasses import dataclass, field
-from typing import Any
+from typing import TYPE_CHECKING, Any
 from weakref import WeakKeyDictionary
 
-from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN, MODE_OFF
 from .log_latch import log_held
 from .store import QuarantiningStore, load_mapping
+
+if TYPE_CHECKING:
+    from .coordinator import HeatPumpOptimizerConfigEntry
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -84,14 +86,14 @@ class _Held:
     last_restore: str | None = None
 
 
-_HELD: WeakKeyDictionary[ConfigEntry[Any], _Held] = WeakKeyDictionary()
+_HELD: WeakKeyDictionary[HeatPumpOptimizerConfigEntry, _Held] = WeakKeyDictionary()
 
 
 def _store(hass: HomeAssistant, entry_id: str) -> QuarantiningStore[dict[str, Any]]:
     return QuarantiningStore(hass, OFF_RESTORE_STORE_VERSION, f"{DOMAIN}_{entry_id}_off_restore")
 
 
-async def _armed_record(hass: HomeAssistant, entry: ConfigEntry[Any]) -> _Held:
+async def _armed_record(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry) -> _Held:
     held = _HELD.get(entry)
     if held is None:
         held = _HELD[entry] = _Held(_store(hass, entry.entry_id))
@@ -114,7 +116,7 @@ async def _save(held: _Held) -> None:
         _LOGGER.debug("Could not save the off-restore store: %s", err)
 
 
-async def async_arm(hass: HomeAssistant, entry: ConfigEntry[Any], config: Any, key: str) -> bool:
+async def async_arm(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, key: str) -> bool:
     """Before a write by consumer ``key``: arm its restore; False refuses the write.
 
     The first arm captures the baseline of a consumer with no ``neutral`` and
@@ -140,7 +142,7 @@ async def async_arm(hass: HomeAssistant, entry: ConfigEntry[Any], config: Any, k
     return True
 
 
-async def async_restore(hass: HomeAssistant, entry: ConfigEntry[Any], config: Any, reason: str) -> int:
+async def async_restore(hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, reason: str) -> int:
     """Restore every armed consumer; the number of restore writes sent.
 
     Called on the transition into ``MODE_OFF`` and from ``async_unload_entry``.
@@ -174,7 +176,7 @@ async def async_restore(hass: HomeAssistant, entry: ConfigEntry[Any], config: An
 
 
 async def async_mode_change(
-    hass: HomeAssistant, entry: ConfigEntry[Any], config: Any, old: str, new: str
+    hass: HomeAssistant, entry: HeatPumpOptimizerConfigEntry, config: Any, old: str, new: str
 ) -> int:
     """The off rule's mode half (tvofi, 2026-11-07): entering ``MODE_OFF`` restores.
 
@@ -198,7 +200,7 @@ async def async_forget(hass: HomeAssistant, entry_id: str) -> None:
         _LOGGER.debug("Could not remove the off-restore store: %s", err)
 
 
-def diagnostics(entry: ConfigEntry[Any]) -> dict[str, Any]:
+def diagnostics(entry: HeatPumpOptimizerConfigEntry) -> dict[str, Any]:
     """The armed consumers and the restores counted for ``entry``."""
     held = _HELD.get(entry)
     if held is None:
