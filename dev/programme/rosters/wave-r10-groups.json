@@ -16678,9 +16678,9 @@
    ],
    "architect_note": "",
    "resume": {
-    "stage": "carries-open",
+    "stage": "done",
     "pr": 3220,
-    "commit": "7d95405e384e1ebf8223f04657c85996af55f3d9"
+    "commit": "a37c58e5f32123b4028e90983799dc2aa81816f8"
    },
    "brief": "Owner-reported 2026-11-04 (tvofi): the month table reads nonsense (November baseline far below actual, percent clipped at -100). Each re-plan books only the reference's first step, which reads zero when a valve's buffer is above the curve. Part 1: hold the buffer and spread the horizon energy by steady demand, remove the percent clip, add a per-month basis marker through the store's versioned migration, and show a dash for savings on old-basis rows and on two-tank houses until R10-SAV-WOOD-MEASURED lands. Local fixer seat; root-cause seat beside it."
   },
