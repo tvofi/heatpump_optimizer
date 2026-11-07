@@ -68620,6 +68620,7 @@ from heatpump_optimizer.thermal_model import (  # noqa: E402
     ThermalParameters as _MpfTP,
     ThermalState as _MpfTS,
     declared_modulation as _mpf_declared,
+    InstallCapability as _MpfCap,
     learner_unmetered as _mpf_unmetered,
     probe_install as _mpf_probe,
     project_planned_levels as _mpf_project,
@@ -68648,6 +68649,14 @@ R.check(
     )
     and _mpf_probe(_mpf_on_off(_MPF_METERED)).fully_metered() is False,
     f"{[_MpfCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_MPF_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
+)
+_mpf_bare_cap = _MpfCap(writes=frozenset({"setpoint"}), measured_power=False, frequency=False)
+R.check(
+    "null control: a capability built without the declaration is not on/off, and a "
+    "setpoint-only surface it describes can duty-cycle",
+    _mpf_bare_cap.on_off is False and _mpf_bare_cap.can_duty_cycle() is True
+    and _mpf_probe(_MPF_SETPOINT_ONLY).on_off is False,
+    f"{_mpf_bare_cap}",
 )
 _mpf_base_rows = (_MPF_UNMETERED, _MPF_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
 R.check(
