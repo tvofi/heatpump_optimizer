@@ -365,6 +365,7 @@ tools/pr/head_note.py mention: its docstring
 tools/policy/check-wave-script.mjs mention: a test title
 tools/policy/friction_issues.mjs mention: comments
 tools/audit/seat/gh_read.py mention: its docstring cites the read-back rule of app_push.sh; it runs no subprocess
+tools/policy/role_pack.py mention: its docstring and name-match self-test use the pusher names as sample instrument names; it runs no subprocess
 tools/audit/seat/body_patch.sh mention: comments; it PATCHes a body through app_mint.sh and runs no push
 tools/audit/seat/body_push.sh mention: comments; it writes the Prepr: trailer app_push.sh --reuse reads, and runs no push
 tools/pr/prepr.sh mention: comments; it honours the receipt app_push.sh --reuse passes it, and runs no push
