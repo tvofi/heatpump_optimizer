@@ -44,7 +44,7 @@ comments with the histogram's rule (first line matching the wave script's
 | #3208 | 327d83e73 | `harness_headers.py`: harness inlines `repo_root` (`fast`) | 184 |
 | #3211 | 1fca63cb1 | run cancelled because the PR was closed; it was reopened and merged | 1583 |
 | #3217 | 1c42ca3fd | `codeql / Analyze (python)` cancelled | 124 |
-| #3219 | aca500910 | gate cancelled after `prelude` cancelled; stale SHAs in the body | 132 |
+| #3219 | aca500910 | gate cancelled, but `tests / mutation` had already failed on an unpinned site this diff added (job 127045678304, 04:18:12Z, before the 04:32:06Z verdict); stale SHAs in the body | 132 |
 | #3227 | a52354e6e | `body_patch.sh:146` bare array expansion, `instrument-self-tests` and `fast`, unanswered | 139 |
 | #3240 | 79cf40f47 | gate red by cross-run deferral (a run judged early, never re-run) | 80 |
 | #3242 | e836876f3 | `harness_headers.py` hand-written depth root in `critpath_fetch.sh:12` (`fast`) | 328 |
@@ -62,10 +62,11 @@ The key is the reviewer's free-text class word. `ci-red` is not in
 routes it to `other` while the histogram keys it raw. It names a symptom (a
 required check is red), so it pools causes with nothing in common:
 
-- **A. Run cancelled or gate deferral, no check failed on the diff: 8 entries,
-  8 PRs** (#3167 second, #3181, #3204, #3211, #3217, #3219, #3240, #3244 first).
-  Four are a runner killing `codeql / Analyze` or a cancelled `prelude`, one is
-  a closed PR, two are the gate deferring to a sibling run that never re-ran.
+- **A. Run cancelled or gate deferral, no check failed on the diff: 7 entries,
+  7 PRs** (#3167 second, #3181, #3204, #3211, #3217, #3240, #3244 first).
+  Three are a runner killing `codeql / Analyze` or a cancelled gate, one is a
+  closed PR, two are the gate deferring to a sibling
+  run that never re-ran.
   Two sibling keys spell the same thing, `ci-cancelled` (2 PRs) and
   `ci-red-cancelled` (1 PR), in the same histogram.
 - **B. A new harness hand-writes its repo root: 4 entries, 4 PRs** (#3180,
@@ -76,9 +77,20 @@ required check is red), so it pools causes with nothing in common:
   `web-fix-wave.js`'s reviewer prompt teaches `root-cause-detectable` or
   `-unrecorded` for exactly this, which dispatches the root-cause seat; the
   reviewers wrote `ci-red` instead, so no seat was dispatched.
-- **D. A red the gate is the cheapest detector for: 2 entries, 2 PRs** (#3167
+- **D. A red the gate is the cheapest detector for: 3 entries, 3 PRs** (#3167
   first, a replay cpu budget; #3195 third, the unpinned site the pin bot
-  cures). These do not qualify for a countermeasure.
+  cures; #3219, the same unpinned-site refusal). These do not qualify for a
+  countermeasure.
+
+  **#3219 is in D, not A (re-filed after review).** At its blocked head
+  `aca500910`, read with `filter=all` over every page, `tests / mutation`
+  concluded `failure` at 2026-11-05T04:18:12Z (job 127045678304; log line 6869:
+  `MUTATION TABLE REFUSED -- 3175 unpinned site(s) against 3174 at the ratchet
+  base, 1 of them added by this diff`), 14 minutes before the 04:32:06Z
+  verdict. `tests / replay` also failed (04:38:35Z, job 127046649273), after the
+  verdict. The verdict named only the cancelled gate, so the reviewer's own
+  words filed it under A; the checks do not. Whether its body's Red checks
+  named the mutation red is not established here, so it is not moved to C.
 
 ## 4. Process state, with evidence
 
@@ -93,11 +105,11 @@ required check is red), so it pools causes with nothing in common:
   `python3 -c "import sys; sys.path.insert(0,'tests'); import harness_headers
   as h; print(h.inline_scan())"` takes 0.55 s and prints `0`; the whole script
   takes 1m59s (`real 1m59.330s`). The sub-check is 0.46 % of the script (0.55 / 119.3).
-- **A is state (d).** The process (gate, `merge_train.py classify`) is sound for
+- **A (7 entries) is state (d).** The process (gate, `merge_train.py classify`) is sound for
   a code red and its precondition, that a cancelled run is a defect of the head,
   does not hold when the runner or a closure cancels it. #3204's reviewer says
   so in the verdict ("an infrastructure cancellation, so the body owes no
-  root-cause answer"). The two deferral entries (#3240, #3244) are a repo
+  root-cause answer"). The two deferral entries (#3240, #3244 first) are a repo
   mechanism, not a runner one; their cause is **not established here**.
 - **C is state (b).** The obligation exists (`fixer.md`, "answer any check your
   branch turned red"; the reviewers' verdicts cite the unnamed red as the block), and the body did not follow it. The keying drift is
@@ -117,8 +129,13 @@ per PR, wall-clock:
 | group | defect cost (mean min to next verdict) | P per merged PR (entries / 93) | expected cost per PR | standing cost per `prepr` |
 |---|---|---|---|---|
 | B | 212 min (848 over 4) | 4 / 93 = 0.043 | 9.1 min = 547 s | 0.55 s |
-| A | 110 min without #3211 (769 over 7) | 8 / 93 = 0.086 | 9.5 min | no repo countermeasure |
+| A | 106 min without #3211 (637 over 6) | 7 / 93 = 0.075 | 8.0 min | no repo countermeasure |
 | C | 297 min (1186 over 4) | 4 / 93 = 0.043 | 12.8 min | 0 s (a keying change) |
+
+A's mean without #3211 is 637 over 6 = 106.2 (71 + 187 + 64 + 124 + 80 + 111).
+Null control: with #3219 left in A the same arithmetic gives 769 over 7 = 109.9,
+P = 8 / 93 = 0.086 and 9.5 min, so the A row moves when the entry moves and the
+earlier figures were the misfiled ones. B and C do not move.
 
 B: 0.55 s < 547 s, by a factor of about 1000, so the countermeasure pays even
 if the defect cost is a tenth of the upper bound. Null control: the figure
