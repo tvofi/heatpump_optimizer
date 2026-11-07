@@ -1,8 +1,0 @@
-18:01:41Z
-base code (origin/main checkout aaaec2128e5d2efc2e0ad8ffe4918eec6cbb7f98):
-RED a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: none red: gate
-rc=1
-head code:
-WAIT a8c36900eed9a789e2bab2eee70ffc883f1a608f pending: gate red: none
-rc=3
-2026-11-07T17:58:03.0096381Z FAIL run(s) [42397572783] at this head are still being judged; their gate decides

@@ -1,0 +1,7 @@
+NOTE stale tree: a38bd141ec8b42fc8d2bcd17090be1814ca97d83 lacks origin/main 53273de4d449a990bc29734565f63babada9ff7f; roster read at origin/main
+NOTE body item 05863ba2: R10-HOTFIX-TRAIN-DEFER-WAIT: R10-HOTFIX-TRAIN-DEFER-WAIT resolved on origin/handoff/audit-r10-roster
+NOTE body item 5d99d45b: dismissed:equivalent mutant under all current stdout readers (bus.sh, postmerge.py, review_packet.py)
+NOTE body item 5152602a: dismissed:outcome-equivalent, only the diagnostic log line differs
+NOTE body item 10873eeb: dismissed:equivalent mutant, classify's WAIT carries an empty red list by construction
+CARRY-AUDIT: 4 finding item(s): 4 routed, 0 unrouted, 0 bad destination(s)
+rc=0
