@@ -707,7 +707,7 @@ MAIN_MOVED_TRIES = 3
 # requests on its own schedule: #2291, #2295 and #2299 each landed mid-train
 # on 2026-10-15 and stopped or re-carried #2284 and #2290. A real run
 # publishes this ref while it is live and deletes it at its closing line; the
-# beat skips while the ref is younger than its own HOLD_MAX_AGE_S and treats
+# beat skipped while the ref was younger than HOLD_MAX_AGE_S (below) and treats
 # an older one as stale, so a crashed train cannot block records forever. The
 # ref points at a commit created at publication, whose committer date is the
 # age the beat reads; it is refreshed at the start of every queue item, before
@@ -716,6 +716,11 @@ MAIN_MOVED_TRIES = 3
 # (a recarry or a poll), never a whole CI wait and never a whole batch. A
 # `batch/` rehearsal publishes nothing: it merges nothing into main.
 HOLD_REF = "refs/heads/train-hold"
+#: A hold at least this old is stale (a crashed train): tools/release/stamp.py's
+#: record flush reads it off this source (#3280). It moved here, beside the ref it
+#: bounds, from nightly.yml's record beat, which #3245 (card C5) retires. One phase
+#: between refreshes (<= 240 s), never a whole CI wait or batch, prices it.
+HOLD_MAX_AGE_S = 3600
 #: The approver App's login (app_approve.sh's VERDICT_AUTHORS): its APPROVED
 #: review at a head is that head's approval, never posted twice (P86).
 APPROVER_LOGIN = "hpo-approver[bot]"

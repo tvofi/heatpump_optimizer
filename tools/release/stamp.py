@@ -1895,7 +1895,7 @@ def self_test() -> int:
     _flush(_owed, 10 ** 5, ready=False)
     check("flush: and never re-dispatches while the record pull request is not ready",
           _fl.count("dispatch") == 1)
-    # The train hold (nightly.yml's HOLD_MAX_AGE_S): every beat dispatched under a
+    # The train hold (merge_train.py's HOLD_MAX_AGE_S): every beat dispatched under a
     # live one exits skip-train-hold, so a flush spends no dispatch under it.
     _H1 = {"sha": "a" * 40, "age": 120, "pid": "4242", "bound": 3600}
     _live = [_H1] * 10 ** 5
@@ -1933,9 +1933,8 @@ def self_test() -> int:
           _g(1100) == {"sha": "b" * 40, "age": 100, "pid": "77", "bound": 3600}
           and _g(1000 + 3600) is None and _g(1000 + 3599) is not None and _g(900) is None
           and train_hold(lambda *a: "" if a[1] == "ls-remote" else _git(*a), bound=3600) is None)
-    check("hold: the bound is nightly.yml's own HOLD_MAX_AGE_S by source read, not a literal here",
-          isinstance(_bound, int) and f"HOLD_MAX_AGE_S={_bound}" in
-          (ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+    check("hold: the bound is merge_train.py's own HOLD_MAX_AGE_S by source read, not a literal here",
+          isinstance(_bound, int) and f"\nHOLD_MAX_AGE_S = {_bound}\n" in (ROOT / HOLD_OWNER).read_text()
           and "3600" not in inspect.getsource(train_hold) + inspect.getsource(hold_bound_s))
     check("flush: the owed set is rule 5's rowless merges less the record-class ones; a "
           "cleared window owes nothing",
@@ -2454,23 +2453,26 @@ def record_pr_green(token=_api_token) -> bool:
 
 #: The ref merge_train.py publishes while a real run is live (`HOLD_REF` there).
 TRAIN_HOLD_REF = "refs/heads/train-hold"
+#: The module owning that ref and its staleness bound, `HOLD_MAX_AGE_S`.
+HOLD_OWNER = "tools/audit/seat/merge_train.py"
 
 
-def hold_bound_s(workflow: Path | None = None) -> int | None:
-    """nightly.yml's `HOLD_MAX_AGE_S`, read off its source so the bound is never
-    a second literal; None when the workflow no longer states one."""
+def hold_bound_s(source: Path | None = None) -> int | None:
+    """merge_train.py's `HOLD_MAX_AGE_S`, beside the hold ref it bounds, read off
+    its source so the bound is never a second literal; None when it no longer
+    states one. (nightly.yml's record beat stated it until #3245 retired the beat.)"""
     try:
-        text = (workflow or ROOT / ".github" / "workflows" / NIGHTLY_WORKFLOW_FILE).read_text()
+        text = (source or ROOT / HOLD_OWNER).read_text()
     except OSError:
         return None
-    found = re.search(r"^\s*HOLD_MAX_AGE_S=(\d+)\s*$", text, re.M)
+    found = re.search(r"^HOLD_MAX_AGE_S = (\d+)\s*$", text, re.M)
     return int(found.group(1)) if found else None
 
 
 def train_hold(runner=None, wall=time.time, bound: int | None = None) -> dict | None:
     """The live train hold {sha, age, pid, bound}, or None. Zero REST: `git
     ls-remote` for presence, the fetched commit's committer date for age, its
-    message for the pid. Stale is nightly.yml's rule: at or past the bound, or a
+    message for the pid. Stale is merge_train.py's rule: at or past the bound, or a
     date ahead of this clock (unknowable, never young, #775). A read that fails,
     or a workflow stating no bound, reads as no hold: the flush never refuses on one."""
     run = runner or sh
