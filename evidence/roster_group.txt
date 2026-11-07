@@ -1,0 +1,44 @@
+R10-COMBI-TANK
+{
+ "group": "R10-COMBI-TANK",
+ "lane": "PR",
+ "kind": "production",
+ "issues": [
+  3225
+ ],
+ "fixes": [],
+ "findings": [],
+ "class": "production",
+ "severity": "medium",
+ "size": "L",
+ "wave": 6,
+ "files": [],
+ "hot_files": [],
+ "fixerModel": "opus",
+ "reviewerModel": "opus",
+ "model": {
+  "fixer": "opus",
+  "reviewer": "opus",
+  "rca": null,
+  "runner": "haiku",
+  "record": "sonnet"
+ },
+ "effort": "medium",
+ "fixture": false,
+ "owner_gate": "design review first (owner ruling tvofi 2026-11-06)",
+ "rca": [],
+ "after": [],
+ "carry": [
+  "Owner ruling (tvofi, 11-06): this group also fixes the known no-probe buffer bug. Found by the R10-COMBI-TANK designer (design/r10-combi-tank f9ede213, \"Notes for the fixer\"): in coordinator.py _update_current_state (about :6565-6567 at 198b8f7e), buffer_tank_temperature with no buffer probe configured is never advanced: there is no else branch, so the plan seeds from a frozen value. Same class as R9 D12-s1-01 (DHW open-loop seed). Fix with the same seed helper the design adds (combi_tank_seed / the open-loop plan value), so an unprobed buffer is seeded from the previous plan's buffer trajectory. Control: a probed buffer is unchanged byte-for-byte. Failing test first: with no buffer probe, the seed after one cycle must equal the open-loop trajectory value, not the stale initial. The design note must cover it; mutation-pin the else branch.",
+  "Owner ruling 2026-11-06 ~22:02Z (tvofi), verbatim: \"Make sure the combi tank design includes thorough investigation of how this and other types of combi tanks works, so the heat transfer is physically sound, and the implementation is general enough for many types of combi tanks.\" Binding on every R10-COMBI-TANK design note, design review and fixer. The design must survey the MFS 600 S (#3225 datasheet) and the other common combi/multifunction tank types: tank-in-tank, internal DHW coil, external plate exchanger/fresh-water station, stratified buffer with solar/wood coil, dual-zone single vessel. For each it states the heat-transfer path between the space-heating and DHW volumes (conduction/coil UA, stratification, mixing), with physical parameters and sources. The model must conserve energy across both volumes; a null control (no coupling: UA=0) reproduces the separate-tank result. Tank type is configuration, not code branches per vendor. A design review returns revise (class-open) when the survey, the physical model or the generality is missing. Carry: R10-COMBI-TANK",
+  "Owner ruling 2026-11-06 ~22:12Z (tvofi), verbatim: \"Bump the waiver for up to 10 rounds before re-cut. The design should be robust, efficient to integrate and be architecturally sound and easily maintainable and it is worth spending time to get this right.\" Supersedes the 5-round waiver: R10-COMBI-TANK design may take up to 10 design-review rounds before any minimal re-cut (three-round rule waived for this group). Every design review also judges robustness, integration efficiency, architectural soundness and maintainability, and returns revise (class-open) on a design weak in any of them; schedule pressure is not a reason to approve. Carry: R10-COMBI-TANK",
+  "Owner request 2026-11-06 ~22:55Z (tvofi), verbatim: \"have a seat with web access verify those figures before PR B\". PR B (R10-COMBI-TANK) does not start until a web-capable verification seat's report on the design note's [assumed] / [standard; as recalled] / [datasheet ranges] figures (DIN 4753-8 / EN 12897 test conditions, EU 812/2013 standing loss, coil U range and the 0.85 / 0.95 / 0.75 effectiveness presets, DVGW W 551's 3-litre rule, the MFS 600 S datasheet, EN 12977-4) is folded into PR B's brief; every CORRECTED figure changes the preset table or help text as the report states, and a figure that changes PR A's physics goes to PR A's fixer before its handoff. Carry: R10-COMBI-TANK",
+  "Web verification report (orchestrator seat, 2026-11-06 ~22:57Z) folded per carry s12-combi-figures-verify. Binding on PR B (R10-COMBI-TANK). PR A takes only item 1's UA.\n1. MFS 600 S preset, per the manufacturer manual 83017400eDE (documents.unidomo.de/de/83017400eDE_MFS.pdf):\n   - heating volume 504 l (not 572);\n   - potable coil 40 l (not 39), 7.5 m2;\n   - standing loss 111 W at 65 C ErP, so 2.66 kWh/24h (not 3.1);\n   - UA = 111/45 = 2.47 W/K (not 2.87);\n   - C = 0.631 kWh/K;\n   - cooling rate at 25 K: 0.106 K/h over 504 l, 0.098 K/h over 544 l.\n   The help-text example's \"user enters 39 l\" becomes 40 l.\n2. Standing-loss help text: prefer the ErP standing loss S in W at 65 C, then UA = S/45 K. Label the 20 C ambient [assumed].\n3. internal_coil eps 0.85: keep, labelled [assumed; one measured 1.8 kW/K corrugated coil gives 0.89 at 12 l/min].\n4. tank_in_tank eps 0.95 stays [assumed]. Change the volume text to \"~100-250 l (IEA SHC Task 26 store C: 228 l)\".\n5. external_station eps 0.75: keep. The help text says:\n   - eps falls with flow, 0.88 at 16 l/min to 0.58 at 38 l/min (Remko RK WP table);\n   - read it at the typical draw flow;\n   - manufacturers recommend primary at or below 60 C against scaling.\n   Drop any \"70 C cap\" claim.\n6. Legionella section L:\n   - DVGW W 551's 3 l limit is per pipe run downstream of the heater, not the store's potable volume;\n   - a one- or two-family house is a Kleinanlage whatever the volume.\n   Remove the W 551 exemption citation. Keep default-off for a station on physical grounds (0 l stored potable water), and keep the force toggle. The help text notes W 551 still expects at least 60 C (Grossanlage) or at least 50 C (Kleinanlage) delivery. The owner may re-rule this product default.\n7. Section T.1, the EN 12977-4 sentence: soften to \"multi-node model with fitted parameters\" (unverified).\nCarry: R10-COMBI-TANK"
+ ],
+ "architect_note": "",
+ "resume": {
+  "stage": "design",
+  "branch": "design/r10-combi-tank",
+  "note": "size L is provisional; the design sets the final size and owning seam"
+ },
+ "brief": "Owner ruling (tvofi 2026-11-06), q

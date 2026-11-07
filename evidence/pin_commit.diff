@@ -1,0 +1,36 @@
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.24877638.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.24877638.json
+new file mode 100644
+index 000000000..0e09700b4
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.24877638.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF 24877638",
++  "killed_by": "tests/features.py",
++  "old": "        if (level := _seed_store(dhw, plan, \"dhw_temp_trajectory\", seeded_at)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=4."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.faae4641.json b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.faae4641.json
+new file mode 100644
+index 000000000..b0b49e06f
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/HeatPumpOptimizerCoordinator._update_current_state.GUARD_OFF.faae4641.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:HeatPumpOptimizerCoordinator._update_current_state GUARD_OFF faae4641",
++  "killed_by": "tests/features.py",
++  "old": "        if (level := _seed_store(buffer_reading, plan, \"buffer_temp_trajectory\", seeded_at)) is not None:",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: GUARD_OFF (`if False:`) took tests/features.py from rc=0 failed=0 to rc=1 failed=5."
++}
+diff --git a/tests/mutation_ledger/killed_by/coordinator.py/_seed_store.RETURN_DEL.5fc8d442.json b/tests/mutation_ledger/killed_by/coordinator.py/_seed_store.RETURN_DEL.5fc8d442.json
+new file mode 100644
+index 000000000..330b286fe
+--- /dev/null
++++ b/tests/mutation_ledger/killed_by/coordinator.py/_seed_store.RETURN_DEL.5fc8d442.json
+@@ -0,0 +1,6 @@
++{
++  "anchor": "custom_components/heatpump_optimizer/coordinator.py:_seed_store RETURN_DEL 5fc8d442",
++  "killed_by": "tests/features.py",
++  "old": "    return reading.value if reading.ok else _open_loop_plan_value(result, trajectory_attr, now)",
++  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/features.py from rc=0 failed=0 to rc=1 failed=8."
++}
