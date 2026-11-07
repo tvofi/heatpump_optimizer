@@ -1,0 +1,6 @@
+shard 1/4: drawn 80, killed 30, killed new 30, lives 24, split 0, timed out 0, not run 26; slack 23 min of --budget-minutes 240
+shard 2/4: drawn 80, killed 15, killed new 15, lives 9, split 0, timed out 0, not run 56; slack 40 min of --budget-minutes 240
+shard 3/4: drawn 81, killed 35, killed new 35, lives 18, split 1, timed out 1, not run 26; slack 30 min of --budget-minutes 240
+shard 4/4: drawn 79, killed 24, killed new 24, lives 15, split 0, timed out 0, not run 40; slack 29 min of --budget-minutes 240
+total: drawn 320, killed 104, killed new 104, lives 66, split 1, timed out 1, not run 148
+rc=0
