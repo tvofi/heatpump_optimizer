@@ -10,7 +10,7 @@ R10-FLY-STAMP-FLUSH-COST, never inside it, and edits neither
 Actions runs and jobs API after every run named below had concluded. Each
 figure is reproduced by `dev/audit/harnesses/r10_rca_flush_dispatch.py`, with
 the command beside it. The triage that ruled the fix is
-`dev/programme/triage/s6-batch132.md#P404`.
+`dev/programme/triage/s6-batch132.md#P404` on `origin/handoff/audit-r10-roster` (commit `6db424629`), not yet on main.
 
 ## 1. The defect, reproduced
 
