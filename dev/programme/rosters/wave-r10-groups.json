@@ -17505,8 +17505,9 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress",
-    "pr": 3261
+    "stage": "done",
+    "pr": 3261,
+    "commit": "ca60d4e4e60038a76ca23c531ccdbed20bd93411"
    },
    "brief": "Root cause (trigger 1: reached v7.1.2) of the process worker reply wait in coordinator.py _run_in_process: pickle.load with no deadline under _PROCESS_LOCK hung optimisation about 70 minutes on a live Raspberry Pi 4 and blocked HA shutdown (evidence: outside PR #3226 body; our fix is #3232, topic r10-ext-3226). Owed: the named cause incl. why the worker went silent if establishable, process state a-d with evidence (why no audit round found it: D1, D3, D9, D15; do #511 fallback tests cover only a dead worker, never an alive-but-silent one), a cost test with numbers, a countermeasure or recorded refusal (candidates: a check for blocking IPC reads with no deadline; a harness double that hangs). Runs beside #3232, never inside it."
   },
@@ -17788,7 +17789,8 @@
    "carry": [],
    "architect_note": "",
    "resume": {
-    "stage": "in-progress"
+    "stage": "in-progress",
+    "pr": 3278
    },
    "brief": "Root cause (trigger 2: turned PRs red after the R10-HOTFIX-GATE-BUSY-DEFER fix #3246 merged at 355d9965) of the edit-gate race persisting: on #3263 head 02e92e7c edit run 42338396358's gate failed in 2 s with 'FAIL run(s) [42338396871] at this head are still being judged; their gate decides' while code run 42338396871 was in progress; #3261 old edit runs 42307798573 and 42307493684 deadlocked each other. Owed: the named cause, process state a-d with evidence (why #3246's review and tests passed a fix that leaves this shape), a cost test with numbers, and a countermeasure or a recorded refusal, as a new RCA document under the rca directory cited from the bugclass register. Runs beside the R10-HOTFIX-GATE-BUSY-DEFER fixer, never inside it; never edits the gate script."
   },
