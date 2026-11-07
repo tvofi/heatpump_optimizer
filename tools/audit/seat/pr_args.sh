@@ -476,7 +476,7 @@ STUB
   # line), a fresh state root, the output in $t/out and the status in $t/rc.
   copyin() { # <mutant|->: copies of the scripts, less the named mutant's line
     local g
-    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py; do
+    for g in open_pr.sh update_pr.sh handoff_push.sh remerge_main.sh delivery_row.sh pr_args.sh pr_cap.py ref_privacy.py gh_read.py; do
       if [ "$1" = - ]; then cp "$src/$g" "$m/tools/audit/seat/$g"
       else grep -v "# mut:$1\$" "$src/$g" > "$m/tools/audit/seat/$g"; fi
     done
@@ -1451,9 +1451,9 @@ GH
   fi
   rmrun() { # <mutant|-> <branch>: remerge_main.sh on <branch> in worktree $t/rmw; the output in $t/out
     local g; git -C "$t/rmm" worktree remove --force "$t/rmw" 2>/dev/null; rm -rf "$t/rmw"; git -C "$t/rmm" worktree prune
-    for g in remerge_main.sh pr_args.sh; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
+    for g in remerge_main.sh pr_args.sh gh_read.py; do grep -v "# mut:$1\$" "$src/$g" > "$t/rmm/tools/audit/seat/$g"; done
     git -C "$t/rmm" fetch -q origin "$2" && git -C "$t/rmm" worktree add -q -B "$2" "$t/rmw" "origin/$2" \
-      && bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
+      && PATH="$t/rmgit:$PATH" bash "$t/rmm/tools/audit/seat/remerge_main.sh" 7 "$t/rmw" "$2" "$t/body.md" > "$t/out" 2>&1
     echo $? > "$t/rc"
   }
   rmfree() { # MERGE CONFLICT named, the worktree clean at origin/rk, removed unforced, and rk free for a second worktree
@@ -1462,6 +1462,10 @@ GH
       && git -C "$t/rmm" worktree remove "$t/rmw" 2>/dev/null \
       && git -C "$t/rmm" worktree add -q -B rk "$t/rmadd" origin/rk 2>/dev/null && git -C "$t/rmm" worktree remove "$t/rmadd"
   }
+  # `git` on remerge_main's PATH is the real one, unless $t/rmgitfail queues one stderr line per
+  # failing `git fetch`: the recarry's transport failure, without a network.
+  mkdir -p "$t/rmgit"; printf '#!/bin/bash\nq=%q\nif [ "$1" = fetch ] && [ -s "$q" ]; then head -1 "$q" >&2; sed -i.bak 1d "$q"; exit 128; fi\nexec %q "$@"\n' \
+    "$t/rmgitfail" "$(command -v git)" > "$t/rmgit/git"; chmod +x "$t/rmgit/git"
   [ -e "$t/rmo-ok" ]; ck "remerge_main fixture: an origin whose main conflicts with rk" $?
   rmrun - rk; rmfree
   ck "remerge_main: a conflicting main is named MERGE CONFLICT and leaves the worktree clean at origin/rk, released unforced, rk free" $?
@@ -1470,6 +1474,16 @@ GH
   rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ] \
     && [ "$(git -C "$t/rmw" rev-parse HEAD^1)" = "$(git -C "$t/rmm" rev-parse origin/rc)" ]
   ck "null control: remerge_main on a clean merge keeps that merge (HEAD's parents origin/rc and origin/main), nothing aborted" $?
+  # R10-TRAIN-MERGE-LOOP-2: the recarry's fetch rides git's transient stderr out on gh_read.py's rule;
+  # unretried, one 502 printed MERGE CONFLICT and the train stopped on a merge that was clean.
+  printf '%s\n' "fatal: unable to access 'https://github.com/o/r/': The requested URL returned error: 502" > "$t/rmgitfail"
+  rmrun - rc; ! grep -qF "MERGE CONFLICT" "$t/out" && [ ! -s "$t/rmgitfail" ] \
+    && [ "$(git -C "$t/rmw" rev-parse HEAD^2)" = "$(git -C "$t/rmm" rev-parse origin/main)" ]
+  ck "remerge_main: a fetch failing once with git's 502 is fetched again, and the clean merge is kept" $?
+  printf '%s\n' "fatal: couldn't find remote ref rc" > "$t/rmgitfail"
+  rmrun - rc; grep -qF "MERGE CONFLICT 7" "$t/out" && [ ! -s "$t/rmgitfail" ] && grep -qF "couldn't find remote ref" "$t/out"
+  ck "null control: a fetch git rejected is not fetched again (a second fetch would have succeeded)" $?
+  : > "$t/rmgitfail"
   # The push's FAIL lines and prepr's `full log:` line reach the train's Stop message, and a push that
   # printed no PUSHED keeps its log (carry 16): the old grep kept only RECARRY|REFUSE|PUSHED and the trap
   # deleted the log, so a prepr refusal named neither its failing arm nor its log.
