@@ -68587,6 +68587,168 @@ R.check(
     f"{_pp_low}",
 )
 
+# --- #3289 a declared on/off compressor; space projected against the DHW ------
+# R10-MIN-POWER-FLOOR. ``compressor_modulation`` declares whether the
+# compressor can run below p_min; ``thermal_model.declared_modulation`` is its
+# only reader. On a clamped install one compressor serves space and DHW, so
+# space ships projected against the DHW the step already carries
+# (``project_space_against``): every step's total is 0 or in [p_min, p_max].
+# The solve cell is the finder's (dev/audit/harnesses/r10_min_power_floor.py):
+# a 2.5-3.5 kW pump, spread prices, DHW on, outdoor mean -4 degC.
+from heatpump_optimizer.const import (  # noqa: E402
+    COMPRESSOR_MODULATION_AUTO as _MPF_AUTO,
+    COMPRESSOR_MODULATION_MODULATING as _MPF_MOD,
+    COMPRESSOR_MODULATION_ON_OFF as _MPF_ON_OFF,
+    CONF_COMPRESSOR_FREQ_SENSOR as _MPF_FREQ_SENSOR,
+    CONF_COMPRESSOR_MODULATION as _MPF_KEY,
+    CONF_FREQ_CONTROL_MODE as _MPF_FREQ_MODE,
+    FREQ_MODE_CONTROL as _MPF_FREQ_CONTROL,
+)
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _MpfOpt,
+    _realize_draw as _mpf_realize,
+)
+from heatpump_optimizer.thermal_model import (  # noqa: E402
+    ThermalModel as _MpfTM,
+    ThermalParameters as _MpfTP,
+    ThermalState as _MpfTS,
+    declared_modulation as _mpf_declared,
+    learner_unmetered as _mpf_unmetered,
+    project_space_against as _mpf_against,
+)
+
+_MPF_SETPOINT_ONLY = {_PP_SETPOINT: "number.flow"}
+_MPF_FREQ_ONLY = {_MPF_FREQ_SENSOR: "sensor.hz"}
+
+
+def _mpf_on_off(cfg):
+    return {**cfg, _MPF_KEY: _MPF_ON_OFF}
+
+
+R.check(
+    "a declared on/off compressor clamps on every write surface, metered or not",
+    all(
+        _PpCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels is True
+        for m in (_PP_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})
+    )
+    and _pp_probe(_mpf_on_off(_PP_METERED)).fully_metered() is False,
+    f"{[_PpCfg.from_mapping(_mpf_on_off(m)).clamp_planned_levels for m in (_PP_METERED, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY, {})]}",
+)
+_mpf_base_rows = (_PP_UNMETERED, _PP_METERED, {}, _MPF_SETPOINT_ONLY, _MPF_FREQ_ONLY)
+R.check(
+    "null control: auto and an absent key keep the probe's clamp on every surface, "
+    "legacy false and modulating opt out, legacy true clamps",
+    all(
+        _PpCfg.from_mapping({**m, _MPF_KEY: _MPF_AUTO}).clamp_planned_levels
+        is _PpCfg.from_mapping(m).clamp_planned_levels
+        for m in _mpf_base_rows
+    )
+    and [_PpCfg.from_mapping(m).clamp_planned_levels for m in _mpf_base_rows]
+    == [True, False, False, False, False]
+    and _PpCfg.from_mapping({**_PP_UNMETERED, _MPF_KEY: _MPF_MOD}).clamp_planned_levels is False
+    and _PpCfg.from_mapping({**_PP_UNMETERED, _PP_CLAMP_KEY: False}).clamp_planned_levels is False
+    and _PpCfg.from_mapping({**_PP_METERED, _PP_CLAMP_KEY: True}).clamp_planned_levels is True
+    and _PpCfg.from_mapping(
+        {**_PP_UNMETERED, _MPF_KEY: _MPF_AUTO, _PP_CLAMP_KEY: False}
+    ).clamp_planned_levels is False,
+)
+R.check(
+    "declared_modulation reads the select first, the legacy key only under auto or absent, "
+    "and anything else as undeclared",
+    _mpf_declared({}) is None
+    and _mpf_declared({_MPF_KEY: _MPF_ON_OFF, _PP_CLAMP_KEY: False}) is False
+    and _mpf_declared({_MPF_KEY: _MPF_MOD, _PP_CLAMP_KEY: True}) is True
+    and _mpf_declared({_MPF_KEY: _MPF_AUTO, _PP_CLAMP_KEY: True}) is False
+    and _mpf_declared({_PP_CLAMP_KEY: False}) is True
+    and _mpf_declared({_MPF_KEY: "bogus"}) is None
+    and _mpf_declared({_PP_CLAMP_KEY: "false"}) is None,
+)
+R.check(
+    "an unmetered on/off install freezes the house learner; a metered one, or a "
+    "declared modulating one, learns",
+    _mpf_unmetered(_mpf_on_off(_MPF_SETPOINT_ONLY)) == _PP_FREEZE
+    and _mpf_unmetered(_MPF_SETPOINT_ONLY) is None
+    and _mpf_unmetered(_mpf_on_off(_PP_METERED)) is None
+    and _mpf_unmetered({**_PP_UNMETERED, _MPF_KEY: _MPF_MOD}) is None
+    and _mpf_unmetered(_PP_UNMETERED) == _PP_FREEZE,
+)
+
+_mpf_space = np.array([0.0, 0.3, 2.8, 4.0, 1.0, 2.8, 0.05, -0.2])
+_mpf_dhw = np.array([0.0, 0.0, 2.5, 0.0, 3.5, 0.0, 2.5, 0.0])
+_mpf_proj = _mpf_against(_mpf_space, _mpf_dhw, 2.5, 3.5)
+_mpf_rows = _mpf_against(np.vstack([_mpf_space, _mpf_space[::-1]]), _mpf_dhw, 2.5, 3.5)
+R.check(
+    "space projects against the DHW in its step: capped at p_max - dhw, a sub-minimum "
+    "level raised to p_min only where DHW is off, identity where the total already fits",
+    np.allclose(_mpf_proj, [0.0, 2.5, 1.0, 3.5, 0.0, 2.8, 0.05, 0.0])
+    and np.array_equal(_mpf_against(_mpf_space, np.zeros(8), 2.5, 3.5),
+                       _pp_project(_mpf_space, 2.5, 3.5))
+    and np.array_equal(_mpf_rows[0], _mpf_proj)
+    and np.array_equal(_mpf_rows[1], _mpf_against(_mpf_space[::-1], _mpf_dhw, 2.5, 3.5)),
+    f"{_mpf_proj.tolist()}",
+)
+_mpf_r_space, _mpf_r_dhw = _mpf_realize(True, _mpf_space, np.array([0.0, 1.0, 2.5, 4.0, 0, 0, 0, 0]), 2.5, 3.5)
+R.check(
+    "a clamped install realizes DHW as its own projection and space against it; "
+    "unclamped and DHW-less draws are unchanged",
+    np.allclose(_mpf_r_dhw, [0.0, 2.5, 2.5, 3.5, 0, 0, 0, 0])
+    and np.allclose(_mpf_r_space, [0.0, 0.3, 1.0, 0.0, 2.5, 2.8, 2.5, 0.0])
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[0] is _mpf_space
+    and _mpf_realize(False, _mpf_space, _mpf_dhw, 2.5, 3.5)[1] is _mpf_dhw
+    and _mpf_realize(True, _mpf_space, None, 2.5, 3.5)[1] is None
+    and np.array_equal(_mpf_realize(True, _mpf_space, None, 2.5, 3.5)[0],
+                       _pp_project(_mpf_space, 2.5, 3.5)),
+    f"space {_mpf_r_space.tolist()} dhw {_mpf_r_dhw.tolist()}",
+)
+
+_MPF_STEPS = np.arange(96)
+_MPF_SPREAD = 1.3 + 0.9 * np.sin(2 * np.pi * (_MPF_STEPS - 30) / 96.0)
+
+
+def _mpf_totals(cfg):
+    """Per-step space+DHW of the finder's spread/DHW/-4 degC cell under ``cfg``."""
+    params = _MpfTP()
+    params.mixing_valve_mode, params.buffer_tank_volume = "none", 0.0
+    params.min_electrical_power, params.max_electrical_power = 2.5, 3.5
+    params.dhw_enabled = True
+    out = -4.0 + 3 * np.sin(2 * np.pi * (_MPF_STEPS - 50) / 96)
+    opt = _MpfOpt(_MpfTM(params), _PpCfg(
+        clamp_planned_levels=_PpCfg.from_mapping(cfg).clamp_planned_levels,
+    ))
+    res = opt.optimize(inputs=solve_inputs(
+        initial_state=_MpfTS(
+            room_temperature=20.5, upper_floor_temperature=20.5,
+            lower_floor_temperature=20.5, slab_temperature=21.0,
+            outdoor_temperature=float(out[0]), dhw_temperature=50.0,
+        ),
+        prices=_MPF_SPREAD, outdoor_temps=out,
+        start_time=datetime(2026, 1, 10, tzinfo=UTC),
+    ))
+    return (np.asarray(res.power_schedule, float)
+            + np.asarray(res.dhw_power_schedule or np.zeros(96), float))
+
+
+def _mpf_off_or_band(tot):
+    return bool(np.all((tot == 0.0) | ((tot >= 2.5 - 1e-9) & (tot <= 3.5 + 1e-9))))
+
+
+_mpf_declared_tot = _mpf_totals(_mpf_on_off(_PP_METERED))
+_mpf_probed_tot = _mpf_totals(_PP_UNMETERED)
+R.check(
+    "per step, a declared on/off pump on a fully metered install plans every step off "
+    "or between min and max power (#3289)",
+    _mpf_off_or_band(_mpf_declared_tot),
+    f"steps below 2.5 {int(np.sum((_mpf_declared_tot > 0) & (_mpf_declared_tot < 2.5 - 1e-9)))}, "
+    f"max {_mpf_declared_tot.max():.2f}",
+)
+R.check(
+    "per step, a probed switch-plus-setpoint pump with DHW never plans space plus DHW "
+    "above max power, nor a running step below min power",
+    _mpf_off_or_band(_mpf_probed_tot),
+    f"max {_mpf_probed_tot.max():.2f}, steps below 2.5 "
+    f"{int(np.sum((_mpf_probed_tot > 0) & (_mpf_probed_tot < 2.5 - 1e-9)))}",
+)
+
 # --- R10-SETPOINT-POWER: the set-point is a power command (tvofi, 2026-10-19)
 # The modulation floor's flow sits FLOW_MIN_LIFT_K above the measured water
 # the pump heats, read from whichever sensors are configured, in the
@@ -70298,6 +70460,21 @@ R.check(
 R.check(
     "S4 where the install can duty-cycle: the min end stays configured",
     _dr.planned_range(_dr_live, _dr_params(), _DR_DUTY) == (_DR_MIN, _dr_live_seen[1]),
+)
+_dr_duty_cfg = {_PP_SETPOINT: "number.flow", _PP_POWER: "sensor.hp_power"}
+R.check(
+    "S4 on a setpoint-only install declared on/off: the metered floor raises the min "
+    "end, as on a switch-plus-setpoint one (#3289); undeclared it stays configured",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(_dr_duty_cfg)))
+    == _dr_live_seen
+    and _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_dr_duty_cfg))
+    == (_DR_MIN, _dr_live_seen[1]),
+)
+R.check(
+    "S4 a declared on/off install whose plan writes the frequency still reads None",
+    _dr.planned_range(_dr_live, _dr_params(), _dr_probe(_mpf_on_off(
+        {_PP_SWITCH: "switch.hp", _PP_FREQ: "number.hz", _MPF_FREQ_MODE: _MPF_FREQ_CONTROL}
+    ))) is None,
 )
 _dr_below_min = _dr_learner("live", cfg=(2.0, _DR_MAX))
 _dr_below_seen = _dr_below_min.observed()

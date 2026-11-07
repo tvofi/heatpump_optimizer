@@ -105,6 +105,7 @@ from .thermal_model import (
     planned_draws_run,
     delivered_heat_kw,
     project_planned_levels,
+    project_space_against,
     valve_charge_demand,
     valve_hold_temperature,
     weather_or_calm,
@@ -153,14 +154,16 @@ def _realize_draw(
     p_min: float,
     p_max: float,
 ) -> tuple[np.ndarray, np.ndarray | None]:
-    """Space and, when present, DHW at the power the write surface can deliver."""
-    return (
-        _published_levels(clamp, space, p_min, p_max),
-        (
-            None if dhw is None
-            else _published_levels(clamp, dhw, p_min, p_max)
-        ),
-    )
+    """Space and, when present, DHW at the power the write surface can deliver.
+
+    On a clamped install one compressor serves both channels: DHW ships as
+    its own projection and space projects against it (#3289), so the total
+    never exceeds ``p_max`` nor runs below ``p_min``.
+    """
+    if clamp and dhw is not None:
+        tank = _published_levels(clamp, dhw, p_min, p_max)
+        return project_space_against(space, tank, p_min, p_max), tank
+    return _published_levels(clamp, space, p_min, p_max), dhw
 
 
 def _scores_rounded(opt: HeatPumpOptimizer) -> bool:
@@ -5100,11 +5103,9 @@ class HeatPumpOptimizer:
             p_max=p_max,
             planner=planner,
         )
-        optimal_space = _published_levels(
-            self.config.clamp_planned_levels, optimal_space, p_min, p_max
-        )
-        optimal_dhw = _published_levels(
-            self.config.clamp_planned_levels, optimal_dhw, p_min, p_max
+        optimal_space, optimal_dhw = _realize_draw(
+            self.config.clamp_planned_levels, optimal_space, optimal_dhw,
+            p_min, p_max,
         )
 
         # Simulate with optimal schedule

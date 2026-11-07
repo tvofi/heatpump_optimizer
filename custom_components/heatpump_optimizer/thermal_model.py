@@ -1276,6 +1276,7 @@ class InstallCapability:
     measured_heat: bool = False
     heat_counter: bool = False
     electric_counter: bool = False
+    on_off: bool = False
 
     def cop_electric(self) -> bool:
         """An electrical figure a COP divides by: a heat counter's span reads
@@ -1289,8 +1290,12 @@ class InstallCapability:
         that is not exactly a power switch plus a setpoint is not known to
         be unable to, so the duty-cycle reading stands. Switch plus setpoint
         and no frequency cannot: the compressor runs at or above its
-        modulation floor whenever the switch is on.
+        modulation floor whenever the switch is on. Neither can a compressor
+        declared on/off (``on_off``, from :func:`declared_modulation`),
+        whatever the surface.
         """
+        if self.on_off:
+            return False
         return (
             True
             if self.frequency or "frequency" in self.writes
@@ -1360,6 +1365,30 @@ def probe_install(config: Any) -> InstallCapability:
         ),
         heat_counter=bool(cfg.get(const.CONF_HEAT_ENERGY_ENTITY)),
         electric_counter=bool(cfg.get(const.CONF_ENERGY_ENTITY)),
+        on_off=declared_modulation(cfg) is False,
+    )
+
+
+def declared_modulation(config: Any) -> bool | None:
+    """Whether the user declared the compressor modulating, ``None`` undeclared.
+
+    The one reader of ``compressor_modulation`` and of the legacy
+    ``clamp_planned_levels`` (#3289): ``on_off`` -> ``False``,
+    ``modulating`` -> ``True``. ``auto`` or absent reads the legacy key,
+    ``true`` clamping (on/off) and ``false`` opting out (modulating); any
+    other value of either is undeclared, and the probe decides.
+    """
+    cfg = config or {}
+    mode = cfg.get(
+        const.CONF_COMPRESSOR_MODULATION, const.DEFAULT_COMPRESSOR_MODULATION
+    )
+    legacy = cfg.get(const.CONF_CLAMP_PLANNED_LEVELS)
+    return (
+        False if mode == const.COMPRESSOR_MODULATION_ON_OFF
+        else True if mode == const.COMPRESSOR_MODULATION_MODULATING
+        else False if legacy is True
+        else True if legacy is False
+        else None
     )
 
 
@@ -1434,8 +1463,8 @@ def feedback_gaps(config: Any) -> list[dict[str, str]]:
 def duty_cycle_realizable(config: Any) -> bool:
     """The duty-cycle reading stands for this config.
 
-    ``clamp_planned_levels: false`` is the opt-out. Otherwise the probe
-    decides, and an absent key follows the probe.
+    A compressor declared modulating (:func:`declared_modulation`) is the
+    opt-out. Otherwise the probe decides, and an undeclared one follows it.
     """
     cfg = config or {}
     cap = probe_install(cfg)
@@ -1443,7 +1472,7 @@ def duty_cycle_realizable(config: Any) -> bool:
     # frequency-plus-power plant stay byte-identical (#1955).
     return (
         True
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else True if cap.fully_metered() else cap.can_duty_cycle()
     )
 
@@ -1499,14 +1528,14 @@ def learner_unmetered(config: Any) -> str | None:
 
     No measured power, and the probe says the write surface cannot
     duty-cycle. A frequency install still learns from the commanded figure
-    (the compressor can realize it); an explicit clamp opt-out keeps
-    today's learner. Ranked with the boost freeze, after ventilation.
+    (the compressor can realize it); a compressor declared modulating
+    keeps today's learner. Ranked with the boost freeze, after ventilation.
     """
     cfg = config or {}
     cap = probe_install(cfg)
     return (
         None
-        if cfg.get(const.CONF_CLAMP_PLANNED_LEVELS) is False
+        if declared_modulation(cfg) is True
         else None
         if cap.measured_power or cap.can_duty_cycle()
         else UNMETERED_POWER_FREEZE
@@ -1572,9 +1601,14 @@ def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray
     set is not the closed interval ``[p_min, p_max]``, which would force
     the pump on for the whole horizon.
     """
-    arr = np.asarray(power, dtype=float)
-    lo = float(p_min)
-    hi = float(p_max)
+    return _onto_band(np.asarray(power, dtype=float), float(p_min), float(p_max))
+
+
+def _onto_band(arr: np.ndarray, lo: Any, hi: Any) -> np.ndarray:
+    """``arr`` clipped to ``[0, hi]``, a value in ``(0, lo)`` raised to ``lo``.
+
+    ``lo`` and ``hi`` are floats or arrays broadcasting against ``arr``.
+    """
     capped = np.where(np.greater(arr, hi), hi, arr)
     nonneg = np.where(np.less(capped, 0.0), 0.0, capped)
     return np.where(
@@ -1582,6 +1616,28 @@ def project_planned_levels(power: Any, p_min: float, p_max: float) -> np.ndarray
         lo,
         nonneg,
     )
+
+
+def project_space_against(
+    space: Any, dhw: Any, p_min: float, p_max: float
+) -> np.ndarray:
+    """Space heating onto what one on/off compressor leaves beside ``dhw``.
+
+    ``dhw`` is the DHW schedule already projected by
+    :func:`project_planned_levels`, an ``N`` vector; ``space`` is an ``N``
+    vector or a ``B x N`` matrix, broadcast row by row (#3289). One
+    compressor serves both channels, so per step space is clipped to
+    ``[0, max(0, p_max - dhw)]`` and a value in ``(0, max(0, p_min - dhw))``
+    is raised to that bound: the total lands in ``{0} ∪ [p_min, p_max]`` and
+    DHW keeps the level its planner booked. With ``dhw`` zero this is
+    :func:`project_planned_levels`. Design choice: a shared scale on the
+    total lost because it writes into the DHW plan the space solve treats as
+    fixed.
+    """
+    other = np.asarray(dhw, dtype=float)
+    hi = np.maximum(float(p_max) - other, 0.0)
+    lo = np.minimum(np.maximum(float(p_min) - other, 0.0), hi)
+    return _onto_band(np.asarray(space, dtype=float), lo, hi)
 
 
 def _span_when(left: float | None, right: float | None, ready: bool) -> float:
