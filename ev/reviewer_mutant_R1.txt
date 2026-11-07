@@ -1,0 +1,4 @@
+R1 self-test-reads file key: ['bad 1']; 1 FAIL
+    FAIL a read in the file's own closure but not the host's is graded under the host's key (null control for the file-key mutant: grading under the file'
+S main tail always repair: ['ci_predict self-test: 0 failed']; 0 FAIL
+done

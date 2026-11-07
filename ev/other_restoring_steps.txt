@@ -1,0 +1,7 @@
+ci.yml:97   prelude: ::  git checkout "$PINNED" -- 'tools/ci/*.py' tools/pr/codeql_scope.py tests/closure.py
+ci.yml:295   refresh: ::  git checkout "$PINNED" -- 'tools/ci/*.py'
+ci.yml:327   gate: ::  git checkout "$PINNED" -- 'tools/ci/*.py'
+codeql.yml:139   analyze: ::  git checkout "$PINNED" -- tools/pr/codeql_scope.py
+tests.yml:2419   closures-autofix: ::  git checkout "$PINNED" -- tests/closure.py
+tests.yml:2692   claims-autofix: ::  git checkout "$PINNED" -- tests/closure.py tests/env_drift.py
+tests.yml:2951   mutation-autofix: ::  git checkout "$PINNED" -- tests/closure.py tests/mutation_table.py

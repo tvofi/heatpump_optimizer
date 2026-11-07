@@ -1,0 +1,27 @@
+budget-raise-gate .github/workflows/budget-raise-gate.yml
+   RUN tools/policy/budget_raise_gate.py ('--base', '$PR_BASE', '--head', '$PR_HEAD', '--pr', '$PR_NUMBER') PARTIAL
+policy-docs .github/workflows/governance.yml
+   RUN tools/policy/rules_sync.mjs ('--check',) 
+   RUN dev/audit/rounds/round6/D11/fix/codeowners_gap.py ('--check',) 
+   RUN tools/policy/policy_lint.mjs () 
+   RUN tools/policy/fragments_sync.mjs () 
+   RUN tools/audit/machinery_ratchet.py ('--check-event',) 
+   RUN tools/policy/policy_lint.mjs ('--hooks',) 
+   RUN tools/policy/field_coverage.mjs () 
+env-matrix .github/workflows/governance.yml
+   RUN tools/policy/policy_lint_envmatrix.mjs ('$PWD', '${RUNNER_TEMP}/envmatrix', '$(git rev-parse HEAD)') 
+wave-script .github/workflows/governance.yml
+   RUN tools/policy/check-wave-script.mjs () 
+   RUN tools/policy/agreement.mjs ('--self-test',) 
+   RUN tools/audit/fold_ledger.py ('--self-test',) 
+   RUN tools/audit/fold_ledger.py ('check',) 
+pr-contract .github/workflows/pr-contract.yml
+   RUN tools/policy/policy_lint.mjs ('--pr-body', '/tmp/pr-body.md', '--head', '$PR_HEAD', '--base', '$PR_BASE', '--title', '$PR_TITLE', '--author', '$(cat /tmp/pr-author.txt)', '--commits-file', '/tmp/pr-commits.tsv', '--paths-file', '/tmp/pr-files.txt', '--existing-file', '/tmp/pr-existing.txt', '${RED_ARGS[@]}') PARTIAL
+   RUN tools/policy/figure_lint.mjs ('--pr-body', '/tmp/pr-body.md') 
+   RUN tools/pr/preflight.sh ('$INTENDED', '<', '/tmp/pr-body.md') PARTIAL
+   RUN tools/pr/prepr.sh ('--version-edit', 'origin/main', '$PR_HEAD') 
+   RUN tools/audit/carry_audit.py ('check', '--body', '/tmp/pr-body.md', '--branch', '$HEAD_REF') 
+briefs .github/workflows/tests.yml
+   RUN tools/policy/brief_lint.mjs () 
+gaps []
+exempt [('policy-docs', 'policy_lint.mjs', '--report'), ('pr-contract', 'codescan_wait.py', '--pr', '--base')]

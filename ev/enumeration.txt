@@ -1,0 +1,59 @@
+merge-base dee8b413fd7da7b07f13e28a93d7d49b4a9e978a
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/budget-raise-gate.yml:66:      - name: Restore the check source from the base commit
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/governance.yml:128:      - name: Restore the check source from the base commit
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/governance.yml:1173:      - name: Restore the check source from the base commit
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/governance.yml:1276:      - name: Restore the check source from the base commit
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/pr-contract.yml:93:      - name: Restore the check source from the base commit
+dee8b413fd7da7b07f13e28a93d7d49b4a9e978a:.github/workflows/tests.yml:624:      - name: Restore the check source from the base commit
+--- head
+HEAD:.github/workflows/budget-raise-gate.yml:66:      - name: Restore the check source from the base commit
+HEAD:.github/workflows/governance.yml:128:      - name: Restore the check source from the base commit
+HEAD:.github/workflows/governance.yml:1173:      - name: Restore the check source from the base commit
+HEAD:.github/workflows/governance.yml:1276:      - name: Restore the check source from the base commit
+HEAD:.github/workflows/pr-contract.yml:93:      - name: Restore the check source from the base commit
+HEAD:.github/workflows/tests.yml:624:      - name: Restore the check source from the base commit
+--- origin/main
+origin/main:.github/workflows/budget-raise-gate.yml:1
+origin/main:.github/workflows/governance.yml:3
+origin/main:.github/workflows/pr-contract.yml:1
+origin/main:.github/workflows/tests.yml:1
+--- restore-ish steps under other names (null control / missed population)
+HEAD:.github/workflows/ci.yml:97:      - name: Restore the programs from the base
+HEAD:.github/workflows/ci.yml:295:      - name: Restore the programs from the base
+HEAD:.github/workflows/ci.yml:327:      - name: Restore the programs from the base
+HEAD:.github/workflows/codeql.yml:139:      - name: Restore the decision program from the base
+HEAD:.github/workflows/nightly.yml:70:      - name: Install pinned test dependencies
+HEAD:.github/workflows/nightly.yml:89:      - name: Restore the prior pool measurement
+HEAD:.github/workflows/nightly.yml:177:      - name: Install pinned test dependencies
+HEAD:.github/workflows/nightly.yml:187:      - name: Restore the prior pool measurement
+HEAD:.github/workflows/nightly.yml:197:      - name: Drive a slice of the unpinned stock
+HEAD:.github/workflows/nightly.yml:433:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:253:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:331:      - name: Restore the drift baseline
+HEAD:.github/workflows/tests.yml:471:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:540:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:717:      - name: Install the pinned toolchain
+HEAD:.github/workflows/tests.yml:809:      - name: Restore the base's per-script coverage
+HEAD:.github/workflows/tests.yml:826:      - name: Check the restored coverage is main's push run's
+HEAD:.github/workflows/tests.yml:844:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:1058:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:1157:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:1170:      - name: Measure pins for the sites this diff added unpinned
+HEAD:.github/workflows/tests.yml:1359:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:1494:      - name: Name the pinned graders this pull request changes
+HEAD:.github/workflows/tests.yml:1822:      - name: Restore fast's last green proof
+HEAD:.github/workflows/tests.yml:1829:      - name: Restore coverage's last green proof
+HEAD:.github/workflows/tests.yml:1836:      - name: Restore browser's last green proof
+HEAD:.github/workflows/tests.yml:2049:      - name: Install pinned test dependencies
+HEAD:.github/workflows/tests.yml:2419:      - name: Restore the programs this job runs from the base commit
+HEAD:.github/workflows/tests.yml:2692:      - name: Restore the programs this job runs from the base commit
+HEAD:.github/workflows/tests.yml:2951:      - name: Restore the programs this job runs from the base commit
+HEAD:.github/workflows/tests.yml:2983:      - name: Take the pinned ledger
+HEAD:.github/workflows/tests.yml:3031:      - name: Push the pinned ledger
+--- jobs that checkout base ref / pinned.list
+      9 .github/workflows/budget-raise-gate.yml
+     21 .github/workflows/ci.yml
+      5 .github/workflows/codeql.yml
+     34 .github/workflows/governance.yml
+      7 .github/workflows/pr-contract.yml
+     31 .github/workflows/tests.yml
