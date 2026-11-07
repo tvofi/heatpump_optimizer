@@ -1,0 +1,5 @@
+topic_evidence open PR fix/r10-cop-gate -> pr
+topic_evidence open PR fix/r10-cop-gate-p6 -> None
+topic_evidence open PR fix/r10-cop-gate-vent-fix -> None
+since-tag fix/r10-cop-gate -> ['R10-COP-GATE']
+since-tag fix/r10-cop-gate-p6 -> []
