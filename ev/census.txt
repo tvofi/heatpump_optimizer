@@ -1,0 +1,2 @@
+gh api repos/tvofi/heatpump_optimizer/actions/runs/42348143671/attempts/2/jobs?per_page=100: Get "https://api.github.com/repos/tvofi/heatpump_optimizer/actions/runs/42348143671/attempts/2/jobs?per_page=100": read tcp 127.0.0.1:53630->127.0.0.1:33895: read: connection reset by peer
+rc=1

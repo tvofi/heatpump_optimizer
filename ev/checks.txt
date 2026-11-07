@@ -1,0 +1,43 @@
+== touched policy-versioned files
+none
+== closures.json change
+diff --git a/tests/closures.json b/tests/closures.json
+index 2139c2396..bad7daabf 100644
+--- a/tests/closures.json
++++ b/tests/closures.json
+@@ -4080,6 +4080,7 @@
+    "dev/audit/harnesses/r10_raise_paths.sh",
+    "dev/audit/harnesses/r10_ratio_anchor.py",
+    "dev/audit/harnesses/r10_rca_ci_critpath_3/replay.py",
++   "dev/audit/harnesses/r10_rca_gate_busy_defer_2.py",
+    "dev/audit/harnesses/r10_rca_name_kept_plant.py",
+    "dev/audit/harnesses/r10_rca_sav_estimate.py",
+    "dev/audit/harnesses/r10_readme_marketplace_pipeline.mjs",
+== delivery row
++- [#3278](https://github.com/tvofi/heatpump_optimizer/pull/3278) — **open**, R10-RCA-GATE-BUSY-DEFER-2: rca gate busy defer 2 (R10-RCA-GATE-BUSY-DEFER-2)
+== recurrence
+355d9965a Merge pull request #3246 from tvofi/fix/r10-gate-busy-defer
+24547e39a Merge pull request #3230 from tvofi/fix/r10-ci-slim
+662b29669 Merge pull request #3205 from tvofi/fix/r10-hotfix-gate-stale-jobs
+26
+10
+== compare cost
+
+real	0m0.002s
+user	0m0.002s
+sys	0m0.000s
+rc=1
+same rc=0
+== ancestry
+28482ece lacks
+f2a01514 lacks
+80016a71 lacks
+294a880d carries
+== merge-tree
+ebf14f89f0ee7e34e009b50e13fa4444efeb8de5
+rc=0
+TZ=UTC: 26 / 10
+TZ=Europe/Stockholm: 26 / 10
+since 2026-10-23T00:00:00Z: 28
+since 2026-10-31T00:00:00Z: 13
+Sat Nov  7 13:06:46 UTC 2026

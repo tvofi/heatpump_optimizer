@@ -1,0 +1,3 @@
+  ok   the machinery ratchet reads every key of the tracked machinery_budgets.json, and refuses a key it does not read
+
+ALL 2643 ENTITY CHECKS PASSED

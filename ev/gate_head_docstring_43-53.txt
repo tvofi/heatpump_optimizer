@@ -1,0 +1,14 @@
+waits on it, so a run whose listing lags its resolved jobs cannot make two gates
+defer to each other. Only past the bound, a run still busy after
+GATE_WAIT_MAX_S, does the gate FAIL deferring, for gate-sweep.yml to re-judge.
+No gate is exempt from the wait (r10-gate-busy-defer-2): a deferring edit run
+(prelude.defer_to, R10-CI-SLIM card C3) waits on the code run its prelude left
+`pr-contract` to, bounded like any other, where it once published the deferral
+at once (#3263: run 42338396358 red in 2 s beside code run 42338396871). That
+at-once bound dodged a cycle judging() made: it read the deferring run's skipped
+`pr-contract` caller as owed, so that run looked busy to every gate and prelude
+at its head. judging() now reads a caller listed completed under its bare name
+as a unit the run never ran, so a deferring run is judging once its gate is
+listed and its own units are done, and nothing waits on it. The waits then form
+one order: a code run's prelude waits on nothing; another prelude only on an
+earlier run, or on a code run, that is not judging; a gate only on runs not
