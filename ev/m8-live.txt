@@ -1,0 +1,12 @@
+m8-sensitive R10-RELAY-HANDOFF-ARM instrument absorbed ['cloud_relay.sh']
+m8-sensitive R10-ROSTER-OPS-2 instrument absorbed ['roster_edit.py']
+m8-sensitive R10-ROSTER-LIB-SCHEMA instrument absorbed ['roster_lib.py']
+m8-sensitive R10-CI-PRIORITY-PAUSE instrument not-started ['merge_train.py']
+m8-sensitive R10-TICK-PR-BUCKETS instrument absorbed ['orchestrator_tick.py']
+m8-sensitive R10-TICK-GROUP-LINES instrument absorbed ['orchestrator_tick.py']
+m8-sensitive R10-TICK-DRIVERS-2 instrument done ['orchestrator_tick.py']
+m8-sensitive R10-LEDGER-RESIDUE instrument done ['ledger.py']
+m8-sensitive R10-BEAT-JOB-TABLE instrument done ['cloud_relay.sh']
+m8-sensitive R10-TRAIN-POSTMERGE instrument done ['merge_train.py']
+m8-sensitive R10-TRAIN-MERGE-LOOP instrument carries-open ['merge_train.py']
+done
