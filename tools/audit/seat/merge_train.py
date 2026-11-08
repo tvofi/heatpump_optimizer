@@ -311,6 +311,37 @@ def stop_on_signal() -> None:
     for sig in (signal.SIGTERM, signal.SIGHUP):
         signal.signal(sig, unwind)
 
+@contextlib.contextmanager
+def stop_ignored():
+    """The closing lines (worktree release, then the hold DELETE) are not cut short
+    by a stop and do not swallow one. A TERM or HUP in the block is recorded, not
+    raised, so the DELETE follows the release; the handlers stop_on_signal
+    installed are restored after.
+
+    Entered with a stop already unwinding (a SystemExit in flight), a further
+    signal is dropped: the stop is being delivered. Entered otherwise -- the close
+    of a batch that completed, the train going on to the next -- the first signal
+    is delivered when the block ends, through the restored handler, so the stop
+    reaches the loop that would have merged the next batch. Ignoring it (SIG_IGN)
+    discarded it."""
+    stopping = isinstance(sys.exc_info()[1], SystemExit)
+    pending: list[int] = []
+
+    def defer(signum, _frame):
+        pending.append(signum)
+    handler = defer  # mut:stopign
+    saved = {sig: signal.signal(sig, handler)
+             for sig in (signal.SIGTERM, signal.SIGHUP)}
+    try:
+        yield
+    finally:
+        for sig, old in saved.items():
+            signal.signal(sig, old)
+        if pending and not stopping:
+            old = saved[pending[0]]
+            old(pending[0], None) if callable(old) else os.kill(os.getpid(), pending[0])  # mut:deferdeliver
+
+
 # EVERY SCRIPT THE TRAIN RUNS, AND WHERE THE ROW IT REQUIRES LIVES (#1990's RCA,
 # dev/audit/rca/R9-RCA-1990.md). R9-RO-6 moved app_approve.sh and preflight.sh to
 # tools/pr/ and R9-RO-5 lifted the delivery rows under dev/programme/; the train
@@ -2458,12 +2489,18 @@ class Train:
                  f"NOT released: {HOLD_REF} stays (rc={code}: {said.strip()[-160:]}); "
                  "it expires at the beat's own bound, or delete it by hand")
 
+    def unwind(self) -> None:
+        """The closing lines of a train or batch, run once a stop is already
+        unwinding it: release the worktrees, then the hold, ignoring a second stop."""
+        with stop_ignored():
+            self.release_worktrees()
+            self.hold_release()
+
     def train(self, queue: list[dict]) -> int:
         try:
             return self._train(queue)
         finally:
-            self.release_worktrees()
-            self.hold_release()
+            self.unwind()
 
     def _train(self, queue: list[dict]) -> int:
         self.log(f"TRAIN pid={os.getpid()} queue={len(queue)} "
@@ -3187,8 +3224,7 @@ class Train:
                 try:
                     stopped = self._batch(batches[k], name, total)
                 finally:
-                    self.release_worktrees()
-                    self.hold_release()
+                    self.unwind()
                 if stopped:
                     return 1
                 for e in batches[k]:  # neither merged nor skipped: ran (a rehearsal), no longer pending
@@ -4933,6 +4969,7 @@ def _self_test() -> int:
     check("a bare wait-ci publishes no hold: only a train or batch arms the ref",
           not any("/git/refs" in " ".join(c) or "/git/commits" in " ".join(c) for c in calls0))
     _stop_self_test(check)
+    _unwind_self_test(check)
     _read_retry_self_test(check)
     _review_settle_self_test(check)
     _state_self_test(check, go, merged, throwaway_git_init)
@@ -5514,6 +5551,112 @@ def _read_retry_self_test(check) -> None:
     t, calls, sleeps, _ = train({"pr merge": ["gh: Bad Gateway (HTTP 502)"]})
     code, _ = t.run(["gh", "pr", "merge", "7", "--repo", "o/r", "--merge"])
     check("read retry: and neither is a merge", code == 1 and n(calls, "pr merge") == 1 and sleeps == [])
+
+
+def _unwind_self_test(check) -> None:
+    """The closing lines of a train or batch are not cut short by a stop and do not
+    swallow one. A train TERMed twice mid-unwind still deletes the hold ref (the
+    second TERM is dropped: the stop is already unwinding). A FIRST TERM landing in
+    the release that closes batch 1 is deferred, not discarded: batch 2 never runs
+    and the train exits 143 once the hold DELETE has gone out. The driver stubs `gh`
+    and makes the worktree release take 2 s. Null controls send no signal (both
+    batches merge) or one TERM (the DELETE goes out). The mutants are
+    the source with one marked line replaced, run for real: the old SIG_IGN
+    (a first signal is discarded) and a defer that never re-raises (it is lost as well)."""
+    mark = "# mut" + ":"
+    prelude = (
+        "import sys, time, tempfile, types\nfrom pathlib import Path\n"
+        f"SRC = {str(Path(__file__).resolve())!r}\nMARK = {mark!r}\n"
+        "def load(mut):\n"
+        "    src = Path(SRC).read_text().split('\\n')\n"
+        "    for name, repl in mut.items():\n"
+        "        hit = [i for i, l in enumerate(src) if l.rstrip().endswith(MARK + name)]\n"
+        "        assert len(hit) == 1, (name, hit)\n"
+        "        l = src[hit[0]]; src[hit[0]] = l[:len(l) - len(l.lstrip())] + repl\n"
+        "    mod = types.ModuleType('merge_train'); mod.__file__ = SRC\n"
+        "    sys.modules['merge_train'] = mod\n"
+        "    exec(compile('\\n'.join(src), SRC, 'exec'), mod.__dict__)\n"
+        "    return mod\n"
+        "MUTANTS = {'real': {}, 'sigign': {'stopign': 'handler = signal.SIG_IGN'},\n"
+        "           'noraise': {'deferdeliver': 'pass'}}\n"
+        "m = load(MUTANTS[sys.argv[2]])\n"
+        "rec = open(sys.argv[1], 'a')\n"
+        "def run(argv, cwd=None, stdin=None):\n"
+        "    rec.write(' '.join(argv) + '\\n'); rec.flush()\n"
+        "    if argv[:3] == ['git', 'worktree', 'list']:\n"  # /x is registered, as in life, so it is removed
+        "        return 0, 'worktree /x\\n\\n'\n"
+        "    if argv[:3] == ['git', 'worktree', 'remove']:\n"
+        "        rec.write('UNWINDING\\n'); rec.flush(); time.sleep(2)\n"
+        "    return 0, ''\n")
+    train_driver = prelude + (
+        "m.Train._train = lambda self, q: time.sleep(60)\n"
+        "t = m.Train('o/r', Path(tempfile.mkdtemp()), None, 'r', (), 1, run=run, log=lambda s: None)\n"
+        "t.held = True; t.made_wts = [Path('/x')]\n"
+        "m.stop_on_signal()\n"
+        "rec.write('READY\\n'); rec.flush()\n"
+        "try: t.train([])\n"
+        "except SystemExit: pass\n")
+    batch_driver = prelude + (
+        "import signal\n"
+        "m.queue_batches = lambda q: [[{'pr': 1}], [{'pr': 2}]]\n"
+        "m.Train.queue_open = lambda self, b: None\n"
+        "m.Train.queue_close = lambda self: None\n"
+        "m.Train.queue_take = lambda self, b, k: k < len(b)\n"
+        "m.Train.seen_mark = lambda self, *a, **k: None\n"
+        "def _batch(self, b, name, total):\n"
+        "    rec.write(f'BATCH {name}\\n'); rec.flush()\n"
+        "    self.held = True; self.made_wts = [Path('/x')]\n"
+        "    return False\n"
+        "m.Train._batch = _batch\n"
+        "t = m.Train('o/r', Path(tempfile.mkdtemp()), None, 'r', (), 1, run=run, log=lambda s: None)\n"
+        "t._seen = {}\n"
+        "m.stop_on_signal()\n"
+        "rec.write('READY\\n'); rec.flush()\n"
+        "try:\n"
+        "    rc = t.batch([], 'T'); rec.write(f'RETURNED rc={rc}\\n')\n"
+        "except SystemExit as e:\n"
+        "    rec.write(f'SYSTEMEXIT {e.code}\\n')\n")
+
+    def drive(driver: str, mode: str, terms: int, at: str) -> str:
+        """Run the driver, send `terms` TERMs (the first once `at` is recorded,
+        the others 0.5 s apart), return what it recorded."""
+        with tempfile.TemporaryDirectory() as d:
+            rec = Path(d) / "rec"
+            p = subprocess.Popen([sys.executable, "-I", "-c", driver, str(rec), mode])
+            for _ in range(300):
+                if rec.exists() and at in rec.read_text():
+                    break
+                time.sleep(0.1)
+            for k in range(terms):
+                time.sleep(0.3 if k == 0 else 0.5)
+                os.kill(p.pid, signal.SIGTERM)
+            try:
+                p.wait(20)
+            except subprocess.TimeoutExpired:
+                p.kill()
+            return rec.read_text()
+
+    def deleted(terms: int, mode: str) -> bool:
+        return "--method DELETE" in drive(train_driver, mode, terms, "READY")
+    check("a train TERMed again during its unwind still deletes the hold ref",
+          deleted(2, "real"))
+    check("  null control: one TERM deletes the hold ref",
+          deleted(1, "real"))
+    # the batch seam: batch 1 completes normally and its release is where the TERM lands
+    got = drive(batch_driver, "real", 1, "UNWINDING")
+    check("a first TERM in batch 1's closing release stops the train: no second batch, exit 143",
+          "BATCH T-b2" not in got and "SYSTEMEXIT 143" in got and "RETURNED" not in got)
+    check("  and the hold DELETE is issued before the stop is delivered",
+          "--method DELETE" in got)
+    got = drive(batch_driver, "real", 0, "UNWINDING")
+    check("  null control: with no signal both batches merge and the train returns 0",
+          "BATCH T\n" in got and "BATCH T-b2" in got and "RETURNED rc=0" in got)
+    got = drive(batch_driver, "sigign", 1, "UNWINDING")
+    check("  mutant (old SIG_IGN): the first TERM is discarded and batch 2 runs",
+          "BATCH T-b2" in got and "RETURNED rc=0" in got)
+    got = drive(batch_driver, "noraise", 1, "UNWINDING")
+    check("  mutant (defer never re-raises): the stop is lost as well and batch 2 runs",
+          "BATCH T-b2" in got and "RETURNED rc=0" in got)
 
 
 def _stop_self_test(check) -> None:
@@ -6873,10 +7016,13 @@ def _batch_self_test(check) -> None:
     # THE GUARD THE STUB CANNOT SEE: --bot-prs runs record_row.py's own CLI,
     # the one the record beat runs; these read the real tree.
     rr = (ROOT / "tools/audit/seat/record_row.py").read_text()
-    # card C5 retired the record beat (nightly.yml record-autofix)
-    check("record_row.py takes every option the bot sweep passes",
+    beat = (ROOT / ".github/workflows/nightly.yml").read_text()
+    check("record_row.py takes every option the bot sweep passes, and the record beat merges behind "
+          "the same --automerge-check ... --head ... --require-green guard",
           all(f'"{o}"' in rr for o in ("--find-open", "--owner", "--automerge-check", "--require-green",
-                                       "--head", "--pr", "--repo")))
+                                       "--head", "--pr", "--repo"))
+          and "--automerge-check --repo \"$REPO\" --pr \"$NUM\" --head \"$HEAD\"" in beat
+          and "guard --require-green" in beat)
     rplain = _parser().parse_args(["run", "q.json"])
     rflag = _parser().parse_args(["run", "q.json", "--approval-carry"])
     check("--approval-carry is a run flag too, and off by default",
