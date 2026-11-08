@@ -1,0 +1,55 @@
+offset
+  FAIL no topic and an offset entity: one publish of 5 sends one set_value of 5 (R10-GENERIC-HEAT-CURVE)  [writes=[] mqtt=[]]
+  ok   the entity option empty: no set_value, and the /set topic still carries the integer (W7)
+  FAIL both configured: MQTT first with the full integer, the entity bounded by the 3 K default band  [[('mqtt', 'publish', {'topic': 'ecl/set', 'payload': '5', 'qos': 1, 'retain': False})]]
+  FAIL a kelvin entity is sent -2 for -2, never 271.15 through the absolute helpers (T1)  [[]]
+  FAIL a Fahrenheit entity is sent the difference x9/5: 2 K is 3.6 °F (T1)  [[]]
+  FAIL an entity range narrower than the displace saturates and is latched once, naming it (W6)  [writes=[] warn=[]]
+  ok   a reading already at the target is not written (W1)
+  FAIL inside the grace a differing reading proves nothing: no second write (W2)  [[]]
+  FAIL after the grace the first miss is written once more (W2)  [[]]
+  FAIL a second miss for the same target latches a warning and sends nothing (W3)  [writes=[] warn=[]]
+  FAIL and a new target is written again (W3)  [[]]
+  ok   the 24 h write guard is 2 x 1440 / interval: 96 at the default 30 min (W4)
+  FAIL at the guard nothing is written and it is latched; one below it the write goes (W4)  [at=[] below=[] warn=[]]
+  FAIL absent, unavailable, a non-temperature unit, a sensor, a range without 0 or a raising service: no value lands, the failure is latched, the MQTT arm still publishes  [{'absent': ([], [('ecl/set', '2')], False), 'unavailable': ([], [('ecl/set', '2')], False), 'unit %': ([], [('ecl/set', '2')], False), 'sensor domain': ([], [('ecl/set', '2')], False), 'range excluding 0': ([], [('ecl/set', '2')], False), 'raising service': ([], [('ecl/set', '2')], False)}]
+  FAIL MODE_OFF after a write writes one 0 (the off rule)  [[]]
+  FAIL and while off the arm writes nothing, nor does a second off  [[]]
+  ok   nothing written, nothing restored; an unconfigured entity is never written
+  FAIL unload after a write writes one 0, through async_unload_entry (the off rule)  [ok=True writes=[]]
+  FAIL a write left armed by a crash is restored by the next run's first off  [[]]
+  ok   a stand-in second consumer registers without editing the hook: its baseline, captured before its first write, survives a restart and is what the restore writes
+  ok   and an unreadable baseline refuses the consumer's write: nothing to restore it to
+  ok   an unregistered consumer, or one its factory reads as unconfigured, refuses the write and leaves no record behind
+  ok   a restore whose write raises sends nothing, stays armed and latches a warning naming the entity
+  ok   and the next off retries it: one write of the neutral 0, disarmed and counted
+  ok   an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's
+  ok   a store that cannot save still arms the write, and one that cannot be removed does not raise
+  ok   T2 at its bounds: a range starting or ending at 0 is an offset, one starting at 0.5 or ending at -0.5 is not
+  ok   every refusal of the pure convert names why and is never read as saturated
+  FAIL a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)  [[]]
+  ok   a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)
+  FAIL a target within half a step of the last write is that write, still in its grace: 3 after 2 at step 2 sends nothing (W2)  [[]]
+  FAIL a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is written once more, not given up (W1, W2)  [writes=[] misses=0]
+  FAIL writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)  [writes=[] kept=96]
+  FAIL at exactly 90 s the grace is over: a miss then is written once more (W2's bound)  [[]]
+  ok   and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)
+  ok   the entity arm answers True only for a write sent: held, capped and unreadable are False
+  FAIL a write that succeeds clears the failure latch, and so does a readable entity: the next failure is warned again, not swallowed  [write=[0, 1] entity=[0, 0, 0]]
+  FAIL the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one  [fresh={'written': None, 'misses': 0, 'writes_24h': 0, 'write_cap_per_day': 96, 'restore': {'armed': [], 'restores': 0, 'last_restore': None}} after={'written': None, 'misses': 0, 'writes_24h': 0, 'write_cap_per_day': 96, 'restore': {'armed': [], 'restores': 0, 'last_restore': None}}]
+  FAIL publish called without mode_off writes the entity: only the off mode suppresses the arm  [[]]
+  ok   a restore that succeeded cleared its latch: the next failed restore is warned again
+  ok   and after the retry succeeds no failure is held for that consumer
+  ok   a write the restore hook refuses to arm is never sent: the arm refuses before the write
+  FAIL a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off  [writes=[] diag={'armed': [], 'restores': 0, 'last_restore': None}]
+  FAIL a mode change that is not into off, or off to off, restores nothing and answers 0  [ret=(0, 0) writes=[]]
+  FAIL a restore is persisted, so the next run does not restore it again; a forgotten entry's armed set is gone from the store  [saved=[] forgotten=[]]
+  ok   the persisted armed set is read once per entry, not at every arm
+  ok   the off-restore store is at version 1: a bump strands every persisted armed set without a migration
+  ok   a factory reset keeps the heat-curve kind beside its entity (ghc-d03)
+
+26 of 48 FEATURES BLOCK FAILED
+No baseline readable from number.space_setpoint: not written, nothing to restore it to
+Heat-curve entity number.heating_offset: 96 writes in 24 h reached the guard, refused
+Heat-curve entity number.heating_offset is unavailable: not written
+Heat-curve entity number.heating_offset write failed: integration gone
