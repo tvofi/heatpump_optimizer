@@ -498,7 +498,8 @@ def closing_stage(group: dict, stage: str, legacy: dict) -> tuple[str, list]:
     return ("carries-open" if pending else "done"), pending
 
 
-_MERGE_SHA = re.compile(r"\A[0-9a-f]{7,40}\Z")
+#: A commit sha as the roster records one (7 to 40 hex); roster_edit.py writes by it.
+SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
 
 
 def discharged(group: dict, legacy: dict) -> bool:
@@ -517,7 +518,7 @@ def discharged(group: dict, legacy: dict) -> bool:
     resume = group.get("resume") or {}
     return (resume.get("stage") == "carries-open"
             and isinstance(resume.get("commit"), str)
-            and bool(_MERGE_SHA.match(resume["commit"]))
+            and bool(SHA_RE.match(resume["commit"]))
             and not pending_carries(group, legacy))
 
 

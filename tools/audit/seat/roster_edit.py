@@ -180,7 +180,7 @@ import carry_audit  # noqa: E402  the one owned-issue test (`orphaned`)
 import roster_lib  # noqa: E402  which roster: roster_lib.roster_path, the one owner
 import ref_privacy  # noqa: E402  a ref or message never names this host (#2310)
 TOTAL_OK = re.compile(r"TOTAL: 0 error")
-SHA_RE = re.compile(r"\A[0-9a-f]{7,40}\Z")
+SHA_RE = roster_lib.SHA_RE  # the one sha grammar, roster_lib.discharged reads it too
 # Historical path first, then the moved one: the same preference as
 # `test -f` in the graders. Which of the two exists is read from the
 # checkout being linted.

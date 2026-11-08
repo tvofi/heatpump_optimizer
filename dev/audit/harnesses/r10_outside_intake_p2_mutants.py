@@ -50,9 +50,9 @@ MUTANTS = [
      'return (resume.get("stage") in ("carries-open", "in-progress", "not-started")', ()),
     ("discharged-no-commit", LIB,
      '            and isinstance(resume.get("commit"), str)\n'
-     '            and bool(_MERGE_SHA.match(resume["commit"]))\n',
+     '            and bool(SHA_RE.match(resume["commit"]))\n',
      "            and True\n", ()),
-    ("discharged-any-commit", LIB, 'and bool(_MERGE_SHA.match(resume["commit"]))',
+    ("discharged-any-commit", LIB, 'and bool(SHA_RE.match(resume["commit"]))',
      'and bool(resume["commit"])', ()),
     ("discharged-carries-ignored", LIB, "            and not pending_carries(group, legacy))",
      "            and True)", ()),
