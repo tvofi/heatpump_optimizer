@@ -91,6 +91,8 @@ jobs:
       machinery: ${{ steps.derive.outputs.machinery }}
       # R10-CI-SELFTEST-SCOPE: instrument-self-tests' steps (prelude.selftest_scope).
       selftests: ${{ steps.derive.outputs.selftests }}
+      # R10-CI-OWN-DELIVERY-ROW: the same with the PR's own delivery row ignored (arch-instrument).
+      machinery_rowblind: ${{ steps.derive.outputs.machinery_rowblind }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -188,6 +190,7 @@ jobs:
       recheck: ${{ inputs.recheck }}
       no-skip: ${{ inputs.no-skip }}
       machinery: ${{ needs.prelude.outputs.machinery }}
+      machinery_rowblind: ${{ needs.prelude.outputs.machinery_rowblind }}
     # Until M-3 decides the approve steps.
     secrets:
       CLOSURES_PUSH_TOKEN: ${{ secrets.CLOSURES_PUSH_TOKEN }}
