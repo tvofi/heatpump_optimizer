@@ -503,7 +503,7 @@ handoff_level() { # the handoff-no-pr and hold-stale levels, derived from this p
 }
 handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of its head
   local state=${HPO_STATE_DIR:-$HOME/.local/state/hpo} repo=${HPO_RELAY_REPO:-tvofi/heatpump_optimizer} f pr br head topic hs bs bd body iss nh nonce urc held_prs released upd why code
-  local bf bonly key seed="" tries n
+  local bf bonly key seed="" tries n cls
   f=$state/cloud-handoff-failed; mkdir -p "$state"
   # BODY-ONLY (R10-FLOW-BODY-ONLY part (c)): `<topic> <body sha>` per body this relay has applied, by an
   # update or a body-only run. With no file yet, this pass records every contained topic's body as
@@ -553,10 +553,8 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
     fi
     # A retryable refusal (carry 12) waits out its backoff, owed meanwhile with its reason; $f.tries is `<key>\t<n>\t<epoch>`.
     tries=$(awk -F'\t' -v k="$key" '$1 == k { n = $2; t = $3 } END { print (n == "" ? "0 0" : n " " t) }' "$f.tries" 2>/dev/null)
-    if [ "${tries% *}" != 0 ] && [ "$(date +%s)" -lt $(( ${tries#* } + ${HPO_RELAY_RETRY_BACKOFF:-1800} )) ]; then
-      why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null)
-      level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue
-    fi
+    if [ "${tries% *}" != 0 ] && [ "$(date +%s)" -lt $(( ${tries#* } + ${HPO_RELAY_RETRY_BACKOFF:-1800} )) ]; then  # mut:backoff
+      why=$(awk -F'\t' -v k="$key" '$1 == k { w = $2 } END { print w }' "$f.why" 2>/dev/null); level_line handoff-update "refs/heads/handoff/$topic" "$hs" "$why" >> "$state/cloud-level-update.$$"; continue; fi
     # The body goes in a directory of this run's own, under the state dir: a file directly in a
     # shared temp root ($TMPDIR, /tmp) is refused by prepr's body-path check, so every relay
     # update failed there (#2469, #2471) -- and still raced the manual update it was meant to spare.
@@ -618,8 +616,10 @@ handoff_arm() { # one pass over open PRs; updates one whose handoff is ahead of 
       # A refusal of a body-content step (unpinned sites, carry, figures, the body contract) clears only when the body
       # ref moves, which is a new key: recorded at once. Any other (ancestry reds, ci predict) can clear with no ref
       # moving: it reruns after HPO_RELAY_RETRY_BACKOFF (30 min), three runs at most, then it is recorded and owed.
-      n=${tries% *}; n=$((n + 1))
-      if grep -qiE 'REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)|unpinned site' "$bd/update.out" || [ "$n" -ge 3 ]; then  # mut:retryall
+      n=${tries% *}; n=$((n + 1)); cls=retry
+      ! grep -qiE 'REFUSE[: ]+(unpinned sites?|carry|pr-body|figures|brief)|unpinned site' "$bd/update.out" || cls=content  # mut:retryall
+      [ "$n" -lt 3 ] || cls=content  # mut:trylimit
+      if [ "$cls" = content ]; then
         echo "$key" >> "$f"
       else printf '%s\t%s\t%s\n' "$key" "$n" "$(date +%s)" >> "$f.tries"; fi
       printf '%s\t%s\n' "$key" "$why" >> "$f.why"
@@ -1255,6 +1255,26 @@ EOF
   chk "a busy update is tried again on the next pass" 0 test "$(wc -l < "$t/updated" | tr -d ' ')" = 2
   chk "and is not recorded failed" 0 test ! -s "$t/state/cloud-handoff-failed"
   chk "nor owed" 1 grep -q "handoff-update" "$LOG.level"
+  # Carry 12: a refusal that clears with no ref moving is rerun after a backoff, three runs at most; a body-content refusal waits for the body.
+  rt=$t/rt.sh; printf '#!/bin/sh\nn=$(cat "%s/rtn" 2>/dev/null || echo 0); echo $((n + 1)) > "%s/rtn"\ncase "$RT_MODE" in\n ok1) [ "$n" = 0 ] && { echo "update_pr: REFUSE: ancestry reds: r"; exit 1; }; exit 0;;\n *) echo "update_pr: REFUSE: $RT_MODE: r"; exit 1;;\nesac\n' "$t" "$t" > "$rt"; chmod +x "$rt"; HPO_RELAY_UPDATE=$rt
+  rtreset() { rm -f "$t/rtn" "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why" "$t/state/cloud-handoff-failed.tries"; : > "$LOG"; rm -f "$LOG.level"; }
+  rtcalls() { cat "$t/rtn" 2>/dev/null || echo 0; }
+  export HPO_RELAY_RETRY_BACKOFF=0
+  rtreset; RT_MODE=ok1; export RT_MODE; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "(a) an ancestry-reds refusal that then clears updates on the retry, with no ref moved" 0 test "$(rtcalls)" = 2 -a ! -s "$t/state/cloud-handoff-failed"
+  rtreset; RT_MODE="ancestry reds"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "(c) three refusals of a retryable class stop: three runs over five passes" 0 test "$(rtcalls)" = 3
+  chk "(c) and the third is recorded and owed with its reason" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: ancestry reds: r\$" "$LOG.level"
+  rtreset; RT_MODE="unpinned sites"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "(b) an unpinned-sites refusal with the same body is not rerun" 0 test "$(rtcalls)" = 1
+  chk "(b) and it is recorded at once, owed with its reason" 0 grep -q "^OWED .* handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: unpinned sites: r\$" "$LOG.level"
+  bodyc "$HS2"; handoff_arm >/dev/null 2>&1
+  chk "(b) a new body reruns it" 0 test "$(rtcalls)" = 2
+  rtreset; HPO_RELAY_RETRY_BACKOFF=3600; RT_MODE="ancestry reds"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  chk "the backoff holds a retryable refusal back: one run in two passes" 0 test "$(rtcalls)" = 1
+  chk "  and owes it meanwhile with its reason" 0 grep -q "handoff-update refs/heads/handoff/topic-a $HS2 update_pr: REFUSE: ancestry reds: r\$" "$LOG.level"
+  export HPO_RELAY_RETRY_BACKOFF=0; rtreset; RT_MODE="ancestry reds"; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1; handoff_arm >/dev/null 2>&1
+  unset HPO_RELAY_RETRY_BACKOFF; rtreset; HPO_RELAY_UPDATE=$hu; unset RT_MODE
   # V147: a failed update records why; a body updates only the code head its Code: trailer names
   rm -f "$t/state/cloud-handoff-failed" "$t/state/cloud-handoff-failed.why"; : > "$LOG"; rm -f "$t/state/cloud-handoff-failed.tries"
   ru=$t/ru.sh; printf '#!/bin/sh\necho "update_pr: REFUSE: carry X"\necho "update_pr: cleaned up"\nexit 1\n' > "$ru"; chmod +x "$ru"; HPO_RELAY_UPDATE=$ru
