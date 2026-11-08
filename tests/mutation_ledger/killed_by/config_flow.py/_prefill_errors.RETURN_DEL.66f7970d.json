@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/config_flow.py:_prefill_errors RETURN_DEL 66f7970d",
+  "killed_by": "tests/config_flow_steps.py",
+  "old": "    return errors or _written_entity_collision({**current, **saved})",
+  "reason": "Recorded by `mutation_table.py --pin-killed`: RETURN_DEL (`pass`) took tests/config_flow_steps.py from rc=0 failed=0 to rc=1 failed=5."
+}

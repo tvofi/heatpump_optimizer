@@ -88,6 +88,8 @@ from heatpump_optimizer.thermal_model import (
     ThermalModel, ThermalParameters, ThermalState, WeatherSeries)
 from heatpump_optimizer.dhw_planner import DhwPlanner, _DhwPlanContext
 from heatpump_optimizer.optimizer import _Horizon
+from heatpump_optimizer.optimizer import OptimizationResult as _OptResult
+import types as _types_mod
 
 
 def _owned_params(params):
@@ -2008,6 +2010,181 @@ R.check(
     )
     is None,
     "the 55 degC default must not be replaced by a plan that has not started",
+)
+
+# --- R10-BUFFER-OPENLOOP (D12-s1-01): the no-probe buffer is advanced ------
+# Without a buffer probe ``state.buffer_tank_temperature`` kept the 40 degC
+# dataclass default (or its last value) cycle after cycle, and every solve
+# started the buffer from it. The fix seeds it from the previous plan's
+# ``buffer_temp_trajectory`` at the step covering now, through the same
+# ``_seed_store`` primitive the DHW seed now uses. Each arm drives the
+# production ``_update_current_state`` (which calls the external-heat
+# detection) and reads the published state and the detector's observation.
+R.section("R10-BUFFER-OPENLOOP: the no-probe buffer follows the previous plan")
+from heatpump_optimizer import external_heat as _r10bo_eh  # noqa: E402
+from heatpump_optimizer.coordinator import (  # noqa: E402
+    HeatPumpOptimizerCoordinator as _r10bo_Coord,
+)
+
+_r10bo_t0 = datetime(2026, 3, 2, 6, 0, tzinfo=UTC)
+#: Planned buffer 40 -> 47 degC over eight 15-minute steps: cycles at +20 and
+#: +50 minutes are covered by steps 1 and 3 (41.0 and 43.0).
+_r10bo_traj = [40.0 + i for i in range(8)]
+_r10bo_at = (_r10bo_t0 + timedelta(minutes=20), _r10bo_t0 + timedelta(minutes=50))
+
+
+def _r10bo_run(*, probe=None, dhw_probe=None, trajectory=_r10bo_traj, wood=False,
+               dhw_trajectory=()):
+    """Two cycles; returns ([buffer level per cycle], [dhw level], [observation])."""
+    cfg = {
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "buffer_tank_volume": 500.0,
+        "dhw_tank_volume": 200.0,
+        # The plan publishes a buffer trajectory only under a throttling valve
+        # (optimizer.py, ``buffer_temp_trajectory``); the injected plan below
+        # stands for that plan, so the valve is configured to match it.
+        "mixing_valve_mode": "manual",
+    }
+    if probe is not None:
+        cfg["buffer_tank_temp_entity"] = "sensor.buffer"
+    if dhw_probe is not None:
+        cfg["dhw_temp_entity"] = "sensor.tank"
+    if wood:
+        cfg.update({
+            "wood_furnace_enabled": True,
+            "external_heat_detection_enabled": True,
+            "external_heat_entity": "input_boolean.stove",
+            "wood_tank_top_entity": "sensor.wood_top",
+            "wood_tank_bottom_entity": "sensor.wood_bottom",
+            "valve_outlet_temp_entity": "sensor.outlet",
+            "wood_tank_volume": 1000.0,
+        })
+    coord = _r10bo_Coord(FakeHass(), _r9f12_entry(data=cfg))
+    coord._snapshots_loaded = True
+    coord._optimization_result = _r9f12_ns(
+        buffer_temp_trajectory=list(trajectory),
+        dhw_temp_trajectory=list(dhw_trajectory),
+        timestamps=[_r10bo_t0 + timedelta(minutes=15 * i) for i in range(8)],
+    )
+    seen = []
+    real_update = coord._external_heat.update
+
+    def _r10bo_spy(obs):
+        seen.append(obs)
+        return real_update(obs)
+
+    coord._external_heat.update = _r10bo_spy
+    levels, dhw_levels = [], []
+    try:
+        for now in _r10bo_at:
+            _r9f12_dt.freeze(now)
+            states = [("sensor.indoor", "21.0"), ("sensor.outdoor", "5.0")]
+            if probe is not None:
+                states.append(("sensor.buffer", f"{probe}"))
+            if dhw_probe is not None:
+                states.append(("sensor.tank", f"{dhw_probe}"))
+            if wood:
+                states += [("sensor.wood_top", "70.0"), ("sensor.wood_bottom", "60.0"),
+                           ("sensor.outlet", "55.0")]
+            for entity, value in states:
+                coord.hass.states.set(entity, FakeState(value, last_updated=now, unit="°C"))
+            if wood:
+                coord.hass.states.set("input_boolean.stove", FakeState("on", last_updated=now))
+            _r9f12_aio.run(coord._update_current_state())
+            state = getattr(coord, "_ctx", coord)._current_state
+            levels.append(state.buffer_tank_temperature)
+            dhw_levels.append(state.dhw_temperature)
+    finally:
+        _r9f12_dt.freeze(None)
+    return levels, dhw_levels, seen, coord
+
+
+_r10bo_lv, _r10bo_dlv, _r10bo_obs, _ = _r10bo_run()
+R.check(
+    "R10-BUFFER-OPENLOOP: with no buffer probe the buffer level follows the "
+    "previous plan's trajectory, not the 40 degC default",
+    _r10bo_lv == [41.0, 43.0],
+    "buffer levels=%r (plan at covering steps 41.0, 43.0)" % (_r10bo_lv,),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP: the observation's rise inputs carry no seed: with no "
+    "probe buffer_temp and dhw_temp are None while the state holds the seed",
+    [(o.buffer_temp, o.dhw_temp) for o in _r10bo_obs] == [(None, None)] * 2,
+    "rise inputs=%r" % ([(o.buffer_temp, o.dhw_temp) for o in _r10bo_obs],),
+)
+_r10bo_plv, _, _r10bo_pobs, _ = _r10bo_run(probe=36.5, dhw_probe=48.0)
+R.check(
+    "R10-BUFFER-OPENLOOP: a buffer probe reading ok wins over the plan (null control)",
+    _r10bo_plv == [36.5, 36.5],
+    "buffer levels=%r" % (_r10bo_plv,),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP: with probes the rise inputs carry the readings",
+    [(o.buffer_temp, o.dhw_temp) for o in _r10bo_pobs] == [(36.5, 48.0)] * 2,
+    "rise inputs=%r" % ([(o.buffer_temp, o.dhw_temp) for o in _r10bo_pobs],),
+)
+_r10bo_elv, _, _, _r10bo_ecoord = _r10bo_run(trajectory=())
+_r10bo_default = type(getattr(_r10bo_ecoord, "_ctx", _r10bo_ecoord)._current_state)(
+).buffer_tank_temperature
+R.check(
+    "R10-BUFFER-OPENLOOP: an empty buffer trajectory (no throttling valve) "
+    "leaves the level as it is, never fabricated",
+    _r10bo_elv == [_r10bo_default, _r10bo_default] == [40.0, 40.0],
+    "buffer levels=%r default=%r" % (_r10bo_elv, _r10bo_default),
+)
+# The DHW seed re-expressed through ``_seed_store`` (behaviour unchanged; the
+# R9 D12-s1-01 checks above are its end-to-end control): the seed reaches the
+# state, and is not read back as a rise.
+_, _r10bo_dd, _r10bo_dobs, _ = _r10bo_run(dhw_trajectory=[50.0 + i for i in range(8)])
+R.check(
+    "R10-BUFFER-OPENLOOP: the open-loop DHW seed reaches the state but not the "
+    "detector's rise input",
+    _r10bo_dd == [51.0, 53.0] and [o.dhw_temp for o in _r10bo_dobs] == [None, None],
+    "dhw levels=%r rise inputs=%r" % (_r10bo_dd, [o.dhw_temp for o in _r10bo_dobs]),
+)
+
+
+# The wood arm: the level input ``hp_tank_temp`` is the useful floor of the
+# wood energy and the reference of the displacement, so it reads the best
+# level estimate (the seed), never None. Wood 70/60 degC (mean 65), outlet 55.
+def _r10bo_wood_expect(hp):
+    energy = (max(0.0, 65.0 - (hp + _r10bo_eh.WOOD_TANK_MIN_MARGIN))
+              * 1000.0 * _r10bo_eh.WATER_SPECIFIC_HEAT)
+    return round(energy, 6), round(min(1.0, max(0.0, (55.0 - hp) / (70.0 - hp))), 6)
+
+
+def _r10bo_wood(**kw):
+    _, _, _, coord = _r10bo_run(wood=True, **kw)
+    st = coord._external_heat.state
+    return (None if st.wood_energy_kwh is None else round(st.wood_energy_kwh, 6),
+            round(st.displacement, 6))
+
+
+_r10bo_wlv, _, _r10bo_wobs, _ = _r10bo_run(wood=True)
+_r10bo_w = _r10bo_wood()
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): with no buffer probe the wood reference "
+    "hp_tank_temp is the plan's seed, and wood energy and displacement follow it",
+    [o.hp_tank_temp for o in _r10bo_wobs] == [41.0, 43.0]
+    and _r10bo_w == _r10bo_wood_expect(43.0) != _r10bo_wood_expect(40.0),
+    "hp_tank_temp=%r outputs=%r expect(43)=%r expect(40)=%r"
+    % ([o.hp_tank_temp for o in _r10bo_wobs], _r10bo_w,
+       _r10bo_wood_expect(43.0), _r10bo_wood_expect(40.0)),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): a buffer probe wins and the wood outputs "
+    "follow the reading (null control)",
+    _r10bo_wood(probe=38.0) == _r10bo_wood_expect(38.0),
+    "outputs=%r expect=%r" % (_r10bo_wood(probe=38.0), _r10bo_wood_expect(38.0)),
+)
+R.check(
+    "R10-BUFFER-OPENLOOP (wood_seed): no seed and no reading keeps today's 40 degC "
+    "level, so wood energy and displacement stay on, as at base",
+    _r10bo_wood(trajectory=()) == _r10bo_wood_expect(40.0),
+    "outputs=%r expect=%r" % (_r10bo_wood(trajectory=()), _r10bo_wood_expect(40.0)),
 )
 
 # --- R10-DEMAND-OVERBOOK (#2499): the slab advances by the heat delivered ----
@@ -8196,8 +8373,11 @@ class _PredGate:
         self._thermal_model = ThermalModel(self._thermal_params)
 
         class _Res:
+            from heatpump_optimizer.optimizer import OptimizationResult as _O
             room_temp_trajectory = [21.0, 21.4, 21.8]
             upper_temp_trajectory = []
+            # The production selection, as _predicted_next_room_temp is above.
+            sensor_trajectory = _O.sensor_trajectory
 
         class _OptCfg:
             time_step_minutes = 30.0
@@ -22124,6 +22304,10 @@ def _nf_settled(sun):
     coord._optimization_result = SimpleNamespace(
         room_temp_trajectory=[21.0] * 97, upper_temp_trajectory=[],
     )
+    # The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+    coord._optimization_result.sensor_trajectory = _types_mod.MethodType(
+        _OptResult.sensor_trajectory, coord._optimization_result
+    )
     coord._current_state.room_temperature = 21.0
     coord._current_state.outdoor_temperature = -2.0
     coord.hass.states.set("sensor.indoor", FakeState("21.0"))
@@ -22563,6 +22747,10 @@ _fake_plan = _NS(
     power_schedule=[0.5] * 96,
     dhw_power_schedule=[0.0] * 96,
     prices=[2.0] * 96,
+)
+# The production trajectory selection, bound to the fake (R10-CLONE-2238 P3).
+_fake_plan.sensor_trajectory = _types_mod.MethodType(
+    _OptResult.sensor_trajectory, _fake_plan
 )
 _c16._file_lead_predictions(_fake_plan, _T5)
 R.check(
@@ -30332,6 +30520,351 @@ R.check(
 )
 
 
+R.section("A configured input that returns is re-read at once, not one interval later")
+
+# A live install's indoor sensor is a Zigbee2MQTT entity. After a restart or a
+# reload of this integration the first read ran before MQTT discovery had
+# re-created it, so the reading was `missing_entity` and every learner froze;
+# nothing read it again until the next scheduled update, one
+# `optimization_interval` (15 min there) later, although the entity was back
+# within seconds. `InputReturnWatch` asks for the coordinator's debounced
+# refresh as soon as an input the last read found absent or valueless reports
+# a value. The re-read goes through the real `_update_current_state` here, so
+# every guard a scheduled read applies applies to the returned value too.
+import gc as _ir_gc  # noqa: E402
+import weakref as _ir_weakref  # noqa: E402
+
+_IR_SPACING_S = 15 * 60.0
+
+
+def _ir_event(entity_id, state):
+    return type("Ev", (), {"data": {
+        "entity_id": entity_id, "old_state": None, "new_state": state}})()
+
+
+def _ir_fire(hass, entity_id, state):
+    for ids, action in list(getattr(hass, "state_listeners", [])):
+        if entity_id in ids:
+            action(_ir_event(entity_id, state))
+
+
+def _ir_rig(indoor=None, *, stub_refresh=True):
+    """A coordinator whose first read finds ``indoor`` (absent when None).
+
+    ``stub_refresh`` replaces the refresh with the cycle's input half (the
+    real read, every real guard); without it the real debounced
+    ``async_request_refresh`` is what a return reaches.
+    """
+    import homeassistant.util.dt as _ir_dt
+
+    states = {"sensor.outdoor": FakeState("-8.0", unit="°C", last_updated=_LF_T0)}
+    if indoor is not None:
+        states["sensor.indoor"] = indoor
+    hass = _FakeHass(states)
+    coord = Coord(hass, _FakeEntry(data={
+        "tibber_token": "x",
+        "weather_entity": "weather.home",
+        "indoor_temp_entity": "sensor.indoor",
+        "outdoor_temp_entity": "sensor.outdoor",
+        "optimization_interval": 15,
+    }))
+    coord._current_weather = lambda: (0.0, 0.0)
+    # Captured from here on: the construction's own loaders are not the watch.
+    tasks = []
+    hass.async_create_task = lambda coro, *a, **k: tasks.append(coro)
+    refreshes = []
+
+    async def _refresh():
+        refreshes.append(1)
+        await coord._update_current_state()
+
+    if stub_refresh:
+        coord.async_request_refresh = _refresh
+    clock = [1000.0]
+    # getattr: at a tree without the watch the checks below fail, not crash.
+    watch = getattr(coord, "_input_returns", None)
+    if watch is not None:
+        watch.clock = lambda: clock[0]
+    real = (_ir_dt.now, _ir_dt.utcnow)
+
+    def run(coro):
+        _ir_dt.now = _ir_dt.utcnow = lambda: _LF_T0
+        try:
+            _asyncio.run(coro)
+        finally:
+            _ir_dt.now, _ir_dt.utcnow = real
+
+    run(coord._update_current_state())
+
+    def run_tasks():
+        while tasks:
+            run(tasks.pop(0))
+
+    return coord, hass, tasks, refreshes, clock, run_tasks, run
+
+
+def _ir_watched(hass):
+    return sorted(
+        e for ids, _a in getattr(hass, "state_listeners", []) for e in ids)
+
+
+def _ir_indoor(coord):
+    return coord._input_health.readings["indoor_temp_entity"]
+
+
+_ir_c, _ir_h, _ir_tasks, _ir_refreshes, _ir_clock, _ir_run, _ir_do = _ir_rig()
+R.check(
+    "precondition: an indoor entity absent at the first read is missing_entity "
+    "and freezes the learners",
+    _ir_indoor(_ir_c).problem == "missing_entity"
+    and _ir_c._learning_frozen("indoor_temp_entity")
+    == "missing_entity:indoor_temp_entity",
+    f"got {_ir_c._learning_frozen('indoor_temp_entity')!r}",
+)
+R.check(
+    "the read that found it absent watches exactly that entity",
+    _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"watched {_ir_watched(_ir_h)}",
+)
+# HA writes an `unavailable` placeholder for a registry entity whose
+# integration has not loaded; that is not a return.
+_ir_fire(_ir_h, "sensor.indoor", FakeState("unavailable", last_updated=_LF_T0))
+R.check(
+    "an entity that reappears without a value asks for nothing",
+    not _ir_tasks,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_back = FakeState("21.3", unit="°C", last_updated=_LF_T0)
+_ir_h.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "the entity reporting a value asks for one refresh at once",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_run()
+R.check(
+    "that refresh re-reads it: the input is ok, the learners unfreeze, the "
+    "planner's room temperature is the reading",
+    _ir_refreshes == [1]
+    and _ir_indoor(_ir_c).ok
+    and _ir_c._learning_frozen("indoor_temp_entity") is None
+    and _ir_c._current_state.room_temperature == 21.3,
+    f"refreshes {_ir_refreshes}, "
+    f"frozen {_ir_c._learning_frozen('indoor_temp_entity')!r}, "
+    f"room {_ir_c._current_state.room_temperature}",
+)
+R.check(
+    "and with nothing absent any more nothing is watched",
+    _ir_watched(_ir_h) == [],
+    f"watched {_ir_watched(_ir_h)}",
+)
+
+# A flapping sensor: absent again at the next scheduled read, back within the
+# same interval. The hold runs from the re-read (at clock 1000.0), one
+# interval long, so one extra refresh per entity per interval, not one per flap.
+_ir_h.states._states.pop("sensor.indoor")
+_ir_do(_ir_c._update_current_state())
+_ir_clock[0] = 1000.0 + _IR_SPACING_S - 1.0
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a return one second short of an interval after the re-read asks for nothing",
+    not _ir_tasks and _ir_watched(_ir_h) == ["sensor.indoor"],
+    f"{len(_ir_tasks)} requested, watched {_ir_watched(_ir_h)}",
+)
+_ir_clock[0] = 1000.0 + _IR_SPACING_S
+_ir_fire(_ir_h, "sensor.indoor", _ir_back)
+R.check(
+    "a return exactly one interval after the re-read asks again",
+    len(_ir_tasks) == 1,
+    f"{len(_ir_tasks)} refreshes requested",
+)
+_ir_tasks.clear()
+
+# A return while a cycle is in flight. Home Assistant's debouncer discards a
+# call while it is executing; the real `async_request_refresh` meets the stub's
+# copy of that branch here. A request that never became a read must not start
+# the hold, or the next return would wait a whole interval.
+_ir_f, _ir_fh, _ir_ft, _ir_fr, _ir_fc, _ir_frun, _ir_fdo = _ir_rig(stub_refresh=False)
+_ir_fh.states.set("sensor.indoor", _ir_back)
+_ir_f._debounced_refresh._executing = True
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+_ir_asked = len(_ir_ft)
+_ir_frun()
+R.check(
+    "precondition: a return during an in-flight cycle is asked for and "
+    "dropped by the debouncer, so nothing was re-read",
+    _ir_asked == 1 and _ir_f.refresh_requests == 1
+    and _ir_indoor(_ir_f).problem == "missing_entity",
+    f"asked {_ir_asked}, requests {_ir_f.refresh_requests}, "
+    f"indoor {_ir_indoor(_ir_f).problem}",
+)
+_ir_f._debounced_refresh._executing = False
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "the next report after a dropped request asks again",
+    len(_ir_ft) == 1,
+    f"{len(_ir_ft)} refreshes requested",
+)
+for _ir_coro in _ir_ft:
+    _ir_coro.close()
+_ir_ft.clear()
+# The in-flight cycle read its inputs before the return arrived, so it cannot
+# settle it; the first read that runs after the return does (here the next
+# one), and that read starts the hold.
+_ir_fdo(_ir_f._update_current_state())
+_ir_fh.states._states.pop("sensor.indoor")
+_ir_fdo(_ir_f._update_current_state())
+_ir_fc[0] += 60.0
+_ir_fire(_ir_fh, "sensor.indoor", _ir_back)
+R.check(
+    "a read after the return settles it: the next return inside the hold "
+    "asks for nothing",
+    not _ir_ft,
+    f"{len(_ir_ft)} refreshes requested",
+)
+
+# The guards still decide. A value twelve hours old comes back: the re-read
+# runs, rejects it as stale, and the learners stay frozen.
+_ir_s, _ir_sh, _ir_st, _ir_sr, _ir_sc, _ir_srun, _ = _ir_rig()
+_ir_old = FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12))
+_ir_sh.states.set("sensor.indoor", _ir_old)
+_ir_fire(_ir_sh, "sensor.indoor", _ir_old)
+_ir_srun()
+R.check(
+    "a returned value the guards reject is re-read and keeps the learners "
+    "frozen",
+    _ir_sr == [1]
+    and _ir_s._learning_frozen("indoor_temp_entity") == "stale:indoor_temp_entity",
+    f"refreshes {_ir_sr}, got {_ir_s._learning_frozen('indoor_temp_entity')!r}",
+)
+
+# `unavailable` is watched as `missing_entity` is: an entity HA holds, with no
+# value, that then reports one.
+_ir_u, _ir_uh, _ir_ut, _ir_ur, _ir_uc, _ir_urun, _ = _ir_rig(
+    FakeState("unavailable", unit="°C", last_updated=_LF_T0))
+_ir_uh.states.set("sensor.indoor", _ir_back)
+_ir_fire(_ir_uh, "sensor.indoor", _ir_back)
+_ir_urun()
+R.check(
+    "an input read as unavailable is watched and re-read when it reports a value",
+    _ir_watched(_ir_uh) == [] and _ir_ur == [1] and _ir_indoor(_ir_u).ok,
+    f"refreshes {_ir_ur}, indoor {_ir_indoor(_ir_u).problem}",
+)
+
+# Released with the entry (#236): the listener goes, and no later read re-arms.
+_ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo = _ir_rig()
+_ir_r._release_registrations()
+_ir_released = _ir_watched(_ir_rh)
+_ir_rdo(_ir_r._update_current_state())
+R.check(
+    "releasing the entry drops the watch, and a read after it registers none",
+    _ir_released == [] and _ir_watched(_ir_rh) == [],
+    f"after release {_ir_released}, after a later read {_ir_watched(_ir_rh)}",
+)
+# And nothing the watch holds keeps the coordinator alive: a module-level
+# table keyed by the coordinator, whose value held its bound refresh, pinned
+# every coordinator for the life of the process -- one per reload and per
+# ConfigEntryNotReady retry.
+_ir_ref = _ir_weakref.ref(_ir_r)
+del _ir_r, _ir_rh, _ir_rt, _ir_rr, _ir_rc, _ir_rrun, _ir_rdo
+_ir_gc.collect()
+R.check(
+    "a released coordinator is collected",
+    _ir_ref() is None,
+    f"{len(_ir_gc.get_referrers(_ir_ref()))} referrers" if _ir_ref() else "",
+)
+
+# NULL CONTROL: a healthy install carries no listener at all, so the watch
+# cannot be what every healthy read pays for.
+_ir_n, _ir_nh, _ir_nt, *_ = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0))
+R.check(
+    "null control: a read with every configured input usable watches nothing",
+    _ir_indoor(_ir_n).ok and _ir_watched(_ir_nh) == [] and not _ir_nt,
+    f"watched {_ir_watched(_ir_nh)}",
+)
+# A design choice, pinned: only absence and no-value are watched. A sensor
+# reporting a word (or a fault code, or a unit the reader cannot convert) is
+# present and reporting, and a stale one re-reported unchanged fires no state
+# change at all; an event vouches for nothing the re-read could accept, so
+# watching either would buy one extra update per interval while it stays so.
+_ir_w, _ir_wh, *_ = _ir_rig(FakeState("warm", unit="°C", last_updated=_LF_T0))
+R.check(
+    "a present input with an unusable value (not_numeric) is not watched",
+    _ir_indoor(_ir_w).problem == "not_numeric" and _ir_watched(_ir_wh) == [],
+    f"watched {_ir_watched(_ir_wh)}",
+)
+_ir_o, _ir_oh, *_ = _ir_rig(
+    FakeState("21.0", unit="°C", last_updated=_LF_T0 - timedelta(hours=12)))
+R.check(
+    "a stale input is not watched",
+    _ir_indoor(_ir_o).problem == "stale" and _ir_watched(_ir_oh) == [],
+    f"watched {_ir_watched(_ir_oh)}",
+)
+
+# The watch itself, driven with a fake clock and a counting tracker, so the
+# bookkeeping a whole-coordinator read cannot see is pinned too.
+from heatpump_optimizer.inputs import (  # noqa: E402
+    InputHealth as _IrHealth,
+    InputReading as _IrReading,
+    InputReturnWatch as _IrWatch,
+)
+
+
+def _ir_unit():
+    log = {"track": [], "unsub": 0, "req": 0, "t": 0.0, "cb": None}
+
+    def track(ids, cb):
+        log["track"].append(list(ids))
+        log["cb"] = cb
+
+        def unsub():
+            log["unsub"] += 1
+        return unsub
+
+    def request():
+        log["req"] += 1
+
+    w = _IrWatch(track, request, _IR_SPACING_S, clock=lambda: log["t"])
+    return w, log
+
+
+def _ir_health(*ids):
+    h = _IrHealth()
+    for i in ids:
+        h.record(_IrReading(key=i, entity_id=i, problem="missing_entity"))
+    return h
+
+
+_ir_w1, _ir_l1 = _ir_unit()
+_ir_w1.arm(_ir_health("sensor.a"))
+_ir_w1.arm(_ir_health("sensor.a"))
+R.check(
+    "an unchanged watched set neither re-registers nor drops the listener",
+    _ir_l1["track"] == [["sensor.a"]] and _ir_l1["unsub"] == 0,
+    f"{_ir_l1['track']} unsub {_ir_l1['unsub']}",
+)
+
+# The re-read stamp is the arm that follows the request, not a later arm.
+_ir_w2, _ir_l2 = _ir_unit()
+_ir_w2.arm(_ir_health("sensor.a"))
+_ir_l2["t"] = 10.0
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+_ir_l2["t"] = 20.0
+_ir_w2.arm(_ir_health("sensor.a"))  # stamps the re-read at t=20
+_ir_l2["t"] = 5000.0
+_ir_w2.arm(_ir_health("sensor.a"))  # nothing pending: must not restamp
+_ir_l2["t"] = 20.0 + _IR_SPACING_S
+_ir_l2["cb"](_ir_event("sensor.a", FakeState("1.0")))
+R.check(
+    "a settled request is stamped once; a later arm does not push the spacing out",
+    _ir_l2["req"] == 2,
+    f"requests {_ir_l2['req']}",
+)
+
+
 # ===========================================================================
 # v5.1.7 — an ordinary slot stops calling itself weather pre-heating
 # ===========================================================================
@@ -34698,7 +35231,7 @@ _cb_opt = _MbOpt(
 # carry different bounds and a builder that ignores step_hours cannot pass.
 _cb_hours = np.array([12.0, 3.0])
 
-_cb_targets, _cb_min, _cb_max = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)
+_cb_targets, _cb_min, _cb_max, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, None, None)
 R.check(
     "with neither adjustment the envelope is exactly the configured band",
     list(_cb_targets) == [21.0, 19.5]
@@ -34709,7 +35242,7 @@ R.check(
     f"goldens move",
 )
 
-_, _cb_floor_min, _ = _cb_opt._build_comfort_bounds(
+_, _cb_floor_min, _, _ = _cb_opt._build_comfort_bounds(
     _cb_hours, 2, None, np.array([30.0, 30.0])
 )
 R.check(
@@ -34719,7 +35252,7 @@ R.check(
     f"which makes the solve infeasible and the comfort penalty unbounded",
 )
 
-_, _cb_neg_min, _ = _cb_opt._build_comfort_bounds(
+_, _cb_neg_min, _, _ = _cb_opt._build_comfort_bounds(
     _cb_hours, 2, np.array([-5.0, -5.0]), None
 )
 R.check(
@@ -34729,7 +35262,7 @@ R.check(
     f"a mis-signed model error now relaxes the floor it exists to raise",
 )
 
-_, _cb_short_min, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([1.0]), None)
+_, _cb_short_min, _, _ = _cb_opt._build_comfort_bounds(_cb_hours, 2, np.array([1.0]), None)
 R.check(
     "a short margin series pads with zero rather than shortening the horizon",
     list(_cb_short_min) == [20.0, 18.5],
@@ -40544,6 +41077,26 @@ R.check(
 )
 
 
+class _S3Kwargs:
+    """MQTT that records each publish's keyword arguments."""
+
+    def __init__(self) -> None:
+        self.calls, self.kwargs = [], []
+
+    async def async_call(self, domain, service, data=None, **kwargs):
+        self.calls.append((domain, service, data))
+        self.kwargs.append(kwargs)
+
+
+_s3_kw = _S3Kwargs()
+_s3_publish_calls("ecl/set", "ecl/cmd", services=_s3_kw)
+R.check(
+    "both arms publish blocking, so a broker failure reaches the arm's own except (#193)",
+    _s3_kw.kwargs == [{"blocking": True}, {"blocking": True}],
+    repr(_s3_kw.kwargs),
+)
+
+
 # ---------------------------------------------------------------------------
 R.section("R10-GENERIC-HEAT-CURVE — the displace through a number entity, kind offset")
 
@@ -40835,10 +41388,520 @@ R.check(
                                         _si3.effective_config, "stand_in_space_setpoint")) is False,
     "",
 )
+
+# The hook's failure edges, each through the production function: a consumer
+# that refuses before any record exists, a restore whose write raises and is
+# retried, one whose consumer is no longer configured, and a store that cannot
+# save or be removed. None of them may raise into the caller.
+_ghc_fail = {"write": True}
+
+
+async def _ghc_flaky_write(hass, entity_id, value):
+    if _ghc_fail["write"]:
+        raise RuntimeError("integration gone")
+    hass.services.calls.append(("number", "set_value", {"entity_id": entity_id, "value": value}))
+
+
+_ghc_restore.register_consumer(
+    "stand_in_flaky",
+    lambda cfg: _ghc_restore.Restorer("number.flaky", _ghc_flaky_write, neutral=0.0)
+    if cfg.get("flaky") else None,
+)
+_ge = _ghc_coord(entity=None, entry_id="ghc_edges")
+_ge_refused = (
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "no_such_consumer")),
+    _asyncio.run(_ghc_restore.async_arm(_ge.hass, _ge.entry, _ge.effective_config, "stand_in_flaky")),
+)
+R.check(
+    "an unregistered consumer, or one its factory reads as unconfigured, refuses the write "
+    "and leaves no record behind",
+    _ge_refused == (False, False) and _ge.entry not in _ghc_restore._RECORDS,
+    "refused=%r recorded=%r" % (_ge_refused, _ge.entry in _ghc_restore._RECORDS),
+)
+_gw = _ghc_coord(entity=None, entry_id="ghc_flaky", flaky=True)
+_gw_cfg = _gw.effective_config
+_gw_armed = _asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_sent = []
+_gw_warn = _ghc_logged(lambda: _gw_sent.append(
+    _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))))
+_gw_after_fail = (list(_gw_sent), _ghc_restore.diagnostics(_gw.entry))
+_ghc_fail["write"] = False
+_gw_retry = _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "mode_off"))
+R.check(
+    "a restore whose write raises sends nothing, stays armed and latches a warning naming the entity",
+    _gw_armed is True
+    and _gw_after_fail == ([0], {"armed": ["stand_in_flaky"], "restores": 0, "last_restore": None})
+    and any("number.flaky" in m and "failed" in m for m in _gw_warn),
+    "armed=%r after=%r warn=%r" % (_gw_armed, _gw_after_fail, _gw_warn),
+)
+R.check(
+    "and the next off retries it: one write of the neutral 0, disarmed and counted",
+    _gw_retry == 1 and _ghc_writes(_gw) == [0.0]
+    and _ghc_restore.diagnostics(_gw.entry) == {"armed": [], "restores": 1, "last_restore": "mode_off"},
+    "sent=%r writes=%r diag=%r" % (_gw_retry, _ghc_writes(_gw), _ghc_restore.diagnostics(_gw.entry)),
+)
+_gx = _ghc_coord(entity=None, entry_id="ghc_unconfigured", flaky=True)
+_asyncio.run(_ghc_restore.async_arm(_gx.hass, _gx.entry, _gx.effective_config, "stand_in_flaky"))
+_gx2 = _ghc_coord(entity=None, hass=_gx.hass, entry_id="ghc_unconfigured")
+_gx_sent = _asyncio.run(_ghc_restore.async_restore(_gx2.hass, _gx2.entry, _gx2.effective_config, "unload"))
+R.check(
+    "an armed consumer no longer configured is disarmed unwritten: its entity is not the optimizer's",
+    _gx_sent == 0 and _ghc_writes(_gx2) == [] and _ghc_restore.diagnostics(_gx2.entry)["armed"] == [],
+    "sent=%r writes=%r diag=%r" % (_gx_sent, _ghc_writes(_gx2), _ghc_restore.diagnostics(_gx2.entry)),
+)
+
+
+async def _ghc_store_gone(*_a, **_k):
+    raise RuntimeError("store gone")
+
+
+class _GhcDeadStore:
+    async_save = async_remove = staticmethod(_ghc_store_gone)
+
+
+_gd = _ghc_coord(entity=None, entry_id="ghc_dead_store", flaky=True)
+_asyncio.run(_ghc_restore._armed_record(_gd.hass, _gd.entry))
+_ghc_restore._RECORDS[_gd.entry].store = _GhcDeadStore()
+_gd_armed = _asyncio.run(_ghc_restore.async_arm(_gd.hass, _gd.entry, _gd.effective_config, "stand_in_flaky"))
+_ghc_real_store = _ghc_restore._store
+_ghc_restore._store = lambda hass, entry_id: _GhcDeadStore()
+try:
+    _gd_forgot = _asyncio.run(_ghc_restore.async_forget(_gd.hass, "ghc_dead_store"))
+finally:
+    _ghc_restore._store = _ghc_real_store
+R.check(
+    "a store that cannot save still arms the write, and one that cannot be removed does not raise",
+    _gd_armed is True and _ghc_restore.diagnostics(_gd.entry)["armed"] == ["stand_in_flaky"]
+    and _gd_forgot is None,
+    "armed=%r diag=%r" % (_gd_armed, _ghc_restore.diagnostics(_gd.entry)),
+)
+
+# The arm's own edges, each pinning a line the diff mutants left alive at
+# e330a768 (tools/audit/seat/mutant_run.py --diff over this block).
+from heatpump_optimizer.inputs import NumberReading as _NR  # noqa: E402
+R.check(
+    "T2 at its bounds: a range starting or ending at 0 is an offset, one starting at 0.5 or ending at "
+    "-0.5 is not",
+    [_ghc.range_excludes_zero(_NR(0.0, "K", lo, hi)) for lo, hi in
+     ((0.0, 20.0), (-20.0, 0.0), (0.5, 20.0), (-20.0, -0.5), (None, None))]
+    == [False, False, True, True, False],
+    "",
+)
+R.check(
+    "every refusal of the pure convert names why and is never read as saturated",
+    _ghc.offset_target(None, 2.0, 3.0) == (None, "is unavailable", False)
+    and _ghc.offset_target(_NR(0.0, "%", None, None), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(30.0, "K", 20.0, 70.0), 2.0, 3.0)[0::2] == (None, False)
+    and _ghc.offset_target(_NR(0.0, "K", None, None), 2.0, 3.0) == (2.0, None, False),
+    "",
+)
+_glo = _ghc_coord(lo=-2.0, hi=2.0)
+_ghc_pub(_glo, -3.0)
+R.check(
+    "a range narrower than the displace saturates on the low side too: -3 K sends -2 (W6)",
+    _ghc_writes(_glo) == [-2],
+    repr(_ghc_writes(_glo)),
+)
+_gh = _ghc_coord(value="2.25")
+_ghc_pub(_gh, 2.0)
+R.check(
+    "a reading exactly half a step from the target holds: 2.25 against 2 at step 0.5 is not written (W1)",
+    _ghc_writes(_gh) == [],
+    repr(_ghc_writes(_gh)),
+)
+_gstep = _ghc_coord(step=2.0)
+_ghc_pub(_gstep, 2.0)
+_ghc_pub(_gstep, 3.0)
+R.check(
+    "a target within half a step of the last write is that write, still in its grace: 3 after 2 "
+    "at step 2 sends nothing (W2)",
+    _ghc_writes(_gstep) == [2],
+    repr(_ghc_writes(_gstep)),
+)
+_gm = _ghc_coord()
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("2", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc_pub(_gm, 2.0)
+_gm.hass.states.set(_GHC_ENT, _ghc_state("0", unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+_ghc.state_for(_gm.entry).written_at -= 91.0
+_ghc_pub(_gm, 2.0)
+R.check(
+    "a reading that held clears the misses, and the grace is 90 s: a miss 91 s after the write is "
+    "written once more, not given up (W1, W2)",
+    _ghc_writes(_gm) == [2, 2] and _ghc.state_for(_gm.entry).misses == 1,
+    "writes=%r misses=%r" % (_ghc_writes(_gm), _ghc.state_for(_gm.entry).misses),
+)
+_gp = _ghc_coord()
+_ghc.state_for(_gp.entry).writes.extend([_time.monotonic() - 86401.0] * _cap)
+_ghc_pub(_gp, 2.0)
+R.check(
+    "writes older than 24 h leave the guard: a full day of them 24 h and 1 s old blocks nothing (W4)",
+    _ghc_writes(_gp) == [2] and len(_ghc.state_for(_gp.entry).writes) == 1,
+    "writes=%r kept=%r" % (_ghc_writes(_gp), len(_ghc.state_for(_gp.entry).writes)),
+)
+
+
+class _GhcClock:
+    """A fixed monotonic clock for heat_curve, so a boundary is hit exactly."""
+
+    def __init__(self, now: float) -> None:
+        self.now = now
+
+    def monotonic(self) -> float:
+        return self.now
+
+
+_ghc_real_time = _ghc.time
+try:
+    _ghc.time = _gclk = _GhcClock(1000.0)
+    _gb90 = _ghc_coord()
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 1090.0
+    _ghc_pub(_gb90, 2.0)
+    _gclk.now = 100000.0
+    _gb24 = _ghc_coord()
+    _ghc.state_for(_gb24.entry).writes.extend([100000.0 - 86400.0] * _cap)
+    _ghc_pub(_gb24, 2.0)
+finally:
+    _ghc.time = _ghc_real_time
+R.check(
+    "at exactly 90 s the grace is over: a miss then is written once more (W2's bound)",
+    _ghc_writes(_gb90) == [2, 2],
+    repr(_ghc_writes(_gb90)),
+)
+R.check(
+    "and a write exactly 24 h old still counts: a full day of them at that age blocks the write (W4's bound)",
+    _ghc_writes(_gb24) == [] and len(_ghc.state_for(_gb24.entry).writes) == _cap,
+    "writes=%r kept=%r" % (_ghc_writes(_gb24), len(_ghc.state_for(_gb24.entry).writes)),
+)
+_gr = _ghc_coord()
+_gr_cfg = _gr.effective_config
+_gr_sent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_gr_held = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 2))
+_ghc.state_for(_gr.entry).writes.extend([_time.monotonic()] * _cap)
+_gr_capped = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+_gr.hass.states.set(_GHC_ENT, _ghc_state("unavailable", unit="K"))
+_gr_absent = _asyncio.run(_ghc.write_displace(_gr.hass, _gr.entry, _gr_cfg, 1))
+R.check(
+    "the entity arm answers True only for a write sent: held, capped and unreadable are False",
+    (_gr_sent, _gr_held, _gr_capped, _gr_absent) == (True, False, False, False),
+    repr((_gr_sent, _gr_held, _gr_capped, _gr_absent)),
+)
+_gfr = _ghc_coord(ecl110_displace_set_topic="ecl/set")
+_gfr.hass.services = _GhcRaising()
+_gfr_cfg = _gfr.effective_config
+_gfr_refused = _asyncio.run(_ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2))
+_gfr_warn = []
+for _svc in ("ok", "raising"):  # the refused write above already latched
+    if _svc == "ok":
+        _gfr.hass.services = _ghc_hass().services
+    else:
+        _gfr.hass.services = _GhcRaising()
+    _ghc.state_for(_gfr.entry).written = None
+    _gfr_warn.append(len(_ghc_logged(lambda: _asyncio.run(
+        _ghc.write_displace(_gfr.hass, _gfr.entry, _gfr_cfg, 2)))))
+_gfa = _ghc_coord()
+_gfa_warn = []
+for _val in ("unavailable", "0", "unavailable"):
+    _gfa.hass.states.set(_GHC_ENT, _ghc_state(_val, unit="K", attributes={"step": 0.5, "min": -20.0, "max": 20.0}))
+    _ghc.state_for(_gfa.entry).written = None
+    _gfa_warn.append(len(_ghc_logged(lambda: _ghc_pub(_gfa, 2.0))))
+R.check(
+    "a write that succeeds clears the failure latch, and so does a readable entity: the next "
+    "failure is warned again, not swallowed",
+    _gfr_refused is False and _gfr_warn[0] == 0 and _gfr_warn[1] >= 1
+    and _gfa_warn[0] >= 1 and _gfa_warn[1] == 0 and _gfa_warn[2] >= 1,
+    "write=%r entity=%r" % (_gfr_warn, _gfa_warn),
+)
+_gdg = _ghc_coord()
+_gdg_fresh = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+_ghc_pub(_gdg, 2.0)
+_gdg_after = _ghc.diagnostics(_gdg.entry, _gdg.effective_config)
+R.check(
+    "the heat-curve diagnostics: zeros before any write, the write and its 24 h count after one",
+    _gdg_fresh == {"written": None, "misses": 0, "writes_24h": 0, "write_cap_per_day": 96,
+                   "restore": {"armed": [], "restores": 0, "last_restore": None}}
+    and _gdg_after["written"] == 2 and _gdg_after["writes_24h"] == 1
+    and _gdg_after["restore"]["armed"] == ["heat_curve"],
+    "fresh=%r after=%r" % (_gdg_fresh, _gdg_after),
+)
+_gpd = _ghc_coord()
+_asyncio.run(_ghc.publish(_gpd.hass, _gpd.entry, _gpd.effective_config, 2,
+                          _ghc.ecl110_legacy_payload("t", True, 2, {})))
+R.check(
+    "publish called without mode_off writes the entity: only the off mode suppresses the arm",
+    _ghc_writes(_gpd) == [2],
+    repr(_ghc_writes(_gpd)),
+)
+
+# The restore's own edges.
+_ghc_fail["write"] = True
+_asyncio.run(_ghc_restore.async_arm(_gw.hass, _gw.entry, _gw_cfg, "stand_in_flaky"))
+_gw_rewarn = _ghc_logged(lambda: _asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload")))
+_ghc_fail["write"] = False
+R.check(
+    "a restore that succeeded cleared its latch: the next failed restore is warned again",
+    any("number.flaky" in m and "failed" in m for m in _gw_rewarn),
+    repr(_gw_rewarn),
+)
+_asyncio.run(_ghc_restore.async_restore(_gw.hass, _gw.entry, _gw_cfg, "unload"))
+from heatpump_optimizer.log_latch import _HELD_CONDITIONS as _ghc_latches  # noqa: E402
+R.check(
+    "and after the retry succeeds no failure is held for that consumer",
+    "off_restore_stand_in_flaky" not in _ghc_latches.get(_gw.entry, {}),
+    repr(_ghc_latches.get(_gw.entry)),
+)
+# The kind option is normalised to offset, so the hook's refusal is driven
+# through its contract: a factory that answers None for the arm's key.
+_gk2 = _ghc_coord()
+_ghc_real_factory = _ghc_restore._CONSUMERS[_ghc.CONSUMER]
+_ghc_restore.register_consumer(_ghc.CONSUMER, lambda cfg: None)
+try:
+    _gk2_sent = _asyncio.run(_ghc.write_displace(_gk2.hass, _gk2.entry, _gk2.effective_config, 2))
+finally:
+    _ghc_restore.register_consumer(_ghc.CONSUMER, _ghc_real_factory)
+R.check(
+    "a write the restore hook refuses to arm is never sent: the arm refuses before the write",
+    _gk2_sent is False and _ghc_writes(_gk2) == [],
+    "sent=%r writes=%r" % (_gk2_sent, _ghc_writes(_gk2)),
+)
+_gcl = _ghc_coord(entry_id="ghc_cleared")
+_ghc_pub(_gcl, 2.0)
+_gcl2 = _ghc_coord(entity=None, hass=_gcl.hass, entry_id="ghc_cleared")
+_asyncio.run(_gcl2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a heat-curve write armed before its entity option was cleared is disarmed unwritten at the next off",
+    _ghc_writes(_gcl2) == [2] and _ghc_restore.diagnostics(_gcl2.entry)["armed"] == [],
+    "writes=%r diag=%r" % (_ghc_writes(_gcl2), _ghc_restore.diagnostics(_gcl2.entry)),
+)
+_gmc = _ghc_coord(entry_id="ghc_mode_change")
+_ghc_pub(_gmc, 2.0)
+_gmc_cfg = _gmc.effective_config
+_gmc_ret = (
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_auto, "comfort")),
+    _asyncio.run(_ghc_restore.async_mode_change(_gmc.hass, _gmc.entry, _gmc_cfg, _ghc_off, _ghc_off)),
+)
+R.check(
+    "a mode change that is not into off, or off to off, restores nothing and answers 0",
+    _gmc_ret == (0, 0) and _ghc_writes(_gmc) == [2]
+    and _ghc_restore.diagnostics(_gmc.entry)["armed"] == ["heat_curve"],
+    "ret=%r writes=%r" % (_gmc_ret, _ghc_writes(_gmc)),
+)
+_gsv = _ghc_coord(entry_id="ghc_saved")
+_ghc_pub(_gsv, 2.0)
+_asyncio.run(_gsv.async_set_mode(_ghc_off, refresh=False))
+_gsv2 = _ghc_coord(hass=_gsv.hass, entry_id="ghc_saved")
+_asyncio.run(_gsv2.async_set_mode(_ghc_off, refresh=False))
+_gfg = _ghc_coord(entry_id="ghc_forgotten")
+_ghc_pub(_gfg, 2.0)
+_asyncio.run(_ghc_restore.async_forget(_gfg.hass, "ghc_forgotten"))
+_gfg2 = _ghc_coord(hass=_gfg.hass, entry_id="ghc_forgotten")
+_asyncio.run(_gfg2.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore is persisted, so the next run does not restore it again; a forgotten entry's armed "
+    "set is gone from the store",
+    _ghc_writes(_gsv2) == [2, 0] and _ghc_writes(_gfg2) == [2],
+    "saved=%r forgotten=%r" % (_ghc_writes(_gsv2), _ghc_writes(_gfg2)),
+)
+_gld = _ghc_coord(entry_id="ghc_loads")
+_gld_store = _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry)).store
+_gld_loads = []
+_gld_real_load = _gld_store.async_load
+
+
+async def _ghc_counted_load():
+    _gld_loads.append(1)
+    return await _gld_real_load()
+
+
+_ghc_restore._RECORDS[_gld.entry].loaded = False
+_gld_store.async_load = _ghc_counted_load
+for _ in range(3):
+    _asyncio.run(_ghc_restore._armed_record(_gld.hass, _gld.entry))
+R.check(
+    "the persisted armed set is read once per entry, not at every arm",
+    len(_gld_loads) == 1,
+    repr(_gld_loads),
+)
+R.check(
+    "the off-restore store is at version 1: a bump strands every persisted armed set without a migration",
+    _ghc_restore.OFF_RESTORE_STORE_VERSION == 1,
+    repr(_ghc_restore.OFF_RESTORE_STORE_VERSION),
+)
 R.check(
     "a factory reset keeps the heat-curve kind beside its entity (ghc-d03)",
     "heat_curve_target_kind" in _ghc_kept and "heat_curve_displace_entity" in _ghc_kept,
     repr(sorted(k for k in _ghc_kept if k.startswith("heat_curve"))),
+)
+# The restore and the arm's record (fix review 1 of PR 3299, block 1): the
+# restore's neutral write is the entity's last instruction, so W2 and W3 judge
+# a re-enable against it, never against the plan's write before the off. Probe
+# A: off then on inside the grace, plan unchanged. Probe B: a first-miss
+# rewrite that held, then off and on at the same target. The fake entity holds
+# what it is told only where the probe sets the reading.
+_GHC_ATTRS = {"step": 0.5, "min": -20.0, "max": 20.0}
+
+
+def _ghc_reads(coord, value):
+    coord.hass.states.set(_GHC_ENT, _ghc_state(value, unit="K", attributes=_GHC_ATTRS))
+
+
+_gpa = _ghc_coord(entry_id="ghc_probe_a")
+_ghc_pub(_gpa, 2.0)
+_asyncio.run(_gpa.async_set_mode(_ghc_off, refresh=False))
+_asyncio.run(_gpa.async_set_mode(_ghc_auto, refresh=False))
+_gpa_warn = _ghc_logged(lambda: _ghc_pub(_gpa, 2.0))
+R.check(
+    "off then on inside the grace, plan unchanged: the re-enable rewrites 2 over the restore's 0, "
+    "never held as W2's grace of the write before the off",
+    _ghc_writes(_gpa) == [2, 0, 2] and _gpa_warn == [],
+    "writes=%r warn=%r" % (_ghc_writes(_gpa), _gpa_warn),
+)
+
+
+def _ghc_probe_b(toggle):
+    coord = _ghc_coord(entry_id=f"ghc_probe_b_{toggle}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    _ghc_pub(coord, 2.0)  # the first miss, rewritten once
+    _ghc_reads(coord, "2")  # and it held
+    if toggle:
+        _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+        _ghc_reads(coord, "0")  # the restore held too
+        _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 2.0))
+    return _ghc_writes(coord), warn
+
+
+_gpb, _gpb_warn = _ghc_probe_b(True)
+_gpbn, _gpbn_warn = _ghc_probe_b(False)
+R.check(
+    "a rewrite that held, then off and on at the same target: 2 is written again and W3 does not "
+    "latch against the restore's own 0",
+    _gpb == [2, 2, 0, 2] and not any("does not hold" in m for m in _gpb_warn),
+    "writes=%r warn=%r" % (_gpb, _gpb_warn),
+)
+R.check(
+    "null control, the same history without the off and on: the held 2 is not rewritten, nothing warned",
+    _gpbn == [2, 2] and _gpbn_warn == [],
+    "writes=%r warn=%r" % (_gpbn, _gpbn_warn),
+)
+# The unload path, and the options reload behind it: the record is keyed on
+# the entry, so the next coordinator for the same entry inherits it.
+_gpu = _ghc_coord(entry_id="ghc_probe_unload")
+_ghc_pub(_gpu, 2.0)
+_gpu.entry.runtime_data = _gpu
+_asyncio.run(_ghc_unload(_gpu.hass, _gpu.entry))
+_gpu2 = Coord(_gpu.hass, _gpu.entry)
+_ghc_pub(_gpu2, 2.0)
+R.check(
+    "unload, then the reloaded coordinator for the same entry inside the grace: 2 is written over "
+    "the restore's 0",
+    _ghc_writes(_gpu2) == [2, 0, 2] and _ghc.state_for(_gpu.entry).written == 2,
+    "writes=%r" % (_ghc_writes(_gpu2),),
+)
+# A restore that did not hold, and a re-enable at its own 0: W2 and W3 judge
+# the 0 afresh, from its own stamp, with no miss inherited from the plan's 2.
+def _ghc_restore_missed(aged_rewrite):
+    coord = _ghc_coord(entry_id=f"ghc_restore_missed_{aged_rewrite}")
+    _ghc_pub(coord, 2.0)
+    _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    if aged_rewrite:
+        _ghc_pub(coord, 2.0)  # a first miss: misses 1
+    _ghc_reads(coord, "2")  # held, and the restore below does not land
+    _asyncio.run(coord.async_set_mode(_ghc_off, refresh=False))
+    _asyncio.run(coord.async_set_mode(_ghc_auto, refresh=False))
+    if aged_rewrite:
+        _ghc.state_for(coord.entry).written_at -= _ghc.HELD_GRACE_S + 1
+    warn = _ghc_logged(lambda: _ghc_pub(coord, 0.0))
+    return _ghc_writes(coord), warn
+
+
+_grm_grace, _ = _ghc_restore_missed(False)
+_grm_miss, _grm_warn = _ghc_restore_missed(True)
+R.check(
+    "a re-enable at 0 right after a restore that did not hold is inside the restore's own grace (W2)",
+    _grm_grace == [2, 0],
+    repr(_grm_grace),
+)
+R.check(
+    "and after its grace the restore's first miss is written once more, not given up on the plan's "
+    "earlier miss (W3)",
+    _grm_miss == [2, 2, 0, 0] and not any("does not hold" in m for m in _grm_warn),
+    "writes=%r warn=%r" % (_grm_miss, _grm_warn),
+)
+# A failed restore told the entity nothing, so the record stays the plan's write.
+_gpf = _ghc_coord(entry_id="ghc_probe_failed_restore")
+_ghc_pub(_gpf, 2.0)
+_gpf.hass.services = _GhcRaising()
+_asyncio.run(_gpf.async_set_mode(_ghc_off, refresh=False))
+R.check(
+    "a restore whose write raised leaves the arm's record at the plan's write",
+    _ghc.state_for(_gpf.entry).written == 2,
+    repr(_ghc.state_for(_gpf.entry).written),
+)
+
+# The design's evidence plan, arms bullet (fix review 1, block 2): every
+# displace the chokepoint forms reaches the entity arm -- the peak guard's
+# engage (plan minus the nudge) and release (the plan), boost's maximum, and
+# the learned curve bias.
+from heatpump_optimizer import boost as _ghc_boost  # noqa: E402
+from homeassistant.util import dt as _ghc_dt  # noqa: E402
+from heatpump_optimizer.const import (  # noqa: E402
+    MODE_BOOST as _ghc_boost_mode,
+    PEAK_GUARD_DISPLACE_NUDGE_C as _ghc_nudge,
+)
+
+_gpg = _ghc_coord(entry_id="ghc_peak_guard", heat_curve_offset_band_k=5.0)
+_gpg._current_action = {"displace_value": 3.0, "heat_pump_on": True}
+_gpg._peak_guard.suppressing = True
+_asyncio.run(_gpg._async_peak_guard_transition())
+_gpg._peak_guard.suppressing = False
+_asyncio.run(_gpg._async_peak_guard_transition())
+R.check(
+    "the peak guard's engage writes the plan less the nudge to the entity, its release the plan again",
+    _ghc_nudge == 2.0 and _ghc_writes(_gpg) == [1, 3],
+    "nudge=%r writes=%r" % (_ghc_nudge, _ghc_writes(_gpg)),
+)
+_gbm = _ghc_coord(entry_id="ghc_boost_mode", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_asyncio.run(_gbm.async_set_mode(_ghc_boost_mode, refresh=False))
+_gbm._current_action = _gbm._fixed_mode_action()
+_asyncio.run(_gbm.async_publish_current_action())
+_gbo = _ghc_coord(entry_id="ghc_boost_overlay", heat_curve_offset_band_k=10.0, ecl110_displace_max=4.0)
+_gbo_action = {"displace_value": 0.0, "heat_pump_on": False}
+_ghc_boost.overlay(
+    _gbo_action, _ghc_boost.BoostState(until={_ghc_boost.CHANNEL_SPACE: _ghc_dt.utcnow()}),
+    max_power=3.0, max_temp=23.0, ecl_max=_gbo._ecl110_displace_max,
+)
+_gbo._current_action = _gbo_action
+_asyncio.run(_gbo.async_publish_current_action())
+_ghc_max = int(round(_gbm._ecl110_displace_max))
+R.check(
+    "boost writes the displace maximum to the entity, the boost mode and the space boost overlay alike",
+    _ghc_writes(_gbm) == [_ghc_max] and _ghc_writes(_gbo) == [_ghc_max] and _ghc_max == 4,
+    "max=%r mode=%r overlay=%r" % (_ghc_max, _ghc_writes(_gbm), _ghc_writes(_gbo)),
+)
+_gcb = _ghc_coord(entry_id="ghc_curve_bias", curve_learning_enabled=True)
+_gcb._curve_learner.bias = -1.0
+_ghc_pub(_gcb, 3.0)
+_gcb0 = _ghc_coord(entry_id="ghc_curve_bias_off")
+_gcb0._curve_learner.bias = -1.0
+_ghc_pub(_gcb0, 3.0)
+R.check(
+    "the learned curve bias reaches the entity: 3 with a -1 bias sends 2; with curve learning off, 3",
+    _ghc_writes(_gcb) == [2] and _ghc_writes(_gcb0) == [3],
+    "on=%r off=%r" % (_ghc_writes(_gcb), _ghc_writes(_gcb0)),
+)
+# The arm's own off guard (fix review 1, residual): the chokepoint called while
+# off still publishes MQTT and never writes the entity.
+_gmo = _ghc_coord(entry_id="ghc_chokepoint_off", ecl110_displace_set_topic="ecl/set")
+_asyncio.run(_gmo.async_set_mode(_ghc_off, refresh=False))
+_ghc_pub(_gmo, 2.0)
+R.check(
+    "the chokepoint called while off writes no entity value; the MQTT arm still carries the integer",
+    _ghc_writes(_gmo) == [] and _ghc_mqtt(_gmo) == [("ecl/set", "2")],
+    "writes=%r mqtt=%r" % (_ghc_writes(_gmo), _ghc_mqtt(_gmo)),
 )
 _ = _ghc_auto
 
@@ -53326,7 +54389,7 @@ def _g8_sat_comfort(holiday=False, **state_kw):
         ThermalModel(ThermalParameters.from_config(_mb_profiles.house())),
         _dc_replace(cfg, **bands),
     )
-    targets, _, _ = opt._build_comfort_bounds(
+    targets, _, _, _ = opt._build_comfort_bounds(
         np.array([14.0, 3.0]), 2, None, None,
         [_g8_sat.replace(hour=14), _g8_sat.replace(hour=3)],
     )
@@ -78690,6 +79753,607 @@ R.check(
     and _dg_held_b == {"cheap_hours": 1.0}
     and _dg_held_c == {"cheap_hours": 9.0},
     f"{_dg_held} {_dg_held_b} {_dg_held_c}",
+)
+
+
+# --- R10-WHY-NOW-WIDGET: per-slot drivers on the solver path ---------------
+# slot_drivers.space_drivers reads five signed pushes off the solve's own
+# inputs at each step and normalises them to percents of one push;
+# get_current_action carries step i's through why_now_at, at the one index it
+# already found. Driven through the production solve, never a re-derivation.
+from heatpump_optimizer import slot_drivers as _wn_sd  # noqa: E402
+from heatpump_optimizer import away as _wn_away  # noqa: E402
+from heatpump_optimizer.optimizer import (  # noqa: E402
+    HeatPumpOptimizer as _WnOpt, OptimizationConfig as _WnCfg,
+    SolveInputs as _WnIn, ForecastSeries as _WnFc, SolveLimits as _WnLim,
+)
+from heatpump_optimizer.coordinator import _apply_result_payload as _wn_apply  # noqa: E402
+from dataclasses import replace as _wn_replace  # noqa: E402
+
+_wn_t0 = datetime(2026, 1, 15, 12, 0, tzinfo=timezone.utc)
+
+
+def _wn_solve(prices, limits=None, outdoor=None, room=21.0):
+    opt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
+        horizon_hours=24, time_step_minutes=15,
+        target_temp=21.0, min_temp=19.0, max_temp=23.0))
+    out = np.full(96, -5.0) if outdoor is None else np.asarray(outdoor, float)
+    res = opt.optimize(inputs=_WnIn(
+        state=ThermalState(room_temperature=room, slab_temperature=25.0,
+                           outdoor_temperature=float(out[0])),
+        start_time=_wn_t0,
+        forecast=_WnFc(prices=np.asarray(prices, float), outdoor_temps=out),
+        limits=limits or _WnLim()))
+    return opt, res
+
+
+def _wn_weights(why):
+    return {d["code"]: d["weight"] for d in (why or {}).get("drivers", [])}
+
+
+_wn_cheap = np.full(96, 2.0)
+_wn_cheap[0] = 0.5
+_wn_opt, _wn_res = _wn_solve(_wn_cheap)
+_wn_act = _wn_opt.get_current_action(_wn_res, _wn_t0)
+_wn_why = _wn_act.get("why_now")
+R.check(
+    "R10-WHY-NOW-WIDGET: the cheapest step, mid-band, flat weather: price_rank leads and pushes to run",
+    isinstance(_wn_why, dict)
+    and _wn_why["drivers"][0]["code"] == "price_rank"
+    and _wn_why["drivers"][0]["direction"] == "run"
+    and _wn_res.space_drivers["price_rank"][0] > 0
+    and _wn_why["t"] == _wn_res.timestamps[0].isoformat(),
+    f"{_wn_why}",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: one weight per step per code, magnitudes summing to 100 or all 0",
+    set(_wn_res.space_drivers) == set(_wn_sd.DRIVER_CODES)
+    and all(len(v) == len(_wn_res.timestamps) for v in _wn_res.space_drivers.values())
+    and all(
+        abs(sum(abs(_wn_res.space_drivers[c][i]) for c in _wn_sd.DRIVER_CODES) - 100.0) < 0.3
+        or all(_wn_res.space_drivers[c][i] == 0.0 for c in _wn_sd.DRIVER_CODES)
+        for i in range(len(_wn_res.timestamps))
+    ),
+    f"{ {c: v[:3] for c, v in _wn_res.space_drivers.items()} }",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: drivers are sorted by magnitude, largest first",
+    [abs(d["weight"]) for d in _wn_why["drivers"]]
+    == sorted((abs(d["weight"]) for d in _wn_why["drivers"]), reverse=True),
+    f"{_wn_why}",
+)
+
+# Null control: flat prices, mid-band, hlf and solar flat over the window --
+# every push is 0, so every weight is 0 and every row neutral.
+_wn_fopt, _wn_flat = _wn_solve(np.full(96, 1.0))
+_wn_fwhy = _wn_fopt.get_current_action(_wn_flat, _wn_t0).get("why_now")
+R.check(
+    "R10-WHY-NOW-WIDGET null control: flat prices, mid-band, flat weather read all-neutral at 0",
+    _wn_fwhy is not None
+    and all(d["weight"] == 0.0 and d["direction"] == "neutral" for d in _wn_fwhy["drivers"]),
+    f"{_wn_fwhy}",
+)
+
+# Invariant (1): the drivers are read after the solve, never written back.
+_wn_real = _wn_sd.space_drivers
+_wn_sd.space_drivers = lambda *_a, **_k: {}
+try:
+    _wn_popt, _wn_patched = _wn_solve(_wn_cheap)
+finally:
+    _wn_sd.space_drivers = _wn_real
+R.check(
+    "R10-WHY-NOW-WIDGET: the plan is byte-identical with the drivers emptied; no why_now then",
+    _wn_patched.power_schedule == _wn_res.power_schedule
+    and _wn_patched.space_drivers == {}
+    and "why_now" not in _wn_popt.get_current_action(_wn_patched, _wn_t0),
+    "the drivers must never feed the solve",
+)
+
+# Perturbations: an away drop of 3 C pushes to idle and takes price_rank's
+# share; a mold floor above the comfort floor moves mold_guard off 0.
+_wn_aopt, _wn_away_res = _wn_solve(_wn_cheap, _WnLim(away_floor_drop_c=3.0))
+_wn_aw = _wn_weights(_wn_aopt.get_current_action(_wn_away_res, _wn_t0).get("why_now"))
+_wn_base_w = _wn_weights(_wn_why)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: away_floor_drop_c=3 reads away negative, price_rank's share moves",
+    _wn_base_w.get("away") == 0.0 and _wn_aw.get("away", 0.0) < 0
+    and _wn_aw.get("price_rank") != _wn_base_w.get("price_rank"),
+    f"base {_wn_base_w} away {_wn_aw}",
+)
+_wn_mopt, _wn_mold = _wn_solve(_wn_cheap, _WnLim(min_temp_floors=np.full(96, 20.5)))
+_wn_mw = _wn_weights(_wn_mopt.get_current_action(_wn_mold, _wn_t0).get("why_now"))
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a mold floor above the comfort floor moves mold_guard 0 -> positive",
+    _wn_base_w.get("mold_guard") == 0.0 and _wn_mw.get("mold_guard", 0.0) > 0,
+    f"base {_wn_base_w} mold {_wn_mw}",
+)
+_wn_lopt, _wn_low = _wn_solve(_wn_cheap, _WnLim(min_temp_floors=np.full(96, 15.0)))
+R.check(
+    "R10-WHY-NOW-WIDGET control: a mold floor below the comfort floor pushes nothing (mold_guard 0, never negative)",
+    all(w == 0.0 for w in _wn_low.space_drivers["mold_guard"]),
+    f"{_wn_low.space_drivers['mold_guard'][:4]}",
+)
+_wn_cold_ahead = np.concatenate([np.full(8, -5.0), np.full(88, -15.0)])
+_wn_copt, _wn_cold = _wn_solve(np.full(96, 1.0), outdoor=_wn_cold_ahead)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a cold spell ahead pushes the step now to run (forecast > 0)",
+    _wn_cold.space_drivers["forecast"][0] > 0,
+    f"{_wn_cold.space_drivers['forecast'][:4]}",
+)
+_wn_ropt, _wn_coldroom = _wn_solve(np.full(96, 1.0), room=19.5)
+R.check(
+    "R10-WHY-NOW-WIDGET perturbation: a room below mid-band pushes comfort_floor to run",
+    _wn_coldroom.space_drivers["comfort_floor"][0] > 0,
+    f"{_wn_coldroom.space_drivers['comfort_floor'][:4]}",
+)
+
+# why_now_at's None branch: no drivers, an index past them, an unknown price.
+_wn_none_cases = [
+    _wn_sd.why_now_at(_wn_replace(_wn_res, space_drivers={}), 0),
+    _wn_sd.why_now_at(_wn_res, len(_wn_res.timestamps)),
+    _wn_sd.why_now_at(_wn_replace(_wn_res, price_known=[False] * len(_wn_res.timestamps)), 0),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: why_now_at is None with no drivers, past them, or on an unknown price",
+    _wn_none_cases == [None, None, None]
+    and _wn_sd.why_now_at(_wn_res, 0) is not None,
+    f"{_wn_none_cases}",
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: |weight| under 0.5 is neutral, the sign gives run or idle",
+    [_wn_sd._direction(w) for w in (0.4, -0.4, 0.5, -0.5)]
+    == ["neutral", "neutral", "run", "idle"],
+    "direction thresholds",
+)
+
+# The away drop is solve_bands' arithmetic: configured floor less the setback
+# target, None while away is off or recovering.
+_wn_cfg = _WnCfg(min_temp=19.0)
+_wn_states = [
+    _wn_away.AwayState(active=True, target_temperature=16.0),
+    _wn_away.AwayState(active=True, target_temperature=16.0, recovery_active=True),
+    _wn_away.AwayState(active=False, target_temperature=16.0),
+    _wn_away.AwayState(active=True, target_temperature=20.0),
+]
+_wn_drops = [_wn_away.floor_drop_c(_wn_cfg, st) for st in _wn_states] + [
+    _wn_away.floor_drop_c(_wn_cfg, None)]
+R.check(
+    "R10-WHY-NOW-WIDGET: away.floor_drop_c is 3 active, None recovering or off, 0 above the floor",
+    _wn_drops == [3.0, None, None, 0.0, None]
+    and _wn_away.solve_bands(_wn_cfg, ThermalParameters(), _wn_states[0])[0]["min_temp"]
+    == _wn_cfg.min_temp - _wn_drops[0],
+    f"{_wn_drops}",
+)
+# The holiday profile's later day start leaves 08:00 on the night floor.
+_wn_hday = datetime(2026, 12, 25, 8, 0)
+_wn_hcfg = _WnCfg(min_temp=19.0, day_start_hour=6, holiday_day_start_hour=10,
+                  holiday_dates=frozenset({_wn_hday.date()}))
+_wn_hdrops = _wn_sd.away_floor_drops(
+    _wn_hcfg, np.array([8.0, 8.0]), [_wn_hday, _wn_hday + timedelta(days=1)], None)
+R.check(
+    "R10-WHY-NOW-WIDGET: a holiday step on the night floor reads the 0.5 C drop; a working day none",
+    _wn_hdrops is not None and list(_wn_hdrops) == [0.5, 0.0]
+    and _wn_sd.away_floor_drops(_WnCfg(), np.array([8.0]), [_wn_hday], None) is None,
+    f"{_wn_hdrops}",
+)
+_wn_hoff = _wn_sd.away_floor_drops(
+    _wn_hcfg, np.array([8.0]), [_wn_hday + timedelta(days=1)], None)
+R.check(
+    "R10-WHY-NOW-WIDGET: a holiday calendar with no step on a holiday and no setback reads None, not zeros",
+    _wn_hoff is None,
+    f"{_wn_hoff}",
+)
+
+# The pushes at their bounds, on a hand-built horizon whose every input is
+# stated: the price rank's short horizons, the forecast's window, scale,
+# solar divisor and clip, and the comfort band's floor and clips.
+_wn_pp = [list(_wn_sd._price_push(np.array(p, float))) for p in ([], [1.0], [1.0, 2.0])]
+R.check(
+    "R10-WHY-NOW-WIDGET: the price rank is empty for no step, 0 for one, +1/-1 for two",
+    _wn_pp == [[], [0.0], [1.0, -1.0]],
+    f"{_wn_pp}",
+)
+
+
+def _wn_h(n, dt=1.0, outdoor=None, sun=None, floor=20.0, ceiling=22.0, drops=None):
+    return SimpleNamespace(
+        n_steps=n, dt=dt, prices=np.ones(n),
+        outdoor_temps=np.zeros(n) if outdoor is None else np.asarray(outdoor, float),
+        heat_loss_factors=np.zeros(n),
+        solar_gains=np.zeros(n) if sun is None else np.asarray(sun, float),
+        temp_min_bounds=np.full(n, floor), temp_max_bounds=np.full(n, ceiling),
+        comfort_floors=None, mold_floors=None,
+        away_floor_drops=None if drops is None else np.full(n, drops))
+
+
+# Window 0..8 h: four steps at 0 C, four at -4 C -> mean -2 C, a 2 C swing
+# over the 10 C scale = 0.2 (a 16 h window reads 0.3, a 20 C scale 0.1).
+_wn_fb = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] * 4 + [-4.0] * 20), 5.0)[0]
+# A 26.25 C swing reads 2.625 before the clip, 1.0 after it.
+_wn_fa = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] + [-30.0] * 23), 5.0)[0]
+# Solar 0 now, 0.35 kW mean ahead, p_max 0.5 kW: divided by the 1 kW floor,
+# -0.35 (by p_max itself, -0.7).
+_wn_fs = _wn_sd._forecast_push(_wn_h(24, sun=[0.0] + [0.4] * 23), 0.5)[0]
+R.check(
+    "R10-WHY-NOW-WIDGET: forecast push reads 0.2 on an 8 h window at 10 C, clips at 1, divides solar by >= 1 kW",
+    abs(_wn_fb - 0.2) < 1e-9 and _wn_fa == 1.0 and abs(_wn_fs + 0.35) < 1e-9,
+    f"{_wn_fb} {_wn_fa} {_wn_fs}",
+)
+
+
+def _wn_cw(room, **kw):
+    w = _wn_sd.space_drivers(_wn_h(2, **kw), np.full(2, room), 5.0)
+    return w["comfort_floor"][0], w["away"][0]
+
+
+_wn_bands = [
+    # 0.4 C band: the half-band floors at 0.5 -> 0.5 vs -0.5 (at 1.0: 75/-25).
+    _wn_cw(20.25, floor=20.0, ceiling=20.4, drops=0.25),
+    # room 4 half-bands under mid-band clips to 1 vs -0.5 (unclipped 88.9/-11.1).
+    _wn_cw(17.0, drops=0.5),
+    # a 3 C drop on a 1 C half-band clips to -1 vs 0.5 (unclipped 14.3/-85.7).
+    _wn_cw(20.5, drops=3.0),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: the comfort half-band floors at 0.5 C, and comfort and away clip at one half-band",
+    _wn_bands == [(50.0, -50.0), (66.7, -33.3), (33.3, -66.7)],
+    f"{_wn_bands}",
+)
+
+# The other side of each bound (diff mutants at 9cde30560): a 12 h step
+# floors the forecast window at one step (0, where two steps read 0.5); a
+# warm spell ahead clips at -1 (unclipped -2.6); a room far above the band
+# clips comfort at -1 (unclipped -80/-20); step_reasons one past the last
+# reason reads None, never an IndexError.
+_wn_f12 = _wn_sd._forecast_push(_wn_h(2, dt=12.0, outdoor=[0.0, -10.0]), 5.0)[0]
+_wn_fw = _wn_sd._forecast_push(_wn_h(24, outdoor=[0.0] + [30.0] * 23), 5.0)[0]
+_wn_hot = _wn_cw(26.0, drops=0.5)
+try:
+    _wn_end = _wn_sd.step_reasons(_wn_res, len(_wn_res.space_reasons))
+except Exception as exc:  # noqa: BLE001 -- the bound under test is what raised
+    _wn_end = f"raised {type(exc).__name__}"
+R.check(
+    "R10-WHY-NOW-WIDGET: the forecast window floors at one step and clips at -1; comfort clips at -1; step_reasons past the end is None",
+    _wn_f12 == 0.0 and _wn_fw == -1.0 and _wn_hot == (-66.7, -33.3)
+    and isinstance(_wn_end, dict) and _wn_end.get("space_reason") is None
+    and "why_now" not in _wn_end,
+    f"{_wn_f12} {_wn_fw} {_wn_hot} {_wn_end}",
+)
+
+
+def _wn_at(res, i):
+    try:
+        return _wn_sd.why_now_at(res, i)
+    except Exception as exc:  # noqa: BLE001 -- the bound under test is what raised
+        return f"raised {type(exc).__name__}"
+
+
+_wn_n = len(_wn_res.timestamps)
+_wn_bounds = [
+    # drivers one step short of the prices: the last step has none.
+    _wn_at(_wn_replace(_wn_res, space_drivers={
+        c: v[:-1] for c, v in _wn_res.space_drivers.items()}), _wn_n - 1),
+    # prices one step short of the drivers: the last step's price is unknown.
+    _wn_at(_wn_replace(_wn_res, prices=list(_wn_res.prices)[:-1]), _wn_n - 1),
+    # a NaN price with no price_known list at all.
+    _wn_at(_wn_replace(_wn_res, prices=[float("nan")] + list(_wn_res.prices)[1:],
+                       price_known=[]), 0),
+    # price_known one step short: the last step is not known.
+    _wn_at(_wn_replace(_wn_res, price_known=[True] * (_wn_n - 1)), _wn_n - 1),
+]
+R.check(
+    "R10-WHY-NOW-WIDGET: why_now_at is None at each list's own end and on a NaN price, never an IndexError",
+    _wn_bounds == [None, None, None, None]
+    and _wn_at(_wn_res, _wn_n - 1) is not None,
+    f"{_wn_bounds}",
+)
+
+# The payload carries the action's why_now, and nothing when it has none.
+_wn_views = {"space_plan": {}, "dhw_plan": {}}
+_wn_with: dict = {}
+_wn_apply(_wn_with, _wn_res, _wn_act, _wn_views)
+_wn_without: dict = {}
+_wn_apply(_wn_without, _wn_res, {k: v for k, v in _wn_act.items() if k != "why_now"}, _wn_views)
+R.check(
+    "R10-WHY-NOW-WIDGET: _apply_result_payload copies why_now, and leaves the key absent without one",
+    _wn_with.get("why_now") == _wn_why and "why_now" not in _wn_without,
+    f"{sorted(_wn_with)[:3]} / {'why_now' in _wn_without}",
+)
+
+
+# Fix review of #3274, mutant C: rows are ordered by magnitude at EVERY step,
+# not only at the cheap-first step 0 (which has no negative weight). The
+# precondition asserts the solves hold a step where an idle push outweighs a
+# run push, so a sort by signed weight would list them the other way round.
+_wn_spiky = np.where(np.arange(96) % 8 < 2, 3.0, 0.8)
+_wn_sopt, _wn_sres = _wn_solve(_wn_spiky, room=21.8)
+_wn_steps = [
+    _wn_sd.why_now_at(r, i)
+    for r in (_wn_res, _wn_flat, _wn_away_res, _wn_mold, _wn_sres)
+    for i in range(len(r.timestamps))
+]
+_wn_steps = [w for w in _wn_steps if w is not None]
+_wn_mags = [[abs(d["weight"]) for d in w["drivers"]] for w in _wn_steps]
+_wn_crossed = sum(
+    1 for w in _wn_steps
+    if any(a["weight"] < 0 < b["weight"] and abs(a["weight"]) > b["weight"]
+           for a in w["drivers"] for b in w["drivers"])
+)
+R.check(
+    "R10-WHY-NOW-WIDGET: at every step the rows run largest magnitude first, an idle push ahead of a smaller run push",
+    _wn_crossed > 0 and all(m == sorted(m, reverse=True) for m in _wn_mags),
+    f"{_wn_crossed} step(s) with an idle push over a run push, of {len(_wn_steps)}",
+)
+
+# Mutant D: the coordinator wires the away setback's drop into the solve.
+# Null control: away inactive reads None, the byte-inert default.
+from harness import FakeEntry as _WnEntry  # noqa: E402
+from heatpump_optimizer.plan_step import plan_step_start as _wn_pss  # noqa: E402
+_wn_coord = Coord(FakeHass(), _WnEntry(data={"tibber_token": "x", "weather_entity": "weather.home"}))
+
+
+def _wn_drop(state):
+    _wn_coord._away_state = state
+    now = _wn_pss(_wn_t0)
+    return _wn_coord._solve_record(now, _wn_coord._forecast_arrays(now)).inputs.limits.away_floor_drop_c
+
+
+_wn_rec_away = _wn_drop(_wn_away.AwayState(active=True, target_temperature=16.0))
+_wn_rec_home = _wn_drop(_wn_away.AwayState())
+_wn_want = _wn_away.floor_drop_c(
+    getattr(_wn_coord, "_ctx", _wn_coord)._opt_config,
+    _wn_away.AwayState(active=True, target_temperature=16.0))
+R.check(
+    "R10-WHY-NOW-WIDGET: _solve_record hands the solve away.floor_drop_c while away, None at home",
+    _wn_want is not None and _wn_want > 0
+    and _wn_rec_away == _wn_want and _wn_rec_home is None,
+    f"away {_wn_rec_away} (want {_wn_want}), home {_wn_rec_home}",
+)
+
+# Mutant E: the comfort floor _build_comfort_bounds returns for the drivers
+# carries the T5 confidence margins, and never the mold guard's raise.
+_wn_bopt = _WnOpt(ThermalModel(ThermalParameters()), _WnCfg(
+    horizon_hours=6, time_step_minutes=15, target_temp=21.0, min_temp=19.0, max_temp=23.0))
+_wn_bh = np.array([(12.0 + 0.25 * i) % 24.0 for i in range(24)])
+_, _wn_b0, _, (_wn_cf0, _) = _wn_bopt._build_comfort_bounds(_wn_bh, 24, None, None)
+_, _wn_bm, _, (_wn_cfm, _wn_mfm) = _wn_bopt._build_comfort_bounds(
+    _wn_bh, 24, np.full(24, 0.4), np.full(24, 20.0))
+R.check(
+    "R10-WHY-NOW-WIDGET: the drivers' comfort floor is the margined floor, below the mold floor's raise",
+    np.allclose(_wn_cf0, _wn_b0)
+    and np.allclose(_wn_cfm, _wn_b0 + 0.4)
+    and np.allclose(_wn_mfm, 20.0) and np.allclose(_wn_bm, np.maximum(_wn_b0 + 0.4, 20.0)),
+    f"floor {_wn_b0[:2]} margined {_wn_cfm[:2]} mold {_wn_mfm[:2]} bound {_wn_bm[:2]}",
+)
+
+# The class of the fix review's block: every caller of _build_comfort_bounds
+# reads its four-element return. The out-of-tree-run harness caller
+# (r10_demand_overbook.py's DP reference) is driven here through its own
+# comfort_schedule, so a caller left on the old 3-tuple is a red check, not a
+# ValueError nobody runs. Census: git grep -n '_build_comfort_bounds(' --
+# custom_components tools tests dev ':!*.tsv'.
+import importlib.util as _wn_ilu  # noqa: E402
+_wn_spec = _wn_ilu.spec_from_file_location(
+    "hpo_r10_demand_overbook", "dev/audit/harnesses/r10_demand_overbook.py")
+_wn_hm = _wn_ilu.module_from_spec(_wn_spec)
+_wn_spec.loader.exec_module(_wn_hm)
+try:
+    _wn_hsched = _wn_hm.comfort_schedule(_wn_bopt, _wn_t0, 24)
+except ValueError as _wn_herr:
+    _wn_hsched = _wn_herr
+_wn_hh = np.array([(_wn_t0.hour + _wn_t0.minute / 60.0 + i * _wn_hm.DT_MIN / 60.0) % 24.0
+                   for i in range(24)])
+_wn_hwant = _wn_bopt._build_comfort_bounds(
+    _wn_hh, 24, None, None, [_wn_t0 + timedelta(minutes=_wn_hm.DT_MIN * i) for i in range(24)])
+R.check(
+    "R10-WHY-NOW-WIDGET: r10_demand_overbook.comfort_schedule reads the solve's (target, floor, ceiling)",
+    isinstance(_wn_hsched, tuple) and len(_wn_hsched) == 3
+    and all(np.array_equal(a, b) for a, b in zip(_wn_hsched, _wn_hwant[:3])),
+    f"{_wn_hsched!r}"[:300],
+)
+
+
+# R10-CLONE-2238 (#2238, class P2): one fact, one owner. Each check patches the
+# owner to a sentinel answer and drives EVERY production caller that decided
+# the fact on its own copy; a caller that re-inlines its copy reads the input
+# and not the sentinel, so the check fails.
+from unittest import mock as _c2238_mock  # noqa: E402
+from heatpump_optimizer import coordinator as _c2238_cmod  # noqa: E402
+
+# P1: an interval's planned (space, dhw) split -- the ledger's reason lines and
+# the diagnosis record's apportionment of the meter.
+_c2238_pending = {
+    "price": 2.5, "spot_price": 2.0, "grid_fee": 0.5,
+    "space_power": 1.5, "dhw_power": 0.5, "when": _T6,
+    "space_reason": "cheap_price", "dhw_reason": "dhw_preheat",
+    "diag": {"state": {}, "planned": {}},
+}
+_c2238_p1 = _t2_coord()
+with _c2238_mock.patch.object(_c2238_cmod, "_planned_split", create=True, return_value=(1.0, 1.0)):
+    _c2238_p1._accumulate_energy(
+        AccuracySample(when=_T6, actual_power_kw=2.0), 1.0, dict(_c2238_pending)
+    )
+    _c2238_cmod._settle_interval_diag(
+        _c2238_p1,
+        AccuracySample(when=_T6, actual_power_kw=2.0, actual_temp=20.0),
+        dict(_c2238_pending), 1.0, _T6,
+    )
+_c2238_p1_space = _c2238_p1._ledger.line("2026-03", "reason:cheap_price")["kwh"]
+_c2238_p1_diag = (_c2238_p1._last_interval_record or {}).get("realised", {})
+R.check(
+    "R10-CLONE-2238 P1: the ledger split and the diagnosis apportionment both "
+    "read the planned split from _planned_split",
+    abs(_c2238_p1_space - 1.0) < 1e-9
+    and abs((_c2238_p1_diag.get("electrical_power") or 0.0) - 1.0) < 1e-9,
+    f"ledger space kWh {_c2238_p1_space}, diag {_c2238_p1_diag}",
+)
+
+
+# P3: the trajectory the indoor sensor reads -- the coordinator's next-room
+# prediction and lead buckets, the optimizer's breach report and its
+# safety-release scan all select it through OptimizationResult.sensor_trajectory.
+from heatpump_optimizer import optimizer as _c2238_omod  # noqa: E402
+from heatpump_optimizer import tariff as _c2238_tmod  # noqa: E402
+from heatpump_optimizer.const import MODE_AUTO as _c2238_auto  # noqa: E402
+
+_C2238_SENTINEL_C = 10.0
+
+
+def _c2238_traj(_self, _two_zone):
+    return [_C2238_SENTINEL_C] * 400
+
+
+def _c2238_result(n):
+    return _BrRes(
+        power_schedule=[0.0] * n, room_temp_trajectory=[21.0] * (n + 1),
+        slab_temp_trajectory=[22.0] * (n + 1), timestamps=[], prices=[1.0] * n,
+        predicted_cost=0.0, baseline_cost=0.0, predicted_savings=0.0,
+        savings_percentage=0.0, optimal_setpoints=[21.0] * n, status="optimal",
+        dhw_power_schedule=[0.0] * n,
+    )
+
+
+_c2238_p3 = _t2_coord()
+_c2238_p3._mode = _c2238_auto
+_c2238_p3._optimization_result = _c2238_result(3)
+_c2238_p3._file_dhw_lead_predictions = lambda *_a, **_k: None
+_c2238_leads: list[float] = []
+_c2238_p3._accuracy.note_promise = lambda *_a, **_k: None
+_c2238_p3._accuracy.note_lead_prediction = lambda _w, _l, v: _c2238_leads.append(v)
+_c2238_p3_opt = _MbOpt(ThermalModel(_br_params), _MbCfg(horizon_hours=1))
+_c2238_p3_opt._dhw_requirement = None
+_c2238_p3_br = _c2238_result(3)
+with _c2238_mock.patch.object(
+    _c2238_omod.OptimizationResult, "sensor_trajectory", _c2238_traj, create=True
+):
+    _c2238_p3_next = _c2238_p3._predicted_next_room_temp()
+    _c2238_p3._file_lead_predictions(_c2238_result(3), _T6)
+    _c2238_p3_opt._publish_breach_reports(
+        _c2238_p3_br, np.array([1.0, 1.0, 1.0]), False, False, 3,
+        np.array([21.0, 21.0, 21.0]),
+    )
+    _c2238_p3_rel = _c2238_p3_opt._safety_release_steps(
+        _c2238_result(3), np.full(3, 18.0), np.zeros(3), None
+    )
+R.check(
+    "R10-CLONE-2238 P3: next-room temp, lead buckets, the breach report and "
+    "the safety release all read OptimizationResult.sensor_trajectory",
+    _c2238_p3_next == _C2238_SENTINEL_C
+    and bool(_c2238_leads) and set(_c2238_leads) == {_C2238_SENTINEL_C}
+    and _c2238_p3_br.predictive_info.get("power_cap_breach_c") == 21.0 - _C2238_SENTINEL_C
+    and _c2238_p3_rel[0] == [0, 1, 2],
+    f"next {_c2238_p3_next}, leads {_c2238_leads}, breach "
+    f"{_c2238_p3_br.predictive_info.get('power_cap_breach_c')}, release {_c2238_p3_rel}",
+)
+
+# P3's rule itself, on a real result: two-zone with an upper trajectory reads
+# it; single-zone, or two-zone without one, reads the room.
+_c2238_p3_rule = _c2238_result(3)
+_c2238_p3_rule.upper_temp_trajectory = [19.0] * 4
+_c2238_p3_bare = _c2238_result(3)
+R.check(
+    "R10-CLONE-2238 P3: sensor_trajectory is the upper floor only in two-zone "
+    "mode with an upper trajectory, else the room",
+    _c2238_p3_rule.sensor_trajectory(True) == [19.0] * 4
+    and _c2238_p3_rule.sensor_trajectory(False) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(True) == [21.0] * 4
+    and _c2238_p3_bare.sensor_trajectory(False) == [21.0] * 4,
+    f"{_c2238_p3_rule.sensor_trajectory(True)} {_c2238_p3_rule.sensor_trajectory(False)} "
+    f"{_c2238_p3_bare.sensor_trajectory(True)}",
+)
+
+# P4: window means at their billed-equivalent factor -- the published peak_kw,
+# the exact charge and the batch surrogate all read tariff.billed_windows.
+_c2238_ct = CapacityTariff(
+    enabled=True, window_minutes=60, price_per_kw=1.0,
+    peak_hours=((7.0, 20.0),), offpeak_factor=0.5,
+)
+_c2238_opt = _bo_opt(_c2238_ct)
+_c2238_start = datetime(2026, 1, 14, 0, 0, tzinfo=_BO_TZ)
+_c2238_pow = np.full(96, 1.0)
+_c2238_flat = np.full(96, 100.0)
+_c2238_zero = np.zeros(96)
+# The optimizer imports the owner by name, so both bindings take the sentinel.
+_c2238_billed = _c2238_mock.Mock(side_effect=lambda w, _f: np.full(np.shape(w), 100.0))
+with _c2238_mock.patch.object(
+    _c2238_tmod, "billed_windows", _c2238_billed, create=True,
+), _c2238_mock.patch.object(
+    _c2238_omod, "billed_windows", _c2238_billed, create=True,
+):
+    _c2238_p4_bill = _c2238_opt._peak_billing(96, 0.25, _c2238_start)
+    _c2238_p4_rep = _c2238_opt._grid_report(_c2238_pow, _c2238_zero, 0.25, _c2238_start)
+    _c2238_p4_ref = round(peak_cost(_c2238_flat, _c2238_zero, _c2238_p4_bill), 3)
+    _c2238_p4_batch = float(_bo_pcb(np.stack([_c2238_pow]), _c2238_zero, _c2238_p4_bill)[0])
+    _c2238_p4_bref = _c2238_tmod.peak_cost_smooth(_c2238_flat, _c2238_zero, _c2238_p4_bill)
+R.check(
+    "R10-CLONE-2238 P4: peak_kw, peak_cost and peak_cost_batch all scale the "
+    "window means through tariff.billed_windows",
+    _c2238_p4_bill.window_factors is not None
+    and _c2238_p4_rep["peak_kw"] == 100.0
+    and _c2238_p4_rep["peak_cost"] == _c2238_p4_ref > 0.0
+    and abs(_c2238_p4_batch - _c2238_p4_bref) < 1e-9 and _c2238_p4_bref > 0.0,
+    f"report {_c2238_p4_rep}, ref {_c2238_p4_ref}, batch {_c2238_p4_batch} vs {_c2238_p4_bref}",
+)
+
+# P5: how many metering windows a plan spans -- the factors and the days are
+# both sized by HeatPumpOptimizer._n_peak_windows.
+with _c2238_mock.patch.object(
+    _BoOpt, "_n_peak_windows", create=True, side_effect=lambda *_a: 7,
+):
+    _c2238_p5_f = _c2238_opt._peak_window_factors(96, 0.25, _c2238_start, 0)
+    _c2238_p5_d = _c2238_opt._peak_day_kwargs(96, 0.25, _c2238_start, 0)["window_days"]
+R.check(
+    "R10-CLONE-2238 P5: the window factors and the window days are both sized "
+    "by _n_peak_windows",
+    _c2238_p5_f is not None and len(_c2238_p5_f) == 7
+    and _c2238_p5_d is not None and len(_c2238_p5_d) == 7,
+    f"factors {None if _c2238_p5_f is None else len(_c2238_p5_f)}, "
+    f"days {None if _c2238_p5_d is None else len(_c2238_p5_d)}",
+)
+
+# P7: the tracker's ranked (kW, day) record -- a restore and a window close
+# both store it through PeakTracker._keep_ranked.
+_c2238_kept: list[int] = []
+
+
+def _c2238_keep(self, ranked):
+    _c2238_kept.append(len(ranked))
+    self.peaks, self.peak_days = [42.0], ["sentinel"]
+
+
+with _c2238_mock.patch.object(PeakTracker, "_keep_ranked", _c2238_keep, create=True):
+    _c2238_p7 = PeakTracker.from_dict({
+        "month": "2026-10", "peaks": [5.0], "peak_days": ["2026-10-01"],
+        "window_key": "2026-10-02T12:00:00+02:00|60", "window_sum": 9.0,
+        "window_samples": 1, "window_factor": 1.0, "window_wsum": 9.0,
+        "window_weight": 1.0,
+    })
+    _c2238_p7_restored = list(_c2238_p7.peaks)
+    _c2238_p7.peaks, _c2238_p7.peak_days = [1.0], ["2026-10-01"]
+    _c2238_p7._close_window(CapacityTariff(enabled=True, window_minutes=60))
+R.check(
+    "R10-CLONE-2238 P7: from_dict and _close_window both store the ranked "
+    "record through PeakTracker._keep_ranked",
+    _c2238_kept == [1, 2] and _c2238_p7_restored == [42.0]
+    and _c2238_p7.peaks == [42.0] and _c2238_p7.peak_days == ["sentinel"],
+    f"calls {_c2238_kept}, restored {_c2238_p7_restored}, closed "
+    f"{_c2238_p7.peaks} {_c2238_p7.peak_days}",
+)
+
+# P8: the metering-window partition -- the scalar windows and the batch twin
+# both partition through tariff._window_partition.
+_c2238_house = np.arange(8.0)
+with _c2238_mock.patch.object(
+    _c2238_tmod, "_window_partition", create=True, side_effect=lambda *_a: (2, 1),
+):
+    _c2238_p8_s = _c2238_tmod.metering_windows(_c2238_house, 60, 0.25, 0)
+    _c2238_p8_b = _c2238_tmod._window_means_batch(_c2238_house[None, :], 60, 0.25, 0)
+R.check(
+    "R10-CLONE-2238 P8: metering_windows and _window_means_batch both "
+    "partition through _window_partition",
+    _c2238_p8_s.size == 5 and _c2238_p8_b.shape == (1, 5)
+    and np.allclose(_c2238_p8_s, _c2238_p8_b[0]),
+    f"scalar {_c2238_p8_s}, batch {_c2238_p8_b}",
 )
 
 

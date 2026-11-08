@@ -1,0 +1,6 @@
+{
+  "anchor": "custom_components/heatpump_optimizer/off_restore.py:<module> GUARD_OFF e1433e05",
+  "old": "if TYPE_CHECKING:",
+  "reason": "Equivalent (GUARD_OFF, `if TYPE_CHECKING:` -> `if False:`): TYPE_CHECKING is False at runtime, so the two tests are the same value; the guarded import is read only by annotations, which `from __future__ import annotations` keeps as strings that nothing evaluates. Measured by the R10-GENERIC-HEAT-CURVE fixer: mutant_run.py --spec over the 71 sites CI listed at e330a768, driven by the R10-GENERIC-HEAT-CURVE and #193 S3 blocks of tests/features.py: SURVIVED, against 59 of the 71 killed by the same command.",
+  "verdict": "equivalent"
+}
