@@ -24,6 +24,7 @@ Alternatives considered, and why each lost:
 Part of #2731.
 
 Carry status at merge base 73365699a:
+Numbering: the carries are numbered 0 to 11, as in the brief. The review packet numbers them 1 to 12, so its Carry 12 is this list's Carry 11 (the app_push.sh push, waiting on #3288), and each other packet number is one above the number used here.
 - Carry 0: in part, this diff (above). The pr-contract.yml wiring waits on this diff's merge; see Forward-carry.
 - Carry 1: covered by 80b06040a. `tools/pr/app_approve.sh` reads the JWT GET of `/installation` through `read_with inst curl_get`, and its self-test's `curlfail-installation` census drives it. Proven by `bash tools/pr/app_approve.sh --self-test`: 316 checks, 0 failed.
 - Carry 2: PR 1's proof, applied to this diff's classifier and loops:
