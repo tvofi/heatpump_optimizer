@@ -2,7 +2,7 @@ Instrument half of R10-CLOSEOUT-CLEANUP's carries (closeout exemptions, worktree
 
 ## Head
 
-
+fe7d2e21dcb53e67e812def87e42910d455a32ff
 
 ## Mutation proof
 
@@ -30,7 +30,9 @@ tests/entities.py fails 3 checks that fail identically on an untouched origin/ma
 
 ## Forward-carry
 
-none. Carries 0, 1, 2 are all built here; the round's final --apply run stays with R10-CLOSEOUT-CLEANUP. Two interpretations to confirm: "host" read as resume.host group id; class E derives the topic from the seat directory name less a leading seat-.
+none
+
+Note: the round's final --apply run stays with R10-CLOSEOUT-CLEANUP. Two readings to confirm: "host" is resume.host as a group id; class E derives the topic from the seat directory name less a leading seat-.
 
 ## Friction
 
