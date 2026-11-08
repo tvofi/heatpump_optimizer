@@ -4,7 +4,7 @@ This is policy: `dev/audit/README.md` is indexed by `CLAUDE.md`, and the diff ra
 
 ## Head
 
-73929b82753192e7c5947833331972bfefba1686. Main was merged at `4b5d771bdf8feb1f83d7d9443e5117b771a0ab76`; `git merge-tree --write-tree origin/main HEAD` reports no conflict against the current origin/main (`53273de4d449`), so main was not merged again (owner ruling 2026-11-07). The two commits on top of the first handoff head (246781ce3) answer roster carry 26. Figures below were re-taken at this head.
+8d4ff2f257655fb11e837c0c96a203abfdbab928, the PR head. Main (`2a3c05644d85`, v7.1.6) is merged in it at `4461ff3d1`; `git merge-tree --write-tree origin/main HEAD` prints a tree id and no conflict, so main was not merged again (owner ruling 2026-11-07). The figures below were re-taken at this head in a detached worktree. The earlier code head `73929b82` is contained.
 
 ## Mutation proof
 
@@ -15,7 +15,7 @@ Each mutant was applied in a separate worktree to `tools/policy/brief_lint.mjs`,
 - M5: the segment-suffix lookup replaced by brief_lint's basename `lookupPath`. rc=1, `playbook-renamed.md: no error for tools/pr/state_docs.py`. This is the moved-instrument case that commit 3 added.
 - README perturbation: `` `tools/release/stamp.py` `` renamed to `stamp_renamed.py` in the live README. rc=1, `ERROR [(playbook)] playbook path: tools/release/stamp_renamed.py`.
 
-- Carry 26 (stated cap figure): the playbook arm now refuses `16 in round 10` or `open-PR cap is N`. Perturbation: the README text `Of the cap of 16 in round 10, 10 slots are reserved` made `node tools/policy/brief_lint.mjs` print `ERROR [(playbook)] playbook cap: 16 in round 10: the open-PR cap is read from tools/plan/replan.py, not stated`, rc=1; the restored text lints `0 error(s)`, rc=0. The fixture `playbook-renamed.md` gained the line `The open-PR cap is 16 in round 10.` as the fourth refusal and the acceptance requires it (`PLAYBOOK ok: ... 4 refused lines`); the null fixture is unchanged and clean.
+- Carry 26 (stated cap figure): the playbook arm now refuses `16 in round 10` or `open-PR cap is N`. Perturbation: the README text `Of the cap of 16 in round 10, 10 slots are reserved` made `node tools/policy/brief_lint.mjs` print `ERROR [(playbook)] playbook cap: 16 in round 10: the open-PR cap is read from tools/plan/replan.py, not stated`, rc=1; the restored text lints `0 error(s)`, rc=0. The fixture `playbook-renamed.md` gained the line `The open-PR cap is 16 in round 10.` as the fourth refusal and the acceptance requires it (`PLAYBOOK ok: ... 4 moved instruments`); the null fixture is unchanged and clean.
 
 ## Unpinned sites
 
@@ -27,7 +27,7 @@ Each mutant was applied in a separate worktree to `tools/policy/brief_lint.mjs`,
 
 ## Figures
 
-- Playbook arm: `node tools/policy/brief_lint.mjs`, rc=0, `PLAYBOOK ok: the renamed fixture is refused for its 4 refused lines and the null fixture lints clean`, README `0 error(s)`.
+- Playbook arm: `node tools/policy/brief_lint.mjs`, rc=0, `PLAYBOOK ok: the renamed fixture is refused for its 4 moved instruments and the null fixture lints clean`, README `0 error(s)` (re-taken at 8d4ff2f2).
 - Policy caps: `node tools/policy/policy_lint.mjs`, `TOTAL: 0 error(s)`. `node tools/policy/policy_lint.mjs --budgets` prints the README row and the corpus line. The raise sets each cap to the measured value (see Raise justification).
 - Agreement lane: `python3 -I tools/policy/agreement_py.py --run` prints `AGREEMENT ok`, `unregistered=0`. Before `SHARED_GRAMMARS` registered them, it refused the arm's backtick-span and `:line` grammars as duplicates of `tests/doc_claims.py`'s wiring arm. Both are registered `identical:` because the two readers cover disjoint documents. Extending `doc_claims.py`'s `WIRING_DOCS` instead was weighed and lost: that arm resolves against HEAD only, so it would refuse the README's tag-scoped archive citations, and it skips bare basenames and directory moves.
 - Scope: `python3 tests/closure.py select --diff $(git merge-base origin/main HEAD) --workdir "$D"` prints `MODE: SCOPED -- 1 script(s) run`, and `scope.run` names `tests/entities.py`.
@@ -47,6 +47,10 @@ The owner ordered the playbook into this file (brief: "Deliver it as dev/audit/R
 Payments tried: folded `## Running the fix wave` and `## Resource rules on the audit box` into phases 7 and 2, both now redundant. Compressed `## A harness at the evidence tag` and `## Rounds 1-3 are at a tag`, which kept every SHA, path and rule. Dropped backticked decision paths, so naming no new doc pulls another file into the corpus (`named-docs`). Refused: cutting the harness contract or the reuse/instruments sections (the brief keeps them). Refused: moving round-11 items to a carry file (each card's destination is "[R11 playbook]").
 Architecture score: dS +0.0000 NULL
 
+Re-taken at 8d4ff2f2: `python3 tools/audit/archscore/score.py --diff $(git merge-base origin/main HEAD)` (base `2a3c05644d85`, before and after both read by that one call) prints `Architecture score: dS +0.0000 NULL`. At this head `node tools/policy/policy_lint.mjs --budgets` measures `tools/audit/README.md` at 320 lines and 6058 tokens against caps 321 and 6059, and the corpus at ~68625 tokens against cap 68618 plus band 500.
+
+Payment that would lower the raise, not applied: the round-11 opening list in the README (the largest block) could move to a carry file under `dev/programme/`. That would lower the three caps, and `archscore` would not read it as worse. It is refused here because each card's recorded destination is "[R11 playbook]" and the owner ordered the playbook into this file. The orchestrator may weigh it under mandate 6715477401; this seat does not apply it.
+
 ## Architecture score
 
 Architecture score: dS +0.0000 NULL: the diff touches no scored production path.
@@ -57,9 +61,12 @@ Pending. This diff changes policy: `dev/audit/README.md`, which `CLAUDE.md` inde
 
 ## Red checks
 
-- `budget-raise-gate`: red, as `prepr.sh` predicts. The diff raises three caps in `dev/governance/config/policy_budgets.json`, and the gate stays red until tvofi's approving review at the head, or until a mandate it reads as in force meets the `## Raise justification` above. No cheaper detector exists: the red is the gate doing its job on a deliberate raise, not a defect.
-- `tools/pr/prepr.sh` at this head: rc=1 with one refusal, `closures: failed while being recorded: tests/entities.py (exit 1)`, because this cloud environment's `venv-ci` has no `homeassistant` module (`ModuleNotFoundError`, the interim toolchain gap the dispatch names). The change touches no `custom_components/` code and no test, so I expect CI, which has the lock, to record it; the first handoff head passed `prepr.sh` where the closure was recorded. Every other prepr step ran ok, including policy_lint and mutants.
-- No other check has run on this branch. CI's `briefs` job restores `tools/policy/*.mjs` from the base, so the playbook arm first runs in CI on main after the merge.
+All concluded reds of head 8d4ff2f2, read from every page of its check runs:
+
+- `budget-raise-gate / budget-raise-gate` (two runs): red, caused by this diff on purpose. The log prints `RAISE ... corpus_tokens: 66434 -> 68618`, `files.tools/audit/README.md: 250 -> 321`, `files_tokens.tools/audit/README.md: 3880 -> 6059`, `RESULT budget_raises=3`, then `REFUSED: no decisive review by tvofi (id 70032254) on this pull request`. The raise is the playbook the owner ordered into `dev/audit/README.md`; the gate stays red until tvofi's approving review at this head, or until a mandate it reads as in force meets `## Raise justification`. Cheaper detector: none, and none is owed. `tools/pr/prepr.sh` already predicts this red (it ran the same gate at handoff), so the red is the gate doing its job on a deliberate raise, not a defect that escaped.
+- `gate` (two runs): red, not caused by code in this diff. It is the required roll-up. The run at 10:47Z failed with `FAIL budget-raise-gate / budget-raise-gate: failure (this run)`, so it is red only because of the check above. The run at 10:48Z failed with exit code 3 and `reset_epoch=1794135167`, the GitHub API rate-limit stop, so it measured nothing. Both clear when the raise is approved and the gate is re-run after the limit resets. Cheaper detector: none; `gate` aggregates the other contexts by design, and `prepr.sh` cannot see the API budget.
+- `pr-contract / pr-contract`: red, a defect of the previous body, not of the code. Its log reads `[pr-body] check budget-raise-gate / budget-raise-gate is red and ## Red checks does not name it`; the old body named the check as bare `budget-raise-gate`, and the contract matches the exact check-run name. This body names every check by its exact run name. Cheaper detector: `tools/pr/prepr.sh <body>`'s body check, which runs the same `checkPrBody` rule but only sees reds that exist when it runs. The budget-raise-gate red did not exist at handoff, so the check had nothing to match; the standing cost is nil, since the contract already runs on every body push.
+- `tools/pr/prepr.sh` in this seat's earlier run: one refusal, `closures: failed while being recorded: tests/entities.py (exit 1)`, because the cloud `venv-ci` then had no `homeassistant` module (toolchain gap). It is not a check run on this head, and CI records the closure.
 
 ## Carries
 

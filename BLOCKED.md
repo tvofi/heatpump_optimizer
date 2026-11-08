@@ -1,7 +1,11 @@
-# BLOCKED: r10-round-playbook body (landed-carry arm)
+# BLOCKED: r10-round-playbook body re-take, body_push refused
 
-Code head is pushed at handoff/r10-round-playbook (carry 26 answered; policy_lint 0 errors; brief_lint rc=0). The review packet and `carry_audit.py check` (14 routed, 0 unrouted) now pass. `body_push.sh` still refuses at the landed-carry arm: `CARRY-LANDED: 13 missing`. Each is a forward-carry to R10-ROUND-PLAYBOOK-FINAL that must be on the round roster before the body can be pushed; a roster write is outside this seat's refs.
+The body is re-taken at PR head 8d4ff2f2 as BODY.md beside this file; `prepr.sh --body-check` on it prints `pr-body ok: PR-BODY: 0 error(s)`, carry ok, figures ok, ref_privacy ok. No red is caused by code in this diff: `budget-raise-gate / budget-raise-gate` is the deliberate raise (named and answered), `gate` rolls it up (one run also hit the API rate-limit stop), and `pr-contract / pr-contract` failed on the old body naming the check bare.
 
-Needed from the orchestrator: run `python3 tools/audit/carry_audit.py land-ops --body BODY.md --topic r10-round-playbook` (output = 13 `append-carry R10-ROUND-PLAYBOOK-FINAL` ops) through the roster ops, then `bash tools/audit/seat/body_push.sh r10-round-playbook BODY.md` with the BODY.md beside this file (retaken at the new head).
+`bash tools/audit/seat/body_push.sh r10-round-playbook BODY.md`, run from a worktree at 8d4ff2f2, refused:
 
-Also: prepr.sh rc=1 only on `closures: tests/entities.py` because this environment's venv-ci has no `homeassistant` (toolchain gap); every other step was ok.
+    body_push: handoff/r10-round-playbook is at 73929b827531, this checkout at 8d4ff2f25...; push the code, then the body
+
+The code ref handoff/r10-round-playbook is at 73929b82, and the PR head 8d4ff2f2 (a main merge plus the app's delivery-row commit) is ahead of it. This seat was told not to touch code and not to override a refusal, so it did not move the handoff ref.
+
+Needed from the orchestrator: fast-forward handoff/r10-round-playbook to 8d4ff2f2 (or run body_push.sh from a seat allowed to), then `bash tools/audit/seat/body_push.sh r10-round-playbook BODY.md`. The earlier landed-carry arm (`CARRY-LANDED: 13 missing`) may still refuse after that and needs the roster ops named in the previous BLOCKED.md.
