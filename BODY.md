@@ -1,4 +1,4 @@
-Owner ruling (tvofi, 2026-11-07, triage P419, batch 136 entry 427, carry 0): a fixer hands off at its first clean `prepr.sh` head and merges origin/main only when `git merge-tree --write-tree origin/main HEAD` conflicts; a reviewer blocks on main only on a merge-tree conflict. The rendered fixer prompt (`tools/audit/seat/cloud_dispatch.py`) no longer instructs a re-merge and second prepr run on a moved main; the rendered reviewer prompt and `fix-review.md` step 13 block on main only on a merge-tree conflict. `fixer.md` already states the conditional rule (line 93), so no carry to R10-FIXER-MD-SPELLING-CORPUS is owed. The `--preamble` flag is not built (unmeasured benefit). Instrument doc updated. fix-review.md is code-owned policy and merges under mandate 6715477401 or on tvofi review.
+Carry 1 (the group's only carry) is built in full. Owner ruling (tvofi, 2026-11-07, triage P419, batch 136 entry 427, carry 0): a fixer hands off at its first clean `prepr.sh` head and merges origin/main only when `git merge-tree --write-tree origin/main HEAD` conflicts; a reviewer blocks on main only on a merge-tree conflict. The rendered fixer prompt (`tools/audit/seat/cloud_dispatch.py`) no longer instructs a re-merge and second prepr run on a moved main; the rendered reviewer prompt and `fix-review.md` step 13 block on main only on a merge-tree conflict. `fixer.md` already states the conditional rule (line 93), so no carry to R10-FIXER-MD-SPELLING-CORPUS is owed. The `--preamble` flag is not built (unmeasured benefit). Instrument doc updated. fix-review.md is code-owned policy and merges under mandate 6715477401 or on tvofi review.
 
 ## Head
 
@@ -27,3 +27,7 @@ none
 ## Friction
 
 none
+
+## Approval
+
+Owed, not yet given: this diff changes `dev/governance/roles/fix-review.md` (step 13, one sentence). The change implements tvofi's own 2026-11-07 ruling quoted in the carry; it merges on the orchestrator's approval under mandate 6715477401 or on tvofi's review. No approval is claimed here.
