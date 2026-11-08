@@ -1,0 +1,3 @@
+RESULT realistic-refusal old-tail names ERROR: False ::  | TOTAL: 3 error(s) across 1 file(s) | the commit is local at abc in /w (detached); nothing pushed
+RESULT realistic-refusal new refusal_tail names ERROR: True :: ERROR   [R10-PREPR-CAP] path:line: tools/audit/seat/bus.sh:999999: line 999999 is past end of file (2046 lines) | CARRY: 0 carry file(s) (dev/programme/carries/carry-<issue>.json) |  | TOTAL: 3 error(
+RESULT self-test fixture: old tail already names ERROR: True
